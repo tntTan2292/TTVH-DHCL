@@ -1,69 +1,70 @@
-import React, { useEffect, useState } from 'react';
-import api from '../api/client';
+import { useNavigate } from 'react-router-dom';
 
-export default function BcvhTable({ refreshTrigger, dateRange }) {
-    const [ranking, setRanking] = useState([]);
+export default function BcvhTable({ data }) {
+    const navigate = useNavigate();
 
-    useEffect(() => {
-        async function fetchRanking() {
-            try {
-                const res = await api.get('/kpi/bcvh-ranking', {
-                    params: dateRange
-                });
-                if (res.data.success) setRanking(res.data.data);
-            } catch (err) {
-                console.error("Failed to fetch BCVH ranking", err);
-            }
-        }
-        fetchRanking();
-    }, [refreshTrigger, dateRange]);
+    if (!data || data.length === 0) {
+        return (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
+                Không có dữ liệu
+            </div>
+        );
+    }
 
-    const getBadgeColor = (rate) => {
-        if (rate >= 70) return 'bg-green-100 text-green-800';
-        if (rate >= 60) return 'bg-pink-100 text-pink-800';
-        if (rate >= 50) return 'bg-yellow-100 text-yellow-800';
-        return 'bg-red-100 text-red-800';
+    const getColorClass = (kpi) => {
+        if (kpi >= 70) return 'bg-green-100 text-green-800 font-bold';
+        if (kpi >= 60) return 'bg-pink-100 text-pink-800 font-bold';
+        if (kpi >= 50) return 'bg-yellow-100 text-yellow-800 font-bold';
+        return 'bg-red-100 text-red-800 font-bold';
+    };
+
+    const handleRowClick = (ma_bcvh) => {
+        navigate(`/f13/route-ranking?ma_bcvh=${ma_bcvh}`);
     };
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-800">Bảng xếp hạng BCVH</h3>
-            </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-600">
-                    <thead className="bg-gray-50 text-gray-700 uppercase font-semibold">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
                         <tr>
-                            <th className="px-6 py-4">XH</th>
-                            <th className="px-6 py-4">Tên BCVH</th>
-                            <th className="px-6 py-4 text-right">Tổng BG</th>
-                            <th className="px-6 py-4 text-right">Đạt</th>
-                            <th className="px-6 py-4 text-right">Không đạt</th>
-                            <th className="px-6 py-4 text-right">KPI (%)</th>
+                            <th className="px-6 py-4 font-bold text-center">XH</th>
+                            <th className="px-6 py-4 font-bold">BCVH</th>
+                            <th className="px-6 py-4 font-bold text-right">Tổng BG</th>
+                            <th className="px-6 py-4 font-bold text-right text-green-600">Đạt</th>
+                            <th className="px-6 py-4 font-bold text-right text-red-600">Không đạt</th>
+                            <th className="px-6 py-4 font-bold text-center">F1.3</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {ranking.map((item) => (
-                            <tr key={item.ma_bcvh} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4 font-medium">{item.rank}</td>
-                                <td className="px-6 py-4">{item.ten_bcvh}</td>
-                                <td className="px-6 py-4 text-right">{item.total_bg.toLocaleString()}</td>
-                                <td className="px-6 py-4 text-right text-blue-600">{item.passed_bg.toLocaleString()}</td>
-                                <td className="px-6 py-4 text-right text-red-500">{item.failed_bg.toLocaleString()}</td>
-                                <td className="px-6 py-4 text-right">
-                                    <span className={`px-3 py-1 rounded-full font-semibold ${getBadgeColor(item.kpi_rate)}`}>
-                                        {item.kpi_rate}%
+                    <tbody>
+                        {data.map((row) => (
+                            <tr 
+                                key={row.ma_bcvh} 
+                                onClick={() => handleRowClick(row.ma_bcvh)}
+                                className="border-b border-gray-50 hover:bg-blue-50 transition-colors cursor-pointer group"
+                            >
+                                <td className="px-6 py-3 text-center text-gray-500 font-medium">
+                                    {row.rank}
+                                </td>
+                                <td className="px-6 py-3 font-semibold text-gray-800 group-hover:text-vnpost-blue transition-colors">
+                                    {row.ten_bcvh}
+                                </td>
+                                <td className="px-6 py-3 text-right font-medium text-gray-600">
+                                    {row.total_bg.toLocaleString()}
+                                </td>
+                                <td className="px-6 py-3 text-right text-green-600 font-medium">
+                                    {row.passed_bg.toLocaleString()}
+                                </td>
+                                <td className="px-6 py-3 text-right text-red-600 font-medium">
+                                    {row.failed_bg.toLocaleString()}
+                                </td>
+                                <td className="px-6 py-3 text-center">
+                                    <span className={`px-3 py-1 rounded-full text-xs ${getColorClass(row.kpi_rate)}`}>
+                                        {row.kpi_rate}%
                                     </span>
                                 </td>
                             </tr>
                         ))}
-                        {ranking.length === 0 && (
-                            <tr>
-                                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                                    Không có dữ liệu trong khoảng thời gian này.
-                                </td>
-                            </tr>
-                        )}
                     </tbody>
                 </table>
             </div>
