@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+@theme {
+  --color-vnpost-orange: #F9A51A;
+  --color-vnpost-yellow: #FFB900;
+  --color-vnpost-blue: #0054A6;
+  --color-vnpost-blue-dark: #003E7E;
+  --color-vnpost-gray: #E5E7EB;
+  --color-vnpost-bg: #F3F4F6;
+  --font-sans: "Inter", sans-serif;
+}

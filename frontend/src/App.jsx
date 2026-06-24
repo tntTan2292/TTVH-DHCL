@@ -1,53 +1,38 @@
-import React, { useState } from 'react';
-import UploadWidget from './components/UploadWidget';
-import KpiCards from './components/KpiCards';
-import BcvhTable from './components/BcvhTable';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MainLayout from './layouts/MainLayout';
+import DashboardHome from './pages/DashboardHome';
+import F13Dashboard from './pages/F13Dashboard';
+import F13BcvhRanking from './pages/F13BcvhRanking';
+import F13RouteRanking from './pages/F13RouteRanking';
+import F13RCA from './pages/F13RCA';
+import F13Pareto from './pages/F13Pareto';
+import F11Quality from './pages/F11Quality';
+import F12Quality from './pages/F12Quality';
+import F41Quality from './pages/F41Quality';
+import DataImportCenter from './pages/DataImportCenter';
+import KpiConfiguration from './pages/KpiConfiguration';
+import SystemInformation from './pages/SystemInformation';
 
 function App() {
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
-  // Fixed demo date range based on our fake data files F1.3-2026.06.17.xlsx
-  const [dateRange] = useState({
-    startDate: '2026-06-01',
-    endDate: '2026-06-30'
-  });
-
-  const handleUploadSuccess = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 font-sans p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* Header Section */}
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Executive Dashboard</h1>
-            <p className="text-gray-500 mt-1">Hệ thống Điều hành Chất lượng TTVH (MVP Demo)</p>
-          </div>
-          <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 text-sm font-medium text-gray-600">
-            Kỳ báo cáo: {dateRange.startDate} — {dateRange.endDate}
-          </div>
-        </header>
-
-        {/* Upload Widget */}
-        <section>
-          <UploadWidget onUploadSuccess={handleUploadSuccess} />
-        </section>
-
-        {/* KPI Cards */}
-        <section>
-          <KpiCards refreshTrigger={refreshTrigger} dateRange={dateRange} />
-        </section>
-
-        {/* BCVH Ranking Table */}
-        <section>
-          <BcvhTable refreshTrigger={refreshTrigger} dateRange={dateRange} />
-        </section>
-        
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<DashboardHome />} />
+          <Route path="f13/dashboard" element={<F13Dashboard />} />
+          <Route path="f13/bcvh-ranking" element={<F13BcvhRanking />} />
+          <Route path="f13/route-ranking" element={<F13RouteRanking />} />
+          <Route path="f13/rca" element={<F13RCA />} />
+          <Route path="f13/pareto" element={<F13Pareto />} />
+          <Route path="f11" element={<F11Quality />} />
+          <Route path="f12" element={<F12Quality />} />
+          <Route path="f41" element={<F41Quality />} />
+          <Route path="import" element={<DataImportCenter />} />
+          <Route path="kpi-config" element={<KpiConfiguration />} />
+          <Route path="system-info" element={<SystemInformation />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 
