@@ -1,0 +1,5 @@
+DataFKCL/
+Data DKCL/
+*.db
+*.sqlite
+*.sqlite3
