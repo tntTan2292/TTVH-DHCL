@@ -1,30 +1,51 @@
-const { processImport } = require('../services/importService');
+const { get, all } = require('../config/db');
 const fs = require('fs');
+const path = require('path');
 
-async function handleImport(req, res) {
+const INCOMING_DIR = path.resolve(process.cwd(), '../DataFKCL/F1.3/Incoming');
+
+async function getImportStatus(req, res) {
     try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, error: 'No file uploaded' });
+        // Đếm số file trong Incoming
+        let pendingFiles = 0;
+        if (fs.existsSync(INCOMING_DIR)) {
+            pendingFiles = fs.readdirSync(INCOMING_DIR).filter(f => f.endsWith('.xlsx')).length;
         }
 
-        const filename = req.file.originalname;
-        const fileBuffer = fs.readFileSync(req.file.path);
+        // Truy vấn DB cho thông kê
+        const statsSql = `
+            SELECT 
+                SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) as successCount,
+                SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failCount,
+                MAX(import_date) as lastImportTime
+            FROM import_log
+        `;
+        const stats = await get(statsSql);
 
-        const result = await processImport(filename, fileBuffer);
+        // Truy vấn danh sách lịch sử gần nhất (top 20)
+        const logsSql = `
+            SELECT id, file_name as ten_file, ngay_do_kiem as ngay_so_lieu, status as trang_thai, total_records as so_luong_bg, import_date as ngay_import
+            FROM import_log
+            ORDER BY id DESC
+            LIMIT 20
+        `;
+        const logs = await all(logsSql);
 
-        // Clean up the uploaded file to save space (since we stored it in DB)
-        // In a real scenario we might keep it, but for now we clean up.
-        fs.unlinkSync(req.file.path);
-
-        res.json(result);
+        res.json({
+            success: true,
+            data: {
+                pendingCount: pendingFiles,
+                successCount: stats.successCount || 0,
+                failCount: stats.failCount || 0,
+                lastImport: stats.lastImportTime || null,
+                recentLogs: logs
+            }
+        });
     } catch (error) {
-        if (req.file) {
-            fs.unlinkSync(req.file.path);
-        }
         res.status(500).json({ success: false, error: error.message });
     }
 }
 
 module.exports = {
-    handleImport
+    getImportStatus
 };
