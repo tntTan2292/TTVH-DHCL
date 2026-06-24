@@ -29,9 +29,9 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         { name: 'Pareto', path: '/f13/pareto', icon: <PieChart size={18} /> },
       ]
     },
-    { name: 'F1.1 Quality', path: '/f11', icon: <Activity size={20} /> },
-    { name: 'F1.2 Quality', path: '/f12', icon: <Activity size={20} /> },
-    { name: 'F4.1 Quality', path: '/f41', icon: <Activity size={20} /> },
+    { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={20} /> },
+    { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={20} /> },
+    { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={20} /> },
     {
       title: 'System Administration',
       icon: <Settings size={20} />,
