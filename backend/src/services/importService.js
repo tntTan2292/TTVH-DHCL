@@ -1,109 +1,78 @@
-const { run, get } = require('../config/db');
-const { extractDateFromFilename, parseF13Excel } = require('./excelParser');
+'use strict';
 
-async function processImport(filename, fileBuffer) {
-    // 1. Validation: Extract Date
+/**
+ * importService.js
+ *
+ * API-facing import orchestrator.
+ * Bridges HTTP upload request → excelParser → importParsedData → response.
+ *
+ * Technical Design § 2.2 API 1: POST /api/f13/upload
+ * Response: { success: boolean, total: number, inserted: number, errors: number }
+ *
+ * SSOT data_blueprint.md § 4 (Reimport):
+ *   If data already exists for ngay_do_kiem AND forceReimport = false:
+ *   return { requiresConfirmation: true } so the UI can prompt the user.
+ *   If forceReimport = true: proceed with DELETE + re-import.
+ */
+
+const { get }                                            = require('../config/db');
+const { extractDateFromFilename, parseF13Excel }         = require('./excelParser');
+const { importParsedData }                               = require('./importProcessor');
+
+/**
+ * Process an uploaded F1.3 Excel file.
+ *
+ * @param {string}  filename       Original filename (e.g. 'F1.3-2026.06.18.xlsx')
+ * @param {Buffer}  fileBuffer     Raw file buffer from multer (memoryStorage)
+ * @param {boolean} forceReimport  true = overwrite existing data for that date
+ *
+ * @returns {Promise<{
+ *   requiresConfirmation?: boolean,   — if true, caller must re-submit with forceReimport=true
+ *   ngay_do_kiem?        : string,
+ *   success?             : boolean,
+ *   total?               : number,
+ *   inserted?            : number,
+ *   errors?              : number
+ * }>}
+ */
+async function processImport(filename, fileBuffer, forceReimport = false) {
+    // Step 1: Validate filename and extract ngay_do_kiem (SSOT: from filename only)
     const ngay_do_kiem = extractDateFromFilename(filename);
-    
-    // 2. Validation & Parse: Extract Rows and Columns
-    const { parsedData, dbColumns } = parseF13Excel(fileBuffer);
 
-    // 3. Validation: Duplicate Handling (Option B) In-Memory
-    const validRows = [];
-    const duplicateBgs = [];
-    const bgSet = new Set();
+    // Step 2: Parse Excel → 41-column static mapping
+    const { parsedData, totalParsed } = parseF13Excel(fileBuffer);
 
-    for (const row of parsedData) {
-        const ma_bg = row.ma_bg;
-        if (!ma_bg) continue; // Skip invalid rows
-        
-        if (bgSet.has(ma_bg)) {
-            duplicateBgs.push(ma_bg);
-        } else {
-            bgSet.add(ma_bg);
-            validRows.push(row);
-        }
-    }
-
-    const total_records = validRows.length;
-    const error_records = duplicateBgs.length;
-
-    // ==========================================
-    // TRANSACTION BOUNDARY STARTS
-    // ==========================================
-    await run('BEGIN TRANSACTION');
-
-    try {
-        // 4. Reimport Workflow (SUPERSEDED logic)
-        const existingLog = await get('SELECT id FROM import_log WHERE ngay_do_kiem = ? AND status = "SUCCESS"', [ngay_do_kiem]);
-        
-        if (existingLog) {
-            // Mark old log as SUPERSEDED to preserve audit trail
-            await run('UPDATE import_log SET status = "SUPERSEDED" WHERE ngay_do_kiem = ? AND status = "SUCCESS"', [ngay_do_kiem]);
-            // Purge old data for this day
-            await run('DELETE FROM fact_f13 WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
-        }
-
-        // 5. Insert New Import Log
-        const logResult = await run(
-            'INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records) VALUES (?, ?, ?, ?, ?, ?)',
-            [filename, ngay_do_kiem, 'SUCCESS', total_records, error_records, 0]
+    // Step 3: SSOT Reimport check — if date already has data and user hasn't confirmed
+    if (!forceReimport) {
+        const existing = await get(
+            `SELECT id FROM import_log WHERE ngay_do_kiem = ? AND status = 'SUCCESS' LIMIT 1`,
+            [ngay_do_kiem]
         );
-        const import_log_id = logResult.lastID;
-
-        // 6. Bulk Insert Valid Rows
-        // We use batching to respect SQLite variable limits.
-        const batchSize = 100;
-        
-        for (let i = 0; i < validRows.length; i += batchSize) {
-            const batch = validRows.slice(i, i + batchSize);
-            
-            const placeholders = batch.map(() => `(${dbColumns.map(() => '?').join(', ')}, ?, ?)`).join(', ');
-            let values = [];
-            
-            batch.forEach(row => {
-                dbColumns.forEach(col => values.push(row[col]));
-                values.push(ngay_do_kiem);
-                values.push(import_log_id);
-            });
-
-            // STRICT RULE: No "INSERT OR IGNORE" used.
-            // If the UNIQUE(ngay_do_kiem, ma_bg) constraint is violated here, it means our in-memory validation failed.
-            // The constraint is the final protection layer. If it triggers, it throws an error and rolls back the entire transaction.
-            const sql = `INSERT INTO fact_f13 (${dbColumns.join(', ')}, ngay_do_kiem, import_log_id) VALUES ${placeholders}`;
-            await run(sql, values);
+        if (existing) {
+            // Signal to the API layer to prompt the user for confirmation
+            return {
+                requiresConfirmation: true,
+                ngay_do_kiem
+            };
         }
-
-        // ==========================================
-        // TRANSACTION BOUNDARY ENDS
-        // ==========================================
-        await run('COMMIT');
-
-        return {
-            success: true,
-            ngay_do_kiem,
-            inserted: total_records,
-            errors: duplicateBgs
-        };
-
-    } catch (error) {
-        // Rollback EVERYTHING if any step fails (e.g. Unique Constraint violation)
-        await run('ROLLBACK');
-        
-        // Log the failure in an autonomous context (outside the rolled-back transaction)
-        try {
-            await run(
-                'INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records) VALUES (?, ?, ?, ?, ?, ?)',
-                [filename, ngay_do_kiem, 'FAILED', 0, 0, 0]
-            );
-        } catch (logErr) {
-            console.error("Failed to write FAILED log:", logErr);
-        }
-        
-        throw error;
     }
+
+    // Step 4: Import to DB — delegate entirely to importParsedData (Task 2.2)
+    // TD § 2.1: INSERT OR IGNORE, error_records = total_parsed - total_inserted
+    const result = await importParsedData({
+        parsedData,
+        ngay_do_kiem,
+        filename,
+        forceReimport
+    });
+
+    // Step 5: Return TD § 2.2 API 1 response shape
+    return {
+        success : result.success,
+        total   : result.total,
+        inserted: result.inserted,
+        errors  : result.errors      // error_records = duplicates skipped by IGNORE
+    };
 }
 
-module.exports = {
-    processImport
-};
+module.exports = { processImport };
