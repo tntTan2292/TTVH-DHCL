@@ -82,6 +82,10 @@ CREATE TABLE IF NOT EXISTS fact_f13 (
     FOREIGN KEY(import_log_id) REFERENCES import_log(id)
 );
 
--- Indexes
+-- Indexes (Pre-existing covering indexes)
 CREATE INDEX IF NOT EXISTS idx_f13_date_bcvh_covering ON fact_f13(ngay_do_kiem, ma_bcvh, ket_qua_f13);
 CREATE INDEX IF NOT EXISTS idx_f13_date_tuyen_covering ON fact_f13(ngay_do_kiem, ma_tuyen, ket_qua_f13);
+
+-- Indexes (Technical Design 1.3)
+CREATE INDEX IF NOT EXISTS idx_ngay_do_kiem ON fact_f13(ngay_do_kiem);
+CREATE INDEX IF NOT EXISTS idx_bcvh_ngay ON fact_f13(ma_bcvh, ngay_do_kiem);
