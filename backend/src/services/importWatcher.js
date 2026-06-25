@@ -4,7 +4,7 @@ const fs = require('fs');
 const { processImportFile } = require('./importProcessor'); // We will create this
 
 // Define directories
-const BASE_DIR = path.resolve(process.cwd(), '../DataFKCL/F1.3');
+const BASE_DIR = path.resolve(process.cwd(), '../Data DKCL/F1.3');
 const INCOMING_DIR = path.join(BASE_DIR, 'Incoming');
 const PROCESSED_DIR = path.join(BASE_DIR, 'Processed');
 const ERROR_DIR = path.join(BASE_DIR, 'Error');
