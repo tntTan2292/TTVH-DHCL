@@ -20,37 +20,37 @@ Một chỉ số chỉ có duy nhất một công thức. Single Source Of Truth
 
 ## 2. Chỉ Số Điều Hành
 
-### F13_101: Tổng BG
-- **Công thức**: Tổng số BG trong tập dữ liệu
+### F13_101: Tổng Bưu gửi
+- **Công thức**: Tổng số Bưu gửi trong tập dữ liệu
 
-### F13_102: BG Đạt
-- **Công thức**: Số BG có kết quả Đạt
+### F13_102: Bưu gửi Đạt
+- **Công thức**: Số Bưu gửi có kết quả Đạt
 
-### F13_103: BG Không đạt
-- **Công thức**: Số BG có kết quả Không đạt
+### F13_103: Bưu gửi Không đạt
+- **Công thức**: Số Bưu gửi có kết quả Không đạt
 
 ### F13_104: Tỷ lệ Không đạt
-- **Công thức**: `BG Không đạt / Tổng BG`
+- **Công thức**: `Bưu gửi Không đạt / Tổng Bưu gửi`
 
 ## 3. Impact Analysis
 
-### F13_201: Fail toàn mạng
-- **Công thức**: Tổng BG Không đạt toàn mạng
+### F13_201: Không đạt toàn mạng
+- **Công thức**: Tổng Bưu gửi Không đạt toàn mạng
 
-### F13_202: % Fail toàn mạng
-- **Công thức**: `BG Không đạt BCVH / Fail toàn mạng`
+### F13_202: % Không đạt toàn mạng
+- **Công thức**: `Bưu gửi Không đạt BCVH / Không đạt toàn mạng`
 - **Mục đích**: Xác định BCVH kéo giảm KPI nhiều nhất.
 
 ## 4. Phân Tích Tuyến Phát
 
 ### F13_501: F1.3 tuyến phát
-- **Công thức**: Theo kết quả BG thuộc tuyến.
+- **Công thức**: Theo kết quả Bưu gửi thuộc tuyến.
 
-### F13_502: BG Không đạt tuyến
-- **Công thức**: Số BG Không đạt thuộc tuyến
+### F13_502: Bưu gửi Không đạt tuyến
+- **Công thức**: Số Bưu gửi Không đạt thuộc tuyến
 
-### F13_503: Tỷ trọng Fail tuyến
-- **Công thức**: `Fail tuyến / Fail toàn mạng`
+### F13_503: Tỷ trọng Không đạt tuyến
+- **Công thức**: `Bưu gửi Không đạt tuyến / Không đạt toàn mạng`
 
 ## 5. So Sánh Thời Gian (SWC)
 - **Ghi chú SWC (Same Weekday Comparison)**: 
