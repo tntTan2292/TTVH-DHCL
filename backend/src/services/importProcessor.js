@@ -129,13 +129,14 @@ async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimp
             totalInserted += result.changes;
         }
 
-        // ── Step 4: Update import_log with accurate error count ───────────────
-        // TD § 2.1: error_records = total_parsed - total_inserted
-        const errorRecords = totalParsed - totalInserted;
+        // ── Step 4: Update import_log with accurate skip/error counts ─────────
+        // New Business Rule: skipped_records = duplicates, error_records = real errors
+        const skippedRecords = totalParsed - totalInserted;
+        const errorRecords = 0; // Success path = 0 real errors
 
         await run(
-            'UPDATE import_log SET error_records = ? WHERE id = ?',
-            [errorRecords, import_log_id]
+            'UPDATE import_log SET skipped_records = ?, error_records = ? WHERE id = ?',
+            [skippedRecords, errorRecords, import_log_id]
         );
 
         // ── Step 5: Commit ─────────────────────────────────────────────────────
@@ -145,8 +146,8 @@ async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimp
             success      : true,
             total        : totalParsed,
             inserted     : totalInserted,
+            skipped      : skippedRecords,
             errors       : errorRecords,
-            skipped      : 0,
             import_log_id: import_log_id
         };
 
@@ -167,8 +168,8 @@ async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimp
             await run(
                 `INSERT INTO import_log
                     (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-                 VALUES (?, ?, 'FAILED', ?, 0, 0)`,
-                [filename, ngay_do_kiem, totalParsed]
+                 VALUES (?, ?, 'FAILED', ?, ?, 0)`,
+                [filename, ngay_do_kiem, totalParsed, totalParsed]
             );
         } catch (logErr) {
             console.error('[importProcessor] Could not write FAILED log:', logErr.message);

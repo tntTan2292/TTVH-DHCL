@@ -99,6 +99,7 @@ async function getImportStatus(req, res) {
                    status       as trang_thai,
                    total_records  as so_luong_bg,
                    error_records  as so_loi,
+                   skipped_records as so_bi_bo_qua,
                    created_at     as ngay_import
             FROM import_log
             ORDER BY id DESC

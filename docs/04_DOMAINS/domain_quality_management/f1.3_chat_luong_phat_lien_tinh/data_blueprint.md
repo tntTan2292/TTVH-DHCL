@@ -66,6 +66,14 @@ Khi import file có ngày đo kiểm đã tồn tại:
 - **Luật duy nhất (Unique Constraint)**: Một Bưu gửi (`ma_bg`) chỉ được phép xuất hiện 1 lần trong một Ngày đo kiểm (`ngay_do_kiem`).
 - **Hành vi xử lý lỗi trùng lặp (Duplicate Behavior)**:
   - Nhập (Import) các dòng dữ liệu hợp lệ.
-  - Bỏ qua các dòng bị trùng lặp và ghi nhận lại danh sách lỗi để cảnh báo cho người quản trị.
+  - Bỏ qua các dòng bị trùng lặp và phân loại là `skipped_records`.
   - Tuyệt đối không hủy bỏ toàn bộ quá trình nạp file chỉ vì một số dòng bị trùng lặp.
+
+## 6. Record Classification (Quy tắc phân loại bản ghi)
+- **total_records**: Tổng số bản ghi hợp lệ đọc từ Excel.
+- **inserted_records**: Số bản ghi insert thành công vào bảng `fact_f13`.
+- **skipped_records**: Số bản ghi bị bỏ qua có chủ đích (duplicate / INSERT OR IGNORE).
+- **error_records**: Lỗi thực sự (validation error, database error, transaction failure...).
+- **Công thức tính**: `total_records = inserted_records + skipped_records + error_records`
+
 *(Chi tiết triển khai kỹ thuật: Xem tại tài liệu `05_TECHNICAL_IMPLEMENTATION/`)*

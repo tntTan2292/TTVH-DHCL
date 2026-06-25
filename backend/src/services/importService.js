@@ -71,7 +71,8 @@ async function processImport(filename, fileBuffer, forceReimport = false) {
         success : result.success,
         total   : result.total,
         inserted: result.inserted,
-        errors  : result.errors      // error_records = duplicates skipped by IGNORE
+        skipped : result.skipped,
+        errors  : result.errors
     };
 }
 

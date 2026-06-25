@@ -221,8 +221,9 @@ async function runTests() {
 
         assert('total = 3 (all parsed rows)', result.total    === 3,   `Got: ${result.total}`);
         assert('inserted = 2 (VN001 skipped)', result.inserted === 2,   `Got: ${result.inserted}`);
-        assert('errors = 1 (VN001 duplicate)', result.errors   === 1,   `Got: ${result.errors}`);
-        assert('TD: errors = total - inserted', result.errors === result.total - result.inserted);
+        assert('skipped = 1 (VN001 duplicate)', result.skipped === 1,   `Got: ${result.skipped}`);
+        assert('errors = 0 (no real errors)', result.errors   === 0,   `Got: ${result.errors}`);
+        assert('BR: skipped = total - inserted', result.skipped === result.total - result.inserted);
 
         // SSOT: process continues despite duplicate — 5 rows total in DB
         const total = await countF13();
@@ -230,7 +231,8 @@ async function runTests() {
 
         // import_log accurately records the skip count
         const log = await get('SELECT * FROM import_log WHERE id = ?', [result.import_log_id]);
-        assert('import_log: error_records = 1', log.error_records === 1, `Got: ${log.error_records}`);
+        assert('import_log: skipped_records = 1', log.skipped_records === 1, `Got: ${log.skipped_records}`);
+        assert('import_log: error_records = 0', log.error_records === 0, `Got: ${log.error_records}`);
 
     } catch (e) {
         console.error('  E2E-2 UNEXPECTED ERROR:', e.message);
@@ -321,23 +323,24 @@ async function runTests() {
             forceReimport: false
         });
 
-        // Classification rules per Technical Design § 2.1:
+        // Classification rules per New Business Rule:
         const totalFromParser    = parsedData.length;            // 4 rows from parse step
         const insertedInDb       = result.inserted;              // 2 (CLASS001, CLASS002)
-        const duplicatesSkipped  = result.errors;                // 2 (dup CLASS001, dup CLASS002)
-        const tdCheck            = result.total - result.inserted; // must equal errors
+        const duplicatesSkipped  = result.skipped;               // 2 (dup CLASS001, dup CLASS002)
+        const tdCheck            = result.total - result.inserted; // must equal skipped
 
         assert('Classification: total = 4 (all valid rows)',         result.total    === 4,   `Got: ${result.total}`);
         assert('Classification: inserted = 2 (unique ma_bg)',        result.inserted === 2,   `Got: ${result.inserted}`);
-        assert('Classification: errors = 2 (duplicate rows skipped)', result.errors   === 2,   `Got: ${result.errors}`);
-        assert('TD § 2.1: errors = total - inserted',                 tdCheck === result.errors);
-        assert('Classification: total = inserted + errors',           result.total === result.inserted + result.errors);
+        assert('Classification: skipped = 2 (duplicate rows skipped)', result.skipped   === 2,   `Got: ${result.skipped}`);
+        assert('Classification: errors = 0 (no real errors)',        result.errors    === 0,   `Got: ${result.errors}`);
+        assert('BR: skipped = total - inserted',                      tdCheck === result.skipped);
+        assert('Classification: total = inserted + skipped + errors', result.total === result.inserted + result.skipped + result.errors);
 
         // Verify import_log matches
         const log = await get('SELECT * FROM import_log WHERE id = ?', [result.import_log_id]);
-        assert('import_log total_records matches result.total',   log.total_records  === result.total);
-        assert('import_log error_records matches result.errors',  log.error_records  === result.errors);
-        assert('import_log skipped_records = 0 (reserved)',       log.skipped_records === 0);
+        assert('import_log total_records matches result.total',     log.total_records  === result.total);
+        assert('import_log skipped_records matches result.skipped', log.skipped_records === result.skipped);
+        assert('import_log error_records = 0',                      log.error_records  === 0);
 
         // Verify only 2 rows in fact_f13
         const dbCount = await countF13();
@@ -346,9 +349,9 @@ async function runTests() {
         console.log('\n  📊 Classification Summary:');
         console.log(`     total_records    = ${result.total}     (all rows from parsedData)`);
         console.log(`     inserted         = ${result.inserted}     (rows committed to fact_f13)`);
-        console.log(`     error_records    = ${result.errors}     (rows skipped by INSERT OR IGNORE)`);
-        console.log(`     skipped_records  = ${result.skipped}     (reserved, always 0)`);
-        console.log(`     Formula: error_records = total - inserted = ${result.total} - ${result.inserted} = ${result.errors} ✅`);
+        console.log(`     skipped_records  = ${result.skipped}     (rows skipped by INSERT OR IGNORE)`);
+        console.log(`     error_records    = ${result.errors}     (real errors)`);
+        console.log(`     Formula: total = inserted + skipped + errors ✅`);
 
     } catch (e) {
         console.error('  E2E-5 UNEXPECTED ERROR:', e.message);
@@ -413,6 +416,7 @@ async function runTests() {
         assert('API response: has total field',    'total'    in result, `Keys: ${Object.keys(result)}`);
         assert('API response: has inserted field', 'inserted' in result, `Keys: ${Object.keys(result)}`);
         assert('API response: has errors field',   'errors'   in result, `Keys: ${Object.keys(result)}`);
+        assert('API response: has skipped field',  'skipped'  in result, `Keys: ${Object.keys(result)}`);
         assert('API response: success = true',     result.success === true);
         assert('API response: all fields are numbers', 
             typeof result.total === 'number' &&

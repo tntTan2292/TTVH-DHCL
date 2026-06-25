@@ -137,10 +137,11 @@ async function runTests() {
         assert('success = true',                result.success   === true);
         assert('total = 3',                     result.total     === 3,    `Got: ${result.total}`);
         assert('inserted = 2 (BG001 ignored)',  result.inserted  === 2,    `Got: ${result.inserted}`);
-        assert('errors = 1 (BG001 duplicate)',  result.errors    === 1,    `Got: ${result.errors}`);
+        assert('skipped = 1 (BG001 duplicate)', result.skipped   === 1,    `Got: ${result.skipped}`);
+        assert('errors = 0 (no real errors)',   result.errors    === 0,    `Got: ${result.errors}`);
 
-        // TD § 2.1: error_records = total_parsed - total_inserted
-        assert('TD: errors = total - inserted', result.errors === result.total - result.inserted);
+        // New BR: skipped_records = total_parsed - total_inserted
+        assert('BR: skipped = total - inserted', result.skipped === result.total - result.inserted);
 
         // Verify DB: now 5 rows total (3 from Test1 + 2 new)
         const rowCount = await countRows();
@@ -149,7 +150,8 @@ async function runTests() {
         // Verify import_log accurate counts
         const log = await getLatestLog();
         assert('import_log total_records = 3',   log.total_records === 3, `Got: ${log.total_records}`);
-        assert('import_log error_records = 1',   log.error_records === 1, `Got: ${log.error_records}`);
+        assert('import_log skipped_records = 1', log.skipped_records === 1, `Got: ${log.skipped_records}`);
+        assert('import_log error_records = 0',   log.error_records === 0, `Got: ${log.error_records}`);
 
     } catch (e) {
         console.error('  TEST 2 UNEXPECTED ERROR:', e.message);
@@ -249,8 +251,8 @@ async function runTests() {
         // This validates the table structure used by importParsedData's catch block.
         await run(
             `INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-             VALUES (?, ?, 'FAILED', ?, 0, 0)`,
-            [TEST_FILENAME, TEST_DATE, 1]
+             VALUES (?, ?, 'FAILED', ?, ?, 0)`,
+            [TEST_FILENAME, TEST_DATE, 1, 1]
         );
         const failLog = await get(
             `SELECT * FROM import_log WHERE ngay_do_kiem = ? AND status = 'FAILED' ORDER BY id DESC LIMIT 1`,
@@ -261,7 +263,8 @@ async function runTests() {
         assert('FAILED log file_name matches',                   failLog && failLog.file_name === TEST_FILENAME);
         assert('FAILED log ngay_do_kiem matches',                failLog && failLog.ngay_do_kiem === TEST_DATE);
         assert('FAILED log total_records = 1',                   failLog && failLog.total_records === 1, `Got: ${failLog && failLog.total_records}`);
-        assert('FAILED log error_records = 0 (not yet counted)', failLog && failLog.error_records === 0);
+        assert('FAILED log error_records = 1 (all failed)',      failLog && failLog.error_records === 1);
+        assert('FAILED log skipped_records = 0',                 failLog && failLog.skipped_records === 0);
 
     } catch (e) {
         console.error('  TEST 4B UNEXPECTED ERROR:', e.message);
