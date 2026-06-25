@@ -17,10 +17,10 @@ INSERT INTO sys_kpi_thresholds (level_name, min_value, max_value, color_code) VA
 -- 2. import_log
 CREATE TABLE IF NOT EXISTS import_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_name VARCHAR(255) NOT NULL,
-    ngay_do_kiem DATE NOT NULL,
-    import_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(50) NOT NULL, -- 'SUCCESS', 'FAILED', 'SUPERSEDED'
+    file_name TEXT NOT NULL,
+    ngay_do_kiem TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status TEXT NOT NULL, -- 'SUCCESS', 'FAILED'
     total_records INTEGER DEFAULT 0,
     error_records INTEGER DEFAULT 0,
     skipped_records INTEGER DEFAULT 0
