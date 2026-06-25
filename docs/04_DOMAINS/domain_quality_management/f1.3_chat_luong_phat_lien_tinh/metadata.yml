@@ -1,0 +1,20 @@
+id: "F1.3"
+name: "Chất lượng phát liên tỉnh"
+alias: "PTC/Nộp tiền ≤14 giờ"
+domain: "Quality Management"
+owner_business: "Product Owner"
+owner_technical: "Architect"
+version: "1.0.0"
+status: "Active"
+effective_date: "TODO - Waiting Product Owner"
+expiration_date: ""
+review_cycle: "TODO - Waiting Product Owner"
+data_sources: 
+  - "File chi tiết F1.3 do Tổng công ty cung cấp"
+  - "Dashboard KPI Tổng công ty"
+dependencies: []
+tags: 
+  - "phat"
+  - "lien tinh"
+  - "nop tien"
+priority: "High"

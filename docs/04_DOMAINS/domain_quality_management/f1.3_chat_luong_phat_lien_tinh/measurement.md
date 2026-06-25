@@ -1,0 +1,66 @@
+---
+title: Measurement
+purpose: Công thức tính toán và chỉ số đo lường
+owner: Product Owner
+ssot: True
+dependencies: business_rules.md
+version: 1.0.0
+---
+
+# Measurement & Formulas
+
+Một chỉ số chỉ có duy nhất một công thức. Single Source Of Truth.
+
+## 1. KPI Chính Thức
+
+### F13_001: F1.3
+- **Nguồn**: Dashboard Tổng công ty
+- **Công thức**: Theo Tổng công ty.
+- **Ghi chú**: Không được tự tính lại.
+
+## 2. Chỉ Số Điều Hành
+
+### F13_101: Tổng BG
+- **Công thức**: Tổng số BG trong tập dữ liệu
+
+### F13_102: BG Đạt
+- **Công thức**: Số BG có kết quả Đạt
+
+### F13_103: BG Không đạt
+- **Công thức**: Số BG có kết quả Không đạt
+
+### F13_104: Tỷ lệ Không đạt
+- **Công thức**: `BG Không đạt / Tổng BG`
+
+## 3. Impact Analysis
+
+### F13_201: Fail toàn mạng
+- **Công thức**: Tổng BG Không đạt toàn mạng
+
+### F13_202: % Fail toàn mạng
+- **Công thức**: `BG Không đạt BCVH / Fail toàn mạng`
+- **Mục đích**: Xác định BCVH kéo giảm KPI nhiều nhất.
+
+## 4. Phân Tích Tuyến Phát
+
+### F13_501: F1.3 tuyến phát
+- **Công thức**: Theo kết quả BG thuộc tuyến.
+
+### F13_502: BG Không đạt tuyến
+- **Công thức**: Số BG Không đạt thuộc tuyến
+
+### F13_503: Tỷ trọng Fail tuyến
+- **Công thức**: `Fail tuyến / Fail toàn mạng`
+
+## 5. So Sánh Thời Gian (SWC)
+- **Ghi chú SWC (Same Weekday Comparison)**: 
+  - Chỉ áp dụng cho Dashboard ngày.
+  - Công thức: `Current Date` vs `Current Date - 7 ngày`.
+  - Hiển thị song song: KPI hiện tại, Delta DoD, Delta SWC.
+  - Tuyệt đối không áp dụng SWC cho RCA, Pareto, Drilldown nguyên nhân.
+
+## 6. Phân tích khác (TODO - Waiting Product Owner)
+- Tuần này vs Tuần trước (QĐ8 – Period Comparison Analytics)
+- Tháng này vs Tháng trước
+- 30 ngày gần nhất vs 30 ngày liền trước
+(DEFERRED TO PHASE 1C)
