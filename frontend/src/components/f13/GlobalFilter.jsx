@@ -1,6 +1,17 @@
-import { Filter, Calendar } from 'lucide-react';
+/**
+ * GlobalFilter — TD § 3.1 Component: TimeFilter + BcvhFilter
+ *
+ * business_rules.md § 3:
+ *   Bộ lọc BCVH: "Tất cả" hoặc "Theo BCVH" (chọn từ danh sách BCVH).
+ *   BCVH list được tải động từ API.
+ *
+ * business_rules.md § 4:
+ *   Màu cảnh báo không hardcode — lấy từ Settings Configuration.
+ *   (NOT handled here — belongs to BcvhTable/LegendColor).
+ */
+import { Filter } from 'lucide-react';
 
-export default function GlobalFilter({ filters, onChange }) {
+export default function GlobalFilter({ filters, onChange, bcvhList = [] }) {
     const handleChange = (e) => {
         onChange({ ...filters, [e.target.name]: e.target.value });
     };
@@ -47,12 +58,14 @@ export default function GlobalFilter({ filters, onChange }) {
                     className="pl-3 pr-8 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-vnpost-orange focus:ring-1 focus:ring-vnpost-orange bg-white"
                 >
                     <option value="all">-- Tất cả BCVH --</option>
-                    <option value="PhuLoc">Phú Lộc</option>
-                    <option value="HuongThuy">Hương Thủy</option>
-                    <option value="HuongTra">Hương Trà</option>
-                    {/* Fake list for now as we don't have BCVH dict API */}
+                    {bcvhList.map((bcvh) => (
+                        <option key={bcvh.ma_bcvh} value={bcvh.ma_bcvh}>
+                            {bcvh.ten_bcvh}
+                        </option>
+                    ))}
                 </select>
             </div>
         </div>
     );
 }
+

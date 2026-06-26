@@ -256,9 +256,28 @@ async function getBcvhRanking(req, res) {
     }
 }
 
+// GET /api/f13/bcvh-list
+// Returns distinct BCVH list for the GlobalFilter dropdown.
+// Source: fact_f13 table (data_blueprint.md § 2 Entity 01 - BCVH)
+async function getBcvhList(req, res) {
+    const sql = `
+        SELECT DISTINCT ma_bcvh, ten_bcvh
+        FROM fact_f13
+        WHERE ma_bcvh IS NOT NULL AND ten_bcvh IS NOT NULL
+        ORDER BY ten_bcvh ASC
+    `;
+    try {
+        const rows = await all(sql, []);
+        res.json({ success: true, data: rows });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getDashboardKpi,
     getDashboardTrend,
     getDashboardTop,
-    getBcvhRanking
+    getBcvhRanking,
+    getBcvhList
 };

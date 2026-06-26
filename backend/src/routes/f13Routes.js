@@ -25,6 +25,7 @@ router.get('/dashboard/kpi',    kpiController.getDashboardKpi);
 router.get('/dashboard/trend',  kpiController.getDashboardTrend);
 router.get('/dashboard/top',    kpiController.getDashboardTop);
 router.get('/bcvh-ranking',     kpiController.getBcvhRanking);
+router.get('/bcvh-list',        kpiController.getBcvhList);
 
 // ── Import (TD § 2.2 API 1) ─────────────────────────────────────────────────
 // POST /api/f13/upload?force=true   (force=true for reimport confirmation)

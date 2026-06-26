@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/client';
 import { HardDrive, CheckCircle2, XCircle, Clock, UploadCloud } from 'lucide-react';
 
 export default function DataImportCenter() {
-  const [status, setStatus] = useState(null);
+  const [status, setStatus]   = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState(null);
 
   const fetchStatus = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await axios.get('http://localhost:5050/api/import/f13/status');
-      if (res.data.success) {
-        setStatus(res.data.data);
-      }
-    } catch (e) {
-      console.error(e);
+      const res = await api.get('/import/f13/status');
+      if (res.data.success) setStatus(res.data.data);
+    } catch (err) {
+      console.error('[DataImportCenter] fetchStatus error:', err);
+      setError('Không thể tải trạng thái import.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -94,6 +96,8 @@ export default function DataImportCenter() {
                 <th className="px-6 py-4 font-bold">Tên File</th>
                 <th className="px-6 py-4 font-bold text-center">Ngày số liệu</th>
                 <th className="px-6 py-4 font-bold text-right">Số BG</th>
+                <th className="px-6 py-4 font-bold text-right text-amber-600">Bỏ qua</th>
+                <th className="px-6 py-4 font-bold text-right text-red-600">Lỗi</th>
                 <th className="px-6 py-4 font-bold text-center">Trạng thái</th>
               </tr>
             </thead>
@@ -103,14 +107,17 @@ export default function DataImportCenter() {
                   <td className="px-6 py-3 text-gray-600">
                     {new Date(log.ngay_import).toLocaleString('vi-VN')}
                   </td>
-                  <td className="px-6 py-3 font-semibold text-vnpost-blue-dark">
-                    {log.ten_file}
-                  </td>
-                  <td className="px-6 py-3 text-center font-medium text-gray-600">
-                    {log.ngay_so_lieu}
-                  </td>
+                  <td className="px-6 py-3 font-semibold text-vnpost-blue-dark">{log.ten_file}</td>
+                  <td className="px-6 py-3 text-center font-medium text-gray-600">{log.ngay_so_lieu}</td>
                   <td className="px-6 py-3 text-right font-bold text-gray-700">
-                    {log.so_luong_bg.toLocaleString()}
+                    {(log.so_luong_bg ?? 0).toLocaleString('vi-VN')}
+                  </td>
+                  {/* skipped_records — DCR-approved field (data_blueprint.md § 6) */}
+                  <td className="px-6 py-3 text-right font-medium text-amber-600">
+                    {(log.so_bi_bo_qua ?? 0).toLocaleString('vi-VN')}
+                  </td>
+                  <td className="px-6 py-3 text-right font-medium text-red-600">
+                    {(log.so_loi ?? 0).toLocaleString('vi-VN')}
                   </td>
                   <td className="px-6 py-3 text-center">
                     {log.trang_thai === 'SUCCESS' ? (
@@ -125,7 +132,7 @@ export default function DataImportCenter() {
               ))}
               {!status?.recentLogs?.length && (
                 <tr>
-                  <td colSpan="5" className="px-6 py-8 text-center text-gray-400">Không có dữ liệu nhật ký</td>
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400">Không có dữ liệu nhật ký</td>
                 </tr>
               )}
             </tbody>

@@ -35,8 +35,16 @@ export default function F13Dashboard() {
     const [trendData, setTrendData] = useState([]);
     const [topLowest, setTopLowest] = useState([]);
     const [topImpact, setTopImpact] = useState([]);
+    const [bcvhList, setBcvhList]   = useState([]);
     const [loading, setLoading]     = useState(false);
     const [error, setError]         = useState(null);
+
+    // Load BCVH list once on mount for GlobalFilter dropdown
+    useEffect(() => {
+        api.get('/f13/bcvh-list')
+           .then(res => { if (res.data.success) setBcvhList(res.data.data); })
+           .catch(err => console.error('[F13Dashboard] bcvh-list error:', err));
+    }, []);
 
     // TD § 3.2: Thay đổi filter trigger fetch lại data
     useEffect(() => {
@@ -85,7 +93,7 @@ export default function F13Dashboard() {
             </div>
 
             {/* TD § 3.1: GlobalFilter — TimeFilter + BcvhFilter */}
-            <GlobalFilter filters={filters} onChange={setFilters} />
+            <GlobalFilter filters={filters} onChange={setFilters} bcvhList={bcvhList} />
 
             {/* Loading State */}
             {loading && (
