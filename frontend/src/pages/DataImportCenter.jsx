@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
-import { HardDrive, CheckCircle2, XCircle, Clock, UploadCloud } from 'lucide-react';
+import { HardDrive, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import UploadWidget from '../components/UploadWidget';
 
 export default function DataImportCenter() {
   const [status, setStatus]   = useState(null);
@@ -40,6 +41,12 @@ export default function DataImportCenter() {
         </button>
       </div>
 
+      {/* Upload Section — TD § 2.2 API 1 */}
+      <div className="mb-8">
+        <UploadWidget onUploadSuccess={fetchStatus} />
+      </div>
+
+      {/* Status Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
