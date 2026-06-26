@@ -1,56 +1,74 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/client';
 import GlobalFilter from '../components/f13/GlobalFilter';
 import KpiCards from '../components/KpiCards';
 import TrendChart from '../components/f13/TrendChart';
 import TopListCard from '../components/f13/TopListCard';
 
-// Default date range: today-7 to today-1
-const getPastDateString = (daysAgo) => {
+/**
+ * F13Dashboard — TD § 3.1 Page: F13Dashboard
+ *
+ * Filter Lock (business_rules.md § 3):
+ *   Mặc định: fromDate = Today - 7 | toDate = Today - 1
+ *   Lý do: dữ liệu mới nhất luôn là N-1 (không có dữ liệu hôm nay trong hệ thống)
+ *
+ * State Flow (TD § 3.2):
+ *   Thay đổi filter → trigger fetch lại tất cả 3 API cùng lúc.
+ */
+
+// Filter Lock — business_rules.md § 3: mặc định N-7 đến N-1
+const getDateString = (daysAgo) => {
     const d = new Date();
     d.setDate(d.getDate() - daysAgo);
     return d.toISOString().split('T')[0];
 };
 
 export default function F13Dashboard() {
+    // Filter Lock: fromDate = N-7, toDate = N-1
     const [filters, setFilters] = useState({
-        fromDate: getPastDateString(7),
-        toDate: getPastDateString(1),
+        fromDate: getDateString(7),
+        toDate: getDateString(1),
         ma_bcvh: 'all'
     });
 
-    const [kpiData, setKpiData] = useState(null);
+    const [kpiData, setKpiData]     = useState(null);
     const [trendData, setTrendData] = useState([]);
     const [topLowest, setTopLowest] = useState([]);
     const [topImpact, setTopImpact] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading]     = useState(false);
+    const [error, setError]         = useState(null);
 
+    // TD § 3.2: Thay đổi filter trigger fetch lại data
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
+            setError(null);
             try {
                 const params = {
                     fromDate: filters.fromDate,
-                    toDate: filters.toDate,
-                    ma_bcvh: filters.ma_bcvh
+                    toDate  : filters.toDate,
+                    ma_bcvh : filters.ma_bcvh
                 };
 
+                // Fetch 3 API cùng lúc
                 const [kpiRes, trendRes, topRes] = await Promise.all([
-                    axios.get('http://localhost:5050/api/f13/dashboard/kpi', { params }),
-                    axios.get('http://localhost:5050/api/f13/dashboard/trend', { params }),
-                    axios.get('http://localhost:5050/api/f13/dashboard/top', { params })
+                    api.get('/f13/dashboard/kpi',   { params }),
+                    api.get('/f13/dashboard/trend', { params }),
+                    api.get('/f13/dashboard/top',   { params })
                 ]);
 
-                if (kpiRes.data.success) setKpiData(kpiRes.data.data);
+                if (kpiRes.data.success)   setKpiData(kpiRes.data.data);
                 if (trendRes.data.success) setTrendData(trendRes.data.data);
                 if (topRes.data.success) {
                     setTopLowest(topRes.data.data.top3Lowest);
                     setTopImpact(topRes.data.data.top3Impact);
                 }
-            } catch (error) {
-                console.error("Error fetching dashboard data", error);
+            } catch (err) {
+                console.error('[F13Dashboard] fetchData error:', err);
+                setError('Không thể tải dữ liệu. Vui lòng kiểm tra kết nối hoặc thử lại.');
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         fetchData();
@@ -58,6 +76,7 @@ export default function F13Dashboard() {
 
     return (
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
+            {/* Page Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">F1.3 Dashboard</h1>
@@ -65,18 +84,36 @@ export default function F13Dashboard() {
                 </div>
             </div>
 
+            {/* TD § 3.1: GlobalFilter — TimeFilter + BcvhFilter */}
             <GlobalFilter filters={filters} onChange={setFilters} />
 
-            {loading && <div className="text-center py-4 text-vnpost-blue">Đang tải dữ liệu...</div>}
+            {/* Loading State */}
+            {loading && (
+                <div className="text-center py-8 text-vnpost-blue">
+                    <div className="inline-block w-6 h-6 border-2 border-vnpost-blue border-t-transparent rounded-full animate-spin mr-2" />
+                    Đang tải dữ liệu...
+                </div>
+            )}
 
-            {!loading && (
+            {/* Error State */}
+            {!loading && error && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm mb-6">
+                    {error}
+                </div>
+            )}
+
+            {/* TD § 3.1: KpiCards + TrendChart + TopListCard */}
+            {!loading && !error && (
                 <>
+                    {/* TD § 3.1: KpiCards — F13_001, F13_101~F13_104 */}
                     <KpiCards data={kpiData} />
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* TD § 3.1: TrendChart — 30 ngày gần nhất */}
                         <div className="lg:col-span-3">
                             <TrendChart data={trendData} />
                         </div>
+                        {/* TD § 3.1: TopListCard — F13_001 lowest + F13_202 impact */}
                         <div className="lg:col-span-1">
                             <TopListCard title="Top 3 BCVH Thấp Nhất" data={topLowest} type="lowest" />
                         </div>
@@ -89,3 +126,4 @@ export default function F13Dashboard() {
         </div>
     );
 }
+
