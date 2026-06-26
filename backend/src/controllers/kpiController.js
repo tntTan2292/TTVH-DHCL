@@ -5,6 +5,13 @@ const isValidDate = (dateString) => {
 };
 
 // GET /api/f13/dashboard/kpi
+// SSOT References:
+// - F13_001: KPI F1.3 (Bưu gửi Đạt / Tổng Bưu gửi)
+// - F13_101: Tổng Bưu gửi
+// - F13_102: Bưu gửi Đạt
+// - F13_103: Bưu gửi Không đạt
+// - F13_104: Tỷ lệ Không đạt
+// - SWC (business_rules.md § 5): Current Date vs Current Date - 7 ngày
 async function getDashboardKpi(req, res) {
     let { fromDate, toDate, ma_bcvh } = req.query;
     if (!fromDate || !toDate || !isValidDate(fromDate) || !isValidDate(toDate)) {
@@ -18,59 +25,66 @@ async function getDashboardKpi(req, res) {
         params.push(ma_bcvh);
     }
 
-    // Helper query generator
-    const getKpiForRange = async (start, end) => {
+    // Helper query generator for a specific date range
+    const getMetricsForRange = async (start, end) => {
         let p = [start, end, ...params];
         let sql = `
             SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed
+                COUNT(*) as tong_buu_gui,
+                SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as buu_gui_dat,
+                SUM(CASE WHEN ket_qua_f13 = 'Không đạt' THEN 1 ELSE 0 END) as buu_gui_khong_dat
             FROM fact_f13
             WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
         `;
         const r = await get(sql, p);
-        const t = r.total || 0;
-        const p_val = r.passed || 0;
-        return t > 0 ? (p_val / t * 100) : 0;
+        const t = r.tong_buu_gui || 0;
+        const dat = r.buu_gui_dat || 0;
+        const khong_dat = r.buu_gui_khong_dat || 0;
+        const kpi = t > 0 ? (dat / t * 100) : 0;
+        const ty_le_khong_dat = t > 0 ? (khong_dat / t * 100) : 0;
+        return {
+            tong_buu_gui: t,
+            buu_gui_dat: dat,
+            buu_gui_khong_dat: khong_dat,
+            kpi: kpi,
+            ty_le_khong_dat: ty_le_khong_dat
+        };
     };
 
     try {
-        // Today = toDate (mặc định today-1 theo quy ước, nhưng query truyền toDate là điểm cuối)
+        // According to business rules, SWC is Current Date vs Current Date - 7.
+        // We use toDate as the Current Date for "Today" metric.
         const toDateObj = new Date(toDate);
         
-        // Yesterday
+        // Yesterday (toDate - 1)
         const yesterdayObj = new Date(toDateObj);
         yesterdayObj.setDate(yesterdayObj.getDate() - 1);
         const yesterdayStr = yesterdayObj.toISOString().split('T')[0];
 
-        // SWC (Same Weekday Comparison): toDate - 7
+        // SWC (toDate - 7)
         const swcObj = new Date(toDateObj);
         swcObj.setDate(swcObj.getDate() - 7);
         const swcStr = swcObj.toISOString().split('T')[0];
 
-        // Week Acc (from toDate - 6 to toDate) -> 7 days
-        const weekStartObj = new Date(toDateObj);
-        weekStartObj.setDate(weekStartObj.getDate() - 6);
-        const weekStartStr = weekStartObj.toISOString().split('T')[0];
-
-        // Month Acc (from 1st of month to toDate)
-        const monthStartStr = `${toDate.substring(0, 7)}-01`;
-
-        const todayKpi = await getKpiForRange(toDate, toDate); // using toDate as 'Today'
-        const yesterdayKpi = await getKpiForRange(yesterdayStr, yesterdayStr);
-        const swcKpi = await getKpiForRange(swcStr, swcStr);
-        const weekAccKpi = await getKpiForRange(weekStartStr, toDate);
-        const monthAccKpi = await getKpiForRange(monthStartStr, toDate);
+        // Fetch metrics
+        const todayMetrics = await getMetricsForRange(toDate, toDate); // Snapshot today
+        const yesterdayMetrics = await getMetricsForRange(yesterdayStr, yesterdayStr); // Snapshot yesterday
+        const swcMetrics = await getMetricsForRange(swcStr, swcStr); // Snapshot SWC
+        
+        // Aggregate for the selected period [fromDate, toDate]
+        const periodMetrics = await getMetricsForRange(fromDate, toDate);
 
         res.json({
             success: true,
             data: {
-                today: parseFloat(todayKpi.toFixed(2)),
-                yesterday: parseFloat(yesterdayKpi.toFixed(2)),
-                dod: parseFloat((todayKpi - yesterdayKpi).toFixed(2)),
-                swc: parseFloat((todayKpi - swcKpi).toFixed(2)),
-                weekAcc: parseFloat(weekAccKpi.toFixed(2)),
-                monthAcc: parseFloat(monthAccKpi.toFixed(2))
+                today: parseFloat(todayMetrics.kpi.toFixed(2)),
+                yesterday: parseFloat(yesterdayMetrics.kpi.toFixed(2)),
+                dod: parseFloat((todayMetrics.kpi - yesterdayMetrics.kpi).toFixed(2)),
+                swc: parseFloat((todayMetrics.kpi - swcMetrics.kpi).toFixed(2)),
+                tong_buu_gui: periodMetrics.tong_buu_gui,
+                buu_gui_dat: periodMetrics.buu_gui_dat,
+                buu_gui_khong_dat: periodMetrics.buu_gui_khong_dat,
+                ty_le_khong_dat: parseFloat(periodMetrics.ty_le_khong_dat.toFixed(2))
             }
         });
 
