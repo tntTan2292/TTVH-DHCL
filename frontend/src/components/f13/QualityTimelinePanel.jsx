@@ -55,15 +55,27 @@ export default function QualityTimelinePanel({ globalFilter }) {
     }
   };
 
-  const PulseAlert = () => (
-    <div className={`p-4 rounded-lg border flex items-start gap-3 mb-6 bg-${pulse.color}-50 border-${pulse.color}-200`}>
-      <Activity className={`text-${pulse.color}-600 mt-0.5`} size={20} />
-      <div>
-        <h4 className={`font-bold text-${pulse.color}-800`}>Quality Pulse</h4>
-        <p className={`text-${pulse.color}-700 text-sm mt-1`}>{pulse.text}</p>
+  const PulseAlert = () => {
+    const pulseColors = {
+      'red': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', textBold: 'text-red-800', textMuted: 'text-red-700' },
+      'orange': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', textBold: 'text-orange-800', textMuted: 'text-orange-700' },
+      'green': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-600', textBold: 'text-green-800', textMuted: 'text-green-700' },
+      'blue': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600', textBold: 'text-blue-800', textMuted: 'text-blue-700' },
+      'gray': { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-600', textBold: 'text-gray-800', textMuted: 'text-gray-700' }
+    };
+    
+    const theme = pulseColors[pulse.color] || pulseColors['gray'];
+
+    return (
+      <div className={`p-4 rounded-lg border flex items-start gap-3 mb-6 ${theme.bg} ${theme.border}`}>
+        <Activity className={`${theme.text} mt-0.5`} size={20} />
+        <div>
+          <h4 className={`font-bold ${theme.textBold}`}>Quality Pulse</h4>
+          <p className={`${theme.textMuted} text-sm mt-1`}>{pulse.text}</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
