@@ -82,7 +82,24 @@ Nguồn dữ liệu duy nhất: `/api/f13/bcvh-ranking`
 5. Sắp xếp (Sorting) không làm trôi dòng TỔNG CỘNG.
 6. Responsive mượt mà, không vỡ khung trên iPad/Mobile.
 
-## 18. Wireframe (Text-based mockup)
+## 18. Bổ sung Quy tắc Nâng cao (Advanced Specifications)
+1. **Priority Order:** Các BCVH luôn được phân loại ưu tiên hiển thị dựa trên mức độ rủi ro (Rớt hạng sâu, KPI thấp nhất, Tụt giảm mạnh nhất) trước khi sắp xếp theo mặc định.
+2. **BCVH Status:** Mỗi BCVH có một trạng thái ngắn gọn (Bình thường / Cảnh báo / Nguy hiểm) dựa trên KPI thực tế so với ngưỡng quy định.
+3. **Priority Flag (HOT/WATCH/BEST):** Cờ đánh dấu: 
+   - `HOT`: Đơn vị rớt hạng nghiêm trọng hoặc lỗi cực cao.
+   - `WATCH`: Đơn vị đang có xu hướng giảm liên tục.
+   - `BEST`: Đơn vị Top đầu vững vàng.
+4. **Trend Indicator:** Biểu đồ mini (Sparkline) hoặc mũi tên hiển thị xu hướng chất lượng 7 ngày gần nhất ngay cạnh KPI.
+5. **KPI Target Gap:** Khoảng cách chênh lệch so với KPI mục tiêu (ví dụ: Thiếu 2% nữa đạt target).
+6. **Action Recommendation Column:** Cột gợi ý hành động cụ thể cho từng BCVH (Ví dụ: "Rà soát bưu tá tuyến 1", "Điều phối thêm xe").
+7. **Rule Color:** Bảng màu nghiêm ngặt: Đỏ (#FF3B30) cho Critical, Cam (#FF9500) cho Warning, Xanh (#34C759) cho Success.
+8. **Business Threshold:** Ngưỡng nghiệp vụ: Đỏ (<90%), Cam (90%-94.9%), Xanh (>=95%). Dữ liệu cứng từ SSOT.
+9. **Loading Strategy:** Sử dụng Skeleton Loading cho các hàng khi đang fetch data. Chuyển đổi mượt mà không giật trang.
+10. **Expand Row UX:** Nhấn vào Row sẽ thả xuống (Accordion) chi tiết của BCVH đó thay vì nhảy sang trang mới.
+11. **Summary Footer:** Dưới cùng của bảng có thêm thanh tóm tắt nhanh: Bao nhiêu BCVH HOT, bao nhiêu BCVH WATCH.
+12. **KPI Goal Bar:** Thanh tiến trình (Progress bar) nhỏ ngay dưới phần trăm KPI để trực quan hóa mức độ hoàn thành mục tiêu.
+
+## 19. Wireframe (Text-based mockup)
 
 ```text
 [   Operation Dashboard Data - Table Component   ] [ SHOW ALL ]
