@@ -157,10 +157,10 @@ export default function F13Dashboard() {
                         <BcvhOperationTable globalFilter={{ dateRange: [filters.fromDate, filters.toDate] }} />
 
                         {/* Module 4: Quality Timeline */}
-                        <QualityTimelinePanel globalFilter={filters} />
+                        <QualityTimelinePanel globalFilter={{ dateRange: [filters.fromDate, filters.toDate], ma_bcvh: filters.ma_bcvh }} />
 
                         {/* Module 5: Message Generation */}
-                        <MessageGenerationPanel globalFilter={filters} />
+                        <MessageGenerationPanel globalFilter={{ dateRange: [filters.fromDate, filters.toDate] }} />
                     </>
                 )
             )}
