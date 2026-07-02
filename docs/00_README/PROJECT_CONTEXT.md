@@ -41,6 +41,13 @@ Dự án áp dụng **Knowledge-first Organization**. Toàn bộ tài liệu tu�
 
 ---
 
+## 3A. Architecture Principles
+- **ARCH-001 (Presentation Layer Principle):** STATUS: FROZEN
+  - Quy định mọi Module Frontend chỉ làm nhiệm vụ Render UI. Backend nắm giữ toàn bộ Rule Engine, Recommendation, Template và Business Threshold.
+  - Xem chi tiết tại `01_RULES/ARCH-001.md`.
+
+---
+
 ## 4. Kiến Trúc SSOT (Single Source Of Truth)
 Mỗi Indicator (Ví dụ: F1.3, F1.1...) là một **Independent Knowledge Package** hoàn toàn độc lập và là SSOT duy nhất của Indicator đó.
 - Không có bất kỳ sự nhân bản (duplicate) kiến thức nào.
