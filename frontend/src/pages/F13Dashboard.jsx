@@ -3,6 +3,7 @@ import api from '../api/client';
 import GlobalFilter from '../components/f13/GlobalFilter';
 import ExecutiveSummary from '../components/f13/ExecutiveSummary';
 import ExecutiveDailyBrief from '../components/f13/ExecutiveDailyBrief';
+import BcvhOperationTable from '../components/f13/BcvhOperationTable';
 
 /**
  * F13Dashboard — TD § 3.1 Page: F13Dashboard
@@ -117,6 +118,9 @@ export default function F13Dashboard() {
 
                     {/* Module 2: Executive Daily Brief */}
                     <ExecutiveDailyBrief kpiData={kpiData} />
+
+                    {/* Module 3: BCVH Operation Table */}
+                    <BcvhOperationTable globalFilter={{ dateRange: [filters.fromDate, filters.toDate] }} />
                 </>
             )}
         </div>
