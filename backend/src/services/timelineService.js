@@ -113,7 +113,7 @@ class TimelineService {
         const monthlyPattern = monthDays.map(m => {
             const avg = m.count > 0 ? m.sum / m.count : 0;
             return {
-                day: \`Ngày \${m.day}\`,
+                day: `Ngày ${m.day}`,
                 avg_kpi: parseFloat(avg.toFixed(2)),
                 color: avg >= 95 ? '#22c55e' : (avg >= 90 ? '#f97316' : '#ef4444') // Direct hex for Recharts Area
             };
@@ -168,14 +168,14 @@ class TimelineService {
                 
                 const diff = avgLatest - avgPrev;
 
-                if (diff <= -2) {
-                    pulse = { status: 'DANGER', text: \`Hệ thống đang rơi tự do (giảm \${Math.abs(diff).toFixed(2)}% so với 3 ngày trước). Cần can thiệp gấp!\`, color: 'red' };
-                } else if (diff < 0) {
-                    pulse = { status: 'WARNING', text: \`Chất lượng đang có xu hướng đi xuống nhẹ (giảm \${Math.abs(diff).toFixed(2)}%). Cần theo dõi sát.\`, color: 'orange' };
-                } else if (diff >= 2) {
-                    pulse = { status: 'SUCCESS', text: \`Hệ thống đang phục hồi mạnh mẽ (tăng \${diff.toFixed(2)}%). Tiếp tục duy trì nguồn lực!\`, color: 'green' };
+                if (diff < -2) {
+                    pulse = { status: 'DANGER', text: `Hệ thống đang rơi tự do (giảm ${Math.abs(diff).toFixed(2)}% so với 3 ngày trước). Cần can thiệp gấp!`, color: 'red' };
+                } else if (diff < -0.5) {
+                    pulse = { status: 'WARNING', text: `Chất lượng đang có xu hướng đi xuống nhẹ (giảm ${Math.abs(diff).toFixed(2)}%). Cần theo dõi sát.`, color: 'orange' };
+                } else if (diff > 1) {
+                    pulse = { status: 'SUCCESS', text: `Hệ thống đang phục hồi mạnh mẽ (tăng ${diff.toFixed(2)}%). Tiếp tục duy trì nguồn lực!`, color: 'green' };
                 } else {
-                    pulse = { status: 'STABLE', text: \`Chất lượng đang duy trì ổn định (biến thiên \${diff.toFixed(2)}%).\`, color: 'blue' };
+                    pulse = { status: 'STABLE', text: `Chất lượng đang duy trì ổn định (biến thiên ${diff.toFixed(2)}%).`, color: 'blue' };
                 }
             }
         }

@@ -1,6 +1,4 @@
-const kpiService = require('./kpiService'); // Assume this handles fetching raw metrics, wait I'll query DB directly or use getMetricsForRange
-
-const { all } = require('../utils/db');
+const { all } = require('../config/db');
 
 /**
  * ARCH-001: Backend Service for Rule Engine & Recommendation Generation.
@@ -70,14 +68,14 @@ class RuleEngineService {
             // RULE P1: KPI giảm sâu đột biến (>5% so với hôm qua) HOẶC rớt khỏi ngưỡng 90%
             if (kpi < THRESHOLD.DANGER || drop > 5) {
                 recommendations.push({
-                    id: \`rec_\${bcvh.ma_bcvh}_P1\`,
+                    id: `rec_${bcvh.ma_bcvh}_P1`,
                     priority: 'P1',
                     level: PRIORITY.P1.level,
                     color: PRIORITY.P1.color,
                     icon: PRIORITY.P1.icon,
                     category: kpi < THRESHOLD.DANGER ? 'Chất lượng kém' : 'Tụt hạng',
                     ten_bcvh: bcvh.ten_bcvh,
-                    condition: \`\${bcvh.ten_bcvh} có KPI \${kpi.toFixed(2)}%\${drop > 5 ? \` (giảm mạnh \${drop.toFixed(2)}% so với hôm qua)\` : ' (nằm dưới ngưỡng 90%)'}.\`,
+                    condition: `${bcvh.ten_bcvh} có KPI ${kpi.toFixed(2)}%${drop > 5 ? ` (giảm mạnh ${drop.toFixed(2)}% so với hôm qua)` : ' (nằm dưới ngưỡng 90%)'}.`,
                     impact: 'Nguy cơ ảnh hưởng nghiêm trọng đến KPI toàn mạng lưới.',
                     action: 'Lập tức rà soát tồn đọng ca chiều, tăng cường lực lượng xử lý.'
                 });
@@ -87,7 +85,7 @@ class RuleEngineService {
             // RULE P2: Rớt khỏi ngưỡng 95% HOẶC lỗi nhiều nhất toàn mạng
             if (!ruleTriggered && (kpi < THRESHOLD.WARNING || (topFailed && bcvh.ma_bcvh === topFailed.ma_bcvh))) {
                 recommendations.push({
-                    id: \`rec_\${bcvh.ma_bcvh}_P2\`,
+                    id: `rec_${bcvh.ma_bcvh}_P2`,
                     priority: 'P2',
                     level: PRIORITY.P2.level,
                     color: PRIORITY.P2.color,
@@ -95,8 +93,8 @@ class RuleEngineService {
                     category: (topFailed && bcvh.ma_bcvh === topFailed.ma_bcvh) ? 'Lỗi tập trung' : 'Chất lượng kém',
                     ten_bcvh: bcvh.ten_bcvh,
                     condition: (topFailed && bcvh.ma_bcvh === topFailed.ma_bcvh) 
-                        ? \`\${bcvh.ten_bcvh} đang có \${bcvh.failed_bg} bưu gửi lỗi, cao nhất toàn mạng.\`
-                        : \`\${bcvh.ten_bcvh} rớt khỏi ngưỡng an toàn 95% (hiện tại \${kpi.toFixed(2)}%).\`,
+                        ? `${bcvh.ten_bcvh} đang có ${bcvh.failed_bg} bưu gửi lỗi, cao nhất toàn mạng.`
+                        : `${bcvh.ten_bcvh} rớt khỏi ngưỡng an toàn 95% (hiện tại ${kpi.toFixed(2)}%).`,
                     impact: 'Dấu hiệu rủi ro, có thể trượt xuống mức nguy hiểm nếu không xử lý.',
                     action: 'Kiểm tra nguyên nhân trễ phát tại các tuyến vùng sâu hoặc điều phối xe.'
                 });
