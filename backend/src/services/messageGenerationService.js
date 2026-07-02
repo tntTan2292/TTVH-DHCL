@@ -90,48 +90,55 @@ class MessageGenerationService {
             chiDao = "YÊU CẦU GẤP:\n1. Các đơn vị Bottom (Đặc biệt: " + (curr.rows[curr.rows.length-1]?.ten_bcvh || "đơn vị chót bảng") + ") lập tức giải trình nguyên nhân.\n2. Tăng cường xe thư báo cho ca chiều.\n3. Rà soát ngay các bưu gửi đang lưu kho quá 14 giờ.";
         }
 
-        // Tin Báo Cáo Template
-        const baoCaoText = `BÁO CÁO CHẤT LƯỢNG F1.3 (Ngày ${formatDate(toDate)})
+        // Tin Báo Cáo Template (SSOT)
+        const baoCaoText = `BÁO CÁO KẾT QUẢ ĐIỀU HÀNH CHẤT LƯỢNG F1.3 NGÀY ${formatDate(toDate)}
 
-1. Toàn BĐTP:
-- Sản lượng: ${curr.total.toLocaleString('vi-VN')} bưu gửi
-- Đạt: ${curr.passed.toLocaleString('vi-VN')}
-- Không đạt: ${curr.failed.toLocaleString('vi-VN')}
-- KPI F1.3: ${curr.kpi.toFixed(2)}%
+Kính gửi: Lãnh đạo BĐTP và các phòng ban liên quan,
 
-2. So sánh:
-- So với hôm qua: ${dodKpi > 0 ? '+' : ''}${dodKpi.toFixed(2)}%
-- So với cùng kỳ tuần trước: ${swcKpi > 0 ? '+' : ''}${swcKpi.toFixed(2)}%
+BĐTP xin báo cáo kết quả thực hiện chỉ tiêu F1.3 toàn mạng lưới như sau:
 
-3. Xếp hạng BCVH:
-- Top 3 (Tốt nhất): ${topBcvh || 'Không có'}
-- Bottom 3 (Cần cải thiện): ${bottomBcvh || 'Không có'}
+1. F1.3 toàn BĐTP:
+- Tổng sản lượng phát sinh: ${curr.total.toLocaleString('vi-VN')} bưu gửi
+- Số lượng đạt: ${curr.passed.toLocaleString('vi-VN')} bưu gửi
+- Số lượng không đạt: ${curr.failed.toLocaleString('vi-VN')} bưu gửi
+- Tỷ lệ KPI đạt: ${curr.kpi.toFixed(2)}% (Biến động: ${dodKpi > 0 ? '+' : ''}${dodKpi.toFixed(2)}% so với hôm qua; ${swcKpi > 0 ? '+' : ''}${swcKpi.toFixed(2)}% so với cùng kỳ)
 
-4. Biến động đáng chú ý (so với hôm qua):
-- Cải thiện mạnh (>2%): ${improved.length > 0 ? improved.join(', ') : 'Không có'}
-- Giảm sút mạnh (<-2%): ${declined.length > 0 ? declined.join(', ') : 'Không có'}
+2. Xếp hạng BCVH:
+- Top BCVH xuất sắc: ${topBcvh || 'Không có'}
+- Bottom BCVH thấp nhất: ${bottomBcvh || 'Không có'}
+- BCVH cải thiện tốt: ${improved.length > 0 ? improved.join(', ') : 'Không có'}
+- BCVH giảm sút: ${declined.length > 0 ? declined.join(', ') : 'Không có'}
 
-5. Nhận định chung:
-${nhanDinh}`;
+3. Nhận định:
+- ${nhanDinh}
 
-        // Tin Điều Hành Template (Includes Directives)
-        const dieuHanhText = `THÔNG BÁO ĐIỀU HÀNH F1.3 (Ngày ${formatDate(toDate)})
+Trân trọng báo cáo.`;
 
-Tình hình chất lượng mạng lưới:
-- Tỷ lệ Đạt: ${curr.kpi.toFixed(2)}% (Sản lượng: ${curr.total.toLocaleString('vi-VN')})
+        // Tin Điều Hành Template (SSOT)
+        const dieuHanhText = `THÔNG BÁO ĐIỀU HÀNH CHẤT LƯỢNG F1.3 NGÀY ${formatDate(toDate)}
+
+Kính gửi: Giám đốc các Bưu cục Văn hóa,
+
+Căn cứ vào kết quả đo kiểm chất lượng F1.3, BĐTP thông báo tình hình thực hiện trong ngày như sau:
+
+1. F1.3 toàn BĐTP:
+- Tỷ lệ KPI đạt: ${curr.kpi.toFixed(2)}% (Sản lượng: ${curr.total.toLocaleString('vi-VN')} bưu gửi)
 - Tồn đọng (Không đạt): ${curr.failed.toLocaleString('vi-VN')} bưu gửi
-- Biến động: ${dodKpi > 0 ? 'Tăng' : 'Giảm'} ${Math.abs(dodKpi).toFixed(2)}% so với hôm qua.
+- Xu hướng: ${dodKpi > 0 ? 'Tăng' : 'Giảm'} ${Math.abs(dodKpi).toFixed(2)}% so với ngày hôm qua.
 
-Ghi nhận các đơn vị:
-- Hoàn thành xuất sắc: ${topBcvh}
-- Sụt giảm nguy hiểm: ${declined.length > 0 ? declined.join(', ') : (bottomBcvh || 'Không có')}
+2. Đánh giá đơn vị:
+- Top BCVH: ${topBcvh || 'Không có'}
+- Bottom BCVH: ${bottomBcvh || 'Không có'}
+- Cải thiện: ${improved.length > 0 ? improved.join(', ') : 'Không có'}
+- Giảm sút: ${declined.length > 0 ? declined.join(', ') : 'Không có'}
 
-Nhận định: ${nhanDinh}
+3. Nhận định:
+- ${nhanDinh}
 
-CHỈ ĐẠO ĐIỀU HÀNH:
-${chiDao}
+4. Đề nghị (Chỉ đạo):
+- ${chiDao}
 
-Đề nghị các Bưu cục Văn hóa nghiêm túc triển khai thực hiện.`;
+Đề nghị các đơn vị khẩn trương triển khai thực hiện.`;
 
         return {
             bao_cao: baoCaoText,
