@@ -1,6 +1,7 @@
 const { get, all } = require('../config/db');
 const ruleEngineService = require('../services/ruleEngineService');
 const timelineService = require('../services/timelineService');
+const messageGenerationService = require('../services/messageGenerationService');
 
 const isValidDate = (dateString) => {
     return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
@@ -346,6 +347,21 @@ async function getQualityTimeline(req, res) {
     }
 }
 
+// GET /api/f13/dashboard/message
+async function getDashboardMessage(req, res) {
+    let { toDate } = req.query;
+    if (!toDate || !isValidDate(toDate)) {
+        return res.status(400).json({ error: "Invalid date" });
+    }
+
+    try {
+        const messages = await messageGenerationService.generateMessages(toDate);
+        res.json({ success: true, data: messages });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getDashboardKpi,
     getDashboardTrend,
@@ -353,5 +369,6 @@ module.exports = {
     getBcvhRanking,
     getBcvhList,
     getRecommendations,
-    getQualityTimeline
+    getQualityTimeline,
+    getDashboardMessage
 };

@@ -5,6 +5,7 @@ import ExecutiveSummary from '../components/f13/ExecutiveSummary';
 import ExecutiveDailyBrief from '../components/f13/ExecutiveDailyBrief';
 import RuleRecommendationPanel from '../components/f13/RuleRecommendationPanel';
 import QualityTimelinePanel from '../components/f13/QualityTimelinePanel';
+import MessageGenerationPanel from '../components/f13/MessageGenerationPanel';
 import BcvhOperationTable from '../components/f13/BcvhOperationTable';
 
 /**
@@ -129,6 +130,9 @@ export default function F13Dashboard() {
 
                     {/* Module 4: Quality Timeline */}
                     <QualityTimelinePanel globalFilter={filters} />
+
+                    {/* Module 5: Message Generation */}
+                    <MessageGenerationPanel globalFilter={filters} />
                 </>
             )}
         </div>
