@@ -27,12 +27,8 @@ const getDateString = (daysAgo) => {
 };
 
 export default function F13Dashboard() {
-    // Filter Lock: fromDate = N-7, toDate = N-1
-    const [filters, setFilters] = useState({
-        fromDate: getDateString(7),
-        toDate: getDateString(1),
-        ma_bcvh: 'all'
-    });
+    const [filters, setFilters] = useState(null);
+    const [maxDate, setMaxDate] = useState(null);
 
     const [kpiData, setKpiData]     = useState(null);
     const [trendData, setTrendData] = useState([]);
@@ -42,15 +38,29 @@ export default function F13Dashboard() {
     const [loading, setLoading]     = useState(false);
     const [error, setError]         = useState(null);
 
-    // Load BCVH list once on mount for GlobalFilter dropdown
+    // Load BCVH list and Meta Data (max_date) once on mount
     useEffect(() => {
         api.get('/f13/bcvh-list')
            .then(res => { if (res.data.success) setBcvhList(res.data.data); })
            .catch(err => console.error('[F13Dashboard] bcvh-list error:', err));
+           
+        api.get('/f13/dashboard/meta')
+           .then(res => {
+               if (res.data.success && res.data.data.max_date) {
+                   setMaxDate(res.data.data.max_date);
+                   setFilters({
+                       fromDate: res.data.data.max_date,
+                       toDate: res.data.data.max_date,
+                       ma_bcvh: 'all'
+                   });
+               }
+           })
+           .catch(err => console.error('[F13Dashboard] meta error:', err));
     }, []);
 
     // TD § 3.2: Thay đổi filter trigger fetch lại data
     useEffect(() => {
+        if (!filters) return;
         const fetchData = async () => {
             setLoading(true);
             setError(null);
@@ -88,15 +98,22 @@ export default function F13Dashboard() {
     return (
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
             {/* Page Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">F1.3 Dashboard</h1>
                     <p className="text-gray-500 mt-1">Chất lượng phát liên tỉnh PTC/Nộp tiền ≤14 giờ</p>
                 </div>
+                {maxDate && (
+                    <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg inline-flex items-center">
+                        <span className="text-sm font-semibold text-vnpost-blue">
+                            Dữ liệu cập nhật đến: {new Date(maxDate).toLocaleDateString('vi-VN')}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* TD § 3.1: GlobalFilter — TimeFilter + BcvhFilter */}
-            <GlobalFilter filters={filters} onChange={setFilters} bcvhList={bcvhList} />
+            {filters && <GlobalFilter filters={filters} onChange={setFilters} bcvhList={bcvhList} maxDate={maxDate} />}
 
             {/* Loading State */}
             {loading && (
@@ -114,26 +131,38 @@ export default function F13Dashboard() {
             )}
 
             {/* TD § 3.1: KpiCards + TrendChart + TopListCard */}
-            {!loading && !error && (
-                <>
-                    {/* Module 1: Executive Summary */}
-                    <ExecutiveSummary data={kpiData} />
+            {!loading && !error && filters && (
+                kpiData && kpiData.tong_buu_gui === 0 ? (
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-8 text-center mt-6">
+                        <div className="w-16 h-16 bg-orange-100 text-vnpost-orange rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg font-bold text-orange-800 mb-2">Ngày được chọn chưa có dữ liệu</h3>
+                        <p className="text-orange-600 text-sm">Vui lòng chọn ngày khác nằm trong khoảng dữ liệu đã được import (Đến {maxDate ? new Date(maxDate).toLocaleDateString('vi-VN') : ''}).</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Module 1: Executive Summary */}
+                        <ExecutiveSummary data={kpiData} />
 
-                    {/* Module 2: Executive Daily Brief */}
-                    <ExecutiveDailyBrief kpiData={kpiData} />
+                        {/* Module 2: Executive Daily Brief */}
+                        <ExecutiveDailyBrief kpiData={kpiData} />
 
-                    {/* Module 2.5: Rule Recommendation Panel */}
-                    <RuleRecommendationPanel globalFilter={{ dateRange: [filters.fromDate, filters.toDate] }} />
+                        {/* Module 2.5: Rule Recommendation Panel */}
+                        <RuleRecommendationPanel globalFilter={{ dateRange: [filters.fromDate, filters.toDate] }} />
 
-                    {/* Module 3: BCVH Operation Table */}
-                    <BcvhOperationTable globalFilter={{ dateRange: [filters.fromDate, filters.toDate] }} />
+                        {/* Module 3: BCVH Operation Table */}
+                        <BcvhOperationTable globalFilter={{ dateRange: [filters.fromDate, filters.toDate] }} />
 
-                    {/* Module 4: Quality Timeline */}
-                    <QualityTimelinePanel globalFilter={filters} />
+                        {/* Module 4: Quality Timeline */}
+                        <QualityTimelinePanel globalFilter={filters} />
 
-                    {/* Module 5: Message Generation */}
-                    <MessageGenerationPanel globalFilter={filters} />
-                </>
+                        {/* Module 5: Message Generation */}
+                        <MessageGenerationPanel globalFilter={filters} />
+                    </>
+                )
             )}
         </div>
     );

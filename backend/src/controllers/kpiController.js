@@ -362,6 +362,16 @@ async function getDashboardMessage(req, res) {
     }
 }
 
+// GET /api/f13/dashboard/meta
+async function getDashboardMeta(req, res) {
+    try {
+        const { max_date } = await get(`SELECT MAX(ngay_do_kiem) as max_date FROM fact_f13`);
+        res.json({ success: true, data: { max_date } });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getDashboardKpi,
     getDashboardTrend,
@@ -370,5 +380,6 @@ module.exports = {
     getBcvhList,
     getRecommendations,
     getQualityTimeline,
-    getDashboardMessage
+    getDashboardMessage,
+    getDashboardMeta
 };

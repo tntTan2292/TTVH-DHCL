@@ -11,7 +11,7 @@
  */
 import { Filter } from 'lucide-react';
 
-export default function GlobalFilter({ filters, onChange, bcvhList = [] }) {
+export default function GlobalFilter({ filters, onChange, bcvhList = [], maxDate }) {
     const handleChange = (e) => {
         onChange({ ...filters, [e.target.name]: e.target.value });
     };
@@ -30,6 +30,7 @@ export default function GlobalFilter({ filters, onChange, bcvhList = [] }) {
                         type="date" 
                         name="fromDate" 
                         value={filters.fromDate}
+                        max={maxDate}
                         onChange={handleChange}
                         className="pl-3 pr-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-vnpost-orange focus:ring-1 focus:ring-vnpost-orange"
                     />
@@ -43,6 +44,7 @@ export default function GlobalFilter({ filters, onChange, bcvhList = [] }) {
                         type="date" 
                         name="toDate" 
                         value={filters.toDate}
+                        max={maxDate}
                         onChange={handleChange}
                         className="pl-3 pr-2 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:border-vnpost-orange focus:ring-1 focus:ring-vnpost-orange"
                     />
