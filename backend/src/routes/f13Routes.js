@@ -24,6 +24,7 @@ const upload = multer({
 router.get('/dashboard/kpi',    kpiController.getDashboardKpi);
 router.get('/dashboard/trend',  kpiController.getDashboardTrend);
 router.get('/dashboard/top',    kpiController.getDashboardTop);
+router.get('/dashboard/recommendations', kpiController.getRecommendations);
 router.get('/bcvh-ranking',     kpiController.getBcvhRanking);
 router.get('/bcvh-list',        kpiController.getBcvhList);
 

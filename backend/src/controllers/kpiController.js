@@ -1,4 +1,5 @@
 const { get, all } = require('../config/db');
+const ruleEngineService = require('../services/ruleEngineService');
 
 const isValidDate = (dateString) => {
     return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
@@ -314,10 +315,26 @@ async function getBcvhList(req, res) {
     }
 }
 
+// GET /api/f13/dashboard/recommendations
+async function getRecommendations(req, res) {
+    let { fromDate, toDate } = req.query;
+    if (!fromDate || !toDate || !isValidDate(fromDate) || !isValidDate(toDate)) {
+        return res.status(400).json({ error: "Invalid date" });
+    }
+
+    try {
+        const recommendations = await ruleEngineService.evaluate(fromDate, toDate);
+        res.json({ success: true, data: recommendations });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getDashboardKpi,
     getDashboardTrend,
     getDashboardTop,
     getBcvhRanking,
-    getBcvhList
+    getBcvhList,
+    getRecommendations
 };
