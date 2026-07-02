@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import api from '../api/client';
 import GlobalFilter from '../components/f13/GlobalFilter';
-import KpiCards from '../components/KpiCards';
-import TrendChart from '../components/f13/TrendChart';
-import TopListCard from '../components/f13/TopListCard';
+import ExecutiveSummary from '../components/f13/ExecutiveSummary';
+import ExecutiveDailyBrief from '../components/f13/ExecutiveDailyBrief';
 
 /**
  * F13Dashboard — TD § 3.1 Page: F13Dashboard
@@ -113,22 +112,11 @@ export default function F13Dashboard() {
             {/* TD § 3.1: KpiCards + TrendChart + TopListCard */}
             {!loading && !error && (
                 <>
-                    {/* TD § 3.1: KpiCards — F13_001, F13_101~F13_104 */}
-                    <KpiCards data={kpiData} />
+                    {/* Module 1: Executive Summary */}
+                    <ExecutiveSummary data={kpiData} />
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* TD § 3.1: TrendChart — 30 ngày gần nhất */}
-                        <div className="lg:col-span-3">
-                            <TrendChart data={trendData} />
-                        </div>
-                        {/* TD § 3.1: TopListCard — F13_001 lowest + F13_202 impact */}
-                        <div className="lg:col-span-1">
-                            <TopListCard title="Top 3 BCVH Thấp Nhất" data={topLowest} type="lowest" />
-                        </div>
-                        <div className="lg:col-span-2">
-                            <TopListCard title="Top 3 BCVH Kéo Giảm KPI Toàn Mạng" data={topImpact} type="impact" />
-                        </div>
-                    </div>
+                    {/* Module 2: Executive Daily Brief */}
+                    <ExecutiveDailyBrief kpiData={kpiData} />
                 </>
             )}
         </div>

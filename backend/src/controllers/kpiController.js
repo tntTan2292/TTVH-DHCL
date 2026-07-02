@@ -74,17 +74,57 @@ async function getDashboardKpi(req, res) {
         // Aggregate for the selected period [fromDate, toDate]
         const periodMetrics = await getMetricsForRange(fromDate, toDate);
 
+        // Fetch rank if ma_bcvh is provided
+        let currentRank = 1, yesterdayRank = 1, swcRank = 1;
+        if (ma_bcvh && ma_bcvh !== 'all') {
+            const getRank = async (dateStr) => {
+                const sql = `
+                    SELECT ma_bcvh, (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) as rate
+                    FROM fact_f13
+                    WHERE ngay_do_kiem = ?
+                    GROUP BY ma_bcvh
+                    ORDER BY rate DESC, COUNT(*) DESC
+                `;
+                const rows = await all(sql, [dateStr]);
+                const idx = rows.findIndex(r => r.ma_bcvh === ma_bcvh);
+                return idx !== -1 ? idx + 1 : rows.length + 1; // if not found, put at the end
+            };
+            currentRank = await getRank(toDate);
+            yesterdayRank = await getRank(yesterdayStr);
+            swcRank = await getRank(swcStr);
+        }
+
         res.json({
             success: true,
             data: {
+                // KPI
                 today: parseFloat(todayMetrics.kpi.toFixed(2)),
                 yesterday: parseFloat(yesterdayMetrics.kpi.toFixed(2)),
                 dod: parseFloat((todayMetrics.kpi - yesterdayMetrics.kpi).toFixed(2)),
                 swc: parseFloat((todayMetrics.kpi - swcMetrics.kpi).toFixed(2)),
-                tong_buu_gui: periodMetrics.tong_buu_gui,
-                buu_gui_dat: periodMetrics.buu_gui_dat,
-                buu_gui_khong_dat: periodMetrics.buu_gui_khong_dat,
-                ty_le_khong_dat: parseFloat(periodMetrics.ty_le_khong_dat.toFixed(2))
+                
+                // Sản lượng (Total)
+                tong_buu_gui: todayMetrics.tong_buu_gui,
+                tong_buu_gui_dod: todayMetrics.tong_buu_gui - yesterdayMetrics.tong_buu_gui,
+                tong_buu_gui_swc: todayMetrics.tong_buu_gui - swcMetrics.tong_buu_gui,
+                
+                // Đạt (Passed)
+                buu_gui_dat: todayMetrics.buu_gui_dat,
+                buu_gui_dat_dod: todayMetrics.buu_gui_dat - yesterdayMetrics.buu_gui_dat,
+                buu_gui_dat_swc: todayMetrics.buu_gui_dat - swcMetrics.buu_gui_dat,
+                
+                // Không đạt (Failed)
+                buu_gui_khong_dat: todayMetrics.buu_gui_khong_dat,
+                buu_gui_khong_dat_dod: todayMetrics.buu_gui_khong_dat - yesterdayMetrics.buu_gui_khong_dat,
+                buu_gui_khong_dat_swc: todayMetrics.buu_gui_khong_dat - swcMetrics.buu_gui_khong_dat,
+                
+                // Tỷ lệ Không đạt
+                ty_le_khong_dat: parseFloat(todayMetrics.ty_le_khong_dat.toFixed(2)),
+
+                // Xếp hạng (Rank)
+                rank: currentRank,
+                rankDod: currentRank - yesterdayRank, // if rank goes down (number increases), meaning rankDod > 0 is bad
+                rankSwc: currentRank - swcRank
             }
         });
 

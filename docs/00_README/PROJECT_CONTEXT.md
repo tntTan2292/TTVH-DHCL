@@ -68,5 +68,46 @@ Tùy vào vai trò trong dự án, thứ tự tiếp cận tài liệu như sau:
 
 ## 7. Lộ Trình Phát Triển (Development Roadmap)
 1. **Phase 1-5**: Đã hoàn tất Business Domain, Knowledge Model, Indicator Asset/Metadata Model và Final Documentation Structure.
-2. **Phase 6 - Documentation Implementation**: Hiện đang diễn ra. Tập trung ánh xạ (Map) tài liệu từ Legacy sang chuẩn SSOT mới. Đã hoàn tất F1.3. Tiếp tục Migration cuốn chiếu các Indicator còn lại.
-3. **Phase 7 - System Implementation**: Viết mã nguồn (Backend/Frontend) dựa trên SSOT Documentation đã đóng băng.
+2. **Phase 6 - Documentation Implementation**: Hoàn tất SSOT cho F1.3.
+3. **Phase 7 - System Implementation (F1.3 Operation Center)**: Đang trong quá trình chuẩn bị chuyển sang Development.
+
+---
+
+## 8. Phase 1: F1.3 Operation Center - Development Task Breakdown
+Trạng thái: **STATUS: Phase 1 Ready For Development**
+
+### 1.2 Executive Summary
+- **Objective:** Xây dựng module tóm tắt chỉ số KPI cấp cao nhất của toàn mạng lưới.
+- **Deliverables:** UI Component `ExecutiveSummary`, tích hợp API tính toán tự động các chỉ số hiện tại, +/- hôm qua (DoD), +/- cùng kỳ (SWC).
+- **Acceptance Criteria:** Dữ liệu khớp 100% với SSOT. Hiển thị đủ 5 khối chỉ số. Đáp ứng Performance < 1s khi lọc.
+- **Trạng thái:** STATUS: PASS
+
+### 1.3 Executive Daily Brief
+- **Objective:** Tự động hóa bản tin tóm tắt điều hành bằng văn bản.
+- **Deliverables:** UI Component hiển thị bản tin 5-8 dòng, Backend logic tổng hợp câu từ dựa trên metrics của Executive Summary.
+- **Acceptance Criteria:** Đọc hiểu trong 10 giây. Không sinh text ảo ngoài dữ liệu.
+
+### 1.4 BCVH Operation Table
+- **Objective:** Bảng số liệu chi tiết điều hành cấp BCVH.
+- **Deliverables:** Data Table Component với dòng TỔNG CỘNG, mặc định 6 BCVH trọng điểm, và chức năng SHOW ALL.
+- **Acceptance Criteria:** Có đầy đủ các cột quy định (SL, Đạt, Không đạt, KPI, +/-, Rank). Hỗ trợ Drill Down.
+
+### 1.5 Quality Timeline
+- **Objective:** Cung cấp góc nhìn chu kỳ và xu hướng chất lượng theo thời gian.
+- **Deliverables:** Các biểu đồ Daily Timeline, Weekly/Monthly Pattern, Quality Calendar (Heatmap), Quality Pulse.
+- **Acceptance Criteria:** Vẽ biểu đồ mượt mà, phản ánh đúng chu kỳ, hỗ trợ thay đổi bộ lọc < 1s.
+
+### 1.6 Rule Recommendation
+- **Objective:** Hệ thống gợi ý điều hành dựa trên Rule tự động.
+- **Deliverables:** Backend Operation Rule Engine, UI Component hiển thị danh sách khuyến nghị.
+- **Acceptance Criteria:** Không tính toán ở Frontend. Rule Recommendation phải logic, dựa trên dữ liệu thực tế (rớt hạng, tỷ lệ lỗi).
+
+### 1.7 Message Generation
+- **Objective:** Xuất nhanh thông báo điều hành.
+- **Deliverables:** Backend Template Engine tích hợp 06 template đã freeze, UI Preview và Copy.
+- **Acceptance Criteria:** Nội suy template chính xác ở Backend. Không dùng Regex Replace ở Frontend.
+
+### 1.8 Integration & Polish
+- **Objective:** Tích hợp tổng thể và tối ưu hóa hiệu năng/trải nghiệm.
+- **Deliverables:** Operation Dashboard hoàn chỉnh, tối ưu hóa tốc độ tải trang.
+- **Acceptance Criteria:** First Load <3s. Drill Down <2s. Giao diện đồng nhất chuẩn UI/UX. Chạy mượt mà trên môi trường thực tế.

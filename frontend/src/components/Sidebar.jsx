@@ -22,7 +22,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       title: 'F1.3 Quality Management',
       icon: <Target size={20} />,
       subItems: [
-        { name: 'Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
+        { name: 'Operation Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
         { name: 'BCVH Ranking', path: '/f13/bcvh-ranking', icon: <BarChart2 size={18} /> },
         { name: 'Tuyến Ranking', path: '/f13/route-ranking', icon: <BarChart2 size={18} /> },
         { name: 'RCA', path: '/f13/rca', icon: <PieChart size={18} /> },
