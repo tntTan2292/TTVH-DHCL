@@ -59,16 +59,31 @@ Cấu trúc UI của một thẻ Khuyến nghị:
 - Nguồn dữ liệu sử dụng chung với BCVH Operation Table: `/api/f13/bcvh-ranking`.
 - Ngoài ra, có thể cần lấy thêm `/api/f13/dashboard/top` để xác định các Rule liên quan đến Top Lowest / Top Impact (như đã có sẵn trong F13Dashboard).
 
-## 11. Gap Analysis
-- **Khoảng trống (Gap):** Backend hiện chưa có `Rule Engine` độc lập để tự sinh ra mảng JSON các chuỗi khuyến nghị. Hiện tại API chỉ trả về data thô (ranking, top).
-- **Giải pháp:** Theo chỉ đạo Không sửa Backend/Rule Engine ở Phase này, Frontend sẽ đóng vai trò "Dịch" (Translate) các rules logic tĩnh dựa trên Data trả về. Tuy nhiên, Backend vẫn là người nắm giữ Single Source of Truth về con số. (Tương tự logic đã làm với Executive Daily Brief).
+## 11. Kiến trúc hệ thống (Architecture Option B)
+Kiến trúc tiêu chuẩn cho Rule Engine được phê duyệt như sau:
+`Data` → `Operation Engine` → `Rule Provider` → `Rule Engine` → `API` → `Frontend (Render Only)`
+
+**Phân định trách nhiệm (Component Responsibilities):**
+1. **Frontend (Dashboard Layer):** 
+   - Tuyệt đối KHÔNG sử dụng lệnh IF/ELSE cho các nghiệp vụ cảnh báo.
+   - KHÔNG hardcode Business Threshold (Ngưỡng 90%, 95%...).
+   - KHÔNG tự sinh Recommendation.
+   - KHÔNG tự ghép câu chữ điều hành.
+   - Chỉ duy nhất có nhiệm vụ Consume API từ Rule Engine và Render (Hiển thị).
+2. **Backend (Operation Rule Engine):** Chịu trách nhiệm 100% về:
+   - Rule Evaluation (Đánh giá dữ liệu).
+   - Recommendation Generation (Sinh văn bản khuyến nghị).
+   - Priority (Tính mức độ ưu tiên P1, P2...).
+   - Level (Danger, Warning, Notice).
+   - Action (Sinh hành động gợi ý).
+   - Rule Color & Business Threshold.
 
 ## 12. Acceptance Criteria
-1. Module Render đúng vị trí theo Layout ưu tiên (Phase 1.1A).
-2. Phải hiển thị ít nhất 3 Rule Recommendation dựa trên bộ data thực tế.
-3. Thẻ khuyến nghị phải tuân thủ đúng Output Format (Condition - Impact - Action).
-4. Màu sắc hiển thị đúng theo Recommendation Levels và Priority.
-5. Code không phá vỡ logic cũ, không gọi API mới ngoài các API đã có.
+1. Module Render đúng vị trí theo Layout ưu tiên.
+2. Phải hiển thị ít nhất 3 Rule Recommendation dựa trên API.
+3. Frontend hoàn toàn "mù" về logic, chỉ map JSON properties vào Component.
+4. Backend phải trả về Payload hoàn chỉnh bao gồm đầy đủ: Text, Color, Icon Level, Priority, Action Recommendation.
+5. Phase 1.5B sắp tới chỉ tập trung code Frontend Consume API, không được đưa logic vào UI.
 6. Giao diện thân thiện, dễ đọc lướt, Responsive trên Mobile.
 
 ## 13. Wireframe (Text-based mockup)
