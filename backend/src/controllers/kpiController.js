@@ -1,5 +1,6 @@
 const { get, all } = require('../config/db');
 const ruleEngineService = require('../services/ruleEngineService');
+const timelineService = require('../services/timelineService');
 
 const isValidDate = (dateString) => {
     return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
@@ -330,11 +331,27 @@ async function getRecommendations(req, res) {
     }
 }
 
+// GET /api/f13/dashboard/quality-timeline
+async function getQualityTimeline(req, res) {
+    let { toDate, ma_bcvh } = req.query;
+    if (!toDate || !isValidDate(toDate)) {
+        return res.status(400).json({ error: "Invalid date" });
+    }
+
+    try {
+        const timelineData = await timelineService.getQualityTimeline(toDate, ma_bcvh);
+        res.json({ success: true, data: timelineData });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getDashboardKpi,
     getDashboardTrend,
     getDashboardTop,
     getBcvhRanking,
     getBcvhList,
-    getRecommendations
+    getRecommendations,
+    getQualityTimeline
 };
