@@ -109,15 +109,17 @@ Trạng thái: **STATUS: Phase 1 Ready For Development**
 - **Acceptance Criteria:** Có đầy đủ các cột quy định (SL, Đạt, Không đạt, KPI, +/-, Rank). Hỗ trợ Drill Down.
 - **Trạng thái:** STATUS: PASS
 
-### 1.5 Quality Timeline
-- **Objective:** Cung cấp góc nhìn chu kỳ và xu hướng chất lượng theo thời gian.
-- **Deliverables:** Các biểu đồ Daily Timeline, Weekly/Monthly Pattern, Quality Calendar (Heatmap), Quality Pulse.
-- **Acceptance Criteria:** Vẽ biểu đồ mượt mà, phản ánh đúng chu kỳ, hỗ trợ thay đổi bộ lọc < 1s.
+### 1.5 Rule Recommendation
+- **Objective:** Sinh tự động cảnh báo điều hành dựa trên Rule Engine.
+- **Deliverables:** Backend Rule Engine & Frontend Recommendation Panel.
+- **Acceptance Criteria:** Tuân thủ ARCH-001, Frontend không chứa IF/ELSE nghiệp vụ.
+- **Trạng thái:** STATUS: PASS
 
-### 1.6 Rule Recommendation
-- **Objective:** Hệ thống gợi ý điều hành dựa trên Rule tự động.
-- **Deliverables:** Backend Operation Rule Engine, UI Component hiển thị danh sách khuyến nghị.
-- **Acceptance Criteria:** Không tính toán ở Frontend. Rule Recommendation phải logic, dựa trên dữ liệu thực tế (rớt hạng, tỷ lệ lỗi).
+### 1.6 Quality Timeline
+- **Objective:** Cung cấp góc nhìn chu kỳ và xu hướng chất lượng theo thời gian.
+- **Deliverables:** Biểu đồ xu hướng, Heatmap, và phân tích mẫu (Patterns).
+- **Acceptance Criteria:** Góc nhìn điều hành, không phải BI. Trực quan hóa dữ liệu lịch sử.
+- **Trạng thái:** STATUS: PLANNING
 
 ### 1.7 Message Generation
 - **Objective:** Xuất nhanh thông báo điều hành.
