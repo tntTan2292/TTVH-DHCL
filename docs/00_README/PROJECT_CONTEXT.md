@@ -92,6 +92,7 @@ Trạng thái: **STATUS: Phase 1 Ready For Development**
 - **Objective:** Bảng số liệu chi tiết điều hành cấp BCVH.
 - **Deliverables:** Data Table Component với dòng TỔNG CỘNG, mặc định 6 BCVH trọng điểm, và chức năng SHOW ALL.
 - **Acceptance Criteria:** Có đầy đủ các cột quy định (SL, Đạt, Không đạt, KPI, +/-, Rank). Hỗ trợ Drill Down.
+- **Trạng thái:** STATUS: PASS
 
 ### 1.5 Quality Timeline
 - **Objective:** Cung cấp góc nhìn chu kỳ và xu hướng chất lượng theo thời gian.
