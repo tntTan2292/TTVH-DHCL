@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, TrendingDown, ChevronDown, ChevronUp, AlertTriangle, AlertCircle, Info, Maximize2, Minimize2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, ChevronDown, ChevronUp, AlertTriangle, AlertCircle, Maximize2, Minimize2, Flame, Eye, Award } from 'lucide-react';
 import api from '../../api/client';
 
 export default function BcvhOperationTable({ globalFilter }) {
@@ -7,9 +7,10 @@ export default function BcvhOperationTable({ globalFilter }) {
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'rank', direction: 'asc' });
+  const [expandedRows, setExpandedRows] = useState({});
 
-  // 06 BCVH trọng điểm mặc định
   const DEFAULT_BCVHs = ['Thuận Hóa', 'Thuận An', 'Hương Thủy', 'Phú Lộc', 'Hương Trà', 'A Lưới'];
+  const TARGET_KPI = 95.0;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -19,7 +20,8 @@ export default function BcvhOperationTable({ globalFilter }) {
           fromDate: globalFilter.dateRange[0],
           toDate: globalFilter.dateRange[1],
         };
-        const response = await api.get('/f13/dashboard/bcvh-ranking', { params });
+        // Fixed endpoint path
+        const response = await api.get('/f13/bcvh-ranking', { params });
         if (response.data.success) {
           setData(response.data.data);
         }
@@ -32,36 +34,42 @@ export default function BcvhOperationTable({ globalFilter }) {
     fetchData();
   }, [globalFilter]);
 
-  // Handler for sorting
   const requestSort = (key) => {
     let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
+    if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
     setSortConfig({ key, direction });
   };
 
-  // Sort and filter data
+  const toggleRow = (ma_bcvh) => {
+    setExpandedRows(prev => ({ ...prev, [ma_bcvh]: !prev[ma_bcvh] }));
+  };
+
   const processedData = useMemo(() => {
-    let sortableItems = [...data];
+    let sorted = [...data];
     if (sortConfig.key) {
-      sortableItems.sort((a, b) => {
+      sorted.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
         if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
+    
+    // Priority Order logic: Bring critical units to top if not strictly sorting by something else
+    if (sortConfig.key === 'rank' && sortConfig.direction === 'asc') {
+        sorted.sort((a, b) => {
+            const aCrit = a.kpi_rate < 90 ? 1 : 0;
+            const bCrit = b.kpi_rate < 90 ? 1 : 0;
+            if (aCrit !== bCrit) return bCrit - aCrit; // critical first
+            return 0;
+        });
+    }
 
     if (!showAll) {
-      sortableItems = sortableItems.filter(item => 
-        DEFAULT_BCVHs.some(name => item.ten_bcvh.includes(name))
-      );
+      sorted = sorted.filter(item => DEFAULT_BCVHs.some(name => item.ten_bcvh.includes(name)));
     }
-    
-    return sortableItems;
+    return sorted;
   }, [data, sortConfig, showAll]);
 
-  // Calculate totals
   const totals = useMemo(() => {
     if (data.length === 0) return { total_bg: 0, passed_bg: 0, failed_bg: 0, kpi_rate: 0 };
     const t = data.reduce((acc, curr) => {
@@ -74,133 +82,172 @@ export default function BcvhOperationTable({ globalFilter }) {
     return t;
   }, [data]);
 
-  const getStatusColor = (rate) => {
-    if (rate >= 95) return 'text-green-600 bg-green-50';
-    if (rate >= 90) return 'text-orange-500 bg-orange-50';
-    return 'text-red-600 bg-red-50 font-semibold';
+  const summary = useMemo(() => {
+    return {
+      hot: data.filter(d => d.kpi_rate < 90).length,
+      watch: data.filter(d => d.kpi_rate >= 90 && d.kpi_rate < 95).length,
+      best: data.filter(d => d.kpi_rate >= 95).length
+    };
+  }, [data]);
+
+  const getBusinessStatus = (rate) => {
+    if (rate >= 95) return { text: 'Bình thường', color: 'text-green-600 bg-green-50', flag: 'BEST', icon: <Award size={12}/> };
+    if (rate >= 90) return { text: 'Cảnh báo', color: 'text-orange-500 bg-orange-50', flag: 'WATCH', icon: <Eye size={12}/> };
+    return { text: 'Nguy hiểm', color: 'text-red-600 bg-red-50 font-bold', flag: 'HOT', icon: <Flame size={12}/> };
   };
 
-  const renderSortIcon = (columnKey) => {
-    if (sortConfig.key !== columnKey) return <span className="w-4 inline-block" />;
-    return sortConfig.direction === 'asc' ? <ChevronUp size={14} className="inline" /> : <ChevronDown size={14} className="inline" />;
+  const getRecommendation = (rate) => {
+    if (rate >= 95) return "Duy trì phong độ phát xuất sắc. Khuyến khích tuyên dương tuyến.";
+    if (rate >= 90) return "Cần theo dõi sát dòng bưu gửi chậm để tránh tụt xuống mức rủi ro.";
+    return "YÊU CẦU ĐIỀU PHỐI GẤP: Rà soát ngay bưu tá tuyến, tăng cường xe tải hoặc nhân lực ca chiều.";
   };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6 flex flex-col">
       <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-        <h3 className="font-bold text-gray-800 uppercase tracking-wide text-sm flex items-center gap-2">
+        <h3 className="font-bold text-gray-800 uppercase tracking-wide text-sm">
           Bảng Điều Hành BCVH (Operation Table)
         </h3>
         <button
           onClick={() => setShowAll(!showAll)}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 transition-colors text-gray-600 shadow-sm"
+          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 transition-colors shadow-sm"
         >
           {showAll ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
           {showAll ? 'CHỈ HIỂN THỊ TRỌNG ĐIỂM' : 'SHOW ALL'}
         </button>
       </div>
 
-      <div className="overflow-x-auto relative w-full" style={{ maxHeight: '500px' }}>
+      <div className="overflow-x-auto relative w-full" style={{ maxHeight: '600px' }}>
         <table className="w-full text-sm text-left">
           <thead className="text-xs uppercase bg-gray-100 text-gray-600 sticky top-0 z-20 shadow-sm">
             <tr>
-              <th className="px-4 py-3 cursor-pointer hover:bg-gray-200 sticky left-0 z-30 bg-gray-100 shadow-[1px_0_0_#e5e7eb]" onClick={() => requestSort('ten_bcvh')}>
-                Tên BCVH {renderSortIcon('ten_bcvh')}
+              <th className="px-4 py-3 cursor-pointer hover:bg-gray-200 sticky left-0 z-30 bg-gray-100 shadow-[1px_0_0_#e5e7eb] w-1/4" onClick={() => requestSort('ten_bcvh')}>
+                Tên BCVH {sortConfig.key === 'ten_bcvh' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
               </th>
-              <th className="px-4 py-3 cursor-pointer hover:bg-gray-200 text-right" onClick={() => requestSort('total_bg')}>
-                Sản lượng {renderSortIcon('total_bg')}
+              <th className="px-4 py-3 text-center w-24">Status</th>
+              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('total_bg')}>
+                SL
               </th>
-              <th className="px-4 py-3 cursor-pointer hover:bg-gray-200 text-right" onClick={() => requestSort('passed_bg')}>
-                Đạt {renderSortIcon('passed_bg')}
+              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('failed_bg')}>
+                Lỗi
               </th>
-              <th className="px-4 py-3 cursor-pointer hover:bg-gray-200 text-right" onClick={() => requestSort('failed_bg')}>
-                Không đạt {renderSortIcon('failed_bg')}
+              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200 min-w-[120px]" onClick={() => requestSort('kpi_rate')}>
+                KPI (%) 
               </th>
-              <th className="px-4 py-3 cursor-pointer hover:bg-gray-200 text-right" onClick={() => requestSort('kpi_rate')}>
-                KPI (%) {renderSortIcon('kpi_rate')}
-              </th>
-              <th className="px-4 py-3 text-right text-gray-400 font-normal">
-                +/- Hôm qua
-              </th>
-              <th className="px-4 py-3 text-right text-gray-400 font-normal">
-                +/- Cùng kỳ
-              </th>
-              <th className="px-4 py-3 cursor-pointer hover:bg-gray-200 text-center" onClick={() => requestSort('rank')}>
-                Xếp hạng {renderSortIcon('rank')}
+              <th className="px-4 py-3 text-right text-gray-400 font-normal">+/- HQ</th>
+              <th className="px-4 py-3 cursor-pointer text-center hover:bg-gray-200" onClick={() => requestSort('rank')}>
+                Hạng
               </th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              // Skeleton Loader
               [...Array(6)].map((_, idx) => (
                 <tr key={idx} className="border-b animate-pulse">
-                  <td className="px-4 py-4 bg-white sticky left-0 shadow-[1px_0_0_#f3f4f6]">
-                    <div className="h-4 bg-gray-200 rounded w-24"></div>
-                  </td>
-                  <td className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
-                  <td className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
-                  <td className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
-                  <td className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
-                  <td className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
-                  <td className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-16 ml-auto"></div></td>
-                  <td className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-12 mx-auto"></div></td>
+                  <td className="px-4 py-4 bg-white sticky left-0"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+                  <td colSpan="6" className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-full"></div></td>
                 </tr>
               ))
             ) : (
               <>
-                {/* Dòng TỔNG CỘNG - Sticky Total Row */}
                 <tr className="bg-blue-50/80 font-bold border-b border-blue-100 sticky top-[45px] z-10 shadow-sm text-vnpost-blue-dark">
-                  <td className="px-4 py-3 sticky left-0 z-20 bg-blue-50/95 shadow-[1px_0_0_#dbeafe]">
-                    TỔNG CỘNG (MẠNG LƯỚI)
-                  </td>
+                  <td className="px-4 py-3 sticky left-0 z-20 bg-blue-50/95 shadow-[1px_0_0_#dbeafe]">TỔNG CỘNG</td>
+                  <td className="px-4 py-3 text-center">-</td>
                   <td className="px-4 py-3 text-right">{totals.total_bg.toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-3 text-right text-green-700">{totals.passed_bg.toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right text-red-600">{totals.failed_bg.toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-3 text-right">{totals.kpi_rate.toFixed(2)}%</td>
-                  <td className="px-4 py-3 text-right text-gray-400">-</td>
-                  <td className="px-4 py-3 text-right text-gray-400">-</td>
+                  <td className="px-4 py-3 text-right">
+                    {totals.kpi_rate.toFixed(2)}%
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                      <div className="bg-vnpost-blue h-1.5 rounded-full" style={{ width: `${Math.min(totals.kpi_rate, 100)}%` }}></div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right">-</td>
                   <td className="px-4 py-3 text-center">-</td>
                 </tr>
-                
-                {/* Dữ liệu BCVH */}
-                {processedData.length > 0 ? processedData.map((row) => (
-                  <tr key={row.ma_bcvh} className={`border-b hover:bg-gray-50 transition-colors group cursor-pointer ${row.kpi_rate < 90 ? 'bg-red-50/30 hover:bg-red-50' : ''}`}>
-                    <td className="px-4 py-3 font-medium text-gray-700 sticky left-0 z-0 bg-white group-hover:bg-gray-50 shadow-[1px_0_0_#f3f4f6]">
-                      {row.ten_bcvh}
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-600">{row.total_bg.toLocaleString('vi-VN')}</td>
-                    <td className="px-4 py-3 text-right text-green-600">{row.passed_bg.toLocaleString('vi-VN')}</td>
-                    <td className="px-4 py-3 text-right text-red-600">{row.failed_bg.toLocaleString('vi-VN')}</td>
-                    <td className={`px-4 py-3 text-right rounded ${getStatusColor(row.kpi_rate)}`}>
-                      {row.kpi_rate.toFixed(2)}%
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-400 text-xs">
-                      {/* Gap: Frontend xử lý hoặc Backend chưa có, tạm để trống */}
-                      -
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-400 text-xs">
-                      -
-                    </td>
-                    <td className="px-4 py-3 text-center font-bold text-gray-700">
-                      #{row.rank}
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan="8" className="px-4 py-8 text-center text-gray-500">
-                      Không có dữ liệu trong khoảng thời gian này.
-                    </td>
-                  </tr>
+
+                {processedData.length > 0 ? processedData.map((row) => {
+                  const status = getBusinessStatus(row.kpi_rate);
+                  const isExpanded = expandedRows[row.ma_bcvh];
+                  const gap = (TARGET_KPI - row.kpi_rate).toFixed(2);
+                  
+                  return (
+                    <React.Fragment key={row.ma_bcvh}>
+                      <tr 
+                        onClick={() => toggleRow(row.ma_bcvh)}
+                        className={`border-b hover:bg-gray-50 transition-colors cursor-pointer ${row.kpi_rate < 90 ? 'bg-red-50/30' : ''}`}
+                      >
+                        <td className="px-4 py-3 font-medium text-gray-800 sticky left-0 z-0 bg-white shadow-[1px_0_0_#f3f4f6]">
+                          <div className="flex items-center justify-between">
+                            <span>{row.ten_bcvh}</span>
+                            {isExpanded ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${status.color}`}>
+                            {status.icon} {status.flag}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">{row.total_bg.toLocaleString('vi-VN')}</td>
+                        <td className="px-4 py-3 text-right font-bold text-red-600">{row.failed_bg.toLocaleString('vi-VN')}</td>
+                        <td className="px-4 py-3 text-right">
+                          <div className={`font-bold ${status.color.split(' ')[0]}`}>{row.kpi_rate.toFixed(2)}%</div>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                            <div className={`${status.color.split(' ')[0].replace('text-', 'bg-')} h-1.5 rounded-full`} style={{ width: `${Math.min(row.kpi_rate, 100)}%` }}></div>
+                          </div>
+                          {gap > 0 && <div className="text-[9px] text-gray-500 mt-0.5 text-right">Thiếu {gap}%</div>}
+                        </td>
+                        <td className="px-4 py-3 text-right text-gray-400 text-xs">-</td>
+                        <td className="px-4 py-3 text-center font-bold text-gray-700">#{row.rank}</td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="bg-gray-50/80 border-b border-gray-100">
+                          <td colSpan="7" className="px-4 py-3 text-sm">
+                            <div className="flex flex-col gap-2 p-2 bg-white rounded border border-gray-100 shadow-inner">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div>
+                                  <span className="block text-xs text-gray-500">Trạng thái</span>
+                                  <span className={`font-semibold ${status.color.split(' ')[0]}`}>{status.text}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-gray-500">Mục tiêu KPI</span>
+                                  <span className="font-semibold">{TARGET_KPI}%</span>
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-gray-500">Đạt / Tổng</span>
+                                  <span className="font-semibold">{row.passed_bg} / {row.total_bg}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-xs text-gray-500">Xu hướng (Trend)</span>
+                                  <span className="text-gray-400 italic text-xs">Loading...</span>
+                                </div>
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-gray-50">
+                                <span className="block text-xs font-bold text-gray-700 mb-1">Gợi ý hành động (Recommendation):</span>
+                                <p className={`text-sm p-2 rounded ${row.kpi_rate < 90 ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-gray-50 text-gray-700'}`}>
+                                  {getRecommendation(row.kpi_rate)}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                }) : (
+                  <tr><td colSpan="7" className="px-4 py-8 text-center text-gray-500">Không có dữ liệu.</td></tr>
                 )}
               </>
             )}
           </tbody>
         </table>
       </div>
-      <div className="bg-gray-50 p-2 px-4 text-xs text-gray-500 flex justify-between border-t border-gray-100">
-        <span>Hiển thị {processedData.length} Bưu cục. Click vào dòng để xem chi tiết xuống Tuyến phát (Tính năng Drill Down).</span>
-        <span>Ngưỡng cảnh báo: <strong className="text-red-500">&lt;90%</strong> | <strong className="text-orange-500">90-94.9%</strong> | <strong className="text-green-500">&gt;=95%</strong></span>
+      <div className="bg-gray-50 p-3 text-xs text-gray-600 flex justify-between items-center border-t border-gray-200 shadow-inner z-30">
+        <div className="flex gap-4 font-medium">
+          <span className="text-red-600 flex items-center gap-1"><Flame size={14}/> HOT ({summary.hot})</span>
+          <span className="text-orange-600 flex items-center gap-1"><Eye size={14}/> WATCH ({summary.watch})</span>
+          <span className="text-green-600 flex items-center gap-1"><Award size={14}/> BEST ({summary.best})</span>
+        </div>
+        <div>Hiển thị {processedData.length} đơn vị</div>
       </div>
     </div>
   );
