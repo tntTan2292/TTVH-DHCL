@@ -89,3 +89,36 @@ CREATE INDEX IF NOT EXISTS idx_f13_date_tuyen_covering ON fact_f13(ngay_do_kiem,
 -- Indexes (Technical Design 1.3)
 CREATE INDEX IF NOT EXISTS idx_ngay_do_kiem ON fact_f13(ngay_do_kiem);
 CREATE INDEX IF NOT EXISTS idx_bcvh_ngay ON fact_f13(ma_bcvh, ngay_do_kiem);
+
+-- 4. fact_f13_national
+CREATE TABLE IF NOT EXISTS fact_f13_national (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ngay_do_kiem TEXT NOT NULL,
+    ma_tinh_phat TEXT NOT NULL,
+    ten_tinh_phat TEXT,
+    
+    sl_bg_ptc INTEGER DEFAULT 0,
+    sl_ptc_nop_tien INTEGER DEFAULT 0,
+    sl_bg_bd10 INTEGER DEFAULT 0,
+    
+    sl_ptc_dung_qd_14h INTEGER DEFAULT 0,
+    tl_ptc_dung_qd_14h REAL DEFAULT 0,
+    sl_qua_qd_14h INTEGER DEFAULT 0,
+    
+    sl_ptc_dung_qd_ct INTEGER DEFAULT 0,
+    tl_ptc_dung_qd_ct REAL DEFAULT 0,
+    sl_qua_qd_ct INTEGER DEFAULT 0,
+    tl_qua_qd_ct REAL DEFAULT 0,
+    
+    sl_chua_du_tt INTEGER DEFAULT 0,
+    sl_loai_tru INTEGER DEFAULT 0,
+    sl_phat_ktc INTEGER DEFAULT 0,
+    sl_ptc_kxd INTEGER DEFAULT 0,
+    
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ngay_do_kiem, ma_tinh_phat)
+);
+
+-- Indexes for fact_f13_national
+CREATE INDEX IF NOT EXISTS idx_f13_nat_ngay ON fact_f13_national(ngay_do_kiem);
+CREATE INDEX IF NOT EXISTS idx_f13_nat_tinh_ngay ON fact_f13_national(ma_tinh_phat, ngay_do_kiem);

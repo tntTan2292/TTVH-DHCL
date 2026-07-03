@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { get } = require('../config/db');
 const { extractDateFromFilename, parseF13Excel } = require('./excelParser');
-const { importParsedData } = require('./importProcessor');
+const { parseF13NationalExcel } = require('./nationalExcelParser');
+const { importParsedData, importNationalParsedData } = require('./importProcessor');
 
 const BASE_INCOMING = path.resolve(process.cwd(), '../Data DKCL/F1.3/Incoming');
 const BASE_PROCESSED = path.resolve(process.cwd(), '../Data DKCL/F1.3/Processed');
@@ -60,17 +61,33 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO' 
             }
         }
 
-        // 3. Read & Parse Excel
-        const buffer = fs.readFileSync(filePath);
-        const { parsedData, totalParsed } = parseF13Excel(buffer);
+        let parsedData, totalParsed, result;
 
-        // 4. Import to DB
-        const result = await importParsedData({
-            parsedData,
-            ngay_do_kiem,
-            filename,
-            forceReimport
-        });
+        if (relativePath.startsWith('TCT') || relativePath === 'TCT') {
+            const buffer = fs.readFileSync(filePath);
+            const parsed = parseF13NationalExcel(buffer);
+            parsedData = parsed.parsedData;
+            totalParsed = parsed.totalParsed;
+
+            result = await importNationalParsedData({
+                parsedData,
+                ngay_do_kiem,
+                filename,
+                forceReimport
+            });
+        } else {
+            const buffer = fs.readFileSync(filePath);
+            const parsed = parseF13Excel(buffer);
+            parsedData = parsed.parsedData;
+            totalParsed = parsed.totalParsed;
+
+            result = await importParsedData({
+                parsedData,
+                ngay_do_kiem,
+                filename,
+                forceReimport
+            });
+        }
 
         console.log(`[importPipeline][${source}] SUCCESS | ${filename} | total=${result.total}, inserted=${result.inserted}, duplicates=${result.errors}`);
 

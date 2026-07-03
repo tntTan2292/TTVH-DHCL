@@ -22,6 +22,7 @@ const path = require('path');
 
 const { run }                                            = require('../config/db');
 const { extractDateFromFilename, parseF13Excel, DB_COLUMNS } = require('./excelParser');
+const { NATIONAL_DB_COLUMNS } = require('./nationalExcelParser');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -180,6 +181,90 @@ async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimp
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// National Import Function
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false }) {
+    const totalParsed = parsedData.length;
+
+    await run('BEGIN TRANSACTION');
+    let import_log_id = null;
+
+    try {
+        if (forceReimport) {
+            await run('DELETE FROM fact_f13_national WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+        }
+
+        const logResult = await run(
+            `INSERT INTO import_log
+                (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+             VALUES (?, ?, 'SUCCESS', ?, 0, 0)`,
+            [filename, ngay_do_kiem, totalParsed]
+        );
+        import_log_id = logResult.lastID;
+
+        const INSERT_COLS = [...NATIONAL_DB_COLUMNS, 'ngay_do_kiem'];
+        const SINGLE_PH = `(${INSERT_COLS.map(() => '?').join(', ')})`;
+        const COLS_LIST = INSERT_COLS.join(', ');
+
+        const BATCH = Math.floor(999 / INSERT_COLS.length);
+        let totalInserted = 0;
+
+        for (let i = 0; i < totalParsed; i += BATCH) {
+            const batchRows = parsedData.slice(i, i + BATCH);
+            let placeholders = [];
+            let params = [];
+
+            for (const row of batchRows) {
+                placeholders.push(SINGLE_PH);
+                for (const col of NATIONAL_DB_COLUMNS) {
+                    params.push(row[col]);
+                }
+                params.push(ngay_do_kiem);
+            }
+
+            const sql = `INSERT OR IGNORE INTO fact_f13_national (${COLS_LIST}) VALUES ${placeholders.join(', ')}`;
+            const result = await run(sql, params);
+            totalInserted += result.changes;
+        }
+
+        const skippedRecords = 0;
+        const errorRecords = totalParsed - totalInserted - skippedRecords;
+
+        await run(
+            `UPDATE import_log SET error_records = ?, skipped_records = ? WHERE id = ?`,
+            [errorRecords, skippedRecords, import_log_id]
+        );
+
+        await run('COMMIT');
+
+        return {
+            success      : true,
+            total        : totalParsed,
+            inserted     : totalInserted,
+            skipped      : skippedRecords,
+            errors       : errorRecords,
+            import_log_id: import_log_id
+        };
+
+    } catch (error) {
+        try { await run('ROLLBACK'); } catch (e) {}
+
+        try {
+            await run(
+                `INSERT INTO import_log
+                    (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+                 VALUES (?, ?, 'FAILED', ?, ?, 0)`,
+                [filename, ngay_do_kiem, totalParsed, totalParsed]
+            );
+        } catch (e) {}
+
+        throw error;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 module.exports = {
-    importParsedData
+    importParsedData,
+    importNationalParsedData
 };
