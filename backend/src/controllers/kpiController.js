@@ -95,6 +95,23 @@ async function getDashboardKpi(req, res) {
             currentRank = await getRank(toDate);
             yesterdayRank = await getRank(yesterdayStr);
             swcRank = await getRank(swcStr);
+        } else {
+            // National Ranking for Hue (ma_tinh_phat = '53')
+            const getNationalRank = async (dateStr) => {
+                const sql = `
+                    SELECT ma_tinh_phat, tl_ptc_dung_qd_ct as rate
+                    FROM fact_f13_national
+                    WHERE ngay_do_kiem = ?
+                    ORDER BY rate DESC, sl_bg_ptc DESC
+                `;
+                const rows = await all(sql, [dateStr]);
+                const idx = rows.findIndex(r => r.ma_tinh_phat === '53');
+                // if not found, put at the end or return null (if no data yet). Returning rows.length + 1 is fine or just 1 if no rows.
+                return rows.length === 0 ? 0 : (idx !== -1 ? idx + 1 : rows.length + 1);
+            };
+            currentRank = await getNationalRank(toDate);
+            yesterdayRank = await getNationalRank(yesterdayStr);
+            swcRank = await getNationalRank(swcStr);
         }
 
         res.json({
