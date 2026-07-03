@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { TrendingUp, TrendingDown, ChevronDown, ChevronUp, AlertTriangle, AlertCircle, Maximize2, Minimize2, Flame, Eye, Award } from 'lucide-react';
 import api from '../../api/client';
 
@@ -171,7 +171,7 @@ export default function BcvhOperationTable({ globalFilter }) {
                   const gap = (TARGET_KPI - row.kpi_rate).toFixed(2);
                   
                   return (
-                    <React.Fragment key={row.ma_bcvh}>
+                    <Fragment key={row.ma_bcvh}>
                       <tr 
                         onClick={() => toggleRow(row.ma_bcvh)}
                         className={`border-b hover:bg-gray-50 transition-colors cursor-pointer ${row.kpi_rate < 90 ? 'bg-red-50/30' : ''}`}
@@ -231,7 +231,7 @@ export default function BcvhOperationTable({ globalFilter }) {
                           </td>
                         </tr>
                       )}
-                    </React.Fragment>
+                    </Fragment>
                   );
                 }) : (
                   <tr><td colSpan="7" className="px-4 py-8 text-center text-gray-500">Không có dữ liệu.</td></tr>

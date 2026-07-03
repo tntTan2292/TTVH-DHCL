@@ -1,0 +1,3 @@
+(node:5540) ExperimentalWarning: CommonJS module D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\src\services\importWatcher.js is loading ES Module D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\node_modules\chokidar\index.js using require().
+Support for loading ES Module in require() is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
