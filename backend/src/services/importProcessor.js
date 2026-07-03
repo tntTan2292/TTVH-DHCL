@@ -203,13 +203,12 @@ async function processImportFile(filePath, INCOMING_DIR, PROCESSED_DIR, ERROR_DI
     const filename    = path.basename(filePath);
     let   ngay_do_kiem = null;
 
-    // Helper: move file to a YYYY-MM subdirectory of destDir
+    const relativePath = path.relative(INCOMING_DIR, path.dirname(filePath));
+
+    // Helper: move file to destination while preserving sub-directory (HUE/TCT)
     const moveFile = (destDir) => {
         try {
-            const yearMonth = ngay_do_kiem
-                ? ngay_do_kiem.substring(0, 7)
-                : new Date().toISOString().substring(0, 7);
-            const subDir = path.join(destDir, yearMonth);
+            const subDir = path.join(destDir, relativePath);
             if (!fs.existsSync(subDir)) fs.mkdirSync(subDir, { recursive: true });
             fs.renameSync(filePath, path.join(subDir, filename));
         } catch (e) {
