@@ -15,9 +15,9 @@
  *   If forceReimport = true: proceed with DELETE + re-import.
  */
 
-const { get }                                            = require('../config/db');
-const { extractDateFromFilename, parseF13Excel }         = require('./excelParser');
-const { importParsedData }                               = require('./importProcessor');
+const fs = require('fs');
+const path = require('path');
+const { executeImport, BASE_INCOMING } = require('./importPipeline');
 
 /**
  * Process an uploaded F1.3 Excel file.
@@ -35,38 +35,25 @@ const { importParsedData }                               = require('./importProc
  *   errors?              : number
  * }>}
  */
-async function processImport(filename, fileBuffer, forceReimport = false) {
-    // Step 1: Validate filename and extract ngay_do_kiem (SSOT: from filename only)
-    const ngay_do_kiem = extractDateFromFilename(filename);
+async function processImport(filename, fileBuffer, forceReimport = false, sourceDir = 'HUE') {
+    // 1. Save file to Incoming/<SOURCE>
+    const incomingDir = path.join(BASE_INCOMING, sourceDir);
+    if (!fs.existsSync(incomingDir)) fs.mkdirSync(incomingDir, { recursive: true });
+    
+    const filePath = path.join(incomingDir, filename);
+    fs.writeFileSync(filePath, fileBuffer);
 
-    // Step 2: Parse Excel → 41-column static mapping
-    const { parsedData, totalParsed } = parseF13Excel(fileBuffer);
+    // 2. Call Unified Import Pipeline
+    const result = await executeImport({ filePath, forceReimport, source: 'MANUAL' });
 
-    // Step 3: SSOT Reimport check — if date already has data and user hasn't confirmed
-    if (!forceReimport) {
-        const existing = await get(
-            `SELECT id FROM import_log WHERE ngay_do_kiem = ? AND status = 'SUCCESS' LIMIT 1`,
-            [ngay_do_kiem]
-        );
-        if (existing) {
-            // Signal to the API layer to prompt the user for confirmation
-            return {
-                requiresConfirmation: true,
-                ngay_do_kiem
-            };
+    // 3. If requires confirmation, delete the temp file so the watcher doesn't process it
+    if (result && result.requiresConfirmation) {
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
         }
+        return result;
     }
 
-    // Step 4: Import to DB — delegate entirely to importParsedData (Task 2.2)
-    // TD § 2.1: INSERT OR IGNORE, error_records = total_parsed - total_inserted
-    const result = await importParsedData({
-        parsedData,
-        ngay_do_kiem,
-        filename,
-        forceReimport
-    });
-
-    // Step 5: Return TD § 2.2 API 1 response shape
     return {
         success : result.success,
         total   : result.total,

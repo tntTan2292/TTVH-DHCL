@@ -1,20 +1,11 @@
 const chokidar = require('chokidar');
 const path = require('path');
 const fs = require('fs');
-const { processImportFile } = require('./importProcessor'); // We will create this
+const { executeImport, BASE_INCOMING } = require('./importPipeline');
 
-// Define directories
-const BASE_DIR = path.resolve(process.cwd(), '../Data DKCL/F1.3');
-const INCOMING_DIR = path.join(BASE_DIR, 'Incoming');
-const PROCESSED_DIR = path.join(BASE_DIR, 'Processed');
-const ERROR_DIR = path.join(BASE_DIR, 'Error');
-
-// Ensure directories exist
-[BASE_DIR, INCOMING_DIR, PROCESSED_DIR, ERROR_DIR].forEach(dir => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-    }
-});
+// We can rely on BASE_INCOMING from importPipeline but chokidar needs the path
+// so we will just use BASE_INCOMING directly for the watcher.
+const INCOMING_DIR = BASE_INCOMING;
 
 class ImportQueue {
     constructor() {
@@ -35,7 +26,7 @@ class ImportQueue {
         
         try {
             console.log(`[ImportQueue] Bắt đầu xử lý: ${filePath}`);
-            await processImportFile(filePath, INCOMING_DIR, PROCESSED_DIR, ERROR_DIR);
+            await executeImport({ filePath, forceReimport: true, source: 'AUTO' });
         } catch (error) {
             console.error(`[ImportQueue] Lỗi nghiêm trọng khi xử lý ${filePath}:`, error);
         } finally {
