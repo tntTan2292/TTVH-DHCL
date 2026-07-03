@@ -80,12 +80,18 @@ async function getDashboardKpi(req, res) {
         // Fetch rank if ma_bcvh is provided
         let currentRank = 1, yesterdayRank = 1, swcRank = 1;
         
-        let defaultProvinceCode = '53';
+        let defaultProvinceCode = null;
         try {
             const row = await get("SELECT config_value FROM system_config WHERE config_key = 'default_province_code'");
-            if (row) defaultProvinceCode = row.config_value;
+            if (row && row.config_value) {
+                defaultProvinceCode = row.config_value;
+            }
         } catch (e) {
             console.error('[getDashboardKpi] Error loading default_province_code:', e.message);
+        }
+
+        if (!defaultProvinceCode) {
+            return res.status(500).json({ error: "Missing system configuration: default_province_code" });
         }
 
         if (ma_bcvh && ma_bcvh !== 'all') {
@@ -105,7 +111,7 @@ async function getDashboardKpi(req, res) {
             yesterdayRank = await getRank(yesterdayStr);
             swcRank = await getRank(swcStr);
         } else {
-            // National Ranking for configured province (default: 53)
+            // National Ranking for configured province
             const getNationalRank = async (dateStr) => {
                 const sql = `
                     SELECT ma_tinh_phat, tl_ptc_dung_qd_ct as rate
