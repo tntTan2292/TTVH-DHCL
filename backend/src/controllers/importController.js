@@ -39,11 +39,14 @@ async function uploadF13File(req, res) {
 
     const filename    = req.file.originalname;
     const fileBuffer  = req.file.buffer;
+    console.log('--- REQ BODY:', req.body, 'REQ QUERY:', req.query);
+    const kpi         = req.body.kpi || req.query.kpi || 'F1.3';
+    const source      = req.body.source || req.query.source || 'HUE';
     // forceReimport = true when frontend sends ?force=true after user confirmation
     const forceReimport = req.query.force === 'true';
 
     try {
-        const result = await processImport(filename, fileBuffer, forceReimport);
+        const result = await processImport(filename, fileBuffer, forceReimport, source, kpi);
 
         // SSOT § 4: Date already has data — ask frontend to prompt user
         if (result.requiresConfirmation) {
@@ -51,6 +54,8 @@ async function uploadF13File(req, res) {
                 success             : false,
                 requiresConfirmation: true,
                 ngay_do_kiem        : result.ngay_do_kiem,
+                kpi                 : kpi,
+                source              : source,
                 message             : `Đã tồn tại dữ liệu ngày đo kiểm ${result.ngay_do_kiem}. Gửi lại với ?force=true để ghi đè.`
             });
         }

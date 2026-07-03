@@ -35,15 +35,29 @@ const { executeImport, BASE_INCOMING } = require('./importPipeline');
  *   errors?              : number
  * }>}
  */
-async function processImport(filename, fileBuffer, forceReimport = false, sourceDir = 'HUE') {
-    // 1. Save file to Incoming/<SOURCE>
-    const incomingDir = path.join(BASE_INCOMING, sourceDir);
+async function processImport(filename, fileBuffer, forceReimport = false, sourceDir = 'HUE', kpi = 'F1.3') {
+    // 1. Save file to Incoming/<KPI>/<SOURCE>
+    const baseIncoming = path.resolve(process.cwd(), `../Data DKCL/${kpi}/Incoming`);
+    const incomingDir = path.join(baseIncoming, sourceDir);
     if (!fs.existsSync(incomingDir)) fs.mkdirSync(incomingDir, { recursive: true });
     
     const filePath = path.join(incomingDir, filename);
     fs.writeFileSync(filePath, fileBuffer);
 
-    // 2. Call Unified Import Pipeline
+    // If KPI is not supported for DB import yet, stop here.
+    if (kpi !== 'F1.3') {
+        return {
+            success: true,
+            total: 0,
+            inserted: 0,
+            skipped: 0,
+            errors: 0,
+            message: 'Chỉ tiêu hiện chưa hỗ trợ Import vào Database.',
+            isUnsupportedKpi: true
+        };
+    }
+
+    // 2. Call Unified Import Pipeline (currently F1.3 only)
     const result = await executeImport({ filePath, forceReimport, source: 'MANUAL' });
 
     // 3. If requires confirmation, delete the temp file so the watcher doesn't process it

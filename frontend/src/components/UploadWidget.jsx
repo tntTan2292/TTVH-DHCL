@@ -21,9 +21,11 @@ import api from '../api/client';
 export default function UploadWidget({ onUploadSuccess }) {
     const [file, setFile]         = useState(null);
     const [uploading, setUploading] = useState(false);
-    const [result, setResult]     = useState(null);   // { type, data }
+    const [result, setResult]     = useState(null);   // { type, data, message, isUnsupportedKpi }
     const [confirm, setConfirm]   = useState(null);   // { ngay_do_kiem } when 409
     const [dragOver, setDragOver] = useState(false);
+    const [kpi, setKpi]           = useState('F1.3');
+    const [source, setSource]     = useState('HUE');
     const inputRef                = useRef(null);
 
     const selectFile = (f) => {
@@ -52,6 +54,8 @@ export default function UploadWidget({ onUploadSuccess }) {
 
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('kpi', kpi);
+        formData.append('source', source);
 
         const url = forceReimport ? '/f13/upload?force=true' : '/f13/upload';
 
@@ -60,8 +64,12 @@ export default function UploadWidget({ onUploadSuccess }) {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            // TD § 2.2 success: { success, total, inserted, skipped, errors }
-            setResult({ type: 'success', data: res.data });
+            // TD § 2.2 success: { success, total, inserted, skipped, errors, isUnsupportedKpi }
+            if (res.data.isUnsupportedKpi) {
+                setResult({ type: 'warning', message: res.data.message });
+            } else {
+                setResult({ type: 'success', data: res.data });
+            }
             setConfirm(null);
             setFile(null);
             if (inputRef.current) inputRef.current.value = '';
@@ -89,8 +97,35 @@ export default function UploadWidget({ onUploadSuccess }) {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <UploadCloud size={20} className="text-vnpost-blue" />
-                Nạp file F1.3 Excel
+                Nạp file {kpi} Excel
             </h2>
+
+            <div className="flex gap-4 mb-4">
+                <div className="flex-1">
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Chỉ tiêu (KPI)</label>
+                    <select 
+                        value={kpi} 
+                        onChange={(e) => setKpi(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-vnpost-blue"
+                    >
+                        <option value="F1.1">F1.1</option>
+                        <option value="F1.2">F1.2</option>
+                        <option value="F1.3">F1.3</option>
+                        <option value="F4.1">F4.1</option>
+                    </select>
+                </div>
+                <div className="flex-1">
+                    <label className="block text-sm font-semibold text-gray-600 mb-1">Nguồn dữ liệu</label>
+                    <select 
+                        value={source} 
+                        onChange={(e) => setSource(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-vnpost-blue"
+                    >
+                        <option value="HUE">Bưu điện TP Huế</option>
+                        <option value="TCT">Toàn quốc (TCT)</option>
+                    </select>
+                </div>
+            </div>
 
             {/* Drop zone */}
             <div
@@ -122,7 +157,7 @@ export default function UploadWidget({ onUploadSuccess }) {
                     <div className="text-gray-400">
                         <UploadCloud size={32} className="mx-auto mb-2 text-gray-300" />
                         <p className="text-sm font-medium">Kéo thả hoặc click để chọn file</p>
-                        <p className="text-xs mt-1">Định dạng: <code className="bg-gray-100 px-1 rounded">F1.3-YYYY.MM.DD.xlsx</code></p>
+                        <p className="text-xs mt-1">Định dạng: <code className="bg-gray-100 px-1 rounded">{kpi}-YYYY.MM.DD.xlsx</code></p>
                     </div>
                 )}
             </div>
@@ -199,6 +234,14 @@ export default function UploadWidget({ onUploadSuccess }) {
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
                     <XCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
                     <p className="text-red-700 text-sm">{result.message}</p>
+                </div>
+            )}
+
+            {/* Warning result (Unsupported KPI) */}
+            {result?.type === 'warning' && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+                    <AlertTriangle size={18} className="text-vnpost-blue shrink-0 mt-0.5" />
+                    <p className="text-vnpost-blue-dark font-medium text-sm">{result.message}</p>
                 </div>
             )}
         </div>
