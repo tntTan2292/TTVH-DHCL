@@ -14,6 +14,19 @@ INSERT INTO sys_kpi_thresholds (level_name, min_value, max_value, color_code) VA
 ('Vàng', 50.0, 59.99, 'yellow'),
 ('Đỏ', 0.0, 49.99, 'red');
 
+-- 1.1 system_config
+CREATE TABLE IF NOT EXISTS system_config (
+    config_key VARCHAR(50) PRIMARY KEY,
+    config_value TEXT NOT NULL,
+    description TEXT
+);
+
+-- Insert default configurations
+INSERT OR IGNORE INTO system_config (config_key, config_value, description) VALUES
+('default_province_code', '53', 'Mã tỉnh mặc định để lấy dữ liệu (53 = Thừa Thiên Huế)'),
+('default_province_name', 'Bưu điện Tỉnh Thừa Thiên Huế', 'Tên tỉnh mặc định'),
+('enable_national_ranking', 'true', 'Bật/Tắt tính năng hiển thị Xếp hạng toàn quốc');
+
 -- 2. import_log
 CREATE TABLE IF NOT EXISTS import_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

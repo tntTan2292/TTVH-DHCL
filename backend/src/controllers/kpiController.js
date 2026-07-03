@@ -79,6 +79,15 @@ async function getDashboardKpi(req, res) {
 
         // Fetch rank if ma_bcvh is provided
         let currentRank = 1, yesterdayRank = 1, swcRank = 1;
+        
+        let defaultProvinceCode = '53';
+        try {
+            const row = await get("SELECT config_value FROM system_config WHERE config_key = 'default_province_code'");
+            if (row) defaultProvinceCode = row.config_value;
+        } catch (e) {
+            console.error('[getDashboardKpi] Error loading default_province_code:', e.message);
+        }
+
         if (ma_bcvh && ma_bcvh !== 'all') {
             const getRank = async (dateStr) => {
                 const sql = `
@@ -96,7 +105,7 @@ async function getDashboardKpi(req, res) {
             yesterdayRank = await getRank(yesterdayStr);
             swcRank = await getRank(swcStr);
         } else {
-            // National Ranking for Hue (ma_tinh_phat = '53')
+            // National Ranking for configured province (default: 53)
             const getNationalRank = async (dateStr) => {
                 const sql = `
                     SELECT ma_tinh_phat, tl_ptc_dung_qd_ct as rate
@@ -105,7 +114,7 @@ async function getDashboardKpi(req, res) {
                     ORDER BY rate DESC, sl_bg_ptc DESC
                 `;
                 const rows = await all(sql, [dateStr]);
-                const idx = rows.findIndex(r => r.ma_tinh_phat === '53');
+                const idx = rows.findIndex(r => r.ma_tinh_phat === defaultProvinceCode);
                 // if not found, put at the end or return null (if no data yet). Returning rows.length + 1 is fine or just 1 if no rows.
                 return rows.length === 0 ? 0 : (idx !== -1 ? idx + 1 : rows.length + 1);
             };
