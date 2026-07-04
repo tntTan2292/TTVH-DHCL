@@ -27,13 +27,6 @@ class ImportQueue {
         try {
             console.log(`[ImportQueue] Bắt đầu xử lý: ${filePath}`);
             
-            // HOTFIX: Prevent processing TCT until National Parser exists
-            const relativePath = path.relative(INCOMING_DIR, filePath);
-            if (relativePath.startsWith('TCT' + path.sep) || relativePath === 'TCT') {
-                console.warn(`[ImportWatcher] Bỏ qua file TCT: National Import chưa được hỗ trợ.`);
-                return;
-            }
-
             await executeImport({ filePath, forceReimport: true, source: 'AUTO' });
         } catch (error) {
             console.error(`[ImportQueue] Lỗi nghiêm trọng khi xử lý ${filePath}:`, error);
