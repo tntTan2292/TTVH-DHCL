@@ -58,7 +58,7 @@ class TimelineService {
         const dailyTimeline = fullData.slice(-30).map(d => ({
             date: d.date,
             kpi_rate: parseFloat(d.kpi_rate.toFixed(2)),
-            color: d.kpi_rate >= 95 ? 'green' : (d.kpi_rate >= 90 ? 'orange' : 'red')
+            color: d.kpi_rate >= 70 ? 'green' : (d.kpi_rate >= 60 ? 'pink' : (d.kpi_rate >= 50 ? 'yellow' : 'red'))
         }));
 
         // 2. Weekly Pattern (Average by day of week over 90 days)
@@ -88,7 +88,7 @@ class TimelineService {
             return {
                 day: w.name,
                 avg_kpi: parseFloat(avg.toFixed(2)),
-                color: avg >= 95 ? 'green' : (avg >= 90 ? 'orange' : 'red')
+                color: avg >= 70 ? 'green' : (avg >= 60 ? 'pink' : (avg >= 50 ? 'yellow' : 'red'))
             };
         });
         // Reorder so T2 is first, CN is last
@@ -115,7 +115,7 @@ class TimelineService {
             return {
                 day: `Ngày ${m.day}`,
                 avg_kpi: parseFloat(avg.toFixed(2)),
-                color: avg >= 95 ? '#22c55e' : (avg >= 90 ? '#f97316' : '#ef4444') // Direct hex for Recharts Area
+                color: avg >= 70 ? '#22c55e' : (avg >= 60 ? '#ec4899' : (avg >= 50 ? '#eab308' : '#ef4444')) // Direct hex for Recharts Area
             };
         });
 
@@ -134,11 +134,12 @@ class TimelineService {
             }
         }
 
-        last30.forEach(d => {
+        last30.forEach((d, index) => {
             currentWeek.push({
                 date: d.date,
                 kpi_rate: parseFloat(d.kpi_rate.toFixed(2)),
-                color: d.isEmpty ? 'gray' : (d.kpi_rate >= 95 ? 'green' : (d.kpi_rate >= 90 ? 'orange' : 'red'))
+                dod: index > 0 && !last30[index-1].isEmpty && !d.isEmpty ? parseFloat((d.kpi_rate - last30[index-1].kpi_rate).toFixed(2)) : 0,
+                color: d.isEmpty ? 'gray' : (d.kpi_rate >= 70 ? 'green' : (d.kpi_rate >= 60 ? 'pink' : (d.kpi_rate >= 50 ? 'yellow' : 'red')))
             });
             if (currentWeek.length === 7) {
                 calendarData.push(currentWeek);

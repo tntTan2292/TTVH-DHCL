@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell, LabelList } from 'recharts';
 import { Calendar, Activity, TrendingUp, BarChart2 } from 'lucide-react';
 import api from '../../api/client';
 
@@ -45,12 +45,56 @@ export default function QualityTimelinePanel({ globalFilter }) {
 
   const { daily, weekly, monthly, heatmap, pulse } = data;
 
+  // --- Dynamic Scale Logic for Weekly Pattern ---
+  const validWeekly = weekly.filter(d => d.avg_kpi > 0);
+  let weeklyYMax = 100;
+  let weeklyYMin = 80;
+
+  if (validWeekly.length > 0) {
+    const maxVal = Math.max(...validWeekly.map(d => d.avg_kpi));
+    const minVal = Math.min(...validWeekly.map(d => d.avg_kpi));
+    
+    // YMax Logic:
+    // Nếu max < 90 -> Max = 90
+    // Nếu max < 95 -> Max = 95
+    // Nếu >= 95 -> Max = 100
+    weeklyYMax = maxVal < 90 ? 90 : (maxVal < 95 ? 95 : 100);
+    
+    // YMin Logic: Floor to nearest 10, minus 10 for padding, minimum 0
+    weeklyYMin = Math.max(0, Math.floor(minVal / 10) * 10 - 10);
+  }
+
+  // Handle 0 values so they don't break the visual scale or get clipped
+  const weeklyVisData = weekly.map(d => ({
+    ...d,
+    // If 0, draw a tiny bar at YMin to keep the column space
+    vis_kpi: d.avg_kpi === 0 ? weeklyYMin + 0.5 : d.avg_kpi,
+    is_empty: d.avg_kpi === 0
+  }));
+
+  // Custom Label for BarChart
+  const CustomBarLabel = (props) => {
+    const { x, y, width, height, value, is_empty } = props;
+    if (is_empty) {
+      return (
+        <text x={x + width / 2} y={y - 5} fill="#9ca3af" fontSize={10} textAnchor="middle">
+          No Data
+        </text>
+      );
+    }
+    return (
+      <text x={x + width / 2} y={y - 5} fill="#4b5563" fontSize={10} textAnchor="middle" fontWeight="bold">
+        {value.toFixed(2)}%
+      </text>
+    );
+  };
+
   const getStatusColor = (colorStr) => {
     switch(colorStr) {
       case 'red': return '#ef4444';
-      case 'orange': return '#f97316';
+      case 'yellow': return '#eab308';
+      case 'pink': return '#ec4899';
       case 'green': return '#22c55e';
-      case 'blue': return '#3b82f6';
       case 'gray': default: return '#9ca3af';
     }
   };
@@ -58,9 +102,9 @@ export default function QualityTimelinePanel({ globalFilter }) {
   const PulseAlert = () => {
     const pulseColors = {
       'red': { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-600', textBold: 'text-red-800', textMuted: 'text-red-700' },
-      'orange': { bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600', textBold: 'text-orange-800', textMuted: 'text-orange-700' },
+      'yellow': { bg: 'bg-yellow-50', border: 'border-yellow-200', text: 'text-yellow-600', textBold: 'text-yellow-800', textMuted: 'text-yellow-700' },
+      'pink': { bg: 'bg-pink-50', border: 'border-pink-200', text: 'text-pink-600', textBold: 'text-pink-800', textMuted: 'text-pink-700' },
       'green': { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-600', textBold: 'text-green-800', textMuted: 'text-green-700' },
-      'blue': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600', textBold: 'text-blue-800', textMuted: 'text-blue-700' },
       'gray': { bg: 'bg-gray-50', border: 'border-gray-200', text: 'text-gray-600', textBold: 'text-gray-800', textMuted: 'text-gray-700' }
     };
     
@@ -116,15 +160,19 @@ export default function QualityTimelinePanel({ globalFilter }) {
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weekly} margin={{ top: 20, right: 20, bottom: 5, left: -20 }}>
+              <BarChart data={weeklyVisData} margin={{ top: 20, right: 20, bottom: 5, left: -20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                 <XAxis dataKey="day" tick={{fontSize: 12, fontWeight: 'bold'}} />
-                <YAxis domain={[80, 100]} tick={{fontSize: 10}} />
-                <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-                <Bar dataKey="avg_kpi" radius={[4, 4, 0, 0]}>
-                  {weekly.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={getStatusColor(entry.color)} />
+                <YAxis domain={[weeklyYMin, weeklyYMax]} tick={{fontSize: 10}} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
+                  formatter={(value, name, props) => [props.payload.is_empty ? 'No Data' : `${props.payload.avg_kpi}%`, 'KPI Trung bình']}
+                />
+                <Bar dataKey="vis_kpi" radius={[4, 4, 0, 0]}>
+                  {weeklyVisData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.is_empty ? '#e5e7eb' : getStatusColor(entry.color)} />
                   ))}
+                  <LabelList content={<CustomBarLabel />} dataKey="avg_kpi" />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -172,8 +220,9 @@ export default function QualityTimelinePanel({ globalFilter }) {
                       if (!day) return <div key={dIdx} className="h-12 rounded-md bg-transparent border border-transparent"></div>;
                       
                       const bgColor = day.color === 'green' ? 'bg-green-500' : 
-                                      (day.color === 'orange' ? 'bg-orange-500' : 
-                                      (day.color === 'red' ? 'bg-red-500' : 'bg-gray-200'));
+                                      (day.color === 'pink' ? 'bg-pink-500' : 
+                                      (day.color === 'yellow' ? 'bg-yellow-500' : 
+                                      (day.color === 'red' ? 'bg-red-500' : 'bg-gray-200')));
 
                       return (
                         <div 
@@ -181,11 +230,14 @@ export default function QualityTimelinePanel({ globalFilter }) {
                           className={`h-12 rounded-md ${bgColor} text-white flex flex-col items-center justify-center text-xs cursor-pointer hover:opacity-80 transition-opacity relative group`}
                         >
                           <span className="font-bold opacity-90">{day.date.slice(8)}</span>
-                          <span className="text-[10px] opacity-80">{day.kpi_rate}%</span>
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-[10px] opacity-80">{day.kpi_rate}%</span>
+                            {day.dod > 0 ? <TrendingUp size={10} className="text-white opacity-80" /> : (day.dod < 0 ? <TrendingUp size={10} className="text-white opacity-80 transform rotate-180" /> : null)}
+                          </div>
                           
                           {/* Tooltip on hover */}
                           <div className="absolute bottom-full mb-2 hidden group-hover:block w-max bg-gray-800 text-white text-xs px-2 py-1 rounded shadow-lg z-50">
-                            {day.date}: {day.kpi_rate}%
+                            {day.date}: {day.kpi_rate}% {day.dod ? `(${day.dod > 0 ? '+' : ''}${day.dod}%)` : ''}
                           </div>
                         </div>
                       );
