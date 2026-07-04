@@ -84,16 +84,18 @@ export default function BcvhOperationTable({ globalFilter }) {
 
   const summary = useMemo(() => {
     return {
-      hot: data.filter(d => d.kpi_rate < 90).length,
-      watch: data.filter(d => d.kpi_rate >= 90 && d.kpi_rate < 95).length,
-      best: data.filter(d => d.kpi_rate >= 95).length
+      xanh: data.filter(d => d.kpi_rate >= 70).length,
+      hong: data.filter(d => d.kpi_rate >= 60 && d.kpi_rate < 70).length,
+      vang: data.filter(d => d.kpi_rate >= 50 && d.kpi_rate < 60).length,
+      do: data.filter(d => d.kpi_rate < 50).length
     };
   }, [data]);
 
   const getBusinessStatus = (rate) => {
-    if (rate >= 95) return { text: 'Bình thường', color: 'text-green-600 bg-green-50', flag: 'BEST', icon: <Award size={12}/> };
-    if (rate >= 90) return { text: 'Cảnh báo', color: 'text-orange-500 bg-orange-50', flag: 'WATCH', icon: <Eye size={12}/> };
-    return { text: 'Nguy hiểm', color: 'text-red-600 bg-red-50 font-bold', flag: 'HOT', icon: <Flame size={12}/> };
+    if (rate >= 70) return { text: 'Xanh', color: 'text-green-600 bg-green-50', flag: 'XANH', icon: <Award size={12}/> };
+    if (rate >= 60) return { text: 'Hồng', color: 'text-pink-500 bg-pink-50', flag: 'HỒNG', icon: <Eye size={12}/> };
+    if (rate >= 50) return { text: 'Vàng', color: 'text-yellow-600 bg-yellow-50', flag: 'VÀNG', icon: <AlertCircle size={12}/> };
+    return { text: 'Đỏ', color: 'text-red-600 bg-red-50 font-bold', flag: 'ĐỎ', icon: <Flame size={12}/> };
   };
 
   const getRecommendation = (rate) => {
@@ -126,13 +128,13 @@ export default function BcvhOperationTable({ globalFilter }) {
               </th>
               <th className="px-4 py-3 text-center w-24">Status</th>
               <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('total_bg')}>
-                SL
+                Tổng Bưu Gửi
               </th>
               <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('failed_bg')}>
-                Lỗi
+                Chậm chỉ tiêu
               </th>
               <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200 min-w-[120px]" onClick={() => requestSort('kpi_rate')}>
-                KPI (%) 
+                KPI 2026 (%) 
               </th>
               <th className="px-4 py-3 text-right text-gray-400 font-normal">+/- HQ</th>
               <th className="px-4 py-3 cursor-pointer text-center hover:bg-gray-200" onClick={() => requestSort('rank')}>
@@ -222,8 +224,8 @@ export default function BcvhOperationTable({ globalFilter }) {
                                 </div>
                               </div>
                               <div className="mt-2 pt-2 border-t border-gray-50">
-                                <span className="block text-xs font-bold text-gray-700 mb-1">Gợi ý hành động (Recommendation):</span>
-                                <p className={`text-sm p-2 rounded ${row.kpi_rate < 90 ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-gray-50 text-gray-700'}`}>
+                                <span className="block text-xs font-bold text-gray-700 mb-1">Khuyến nghị điều hành:</span>
+                                <p className={`text-sm p-2 rounded ${row.kpi_rate < 50 ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-gray-50 text-gray-700'}`}>
                                   {getRecommendation(row.kpi_rate)}
                                 </p>
                               </div>
@@ -243,9 +245,10 @@ export default function BcvhOperationTable({ globalFilter }) {
       </div>
       <div className="bg-gray-50 p-3 text-xs text-gray-600 flex justify-between items-center border-t border-gray-200 shadow-inner z-30">
         <div className="flex gap-4 font-medium">
-          <span className="text-red-600 flex items-center gap-1"><Flame size={14}/> HOT ({summary.hot})</span>
-          <span className="text-orange-600 flex items-center gap-1"><Eye size={14}/> WATCH ({summary.watch})</span>
-          <span className="text-green-600 flex items-center gap-1"><Award size={14}/> BEST ({summary.best})</span>
+          <span className="text-red-600 flex items-center gap-1"><Flame size={14}/> ĐỎ ({summary.do})</span>
+          <span className="text-yellow-600 flex items-center gap-1"><AlertCircle size={14}/> VÀNG ({summary.vang})</span>
+          <span className="text-pink-500 flex items-center gap-1"><Eye size={14}/> HỒNG ({summary.hong})</span>
+          <span className="text-green-600 flex items-center gap-1"><Award size={14}/> XANH ({summary.xanh})</span>
         </div>
         <div>Hiển thị {processedData.length} đơn vị</div>
       </div>
