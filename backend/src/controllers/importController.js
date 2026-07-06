@@ -3,14 +3,19 @@ const importService = require('../services/ImportService');
 class ImportController {
     async preview(req, res) {
         try {
-            // Tầng Controller bóc tách dữ liệu Request HTTP
-            const fileName = req.body.file_name || 'unknown.xlsx';
-            const parsedData = req.body.data || [];
+            // Frontend truyền lên multipart/form-data, Multer (hoặc Middleware) đã parse ra req.file
+            const file = req.file;
             
-            // Đẩy xuống Service xử lý
-            const result = await importService.previewData(fileName, parsedData);
+            if (!file) {
+                return res.status(400).json({
+                    success: false,
+                    error: { code: 'MISSING_FILE', message: 'Không tìm thấy file tải lên.' }
+                });
+            }
+
+            // Đẩy xuống Service xử lý: tự đọc Buffer và phân tích Excel
+            const result = await importService.previewData(file.originalname, file.buffer);
             
-            // Đóng gói Response tuân thủ Contract
             res.status(200).json({
                 success: true,
                 data: result
@@ -30,7 +35,6 @@ class ImportController {
         try {
             const sessionId = req.body.session_id;
             const forceOverwrite = req.body.force_overwrite === true;
-            const dataArray = req.body.data || [];
 
             if (!sessionId) {
                 return res.status(400).json({
@@ -39,7 +43,8 @@ class ImportController {
                 });
             }
 
-            const result = await importService.confirmImport(sessionId, forceOverwrite, dataArray);
+            // Dữ liệu sẽ lấy lại từ Session ở Backend, không nhận data từ Frontend
+            const result = await importService.confirmImport(sessionId, forceOverwrite);
 
             res.status(200).json({
                 success: true,

@@ -2,30 +2,28 @@ import httpClient from './httpClient';
 
 class F13ImportClient {
     /**
-     * Gửi dữ liệu Preview lên Backend
+     * Gửi file thô qua dạng multipart/form-data
      * API Contract: POST /import/preview
-     * @param {string} fileName Tên file
-     * @param {Array} parsedData Dữ liệu thô JSON từ Excel
+     * @param {File} file Đối tượng File lấy từ thẻ <input type="file">
      */
-    preview(fileName, parsedData) {
-        return httpClient.post('/import/preview', {
-            file_name: fileName,
-            data: parsedData
-        });
+    preview(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        return httpClient.post('/import/preview', formData);
     }
 
     /**
      * Xác nhận Import (Ghi đè)
      * API Contract: POST /import/confirm
+     * Không còn truyền data mảng (dataArray) từ Frontend
      * @param {string} sessionId ID phiên Preview trả về
      * @param {boolean} forceOverwrite Cờ ghi đè
-     * @param {Array} dataArray Dữ liệu cần nạp
      */
-    confirm(sessionId, forceOverwrite, dataArray) {
+    confirm(sessionId, forceOverwrite) {
         return httpClient.post('/import/confirm', {
             session_id: sessionId,
-            force_overwrite: forceOverwrite,
-            data: dataArray
+            force_overwrite: forceOverwrite
         });
     }
 }

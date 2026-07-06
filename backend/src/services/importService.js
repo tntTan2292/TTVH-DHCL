@@ -1,23 +1,32 @@
 const importSessionRepo = require('../repositories/ImportSessionRepository');
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 
+// Store tạm thời trong Memory (Chỉ dùng cho minh họa kiến trúc. Thực tế có thể dùng Redis)
+const globalSessionStore = new Map();
+
 class ImportService {
     /**
      * Preview Data
-     * Điều phối luồng xử lý Preview (Đọc file, bóc tách cấu trúc).
+     * Nhận file Raw từ Controller, tự parse và lưu vào Session Store.
      * @param {string} fileName Tên file gốc
-     * @param {Array} parsedData Dữ liệu đã được parse từ Excel (được pass từ Controller/Parser)
+     * @param {Buffer} fileBuffer Buffer của file Excel
      * @returns {Object} JSON Preview
      */
-    async previewData(fileName, parsedData) {
+    async previewData(fileName, fileBuffer) {
         try {
-            // Khởi tạo một phiên (Session) với trạng thái PREVIEW
             const sessionId = `SESSION-${Date.now()}`;
-            // Theo nghiệp vụ F1.3, ngày đo kiểm lấy từ filename (Giả lập logic extract tạm ở đây)
-            const ngayDoKiem = '2026-06-18'; 
             
-            const totalRecords = parsedData ? parsedData.length : 0;
-            // Ở D3, ta không code Logic Validate. Giả sử 100% valid.
+            // TODO: Sử dụng thư viện Excel (như xlsx) để đọc fileBuffer thành parsedData
+            // const workbook = xlsx.read(fileBuffer); ...
+            // const parsedData = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+            
+            // Tạm thời Mock dữ liệu đã parse
+            const parsedData = [
+                { ma_bg: 'VN123', ket_qua_f13: 'Không đạt' }
+            ];
+
+            const ngayDoKiem = '2026-06-18'; // Mock logic lấy ngày từ file/data
+            const totalRecords = parsedData.length;
             const validRecords = totalRecords; 
             const errorRecords = 0;
 
@@ -31,7 +40,11 @@ class ImportService {
                 error_records: errorRecords
             };
 
+            // Lưu metadata vào CSDL tạm
             await importSessionRepo.create(session);
+            
+            // Lưu data thật vào Memory Store để Confirm lấy ra
+            globalSessionStore.set(sessionId, parsedData);
 
             return {
                 session_id: sessionId,
@@ -39,7 +52,7 @@ class ImportService {
                 total_records: session.total_records,
                 valid_records: session.valid_records,
                 error_records: session.error_records,
-                is_duplicate_date: false // Mock cho API Contract, thực tế Repo sẽ query xem ngày này đã tồn tại chưa
+                is_duplicate_date: false
             };
         } catch (error) {
             throw new Error(`Lỗi hệ thống khi xử lý Preview: ${error.message}`);
@@ -48,32 +61,35 @@ class ImportService {
 
     /**
      * Confirm Import
-     * Khớp với chuẩn API Contract `/import/confirm`
      * @param {string} sessionId 
      * @param {boolean} forceOverwrite 
-     * @param {Array} dataArray Dữ liệu cần chèn (bản thực tế sẽ lưu tạm ở Redis/Memory giữa 2 bước)
      * @returns {Object} Kết quả nạp
      */
-    async confirmImport(sessionId, forceOverwrite, dataArray) {
+    async confirmImport(sessionId, forceOverwrite) {
         try {
             const session = await importSessionRepo.findById(sessionId);
             if (!session) {
                 throw new Error('Không tìm thấy phiên Import (Session ID không hợp lệ)');
             }
 
-            // Giao phó toàn bộ Transaction phức tạp cho Repository (overwriteImport)
-            // Repository sẽ lo việc Delete dữ liệu cũ theo ngày (nếu forceOverwrite) và Bulk Insert
+            // Lấy lại dữ liệu từ Memory Store của Backend
+            const dataArray = globalSessionStore.get(sessionId);
+            if (!dataArray) {
+                throw new Error('Dữ liệu phiên đã hết hạn hoặc không tồn tại. Vui lòng Upload lại file.');
+            }
+
             await factBuuGuiRepo.overwriteImport(session.ngay_do_kiem, sessionId, dataArray);
             
-            // Thành công -> Đổi Status log
             await importSessionRepo.updateStatus(sessionId, 'CONFIRMED');
+
+            // Xóa session khỏi bộ nhớ tạm
+            globalSessionStore.delete(sessionId);
 
             return {
                 inserted_records: dataArray.length,
                 import_log_id: sessionId
             };
         } catch (error) {
-            // Chặn bắt Exception từ Repository (vd: SQLITE_CONSTRAINT) và bọc lại
             throw new Error(`Lỗi hệ thống khi lưu trữ Confirm dữ liệu: ${error.message}`);
         }
     }

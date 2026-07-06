@@ -1,24 +1,18 @@
 const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1';
 
 class HttpClient {
-    /**
-     * Global HTTP Request Wrapper
-     * Đảm bảo tính Stateless, quản lý Error chung, không dính líu UI.
-     */
     async request(endpoint, options = {}) {
         const url = `${BASE_URL}${endpoint}`;
         
-        const defaultHeaders = {
+        // Nếu truyền headers riêng (như khi gửi FormData), ưu tiên dùng mảng đó. Nếu không thì dùng default.
+        const headers = options.headers || {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
 
         const config = {
             ...options,
-            headers: {
-                ...defaultHeaders,
-                ...options.headers
-            }
+            headers
         };
 
         try {
@@ -26,7 +20,6 @@ class HttpClient {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                // Đóng gói lỗi từ chuẩn API Contract (D5)
                 const errorPayload = {
                     status: response.status,
                     code: data?.error?.code || 'NETWORK_ERROR',
@@ -35,10 +28,8 @@ class HttpClient {
                 throw errorPayload;
             }
 
-            // Trả về JSON bọc chuẩn: { success: true, data: {...}, meta: {...} }
             return data;
         } catch (error) {
-            // Lỗi kết nối mạng (Network Unreachable) hoặc lỗi bọc từ khối !response.ok
             if (!error.status) {
                 throw {
                     status: 0,
@@ -65,10 +56,21 @@ class HttpClient {
     }
 
     post(endpoint, body = {}) {
-        return this.request(endpoint, {
+        const isFormData = body instanceof FormData;
+        
+        const options = {
             method: 'POST',
-            body: JSON.stringify(body)
-        });
+            body: isFormData ? body : JSON.stringify(body)
+        };
+
+        if (isFormData) {
+            // Khi gửi FormData, browser tự động sinh header Content-Type multipart/form-data kèm boundary
+            options.headers = {
+                'Accept': 'application/json'
+            };
+        }
+
+        return this.request(endpoint, options);
     }
 }
 
