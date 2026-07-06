@@ -1,0 +1,75 @@
+const f13DashboardService = require('../services/F13DashboardService');
+
+class DashboardController {
+    async getKpi(req, res) {
+        try {
+            const { startDate, endDate } = req.query;
+            if (!startDate || !endDate) {
+                return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu startDate và endDate' }});
+            }
+            const result = await f13DashboardService.getDashboardKpi(startDate, endDate);
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
+        }
+    }
+
+    async getBcvh(req, res) {
+        try {
+            const { date, sort, order } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const pageSize = parseInt(req.query.page_size) || 20;
+
+            if (!date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date' }});
+
+            const result = await f13DashboardService.getBcvhRanking(date, page, pageSize, sort, order);
+            res.status(200).json({ success: true, data: result.data, meta: result.meta });
+        } catch (error) {
+            res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
+        }
+    }
+
+    async getRoute(req, res) {
+        try {
+            const { date, bcvh, sort, order } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const pageSize = parseInt(req.query.page_size) || 20;
+
+            if (!date || !bcvh) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date và bcvh' }});
+
+            const result = await f13DashboardService.getRouteRanking(date, bcvh, page, pageSize, sort, order);
+            res.status(200).json({ success: true, data: result.data, meta: result.meta });
+        } catch (error) {
+            res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
+        }
+    }
+
+    async getPareto(req, res) {
+        try {
+            const { date, bcvh } = req.query;
+            if (!date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date' }});
+
+            const result = await f13DashboardService.getParetoAnalysis(date, bcvh);
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
+        }
+    }
+
+    async getEvidence(req, res) {
+        try {
+            const { date, bcvh, route } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const pageSize = parseInt(req.query.page_size) || 20;
+
+            if (!date || !bcvh || !route) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date, bcvh, route' }});
+
+            const result = await f13DashboardService.getEvidenceList(date, bcvh, route, page, pageSize);
+            res.status(200).json({ success: true, data: result.data, meta: result.meta });
+        } catch (error) {
+            res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
+        }
+    }
+}
+
+module.exports = new DashboardController();

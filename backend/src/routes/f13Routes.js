@@ -1,38 +1,23 @@
 const express = require('express');
-const multer  = require('multer');
-const router  = express.Router();
+const router = express.Router();
 
-const kpiController    = require('../controllers/kpiController');
-const importController = require('../controllers/importController');
+const importController = require('../controllers/ImportController');
+const dashboardController = require('../controllers/DashboardController');
+const recommendationController = require('../controllers/RecommendationController');
 
-// Multer: store file in memory (Buffer) for direct parsing — no temp file on disk
-// TD § 2.2 API 1: multipart/form-data, field: 'file'
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits : { fileSize: 50 * 1024 * 1024 },   // 50 MB max
-    fileFilter: (_req, file, cb) => {
-        // Accept only .xlsx files
-        if (file.originalname.endsWith('.xlsx')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Invalid file type. Only .xlsx files are accepted.'));
-        }
-    }
-});
+// 1. Import Routes
+router.post('/import/preview', importController.preview);
+router.post('/import/confirm', importController.confirm);
 
-// ── KPI & Dashboard ──────────────────────────────────────────────────────────
-router.get('/dashboard/kpi',    kpiController.getDashboardKpi);
-router.get('/dashboard/trend',  kpiController.getDashboardTrend);
-router.get('/dashboard/meta',   kpiController.getDashboardMeta);
-router.get('/dashboard/quality-timeline', kpiController.getQualityTimeline);
-router.get('/dashboard/message', kpiController.getDashboardMessage);
-router.get('/dashboard/top',    kpiController.getDashboardTop);
-router.get('/dashboard/recommendations', kpiController.getRecommendations);
-router.get('/bcvh-ranking',     kpiController.getBcvhRanking);
-router.get('/bcvh-list',        kpiController.getBcvhList);
+// 2. Dashboard Routes
+router.get('/dashboard/kpi', dashboardController.getKpi);
+router.get('/ranking/bcvh', dashboardController.getBcvh);
+router.get('/ranking/route', dashboardController.getRoute);
+router.get('/rca/pareto', dashboardController.getPareto);
+router.get('/evidence-list', dashboardController.getEvidence);
 
-// ── Import (TD § 2.2 API 1) ─────────────────────────────────────────────────
-// POST /api/f13/upload?force=true   (force=true for reimport confirmation)
-router.post('/upload', upload.single('file'), importController.uploadF13File);
+// 3. Recommendation & Message Routes
+router.get('/recommendations', recommendationController.getRecs);
+router.get('/messages', recommendationController.getMsgs);
 
 module.exports = router;
