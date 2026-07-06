@@ -3,11 +3,11 @@
 ## 1. API Architecture
 ### 1.1 API Structure & Versioning
 - **Base Path**: `/api/v1/f13`
-- **Versioning**: Sử dụng URL Versioning (`v1`).
+- **Versioning**: Sử dụng URL Versioning (`v1`). 
 - **REST Standard**: Tuân thủ chuẩn RESTful API.
 - **Naming Convention**: 
   - URL sử dụng `kebab-case` (e.g., `/evidence-list`).
-  - JSON keys sử dụng `snake_case` cho DB mapping trực tiếp, hoặc `camelCase` tùy quy chuẩn Frontend (Quy chuẩn tại tài liệu này: `snake_case`).
+  - JSON keys sử dụng `snake_case` cho DB mapping trực tiếp.
 
 ### 1.2 Response Standard
 Mọi Response đều bọc trong một chuẩn chung (Envelope):
@@ -53,7 +53,8 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
 | **Evidence** | `/api/v1/f13/evidence-list` | GET | Lấy danh sách BG chậm nộp tiền (Drill-down từ Tuyến) |
 | **Engine** | `/api/v1/f13/recommendations` | GET | Lấy danh sách cảnh báo Auto-Insight từ Rule Engine |
 | **Engine** | `/api/v1/f13/messages` | GET | Lấy thông điệp điều hành (đã render từ Engine) |
-| **Import** | `/api/v1/f13/import/upload` | POST | Upload file dữ liệu F1.3 |
+| **Import** | `/api/v1/f13/import/preview` | POST | Upload file, Validation, trả về kết quả Preview |
+| **Import** | `/api/v1/f13/import/confirm` | POST | Xác nhận lưu dữ liệu (Hỗ trợ Overwrite) |
 
 ---
 
@@ -63,6 +64,7 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
 - **Query**:
   - `from_date` (Required): `YYYY-MM-DD`
   - `to_date` (Required): `YYYY-MM-DD`
+- **Validation**: `from_date` <= `to_date`.
 - **Response**:
 ```json
 {
@@ -78,8 +80,8 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
 
 ### 3.2 `GET /api/v1/f13/ranking/bcvh`
 - **Query**:
-  - `date`: `YYYY-MM-DD`
-  - `page`, `page_size`, `sort`, `order` (Optional)
+  - `date` (Required): `YYYY-MM-DD`
+  - `page`, `page_size`, `sort`, `order` (Optional, Default: page=1, page_size=20)
 - **Response**:
 ```json
 {
@@ -94,13 +96,36 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
       "f13_303_rate": 5.2
     }
   ],
-  "meta": { "pagination": { "page": 1, "page_size": 20, "total_items": 1 } }
+  "meta": { "pagination": { "page": 1, "page_size": 20, "total_items": 1, "total_pages": 1 } }
 }
 ```
 
-### 3.3 `GET /api/v1/f13/rca/pareto`
+### 3.3 `GET /api/v1/f13/ranking/route`
 - **Query**:
-  - `date`: `YYYY-MM-DD`
+  - `date` (Required): `YYYY-MM-DD`
+  - `ma_bcvh` (Required): Mã BCVH để filter.
+  - `page`, `page_size`, `sort`, `order` (Optional)
+- **Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "ma_tuyen": "T01",
+      "ten_tuyen": "Tuyến A",
+      "total_bg": 1000,
+      "passed_rate": 90.0,
+      "total_failed": 100,
+      "f13_303_rate": 8.0
+    }
+  ],
+  "meta": { "pagination": { "page": 1, "page_size": 20, "total_items": 1, "total_pages": 1 } }
+}
+```
+
+### 3.4 `GET /api/v1/f13/rca/pareto`
+- **Query**:
+  - `date` (Required): `YYYY-MM-DD`
   - `ma_bcvh` (Optional): Phân tích Pareto cho 1 BCVH cụ thể.
 - **Response**:
 ```json
@@ -126,12 +151,12 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
 }
 ```
 
-### 3.4 `GET /api/v1/f13/evidence-list`
+### 3.5 `GET /api/v1/f13/evidence-list`
 - **Query**:
-  - `date`: `YYYY-MM-DD`
-  - `ma_bcvh` (Required for Drill-down)
-  - `ma_tuyen` (Required for Drill-down)
-  - `page`, `page_size`
+  - `date` (Required): `YYYY-MM-DD`
+  - `ma_bcvh` (Required)
+  - `ma_tuyen` (Required)
+  - `page`, `page_size` (Optional)
 - **Response**:
 ```json
 {
@@ -144,7 +169,41 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
       "do_tre_gio": 6.0
     }
   ],
-  "meta": { "pagination": { "page": 1, "page_size": 20, "total_items": 45 } }
+  "meta": { "pagination": { "page": 1, "page_size": 20, "total_items": 45, "total_pages": 3 } }
+}
+```
+
+### 3.6 `GET /api/v1/f13/recommendations`
+- **Query**:
+  - `date` (Required): `YYYY-MM-DD`
+- **Response**: Trả về danh sách cảnh báo Auto-Insight từ Rule Engine.
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "REC_01",
+      "priority": "P1",
+      "category": "Bất thường",
+      "condition": "Tỷ lệ chậm nộp tiền toàn mạng tăng cao, vượt ngưỡng 10%",
+      "action": "Giám đốc chỉ đạo rà soát."
+    }
+  ]
+}
+```
+
+### 3.7 `GET /api/v1/f13/messages`
+- **Query**:
+  - `date` (Required): `YYYY-MM-DD`
+  - `type` (Optional): `dieu_hanh` hoặc `bao_cao`.
+- **Response**: Trả về nội dung tin nhắn đã được Engine render.
+```json
+{
+  "success": true,
+  "data": {
+    "dieu_hanh": "Nhắc nhở bưu tá...",
+    "bao_cao": "Báo cáo ngày..."
+  }
 }
 ```
 
@@ -163,21 +222,42 @@ Backend chịu hoàn toàn trách nhiệm Query Data theo cấu trúc phân cấ
 
 ## 5. Import API Specification
 
-### `POST /api/v1/f13/import/upload`
-- **Body** (multipart/form-data):
-  - `file`: Bắt buộc (.xlsx).
-  - `force_overwrite`: `true/false` (Mặc định `false`).
-- **Logic**:
-  - Nếu `force_overwrite = false` và phát hiện trùng ngày, trả về `409 Conflict`.
-  - Nếu `force_overwrite = true`, hệ thống xóa dữ liệu cũ ngày đó, nạp dữ liệu mới.
-- **Response (Thành công)**:
+### 5.1 `POST /api/v1/f13/import/preview`
+- **Purpose**: Upload, Validation, Preview dữ liệu. Chưa ghi vào bảng chính.
+- **Body** (multipart/form-data): `file` (Bắt buộc .xlsx).
+- **Response**:
 ```json
 {
   "success": true,
   "data": {
+    "session_id": "uuid-1234",
+    "ngay_do_kiem": "2026-06-18",
     "total_records": 10000,
-    "inserted_records": 9500,
+    "valid_records": 9500,
     "error_records": 500,
+    "is_duplicate_date": true
+  }
+}
+```
+
+### 5.2 `POST /api/v1/f13/import/confirm`
+- **Purpose**: Confirm lưu dữ liệu, xử lý Overwrite, ghi Import Log.
+- **Body** (application/json):
+```json
+{
+  "session_id": "uuid-1234",
+  "force_overwrite": true
+}
+```
+- **Logic**:
+  - Nếu `force_overwrite = false` và trùng ngày → `409 Conflict`.
+  - Nếu `force_overwrite = true` → Xóa cũ, nạp mới.
+- **Response**:
+```json
+{
+  "success": true,
+  "data": {
+    "inserted_records": 9500,
     "import_log_id": 1024
   }
 }
@@ -187,11 +267,11 @@ Backend chịu hoàn toàn trách nhiệm Query Data theo cấu trúc phân cấ
 
 ## 6. Error Response Code
 Chuẩn hóa HTTP Status Code và Internal Error Code:
-- **400 Bad Request**: Sai tham số Query/Body (VD: `ERR_400_INVALID_DATE`).
-- **404 Not Found**: Tham số truy vấn không khớp bản ghi nào.
-- **409 Conflict**: Import trùng ngày (yêu cầu `force_overwrite = true`).
-- **422 Unprocessable Entity**: File Excel sai định dạng (thiếu cột).
-- **500 Internal Server Error**: Lỗi Database hoặc Server (VD: `ERR_500_DB_FAIL`).
+- **400 Bad Request**: Sai tham số Query/Body (VD: `ERR_400_INVALID_DATE`, `ERR_400_MISSING_PARAM`).
+- **404 Not Found**: Tham số truy vấn không khớp bản ghi nào (`ERR_404_NOT_FOUND`).
+- **409 Conflict**: Import trùng ngày (yêu cầu `force_overwrite = true`) (`ERR_409_DUPLICATE_DATA`).
+- **422 Unprocessable Entity**: File Excel sai định dạng (thiếu cột) (`ERR_422_INVALID_EXCEL`).
+- **500 Internal Server Error**: Lỗi Database hoặc Server (`ERR_500_DB_FAIL`).
 
 ---
 
@@ -201,7 +281,7 @@ Mọi danh sách (BCVH, Tuyến, Evidence List) bắt buộc kế thừa chuẩn
 - `page_size` (int): Số dòng / trang (Mặc định 20).
 - `sort` (string): Tên cột cần sắp xếp.
 - `order` (string): `asc` hoặc `desc`.
-- `search` (string): Chuỗi tìm kiếm tự do (Optional).
+- `search` (string): Chuỗi tìm kiếm tự do.
 
 ---
 
