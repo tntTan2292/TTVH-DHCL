@@ -17,19 +17,16 @@ Trả lời câu hỏi: Vì sao BCVH thấp?
 ### F13_301: Bưu gửi có nộp tiền
 - **Điều kiện**: Có thời gian nộp tiền.
 
-### F13_302: Bưu gửi nộp tiền muộn
-- **Điều kiện**: `Thời gian nộp tiền - Thời gian PTC > 2 giờ`
+### F13_302: Bưu gửi chậm nộp tiền
+- **Điều kiện**: `Thời gian nộp tiền - Thời gian PTC > 3 giờ`
 
-### F13_303: Tỷ lệ nộp tiền muộn
-- **Công thức**: `Bưu gửi nộp tiền muộn / Bưu gửi có nộp tiền`
+### F13_303: Tỷ lệ chậm nộp tiền
+- **Công thức**: `Số BG chậm nộp tiền / Tổng số BG Không đạt`
 - **Phạm vi**: BCVH, Tuyến phát, Toàn mạng
 
 ### F13_401: Bưu gửi Không đạt nộp tiền muộn
-- **Điều kiện**: `Không đạt F1.3 AND (Thời gian nộp tiền - Thời gian PTC > 2 giờ)`
+- **Điều kiện**: `Không đạt F1.3 AND (Thời gian nộp tiền - Thời gian PTC > 3 giờ)`
 
-### F13_402: Tỷ lệ nộp tiền muộn (trong nhóm Không đạt)
-- **Công thức**: `Bưu gửi Không đạt nộp tiền muộn / Bưu gửi Không đạt có nộp tiền`
-- **Mục đích**: Đo lường mức độ liên quan giữa Nộp tiền muộn và Không đạt F1.3. Xác định "Bao nhiêu % số Bưu gửi rớt F1.3 liên quan nộp tiền muộn".
 
 ## 2. Nhóm Nguyên Nhân Khác (TODO - Waiting Product Owner)
 - Chậm phát
