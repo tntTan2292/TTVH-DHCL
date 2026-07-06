@@ -59,7 +59,7 @@ export default function F13BcvhRanking() {
             <div className="flex items-center justify-between mb-6">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">F1.3 BCVH Ranking</h1>
-                    <p className="text-gray-500 mt-1">Xếp hạng chất lượng F1.3 theo Bưu cục Văn hóa</p>
+                    <p className="text-gray-500 mt-1">Xếp hạng chất lượng F1.3 theo Bưu cục Vận hành</p>
                 </div>
             </div>
 

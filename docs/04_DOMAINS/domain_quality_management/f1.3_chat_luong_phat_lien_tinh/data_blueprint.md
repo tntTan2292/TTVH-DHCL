@@ -48,7 +48,7 @@ Nguyên tắc:
 | Excel Column | System Field | Data Type | Nullable | Mô tả |
 |---|---|---|---|---|
 | Số hiệu bưu gửi | `ma_bg` | string | No | Mã định danh Bưu gửi |
-| Mã BC phát | `ma_bcvh` | string | No | Mã định danh Bưu cục văn hóa |
+| Mã BC phát | `ma_bcvh` | string | No | Mã định danh Bưu cục vận hành |
 | Tên BC phát | `ten_bcvh` | string | No | Tên BCVH để hiển thị |
 | Mã tuyến phát | `ma_tuyen` | string | Yes | Mã định danh Tuyến phát |
 | Tên tuyến phát | `ten_tuyen` | string | Yes | Tên Tuyến phát để hiển thị |

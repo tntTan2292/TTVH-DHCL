@@ -4,7 +4,7 @@ const path = require('path');
 const pages = [
   { file: 'DashboardHome.jsx', title: 'Dashboard Home', desc: 'Tổng quan hệ thống TTVH-DHCL' },
   { file: 'F13Dashboard.jsx', title: 'F1.3 Dashboard', desc: 'Tổng quan ĐHCL F1.3' },
-  { file: 'F13BcvhRanking.jsx', title: 'BCVH Ranking', desc: 'Xếp hạng Bưu cục Văn hóa xã' },
+  { file: 'F13BcvhRanking.jsx', title: 'BCVH Ranking', desc: 'Xếp hạng Bưu cục Vận hành' },
   { file: 'F13RouteRanking.jsx', title: 'Tuyến Ranking', desc: 'Xếp hạng Tuyến phát' },
   { file: 'F13RCA.jsx', title: 'Phân tích RCA', desc: 'Root Cause Analysis F1.3' },
   { file: 'F13Pareto.jsx', title: 'Phân tích Pareto', desc: 'Biểu đồ Pareto lỗi F1.3' },

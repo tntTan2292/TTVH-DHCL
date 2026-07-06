@@ -18,7 +18,7 @@ Chào mừng bạn đến với dự án **TTVH Quality Intelligence System (QIS
 QIS là một hệ thống điều hành chất lượng thông minh, quản trị dựa trên các chỉ số KPI, dữ liệu vận hành và nghiệp vụ Bưu chính. Hệ thống hỗ trợ TTVH:
 - Giám sát chất lượng tự động hóa.
 - Phân tích nguyên nhân gốc rễ (Root Cause Analysis - RCA).
-- Điều hành xuyên suốt từ cấp Toàn mạng -> Bưu cục Văn hóa (BCVH) -> Tuyến phát -> Bưu gửi.
+- Điều hành xuyên suốt từ cấp Toàn mạng -> Bưu cục Vận hành (BCVH) -> Tuyến phát -> Bưu gửi.
 - Ứng dụng AI Context vào việc định vị chính xác nguyên nhân yếu kém.
 
 ---

@@ -5,7 +5,7 @@
 > Tài liệu này định nghĩa chi tiết (Specification) cho bảng BCVH Operation Table trong module F1.3 Operation Center. Tuân thủ tuyệt đối SSOT, Business Logic, KPI Formula và API Contract hiện tại. Không code, chỉ thiết kế.
 
 ## 1. Mục tiêu bảng điều hành
-Cung cấp góc nhìn chi tiết, định lượng về tình hình chất lượng của từng Bưu cục Văn hóa (BCVH) trên toàn mạng lưới, giúp điều hành viên phát hiện nhanh các điểm nóng (chậm/muộn) và ra quyết định can thiệp ngay lập tức.
+Cung cấp góc nhìn chi tiết, định lượng về tình hình chất lượng của từng Bưu cục Vận hành (BCVH) trên toàn mạng lưới, giúp điều hành viên phát hiện nhanh các điểm nóng (chậm/muộn) và ra quyết định can thiệp ngay lập tức.
 
 ## 2. Danh sách cột & 3. Ý nghĩa từng cột & 4. Thứ tự cột
 Thứ tự các cột hiển thị trên bảng từ trái sang phải như sau:

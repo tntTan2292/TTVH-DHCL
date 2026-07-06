@@ -5,7 +5,7 @@
 > Tài liệu định nghĩa (Specification) cho module Rule Recommendation thuộc F1.3 Operation Center. Tuyệt đối tuân thủ SSOT, Business Logic, KPI Formula và Data Priority hiện tại. Không code, chỉ thiết kế.
 
 ## 1. Mục tiêu
-Hệ thống tự động phân tích dữ liệu chất lượng của các Bưu cục Văn hóa (BCVH) và phát sinh các khuyến nghị điều hành (Rule Recommendation) dưới dạng văn bản có thể hành động ngay (Actionable Insights). Giảm tải việc phân tích thủ công của điều hành viên, đảm bảo các cảnh báo được đưa ra khách quan dựa trên quy tắc (Rules) dữ liệu.
+Hệ thống tự động phân tích dữ liệu chất lượng của các Bưu cục Vận hành (BCVH) và phát sinh các khuyến nghị điều hành (Rule Recommendation) dưới dạng văn bản có thể hành động ngay (Actionable Insights). Giảm tải việc phân tích thủ công của điều hành viên, đảm bảo các cảnh báo được đưa ra khách quan dựa trên quy tắc (Rules) dữ liệu.
 
 ## 2. Layout
 - **Vị trí:** Đặt ngay dưới khối Executive Daily Brief (hoặc tích hợp dưới dạng Panel kế bên bảng BCVH Operation Table), theo thứ tự đã Freeze tại Phase 1.1A.
