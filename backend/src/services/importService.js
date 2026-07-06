@@ -1,8 +1,6 @@
 const importSessionRepo = require('../repositories/ImportSessionRepository');
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
-
-// Store tạm thời trong Memory (Chỉ dùng cho minh họa kiến trúc. Thực tế có thể dùng Redis)
-const globalSessionStore = new Map();
+const importSessionStore = require('./session/ImportSessionStore');
 
 class ImportService {
     /**
@@ -14,17 +12,14 @@ class ImportService {
      */
     async previewData(fileName, fileBuffer) {
         try {
-            const sessionId = `SESSION-${Date.now()}`;
-            
-            // TODO: Sử dụng thư viện Excel (như xlsx) để đọc fileBuffer thành parsedData
-            // const workbook = xlsx.read(fileBuffer); ...
-            // const parsedData = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-            
-            // Tạm thời Mock dữ liệu đã parse
+            // Tạm thời Mock dữ liệu đã parse (Thực tế sẽ dùng xlsx parse fileBuffer ở đây)
             const parsedData = [
                 { ma_bg: 'VN123', ket_qua_f13: 'Không đạt' }
             ];
 
+            // Giao phó việc cấp phát Session ID và lưu trữ cho Session Store độc lập
+            const sessionId = importSessionStore.createSession(parsedData);
+            
             const ngayDoKiem = '2026-06-18'; // Mock logic lấy ngày từ file/data
             const totalRecords = parsedData.length;
             const validRecords = totalRecords; 
@@ -43,9 +38,6 @@ class ImportService {
             // Lưu metadata vào CSDL tạm
             await importSessionRepo.create(session);
             
-            // Lưu data thật vào Memory Store để Confirm lấy ra
-            globalSessionStore.set(sessionId, parsedData);
-
             return {
                 session_id: sessionId,
                 ngay_do_kiem: session.ngay_do_kiem,
@@ -67,29 +59,32 @@ class ImportService {
      */
     async confirmImport(sessionId, forceOverwrite) {
         try {
-            const session = await importSessionRepo.findById(sessionId);
-            if (!session) {
-                throw new Error('Không tìm thấy phiên Import (Session ID không hợp lệ)');
+            // Lấy lại dữ liệu từ Memory Store của Backend
+            const dataArray = importSessionStore.getSession(sessionId);
+            if (!dataArray) {
+                throw new Error('SESSION_EXPIRED');
             }
 
-            // Lấy lại dữ liệu từ Memory Store của Backend
-            const dataArray = globalSessionStore.get(sessionId);
-            if (!dataArray) {
-                throw new Error('Dữ liệu phiên đã hết hạn hoặc không tồn tại. Vui lòng Upload lại file.');
+            const session = await importSessionRepo.findById(sessionId);
+            if (!session) {
+                throw new Error('Không tìm thấy phiên Import (Metadata không hợp lệ)');
             }
 
             await factBuuGuiRepo.overwriteImport(session.ngay_do_kiem, sessionId, dataArray);
             
             await importSessionRepo.updateStatus(sessionId, 'CONFIRMED');
 
-            // Xóa session khỏi bộ nhớ tạm
-            globalSessionStore.delete(sessionId);
+            // Xóa session khỏi bộ nhớ tạm ngay lập tức sau khi thành công
+            importSessionStore.deleteSession(sessionId);
 
             return {
                 inserted_records: dataArray.length,
                 import_log_id: sessionId
             };
         } catch (error) {
+            if (error.message === 'SESSION_EXPIRED') {
+                throw new Error('SESSION_EXPIRED: Phiên thao tác đã hết hạn, vui lòng tải lên lại.');
+            }
             throw new Error(`Lỗi hệ thống khi lưu trữ Confirm dữ liệu: ${error.message}`);
         }
     }
