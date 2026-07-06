@@ -42,9 +42,18 @@ Tài liệu cung cấp kiến trúc cơ sở dữ liệu (Database Architecture)
   - `ket_qua_f13` (TEXT)
   - `thoi_gian_ptc` (TEXT, NULL): ISO8601 (YYYY-MM-DD HH:MM:SS)
   - `thoi_gian_nop_tien` (TEXT, NULL): ISO8601 (YYYY-MM-DD HH:MM:SS)
-  - `extended_data` (JSON, NULL): Trường dự phòng lưu trữ toàn bộ các cột ít dùng trong 41 cột nguyên thủy để tránh phình to Table quá mức cần thiết, nhưng vẫn không làm mất dữ liệu. (Hoặc có thể dàn phẳng 41 cột tùy quyết định của PO).
-- **Foreign Key**: `session_id` tham chiếu `f13_import_sessions(session_id)`.
-- **Unique Constraint**: `UNIQUE(ma_bg, ngay_do_kiem)` để chặn duplicate triệt để.
+  - `extended_data` (JSON, NULL): 
+    - **Quy tắc tuyệt đối**: `extended_data` chỉ dùng lưu dữ liệu gốc (Raw Archive).
+    - Không được dùng cho Dashboard.
+    - Không được dùng cho API Query.
+    - Không được dùng cho Rule Engine.
+    - Không được dùng cho KPI Calculation.
+
+- **Constraint Definition**:
+  - **PRIMARY KEY**: `id`
+  - **FOREIGN KEY**: `session_id` tham chiếu `f13_import_sessions(session_id)`.
+  - **UNIQUE**: `UNIQUE(ma_bg, ngay_do_kiem)`.
+    - *Lý do*: Lựa chọn `(ma_bg, ngay_do_kiem)` thay vì `(ma_bg, ngay_do_kiem, session_id)` vì một bưu gửi chỉ được phép xuất hiện duy nhất 1 lần trong 1 ngày, bất kể thuộc Session nào. Nếu đưa `session_id` vào UNIQUE, hệ thống sẽ sinh ra rủi ro 1 BG bị đúp trên 2 Session khác nhau trong cùng 1 ngày, phá vỡ tính đúng đắn của Dashboard.
 
 ---
 
@@ -82,7 +91,16 @@ erDiagram
    - `thoi_gian_nop_tien >= thoi_gian_ptc` (Bảo vệ dữ liệu tương lai/logic ngược). 
 3. **Data Integrity (Import API)**:
    - **Preview**: Ghi tạm vào `f13_import_sessions` với status `PREVIEW`, KHÔNG ghi vào `fact`.
-   - **Confirm**: Bắt đầu Transaction. `DELETE FROM f13_fact_buu_gui WHERE ngay_do_kiem = ?` -> `INSERT` -> Đổi status thành `CONFIRMED`. Nếu có exception, Rollback toàn bộ transaction.
+   - **Confirm (Overwrite Transaction)**: Bắt buộc thực hiện theo luồng Transaction nghiêm ngặt để tránh mất dữ liệu khi lỗi giữa chừng:
+     ```sql
+     BEGIN TRANSACTION;
+     DELETE FROM f13_fact_buu_gui WHERE ngay_do_kiem = ?;
+     INSERT INTO f13_fact_buu_gui (...) VALUES (...);
+     -- Cập nhật status thành CONFIRMED
+     COMMIT;
+     -- Nếu có bất kỳ lỗi nào xảy ra:
+     ROLLBACK;
+     ```
 
 ---
 
