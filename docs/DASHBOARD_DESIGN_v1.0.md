@@ -33,8 +33,13 @@
 ### Pareto Specification
 - **Input**: TODO (SSOT chưa quy định chi tiết nguồn dữ liệu)
 - **Output**: TODO (SSOT chưa quy định)
-- **Formula**: TODO (SSOT chưa quy định)
-- **Business Meaning**: Trực quan hóa định lý 80/20, giúp Điều hành viên xác định ngay 20% tuyến phát gây ra 80% lỗi toàn mạng.
+### Business Meaning
+- Xác định nhóm tuyến phát tạo ra phần lớn BG Không đạt theo nguyên lý Pareto (80/20).
+### Formula
+- Sắp xếp tuyến phát theo số BG Không đạt giảm dần.
+- Tính tỷ lệ tích lũy.
+- Hiển thị đường Pareto.
+- **Implementation Detail**: TBD during Development
 - **Drill-down**: TODO (SSOT chưa quy định chi tiết thao tác)
 - **Điều kiện áp dụng**: TODO (SSOT chưa quy định)
 
@@ -51,13 +56,13 @@
 - **Layout**: Bảng dữ liệu phẳng, hiển thị rành mạch nguyên tắc vi phạm.
 - **Các cột (Columns)**:
   - *Số hiệu bưu gửi (ma_bg)*: Mã định danh để tra cứu.
-  - *BCVH*: Missing Candidate Field (Need PO Decision)
-  - *Tuyến phát*: Missing Candidate Field (Need PO Decision)
-  - *Bưu tá*: Missing Candidate Field (Need PO Decision)
+  - *BCVH*: Optional Candidate Fields (Need Product Owner Decision)
+  - *Tuyến phát*: Optional Candidate Fields (Need Product Owner Decision)
+  - *Bưu tá*: Optional Candidate Fields (Need Product Owner Decision)
   - *Thời gian PTC*: Mốc thời gian phát thành công.
   - *Thời gian nộp tiền*: Mốc thời gian chốt tiền trên hệ thống.
-  - *Thời gian chậm*: Missing Candidate Field (Need PO Decision)
-  - *Trạng thái xử lý*: Missing Candidate Field (Need PO Decision)
+  - *Thời gian chậm*: Optional Candidate Fields (Need Product Owner Decision)
+  - *Trạng thái xử lý*: Optional Candidate Fields (Need Product Owner Decision)
 
 ### Action Specification
 - **Người được phép gửi**: TODO (SSOT chưa quy định)
@@ -84,7 +89,7 @@ graph TD
     F -->|Action| H[Sinh Tin nhắn Điều hành bưu tá]
 ```
 
-**Navigation Gap**: Theo rà soát SSOT hiện hành, luồng trải nghiệm đang bị đứt quãng. Hoàn toàn thiếu bước: `BG → Action → Message → Follow-up`. (Chưa đưa vào sơ đồ để tránh tự tạo quy trình ngoài SSOT).
+**Future Enhancement Candidate**: Theo rà soát SSOT hiện hành, luồng trải nghiệm chưa có bước: `BG → Action → Message → Follow-up`. Tính năng Follow-up là tính năng mở rộng trong tương lai, hoàn toàn không ảnh hưởng đến việc đóng Phase A2. (Chưa đưa vào sơ đồ để tránh tự tạo quy trình ngoài SSOT).
 
 ---
 
