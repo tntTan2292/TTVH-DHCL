@@ -24,7 +24,7 @@ Tài liệu này hướng dẫn quy trình sử dụng hệ thống QIS để ra
 
 ### Bước 3: Root Cause Analysis - RCA (Xác định nguyên nhân gốc)
 - Chọn đơn vị yếu kém để thực hiện RCA.
-- Phân tích nguyên nhân: Đặc biệt chú ý "Nộp tiền muộn" (Thời gian nộp tiền - Thời gian PTC > 2 giờ).
+- Phân tích nguyên nhân: Đặc biệt chú ý "Nộp tiền muộn" (Thời gian nộp tiền - Thời gian PTC > 3 giờ).
 - Trả lời câu hỏi: Bao nhiêu % số Bưu gửi rớt F1.3 liên quan đến lỗi nộp tiền muộn?
 - *Các nguyên nhân khác (Chậm phát, chậm khai thác, chậm điều độ): TODO - Waiting Product Owner.*
 
