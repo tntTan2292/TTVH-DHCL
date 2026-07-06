@@ -29,11 +29,15 @@
 - **Mục tiêu**: Mổ xẻ chuyên sâu, khoanh vùng chính xác điểm nghẽn nghiệp vụ làm phát sinh lỗi chậm nộp tiền.
 - **Người sử dụng**: Điều hành viên chuyên trách.
 - **Layout**: Không gian phân tích đa chiều. **NGHIÊM CẤM** hiển thị bộ lọc So sánh cùng kỳ (SWC) tại màn hình này.
-- **Chart (Pareto)**: 
-  - *Trục X*: Tên Tuyến / BCVH.
-  - *Trục Y1 (Bar)*: Số lượng BG chậm nộp tiền (F13_302).
-  - *Trục Y2 (Line)*: Tỷ lệ tích lũy (%). 
-  - *Vai trò*: Trực quan hóa định lý 80/20, giúp Điều hành viên xác định ngay 20% tuyến phát gây ra 80% lỗi toàn mạng.
+
+### Pareto Specification
+- **Input**: TODO (SSOT chưa quy định chi tiết nguồn dữ liệu)
+- **Output**: TODO (SSOT chưa quy định)
+- **Formula**: TODO (SSOT chưa quy định)
+- **Business Meaning**: Trực quan hóa định lý 80/20, giúp Điều hành viên xác định ngay 20% tuyến phát gây ra 80% lỗi toàn mạng.
+- **Drill-down**: TODO (SSOT chưa quy định chi tiết thao tác)
+- **Điều kiện áp dụng**: TODO (SSOT chưa quy định)
+
 - **Impact Analysis Table**:
   - *Cột 1*: Tên Tuyến/Bưu tá
   - *Cột 2*: Tổng BG Không đạt
@@ -47,13 +51,22 @@
 - **Layout**: Bảng dữ liệu phẳng, hiển thị rành mạch nguyên tắc vi phạm.
 - **Các cột (Columns)**:
   - *Số hiệu bưu gửi (ma_bg)*: Mã định danh để tra cứu.
+  - *BCVH*: Missing Candidate Field (Need PO Decision)
+  - *Tuyến phát*: Missing Candidate Field (Need PO Decision)
+  - *Bưu tá*: Missing Candidate Field (Need PO Decision)
   - *Thời gian PTC*: Mốc thời gian phát thành công.
   - *Thời gian nộp tiền*: Mốc thời gian chốt tiền trên hệ thống.
-  - *Độ trễ (h)*: Tính toán thực tế (Ví dụ: 3.5 giờ - Hiển thị chữ Đỏ).
-- **Action**: Checkbox chọn các bưu gửi vi phạm, bấm nút "Gửi Tin Điều Hành" để sinh Message bắn trực tiếp xuống thiết bị của bưu tá.
-- **Click Action**: Click vào Số hiệu bưu gửi sẽ link thẳng đến hệ thống Core (TMS/BCCP) để xem hành trình gốc.
+  - *Thời gian chậm*: Missing Candidate Field (Need PO Decision)
+  - *Trạng thái xử lý*: Missing Candidate Field (Need PO Decision)
 
----
+### Action Specification
+- **Người được phép gửi**: TODO (SSOT chưa quy định)
+- **Đối tượng nhận**: TODO (SSOT chưa quy định)
+- **Điều kiện được gửi**: TODO (SSOT chưa quy định)
+- **Luồng Preview trước khi gửi**: TODO (SSOT chưa quy định)
+- **Có cho phép chỉnh sửa nội dung hay không**: TODO (SSOT chưa quy định)
+- **Có lưu lịch sử gửi hay không**: TODO (SSOT chưa quy định)
+- **Quan hệ với Message Generation**: TODO (SSOT chưa quy định)
 
 ## 5. Dashboard Navigation Map (Luồng trải nghiệm)
 
@@ -71,10 +84,13 @@ graph TD
     F -->|Action| H[Sinh Tin nhắn Điều hành bưu tá]
 ```
 
-### Kịch bản Điều hành viên sử dụng thực tế:
-1. Đăng nhập hệ thống, quan sát **Executive Dashboard**, chú ý khối **Auto-Insight** báo đỏ: *"Tỷ lệ chậm nộp tiền toàn mạng tăng cao, vượt ngưỡng 10%"*.
-2. Click thẳng vào cảnh báo để chuyển sang màn hình **RCA - Chậm nộp tiền**.
-3. Tại đây, biểu đồ **Pareto** chỉ rõ Bưu cục A và Tuyến B đang chiếm 80% số bưu gửi vi phạm.
-4. Điều hành viên click vào Tuyến B trong bảng **Impact Analysis**, hệ thống mở ra **Evidence List**.
-5. Trong bảng chứng cứ, Điều hành viên nhìn thấy rõ các mã bưu gửi, thời gian PTC là 08:00 nhưng thời gian nộp tiền là 14:00 (Trễ 6 tiếng, vi phạm chuẩn >3 tiếng).
-6. Điều hành viên chọn toàn bộ danh sách, bấm *"Gửi tin nhắn"*, hệ thống lập tức xuất ra mẫu **Message Generation** theo chuẩn SSOT để gửi bưu tá.
+**Navigation Gap**: Theo rà soát SSOT hiện hành, luồng trải nghiệm đang bị đứt quãng. Hoàn toàn thiếu bước: `BG → Action → Message → Follow-up`. (Chưa đưa vào sơ đồ để tránh tự tạo quy trình ngoài SSOT).
+
+---
+
+## 6. Recommendation Boundary (Khóa kiến trúc)
+Nguyên tắc bất di bất dịch của phân lớp hiển thị:
+- Dashboard **chỉ HIỂN THỊ** Recommendation.
+- Dashboard **KHÔNG sinh** Recommendation.
+- Recommendation **chỉ đến từ** Recommendation Engine.
+- Auto Insight **chỉ là lớp hiển thị** (Presentation Layer), không chứa logic nghiệp vụ cốt lõi.
