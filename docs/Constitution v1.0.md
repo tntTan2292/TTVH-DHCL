@@ -207,7 +207,7 @@ Do TTVH định nghĩa.
 
 ### Ví dụ
 
-- Tỷ lệ nộp tiền muộn.
+- Tỷ lệ chậm nộp tiền.
 - Tỷ lệ phát muộn.
 - Tỷ lệ tồn cuối ngày.
 
