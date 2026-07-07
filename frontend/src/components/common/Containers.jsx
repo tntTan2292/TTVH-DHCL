@@ -28,3 +28,13 @@ export const CardContainer = ({ title, children, className = '' }) => {
     </div>
   );
 };
+
+export const PlaceholderPage = ({ title }) => (
+  <PageContainer title={title}>
+    <CardContainer>
+      <div className="h-64 flex items-center justify-center text-[var(--color-text-muted)] border-2 border-dashed border-[var(--color-surface-200)] rounded-lg">
+        {title} Content Area (Not Implemented Yet)
+      </div>
+    </CardContainer>
+  </PageContainer>
+);
