@@ -2,6 +2,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
 import { PageContainer, CardContainer } from '../components/common/Containers';
 
+import DashboardPage from '../features/dashboard/DashboardPage';
+
 // Placeholder components to verify routing
 const PlaceholderPage = ({ title }) => (
   <PageContainer title={title}>
@@ -24,7 +26,7 @@ const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <PlaceholderPage title="Executive Dashboard" />
+        element: <DashboardPage />
       },
       {
         path: 'import',
