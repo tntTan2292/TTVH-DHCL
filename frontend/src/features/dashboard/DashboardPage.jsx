@@ -4,6 +4,7 @@ import { PageContainer, CardContainer } from '../../components/common/Containers
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts';
 import { AlertTriangle, TrendingUp, TrendingDown, ArrowRight, Target, Package, CheckCircle2, XCircle, FileText } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import BcvhOperationTableAdapter from './components/BcvhOperationTableAdapter';
 
 // ─── Mock Data (Bưu điện tỉnh Thừa Thiên Huế) ────────────────────────────────
 const MOCK_DATA = {
@@ -182,60 +183,7 @@ function RuleRecommendationStub({ f13303Rate }) {
   );
 }
 
-// ─── BCVH Operation Table (lightweight port — data from mock) ─────────────────
-function BcvhOperationTable({ data, onDrillDown }) {
-  const rows = data?.bottom_bcvh || [];
-  return (
-    <div className="bg-white rounded-lg border border-[var(--color-surface-200)] shadow-sm overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--color-surface-200)] bg-[var(--color-surface-50)] flex items-center justify-between">
-        <h3 className="font-semibold text-sm text-[var(--color-text-main)]">Bảng Vận Hành BCVH</h3>
-        <span className="text-xs text-[var(--color-text-muted)]">Sắp xếp: F13_303 giảm dần</span>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-[var(--color-surface-50)] border-b border-[var(--color-surface-200)] text-[var(--color-text-muted)]">
-              <th className="px-4 py-2.5 text-left font-semibold">BCVH</th>
-              <th className="px-4 py-2.5 text-right font-semibold">Tỷ lệ Đạt</th>
-              <th className="px-4 py-2.5 text-right font-semibold">Chậm Nộp (F13_303)</th>
-              <th className="px-4 py-2.5 text-left font-semibold">Trạng thái</th>
-              <th className="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((bc, i) => {
-              const passedRate = 100 - bc.rate;
-              const status = passedRate >= 70 ? { label: 'Bình thường', cls: 'text-green-700 bg-green-50 border-green-200' }
-                           : passedRate >= 60 ? { label: 'Chú ý',       cls: 'text-pink-700 bg-pink-50 border-pink-200' }
-                           : passedRate >= 50 ? { label: 'Cảnh báo',    cls: 'text-yellow-700 bg-yellow-50 border-yellow-200' }
-                           :                   { label: 'Nguy hiểm',    cls: 'text-red-700 bg-red-50 border-red-200' };
-              return (
-                <tr key={bc.id} className="border-b border-[var(--color-surface-100)] hover:bg-[var(--color-surface-50)] transition-colors">
-                  <td className="px-4 py-3 font-medium text-[var(--color-text-main)]">{bc.name}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-green-700">{passedRate.toFixed(1)}%</td>
-                  <td className="px-4 py-3 text-right font-bold text-red-600">{bc.rate.toFixed(1)}%</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex text-xs font-semibold px-2 py-0.5 rounded-full border ${status.cls}`}>
-                      {status.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => onDrillDown(bc)}
-                      className="flex items-center gap-1 text-xs text-[var(--color-primary-600)] hover:underline"
-                    >
-                      Xem tuyến <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
+
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function DashboardPage() {
@@ -451,8 +399,13 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* BCVH Operation Table (P1 — port from legacy BcvhOperationTable) */}
-          <BcvhOperationTable data={d} onDrillDown={handleBcvhDrillDown} />
+          {/* BCVH Operation Table (P0 — Wrap & Adapt Legacy BcvhOperationTable) */}
+          <BcvhOperationTableAdapter 
+            fromDate={fromDate}
+            toDate={toDate}
+            interval={interval}
+            maBcvh={maBcvh}
+          />
 
           {/* Heatmap Placeholder */}
           <CardContainer title="Ma trận nhiệt (Heatmap) Bưu Cục" className="h-48">
