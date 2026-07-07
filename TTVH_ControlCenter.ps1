@@ -12,7 +12,7 @@ function Check-Port {
 
 function Check-Api {
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:$BackendPort/api/f13/bcvh-list" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri "http://localhost:$BackendPort/api/f13/dashboard/kpi?startDate=2026-06-18&endDate=2026-06-18" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
         if ($response.StatusCode -eq 200) { return $true }
     } catch {
         return $false
