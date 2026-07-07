@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../../api/client';
 import LegacyTopListCard from '../../../components/f13/TopListCard';
 
-export default function TopListAdapter({ fromDate, toDate }) {
+export default function TopListAdapter({ fromDate, toDate, interval = 'daily' }) {
   const [data, setData] = useState(null);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetch = async () => {
@@ -19,6 +21,16 @@ export default function TopListAdapter({ fromDate, toDate }) {
     if (fromDate && toDate) fetch();
   }, [fromDate, toDate]);
 
+  const handleRowClick = (item) => {
+    const params = new URLSearchParams();
+    params.set('from_date', fromDate);
+    params.set('to_date', toDate);
+    params.set('interval', interval);
+    params.set('bcvh_id', item.ma_bcvh);
+    params.set('bcvh_name', item.ten_bcvh);
+    navigate(`/f13/ranking/bcvh?${params.toString()}`);
+  };
+
   if (!data) return (
     <div className="space-y-4">
       <div className="h-72 bg-slate-50 animate-pulse rounded-xl"></div>
@@ -29,14 +41,16 @@ export default function TopListAdapter({ fromDate, toDate }) {
   return (
     <div className="space-y-4">
       <LegacyTopListCard 
-        title="Top 3 Bưu cục Kém nhất (Lowest)" 
+        title="Top 5 Bưu cục Kém nhất (Lowest)" 
         data={data.top3Lowest} 
         type="lowest" 
+        onRowClick={handleRowClick}
       />
       <LegacyTopListCard 
-        title="Top 3 Tác động (Impact)" 
+        title="Top 5 Tác động (Impact)" 
         data={data.top3Impact} 
         type="impact" 
+        onRowClick={handleRowClick}
       />
     </div>
   );

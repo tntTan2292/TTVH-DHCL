@@ -1,4 +1,4 @@
-export default function TopListCard({ title, data, type }) {
+export default function TopListCard({ title, data, type, onRowClick }) {
     if (!data || data.length === 0) {
         return (
             <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-72 flex items-center justify-center">
@@ -12,7 +12,11 @@ export default function TopListCard({ title, data, type }) {
             <h3 className="text-sm font-bold text-gray-700 mb-4">{title}</h3>
             <div className="space-y-4">
                 {data.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div 
+                        key={idx} 
+                        onClick={() => onRowClick && onRowClick(item)}
+                        className={`flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                    >
                         <div className="flex items-center gap-3">
                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${idx === 0 ? 'bg-red-500' : idx === 1 ? 'bg-orange-400' : 'bg-yellow-400'}`}>
                                 {idx + 1}

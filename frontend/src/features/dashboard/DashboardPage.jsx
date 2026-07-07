@@ -167,7 +167,7 @@ export default function DashboardPage() {
 
             {/* P1: Restored Top/Bottom List Card */}
             <div className="space-y-4">
-              <TopListAdapter fromDate={fromDate} toDate={toDate} />
+              <TopListAdapter fromDate={fromDate} toDate={toDate} interval={interval} />
             </div>
           </div>
 
