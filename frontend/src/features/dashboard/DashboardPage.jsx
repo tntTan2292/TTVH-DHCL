@@ -58,6 +58,7 @@ export default function DashboardPage() {
   }, [fromDate, toDate, interval]);
 
   const handleFilterChange = (e) => {
+    if (state.status === 'loading') return; // Loading Guard: Chống Race Condition & Spam Click
     const { name, value } = e.target;
     setSearchParams(prev => {
       prev.set(name, value);
@@ -82,7 +83,8 @@ export default function DashboardPage() {
             name="from_date" 
             value={fromDate} 
             onChange={handleFilterChange}
-            className="text-sm border-none focus:ring-0 cursor-pointer"
+            disabled={state.status === 'loading'}
+            className="text-sm border-none focus:ring-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Từ ngày"
           />
           <span className="text-[var(--color-text-muted)]">-</span>
@@ -91,14 +93,16 @@ export default function DashboardPage() {
             name="to_date" 
             value={toDate} 
             onChange={handleFilterChange}
-            className="text-sm border-none focus:ring-0 cursor-pointer"
+            disabled={state.status === 'loading'}
+            className="text-sm border-none focus:ring-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Đến ngày"
           />
           <select 
             name="interval" 
             value={interval} 
             onChange={handleFilterChange}
-            className="text-sm border-l border-[var(--color-surface-200)] pl-3 ml-1 focus:ring-0 cursor-pointer bg-transparent"
+            disabled={state.status === 'loading'}
+            className="text-sm border-l border-[var(--color-surface-200)] pl-3 ml-1 focus:ring-0 cursor-pointer bg-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Khung thời gian"
           >
             <option value="daily">Daily View</option>
