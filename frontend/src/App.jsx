@@ -36,12 +36,9 @@ function App() {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="ranking/bcvh" element={<PlaceholderPage title="BCVH Ranking" />} />
             <Route path="ranking/route" element={<PlaceholderPage title="Route Ranking" />} />
-            <Route path="rca" element={<PlaceholderPage title="Pareto RCA" />} />
-            <Route path="pareto" element={<PlaceholderPage title="Pareto Analysis" />} />
+            <Route path="pareto" element={<PlaceholderPage title="Pareto / RCA" />} />
             <Route path="evidence" element={<PlaceholderPage title="Evidence List" />} />
             <Route path="message" element={<PlaceholderPage title="Message Center" />} />
-            <Route path="bcvh-ranking" element={<Navigate to="ranking/bcvh" replace />} />
-            <Route path="route-ranking" element={<Navigate to="ranking/route" replace />} />
           </Route>
         </Route>
         

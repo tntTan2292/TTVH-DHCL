@@ -30,11 +30,14 @@ export const CardContainer = ({ title, children, className = '' }) => {
 };
 
 export const PlaceholderPage = ({ title }) => (
-  <PageContainer title={title}>
-    <CardContainer>
-      <div className="h-64 flex items-center justify-center text-[var(--color-text-muted)] border-2 border-dashed border-[var(--color-surface-200)] rounded-lg">
-        {title} Content Area (Not Implemented Yet)
+  <div className="flex flex-col h-full">
+    <h1 className="text-2xl font-bold text-[var(--color-text-main)] mb-6">{title}</h1>
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-center border-2 border-dashed border-[var(--color-surface-200)] rounded-xl p-16 max-w-md">
+        <div className="text-5xl mb-4">🚧</div>
+        <p className="text-xl font-semibold text-[var(--color-text-main)] mb-2">{title}</p>
+        <p className="text-sm text-[var(--color-text-muted)]">Coming in D7.3</p>
       </div>
-    </CardContainer>
-  </PageContainer>
+    </div>
+  </div>
 );

@@ -55,7 +55,7 @@ export default function DashboardHome() {
 
     const quickLinks = [
         { label: 'F1.3 Dashboard',      path: '/f13/dashboard',      color: 'bg-vnpost-blue',   description: 'KPI chất lượng phát liên tỉnh' },
-        { label: 'Xếp hạng BCVH',       path: '/f13/bcvh-ranking',   color: 'bg-green-600',     description: 'So sánh hiệu quả theo bưu cục' },
+        { label: 'Xếp hạng BCVH',       path: '/f13/ranking/bcvh',   color: 'bg-green-600',     description: 'So sánh hiệu quả theo bưu cục' },
         { label: 'Data Import Center',   path: '/import',             color: 'bg-vnpost-orange', description: 'Nạp & quản lý dữ liệu Excel' },
     ];
 
