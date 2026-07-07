@@ -404,13 +404,7 @@ export default function DashboardPage() {
             maBcvh={maBcvh}
           />
 
-          {/* Heatmap Placeholder */}
-          <CardContainer title="Ma trận nhiệt (Heatmap) Bưu Cục" className="h-48">
-            <div className="w-full h-full bg-slate-50 border border-dashed border-slate-300 flex flex-col items-center justify-center rounded text-slate-500">
-              <p className="font-medium">Heatmap Component — Coming D7.4</p>
-              <p className="text-sm mt-1">Chờ API /ranking/bcvh?interval=daily hoàn thiện</p>
-            </div>
-          </CardContainer>
+
         </div>
       )}
     </PageContainer>
