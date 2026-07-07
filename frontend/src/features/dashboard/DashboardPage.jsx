@@ -40,14 +40,14 @@ export default function DashboardPage() {
           { date: '2026-06-16', f13_303_rate: 14.5 },
         ],
         top_bcvh: [
-          { id: 'BC01', name: 'Đống Đa', rate: 5.2 },
-          { id: 'BC02', name: 'Hoàn Kiếm', rate: 6.1 },
-          { id: 'BC03', name: 'Ba Đình', rate: 7.5 },
+          { id: 'BC_HUE10', name: 'Bình Điền',  rate: 4.2 },
+          { id: 'BC_HUE01', name: 'TP Huế',     rate: 6.8 },
+          { id: 'BC_HUE12', name: 'Tứ Hạ',      rate: 10.4 },
         ],
         bottom_bcvh: [
-          { id: 'BC99', name: 'Thanh Trì', rate: 25.4 },
-          { id: 'BC98', name: 'Gia Lâm', rate: 22.1 },
-          { id: 'BC97', name: 'Đông Anh', rate: 19.8 },
+          { id: 'BC_HUE09', name: 'Nam Đông',   rate: 32.1 },
+          { id: 'BC_HUE08', name: 'A Lưới',     rate: 28.4 },
+          { id: 'BC_HUE04', name: 'Hương Trà',  rate: 20.1 },
         ]
       };
       

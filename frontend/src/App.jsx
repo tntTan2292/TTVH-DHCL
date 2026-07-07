@@ -12,6 +12,7 @@ import SystemInformation from './pages/SystemInformation';
 
 // D7 Foundation F1.3 Pages & Containers
 import DashboardPage from './features/dashboard/DashboardPage';
+import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import { PlaceholderPage } from './components/common/Containers';
 import { ErrorLayout } from './components/common/StateLayouts';
 
@@ -34,7 +35,7 @@ function App() {
           <Route path="f13">
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="ranking/bcvh" element={<PlaceholderPage title="BCVH Ranking" />} />
+            <Route path="ranking/bcvh" element={<BcvhRankingPage />} />
             <Route path="ranking/route" element={<PlaceholderPage title="Route Ranking" />} />
             <Route path="pareto" element={<PlaceholderPage title="Pareto / RCA" />} />
             <Route path="evidence" element={<PlaceholderPage title="Evidence List" />} />
