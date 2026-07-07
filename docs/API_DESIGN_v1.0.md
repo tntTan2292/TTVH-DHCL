@@ -64,8 +64,9 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
 - **Query**:
   - `from_date` (Required): `YYYY-MM-DD`
   - `to_date` (Required): `YYYY-MM-DD`
-- **Validation**: `from_date` <= `to_date`.
-- **Response**:
+  - `interval` (Optional): Enum `daily`, `weekly`, `monthly`.
+- **Validation**: `from_date` <= `to_date`. Nếu có `interval`, khoảng cách không quá 31 ngày.
+- **Response**: Mặc định `series` LUÔN tồn tại (DTO Stability). Nếu không truyền `interval`, `series` = `[]`.
 ```json
 {
   "success": true,
@@ -73,16 +74,27 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
     "total_bg": 10000,
     "passed_rate": 80.5,
     "failed_rate": 19.5,
-    "f13_303_rate": 12.0
+    "f13_303_rate": 12.0,
+    "series": [
+      {
+        "date": "2026-06-18",
+        "total_bg": 5000,
+        "passed_rate": 80.0,
+        "f13_303_rate": 15.0
+      }
+    ]
   }
 }
 ```
 
 ### 3.2 `GET /api/v1/f13/ranking/bcvh`
 - **Query**:
-  - `date` (Required): `YYYY-MM-DD`
+  - `date` (Legacy, Optional): `YYYY-MM-DD`
+  - `from_date` (Required): `YYYY-MM-DD`
+  - `to_date` (Required): `YYYY-MM-DD`
+  - `interval` (Optional): Enum `daily`, `weekly`, `monthly`.
   - `page`, `page_size`, `sort`, `order` (Optional, Default: page=1, page_size=20)
-- **Response**:
+- **Response**: Tương tự KPI, thuộc tính `series` luôn tồn tại trong từng object.
 ```json
 {
   "success": true,
@@ -93,7 +105,10 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
       "total_bg": 5000,
       "passed_rate": 85.0,
       "total_failed": 750,
-      "f13_303_rate": 5.2
+      "f13_303_rate": 5.2,
+      "series": [
+        { "date": "2026-06-18", "f13_303_rate": 6.0 }
+      ]
     }
   ],
   "meta": { "pagination": { "page": 1, "page_size": 20, "total_items": 1, "total_pages": 1 } }
@@ -102,10 +117,13 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
 
 ### 3.3 `GET /api/v1/f13/ranking/route`
 - **Query**:
-  - `date` (Required): `YYYY-MM-DD`
+  - `date` (Legacy, Optional): `YYYY-MM-DD`
+  - `from_date` (Required): `YYYY-MM-DD`
+  - `to_date` (Required): `YYYY-MM-DD`
+  - `interval` (Optional): Enum `daily`, `weekly`, `monthly`.
   - `ma_bcvh` (Required): Mã BCVH để filter.
   - `page`, `page_size`, `sort`, `order` (Optional)
-- **Response**:
+- **Response**: Mảng `series` luôn tồn tại (DTO Stability).
 ```json
 {
   "success": true,
@@ -116,7 +134,8 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
       "total_bg": 1000,
       "passed_rate": 90.0,
       "total_failed": 100,
-      "f13_303_rate": 8.0
+      "f13_303_rate": 8.0,
+      "series": []
     }
   ],
   "meta": { "pagination": { "page": 1, "page_size": 20, "total_items": 1, "total_pages": 1 } }
@@ -153,11 +172,17 @@ Mọi Response đều bọc trong một chuẩn chung (Envelope):
 
 ### 3.5 `GET /api/v1/f13/evidence-list`
 - **Query**:
-  - `date` (Required): `YYYY-MM-DD`
+  - `date` (Legacy, Optional): `YYYY-MM-DD`
+  - `from_date` (Required): `YYYY-MM-DD`
+  - `to_date` (Required): `YYYY-MM-DD`
   - `ma_bcvh` (Required)
   - `ma_tuyen` (Required)
+  - `format` (Optional): Enum `excel`.
   - `page`, `page_size` (Optional)
-- **Response**:
+- **Content Negotiation (Excel Export)**:
+  - Khi truyền `?format=excel` hoặc HTTP Header `Accept: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
+  - Response Body trả về Binary Blob chứa toàn bộ 41 cột nguyên thủy từ Database. Không trả JSON.
+- **Response (JSON Default)**:
 ```json
 {
   "success": true,
