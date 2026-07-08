@@ -106,11 +106,14 @@ class FactBuuGuiRepository {
                     MAX(ten_bcvh) as ten_bcvh,
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
-                    SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed
+                    SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed,
+                    RANK() OVER (
+                        ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) * 1.0 / COUNT(ma_bg)) DESC, COUNT(ma_bg) DESC
+                    ) as rank
                 FROM fact_f13
                 WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL
                 GROUP BY ma_bcvh
-                ORDER BY ${safeSort} ${safeOrder}
+                ORDER BY rank ASC
                 LIMIT ? OFFSET ?
             `;
             

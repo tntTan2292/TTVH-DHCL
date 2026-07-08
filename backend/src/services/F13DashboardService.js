@@ -43,7 +43,8 @@ class F13DashboardService {
                 total_bg: item.total_bg,
                 passed_rate: this._calculateRate(item.total_passed, item.total_bg),
                 total_failed: item.total_failed,
-                f13_303_rate: 0 // Delegate to D4 Rule Engine
+                f13_303_rate: 0, // Delegate to D4 Rule Engine
+                rank: item.rank
             }));
 
             return {
