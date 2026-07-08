@@ -16,9 +16,15 @@ export default function ExecutiveSummaryAdapter({ fromDate, toDate, maBcvh }) {
             today: apiData.passed_rate,
             dod: 0, // Not provided by API yet
             swc: 0, // Not provided by API yet
-            total_bg: apiData.total_bg,
+            tong_buu_gui: apiData.total_bg,
+            tong_buu_gui_dod: 0,
+            tong_buu_gui_swc: 0,
             buu_gui_dat: Math.round(apiData.total_bg * apiData.passed_rate / 100),
+            buu_gui_dat_dod: 0,
+            buu_gui_dat_swc: 0,
             buu_gui_khong_dat: Math.round(apiData.total_bg * apiData.failed_rate / 100),
+            buu_gui_khong_dat_dod: 0,
+            buu_gui_khong_dat_swc: 0,
             f13_303_rate: apiData.f13_303_rate,
             luy_ke_tuan: apiData.passed_rate, // mock fallback
             luy_ke_thang: apiData.passed_rate // mock fallback
