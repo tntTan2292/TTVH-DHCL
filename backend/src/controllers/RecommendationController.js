@@ -6,10 +6,12 @@ class RecommendationController {
      */
     async getRecs(req, res) {
         try {
-            const { date } = req.query;
-            if (!date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date' }});
+            const from_date = req.query.from_date || req.query.fromDate;
+            const to_date = req.query.to_date || req.query.toDate;
+            
+            if (!from_date || !to_date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' }});
 
-            const result = await recommendationService.getRecommendations(date);
+            const result = await recommendationService.getRecommendations(to_date);
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
@@ -18,10 +20,12 @@ class RecommendationController {
 
     async getMsgs(req, res) {
         try {
-            const { date } = req.query;
-            if (!date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date' }});
+            const from_date = req.query.from_date || req.query.fromDate;
+            const to_date = req.query.to_date || req.query.toDate;
 
-            const result = await recommendationService.getMessages(date);
+            if (!from_date || !to_date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' }});
+
+            const result = await recommendationService.getMessages(to_date);
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
