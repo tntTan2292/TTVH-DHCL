@@ -9,41 +9,6 @@ import ExecutiveSummaryAdapter from './components/ExecutiveSummaryAdapter';
 import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
 import TopListAdapter from './components/TopListAdapter';
-  dod:              +2.3,  // today - yesterday
-  swc:              -1.1,  // today - same weekday last week
-  // Sản lượng
-  total_bg:         15200,
-  buu_gui_dat:      13006,
-  buu_gui_khong_dat: 2194,
-  // Lũy kế
-  luy_ke_tuan:      84.1,
-  luy_ke_thang:     86.0,
-  // F13_303
-  f13_303_rate:     14.5,
-  // Bưu cục vi phạm (tính từ bottom_bcvh)
-  series: [
-    { date: '2026-06-12', f13_303_rate: 10.2 },
-    { date: '2026-06-13', f13_303_rate: 12.5 },
-    { date: '2026-06-14', f13_303_rate: 15.0 },
-    { date: '2026-06-15', f13_303_rate: 18.2 },
-    { date: '2026-06-16', f13_303_rate: 14.5 },
-  ],
-  top_bcvh: [
-    { id: 'BC_HUE10', name: 'Bình Điền',  rate: 4.2  },
-    { id: 'BC_HUE01', name: 'TP Huế',     rate: 6.8  },
-    { id: 'BC_HUE12', name: 'Tứ Hạ',      rate: 10.4 },
-    { id: 'BC_HUE06', name: 'Quảng Điền', rate: 9.5  },
-    { id: 'BC_HUE05', name: 'Phong Điền', rate: 11.3 },
-  ],
-  bottom_bcvh: [
-    { id: 'BC_HUE09', name: 'Nam Đông',   rate: 32.1 },
-    { id: 'BC_HUE08', name: 'A Lưới',     rate: 28.4 },
-    { id: 'BC_HUE04', name: 'Hương Trà',  rate: 20.1 },
-    { id: 'BC_HUE03', name: 'Phú Lộc',   rate: 18.2 },
-    { id: 'BC_HUE07', name: 'Phú Vang',  rate: 16.7 },
-  ],
-};
-
 // All BCVHs for filter dropdown (BĐTP Huế)
 const BCVH_OPTIONS = [
   { value: 'all',      label: 'Tất cả BCVH' },
@@ -71,8 +36,8 @@ export default function DashboardPage() {
   const navigate = useNavigate();
 
   // URL State — D7.0 Engineering Guideline
-  const fromDate = searchParams.get('from_date') || new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const toDate   = searchParams.get('to_date')   || new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const fromDate = searchParams.get('from_date') || '2026-06-16';
+  const toDate   = searchParams.get('to_date')   || '2026-06-23';
   const interval = searchParams.get('interval')  || 'daily';
 
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
@@ -181,7 +146,6 @@ export default function DashboardPage() {
 
 
         </div>
-      )}
     </PageContainer>
   );
 }
