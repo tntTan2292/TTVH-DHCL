@@ -14,7 +14,7 @@ export default function RuleRecommendationPanel({ globalFilter }) {
           fromDate: globalFilter.dateRange[0],
           toDate: globalFilter.dateRange[1],
         };
-        const response = await api.get('/f13/dashboard/recommendations', { params });
+        const response = await api.get('/f13/recommendations', { params });
         if (response.data.success) {
           setRecommendations(response.data.data);
         }
