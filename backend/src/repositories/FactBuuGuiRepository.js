@@ -1,4 +1,4 @@
-const db = require('../database/sqlite');
+const db = require('../config/db').db;
 
 class FactBuuGuiRepository {
     
