@@ -8,7 +8,7 @@ export default function ExecutiveSummaryAdapter({ fromDate, toDate, maBcvh }) {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await api.get('/f13/dashboard/kpi', { params: { fromDate, toDate, ma_bcvh } });
+        const res = await api.get('/f13/dashboard/kpi', { params: { from_date: fromDate, to_date: toDate, ma_bcvh: maBcvh } });
         if (res.data.success) {
           setData(res.data.data);
         }

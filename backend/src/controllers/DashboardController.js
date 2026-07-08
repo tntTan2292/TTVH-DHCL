@@ -3,11 +3,11 @@ const f13DashboardService = require('../services/F13DashboardService');
 class DashboardController {
     async getKpi(req, res) {
         try {
-            const { startDate, endDate } = req.query;
-            if (!startDate || !endDate) {
-                return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu startDate và endDate' }});
+            const { from_date, to_date } = req.query;
+            if (!from_date || !to_date) {
+                return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' }});
             }
-            const result = await f13DashboardService.getDashboardKpi(startDate, endDate);
+            const result = await f13DashboardService.getDashboardKpi(from_date, to_date);
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
