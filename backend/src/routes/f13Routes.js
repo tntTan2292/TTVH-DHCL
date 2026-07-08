@@ -11,6 +11,7 @@ router.post('/import/confirm', importController.confirm);
 
 // 2. Dashboard Routes
 router.get('/dashboard/kpi', dashboardController.getKpi);
+router.get('/dashboard/quality-timeline', dashboardController.getQualityTimeline);
 router.get('/ranking/bcvh', dashboardController.getBcvh);
 router.get('/ranking/route', dashboardController.getRoute);
 router.get('/rca/pareto', dashboardController.getPareto);
