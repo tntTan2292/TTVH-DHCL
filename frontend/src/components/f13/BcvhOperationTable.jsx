@@ -21,7 +21,7 @@ export default function BcvhOperationTable({ globalFilter }) {
           toDate: globalFilter.dateRange[1],
         };
         // Fixed endpoint path
-        const response = await api.get('/f13/bcvh-ranking', { params });
+        const response = await api.get('/f13/ranking/bcvh', { params });
         if (response.data.success) {
           setData(response.data.data);
         }
