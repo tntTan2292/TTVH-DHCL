@@ -17,14 +17,14 @@ class FactBuuGuiRepository {
                 });
 
                 // Xóa dữ liệu cũ của ngày này (để overwrite)
-                db.run('DELETE FROM f13_fact_buu_gui WHERE ngay_do_kiem = ?', [date], (err) => {
+                db.run('DELETE FROM fact_f13 WHERE ngay_do_kiem = ?', [date], (err) => {
                     if (err) {
                         return db.run('ROLLBACK;', () => reject(err));
                     }
                 });
 
                 const sql = `
-                    INSERT INTO f13_fact_buu_gui 
+                    INSERT INTO fact_f13 
                     (session_id, ngay_do_kiem, ma_bg, ma_bcvh, ten_bcvh, ma_tuyen, ten_tuyen, ket_qua_f13, thoi_gian_ptc, thoi_gian_nop_tien, extended_data) 
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `;
@@ -80,7 +80,7 @@ class FactBuuGuiRepository {
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
                     SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed
-                FROM f13_fact_buu_gui
+                FROM fact_f13
                 WHERE ngay_do_kiem >= ? AND ngay_do_kiem <= ?
             `;
             db.get(sql, [startDate, endDate], (err, row) => {
@@ -93,7 +93,7 @@ class FactBuuGuiRepository {
     getBcvhRanking(date, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc') {
         return new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;
-            const sqlCount = `SELECT COUNT(DISTINCT ma_bcvh) as total FROM f13_fact_buu_gui WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL`;
+            const sqlCount = `SELECT COUNT(DISTINCT ma_bcvh) as total FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL`;
             
             // Whitelist for sorting columns to prevent SQL Injection
             const allowedSorts = ['total_bg', 'total_passed', 'total_failed'];
@@ -107,7 +107,7 @@ class FactBuuGuiRepository {
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
                     SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed
-                FROM f13_fact_buu_gui
+                FROM fact_f13
                 WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL
                 GROUP BY ma_bcvh
                 ORDER BY ${safeSort} ${safeOrder}
@@ -127,7 +127,7 @@ class FactBuuGuiRepository {
     getRouteRanking(date, bcvh, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc') {
         return new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;
-            const sqlCount = `SELECT COUNT(DISTINCT ma_tuyen) as total FROM f13_fact_buu_gui WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen IS NOT NULL`;
+            const sqlCount = `SELECT COUNT(DISTINCT ma_tuyen) as total FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen IS NOT NULL`;
             
             const allowedSorts = ['total_bg', 'total_passed', 'total_failed'];
             const safeSort = allowedSorts.includes(sort) ? sort : 'total_bg';
@@ -140,7 +140,7 @@ class FactBuuGuiRepository {
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
                     SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed
-                FROM f13_fact_buu_gui
+                FROM fact_f13
                 WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen IS NOT NULL
                 GROUP BY ma_tuyen
                 ORDER BY ${safeSort} ${safeOrder}
@@ -164,7 +164,7 @@ class FactBuuGuiRepository {
                     ma_tuyen, 
                     MAX(ten_tuyen) as ten_tuyen,
                     SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed
-                FROM f13_fact_buu_gui
+                FROM fact_f13
                 WHERE ngay_do_kiem = ? AND ma_tuyen IS NOT NULL
             `;
             const params = [date];
@@ -184,11 +184,11 @@ class FactBuuGuiRepository {
     getEvidenceList(date, bcvh, route, page = 1, pageSize = 20) {
         return new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;
-            const sqlCount = `SELECT COUNT(*) as total FROM f13_fact_buu_gui WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND ket_qua_f13 != 'Đạt'`;
+            const sqlCount = `SELECT COUNT(*) as total FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND ket_qua_f13 != 'Đạt'`;
             
             const sqlData = `
                 SELECT * 
-                FROM f13_fact_buu_gui 
+                FROM fact_f13 
                 WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND ket_qua_f13 != 'Đạt'
                 LIMIT ? OFFSET ?
             `;
@@ -214,7 +214,7 @@ class FactBuuGuiRepository {
 
     getFactByDate(date) {
         return new Promise((resolve, reject) => {
-            const sql = `SELECT * FROM f13_fact_buu_gui WHERE ngay_do_kiem = ?`;
+            const sql = `SELECT * FROM fact_f13 WHERE ngay_do_kiem = ?`;
             db.all(sql, [date], (err, rows) => {
                 if (err) return reject(err);
                 
