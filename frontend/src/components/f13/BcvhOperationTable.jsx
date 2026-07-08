@@ -23,7 +23,14 @@ export default function BcvhOperationTable({ globalFilter }) {
         // Fixed endpoint path
         const response = await api.get('/f13/ranking/bcvh', { params });
         if (response.data.success) {
-          setData(response.data.data);
+          const mappedData = response.data.data.map((item, index) => ({
+            ...item,
+            kpi_rate: item.passed_rate,
+            failed_bg: item.total_failed,
+            passed_bg: item.total_bg - item.total_failed,
+            rank: index + 1
+          }));
+          setData(mappedData);
         }
       } catch (error) {
         console.error("Failed to fetch BCVH ranking", error);
