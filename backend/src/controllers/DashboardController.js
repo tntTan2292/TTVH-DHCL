@@ -16,13 +16,15 @@ class DashboardController {
 
     async getBcvh(req, res) {
         try {
-            const { date, sort, order } = req.query;
+            const from_date = req.query.from_date || req.query.fromDate;
+            const to_date = req.query.to_date || req.query.toDate;
+            const { sort, order } = req.query;
             const page = parseInt(req.query.page) || 1;
             const pageSize = parseInt(req.query.page_size) || 20;
 
-            if (!date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date' }});
+            if (!from_date || !to_date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' }});
 
-            const result = await f13DashboardService.getBcvhRanking(date, page, pageSize, sort, order);
+            const result = await f13DashboardService.getBcvhRanking(to_date, page, pageSize, sort, order);
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
