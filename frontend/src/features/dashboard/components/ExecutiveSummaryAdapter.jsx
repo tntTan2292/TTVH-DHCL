@@ -10,7 +10,20 @@ export default function ExecutiveSummaryAdapter({ fromDate, toDate, maBcvh }) {
       try {
         const res = await api.get('/f13/dashboard/kpi', { params: { from_date: fromDate, to_date: toDate, ma_bcvh: maBcvh } });
         if (res.data.success) {
-          setData(res.data.data);
+          const apiData = res.data.data;
+          // MAP Backend KPI response -> Legacy expected data structure
+          const mappedData = {
+            today: apiData.passed_rate,
+            dod: 0, // Not provided by API yet
+            swc: 0, // Not provided by API yet
+            total_bg: apiData.total_bg,
+            buu_gui_dat: Math.round(apiData.total_bg * apiData.passed_rate / 100),
+            buu_gui_khong_dat: Math.round(apiData.total_bg * apiData.failed_rate / 100),
+            f13_303_rate: apiData.f13_303_rate,
+            luy_ke_tuan: apiData.passed_rate, // mock fallback
+            luy_ke_thang: apiData.passed_rate // mock fallback
+          };
+          setData(mappedData);
         }
       } catch (err) {
         console.error(err);
