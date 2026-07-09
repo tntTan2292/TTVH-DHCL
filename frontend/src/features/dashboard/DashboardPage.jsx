@@ -110,35 +110,14 @@ export default function DashboardPage() {
     >
         <div className="space-y-5">
 
-          {/* P1: Restored Executive Daily Brief */}
-          <ExecutiveDailyBriefAdapter fromDate={fromDate} toDate={toDate} maBcvh={maBcvh} />
-
           {/* P1: Restored Executive Summary (KPIs) */}
           <ExecutiveSummaryAdapter fromDate={fromDate} toDate={toDate} maBcvh={maBcvh} />
 
+          {/* P1: Restored Executive Daily Brief */}
+          <ExecutiveDailyBriefAdapter fromDate={fromDate} toDate={toDate} maBcvh={maBcvh} />
+
           {/* P1: Restored Rule Recommendation */}
           <RuleRecommendationAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
-
-          {/* Chart + Top/Bottom */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Quality Timeline & Patterns (P0.2 — Wrap & Adapt Legacy QualityTimelinePanel) */}
-            <div className="lg:col-span-2">
-              <QualityTimelineAdapter 
-                fromDate={fromDate}
-                toDate={toDate}
-                interval={interval}
-                maBcvh={maBcvh}
-              />
-            </div>
-
-            {/* P1: Restored Message Generation */}
-            <MessageGenerationAdapter fromDate={fromDate} toDate={toDate} />
-
-            {/* P1: Restored Top/Bottom List Card */}
-            <div className="space-y-4">
-              <TopListAdapter fromDate={fromDate} toDate={toDate} interval={interval} />
-            </div>
-          </div>
 
           {/* BCVH Operation Table (P0 — Wrap & Adapt Legacy BcvhOperationTable) */}
           <BcvhOperationTableAdapter 
@@ -148,6 +127,19 @@ export default function DashboardPage() {
             maBcvh={maBcvh}
           />
 
+          {/* Quality Timeline & Patterns (P0.2 — Wrap & Adapt Legacy QualityTimelinePanel) */}
+          <QualityTimelineAdapter 
+            fromDate={fromDate}
+            toDate={toDate}
+            interval={interval}
+            maBcvh={maBcvh}
+          />
+
+          {/* P1: Restored Message Generation */}
+          <MessageGenerationAdapter fromDate={fromDate} toDate={toDate} />
+
+          {/* P1: Restored Top/Bottom List Card */}
+          <TopListAdapter fromDate={fromDate} toDate={toDate} interval={interval} />
 
         </div>
     </PageContainer>
