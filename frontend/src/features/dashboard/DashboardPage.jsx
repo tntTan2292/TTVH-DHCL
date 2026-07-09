@@ -8,6 +8,7 @@ import QualityTimelineAdapter from './components/QualityTimelineAdapter';
 import ExecutiveSummaryAdapter from './components/ExecutiveSummaryAdapter';
 import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
+import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
 // All BCVHs for filter dropdown (BĐTP Huế)
 const BCVH_OPTIONS = [
@@ -129,6 +130,9 @@ export default function DashboardPage() {
                 maBcvh={maBcvh}
               />
             </div>
+
+            {/* P1: Restored Message Generation */}
+            <MessageGenerationAdapter fromDate={fromDate} toDate={toDate} />
 
             {/* P1: Restored Top/Bottom List Card */}
             <div className="space-y-4">
