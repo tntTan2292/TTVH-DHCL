@@ -222,57 +222,52 @@ async function getDashboardTop(req, res) {
     }
 
     try {
-        // 1. Lowest 3 BCVH
+        const allowedBcvh = ['537015', '535790', '533140', '536250', '535470', '537220'];
+        const bcvhFilter = `AND ma_bcvh IN (${allowedBcvh.map(id => `'${id}'`).join(',')})`;
+
+        // 1. Lowest 2 BCVH
         const sqlLowest = `
             SELECT 
                 ma_bcvh, ten_bcvh,
                 COUNT(*) as total,
                 SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed
             FROM fact_f13
-            WHERE ngay_do_kiem BETWEEN ? AND ?
+            WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
             GROUP BY ma_bcvh, ten_bcvh
-            ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) ASC
-            LIMIT 3
+            ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) ASC, COUNT(*) DESC
+            LIMIT 2
         `;
         const lowestRows = await all(sqlLowest, [fromDate, toDate]);
-        const top3Lowest = lowestRows.map(r => ({
+        const lowest = lowestRows.map(r => ({
             ma_bcvh: r.ma_bcvh,
             ten_bcvh: r.ten_bcvh,
             kpi_rate: parseFloat((r.total > 0 ? (r.passed / r.total * 100) : 0).toFixed(2))
         }));
 
-        // 2. Top 3 Impact
-        // Impact = Fail của BCVH / Fail toàn mạng
-        // Bước 1: Tính Fail toàn mạng
-        const sqlTotalFail = `SELECT COUNT(*) as total_fail FROM fact_f13 WHERE ngay_do_kiem BETWEEN ? AND ? AND ket_qua_f13='Không đạt'`;
-        const { total_fail } = await get(sqlTotalFail, [fromDate, toDate]);
-
-        let top3Impact = [];
-        if (total_fail > 0) {
-            const sqlImpact = `
-                SELECT 
-                    ma_bcvh, ten_bcvh,
-                    COUNT(*) as fail_count
-                FROM fact_f13
-                WHERE ngay_do_kiem BETWEEN ? AND ? AND ket_qua_f13='Không đạt'
-                GROUP BY ma_bcvh, ten_bcvh
-                ORDER BY COUNT(*) DESC
-                LIMIT 3
-            `;
-            const impactRows = await all(sqlImpact, [fromDate, toDate]);
-            top3Impact = impactRows.map(r => ({
-                ma_bcvh: r.ma_bcvh,
-                ten_bcvh: r.ten_bcvh,
-                fail_count: r.fail_count,
-                impact_rate: parseFloat(((r.fail_count / total_fail) * 100).toFixed(2))
-            }));
-        }
+        // 2. Best 2 BCVH
+        const sqlBest = `
+            SELECT 
+                ma_bcvh, ten_bcvh,
+                COUNT(*) as total,
+                SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed
+            FROM fact_f13
+            WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
+            GROUP BY ma_bcvh, ten_bcvh
+            ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) DESC, COUNT(*) DESC
+            LIMIT 2
+        `;
+        const bestRows = await all(sqlBest, [fromDate, toDate]);
+        const best = bestRows.map(r => ({
+            ma_bcvh: r.ma_bcvh,
+            ten_bcvh: r.ten_bcvh,
+            kpi_rate: parseFloat((r.total > 0 ? (r.passed / r.total * 100) : 0).toFixed(2))
+        }));
 
         res.json({
             success: true,
             data: {
-                top3Lowest,
-                top3Impact
+                best,
+                lowest
             }
         });
     } catch (error) {
