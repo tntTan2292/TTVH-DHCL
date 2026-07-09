@@ -26,6 +26,11 @@
 - Phục hồi Navigation Drill-down cho Legacy Component (TopListCard).
 - Fix lỗi sai tên bảng Database (`f13_fact_buu_gui` -> `fact_f13`).
 - Fix lỗi Dashboard hiển thị 0 data (Hardcode lại default date match với Mock Data của tháng 06/2026).
+- Phục hồi và đồng bộ logic BCVH Operation Table (Ranking).
+- Phục hồi Quality Timeline API Endpoint.
+- Phục hồi Top Ranking API (Best 2, Lowest 2) và cập nhật Semantic Colors.
+- Phục hồi Legacy Rule Recommendation Engine cho Backend.
+- Phục hồi Message Generation Mount.
 - Working Tree đã hoàn toàn sạch (`git status` clean).
 
 # 6. Known Issues
