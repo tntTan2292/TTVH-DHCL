@@ -20,7 +20,7 @@ router.get('/rca/pareto', dashboardController.getPareto);
 router.get('/evidence-list', dashboardController.getEvidence);
 
 // 3. Recommendation & Message Routes
-router.get('/recommendations', recommendationController.getRecs);
+router.get('/recommendations', kpiController.getRecommendations);
 router.get('/messages', recommendationController.getMsgs);
 
 module.exports = router;
