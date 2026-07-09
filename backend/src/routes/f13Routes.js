@@ -21,6 +21,7 @@ router.get('/evidence-list', dashboardController.getEvidence);
 
 // 3. Recommendation & Message Routes
 router.get('/recommendations', kpiController.getRecommendations);
+router.get('/dashboard/message', kpiController.getDashboardMessage);
 router.get('/messages', recommendationController.getMsgs);
 
 module.exports = router;
