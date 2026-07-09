@@ -41,15 +41,15 @@ export default function TopListAdapter({ fromDate, toDate, interval = 'daily' })
   return (
     <div className="space-y-4">
       <LegacyTopListCard 
-        title="Top 5 Bưu cục Kém nhất (Lowest)" 
-        data={data.top3Lowest} 
+        title="Top 2 BCVH tốt nhất" 
+        data={data.best} 
         type="lowest" 
         onRowClick={handleRowClick}
       />
       <LegacyTopListCard 
-        title="Top 5 Tác động (Impact)" 
-        data={data.top3Impact} 
-        type="impact" 
+        title="Top 2 BCVH cần cải thiện" 
+        data={data.lowest} 
+        type="lowest" 
         onRowClick={handleRowClick}
       />
     </div>
