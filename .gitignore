@@ -3,3 +3,5 @@ Data DKCL/
 *.db
 *.sqlite
 *.sqlite3
+backend/backend.log
+backend/backend_err.log
