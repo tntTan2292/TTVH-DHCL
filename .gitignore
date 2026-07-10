@@ -5,3 +5,5 @@ Data DKCL/
 *.sqlite3
 backend/backend.log
 backend/backend_err.log
+frontend/frontend.log
+frontend/frontend_err.log
