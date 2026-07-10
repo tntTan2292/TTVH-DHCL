@@ -32,14 +32,14 @@ export default function TopListAdapter({ fromDate, toDate, interval = 'daily' })
   };
 
   if (!data) return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start w-full">
       <div className="h-72 bg-slate-50 animate-pulse rounded-xl"></div>
       <div className="h-72 bg-slate-50 animate-pulse rounded-xl"></div>
     </div>
   );
 
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start w-full">
       <LegacyTopListCard 
         title="Top 2 BCVH tốt nhất" 
         data={data.best} 
