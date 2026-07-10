@@ -127,7 +127,7 @@ export default function DashboardPage() {
             maBcvh={maBcvh}
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 -mt-1">
+          <div className="w-full">
             {/* P1: Restored Top/Bottom List Card */}
             <TopListAdapter fromDate={fromDate} toDate={toDate} interval={interval} />
           </div>
