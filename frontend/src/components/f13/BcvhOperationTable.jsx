@@ -1,15 +1,16 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
-import { TrendingUp, TrendingDown, ChevronDown, ChevronUp, AlertTriangle, AlertCircle, Maximize2, Minimize2, Flame, Eye, Award } from 'lucide-react';
+import { TrendingUp, TrendingDown, ChevronDown, ChevronUp, AlertCircle, Maximize2, Minimize2, Flame, Eye, Award } from 'lucide-react';
 import api from '../../api/client';
 
 export default function BcvhOperationTable({ globalFilter }) {
   const [data, setData] = useState([]);
+  const [totalRow, setTotalRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
-  const [sortConfig, setSortConfig] = useState({ key: 'rank', direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'kpi_2026', direction: 'desc' });
   const [expandedRows, setExpandedRows] = useState({});
 
-  const DEFAULT_BCVHs = ['Thuận Hóa', 'Thuận An', 'Hương Thủy', 'Phú Lộc', 'Hương Trà', 'A Lưới'];
+  const DEFAULT_BCVHS = ['Thuận Hóa', 'Thuận An', 'Hương Thủy', 'Phú Lộc', 'Hương Trà', 'A Lưới'];
   const TARGET_KPI = 95.0;
 
   useEffect(() => {
@@ -20,24 +21,24 @@ export default function BcvhOperationTable({ globalFilter }) {
           fromDate: globalFilter.dateRange[0],
           toDate: globalFilter.dateRange[1],
         };
-        // Fixed endpoint path
         const response = await api.get('/f13/ranking/bcvh', { params });
+
         if (response.data.success) {
-          const mappedData = response.data.data.map((item, index) => ({
+          const mappedData = response.data.data.map((item) => ({
             ...item,
-            kpi_rate: item.passed_rate,
-            failed_bg: item.total_failed,
-            passed_bg: item.total_bg - item.total_failed,
-            rank: index + 1
+            kpi_rate: item.kpi_2026 ?? 0,
           }));
+
           setData(mappedData);
+          setTotalRow(response.data.meta?.total_row || null);
         }
       } catch (error) {
-        console.error("Failed to fetch BCVH ranking", error);
+        console.error('Failed to fetch BCVH ranking', error);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [globalFilter]);
 
@@ -48,11 +49,12 @@ export default function BcvhOperationTable({ globalFilter }) {
   };
 
   const toggleRow = (ma_bcvh) => {
-    setExpandedRows(prev => ({ ...prev, [ma_bcvh]: !prev[ma_bcvh] }));
+    setExpandedRows((prev) => ({ ...prev, [ma_bcvh]: !prev[ma_bcvh] }));
   };
 
   const processedData = useMemo(() => {
     let sorted = [...data];
+
     if (sortConfig.key) {
       sorted.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -60,55 +62,79 @@ export default function BcvhOperationTable({ globalFilter }) {
         return 0;
       });
     }
-    
-    // Priority Order logic: Bring critical units to top if not strictly sorting by something else
-    if (sortConfig.key === 'rank' && sortConfig.direction === 'asc') {
-        sorted.sort((a, b) => {
-            const aCrit = a.kpi_rate < 90 ? 1 : 0;
-            const bCrit = b.kpi_rate < 90 ? 1 : 0;
-            if (aCrit !== bCrit) return bCrit - aCrit; // critical first
-            return 0;
-        });
+
+    if (sortConfig.key === 'kpi_2026' && sortConfig.direction === 'desc') {
+      sorted.sort((a, b) => {
+        const aCrit = a.kpi_2026 < 90 ? 1 : 0;
+        const bCrit = b.kpi_2026 < 90 ? 1 : 0;
+        if (aCrit !== bCrit) return bCrit - aCrit;
+        return 0;
+      });
     }
 
     if (!showAll) {
-      sorted = sorted.filter(item => DEFAULT_BCVHs.some(name => item.ten_bcvh.includes(name)));
+      sorted = sorted.filter((item) => DEFAULT_BCVHS.some((name) => item.ten_bcvh.includes(name)));
     }
+
     return sorted;
   }, [data, sortConfig, showAll]);
 
   const totals = useMemo(() => {
-    if (data.length === 0) return { total_bg: 0, passed_bg: 0, failed_bg: 0, kpi_rate: 0 };
-    const t = data.reduce((acc, curr) => {
-      acc.total_bg += curr.total_bg;
-      acc.passed_bg += curr.passed_bg;
-      acc.failed_bg += curr.failed_bg;
-      return acc;
-    }, { total_bg: 0, passed_bg: 0, failed_bg: 0 });
-    t.kpi_rate = t.total_bg > 0 ? (t.passed_bg / t.total_bg) * 100 : 0;
-    return t;
-  }, [data]);
+    if (totalRow) {
+      return {
+        ten_bcvh: totalRow.ten_bcvh || 'TỔNG CỘNG',
+        sl_bg_ptc: totalRow.sl_bg_ptc || 0,
+        sl_ptc_nop_tien: totalRow.sl_ptc_nop_tien || 0,
+        dat_kpi_2026: totalRow.dat_kpi_2026 || 0,
+        khong_dat_kpi_2026: totalRow.khong_dat_kpi_2026 || 0,
+        kpi_2026: totalRow.kpi_2026 || 0,
+        kpi_2026_dod: totalRow.kpi_2026_dod || 0,
+        kpi_2026_swc: totalRow.kpi_2026_swc || 0,
+      };
+    }
 
-  const summary = useMemo(() => {
     return {
-      xanh: data.filter(d => d.kpi_rate >= 70).length,
-      hong: data.filter(d => d.kpi_rate >= 60 && d.kpi_rate < 70).length,
-      vang: data.filter(d => d.kpi_rate >= 50 && d.kpi_rate < 60).length,
-      do: data.filter(d => d.kpi_rate < 50).length
+      ten_bcvh: 'TỔNG CỘNG',
+      sl_bg_ptc: 0,
+      sl_ptc_nop_tien: 0,
+      dat_kpi_2026: 0,
+      khong_dat_kpi_2026: 0,
+      kpi_2026: 0,
+      kpi_2026_dod: 0,
+      kpi_2026_swc: 0,
     };
-  }, [data]);
+  }, [totalRow]);
+
+  const summary = useMemo(() => ({
+    xanh: data.filter((d) => d.kpi_2026 >= 70).length,
+    hong: data.filter((d) => d.kpi_2026 >= 60 && d.kpi_2026 < 70).length,
+    vang: data.filter((d) => d.kpi_2026 >= 50 && d.kpi_2026 < 60).length,
+    do: data.filter((d) => d.kpi_2026 < 50).length,
+  }), [data]);
 
   const getBusinessStatus = (rate) => {
-    if (rate >= 70) return { text: 'Xanh', color: 'text-green-600 bg-green-50', flag: 'XANH', icon: <Award size={12}/> };
-    if (rate >= 60) return { text: 'Hồng', color: 'text-pink-500 bg-pink-50', flag: 'HỒNG', icon: <Eye size={12}/> };
-    if (rate >= 50) return { text: 'Vàng', color: 'text-yellow-600 bg-yellow-50', flag: 'VÀNG', icon: <AlertCircle size={12}/> };
-    return { text: 'Đỏ', color: 'text-red-600 bg-red-50 font-bold', flag: 'ĐỎ', icon: <Flame size={12}/> };
+    if (rate >= 70) return { text: 'Xanh', color: 'text-green-600 bg-green-50', flag: 'XANH', icon: <Award size={12} /> };
+    if (rate >= 60) return { text: 'Hồng', color: 'text-pink-500 bg-pink-50', flag: 'HỒNG', icon: <Eye size={12} /> };
+    if (rate >= 50) return { text: 'Vàng', color: 'text-yellow-600 bg-yellow-50', flag: 'VÀNG', icon: <AlertCircle size={12} /> };
+    return { text: 'Đỏ', color: 'text-red-600 bg-red-50 font-bold', flag: 'ĐỎ', icon: <Flame size={12} /> };
   };
 
   const getRecommendation = (rate) => {
-    if (rate >= 95) return "Duy trì phong độ phát xuất sắc. Khuyến khích tuyên dương tuyến.";
-    if (rate >= 90) return "Cần theo dõi sát dòng bưu gửi chậm để tránh tụt xuống mức rủi ro.";
-    return "YÊU CẦU ĐIỀU PHỐI GẤP: Rà soát ngay bưu tá tuyến, tăng cường xe tải hoặc nhân lực ca chiều.";
+    if (rate >= 95) return 'Duy trì phong độ phát xuất sắc. Khuyến khích tuyên dương tuyến.';
+    if (rate >= 90) return 'Cần theo dõi sát dòng bưu gửi chậm để tránh tụt xuống mức rủi ro.';
+    return 'YÊU CẦU ĐIỀU PHỐI GẤP: Rà soát ngay bưu tá tuyến, tăng cường xe tải hoặc nhân lực ca chiều.';
+  };
+
+  const renderTrend = (value) => {
+    const positive = value >= 0;
+    const Icon = positive ? TrendingUp : TrendingDown;
+
+    return (
+      <span className={`inline-flex items-center gap-1 ${positive ? 'text-green-600' : 'text-red-600'}`}>
+        <Icon size={12} />
+        {Math.abs(value).toFixed(1)}%
+      </span>
+    );
   };
 
   return (
@@ -134,19 +160,23 @@ export default function BcvhOperationTable({ globalFilter }) {
                 Tên BCVH {sortConfig.key === 'ten_bcvh' && (sortConfig.direction === 'asc' ? '▲' : '▼')}
               </th>
               <th className="px-4 py-3 text-center w-24">Status</th>
-              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('total_bg')}>
-                Tổng Bưu Gửi
+              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('sl_bg_ptc')}>
+                SL PTC/NT/CH
               </th>
-              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('failed_bg')}>
-                Chậm chỉ tiêu
+              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('sl_ptc_nop_tien')}>
+                SL PTC/Nộp tiền
               </th>
-              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200 min-w-[120px]" onClick={() => requestSort('kpi_rate')}>
-                KPI 2026 (%) 
+              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('dat_kpi_2026')}>
+                Đạt KPI 2026
+              </th>
+              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200" onClick={() => requestSort('khong_dat_kpi_2026')}>
+                Không đạt KPI 2026
+              </th>
+              <th className="px-4 py-3 cursor-pointer text-right hover:bg-gray-200 min-w-[120px]" onClick={() => requestSort('kpi_2026')}>
+                KPI 2026 (%)
               </th>
               <th className="px-4 py-3 text-right text-gray-400 font-normal">+/- HQ</th>
-              <th className="px-4 py-3 cursor-pointer text-center hover:bg-gray-200" onClick={() => requestSort('rank')}>
-                Hạng
-              </th>
+              <th className="px-4 py-3 text-right text-gray-400 font-normal">+/- CK</th>
             </tr>
           </thead>
           <tbody>
@@ -154,36 +184,38 @@ export default function BcvhOperationTable({ globalFilter }) {
               [...Array(6)].map((_, idx) => (
                 <tr key={idx} className="border-b animate-pulse">
                   <td className="px-4 py-4 bg-white sticky left-0"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
-                  <td colSpan="6" className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-full"></div></td>
+                  <td colSpan="8" className="px-4 py-4"><div className="h-4 bg-gray-200 rounded w-full"></div></td>
                 </tr>
               ))
             ) : (
               <>
                 <tr className="bg-blue-50/80 font-bold border-b border-blue-100 sticky top-[45px] z-10 shadow-sm text-vnpost-blue-dark">
-                  <td className="px-4 py-3 sticky left-0 z-20 bg-blue-50/95 shadow-[1px_0_0_#dbeafe]">TỔNG CỘNG</td>
+                  <td className="px-4 py-3 sticky left-0 z-20 bg-blue-50/95 shadow-[1px_0_0_#dbeafe]">{totals.ten_bcvh}</td>
                   <td className="px-4 py-3 text-center">-</td>
-                  <td className="px-4 py-3 text-right">{totals.total_bg.toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-3 text-right text-red-600">{totals.failed_bg.toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right">{totals.sl_bg_ptc.toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right">{totals.sl_ptc_nop_tien.toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right text-green-700">{totals.dat_kpi_2026.toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right text-red-600">{totals.khong_dat_kpi_2026.toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right">
-                    {totals.kpi_rate.toFixed(2)}%
+                    {totals.kpi_2026.toFixed(1)}%
                     <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
-                      <div className="bg-vnpost-blue h-1.5 rounded-full" style={{ width: `${Math.min(totals.kpi_rate, 100)}%` }}></div>
+                      <div className="bg-vnpost-blue h-1.5 rounded-full" style={{ width: `${Math.min(totals.kpi_2026, 100)}%` }}></div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right">-</td>
-                  <td className="px-4 py-3 text-center">-</td>
+                  <td className="px-4 py-3 text-right">{renderTrend(totals.kpi_2026_dod)}</td>
+                  <td className="px-4 py-3 text-right">{renderTrend(totals.kpi_2026_swc)}</td>
                 </tr>
 
                 {processedData.length > 0 ? processedData.map((row) => {
-                  const status = getBusinessStatus(row.kpi_rate);
+                  const status = getBusinessStatus(row.kpi_2026);
                   const isExpanded = expandedRows[row.ma_bcvh];
-                  const gap = (TARGET_KPI - row.kpi_rate).toFixed(2);
-                  
+                  const gap = (TARGET_KPI - row.kpi_2026).toFixed(2);
+
                   return (
                     <Fragment key={row.ma_bcvh}>
-                      <tr 
+                      <tr
                         onClick={() => toggleRow(row.ma_bcvh)}
-                        className={`border-b hover:bg-gray-50 transition-colors cursor-pointer ${row.kpi_rate < 90 ? 'bg-red-50/30' : ''}`}
+                        className={`border-b hover:bg-gray-50 transition-colors cursor-pointer ${row.kpi_2026 < 90 ? 'bg-red-50/30' : ''}`}
                       >
                         <td className="px-4 py-3 font-medium text-gray-800 sticky left-0 z-0 bg-white shadow-[1px_0_0_#f3f4f6]">
                           <div className="flex items-center justify-between">
@@ -196,21 +228,23 @@ export default function BcvhOperationTable({ globalFilter }) {
                             {status.icon} {status.flag}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right">{row.total_bg.toLocaleString('vi-VN')}</td>
-                        <td className="px-4 py-3 text-right font-bold text-red-600">{row.failed_bg.toLocaleString('vi-VN')}</td>
+                        <td className="px-4 py-3 text-right">{row.sl_bg_ptc.toLocaleString('vi-VN')}</td>
+                        <td className="px-4 py-3 text-right">{row.sl_ptc_nop_tien.toLocaleString('vi-VN')}</td>
+                        <td className="px-4 py-3 text-right text-green-700">{row.dat_kpi_2026.toLocaleString('vi-VN')}</td>
+                        <td className="px-4 py-3 text-right font-bold text-red-600">{row.khong_dat_kpi_2026.toLocaleString('vi-VN')}</td>
                         <td className="px-4 py-3 text-right">
-                          <div className={`font-bold ${status.color.split(' ')[0]}`}>{row.kpi_rate.toFixed(2)}%</div>
+                          <div className={`font-bold ${status.color.split(' ')[0]}`}>{row.kpi_2026.toFixed(1)}%</div>
                           <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
-                            <div className={`${status.color.split(' ')[0].replace('text-', 'bg-')} h-1.5 rounded-full`} style={{ width: `${Math.min(row.kpi_rate, 100)}%` }}></div>
+                            <div className={`${status.color.split(' ')[0].replace('text-', 'bg-')} h-1.5 rounded-full`} style={{ width: `${Math.min(row.kpi_2026, 100)}%` }}></div>
                           </div>
                           {gap > 0 && <div className="text-[9px] text-gray-500 mt-0.5 text-right">Thiếu {gap}%</div>}
                         </td>
-                        <td className="px-4 py-3 text-right text-gray-400 text-xs">-</td>
-                        <td className="px-4 py-3 text-center font-bold text-gray-700">#{row.rank}</td>
+                        <td className="px-4 py-3 text-right text-xs">{renderTrend(row.kpi_2026_dod)}</td>
+                        <td className="px-4 py-3 text-right text-xs">{renderTrend(row.kpi_2026_swc)}</td>
                       </tr>
                       {isExpanded && (
                         <tr className="bg-gray-50/80 border-b border-gray-100">
-                          <td colSpan="7" className="px-4 py-3 text-sm">
+                          <td colSpan="9" className="px-4 py-3 text-sm">
                             <div className="flex flex-col gap-2 p-2 bg-white rounded border border-gray-100 shadow-inner">
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div>
@@ -222,18 +256,21 @@ export default function BcvhOperationTable({ globalFilter }) {
                                   <span className="font-semibold">{TARGET_KPI}%</span>
                                 </div>
                                 <div>
-                                  <span className="block text-xs text-gray-500">Đạt / Tổng</span>
-                                  <span className="font-semibold">{row.passed_bg} / {row.total_bg}</span>
+                                  <span className="block text-xs text-gray-500">Đạt KPI 2026 / SL PTC</span>
+                                  <span className="font-semibold">{row.dat_kpi_2026} / {row.sl_bg_ptc}</span>
                                 </div>
                                 <div>
                                   <span className="block text-xs text-gray-500">Xu hướng (Trend)</span>
-                                  <span className="text-gray-400 italic text-xs">Loading...</span>
+                                  <div className="flex flex-col gap-1">
+                                    <span>{renderTrend(row.kpi_2026_dod)} HQ</span>
+                                    <span>{renderTrend(row.kpi_2026_swc)} CK</span>
+                                  </div>
                                 </div>
                               </div>
                               <div className="mt-2 pt-2 border-t border-gray-50">
                                 <span className="block text-xs font-bold text-gray-700 mb-1">Khuyến nghị điều hành:</span>
-                                <p className={`text-sm p-2 rounded ${row.kpi_rate < 50 ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-gray-50 text-gray-700'}`}>
-                                  {getRecommendation(row.kpi_rate)}
+                                <p className={`text-sm p-2 rounded ${row.kpi_2026 < 50 ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-gray-50 text-gray-700'}`}>
+                                  {getRecommendation(row.kpi_2026)}
                                 </p>
                               </div>
                             </div>
@@ -243,7 +280,7 @@ export default function BcvhOperationTable({ globalFilter }) {
                     </Fragment>
                   );
                 }) : (
-                  <tr><td colSpan="7" className="px-4 py-8 text-center text-gray-500">Không có dữ liệu.</td></tr>
+                  <tr><td colSpan="9" className="px-4 py-8 text-center text-gray-500">Không có dữ liệu.</td></tr>
                 )}
               </>
             )}
@@ -252,10 +289,10 @@ export default function BcvhOperationTable({ globalFilter }) {
       </div>
       <div className="bg-gray-50 p-3 text-xs text-gray-600 flex justify-between items-center border-t border-gray-200 shadow-inner z-30">
         <div className="flex gap-4 font-medium">
-          <span className="text-red-600 flex items-center gap-1"><Flame size={14}/> ĐỎ ({summary.do})</span>
-          <span className="text-yellow-600 flex items-center gap-1"><AlertCircle size={14}/> VÀNG ({summary.vang})</span>
-          <span className="text-pink-500 flex items-center gap-1"><Eye size={14}/> HỒNG ({summary.hong})</span>
-          <span className="text-green-600 flex items-center gap-1"><Award size={14}/> XANH ({summary.xanh})</span>
+          <span className="text-red-600 flex items-center gap-1"><Flame size={14} /> ĐỎ ({summary.do})</span>
+          <span className="text-yellow-600 flex items-center gap-1"><AlertCircle size={14} /> VÀNG ({summary.vang})</span>
+          <span className="text-pink-500 flex items-center gap-1"><Eye size={14} /> HỒNG ({summary.hong})</span>
+          <span className="text-green-600 flex items-center gap-1"><Award size={14} /> XANH ({summary.xanh})</span>
         </div>
         <div>Hiển thị {processedData.length} đơn vị</div>
       </div>
