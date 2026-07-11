@@ -107,6 +107,9 @@ class FactBuuGuiRepository {
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
                     SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed,
+                    SUM(CASE WHEN thoi_gian_nop_tien IS NOT NULL AND TRIM(thoi_gian_nop_tien) != '' THEN 1 ELSE 0 END) as sl_ptc_nop_tien,
+                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as dat_kpi_2026,
+                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as khong_dat_kpi_2026,
                     RANK() OVER (
                         ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) * 1.0 / COUNT(ma_bg)) DESC, COUNT(ma_bg) DESC
                     ) as rank
@@ -123,6 +126,28 @@ class FactBuuGuiRepository {
                     if (err) reject(err);
                     else resolve({ data: rows, totalItems: countRow.total });
                 });
+            });
+        });
+    }
+
+    getBcvhOperationMetricsByDate(date) {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                SELECT
+                    ma_bcvh,
+                    MAX(ten_bcvh) as ten_bcvh,
+                    COUNT(ma_bg) as sl_bg_ptc,
+                    SUM(CASE WHEN thoi_gian_nop_tien IS NOT NULL AND TRIM(thoi_gian_nop_tien) != '' THEN 1 ELSE 0 END) as sl_ptc_nop_tien,
+                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as dat_kpi_2026,
+                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as khong_dat_kpi_2026
+                FROM fact_f13
+                WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL
+                GROUP BY ma_bcvh
+            `;
+
+            db.all(sql, [date], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
             });
         });
     }

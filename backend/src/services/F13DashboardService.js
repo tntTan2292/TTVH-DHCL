@@ -8,6 +8,19 @@ class F13DashboardService {
         return Number(((part / total) * 100).toFixed(1));
     }
 
+    _shiftDate(dateStr, deltaDays) {
+        const date = new Date(dateStr);
+        date.setDate(date.getDate() + deltaDays);
+        return date.toISOString().split('T')[0];
+    }
+
+    _indexByBcvh(rows) {
+        return rows.reduce((acc, row) => {
+            acc[row.ma_bcvh] = row;
+            return acc;
+        }, {});
+    }
+
     async getDashboardKpi(startDate, endDate) {
         try {
             const result = await factBuuGuiRepo.getKpiMetrics(startDate, endDate);
@@ -36,20 +49,97 @@ class F13DashboardService {
     async getBcvhRanking(date, page, pageSize, sort, order) {
         try {
             const result = await factBuuGuiRepo.getBcvhRanking(date, page, pageSize, sort, order);
+            const yesterdayStr = this._shiftDate(date, -1);
+            const swcStr = this._shiftDate(date, -7);
+
+            const [currentMetrics, yesterdayMetrics, swcMetrics] = await Promise.all([
+                factBuuGuiRepo.getBcvhOperationMetricsByDate(date),
+                factBuuGuiRepo.getBcvhOperationMetricsByDate(yesterdayStr),
+                factBuuGuiRepo.getBcvhOperationMetricsByDate(swcStr)
+            ]);
+
+            const currentMap = this._indexByBcvh(currentMetrics);
+            const yesterdayMap = this._indexByBcvh(yesterdayMetrics);
+            const swcMap = this._indexByBcvh(swcMetrics);
             
             const mappedData = result.data.map(item => ({
+                ...(currentMap[item.ma_bcvh] || {}),
                 ma_bcvh: item.ma_bcvh,
                 ten_bcvh: item.ten_bcvh,
                 total_bg: item.total_bg,
                 passed_rate: this._calculateRate(item.total_passed, item.total_bg),
                 total_failed: item.total_failed,
+                sl_bg_ptc: currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg,
+                sl_ptc_nop_tien: currentMap[item.ma_bcvh]?.sl_ptc_nop_tien ?? 0,
+                dat_kpi_2026: currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                khong_dat_kpi_2026: currentMap[item.ma_bcvh]?.khong_dat_kpi_2026 ?? 0,
+                kpi_2026: this._calculateRate(
+                    currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                    currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg
+                ),
+                kpi_2026_dod: Number((
+                    this._calculateRate(
+                        currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                        currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg
+                    ) -
+                    this._calculateRate(
+                        yesterdayMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                        yesterdayMap[item.ma_bcvh]?.sl_bg_ptc ?? 0
+                    )
+                ).toFixed(2)),
+                kpi_2026_swc: Number((
+                    this._calculateRate(
+                        currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                        currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg
+                    ) -
+                    this._calculateRate(
+                        swcMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                        swcMap[item.ma_bcvh]?.sl_bg_ptc ?? 0
+                    )
+                ).toFixed(2)),
                 f13_303_rate: 0, // Delegate to D4 Rule Engine
                 rank: item.rank
             }));
 
+            const totalRow = mappedData.reduce((acc, item) => {
+                acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                acc.sl_ptc_nop_tien += item.sl_ptc_nop_tien || 0;
+                acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                acc.khong_dat_kpi_2026 += item.khong_dat_kpi_2026 || 0;
+                return acc;
+            }, {
+                ten_bcvh: 'TỔNG CỘNG',
+                sl_bg_ptc: 0,
+                sl_ptc_nop_tien: 0,
+                dat_kpi_2026: 0,
+                khong_dat_kpi_2026: 0
+            });
+
+            totalRow.kpi_2026 = this._calculateRate(totalRow.dat_kpi_2026, totalRow.sl_bg_ptc);
+
+            const totalYesterday = yesterdayMetrics.reduce((acc, item) => {
+                acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                return acc;
+            }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
+
+            const totalSwc = swcMetrics.reduce((acc, item) => {
+                acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                return acc;
+            }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
+
+            totalRow.kpi_2026_dod = Number((
+                totalRow.kpi_2026 - this._calculateRate(totalYesterday.dat_kpi_2026, totalYesterday.sl_bg_ptc)
+            ).toFixed(2));
+            totalRow.kpi_2026_swc = Number((
+                totalRow.kpi_2026 - this._calculateRate(totalSwc.dat_kpi_2026, totalSwc.sl_bg_ptc)
+            ).toFixed(2));
+
             return {
                 data: mappedData,
                 meta: {
+                    total_row: totalRow,
                     pagination: {
                         page,
                         page_size: pageSize,
