@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS fact_f13 (
     thoi_gian_ptc DATETIME,
     thoi_gian_nop_tien DATETIME,
     thoi_gian_thuc_hien_thuc_te_gio REAL,
-    ket_qua_f13 TEXT NOT NULL,
+    ket_qua_f13 TEXT,
     danh_gia_2026 TEXT,
     thoi_gian_chi_tieu TEXT,
     ma_huyen TEXT,
