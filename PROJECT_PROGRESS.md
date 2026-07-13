@@ -18,6 +18,7 @@
 - UX Architecture: `In Progress`
 - Route UX Architecture: `In Progress`
 - Shipment UX Architecture: `In Progress`
+- Evidence UX Architecture: `In Progress`
 
 ## Danh Sách Tài Liệu Đã Freeze
 
