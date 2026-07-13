@@ -16,14 +16,14 @@ Quy tắc cập nhật:
 
 ## Current Phase
 
-- `Implementation Architecture`
+- `Technical Planning`
 - `QIS V2`
 - `Status: In Progress`
 
 ## Current Ticket
 
-- `Implementation Architecture Review`
-- `Architecture Phase`
+- `Release Planning`
+- `Technical Planning`
 - `Status: In Progress`
 
 ## Completed Tickets
@@ -39,11 +39,12 @@ Quy tắc cập nhật:
 - Architecture Freeze: `PASS`
 - UX Freeze: `PASS`
 - UX Ready for Technical Planning: `True`
-- Implementation Architecture: `In Progress`
+- Implementation Architecture: `PASS`
+- Release Planning: `In Progress`
 
 ## Next Ticket
 
-- `Implementation architecture review`
+- `Release planning review`
 
 ## Notes
 
