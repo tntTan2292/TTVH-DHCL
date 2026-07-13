@@ -18,27 +18,29 @@ Quy tắc cập nhật:
 
 - `M1`
 - `BCVH Ranking Recovery`
-- `Status: Waiting Audit`
+- `Status: PASS`
 
 ## Current Ticket
 
-- `DOC-SSOT-01`
-- `Project Master SSOT`
+- `M1-T1`
+- `BCVH Ranking Recovery`
 - `Status: PASS`
 
 ## Completed Tickets
 
 - `DOC-SSOT-01` - Create Project Master SSOT
+- `M1-T1` - BCVH Ranking Recovery
 
 ## Current Progress
 
 - Dashboard Recovery: `PASS`
 - SSOT Master document created: `PASS`
+- BCVH Ranking Recovery: `PASS`
 - Progress state is now tracked in `PROJECT_STATUS.md`
 
 ## Next Ticket
 
-- `M1 - BCVH Ranking Recovery`
+- `M1-T2`
 
 ## Notes
 
@@ -47,4 +49,3 @@ Quy tắc cập nhật:
 - Từ nay, chat mới chỉ cần đọc:
   - `docs/PROJECT_SSOT.md`
   - `PROJECT_STATUS.md`
-
