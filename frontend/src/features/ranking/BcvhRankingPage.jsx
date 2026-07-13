@@ -280,12 +280,12 @@ export default function BcvhRankingPage() {
                       <th
                         key={col.key}
                         onClick={() => col.sortable && handleSort(col.key)}
-                        className={`px-4 py-3 text-left font-semibold text-[var(--color-text-muted)] select-none whitespace-nowrap
+                        className={`px-4 py-3 text-center font-semibold text-[var(--color-text-muted)] select-none whitespace-nowrap
                           ${col.sortable ? 'cursor-pointer hover:text-[var(--color-text-main)] hover:bg-[var(--color-surface-100)] transition-colors' : ''}
                           ${sortCol === col.key ? 'text-[var(--color-primary-700)]' : ''}
                         `}
                       >
-                        <span className={`flex items-center gap-1.5 ${col.align}`}>
+                        <span className="flex items-center justify-center gap-1.5">
                           {col.label}
                           {col.sortable && <SortIcon col={col.key} sortCol={sortCol} sortDir={sortDir} />}
                         </span>
@@ -310,21 +310,21 @@ export default function BcvhRankingPage() {
                             {rank}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-left">
+                        <td className="px-4 py-3 text-center">
                           <button
                             onClick={() => handleDrillDown(row)}
-                            className="font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] hover:underline text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)] rounded"
+                            className="font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] hover:underline text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)] rounded"
                           >
                             {row.name}
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-[var(--color-text-main)]">
+                        <td className="px-4 py-3 text-center font-mono text-[var(--color-text-main)]">
                           {row.total_bg.toLocaleString('vi-VN')}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-green-700">
+                        <td className="px-4 py-3 text-center font-mono text-green-700">
                           {row.passed.toLocaleString('vi-VN')}
                         </td>
-                        <td className="px-4 py-3 text-right font-mono text-red-600">
+                        <td className="px-4 py-3 text-center font-mono text-red-600">
                           {row.failed.toLocaleString('vi-VN')}
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -349,16 +349,16 @@ export default function BcvhRankingPage() {
                   })}
                   {totalRow && (
                     <tr className="border-t-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)]/60 font-semibold">
-                      <td className="px-4 py-3 text-[var(--color-primary-700)] uppercase tracking-wide" colSpan={2}>
+                      <td className="px-4 py-3 text-center text-[var(--color-primary-700)] uppercase tracking-wide" colSpan={2}>
                         TỔNG CỘNG
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-[var(--color-primary-700)]">
+                      <td className="px-4 py-3 text-center font-mono text-[var(--color-primary-700)]">
                         {Number(totalRow.sl_bg_ptc || 0).toLocaleString('vi-VN')}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-green-700">
+                      <td className="px-4 py-3 text-center font-mono text-green-700">
                         {Number(totalRow.dat_kpi_2026 || 0).toLocaleString('vi-VN')}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-red-600">
+                      <td className="px-4 py-3 text-center font-mono text-red-600">
                         {Number(totalRow.khong_dat_kpi_2026 || 0).toLocaleString('vi-VN')}
                       </td>
                       <td className="px-4 py-3 text-center text-[var(--color-primary-700)]">
