@@ -6,7 +6,7 @@
 
 Quy tắc cập nhật:
 
-- Sau MỌI ticket `PASS`, bắt buộc cập nhật file này.
+- Sau mọi ticket PASS, bắt buộc cập nhật file này.
 - Phải cập nhật các mục:
   - Current Phase
   - Current Ticket
@@ -16,31 +16,33 @@ Quy tắc cập nhật:
 
 ## Current Phase
 
-- `M1`
-- `BCVH Ranking Recovery`
-- `Status: PASS`
+- `Architecture`
+- `QIS V2`
+- `Status: In Progress`
 
 ## Current Ticket
 
-- `M1-T1`
-- `BCVH Ranking Recovery`
-- `Status: PASS`
+- `N/A`
+- `Architecture Phase`
+- `Status: In Progress`
 
 ## Completed Tickets
 
 - `DOC-SSOT-01` - Create Project Master SSOT
 - `M1-T1` - BCVH Ranking Recovery
+- `M1-T2.4` - BCVH Ranking Alignment Recovery
 
 ## Current Progress
 
-- Dashboard Recovery: `PASS`
-- SSOT Master document created: `PASS`
-- BCVH Ranking Recovery: `PASS`
-- Progress state is now tracked in `PROJECT_STATUS.md`
+- Dashboard Runtime: `PASS`
+- BCVH Ranking Runtime: `PASS (Baseline)`
+- Architecture Phase - Business Discovery: `In Progress`
+- Architecture Phase - Freeze Business: `In Progress`
+- Architecture Phase - Information Architecture: `In Progress`
 
 ## Next Ticket
 
-- `M1-T2`
+- `Architecture documentation update`
 
 ## Notes
 

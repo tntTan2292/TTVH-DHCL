@@ -1,17 +1,10 @@
 # 1. Project Overview
 
-- Tên dự án: `TTVH Quality Intelligence System (QIS)`
-- Mục tiêu: Chuẩn hóa và điều hành chất lượng vận hành theo SSOT, bám dữ liệu runtime thực tế, hỗ trợ giám sát, phân tích, cảnh báo và ra quyết định.
-- Kiến trúc: Frontend chỉ render; backend giữ rule, calculation, recommendation, template và API; database/runtime là nguồn kiểm chứng cuối cùng.
+- Tên dự án: `TTVH Quality Intelligence System (QIS V2)`
+- Mục tiêu: `Decision Support System` cho điều hành chất lượng, chuẩn hóa quyết định bằng SSOT, runtime và bằng chứng dữ liệu.
+- Kiến trúc: `Dashboard -> BCVH Performance Center -> Route Performance Center -> Shipment Performance Center -> Evidence Center -> Action Center -> Report Center`.
 - Vai trò: `Chief Commander -> Decision -> Prompt -> Codex -> Runtime -> Product Owner nghiệm thu -> PASS/FAIL`.
-
-Quy định cập nhật:
-
-- Chỉ cập nhật khi có `Freeze SSOT`
-- Chỉ cập nhật khi có `Freeze Business Rule`
-- Chỉ cập nhật khi thay đổi `Workflow`
-- Chỉ cập nhật khi thay đổi `Roadmap`
-- Chỉ cập nhật khi có `Quyết định kiến trúc`
+- Khung tư duy: `EIDAF = Evidence -> Insight -> Decision -> Action -> Feedback`.
 
 # 2. Workflow
 
@@ -54,20 +47,10 @@ Nguyên tắc:
 
 # 3. Current Project Status
 
-Dashboard Recovery: `PASS`
-
-Module đã Recovery:
-
-- Executive KPI
-- Executive Daily Brief
-- Recommendation
-- Timeline
-- Weekly Pattern
-- Monthly Pattern
-- Heatmap
-- Message Generation
-- Top Ranking
-- Operation Table
+- Dashboard Runtime: `PASS`
+- BCVH Ranking Runtime: `PASS (Baseline)`
+- Current phase: `Architecture`
+- Architecture discovery: `In Progress`
 
 # 4. SSOT Freeze
 
@@ -80,6 +63,8 @@ Kết luận cuối cùng đã chốt:
 - Dashboard only: `Frontend only, no business logic duplication`
 - Calculated: `Backend/runtime computed`
 - Imported: `Import rules frozen`
+- QIS V2: `Decision Support System`
+- EIDAF: `Architecture principle locked`
 
 Không ghi lịch sử trao đổi, chỉ giữ kết luận cuối cùng.
 
@@ -87,8 +72,8 @@ Không ghi lịch sử trao đổi, chỉ giữ kết luận cuối cùng.
 
 - Root Cause: Dữ liệu runtime và SSOT trước đây chưa đồng bộ, một số màn hình còn phụ thuộc mock/legacy mapping.
 - Cách Recovery: Chuẩn hóa nguồn dữ liệu, đồng bộ API theo SSOT, khóa lại mapping và rule ở backend/runtime.
-- Ticket: `DOC-SSOT-01` và các ticket recovery liên quan của Dashboard.
-- Runtime Result: Dashboard đã recovery và xác nhận `PASS`.
+- Ticket: `DOC-SSOT-01` và các ticket recovery liên quan của Dashboard/BCVH.
+- Runtime Result: Dashboard đã recovery và xác nhận `PASS`; BCVH Ranking Runtime đạt `PASS (Baseline)`.
 
 # 6. Environment
 
@@ -97,48 +82,32 @@ Không ghi lịch sử trao đổi, chỉ giữ kết luận cuối cùng.
 - Backend: Nguồn tính toán và rule execution.
 - Frontend: Chỉ hiển thị, không chứa business logic nghiệp vụ.
 - Control Center: Điều phối vận hành theo workflow chuẩn.
-- Git Ignore: Đã ổn định để tránh commit artifact không cần thiết.
+- Git Ignore: Ổn định để tránh commit artifact không cần thiết.
 - Runtime Log: Là căn cứ nghiệm thu thực tế.
 
 # 7. Current Roadmap
 
-Dashboard Recovery: `PASS`
+- Dashboard Runtime: `PASS`
+- BCVH Ranking Runtime: `PASS (Baseline)`
+- Architecture Phase
+  - Business Discovery
+  - Freeze Business
+  - Information Architecture
 
-↓
+Future centers:
 
-M1
-
-BCVH Ranking Recovery
-
-↓
-
-M2
-
-Tuyến Ranking Recovery
-
-↓
-
-M3
-
-Pareto / RCA
-
-↓
-
-M4
-
-Evidence
-
-↓
-
-M5
-
-Message Center
+- BCVH Performance Center
+- Route Performance Center
+- Shipment Performance Center
+- Evidence Center
+- Action Center
+- Report Center
 
 # 8. Current Active Phase
 
-- Current Phase: `M1`
-- Workstream: `BCVH Ranking Recovery`
-- Status: `Waiting Audit`
+- Current Phase: `Architecture`
+- Workstream: `QIS V2 Architecture`
+- Status: `In Progress`
 
 # 9. Important Decisions
 
@@ -152,12 +121,15 @@ Message Center
 - Runtime is the acceptance standard
 - No mock data as final acceptance source
 - No business rule changes unless explicitly approved by PO
+- QIS V2 is a Decision Support System
+- EIDAF is the organizing framework
 
 # 10. Next Chat Instructions
 
-Nếu bắt đầu chat mới, chỉ cần đọc file này:
+Nếu bắt đầu chat mới, chỉ cần đọc:
 
 - `docs/PROJECT_SSOT.md`
+- `PROJECT_STATUS.md`
 
 Sau đó tiếp tục theo current phase và workflow hiện hành.
 Không cần đọc lại lịch sử chat cũ.
