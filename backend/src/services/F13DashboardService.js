@@ -1,4 +1,5 @@
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
+const ruleRegistry = require('../engine/rules/RuleRegistry');
 
 class F13DashboardService {
     
@@ -19,6 +20,24 @@ class F13DashboardService {
             acc[row.ma_bcvh] = row;
             return acc;
         }, {});
+    }
+
+    _buildF13302RateMap(facts) {
+        const byBcvh = new Map();
+
+        for (const fact of facts || []) {
+            if (!fact?.ma_bcvh) continue;
+            if (!byBcvh.has(fact.ma_bcvh)) byBcvh.set(fact.ma_bcvh, []);
+            byBcvh.get(fact.ma_bcvh).push(fact);
+        }
+
+        const rateMap = {};
+        for (const [maBcvh, items] of byBcvh.entries()) {
+            const result = ruleRegistry.execute(items);
+            rateMap[maBcvh] = result.f13_303_rate ?? 0;
+        }
+
+        return rateMap;
     }
 
     async getDashboardKpi(startDate, endDate) {
@@ -51,6 +70,7 @@ class F13DashboardService {
             const result = await factBuuGuiRepo.getBcvhRanking(date, page, pageSize, sort, order);
             const yesterdayStr = this._shiftDate(date, -1);
             const swcStr = this._shiftDate(date, -7);
+            const currentFacts = await factBuuGuiRepo.getFactByDate(date);
 
             const [currentMetrics, yesterdayMetrics, swcMetrics] = await Promise.all([
                 factBuuGuiRepo.getBcvhOperationMetricsByDate(date),
@@ -61,6 +81,7 @@ class F13DashboardService {
             const currentMap = this._indexByBcvh(currentMetrics);
             const yesterdayMap = this._indexByBcvh(yesterdayMetrics);
             const swcMap = this._indexByBcvh(swcMetrics);
+            const f13302RateMap = this._buildF13302RateMap(currentFacts);
             
             const mappedData = result.data.map(item => ({
                 ...(currentMap[item.ma_bcvh] || {}),
@@ -97,7 +118,7 @@ class F13DashboardService {
                         swcMap[item.ma_bcvh]?.sl_bg_ptc ?? 0
                     )
                 ).toFixed(2)),
-                f13_303_rate: 0, // Delegate to D4 Rule Engine
+                f13_303_rate: f13302RateMap[item.ma_bcvh] ?? 0,
                 rank: item.rank
             }));
 
