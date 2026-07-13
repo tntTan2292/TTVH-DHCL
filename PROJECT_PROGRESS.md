@@ -23,6 +23,7 @@
 - UX Freeze: `100%`
 - Implementation Architecture: `PASS`
 - Release Planning: `In Progress`
+- Epic Planning: `In Progress`
 
 ## Danh Sách Tài Liệu Đã Freeze
 
@@ -90,3 +91,7 @@
 ## Implementation Readiness
 
 - `Ready for Release Planning`
+
+## Technical Planning Readiness
+
+- `In Progress`

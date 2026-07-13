@@ -22,7 +22,7 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `Release Planning`
+- `Epic Planning`
 - `Technical Planning`
 - `Status: In Progress`
 
@@ -41,10 +41,11 @@ Quy tắc cập nhật:
 - UX Ready for Technical Planning: `True`
 - Implementation Architecture: `PASS`
 - Release Planning: `In Progress`
+- Epic Planning: `In Progress`
 
 ## Next Ticket
 
-- `Release planning review`
+- `Epic planning review`
 
 ## Notes
 
