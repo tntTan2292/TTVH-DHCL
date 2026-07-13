@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-- `UX Architecture`
+- `UX Freeze`
 
 ## % Hoàn Thành Theo Phase
 
@@ -15,11 +15,12 @@
 - Design System: `100%`
 - Screen Architecture: `100%`
 - Architecture Freeze: `100%`
-- UX Architecture: `In Progress`
-- Route UX Architecture: `In Progress`
-- Shipment UX Architecture: `In Progress`
-- Evidence UX Architecture: `In Progress`
-- Action UX Architecture: `In Progress`
+- UX Architecture: `100%`
+- Route UX Architecture: `100%`
+- Shipment UX Architecture: `100%`
+- Evidence UX Architecture: `100%`
+- Action UX Architecture: `100%`
+- UX Freeze: `100%`
 
 ## Danh Sách Tài Liệu Đã Freeze
 
@@ -74,8 +75,12 @@
 
 ## Next Phase
 
-- `UX Design`
+- `Technical Planning`
 
 ## Architecture Readiness
 
 - `Ready for UX`
+
+## UX Readiness
+
+- `Ready for Technical Planning`

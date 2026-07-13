@@ -16,7 +16,7 @@ Quy tắc cập nhật:
 
 ## Current Phase
 
-- `Architecture Freeze`
+- `UX Freeze`
 - `QIS V2`
 - `Status: PASS`
 
@@ -37,11 +37,12 @@ Quy tắc cập nhật:
 - Dashboard Runtime: `PASS`
 - BCVH Ranking Runtime: `PASS (Baseline)`
 - Architecture Freeze: `PASS`
-- Architecture Ready for UX: `True`
+- UX Freeze: `PASS`
+- UX Ready for Technical Planning: `True`
 
 ## Next Ticket
 
-- `UX phase kickoff`
+- `Technical Planning kickoff`
 
 ## Notes
 
