@@ -5,6 +5,14 @@
 - Kiến trúc: Frontend chỉ render; backend giữ rule, calculation, recommendation, template và API; database/runtime là nguồn kiểm chứng cuối cùng.
 - Vai trò: `Chief Commander -> Decision -> Prompt -> Codex -> Runtime -> Product Owner nghiệm thu -> PASS/FAIL`.
 
+Quy định cập nhật:
+
+- Chỉ cập nhật khi có `Freeze SSOT`
+- Chỉ cập nhật khi có `Freeze Business Rule`
+- Chỉ cập nhật khi thay đổi `Workflow`
+- Chỉ cập nhật khi thay đổi `Roadmap`
+- Chỉ cập nhật khi có `Quyết định kiến trúc`
+
 # 2. Workflow
 
 Workflow chuẩn:
