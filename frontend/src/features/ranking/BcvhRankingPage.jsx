@@ -48,6 +48,7 @@ export default function BcvhRankingPage() {
   // Local state
   const [status,  setStatus]  = useState('loading');
   const [data,    setData]    = useState([]);
+  const [totalRow, setTotalRow] = useState(null);
   const [error,   setError]   = useState(null);
   const [search,  setSearch]  = useState('');
   const [sortCol, setSortCol] = useState('passed_rate');
@@ -96,6 +97,7 @@ export default function BcvhRankingPage() {
         if (!mounted) return;
 
         setData(result.data || []);
+        setTotalRow(result.meta?.total_row || null);
         setStatus('success');
       } catch (e) {
         if (!mounted) return;
@@ -254,6 +256,7 @@ export default function BcvhRankingPage() {
                 f13DashboardClient.getBcvhRankingForUi(fromDate, toDate, 1000, 'rank', 'asc')
                   .then((result) => {
                     setData(result.data || []);
+                    setTotalRow(result.meta?.total_row || null);
                     setStatus('success');
                   })
                   .catch((e) => {
@@ -358,6 +361,37 @@ export default function BcvhRankingPage() {
                       </tr>
                     );
                   })}
+                  {totalRow && (
+                    <tr className="border-t-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)]/60 font-semibold">
+                      <td className="px-4 py-3 text-[var(--color-primary-700)] uppercase tracking-wide">
+                        TỔNG CỘNG
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-primary-700)]">
+                        {totalRow.ten_bcvh || 'TỔNG CỘNG'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-[var(--color-primary-700)]">
+                        {Number(totalRow.sl_bg_ptc || 0).toLocaleString('vi-VN')}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-green-700">
+                        {Number(totalRow.dat_kpi_2026 || 0).toLocaleString('vi-VN')}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-red-600">
+                        {Number(totalRow.khong_dat_kpi_2026 || 0).toLocaleString('vi-VN')}
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-primary-700)]">
+                        <RateBadge rate={Number(totalRow.kpi_2026 || 0)} />
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-primary-700)]">
+                        <RateBadge rate={Number(totalRow.kpi_2026_dod || 0)} />
+                      </td>
+                      <td className="px-4 py-3 text-[var(--color-primary-700)]">
+                        <RateBadge rate={Number(totalRow.kpi_2026_swc || 0)} />
+                      </td>
+                      <td className="px-4 py-3 text-center text-[var(--color-text-muted)]">
+                        -
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -407,7 +441,6 @@ export default function BcvhRankingPage() {
     </div>
   );
 }
-
 
 
 
