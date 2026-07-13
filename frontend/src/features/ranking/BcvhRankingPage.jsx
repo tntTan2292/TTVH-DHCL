@@ -185,7 +185,7 @@ export default function BcvhRankingPage() {
         <div className="flex flex-col items-end gap-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-[320px]">
             <label className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)]">
-              <span>Từ ngày</span>
+              <span>T? ng?y</span>
               <input
                 type="date"
                 value={fromDate}
@@ -195,7 +195,7 @@ export default function BcvhRankingPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)]">
-              <span>Đến ngày</span>
+              <span>??n ng?y</span>
               <input
                 type="date"
                 value={toDate}
@@ -210,7 +210,7 @@ export default function BcvhRankingPage() {
               Max date: {maxDate || 'N/A'}
             </span>
             <span className={`px-2 py-1 rounded ${isSingleDay ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]' : 'bg-[var(--color-surface-100)] text-[var(--color-text-muted)]'}`}>
-              {isSingleDay ? 'Một ngày' : 'Lũy kế'}
+              {isSingleDay ? 'M?t ng?y' : 'L?y k?'}
             </span>
           </div>
         </div>
