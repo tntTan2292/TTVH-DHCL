@@ -16,6 +16,7 @@
 - Screen Architecture: `100%`
 - Architecture Freeze: `100%`
 - UX Architecture: `In Progress`
+- Route UX Architecture: `In Progress`
 
 ## Danh Sách Tài Liệu Đã Freeze
 
