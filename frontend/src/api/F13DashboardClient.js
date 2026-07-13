@@ -9,6 +9,13 @@ class F13DashboardClient {
     }
 
     /**
+     * API Contract: GET /dashboard/meta
+     */
+    getDashboardMeta() {
+        return httpClient.get('/f13/dashboard/meta');
+    }
+
+    /**
      * API Contract: GET /ranking/bcvh
      */
     getBcvhRanking(date, page, pageSize, sort, order) {

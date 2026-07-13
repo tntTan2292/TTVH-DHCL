@@ -1,23 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts';
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Download, ArrowRight } from 'lucide-react';
-
-// ─── Mock Data (BĐTP Huế — Buổi tỉnh Thừa Thiên Huế) ───────────────────────
-const MOCK_BCVH_DATA = [
-  { id: 'BC_HUE01', name: 'BCVH Thành phố Huế',       total_bg: 4820, passed: 4201, failed: 619, passed_rate: 87.2, f13_303_rate: 6.8 },
-  { id: 'BC_HUE02', name: 'BCVH Hương Thủy',          total_bg: 3105, passed: 2420, failed: 685, passed_rate: 78.0, f13_303_rate: 14.5 },
-  { id: 'BC_HUE03', name: 'BCVH Phú Lộc',             total_bg: 2240, passed: 1600, failed: 640, passed_rate: 71.4, f13_303_rate: 18.2 },
-  { id: 'BC_HUE04', name: 'BCVH Hương Trà',           total_bg: 1980, passed: 1386, failed: 594, passed_rate: 70.0, f13_303_rate: 20.1 },
-  { id: 'BC_HUE05', name: 'BCVH Phong Điền',          total_bg: 1455, passed: 1150, failed: 305, passed_rate: 79.0, f13_303_rate: 11.3 },
-  { id: 'BC_HUE06', name: 'BCVH Quảng Điền',          total_bg: 1200, passed: 1008, failed: 192, passed_rate: 84.0, f13_303_rate: 9.5 },
-  { id: 'BC_HUE07', name: 'BCVH Phú Vang',            total_bg: 1620, passed: 1231, failed: 389, passed_rate: 75.9, f13_303_rate: 16.7 },
-  { id: 'BC_HUE08', name: 'BCVH A Lưới',              total_bg:  720, passed:  432, failed: 288, passed_rate: 60.0, f13_303_rate: 28.4 },
-  { id: 'BC_HUE09', name: 'BCVH Nam Đông',            total_bg:  540, passed:  270, failed: 270, passed_rate: 50.0, f13_303_rate: 32.1 },
-  { id: 'BC_HUE10', name: 'BCVH Bình Điền',           total_bg:  410, passed:  369, failed:  41, passed_rate: 90.0, f13_303_rate: 4.2 },
-  { id: 'BC_HUE11', name: 'BCVH Thuận An',            total_bg:  890, passed:  703, failed: 187, passed_rate: 79.0, f13_303_rate: 12.1 },
-  { id: 'BC_HUE12', name: 'BCVH Tứ Hạ',              total_bg:  760, passed:  631, failed: 129, passed_rate: 83.0, f13_303_rate: 10.4 },
-];
+import f13DashboardClient from '../../api/F13DashboardClient';
 
 // ─── Badge màu theo ngưỡng SSOT ──────────────────────────────────────────────
 function RateBadge({ rate }) {
@@ -58,13 +43,7 @@ function SortIcon({ col, sortCol, sortDir }) {
 const PAGE_SIZE = 8;
 
 export default function BcvhRankingPage() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-
-  // URL Query State (inherited from D7.0 Engineering Guideline)
-  const fromDate = searchParams.get('from_date') || '';
-  const toDate   = searchParams.get('to_date')   || '';
-  const interval = searchParams.get('interval')  || 'daily';
 
   // Local state
   const [status,  setStatus]  = useState('loading');
@@ -74,22 +53,62 @@ export default function BcvhRankingPage() {
   const [sortCol, setSortCol] = useState('passed_rate');
   const [sortDir, setSortDir] = useState('asc'); // asc = worst first (default business view)
   const [page,    setPage]    = useState(1);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [maxDate, setMaxDate] = useState('');
 
-  // Mock fetch
   useEffect(() => {
-    setStatus('loading');
-    setPage(1);
-    const t = setTimeout(() => {
+    let mounted = true;
+
+    const bootstrap = async () => {
       try {
-        setData(MOCK_BCVH_DATA);
-        setStatus('success');
+        setStatus('loading');
+        const meta = await f13DashboardClient.getDashboardMeta();
+        if (!mounted) return;
+
+        const latestDate = meta?.data?.max_date || '';
+        setMaxDate(latestDate);
+        setFromDate(latestDate);
+        setToDate(latestDate);
       } catch (e) {
-        setError({ message: e.message });
+        if (!mounted) return;
+        setError({ message: e.message || 'KhÃ´ng thá»ƒ táº£i ngÃ y dá»¯ liá»‡u má»›i nháº¥t' });
         setStatus('error');
       }
-    }, 600);
-    return () => clearTimeout(t);
-  }, [fromDate, toDate, interval]);
+    };
+
+    bootstrap();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchRanking = async () => {
+      try {
+        setStatus('loading');
+        setPage(1);
+        setError(null);
+
+        const result = await f13DashboardClient.getBcvhRankingForUi(fromDate, toDate, 1000, 'rank', 'asc');
+        if (!mounted) return;
+
+        setData(result.data || []);
+        setStatus('success');
+      } catch (e) {
+        if (!mounted) return;
+        setError({ message: e.message || 'Không thể tải dữ liệu BCVH Ranking' });
+        setStatus('error');
+      }
+    };
+
+    fetchRanking();
+    return () => {
+      mounted = false;
+    };
+  }, [fromDate, toDate]);
 
   // Sort handler (Loading Guard: disable if loading)
   const handleSort = (col) => {
@@ -105,6 +124,13 @@ export default function BcvhRankingPage() {
     setSearch(e.target.value);
     setPage(1);
   };
+
+  const handleDateChange = (setter) => (e) => {
+    if (status === 'loading') return;
+    setter(e.target.value);
+  };
+
+  const isSingleDay = Boolean(fromDate && toDate && fromDate === toDate);
 
   // Derived: filter + sort
   const processed = useMemo(() => {
@@ -129,7 +155,6 @@ export default function BcvhRankingPage() {
     const params = new URLSearchParams();
     if (fromDate) params.set('from_date', fromDate);
     if (toDate)   params.set('to_date',   toDate);
-    if (interval) params.set('interval',  interval);
     params.set('bcvh_id',   bcvh.id);
     params.set('bcvh_name', bcvh.name);
     navigate(`/f13/ranking/route?${params.toString()}`);
@@ -154,19 +179,42 @@ export default function BcvhRankingPage() {
         <div>
           <h1 className="text-2xl font-bold text-[var(--color-text-main)]">BCVH Ranking</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
-            Bảng xếp hạng bưu cục vận hành — Bưu điện tỉnh Thừa Thiên Huế
+            B?ng x?p h?ng b?u c?c v?n h?nh ? B?u ?i?n t?nh Th?a Thi?n Hu?
           </p>
         </div>
-        {/* Inherited filter badges */}
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          {fromDate && <span className="px-2 py-1 bg-[var(--color-surface-100)] rounded">{fromDate}</span>}
-          {fromDate && toDate && <span>→</span>}
-          {toDate   && <span className="px-2 py-1 bg-[var(--color-surface-100)] rounded">{toDate}</span>}
-          {interval && <span className="px-2 py-1 bg-[var(--color-primary-50)] text-[var(--color-primary-700)] rounded capitalize">{interval}</span>}
+        <div className="flex flex-col items-end gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-[320px]">
+            <label className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+              <span>Từ ngày</span>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={handleDateChange(setFromDate)}
+                disabled={status === 'loading'}
+                className="px-3 py-2 text-sm border border-[var(--color-surface-200)] rounded-md bg-white text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)]">
+              <span>Đến ngày</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={handleDateChange(setToDate)}
+                disabled={status === 'loading'}
+                className="px-3 py-2 text-sm border border-[var(--color-surface-200)] rounded-md bg-white text-[var(--color-text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] disabled:opacity-50"
+              />
+            </label>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+            <span className="px-2 py-1 bg-[var(--color-surface-100)] rounded">
+              Max date: {maxDate || 'N/A'}
+            </span>
+            <span className={`px-2 py-1 rounded ${isSingleDay ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]' : 'bg-[var(--color-surface-100)] text-[var(--color-text-muted)]'}`}>
+              {isSingleDay ? 'Một ngày' : 'Lũy kế'}
+            </span>
+          </div>
         </div>
       </div>
-
-      {/* ── Toolbar: Search + Export ── */}
       <div className="bg-white rounded-lg border border-[var(--color-surface-200)] shadow-sm p-4 flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
@@ -199,7 +247,21 @@ export default function BcvhRankingPage() {
 
         {status === 'error' && (
           <div className="flex-1 flex items-center justify-center min-h-64">
-            <ErrorLayout error={error} onRetry={() => { setStatus('loading'); setTimeout(() => { setData(MOCK_BCVH_DATA); setStatus('success'); }, 600); }} />
+            <ErrorLayout
+              error={error}
+              onRetry={() => {
+                setStatus('loading');
+                f13DashboardClient.getBcvhRankingForUi(fromDate, toDate, 1000, 'rank', 'asc')
+                  .then((result) => {
+                    setData(result.data || []);
+                    setStatus('success');
+                  })
+                  .catch((e) => {
+                    setError({ message: e.message || 'Không thể tải dữ liệu BCVH Ranking' });
+                    setStatus('error');
+                  });
+              }}
+            />
           </div>
         )}
 
@@ -345,3 +407,7 @@ export default function BcvhRankingPage() {
     </div>
   );
 }
+
+
+
+
