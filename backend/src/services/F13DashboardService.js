@@ -1,5 +1,6 @@
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 const ruleRegistry = require('../engine/rules/RuleRegistry');
+const RuleF13302 = require('../engine/rules/RuleF13302');
 
 class F13DashboardService {
     
@@ -23,6 +24,10 @@ class F13DashboardService {
     }
 
     _buildF13302RateMap(facts) {
+        if (!ruleRegistry.rules.some(rule => rule?.id === 'RULE_F13_302')) {
+            ruleRegistry.register(new RuleF13302());
+        }
+
         const byBcvh = new Map();
 
         for (const fact of facts || []) {

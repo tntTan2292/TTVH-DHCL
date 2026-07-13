@@ -11,6 +11,22 @@ class RuleF13302 extends BaseRule {
         );
     }
 
+    _parseDateTime(value) {
+        if (!value) return null;
+
+        if (typeof value === 'string') {
+            const match = value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})$/);
+            if (match) {
+                const [, dd, mm, yyyy, hh, mi, ss] = match;
+                const parsed = new Date(`${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            }
+        }
+
+        const fallback = new Date(value);
+        return Number.isNaN(fallback.getTime()) ? null : fallback;
+    }
+
     /**
      * Đánh giá bưu gửi xem có vi phạm chậm nộp tiền không.
      * Tầng Service đảm bảo truyền vào định dạng ISO/UTC chuẩn hóa, Engine không quan tâm Timezone.
@@ -28,8 +44,14 @@ class RuleF13302 extends BaseRule {
             return false;
         }
 
-        const ptcMs = new Date(fact.thoi_gian_ptc).getTime();
-        const nopMs = new Date(fact.thoi_gian_nop_tien).getTime();
+        const ptcDate = this._parseDateTime(fact.thoi_gian_ptc);
+        const nopDate = this._parseDateTime(fact.thoi_gian_nop_tien);
+        if (!ptcDate || !nopDate) {
+            return false;
+        }
+
+        const ptcMs = ptcDate.getTime();
+        const nopMs = nopDate.getTime();
         
         const diffMs = nopMs - ptcMs;
         const diffHours = diffMs / (1000 * 60 * 60);
