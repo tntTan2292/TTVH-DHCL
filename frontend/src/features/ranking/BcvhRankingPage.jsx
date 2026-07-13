@@ -4,7 +4,6 @@ import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Download, ArrowRight } from 'lucide-react';
 import f13DashboardClient from '../../api/F13DashboardClient';
 
-// ─── Badge màu theo ngưỡng SSOT ──────────────────────────────────────────────
 function RateBadge({ rate }) {
   if (rate >= 70) return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
@@ -32,7 +31,6 @@ function RateBadge({ rate }) {
   );
 }
 
-// ─── Sort Icon ────────────────────────────────────────────────────────────────
 function SortIcon({ col, sortCol, sortDir }) {
   if (sortCol !== col) return <ArrowUpDown className="w-3.5 h-3.5 opacity-40" />;
   return sortDir === 'asc'
@@ -44,40 +42,35 @@ const PAGE_SIZE = 8;
 
 export default function BcvhRankingPage() {
   const navigate = useNavigate();
-
-  // Local state
-  const [status,  setStatus]  = useState('loading');
-  const [data,    setData]    = useState([]);
+  const [status, setStatus] = useState('loading');
+  const [data, setData] = useState([]);
   const [totalRow, setTotalRow] = useState(null);
-  const [error,   setError]   = useState(null);
-  const [search,  setSearch]  = useState('');
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
   const [sortCol, setSortCol] = useState('passed_rate');
-  const [sortDir, setSortDir] = useState('asc'); // asc = worst first (default business view)
-  const [page,    setPage]    = useState(1);
+  const [sortDir, setSortDir] = useState('asc');
+  const [page, setPage] = useState(1);
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [maxDate, setMaxDate] = useState('');
 
   useEffect(() => {
     let mounted = true;
-
     const bootstrap = async () => {
       try {
         setStatus('loading');
         const meta = await f13DashboardClient.getDashboardMeta();
         if (!mounted) return;
-
         const latestDate = meta?.data?.max_date || '';
         setMaxDate(latestDate);
         setFromDate(latestDate);
         setToDate(latestDate);
       } catch (e) {
         if (!mounted) return;
-        setError({ message: e.message || 'KhÃ´ng thá»ƒ táº£i ngÃ y dá»¯ liá»‡u má»›i nháº¥t' });
+        setError({ message: e.message || 'Không thể tải ngày dữ liệu mới nhất' });
         setStatus('error');
       }
     };
-
     bootstrap();
     return () => {
       mounted = false;
@@ -85,17 +78,15 @@ export default function BcvhRankingPage() {
   }, []);
 
   useEffect(() => {
+    if (!fromDate || !toDate) return;
     let mounted = true;
-
     const fetchRanking = async () => {
       try {
         setStatus('loading');
         setPage(1);
         setError(null);
-
         const result = await f13DashboardClient.getBcvhRankingForUi(fromDate, toDate, 1000, 'rank', 'asc');
         if (!mounted) return;
-
         setData(result.data || []);
         setTotalRow(result.meta?.total_row || null);
         setStatus('success');
@@ -105,22 +96,22 @@ export default function BcvhRankingPage() {
         setStatus('error');
       }
     };
-
     fetchRanking();
     return () => {
       mounted = false;
     };
   }, [fromDate, toDate]);
 
-  // Sort handler (Loading Guard: disable if loading)
   const handleSort = (col) => {
     if (status === 'loading') return;
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortCol(col); setSortDir('asc'); }
+    else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
     setPage(1);
   };
 
-  // Search handler (Loading Guard)
   const handleSearch = (e) => {
     if (status === 'loading') return;
     setSearch(e.target.value);
@@ -134,7 +125,6 @@ export default function BcvhRankingPage() {
 
   const isSingleDay = Boolean(fromDate && toDate && fromDate === toDate);
 
-  // Derived: filter + sort
   const processed = useMemo(() => {
     let rows = [...data];
     if (search.trim()) {
@@ -147,47 +137,43 @@ export default function BcvhRankingPage() {
     return rows;
   }, [data, search, sortCol, sortDir]);
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(processed.length / PAGE_SIZE));
-  const paginated  = processed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginated = processed.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // Drill-down: Click BCVH → Route Ranking, carry query params
   const handleDrillDown = (bcvh) => {
     if (status === 'loading') return;
     const params = new URLSearchParams();
     if (fromDate) params.set('from_date', fromDate);
-    if (toDate)   params.set('to_date',   toDate);
-    params.set('bcvh_id',   bcvh.id);
+    if (toDate) params.set('to_date', toDate);
+    params.set('bcvh_id', bcvh.id);
     params.set('bcvh_name', bcvh.name);
     navigate(`/f13/ranking/route?${params.toString()}`);
   };
 
-  // Columns definition
   const COLS = [
-    { key: 'rank',         label: 'XH',              sortable: false },
-    { key: 'name',         label: 'BCVH',             sortable: false },
-    { key: 'total_bg',     label: 'Tổng BG',          sortable: true  },
-    { key: 'passed',       label: 'Đạt',              sortable: true  },
-    { key: 'failed',       label: 'Không đạt',        sortable: true  },
-    { key: 'passed_rate',  label: 'Tỷ lệ Đạt (%)',    sortable: true  },
+    { key: 'rank', label: 'XH', sortable: false },
+    { key: 'name', label: 'BCVH', sortable: false },
+    { key: 'total_bg', label: 'Tổng BG', sortable: true },
+    { key: 'passed', label: 'Đạt', sortable: true },
+    { key: 'failed', label: 'Không đạt', sortable: true },
+    { key: 'passed_rate', label: 'Tỷ lệ Đạt (%)', sortable: true },
     { key: 'f13_303_rate', label: 'Chậm nộp (F13_303)', sortable: true },
-    { key: 'action',       label: '',                 sortable: false },
+    { key: 'action', label: '', sortable: false },
   ];
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--color-text-main)]">BCVH Ranking</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
-            B?ng x?p h?ng b?u c?c v?n h?nh ? B?u ?i?n t?nh Th?a Thi?n Hu?
+            Bảng xếp hạng bưu cục vận hành — Bưu điện tỉnh Thừa Thiên Huế
           </p>
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-[320px]">
             <label className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)]">
-              <span>T? ng?y</span>
+              <span>Từ ngày</span>
               <input
                 type="date"
                 value={fromDate}
@@ -197,7 +183,7 @@ export default function BcvhRankingPage() {
               />
             </label>
             <label className="flex flex-col gap-1 text-xs text-[var(--color-text-muted)]">
-              <span>??n ng?y</span>
+              <span>Đến ngày</span>
               <input
                 type="date"
                 value={toDate}
@@ -212,11 +198,12 @@ export default function BcvhRankingPage() {
               Max date: {maxDate || 'N/A'}
             </span>
             <span className={`px-2 py-1 rounded ${isSingleDay ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]' : 'bg-[var(--color-surface-100)] text-[var(--color-text-muted)]'}`}>
-              {isSingleDay ? 'M?t ng?y' : 'L?y k?'}
+              {isSingleDay ? 'Một ngày' : 'Lũy kế'}
             </span>
           </div>
         </div>
       </div>
+
       <div className="bg-white rounded-lg border border-[var(--color-surface-200)] shadow-sm p-4 flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
@@ -239,7 +226,6 @@ export default function BcvhRankingPage() {
         </button>
       </div>
 
-      {/* ── Content area ── */}
       <div className="flex-1 bg-white rounded-lg border border-[var(--color-surface-200)] shadow-sm overflow-hidden flex flex-col">
         {status === 'loading' && (
           <div className="flex-1 flex items-center justify-center min-h-64">
@@ -276,7 +262,6 @@ export default function BcvhRankingPage() {
 
         {status === 'success' && processed.length > 0 && (
           <>
-            {/* Table */}
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-sm">
                 <thead>
@@ -306,18 +291,15 @@ export default function BcvhRankingPage() {
                         key={row.id}
                         className="border-b border-[var(--color-surface-100)] hover:bg-[var(--color-surface-50)] transition-colors"
                       >
-                        {/* XH */}
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
                             ${rank === 1 ? 'bg-red-100 text-red-700' :
                               rank === 2 ? 'bg-orange-100 text-orange-700' :
-                              rank <= 5  ? 'bg-yellow-50 text-yellow-700' :
-                              'bg-[var(--color-surface-100)] text-[var(--color-text-muted)]'}`}
-                          >
+                              rank <= 5 ? 'bg-yellow-50 text-yellow-700' :
+                              'bg-[var(--color-surface-100)] text-[var(--color-text-muted)]'}`}>
                             {rank}
                           </span>
                         </td>
-                        {/* BCVH name — clickable drill-down */}
                         <td className="px-4 py-3">
                           <button
                             onClick={() => handleDrillDown(row)}
@@ -326,29 +308,23 @@ export default function BcvhRankingPage() {
                             {row.name}
                           </button>
                         </td>
-                        {/* Tổng BG */}
                         <td className="px-4 py-3 text-right font-mono text-[var(--color-text-main)]">
                           {row.total_bg.toLocaleString('vi-VN')}
                         </td>
-                        {/* Đạt */}
                         <td className="px-4 py-3 text-right font-mono text-green-700">
                           {row.passed.toLocaleString('vi-VN')}
                         </td>
-                        {/* Không đạt */}
                         <td className="px-4 py-3 text-right font-mono text-red-600">
                           {row.failed.toLocaleString('vi-VN')}
                         </td>
-                        {/* Tỷ lệ Đạt */}
                         <td className="px-4 py-3">
                           <RateBadge rate={row.passed_rate} />
                         </td>
-                        {/* F13_303 */}
                         <td className="px-4 py-3">
                           <span className="text-sm font-semibold text-[var(--color-text-main)]">
                             {row.f13_303_rate.toFixed(1)}%
                           </span>
                         </td>
-                        {/* Action */}
                         <td className="px-4 py-3">
                           <button
                             onClick={() => handleDrillDown(row)}
@@ -363,11 +339,8 @@ export default function BcvhRankingPage() {
                   })}
                   {totalRow && (
                     <tr className="border-t-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)]/60 font-semibold">
-                      <td className="px-4 py-3 text-[var(--color-primary-700)] uppercase tracking-wide">
+                      <td className="px-4 py-3 text-[var(--color-primary-700)] uppercase tracking-wide" colSpan={2}>
                         TỔNG CỘNG
-                      </td>
-                      <td className="px-4 py-3 text-[var(--color-primary-700)]">
-                        {totalRow.ten_bcvh || 'TỔNG CỘNG'}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-[var(--color-primary-700)]">
                         {Number(totalRow.sl_bg_ptc || 0).toLocaleString('vi-VN')}
@@ -382,10 +355,9 @@ export default function BcvhRankingPage() {
                         <RateBadge rate={Number(totalRow.kpi_2026 || 0)} />
                       </td>
                       <td className="px-4 py-3 text-[var(--color-primary-700)]">
-                        <RateBadge rate={Number(totalRow.kpi_2026_dod || 0)} />
-                      </td>
-                      <td className="px-4 py-3 text-[var(--color-primary-700)]">
-                        <RateBadge rate={Number(totalRow.kpi_2026_swc || 0)} />
+                        <span className="text-sm font-semibold text-[var(--color-text-main)]">
+                          {Number(totalRow.f13_303_rate || 0).toFixed(1)}%
+                        </span>
                       </td>
                       <td className="px-4 py-3 text-center text-[var(--color-text-muted)]">
                         -
@@ -396,10 +368,9 @@ export default function BcvhRankingPage() {
               </table>
             </div>
 
-            {/* Pagination */}
             <div className="px-4 py-3 border-t border-[var(--color-surface-200)] flex items-center justify-between bg-[var(--color-surface-50)]">
               <p className="text-xs text-[var(--color-text-muted)]">
-                Hiển thị <span className="font-semibold">{(page - 1) * PAGE_SIZE + 1}</span>–
+                Hiển thị <span className="font-semibold">{(page - 1) * PAGE_SIZE + 1}</span>-
                 <span className="font-semibold">{Math.min(page * PAGE_SIZE, processed.length)}</span> /
                 <span className="font-semibold"> {processed.length}</span> bưu cục
               </p>
@@ -441,6 +412,3 @@ export default function BcvhRankingPage() {
     </div>
   );
 }
-
-
-
