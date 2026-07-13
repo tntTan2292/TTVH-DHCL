@@ -263,7 +263,17 @@ export default function BcvhRankingPage() {
         {status === 'success' && processed.length > 0 && (
           <>
             <div className="overflow-x-auto flex-1">
-              <table className="w-full text-sm">
+              <table className="w-full table-fixed text-sm">
+                <colgroup>
+                  <col className="w-[72px]" />
+                  <col className="w-[260px]" />
+                  <col className="w-[120px]" />
+                  <col className="w-[120px]" />
+                  <col className="w-[120px]" />
+                  <col className="w-[130px]" />
+                  <col className="w-[150px]" />
+                  <col className="w-[110px]" />
+                </colgroup>
                 <thead>
                   <tr className="bg-[var(--color-surface-50)] border-b border-[var(--color-surface-200)]">
                     {COLS.map(col => (
