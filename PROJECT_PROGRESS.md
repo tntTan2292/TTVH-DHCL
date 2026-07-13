@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-- `Architecture Freeze`
+- `UX Architecture`
 
 ## % Hoàn Thành Theo Phase
 
@@ -15,6 +15,7 @@
 - Design System: `100%`
 - Screen Architecture: `100%`
 - Architecture Freeze: `100%`
+- UX Architecture: `In Progress`
 
 ## Danh Sách Tài Liệu Đã Freeze
 
@@ -69,9 +70,8 @@
 
 ## Next Phase
 
-- `UX`
+- `UX Design`
 
 ## Architecture Readiness
 
 - `Ready for UX`
-
