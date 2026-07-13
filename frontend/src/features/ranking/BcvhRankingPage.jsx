@@ -151,14 +151,14 @@ export default function BcvhRankingPage() {
   };
 
   const COLS = [
-    { key: 'rank', label: 'XH', sortable: false },
-    { key: 'name', label: 'BCVH', sortable: false },
-    { key: 'total_bg', label: 'Tổng BG', sortable: true },
-    { key: 'passed', label: 'Đạt', sortable: true },
-    { key: 'failed', label: 'Không đạt', sortable: true },
-    { key: 'passed_rate', label: 'Tỷ lệ Đạt (%)', sortable: true },
-    { key: 'f13_303_rate', label: 'Chậm nộp (F13_303)', sortable: true },
-    { key: 'action', label: '', sortable: false },
+    { key: 'rank', label: 'XH', sortable: false, align: 'text-center' },
+    { key: 'name', label: 'BCVH', sortable: false, align: 'text-left' },
+    { key: 'total_bg', label: 'Tổng BG', sortable: true, align: 'text-right' },
+    { key: 'passed', label: 'Đạt', sortable: true, align: 'text-right' },
+    { key: 'failed', label: 'Không đạt', sortable: true, align: 'text-right' },
+    { key: 'passed_rate', label: 'Tỷ lệ Đạt (%)', sortable: true, align: 'text-center' },
+    { key: 'f13_303_rate', label: 'Chậm nộp (F13_303)', sortable: true, align: 'text-center' },
+    { key: 'action', label: '', sortable: false, align: 'text-center' },
   ];
 
   return (
@@ -285,7 +285,7 @@ export default function BcvhRankingPage() {
                           ${sortCol === col.key ? 'text-[var(--color-primary-700)]' : ''}
                         `}
                       >
-                        <span className="flex items-center gap-1.5">
+                        <span className={`flex items-center gap-1.5 ${col.align}`}>
                           {col.label}
                           {col.sortable && <SortIcon col={col.key} sortCol={sortCol} sortDir={sortDir} />}
                         </span>
@@ -301,7 +301,7 @@ export default function BcvhRankingPage() {
                         key={row.id}
                         className="border-b border-[var(--color-surface-100)] hover:bg-[var(--color-surface-50)] transition-colors"
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-center">
                           <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
                             ${rank === 1 ? 'bg-red-100 text-red-700' :
                               rank === 2 ? 'bg-orange-100 text-orange-700' :
@@ -310,7 +310,7 @@ export default function BcvhRankingPage() {
                             {rank}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-left">
                           <button
                             onClick={() => handleDrillDown(row)}
                             className="font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] hover:underline text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)] rounded"
@@ -327,15 +327,15 @@ export default function BcvhRankingPage() {
                         <td className="px-4 py-3 text-right font-mono text-red-600">
                           {row.failed.toLocaleString('vi-VN')}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-center">
                           <RateBadge rate={row.passed_rate} />
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-center">
                           <span className="text-sm font-semibold text-[var(--color-text-main)]">
                             {row.f13_303_rate.toFixed(1)}%
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-center">
                           <button
                             onClick={() => handleDrillDown(row)}
                             className="flex items-center gap-1 text-xs text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] font-medium px-2 py-1 rounded hover:bg-[var(--color-primary-50)] transition-colors"
@@ -361,10 +361,10 @@ export default function BcvhRankingPage() {
                       <td className="px-4 py-3 text-right font-mono text-red-600">
                         {Number(totalRow.khong_dat_kpi_2026 || 0).toLocaleString('vi-VN')}
                       </td>
-                      <td className="px-4 py-3 text-[var(--color-primary-700)]">
+                      <td className="px-4 py-3 text-center text-[var(--color-primary-700)]">
                         <RateBadge rate={Number(totalRow.kpi_2026 || 0)} />
                       </td>
-                      <td className="px-4 py-3 text-[var(--color-primary-700)]">
+                      <td className="px-4 py-3 text-center text-[var(--color-primary-700)]">
                         <span className="text-sm font-semibold text-[var(--color-text-main)]">
                           {Number(totalRow.f13_303_rate || 0).toFixed(1)}%
                         </span>
