@@ -14,6 +14,7 @@ router.post('/import/confirm', importController.confirm);
 router.get('/dashboard/kpi', dashboardController.getKpi);
 router.get('/dashboard/quality-timeline', dashboardController.getQualityTimeline);
 router.get('/dashboard/top', kpiController.getDashboardTop);
+router.get('/dashboard/meta', kpiController.getDashboardMeta);
 router.get('/ranking/bcvh', dashboardController.getBcvh);
 router.get('/ranking/route', dashboardController.getRoute);
 router.get('/rca/pareto', dashboardController.getPareto);
