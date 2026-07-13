@@ -45,7 +45,7 @@ class F13DashboardClient {
             ten_bcvh: item.ten_bcvh,
             name: item.ten_bcvh,
             total_bg: item.total_bg ?? 0,
-            passed: item.passed_bg ?? 0,
+            passed: item.dat_kpi_2026 ?? item.passed_bg ?? 0,
             failed: item.failed_bg ?? item.total_failed ?? 0,
             passed_rate: item.kpi_2026 ?? item.kpi_rate ?? item.passed_rate ?? 0,
             f13_303_rate: item.f13_303_rate ?? 0,
