@@ -1,14 +1,20 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050/api';
+const SESSION_KEY = 'qis_auth_session';
 
 class HttpClient {
     async request(endpoint, options = {}) {
         const url = `${BASE_URL}${endpoint}`;
-        
-        // Nếu truyền headers riêng (như khi gửi FormData), ưu tiên dùng mảng đó. Nếu không thì dùng default.
+        const sessionId = localStorage.getItem(SESSION_KEY);
+
         const headers = options.headers || {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         };
+
+        if (sessionId && !headers.Authorization) {
+            headers.Authorization = `Bearer ${sessionId}`;
+            headers['x-session-id'] = sessionId;
+        }
 
         const config = {
             ...options,
@@ -20,12 +26,15 @@ class HttpClient {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                const errorPayload = {
+                if (response.status === 401) {
+                    localStorage.removeItem(SESSION_KEY);
+                }
+
+                throw {
                     status: response.status,
                     code: data?.error?.code || 'NETWORK_ERROR',
                     message: data?.error?.message || 'Có lỗi xảy ra từ máy chủ.'
                 };
-                throw errorPayload;
             }
 
             return data;
@@ -57,14 +66,13 @@ class HttpClient {
 
     post(endpoint, body = {}) {
         const isFormData = body instanceof FormData;
-        
+
         const options = {
             method: 'POST',
             body: isFormData ? body : JSON.stringify(body)
         };
 
         if (isFormData) {
-            // Khi gửi FormData, browser tự động sinh header Content-Type multipart/form-data kèm boundary
             options.headers = {
                 'Accept': 'application/json'
             };
@@ -74,4 +82,5 @@ class HttpClient {
     }
 }
 
+export { SESSION_KEY };
 export default new HttpClient();

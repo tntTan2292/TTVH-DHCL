@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const f13Routes = require('./src/routes/f13Routes');
 const importRoutes = require('./src/routes/importRoutes');
+const authRoutes = require('./src/routes/authRoutes');
 const { startWatcher } = require('./src/services/importWatcher');
 
 const app = express();
@@ -65,6 +66,7 @@ process.on('exit', (code) => {
 app.use(cors());
 app.use(express.json());
 
+app.use('/api/auth', authRoutes);
 app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
 
