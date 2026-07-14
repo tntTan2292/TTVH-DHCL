@@ -1,8 +1,15 @@
 import { Menu, UserCircle, Bell, ChevronDown, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 
 export default function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <header className="glass-header h-14 flex items-center justify-between px-4 md:px-6 shadow-sm bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-gray-100">
@@ -32,7 +39,7 @@ export default function Topbar({ onMenuClick }) {
                 {user?.display_name || 'Quản trị viên'}
               </p>
               <p className="text-[10px] text-gray-500 uppercase tracking-tighter font-semibold">
-                {user?.role || 'Admin'}
+                {user?.role || 'admin'}
               </p>
             </div>
             <div className="relative">
@@ -45,7 +52,7 @@ export default function Topbar({ onMenuClick }) {
           </button>
 
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
           >
             <LogOut size={14} />

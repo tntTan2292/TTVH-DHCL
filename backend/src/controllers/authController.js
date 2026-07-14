@@ -5,7 +5,7 @@ const DEMO_USERS = [
         username: 'admin',
         password: 'admin123',
         display_name: 'Quản trị viên',
-        role: 'Admin',
+        role: 'admin',
     },
 ];
 

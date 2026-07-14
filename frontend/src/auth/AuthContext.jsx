@@ -4,6 +4,8 @@ import { SESSION_KEY } from '../api/httpClient';
 
 const AuthContext = createContext(null);
 
+const normalizeRole = (role) => String(role || '').trim().toLowerCase();
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -18,7 +20,8 @@ export function AuthProvider({ children }) {
 
             try {
                 const response = await authClient.me();
-                setUser(response?.data?.user || null);
+                const restoredUser = response?.data?.user || null;
+                setUser(restoredUser ? { ...restoredUser, role: normalizeRole(restoredUser.role) } : null);
             } catch {
                 localStorage.removeItem(SESSION_KEY);
                 setUser(null);
@@ -32,7 +35,8 @@ export function AuthProvider({ children }) {
 
     const login = async (username, password) => {
         const response = await authClient.login(username, password);
-        setUser(response?.data?.user || null);
+        const authenticatedUser = response?.data?.user || null;
+        setUser(authenticatedUser ? { ...authenticatedUser, role: normalizeRole(authenticatedUser.role) } : null);
         return response;
     };
 
