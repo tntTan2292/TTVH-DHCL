@@ -55,16 +55,16 @@ Product Owner:
 
 Read in this exact order:
 
-1. `docs/01_GOVERNANCE/DOCUMENT_INDEX.md`
-2. `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md`
-3. `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md`
-4. `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
-5. `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
-6. `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
-7. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
-8. `docs/01_GOVERNANCE/PROJECT_DECISIONS.md`
-9. `PROJECT_STATUS.md`
-10. `PROJECT_PROGRESS.md`
+1. [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
+2. [docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md)
+3. [docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md)
+4. [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
+5. [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
+6. [docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md)
+7. [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
+8. [docs/01_GOVERNANCE/PROJECT_DECISIONS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_DECISIONS.md)
+9. [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
+10. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 11. Current Ticket Documents
 
 ## 5. Operating Rules
@@ -155,16 +155,16 @@ Use this prompt in a new chat:
 
 ```text
 Read these files first and continue from the current ticket without resetting project context:
-1. docs/01_GOVERNANCE/DOCUMENT_INDEX.md
-2. docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md
-3. docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md
-4. docs/01_GOVERNANCE/PROJECT_HANDOVER.md
-5. docs/01_GOVERNANCE/PROJECT_CONTEXT.md
-6. docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md
-7. docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md
-8. docs/01_GOVERNANCE/PROJECT_DECISIONS.md
-9. PROJECT_STATUS.md
-10. PROJECT_PROGRESS.md
+1. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md
+2. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md
+3. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md
+4. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md
+5. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md
+6. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md
+7. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md
+8. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_DECISIONS.md
+9. https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md
+10. https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md
 11. Current Ticket Documents
 
 You must not change SSOT, frozen architecture, runtime contracts, widget contracts, or context propagation contracts.

@@ -80,18 +80,18 @@ The following architecture layers are frozen and must not be changed casually:
 
 Supporting frozen documents include:
 
-- `docs/PROJECT_SSOT.md`
-- `PROJECT_STATUS.md`
-- `PROJECT_PROGRESS.md`
-- `docs/02_ARCHITECTURE/QIS_V2_ARCHITECTURE.md`
-- `docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md`
-- `docs/03_UX/shared/QIS_DESIGN_SYSTEM.md`
-- `docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md`
-- `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md`
-- `docs/04_TECHNICAL_PLANNING/Release/RELEASE_PLANNING.md`
-- `docs/04_TECHNICAL_PLANNING/Epic/EPIC_PLANNING.md`
-- `docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md`
-- `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md`
+- [docs/PROJECT_SSOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/PROJECT_SSOT.md)
+- [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
+- [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
+- [docs/02_ARCHITECTURE/QIS_V2_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/QIS_V2_ARCHITECTURE.md)
+- [docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md)
+- [docs/03_UX/shared/QIS_DESIGN_SYSTEM.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/03_UX/shared/QIS_DESIGN_SYSTEM.md)
+- [docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md)
+- [docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md)
+- [docs/04_TECHNICAL_PLANNING/Release/RELEASE_PLANNING.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/04_TECHNICAL_PLANNING/Release/RELEASE_PLANNING.md)
+- [docs/04_TECHNICAL_PLANNING/Epic/EPIC_PLANNING.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/04_TECHNICAL_PLANNING/Epic/EPIC_PLANNING.md)
+- [docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md)
+- [docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md)
 - Center-specific IA, Widget, Screen, and UX documents for BCVH, Route, Shipment, Evidence, and Action
 - Review documents for completed centers and freeze packages
 
@@ -231,7 +231,7 @@ Operational model:
 
 ## 9. Current Project Snapshot
 
-Current snapshot is based on `PROJECT_HANDOVER.md` and `PROJECT_PROGRESS.md`.
+Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md) and [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md).
 
 | Field | Value |
 | --- | --- |
@@ -257,10 +257,10 @@ Current snapshot is based on `PROJECT_HANDOVER.md` and `PROJECT_PROGRESS.md`.
 
 A new ChatGPT / Codex session must read the following files before answering:
 
-1. `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
-2. `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
-3. `PROJECT_STATUS.md`
-4. `PROJECT_PROGRESS.md`
+1. [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
+2. [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
+3. [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
+4. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 
 After that, continue using the frozen architecture and the current project snapshot.
 

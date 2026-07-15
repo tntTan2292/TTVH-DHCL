@@ -254,11 +254,11 @@ Product Owner must:
 
 When moving to a new ChatGPT session, it must read:
 
-1. `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
-2. `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
-3. `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
-4. `PROJECT_STATUS.md`
-5. `PROJECT_PROGRESS.md`
+1. [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
+2. [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
+3. [docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md)
+4. [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
+5. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 
 The new session must not rely on chat memory as the source of truth.
 
@@ -299,13 +299,13 @@ A Development Ticket is only considered `COMPLETED` when all of the following ar
 
 Before committing, the following documents must be checked and updated if needed:
 
-- `README_AI.md`
-- `docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
-- `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
-- `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
-- `PROJECT_PROGRESS.md`
-- `PROJECT_STATUS.md` if the status changes
-- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` if documents are added or moved
+- [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
+- [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
+- [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
+- [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
+- [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
+- [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md) if the status changes
+- [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md) if documents are added or moved
 - the ticket's review document, if the ticket has a review document
 
 ### 13.6 Current Project State
@@ -352,6 +352,6 @@ They may reference it succinctly with:
 
 All future QIS V2 prompts should follow the canonical prompt standard defined in:
 
-- `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
+- [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
 
 The prompt standard is the default format for future ChatGPT and Codex tickets.

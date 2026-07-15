@@ -20,7 +20,7 @@ It is designed so any AI can onboard quickly, without guessing workflow or readi
 
 Every AI must:
 
-1. Read `docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
+1. Read [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
 2. Then follow the Reading Order defined there
 
 ## 3. Operating Rules
@@ -51,19 +51,23 @@ After onboarding, AI must report:
 | Current Phase | `Development Ready` |
 | Current Ticket | `TICKET-0051 Shipment Performance Center Shell` |
 | Development Status | `Ready for Development` |
+| Documentation Status | `Governance finalized, onboarding chain normalized` |
+| AI Onboarding Status | `Ready` |
+| Last Validation | `AI onboarding chain reference update` |
 
 ## 6. Quick Links
 
-- `docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
-- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md`
-- `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md`
-- `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md`
-- `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
-- `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
-- `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
-- `docs/01_GOVERNANCE/PROJECT_DECISIONS.md`
-- `PROJECT_STATUS.md`
-- `PROJECT_PROGRESS.md`
+- [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
+- [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
+- [docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md)
+- [docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md)
+- [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
+- [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
+- [docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md)
+- [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
+- [docs/01_GOVERNANCE/PROJECT_DECISIONS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_DECISIONS.md)
+- [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
+- [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 
 ## 7. Golden Rule
 
@@ -73,7 +77,7 @@ Every AI must start from:
 
 ↓
 
-`docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
+[docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
 
 ↓
 
