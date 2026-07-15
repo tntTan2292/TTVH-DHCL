@@ -183,3 +183,47 @@ Principles:
 - [ ] Commit and push completed
 - [ ] New session can read the document without chat history
 
+## 15. Document Authority Resolution
+
+### 15.1 Authority Priority
+
+```text
+L1
+↓
+L2
+↓
+L3
+↓
+L4
+```
+
+### 15.2 Conflict Resolution
+
+If two documents conflict:
+
+1. Prefer the document with the higher Authority Level.
+2. If Authority Level is the same, prefer the document with the stronger lifecycle state:
+   - Frozen
+   - Approved
+   - Review
+   - Draft
+
+### 15.3 Escalation Rule
+
+If documents have:
+
+- the same Authority Level, and
+- the same lifecycle state, and
+- different content
+
+then do not decide locally.
+
+Mark the conflict as:
+
+`Product Owner Decision Required`
+
+### 15.4 AI Rule
+
+- ChatGPT must not select a lower-authority document when a higher-authority document exists.
+- Codex must not override the authority hierarchy.
+- Both AI roles must escalate unresolved conflicts instead of guessing.
