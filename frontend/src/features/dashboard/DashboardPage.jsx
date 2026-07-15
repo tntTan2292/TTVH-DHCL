@@ -18,10 +18,25 @@ const BCVH_OPTIONS = [
   { value: 'BC_HUE03', label: 'BCVH Phú Lộc' },
 ];
 
+const EXECUTIVE_SUMMARY = {
+  title: 'Executive Summary',
+  headline: 'Tổng quan điều hành của QIS V2.',
+  items: [
+    { label: 'Scope', value: 'Dashboard Shell' },
+    { label: 'Status', value: 'Ready for widgets' },
+  ],
+};
+
+const RECOMMENDATION = {
+  recommendation: 'Ưu tiên theo dõi các BCVH nằm trong nhóm cần chú ý.',
+  rationale: 'Recommendation chỉ là lớp hiển thị tối thiểu, không suy luận business mới.',
+  priority: 'High',
+};
+
 const PLACEHOLDER_ROWS = [
-  { id: 'ph-1', name: 'Executive Summary', status: 'Placeholder', score: 'N/A' },
-  { id: 'ph-2', name: 'Daily Brief', status: 'Placeholder', score: 'N/A' },
-  { id: 'ph-3', name: 'Recommendation', status: 'Placeholder', score: 'N/A' },
+  { id: 'nav-1', name: 'Executive Summary', status: 'Ready', score: 'Rendered' },
+  { id: 'nav-2', name: 'Recommendation', status: 'Ready', score: 'Rendered' },
+  { id: 'nav-3', name: 'Daily Brief', status: 'Ready', score: 'Rendered' },
 ];
 
 export default function DashboardPage() {
@@ -47,14 +62,14 @@ export default function DashboardPage() {
 
   const placeholderColumns = [
     { key: 'name', label: 'Widget', render: (row) => <strong>{row.name}</strong> },
-    { key: 'status', label: 'Trạng thái', render: (row) => <StatusBadge label={row.status} tone="warning" /> },
+    { key: 'status', label: 'Trạng thái', render: (row) => <StatusBadge label={row.status} tone="success" /> },
     { key: 'score', label: 'Giá trị', cellClassName: 'text-right', render: (row) => row.score },
   ];
 
   return (
     <PageContainer
       title="Executive Dashboard"
-      subtitle="Dashboard Shell của QIS V2. Business logic, API và KPI calculation sẽ được gắn ở các ticket sau."
+      subtitle="Dashboard Shell của QIS V2. Phần logic nghiệp vụ sẽ tiếp tục được bổ sung ở ticket sau."
       action={
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-2 shadow-sm">
           <button
@@ -86,10 +101,7 @@ export default function DashboardPage() {
           }
         />
 
-        <SectionHeader
-          title="Executive Header"
-          subtitle="Khối tổng quan đầu tiên, dùng placeholder để chuẩn bị gắn widget theo IA Freeze."
-        />
+        <SectionHeader title="Executive Header" subtitle="Khối đầu tiên của Dashboard, dùng widget placeholder có cấu trúc rõ ràng." />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <KPICard label="KPI" value="--" delta="Placeholder" tone="primary" />
           <KPICard label="Đạt" value="--" delta="Placeholder" tone="success" />
@@ -98,51 +110,42 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-5 xl:grid-cols-2">
-          <ExecutiveSummaryCard
-            title="Executive Summary"
-            headline="Placeholder widget dành cho Executive Brief và Summary."
-            items={[
-              { label: 'Current State', value: 'Placeholder' },
-              { label: 'Next Step', value: 'Pending ticket' },
-            ]}
-          />
-          <RecommendationCard
-            title="Recommendation"
-            recommendation="Placeholder recommendation card cho Dashboard Shell."
-            rationale="Business logic và recommendation engine sẽ được gắn ở ticket sau."
-            priority="High"
-          />
+          <ExecutiveSummaryCard {...EXECUTIVE_SUMMARY} />
+          <RecommendationCard title="Recommendation" {...RECOMMENDATION} />
         </div>
 
-        <SectionHeader
-          title="Widget Placeholder"
-          subtitle="Các khối này xác nhận shell đã sẵn sàng cho widget thực sự."
-        />
+        <SectionHeader title="Daily Brief & Message" subtitle="Hai khu vực này hiển thị tối thiểu để giữ đúng shell." />
         <div className="grid gap-5 xl:grid-cols-2">
-          <CardContainer title="Daily Brief Placeholder">
+          <CardContainer title="Daily Brief">
             <div className="space-y-3">
-              <p className="text-sm text-[var(--color-text-muted)]">Bản tin điều hành nhanh sẽ được gắn sau.</p>
-              <p className="text-sm text-[var(--color-text-main)] font-medium">No business logic in this ticket.</p>
+              <p className="text-sm text-[var(--color-text-muted)]">Bản tin điều hành sẽ được thay bằng dữ liệu runtime ở ticket sau.</p>
+              <p className="text-sm font-medium text-[var(--color-text-main)]">Current ticket only renders the shell and minimal widget structure.</p>
             </div>
           </CardContainer>
-          <CardContainer title="Recommendation / Message Placeholder">
+          <CardContainer title="Message">
             <div className="space-y-3">
-              <p className="text-sm text-[var(--color-text-muted)]">Message generation và recommendation chỉ là placeholder tại shell level.</p>
-              <p className="text-sm text-[var(--color-text-main)] font-medium">Reusable shell only.</p>
+              <p className="text-sm text-[var(--color-text-muted)]">Khu vực message hiển thị placeholder để chuẩn bị gắn message runtime.</p>
+              <p className="text-sm font-medium text-[var(--color-text-main)]">No extra business logic is introduced here.</p>
             </div>
           </CardContainer>
         </div>
 
-        <SectionHeader
-          title="Navigation Integration"
-          subtitle="Đường đi tới ranking và các center đã sẵn sàng."
-        />
+        <SectionHeader title="Navigation Integration Table" subtitle="Bảng tích hợp điều hướng xác nhận shell đã sẵn sàng." />
         <div className="overflow-hidden rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
-          <StandardTable
-            columns={placeholderColumns}
-            rows={PLACEHOLDER_ROWS}
-            emptyMessage="Không có placeholder"
-          />
+          <StandardTable columns={placeholderColumns} rows={PLACEHOLDER_ROWS} emptyMessage="Không có placeholder" />
+        </div>
+
+        <SectionHeader title="Widget Placeholder Summary" subtitle="Các vị trí widget còn lại đang ở mức nền, không hardcode business." />
+        <div className="grid gap-5 xl:grid-cols-3">
+          <CardContainer title="Widget Placeholder 1">
+            <p className="text-sm text-[var(--color-text-muted)]">Executive first view.</p>
+          </CardContainer>
+          <CardContainer title="Widget Placeholder 2">
+            <p className="text-sm text-[var(--color-text-muted)]">Recommendation surface.</p>
+          </CardContainer>
+          <CardContainer title="Widget Placeholder 3">
+            <p className="text-sm text-[var(--color-text-muted)]">Message / integration surface.</p>
+          </CardContainer>
         </div>
       </div>
     </PageContainer>
