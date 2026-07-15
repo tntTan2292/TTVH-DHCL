@@ -207,3 +207,36 @@ For governance or documentation work, the report may also include:
 Every future prompt must end with the exact sentence:
 
 `Follow Ticket Completion Protocol defined in docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
+
+## 10. Mandatory Documentation Classification
+
+After completing a Development Ticket, Codex must classify every document affected by the ticket and ensure it is updated according to the approved documentation architecture:
+
+- `docs/01_GOVERNANCE/`
+- `docs/02_ARCHITECTURE/`
+- `docs/03_UX/`
+- `docs/04_TECHNICAL_PLANNING/`
+- `docs/05_DEVELOPMENT/`
+- `docs/06_REVIEWS/`
+- `docs/07_REFERENCE/`
+- `docs/08_ARCHIVE/`
+- `docs/09_REPORTS/`
+
+Codex must follow `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` and `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` when placing documents.
+
+Rules:
+
+- do not create Markdown files outside the approved documentation architecture
+- do not create new folders unless the Product Owner has approved them
+- if a document moves, update all affected references
+- if Reading Chain is affected, update the reading chain references as well
+- if DOCUMENT_INDEX needs updates, update it
+- after documentation synchronization is complete, perform Validation, Commit, and Push according to Ticket Completion Protocol
+
+Future prompts generated from this standard must always include Documentation Requirements:
+
+- Documentation Synchronization
+- Mandatory Documentation Classification
+- Validation
+- Commit
+- Push
