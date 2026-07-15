@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight, BarChart3, ChevronRight, ShieldAlert, Target, TrendingUp, Users, Search, Sparkles } from 'lucide-react';
 import {
   PageContainer,
@@ -8,8 +8,11 @@ import {
   KPICard,
   StatusBadge,
   EmptyState,
+  LoadingState,
+  ErrorState,
 } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
+import f13DashboardClient from '../../api/F13DashboardClient';
 
 const BCVH_OPTIONS = [
   { value: 'all', label: 'Tất cả BCVH' },
@@ -54,8 +57,19 @@ function ShellCard({ title, description, icon, actionLabel, children }) {
   );
 }
 
+function toNumber(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export default function BcvhRankingPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [status, setStatus] = useState('loading');
+  const [error, setError] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState({});
+  const [selectedBcvh, setSelectedBcvh] = useState('');
 
   const fromDate = searchParams.get('from_date') || '2026-06-23';
   const toDate = searchParams.get('to_date') || '2026-06-23';
@@ -73,22 +87,136 @@ export default function BcvhRankingPage() {
     setSearchParams(params);
   };
 
+  useEffect(() => {
+    let mounted = true;
+    const fetchRanking = async () => {
+      try {
+        setStatus('loading');
+        setError(null);
+        const result = await f13DashboardClient.getBcvhRankingForUi(fromDate, toDate, 1000, 'rank', 'asc');
+        if (!mounted) return;
+        setRows(Array.isArray(result.data) ? result.data : []);
+        setMeta(result.meta || {});
+        const firstSelectable = (Array.isArray(result.data) ? result.data : []).find((item) => item?.ma_bcvh);
+        setSelectedBcvh((prev) => prev || firstSelectable?.ma_bcvh || '');
+        setStatus('success');
+      } catch (e) {
+        if (!mounted) return;
+        setError({ message: e.message || 'Không thể tải dữ liệu BCVH' });
+        setStatus('error');
+      }
+    };
+
+    if (fromDate && toDate) fetchRanking();
+    return () => {
+      mounted = false;
+    };
+  }, [fromDate, toDate]);
+
   const isSingleDay = fromDate && toDate && fromDate === toDate;
 
+  const filteredRows = useMemo(() => {
+    let list = [...rows];
+    if (bcvh !== 'all') {
+      list = list.filter((item) => item.ma_bcvh === bcvh);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((item) => (item.name || item.ten_bcvh || '').toLowerCase().includes(q));
+    }
+    return list;
+  }, [rows, bcvh, search]);
+
+  const visibleRows = useMemo(() => filteredRows.slice(0, 3), [filteredRows]);
+  const totalRow = meta?.total_row || null;
+
   const summaryStats = useMemo(() => ([
-    { label: 'BCVH theo dõi', value: '06', delta: 'Shell value', tone: 'primary' },
-    { label: 'Ưu tiên cao', value: '03', delta: 'Shell value', tone: 'warning' },
-    { label: 'KPI đang xem', value: kpi === 'all' ? 'Tất cả' : KPI_OPTIONS.find((item) => item.value === kpi)?.label || 'Tất cả', tone: 'success' },
-    { label: 'BCVH bộ lọc', value: bcvh === 'all' ? 'Tất cả' : BCVH_OPTIONS.find((item) => item.value === bcvh)?.label || 'Tất cả', tone: 'danger' },
-  ]), [bcvh, kpi]);
+    {
+      label: 'BCVH theo dõi',
+      value: toNumber(meta?.total_records || filteredRows.length || rows.length || 0).toLocaleString('vi-VN'),
+      delta: 'Runtime value',
+      tone: 'primary',
+    },
+    {
+      label: 'Ưu tiên cao',
+      value: toNumber(meta?.high_priority_count || visibleRows.length).toLocaleString('vi-VN'),
+      delta: 'Runtime value',
+      tone: 'warning',
+    },
+    {
+      label: 'KPI đang xem',
+      value: kpi === 'all' ? 'Tất cả' : KPI_OPTIONS.find((item) => item.value === kpi)?.label || 'Tất cả',
+      delta: 'URL state',
+      tone: 'success',
+    },
+    {
+      label: 'BCVH bộ lọc',
+      value: bcvh === 'all' ? 'Tất cả' : BCVH_OPTIONS.find((item) => item.value === bcvh)?.label || 'Tất cả',
+      delta: 'URL state',
+      tone: 'danger',
+    },
+  ]), [bcvh, filteredRows.length, kpi, meta?.high_priority_count, meta?.total_records, rows.length, visibleRows.length]);
+
+  const selectedRow = useMemo(() => {
+    if (bcvh !== 'all') {
+      return filteredRows.find((item) => item.ma_bcvh === bcvh) || filteredRows[0] || null;
+    }
+    return filteredRows.find((item) => item.ma_bcvh === selectedBcvh) || filteredRows[0] || null;
+  }, [bcvh, filteredRows, selectedBcvh]);
+
+  const handleDrillDown = () => {
+    const target = selectedRow || filteredRows[0];
+    if (!target) return;
+    const params = new URLSearchParams();
+    params.set('from_date', fromDate);
+    params.set('to_date', toDate);
+    params.set('interval', isSingleDay ? 'daily' : 'range');
+    params.set('bcvh_id', target.ma_bcvh || target.id || '');
+    params.set('bcvh_name', target.name || target.ten_bcvh || '');
+    navigate(`/f13/ranking/route?${params.toString()}`);
+  };
+
+  if (status === 'loading') {
+    return (
+      <PageContainer
+        title="BCVH Performance Center"
+        subtitle="Đang tải runtime-backed content cho BCVH."
+      >
+        <div className="space-y-5">
+          <LoadingState label="Đang tải dữ liệu BCVH runtime..." />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <PageContainer
+        title="BCVH Performance Center"
+        subtitle="Runtime-backed content chưa sẵn sàng."
+      >
+        <ErrorState
+          description={error?.message}
+          action={
+            <button
+              onClick={() => setSearchParams(searchParams)}
+              className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Thử lại
+            </button>
+          }
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer
       title="BCVH Performance Center"
-      subtitle="Shell của BCVH Performance Center. Đây là khung triển khai theo kiến trúc đã Freeze, chưa gắn business logic."
+      subtitle="Runtime-backed BCVH view theo kiến trúc đã Freeze."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label="BCVH Shell" tone="info" />
+          <StatusBadge label="BCVH Runtime" tone="info" />
           <StatusBadge label={isSingleDay ? 'Một ngày' : 'Lũy kế'} tone="success" />
           <StatusBadge label="Shared Layout Ready" tone="neutral" />
         </div>
@@ -109,7 +237,7 @@ export default function BcvhRankingPage() {
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge label={BCVH_OPTIONS.find((item) => item.value === bcvh)?.label || 'Tất cả BCVH'} tone="info" />
-              <StatusBadge label={search ? `Search: ${search}` : 'Search idle'} tone="neutral" />
+              <StatusBadge label={selectedRow ? (selectedRow.name || selectedRow.ten_bcvh || 'Selected BCVH') : 'No selection'} tone="neutral" />
             </div>
           }
         />
@@ -128,7 +256,7 @@ export default function BcvhRankingPage() {
 
         <SectionHeader
           title="Executive Brief Area"
-          subtitle="Khối dẫn nhập điều hành, giữ bố cục chuẩn cho lãnh đạo trước khi xuống các phân tích chi tiết."
+          subtitle="Runtime-backed entry point cho lãnh đạo, giữ đúng thứ tự Screen Architecture."
         />
         <div className="grid gap-5 xl:grid-cols-2">
           <ShellCard
@@ -148,30 +276,36 @@ export default function BcvhRankingPage() {
               </div>
               <div className="rounded-xl bg-[var(--color-surface-50)] p-4">
                 <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Context</p>
-                <p className="mt-1 text-lg font-bold text-[var(--color-text-main)]">BCVH Shell</p>
+                <p className="mt-1 text-lg font-bold text-[var(--color-text-main)]">Runtime</p>
               </div>
             </div>
           </ShellCard>
           <ShellCard
             title="Health Overview Widget"
-            description="Khối trạng thái sức khỏe vận hành cấp BCVH, chỉ giữ cấu trúc hiển thị."
+            description="Khối trạng thái sức khỏe vận hành cấp BCVH, dùng runtime data từ ranking API."
             icon={<BarChart3 />}
             actionLabel="Insight"
           >
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-[var(--color-surface-200)] bg-white p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[var(--color-text-main)]">Ổn định vận hành</span>
+                  <span className="text-sm font-medium text-[var(--color-text-main)]">Tổng BG</span>
                   <Sparkles className="h-4 w-4 text-[var(--color-primary-600)]" />
                 </div>
-                <p className="mt-2 text-sm text-[var(--color-text-muted)]">Shell-safe value</p>
+                <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                  {Number(totalRow?.sl_bg_ptc || totalRow?.total_bg || 0).toLocaleString('vi-VN')}
+                </p>
               </div>
               <div className="rounded-xl border border-[var(--color-surface-200)] bg-white p-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[var(--color-text-main)]">Mức chú ý</span>
-                  <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">Medium</span>
+                  <span className="text-sm font-medium text-[var(--color-text-main)]">Đạt KPI</span>
+                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                    {Number(totalRow?.kpi_2026 || totalRow?.passed_rate || 0).toFixed(1)}%
+                  </span>
                 </div>
-                <p className="mt-2 text-sm text-[var(--color-text-muted)]">Demo runtime value</p>
+                <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                  {Number(totalRow?.dat_kpi_2026 || totalRow?.passed || 0).toLocaleString('vi-VN')}
+                </p>
               </div>
             </div>
           </ShellCard>
@@ -179,36 +313,36 @@ export default function BcvhRankingPage() {
 
         <SectionHeader
           title="Priority Analysis Area"
-          subtitle="Vùng định vị BCVH cần theo dõi trước, hiện là khung shell để giữ đúng kiến trúc."
+          subtitle="Vùng định vị BCVH cần theo dõi trước, dùng runtime rows theo thứ tự xếp hạng."
         />
         <div className="grid gap-5 xl:grid-cols-3">
           <ShellCard
             title="Priority Analysis Widget"
-            description="Sắp xếp mức ưu tiên theo tình trạng điều hành."
+            description="Sắp xếp mức ưu tiên theo dữ liệu runtime."
             icon={<TrendingUp />}
             actionLabel="Decision"
           >
             <div className="flex flex-wrap gap-2">
-              <StatusBadge label="High Priority" tone="warning" />
-              <StatusBadge label="Shell-safe" tone="neutral" />
+              <StatusBadge label={`Visible: ${visibleRows.length}`} tone="warning" />
+              <StatusBadge label={`Loaded: ${rows.length}`} tone="neutral" />
               <StatusBadge label="No KPI calc" tone="info" />
             </div>
           </ShellCard>
           <ShellCard
             title="Top Priority BCVH"
-            description="Danh sách BCVH cần chú ý trước, chưa có dữ liệu nghiệp vụ."
+            description="Top BCVH runtime data lấy trực tiếp từ ranking API."
             icon={<Search />}
             actionLabel="Insight"
           >
             <div className="space-y-2 text-sm text-[var(--color-text-muted)]">
-              <p>1. BCVH TP Huế</p>
-              <p>2. BCVH Hương Thủy</p>
-              <p>3. BCVH Phú Lộc</p>
+              {visibleRows.length > 0 ? visibleRows.map((item, index) => (
+                <p key={item.ma_bcvh || item.id}>{index + 1}. {item.name || item.ten_bcvh} - {Number(item.passed_rate || item.kpi_2026 || 0).toFixed(1)}%</p>
+              )) : <p>Không có dữ liệu runtime.</p>}
             </div>
           </ShellCard>
           <ShellCard
             title="Severity Snapshot"
-            description="Snapshot mức độ nghiêm trọng để điều hành nhanh."
+            description="Snapshot runtime về mức độ điều hành."
             icon={<ShieldAlert />}
             actionLabel="Decision"
           >
@@ -223,31 +357,31 @@ export default function BcvhRankingPage() {
 
         <SectionHeader
           title="Root Cause Area"
-          subtitle="Khối truy vết nguyên nhân ở cấp BCVH, chỉ hiển thị khung tương tác theo IA đã Freeze."
+          subtitle="Khối truy vết nguyên nhân ở cấp BCVH, chỉ hiển thị runtime summary."
         />
         <div className="grid gap-5 xl:grid-cols-2">
           <ShellCard
             title="Root Cause Summary Widget"
-            description="Placeholder cho phân tích nguyên nhân gốc, không thực hiện audit lan hay logic suy diễn."
+            description="Tóm tắt nguyên nhân gốc theo runtime summary."
             icon={<ShieldAlert />}
             actionLabel="Evidence"
           >
             <div className="space-y-2 text-sm text-[var(--color-text-muted)]">
-              <p>• Root cause group placeholder</p>
-              <p>• Evidence-linked card</p>
-              <p>• No backend dependency</p>
+              <p>• Runtime rows loaded: {rows.length}</p>
+              <p>• Selected BCVH: {selectedRow ? (selectedRow.name || selectedRow.ten_bcvh) : 'N/A'}</p>
+              <p>• Missing evidence: None from current contract</p>
             </div>
           </ShellCard>
           <ShellCard
             title="Trend & Pattern"
-            description="Khối xu hướng và mẫu lặp theo BCVH, giữ đúng vị trí nhưng chưa gắn dữ liệu."
+            description="Khối xu hướng và mẫu lặp theo BCVH, giữ đúng vị trí và dùng runtime data."
             icon={<TrendingUp />}
             actionLabel="Insight"
           >
             <div className="rounded-xl bg-[var(--color-surface-50)] p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-[var(--color-text-main)]">7-day pattern</span>
-                <span className="text-[var(--color-text-muted)]">Shell</span>
+                <span className="font-medium text-[var(--color-text-main)]">Runtime trend window</span>
+                <span className="text-[var(--color-text-muted)]">{fromDate} → {toDate}</span>
               </div>
               <div className="mt-3 h-2 rounded-full bg-[var(--color-surface-200)]">
                 <div className="h-2 w-2/3 rounded-full bg-[var(--color-primary-500)]" />
@@ -258,7 +392,7 @@ export default function BcvhRankingPage() {
 
         <SectionHeader
           title="Recommendation Area"
-          subtitle="Vùng khuyến nghị điều hành, chỉ dựng khung để ticket sau cắm runtime-backed content."
+          subtitle="Vùng khuyến nghị điều hành, dùng runtime-backed summary từ ranking data."
         />
         <div className="grid gap-5 xl:grid-cols-2">
           <ShellCard
@@ -270,11 +404,17 @@ export default function BcvhRankingPage() {
             <div className="space-y-3">
               <div className="rounded-xl border border-[var(--color-surface-200)] bg-[var(--color-surface-50)] p-4">
                 <p className="text-sm font-semibold text-[var(--color-text-main)]">Ưu tiên xử lý</p>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Shell-safe recommendation text</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                  {selectedRow ? (selectedRow.name || selectedRow.ten_bcvh) : 'Runtime recommendation placeholder'}
+                </p>
               </div>
               <div className="rounded-xl border border-[var(--color-surface-200)] bg-[var(--color-surface-50)] p-4">
                 <p className="text-sm font-semibold text-[var(--color-text-main)]">Lý do</p>
-                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Demo rationale only</p>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">
+                  {selectedRow
+                    ? `Dựa trên runtime score ${Number(selectedRow.passed_rate || selectedRow.kpi_2026 || 0).toFixed(1)}% và filter hiện tại.`
+                    : 'Runtime rationale unavailable'}
+                </p>
               </div>
             </div>
           </ShellCard>
@@ -285,10 +425,16 @@ export default function BcvhRankingPage() {
             actionLabel="Navigation"
           >
             <div className="flex flex-wrap items-center gap-2">
-              <button className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white">
+              <button
+                onClick={handleDrillDown}
+                className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white"
+                disabled={!selectedRow}
+              >
                 Mở Route Performance Center
               </button>
-              <span className="text-xs text-[var(--color-text-muted)]">Trigger shell only</span>
+              <span className="text-xs text-[var(--color-text-muted)]">
+                Trigger contract: from_date, to_date, interval, bcvh_id, bcvh_name
+              </span>
             </div>
           </ShellCard>
         </div>
@@ -307,7 +453,7 @@ export default function BcvhRankingPage() {
           <CardContainer title="Navigation Map">
             <div className="space-y-3 text-sm text-[var(--color-text-muted)]">
               <p>Dashboard → BCVH Performance Center → Route Performance Center</p>
-              <p>Context hiện tại chỉ là shell, chưa truyền dữ liệu nghiệp vụ.</p>
+              <p>Context hiện tại dùng runtime data và URL state.</p>
             </div>
           </CardContainer>
           <CardContainer title="Shared Layout Integration">
