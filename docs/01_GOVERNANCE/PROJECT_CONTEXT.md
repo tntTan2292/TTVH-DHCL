@@ -244,7 +244,7 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Dashboard | `PASS` |
 | BCVH | `PASS` |
 | Route | `PASS` |
-| Shipment | `Shell implemented` |
+| Shipment | `Shell implemented, executive widgets PASS` |
 | Evidence | `Not started` |
 | Action | `Not started` |
 | AI | `Not started` |
