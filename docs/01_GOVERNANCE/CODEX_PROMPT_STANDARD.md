@@ -1,242 +1,229 @@
-# CODEX PROMPT STANDARD
+# Canonical Development Ticket Lifecycle Template
 
 ## Table of Contents
 
 - [1. Purpose](#1-purpose)
-- [2. Standard Prompt Structure](#2-standard-prompt-structure)
-- [3. Prompt Types](#3-prompt-types)
-- [4. Prompt Writing Rules](#4-prompt-writing-rules)
-- [5. Mandatory Sections](#5-mandatory-sections)
-- [6. Ticket Naming Convention](#6-ticket-naming-convention)
-- [7. Standard Report Format](#7-standard-report-format)
-- [8. Prompt Anti-patterns](#8-prompt-anti-patterns)
-- [9. Required Closing Statement](#9-required-closing-statement)
+- [2. Canonical Template](#2-canonical-template)
+- [3. Canonical Template Rules](#3-canonical-template-rules)
+- [4. Documentation Requirements](#4-documentation-requirements)
+- [5. Output Standard](#5-output-standard)
 
 ## 1. Purpose
 
-CODEX Prompt Standard defines the canonical prompt structure for QIS V2 so that every new ticket request remains consistent, scoped, and execution-ready.
+This document is the single canonical template that ChatGPT must use to generate a Development Ticket prompt for Codex after AI onboarding PASS.
 
-It is designed to:
+It standardizes:
 
-- reduce prompt ambiguity
-- preserve continuity across chats
-- keep scope explicit
-- prevent drift from frozen documents and SSOT
+- ticket lifecycle
+- prompt structure
+- documentation synchronization expectations
+- validation, commit, and push requirements
 
-## 2. Standard Prompt Structure
+## 2. Canonical Template
 
-Every prompt should include, in order:
+```text
+PROJECT
 
-1. Project
-2. Phase
-3. Ticket
-4. Objective
-5. Required Reading
-6. Scope
-7. Constraints
-8. Output
-9. Validation
-10. Report Format
+TTVH QUALITY INTELLIGENCE SYSTEM (QIS V2)
 
-Optional additions:
+PHASE
 
-- business context
-- approval status
-- current runtime state
-- open issues
+[Current Phase]
 
-## 3. Prompt Types
+TICKET
 
-### 3.1 Development Ticket
+[Current Ticket]
 
-Used for implementation work.
+==========================================================
 
-Must include:
+CURRENT PROJECT STATE
 
-- objective
-- scope
-- acceptance criteria
-- runtime acceptance
-- reporting format
+Current Phase:
+[Current Phase]
 
-### 3.2 Planning Ticket
+Current Ticket:
+[Current Ticket]
 
-Used for architecture, UX, technical planning, or governance planning.
+Development Status:
+[Development Status]
 
-Must include:
+Documentation Status:
+[Documentation Status]
 
-- design scope
-- files to create
-- files not to change
-- approval gate
-- report format
+==========================================================
 
-### 3.3 Review Ticket
+REQUIRED READING
 
-Used for validation and review.
+- [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
+- [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
+- [docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md)
+- [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
+- [docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md)
+- [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
+- [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
+- [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 
-Must include:
+==========================================================
 
-- review target
-- documents to compare
-- verdict options
-- issues to report
+CURRENT CONTEXT
 
-### 3.4 Documentation Ticket
+[Project context relevant to the ticket]
 
-Used for documentation creation or synchronization.
+==========================================================
 
-Must include:
+OBJECTIVE
 
-- document target
-- required structure
-- scope restrictions
-- update constraints
+[Ticket objective]
 
-### 3.5 Governance Ticket
+==========================================================
 
-Used for governance changes, onboarding rules, or project control updates.
+SCOPE
 
-Must include:
+[In-scope work only]
 
-- governance objective
-- affected governance files
-- non-goals
-- approval requirements
+==========================================================
 
-### 3.6 Cleanup Ticket
+OUT OF SCOPE
 
-Used for documentation cleanup, migration, archive, or refactoring.
+[Explicit exclusions]
 
-Must include:
+==========================================================
 
-- file classification
-- allowed operations
-- validation requirements
-- rollback assumptions
+IMPLEMENTATION RULES
 
-## 4. Prompt Writing Rules
+[Rules for Codex execution]
 
-- Do not repeat frozen SSOT content unless the prompt specifically requires it.
-- Do not restate governance rules that already exist in canonical governance docs.
-- Do not restate Ticket Completion Protocol inside every ticket prompt.
-- Do not duplicate Reading Order when the prompt can reference it.
-- Keep prompt instructions direct, scoped, and testable.
-- Keep business changes separate from implementation instructions.
+==========================================================
 
-## 5. Mandatory Sections
+VALIDATION
 
-### 5.1 Development Ticket
+[Validation criteria]
 
-- Project
-- Phase
-- Ticket
-- Objective
-- Scope
-- Input documents
-- Acceptance criteria
-- Runtime acceptance
-- Restrictions
-- Output format
+==========================================================
 
-### 5.2 Planning Ticket
+DOCUMENTATION SYNCHRONIZATION
 
-- Project
-- Phase
-- Ticket
-- Objective
-- Inputs
-- Required structure
-- Restrictions
-- Output format
+After completing the ticket, Codex must:
 
-### 5.3 Review Ticket
+- identify all documents affected by the ticket
+- update documents according to the approved Documentation Architecture
+- update PROJECT_PROGRESS if ticket progress or current phase changes
+- update PROJECT_STATUS if project status changes
+- update PROJECT_HANDOVER if current ticket or project snapshot changes
+- update PROJECT_CONTEXT if current context changes
+- update the correct document layers according to DOCUMENT_INDEX and DOCUMENT_GOVERNANCE:
+  - 01_GOVERNANCE
+  - 02_ARCHITECTURE
+  - 03_UX
+  - 04_TECHNICAL_PLANNING
+  - 05_DEVELOPMENT
+  - 06_REVIEWS
+  - 07_REFERENCE
+  - 08_ARCHIVE
+  - 09_REPORTS
 
-- Project
-- Phase
-- Review target
-- Inputs
-- Review checklist
-- Verdict
-- Output format
+==========================================================
 
-## 6. Ticket Naming Convention
+SELF VALIDATION
 
-Use the approved project naming patterns:
+[Self-check required before commit]
 
-- `TICKET-xxxx` for development tickets
-- `TICKET-DOC-xxx` for documentation tickets
-- `TICKET-GOV-xxx` for governance tickets
+==========================================================
 
-The ticket name must match the current phase and purpose of the work.
+COMMIT
 
-## 7. Standard Report Format
+[Commit instructions]
 
-Default execution reports should include:
+==========================================================
+
+PUSH
+
+[Push instructions]
+
+==========================================================
+
+REPORT
+
+Files changed
+
+Business impact
+
+Development summary
+
+Validation result
+
+Documentation updated
+
+Current Project State updated
+
+Commit hash
+
+GitHub Commit URL
+
+GitHub Blob URL
+
+==========================================================
+
+NEXT PROJECT STATE
+
+If Ticket PASS
+
+↓
+
+[Next Ticket]
+
+If Ticket FAIL
+
+↓
+
+Stop.
+```
+
+## 3. Canonical Template Rules
+
+- ChatGPT must copy this canonical template for every Development Ticket prompt after AI onboarding PASS.
+- Only the following placeholders may change:
+  - Current Phase
+  - Current Ticket
+  - Development Status
+  - Documentation Status
+  - Project context relevant to the ticket
+  - Ticket objective
+  - In-scope work only
+  - Explicit exclusions
+  - Rules for Codex execution
+  - Validation criteria
+  - Self-check required before commit
+  - Commit instructions
+  - Push instructions
+  - Next Ticket
+- ChatGPT must not add new sections.
+- ChatGPT must not remove sections.
+- ChatGPT must not rename sections.
+- ChatGPT must not reorder sections.
+- ChatGPT must not invent a different prompt structure.
+
+## 4. Documentation Requirements
+
+Every prompt generated from this canonical template must preserve documentation synchronization requirements:
+
+- identify all documents affected by the ticket
+- update affected documents according to `DOCUMENT_INDEX.md` and `DOCUMENT_GOVERNANCE.md`
+- update project control files when the ticket changes current state
+- validate the updated documentation set before commit
+- commit and push after validation passes
+
+## 5. Output Standard
+
+Every Codex execution report generated from this template must include:
 
 - Files changed
 - Business impact
-- Execution summary
+- Development summary
 - Validation result
-- Risk
+- Documentation updated
+- Current Project State updated
 - Commit hash
 - GitHub Commit URL
 - GitHub Blob URL
 
-For governance or documentation work, the report may also include:
-
-- governance summary
-- file classification
-- link validation
-- reading order validation
-- authority validation
-
-## 8. Prompt Anti-patterns
-
-- vague scope
-- missing ticket ID
-- missing required reading
-- mixing multiple tickets in one prompt
-- hiding business changes inside implementation tasks
-- omitting validation criteria
-- omitting report format
-- duplicating frozen governance text
-
-## 9. Required Closing Statement
-
-Every future prompt must end with the exact sentence:
-
-`Follow Ticket Completion Protocol defined in docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
-
-## 10. Mandatory Documentation Classification
-
-After completing a Development Ticket, Codex must classify every document affected by the ticket and ensure it is updated according to the approved documentation architecture:
-
-- `docs/01_GOVERNANCE/`
-- `docs/02_ARCHITECTURE/`
-- `docs/03_UX/`
-- `docs/04_TECHNICAL_PLANNING/`
-- `docs/05_DEVELOPMENT/`
-- `docs/06_REVIEWS/`
-- `docs/07_REFERENCE/`
-- `docs/08_ARCHIVE/`
-- `docs/09_REPORTS/`
-
-Codex must follow `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` and `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` when placing documents.
-
-Rules:
-
-- do not create Markdown files outside the approved documentation architecture
-- do not create new folders unless the Product Owner has approved them
-- if a document moves, update all affected references
-- if Reading Chain is affected, update the reading chain references as well
-- if DOCUMENT_INDEX needs updates, update it
-- after documentation synchronization is complete, perform Validation, Commit, and Push according to Ticket Completion Protocol
-
-Future prompts generated from this standard must always include Documentation Requirements:
-
-- Documentation Synchronization
-- Mandatory Documentation Classification
-- Validation
-- Commit
-- Push
