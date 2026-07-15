@@ -57,7 +57,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | Shipment UX architecture | Frozen | L3 | 3 | Low | Shipment IA/screen/widget docs |
 | `docs/03_UX/evidence/EVIDENCE_CENTER_UX_ARCHITECTURE.md` | UX | Evidence UX architecture | Frozen | L3 | 3 | Low | Evidence IA/screen/widget docs |
 | `docs/03_UX/action/ACTION_CENTER_UX_ARCHITECTURE.md` | UX | Action UX architecture | Frozen | L3 | 3 | Low | Action IA/screen/widget docs |
-| `docs/UX_CONSISTENCY_REVIEW.md` | UX | UX freeze review | Frozen | L2 | 3 | Low | all UX docs |
+| `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` | UX | UX freeze review | Frozen | L2 | 3 | Low | all UX docs |
 
 ## 4. Technical Planning
 
@@ -102,7 +102,8 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/BCVH_PERFORMANCE_CENTER_REVIEW.md` | Reviews | BCVH review result | Frozen | L3 | 2 | Low | BCVH docs |
-| `docs/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Route review result | Frozen | L3 | 2 | Low | Route docs |
-| `docs/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |
-| `docs/UX_CONSISTENCY_REVIEW.md` | Reviews | UX freeze review | Frozen | L2 | 2 | Low | UX docs |
+| `docs/06_REVIEWS/Dashboard/DASHBOARD_FOUNDATION_REVIEW.md` | Reviews | Dashboard review result | Frozen | L3 | 2 | Low | Dashboard docs |
+| `docs/06_REVIEWS/BCVH/BCVH_PERFORMANCE_CENTER_REVIEW.md` | Reviews | BCVH review result | Frozen | L3 | 2 | Low | BCVH docs |
+| `docs/06_REVIEWS/Route/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Route review result | Frozen | L3 | 2 | Low | Route docs |
+| `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |
+| `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` | Reviews | UX freeze review | Frozen | L2 | 2 | Low | UX docs |

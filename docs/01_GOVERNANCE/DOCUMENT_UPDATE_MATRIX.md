@@ -16,7 +16,7 @@ This matrix defines which documents must be updated when a specific governance, 
 | --- | --- |
 | Architecture Changed | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_DECISIONS.md`, `PROJECT_HANDOVER.md`, affected architecture docs |
 | Architecture Freeze | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_DECISIONS.md`, `PROJECT_HANDOVER.md`, relevant freeze review docs |
-| UX Freeze | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_DECISIONS.md`, `PROJECT_HANDOVER.md`, `UX_CONSISTENCY_REVIEW.md` |
+| UX Freeze | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_DECISIONS.md`, `PROJECT_HANDOVER.md`, `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` |
 | Center PASS Review | `PROJECT_PROGRESS.md`, `PROJECT_HANDOVER.md`, center review doc |
 | Runtime Completed | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_HANDOVER.md`, relevant runtime/review evidence |
 | New Epic | `EPIC_PLANNING.md`, `FEATURE_PLANNING.md`, `DEVELOPMENT_BACKLOG.md`, `PROJECT_PROGRESS.md` |
@@ -42,4 +42,3 @@ Guidelines:
 - if the change affects freeze boundaries, update decision and handover documents
 - if the change affects chat continuity, update `MASTER_START_PROMPT.md`
 - if the change affects document inventory, update `DOCUMENT_INDEX.md`
-
