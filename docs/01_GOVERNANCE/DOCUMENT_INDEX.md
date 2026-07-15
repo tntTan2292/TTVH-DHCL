@@ -50,13 +50,13 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/QIS_UX_DESIGN_PRINCIPLES.md` | UX | Global UX principles | Frozen | L3 | 2 | Low | design system, screen docs |
-| `docs/QIS_DESIGN_SYSTEM.md` | UX | Shared design system | Frozen | L3 | 2 | Low | screen docs, widget docs |
-| `docs/BCVH_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | BCVH UX architecture | Frozen | L3 | 3 | Low | BCVH IA/screen/widget docs |
-| `docs/ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | Route UX architecture | Frozen | L3 | 3 | Low | Route IA/screen/widget docs |
-| `docs/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | Shipment UX architecture | Frozen | L3 | 3 | Low | Shipment IA/screen/widget docs |
-| `docs/EVIDENCE_CENTER_UX_ARCHITECTURE.md` | UX | Evidence UX architecture | Frozen | L3 | 3 | Low | Evidence IA/screen/widget docs |
-| `docs/ACTION_CENTER_UX_ARCHITECTURE.md` | UX | Action UX architecture | Frozen | L3 | 3 | Low | Action IA/screen/widget docs |
+| `docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md` | UX | Global UX principles | Frozen | L3 | 2 | Low | design system, screen docs |
+| `docs/03_UX/shared/QIS_DESIGN_SYSTEM.md` | UX | Shared design system | Frozen | L3 | 2 | Low | screen docs, widget docs |
+| `docs/03_UX/bcvh/BCVH_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | BCVH UX architecture | Frozen | L3 | 3 | Low | BCVH IA/screen/widget docs |
+| `docs/03_UX/route/ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | Route UX architecture | Frozen | L3 | 3 | Low | Route IA/screen/widget docs |
+| `docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | Shipment UX architecture | Frozen | L3 | 3 | Low | Shipment IA/screen/widget docs |
+| `docs/03_UX/evidence/EVIDENCE_CENTER_UX_ARCHITECTURE.md` | UX | Evidence UX architecture | Frozen | L3 | 3 | Low | Evidence IA/screen/widget docs |
+| `docs/03_UX/action/ACTION_CENTER_UX_ARCHITECTURE.md` | UX | Action UX architecture | Frozen | L3 | 3 | Low | Action IA/screen/widget docs |
 | `docs/UX_CONSISTENCY_REVIEW.md` | UX | UX freeze review | Frozen | L2 | 3 | Low | all UX docs |
 
 ## 4. Technical Planning
