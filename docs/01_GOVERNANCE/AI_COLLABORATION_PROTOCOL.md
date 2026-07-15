@@ -15,6 +15,7 @@
 - [11. Handover Rules](#11-handover-rules)
 - [12. Golden Rules](#12-golden-rules)
 - [13. Ticket Completion Protocol](#13-ticket-completion-protocol)
+- [14. Prompt Standard](#14-prompt-standard)
 
 ## 1. Purpose
 
@@ -346,3 +347,11 @@ Future Development Prompts must follow this protocol by default.
 They may reference it succinctly with:
 
 `Follow Ticket Completion Protocol defined in AI_COLLABORATION_PROTOCOL.md`
+
+## 14. Prompt Standard
+
+All future QIS V2 prompts should follow the canonical prompt standard defined in:
+
+- `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
+
+The prompt standard is the default format for future ChatGPT and Codex tickets.

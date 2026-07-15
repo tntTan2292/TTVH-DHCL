@@ -61,10 +61,11 @@ Read in this exact order:
 4. `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
 5. `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
 6. `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
-7. `docs/01_GOVERNANCE/PROJECT_DECISIONS.md`
-8. `PROJECT_STATUS.md`
-9. `PROJECT_PROGRESS.md`
-10. Current Ticket Documents
+7. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
+8. `docs/01_GOVERNANCE/PROJECT_DECISIONS.md`
+9. `PROJECT_STATUS.md`
+10. `PROJECT_PROGRESS.md`
+11. Current Ticket Documents
 
 ## 5. Operating Rules
 
@@ -160,10 +161,11 @@ Read these files first and continue from the current ticket without resetting pr
 4. docs/01_GOVERNANCE/PROJECT_HANDOVER.md
 5. docs/01_GOVERNANCE/PROJECT_CONTEXT.md
 6. docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md
-7. docs/01_GOVERNANCE/PROJECT_DECISIONS.md
-8. PROJECT_STATUS.md
-9. PROJECT_PROGRESS.md
-10. Current Ticket Documents
+7. docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md
+8. docs/01_GOVERNANCE/PROJECT_DECISIONS.md
+9. PROJECT_STATUS.md
+10. PROJECT_PROGRESS.md
+11. Current Ticket Documents
 
 You must not change SSOT, frozen architecture, runtime contracts, widget contracts, or context propagation contracts.
 Continue from the current ticket:
