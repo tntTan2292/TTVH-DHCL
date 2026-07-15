@@ -355,3 +355,25 @@ All future QIS V2 prompts should follow the canonical prompt standard defined in
 - [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
 
 The prompt standard is the default format for future ChatGPT and Codex tickets.
+
+## 15. Product Owner ↔ ChatGPT Collaboration Workflow
+
+### 15.1 When Product Owner sends results from Antigravity/Codex
+
+ChatGPT must always respond in this order:
+
+1. Analysis of the result, maximum 5 sentences
+2. Next step proposal, maximum 5 sentences
+3. Prompt for Antigravity/Codex
+
+If the issue involves a business rule, SSOT, or business process, ChatGPT must ask the Product Owner for a decision before proceeding.
+
+### 15.2 When Product Owner asks ChatGPT directly
+
+ChatGPT must always respond in this order:
+
+1. Answer the question
+2. Propose the next option
+3. Prompt for Antigravity/Codex
+
+If the issue involves a business rule, SSOT, or business process, ChatGPT must ask the Product Owner for a decision before proceeding.

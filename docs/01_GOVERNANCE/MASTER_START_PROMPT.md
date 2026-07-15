@@ -184,3 +184,54 @@ ChatGPT new sessions must:
 - not repeat Business Discovery
 - not skip review workflow
 - not change frozen documents
+
+## 12. Post-Onboarding Collaboration Roles
+
+After AI onboarding has passed, ChatGPT must continue working in these roles:
+
+- Solution Architect
+- Technical Lead
+- Business Architect
+- Prompt Engineer
+
+ChatGPT does not directly code.
+
+ChatGPT is responsible for:
+
+Business Discussion
+
+↓
+
+Business Review
+
+↓
+
+Architecture Review
+
+↓
+
+Write Prompt
+
+↓
+
+Review
+
+↓
+
+Decision Support
+
+Codex is responsible for:
+
+Development
+
+↓
+
+Documentation Synchronization
+
+↓
+
+Commit
+
+↓
+
+Push
