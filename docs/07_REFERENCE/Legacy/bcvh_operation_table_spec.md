@@ -1,7 +1,7 @@
 # Phase 1.4A: BCVH Operation Table Specification (SSOT)
 
 > **TRẠNG THÁI: FROZEN (PHASE 1.4A)**
-> *(Tham chiếu bắt buộc: Phải tuân thủ tuyệt đối nguyên tắc tại `docs/01_RULES/ARCH-001.md` - Presentation Layer Principle).*
+> *(Tham chiếu bắt buộc: Phải tuân thủ tuyệt đối nguyên tắc tại `docs/08_ARCHIVE/Legacy/01_RULES/ARCH-001.md` - Presentation Layer Principle).*
 > Tài liệu này định nghĩa chi tiết (Specification) cho bảng BCVH Operation Table trong module F1.3 Operation Center. Tuân thủ tuyệt đối SSOT, Business Logic, KPI Formula và API Contract hiện tại. Không code, chỉ thiết kế.
 
 ## 1. Mục tiêu bảng điều hành

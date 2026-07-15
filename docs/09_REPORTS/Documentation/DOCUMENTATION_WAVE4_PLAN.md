@@ -91,10 +91,10 @@ Additionally, if future Wave 4 sub-steps are approved, the following planning ar
 | `docs/FEATURE_PLANNING.md` | MOVE | Move | Core technical planning document |
 | `docs/IMPLEMENTATION_ARCHITECTURE.md` | MOVE | Move | Bridge from UX to technical planning |
 | `docs/DEVELOPMENT_BACKLOG.md` | MOVE | Move | Core execution planning document |
-| `docs/DOCUMENTATION_WAVE3_EXECUTION_REPORT.md` | NO ACTION | No move | Governance execution record, not technical planning |
-| `docs/DOCUMENTATION_WAVE2_EXECUTION_REPORT.md` | NO ACTION | No move | Governance execution record, not technical planning |
-| `docs/DOCUMENTATION_WAVE2_VALIDATION_REPORT.md` | NO ACTION | No move | Governance validation record, not technical planning |
-| `docs/DOCUMENTATION_WAVE3_PLAN.md` | NO ACTION | No move | Governance planning record, not technical planning |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE3_EXECUTION_REPORT.md` | NO ACTION | No move | Governance execution record, not technical planning |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE2_EXECUTION_REPORT.md` | NO ACTION | No move | Governance execution record, not technical planning |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE2_VALIDATION_REPORT.md` | NO ACTION | No move | Governance validation record, not technical planning |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE3_PLAN.md` | NO ACTION | No move | Governance planning record, not technical planning |
 | `docs/01_GOVERNANCE/*` | NO ACTION | No move | Governance layer is out of scope |
 | `docs/02_ARCHITECTURE/*` | NO ACTION | No move | Architecture layer is out of scope |
 | `docs/03_UX/*` | NO ACTION | No move | UX layer is out of scope |

@@ -96,14 +96,14 @@ Additional review / validation / quality review documents may be classified into
 | `docs/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | MOVE | Move | Route review artifact |
 | `docs/ARCHITECTURE_CONSISTENCY_REVIEW.md` | MOVE | Move | Architecture validation review |
 | `docs/UX_CONSISTENCY_REVIEW.md` | MOVE | Move | UX validation review |
-| `docs/DOCUMENTATION_WAVE5_PLAN.md` | NO ACTION | No move | Planning artifact, not review |
-| `docs/DOCUMENTATION_WAVE4_EXECUTION_REPORT.md` | NO ACTION | No move | Execution record, not review target |
-| `docs/DOCUMENTATION_WAVE3_EXECUTION_REPORT.md` | NO ACTION | No move | Execution record, not review target |
-| `docs/DOCUMENTATION_WAVE2_EXECUTION_REPORT.md` | NO ACTION | No move | Execution record, not review target |
-| `docs/DOCUMENTATION_WAVE2_VALIDATION_REPORT.md` | NO ACTION | No move | Validation record, not review target |
-| `docs/DOCUMENTATION_WAVE3_PLAN.md` | NO ACTION | No move | Planning artifact, not review |
-| `docs/DOCUMENTATION_WAVE4_PLAN.md` | NO ACTION | No move | Planning artifact, not review |
-| `docs/DOCUMENTATION_WAVE5_PLAN.md` | NO ACTION | No move | Planning artifact, not review |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE5_PLAN.md` | NO ACTION | No move | Planning artifact, not review |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE4_EXECUTION_REPORT.md` | NO ACTION | No move | Execution record, not review target |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE3_EXECUTION_REPORT.md` | NO ACTION | No move | Execution record, not review target |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE2_EXECUTION_REPORT.md` | NO ACTION | No move | Execution record, not review target |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE2_VALIDATION_REPORT.md` | NO ACTION | No move | Validation record, not review target |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE3_PLAN.md` | NO ACTION | No move | Planning artifact, not review |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE4_PLAN.md` | NO ACTION | No move | Planning artifact, not review |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_WAVE5_PLAN.md` | NO ACTION | No move | Planning artifact, not review |
 | `docs/01_GOVERNANCE/*` | NO ACTION | No move | Governance layer is out of scope |
 | `docs/02_ARCHITECTURE/*` | NO ACTION | No move | Architecture layer is out of scope |
 | `docs/03_UX/*` | NO ACTION | No move | UX layer is out of scope |

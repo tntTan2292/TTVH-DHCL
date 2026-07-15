@@ -57,8 +57,8 @@ This wave did not change business rules, SSOT content, frozen architecture conte
 | File | Reason |
 | --- | --- |
 | `README_AI.md` | Updated quick links and reading path references to the new governance folder |
-| `docs/DOCUMENTATION_AUDIT_REPORT.md` | Updated references to moved governance/handover documents |
-| `docs/DOCUMENTATION_MIGRATION_PLAN.md` | Updated references to moved governance/handover documents |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_AUDIT_REPORT.md` | Updated references to moved governance/handover documents |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_MIGRATION_PLAN.md` | Updated references to moved governance/handover documents |
 | `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Moved file; path changed |
 | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | Moved file; path changed |
 | `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | Moved file; path changed |

@@ -1,7 +1,7 @@
 # Phase 1.5A: Rule Recommendation Panel Specification (SSOT)
 
 > **TRẠNG THÁI: FROZEN (PHASE 1.5A)**
-> *(Tham chiếu bắt buộc: Phải tuân thủ tuyệt đối nguyên tắc tại `docs/01_RULES/ARCH-001.md` - Presentation Layer Principle).*
+> *(Tham chiếu bắt buộc: Phải tuân thủ tuyệt đối nguyên tắc tại `docs/08_ARCHIVE/Legacy/01_RULES/ARCH-001.md` - Presentation Layer Principle).*
 > Tài liệu định nghĩa (Specification) cho module Rule Recommendation thuộc F1.3 Operation Center. Tuyệt đối tuân thủ SSOT, Business Logic, KPI Formula và Data Priority hiện tại. Không code, chỉ thiết kế.
 
 ## 1. Mục tiêu

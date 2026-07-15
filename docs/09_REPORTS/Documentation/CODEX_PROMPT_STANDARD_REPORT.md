@@ -20,7 +20,7 @@ The update is governance-only and does not change business rules, SSOT, reposito
 Created:
 
 - `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
-- `docs/CODEX_PROMPT_STANDARD_REPORT.md`
+- `docs/09_REPORTS/Documentation/CODEX_PROMPT_STANDARD_REPORT.md`
 
 Updated:
 

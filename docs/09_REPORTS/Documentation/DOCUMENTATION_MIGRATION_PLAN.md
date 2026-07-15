@@ -44,43 +44,43 @@
 
 | File Name | Current Path | Category | Status | Authority Level | Recommendation | Target |
 | --- | --- | --- | --- | --- | --- | --- |
-| `PROJECT_CONTEXT.md` | `docs/00_README/PROJECT_CONTEXT.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `readme.md` | `docs/00_README/readme.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `ARCH-001.md` | `docs/01_RULES/ARCH-001.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `constitution.md` | `docs/01_RULES/constitution.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `governance_rules.md` | `docs/01_RULES/governance_rules.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `tech_architecture_rules.md` | `docs/01_RULES/tech_architecture_rules.md` | `REVIEW` | `Legacy` | `L3` | `REVIEW` | `docs/07_REFERENCE/` |
-| `ui_ux_guidelines.md` | `docs/01_RULES/ui_ux_guidelines.md` | `REVIEW` | `Legacy` | `L3` | `REVIEW` | `docs/07_REFERENCE/` |
-| `ai_architecture_map.md` | `docs/02_AI_CONTEXT/ai_architecture_map.md` | `REVIEW` | `Legacy` | `L3` | `REVIEW` | `docs/07_REFERENCE/` |
-| `system_prompt.md` | `docs/02_AI_CONTEXT/system_prompt.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `business_dictionary.md` | `docs/03_SHARED_BUSINESS/business_dictionary.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `global_kpi_framework.md` | `docs/03_SHARED_BUSINESS/global_kpi_framework.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `global_notification.md` | `docs/03_SHARED_BUSINESS/global_notification.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `import_center_rules.md` | `docs/03_SHARED_BUSINESS/import_center_rules.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `business_rules.md` | `docs/04_DOMAINS/_template_indicator/business_rules.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `changelog.md` | `docs/04_DOMAINS/_template_indicator/changelog.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `core_knowledge.md` | `docs/04_DOMAINS/_template_indicator/core_knowledge.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `data_blueprint.md` | `docs/04_DOMAINS/_template_indicator/data_blueprint.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `measurement.md` | `docs/04_DOMAINS/_template_indicator/measurement.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `rca_ai_context.md` | `docs/04_DOMAINS/_template_indicator/rca_ai_context.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `testing_scenarios.md` | `docs/04_DOMAINS/_template_indicator/testing_scenarios.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `acceptance_criteria.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/acceptance_criteria.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `analytical_patterns.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/analytical_patterns.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `business_glossary.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/business_glossary.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `business_rules.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/business_rules.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `changelog.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/changelog.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `core_knowledge.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/core_knowledge.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `data_blueprint.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/data_blueprint.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `executive_decision_guide.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/executive_decision_guide.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `executive_scenarios.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/executive_scenarios.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `faq_troubleshooting.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/faq_troubleshooting.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `measurement.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/measurement.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `rca_ai_context.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/rca_ai_context.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `testing_scenarios.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/testing_scenarios.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `api_contracts.md` | `docs/05_TECHNICAL_IMPLEMENTATION/api_contracts.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `database_schema.md` | `docs/05_TECHNICAL_IMPLEMENTATION/database_schema.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `deployment_infrastructure.md` | `docs/05_TECHNICAL_IMPLEMENTATION/deployment_infrastructure.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `f1.3_technical_design_v1.0.md` | `docs/05_TECHNICAL_IMPLEMENTATION/f1.3_technical_design_v1.0.md` | `ARCHIVE` | `Legacy` | `L4` | `ARCHIVE` | `archive/` |
+| `PROJECT_CONTEXT.md` | `docs/08_ARCHIVE/Legacy/00_README/PROJECT_CONTEXT.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `readme.md` | `docs/08_ARCHIVE/Legacy/00_README/readme.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `ARCH-001.md` | `docs/08_ARCHIVE/Legacy/01_RULES/ARCH-001.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `constitution.md` | `docs/08_ARCHIVE/Legacy/01_RULES/constitution.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `governance_rules.md` | `docs/08_ARCHIVE/Legacy/01_RULES/governance_rules.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `tech_architecture_rules.md` | `docs/08_ARCHIVE/Legacy/01_RULES/tech_architecture_rules.md` | `REVIEW` | `Legacy` | `L3` | `REVIEW` | `docs/07_REFERENCE/` |
+| `ui_ux_guidelines.md` | `docs/08_ARCHIVE/Legacy/01_RULES/ui_ux_guidelines.md` | `REVIEW` | `Legacy` | `L3` | `REVIEW` | `docs/07_REFERENCE/` |
+| `ai_architecture_map.md` | `docs/08_ARCHIVE/Legacy/02_AI_CONTEXT/ai_architecture_map.md` | `REVIEW` | `Legacy` | `L3` | `REVIEW` | `docs/07_REFERENCE/` |
+| `system_prompt.md` | `docs/08_ARCHIVE/Legacy/02_AI_CONTEXT/system_prompt.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `business_dictionary.md` | `docs/07_REFERENCE/Shared_Business/business_dictionary.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `global_kpi_framework.md` | `docs/07_REFERENCE/Shared_Business/global_kpi_framework.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `global_notification.md` | `docs/07_REFERENCE/Shared_Business/global_notification.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `import_center_rules.md` | `docs/07_REFERENCE/Shared_Business/import_center_rules.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `business_rules.md` | `docs/07_REFERENCE/Domains/_template_indicator/business_rules.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `changelog.md` | `docs/07_REFERENCE/Domains/_template_indicator/changelog.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `core_knowledge.md` | `docs/07_REFERENCE/Domains/_template_indicator/core_knowledge.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `data_blueprint.md` | `docs/07_REFERENCE/Domains/_template_indicator/data_blueprint.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `measurement.md` | `docs/07_REFERENCE/Domains/_template_indicator/measurement.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `rca_ai_context.md` | `docs/07_REFERENCE/Domains/_template_indicator/rca_ai_context.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `testing_scenarios.md` | `docs/07_REFERENCE/Domains/_template_indicator/testing_scenarios.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `acceptance_criteria.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/acceptance_criteria.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `analytical_patterns.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/analytical_patterns.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `business_glossary.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/business_glossary.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `business_rules.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/business_rules.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `changelog.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/changelog.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `core_knowledge.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/core_knowledge.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `data_blueprint.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/data_blueprint.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `executive_decision_guide.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/executive_decision_guide.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `executive_scenarios.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/executive_scenarios.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `faq_troubleshooting.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/faq_troubleshooting.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `measurement.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/measurement.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `rca_ai_context.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/rca_ai_context.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `testing_scenarios.md` | `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/testing_scenarios.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `api_contracts.md` | `docs/05_DEVELOPMENT/Implementation/api_contracts.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `database_schema.md` | `docs/05_DEVELOPMENT/Implementation/database_schema.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `deployment_infrastructure.md` | `docs/05_DEVELOPMENT/Implementation/deployment_infrastructure.md` | `REVIEW` | `Legacy` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
+| `f1.3_technical_design_v1.0.md` | `docs/05_DEVELOPMENT/Implementation/f1.3_technical_design_v1.0.md` | `ARCHIVE` | `Legacy` | `L4` | `ARCHIVE` | `archive/` |
 | `ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | `docs/ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `ACTION_CENTER_SCREEN_ARCHITECTURE.md` | `docs/ACTION_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `ACTION_CENTER_UX_ARCHITECTURE.md` | `docs/ACTION_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
@@ -105,17 +105,17 @@
 | `DOCUMENT_INDEX.md` | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
 | `DOCUMENT_LIFECYCLE.md` | `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
 | `DOCUMENT_UPDATE_MATRIX.md` | `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
-| `DOCUMENTATION_ARCHITECTURE.md` | `docs/DOCUMENTATION_ARCHITECTURE.md` | `KEEP` | `Frozen` | `L3` | `KEEP` | `KEEP` |
-| `DOCUMENTATION_AUDIT_REPORT.md` | `docs/DOCUMENTATION_AUDIT_REPORT.md` | `KEEP` | `Frozen` | `L4` | `KEEP` | `KEEP` |
+| `DOCUMENTATION_ARCHITECTURE.md` | `docs/09_REPORTS/Documentation/DOCUMENTATION_ARCHITECTURE.md` | `KEEP` | `Frozen` | `L3` | `KEEP` | `KEEP` |
+| `DOCUMENTATION_AUDIT_REPORT.md` | `docs/09_REPORTS/Documentation/DOCUMENTATION_AUDIT_REPORT.md` | `KEEP` | `Frozen` | `L4` | `KEEP` | `KEEP` |
 | `ENVIRONMENT_ISOLATION_PLAN.md` | `docs/ENVIRONMENT_ISOLATION_PLAN.md` | `REVIEW` | `Unknown` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
 | `EPIC_PLANNING.md` | `docs/EPIC_PLANNING.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/04_TECHNICAL_PLANNING/` |
 | `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | `docs/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` | `docs/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `EVIDENCE_CENTER_UX_ARCHITECTURE.md` | `docs/EVIDENCE_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` | `docs/EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` | `MOVE` | `Frozen` | `L4` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
-| `F1.3 DATA DICTIONARY v1.0.md` | `docs/F1.3/F1.3 DATA DICTIONARY v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
-| `F1.3 MODULE SPECIFICATION v1.0.md` | `docs/F1.3/F1.3 MODULE SPECIFICATION v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
-| `F13_303_DEFINITION.md` | `docs/F1.3/F13_303_DEFINITION.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
+| `F1.3 DATA DICTIONARY v1.0.md` | `docs/08_ARCHIVE/Legacy/F1.3/F1.3 DATA DICTIONARY v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
+| `F1.3 MODULE SPECIFICATION v1.0.md` | `docs/08_ARCHIVE/Legacy/F1.3/F1.3 MODULE SPECIFICATION v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
+| `F13_303_DEFINITION.md` | `docs/08_ARCHIVE/Legacy/F1.3/F13_303_DEFINITION.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
 | `FEATURE_PLANNING.md` | `docs/FEATURE_PLANNING.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/04_TECHNICAL_PLANNING/` |
 | `FOLDER_DATA_STANDARD v1.0.md` | `docs/FOLDER_DATA_STANDARD v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
 | `GAP_ANALYSIS_ADDENDUM_v1.0.md` | `docs/GAP_ANALYSIS_ADDENDUM_v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
@@ -143,7 +143,7 @@
 | `SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | `docs/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | `docs/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` | `docs/SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` | `MOVE` | `Frozen` | `L4` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
-| `UI_ARCHITECTURE_PLAN.md` | `docs/UI_ARCHITECTURE_PLAN.md` | `REVIEW` | `Unknown` | `L3` | `REVIEW` | `docs/07_REFERENCE/` |
+| `UI_ARCHITECTURE_PLAN.md` | `docs/09_REPORTS/Documentation/UI_ARCHITECTURE_PLAN.md` | `REVIEW` | `Unknown` | `L3` | `REVIEW` | `docs/07_REFERENCE/` |
 | `UX_CONSISTENCY_REVIEW.md` | `docs/UX_CONSISTENCY_REVIEW.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/03_UX/` |
 | `README.md` | `frontend/README.md` | `REVIEW` | `Unknown` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
 | `PROJECT_PROGRESS.md` | `PROJECT_PROGRESS.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |

@@ -1,7 +1,7 @@
 # TTVH-DHCL: Operation Center Specification V1.0 (SSOT)
 
 **STATUS: FROZEN**
-*(Tham chiếu bắt buộc: Phải tuân thủ tuyệt đối nguyên tắc tại `docs/01_RULES/ARCH-001.md` - Presentation Layer Principle).*
+*(Tham chiếu bắt buộc: Phải tuân thủ tuyệt đối nguyên tắc tại `docs/08_ARCHIVE/Legacy/01_RULES/ARCH-001.md` - Presentation Layer Principle).*
 
 > Tài liệu này là Single Source of Truth (SSOT) quy định thiết kế và yêu cầu của F1.3 Operation Center. Không thay đổi Business Logic, KPI Formula và API Contract hiện hành.
 

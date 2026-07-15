@@ -98,7 +98,7 @@ Additionally, if a future Wave 3 sub-step is approved, the following folder grou
 | `docs/EVIDENCE_CENTER_UX_ARCHITECTURE.md` | MOVE | Move | Modern Evidence UX architecture |
 | `docs/ACTION_CENTER_UX_ARCHITECTURE.md` | MOVE | Move | Modern Action UX architecture |
 | `docs/UX_CONSISTENCY_REVIEW.md` | REVIEW | No move in Wave 3 unless PO approves review layer migration | Review artifact, not UX contract |
-| `docs/01_RULES/ui_ux_guidelines.md` | ARCHIVE | No move in Wave 3 | Legacy UX guidance, outside modern UX contract |
+| `docs/08_ARCHIVE/Legacy/01_RULES/ui_ux_guidelines.md` | ARCHIVE | No move in Wave 3 | Legacy UX guidance, outside modern UX contract |
 | `docs/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | NO ACTION | No move | Architecture layer is out of scope |
 | `docs/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | NO ACTION | No move | Architecture layer is out of scope |
 | `docs/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | NO ACTION | No move | Architecture layer is out of scope |

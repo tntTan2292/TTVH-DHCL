@@ -1,7 +1,7 @@
 # Phase 1.6A: Quality Timeline Specification (SSOT)
 
 > **TRẠNG THÁI: FROZEN (PHASE 1.6A)**
-> *(Tham chiếu bắt buộc: Phải tuân thủ tuyệt đối nguyên tắc tại `docs/01_RULES/ARCH-001.md` - Presentation Layer Principle).*
+> *(Tham chiếu bắt buộc: Phải tuân thủ tuyệt đối nguyên tắc tại `docs/08_ARCHIVE/Legacy/01_RULES/ARCH-001.md` - Presentation Layer Principle).*
 > Tài liệu định nghĩa (Specification) cho module Quality Timeline thuộc F1.3 Operation Center. Góc nhìn điều hành, tập trung vào việc tìm ra quy luật (Pattern) và chu kỳ rủi ro để hành động. 
 
 ## 1. Mục tiêu
