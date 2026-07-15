@@ -3,8 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import { PageContainer, KPICard, SectionHeader, StatusBadge } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import ShipmentExecutiveBrief from './ShipmentExecutiveBrief';
+import ShipmentImpactOverview from './ShipmentImpactOverview';
 import ShipmentTimeline from './ShipmentTimeline';
 import ShipmentRootCause from './ShipmentRootCause';
+import ShipmentEvidenceSummary from './ShipmentEvidenceSummary';
 import ShipmentRecommendation from './ShipmentRecommendation';
 import ShipmentDrilldown from './ShipmentDrilldown';
 
@@ -49,7 +51,7 @@ export default function ShipmentPerformancePage() {
     { label: 'Route', value: routeName },
     { label: 'Window', value: `${fromDate} → ${toDate}` },
   ];
-  const routeContext = [
+  const impactContext = [
     { label: 'Interval', value: intervalLabel },
     { label: 'Search', value: search || 'N/A' },
   ];
@@ -115,19 +117,22 @@ export default function ShipmentPerformancePage() {
         </div>
 
         <SectionHeader title="Executive Brief Area" subtitle="Khối dẫn nhập điều hành cấp shipment." />
-        <ShipmentExecutiveBrief shipmentContext={shipmentContext} routeContext={routeContext} />
+        <div className="grid gap-5 xl:grid-cols-2">
+          <ShipmentExecutiveBrief shipmentContext={shipmentContext} />
+          <ShipmentImpactOverview impactItems={impactContext} />
+        </div>
 
-        <SectionHeader title="Shipment Timeline Area" subtitle="Khối timeline cho shipment." />
-        <ShipmentTimeline timelineItems={timelineItems} />
+        <SectionHeader title="Shipment Analysis Area" subtitle="Khối timeline và nguyên nhân cho shipment." />
+        <div className="grid gap-5 xl:grid-cols-2">
+          <ShipmentTimeline timelineItems={timelineItems} />
+          <ShipmentRootCause rootCauseItems={rootCauseItems} />
+        </div>
 
-        <SectionHeader title="Root Cause Area" subtitle="Khối nguyên nhân và evidence summary." />
-        <ShipmentRootCause evidenceContext={evidenceContext} rootCauseItems={rootCauseItems} />
-
-        <SectionHeader title="Recommendation Area" subtitle="Khối khuyến nghị và drill-down sang Evidence." />
-        <ShipmentRecommendation
-          recommendationItems={recommendationItems}
-          drilldownLabel="Mở Evidence Center"
-        />
+        <SectionHeader title="Evidence Summary Area" subtitle="Khối evidence readiness và recommendation." />
+        <div className="grid gap-5 xl:grid-cols-2">
+          <ShipmentEvidenceSummary evidenceContext={evidenceContext} />
+          <ShipmentRecommendation recommendationItems={recommendationItems} />
+        </div>
 
         <SectionHeader title="Evidence Drill-down Area" subtitle="Chuẩn bị context cho Evidence Center." />
         <ShipmentDrilldown drilldownContext={drilldownContext} />

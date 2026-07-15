@@ -51,7 +51,7 @@ Product Owner:
 | Current Epic | `EPIC-005 Shipment Performance Center` |
 | Current Center | `Shipment Performance Center` |
 | Current Development Readiness | `In Progress` |
-| Current Progress | `Architecture PASS, UX PASS, Technical Planning PASS, Shipment Shell PASS, Development In Progress` |
+| Current Progress | `Architecture PASS, UX PASS, Technical Planning PASS, Shipment Shell PASS, Shipment Executive Widgets PASS, Development In Progress` |
 
 ## 4. Mandatory Reading Order
 

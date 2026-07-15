@@ -54,7 +54,7 @@
 
 ## Danh Sách Tài Liệu Đang Thực Hiện
 
-- `Shipment Performance Center Executive Widgets`
+- `Shipment Performance Center Executive Widgets: PASS`
 
 ## Business Decisions Đã Freeze
 

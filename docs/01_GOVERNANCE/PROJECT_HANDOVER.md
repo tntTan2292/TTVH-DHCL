@@ -183,7 +183,7 @@ Recommended reading order for a new ChatGPT/Codex/developer session:
    - `Ban_do_mang_diem_phuc_vu_BDTP_Hue.html`
    - `Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html`
    - `ban_do_duong_giao_thong_bcvh_postman_06_2026.html`
-2. Shipment shell is complete, and executive widgets are now the active development focus.
+2. Shipment executive widgets are complete, and runtime integration is now the active development focus.
 3. Evidence, Action, AI, and Report centers are still pending implementation.
 
 ## 12. Next Development Roadmap
@@ -218,7 +218,7 @@ QIS V2 is a Decision Support System for TTVH quality operations.
 
 The architecture is frozen and already delivered through Dashboard, BCVH, Route, and Shipment shell foundations.
 
-Current work is in Development, with Shipment shell completed and the current ticket being Shipment executive widgets.
+Current work is in Development, with Shipment executive widgets completed and the current ticket being Shipment runtime integration.
 
 The project uses SSOT-driven documents, not chat history, as the source of truth.
 
