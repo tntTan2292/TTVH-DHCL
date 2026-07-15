@@ -55,14 +55,16 @@ Product Owner:
 
 Read in this exact order:
 
-1. `docs/PROJECT_HANDOVER.md`
-2. `docs/PROJECT_CONTEXT.md`
-3. `docs/AI_COLLABORATION_PROTOCOL.md`
-4. `docs/PROJECT_DECISIONS.md`
-5. `PROJECT_STATUS.md`
-6. `PROJECT_PROGRESS.md`
-7. Current ticket docs
-8. Current Commit / Blob URL
+1. `docs/DOCUMENT_INDEX.md`
+2. `docs/DOCUMENT_GOVERNANCE.md`
+3. `docs/DOCUMENT_UPDATE_MATRIX.md`
+4. `docs/PROJECT_HANDOVER.md`
+5. `docs/PROJECT_CONTEXT.md`
+6. `docs/AI_COLLABORATION_PROTOCOL.md`
+7. `docs/PROJECT_DECISIONS.md`
+8. `PROJECT_STATUS.md`
+9. `PROJECT_PROGRESS.md`
+10. Current Ticket Documents
 
 ## 5. Operating Rules
 
@@ -152,12 +154,16 @@ Use this prompt in a new chat:
 
 ```text
 Read these files first and continue from the current ticket without resetting project context:
-1. docs/PROJECT_HANDOVER.md
-2. docs/PROJECT_CONTEXT.md
-3. docs/AI_COLLABORATION_PROTOCOL.md
-4. docs/PROJECT_DECISIONS.md
-5. PROJECT_STATUS.md
-6. PROJECT_PROGRESS.md
+1. docs/DOCUMENT_INDEX.md
+2. docs/DOCUMENT_GOVERNANCE.md
+3. docs/DOCUMENT_UPDATE_MATRIX.md
+4. docs/PROJECT_HANDOVER.md
+5. docs/PROJECT_CONTEXT.md
+6. docs/AI_COLLABORATION_PROTOCOL.md
+7. docs/PROJECT_DECISIONS.md
+8. PROJECT_STATUS.md
+9. PROJECT_PROGRESS.md
+10. Current Ticket Documents
 
 You must not change SSOT, frozen architecture, runtime contracts, widget contracts, or context propagation contracts.
 Continue from the current ticket:
@@ -176,4 +182,3 @@ ChatGPT new sessions must:
 - not repeat Business Discovery
 - not skip review workflow
 - not change frozen documents
-

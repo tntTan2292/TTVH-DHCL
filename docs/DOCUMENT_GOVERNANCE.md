@@ -1,0 +1,185 @@
+# DOCUMENT GOVERNANCE
+
+## Table of Contents
+
+- [1. Purpose](#1-purpose)
+- [2. Document Governance Principles](#2-document-governance-principles)
+- [3. Document Ownership](#3-document-ownership)
+- [4. AI Responsibilities](#4-ai-responsibilities)
+- [5. Product Owner Responsibilities](#5-product-owner-responsibilities)
+- [6. Update Workflow](#6-update-workflow)
+- [7. Review Workflow](#7-review-workflow)
+- [8. Approval Workflow](#8-approval-workflow)
+- [9. Freeze Rules](#9-freeze-rules)
+- [10. Change Control](#10-change-control)
+- [11. Document Creation Rules](#11-document-creation-rules)
+- [12. Document Naming Convention](#12-document-naming-convention)
+- [13. Repository Organization](#13-repository-organization)
+- [14. Governance Checklist](#14-governance-checklist)
+
+## 1. Purpose
+
+This document defines how project documents in QIS V2 are created, reviewed, frozen, updated, and archived.
+
+Goals:
+
+- preserve SSOT discipline
+- keep documentation consistent across phases
+- support ChatGPT/Codex handover
+- make freeze boundaries explicit
+- avoid document drift
+
+## 2. Document Governance Principles
+
+- SSOT is the highest authority for project decisions
+- frozen documents must not be changed casually
+- documents must have a clear purpose and owner
+- update only what is required by the event
+- do not mix governance, architecture, UX, and development concerns
+- every document must be readable by a new session without chat history
+- decisions must be traceable to the Product Owner when applicable
+
+## 3. Document Ownership
+
+| Document Group | Primary Owner | Secondary Reviewer |
+| --- | --- | --- |
+| SSOT / Decision docs | Product Owner | ChatGPT |
+| Architecture docs | ChatGPT | Product Owner |
+| UX docs | ChatGPT | Product Owner |
+| Planning docs | ChatGPT | Product Owner |
+| Development tickets / runtime evidence | Codex | ChatGPT |
+| Review docs | ChatGPT | Product Owner |
+| Governance / handover docs | ChatGPT | Codex |
+
+Ownership rules:
+
+- Product Owner owns business decisions
+- ChatGPT owns structure, continuity, and review framing
+- Codex owns implementation evidence
+- no document may be updated by a role that does not own its change intent
+
+## 4. AI Responsibilities
+
+### ChatGPT
+
+- maintain project continuity
+- synthesize current state from repository docs
+- draft governance and handover artifacts
+- review architecture, UX, and technical alignment
+- propose next steps without changing frozen decisions
+
+### Codex
+
+- implement approved tickets
+- produce repository changes
+- keep code and docs aligned to frozen contracts
+- report runtime and commit evidence
+
+## 5. Product Owner Responsibilities
+
+- approve business decisions
+- freeze or unfreeze decision items
+- approve architecture and UX changes when required
+- accept runtime and review outcomes
+- resolve open decision items
+
+## 6. Update Workflow
+
+1. identify trigger event
+2. determine affected documents
+3. update only the required documents
+4. verify consistency with SSOT and frozen docs
+5. commit the changes
+6. push to GitHub
+
+## 7. Review Workflow
+
+Every doc change must be checked for:
+
+- correctness
+- consistency
+- completeness
+- freeze boundary compliance
+- impact on downstream docs
+
+Review outputs may be:
+
+- PASS
+- WARNING
+- FAIL
+
+## 8. Approval Workflow
+
+Approval order:
+
+1. draft changes
+2. internal review
+3. Product Owner approval if the change affects business, SSOT, or freeze boundaries
+4. commit and push
+5. publish the updated doc set
+
+## 9. Freeze Rules
+
+- frozen docs are treated as contracts
+- any change to a frozen doc must be intentional and approved
+- changes to business rules require Product Owner approval
+- architecture changes require the corresponding freeze review
+- runtime contract changes require downstream compatibility review
+
+## 10. Change Control
+
+If a change is requested:
+
+1. identify the exact document and section
+2. determine whether it is frozen
+3. determine whether SSOT or business rules are affected
+4. determine who must approve
+5. update only after approval
+
+## 11. Document Creation Rules
+
+- create documents only when they add governance, clarity, or frozen context
+- do not duplicate the same content across multiple docs unless needed by the workflow
+- every new document must have a defined scope
+- every doc must include a table of contents when it is more than a short note
+- use concise, explicit Markdown headings
+
+## 12. Document Naming Convention
+
+- use uppercase snake case for governance and handover docs
+- use clear center prefixes for architecture docs
+- use suffixes that describe the document type:
+  - `..._ARCHITECTURE.md`
+  - `..._SPECIFICATION.md`
+  - `..._REVIEW.md`
+  - `..._PLANNING.md`
+  - `..._PROTOCOL.md`
+  - `..._LIFECYCLE.md`
+
+## 13. Repository Organization
+
+Recommended repository grouping:
+
+- `docs/` for all governance, architecture, UX, planning, and handover documents
+- root-level status files for live project state
+- development code under source folders only
+
+Principles:
+
+- keep docs discoverable
+- avoid hidden or ambiguous file placement
+- ensure handover docs are easy to find first
+
+## 14. Governance Checklist
+
+- [ ] Document has a clear purpose
+- [ ] Document owner is identifiable
+- [ ] Table of contents exists when needed
+- [ ] SSOT impact checked
+- [ ] Freeze impact checked
+- [ ] No business rule drift
+- [ ] No architecture drift
+- [ ] No status/progress file changed unless required
+- [ ] Commit and push completed
+- [ ] New session can read the document without chat history
+
