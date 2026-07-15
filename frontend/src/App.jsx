@@ -4,6 +4,7 @@ import DashboardHome from './pages/DashboardHome';
 import LoginPage from './pages/LoginPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import SharedComponentsDemo from './pages/SharedComponentsDemo';
+import SharedLayoutDemo from './pages/SharedLayoutDemo';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './auth/AuthContext';
 
@@ -34,6 +35,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <SharedComponentsDemo />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dev/shared-layout"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <SharedLayoutDemo />
               </ProtectedRoute>
             }
           />
