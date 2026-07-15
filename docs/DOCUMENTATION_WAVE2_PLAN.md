@@ -1,205 +1,229 @@
-# DOCUMENTATION WAVE 2 PLAN
+# Documentation Wave 2 Plan
 
 ## Table of Contents
-
 - [1. Purpose](#1-purpose)
-- [2. Wave 2 Scope](#2-wave-2-scope)
-- [3. Target Areas](#3-target-areas)
-- [4. File Classification for Wave 2](#4-file-classification-for-wave-2)
-- [5. Wave 2 Rules](#5-wave-2-rules)
-- [6. Reference Update Strategy](#6-reference-update-strategy)
-- [7. Risk Analysis](#7-risk-analysis)
-- [8. Approval Gate](#8-approval-gate)
-- [9. Validation Plan](#9-validation-plan)
-- [10. Recommendation](#10-recommendation)
+- [2. Strict Wave 2 Scope](#2-strict-wave-2-scope)
+- [3. In Scope](#3-in-scope)
+- [4. Explicit Out of Scope](#4-explicit-out-of-scope)
+- [5. Target Folder Map](#5-target-folder-map)
+- [6. Definitive Classification Table](#6-definitive-classification-table)
+- [7. Move Only Boundary](#7-move-only-boundary)
+- [8. Reference Update Checklist](#8-reference-update-checklist)
+- [9. Rollback and Validation Checklist](#9-rollback-and-validation-checklist)
+- [10. Final Approval Gate](#10-final-approval-gate)
+- [11. Wave 2 Execution Readiness](#11-wave-2-execution-readiness)
 
 ## 1. Purpose
 
-- Objective: prepare the next cleanup wave for architecture documents only.
-- Scope: define what would be moved in Wave 2, without executing any file operation.
-- Intent: preserve governance/core stability established in Wave 1 while organizing architecture contracts.
+Wave 2 is the first architecture-only execution wave of Documentation Governance Refactoring.
+Its purpose is to move the modern frozen architecture layer into a dedicated architecture area in a controlled way, without touching governance, UX, planning, development, or legacy reference materials.
 
-## 2. Wave 2 Scope
+This plan is execution-ready only when Product Owner approval is granted.
 
-- Architecture docs only
-- No governance move
-- No UX move
-- No planning move
-- No development move
-- No review move
-- No legacy archive execution in this wave
+## 2. Strict Wave 2 Scope
 
-## 3. Target Areas
+Wave 2 is strictly limited to modern architecture documents.
+
+Wave 2 does not include governance/core documents, UX documents, technical planning documents, development documents, review documents, or legacy reference documents.
+
+Wave 2 execution boundary:
+
+- architecture docs only
+- modern frozen architecture only
+- move-only execution
+- no content redesign
+- no business changes
+- no governance changes
+- no UX changes
+- no planning changes
+- no development changes
+
+## 3. In Scope
+
+The following architecture documents are the only intended Wave 2 move candidates:
+
+- `docs/QIS_V2_ARCHITECTURE.md`
+- `docs/CROSS_CENTER_INTERACTION_ARCHITECTURE.md`
+- `docs/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`
+- `docs/BCVH_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md`
+- `docs/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`
+- `docs/ROUTE_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md`
+- `docs/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`
+- `docs/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md`
+- `docs/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`
+- `docs/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md`
+- `docs/ACTION_CENTER_INFORMATION_ARCHITECTURE.md`
+- `docs/ACTION_CENTER_SCREEN_ARCHITECTURE.md`
+
+These files are the modern frozen architecture layer and are the only files Wave 2 should move.
+
+## 4. Explicit Out of Scope
+
+The following groups are out of scope for Wave 2:
+
+- governance/core:
+  - `README_AI.md`
+  - `docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
+  - `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
+  - `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
+  - `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
+  - `docs/01_GOVERNANCE/PROJECT_DECISIONS.md`
+  - `docs/01_GOVERNANCE/DOCUMENT_INDEX.md`
+  - `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md`
+  - `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md`
+  - `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md`
+- UX:
+  - all `*_UX_ARCHITECTURE.md` files
+  - `docs/QIS_UX_DESIGN_PRINCIPLES.md`
+  - `docs/QIS_DESIGN_SYSTEM.md`
+- technical planning:
+  - `docs/RELEASE_PLANNING.md`
+  - `docs/EPIC_PLANNING.md`
+  - `docs/FEATURE_PLANNING.md`
+  - `docs/DEVELOPMENT_BACKLOG.md`
+  - `docs/IMPLEMENTATION_ARCHITECTURE.md`
+- development:
+  - all runtime code and implementation files
+- reviews:
+  - all `*_REVIEW.md` files
+- legacy / historical / reference-only material
+
+## 5. Target Folder Map
+
+Wave 2 target structure is architecture-only:
 
 - `docs/02_ARCHITECTURE/`
-- BCVH
-- Route
-- Shipment
-- Evidence
-- Action
-- Cross-center architecture docs
+  - `BCVH/`
+  - `ROUTE/`
+  - `SHIPMENT/`
+  - `EVIDENCE/`
+  - `ACTION/`
+  - `shared/`
 
-## 4. File Classification for Wave 2
+Proposed placement:
 
-| File Name | Current Path | Wave 2 Classification | Proposed Target |
-| --- | --- | --- | --- |
-| `PROJECT_CONTEXT.md` | `docs/00_README/PROJECT_CONTEXT.md` | `NO ACTION` | `No move in Wave 2` |
-| `readme.md` | `docs/00_README/readme.md` | `NO ACTION` | `No move in Wave 2` |
-| `AI_COLLABORATION_PROTOCOL.md` | `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | `KEEP` | `No move in Wave 2` |
-| `DOCUMENT_GOVERNANCE.md` | `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | `KEEP` | `No move in Wave 2` |
-| `DOCUMENT_INDEX.md` | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | `KEEP` | `No move in Wave 2` |
-| `DOCUMENT_LIFECYCLE.md` | `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | `KEEP` | `No move in Wave 2` |
-| `DOCUMENT_UPDATE_MATRIX.md` | `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | `KEEP` | `No move in Wave 2` |
-| `MASTER_START_PROMPT.md` | `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | `KEEP` | `No move in Wave 2` |
-| `PROJECT_CONTEXT.md` | `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | `KEEP` | `No move in Wave 2` |
-| `PROJECT_DECISIONS.md` | `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | `KEEP` | `No move in Wave 2` |
-| `PROJECT_HANDOVER.md` | `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | `KEEP` | `No move in Wave 2` |
-| `ARCH-001.md` | `docs/01_RULES/ARCH-001.md` | `NO ACTION` | `No move in Wave 2` |
-| `constitution.md` | `docs/01_RULES/constitution.md` | `NO ACTION` | `No move in Wave 2` |
-| `governance_rules.md` | `docs/01_RULES/governance_rules.md` | `NO ACTION` | `No move in Wave 2` |
-| `tech_architecture_rules.md` | `docs/01_RULES/tech_architecture_rules.md` | `NO ACTION` | `No move in Wave 2` |
-| `ui_ux_guidelines.md` | `docs/01_RULES/ui_ux_guidelines.md` | `NO ACTION` | `No move in Wave 2` |
-| `ai_architecture_map.md` | `docs/02_AI_CONTEXT/ai_architecture_map.md` | `NO ACTION` | `No move in Wave 2` |
-| `system_prompt.md` | `docs/02_AI_CONTEXT/system_prompt.md` | `NO ACTION` | `No move in Wave 2` |
-| `business_dictionary.md` | `docs/03_SHARED_BUSINESS/business_dictionary.md` | `NO ACTION` | `No move in Wave 2` |
-| `global_kpi_framework.md` | `docs/03_SHARED_BUSINESS/global_kpi_framework.md` | `NO ACTION` | `No move in Wave 2` |
-| `global_notification.md` | `docs/03_SHARED_BUSINESS/global_notification.md` | `NO ACTION` | `No move in Wave 2` |
-| `import_center_rules.md` | `docs/03_SHARED_BUSINESS/import_center_rules.md` | `NO ACTION` | `No move in Wave 2` |
-| `business_rules.md` | `docs/04_DOMAINS/_template_indicator/business_rules.md` | `NO ACTION` | `No move in Wave 2` |
-| `changelog.md` | `docs/04_DOMAINS/_template_indicator/changelog.md` | `NO ACTION` | `No move in Wave 2` |
-| `core_knowledge.md` | `docs/04_DOMAINS/_template_indicator/core_knowledge.md` | `NO ACTION` | `No move in Wave 2` |
-| `data_blueprint.md` | `docs/04_DOMAINS/_template_indicator/data_blueprint.md` | `NO ACTION` | `No move in Wave 2` |
-| `measurement.md` | `docs/04_DOMAINS/_template_indicator/measurement.md` | `NO ACTION` | `No move in Wave 2` |
-| `rca_ai_context.md` | `docs/04_DOMAINS/_template_indicator/rca_ai_context.md` | `NO ACTION` | `No move in Wave 2` |
-| `testing_scenarios.md` | `docs/04_DOMAINS/_template_indicator/testing_scenarios.md` | `NO ACTION` | `No move in Wave 2` |
-| `acceptance_criteria.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/acceptance_criteria.md` | `NO ACTION` | `No move in Wave 2` |
-| `analytical_patterns.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/analytical_patterns.md` | `NO ACTION` | `No move in Wave 2` |
-| `business_glossary.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/business_glossary.md` | `NO ACTION` | `No move in Wave 2` |
-| `business_rules.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/business_rules.md` | `NO ACTION` | `No move in Wave 2` |
-| `changelog.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/changelog.md` | `NO ACTION` | `No move in Wave 2` |
-| `core_knowledge.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/core_knowledge.md` | `NO ACTION` | `No move in Wave 2` |
-| `data_blueprint.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/data_blueprint.md` | `NO ACTION` | `No move in Wave 2` |
-| `executive_decision_guide.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/executive_decision_guide.md` | `NO ACTION` | `No move in Wave 2` |
-| `executive_scenarios.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/executive_scenarios.md` | `NO ACTION` | `No move in Wave 2` |
-| `faq_troubleshooting.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/faq_troubleshooting.md` | `NO ACTION` | `No move in Wave 2` |
-| `measurement.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/measurement.md` | `NO ACTION` | `No move in Wave 2` |
-| `rca_ai_context.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/rca_ai_context.md` | `NO ACTION` | `No move in Wave 2` |
-| `testing_scenarios.md` | `docs/04_DOMAINS/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/testing_scenarios.md` | `NO ACTION` | `No move in Wave 2` |
-| `api_contracts.md` | `docs/05_TECHNICAL_IMPLEMENTATION/api_contracts.md` | `NO ACTION` | `No move in Wave 2` |
-| `database_schema.md` | `docs/05_TECHNICAL_IMPLEMENTATION/database_schema.md` | `NO ACTION` | `No move in Wave 2` |
-| `deployment_infrastructure.md` | `docs/05_TECHNICAL_IMPLEMENTATION/deployment_infrastructure.md` | `NO ACTION` | `No move in Wave 2` |
-| `f1.3_technical_design_v1.0.md` | `docs/05_TECHNICAL_IMPLEMENTATION/f1.3_technical_design_v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | `docs/ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/ACTION/ or docs/03_UX/ACTION/` |
-| `ACTION_CENTER_SCREEN_ARCHITECTURE.md` | `docs/ACTION_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/ACTION/ or docs/03_UX/ACTION/` |
-| `ACTION_CENTER_UX_ARCHITECTURE.md` | `docs/ACTION_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/ACTION/ or docs/03_UX/ACTION/` |
-| `ACTION_CENTER_WIDGET_SPECIFICATION.md` | `docs/ACTION_CENTER_WIDGET_SPECIFICATION.md` | `MOVE` | `docs/02_ARCHITECTURE/ACTION/ or docs/03_UX/ACTION/` |
-| `API_DESIGN_v1.0.md` | `docs/API_DESIGN_v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `ARCHITECTURE_CONSISTENCY_REVIEW.md` | `docs/ARCHITECTURE_CONSISTENCY_REVIEW.md` | `NO ACTION` | `No move in Wave 2` |
-| `bcvh_operation_table_spec.md` | `docs/bcvh_operation_table_spec.md` | `MOVE` | `docs/02_ARCHITECTURE/BCVH/ or docs/03_UX/BCVH/` |
-| `BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | `docs/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/BCVH/ or docs/03_UX/BCVH/` |
-| `BCVH_PERFORMANCE_CENTER_REVIEW.md` | `docs/BCVH_PERFORMANCE_CENTER_REVIEW.md` | `MOVE` | `docs/02_ARCHITECTURE/BCVH/ or docs/03_UX/BCVH/` |
-| `BCVH_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | `docs/BCVH_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/BCVH/ or docs/03_UX/BCVH/` |
-| `BCVH_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | `docs/BCVH_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/BCVH/ or docs/03_UX/BCVH/` |
-| `BCVH_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` | `docs/BCVH_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` | `MOVE` | `docs/02_ARCHITECTURE/BCVH/ or docs/03_UX/BCVH/` |
-| `Constitution v1.0.md` | `docs/Constitution v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `CROSS_CENTER_INTERACTION_ARCHITECTURE.md` | `docs/CROSS_CENTER_INTERACTION_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/` |
-| `DASHBOARD_DESIGN_v1.0.md` | `docs/DASHBOARD_DESIGN_v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `DASHBOARD_FOUNDATION_REVIEW.md` | `docs/DASHBOARD_FOUNDATION_REVIEW.md` | `NO ACTION` | `No move in Wave 2` |
-| `DATABASE_DESIGN_v1.0.md` | `docs/DATABASE_DESIGN_v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `DEVELOPMENT_ARCHITECTURE_v1.0.md` | `docs/DEVELOPMENT_ARCHITECTURE_v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `DEVELOPMENT_BACKLOG.md` | `docs/DEVELOPMENT_BACKLOG.md` | `NO ACTION` | `No move in Wave 2` |
-| `DOCUMENTATION_ARCHITECTURE.md` | `docs/DOCUMENTATION_ARCHITECTURE.md` | `KEEP` | `No move in Wave 2` |
-| `DOCUMENTATION_AUDIT_REPORT.md` | `docs/DOCUMENTATION_AUDIT_REPORT.md` | `KEEP` | `No move in Wave 2` |
-| `DOCUMENTATION_CLEANUP_REPORT.md` | `docs/DOCUMENTATION_CLEANUP_REPORT.md` | `KEEP` | `No move in Wave 2` |
-| `DOCUMENTATION_MIGRATION_PLAN.md` | `docs/DOCUMENTATION_MIGRATION_PLAN.md` | `KEEP` | `No move in Wave 2` |
-| `DOCUMENTATION_VALIDATION_REPORT.md` | `docs/DOCUMENTATION_VALIDATION_REPORT.md` | `KEEP` | `No move in Wave 2` |
-| `ENVIRONMENT_ISOLATION_PLAN.md` | `docs/ENVIRONMENT_ISOLATION_PLAN.md` | `NO ACTION` | `No move in Wave 2` |
-| `EPIC_PLANNING.md` | `docs/EPIC_PLANNING.md` | `NO ACTION` | `No move in Wave 2` |
-| `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | `docs/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/EVIDENCE/ or docs/03_UX/EVIDENCE/` |
-| `EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` | `docs/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/EVIDENCE/ or docs/03_UX/EVIDENCE/` |
-| `EVIDENCE_CENTER_UX_ARCHITECTURE.md` | `docs/EVIDENCE_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/EVIDENCE/ or docs/03_UX/EVIDENCE/` |
-| `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` | `docs/EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` | `MOVE` | `docs/02_ARCHITECTURE/EVIDENCE/ or docs/03_UX/EVIDENCE/` |
-| `F1.3 DATA DICTIONARY v1.0.md` | `docs/F1.3/F1.3 DATA DICTIONARY v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `F1.3 MODULE SPECIFICATION v1.0.md` | `docs/F1.3/F1.3 MODULE SPECIFICATION v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `F13_303_DEFINITION.md` | `docs/F1.3/F13_303_DEFINITION.md` | `NO ACTION` | `No move in Wave 2` |
-| `FEATURE_PLANNING.md` | `docs/FEATURE_PLANNING.md` | `NO ACTION` | `No move in Wave 2` |
-| `FOLDER_DATA_STANDARD v1.0.md` | `docs/FOLDER_DATA_STANDARD v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `GAP_ANALYSIS_ADDENDUM_v1.0.md` | `docs/GAP_ANALYSIS_ADDENDUM_v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `GAP_ANALYSIS_v1.0.md` | `docs/GAP_ANALYSIS_v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `IMPLEMENTATION_ARCHITECTURE.md` | `docs/IMPLEMENTATION_ARCHITECTURE.md` | `NO ACTION` | `No move in Wave 2` |
-| `operation_center_spec.md` | `docs/operation_center_spec.md` | `NO ACTION` | `No move in Wave 2` |
-| `PROJECT_SSOT.md` | `docs/PROJECT_SSOT.md` | `KEEP` | `No move in Wave 2` |
-| `QIS_DESIGN_SYSTEM.md` | `docs/QIS_DESIGN_SYSTEM.md` | `NO ACTION` | `No move in Wave 2` |
-| `QIS_UX_DESIGN_PRINCIPLES.md` | `docs/QIS_UX_DESIGN_PRINCIPLES.md` | `NO ACTION` | `No move in Wave 2` |
-| `QIS_V2_ARCHITECTURE.md` | `docs/QIS_V2_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/` |
-| `quality_timeline_spec.md` | `docs/quality_timeline_spec.md` | `NO ACTION` | `No move in Wave 2` |
-| `RELEASE_PLANNING.md` | `docs/RELEASE_PLANNING.md` | `NO ACTION` | `No move in Wave 2` |
-| `RESEARCH_BASELINE_v1.0.md` | `docs/RESEARCH_BASELINE_v1.0.md` | `NO ACTION` | `No move in Wave 2` |
-| `ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | `docs/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/ROUTE/ or docs/03_UX/ROUTE/` |
-| `ROUTE_PERFORMANCE_CENTER_REVIEW.md` | `docs/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | `MOVE` | `docs/02_ARCHITECTURE/ROUTE/ or docs/03_UX/ROUTE/` |
-| `ROUTE_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | `docs/ROUTE_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/ROUTE/ or docs/03_UX/ROUTE/` |
-| `ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | `docs/ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/ROUTE/ or docs/03_UX/ROUTE/` |
-| `ROUTE_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` | `docs/ROUTE_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` | `MOVE` | `docs/02_ARCHITECTURE/ROUTE/ or docs/03_UX/ROUTE/` |
-| `rule_recommendation_spec.md` | `docs/rule_recommendation_spec.md` | `NO ACTION` | `No move in Wave 2` |
-| `SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | `docs/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/SHIPMENT/ or docs/03_UX/SHIPMENT/` |
-| `SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | `docs/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/SHIPMENT/ or docs/03_UX/SHIPMENT/` |
-| `SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | `docs/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `docs/02_ARCHITECTURE/SHIPMENT/ or docs/03_UX/SHIPMENT/` |
-| `SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` | `docs/SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` | `MOVE` | `docs/02_ARCHITECTURE/SHIPMENT/ or docs/03_UX/SHIPMENT/` |
-| `UI_ARCHITECTURE_PLAN.md` | `docs/UI_ARCHITECTURE_PLAN.md` | `NO ACTION` | `No move in Wave 2` |
-| `UX_CONSISTENCY_REVIEW.md` | `docs/UX_CONSISTENCY_REVIEW.md` | `NO ACTION` | `No move in Wave 2` |
-| `README.md` | `frontend/README.md` | `NO ACTION` | `No move in Wave 2` |
-| `PROJECT_PROGRESS.md` | `PROJECT_PROGRESS.md` | `KEEP` | `No move in Wave 2` |
-| `PROJECT_STATUS.md` | `PROJECT_STATUS.md` | `KEEP` | `No move in Wave 2` |
-| `README.md` | `README.md` | `NO ACTION` | `No move in Wave 2` |
-| `README_AI.md` | `README_AI.md` | `KEEP` | `No move in Wave 2` |
+- `docs/QIS_V2_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/`
+- `docs/CROSS_CENTER_INTERACTION_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/`
+- `docs/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/BCVH/`
+- `docs/BCVH_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/BCVH/`
+- `docs/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/ROUTE/`
+- `docs/ROUTE_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/ROUTE/`
+- `docs/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/SHIPMENT/`
+- `docs/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/SHIPMENT/`
+- `docs/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/EVIDENCE/`
+- `docs/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/EVIDENCE/`
+- `docs/ACTION_CENTER_INFORMATION_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/ACTION/`
+- `docs/ACTION_CENTER_SCREEN_ARCHITECTURE.md` -> `docs/02_ARCHITECTURE/ACTION/`
 
-## 5. Wave 2 Rules
+## 6. Definitive Classification Table
 
-- Archive instead of delete
-- No broken links
-- One wave per commit
-- Do not touch governance/core
-- Do not move files outside architecture scope
+| File | Current Classification | Wave 2 Action | Reason |
+|---|---|---|---|
+| `docs/QIS_V2_ARCHITECTURE.md` | MOVE | Move | Modern architecture root document |
+| `docs/CROSS_CENTER_INTERACTION_ARCHITECTURE.md` | MOVE | Move | Modern cross-center architecture |
+| `docs/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | MOVE | Move | Modern BCVH architecture |
+| `docs/BCVH_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | MOVE | Move | Modern BCVH architecture |
+| `docs/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | MOVE | Move | Modern Route architecture |
+| `docs/ROUTE_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | MOVE | Move | Modern Route architecture |
+| `docs/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | MOVE | Move | Modern Shipment architecture |
+| `docs/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` | MOVE | Move | Modern Shipment architecture |
+| `docs/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | MOVE | Move | Modern Evidence architecture |
+| `docs/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` | MOVE | Move | Modern Evidence architecture |
+| `docs/ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | MOVE | Move | Modern Action architecture |
+| `docs/ACTION_CENTER_SCREEN_ARCHITECTURE.md` | MOVE | Move | Modern Action architecture |
+| `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | KEEP | No action | Governance/core layer |
+| `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | KEEP | No action | Governance/core layer |
+| `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | KEEP | No action | Governance/core layer |
+| `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | KEEP | No action | Governance/core layer |
+| `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | KEEP | No action | Governance/core layer |
+| `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | KEEP | No action | Governance/core layer |
+| `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | KEEP | No action | Governance/core layer |
+| `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | KEEP | No action | Governance/core layer |
+| `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | KEEP | No action | Governance/core layer |
+| `README_AI.md` | KEEP | No action | Entry point must remain stable |
+| `docs/QIS_UX_DESIGN_PRINCIPLES.md` | REVIEW | No move | UX layer excluded from Wave 2 |
+| `docs/QIS_DESIGN_SYSTEM.md` | REVIEW | No move | UX layer excluded from Wave 2 |
+| `docs/RELEASE_PLANNING.md` | REVIEW | No move | Technical planning excluded |
+| `docs/EPIC_PLANNING.md` | REVIEW | No move | Technical planning excluded |
+| `docs/FEATURE_PLANNING.md` | REVIEW | No move | Technical planning excluded |
+| `docs/DEVELOPMENT_BACKLOG.md` | REVIEW | No move | Technical planning excluded |
+| `docs/IMPLEMENTATION_ARCHITECTURE.md` | REVIEW | No move | Technical planning excluded |
+| legacy docs and reference material | ARCHIVE | No move in Wave 2 | Out of scope for Wave 2 execution |
 
-## 6. Reference Update Strategy
+## 7. Move Only Boundary
 
-- Documents likely needing path updates after Wave 2 execution: active architecture docs that reference `docs/` root paths.
-- Documents that must remain untouched during Wave 2 execution: `README_AI.md`, `MASTER_START_PROMPT.md`, `DOCUMENT_INDEX.md`, `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, `AI_COLLABORATION_PROTOCOL.md`, `PROJECT_DECISIONS.md`, `PROJECT_STATUS.md`, `PROJECT_PROGRESS.md`.
-- Governance/core references should remain stable in this plan phase.
+Wave 2 must be executed as a move-only wave for the files listed in the in-scope section.
 
-## 7. Risk Analysis
+Wave 2 must not:
 
-- Broken links: architecture moves may create cross-center path drift if references are not updated in the same wave.
-- Authority conflicts: architecture docs must continue to defer to L1/L2 governance docs.
-- Entry-point drift: governance/core reading order must remain unchanged until a dedicated governance change is approved.
-- Legacy overlap: legacy reference trees may still coexist with modern architecture docs.
+- move governance/core files
+- move UX files
+- move planning files
+- move development files
+- move review files
+- rename files outside the approved move set
+- archive files outside the approved move set
+- delete files
+- change content semantics
 
-## 8. Approval Gate
+If a file is not in the in-scope list, Wave 2 execution must treat it as no-action unless Product Owner explicitly approves a separate wave.
 
-- Product Owner review required
-- Wave 2 execution only after explicit approval
+## 8. Reference Update Checklist
 
-## 9. Validation Plan
+If Wave 2 is approved and executed, then verify:
 
-After Wave 2 execution, validate:
-- all moved architecture document links
-- `README_AI.md` entry chain
-- `MASTER_START_PROMPT.md` reading order
-- `DOCUMENT_INDEX.md` inventory references
-- `PROJECT_HANDOVER.md` current snapshot references
-- `PROJECT_CONTEXT.md` continuation rule references
+- all internal links in moved architecture documents point to the new architecture paths
+- `README_AI.md` remains unchanged unless its quick links need path refresh after Wave 2 execution
+- `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` remains unchanged unless its reading order references moved architecture paths
+- `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` remains unchanged unless its snapshot references moved architecture paths
+- `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` remains unchanged unless its quick links reference moved architecture paths
+- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` remains unchanged in Wave 2 unless a separate governance update is approved
+- any architecture cross-reference in architecture docs is updated to the final target path
+- no governance/core link is altered unless the new path is required for direct navigation
 
-## 10. Recommendation
+## 9. Rollback and Validation Checklist
 
-Wave 2 is **not ready for execution yet** without explicit Product Owner approval.
-It is ready as a plan artifact, but execution should wait until the next approval gate and the wave 2 move list is reviewed against the current architecture chain.
+Before any Wave 2 execution:
 
-## Summary Counts
+- confirm the move list exactly matches the in-scope table
+- confirm no governance/core file is in the move set
+- confirm no UX/planning/development/review file is in the move set
+- confirm the target architecture folders exist or are created as part of the same approved wave
 
-| Classification | Count |
-| --- | --- |
-| KEEP | 18 |
-| MOVE | 25 |
-| ARCHIVE | 0 |
-| REVIEW | 66 |
-| NO ACTION | 66 |
+After any Wave 2 execution:
+
+- validate all moved files open from their new paths
+- validate `README_AI.md` still resolves to the correct start prompt path
+- validate `MASTER_START_PROMPT.md` still resolves to the current reading order
+- validate no broken links exist in the governance/core chain
+- validate no unexpected files changed outside the approved wave
+- validate the repository status matches the approved scope
+
+Rollback rule:
+
+- if any file lands outside the approved target map, stop and revert only the approved Wave 2 execution batch
+- do not broaden scope to fix unrelated issues without Product Owner approval
+
+## 10. Final Approval Gate
+
+Wave 2 execution requires explicit Product Owner approval.
+
+No execution is allowed before approval.
+
+If Product Owner does not approve:
+
+- Wave 2 remains blocked
+- no file move is allowed
+- no reference update is allowed
+- no cleanup validation is considered final
+
+## 11. Wave 2 Execution Readiness
+
+BLOCKED
+
+Reason:
+
+- the plan is now unambiguous and execution-shaped
+- actual execution still requires explicit Product Owner approval
+- until approval is granted, Wave 2 cannot be started
+
