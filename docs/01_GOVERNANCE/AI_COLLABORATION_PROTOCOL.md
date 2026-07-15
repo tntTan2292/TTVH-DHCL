@@ -14,6 +14,7 @@
 - [10. Communication Rules](#10-communication-rules)
 - [11. Handover Rules](#11-handover-rules)
 - [12. Golden Rules](#12-golden-rules)
+- [13. Ticket Completion Protocol](#13-ticket-completion-protocol)
 
 ## 1. Purpose
 
@@ -272,3 +273,76 @@ The new session must not rely on chat memory as the source of truth.
 8. Each ticket is isolated by scope.
 9. Review comes before the next center.
 10. ChatGPT and Codex must preserve continuity, not recreate history.
+
+## 13. Ticket Completion Protocol
+
+A Development Ticket is only considered `COMPLETED` when all of the following are satisfied:
+
+### 13.1 Source Code
+
+- Development is complete.
+
+### 13.2 Build
+
+- Build passes.
+
+### 13.3 Runtime Verification
+
+- Runtime passes, if runtime is part of the ticket scope.
+
+### 13.4 Review
+
+- Review passes.
+
+### 13.5 Documentation Synchronization
+
+Before committing, the following documents must be checked and updated if needed:
+
+- `README_AI.md`
+- `docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
+- `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
+- `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
+- `PROJECT_PROGRESS.md`
+- `PROJECT_STATUS.md` if the status changes
+- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` if documents are added or moved
+- the ticket's review document, if the ticket has a review document
+
+### 13.6 Current Project State
+
+The following state fields must remain accurate at completion time:
+
+- Current Phase
+- Current Ticket
+- Next Ticket
+- Development Status
+- Repository Status
+
+### 13.7 Commit Policy
+
+A commit must include the required delivery artifacts for the ticket, which may include:
+
+- Source code
+- Documentation update
+- Review update
+- Progress update
+
+Source code must not be committed if Documentation Synchronization has not been completed.
+
+### 13.8 Push Policy
+
+After push, the report must include:
+
+- Completed Ticket
+- Next Ticket
+- Documentation Updated
+- Repository Status
+- GitHub Commit URL
+- GitHub Blob URL of all updated documents
+
+### 13.9 Prompt Rule
+
+Future Development Prompts must follow this protocol by default.
+
+They may reference it succinctly with:
+
+`Follow Ticket Completion Protocol defined in AI_COLLABORATION_PROTOCOL.md`
