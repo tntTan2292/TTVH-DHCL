@@ -83,13 +83,21 @@ class F13DashboardClient {
      * API Contract: GET /evidence-list
      */
     getEvidenceList(date, bcvh, route, page, pageSize) {
-        return httpClient.get('/evidence-list', { 
+        return httpClient.get('/f13/evidence-list', { 
             date, 
             bcvh, 
             route, 
             page, 
             page_size: pageSize 
         });
+    }
+
+    /**
+     * API Contract: GET /evidence-list
+     * Shipment runtime reuses evidence-list as the shipment-level exception feed.
+     */
+    getShipmentEvidenceList(date, bcvh, route, page, pageSize) {
+        return this.getEvidenceList(date, bcvh, route, page, pageSize);
     }
 }
 
