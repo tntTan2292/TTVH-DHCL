@@ -44,7 +44,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Shipment information structure | Frozen | L3 | 2 | Low | Shipment widget/screen/UX docs |
 | `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Evidence information structure | Frozen | L3 | 2 | Low | Evidence widget/screen/UX docs |
 | `docs/02_ARCHITECTURE/ACTION/ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Action information structure | Frozen | L3 | 2 | Low | Action widget/screen/UX docs |
-| `docs/IMPLEMENTATION_ARCHITECTURE.md` | Architecture | Implementation bridge to development | Frozen | L2 | 2 | Low | release/epic/feature/backlog |
+| `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md` | Architecture | Implementation bridge to development | Frozen | L2 | 2 | Low | release/epic/feature/backlog |
 
 ## 3. UX
 
@@ -63,11 +63,11 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/RELEASE_PLANNING.md` | Technical Planning | Release sequencing | Frozen | L3 | 3 | Low | epic/feature planning |
-| `docs/EPIC_PLANNING.md` | Technical Planning | Epic breakdown | Frozen | L3 | 3 | Medium | release/feature/backlog |
-| `docs/FEATURE_PLANNING.md` | Technical Planning | Feature breakdown | Frozen | L3 | 3 | Medium | epic/backlog |
-| `docs/DEVELOPMENT_BACKLOG.md` | Technical Planning | Development ticket queue | Frozen | L3 | 3 | High | feature/implementation docs |
-| `docs/IMPLEMENTATION_ARCHITECTURE.md` | Technical Planning | Implementation structure | Frozen | L2 | 2 | Low | release/epic/feature/backlog |
+| `docs/04_TECHNICAL_PLANNING/Release/RELEASE_PLANNING.md` | Technical Planning | Release sequencing | Frozen | L3 | 3 | Low | epic/feature planning |
+| `docs/04_TECHNICAL_PLANNING/Epic/EPIC_PLANNING.md` | Technical Planning | Epic breakdown | Frozen | L3 | 3 | Medium | release/feature/backlog |
+| `docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md` | Technical Planning | Feature breakdown | Frozen | L3 | 3 | Medium | epic/backlog |
+| `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md` | Technical Planning | Development ticket queue | Frozen | L3 | 3 | High | feature/implementation docs |
+| `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md` | Technical Planning | Implementation structure | Frozen | L2 | 2 | Low | release/epic/feature/backlog |
 
 ## 5. Development
 

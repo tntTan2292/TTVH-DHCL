@@ -76,11 +76,11 @@ The following documents are frozen and should be treated as SSOT/architecture co
 - `docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md`
 - `docs/03_UX/shared/QIS_DESIGN_SYSTEM.md`
 - `docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md`
-- `docs/IMPLEMENTATION_ARCHITECTURE.md`
-- `docs/RELEASE_PLANNING.md`
-- `docs/EPIC_PLANNING.md`
-- `docs/FEATURE_PLANNING.md`
-- `docs/DEVELOPMENT_BACKLOG.md`
+- `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md`
+- `docs/04_TECHNICAL_PLANNING/Release/RELEASE_PLANNING.md`
+- `docs/04_TECHNICAL_PLANNING/Epic/EPIC_PLANNING.md`
+- `docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md`
+- `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md`
 - `docs/02_ARCHITECTURE/BCVH/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`
 - `docs/BCVH_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md`
 - `docs/02_ARCHITECTURE/BCVH/BCVH_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md`
@@ -169,11 +169,11 @@ Recommended reading order for a new ChatGPT/Codex/developer session:
 7. `docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md`
 8. `docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md`
 9. `docs/03_UX/shared/QIS_DESIGN_SYSTEM.md`
-10. `docs/IMPLEMENTATION_ARCHITECTURE.md`
-11. `docs/RELEASE_PLANNING.md`
-12. `docs/EPIC_PLANNING.md`
-13. `docs/FEATURE_PLANNING.md`
-14. `docs/DEVELOPMENT_BACKLOG.md`
+10. `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md`
+11. `docs/04_TECHNICAL_PLANNING/Release/RELEASE_PLANNING.md`
+12. `docs/04_TECHNICAL_PLANNING/Epic/EPIC_PLANNING.md`
+13. `docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md`
+14. `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md`
 15. Center-specific IA, Widget, Screen, and UX docs
 16. Center review docs
 
@@ -210,7 +210,7 @@ Current direction is the next center in the backlog sequence, with Shipment anal
 - [ ] Do not change Architecture Freeze
 - [ ] Do not change SSOT
 - [ ] Do not change EIDAF
-- [ ] Continue from the next ticket in `docs/DEVELOPMENT_BACKLOG.md`
+- [ ] Continue from the next ticket in `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md`
 
 ## 14. Quick Start
 

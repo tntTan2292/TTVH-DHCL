@@ -87,11 +87,11 @@ Supporting frozen documents include:
 - `docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md`
 - `docs/03_UX/shared/QIS_DESIGN_SYSTEM.md`
 - `docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md`
-- `docs/IMPLEMENTATION_ARCHITECTURE.md`
-- `docs/RELEASE_PLANNING.md`
-- `docs/EPIC_PLANNING.md`
-- `docs/FEATURE_PLANNING.md`
-- `docs/DEVELOPMENT_BACKLOG.md`
+- `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md`
+- `docs/04_TECHNICAL_PLANNING/Release/RELEASE_PLANNING.md`
+- `docs/04_TECHNICAL_PLANNING/Epic/EPIC_PLANNING.md`
+- `docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md`
+- `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md`
 - Center-specific IA, Widget, Screen, and UX documents for BCVH, Route, Shipment, Evidence, and Action
 - Review documents for completed centers and freeze packages
 
