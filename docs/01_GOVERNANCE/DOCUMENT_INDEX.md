@@ -10,6 +10,9 @@
 - [6. Governance](#6-governance)
 - [7. Handover](#7-handover)
 - [8. Reviews](#8-reviews)
+- [9. Reference](#9-reference)
+- [10. Archive](#10-archive)
+- [11. Reports](#11-reports)
 
 ## Index Legend
 
@@ -108,3 +111,31 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Route/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Route review result | Frozen | L3 | 2 | Low | Route docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |
 | `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` | Reviews | UX freeze review | Frozen | L2 | 2 | Low | UX docs |
+
+## 9. Reference
+
+| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `docs/07_REFERENCE/Shared_Business/business_dictionary.md` | Reference | Shared business terminology | Active | L4 | 4 | Low | business glossary, KPI docs |
+| `docs/07_REFERENCE/Shared_Business/global_kpi_framework.md` | Reference | Shared KPI framework | Active | L4 | 4 | Low | KPI decisions, dashboard docs |
+| `docs/07_REFERENCE/Shared_Business/import_center_rules.md` | Reference | Import center rules | Active | L4 | 4 | Low | import workflow docs |
+| `docs/07_REFERENCE/Legacy/API_DESIGN_v1.0.md` | Reference | Legacy API design reference | Deprecated | L4 | 4 | Low | legacy architecture docs |
+| `docs/07_REFERENCE/Legacy/F1.3/F13_303_DEFINITION.md` | Reference | Legacy F13.303 definition | Deprecated | L4 | 4 | Low | F1.3 domain reference |
+
+## 10. Archive
+
+| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `docs/08_ARCHIVE/Legacy/00_README/PROJECT_CONTEXT.md` | Archive | Archived project context | Archived | L4 | 5 | Low | legacy onboarding docs |
+| `docs/08_ARCHIVE/Legacy/01_RULES/constitution.md` | Archive | Archived governance rules | Archived | L4 | 5 | Low | legacy governance docs |
+| `docs/08_ARCHIVE/Legacy/02_AI_CONTEXT/system_prompt.md` | Archive | Archived system prompt | Archived | L4 | 5 | Low | legacy AI context docs |
+
+## 11. Reports
+
+| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_AUDIT_REPORT.md` | Reports | Documentation audit report | Active | L4 | 4 | Low | documentation governance docs |
+| `docs/09_REPORTS/Documentation/DOCUMENTATION_VALIDATION_REPORT.md` | Reports | Documentation validation report | Active | L4 | 4 | Low | documentation governance docs |
+| `docs/09_REPORTS/Documentation/GOVERNANCE_UPDATE_REPORT.md` | Reports | Governance update report | Active | L4 | 4 | Low | governance changes |
+| `docs/09_REPORTS/Documentation/AI_ONBOARDING_VALIDATION_REPORT.md` | Reports | AI onboarding validation report | Active | L4 | 4 | Low | onboarding docs |
+| `docs/09_REPORTS/Documentation/CODEX_PROMPT_STANDARD_REPORT.md` | Reports | Codex prompt standard report | Active | L4 | 4 | Low | governance/prompt docs |
