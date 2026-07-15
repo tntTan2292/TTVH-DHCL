@@ -55,6 +55,7 @@
 ## Danh Sách Tài Liệu Đang Thực Hiện
 
 - `Shipment Performance Center Executive Widgets: PASS`
+- `Shipment Performance Center Runtime Data Integration: PASS`
 
 ## Business Decisions Đã Freeze
 

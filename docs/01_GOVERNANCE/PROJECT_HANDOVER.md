@@ -25,7 +25,7 @@
 | Project Vision | `Decision Support System` for quality operations |
 | Business Goal | Standardize operational decision making with SSOT, runtime, and evidence-backed flow |
 | Current Development Phase | `Development` |
-| Current Development Status | `In Progress` |
+| Current Development Status | `Ready for Review` |
 | Current Architecture Status | `Frozen` |
 | Current UX Status | `Frozen` |
 | Current Technical Planning Status | `PASS` |
@@ -135,10 +135,10 @@ The following documents are frozen and should be treated as SSOT/architecture co
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TICKET-0052 Shipment Performance Center Executive Widgets` |
-| Current Commit | `3dd6812ef80d1d45a8ad261598cb498805eeaaf2` |
+| Current Ticket | `TICKET-0053 Shipment Performance Center Runtime Data Integration` |
+| Current Commit | `cf28443c85e6c2dff058d4dd1fcb4ce9de41b54e` |
 | Current Phase | `Development` |
-| Next Milestone | `TICKET-0053 Shipment Performance Center Runtime Data Integration` |
+| Next Milestone | `Shipment Performance Center Review workflow` |
 
 ## 8. Technical Debt
 
@@ -218,7 +218,7 @@ QIS V2 is a Decision Support System for TTVH quality operations.
 
 The architecture is frozen and already delivered through Dashboard, BCVH, Route, and Shipment shell foundations.
 
-Current work is in Development, with Shipment executive widgets completed and the current ticket being Shipment runtime integration.
+Current work is in Development, with Shipment runtime integration completed and the current ticket being Shipment runtime integration review workflow.
 
 The project uses SSOT-driven documents, not chat history, as the source of truth.
 

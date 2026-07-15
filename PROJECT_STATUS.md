@@ -22,7 +22,7 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `TICKET-0052 Shipment Performance Center Executive Widgets`
+- `TICKET-0053 Shipment Performance Center Runtime Data Integration`
 - `Development`
 - `Status: Completed`
 
@@ -32,7 +32,7 @@ Quy tắc cập nhật:
 - `M1-T1` - BCVH Ranking Recovery
 - `M1-T2.4` - BCVH Ranking Alignment Recovery
 - `TICKET-0051` - Shipment Performance Center Shell
-- `TICKET-0052` - Shipment Performance Center Executive Widgets
+- `TICKET-0053` - Shipment Performance Center Runtime Data Integration
 
 ## Current Progress
 
@@ -49,7 +49,7 @@ Quy tắc cập nhật:
 
 ## Next Ticket
 
-- `TICKET-0053 Shipment Performance Center Runtime Data Integration`
+- `Shipment Performance Center Review workflow`
 
 ## Notes
 
