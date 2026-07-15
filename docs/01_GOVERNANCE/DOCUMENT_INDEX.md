@@ -32,18 +32,18 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/PROJECT_SSOT.md` | Core | Single source of truth for decisions | Frozen | L1 | 1 | Low | `PROJECT_STATUS.md`, `PROJECT_PROGRESS.md`, all frozen docs |
 | `PROJECT_STATUS.md` | Core | Live project status log | Active | L2 | 1 | Medium | `PROJECT_PROGRESS.md`, `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` |
 | `PROJECT_PROGRESS.md` | Core | Live progress tracker | Active | L2 | 1 | Medium | `PROJECT_STATUS.md`, `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` |
-| `docs/QIS_V2_ARCHITECTURE.md` | Core | Project architecture baseline | Frozen | L2 | 2 | Low | cross-center, UX, planning docs |
+| `docs/02_ARCHITECTURE/QIS_V2_ARCHITECTURE.md` | Core | Project architecture baseline | Frozen | L2 | 2 | Low | cross-center, UX, planning docs |
 
 ## 2. Architecture
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/CROSS_CENTER_INTERACTION_ARCHITECTURE.md` | Architecture | Cross-center navigation and context rules | Frozen | L3 | 2 | Low | center IA docs |
-| `docs/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | BCVH information structure | Frozen | L3 | 2 | Low | BCVH widget/screen/UX docs |
-| `docs/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Route information structure | Frozen | L3 | 2 | Low | Route widget/screen/UX docs |
-| `docs/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Shipment information structure | Frozen | L3 | 2 | Low | Shipment widget/screen/UX docs |
-| `docs/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Evidence information structure | Frozen | L3 | 2 | Low | Evidence widget/screen/UX docs |
-| `docs/ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Action information structure | Frozen | L3 | 2 | Low | Action widget/screen/UX docs |
+| `docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md` | Architecture | Cross-center navigation and context rules | Frozen | L3 | 2 | Low | center IA docs |
+| `docs/02_ARCHITECTURE/BCVH/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | BCVH information structure | Frozen | L3 | 2 | Low | BCVH widget/screen/UX docs |
+| `docs/02_ARCHITECTURE/ROUTE/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Route information structure | Frozen | L3 | 2 | Low | Route widget/screen/UX docs |
+| `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Shipment information structure | Frozen | L3 | 2 | Low | Shipment widget/screen/UX docs |
+| `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Evidence information structure | Frozen | L3 | 2 | Low | Evidence widget/screen/UX docs |
+| `docs/02_ARCHITECTURE/ACTION/ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Action information structure | Frozen | L3 | 2 | Low | Action widget/screen/UX docs |
 | `docs/IMPLEMENTATION_ARCHITECTURE.md` | Architecture | Implementation bridge to development | Frozen | L2 | 2 | Low | release/epic/feature/backlog |
 
 ## 3. UX
