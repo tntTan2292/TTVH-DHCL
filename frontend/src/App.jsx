@@ -20,6 +20,7 @@ import SystemInformation from './pages/SystemInformation';
 import DashboardPage from './features/dashboard/DashboardPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
+import ShipmentPerformancePage from './features/shipment/ShipmentPerformancePage';
 import { PlaceholderPage } from './components/common/Containers';
 import { ErrorLayout } from './components/common/StateLayouts';
 
@@ -70,6 +71,7 @@ function App() {
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="ranking/bcvh" element={<BcvhRankingPage />} />
               <Route path="ranking/route" element={<RoutePerformancePage />} />
+              <Route path="ranking/shipment" element={<ShipmentPerformancePage />} />
               <Route path="pareto" element={<PlaceholderPage title="Pareto / RCA" />} />
               <Route path="evidence" element={<PlaceholderPage title="Evidence List" />} />
               <Route path="message" element={<PlaceholderPage title="Message Center" />} />
