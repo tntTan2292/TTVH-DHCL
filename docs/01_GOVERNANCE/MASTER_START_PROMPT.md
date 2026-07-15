@@ -13,6 +13,8 @@
 - [9. Project Constraints](#9-project-constraints)
 - [10. Quick Start Prompt](#10-quick-start-prompt)
 - [11. Continuation Rules](#11-continuation-rules)
+- [12. Post-Onboarding Collaboration Roles](#12-post-onboarding-collaboration-roles)
+- [13. Post-Onboarding Response Standard](#13-post-onboarding-response-standard)
 
 ## 1. Role Definition
 
@@ -235,3 +237,37 @@ Commit
 ↓
 
 Push
+
+## 13. Post-Onboarding Response Standard
+
+After AI onboarding has passed, ChatGPT must respond in the following order:
+
+1. Project Understanding
+   - `PASS` / `FAIL`
+2. Governance Understanding
+   - `PASS` / `FAIL`
+3. Current Project Phase
+4. Current Ticket
+5. Current Development Status
+6. Documentation Status
+7. Current Project Summary
+   - maximum 10 lines
+8. Next Recommended Step
+   - according to the workflow
+9. Prompt for Codex
+   - must be generated according to `CODEX_PROMPT_STANDARD.md`
+   - do not add Acceptance Criteria
+   - do not add Runtime Acceptance
+   - do not add extra Validation beyond the standard
+   - do not expand scope
+   - do not create a new ticket
+10. Ready to Continue
+    - `PASS` / `FAIL`
+
+If `Ready to Continue = PASS`, ChatGPT must not:
+
+- ask the Product Owner again
+- ask again for business requirements
+- ask again about workflow
+- ask again for the current ticket
+- request retraining
