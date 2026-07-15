@@ -85,7 +85,7 @@
 | `ACTION_CENTER_SCREEN_ARCHITECTURE.md` | `docs/ACTION_CENTER_SCREEN_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `ACTION_CENTER_UX_ARCHITECTURE.md` | `docs/ACTION_CENTER_UX_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
 | `ACTION_CENTER_WIDGET_SPECIFICATION.md` | `docs/ACTION_CENTER_WIDGET_SPECIFICATION.md` | `MOVE` | `Frozen` | `L4` | `MOVE` | `docs/02_ARCHITECTURE/<CENTER> or docs/03_UX/<CENTER>` |
-| `AI_COLLABORATION_PROTOCOL.md` | `docs/AI_COLLABORATION_PROTOCOL.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
+| `AI_COLLABORATION_PROTOCOL.md` | `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
 | `API_DESIGN_v1.0.md` | `docs/API_DESIGN_v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
 | `ARCHITECTURE_CONSISTENCY_REVIEW.md` | `docs/ARCHITECTURE_CONSISTENCY_REVIEW.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/06_REVIEWS/` |
 | `bcvh_operation_table_spec.md` | `docs/bcvh_operation_table_spec.md` | `REVIEW` | `Unknown` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
@@ -101,10 +101,10 @@
 | `DATABASE_DESIGN_v1.0.md` | `docs/DATABASE_DESIGN_v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
 | `DEVELOPMENT_ARCHITECTURE_v1.0.md` | `docs/DEVELOPMENT_ARCHITECTURE_v1.0.md` | `ARCHIVE` | `Unknown` | `L3` | `ARCHIVE` | `archive/` |
 | `DEVELOPMENT_BACKLOG.md` | `docs/DEVELOPMENT_BACKLOG.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/04_TECHNICAL_PLANNING/` |
-| `DOCUMENT_GOVERNANCE.md` | `docs/DOCUMENT_GOVERNANCE.md` | `KEEP` | `Active` | `L1` | `KEEP` | `KEEP` |
-| `DOCUMENT_INDEX.md` | `docs/DOCUMENT_INDEX.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
-| `DOCUMENT_LIFECYCLE.md` | `docs/DOCUMENT_LIFECYCLE.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
-| `DOCUMENT_UPDATE_MATRIX.md` | `docs/DOCUMENT_UPDATE_MATRIX.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
+| `DOCUMENT_GOVERNANCE.md` | `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | `KEEP` | `Active` | `L1` | `KEEP` | `KEEP` |
+| `DOCUMENT_INDEX.md` | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
+| `DOCUMENT_LIFECYCLE.md` | `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
+| `DOCUMENT_UPDATE_MATRIX.md` | `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
 | `DOCUMENTATION_ARCHITECTURE.md` | `docs/DOCUMENTATION_ARCHITECTURE.md` | `KEEP` | `Frozen` | `L3` | `KEEP` | `KEEP` |
 | `DOCUMENTATION_AUDIT_REPORT.md` | `docs/DOCUMENTATION_AUDIT_REPORT.md` | `KEEP` | `Frozen` | `L4` | `KEEP` | `KEEP` |
 | `ENVIRONMENT_ISOLATION_PLAN.md` | `docs/ENVIRONMENT_ISOLATION_PLAN.md` | `REVIEW` | `Unknown` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
@@ -121,11 +121,11 @@
 | `GAP_ANALYSIS_ADDENDUM_v1.0.md` | `docs/GAP_ANALYSIS_ADDENDUM_v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
 | `GAP_ANALYSIS_v1.0.md` | `docs/GAP_ANALYSIS_v1.0.md` | `ARCHIVE` | `Unknown` | `L4` | `ARCHIVE` | `archive/` |
 | `IMPLEMENTATION_ARCHITECTURE.md` | `docs/IMPLEMENTATION_ARCHITECTURE.md` | `MOVE` | `Frozen` | `L2` | `MOVE` | `docs/04_TECHNICAL_PLANNING/` |
-| `MASTER_START_PROMPT.md` | `docs/MASTER_START_PROMPT.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
+| `MASTER_START_PROMPT.md` | `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
 | `operation_center_spec.md` | `docs/operation_center_spec.md` | `REVIEW` | `Unknown` | `L4` | `REVIEW` | `docs/07_REFERENCE/` |
-| `PROJECT_CONTEXT.md` | `docs/PROJECT_CONTEXT.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
-| `PROJECT_DECISIONS.md` | `docs/PROJECT_DECISIONS.md` | `KEEP` | `Active` | `L1` | `KEEP` | `KEEP` |
-| `PROJECT_HANDOVER.md` | `docs/PROJECT_HANDOVER.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
+| `PROJECT_CONTEXT.md` | `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
+| `PROJECT_DECISIONS.md` | `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | `KEEP` | `Active` | `L1` | `KEEP` | `KEEP` |
+| `PROJECT_HANDOVER.md` | `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | `KEEP` | `Active` | `L2` | `KEEP` | `KEEP` |
 | `PROJECT_SSOT.md` | `docs/PROJECT_SSOT.md` | `KEEP` | `Frozen` | `L1` | `KEEP` | `KEEP` |
 | `QIS_DESIGN_SYSTEM.md` | `docs/QIS_DESIGN_SYSTEM.md` | `MOVE` | `Frozen` | `L4` | `MOVE` | `docs/03_UX/` |
 | `QIS_UX_DESIGN_PRINCIPLES.md` | `docs/QIS_UX_DESIGN_PRINCIPLES.md` | `MOVE` | `Frozen` | `L3` | `MOVE` | `docs/03_UX/` |

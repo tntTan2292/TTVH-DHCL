@@ -161,7 +161,7 @@ Open technical debt items captured in the current repo state:
 Recommended reading order for a new ChatGPT/Codex/developer session:
 
 1. `README`
-2. `docs/PROJECT_HANDOVER.md`
+2. `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
 3. `docs/PROJECT_SSOT.md`
 4. `PROJECT_STATUS.md`
 5. `PROJECT_PROGRESS.md`
@@ -204,7 +204,7 @@ Current direction is the next center in the backlog sequence, with Shipment anal
 
 ## 13. Handover Checklist
 
-- [ ] Read `docs/PROJECT_HANDOVER.md`
+- [ ] Read `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
 - [ ] Read `PROJECT_PROGRESS.md`
 - [ ] Read `PROJECT_STATUS.md`
 - [ ] Do not change Architecture Freeze

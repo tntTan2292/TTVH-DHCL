@@ -252,9 +252,9 @@ Product Owner must:
 
 When moving to a new ChatGPT session, it must read:
 
-1. `docs/PROJECT_HANDOVER.md`
-2. `docs/PROJECT_CONTEXT.md`
-3. `docs/AI_COLLABORATION_PROTOCOL.md`
+1. `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
+2. `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
+3. `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
 4. `PROJECT_STATUS.md`
 5. `PROJECT_PROGRESS.md`
 

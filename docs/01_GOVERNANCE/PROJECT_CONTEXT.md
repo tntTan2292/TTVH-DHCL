@@ -257,8 +257,8 @@ Current snapshot is based on `PROJECT_HANDOVER.md` and `PROJECT_PROGRESS.md`.
 
 A new ChatGPT / Codex session must read the following files before answering:
 
-1. `docs/PROJECT_HANDOVER.md`
-2. `docs/PROJECT_CONTEXT.md`
+1. `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
+2. `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
 3. `PROJECT_STATUS.md`
 4. `PROJECT_PROGRESS.md`
 

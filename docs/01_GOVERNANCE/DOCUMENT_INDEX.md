@@ -23,15 +23,15 @@
 ### Authority Resolution Rule
 
 If two documents conflict, always prefer the document with the higher Authority Level.
-If Authority Level is the same, use the lifecycle priority defined in `docs/DOCUMENT_GOVERNANCE.md`.
+If Authority Level is the same, use the lifecycle priority defined in `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md`.
 
 ## 1. Core
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `docs/PROJECT_SSOT.md` | Core | Single source of truth for decisions | Frozen | L1 | 1 | Low | `PROJECT_STATUS.md`, `PROJECT_PROGRESS.md`, all frozen docs |
-| `PROJECT_STATUS.md` | Core | Live project status log | Active | L2 | 1 | Medium | `PROJECT_PROGRESS.md`, `docs/PROJECT_HANDOVER.md` |
-| `PROJECT_PROGRESS.md` | Core | Live progress tracker | Active | L2 | 1 | Medium | `PROJECT_STATUS.md`, `docs/PROJECT_HANDOVER.md` |
+| `PROJECT_STATUS.md` | Core | Live project status log | Active | L2 | 1 | Medium | `PROJECT_PROGRESS.md`, `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` |
+| `PROJECT_PROGRESS.md` | Core | Live progress tracker | Active | L2 | 1 | Medium | `PROJECT_STATUS.md`, `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` |
 | `docs/QIS_V2_ARCHITECTURE.md` | Core | Project architecture baseline | Frozen | L2 | 2 | Low | cross-center, UX, planning docs |
 
 ## 2. Architecture
@@ -73,30 +73,30 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/DOCU
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/PROJECT_HANDOVER.md` | Development | High-level project handover | Active | L2 | 1 | Medium | context/protocol/decisions |
-| `docs/PROJECT_CONTEXT.md` | Development | Project context for new sessions | Active | L2 | 1 | Medium | handover/protocol/decisions |
-| `docs/AI_COLLABORATION_PROTOCOL.md` | Development | Collaboration protocol | Active | L2 | 1 | Medium | handover/context/decisions |
-| `docs/PROJECT_DECISIONS.md` | Development | Immutable decision log | Active | L1 | 1 | Medium | handover/context/protocol |
-| `docs/MASTER_START_PROMPT.md` | Development | Start prompt for new ChatGPT sessions | Active | L2 | 1 | Medium | handover/context/protocol/decisions |
+| `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Development | High-level project handover | Active | L2 | 1 | Medium | context/protocol/decisions |
+| `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Development | Project context for new sessions | Active | L2 | 1 | Medium | handover/protocol/decisions |
+| `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Development | Collaboration protocol | Active | L2 | 1 | Medium | handover/context/decisions |
+| `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Development | Immutable decision log | Active | L1 | 1 | Medium | handover/context/protocol |
+| `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Development | Start prompt for new ChatGPT sessions | Active | L2 | 1 | Medium | handover/context/protocol/decisions |
 
 ## 6. Governance
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/DOCUMENT_GOVERNANCE.md` | Governance | Document governance rules | Active | L1 | 1 | Low | index/lifecycle/matrix |
-| `docs/DOCUMENT_LIFECYCLE.md` | Governance | Document state transitions | Active | L2 | 1 | Low | governance/update matrix |
-| `docs/DOCUMENT_UPDATE_MATRIX.md` | Governance | Event-to-document update matrix | Active | L2 | 1 | Medium | governance/lifecycle |
-| `docs/DOCUMENT_INDEX.md` | Governance | Repository TOC | Active | L2 | 1 | Medium | all docs |
+| `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Governance | Document governance rules | Active | L1 | 1 | Low | index/lifecycle/matrix |
+| `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | Governance | Document state transitions | Active | L2 | 1 | Low | governance/update matrix |
+| `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | Governance | Event-to-document update matrix | Active | L2 | 1 | Medium | governance/lifecycle |
+| `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | Governance | Repository TOC | Active | L2 | 1 | Medium | all docs |
 
 ## 7. Handover
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/PROJECT_HANDOVER.md` | Handover | High-level project transfer document | Active | L2 | 1 | Medium | context/decisions/protocol |
-| `docs/PROJECT_CONTEXT.md` | Handover | Full project context | Active | L2 | 1 | Medium | handover/protocol/decisions |
-| `docs/AI_COLLABORATION_PROTOCOL.md` | Handover | AI coordination rules | Active | L2 | 1 | Medium | handover/context/decisions |
-| `docs/PROJECT_DECISIONS.md` | Handover | Frozen decision log | Active | L1 | 1 | Medium | handover/context/protocol |
-| `docs/MASTER_START_PROMPT.md` | Handover | New chat startup prompt | Active | L2 | 1 | Medium | all handover docs |
+| `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Handover | High-level project transfer document | Active | L2 | 1 | Medium | context/decisions/protocol |
+| `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Handover | Full project context | Active | L2 | 1 | Medium | handover/protocol/decisions |
+| `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Handover | AI coordination rules | Active | L2 | 1 | Medium | handover/context/decisions |
+| `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Handover | Frozen decision log | Active | L1 | 1 | Medium | handover/context/protocol |
+| `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Handover | New chat startup prompt | Active | L2 | 1 | Medium | all handover docs |
 
 ## 8. Reviews
 

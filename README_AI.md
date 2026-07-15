@@ -20,7 +20,7 @@ It is designed so any AI can onboard quickly, without guessing workflow or readi
 
 Every AI must:
 
-1. Read `docs/MASTER_START_PROMPT.md`
+1. Read `docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
 2. Then follow the Reading Order defined there
 
 ## 3. Operating Rules
@@ -54,14 +54,14 @@ After onboarding, AI must report:
 
 ## 6. Quick Links
 
-- `docs/MASTER_START_PROMPT.md`
-- `docs/DOCUMENT_INDEX.md`
-- `docs/DOCUMENT_GOVERNANCE.md`
-- `docs/DOCUMENT_UPDATE_MATRIX.md`
-- `docs/PROJECT_HANDOVER.md`
-- `docs/PROJECT_CONTEXT.md`
-- `docs/AI_COLLABORATION_PROTOCOL.md`
-- `docs/PROJECT_DECISIONS.md`
+- `docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
+- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md`
+- `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md`
+- `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md`
+- `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
+- `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
+- `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md`
+- `docs/01_GOVERNANCE/PROJECT_DECISIONS.md`
 - `PROJECT_STATUS.md`
 - `PROJECT_PROGRESS.md`
 
@@ -73,7 +73,7 @@ Every AI must start from:
 
 ↓
 
-`docs/MASTER_START_PROMPT.md`
+`docs/01_GOVERNANCE/MASTER_START_PROMPT.md`
 
 ↓
 
