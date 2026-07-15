@@ -24,8 +24,8 @@
 | Project Name | `TTVH Quality Intelligence System (QIS V2)` |
 | Project Vision | `Decision Support System` for quality operations |
 | Business Goal | Standardize operational decision making with SSOT, runtime, and evidence-backed flow |
-| Current Development Phase | `Development Ready` |
-| Current Development Status | `Ready for Development` |
+| Current Development Phase | `Development` |
+| Current Development Status | `In Progress` |
 | Current Architecture Status | `Frozen` |
 | Current UX Status | `Frozen` |
 | Current Technical Planning Status | `PASS` |
@@ -135,10 +135,10 @@ The following documents are frozen and should be treated as SSOT/architecture co
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TICKET-0051 Shipment Performance Center Shell` |
+| Current Ticket | `TICKET-0052 Shipment Performance Center Executive Widgets` |
 | Current Commit | `3dd6812ef80d1d45a8ad261598cb498805eeaaf2` |
 | Current Phase | `Development` |
-| Next Milestone | `TICKET-0052 Shipment Analysis Widgets` |
+| Next Milestone | `TICKET-0053 Shipment Performance Center Runtime Data Integration` |
 
 ## 8. Technical Debt
 
@@ -183,7 +183,7 @@ Recommended reading order for a new ChatGPT/Codex/developer session:
    - `Ban_do_mang_diem_phuc_vu_BDTP_Hue.html`
    - `Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html`
    - `ban_do_duong_giao_thong_bcvh_postman_06_2026.html`
-2. Shipment shell is complete, but runtime binding has not started.
+2. Shipment shell is complete, and executive widgets are now the active development focus.
 3. Evidence, Action, AI, and Report centers are still pending implementation.
 
 ## 12. Next Development Roadmap
@@ -200,7 +200,7 @@ AI
 Report
 ```
 
-Current direction is the next center in the backlog sequence, with Shipment analysis/runtime work first, followed by the remaining centers.
+Current direction is the next center in the backlog sequence, with Shipment executive/runtime work first, followed by the remaining centers.
 
 ## 13. Handover Checklist
 
@@ -218,7 +218,7 @@ QIS V2 is a Decision Support System for TTVH quality operations.
 
 The architecture is frozen and already delivered through Dashboard, BCVH, Route, and Shipment shell foundations.
 
-Current work is in Development, with Shipment shell completed and the next ticket being Shipment analysis/runtime work.
+Current work is in Development, with Shipment shell completed and the current ticket being Shipment executive widgets.
 
 The project uses SSOT-driven documents, not chat history, as the source of truth.
 

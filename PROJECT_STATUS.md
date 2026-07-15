@@ -16,21 +16,22 @@ Quy tắc cập nhật:
 
 ## Current Phase
 
-- `Development Ready`
+- `Development`
 - `QIS V2`
-- `Status: Ready for Development`
+- `Status: In Progress`
 
 ## Current Ticket
 
-- `N/A`
-- `Development Ready`
-- `Status: Ready for Development`
+- `TICKET-0052 Shipment Performance Center Executive Widgets`
+- `Development`
+- `Status: In Progress`
 
 ## Completed Tickets
 
 - `DOC-SSOT-01` - Create Project Master SSOT
 - `M1-T1` - BCVH Ranking Recovery
 - `M1-T2.4` - BCVH Ranking Alignment Recovery
+- `TICKET-0051` - Shipment Performance Center Shell
 
 ## Current Progress
 
@@ -47,7 +48,7 @@ Quy tắc cập nhật:
 
 ## Next Ticket
 
-- `Development kickoff`
+- `TICKET-0053 Shipment Performance Center Runtime Data Integration`
 
 ## Notes
 

@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-- `Development Ready`
+- `Development`
 
 ## % Hoàn Thành Theo Phase
 
@@ -26,6 +26,7 @@
 - Epic Planning: `PASS`
 - Feature Planning: `PASS`
 - Development Backlog: `PASS`
+- Shipment Shell: `PASS`
 
 ## Danh Sách Tài Liệu Đã Freeze
 
@@ -53,7 +54,7 @@
 
 ## Danh Sách Tài Liệu Đang Thực Hiện
 
-- `None`
+- `Shipment Performance Center Executive Widgets`
 
 ## Business Decisions Đã Freeze
 
@@ -80,7 +81,7 @@
 
 ## Next Phase
 
-- `Development Planning`
+- `Development`
 
 ## Architecture Readiness
 
@@ -104,4 +105,4 @@
 
 ## Development Backlog Readiness
 
-- `Ready for Development`
+- `In Progress`
