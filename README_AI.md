@@ -1,0 +1,86 @@
+# QIS V2 AI Entry Point
+
+## Table of Contents
+
+- [1. Purpose](#1-purpose)
+- [2. Mandatory Start](#2-mandatory-start)
+- [3. Operating Rules](#3-operating-rules)
+- [4. Expected Output](#4-expected-output)
+- [5. Current Repository Status](#5-current-repository-status)
+- [6. Quick Links](#6-quick-links)
+- [7. Golden Rule](#7-golden-rule)
+
+## 1. Purpose
+
+This repository belongs to QIS V2.
+
+It is designed so any AI can onboard quickly, without guessing workflow or reading random files.
+
+## 2. Mandatory Start
+
+Every AI must:
+
+1. Read `docs/MASTER_START_PROMPT.md`
+2. Then follow the Reading Order defined there
+
+## 3. Operating Rules
+
+AI must:
+
+- follow Governance
+- follow Authority Level
+- not change SSOT
+- not skip Reading Order
+- not change frozen documents
+- not infer business rules
+
+## 4. Expected Output
+
+After onboarding, AI must report:
+
+- Project Understanding
+- Governance Understanding
+- Current Project Status
+- Current Ticket
+- Ready to Continue
+
+## 5. Current Repository Status
+
+| Field | Value |
+| --- | --- |
+| Current Phase | `Development Ready` |
+| Current Ticket | `TICKET-0051 Shipment Performance Center Shell` |
+| Development Status | `Ready for Development` |
+
+## 6. Quick Links
+
+- `docs/MASTER_START_PROMPT.md`
+- `docs/DOCUMENT_INDEX.md`
+- `docs/DOCUMENT_GOVERNANCE.md`
+- `docs/DOCUMENT_UPDATE_MATRIX.md`
+- `docs/PROJECT_HANDOVER.md`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/AI_COLLABORATION_PROTOCOL.md`
+- `docs/PROJECT_DECISIONS.md`
+- `PROJECT_STATUS.md`
+- `PROJECT_PROGRESS.md`
+
+## 7. Golden Rule
+
+Every AI must start from:
+
+`README_AI.md`
+
+↓
+
+`docs/MASTER_START_PROMPT.md`
+
+↓
+
+Reading Order
+
+↓
+
+Current Ticket
+
+Do not skip any step.
