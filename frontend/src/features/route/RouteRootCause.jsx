@@ -1,7 +1,7 @@
 import { ShieldAlert, TrendingUp } from 'lucide-react';
 import { RouteShellCard } from './RouteShellShared';
 
-export default function RouteRootCause() {
+export default function RouteRootCause({ rootCauseItems = [], trendLabel = '7-day route pattern' }) {
   return (
     <div className="grid gap-5 xl:grid-cols-2">
       <RouteShellCard
@@ -11,9 +11,15 @@ export default function RouteRootCause() {
         actionLabel="Evidence"
       >
         <div className="space-y-2 text-sm text-[var(--color-text-muted)]">
-          <p>• Route root cause placeholder</p>
-          <p>• Evidence-linked card</p>
-          <p>• No backend dependency</p>
+          {rootCauseItems.length > 0 ? rootCauseItems.map((item) => (
+            <p key={item}>{item}</p>
+          )) : (
+            <>
+              <p>• Route root cause placeholder</p>
+              <p>• Evidence-linked card</p>
+              <p>• No backend dependency</p>
+            </>
+          )}
         </div>
       </RouteShellCard>
       <RouteShellCard
@@ -24,7 +30,7 @@ export default function RouteRootCause() {
       >
         <div className="rounded-xl bg-[var(--color-surface-50)] p-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium text-[var(--color-text-main)]">7-day route pattern</span>
+            <span className="font-medium text-[var(--color-text-main)]">{trendLabel}</span>
             <span className="text-[var(--color-text-muted)]">Shell</span>
           </div>
           <div className="mt-3 h-2 rounded-full bg-[var(--color-surface-200)]">

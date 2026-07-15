@@ -43,6 +43,40 @@ export default function RoutePerformancePage() {
   ]), [bcvhId, bcvhName, interval, search]);
 
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
+  const executiveContext = [
+    { label: 'BCVH', value: bcvhName },
+    { label: 'Interval', value: intervalLabel },
+    { label: 'Date Window', value: `${fromDate} → ${toDate}` },
+  ];
+  const impactItems = [
+    { label: 'Coverage', value: 'Runtime-safe shell' },
+    { label: 'Selection', value: bcvhId },
+  ];
+  const priorityItems = [
+    { label: 'Tuyến Phường Phú Hội', value: 'Priority placeholder' },
+    { label: 'Tuyến Phường Vĩnh Ninh', value: 'Priority placeholder' },
+    { label: 'Tuyến Phường Thuận Hòa', value: 'Priority placeholder' },
+  ];
+  const severityItems = [
+    { label: 'High', tone: 'red' },
+    { label: 'Medium', tone: 'amber' },
+    { label: 'Low', tone: 'green' },
+    { label: 'N/A', tone: 'neutral' },
+  ];
+  const rootCauseItems = [
+    '• Route root cause placeholder',
+    '• Evidence-linked card',
+    '• No backend dependency',
+  ];
+  const recommendationItems = [
+    { label: 'Ưu tiên xử lý', value: 'Shell-safe recommendation text' },
+    { label: 'Lý do', value: 'Demo rationale only' },
+  ];
+  const drilldownContext = [
+    `BCVH context: ${bcvhName}`,
+    `Interval: ${intervalLabel}`,
+    `Date window: ${fromDate} → ${toDate}`,
+  ];
 
   return (
     <PageContainer
@@ -94,32 +128,36 @@ export default function RoutePerformancePage() {
           fromDate={fromDate}
           toDate={toDate}
           bcvhName={bcvhName}
-          intervalLabel={intervalLabel}
+          executiveContext={executiveContext}
+          impactItems={impactItems}
         />
 
         <SectionHeader
           title="Priority Analysis Area"
           subtitle="Khối ưu tiên tuyến cần điều hành trước."
         />
-        <RoutePriorityAnalysis />
+        <RoutePriorityAnalysis priorityItems={priorityItems} severityItems={severityItems} />
 
         <SectionHeader
           title="Root Cause Area"
           subtitle="Khối truy vết nguyên nhân và pattern theo tuyến."
         />
-        <RouteRootCause />
+        <RouteRootCause rootCauseItems={rootCauseItems} trendLabel={`Route trend window: ${fromDate} → ${toDate}`} />
 
         <SectionHeader
           title="Recommendation Area"
           subtitle="Khối khuyến nghị và điều hướng xuống Shipment."
         />
-        <RouteRecommendation />
+        <RouteRecommendation
+          recommendationItems={recommendationItems}
+          drilldownLabel="Mở Shipment Performance Center"
+        />
 
         <SectionHeader
           title="Shipment Drill-down Area"
           subtitle="Khu điều hướng sang Shipment Performance Center."
         />
-        <RouteDrilldown />
+        <RouteDrilldown drilldownContext={drilldownContext} />
       </div>
     </PageContainer>
   );

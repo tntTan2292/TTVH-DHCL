@@ -1,6 +1,6 @@
 import { EmptyState, CardContainer } from '../../components/shared/SharedComponents';
 
-export default function RouteDrilldown() {
+export default function RouteDrilldown({ drilldownContext = [] }) {
   return (
     <div className="grid gap-5 xl:grid-cols-3">
       <CardContainer title="Shipment Drill-down">
@@ -12,7 +12,9 @@ export default function RouteDrilldown() {
       <CardContainer title="Navigation Map">
         <div className="space-y-3 text-sm text-[var(--color-text-muted)]">
           <p>Dashboard → BCVH Performance Center → Route Performance Center → Shipment Performance Center</p>
-          <p>Context hiện tại chỉ là shell, chưa truyền dữ liệu nghiệp vụ.</p>
+          {drilldownContext.length > 0 ? drilldownContext.map((item) => (
+            <p key={item}>{item}</p>
+          )) : <p>Context hiện tại chỉ là shell, chưa truyền dữ liệu nghiệp vụ.</p>}
         </div>
       </CardContainer>
       <CardContainer title="Shared Layout Integration">
