@@ -35,18 +35,18 @@ async function setup() {
     await run("DELETE FROM import_log WHERE ngay_do_kiem LIKE '2099-07-%'");
 
     const rows = [
-        { ma_bg: 'BG-1', ma_bcvh: 'BC01', ten_bcvh: 'BC 01', ma_tuyen: 'T01', ten_tuyen: 'Tuyen 01', ket_qua_f13: 'Đạt', ngay_do_kiem: '2099-07-01' },
-        { ma_bg: 'BG-2', ma_bcvh: 'BC01', ten_bcvh: 'BC 01', ma_tuyen: 'T01', ten_tuyen: 'Tuyen 01', ket_qua_f13: 'Không đạt', ngay_do_kiem: '2099-07-01' },
-        { ma_bg: 'BG-3', ma_bcvh: 'BC02', ten_bcvh: 'BC 02', ma_tuyen: 'T02', ten_tuyen: 'Tuyen 02', ket_qua_f13: 'Đạt', ngay_do_kiem: '2099-07-03' },
-        { ma_bg: 'BG-4', ma_bcvh: 'BC02', ten_bcvh: 'BC 02', ma_tuyen: 'T02', ten_tuyen: 'Tuyen 02', ket_qua_f13: 'Đạt', ngay_do_kiem: '2099-07-03' },
-        { ma_bg: 'BG-5', ma_bcvh: 'BC02', ten_bcvh: 'BC 02', ma_tuyen: 'T02', ten_tuyen: 'Tuyen 02', ket_qua_f13: 'Không đạt', ngay_do_kiem: '2099-07-03' }
+        { ma_bg: 'BG-1', ma_bcvh: 'BC01', ten_bcvh: 'BC 01', ma_tuyen: 'T01', ten_tuyen: 'Tuyen 01', ket_qua_f13: 'Đạt', danh_gia_2026: 'Không đạt', ngay_do_kiem: '2099-07-01' },
+        { ma_bg: 'BG-2', ma_bcvh: 'BC01', ten_bcvh: 'BC 01', ma_tuyen: 'T01', ten_tuyen: 'Tuyen 01', ket_qua_f13: 'Không đạt', danh_gia_2026: 'Đạt', ngay_do_kiem: '2099-07-01' },
+        { ma_bg: 'BG-3', ma_bcvh: 'BC02', ten_bcvh: 'BC 02', ma_tuyen: 'T02', ten_tuyen: 'Tuyen 02', ket_qua_f13: 'Không đạt', danh_gia_2026: 'Đạt', ngay_do_kiem: '2099-07-03' },
+        { ma_bg: 'BG-4', ma_bcvh: 'BC02', ten_bcvh: 'BC 02', ma_tuyen: 'T02', ten_tuyen: 'Tuyen 02', ket_qua_f13: 'Đạt', danh_gia_2026: 'Đạt', ngay_do_kiem: '2099-07-03' },
+        { ma_bg: 'BG-5', ma_bcvh: 'BC02', ten_bcvh: 'BC 02', ma_tuyen: 'T02', ten_tuyen: 'Tuyen 02', ket_qua_f13: 'Đạt', danh_gia_2026: null, ngay_do_kiem: '2099-07-03' }
     ];
 
     for (const row of rows) {
         await run(
-            `INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh, ten_bcvh, ma_tuyen, ten_tuyen, ket_qua_f13)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [row.ngay_do_kiem, row.ma_bg, row.ma_bcvh, row.ten_bcvh, row.ma_tuyen, row.ten_tuyen, row.ket_qua_f13]
+            `INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh, ten_bcvh, ma_tuyen, ten_tuyen, ket_qua_f13, danh_gia_2026)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [row.ngay_do_kiem, row.ma_bg, row.ma_bcvh, row.ten_bcvh, row.ma_tuyen, row.ten_tuyen, row.ket_qua_f13, row.danh_gia_2026]
         );
     }
 
@@ -78,7 +78,7 @@ async function runTests() {
 
     const day1 = items[0];
     assert('Day 1 total_volume = 2', day1.total_volume === 2);
-    assert('Day 1 passed = 1', day1.passed === 1);
+    assert('Day 1 passed uses KPI 2026 column = 1', day1.passed === 1);
     assert('Day 1 failed = 1', day1.failed === 1);
     assert('Day 1 quality_rate = 50.0000', day1.quality_rate === 50);
     assert('Day 1 data_available = true', day1.data_available === true);
@@ -92,8 +92,8 @@ async function runTests() {
 
     const day3 = items[2];
     assert('Day 3 total_volume = 3', day3.total_volume === 3);
-    assert('Day 3 passed = 2', day3.passed === 2);
-    assert('Day 3 failed = 1', day3.failed === 1);
+    assert('Day 3 passed uses KPI 2026 column = 2', day3.passed === 2);
+    assert('Day 3 failed uses KPI 2026 column = 0', day3.failed === 0);
     assert('Day 3 quality_rate = 66.6667', day3.quality_rate === 66.6667);
 
     const filtered = await factRepo.getDailyTrendData('2099-07-01', '2099-07-03', { bcvhId: 'BC01' });

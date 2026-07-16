@@ -301,8 +301,8 @@ class FactBuuGuiRepository {
                     SELECT
                         ngay_do_kiem AS date_value,
                         COUNT(*) AS total_volume,
-                        SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                        SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) AS failed
+                        SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
+                        SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
                     FROM fact_f13
                     WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                     ${bcvhClause}

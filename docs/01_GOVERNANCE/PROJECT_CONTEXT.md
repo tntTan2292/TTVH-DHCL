@@ -249,8 +249,8 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Technical Planning Status | `PASS` |
 | Technical Status | `PASS` |
 | Runtime Status | `PASS` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `NOT READY` |
+| PO UI Check Required | `No` |
+| PO Product Status | `NOT REQUIRED` |
 | Dashboard | `PASS` |
 | BCVH | `PASS` |
 | Route | `PASS` |
@@ -259,9 +259,9 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline` |
-| Current Commit | `f0c01cd870fa3fe4d5a8d51efee965c54a64ed72` |
-| Next Milestone | `TODAY-004 Volume Trendline` |
+| Current Ticket | `TODAY-002-R1 KPI 2026 Source Column Recovery` |
+| Current Commit | `0c08d53` |
+| Next Milestone | `TODAY-003 Quality Delivery Rate Trendline` |
 
 Current PO gate rule:
 

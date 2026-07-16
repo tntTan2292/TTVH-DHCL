@@ -36,9 +36,9 @@ CREATE TABLE IF NOT EXISTS f13_fact_buu_gui (
 );
 
 -- Index cho f13_fact_buu_gui để tối ưu phân tích đa chiều
-CREATE INDEX IF NOT EXISTS idx_ngay_do_kiem ON f13_fact_buu_gui(ngay_do_kiem, ket_qua_f13);
-CREATE INDEX IF NOT EXISTS idx_bcvh_ngay ON f13_fact_buu_gui(ngay_do_kiem, ma_bcvh, ket_qua_f13);
-CREATE INDEX IF NOT EXISTS idx_tuyen_ngay ON f13_fact_buu_gui(ngay_do_kiem, ma_bcvh, ma_tuyen, ket_qua_f13);
+CREATE INDEX IF NOT EXISTS idx_ngay_do_kiem ON f13_fact_buu_gui(ngay_do_kiem, danh_gia_2026);
+CREATE INDEX IF NOT EXISTS idx_bcvh_ngay ON f13_fact_buu_gui(ngay_do_kiem, ma_bcvh, danh_gia_2026);
+CREATE INDEX IF NOT EXISTS idx_tuyen_ngay ON f13_fact_buu_gui(ngay_do_kiem, ma_bcvh, ma_tuyen, danh_gia_2026);
 CREATE INDEX IF NOT EXISTS idx_session_id ON f13_fact_buu_gui(session_id);
 
 -- 3. View: v_f13_dim_bcvh

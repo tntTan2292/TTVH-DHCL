@@ -96,8 +96,8 @@ CREATE TABLE IF NOT EXISTS fact_f13 (
 );
 
 -- Indexes (Pre-existing covering indexes)
-CREATE INDEX IF NOT EXISTS idx_f13_date_bcvh_covering ON fact_f13(ngay_do_kiem, ma_bcvh, ket_qua_f13);
-CREATE INDEX IF NOT EXISTS idx_f13_date_tuyen_covering ON fact_f13(ngay_do_kiem, ma_tuyen, ket_qua_f13);
+CREATE INDEX IF NOT EXISTS idx_f13_date_bcvh_covering ON fact_f13(ngay_do_kiem, ma_bcvh, danh_gia_2026);
+CREATE INDEX IF NOT EXISTS idx_f13_date_tuyen_covering ON fact_f13(ngay_do_kiem, ma_tuyen, danh_gia_2026);
 
 -- Indexes (Technical Design 1.3)
 CREATE INDEX IF NOT EXISTS idx_ngay_do_kiem ON fact_f13(ngay_do_kiem);

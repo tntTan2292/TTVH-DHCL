@@ -151,7 +151,7 @@ Open technical debt items captured in the current repo state:
 1. Route drill-down to Shipment is contract-prepared, and Shipment runtime integration has passed review.
 2. Route and BCVH runtime pages use fallback summary surfaces when optional meta fields are missing.
 3. Evidence, Action, AI, and Report centers are the next implementation layers.
-4. TODAY-001 import delivery has PO PASS and is closed; TODAY-002 Daily Trend Data Adapter is now completed and the current active work is TODAY-003 Quality Delivery Rate Trendline.
+4. TODAY-001 import delivery has PO PASS and is closed; TODAY-002 Daily Trend Data Adapter is completed, and the current recovery work is TODAY-002-R1 KPI 2026 Source Column Recovery before TODAY-003 resumes.
 5. Untracked HTML artifacts remain in the working tree and are unrelated to the architecture/development flow.
 
 ## 9. Known Risks
