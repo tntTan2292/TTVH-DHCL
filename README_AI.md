@@ -50,10 +50,10 @@ After onboarding, AI must report:
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-002 Daily Trend Data Adapter` |
+| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline` |
 | Development Status | `Ready for Development` |
 | PO UI Check Required | `No` |
-| PO Product Status | `NOT REQUIRED` |
+| PO Product Status | `NOT READY` |
 | Documentation Status | `TODAY-001 PO PASS closure synced` |
 | AI Onboarding Status | `Ready` |
 | Last Validation | `TODAY-001 Import Daily Data Verification PO PASS; R1 and R2 closed` |

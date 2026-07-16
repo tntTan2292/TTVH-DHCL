@@ -116,9 +116,9 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TODAY-002 Daily Trend Data Adapter` |
-| Current Commit | `Closure commit: current repository HEAD after this docs sync` |
+| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline` |
+| Current Commit | `ba34d9170c107fa2f99e6ef5960b172d6addbb97` |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Next Milestone | `TODAY-002 Daily Trend Data Adapter` |
-| PO UI Check Required | `No` |
-| PO Product Status | `NOT REQUIRED` |
+| Next Milestone | `TODAY-004 Volume Trendline` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `NOT READY` |

@@ -259,9 +259,9 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `TODAY-002 Daily Trend Data Adapter` |
-| Current Commit | `Closure commit: current repository HEAD after this docs sync` |
-| Next Milestone | `TODAY-002 Daily Trend Data Adapter` |
+| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline` |
+| Current Commit | `ba34d9170c107fa2f99e6ef5960b172d6addbb97` |
+| Next Milestone | `TODAY-004 Volume Trendline` |
 
 Current PO gate rule:
 

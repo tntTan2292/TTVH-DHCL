@@ -139,10 +139,10 @@ The following documents are frozen and should be treated as SSOT/architecture co
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TODAY-002 Daily Trend Data Adapter` |
-| Current Commit | `Closure commit: current repository HEAD after this docs sync` |
+| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline` |
+| Current Commit | `ba34d9170c107fa2f99e6ef5960b172d6addbb97` |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Next Milestone | `TODAY-002 Daily Trend Data Adapter` |
+| Next Milestone | `TODAY-004 Volume Trendline` |
 
 ## 8. Technical Debt
 

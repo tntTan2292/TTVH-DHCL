@@ -22,7 +22,7 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `TODAY-002 Daily Trend Data Adapter`
+- `TODAY-003 Quality Delivery Rate Trendline`
 - `Dashboard Delivery`
 - `Status: Ready for Development`
 
@@ -55,13 +55,14 @@ Quy tắc cập nhật:
 - Shipment Performance Center Review: `PASS`
 - PO UI Acceptance Governance: `PASS`
 - TODAY-001 Import Delivery: `MODULE COMPLETED / PO PASS`
+- TODAY-002 Daily Trend Data Adapter: `COMPLETED`
 - PO findings from TODAY-001: `CLOSED`
 - PO UI Check Required: `No`
-- PO Product Status: `NOT REQUIRED`
+- PO Product Status: `NOT READY`
 
 ## Next Ticket
 
-- `TODAY-003 Quality Delivery Rate Trendline`
+- `TODAY-004 Volume Trendline`
 
 ## Notes
 
