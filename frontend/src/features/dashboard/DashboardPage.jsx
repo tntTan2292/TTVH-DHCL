@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import api from '../../api/client';
 import {
   PageContainer,
   SectionHeader,
@@ -24,9 +26,23 @@ const BCVH_OPTIONS = [
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [latestDate, setLatestDate] = useState(null);
 
-  const fromDate = searchParams.get('from_date') || '2026-06-23';
-  const toDate = searchParams.get('to_date') || '2026-06-23';
+  useEffect(() => {
+    api.get('/f13/dashboard/meta')
+      .then((res) => {
+        if (res.data.success && res.data.data.max_date) {
+          setLatestDate(res.data.data.max_date);
+        }
+      })
+      .catch((error) => {
+        console.error('[DashboardPage] meta error:', error);
+      });
+  }, []);
+
+  const defaultDate = latestDate || '2026-07-15';
+  const fromDate = searchParams.get('from_date') || defaultDate;
+  const toDate = searchParams.get('to_date') || defaultDate;
   const interval = searchParams.get('interval') || 'daily';
   const kpi = searchParams.get('kpi') || 'all';
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
@@ -61,6 +77,7 @@ export default function DashboardPage() {
         <GlobalFilterBar
           fromDate={fromDate}
           toDate={toDate}
+          maxDate={latestDate || defaultDate}
           onFromDateChange={(value) => updateParam('from_date', value)}
           onToDateChange={(value) => updateParam('to_date', value)}
           kpiValue={kpi}
