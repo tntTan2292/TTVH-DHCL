@@ -15,6 +15,8 @@
 - [11. Validation](#11-validation)
 - [12. Expected Output](#12-expected-output)
 - [13. Next Ticket](#13-next-ticket)
+- [14. PO Acceptance Checklist](#14-po-acceptance-checklist)
+- [15. Authority Escalation](#15-authority-escalation)
 
 ## 1. Ticket Information
 
@@ -103,7 +105,22 @@ List only the documents directly relevant to this ticket.
 - Next ticket name:
 - Blockers or handoff notes:
 
-## 14. Authority Escalation
+## 14. PO Acceptance Checklist
+
+If `PO UI Check Required = Yes`, include or link the ticket-specific PO acceptance checklist here.
+
+- Checklist document:
+- PO purpose:
+- Screen URL:
+- Data conditions:
+- Step-by-step checks:
+- PASS / WARNING / FAIL criteria:
+- Follow-up action after PASS:
+- Follow-up action after WARNING:
+- Follow-up action after FAIL:
+- Documents to update per result:
+
+## 15. Authority Escalation
 
 Escalate instead of guessing when:
 
