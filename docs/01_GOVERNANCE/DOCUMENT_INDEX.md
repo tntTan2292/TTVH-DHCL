@@ -83,6 +83,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md` | Governance | PO UI acceptance workflow | Active | L2 | 1 | Medium | prompt standard, findings register |
 | `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Development | Immutable decision log | Active | L1 | 1 | Medium | handover/context/protocol |
 | `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Development | Start prompt for new ChatGPT sessions | Active | L2 | 1 | Medium | handover/context/protocol/decisions |
+| `docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md` | Governance | Codex documentation workflow standard | Active | L2 | 1 | Medium | README_AI.md, PROJECT_SNAPSHOT.md, manifests |
 | `docs/01_GOVERNANCE/GOVERNANCE_V2_DESIGN.md` | Governance | Governance V2 onboarding design and compatibility plan | Active | L2 | 2 | Medium | PROJECT_SNAPSHOT.md, ticket manifests, onboarding docs |
 
 ## 6. Governance

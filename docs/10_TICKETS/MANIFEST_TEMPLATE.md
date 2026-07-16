@@ -42,6 +42,7 @@ List only the documents directly relevant to this ticket.
 
 - `README_AI.md`
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
+- `docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md` when the ticket changes documentation workflow
 - active ticket review document
 - related PO findings register rows or closure docs
 - any ticket-specific implementation or evidence docs
@@ -81,6 +82,7 @@ List only the documents directly relevant to this ticket.
 ## 10. Documents To Update
 
 - Required updates for this ticket:
+- `docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md` if the ticket changes Codex documentation workflow
 
 ## 11. Validation
 
@@ -100,4 +102,3 @@ List only the documents directly relevant to this ticket.
 - Next ticket ID:
 - Next ticket name:
 - Blockers or handoff notes:
-
