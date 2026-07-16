@@ -115,9 +115,9 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TODAY-001-R1 Import Runtime Route and Reimport Recovery` |
-| Current Commit | `c66e992` |
+| Current Ticket | `TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery` |
+| Current Commit | `be6d96c` |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Next Milestone | `PO recheck for TODAY-001-R1, then TODAY-002 Daily Trend Data Adapter` |
+| Next Milestone | `PO recheck for TODAY-001-R2, then TODAY-002 Daily Trend Data Adapter` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `READY FOR PO RECHECK` |

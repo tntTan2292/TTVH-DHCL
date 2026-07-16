@@ -259,9 +259,9 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `TODAY-001-R1 Import Runtime Route and Reimport Recovery` |
-| Current Commit | `c66e992` |
-| Next Milestone | `PO recheck for TODAY-001-R1, then TODAY-002 Daily Trend Data Adapter` |
+| Current Ticket | `TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery` |
+| Current Commit | `be6d96c` |
+| Next Milestone | `PO recheck for TODAY-001-R2, then TODAY-002 Daily Trend Data Adapter` |
 
 Current PO gate rule:
 

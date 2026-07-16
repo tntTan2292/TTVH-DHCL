@@ -56,7 +56,19 @@ The following queue is the current PO-prioritized delivery order for leadership 
 - Affected Screen / Menu: Import screen
 - Business Impact: Establishes daily data availability for leadership reporting.
 - Expected Visible Result: Upload succeeds, import status is visible, file name and data date are correct, shipment count is visible, skipped/error counts are visible, and latest import timestamp updates.
-- Blocking Issue: Blocks all Dashboard trend tickets.
+- Blocking Issue: Blocks all Dashboard trend tickets until `TODAY-001-R2` receives PO PASS.
+
+#### TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery
+
+- Module: Data Import Center
+- Route / URL: `/import`
+- Goal: Restore PO acceptance by adding server-side import history pagination and correcting import timestamp display to Vietnam time.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: System Administration -> Data Import Center
+- Business Impact: Allows ADMIN to review complete import history and trust import timestamps during daily validation.
+- Expected Visible Result: Import history supports 20/50/100 rows, Previous/Next pagination, visible total count, newest import first, and latest/table timestamps displayed in Vietnam time.
+- Related PO Findings: `POF-TODAY-001-02`, `POF-TODAY-001-03`
+- Blocking Issue: Blocks `TODAY-002 Daily Trend Data Adapter` until PO recheck.
 
 ### TODAY-002 Daily Trend Data Adapter
 

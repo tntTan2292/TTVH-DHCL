@@ -50,13 +50,13 @@ After onboarding, AI must report:
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-001-R1 Import Runtime Route and Reimport Recovery` |
+| Current Ticket | `TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery` |
 | Development Status | `READY FOR PO RECHECK` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `READY FOR PO RECHECK` |
-| Documentation Status | `Recovery evidence synced` |
+| Documentation Status | `R2 recovery evidence synced` |
 | AI Onboarding Status | `Ready` |
-| Last Validation | `Parser/import/e2e PASS; backend route /api/import/f13/status HTTP 200; browser /import renders runtime summary/history; reimport 409 + force=true PASS` |
+| Last Validation | `Parser/import/e2e PASS; /api/import/f13/status server pagination 20/50/100 PASS; UTC API timestamp + Vietnam display PASS; browser /import pagination PASS` |
 
 ## 6. Quick Links
 

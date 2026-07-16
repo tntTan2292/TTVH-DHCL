@@ -22,7 +22,7 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `TODAY-001-R1 Import Runtime Route and Reimport Recovery`
+- `TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery`
 - `Dashboard Delivery`
 - `Status: READY FOR PO RECHECK`
 
@@ -56,7 +56,7 @@ Quy tắc cập nhật:
 
 ## Next Ticket
 
-- `TODAY-002 Daily Trend Data Adapter` after PO recheck for `TODAY-001-R1`
+- `TODAY-002 Daily Trend Data Adapter` after PO recheck for `TODAY-001-R2`
 
 ## Notes
 
