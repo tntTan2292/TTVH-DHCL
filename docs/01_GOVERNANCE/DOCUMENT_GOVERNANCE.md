@@ -50,6 +50,8 @@ Goals:
 | Development tickets / runtime evidence | Codex | ChatGPT |
 | Review docs | ChatGPT | Product Owner |
 | Governance / handover docs | ChatGPT | Codex |
+| PO UI acceptance workflow | Product Owner | ChatGPT |
+| PO findings register | Product Owner | ChatGPT |
 
 Ownership rules:
 
@@ -143,6 +145,7 @@ If a change is requested:
 - every new document must have a defined scope
 - every doc must include a table of contents when it is more than a short note
 - use concise, explicit Markdown headings
+- create a dedicated authoritative document when a new governance workflow requires its own source of truth
 
 ## 12. Document Naming Convention
 
@@ -227,3 +230,22 @@ Mark the conflict as:
 - ChatGPT must not select a lower-authority document when a higher-authority document exists.
 - Codex must not override the authority hierarchy.
 - Both AI roles must escalate unresolved conflicts instead of guessing.
+
+## 16. PO UI Acceptance Governance
+
+The authoritative PO UI acceptance workflow is:
+
+- [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md)
+
+The authoritative PO findings register is:
+
+- [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md)
+
+Rules:
+
+- PO Product Review PASS belongs to the Product Owner.
+- Technical PASS is not Product PASS.
+- Runtime PASS is not Product PASS.
+- A module cannot be marked completed before the applicable PO gate is satisfied.
+- PO findings must be linked to a responsible ticket, recovery ticket, future ticket, or backlog decision.
+- The PO findings register is the live traceability record for product observations.

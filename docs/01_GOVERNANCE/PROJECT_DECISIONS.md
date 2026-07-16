@@ -47,6 +47,7 @@ It exists to:
 | DEC-016 | Each center must pass Shell, Widgets, Runtime, and Review before the next center starts | Review workflow | Preserve quality gates between centers | Parallel center completion without review gate | Prevents premature downstream development | Frozen |
 | DEC-017 | Context must flow Dashboard -> BCVH -> Route -> Shipment -> Evidence -> Action | Cross-center interaction | Preserve drill-down continuity for leadership | Context reset between centers | Enables stable navigation and handoff | Frozen |
 | DEC-018 | Project governance must be PO -> ChatGPT -> Codex | AI collaboration | Clarify ownership and coordination | Unstructured AI interaction | Reduces ambiguity in decision and execution flow | Frozen |
+| DEC-019 | PO UI acceptance is required for tickets with visible product changes | Governance workflow | Separate technical completion from product acceptance | Generic PASS language that hides product review state | Adds PO gating and traceability for user-visible work | Frozen |
 
 ## 3. Business Decisions
 
@@ -56,6 +57,8 @@ It exists to:
 - Report Center is a feedback/output layer, not the main decision engine
 - EIDAF is the operating framework for the entire system
 - No business rule changes unless explicitly approved by the Product Owner
+- PO UI Check Required must be decided for every ticket
+- Technical PASS and Runtime PASS do not imply Product PASS
 
 ## 4. Architecture Decisions
 
@@ -75,6 +78,7 @@ It exists to:
 - Runtime exists only in the orchestration page
 - Runtime adapters and context preparation belong to orchestration
 - Business calculations remain in the approved backend/runtime layer
+- PO Product PASS belongs to the Product Owner
 
 ## 6. Development Decisions
 
@@ -83,6 +87,7 @@ It exists to:
 - Each center must be reviewed before moving to the next center
 - Runtime acceptance is the standard for implementation tickets
 - No cross-center rewrite unless the Product Owner explicitly approves it
+- UI-visible tickets require PO UI Acceptance before Module Completed
 
 ## 7. Context Decisions
 
@@ -91,6 +96,7 @@ It exists to:
 - Context must not be reset by child screens
 - Context must not be overwritten by widgets
 - Back navigation must preserve context
+- PO findings must be traceable to a responsible ticket, recovery ticket, or future ticket
 
 Mandatory context fields when applicable:
 

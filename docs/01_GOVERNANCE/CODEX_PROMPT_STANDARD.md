@@ -50,6 +50,12 @@ Development Status:
 Documentation Status:
 [Documentation Status]
 
+PO UI Check Required:
+[Yes / No]
+
+Decision reason:
+[Why PO UI check is or is not required]
+
 ==========================================================
 
 REQUIRED READING
@@ -57,9 +63,11 @@ REQUIRED READING
 - [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
 - [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
 - [docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md)
+- [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md)
 - [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
 - [docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md)
 - [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
+- [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md)
 - [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
 - [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 
@@ -111,6 +119,8 @@ After completing the ticket, Codex must:
 - update PROJECT_STATUS if project status changes
 - update PROJECT_HANDOVER if current ticket or project snapshot changes
 - update PROJECT_CONTEXT if current context changes
+- when PO UI Check Required = Yes, follow `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md`
+- when PO findings exist, update `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md`
 - update the correct document layers according to DOCUMENT_INDEX and DOCUMENT_GOVERNANCE:
   - 01_GOVERNANCE
   - 02_ARCHITECTURE
@@ -150,7 +160,80 @@ Business impact
 
 Development summary
 
+Technical validation
+
 Validation result
+
+Runtime acceptance
+
+PO UI Check Required
+
+PO UI Acceptance Notice, when required
+
+PO UI ACCEPTANCE REQUIRED
+
+PO Check Status:
+READY FOR PO CHECK
+
+Affected Module:
+[Module name]
+
+Affected Screen:
+[Screen name]
+
+Menu Path:
+[Exact navigation path]
+
+Route / URL:
+[Exact route or URL]
+
+Required Test Context:
+- Date or date range
+- KPI
+- BCVH
+- Route
+- Shipment
+- User role
+- Other required parameters
+
+What Changed:
+[Visible changes implemented by the ticket]
+
+Expected Result:
+[What the PO should see if implementation is correct]
+
+Business Result:
+[What the feature now enables the user or leadership to do]
+
+PO Check Steps:
+1. ...
+2. ...
+3. ...
+
+PO Acceptance Checklist:
+- [ ] Navigation works
+- [ ] Correct context is preserved
+- [ ] Correct runtime data is displayed
+- [ ] UI order and labels are understandable
+- [ ] Loading state works
+- [ ] Empty state works
+- [ ] Error state works
+- [ ] No shell/demo/placeholder content remains
+- [ ] Business behavior matches the expected result
+- [ ] The feature is usable for the intended decision or operation
+
+Known Warnings:
+[List warnings or None]
+
+Blocking Rule:
+[State whether the next ticket or module is blocked until PO acceptance]
+
+PO Response Required:
+PASS / WARNING / FAIL
+
+Related PO findings
+
+Git status
 
 Documentation updated
 
@@ -177,6 +260,8 @@ If Ticket FAIL
 ↓
 
 Stop.
+
+If PO UI Check Required = Yes, the ticket is not `Module Completed` until the applicable PO gate is satisfied.
 ```
 
 ## 3. Canonical Template Rules
@@ -226,4 +311,3 @@ Every Codex execution report generated from this template must include:
 - Commit hash
 - GitHub Commit URL
 - GitHub Blob URL
-

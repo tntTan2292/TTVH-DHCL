@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-- `Development`
+- `Governance and Development Workflow Update`
 
 ## % Hoàn Thành Theo Phase
 
@@ -57,6 +57,7 @@
 - `Shipment Performance Center Executive Widgets: PASS`
 - `Shipment Performance Center Runtime Data Integration: PASS`
 - `Shipment Performance Center Review: PASS`
+- `PO UI Acceptance Governance: In Progress`
 
 ## Business Decisions Đã Freeze
 
@@ -113,7 +114,9 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TICKET-0061 Evidence Validation Views` |
-| Current Commit | `cf2844310af2cdf866f81569fef104edea3669f6` |
-| Current Phase | `Development` |
+| Current Ticket | `GOV-PO-UI-01 PO UI Acceptance Gate and PO Findings Traceability` |
+| Current Commit | `12f05d179f6bbbfe5fd1145d6695d28b0c8cc788` |
+| Current Phase | `Governance and Development Workflow Update` |
 | Next Milestone | `Evidence Center development` |
+| PO UI Check Required | `No` |
+| PO Product Status | `NOT REQUIRED` |

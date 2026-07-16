@@ -205,6 +205,12 @@ Review PASS
 
 Only after review PASS can the project move to the next center in the roadmap.
 
+Current PO gate rule:
+
+- if a ticket changes visible UI or product behavior, PO UI Check Required = Yes
+- if a ticket is internal only, PO UI Check Required = No
+- technical PASS and runtime PASS do not imply PO Product PASS
+
 ## 8. AI Collaboration
 
 Project collaboration roles:
@@ -236,11 +242,15 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Field | Value |
 | --- | --- |
 | Project Name | `TTVH Quality Intelligence System (QIS V2)` |
-| Current Phase | `Development` |
-| Current Development Status | `Ready for Development` |
+| Current Phase | `Governance and Development Workflow Update` |
+| Current Development Status | `Governance update required` |
 | Architecture Status | `Frozen` |
 | UX Status | `Frozen` |
 | Technical Planning Status | `PASS` |
+| Technical Status | `PASS` |
+| Runtime Status | `PASS` |
+| PO UI Check Required | `No` |
+| PO Product Status | `NOT REQUIRED` |
 | Dashboard | `PASS` |
 | BCVH | `PASS` |
 | Route | `PASS` |
@@ -249,9 +259,15 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `TICKET-0061 Evidence Validation Views` |
-| Current Commit | `cf2844310af2cdf866f81569fef104edea3669f6` |
+| Current Ticket | `GOV-PO-UI-01 PO UI Acceptance Gate and PO Findings Traceability` |
+| Current Commit | `12f05d179f6bbbfe5fd1145d6695d28b0c8cc788` |
 | Next Milestone | `Evidence Center development` |
+
+Current PO gate rule:
+
+- tickets with visible UI or product behavior changes require PO UI Check Required = Yes
+- internal governance-only tickets use PO UI Check Required = No
+- Technical PASS and Runtime PASS do not imply PO Product PASS
 
 ## 10. Continuation Rule
 
@@ -259,8 +275,10 @@ A new ChatGPT / Codex session must read the following files before answering:
 
 1. [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
 2. [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
-3. [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
-4. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
+3. [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md)
+4. [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md)
+5. [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
+6. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 
 After that, continue using the frozen architecture and the current project snapshot.
 

@@ -79,6 +79,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Development | High-level project handover | Active | L2 | 1 | Medium | context/protocol/decisions |
 | `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Development | Project context for new sessions | Active | L2 | 1 | Medium | handover/protocol/decisions |
 | `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Development | Collaboration protocol | Active | L2 | 1 | Medium | handover/context/decisions |
+| `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md` | Governance | PO UI acceptance workflow | Active | L2 | 1 | Medium | prompt standard, findings register |
 | `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Development | Immutable decision log | Active | L1 | 1 | Medium | handover/context/protocol |
 | `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Development | Start prompt for new ChatGPT sessions | Active | L2 | 1 | Medium | handover/context/protocol/decisions |
 
@@ -110,6 +111,8 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/BCVH/BCVH_PERFORMANCE_CENTER_REVIEW.md` | Reviews | BCVH review result | Frozen | L3 | 2 | Low | BCVH docs |
 | `docs/06_REVIEWS/Route/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Route review result | Frozen | L3 | 2 | Low | Route docs |
 | `docs/06_REVIEWS/Shipment/SHIPMENT_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Shipment review result | Frozen | L3 | 2 | Low | Shipment docs |
+| `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
+| `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |
 | `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` | Reviews | UX freeze review | Frozen | L2 | 2 | Low | UX docs |
 
@@ -137,6 +140,6 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `docs/09_REPORTS/Documentation/DOCUMENTATION_AUDIT_REPORT.md` | Reports | Documentation audit report | Active | L4 | 4 | Low | documentation governance docs |
 | `docs/09_REPORTS/Documentation/DOCUMENTATION_VALIDATION_REPORT.md` | Reports | Documentation validation report | Active | L4 | 4 | Low | documentation governance docs |
-| `docs/09_REPORTS/Documentation/GOVERNANCE_UPDATE_REPORT.md` | Reports | Governance update report | Active | L4 | 4 | Low | governance changes |
+| `docs/GOVERNANCE_UPDATE_REPORT.md` | Reports | Governance update report | Active | L4 | 4 | Low | governance changes |
 | `docs/09_REPORTS/Documentation/AI_ONBOARDING_VALIDATION_REPORT.md` | Reports | AI onboarding validation report | Active | L4 | 4 | Low | onboarding docs |
 | `docs/09_REPORTS/Documentation/CODEX_PROMPT_STANDARD_REPORT.md` | Reports | Codex prompt standard report | Active | L4 | 4 | Low | governance/prompt docs |

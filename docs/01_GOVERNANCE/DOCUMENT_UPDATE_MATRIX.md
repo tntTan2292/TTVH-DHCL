@@ -19,11 +19,17 @@ This matrix defines which documents must be updated when a specific governance, 
 | UX Freeze | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_DECISIONS.md`, `PROJECT_HANDOVER.md`, `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` |
 | Center PASS Review | `PROJECT_PROGRESS.md`, `PROJECT_HANDOVER.md`, center review doc |
 | Runtime Completed | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_HANDOVER.md`, relevant runtime/review evidence |
+| Ready for PO Check | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, affected review doc, PO findings register if any |
+| PO PASS | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, review doc, PO findings register |
+| PO WARNING | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, review doc, PO findings register |
+| PO FAIL | `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md`, `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, review doc, PO findings register |
 | New Epic | `EPIC_PLANNING.md`, `FEATURE_PLANNING.md`, `DEVELOPMENT_BACKLOG.md`, `PROJECT_PROGRESS.md` |
 | New Feature | `FEATURE_PLANNING.md`, `DEVELOPMENT_BACKLOG.md`, `PROJECT_PROGRESS.md` |
 | New Ticket | `DEVELOPMENT_BACKLOG.md`, `PROJECT_PROGRESS.md` |
 | Ticket PASS | `PROJECT_PROGRESS.md`, `PROJECT_HANDOVER.md`, `PROJECT_STATUS.md` if the phase or milestone changes |
 | Review PASS | `PROJECT_PROGRESS.md`, `PROJECT_HANDOVER.md`, review document |
+| New PO Finding | `PROJECT_PROGRESS.md`, `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, `PO_FINDINGS_REGISTER.md`, related review doc |
+| PO Finding Closure | `PROJECT_PROGRESS.md`, `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, `PO_FINDINGS_REGISTER.md`, closure evidence |
 | Technical Planning Change | `IMPLEMENTATION_ARCHITECTURE.md`, `RELEASE_PLANNING.md`, `EPIC_PLANNING.md`, `FEATURE_PLANNING.md`, `DEVELOPMENT_BACKLOG.md`, `PROJECT_PROGRESS.md`, `PROJECT_STATUS.md` |
 | Implementation Change | `PROJECT_PROGRESS.md`, `DEVELOPMENT_BACKLOG.md`, relevant code or runtime docs |
 | Architecture Decision Freeze | `PROJECT_DECISIONS.md`, `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, relevant architecture docs |

@@ -46,12 +46,14 @@ Product Owner:
 | Field | Value |
 | --- | --- |
 | Project Name | `TTVH Quality Intelligence System (QIS V2)` |
-| Current Phase | `Development` |
-| Current Ticket | `TICKET-0061 Evidence Validation Views` |
-| Current Epic | `EPIC-006 Evidence Center` |
-| Current Center | `Evidence Center` |
-| Current Development Readiness | `Ready for Development` |
-| Current Progress | `Architecture PASS, UX PASS, Technical Planning PASS, Shipment Shell PASS, Shipment Executive Widgets PASS, Shipment Runtime PASS, Shipment Review PASS, Development Ready for Development` |
+| Current Phase | `Governance and Development Workflow Update` |
+| Current Ticket | `GOV-PO-UI-01 PO UI Acceptance Gate and PO Findings Traceability` |
+| Current Epic | `Governance` |
+| Current Center | `Governance Synchronization` |
+| Current Development Readiness | `Governance update required` |
+| PO UI Check Required | `No` |
+| PO Product Status | `NOT REQUIRED` |
+| Current Progress | `Architecture PASS, UX PASS, Technical Planning PASS, Shipment Shell PASS, Shipment Executive Widgets PASS, Shipment Runtime PASS, Shipment Review PASS, Governance PO UI update in progress` |
 
 ## 4. Mandatory Reading Order
 
@@ -64,10 +66,12 @@ Read in this exact order:
 5. [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
 6. [docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md)
 7. [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
-8. [docs/01_GOVERNANCE/PROJECT_DECISIONS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_DECISIONS.md)
-9. [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
-10. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
-11. Current Ticket Documents
+8. [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md)
+9. [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md)
+10. [docs/01_GOVERNANCE/PROJECT_DECISIONS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_DECISIONS.md)
+11. [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
+12. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
+13. Current Ticket Documents
 
 ## 5. Operating Rules
 
@@ -165,13 +169,15 @@ Read these files first and continue from the current ticket without resetting pr
 6. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md
 7. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md
 8. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_DECISIONS.md
-9. https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md
-10. https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md
-11. Current Ticket Documents
+9. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md
+10. https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md
+11. https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md
+12. https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md
+13. Current Ticket Documents
 
 You must not change SSOT, frozen architecture, runtime contracts, widget contracts, or context propagation contracts.
 Continue from the current ticket:
-TICKET-0061 Evidence Validation Views
+GOV-PO-UI-01 PO UI Acceptance Gate and PO Findings Traceability
 
 If the issue touches SSOT or business rules, ask the Product Owner.
 If it does not, analyze and continue.

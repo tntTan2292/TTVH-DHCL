@@ -2,6 +2,47 @@
 
 ## 1. Backlog Structure
 
+### Mandatory Ticket Metadata
+
+Every future ticket definition must include:
+
+- PO UI Check Required
+- Decision reason
+- PO Product Status
+- Affected Module
+- Affected Screen / Menu
+- Route / URL
+- UI Components Affected
+- Business Impact
+- Expected Visible Result
+- PO Checkpoint
+- PO Checklist
+- Blocking Issue
+- Related PO Findings
+- Responsible Fix / Future Ticket
+- Next Ticket
+- Evidence
+- Commit
+- Final Completion Status
+
+Status values:
+
+- Technical Status: `NOT STARTED / IN PROGRESS / PASS / FAIL`
+- Runtime Status: `NOT REQUIRED / NOT STARTED / IN PROGRESS / PASS / FAIL`
+- PO Product Status: `NOT REQUIRED / NOT READY / READY FOR PO CHECK / PO PASS / PO WARNING / PO FAIL`
+- Final Completion Status: `NOT STARTED / IN PROGRESS / TECHNICAL PASS / RUNTIME PASS / READY FOR PO CHECK / RECOVERY REQUIRED / MODULE COMPLETED`
+
+PO applicability rule:
+
+- `Yes` when a ticket creates or changes visible UI, navigation, runtime data, labels, tables, charts, filters, drill-down, or user workflow.
+- `No` only when the work is internal and has no independently observable product change.
+
+PO findings traceability:
+
+- if PO reports an issue, link it to the responsible ticket or recovery path
+- never close a finding by build PASS alone
+- record the PO recheck point before closure
+
 ### TICKET-0101 Login API and Session
 
 - Ticket ID: TICKET-0101
@@ -428,4 +469,3 @@
 - `TICKET-0071`, `TICKET-0072` map to Action features, widgets, UX, and action APIs.
 - `TICKET-0081` maps to AI feature flow, recommendation components, and AI endpoints.
 - `TICKET-0091` maps to reporting views, export components, and report APIs.
-

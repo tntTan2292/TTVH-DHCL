@@ -16,6 +16,8 @@
 - [12. Golden Rules](#12-golden-rules)
 - [13. Ticket Completion Protocol](#13-ticket-completion-protocol)
 - [14. Prompt Standard](#14-prompt-standard)
+- [15. Product Owner ↔ ChatGPT Collaboration Workflow](#15-product-owner--chatgpt-collaboration-workflow)
+- [16. PO UI Acceptance Gate](#16-po-ui-acceptance-gate)
 
 ## 1. Purpose
 
@@ -306,6 +308,8 @@ Before committing, the following documents must be checked and updated if needed
 - [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 - [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md) if the status changes
 - [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md) if documents are added or moved
+- [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md) when PO UI review applies
+- [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md) when PO findings exist
 - the ticket's review document, if the ticket has a review document
 
 ### 13.6 Current Project State
@@ -329,6 +333,8 @@ A commit must include the required delivery artifacts for the ticket, which may 
 
 Source code must not be committed if Documentation Synchronization has not been completed.
 
+If `PO UI Check Required = Yes`, the ticket must not be described as `Module Completed` until the PO gate is satisfied.
+
 ### 13.8 Push Policy
 
 After push, the report must include:
@@ -347,6 +353,21 @@ Future Development Prompts must follow this protocol by default.
 They may reference it succinctly with:
 
 `Follow Ticket Completion Protocol defined in AI_COLLABORATION_PROTOCOL.md`
+
+### 13.10 PO UI Acceptance Applicability
+
+Every development ticket must explicitly decide whether PO UI Check is required.
+
+Use:
+
+- `PO UI Check Required: Yes`
+- `PO UI Check Required: No`
+
+The decision must be based on whether the ticket produces a visible, independently checkable product change.
+
+If `Yes`, the ticket must follow `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md`.
+
+If `No`, the completion report must still state `PO UI Check Required: No` and explain why.
 
 ## 14. Prompt Standard
 
@@ -367,6 +388,24 @@ ChatGPT must always respond in this order:
 3. Prompt for Antigravity/Codex
 
 If the issue involves a business rule, SSOT, or business process, ChatGPT must ask the Product Owner for a decision before proceeding.
+
+## 16. PO UI Acceptance Gate
+
+The authoritative PO UI acceptance workflow lives in:
+
+- [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md)
+
+The PO findings register lives in:
+
+- [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md)
+
+Rules:
+
+- PO Product Review PASS belongs to the Product Owner.
+- Technical PASS is not Product PASS.
+- Runtime PASS is not Product PASS.
+- A module cannot be marked completed before the applicable PO gate is satisfied.
+- PO findings must be traced to a responsible ticket or backlog decision.
 
 ### 15.2 When Product Owner asks ChatGPT directly
 
