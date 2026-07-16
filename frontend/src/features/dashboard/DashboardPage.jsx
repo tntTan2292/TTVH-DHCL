@@ -10,6 +10,7 @@ import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import ExecutiveSummaryAdapter from './components/ExecutiveSummaryAdapter';
 import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
+import QualityDeliveryTrendlineAdapter from './components/QualityDeliveryTrendlineAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
 
@@ -83,6 +84,12 @@ export default function DashboardPage() {
           <KPICard label="Không đạt" value="--" delta="Placeholder" tone="danger" />
           <KPICard label="Xếp hạng" value="--" delta="Placeholder" tone="warning" />
         </div>
+
+        <SectionHeader
+          title="Quality Delivery Rate Trendline"
+          subtitle="Daily quality rate theo ngày vận hành với target cố định 90%."
+        />
+        <QualityDeliveryTrendlineAdapter fromDate={fromDate} toDate={toDate} maBcvh={maBcvh} />
 
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
