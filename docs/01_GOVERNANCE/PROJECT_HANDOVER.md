@@ -25,9 +25,9 @@
 | Project Vision | `Decision Support System` for quality operations |
 | Business Goal | Standardize operational decision making with SSOT, runtime, and evidence-backed flow |
 | Current Development Phase | `Leadership Dashboard Delivery` |
-| Current Development Status | `READY FOR PO RECHECK` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO RECHECK` |
+| Current Development Status | `Ready for Development` |
+| PO UI Check Required | `No` |
+| PO Product Status | `NOT REQUIRED` |
 | Current Architecture Status | `Frozen` |
 | Current UX Status | `Frozen` |
 | Current Technical Planning Status | `PASS` |
@@ -139,10 +139,10 @@ The following documents are frozen and should be treated as SSOT/architecture co
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery` |
-| Current Commit | `be6d96c` |
+| Current Ticket | `TODAY-002 Daily Trend Data Adapter` |
+| Current Commit | `Closure commit: current repository HEAD after this docs sync` |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Next Milestone | `PO recheck for TODAY-001-R2, then TODAY-002 Daily Trend Data Adapter` |
+| Next Milestone | `TODAY-002 Daily Trend Data Adapter` |
 
 ## 8. Technical Debt
 
@@ -151,7 +151,7 @@ Open technical debt items captured in the current repo state:
 1. Route drill-down to Shipment is contract-prepared, and Shipment runtime integration has passed review.
 2. Route and BCVH runtime pages use fallback summary surfaces when optional meta fields are missing.
 3. Evidence, Action, AI, and Report centers are the next implementation layers.
-4. The current active work is TODAY-001-R2 PO recheck readiness for import history pagination and Vietnam timezone recovery.
+4. TODAY-001 import delivery has PO PASS and is closed; the current active work is TODAY-002 Daily Trend Data Adapter.
 5. Untracked HTML artifacts remain in the working tree and are unrelated to the architecture/development flow.
 
 ## 9. Known Risks
@@ -190,7 +190,7 @@ Recommended reading order for a new ChatGPT/Codex/developer session:
    - `Ban_do_mang_diem_phuc_vu_BDTP_Hue.html`
    - `Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html`
    - `ban_do_duong_giao_thong_bcvh_postman_06_2026.html`
-2. TODAY-001-R2 import history pagination and Vietnam timezone recovery is ready for PO recheck.
+2. TODAY-001, TODAY-001-R1, and TODAY-001-R2 are closed after PO PASS.
 3. Evidence, Action, AI, and Report centers are still pending implementation.
 
 ## 12. Next Development Roadmap
@@ -207,7 +207,7 @@ AI
 Report
 ```
 
-Current direction is the Leadership Dashboard Delivery queue, with TODAY-001-R2 ready for PO recheck before moving to TODAY-002 Daily Trend Data Adapter.
+Current direction is the Leadership Dashboard Delivery queue, with TODAY-002 Daily Trend Data Adapter as the current ticket.
 
 ## 13. Handover Checklist
 
@@ -226,7 +226,7 @@ QIS V2 is a Decision Support System for TTVH quality operations.
 
 The architecture is frozen and already delivered through Dashboard, BCVH, Route, and Shipment shell foundations.
 
-Current work is in Leadership Dashboard Delivery, with TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery ready for PO recheck and the next ticket remaining TODAY-002 Daily Trend Data Adapter.
+Current work is in Leadership Dashboard Delivery, with TODAY-001 Import Daily Data Verification accepted by PO and TODAY-002 Daily Trend Data Adapter ready for development.
 
 The project uses SSOT-driven documents, not chat history, as the source of truth.
 

@@ -22,9 +22,9 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery`
+- `TODAY-002 Daily Trend Data Adapter`
 - `Dashboard Delivery`
-- `Status: READY FOR PO RECHECK`
+- `Status: Ready for Development`
 
 ## Completed Tickets
 
@@ -36,6 +36,9 @@ Quy tắc cập nhật:
 - `Shipment Performance Center Review`
 - `PO UI Acceptance Gate and PO Findings Traceability`
 - `GOV-PO-UI-01 PO UI Acceptance Gate and PO Findings Traceability`
+- `TODAY-001 Import Daily Data Verification` - PO PASS / MODULE COMPLETED
+- `TODAY-001-R1 Import Runtime Route and Reimport Recovery` - CLOSED
+- `TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery` - CLOSED
 
 ## Current Progress
 
@@ -51,12 +54,14 @@ Quy tắc cập nhật:
 - Development Backlog: `PASS`
 - Shipment Performance Center Review: `PASS`
 - PO UI Acceptance Governance: `PASS`
-- PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO RECHECK`
+- TODAY-001 Import Delivery: `MODULE COMPLETED / PO PASS`
+- PO findings from TODAY-001: `CLOSED`
+- PO UI Check Required: `No`
+- PO Product Status: `NOT REQUIRED`
 
 ## Next Ticket
 
-- `TODAY-002 Daily Trend Data Adapter` after PO recheck for `TODAY-001-R2`
+- `TODAY-003 Quality Delivery Rate Trendline`
 
 ## Notes
 

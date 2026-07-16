@@ -111,6 +111,9 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/BCVH/BCVH_PERFORMANCE_CENTER_REVIEW.md` | Reviews | BCVH review result | Frozen | L3 | 2 | Low | BCVH docs |
 | `docs/06_REVIEWS/Route/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Route review result | Frozen | L3 | 2 | Low | Route docs |
 | `docs/06_REVIEWS/Shipment/SHIPMENT_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Shipment review result | Frozen | L3 | 2 | Low | Shipment docs |
+| `docs/06_REVIEWS/Import/TODAY-001_PO_ACCEPTANCE_CLOSURE.md` | Reviews | Import PO acceptance closure evidence | Active | L2 | 1 | Low | PO findings register, Import recovery evidence |
+| `docs/06_REVIEWS/Import/TODAY-001-R1_IMPORT_RUNTIME_ROUTE_AND_REIMPORT_RECOVERY.md` | Reviews | Import runtime route and reimport recovery evidence | Active | L3 | 2 | Low | PO findings register |
+| `docs/06_REVIEWS/Import/TODAY-001-R2_IMPORT_HISTORY_PAGINATION_AND_VIETNAM_TIMEZONE_RECOVERY.md` | Reviews | Import history pagination and Vietnam timezone recovery evidence | Active | L3 | 2 | Low | PO findings register |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |

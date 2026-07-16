@@ -10,7 +10,9 @@
 | Technical Status | `PASS` |
 | Runtime Status | `PASS` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO RECHECK` |
+| PO Product Status | `PO PASS` |
+| Closure Status | `CLOSED` |
+| Closure Date | `2026-07-16` |
 
 ## Recovery Scope
 
@@ -84,4 +86,9 @@ Expected result:
 - Dropping/uploading a duplicate-date `F1.3-YYYY.MM.DD.xlsx` asks for confirmation before overwrite.
 - Confirming overwrite imports successfully.
 
-PO result remains pending. Do not mark PO PASS until PO confirms.
+PO result: `PO PASS`.
+
+Closure evidence:
+
+- Product Owner final acceptance on 2026-07-16.
+- TODAY-001 Import Center accepted with route, upload, duplicate confirmation, overwrite, history, and runtime behavior operational.

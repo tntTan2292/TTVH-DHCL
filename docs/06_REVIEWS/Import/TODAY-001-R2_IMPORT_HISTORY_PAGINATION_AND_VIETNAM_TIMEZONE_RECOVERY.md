@@ -11,7 +11,9 @@
 | Technical Status | `PASS` |
 | Runtime Status | `PASS` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO RECHECK` |
+| PO Product Status | `PO PASS` |
+| Closure Status | `CLOSED` |
+| Closure Date | `2026-07-16` |
 
 ## Root Cause
 
@@ -126,4 +128,9 @@ Expected result:
 - Newest import appears first.
 - Upload and reimport behavior from R1 still works.
 
-PO result remains pending. Do not mark PO PASS until PO confirms.
+PO result: `PO PASS`.
+
+Closure evidence:
+
+- Product Owner final acceptance on 2026-07-16.
+- History pagination, page size selector, Previous/Next controls, total count, newest-first ordering, and Vietnam timezone display accepted.

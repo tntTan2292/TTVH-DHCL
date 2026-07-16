@@ -56,7 +56,10 @@ The following queue is the current PO-prioritized delivery order for leadership 
 - Affected Screen / Menu: Import screen
 - Business Impact: Establishes daily data availability for leadership reporting.
 - Expected Visible Result: Upload succeeds, import status is visible, file name and data date are correct, shipment count is visible, skipped/error counts are visible, and latest import timestamp updates.
-- Blocking Issue: Blocks all Dashboard trend tickets until `TODAY-001-R2` receives PO PASS.
+- Final Completion Status: `MODULE COMPLETED`
+- PO Product Status: `PO PASS`
+- Evidence: `docs/06_REVIEWS/Import/TODAY-001_PO_ACCEPTANCE_CLOSURE.md`
+- Blocking Issue: `Closed`
 
 #### TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery
 
@@ -68,17 +71,21 @@ The following queue is the current PO-prioritized delivery order for leadership 
 - Business Impact: Allows ADMIN to review complete import history and trust import timestamps during daily validation.
 - Expected Visible Result: Import history supports 20/50/100 rows, Previous/Next pagination, visible total count, newest import first, and latest/table timestamps displayed in Vietnam time.
 - Related PO Findings: `POF-TODAY-001-02`, `POF-TODAY-001-03`
-- Blocking Issue: Blocks `TODAY-002 Daily Trend Data Adapter` until PO recheck.
+- Final Completion Status: `CLOSED`
+- PO Product Status: `PO PASS`
+- Blocking Issue: `Closed`
 
 ### TODAY-002 Daily Trend Data Adapter
 
 - Module: Import / API / Dashboard Data Layer
 - Goal: Provide one normalized daily record for each date in the selected range.
 - PO UI Check Required: `No`
+- Decision reason: Backend/data-contract adapter ticket; it does not independently create a visible UI surface.
+- Current Status: `Ready for Development`
 - Affected Screen / Menu: Runtime data contract
 - Business Impact: Supplies the runtime data needed for leadership charts.
 - Expected Visible Result: Daily fields are available for chart consumption.
-- Blocking Issue: Blocks TODAY-003, TODAY-004, and TODAY-005.
+- Blocking Issue: `None for start; output feeds TODAY-003, TODAY-004, and TODAY-005.`
 
 ### TODAY-003 Quality Delivery Rate Trendline
 
