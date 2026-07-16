@@ -96,7 +96,21 @@ The following queue is the current PO-prioritized delivery order for leadership 
 - Affected Screen / Menu: Operation Dashboard
 - Business Impact: Gives leadership a daily quality trend with a fixed 90% target line.
 - Expected Visible Result: Date-based quality percentage trendline with tooltip and 90% reference line.
-- Blocking Issue: Blocks downstream dashboard delivery checks until runtime data is correct.
+- Final Completion Status: `RECOVERY REQUIRED`
+- Blocking Issue: Blocks downstream dashboard delivery checks until runtime route is correct.
+
+#### TODAY-003-R1 Quality Trendline Runtime Route Recovery
+
+- Module: Operation Dashboard
+- Route / URL: `/f13/dashboard`
+- Goal: Restore the runtime route for the quality trendline so the visible dashboard can be revalidated.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Operation Dashboard
+- Business Impact: Restores PO verification path for the quality trendline runtime chain.
+- Expected Visible Result: Trendline runtime route resolves correctly and supports PO recheck.
+- Final Completion Status: `IN PROGRESS`
+- PO Product Status: `NOT READY`
+- Blocking Issue: `Runtime route 404 / recovery pending`
 
 ### TODAY-004 Volume Trendline
 

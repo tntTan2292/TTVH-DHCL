@@ -7,10 +7,10 @@
 | Ticket | `TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery` |
 | Technical Status | `PASS` |
 | Runtime Status | `PASS` |
-| PO UI Check Required | `No` |
-| PO Product Status | `NOT REQUIRED` |
-| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline (Blocked)` |
-| Next Ticket | `TODAY-003 Quality Delivery Rate Trendline` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `NOT READY` |
+| Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
+| Next Ticket | `TODAY-004 Volume Trendline` |
 
 ## Root Cause
 
@@ -102,3 +102,6 @@ That divergence explains why dashboard surfaces that still used the legacy field
 
 The recovery is complete. The Dashboard overview, daily trend, BCVH ranking, timeline, message generation, and rule-engine inputs now use the KPI 2026 source where applicable.
 
+## Closure Note
+
+This record is closed and preserved for audit trail purposes. The active current ticket remains `TODAY-003-R1 Quality Trendline Runtime Route Recovery`, while `TODAY-004 Volume Trendline` is the next planned milestone.

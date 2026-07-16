@@ -25,7 +25,7 @@
 | Project Vision | `Decision Support System` for quality operations |
 | Business Goal | Standardize operational decision making with SSOT, runtime, and evidence-backed flow |
 | Current Development Phase | `Leadership Dashboard Delivery` |
-| Current Development Status | `In Progress` |
+| Current Development Status | `Recovery Required` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `NOT READY` |
 | Current Architecture Status | `Frozen` |
@@ -139,8 +139,8 @@ The following documents are frozen and should be treated as SSOT/architecture co
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline` |
-| Current Commit | `f0c01cd870fa3fe4d5a8d51efee965c54a64ed72` |
+| Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
+| Current Commit | `cebe1ff655febf09242e23719150192c059d6555` |
 | Current Phase | `Leadership Dashboard Delivery` |
 | Next Milestone | `TODAY-004 Volume Trendline` |
 
@@ -151,7 +151,7 @@ Open technical debt items captured in the current repo state:
 1. Route drill-down to Shipment is contract-prepared, and Shipment runtime integration has passed review.
 2. Route and BCVH runtime pages use fallback summary surfaces when optional meta fields are missing.
 3. Evidence, Action, AI, and Report centers are the next implementation layers.
-4. TODAY-001 import delivery has PO PASS and is closed; TODAY-002 Daily Trend Data Adapter is completed, TODAY-002-R1 source-column recovery is closed, and the current recovery work is TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery before TODAY-003 resumes.
+4. TODAY-001 import delivery has PO PASS and is closed; TODAY-002 Daily Trend Data Adapter is completed, TODAY-002-R1 source-column recovery is closed, and TODAY-002-R2 dashboard consistency recovery is completed before TODAY-003-R1 begins.
 5. Untracked HTML artifacts remain in the working tree and are unrelated to the architecture/development flow.
 
 ## 9. Known Risks
@@ -207,7 +207,7 @@ AI
 Report
 ```
 
-Current direction is the Leadership Dashboard Delivery queue, with TODAY-003 Quality Delivery Rate Trendline as the current ticket.
+Current direction is the Leadership Dashboard Delivery queue, with TODAY-003-R1 Quality Trendline Runtime Route Recovery as the current ticket.
 
 ## 13. Handover Checklist
 
@@ -226,7 +226,7 @@ QIS V2 is a Decision Support System for TTVH quality operations.
 
 The architecture is frozen and already delivered through Dashboard, BCVH, Route, and Shipment shell foundations.
 
-Current work is in Leadership Dashboard Delivery, with TODAY-001 Import Daily Data Verification accepted by PO, TODAY-002 Daily Trend Data Adapter completed, and TODAY-003 Quality Delivery Rate Trendline in progress.
+Current work is in Leadership Dashboard Delivery, with TODAY-001 Import Daily Data Verification accepted by PO, TODAY-002 Daily Trend Data Adapter completed, TODAY-002-R2 completed, and TODAY-003-R1 in recovery.
 
 The project uses SSOT-driven documents, not chat history, as the source of truth.
 

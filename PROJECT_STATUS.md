@@ -22,9 +22,9 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `TODAY-003 Quality Delivery Rate Trendline`
+- `TODAY-003-R1 Quality Trendline Runtime Route Recovery`
 - `Dashboard Delivery`
-- `Status: In Progress`
+- `Status: Recovery Required`
 
 ## Completed Tickets
 
@@ -40,7 +40,7 @@ Quy tắc cập nhật:
 - `TODAY-001-R1 Import Runtime Route and Reimport Recovery` - CLOSED
 - `TODAY-001-R2 Import History Pagination and Vietnam Timezone Recovery` - CLOSED
 - `TODAY-002-R1 KPI 2026 Source Column Recovery` - CLOSED
-- `TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery` - CLOSED
+- `TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery` - COMPLETED
 
 ## Current Progress
 
@@ -59,15 +59,16 @@ Quy tắc cập nhật:
 - TODAY-001 Import Delivery: `MODULE COMPLETED / PO PASS`
 - TODAY-002 Daily Trend Data Adapter: `COMPLETED`
 - TODAY-002-R1 KPI 2026 Source Column Recovery: `CLOSED`
-- TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery: `CLOSED`
-- TODAY-003 Quality Delivery Rate Trendline: `BLOCKED`
+- TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery: `COMPLETED`
+- TODAY-003 Quality Delivery Rate Trendline: `RECOVERY REQUIRED`
+- TODAY-003-R1 Quality Trendline Runtime Route Recovery: `CURRENT`
 - PO findings from TODAY-001: `CLOSED`
-- PO UI Check Required: `No`
-- PO Product Status: `NOT REQUIRED`
+- PO UI Check Required: `Yes`
+- PO Product Status: `NOT READY`
 
 ## Next Ticket
 
-- `TODAY-003 Quality Delivery Rate Trendline`
+- `TODAY-004 Volume Trendline`
 
 ## Notes
 

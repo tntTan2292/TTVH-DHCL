@@ -11,7 +11,7 @@ The approved KPI 2026 source column is `danh_gia_2026`.
 
 ## Recovery Commit
 
-- `pending`
+- `cebe1ff655febf09242e23719150192c059d6555`
 
 ## Runtime Reconciliation
 
@@ -47,3 +47,6 @@ The focused regression test seeds rows where legacy and KPI 2026 values differ, 
 - `GET /api/f13/dashboard/daily-trend`
 - `backend/test_daily_trend.js`
 
+## Closure Note
+
+This source-column recovery was closed as part of the `TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery` documentation closure. The runtime fix and evidence now live in the R2 closure record, while this note remains as the source-column root-cause record.

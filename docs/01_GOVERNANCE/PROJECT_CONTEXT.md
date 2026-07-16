@@ -243,14 +243,14 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | --- | --- |
 | Project Name | `TTVH Quality Intelligence System (QIS V2)` |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Development Status | `In Progress` |
+| Current Development Status | `Recovery Required` |
 | Architecture Status | `Frozen` |
 | UX Status | `Frozen` |
 | Technical Planning Status | `PASS` |
 | Technical Status | `PASS` |
 | Runtime Status | `PASS` |
-| PO UI Check Required | `No` |
-| PO Product Status | `NOT REQUIRED` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `NOT READY` |
 | Dashboard | `PASS` |
 | BCVH | `PASS` |
 | Route | `PASS` |
@@ -259,9 +259,9 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery` |
-| Current Commit | `5f77a89` |
-| Next Milestone | `TODAY-003 Quality Delivery Rate Trendline` |
+| Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
+| Current Commit | `cebe1ff655febf09242e23719150192c059d6555` |
+| Next Milestone | `TODAY-004 Volume Trendline` |
 
 Current PO gate rule:
 
