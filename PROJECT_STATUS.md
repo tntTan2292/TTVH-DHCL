@@ -24,7 +24,7 @@ Quy tắc cập nhật:
 
 - `TODAY-001 Import Daily Data Verification`
 - `Dashboard Delivery`
-- `Status: Pending Implementation`
+- `Status: In Progress`
 
 ## Completed Tickets
 
@@ -50,9 +50,9 @@ Quy tắc cập nhật:
 - Feature Planning: `PASS`
 - Development Backlog: `PASS`
 - Shipment Performance Center Review: `PASS`
-- PO UI Acceptance Governance: `PASS`
+- PO UI Acceptance Governance: `In Progress`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `NOT READY`
 
 ## Next Ticket
 

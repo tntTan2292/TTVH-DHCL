@@ -99,7 +99,8 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO' 
             total: result.total,
             inserted: result.inserted,
             skipped: result.skipped,
-            errors: result.errors
+            errors: result.errors,
+            ngay_do_kiem
         };
 
     } catch (error) {
@@ -109,4 +110,10 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO' 
     }
 }
 
-module.exports = { executeImport, BASE_INCOMING, BASE_PROCESSED, BASE_ERROR };
+module.exports = {
+    executeImport,
+    processImport: executeImport,
+    BASE_INCOMING,
+    BASE_PROCESSED,
+    BASE_ERROR
+};

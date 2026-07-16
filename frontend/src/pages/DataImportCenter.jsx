@@ -4,19 +4,16 @@ import { HardDrive, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import UploadWidget from '../components/UploadWidget';
 
 export default function DataImportCenter() {
-  const [status, setStatus]   = useState(null);
+  const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState(null);
 
   const fetchStatus = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await api.get('/import/f13/status');
       if (res.data.success) setStatus(res.data.data);
     } catch (err) {
       console.error('[DataImportCenter] fetchStatus error:', err);
-      setError('Không thể tải trạng thái import.');
     } finally {
       setLoading(false);
     }
@@ -24,7 +21,6 @@ export default function DataImportCenter() {
 
   useEffect(() => {
     fetchStatus();
-    // Auto refresh every 5s
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -34,23 +30,21 @@ export default function DataImportCenter() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">Data Import Center</h1>
-          <p className="text-gray-500 mt-1">Mini Dashboard - Quản lý quá trình đồng bộ tự động F1.3</p>
+          <p className="text-gray-500 mt-1">Trung tâm nạp dữ liệu ngày cho Dashboard điều hành</p>
         </div>
         <button onClick={fetchStatus} className="px-4 py-2 bg-vnpost-blue text-white rounded-lg hover:bg-blue-800 transition-colors shadow-sm">
           Làm mới
         </button>
       </div>
 
-      {/* Upload Section — TD § 2.2 API 1 */}
       <div className="mb-8">
         <UploadWidget onUploadSuccess={fetchStatus} />
       </div>
 
-      {/* Status Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-500 mb-1">Chờ xử lý (Incoming)</p>
+            <p className="text-sm font-semibold text-gray-500 mb-1">Chờ xử lý</p>
             <p className="text-3xl font-black text-vnpost-orange">{status?.pendingCount || 0}</p>
           </div>
           <div className="w-12 h-12 bg-orange-50 rounded-full flex items-center justify-center text-vnpost-orange">
@@ -80,7 +74,7 @@ export default function DataImportCenter() {
 
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-500 mb-1">Import Gần Nhất</p>
+            <p className="text-sm font-semibold text-gray-500 mb-1">Import gần nhất</p>
             <p className="text-sm font-bold text-gray-800 break-words mt-2">
               {status?.lastImport ? new Date(status.lastImport).toLocaleString('vi-VN') : 'Chưa có dữ liệu'}
             </p>
@@ -119,7 +113,6 @@ export default function DataImportCenter() {
                   <td className="px-6 py-3 text-right font-bold text-gray-700">
                     {(log.so_luong_bg ?? 0).toLocaleString('vi-VN')}
                   </td>
-                  {/* skipped_records — DCR-approved field (data_blueprint.md § 6) */}
                   <td className="px-6 py-3 text-right font-medium text-amber-600">
                     {(log.so_bi_bo_qua ?? 0).toLocaleString('vi-VN')}
                   </td>
@@ -129,17 +122,17 @@ export default function DataImportCenter() {
                   <td className="px-6 py-3 text-center">
                     {log.trang_thai === 'SUCCESS' ? (
                       <span className="px-3 py-1 rounded-full text-xs bg-green-100 text-green-800 font-bold">Thành công</span>
-                    ) : log.trang_thai === 'FAILED' ? (
-                      <span className="px-3 py-1 rounded-full text-xs bg-red-100 text-red-800 font-bold">Lỗi</span>
                     ) : (
-                      <span className="px-3 py-1 rounded-full text-xs bg-orange-100 text-orange-800 font-bold">Đang chạy</span>
+                      <span className="px-3 py-1 rounded-full text-xs bg-red-100 text-red-800 font-bold">Lỗi</span>
                     )}
                   </td>
                 </tr>
               ))}
               {!status?.recentLogs?.length && (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400">Không có dữ liệu nhật ký</td>
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400">
+                    {loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu nhật ký'}
+                  </td>
                 </tr>
               )}
             </tbody>
