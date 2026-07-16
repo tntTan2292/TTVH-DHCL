@@ -152,6 +152,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `docs/09_REPORTS/Documentation/DOCUMENTATION_AUDIT_REPORT.md` | Reports | Documentation audit report | Active | L4 | 4 | Low | documentation governance docs |
 | `docs/09_REPORTS/Documentation/DOCUMENTATION_VALIDATION_REPORT.md` | Reports | Documentation validation report | Active | L4 | 4 | Low | documentation governance docs |
+| `docs/09_REPORTS/Documentation/GOVERNANCE_V2_ONBOARDING_VALIDATION.md` | Reports | Governance V2 onboarding validation report | Active | L4 | 4 | Low | README_AI.md, PROJECT_SNAPSHOT.md, current manifest |
 | `docs/GOVERNANCE_UPDATE_REPORT.md` | Reports | Governance update report | Active | L4 | 4 | Low | governance changes |
 | `docs/09_REPORTS/Documentation/AI_ONBOARDING_VALIDATION_REPORT.md` | Reports | AI onboarding validation report | Active | L4 | 4 | Low | onboarding docs |
 | `docs/09_REPORTS/Documentation/CODEX_PROMPT_STANDARD_REPORT.md` | Reports | Codex prompt standard report | Active | L4 | 4 | Low | governance/prompt docs |

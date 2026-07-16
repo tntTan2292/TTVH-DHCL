@@ -21,10 +21,10 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
 | Next Ticket | `TODAY-004 Volume Trendline` |
 | PO Status | `READY FOR PO CHECK` |
-| Current Commit | `3481f100d15e857ff11224b869f5362a705dd0b2` |
+| Current Commit | `4ff3d43a7e30707109672154f57f9ee8068cfb2c` |
 | Current Branch | `main` |
 | Current Manifest | `docs/10_TICKETS/TODAY-003-R1_MANIFEST.md` |
-| Governance Version | `V2 Draft / V1 Compatible` |
+| Governance Version | `V2 Active` |
 | Last Updated | `2026-07-16` |
 
 ## 3. Usage Rules
