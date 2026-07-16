@@ -22,9 +22,9 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `TODAY-001 Import Daily Data Verification`
+- `TODAY-001-R1 Import Runtime Route and Reimport Recovery`
 - `Dashboard Delivery`
-- `Status: In Progress`
+- `Status: READY FOR PO RECHECK`
 
 ## Completed Tickets
 
@@ -50,13 +50,13 @@ Quy tắc cập nhật:
 - Feature Planning: `PASS`
 - Development Backlog: `PASS`
 - Shipment Performance Center Review: `PASS`
-- PO UI Acceptance Governance: `In Progress`
+- PO UI Acceptance Governance: `PASS`
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
+- PO Product Status: `READY FOR PO RECHECK`
 
 ## Next Ticket
 
-- `TODAY-002 Daily Trend Data Adapter`
+- `TODAY-002 Daily Trend Data Adapter` after PO recheck for `TODAY-001-R1`
 
 ## Notes
 

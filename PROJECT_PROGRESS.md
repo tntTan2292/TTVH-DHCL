@@ -115,9 +115,9 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TODAY-001 Import Daily Data Verification` |
-| Current Commit | `f3c0d3b279ffed2c4704b953354b45a975834e83` |
+| Current Ticket | `TODAY-001-R1 Import Runtime Route and Reimport Recovery` |
+| Current Commit | `Pending recovery commit` |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Next Milestone | `TODAY-001 Import Daily Data Verification` |
+| Next Milestone | `PO recheck for TODAY-001-R1, then TODAY-002 Daily Trend Data Adapter` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `NOT READY` |
+| PO Product Status | `READY FOR PO RECHECK` |

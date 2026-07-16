@@ -1,24 +1,36 @@
-import { useState, useRef } from 'react';
-import { UploadCloud, FileText, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle2, FileText, UploadCloud, XCircle } from 'lucide-react';
 import api from '../api/client';
 
 export default function UploadWidget({ onUploadSuccess }) {
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [result, setResult] = useState(null);
+    const [confirm, setConfirm] = useState(null);
     const [dragOver, setDragOver] = useState(false);
     const inputRef = useRef(null);
 
-    const selectFile = (f) => {
-        if (f && f.name.toLowerCase().endsWith('.xlsx')) {
-            setFile(f);
+    const getErrorMessage = (err) => (
+        err.response?.data?.error?.message
+        || err.response?.data?.message
+        || err.message
+        || 'Nạp dữ liệu thất bại.'
+    );
+
+    const selectFile = (selectedFile) => {
+        if (selectedFile && selectedFile.name.toLowerCase().endsWith('.xlsx')) {
+            setFile(selectedFile);
             setResult(null);
-        } else if (f) {
+            setConfirm(null);
+            return;
+        }
+
+        if (selectedFile) {
             setResult({ type: 'error', message: 'Chỉ chấp nhận file .xlsx hợp lệ.' });
         }
     };
 
-    const handleUpload = async () => {
+    const handleUpload = async (forceReimport = false) => {
         if (!file) return;
 
         setUploading(true);
@@ -29,19 +41,25 @@ export default function UploadWidget({ onUploadSuccess }) {
         formData.append('source', 'HUE');
 
         try {
-            const res = await api.post('/import/upload', formData, {
+            const endpoint = forceReimport ? '/import/upload?force=true' : '/import/upload';
+            const res = await api.post(endpoint, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
             setResult({ type: 'success', data: res.data.data });
+            setConfirm(null);
             setFile(null);
             if (inputRef.current) inputRef.current.value = '';
             onUploadSuccess?.();
         } catch (err) {
-            setResult({
-                type: 'error',
-                message: err.message || 'Nạp dữ liệu thất bại.'
-            });
+            const data = err.response?.data;
+            if (err.response?.status === 409 && data?.requiresConfirmation) {
+                setConfirm({ ngay_do_kiem: data.ngay_do_kiem });
+                setResult(null);
+                return;
+            }
+
+            setResult({ type: 'error', message: getErrorMessage(err) });
         } finally {
             setUploading(false);
         }
@@ -55,23 +73,30 @@ export default function UploadWidget({ onUploadSuccess }) {
             </h2>
 
             <div
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragOver={(event) => {
+                    event.preventDefault();
+                    setDragOver(true);
+                }}
                 onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(false); selectFile(e.dataTransfer.files[0]); }}
+                onDrop={(event) => {
+                    event.preventDefault();
+                    setDragOver(false);
+                    selectFile(event.dataTransfer.files[0]);
+                }}
                 onClick={() => inputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors mb-4
-                    ${dragOver
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors mb-4 ${
+                    dragOver
                         ? 'border-vnpost-blue bg-blue-50'
                         : file
                             ? 'border-green-400 bg-green-50'
                             : 'border-gray-300 hover:border-vnpost-blue hover:bg-blue-50'
-                    }`}
+                }`}
             >
                 <input
                     ref={inputRef}
                     type="file"
                     accept=".xlsx"
-                    onChange={(e) => selectFile(e.target.files[0])}
+                    onChange={(event) => selectFile(event.target.files[0])}
                     className="hidden"
                 />
                 {file ? (
@@ -88,15 +113,56 @@ export default function UploadWidget({ onUploadSuccess }) {
             </div>
 
             <button
-                onClick={handleUpload}
+                onClick={() => handleUpload(false)}
                 disabled={!file || uploading}
                 className="w-full py-2.5 bg-vnpost-blue text-white font-semibold rounded-xl hover:bg-blue-800 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
-                {uploading
-                    ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Đang nạp...</>
-                    : <><UploadCloud size={18} />Nạp dữ liệu</>
-                }
+                {uploading ? (
+                    <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Đang nạp...
+                    </>
+                ) : (
+                    <>
+                        <UploadCloud size={18} />
+                        Nạp dữ liệu
+                    </>
+                )}
             </button>
+
+            {confirm && (
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                        <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm font-semibold text-amber-900">
+                                Dữ liệu ngày {confirm.ngay_do_kiem} đã tồn tại.
+                            </p>
+                            <p className="text-sm text-amber-800 mt-1">
+                                Bạn có muốn ghi đè dữ liệu cũ và import lại không?
+                            </p>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirm(null)}
+                                    disabled={uploading}
+                                    className="px-4 py-2 rounded-lg bg-white border border-amber-200 text-amber-800 text-sm font-semibold hover:bg-amber-100 disabled:opacity-50"
+                                >
+                                    Hủy
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleUpload(true)}
+                                    disabled={uploading}
+                                    className="px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
+                                >
+                                    Xác nhận ghi đè
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {result?.type === 'success' && (
                 <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
@@ -124,13 +190,6 @@ export default function UploadWidget({ onUploadSuccess }) {
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
                     <XCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
                     <p className="text-red-700 text-sm">{result.message}</p>
-                </div>
-            )}
-
-            {result?.type === 'warning' && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
-                    <AlertTriangle size={18} className="text-vnpost-blue shrink-0 mt-0.5" />
-                    <p className="text-vnpost-blue-dark font-medium text-sm">{result.message}</p>
                 </div>
             )}
         </div>

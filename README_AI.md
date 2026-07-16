@@ -50,13 +50,13 @@ After onboarding, AI must report:
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-001 Import Daily Data Verification` |
-| Development Status | `In Progress` |
+| Current Ticket | `TODAY-001-R1 Import Runtime Route and Reimport Recovery` |
+| Development Status | `READY FOR PO RECHECK` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `NOT READY` |
-| Documentation Status | `In Progress` |
+| PO Product Status | `READY FOR PO RECHECK` |
+| Documentation Status | `Recovery evidence synced` |
 | AI Onboarding Status | `Ready` |
-| Last Validation | `Excel parser/importProcessor/e2e import engine PASS; runtime smoke upload PASS` |
+| Last Validation | `Parser/import/e2e PASS; backend route /api/import/f13/status HTTP 200; browser /import renders runtime summary/history; reimport 409 + force=true PASS` |
 
 ## 6. Quick Links
 

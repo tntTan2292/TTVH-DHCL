@@ -1,19 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Clock, HardDrive, XCircle } from 'lucide-react';
 import api from '../api/client';
-import { HardDrive, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import UploadWidget from '../components/UploadWidget';
 
 export default function DataImportCenter() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [statusError, setStatusError] = useState(null);
 
   const fetchStatus = async () => {
     setLoading(true);
+    setStatusError(null);
     try {
       const res = await api.get('/import/f13/status');
-      if (res.data.success) setStatus(res.data.data);
+      if (res.data.success) {
+        setStatus(res.data.data);
+      }
     } catch (err) {
       console.error('[DataImportCenter] fetchStatus error:', err);
+      setStatusError('Không thể tải trạng thái import. Vui lòng kiểm tra kết nối backend hoặc thử lại.');
     } finally {
       setLoading(false);
     }
@@ -37,6 +42,13 @@ export default function DataImportCenter() {
         </button>
       </div>
 
+      {statusError && (
+        <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-red-700">{statusError}</p>
+        </div>
+      )}
+
       <div className="mb-8">
         <UploadWidget onUploadSuccess={fetchStatus} />
       </div>
@@ -45,7 +57,7 @@ export default function DataImportCenter() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-500 mb-1">Chờ xử lý</p>
-            <p className="text-3xl font-black text-vnpost-orange">{status?.pendingCount || 0}</p>
+            <p className="text-3xl font-black text-vnpost-orange">{status?.pendingCount ?? 0}</p>
           </div>
           <div className="w-12 h-12 bg-orange-50 rounded-full flex items-center justify-center text-vnpost-orange">
             <Clock size={24} />
@@ -55,7 +67,7 @@ export default function DataImportCenter() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-500 mb-1">Thành công</p>
-            <p className="text-3xl font-black text-green-600">{status?.successCount || 0}</p>
+            <p className="text-3xl font-black text-green-600">{status?.successCount ?? 0}</p>
           </div>
           <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600">
             <CheckCircle2 size={24} />
@@ -65,7 +77,7 @@ export default function DataImportCenter() {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-500 mb-1">Thất bại</p>
-            <p className="text-3xl font-black text-red-600">{status?.failCount || 0}</p>
+            <p className="text-3xl font-black text-red-600">{status?.failCount ?? 0}</p>
           </div>
           <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-600">
             <XCircle size={24} />
@@ -105,9 +117,7 @@ export default function DataImportCenter() {
             <tbody>
               {status?.recentLogs?.map((log) => (
                 <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-3 text-gray-600">
-                    {new Date(log.ngay_import).toLocaleString('vi-VN')}
-                  </td>
+                  <td className="px-6 py-3 text-gray-600">{new Date(log.ngay_import).toLocaleString('vi-VN')}</td>
                   <td className="px-6 py-3 font-semibold text-vnpost-blue-dark">{log.ten_file}</td>
                   <td className="px-6 py-3 text-center font-medium text-gray-600">{log.ngay_so_lieu}</td>
                   <td className="px-6 py-3 text-right font-bold text-gray-700">

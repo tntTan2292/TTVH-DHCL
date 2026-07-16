@@ -243,14 +243,14 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | --- | --- |
 | Project Name | `TTVH Quality Intelligence System (QIS V2)` |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Development Status | `Governance update required` |
+| Current Development Status | `READY FOR PO RECHECK` |
 | Architecture Status | `Frozen` |
 | UX Status | `Frozen` |
 | Technical Planning Status | `PASS` |
 | Technical Status | `PASS` |
 | Runtime Status | `PASS` |
-| PO UI Check Required | `No` |
-| PO Product Status | `NOT REQUIRED` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `READY FOR PO RECHECK` |
 | Dashboard | `PASS` |
 | BCVH | `PASS` |
 | Route | `PASS` |
@@ -259,9 +259,9 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `TODAY-001 Import Daily Data Verification` |
-| Current Commit | `f3c0d3b279ffed2c4704b953354b45a975834e83` |
-| Next Milestone | `TODAY-001 Import Daily Data Verification` |
+| Current Ticket | `TODAY-001-R1 Import Runtime Route and Reimport Recovery` |
+| Current Commit | `Pending recovery commit` |
+| Next Milestone | `PO recheck for TODAY-001-R1, then TODAY-002 Daily Trend Data Adapter` |
 
 Current PO gate rule:
 

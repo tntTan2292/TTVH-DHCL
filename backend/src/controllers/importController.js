@@ -1,9 +1,8 @@
 'use strict';
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
-const { get, all } = require('../config/db');
+const { all } = require('../config/db');
 const { executeImport, BASE_INCOMING } = require('../services/importPipeline');
 
 const ensureDir = (dir) => fs.mkdirSync(dir, { recursive: true });
@@ -17,9 +16,9 @@ function resolveIncomingDir(source) {
 }
 
 function buildStatusPayload(rows) {
-    const successCount = rows.filter(r => r.status === 'SUCCESS').length;
-    const failCount = rows.filter(r => r.status === 'FAILED').length;
-    const latestImport = rows.find(r => r.status === 'SUCCESS')?.created_at || null;
+    const successCount = rows.filter((row) => row.status === 'SUCCESS').length;
+    const failCount = rows.filter((row) => row.status === 'FAILED').length;
+    const latestImport = rows.find((row) => row.status === 'SUCCESS')?.created_at || null;
 
     return {
         pendingCount: 0,
@@ -37,6 +36,24 @@ function buildStatusPayload(rows) {
             trang_thai: row.status
         }))
     };
+}
+
+function getSafeImportErrorMessage(error) {
+    const message = error?.message || '';
+
+    if (message.includes('Invalid filename format')) {
+        return 'Tên file không hợp lệ. Vui lòng dùng đúng định dạng F1.3-YYYY.MM.DD.xlsx.';
+    }
+
+    if (message.includes('Required column')) {
+        return 'File Excel không đúng mẫu. Không tìm thấy cột bắt buộc Số hiệu bưu gửi.';
+    }
+
+    if (message.includes('File already processed') || message.includes('does not exist')) {
+        return 'Không tìm thấy file cần import. Vui lòng thử tải lại file.';
+    }
+
+    return message || 'Nạp dữ liệu thất bại. Vui lòng kiểm tra file và thử lại.';
 }
 
 class ImportController {
@@ -90,7 +107,7 @@ class ImportController {
                 success: false,
                 error: {
                     code: error.code || 'IMPORT_FAILED',
-                    message: error.message || 'Nạp dữ liệu thất bại.'
+                    message: getSafeImportErrorMessage(error)
                 }
             });
         } finally {
