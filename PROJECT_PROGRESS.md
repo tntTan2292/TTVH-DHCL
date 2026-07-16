@@ -31,7 +31,7 @@
 - Leadership Dashboard Delivery: `In Progress`
 - TODAY-002-R1 KPI 2026 Source Column Recovery: `Closed`
 - TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery: `Completed`
-- TODAY-003-R1 Quality Trendline Runtime Route Recovery: `In Progress`
+- TODAY-003-R1 Quality Trendline Runtime Route Recovery: `Ready for PO Check`
 
 ## Danh Sách Tài Liệu Đã Freeze
 
@@ -124,4 +124,4 @@
 | Current Phase | `Leadership Dashboard Delivery` |
 | Next Milestone | `TODAY-004 Volume Trendline` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `NOT READY` |
+| PO Product Status | `READY FOR PO CHECK` |

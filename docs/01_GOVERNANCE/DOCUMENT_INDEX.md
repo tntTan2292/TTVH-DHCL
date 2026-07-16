@@ -117,6 +117,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Import/TODAY-002_DAILY_TREND_DATA_ADAPTER_REVIEW.md` | Reviews | TODAY-002 daily trend data adapter review evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
 | `docs/06_REVIEWS/Import/TODAY-002-R1_KPI_2026_SOURCE_COLUMN_RECOVERY.md` | Reviews | TODAY-002-R1 KPI 2026 source column recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
 | `docs/06_REVIEWS/Import/TODAY-002-R2_KPI_2026_DASHBOARD_CONSISTENCY_RECOVERY.md` | Reviews | TODAY-002-R2 KPI 2026 dashboard consistency recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
+| `docs/06_REVIEWS/Import/TODAY-003-R1_QUALITY_TRENDLINE_RUNTIME_ROUTE_RECOVERY.md` | Reviews | TODAY-003-R1 quality trendline runtime route recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |

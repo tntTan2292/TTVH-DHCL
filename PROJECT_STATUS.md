@@ -24,7 +24,7 @@ Quy tắc cập nhật:
 
 - `TODAY-003-R1 Quality Trendline Runtime Route Recovery`
 - `Dashboard Delivery`
-- `Status: Recovery Required`
+- `Status: Ready for PO Check`
 
 ## Completed Tickets
 
@@ -60,11 +60,11 @@ Quy tắc cập nhật:
 - TODAY-002 Daily Trend Data Adapter: `COMPLETED`
 - TODAY-002-R1 KPI 2026 Source Column Recovery: `CLOSED`
 - TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery: `COMPLETED`
-- TODAY-003 Quality Delivery Rate Trendline: `RECOVERY REQUIRED`
-- TODAY-003-R1 Quality Trendline Runtime Route Recovery: `CURRENT`
+- TODAY-003 Quality Delivery Rate Trendline: `READY FOR PO CHECK`
+- TODAY-003-R1 Quality Trendline Runtime Route Recovery: `CURRENT / READY FOR PO CHECK`
 - PO findings from TODAY-001: `CLOSED`
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
+- PO Product Status: `READY FOR PO CHECK`
 
 ## Next Ticket
 
