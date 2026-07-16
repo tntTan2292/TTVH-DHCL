@@ -135,9 +135,9 @@ Alternative branches:
 | --- | --- | --- | --- | --- | --- | --- |
 | POF-001 | Shipment is missing from the sidebar menu | DEFECT | TICKET-0053 Shipment Performance Center Runtime Data Integration | Ticket runtime completed | Create Navigation Fix / Shipment Review Fix ticket | Yes |
 | POF-002 | Dashboard shell still shows placeholder language | INCOMPLETE | Dashboard Foundation tickets | Ticket technically completed | Create Dashboard Product Recovery ticket | Yes |
-| POF-003 | Dashboard heatmap is not present | NOT PLANNED | No approved ticket owns it | No responsible ticket exists | Escalate to PO backlog decision | No |
-| POF-004 | Dashboard day/week/month trend is not present | INCOMPLETE / NOT PLANNED | Depends on frozen backlog scope | Ticket ownership must be verified | Link to responsible ticket or create new ticket | Depends |
-| POF-005 | Dashboard frequency analysis is not present | NOT PLANNED | No approved ticket owns it | No responsible ticket exists | Escalate to PO backlog decision | No |
+| POF-003 | Dashboard heatmap is not present | INCOMPLETE | TODAY-006 Restore and Preserve Existing Dashboard Charts | Planned / queued for PO-prioritized delivery | Restore the heatmap surface without removing existing charts | Yes |
+| POF-004 | Dashboard day/week/month trend is not present | PLANNED | TODAY-003, TODAY-004, TODAY-005 | Planned / queued for PO-prioritized delivery | Deliver the supplementary trendline tickets in the TODAY queue | Yes |
+| POF-005 | Dashboard frequency analysis is not present | INCOMPLETE | TODAY-006 Restore and Preserve Existing Dashboard Charts | Planned / queued for PO-prioritized delivery | Restore the frequency analysis surface without removing existing charts | Yes |
 | POF-006 | Shipment shows no runtime data for the PO date/context | VERIFY DATA | Shipment Performance Center | Ticket runtime completed | Validate known-good context before defect ticketing | No |
 
 ## 6. Closure Rules
@@ -173,4 +173,3 @@ Progress tables and completion reports must expose:
 - which ticket owns the finding
 - whether the finding blocks completion
 - what the next PO recheck point is
-

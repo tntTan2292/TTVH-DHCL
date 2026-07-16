@@ -43,6 +43,97 @@ PO findings traceability:
 - never close a finding by build PASS alone
 - record the PO recheck point before closure
 
+## 1.1 TODAY Delivery Queue
+
+The following queue is the current PO-prioritized delivery order for leadership reporting.
+
+### TODAY-001 Import Daily Data Verification
+
+- Module: Data Import Center
+- Route / URL: `/import`
+- Goal: Verify daily source files import successfully and daily records are available for Dashboard use.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Import screen
+- Business Impact: Establishes daily data availability for leadership reporting.
+- Expected Visible Result: Upload succeeds, import status is visible, file name and data date are correct, shipment count is visible, skipped/error counts are visible, and latest import timestamp updates.
+- Blocking Issue: Blocks all Dashboard trend tickets.
+
+### TODAY-002 Daily Trend Data Adapter
+
+- Module: Import / API / Dashboard Data Layer
+- Goal: Provide one normalized daily record for each date in the selected range.
+- PO UI Check Required: `No`
+- Affected Screen / Menu: Runtime data contract
+- Business Impact: Supplies the runtime data needed for leadership charts.
+- Expected Visible Result: Daily fields are available for chart consumption.
+- Blocking Issue: Blocks TODAY-003, TODAY-004, and TODAY-005.
+
+### TODAY-003 Quality Delivery Rate Trendline
+
+- Module: Operation Dashboard
+- Route / URL: `/f13/dashboard`
+- Goal: Add daily quality delivery percentage trendline.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Operation Dashboard
+- Business Impact: Gives leadership a daily quality trend with a fixed 90% target line.
+- Expected Visible Result: Date-based quality percentage trendline with tooltip and 90% reference line.
+- Blocking Issue: Blocks downstream dashboard delivery checks until runtime data is correct.
+
+### TODAY-004 Volume Trendline
+
+- Module: Operation Dashboard
+- Route / URL: `/f13/dashboard`
+- Goal: Add daily total shipment volume trendline.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Operation Dashboard
+- Business Impact: Gives leadership a daily volume trend.
+- Expected Visible Result: Date-based volume trendline with clear tooltip.
+- Blocking Issue: Blocks downstream dashboard delivery checks until runtime data is correct.
+
+### TODAY-005 Same-Period Comparison Trendline
+
+- Module: Operation Dashboard
+- Route / URL: `/f13/dashboard`
+- Goal: Compare current period with the immediately previous equivalent period.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Operation Dashboard
+- Business Impact: Helps leadership compare the current week against the previous week.
+- Expected Visible Result: Comparison view by same weekday for quality rate or volume.
+- Blocking Issue: Blocks downstream dashboard delivery checks until runtime data is correct.
+
+### TODAY-006 Restore and Preserve Existing Dashboard Charts
+
+- Module: Operation Dashboard
+- Route / URL: `/f13/dashboard`
+- Goal: Ensure existing dashboard analysis remains visible.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Operation Dashboard
+- Business Impact: Preserves existing operational analysis surfaces while new trendlines are added.
+- Expected Visible Result: Monthly Heatmap, Weekly Frequency chart, KPI cards, ranking tables, and existing charts remain visible.
+- Blocking Issue: Blocks acceptance if any existing analysis surface is removed.
+
+### TODAY-007 Dashboard Executive Layout Cleanup
+
+- Module: Operation Dashboard
+- Route / URL: `/f13/dashboard`
+- Goal: Arrange the Dashboard into a clear leadership reporting flow.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Operation Dashboard
+- Business Impact: Makes the dashboard easier for leadership to review quickly.
+- Expected Visible Result: Filters, KPI summary, trendlines, comparison, heatmap, weekly frequency, and tables appear in a leadership-friendly order.
+- Blocking Issue: Blocks acceptance if placeholder or shell language remains.
+
+### TODAY-008 PO Data Reconciliation and Leadership View
+
+- Module: Data Import Center + Operation Dashboard
+- Routes / URLs: `/import`, `/f13/dashboard`
+- Goal: Allow the Product Owner to validate imported data and all leadership charts.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Import and Dashboard
+- Business Impact: Provides the combined PO validation path for the leadership reporting delivery.
+- Expected Visible Result: PO can confirm the import and dashboard chain end-to-end.
+- Blocking Issue: Completion requires PO PASS.
+
 ### TICKET-0101 Login API and Session
 
 - Ticket ID: TICKET-0101

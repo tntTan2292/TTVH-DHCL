@@ -242,7 +242,7 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Field | Value |
 | --- | --- |
 | Project Name | `TTVH Quality Intelligence System (QIS V2)` |
-| Current Phase | `Governance and Development Workflow Update` |
+| Current Phase | `Leadership Dashboard Delivery` |
 | Current Development Status | `Governance update required` |
 | Architecture Status | `Frozen` |
 | UX Status | `Frozen` |
@@ -259,9 +259,9 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `GOV-PO-UI-01 PO UI Acceptance Gate and PO Findings Traceability` |
-| Current Commit | `12f05d179f6bbbfe5fd1145d6695d28b0c8cc788` |
-| Next Milestone | `Evidence Center development` |
+| Current Ticket | `TODAY-001 Import Daily Data Verification` |
+| Current Commit | `922ae89b2c4229811f6b3c53473ce96e0bca2979` |
+| Next Milestone | `TODAY-001 Import Daily Data Verification` |
 
 Current PO gate rule:
 
