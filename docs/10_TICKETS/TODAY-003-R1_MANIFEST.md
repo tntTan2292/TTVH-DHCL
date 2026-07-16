@@ -31,10 +31,8 @@ Restore and verify the Quality Delivery Rate Trendline runtime path so browser r
 ## 3. Current Status
 
 - Current state: `Technical PASS / Runtime PASS / Ready for PO Check`
+- Live phase, current commit, branch, PO status, and next ticket are owned by `PROJECT_SNAPSHOT.md`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
-- Current Commit: `e0e936ea9272606bed04ddb316e8b0d8174df1ee`
-- Current Branch: `main`
 
 ## 4. Required Reading
 
@@ -53,6 +51,7 @@ Only the following documents are required to continue this ticket:
 - Business problem: the Quality Delivery Rate Trendline must be available to leadership in the Operation Dashboard.
 - Business impact: the PO must be able to verify the chart against live runtime data.
 - Approved business rule constraints: keep `danh_gia_2026`, keep missing dates as gaps, keep the 90% target as presentation-only, preserve optional BCVH filtering.
+- Current phase, current ticket ownership, and next ticket routing are referenced from `PROJECT_SNAPSHOT.md`.
 
 ## 6. Technical Context
 
@@ -99,6 +98,7 @@ Only the following documents are required to continue this ticket:
 - PO finding IDs: `POF-TODAY-003-01`
 - Status: `OPEN`
 - Closure or recheck requirement: keep ticket open until PO rechecks the browser and confirms the chart behavior
+- PO gate and current product state are referenced from `PROJECT_SNAPSHOT.md`.
 
 ## 10. Documents To Update
 
@@ -127,4 +127,4 @@ Only the following documents are required to continue this ticket:
 - Next ticket ID: `TODAY-004`
 - Next ticket name: `Volume Trendline`
 - Blockers or handoff notes: keep `TODAY-004` blocked / not started until PO check outcome is recorded for `TODAY-003-R1`
-
+- Next ticket ownership is referenced from `PROJECT_SNAPSHOT.md`.

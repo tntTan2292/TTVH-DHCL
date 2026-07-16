@@ -43,7 +43,6 @@ After onboarding, AI must report:
 
 - Project Understanding
 - Governance Understanding
-- Current Project Status from `PROJECT_SNAPSHOT.md`
 - Current Ticket
 - Ready to Continue
 
@@ -64,6 +63,8 @@ Current Manifest from `PROJECT_SNAPSHOT.md`
 ↓
 
 Required Reading from the manifest
+
+Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
 ## 6. Quick Links
 

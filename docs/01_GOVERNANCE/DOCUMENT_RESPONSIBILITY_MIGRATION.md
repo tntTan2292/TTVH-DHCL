@@ -74,7 +74,7 @@ Excluded:
 | `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Immutable decision log | Decision summaries repeated in narrative docs | Decision authority source | `PROJECT_HANDOVER.md`, `PROJECT_CONTEXT.md`, manifests |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | PO finding traceability | PO finding status echoed in some review and status docs | Single PO finding traceability source | ticket review evidence, closure docs |
 | `docs/06_REVIEWS/Import/TODAY-003-R1_QUALITY_TRENDLINE_RUNTIME_ROUTE_RECOVERY.md` | Ticket evidence and validation | Some summary state overlaps with manifest and snapshot | Ticket-specific technical/runtime evidence | `TODAY-003-R1_MANIFEST.md`, `PO_FINDINGS_REGISTER.md` |
-| `docs/01_GOVERNANCE/PROJECT_STATUS.md` | Live project status log | Current-state and progress summaries repeat snapshot data | Current status log only | `PROJECT_SNAPSHOT.md` for live state |
+| `PROJECT_STATUS.md` | Live project status log | Current-state and progress summaries repeat snapshot data | Current status log only | `PROJECT_SNAPSHOT.md` for live state |
 | `PROJECT_PROGRESS.md` | Live progress tracker | Current-state summaries repeat status and snapshot data | Historical progress log | `PROJECT_SNAPSHOT.md` for live state |
 
 ## 6. Keep / Move / Reference / Remove Plan
@@ -178,4 +178,3 @@ This migration plan is valid if:
 - The first migration candidate is always a duplicate current-state block, not a frozen contract.
 - Migration should prefer reference replacement over content deletion.
 - Any removal of duplicated text must be proven safe by the snapshot and manifest coverage first.
-

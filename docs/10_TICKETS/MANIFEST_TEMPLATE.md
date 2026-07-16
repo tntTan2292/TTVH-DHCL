@@ -102,3 +102,15 @@ List only the documents directly relevant to this ticket.
 - Next ticket ID:
 - Next ticket name:
 - Blockers or handoff notes:
+
+## 14. Authority Escalation
+
+Escalate instead of guessing when:
+
+- the manifest conflicts with `PROJECT_SNAPSHOT.md`
+- a higher-authority document exists
+- a frozen document or SSOT would need to change
+- the ticket scope is unclear
+- the update would add a second source of truth
+
+When escalation is required, stop and reference the authoritative document instead of expanding scope.
