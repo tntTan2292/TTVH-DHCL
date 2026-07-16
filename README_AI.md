@@ -21,8 +21,9 @@ It is designed so any AI can onboard quickly, without guessing workflow or readi
 Every AI must:
 
 1. Read [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
-2. Then follow the Reading Order defined there
-3. Use only the GitHub Blob URLs embedded in the onboarding chain; do not depend on relative paths for AI onboarding.
+2. Read [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+3. Then follow the Reading Order defined there
+4. Use only the GitHub Blob URLs embedded in the onboarding chain; do not depend on relative paths for AI onboarding.
 
 ## 3. Operating Rules
 
