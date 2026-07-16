@@ -50,11 +50,11 @@ After onboarding, AI must report:
 | Field | Value |
 | --- | --- |
 | Current Phase | `Development` |
-| Current Ticket | `TICKET-0053 Shipment Performance Center Runtime Data Integration` |
-| Development Status | `Completed` |
+| Current Ticket | `TICKET-0061 Evidence Validation Views` |
+| Development Status | `Ready for Development` |
 | Documentation Status | `FROZEN` |
 | AI Onboarding Status | `Ready` |
-| Last Validation | `Shipment Performance Center Runtime Data Integration PASS` |
+| Last Validation | `Shipment Performance Center Review PASS` |
 
 ## 6. Quick Links
 

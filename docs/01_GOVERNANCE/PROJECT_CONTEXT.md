@@ -237,21 +237,21 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | --- | --- |
 | Project Name | `TTVH Quality Intelligence System (QIS V2)` |
 | Current Phase | `Development` |
-| Current Development Status | `Ready for Review` |
+| Current Development Status | `Ready for Development` |
 | Architecture Status | `Frozen` |
 | UX Status | `Frozen` |
 | Technical Planning Status | `PASS` |
 | Dashboard | `PASS` |
 | BCVH | `PASS` |
 | Route | `PASS` |
-| Shipment | `Shell implemented, executive widgets PASS` |
+| Shipment | `Runtime integration reviewed` |
 | Evidence | `Not started` |
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `TICKET-0053 Shipment Performance Center Runtime Data Integration` |
-| Current Commit | `cf28443c85e6c2dff058d4dd1fcb4ce9de41b54e` |
-| Next Milestone | `Shipment Performance Center Review workflow` |
+| Current Ticket | `TICKET-0061 Evidence Validation Views` |
+| Current Commit | `cf2844310af2cdf866f81569fef104edea3669f6` |
+| Next Milestone | `Evidence Center development` |
 
 ## 10. Continuation Rule
 

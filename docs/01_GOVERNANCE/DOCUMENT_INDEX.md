@@ -109,6 +109,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Dashboard/DASHBOARD_FOUNDATION_REVIEW.md` | Reviews | Dashboard review result | Frozen | L3 | 2 | Low | Dashboard docs |
 | `docs/06_REVIEWS/BCVH/BCVH_PERFORMANCE_CENTER_REVIEW.md` | Reviews | BCVH review result | Frozen | L3 | 2 | Low | BCVH docs |
 | `docs/06_REVIEWS/Route/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Route review result | Frozen | L3 | 2 | Low | Route docs |
+| `docs/06_REVIEWS/Shipment/SHIPMENT_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Shipment review result | Frozen | L3 | 2 | Low | Shipment docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |
 | `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` | Reviews | UX freeze review | Frozen | L2 | 2 | Low | UX docs |
 

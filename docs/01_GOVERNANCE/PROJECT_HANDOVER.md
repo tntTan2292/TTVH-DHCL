@@ -25,7 +25,7 @@
 | Project Vision | `Decision Support System` for quality operations |
 | Business Goal | Standardize operational decision making with SSOT, runtime, and evidence-backed flow |
 | Current Development Phase | `Development` |
-| Current Development Status | `Ready for Review` |
+| Current Development Status | `Ready for Development` |
 | Current Architecture Status | `Frozen` |
 | Current UX Status | `Frozen` |
 | Current Technical Planning Status | `PASS` |
@@ -91,6 +91,7 @@ The following documents are frozen and should be treated as SSOT/architecture co
 - [docs/02_ARCHITECTURE/ROUTE/ROUTE_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/ROUTE/ROUTE_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md)
 - [docs/03_UX/route/ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/03_UX/route/ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md)
 - [docs/06_REVIEWS/Route/ROUTE_PERFORMANCE_CENTER_REVIEW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Route/ROUTE_PERFORMANCE_CENTER_REVIEW.md)
+- [docs/06_REVIEWS/Shipment/SHIPMENT_PERFORMANCE_CENTER_REVIEW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shipment/SHIPMENT_PERFORMANCE_CENTER_REVIEW.md)
 - [docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md)
 - [docs/SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md)
 - [docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md)
@@ -135,18 +136,18 @@ The following documents are frozen and should be treated as SSOT/architecture co
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TICKET-0053 Shipment Performance Center Runtime Data Integration` |
-| Current Commit | `cf28443c85e6c2dff058d4dd1fcb4ce9de41b54e` |
+| Current Ticket | `TICKET-0061 Evidence Validation Views` |
+| Current Commit | `cf2844310af2cdf866f81569fef104edea3669f6` |
 | Current Phase | `Development` |
-| Next Milestone | `Shipment Performance Center Review workflow` |
+| Next Milestone | `Evidence Center development` |
 
 ## 8. Technical Debt
 
 Open technical debt items captured in the current repo state:
 
-1. Route drill-down to Shipment is contract-prepared, but Shipment runtime integration is still pending.
+1. Route drill-down to Shipment is contract-prepared, and Shipment runtime integration has passed review.
 2. Route and BCVH runtime pages use fallback summary surfaces when optional meta fields are missing.
-3. Shipment is currently shell-only; runtime binding will be required in the next ticket.
+3. Evidence, Action, AI, and Report centers are the next implementation layers.
 4. Untracked HTML artifacts remain in the working tree and are unrelated to the architecture/development flow.
 
 ## 9. Known Risks
@@ -200,7 +201,7 @@ AI
 Report
 ```
 
-Current direction is the next center in the backlog sequence, with Shipment executive/runtime work first, followed by the remaining centers.
+Current direction is the next center in the backlog sequence, with Shipment review completed and Evidence Center development next.
 
 ## 13. Handover Checklist
 
@@ -218,7 +219,7 @@ QIS V2 is a Decision Support System for TTVH quality operations.
 
 The architecture is frozen and already delivered through Dashboard, BCVH, Route, and Shipment shell foundations.
 
-Current work is in Development, with Shipment runtime integration completed and the current ticket being Shipment runtime integration review workflow.
+Current work is in Development, with Shipment review completed and the next ticket being Evidence Center development.
 
 The project uses SSOT-driven documents, not chat history, as the source of truth.
 

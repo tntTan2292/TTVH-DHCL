@@ -56,6 +56,7 @@
 
 - `Shipment Performance Center Executive Widgets: PASS`
 - `Shipment Performance Center Runtime Data Integration: PASS`
+- `Shipment Performance Center Review: PASS`
 
 ## Business Decisions Đã Freeze
 
@@ -107,3 +108,12 @@
 ## Development Backlog Readiness
 
 - `In Progress`
+
+## Current Position
+
+| Field | Value |
+| --- | --- |
+| Current Ticket | `TICKET-0061 Evidence Validation Views` |
+| Current Commit | `cf2844310af2cdf866f81569fef104edea3669f6` |
+| Current Phase | `Development` |
+| Next Milestone | `Evidence Center development` |

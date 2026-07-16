@@ -22,9 +22,9 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `TICKET-0053 Shipment Performance Center Runtime Data Integration`
+- `TICKET-0061 Evidence Validation Views`
 - `Development`
-- `Status: Completed`
+- `Status: Ready for Development`
 
 ## Completed Tickets
 
@@ -33,6 +33,7 @@ Quy tắc cập nhật:
 - `M1-T2.4` - BCVH Ranking Alignment Recovery
 - `TICKET-0051` - Shipment Performance Center Shell
 - `TICKET-0053` - Shipment Performance Center Runtime Data Integration
+- `Shipment Performance Center Review`
 
 ## Current Progress
 
@@ -46,10 +47,11 @@ Quy tắc cập nhật:
 - Epic Planning: `PASS`
 - Feature Planning: `PASS`
 - Development Backlog: `PASS`
+- Shipment Performance Center Review: `PASS`
 
 ## Next Ticket
 
-- `Shipment Performance Center Review workflow`
+- `TICKET-0061 Evidence Validation Views`
 
 ## Notes
 

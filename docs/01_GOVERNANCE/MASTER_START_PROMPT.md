@@ -47,11 +47,11 @@ Product Owner:
 | --- | --- |
 | Project Name | `TTVH Quality Intelligence System (QIS V2)` |
 | Current Phase | `Development` |
-| Current Ticket | `TICKET-0053 Shipment Performance Center Runtime Data Integration` |
-| Current Epic | `EPIC-005 Shipment Performance Center` |
-| Current Center | `Shipment Performance Center` |
-| Current Development Readiness | `Ready for Review` |
-| Current Progress | `Architecture PASS, UX PASS, Technical Planning PASS, Shipment Shell PASS, Shipment Executive Widgets PASS, Shipment Runtime PASS, Development Ready for Review` |
+| Current Ticket | `TICKET-0061 Evidence Validation Views` |
+| Current Epic | `EPIC-006 Evidence Center` |
+| Current Center | `Evidence Center` |
+| Current Development Readiness | `Ready for Development` |
+| Current Progress | `Architecture PASS, UX PASS, Technical Planning PASS, Shipment Shell PASS, Shipment Executive Widgets PASS, Shipment Runtime PASS, Shipment Review PASS, Development Ready for Development` |
 
 ## 4. Mandatory Reading Order
 
@@ -171,7 +171,7 @@ Read these files first and continue from the current ticket without resetting pr
 
 You must not change SSOT, frozen architecture, runtime contracts, widget contracts, or context propagation contracts.
 Continue from the current ticket:
-TICKET-0053 Shipment Performance Center Runtime Data Integration
+TICKET-0061 Evidence Validation Views
 
 If the issue touches SSOT or business rules, ask the Product Owner.
 If it does not, analyze and continue.
