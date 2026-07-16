@@ -33,6 +33,9 @@ Restore and verify the Quality Delivery Rate Trendline runtime path so browser r
 - Current state: `Technical PASS / Runtime PASS / Ready for PO Check`
 - Live phase, current commit, branch, PO status, and next ticket are owned by `PROJECT_SNAPSHOT.md`
 - PO UI Check Required: `Yes`
+- PO Acceptance Checklist: [docs/06_REVIEWS/Import/TODAY-003-R1_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-003-R1_PO_ACCEPTANCE_CHECKLIST.md)
+- The Product Owner must execute the checklist before the ticket can be closed.
+- Valid PO outcomes: `PASS`, `WARNING`, `FAIL`
 
 ## 4. Required Reading
 

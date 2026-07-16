@@ -25,6 +25,7 @@ Describe the product behavior the Product Owner must verify independently.
 - Required Test Context:
 - PO UI Check Required:
 - PO Product Status:
+- Do not record passwords, tokens, secrets, or other live credentials in this checklist.
 
 ## 3. Data Conditions
 
@@ -81,4 +82,5 @@ List the documents that must be updated for each result.
 
 - Do not change SSOT from this checklist.
 - Do not introduce new business rules.
+- Use only the local environment setup or a secret manager reference for credentials.
 - Escalate to the current manifest, snapshot, or Governance V1 fallback if the checklist conflicts with higher authority.

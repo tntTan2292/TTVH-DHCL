@@ -11,7 +11,7 @@ Let a Product Owner independently verify that the Quality Delivery Rate Trendlin
 - Affected Module: `F13 Dashboard / Quality Delivery Rate Trendline`
 - Affected Screen / Menu: `Home -> F13 -> Dashboard`
 - Route / URL: `http://localhost:5178/`
-- Required Test Context: signed-in browser session using `admin / admin123`
+- Required Test Context: signed-in browser session using the test account configured in the local environment
 - PO UI Check Required: `Yes`
 - PO Product Status: `READY FOR PO CHECK`
 
@@ -32,8 +32,8 @@ Let a Product Owner independently verify that the Quality Delivery Rate Trendlin
 
 ### Step 2
 
-- Action: Sign in with `admin / admin123`
-- Expected Result: The authenticated dashboard shell opens without errors.
+- Action: Sign in with the locally configured test account from the environment setup or local administrator guidance
+- Expected Result: The authenticated dashboard shell opens without errors and no password is stored in this repository.
 
 ### Step 3
 
