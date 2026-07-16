@@ -2,10 +2,11 @@
 
 const fs = require('fs');
 const path = require('path');
-const { all } = require('../config/db');
+const { all, get } = require('../config/db');
 const { executeImport, BASE_INCOMING } = require('../services/importPipeline');
 
 const ensureDir = (dir) => fs.mkdirSync(dir, { recursive: true });
+const ALLOWED_PAGE_SIZES = [20, 50, 100];
 
 function resolveIncomingDir(source) {
     const normalized = String(source || 'HUE').toUpperCase();
@@ -15,26 +16,51 @@ function resolveIncomingDir(source) {
     return incomingDir;
 }
 
-function buildStatusPayload(rows) {
-    const successCount = rows.filter((row) => row.status === 'SUCCESS').length;
-    const failCount = rows.filter((row) => row.status === 'FAILED').length;
-    const latestImport = rows.find((row) => row.status === 'SUCCESS')?.created_at || null;
+function parsePositiveInt(value, fallback) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function resolvePagination(query = {}) {
+    const page = parsePositiveInt(query.page, 1);
+    const requestedPageSize = parsePositiveInt(query.pageSize, 20);
+    const pageSize = ALLOWED_PAGE_SIZES.includes(requestedPageSize) ? requestedPageSize : 20;
+
+    return { page, pageSize };
+}
+
+function normalizeSqliteUtcTimestamp(value) {
+    if (!value) return null;
+    const raw = String(value).trim();
+
+    if (!raw) return null;
+    if (raw.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(raw)) {
+        return new Date(raw).toISOString();
+    }
+
+    return new Date(`${raw.replace(' ', 'T')}Z`).toISOString();
+}
+
+function buildStatusPayload({ rows, summary, pagination, lastImport }) {
+    const successCount = Number(summary?.successCount || 0);
+    const failCount = Number(summary?.failCount || 0);
 
     return {
         pendingCount: 0,
         successCount,
         failCount,
-        lastImport: latestImport,
+        lastImport: normalizeSqliteUtcTimestamp(lastImport?.created_at),
         recentLogs: rows.map((row) => ({
             id: row.id,
-            ngay_import: row.created_at,
+            ngay_import: normalizeSqliteUtcTimestamp(row.created_at),
             ten_file: row.file_name,
             ngay_so_lieu: row.ngay_do_kiem,
             so_luong_bg: row.total_records,
             so_bi_bo_qua: row.skipped_records,
             so_loi: row.error_records,
             trang_thai: row.status
-        }))
+        })),
+        pagination
     };
 }
 
@@ -119,16 +145,51 @@ class ImportController {
 
     async status(req, res) {
         try {
+            const requested = resolvePagination(req.query);
+            const totalResult = await get('SELECT COUNT(*) AS totalItems FROM import_log');
+            const summary = await get(
+                `SELECT
+                    SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) AS successCount,
+                    SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) AS failCount
+                 FROM import_log`
+            );
+
+            const totalItems = Number(totalResult?.totalItems || 0);
+            const totalPages = Math.max(1, Math.ceil(totalItems / requested.pageSize));
+            const page = Math.min(requested.page, totalPages);
+            const offset = (page - 1) * requested.pageSize;
+
+            const lastImport = await get(
+                `SELECT created_at
+                 FROM import_log
+                 WHERE status = 'SUCCESS'
+                 ORDER BY datetime(created_at) DESC, id DESC
+                 LIMIT 1`
+            );
+
             const rows = await all(
                 `SELECT id, file_name, ngay_do_kiem, created_at, status, total_records, error_records, skipped_records
                  FROM import_log
                  ORDER BY datetime(created_at) DESC, id DESC
-                 LIMIT 20`
+                 LIMIT ? OFFSET ?`,
+                [requested.pageSize, offset]
             );
 
             res.status(200).json({
                 success: true,
-                data: buildStatusPayload(rows)
+                data: buildStatusPayload({
+                    rows,
+                    summary,
+                    lastImport,
+                    pagination: {
+                        page,
+                        pageSize: requested.pageSize,
+                        totalItems,
+                        totalPages,
+                        hasPrevious: page > 1,
+                        hasNext: page < totalPages
+                    }
+                })
             });
         } catch (error) {
             res.status(500).json({
