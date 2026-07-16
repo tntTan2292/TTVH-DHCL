@@ -20,10 +20,11 @@ It is designed so any AI can onboard quickly, without guessing workflow or readi
 
 Every AI must:
 
-1. Read [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
+1. Read [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
 2. Read [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
-3. Then follow the Reading Order defined there
-4. Use only the GitHub Blob URLs embedded in the onboarding chain; do not depend on relative paths for AI onboarding.
+3. Read the Current Manifest referenced by `PROJECT_SNAPSHOT.md`
+4. Read only the Required Reading listed in that manifest
+5. Use only the GitHub Blob URLs embedded in the onboarding chain; do not depend on relative paths for AI onboarding.
 
 ## 3. Operating Rules
 
@@ -42,26 +43,31 @@ After onboarding, AI must report:
 
 - Project Understanding
 - Governance Understanding
-- Current Project Status
+- Current Project Status from `PROJECT_SNAPSHOT.md`
 - Current Ticket
 - Ready to Continue
 
-## 5. Current Repository Status
+## 5. Governance V2 Onboarding
 
-| Field | Value |
-| --- | --- |
-| Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
-| Development Status | `READY FOR PO CHECK` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO CHECK` |
-| Documentation Status | `TODAY-003-R1 runtime verification complete; awaiting PO check` |
-| AI Onboarding Status | `Ready` |
-| Last Validation | `TODAY-003-R1 browser/runtime PASS; ready for PO check` |
+The lightweight onboarding route is:
+
+`README_AI.md`
+
+↓
+
+[docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+
+↓
+
+Current Manifest from `PROJECT_SNAPSHOT.md`
+
+↓
+
+Required Reading from the manifest
 
 ## 6. Quick Links
 
-- [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
+- [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md) fallback reference only
 - [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
 - [docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md)
 - [docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md)
@@ -78,20 +84,12 @@ After onboarding, AI must report:
 
 ## 7. Golden Rule
 
-Every AI must start from:
+Every AI must start from `README_AI.md` and then follow the manifest-driven route above.
 
-`README_AI.md`
+`MASTER_START_PROMPT.md` and the full Governance V1 chain are fallback references only when:
 
-↓
+- the manifest explicitly requires them
+- an authority conflict exists
+- SSOT, frozen architecture, business rules, PO acceptance, or workflow interpretation is involved
 
-[docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
-
-↓
-
-Reading Order
-
-↓
-
-Current Ticket
-
-Do not skip any step.
+Do not skip the manifest-driven route.

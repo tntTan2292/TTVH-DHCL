@@ -21,7 +21,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
 | Next Ticket | `TODAY-004 Volume Trendline` |
 | PO Status | `READY FOR PO CHECK` |
-| Current Commit | `e0e936ea9272606bed04ddb316e8b0d8174df1ee` |
+| Current Commit | `3481f100d15e857ff11224b869f5362a705dd0b2` |
 | Current Branch | `main` |
 | Current Manifest | `docs/10_TICKETS/TODAY-003-R1_MANIFEST.md` |
 | Governance Version | `V2 Draft / V1 Compatible` |
@@ -30,7 +30,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 ## 3. Usage Rules
 
 - Read this document immediately after `README_AI.md`.
-- Treat this document as the single current-state SSOT for onboarding.
+- Treat this document as the single live project-state SSOT for Governance V2 Draft.
 - Do not infer current state from chat history when this snapshot is available.
 - Do not use this document to override SSOT, frozen docs, or PO decisions.
 - Keep workflow behavior unchanged unless a dedicated governance change is approved.

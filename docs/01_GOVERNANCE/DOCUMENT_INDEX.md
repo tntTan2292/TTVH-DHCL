@@ -78,10 +78,12 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Development | High-level project handover | Active | L2 | 1 | Medium | context/protocol/decisions |
 | `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Development | Project context for new sessions | Active | L2 | 1 | Medium | handover/protocol/decisions |
+| `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Governance | Live project-state SSOT for Governance V2 onboarding | Active | L2 | 1 | High | README_AI.md, ticket manifests |
 | `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Development | Collaboration protocol | Active | L2 | 1 | Medium | handover/context/decisions |
 | `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md` | Governance | PO UI acceptance workflow | Active | L2 | 1 | Medium | prompt standard, findings register |
 | `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Development | Immutable decision log | Active | L1 | 1 | Medium | handover/context/protocol |
 | `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Development | Start prompt for new ChatGPT sessions | Active | L2 | 1 | Medium | handover/context/protocol/decisions |
+| `docs/01_GOVERNANCE/GOVERNANCE_V2_DESIGN.md` | Governance | Governance V2 onboarding design and compatibility plan | Active | L2 | 2 | Medium | PROJECT_SNAPSHOT.md, ticket manifests, onboarding docs |
 
 ## 6. Governance
 
@@ -118,6 +120,8 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Import/TODAY-002-R1_KPI_2026_SOURCE_COLUMN_RECOVERY.md` | Reviews | TODAY-002-R1 KPI 2026 source column recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
 | `docs/06_REVIEWS/Import/TODAY-002-R2_KPI_2026_DASHBOARD_CONSISTENCY_RECOVERY.md` | Reviews | TODAY-002-R2 KPI 2026 dashboard consistency recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
 | `docs/06_REVIEWS/Import/TODAY-003-R1_QUALITY_TRENDLINE_RUNTIME_ROUTE_RECOVERY.md` | Reviews | TODAY-003-R1 quality trendline runtime route recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
+| `docs/10_TICKETS/MANIFEST_TEMPLATE.md` | Reviews | Ticket manifest template for V2 onboarding | Active | L2 | 2 | Medium | PROJECT_SNAPSHOT.md, ticket manifests |
+| `docs/10_TICKETS/TODAY-003-R1_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-003-R1 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |
