@@ -28,6 +28,33 @@ class DashboardController {
         }
     }
 
+    async getDailyTrend(req, res) {
+        try {
+            const fromDate = req.query.from_date;
+            const toDate = req.query.to_date;
+            const bcvhId = req.query.bcvh_id || req.query.bcvh || null;
+
+            if (!fromDate || !toDate) {
+                return res.status(400).json({
+                    success: false,
+                    error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' }
+                });
+            }
+
+            const result = await f13DashboardService.getDailyTrend(fromDate, toDate, { bcvhId });
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            const status = error?.code === 'INVALID_DATE' || error?.code === 'INVALID_RANGE' ? 400 : 500;
+            res.status(status).json({
+                success: false,
+                error: {
+                    code: error?.code || 'SERVER_ERROR',
+                    message: error.message
+                }
+            });
+        }
+    }
+
     async getBcvh(req, res) {
         try {
             const from_date = req.query.from_date || req.query.fromDate;

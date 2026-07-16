@@ -10,6 +10,24 @@ class F13DashboardService {
         return Number(((part / total) * 100).toFixed(1));
     }
 
+    _isIsoDate(value) {
+        if (typeof value !== 'string') return false;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+        const date = new Date(`${value}T00:00:00Z`);
+        return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+    }
+
+    _normalizeDailyTrendRow(row) {
+        return {
+            date: row.date,
+            total_volume: Number(row.total_volume || 0),
+            passed: Number(row.passed || 0),
+            failed: Number(row.failed || 0),
+            quality_rate: row.quality_rate === null || row.quality_rate === undefined ? null : Number(row.quality_rate),
+            data_available: Number(row.data_available || 0) === 1
+        };
+    }
+
     _shiftDate(dateStr, deltaDays) {
         const date = new Date(dateStr);
         date.setDate(date.getDate() + deltaDays);
@@ -281,6 +299,42 @@ class F13DashboardService {
         } catch (error) {
             throw new Error(`Lỗi Service khi lấy Evidence List: ${error.message}`);
         }
+    }
+
+    async getDailyTrend(fromDate, toDate, filters = {}) {
+        if (!this._isIsoDate(fromDate) || !this._isIsoDate(toDate)) {
+            const err = new Error('from_date and to_date must be valid ISO dates in YYYY-MM-DD format');
+            err.code = 'INVALID_DATE';
+            throw err;
+        }
+
+        if (fromDate > toDate) {
+            const err = new Error('from_date must be less than or equal to to_date');
+            err.code = 'INVALID_RANGE';
+            throw err;
+        }
+
+        const latestImport = await factBuuGuiRepo.getLatestImportMeta();
+        const rows = await factBuuGuiRepo.getDailyTrendData(fromDate, toDate, {
+            bcvhId: filters.bcvhId || null
+        });
+
+        const items = rows.map((row) => this._normalizeDailyTrendRow(row));
+
+        return {
+            meta: {
+                from_date: fromDate,
+                to_date: toDate,
+                interval: 'daily',
+                record_count: items.length,
+                latest_import: latestImport?.ngay_do_kiem || null,
+                data_freshness: latestImport?.created_at || null,
+                filters: {
+                    bcvh_id: filters.bcvhId || null
+                }
+            },
+            items
+        };
     }
 }
 

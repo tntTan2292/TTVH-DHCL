@@ -258,6 +258,80 @@ class FactBuuGuiRepository {
             });
         });
     }
+
+    getLatestImportMeta() {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                SELECT
+                    ngay_do_kiem,
+                    created_at,
+                    file_name,
+                    status,
+                    total_records,
+                    error_records,
+                    skipped_records
+                FROM import_log
+                WHERE status = 'SUCCESS'
+                ORDER BY date(ngay_do_kiem) DESC, datetime(created_at) DESC, id DESC
+                LIMIT 1
+            `;
+
+            db.get(sql, [], (err, row) => {
+                if (err) reject(err);
+                else resolve(row || null);
+            });
+        });
+    }
+
+    getDailyTrendData(fromDate, toDate, filters = {}) {
+        return new Promise((resolve, reject) => {
+            const params = [fromDate, toDate];
+            const bcvhClause = filters.bcvhId ? ' AND ma_bcvh = ?' : '';
+            if (filters.bcvhId) params.push(filters.bcvhId);
+
+            const sql = `
+                WITH RECURSIVE dates(date_value) AS (
+                    SELECT date(?)
+                    UNION ALL
+                    SELECT date(date_value, '+1 day')
+                    FROM dates
+                    WHERE date_value < date(?)
+                ),
+                agg AS (
+                    SELECT
+                        ngay_do_kiem AS date_value,
+                        COUNT(*) AS total_volume,
+                        SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
+                        SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) AS failed
+                    FROM fact_f13
+                    WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
+                    ${bcvhClause}
+                    GROUP BY ngay_do_kiem
+                )
+                SELECT
+                    d.date_value AS date,
+                    COALESCE(a.total_volume, 0) AS total_volume,
+                    COALESCE(a.passed, 0) AS passed,
+                    COALESCE(a.failed, 0) AS failed,
+                    CASE
+                        WHEN COALESCE(a.total_volume, 0) = 0 THEN NULL
+                        ELSE ROUND((CAST(COALESCE(a.passed, 0) AS REAL) / COALESCE(a.total_volume, 0)) * 100, 4)
+                    END AS quality_rate,
+                    CASE WHEN COALESCE(a.total_volume, 0) > 0 THEN 1 ELSE 0 END AS data_available
+                FROM dates d
+                LEFT JOIN agg a ON a.date_value = d.date_value
+                ORDER BY d.date_value ASC
+            `;
+
+            const sqlParams = [fromDate, toDate, fromDate, toDate];
+            if (filters.bcvhId) sqlParams.push(filters.bcvhId);
+
+            db.all(sql, sqlParams, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    }
 }
 
 module.exports = new FactBuuGuiRepository();
