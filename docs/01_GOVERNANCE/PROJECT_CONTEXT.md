@@ -260,7 +260,7 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | AI | `Not started` |
 | Report | `Not started` |
 | Current Ticket | `TODAY-001-R1 Import Runtime Route and Reimport Recovery` |
-| Current Commit | `Pending recovery commit` |
+| Current Commit | `c66e992` |
 | Next Milestone | `PO recheck for TODAY-001-R1, then TODAY-002 Daily Trend Data Adapter` |
 
 Current PO gate rule:

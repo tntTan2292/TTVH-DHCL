@@ -140,7 +140,7 @@ The following documents are frozen and should be treated as SSOT/architecture co
 | Field | Value |
 | --- | --- |
 | Current Ticket | `TODAY-001-R1 Import Runtime Route and Reimport Recovery` |
-| Current Commit | `Pending recovery commit` |
+| Current Commit | `c66e992` |
 | Current Phase | `Leadership Dashboard Delivery` |
 | Next Milestone | `PO recheck for TODAY-001-R1, then TODAY-002 Daily Trend Data Adapter` |
 
