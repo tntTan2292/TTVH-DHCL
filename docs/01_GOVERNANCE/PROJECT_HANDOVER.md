@@ -19,18 +19,14 @@
 
 ## 1. Executive Summary
 
-| Field | Value |
-| --- | --- |
-| Project Name | `TTVH Quality Intelligence System (QIS V2)` |
-| Project Vision | `Decision Support System` for quality operations |
-| Business Goal | Standardize operational decision making with SSOT, runtime, and evidence-backed flow |
-| Current Development Phase | `Leadership Dashboard Delivery` |
-| Current Development Status | `Ready for PO Check` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO CHECK` |
-| Current Architecture Status | `Frozen` |
-| Current UX Status | `Frozen` |
-| Current Technical Planning Status | `PASS` |
+Project identity, current phase, live status, and PO gate are owned by:
+
+- [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
+- [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+- Current Manifest referenced by `PROJECT_SNAPSHOT.md`
+- [docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md) when documentation workflow rules are needed
+
+Project vision and frozen boundaries remain unchanged.
 
 ## 2. Project Overview
 
@@ -137,12 +133,10 @@ The following documents are frozen and should be treated as SSOT/architecture co
 
 ## 7. Current Position
 
-| Field | Value |
-| --- | --- |
-| Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
-| Current Commit | `cebe1ff655febf09242e23719150192c059d6555` |
-| Current Phase | `Leadership Dashboard Delivery` |
-| Next Milestone | `TODAY-004 Volume Trendline` |
+Current ticket, commit, phase, next milestone, and repository status are owned by `PROJECT_SNAPSHOT.md`.
+
+Use the current manifest for ticket-specific scope and reading order.
+Use `CODEX_DOCUMENTATION_STANDARD.md` when the reading or update order itself must be interpreted.
 
 ## 8. Technical Debt
 
@@ -207,7 +201,8 @@ AI
 Report
 ```
 
-Current direction is the Leadership Dashboard Delivery queue, with TODAY-003-R1 Quality Trendline Runtime Route Recovery as the current ticket and ready for PO check.
+Current direction is the Leadership Dashboard Delivery queue, and readiness is governed by `PROJECT_SNAPSHOT.md` and the current manifest.
+The specific ticket identity and status are no longer duplicated here.
 
 ## 13. Handover Checklist
 
@@ -226,7 +221,7 @@ QIS V2 is a Decision Support System for TTVH quality operations.
 
 The architecture is frozen and already delivered through Dashboard, BCVH, Route, and Shipment shell foundations.
 
-Current work is in Leadership Dashboard Delivery, with TODAY-001 Import Daily Data Verification accepted by PO, TODAY-002 Daily Trend Data Adapter completed, TODAY-002-R2 completed, and TODAY-003-R1 ready for PO check.
+Current work and PO gate remain represented by `PROJECT_SNAPSHOT.md`.
 
 The project uses SSOT-driven documents, not chat history, as the source of truth.
 

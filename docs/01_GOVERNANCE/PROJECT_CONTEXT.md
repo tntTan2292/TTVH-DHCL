@@ -237,50 +237,32 @@ Operational model:
 
 ## 9. Current Project Snapshot
 
-Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md) and [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md).
+Live project state is owned by:
 
-| Field | Value |
-| --- | --- |
-| Project Name | `TTVH Quality Intelligence System (QIS V2)` |
-| Current Phase | `Leadership Dashboard Delivery` |
-| Current Development Status | `Ready for PO Check` |
-| Architecture Status | `Frozen` |
-| UX Status | `Frozen` |
-| Technical Planning Status | `PASS` |
-| Technical Status | `PASS` |
-| Runtime Status | `PASS` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO CHECK` |
-| Dashboard | `PASS` |
-| BCVH | `PASS` |
-| Route | `PASS` |
-| Shipment | `Runtime integration reviewed` |
-| Evidence | `Not started` |
-| Action | `Not started` |
-| AI | `Not started` |
-| Report | `Not started` |
-| Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
-| Current Commit | `cebe1ff655febf09242e23719150192c059d6555` |
-| Next Milestone | `TODAY-004 Volume Trendline` |
+- [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
+- [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+- Current Manifest referenced by `PROJECT_SNAPSHOT.md`
+
+Use [PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md) and [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md) for narrative and historical continuity only.
+Use [docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md) when documentation workflow rules are needed.
 
 Current PO gate rule:
 
 - tickets with visible UI or product behavior changes require PO UI Check Required = Yes
 - internal governance-only tickets use PO UI Check Required = No
 - Technical PASS and Runtime PASS do not imply PO Product PASS
+- current ticket, next ticket, and repository state are resolved through `PROJECT_SNAPSHOT.md`
 
 ## 10. Continuation Rule
 
 A new ChatGPT / Codex session must read the following files before answering:
 
-1. [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
-2. [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
-3. [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md)
-4. [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md)
-5. [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
-6. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
+1. [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
+2. [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+3. Current Manifest referenced by `PROJECT_SNAPSHOT.md`
+4. Only the Required Reading listed in the manifest
 
-After that, continue using the frozen architecture and the current project snapshot.
+After that, continue using the frozen architecture and the snapshot-driven state.
 
 Do not rewrite history from chat memory.
 Do not change frozen architecture unless the Product Owner explicitly approves it.

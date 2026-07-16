@@ -43,21 +43,15 @@ Product Owner:
 
 ## 3. Current Project Snapshot
 
-| Field | Value |
-| --- | --- |
-| Project Name | `TTVH Quality Intelligence System (QIS V2)` |
-| Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-002 Daily Trend Data Adapter` |
-| Current Epic | `Leadership Dashboard Delivery` |
-| Current Center | `Import / API / Dashboard Data Layer` |
-| Current Development Readiness | `Ready for Development` |
-| PO UI Check Required | `No` |
-| PO Product Status | `NOT REQUIRED` |
-| Current Progress | `Architecture PASS, UX PASS, Technical Planning PASS, Shipment Review PASS, TODAY-001 Import Daily Data Verification PO PASS, TODAY-001-R1 CLOSED, TODAY-001-R2 CLOSED, TODAY-002 ready for development` |
+Current project state is owned by:
+
+- [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
+- [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+- Current Manifest referenced by `PROJECT_SNAPSHOT.md`
 
 ## 4. Mandatory Reading Order
 
-Read in this exact order:
+Governance V1 fallback reading order:
 
 1. [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
 2. [docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md)
@@ -73,6 +67,13 @@ Read in this exact order:
 12. [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 13. Current Ticket Documents
 
+Default onboarding route:
+
+1. [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
+2. [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+3. Current Manifest referenced by `PROJECT_SNAPSHOT.md`
+4. Required Reading listed in the manifest
+
 ## 5. Operating Rules
 
 - Do not guess before reading the project documents.
@@ -82,6 +83,7 @@ Read in this exact order:
 - Do not retrain the project from the beginning.
 - If the issue touches SSOT or a business rule, ask the Product Owner.
 - If the issue does not touch SSOT or a business rule, analyze it and continue.
+- Use `README_AI.md` as the external onboarding entry and fall back to this document only when the manifest or authority rules require it.
 
 ## 6. Response Format
 
@@ -157,7 +159,7 @@ Never change:
 
 ## 10. Quick Start Prompt
 
-Use this prompt in a new chat:
+Use this prompt in a new chat when Governance V1 fallback is required:
 
 ```text
 Read these files first and continue from the current ticket without resetting project context:
@@ -176,8 +178,7 @@ Read these files first and continue from the current ticket without resetting pr
 13. Current Ticket Documents
 
 You must not change SSOT, frozen architecture, runtime contracts, widget contracts, or context propagation contracts.
-Continue from the current ticket:
-GOV-PO-UI-01 PO UI Acceptance Gate and PO Findings Traceability
+Continue from the current ticket only when the Governance V1 fallback path is required.
 
 If the issue touches SSOT or business rules, ask the Product Owner.
 If it does not, analyze and continue.
@@ -192,6 +193,7 @@ ChatGPT new sessions must:
 - not repeat Business Discovery
 - not skip review workflow
 - not change frozen documents
+- use the manifest-driven route by default unless fallback is explicitly required
 
 ## 12. Post-Onboarding Collaboration Roles
 
