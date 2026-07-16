@@ -23,7 +23,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | PO Status | `READY FOR PO CHECK` |
 | Current Commit | `e0e936ea9272606bed04ddb316e8b0d8174df1ee` |
 | Current Branch | `main` |
-| Current Manifest | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` |
+| Current Manifest | `docs/10_TICKETS/TODAY-003-R1_MANIFEST.md` |
 | Governance Version | `V2 Draft / V1 Compatible` |
 | Last Updated | `2026-07-16` |
 
@@ -49,4 +49,3 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what manifest governs the current reading scope
 
 Governance V1 remains the full workflow reference until a later migration phase explicitly replaces any part of it.
-
