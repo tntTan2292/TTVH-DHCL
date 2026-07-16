@@ -38,11 +38,11 @@ class MessageGenerationService {
                 SELECT 
                     ma_bcvh, ten_bcvh,
                     COUNT(*) as total,
-                    SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed
+                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed
                 FROM fact_f13
                 WHERE ngay_do_kiem = ?
                 GROUP BY ma_bcvh, ten_bcvh
-                ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) DESC, COUNT(*) DESC
+                ORDER BY (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) DESC, COUNT(*) DESC
             `;
             const rows = await all(sql, [dateStr]);
             

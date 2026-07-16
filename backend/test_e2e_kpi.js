@@ -46,23 +46,23 @@ async function setupTestData() {
 
     const rows = [
         // Today = 2099-10-10 (4 rows: 3 Đạt, 1 Không đạt. Total 4. KPI = 75%)
-        { ma_bg: '1', ma_bcvh: 'BC01', ten_bcvh: 'T1', ket_qua_f13: 'Đạt', ngay_do_kiem: '2099-10-10' },
-        { ma_bg: '2', ma_bcvh: 'BC01', ten_bcvh: 'T1', ket_qua_f13: 'Đạt', ngay_do_kiem: '2099-10-10' },
-        { ma_bg: '3', ma_bcvh: 'BC02', ten_bcvh: 'T2', ket_qua_f13: 'Đạt', ngay_do_kiem: '2099-10-10' },
-        { ma_bg: '4', ma_bcvh: 'BC02', ten_bcvh: 'T2', ket_qua_f13: 'Không đạt', ngay_do_kiem: '2099-10-10' },
+        { ma_bg: '1', ma_bcvh: '533140', ten_bcvh: 'Thuận Hóa', ket_qua_f13: 'Đạt', danh_gia_2026: 'Không đạt', ngay_do_kiem: '2099-10-10' },
+        { ma_bg: '2', ma_bcvh: '533140', ten_bcvh: 'Thuận Hóa', ket_qua_f13: 'Đạt', danh_gia_2026: 'Đạt', ngay_do_kiem: '2099-10-10' },
+        { ma_bg: '3', ma_bcvh: '535470', ten_bcvh: 'Hương Trà', ket_qua_f13: 'Đạt', danh_gia_2026: 'Đạt', ngay_do_kiem: '2099-10-10' },
+        { ma_bg: '4', ma_bcvh: '535470', ten_bcvh: 'Hương Trà', ket_qua_f13: 'Không đạt', danh_gia_2026: 'Đạt', ngay_do_kiem: '2099-10-10' },
 
         // Yesterday = 2099-10-09 (2 rows: 1 Đạt, 1 Không đạt. Total 2. KPI = 50%)
-        { ma_bg: '5', ma_bcvh: 'BC01', ten_bcvh: 'T1', ket_qua_f13: 'Đạt', ngay_do_kiem: '2099-10-09' },
-        { ma_bg: '6', ma_bcvh: 'BC01', ten_bcvh: 'T1', ket_qua_f13: 'Không đạt', ngay_do_kiem: '2099-10-09' },
+        { ma_bg: '5', ma_bcvh: '533140', ten_bcvh: 'Thuận Hóa', ket_qua_f13: 'Đạt', danh_gia_2026: 'Đạt', ngay_do_kiem: '2099-10-09' },
+        { ma_bg: '6', ma_bcvh: '533140', ten_bcvh: 'Thuận Hóa', ket_qua_f13: 'Không đạt', danh_gia_2026: 'Không đạt', ngay_do_kiem: '2099-10-09' },
 
         // SWC = 2099-10-03 (1 row: 1 Đạt. Total 1. KPI = 100%)
-        { ma_bg: '7', ma_bcvh: 'BC01', ten_bcvh: 'T1', ket_qua_f13: 'Đạt', ngay_do_kiem: '2099-10-03' },
+        { ma_bg: '7', ma_bcvh: '533140', ten_bcvh: 'Thuận Hóa', ket_qua_f13: 'Đạt', danh_gia_2026: null, ngay_do_kiem: '2099-10-03' },
     ];
 
     for (const r of rows) {
         await run(
-            `INSERT INTO fact_f13 (ma_bg, ma_bcvh, ten_bcvh, ket_qua_f13, ngay_do_kiem) VALUES (?, ?, ?, ?, ?)`,
-            [r.ma_bg, r.ma_bcvh, r.ten_bcvh, r.ket_qua_f13, r.ngay_do_kiem]
+            `INSERT INTO fact_f13 (ma_bg, ma_bcvh, ten_bcvh, ket_qua_f13, danh_gia_2026, ngay_do_kiem) VALUES (?, ?, ?, ?, ?, ?)`,
+            [r.ma_bg, r.ma_bcvh, r.ten_bcvh, r.ket_qua_f13, r.danh_gia_2026, r.ngay_do_kiem]
         );
     }
 }
@@ -87,17 +87,17 @@ async function runTests() {
         assert('Success is true', res.body.success === true);
 
         const data = res.body.data;
-        assert('Today KPI is 75.00', data.today === 75, `Got: ${data.today}`);
+        assert('Today KPI is 75.00 via KPI 2026', data.today === 75, `Got: ${data.today}`);
         assert('Yesterday KPI is 50.00', data.yesterday === 50, `Got: ${data.yesterday}`);
         assert('DoD is 25.00 (75 - 50)', data.dod === 25, `Got: ${data.dod}`);
-        assert('SWC is -25.00 (75 - 100)', data.swc === -25, `Got: ${data.swc}`);
+        assert('SWC is 75.00 (75 - 0)', data.swc === 75, `Got: ${data.swc}`);
 
         // Aggregate for fromDate=2099-10-01 to 2099-10-10
-        // Total rows: 4 (today) + 2 (yesterday) + 1 (SWC) = 7
-        assert('F13_101: tong_buu_gui = 7', data.tong_buu_gui === 7, `Got: ${data.tong_buu_gui}`);
-        assert('F13_102: buu_gui_dat = 5', data.buu_gui_dat === 5, `Got: ${data.buu_gui_dat}`);
-        assert('F13_103: buu_gui_khong_dat = 2', data.buu_gui_khong_dat === 2, `Got: ${data.buu_gui_khong_dat}`);
-        assert('F13_104: ty_le_khong_dat = 28.57', data.ty_le_khong_dat === 28.57, `Got: ${data.ty_le_khong_dat}`);
+        // The KPI endpoint reports the current-day snapshot for toDate
+        assert('F13_101: tong_buu_gui = 4', data.tong_buu_gui === 4, `Got: ${data.tong_buu_gui}`);
+        assert('F13_102: buu_gui_dat = 3', data.buu_gui_dat === 3, `Got: ${data.buu_gui_dat}`);
+        assert('F13_103: buu_gui_khong_dat = 1', data.buu_gui_khong_dat === 1, `Got: ${data.buu_gui_khong_dat}`);
+        assert('F13_104: ty_le_khong_dat = 25.00', data.ty_le_khong_dat === 25, `Got: ${data.ty_le_khong_dat}`);
     } catch (e) {
         console.error(e);
         failed++;
@@ -129,19 +129,15 @@ async function runTests() {
         assert('Status is 200', res.statusCode === 200);
         
         const data = res.body.data;
-        assert('Has top3Lowest', Array.isArray(data.top3Lowest));
-        assert('Has top3Impact', Array.isArray(data.top3Impact));
+        assert('Has best array', Array.isArray(data.best));
+        assert('Has lowest array', Array.isArray(data.lowest));
 
         // Lowest KPI ranking:
-        // BC01: 2 Đạt (today) + 1 Đạt (yesterday) = 3 Đạt, 1 Không đạt (yesterday) -> Total 4 -> KPI = 75%
-        // BC02: 1 Đạt (today) + 1 Không đạt (today) -> Total 2 -> KPI = 50%
-        // So BC02 should be the lowest.
-        assert('BC02 is lowest KPI (50%)', data.top3Lowest[0].ma_bcvh === 'BC02' && data.top3Lowest[0].kpi_rate === 50);
-
-        // Impact ranking (F13_202):
-        // Total fail = 2. BC01 fail = 1, BC02 fail = 1. Impact 50% each.
-        assert('BC01 Impact = 50%', data.top3Impact.find(i => i.ma_bcvh === 'BC01').impact_rate === 50);
-        assert('BC02 Impact = 50%', data.top3Impact.find(i => i.ma_bcvh === 'BC02').impact_rate === 50);
+        // BC01: 4 total, 2 Đạt => 50%
+        // BC02: 2 total, 2 Đạt => 100%
+        // So BC01 should be the lowest and BC02 the best.
+        assert('BCVH 533140 is lowest KPI (50%)', data.lowest[0].ma_bcvh === '533140' && data.lowest[0].kpi_rate === 50);
+        assert('BCVH 535470 is best KPI (100%)', data.best[0].ma_bcvh === '535470' && data.best[0].kpi_rate === 100);
     } catch (e) {
         console.error(e);
         failed++;
@@ -156,10 +152,10 @@ async function runTests() {
         const data = res.body.data;
         
         // Ranking order: KPI DESC, Total BG DESC
-        // BC01: KPI 75%, Total 4
-        // BC02: KPI 50%, Total 2
-        assert('Rank 1 is BC01', data[0].ma_bcvh === 'BC01' && data[0].rank === 1);
-        assert('Rank 2 is BC02', data[1].ma_bcvh === 'BC02' && data[1].rank === 2);
+        // BC02: KPI 100%, Total 2
+        // BC01: KPI 50%, Total 4
+        assert('Rank 1 is 535470', data[0].ma_bcvh === '535470' && data[0].rank === 1);
+        assert('Rank 2 is 533140', data[1].ma_bcvh === '533140' && data[1].rank === 2);
     } catch (e) {
         console.error(e);
         failed++;

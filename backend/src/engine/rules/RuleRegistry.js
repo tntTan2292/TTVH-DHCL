@@ -26,7 +26,7 @@ class RuleRegistry {
 
         facts.forEach(fact => {
             // Đếm tập mẫu "Không Đạt" để phục vụ tính F13_303 theo SSOT
-            if (fact.ket_qua_f13 !== 'Đạt') {
+            if (fact.danh_gia_2026 !== 'Đạt') {
                 totalKhongDat++;
             }
 

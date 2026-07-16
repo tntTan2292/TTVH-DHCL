@@ -35,7 +35,7 @@ class RuleF13302 extends BaseRule {
      */
     evaluate(fact) {
         // Nguyên tắc Bypass: Bưu gửi Đạt tự động bỏ qua
-        if (fact.ket_qua_f13 === 'Đạt') {
+        if (fact.danh_gia_2026 === 'Đạt') {
             return false;
         }
         

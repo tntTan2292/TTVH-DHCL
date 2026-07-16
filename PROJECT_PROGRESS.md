@@ -29,7 +29,8 @@
 - Shipment Shell: `PASS`
 - TODAY-001 Import Delivery: `MODULE COMPLETED / PO PASS`
 - Leadership Dashboard Delivery: `In Progress`
-- TODAY-002-R1 KPI 2026 Source Column Recovery: `In Progress`
+- TODAY-002-R1 KPI 2026 Source Column Recovery: `Closed`
+- TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery: `Closed`
 
 ## Danh Sách Tài Liệu Đã Freeze
 
@@ -117,8 +118,8 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `TODAY-002-R1 KPI 2026 Source Column Recovery` |
-| Current Commit | `0c08d53` |
+| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline (Blocked)` |
+| Current Commit | `5f77a89` |
 | Current Phase | `Leadership Dashboard Delivery` |
 | Next Milestone | `TODAY-003 Quality Delivery Rate Trendline` |
 | PO UI Check Required | `No` |

@@ -259,8 +259,8 @@ Current snapshot is based on [PROJECT_HANDOVER.md](https://github.com/tntTan2292
 | Action | `Not started` |
 | AI | `Not started` |
 | Report | `Not started` |
-| Current Ticket | `TODAY-002-R1 KPI 2026 Source Column Recovery` |
-| Current Commit | `0c08d53` |
+| Current Ticket | `TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery` |
+| Current Commit | `5f77a89` |
 | Next Milestone | `TODAY-003 Quality Delivery Rate Trendline` |
 
 Current PO gate rule:

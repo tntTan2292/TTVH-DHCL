@@ -78,8 +78,8 @@ class FactBuuGuiRepository {
             const sql = `
                 SELECT 
                     COUNT(ma_bg) as total_bg,
-                    SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
-                    SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed
+                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
+                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed
                 FROM fact_f13
                 WHERE ngay_do_kiem >= ? AND ngay_do_kiem <= ?
             `;
@@ -105,13 +105,13 @@ class FactBuuGuiRepository {
                     ma_bcvh, 
                     MAX(ten_bcvh) as ten_bcvh,
                     COUNT(ma_bg) as total_bg,
-                    SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
-                    SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed,
+                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
+                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed,
                     SUM(CASE WHEN thoi_gian_nop_tien IS NOT NULL AND TRIM(thoi_gian_nop_tien) != '' THEN 1 ELSE 0 END) as sl_ptc_nop_tien,
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as dat_kpi_2026,
                     SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as khong_dat_kpi_2026,
                     RANK() OVER (
-                        ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) * 1.0 / COUNT(ma_bg)) DESC, COUNT(ma_bg) DESC
+                        ORDER BY (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) * 1.0 / COUNT(ma_bg)) DESC, COUNT(ma_bg) DESC
                     ) as rank
                 FROM fact_f13
                 WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL
@@ -166,8 +166,8 @@ class FactBuuGuiRepository {
                     ma_tuyen, 
                     MAX(ten_tuyen) as ten_tuyen,
                     COUNT(ma_bg) as total_bg,
-                    SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
-                    SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed
+                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
+                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed
                 FROM fact_f13
                 WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen IS NOT NULL
                 GROUP BY ma_tuyen
@@ -191,7 +191,7 @@ class FactBuuGuiRepository {
                 SELECT 
                     ma_tuyen, 
                     MAX(ten_tuyen) as ten_tuyen,
-                    SUM(CASE WHEN ket_qua_f13 != 'Đạt' THEN 1 ELSE 0 END) as total_failed
+                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed
                 FROM fact_f13
                 WHERE ngay_do_kiem = ? AND ma_tuyen IS NOT NULL
             `;
@@ -212,12 +212,12 @@ class FactBuuGuiRepository {
     getEvidenceList(date, bcvh, route, page = 1, pageSize = 20) {
         return new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;
-            const sqlCount = `SELECT COUNT(*) as total FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND ket_qua_f13 != 'Đạt'`;
+            const sqlCount = `SELECT COUNT(*) as total FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND danh_gia_2026 = 'Không đạt'`;
             
             const sqlData = `
                 SELECT * 
                 FROM fact_f13 
-                WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND ket_qua_f13 != 'Đạt'
+                WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND danh_gia_2026 = 'Không đạt'
                 LIMIT ? OFFSET ?
             `;
             

@@ -50,13 +50,13 @@ After onboarding, AI must report:
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-003 Quality Delivery Rate Trendline` |
+| Current Ticket | `TODAY-002-R2 KPI 2026 Dashboard Consistency Recovery` |
 | Development Status | `In Progress` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `NOT READY` |
-| Documentation Status | `TODAY-001 PO PASS closure synced` |
+| PO UI Check Required | `No` |
+| PO Product Status | `NOT REQUIRED` |
+| Documentation Status | `TODAY-002-R2 recovery in progress` |
 | AI Onboarding Status | `Ready` |
-| Last Validation | `TODAY-001 Import Daily Data Verification PO PASS; R1 and R2 closed` |
+| Last Validation | `TODAY-002-R1 daily trend source-field recovery; dashboard consistency audit in progress` |
 
 ## 6. Quick Links
 

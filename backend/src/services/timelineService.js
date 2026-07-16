@@ -21,7 +21,7 @@ class TimelineService {
             SELECT 
                 ngay_do_kiem,
                 COUNT(*) as total_bg,
-                SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed_bg
+                SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed_bg
             FROM fact_f13
             WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
             GROUP BY ngay_do_kiem

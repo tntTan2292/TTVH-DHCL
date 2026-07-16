@@ -34,8 +34,8 @@ async function getDashboardKpi(req, res) {
         let sql = `
             SELECT 
                 COUNT(*) as tong_buu_gui,
-                SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as buu_gui_dat,
-                SUM(CASE WHEN ket_qua_f13 = 'Không đạt' THEN 1 ELSE 0 END) as buu_gui_khong_dat
+                SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as buu_gui_dat,
+                SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as buu_gui_khong_dat
             FROM fact_f13
             WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
         `;
@@ -97,7 +97,7 @@ async function getDashboardKpi(req, res) {
         if (ma_bcvh && ma_bcvh !== 'all') {
             const getRank = async (dateStr) => {
                 const sql = `
-                    SELECT ma_bcvh, (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) as rate
+                    SELECT ma_bcvh, (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) as rate
                     FROM fact_f13
                     WHERE ngay_do_kiem = ?
                     GROUP BY ma_bcvh
@@ -191,7 +191,7 @@ async function getDashboardTrend(req, res) {
         SELECT 
             ngay_do_kiem,
             COUNT(*) as total,
-            SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed
+            SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed
         FROM fact_f13
         WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
         GROUP BY ngay_do_kiem
@@ -230,11 +230,11 @@ async function getDashboardTop(req, res) {
             SELECT 
                 ma_bcvh, ten_bcvh,
                 COUNT(*) as total,
-                SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed
+                SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed
             FROM fact_f13
             WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
             GROUP BY ma_bcvh, ten_bcvh
-            ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) ASC, COUNT(*) DESC
+            ORDER BY (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) ASC, COUNT(*) DESC
             LIMIT 2
         `;
         const lowestRows = await all(sqlLowest, [fromDate, toDate]);
@@ -249,11 +249,11 @@ async function getDashboardTop(req, res) {
             SELECT 
                 ma_bcvh, ten_bcvh,
                 COUNT(*) as total,
-                SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed
+                SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed
             FROM fact_f13
             WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
             GROUP BY ma_bcvh, ten_bcvh
-            ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) DESC, COUNT(*) DESC
+            ORDER BY (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) DESC, COUNT(*) DESC
             LIMIT 2
         `;
         const bestRows = await all(sqlBest, [fromDate, toDate]);
@@ -294,12 +294,12 @@ async function getBcvhRanking(req, res) {
             ma_bcvh,
             ten_bcvh,
             COUNT(*) as total_bg,
-            SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed_bg,
-            SUM(CASE WHEN ket_qua_f13 = 'Không đạt' THEN 1 ELSE 0 END) as failed_bg
+            SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed_bg,
+            SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as failed_bg
         FROM fact_f13
         WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
         GROUP BY ma_bcvh, ten_bcvh
-        ORDER BY (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) DESC, total_bg DESC
+        ORDER BY (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) DESC, total_bg DESC
     `;
 
     try {
