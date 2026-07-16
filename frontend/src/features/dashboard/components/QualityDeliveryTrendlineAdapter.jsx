@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp } from 'lucide-react';
 import api from '../../../api/client';
 import { CardContainer, EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
+import { buildTrendlineRequestParams } from './qualityTrendlineWindow';
 
 const TARGET_RATE = 90;
 
@@ -47,7 +48,7 @@ function QualityTrendTooltip({ active, payload, label }) {
   );
 }
 
-export default function QualityDeliveryTrendlineAdapter({ fromDate, toDate, maBcvh }) {
+export default function QualityDeliveryTrendlineAdapter({ reportingToDate, latestDate, maBcvh }) {
   const [state, setState] = useState({ loading: true, error: null, data: [] });
 
   useEffect(() => {
@@ -56,13 +57,14 @@ export default function QualityDeliveryTrendlineAdapter({ fromDate, toDate, maBc
     const fetchTrend = async () => {
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }));
-        const params = {
-          from_date: fromDate,
-          to_date: toDate,
-        };
+        const params = buildTrendlineRequestParams({
+          reportingToDate,
+          latestDate,
+          maBcvh,
+        });
 
-        if (maBcvh && maBcvh !== 'all') {
-          params.bcvh_id = maBcvh;
+        if (!params) {
+          throw new Error('Không thể xác định khoảng thời gian rolling 30 ngày cho trendline.');
         }
 
         const response = await api.get('/f13/dashboard/daily-trend', { params });
@@ -85,14 +87,14 @@ export default function QualityDeliveryTrendlineAdapter({ fromDate, toDate, maBc
       }
     };
 
-    if (fromDate && toDate) {
+    if (reportingToDate || latestDate) {
       fetchTrend();
     }
 
     return () => {
       cancelled = true;
     };
-  }, [fromDate, toDate, maBcvh]);
+  }, [reportingToDate, latestDate, maBcvh]);
 
   if (state.loading) {
     return <LoadingState label="Đang tải Quality Delivery Rate Trendline..." className="min-h-[420px]" />;

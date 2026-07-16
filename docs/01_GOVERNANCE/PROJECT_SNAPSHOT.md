@@ -18,12 +18,12 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-003-R1 Quality Trendline Runtime Route Recovery` |
+| Current Ticket | `TODAY-003-R2 Quality Trendline 30-Day Window Recovery` |
 | Next Ticket | `TODAY-004 Volume Trendline` |
 | PO Status | `READY FOR PO CHECK` |
-| Current Commit | `4ff3d43a7e30707109672154f57f9ee8068cfb2c` |
+| Current Commit | `8575d7b6ab67f5a19af2e408e044d9143dff1c8b` |
 | Current Branch | `main` |
-| Current Manifest | `docs/10_TICKETS/TODAY-003-R1_MANIFEST.md` |
+| Current Manifest | `docs/10_TICKETS/TODAY-003-R2_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-16` |
 

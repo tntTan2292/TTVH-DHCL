@@ -122,9 +122,12 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Import/TODAY-002-R2_KPI_2026_DASHBOARD_CONSISTENCY_RECOVERY.md` | Reviews | TODAY-002-R2 KPI 2026 dashboard consistency recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
 | `docs/06_REVIEWS/Import/TODAY-003-R1_QUALITY_TRENDLINE_RUNTIME_ROUTE_RECOVERY.md` | Reviews | TODAY-003-R1 quality trendline runtime route recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
 | `docs/06_REVIEWS/Import/TODAY-003-R1_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-003-R1 PO acceptance checklist | Active | L2 | 1 | Low | PO acceptance workflow, review evidence |
+| `docs/06_REVIEWS/Import/TODAY-003-R2_QUALITY_TRENDLINE_30_DAY_WINDOW_RECOVERY.md` | Reviews | TODAY-003-R2 quality trendline 30-day window recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
+| `docs/06_REVIEWS/Import/TODAY-003-R2_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-003-R2 PO acceptance checklist | Active | L2 | 1 | Low | PO acceptance workflow, review evidence |
 | `docs/06_REVIEWS/Shared/PO_ACCEPTANCE_CHECKLIST_TEMPLATE.md` | Reviews | Shared PO acceptance checklist template | Active | L2 | 2 | Low | PO acceptance workflow, ticket checklists |
 | `docs/10_TICKETS/MANIFEST_TEMPLATE.md` | Reviews | Ticket manifest template for V2 onboarding | Active | L2 | 2 | Medium | PROJECT_SNAPSHOT.md, ticket manifests |
 | `docs/10_TICKETS/TODAY-003-R1_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-003-R1 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
+| `docs/10_TICKETS/TODAY-003-R2_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-003-R2 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |

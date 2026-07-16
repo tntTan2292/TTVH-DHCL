@@ -106,7 +106,7 @@ export default function DashboardPage() {
           title="Quality Delivery Rate Trendline"
           subtitle="Daily quality rate theo ngày vận hành với target cố định 90%."
         />
-        <QualityDeliveryTrendlineAdapter fromDate={fromDate} toDate={toDate} maBcvh={maBcvh} />
+        <QualityDeliveryTrendlineAdapter reportingToDate={toDate} latestDate={latestDate} maBcvh={maBcvh} />
 
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
