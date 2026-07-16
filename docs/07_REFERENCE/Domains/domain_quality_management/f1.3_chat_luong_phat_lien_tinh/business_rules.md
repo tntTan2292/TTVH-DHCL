@@ -14,6 +14,13 @@ version: 1.0.0
 - KPI chính thức không được tự tính lại. Hệ thống chỉ Tổng hợp, So sánh, Phân tích.
 - Nếu có sai lệch: Dashboard Tổng công ty là nguồn chuẩn.
 
+## 1.1 F1.3 Returned Shipment NULL Rule
+- `ket_qua_f13 = NULL` may represent a returned shipment.
+- A returned shipment remains part of the F1.3 evaluation population.
+- A returned shipment must remain included in `total_volume`.
+- `NULL` in this context is a valid business state and must not automatically be treated as missing, invalid, corrupt, or unavailable data.
+- AI and developers must not infer that SQL `NULL` always means missing business data.
+
 ## 2. Drill Down Hierarchy
 `Toàn mạng` -> `BCVH` -> `Tuyến phát` -> `Bưu gửi`
 

@@ -32,6 +32,21 @@ Một chỉ số chỉ có duy nhất một công thức. Single Source Of Truth
 ### F13_104: Tỷ lệ Không đạt
 - **Công thức**: `Bưu gửi Không đạt / Tổng Bưu gửi`
 
+### F13_105: Record-level NULL
+- `ket_qua_f13 = NULL` may represent a returned shipment.
+- Returned shipments remain part of the F1.3 evaluation population.
+- Returned shipments remain included in `total_volume`.
+- `NULL` in this context is a valid business state and must not automatically be treated as missing, invalid, corrupt, or unavailable data.
+
+### F13_106: Missing calendar date
+- A missing calendar date means no operational fact records exist for the date.
+- For a missing calendar date:
+  - `total_volume = 0`
+  - `passed = 0`
+  - `failed = 0`
+  - `quality_rate = null`
+  - `data_available = false`
+
 ## 3. Impact Analysis
 
 ### F13_201: Không đạt toàn mạng

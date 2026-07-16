@@ -151,7 +151,7 @@ Open technical debt items captured in the current repo state:
 1. Route drill-down to Shipment is contract-prepared, and Shipment runtime integration has passed review.
 2. Route and BCVH runtime pages use fallback summary surfaces when optional meta fields are missing.
 3. Evidence, Action, AI, and Report centers are the next implementation layers.
-4. TODAY-001 import delivery has PO PASS and is closed; the current active work is TODAY-002 Daily Trend Data Adapter.
+4. TODAY-001 import delivery has PO PASS and is closed; TODAY-002 Daily Trend Data Adapter is now completed and the current active work is TODAY-003 Quality Delivery Rate Trendline.
 5. Untracked HTML artifacts remain in the working tree and are unrelated to the architecture/development flow.
 
 ## 9. Known Risks
@@ -207,7 +207,7 @@ AI
 Report
 ```
 
-Current direction is the Leadership Dashboard Delivery queue, with TODAY-002 Daily Trend Data Adapter as the current ticket.
+Current direction is the Leadership Dashboard Delivery queue, with TODAY-003 Quality Delivery Rate Trendline as the current ticket.
 
 ## 13. Handover Checklist
 
@@ -226,7 +226,7 @@ QIS V2 is a Decision Support System for TTVH quality operations.
 
 The architecture is frozen and already delivered through Dashboard, BCVH, Route, and Shipment shell foundations.
 
-Current work is in Leadership Dashboard Delivery, with TODAY-001 Import Daily Data Verification accepted by PO and TODAY-002 Daily Trend Data Adapter ready for development.
+Current work is in Leadership Dashboard Delivery, with TODAY-001 Import Daily Data Verification accepted by PO, TODAY-002 Daily Trend Data Adapter completed, and TODAY-003 Quality Delivery Rate Trendline ready for development.
 
 The project uses SSOT-driven documents, not chat history, as the source of truth.
 
