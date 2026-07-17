@@ -14,10 +14,10 @@
 
 ## 3. Current Status
 
-- Current state: `Technical PASS / Runtime PASS / READY FOR PO CHECK`
+- Current state: `Technical PASS / Runtime PASS / PO PASS / CLOSED`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
+- PO Product Status: `PO PASS`
+- Review status: `CLOSED`
 
 ## 4. Required Reading
 
@@ -75,7 +75,7 @@
 
 - PO finding IDs: none expected
 - Status: `N/A`
-- Closure or recheck requirement: explicit PO PASS required before closure
+- Closure or recheck requirement: closed after explicit PO PASS
 
 ## 10. Documents To Update
 

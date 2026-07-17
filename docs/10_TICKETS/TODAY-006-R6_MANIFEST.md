@@ -14,10 +14,10 @@
 
 ## 3. Current Status
 
-- Current state: `Technical PASS / API Contract PASS / READY FOR PO CHECK`
+- Current state: `Technical PASS / API Contract PASS / PO PASS / CLOSED`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
+- PO Product Status: `PO PASS`
+- Review status: `CLOSED`
 
 ## 4. Required Reading
 
@@ -59,13 +59,13 @@
 ## 8. Related Review
 
 - Review document: `docs/06_REVIEWS/Import/TODAY-006-R6_KPI_SCOPED_DATA_CONTRACT_RECOVERY.md`
-- Review status: `READY FOR PO CHECK`
+- Review status: `CLOSED`
 
 ## 9. Related PO Findings
 
 - PO finding IDs:
   - `POF-TODAY-006-01`
-- Status: `OPEN`
+- Status: `CLOSED`
 
 ## 10. Documents To Update
 
@@ -114,4 +114,4 @@
 ## 15. Authority Escalation
 
 - Escalate to `PROJECT_SNAPSHOT.md` for current ticket state.
-- Do not close this ticket without explicit PO PASS.
+- Closed after explicit PO PASS and documented runtime/database/API proof.

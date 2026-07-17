@@ -15,3 +15,8 @@ Provide the concise PO checklist for the scoped KPI contract recovery.
 7. Confirm both trend charts still change by BCVH.
 8. Confirm `Đạt / Không đạt` filter remains absent.
 
+## 3. Result
+
+- Status: `CLOSED`
+- Closure date: `2026-07-17`
+- Closure authority: explicit Product Owner decision

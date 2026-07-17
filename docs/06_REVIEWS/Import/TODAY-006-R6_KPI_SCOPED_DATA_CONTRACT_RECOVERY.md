@@ -15,13 +15,14 @@ Record the direct database and HTTP proof that the active KPI contract returns s
 - The live database contains the canonical BCVH codes plus two legacy identifiers in the queried range.
 - The live backend now returns BCVH-specific KPI payloads after restart from the current source tree.
 - The earlier zero-scope symptom was caused by an outdated runtime process, not the checked-in route/service/repository contract.
+- Closure evidence confirms aggregate KPI context restored, canonical BCVH values change correctly, and the shared KPI payload now reaches header, summary, and daily brief.
 
 ## 4. Result
 
 - Technical status: `PASS`
 - API Contract status: `PASS`
-- PO product status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
+- PO product status: `PO PASS`
+- Review status: `CLOSED`
 
 ## 5. Evidence
 
@@ -31,5 +32,5 @@ Record the direct database and HTTP proof that the active KPI contract returns s
 
 ## 6. Follow-Up
 
-- Await explicit PO PASS before closure.
+- Closed after explicit PO PASS and documented runtime/database/API proof.
 - Keep `TODAY-007` inactive.
