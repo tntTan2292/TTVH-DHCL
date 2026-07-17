@@ -13,7 +13,7 @@ Verify the KPI route and dashboard fallback states behave correctly under canoni
 - Route / URL: `/f13/dashboard`
 - Required Test Context: authenticated local dashboard session with runtime data
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `NOT READY`
 
 ## 3. Data Conditions
 
@@ -60,6 +60,7 @@ Verify the KPI route and dashboard fallback states behave correctly under canoni
 - Timeline fallback cards remain visible.
 - Accepted charts remain correct.
 - Only one `daily-trend` request appears.
+ - Real authenticated browser evidence is recorded with a browser executable.
 
 ### WARNING
 

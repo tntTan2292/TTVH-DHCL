@@ -100,11 +100,13 @@ test('dashboard page restores the timeline and ranking surfaces', () => {
   assert.match(dashboardSource, /BcvhOperationTableAdapter/);
   assert.match(dashboardSource, /mapDashboardKpiToCards/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/kpi'/);
-  assert.match(timelineSource, /LoadingState|TimelineStateCard/);
-  assert.match(timelineSource, /ErrorState|tone="error"/);
+  assert.match(timelineSource, /TimelineStateCard/);
+  assert.match(timelineSource, /tone="loading"/);
+  assert.match(timelineSource, /tone="error"/);
+  assert.match(timelineSource, /tone="empty"/);
   assert.doesNotMatch(timelineSource, /return null/);
   assert.match(timelineSource, /Heatmap Lịch Chất Lượng/);
   assert.match(timelineSource, /Quy luật Tuần/);
-  assert.match(timelineSource, /Ranking Surface|Quality Timeline/);
+  assert.match(timelineSource, /Không có dữ liệu timeline/);
   assert.doesNotMatch(dashboardSource, /f13_303_rate.*Xếp hạng/s);
 });

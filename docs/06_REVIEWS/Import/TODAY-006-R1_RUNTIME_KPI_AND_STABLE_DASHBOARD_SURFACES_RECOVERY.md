@@ -20,10 +20,10 @@ Record the recovery that restores the authoritative KPI route contract and keeps
 
 ## 4. Result
 
-- Technical status: `PASS`
-- Runtime status: `PASS`
-- PO product status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
+- Technical status: `FAIL`
+- Runtime status: `NOT PROVEN`
+- PO product status: `NOT READY`
+- Review status: `NOT READY`
 
 ## 5. Evidence
 

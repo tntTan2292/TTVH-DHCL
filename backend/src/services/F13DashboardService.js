@@ -1,6 +1,16 @@
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 const ruleRegistry = require('../engine/rules/RuleRegistry');
 const RuleF13302 = require('../engine/rules/RuleF13302');
+const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+
+const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
+
+function normalizeDashboardBcvhCode(ma_bcvh) {
+    if (ma_bcvh === undefined || ma_bcvh === null || ma_bcvh === '') return null;
+    if (ma_bcvh === 'all') return null;
+    if (canonicalBcvhCodes.has(ma_bcvh)) return ma_bcvh;
+    return undefined;
+}
 
 class F13DashboardService {
     
@@ -65,8 +75,15 @@ class F13DashboardService {
 
     async getDashboardKpi(startDate, endDate, filters = {}) {
         try {
+            const normalizedBcvh = normalizeDashboardBcvhCode(filters.bcvhId);
+            if (normalizedBcvh === undefined) {
+                const err = new Error('Mã BCVH không hợp lệ.');
+                err.code = 'INVALID_BCVH';
+                throw err;
+            }
+
             const result = await factBuuGuiRepo.getKpiMetrics(startDate, endDate, {
-                bcvhId: filters.bcvhId || null
+                bcvhId: normalizedBcvh
             });
             if (!result || result.total_bg === 0) {
                 return { total_bg: 0, passed_rate: 0, failed_rate: 0 };
@@ -81,6 +98,7 @@ class F13DashboardService {
                 failed_rate,
             };
         } catch (error) {
+            if (error?.code === 'INVALID_BCVH') throw error;
             throw new Error(`Lỗi Service khi lấy Dashboard KPI: ${error.message}`);
         }
     }

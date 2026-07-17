@@ -1,5 +1,15 @@
 const f13DashboardService = require('../services/F13DashboardService');
 const timelineService = require('../services/timelineService');
+const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+
+const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
+
+function normalizeDashboardBcvh(ma_bcvh) {
+    if (ma_bcvh === undefined || ma_bcvh === null || ma_bcvh === '') return null;
+    if (ma_bcvh === 'all') return null;
+    if (canonicalBcvhCodes.has(ma_bcvh)) return ma_bcvh;
+    return undefined;
+}
 
 class DashboardController {
     async getKpi(req, res) {
@@ -8,7 +18,11 @@ class DashboardController {
             if (!from_date || !to_date) {
                 return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' }});
             }
-            const result = await f13DashboardService.getDashboardKpi(from_date, to_date, { bcvhId: ma_bcvh });
+            const normalizedBcvh = normalizeDashboardBcvh(ma_bcvh);
+            if (normalizedBcvh === undefined) {
+                return res.status(400).json({ success: false, error: { code: 'INVALID_PARAM', message: 'Mã BCVH không hợp lệ.' }});
+            }
+            const result = await f13DashboardService.getDashboardKpi(from_date, to_date, { bcvhId: normalizedBcvh });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
