@@ -1,42 +1,51 @@
-# Canonical Development Ticket Lifecycle Template
+# Lean Codex Prompt Standard
 
 ## Table of Contents
 
 - [1. Purpose](#1-purpose)
-- [2. Canonical Template](#2-canonical-template)
-- [3. Canonical Template Rules](#3-canonical-template-rules)
-- [4. Documentation Requirements](#4-documentation-requirements)
-- [5. Output Standard](#5-output-standard)
+- [2. Lean Codex Prompt Rule](#2-lean-codex-prompt-rule)
+- [3. Mandatory Handoff](#3-mandatory-handoff)
+- [4. Active Manifest Readiness Gate](#4-active-manifest-readiness-gate)
+- [5. Post-Onboarding Behavior](#5-post-onboarding-behavior)
+- [6. Minimal Default Template](#6-minimal-default-template)
+- [7. Output Standard](#7-output-standard)
 
 ## 1. Purpose
 
-This document is the single canonical template that ChatGPT must use to generate a Development Ticket prompt for Codex after AI onboarding PASS.
+This document defines the lean execution prompt standard that ChatGPT must use to generate a Development Ticket prompt for Codex after AI onboarding PASS.
 
-It standardizes:
+The repository already owns the authoritative onboarding chain and the manifest-specific working context. The Codex prompt should therefore stay concise and avoid repeating repository state that is already stored in governance documents.
 
-- ticket lifecycle
-- prompt structure
-- documentation synchronization expectations
-- validation, commit, and push requirements
-- mandatory handoff completion requirements
+## 2. Lean Codex Prompt Rule
 
-## 2. TICKET HANDOFF WORKFLOW
+When Codex has access to the repository, the generated prompt must normally be concise and avoid duplicating authoritative repository content.
 
-Every ticket prompt must make ticket completion self-contained.
+The prompt should usually include only:
 
-The mandatory lifecycle is:
+- Project
+- Active ticket
+- Instruction to read the repository onboarding chain
+- Ticket objective
+- Any user or PO decision not yet stored in the repository
+- Scope restriction
+- Required completion and handoff instruction
 
-`ACTIVE` -> `IMPLEMENTED` -> `VALIDATED` -> `PO PASS when required` -> `CLOSED` -> `NEXT TICKET ACTIVATED` -> `REMOTE PUBLISHED` -> `FRESH ONBOARDING PASS`
+The prompt must not duplicate:
 
-Completion rule:
+- Required Reading URLs already listed in the active manifest
+- business context already defined in the manifest
+- technical file lists already defined in the manifest
+- standard Governance rules
+- standard commit, push, documentation, PO, or handoff instructions
+- repository state already owned by `PROJECT_SNAPSHOT.md`
 
-- a ticket is not done until all applicable handoff steps pass
-- technical completion alone is insufficient
-- local completion without remote publication is insufficient
+The active manifest remains responsible for detailed scope, Required Reading, validation, PO acceptance requirements, documents to update, and next-ticket handoff.
 
-## 3. MANDATORY HANDOFF
+## 3. Mandatory Handoff
 
-Codex must perform all applicable actions before reporting completion:
+Codex must perform all applicable actions before reporting completion.
+
+The active manifest and Governance normally define these actions, so the execution prompt should only repeat them when a temporary instruction is not already authoritative in the repository:
 
 - update the current ticket document and manifest status
 - record validation and PO status
@@ -44,7 +53,7 @@ Codex must perform all applicable actions before reporting completion:
 - identify the next ticket from the current manifest or roadmap
 - create the next manifest if it does not exist
 - ensure the next manifest contains actual implementation authority and not only pointer-activation scope
-- update `PROJECT_SNAPSHOT`:
+- update `PROJECT_SNAPSHOT`
   - Current Ticket
   - Current Manifest
   - Current Phase if changed
@@ -55,28 +64,7 @@ Codex must perform all applicable actions before reporting completion:
 - run a fresh onboarding simulation starting only from `README_AI.md`
 - confirm that the fresh AI can reach the active manifest, read Required Reading, and generate the next Codex prompt without repository search, guessing, or user clarification
 
-## 4. FINALIZATION AND HANDOFF
-
-Do not report the ticket as complete until:
-
-- implementation and validation are complete
-- governance state is synchronized
-- the next ticket is activated
-- changes are pushed
-- remote URLs are verified
-- fresh onboarding passes
-
-If the next ticket is not yet sufficiently defined by authoritative SSOT:
-
-- do not invent business rules
-- create a blocker manifest for the next ticket
-- set its status to `BLOCKED BY SSOT`
-- list the exact missing decisions
-- update `PROJECT_SNAPSHOT` to that blocker manifest
-- publish it remotely
-- ensure fresh onboarding explains the blocker precisely
-
-## 5. ACTIVE MANIFEST READINESS GATE
+## 4. Active Manifest Readiness Gate
 
 Before activating a next ticket, Codex must inspect the proposed manifest even when the file already exists.
 
@@ -131,7 +119,7 @@ Mandatory handoff migration check:
 
 The current ticket must not be reported complete when any applicable step fails.
 
-## 6. POST-ONBOARDING BEHAVIOR
+## 5. Post-Onboarding Behavior
 
 When onboarding PASS completes, Codex behavior depends on the active manifest:
 
@@ -145,295 +133,42 @@ The required autonomous output is:
 - `### Phương án`
 - `### Prompt cho Codex`
 
-## 7. Canonical Template
+## 6. Minimal Default Template
 
 ```text
 PROJECT
-
-TTVH QUALITY INTELLIGENCE SYSTEM (QIS V2)
-
-PHASE
-
-[Current Phase]
+QIS V2
 
 TICKET
-
-[Current Ticket]
-
-==========================================================
-
-CURRENT PROJECT STATE
-
-Current Phase:
-[Current Phase]
-
-Current Ticket:
-[Current Ticket]
-
-Development Status:
-[Development Status]
-
-Documentation Status:
-[Documentation Status]
-
-PO UI Check Required:
-[Yes / No]
-
-Decision reason:
-[Why PO UI check is or is not required]
-
-==========================================================
-
-REQUIRED READING
-
-- [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
-- [docs/01_GOVERNANCE/MASTER_START_PROMPT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/MASTER_START_PROMPT.md)
-- [docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md)
-- [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md)
-- [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
-- [docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md)
-- [docs/01_GOVERNANCE/DOCUMENT_INDEX.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
-- [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md)
-- [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
-- [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
-
-==========================================================
-
-CURRENT CONTEXT
-
-[Project context relevant to the ticket]
-
-==========================================================
-
-OBJECTIVE
-
-[Ticket objective]
-
-==========================================================
-
-SCOPE
-
-[In-scope work only]
-
-==========================================================
-
-OUT OF SCOPE
-
-[Explicit exclusions]
-
-==========================================================
-
-IMPLEMENTATION RULES
-
-[Rules for Codex execution]
-
-==========================================================
-
-VALIDATION
-
-[Validation criteria]
-
-==========================================================
-
-DOCUMENTATION SYNCHRONIZATION
-
-After completing the ticket, Codex must:
-
-- identify all documents affected by the ticket
-- update documents according to the approved Documentation Architecture
-- update PROJECT_PROGRESS if ticket progress or current phase changes
-- update PROJECT_STATUS if project status changes
-- update PROJECT_HANDOVER if current ticket or project snapshot changes
-- update PROJECT_CONTEXT if current context changes
-- when PO UI Check Required = Yes, follow `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md`
-- when PO findings exist, update `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md`
-- update the correct document layers according to DOCUMENT_INDEX and DOCUMENT_GOVERNANCE:
-  - 01_GOVERNANCE
-  - 02_ARCHITECTURE
-  - 03_UX
-  - 04_TECHNICAL_PLANNING
-  - 05_DEVELOPMENT
-  - 06_REVIEWS
-  - 07_REFERENCE
-  - 08_ARCHIVE
-  - 09_REPORTS
-
-==========================================================
-
-SELF VALIDATION
-
-[Self-check required before commit]
-
-==========================================================
-
-COMMIT
-
-[Commit instructions]
-
-==========================================================
-
-PUSH
-
-[Push instructions]
-
-==========================================================
-
-REPORT
-
-Files changed
-
-Business impact
-
-Development summary
-
-Technical validation
-
-Validation result
-
-Runtime acceptance
-
-PO UI Check Required
-
-PO UI Acceptance Notice, when required
-
-PO UI ACCEPTANCE REQUIRED
-
-PO Check Status:
-READY FOR PO CHECK
-
-Affected Module:
-[Module name]
-
-Affected Screen:
-[Screen name]
-
-Menu Path:
-[Exact navigation path]
-
-Route / URL:
-[Exact route or URL]
-
-Required Test Context:
-- Date or date range
-- KPI
-- BCVH
-- Route
-- Shipment
-- User role
-- Other required parameters
-
-What Changed:
-[Visible changes implemented by the ticket]
-
-Expected Result:
-[What the PO should see if implementation is correct]
-
-Business Result:
-[What the feature now enables the user or leadership to do]
-
-PO Check Steps:
-1. ...
-2. ...
-3. ...
-
-PO Acceptance Checklist:
-- [ ] Navigation works
-- [ ] Correct context is preserved
-- [ ] Correct runtime data is displayed
-- [ ] UI order and labels are understandable
-- [ ] Loading state works
-- [ ] Empty state works
-- [ ] Error state works
-- [ ] No shell/demo/placeholder content remains
-- [ ] Business behavior matches the expected result
-- [ ] The feature is usable for the intended decision or operation
-
-Known Warnings:
-[List warnings or None]
-
-Blocking Rule:
-[State whether the next ticket or module is blocked until PO acceptance]
-
-PO Response Required:
-PASS / WARNING / FAIL
-
-Related PO findings
-
-Git status
-
-Documentation updated
-
-Current Project State updated
-
-Commit hash
-
-GitHub Commit URL
-
-GitHub Blob URL
-
-==========================================================
-
-NEXT PROJECT STATE
-
-If Ticket PASS
-
-↓
-
-[Next Ticket]
-
-If Ticket FAIL
-
-↓
-
-Stop.
-
-If PO UI Check Required = Yes, the ticket is not `Module Completed` until the applicable PO gate is satisfied.
+[Active Ticket]
+
+Read and follow the repository onboarding chain:
+
+README_AI.md
+→ PROJECT_SNAPSHOT.md
+→ Current Manifest
+→ Required Reading
+
+Implement the active ticket exactly within its manifest scope.
+
+Additional PO/User Decision:
+[Only include a decision that is not yet stored in the repository, otherwise write: None]
+
+Restrictions:
+- Do not infer missing business rules.
+- Do not modify frozen or unrelated files.
+- Apply the mandatory validation, documentation, commit, push, and handoff workflow defined by Governance.
+
+Report:
+- implementation result;
+- validation result;
+- PO check status when applicable;
+- commit and remote push status;
+- next-ticket handoff result.
 ```
 
-## 8. Canonical Template Rules
+## 7. Output Standard
 
-- ChatGPT must copy this canonical template for every Development Ticket prompt after AI onboarding PASS.
-- Only the following placeholders may change:
-  - Current Phase
-  - Current Ticket
-  - Development Status
-  - Documentation Status
-  - Project context relevant to the ticket
-  - Ticket objective
-  - In-scope work only
-  - Explicit exclusions
-  - Rules for Codex execution
-  - Validation criteria
-  - Self-check required before commit
-  - Commit instructions
-  - Push instructions
-  - Next Ticket
-- ChatGPT must not add new sections.
-- ChatGPT must not remove sections.
-- ChatGPT must not rename sections.
-- ChatGPT must not reorder sections.
-- ChatGPT must not invent a different prompt structure.
+Every Codex execution report generated from this standard must stay concise and should not repeat repository-owned context unless a temporary instruction is not already available in the repository.
 
-## 9. Documentation Requirements
-
-Every prompt generated from this canonical template must preserve documentation synchronization requirements:
-
-- identify all documents affected by the ticket
-- update affected documents according to `DOCUMENT_INDEX.md` and `DOCUMENT_GOVERNANCE.md`
-- update project control files when the ticket changes current state
-- validate the updated documentation set before commit
-- commit and push after validation passes
-
-## 10. Output Standard
-
-Every Codex execution report generated from this template must include:
-
-- Files changed
-- Business impact
-- Development summary
-- Validation result
-- Documentation updated
-- Current Project State updated
-- Commit hash
-- GitHub Commit URL
-- GitHub Blob URL
+The prompt is considered valid when it is sufficient for Codex to implement the ticket by following the repository onboarding chain, while staying below 250 words unless a documented exception applies.
