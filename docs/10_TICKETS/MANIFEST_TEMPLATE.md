@@ -79,6 +79,24 @@ If the next ticket is not yet sufficiently defined by authoritative SSOT:
 - publish it remotely
 - ensure fresh onboarding explains the blocker precisely
 
+## 2.4 Post-Onboarding Behavior
+
+When a manifest authorizes implementation and no governance blocker exists, a fresh AI onboarding from `README_AI.md` must immediately continue into Codex prompt generation.
+
+Allowed stop conditions after onboarding are limited to manifests that explicitly indicate:
+
+- `BLOCKED`
+- `WAITING FOR PO`
+- `WAITING FOR SSOT`
+- `WAITING FOR REQUIREMENT`
+- another governance-defined blocking state
+
+The required autonomous output is:
+
+- `### Kết quả`
+- `### Phương án`
+- `### Prompt cho Codex`
+
 ## 3. Current Status
 
 - Current state:
@@ -94,6 +112,7 @@ List only the documents directly relevant to this ticket.
 - `README_AI.md`
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 - `docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md` when the ticket changes documentation workflow
+- `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` when the ticket changes onboarding or prompt-generation behavior
 - active ticket review document
 - related PO findings register rows or closure docs
 - any ticket-specific implementation or evidence docs

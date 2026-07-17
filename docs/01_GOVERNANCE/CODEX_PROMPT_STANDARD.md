@@ -77,7 +77,21 @@ If the next ticket is not yet sufficiently defined by authoritative SSOT:
 - publish it remotely
 - ensure fresh onboarding explains the blocker precisely
 
-## 5. Canonical Template
+## 5. POST-ONBOARDING BEHAVIOR
+
+When onboarding PASS completes, Codex behavior depends on the active manifest:
+
+- if the active manifest authorizes implementation and no governance blocker exists, Codex must immediately generate the implementation prompt output without waiting for another user request
+- if the manifest explicitly indicates `BLOCKED`, `WAITING FOR PO`, `WAITING FOR SSOT`, `WAITING FOR REQUIREMENT`, or another governance-defined blocking state, Codex may stop after explaining the blocker precisely
+- post-onboarding autonomy is governed by repository documentation, not chat history
+
+The required autonomous output is:
+
+- `### Kết quả`
+- `### Phương án`
+- `### Prompt cho Codex`
+
+## 6. Canonical Template
 
 ```text
 PROJECT
@@ -322,7 +336,7 @@ Stop.
 If PO UI Check Required = Yes, the ticket is not `Module Completed` until the applicable PO gate is satisfied.
 ```
 
-## 6. Canonical Template Rules
+## 7. Canonical Template Rules
 
 - ChatGPT must copy this canonical template for every Development Ticket prompt after AI onboarding PASS.
 - Only the following placeholders may change:
@@ -346,7 +360,7 @@ If PO UI Check Required = Yes, the ticket is not `Module Completed` until the ap
 - ChatGPT must not reorder sections.
 - ChatGPT must not invent a different prompt structure.
 
-## 7. Documentation Requirements
+## 8. Documentation Requirements
 
 Every prompt generated from this canonical template must preserve documentation synchronization requirements:
 
@@ -356,7 +370,7 @@ Every prompt generated from this canonical template must preserve documentation 
 - validate the updated documentation set before commit
 - commit and push after validation passes
 
-## 8. Output Standard
+## 9. Output Standard
 
 Every Codex execution report generated from this template must include:
 

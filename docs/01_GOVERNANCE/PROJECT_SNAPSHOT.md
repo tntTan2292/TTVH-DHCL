@@ -21,7 +21,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Ticket | `TODAY-004 Volume Trendline` |
 | Next Ticket | `TODAY-004 Volume Trendline` |
 | PO Status | `PASS` |
-| Current Commit | `ca737290f439b87df94d008d273576b363f0e508` |
+| Current Commit | `14366c198db62011e601b0c7533b1bd73cc29172` |
 | Current Branch | `main` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-004_MANIFEST.md` |
 | Governance Version | `V2 Active` |

@@ -46,6 +46,24 @@ After onboarding, AI must report:
 - Current Ticket
 - Ready to Continue
 
+If the active manifest authorizes implementation and no governance blocker exists, the AI must continue immediately into Codex prompt generation without waiting for another user request.
+
+## 4.1 Post-Onboarding Behavior
+
+If onboarding PASS completes and the active manifest authorizes implementation, the AI must immediately produce:
+
+- `### Kết quả`
+- `### Phương án`
+- `### Prompt cho Codex`
+
+Allowed stop conditions after onboarding are limited to manifests that explicitly indicate:
+
+- `BLOCKED`
+- `WAITING FOR PO`
+- `WAITING FOR SSOT`
+- `WAITING FOR REQUIREMENT`
+- another governance-defined blocking state
+
 ## 5. Governance V2 Onboarding
 
 The lightweight onboarding route is:
