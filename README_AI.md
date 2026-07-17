@@ -38,6 +38,12 @@ AI must:
 - not skip Reading Order
 - not change frozen documents
 - not infer business rules
+- own implementation, automated testing, build/lint, API validation, database validation, contract validation, and targeted technical runtime checks
+- treat Product Owner visible UI and product acceptance as separate from Codex technical validation
+- stop at `READY FOR PO CHECK` when `PO UI Check Required = Yes`
+- provide a concise manual PO checklist for visible changes
+- not perform broad UI acceptance or award PO PASS
+- treat Technical PASS and Runtime/API Contract PASS as non-equivalent to PO PASS
 
 ## 4. Expected Output
 

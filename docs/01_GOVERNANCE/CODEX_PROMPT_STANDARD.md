@@ -161,6 +161,10 @@ Restrictions:
 - Do not infer missing business rules.
 - Do not modify frozen or unrelated files.
 - Apply the mandatory validation, documentation, commit, push, and handoff workflow defined by Governance.
+- Do not perform PO UI acceptance.
+- Do not self-award PO PASS.
+- Provide a concise manual PO checklist for visible changes.
+- Use browser automation only for targeted technical diagnosis or explicit authorization.
 
 Report:
 - implementation result;
@@ -175,6 +179,45 @@ Report:
 Every Codex execution report generated from this standard must stay concise and should not repeat repository-owned context unless a temporary instruction is not already available in the repository.
 
 The prompt is considered valid when it is sufficient for Codex to implement the ticket by following the repository onboarding chain, while staying below 250 words unless a documented exception applies.
+
+## 8. Technical Validation vs PO UI Acceptance
+
+Codex owns technical validation.
+
+Codex responsibilities include:
+
+- implementation
+- unit and integration tests
+- build and lint checks
+- targeted database checks
+- direct API request and response validation
+- contract validation
+- narrow technical runtime diagnosis
+
+Product Owner responsibilities include:
+
+- visible UI correctness
+- chart and table presentation
+- filter behavior
+- label and wording review
+- readability and usability
+- final product acceptance
+
+Browser automation is optional, not the default. Use it only when the manifest explicitly requires browser evidence, the defect can only be proven in a browser, or the Product Owner explicitly requests it.
+
+Broad browser sweeps, screenshot collection, and visual acceptance runs do not replace PO review. Any browser run performed by Codex remains technical evidence only and never becomes PO PASS.
+
+Ready for PO Check handoff requires the applicable technical pass, runtime or API contract pass where relevant, and a governance state of `READY FOR PO CHECK`.
+
+The PO handoff checklist should stay concise and include:
+
+- screen URL
+- required test context
+- filters or actions to perform
+- expected visible result
+- PASS / WARNING / FAIL criteria
+
+Quota discipline matters. Prefer targeted tests and API or database proof over broad visual review work.
 
 ## 8. Additional PO/User Decision Rule
 

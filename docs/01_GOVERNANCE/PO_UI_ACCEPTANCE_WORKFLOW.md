@@ -20,6 +20,7 @@ It exists to separate:
 
 - Technical PASS
 - Runtime PASS
+- API Contract PASS
 - PO Product Review PASS
 - Module Completed
 
@@ -46,27 +47,31 @@ Required completion sequence:
 
 Technical PASS
 
-↓
+→
 
-Runtime PASS
+Runtime PASS or API Contract PASS where applicable
 
-↓
+→
 
 Ready for PO Check
 
-↓
+→
+
+Product Owner manual review
+
+→
 
 PO PASS / WARNING / FAIL
 
-↓
+→
 
 Review
 
-↓
+→
 
 Documentation Synchronization
 
-↓
+→
 
 Module Completed or Recovery
 
@@ -76,23 +81,23 @@ Required completion sequence:
 
 Technical PASS
 
-↓
+→
 
 Runtime PASS or Runtime Not Required
 
-↓
+→
 
 PO UI Check Required: No
 
-↓
+→
 
 Review
 
-↓
+→
 
 Documentation Synchronization
 
-↓
+→
 
 Module Completed
 
@@ -119,6 +124,18 @@ The section must include:
 - Blocking Rule
 - PO Response Required
 
+Codex prepares the implementation and technical evidence, but it does not replace PO review.
+
+Codex must not self-award PO PASS.
+
+Screenshot evidence is optional unless it is needed for diagnosis, remote review, or the active manifest explicitly requires it.
+
+Any browser evidence captured by Codex remains technical evidence only.
+
+The PO checklist should be concise and actionable so the Product Owner can confirm the visible result quickly.
+
+If PO observations conflict with Codex visual assessment, PO observations override.
+
 ## 5. PO Result Definitions
 
 ### PO PASS
@@ -143,9 +160,12 @@ A module cannot be marked `Module Completed` unless:
 
 - Technical PASS is achieved
 - Runtime PASS is achieved when runtime is applicable
+- API Contract PASS is achieved when contract validation is applicable
 - PO PASS is achieved when PO UI Check Required = Yes
 
 Module completion must not be implied by build success alone.
+
+Technical PASS, Runtime PASS, API Contract PASS, PO PASS, and module completion remain separate gates.
 
 ## 7. PO Findings Traceability
 
@@ -179,4 +199,3 @@ Product Owner has final authority over PO PASS, PO WARNING, and PO FAIL.
 ChatGPT may classify and recommend, but cannot override Product Owner product acceptance.
 
 Codex must report the PO gate status explicitly and must not collapse technical acceptance into product acceptance.
-
