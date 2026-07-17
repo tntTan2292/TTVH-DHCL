@@ -18,12 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `GOV-V2-014 Active Manifest Readiness Gate` |
-| Next Ticket | `GOV-V2-014 Active Manifest Readiness Gate` |
+| Current Ticket | `TODAY-004 Volume Trendline` |
+| Next Ticket | `TODAY-005 Same-Period Comparison Trendline` |
 | PO Status | `NOT READY` |
-| Current Commit | `3f87de11d0f67d51c6636e1f4a4f413df48b69ca` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/GOV-V2-014_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-004_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-17` |
 
@@ -37,7 +36,6 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 - `Current Manifest` must always be a concrete GitHub Blob URL.
 - `Current Manifest` must point to an existing remote manifest for the active ticket.
 - `Current Manifest` must not contain placeholder labels or descriptive text.
-- If the active ticket changes, update `Current Ticket`, `Current Manifest`, and `Current Commit` together.
 - `PO Status` must reflect the active ticket state and not inherit closed-ticket acceptance.
 
 ## 4. Continuation Notes

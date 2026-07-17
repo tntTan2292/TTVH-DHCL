@@ -49,7 +49,6 @@ Before reporting completion, Codex must:
 - update `PROJECT_SNAPSHOT`:
   - Current Ticket
   - Current Manifest
-  - Current Commit according to the repository convention
   - Current Phase if changed
 - register new documents in `DOCUMENT_INDEX`
 - commit using One Ticket = One Commit
@@ -114,7 +113,7 @@ Readiness before activation:
 
 Mutable live state ownership:
 
-- `PROJECT_SNAPSHOT.md` exclusively owns mutable current project state, including Current Phase, Current Ticket, Current Manifest, Current Commit, Current Branch, current PO Status, and live next-ticket routing
+- `PROJECT_SNAPSHOT.md` exclusively owns mutable current project state, including Current Phase, Current Ticket, Current Manifest, Current Branch, current PO Status, and live next-ticket routing
 - manifest templates must reference `PROJECT_SNAPSHOT.md` for mutable live state
 - historical commit evidence may remain only when clearly identified as immutable implementation or validation evidence
 

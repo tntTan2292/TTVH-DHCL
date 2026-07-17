@@ -32,7 +32,7 @@ Establish the permanent active manifest readiness gate so future manifests must 
 
 ## 3. Current Status
 
-- Current state: `READY FOR IMPLEMENTATION`
+- Current state: `TECHNICAL PASS / REMOTE PUBLISHED / CLOSED`
 - PO UI Check Required: `No`
 - PO Product Status: `NOT REQUIRED`
 - Live mutable state is owned by `PROJECT_SNAPSHOT.md`
@@ -118,9 +118,9 @@ Only the following documents are required to continue this ticket:
 
 ## 13. Next Ticket
 
-- Next ticket ID: `N/A`
-- Next ticket name: `N/A`
-- Blockers or handoff notes: this ticket is the permanent workflow hardening step
+- Next ticket ID: `TODAY-004`
+- Next ticket name: `Volume Trendline`
+- Blockers or handoff notes: handoff activated to the already remediated TODAY-004 implementation manifest
 
 ## 14. PO Acceptance Checklist
 
@@ -129,6 +129,7 @@ PO Acceptance Checklist:
 - `N/A`
 
 PO UI Check Required: `No`
+PO Product Status: `NOT REQUIRED`
 Valid outcomes: `PASS`, `WARNING`, `FAIL`
 
 ## 15. Authority Escalation

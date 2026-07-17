@@ -35,7 +35,6 @@ Implement and runtime-validate the daily total shipment volume trendline on the 
 - Current state: `READY FOR IMPLEMENTATION`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT READY`
-- Current Branch: `main`
 - Live phase, current commit, PO status, and next-ticket routing are owned by `PROJECT_SNAPSHOT.md`
 
 ## 4. Required Reading
