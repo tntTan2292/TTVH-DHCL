@@ -219,7 +219,7 @@ The PO handoff checklist should stay concise and include:
 
 Quota discipline matters. Prefer targeted tests and API or database proof over broad visual review work.
 
-## 8. Additional PO/User Decision Rule
+## 9. Additional PO/User Decision Rule
 
 The `Additional PO/User Decision` field may contain only temporary execution clarification that does not change business rules, scope, contracts, PO acceptance, SSOT, or frozen behavior.
 
