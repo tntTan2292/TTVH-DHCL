@@ -11,7 +11,8 @@ Let a Product Owner verify the Operation Dashboard BCVH filter and 30-day combo 
 - Route / URL: `/f13/dashboard`
 - Required login: authenticated browser session
 - PO UI Check Required: `Yes`
-- PO Product Status: `PO UI ACCEPTANCE REQUIRED`
+- PO Product Status: `PO FAIL`
+- Follow-up Recovery: `TODAY-004-R3 Canonical BCVH Options Runtime Recovery`
 
 ## 3. Step-By-Step Checks
 
@@ -65,4 +66,10 @@ Let a Product Owner verify the Operation Dashboard BCVH filter and 30-day combo 
 ## 5. Follow-Up Actions
 
 - After PASS: record PO PASS and proceed with closure policy.
-- After FAIL: keep `TODAY-004-R2` active and register the next PO finding.
+- After FAIL: register the blocking finding, activate the responsible recovery ticket, and do not activate `TODAY-005`.
+
+## 6. PO Recheck Result
+
+- Result: `PO FAIL`
+- Finding: Product Owner screenshot showed only `Tất cả BCVH` in the opened BCVH dropdown.
+- Responsible Fix Ticket: `TODAY-004-R3 Canonical BCVH Options Runtime Recovery`

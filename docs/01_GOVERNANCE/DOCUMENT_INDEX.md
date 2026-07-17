@@ -132,6 +132,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/10_TICKETS/TODAY-004_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/10_TICKETS/TODAY-004-R1_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004-R1 combo trendline recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/10_TICKETS/TODAY-004-R2_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004-R2 BCVH filter and combo trendline recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
+| `docs/10_TICKETS/TODAY-004-R3_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004-R3 canonical BCVH options runtime recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/10_TICKETS/GOV-V2-014_MANIFEST.md` | Reviews | Current ticket manifest for GOV-V2-014 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/06_REVIEWS/Import/TODAY-004_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, remediation report |
 | `docs/06_REVIEWS/Import/TODAY-004_ACTIVE_MANIFEST_REMEDIATION.md` | Reviews | TODAY-004 active manifest remediation report | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, manifest |
@@ -139,6 +140,9 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Import/TODAY-004-R1_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004-R1 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
 | `docs/06_REVIEWS/Import/TODAY-004-R2_BCVH_FILTER_AND_COMBO_TRENDLINE_RECOVERY.md` | Reviews | TODAY-004-R2 BCVH filter and combo trendline recovery evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
 | `docs/06_REVIEWS/Import/TODAY-004-R2_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004-R2 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
+| `docs/06_REVIEWS/Import/TODAY-004-R3_CANONICAL_BCVH_OPTIONS_RUNTIME_RECOVERY.md` | Reviews | TODAY-004-R3 canonical BCVH options runtime recovery evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
+| `docs/06_REVIEWS/Import/TODAY-004-R3_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004-R3 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
+| `docs/06_REVIEWS/Import/screenshots/` | Reviews | Runtime browser evidence screenshots for TODAY recovery tickets | Active | L2 | 1 | High | Review evidence docs |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |

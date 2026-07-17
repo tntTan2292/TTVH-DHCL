@@ -10,9 +10,10 @@
 | Technical Status | `PASS` |
 | Runtime Status | `PASS` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `PO UI ACCEPTANCE REQUIRED` |
+| PO Product Status | `PO FAIL` |
 | Current Manifest | `docs/10_TICKETS/TODAY-004-R2_MANIFEST.md` |
 | Responsible PO Finding | `POF-TODAY-004-02` |
+| Follow-up Recovery | `TODAY-004-R3 Canonical BCVH Options Runtime Recovery` |
 
 ## Root Cause
 
@@ -61,6 +62,7 @@
 
 ## PO Validation
 
-- PO UI ACCEPTANCE REQUIRED.
-- Do not close `TODAY-004-R2`.
-- Do not activate `TODAY-005` without explicit PO PASS.
+- PO Result: `PO FAIL`.
+- PO finding: browser screenshot showed only `Tất cả BCVH` in the BCVH dropdown.
+- Responsible Fix Ticket: `TODAY-004-R3 Canonical BCVH Options Runtime Recovery`.
+- Do not activate `TODAY-005` without explicit PO PASS for `TODAY-004-R3`.

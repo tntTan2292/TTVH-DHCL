@@ -14,11 +14,12 @@ Recover the Operation Dashboard filter and combo trendline behavior after PO rej
 
 ## 3. Current Status
 
-- Current state: `Technical PASS / Runtime PASS / READY FOR PO CHECK`
+- Current state: `Technical PASS / Runtime PASS / PO FAIL / Recovery Activated`
 - PO UI Check Required: `Yes`
-- PO Product Status: `PO UI ACCEPTANCE REQUIRED`
+- PO Product Status: `PO FAIL`
 - Recovery source: `TODAY-004-R1` PO FAIL
 - Responsible PO finding: `POF-TODAY-004-02`
+- Follow-up recovery: `TODAY-004-R3 Canonical BCVH Options Runtime Recovery`
 - Live phase, branch, PO status, and next-ticket routing are owned by `PROJECT_SNAPSHOT.md`
 
 ## 4. Required Reading
@@ -94,11 +95,11 @@ Only the following documents are required to continue this ticket:
 - Technical PASS.
 - Runtime PASS.
 - PO UI ACCEPTANCE REQUIRED.
-- `TODAY-004-R2` remains open until explicit PO PASS.
+- `TODAY-004-R2` recorded PO FAIL and is superseded by `TODAY-004-R3`.
 - `TODAY-005` remains inactive.
 
 ## 12. Next Ticket
 
 - Next ticket ID: `TODAY-005`
 - Next ticket name: `Same-Period Comparison Trendline`
-- Blockers or handoff notes: do not activate until `TODAY-004-R2` receives PO PASS and closure gates pass.
+- Blockers or handoff notes: do not activate until `TODAY-004-R3` receives PO PASS and closure gates pass.

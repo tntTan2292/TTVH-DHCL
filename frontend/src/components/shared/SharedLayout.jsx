@@ -191,6 +191,7 @@ export function GlobalFilterBar({
   showKpiFilter = true,
   bcvhValue,
   onBcvhChange,
+  bcvhDisabled = false,
   bcvhOptions = [{ value: 'all', label: 'Tất cả BCVH' }],
   searchValue,
   onSearchChange,
@@ -240,6 +241,7 @@ export function GlobalFilterBar({
           <select
             value={bcvhValue}
             onChange={(e) => onBcvhChange?.(e.target.value)}
+            disabled={bcvhDisabled}
             className="border-none bg-transparent text-sm focus:ring-0"
             aria-label="BCVH Filter"
           >

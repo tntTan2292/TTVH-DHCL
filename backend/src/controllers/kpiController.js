@@ -2,6 +2,7 @@ const { get, all } = require('../config/db');
 const ruleEngineService = require('../services/ruleEngineService');
 const timelineService = require('../services/timelineService');
 const messageGenerationService = require('../services/messageGenerationService');
+const { buildDashboardMeta } = require('../config/canonicalBcvhUnits');
 
 const isValidDate = (dateString) => {
     return /^\d{4}-\d{2}-\d{2}$/.test(dateString);
@@ -393,15 +394,10 @@ async function getDashboardMessage(req, res) {
 async function getDashboardMeta(req, res) {
     try {
         const { max_date } = await get(`SELECT MAX(ngay_do_kiem) as max_date FROM fact_f13`);
-        const bcvh_units = await all(`
-            SELECT DISTINCT ma_bcvh, ten_bcvh
-            FROM fact_f13
-            WHERE ma_bcvh IS NOT NULL
-              AND ten_bcvh IS NOT NULL
-              AND ten_bcvh LIKE 'BCVH %'
-            ORDER BY ten_bcvh ASC
-        `);
-        res.json({ success: true, data: { max_date, bcvh_units } });
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
+        res.json({ success: true, data: buildDashboardMeta(max_date) });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

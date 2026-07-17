@@ -18,11 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-004-R2 BCVH Filter and Combo Trendline Recovery` |
+| Current Ticket | `TODAY-004-R3 Canonical BCVH Options Runtime Recovery` |
 | Next Ticket | `TODAY-005 Same-Period Comparison Trendline` |
 | PO Status | `READY FOR PO CHECK` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-004-R2_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-004-R3_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-17` |
 

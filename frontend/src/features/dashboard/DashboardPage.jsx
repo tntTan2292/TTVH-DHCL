@@ -15,28 +15,60 @@ import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
 import QualityVolumeComboTrendlineAdapter from './components/QualityVolumeComboTrendlineAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
-import { buildBcvhOptions, ALL_BCVH_OPTION } from './components/dashboardFilterOptions';
+import {
+  buildBcvhOptions,
+  isCanonicalBcvhCode,
+  validateBcvhUnits,
+} from './components/dashboardFilterOptions';
 
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
-  const [bcvhOptions, setBcvhOptions] = useState([ALL_BCVH_OPTION]);
+  const [metadataState, setMetadataState] = useState({
+    status: 'loading',
+    bcvhOptions: [],
+    error: null,
+  });
 
-  useEffect(() => {
+  const loadDashboardMeta = () => {
+    setMetadataState((prev) => ({ ...prev, status: 'loading', error: null }));
     api.get('/f13/dashboard/meta')
       .then((res) => {
-        if (res.data.success && res.data.data.max_date) {
-          setLatestDate(res.data.data.max_date);
+        const data = res.data?.data || {};
+        if (res.data?.success && data.max_date) {
+          setLatestDate(data.max_date);
         }
-        if (res.data.success && Array.isArray(res.data.data.bcvh_units)) {
-          setBcvhOptions(buildBcvhOptions(res.data.data.bcvh_units));
+
+        const validation = validateBcvhUnits(data.bcvh_units);
+        if (!res.data?.success || !validation.ok) {
+          setMetadataState({
+            status: 'error',
+            bcvhOptions: [],
+            error: validation.error || 'Không thể tải metadata BCVH.',
+          });
+          return;
         }
+
+        setMetadataState({
+          status: 'success',
+          bcvhOptions: buildBcvhOptions(data.bcvh_units),
+          error: null,
+        });
       })
       .catch((error) => {
         console.error('[DashboardPage] meta error:', error);
+        setMetadataState({
+          status: 'error',
+          bcvhOptions: [],
+          error: 'Không thể tải metadata BCVH. Vui lòng thử lại.',
+        });
       });
+  };
+
+  useEffect(() => {
+    loadDashboardMeta();
   }, []);
 
   useEffect(() => {
@@ -52,6 +84,14 @@ export default function DashboardPage() {
   const interval = searchParams.get('interval') || 'daily';
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
+
+  useEffect(() => {
+    if (metadataState.status !== 'success') return;
+    if (isCanonicalBcvhCode(maBcvh)) return;
+    const params = new URLSearchParams(searchParams);
+    params.set('ma_bcvh', 'all');
+    setSearchParams(params, { replace: true });
+  }, [maBcvh, metadataState.status, searchParams, setSearchParams]);
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);
@@ -88,7 +128,8 @@ export default function DashboardPage() {
           showKpiFilter={false}
           bcvhValue={maBcvh}
           onBcvhChange={(value) => updateParam('ma_bcvh', value)}
-          bcvhOptions={bcvhOptions}
+          bcvhOptions={metadataState.bcvhOptions}
+          bcvhDisabled={metadataState.status !== 'success'}
           searchValue={search}
           onSearchChange={(value) => updateParam('search', value)}
           actions={
@@ -98,6 +139,19 @@ export default function DashboardPage() {
             </div>
           }
         />
+        {metadataState.status === 'error' ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <div className="font-semibold">Không thể tải danh sách BCVH.</div>
+            <p className="mt-1">{metadataState.error}</p>
+            <button
+              type="button"
+              onClick={loadDashboardMeta}
+              className="mt-3 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-800"
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : null}
 
         <SectionHeader title="Executive Header" subtitle="Khối đầu tiên của Dashboard, dùng widget placeholder có cấu trúc rõ ràng." />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
