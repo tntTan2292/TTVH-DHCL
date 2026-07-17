@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Clock, HardDrive, XCircle } from 'lucide-react';
 import api from '../api/client';
 import UploadWidget from '../components/UploadWidget';
+import { buildImportReconciliationContext } from './importDashboardReconciliation';
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
@@ -166,6 +168,9 @@ export default function DataImportCenter() {
             <p className="text-sm text-gray-500 mt-1">
               Hiển thị {visibleStart.toLocaleString('vi-VN')}-{visibleEnd.toLocaleString('vi-VN')} trên tổng số {pagination.totalItems.toLocaleString('vi-VN')} lần import
             </p>
+            <p className="mt-1 text-xs font-semibold text-vnpost-blue-dark">
+              Dùng nút Đối chiếu Dashboard để mở đúng ngày import với ngữ cảnh Tất cả BCVH.
+            </p>
           </div>
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-600">
             Số dòng mỗi trang
@@ -191,35 +196,53 @@ export default function DataImportCenter() {
                 <th className="px-6 py-4 font-bold text-right text-amber-600">Bỏ qua</th>
                 <th className="px-6 py-4 font-bold text-right text-red-600">Lỗi</th>
                 <th className="px-6 py-4 font-bold text-center">Trạng thái</th>
+                <th className="px-6 py-4 font-bold text-center">Đối chiếu</th>
               </tr>
             </thead>
             <tbody>
-              {status?.recentLogs?.map((log) => (
-                <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-3 text-gray-600">{formatVietnamDateTime(log.ngay_import)}</td>
-                  <td className="px-6 py-3 font-semibold text-vnpost-blue-dark">{log.ten_file}</td>
-                  <td className="px-6 py-3 text-center font-medium text-gray-600">{log.ngay_so_lieu}</td>
-                  <td className="px-6 py-3 text-right font-bold text-gray-700">
-                    {(log.so_luong_bg ?? 0).toLocaleString('vi-VN')}
-                  </td>
-                  <td className="px-6 py-3 text-right font-medium text-amber-600">
-                    {(log.so_bi_bo_qua ?? 0).toLocaleString('vi-VN')}
-                  </td>
-                  <td className="px-6 py-3 text-right font-medium text-red-600">
-                    {(log.so_loi ?? 0).toLocaleString('vi-VN')}
-                  </td>
-                  <td className="px-6 py-3 text-center">
-                    {log.trang_thai === 'SUCCESS' ? (
-                      <span className="px-3 py-1 rounded-full text-xs bg-green-100 text-green-800 font-bold">Thành công</span>
-                    ) : (
-                      <span className="px-3 py-1 rounded-full text-xs bg-red-100 text-red-800 font-bold">Lỗi</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {status?.recentLogs?.map((log) => {
+                const reconciliation = buildImportReconciliationContext(log);
+
+                return (
+                  <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-3 text-gray-600">{formatVietnamDateTime(log.ngay_import)}</td>
+                    <td className="px-6 py-3 font-semibold text-vnpost-blue-dark">{log.ten_file}</td>
+                    <td className="px-6 py-3 text-center font-medium text-gray-600">{log.ngay_so_lieu}</td>
+                    <td className="px-6 py-3 text-right font-bold text-gray-700">
+                      {(log.so_luong_bg ?? 0).toLocaleString('vi-VN')}
+                    </td>
+                    <td className="px-6 py-3 text-right font-medium text-amber-600">
+                      {(log.so_bi_bo_qua ?? 0).toLocaleString('vi-VN')}
+                    </td>
+                    <td className="px-6 py-3 text-right font-medium text-red-600">
+                      {(log.so_loi ?? 0).toLocaleString('vi-VN')}
+                    </td>
+                    <td className="px-6 py-3 text-center">
+                      {log.trang_thai === 'SUCCESS' ? (
+                        <span className="px-3 py-1 rounded-full text-xs bg-green-100 text-green-800 font-bold">Thành công</span>
+                      ) : (
+                        <span className="px-3 py-1 rounded-full text-xs bg-red-100 text-red-800 font-bold">Lỗi</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-center">
+                      {reconciliation.canOpenDashboard ? (
+                        <Link
+                          to={reconciliation.dashboardUrl}
+                          className="inline-flex rounded-lg bg-vnpost-blue px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-800"
+                          aria-label={`Đối chiếu dashboard cho import ${reconciliation.importLogId} ngày ${reconciliation.dataDate}`}
+                        >
+                          Đối chiếu Dashboard
+                        </Link>
+                      ) : (
+                        <span className="text-xs font-medium text-gray-400">Không khả dụng</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {!status?.recentLogs?.length && (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-400">
+                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400">
                     {loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu nhật ký'}
                   </td>
                 </tr>

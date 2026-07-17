@@ -167,6 +167,8 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Import/TODAY-007_DUPLICATE_DASHBOARD_REQUEST_RECOVERY.md` | Reviews | TODAY-007 duplicate dashboard request recovery and PO PASS closure evidence | Completed | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
 | `docs/06_REVIEWS/Import/TODAY-007_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-007 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
 | `docs/10_TICKETS/TODAY-008_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-008 PO data reconciliation and leadership view | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
+| `docs/06_REVIEWS/Import/TODAY-008_PO_DATA_RECONCILIATION_AND_LEADERSHIP_VIEW.md` | Reviews | TODAY-008 import-to-dashboard reconciliation implementation and runtime evidence | Active | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
+| `docs/06_REVIEWS/Import/TODAY-008_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-008 PO acceptance checklist for import-to-dashboard reconciliation | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
 | `docs/10_TICKETS/GOVERNANCE-PO-UI-SEPARATION_MANIFEST.md` | Reviews | Governance amendment manifest between TODAY-006 and TODAY-007 | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, governance workflow docs |
 | `docs/06_REVIEWS/Import/screenshots/` | Reviews | Runtime browser evidence screenshots for TODAY recovery tickets | Active | L2 | 1 | High | Review evidence docs |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |

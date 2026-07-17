@@ -14,13 +14,14 @@
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / READY FOR IMPLEMENTATION`
+- Current state: `READY FOR PO CHECK`
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
-- Technical Status: `NOT STARTED`
-- Runtime Status: `NOT STARTED`
-- Review status: `READY FOR IMPLEMENTATION`
+- PO Product Status: `READY FOR PO CHECK`
+- Technical Status: `PASS`
+- Runtime Status: `PASS`
+- Review status: `READY FOR PO CHECK`
 - Activation date: `2026-07-17`
+- Technical handoff date: `2026-07-17`
 
 ## 4. Required Reading
 
@@ -32,6 +33,8 @@
 - [docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md)
 - [docs/10_TICKETS/TODAY-007_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-007_MANIFEST.md)
 - [docs/06_REVIEWS/Import/TODAY-007_DUPLICATE_DASHBOARD_REQUEST_RECOVERY.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-007_DUPLICATE_DASHBOARD_REQUEST_RECOVERY.md)
+- [docs/06_REVIEWS/Import/TODAY-008_PO_DATA_RECONCILIATION_AND_LEADERSHIP_VIEW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-008_PO_DATA_RECONCILIATION_AND_LEADERSHIP_VIEW.md)
+- [docs/06_REVIEWS/Import/TODAY-008_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-008_PO_ACCEPTANCE_CHECKLIST.md)
 
 ## 5. Business Context
 
@@ -106,6 +109,22 @@
 - Product Owner owns visible UI acceptance and final PO PASS / WARNING / FAIL.
 - Codex must not self-award PO PASS.
 - Provide a concise manual PO checklist covering `/import`, `/f13/dashboard`, reconciliation context, actions, expected result, and PASS / WARNING / FAIL criteria.
+
+## 12.1 Technical Handoff Evidence
+
+- Reconciliation evidence: `docs/06_REVIEWS/Import/TODAY-008_PO_DATA_RECONCILIATION_AND_LEADERSHIP_VIEW.md`
+- PO acceptance checklist: `docs/06_REVIEWS/Import/TODAY-008_PO_ACCEPTANCE_CHECKLIST.md`
+- Deterministic import scenario:
+  - Import log ID: `118`
+  - File: `F1.3-2026.07.15.xlsx`
+  - Imported data date: `2026-07-15`
+  - Aggregate context: `ma_bcvh=all`
+  - Canonical BCVH spot-check: `535790`
+- Source records were verified through direct database checks.
+- Dashboard data was verified through direct API checks and targeted browser/runtime validation.
+- No duplicate identical dashboard requests were observed in the targeted runtime trace.
+- Accepted TODAY-003 through TODAY-007 dashboard surfaces remained mounted.
+- Final state: `READY FOR PO CHECK`.
 
 ## 13. Authority Guard
 
