@@ -23,7 +23,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | PO Status | `PASS` |
 | Current Commit | `8575d7b6ab67f5a19af2e408e044d9143dff1c8b` |
 | Current Branch | `main` |
-| Current Manifest | `Next Active Ticket` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-004_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-17` |
 
