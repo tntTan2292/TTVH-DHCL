@@ -14,9 +14,9 @@ Recover the Operation Dashboard BCVH dropdown so it always exposes the canonical
 
 ## 3. Current Status
 
-- Current state: `Technical PASS / Runtime PASS / READY FOR PO CHECK`
-- PO UI Check Required: `Yes`
-- PO Product Status: `PO UI ACCEPTANCE REQUIRED`
+- Current state: `Technical PASS / Runtime PASS / CLOSED`
+- PO UI Check Required: `No`
+- PO Product Status: `PO PASS`
 - Recovery source: `TODAY-004-R2` PO FAIL
 - Responsible PO finding: `POF-TODAY-004-03`
 - Live phase, branch, PO status, and next-ticket routing are owned by `PROJECT_SNAPSHOT.md`
@@ -36,10 +36,9 @@ Only the following documents are required to continue this ticket:
 
 ## 5. Business Context
 
-- Product Owner screenshot evidence showed only `Tất cả BCVH` in the opened BCVH dropdown.
-- This invalidates the `TODAY-004-R2` browser PASS claim as PO acceptance evidence.
-- The dropdown must contain exactly `Tất cả BCVH` plus six canonical units: `535790`, `536250`, `535470`, `537220`, `537015`, and `533140`.
-- `TODAY-005` must remain inactive until this recovery receives explicit PO PASS.
+- Product Owner explicitly confirmed `PO PASS`.
+- The dropdown contains exactly `Tất cả BCVH` plus six canonical units: `535790`, `536250`, `535470`, `537220`, `537015`, and `533140`.
+- `TODAY-005` is active as the next ticket.
 
 ## 6. Technical Context
 
@@ -59,7 +58,7 @@ Only the following documents are required to continue this ticket:
 
 ## 8. Out Of Scope
 
-- Do not activate `TODAY-005`.
+- Do not activate `TODAY-005` from this closed ticket.
 - Do not change frozen SSOT or architecture.
 - Do not implement same-period comparison.
 - Do not modify unrelated HTML files.
@@ -87,12 +86,12 @@ Only the following documents are required to continue this ticket:
 - Technical PASS.
 - Runtime PASS.
 - Browser evidence attached.
-- PO UI ACCEPTANCE REQUIRED.
-- `TODAY-004-R3` remains open until explicit PO PASS.
-- `TODAY-005` remains inactive.
+- PO PASS.
+- `TODAY-004-R3` is closed.
+- `TODAY-005` is active.
 
 ## 12. Next Ticket
 
 - Next ticket ID: `TODAY-005`
 - Next ticket name: `Same-Period Comparison Trendline`
-- Blockers or handoff notes: do not activate until `TODAY-004-R3` receives PO PASS and closure gates pass.
+- Blockers or handoff notes: closed after explicit PO PASS; continue with `TODAY-005`

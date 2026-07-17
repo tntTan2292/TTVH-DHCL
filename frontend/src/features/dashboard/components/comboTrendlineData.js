@@ -47,3 +47,10 @@ export function getVolumeAxisMax(data = []) {
 
   return maxVolume > 0 ? Math.ceil(maxVolume * (1 + VOLUME_AXIS_HEADROOM_RATE)) : 0;
 }
+
+export function buildDailyTrendLookup(items = []) {
+  return items.reduce((acc, item) => {
+    if (item?.date) acc[item.date] = item;
+    return acc;
+  }, {});
+}

@@ -150,10 +150,30 @@ function ComboTrendlineCard({ children }) {
     </CardContainer>
   );
 }
-export default function QualityVolumeComboTrendlineAdapter({ reportingToDate, latestDate, maBcvh }) {
+
+export default function QualityVolumeComboTrendlineAdapter({
+  reportingToDate,
+  latestDate,
+  maBcvh,
+  data: externalData,
+  loading: externalLoading,
+  error: externalError,
+}) {
   const [state, setState] = useState({ loading: true, error: null, data: [] });
+  const hasExternalData = Array.isArray(externalData);
 
   useEffect(() => {
+    if (!hasExternalData) return;
+    setState({
+      loading: Boolean(externalLoading),
+      error: externalError || null,
+      data: externalData,
+    });
+  }, [externalData, externalError, externalLoading, hasExternalData]);
+
+  useEffect(() => {
+    if (hasExternalData) return;
+
     let cancelled = false;
 
     const fetchTrend = async () => {
@@ -178,11 +198,11 @@ export default function QualityVolumeComboTrendlineAdapter({ reportingToDate, la
             data: normalizeComboTrendlineItems(response.data?.data?.items || []),
           });
         }
-      } catch (error) {
+      } catch (fetchError) {
         if (!cancelled) {
           setState({
             loading: false,
-            error: error?.message || 'Unable to load the combo trendline.',
+            error: fetchError?.message || 'Unable to load the combo trendline.',
             data: [],
           });
         }
@@ -196,7 +216,7 @@ export default function QualityVolumeComboTrendlineAdapter({ reportingToDate, la
     return () => {
       cancelled = true;
     };
-  }, [reportingToDate, latestDate, maBcvh]);
+  }, [reportingToDate, latestDate, maBcvh, hasExternalData]);
 
   if (state.loading) {
     return (

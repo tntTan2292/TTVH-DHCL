@@ -13,6 +13,7 @@ import ExecutiveSummaryAdapter from './components/ExecutiveSummaryAdapter';
 import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
 import QualityVolumeComboTrendlineAdapter from './components/QualityVolumeComboTrendlineAdapter';
+import SamePeriodComparisonTrendlineAdapter from './components/SamePeriodComparisonTrendlineAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
 import {
@@ -20,12 +21,15 @@ import {
   isCanonicalBcvhCode,
   validateBcvhUnits,
 } from './components/dashboardFilterOptions';
+import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
+import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
 
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
+  const [trendState, setTrendState] = useState({ loading: true, error: null, data: [] });
   const [metadataState, setMetadataState] = useState({
     status: 'loading',
     bcvhOptions: [],
@@ -71,19 +75,63 @@ export default function DashboardPage() {
     loadDashboardMeta();
   }, []);
 
-  useEffect(() => {
-    if (!searchParams.has('kpi')) return;
-    const params = new URLSearchParams(searchParams);
-    params.delete('kpi');
-    setSearchParams(params, { replace: true });
-  }, [searchParams, setSearchParams]);
-
   const defaultDate = latestDate || '2026-07-15';
   const fromDate = searchParams.get('from_date') || defaultDate;
   const toDate = searchParams.get('to_date') || defaultDate;
   const interval = searchParams.get('interval') || 'daily';
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadTrend = async () => {
+      try {
+        setTrendState((prev) => ({ ...prev, loading: true, error: null }));
+        const params = buildTrendlineRequestParams({
+          reportingToDate: toDate,
+          latestDate,
+          maBcvh,
+        });
+
+        if (!params) {
+          throw new Error('Không thể xác định cửa sổ 30 ngày cho biểu đồ.');
+        }
+
+        const response = await api.get('/f13/dashboard/daily-trend', { params });
+        if (!cancelled && response?.data?.success) {
+          setTrendState({
+            loading: false,
+            error: null,
+            data: normalizeComboTrendlineItems(response.data?.data?.items || []),
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setTrendState({
+            loading: false,
+            error: error?.message || 'Không thể tải dữ liệu xu hướng.',
+            data: [],
+          });
+        }
+      }
+    };
+
+    if (metadataState.status === 'success' && (toDate || latestDate)) {
+      loadTrend();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [latestDate, maBcvh, metadataState.status, toDate]);
+
+  useEffect(() => {
+    if (!searchParams.has('kpi')) return;
+    const params = new URLSearchParams(searchParams);
+    params.delete('kpi');
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (metadataState.status !== 'success') return;
@@ -161,7 +209,8 @@ export default function DashboardPage() {
           <KPICard label="Xếp hạng" value="--" delta="Placeholder" tone="warning" />
         </div>
 
-        <QualityVolumeComboTrendlineAdapter reportingToDate={toDate} latestDate={latestDate} maBcvh={maBcvh} />
+        <QualityVolumeComboTrendlineAdapter data={trendState.data} loading={trendState.loading} error={trendState.error} />
+        <SamePeriodComparisonTrendlineAdapter data={trendState.data} loading={trendState.loading} error={trendState.error} toDate={toDate || latestDate || defaultDate} />
 
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
