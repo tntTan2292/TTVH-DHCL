@@ -29,6 +29,7 @@ The prompt should usually include only:
 - Any user or PO decision not yet stored in the repository
 - Scope restriction
 - Required completion and handoff instruction
+- Ticket-consistency guard when the generated prompt ticket differs from `PROJECT_SNAPSHOT.md`
 
 The prompt must not duplicate:
 
@@ -40,6 +41,8 @@ The prompt must not duplicate:
 - repository state already owned by `PROJECT_SNAPSHOT.md`
 
 The active manifest remains responsible for detailed scope, Required Reading, validation, PO acceptance requirements, documents to update, and next-ticket handoff.
+
+If the ticket named in the generated prompt does not match the Current Ticket in `PROJECT_SNAPSHOT.md`, Codex must stop and report the conflict instead of choosing either ticket by assumption.
 
 ## 3. Mandatory Handoff
 
@@ -172,3 +175,11 @@ Report:
 Every Codex execution report generated from this standard must stay concise and should not repeat repository-owned context unless a temporary instruction is not already available in the repository.
 
 The prompt is considered valid when it is sufficient for Codex to implement the ticket by following the repository onboarding chain, while staying below 250 words unless a documented exception applies.
+
+## 8. Additional PO/User Decision Rule
+
+The `Additional PO/User Decision` field may contain only temporary execution clarification that does not change business rules, scope, contracts, PO acceptance, SSOT, or frozen behavior.
+
+Any authoritative business, scope, contract, acceptance, or frozen-behavior change must first be recorded in the correct repository document.
+
+Codex must not implement an authoritative change that exists only in chat or in the execution prompt.

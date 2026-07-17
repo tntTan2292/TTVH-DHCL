@@ -133,6 +133,10 @@ Mandatory handoff migration check:
 
 The current ticket must not be reported complete when any applicable step fails.
 
+The `Additional PO/User Decision` field may contain only temporary execution clarification that does not change business rules, scope, contracts, PO acceptance, SSOT, or frozen behavior.
+
+Any authoritative business, scope, contract, acceptance, or frozen-behavior change must first be recorded in the correct repository document.
+
 ## 2.5 Post-Onboarding Behavior
 
 When a manifest authorizes implementation and no governance blocker exists, a fresh AI onboarding from `README_AI.md` must immediately continue into Codex prompt generation.

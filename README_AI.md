@@ -16,6 +16,8 @@ This repository belongs to QIS V2.
 
 It is designed so any AI can onboard quickly, without guessing workflow or reading random files.
 
+It is also the single universal external entry point for fresh AI continuity, regardless of ticket naming convention.
+
 ## 2. Mandatory Start
 
 Every AI must:
@@ -47,6 +49,8 @@ After onboarding, AI must report:
 - Ready to Continue
 
 If the active manifest authorizes implementation and no governance blocker exists, the AI must continue immediately into Codex prompt generation without waiting for another user request.
+
+If the active manifest conflicts with the current ticket named in `PROJECT_SNAPSHOT.md`, the AI must stop and report the conflict instead of guessing.
 
 ## 4.1 Post-Onboarding Behavior
 
@@ -83,6 +87,8 @@ Current Manifest from `PROJECT_SNAPSHOT.md`
 Required Reading from the manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
+
+Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` → `PROJECT_SNAPSHOT.md` → Current Manifest → Required Reading.
 
 ## 6. Quick Links
 

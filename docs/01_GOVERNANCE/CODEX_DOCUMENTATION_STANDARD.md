@@ -82,6 +82,8 @@ Codex must stop and ask for help or escalate when:
 
 Codex must not continue by guessing when a stop condition is present.
 
+Codex must also stop and report the conflict when the ticket named in a generated prompt does not match the Current Ticket in `PROJECT_SNAPSHOT.md`.
+
 ## 6. SSOT Rule
 
 One source of truth per responsibility:
@@ -92,6 +94,10 @@ One source of truth per responsibility:
 - `PO_FINDINGS_REGISTER.md` owns PO finding traceability
 
 Codex must not copy live status into multiple documents unless the workflow explicitly requires it.
+
+The `Additional PO/User Decision` field may only carry temporary execution clarification.
+
+It must not be used to change business rules, scope, contracts, PO acceptance, SSOT, or frozen behavior.
 
 ## 7. Commit and Report Standard
 
@@ -126,4 +132,3 @@ Governance V1 remains valid as a fallback for:
 
 The standard does not replace Governance V1.
 It only makes Codex execution deterministic through the new manifest-driven route.
-
