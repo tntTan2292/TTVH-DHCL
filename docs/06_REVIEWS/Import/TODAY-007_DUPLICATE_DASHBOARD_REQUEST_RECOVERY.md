@@ -103,7 +103,9 @@ Filter-change trace after selecting `535790`:
 
 - Technical status: `PASS`
 - Runtime status: `PASS`
-- PO product status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
-- PO PASS: not awarded by Codex
-- TODAY-008 status: inactive
+- PO product status: `PO PASS`
+- Review status: `CLOSED`
+- Closure date: `2026-07-17`
+- Closure authority: explicit Product Owner `PO PASS`
+- TODAY-008 status: activated through governance handoff
+- PO findings register: no TODAY-007 PO defect finding was created; no findings row required closure

@@ -18,11 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-007 Dashboard Executive Layout Cleanup` |
-| Next Ticket | `TODAY-008 PO Data Reconciliation and Leadership View` |
-| PO Status | `READY FOR PO CHECK` |
+| Current Ticket | `TODAY-008 PO Data Reconciliation and Leadership View` |
+| Next Ticket | `TICKET-0101 Login API and Session` |
+| PO Status | `NOT READY` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-007_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-008_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-17` |
 
@@ -52,6 +52,8 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
 
-TODAY-007 technical/runtime validation is complete and the ticket is waiting for explicit Product Owner UI acceptance. TODAY-008 remains inactive until a separate governance activation action.
+TODAY-007 is completed with explicit Product Owner `PO PASS`.
+
+TODAY-008 is activated for implementation with scope limited to PO data reconciliation and the leadership import-to-dashboard validation path. Broader dashboard widget, chart-meaning, color-consistency, or layout audit scope must be recorded in an authoritative roadmap, ticket, or manifest before implementation.
 
 Governance V1 remains the full workflow reference until a later migration phase explicitly replaces any part of it.

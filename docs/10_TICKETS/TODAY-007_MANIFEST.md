@@ -14,13 +14,15 @@
 
 ## 3. Current Status
 
-- Current state: `READY FOR PO CHECK`
+- Current state: `COMPLETED`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `PO PASS`
 - Technical Status: `PASS`
 - Runtime Status: `PASS`
-- Review status: `READY FOR PO CHECK`
+- Review status: `CLOSED`
 - Handoff date: `2026-07-17`
+- Completion date: `2026-07-17`
+- Closure authority: explicit Product Owner `PO PASS` decision
 
 ## 4. Business Context
 
@@ -108,9 +110,10 @@ Detailed evidence:
 - Provide a concise manual PO checklist for visible changes.
 - Browser automation is not the default.
 - Codex must not self-award PO PASS.
-- TODAY-008 remains inactive until explicit governance activation.
+- TODAY-008 is activated through this governance closure handoff.
 
 ## 13. Next Ticket
 
 - Next ticket ID: `TODAY-008`
 - Next ticket name: `PO Data Reconciliation and Leadership View`
+- Next ticket manifest: [docs/10_TICKETS/TODAY-008_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-008_MANIFEST.md)
