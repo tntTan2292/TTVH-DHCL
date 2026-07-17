@@ -145,6 +145,8 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Import/TODAY-004-R3_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004-R3 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
 | `docs/06_REVIEWS/Import/TODAY-005_SAME_PERIOD_COMPARISON_TRENDLINE.md` | Reviews | TODAY-005 same-period comparison trendline implementation/review evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
 | `docs/06_REVIEWS/Import/TODAY-005_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-005 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
+| `docs/06_REVIEWS/Import/TODAY-006_RESTORE_AND_PRESERVE_EXISTING_DASHBOARD_CHARTS.md` | Reviews | TODAY-006 dashboard restoration implementation/review evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
+| `docs/06_REVIEWS/Import/TODAY-006_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
 | `docs/06_REVIEWS/Import/screenshots/` | Reviews | Runtime browser evidence screenshots for TODAY recovery tickets | Active | L2 | 1 | High | Review evidence docs |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |

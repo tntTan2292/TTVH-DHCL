@@ -14,12 +14,18 @@
 
 ## 3. Current Status
 
-- Current state: `Technical PASS / Runtime PASS / READY FOR PO CHECK`
-- PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
+- Current state: `Technical PASS / Runtime PASS / PO PASS / CLOSED`
+- PO UI Check Required: `No`
+- PO Product Status: `PO PASS`
+- Review status: `CLOSED`
 
-## 4. Required Reading
+## 4. Closure Record
+
+- Final Status: `CLOSED`
+- Closure Date: `2026-07-17`
+- Closure authority: `explicit Product Owner statement`
+
+## 5. Required Reading
 
 - `README_AI.md`
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
@@ -30,13 +36,13 @@
 - `docs/06_REVIEWS/Import/TODAY-005_SAME_PERIOD_COMPARISON_TRENDLINE.md`
 - `docs/06_REVIEWS/Import/TODAY-005_PO_ACCEPTANCE_CHECKLIST.md`
 
-## 5. Business Context
+## 6. Business Context
 
 - Compare the current 7 calendar days ending on the selected `to_date` against the immediately preceding 7 calendar days.
 - Align by weekday/day position and apply the selected canonical `ma_bcvh`.
 - Use the same normalized daily-trend payload as the 30-day combo chart.
 
-## 6. Technical Context
+## 7. Technical Context
 
 - Relevant frontend files:
   - `frontend/src/features/dashboard/DashboardPage.jsx`
@@ -53,26 +59,26 @@
   - Preserve missing-date gaps and null handling.
   - Do not introduce a second backend fetch for the 7-day card.
 
-## 7. Runtime Context
+## 8. Runtime Context
 
 - Current runtime endpoint: `/f13/dashboard`
 - Browser origin: authenticated local dashboard session
 - Backend origin: `http://localhost:5050`
 - Observed validation state: frontend implementation and unit tests pending validation
 
-## 8. Related Review
+## 9. Related Review
 
 - Review document: `docs/06_REVIEWS/Import/TODAY-005_SAME_PERIOD_COMPARISON_TRENDLINE.md`
 - Review status: `READY FOR PO CHECK`
 - Key evidence: frontend unit tests PASS; backend daily-trend tests PASS; build PASS; lint PASS with existing warnings only; authenticated browser PASS; shared 30-day payload now feeds both the accepted combo chart and the new 7-day comparison card
 
-## 9. Related PO Findings
+## 10. Related PO Findings
 
 - PO finding IDs: `POF-TODAY-004-01`, `POF-TODAY-004-02`, `POF-TODAY-004-03`
 - Status: `CLOSED`
 - Closure or recheck requirement: explicit PO PASS on `TODAY-004-R3`
 
-## 10. Documents To Update
+## 11. Documents To Update
 
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 - `docs/01_GOVERNANCE/DOCUMENT_INDEX.md`
@@ -80,7 +86,7 @@
 - `docs/06_REVIEWS/Import/TODAY-005_PO_ACCEPTANCE_CHECKLIST.md`
 - `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md`
 
-## 11. Validation
+## 12. Validation
 
 - Technical validation:
   - frontend unit tests PASS for range derivation, alignment, missing data, and deltas
@@ -96,7 +102,7 @@
   - build PASS
   - lint PASS with existing warnings only
 
-## 12. Expected Output
+## 13. Expected Output
 
 - What the ticket must achieve:
   - show the new same-period comparison card with correct dates and aligned data
@@ -109,13 +115,13 @@
   - fabricated values for missing dates
   - activation of `TODAY-006`
 
-## 13. Next Ticket
+## 14. Next Ticket
 
 - Next ticket ID: `TODAY-006`
 - Next ticket name: `Restore and Preserve Existing Dashboard Charts`
 - Blockers or handoff notes: do not activate until `TODAY-005` receives explicit PO PASS
 
-## 14. PO Acceptance Checklist
+## 15. PO Acceptance Checklist
 
 - Checklist document: `docs/06_REVIEWS/Import/TODAY-005_PO_ACCEPTANCE_CHECKLIST.md`
 - PO purpose: verify the 7-day comparison card, shared runtime payload, and BCVH behavior
@@ -128,7 +134,7 @@
 - Follow-up action after FAIL: create or update the responsible recovery work
 - Documents to update per result: manifest, snapshot, index, findings register, review evidence
 
-## 15. Authority Escalation
+## 16. Authority Escalation
 
 - Escalate to `PROJECT_SNAPSHOT.md` for current ticket state.
 - Do not close this ticket without explicit PO PASS.
