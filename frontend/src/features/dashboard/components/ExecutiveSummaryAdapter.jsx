@@ -20,9 +20,7 @@ function mapSharedKpiToSummary(kpiData = {}) {
     buu_gui_khong_dat: Math.round((totalBg * failedRate) / 100),
     buu_gui_khong_dat_dod: 0,
     buu_gui_khong_dat_swc: 0,
-    f13_303_rate: 0,
-    luy_ke_tuan: passedRate,
-    luy_ke_thang: passedRate,
+    f13_303_rate: failedRate,
   };
 }
 
