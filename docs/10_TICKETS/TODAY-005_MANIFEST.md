@@ -14,9 +14,10 @@
 
 ## 3. Current Status
 
-- Current state: `Implementation ready / PO UI ACCEPTANCE REQUIRED`
+- Current state: `Technical PASS / Runtime PASS / READY FOR PO CHECK`
 - PO UI Check Required: `Yes`
-- PO Product Status: `PO UI ACCEPTANCE REQUIRED`
+- PO Product Status: `READY FOR PO CHECK`
+- Review status: `READY FOR PO CHECK`
 
 ## 4. Required Reading
 
@@ -62,8 +63,8 @@
 ## 8. Related Review
 
 - Review document: `docs/06_REVIEWS/Import/TODAY-005_SAME_PERIOD_COMPARISON_TRENDLINE.md`
-- Review status: draft
-- Key evidence: shared 30-day payload now feeds both the accepted combo chart and the new 7-day comparison card
+- Review status: `READY FOR PO CHECK`
+- Key evidence: frontend unit tests PASS; backend daily-trend tests PASS; build PASS; lint PASS with existing warnings only; authenticated browser PASS; shared 30-day payload now feeds both the accepted combo chart and the new 7-day comparison card
 
 ## 9. Related PO Findings
 
@@ -82,16 +83,18 @@
 ## 11. Validation
 
 - Technical validation:
-  - frontend unit tests for range derivation, alignment, missing data, and deltas
+  - frontend unit tests PASS for range derivation, alignment, missing data, and deltas
 - Runtime validation:
+  - backend daily-trend tests PASS with 23 passed
   - one shared daily-trend request for the 30-day and 7-day surfaces
 - Browser validation:
+  - authenticated browser PASS
   - accepted 30-day chart remains visible
   - new 7-day comparison card is visible
   - BCVH filter still offers seven options and no status selector
 - Build or lint validation:
-  - `npm run build`
-  - `npm run lint`
+  - build PASS
+  - lint PASS with existing warnings only
 
 ## 12. Expected Output
 

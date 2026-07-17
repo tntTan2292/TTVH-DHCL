@@ -13,7 +13,7 @@ Verify that the dashboard shows the accepted 30-day combo chart and the new same
 - Route / URL: `/f13/dashboard`
 - Required Test Context: authenticated local dashboard session with current runtime data
 - PO UI Check Required: `Yes`
-- PO Product Status: `PO UI ACCEPTANCE REQUIRED`
+- PO Product Status: `READY FOR PO CHECK`
 
 ## 3. Data Conditions
 
@@ -49,6 +49,19 @@ Verify that the dashboard shows the accepted 30-day combo chart and the new same
 
 - Action: Check the browser network panel while the dashboard loads.
 - Expected Result: Only one shared daily-trend request is issued for the dashboard charts.
+
+### Validation Summary
+
+- frontend unit tests PASS
+- backend daily-trend tests 23 passed
+- build PASS
+- lint PASS with existing warnings only
+- authenticated browser PASS
+- exactly one daily-trend request
+- current period `2026-07-09` through `2026-07-15`
+- previous period `2026-07-02` through `2026-07-08`
+- accepted 30-day chart preserved
+- new 7-day card visible
 
 ## 5. PASS / WARNING / FAIL Criteria
 
