@@ -8,8 +8,10 @@ test('dashboard page clears stale KPI payloads before scoped requests resolve', 
   const dailyBriefSource = fs.readFileSync(new URL('./ExecutiveDailyBriefAdapter.jsx', import.meta.url), 'utf8');
 
   assert.match(dashboardSource, /data:\s*null,\s*\n\s*cards:\s*mapDashboardKpiToCards\(\{\}\),/);
-  assert.match(dashboardSource, /kpiCurrentKeyRef\.current !== requestKey/);
-  assert.match(dashboardSource, /kpiInFlightKeyRef\.current = requestKey;/);
+  assert.match(dashboardSource, /const kpiRequestSeqRef = useRef\(0\);/);
+  assert.match(dashboardSource, /const kpiActiveKeyRef = useRef\(''\);/);
+  assert.match(dashboardSource, /useEffect\(\(\) => \{\n\s+if \(!fromDate \|\| !toDate\) return undefined;/);
+  assert.match(dashboardSource, /\}, \[fromDate, maBcvh, toDate\]\);/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/kpi'/);
   assert.equal((dashboardSource.match(/api\.get\('\/f13\/dashboard\/kpi'/g) || []).length, 1);
   assert.doesNotMatch(summarySource, /api\.get\('\/f13\/dashboard\/kpi'/);

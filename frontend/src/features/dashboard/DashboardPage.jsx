@@ -40,9 +40,8 @@ export default function DashboardPage() {
     bcvhOptions: [],
     error: null,
   });
-  const kpiCompletedKeyRef = useRef('');
-  const kpiInFlightKeyRef = useRef('');
-  const kpiCurrentKeyRef = useRef('');
+  const kpiRequestSeqRef = useRef(0);
+  const kpiActiveKeyRef = useRef('');
 
   const loadDashboardMeta = () => {
     setMetadataState((prev) => ({ ...prev, status: 'loading', error: null }));
@@ -91,73 +90,67 @@ export default function DashboardPage() {
   const search = searchParams.get('search') || '';
 
   useEffect(() => {
-    let cancelled = false;
+    if (!fromDate || !toDate) return undefined;
+
     const requestKey = `${fromDate}|${toDate}|${maBcvh}`;
-    const shouldReuseCurrent = kpiCompletedKeyRef.current === requestKey && kpiState.data;
-    const isNewKey = kpiCurrentKeyRef.current !== requestKey;
+    const requestSeq = kpiRequestSeqRef.current + 1;
+    kpiRequestSeqRef.current = requestSeq;
+    kpiActiveKeyRef.current = requestKey;
 
-    if (shouldReuseCurrent) {
-      setKpiState((prev) => ({ ...prev, loading: false, error: null }));
-      return () => {
-        cancelled = true;
-      };
-    }
+    const controller = new AbortController();
 
-    if (isNewKey) {
-      kpiCurrentKeyRef.current = requestKey;
-      kpiInFlightKeyRef.current = requestKey;
-      setKpiState({
-        loading: true,
-        error: null,
-        data: null,
-        cards: mapDashboardKpiToCards({}),
-      });
-    }
+    setKpiState({
+      loading: true,
+      error: null,
+      data: null,
+      cards: mapDashboardKpiToCards({}),
+    });
 
-    if (fromDate && toDate) {
-      if (!isNewKey && kpiInFlightKeyRef.current === requestKey) {
-        return () => {
-          cancelled = true;
-        };
-      }
-
-      api.get('/f13/dashboard/kpi', {
-        params: {
-          from_date: fromDate,
-          to_date: toDate,
-          ma_bcvh: maBcvh,
-        },
-        })
-        .then((response) => {
-          if (cancelled || !response?.data?.success) return;
-          const rawData = response.data?.data || {};
-          kpiCompletedKeyRef.current = requestKey;
-          kpiInFlightKeyRef.current = '';
-          kpiCurrentKeyRef.current = requestKey;
-          setKpiState({
-            loading: false,
-            error: null,
-            data: rawData,
-            cards: mapDashboardKpiToCards(rawData),
-          });
-        })
-        .catch((error) => {
-          if (cancelled) return;
-          kpiInFlightKeyRef.current = '';
-          kpiCurrentKeyRef.current = requestKey;
-          setKpiState({
-            loading: false,
-            error: error?.message || 'Không thể tải KPI dashboard.',
-            data: null,
-            cards: mapDashboardKpiToCards({}),
-          });
+    (async () => {
+      try {
+        const response = await api.get('/f13/dashboard/kpi', {
+          params: {
+            from_date: fromDate,
+            to_date: toDate,
+            ma_bcvh: maBcvh,
+          },
+          signal: controller.signal,
         });
-    }
+
+        if (
+          controller.signal.aborted ||
+          kpiRequestSeqRef.current !== requestSeq ||
+          kpiActiveKeyRef.current !== requestKey ||
+          !response?.data?.success
+        ) {
+          return;
+        }
+
+        const rawData = response.data?.data || {};
+        setKpiState({
+          loading: false,
+          error: null,
+          data: rawData,
+          cards: mapDashboardKpiToCards(rawData),
+        });
+      } catch (error) {
+        if (controller.signal.aborted || kpiRequestSeqRef.current !== requestSeq || kpiActiveKeyRef.current !== requestKey) {
+          return;
+        }
+
+        setKpiState({
+          loading: false,
+          error: error?.message || 'Không thể tải KPI dashboard.',
+          data: null,
+          cards: mapDashboardKpiToCards({}),
+        });
+      }
+    })();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [fromDate, kpiState.data, maBcvh, toDate]);
+  }, [fromDate, maBcvh, toDate]);
 
   useEffect(() => {
     let cancelled = false;

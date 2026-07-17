@@ -157,6 +157,9 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/10_TICKETS/TODAY-006-R4_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-006-R4 scoped Executive KPI recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/06_REVIEWS/Import/TODAY-006-R4_BCVH_SCOPED_EXECUTIVE_KPI_RECOVERY.md` | Reviews | TODAY-006-R4 scoped Executive KPI recovery evidence | Active | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
 | `docs/06_REVIEWS/Import/TODAY-006-R4_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006-R4 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
+| `docs/10_TICKETS/TODAY-006-R5_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-006-R5 executive KPI infinite loading recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
+| `docs/06_REVIEWS/Import/TODAY-006-R5_EXECUTIVE_KPI_INFINITE_LOADING_RECOVERY.md` | Reviews | TODAY-006-R5 executive KPI infinite loading recovery evidence | Active | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
+| `docs/06_REVIEWS/Import/TODAY-006-R5_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006-R5 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
 | `docs/06_REVIEWS/Import/screenshots/` | Reviews | Runtime browser evidence screenshots for TODAY recovery tickets | Active | L2 | 1 | High | Review evidence docs |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
