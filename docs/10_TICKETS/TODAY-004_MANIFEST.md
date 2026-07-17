@@ -28,15 +28,15 @@
 
 ## 2. Objective
 
-Activate the next leadership dashboard ticket with an authoritative manifest pointer so `PROJECT_SNAPSHOT.md` always resolves to a concrete current manifest URL instead of an ambiguous placeholder.
+Implement and runtime-validate the daily total shipment volume trendline on the Operation Dashboard while preserving existing approved dashboard behavior, contracts, filters, and analysis surfaces.
 
 ## 3. Current Status
 
-- Current state: `Governance activation in progress`
-- PO UI Check Required: `No`
-- PO Product Status: `N/A`
-- Current Commit: `8575d7b6ab67f5a19af2e408e044d9143dff1c8b`
+- Current state: `READY FOR IMPLEMENTATION`
+- PO UI Check Required: `Yes`
+- PO Product Status: `NOT READY`
 - Current Branch: `main`
+- Live phase, current commit, PO status, and next-ticket routing are owned by `PROJECT_SNAPSHOT.md`
 
 ## 4. Required Reading
 
@@ -44,92 +44,134 @@ Only the following documents are required to continue this ticket:
 
 - [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
 - [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
-- [docs/10_TICKETS/TODAY-003-R2_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-003-R2_MANIFEST.md)
-- [docs/09_REPORTS/Documentation/GOVERNANCE_V2_ONBOARDING_VALIDATION.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/09_REPORTS/Documentation/GOVERNANCE_V2_ONBOARDING_VALIDATION.md)
-- [docs/10_TICKETS/MANIFEST_TEMPLATE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/MANIFEST_TEMPLATE.md)
+- [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
+- [docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md)
+- [docs/06_REVIEWS/Import/TODAY-002_DAILY_TREND_DATA_ADAPTER_REVIEW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-002_DAILY_TREND_DATA_ADAPTER_REVIEW.md)
+- [docs/06_REVIEWS/Import/TODAY-003-R2_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-003-R2_MANIFEST.md)
+- [docs/01_GOVERNANCE/PROJECT_CONTEXT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_CONTEXT.md)
+- [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
+- [docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md)
 - [docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md)
+- [docs/02_ARCHITECTURE/QIS_V2_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/QIS_V2_ARCHITECTURE.md)
+- [docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md)
+- [docs/02_ARCHITECTURE/ROUTE/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/ROUTE/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md)
+- [docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md)
+- [docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md)
+- [docs/03_UX/shared/QIS_DESIGN_SYSTEM.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/03_UX/shared/QIS_DESIGN_SYSTEM.md)
+- [docs/03_UX/route/ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/03_UX/route/ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md)
+- [docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md)
+- [docs/06_REVIEWS/Import/TODAY-004_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-004_PO_ACCEPTANCE_CHECKLIST.md)
+- [docs/06_REVIEWS/Import/TODAY-004_ACTIVE_MANIFEST_REMEDIATION.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-004_ACTIVE_MANIFEST_REMEDIATION.md)
 
 ## 5. Business Context
 
-- Business problem: `PROJECT_SNAPSHOT.md` currently exposes an ambiguous `Current Manifest` pointer that breaks deterministic onboarding.
-- Business impact: a fresh AI can misread the active ticket scope, fail validation, or require manual clarification before continuing.
-- Approved business rule constraints: `PROJECT_SNAPSHOT.Current Manifest` must always be a concrete GitHub Blob URL for the active manifest; placeholder text is forbidden.
+- Business problem: leadership needs a daily total shipment volume trendline on the Operation Dashboard, and the active manifest must authorize implementation rather than pointer activation.
+- Business impact: daily volume trend visibility helps leadership understand operational load and compare volume movement over time.
+- Approved business rule constraints:
+  - the metric represents daily total shipment volume
+  - the chart belongs to the Operation Dashboard at `/f13/dashboard`
+  - the chart is date-based
+  - a clear tooltip is required
+  - visible UI and runtime data require PO verification
+  - existing dashboard features must not regress
+  - unresolved behaviors remain `WAITING FOR SSOT` unless a higher-authority source defines them
 
 ## 6. Technical Context
 
-- Relevant frontend files: `N/A`
-- Relevant backend files: `N/A`
-- Relevant route(s): `N/A`
+- Relevant frontend files:
+  - `frontend/src/features/dashboard/DashboardPage.jsx`
+  - `frontend/src/features/dashboard/components/QualityDeliveryTrendlineAdapter.jsx`
+  - `frontend/src/features/dashboard/components/qualityTrendlineWindow.js`
+  - `frontend/src/features/dashboard/components/qualityTrendlineWindow.test.js`
+  - `frontend/src/api/client.js`
+- Relevant backend files:
+  - `backend/server.js`
+  - `backend/src/routes/f13Routes.js`
+  - `backend/src/controllers/DashboardController.js`
+  - `backend/src/services/F13DashboardService.js`
+  - `backend/src/repositories/FactBuuGuiRepository.js`
+- Relevant route(s):
+  - `GET /api/f13/dashboard/meta`
+  - `GET /api/f13/dashboard/kpi`
+  - `GET /api/f13/dashboard/daily-trend`
 - Relevant state or contract constraints:
-  - `PROJECT_SNAPSHOT.md` is the authoritative live-state SSOT for Governance V2 onboarding
-  - the active manifest must be a specific ticket file, not a descriptive label
-  - onboarding must continue from `README_AI.md` -> `PROJECT_SNAPSHOT.md` -> current manifest -> required reading
+  - the manifest reuses the existing daily-trend runtime contract where valid
+  - the current quality trendline implementation pattern is the baseline for adapter and window behavior
+  - `danh_gia_2026` remains the current reporting source for the quality trendline contract
+  - missing-date behavior and optional BCVH filter semantics are governed by the authoritative existing contract
 
 ## 7. Runtime Context
 
-- Current runtime endpoint: `N/A`
-- Browser origin: `N/A`
-- Backend origin: `N/A`
+- Current runtime endpoint: `GET /api/f13/dashboard/daily-trend`
+- Browser origin: `http://localhost:5178`
+- Backend origin: `http://localhost:5050`
 - Observed validation state:
-  - `PROJECT_SNAPSHOT.md` points `Current Manifest` to the GitHub Blob URL for `docs/10_TICKETS/TODAY-004_MANIFEST.md`
-  - validation passes when onboarding resolves `README_AI.md` -> `PROJECT_SNAPSHOT.md` -> current manifest -> required reading without guessing
+  - `TODAY-003-R2` verified the current dashboard runtime route and 30-day quality trendline behavior
+  - `TODAY-004` requires fresh runtime validation once implementation is delivered
 
 ## 8. Related Review
 
-- Review document: `docs/09_REPORTS/Documentation/GOVERNANCE_V2_ONBOARDING_VALIDATION.md`
-- Review status: `PASS` for the previous onboarding chain
+- Review document: `docs/06_REVIEWS/Import/TODAY-004_ACTIVE_MANIFEST_REMEDIATION.md`
+- Review status: `IN PROGRESS`
 - Key evidence:
-  - onboarding chain is `README_AI.md` -> `PROJECT_SNAPSHOT.md` -> manifest -> required reading
-  - current work is to keep that chain deterministic by removing the ambiguous pointer
+  - the previous active manifest described governance pointer activation rather than implementation authority
+  - the remediation aligns `TODAY-004` with the actual Volume Trendline product requirement
 
 ## 9. Related PO Findings
 
 - PO finding IDs: `N/A`
 - Status: `N/A`
-- Closure or recheck requirement: none
+- Closure or recheck requirement: `PO acceptance checklist must be created before PO PASS can be recorded`
 
 ## 10. Documents To Update
 
-- `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 - `docs/10_TICKETS/TODAY-004_MANIFEST.md`
-- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` if manifest inventory must be kept in sync
+- `docs/06_REVIEWS/Import/TODAY-004_ACTIVE_MANIFEST_REMEDIATION.md`
+- `docs/06_REVIEWS/Import/TODAY-004_PO_ACCEPTANCE_CHECKLIST.md`
+- `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` when applicable
+- `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md` only if backlog authority changes
+- `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
+- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` when new documents are created
 
 ## 11. Validation
 
-- Technical validation: `PROJECT_SNAPSHOT.md` contains the GitHub Blob URL for `docs/10_TICKETS/TODAY-004_MANIFEST.md`
-- Runtime validation: a fresh AI starting from `README_AI.md` can reach the active manifest without guessing
-- Browser validation: `N/A`
-- Build or lint validation: `N/A`
+- Technical validation: manifest content matches the authoritative TODAY-004 backlog definition and removes stale governance-only status
+- Runtime validation: a fresh AI starting from `README_AI.md` can reach the active manifest and determine implementation scope
+- Browser validation: runtime execution still requires future ticket work and is not claimed in this remediation ticket
+- Build or lint validation: not applicable to governance-only remediation
 
 ## 12. Expected Output
 
-- The active manifest pointer is concrete and authoritative
-- A fresh AI can onboard without manual repository search
-- No placeholder text remains in `PROJECT_SNAPSHOT.Current Manifest`
-- Governance V2 onboarding remains deterministic
+- the active manifest authorizes implementation of the Volume Trendline
+- mutable live-state metadata remains owned by `PROJECT_SNAPSHOT.md`
+- the manifest no longer behaves like a pointer activation artifact
+- the next AI can continue from the manifest without repository search or guessing
 
 ## 13. Next Ticket
 
-- Next ticket ID: `N/A`
-- Next ticket name: `N/A`
-- Blockers or handoff notes: this governance activation ticket exists to make the current ticket pointer unambiguous before any downstream work
+- Next ticket ID: `TODAY-005`
+- Next ticket name: `Same-Period Comparison Trendline`
+- Blockers or handoff notes: do not activate `TODAY-005` during this remediation ticket
 
 ## 14. PO Acceptance Checklist
 
 PO Acceptance Checklist:
 
-- `N/A`
+- [TODAY-004 PO Acceptance Checklist](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-004_PO_ACCEPTANCE_CHECKLIST.md)
 
-PO UI Check Required: `No`
+PO UI Check Required: `Yes`
+PO Product Status: `NOT READY`
 Valid outcomes: `PASS`, `WARNING`, `FAIL`
 
 ## 15. Authority Escalation
 
 Escalate instead of guessing when:
 
-- `PROJECT_SNAPSHOT.md` conflicts with the manifest pointer
-- the manifest would need to contain a descriptive pointer instead of a concrete GitHub Blob URL
-- a second source of truth would be introduced for current ticket routing
-- a future ticket is referenced without a corresponding manifest file
+- the manifest conflicts with `PROJECT_SNAPSHOT.md`
+- a higher-authority document exists
+- a frozen document or SSOT would need to change
+- the ticket scope is unclear
+- the update would add a second source of truth
+- the manifest would duplicate mutable live-state metadata owned by `PROJECT_SNAPSHOT.md`
 
 When escalation is required, stop and reference the authoritative document instead of expanding scope.

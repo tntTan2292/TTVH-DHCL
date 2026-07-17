@@ -130,6 +130,8 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/10_TICKETS/TODAY-003-R1_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-003-R1 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/10_TICKETS/TODAY-003-R2_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-003-R2 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
 | `docs/10_TICKETS/TODAY-004_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
+| `docs/06_REVIEWS/Import/TODAY-004_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, remediation report |
+| `docs/06_REVIEWS/Import/TODAY-004_ACTIVE_MANIFEST_REMEDIATION.md` | Reviews | TODAY-004 active manifest remediation report | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, manifest |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
 | `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
 | `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |

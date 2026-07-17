@@ -20,8 +20,8 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Phase | `Leadership Dashboard Delivery` |
 | Current Ticket | `TODAY-004 Volume Trendline` |
 | Next Ticket | `TODAY-004 Volume Trendline` |
-| PO Status | `PASS` |
-| Current Commit | `14366c198db62011e601b0c7533b1bd73cc29172` |
+| PO Status | `NOT READY` |
+| Current Commit | `70a6f183b32e29b25ebcd6b42f3afe3e19b5db13` |
 | Current Branch | `main` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-004_MANIFEST.md` |
 | Governance Version | `V2 Active` |
@@ -38,6 +38,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 - `Current Manifest` must point to an existing remote manifest for the active ticket.
 - `Current Manifest` must not contain placeholder labels or descriptive text.
 - If the active ticket changes, update `Current Ticket`, `Current Manifest`, and `Current Commit` together.
+- `PO Status` must reflect the active ticket state and not inherit closed-ticket acceptance.
 
 ## 4. Continuation Notes
 
