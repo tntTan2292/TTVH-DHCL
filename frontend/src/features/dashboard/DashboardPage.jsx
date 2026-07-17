@@ -14,6 +14,8 @@ import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter'
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
 import QualityVolumeComboTrendlineAdapter from './components/QualityVolumeComboTrendlineAdapter';
 import SamePeriodComparisonTrendlineAdapter from './components/SamePeriodComparisonTrendlineAdapter';
+import QualityTimelineAdapter from './components/QualityTimelineAdapter';
+import BcvhOperationTableAdapter from './components/BcvhOperationTableAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
 import {
@@ -21,6 +23,7 @@ import {
   isCanonicalBcvhCode,
   validateBcvhUnits,
 } from './components/dashboardFilterOptions';
+import { mapDashboardKpiToCards } from './components/dashboardKpiCards';
 import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
 
@@ -29,6 +32,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
+  const [kpiState, setKpiState] = useState({ loading: true, error: null, cards: [] });
   const [trendState, setTrendState] = useState({ loading: true, error: null, data: [] });
   const [metadataState, setMetadataState] = useState({
     status: 'loading',
@@ -81,6 +85,47 @@ export default function DashboardPage() {
   const interval = searchParams.get('interval') || 'daily';
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadKpi = async () => {
+      try {
+        setKpiState((prev) => ({ ...prev, loading: true, error: null }));
+        const response = await api.get('/f13/dashboard/kpi', {
+          params: {
+            from_date: fromDate,
+            to_date: toDate,
+            ma_bcvh: maBcvh,
+          },
+        });
+
+        if (!cancelled && response?.data?.success) {
+          setKpiState({
+            loading: false,
+            error: null,
+            cards: mapDashboardKpiToCards(response.data?.data || {}),
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setKpiState({
+            loading: false,
+            error: error?.message || 'Không thể tải KPI dashboard.',
+            cards: mapDashboardKpiToCards({}),
+          });
+        }
+      }
+    };
+
+    if (fromDate && toDate) {
+      loadKpi();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fromDate, maBcvh, toDate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -203,14 +248,15 @@ export default function DashboardPage() {
 
         <SectionHeader title="Executive Header" subtitle="Khối đầu tiên của Dashboard, dùng widget placeholder có cấu trúc rõ ràng." />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <KPICard label="KPI" value="--" delta="Placeholder" tone="primary" />
-          <KPICard label="Đạt" value="--" delta="Placeholder" tone="success" />
-          <KPICard label="Không đạt" value="--" delta="Placeholder" tone="danger" />
-          <KPICard label="Xếp hạng" value="--" delta="Placeholder" tone="warning" />
+          {kpiState.cards.map((card) => (
+            <KPICard key={card.label} label={card.label} value={card.value} delta={card.delta} tone={card.tone} />
+          ))}
         </div>
 
         <QualityVolumeComboTrendlineAdapter data={trendState.data} loading={trendState.loading} error={trendState.error} />
         <SamePeriodComparisonTrendlineAdapter data={trendState.data} loading={trendState.loading} error={trendState.error} toDate={toDate || latestDate || defaultDate} />
+
+        <QualityTimelineAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
 
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
@@ -233,6 +279,9 @@ export default function DashboardPage() {
 
         <SectionHeader title="Navigation Integration Table" subtitle="Bảng tích hợp điều hướng xác nhận shell đã sẵn sàng." />
         <TopListAdapter fromDate={fromDate} toDate={toDate} interval={interval} />
+
+        <SectionHeader title="Ranking Surface" subtitle="Bảng xếp hạng BCVH runtime-backed giữ nguyên ngữ cảnh canonical." />
+        <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
 
         <SectionHeader title="Widget Placeholder Summary" subtitle="Các vị trí widget còn lại đang ở mức nền, không hardcode business." />
         <div className="grid gap-5 xl:grid-cols-3">
