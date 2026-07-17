@@ -20,7 +20,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Phase | `Leadership Dashboard Delivery` |
 | Current Ticket | `TODAY-007 Dashboard Executive Layout Cleanup` |
 | Next Ticket | `TODAY-008 PO Data Reconciliation and Leadership View` |
-| PO Status | `NOT READY` |
+| PO Status | `READY FOR PO CHECK` |
 | Current Branch | `main` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-007_MANIFEST.md` |
 | Governance Version | `V2 Active` |
@@ -51,5 +51,7 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what manifest governs the current reading scope
 
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
+
+TODAY-007 technical/runtime validation is complete and the ticket is waiting for explicit Product Owner UI acceptance. TODAY-008 remains inactive until a separate governance activation action.
 
 Governance V1 remains the full workflow reference until a later migration phase explicitly replaces any part of it.

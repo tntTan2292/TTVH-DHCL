@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import LegacyBcvhOperationTable from '../../../components/f13/BcvhOperationTable';
 
 /**
@@ -9,11 +9,11 @@ import LegacyBcvhOperationTable from '../../../components/f13/BcvhOperationTable
  */
 export default function BcvhOperationTableAdapter({ fromDate, toDate, interval, maBcvh }) {
   // Legacy component cần globalFilter.dateRange là array [startDate, endDate]
-  const legacyGlobalFilter = {
+  const legacyGlobalFilter = useMemo(() => ({
     dateRange: [fromDate, toDate],
-    interval: interval,
+    interval,
     maBcvh: maBcvh
-  };
+  }), [fromDate, interval, maBcvh, toDate]);
 
   return (
     <div className="bcvh-operation-table-adapter-wrapper w-full">

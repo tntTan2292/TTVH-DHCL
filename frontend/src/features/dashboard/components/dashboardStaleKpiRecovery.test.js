@@ -45,3 +45,25 @@ test('dashboard page restores the timeline and executive summary surfaces', () =
   assert.doesNotMatch(executiveSummarySource, /Xáº¿p háº¡ng/i);
   assert.doesNotMatch(executiveSummarySource, /Award/);
 });
+
+test('legacy dashboard adapters preserve stable filter identity between equivalent renders', () => {
+  const qualityTimelineAdapterSource = fs.readFileSync(new URL('./QualityTimelineAdapter.jsx', import.meta.url), 'utf8');
+  const messageGenerationAdapterSource = fs.readFileSync(new URL('./MessageGenerationAdapter.jsx', import.meta.url), 'utf8');
+  const ruleRecommendationAdapterSource = fs.readFileSync(new URL('./RuleRecommendationAdapter.jsx', import.meta.url), 'utf8');
+  const bcvhOperationTableAdapterSource = fs.readFileSync(new URL('./BcvhOperationTableAdapter.jsx', import.meta.url), 'utf8');
+
+  [
+    qualityTimelineAdapterSource,
+    messageGenerationAdapterSource,
+    ruleRecommendationAdapterSource,
+    bcvhOperationTableAdapterSource,
+  ].forEach((source) => {
+    assert.match(source, /useMemo/);
+    assert.match(source, /dateRange:\s*\[fromDate,\s*toDate\]/);
+  });
+
+  assert.match(qualityTimelineAdapterSource, /\[fromDate,\s*interval,\s*maBcvh,\s*toDate\]/);
+  assert.match(messageGenerationAdapterSource, /\[fromDate,\s*toDate\]/);
+  assert.match(ruleRecommendationAdapterSource, /\[fromDate,\s*interval,\s*maBcvh,\s*toDate\]/);
+  assert.match(bcvhOperationTableAdapterSource, /\[fromDate,\s*interval,\s*maBcvh,\s*toDate\]/);
+});

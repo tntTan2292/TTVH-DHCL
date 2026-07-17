@@ -14,10 +14,13 @@
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / READY FOR IMPLEMENTATION`
+- Current state: `READY FOR PO CHECK`
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
-- Review status: `READY FOR IMPLEMENTATION`
+- PO Product Status: `READY FOR PO CHECK`
+- Technical Status: `PASS`
+- Runtime Status: `PASS`
+- Review status: `READY FOR PO CHECK`
+- Handoff date: `2026-07-17`
 
 ## 4. Business Context
 
@@ -75,6 +78,23 @@
 - Verify no duplicate identical requests are introduced.
 - Keep browser automation targeted and non-default.
 
+## 10.1 Technical Validation Evidence
+
+- Targeted dashboard regression tests: `PASS`.
+- Frontend lint: `PASS` with existing warnings only.
+- Frontend build: `PASS`.
+- Authenticated Chromium validation against a production-equivalent preview build: `PASS`.
+- Duplicate dashboard request recovery: `PASS`; every normalized `/api/f13/dashboard/*` request now occurs once per endpoint/context.
+- Executive Summary remains a four-metric 2x2 layout.
+- No visible Executive Summary `Xếp hạng` card or fake rank fallback remains.
+- KPI cards, timeline, accepted 30-day chart, accepted 7-day comparison chart, tables, filters, and canonical `ma_bcvh` context remain mounted and functional.
+- No new console or runtime errors were observed during targeted runtime validation.
+
+Detailed evidence:
+
+- [TODAY-007 duplicate dashboard request recovery review](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-007_DUPLICATE_DASHBOARD_REQUEST_RECOVERY.md)
+- [TODAY-007 PO acceptance checklist](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-007_PO_ACCEPTANCE_CHECKLIST.md)
+
 ## 11. Documentation Requirements
 
 - Update the manifest status when implementation is complete.
@@ -87,6 +107,8 @@
 - Codex stops at `READY FOR PO CHECK`
 - Provide a concise manual PO checklist for visible changes.
 - Browser automation is not the default.
+- Codex must not self-award PO PASS.
+- TODAY-008 remains inactive until explicit governance activation.
 
 ## 13. Next Ticket
 
