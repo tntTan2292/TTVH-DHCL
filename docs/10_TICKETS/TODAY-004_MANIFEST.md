@@ -32,9 +32,9 @@ Implement and runtime-validate the daily total shipment volume trendline on the 
 
 ## 3. Current Status
 
-- Current state: `Technical PASS / Runtime PASS / READY FOR PO CHECK`
+- Current state: `Technical PASS / Runtime PASS / PO FAIL / Recovery Activated`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `PO FAIL`
 - Live phase, current commit, PO status, and next-ticket routing are owned by `PROJECT_SNAPSHOT.md`
 
 ## 4. Required Reading
@@ -119,9 +119,9 @@ Only the following documents are required to continue this ticket:
 
 ## 9. Related PO Findings
 
-- PO finding IDs: `N/A`
-- Status: `N/A`
-- Closure or recheck requirement: `PO acceptance checklist must be created before PO PASS can be recorded`
+- PO finding IDs: `POF-TODAY-004-01`
+- Status: `OPEN`
+- Closure or recheck requirement: `TODAY-004-R1 must pass PO recheck before TODAY-004 recovery can be closed`
 
 ## 10. Documents To Update
 
@@ -144,6 +144,7 @@ Only the following documents are required to continue this ticket:
 
 - the active manifest authorizes implementation of the Volume Trendline
 - the active manifest has reached implementation and runtime validation, and is now waiting for PO check
+- the Product Owner rejected the two-chart presentation, so recovery ticket `TODAY-004-R1` is active
 - mutable live-state metadata remains owned by `PROJECT_SNAPSHOT.md`
 - the manifest no longer behaves like a pointer activation artifact
 - the next AI can continue from the manifest without repository search or guessing

@@ -12,8 +12,7 @@ import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import ExecutiveSummaryAdapter from './components/ExecutiveSummaryAdapter';
 import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
-import QualityDeliveryTrendlineAdapter from './components/QualityDeliveryTrendlineAdapter';
-import VolumeTrendlineAdapter from './components/VolumeTrendlineAdapter';
+import QualityVolumeComboTrendlineAdapter from './components/QualityVolumeComboTrendlineAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
 
@@ -104,16 +103,10 @@ export default function DashboardPage() {
         </div>
 
         <SectionHeader
-          title="Quality Delivery Rate Trendline"
-          subtitle="Daily quality rate theo ngày vận hành với target cố định 90%."
+          title="Quality and Volume Combo Trendline"
+          subtitle="30-day daily shipment volume and quality rate in one operational view."
         />
-        <QualityDeliveryTrendlineAdapter reportingToDate={toDate} latestDate={latestDate} maBcvh={maBcvh} />
-
-        <SectionHeader
-          title="Volume Trendline"
-          subtitle="Daily total shipment volume theo ngày vận hành."
-        />
-        <VolumeTrendlineAdapter reportingToDate={toDate} latestDate={latestDate} maBcvh={maBcvh} />
+        <QualityVolumeComboTrendlineAdapter reportingToDate={toDate} latestDate={latestDate} maBcvh={maBcvh} />
 
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
