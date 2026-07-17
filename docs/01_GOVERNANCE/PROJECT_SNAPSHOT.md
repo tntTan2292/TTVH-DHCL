@@ -17,14 +17,14 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-008 PO Data Reconciliation and Leadership View` |
-| Next Ticket | `TICKET-0101 Login API and Session` |
-| PO Status | `READY FOR PO CHECK` |
+| Current Phase | `V2.0 Foundation` |
+| Current Ticket | `TICKET-0101 Login API and Session` |
+| Next Ticket | `TICKET-0102 Access Guard and Route Protection` |
+| PO Status | `NOT READY` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-008_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TICKET-0101_MANIFEST.md` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-07-17` |
+| Last Updated | `2026-07-18` |
 
 ## 3. Usage Rules
 
@@ -54,10 +54,12 @@ Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for re
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 
-TODAY-008 has Technical PASS and Runtime PASS for the PO data reconciliation and leadership import-to-dashboard validation path. It is waiting for explicit Product Owner UI acceptance and must not be closed without PO PASS.
+TODAY-008 is completed with explicit Product Owner `PO PASS`.
 
 TODAY-008 scope remains limited to PO data reconciliation and the leadership import-to-dashboard validation path. Broader dashboard widget, chart-meaning, color-consistency, or layout audit scope must be recorded in an authoritative roadmap, ticket, or manifest before implementation.
 
-TICKET-0101 remains inactive until TODAY-008 receives explicit PO PASS and a separate governance action activates the next ticket.
+TICKET-0101 is activated for implementation with scope limited to Login API and Session. Codex must not infer missing authentication, credential storage, role, permission, password, session timeout, or user-management business rules; if required authority is absent, record the blocker instead of guessing.
+
+TICKET-0102 remains inactive until TICKET-0101 receives explicit PO PASS and a separate governance action activates the next ticket.
 
 Governance V1 remains the full workflow reference until a later migration phase explicitly replaces any part of it.

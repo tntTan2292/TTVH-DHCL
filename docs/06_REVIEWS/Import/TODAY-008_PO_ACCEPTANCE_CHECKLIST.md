@@ -5,8 +5,9 @@
 - Ticket ID: `TODAY-008`
 - Ticket name: `PO Data Reconciliation and Leadership View`
 - PO UI Check Required: `Yes`
-- Current PO Product Status: `READY FOR PO CHECK`
+- Current PO Product Status: `PO PASS`
 - Checklist date: `2026-07-17`
+- PO decision date: `2026-07-18`
 
 ## 2. Test Context
 
@@ -71,6 +72,8 @@
 
 ## 6. PO Decision
 
-- PO Product Status: `PENDING PO DECISION`
-- PO decision must be recorded explicitly by the Product Owner.
-- Codex must not self-award PO PASS.
+- PO Product Status: `PO PASS`
+- PO decision: `PASS`
+- Closure authority: explicit Product Owner `PO PASS` decision.
+- Closure date: `2026-07-18`
+- Codex did not self-award PO PASS.

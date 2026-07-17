@@ -6,9 +6,11 @@
 - Ticket name: `PO Data Reconciliation and Leadership View`
 - Technical Status: `PASS`
 - Runtime Status: `PASS`
-- PO Product Status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
+- PO Product Status: `PO PASS`
+- Review status: `CLOSED`
 - Review date: `2026-07-17`
+- Closure date: `2026-07-18`
+- Closure authority: explicit Product Owner `PO PASS` decision
 
 ## 2. Scope
 
@@ -179,7 +181,7 @@
 ## 10. PO Handoff
 
 - TODAY-008 is technically and runtime validated.
-- TODAY-008 is ready for manual PO acceptance.
-- Codex stops at `READY FOR PO CHECK`.
-- No PO PASS is recorded by Codex.
-- `TICKET-0101` remains inactive.
+- Product Owner explicitly recorded `PO PASS`.
+- TODAY-008 review is closed.
+- TODAY-008 ticket lifecycle is completed.
+- `TICKET-0101` may be activated only through the separate governance handoff in `PROJECT_SNAPSHOT.md`.
