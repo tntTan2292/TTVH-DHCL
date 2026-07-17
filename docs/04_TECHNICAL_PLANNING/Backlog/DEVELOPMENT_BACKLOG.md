@@ -534,32 +534,36 @@ The following queue is the current PO-prioritized delivery order for leadership 
 ### Recommended Implementation Order
 
 1. `TICKET-0101` Login API and Session
-2. `TICKET-0102` Access Guard and Route Protection
-3. `TICKET-0031` Shared Cards and Tables
-4. `TICKET-0032` Shared Filters Badges and States
-5. `TICKET-0011` Dashboard Shell
-6. `TICKET-0012` Dashboard KPI Overview
-7. `TICKET-0021` BCVH Executive Brief
-8. `TICKET-0022` BCVH Analysis Widgets
-9. `TICKET-0023` BCVH Drill-down
-10. `TICKET-0041` Route Executive Brief
-11. `TICKET-0042` Route Analysis Widgets
-12. `TICKET-0043` Shipment Drill-down
-13. `TICKET-0051` Shipment Executive Brief
-14. `TICKET-0052` Shipment Analysis Widgets
-15. `TICKET-0053` Evidence Drill-down
-16. `TICKET-0061` Evidence Validation Views
-17. `TICKET-0062` Evidence Decision Support
-18. `TICKET-0071` Action Queue and Ownership
-19. `TICKET-0072` Execution Tracking and Feedback
-20. `TICKET-0081` AI Recommendation Output
-21. `TICKET-0091` Consolidated Reporting
+2. `DASHBOARD-AUDIT-001` Dashboard Widget, Chart and Visual Consistency Audit
+3. `TICKET-0102` Access Guard and Route Protection
+4. `TICKET-0031` Shared Cards and Tables
+5. `TICKET-0032` Shared Filters Badges and States
+6. `TICKET-0011` Dashboard Shell
+7. `TICKET-0012` Dashboard KPI Overview
+8. `TICKET-0021` BCVH Executive Brief
+9. `TICKET-0022` BCVH Analysis Widgets
+10. `TICKET-0023` BCVH Drill-down
+11. `TICKET-0041` Route Executive Brief
+12. `TICKET-0042` Route Analysis Widgets
+13. `TICKET-0043` Shipment Drill-down
+14. `TICKET-0051` Shipment Executive Brief
+15. `TICKET-0052` Shipment Analysis Widgets
+16. `TICKET-0053` Evidence Drill-down
+17. `TICKET-0061` Evidence Validation Views
+18. `TICKET-0062` Evidence Decision Support
+19. `TICKET-0071` Action Queue and Ownership
+20. `TICKET-0072` Execution Tracking and Feedback
+21. `TICKET-0081` AI Recommendation Output
+22. `TICKET-0091` Consolidated Reporting
+
+Priority update on 2026-07-18: after explicit TICKET-0101 `PO PASS`, Product Owner directed a dedicated Dashboard audit before TICKET-0102. `DASHBOARD-AUDIT-001` is audit and recommendation work only; it must not authorize broad dashboard product-code changes.
 
 ## 3. Parallel Development Matrix
 
 | Ticket | Parallel With |
 | --- | --- |
 | TICKET-0101 | TICKET-0031 prep |
+| DASHBOARD-AUDIT-001 | TICKET-0102 prep |
 | TICKET-0102 | TICKET-0011 prep |
 | TICKET-0031 | TICKET-0101 prep |
 | TICKET-0032 | TICKET-0011 prep |
@@ -584,6 +588,7 @@ The following queue is the current PO-prioritized delivery order for leadership 
 ## 4. Mapping with Feature, Widget, UX, API, Database, Components
 
 - `TICKET-0101` and `TICKET-0102` map to shared access behavior and auth APIs.
+- `DASHBOARD-AUDIT-001` maps to Leadership Dashboard widget, chart, semantic color, legend, label, time-context, and visual hierarchy audit recommendations only.
 - `TICKET-0011` and `TICKET-0012` map to Dashboard features, widgets, UX, and summary APIs.
 - `TICKET-0031` and `TICKET-0032` map to shared widget standards, screen layouts, and reusable components.
 - `TICKET-0021`, `TICKET-0022`, `TICKET-0023` map to BCVH features, widgets, UX, and BCVH APIs.
