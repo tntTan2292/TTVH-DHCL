@@ -16,6 +16,7 @@ Record the recovery that keeps the dashboard surfaces visible while collapsing K
 - Authenticated browser validation confirmed the dashboard still loads the restored surfaces.
 - The browser trace showed one KPI request for each selected BCVH state and one shared `daily-trend` request on the final aggregate state.
 - The sampled runtime fixture returned the same KPI totals for the selected BCVH codes, so differing-source-data behavior is proven in tests rather than by the live seed.
+- Product Owner later failed R3 because the Executive Header KPI remained aggregate during BCVH changes, and R4 now supersedes this review.
 - The dashboard still hides the `Đạt / Không đạt` selector and keeps the canonical BCVH options.
 - The KPI payload contract still returns `total_bg`, `passed_rate`, `failed_rate`, and the legacy `f13_303_rate` field remains non-visible to the dashboard card mapping.
 
@@ -23,8 +24,8 @@ Record the recovery that keeps the dashboard surfaces visible while collapsing K
 
 - Technical status: `PASS`
 - Runtime status: `PASS`
-- PO product status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
+- PO product status: `PO FAIL`
+- Review status: `SUPERSEDED BY TODAY-006-R4`
 
 ## 5. Evidence
 
@@ -34,5 +35,5 @@ Record the recovery that keeps the dashboard surfaces visible while collapsing K
 
 ## 6. Follow-Up
 
-- Await explicit PO PASS before closure.
+- Await explicit PO PASS on the superseding R4 ticket before closure.
 - Keep `TODAY-007` inactive.

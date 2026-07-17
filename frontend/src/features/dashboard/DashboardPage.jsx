@@ -42,6 +42,7 @@ export default function DashboardPage() {
   });
   const kpiCompletedKeyRef = useRef('');
   const kpiInFlightKeyRef = useRef('');
+  const kpiCurrentKeyRef = useRef('');
 
   const loadDashboardMeta = () => {
     setMetadataState((prev) => ({ ...prev, status: 'loading', error: null }));
@@ -93,6 +94,7 @@ export default function DashboardPage() {
     let cancelled = false;
     const requestKey = `${fromDate}|${toDate}|${maBcvh}`;
     const shouldReuseCurrent = kpiCompletedKeyRef.current === requestKey && kpiState.data;
+    const isNewKey = kpiCurrentKeyRef.current !== requestKey;
 
     if (shouldReuseCurrent) {
       setKpiState((prev) => ({ ...prev, loading: false, error: null }));
@@ -101,19 +103,23 @@ export default function DashboardPage() {
       };
     }
 
+    if (isNewKey) {
+      kpiCurrentKeyRef.current = requestKey;
+      kpiInFlightKeyRef.current = requestKey;
+      setKpiState({
+        loading: true,
+        error: null,
+        data: null,
+        cards: mapDashboardKpiToCards({}),
+      });
+    }
+
     if (fromDate && toDate) {
-      if (kpiInFlightKeyRef.current === requestKey) {
+      if (!isNewKey && kpiInFlightKeyRef.current === requestKey) {
         return () => {
           cancelled = true;
         };
       }
-
-      kpiInFlightKeyRef.current = requestKey;
-      setKpiState((prev) => ({
-        ...prev,
-        loading: true,
-        error: null,
-      }));
 
       api.get('/f13/dashboard/kpi', {
         params: {
@@ -121,12 +127,13 @@ export default function DashboardPage() {
           to_date: toDate,
           ma_bcvh: maBcvh,
         },
-      })
+        })
         .then((response) => {
           if (cancelled || !response?.data?.success) return;
           const rawData = response.data?.data || {};
           kpiCompletedKeyRef.current = requestKey;
           kpiInFlightKeyRef.current = '';
+          kpiCurrentKeyRef.current = requestKey;
           setKpiState({
             loading: false,
             error: null,
@@ -137,6 +144,7 @@ export default function DashboardPage() {
         .catch((error) => {
           if (cancelled) return;
           kpiInFlightKeyRef.current = '';
+          kpiCurrentKeyRef.current = requestKey;
           setKpiState({
             loading: false,
             error: error?.message || 'Không thể tải KPI dashboard.',
