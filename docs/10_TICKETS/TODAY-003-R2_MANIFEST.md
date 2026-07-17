@@ -32,11 +32,11 @@ Make the Quality Delivery Rate Trendline always display a meaningful rolling 30-
 
 ## 3. Current Status
 
-- Current state: `Technical PASS / Runtime PASS / Ready for PO Check`
+- Current state: `Technical PASS / Runtime PASS / PO PASS / Closed`
 - Live phase, current commit, branch, PO status, and next ticket are owned by `PROJECT_SNAPSHOT.md`
 - PO UI Check Required: `Yes`
 - PO Acceptance Checklist: [docs/06_REVIEWS/Import/TODAY-003-R2_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-003-R2_PO_ACCEPTANCE_CHECKLIST.md)
-- The Product Owner must execute the checklist before the ticket can be closed.
+- The Product Owner has executed the checklist and confirmed PO PASS.
 - Valid PO outcomes: `PASS`, `WARNING`, `FAIL`
 
 ## 4. Required Reading
@@ -95,7 +95,7 @@ Only the following documents are required to continue this ticket:
 ## 8. Related Review
 
 - Review document: `docs/06_REVIEWS/Import/TODAY-003-R2_QUALITY_TRENDLINE_30_DAY_WINDOW_RECOVERY.md`
-- Review status: `PASS / Ready for PO Check`
+- Review status: `PASS / PO PASS / Closed`
 - Key evidence:
   - browser requests resolve to `http://localhost:5050/api/f13/dashboard/daily-trend`
   - `2026-07-15` anchors a rolling window from `2026-06-16` through `2026-07-15`
@@ -104,8 +104,8 @@ Only the following documents are required to continue this ticket:
 ## 9. Related PO Findings
 
 - PO finding IDs: `POF-TODAY-003-02`
-- Status: `OPEN`
-- Closure or recheck requirement: keep ticket open until PO rechecks the browser and confirms the rolling 30-day window behavior
+- Status: `CLOSED`
+- Closure or recheck requirement: closed after PO PASS and browser recheck confirmed the rolling 30-day window behavior
 - PO gate and current product state are referenced from `PROJECT_SNAPSHOT.md`.
 
 ## 10. Documents To Update
@@ -126,7 +126,7 @@ Only the following documents are required to continue this ticket:
 
 ## 12. Expected Output
 
-- The ticket remains `READY FOR PO CHECK`
+- The ticket is `CLOSED` after PO PASS
 - The manifest acts as the single ticket entry point after `README_AI.md` and `PROJECT_SNAPSHOT.md`
 - Governance V1 remains compatible and unchanged
 - No new business rules are introduced
@@ -135,7 +135,7 @@ Only the following documents are required to continue this ticket:
 
 - Next ticket ID: `TODAY-004`
 - Next ticket name: `Volume Trendline`
-- Blockers or handoff notes: keep `TODAY-004` blocked / not started until PO check outcome is recorded for `TODAY-003-R2`
+- Blockers or handoff notes: TODAY-004 is the next active ticket; do not implement it until its manifest is prepared.
 - Next ticket ownership is referenced from `PROJECT_SNAPSHOT.md`.
 
 ## 14. PO Acceptance Checklist
@@ -145,7 +145,7 @@ PO Acceptance Checklist:
 - [TODAY-003-R2 PO Acceptance Checklist](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Import/TODAY-003-R2_PO_ACCEPTANCE_CHECKLIST.md)
 
 PO UI Check Required: `Yes`
-PO must execute the checklist before the ticket can be closed.
+PO has executed the checklist and the ticket is closed.
 Valid outcomes: `PASS`, `WARNING`, `FAIL`
 
 ## 15. Authority Escalation

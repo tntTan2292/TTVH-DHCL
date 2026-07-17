@@ -1,5 +1,7 @@
 # TODAY-003-R2 PO Acceptance Checklist
 
+Status: `Completed`
+
 ## 1. Purpose
 
 Let a Product Owner independently verify that the Quality Delivery Rate Trendline always spans a 30-calendar-day rolling window ending on the selected end date or latest reporting date.
@@ -102,6 +104,7 @@ Let a Product Owner independently verify that the Quality Delivery Rate Trendlin
 ## 6. Follow-up Actions
 
 - After PASS: record PO PASS in the review trail and keep the ticket at `READY FOR PO CHECK` until closure policy is satisfied.
+- After PASS: record PO PASS in the review trail and mark the ticket closed.
 - After WARNING: record the warning, link the responsible recovery ticket if needed, and keep the ticket open for recheck.
 - After FAIL: keep the ticket open, log the failure in PO findings, and do not mark the module completed.
 
