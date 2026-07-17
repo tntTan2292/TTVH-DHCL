@@ -32,9 +32,9 @@ Implement and runtime-validate the daily total shipment volume trendline on the 
 
 ## 3. Current Status
 
-- Current state: `READY FOR IMPLEMENTATION`
+- Current state: `Technical PASS / Runtime PASS / READY FOR PO CHECK`
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
+- PO Product Status: `READY FOR PO CHECK`
 - Live phase, current commit, PO status, and next-ticket routing are owned by `PROJECT_SNAPSHOT.md`
 
 ## 4. Required Reading
@@ -106,7 +106,8 @@ Only the following documents are required to continue this ticket:
 - Backend origin: `http://localhost:5050`
 - Observed validation state:
   - `TODAY-003-R2` verified the current dashboard runtime route and 30-day quality trendline behavior
-  - `TODAY-004` requires fresh runtime validation once implementation is delivered
+- `TODAY-004` requires fresh runtime validation once implementation is delivered
+  - runtime validation confirmed `GET /api/f13/dashboard/daily-trend` returns 200 with daily shipment volume data
 
 ## 8. Related Review
 
@@ -142,6 +143,7 @@ Only the following documents are required to continue this ticket:
 ## 12. Expected Output
 
 - the active manifest authorizes implementation of the Volume Trendline
+- the active manifest has reached implementation and runtime validation, and is now waiting for PO check
 - mutable live-state metadata remains owned by `PROJECT_SNAPSHOT.md`
 - the manifest no longer behaves like a pointer activation artifact
 - the next AI can continue from the manifest without repository search or guessing

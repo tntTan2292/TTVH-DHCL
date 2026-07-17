@@ -13,6 +13,7 @@ import ExecutiveSummaryAdapter from './components/ExecutiveSummaryAdapter';
 import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
 import QualityDeliveryTrendlineAdapter from './components/QualityDeliveryTrendlineAdapter';
+import VolumeTrendlineAdapter from './components/VolumeTrendlineAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
 
@@ -107,6 +108,12 @@ export default function DashboardPage() {
           subtitle="Daily quality rate theo ngày vận hành với target cố định 90%."
         />
         <QualityDeliveryTrendlineAdapter reportingToDate={toDate} latestDate={latestDate} maBcvh={maBcvh} />
+
+        <SectionHeader
+          title="Volume Trendline"
+          subtitle="Daily total shipment volume theo ngày vận hành."
+        />
+        <VolumeTrendlineAdapter reportingToDate={toDate} latestDate={latestDate} maBcvh={maBcvh} />
 
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
