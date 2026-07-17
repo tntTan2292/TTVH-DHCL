@@ -18,11 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-006 Restore and Preserve Existing Dashboard Charts` |
+| Current Ticket | `TODAY-006-R1 Runtime KPI and Stable Dashboard Surfaces Recovery` |
 | Next Ticket | `TODAY-007 Dashboard Executive Layout Cleanup` |
-| PO Status | `NOT READY` |
+| PO Status | `READY FOR PO CHECK` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-006_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-006-R1_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-17` |
 

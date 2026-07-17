@@ -73,17 +73,20 @@ class FactBuuGuiRepository {
         });
     }
 
-    getKpiMetrics(startDate, endDate) {
+    getKpiMetrics(startDate, endDate, filters = {}) {
         return new Promise((resolve, reject) => {
+            const bcvhClause = filters.bcvhId ? ' AND ma_bcvh = ?' : '';
+            const params = [startDate, endDate];
+            if (filters.bcvhId) params.push(filters.bcvhId);
             const sql = `
                 SELECT 
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
                     SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed
                 FROM fact_f13
-                WHERE ngay_do_kiem >= ? AND ngay_do_kiem <= ?
+                WHERE ngay_do_kiem >= ? AND ngay_do_kiem <= ?${bcvhClause}
             `;
-            db.get(sql, [startDate, endDate], (err, row) => {
+            db.get(sql, params, (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });

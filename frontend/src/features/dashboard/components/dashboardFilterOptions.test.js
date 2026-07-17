@@ -85,15 +85,26 @@ test('dashboard KPI mapping converts runtime values without placeholder strings'
     f13_303_rate: 1.5,
   });
 
-  assert.deepEqual(cards.map((card) => card.value), ['80.00%', '80', '20', '1.50%']);
+  assert.deepEqual(cards.map((card) => card.label), ['KPI', 'Đạt', 'Không đạt', 'Tỷ lệ Không đạt']);
+  assert.deepEqual(cards.map((card) => card.value), ['80.00%', '80', '20', '20.00%']);
   assert.ok(cards.every((card) => card.value !== '--'));
+  assert.doesNotMatch(JSON.stringify(cards), /f13_303_rate/);
+  assert.doesNotMatch(JSON.stringify(cards), /Xếp hạng/);
 });
 
 test('dashboard page restores the timeline and ranking surfaces', () => {
   const dashboardSource = fs.readFileSync(new URL('../DashboardPage.jsx', import.meta.url), 'utf8');
+  const timelineSource = fs.readFileSync(new URL('../../../components/f13/QualityTimelinePanel.jsx', import.meta.url), 'utf8');
 
   assert.match(dashboardSource, /QualityTimelineAdapter/);
   assert.match(dashboardSource, /BcvhOperationTableAdapter/);
   assert.match(dashboardSource, /mapDashboardKpiToCards/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/kpi'/);
+  assert.match(timelineSource, /LoadingState|TimelineStateCard/);
+  assert.match(timelineSource, /ErrorState|tone="error"/);
+  assert.doesNotMatch(timelineSource, /return null/);
+  assert.match(timelineSource, /Heatmap Lịch Chất Lượng/);
+  assert.match(timelineSource, /Quy luật Tuần/);
+  assert.match(timelineSource, /Ranking Surface|Quality Timeline/);
+  assert.doesNotMatch(dashboardSource, /f13_303_rate.*Xếp hạng/s);
 });

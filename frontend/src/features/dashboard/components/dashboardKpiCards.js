@@ -29,10 +29,8 @@ export function mapDashboardKpiToCards(kpiData = {}) {
       tone: 'danger',
     },
     {
-      label: 'Xếp hạng',
-      value: kpiData.f13_303_rate === null || kpiData.f13_303_rate === undefined
-        ? '--'
-        : `${Number(kpiData.f13_303_rate).toFixed(2)}%`,
+      label: 'Tỷ lệ Không đạt',
+      value: failedRate === null ? '--' : `${failedRate.toFixed(2)}%`,
       delta: 'Theo contract runtime',
       tone: 'warning',
     },

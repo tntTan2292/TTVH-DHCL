@@ -6,6 +6,8 @@ import {
   SectionHeader,
   CardContainer,
   KPICard,
+  LoadingState,
+  ErrorState,
   StatusBadge,
 } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
@@ -247,6 +249,16 @@ export default function DashboardPage() {
         ) : null}
 
         <SectionHeader title="Executive Header" subtitle="Khối đầu tiên của Dashboard, dùng widget placeholder có cấu trúc rõ ràng." />
+        {kpiState.loading ? (
+          <CardContainer title="KPI Dashboard" subtitle="Đang tải KPI runtime..." className="mb-2">
+            <LoadingState label="Đang tải KPI dashboard..." className="min-h-[160px]" />
+          </CardContainer>
+        ) : null}
+        {kpiState.error ? (
+          <CardContainer title="KPI Dashboard" subtitle="Không thể tải KPI runtime." className="mb-2">
+            <ErrorState title="Không thể tải KPI dashboard" description={kpiState.error} className="min-h-[160px]" />
+          </CardContainer>
+        ) : null}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {kpiState.cards.map((card) => (
             <KPICard key={card.label} label={card.label} value={card.value} delta={card.delta} tone={card.tone} />

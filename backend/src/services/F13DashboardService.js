@@ -63,25 +63,22 @@ class F13DashboardService {
         return rateMap;
     }
 
-    async getDashboardKpi(startDate, endDate) {
+    async getDashboardKpi(startDate, endDate, filters = {}) {
         try {
-            const result = await factBuuGuiRepo.getKpiMetrics(startDate, endDate);
+            const result = await factBuuGuiRepo.getKpiMetrics(startDate, endDate, {
+                bcvhId: filters.bcvhId || null
+            });
             if (!result || result.total_bg === 0) {
-                return { total_bg: 0, passed_rate: 0, failed_rate: 0, f13_303_rate: 0 };
+                return { total_bg: 0, passed_rate: 0, failed_rate: 0 };
             }
             
             const passed_rate = this._calculateRate(result.total_passed, result.total_bg);
             const failed_rate = this._calculateRate(result.total_failed, result.total_bg);
-            
-            // Tỷ lệ F13_303 (Chậm > 3h) thuộc quyền quyết định của Rule Engine (D4).
-            // Ở D3, Service Layer chỉ đóng gói cấu trúc khớp với API Contract, trả về 0 tạm thời.
-            const f13_303_rate = 0; 
 
             return {
                 total_bg: result.total_bg,
                 passed_rate,
                 failed_rate,
-                f13_303_rate
             };
         } catch (error) {
             throw new Error(`Lỗi Service khi lấy Dashboard KPI: ${error.message}`);

@@ -4,11 +4,11 @@ const timelineService = require('../services/timelineService');
 class DashboardController {
     async getKpi(req, res) {
         try {
-            const { from_date, to_date } = req.query;
+            const { from_date, to_date, ma_bcvh } = req.query;
             if (!from_date || !to_date) {
                 return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' }});
             }
-            const result = await f13DashboardService.getDashboardKpi(from_date, to_date);
+            const result = await f13DashboardService.getDashboardKpi(from_date, to_date, { bcvhId: ma_bcvh });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
