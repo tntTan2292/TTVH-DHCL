@@ -10,15 +10,18 @@
 | Technical Status | `PASS` |
 | Runtime Status | `PASS` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO CHECK` |
+| PO Product Status | `PO FAIL` |
 | Current Manifest | `docs/10_TICKETS/TODAY-004-R1_MANIFEST.md` |
 | Responsible PO Finding | `POF-TODAY-004-01` |
+| Follow-up Recovery | `TODAY-004-R2 BCVH Filter and Combo Trendline Recovery` |
 
 ## PO Finding Summary
 
 The Product Owner rejected the two-chart presentation that showed Quality Delivery Rate Trendline and Volume Trendline as separate sections.
 
 The accepted recovery direction is one professional 30-day combo chart that presents total shipment volume and quality rate together.
+
+During PO recheck, the Product Owner reported blocking filter/runtime defects: the BCVH filter did not list the six SSOT-defined BCVH units, the status selector had no meaningful Operation Dashboard function, and selecting a BCVH could make the 30-day combo chart disappear. These findings are registered under `POF-TODAY-004-02` and moved to `TODAY-004-R2`.
 
 ## Recovery Scope
 
@@ -48,7 +51,7 @@ The accepted recovery direction is one professional 30-day combo chart that pres
   - rendered one Recharts surface, 30 teal volume bars, one dark-blue linear quality line, and the dashed red `Mục tiêu 90%`
   - rendered Vietnamese axis labels: `Sản lượng (bưu gửi)` and `Tỷ lệ chất lượng (%)`
   - rejected separate `Quality Delivery Rate Trendline` and standalone `Volume Trendline` sections were absent
-- PO validation: `PO UI ACCEPTANCE REQUIRED`
+- PO validation: `PO FAIL`
 
 ## Completion Rule
 
@@ -59,4 +62,4 @@ This recovery is not closed until:
 - PO recheck is available
 - PO confirms PASS
 
-`TODAY-005` must remain inactive until all applicable `TODAY-004-R1` PO and closure gates pass.
+`TODAY-005` must remain inactive until `TODAY-004-R2` receives PO PASS and all applicable closure gates pass.

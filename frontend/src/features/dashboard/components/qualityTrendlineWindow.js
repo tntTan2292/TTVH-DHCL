@@ -51,7 +51,7 @@ export function buildTrendlineRequestParams({ reportingToDate, latestDate, maBcv
   };
 
   if (maBcvh && maBcvh !== 'all') {
-    params.bcvh_id = maBcvh;
+    params.ma_bcvh = maBcvh;
   }
 
   return params;

@@ -14,10 +14,11 @@ Replace the rejected two-chart presentation with one professional 30-day combo t
 
 ## 3. Current Status
 
-- Current state: `Technical PASS / Runtime PASS / READY FOR PO CHECK`
+- Current state: `Technical PASS / Runtime PASS / PO FAIL / Recovery Activated`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `PO FAIL`
 - Recovery source: `TODAY-004` PO FAIL
+- Follow-up recovery: `TODAY-004-R2 BCVH Filter and Combo Trendline Recovery`
 - Live phase, branch, PO status, and next-ticket routing are owned by `PROJECT_SNAPSHOT.md`
 
 ## 4. Required Reading
@@ -102,11 +103,11 @@ Only the following documents are required to continue this ticket:
 - Technical PASS.
 - Runtime PASS.
 - PO UI ACCEPTANCE REQUIRED.
-- `TODAY-004-R1` remains open until PO PASS.
+- `TODAY-004-R1` recorded PO FAIL and is superseded by `TODAY-004-R2`.
 - `TODAY-005` remains inactive.
 
 ## 12. Next Ticket
 
 - Next ticket ID: `TODAY-005`
 - Next ticket name: `Same-Period Comparison Trendline`
-- Blockers or handoff notes: do not activate until `TODAY-004-R1` receives PO PASS and closure gates pass.
+- Blockers or handoff notes: do not activate until `TODAY-004-R2` receives PO PASS and closure gates pass.

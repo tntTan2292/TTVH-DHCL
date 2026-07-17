@@ -32,7 +32,7 @@ class DashboardController {
         try {
             const fromDate = req.query.from_date;
             const toDate = req.query.to_date;
-            const bcvhId = req.query.bcvh_id || req.query.bcvh || null;
+            const bcvhId = req.query.ma_bcvh || req.query.bcvh_id || req.query.bcvh || null;
 
             if (!fromDate || !toDate) {
                 return res.status(400).json({

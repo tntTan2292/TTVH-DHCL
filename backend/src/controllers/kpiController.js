@@ -393,7 +393,15 @@ async function getDashboardMessage(req, res) {
 async function getDashboardMeta(req, res) {
     try {
         const { max_date } = await get(`SELECT MAX(ngay_do_kiem) as max_date FROM fact_f13`);
-        res.json({ success: true, data: { max_date } });
+        const bcvh_units = await all(`
+            SELECT DISTINCT ma_bcvh, ten_bcvh
+            FROM fact_f13
+            WHERE ma_bcvh IS NOT NULL
+              AND ten_bcvh IS NOT NULL
+              AND ten_bcvh LIKE 'BCVH %'
+            ORDER BY ten_bcvh ASC
+        `);
+        res.json({ success: true, data: { max_date, bcvh_units } });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

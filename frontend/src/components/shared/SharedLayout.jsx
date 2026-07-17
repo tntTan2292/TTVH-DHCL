@@ -188,8 +188,10 @@ export function GlobalFilterBar({
   onToDateChange,
   kpiValue,
   onKpiChange,
+  showKpiFilter = true,
   bcvhValue,
   onBcvhChange,
+  bcvhOptions = [{ value: 'all', label: 'Tất cả BCVH' }],
   searchValue,
   onSearchChange,
   actions,
@@ -218,19 +220,21 @@ export function GlobalFilterBar({
             aria-label="Đến ngày"
           />
         </div>
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
-          <Filter size={16} className="text-[var(--color-text-muted)]" />
-          <select
-            value={kpiValue}
-            onChange={(e) => onKpiChange?.(e.target.value)}
-            className="border-none bg-transparent text-sm focus:ring-0"
-            aria-label="KPI Filter"
-          >
-            <option value="all">Tất cả KPI</option>
-            <option value="pass">Đạt</option>
-            <option value="fail">Không đạt</option>
-          </select>
-        </div>
+        {showKpiFilter ? (
+          <div className="flex items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
+            <Filter size={16} className="text-[var(--color-text-muted)]" />
+            <select
+              value={kpiValue}
+              onChange={(e) => onKpiChange?.(e.target.value)}
+              className="border-none bg-transparent text-sm focus:ring-0"
+              aria-label="KPI Filter"
+            >
+              <option value="all">Tất cả KPI</option>
+              <option value="pass">Đạt</option>
+              <option value="fail">Không đạt</option>
+            </select>
+          </div>
+        ) : null}
         <div className="flex items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
           <Filter size={16} className="text-[var(--color-text-muted)]" />
           <select
@@ -239,9 +243,9 @@ export function GlobalFilterBar({
             className="border-none bg-transparent text-sm focus:ring-0"
             aria-label="BCVH Filter"
           >
-            <option value="all">Tất cả BCVH</option>
-            <option value="BC_HUE01">BCVH TP Huế</option>
-            <option value="BC_HUE02">BCVH Hương Thủy</option>
+            {bcvhOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
           </select>
         </div>
         <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
@@ -261,7 +265,6 @@ export function GlobalFilterBar({
     </div>
   );
 }
-
 export function PageToolbar({ children }) {
   return <div className="flex flex-wrap items-center gap-2">{children}</div>;
 }

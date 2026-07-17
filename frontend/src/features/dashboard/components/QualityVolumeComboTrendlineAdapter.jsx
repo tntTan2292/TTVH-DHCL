@@ -138,6 +138,18 @@ function QualityVolumeComboTrendline({ data }) {
   );
 }
 
+function ComboTrendlineCard({ children }) {
+  return (
+    <CardContainer
+      title="Sản lượng và chất lượng phát – 30 ngày"
+      subtitle="Sản lượng bưu gửi và tỷ lệ chất lượng theo ngày trong cùng một biểu đồ."
+      action={<StatusBadge label="30 ngày" tone="info" />}
+      className="overflow-hidden"
+    >
+      {children}
+    </CardContainer>
+  );
+}
 export default function QualityVolumeComboTrendlineAdapter({ reportingToDate, latestDate, maBcvh }) {
   const [state, setState] = useState({ loading: true, error: null, data: [] });
 
@@ -187,30 +199,35 @@ export default function QualityVolumeComboTrendlineAdapter({ reportingToDate, la
   }, [reportingToDate, latestDate, maBcvh]);
 
   if (state.loading) {
-    return <LoadingState label="Đang tải biểu đồ sản lượng và chất lượng..." className="min-h-[460px]" />;
+    return (
+      <ComboTrendlineCard>
+        <LoadingState label="Đang tải biểu đồ sản lượng và chất lượng..." className="min-h-[320px]" />
+      </ComboTrendlineCard>
+    );
   }
 
   if (state.error) {
-    return <ErrorState title="Không thể tải biểu đồ kết hợp" description={state.error} className="min-h-[460px]" />;
+    return (
+      <ComboTrendlineCard>
+        <ErrorState title="Không thể tải biểu đồ kết hợp" description={state.error} className="min-h-[320px]" />
+      </ComboTrendlineCard>
+    );
   }
 
   if (!state.data.length) {
     return (
-      <EmptyState
-        title="Không có dữ liệu biểu đồ"
-        description="Không có dữ liệu bưu gửi hằng ngày cho ngữ cảnh dashboard đã chọn."
-        className="min-h-[460px]"
-      />
+      <ComboTrendlineCard>
+        <EmptyState
+          title="Không có dữ liệu biểu đồ"
+          description="Không có dữ liệu bưu gửi hằng ngày cho ngữ cảnh dashboard đã chọn."
+          className="min-h-[320px]"
+        />
+      </ComboTrendlineCard>
     );
   }
 
   return (
-    <CardContainer
-      title="Sản lượng và chất lượng phát – 30 ngày"
-      subtitle="Sản lượng bưu gửi và tỷ lệ chất lượng theo ngày trong cùng một biểu đồ."
-      action={<StatusBadge label="30 ngày" tone="info" />}
-      className="overflow-hidden"
-    >
+    <ComboTrendlineCard>
       <QualityVolumeComboTrendline data={state.data} />
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
         <span className="inline-flex items-center gap-2">
@@ -230,6 +247,6 @@ export default function QualityVolumeComboTrendlineAdapter({ reportingToDate, la
           Ngày thiếu dữ liệu giữ nguyên khoảng trống
         </span>
       </div>
-    </CardContainer>
+    </ComboTrendlineCard>
   );
 }

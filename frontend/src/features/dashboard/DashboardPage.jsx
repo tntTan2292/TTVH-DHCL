@@ -15,18 +15,14 @@ import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
 import QualityVolumeComboTrendlineAdapter from './components/QualityVolumeComboTrendlineAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
+import { buildBcvhOptions, ALL_BCVH_OPTION } from './components/dashboardFilterOptions';
 
-const BCVH_OPTIONS = [
-  { value: 'all', label: 'Tất cả BCVH' },
-  { value: 'BC_HUE01', label: 'BCVH TP Huế' },
-  { value: 'BC_HUE02', label: 'BCVH Hương Thủy' },
-  { value: 'BC_HUE03', label: 'BCVH Phú Lộc' },
-];
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
+  const [bcvhOptions, setBcvhOptions] = useState([ALL_BCVH_OPTION]);
 
   useEffect(() => {
     api.get('/f13/dashboard/meta')
@@ -34,17 +30,26 @@ export default function DashboardPage() {
         if (res.data.success && res.data.data.max_date) {
           setLatestDate(res.data.data.max_date);
         }
+        if (res.data.success && Array.isArray(res.data.data.bcvh_units)) {
+          setBcvhOptions(buildBcvhOptions(res.data.data.bcvh_units));
+        }
       })
       .catch((error) => {
         console.error('[DashboardPage] meta error:', error);
       });
   }, []);
 
+  useEffect(() => {
+    if (!searchParams.has('kpi')) return;
+    const params = new URLSearchParams(searchParams);
+    params.delete('kpi');
+    setSearchParams(params, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   const defaultDate = latestDate || '2026-07-15';
   const fromDate = searchParams.get('from_date') || defaultDate;
   const toDate = searchParams.get('to_date') || defaultDate;
   const interval = searchParams.get('interval') || 'daily';
-  const kpi = searchParams.get('kpi') || 'all';
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
 
@@ -80,10 +85,10 @@ export default function DashboardPage() {
           maxDate={latestDate || defaultDate}
           onFromDateChange={(value) => updateParam('from_date', value)}
           onToDateChange={(value) => updateParam('to_date', value)}
-          kpiValue={kpi}
-          onKpiChange={(value) => updateParam('kpi', value)}
+          showKpiFilter={false}
           bcvhValue={maBcvh}
           onBcvhChange={(value) => updateParam('ma_bcvh', value)}
+          bcvhOptions={bcvhOptions}
           searchValue={search}
           onSearchChange={(value) => updateParam('search', value)}
           actions={

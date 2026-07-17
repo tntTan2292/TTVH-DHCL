@@ -13,7 +13,8 @@ Let a Product Owner verify that the Operation Dashboard shows one combined 30-da
 - Route / URL: `/f13/dashboard`
 - Required Test Context: signed-in browser session using the local test account
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `PO FAIL`
+- Follow-up Recovery: `TODAY-004-R2 BCVH Filter and Combo Trendline Recovery`
 
 ## 3. Data Conditions
 
@@ -92,4 +93,10 @@ Let a Product Owner verify that the Operation Dashboard shows one combined 30-da
 
 - After PASS: record PO PASS and proceed with closure policy.
 - After WARNING: record the warning and keep the responsible follow-up visible.
-- After FAIL: keep `TODAY-004-R1` open, update PO findings, and do not activate `TODAY-005`.
+- After FAIL: register the blocking finding, activate the responsible recovery ticket, and do not activate `TODAY-005`.
+
+## 7. PO Recheck Result
+
+- Result: `PO FAIL`
+- Finding: BCVH filter/runtime defects block product acceptance.
+- Responsible Fix Ticket: `TODAY-004-R2 BCVH Filter and Combo Trendline Recovery`

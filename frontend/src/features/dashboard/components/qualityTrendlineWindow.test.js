@@ -19,13 +19,13 @@ test('trendline request includes BCVH filter without changing the rolling window
   const params = buildTrendlineRequestParams({
     reportingToDate: '2026-07-15',
     latestDate: '2026-07-15',
-    maBcvh: 'BC_HUE01',
+    maBcvh: '535790',
   });
 
   assert.deepEqual(params, {
     from_date: '2026-06-16',
     to_date: '2026-07-15',
-    bcvh_id: 'BC_HUE01',
+    ma_bcvh: '535790',
   });
 });
 
