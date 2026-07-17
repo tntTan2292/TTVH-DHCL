@@ -13,7 +13,7 @@ Verify that the KPI spinner always finishes and the dashboard reaches success, e
 - Route / URL: `/f13/dashboard`
 - Required Test Context: authenticated local dashboard session with runtime data if needed
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `PO FAIL`
 
 ## 3. Step-by-Step Checks
 
@@ -50,7 +50,7 @@ Verify that the KPI spinner always finishes and the dashboard reaches success, e
 
 - After PASS: update governance and keep the ticket open only until explicit PO PASS is recorded.
 - After WARNING: keep the ticket open for recheck.
-- After FAIL: create or update the responsible recovery work and keep `TODAY-006-R5` open.
+- After FAIL: create or update the responsible recovery work and keep `TODAY-006-R6` open.
 
 ## 6. Documents To Update
 

@@ -21,8 +21,8 @@ Record the fix that removes the infinite KPI loading state and guarantees the da
 
 - Technical status: `PASS`
 - Runtime/API Contract status: `PASS`
-- PO product status: `READY FOR PO CHECK`
-- Review status: `READY FOR PO CHECK`
+- PO product status: `PO FAIL`
+- Review status: `SUPERSEDED BY TODAY-006-R6`
 
 ## 5. Evidence
 
@@ -32,5 +32,5 @@ Record the fix that removes the infinite KPI loading state and guarantees the da
 
 ## 6. Follow-Up
 
-- Await explicit PO PASS before closure.
+- Await explicit PO PASS on the superseding R6 ticket before closure.
 - Keep `TODAY-007` inactive.
