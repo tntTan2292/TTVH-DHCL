@@ -30,6 +30,55 @@
 
 - Single-sentence objective for the ticket.
 
+## 2.1 Ticket Handoff Workflow
+
+- A ticket is not complete until the handoff workflow is finished.
+- Technical completion alone is insufficient.
+- If the ticket introduces a next ticket, the next ticket manifest must be created and activated before closure.
+
+## 2.2 Mandatory Handoff
+
+Before reporting completion, Codex must:
+
+- update the current ticket document and manifest status
+- record validation and PO status
+- close related PO findings when authorized
+- identify the next ticket from the current manifest or roadmap
+- create the next manifest if it does not exist
+- ensure the next manifest contains actual implementation authority and not only pointer-activation scope
+- update `PROJECT_SNAPSHOT`:
+  - Current Ticket
+  - Current Manifest
+  - Current Commit according to the repository convention
+  - Current Phase if changed
+- register new documents in `DOCUMENT_INDEX`
+- commit using One Ticket = One Commit
+- push to `origin/main`
+- verify the remote commit and all required GitHub Blob URLs
+- run a fresh onboarding simulation starting only from `README_AI.md`
+- confirm that the fresh AI can reach the active manifest, read Required Reading, and generate the next Codex prompt without repository search, guessing, or user clarification
+
+## 2.3 Finalization And Handoff
+
+Do not report the ticket as complete until:
+
+- implementation and validation are complete
+- governance state is synchronized
+- the next ticket is activated
+- changes are pushed
+- remote URLs are verified
+- fresh onboarding passes
+
+If the next ticket is not yet sufficiently defined by authoritative SSOT:
+
+- do not invent business rules
+- create a blocker manifest for the next ticket
+- set its status to `BLOCKED BY SSOT`
+- list the exact missing decisions
+- update `PROJECT_SNAPSHOT` to that blocker manifest
+- publish it remotely
+- ensure fresh onboarding explains the blocker precisely
+
 ## 3. Current Status
 
 - Current state:
@@ -129,5 +178,6 @@ Escalate instead of guessing when:
 - a frozen document or SSOT would need to change
 - the ticket scope is unclear
 - the update would add a second source of truth
+- the next ticket is not yet sufficiently defined by authoritative SSOT
 
 When escalation is required, stop and reference the authoritative document instead of expanding scope.

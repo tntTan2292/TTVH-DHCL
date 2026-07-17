@@ -18,8 +18,66 @@ It standardizes:
 - prompt structure
 - documentation synchronization expectations
 - validation, commit, and push requirements
+- mandatory handoff completion requirements
 
-## 2. Canonical Template
+## 2. TICKET HANDOFF WORKFLOW
+
+Every ticket prompt must make ticket completion self-contained.
+
+The mandatory lifecycle is:
+
+`ACTIVE` -> `IMPLEMENTED` -> `VALIDATED` -> `PO PASS when required` -> `CLOSED` -> `NEXT TICKET ACTIVATED` -> `REMOTE PUBLISHED` -> `FRESH ONBOARDING PASS`
+
+Completion rule:
+
+- a ticket is not done until all applicable handoff steps pass
+- technical completion alone is insufficient
+- local completion without remote publication is insufficient
+
+## 3. MANDATORY HANDOFF
+
+Codex must perform all applicable actions before reporting completion:
+
+- update the current ticket document and manifest status
+- record validation and PO status
+- close related PO findings when authorized
+- identify the next ticket from the current manifest or roadmap
+- create the next manifest if it does not exist
+- ensure the next manifest contains actual implementation authority and not only pointer-activation scope
+- update `PROJECT_SNAPSHOT`:
+  - Current Ticket
+  - Current Manifest
+  - Current Commit according to the repository convention
+  - Current Phase if changed
+- register new documents in `DOCUMENT_INDEX`
+- commit using One Ticket = One Commit
+- push to `origin/main`
+- verify the remote commit and all required GitHub Blob URLs
+- run a fresh onboarding simulation starting only from `README_AI.md`
+- confirm that the fresh AI can reach the active manifest, read Required Reading, and generate the next Codex prompt without repository search, guessing, or user clarification
+
+## 4. FINALIZATION AND HANDOFF
+
+Do not report the ticket as complete until:
+
+- implementation and validation are complete
+- governance state is synchronized
+- the next ticket is activated
+- changes are pushed
+- remote URLs are verified
+- fresh onboarding passes
+
+If the next ticket is not yet sufficiently defined by authoritative SSOT:
+
+- do not invent business rules
+- create a blocker manifest for the next ticket
+- set its status to `BLOCKED BY SSOT`
+- list the exact missing decisions
+- update `PROJECT_SNAPSHOT` to that blocker manifest
+- publish it remotely
+- ensure fresh onboarding explains the blocker precisely
+
+## 5. Canonical Template
 
 ```text
 PROJECT
@@ -264,7 +322,7 @@ Stop.
 If PO UI Check Required = Yes, the ticket is not `Module Completed` until the applicable PO gate is satisfied.
 ```
 
-## 3. Canonical Template Rules
+## 6. Canonical Template Rules
 
 - ChatGPT must copy this canonical template for every Development Ticket prompt after AI onboarding PASS.
 - Only the following placeholders may change:
@@ -288,7 +346,7 @@ If PO UI Check Required = Yes, the ticket is not `Module Completed` until the ap
 - ChatGPT must not reorder sections.
 - ChatGPT must not invent a different prompt structure.
 
-## 4. Documentation Requirements
+## 7. Documentation Requirements
 
 Every prompt generated from this canonical template must preserve documentation synchronization requirements:
 
@@ -298,7 +356,7 @@ Every prompt generated from this canonical template must preserve documentation 
 - validate the updated documentation set before commit
 - commit and push after validation passes
 
-## 5. Output Standard
+## 8. Output Standard
 
 Every Codex execution report generated from this template must include:
 

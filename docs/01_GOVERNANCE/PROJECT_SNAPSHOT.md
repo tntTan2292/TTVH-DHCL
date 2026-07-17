@@ -21,7 +21,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Ticket | `TODAY-004 Volume Trendline` |
 | Next Ticket | `TODAY-004 Volume Trendline` |
 | PO Status | `PASS` |
-| Current Commit | `8575d7b6ab67f5a19af2e408e044d9143dff1c8b` |
+| Current Commit | `ca737290f439b87df94d008d273576b363f0e508` |
 | Current Branch | `main` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-004_MANIFEST.md` |
 | Governance Version | `V2 Active` |
@@ -34,6 +34,10 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 - Do not infer current state from chat history when this snapshot is available.
 - Do not use this document to override SSOT, frozen docs, or PO decisions.
 - Keep workflow behavior unchanged unless a dedicated governance change is approved.
+- `Current Manifest` must always be a concrete GitHub Blob URL.
+- `Current Manifest` must point to an existing remote manifest for the active ticket.
+- `Current Manifest` must not contain placeholder labels or descriptive text.
+- If the active ticket changes, update `Current Ticket`, `Current Manifest`, and `Current Commit` together.
 
 ## 4. Continuation Notes
 
