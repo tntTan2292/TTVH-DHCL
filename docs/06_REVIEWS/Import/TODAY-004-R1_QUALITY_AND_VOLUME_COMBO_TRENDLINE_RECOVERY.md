@@ -28,6 +28,8 @@ The accepted recovery direction is one professional 30-day combo chart that pres
 - Render total shipment volume as bars against the left Y-axis.
 - Render quality rate as a line against the right Y-axis.
 - Preserve the 90% quality target line.
+- Present the chart title and tooltip labels in Vietnamese for PO review.
+- Display quality rate and target variance with no more than two decimal places.
 - Preserve the rolling 30-day window, optional BCVH filter, and missing-date gaps.
 - Preserve unrelated dashboard surfaces and backend contracts.
 
@@ -42,8 +44,9 @@ The accepted recovery direction is one professional 30-day combo chart that pres
   - response contained 30 daily rows with `total_volume`, `passed`, `failed`, `quality_rate`, and `data_available`
 - Browser validation: `PASS`
   - authenticated browser session opened `http://localhost:5178/f13/dashboard`
-  - rendered one `Quality and Volume Combo Trendline`
-  - rendered one Recharts surface, 30 volume bars, one quality line, and the `90% target`
+  - rendered one `Sản lượng và chất lượng phát – 30 ngày` chart title
+  - rendered one Recharts surface, 30 teal volume bars, one dark-blue linear quality line, and the dashed red `Mục tiêu 90%`
+  - rendered Vietnamese axis labels: `Sản lượng (bưu gửi)` and `Tỷ lệ chất lượng (%)`
   - rejected separate `Quality Delivery Rate Trendline` and standalone `Volume Trendline` sections were absent
 - PO validation: `PO UI ACCEPTANCE REQUIRED`
 

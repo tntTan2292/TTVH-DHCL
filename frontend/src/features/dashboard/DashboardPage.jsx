@@ -102,10 +102,6 @@ export default function DashboardPage() {
           <KPICard label="Xếp hạng" value="--" delta="Placeholder" tone="warning" />
         </div>
 
-        <SectionHeader
-          title="Quality and Volume Combo Trendline"
-          subtitle="30-day daily shipment volume and quality rate in one operational view."
-        />
         <QualityVolumeComboTrendlineAdapter reportingToDate={toDate} latestDate={latestDate} maBcvh={maBcvh} />
 
         <div className="grid gap-5 xl:grid-cols-2">

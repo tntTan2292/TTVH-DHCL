@@ -1,4 +1,5 @@
 export const QUALITY_TARGET_RATE = 90;
+export const VOLUME_AXIS_HEADROOM_RATE = 0.12;
 
 export function normalizeComboTrendlineItems(items = []) {
   return items
@@ -25,15 +26,24 @@ export function normalizeComboTrendlineItems(items = []) {
 }
 
 export function formatNumber(value) {
-  return value === null || value === undefined ? 'N/A' : Number(value).toLocaleString('vi-VN');
+  return value === null || value === undefined ? 'Không có dữ liệu' : Number(value).toLocaleString('vi-VN');
 }
 
 export function formatRate(value) {
-  return value === null || value === undefined ? 'N/A' : `${Number(value).toFixed(4)}%`;
+  return value === null || value === undefined ? 'Không có dữ liệu' : `${Number(value).toFixed(2)}%`;
 }
 
 export function formatVariance(value) {
-  if (value === null || value === undefined) return 'N/A';
+  if (value === null || value === undefined) return 'Không có dữ liệu';
   const sign = Number(value) > 0 ? '+' : '';
-  return `${sign}${Number(value).toFixed(4)} pp`;
+  return `${sign}${Number(value).toFixed(2)} điểm %`;
+}
+
+export function getVolumeAxisMax(data = []) {
+  const maxVolume = data.reduce((max, item) => {
+    const value = item?.total_volume;
+    return typeof value === 'number' && value > max ? value : max;
+  }, 0);
+
+  return maxVolume > 0 ? Math.ceil(maxVolume * (1 + VOLUME_AXIS_HEADROOM_RATE)) : 0;
 }

@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import {
   formatRate,
   formatVariance,
+  getVolumeAxisMax,
   normalizeComboTrendlineItems,
   QUALITY_TARGET_RATE,
+  VOLUME_AXIS_HEADROOM_RATE,
 } from './comboTrendlineData.js';
 
 test('combo trendline normalization sorts dates and computes target variance', () => {
@@ -54,10 +56,20 @@ test('combo trendline normalization keeps missing dates as chart gaps', () => {
   assert.equal(result[0].target_variance, null);
 });
 
-test('combo trendline formatting exposes tooltip values clearly', () => {
-  assert.equal(formatRate(67.2015), '67.2015%');
-  assert.equal(formatRate(null), 'N/A');
-  assert.equal(formatVariance(-22.7985), '-22.7985 pp');
-  assert.equal(formatVariance(1.2345), '+1.2345 pp');
-  assert.equal(formatVariance(null), 'N/A');
+test('combo trendline formatting exposes Vietnamese tooltip values with two decimals', () => {
+  assert.equal(formatRate(67.2015), '67.20%');
+  assert.equal(formatRate(null), 'Không có dữ liệu');
+  assert.equal(formatVariance(-22.7985), '-22.80 điểm %');
+  assert.equal(formatVariance(1.2345), '+1.23 điểm %');
+  assert.equal(formatVariance(null), 'Không có dữ liệu');
+});
+
+test('combo trendline volume axis keeps zero anchor and adds visual headroom', () => {
+  const result = normalizeComboTrendlineItems([
+    { date: '2026-07-14', total_volume: 100, passed: 90, failed: 10, quality_rate: 90, data_available: true },
+    { date: '2026-07-15', total_volume: 200, passed: 160, failed: 40, quality_rate: 80, data_available: true },
+    { date: '2026-07-16', total_volume: 0, passed: 0, failed: 0, quality_rate: null, data_available: false },
+  ]);
+
+  assert.equal(getVolumeAxisMax(result), Math.ceil(200 * (1 + VOLUME_AXIS_HEADROOM_RATE)));
 });

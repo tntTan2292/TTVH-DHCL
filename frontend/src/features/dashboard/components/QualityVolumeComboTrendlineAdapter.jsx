@@ -18,9 +18,14 @@ import {
   formatNumber,
   formatRate,
   formatVariance,
+  getVolumeAxisMax,
   normalizeComboTrendlineItems,
   QUALITY_TARGET_RATE,
 } from './comboTrendlineData';
+
+const VOLUME_BAR_COLOR = '#0f766e';
+const QUALITY_LINE_COLOR = '#174ea6';
+const TARGET_LINE_COLOR = '#dc2626';
 
 function ComboTrendTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -34,27 +39,27 @@ function ComboTrendTooltip({ active, payload, label }) {
       </div>
       <div className="mt-2 space-y-1 text-sm">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Volume</span>
+          <span className="text-[var(--color-text-muted)]">Sản lượng</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatNumber(point.total_volume)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Passed</span>
+          <span className="text-[var(--color-text-muted)]">Đạt</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatNumber(point.passed)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Failed</span>
+          <span className="text-[var(--color-text-muted)]">Không đạt</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatNumber(point.failed)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Quality rate</span>
+          <span className="text-[var(--color-text-muted)]">Tỷ lệ chất lượng</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatRate(point.quality_rate)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Target</span>
+          <span className="text-[var(--color-text-muted)]">Mục tiêu</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatRate(point.target_rate)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Variance</span>
+          <span className="text-[var(--color-text-muted)]">Chênh lệch so mục tiêu</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatVariance(point.target_variance)}</span>
         </div>
       </div>
@@ -63,6 +68,8 @@ function ComboTrendTooltip({ active, payload, label }) {
 }
 
 function QualityVolumeComboTrendline({ data }) {
+  const volumeAxisMax = getVolumeAxisMax(data);
+
   return (
     <div className="h-[420px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -78,13 +85,13 @@ function QualityVolumeComboTrendline({ data }) {
           />
           <YAxis
             yAxisId="volume"
-            domain={[0, 'dataMax']}
+            domain={[0, volumeAxisMax]}
             tickLine={false}
             axisLine={false}
             tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
             tickFormatter={(value) => Number(value).toLocaleString('vi-VN')}
-            label={{ value: 'Volume', angle: -90, position: 'insideLeft', fill: 'var(--color-text-muted)', fontSize: 12 }}
-            width={76}
+            label={{ value: 'Sản lượng (bưu gửi)', angle: -90, position: 'insideLeft', fill: 'var(--color-text-muted)', fontSize: 12 }}
+            width={86}
           />
           <YAxis
             yAxisId="quality"
@@ -94,31 +101,31 @@ function QualityVolumeComboTrendline({ data }) {
             axisLine={false}
             tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
             tickFormatter={(value) => `${value}%`}
-            label={{ value: 'Quality rate', angle: 90, position: 'insideRight', fill: 'var(--color-text-muted)', fontSize: 12 }}
-            width={72}
+            label={{ value: 'Tỷ lệ chất lượng (%)', angle: 90, position: 'insideRight', fill: 'var(--color-text-muted)', fontSize: 12 }}
+            width={82}
           />
           <Tooltip content={<ComboTrendTooltip />} />
           <ReferenceLine
             yAxisId="quality"
             y={QUALITY_TARGET_RATE}
-            stroke="#dc2626"
+            stroke={TARGET_LINE_COLOR}
             strokeDasharray="6 6"
-            label={{ value: '90% target', position: 'insideTopRight', fill: '#dc2626', fontSize: 12, fontWeight: 700 }}
+            label={{ value: 'Mục tiêu 90%', position: 'insideTopRight', fill: TARGET_LINE_COLOR, fontSize: 12, fontWeight: 700 }}
           />
           <Bar
             yAxisId="volume"
             dataKey="total_volume"
-            name="Volume"
-            fill="#7aa7d9"
+            name="Sản lượng"
+            fill={VOLUME_BAR_COLOR}
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
           />
           <Line
             yAxisId="quality"
-            type="monotone"
+            type="linear"
             dataKey="quality_rate"
-            name="Quality rate"
-            stroke="#174ea6"
+            name="Tỷ lệ chất lượng"
+            stroke={QUALITY_LINE_COLOR}
             strokeWidth={3}
             dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
             activeDot={{ r: 6 }}
@@ -180,18 +187,18 @@ export default function QualityVolumeComboTrendlineAdapter({ reportingToDate, la
   }, [reportingToDate, latestDate, maBcvh]);
 
   if (state.loading) {
-    return <LoadingState label="Loading Quality and Volume Combo Trendline..." className="min-h-[460px]" />;
+    return <LoadingState label="Đang tải biểu đồ sản lượng và chất lượng..." className="min-h-[460px]" />;
   }
 
   if (state.error) {
-    return <ErrorState title="Unable to load combo trendline" description={state.error} className="min-h-[460px]" />;
+    return <ErrorState title="Không thể tải biểu đồ kết hợp" description={state.error} className="min-h-[460px]" />;
   }
 
   if (!state.data.length) {
     return (
       <EmptyState
-        title="No trendline data"
-        description="No daily shipment data is available for the selected dashboard context."
+        title="Không có dữ liệu biểu đồ"
+        description="Không có dữ liệu bưu gửi hằng ngày cho ngữ cảnh dashboard đã chọn."
         className="min-h-[460px]"
       />
     );
@@ -199,28 +206,28 @@ export default function QualityVolumeComboTrendlineAdapter({ reportingToDate, la
 
   return (
     <CardContainer
-      title="Quality and Volume Combo Trendline"
-      subtitle="30-day daily shipment volume and quality rate in one operational view."
-      action={<StatusBadge label="30-day combo" tone="info" />}
+      title="Sản lượng và chất lượng phát – 30 ngày"
+      subtitle="Sản lượng bưu gửi và tỷ lệ chất lượng theo ngày trong cùng một biểu đồ."
+      action={<StatusBadge label="30 ngày" tone="info" />}
       className="overflow-hidden"
     >
       <QualityVolumeComboTrendline data={state.data} />
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-2 rounded-sm bg-[#7aa7d9]" />
-          Volume, left axis
+          <span className="h-2 w-2 rounded-sm bg-[#0f766e]" />
+          Sản lượng, trục trái
         </span>
         <span className="inline-flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-[#174ea6]" />
-          Quality rate, right axis
+          Tỷ lệ chất lượng, trục phải
         </span>
         <span className="inline-flex items-center gap-2">
           <span className="h-2 w-4 border-t-2 border-dashed border-red-600" />
-          90% target
+          Mục tiêu 90%
         </span>
         <span className="inline-flex items-center gap-2">
           <Activity size={12} />
-          Missing dates remain gaps
+          Ngày thiếu dữ liệu giữ nguyên khoảng trống
         </span>
       </div>
     </CardContainer>

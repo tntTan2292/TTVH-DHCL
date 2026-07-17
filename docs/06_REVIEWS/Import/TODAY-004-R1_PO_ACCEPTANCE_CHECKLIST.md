@@ -13,7 +13,7 @@ Let a Product Owner verify that the Operation Dashboard shows one combined 30-da
 - Route / URL: `/f13/dashboard`
 - Required Test Context: signed-in browser session using the local test account
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
+- PO Product Status: `READY FOR PO CHECK`
 
 ## 3. Data Conditions
 
@@ -33,7 +33,7 @@ Let a Product Owner verify that the Operation Dashboard shows one combined 30-da
 ### Step 2
 
 - Action: Inspect the trendline section.
-- Expected Result: One combined Quality and Volume Combo Trendline is visible. The previous two separate chart sections are not shown.
+- Expected Result: One combined chart titled `Sản lượng và chất lượng phát – 30 ngày` is visible. The previous two separate chart sections are not shown.
 
 ### Step 3
 
@@ -43,17 +43,17 @@ Let a Product Owner verify that the Operation Dashboard shows one combined 30-da
 ### Step 4
 
 - Action: Inspect chart axes.
-- Expected Result: Volume bars use the left Y-axis starting at 0, and quality rate uses the right Y-axis fixed to 0-100%.
+- Expected Result: Teal or green volume bars use the left Y-axis `Sản lượng (bưu gửi)` starting at 0, and the dark-blue quality line uses the right Y-axis `Tỷ lệ chất lượng (%)` fixed to 0-100%.
 
 ### Step 5
 
 - Action: Inspect the 90% target line.
-- Expected Result: The target line is visible and aligned to the quality-rate axis.
+- Expected Result: The dashed red `Mục tiêu 90%` line is visible and aligned to the quality-rate axis.
 
 ### Step 6
 
 - Action: Hover daily points.
-- Expected Result: Tooltip shows date, volume, passed, failed, quality rate, target, and target variance.
+- Expected Result: Tooltip shows `Ngày`, `Sản lượng`, `Đạt`, `Không đạt`, `Tỷ lệ chất lượng`, `Mục tiêu`, and `Chênh lệch so mục tiêu`; quality and variance values use no more than two decimals and variance uses `điểm %`.
 
 ### Step 7
 
