@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 import {
@@ -29,18 +29,19 @@ import { mapDashboardKpiToCards } from './components/dashboardKpiCards';
 import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
 
-
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
-  const [kpiState, setKpiState] = useState({ loading: true, error: null, cards: [] });
+  const [kpiState, setKpiState] = useState({ loading: true, error: null, data: null, cards: mapDashboardKpiToCards({}) });
   const [trendState, setTrendState] = useState({ loading: true, error: null, data: [] });
   const [metadataState, setMetadataState] = useState({
     status: 'loading',
     bcvhOptions: [],
     error: null,
   });
+  const kpiCompletedKeyRef = useRef('');
+  const kpiInFlightKeyRef = useRef('');
 
   const loadDashboardMeta = () => {
     setMetadataState((prev) => ({ ...prev, status: 'loading', error: null }));
@@ -90,44 +91,65 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const requestKey = `${fromDate}|${toDate}|${maBcvh}`;
+    const shouldReuseCurrent = kpiCompletedKeyRef.current === requestKey && kpiState.data;
 
-    const loadKpi = async () => {
-      try {
-        setKpiState((prev) => ({ ...prev, loading: true, error: null }));
-        const response = await api.get('/f13/dashboard/kpi', {
-          params: {
-            from_date: fromDate,
-            to_date: toDate,
-            ma_bcvh: maBcvh,
-          },
-        });
+    if (shouldReuseCurrent) {
+      setKpiState((prev) => ({ ...prev, loading: false, error: null }));
+      return () => {
+        cancelled = true;
+      };
+    }
 
-        if (!cancelled && response?.data?.success) {
+    if (fromDate && toDate) {
+      if (kpiInFlightKeyRef.current === requestKey) {
+        return () => {
+          cancelled = true;
+        };
+      }
+
+      kpiInFlightKeyRef.current = requestKey;
+      setKpiState((prev) => ({
+        ...prev,
+        loading: true,
+        error: null,
+      }));
+
+      api.get('/f13/dashboard/kpi', {
+        params: {
+          from_date: fromDate,
+          to_date: toDate,
+          ma_bcvh: maBcvh,
+        },
+      })
+        .then((response) => {
+          if (cancelled || !response?.data?.success) return;
+          const rawData = response.data?.data || {};
+          kpiCompletedKeyRef.current = requestKey;
+          kpiInFlightKeyRef.current = '';
           setKpiState({
             loading: false,
             error: null,
-            cards: mapDashboardKpiToCards(response.data?.data || {}),
+            data: rawData,
+            cards: mapDashboardKpiToCards(rawData),
           });
-        }
-      } catch (error) {
-        if (!cancelled) {
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          kpiInFlightKeyRef.current = '';
           setKpiState({
             loading: false,
             error: error?.message || 'Không thể tải KPI dashboard.',
+            data: null,
             cards: mapDashboardKpiToCards({}),
           });
-        }
-      }
-    };
-
-    if (fromDate && toDate) {
-      loadKpi();
+        });
     }
 
     return () => {
       cancelled = true;
     };
-  }, [fromDate, maBcvh, toDate]);
+  }, [fromDate, kpiState.data, maBcvh, toDate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -272,7 +294,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
-            <ExecutiveSummaryAdapter fromDate={fromDate} toDate={toDate} maBcvh={maBcvh} />
+            <ExecutiveSummaryAdapter kpiData={kpiState.data} loading={kpiState.loading} error={kpiState.error} />
           </div>
           <div className="min-h-[240px]">
             <RuleRecommendationAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
@@ -282,7 +304,7 @@ export default function DashboardPage() {
         <SectionHeader title="Daily Brief & Message" subtitle="Hai khu vực này hiển thị tối thiểu để giữ đúng shell." />
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
-            <ExecutiveDailyBriefAdapter fromDate={fromDate} toDate={toDate} maBcvh={maBcvh} />
+            <ExecutiveDailyBriefAdapter kpiData={kpiState.data} loading={kpiState.loading} error={kpiState.error} />
           </div>
           <div className="min-h-[240px]">
             <MessageGenerationAdapter fromDate={fromDate} toDate={toDate} />

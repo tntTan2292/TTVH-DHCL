@@ -1,35 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import api from '../../../api/client';
+import React from 'react';
 import LegacyExecutiveDailyBrief from '../../../components/f13/ExecutiveDailyBrief';
+import { CardContainer, ErrorState, LoadingState } from '../../../components/shared/SharedComponents';
 
-export default function ExecutiveDailyBriefAdapter({ fromDate, toDate, maBcvh }) {
-  const [data, setData] = useState(null);
-  
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const res = await api.get('/f13/dashboard/kpi', { params: { from_date: fromDate, to_date: toDate, ma_bcvh: maBcvh } });
-        if (res.data.success) {
-          const apiData = res.data.data;
-          // MAP Backend KPI response -> Legacy expected data structure
-          const mappedData = {
-            today: apiData.passed_rate,
-            dod: 0, // Not provided by API yet
-            total_bg: apiData.total_bg,
-            buu_gui_dat: Math.round(apiData.total_bg * apiData.passed_rate / 100),
-            buu_gui_khong_dat: Math.round(apiData.total_bg * apiData.failed_rate / 100),
-            rank: 0, // Not provided by API yet
-            rankDod: 0
-          };
-          setData(mappedData);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
-    if (fromDate && toDate) fetch();
-  }, [fromDate, toDate, maBcvh]);
+function mapSharedKpiToDailyBrief(kpiData = {}) {
+  const totalBg = Number(kpiData.total_bg || 0);
+  const passedRate = Number(kpiData.passed_rate || 0);
+  const failedRate = Number(kpiData.failed_rate || 0);
 
-  if (!data) return <div className="h-24 bg-blue-50 animate-pulse rounded-xl mb-6"></div>;
-  return <LegacyExecutiveDailyBrief kpiData={data} />;
+  return {
+    today: passedRate,
+    dod: 0,
+    total_bg: totalBg,
+    buu_gui_dat: Math.round((totalBg * passedRate) / 100),
+    buu_gui_khong_dat: Math.round((totalBg * failedRate) / 100),
+    rank: 0,
+    rankDod: 0,
+  };
+}
+
+export default function ExecutiveDailyBriefAdapter({ kpiData, loading, error }) {
+  if (loading) {
+    return (
+      <CardContainer title="Executive Daily Brief">
+        <LoadingState label="Đang tải Daily Brief..." className="min-h-[160px]" />
+      </CardContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <CardContainer title="Executive Daily Brief">
+        <ErrorState title="Không thể tải Daily Brief" description={error} className="min-h-[160px]" />
+      </CardContainer>
+    );
+  }
+
+  return <LegacyExecutiveDailyBrief kpiData={mapSharedKpiToDailyBrief(kpiData)} />;
 }
