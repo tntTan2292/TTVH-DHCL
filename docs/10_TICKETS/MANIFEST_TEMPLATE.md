@@ -79,7 +79,62 @@ If the next ticket is not yet sufficiently defined by authoritative SSOT:
 - publish it remotely
 - ensure fresh onboarding explains the blocker precisely
 
-## 2.4 Post-Onboarding Behavior
+## 2.4 Active Manifest Readiness Gate
+
+Before activating a next ticket, Codex must inspect the proposed manifest even when the file already exists.
+
+A manifest is not valid merely because:
+
+- its file exists
+- it is registered in `DOCUMENT_INDEX`
+- `PROJECT_SNAPSHOT` points to it
+- its ticket name matches the roadmap
+
+Codex must migrate an existing manifest before activation when it:
+
+- was created under an older Governance standard
+- contains Governance pointer-activation scope instead of actual ticket scope
+- duplicates stale mutable state
+- lacks sufficient Required Reading
+- lacks implementation authority
+- lacks an explicit authoritative blocker state
+- cannot support automatic Codex prompt generation
+
+Readiness before activation:
+
+- describes the actual active ticket
+- contains sufficient implementation authority or an explicit blocker state
+- contains concrete, accessible GitHub Blob URLs
+- references authoritative business-rule sources
+- defines In Scope and Out of Scope
+- defines technical, runtime, testing, documentation, PO, completion, and handoff requirements
+- identifies the next ticket from an authoritative roadmap
+- does not require repository searching, guessing, or user clarification
+- passes fresh onboarding validation
+
+Mutable live state ownership:
+
+- `PROJECT_SNAPSHOT.md` exclusively owns mutable current project state, including Current Phase, Current Ticket, Current Manifest, Current Commit, Current Branch, current PO Status, and live next-ticket routing
+- manifest templates must reference `PROJECT_SNAPSHOT.md` for mutable live state
+- historical commit evidence may remain only when clearly identified as immutable implementation or validation evidence
+
+Mandatory handoff migration check:
+
+1. Identify the authoritative next ticket.
+2. Locate or create its manifest.
+3. Validate it against the current manifest standard.
+4. Migrate it when legacy or incomplete.
+5. Confirm actual implementation authority or an explicit blocker state.
+6. Update `PROJECT_SNAPSHOT`.
+7. Update `DOCUMENT_INDEX` when applicable.
+8. Commit and push to `origin/main`.
+9. Verify the remote commit and Blob URLs.
+10. Run fresh onboarding from `README_AI.md`.
+11. Confirm the fresh AI automatically generates the next Codex prompt.
+
+The current ticket must not be reported complete when any applicable step fails.
+
+## 2.5 Post-Onboarding Behavior
 
 When a manifest authorizes implementation and no governance blocker exists, a fresh AI onboarding from `README_AI.md` must immediately continue into Codex prompt generation.
 
@@ -102,8 +157,6 @@ The required autonomous output is:
 - Current state:
 - PO UI Check Required:
 - PO Product Status:
-- Current Commit:
-- Current Branch:
 
 ## 4. Required Reading
 

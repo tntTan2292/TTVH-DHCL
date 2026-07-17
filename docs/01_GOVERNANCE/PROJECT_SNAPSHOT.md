@@ -18,12 +18,12 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `TODAY-004 Volume Trendline` |
-| Next Ticket | `TODAY-004 Volume Trendline` |
+| Current Ticket | `GOV-V2-014 Active Manifest Readiness Gate` |
+| Next Ticket | `GOV-V2-014 Active Manifest Readiness Gate` |
 | PO Status | `NOT READY` |
-| Current Commit | `70a6f183b32e29b25ebcd6b42f3afe3e19b5db13` |
+| Current Commit | `3f87de11d0f67d51c6636e1f4a4f413df48b69ca` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-004_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/GOV-V2-014_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-17` |
 
