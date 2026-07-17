@@ -71,8 +71,8 @@ Only the following documents are required to continue this ticket:
 - Browser origin: `N/A`
 - Backend origin: `N/A`
 - Observed validation state:
-  - snapshot currently points `Current Manifest` to placeholder text
-  - validation fails until the active manifest pointer is updated to a GitHub Blob URL
+  - `PROJECT_SNAPSHOT.md` points `Current Manifest` to the GitHub Blob URL for `docs/10_TICKETS/TODAY-004_MANIFEST.md`
+  - validation passes when onboarding resolves `README_AI.md` -> `PROJECT_SNAPSHOT.md` -> current manifest -> required reading without guessing
 
 ## 8. Related Review
 
