@@ -47,7 +47,6 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - where the project is
 - what ticket is active
 - what comes next
-- what commit is current
 - what branch is active
 - what manifest governs the current reading scope
 
