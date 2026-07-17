@@ -18,11 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Leadership Dashboard Delivery` |
-| Current Ticket | `GOVERNANCE-PO-UI-SEPARATION — COMPLETED` |
-| Next Ticket | `TODAY-007 Dashboard Executive Layout Cleanup` |
-| PO Status | `NOT APPLICABLE` |
+| Current Ticket | `TODAY-007 Dashboard Executive Layout Cleanup` |
+| Next Ticket | `TODAY-008 PO Data Reconciliation and Leadership View` |
+| PO Status | `NOT READY` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/GOVERNANCE-PO-UI-SEPARATION_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TODAY-007_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-17` |
 
@@ -50,6 +50,6 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Next separate action: activate `TODAY-007 Dashboard Executive Layout Cleanup` only after the governance handoff is fully closed.
+Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
 
 Governance V1 remains the full workflow reference until a later migration phase explicitly replaces any part of it.
