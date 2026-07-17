@@ -20,7 +20,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Phase | `V2.0 Foundation` |
 | Current Ticket | `TICKET-0101 Login API and Session` |
 | Next Ticket | `TICKET-0102 Access Guard and Route Protection` |
-| PO Status | `NOT READY` |
+| PO Status | `READY FOR PO CHECK` |
 | Current Branch | `main` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/TICKET-0101_MANIFEST.md` |
 | Governance Version | `V2 Active` |
@@ -58,7 +58,9 @@ TODAY-008 is completed with explicit Product Owner `PO PASS`.
 
 TODAY-008 scope remains limited to PO data reconciliation and the leadership import-to-dashboard validation path. Broader dashboard widget, chart-meaning, color-consistency, or layout audit scope must be recorded in an authoritative roadmap, ticket, or manifest before implementation.
 
-TICKET-0101 is activated for implementation with scope limited to Login API and Session. Codex must not infer missing authentication, credential storage, role, permission, password, session timeout, or user-management business rules; if required authority is absent, record the blocker instead of guessing.
+TICKET-0101 has Technical PASS and Runtime PASS for Login API and Session. It is waiting for explicit Product Owner UI acceptance and must not be closed without PO PASS.
+
+TICKET-0101 scope remains limited to Login API and Session. Codex must not infer missing authentication, credential storage, role, permission, password, session timeout, or user-management business rules; if required authority is absent, record the blocker instead of guessing.
 
 TICKET-0102 remains inactive until TICKET-0101 receives explicit PO PASS and a separate governance action activates the next ticket.
 

@@ -6,10 +6,13 @@ export default function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const from = location.state?.from?.pathname || '/f13/dashboard';
+    const fromLocation = location.state?.from;
+    const from = fromLocation
+        ? `${fromLocation.pathname || '/'}${fromLocation.search || ''}${fromLocation.hash || ''}`
+        : '/f13/dashboard';
 
-    const [username, setUsername] = useState('admin');
-    const [password, setPassword] = useState('admin123');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 

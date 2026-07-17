@@ -1,17 +1,20 @@
 const crypto = require('crypto');
 
+const DEFAULT_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+
 class AuthSessionStore {
     constructor() {
         this.sessions = new Map();
     }
 
-    createSession(user) {
+    createSession(user, options = {}) {
         const sessionId = crypto.randomUUID();
         const now = Date.now();
+        const ttlMs = Number.isFinite(options.ttlMs) ? options.ttlMs : DEFAULT_SESSION_TTL_MS;
         this.sessions.set(sessionId, {
             user,
             createdAt: now,
-            expiresAt: now + 12 * 60 * 60 * 1000,
+            expiresAt: now + ttlMs,
         });
         return sessionId;
     }
@@ -31,6 +34,10 @@ class AuthSessionStore {
         if (sessionId) {
             this.sessions.delete(sessionId);
         }
+    }
+
+    clear() {
+        this.sessions.clear();
     }
 }
 

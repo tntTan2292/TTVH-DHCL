@@ -14,13 +14,14 @@
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / READY FOR IMPLEMENTATION`
+- Current state: `READY FOR PO CHECK`
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
-- Technical Status: `NOT STARTED`
-- Runtime Status: `NOT STARTED`
-- Review status: `READY FOR IMPLEMENTATION`
+- PO Product Status: `READY FOR PO CHECK`
+- Technical Status: `PASS`
+- Runtime Status: `PASS`
+- Review status: `READY FOR PO CHECK`
 - Activation date: `2026-07-18`
+- Technical handoff date: `2026-07-18`
 
 ## 4. Required Reading
 
@@ -39,6 +40,8 @@
 - [frontend/src/api/authClient.js](https://github.com/tntTan2292/TTVH-DHCL/blob/main/frontend/src/api/authClient.js)
 - [frontend/src/auth/AuthContext.jsx](https://github.com/tntTan2292/TTVH-DHCL/blob/main/frontend/src/auth/AuthContext.jsx)
 - [frontend/src/pages/LoginPage.jsx](https://github.com/tntTan2292/TTVH-DHCL/blob/main/frontend/src/pages/LoginPage.jsx)
+- [docs/06_REVIEWS/Auth/TICKET-0101_LOGIN_API_AND_SESSION.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Auth/TICKET-0101_LOGIN_API_AND_SESSION.md)
+- [docs/06_REVIEWS/Auth/TICKET-0101_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Auth/TICKET-0101_PO_ACCEPTANCE_CHECKLIST.md)
 
 ## 5. Business Context
 
@@ -110,6 +113,23 @@
 - Product Owner owns visible UI acceptance and final PO PASS / WARNING / FAIL.
 - Codex must not self-award PO PASS.
 - Provide a concise manual PO checklist covering `/login`, authenticated refresh behavior, logout, expected visible result, and PASS / WARNING / FAIL criteria.
+
+## 12.1 Technical Handoff Evidence
+
+- Review evidence: `docs/06_REVIEWS/Auth/TICKET-0101_LOGIN_API_AND_SESSION.md`
+- PO acceptance checklist: `docs/06_REVIEWS/Auth/TICKET-0101_PO_ACCEPTANCE_CHECKLIST.md`
+- Auth API contract validated:
+  - `POST /api/auth/login`
+  - `GET /api/auth/me`
+  - `POST /api/auth/logout`
+- Runtime behavior validated:
+  - successful login reaches authenticated dashboard;
+  - invalid login stays on `/login` with an error;
+  - refresh keeps the authenticated dashboard session;
+  - logout returns to `/login`;
+  - no app page console errors were observed.
+- No credentials, tokens, session IDs, secrets, cookies, or screenshots were committed.
+- Final state: `READY FOR PO CHECK`.
 
 ## 13. Authority Guard
 
