@@ -3,12 +3,13 @@
 - Ticket ID: `DA-IMPL-003`
 - Ticket Name: `Integrated Trend and Risk Workspace`
 - Phase: `Smart Leadership Dashboard Implementation`
-- Current state: `PLANNED / INACTIVE`
+- Current state: `ACTIVE`
 - Technical Status: `NOT STARTED`
 - Runtime Status: `NOT STARTED`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT READY`
-- Activation rule: activate only after `DA-IMPL-002` receives `PO PASS` or explicit governance authority allows parallel work.
+- Activation authority: `DA-IMPL-002` received Product Owner `PO PASS` on `2026-07-18`.
+- Activation date: `2026-07-18`
 
 ## Required Reading
 
@@ -23,10 +24,21 @@ Create one primary trend area named `Xu huong dieu hanh tong hop`; consolidate a
 
 This ticket must explicitly decide the legacy Daily Timeline outcome: merge into the integrated chart, convert it into threshold-specific evidence, or remove it after PO acceptance.
 
+DA-IMPL-003 product direction:
+
+- Consolidate the current 30-day chart and 7-day comparison chart into one integrated trend workspace.
+- Use tabs or modes such as `30 ngay`, `7 ngay so sanh`, and `Theo BCVH`.
+- Place current risk and exception information beside the main chart.
+- Eliminate duplicated chart stories.
+- Preserve accepted KPI formulas, API contracts, thresholds, and filter context.
+- Do not invent causes, owners, deadlines, or new thresholds.
+- Reduce Dashboard height and continue the cumulative target that the final Dashboard should fit within approximately two vertical desktop viewports.
+- Do not restructure DA-IMPL-004 through DA-IMPL-007 surfaces yet.
+
 ## Out of Scope
 
-New formulas, unsupported causes, API/schema changes, and activation before governance authority.
+New formulas, unsupported causes, owners, deadlines, thresholds, API/schema changes, Auto Import implementation, and DA-IMPL-004 through DA-IMPL-007 restructuring.
 
 ## Next Ticket
 
-`DA-IMPL-004` Unified BCVH Analysis Table.
+`AUTO-IMPORT-001` Source Portal Discovery and Security Assessment.

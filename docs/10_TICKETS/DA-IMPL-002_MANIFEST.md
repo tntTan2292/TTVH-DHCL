@@ -3,14 +3,17 @@
 - Ticket ID: `DA-IMPL-002`
 - Ticket Name: `Unified Command Summary`
 - Phase: `Smart Leadership Dashboard Implementation`
-- Current state: `READY FOR PO CHECK`
+- Current state: `COMPLETED`
 - Technical Status: `PASS`
 - Runtime Status: `PASS`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `PO PASS`
 - Activation date: `2026-07-18`
 - Activation authority: `DA-IMPL-001` received Product Owner `PO PASS` on `2026-07-18`.
 - Technical handoff date: `2026-07-18`
+- Review Status: `PO PASS`
+- PO closure date: `2026-07-18`
+- PO Reviewer: `Product Owner`
 
 ## Required Reading
 
@@ -63,8 +66,21 @@ Auto Import tickets remain `PLANNED / INACTIVE`. DA-IMPL-002 must not invent sou
 
 - Implementation report: [docs/06_REVIEWS/Dashboard/DA-IMPL-002_UNIFIED_COMMAND_SUMMARY.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Dashboard/DA-IMPL-002_UNIFIED_COMMAND_SUMMARY.md)
 - PO checklist: [docs/06_REVIEWS/Dashboard/DA-IMPL-002_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Dashboard/DA-IMPL-002_PO_ACCEPTANCE_CHECKLIST.md)
-- Handoff status: `READY FOR PO CHECK`
-- PO authority still required for final `PO PASS`.
+- Handoff status: `COMPLETED`
+- Product Owner decision: `PO PASS DA-IMPL-002`
+
+## PO Acceptance Closure
+
+Product Owner accepted:
+
+- Unified Command Summary.
+- Four-card structure: `Ty le dat`, `Xep hang toan quoc`, `San luong`, and `Buu gui can xu ly`.
+- `Ty le khong dat` as supporting information only.
+- Action card and insight using the same `total_failed` API source.
+- No fabricated zero when data is missing.
+- National-rank period wording.
+- Removal of duplicate Executive Summary.
+- Compact command summary within the first desktop viewport.
 
 ## Next Ticket
 

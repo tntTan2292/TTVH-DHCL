@@ -18,11 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Smart Leadership Dashboard Implementation` |
-| Current Ticket | `DA-IMPL-002 Unified Command Summary` |
-| Next Ticket | `DA-IMPL-003 Integrated Trend and Risk Workspace` |
-| PO Status | `READY FOR PO CHECK` |
+| Current Ticket | `DA-IMPL-003 Integrated Trend and Risk Workspace` |
+| Next Ticket | `AUTO-IMPORT-001 Source Portal Discovery and Security Assessment` |
+| PO Status | `NOT READY` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-002_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-003_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-18` |
 
@@ -68,13 +68,15 @@ The approved Dashboard direction is the consolidated smart Dashboard with five d
 
 DA-IMPL-001 is completed with Product Owner `PO PASS` after PO warning closure for visible technical wording and failed-rate card semantic color.
 
-DA-IMPL-002 is technically complete and `READY FOR PO CHECK` after DA-IMPL-001 `PO PASS`.
+DA-IMPL-002 is completed with Product Owner `PO PASS` after runtime environment verification and Product Owner acceptance of the Unified Command Summary.
 
 DA-IMPL-002 includes the Product Owner KPI-system requirements transferred from DA-IMPL-001 closure: do not show `Tỷ lệ đạt` and `Tỷ lệ không đạt` as two independent KPI cards at the same time; restore `Xếp hạng toàn quốc` from imported nationwide data; use `Bưu gửi cần xử lý` as the action card and keep `Tỷ lệ không đạt` as supporting information.
 
-DA-IMPL-002 runtime evidence confirms the Unified Command Summary is visible in the first `1440x900` viewport, uses four leadership cards, restores national rank from imported `fact_f13_national` data, and removes the duplicate Executive Summary presentation. Product Owner review is still required; Codex must not mark `PO PASS`.
+DA-IMPL-002 runtime evidence confirms the Unified Command Summary is visible in the first `1440x900` viewport, uses four leadership cards, restores national rank from imported `fact_f13_national` data, and removes the duplicate Executive Summary presentation.
 
-DA-IMPL-003 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
+DA-IMPL-003 is active after DA-IMPL-002 `PO PASS`. DA-IMPL-003 must consolidate the accepted 30-day and 7-day trend views into one integrated trend and risk workspace while preserving formulas, API contracts, thresholds, and filter context.
+
+AUTO-IMPORT-001, AUTO-IMPORT-002, AUTO-IMPORT-003, and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
 
 TICKET-0102 is deferred and inactive during the Dashboard implementation sequence unless Product Owner later changes priority.
 

@@ -226,9 +226,9 @@ Recommended sequence:
 9. `DA-IMPL-006` - Unified Action Center
 10. `DA-IMPL-007` - Smart Dashboard Final Assembly
 
-Only `DA-IMPL-002` is active. Later DA-IMPL and Auto Import tickets are planned and inactive until the prior ticket receives `PO PASS` or an explicit governance decision allows parallel work.
+Only `DA-IMPL-003` is active. Auto Import and later DA-IMPL tickets are planned and inactive until the prior ticket receives `PO PASS` or an explicit governance decision allows parallel work.
 
-Auto Import tickets are planning placeholders only during DA-IMPL-002. Do not implement portal login, downloading, credentials, scheduler, CAPTCHA/OTP handling, or automated import under DA-IMPL-002.
+The next ticket after DA-IMPL-003 is `AUTO-IMPORT-001` Source Portal Discovery and Security Assessment. Auto Import remains planned and inactive until DA-IMPL-003 receives `PO PASS` or explicit governance authority allows activation. Do not implement portal login, downloading, credentials, scheduler, CAPTCHA/OTP handling, or automated import under DA-IMPL-003.
 
 From DA-IMPL-002 onward, compactness is a cross-ticket Dashboard acceptance constraint. At the desktop reference viewport `1440x900`, the primary leadership summary should be visible within the first viewport, DA-IMPL-002 must not increase total page height, and the final Dashboard direction should target no more than approximately two vertical viewports. The two A4 pages reference is a density/readability analogy only.
 
