@@ -9,9 +9,7 @@ import {
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
-import QualityVolumeComboTrendlineAdapter from './components/QualityVolumeComboTrendlineAdapter';
-import SamePeriodComparisonTrendlineAdapter from './components/SamePeriodComparisonTrendlineAdapter';
-import QualityTimelineAdapter from './components/QualityTimelineAdapter';
+import IntegratedTrendRiskWorkspace from './components/IntegratedTrendRiskWorkspace';
 import BcvhOperationTableAdapter from './components/BcvhOperationTableAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
@@ -274,10 +272,14 @@ export default function DashboardPage() {
           bcvhLabel={selectedBcvhLabel}
         />
 
-        <QualityVolumeComboTrendlineAdapter data={trendState.data} loading={trendState.loading} error={trendState.error} />
-        <SamePeriodComparisonTrendlineAdapter data={trendState.data} loading={trendState.loading} error={trendState.error} toDate={toDate || latestDate || defaultDate} />
-
-        <QualityTimelineAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
+        <IntegratedTrendRiskWorkspace
+          data={trendState.data}
+          loading={trendState.loading}
+          error={trendState.error}
+          toDate={toDate || latestDate || defaultDate}
+          maBcvh={maBcvh}
+          kpiData={kpiState.data}
+        />
 
         <div className="min-h-[240px]">
           <RuleRecommendationAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
