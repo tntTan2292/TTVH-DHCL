@@ -8,7 +8,8 @@
 - [4. Expected Output](#4-expected-output)
 - [5. Current Repository Status](#5-current-repository-status)
 - [6. Quick Links](#6-quick-links)
-- [7. Golden Rule](#7-golden-rule)
+- [7. Conversation Context Capacity and Fresh-Chat Handoff](#7-conversation-context-capacity-and-fresh-chat-handoff)
+- [8. Golden Rule](#8-golden-rule)
 
 ## 1. Purpose
 
@@ -114,7 +115,33 @@ Ticket naming conventions do not change this route; the live state must always b
 - [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
 - [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md)
 
-## 7. Golden Rule
+## 7. Conversation Context Capacity and Fresh-Chat Handoff
+
+The assistant or Codex must monitor whether the current conversation has become excessively long, repetitive, difficult to navigate, or likely to lose critical project context.
+
+When the conversation approaches practical context capacity, becomes noticeably heavy, or risks mixing obsolete and current authority, the assistant must proactively tell the Product Owner to open a new ChatGPT conversation. Do not wait until context is already lost.
+
+The warning must be concise and must not interrupt urgent work unnecessarily. Before recommending a new conversation, ensure authoritative project state is committed or recorded in repository governance where possible.
+
+Provide a concise fresh-chat handoff containing:
+
+- repository
+- current branch
+- current phase
+- current ticket
+- current manifest
+- latest remote commit
+- PO status
+- next required action
+- unresolved decisions or blockers
+
+The new conversation must begin from `README_AI.md`, not from copied chat memory alone. Repository governance remains authoritative; conversation summaries are only navigation aids.
+
+Never claim an exact token count or context percentage unless the system actually exposes it. Use qualitative indicators such as conversation is becoming very long, multiple completed phases remain in chat history, current decisions are difficult to distinguish from superseded decisions, tool output is dominating the conversation, or response quality may be reduced by context weight.
+
+Do not repeatedly ask for a new chat when the current conversation remains manageable.
+
+## 8. Golden Rule
 
 Every AI must start from `README_AI.md` and then follow the manifest-driven route above.
 

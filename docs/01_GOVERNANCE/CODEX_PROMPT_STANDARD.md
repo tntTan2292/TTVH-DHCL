@@ -9,6 +9,7 @@
 - [5. Post-Onboarding Behavior](#5-post-onboarding-behavior)
 - [6. Minimal Default Template](#6-minimal-default-template)
 - [7. Output Standard](#7-output-standard)
+- [10. Conversation Context Capacity and Fresh-Chat Handoff](#10-conversation-context-capacity-and-fresh-chat-handoff)
 
 ## 1. Purpose
 
@@ -226,3 +227,29 @@ The `Additional PO/User Decision` field may contain only temporary execution cla
 Any authoritative business, scope, contract, acceptance, or frozen-behavior change must first be recorded in the correct repository document.
 
 Codex must not implement an authoritative change that exists only in chat or in the execution prompt.
+
+## 10. Conversation Context Capacity and Fresh-Chat Handoff
+
+Codex must monitor whether the current conversation has become excessively long, repetitive, difficult to navigate, or likely to lose critical project context.
+
+When the conversation approaches practical context capacity, becomes noticeably heavy, or risks mixing obsolete and current authority, Codex must proactively tell the Product Owner to open a new ChatGPT conversation. Do not wait until context is already lost.
+
+The warning must be concise and must not interrupt urgent work unnecessarily. Before recommending a new conversation, ensure authoritative project state is committed or recorded in repository governance where possible.
+
+The fresh-chat handoff must include:
+
+- repository
+- current branch
+- current phase
+- current ticket
+- current manifest
+- latest remote commit
+- PO status
+- next required action
+- unresolved decisions or blockers
+
+The new conversation must begin from `README_AI.md`, not from copied chat memory alone. Repository governance remains authoritative; conversation summaries are only navigation aids.
+
+Never claim an exact token count or context percentage unless the system actually exposes it. Use qualitative indicators such as conversation is becoming very long, multiple completed phases remain in chat history, current decisions are difficult to distinguish from superseded decisions, tool output is dominating the conversation, or response quality may be reduced by context weight.
+
+Do not repeatedly ask for a new chat when the current conversation remains manageable.

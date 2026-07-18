@@ -200,6 +200,27 @@ The following queue is the current PO-prioritized delivery order for leadership 
 - Acceptance Criteria: Unauthorized access is blocked consistently.
 - Runtime Acceptance Criteria: Protected routes and modules are inaccessible without the right role.
 - Definition of Done: Guards are active across the app and verified at runtime.
+- Current deferral: `INACTIVE / DEFERRED`
+- Deferral authority: Product Owner smart Dashboard priority on `2026-07-18`
+- Deferral note: remains deferred and inactive during the DA implementation sequence unless Product Owner later changes priority.
+
+### DA-IMPL Dashboard Implementation Sequence
+
+- Authority: Product Owner `PO PASS` for `DASHBOARD-AUDIT-001` on `2026-07-18`
+- Approved plan: `docs/04_TECHNICAL_PLANNING/Dashboard/SMART_DASHBOARD_IMPLEMENTATION_PLAN.md`
+- Ticket register: `docs/04_TECHNICAL_PLANNING/Dashboard/DA_IMPLEMENTATION_TICKET_REGISTER.md`
+- Active ticket: `DA-IMPL-001`
+- Sequencing rule: do not activate all DA tickets simultaneously.
+
+| Ticket | Goal | Status | PO Product Status |
+| --- | --- | --- | --- |
+| `DA-IMPL-001` | Dashboard Language and Semantic Foundation | `ACTIVE` | `NOT READY` |
+| `DA-IMPL-002` | Unified Command Summary | `PLANNED / INACTIVE` | `NOT READY` |
+| `DA-IMPL-003` | Integrated Trend and Risk Workspace | `PLANNED / INACTIVE` | `NOT READY` |
+| `DA-IMPL-004` | Unified BCVH Analysis Table | `PLANNED / INACTIVE` | `NOT READY` |
+| `DA-IMPL-005` | Operating Pattern Tabs | `PLANNED / INACTIVE` | `NOT READY` |
+| `DA-IMPL-006` | Unified Action Center | `PLANNED / INACTIVE` | `NOT READY` |
+| `DA-IMPL-007` | Smart Dashboard Final Assembly | `PLANNED / INACTIVE` | `NOT READY` |
 
 ### TICKET-0011 Dashboard Shell
 
@@ -556,7 +577,7 @@ The following queue is the current PO-prioritized delivery order for leadership 
 21. `TICKET-0081` AI Recommendation Output
 22. `TICKET-0091` Consolidated Reporting
 
-Priority update on 2026-07-18: after explicit TICKET-0101 `PO PASS`, Product Owner directed a dedicated Dashboard audit before TICKET-0102. `DASHBOARD-AUDIT-001` is audit and recommendation work only; it must not authorize broad dashboard product-code changes.
+Priority update on 2026-07-18: after explicit TICKET-0101 `PO PASS`, Product Owner directed a dedicated Dashboard audit before TICKET-0102. `DASHBOARD-AUDIT-001` is completed with explicit Product Owner `PO PASS`. The approved next phase is the consolidated smart Dashboard implementation sequence. `TICKET-0102` remains deferred and inactive unless Product Owner later changes priority.
 
 ## 3. Parallel Development Matrix
 

@@ -71,6 +71,8 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md` | Technical Planning | Feature breakdown | Frozen | L3 | 3 | Medium | epic/backlog |
 | `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md` | Technical Planning | Development ticket queue | Frozen | L3 | 3 | High | feature/implementation docs |
 | `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md` | Technical Planning | Implementation structure | Frozen | L2 | 2 | Low | release/epic/feature/backlog |
+| `docs/04_TECHNICAL_PLANNING/Dashboard/SMART_DASHBOARD_IMPLEMENTATION_PLAN.md` | Technical Planning | Approved consolidated smart Dashboard architecture and implementation constraints | Active | L2 | 1 | High | DASHBOARD-AUDIT-001, DA implementation register, DA manifests |
+| `docs/04_TECHNICAL_PLANNING/Dashboard/DA_IMPLEMENTATION_TICKET_REGISTER.md` | Technical Planning | Authoritative DA implementation sequence and activation status | Active | L2 | 1 | High | smart Dashboard plan, PROJECT_SNAPSHOT.md, DA manifests |
 
 ## 5. Development
 
@@ -172,9 +174,16 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/10_TICKETS/TICKET-0101_MANIFEST.md` | Reviews | Completed ticket manifest for TICKET-0101 Login API and Session | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, backlog, feature, epic, auth implementation files |
 | `docs/06_REVIEWS/Auth/TICKET-0101_LOGIN_API_AND_SESSION.md` | Reviews | TICKET-0101 login API and session implementation/runtime evidence with PO PASS closure | Completed | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
 | `docs/06_REVIEWS/Auth/TICKET-0101_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TICKET-0101 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/DASHBOARD-AUDIT-001_MANIFEST.md` | Reviews | Current ticket manifest for Dashboard widget, chart and visual consistency audit | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, backlog, dashboard evidence |
-| `docs/06_REVIEWS/Dashboard/DASHBOARD-AUDIT-001_LEADERSHIP_DASHBOARD_AUDIT.md` | Reviews | DASHBOARD-AUDIT-001 Leadership Dashboard component inventory, overlap, color, hierarchy, and implementation proposal | Active | L2 | 1 | High | DASHBOARD-AUDIT-001 manifest, Dashboard source components, PO review checklist |
-| `docs/06_REVIEWS/Dashboard/DASHBOARD-AUDIT-001_PO_REVIEW_CHECKLIST.md` | Reviews | DASHBOARD-AUDIT-001 concise PO review checklist | Active | L2 | 1 | High | PO acceptance workflow, audit report, DASHBOARD-AUDIT-001 manifest |
+| `docs/10_TICKETS/DASHBOARD-AUDIT-001_MANIFEST.md` | Reviews | Completed ticket manifest for Dashboard widget, chart and visual consistency audit with Product Owner PO PASS closure | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, backlog, dashboard evidence |
+| `docs/06_REVIEWS/Dashboard/DASHBOARD-AUDIT-001_LEADERSHIP_DASHBOARD_AUDIT.md` | Reviews | DASHBOARD-AUDIT-001 Leadership Dashboard audit and PO PASS closure evidence | Completed | L2 | 1 | High | DASHBOARD-AUDIT-001 manifest, smart Dashboard plan, PO review checklist |
+| `docs/06_REVIEWS/Dashboard/DASHBOARD-AUDIT-001_PO_REVIEW_CHECKLIST.md` | Reviews | DASHBOARD-AUDIT-001 PO review checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, audit report, DASHBOARD-AUDIT-001 manifest |
+| `docs/10_TICKETS/DA-IMPL-001_MANIFEST.md` | Reviews | Active manifest for Dashboard Language and Semantic Foundation | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, smart Dashboard plan, DA register |
+| `docs/10_TICKETS/DA-IMPL-002_MANIFEST.md` | Reviews | Planned inactive manifest for Unified Command Summary | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
+| `docs/10_TICKETS/DA-IMPL-003_MANIFEST.md` | Reviews | Planned inactive manifest for Integrated Trend and Risk Workspace | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
+| `docs/10_TICKETS/DA-IMPL-004_MANIFEST.md` | Reviews | Planned inactive manifest for Unified BCVH Analysis Table | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
+| `docs/10_TICKETS/DA-IMPL-005_MANIFEST.md` | Reviews | Planned inactive manifest for Operating Pattern Tabs | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
+| `docs/10_TICKETS/DA-IMPL-006_MANIFEST.md` | Reviews | Planned inactive manifest for Unified Action Center | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
+| `docs/10_TICKETS/DA-IMPL-007_MANIFEST.md` | Reviews | Planned inactive manifest for Smart Dashboard Final Assembly | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
 | `docs/10_TICKETS/GOVERNANCE-PO-UI-SEPARATION_MANIFEST.md` | Reviews | Governance amendment manifest between TODAY-006 and TODAY-007 | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, governance workflow docs |
 | `docs/06_REVIEWS/Import/screenshots/` | Reviews | Runtime browser evidence screenshots for TODAY recovery tickets | Active | L2 | 1 | High | Review evidence docs |
 | `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
