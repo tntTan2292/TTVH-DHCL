@@ -20,13 +20,15 @@ test('dashboard KPI cards use business wording and no runtime contract wording',
   const cards = mapDashboardKpiToCards({
     total_bg: 100,
     total_failed: 20,
+    total_unknown: 5,
     passed_rate: 80,
     failed_rate: 20,
   });
 
   assert.deepEqual(cards.map((card) => card.label), ['Tỷ lệ đạt', 'Xếp hạng toàn quốc', 'Sản lượng', 'Bưu gửi cần xử lý']);
   assert.equal(cards[3].tone, 'danger');
-  assert.match(cards[3].support, /Tỷ lệ không đạt/);
+  assert.match(cards[2].support, /bưu gửi chuyển hoàn/);
+  assert.doesNotMatch(cards[3].support, /Tỷ lệ không đạt/);
   assert.doesNotMatch(JSON.stringify(cards), /contract|runtime/i);
 });
 

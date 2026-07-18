@@ -47,6 +47,6 @@ New formulas, unsupported causes, owners, deadlines, thresholds, API/schema chan
 
 - Evidence: [docs/06_REVIEWS/Dashboard/DA-IMPL-003_INTEGRATED_TREND_AND_RISK_WORKSPACE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Dashboard/DA-IMPL-003_INTEGRATED_TREND_AND_RISK_WORKSPACE.md)
 - PO checklist: [docs/06_REVIEWS/Dashboard/DA-IMPL-003_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Dashboard/DA-IMPL-003_PO_ACCEPTANCE_CHECKLIST.md)
-- PO warning remediation: leadership comparison widget now shows D-1 and D-7 values, deltas, direction, and semantic meaning without requiring hover; 7-day mode also shows per-day D-7 delta evidence.
+- PO warning remediation: leadership comparison widget now emphasizes `Tỷ lệ đạt`, keeps volume/failed count as compact support, removes the redundant `Tỷ lệ không đạt` trend line/story, and presents the residual measurement population as `Chuyển hoàn` under `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`.
 - Handoff status: `PO WARNING / READY FOR PO RECHECK`
 - Product Owner decision: `PENDING`

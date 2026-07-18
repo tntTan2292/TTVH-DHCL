@@ -45,7 +45,7 @@ export default function UnifiedCommandSummary({
   const cards = buildUnifiedCommandCards(kpiData || {}, summaryContext);
   const insight = buildExecutiveInsight(kpiData || {}, summaryContext);
   const nationalRank = kpiData?.national_rank;
-  const unknownCount = Number(kpiData?.total_unknown || 0);
+  const returnedCount = Number(kpiData?.total_returned ?? kpiData?.total_unknown ?? 0);
 
   return (
     <section className="rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
@@ -83,9 +83,9 @@ export default function UnifiedCommandSummary({
               <p className="rounded-xl bg-[var(--color-surface-50)] px-4 py-3 text-sm font-medium leading-6 text-[var(--color-text-main)]">
                 {insight}
               </p>
-              {unknownCount > 0 ? (
+              {returnedCount > 0 ? (
                 <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-xs leading-5 text-gray-700">
-                  Dữ liệu thiếu/chưa xác định được giữ riêng, không tính vào bưu gửi cần xử lý.
+                  Chuyển hoàn được giữ riêng trong mẫu đo kiểm, không tính vào bưu gửi cần xử lý.
                 </p>
               ) : null}
             </div>

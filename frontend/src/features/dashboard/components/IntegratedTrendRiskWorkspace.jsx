@@ -32,7 +32,6 @@ import {
 const COLORS = {
   volume: DASHBOARD_SEMANTIC_COLORS.volume,
   pass: DASHBOARD_SEMANTIC_COLORS.passed,
-  failed: DASHBOARD_SEMANTIC_COLORS.failed,
   target: DASHBOARD_SEMANTIC_COLORS.target,
   comparison: DASHBOARD_SEMANTIC_COLORS.comparison,
   warning: DASHBOARD_SEMANTIC_COLORS.warning,
@@ -62,10 +61,6 @@ function IntegratedTooltip({ active, payload, label }) {
         <div className="flex items-center justify-between gap-4">
           <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.passRate}</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatRate(point.quality_rate)}</span>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.failedRate}</span>
-          <span className="font-semibold text-[var(--color-text-main)]">{formatRate(point.failed_rate)}</span>
         </div>
         {point.previous_quality_rate !== undefined ? (
           <div className="flex items-center justify-between gap-4">
@@ -136,7 +131,6 @@ function TrendChart({ rows, mode }) {
             <Bar yAxisId="volume" dataKey="previous_total_volume" name="Sản lượng kỳ so sánh" fill={COLORS.comparison} radius={[4, 4, 0, 0]} isAnimationActive={false} />
           ) : null}
           <Line yAxisId="rate" type="linear" dataKey="quality_rate" name={DASHBOARD_LABELS.passRate} stroke={COLORS.pass} strokeWidth={3} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} connectNulls={false} isAnimationActive={false} />
-          <Line yAxisId="rate" type="linear" dataKey="failed_rate" name={DASHBOARD_LABELS.failedRate} stroke={COLORS.failed} strokeWidth={2.5} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} connectNulls={false} isAnimationActive={false} />
           {mode === '7-days' ? (
             <Line yAxisId="rate" type="linear" dataKey="previous_quality_rate" name="Tỷ lệ đạt kỳ so sánh" stroke={COLORS.comparison} strokeWidth={2} strokeDasharray="6 4" dot={{ r: 2, strokeWidth: 1, fill: '#fff' }} connectNulls={false} isAnimationActive={false} />
           ) : null}
@@ -293,15 +287,6 @@ function LeadershipComparisonWidget({ comparison, mode, onModeChange }) {
   const comparisonLabel = mode === 'd-7' ? 'Cùng ngày tuần trước' : 'Hôm qua';
   const metrics = comparison?.available ? [
     {
-      id: 'total-volume',
-      label: 'Tổng bưu gửi',
-      value: formatNumber(comparison.total_volume.current),
-      comparisonValue: formatNumber(comparison.total_volume.previous),
-      delta: formatDeltaValue(comparison.total_volume.delta, formatNumber),
-      tone: getDeltaTone(comparison.total_volume.delta),
-      rawDelta: comparison.total_volume.delta,
-    },
-    {
       id: 'pass-rate',
       label: 'Tỷ lệ đạt',
       value: formatRate(comparison.pass_rate.current),
@@ -311,8 +296,17 @@ function LeadershipComparisonWidget({ comparison, mode, onModeChange }) {
       rawDelta: comparison.pass_rate.delta,
     },
     {
+      id: 'total-volume',
+      label: 'Sản lượng',
+      value: formatNumber(comparison.total_volume.current),
+      comparisonValue: formatNumber(comparison.total_volume.previous),
+      delta: formatDeltaValue(comparison.total_volume.delta, formatNumber),
+      tone: getDeltaTone(comparison.total_volume.delta),
+      rawDelta: comparison.total_volume.delta,
+    },
+    {
       id: 'failed-count',
-      label: 'Bưu gửi không đạt',
+      label: 'Không đạt',
       value: formatNumber(comparison.failed_count.current),
       comparisonValue: formatNumber(comparison.failed_count.previous),
       delta: formatDeltaValue(comparison.failed_count.delta, formatNumber),
@@ -356,18 +350,18 @@ function LeadershipComparisonWidget({ comparison, mode, onModeChange }) {
       </div>
 
       {comparison?.available ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
           {metrics.map((metric) => (
             <div key={metric.id} className="rounded-lg border border-[var(--color-surface-100)] bg-[var(--color-surface-50)] px-3 py-2">
               <div className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">{metric.label}</div>
               <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-[var(--color-text-muted)]">
                 <div>
                   <div>Hôm nay</div>
-                  <div className="text-lg font-bold text-[var(--color-text-main)]">{metric.value}</div>
+                  <div className={metric.id === 'pass-rate' ? 'text-2xl font-black text-[var(--color-text-main)]' : 'text-lg font-bold text-[var(--color-text-main)]'}>{metric.value}</div>
                 </div>
                 <div>
                   <div>{comparisonLabel}</div>
-                  <div className="text-lg font-bold text-[var(--color-text-main)]">{metric.comparisonValue}</div>
+                  <div className={metric.id === 'pass-rate' ? 'text-2xl font-black text-[var(--color-text-main)]' : 'text-lg font-bold text-[var(--color-text-main)]'}>{metric.comparisonValue}</div>
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -510,7 +504,7 @@ export default function IntegratedTrendRiskWorkspace({
   return (
     <CardContainer
       title="Xu hướng điều hành tổng hợp"
-      subtitle="Một vùng xu hướng chính cho sản lượng, tỷ lệ đạt, tỷ lệ không đạt, mục tiêu và ngoại lệ hiện tại."
+      subtitle="Một vùng xu hướng chính cho sản lượng, tỷ lệ đạt, mục tiêu và ngoại lệ hiện tại."
       action={action}
       className="overflow-hidden"
     >
@@ -539,7 +533,6 @@ export default function IntegratedTrendRiskWorkspace({
               <LegendItem color={COLORS.volume} label="Sản lượng, trục trái" shape="bar" />
               {mode === '7-days' ? <LegendItem color={COLORS.comparison} label="Sản lượng kỳ so sánh" shape="bar" /> : null}
               <LegendItem color={COLORS.pass} label="Tỷ lệ đạt, trục phải" />
-              <LegendItem color={COLORS.failed} label="Tỷ lệ không đạt, trục phải" />
               {mode === '7-days' ? <LegendItem color={COLORS.comparison} label="Tỷ lệ đạt kỳ so sánh" dashed /> : null}
               <LegendItem color={COLORS.target} label={`Mục tiêu ${QUALITY_TARGET_RATE}%`} dashed />
               <LegendItem color={COLORS.warning} label="Marker dưới mục tiêu" />

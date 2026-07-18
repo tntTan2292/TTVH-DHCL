@@ -12,12 +12,16 @@
 
 Product Owner finding: D-1 and D-7 comparison data was correct but not sufficiently visible for leadership use because the main comparison result depended too much on hover detail.
 
+Additional Product Owner finding: the value previously presented as `chưa phân loại` is actually `Bưu gửi chuyển hoàn`; the measurement population is `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`; the leadership quality story must use `Tỷ lệ đạt` as the only primary quality rate.
+
 Resolution:
 
 - Added a prominent `So sánh điều hành` widget above the main trend chart.
 - Added two visible modes: `So với hôm qua` and `So cùng kỳ tuần trước`.
-- Each mode shows current value, comparison value, absolute delta, direction, and semantic meaning for total volume, pass rate, and failed shipment count.
+- Each mode makes `Tỷ lệ đạt` the primary comparison metric and keeps total volume plus failed count as compact supporting context.
 - Added visible D-7 per-day delta evidence inside the existing `7 ngày so sánh` mode.
+- Renamed the residual measurement population from `chưa phân loại`/`total_unknown` presentation to `Chuyển hoàn` while preserving the existing API field for compatibility.
+- Removed the `Tỷ lệ không đạt` line, legend item, and tooltip story from the integrated trend chart.
 - Preserved existing API contracts, formulas, aggregate/BCVH filter context, missing-data semantics, and approved semantic colors.
 
 ## Review Finding Closure
@@ -35,7 +39,7 @@ Resolution:
 - Removed the unsupported threshold-based `abnormal_day` classification.
 - Removed `Rủi ro cao` classification derived from failed rate.
 - Removed the wording `tỷ lệ không đạt từ 25%`.
-- Preserved visible failed-rate data, approved below-target markers, and Quality Pulse evidence from the existing API.
+- Preserved failed count as supporting evidence, approved below-target markers, and Quality Pulse evidence from the existing API.
 
 ## Scope Delivered
 
@@ -43,11 +47,13 @@ Resolution:
 - D-1 comparison covers total volume, pass rate, and failed shipment count, and displays `Không có dữ liệu so sánh` when the previous calendar day is unavailable.
 - Added the Product Owner-requested leadership comparison widget with visible `So với hôm qua` and `So cùng kỳ tuần trước` modes above the main chart.
 - Added visible per-day D-7 delta evidence in `7 ngày so sánh` mode so tooltip hover is supporting detail only.
+- Added measurement composition handling where `total_unknown` is presented as `Chuyển hoàn` and checked against `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`.
+- Removed the redundant `Tỷ lệ không đạt` quality-rate story from the integrated chart; the chart now has volume bars, one `Tỷ lệ đạt` line, target/reference line, and below-target markers.
 
 - Added one primary Dashboard surface named `Xu hướng điều hành tổng hợp`.
 - Consolidated the accepted 30-day trend and 7-day comparison into modes inside one workspace.
 - Added the approved `Theo BCVH` mode without changing URL filter context or API contracts.
-- Added pass-rate, failed-rate, volume, target/reference line, below-target markers, legend, and Vietnamese tooltip wording.
+- Added pass-rate, volume, target/reference line, below-target markers, legend, and Vietnamese tooltip wording.
 - Added the side panel `Ngoại lệ & Rủi ro chính` using confirmed API values, API-provided Quality Pulse evidence, and explicit unknown-cause wording.
 - Stopped rendering the duplicate legacy trend widgets on `/f13/dashboard`: separate 30-day card, separate 7-day card, and legacy Quality Timeline adapter.
 
@@ -70,7 +76,7 @@ Resolution:
 - `frontend/src/features/dashboard/components/integratedTrendRiskData.test.js`: covers D-1 date selection, aggregate context, BCVH context, deltas, and missing D-1 data.
 - `frontend/src/features/dashboard/DashboardPage.jsx`: replaced three separate trend story renders with `IntegratedTrendRiskWorkspace`.
 - `frontend/src/features/dashboard/components/IntegratedTrendRiskWorkspace.jsx`: added one tabbed workspace, combined chart, business tooltip, legend, markers, and risk panel.
-- `frontend/src/features/dashboard/components/integratedTrendRiskData.js`: added pure mapping helpers for modes, failed-rate derivation, risk evidence, and marker semantics.
+- `frontend/src/features/dashboard/components/integratedTrendRiskData.js`: added pure mapping helpers for modes, supporting failed-count evidence, risk evidence, and marker semantics.
 - `frontend/src/features/dashboard/components/integratedTrendRiskData.test.js`: added targeted tests for modes, filter-preserving comparison rows, risk evidence, marker derivation, and duplicate-widget regression.
 - Runtime screenshots:
   - `docs/06_REVIEWS/Dashboard/runtime/DA-IMPL-003-runtime-aggregate-2026-07-15-threshold-closure.png`
@@ -103,6 +109,7 @@ Technical basis:
   - D-7 aggregate compared `2026-07-15` with `2026-07-08`.
   - D-7 aggregate values: total volume `3.677` versus `3.688`, delta `-11`; pass rate `67.20%` versus `66.57%`, delta `+0.63 điểm %`; failed shipment count `1.037` versus `1.092`, delta `-55`.
   - `7 ngày so sánh` mode showed visible per-day delta rows, including `2026-07-15`: `Sản lượng -11`, `Tỷ lệ đạt +0.63 điểm %`, `Không đạt -55`.
+  - Measurement equation check: `Đạt 2.471 + Không đạt 1.037 + Chuyển hoàn 169 = Tổng mẫu đo kiểm 3.677`.
   - `Xu hướng điều hành tổng hợp` visible.
   - Three tabs visible: `30 ngày`, `7 ngày so sánh`, `Theo BCVH`.
   - `Ngoại lệ & Rủi ro chính` visible.
@@ -111,8 +118,8 @@ Technical basis:
   - Old titles `Sản lượng và tỷ lệ đạt - 30 ngày`, `So sánh cùng kỳ 7 ngày`, and `Diễn biến và quy luật chất lượng` absent.
   - Console errors: none observed.
 - Mode interaction validation:
-  - `7 ngày so sánh`, `Theo BCVH`, and `30 ngày` each selected successfully through unique `role="tab"` controls.
-  - Failed-rate legend and risk panel remained visible after mode changes.
+  - `7 ngày so sánh`, `Theo BCVH`, and `30 ngày` each selected successfully through unique `role="tab"` controls in the prior browser validation cycle.
+  - The integrated chart source now removes the `Tỷ lệ không đạt` line and legend; failed count remains only as supporting evidence.
   - Unsupported `25%` failed-rate wording remained absent.
 - BCVH validation for `533140`:
   - PO warning remediation on preview `http://127.0.0.1:5181/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=533140` showed the same leadership comparison widget under canonical BCVH filter context.
@@ -121,6 +128,7 @@ Technical basis:
   - D-1 BCVH values: total volume `1.694`, delta `+141`; pass rate `73.91%`, delta `-1.49 điểm %`; failed shipment count `373`, delta `+67`.
   - D-7 BCVH compared `2026-07-15` with `2026-07-08`.
   - D-7 BCVH values: total volume `1.694` versus `1.990`, delta `-296`; pass rate `73.91%` versus `67.54%`, delta `+6.37 điểm %`; failed shipment count `373` versus `583`, delta `-210`.
+  - Measurement equation check: `Đạt 1.252 + Không đạt 373 + Chuyển hoàn 69 = Tổng mẫu đo kiểm 1.694`.
   - Integrated workspace and risk panel visible.
   - Risk panel showed `373 bưu gửi không đạt, tỷ lệ 22.00%`.
   - Unsupported `25%` failed-rate wording absent.
@@ -132,6 +140,7 @@ Technical basis:
 - `node --test frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/qualityTrendlineWindow.test.js frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/samePeriodComparisonData.test.js`
 - `node --test frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/qualityTrendlineWindow.test.js frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/samePeriodComparisonData.test.js frontend/src/features/dashboard/components/dashboardLanguageSemantics.test.js frontend/src/features/dashboard/components/unifiedCommandSummary.test.js`
 - `node --test frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/samePeriodComparisonData.test.js frontend/src/features/dashboard/components/dashboardLanguageSemantics.test.js frontend/src/features/dashboard/components/unifiedCommandSummary.test.js`
+- Data-contract check through backend service for aggregate and BCVH `533140`: `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`
 - `npm.cmd run lint`
 - `npm.cmd run build`
 - `git diff --check`

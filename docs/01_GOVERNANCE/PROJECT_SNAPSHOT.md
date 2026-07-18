@@ -74,7 +74,7 @@ DA-IMPL-002 includes the Product Owner KPI-system requirements transferred from 
 
 DA-IMPL-002 runtime evidence confirms the Unified Command Summary is visible in the first `1440x900` viewport, uses four leadership cards, restores national rank from imported `fact_f13_national` data, and removes the duplicate Executive Summary presentation.
 
-DA-IMPL-003 remains at `PO WARNING` after Product Owner requested more visible D-1 and D-7 comparison evidence for leadership use. The remediation adds a prominent comparison widget and visible 7-day delta evidence; Product Owner recheck is still pending, and Codex must not award `PO PASS`.
+DA-IMPL-003 remains at `PO WARNING` after Product Owner requested clearer leadership comparison, `Chuyển hoàn` presentation, and one primary quality-rate story using only `Tỷ lệ đạt`. The remediation keeps D-1/D-7 comparison, removes the redundant `Tỷ lệ không đạt` trend line/story, and preserves `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`; Product Owner recheck is still pending, and Codex must not award `PO PASS`.
 
 AUTO-IMPORT-001, AUTO-IMPORT-002, AUTO-IMPORT-003, and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
 

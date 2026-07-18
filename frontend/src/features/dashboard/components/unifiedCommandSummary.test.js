@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { buildExecutiveInsight, buildUnifiedCommandCards } from './dashboardKpiCards.js';
+import { buildExecutiveInsight, buildMeasurementComposition, buildUnifiedCommandCards } from './dashboardKpiCards.js';
 
 const source = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -32,9 +32,64 @@ test('unified command summary builds four leadership cards without standalone fa
   assert.match(cards[1].support, /dữ liệu toàn quốc gần nhất: 2026-06-28/);
   assert.equal(cards[3].value, '1.037');
   assert.deepEqual(cards.map((card) => card.question), ['Chất lượng', 'Vị thế toàn quốc', 'Quy mô', 'Cần xử lý']);
-  assert.match(cards[3].support, /Tỷ lệ không đạt: 28\.20%/);
+  assert.match(cards[2].support, /3 bưu gửi chuyển hoàn/);
+  assert.match(cards[3].support, /Kèm 3 chuyển hoàn/);
   assert.equal(cards.filter((card) => card.label === 'Tỷ lệ không đạt').length, 0);
   assert.equal(cards[3].tone, 'danger');
+});
+
+test('measurement composition equation is preserved for aggregate data', () => {
+  const composition = buildMeasurementComposition({
+    total_bg: 3677,
+    total_passed: 2471,
+    total_failed: 1037,
+    total_unknown: 169,
+  });
+
+  assert.equal(composition.total_measurement_sample, 3677);
+  assert.equal(composition.passed, 2471);
+  assert.equal(composition.failed, 1037);
+  assert.equal(composition.returned, 169);
+  assert.equal(composition.calculated_total, 3677);
+  assert.equal(composition.matches, true);
+});
+
+test('measurement composition equation is preserved for BCVH data', () => {
+  const composition = buildMeasurementComposition({
+    total_bg: 1694,
+    total_passed: 1252,
+    total_failed: 373,
+    total_unknown: 69,
+  });
+
+  assert.deepEqual(composition, {
+    total_measurement_sample: 1694,
+    passed: 1252,
+    failed: 373,
+    returned: 69,
+    matches: true,
+    calculated_total: 1694,
+  });
+});
+
+test('measurement composition exposes contract mismatch without forcing arithmetic', () => {
+  const composition = buildMeasurementComposition({
+    total_bg: 100,
+    total_passed: 60,
+    total_failed: 30,
+    total_unknown: 9,
+  });
+  const insight = buildExecutiveInsight({
+    total_bg: 100,
+    total_passed: 60,
+    total_failed: 30,
+    total_unknown: 9,
+    passed_rate: 60,
+  });
+
+  assert.equal(composition.matches, false);
+  assert.equal(composition.calculated_total, 99);
+  assert.match(insight, /Cần kiểm tra hợp đồng dữ liệu/);
 });
 
 test('failed action card does not fabricate zero when API omits total_failed', () => {
@@ -54,7 +109,7 @@ test('failed action card does not fabricate zero when API omits total_failed', (
   });
 
   assert.equal(cards[3].value, '--');
-  assert.match(cards[3].support, /Tỷ lệ không đạt: 28\.20%/);
+  assert.match(cards[3].support, /Số bưu gửi không đạt cần xử lý/);
   assert.match(insight, /chưa xác định số bưu gửi cần xử lý/);
   assert.doesNotMatch(insight, /0 bưu gửi cần xử lý/);
 });
@@ -90,7 +145,7 @@ test('executive insight is grounded, compact and keeps unknown data distinct', (
   assert.match(insight, /Toàn phạm vi đang chọn đạt tỷ lệ 89\.00%/);
   assert.match(insight, /9 bưu gửi cần xử lý/);
   assert.match(insight, /Xếp hạng toàn quốc 14\/34/);
-  assert.match(insight, /2 bưu gửi thiếu dữ liệu phân loại/);
+  assert.match(insight, /2 bưu gửi chuyển hoàn/);
   assert.doesNotMatch(insight, /nguyên nhân|chủ sở hữu|thời hạn|runtime/i);
 });
 
@@ -120,6 +175,6 @@ test('dashboard page removes duplicate KPI grid and executive summary presentati
   assert.doesNotMatch(dashboardSource, /ExecutiveSummaryAdapter/);
   assert.doesNotMatch(dashboardSource, /<KPICard/);
   assert.match(dataSource, /Bưu gửi cần xử lý/);
-  assert.match(commandSource, /Dữ liệu thiếu\/chưa xác định/);
+  assert.match(commandSource, /Chuyển hoàn được giữ riêng/);
   assert.match(commandSource, /nationalRank\.period/);
 });

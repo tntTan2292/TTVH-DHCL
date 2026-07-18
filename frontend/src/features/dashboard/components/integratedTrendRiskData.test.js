@@ -27,7 +27,7 @@ test('integrated trend exposes the three approved modes', () => {
   assert.deepEqual(TREND_MODES.map((mode) => mode.label), ['30 ngày', '7 ngày so sánh', 'Theo BCVH']);
 });
 
-test('failed rate stays visible but does not create unauthorized abnormal-day threshold', () => {
+test('failed rate remains derived data only and does not create unauthorized abnormal-day threshold', () => {
   const july8 = sampleTrend.find((item) => item.date === '2026-07-08');
   const july9 = sampleTrend.find((item) => item.date === '2026-07-09');
 
@@ -161,6 +161,9 @@ test('integrated workspace source contains visible leadership comparison labels'
   assert.match(source, /Hôm qua/);
   assert.match(source, /Cùng ngày tuần trước/);
   assert.match(source, /Bằng chứng so cùng kỳ 7 ngày/);
+  assert.doesNotMatch(source, /dataKey="failed_rate"/);
+  assert.doesNotMatch(source, /label="Tỷ lệ không đạt, trục phải"/);
+  assert.doesNotMatch(source, /DASHBOARD_LABELS\.failedRate/);
 });
 
 test('risk panel uses confirmed values and labels unknown causes explicitly', () => {

@@ -60,7 +60,6 @@ Left side:
 - modes or tabs: `30 ngay`, `7 ngay so sanh`, `Theo BCVH`
 - volume bars
 - pass-rate line
-- failed-rate line
 - target/reference line
 - below-threshold and abnormal-day markers
 - complete legend and tooltip
@@ -78,6 +77,7 @@ Rules:
 
 - replace separate 30-day, 7-day, legacy timeline, and Quality Pulse storytelling with one coordinated decision area
 - do not display multiple charts that answer substantially the same trend question
+- use `Tỷ lệ đạt` as the only primary quality-rate story; `Không đạt` and `Chuyển hoàn` are supporting composition/evidence only
 - causal explanations must only come from approved data sources
 - unsupported causes must be labeled as unknown or awaiting confirmation
 
