@@ -23,7 +23,7 @@ export function withTrendSemantics(point = {}) {
     failed_rate: failedRate,
     target_rate: QUALITY_TARGET_RATE,
     below_target: Boolean(point.data_available && qualityRate !== null && qualityRate < QUALITY_TARGET_RATE),
-    abnormal_day: Boolean(point.data_available && failedRate !== null && failedRate >= 25),
+    abnormal_day: false,
   };
 }
 
@@ -72,7 +72,6 @@ export function summarizeRiskEvidence(items = [], kpiData = null, pulse = null) 
   const rows = buildThirtyDayTrendRows(items);
   const availableRows = rows.filter((item) => item.data_available);
   const belowTargetRows = availableRows.filter((item) => item.below_target);
-  const abnormalRows = availableRows.filter((item) => item.abnormal_day);
   const latest = [...availableRows].reverse()[0] || null;
   const failedTotal = kpiData?.total_failed;
   const failedRate = kpiData?.failed_rate;
@@ -82,8 +81,8 @@ export function summarizeRiskEvidence(items = [], kpiData = null, pulse = null) 
   if (failedTotal !== null && failedTotal !== undefined && Number(failedTotal) > 0) {
     risks.push({
       id: 'current-failed-volume',
-      severity: Number(failedRate || 0) >= 25 ? 'Rủi ro cao' : 'Cần chú ý',
-      tone: Number(failedRate || 0) >= 25 ? 'danger' : 'warning',
+      severity: 'Cần xử lý',
+      tone: 'warning',
       title: 'Bưu gửi cần xử lý trong kỳ đang chọn',
       unit: 'Phạm vi đang chọn',
       evidence: `${Number(failedTotal).toLocaleString('vi-VN')} bưu gửi không đạt${failedRate !== null && failedRate !== undefined ? `, tỷ lệ ${Number(failedRate).toFixed(2)}%` : ''}.`,
@@ -100,18 +99,6 @@ export function summarizeRiskEvidence(items = [], kpiData = null, pulse = null) 
       unit: 'Chuỗi xu hướng 30 ngày',
       evidence: `${belowTargetRows.length} ngày dưới mục tiêu ${QUALITY_TARGET_RATE}%; gần nhất ${belowTargetRows.at(-1)?.date}.`,
       note: 'Chờ xác nhận nguyên nhân vận hành.',
-    });
-  }
-
-  if (abnormalRows.length > 0) {
-    risks.push({
-      id: 'abnormal-failed-rate',
-      severity: 'Rủi ro cao',
-      tone: 'danger',
-      title: 'Ngày có tỷ lệ không đạt cao',
-      unit: 'Chuỗi xu hướng 30 ngày',
-      evidence: `${abnormalRows.length} ngày có tỷ lệ không đạt từ 25%; gần nhất ${abnormalRows.at(-1)?.date}.`,
-      note: 'Dữ liệu chỉ xác nhận hiện tượng, chưa xác nhận nguyên nhân.',
     });
   }
 

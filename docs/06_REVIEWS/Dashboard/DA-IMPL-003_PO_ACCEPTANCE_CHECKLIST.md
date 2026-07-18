@@ -15,7 +15,9 @@
 | Chart includes volume bars, pass-rate line, failed-rate line, and target/reference line | `READY` | Runtime aggregate browser check |
 | Legend uses semantic color meanings and labels | `READY` | Runtime aggregate browser check |
 | Tooltip uses Vietnamese business wording | `READY` | Source and component validation |
-| Below-target and abnormal-day markers are present | `READY` | Runtime aggregate browser check and mapper tests |
+| Approved below-target markers are present | `READY` | Runtime aggregate browser check and mapper tests |
+| Unsupported `25%` failed-rate threshold wording is absent | `READY` | Runtime aggregate and BCVH checks |
+| `Rủi ro cao` is not derived from failed-rate threshold | `READY` | Mapper tests; high-risk label only from API Quality Pulse red evidence |
 | `Ngoại lệ & Rủi ro chính` panel is visible beside the chart on desktop preview | `READY` | Runtime aggregate and BCVH checks |
 | Risk panel uses confirmed values and unknown-cause wording | `READY` | `1.037` aggregate and `373` BCVH evidence |
 | Aggregate date/filter context is preserved | `READY` | URL `from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=all` |

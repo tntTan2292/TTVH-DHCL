@@ -8,13 +8,30 @@
 - Date: `2026-07-18`
 - Product Owner decision: `PENDING`
 
+## Review Finding Closure
+
+Review finding: the original DA-IMPL-003 implementation used an unsupported `25%` failed-rate threshold for `abnormal_day`, `Rủi ro cao`, and the wording `tỷ lệ không đạt từ 25%`.
+
+Authority trace result:
+
+- No authoritative repository source was found for a `25%` failed-rate threshold.
+- Approved sources authorize target/reference markers and API-provided Quality Pulse evidence, but do not authorize a new failed-rate risk threshold.
+- Relevant authority: `docs/10_TICKETS/DA-IMPL-003_MANIFEST.md` prohibits new thresholds; `docs/04_TECHNICAL_PLANNING/Dashboard/SMART_DASHBOARD_IMPLEMENTATION_PLAN.md` requires preserving thresholds and not inventing business calculations; `docs/08_ARCHIVE/Legacy/01_RULES/ARCH-001.md` explicitly warns against hardcoded business thresholds.
+
+Resolution:
+
+- Removed the unsupported threshold-based `abnormal_day` classification.
+- Removed `Rủi ro cao` classification derived from failed rate.
+- Removed the wording `tỷ lệ không đạt từ 25%`.
+- Preserved visible failed-rate data, approved below-target markers, and Quality Pulse evidence from the existing API.
+
 ## Scope Delivered
 
 - Added one primary Dashboard surface named `Xu hướng điều hành tổng hợp`.
 - Consolidated the accepted 30-day trend and 7-day comparison into modes inside one workspace.
 - Added the approved `Theo BCVH` mode without changing URL filter context or API contracts.
-- Added pass-rate, failed-rate, volume, target/reference line, below-target markers, abnormal-day markers, legend, and Vietnamese tooltip wording.
-- Added the side panel `Ngoại lệ & Rủi ro chính` using confirmed API values and explicit unknown-cause wording.
+- Added pass-rate, failed-rate, volume, target/reference line, below-target markers, legend, and Vietnamese tooltip wording.
+- Added the side panel `Ngoại lệ & Rủi ro chính` using confirmed API values, API-provided Quality Pulse evidence, and explicit unknown-cause wording.
 - Stopped rendering the duplicate legacy trend widgets on `/f13/dashboard`: separate 30-day card, separate 7-day card, and legacy Quality Timeline adapter.
 
 ## Baseline Findings
@@ -34,8 +51,8 @@
 - `frontend/src/features/dashboard/components/integratedTrendRiskData.js`: added pure mapping helpers for modes, failed-rate derivation, risk evidence, and marker semantics.
 - `frontend/src/features/dashboard/components/integratedTrendRiskData.test.js`: added targeted tests for modes, filter-preserving comparison rows, risk evidence, marker derivation, and duplicate-widget regression.
 - Runtime screenshots:
-  - `docs/06_REVIEWS/Dashboard/runtime/DA-IMPL-003-runtime-aggregate-2026-07-15.png`
-  - `docs/06_REVIEWS/Dashboard/runtime/DA-IMPL-003-runtime-bcvh-533140-2026-07-15.png`
+  - `docs/06_REVIEWS/Dashboard/runtime/DA-IMPL-003-runtime-aggregate-2026-07-15-threshold-closure.png`
+  - `docs/06_REVIEWS/Dashboard/runtime/DA-IMPL-003-runtime-bcvh-533140-2026-07-15-threshold-closure.png`
 
 ## Daily Timeline Decision
 
@@ -58,14 +75,18 @@ Technical basis:
   - `Xu hướng điều hành tổng hợp` visible.
   - Three tabs visible: `30 ngày`, `7 ngày so sánh`, `Theo BCVH`.
   - `Ngoại lệ & Rủi ro chính` visible.
+  - Unsupported `25%` failed-rate wording absent.
+  - `Rủi ro cao` appears only from API-provided Quality Pulse when the pulse color is red.
   - Old titles `Sản lượng và tỷ lệ đạt - 30 ngày`, `So sánh cùng kỳ 7 ngày`, and `Diễn biến và quy luật chất lượng` absent.
   - Console errors: none observed.
 - Mode interaction validation:
   - `7 ngày so sánh`, `Theo BCVH`, and `30 ngày` each selected successfully through unique `role="tab"` controls.
   - Failed-rate legend and risk panel remained visible after mode changes.
+  - Unsupported `25%` failed-rate wording remained absent.
 - BCVH validation for `533140`:
   - Integrated workspace and risk panel visible.
   - Risk panel showed `373 bưu gửi không đạt, tỷ lệ 22.00%`.
+  - Unsupported `25%` failed-rate wording absent.
   - Duplicate legacy trend widgets remained absent.
   - Console errors: none observed.
 

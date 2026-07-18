@@ -81,8 +81,8 @@ function IntegratedTooltip({ active, payload, label }) {
 }
 
 function MarkerShape({ cx, cy, payload }) {
-  if (!payload?.below_target && !payload?.abnormal_day) return null;
-  const fill = payload.abnormal_day ? COLORS.failed : COLORS.warning;
+  if (!payload?.below_target) return null;
+  const fill = COLORS.warning;
   return (
     <g transform={`translate(${cx}, ${cy})`}>
       <circle r="6" fill="#fff" stroke={fill} strokeWidth="2" />
@@ -289,7 +289,7 @@ export default function IntegratedTrendRiskWorkspace({
             <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
               <StatusBadge label={TREND_MODES.find((item) => item.id === mode)?.label} tone="info" />
               <span className="inline-flex items-center gap-1"><Layers size={13} /> Chỉ hiển thị một câu chuyện xu hướng chính</span>
-              <span className="inline-flex items-center gap-1"><TrendingUp size={13} /> Mốc dưới mục tiêu và ngày bất thường hiển thị bằng marker</span>
+              <span className="inline-flex items-center gap-1"><TrendingUp size={13} /> Mốc dưới mục tiêu hiển thị bằng marker</span>
             </div>
             <TrendChart rows={rows} mode={mode} />
             <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
@@ -300,7 +300,6 @@ export default function IntegratedTrendRiskWorkspace({
               {mode === '7-days' ? <LegendItem color={COLORS.comparison} label="Tỷ lệ đạt kỳ so sánh" dashed /> : null}
               <LegendItem color={COLORS.target} label={`Mục tiêu ${QUALITY_TARGET_RATE}%`} dashed />
               <LegendItem color={COLORS.warning} label="Marker dưới mục tiêu" />
-              <LegendItem color={COLORS.failed} label="Marker ngày bất thường" />
             </div>
           </div>
           <RiskPanel risks={risks} loading={pulseState.loading} error={pulseState.error} />

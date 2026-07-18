@@ -20,7 +20,7 @@ test('integrated trend exposes the three approved modes', () => {
   assert.deepEqual(TREND_MODES.map((mode) => mode.label), ['30 ngày', '7 ngày so sánh', 'Theo BCVH']);
 });
 
-test('failed rate and risk markers are derived from existing trend values', () => {
+test('failed rate stays visible but does not create unauthorized abnormal-day threshold', () => {
   assert.equal(getFailedRate(sampleTrend[0]), 20);
   assert.equal(getFailedRate(sampleTrend[1]), null);
 
@@ -28,7 +28,7 @@ test('failed rate and risk markers are derived from existing trend values', () =
   assert.equal(rows[0].below_target, true);
   assert.equal(rows[0].abnormal_day, false);
   assert.equal(rows[2].failed_rate, 35);
-  assert.equal(rows[2].abnormal_day, true);
+  assert.equal(rows[2].abnormal_day, false);
 });
 
 test('7-day mode preserves current and comparison periods without changing API contract', () => {
@@ -43,8 +43,14 @@ test('risk panel uses confirmed values and labels unknown causes explicitly', ()
   const risks = summarizeRiskEvidence(sampleTrend, { total_failed: 1037, failed_rate: 28.2 }, { text: 'Nhịp chất lượng giảm so với kỳ trước.', color: 'yellow' });
   assert.match(risks[0].evidence, /1\.037/);
   assert.match(risks[0].note, /chưa xác định/i);
-  assert.ok(risks.some((risk) => risk.id === 'abnormal-failed-rate'));
+  assert.ok(!risks.some((risk) => risk.evidence.includes('25%')));
   assert.ok(risks.some((risk) => risk.id === 'quality-pulse'));
+});
+
+test('high-risk wording only comes from existing Quality Pulse evidence', () => {
+  const risks = summarizeRiskEvidence(sampleTrend, { total_failed: 1037, failed_rate: 28.2 }, { text: 'Nhịp chất lượng giảm mạnh.', color: 'red' });
+  assert.equal(risks[0].severity, 'Cần xử lý');
+  assert.ok(risks.some((risk) => risk.id === 'quality-pulse' && risk.severity === 'Rủi ro cao'));
 });
 
 test('dashboard renders one integrated trend workspace instead of duplicate trend widgets', () => {
