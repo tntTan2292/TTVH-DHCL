@@ -1,12 +1,12 @@
 # DA-IMPL-003 Integrated Trend and Risk Workspace
 
 - Ticket: `DA-IMPL-003`
-- Status: `PO WARNING`
+- Status: `COMPLETED`
 - Technical Status: `PASS`
 - Runtime Status: `PASS`
-- PO Product Status: `PO WARNING`
+- PO Product Status: `PO PASS`
 - Date: `2026-07-18`
-- Product Owner decision: `PENDING`
+- Product Owner decision: `PO PASS - Functionally accepted; visual polish deferred to DA-IMPL-007.`
 
 ## PO Warning Remediation
 
@@ -45,6 +45,9 @@ Resolution:
 - Preserved failed count as supporting evidence, approved below-target markers, and Quality Pulse evidence from the existing API.
 
 ## Scope Delivered
+
+- Product Owner accepted the functional DA-IMPL-003 scope: integrated 30-day trend; 7-day same-period comparison; simultaneous D-1 and D-7 leadership widgets; comparison limited to `Tỷ lệ đạt` and `Sản lượng`; one `Tỷ lệ đạt` trend line; `Chuyển hoàn` semantics; `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`; Quality Pulse and grounded risk evidence.
+- Visual styling, spacing, and final aesthetic refinement are deferred to DA-IMPL-007 and are not an open blocker against DA-IMPL-003.
 
 - Added the Product Owner-approved D-1 comparison `So với hôm qua` using Option A: compare the selected date, or the latest available date in the selected range, with the immediately previous calendar day.
 - D-1 and D-7 leadership comparison widgets are visible at the same time and display `Không có dữ liệu so sánh` independently when their comparison date is unavailable.
@@ -162,4 +165,4 @@ Technical basis:
 - `npm.cmd run lint` passes with pre-existing warnings outside DA-IMPL-003 scope.
 - `npm.cmd run build` passes with the existing Vite large-chunk warning.
 - Type-check is not a separate repository script; the frontend is JavaScript, and production build completed.
-- DA-IMPL-003 is not Product Owner accepted yet. Stop state is `PO WARNING` pending Product Owner recheck.
+- DA-IMPL-003 is Product Owner accepted with `PO PASS`. Visual polish is deferred to DA-IMPL-007.

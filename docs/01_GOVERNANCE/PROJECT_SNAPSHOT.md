@@ -18,11 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Smart Leadership Dashboard Implementation` |
-| Current Ticket | `DA-IMPL-003 Integrated Trend and Risk Workspace` |
-| Next Ticket | `AUTO-IMPORT-001 Source Portal Discovery and Security Assessment` |
-| PO Status | `PO WARNING` |
+| Current Ticket | `AUTO-IMPORT-001 Source Portal Discovery and Security Assessment` |
+| Next Ticket | `AUTO-IMPORT-002 Automated Download and Validation Pipeline` |
+| PO Status | `NOT READY` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-003_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-001_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-18` |
 
@@ -74,9 +74,9 @@ DA-IMPL-002 includes the Product Owner KPI-system requirements transferred from 
 
 DA-IMPL-002 runtime evidence confirms the Unified Command Summary is visible in the first `1440x900` viewport, uses four leadership cards, restores national rank from imported `fact_f13_national` data, and removes the duplicate Executive Summary presentation.
 
-DA-IMPL-003 remains at `PO WARNING` after Product Owner requested simultaneous D-1/D-7 leadership comparison, `Chuyển hoàn` presentation, and one primary quality-rate story using only `Tỷ lệ đạt`. The remediation shows D-1 and D-7 side by side, limits the comparison widgets to `Tỷ lệ đạt` and `Sản lượng`, removes the redundant `Tỷ lệ không đạt` trend line/story, and preserves `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`; Product Owner recheck is still pending, and Codex must not award `PO PASS`.
+DA-IMPL-003 is completed with Product Owner `PO PASS`: `Functionally accepted; visual polish deferred to DA-IMPL-007.` Accepted scope includes the integrated 30-day trend, 7-day same-period comparison, simultaneous D-1 and D-7 leadership widgets, comparison limited to `Tỷ lệ đạt` and `Sản lượng`, one `Tỷ lệ đạt` trend line, `Chuyển hoàn` semantics, `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`, Quality Pulse, and grounded risk evidence. Visual styling, spacing, and final aesthetic refinement are deferred to DA-IMPL-007 and are not open blockers against DA-IMPL-003.
 
-AUTO-IMPORT-001, AUTO-IMPORT-002, AUTO-IMPORT-003, and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
+AUTO-IMPORT-001 is now active as discovery-only work for source portal discovery and security assessment. AUTO-IMPORT-002, AUTO-IMPORT-003, and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
 
 TICKET-0102 is deferred and inactive during the Dashboard implementation sequence unless Product Owner later changes priority.
 
