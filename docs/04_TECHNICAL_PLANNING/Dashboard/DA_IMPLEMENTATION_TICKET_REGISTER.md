@@ -11,7 +11,7 @@
 
 Do not activate all DA implementation tickets simultaneously.
 
-Only `DA-IMPL-003` is at `READY FOR PO CHECK`. AUTO-IMPORT and later DA-IMPL tickets remain planned and inactive until the prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
+Only `DA-IMPL-003` is active and remains at `PO WARNING` pending Product Owner recheck. AUTO-IMPORT and later DA-IMPL tickets remain planned and inactive until the prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
 
 `TICKET-0102` remains deferred and inactive during the Dashboard implementation sequence unless Product Owner changes priority.
 
@@ -21,7 +21,7 @@ Only `DA-IMPL-003` is at `READY FOR PO CHECK`. AUTO-IMPORT and later DA-IMPL tic
 | ---: | --- | --- | --- | --- |
 | 1 | `DA-IMPL-001` Dashboard Language and Semantic Foundation | `COMPLETED` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-001_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-001_MANIFEST.md) |
 | 2 | `DA-IMPL-002` Unified Command Summary | `COMPLETED` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-002_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-002_MANIFEST.md) |
-| 3 | `DA-IMPL-003` Integrated Trend and Risk Workspace | `READY FOR PO CHECK` | `READY FOR PO CHECK` | [docs/10_TICKETS/DA-IMPL-003_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-003_MANIFEST.md) |
+| 3 | `DA-IMPL-003` Integrated Trend and Risk Workspace | `PO WARNING` | `PO WARNING` | [docs/10_TICKETS/DA-IMPL-003_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-003_MANIFEST.md) |
 | 4 | `AUTO-IMPORT-001` Source Portal Discovery and Security Assessment | `PLANNED / INACTIVE` | `NOT READY` | `Pending manifest` |
 | 5 | `AUTO-IMPORT-002` Automated Download and Validation Pipeline | `PLANNED / INACTIVE` | `NOT READY` | `Pending manifest` |
 | 6 | `AUTO-IMPORT-003` Scheduled Import, Retry, Monitoring and Operations UI | `PLANNED / INACTIVE` | `NOT READY` | `Pending manifest` |

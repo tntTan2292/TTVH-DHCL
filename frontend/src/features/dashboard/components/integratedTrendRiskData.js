@@ -78,7 +78,7 @@ function getDelta(currentValue, previousValue) {
   return Number((Number(currentValue) - Number(previousValue)).toFixed(2));
 }
 
-export function buildDayOverDayComparison({ items = [], fromDate, toDate } = {}) {
+function buildSingleDayComparison({ items = [], fromDate, toDate, offsetDays }) {
   const availableRows = buildThirtyDayTrendRows(items)
     .filter((item) => isWithinSelectedRange(item, fromDate, toDate))
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -88,7 +88,7 @@ export function buildDayOverDayComparison({ items = [], fromDate, toDate } = {})
     return null;
   }
 
-  const previousDate = shiftIsoDate(current.date, -1);
+  const previousDate = shiftIsoDate(current.date, offsetDays);
   const previous = buildThirtyDayTrendRows(items).find((item) => item?.date === previousDate && item.data_available) || null;
 
   if (!previous) {
@@ -119,6 +119,44 @@ export function buildDayOverDayComparison({ items = [], fromDate, toDate } = {})
       delta: getDelta(current.failed, previous.failed),
     },
   };
+}
+
+export function buildDayOverDayComparison({ items = [], fromDate, toDate } = {}) {
+  return buildSingleDayComparison({ items, fromDate, toDate, offsetDays: -1 });
+}
+
+export function buildWeekOverWeekComparison({ items = [], fromDate, toDate } = {}) {
+  return buildSingleDayComparison({ items, fromDate, toDate, offsetDays: -7 });
+}
+
+export function buildLeadershipComparison({ items = [], fromDate, toDate, comparisonMode = 'd-1' } = {}) {
+  if (comparisonMode === 'd-7') {
+    return buildWeekOverWeekComparison({ items, fromDate, toDate });
+  }
+
+  return buildDayOverDayComparison({ items, fromDate, toDate });
+}
+
+export function buildSevenDayVisibleComparisonEvidence(items = [], toDate) {
+  return buildSevenDayComparisonRows(items, toDate).map((row) => {
+    const currentFailed = row.current_point?.failed ?? null;
+    const previousFailed = row.previous_point?.failed ?? null;
+
+    return {
+      dayLabel: row.dayLabel,
+      current_date: row.current_date,
+      previous_date: row.previous_date,
+      total_volume_delta: getDelta(row.current_volume, row.previous_volume),
+      pass_rate_delta: getDelta(row.current_quality, row.previous_quality),
+      failed_count_delta: getDelta(currentFailed, previousFailed),
+      available: row.current_volume !== null
+        && row.previous_volume !== null
+        && row.current_quality !== null
+        && row.previous_quality !== null
+        && currentFailed !== null
+        && previousFailed !== null,
+    };
+  });
 }
 
 export function buildIntegratedTrendRows({ mode, items = [], toDate } = {}) {

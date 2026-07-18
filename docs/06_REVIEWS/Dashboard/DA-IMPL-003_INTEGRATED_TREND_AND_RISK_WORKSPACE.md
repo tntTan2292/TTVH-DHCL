@@ -1,12 +1,24 @@
 # DA-IMPL-003 Integrated Trend and Risk Workspace
 
 - Ticket: `DA-IMPL-003`
-- Status: `READY FOR PO CHECK`
+- Status: `PO WARNING`
 - Technical Status: `PASS`
 - Runtime Status: `PASS`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `PO WARNING`
 - Date: `2026-07-18`
 - Product Owner decision: `PENDING`
+
+## PO Warning Remediation
+
+Product Owner finding: D-1 and D-7 comparison data was correct but not sufficiently visible for leadership use because the main comparison result depended too much on hover detail.
+
+Resolution:
+
+- Added a prominent `So sánh điều hành` widget above the main trend chart.
+- Added two visible modes: `So với hôm qua` and `So cùng kỳ tuần trước`.
+- Each mode shows current value, comparison value, absolute delta, direction, and semantic meaning for total volume, pass rate, and failed shipment count.
+- Added visible D-7 per-day delta evidence inside the existing `7 ngày so sánh` mode.
+- Preserved existing API contracts, formulas, aggregate/BCVH filter context, missing-data semantics, and approved semantic colors.
 
 ## Review Finding Closure
 
@@ -29,6 +41,8 @@ Resolution:
 
 - Added the Product Owner-approved D-1 comparison `So với hôm qua` using Option A: compare the selected date, or the latest available date in the selected range, with the immediately previous calendar day.
 - D-1 comparison covers total volume, pass rate, and failed shipment count, and displays `Không có dữ liệu so sánh` when the previous calendar day is unavailable.
+- Added the Product Owner-requested leadership comparison widget with visible `So với hôm qua` and `So cùng kỳ tuần trước` modes above the main chart.
+- Added visible per-day D-7 delta evidence in `7 ngày so sánh` mode so tooltip hover is supporting detail only.
 
 - Added one primary Dashboard surface named `Xu hướng điều hành tổng hợp`.
 - Consolidated the accepted 30-day trend and 7-day comparison into modes inside one workspace.
@@ -76,14 +90,19 @@ Technical basis:
 ## Runtime Evidence
 
 - D-1 remediation frontend preview URL: `http://127.0.0.1:5180/f13/dashboard`.
+- PO warning remediation frontend preview URL: `http://127.0.0.1:5181/f13/dashboard`.
 - Frontend preview URL: `http://127.0.0.1:4174/f13/dashboard`.
 - Backend API URL: `http://localhost:5050/api`.
 - Aggregate runtime URL: `http://127.0.0.1:4174/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=all`.
 - BCVH runtime URL: `http://127.0.0.1:4174/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=533140`.
 - Aggregate browser validation:
+  - PO warning remediation on preview `http://127.0.0.1:5181/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=all` showed `So sánh điều hành` above the main chart.
   - D-1 remediation on preview `http://127.0.0.1:5180/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=all` showed `So với hôm qua`.
   - D-1 aggregate compared `2026-07-15` with `2026-07-14`.
   - D-1 aggregate values: total volume `3.677`, delta `+543`; pass rate `67.20%`, delta `+6.80 điểm %`; failed shipment count `1.037`, delta `-31`.
+  - D-7 aggregate compared `2026-07-15` with `2026-07-08`.
+  - D-7 aggregate values: total volume `3.677` versus `3.688`, delta `-11`; pass rate `67.20%` versus `66.57%`, delta `+0.63 điểm %`; failed shipment count `1.037` versus `1.092`, delta `-55`.
+  - `7 ngày so sánh` mode showed visible per-day delta rows, including `2026-07-15`: `Sản lượng -11`, `Tỷ lệ đạt +0.63 điểm %`, `Không đạt -55`.
   - `Xu hướng điều hành tổng hợp` visible.
   - Three tabs visible: `30 ngày`, `7 ngày so sánh`, `Theo BCVH`.
   - `Ngoại lệ & Rủi ro chính` visible.
@@ -96,9 +115,12 @@ Technical basis:
   - Failed-rate legend and risk panel remained visible after mode changes.
   - Unsupported `25%` failed-rate wording remained absent.
 - BCVH validation for `533140`:
+  - PO warning remediation on preview `http://127.0.0.1:5181/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=533140` showed the same leadership comparison widget under canonical BCVH filter context.
   - D-1 remediation on preview `http://127.0.0.1:5180/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=533140` showed `So với hôm qua`.
   - D-1 BCVH compared `2026-07-15` with `2026-07-14`.
   - D-1 BCVH values: total volume `1.694`, delta `+141`; pass rate `73.91%`, delta `-1.49 điểm %`; failed shipment count `373`, delta `+67`.
+  - D-7 BCVH compared `2026-07-15` with `2026-07-08`.
+  - D-7 BCVH values: total volume `1.694` versus `1.990`, delta `-296`; pass rate `73.91%` versus `67.54%`, delta `+6.37 điểm %`; failed shipment count `373` versus `583`, delta `-210`.
   - Integrated workspace and risk panel visible.
   - Risk panel showed `373 bưu gửi không đạt, tỷ lệ 22.00%`.
   - Unsupported `25%` failed-rate wording absent.
@@ -108,9 +130,11 @@ Technical basis:
 ## Validation
 
 - `node --test frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/qualityTrendlineWindow.test.js frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/samePeriodComparisonData.test.js`
+- `node --test frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/qualityTrendlineWindow.test.js frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/samePeriodComparisonData.test.js frontend/src/features/dashboard/components/dashboardLanguageSemantics.test.js frontend/src/features/dashboard/components/unifiedCommandSummary.test.js`
 - `node --test frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/samePeriodComparisonData.test.js frontend/src/features/dashboard/components/dashboardLanguageSemantics.test.js frontend/src/features/dashboard/components/unifiedCommandSummary.test.js`
 - `npm.cmd run lint`
 - `npm.cmd run build`
+- `git diff --check`
 - API checks:
   - `GET /api/f13/dashboard/daily-trend?from_date=2026-06-16&to_date=2026-07-15`
   - `GET /api/f13/dashboard/daily-trend?from_date=2026-06-16&to_date=2026-07-15&ma_bcvh=533140`
@@ -123,4 +147,4 @@ Technical basis:
 - `npm.cmd run lint` passes with pre-existing warnings outside DA-IMPL-003 scope.
 - `npm.cmd run build` passes with the existing Vite large-chunk warning.
 - Type-check is not a separate repository script; the frontend is JavaScript, and production build completed.
-- DA-IMPL-003 is not Product Owner accepted yet. Stop state is `READY FOR PO CHECK`.
+- DA-IMPL-003 is not Product Owner accepted yet. Stop state is `PO WARNING` pending Product Owner recheck.

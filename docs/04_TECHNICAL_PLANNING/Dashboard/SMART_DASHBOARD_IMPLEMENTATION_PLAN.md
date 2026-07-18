@@ -226,7 +226,7 @@ Recommended sequence:
 9. `DA-IMPL-006` - Unified Action Center
 10. `DA-IMPL-007` - Smart Dashboard Final Assembly
 
-Only `DA-IMPL-003` is at `READY FOR PO CHECK`. Auto Import and later DA-IMPL tickets are planned and inactive until the prior ticket receives `PO PASS` or an explicit governance decision allows parallel work.
+Only `DA-IMPL-003` is active and remains at `PO WARNING` pending Product Owner recheck. Auto Import and later DA-IMPL tickets are planned and inactive until the prior ticket receives `PO PASS` or an explicit governance decision allows parallel work.
 
 The next ticket after DA-IMPL-003 is `AUTO-IMPORT-001` Source Portal Discovery and Security Assessment. Auto Import remains planned and inactive until DA-IMPL-003 receives `PO PASS` or explicit governance authority allows activation. Do not implement portal login, downloading, credentials, scheduler, CAPTCHA/OTP handling, or automated import under DA-IMPL-003.
 

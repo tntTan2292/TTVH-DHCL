@@ -3,11 +3,11 @@
 - Ticket ID: `DA-IMPL-003`
 - Ticket Name: `Integrated Trend and Risk Workspace`
 - Phase: `Smart Leadership Dashboard Implementation`
-- Current state: `READY FOR PO CHECK`
+- Current state: `PO WARNING`
 - Technical Status: `PASS`
 - Runtime Status: `PASS`
 - PO UI Check Required: `Yes`
-- PO Product Status: `READY FOR PO CHECK`
+- PO Product Status: `PO WARNING`
 - Activation authority: `DA-IMPL-002` received Product Owner `PO PASS` on `2026-07-18`.
 - Activation date: `2026-07-18`
 
@@ -47,5 +47,6 @@ New formulas, unsupported causes, owners, deadlines, thresholds, API/schema chan
 
 - Evidence: [docs/06_REVIEWS/Dashboard/DA-IMPL-003_INTEGRATED_TREND_AND_RISK_WORKSPACE.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Dashboard/DA-IMPL-003_INTEGRATED_TREND_AND_RISK_WORKSPACE.md)
 - PO checklist: [docs/06_REVIEWS/Dashboard/DA-IMPL-003_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Dashboard/DA-IMPL-003_PO_ACCEPTANCE_CHECKLIST.md)
-- Handoff status: `READY FOR PO CHECK`
+- PO warning remediation: leadership comparison widget now shows D-1 and D-7 values, deltas, direction, and semantic meaning without requiring hover; 7-day mode also shows per-day D-7 delta evidence.
+- Handoff status: `PO WARNING / READY FOR PO RECHECK`
 - Product Owner decision: `PENDING`

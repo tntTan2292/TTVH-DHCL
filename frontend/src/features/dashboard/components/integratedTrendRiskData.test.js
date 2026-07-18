@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import {
   buildDayOverDayComparison,
   buildIntegratedTrendRows,
+  buildLeadershipComparison,
+  buildSevenDayVisibleComparisonEvidence,
+  buildWeekOverWeekComparison,
   getFailedRate,
   summarizeRiskEvidence,
   TREND_MODES,
@@ -102,6 +105,62 @@ test('trendline request preserves aggregate and canonical BCVH context for D-1 s
     buildTrendlineRequestParams({ reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: '533140' }),
     { from_date: '2026-06-16', to_date: '2026-07-15', ma_bcvh: '533140' },
   );
+});
+
+test('leadership comparison switches between D-1 and D-7 values', () => {
+  const d1 = buildLeadershipComparison({
+    items: sampleTrend,
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+    comparisonMode: 'd-1',
+  });
+  const d7 = buildLeadershipComparison({
+    items: sampleTrend,
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+    comparisonMode: 'd-7',
+  });
+
+  assert.equal(d1.previous_date, '2026-07-14');
+  assert.equal(d7.previous_date, '2026-07-08');
+  assert.deepEqual(d7.total_volume, { current: 200, previous: 100, delta: 100 });
+  assert.deepEqual(d7.pass_rate, { current: 65, previous: 80, delta: -15 });
+  assert.deepEqual(d7.failed_count, { current: 70, previous: 20, delta: 50 });
+});
+
+test('D-7 comparison reports unavailable when same weekday previous week is missing', () => {
+  const comparison = buildWeekOverWeekComparison({
+    items: sampleTrend.filter((item) => item.date !== '2026-07-08'),
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+  });
+
+  assert.equal(comparison.available, false);
+  assert.equal(comparison.current_date, '2026-07-15');
+  assert.equal(comparison.previous_date, '2026-07-08');
+});
+
+test('7-day visible evidence exposes per-day D-7 deltas without tooltip dependency', () => {
+  const rows = buildSevenDayVisibleComparisonEvidence(sampleTrend, '2026-07-15');
+  const latest = rows.find((item) => item.current_date === '2026-07-15');
+
+  assert.equal(rows.length, 7);
+  assert.equal(latest.available, true);
+  assert.equal(latest.previous_date, '2026-07-08');
+  assert.equal(latest.total_volume_delta, 100);
+  assert.equal(latest.pass_rate_delta, -15);
+  assert.equal(latest.failed_count_delta, 50);
+});
+
+test('integrated workspace source contains visible leadership comparison labels', () => {
+  const source = read('./IntegratedTrendRiskWorkspace.jsx');
+  assert.match(source, /So sánh điều hành/);
+  assert.match(source, /So với hôm qua/);
+  assert.match(source, /So cùng kỳ tuần trước/);
+  assert.match(source, /Hôm nay/);
+  assert.match(source, /Hôm qua/);
+  assert.match(source, /Cùng ngày tuần trước/);
+  assert.match(source, /Bằng chứng so cùng kỳ 7 ngày/);
 });
 
 test('risk panel uses confirmed values and labels unknown causes explicitly', () => {

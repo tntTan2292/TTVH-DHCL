@@ -20,7 +20,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Phase | `Smart Leadership Dashboard Implementation` |
 | Current Ticket | `DA-IMPL-003 Integrated Trend and Risk Workspace` |
 | Next Ticket | `AUTO-IMPORT-001 Source Portal Discovery and Security Assessment` |
-| PO Status | `READY FOR PO CHECK` |
+| PO Status | `PO WARNING` |
 | Current Branch | `main` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-003_MANIFEST.md` |
 | Governance Version | `V2 Active` |
@@ -74,7 +74,7 @@ DA-IMPL-002 includes the Product Owner KPI-system requirements transferred from 
 
 DA-IMPL-002 runtime evidence confirms the Unified Command Summary is visible in the first `1440x900` viewport, uses four leadership cards, restores national rank from imported `fact_f13_national` data, and removes the duplicate Executive Summary presentation.
 
-DA-IMPL-003 is implemented and at `READY FOR PO CHECK` after consolidating the accepted 30-day view, 7-day comparison, Quality Pulse, risk markers, current exceptions, and legacy Daily Timeline story into one integrated trend and risk workspace. Product Owner decision remains pending; do not award `PO PASS`.
+DA-IMPL-003 remains at `PO WARNING` after Product Owner requested more visible D-1 and D-7 comparison evidence for leadership use. The remediation adds a prominent comparison widget and visible 7-day delta evidence; Product Owner recheck is still pending, and Codex must not award `PO PASS`.
 
 AUTO-IMPORT-001, AUTO-IMPORT-002, AUTO-IMPORT-003, and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
 
