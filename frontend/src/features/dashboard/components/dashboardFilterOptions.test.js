@@ -80,16 +80,24 @@ test('combo trendline uses one daily request and keeps stable card states', () =
 test('dashboard KPI mapping converts runtime values without placeholder strings', () => {
   const cards = mapDashboardKpiToCards({
     total_bg: 100,
+    total_failed: 20,
     passed_rate: 80,
     failed_rate: 20,
     f13_303_rate: 1.5,
+    national_rank: {
+      available: true,
+      rank: 14,
+      total: 34,
+      period: '2026-06-28',
+      metric_label: 'Tỷ lệ PTC/nộp tiền đúng QĐ theo chỉ tiêu 2026',
+    },
   });
 
-  assert.deepEqual(cards.map((card) => card.label), ['Tỷ lệ đạt', 'Đạt', 'Không đạt', 'Tỷ lệ không đạt']);
-  assert.deepEqual(cards.map((card) => card.value), ['80.00%', '80', '20', '20.00%']);
+  assert.deepEqual(cards.map((card) => card.label), ['Tỷ lệ đạt', 'Xếp hạng toàn quốc', 'Sản lượng', 'Bưu gửi cần xử lý']);
+  assert.deepEqual(cards.map((card) => card.value), ['80.00%', '14/34', '100', '20']);
   assert.ok(cards.every((card) => card.value !== '--'));
+  assert.match(cards[3].support, /Tỷ lệ không đạt: 20\.00%/);
   assert.doesNotMatch(JSON.stringify(cards), /f13_303_rate/);
-  assert.doesNotMatch(JSON.stringify(cards), /Xếp hạng/);
 });
 
 test('dashboard page restores the timeline and ranking surfaces', () => {
@@ -100,12 +108,14 @@ test('dashboard page restores the timeline and ranking surfaces', () => {
 
   assert.match(dashboardSource, /QualityTimelineAdapter/);
   assert.match(dashboardSource, /BcvhOperationTableAdapter/);
-  assert.match(dashboardSource, /mapDashboardKpiToCards/);
+  assert.match(dashboardSource, /UnifiedCommandSummary/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/kpi'/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/daily-trend'/);
   assert.equal((dashboardSource.match(/api\.get\('\/f13\/dashboard\/kpi'/g) || []).length, 1);
   assert.doesNotMatch(summarySource, /api\.get\('\/f13\/dashboard\/kpi'/);
   assert.doesNotMatch(dailyBriefSource, /api\.get\('\/f13\/dashboard\/kpi'/);
+  assert.doesNotMatch(dashboardSource, /ExecutiveSummaryAdapter/);
+  assert.doesNotMatch(dashboardSource, /<KPICard/);
   assert.match(timelineSource, /TimelineStateCard/);
   assert.match(timelineSource, /tone="loading"/);
   assert.match(timelineSource, /tone="error"/);

@@ -4,13 +4,9 @@ import api from '../../api/client';
 import {
   PageContainer,
   SectionHeader,
-  KPICard,
-  LoadingState,
-  ErrorState,
   StatusBadge,
 } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
-import ExecutiveSummaryAdapter from './components/ExecutiveSummaryAdapter';
 import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
 import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
 import QualityVolumeComboTrendlineAdapter from './components/QualityVolumeComboTrendlineAdapter';
@@ -19,12 +15,12 @@ import QualityTimelineAdapter from './components/QualityTimelineAdapter';
 import BcvhOperationTableAdapter from './components/BcvhOperationTableAdapter';
 import MessageGenerationAdapter from './components/MessageGenerationAdapter';
 import TopListAdapter from './components/TopListAdapter';
+import UnifiedCommandSummary from './components/UnifiedCommandSummary';
 import {
   buildBcvhOptions,
   isCanonicalBcvhCode,
   validateBcvhUnits,
 } from './components/dashboardFilterOptions';
-import { mapDashboardKpiToCards } from './components/dashboardKpiCards';
 import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
 
@@ -32,7 +28,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
-  const [kpiState, setKpiState] = useState({ loading: true, error: null, data: null, cards: mapDashboardKpiToCards({}) });
+  const [kpiState, setKpiState] = useState({ loading: true, error: null, data: null });
   const [trendState, setTrendState] = useState({ loading: true, error: null, data: [] });
   const [metadataState, setMetadataState] = useState({
     status: 'loading',
@@ -102,7 +98,6 @@ export default function DashboardPage() {
       loading: true,
       error: null,
       data: null,
-      cards: mapDashboardKpiToCards({}),
     });
 
     (async () => {
@@ -130,7 +125,6 @@ export default function DashboardPage() {
           loading: false,
           error: null,
           data: rawData,
-          cards: mapDashboardKpiToCards(rawData),
         });
       } catch (error) {
         if (controller.signal.aborted || kpiRequestSeqRef.current !== requestSeq || kpiActiveKeyRef.current !== requestKey) {
@@ -141,7 +135,6 @@ export default function DashboardPage() {
           loading: false,
           error: error?.message || 'Không thể tải KPI dashboard.',
           data: null,
-          cards: mapDashboardKpiToCards({}),
         });
       }
     })();
@@ -220,6 +213,8 @@ export default function DashboardPage() {
     setSearchParams(params);
   };
 
+  const selectedBcvhLabel = metadataState.bcvhOptions.find((option) => option.value === maBcvh)?.label || (maBcvh === 'all' ? 'Toàn mạng' : 'Theo BCVH');
+
   return (
     <PageContainer
       title="Dashboard điều hành chất lượng F1.3"
@@ -270,35 +265,22 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        <SectionHeader title="Tổng quan điều hành" subtitle="KPI theo kỳ và phạm vi BCVH đã chọn." />
-        {kpiState.loading ? (
-          <div className="mb-2 rounded-2xl border border-[var(--color-surface-200)] bg-white p-6 shadow-sm">
-            <LoadingState label="Đang tải KPI dashboard..." className="min-h-[160px]" />
-          </div>
-        ) : null}
-        {kpiState.error ? (
-          <div className="mb-2 rounded-2xl border border-[var(--color-surface-200)] bg-white p-6 shadow-sm">
-            <ErrorState title="Không thể tải KPI dashboard" description={kpiState.error} className="min-h-[160px]" />
-          </div>
-        ) : null}
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {kpiState.cards.map((card) => (
-            <KPICard key={card.label} label={card.label} value={card.value} delta={card.delta} tone={card.tone} />
-          ))}
-        </div>
+        <UnifiedCommandSummary
+          kpiData={kpiState.data}
+          loading={kpiState.loading}
+          error={kpiState.error}
+          fromDate={fromDate}
+          toDate={toDate}
+          bcvhLabel={selectedBcvhLabel}
+        />
 
         <QualityVolumeComboTrendlineAdapter data={trendState.data} loading={trendState.loading} error={trendState.error} />
         <SamePeriodComparisonTrendlineAdapter data={trendState.data} loading={trendState.loading} error={trendState.error} toDate={toDate || latestDate || defaultDate} />
 
         <QualityTimelineAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
 
-        <div className="grid gap-5 xl:grid-cols-2">
-          <div className="min-h-[240px]">
-            <ExecutiveSummaryAdapter kpiData={kpiState.data} loading={kpiState.loading} error={kpiState.error} />
-          </div>
-          <div className="min-h-[240px]">
-            <RuleRecommendationAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
-          </div>
+        <div className="min-h-[240px]">
+          <RuleRecommendationAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
         </div>
 
         <SectionHeader title="Bản tin và thông báo điều hành" subtitle="Nội dung tổng hợp theo dữ liệu hiện có." />

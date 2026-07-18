@@ -27,9 +27,19 @@ test('KPI all and missing ma_bcvh normalize to aggregate null and never pass all
     assert.equal(calls[1].filters.bcvhId, null);
     assert.equal(calls[2].filters.bcvhId, '535790');
     assert.ok(calls.every((call) => call.filters.bcvhId !== 'all'));
-    assert.deepEqual(allResult, { total_bg: 30, passed_rate: 70, failed_rate: 30 });
-    assert.deepEqual(missingResult, { total_bg: 30, passed_rate: 70, failed_rate: 30 });
-    assert.deepEqual(filteredResult, { total_bg: 10, passed_rate: 80, failed_rate: 20 });
+    assert.equal(allResult.total_bg, 30);
+    assert.equal(allResult.total_passed, 21);
+    assert.equal(allResult.total_failed, 9);
+    assert.equal(allResult.passed_rate, 70);
+    assert.equal(allResult.failed_rate, 30);
+    assert.ok(Object.hasOwn(allResult, 'national_rank'));
+    assert.equal(missingResult.total_bg, 30);
+    assert.equal(missingResult.passed_rate, 70);
+    assert.equal(missingResult.failed_rate, 30);
+    assert.equal(filteredResult.total_bg, 10);
+    assert.equal(filteredResult.passed_rate, 80);
+    assert.equal(filteredResult.failed_rate, 20);
+    assert.equal(filteredResult.national_rank, null);
   } finally {
     service.getDashboardKpi = originalService;
     repo.getKpiMetrics = originalRepo;

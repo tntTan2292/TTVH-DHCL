@@ -33,7 +33,13 @@ test('dashboard KPI filters canonical ma_bcvh values and keeps all aggregated', 
     assert.equal(firstResult.total_bg, 10);
     assert.equal(secondResult.total_bg, 20);
     assert.notDeepEqual(firstResult, secondResult);
-    assert.deepEqual(allResult, { total_bg: 30, passed_rate: 70, failed_rate: 30 });
+    assert.equal(allResult.total_bg, 30);
+    assert.equal(allResult.total_passed, 21);
+    assert.equal(allResult.total_failed, 9);
+    assert.equal(allResult.total_unknown, 0);
+    assert.equal(allResult.passed_rate, 70);
+    assert.equal(allResult.failed_rate, 30);
+    assert.ok(Object.hasOwn(allResult, 'national_rank'));
   } finally {
     repo.getKpiMetrics = original;
   }

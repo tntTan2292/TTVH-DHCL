@@ -19,20 +19,23 @@ test('dashboard semantic foundation exposes approved labels and color roles', ()
 test('dashboard KPI cards use business wording and no runtime contract wording', () => {
   const cards = mapDashboardKpiToCards({
     total_bg: 100,
+    total_failed: 20,
     passed_rate: 80,
     failed_rate: 20,
   });
 
-  assert.deepEqual(cards.map((card) => card.label), ['Tỷ lệ đạt', 'Đạt', 'Không đạt', 'Tỷ lệ không đạt']);
+  assert.deepEqual(cards.map((card) => card.label), ['Tỷ lệ đạt', 'Xếp hạng toàn quốc', 'Sản lượng', 'Bưu gửi cần xử lý']);
   assert.equal(cards[3].tone, 'danger');
+  assert.match(cards[3].support, /Tỷ lệ không đạt/);
   assert.doesNotMatch(JSON.stringify(cards), /contract|runtime/i);
 });
 
 test('dashboard page removes shell and placeholder wording from visible surfaces', () => {
   const dashboardSource = read('../DashboardPage.jsx');
+  const commandSource = read('./UnifiedCommandSummary.jsx');
 
   assert.match(dashboardSource, /Dashboard điều hành chất lượng F1\.3/);
-  assert.match(dashboardSource, /Tổng quan điều hành/);
+  assert.match(commandSource, /Tổng quan điều hành/);
   assert.match(dashboardSource, /BCVH nổi bật và cần cải thiện/);
   assert.match(dashboardSource, /Chi tiết điều hành BCVH/);
   assert.doesNotMatch(dashboardSource, /Dashboard Shell|Executive Header|Navigation Integration Table|Ranking Surface|Widget Placeholder|Executive first view|Recommendation surface|Message \/ integration surface/);

@@ -218,11 +218,18 @@ Recommended sequence:
 1. `DA-IMPL-001` - Dashboard Language and Semantic Foundation
 2. `DA-IMPL-002` - Unified Command Summary
 3. `DA-IMPL-003` - Integrated Trend and Risk Workspace
-4. `DA-IMPL-004` - Unified BCVH Analysis Table
-5. `DA-IMPL-005` - Operating Pattern Tabs
-6. `DA-IMPL-006` - Unified Action Center
-7. `DA-IMPL-007` - Smart Dashboard Final Assembly
+4. `AUTO-IMPORT-001` - Source Portal Discovery and Security Assessment
+5. `AUTO-IMPORT-002` - Automated Download and Validation Pipeline
+6. `AUTO-IMPORT-003` - Scheduled Import, Retry, Monitoring and Operations UI
+7. `DA-IMPL-004` - Unified BCVH Analysis Table
+8. `DA-IMPL-005` - Operating Pattern Tabs
+9. `DA-IMPL-006` - Unified Action Center
+10. `DA-IMPL-007` - Smart Dashboard Final Assembly
 
-Only `DA-IMPL-001` is active. Later DA-IMPL tickets are planned and inactive until the prior ticket receives `PO PASS` or an explicit governance decision allows parallel work.
+Only `DA-IMPL-002` is active. Later DA-IMPL and Auto Import tickets are planned and inactive until the prior ticket receives `PO PASS` or an explicit governance decision allows parallel work.
+
+Auto Import tickets are planning placeholders only during DA-IMPL-002. Do not implement portal login, downloading, credentials, scheduler, CAPTCHA/OTP handling, or automated import under DA-IMPL-002.
+
+From DA-IMPL-002 onward, compactness is a cross-ticket Dashboard acceptance constraint. At the desktop reference viewport `1440x900`, the primary leadership summary should be visible within the first viewport, DA-IMPL-002 must not increase total page height, and the final Dashboard direction should target no more than approximately two vertical viewports. The two A4 pages reference is a density/readability analogy only.
 
 `TICKET-0102` remains deferred and inactive during this Dashboard implementation sequence unless Product Owner later changes priority.

@@ -2,6 +2,7 @@ const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 const ruleRegistry = require('../engine/rules/RuleRegistry');
 const RuleF13302 = require('../engine/rules/RuleF13302');
 const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+const { all, get } = require('../config/db');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
 
@@ -51,6 +52,91 @@ class F13DashboardService {
         }, {});
     }
 
+    async _getDefaultProvinceCode() {
+        const row = await get("SELECT config_value FROM system_config WHERE config_key = 'default_province_code'");
+        return row?.config_value || '53';
+    }
+
+    async _getNationalRankForDate(dateStr, provinceCode) {
+        const rows = await all(`
+            SELECT
+                ma_tinh_phat,
+                ten_tinh_phat,
+                sl_bg_ptc,
+                tl_ptc_dung_qd_ct
+            FROM fact_f13_national
+            WHERE ngay_do_kiem = ?
+            ORDER BY tl_ptc_dung_qd_ct DESC, sl_bg_ptc DESC
+        `, [dateStr]);
+
+        if (!rows.length) return null;
+
+        const index = rows.findIndex(row => row.ma_tinh_phat === provinceCode);
+        if (index < 0) return null;
+
+        const province = rows[index];
+        return {
+            available: true,
+            rank: index + 1,
+            total: rows.length,
+            period: dateStr,
+            province_code: province.ma_tinh_phat,
+            province_name: province.ten_tinh_phat,
+            metric: 'tl_ptc_dung_qd_ct',
+            metric_label: 'Tỷ lệ PTC/nộp tiền đúng QĐ theo chỉ tiêu 2026',
+            metric_value: Number(province.tl_ptc_dung_qd_ct || 0),
+            volume: Number(province.sl_bg_ptc || 0),
+            direction: 'desc',
+            tie_behavior: 'Thứ tự theo tỷ lệ giảm dần, sau đó theo sản lượng giảm dần; không gộp đồng hạng.'
+        };
+    }
+
+    async _getNationalRankSummary(endDate) {
+        const provinceCode = await this._getDefaultProvinceCode();
+        const latestRow = await get(`
+            SELECT MAX(ngay_do_kiem) as period
+            FROM fact_f13_national
+            WHERE ngay_do_kiem <= ?
+        `, [endDate]);
+
+        if (!latestRow?.period) {
+            return {
+                available: false,
+                message: 'Chưa có dữ liệu xếp hạng toàn quốc',
+                province_code: provinceCode,
+                requested_period: endDate
+            };
+        }
+
+        const current = await this._getNationalRankForDate(latestRow.period, provinceCode);
+        if (!current) {
+            return {
+                available: false,
+                message: 'Chưa có dữ liệu xếp hạng toàn quốc',
+                province_code: provinceCode,
+                period: latestRow.period,
+                requested_period: endDate
+            };
+        }
+
+        const previousRow = await get(`
+            SELECT MAX(ngay_do_kiem) as period
+            FROM fact_f13_national
+            WHERE ngay_do_kiem < ?
+        `, [latestRow.period]);
+        const previous = previousRow?.period
+            ? await this._getNationalRankForDate(previousRow.period, provinceCode)
+            : null;
+
+        return {
+            ...current,
+            requested_period: endDate,
+            previous_period: previous?.period || null,
+            previous_rank: previous?.rank || null,
+            movement: previous ? previous.rank - current.rank : null
+        };
+    }
+
     _buildF13302RateMap(facts) {
         if (!ruleRegistry.rules.some(rule => rule?.id === 'RULE_F13_302')) {
             ruleRegistry.register(new RuleF13302());
@@ -85,17 +171,35 @@ class F13DashboardService {
             const result = await factBuuGuiRepo.getKpiMetrics(startDate, endDate, {
                 bcvhId: normalizedBcvh
             });
+            const nationalRank = normalizedBcvh ? null : await this._getNationalRankSummary(endDate);
+
             if (!result || result.total_bg === 0) {
-                return { total_bg: 0, passed_rate: 0, failed_rate: 0 };
+                return {
+                    total_bg: 0,
+                    total_passed: 0,
+                    total_failed: 0,
+                    total_unknown: 0,
+                    passed_rate: 0,
+                    failed_rate: 0,
+                    national_rank: nationalRank
+                };
             }
             
             const passed_rate = this._calculateRate(result.total_passed, result.total_bg);
             const failed_rate = this._calculateRate(result.total_failed, result.total_bg);
+            const total_unknown = Math.max(
+                0,
+                Number(result.total_bg || 0) - Number(result.total_passed || 0) - Number(result.total_failed || 0)
+            );
 
             return {
                 total_bg: result.total_bg,
+                total_passed: result.total_passed || 0,
+                total_failed: result.total_failed || 0,
+                total_unknown,
                 passed_rate,
                 failed_rate,
+                national_rank: nationalRank,
             };
         } catch (error) {
             if (error?.code === 'INVALID_BCVH') throw error;
