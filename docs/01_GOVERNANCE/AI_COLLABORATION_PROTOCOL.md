@@ -16,7 +16,7 @@
 - [12. Golden Rules](#12-golden-rules)
 - [13. Ticket Completion Protocol](#13-ticket-completion-protocol)
 - [14. Prompt Standard](#14-prompt-standard)
-- [15. Product Owner ↔ ChatGPT Collaboration Workflow](#15-product-owner--chatgpt-collaboration-workflow)
+- [15. Product Owner to ChatGPT Collaboration Workflow](#15-product-owner-to-chatgpt-collaboration-workflow)
 - [16. PO UI Acceptance Gate](#16-po-ui-acceptance-gate)
 
 ## 1. Purpose
@@ -378,17 +378,31 @@ All future QIS V2 prompts should follow the canonical prompt standard defined in
 
 The prompt standard is the default format for future ChatGPT and Codex tickets.
 
-## 15. Product Owner ↔ ChatGPT Collaboration Workflow
+## 15. Product Owner to ChatGPT Collaboration Workflow
 
-### 15.1 When Product Owner sends results from Antigravity/Codex
+### 15.1 Mandatory Three-Part Response Format
 
-ChatGPT must always respond in this order:
+ChatGPT must use exactly this format for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation:
 
-1. Analysis of the result, maximum 5 sentences
-2. Next step proposal, maximum 5 sentences
-3. Prompt for Antigravity/Codex
+1. `### Phân tích kết quả`
+   - fewer than 5 sentences
+   - state only the result, finding, blocker, or readiness
+2. `### Phương án`
+   - fewer than 5 sentences
+   - state the immediate execution path
+3. exactly one of:
+   - `### Prompt cho Codex/Antigravity`
+   - `### Yêu cầu PO quyết định`
 
-If the issue involves a business rule, SSOT, or business process, ChatGPT must ask the Product Owner for a decision before proceeding.
+### 15.2 Post-Review Remediation Loop
+
+When review finds an issue resolvable within the active ticket, ChatGPT/Codex must not stop after reporting the finding. It must immediately generate a remediation prompt for Codex/Antigravity and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
+
+Do not activate the next ticket before current-ticket PO PASS unless explicit Governance authority permits parallel work.
+
+Request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
+
+A failed repository search alone is not sufficient proof that authority does not exist. Authority checks must inspect relevant Governance documents, business-rule sources, shared constants, accepted implementation, API contracts, tests, and Git history before concluding that authority is unavailable.
 
 ## 16. PO UI Acceptance Gate
 
@@ -407,13 +421,3 @@ Rules:
 - Runtime PASS is not Product PASS.
 - A module cannot be marked completed before the applicable PO gate is satisfied.
 - PO findings must be traced to a responsible ticket or backlog decision.
-
-### 15.2 When Product Owner asks ChatGPT directly
-
-ChatGPT must always respond in this order:
-
-1. Answer the question
-2. Propose the next option
-3. Prompt for Antigravity/Codex
-
-If the issue involves a business rule, SSOT, or business process, ChatGPT must ask the Product Owner for a decision before proceeding.

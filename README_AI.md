@@ -5,7 +5,7 @@
 - [1. Purpose](#1-purpose)
 - [2. Mandatory Start](#2-mandatory-start)
 - [3. Operating Rules](#3-operating-rules)
-- [4. Expected Output](#4-expected-output)
+- [4. Mandatory Response Format](#4-mandatory-response-format)
 - [5. Current Repository Status](#5-current-repository-status)
 - [6. Quick Links](#6-quick-links)
 - [7. Conversation Context Capacity and Fresh-Chat Handoff](#7-conversation-context-capacity-and-fresh-chat-handoff)
@@ -46,14 +46,19 @@ AI must:
 - not perform broad UI acceptance or award PO PASS
 - treat Technical PASS and Runtime/API Contract PASS as non-equivalent to PO PASS
 
-## 4. Expected Output
+## 4. Mandatory Response Format
 
-After onboarding, AI must report:
+After onboarding and for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation, AI must respond with exactly this concise three-part format:
 
-- Project Understanding
-- Governance Understanding
-- Current Ticket
-- Ready to Continue
+1. `### Phân tích kết quả`
+   - fewer than 5 sentences
+   - state only the result, finding, blocker, or readiness
+2. `### Phương án`
+   - fewer than 5 sentences
+   - state the immediate execution path
+3. exactly one of:
+   - `### Prompt cho Codex/Antigravity`
+   - `### Yêu cầu PO quyết định`
 
 If the active manifest authorizes implementation and no governance blocker exists, the AI must continue immediately into Codex prompt generation without waiting for another user request.
 
@@ -63,9 +68,9 @@ If the active manifest conflicts with the current ticket named in `PROJECT_SNAPS
 
 If onboarding PASS completes and the active manifest authorizes implementation, the AI must immediately produce:
 
-- `### Kết quả`
+- `### Phân tích kết quả`
 - `### Phương án`
-- `### Prompt cho Codex`
+- `### Prompt cho Codex/Antigravity`
 
 Allowed stop conditions after onboarding are limited to manifests that explicitly indicate:
 
@@ -74,6 +79,10 @@ Allowed stop conditions after onboarding are limited to manifests that explicitl
 - `WAITING FOR SSOT`
 - `WAITING FOR REQUIREMENT`
 - another governance-defined blocking state
+
+When review finds an issue that can be remediated within the active ticket, AI must not stop after reporting the finding. It must immediately generate a remediation prompt for Codex/Antigravity and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
+
+AI must request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
 
 ## 5. Governance V2 Onboarding
 

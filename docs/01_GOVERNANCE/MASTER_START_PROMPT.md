@@ -87,11 +87,17 @@ Default onboarding route:
 
 ## 6. Response Format
 
-When receiving results from Codex, respond in this format:
+For post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation, respond with exactly this format:
 
-1. Analysis of the result, maximum 5 sentences.
-2. Next step proposal, maximum 5 sentences.
-3. Prompt for Codex.
+1. `### Phân tích kết quả`
+   - fewer than 5 sentences
+   - state only the result, finding, blocker, or readiness
+2. `### Phương án`
+   - fewer than 5 sentences
+   - state the immediate execution path
+3. exactly one of:
+   - `### Prompt cho Codex/Antigravity`
+   - `### Yêu cầu PO quyết định`
 
 ## 7. Development Workflow
 
@@ -248,34 +254,10 @@ Push
 
 ## 13. Post-Onboarding Response Standard
 
-After AI onboarding has passed, ChatGPT must respond in the following order:
+After AI onboarding has passed, ChatGPT must use the mandatory response format in Section 6.
 
-1. Project Understanding
-   - `PASS` / `FAIL`
-2. Governance Understanding
-   - `PASS` / `FAIL`
-3. Current Project Phase
-4. Current Ticket
-5. Current Development Status
-6. Documentation Status
-7. Current Project Summary
-   - maximum 10 lines
-8. Next Recommended Step
-   - according to the workflow
-9. Prompt for Codex
-   - must be generated according to `CODEX_PROMPT_STANDARD.md`
-   - do not add Acceptance Criteria
-   - do not add Runtime Acceptance
-   - do not add extra Validation beyond the standard
-   - do not expand scope
-   - do not create a new ticket
-10. Ready to Continue
-    - `PASS` / `FAIL`
+When onboarding confirms readiness, ChatGPT must not ask the Product Owner again for decisions already available in Governance, the active manifest, or Required Reading.
 
-If `Ready to Continue = PASS`, ChatGPT must not:
+When review finds an issue resolvable within the active ticket, ChatGPT/Codex must immediately generate a remediation prompt and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
 
-- ask the Product Owner again
-- ask again for business requirements
-- ask again about workflow
-- ask again for the current ticket
-- request retraining
+Request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.

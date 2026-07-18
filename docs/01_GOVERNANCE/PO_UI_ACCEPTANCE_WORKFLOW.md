@@ -191,6 +191,15 @@ Every PO finding must be traceable to:
 - A finding cannot be closed by build PASS alone.
 - A finding cannot be closed by runtime PASS alone.
 - A finding cannot be closed without PO recheck evidence when PO review applies.
+- When a PO WARNING or PO FAIL is resolvable within the active ticket, the active ticket remains current until remediation, revalidation, and required PO acceptance are complete.
+- The next ticket must not be activated before current-ticket PO PASS unless explicit Governance authority permits parallel work.
+- ChatGPT/Codex must generate a remediation prompt immediately for active-ticket findings that do not require a Product Owner decision.
+
+## 8.1 PO Decision Boundary
+
+Request a Product Owner decision only when a finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
+
+A failed repository search alone is not enough to declare missing authority. Relevant Governance documents, business-rule sources, shared constants, accepted implementation, API contracts, tests, and Git history must be inspected first.
 
 ## 9. Authority
 

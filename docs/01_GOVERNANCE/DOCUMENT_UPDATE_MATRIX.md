@@ -37,6 +37,8 @@ This matrix defines which documents must be updated when a specific governance, 
 | Context Contract Change | `PROJECT_CONTEXT.md`, `PROJECT_HANDOVER.md`, `AI_COLLABORATION_PROTOCOL.md`, `PROJECT_DECISIONS.md` |
 | Runtime Contract Change | `IMPLEMENTATION_ARCHITECTURE.md`, `PROJECT_DECISIONS.md`, `PROJECT_CONTEXT.md`, `PROJECT_HANDOVER.md` |
 | Governance Doc Added | `DOCUMENT_INDEX.md`, `DOCUMENT_GOVERNANCE.md` if governance rules changed |
+| Prompt Standard / AI Protocol Change | `README_AI.md`, `CODEX_PROMPT_STANDARD.md`, `AI_COLLABORATION_PROTOCOL.md`, `MASTER_START_PROMPT.md`, `DOCUMENT_GOVERNANCE.md`, `DOCUMENT_UPDATE_MATRIX.md`, `DOCUMENT_INDEX.md`, `PO_UI_ACCEPTANCE_WORKFLOW.md` when PO handoff or PO decision rules change |
+| Post-Review Remediation Workflow Change | `CODEX_PROMPT_STANDARD.md`, `AI_COLLABORATION_PROTOCOL.md`, `DOCUMENT_GOVERNANCE.md`, `DOCUMENT_UPDATE_MATRIX.md`, `README_AI.md`, `MASTER_START_PROMPT.md`, `PO_UI_ACCEPTANCE_WORKFLOW.md`, `DOCUMENT_INDEX.md` |
 | Document Superseded | `DOCUMENT_INDEX.md`, `DOCUMENT_LIFECYCLE.md`, `PROJECT_HANDOVER.md` if read order changes |
 
 ## 3. Event Notes
@@ -48,3 +50,4 @@ Guidelines:
 - if the change affects freeze boundaries, update decision and handover documents
 - if the change affects chat continuity, update `MASTER_START_PROMPT.md`
 - if the change affects document inventory, update `DOCUMENT_INDEX.md`
+- if the change affects response format, remediation loop, PO handoff, or next-ticket activation, update `CODEX_PROMPT_STANDARD.md` and all directly dependent Governance documents listed above

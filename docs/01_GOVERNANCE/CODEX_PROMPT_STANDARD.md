@@ -9,6 +9,8 @@
 - [5. Post-Onboarding Behavior](#5-post-onboarding-behavior)
 - [6. Minimal Default Template](#6-minimal-default-template)
 - [7. Output Standard](#7-output-standard)
+- [8. Technical Validation vs PO UI Acceptance](#8-technical-validation-vs-po-ui-acceptance)
+- [9. Additional PO/User Decision Rule](#9-additional-pouser-decision-rule)
 - [10. Conversation Context Capacity and Fresh-Chat Handoff](#10-conversation-context-capacity-and-fresh-chat-handoff)
 
 ## 1. Purpose
@@ -131,11 +133,27 @@ When onboarding PASS completes, Codex behavior depends on the active manifest:
 - if the manifest explicitly indicates `BLOCKED`, `WAITING FOR PO`, `WAITING FOR SSOT`, `WAITING FOR REQUIREMENT`, or another governance-defined blocking state, Codex may stop after explaining the blocker precisely
 - post-onboarding autonomy is governed by repository documentation, not chat history
 
-The required autonomous output is:
+The required autonomous output is exactly:
 
-- `### Kết quả`
-- `### Phương án`
-- `### Prompt cho Codex`
+1. `### Phân tích kết quả`
+   - fewer than 5 sentences
+   - state only the result, finding, blocker, or readiness
+2. `### Phương án`
+   - fewer than 5 sentences
+   - state the immediate execution path
+3. exactly one of:
+   - `### Prompt cho Codex/Antigravity`
+   - `### Yêu cầu PO quyết định`
+
+## 5.1 Post-Review Remediation Loop
+
+When review finds an issue that can be remediated within the active ticket, ChatGPT/Codex must not stop after reporting the finding. It must immediately generate a remediation prompt for Codex/Antigravity, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
+
+Do not activate the next ticket before current-ticket PO PASS unless explicit Governance authority permits parallel work.
+
+Request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
+
+A failed repository search alone is not sufficient proof that authority does not exist. Before declaring missing authority, inspect relevant Governance documents, business-rule sources, shared constants, accepted implementation, API contracts, tests, and Git history.
 
 ## 6. Minimal Default Template
 
@@ -168,11 +186,9 @@ Restrictions:
 - Use browser automation only for targeted technical diagnosis or explicit authorization.
 
 Report:
-- implementation result;
-- validation result;
-- PO check status when applicable;
-- commit and remote push status;
-- next-ticket handoff result.
+- use `### Phân tích kết quả`, `### Phương án`, and exactly one of `### Prompt cho Codex/Antigravity` or `### Yêu cầu PO quyết định`;
+- keep the first two sections under 5 sentences each;
+- include implementation, validation, PO check, commit, remote push, and handoff status only when applicable.
 ```
 
 ## 7. Output Standard
@@ -180,6 +196,8 @@ Report:
 Every Codex execution report generated from this standard must stay concise and should not repeat repository-owned context unless a temporary instruction is not already available in the repository.
 
 The prompt is considered valid when it is sufficient for Codex to implement the ticket by following the repository onboarding chain, while staying below 250 words unless a documented exception applies.
+
+The three-part response format applies to post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation.
 
 ## 8. Technical Validation vs PO UI Acceptance
 

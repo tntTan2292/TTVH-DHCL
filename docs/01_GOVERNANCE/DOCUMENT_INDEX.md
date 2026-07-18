@@ -81,21 +81,21 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Development | High-level project handover | Active | L2 | 1 | Medium | context/protocol/decisions |
 | `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Development | Project context for new sessions | Active | L2 | 1 | Medium | handover/protocol/decisions |
 | `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Governance | Live project-state SSOT for Governance V2 onboarding | Active | L2 | 1 | High | README_AI.md, ticket manifests |
-| `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Development | Collaboration protocol | Active | L2 | 1 | Medium | handover/context/decisions |
-| `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md` | Governance | PO UI acceptance workflow | Active | L2 | 1 | Medium | prompt standard, findings register |
+| `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Development | Collaboration protocol, mandatory response format, and post-review remediation loop | Active | L2 | 1 | Medium | handover/context/decisions/prompt standard |
+| `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md` | Governance | PO UI acceptance workflow and active-ticket remediation gate | Active | L2 | 1 | Medium | prompt standard, findings register, AI collaboration protocol |
 | `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Development | Immutable decision log | Active | L1 | 1 | Medium | handover/context/protocol |
 | `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Development | Start prompt for new ChatGPT sessions | Active | L2 | 1 | Medium | handover/context/protocol/decisions |
 | `docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md` | Governance | Codex documentation workflow standard | Active | L2 | 1 | Medium | README_AI.md, PROJECT_SNAPSHOT.md, manifests |
-| `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Governance | Canonical Codex ticket lifecycle and handoff standard | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, manifests |
+| `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Governance | Canonical Codex ticket lifecycle, mandatory response format, and remediation prompt standard | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, manifests, AI collaboration protocol |
 | `docs/01_GOVERNANCE/GOVERNANCE_V2_DESIGN.md` | Governance | Governance V2 onboarding design and compatibility plan | Active | L2 | 2 | Medium | PROJECT_SNAPSHOT.md, ticket manifests, onboarding docs |
 
 ## 6. Governance
 
 | File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Governance | Document governance rules | Active | L1 | 1 | Low | index/lifecycle/matrix |
+| `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Governance | Document governance rules and post-review remediation authority | Active | L1 | 1 | Low | index/lifecycle/matrix/prompt standard |
 | `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | Governance | Document state transitions | Active | L2 | 1 | Low | governance/update matrix |
-| `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | Governance | Event-to-document update matrix | Active | L2 | 1 | Medium | governance/lifecycle |
+| `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | Governance | Event-to-document update matrix including prompt/protocol remediation dependencies | Active | L2 | 1 | Medium | governance/lifecycle/prompt standard |
 | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | Governance | Repository TOC | Active | L2 | 1 | Medium | all docs |
 
 ## 7. Handover
@@ -105,7 +105,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Handover | High-level project transfer document | Active | L2 | 1 | Medium | context/decisions/protocol |
 | `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Handover | Full project context | Active | L2 | 1 | Medium | handover/protocol/decisions |
 | `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Handover | AI coordination rules | Active | L2 | 1 | Medium | handover/context/decisions |
-| `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Handover | Standard prompt structure for future AI tickets | Active | L2 | 1 | Medium | handover/context/protocol |
+| `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Handover | Standard prompt and three-part response structure for future AI tickets | Active | L2 | 1 | Medium | handover/context/protocol |
 | `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Handover | Frozen decision log | Active | L1 | 1 | Medium | handover/context/protocol |
 | `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Handover | New chat startup prompt | Active | L2 | 1 | Medium | all handover docs |
 

@@ -16,6 +16,9 @@
 - [12. Document Naming Convention](#12-document-naming-convention)
 - [13. Repository Organization](#13-repository-organization)
 - [14. Governance Checklist](#14-governance-checklist)
+- [15. Document Authority Resolution](#15-document-authority-resolution)
+- [16. PO UI Acceptance Governance](#16-po-ui-acceptance-governance)
+- [17. Post-Review Remediation Governance](#17-post-review-remediation-governance)
 
 ## 1. Purpose
 
@@ -109,6 +112,12 @@ Review outputs may be:
 - PASS
 - WARNING
 - FAIL
+
+When review finds an issue resolvable within the active ticket, ChatGPT/Codex must not stop after reporting the finding. It must immediately generate a remediation prompt for Codex/Antigravity, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
+
+Request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
+
+A failed repository search alone is not sufficient proof that authority does not exist. Authority checks must inspect relevant Governance documents, business-rule sources, shared constants, accepted implementation, API contracts, tests, and Git history before concluding that authority is unavailable.
 
 ## 8. Approval Workflow
 
@@ -249,3 +258,11 @@ Rules:
 - A module cannot be marked completed before the applicable PO gate is satisfied.
 - PO findings must be linked to a responsible ticket, recovery ticket, future ticket, or backlog decision.
 - The PO findings register is the live traceability record for product observations.
+
+## 17. Post-Review Remediation Governance
+
+The active ticket remains current until review findings within its scope are remediated, revalidated, and accepted through required PO gates.
+
+The next ticket must not be activated before current-ticket PO PASS unless explicit Governance authority permits parallel work.
+
+Responses for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation must follow the canonical three-part format in `CODEX_PROMPT_STANDARD.md`.
