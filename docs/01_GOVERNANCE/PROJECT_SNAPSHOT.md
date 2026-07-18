@@ -18,11 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Smart Leadership Dashboard Implementation` |
-| Current Ticket | `DA-IMPL-001 Dashboard Language and Semantic Foundation` |
-| Next Ticket | `DA-IMPL-002 Unified Command Summary` |
-| PO Status | `PO PASS` |
+| Current Ticket | `DA-IMPL-002 Unified Command Summary` |
+| Next Ticket | `DA-IMPL-003 Integrated Trend and Risk Workspace` |
+| PO Status | `NOT READY` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-001_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-002_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-18` |
 
@@ -68,7 +68,11 @@ The approved Dashboard direction is the consolidated smart Dashboard with five d
 
 DA-IMPL-001 is completed with Product Owner `PO PASS` after PO warning closure for visible technical wording and failed-rate card semantic color.
 
-DA-IMPL-002 is the next implementation ticket. DA-IMPL-003 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
+DA-IMPL-002 is active after DA-IMPL-001 `PO PASS`.
+
+DA-IMPL-002 includes the Product Owner KPI-system requirements transferred from DA-IMPL-001 closure: do not show `Tỷ lệ đạt` and `Tỷ lệ không đạt` as two independent KPI cards at the same time; restore `Xếp hạng toàn quốc` from imported nationwide data; use `Bưu gửi cần xử lý` as the action card and keep `Tỷ lệ không đạt` as supporting information.
+
+DA-IMPL-003 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
 
 TICKET-0102 is deferred and inactive during the Dashboard implementation sequence unless Product Owner later changes priority.
 

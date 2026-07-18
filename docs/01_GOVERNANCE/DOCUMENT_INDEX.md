@@ -180,7 +180,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/10_TICKETS/DA-IMPL-001_MANIFEST.md` | Reviews | Completed manifest for Dashboard Language and Semantic Foundation with PO PASS closure | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, smart Dashboard plan, DA register |
 | `docs/06_REVIEWS/Dashboard/DA-IMPL-001_DASHBOARD_LANGUAGE_AND_SEMANTIC_FOUNDATION.md` | Reviews | DA-IMPL-001 implementation, runtime evidence, PO warning closure, and PO PASS evidence | Completed | L2 | 1 | High | DA-IMPL-001 manifest, PO acceptance checklist |
 | `docs/06_REVIEWS/Dashboard/DA-IMPL-001_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | DA-IMPL-001 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, DA-IMPL-001 evidence |
-| `docs/10_TICKETS/DA-IMPL-002_MANIFEST.md` | Reviews | Planned inactive manifest for Unified Command Summary | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
+| `docs/10_TICKETS/DA-IMPL-002_MANIFEST.md` | Reviews | Active manifest for Unified Command Summary | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, smart Dashboard plan, DA register |
 | `docs/10_TICKETS/DA-IMPL-003_MANIFEST.md` | Reviews | Planned inactive manifest for Integrated Trend and Risk Workspace | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
 | `docs/10_TICKETS/DA-IMPL-004_MANIFEST.md` | Reviews | Planned inactive manifest for Unified BCVH Analysis Table | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
 | `docs/10_TICKETS/DA-IMPL-005_MANIFEST.md` | Reviews | Planned inactive manifest for Operating Pattern Tabs | Planned | L2 | 1 | High | smart Dashboard plan, DA register |

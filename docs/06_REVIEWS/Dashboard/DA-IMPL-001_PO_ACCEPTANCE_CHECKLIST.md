@@ -39,4 +39,12 @@
 - PO Decision: `PO PASS`
 - PO Reviewer: `Product Owner`
 - PO Review Date: `2026-07-18`
-- PO Notes: PO warning items were corrected and runtime-confirmed.
+- PO Notes: Product Owner passed DA-IMPL-001 and accepted the language and semantic normalization result.
+
+## Transferred Scope
+
+The following KPI-system changes are transferred to DA-IMPL-002:
+
+- Do not show `Tỷ lệ đạt` and `Tỷ lệ không đạt` simultaneously as two independent KPI cards.
+- Restore `Xếp hạng toàn quốc` from imported nationwide data.
+- Use `Bưu gửi cần xử lý` as the action card; `Tỷ lệ không đạt` is supporting information.

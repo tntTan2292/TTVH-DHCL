@@ -98,4 +98,12 @@ PO warning closure validation:
 
 DA-IMPL-001 is technically complete and closed with Product Owner `PO PASS`.
 
-DA-IMPL-002 is the next implementation ticket.
+Product Owner accepted the language and semantic normalization result.
+
+The KPI-system changes requested after DA-IMPL-001 are transferred to DA-IMPL-002:
+
+- Do not show `Tỷ lệ đạt` and `Tỷ lệ không đạt` simultaneously as two independent KPI cards.
+- Restore `Xếp hạng toàn quốc` from imported nationwide data.
+- Use `Bưu gửi cần xử lý` as the action card; `Tỷ lệ không đạt` is supporting information.
+
+DA-IMPL-002 is the active next implementation ticket.
