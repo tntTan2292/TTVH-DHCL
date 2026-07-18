@@ -27,6 +27,9 @@ Resolution:
 
 ## Scope Delivered
 
+- Added the Product Owner-approved D-1 comparison `So với hôm qua` using Option A: compare the selected date, or the latest available date in the selected range, with the immediately previous calendar day.
+- D-1 comparison covers total volume, pass rate, and failed shipment count, and displays `Không có dữ liệu so sánh` when the previous calendar day is unavailable.
+
 - Added one primary Dashboard surface named `Xu hướng điều hành tổng hợp`.
 - Consolidated the accepted 30-day trend and 7-day comparison into modes inside one workspace.
 - Added the approved `Theo BCVH` mode without changing URL filter context or API contracts.
@@ -46,6 +49,11 @@ Resolution:
 
 ## Implementation
 
+- D-1 remediation adds no backend endpoint, schema, or API contract change; it reuses the existing `daily-trend` data already loaded for the integrated workspace.
+- `frontend/src/features/dashboard/DashboardPage.jsx`: passes `fromDate` into `IntegratedTrendRiskWorkspace` so the latest available current-day record is selected inside the chosen date range.
+- `frontend/src/features/dashboard/components/IntegratedTrendRiskWorkspace.jsx`: renders the visible `So với hôm qua` comparison above the integrated chart.
+- `frontend/src/features/dashboard/components/integratedTrendRiskData.js`: adds `buildDayOverDayComparison` for current-day selection, D-1 lookup, deltas, and missing D-1 handling.
+- `frontend/src/features/dashboard/components/integratedTrendRiskData.test.js`: covers D-1 date selection, aggregate context, BCVH context, deltas, and missing D-1 data.
 - `frontend/src/features/dashboard/DashboardPage.jsx`: replaced three separate trend story renders with `IntegratedTrendRiskWorkspace`.
 - `frontend/src/features/dashboard/components/IntegratedTrendRiskWorkspace.jsx`: added one tabbed workspace, combined chart, business tooltip, legend, markers, and risk panel.
 - `frontend/src/features/dashboard/components/integratedTrendRiskData.js`: added pure mapping helpers for modes, failed-rate derivation, risk evidence, and marker semantics.
@@ -67,11 +75,15 @@ Technical basis:
 
 ## Runtime Evidence
 
+- D-1 remediation frontend preview URL: `http://127.0.0.1:5180/f13/dashboard`.
 - Frontend preview URL: `http://127.0.0.1:4174/f13/dashboard`.
 - Backend API URL: `http://localhost:5050/api`.
 - Aggregate runtime URL: `http://127.0.0.1:4174/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=all`.
 - BCVH runtime URL: `http://127.0.0.1:4174/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=533140`.
 - Aggregate browser validation:
+  - D-1 remediation on preview `http://127.0.0.1:5180/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=all` showed `So với hôm qua`.
+  - D-1 aggregate compared `2026-07-15` with `2026-07-14`.
+  - D-1 aggregate values: total volume `3.677`, delta `+543`; pass rate `67.20%`, delta `+6.80 điểm %`; failed shipment count `1.037`, delta `-31`.
   - `Xu hướng điều hành tổng hợp` visible.
   - Three tabs visible: `30 ngày`, `7 ngày so sánh`, `Theo BCVH`.
   - `Ngoại lệ & Rủi ro chính` visible.
@@ -84,6 +96,9 @@ Technical basis:
   - Failed-rate legend and risk panel remained visible after mode changes.
   - Unsupported `25%` failed-rate wording remained absent.
 - BCVH validation for `533140`:
+  - D-1 remediation on preview `http://127.0.0.1:5180/f13/dashboard?from_date=2026-07-15&to_date=2026-07-15&ma_bcvh=533140` showed `So với hôm qua`.
+  - D-1 BCVH compared `2026-07-15` with `2026-07-14`.
+  - D-1 BCVH values: total volume `1.694`, delta `+141`; pass rate `73.91%`, delta `-1.49 điểm %`; failed shipment count `373`, delta `+67`.
   - Integrated workspace and risk panel visible.
   - Risk panel showed `373 bưu gửi không đạt, tỷ lệ 22.00%`.
   - Unsupported `25%` failed-rate wording absent.
@@ -92,6 +107,7 @@ Technical basis:
 
 ## Validation
 
+- `node --test frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/qualityTrendlineWindow.test.js frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/samePeriodComparisonData.test.js`
 - `node --test frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/samePeriodComparisonData.test.js frontend/src/features/dashboard/components/dashboardLanguageSemantics.test.js frontend/src/features/dashboard/components/unifiedCommandSummary.test.js`
 - `npm.cmd run lint`
 - `npm.cmd run build`

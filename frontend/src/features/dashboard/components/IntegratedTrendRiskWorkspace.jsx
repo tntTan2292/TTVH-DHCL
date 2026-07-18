@@ -22,6 +22,7 @@ import {
 } from './comboTrendlineData';
 import { DASHBOARD_LABELS, DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
 import {
+  buildDayOverDayComparison,
   buildIntegratedTrendRows,
   summarizeRiskEvidence,
   TREND_MODES,
@@ -197,10 +198,85 @@ function RiskPanel({ risks, loading, error }) {
   );
 }
 
+function formatDeltaValue(value, formatter) {
+  if (value === null || value === undefined) return 'Không có dữ liệu';
+  const sign = Number(value) > 0 ? '+' : '';
+  return `${sign}${formatter(value)}`;
+}
+
+function getDeltaTone(value) {
+  if (value === null || value === undefined || Number(value) === 0) return 'neutral';
+  return Number(value) > 0 ? 'info' : 'warning';
+}
+
+function getFailedDeltaTone(value) {
+  if (value === null || value === undefined || Number(value) === 0) return 'neutral';
+  return Number(value) > 0 ? 'warning' : 'info';
+}
+
+function DayOverDayComparison({ comparison }) {
+  const metrics = comparison?.available ? [
+    {
+      id: 'total-volume',
+      label: 'Tổng bưu gửi',
+      value: formatNumber(comparison.total_volume.current),
+      delta: formatDeltaValue(comparison.total_volume.delta, formatNumber),
+      tone: getDeltaTone(comparison.total_volume.delta),
+    },
+    {
+      id: 'pass-rate',
+      label: 'Tỷ lệ đạt',
+      value: formatRate(comparison.pass_rate.current),
+      delta: formatDeltaValue(comparison.pass_rate.delta, (delta) => `${Number(delta).toFixed(2)} điểm %`),
+      tone: getDeltaTone(comparison.pass_rate.delta),
+    },
+    {
+      id: 'failed-count',
+      label: 'Bưu gửi không đạt',
+      value: formatNumber(comparison.failed_count.current),
+      delta: formatDeltaValue(comparison.failed_count.delta, formatNumber),
+      tone: getFailedDeltaTone(comparison.failed_count.delta),
+    },
+  ] : [];
+
+  return (
+    <div className="mb-4 rounded-xl border border-[var(--color-surface-200)] bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 className="text-sm font-bold text-[var(--color-text-main)]">So với hôm qua</h4>
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            {comparison?.current_date && comparison?.previous_date
+              ? `${comparison.current_date} so với ${comparison.previous_date}`
+              : 'Dựa trên ngày mới nhất có dữ liệu trong phạm vi đang chọn.'}
+          </p>
+        </div>
+        {comparison?.available ? <StatusBadge label="D-1" tone="info" /> : <StatusBadge label="Thiếu dữ liệu" tone="neutral" />}
+      </div>
+
+      {comparison?.available ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          {metrics.map((metric) => (
+            <div key={metric.id} className="rounded-lg border border-[var(--color-surface-100)] bg-[var(--color-surface-50)] px-3 py-2">
+              <div className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">{metric.label}</div>
+              <div className="mt-1 text-lg font-bold text-[var(--color-text-main)]">{metric.value}</div>
+              <div className="mt-1">
+                <StatusBadge label={metric.delta} tone={metric.tone} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm font-semibold text-[var(--color-text-muted)]">Không có dữ liệu so sánh</p>
+      )}
+    </div>
+  );
+}
+
 export default function IntegratedTrendRiskWorkspace({
   data = [],
   loading,
   error,
+  fromDate,
   toDate,
   maBcvh,
   kpiData,
@@ -247,6 +323,10 @@ export default function IntegratedTrendRiskWorkspace({
   }, [maBcvh, toDate]);
 
   const rows = useMemo(() => buildIntegratedTrendRows({ mode, items: data, toDate }), [data, mode, toDate]);
+  const dayOverDayComparison = useMemo(
+    () => buildDayOverDayComparison({ items: data, fromDate, toDate }),
+    [data, fromDate, toDate],
+  );
   const risks = useMemo(() => summarizeRiskEvidence(data, kpiData, pulseState.pulse), [data, kpiData, pulseState.pulse]);
 
   const action = (
@@ -291,6 +371,7 @@ export default function IntegratedTrendRiskWorkspace({
               <span className="inline-flex items-center gap-1"><Layers size={13} /> Chỉ hiển thị một câu chuyện xu hướng chính</span>
               <span className="inline-flex items-center gap-1"><TrendingUp size={13} /> Mốc dưới mục tiêu hiển thị bằng marker</span>
             </div>
+            <DayOverDayComparison comparison={dayOverDayComparison} />
             <TrendChart rows={rows} mode={mode} />
             <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
               <LegendItem color={COLORS.volume} label="Sản lượng, trục trái" shape="bar" />

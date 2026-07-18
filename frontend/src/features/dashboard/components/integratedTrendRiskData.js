@@ -1,5 +1,6 @@
 import { buildSamePeriodComparisonRows } from './samePeriodComparisonData.js';
 import { QUALITY_TARGET_RATE } from './comboTrendlineData.js';
+import { shiftIsoDate } from './qualityTrendlineWindow.js';
 
 export const TREND_MODES = [
   { id: '30-days', label: '30 ngày' },
@@ -60,6 +61,64 @@ export function buildBcvhModeRows(items = []) {
       ...withTrendSemantics(item),
       date_label: item.date?.slice(5) || item.date,
     }));
+}
+
+function isWithinSelectedRange(item, fromDate, toDate) {
+  if (!item?.date || !item.data_available) return false;
+  if (fromDate && item.date < fromDate) return false;
+  if (toDate && item.date > toDate) return false;
+  return true;
+}
+
+function getDelta(currentValue, previousValue) {
+  if (currentValue === null || currentValue === undefined || previousValue === null || previousValue === undefined) {
+    return null;
+  }
+
+  return Number((Number(currentValue) - Number(previousValue)).toFixed(2));
+}
+
+export function buildDayOverDayComparison({ items = [], fromDate, toDate } = {}) {
+  const availableRows = buildThirtyDayTrendRows(items)
+    .filter((item) => isWithinSelectedRange(item, fromDate, toDate))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const current = availableRows.at(-1) || null;
+
+  if (!current?.date) {
+    return null;
+  }
+
+  const previousDate = shiftIsoDate(current.date, -1);
+  const previous = buildThirtyDayTrendRows(items).find((item) => item?.date === previousDate && item.data_available) || null;
+
+  if (!previous) {
+    return {
+      available: false,
+      current_date: current.date,
+      previous_date: previousDate,
+    };
+  }
+
+  return {
+    available: true,
+    current_date: current.date,
+    previous_date: previous.date,
+    total_volume: {
+      current: current.total_volume,
+      previous: previous.total_volume,
+      delta: getDelta(current.total_volume, previous.total_volume),
+    },
+    pass_rate: {
+      current: current.quality_rate,
+      previous: previous.quality_rate,
+      delta: getDelta(current.quality_rate, previous.quality_rate),
+    },
+    failed_count: {
+      current: current.failed,
+      previous: previous.failed,
+      delta: getDelta(current.failed, previous.failed),
+    },
+  };
 }
 
 export function buildIntegratedTrendRows({ mode, items = [], toDate } = {}) {

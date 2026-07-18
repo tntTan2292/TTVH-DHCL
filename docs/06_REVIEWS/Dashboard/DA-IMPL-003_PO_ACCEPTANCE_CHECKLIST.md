@@ -7,6 +7,15 @@
 
 ## PO Checklist
 
+## D-1 Comparison Checklist
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| `So với hôm qua` comparison is visible in the Integrated Trend and Risk Workspace | `READY` | Runtime aggregate and BCVH browser checks on preview `http://127.0.0.1:5180/f13/dashboard` |
+| D-1 comparison uses the latest available current-day record in the selected range | `READY` | Mapper tests and runtime `2026-07-15` checks |
+| D-1 comparison covers total volume, pass rate, and failed shipment count | `READY` | Aggregate shows `3.677`, `67.20%`, `1.037`; BCVH `533140` shows `1.694`, `73.91%`, `373` |
+| Missing D-1 data displays `Không có dữ liệu so sánh` | `READY` | Targeted mapper test |
+
 | Item | Status | Evidence |
 | --- | --- | --- |
 | `Xu hướng điều hành tổng hợp` is visible after the Command Summary | `READY` | Runtime aggregate browser check |

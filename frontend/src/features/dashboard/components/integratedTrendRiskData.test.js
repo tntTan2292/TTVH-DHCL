@@ -2,17 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
+  buildDayOverDayComparison,
   buildIntegratedTrendRows,
   getFailedRate,
   summarizeRiskEvidence,
   TREND_MODES,
 } from './integratedTrendRiskData.js';
+import { buildTrendlineRequestParams } from './qualityTrendlineWindow.js';
 
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 
 const sampleTrend = [
+  { date: '2026-07-07', total_volume: 90, passed: 82, failed: 8, quality_rate: 91.11, data_available: true },
   { date: '2026-07-08', total_volume: 100, passed: 80, failed: 20, quality_rate: 80, data_available: true },
   { date: '2026-07-09', total_volume: 0, passed: 0, failed: 0, quality_rate: null, data_available: false },
+  { date: '2026-07-14', total_volume: 180, passed: 150, failed: 30, quality_rate: 83.33, data_available: true },
   { date: '2026-07-15', total_volume: 200, passed: 130, failed: 70, quality_rate: 65, data_available: true },
 ];
 
@@ -21,14 +25,19 @@ test('integrated trend exposes the three approved modes', () => {
 });
 
 test('failed rate stays visible but does not create unauthorized abnormal-day threshold', () => {
-  assert.equal(getFailedRate(sampleTrend[0]), 20);
-  assert.equal(getFailedRate(sampleTrend[1]), null);
+  const july8 = sampleTrend.find((item) => item.date === '2026-07-08');
+  const july9 = sampleTrend.find((item) => item.date === '2026-07-09');
+
+  assert.equal(getFailedRate(july8), 20);
+  assert.equal(getFailedRate(july9), null);
 
   const rows = buildIntegratedTrendRows({ mode: '30-days', items: sampleTrend, toDate: '2026-07-15' });
-  assert.equal(rows[0].below_target, true);
-  assert.equal(rows[0].abnormal_day, false);
-  assert.equal(rows[2].failed_rate, 35);
-  assert.equal(rows[2].abnormal_day, false);
+  const july8Row = rows.find((item) => item.date === '2026-07-08');
+  const july15Row = rows.find((item) => item.date === '2026-07-15');
+  assert.equal(july8Row.below_target, true);
+  assert.equal(july8Row.abnormal_day, false);
+  assert.equal(july15Row.failed_rate, 35);
+  assert.equal(july15Row.abnormal_day, false);
 });
 
 test('7-day mode preserves current and comparison periods without changing API contract', () => {
@@ -37,6 +46,62 @@ test('7-day mode preserves current and comparison periods without changing API c
   assert.equal(rows[6].current_date, '2026-07-15');
   assert.equal(rows[6].previous_date, '2026-07-08');
   assert.equal(rows[6].previous_quality_rate, 80);
+});
+
+test('D-1 comparison uses latest available selected-range date and previous calendar day', () => {
+  const comparison = buildDayOverDayComparison({
+    items: sampleTrend,
+    fromDate: '2026-07-14',
+    toDate: '2026-07-15',
+  });
+
+  assert.equal(comparison.available, true);
+  assert.equal(comparison.current_date, '2026-07-15');
+  assert.equal(comparison.previous_date, '2026-07-14');
+  assert.deepEqual(comparison.total_volume, { current: 200, previous: 180, delta: 20 });
+  assert.deepEqual(comparison.pass_rate, { current: 65, previous: 83.33, delta: -18.33 });
+  assert.deepEqual(comparison.failed_count, { current: 70, previous: 30, delta: 40 });
+});
+
+test('D-1 comparison falls back to latest available date inside selected range', () => {
+  const comparison = buildDayOverDayComparison({
+    items: sampleTrend,
+    fromDate: '2026-07-08',
+    toDate: '2026-07-09',
+  });
+
+  assert.equal(comparison.available, true);
+  assert.equal(comparison.current_date, '2026-07-08');
+  assert.equal(comparison.previous_date, '2026-07-07');
+});
+
+test('D-1 comparison reports unavailable when previous calendar day is missing', () => {
+  const comparison = buildDayOverDayComparison({
+    items: sampleTrend,
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+  });
+  const withoutPreviousDay = buildDayOverDayComparison({
+    items: sampleTrend.filter((item) => item.date !== '2026-07-14'),
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+  });
+
+  assert.equal(comparison.available, true);
+  assert.equal(withoutPreviousDay.available, false);
+  assert.equal(withoutPreviousDay.current_date, '2026-07-15');
+  assert.equal(withoutPreviousDay.previous_date, '2026-07-14');
+});
+
+test('trendline request preserves aggregate and canonical BCVH context for D-1 source data', () => {
+  assert.deepEqual(
+    buildTrendlineRequestParams({ reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: 'all' }),
+    { from_date: '2026-06-16', to_date: '2026-07-15' },
+  );
+  assert.deepEqual(
+    buildTrendlineRequestParams({ reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: '533140' }),
+    { from_date: '2026-06-16', to_date: '2026-07-15', ma_bcvh: '533140' },
+  );
 });
 
 test('risk panel uses confirmed values and labels unknown causes explicitly', () => {

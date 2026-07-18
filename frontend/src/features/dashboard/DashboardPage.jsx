@@ -276,6 +276,7 @@ export default function DashboardPage() {
           data={trendState.data}
           loading={trendState.loading}
           error={trendState.error}
+          fromDate={fromDate}
           toDate={toDate || latestDate || defaultDate}
           maBcvh={maBcvh}
           kpiData={kpiState.data}
