@@ -38,9 +38,9 @@ test('dashboard page restores the timeline and executive summary surfaces', () =
   assert.match(timelineSource, /tone="error"/);
   assert.match(timelineSource, /tone="empty"/);
   assert.doesNotMatch(timelineSource, /return null/);
-  assert.match(timelineSource, /Heatmap Lịch Chất Lượng/);
-  assert.match(timelineSource, /Quy luật Tuần/);
-  assert.match(timelineSource, /Không có dữ liệu timeline/);
+  assert.match(timelineSource, /Heatmap lịch chất lượng/);
+  assert.match(timelineSource, /Quy luật theo thứ/);
+  assert.match(timelineSource, /Không có dữ liệu diễn biến chất lượng/);
   assert.doesNotMatch(dashboardSource, /f13_303_rate.*Xáº¿p háº¡ng/s);
   assert.doesNotMatch(executiveSummarySource, /Xáº¿p háº¡ng/i);
   assert.doesNotMatch(executiveSummarySource, /Award/);

@@ -10,13 +10,15 @@
 
 ## 2. Current Status
 
-- Current state: `ACTIVE`
-- Technical Status: `NOT STARTED`
-- Runtime Status: `NOT STARTED`
+- Current state: `COMPLETED`
+- Technical Status: `PASS`
+- Runtime Status: `PASS`
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
-- Review Status: `NOT STARTED`
+- PO Product Status: `PO PASS`
+- Review Status: `PO PASS`
 - Activation date: `2026-07-18`
+- Technical handoff date: `2026-07-18`
+- PO closure date: `2026-07-18`
 
 ## 3. Objective
 
@@ -67,6 +69,13 @@ Preserve KPI formulas, SSOT, API contracts, database schema, canonical BCVH mapp
 ## 9. Completion Requirements
 
 On completion, update this manifest, create/update PO review evidence, update `PROJECT_SNAPSHOT.md`, keep `DA-IMPL-002` as the next ticket, commit using One Ticket = One Commit, push to `origin/main`, verify remote commit, and run fresh onboarding from `README_AI.md`.
+
+## 9.1. Completion Evidence
+
+- Implementation review: [docs/06_REVIEWS/Dashboard/DA-IMPL-001_DASHBOARD_LANGUAGE_AND_SEMANTIC_FOUNDATION.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Dashboard/DA-IMPL-001_DASHBOARD_LANGUAGE_AND_SEMANTIC_FOUNDATION.md)
+- PO checklist: [docs/06_REVIEWS/Dashboard/DA-IMPL-001_PO_ACCEPTANCE_CHECKLIST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/06_REVIEWS/Dashboard/DA-IMPL-001_PO_ACCEPTANCE_CHECKLIST.md)
+- Product Owner decision: `PO PASS`
+- PO warning closure: visible `runtime` wording removed from Dashboard business descriptions; `Tỷ lệ không đạt` KPI card changed from warning/yellow tone to danger/red tone and runtime-confirmed.
 
 ## 10. Next Ticket
 

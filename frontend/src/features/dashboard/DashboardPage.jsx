@@ -4,7 +4,6 @@ import api from '../../api/client';
 import {
   PageContainer,
   SectionHeader,
-  CardContainer,
   KPICard,
   LoadingState,
   ErrorState,
@@ -223,15 +222,15 @@ export default function DashboardPage() {
 
   return (
     <PageContainer
-      title="Executive Dashboard"
-      subtitle="Dashboard Shell của QIS V2. Phần logic nghiệp vụ sẽ tiếp tục được bổ sung ở ticket sau."
+      title="Dashboard điều hành chất lượng F1.3"
+      subtitle="Theo dõi chất lượng phát theo kỳ đã chọn và phạm vi BCVH hiện hành."
       action={
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-2 shadow-sm">
           <button
             onClick={() => navigate('/f13/ranking/bcvh')}
             className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)]"
           >
-            Mở BCVH Ranking
+            Mở xếp hạng BCVH
           </button>
         </div>
       }
@@ -252,8 +251,8 @@ export default function DashboardPage() {
           onSearchChange={(value) => updateParam('search', value)}
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge label={interval === 'daily' ? 'Daily' : interval === 'weekly' ? 'Weekly' : 'Monthly'} tone="info" />
-              <StatusBadge label="Dashboard Shell" tone="success" />
+              <StatusBadge label={interval === 'daily' ? 'Theo ngày' : interval === 'weekly' ? 'Theo tuần' : 'Theo tháng'} tone="info" />
+              <StatusBadge label={maBcvh === 'all' ? 'Toàn mạng' : 'Theo BCVH'} tone="neutral" />
             </div>
           }
         />
@@ -271,16 +270,16 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        <SectionHeader title="Executive Header" subtitle="Khối đầu tiên của Dashboard, dùng widget placeholder có cấu trúc rõ ràng." />
+        <SectionHeader title="Tổng quan điều hành" subtitle="KPI theo kỳ và phạm vi BCVH đã chọn." />
         {kpiState.loading ? (
-          <CardContainer title="KPI Dashboard" subtitle="Đang tải KPI runtime..." className="mb-2">
+          <div className="mb-2 rounded-2xl border border-[var(--color-surface-200)] bg-white p-6 shadow-sm">
             <LoadingState label="Đang tải KPI dashboard..." className="min-h-[160px]" />
-          </CardContainer>
+          </div>
         ) : null}
         {kpiState.error ? (
-          <CardContainer title="KPI Dashboard" subtitle="Không thể tải KPI runtime." className="mb-2">
+          <div className="mb-2 rounded-2xl border border-[var(--color-surface-200)] bg-white p-6 shadow-sm">
             <ErrorState title="Không thể tải KPI dashboard" description={kpiState.error} className="min-h-[160px]" />
-          </CardContainer>
+          </div>
         ) : null}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {kpiState.cards.map((card) => (
@@ -302,7 +301,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <SectionHeader title="Daily Brief & Message" subtitle="Hai khu vực này hiển thị tối thiểu để giữ đúng shell." />
+        <SectionHeader title="Bản tin và thông báo điều hành" subtitle="Nội dung tổng hợp theo dữ liệu hiện có." />
         <div className="grid gap-5 xl:grid-cols-2">
           <div className="min-h-[240px]">
             <ExecutiveDailyBriefAdapter kpiData={kpiState.data} loading={kpiState.loading} error={kpiState.error} />
@@ -312,24 +311,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <SectionHeader title="Navigation Integration Table" subtitle="Bảng tích hợp điều hướng xác nhận shell đã sẵn sàng." />
+        <SectionHeader title="BCVH nổi bật và cần cải thiện" subtitle="Danh sách BCVH theo dữ liệu xếp hạng hiện tại." />
         <TopListAdapter fromDate={fromDate} toDate={toDate} interval={interval} />
 
-        <SectionHeader title="Ranking Surface" subtitle="Bảng xếp hạng BCVH runtime-backed giữ nguyên ngữ cảnh canonical." />
+        <SectionHeader title="Chi tiết điều hành BCVH" subtitle="Bảng xếp hạng BCVH theo dữ liệu đã ghi nhận và phạm vi ngày đã chọn." />
         <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
-
-        <SectionHeader title="Widget Placeholder Summary" subtitle="Các vị trí widget còn lại đang ở mức nền, không hardcode business." />
-        <div className="grid gap-5 xl:grid-cols-3">
-          <CardContainer title="Widget Placeholder 1">
-            <p className="text-sm text-[var(--color-text-muted)]">Executive first view.</p>
-          </CardContainer>
-          <CardContainer title="Widget Placeholder 2">
-            <p className="text-sm text-[var(--color-text-muted)]">Recommendation surface.</p>
-          </CardContainer>
-          <CardContainer title="Widget Placeholder 3">
-            <p className="text-sm text-[var(--color-text-muted)]">Message / integration surface.</p>
-          </CardContainer>
-        </div>
       </div>
     </PageContainer>
   );

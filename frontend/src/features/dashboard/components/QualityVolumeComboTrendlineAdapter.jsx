@@ -22,10 +22,11 @@ import {
   normalizeComboTrendlineItems,
   QUALITY_TARGET_RATE,
 } from './comboTrendlineData';
+import { DASHBOARD_LABELS, DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
 
-const VOLUME_BAR_COLOR = '#0f766e';
-const QUALITY_LINE_COLOR = '#174ea6';
-const TARGET_LINE_COLOR = '#dc2626';
+const VOLUME_BAR_COLOR = DASHBOARD_SEMANTIC_COLORS.volume;
+const QUALITY_LINE_COLOR = DASHBOARD_SEMANTIC_COLORS.passed;
+const TARGET_LINE_COLOR = DASHBOARD_SEMANTIC_COLORS.target;
 
 function ComboTrendTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -39,23 +40,23 @@ function ComboTrendTooltip({ active, payload, label }) {
       </div>
       <div className="mt-2 space-y-1 text-sm">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Sản lượng</span>
+          <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.volume}</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatNumber(point.total_volume)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Đạt</span>
+          <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.passed}</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatNumber(point.passed)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Không đạt</span>
+          <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.failed}</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatNumber(point.failed)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Tỷ lệ chất lượng</span>
+          <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.passRate}</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatRate(point.quality_rate)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Mục tiêu</span>
+          <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.target}</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatRate(point.target_rate)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
@@ -101,7 +102,7 @@ function QualityVolumeComboTrendline({ data }) {
             axisLine={false}
             tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
             tickFormatter={(value) => `${value}%`}
-            label={{ value: 'Tỷ lệ chất lượng (%)', angle: 90, position: 'insideRight', fill: 'var(--color-text-muted)', fontSize: 12 }}
+            label={{ value: 'Tỷ lệ đạt (%)', angle: 90, position: 'insideRight', fill: 'var(--color-text-muted)', fontSize: 12 }}
             width={82}
           />
           <Tooltip content={<ComboTrendTooltip />} />
@@ -115,7 +116,7 @@ function QualityVolumeComboTrendline({ data }) {
           <Bar
             yAxisId="volume"
             dataKey="total_volume"
-            name="Sản lượng"
+            name={DASHBOARD_LABELS.volume}
             fill={VOLUME_BAR_COLOR}
             radius={[4, 4, 0, 0]}
             isAnimationActive={false}
@@ -124,7 +125,7 @@ function QualityVolumeComboTrendline({ data }) {
             yAxisId="quality"
             type="linear"
             dataKey="quality_rate"
-            name="Tỷ lệ chất lượng"
+            name={DASHBOARD_LABELS.passRate}
             stroke={QUALITY_LINE_COLOR}
             strokeWidth={3}
             dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
@@ -141,8 +142,8 @@ function QualityVolumeComboTrendline({ data }) {
 function ComboTrendlineCard({ children }) {
   return (
     <CardContainer
-      title="Sản lượng và chất lượng phát – 30 ngày"
-      subtitle="Sản lượng bưu gửi và tỷ lệ chất lượng theo ngày trong cùng một biểu đồ."
+      title="Sản lượng và tỷ lệ đạt - 30 ngày"
+      subtitle="Sản lượng bưu gửi và tỷ lệ đạt theo ngày trong cùng một biểu đồ."
       action={<StatusBadge label="30 ngày" tone="info" />}
       className="overflow-hidden"
     >
@@ -186,7 +187,7 @@ export default function QualityVolumeComboTrendlineAdapter({
         });
 
         if (!params) {
-          throw new Error('Unable to resolve the rolling 30-day trendline window.');
+          throw new Error('Không thể xác định cửa sổ xu hướng 30 ngày.');
         }
 
         const response = await api.get('/f13/dashboard/daily-trend', { params });
@@ -202,7 +203,7 @@ export default function QualityVolumeComboTrendlineAdapter({
         if (!cancelled) {
           setState({
             loading: false,
-            error: fetchError?.message || 'Unable to load the combo trendline.',
+            error: fetchError?.message || 'Không thể tải biểu đồ xu hướng.',
             data: [],
           });
         }
@@ -221,7 +222,7 @@ export default function QualityVolumeComboTrendlineAdapter({
   if (state.loading) {
     return (
       <ComboTrendlineCard>
-        <LoadingState label="Đang tải biểu đồ sản lượng và chất lượng..." className="min-h-[320px]" />
+        <LoadingState label="Đang tải biểu đồ sản lượng và tỷ lệ đạt..." className="min-h-[320px]" />
       </ComboTrendlineCard>
     );
   }
@@ -229,7 +230,7 @@ export default function QualityVolumeComboTrendlineAdapter({
   if (state.error) {
     return (
       <ComboTrendlineCard>
-        <ErrorState title="Không thể tải biểu đồ kết hợp" description={state.error} className="min-h-[320px]" />
+        <ErrorState title="Không thể tải biểu đồ xu hướng" description={state.error} className="min-h-[320px]" />
       </ComboTrendlineCard>
     );
   }
@@ -251,15 +252,15 @@ export default function QualityVolumeComboTrendlineAdapter({
       <QualityVolumeComboTrendline data={state.data} />
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-2 rounded-sm bg-[#0f766e]" />
+          <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: VOLUME_BAR_COLOR }} />
           Sản lượng, trục trái
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-[#174ea6]" />
-          Tỷ lệ chất lượng, trục phải
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: QUALITY_LINE_COLOR }} />
+          Tỷ lệ đạt, trục phải
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-4 border-t-2 border-dashed border-red-600" />
+          <span className="h-2 w-4 border-t-2 border-dashed" style={{ borderColor: TARGET_LINE_COLOR }} />
           Mục tiêu 90%
         </span>
         <span className="inline-flex items-center gap-2">

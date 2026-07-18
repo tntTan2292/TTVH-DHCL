@@ -5,34 +5,30 @@ export default function ExecutiveDailyBrief({ kpiData }) {
 
   const kpiVal = kpiData.today ?? 0;
   const kpiDod = kpiData.dod ?? 0;
-  const rank = kpiData.rank || 0;
-  const rankDod = kpiData.rankDod || 0;
-  
-  // Tự động sinh nội dung tóm tắt (Mẫu)
-  const target = 95; // Giả sử KPI mục tiêu là 95%
-  const statusStr = kpiVal >= target ? "ĐẠT MỤC TIÊU" : "CHƯA ĐẠT MỤC TIÊU";
-  const trendStr = kpiDod > 0 ? "TĂNG" : (kpiDod < 0 ? "GIẢM" : "ĐI NGANG");
-  const rankTrendStr = rankDod < 0 ? `thăng ${Math.abs(rankDod)} bậc` : (rankDod > 0 ? `tụt ${rankDod} bậc` : "giữ nguyên thứ hạng");
-  
-  const rankDisplayStr = rank > 0 ? `đứng thứ ${rank} (${rankTrendStr})` : `N/A`;
+  const passed = (kpiData.buu_gui_dat ?? 0).toLocaleString('vi-VN');
+  const failed = (kpiData.buu_gui_khong_dat ?? 0).toLocaleString('vi-VN');
+  const trendStr = kpiDod > 0 ? 'tăng' : (kpiDod < 0 ? 'giảm' : 'chưa thay đổi');
 
   return (
-    <div className="mb-6 bg-blue-50 border border-blue-100 rounded-xl p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
+      <div className="mb-3 flex items-center gap-2">
         <FileText size={18} className="text-vnpost-blue" />
-        <h3 className="font-bold text-vnpost-blue-dark text-sm uppercase tracking-wide">
-          Bản Tin Điều Hành Nhanh
+        <h3 className="text-sm font-bold uppercase tracking-wide text-vnpost-blue-dark">
+          Bản tin điều hành nhanh
         </h3>
       </div>
-      <div className="text-sm text-gray-800 leading-relaxed space-y-2">
+      <div className="space-y-2 text-sm leading-relaxed text-gray-800">
         <p>
-          <span className="font-semibold text-vnpost-blue">• Tình trạng:</span> Toàn mạng hiện <strong>{statusStr}</strong> ({kpiVal}%), <strong>{trendStr} {Math.abs(kpiDod)}%</strong> so với hôm qua. Xếp hạng toàn quốc <strong>{rankDisplayStr}</strong>.
+          <span className="font-semibold text-vnpost-blue">Tình trạng: </span>
+          Tỷ lệ đạt hiện tại là <strong>{kpiVal}%</strong>, <strong>{trendStr} {Math.abs(kpiDod)}%</strong> so với hôm qua.
         </p>
         <p>
-          <span className="font-semibold text-vnpost-blue">• Xử lý:</span> Đã xử lý đạt <strong>{(kpiData.buu_gui_dat ?? 0).toLocaleString('vi-VN')}</strong> bưu gửi. Tuy nhiên vẫn còn <strong>{(kpiData.buu_gui_khong_dat ?? 0).toLocaleString('vi-VN')}</strong> bưu gửi chậm chỉ tiêu.
+          <span className="font-semibold text-vnpost-blue">Xử lý: </span>
+          Đã xử lý đạt <strong>{passed}</strong> bưu gửi; còn <strong>{failed}</strong> bưu gửi không đạt theo dữ liệu đã ghi nhận.
         </p>
         <p>
-          <span className="font-semibold text-red-600">• Yêu cầu:</span> Các đơn vị lập tức rà soát lượng bưu gửi tồn đọng, ưu tiên phát dứt điểm hàng trong ca làm việc để vớt KPI.
+          <span className="font-semibold text-red-700">Lưu ý: </span>
+          Nội dung này chỉ phản ánh số liệu hiện có, không tự suy diễn nguyên nhân hoặc chủ sở hữu.
         </p>
       </div>
     </div>

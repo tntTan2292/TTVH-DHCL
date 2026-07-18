@@ -18,12 +18,13 @@ import {
   formatComparisonValue,
 } from './samePeriodComparisonData';
 import { QUALITY_TARGET_RATE, getVolumeAxisMax } from './comboTrendlineData';
+import { DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
 
-const CURRENT_VOLUME_COLOR = '#0f766e';
-const PREVIOUS_VOLUME_COLOR = '#94a3b8';
-const CURRENT_QUALITY_COLOR = '#174ea6';
-const PREVIOUS_QUALITY_COLOR = '#64748b';
-const TARGET_LINE_COLOR = '#dc2626';
+const CURRENT_VOLUME_COLOR = DASHBOARD_SEMANTIC_COLORS.volume;
+const PREVIOUS_VOLUME_COLOR = DASHBOARD_SEMANTIC_COLORS.comparison;
+const CURRENT_QUALITY_COLOR = DASHBOARD_SEMANTIC_COLORS.passed;
+const PREVIOUS_QUALITY_COLOR = DASHBOARD_SEMANTIC_COLORS.neutral;
+const TARGET_LINE_COLOR = DASHBOARD_SEMANTIC_COLORS.target;
 
 function SamePeriodTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -36,19 +37,19 @@ function SamePeriodTooltip({ active, payload }) {
       </div>
       <div className="mt-2 space-y-1 text-sm">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Ngày kỳ hiện tại</span>
+          <span className="text-[var(--color-text-muted)]">Ngày - Kỳ hiện tại</span>
           <span className="font-semibold text-[var(--color-text-main)]">{point.current_date || 'Không có dữ liệu'}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Ngày kỳ trước</span>
+          <span className="text-[var(--color-text-muted)]">Ngày - Kỳ so sánh</span>
           <span className="font-semibold text-[var(--color-text-main)]">{point.previous_date || 'Không có dữ liệu'}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Sản lượng kỳ hiện tại</span>
+          <span className="text-[var(--color-text-muted)]">Sản lượng - Kỳ hiện tại</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatComparisonValue(point.current_volume)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Sản lượng kỳ trước</span>
+          <span className="text-[var(--color-text-muted)]">Sản lượng - Kỳ so sánh</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatComparisonValue(point.previous_volume)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
@@ -56,15 +57,15 @@ function SamePeriodTooltip({ active, payload }) {
           <span className="font-semibold text-[var(--color-text-main)]">{formatComparisonDelta(point.current_volume_delta)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Tỷ lệ chất lượng kỳ hiện tại</span>
+          <span className="text-[var(--color-text-muted)]">Tỷ lệ đạt - Kỳ hiện tại</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatComparisonRate(point.current_quality)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Tỷ lệ chất lượng kỳ trước</span>
+          <span className="text-[var(--color-text-muted)]">Tỷ lệ đạt - Kỳ so sánh</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatComparisonRate(point.previous_quality)}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-[var(--color-text-muted)]">Chênh lệch chất lượng</span>
+          <span className="text-[var(--color-text-muted)]">Chênh lệch tỷ lệ đạt</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatComparisonDelta(point.current_quality_delta, ' điểm %')}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
@@ -112,7 +113,7 @@ function SamePeriodComparisonChart({ data }) {
             axisLine={false}
             tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
             tickFormatter={(value) => `${value}%`}
-            label={{ value: 'Tỷ lệ chất lượng (%)', angle: 90, position: 'insideRight', fill: 'var(--color-text-muted)', fontSize: 12 }}
+            label={{ value: 'Tỷ lệ đạt (%)', angle: 90, position: 'insideRight', fill: 'var(--color-text-muted)', fontSize: 12 }}
             width={82}
           />
           <Tooltip content={<SamePeriodTooltip />} />
@@ -122,13 +123,13 @@ function SamePeriodComparisonChart({ data }) {
             stroke={TARGET_LINE_COLOR}
             strokeDasharray="6 6"
           />
-          <Bar yAxisId="volume" dataKey="current_volume" name="Sản lượng kỳ hiện tại" fill={CURRENT_VOLUME_COLOR} radius={[4, 4, 0, 0]} isAnimationActive={false} />
-          <Bar yAxisId="volume" dataKey="previous_volume" name="Sản lượng kỳ trước" fill={PREVIOUS_VOLUME_COLOR} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+          <Bar yAxisId="volume" dataKey="current_volume" name="Sản lượng - Kỳ hiện tại" fill={CURRENT_VOLUME_COLOR} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+          <Bar yAxisId="volume" dataKey="previous_volume" name="Sản lượng - Kỳ so sánh" fill={PREVIOUS_VOLUME_COLOR} radius={[4, 4, 0, 0]} isAnimationActive={false} />
           <Line
             yAxisId="quality"
             type="linear"
             dataKey="current_quality"
-            name="Tỷ lệ chất lượng kỳ hiện tại"
+            name="Tỷ lệ đạt - Kỳ hiện tại"
             stroke={CURRENT_QUALITY_COLOR}
             strokeWidth={3}
             dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
@@ -140,7 +141,7 @@ function SamePeriodComparisonChart({ data }) {
             yAxisId="quality"
             type="linear"
             dataKey="previous_quality"
-            name="Tỷ lệ chất lượng kỳ trước"
+            name="Tỷ lệ đạt - Kỳ so sánh"
             stroke={PREVIOUS_QUALITY_COLOR}
             strokeWidth={2}
             strokeDasharray="6 4"
@@ -185,22 +186,30 @@ export default function SamePeriodComparisonTrendlineAdapter({ data, loading, er
   return (
     <CardContainer
       title="So sánh cùng kỳ 7 ngày"
-      subtitle="Biểu đồ hợp nhất sản lượng và chất lượng theo vị trí ngày trong tuần."
+      subtitle="Biểu đồ hợp nhất sản lượng và tỷ lệ đạt theo vị trí ngày trong tuần."
       action={<StatusBadge label="7 ngày" tone="info" />}
       className="overflow-hidden"
     >
       <SamePeriodComparisonChart data={rows} />
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-2 rounded-sm bg-[#0f766e]" />
-          Kỳ hiện tại
+          <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: CURRENT_VOLUME_COLOR }} />
+          Sản lượng - Kỳ hiện tại
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-2 rounded-sm bg-[#94a3b8]" />
-          Kỳ trước
+          <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: PREVIOUS_VOLUME_COLOR }} />
+          Sản lượng - Kỳ so sánh
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="h-2 w-4 border-t-2 border-dashed border-red-600" />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: CURRENT_QUALITY_COLOR }} />
+          Tỷ lệ đạt - Kỳ hiện tại
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-2 w-4 border-t-2 border-dashed" style={{ borderColor: PREVIOUS_QUALITY_COLOR }} />
+          Tỷ lệ đạt - Kỳ so sánh
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="h-2 w-4 border-t-2 border-dashed" style={{ borderColor: TARGET_LINE_COLOR }} />
           Mục tiêu 90%
         </span>
       </div>

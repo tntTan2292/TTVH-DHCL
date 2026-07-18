@@ -49,20 +49,20 @@ export default function ExecutiveSummary({ data }) {
 
   return (
     <CardContainer
-      title="Executive Summary"
-      subtitle="Tóm tắt điều hành từ KPI runtime đang hoạt động."
+      title="Tóm tắt điều hành"
+      subtitle="Tóm tắt KPI theo dữ liệu đã ghi nhận và phạm vi lọc hiện tại."
       className="h-full"
     >
       <div className="grid gap-4 lg:grid-cols-2">
         <SummaryMetric
-          label="KPI toàn mạng"
+          label="KPI theo phạm vi lọc"
           value={fmtPct(passedRate)}
           helper={`Tổng bưu gửi: ${fmtCount(totalBg)}`}
           tone="blue"
           icon={<Target size={16} />}
           details={[
-            { label: 'Độ lệch HQ', value: fmtDelta(data.dod) },
-            { label: 'Độ lệch CK', value: fmtDelta(data.swc) },
+            { label: 'So với HQ', value: fmtDelta(data.dod) },
+            { label: 'So với CK', value: fmtDelta(data.swc) },
           ]}
         />
         <SummaryMetric

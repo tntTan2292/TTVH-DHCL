@@ -85,7 +85,7 @@ test('dashboard KPI mapping converts runtime values without placeholder strings'
     f13_303_rate: 1.5,
   });
 
-  assert.deepEqual(cards.map((card) => card.label), ['KPI', 'Đạt', 'Không đạt', 'Tỷ lệ Không đạt']);
+  assert.deepEqual(cards.map((card) => card.label), ['Tỷ lệ đạt', 'Đạt', 'Không đạt', 'Tỷ lệ không đạt']);
   assert.deepEqual(cards.map((card) => card.value), ['80.00%', '80', '20', '20.00%']);
   assert.ok(cards.every((card) => card.value !== '--'));
   assert.doesNotMatch(JSON.stringify(cards), /f13_303_rate/);
@@ -111,8 +111,8 @@ test('dashboard page restores the timeline and ranking surfaces', () => {
   assert.match(timelineSource, /tone="error"/);
   assert.match(timelineSource, /tone="empty"/);
   assert.doesNotMatch(timelineSource, /return null/);
-  assert.match(timelineSource, /Heatmap Lịch Chất Lượng/);
-  assert.match(timelineSource, /Quy luật Tuần/);
-  assert.match(timelineSource, /Không có dữ liệu timeline/);
+  assert.match(timelineSource, /Heatmap lịch chất lượng/);
+  assert.match(timelineSource, /Quy luật theo thứ/);
+  assert.match(timelineSource, /Không có dữ liệu diễn biến chất lượng/);
   assert.doesNotMatch(dashboardSource, /f13_303_rate.*Xếp hạng/s);
 });

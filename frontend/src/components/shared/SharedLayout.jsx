@@ -228,7 +228,7 @@ export function GlobalFilterBar({
               value={kpiValue}
               onChange={(e) => onKpiChange?.(e.target.value)}
               className="border-none bg-transparent text-sm focus:ring-0"
-              aria-label="KPI Filter"
+              aria-label="Bộ lọc KPI"
             >
               <option value="all">Tất cả KPI</option>
               <option value="pass">Đạt</option>
@@ -243,7 +243,7 @@ export function GlobalFilterBar({
             onChange={(e) => onBcvhChange?.(e.target.value)}
             disabled={bcvhDisabled}
             className="border-none bg-transparent text-sm focus:ring-0"
-            aria-label="BCVH Filter"
+            aria-label="Bộ lọc BCVH"
           >
             {bcvhOptions.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -257,7 +257,7 @@ export function GlobalFilterBar({
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Tìm kiếm..."
             className="w-full border-none bg-transparent text-sm focus:ring-0"
-            aria-label="Search Box"
+            aria-label="Tìm kiếm"
           />
         </div>
       </div>

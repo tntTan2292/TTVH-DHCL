@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { Calendar, Activity, TrendingUp, BarChart2 } from 'lucide-react';
 import api from '../../api/client';
+import { DASHBOARD_SEMANTIC_COLORS, DASHBOARD_STATUS } from '../../features/dashboard/components/dashboardSemantics';
 
 function TimelineStateCard({ title, description, tone = 'neutral' }) {
   const toneClass = {
@@ -36,7 +37,7 @@ function TimelineStateCard({ title, description, tone = 'neutral' }) {
 
 function TimelineSurfaceShell({ title, icon, children }) {
   return (
-    <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
       <h3 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-700">
         {icon}
         {title}
@@ -45,6 +46,14 @@ function TimelineSurfaceShell({ title, icon, children }) {
     </div>
   );
 }
+
+const getStatusColor = (colorStr) => ({
+  red: DASHBOARD_SEMANTIC_COLORS.failed,
+  yellow: DASHBOARD_SEMANTIC_COLORS.warning,
+  pink: DASHBOARD_SEMANTIC_COLORS.warning,
+  green: DASHBOARD_SEMANTIC_COLORS.passed,
+  gray: DASHBOARD_SEMANTIC_COLORS.unknown,
+}[colorStr] || DASHBOARD_SEMANTIC_COLORS.unknown);
 
 export default function QualityTimelinePanel({ globalFilter }) {
   const [data, setData] = useState(null);
@@ -66,11 +75,11 @@ export default function QualityTimelinePanel({ globalFilter }) {
           return;
         }
         setData(null);
-        setError('Không thể tải dữ liệu timeline.');
+        setError('Không thể tải dữ liệu diễn biến chất lượng.');
       } catch (err) {
         console.error('Failed to fetch quality timeline', err);
         setData(null);
-        setError('Không thể tải dữ liệu timeline.');
+        setError('Không thể tải dữ liệu diễn biến chất lượng.');
       } finally {
         setLoading(false);
       }
@@ -81,7 +90,7 @@ export default function QualityTimelinePanel({ globalFilter }) {
 
   const surfaceData = data || { daily: [], weekly: [], monthly: [], heatmap: [] };
   const pulse = surfaceData.pulse || {
-    text: 'Chưa có dữ liệu để phân tích nhịp đập chất lượng.',
+    text: 'Chưa có dữ liệu để phân tích nhịp chất lượng.',
     color: 'gray',
   };
 
@@ -93,7 +102,7 @@ export default function QualityTimelinePanel({ globalFilter }) {
   );
 
   const renderDaily = (daily = []) => (
-    <TimelineSurfaceShell title="Xu hướng 30 ngày (Daily Timeline)" icon={<Activity size={16} />}>
+    <TimelineSurfaceShell title="Xu hướng 30 ngày" icon={<Activity size={16} />}>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={daily} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
@@ -103,17 +112,17 @@ export default function QualityTimelinePanel({ globalFilter }) {
             <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
             <ReferenceLine
               y={95}
-              stroke="#f97316"
+              stroke={DASHBOARD_SEMANTIC_COLORS.warning}
               strokeDasharray="3 3"
-              label={{ position: 'insideTopLeft', value: '95% Threshold', fill: '#f97316', fontSize: 10 }}
+              label={{ position: 'insideTopLeft', value: 'Ngưỡng theo dõi 95%', fill: DASHBOARD_SEMANTIC_COLORS.warning, fontSize: 10 }}
             />
             <ReferenceLine
               y={90}
-              stroke="#ef4444"
+              stroke={DASHBOARD_SEMANTIC_COLORS.target}
               strokeDasharray="3 3"
-              label={{ position: 'insideBottomLeft', value: '90% Critical', fill: '#ef4444', fontSize: 10 }}
+              label={{ position: 'insideBottomLeft', value: 'Mục tiêu 90%', fill: DASHBOARD_SEMANTIC_COLORS.target, fontSize: 10 }}
             />
-            <Line type="monotone" dataKey="kpi_rate" stroke="#3b82f6" strokeWidth={3} dot={{ r: 2 }} activeDot={{ r: 6 }} />
+            <Line type="monotone" dataKey="kpi_rate" name="Tỷ lệ đạt" stroke={DASHBOARD_SEMANTIC_COLORS.passed} strokeWidth={3} dot={{ r: 2 }} activeDot={{ r: 6 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -142,8 +151,8 @@ export default function QualityTimelinePanel({ globalFilter }) {
       const { x, y, width, value, is_empty } = props;
       if (is_empty) {
         return (
-          <text x={x + width / 2} y={y - 5} fill="#9ca3af" fontSize={10} textAnchor="middle">
-            No Data
+          <text x={x + width / 2} y={y - 5} fill={DASHBOARD_SEMANTIC_COLORS.unknown} fontSize={10} textAnchor="middle">
+            Không có dữ liệu
           </text>
         );
       }
@@ -154,11 +163,8 @@ export default function QualityTimelinePanel({ globalFilter }) {
       );
     };
 
-    const getStatusColor = (colorStr) =>
-      ({ red: '#ef4444', yellow: '#eab308', pink: '#ec4899', green: '#22c55e', gray: '#9ca3af' }[colorStr] || '#9ca3af');
-
     return (
-      <TimelineSurfaceShell title="Quy luật Tuần (Weekly Pattern)" icon={<BarChart2 size={16} />}>
+      <TimelineSurfaceShell title="Quy luật theo thứ" icon={<BarChart2 size={16} />}>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weeklyVisData} margin={{ top: 20, right: 20, bottom: 5, left: -20 }}>
@@ -167,7 +173,7 @@ export default function QualityTimelinePanel({ globalFilter }) {
               <YAxis domain={[weeklyYMin, weeklyYMax]} tick={{ fontSize: 10 }} />
               <Tooltip
                 contentStyle={{ borderRadius: '8px', fontSize: '12px' }}
-                formatter={(value, name, props) => [props.payload.is_empty ? 'No Data' : `${props.payload.avg_kpi}%`, 'KPI Trung bình']}
+                formatter={(value, name, props) => [props.payload.is_empty ? 'Không có dữ liệu' : `${props.payload.avg_kpi}%`, 'KPI trung bình']}
               />
               <Bar dataKey="vis_kpi" radius={[4, 4, 0, 0]}>
                 {weeklyVisData.map((entry, index) => (
@@ -183,21 +189,21 @@ export default function QualityTimelinePanel({ globalFilter }) {
   };
 
   const renderMonthly = (monthly = []) => (
-    <TimelineSurfaceShell title="Quy luật Tháng (Monthly Pattern)" icon={<TrendingUp size={16} />}>
+    <TimelineSurfaceShell title="Quy luật theo tháng" icon={<TrendingUp size={16} />}>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={monthly} margin={{ top: 10, right: 20, bottom: 0, left: -20 }}>
             <defs>
               <linearGradient id="colorKpi" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                <stop offset="5%" stopColor={DASHBOARD_SEMANTIC_COLORS.passed} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={DASHBOARD_SEMANTIC_COLORS.passed} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
             <XAxis dataKey="day" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={20} />
             <YAxis domain={[80, 100]} tick={{ fontSize: 10 }} />
             <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-            <Area type="monotone" dataKey="avg_kpi" stroke="#3b82f6" fillOpacity={1} fill="url(#colorKpi)" />
+            <Area type="monotone" dataKey="avg_kpi" name="KPI trung bình" stroke={DASHBOARD_SEMANTIC_COLORS.passed} fillOpacity={1} fill="url(#colorKpi)" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -205,7 +211,7 @@ export default function QualityTimelinePanel({ globalFilter }) {
   );
 
   const renderHeatmap = (heatmap = []) => (
-    <TimelineSurfaceShell title="Heatmap Lịch Chất Lượng (30 Ngày)" icon={<Calendar size={16} />}>
+    <TimelineSurfaceShell title="Heatmap lịch chất lượng 30 ngày" icon={<Calendar size={16} />}>
       <div className="overflow-x-auto">
         <div className="min-w-[600px]">
           <div className="mb-2 grid grid-cols-7 gap-2 text-center text-xs font-bold text-gray-500">
@@ -219,25 +225,18 @@ export default function QualityTimelinePanel({ globalFilter }) {
                     return <div key={dIdx} className="h-12 rounded-md border border-transparent bg-transparent" />;
                   }
 
-                  const bgColor = day.color === 'green'
-                    ? 'bg-green-500'
-                    : day.color === 'pink'
-                      ? 'bg-pink-500'
-                      : day.color === 'yellow'
-                        ? 'bg-yellow-500'
-                        : day.color === 'red'
-                          ? 'bg-red-500'
-                          : 'bg-gray-200';
+                  const style = { backgroundColor: getStatusColor(day.color) };
 
                   return (
                     <div
                       key={dIdx}
-                      className={`group relative flex h-12 cursor-pointer flex-col items-center justify-center rounded-md text-xs text-white transition-opacity hover:opacity-80 ${bgColor}`}
+                      className="group relative flex h-12 cursor-pointer flex-col items-center justify-center rounded-md text-xs text-white transition-opacity hover:opacity-80"
+                      style={style}
                     >
                       <span className="font-bold opacity-90">{day.date.slice(8)}</span>
                       <div className="flex items-center gap-0.5">
                         <span className="text-[10px] opacity-80">{day.kpi_rate}%</span>
-                        {day.dod > 0 ? <TrendingUp size={10} className="text-white opacity-80" /> : day.dod < 0 ? <TrendingUp size={10} className="text-white opacity-80 transform rotate-180" /> : null}
+                        {day.dod > 0 ? <TrendingUp size={10} className="text-white opacity-80" /> : day.dod < 0 ? <TrendingUp size={10} className="rotate-180 text-white opacity-80" /> : null}
                       </div>
                       <div className="absolute bottom-full z-50 mb-2 hidden w-max rounded bg-gray-800 px-2 py-1 text-xs text-white shadow-lg group-hover:block">
                         {day.date}: {day.kpi_rate}% {day.dod ? `(${day.dod > 0 ? '+' : ''}${day.dod}%)` : ''}
@@ -257,28 +256,28 @@ export default function QualityTimelinePanel({ globalFilter }) {
     <div className="mb-6 rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
       <div className="mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
         <TrendingUp className="text-vnpost-blue" size={24} />
-        <h2 className="text-xl font-bold text-gray-800">Quality Timeline & Patterns</h2>
+        <h2 className="text-xl font-bold text-gray-800">Diễn biến và quy luật chất lượng</h2>
       </div>
 
-      <div className={`mb-6 flex items-start gap-3 rounded-lg border p-4 ${pulse.color === 'red' ? 'border-red-200 bg-red-50 text-red-800' : pulse.color === 'yellow' ? 'border-yellow-200 bg-yellow-50 text-yellow-800' : pulse.color === 'green' ? 'border-green-200 bg-green-50 text-green-800' : 'border-gray-200 bg-gray-50 text-gray-800'}`}>
+      <div className={`mb-6 flex items-start gap-3 rounded-lg border p-4 ${pulse.color === 'red' ? 'border-red-200 bg-red-50 text-red-800' : pulse.color === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-800' : pulse.color === 'green' ? 'border-green-200 bg-green-50 text-green-800' : 'border-gray-200 bg-gray-50 text-gray-800'}`}>
         <Activity className="mt-0.5" size={20} />
         <div>
-          <h4 className="font-bold">Quality Pulse</h4>
+          <h4 className="font-bold">Cảnh báo nhịp chất lượng</h4>
           <p className="mt-1 text-sm">{pulse.text}</p>
         </div>
       </div>
 
       {loading ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <TimelineStateCard title="Xu hướng 30 ngày" description="Đang tải dữ liệu timeline..." tone="loading" />
-          <TimelineStateCard title="Quy luật tuần" description="Đang tải dữ liệu timeline..." tone="loading" />
-          <TimelineStateCard title="Quy luật tháng" description="Đang tải dữ liệu timeline..." tone="loading" />
-          <TimelineStateCard title="Heatmap lịch chất lượng" description="Đang tải dữ liệu timeline..." tone="loading" />
+          <TimelineStateCard title="Xu hướng 30 ngày" description="Đang tải dữ liệu diễn biến chất lượng..." tone="loading" />
+          <TimelineStateCard title="Quy luật theo thứ" description="Đang tải dữ liệu diễn biến chất lượng..." tone="loading" />
+          <TimelineStateCard title="Quy luật theo tháng" description="Đang tải dữ liệu diễn biến chất lượng..." tone="loading" />
+          <TimelineStateCard title="Heatmap lịch chất lượng" description="Đang tải dữ liệu diễn biến chất lượng..." tone="loading" />
         </div>
       ) : !error && !hasUsableSurfaceData ? (
         <TimelineStateCard
-          title="Không có dữ liệu timeline"
-          description="Dữ liệu timeline đã tải thành công nhưng không có nội dung khả dụng cho daily, weekly, monthly hoặc heatmap."
+          title="Không có dữ liệu diễn biến chất lượng"
+          description="Dữ liệu timeline đã tải thành công nhưng chưa có nội dung khả dụng cho xu hướng ngày, quy luật tuần, quy luật tháng hoặc heatmap."
           tone="empty"
         />
       ) : (
@@ -286,8 +285,8 @@ export default function QualityTimelinePanel({ globalFilter }) {
           {error ? (
             <>
               <TimelineStateCard title="Xu hướng 30 ngày" description={error} tone="error" />
-              <TimelineStateCard title="Quy luật tuần" description={error} tone="error" />
-              <TimelineStateCard title="Quy luật tháng" description={error} tone="error" />
+              <TimelineStateCard title="Quy luật theo thứ" description={error} tone="error" />
+              <TimelineStateCard title="Quy luật theo tháng" description={error} tone="error" />
               <TimelineStateCard title="Heatmap lịch chất lượng" description={error} tone="error" />
             </>
           ) : (
@@ -300,6 +299,14 @@ export default function QualityTimelinePanel({ globalFilter }) {
           )}
         </div>
       )}
+
+      <div className="mt-4 flex flex-wrap gap-3 text-xs text-gray-600">
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: DASHBOARD_SEMANTIC_COLORS.passed }} />{DASHBOARD_STATUS.pass}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: DASHBOARD_SEMANTIC_COLORS.warning }} />{DASHBOARD_STATUS.warning}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: DASHBOARD_SEMANTIC_COLORS.failed }} />{DASHBOARD_STATUS.highRisk}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ backgroundColor: DASHBOARD_SEMANTIC_COLORS.unknown }} />{DASHBOARD_STATUS.noData}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-4 border-t-2 border-dashed" style={{ borderColor: DASHBOARD_SEMANTIC_COLORS.target }} />Mục tiêu / tham chiếu</span>
+      </div>
     </div>
   );
 }

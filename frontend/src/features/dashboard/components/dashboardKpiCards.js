@@ -11,7 +11,7 @@ export function mapDashboardKpiToCards(kpiData = {}) {
 
   return [
     {
-      label: 'KPI',
+      label: 'Tỷ lệ đạt',
       value: passedRate === null ? '--' : `${passedRate.toFixed(2)}%`,
       delta: totalBg ? `Tổng bưu gửi: ${totalBg.toLocaleString('vi-VN')}` : 'Không có dữ liệu',
       tone: 'primary',
@@ -19,20 +19,20 @@ export function mapDashboardKpiToCards(kpiData = {}) {
     {
       label: 'Đạt',
       value: totalBg ? passedCount.toLocaleString('vi-VN') : '--',
-      delta: passedRate === null ? 'Không có dữ liệu' : `${passedRate.toFixed(2)}%`,
+      delta: passedRate === null ? 'Không có dữ liệu' : `${passedRate.toFixed(2)}% tổng bưu gửi`,
       tone: 'success',
     },
     {
       label: 'Không đạt',
       value: totalBg ? failedCount.toLocaleString('vi-VN') : '--',
-      delta: failedRate === null ? 'Không có dữ liệu' : `${failedRate.toFixed(2)}%`,
+      delta: failedRate === null ? 'Không có dữ liệu' : `${failedRate.toFixed(2)}% tổng bưu gửi`,
       tone: 'danger',
     },
     {
-      label: 'Tỷ lệ Không đạt',
+      label: 'Tỷ lệ không đạt',
       value: failedRate === null ? '--' : `${failedRate.toFixed(2)}%`,
-      delta: 'Theo contract runtime',
-      tone: 'warning',
+      delta: 'Theo dữ liệu đã lọc',
+      tone: 'danger',
     },
   ];
 }
