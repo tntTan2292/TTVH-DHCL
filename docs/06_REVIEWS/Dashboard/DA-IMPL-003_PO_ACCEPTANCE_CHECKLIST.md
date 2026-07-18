@@ -11,12 +11,12 @@
 
 | Item | Status | Evidence |
 | --- | --- | --- |
-| `So sánh điều hành` widget is visible above the main chart | `READY FOR PO RECHECK` | Runtime aggregate and BCVH browser checks on preview `http://127.0.0.1:5181/f13/dashboard` |
-| Widget has visible modes `So với hôm qua` and `So cùng kỳ tuần trước` | `READY FOR PO RECHECK` | Runtime browser mode switching validated without tooltip hover |
+| `So sánh điều hành` area is visible above the main chart | `READY FOR PO RECHECK` | Source and targeted tests validate the comparison area is rendered before the chart |
+| Two compact widgets are visible simultaneously: `So với hôm qua` and `So với cùng kỳ tuần trước` | `READY FOR PO RECHECK` | Targeted tests validate both widget definitions are produced together; no routine browser/UI testing performed per PO instruction |
 | D-1 comparison uses the latest available current-day record in the selected range | `READY FOR PO RECHECK` | Mapper tests and runtime `2026-07-15` checks |
-| D-1 comparison makes `Tỷ lệ đạt` primary and keeps volume/failed count as compact support | `READY FOR PO RECHECK` | Aggregate shows `67.20%`, volume `3.677`, failed `1.037`; BCVH `533140` shows `73.91%`, volume `1.694`, failed `373` |
-| D-7 comparison makes `Tỷ lệ đạt` primary and keeps volume/failed count as compact support | `READY FOR PO RECHECK` | Aggregate D-7: `67.20%` vs `66.57%`; BCVH `533140`: `73.91%` vs `67.54%` |
-| Absolute delta, direction, and semantic meaning are visible without hover | `READY FOR PO RECHECK` | Runtime widget shows `Tăng/Giảm`, `Tăng lỗi/Giảm lỗi`, and semantic labels such as `Tích cực`, `Cần chú ý`, `Tăng quy mô`, `Giảm quy mô` |
+| D-1 comparison exposes only `Tỷ lệ đạt` and `Sản lượng` | `READY FOR PO RECHECK` | Targeted tests validate widget data has no `Không đạt`, failed-count, or failed-rate fields |
+| D-7 comparison exposes only `Tỷ lệ đạt` and `Sản lượng` | `READY FOR PO RECHECK` | Targeted tests validate widget data has no `Không đạt`, failed-count, or failed-rate fields |
+| Absolute delta and increase/decrease direction are visible without hover | `READY FOR PO RECHECK` | Source and targeted tests validate delta labels and `Tăng/Giảm` direction in the comparison card |
 | `7 ngày so sánh` mode includes visible per-day D-7 delta evidence | `READY FOR PO RECHECK` | Runtime table `Bằng chứng so cùng kỳ 7 ngày` shows daily deltas for `Sản lượng`, `Tỷ lệ đạt`, and `Không đạt` |
 | Missing D-1 data displays `Không có dữ liệu so sánh` | `READY` | Targeted mapper test |
 | Missing D-7 data displays `Không có dữ liệu so sánh` | `READY` | Targeted mapper test |

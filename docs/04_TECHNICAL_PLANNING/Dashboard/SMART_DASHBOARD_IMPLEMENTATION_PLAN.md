@@ -78,6 +78,7 @@ Rules:
 - replace separate 30-day, 7-day, legacy timeline, and Quality Pulse storytelling with one coordinated decision area
 - do not display multiple charts that answer substantially the same trend question
 - use `Tỷ lệ đạt` as the only primary quality-rate story; `Không đạt` and `Chuyển hoàn` are supporting composition/evidence only
+- show D-1 and D-7 leadership comparison simultaneously, limited to `Tỷ lệ đạt` and `Sản lượng`
 - causal explanations must only come from approved data sources
 - unsupported causes must be labeled as unknown or awaiting confirmation
 

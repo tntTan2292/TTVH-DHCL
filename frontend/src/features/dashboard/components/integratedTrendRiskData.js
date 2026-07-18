@@ -137,6 +137,38 @@ export function buildLeadershipComparison({ items = [], fromDate, toDate, compar
   return buildDayOverDayComparison({ items, fromDate, toDate });
 }
 
+function toLeadershipWidgetData(comparison, id, title, comparisonLabel) {
+  if (!comparison) return null;
+
+  return {
+    id,
+    title,
+    comparison_label: comparisonLabel,
+    available: Boolean(comparison.available),
+    current_date: comparison.current_date,
+    previous_date: comparison.previous_date,
+    pass_rate: comparison.pass_rate || null,
+    total_volume: comparison.total_volume || null,
+  };
+}
+
+export function buildLeadershipComparisonWidgets({ items = [], fromDate, toDate } = {}) {
+  return [
+    toLeadershipWidgetData(
+      buildDayOverDayComparison({ items, fromDate, toDate }),
+      'd-1',
+      'So với hôm qua',
+      'Hôm qua',
+    ),
+    toLeadershipWidgetData(
+      buildWeekOverWeekComparison({ items, fromDate, toDate }),
+      'd-7',
+      'So với cùng kỳ tuần trước',
+      'Cùng kỳ tuần trước',
+    ),
+  ].filter(Boolean);
+}
+
 export function buildSevenDayVisibleComparisonEvidence(items = [], toDate) {
   return buildSevenDayComparisonRows(items, toDate).map((row) => {
     const currentFailed = row.current_point?.failed ?? null;

@@ -5,6 +5,7 @@ import {
   buildDayOverDayComparison,
   buildIntegratedTrendRows,
   buildLeadershipComparison,
+  buildLeadershipComparisonWidgets,
   buildSevenDayVisibleComparisonEvidence,
   buildWeekOverWeekComparison,
   getFailedRate,
@@ -128,6 +129,42 @@ test('leadership comparison switches between D-1 and D-7 values', () => {
   assert.deepEqual(d7.failed_count, { current: 70, previous: 20, delta: 50 });
 });
 
+test('leadership comparison widgets expose D-1 and D-7 simultaneously', () => {
+  const widgets = buildLeadershipComparisonWidgets({
+    items: sampleTrend,
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+  });
+
+  assert.deepEqual(widgets.map((item) => item.id), ['d-1', 'd-7']);
+  assert.deepEqual(widgets.map((item) => item.title), ['So với hôm qua', 'So với cùng kỳ tuần trước']);
+  assert.equal(widgets[0].previous_date, '2026-07-14');
+  assert.equal(widgets[1].previous_date, '2026-07-08');
+});
+
+test('leadership comparison widget data exposes only pass rate and volume', () => {
+  const widgets = buildLeadershipComparisonWidgets({
+    items: sampleTrend,
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+  });
+
+  for (const widget of widgets) {
+    assert.deepEqual(Object.keys(widget).sort(), [
+      'available',
+      'comparison_label',
+      'current_date',
+      'id',
+      'pass_rate',
+      'previous_date',
+      'title',
+      'total_volume',
+    ]);
+    assert.ok(!Object.hasOwn(widget, 'failed_count'));
+    assert.ok(!Object.hasOwn(widget, 'failed_rate'));
+  }
+});
+
 test('D-7 comparison reports unavailable when same weekday previous week is missing', () => {
   const comparison = buildWeekOverWeekComparison({
     items: sampleTrend.filter((item) => item.date !== '2026-07-08'),
@@ -138,6 +175,20 @@ test('D-7 comparison reports unavailable when same weekday previous week is miss
   assert.equal(comparison.available, false);
   assert.equal(comparison.current_date, '2026-07-15');
   assert.equal(comparison.previous_date, '2026-07-08');
+});
+
+test('leadership comparison widgets keep separate missing-data states for D-1 and D-7', () => {
+  const widgets = buildLeadershipComparisonWidgets({
+    items: sampleTrend.filter((item) => !['2026-07-14', '2026-07-08'].includes(item.date)),
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+  });
+
+  assert.equal(widgets.length, 2);
+  assert.equal(widgets[0].available, false);
+  assert.equal(widgets[0].previous_date, '2026-07-14');
+  assert.equal(widgets[1].available, false);
+  assert.equal(widgets[1].previous_date, '2026-07-08');
 });
 
 test('7-day visible evidence exposes per-day D-7 deltas without tooltip dependency', () => {
@@ -154,16 +205,23 @@ test('7-day visible evidence exposes per-day D-7 deltas without tooltip dependen
 
 test('integrated workspace source contains visible leadership comparison labels', () => {
   const source = read('./IntegratedTrendRiskWorkspace.jsx');
+  const dataSource = read('./integratedTrendRiskData.js');
+  const comparisonSource = source.slice(
+    source.indexOf('function LeadershipComparisonCard'),
+    source.indexOf('function SevenDayComparisonEvidenceTable'),
+  );
   assert.match(source, /So sánh điều hành/);
-  assert.match(source, /So với hôm qua/);
-  assert.match(source, /So cùng kỳ tuần trước/);
+  assert.match(dataSource, /So với hôm qua/);
+  assert.match(dataSource, /So với cùng kỳ tuần trước/);
   assert.match(source, /Hôm nay/);
-  assert.match(source, /Hôm qua/);
-  assert.match(source, /Cùng ngày tuần trước/);
+  assert.match(dataSource, /Hôm qua/);
+  assert.match(dataSource, /Cùng kỳ tuần trước/);
   assert.match(source, /Bằng chứng so cùng kỳ 7 ngày/);
   assert.doesNotMatch(source, /dataKey="failed_rate"/);
   assert.doesNotMatch(source, /label="Tỷ lệ không đạt, trục phải"/);
   assert.doesNotMatch(source, /DASHBOARD_LABELS\.failedRate/);
+  assert.doesNotMatch(comparisonSource, /role="tab"|aria-selected|onModeChange|comparisonMode/);
+  assert.doesNotMatch(comparisonSource, /failed_count|failed-rate|Không đạt|Tỷ lệ không đạt/);
 });
 
 test('risk panel uses confirmed values and labels unknown causes explicitly', () => {

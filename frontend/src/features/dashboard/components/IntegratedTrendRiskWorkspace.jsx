@@ -23,7 +23,7 @@ import {
 import { DASHBOARD_LABELS, DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
 import {
   buildIntegratedTrendRows,
-  buildLeadershipComparison,
+  buildLeadershipComparisonWidgets,
   buildSevenDayVisibleComparisonEvidence,
   summarizeRiskEvidence,
   TREND_MODES,
@@ -204,87 +204,12 @@ function getDeltaTone(value) {
   return Number(value) > 0 ? 'info' : 'warning';
 }
 
-function getFailedDeltaTone(value) {
-  if (value === null || value === undefined || Number(value) === 0) return 'neutral';
-  return Number(value) > 0 ? 'warning' : 'info';
-}
-
-function DayOverDayComparison({ comparison }) {
-  const metrics = comparison?.available ? [
-    {
-      id: 'total-volume',
-      label: 'Tổng bưu gửi',
-      value: formatNumber(comparison.total_volume.current),
-      delta: formatDeltaValue(comparison.total_volume.delta, formatNumber),
-      tone: getDeltaTone(comparison.total_volume.delta),
-    },
-    {
-      id: 'pass-rate',
-      label: 'Tỷ lệ đạt',
-      value: formatRate(comparison.pass_rate.current),
-      delta: formatDeltaValue(comparison.pass_rate.delta, (delta) => `${Number(delta).toFixed(2)} điểm %`),
-      tone: getDeltaTone(comparison.pass_rate.delta),
-    },
-    {
-      id: 'failed-count',
-      label: 'Bưu gửi không đạt',
-      value: formatNumber(comparison.failed_count.current),
-      delta: formatDeltaValue(comparison.failed_count.delta, formatNumber),
-      tone: getFailedDeltaTone(comparison.failed_count.delta),
-    },
-  ] : [];
-
-  return (
-    <div className="mb-4 rounded-xl border border-[var(--color-surface-200)] bg-white p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h4 className="text-sm font-bold text-[var(--color-text-main)]">So với hôm qua</h4>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            {comparison?.current_date && comparison?.previous_date
-              ? `${comparison.current_date} so với ${comparison.previous_date}`
-              : 'Dựa trên ngày mới nhất có dữ liệu trong phạm vi đang chọn.'}
-          </p>
-        </div>
-        {comparison?.available ? <StatusBadge label="D-1" tone="info" /> : <StatusBadge label="Thiếu dữ liệu" tone="neutral" />}
-      </div>
-
-      {comparison?.available ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {metrics.map((metric) => (
-            <div key={metric.id} className="rounded-lg border border-[var(--color-surface-100)] bg-[var(--color-surface-50)] px-3 py-2">
-              <div className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">{metric.label}</div>
-              <div className="mt-1 text-lg font-bold text-[var(--color-text-main)]">{metric.value}</div>
-              <div className="mt-1">
-                <StatusBadge label={metric.delta} tone={metric.tone} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm font-semibold text-[var(--color-text-muted)]">Không có dữ liệu so sánh</p>
-      )}
-    </div>
-  );
-}
-
-DayOverDayComparison.displayName = 'DayOverDayComparison';
-
-function getDirectionLabel(value, metricId) {
+function getDirectionLabel(value) {
   if (value === null || value === undefined || Number(value) === 0) return 'Không đổi';
-  if (metricId === 'failed-count') return Number(value) > 0 ? 'Tăng lỗi' : 'Giảm lỗi';
   return Number(value) > 0 ? 'Tăng' : 'Giảm';
 }
 
-function getMeaningLabel(value, metricId) {
-  if (value === null || value === undefined) return 'Thiếu dữ liệu';
-  if (Number(value) === 0) return 'Ổn định';
-  if (metricId === 'failed-count') return Number(value) > 0 ? 'Cần chú ý' : 'Tích cực';
-  if (metricId === 'pass-rate') return Number(value) > 0 ? 'Tích cực' : 'Cần chú ý';
-  return Number(value) > 0 ? 'Tăng quy mô' : 'Giảm quy mô';
-}
-
-function LeadershipComparisonWidget({ comparison, mode, onModeChange }) {
-  const comparisonLabel = mode === 'd-7' ? 'Cùng ngày tuần trước' : 'Hôm qua';
+function LeadershipComparisonCard({ comparison }) {
   const metrics = comparison?.available ? [
     {
       id: 'pass-rate',
@@ -304,53 +229,24 @@ function LeadershipComparisonWidget({ comparison, mode, onModeChange }) {
       tone: getDeltaTone(comparison.total_volume.delta),
       rawDelta: comparison.total_volume.delta,
     },
-    {
-      id: 'failed-count',
-      label: 'Không đạt',
-      value: formatNumber(comparison.failed_count.current),
-      comparisonValue: formatNumber(comparison.failed_count.previous),
-      delta: formatDeltaValue(comparison.failed_count.delta, formatNumber),
-      tone: getFailedDeltaTone(comparison.failed_count.delta),
-      rawDelta: comparison.failed_count.delta,
-    },
   ] : [];
 
   return (
-    <div className="mb-4 rounded-xl border border-[var(--color-surface-200)] bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-[var(--color-surface-200)] bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h4 className="text-base font-bold text-[var(--color-text-main)]">So sánh điều hành</h4>
+          <h4 className="text-sm font-bold text-[var(--color-text-main)]">{comparison?.title}</h4>
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
             {comparison?.current_date && comparison?.previous_date
-              ? `Hôm nay ${comparison.current_date} so với ${comparisonLabel.toLowerCase()} ${comparison.previous_date}`
+              ? `${comparison.current_date} so với ${comparison.previous_date}`
               : 'Dựa trên ngày mới nhất có dữ liệu trong phạm vi đang chọn.'}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Chọn kỳ so sánh điều hành">
-          {[
-            { id: 'd-1', label: 'So với hôm qua' },
-            { id: 'd-7', label: 'So cùng kỳ tuần trước' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={mode === item.id}
-              onClick={() => onModeChange(item.id)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                mode === item.id
-                  ? 'bg-[var(--color-primary-600)] text-white'
-                  : 'bg-[var(--color-surface-100)] text-[var(--color-text-main)] hover:bg-[var(--color-surface-200)]'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <StatusBadge label={comparison?.id === 'd-7' ? 'D-7' : 'D-1'} tone={comparison?.available ? 'info' : 'neutral'} />
       </div>
 
       {comparison?.available ? (
-        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,0.9fr)]">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           {metrics.map((metric) => (
             <div key={metric.id} className="rounded-lg border border-[var(--color-surface-100)] bg-[var(--color-surface-50)] px-3 py-2">
               <div className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">{metric.label}</div>
@@ -360,14 +256,13 @@ function LeadershipComparisonWidget({ comparison, mode, onModeChange }) {
                   <div className={metric.id === 'pass-rate' ? 'text-2xl font-black text-[var(--color-text-main)]' : 'text-lg font-bold text-[var(--color-text-main)]'}>{metric.value}</div>
                 </div>
                 <div>
-                  <div>{comparisonLabel}</div>
+                  <div>{comparison.comparison_label}</div>
                   <div className={metric.id === 'pass-rate' ? 'text-2xl font-black text-[var(--color-text-main)]' : 'text-lg font-bold text-[var(--color-text-main)]'}>{metric.comparisonValue}</div>
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <StatusBadge label={metric.delta} tone={metric.tone} />
-                <span className="text-xs font-semibold text-[var(--color-text-main)]">{getDirectionLabel(metric.rawDelta, metric.id)}</span>
-                <span className="text-xs text-[var(--color-text-muted)]">{getMeaningLabel(metric.rawDelta, metric.id)}</span>
+                <span className="text-xs font-semibold text-[var(--color-text-main)]">{getDirectionLabel(metric.rawDelta)}</span>
               </div>
             </div>
           ))}
@@ -375,6 +270,19 @@ function LeadershipComparisonWidget({ comparison, mode, onModeChange }) {
       ) : (
         <p className="mt-3 text-sm font-semibold text-[var(--color-text-muted)]">Không có dữ liệu so sánh</p>
       )}
+    </div>
+  );
+}
+
+function LeadershipComparisonGrid({ comparisons }) {
+  return (
+    <div className="mb-4">
+      <h4 className="text-base font-bold text-[var(--color-text-main)]">So sánh điều hành</h4>
+      <div className="mt-3 grid gap-3 xl:grid-cols-2">
+        {comparisons.map((comparison) => (
+          <LeadershipComparisonCard key={comparison.id} comparison={comparison} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -428,7 +336,6 @@ export default function IntegratedTrendRiskWorkspace({
   kpiData,
 }) {
   const [mode, setMode] = useState('30-days');
-  const [comparisonMode, setComparisonMode] = useState('d-1');
   const [pulseState, setPulseState] = useState({ loading: true, error: null, pulse: null });
 
   useEffect(() => {
@@ -470,9 +377,9 @@ export default function IntegratedTrendRiskWorkspace({
   }, [maBcvh, toDate]);
 
   const rows = useMemo(() => buildIntegratedTrendRows({ mode, items: data, toDate }), [data, mode, toDate]);
-  const leadershipComparison = useMemo(
-    () => buildLeadershipComparison({ items: data, fromDate, toDate, comparisonMode }),
-    [comparisonMode, data, fromDate, toDate],
+  const leadershipComparisons = useMemo(
+    () => buildLeadershipComparisonWidgets({ items: data, fromDate, toDate }),
+    [data, fromDate, toDate],
   );
   const sevenDayEvidence = useMemo(
     () => buildSevenDayVisibleComparisonEvidence(data, toDate),
@@ -522,11 +429,7 @@ export default function IntegratedTrendRiskWorkspace({
               <span className="inline-flex items-center gap-1"><Layers size={13} /> Chỉ hiển thị một câu chuyện xu hướng chính</span>
               <span className="inline-flex items-center gap-1"><TrendingUp size={13} /> Mốc dưới mục tiêu hiển thị bằng marker</span>
             </div>
-            <LeadershipComparisonWidget
-              comparison={leadershipComparison}
-              mode={comparisonMode}
-              onModeChange={setComparisonMode}
-            />
+            <LeadershipComparisonGrid comparisons={leadershipComparisons} />
             <TrendChart rows={rows} mode={mode} />
             {mode === '7-days' ? <SevenDayComparisonEvidenceTable rows={sevenDayEvidence} /> : null}
             <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
