@@ -7,3 +7,15 @@ backend/backend.log
 backend/backend_err.log
 frontend/frontend.log
 frontend/frontend_err.log
+
+# Local environment and portal discovery secrets
+.env
+.env.local
+.env.*.local
+
+# AUTO-IMPORT-001 local browser/session state and downloaded portal data
+.portal-session/
+portal-session/
+portal-storage/
+portal-downloads/
+Data DKCL/Portal/
