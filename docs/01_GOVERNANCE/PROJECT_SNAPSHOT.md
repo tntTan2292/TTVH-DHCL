@@ -18,13 +18,13 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Smart Leadership Dashboard Implementation` |
-| Current Ticket | `AUTO-IMPORT-001 Source Portal Discovery and Security Assessment` |
-| Next Ticket | `AUTO-IMPORT-002 Automated Download and Validation Pipeline` |
-| PO Status | `NOT READY` |
+| Current Ticket | `AUTO-IMPORT-002 Automated Download and Validation Pipeline` |
+| Next Ticket | `AUTO-IMPORT-003 Scheduled Import, Retry, Monitoring and Operations UI` |
+| PO Status | `VERIFIED / AWAITING PO COMMIT APPROVAL` |
 | Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-001_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-002_MANIFEST.md` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-07-18` |
+| Last Updated | `2026-07-19` |
 
 ## 3. Usage Rules
 
@@ -76,11 +76,13 @@ DA-IMPL-002 runtime evidence confirms the Unified Command Summary is visible in 
 
 DA-IMPL-003 is completed with Product Owner `PO PASS`: `Functionally accepted; visual polish deferred to DA-IMPL-007.` Accepted scope includes the integrated 30-day trend, 7-day same-period comparison, simultaneous D-1 and D-7 leadership widgets, comparison limited to `Tỷ lệ đạt` and `Sản lượng`, one `Tỷ lệ đạt` trend line, `Chuyển hoàn` semantics, `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`, Quality Pulse, and grounded risk evidence. Visual styling, spacing, and final aesthetic refinement are deferred to DA-IMPL-007 and are not open blockers against DA-IMPL-003.
 
-AUTO-IMPORT-001 is now active as discovery-only work for source portal discovery and security assessment. AUTO-IMPORT-002, AUTO-IMPORT-003, and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
+AUTO-IMPORT-001 is completed. AUTO-IMPORT-002 is the current ticket; AUTO-IMPORT-003 and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
 
 AUTO-IMPORT-001 technical sub-item `Atomic importer claim` is `COMPLETED / VERIFIED`. Root cause was multiple backend/watcher instances processing the same `Incoming` file; the fix uses atomic move from `Incoming` to `Processing` so only the winning process imports. Real verification used `F1.3-2026.02.01.xlsx`, ended in `Data DKCL\F1.3\Processed\HUE\F1.3-2026.02.01.xlsx`, imported `2374` rows with `2374` distinct shipment codes, exactly `1 SUCCESS` log, `0` error/skipped rows, and no duplicate or trailing `FAILED` log.
 
 AUTO-IMPORT next planned stages are Huế automatic daily acquisition, System Administrator missing-date scan and manual backfill, and TCT source for nationwide ranking. These remain planned only and must not be implemented until explicitly authorized.
+
+AUTO-IMPORT-002 is `COMPLETED / VERIFIED - awaiting PO commit approval` for backend/manual-trigger Huế F1.3 acquisition only. Controlled live verification for `2026-07-16` passed end to end using visible business metric `SL bưu gửi phát thành công/Nộp tiền/CH`; visible metric/detail population, workbook rows, imported DB rows, distinct shipment codes, and Dashboard backend `total_bg` all equal `3941`. Import logging has exactly `1 SUCCESS` with `0` skipped/error rows. Portal cleanup deleted target generated file `19-07-2026_23-08-07_F1.3_chat_luong_phat_buu_giay_lien_tinh_chi_tiet(1).xlsx`, and exact filename verification returned `matchCount = 0`. Implementation decisions: DKCL hidden dates use `MM/DD/YYYY`, `BCKT/BC` all-default values use `NULL`, drill-down uses visible metric cells rather than hidden `d-none` cells, detail-table total is authoritative, cleanup targets exact filename row only, persistent profile supports one automatic username/password/fixed-HRM login, `AUTHENTICATION_REQUIRED` remains the fallback, and no force replacement is allowed.
 
 TICKET-0102 is deferred and inactive during the Dashboard implementation sequence unless Product Owner later changes priority.
 

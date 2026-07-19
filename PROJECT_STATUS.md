@@ -22,9 +22,9 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `AUTO-IMPORT-001 Source Portal Discovery and Security Assessment`
+- `AUTO-IMPORT-002 Automated Download and Validation Pipeline`
 - `Smart Leadership Dashboard Implementation`
-- `Status: Active / Discovery`
+- `Status: COMPLETED / VERIFIED - awaiting PO commit approval`
 
 ## Completed Tickets
 
@@ -72,16 +72,17 @@ Quy tắc cập nhật:
 - DA-IMPL-001: `COMPLETED / PO PASS`
 - DA-IMPL-002: `COMPLETED / PO PASS`
 - DA-IMPL-003: `COMPLETED / PO PASS`
-- AUTO-IMPORT-001: `CURRENT / ACTIVE / DISCOVERY`; `Atomic importer claim - COMPLETED / VERIFIED`
-- AUTO-IMPORT-002: `NEXT / PLANNED / INACTIVE`
+- AUTO-IMPORT-001: `COMPLETED / HANDOFF`; `Atomic importer claim - COMPLETED / VERIFIED`
+- AUTO-IMPORT-002: `COMPLETED / VERIFIED - awaiting PO commit approval`; `LIVE END-TO-END VERIFICATION PASSED FOR 2026-07-16`
+- AUTO-IMPORT-003: `NEXT / PLANNED / INACTIVE`
 - TICKET-0102: `DEFERRED / INACTIVE`
 - PO findings from TODAY-001: `CLOSED`
 - PO UI Check Required: `No`
-- PO Product Status: `NOT READY`
+- PO Product Status: `VERIFIED / AWAITING PO COMMIT APPROVAL`
 
 ## Next Ticket
 
-- `AUTO-IMPORT-002 Automated Download and Validation Pipeline`
+- `AUTO-IMPORT-003 Scheduled Import, Retry, Monitoring and Operations UI`
 
 ## Notes
 

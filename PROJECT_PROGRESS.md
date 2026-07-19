@@ -36,8 +36,9 @@
 - DA-IMPL-001: `Completed / PO PASS`
 - DA-IMPL-002: `Completed / PO PASS`
 - DA-IMPL-003: `Completed / PO PASS`
-- AUTO-IMPORT-001: `Active / Discovery`; `Atomic importer claim - Completed / Verified`
-- AUTO-IMPORT-002: `Planned / Inactive`
+- AUTO-IMPORT-001: `Completed / Handoff`; `Atomic importer claim - Completed / Verified`
+- AUTO-IMPORT-002: `Completed / Verified - awaiting PO commit approval`; `Live end-to-end verification passed for 2026-07-16`
+- AUTO-IMPORT-003: `Planned / Inactive`
 - TICKET-0102: `Deferred / Inactive`
 
 ## Danh Sách Tài Liệu Đã Freeze
@@ -126,12 +127,12 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `AUTO-IMPORT-001 Source Portal Discovery and Security Assessment` |
-| Current Commit | `e719e8421ae66148cd4ca5d8929c2e815bfb2548` |
+| Current Ticket | `AUTO-IMPORT-002 Automated Download and Validation Pipeline` |
+| Current Commit | `b71cf4eb830f4d135cb80573f15884cffce5e4e7` |
 | Current Phase | `Smart Leadership Dashboard Implementation` |
-| Next Milestone | `AUTO-IMPORT-002 Automated Download and Validation Pipeline` |
+| Next Milestone | `AUTO-IMPORT-003 Scheduled Import, Retry, Monitoring and Operations UI` |
 | PO UI Check Required | `No` |
-| PO Product Status | `NOT READY` |
+| PO Product Status | `VERIFIED / AWAITING PO COMMIT APPROVAL` |
 
 ## AUTO-IMPORT-001 DKCL Sync Status
 
@@ -140,3 +141,21 @@
 - Fix: atomic move from `Incoming` to `Processing`; only the winning process continues.
 - Real verification: `F1.3-2026.02.01.xlsx` imported `2374` rows with `2374` distinct shipment codes, exactly `1 SUCCESS` log, `0` error/skipped rows, and no duplicate or trailing `FAILED` log.
 - Next planned stages remain inactive: Huế automatic daily acquisition; System Administrator missing-date scan and manual backfill; TCT source for nationwide ranking.
+
+## AUTO-IMPORT-002 Huế F1.3 Acquisition Status
+
+- Backend/manual-trigger engine: `IMPLEMENTED`
+- Persistent Huế browser profile: `IMPLEMENTED`
+- One automatic username/password/fixed-HRM login attempt: `IMPLEMENTED`
+- Portal export cleanup: `IMPLEMENTED`
+- API added: `POST /api/import/dkcl/hue/f13/sync`
+- Status endpoint added: `GET /api/import/dkcl/hue/f13/sync/:runId`
+- Controlled live verification: `PASSED for 2026-07-16`
+- Visible business metric: `SL bưu gửi phát thành công/Nộp tiền/CH`
+- Visible metric/detail population: `3941`
+- Workbook rows/imported DB rows/distinct shipment codes: `3941`
+- Import logs: exactly `1 SUCCESS`; skipped/error rows: `0`
+- Dashboard backend `total_bg`: `3941`
+- Portal cleanup target `19-07-2026_23-08-07_F1.3_chat_luong_phat_buu_giay_lien_tinh_chi_tiet(1).xlsx`: deleted successfully; exact filename `matchCount = 0`
+- Final result: `AUTO-IMPORT-002 live end-to-end verification PASSED`
+- Out of scope remains inactive: Data Import Center UI, missing-date scan, daily scheduler, TCT workflow, KPI business-rule changes.

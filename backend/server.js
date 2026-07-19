@@ -1,5 +1,9 @@
 const express = require('express');
 const cors = require('cors');
+const { loadLocalEnv } = require('./src/config/env');
+
+loadLocalEnv();
+
 const f13Routes = require('./src/routes/f13Routes');
 const importRoutes = require('./src/routes/importRoutes');
 const authRoutes = require('./src/routes/authRoutes');
