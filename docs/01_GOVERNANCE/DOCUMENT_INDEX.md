@@ -188,6 +188,7 @@ If Authority Level is the same, use the lifecycle priority defined in `docs/01_G
 | `docs/06_REVIEWS/Dashboard/DA-IMPL-003_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | DA-IMPL-003 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, DA-IMPL-003 evidence |
 | `docs/10_TICKETS/AUTO-IMPORT-001_MANIFEST.md` | Reviews | Active discovery-only manifest for Source Portal Discovery and Security Assessment | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, smart Dashboard plan, DA register |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-001_SECURE_LOCAL_CREDENTIAL_SETUP.md` | Reviews | AUTO-IMPORT-001 checkpoint 1 secure local credential setup evidence | Active | L2 | 1 | High | AUTO-IMPORT-001 manifest, `.gitignore`, `.env.example` |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-001_DKCL_SYNC_ATOMIC_IMPORT_HANDOFF.md` | Reviews | AUTO-IMPORT-001 DKCL Sync atomic import fix, automated tests, and real verification handoff | Active | L2 | 1 | High | AUTO-IMPORT-001 manifest, import pipeline, import watcher |
 | `docs/10_TICKETS/DA-IMPL-004_MANIFEST.md` | Reviews | Planned inactive manifest for Unified BCVH Analysis Table | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
 | `docs/10_TICKETS/DA-IMPL-005_MANIFEST.md` | Reviews | Planned inactive manifest for Operating Pattern Tabs | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
 | `docs/10_TICKETS/DA-IMPL-006_MANIFEST.md` | Reviews | Planned inactive manifest for Unified Action Center | Planned | L2 | 1 | High | smart Dashboard plan, DA register |

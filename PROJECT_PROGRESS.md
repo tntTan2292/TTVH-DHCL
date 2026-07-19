@@ -36,7 +36,7 @@
 - DA-IMPL-001: `Completed / PO PASS`
 - DA-IMPL-002: `Completed / PO PASS`
 - DA-IMPL-003: `Completed / PO PASS`
-- AUTO-IMPORT-001: `Active / Discovery`
+- AUTO-IMPORT-001: `Active / Discovery`; `Atomic importer claim - Completed / Verified`
 - AUTO-IMPORT-002: `Planned / Inactive`
 - TICKET-0102: `Deferred / Inactive`
 
@@ -132,3 +132,11 @@
 | Next Milestone | `AUTO-IMPORT-002 Automated Download and Validation Pipeline` |
 | PO UI Check Required | `No` |
 | PO Product Status | `NOT READY` |
+
+## AUTO-IMPORT-001 DKCL Sync Status
+
+- `Atomic importer claim`: `COMPLETED / VERIFIED`
+- Root cause: multiple backend/watcher instances could process the same `Incoming` file.
+- Fix: atomic move from `Incoming` to `Processing`; only the winning process continues.
+- Real verification: `F1.3-2026.02.01.xlsx` imported `2374` rows with `2374` distinct shipment codes, exactly `1 SUCCESS` log, `0` error/skipped rows, and no duplicate or trailing `FAILED` log.
+- Next planned stages remain inactive: Huế automatic daily acquisition; System Administrator missing-date scan and manual backfill; TCT source for nationwide ranking.

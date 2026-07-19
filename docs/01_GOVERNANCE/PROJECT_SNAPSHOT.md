@@ -78,6 +78,10 @@ DA-IMPL-003 is completed with Product Owner `PO PASS`: `Functionally accepted; v
 
 AUTO-IMPORT-001 is now active as discovery-only work for source portal discovery and security assessment. AUTO-IMPORT-002, AUTO-IMPORT-003, and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
 
+AUTO-IMPORT-001 technical sub-item `Atomic importer claim` is `COMPLETED / VERIFIED`. Root cause was multiple backend/watcher instances processing the same `Incoming` file; the fix uses atomic move from `Incoming` to `Processing` so only the winning process imports. Real verification used `F1.3-2026.02.01.xlsx`, ended in `Data DKCL\F1.3\Processed\HUE\F1.3-2026.02.01.xlsx`, imported `2374` rows with `2374` distinct shipment codes, exactly `1 SUCCESS` log, `0` error/skipped rows, and no duplicate or trailing `FAILED` log.
+
+AUTO-IMPORT next planned stages are Huế automatic daily acquisition, System Administrator missing-date scan and manual backfill, and TCT source for nationwide ranking. These remain planned only and must not be implemented until explicitly authorized.
+
 TICKET-0102 is deferred and inactive during the Dashboard implementation sequence unless Product Owner later changes priority.
 
 Governance V1 remains the full workflow reference until a later migration phase explicitly replaces any part of it.
