@@ -96,33 +96,23 @@ test('dashboard KPI mapping converts runtime values without placeholder strings'
   assert.deepEqual(cards.map((card) => card.label), ['Tỷ lệ đạt', 'Xếp hạng toàn quốc', 'Sản lượng', 'Bưu gửi cần xử lý']);
   assert.deepEqual(cards.map((card) => card.value), ['80.00%', '14/34', '100', '20']);
   assert.ok(cards.every((card) => card.value !== '--'));
-  assert.match(cards[3].support, /Tỷ lệ không đạt: 20\.00%/);
+  assert.match(cards[3].support, /Số bưu gửi không đạt cần xử lý/);
   assert.doesNotMatch(JSON.stringify(cards), /f13_303_rate/);
 });
 
-test('dashboard page restores the timeline and ranking surfaces', () => {
+test('dashboard page renders current command, trend, action, and BCVH surfaces', () => {
   const dashboardSource = fs.readFileSync(new URL('../DashboardPage.jsx', import.meta.url), 'utf8');
-  const timelineSource = fs.readFileSync(new URL('../../../components/f13/QualityTimelinePanel.jsx', import.meta.url), 'utf8');
-  const summarySource = fs.readFileSync(new URL('./ExecutiveSummaryAdapter.jsx', import.meta.url), 'utf8');
-  const dailyBriefSource = fs.readFileSync(new URL('./ExecutiveDailyBriefAdapter.jsx', import.meta.url), 'utf8');
 
-  assert.match(dashboardSource, /QualityTimelineAdapter/);
+  assert.match(dashboardSource, /IntegratedTrendRiskWorkspace/);
   assert.match(dashboardSource, /BcvhOperationTableAdapter/);
+  assert.match(dashboardSource, /UnifiedActionCenter/);
   assert.match(dashboardSource, /UnifiedCommandSummary/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/kpi'/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/daily-trend'/);
   assert.equal((dashboardSource.match(/api\.get\('\/f13\/dashboard\/kpi'/g) || []).length, 1);
-  assert.doesNotMatch(summarySource, /api\.get\('\/f13\/dashboard\/kpi'/);
-  assert.doesNotMatch(dailyBriefSource, /api\.get\('\/f13\/dashboard\/kpi'/);
-  assert.doesNotMatch(dashboardSource, /ExecutiveSummaryAdapter/);
-  assert.doesNotMatch(dashboardSource, /<KPICard/);
-  assert.match(timelineSource, /TimelineStateCard/);
-  assert.match(timelineSource, /tone="loading"/);
-  assert.match(timelineSource, /tone="error"/);
-  assert.match(timelineSource, /tone="empty"/);
-  assert.doesNotMatch(timelineSource, /return null/);
-  assert.match(timelineSource, /Heatmap lịch chất lượng/);
-  assert.match(timelineSource, /Quy luật theo thứ/);
-  assert.match(timelineSource, /Không có dữ liệu diễn biến chất lượng/);
+  assert.doesNotMatch(dashboardSource, /RuleRecommendationAdapter/);
+  assert.doesNotMatch(dashboardSource, /ExecutiveDailyBriefAdapter/);
+  assert.doesNotMatch(dashboardSource, /MessageGenerationAdapter/);
+  assert.doesNotMatch(dashboardSource, /TopListAdapter/);
   assert.doesNotMatch(dashboardSource, /f13_303_rate.*Xếp hạng/s);
 });

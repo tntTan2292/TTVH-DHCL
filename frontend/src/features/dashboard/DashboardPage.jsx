@@ -3,16 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 import {
   PageContainer,
-  SectionHeader,
   StatusBadge,
 } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
-import ExecutiveDailyBriefAdapter from './components/ExecutiveDailyBriefAdapter';
-import RuleRecommendationAdapter from './components/RuleRecommendationAdapter';
 import IntegratedTrendRiskWorkspace from './components/IntegratedTrendRiskWorkspace';
 import BcvhOperationTableAdapter from './components/BcvhOperationTableAdapter';
-import MessageGenerationAdapter from './components/MessageGenerationAdapter';
-import TopListAdapter from './components/TopListAdapter';
+import UnifiedActionCenter from './components/UnifiedActionCenter';
 import UnifiedCommandSummary from './components/UnifiedCommandSummary';
 import {
   buildBcvhOptions,
@@ -118,11 +114,10 @@ export default function DashboardPage() {
           return;
         }
 
-        const rawData = response.data?.data || {};
         setKpiState({
           loading: false,
           error: null,
-          data: rawData,
+          data: response.data?.data || {},
         });
       } catch (error) {
         if (controller.signal.aborted || kpiRequestSeqRef.current !== requestSeq || kpiActiveKeyRef.current !== requestKey) {
@@ -211,13 +206,14 @@ export default function DashboardPage() {
     setSearchParams(params);
   };
 
-  const selectedBcvhLabel = metadataState.bcvhOptions.find((option) => option.value === maBcvh)?.label || (maBcvh === 'all' ? 'Toàn mạng' : 'Theo BCVH');
+  const selectedBcvhLabel = metadataState.bcvhOptions.find((option) => option.value === maBcvh)?.label
+    || (maBcvh === 'all' ? 'Toàn mạng' : 'Theo BCVH');
 
   return (
     <PageContainer
       title="Dashboard điều hành chất lượng F1.3"
       subtitle="Theo dõi chất lượng phát theo kỳ đã chọn và phạm vi BCVH hiện hành."
-      action={
+      action={(
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-2 shadow-sm">
           <button
             onClick={() => navigate('/f13/ranking/bcvh')}
@@ -226,7 +222,7 @@ export default function DashboardPage() {
             Mở xếp hạng BCVH
           </button>
         </div>
-      }
+      )}
     >
       <div className="space-y-5">
         <GlobalFilterBar
@@ -242,13 +238,14 @@ export default function DashboardPage() {
           bcvhDisabled={metadataState.status !== 'success'}
           searchValue={search}
           onSearchChange={(value) => updateParam('search', value)}
-          actions={
+          actions={(
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge label={interval === 'daily' ? 'Theo ngày' : interval === 'weekly' ? 'Theo tuần' : 'Theo tháng'} tone="info" />
               <StatusBadge label={maBcvh === 'all' ? 'Toàn mạng' : 'Theo BCVH'} tone="neutral" />
             </div>
-          }
+          )}
         />
+
         {metadataState.status === 'error' ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
             <div className="font-semibold">Không thể tải danh sách BCVH.</div>
@@ -282,24 +279,16 @@ export default function DashboardPage() {
           kpiData={kpiState.data}
         />
 
-        <div className="min-h-[240px]">
-          <RuleRecommendationAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
-        </div>
+        <UnifiedActionCenter
+          fromDate={fromDate}
+          toDate={toDate}
+          maBcvh={maBcvh}
+          bcvhLabel={selectedBcvhLabel}
+          kpiData={kpiState.data}
+          kpiLoading={kpiState.loading}
+          kpiError={kpiState.error}
+        />
 
-        <SectionHeader title="Bản tin và thông báo điều hành" subtitle="Nội dung tổng hợp theo dữ liệu hiện có." />
-        <div className="grid gap-5 xl:grid-cols-2">
-          <div className="min-h-[240px]">
-            <ExecutiveDailyBriefAdapter kpiData={kpiState.data} loading={kpiState.loading} error={kpiState.error} />
-          </div>
-          <div className="min-h-[240px]">
-            <MessageGenerationAdapter fromDate={fromDate} toDate={toDate} />
-          </div>
-        </div>
-
-        <SectionHeader title="BCVH nổi bật và cần cải thiện" subtitle="Danh sách BCVH theo dữ liệu xếp hạng hiện tại." />
-        <TopListAdapter fromDate={fromDate} toDate={toDate} interval={interval} />
-
-        <SectionHeader title="Chi tiết điều hành BCVH" subtitle="Bảng xếp hạng BCVH theo dữ liệu đã ghi nhận và phạm vi ngày đã chọn." />
         <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
       </div>
     </PageContainer>
