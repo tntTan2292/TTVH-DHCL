@@ -3,11 +3,11 @@
 - Ticket ID: `DA-IMPL-006`
 - Ticket Name: `Unified Action Center`
 - Phase: `Smart Leadership Dashboard Implementation`
-- Current state: `ACTIVE / IMPLEMENTATION`
-- Technical Status: `NOT STARTED`
-- Runtime Status: `NOT STARTED`
+- Current state: `COMPLETED / PO PASS`
+- Technical Status: `PASS`
+- Runtime Status: `PASS`
 - PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
+- PO Product Status: `PO PASS`
 - Activation authority: Product Owner governance handoff request after `AUTO-IMPORT-005 = PO PASS`
 - Activation date: `2026-07-20`
 - Implementation branch: `codex/da-impl-006`
@@ -29,10 +29,12 @@ Consolidate Dashboard recommendations, Daily Brief, message generation, row-leve
 
 - Inspect and map existing recommendation, Daily Brief, message-generation, row-level guidance, and follow-up surfaces.
 - Define one Unified Action Center contract using existing authoritative Dashboard data sources and approved calculations only.
-- Render each operational issue once, with priority, issue, unit, evidence or confirmed cause where available, recommended action, source/confidence, status where already available, and a follow-up or detail entry point.
+- Render each operational issue once, with priority, issue, unit, evidence or confirmed cause where available, recommended action, source or confidence, status where already available, and a follow-up or detail entry point.
 - Preserve active Dashboard date and BCVH filter context.
-- Preserve unknown or unavailable values instead of inventing owner, cause, deadline, status, confidence, or role/permission rules.
+- Preserve unknown or unavailable values instead of inventing owner, cause, deadline, status, confidence, or role and permission rules.
 - Prepare final Dashboard assembly handoff to `DA-IMPL-007`.
+- Product Owner final remediation removes the Dashboard `BCVH nổi bật và cần cải thiện` / Top 2 area and removes `Tin điều hành` / `Tin báo cáo` message drafts from Dashboard.
+- Future message building, viewing, and management belongs in a future governed `BCVH Ranking` module ticket, not in DA-IMPL-006.
 
 ## Out of Scope
 
@@ -45,7 +47,7 @@ Consolidate Dashboard recommendations, Daily Brief, message generation, row-leve
 - No Route Performance Center repair or expansion.
 - No Architecture Freeze changes.
 - No Product Owner UI acceptance testing by Codex.
-- No PO PASS by Codex.
+- No PO PASS by Codex without explicit Product Owner decision.
 
 ## Checkpoints
 
@@ -54,7 +56,7 @@ Consolidate Dashboard recommendations, Daily Brief, message generation, row-leve
 - Inspect current recommendation, Daily Brief, message generation, row-level guidance, and follow-up surfaces.
 - Inspect current frontend data models, selectors, components, API contracts, backend services, and authoritative fields supporting those surfaces.
 - Document duplicate, conflicting, mock-backed, or disconnected implementations.
-- Define the Unified Action Center contract, source mapping, filter propagation, loading/empty/partial/error states, and the narrowest Checkpoint 002 vertical slice.
+- Define the Unified Action Center contract, source mapping, filter propagation, loading, empty, partial, and error states, and the narrowest Checkpoint 002 vertical slice.
 - Evidence: `docs/06_REVIEWS/Dashboard/DA-IMPL-006_CHECKPOINT_001.md`.
 - Status: `COMPLETED - DISCOVERY / CONTRACT DEFINED`.
 
@@ -63,21 +65,21 @@ Consolidate Dashboard recommendations, Daily Brief, message generation, row-leve
 - Implement the smallest compatible Unified Action Center vertical slice in the existing Dashboard path.
 - Reuse existing components, selectors, endpoints, and calculations where authoritative.
 - Preserve Dashboard behavior outside the targeted action-center area.
-- Add focused mapper/component tests and preserve existing regressions.
+- Add focused mapper and component tests and preserve existing regressions.
 - Evidence: `docs/06_REVIEWS/Dashboard/DA-IMPL-006_CHECKPOINT_002.md`.
-- Status: `PENDING`.
+- Status: `COMPLETED - TECHNICAL PASS`.
 
-### Checkpoint 003 - Technical Hardening and PO Preparation
+### Checkpoint 003 - Technical Hardening and PO Preparation / Final PO Remediation
 
-- Verify runtime robustness, filter synchronization, null/partial-data handling, loading/empty/error states, and detail/follow-up entry context.
+- Verify runtime robustness, filter synchronization, null and partial-data handling, loading, empty, and error states, and detail or follow-up entry context.
 - Fix only genuine technical defects within approved scope.
-- Create PO Acceptance Checklist and update governance to `READY FOR PO CHECK` only after technical acceptance passes.
+- Apply Product Owner final remediation by removing the Top 2 Dashboard area and Dashboard message draft display and request.
 - Evidence: `docs/06_REVIEWS/Dashboard/DA-IMPL-006_CHECKPOINT_003.md`; `docs/06_REVIEWS/Dashboard/DA-IMPL-006_PO_ACCEPTANCE_CHECKLIST.md`.
-- Status: `PENDING`.
+- Status: `COMPLETED - PO ACCEPTED`.
 
 ## PO Acceptance Boundary
 
-Codex may prepare `READY FOR PO CHECK` after Checkpoint 003 technical acceptance, but must not mark `PO PASS`. Product Owner acceptance is required for final closure.
+Product Owner explicitly accepted `DA-IMPL-006 = PO PASS` after final remediation. Codex must not reopen this ticket unless a new Product Owner defect is issued.
 
 ## Evidence Locations
 
@@ -89,7 +91,7 @@ Codex may prepare `READY FOR PO CHECK` after Checkpoint 003 technical acceptance
 
 ## Current Blockers
 
-- None for activation. Checkpoint 001 must document any missing PO business, SSOT, KPI, API, or scope authority before implementation.
+- None. Ticket is closed with Product Owner `PO PASS`.
 
 ## Next Ticket
 

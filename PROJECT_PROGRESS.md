@@ -43,7 +43,8 @@
 - AUTO-IMPORT-003: `Completed / PO PASS`
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
-- DA-IMPL-006: `Active / Implementation`; `Checkpoint 001 discovery and contract definition pending`
+- DA-IMPL-006: `Completed / PO PASS`
+- DA-IMPL-007: `Active / Handoff - Not Implemented`; primary executor `Antigravity`
 - TICKET-0102: `Deferred / Inactive`
 
 ## Frozen Documents
@@ -84,7 +85,7 @@
 
 ## Outstanding Decisions
 
-- None for DA-IMPL-006 activation. Checkpoint 001 must preserve existing Dashboard authorities and document any missing PO business, SSOT, KPI, API, or scope authority before implementation.
+- None for DA-IMPL-006. Product Owner accepted `PO PASS`; DA-IMPL-007 is active for Antigravity handoff only.
 
 ## Open Issues
 
@@ -97,12 +98,12 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `DA-IMPL-006 Unified Action Center` |
+| Current Ticket | `DA-IMPL-007 Smart Dashboard Final Assembly` |
 | Current Commit | `codex/da-impl-006 activation state as of 2026-07-20` |
 | Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
-| Next Milestone | `DA-IMPL-006 Checkpoint 001 discovery and contract definition` |
-| PO UI Check Required | `Yes for Unified Action Center after technical readiness` |
-| PO Product Status | `DA-IMPL-006 NOT READY` |
+| Next Milestone | `DA-IMPL-007 Antigravity prompt and UI/runtime execution` |
+| PO UI Check Required | `Yes for DA-IMPL-007` |
+| PO Product Status | `DA-IMPL-007 NOT READY` |
 
 ## DA-IMPL-004 Unified BCVH Analysis Table Status
 
@@ -172,9 +173,19 @@
 ## DA-IMPL-006 Unified Action Center Status
 
 - Product Owner activation decision recorded on `2026-07-20`.
-- Ticket status: `ACTIVE / IMPLEMENTATION`.
-- Checkpoint 001 status: `PENDING`.
-- Scope: consolidate recommendations, Daily Brief, message generation, row-level guidance, and follow-up into one action center; eliminate repeated issue presentation; identify source and confidence of each action; preserve unknown values instead of inventing them.
-- Boundaries: no SSOT changes; no KPI formula changes; no business-rule, threshold, BCVH mapping, ranking-rule, AUTO-IMPORT, TCT, schema, Route Performance Center, or Architecture Freeze changes without explicit authority.
+- Ticket status: `COMPLETED / PO PASS`.
+- Checkpoint 001 status: `COMPLETED - DISCOVERY / CONTRACT DEFINED`.
+- Checkpoint 002 status: `COMPLETED - TECHNICAL PASS`.
+- Checkpoint 003 status: `COMPLETED - PO ACCEPTED`.
+- Final PO remediation removed the Dashboard `BCVH nổi bật và cần cải thiện` / Top 2 area and removed `Tin điều hành` / `Tin báo cáo` message drafts from Dashboard.
+- Dashboard retains Unified Action Center recommendations/issues, KPI context, evidence, and follow-up only.
+- Future message building/viewing/management belongs in a future governed `BCVH Ranking` module ticket.
 - Manifest: `docs/10_TICKETS/DA-IMPL-006_MANIFEST.md`.
-- Next planned ticket: `DA-IMPL-007 Smart Dashboard Final Assembly`.
+- Next active ticket: `DA-IMPL-007 Smart Dashboard Final Assembly`.
+
+## DA-IMPL-007 Smart Dashboard Final Assembly Status
+
+- Ticket status: `ACTIVE / HANDOFF - NOT IMPLEMENTED`.
+- Primary executor: `Antigravity`.
+- Codex role: technical review, regression checks, and logic/contract remediation only when needed.
+- Next action: start a fresh ChatGPT conversation from `README_AI.md` and write a dedicated `Prompt cho Antigravity`.

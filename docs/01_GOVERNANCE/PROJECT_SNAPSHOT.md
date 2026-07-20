@@ -18,11 +18,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Field | Value |
 | --- | --- |
 | Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
-| Current Ticket | `DA-IMPL-006 Unified Action Center - ACTIVE / IMPLEMENTATION` |
-| Next Ticket | `DA-IMPL-007 Smart Dashboard Final Assembly` |
-| PO Status | `DA-IMPL-006 NOT READY` |
+| Current Ticket | `DA-IMPL-007 Smart Dashboard Final Assembly - ACTIVE / HANDOFF` |
+| Next Ticket | `TBD after DA-IMPL-007` |
+| PO Status | `DA-IMPL-007 NOT READY` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-006_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-20` |
 
@@ -98,4 +98,6 @@ AUTO-IMPORT-004 `TCT Source Discovery and Nationwide Ranking Contract` is `COMPL
 
 AUTO-IMPORT-005 `TCT Manual Backfill and Shared DKCL Background Operations` is `COMPLETED / PO PASS` as of `2026-07-20`. Checkpoint 001 discovery/contract is documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_001.md`; Checkpoint 002 shared session preflight plus TCT coverage/missing-date scan is documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_002.md`; Checkpoint 003 TCT queue/import vertical slice and PO defect evidence are documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_003.md`. Product Owner accepted TCT manual backfill, session preflight and explicit re-authentication, missing/incomplete/completed date classification, controlled re-import of incomplete national dates, sequential in-memory queue, graceful Stop, eligible Retry, Hue/TCT source separation, and cumulative range-based nationwide ranking. Its manifest now records the authoritative next-ticket handoff to `DA-IMPL-006 Unified Action Center`, sourced from `docs/04_TECHNICAL_PLANNING/Dashboard/DA_IMPLEMENTATION_TICKET_REGISTER.md`.
 
-DA-IMPL-006 `Unified Action Center` is `ACTIVE / IMPLEMENTATION` as of `2026-07-20`. It is governed by `docs/10_TICKETS/DA-IMPL-006_MANIFEST.md` on branch `codex/da-impl-006`. Scope is to consolidate recommendations, Daily Brief, message generation, row-level guidance, and follow-up into one action center while preserving existing authoritative data sources, calculations, filters, and unknown/unavailable values. `DA-IMPL-007 Smart Dashboard Final Assembly` remains the next planned ticket.
+DA-IMPL-006 `Unified Action Center` is `COMPLETED / PO PASS` as of `2026-07-20`. Product Owner accepted final remediation removing the Dashboard `BCVH nổi bật và cần cải thiện` / Top 2 area and removing `Tin điều hành` / `Tin báo cáo` message drafts from Dashboard. The retained Unified Action Center shows recommendations/issues, valid KPI context, existing evidence/follow-up, and explicit loading/empty/error/partial states. Future message building, viewing, and management belongs in a future governed `BCVH Ranking` module ticket.
+
+DA-IMPL-007 `Smart Dashboard Final Assembly` is `ACTIVE / HANDOFF - NOT IMPLEMENTED` as of `2026-07-20`. Primary executor is `Antigravity`; Codex should only perform technical review, regression checks, and logic/contract remediation when needed. A fresh ChatGPT conversation must onboard from `README_AI.md` and write a dedicated `Prompt cho Antigravity` with context, edit boundaries, UI/runtime checklist, browser validation, source diff review, and regression requirements. Do not implement DA-IMPL-007 during DA-IMPL-006 closure.
