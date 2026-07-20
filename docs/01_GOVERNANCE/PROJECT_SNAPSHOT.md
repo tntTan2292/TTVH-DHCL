@@ -17,14 +17,14 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `Smart Leadership Dashboard Implementation` |
-| Current Ticket | `AUTO-IMPORT-002 Automated Download and Validation Pipeline` |
-| Next Ticket | `AUTO-IMPORT-003 Scheduled Import, Retry, Monitoring and Operations UI` |
-| PO Status | `PO PASS` |
-| Current Branch | `main` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-002_MANIFEST.md` |
+| Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
+| Current Ticket | `AUTO-IMPORT-005 TCT Manual Backfill and Shared DKCL Background Operations - COMPLETED / PO PASS` |
+| Next Ticket | `BLOCKED - no direct next-ticket handoff or roadmap reference in AUTO-IMPORT-005 manifest` |
+| PO Status | `AUTO-IMPORT-005 COMPLETED / PO PASS` |
+| Current Branch | `codex/auto-import-005` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-005_MANIFEST.md` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-07-19` |
+| Last Updated | `2026-07-20` |
 
 ## 3. Usage Rules
 
@@ -76,14 +76,24 @@ DA-IMPL-002 runtime evidence confirms the Unified Command Summary is visible in 
 
 DA-IMPL-003 is completed with Product Owner `PO PASS`: `Functionally accepted; visual polish deferred to DA-IMPL-007.` Accepted scope includes the integrated 30-day trend, 7-day same-period comparison, simultaneous D-1 and D-7 leadership widgets, comparison limited to `Tỷ lệ đạt` and `Sản lượng`, one `Tỷ lệ đạt` trend line, `Chuyển hoàn` semantics, `Đạt + Không đạt + Chuyển hoàn = Tổng mẫu đo kiểm`, Quality Pulse, and grounded risk evidence. Visual styling, spacing, and final aesthetic refinement are deferred to DA-IMPL-007 and are not open blockers against DA-IMPL-003.
 
-AUTO-IMPORT-001 is completed. AUTO-IMPORT-002 is the current ticket; AUTO-IMPORT-003 and DA-IMPL-004 through DA-IMPL-007 remain planned and inactive until their prior ticket receives `PO PASS` or explicit governance authority allows parallel work.
+AUTO-IMPORT-001, AUTO-IMPORT-002, AUTO-IMPORT-003, AUTO-IMPORT-004, AUTO-IMPORT-005, DA-IMPL-004, and DA-IMPL-005 are completed.
 
 AUTO-IMPORT-001 technical sub-item `Atomic importer claim` is `COMPLETED / VERIFIED`. Root cause was multiple backend/watcher instances processing the same `Incoming` file; the fix uses atomic move from `Incoming` to `Processing` so only the winning process imports. Real verification used `F1.3-2026.02.01.xlsx`, ended in `Data DKCL\F1.3\Processed\HUE\F1.3-2026.02.01.xlsx`, imported `2374` rows with `2374` distinct shipment codes, exactly `1 SUCCESS` log, `0` error/skipped rows, and no duplicate or trailing `FAILED` log.
 
-AUTO-IMPORT next planned stages are Huế automatic daily acquisition, System Administrator missing-date scan and manual backfill, and TCT source for nationwide ranking. These remain planned only and must not be implemented until explicitly authorized.
+AUTO-IMPORT follow-on status: Huế manual missing-date/backfill was completed under `AUTO-IMPORT-003`; TCT source discovery and controlled one-date nationwide F1.3 import validation were completed under `AUTO-IMPORT-004`; TCT manual backfill and shared DKCL background operations were completed under `AUTO-IMPORT-005`; unattended scheduling remains unauthorized.
 
 AUTO-IMPORT-002 is `COMPLETED / PO PASS` for backend/manual-trigger Huế F1.3 acquisition only. Product Owner formally accepted implementation commit `4798ec82bb6cc1f343167a6b596aa5d6f58d57cc`. Controlled live verification for `2026-07-16` passed end to end using visible business metric `SL bưu gửi phát thành công/Nộp tiền/CH`; visible metric/detail population, workbook rows, imported DB rows, distinct shipment codes, and Dashboard backend `total_bg` all equal `3941`. Import logging has exactly `1 SUCCESS` with `0` skipped/error rows. Portal cleanup deleted target generated file `19-07-2026_23-08-07_F1.3_chat_luong_phat_buu_giay_lien_tinh_chi_tiet(1).xlsx`, and exact filename verification returned `matchCount = 0`. Implementation decisions: DKCL hidden dates use `MM/DD/YYYY`, `BCKT/BC` all-default values use `NULL`, drill-down uses visible metric cells rather than hidden `d-none` cells, detail-table total is authoritative, cleanup targets exact filename row only, persistent profile supports one automatic username/password/fixed-HRM login, `AUTHENTICATION_REQUIRED` remains the fallback, and no force replacement is allowed.
 
 TICKET-0102 is deferred and inactive during the Dashboard implementation sequence unless Product Owner later changes priority.
 
 Governance V1 remains the full workflow reference until a later migration phase explicitly replaces any part of it.
+
+AUTO-IMPORT-003 is `COMPLETED / PO PASS` as of `2026-07-20`. Accepted scope is Data Import Center operations UI for Hue F1.3 manual backfill first: missing-date scan, individual-date or date-range selection, update action, sequential queue, retry/stop controls, progress and status monitoring, coverage summary, and import/export/validation/error evidence. Accepted operational condition: manual Huế F1.3 backfill requires a valid DKCL authenticated session; the operator does not need to log in for every `Update` while the session remains valid; if the DKCL session is expired or invalid, queue creation is blocked before `RUNNING` and the operator is instructed to re-authenticate. This ticket does not add automatic login, credential storage, or additional DKCL session persistence. Daily scheduling remains disabled; TCT and KPI business formula changes remain out of scope.
+
+DA-IMPL-004 is `COMPLETED / PO PASS` as of `2026-07-20`. Product Owner accepted: Unified BCVH analysis table `PASS`; date context synchronization `PASS`; Chuyển hoàn reconciliation `PASS`; detail navigation `PASS`. Accepted note: destination Route Performance Center remains runtime-incomplete by existing scope and is not a DA-IMPL-004 defect. Exclusions remained preserved: no SSOT changes, no KPI formula changes, no new BCVH mapping rules, no new business thresholds, no TCT, no AUTO-IMPORT changes, no Architecture Freeze changes, and no broad UI redesign outside the unified BCVH analysis table.
+
+DA-IMPL-005 `Operating Pattern Tabs` is `COMPLETED / PO PASS` as of `2026-07-20`. Product Owner accepted: tab order/default `PASS`; `Theo tháng` management view `PASS`; `Theo thứ` combo view `PASS`; Heatmap management view and month separation `PASS`; data contracts and filter context `PASS`. Accepted UI/UX follow-up items are not blockers for DA-IMPL-005: Heatmap is too wide/tall at normal desktop zoom 100% and may require reducing browser zoom to approximately 50%; chart legend, explanatory text, and labels can overlap or become visually crowded. Future DA-IMPL UI/UX completion must address responsive Heatmap layout at 100% browser zoom, month blocks adapting to viewport width, controlled scrolling or compact cell sizing, non-overlapping chart legends and labels, improved spacing, typography, information density, and desktop usability without browser zoom changes. Exclusions remained preserved: no SSOT changes, no KPI formula changes, no business rule changes, no new thresholds, no new BCVH mappings, no backend schema changes, no AUTO-IMPORT, no TCT, no Architecture Freeze changes, and no broad Dashboard redesign outside the operating-pattern card.
+
+AUTO-IMPORT-004 `TCT Source Discovery and Nationwide Ranking Contract` is `COMPLETED / PO PASS` as of `2026-07-20`. Checkpoint 001 discovery is documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-004_CHECKPOINT_001.md`; Checkpoint 002 controlled TCT download/import validation is documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-004_CHECKPOINT_002.md`; PO acceptance is documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-004_PO_ACCEPTANCE.md`. PO accepted TCT F1.3 `2026-07-19`: ranked population `34`; Hue volume `2,399`; Hue pass `1,261`; Hue KPI `52.56%`; Hue nationwide rank `24/34`; TCT workbook downloaded, imported, and deleted successfully; Dashboard result accepted.
+
+AUTO-IMPORT-005 `TCT Manual Backfill and Shared DKCL Background Operations` is `COMPLETED / PO PASS` as of `2026-07-20`. Checkpoint 001 discovery/contract is documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_001.md`; Checkpoint 002 shared session preflight plus TCT coverage/missing-date scan is documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_002.md`; Checkpoint 003 TCT queue/import vertical slice and PO defect evidence are documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_003.md`. Product Owner accepted TCT manual backfill, session preflight and explicit re-authentication, missing/incomplete/completed date classification, controlled re-import of incomplete national dates, sequential in-memory queue, graceful Stop, eligible Retry, Hue/TCT source separation, and cumulative range-based nationwide ranking. No next ticket was activated because the AUTO-IMPORT-005 manifest contains no direct authoritative next-ticket handoff or roadmap reference.
