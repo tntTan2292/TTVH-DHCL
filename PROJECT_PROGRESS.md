@@ -2,9 +2,9 @@
 
 ## Current Phase
 
-- `Smart Leadership Dashboard Implementation`
+- `Auto Import / Smart Leadership Dashboard Implementation`
 
-## % Hoàn Thành Theo Phase
+## Completion By Phase
 
 - Business Discovery: `100%`
 - Freeze Business: `100%`
@@ -36,12 +36,17 @@
 - DA-IMPL-001: `Completed / PO PASS`
 - DA-IMPL-002: `Completed / PO PASS`
 - DA-IMPL-003: `Completed / PO PASS`
+- DA-IMPL-004: `Completed / PO PASS`
+- DA-IMPL-005: `Completed / PO PASS`
 - AUTO-IMPORT-001: `Completed / Handoff`; `Atomic importer claim - Completed / Verified`
 - AUTO-IMPORT-002: `Completed / PO PASS`; `Live end-to-end verification passed for 2026-07-16`
-- AUTO-IMPORT-003: `Planned / Inactive`
+- AUTO-IMPORT-003: `Completed / PO PASS`
+- AUTO-IMPORT-004: `Completed / PO PASS`
+- AUTO-IMPORT-005: `Completed / PO PASS`
+- DA-IMPL-006: `Active / Implementation`; `Checkpoint 001 discovery and contract definition pending`
 - TICKET-0102: `Deferred / Inactive`
 
-## Danh Sách Tài Liệu Đã Freeze
+## Frozen Documents
 
 - `docs/PROJECT_SSOT.md`
 - `PROJECT_STATUS.md`
@@ -65,99 +70,111 @@
 - `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md`
 - `docs/02_ARCHITECTURE/ACTION/ACTION_CENTER_SCREEN_ARCHITECTURE.md`
 
-## Danh Sách Tài Liệu Đang Thực Hiện
+## Business Decisions Frozen
 
-- `Shipment Performance Center Executive Widgets: PASS`
-- `Shipment Performance Center Runtime Data Integration: PASS`
-- `Shipment Performance Center Review: PASS`
-- `PO UI Acceptance Governance: PASS`
-
-## Business Decisions Đã Freeze
-
-- QIS V2 is a Decision Support System
-- EIDAF framework is locked
-- Operation Table SSOT
-- KPI 2026
-- National Ranking
-- Dashboard Runtime Rule
-- Import Rule
-- No mock data as final acceptance source
-- No business rule changes unless explicitly approved by PO
+- QIS V2 is a Decision Support System.
+- EIDAF framework is locked.
+- Operation Table SSOT is locked.
+- KPI 2026 is locked.
+- National Ranking must be grounded in imported nationwide data.
+- Dashboard Runtime Rule is locked.
+- Import Rule is locked.
+- No mock data is accepted as final acceptance source.
+- No business rule changes unless explicitly approved by Product Owner.
 
 ## Outstanding Decisions
 
-- `None`
+- None for DA-IMPL-006 activation. Checkpoint 001 must preserve existing Dashboard authorities and document any missing PO business, SSOT, KPI, API, or scope authority before implementation.
 
 ## Open Issues
 
-- Untracked HTML files remain in the working tree and are unrelated to the architecture package:
+- Untracked HTML files remain in the working tree and are unrelated to the current governed ticket:
   - `Ban_do_mang_diem_phuc_vu_BDTP_Hue.html`
   - `Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html`
   - `ban_do_duong_giao_thong_bcvh_postman_06_2026.html`
-
-## Next Phase
-
-- `Development`
-
-## Architecture Readiness
-
-- `Ready for UX`
-
-## UX Readiness
-
-- `Ready for Technical Planning`
-
-## Implementation Readiness
-
-- `Ready for Release Planning`
-
-## Technical Planning Readiness
-
-- `In Progress`
-
-## Feature Planning Readiness
-
-- `PASS`
-
-## Development Backlog Readiness
-
-- `In Progress`
 
 ## Current Position
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `AUTO-IMPORT-002 Automated Download and Validation Pipeline` |
-| Current Commit | `b71cf4eb830f4d135cb80573f15884cffce5e4e7` |
-| Current Phase | `Smart Leadership Dashboard Implementation` |
-| Next Milestone | `AUTO-IMPORT-003 Scheduled Import, Retry, Monitoring and Operations UI` |
-| PO UI Check Required | `No` |
-| PO Product Status | `PO PASS` |
+| Current Ticket | `DA-IMPL-006 Unified Action Center` |
+| Current Commit | `codex/da-impl-006 activation state as of 2026-07-20` |
+| Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
+| Next Milestone | `DA-IMPL-006 Checkpoint 001 discovery and contract definition` |
+| PO UI Check Required | `Yes for Unified Action Center after technical readiness` |
+| PO Product Status | `DA-IMPL-006 NOT READY` |
+
+## DA-IMPL-004 Unified BCVH Analysis Table Status
+
+- Ticket status: `COMPLETED / PO PASS`.
+- Product Owner accepted Unified BCVH analysis table, date context synchronization, Chuyển hoàn reconciliation, and detail navigation.
+- Boundaries preserved: no SSOT changes; no KPI formula changes; no new BCVH mapping rules; no new business thresholds; no TCT; no AUTO-IMPORT changes; no Architecture Freeze changes; no broad UI redesign outside the unified BCVH analysis table.
+
+## DA-IMPL-005 Operating Pattern Tabs Status
+
+- Ticket status: `COMPLETED / PO PASS`.
+- Product Owner accepted tab order/default, `Theo tháng` management view, `Theo thứ` combo view, Heatmap management view and month separation, and data contracts/filter context.
+- Accepted UI/UX follow-up, not a DA-IMPL-005 blocker: Heatmap responsive layout at 100% desktop zoom, month block adaptation, controlled scrolling or compact cell sizing, non-overlapping chart legends/labels, improved spacing/typography/information density, and desktop usability without browser zoom changes are deferred to a future governed Dashboard UI/UX completion phase.
 
 ## AUTO-IMPORT-001 DKCL Sync Status
 
-- `Atomic importer claim`: `COMPLETED / VERIFIED`
+- `Atomic importer claim`: `COMPLETED / VERIFIED`.
 - Root cause: multiple backend/watcher instances could process the same `Incoming` file.
 - Fix: atomic move from `Incoming` to `Processing`; only the winning process continues.
 - Real verification: `F1.3-2026.02.01.xlsx` imported `2374` rows with `2374` distinct shipment codes, exactly `1 SUCCESS` log, `0` error/skipped rows, and no duplicate or trailing `FAILED` log.
-- Next planned stages remain inactive: Huế automatic daily acquisition; System Administrator missing-date scan and manual backfill; TCT source for nationwide ranking.
+- Follow-on status: Hue manual missing-date/backfill was completed under `AUTO-IMPORT-003`; TCT source discovery and controlled one-date import were completed under `AUTO-IMPORT-004`; TCT manual backfill and shared DKCL background operations were completed under `AUTO-IMPORT-005`.
 
-## AUTO-IMPORT-002 Huế F1.3 Acquisition Status
+## AUTO-IMPORT-002 Hue F1.3 Acquisition Status
 
-- Backend/manual-trigger engine: `IMPLEMENTED`
-- Persistent Huế browser profile: `IMPLEMENTED`
-- One automatic username/password/fixed-HRM login attempt: `IMPLEMENTED`
-- Portal export cleanup: `IMPLEMENTED`
-- API added: `POST /api/import/dkcl/hue/f13/sync`
-- Status endpoint added: `GET /api/import/dkcl/hue/f13/sync/:runId`
-- Controlled live verification: `PASSED for 2026-07-16`
-- Visible business metric: `SL bưu gửi phát thành công/Nộp tiền/CH`
-- Visible metric/detail population: `3941`
-- Workbook rows/imported DB rows/distinct shipment codes: `3941`
-- Import logs: exactly `1 SUCCESS`; skipped/error rows: `0`
-- Dashboard backend `total_bg`: `3941`
-- Portal cleanup target `19-07-2026_23-08-07_F1.3_chat_luong_phat_buu_giay_lien_tinh_chi_tiet(1).xlsx`: deleted successfully; exact filename `matchCount = 0`
-- Final result: `AUTO-IMPORT-002 live end-to-end verification PASSED`
-- Product Owner decision: `COMPLETED / PO PASS`
-- Implementation commit: `4798ec82bb6cc1f343167a6b596aa5d6f58d57cc`
-- Out of scope remains inactive: Data Import Center UI, missing-date scan, daily scheduler, TCT workflow, KPI business-rule changes.
+- Backend/manual-trigger engine: `IMPLEMENTED`.
+- Persistent Hue browser profile: `IMPLEMENTED`.
+- One automatic username/password/fixed-HRM login attempt: `IMPLEMENTED`.
+- Portal export cleanup: `IMPLEMENTED`.
+- API added: `POST /api/import/dkcl/hue/f13/sync`.
+- Status endpoint added: `GET /api/import/dkcl/hue/f13/sync/:runId`.
+- Controlled live verification: `PASSED for 2026-07-16`.
+- Visible metric/detail population, workbook rows, imported database rows, distinct shipment codes, and Dashboard backend `total_bg`: `3941`.
+- Import logs: exactly `1 SUCCESS`; skipped/error rows: `0`.
+- Product Owner decision: `COMPLETED / PO PASS`.
+- Out of scope remains inactive: Data Import Center UI, daily scheduler, TCT workflow, KPI business-rule changes.
+
+## AUTO-IMPORT-003 Operations UI Status
+
+- Ticket status: `COMPLETED / PO PASS`.
+- Scope: extend Data Import Center for Hue F1.3 missing-date scan, manual backfill, sequential queue, retry/stop, progress/status monitoring, and safe import/export/validation/error evidence.
+- Accepted operational condition: manual Hue F1.3 backfill requires a valid DKCL authenticated session. The operator does not need to log in for every `Update` while the session remains valid. If the DKCL session is expired or invalid, queue creation is blocked before `RUNNING` and the operator is instructed to re-authenticate.
+- Not included: automatic login, credential storage, or additional DKCL session persistence.
+
+## AUTO-IMPORT-004 TCT Source Discovery and Nationwide Ranking Contract Status
+
+- Product Owner activation decision recorded on `2026-07-20`.
+- Ticket status: `COMPLETED / PO PASS`.
+- Checkpoint 001 status: `COMPLETED - DISCOVERY / CONTRACT DEFINED`.
+- Checkpoint 002 status: `COMPLETED - CONTROLLED IMPORT VALIDATED`.
+- Accepted evidence for `2026-07-19`: ranked population `34`; Hue volume `2,399`; Hue pass `1,261`; Hue KPI `52.56%`; Hue nationwide rank `24/34`; TCT workbook downloaded, imported, and deleted successfully; Dashboard result accepted by Product Owner.
+- Boundaries: no TCT importer implementation in Checkpoint 001; no Dashboard UI changes; no KPI formula changes; no ranking-rule changes; no SSOT/schema changes; no AUTO-IMPORT-002/003 behavior changes; no BCVH mapping changes; no Architecture Freeze changes; no scheduling or force replacement.
+- Evidence: `docs/06_REVIEWS/Import/AUTO-IMPORT-004_CHECKPOINT_001.md`, `docs/06_REVIEWS/Import/AUTO-IMPORT-004_CHECKPOINT_002.md`, `docs/06_REVIEWS/Import/AUTO-IMPORT-004_PO_ACCEPTANCE.md`.
+- Manifest: `docs/10_TICKETS/AUTO-IMPORT-004_MANIFEST.md`.
+
+## AUTO-IMPORT-005 TCT Manual Backfill and Shared DKCL Background Operations Status
+
+- Product Owner activation decision recorded on `2026-07-20`.
+- Ticket status: `COMPLETED / PO PASS`.
+- Checkpoint 001 status: `COMPLETED - DISCOVERY / CONTRACT DEFINED`.
+- Checkpoint 002 status: `COMPLETED - TECHNICAL PASS`.
+- Checkpoint 003 status: `PO ACCEPTED`.
+- Scope: shared Hue/TCT DKCL browser/session workflow, interactive authentication mode, background operation mode, TCT F1.3 manual backfill in Data Import Center, TCT coverage/missing-date scan, sequential in-memory queue, graceful Stop, eligible Retry, workbook lifecycle cleanup, and evidence contract.
+- Product Owner accepted TCT `Update`, one-active-queue sequential in-memory processing, pre-queue TCT session validation, explicit interactive TCT re-authentication action, graceful Stop, eligible Retry, background portal workflow, workbook validation, 34-unit national import handoff, queue/item evidence, temp workbook cleanup, Hue/TCT source separation, and cumulative range-based nationwide ranking.
+- Boundaries: no unattended scheduling; no automatic all-missing-date import; no credential storage; no automatic credential-based login; no SSOT/KPI/ranking/population changes; no Dashboard UI changes except Data Import Center TCT controls/session status; no broad schema, BCVH, or AUTO-IMPORT-002/003 behavior changes.
+- Evidence: `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_001.md`; `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_002.md`; `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_003.md`.
+- Manifest: `docs/10_TICKETS/AUTO-IMPORT-005_MANIFEST.md`.
+
+## DA-IMPL-006 Unified Action Center Status
+
+- Product Owner activation decision recorded on `2026-07-20`.
+- Ticket status: `ACTIVE / IMPLEMENTATION`.
+- Checkpoint 001 status: `PENDING`.
+- Scope: consolidate recommendations, Daily Brief, message generation, row-level guidance, and follow-up into one action center; eliminate repeated issue presentation; identify source and confidence of each action; preserve unknown values instead of inventing them.
+- Boundaries: no SSOT changes; no KPI formula changes; no business-rule, threshold, BCVH mapping, ranking-rule, AUTO-IMPORT, TCT, schema, Route Performance Center, or Architecture Freeze changes without explicit authority.
+- Manifest: `docs/10_TICKETS/DA-IMPL-006_MANIFEST.md`.
+- Next planned ticket: `DA-IMPL-007 Smart Dashboard Final Assembly`.

@@ -209,18 +209,75 @@ The following queue is the current PO-prioritized delivery order for leadership 
 - Authority: Product Owner `PO PASS` for `DASHBOARD-AUDIT-001` on `2026-07-18`
 - Approved plan: `docs/04_TECHNICAL_PLANNING/Dashboard/SMART_DASHBOARD_IMPLEMENTATION_PLAN.md`
 - Ticket register: `docs/04_TECHNICAL_PLANNING/Dashboard/DA_IMPLEMENTATION_TICKET_REGISTER.md`
-- Active ticket: `DA-IMPL-001`
+- Active ticket: `DA-IMPL-006`
 - Sequencing rule: do not activate all DA tickets simultaneously.
 
 | Ticket | Goal | Status | PO Product Status |
 | --- | --- | --- | --- |
-| `DA-IMPL-001` | Dashboard Language and Semantic Foundation | `ACTIVE` | `NOT READY` |
-| `DA-IMPL-002` | Unified Command Summary | `PLANNED / INACTIVE` | `NOT READY` |
-| `DA-IMPL-003` | Integrated Trend and Risk Workspace | `PLANNED / INACTIVE` | `NOT READY` |
-| `DA-IMPL-004` | Unified BCVH Analysis Table | `PLANNED / INACTIVE` | `NOT READY` |
-| `DA-IMPL-005` | Operating Pattern Tabs | `PLANNED / INACTIVE` | `NOT READY` |
-| `DA-IMPL-006` | Unified Action Center | `PLANNED / INACTIVE` | `NOT READY` |
+| `DA-IMPL-001` | Dashboard Language and Semantic Foundation | `COMPLETED / PO PASS` | `PO PASS` |
+| `DA-IMPL-002` | Unified Command Summary | `COMPLETED / PO PASS` | `PO PASS` |
+| `DA-IMPL-003` | Integrated Trend and Risk Workspace | `COMPLETED / PO PASS` | `PO PASS` |
+| `DA-IMPL-004` | Unified BCVH Analysis Table | `COMPLETED / PO PASS` | `PO PASS` |
+| `DA-IMPL-005` | Operating Pattern Tabs | `COMPLETED / PO PASS` | `PO PASS` |
+| `DA-IMPL-006` | Unified Action Center | `ACTIVE / IMPLEMENTATION` | `NOT READY` |
 | `DA-IMPL-007` | Smart Dashboard Final Assembly | `PLANNED / INACTIVE` | `NOT READY` |
+
+#### DA-IMPL-005-UIUX-FOLLOWUP Heatmap and Legend Responsive Completion
+
+- Module: Leadership Dashboard
+- Route / URL: `/f13/dashboard`
+- Affected Screen / Menu: Operating Pattern Tabs card
+- Related source ticket: `DA-IMPL-005 Operating Pattern Tabs`
+- Current Status: `PLANNED / INACTIVE`
+- PO Product Status: `NOT READY`
+- PO UI Check Required: `Yes`
+- Decision reason: Product Owner accepted DA-IMPL-005 with UI/UX follow-up items that are not blockers for DA-IMPL-005 closure.
+- Business Impact: Improve desktop usability and readability of the accepted Operating Pattern card without changing KPI formulas, thresholds, data sources, or business rules.
+- Expected Visible Result: Heatmap is usable at 100% desktop browser zoom; month blocks adapt to viewport width; scrolling or compact cell sizing is controlled; chart legends, explanatory text, and labels do not overlap; spacing, typography, and information density support normal desktop operation without browser zoom changes.
+- Blocking Issue: `None for DA-IMPL-005`; future work requires explicit Product Owner/governance activation.
+- Evidence: `docs/06_REVIEWS/Dashboard/DA-IMPL-005_UIUX_FOLLOWUP.md`
+
+### AUTO-IMPORT-004 TCT Source Discovery and Nationwide Ranking Contract
+
+- Ticket ID: `AUTO-IMPORT-004`
+- Ticket Name: `TCT Source Discovery and Nationwide Ranking Contract`
+- Module: Data Import Center / Dashboard Data Contract
+- Route / URL: Not a UI implementation checkpoint.
+- Goal: Discover and define the governed TCT nationwide F1.3 source and ranking contract used by the Hue Dashboard national-rank card.
+- PO UI Check Required: `No` for Checkpoint 001 discovery.
+- Decision reason: Product Owner explicitly activated the TCT nationwide-ranking data-source ticket after `AUTO-IMPORT-003` and `DA-IMPL-005` PO PASS.
+- Current Status: `COMPLETED / PO PASS`
+- PO Product Status: `PO PASS`
+- Affected Screen / Menu: Future Dashboard national-rank data source; no visible UI change in Checkpoint 001.
+- Business Impact: Establishes source authority and evidence before implementing nationwide ranking import.
+- Expected Visible Result: None in Checkpoint 001; later implementation should support trusted nationwide-rank evidence without changing Dashboard UI or KPI formulas.
+- Blocking Issue: `Closed`
+- Related PO Findings: National-rank source lineage from DA-IMPL-002.
+- Responsible Fix / Future Ticket: `AUTO-IMPORT-004`.
+- Next Ticket: `AUTO-IMPORT-005 TCT Manual Backfill and Shared DKCL Background Operations`
+- Evidence: `docs/06_REVIEWS/Import/AUTO-IMPORT-004_CHECKPOINT_001.md`; `docs/06_REVIEWS/Import/AUTO-IMPORT-004_CHECKPOINT_002.md`; `docs/06_REVIEWS/Import/AUTO-IMPORT-004_PO_ACCEPTANCE.md`
+- Final Completion Status: `MODULE COMPLETED`
+
+### AUTO-IMPORT-005 TCT Manual Backfill and Shared DKCL Background Operations
+
+- Ticket ID: `AUTO-IMPORT-005`
+- Ticket Name: `TCT Manual Backfill and Shared DKCL Background Operations`
+- Module: Data Import Center / Auto Import
+- Route / URL: `/import`
+- Goal: Add governed TCT F1.3 manual backfill while extracting/reusing one shared DKCL browser/session/download workflow for Hue and TCT.
+- PO UI Check Required: `Yes`
+- Decision reason: Product Owner explicitly activated AUTO-IMPORT-005 after AUTO-IMPORT-004 Product Owner PASS.
+- Current Status: `COMPLETED / PO PASS`
+- PO Product Status: `PO PASS`
+- Affected Screen / Menu: Data Import Center.
+- Business Impact: Allows operators to scan TCT national F1.3 coverage and manually backfill selected missing dates with the same operational controls already accepted for Hue.
+- Expected Visible Result: Data Import Center exposes TCT session status, coverage summary, operator-selected date scan, missing/completed/existing date lists, selectable missing dates, Update action, queue progress, evidence, graceful Stop, and eligible Retry.
+- Blocking Issue: `Closed after Product Owner PASS`.
+- Related PO Findings: AUTO-IMPORT-004 accepted TCT national rank evidence; AUTO-IMPORT-003 accepted Hue manual backfill operations UI.
+- Responsible Fix / Future Ticket: `AUTO-IMPORT-005`.
+- Next Ticket: `DA-IMPL-006 Unified Action Center`
+- Evidence: `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_001.md`; `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_002.md`; `docs/06_REVIEWS/Import/AUTO-IMPORT-005_CHECKPOINT_003.md`
+- Final Completion Status: `COMPLETED / PO PASS`
 
 ### TICKET-0011 Dashboard Shell
 

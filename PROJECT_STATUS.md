@@ -6,7 +6,7 @@
 
 Quy tắc cập nhật:
 
-- Sau mọi ticket PASS, bắt buộc cập nhật file này.
+- Sau mỗi ticket PASS, bắt buộc cập nhật file này.
 - Phải cập nhật các mục:
   - Current Phase
   - Current Ticket
@@ -22,9 +22,9 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `AUTO-IMPORT-002 Automated Download and Validation Pipeline`
+- `DA-IMPL-006 Unified Action Center`
 - `Smart Leadership Dashboard Implementation`
-- `Status: COMPLETED / PO PASS`
+- `Status: ACTIVE / IMPLEMENTATION`
 
 ## Completed Tickets
 
@@ -48,7 +48,12 @@ Quy tắc cập nhật:
 - `DA-IMPL-001 Dashboard Language and Semantic Foundation` - PO PASS / COMPLETED
 - `DA-IMPL-002 Unified Command Summary` - PO PASS / COMPLETED
 - `DA-IMPL-003 Integrated Trend and Risk Workspace` - PO PASS / COMPLETED
+- `DA-IMPL-004 Unified BCVH Analysis Table` - PO PASS / COMPLETED
+- `DA-IMPL-005 Operating Pattern Tabs` - PO PASS / COMPLETED
 - `AUTO-IMPORT-002 Automated Download and Validation Pipeline` - PO PASS / COMPLETED
+- `AUTO-IMPORT-003 Scheduled Import, Retry, Monitoring and Operations UI` - PO PASS / COMPLETED
+- `AUTO-IMPORT-004 TCT Source Discovery and Nationwide Ranking Contract` - PO PASS / COMPLETED
+- `AUTO-IMPORT-005 TCT Manual Backfill and Shared DKCL Background Operations` - PO PASS / COMPLETED
 
 ## Current Progress
 
@@ -73,18 +78,27 @@ Quy tắc cập nhật:
 - DA-IMPL-001: `COMPLETED / PO PASS`
 - DA-IMPL-002: `COMPLETED / PO PASS`
 - DA-IMPL-003: `COMPLETED / PO PASS`
+- DA-IMPL-004: `COMPLETED / PO PASS`
+- DA-IMPL-005: `COMPLETED / PO PASS`
 - AUTO-IMPORT-001: `COMPLETED / HANDOFF`; `Atomic importer claim - COMPLETED / VERIFIED`
 - AUTO-IMPORT-002: `COMPLETED / PO PASS`; `LIVE END-TO-END VERIFICATION PASSED FOR 2026-07-16`
 - AUTO-IMPORT-002 implementation commit: `4798ec82bb6cc1f343167a6b596aa5d6f58d57cc`
-- AUTO-IMPORT-003: `NEXT / PLANNED / INACTIVE`
+- AUTO-IMPORT-003: `COMPLETED / PO PASS`
+- AUTO-IMPORT-003 accepted operational condition: manual Huế F1.3 backfill requires a valid DKCL authenticated session; while valid, the operator does not need to log in for every `Update`; if expired or invalid, queue creation is blocked before `RUNNING` and the operator is instructed to re-authenticate. No automatic login, credential storage, or additional session persistence is included in this ticket.
+- DA-IMPL-005 accepted UI/UX follow-up: Heatmap responsive layout at 100% desktop zoom, month block adaptation, controlled scrolling or compact cell sizing, non-overlapping chart legends/labels, improved spacing/typography/information density, and desktop usability without browser zoom changes are deferred to a future governed Dashboard UI/UX completion phase.
+- AUTO-IMPORT-004: `COMPLETED / PO PASS`; controlled TCT F1.3 import accepted for `2026-07-19` with Hue rank `24/34`.
+- AUTO-IMPORT-005: `COMPLETED / PO PASS`
+- DA-IMPL-006: `ACTIVE / IMPLEMENTATION`
 - TICKET-0102: `DEFERRED / INACTIVE`
 - PO findings from TODAY-001: `CLOSED`
-- PO UI Check Required: `No`
-- PO Product Status: `PO PASS`
+- PO UI Check Required: `Yes`
+- PO Product Status: `DA-IMPL-006 NOT READY`
 
 ## Next Ticket
 
-- `AUTO-IMPORT-003 Scheduled Import, Retry, Monitoring and Operations UI`
+- Current active ticket: `DA-IMPL-006 Unified Action Center`.
+- Proposed next checkpoint: `DA-IMPL-006 Checkpoint 001` discovery and contract definition for the Unified Action Center.
+- Next planned ticket: `DA-IMPL-007 Smart Dashboard Final Assembly`.
 
 ## Notes
 
