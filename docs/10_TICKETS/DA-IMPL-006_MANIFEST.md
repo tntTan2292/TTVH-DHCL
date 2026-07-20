@@ -56,7 +56,7 @@ Consolidate Dashboard recommendations, Daily Brief, message generation, row-leve
 - Document duplicate, conflicting, mock-backed, or disconnected implementations.
 - Define the Unified Action Center contract, source mapping, filter propagation, loading/empty/partial/error states, and the narrowest Checkpoint 002 vertical slice.
 - Evidence: `docs/06_REVIEWS/Dashboard/DA-IMPL-006_CHECKPOINT_001.md`.
-- Status: `PENDING`.
+- Status: `COMPLETED - DISCOVERY / CONTRACT DEFINED`.
 
 ### Checkpoint 002 - Smallest Vertical Slice
 
