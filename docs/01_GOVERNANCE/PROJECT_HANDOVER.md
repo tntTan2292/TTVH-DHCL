@@ -34,11 +34,11 @@ QIS V2 is a decision support system for TTVH quality operations.
 
 The system is designed to move from visibility to action:
 
-- detect operational issues,
-- analyze them by BCVH, route, and shipment,
-- validate evidence,
-- convert decisions into actions,
-- and preserve feedback for the next operating loop.
+- detect operational issues
+- analyze them by BCVH, route, and shipment
+- validate evidence
+- convert decisions into actions
+- preserve feedback for the next operating loop
 
 Compared with a traditional dashboard, QIS V2 is not only a display layer.
 It is an operational decision system with frozen business rules, frozen architecture, frozen UX, and runtime as the acceptance standard.
@@ -65,7 +65,7 @@ Report Center
 
 ## 4. Frozen Architecture
 
-The following documents are frozen and should be treated as SSOT/architecture contracts:
+The following documents are frozen and should be treated as SSOT and architecture contracts:
 
 - [docs/PROJECT_SSOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/PROJECT_SSOT.md)
 - [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md)
@@ -138,6 +138,8 @@ Current ticket, commit, phase, next milestone, and repository status are owned b
 Use the current manifest for ticket-specific scope and reading order.
 Use `CODEX_DOCUMENTATION_STANDARD.md` when the reading or update order itself must be interpreted.
 
+As of `2026-07-20`, `DA-IMPL-006` is `COMPLETED / PO PASS` and `DA-IMPL-007 Smart Dashboard Final Assembly` is active for handoff only. Primary executor for DA-IMPL-007 is `Antigravity`; Antigravity must directly execute final visual assembly, must not reopen DA-IMPL-006, and must not generate a Codex prompt as its end state. Codex should be called back only for logic, contract, backend, or technical regression blockers confirmed by ChatGPT coordination. A fresh ChatGPT conversation must onboard from `README_AI.md` and write a dedicated `Prompt cho Antigravity` before any DA-IMPL-007 implementation.
+
 ## 8. Technical Debt
 
 Open technical debt items captured in the current repo state:
@@ -146,7 +148,7 @@ Open technical debt items captured in the current repo state:
 2. Route and BCVH runtime pages use fallback summary surfaces when optional meta fields are missing.
 3. Evidence, Action, AI, and Report centers are the next implementation layers.
 4. TODAY-001 import delivery has PO PASS and is closed; TODAY-002 Daily Trend Data Adapter is completed, TODAY-002-R1 source-column recovery is closed, and TODAY-002-R2 dashboard consistency recovery is completed before TODAY-003-R1 begins.
-5. Untracked HTML artifacts remain in the working tree and are unrelated to the architecture/development flow.
+5. Untracked HTML artifacts remain in the working tree and are unrelated to the architecture and development flow.
 
 ## 9. Known Risks
 
@@ -157,7 +159,7 @@ Open technical debt items captured in the current repo state:
 
 ## 10. Required Reading Order
 
-Recommended reading order for a new ChatGPT/Codex/developer session:
+Recommended reading order for a new ChatGPT, Codex, Antigravity, or developer session:
 
 1. [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
 2. [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
@@ -236,7 +238,6 @@ Widgets must stay props-only when the ticket says so.
 
 Context preservation across centers is mandatory.
 
-Do not introduce new business rules unless Product Owner approves them.
+Do not introduce new business rules unless the Product Owner approves them.
 
 For a fresh session, start by reading this file, then [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md), then [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md).
-

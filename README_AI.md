@@ -6,7 +6,7 @@
 - [2. Mandatory Start](#2-mandatory-start)
 - [3. Operating Rules](#3-operating-rules)
 - [4. Mandatory Response Format](#4-mandatory-response-format)
-- [5. Current Repository Status](#5-current-repository-status)
+- [5. Governance V2 Onboarding](#5-governance-v2-onboarding)
 - [6. Quick Links](#6-quick-links)
 - [7. Conversation Context Capacity and Fresh-Chat Handoff](#7-conversation-context-capacity-and-fresh-chat-handoff)
 - [8. Golden Rule](#8-golden-rule)
@@ -45,6 +45,12 @@ AI must:
 - provide a concise manual PO checklist for visible changes
 - not perform broad UI acceptance or award PO PASS
 - treat Technical PASS and Runtime/API Contract PASS as non-equivalent to PO PASS
+- before drafting or executing a prompt, follow [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md) and [docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md); active-ticket follow-ups default to delta-only and LEVEL 1 unless broader scope is explicitly justified
+- ChatGPT in the active Product Owner session is the coordination authority: receive requests, analyze tickets, finalize scope, choose the executor, write the prompt, review results, and request PO decisions
+- only ChatGPT coordination may redirect work between Codex and Antigravity
+- every future execution prompt must explicitly choose exactly one title: `Prompt cho Codex` or `Prompt cho Antigravity`
+- use Codex for logic/contracts/backend/data/tests and Antigravity for layout, UI/UX, responsive behavior, visual polish, and final visual assembly
+- do not use the combined heading `Prompt cho Codex/Antigravity`
 
 ## 4. Mandatory Response Format
 
@@ -57,10 +63,11 @@ After onboarding and for post-onboarding continuation, implementation-result rev
    - fewer than 5 sentences
    - state the immediate execution path
 3. exactly one of:
-   - `### Prompt cho Codex/Antigravity`
+   - `### Prompt cho Codex`
+   - `### Prompt cho Antigravity`
    - `### Yêu cầu PO quyết định`
 
-If the active manifest authorizes implementation and no governance blocker exists, the AI must continue immediately into Codex prompt generation without waiting for another user request.
+If the active manifest authorizes implementation and no governance blocker exists, the AI must continue immediately into prompt generation without waiting for another user request.
 
 If the active manifest conflicts with the current ticket named in `PROJECT_SNAPSHOT.md`, the AI must stop and report the conflict instead of guessing.
 
@@ -70,7 +77,7 @@ If onboarding PASS completes and the active manifest authorizes implementation, 
 
 - `### Phân tích kết quả`
 - `### Phương án`
-- `### Prompt cho Codex/Antigravity`
+- exactly one of `### Prompt cho Codex` or `### Prompt cho Antigravity`
 
 Allowed stop conditions after onboarding are limited to manifests that explicitly indicate:
 
@@ -80,7 +87,7 @@ Allowed stop conditions after onboarding are limited to manifests that explicitl
 - `WAITING FOR REQUIREMENT`
 - another governance-defined blocking state
 
-When review finds an issue that can be remediated within the active ticket, AI must not stop after reporting the finding. It must immediately generate a remediation prompt for Codex/Antigravity and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
+When review finds an issue that can be remediated within the active ticket, AI must not stop after reporting the finding. ChatGPT coordination must immediately generate a remediation prompt for the correct single executor and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
 
 AI must request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
 

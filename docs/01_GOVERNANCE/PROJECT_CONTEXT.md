@@ -221,19 +221,23 @@ Product Owner
 
 ChatGPT
 
-Chief Solution Architect
+Coordination Authority
 
 ↓
 
-Codex
+Codex / Antigravity
 
-Implementation Engineer
+Direct Executors
 
 Operational model:
 
 - Product Owner approves business direction and final acceptance
-- ChatGPT / Chief Solution Architect defines and preserves the narrative, context, and planning continuity
-- Codex implements and validates against the frozen contracts
+- ChatGPT coordination receives requests, analyzes tickets, finalizes scope, chooses the executor, writes the prompt, reviews results, and requests PO decisions
+- only ChatGPT coordination may redirect work between Codex and Antigravity
+- Codex directly executes business logic, backend, data flow, contract, validation, test, refactor, technical remediation, and technical governance updates
+- Antigravity directly executes layout, UI/UX, responsive behavior, typography, spacing, color, visual hierarchy, chart and heatmap presentation, final visual assembly, browser visual checks, and screenshot evidence
+- mixed tickets must be split by ChatGPT coordination: Codex handles logic and contracts first, Antigravity handles UI after the technical boundary is stable
+- no executor may stop at discovery and hand the task back to the other executor unless ChatGPT coordination explicitly instructs that handoff
 
 ## 9. Current Project Snapshot
 
@@ -252,6 +256,10 @@ Current PO gate rule:
 - internal governance-only tickets use PO UI Check Required = No
 - Technical PASS and Runtime PASS do not imply PO Product PASS
 - current ticket, next ticket, and repository state are resolved through `PROJECT_SNAPSHOT.md`
+- as of `2026-07-20`, `DA-IMPL-006` is `COMPLETED / PO PASS` and `DA-IMPL-007 Smart Dashboard Final Assembly` is active for handoff only
+- primary executor for `DA-IMPL-007` is `Antigravity`
+- Antigravity must directly execute final visual assembly for `DA-IMPL-007`, must not reopen `DA-IMPL-006`, and must not generate a Codex prompt as its end state
+- Codex may be called back only for logic, contract, backend, or technical regression blockers confirmed by ChatGPT coordination
 
 ## 10. Continuation Rule
 
