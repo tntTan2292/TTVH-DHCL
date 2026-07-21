@@ -8,6 +8,7 @@ import {
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import IntegratedTrendRiskWorkspace from './components/IntegratedTrendRiskWorkspace';
 import BcvhOperationTableAdapter from './components/BcvhOperationTableAdapter';
+import OperatingPatternTabsCard from './components/OperatingPatternTabsCard';
 import UnifiedActionCenter from './components/UnifiedActionCenter';
 import UnifiedCommandSummary from './components/UnifiedCommandSummary';
 import {
@@ -277,6 +278,12 @@ export default function DashboardPage() {
           toDate={toDate || latestDate || defaultDate}
           maBcvh={maBcvh}
           kpiData={kpiState.data}
+        />
+
+        <OperatingPatternTabsCard
+          fromDate={fromDate}
+          toDate={toDate}
+          maBcvh={maBcvh}
         />
 
         <UnifiedActionCenter

@@ -65,8 +65,8 @@ class DkclHueF13PortalClient {
         this.loginAttempts = 0;
     }
 
-    async authenticate({ baseUrl, username, password, hrmCode, profileDir }) {
-        if (!username || !password || !hrmCode) {
+    async authenticate({ baseUrl, username, password, hrmCode, profileDir, requireExistingSession = false }) {
+        if (!requireExistingSession && (!username || !password || !hrmCode)) {
             throw portalError('Hue portal credentials or HRM identifier are missing from local environment.', 'MISSING_CREDENTIALS');
         }
 
@@ -85,6 +85,9 @@ class DkclHueF13PortalClient {
         await this.stopForSecurityChallenge({ allowHrm: true });
 
         if (await this.isAuthenticated()) return;
+        if (requireExistingSession) {
+            throw portalError('AUTHENTICATION_REQUIRED: an existing DKCL session is required.', 'AUTHENTICATION_REQUIRED');
+        }
 
         if (!this.page.url().includes('/login')) {
             await this.page.goto(`${this.baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -127,6 +130,52 @@ class DkclHueF13PortalClient {
         const bodyText = await this.page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
         return /Quan ly tep|Quản lý tệp|Tra cứu thông tin bưu gửi|Tra cuu thong tin buu gui|Dang xuat|Đăng xuất|Logout|tantn\.bdtth/i.test(bodyText);
     }
+
+    async openInteractiveAuthentication({ baseUrl, profileDir }) {
+        this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
+        this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), '../Data DKCL/BrowserProfiles/HUE'));
+        this.acquireProfileLock();
+        const { chromium } = this.playwright || loadPlaywright();
+        this.context = await chromium.launchPersistentContext(this.profileDir, { headless: false, acceptDownloads: true });
+        this.page = this.context.pages()[0] || await this.context.newPage();
+        await this.restoreWindow();
+        await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        if (!await this.isAuthenticated()) {
+            if (!this.page.url().includes('/login')) {
+                await this.page.goto(`${this.baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            }
+            if (!await this.waitForManualAuthentication()) {
+                throw portalError('AUTHENTICATION_REQUIRED: manual DKCL login was not completed.', 'AUTHENTICATION_REQUIRED');
+            }
+        }
+        await this.openF13Report();
+        if (!await this.isF13ReportReady()) {
+            throw portalError('SOURCE_PAGE_REQUIRED: DKCL F1.3 source page is not ready.', 'SOURCE_PAGE_REQUIRED');
+        }
+    }
+
+    async isF13ReportReady() {
+        if (!this.page || this.page.url().includes('/login')) return false;
+        const groupBy = this.page.locator('select[name="TuyChonGR"], select#TuyChonGR').first();
+        return (await groupBy.count()) === 1;
+    }
+
+    async setWindowState(state) {
+        if (!this.page) return false;
+        try {
+            const session = await this.page.context().newCDPSession(this.page);
+            const { windowId } = await session.send('Browser.getWindowForTarget');
+            await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: state } });
+            await session.detach().catch(() => {});
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    async minimizeWindow() { return this.setWindowState('minimized'); }
+
+    async restoreWindow() { return this.setWindowState('normal'); }
 
     async performOneLoginAttempt({ username, password, hrmCode }) {
         if (this.loginAttempts >= 1) {

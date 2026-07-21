@@ -20,6 +20,13 @@ const NATIONAL_DB_COLUMNS = [
     'sl_chua_du_tt', 'sl_loai_tru', 'sl_phat_ktc', 'sl_ptc_kxd'
 ];
 
+const NATIONAL_RANKED_PROVINCE_CODES = Object.freeze([
+    '02', '03', '04', '05', '06', '07', '08', '09', '10', '11',
+    '12', '13', '14', '16', '17', '18', '19', '20', '21', '22',
+    '23', '24', '25', '26', '27', '28', '29', '30', '31', '32',
+    '33', '34', '35', '53'
+]);
+
 const NATIONAL_MAPPING = {
     'Mã tỉnh phát': 'ma_tinh_phat',
     'Tên tỉnh phát': 'ten_tinh_phat',
@@ -86,6 +93,7 @@ function parseF13NationalExcel(buffer) {
     });
 
     const parsedData = [];
+    const excludedRows = [];
 
     for (const row of dataRows) {
         if (!row) continue;
@@ -98,10 +106,18 @@ function parseF13NationalExcel(buffer) {
         maTinh = String(maTinh).trim();
         
         if (maTinh === '2' || maTinh === 'Mã tỉnh phát') {
+            excludedRows.push({
+                ma_tinh_phat: maTinh,
+                exclusion_code: 'WORKBOOK_FORMULA_INDEX_ROW'
+            });
             continue; // Skip Dòng Index
         }
         
-        if (maTinh === '01') {
+        if (maTinh === '01' || maTinh === '15') {
+            excludedRows.push({
+                ma_tinh_phat: maTinh,
+                exclusion_code: maTinh === '01' ? 'ADMINISTRATIVE_SOURCE_ROW' : 'NON_RANKED_CENTER_ROW'
+            });
             continue; // Skip Tổng công ty EMS
         }
 
@@ -122,7 +138,8 @@ function parseF13NationalExcel(buffer) {
     return {
         parsedData,
         totalParsed: parsedData.length,
-        dbColumns: NATIONAL_DB_COLUMNS
+        dbColumns: NATIONAL_DB_COLUMNS,
+        excludedRows
     };
 }
 
@@ -130,5 +147,6 @@ module.exports = {
     extractDateFromFilename,
     parseF13NationalExcel,
     NATIONAL_MAPPING,
-    NATIONAL_DB_COLUMNS
+    NATIONAL_DB_COLUMNS,
+    NATIONAL_RANKED_PROVINCE_CODES
 };
