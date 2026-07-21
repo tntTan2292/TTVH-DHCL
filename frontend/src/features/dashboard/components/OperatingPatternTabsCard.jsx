@@ -143,42 +143,44 @@ function ComboChartPanel({ rows, mode }) {
   const volumeAxisMax = getVolumeAxisMax(rows.map((row) => ({ total_volume: row.totalVolume })));
 
   return (
-    <div className="h-[320px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={rows} margin={{ top: 16, right: 18, bottom: 8, left: 0 }} barCategoryGap="32%">
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-surface-200)" />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
-          <YAxis
-            yAxisId="volume"
-            domain={[0, volumeAxisMax]}
-            tickLine={false}
-            axisLine={false}
-            tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
-            tickFormatter={(value) => Number(value).toLocaleString('vi-VN')}
-            width={78}
-          />
-          <YAxis
-            yAxisId="rate"
-            orientation="right"
-            domain={[0, 100]}
-            tickLine={false}
-            axisLine={false}
-            tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
-            tickFormatter={(value) => `${value}%`}
-            width={70}
-          />
-          <Tooltip content={<ComboTooltip />} />
-          <Bar yAxisId="volume" dataKey="totalVolume" name="Sản lượng" fill="#174ea6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-          <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#16a34a" strokeWidth={3} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} connectNulls={false} isAnimationActive={false} />
-        </ComposedChart>
-      </ResponsiveContainer>
-      <div className="mt-4 flex flex-col gap-2">
+    <div className="w-full">
+      <div className="h-[320px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={rows} margin={{ top: 16, right: 18, bottom: 8, left: 0 }} barCategoryGap="32%">
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-surface-200)" />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
+            <YAxis
+              yAxisId="volume"
+              domain={[0, volumeAxisMax]}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+              tickFormatter={(value) => Number(value).toLocaleString('vi-VN')}
+              width={78}
+            />
+            <YAxis
+              yAxisId="rate"
+              orientation="right"
+              domain={[0, 100]}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+              tickFormatter={(value) => `${value}%`}
+              width={70}
+            />
+            <Tooltip content={<ComboTooltip />} />
+            <Bar yAxisId="volume" dataKey="totalVolume" name="Sản lượng" fill="#174ea6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+            <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#16a34a" strokeWidth={3} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} connectNulls={false} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-4 flex flex-col gap-1.5 pb-2">
         <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-muted)]">
           <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-[#174ea6]" />Cột: sản lượng</span>
           <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#16a34a]" />Đường: tỷ lệ đạt</span>
         </div>
         {mode === 'month' ? (
-          <div className="text-xs text-[var(--color-text-muted)]">
+          <div className="text-[11px] leading-relaxed text-[var(--color-text-muted)]">
             Lũy kế tháng hiện tại dùng ngày dữ liệu mới nhất trong tháng.
           </div>
         ) : null}
