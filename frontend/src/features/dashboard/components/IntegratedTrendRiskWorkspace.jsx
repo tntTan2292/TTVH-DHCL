@@ -162,6 +162,8 @@ function RiskPanel({ risks, loading, error }) {
     return <ErrorState title="Không thể tải ngoại lệ" description={error} className="min-h-[360px]" />;
   }
 
+  const topRisks = (risks || []).slice(0, 3);
+
   return (
     <aside className="flex h-full flex-col rounded-xl border border-[var(--color-surface-200)] bg-[var(--color-surface-50)] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -172,20 +174,19 @@ function RiskPanel({ risks, loading, error }) {
         <Gauge size={18} className="text-[var(--color-primary-600)]" />
       </div>
       <div className="mt-4 space-y-3">
-        {risks.map((risk) => (
+        {topRisks.map((risk) => (
           <div key={risk.id} className="rounded-lg border border-white bg-white p-3 shadow-sm">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-start gap-2">
                 {risk.tone === 'danger' ? <AlertTriangle size={16} className="mt-0.5 text-red-600" /> : risk.tone === 'warning' ? <CircleHelp size={16} className="mt-0.5 text-amber-600" /> : <Info size={16} className="mt-0.5 text-blue-600" />}
                 <div>
-                  <div className="text-sm font-semibold text-[var(--color-text-main)]">{risk.title}</div>
-                  <div className="mt-1 text-xs text-[var(--color-text-muted)]">{risk.unit}</div>
+                  <div className="text-sm font-bold text-[var(--color-text-main)]">{risk.title}</div>
+                  <div className="mt-0.5 text-xs text-[var(--color-text-muted)]">{risk.unit}</div>
                 </div>
               </div>
               <StatusBadge label={risk.severity} tone={risk.tone} />
             </div>
-            <p className="mt-3 text-sm text-[var(--color-text-main)]">{risk.evidence}</p>
-            <p className="mt-2 text-xs text-[var(--color-text-muted)]">{risk.note}</p>
+            <p className="mt-2 text-sm text-[var(--color-text-main)]">{risk.evidence}</p>
           </div>
         ))}
       </div>

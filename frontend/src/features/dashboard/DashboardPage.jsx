@@ -270,6 +270,8 @@ export default function DashboardPage() {
           bcvhLabel={selectedBcvhLabel}
         />
 
+        <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
+
         <IntegratedTrendRiskWorkspace
           data={trendState.data}
           loading={trendState.loading}
@@ -295,8 +297,6 @@ export default function DashboardPage() {
           kpiLoading={kpiState.loading}
           kpiError={kpiState.error}
         />
-
-        <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
       </div>
     </PageContainer>
   );

@@ -1,5 +1,6 @@
-export const UNAVAILABLE_TEXT = 'Ch\u01b0a c\u00f3 d\u1eef li\u1ec7u';
+export const UNAVAILABLE_TEXT = 'Chưa có dữ liệu';
 
+import { CANONICAL_BCVH_CODES } from './dashboardFilterOptions';
 const EN_DASH = String.fromCharCode(0x2013);
 const EM_DASH = String.fromCharCode(0x2014);
 const MIDDLE_DOT = String.fromCharCode(0x00b7);
@@ -189,7 +190,9 @@ export function mapBcvhRankingRow(row = {}, context = {}) {
 
 export function mapBcvhRankingResponse(responseData = {}, context = {}) {
   const rawRows = Array.isArray(responseData?.data) ? responseData.data : [];
+  const canonicalSet = new Set(CANONICAL_BCVH_CODES);
   const rows = rawRows
+    .filter((row) => canonicalSet.has(String(row.ma_bcvh)))
     .map((row) => mapBcvhRankingRow(row, context))
     .sort((a, b) => {
       if (a.rank !== null && b.rank !== null && a.rank !== b.rank) return a.rank - b.rank;

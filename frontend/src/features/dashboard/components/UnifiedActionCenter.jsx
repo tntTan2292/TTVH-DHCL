@@ -239,16 +239,15 @@ function UnifiedActionCenterContent({
 
         {model.items.length > 0 ? (
           <div className="space-y-3">
-            {model.items.map((item) => (
+            {model.items.slice(0, 3).map((item) => (
               <div key={item.id} className="rounded-xl border border-[var(--color-surface-200)] p-3 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="mb-1.5 flex flex-wrap items-center gap-2">
                       <StatusBadge label={item.priority} tone={priorityTone[item.priority] || 'neutral'} />
-                      <StatusBadge label={item.level} tone="neutral" />
-                      <StatusBadge label={item.evidence.source_label} tone="info" />
+                      <StatusBadge label={`Trạng thái: ${item.status}`} tone="info" />
                     </div>
-                    <h4 className="text-sm font-bold text-[var(--color-text-main)]">{item.issue}</h4>
+                    <h4 className="text-sm font-bold text-[var(--color-text-main)]">{item.recommended_action}</h4>
                     <p className="text-xs text-[var(--color-text-muted)]">{item.unit.ten_bcvh}</p>
                   </div>
                   <Link
@@ -257,24 +256,6 @@ function UnifiedActionCenterContent({
                   >
                     {item.follow_up.label}
                   </Link>
-                </div>
-
-                <div className="mt-3 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-lg bg-[var(--color-surface-50)] p-2">
-                    <p className="text-[10px] font-semibold uppercase text-[var(--color-text-muted)]">Bằng chứng</p>
-                    <p className="mt-0.5 text-sm font-medium text-[var(--color-text-main)]">{item.evidence.primary}</p>
-                    <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{item.evidence.impact}</p>
-                  </div>
-                  <div className="rounded-lg bg-[var(--color-surface-50)] p-2">
-                    <p className="text-[10px] font-semibold uppercase text-[var(--color-text-muted)]">Hành động đề xuất</p>
-                    <p className="mt-0.5 text-sm font-medium text-[var(--color-text-main)]">{item.recommended_action}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 rounded-lg bg-[var(--color-surface-50)] p-2 text-xs">
-                    <div><span className="text-[var(--color-text-muted)]">Nguyên nhân: </span><span className="font-medium">{item.confirmed_cause}</span></div>
-                    <div><span className="text-[var(--color-text-muted)]">Phụ trách: </span><span className="font-medium">{item.owner}</span></div>
-                    <div><span className="text-[var(--color-text-muted)]">Trạng thái: </span><span className="font-medium">{item.status}</span></div>
-                    <div><span className="text-[var(--color-text-muted)]">Độ tin cậy: </span><span className="font-medium">{item.confidence}</span></div>
-                  </div>
                 </div>
               </div>
             ))}
