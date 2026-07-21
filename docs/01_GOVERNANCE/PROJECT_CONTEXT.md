@@ -260,6 +260,7 @@ Current PO gate rule:
 - primary executor for `DA-IMPL-007` is `Antigravity`
 - Antigravity must directly execute final visual assembly for `DA-IMPL-007`, must not reopen `DA-IMPL-006`, and must not generate a Codex prompt as its end state
 - Codex may be called back only for logic, contract, backend, or technical regression blockers confirmed by ChatGPT coordination
+- Pre-DA-IMPL-007 regression remediation is `COMPLETED / PO PASS` on `2026-07-21`. Preserve the contracts in `docs/06_REVIEWS/Import/PRE_DA_IMPL_007_REGRESSION_PO_PASS.md`; missing data or contracts are blockers, not grounds to restore legacy source.
 
 ## 10. Continuation Rule
 

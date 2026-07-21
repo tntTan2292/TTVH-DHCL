@@ -105,6 +105,13 @@
 | PO UI Check Required | `Yes for DA-IMPL-007` |
 | PO Product Status | `DA-IMPL-007 NOT READY` |
 
+## Pre-DA-IMPL-007 Regression Closure
+
+- Focused Import Center and Dashboard regression remediation: `COMPLETED / PO PASS` on `2026-07-21`.
+- Accepted commits: `f32afc3`, `43dc587`, `5d44b69`, and `de8bcbd27470e521d4c52be1d16b2be01fb73dc8`.
+- Closure evidence and protected contract boundary: `docs/06_REVIEWS/Import/PRE_DA_IMPL_007_REGRESSION_PO_PASS.md`.
+- `DA-IMPL-007` remains handoff-only and not implemented.
+
 ## DA-IMPL-004 Unified BCVH Analysis Table Status
 
 - Ticket status: `COMPLETED / PO PASS`.

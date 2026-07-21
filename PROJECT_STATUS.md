@@ -91,6 +91,7 @@ Quy tắc cập nhật:
 - AUTO-IMPORT-005: `COMPLETED / PO PASS`
 - DA-IMPL-006: `COMPLETED / PO PASS`
 - DA-IMPL-007: `ACTIVE / HANDOFF - NOT IMPLEMENTED`; primary executor `Antigravity`
+- Pre-DA-IMPL-007 focused Import Center/Dashboard regression remediation: `COMPLETED / PO PASS` on `2026-07-21`; accepted commits are `f32afc3`, `43dc587`, `5d44b69`, and `de8bcbd27470e521d4c52be1d16b2be01fb73dc8`.
 - TICKET-0102: `DEFERRED / INACTIVE`
 - PO findings from TODAY-001: `CLOSED`
 - PO UI Check Required: `Yes for DA-IMPL-007`

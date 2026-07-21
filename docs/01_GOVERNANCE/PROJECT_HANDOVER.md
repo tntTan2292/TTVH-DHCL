@@ -240,4 +240,6 @@ Context preservation across centers is mandatory.
 
 Do not introduce new business rules unless the Product Owner approves them.
 
+Pre-DA-IMPL-007 focused regression remediation is `COMPLETED / PO PASS` as of `2026-07-21`. Antigravity must preserve the accepted Import Center and Dashboard contracts in `docs/06_REVIEWS/Import/PRE_DA_IMPL_007_REGRESSION_PO_PASS.md` and report technical blockers without restoring legacy adapters.
+
 For a fresh session, start by reading this file, then [PROJECT_STATUS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_STATUS.md), then [PROJECT_PROGRESS.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/PROJECT_PROGRESS.md).
