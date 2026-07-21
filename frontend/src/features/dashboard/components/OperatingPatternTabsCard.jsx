@@ -207,28 +207,28 @@ function HeatmapManagementSummary({ stats }) {
   if (!stats) return null;
 
   return (
-    <div className="mb-4 grid gap-3 md:grid-cols-5">
-      <div className="rounded-lg border border-[var(--color-surface-200)] bg-white p-3">
-        <div className="text-[11px] font-semibold uppercase text-[var(--color-text-muted)]">KPI trung bình tháng</div>
-        <div className="mt-1 text-lg font-bold text-[var(--color-text-main)]">{stats.average.toFixed(2)}%</div>
+    <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="rounded-lg border border-[var(--color-surface-200)] bg-white p-2">
+        <div className="text-[10px] font-semibold uppercase text-[var(--color-text-muted)]">TB tháng</div>
+        <div className="mt-0.5 text-sm font-bold text-[var(--color-text-main)]">{stats.average.toFixed(2)}%</div>
       </div>
-      <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-green-800">
-        <div className="text-[11px] font-semibold uppercase">Ngày tốt nhất</div>
-        <div className="mt-1 text-sm font-bold">{stats.best.date}</div>
-        <div className="text-xs">{stats.best.rate.toFixed(2)}%</div>
+      <div className="rounded-lg border border-green-100 bg-green-50 p-2 text-green-800">
+        <div className="text-[10px] font-semibold uppercase">Tốt nhất</div>
+        <div className="mt-0.5 text-xs font-bold">{stats.best.date}</div>
+        <div className="text-[10px]">{stats.best.rate.toFixed(2)}%</div>
       </div>
-      <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-red-800">
-        <div className="text-[11px] font-semibold uppercase">Ngày thấp nhất</div>
-        <div className="mt-1 text-sm font-bold">{stats.worst.date}</div>
-        <div className="text-xs">{stats.worst.rate.toFixed(2)}%</div>
+      <div className="rounded-lg border border-red-100 bg-red-50 p-2 text-red-800">
+        <div className="text-[10px] font-semibold uppercase">Thấp nhất</div>
+        <div className="mt-0.5 text-xs font-bold">{stats.worst.date}</div>
+        <div className="text-[10px]">{stats.worst.rate.toFixed(2)}%</div>
       </div>
-      <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-emerald-800">
-        <div className="text-[11px] font-semibold uppercase">Cao hơn trung bình</div>
-        <div className="mt-1 text-lg font-bold">{stats.aboveAverageCount}</div>
+      <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-2 text-emerald-800">
+        <div className="text-[10px] font-semibold uppercase">&gt; TB</div>
+        <div className="mt-0.5 text-sm font-bold">{stats.aboveAverageCount}</div>
       </div>
-      <div className="rounded-lg border border-yellow-100 bg-yellow-50 p-3 text-yellow-800">
-        <div className="text-[11px] font-semibold uppercase">Thấp hơn trung bình</div>
-        <div className="mt-1 text-lg font-bold">{stats.belowAverageCount}</div>
+      <div className="rounded-lg border border-yellow-100 bg-yellow-50 p-2 text-yellow-800">
+        <div className="text-[10px] font-semibold uppercase">&lt; TB</div>
+        <div className="mt-0.5 text-sm font-bold">{stats.belowAverageCount}</div>
       </div>
     </div>
   );
@@ -236,8 +236,8 @@ function HeatmapManagementSummary({ stats }) {
 
 function HeatmapMonthSection({ month }) {
   return (
-    <section className="rounded-xl border border-[var(--color-surface-200)] bg-white p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <section className="rounded-xl border border-[var(--color-surface-200)] bg-white p-3 shadow-sm">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h4 className="text-sm font-bold text-[var(--color-text-main)]">{month.label}</h4>
           <p className="text-xs text-[var(--color-text-muted)]">{month.rangeLabel}</p>
@@ -245,18 +245,19 @@ function HeatmapMonthSection({ month }) {
         {month.stats ? <StatusBadge label={`TB ${month.stats.average.toFixed(2)}%`} tone="neutral" /> : null}
       </div>
       <HeatmapManagementSummary stats={month.stats} />
-      <div className="grid grid-cols-7 gap-2">
-        {month.days.map((day) => (
-          <div key={day.id} className={`flex h-16 flex-col justify-center rounded-lg border px-2 text-center ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}>
-            <span className="text-xs font-bold">{day.dayLabel}</span>
-            <span className="mt-1 text-[11px] font-semibold">{day.valueLabel}</span>
-            {day.deltaFromMonthAverage !== null ? (
-              <span className="text-[10px] opacity-75">
-                {day.deltaFromMonthAverage > 0 ? '+' : ''}{day.deltaFromMonthAverage.toFixed(2)} so với TB
-              </span>
-            ) : null}
-          </div>
-        ))}
+      <div className="overflow-x-auto pb-1">
+        <div className="grid min-w-[320px] grid-cols-7 gap-1.5">
+          {month.days.map((day) => (
+            <div
+              key={day.id}
+              className={`flex h-12 flex-col justify-center rounded-lg border px-1 text-center ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
+              title={day.deltaFromMonthAverage !== null ? `${day.deltaFromMonthAverage > 0 ? '+' : ''}${day.deltaFromMonthAverage.toFixed(2)} so với TB` : ''}
+            >
+              <span className="text-[10px] font-bold">{day.dayLabel}</span>
+              <span className="text-[10px] font-semibold">{day.valueLabel}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -264,7 +265,7 @@ function HeatmapMonthSection({ month }) {
 
 function HeatmapPanel({ months }) {
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 xl:grid-cols-2">
       {months.map((month) => (
         <HeatmapMonthSection key={month.month} month={month} />
       ))}

@@ -43,11 +43,11 @@ function IntegratedTooltip({ active, payload, label }) {
   const point = payload.find((item) => item?.payload)?.payload || {};
 
   return (
-    <div className="rounded-xl border border-[var(--color-surface-200)] bg-white px-4 py-3 shadow-xl">
-      <div className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">
+    <div className="z-50 rounded-xl border border-[var(--color-surface-200)] bg-white px-3 py-2 shadow-xl">
+      <div className="text-[11px] font-semibold uppercase text-[var(--color-text-muted)]">
         {point.current_date ? `${point.dayLabel} - ${point.current_date}` : label}
       </div>
-      <div className="mt-2 space-y-1 text-sm">
+      <div className="mt-1.5 space-y-1 text-xs">
         <div className="flex items-center justify-between gap-4">
           <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.volume}</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatNumber(point.total_volume)}</span>

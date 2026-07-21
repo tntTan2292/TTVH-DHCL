@@ -206,7 +206,7 @@ function RowCells({ row, onOpenDetail, visibleColumns }) {
 
   const renderers = {
     bcvh: (
-      <td className={`${bcvhWidth} px-2 py-1.5 align-middle`}>
+      <td className={`${bcvhWidth} px-2 py-1 align-middle`}>
         <div className="flex items-center gap-2">
           <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--color-surface-100)] px-1.5 text-[10px] font-bold text-[var(--color-text-main)]">
             {row.rank ?? '-'}
@@ -220,24 +220,24 @@ function RowCells({ row, onOpenDetail, visibleColumns }) {
         </div>
       </td>
     ),
-    dayVolume: <td className="border-l-2 border-[var(--color-surface-300)] bg-[var(--color-surface-50)]/70 px-1.5 py-1.5 text-right font-mono text-xs">{formatNumber(row.total_volume)}</td>,
-    dayPass: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1.5 text-right font-mono text-xs text-green-700">{formatNumber(row.pass_count)}</td>,
-    dayRate: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1.5 text-center text-xs font-bold text-[var(--color-text-main)]">{formatRate(row.current_kpi)}</td>,
-    d1: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1.5 text-center text-xs"><DayDeltaCell value={row.prior_periods.d1.delta} /></td>,
-    d7: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1.5 text-center text-xs"><DayDeltaCell value={row.prior_periods.d7.delta} /></td>,
+    dayVolume: <td className="border-l-2 border-[var(--color-surface-300)] bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-right font-mono text-xs">{formatNumber(row.total_volume)}</td>,
+    dayPass: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-right font-mono text-xs text-green-700">{formatNumber(row.pass_count)}</td>,
+    dayRate: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-center text-xs font-bold text-[var(--color-text-main)]">{formatRate(row.current_kpi)}</td>,
+    d1: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-center text-xs"><DayDeltaCell value={row.prior_periods.d1.delta} /></td>,
+    d7: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-center text-xs"><DayDeltaCell value={row.prior_periods.d7.delta} /></td>,
     supplemental: (
-      <td className="max-w-[120px] bg-[var(--color-surface-50)]/70 px-1.5 py-1.5 text-xs text-[var(--color-text-muted)]">
+      <td className="max-w-[120px] bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-xs text-[var(--color-text-muted)]">
         <span title={`${TEXT.returned}: ${formatNumber(row.returned_count)} ${MIDDLE_DOT} ${TEXT.warning}: ${row.warning.label || UNAVAILABLE_TEXT}`} className="block truncate">
           {TEXT.returned}: {formatNumber(row.returned_count)}
         </span>
       </td>
     ),
-    mtdVolume: <td className="border-l-2 border-[var(--color-primary-200)] bg-[var(--color-primary-50)]/40 px-1.5 py-1.5 text-right font-mono text-xs">{formatNumber(row.month_to_date.total_volume)}</td>,
-    mtdVolumeDelta: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1.5 text-center text-xs"><DeltaBadge value={row.month_to_date.volume_delta_percent} type="volume" /></td>,
-    mtdRate: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1.5 text-center text-xs font-bold text-[var(--color-text-main)]">{formatRate(row.month_to_date.pass_rate)}</td>,
-    mtdRateDelta: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1.5 text-center text-xs"><DeltaBadge value={row.month_to_date.pass_rate_delta_points} type="rate" /></td>,
+    mtdVolume: <td className="border-l-2 border-[var(--color-primary-200)] bg-[var(--color-primary-50)]/40 px-1.5 py-1 text-right font-mono text-xs">{formatNumber(row.month_to_date.total_volume)}</td>,
+    mtdVolumeDelta: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1 text-center text-xs"><DeltaBadge value={row.month_to_date.volume_delta_percent} type="volume" /></td>,
+    mtdRate: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1 text-center text-xs font-bold text-[var(--color-text-main)]">{formatRate(row.month_to_date.pass_rate)}</td>,
+    mtdRateDelta: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1 text-center text-xs"><DeltaBadge value={row.month_to_date.pass_rate_delta_points} type="rate" /></td>,
     action: (
-      <td className="px-1.5 py-1.5 text-right">
+      <td className="px-1.5 py-1 text-right">
         {canOpenDetail ? (
           <button
             type="button"
@@ -275,14 +275,14 @@ function HeaderRows({ visibleColumns, monthToDateGroupLabel, evaluationDateLabel
   return (
     <thead className="bg-white text-[11px] uppercase text-[var(--color-text-muted)]">
       <tr className="border-b border-[var(--color-surface-200)]">
-        {has('bcvh') ? <th rowSpan={2} className={`${bcvhWidth} px-2 py-2 text-left font-semibold`}>{TEXT.bcvhContext}</th> : null}
+        {has('bcvh') ? <th rowSpan={2} className={`${bcvhWidth} px-2 py-1.5 text-left font-semibold`}>{TEXT.bcvhContext}</th> : null}
         {dayCount ? (
-          <th colSpan={dayCount} className="border-l-2 border-[var(--color-surface-300)] bg-[var(--color-surface-100)] px-2 py-2 text-center font-bold text-[var(--color-text-main)]">
+          <th colSpan={dayCount} className="border-l-2 border-[var(--color-surface-300)] bg-[var(--color-surface-100)] px-2 py-1.5 text-center font-bold text-[var(--color-text-main)]">
             {evaluationDateLabel}
           </th>
         ) : null}
         {mtdCount ? (
-          <th colSpan={mtdCount} className="border-l-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] px-2 py-2 text-center font-semibold text-[var(--color-primary-800)]">
+          <th colSpan={mtdCount} className="border-l-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] px-2 py-1.5 text-center font-semibold text-[var(--color-primary-800)]">
             {monthToDateGroupLabel}
           </th>
         ) : null}
@@ -295,7 +295,7 @@ function HeaderRows({ visibleColumns, monthToDateGroupLabel, evaluationDateLabel
           const bg = column.group === 'mtd' ? 'bg-[var(--color-primary-50)]' : column.group === 'day' ? 'bg-[var(--color-surface-100)]' : 'bg-white';
           const border = key === 'dayVolume' ? 'border-l-2 border-[var(--color-surface-300)]' : key === 'mtdVolume' ? 'border-l-2 border-[var(--color-primary-300)]' : '';
           return (
-            <th key={key} title={column.tooltip || ''} className={`${border} ${bg} px-1.5 py-2 ${align} font-semibold`}>
+            <th key={key} title={column.tooltip || ''} className={`${border} ${bg} px-1 py-1.5 ${align} font-semibold`}>
               {column.label}
             </th>
           );
@@ -365,7 +365,7 @@ export default function UnifiedBcvhAnalysisTable({ fromDate, toDate, interval = 
   };
 
   if (state.status === 'loading') {
-    return <LoadingState label={TEXT.loading} className="min-h-[260px]" />;
+    return <LoadingState label={TEXT.loading} className="py-12" />;
   }
 
   if (state.status === 'error') {
@@ -414,7 +414,7 @@ export default function UnifiedBcvhAnalysisTable({ fromDate, toDate, interval = 
           <ColumnOptions visibleColumns={visibleColumns} setVisibleColumns={setVisibleColumns} />
         </div>
       </div>
-      <div className={visibleColumns.length <= PRESETS.compact.length ? 'overflow-x-hidden' : 'overflow-x-auto'}>
+      <div className="overflow-x-auto">
         <table className="min-w-full table-auto text-xs">
           <HeaderRows
             visibleColumns={visibleColumns}
