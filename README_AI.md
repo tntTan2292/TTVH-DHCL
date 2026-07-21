@@ -23,8 +23,8 @@ It is also the single universal external entry point for fresh AI continuity, re
 
 Every AI must:
 
-1. Read [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
-2. Read [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+1. Read [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/README_AI.md)
+2. Read [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
 3. Read the Current Manifest referenced by `PROJECT_SNAPSHOT.md`
 4. Read only the Required Reading listed in that manifest
 5. Use only the GitHub Blob URLs embedded in the onboarding chain; do not depend on relative paths for AI onboarding.
@@ -99,7 +99,7 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+[docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
 
 ↓
 

@@ -22,7 +22,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Next Ticket | `TBD after DA-IMPL-007` |
 | PO Status | `DA-IMPL-007 NOT READY` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-20` |
 
