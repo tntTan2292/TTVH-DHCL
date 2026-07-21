@@ -45,6 +45,20 @@ class F13DashboardService {
         return date.toISOString().split('T')[0];
     }
 
+    _getMonthStart(dateStr) {
+        return `${dateStr.slice(0, 7)}-01`;
+    }
+
+    _getPreviousMonthComparablePeriod(dateStr) {
+        const date = new Date(`${dateStr}T00:00:00.000Z`);
+        const previousMonth = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1));
+        const previousMonthLastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 0)).getUTCDate();
+        const comparableDay = Math.min(date.getUTCDate(), previousMonthLastDay);
+        const start = previousMonth.toISOString().slice(0, 10);
+        const end = new Date(Date.UTC(previousMonth.getUTCFullYear(), previousMonth.getUTCMonth(), comparableDay)).toISOString().slice(0, 10);
+        return { start, end };
+    }
+
     _indexByBcvh(rows) {
         return rows.reduce((acc, row) => {
             acc[row.ma_bcvh] = row;
@@ -209,20 +223,32 @@ class F13DashboardService {
 
     async getBcvhRanking(date, page, pageSize, sort, order) {
         try {
-            const result = await factBuuGuiRepo.getBcvhRanking(date, page, pageSize, sort, order);
-            const yesterdayStr = this._shiftDate(date, -1);
-            const swcStr = this._shiftDate(date, -7);
-            const currentFacts = await factBuuGuiRepo.getFactByDate(date);
+            const monthStart = this._getMonthStart(date);
+            const monthToDateCutoff = await factBuuGuiRepo.getLatestBcvhDataDateInRange(monthStart, date);
+            const effectiveDate = monthToDateCutoff || date;
+            const previousMonthPeriod = this._getPreviousMonthComparablePeriod(effectiveDate);
+            const result = await factBuuGuiRepo.getBcvhRanking(effectiveDate, page, pageSize, sort, order);
+            const yesterdayStr = this._shiftDate(effectiveDate, -1);
+            const swcStr = this._shiftDate(effectiveDate, -7);
+            const currentFacts = await factBuuGuiRepo.getFactByDate(effectiveDate);
 
-            const [currentMetrics, yesterdayMetrics, swcMetrics] = await Promise.all([
-                factBuuGuiRepo.getBcvhOperationMetricsByDate(date),
+            const [currentMetrics, yesterdayMetrics, swcMetrics, monthToDateMetrics, previousMonthToDateMetrics] = await Promise.all([
+                factBuuGuiRepo.getBcvhOperationMetricsByDate(effectiveDate),
                 factBuuGuiRepo.getBcvhOperationMetricsByDate(yesterdayStr),
-                factBuuGuiRepo.getBcvhOperationMetricsByDate(swcStr)
+                factBuuGuiRepo.getBcvhOperationMetricsByDate(swcStr),
+                monthToDateCutoff
+                    ? factBuuGuiRepo.getBcvhOperationMetricsBetween(monthStart, monthToDateCutoff)
+                    : Promise.resolve([]),
+                monthToDateCutoff
+                    ? factBuuGuiRepo.getBcvhOperationMetricsBetween(previousMonthPeriod.start, previousMonthPeriod.end)
+                    : Promise.resolve([])
             ]);
 
             const currentMap = this._indexByBcvh(currentMetrics);
             const yesterdayMap = this._indexByBcvh(yesterdayMetrics);
             const swcMap = this._indexByBcvh(swcMetrics);
+            const monthToDateMap = this._indexByBcvh(monthToDateMetrics);
+            const previousMonthToDateMap = this._indexByBcvh(previousMonthToDateMetrics);
             const f13302RateMap = this._buildF13302RateMap(currentFacts);
             
             const mappedData = result.data.map(item => ({
@@ -260,6 +286,17 @@ class F13DashboardService {
                         swcMap[item.ma_bcvh]?.sl_bg_ptc ?? 0
                     )
                 ).toFixed(2)),
+                month_to_date_sl_bg_ptc: monthToDateMap[item.ma_bcvh]?.sl_bg_ptc ?? null,
+                month_to_date_dat_kpi_2026: monthToDateMap[item.ma_bcvh]?.dat_kpi_2026 ?? null,
+                month_to_date_khong_dat_kpi_2026: monthToDateMap[item.ma_bcvh]?.khong_dat_kpi_2026 ?? null,
+                month_to_date_kpi_2026: monthToDateMap[item.ma_bcvh]
+                    ? this._calculateRate(monthToDateMap[item.ma_bcvh].dat_kpi_2026, monthToDateMap[item.ma_bcvh].sl_bg_ptc)
+                    : null,
+                previous_month_to_date_sl_bg_ptc: previousMonthToDateMap[item.ma_bcvh]?.sl_bg_ptc ?? null,
+                previous_month_to_date_dat_kpi_2026: previousMonthToDateMap[item.ma_bcvh]?.dat_kpi_2026 ?? null,
+                previous_month_to_date_kpi_2026: previousMonthToDateMap[item.ma_bcvh]
+                    ? this._calculateRate(previousMonthToDateMap[item.ma_bcvh].dat_kpi_2026, previousMonthToDateMap[item.ma_bcvh].sl_bg_ptc)
+                    : null,
                 f13_303_rate: f13302RateMap[item.ma_bcvh] ?? 0,
                 rank: item.rank
             }));
@@ -269,16 +306,62 @@ class F13DashboardService {
                 acc.sl_ptc_nop_tien += item.sl_ptc_nop_tien || 0;
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
                 acc.khong_dat_kpi_2026 += item.khong_dat_kpi_2026 || 0;
+                acc.month_to_date_sl_bg_ptc += item.month_to_date_sl_bg_ptc || 0;
+                acc.month_to_date_dat_kpi_2026 += item.month_to_date_dat_kpi_2026 || 0;
+                acc.month_to_date_khong_dat_kpi_2026 += item.month_to_date_khong_dat_kpi_2026 || 0;
+                acc.previous_month_to_date_sl_bg_ptc += item.previous_month_to_date_sl_bg_ptc || 0;
+                acc.previous_month_to_date_dat_kpi_2026 += item.previous_month_to_date_dat_kpi_2026 || 0;
                 return acc;
             }, {
                 ten_bcvh: 'TỔNG CỘNG',
                 sl_bg_ptc: 0,
                 sl_ptc_nop_tien: 0,
                 dat_kpi_2026: 0,
-                khong_dat_kpi_2026: 0
+                khong_dat_kpi_2026: 0,
+                month_to_date_sl_bg_ptc: 0,
+                month_to_date_dat_kpi_2026: 0,
+                month_to_date_khong_dat_kpi_2026: 0,
+                previous_month_to_date_sl_bg_ptc: 0,
+                previous_month_to_date_dat_kpi_2026: 0
             });
 
-            totalRow.kpi_2026 = this._calculateRate(totalRow.dat_kpi_2026, totalRow.sl_bg_ptc);
+            const totalMonthToDate = monthToDateMetrics.reduce((acc, item) => {
+                acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                acc.khong_dat_kpi_2026 += item.khong_dat_kpi_2026 || 0;
+                return acc;
+            }, { sl_bg_ptc: 0, dat_kpi_2026: 0, khong_dat_kpi_2026: 0 });
+
+            const totalCurrent = currentMetrics.reduce((acc, item) => {
+                acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                acc.sl_ptc_nop_tien += item.sl_ptc_nop_tien || 0;
+                acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                acc.khong_dat_kpi_2026 += item.khong_dat_kpi_2026 || 0;
+                return acc;
+            }, { sl_bg_ptc: 0, sl_ptc_nop_tien: 0, dat_kpi_2026: 0, khong_dat_kpi_2026: 0 });
+
+            const totalPreviousMonthToDate = previousMonthToDateMetrics.reduce((acc, item) => {
+                acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                return acc;
+            }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
+
+            totalRow.sl_bg_ptc = totalCurrent.sl_bg_ptc;
+            totalRow.sl_ptc_nop_tien = totalCurrent.sl_ptc_nop_tien;
+            totalRow.dat_kpi_2026 = totalCurrent.dat_kpi_2026;
+            totalRow.khong_dat_kpi_2026 = totalCurrent.khong_dat_kpi_2026;
+            totalRow.kpi_2026 = this._calculateRate(totalCurrent.dat_kpi_2026, totalCurrent.sl_bg_ptc);
+            totalRow.month_to_date_sl_bg_ptc = monthToDateCutoff ? totalMonthToDate.sl_bg_ptc : null;
+            totalRow.month_to_date_dat_kpi_2026 = monthToDateCutoff ? totalMonthToDate.dat_kpi_2026 : null;
+            totalRow.month_to_date_khong_dat_kpi_2026 = monthToDateCutoff ? totalMonthToDate.khong_dat_kpi_2026 : null;
+            totalRow.month_to_date_kpi_2026 = monthToDateCutoff
+                ? this._calculateRate(totalMonthToDate.dat_kpi_2026, totalMonthToDate.sl_bg_ptc)
+                : null;
+            totalRow.previous_month_to_date_sl_bg_ptc = monthToDateCutoff ? totalPreviousMonthToDate.sl_bg_ptc : null;
+            totalRow.previous_month_to_date_dat_kpi_2026 = monthToDateCutoff ? totalPreviousMonthToDate.dat_kpi_2026 : null;
+            totalRow.previous_month_to_date_kpi_2026 = monthToDateCutoff
+                ? this._calculateRate(totalPreviousMonthToDate.dat_kpi_2026, totalPreviousMonthToDate.sl_bg_ptc)
+                : null;
 
             const totalYesterday = yesterdayMetrics.reduce((acc, item) => {
                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
@@ -303,6 +386,25 @@ class F13DashboardService {
                 data: mappedData,
                 meta: {
                     total_row: totalRow,
+                    month_to_date: {
+                        from_date: monthStart,
+                        to_date: monthToDateCutoff,
+                        requested_to_date: date,
+                        current_data_date: effectiveDate,
+                        used_latest_available: Boolean(monthToDateCutoff && monthToDateCutoff !== date),
+                        available: Boolean(monthToDateCutoff)
+                    },
+                    previous_month_to_date: {
+                        from_date: monthToDateCutoff ? previousMonthPeriod.start : null,
+                        to_date: monthToDateCutoff ? previousMonthPeriod.end : null,
+                        available: Boolean(monthToDateCutoff && previousMonthToDateMetrics.length)
+                    },
+                    evaluation_date: {
+                        date: effectiveDate,
+                        requested_to_date: date,
+                        used_latest_available: Boolean(monthToDateCutoff && monthToDateCutoff !== date),
+                        available: Boolean(monthToDateCutoff)
+                    },
                     pagination: {
                         page,
                         page_size: pageSize,
