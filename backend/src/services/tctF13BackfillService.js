@@ -48,8 +48,22 @@ const QUEUE_TERMINAL_STATUSES = new Set([
     'SUCCESS',
     'FAILED',
     'AUTHENTICATION_REQUIRED',
+    'BLOCKED',
     'STOPPED',
     'SKIPPED'
+]);
+
+const SYSTEMIC_PORTAL_ERROR_CODES = new Set([
+    'REPORT_PAGE_REQUIRED',
+    'TCT_SCOPE_NOT_READY',
+    'DATE_FILTER_NOT_APPLIED',
+    'RESULT_TABLE_NOT_READY',
+    'EXPORT_CONTROL_NOT_READY',
+    'EXPORT_BUTTON_NOT_FOUND',
+    'EXPORT_READINESS_TIMEOUT',
+    'PORTAL_LAYOUT_INCOMPATIBLE',
+    'REPORT_SUBMIT_NOT_FOUND',
+    'RANKED_POPULATION_MISMATCH'
 ]);
 
 function createRunId(clock = () => new Date()) {
@@ -386,7 +400,8 @@ class TctF13BackfillService {
             error.code = 'QUEUE_ITEM_NOT_FOUND';
             throw error;
         }
-        if (!['FAILED', 'AUTHENTICATION_REQUIRED'].includes(item.status)) {
+        const retryableBlockedItem = queue.status === 'BLOCKED' && item.status === 'QUEUED';
+        if (!['FAILED', 'AUTHENTICATION_REQUIRED'].includes(item.status) && !retryableBlockedItem) {
             const error = new Error(`Date ${normalizedDate} cannot be retried from status ${item.status}.`);
             error.code = 'QUEUE_ITEM_NOT_RETRYABLE';
             throw error;
@@ -493,9 +508,14 @@ class TctF13BackfillService {
                 continue;
             }
             if (item.status !== 'QUEUED') continue;
-            await this.processQueueItem(queue, item);
+            const result = await this.processQueueItem(queue, item);
+            if (result.systemicFailure) {
+                queue.status = 'BLOCKED';
+                queue.endedAt = this.clock().toISOString();
+                break;
+            }
         }
-        this.finishQueueIfTerminal(queue);
+        if (queue.status !== 'BLOCKED') this.finishQueueIfTerminal(queue);
     }
 
     async processQueueItem(queue, item) {
@@ -515,6 +535,7 @@ class TctF13BackfillService {
         let finalStatus = 'SUCCESS';
         let errorCode = null;
         let errorMessage = null;
+        let systemicFailure = false;
         try {
             runEvidence = await this.runOneDateImport(item.measurementDate, queue.queueId, { refreshRequested: item.refreshRequested });
         } catch (error) {
@@ -522,6 +543,7 @@ class TctF13BackfillService {
             errorCode = error?.code || 'TCT_IMPORT_FAILED';
             errorMessage = error?.message || 'TCT F1.3 import failed.';
             runEvidence = error?.evidence || null;
+            systemicFailure = SYSTEMIC_PORTAL_ERROR_CODES.has(errorCode);
         }
 
         const endTime = this.clock().toISOString();
@@ -536,6 +558,7 @@ class TctF13BackfillService {
                 errorMessage
             })
         });
+        return { systemicFailure };
     }
 
     async runOneDateImport(measurementDate, queueId, { refreshRequested = false } = {}) {
@@ -575,8 +598,27 @@ class TctF13BackfillService {
                 fromDate: measurementDate,
                 toDate: measurementDate
             });
+            const readiness = await client.waitForF13ExportReadiness({
+                groupBy: 'TINH',
+                provinceCode: 'ALL',
+                fromDate: measurementDate,
+                toDate: measurementDate
+            });
+            if (!readiness?.ready || readiness.status !== 'READY_TO_EXPORT') {
+                await client.restoreWindow?.().catch(() => {});
+                const error = new Error(readiness?.message || 'TCT F1.3 export is not ready.');
+                error.code = readiness?.code || 'EXPORT_CONTROL_NOT_READY';
+                error.readiness = readiness || null;
+                throw error;
+            }
+            await client.minimizeWindow?.().catch(() => {});
             const exportRequestedAt = this.clock();
-            await this.requestSummaryExport(client);
+            try {
+                await this.requestSummaryExport(client);
+            } catch (error) {
+                await client.restoreWindow?.().catch(() => {});
+                throw error;
+            }
             const generatedFile = await client.pollGeneratedFile({
                 requestedAt: exportRequestedAt,
                 timeoutMs: Number(process.env.DKCL_TCT_GENERATION_TIMEOUT_MS || 900000),
@@ -762,7 +804,7 @@ class TctF13BackfillService {
     }
 
     isQueueTerminal(queue) {
-        return ['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(queue?.status);
+        return ['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'BLOCKED', 'STOPPED'].includes(queue?.status);
     }
 
     publicQueue(queue) {
@@ -787,6 +829,7 @@ class TctF13BackfillService {
                 queued: queue.items.filter((item) => item.status === 'QUEUED').length,
                 failed: queue.items.filter((item) => item.status === 'FAILED').length,
                 authenticatedRequired: queue.items.filter((item) => item.status === 'AUTHENTICATION_REQUIRED').length,
+                blocked: queue.status === 'BLOCKED' ? 1 : 0,
                 stopped: queue.items.filter((item) => item.status === 'STOPPED').length,
                 success: queue.items.filter((item) => item.status === 'SUCCESS').length
             },

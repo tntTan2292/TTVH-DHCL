@@ -65,7 +65,12 @@ class DkclSessionPreflightService {
         const sourceConfig = this.normalizeSource(source);
         const interactiveClient = this.interactiveClients.get(sourceConfig.source);
         if (interactiveClient) {
-            const ready = await interactiveClient.isF13ReportReady().catch(() => false);
+            let ready = await interactiveClient.isF13ReportReady().catch(() => false);
+            if (!ready && interactiveClient.isAuthenticated && await interactiveClient.isAuthenticated().catch(() => false)) {
+                await interactiveClient.restoreWindow?.().catch(() => {});
+                await interactiveClient.openF13Report?.().catch(() => {});
+                ready = await interactiveClient.isF13ReportReady().catch(() => false);
+            }
             if (ready) {
                 return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true };
             }
@@ -143,13 +148,13 @@ class DkclSessionPreflightService {
                 profileDir
             });
             this.interactiveClients.set(sourceConfig.source, client);
-            await client.minimizeWindow?.().catch(() => {});
             return {
                 source: sourceConfig.source,
                 status: PREFLIGHT_STATUSES.SESSION_VALID,
                 interactive: true,
                 source_page_ready: true,
-                browser_minimized: true
+                browser_minimized: false,
+                export_readiness: 'NOT_CHECKED'
             };
         } catch (error) {
             return {

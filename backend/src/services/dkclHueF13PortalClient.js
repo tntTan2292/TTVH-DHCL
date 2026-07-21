@@ -269,6 +269,80 @@ class DkclHueF13PortalClient {
         await this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
     }
 
+    async getF13ExportReadiness({ groupBy, provinceCode, fromDate, toDate } = {}) {
+        if (!await this.isF13ReportReady()) {
+            return { ready: false, status: 'NOT_READY', code: 'REPORT_PAGE_REQUIRED', message: 'TCT F1.3 report page is not ready.' };
+        }
+
+        const expected = {
+            groupBy: groupBy || null,
+            provinceCode: provinceCode || null,
+            visibleFromDate: fromDate ? formatPortalDate(fromDate) : null,
+            visibleToDate: toDate ? formatPortalDate(toDate) : null
+        };
+        const readiness = await this.page.evaluate((expectation) => {
+            const visible = (element) => {
+                const rect = element.getBoundingClientRect();
+                const style = window.getComputedStyle(element);
+                return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+            };
+            const selectValue = (name) => document.querySelector(`select[name="${name}"]`)?.value || null;
+            const dateValues = Array.from(document.querySelectorAll('input[type="text"], input[type="date"]'))
+                .filter(visible)
+                .map((input) => input.value);
+            const exportButtons = Array.from(document.querySelectorAll(
+                'form[action$="/export/sp_TT_Phat_LienTinh_Tinh/all"] button[type="submit"]'
+            )).filter(visible);
+            const exportButton = exportButtons.length === 1 ? exportButtons[0] : null;
+            const scopeMatches = (!expectation.groupBy || selectValue('TuyChonGR') === expectation.groupBy) &&
+                (!expectation.provinceCode || selectValue('stMaTinhPhat') === expectation.provinceCode);
+            const dateMatches = (!expectation.visibleFromDate || dateValues.includes(expectation.visibleFromDate)) &&
+                (!expectation.visibleToDate || dateValues.includes(expectation.visibleToDate));
+            const resultTableReady = exportButtons.length === 1;
+            const exportEnabled = Boolean(exportButton && !exportButton.disabled && exportButton.getAttribute('aria-disabled') !== 'true');
+            return {
+                url: location.href,
+                title: document.title,
+                scopeMatches,
+                dateMatches,
+                resultTableReady,
+                exportButtonCount: exportButtons.length,
+                exportEnabled,
+                selectedGroupBy: selectValue('TuyChonGR'),
+                selectedProvinceCode: selectValue('stMaTinhPhat'),
+                dateValues
+            };
+        }, expected);
+
+        if (!readiness.scopeMatches) return { ...readiness, ready: false, status: 'NOT_READY', code: 'TCT_SCOPE_NOT_READY', message: 'TCT scope is not applied.' };
+        if (!readiness.dateMatches) return { ...readiness, ready: false, status: 'NOT_READY', code: 'DATE_FILTER_NOT_APPLIED', message: 'TCT date filter is not applied.' };
+        if (!readiness.resultTableReady) return { ...readiness, ready: false, status: 'NOT_READY', code: 'RESULT_TABLE_NOT_READY', message: 'TCT report results are not ready.' };
+        if (!readiness.exportEnabled) return { ...readiness, ready: false, status: 'NOT_READY', code: 'EXPORT_CONTROL_NOT_READY', message: 'TCT export control is not ready.' };
+        return { ...readiness, ready: true, status: 'READY_TO_EXPORT', code: null, message: null };
+    }
+
+    async waitForF13ExportReadiness(expectation, { timeoutMs = 30000, intervalMs = 500 } = {}) {
+        const deadline = Date.now() + timeoutMs;
+        let readiness = null;
+        while (Date.now() < deadline) {
+            readiness = await this.getF13ExportReadiness(expectation);
+            if (readiness.ready) return readiness;
+            await this.page.waitForTimeout(intervalMs);
+        }
+        const error = portalError(readiness?.message || 'TCT F1.3 export readiness timed out.', readiness?.code || 'EXPORT_READINESS_TIMEOUT');
+        error.readiness = readiness;
+        throw error;
+    }
+
+    async requestSummaryExport() {
+        const exportButton = this.page.locator('form[action$="/export/sp_TT_Phat_LienTinh_Tinh/all"] button[type="submit"]');
+        if (await exportButton.count() !== 1 || !await exportButton.isVisible() || !await exportButton.isEnabled()) {
+            throw portalError('TCT F1.3 export control is not ready.', 'EXPORT_CONTROL_NOT_READY');
+        }
+        await exportButton.click();
+        await this.page.waitForTimeout(1000);
+    }
+
     async readDetailTotal() {
         await this.page.locator('table tr').nth(2).waitFor({ timeout: 30000 });
         const total = await this.page.evaluate(() => {

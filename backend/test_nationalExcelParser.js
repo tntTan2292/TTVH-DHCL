@@ -63,8 +63,9 @@ function buildWorkbookBuffer() {
     const rows = [
         headers,
         sourceRow('2', 'Formula/index row', 0, 0, 0),
-        sourceRow('01', 'Tổng công ty EMS', 1202, 735, 0.6115),
-        sourceRow('15', 'Bưu điện Trung tâm Long Biên', 0, 0, 0)
+        sourceRow(1, 'Tổng công ty EMS', 1202, 735, 0.6115),
+        sourceRow('15', 'Bưu điện Trung tâm Long Biên', 0, 0, 0),
+        sourceRow('03', 'Non-ranked source row', 0, 0, 0)
     ];
 
     for (const code of NATIONAL_RANKED_PROVINCE_CODES) {
@@ -94,10 +95,11 @@ assert.deepStrictEqual(
 );
 
 const excludedCodes = result.excludedRows.map((row) => row.ma_tinh_phat).sort();
-assert.deepStrictEqual(excludedCodes, ['01', '15', '2'], 'parser records the three source exclusions');
+assert.deepStrictEqual(excludedCodes, ['01', '03', '15', '2'], 'parser records the approved source exclusions');
 assert(result.excludedRows.some((row) => row.exclusion_code === 'WORKBOOK_FORMULA_INDEX_ROW'), 'formula/index row has an exclusion reason');
 assert(result.excludedRows.some((row) => row.exclusion_code === 'ADMINISTRATIVE_SOURCE_ROW'), 'EMS row has an exclusion reason');
 assert(result.excludedRows.some((row) => row.exclusion_code === 'NON_RANKED_CENTER_ROW'), 'Long Bien row has an exclusion reason');
+assert(result.excludedRows.some((row) => row.exclusion_code === 'NON_RANKED_SOURCE_ROW'), 'non-ranked source code is excluded by the approved population');
 
 const hue = result.parsedData.find((row) => row.ma_tinh_phat === '53');
 assert(hue, 'Hue row is retained');

@@ -228,6 +228,32 @@ function makeDb() {
         'successful item cannot be retried'
     );
 
+    console.log('\nTEST 5B: systemic portal failures block the queue after one date');
+    const blockedService = new TctF13BackfillService({
+        db: makeDb(),
+        pollIntervalMs: 1,
+        sessionPreflightService: { preflight: async () => ({ source: 'TCT', status: 'SESSION_VALID' }) }
+    });
+    blockedService.checkCompleted = async () => ({ complete: false, incomplete: false, rowCount: 0, distinctCount: 0, successLogCount: 0 });
+    blockedService.loadDatabaseEvidence = async () => ({ rowCount: 0, distinctCount: 0, successLogCount: 0, errorLogCount: 0 });
+    blockedService.loadHueEvidence = async () => ({ volume: null, pass: null, kpi: null, rank: null });
+    const blockedDates = [];
+    blockedService.runOneDateImport = async (date) => {
+        blockedDates.push(date);
+        const error = new Error('TCT export control is not ready.');
+        error.code = 'EXPORT_CONTROL_NOT_READY';
+        throw error;
+    };
+    const blockedQueue = await blockedService.startQueue(['2026-07-20', '2026-07-21']);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const blockedFinal = blockedService.getQueue(blockedQueue.queueId);
+    assert.strictEqual(blockedFinal.status, 'BLOCKED', 'systemic portal error blocks the queue');
+    assert.deepStrictEqual(blockedDates, ['2026-07-20'], 'only the first date is attempted');
+    assert.strictEqual(blockedFinal.items[0].status, 'FAILED', 'attempted date retains its explicit failure');
+    assert.strictEqual(blockedFinal.items[1].status, 'QUEUED', 'remaining date stays unrun for retry');
+    const blockedRetry = await blockedService.retryQueueItem(blockedQueue.queueId, '2026-07-21');
+    assert(['QUEUED', 'RUNNING'].includes(blockedRetry.status), 'unrun blocked date can be retried after remediation');
+
     console.log('\nTEST 6: workbook cleanup on failure and authentication retry eligibility');
     const cleanupDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tct-f13-backfill-'));
     const invalidWorkbook = path.join(cleanupDir, 'invalid.xlsx');
@@ -238,6 +264,7 @@ function makeDb() {
             async authenticate() {},
             async openF13Report() {},
             async submitFilters() {},
+            async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
             async requestSummaryExport() {},
             async pollGeneratedFile() {
                 return { fileName: 'invalid.xlsx' };
@@ -301,6 +328,7 @@ function makeDb() {
             async authenticate() {},
             async openF13Report() {},
             async submitFilters() {},
+            async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
             async requestSummaryExport() {},
             async pollGeneratedFile() {
                 return { fileName: 'valid.xlsx' };

@@ -21,10 +21,10 @@ const NATIONAL_DB_COLUMNS = [
 ];
 
 const NATIONAL_RANKED_PROVINCE_CODES = Object.freeze([
-    '02', '03', '04', '05', '06', '07', '08', '09', '10', '11',
-    '12', '13', '14', '16', '17', '18', '19', '20', '21', '22',
-    '23', '24', '25', '26', '27', '28', '29', '30', '31', '32',
-    '33', '34', '35', '53'
+    '10', '16', '18', '20', '22', '24', '25', '27', '29', '30',
+    '33', '36', '38', '39', '43', '44', '46', '48', '52', '53',
+    '55', '57', '60', '63', '65', '67', '70', '81', '84', '87',
+    '88', '89', '90', '97'
 ]);
 
 const NATIONAL_MAPPING = {
@@ -98,20 +98,22 @@ function parseF13NationalExcel(buffer) {
     for (const row of dataRows) {
         if (!row) continue;
         
-        let maTinh = row[maTinhIdx];
-        if (maTinh === null || maTinh === undefined || String(maTinh).trim() === '') {
+        const sourceCode = row[maTinhIdx];
+        if (sourceCode === null || sourceCode === undefined || String(sourceCode).trim() === '') {
             continue; // Skip Dòng Tổng
         }
 
-        maTinh = String(maTinh).trim();
+        const rawCode = String(sourceCode).trim();
         
-        if (maTinh === '2' || maTinh === 'Mã tỉnh phát') {
+        if (rawCode === '2' || rawCode === 'Mã tỉnh phát') {
             excludedRows.push({
-                ma_tinh_phat: maTinh,
+                ma_tinh_phat: rawCode,
                 exclusion_code: 'WORKBOOK_FORMULA_INDEX_ROW'
             });
             continue; // Skip Dòng Index
         }
+
+        const maTinh = /^\d+$/.test(rawCode) ? rawCode.padStart(2, '0') : rawCode;
         
         if (maTinh === '01' || maTinh === '15') {
             excludedRows.push({
@@ -119,6 +121,14 @@ function parseF13NationalExcel(buffer) {
                 exclusion_code: maTinh === '01' ? 'ADMINISTRATIVE_SOURCE_ROW' : 'NON_RANKED_CENTER_ROW'
             });
             continue; // Skip Tổng công ty EMS
+        }
+
+        if (!NATIONAL_RANKED_PROVINCE_CODES.includes(maTinh)) {
+            excludedRows.push({
+                ma_tinh_phat: maTinh,
+                exclusion_code: 'NON_RANKED_SOURCE_ROW'
+            });
+            continue;
         }
 
         const item = {};

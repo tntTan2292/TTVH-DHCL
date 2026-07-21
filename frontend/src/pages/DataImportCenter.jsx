@@ -392,7 +392,7 @@ export default function DataImportCenter() {
   };
 
   const queueIsActive = queue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(queue.status);
-  const tctQueueIsActive = tctQueue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(tctQueue.status);
+  const tctQueueIsActive = tctQueue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'BLOCKED', 'STOPPED'].includes(tctQueue.status);
   const tctSessionReady = tctSessionStatus === 'SESSION_VALID';
   const tctUpdateDisabled = (tctSessionReady && tctSelectedDates.length === 0) || tctQueueSubmitting || tctQueueIsActive;
   const updateDisabled = selectedDates.length === 0 || queueSubmitting || queueIsActive;
@@ -522,6 +522,7 @@ export default function DataImportCenter() {
     if (itemStatus === 'SUCCESS') return 'bg-green-100 text-green-800';
     if (itemStatus === 'RUNNING') return 'bg-blue-100 text-blue-800';
     if (itemStatus === 'QUEUED') return 'bg-gray-100 text-gray-700';
+    if (itemStatus === 'BLOCKED') return 'bg-amber-100 text-amber-800';
     if (itemStatus === 'STOPPED' || itemStatus === 'SKIPPED') return 'bg-slate-100 text-slate-700';
     return 'bg-red-100 text-red-800';
   };
@@ -610,10 +611,10 @@ export default function DataImportCenter() {
                       ? 'bg-amber-100 text-amber-800'
                       : 'bg-slate-100 text-slate-700'
                 }`}
-                aria-label={tctSessionStatus === 'SESSION_VALID' ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
+                aria-label={tctSessionStatus === 'SESSION_VALID' ? 'Phiên hợp lệ, chưa kiểm tra xuất dữ liệu' : 'Chưa sẵn sàng'}
                 data-testid="tct-session-status"
               >
-                {tctSessionStatus || 'Chưa kiểm tra phiên TCT'}
+                {tctSessionStatus === 'SESSION_VALID' ? 'SESSION_VALID - Chưa kiểm tra xuất' : (tctSessionStatus || 'Chưa kiểm tra phiên TCT')}
               </span>
             </div>
           </div>
@@ -919,7 +920,7 @@ export default function DataImportCenter() {
                         <button
                           type="button"
                           onClick={() => handleRetryTctQueueItem(item)}
-                          disabled={!['FAILED', 'AUTHENTICATION_REQUIRED'].includes(item.status) || tctQueueIsActive}
+                          disabled={(!['FAILED', 'AUTHENTICATION_REQUIRED'].includes(item.status) && !(tctQueue?.status === 'BLOCKED' && item.status === 'QUEUED')) || tctQueueIsActive}
                           className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-700 hover:bg-gray-50 disabled:opacity-40"
                           title="Retry ngày TCT bị lỗi hoặc cần đăng nhập"
                         >
