@@ -172,10 +172,16 @@ function ComboChartPanel({ rows, mode }) {
           <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#16a34a" strokeWidth={3} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} connectNulls={false} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
-      <div className="mt-2 flex flex-wrap gap-3 text-xs text-[var(--color-text-muted)]">
-        <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-[#174ea6]" />Cột: sản lượng</span>
-        <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#16a34a]" />Đường: tỷ lệ đạt</span>
-        {mode === 'month' ? <span>Lũy kế tháng hiện tại dùng ngày dữ liệu mới nhất trong tháng.</span> : null}
+      <div className="mt-4 flex flex-col gap-2">
+        <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-muted)]">
+          <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-[#174ea6]" />Cột: sản lượng</span>
+          <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#16a34a]" />Đường: tỷ lệ đạt</span>
+        </div>
+        {mode === 'month' ? (
+          <div className="text-xs text-[var(--color-text-muted)]">
+            Lũy kế tháng hiện tại dùng ngày dữ liệu mới nhất trong tháng.
+          </div>
+        ) : null}
       </div>
     </div>
   );

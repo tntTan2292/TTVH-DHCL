@@ -17,40 +17,40 @@ const STORAGE_KEY = 'qis.unifiedBcvhAnalysisTable.columns.v3';
 const MIDDLE_DOT = String.fromCharCode(0x00b7);
 
 const TEXT = {
-  source: 'Ngu\u1ed3n: x\u1ebfp h\u1ea1ng BCVH',
-  evidence: 'D\u1eef li\u1ec7u ng\u00e0y \u0111\u00e1nh gi\u00e1 v\u00e0 l\u0169y k\u1ebf th\u00e1ng \u0111\u01b0\u1ee3c t\u00e1ch ri\u00eang theo h\u1ee3p \u0111\u1ed3ng API hi\u1ec7n c\u00f3.',
-  loadErrorMessage: 'Kh\u00f4ng th\u1ec3 t\u1ea3i b\u1ea3ng ph\u00e2n t\u00edch BCVH.',
-  loading: '\u0110ang t\u1ea3i b\u1ea3ng ph\u00e2n t\u00edch BCVH...',
-  loadErrorTitle: 'Kh\u00f4ng th\u1ec3 t\u1ea3i b\u1ea3ng ph\u00e2n t\u00edch BCVH',
-  retry: 'Th\u1eed l\u1ea1i',
-  emptyTitle: 'Kh\u00f4ng c\u00f3 d\u1eef li\u1ec7u BCVH',
-  emptyDescription: 'Ch\u01b0a c\u00f3 b\u1ea3n ghi x\u1ebfp h\u1ea1ng BCVH cho k\u1ef3 \u0111ang ch\u1ecdn.',
-  title: 'B\u1ea3ng ph\u00e2n t\u00edch BCVH th\u1ed1ng nh\u1ea5t',
-  subtitleSuffix: 'th\u1ee9 t\u1ef1 m\u1eb7c \u0111\u1ecbnh theo x\u1ebfp h\u1ea1ng hi\u1ec7n c\u00f3',
+  source: 'Nguồn: xếp hạng BCVH',
+  evidence: 'Dữ liệu ngày đánh giá và lũy kế tháng được tách riêng theo hợp đồng API hiện có.',
+  loadErrorMessage: 'Không thể tải bảng phân tích BCVH.',
+  loading: 'Đang tải bảng phân tích BCVH...',
+  loadErrorTitle: 'Không thể tải bảng phân tích BCVH',
+  retry: 'Thử lại',
+  emptyTitle: 'Không có dữ liệu BCVH',
+  emptyDescription: 'Chưa có bản ghi xếp hạng BCVH cho kỳ đang chọn.',
+  title: 'Bảng phân tích BCVH thống nhất',
+  subtitleSuffix: 'thứ tự mặc định theo xếp hạng hiện có',
   bcvhContext: 'BCVH',
-  mtdFallback: 'L\u0168Y K\u1ebe TH\u00c1NG',
-  evaluationFallback: 'NG\u00c0Y \u0110\u00c1NH GI\u00c1',
-  volume: 'S\u1ea3n l\u01b0\u1ee3ng',
-  pass: '\u0110\u1ea1t',
-  passRate: 'T\u1ef7 l\u1ec7 \u0111\u1ea1t',
-  volumeDelta: '\u0394 SL',
-  rateDelta: '\u0394 T\u1ef7 l\u1ec7',
+  mtdFallback: 'LŨY KẾ THÁNG',
+  evaluationFallback: 'NGÀY ĐÁNH GIÁ',
+  volume: 'Sản lượng',
+  pass: 'Đạt',
+  passRate: 'Tỷ lệ đạt',
+  volumeDelta: 'Δ SL',
+  rateDelta: 'Δ Tỷ lệ',
   d1: 'D-1',
   d7: 'D-7',
-  supplemental: 'B\u1ed5 sung',
-  action: 'Chi ti\u1ebft',
-  returned: 'Chuy\u1ec3n ho\u00e0n',
-  warning: 'C\u1ea3nh b\u00e1o',
-  detail: 'Chi ti\u1ebft',
-  columnOptions: 'T\u00f9y ch\u1ecdn c\u1ed9t',
-  compact: 'G\u1ecdn',
-  standard: 'M\u1eb7c \u0111\u1ecbnh',
-  reset: 'Kh\u00f4i ph\u1ee5c m\u1eb7c \u0111\u1ecbnh',
-  alwaysShown: 'Lu\u00f4n hi\u1ec3n th\u1ecb',
-  showColumn: 'Hi\u1ec3n th\u1ecb c\u1ed9t',
-  volumeDeltaTooltip: '\u0394 SL = (S\u1ea3n l\u01b0\u1ee3ng l\u0169y k\u1ebf hi\u1ec7n t\u1ea1i - s\u1ea3n l\u01b0\u1ee3ng c\u00f9ng k\u1ef3 th\u00e1ng tr\u01b0\u1edbc) / s\u1ea3n l\u01b0\u1ee3ng c\u00f9ng k\u1ef3 th\u00e1ng tr\u01b0\u1edbc.',
-  rateDeltaTooltip: '\u0394 T\u1ef7 l\u1ec7 = T\u1ef7 l\u1ec7 \u0111\u1ea1t l\u0169y k\u1ebf hi\u1ec7n t\u1ea1i - t\u1ef7 l\u1ec7 \u0111\u1ea1t c\u00f9ng k\u1ef3 th\u00e1ng tr\u01b0\u1edbc.',
-  dayComparisonTooltip: 'So s\u00e1nh c\u1ee7a ng\u00e0y \u0111\u00e1nh gi\u00e1, kh\u00f4ng ph\u1ea3i l\u0169y k\u1ebf th\u00e1ng.',
+  supplemental: 'Bổ sung',
+  action: 'Chi tiết',
+  returned: 'Chuyển hoàn',
+  warning: 'Cảnh báo',
+  detail: 'Chi tiết',
+  columnOptions: 'Tùy chọn cột',
+  compact: 'Gọn',
+  standard: 'Mặc định',
+  reset: 'Khôi phục mặc định',
+  alwaysShown: 'Luôn hiển thị',
+  showColumn: 'Hiển thị cột',
+  volumeDeltaTooltip: 'Δ SL = (Sản lượng lũy kế hiện tại - sản lượng cùng kỳ tháng trước) / sản lượng cùng kỳ tháng trước.',
+  rateDeltaTooltip: 'Δ Tỷ lệ = Tỷ lệ đạt lũy kế hiện tại - tỷ lệ đạt cùng kỳ tháng trước.',
+  dayComparisonTooltip: 'So sánh của ngày đánh giá, không phải lũy kế tháng.',
 };
 
 const COLUMN_DEFS = {
@@ -123,11 +123,11 @@ function DeltaBadge({ value, type }) {
   if (label === UNAVAILABLE_TEXT) {
     return <span className="text-[11px] font-medium text-[var(--color-text-muted)]">{label}</span>;
   }
-  return <StatusBadge label={label} tone={getDeltaTone(value)} />;
+  return <div className="inline-block whitespace-nowrap"><StatusBadge label={label} tone={getDeltaTone(value)} /></div>;
 }
 
 function DayDeltaCell({ value }) {
-  return <StatusBadge label={formatDelta(value)} tone={getDeltaTone(value)} />;
+  return <div className="inline-block whitespace-nowrap"><StatusBadge label={formatDelta(value)} tone={getDeltaTone(value)} /></div>;
 }
 
 function ColumnOptions({ visibleColumns, setVisibleColumns }) {
@@ -406,7 +406,7 @@ export default function UnifiedBcvhAnalysisTable({ fromDate, toDate, interval = 
         <div>
           <h3 className="text-base font-bold text-[var(--color-text-main)]">{TEXT.title}</h3>
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            {fromDate} \u0111\u1ebfn {toDate} \u00b7 {TEXT.subtitleSuffix}
+            {fromDate} đến {toDate} · {TEXT.subtitleSuffix}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

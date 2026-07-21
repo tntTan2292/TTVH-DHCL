@@ -250,14 +250,14 @@ function LeadershipComparisonCard({ comparison }) {
           {metrics.map((metric) => (
             <div key={metric.id} className="rounded-lg border border-[var(--color-surface-100)] bg-[var(--color-surface-50)] px-3 py-2">
               <div className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">{metric.label}</div>
-              <div className="mt-1 grid grid-cols-2 gap-2 text-xs text-[var(--color-text-muted)]">
-                <div>
-                  <div>Hôm nay</div>
-                  <div className={metric.id === 'pass-rate' ? 'text-2xl font-black text-[var(--color-text-main)]' : 'text-lg font-bold text-[var(--color-text-main)]'}>{metric.value}</div>
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-3 text-xs text-[var(--color-text-muted)]">
+                <div className="flex-1 min-w-[100px]">
+                  <div className="truncate">Hôm nay</div>
+                  <div className={metric.id === 'pass-rate' ? 'text-xl xl:text-2xl font-black text-[var(--color-text-main)]' : 'text-base xl:text-lg font-bold text-[var(--color-text-main)]'}>{metric.value}</div>
                 </div>
-                <div>
-                  <div>{comparison.comparison_label}</div>
-                  <div className={metric.id === 'pass-rate' ? 'text-2xl font-black text-[var(--color-text-main)]' : 'text-lg font-bold text-[var(--color-text-main)]'}>{metric.comparisonValue}</div>
+                <div className="flex-1 min-w-[100px]">
+                  <div className="truncate" title={comparison.comparison_label}>{comparison.comparison_label}</div>
+                  <div className={metric.id === 'pass-rate' ? 'text-xl xl:text-2xl font-black text-[var(--color-text-main)]' : 'text-base xl:text-lg font-bold text-[var(--color-text-main)]'}>{metric.comparisonValue}</div>
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
