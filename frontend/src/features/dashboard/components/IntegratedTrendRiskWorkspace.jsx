@@ -333,7 +333,6 @@ export default function IntegratedTrendRiskWorkspace({
   error,
   fromDate,
   toDate,
-  interval,
   maBcvh,
   kpiData,
 }) {
@@ -388,7 +387,7 @@ export default function IntegratedTrendRiskWorkspace({
     [data, toDate],
   );
   const risks = useMemo(() => summarizeRiskEvidence(data, kpiData, pulseState.pulse), [data, kpiData, pulseState.pulse]);
-  const isMonthly = interval !== 'daily' && interval !== 'weekly';
+  const isMonthly = mode === '30-days';
 
   const action = (
     <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Chọn chế độ xu hướng">

@@ -278,7 +278,6 @@ export default function DashboardPage() {
           error={trendState.error}
           fromDate={fromDate}
           toDate={toDate || latestDate || defaultDate}
-          interval={interval}
           maBcvh={maBcvh}
           kpiData={kpiState.data}
         />
