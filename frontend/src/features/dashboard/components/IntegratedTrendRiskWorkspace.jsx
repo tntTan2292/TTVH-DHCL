@@ -333,6 +333,7 @@ export default function IntegratedTrendRiskWorkspace({
   error,
   fromDate,
   toDate,
+  interval,
   maBcvh,
   kpiData,
 }) {
@@ -423,7 +424,7 @@ export default function IntegratedTrendRiskWorkspace({
       ) : !rows.length ? (
         <EmptyState title="Không có dữ liệu xu hướng" description="Không có dữ liệu bưu gửi hằng ngày cho phạm vi đang chọn." className="min-h-[360px]" />
       ) : (
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className={`grid gap-5 ${interval === 'month' ? '' : 'xl:grid-cols-[minmax(0,1fr)_360px]'}`}>
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
               <StatusBadge label={TREND_MODES.find((item) => item.id === mode)?.label} tone="info" />
@@ -442,7 +443,9 @@ export default function IntegratedTrendRiskWorkspace({
               <LegendItem color={COLORS.warning} label="Marker dưới mục tiêu" />
             </div>
           </div>
-          <RiskPanel risks={risks} loading={pulseState.loading} error={pulseState.error} />
+          {interval !== 'month' && (
+            <RiskPanel risks={risks} loading={pulseState.loading} error={pulseState.error} />
+          )}
         </div>
       )}
     </CardContainer>
