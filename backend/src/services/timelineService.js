@@ -29,6 +29,32 @@ class TimelineService {
         `;
 
         const rows = await all(sql, params);
+
+        const selectedYear = endStr.slice(0, 4);
+        const selectedMonth = endStr.slice(0, 7);
+        const ytdStartStr = `${selectedYear}-01-01`;
+        let ytdParams = [ytdStartStr, endStr];
+        if (ma_bcvh && ma_bcvh !== 'all') ytdParams.push(ma_bcvh);
+
+        const latestBusinessRows = await all(`
+            SELECT MAX(ngay_do_kiem) AS latest_date
+            FROM fact_f13
+            WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
+        `, ytdParams);
+        const latestBusinessDate = latestBusinessRows[0]?.latest_date || endStr;
+
+        const ytdRows = await all(`
+            SELECT
+                substr(ngay_do_kiem, 1, 7) AS month_key,
+                COUNT(*) AS total_bg,
+                SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed_bg,
+                MIN(ngay_do_kiem) AS from_date,
+                MAX(ngay_do_kiem) AS to_date
+            FROM fact_f13
+            WHERE ngay_do_kiem BETWEEN ? AND ? ${bcvhFilter}
+            GROUP BY substr(ngay_do_kiem, 1, 7)
+            ORDER BY month_key ASC
+        `, ytdParams);
         
         // Build base map
         const dataMap = {};
@@ -63,13 +89,13 @@ class TimelineService {
 
         // 2. Weekly Pattern (Average by day of week over 90 days)
         const weekDays = [
-            { id: 1, name: 'T2', sum: 0, count: 0 },
-            { id: 2, name: 'T3', sum: 0, count: 0 },
-            { id: 3, name: 'T4', sum: 0, count: 0 },
-            { id: 4, name: 'T5', sum: 0, count: 0 },
-            { id: 5, name: 'T6', sum: 0, count: 0 },
-            { id: 6, name: 'T7', sum: 0, count: 0 },
-            { id: 0, name: 'CN', sum: 0, count: 0 }
+            { id: 1, name: 'T2', sum: 0, count: 0, total: 0, passed: 0 },
+            { id: 2, name: 'T3', sum: 0, count: 0, total: 0, passed: 0 },
+            { id: 3, name: 'T4', sum: 0, count: 0, total: 0, passed: 0 },
+            { id: 4, name: 'T5', sum: 0, count: 0, total: 0, passed: 0 },
+            { id: 5, name: 'T6', sum: 0, count: 0, total: 0, passed: 0 },
+            { id: 6, name: 'T7', sum: 0, count: 0, total: 0, passed: 0 },
+            { id: 0, name: 'CN', sum: 0, count: 0, total: 0, passed: 0 }
         ];
 
         fullData.forEach(d => {
@@ -79,6 +105,8 @@ class TimelineService {
                 if (target) {
                     target.sum += d.kpi_rate;
                     target.count += 1;
+                    target.total += Number(d.total || 0);
+                    target.passed += Number(d.passed || 0);
                 }
             }
         });
@@ -88,6 +116,9 @@ class TimelineService {
             return {
                 day: w.name,
                 avg_kpi: parseFloat(avg.toFixed(2)),
+                total_volume: w.total,
+                passed: w.passed,
+                pass_rate: w.total > 0 ? parseFloat(((w.passed / w.total) * 100).toFixed(2)) : 0,
                 color: avg >= 70 ? 'green' : (avg >= 60 ? 'pink' : (avg >= 50 ? 'yellow' : 'red'))
             };
         });
@@ -151,6 +182,31 @@ class TimelineService {
             calendarData.push(currentWeek);
         }
 
+        const ytdByMonth = ytdRows.reduce((acc, row) => {
+            acc[row.month_key] = row;
+            return acc;
+        }, {});
+        const monthlyYtd = [];
+        const selectedMonthNumber = Number(selectedMonth.slice(5, 7));
+        for (let month = 1; month <= selectedMonthNumber; month += 1) {
+            const monthKey = `${selectedYear}-${String(month).padStart(2, '0')}`;
+            const row = ytdByMonth[monthKey] || {};
+            const total = Number(row.total_bg || 0);
+            const passed = Number(row.passed_bg || 0);
+            const isCurrentMonth = monthKey === latestBusinessDate.slice(0, 7);
+            monthlyYtd.push({
+                month: monthKey,
+                label: `T${month}`,
+                total_volume: total,
+                passed,
+                pass_rate: total > 0 ? parseFloat(((passed / total) * 100).toFixed(2)) : null,
+                from_date: row.from_date || `${monthKey}-01`,
+                to_date: isCurrentMonth ? latestBusinessDate : (row.to_date || null),
+                is_current_month: isCurrentMonth,
+                cumulative_label: isCurrentMonth ? `Luy ke den ngay ${latestBusinessDate}` : null
+            });
+        }
+
         // 5. Quality Pulse (Momentum of last 3 days vs previous 3 days)
         let pulse = {
             status: 'NEUTRAL',
@@ -185,6 +241,8 @@ class TimelineService {
             daily: dailyTimeline,
             weekly: orderedWeekly,
             monthly: monthlyPattern,
+            monthly_ytd: monthlyYtd,
+            latest_business_date: latestBusinessDate,
             heatmap: calendarData,
             pulse: pulse
         };
