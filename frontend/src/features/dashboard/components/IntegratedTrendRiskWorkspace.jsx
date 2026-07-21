@@ -388,6 +388,7 @@ export default function IntegratedTrendRiskWorkspace({
     [data, toDate],
   );
   const risks = useMemo(() => summarizeRiskEvidence(data, kpiData, pulseState.pulse), [data, kpiData, pulseState.pulse]);
+  const isMonthly = interval !== 'daily' && interval !== 'weekly';
 
   const action = (
     <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Chọn chế độ xu hướng">
@@ -424,7 +425,7 @@ export default function IntegratedTrendRiskWorkspace({
       ) : !rows.length ? (
         <EmptyState title="Không có dữ liệu xu hướng" description="Không có dữ liệu bưu gửi hằng ngày cho phạm vi đang chọn." className="min-h-[360px]" />
       ) : (
-        <div className={`grid gap-5 ${interval === 'month' ? '' : 'xl:grid-cols-[minmax(0,1fr)_360px]'}`}>
+        <div className={`grid gap-5 ${isMonthly ? '' : 'xl:grid-cols-[minmax(0,1fr)_360px]'}`}>
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
               <StatusBadge label={TREND_MODES.find((item) => item.id === mode)?.label} tone="info" />
@@ -443,7 +444,7 @@ export default function IntegratedTrendRiskWorkspace({
               <LegendItem color={COLORS.warning} label="Marker dưới mục tiêu" />
             </div>
           </div>
-          {interval !== 'month' && (
+          {!isMonthly && (
             <RiskPanel risks={risks} loading={pulseState.loading} error={pulseState.error} />
           )}
         </div>
