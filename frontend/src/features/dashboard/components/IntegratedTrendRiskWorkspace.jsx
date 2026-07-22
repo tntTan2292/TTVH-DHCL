@@ -251,19 +251,24 @@ function LeadershipComparisonCard({ comparison }) {
           {metrics.map((metric) => (
             <div key={metric.id} className="rounded-lg border border-[var(--color-surface-100)] bg-[var(--color-surface-50)] px-3 py-2">
               <div className="text-xs font-semibold uppercase text-[var(--color-text-muted)]">{metric.label}</div>
-              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-3 text-xs text-[var(--color-text-muted)]">
-                <div className="flex-1 min-w-[100px]">
-                  <div className="truncate">Hôm nay</div>
-                  <div className={metric.id === 'pass-rate' ? 'text-xl xl:text-2xl font-black text-[var(--color-text-main)]' : 'text-base xl:text-lg font-bold text-[var(--color-text-main)]'}>{metric.value}</div>
+              <div className="mt-2 flex flex-col gap-1.5">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary-600)]">Hôm nay</span>
+                  <div className={metric.id === 'pass-rate' ? 'text-2xl xl:text-3xl font-black text-[var(--color-text-main)] leading-none mt-0.5' : 'text-lg xl:text-xl font-black text-[var(--color-text-main)] leading-none mt-0.5'}>
+                    {metric.value}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-[100px]">
-                  <div className="truncate" title={comparison.comparison_label}>{comparison.comparison_label}</div>
-                  <div className={metric.id === 'pass-rate' ? 'text-xl xl:text-2xl font-black text-[var(--color-text-main)]' : 'text-base xl:text-lg font-bold text-[var(--color-text-main)]'}>{metric.comparisonValue}</div>
+                <div className="border-t border-dashed border-[var(--color-surface-200)] my-1"></div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--color-text-muted)]">
+                  <div>
+                    <span className="font-medium mr-1">{comparison.comparison_label}:</span>
+                    <span className="font-bold text-[var(--color-text-main)]">{metric.comparisonValue}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <StatusBadge label={metric.delta} tone={metric.tone} />
+                    <span className="text-[10px] font-semibold text-[var(--color-text-main)]">{getDirectionLabel(metric.rawDelta)}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <StatusBadge label={metric.delta} tone={metric.tone} />
-                <span className="text-xs font-semibold text-[var(--color-text-main)]">{getDirectionLabel(metric.rawDelta)}</span>
               </div>
             </div>
           ))}
