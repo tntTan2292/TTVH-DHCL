@@ -218,7 +218,7 @@ All tickets in the Smart Dashboard sequence are completed:
 - `DA-IMPL-001` - Dashboard Language and Semantic Foundation: `COMPLETED / PO PASS`
 - `DA-IMPL-002` - Unified Command Summary: `COMPLETED / PO PASS`
 - `DA-IMPL-003` - Integrated Trend and Risk Workspace: `COMPLETED / PO PASS`
-- `AUTO-IMPORT-001` - Source Portal Discovery and Security Assessment: `COMPLETED / PO PASS`
+- `AUTO-IMPORT-001` - Source Portal Discovery and Security Assessment: `COMPLETED / HANDOFF`
 - `AUTO-IMPORT-002` - Automated Download and Validation Pipeline: `COMPLETED / PO PASS`
 - `AUTO-IMPORT-003` - Scheduled Import, Retry, Monitoring and Operations UI: `COMPLETED / PO PASS`
 - `DA-IMPL-004` - Unified BCVH Analysis Table: `COMPLETED / PO PASS`

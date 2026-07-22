@@ -3,14 +3,15 @@
 - Ticket ID: `AUTO-IMPORT-001`
 - Ticket Name: `Source Portal Discovery and Security Assessment`
 - Phase: `Smart Leadership Dashboard Implementation`
-- Current state: `ACTIVE / DISCOVERY`
+- Current state: `COMPLETED / HANDOFF`
 - Technical Status: `Atomic importer claim - COMPLETED / VERIFIED`
-- Runtime Status: `NOT REQUIRED YET`
+- Runtime Status: `NOT REQUIRED`
 - PO UI Check Required: `No`
-- PO Product Status: `NOT READY`
+- PO Product Status: `NOT REQUIRED` (Discovery-only scope has no UI/product acceptance gate, but follow-on implementation tickets AUTO-IMPORT-002 through 005 are completed and accepted under PO PASS)
 - Activation authority: `DA-IMPL-003` received Product Owner `PO PASS` on `2026-07-18`.
 - Activation decision: `Functionally accepted; visual polish deferred to DA-IMPL-007.`
 - Activation date: `2026-07-18`
+- Closure date: `2026-07-22`
 
 ## Required Reading
 
@@ -64,16 +65,22 @@ AUTO-IMPORT-001 is discovery only.
 
 ## Planned Follow-On Stages
 
-1. Huế automatic daily acquisition
-2. System Administrator missing-date scan and manual backfill
-3. TCT source for nationwide ranking
+All follow-on stages have been successfully completed:
 
-These stages remain unimplemented and require explicit authorization before execution.
+- `AUTO-IMPORT-002` Automated Download and Validation Pipeline: `COMPLETED / PO PASS`
+- `AUTO-IMPORT-003` Scheduled Import, Retry, Monitoring and Operations UI: `COMPLETED / PO PASS`
+- `AUTO-IMPORT-004` TCT Source Discovery and Nationwide Ranking Contract: `COMPLETED / PO PASS`
+- `AUTO-IMPORT-005` TCT Manual Backfill and Shared DKCL Background Operations: `COMPLETED / PO PASS`
+
+These stages are no longer unimplemented and were fully executed under their respective tickets.
 
 ## Acceptance Gate
 
-AUTO-IMPORT-001 can move to READY FOR PO CHECK only after discovery evidence is documented, credentials remain out of the repository, no forbidden automation is implemented, and all required documentation checks pass.
+AUTO-IMPORT-001 has been closed under `COMPLETED / HANDOFF` status. All discovery evidence is documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-001_DKCL_SYNC_ATOMIC_IMPORT_HANDOFF.md`, credentials and cookies were not committed, no forbidden automation was implemented within this ticket, and the atomic importer claim has been successfully verified.
 
 ## Next Ticket
 
-`AUTO-IMPORT-002` Automated Download and Validation Pipeline remains `PLANNED / INACTIVE` until AUTO-IMPORT-001 receives Product Owner acceptance or explicit Governance authority permits activation.
+- No active follow-on ticket from AUTO-IMPORT-001.
+- AUTO-IMPORT-002 through AUTO-IMPORT-005 are completed.
+- Current active ticket: `None`.
+- `TICKET-0102` remains deferred and inactive (`DEFERRED / INACTIVE`) unless the Product Owner explicitly activates it.
