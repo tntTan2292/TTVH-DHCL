@@ -340,6 +340,7 @@ export default function DataImportCenter() {
     setScanLoading(true);
     setScanError(null);
     setSelectedDates([]);
+    setRefreshDates([]);
     try {
       const res = await api.get('/import/dkcl/hue/f13/missing-dates', {
         params: {
@@ -460,8 +461,10 @@ export default function DataImportCenter() {
   const tctQueueIsActive = tctQueue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'BLOCKED', 'STOPPED'].includes(tctQueue.status);
   const tctSessionReady = tctSessionStatus === 'SESSION_VALID';
   const hueSessionReady = hueSessionStatus === 'SESSION_VALID';
-  const tctUpdateDisabled = !tctSessionReady || (tctSessionReady && tctSelectedDates.length === 0) || tctQueueSubmitting || tctQueueIsActive;
-  const updateDisabled = !hueSessionReady || (hueSessionReady && selectedDates.length === 0) || queueSubmitting || queueIsActive;
+  const tctUpdateDisabled = !tctSessionReady || tctSelectedDates.length === 0 || tctQueueSubmitting || tctQueueIsActive;
+  // Submit is disabled if: no session, no dates selected, submitting, or queue active.
+  // Checkbox selection is INDEPENDENT of session readiness per contract.
+  const updateDisabled = !hueSessionReady || selectedDates.length === 0 || queueSubmitting || queueIsActive;
 
   const handleStartBackfillQueue = async () => {
     setQueueSubmitting(true);
@@ -1186,7 +1189,13 @@ export default function DataImportCenter() {
                 title="Tạo hàng đợi bù dữ liệu Huế F1.3"
               >
                 {queueSubmitting ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
-                {refreshDates.length > 0 ? `Re-Update (${selectedDates.length})` : (hueSessionReady ? `Update (${selectedDates.length})` : 'Mở đăng nhập để Update')}
+                {refreshDates.length > 0
+                  ? `Re-Update (${selectedDates.length})`
+                  : selectedDates.length > 0
+                    ? `Update (${selectedDates.length})`
+                    : hueSessionReady
+                      ? 'Update'
+                      : 'Đăng nhập để Update'}
               </button>
             </div>
 
@@ -1215,7 +1224,7 @@ export default function DataImportCenter() {
                           type="checkbox"
                           checked={selectedDates.includes(item.measurement_date)}
                           onChange={() => toggleSelectedDate(item.measurement_date, item.status)}
-                          disabled={!item.selectable}
+                          disabled={!item.selectable || queueIsActive || queueSubmitting}
                           className="h-4 w-4 rounded border-gray-300 text-vnpost-blue focus:ring-vnpost-blue"
                           aria-label={`Chọn ngày ${item.measurement_date}`}
                         />
