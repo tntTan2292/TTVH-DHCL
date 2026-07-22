@@ -8,6 +8,22 @@ const {
     DkclHueF13BackfillService,
     enumerateDates
 } = require('./src/services/dkclHueF13BackfillService');
+const { globalRegistry } = require('./src/services/dkclSessionPreflightService');
+
+const validHueClient = {
+    isF13ReportReady: async () => true,
+    isAuthenticated: async () => true,
+    close: async () => {}
+};
+globalRegistry.set('HUE', {
+    state: 'BACKGROUND_READY',
+    client: validHueClient,
+    openingPromise: null,
+    authenticated: true,
+    backgroundReady: true,
+    lastError: null,
+    updatedAt: new Date().toISOString()
+});
 
 let passed = 0;
 let failed = 0;
@@ -207,9 +223,28 @@ async function runTests() {
         }
     });
     try {
+        globalRegistry.set('HUE', {
+            state: 'SESSION_EXPIRED',
+            client: null,
+            openingPromise: null,
+            authenticated: false,
+            backgroundReady: false,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
         await authRejectService.startQueue(['2026-07-30']);
     } catch (error) {
         authRejectCode = error.code;
+    } finally {
+        globalRegistry.set('HUE', {
+            state: 'BACKGROUND_READY',
+            client: validHueClient,
+            openingPromise: null,
+            authenticated: true,
+            backgroundReady: true,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
     }
     assert('invalid authentication rejects queue creation immediately', authRejectCode === 'AUTHENTICATION_REQUIRED' && authRejectService.getActiveQueue() === null);
     assert('invalid authentication does not start worker', authRejectStarted === false);

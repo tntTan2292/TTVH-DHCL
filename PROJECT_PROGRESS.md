@@ -43,6 +43,7 @@
 - AUTO-IMPORT-003: `Completed / PO PASS`
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
+- AUTO-IMPORT-006: `Completed / PO RUNTIME CHECK LATER`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -102,8 +103,8 @@
 | Current Commit | `See remote branch HEAD` |
 | Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
 | Next Milestone | `TBD by Product Owner` |
-| PO UI Check Required | `No` |
-| PO Product Status | `DA-IMPL-007 PO PASS` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `AUTO-IMPORT-006 CODE COMPLETE / PO RUNTIME CHECK LATER` |
 
 ## Pre-DA-IMPL-007 Regression Closure
 
@@ -196,3 +197,11 @@
 - Primary executor: `Antigravity`.
 - Code commit range: `670927a81716732137ac535dc13a6f418503e247..f9a62f5` (remediated up to `f9a62f5`).
 - PO decision: `FINAL PO PASS`.
+
+## AUTO-IMPORT-006 Unified DKCL Authentication Lifecycle Recovery Status
+
+- Ticket status: `COMPLETED / CODE COMPLETE / PO RUNTIME CHECK LATER`.
+- Primary executor: `Antigravity`.
+- Scope: separate HUE login trigger, block automatic interactive login in HUE queue check, resolve TCT interactive client factory configuration omission, CDP best-effort minimize, and browser manual closed listener/Registry.
+- Technical evidence: all unit tests passed for sync and backfill service components, oxlint passed with zero errors, production bundle built successfully.
+
