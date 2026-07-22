@@ -139,7 +139,7 @@ class DkclHueF13SyncService {
         ].includes(run.status);
     }
 
-    async start(measurementDate) {
+    async start(measurementDate, options = {}) {
         const normalizedDate = normalizeDate(measurementDate);
 
         if (this.hasActiveRun()) {
@@ -185,7 +185,7 @@ class DkclHueF13SyncService {
 
         const run = this.createRun(normalizedDate);
         this.activeRunId = run.runId;
-        this.runWorkflow(run).finally(() => {
+        this.runWorkflow(run, options).finally(() => {
             if (this.activeRunId === run.runId) this.activeRunId = null;
         });
 
@@ -264,7 +264,7 @@ class DkclHueF13SyncService {
         return { complete: false, inconsistent: false };
     }
 
-    async runWorkflow(run) {
+    async runWorkflow(run, options = {}) {
         try {
             this.updateRun(run, { status: STATUSES.RUNNING });
             await this.portalClient.authenticate({
@@ -272,7 +272,8 @@ class DkclHueF13SyncService {
                 username: process.env.PORTAL_HUE_USERNAME,
                 password: process.env.PORTAL_HUE_PASSWORD,
                 hrmCode: process.env.PORTAL_HUE_HRM_CODE,
-                profileDir: this.config.profileDir
+                profileDir: this.config.profileDir,
+                requireExistingSession: options?.requireExistingSession
             });
 
             await this.portalClient.openF13Report();

@@ -95,6 +95,9 @@ export default function DataImportCenter() {
   const [tctQueue, setTctQueue] = useState(null);
   const [tctQueueError, setTctQueueError] = useState(null);
   const [tctQueueSubmitting, setTctQueueSubmitting] = useState(false);
+  const [hueSessionStatus, setHueSessionStatus] = useState(null);
+  const [hueSessionError, setHueSessionError] = useState(null);
+  const [hueSessionLoading, setHueSessionLoading] = useState(false);
   const [importMode, setImportMode] = useState('HUE');
 
   const fetchStatus = useCallback(async ({ requestedPage = page, requestedPageSize = pageSize } = {}) => {
@@ -126,9 +129,11 @@ export default function DataImportCenter() {
     fetchStatus({ requestedPage: page, requestedPageSize: pageSize });
     const interval = setInterval(() => {
       fetchStatus({ requestedPage: page, requestedPageSize: pageSize });
+      preflightHueSession();
+      preflightTctSession();
     }, 5000);
     return () => clearInterval(interval);
-  }, [fetchStatus, page, pageSize]);
+  }, [fetchStatus, page, pageSize, preflightHueSession, preflightTctSession]);
 
   const fetchCoverage = useCallback(async (range = null) => {
     setCoverageError(null);
@@ -148,9 +153,40 @@ export default function DataImportCenter() {
     }
   }, []);
 
+  const preflightHueSession = useCallback(async () => {
+    setHueSessionError(null);
+    try {
+      const res = await api.post('/import/dkcl/session/preflight', { source: 'HUE' });
+      setHueSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+    } catch (err) {
+      const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
+      setHueSessionStatus(status);
+      setHueSessionError(err.response?.data?.data?.error?.message || `Không thể kiểm tra phiên Huế F1.3. Mã lỗi: ${getApiErrorCode(err, 'HUE_SESSION_PREFLIGHT_ERROR')}`);
+    }
+  }, []);
+
+  const handleInteractiveHueLogin = async () => {
+    setHueSessionError(null);
+    setHueSessionLoading(true);
+    try {
+      const res = await api.post('/import/dkcl/session/interactive-auth', { source: 'HUE' });
+      setHueSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+      if (res.data.data?.status === 'SESSION_VALID') {
+        setHueSessionError(null);
+      }
+    } catch (err) {
+      const status = err.response?.data?.data?.status || 'AUTHENTICATION_REQUIRED';
+      setHueSessionStatus(status);
+      setHueSessionError(err.response?.data?.data?.error?.message || 'Không thể hoàn tất đăng nhập Huế DKCL.');
+    } finally {
+      setHueSessionLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchCoverage();
-  }, [fetchCoverage]);
+    preflightHueSession();
+  }, [fetchCoverage, preflightHueSession]);
 
   const fetchTctCoverage = useCallback(async (range = null) => {
     setTctCoverageError(null);
@@ -394,8 +430,9 @@ export default function DataImportCenter() {
   const queueIsActive = queue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(queue.status);
   const tctQueueIsActive = tctQueue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'BLOCKED', 'STOPPED'].includes(tctQueue.status);
   const tctSessionReady = tctSessionStatus === 'SESSION_VALID';
-  const tctUpdateDisabled = (tctSessionReady && tctSelectedDates.length === 0) || tctQueueSubmitting || tctQueueIsActive;
-  const updateDisabled = selectedDates.length === 0 || queueSubmitting || queueIsActive;
+  const hueSessionReady = hueSessionStatus === 'SESSION_VALID';
+  const tctUpdateDisabled = !tctSessionReady || (tctSessionReady && tctSelectedDates.length === 0) || tctQueueSubmitting || tctQueueIsActive;
+  const updateDisabled = !hueSessionReady || (hueSessionReady && selectedDates.length === 0) || queueSubmitting || queueIsActive;
 
   const handleStartBackfillQueue = async () => {
     setQueueSubmitting(true);
@@ -1008,6 +1045,36 @@ export default function DataImportCenter() {
               <p className="mt-1 text-xs font-semibold text-green-800">{formatDateList(coverage?.selected_range?.completed_dates || scanResult?.completed_dates)}</p>
             </div>
           </div>
+          
+          {hueSessionError && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              <div>{hueSessionError}</div>
+              {hueSessionStatus === 'AUTHENTICATION_REQUIRED' && (
+                <button
+                  type="button"
+                  onClick={handleInteractiveHueLogin}
+                  disabled={hueSessionLoading}
+                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                >
+                  {hueSessionLoading ? 'Đang mở browser...' : 'Đăng nhập Huế DKCL'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {!hueSessionReady && (
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" data-testid="hue-not-ready">
+              Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ Huế.
+              <button
+                type="button"
+                onClick={handleInteractiveHueLogin}
+                disabled={hueSessionLoading}
+                className="ml-3 mt-2 inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+              >
+                {hueSessionLoading ? 'Đang mở browser...' : 'Mở đăng nhập Huế'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-4 border-b border-gray-100 bg-slate-50 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

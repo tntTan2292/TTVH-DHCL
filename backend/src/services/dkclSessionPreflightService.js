@@ -34,6 +34,23 @@ function safeMessage(error, sourceLabel) {
     return `Không thể kiểm tra phiên DKCL ${sourceLabel}. Vui lòng thử lại hoặc mở đăng nhập thủ công nếu cần.`;
 }
 
+const globalRegistry = new Map();
+
+function getOrCreateRegistryEntry(source) {
+    if (!globalRegistry.has(source)) {
+        globalRegistry.set(source, {
+            state: 'NOT_AUTHENTICATED',
+            client: null,
+            openingPromise: null,
+            authenticated: false,
+            backgroundReady: false,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
+    }
+    return globalRegistry.get(source);
+}
+
 class DkclSessionPreflightService {
     constructor(options = {}) {
         this.portalClientFactory = options.portalClientFactory || ((sourceConfig) => new DkclHueF13PortalClient({
@@ -43,10 +60,10 @@ class DkclSessionPreflightService {
             source: sourceConfig.source
         }));
         this.portalBaseUrl = options.portalBaseUrl || process.env.PORTAL_BASE_URL || 'https://dkcl.vnpost.vn/';
-        this.interactiveClients = new Map();
-        this.interactiveClientFactory = options.interactiveClientFactory || (() => new DkclHueF13PortalClient({
+        this.interactiveClientFactory = options.interactiveClientFactory || ((sourceConfig) => new DkclHueF13PortalClient({
             headless: false,
-            manualAuthWaitMs: Number(process.env.DKCL_INTERACTIVE_AUTH_WAIT_MS || 240000)
+            manualAuthWaitMs: Number(process.env.DKCL_INTERACTIVE_AUTH_WAIT_MS || 240000),
+            source: sourceConfig?.source
         }));
     }
 
@@ -63,18 +80,33 @@ class DkclSessionPreflightService {
 
     async preflight(source) {
         const sourceConfig = this.normalizeSource(source);
-        const interactiveClient = this.interactiveClients.get(sourceConfig.source);
-        if (interactiveClient) {
-            let ready = await interactiveClient.isF13ReportReady().catch(() => false);
-            if (!ready && interactiveClient.isAuthenticated && await interactiveClient.isAuthenticated().catch(() => false)) {
-                await interactiveClient.restoreWindow?.().catch(() => {});
-                await interactiveClient.openF13Report?.().catch(() => {});
-                ready = await interactiveClient.isF13ReportReady().catch(() => false);
+        const entry = getOrCreateRegistryEntry(sourceConfig.source);
+        
+        if (entry.client) {
+            let ready = await entry.client.isF13ReportReady().catch(() => false);
+            if (!ready && entry.client.isAuthenticated && await entry.client.isAuthenticated().catch(() => false)) {
+                await entry.client.restoreWindow?.().catch(() => {});
+                await entry.client.openF13Report?.().catch(() => {});
+                ready = await entry.client.isF13ReportReady().catch(() => false);
             }
             if (ready) {
+                entry.state = 'BACKGROUND_READY';
+                entry.authenticated = true;
+                entry.backgroundReady = true;
+                entry.updatedAt = new Date().toISOString();
                 return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true };
             }
-            await interactiveClient.restoreWindow?.().catch(() => {});
+            await entry.client.restoreWindow?.().catch(() => {});
+            
+            // Clean up stale client in registry if no longer valid
+            const oldClient = entry.client;
+            entry.client = null;
+            entry.authenticated = false;
+            entry.backgroundReady = false;
+            entry.state = 'SESSION_EXPIRED';
+            entry.updatedAt = new Date().toISOString();
+            await oldClient.close().catch(() => {});
+
             return {
                 source: sourceConfig.source,
                 status: PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED,
@@ -134,58 +166,101 @@ class DkclSessionPreflightService {
 
     async interactiveAuthenticate(source) {
         const sourceConfig = this.normalizeSource(source);
-        const existing = this.interactiveClients.get(sourceConfig.source);
-        if (existing) {
-            await existing.restoreWindow?.().catch(() => {});
-            return this.preflight(sourceConfig.source);
-        }
-        const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
-        const client = this.interactiveClientFactory(sourceConfig);
+        const entry = getOrCreateRegistryEntry(sourceConfig.source);
 
-        try {
-            await client.openInteractiveAuthentication({
-                baseUrl: this.portalBaseUrl,
-                profileDir
-            });
-            this.interactiveClients.set(sourceConfig.source, client);
-            return {
-                source: sourceConfig.source,
-                status: PREFLIGHT_STATUSES.SESSION_VALID,
-                interactive: true,
-                source_page_ready: true,
-                browser_minimized: false,
-                export_readiness: 'NOT_CHECKED'
-            };
-        } catch (error) {
-            return {
-                source: sourceConfig.source,
-                status: error?.code === 'AUTHENTICATION_REQUIRED'
-                    ? PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED
-                    : PREFLIGHT_STATUSES.SESSION_CHECK_FAILED,
-                profile: {
-                    source: sourceConfig.source,
-                    isolated: true,
-                    locked_during_check: true
-                },
-                error: {
-                    code: error?.code || 'INTERACTIVE_AUTH_FAILED',
-                    message: safeMessage(error, sourceConfig.displayName)
-                }
-            };
-        } finally {
-            if (this.interactiveClients.get(sourceConfig.source) !== client && client?.close) {
-                await client.close().catch(() => {});
+        if (entry.openingPromise) {
+            return entry.openingPromise;
+        }
+
+        if (entry.client) {
+            await entry.client.restoreWindow?.().catch(() => {});
+            const preflightRes = await this.preflight(sourceConfig.source);
+            if (preflightRes.status === PREFLIGHT_STATUSES.SESSION_VALID) {
+                return preflightRes;
             }
         }
+
+        entry.openingPromise = (async () => {
+            entry.state = 'OPENING_BROWSER';
+            entry.lastError = null;
+            entry.updatedAt = new Date().toISOString();
+            
+            const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+            const client = this.interactiveClientFactory(sourceConfig);
+
+            client.onDisconnect = () => {
+                entry.state = 'SESSION_EXPIRED';
+                entry.client = null;
+                entry.authenticated = false;
+                entry.backgroundReady = false;
+                entry.updatedAt = new Date().toISOString();
+                client.close().catch(() => {});
+            };
+
+            try {
+                entry.state = 'WAITING_FOR_LOGIN';
+                entry.updatedAt = new Date().toISOString();
+
+                await client.openInteractiveAuthentication({
+                    baseUrl: this.portalBaseUrl,
+                    profileDir
+                });
+
+                entry.state = 'AUTHENTICATED';
+                entry.client = client;
+                entry.authenticated = true;
+                entry.backgroundReady = false;
+                entry.updatedAt = new Date().toISOString();
+
+                const minimizeSuccess = await client.minimizeWindow().catch(() => false);
+                if (minimizeSuccess) {
+                    entry.state = 'BACKGROUND_READY';
+                    entry.backgroundReady = true;
+                    entry.updatedAt = new Date().toISOString();
+                } else {
+                    entry.state = 'BACKGROUND_READY'; // Fallback to background ready even if minimize fails best-effort
+                    entry.backgroundReady = true;
+                    entry.updatedAt = new Date().toISOString();
+                }
+
+                return {
+                    source: sourceConfig.source,
+                    status: PREFLIGHT_STATUSES.SESSION_VALID,
+                    interactive: true,
+                    source_page_ready: true,
+                    browser_minimized: minimizeSuccess,
+                    export_readiness: 'NOT_CHECKED'
+                };
+            } catch (error) {
+                entry.state = 'ERROR';
+                entry.lastError = error.message;
+                entry.client = null;
+                entry.authenticated = false;
+                entry.backgroundReady = false;
+                entry.updatedAt = new Date().toISOString();
+                await client.close().catch(() => {});
+                throw error;
+            } finally {
+                entry.openingPromise = null;
+            }
+        })();
+
+        return entry.openingPromise;
     }
 
     getInteractiveClient(source) {
-        return this.interactiveClients.get(this.normalizeSource(source).source) || null;
+        const entry = getOrCreateRegistryEntry(this.normalizeSource(source).source);
+        return entry.client || null;
+    }
+
+    getRegistryState(source) {
+        return getOrCreateRegistryEntry(this.normalizeSource(source).source);
     }
 }
 
 module.exports = {
     DkclSessionPreflightService,
     PREFLIGHT_STATUSES,
-    SOURCE_CONFIG
+    SOURCE_CONFIG,
+    globalRegistry
 };

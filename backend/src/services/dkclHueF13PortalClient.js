@@ -63,6 +63,8 @@ class DkclHueF13PortalClient {
         this.profileDir = null;
         this.lockDir = null;
         this.loginAttempts = 0;
+        this.source = options.source || 'HUE';
+        this.onDisconnect = null;
     }
 
     async authenticate({ baseUrl, username, password, hrmCode, profileDir, requireExistingSession = false }) {
@@ -71,7 +73,7 @@ class DkclHueF13PortalClient {
         }
 
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
-        this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), '../Data DKCL/BrowserProfiles/HUE'));
+        this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), `../Data DKCL/BrowserProfiles/${this.source}`));
         this.acquireProfileLock();
 
         const { chromium } = this.playwright || loadPlaywright();
@@ -79,6 +81,11 @@ class DkclHueF13PortalClient {
             headless: this.headless,
             acceptDownloads: true
         });
+        if (this.context.on) {
+            this.context.on('close', () => {
+                if (this.onDisconnect) this.onDisconnect();
+            });
+        }
         this.page = this.context.pages()[0] || await this.context.newPage();
 
         await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -109,7 +116,7 @@ class DkclHueF13PortalClient {
             this.fs.mkdirSync(this.lockDir);
         } catch (error) {
             if (error.code === 'EEXIST') {
-                throw portalError('Hue DKCL persistent browser profile is already in use.', 'PROFILE_LOCKED');
+                throw portalError(`${this.source} DKCL persistent browser profile is already in use.`, 'PROFILE_LOCKED');
             }
             throw error;
         }
@@ -133,10 +140,15 @@ class DkclHueF13PortalClient {
 
     async openInteractiveAuthentication({ baseUrl, profileDir }) {
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
-        this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), '../Data DKCL/BrowserProfiles/HUE'));
+        this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), `../Data DKCL/BrowserProfiles/${this.source}`));
         this.acquireProfileLock();
         const { chromium } = this.playwright || loadPlaywright();
         this.context = await chromium.launchPersistentContext(this.profileDir, { headless: false, acceptDownloads: true });
+        if (this.context.on) {
+            this.context.on('close', () => {
+                if (this.onDisconnect) this.onDisconnect();
+            });
+        }
         this.page = this.context.pages()[0] || await this.context.newPage();
         await this.restoreWindow();
         await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -168,7 +180,8 @@ class DkclHueF13PortalClient {
             await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: state } });
             await session.detach().catch(() => {});
             return true;
-        } catch {
+        } catch (err) {
+            console.warn(`[PortalClient ${this.source}] setWindowState ${state} failed: ${err.message}`);
             return false;
         }
     }

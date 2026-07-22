@@ -4,6 +4,8 @@ const {
     DkclHueF13SyncService,
     standardizedFilename
 } = require('./dkclHueF13SyncService');
+const { DkclSessionPreflightService } = require('./dkclSessionPreflightService');
+const sessionPreflightService = new DkclSessionPreflightService();
 
 const QUEUE_TERMINAL_STATUSES = new Set([
     'SUCCESS',
@@ -57,6 +59,7 @@ function enumerateDates(fromDate, toDate) {
 class DkclHueF13BackfillService {
     constructor(options = {}) {
         this.syncService = options.syncService || new DkclHueF13SyncService(options.syncServiceOptions || {});
+        this.sessionPreflightService = options.sessionPreflightService || sessionPreflightService;
         this.clock = options.clock || (() => new Date());
         this.pollIntervalMs = Number(options.pollIntervalMs || 500);
         this.queues = new Map();
@@ -365,13 +368,13 @@ class DkclHueF13BackfillService {
     }
 
     async validateAuthenticationBeforeQueue() {
-        if (!this.syncService.validateAuthentication) return;
-        try {
+        if (this.syncService.validateAuthentication) {
             await this.syncService.validateAuthentication({ requireExistingSession: true });
-        } catch (error) {
+        }
+        const preflight = await this.sessionPreflightService.preflight('HUE');
+        if (preflight.status !== 'SESSION_VALID') {
             const authError = new Error('Không thể tạo hàng đợi Huế F1.3 vì phiên đăng nhập DKCL không hợp lệ. Vui lòng đăng nhập/cập nhật phiên DKCL trước khi chạy bù dữ liệu.');
-            authError.code = error.code || 'AUTHENTICATION_REQUIRED';
-            authError.cause = error;
+            authError.code = 'AUTHENTICATION_REQUIRED';
             throw authError;
         }
     }
