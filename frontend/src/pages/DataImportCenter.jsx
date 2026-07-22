@@ -100,6 +100,30 @@ export default function DataImportCenter() {
   const [hueSessionLoading, setHueSessionLoading] = useState(false);
   const [importMode, setImportMode] = useState('HUE');
 
+  const preflightHueSession = useCallback(async () => {
+    setHueSessionError(null);
+    try {
+      const res = await api.post('/import/dkcl/session/preflight', { source: 'HUE' });
+      setHueSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+    } catch (err) {
+      const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
+      setHueSessionStatus(status);
+      setHueSessionError(err.response?.data?.data?.error?.message || `Không thể kiểm tra phiên Huế F1.3. Mã lỗi: ${getApiErrorCode(err, 'HUE_SESSION_PREFLIGHT_ERROR')}`);
+    }
+  }, []);
+
+  const preflightTctSession = useCallback(async () => {
+    setTctSessionError(null);
+    try {
+      const res = await api.post('/import/dkcl/session/preflight', { source: 'TCT' });
+      setTctSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+    } catch (err) {
+      const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
+      setTctSessionStatus(status);
+      setTctSessionError(err.response?.data?.data?.error?.message || `Không thể kiểm tra phiên TCT. Mã lỗi: ${getApiErrorCode(err, 'TCT_SESSION_PREFLIGHT_ERROR')}`);
+    }
+  }, []);
+
   const fetchStatus = useCallback(async ({ requestedPage = page, requestedPageSize = pageSize } = {}) => {
     setLoading(true);
     setStatusError(null);
@@ -153,18 +177,6 @@ export default function DataImportCenter() {
     }
   }, []);
 
-  const preflightHueSession = useCallback(async () => {
-    setHueSessionError(null);
-    try {
-      const res = await api.post('/import/dkcl/session/preflight', { source: 'HUE' });
-      setHueSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
-    } catch (err) {
-      const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
-      setHueSessionStatus(status);
-      setHueSessionError(err.response?.data?.data?.error?.message || `Không thể kiểm tra phiên Huế F1.3. Mã lỗi: ${getApiErrorCode(err, 'HUE_SESSION_PREFLIGHT_ERROR')}`);
-    }
-  }, []);
-
   const handleInteractiveHueLogin = async () => {
     setHueSessionError(null);
     setHueSessionLoading(true);
@@ -203,18 +215,6 @@ export default function DataImportCenter() {
     } catch (err) {
       console.error('[DataImportCenter] fetchTctCoverage error:', err);
       setTctCoverageError(`Không thể tải tổng quan dữ liệu TCT F1.3. Mã lỗi: ${getApiErrorCode(err, 'TCT_COVERAGE_API_ERROR')}${getApiErrorDetail(err)}`);
-    }
-  }, []);
-
-  const preflightTctSession = useCallback(async () => {
-    setTctSessionError(null);
-    try {
-      const res = await api.post('/import/dkcl/session/preflight', { source: 'TCT' });
-      setTctSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
-    } catch (err) {
-      const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
-      setTctSessionStatus(status);
-      setTctSessionError(err.response?.data?.data?.error?.message || `Không thể kiểm tra phiên TCT. Mã lỗi: ${getApiErrorCode(err, 'TCT_SESSION_PREFLIGHT_ERROR')}`);
     }
   }, []);
 
