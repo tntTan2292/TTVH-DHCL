@@ -1,4 +1,4 @@
-# AUTO-IMPORT-006 Checkpoint 001: Unified DKCL Auth Recovery Planning (Revised)
+# AUTO-IMPORT-006 Checkpoint 001: Unified DKCL Auth Recovery Planning (Discovery Report)
 
 - Ticket: `AUTO-IMPORT-006`
 - Phase: `Auto Import / Smart Leadership Dashboard Implementation`
@@ -9,135 +9,212 @@
 
 ---
 
-## 1. Root Cause Analysis
+## 1. HUE EXACT CURRENT FLOW
 
-### 1.1 Huế Authentication Lifecycle Gaps
-- **Component/Function render Huế không có nút login**: Trong `frontend/src/pages/DataImportCenter.jsx`, giao diện quản lý Huế chỉ kết xuất nút `Quét ngày thiếu` và `Update` (để chạy hàng đợi nạp bù), hoàn toàn thiếu nút hành động `Đăng nhập Huế`.
-- **API Call khi bấm Import**: Khi người dùng nhấn nút `Update` (Import), frontend gọi endpoint `POST /import/dkcl/hue/f13/backfill-queue`.
-- **Backend function tự kích hoạt interactive authentication**:
-  - Khi nhận request, `DkclHueF13BackfillService.startQueue` gọi `validateAuthenticationBeforeQueue()`. Do `DkclHueF13SyncService` không định nghĩa hàm `validateAuthentication`, hàm này âm thầm bỏ qua và hàng đợi được tạo thành công với trạng thái `QUEUED`.
-  - Background worker trong `DkclHueF13BackfillService.processQueueItem` gọi `this.syncService.start(item.measurementDate, { requireExistingSession: true })`.
-  - Tuy nhiên, chữ ký (signature) của hàm `start` trong `DkclHueF13SyncService` chỉ nhận 1 tham số: `async start(measurementDate)`. Do đó, tham số cấu hình `{ requireExistingSession: true }` bị bỏ qua hoàn toàn.
-  - Kết quả là `runWorkflow` gọi `portalClient.authenticate` mà không có cờ `requireExistingSession: true`, khiến client tự động mở trình duyệt ngầm hoặc visible (nếu không chạy headless) để tự động đăng nhập khi phát hiện phiên hết hạn.
-- **Lý do gắn auth vào Import**: Thiết kế ban đầu không tách biệt rõ ràng việc kiểm tra phiên và hành động nạp dữ liệu, coi việc đăng nhập là một bước phụ tự động của luồng nạp dữ liệu.
+- **File và Component render khu vực Huế**: `frontend/src/pages/DataImportCenter.jsx` (Phần tab hoặc card điều khiển Huế F1.3).
+- **Function xử lý click Import Huế**: `handleStartBackfillQueue` (dòng 400).
+- **API Endpoint được gọi**: `POST /api/import/dkcl/hue/f13/backfill-queue`.
+- **Backend Route**: `/dkcl/hue/f13/backfill-queue` định nghĩa trong `backend/src/routes/importRoutes.js`.
+- **Controller/Handler**: `dkclHueF13SyncController.startBackfillQueue` trong `backend/src/controllers/dkclHueF13SyncController.js`.
+- **Service**: `DkclHueF13BackfillService` trong `backend/src/services/dkclHueF13BackfillService.js`.
+- **Function tự mở interactive browser khi Import**:
+  - `DkclHueF13BackfillService.processQueueItem` gọi `this.syncService.start(item.measurementDate, { requireExistingSession: true })`.
+  - Do signature của `DkclHueF13SyncService.start(measurementDate)` không nhận đối số thứ hai, tham số chặn bị nuốt.
+  - `runWorkflow(run)` của `DkclHueF13SyncService` gọi `portalClient.authenticate(...)` không có cờ `requireExistingSession: true`.
+  - Khi không tìm thấy session hợp lệ, `DkclHueF13PortalClient.authenticate` tự động gọi `chromium.launchPersistentContext` để khởi tạo browser nạp dữ liệu.
 
-### 1.2 TCT Authentication Lifecycle Gaps
-- **Caller truyền `sourceConfig` ở đâu**: Trong `DkclSessionPreflightService.interactiveAuthenticate(source)`, hàm định vị cấu hình và gọi `this.interactiveClientFactory(sourceConfig)`.
-- **Chữ ký factory hiện tại**: 
-  `this.interactiveClientFactory = options.interactiveClientFactory || (() => new DkclHueF13PortalClient({ ... }))`
-  Arrow function này không tiếp nhận bất kỳ đối số nào.
-- **Giá trị bị mất và giá trị mặc định**: Tham số `sourceConfig` (chứa thông tin về nguồn TCT, đường dẫn profile TCT) bị nuốt mất. Client được khởi tạo không có cấu hình nguồn cụ thể, dẫn đến việc dùng các giá trị mặc định trong `DkclHueF13PortalClient`.
-- **Ảnh hưởng đến launch mode/profile**:
-  - `profileDir` mặc định trong `DkclHueF13PortalClient` phân giải về thư mục profile của `HUE` (`../Data DKCL/BrowserProfiles/HUE`).
-  - Khi kích hoạt đăng nhập TCT, client cố gắng chiếm khóa thư mục profile của Huế (`HUE.lock`). Nếu Huế đang chạy ẩn hoặc khóa này chưa được giải phóng, client sẽ ném lỗi `PROFILE_LOCKED` hoặc crash ngầm, dẫn đến việc browser không hiển thị headed như mong đợi.
-- **Exact Code Path**: `backend/src/services/dkclSessionPreflightService.js` -> `interactiveAuthenticate(source)` -> dòng 143.
-
----
-
-## 2. API và Route Inventory
-
-| Nguồn | Giao diện gọi API | Backend Route (Express) | Controller Handler | Service Class | Portal Client Class | Status/Preflight Endpoint | Response Model (Chuẩn hóa) |
-|---|---|---|---|---|---|---|---|
-| **Huế** | `api.post('/import/dkcl/hue/f13/backfill-queue')` | `/dkcl/hue/f13/backfill-queue` | `dkclHueF13SyncController.startBackfillQueue` | `DkclHueF13BackfillService` | `DkclHueF13PortalClient` | `/dkcl/session/preflight?source=HUE` | `{ success: boolean, data: { source: 'HUE', status: string, ... } }` |
-| **TCT** | `api.post('/import/dkcl/tct/f13/backfill-queue')` | `/dkcl/tct/f13/backfill-queue` | `dkclSharedOperationsController.startTctBackfillQueue` | `TctF13BackfillService` | `DkclHueF13PortalClient` | `/dkcl/session/preflight?source=TCT` | `{ success: boolean, data: { source: 'TCT', status: string, ... } }` |
-
-- **Yêu cầu bổ sung**: Huế cần sử dụng chung endpoint preflight và interactive-auth đã có sẵn: `/dkcl/session/preflight` và `/dkcl/session/interactive-auth` với tham số `source=HUE`.
-- **TCT Endpoint compatibility**: Endpoint TCT hiện tại giữ nguyên cấu trúc route và tham số để tránh phá vỡ giao thức tương thích ngược.
+### Exact Call Chain:
+```
+DataImportCenter.jsx::handleStartBackfillQueue
+→ frontend API::POST /import/dkcl/hue/f13/backfill-queue
+→ backend/src/routes/importRoutes.js::router.post('/dkcl/hue/f13/backfill-queue')
+→ dkclHueF13SyncController.js::startBackfillQueue
+→ dkclHueF13BackfillService.js::startQueue
+→ dkclHueF13BackfillService.js::processQueue
+→ dkclHueF13BackfillService.js::processQueueItem
+→ dkclHueF13SyncService.js::start
+→ dkclHueF13SyncService.js::runWorkflow
+→ dkclHueF13PortalClient.js::authenticate
+```
 
 ---
 
-## 3. Session / Browser Lifecycle Hiện Tại
+## 2. TCT EXACT ROOT CAUSE
 
-- **Khởi tạo**: Browser được tạo động trong `DkclHueF13PortalClient.authenticate` hoặc `openInteractiveAuthentication` sử dụng `chromium.launchPersistentContext`.
-- **Lưu trữ Handle**: Handle của browser/context được lưu trực tiếp trên instance của portal client (`this.context`, `this.page`). Đối với luồng tương tác, instance client này được lưu vào Map `interactiveClients` trong `DkclSessionPreflightService`.
-- **Session Validation**: Thực hiện qua `isAuthenticated()` bằng cách kiểm tra sự hiện diện của các text định danh trên body trang web (như `Tra cứu thông tin bưu gửi`, `Quản lý tệp`).
-- **Đóng/Giải phóng**: Gọi `client.close()` giải phóng context và xóa thư mục `.lock`. Hiện tại, trong `finally` của `preflight()`, client luôn bị đóng ngay lập tức.
-- **Đóng thủ công**: Nếu user đóng browser, Playwright context bị ngắt kết nối (disconnected), nhưng backend chưa có cơ chế bắt sự kiện này để cập nhật trạng thái session về `SESSION_EXPIRED`.
-- **Profile path**:
-  - Huế: `../Data DKCL/BrowserProfiles/HUE`
-  - TCT: `../Data DKCL/BrowserProfiles/TCT`
-- **Nguy cơ lây nhiễm chéo**: Rất cao do thiếu cô lập tham số trong factory khởi tạo client tương tác, khiến TCT dùng chung thư mục profile của Huế.
-
----
-
-## 4. State Contract Đề Xuất
-
-Mỗi nguồn dữ liệu sẽ duy trì một trạng thái độc lập được lưu trữ trên Registry của `DkclSessionPreflightService` và đồng bộ qua API:
-
-- **Các trạng thái**:
-  - `NOT_AUTHENTICATED`: Chưa đăng nhập.
-  - `OPENING_BROWSER`: Đang khởi chạy browser headed.
-  - `WAITING_FOR_LOGIN`: Đang đợi người dùng đăng nhập thủ công trên giao diện.
-  - `AUTHENTICATED`: Đã xác thực thành công.
-  - `BACKGROUND_READY`: Browser đã ẩn/minimize, sẵn sàng chạy nền.
-  - `SESSION_EXPIRED`: Phiên làm việc hết hạn hoặc browser bị đóng.
-  - `ERROR`: Lỗi hệ thống.
-- **Cơ chế Lock/Deduplication**: Sử dụng một cờ khóa trạng thái `isLaunching = true` trên từng nguồn trong quá trình mở browser để chặn yêu cầu mở trùng lặp.
-- **Disconnect Handling**: Lắng nghe sự kiện `context.on('close')` để tự động dọn dẹp handle và hạ trạng thái về `SESSION_EXPIRED`.
-
----
-
-## 5. Import Preflight
-
-- **Queue transition**: Khi người dùng nhấn nút chạy bù, queue được tạo và chuyển sang `RUNNING`.
-- **Cơ chế chặn trước RUNNING**:
-  - Backend sửa đổi `validateAuthenticationBeforeQueue()` trong cả Huế và TCT backfill service để thực hiện kiểm tra trạng thái thực tế từ `sessionPreflightService`.
-  - Nếu trạng thái của nguồn tương ứng không phải là `BACKGROUND_READY` hoặc `SESSION_VALID`, backend sẽ chặn ngay lập tức, trả về lỗi `AUTHENTICATION_REQUIRED` và mã lỗi HTTP 401.
-  - Sửa đổi hàm `start()` của `DkclHueF13SyncService` để tiếp nhận options cấu hình, đảm bảo cờ `requireExistingSession: true` được chuyển tiếp đầy đủ đến client, triệt tiêu luồng tự động mở trình duyệt ngầm.
-  - Frontend sẽ chặn hành động bấm nút nạp ngay tại UI nếu trạng thái session không khả dụng.
-
----
-
-## 6. Thiết Kế Kỹ Thuật Minimize/Hide
-
-- **Cơ chế áp dụng**: Do Playwright không hỗ trợ trực tiếp việc ẩn cửa sổ trình duyệt sau khi khởi chạy ở chế độ headed, ta sử dụng giao thức CDP (Chrome DevTools Protocol) thông qua phương thức `Browser.setWindowBounds` với trạng thái `minimized`.
-- **Code mẫu**:
+- **Nơi `sourceConfig` được tạo**: Tạo trong `DkclSessionPreflightService.normalizeSource(source)` (dòng 53) dựa trên ánh xạ nguồn TCT.
+- **Nơi `sourceConfig` được truyền vào**: Truyền tại hàm `interactiveAuthenticate(source)` của `DkclSessionPreflightService` (dòng 143) cho hàm factory: `this.interactiveClientFactory(sourceConfig)`.
+- **Signature của `interactiveClientFactory` hiện tại**:
   ```javascript
-  const session = await page.context().newCDPSession(page);
-  const { windowId } = await session.send('Browser.getWindowForTarget');
-  await session.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'minimized' } });
+  this.interactiveClientFactory = options.interactiveClientFactory || (() => new DkclHueF13PortalClient({
+      headless: false,
+      manualAuthWaitMs: Number(process.env.DKCL_INTERACTIVE_AUTH_WAIT_MS || 240000)
+  }));
   ```
-- **Fallback**: Nếu CDP session thất bại, giữ nguyên kích thước cửa sổ bình thường và ghi log cảnh báo, không đóng tiến trình.
-- **Unit test**: Sử dụng stub CDPSession để xác nhận lệnh gửi đúng tham số `minimized`.
+- **Dòng/Function bỏ qua `sourceConfig`**: Arrow function của factory trên không khai báo tham số tiếp nhận đối số, do đó `sourceConfig` bị nuốt mất tại dòng 47 trong `dkclSessionPreflightService.js`.
+- **Object/Config thực tế được dùng**: Một instance mặc định của `DkclHueF13PortalClient` được tạo ra. Trong constructor của portal client không được truyền `source`, dẫn đến `profileDir` mặc định rơi về HUE (`../Data DKCL/BrowserProfiles/HUE`).
+- **Ảnh hưởng cụ thể**:
+  - **Source**: Bị hiểu nhầm là HUE thay vì TCT.
+  - **Profile path**: Trỏ sai về thư mục profile của Huế thay vì TCT.
+  - **Headed/headless**: Trình duyệt vẫn khởi chạy ở chế độ headed (`headless: false`).
+  - **Browser launch**: Chromium cố gắng lock thư mục profile của Huế (`HUE.lock`).
+  - **Lock/Session registry**: TCT cố gắng tranh chấp lock của Huế. Nếu Huế đang chạy ngầm hoặc file lock cũ của Huế chưa được dọn dẹp, Playwright sẽ ném lỗi tranh chấp tài nguyên `PROFILE_LOCKED` hoặc lỗi khởi động Chromium.
+- **Vì sao browser không hiện**: Lỗi crash hoặc biệt lệ do tranh chấp khóa thư mục profile (`HUE.lock`) xảy ra ngay trong giai đoạn khởi chạy Chrome (`chromium.launchPersistentContext`), khiến browser kết thúc đột ngột trước khi kịp hiển thị giao diện headed.
 
 ---
 
-## 7. Kế Hoạch File Chi Tiết (Exact File Plan)
+## 3. ROUTE / API INVENTORY
 
-### 7.1 Backend Production
-- [MODIFY] [dkclSessionPreflightService.js](file:///d:/Antigravity - Project\TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/dkclSessionPreflightService.js):
-  - Nhận diện `sourceConfig` trong `interactiveClientFactory`.
-  - Quản lý trạng thái và deduplicate tiến trình khởi chạy browser.
-- [MODIFY] [dkclHueF13PortalClient.js](file:///d:/Antigravity - Project\TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/dkclHueF13PortalClient.js):
-  - Tiếp nhận tham số `source` để cô lập lock file.
-  - Lắng nghe sự kiện đóng browser từ người dùng để hạ cấp trạng thái.
-  - Triển khai adapter minimize window bằng CDP.
-- [MODIFY] [dkclHueF13SyncService.js](file:///d:/Antigravity - Project\TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/dkclHueF13SyncService.js):
-  - Cập nhật signature hàm `start` hỗ trợ options chuyển tiếp `requireExistingSession`.
-- [MODIFY] [dkclHueF13BackfillService.js](file:///d:/Antigravity - Project\TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/dkclHueF13BackfillService.js):
-  - Gọi thực tế `sessionPreflightService` để validate session của Huế trước khi cho phép tạo hàng đợi.
+### 3.1 Huế (HUE)
+- **Login Endpoint**: Chưa có endpoint login độc lập riêng cho Huế. Cần bổ sung route `/dkcl/session/interactive-auth?source=HUE`.
+- **Session Status Endpoint**: `/dkcl/session/preflight?source=HUE`.
+- **Import Endpoint**: `/dkcl/hue/f13/backfill-queue` (nạp bù) và `/dkcl/hue/f13/sync` (nạp daily).
+- **Frontend Caller**: `api.get` / `api.post` trong `DataImportCenter.jsx`.
+- **Backend Route File**: `backend/src/routes/importRoutes.js`.
+- **Handler File**: `backend/src/controllers/dkclHueF13SyncController.js` và `backend/src/controllers/dkclSharedOperationsController.js`.
+- **Service File**: `backend/src/services/dkclHueF13SyncService.js` và `backend/src/services/dkclHueF13BackfillService.js`.
+- **Response Shape hiện tại của preflight**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "source": "HUE",
+      "status": "SESSION_VALID"
+    }
+  }
+  ```
 
-### 7.2 Frontend Production
-- [MODIFY] [DataImportCenter.jsx](file:///d:/Antigravity - Project\TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/frontend/src/pages/DataImportCenter.jsx):
-  - Bổ sung nút `Đăng nhập Huế`.
-  - Tách biệt loading state và status badge cho từng nguồn Huế và TCT.
-  - Khóa nút nạp dữ liệu và hiển thị cảnh báo trực quan nếu session chưa sẵn sàng.
+### 3.2 TCT
+- **Login Endpoint**: `/dkcl/session/interactive-auth?source=TCT` (Đã có).
+- **Session Status Endpoint**: `/dkcl/session/preflight?source=TCT` (Đã có).
+- **Import Endpoint**: `/dkcl/tct/f13/backfill-queue` (Đã có).
+- **Frontend Caller**: `api.post` trong `DataImportCenter.jsx`.
+- **Backend Route File**: `backend/src/routes/importRoutes.js`.
+- **Handler File**: `backend/src/controllers/dkclSharedOperationsController.js`.
+- **Service File**: `backend/src/services/tctF13BackfillService.js`.
+
+### Kết luận:
+- **Endpoint thiếu**: Route đăng nhập tương tác riêng cho Huế `/dkcl/session/interactive-auth?source=HUE`.
+- **Endpoint tương thích ngược**: Các endpoint preflight `/dkcl/session/preflight` và các cổng nạp TCT phải được giữ nguyên chữ ký để đảm bảo tính tương thích ngược với luồng nghiệp vụ hiện tại.
 
 ---
 
-## 8. Ma Trận Kiểm Thử Tự Động (Automated Test Matrix)
+## 4. CURRENT BROWSER / SESSION LIFECYCLE
+
+- **Nơi tạo browser/client**: Khởi tạo động trong `DkclHueF13PortalClient.authenticate` hoặc `openInteractiveAuthentication`.
+- **Nơi tạo persistent context/profile**: Gọi hàm `chromium.launchPersistentContext(this.profileDir, ...)` của Playwright.
+- **Profile path**:
+  - HUE: `../Data DKCL/BrowserProfiles/HUE`
+  - TCT: `../Data DKCL/BrowserProfiles/TCT`
+- **Browser Handle lưu ở đâu**: Lưu trong biến instance `this.context` và `this.page` thuộc `DkclHueF13PortalClient`.
+- **Lock lưu ở đâu**: Thư mục khóa `.lock` được tạo song song với thư mục profile (`HUE.lock` hoặc `TCT.lock`).
+- **Session validation**: Thực hiện qua hàm `isAuthenticated()` bằng cách kiểm tra text hiển thị trên body trang web VNPost.
+- **Catch/finally cleanup**: Trong các hàm preflight, khối `finally` sẽ tự động gọi `client.close()` để kết thúc và hủy browser process lập tức.
+- **Đóng thủ công**: Nếu user tắt cửa sổ headed browser bằng tay, Playwright disconnected nhưng backend chưa bắt được sự kiện này để đồng bộ state về `SESSION_EXPIRED`.
+- **Xác nhận dùng chung**: Hiện tại Huế và TCT có nguy cơ dùng chung thư mục profile của Huế do lỗi bỏ qua cấu hình nguồn trong factory của phiên tương tác. Sau khi sửa đổi, cả hai sẽ hoạt động trên các profile và lock cô lập tuyệt đối, loại bỏ hoàn toàn rủi ro nhiễm chéo cookie/session.
+
+---
+
+## 5. TARGET STATE MACHINE
+
+Mỗi nguồn dữ liệu sẽ duy trì một máy trạng thái độc lập được lưu vết trên Backend và đồng bộ về Frontend:
+
+- **State Registry**: Lưu trữ tại `DkclSessionPreflightService.interactiveClients` (Registry Map theo dạng `source -> client`).
+- **Key theo source**: Phân tách rõ ràng bằng `HUE` và `TCT`.
+- **Trạng thái**:
+  - `NOT_AUTHENTICATED`
+  - `OPENING_BROWSER`
+  - `WAITING_FOR_LOGIN`
+  - `AUTHENTICATED`
+  - `BACKGROUND_READY`
+  - `SESSION_EXPIRED`
+  - `ERROR`
+- **Transition Trigger**:
+  - `interactiveAuthenticate()` -> chuyển sang `OPENING_BROWSER`.
+  - Browser launch thành công -> chuyển sang `WAITING_FOR_LOGIN`.
+  - Đăng nhập thành công -> chuyển sang `AUTHENTICATED` -> `BACKGROUND_READY` (gọi minimize).
+  - Sự kiện `context.on('close')` -> chuyển sang `SESSION_EXPIRED`.
+- **Lock/Dedup Mechanism**: Sử dụng cờ khóa `isOpening[source] = true` để chặn mọi click mở browser trùng lặp từ frontend.
+- **Disconnect Handler**: Lắng nghe trực tiếp sự kiện `page.on('close')` hoặc `context.on('close')` của Playwright để dọn dẹp handle, giải phóng file lock và thiết lập trạng thái về `SESSION_EXPIRED`.
+
+---
+
+## 6. IMPORT PREFLIGHT
+
+- **Queue transition**: Queue chuyển sang `RUNNING` tại `DkclHueF13BackfillService.processQueue` (dòng 422) và `TctF13BackfillService.processQueue`.
+- **Session check**: Hiện tại chỉ thực hiện kiểm tra ngầm lúc bắt đầu tác vụ nền trong `processQueueItem`.
+- **Chặn trước RUNNING**:
+  - Sửa đổi hàm `validateAuthenticationBeforeQueue()` của cả hai Backfill Service để gọi trực tiếp tới `sessionPreflightService.preflight(source)`.
+  - Nếu kết quả preflight trả về trạng thái khác `SESSION_VALID`, backend sẽ ném ngay lỗi `AUTHENTICATION_REQUIRED` (HTTP 401), ngăn chặn việc chuyển trạng thái hàng đợi sang `RUNNING` và loại bỏ hoàn toàn nguy cơ sinh `FAILED` log giả.
+- **Thông báo lỗi trả về frontend**:
+  - Huế: `"Không thể nạp dữ liệu Huế. Phiên đăng nhập DKCL Huế không hợp lệ hoặc đã hết hạn. Vui lòng nhấn Đăng nhập Huế trước."`
+  - TCT: `"Không thể nạp dữ liệu TCT. Phiên đăng nhập DKCL TCT không hợp lệ hoặc đã hết hạn. Vui lòng nhấn Đăng nhập TCT trước."`
+
+---
+
+## 7. MINIMIZE / HIDE DESIGN
+
+- **Cơ chế hoạt động**: Playwright không hỗ trợ trực tiếp việc ẩn/minimize cửa sổ trình duyệtheaded sau khi mở. Do đó, ta thiết kế bộ chuyển đổi sử dụng giao thức CDP (Chrome DevTools Protocol) để gửi tín hiệu trực tiếp đến trình duyệt.
+- **Cơ chế cụ thể trên Windows**: Gửi lệnh `Browser.setWindowBounds` với tham số `windowState: 'minimized'`.
+- **Xác định đúng browser window**: CDP tự động ánh xạ thông qua `Browser.getWindowForTarget` của page context hiện tại, tránh nhầm lẫn giữa các tiến trình chạy song song.
+- **Phương án chính**: `minimize` (thu nhỏ xuống taskbar) là phương án chính để người dùng vẫn có thể click khôi phục khi cần thiết.
+- **Fallback**: Nếu CDP trả về lỗi hoặc không hoạt động trên môi trường Windows cụ thể, client sẽ ghi nhận cảnh báo và duy trì cửa sổ headed bình thường, tuyệt đối không gọi `close()` để tránh làm chết session.
+- **Unit test**: Mock hàm `page.context().newCDPSession` và kiểm tra lệnh send nhận đúng tham số `windowState: 'minimized'`.
+- **AWAITING PO RUNTIME CHECK**: Hành vi thu nhỏ/ẩn thực tế trên máy trạm Windows của PO sẽ được đánh dấu là `AWAITING PO RUNTIME CHECK` để PO tự phối hợp nghiệm thu thực tế.
+
+---
+
+## 8. EXACT FILE PLAN
+
+### 8.1 Backend Production
+- [MODIFY] [dkclSessionPreflightService.js](file:///d:/Antigravity - Project/TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/dkclSessionPreflightService.js):
+  - Hàm thay đổi: `interactiveClientFactory`, `interactiveAuthenticate`, `preflight`.
+  - Mục đích: Sửa lỗi nuốt cấu hình nguồn TCT, hỗ trợ quản lý trạng thái cô lập cho cả HUE và TCT.
+- [MODIFY] [dkclHueF13PortalClient.js](file:///d:/Antigravity - Project/TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/dkclHueF13PortalClient.js):
+  - Hàm thay đổi: `constructor`, `acquireProfileLock`, `openInteractiveAuthentication`, `minimizeWindow`.
+  - Mục đích: Định danh nguồn, cô lập lock file tránh tranh chấp, và tích hợp bộ chuyển đổi minimize CDP.
+- [MODIFY] [dkclHueF13SyncService.js](file:///d:/Antigravity - Project/TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/dkclHueF13SyncService.js):
+  - Hàm thay đổi: `start`.
+  - Mục đích: Tiếp nhận options và cờ `requireExistingSession` để chặn luồng tự động đăng nhập ngầm.
+- [MODIFY] [dkclHueF13BackfillService.js](file:///d:/Antigravity - Project/TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/dkclHueF13BackfillService.js):
+  - Hàm thay đổi: `validateAuthenticationBeforeQueue`.
+  - Mục đích: Gọi preflight chặn hàng đợi trước khi bắt đầu chạy nếu thiếu session.
+- [MODIFY] [tctF13BackfillService.js](file:///d:/Antigravity - Project/TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/backend/src/services/tctF13BackfillService.js):
+  - Hàm thay đổi: `validateAuthenticationBeforeQueue`.
+  - Mục đích: Đồng bộ hóa cơ chế chặn trước hàng đợi cho nguồn TCT.
+
+### 8.2 Frontend Production
+- [MODIFY] [DataImportCenter.jsx](file:///d:/Antigravity - Project/TTVH - He thong dieu hanh chat luong_worktree_da_impl_007/frontend/src/pages/DataImportCenter.jsx):
+  - Thành phần thay đổi: Nút bấm Huế, trạng thái session, loading state.
+  - Mục đích: Thêm nút `Đăng nhập Huế`, cô lập hoàn toàn trạng thái hiển thị của HUE và TCT, block Import Huế khi chưa có session.
+
+### 8.3 Backend Tests
+- `backend/test_dkclSessionPreflightService.js`
+- `backend/test_dkclHueF13PortalClient.js`
+- `backend/test_dkclHueF13BackfillService.js`
+- `backend/test_tctF13BackfillService.js`
+
+### 8.4 Frontend Tests
+- `frontend/src/pages/dataImportCenter.test.js`
+
+---
+
+## 9. TEST MATRIX
 
 - **`backend/test_dkclSessionPreflightService.js`**:
-  - Test 1: Huế interactive login sử dụng visible/headed launch.
-  - Test 2: TCT interactive login sử dụng visible/headed launch và đúng profile path.
-  - Test 3: Yêu cầu đăng nhập trùng lặp bị chặn (deduplicated).
-  - Test 4: Sự kiện ngắt kết nối trình duyệt cập nhật trạng thái về `SESSION_EXPIRED`.
+  - `Hue login preserves HUE source config`: Xác nhận Huế interactive login dùng đúng cấu hình HUE.
+  - `TCT login preserves TCT source config`: Xác nhận TCT interactive login dùng đúng cấu hình TCT.
+  - `headed launch config`: Xác nhận launch persistent context được gọi với cờ `headless: false`.
+  - `valid session no relaunch`: Khi session đang hợp lệ, không kích hoạt mở browser mới.
+  - `double-click dedup`: Yêu cầu đăng nhập trùng lặp bị chặn (deduplicated).
+  - `disconnect updates source state`: Sự kiện đóng browser từ phía Playwright cập nhật trạng thái về `SESSION_EXPIRED`.
 - **`backend/test_dkclHueF13PortalClient.js`**:
-  - Test 5: Đăng nhập thành công không tự đóng context/browser.
-  - Test 6: Gọi CDP set window state sang `minimized` khi đăng nhập thành công.
-- **`backend/test_dkclHueF13BackfillService.js`**:
-  - Test 7: Tạo hàng đợi Huế bị chặn và trả về lỗi 401 nếu preflight check không hợp lệ.
-  - Test 8: Tiến trình nạp Huế không tự động mở login ngầm.
+  - `success path no close/kill`: Xác nhận đăng nhập thành công không tự ý giải phóng browser context.
+  - `authenticated invokes background adapter`: Đăng nhập thành công kích hoạt lệnh CDP minimize.
+  - `HUE/TCT profile isolation`: Kiểm tra đường dẫn profile và lock của Huế/TCT cô lập độc lập.
+- **`backend/test_dkclHueF13BackfillService.js`** & **`backend/test_tctF13BackfillService.js`**:
+  - `import blocked before RUNNING`: Gọi nạp khi không có session bị chặn trước khi queue chuyển sang RUNNING.
+  - `import does not invoke auth`: Bấm nạp dữ liệu không kích hoạt tự động mở browser ngầm.
+  - `no fake FAILED log`: Không tạo các dòng log lỗi giả mạo khi bị chặn preflight.
 - **`frontend/src/pages/dataImportCenter.test.js`**:
-  - Test 9: Giao diện kết xuất độc lập nút đăng nhập Huế và TCT.
-  - Test 10: Nút Import bị khóa và hiển thị cảnh báo nếu session chưa sẵn sàng.
+  - `independent frontend buttons/loading/status/errors`: Xác nhận giao diện hiển thị riêng biệt trạng thái và nút bấm đăng nhập cho HUE và TCT.
+  - `polling cleanup`: Kiểm tra việc dọn dẹp các timer polling khi component unmount.
