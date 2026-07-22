@@ -20,7 +20,18 @@ function makeClient({ authenticateImpl, calls }) {
     };
 }
 
+function deferred() {
+    let resolve;
+    let reject;
+    const promise = new Promise((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+    return { promise, resolve, reject };
+}
+
 (async () => {
+    globalRegistry.clear();
     console.log('\nTEST 1: Hue/TCT profile separation and background preflight');
     const calls = [];
     const service = new DkclSessionPreflightService({
@@ -74,6 +85,7 @@ function makeClient({ authenticateImpl, calls }) {
     assert.strictEqual(failed.error.code, 'NETWORK_DOWN', 'safe technical code is preserved');
 
     console.log('\nTEST 4: interactive browser remains visible until export readiness');
+    globalRegistry.clear();
     const interactiveCalls = [];
     const interactiveClient = {
         async openInteractiveAuthentication(args) { interactiveCalls.push(['open', args]); },
@@ -89,7 +101,7 @@ function makeClient({ authenticateImpl, calls }) {
     assert.strictEqual(interactive.status, PREFLIGHT_STATUSES.SESSION_VALID, 'manual login returns valid only after the source page is ready');
     assert.strictEqual(interactiveService.getInteractiveClient('TCT'), interactiveClient, 'ready browser is retained for queue work');
     assert(interactiveCalls.some((call) => call[0] === 'minimize'), 'browser minimizes after login success');
-    assert.strictEqual(interactive.export_readiness, 'NOT_CHECKED', 'session validity alone is not export readiness');
+    assert.strictEqual(interactive.export_readiness, 'SOURCE_PAGE_READY', 'interactive auth checks source page readiness once before backgrounding');
     const activePreflight = await interactiveService.preflight('TCT');
     assert.strictEqual(activePreflight.status, PREFLIGHT_STATUSES.SESSION_VALID, 'active browser preflight remains valid without opening another process');
     assert.strictEqual(interactiveCalls.filter((call) => call[0] === 'open').length, 1, 'repeated preflight does not launch a duplicate browser');
@@ -113,6 +125,98 @@ function makeClient({ authenticateImpl, calls }) {
     const redirectedPreflight = await interactiveService.preflight('TCT');
     assert.strictEqual(redirectedPreflight.status, PREFLIGHT_STATUSES.SESSION_VALID, 'active authenticated portal returns to F1.3 before preflight succeeds');
     assert(redirectedCalls.some((call) => call[0] === 'open-report'), 'file-management tab is redirected to the F1.3 report page');
+
+    console.log('\nTEST 5: TCT interactive in-progress lifecycle is stable under polling');
+    globalRegistry.clear();
+    const openingCalls = [];
+    const openingClient = {
+        async restoreWindow() { openingCalls.push(['restore']); },
+        async openF13Report() { openingCalls.push(['open-report']); },
+        async close() { openingCalls.push(['close']); }
+    };
+    globalRegistry.set('TCT', {
+        state: 'OPENING_BROWSER',
+        client: openingClient,
+        openingPromise: Promise.resolve(),
+        authenticated: false,
+        backgroundReady: false,
+        minimized: false,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
+    const openingService = new DkclSessionPreflightService();
+    const openingPreflight = await openingService.preflight('TCT');
+    assert.strictEqual(openingPreflight.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'preflight reports explicit in-progress status while opening');
+    assert.strictEqual(openingService.getInteractiveClient('TCT'), openingClient, 'preflight preserves opening client');
+    assert.deepStrictEqual(openingCalls, [], 'preflight does not restore, open report, or close during opening state');
+
+    globalRegistry.clear();
+    const waitForLogin = deferred();
+    const lifecycleCalls = [];
+    const lifecycleClient = {
+        async openInteractiveAuthentication(args) {
+            lifecycleCalls.push(['open', args]);
+            await waitForLogin.promise;
+        },
+        async isF13ReportReady() { lifecycleCalls.push(['ready']); return true; },
+        async openF13Report() { lifecycleCalls.push(['open-report']); },
+        async minimizeWindow() { lifecycleCalls.push(['minimize']); return true; },
+        async restoreWindow() { lifecycleCalls.push(['restore']); },
+        async close() { lifecycleCalls.push(['close']); }
+    };
+    const lifecycleService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => lifecycleClient
+    });
+    const firstAuth = lifecycleService.interactiveAuthenticate('TCT');
+    const secondAuth = lifecycleService.interactiveAuthenticate('TCT');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.strictEqual(lifecycleService.getInteractiveClient('TCT'), lifecycleClient, 'persistent client is retained while login is waiting');
+    const waitingPreflight = await lifecycleService.preflight('TCT');
+    assert.strictEqual(waitingPreflight.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'preflight reports explicit in-progress status while waiting');
+    assert.strictEqual(lifecycleService.getInteractiveClient('TCT'), lifecycleClient, 'preflight preserves waiting client');
+    assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'close').length, 0, 'preflight does not close waiting client');
+    assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'restore').length, 0, 'preflight does not repeatedly restore waiting client');
+    assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'open-report').length, 0, 'preflight does not open F1.3 report while waiting');
+    assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'open').length, 1, 'only one persistent browser client is opened');
+    waitForLogin.resolve();
+    const completedAuth = await firstAuth;
+    const duplicateAuth = await secondAuth;
+    assert.strictEqual(completedAuth.status, PREFLIGHT_STATUSES.SESSION_VALID, 'auth completes after manual login resolves');
+    assert.strictEqual(duplicateAuth.status, PREFLIGHT_STATUSES.SESSION_VALID, 'duplicate auth click shares the same lifecycle result');
+    assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'minimize').length, 1, 'minimize is called once after confirmed authentication');
+    assert.strictEqual(lifecycleService.getRegistryState('TCT').state, 'BACKGROUND_READY', 'authenticated client transitions to background ready');
+
+    console.log('\nTEST 6: minimize failure and manual close preserve source-keyed lifecycle');
+    globalRegistry.clear();
+    globalRegistry.set('HUE', {
+        state: 'BACKGROUND_READY',
+        client: { marker: 'hue' },
+        openingPromise: null,
+        authenticated: true,
+        backgroundReady: true,
+        minimized: true,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
+    const minimizeFailureCalls = [];
+    const minimizeFailureClient = {
+        async openInteractiveAuthentication() { minimizeFailureCalls.push(['open']); },
+        async openF13Report() { minimizeFailureCalls.push(['open-report']); },
+        async isF13ReportReady() { minimizeFailureCalls.push(['ready']); return true; },
+        async minimizeWindow() { minimizeFailureCalls.push(['minimize']); throw new Error('window manager unavailable'); },
+        async close() { minimizeFailureCalls.push(['close']); }
+    };
+    const minimizeFailureService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => minimizeFailureClient
+    });
+    const minimizeFailureResult = await minimizeFailureService.interactiveAuthenticate('TCT');
+    assert.strictEqual(minimizeFailureResult.status, PREFLIGHT_STATUSES.SESSION_VALID, 'minimize failure still returns valid authenticated session');
+    assert.strictEqual(minimizeFailureResult.browser_minimized, false, 'minimize failure is reported as best-effort false');
+    assert.strictEqual(minimizeFailureService.getInteractiveClient('TCT'), minimizeFailureClient, 'authenticated client is preserved when minimize fails');
+    minimizeFailureClient.onDisconnect();
+    assert.strictEqual(minimizeFailureService.getRegistryState('TCT').state, 'SESSION_EXPIRED', 'manual close expires TCT entry');
+    assert.strictEqual(minimizeFailureService.getInteractiveClient('TCT'), null, 'manual close clears TCT client');
+    assert.strictEqual(globalRegistry.get('HUE').client.marker, 'hue', 'manual TCT close does not mutate HUE registry');
 
     console.log('\nRESULT: dkclSessionPreflightService checks passed');
 })().catch((error) => {

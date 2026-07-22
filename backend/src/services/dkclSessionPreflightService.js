@@ -6,8 +6,11 @@ const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
 const PREFLIGHT_STATUSES = Object.freeze({
     SESSION_VALID: 'SESSION_VALID',
     AUTHENTICATION_REQUIRED: 'AUTHENTICATION_REQUIRED',
-    SESSION_CHECK_FAILED: 'SESSION_CHECK_FAILED'
+    SESSION_CHECK_FAILED: 'SESSION_CHECK_FAILED',
+    LOGIN_IN_PROGRESS: 'LOGIN_IN_PROGRESS'
 });
+
+const INTERACTIVE_IN_PROGRESS_STATES = new Set(['OPENING_BROWSER', 'WAITING_FOR_LOGIN']);
 
 const SOURCE_CONFIG = Object.freeze({
     HUE: {
@@ -44,6 +47,7 @@ function getOrCreateRegistryEntry(source) {
             openingPromise: null,
             authenticated: false,
             backgroundReady: false,
+            minimized: false,
             lastError: null,
             updatedAt: new Date().toISOString()
         });
@@ -81,6 +85,17 @@ class DkclSessionPreflightService {
     async preflight(source) {
         const sourceConfig = this.normalizeSource(source);
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
+
+        if (INTERACTIVE_IN_PROGRESS_STATES.has(entry.state)) {
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
+                interactive: true,
+                lifecycle_state: entry.state,
+                source_page_ready: false,
+                message: `Đang mở đăng nhập DKCL ${sourceConfig.displayName}.`
+            };
+        }
         
         if (entry.client) {
             let ready = await entry.client.isF13ReportReady().catch(() => false);
@@ -93,6 +108,7 @@ class DkclSessionPreflightService {
                 entry.state = 'BACKGROUND_READY';
                 entry.authenticated = true;
                 entry.backgroundReady = true;
+                entry.minimized = true;
                 entry.updatedAt = new Date().toISOString();
                 return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true };
             }
@@ -103,6 +119,7 @@ class DkclSessionPreflightService {
             entry.client = null;
             entry.authenticated = false;
             entry.backgroundReady = false;
+            entry.minimized = false;
             entry.state = 'SESSION_EXPIRED';
             entry.updatedAt = new Date().toISOString();
             await oldClient.close().catch(() => {});
@@ -172,6 +189,16 @@ class DkclSessionPreflightService {
             return entry.openingPromise;
         }
 
+        if (INTERACTIVE_IN_PROGRESS_STATES.has(entry.state)) {
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
+                interactive: true,
+                lifecycle_state: entry.state,
+                source_page_ready: false
+            };
+        }
+
         if (entry.client) {
             await entry.client.restoreWindow?.().catch(() => {});
             const preflightRes = await this.preflight(sourceConfig.source);
@@ -187,12 +214,17 @@ class DkclSessionPreflightService {
             
             const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
             const client = this.interactiveClientFactory(sourceConfig);
+            entry.client = client;
+            entry.authenticated = false;
+            entry.backgroundReady = false;
+            entry.minimized = false;
 
             client.onDisconnect = () => {
                 entry.state = 'SESSION_EXPIRED';
                 entry.client = null;
                 entry.authenticated = false;
                 entry.backgroundReady = false;
+                entry.minimized = false;
                 entry.updatedAt = new Date().toISOString();
                 client.close().catch(() => {});
             };
@@ -212,16 +244,13 @@ class DkclSessionPreflightService {
                 entry.backgroundReady = false;
                 entry.updatedAt = new Date().toISOString();
 
-                const minimizeSuccess = await client.minimizeWindow().catch(() => false);
-                if (minimizeSuccess) {
-                    entry.state = 'BACKGROUND_READY';
-                    entry.backgroundReady = true;
-                    entry.updatedAt = new Date().toISOString();
-                } else {
-                    entry.state = 'BACKGROUND_READY'; // Fallback to background ready even if minimize fails best-effort
-                    entry.backgroundReady = true;
-                    entry.updatedAt = new Date().toISOString();
-                }
+                const minimizeSuccess = entry.minimized
+                    ? true
+                    : await client.minimizeWindow().catch(() => false);
+                entry.minimized = true;
+                entry.state = 'BACKGROUND_READY';
+                entry.backgroundReady = true;
+                entry.updatedAt = new Date().toISOString();
 
                 return {
                     source: sourceConfig.source,
@@ -229,7 +258,7 @@ class DkclSessionPreflightService {
                     interactive: true,
                     source_page_ready: true,
                     browser_minimized: minimizeSuccess,
-                    export_readiness: 'NOT_CHECKED'
+                    export_readiness: 'SOURCE_PAGE_READY'
                 };
             } catch (error) {
                 entry.state = 'ERROR';
@@ -237,6 +266,7 @@ class DkclSessionPreflightService {
                 entry.client = null;
                 entry.authenticated = false;
                 entry.backgroundReady = false;
+                entry.minimized = false;
                 entry.updatedAt = new Date().toISOString();
                 await client.close().catch(() => {});
                 throw error;

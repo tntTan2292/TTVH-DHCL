@@ -35,8 +35,8 @@ assert.match(
 );
 assert.match(
   pageSource,
-  /const tctUpdateDisabled = !tctSessionReady \|\| \(tctSessionReady && tctSelectedDates\.length === 0\) \|\| tctQueueSubmitting \|\| tctQueueIsActive;/,
-  'TCT Update must route a not-ready operator into interactive login and otherwise require selected dates'
+  /const tctUpdateDisabled = !tctSessionReady \|\| tctSelectedDates\.length === 0 \|\| tctQueueSubmitting \|\| tctQueueIsActive;/,
+  'TCT Update must remain disabled until session is ready and dates are selected'
 );
 assert.match(
   pageSource,
@@ -68,6 +68,28 @@ assert.match(
   /api\.post\('\/import\/dkcl\/session\/interactive-auth', \{ source: 'TCT' \}\)/,
   'TCT authentication-required state must expose explicit interactive login action'
 );
+assert.match(
+  pageSource,
+  /const tctLoginInProgress = tctSessionLoading \|\| tctSessionStatus === 'LOGIN_IN_PROGRESS';/,
+  'TCT frontend must recognize backend login-in-progress lifecycle state'
+);
+assert.match(
+  pageSource,
+  /disabled=\{tctLoginInProgress\}/,
+  'TCT login buttons must remain disabled while login is opening or waiting'
+);
+assert.match(
+  pageSource,
+  /Đang mở đăng nhập\.\.\./,
+  'TCT login button must show stable in-progress text'
+);
+const pollingEffect = pageSource.match(/const interval = setInterval\(\(\) => \{[\s\S]*?preflightTctSession\(\);[\s\S]*?\}, 5000\);/);
+assert.ok(pollingEffect, 'TCT polling interval must be present');
+assert.doesNotMatch(
+  pollingEffect[0],
+  /interactive-auth|handleInteractiveTctLogin/,
+  'TCT polling must not initiate interactive authentication'
+);
 assert.match(pageSource, /data-testid="tct-not-ready"/, 'TCT local coverage must be labeled as not ready until preflight passes');
 assert.match(pageSource, /Update lại/, 'COMPLETE rows must expose a separate manual refresh action');
 assert.match(
@@ -92,7 +114,7 @@ assert.match(
 );
 assert.match(
   pageSource,
-  /SESSION_VALID|AUTHENTICATION_REQUIRED|SESSION_CHECK_FAILED/,
+  /SESSION_VALID|AUTHENTICATION_REQUIRED|SESSION_CHECK_FAILED|LOGIN_IN_PROGRESS/,
   'TCT session states must be visible in UI source'
 );
 assert.doesNotMatch(

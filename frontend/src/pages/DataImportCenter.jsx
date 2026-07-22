@@ -121,10 +121,12 @@ export default function DataImportCenter() {
   }, []);
 
   const preflightTctSession = useCallback(async () => {
-    setTctSessionError(null);
     try {
       const res = await api.post('/import/dkcl/session/preflight', { source: 'TCT' });
       setTctSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+      if (res.data.data?.status !== 'LOGIN_IN_PROGRESS') {
+        setTctSessionError(null);
+      }
     } catch (err) {
       const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
       setTctSessionStatus(status);
@@ -450,6 +452,7 @@ export default function DataImportCenter() {
   const queueIsActive = queue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(queue.status);
   const tctQueueIsActive = tctQueue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'BLOCKED', 'STOPPED'].includes(tctQueue.status);
   const tctSessionReady = tctSessionStatus === 'SESSION_VALID';
+  const tctLoginInProgress = tctSessionLoading || tctSessionStatus === 'LOGIN_IN_PROGRESS';
   const hueSessionReady = hueSessionStatus === 'SESSION_VALID';
   const tctUpdateDisabled = !tctSessionReady || tctSelectedDates.length === 0 || tctQueueSubmitting || tctQueueIsActive;
   // Submit is disabled if: no session, no dates selected, submitting, or queue active.
@@ -695,10 +698,10 @@ export default function DataImportCenter() {
               <button
                 type="button"
                 onClick={handleInteractiveTctLogin}
-                disabled={tctSessionLoading}
+                disabled={tctLoginInProgress}
                 className="ml-3 mt-2 inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
               >
-                {tctSessionLoading ? 'Đang mở browser...' : 'Mở đăng nhập TCT'}
+                {tctLoginInProgress ? 'Đang mở đăng nhập...' : 'Mở đăng nhập TCT'}
               </button>
             </div>
           )}
@@ -850,9 +853,10 @@ export default function DataImportCenter() {
                   <button
                     type="button"
                     onClick={handleInteractiveTctLogin}
+                    disabled={tctLoginInProgress}
                     className="ml-0 mt-3 inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800 md:ml-3 md:mt-0"
                   >
-                    Đăng nhập lại
+                    {tctLoginInProgress ? 'Đang mở đăng nhập...' : 'Đăng nhập lại'}
                   </button>
                 )}
               </div>

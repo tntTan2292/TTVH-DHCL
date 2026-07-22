@@ -7,15 +7,18 @@ const { TctF13BackfillService } = require('../services/tctF13BackfillService');
 const sessionPreflightService = new DkclSessionPreflightService();
 const tctBackfillService = new TctF13BackfillService({ db: { all, get }, sessionPreflightService });
 
+const sessionStatusCode = (status) => status === 'SESSION_VALID'
+    ? 200
+    : (status === 'LOGIN_IN_PROGRESS' ? 202
+        : (status === 'AUTHENTICATION_REQUIRED' ? 401 : 503));
+
 class DkclSharedOperationsController {
     async preflight(req, res) {
         try {
             const result = await sessionPreflightService.preflight(req.body?.source || req.query?.source);
-            const statusCode = result.status === 'SESSION_VALID'
-                ? 200
-                : (result.status === 'AUTHENTICATION_REQUIRED' ? 401 : 503);
+            const statusCode = sessionStatusCode(result.status);
             return res.status(statusCode).json({
-                success: result.status === 'SESSION_VALID',
+                success: result.status === 'SESSION_VALID' || result.status === 'LOGIN_IN_PROGRESS',
                 data: result
             });
         } catch (error) {
@@ -32,11 +35,9 @@ class DkclSharedOperationsController {
     async interactiveAuthenticate(req, res) {
         try {
             const result = await sessionPreflightService.interactiveAuthenticate(req.body?.source || req.query?.source);
-            const statusCode = result.status === 'SESSION_VALID'
-                ? 200
-                : (result.status === 'AUTHENTICATION_REQUIRED' ? 401 : 503);
+            const statusCode = sessionStatusCode(result.status);
             return res.status(statusCode).json({
-                success: result.status === 'SESSION_VALID',
+                success: result.status === 'SESSION_VALID' || result.status === 'LOGIN_IN_PROGRESS',
                 data: result
             });
         } catch (error) {
