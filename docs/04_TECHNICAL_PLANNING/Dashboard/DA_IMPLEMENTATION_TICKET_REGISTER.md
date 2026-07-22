@@ -30,7 +30,7 @@ Do not activate all DA implementation tickets simultaneously.
 | 9 | `AUTO-IMPORT-004` TCT Source Discovery and Nationwide Ranking Contract | `COMPLETED / PO PASS` | `PO PASS` | [docs/10_TICKETS/AUTO-IMPORT-004_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-004_MANIFEST.md) |
 | 10 | `AUTO-IMPORT-005` TCT Manual Backfill and Shared DKCL Background Operations | `COMPLETED / PO PASS` | `PO PASS` | [docs/10_TICKETS/AUTO-IMPORT-005_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-005_MANIFEST.md) |
 | 11 | `DA-IMPL-006` Unified Action Center | `COMPLETED / PO PASS` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-006_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-006_MANIFEST.md) |
-| 12 | `DA-IMPL-007` Smart Dashboard Final Assembly | `ACTIVE / HANDOFF - NOT IMPLEMENTED` | `NOT READY` | [docs/10_TICKETS/DA-IMPL-007_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md) |
+| 12 | `DA-IMPL-007` Smart Dashboard Final Assembly | `COMPLETED` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-007_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md) |
 
 ## 4. Consolidated Scope
 
@@ -45,7 +45,7 @@ Do not activate all DA implementation tickets simultaneously.
 - `AUTO-IMPORT-004`: completed with Product Owner `PO PASS` on `2026-07-20`. Product Owner accepted TCT F1.3 `2026-07-19` evidence: ranked population `34`, Hue volume `2,399`, Hue pass `1,261`, Hue KPI `52.56%`, Hue national rank `24/34`, TCT workbook downloaded/imported/deleted successfully, and Dashboard result accepted.
 - `AUTO-IMPORT-005`: completed with Product Owner `PO PASS` on `2026-07-20`. Product Owner accepted TCT manual backfill, session preflight and explicit re-authentication, missing/incomplete/completed date classification, controlled re-import, sequential in-memory queue, graceful Stop, eligible Retry, Hue/TCT source separation, and cumulative range-based nationwide ranking.
 - `DA-IMPL-006`: completed with Product Owner `PO PASS`. Dashboard retains Unified Action Center recommendations/issues, KPI context, evidence, and follow-up; Top 2 area and Dashboard message drafts were removed by final PO decision. Future `Tin điều hành` / `Tin báo cáo` management belongs in a future governed `BCVH Ranking` module ticket.
-- `DA-IMPL-007`: active handoff for final hierarchy, spacing, responsive behavior, loading/empty/error/missing-data states, removal of remaining obsolete surfaces only after replacements are accepted, full Dashboard regression, and PO acceptance. Primary executor: `Antigravity`; Codex reviews technical and regression scope when needed.
+- `DA-IMPL-007`: completed with Product Owner `PO PASS` on `2026-07-22`. Primary executor: `Antigravity`. Smart Dashboard visual hierarchy, today metric prioritization, full-width monthly trend workspace, 06 canonical BCVH records, and layout flow are closed.
 
 ## 5. Compactness Rule
 
