@@ -1,4 +1,3 @@
-// Responsive and login lifecycle recovery modifications applied.
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, CalendarDays, CheckCircle2, Clock, Database, HardDrive, Play, RefreshCw, RotateCcw, Search, Square, XCircle } from 'lucide-react';

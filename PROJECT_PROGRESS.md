@@ -43,7 +43,7 @@
 - AUTO-IMPORT-003: `Completed / PO PASS`
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
-- AUTO-IMPORT-006: `Remediation Completed / Pending PO Recheck`
+- AUTO-IMPORT-006: `Active / PO Recheck`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -200,10 +200,9 @@
 
 ## AUTO-IMPORT-006 Unified DKCL Authentication Lifecycle Recovery Status
 
-- Ticket status: `REMEDIATION COMPLETED / PENDING PO RECHECK`.
+- Ticket status: `ACTIVE / PO RECHECK`.
 - Primary executor: `Antigravity`.
 - Scope: separate HUE login trigger, block automatic interactive login in HUE queue check, resolve TCT interactive client factory configuration omission, CDP best-effort minimize, and browser manual closed listener/Registry.
 - Technical evidence: all unit tests passed for sync and backfill service components, oxlint passed with zero errors, production bundle built successfully.
-- Remediation 001: Resolved initialization crash on `/import` due to lexical declaration order of `preflightHueSession` and `preflightTctSession`. Added frontend test matrix validation.
-- Remediation 002: Made the UI responsive at 100% zoom, restored the Re-Update action for complete dates on both Hue/TCT, and cleaned up the duplicate TCT login buttons.
-
+- Remediation 001: Resolved initialization crash on `/import` due to lexical declaration order of `preflightHueSession` and `preflightTctSession`. Added frontend source-contract test validation.
+- Remediation 002: Implemented responsive layout, restored Re-Update for complete dates (HUE/TCT), and cleaned up duplicate TCT login buttons. Phase changes were not separated atomically (see Checkpoint 004). PO runtime verification has not yet been performed.
