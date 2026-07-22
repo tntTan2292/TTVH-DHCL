@@ -20,7 +20,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
 | Current Ticket | `None` |
 | Next Ticket | `TBD by Product Owner` |
-| PO Status | `DA-IMPL-007 PO PASS` |
+| Last PO Status | `DA-IMPL-007 PO PASS` |
 | Current Branch | `codex/da-impl-006` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md` |
 | Governance Version | `V2 Active` |
@@ -33,10 +33,9 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 - Do not infer current state from chat history when this snapshot is available.
 - Do not use this document to override SSOT, frozen docs, or PO decisions.
 - Keep workflow behavior unchanged unless a dedicated governance change is approved.
-- `Current Manifest` must always be a concrete GitHub Blob URL.
-- `Current Manifest` must point to an existing remote manifest for the active ticket.
-- `Current Manifest` must not contain placeholder labels or descriptive text.
-- `PO Status` must reflect the active ticket state and not inherit closed-ticket acceptance.
+- `Last Closed Manifest` must always be a concrete GitHub Blob URL pointing to the manifest of the most recently closed ticket when Current Ticket = None.
+- `Last Closed Manifest` must not contain placeholder labels or descriptive text.
+- `Last PO Status` represents the most recently recorded Product Owner status for the last closed ticket when Current Ticket = None.
 
 ## 4. Continuation Notes
 

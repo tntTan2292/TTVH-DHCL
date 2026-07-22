@@ -14,7 +14,7 @@
 - Primary executor: `Antigravity`
 - Codex role: technical review, regression checks, and logic or contract remediation only when needed
 - PO decision: `FINAL PO PASS`
-- Code commit range: `670927a81716732137ac535dc13a6f418503e247..f9a62f5` (remediated up to `f9a62f5`)
+- Code commit range: `670927a81716732137ac535dc13a6f418503e247..f9a62f5fe031520b88648280db6e26d84f4a1f8d` (remediated up to `f9a62f5fe031520b88648280db6e26d84f4a1f8d`)
 
 ## Required Reading
 

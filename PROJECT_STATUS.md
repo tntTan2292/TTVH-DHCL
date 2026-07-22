@@ -86,7 +86,7 @@ Quy tắc cập nhật:
 - AUTO-IMPORT-002 implementation commit: `4798ec82bb6cc1f343167a6b596aa5d6f58d57cc`
 - AUTO-IMPORT-003: `COMPLETED / PO PASS`
 - AUTO-IMPORT-003 accepted operational condition: manual Huế F1.3 backfill requires a valid DKCL authenticated session; while valid, the operator does not need to log in for every `Update`; if expired or invalid, queue creation is blocked before `RUNNING` and the operator is instructed to re-authenticate. No automatic login, credential storage, or additional session persistence is included in this ticket.
-- DA-IMPL-005 accepted UI/UX follow-up: Heatmap responsive layout at 100% desktop zoom, month block adaptation, controlled scrolling or compact cell sizing, non-overlapping chart legends/labels, improved spacing/typography/information density, and desktop usability without browser zoom changes are deferred to a future governed Dashboard UI/UX completion phase.
+- DA-IMPL-005 accepted UI/UX follow-up: Heatmap responsive layout at 100% desktop zoom, month block adaptation, controlled scrolling or compact cell sizing, non-overlapping chart legends/labels, improved spacing, typography, information density, and desktop usability without browser zoom changes were completed, absorbed, and accepted within `DA-IMPL-007`.
 - AUTO-IMPORT-004: `COMPLETED / PO PASS`; controlled TCT F1.3 import accepted for `2026-07-19` with Hue rank `24/34`.
 - AUTO-IMPORT-005: `COMPLETED / PO PASS`
 - DA-IMPL-006: `COMPLETED / PO PASS`
