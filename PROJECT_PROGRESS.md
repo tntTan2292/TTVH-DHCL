@@ -104,7 +104,7 @@
 | Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
 | Next Milestone | `TBD by Product Owner` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `AUTO-IMPORT-006 CODE COMPLETE / PO RUNTIME CHECK LATER` |
+| PO Product Status | `NOT READY` |
 
 ## Pre-DA-IMPL-007 Regression Closure
 
