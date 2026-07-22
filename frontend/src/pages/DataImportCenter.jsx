@@ -4,6 +4,12 @@ import { AlertTriangle, CalendarDays, CheckCircle2, Clock, Database, HardDrive, 
 import api from '../api/client';
 import UploadWidget from '../components/UploadWidget';
 import { buildImportReconciliationContext } from './importDashboardReconciliation';
+import {
+  isCheckboxDisabled,
+  isSubmitDisabled,
+  toggleAllDates,
+  toggleDateSelection
+} from './hueSelectionHelpers';
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
 const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh';
@@ -392,18 +398,9 @@ export default function DataImportCenter() {
 
   const toggleSelectedDate = (date, status) => {
     setSelectedDates((current) => {
-      const isSelected = current.includes(date);
-      if (isSelected) {
-        if (status === 'COMPLETE') {
-          setRefreshDates((refCurrent) => refCurrent.filter((item) => item !== date));
-        }
-        return current.filter((item) => item !== date);
-      } else {
-        if (status === 'COMPLETE') {
-          setRefreshDates((refCurrent) => [...refCurrent, date].sort());
-        }
-        return [...current, date].sort();
-      }
+      const next = toggleDateSelection(current, refreshDates, date, status);
+      setRefreshDates(next.refreshDates);
+      return next.selectedDates;
     });
   };
 
@@ -432,16 +429,9 @@ export default function DataImportCenter() {
   const tctAllSelectableChosen = tctAllSelectableDates.length > 0 && tctAllSelectableDates.every((date) => tctSelectedDates.includes(date));
 
   const toggleAllSelectableDates = () => {
-    if (allSelectableChosen) {
-      setSelectedDates([]);
-      setRefreshDates([]);
-    } else {
-      setSelectedDates(allSelectableDates);
-      const completeSelectables = selectableScanRows
-        .filter((item) => item.status === 'COMPLETE')
-        .map((item) => item.measurement_date);
-      setRefreshDates(completeSelectables);
-    }
+    const next = toggleAllDates(allSelectableChosen, allSelectableDates, selectableScanRows);
+    setSelectedDates(next.selectedDates);
+    setRefreshDates(next.refreshDates);
   };
 
   const toggleAllTctSelectableDates = () => {
@@ -464,7 +454,7 @@ export default function DataImportCenter() {
   const tctUpdateDisabled = !tctSessionReady || tctSelectedDates.length === 0 || tctQueueSubmitting || tctQueueIsActive;
   // Submit is disabled if: no session, no dates selected, submitting, or queue active.
   // Checkbox selection is INDEPENDENT of session readiness per contract.
-  const updateDisabled = !hueSessionReady || selectedDates.length === 0 || queueSubmitting || queueIsActive;
+  const updateDisabled = isSubmitDisabled(hueSessionReady, selectedDates.length, queueSubmitting, queueIsActive);
 
   const handleStartBackfillQueue = async () => {
     setQueueSubmitting(true);
@@ -1224,7 +1214,13 @@ export default function DataImportCenter() {
                           type="checkbox"
                           checked={selectedDates.includes(item.measurement_date)}
                           onChange={() => toggleSelectedDate(item.measurement_date, item.status)}
-                          disabled={!item.selectable || queueIsActive || queueSubmitting}
+                          disabled={isCheckboxDisabled(item.selectable, queueIsActive, queueSubmitting)}
+                          data-status={item.status}
+                          data-selectable={String(item.selectable)}
+                          data-queue-active={String(Boolean(queueIsActive))}
+                          data-queue-submitting={String(Boolean(queueSubmitting))}
+                          data-selected={String(selectedDates.includes(item.measurement_date))}
+                          data-refresh-selected={String(refreshDates.includes(item.measurement_date))}
                           className="h-4 w-4 rounded border-gray-300 text-vnpost-blue focus:ring-vnpost-blue"
                           aria-label={`Chọn ngày ${item.measurement_date}`}
                         />

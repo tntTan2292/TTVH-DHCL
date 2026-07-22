@@ -6,8 +6,8 @@ const apiClientSource = fs.readFileSync(new URL('../api/client.js', import.meta.
 
 assert.match(
   pageSource,
-  /const updateDisabled = !hueSessionReady \|\| selectedDates\.length === 0 \|\| queueSubmitting \|\| queueIsActive;/,
-  'Update must be disabled without selected dates, during submit, or while a queue is active'
+  /const updateDisabled = isSubmitDisabled\(hueSessionReady, selectedDates\.length, queueSubmitting, queueIsActive\);/,
+  'Update must use the shared submit helper to stay disabled without session, selected dates, during submit, or while a queue is active'
 );
 assert.match(
   pageSource,

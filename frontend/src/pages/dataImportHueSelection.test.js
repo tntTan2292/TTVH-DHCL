@@ -164,6 +164,30 @@ assert.strictEqual(
 import fs from 'node:fs';
 const src = fs.readFileSync(new URL('./DataImportCenter.jsx', import.meta.url), 'utf8');
 
+assert.match(
+  src,
+  /from '\.\/hueSelectionHelpers'/,
+  'DataImportCenter must import the Hue selection helper module'
+);
+
+assert.match(
+  src,
+  /toggleDateSelection\(current, refreshDates, date, status\)/,
+  'Production single-date selection must use toggleDateSelection helper'
+);
+
+assert.match(
+  src,
+  /toggleAllDates\(allSelectableChosen, allSelectableDates, selectableScanRows\)/,
+  'Production select-all must use toggleAllDates helper'
+);
+
+assert.doesNotMatch(
+  src,
+  /const isSelected = current\.includes\(date\);[\s\S]*setRefreshDates\(\(refCurrent\)/,
+  'DataImportCenter must not retain the old inline Hue selection implementation'
+);
+
 // Checkbox must NOT be disabled by session readiness alone
 assert.doesNotMatch(
   src,
@@ -174,15 +198,15 @@ assert.doesNotMatch(
 // Checkbox must be disabled only by !item.selectable, queueIsActive, queueSubmitting
 assert.match(
   src,
-  /disabled=\{!item\.selectable \|\| queueIsActive \|\| queueSubmitting\}/,
-  'Checkbox must use the contract-correct disabled condition'
+  /disabled=\{isCheckboxDisabled\(item\.selectable, queueIsActive, queueSubmitting\)\}/,
+  'Checkbox must use the contract-correct helper'
 );
 
 // Submit button must still gate on session readiness
 assert.match(
   src,
-  /const updateDisabled = !hueSessionReady \|\| selectedDates\.length === 0 \|\| queueSubmitting \|\| queueIsActive/,
-  'Submit button must be disabled when session is not ready'
+  /const updateDisabled = isSubmitDisabled\(hueSessionReady, selectedDates\.length, queueSubmitting, queueIsActive\)/,
+  'Submit button must be disabled through the helper when session is not ready'
 );
 
 // New scan must clear refreshDates to prevent stale Re-Update state
@@ -205,5 +229,27 @@ assert.match(
   /Update \(\$\{selectedDates\.length\}\)/,
   'Button label must show Update with count when missing dates are selected'
 );
+
+const nonResetFunctionPatterns = [
+  /const preflightHueSession = useCallback\(async \(\) => \{[\s\S]*?\n  \}, \[\]\);/,
+  /const fetchStatus = useCallback\(async \(\{[\s\S]*?\n  \}, \[page, pageSize\]\);/,
+  /const fetchQueue = useCallback\(async \(queueId\) => \{[\s\S]*?\n  \}, \[\]\);/,
+  /const fetchActiveQueue = useCallback\(async \(\) => \{[\s\S]*?\n  \}, \[\]\);/
+];
+
+for (const pattern of nonResetFunctionPatterns) {
+  const match = src.match(pattern);
+  assert.ok(match, 'Expected polling/preflight function source to be present');
+  assert.doesNotMatch(
+    match[0],
+    /setSelectedDates\(\[\]\)|setRefreshDates\(\[\]\)/,
+    'Preflight/status/queue polling must not clear Hue selection'
+  );
+}
+
+const scanFunction = src.match(/const handleScanMissingDates = async \(\) => \{[\s\S]*?\n  \};/);
+assert.ok(scanFunction, 'Expected handleScanMissingDates source to be present');
+assert.match(scanFunction[0], /setSelectedDates\(\[\]\)/, 'Explicit Hue scan must clear selectedDates');
+assert.match(scanFunction[0], /setRefreshDates\(\[\]\)/, 'Explicit Hue scan must clear refreshDates');
 
 console.log('Hue complete-date re-update selection — ALL targeted logic tests PASSED.');
