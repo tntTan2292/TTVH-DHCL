@@ -200,8 +200,9 @@
 
 ## AUTO-IMPORT-006 Unified DKCL Authentication Lifecycle Recovery Status
 
-- Ticket status: `COMPLETED / CODE COMPLETE / PO RUNTIME CHECK LATER`.
+- Ticket status: `ACTIVE / PO RECHECK`.
 - Primary executor: `Antigravity`.
 - Scope: separate HUE login trigger, block automatic interactive login in HUE queue check, resolve TCT interactive client factory configuration omission, CDP best-effort minimize, and browser manual closed listener/Registry.
 - Technical evidence: all unit tests passed for sync and backfill service components, oxlint passed with zero errors, production bundle built successfully.
+- Remediation 001: Resolved initialization crash on `/import` due to lexical declaration order of `preflightHueSession` and `preflightTctSession`. Added frontend test matrix validation.
 

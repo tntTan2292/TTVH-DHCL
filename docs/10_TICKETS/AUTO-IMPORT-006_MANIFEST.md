@@ -3,9 +3,9 @@
 - Ticket ID: `AUTO-IMPORT-006`
 - Ticket Name: `Unified DKCL Authentication Lifecycle Recovery`
 - Phase: `Auto Import / Smart Leadership Dashboard Implementation`
-- Current state: `ACTIVE / PO CHECK`
+- Current state: `ACTIVE / PO RECHECK`
 - Technical Status: `PASS`
-- Runtime Status: `AWAITING PO CHECK`
+- Runtime Status: `AWAITING PO RECHECK`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT READY`
 - Activation date: `2026-07-22`

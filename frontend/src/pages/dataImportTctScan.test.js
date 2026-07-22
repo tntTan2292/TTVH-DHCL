@@ -35,7 +35,7 @@ assert.match(
 );
 assert.match(
   pageSource,
-  /const tctUpdateDisabled = \(tctSessionReady && tctSelectedDates\.length === 0\) \|\| tctQueueSubmitting \|\| tctQueueIsActive;/,
+  /const tctUpdateDisabled = !tctSessionReady \|\| \(tctSessionReady && tctSelectedDates\.length === 0\) \|\| tctQueueSubmitting \|\| tctQueueIsActive;/,
   'TCT Update must route a not-ready operator into interactive login and otherwise require selected dates'
 );
 assert.match(
