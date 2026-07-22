@@ -82,7 +82,7 @@ class DkclHueF13BackfillService {
             results.push({
                 measurement_date: date,
                 status,
-                selectable: status === 'MISSING',
+                selectable: status === 'MISSING' || status === 'COMPLETE',
                 evidence: {
                     standardized_filename: standardizedFilename(date),
                     row_count: completion.rowCount || 0,
@@ -206,7 +206,7 @@ class DkclHueF13BackfillService {
         };
     }
 
-    async startQueue(dates = []) {
+    async startQueue(dates = [], refreshDates = []) {
         if (this.hasActiveQueue()) {
             const error = new Error('A Hue F1.3 backfill queue is already active.');
             error.code = 'QUEUE_ALREADY_ACTIVE';
@@ -214,11 +214,13 @@ class DkclHueF13BackfillService {
         }
 
         const normalizedDates = this.normalizeSelectedDates(dates);
+        const normalizedRefreshDates = Array.isArray(refreshDates) ? refreshDates.map((date) => normalizeDate(date, 'refresh_date')) : [];
         const items = [];
 
         for (const date of normalizedDates) {
             const completion = await this.syncService.checkCompleted(date);
-            if (completion.complete) {
+            const refreshRequested = normalizedRefreshDates.includes(date);
+            if (completion.complete && !refreshRequested) {
                 const error = new Error(`Date ${date} already has completed Hue F1.3 import evidence.`);
                 error.code = 'DATE_ALREADY_COMPLETED';
                 throw error;

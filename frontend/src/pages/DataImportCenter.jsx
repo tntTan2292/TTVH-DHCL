@@ -82,6 +82,8 @@ export default function DataImportCenter() {
   const [queue, setQueue] = useState(null);
   const [queueError, setQueueError] = useState(null);
   const [queueSubmitting, setQueueSubmitting] = useState(false);
+  const [refreshDates, setRefreshDates] = useState([]);
+  const [tctSessionLoading, setTctSessionLoading] = useState(false);
   const [tctWindow, setTctWindow] = useState(defaultBackfillWindow);
   const [tctCoverage, setTctCoverage] = useState(null);
   const [tctCoverageError, setTctCoverageError] = useState(null);
@@ -387,29 +389,38 @@ export default function DataImportCenter() {
     }
   };
 
-  const toggleSelectedDate = (date) => {
-    setSelectedDates((current) => (
-      current.includes(date)
-        ? current.filter((item) => item !== date)
-        : [...current, date].sort()
-    ));
+  const toggleSelectedDate = (date, status) => {
+    setSelectedDates((current) => {
+      const isSelected = current.includes(date);
+      if (isSelected) {
+        if (status === 'COMPLETE') {
+          setRefreshDates((refCurrent) => refCurrent.filter((item) => item !== date));
+        }
+        return current.filter((item) => item !== date);
+      } else {
+        if (status === 'COMPLETE') {
+          setRefreshDates((refCurrent) => [...refCurrent, date].sort());
+        }
+        return [...current, date].sort();
+      }
+    });
   };
 
-  const toggleTctSelectedDate = (date) => {
-    setTctSelectedDates((current) => (
-      current.includes(date)
-        ? current.filter((item) => item !== date)
-        : [...current, date].sort()
-    ));
-  };
-
-  const toggleTctRefreshDate = (date) => {
-    setTctRefreshDates((current) => (
-      current.includes(date) ? current.filter((item) => item !== date) : [...current, date].sort()
-    ));
-    setTctSelectedDates((current) => (
-      current.includes(date) ? current : [...current, date].sort()
-    ));
+  const toggleTctSelectedDate = (date, status) => {
+    setTctSelectedDates((current) => {
+      const isSelected = current.includes(date);
+      if (isSelected) {
+        if (status === 'COMPLETE') {
+          setTctRefreshDates((refCurrent) => refCurrent.filter((item) => item !== date));
+        }
+        return current.filter((item) => item !== date);
+      } else {
+        if (status === 'COMPLETE') {
+          setTctRefreshDates((refCurrent) => [...refCurrent, date].sort());
+        }
+        return [...current, date].sort();
+      }
+    });
   };
 
   const selectableScanRows = scanResult?.results?.filter((item) => item.selectable) || [];
@@ -420,11 +431,29 @@ export default function DataImportCenter() {
   const tctAllSelectableChosen = tctAllSelectableDates.length > 0 && tctAllSelectableDates.every((date) => tctSelectedDates.includes(date));
 
   const toggleAllSelectableDates = () => {
-    setSelectedDates(allSelectableChosen ? [] : allSelectableDates);
+    if (allSelectableChosen) {
+      setSelectedDates([]);
+      setRefreshDates([]);
+    } else {
+      setSelectedDates(allSelectableDates);
+      const completeSelectables = selectableScanRows
+        .filter((item) => item.status === 'COMPLETE')
+        .map((item) => item.measurement_date);
+      setRefreshDates(completeSelectables);
+    }
   };
 
   const toggleAllTctSelectableDates = () => {
-    setTctSelectedDates(tctAllSelectableChosen ? [] : tctAllSelectableDates);
+    if (tctAllSelectableChosen) {
+      setTctSelectedDates([]);
+      setTctRefreshDates([]);
+    } else {
+      setTctSelectedDates(tctAllSelectableDates);
+      const completeSelectables = tctSelectableScanRows
+        .filter((item) => item.status === 'COMPLETE')
+        .map((item) => item.measurement_date);
+      setTctRefreshDates(completeSelectables);
+    }
   };
 
   const queueIsActive = queue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(queue.status);
@@ -439,11 +468,13 @@ export default function DataImportCenter() {
     setQueueError(null);
     try {
       const res = await api.post('/import/dkcl/hue/f13/backfill-queue', {
-        dates: selectedDates
+        dates: selectedDates,
+        refresh_dates: refreshDates
       });
       if (res.data.success) {
         setQueue(res.data.data);
         setSelectedDates([]);
+        setRefreshDates([]);
       }
     } catch (err) {
       console.error('[DataImportCenter] startBackfillQueue error:', err);
@@ -527,6 +558,7 @@ export default function DataImportCenter() {
 
   const handleInteractiveTctLogin = async () => {
     setTctSessionError(null);
+    setTctSessionLoading(true);
     try {
       const res = await api.post('/import/dkcl/session/interactive-auth', { source: 'TCT' });
       setTctSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
@@ -538,6 +570,8 @@ export default function DataImportCenter() {
       const status = err.response?.data?.data?.status || 'AUTHENTICATION_REQUIRED';
       setTctSessionStatus(status);
       setTctSessionError(err.response?.data?.data?.error?.message || 'Không thể hoàn tất đăng nhập TCT DKCL.');
+    } finally {
+      setTctSessionLoading(false);
     }
   };
 
@@ -565,7 +599,7 @@ export default function DataImportCenter() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+    <div className="w-full px-4 py-6 md:px-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">Data Import Center</h1>
@@ -657,25 +691,21 @@ export default function DataImportCenter() {
           </div>
 
           {tctSessionError && (
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
               <div>{tctSessionError}</div>
-              {tctSessionStatus === 'AUTHENTICATION_REQUIRED' && (
-                <button
-                  type="button"
-                  onClick={handleInteractiveTctLogin}
-                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800"
-                >
-                  Đăng nhập TCT DKCL
-                </button>
-              )}
             </div>
           )}
 
           {!tctSessionReady && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" data-testid="tct-not-ready">
-              Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ TCT.
-              <button type="button" onClick={handleInteractiveTctLogin} className="ml-3 mt-2 inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800">
-                Mở đăng nhập TCT
+              <span>Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ TCT.</span>
+              <button
+                type="button"
+                onClick={handleInteractiveTctLogin}
+                disabled={tctSessionLoading}
+                className="ml-3 mt-2 inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+              >
+                {tctSessionLoading ? 'Đang mở browser...' : 'Mở đăng nhập TCT'}
               </button>
             </div>
           )}
@@ -686,7 +716,7 @@ export default function DataImportCenter() {
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-6">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
               <p className="text-xs font-bold uppercase text-gray-500">Năm có dữ liệu</p>
               <p className="mt-1 text-sm font-black text-gray-900">{formatDateList(tctCoverage?.available_years)}</p>
@@ -709,7 +739,7 @@ export default function DataImportCenter() {
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
               <p className="text-xs font-bold uppercase text-gray-500">Import TCT thành công mới nhất</p>
               <p className="mt-1 text-sm font-bold text-gray-900">
@@ -816,7 +846,7 @@ export default function DataImportCenter() {
                 title="Tạo hàng đợi bù dữ liệu TCT F1.3"
               >
                 {tctQueueSubmitting ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
-                {tctSessionReady ? `Update (${tctSelectedDates.length})` : 'Mở đăng nhập để Update'}
+                {tctRefreshDates.length > 0 ? `Re-Update (${tctSelectedDates.length})` : (tctSessionReady ? `Update (${tctSelectedDates.length})` : 'Mở đăng nhập để Update')}
               </button>
             </div>
 
@@ -853,8 +883,8 @@ export default function DataImportCenter() {
                         <input
                           type="checkbox"
                           checked={tctSelectedDates.includes(item.measurement_date)}
-                          onChange={() => item.status === 'COMPLETE' ? toggleTctRefreshDate(item.measurement_date) : toggleTctSelectedDate(item.measurement_date)}
-                          disabled={!item.selectable && item.status !== 'COMPLETE'}
+                          onChange={() => toggleTctSelectedDate(item.measurement_date, item.status)}
+                          disabled={!item.selectable}
                           className="h-4 w-4 rounded border-gray-300 text-vnpost-blue focus:ring-vnpost-blue"
                           aria-label={`Chọn ngày TCT ${item.measurement_date}`}
                         />
@@ -864,7 +894,7 @@ export default function DataImportCenter() {
                         {item.status === 'COMPLETE' && (
                           <button
                             type="button"
-                            onClick={() => toggleTctRefreshDate(item.measurement_date)}
+                            onClick={() => toggleTctSelectedDate(item.measurement_date, item.status)}
                             className="mr-2 rounded border border-vnpost-blue px-2 py-1 text-xs font-bold text-vnpost-blue hover:bg-blue-50"
                           >
                             Update lại
@@ -877,7 +907,7 @@ export default function DataImportCenter() {
                               ? 'bg-green-100 text-green-800'
                               : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {item.status === 'INCOMPLETE' ? 'Xử lý lại' : item.status}
+                          {item.status === 'COMPLETE' ? 'Đã có — có thể cập nhật lại' : (item.status === 'INCOMPLETE' ? 'Xử lý lại' : item.status)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-700">{item.evidence.distinct_ranked_unit_count.toLocaleString('vi-VN')}/34</td>
@@ -1002,7 +1032,7 @@ export default function DataImportCenter() {
             </div>
           )}
 
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-6">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
               <p className="text-xs font-bold uppercase text-gray-500">Năm có dữ liệu</p>
               <p className="mt-1 text-sm font-black text-gray-900">{formatDateList(coverage?.available_years)}</p>
@@ -1025,7 +1055,7 @@ export default function DataImportCenter() {
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
               <p className="text-xs font-bold uppercase text-gray-500">Import thành công mới nhất</p>
               <p className="mt-1 text-sm font-bold text-gray-900">
@@ -1047,24 +1077,14 @@ export default function DataImportCenter() {
           </div>
           
           {hueSessionError && (
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
               <div>{hueSessionError}</div>
-              {hueSessionStatus === 'AUTHENTICATION_REQUIRED' && (
-                <button
-                  type="button"
-                  onClick={handleInteractiveHueLogin}
-                  disabled={hueSessionLoading}
-                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
-                >
-                  {hueSessionLoading ? 'Đang mở browser...' : 'Đăng nhập Huế DKCL'}
-                </button>
-              )}
             </div>
           )}
 
           {!hueSessionReady && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" data-testid="hue-not-ready">
-              Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ Huế.
+              <span>Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ Huế.</span>
               <button
                 type="button"
                 onClick={handleInteractiveHueLogin}
@@ -1155,7 +1175,7 @@ export default function DataImportCenter() {
                 disabled={allSelectableDates.length === 0}
                 className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
               >
-                {allSelectableChosen ? 'Bỏ chọn tất cả' : 'Chọn tất cả ngày thiếu'}
+                {allSelectableChosen ? 'Bỏ chọn tất cả' : 'Chọn tất cả ngày có thể xử lý'}
               </button>
               <button
                 type="button"
@@ -1166,7 +1186,7 @@ export default function DataImportCenter() {
                 title="Tạo hàng đợi bù dữ liệu Huế F1.3"
               >
                 {queueSubmitting ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
-                Update ({selectedDates.length})
+                {refreshDates.length > 0 ? `Re-Update (${selectedDates.length})` : (hueSessionReady ? `Update (${selectedDates.length})` : 'Mở đăng nhập để Update')}
               </button>
             </div>
 
@@ -1194,7 +1214,7 @@ export default function DataImportCenter() {
                         <input
                           type="checkbox"
                           checked={selectedDates.includes(item.measurement_date)}
-                          onChange={() => toggleSelectedDate(item.measurement_date)}
+                          onChange={() => toggleSelectedDate(item.measurement_date, item.status)}
                           disabled={!item.selectable}
                           className="h-4 w-4 rounded border-gray-300 text-vnpost-blue focus:ring-vnpost-blue"
                           aria-label={`Chọn ngày ${item.measurement_date}`}
@@ -1209,7 +1229,7 @@ export default function DataImportCenter() {
                               ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
                         }`}>
-                          {item.status}
+                          {item.status === 'COMPLETE' ? 'Đã có — có thể cập nhật lại' : item.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-700">{item.evidence.row_count.toLocaleString('vi-VN')}</td>

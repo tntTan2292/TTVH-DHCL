@@ -120,8 +120,8 @@ class TctF13BackfillService {
             results.push({
                 measurement_date: date,
                 status,
-                selectable: status === 'MISSING' || status === 'INCOMPLETE',
-                action: status === 'INCOMPLETE' ? 'Xử lý lại' : (status === 'MISSING' ? 'Update' : null),
+                selectable: status === 'MISSING' || status === 'INCOMPLETE' || status === 'COMPLETE',
+                action: status === 'COMPLETE' ? 'Re-Update' : (status === 'INCOMPLETE' ? 'Xử lý lại' : 'Update'),
                 evidence: {
                     row_count: completion.rowCount || 0,
                     distinct_ranked_unit_count: completion.distinctCount || 0,

@@ -86,7 +86,7 @@ function makeDb() {
     assert.strictEqual(scan.results.find((item) => item.measurement_date === '2026-07-18').status, 'INCOMPLETE', 'partial evidence is incomplete');
     assert.strictEqual(scan.results.find((item) => item.measurement_date === '2026-07-18').selectable, true, 'partial 1..33/34 evidence is retryable/selectable');
     assert.strictEqual(scan.results.find((item) => item.measurement_date === '2026-07-17').selectable, true, 'missing date is selectable');
-    assert.strictEqual(scan.results.find((item) => item.measurement_date === '2026-07-19').selectable, false, 'completed date is not selectable');
+    assert.strictEqual(scan.results.find((item) => item.measurement_date === '2026-07-19').selectable, true, 'completed date is selectable');
 
     console.log('\nTEST 3: queue sequencing and evidence');
     const processed = [];

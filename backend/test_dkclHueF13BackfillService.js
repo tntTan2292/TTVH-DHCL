@@ -95,7 +95,7 @@ async function runTests() {
 
     assert('completion check is called sequentially by date', calls.join(',') === '2026-07-16,2026-07-17,2026-07-18');
     assert('summary counts are correct', result.complete_count === 1 && result.manual_review_count === 1 && result.missing_count === 1);
-    assert('complete date is not selectable', result.results[0].status === 'COMPLETE' && result.results[0].selectable === false);
+    assert('complete date is selectable', result.results[0].status === 'COMPLETE' && result.results[0].selectable === true);
     assert('manual review date is not selectable', result.results[1].status === 'MANUAL_REVIEW_REQUIRED' && result.results[1].selectable === false);
     assert('missing date is selectable', result.results[2].status === 'MISSING' && result.results[2].selectable === true);
     assert('standardized evidence filename is returned', result.results[2].evidence.standardized_filename === 'F1.3-2026.07.18.xlsx');

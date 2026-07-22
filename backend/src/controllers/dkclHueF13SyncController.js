@@ -93,7 +93,7 @@ class DkclHueF13SyncController {
 
     async startBackfillQueue(req, res) {
         try {
-            const data = await backfillService.startQueue(req.body?.dates);
+            const data = await backfillService.startQueue(req.body?.dates, req.body?.refresh_dates);
             return res.status(202).json({ success: true, data });
         } catch (error) {
             const code = error.code || 'HUE_F13_BACKFILL_QUEUE_REJECTED';

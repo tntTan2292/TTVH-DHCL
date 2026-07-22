@@ -4,7 +4,8 @@ const assert = require('assert');
 const {
     DkclSessionPreflightService,
     PREFLIGHT_STATUSES,
-    SOURCE_CONFIG
+    SOURCE_CONFIG,
+    globalRegistry
 } = require('./src/services/dkclSessionPreflightService');
 
 function makeClient({ authenticateImpl, calls }) {
@@ -87,7 +88,7 @@ function makeClient({ authenticateImpl, calls }) {
     const interactive = await interactiveService.interactiveAuthenticate('TCT');
     assert.strictEqual(interactive.status, PREFLIGHT_STATUSES.SESSION_VALID, 'manual login returns valid only after the source page is ready');
     assert.strictEqual(interactiveService.getInteractiveClient('TCT'), interactiveClient, 'ready browser is retained for queue work');
-    assert(!interactiveCalls.some((call) => call[0] === 'minimize'), 'browser remains visible until date-specific export readiness passes');
+    assert(interactiveCalls.some((call) => call[0] === 'minimize'), 'browser minimizes after login success');
     assert.strictEqual(interactive.export_readiness, 'NOT_CHECKED', 'session validity alone is not export readiness');
     const activePreflight = await interactiveService.preflight('TCT');
     assert.strictEqual(activePreflight.status, PREFLIGHT_STATUSES.SESSION_VALID, 'active browser preflight remains valid without opening another process');
@@ -100,7 +101,15 @@ function makeClient({ authenticateImpl, calls }) {
         async restoreWindow() { redirectedCalls.push(['restore']); },
         async openF13Report() { redirectedCalls.push(['open-report']); }
     };
-    interactiveService.interactiveClients.set('TCT', redirectedClient);
+    globalRegistry.set('TCT', {
+        state: 'BACKGROUND_READY',
+        client: redirectedClient,
+        openingPromise: null,
+        authenticated: true,
+        backgroundReady: true,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
     const redirectedPreflight = await interactiveService.preflight('TCT');
     assert.strictEqual(redirectedPreflight.status, PREFLIGHT_STATUSES.SESSION_VALID, 'active authenticated portal returns to F1.3 before preflight succeeds');
     assert(redirectedCalls.some((call) => call[0] === 'open-report'), 'file-management tab is redirected to the F1.3 report page');
