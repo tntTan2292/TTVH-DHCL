@@ -54,6 +54,17 @@ function makeDb() {
     };
 }
 
+function removeDirEventually(dir) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        try {
+            fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+            return;
+        } catch (error) {
+            if (attempt === 4) throw error;
+        }
+    }
+}
+
 (async () => {
     const fixtureProcessedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tct-f13-fixture-processed-'));
     process.env.DKCL_TCT_PROCESSED_DIR = fixtureProcessedDir;
@@ -297,7 +308,7 @@ function makeDb() {
         }
     );
     assert.strictEqual(fs.existsSync(invalidWorkbook), true, 'temporary workbook is retained after failure');
-    fs.rmSync(cleanupDir, { recursive: true, force: true });
+    removeDirEventually(cleanupDir);
 
     const authRetryService = new TctF13BackfillService({
         db: makeDb(),
@@ -393,8 +404,8 @@ function makeDb() {
     assert.strictEqual(importCalls.at(-1).forceReimport, true, 'explicit COMPLETE refresh uses transactional re-import');
     assert.strictEqual(refreshed.replaced_incomplete_evidence, true, 'refresh evidence records the reconciliation path');
     assert.strictEqual(fs.existsSync(refreshed.processed_file_path), true, 'refreshed processed workbook exists');
-    fs.rmSync(replaceDir, { recursive: true, force: true });
-    fs.rmSync(replaceProcessedDir, { recursive: true, force: true });
+    removeDirEventually(replaceDir);
+    removeDirEventually(replaceProcessedDir);
 
     console.log('\nTEST 8: persistence failure keeps source file and skips portal cleanup');
     const persistRawDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tct-f13-persist-'));
@@ -439,9 +450,9 @@ function makeDb() {
     );
     assert.strictEqual(cleanupAttempted, false, 'portal cleanup is skipped when processed persistence fails');
     assert.strictEqual(fs.existsSync(persistWorkbook), true, 'source workbook remains after persistence failure');
-    fs.rmSync(persistRawDir, { recursive: true, force: true });
+    removeDirEventually(persistRawDir);
     fs.rmSync(blockedProcessedPath, { force: true });
-    fs.rmSync(fixtureProcessedDir, { recursive: true, force: true });
+    removeDirEventually(fixtureProcessedDir);
 
     console.log('\nRESULT: tctF13BackfillService checks passed');
 })().catch((error) => {

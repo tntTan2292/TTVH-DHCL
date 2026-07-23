@@ -73,6 +73,139 @@ async function runTests() {
     assert.strictEqual(liveRes.matchingProcesses[0].pid, 1234);
     console.log('PASS');
 
+    console.log('--- TEST 5: descendant process tree includes browser children ---');
+    const treeMgr = new BrowserProcessManager({
+        execAsync: async () => ({
+            stdout: JSON.stringify([
+                { ProcessId: 100, ParentProcessId: 1 },
+                { ProcessId: 110, ParentProcessId: 100 },
+                { ProcessId: 111, ParentProcessId: 110 },
+                { ProcessId: 200, ParentProcessId: 1 }
+            ])
+        })
+    });
+    const descendants = await treeMgr.getDescendantProcessIds([100]);
+    assert.deepStrictEqual(descendants.sort((a, b) => a - b), [100, 110, 111]);
+    console.log('PASS');
+
+    console.log('--- TEST 6: HUE native hide uses exact profile process ownership ---');
+    const hueCommands = [];
+    const hueMgr = new BrowserProcessManager({
+        execAsync: async (cmd) => {
+            hueCommands.push(cmd);
+            if (cmd.includes('Get-CimInstance Win32_Process -Filter')) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 5300, CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\HUE"' },
+                        { ProcessId: 5400, CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\TCT"' }
+                    ])
+                };
+            }
+            if (cmd.includes('Get-CimInstance Win32_Process | Select-Object ProcessId')) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 5300, ParentProcessId: 100 },
+                        { ProcessId: 5301, ParentProcessId: 5300 },
+                        { ProcessId: 5400, ParentProcessId: 100 }
+                    ])
+                };
+            }
+            return {
+                stdout: JSON.stringify({
+                    success: true,
+                    action: 'HIDE',
+                    matchedWindowCount: 1,
+                    affectedWindowCount: 1,
+                    windows: [{ hwnd: 77, pid: 5301, isVisible: false }]
+                })
+            };
+        }
+    });
+    const hueHide = await hueMgr.hideBrowserWindowsByProfile('D:\\Data DKCL\\BrowserProfiles\\HUE');
+    assert.strictEqual(hueHide.success, true);
+    assert.deepStrictEqual(hueHide.rootPids, [5300]);
+    assert(hueHide.processIds.includes(5301), 'child window process is included');
+    assert(!hueHide.processIds.includes(5400), 'TCT process is not included while hiding HUE');
+    assert(hueCommands.some((cmd) => cmd.includes('-EncodedCommand')), 'native ShowWindow path is used');
+    console.log('PASS');
+
+    console.log('--- TEST 7: TCT native hide does not target HUE profile process ---');
+    const tctMgr = new BrowserProcessManager({
+        execAsync: async (cmd) => {
+            if (cmd.includes('Get-CimInstance Win32_Process -Filter')) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 5300, CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\HUE"' },
+                        { ProcessId: 5400, CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\TCT"' }
+                    ])
+                };
+            }
+            if (cmd.includes('Get-CimInstance Win32_Process | Select-Object ProcessId')) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 5300, ParentProcessId: 100 },
+                        { ProcessId: 5400, ParentProcessId: 100 },
+                        { ProcessId: 5401, ParentProcessId: 5400 }
+                    ])
+                };
+            }
+            return {
+                stdout: JSON.stringify({
+                    success: false,
+                    action: 'HIDE',
+                    matchedWindowCount: 1,
+                    affectedWindowCount: 0,
+                    windows: [{ hwnd: 88, pid: 5401, isVisible: true }]
+                })
+            };
+        }
+    });
+    const tctHide = await tctMgr.hideBrowserWindowsByProfile('D:\\Data DKCL\\BrowserProfiles\\TCT');
+    assert.strictEqual(tctHide.success, false, 'native failure is not marked successful');
+    assert.deepStrictEqual(tctHide.rootPids, [5400]);
+    assert(tctHide.processIds.includes(5401), 'TCT child window process is included');
+    assert(!tctHide.processIds.includes(5300), 'HUE root process is not included while hiding TCT');
+    console.log('PASS');
+
+    console.log('--- TEST 8: native handle hide verifies process ownership before ShowWindow ---');
+    const handleMgr = new BrowserProcessManager({
+        execAsync: async (cmd) => {
+            if (cmd.includes('Get-CimInstance Win32_Process -Filter')) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 6100, CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\HUE"' }
+                    ])
+                };
+            }
+            if (cmd.includes('Get-CimInstance Win32_Process | Select-Object ProcessId')) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 6100, ParentProcessId: 100 },
+                        { ProcessId: 6101, ParentProcessId: 6100 }
+                    ])
+                };
+            }
+            return {
+                stdout: JSON.stringify({
+                    success: true,
+                    action: 'HIDE',
+                    hwnd: 999,
+                    pid: 6101,
+                    owned: true,
+                    wasVisible: true,
+                    isVisible: false,
+                    nativeResult: true
+                })
+            };
+        }
+    });
+    const handleHide = await handleMgr.setWindowVisibleByHandleForProfile('D:\\Data DKCL\\BrowserProfiles\\HUE', 999, false);
+    assert.strictEqual(handleHide.success, true);
+    assert.strictEqual(handleHide.owned, true);
+    assert.deepStrictEqual(handleHide.rootPids, [6100]);
+    assert(handleHide.processIds.includes(6101), 'handle owner child process is included');
+    console.log('PASS');
+
     console.log('All tests passed.');
 }
 

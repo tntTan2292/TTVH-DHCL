@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { selectNewestGeneratedFile } = require('./dkclHueF13SyncService');
+const processManager = require('./browserProcessManager');
 
 const DETAIL_METRIC_HEADER = 'SL bưu gửi phát thành công/Nộp tiền/CH';
 
@@ -193,9 +194,45 @@ class DkclHueF13PortalClient {
         }
     }
 
-    async minimizeWindow() { return this.setWindowState('minimized'); }
+    async hideWindow() {
+        if (!this.page || !this.profileDir) return false;
+        let result = null;
+        try {
+            const session = await this.page.context().newCDPSession(this.page);
+            const { windowId } = await session.send('Browser.getWindowForTarget');
+            await session.detach().catch(() => {});
+            result = await processManager.setWindowVisibleByHandleForProfile(this.profileDir, windowId, false);
+        } catch (error) {
+            console.warn(`[PortalClient ${this.source}] hideWindow handle lookup failed: ${error.message}`);
+        }
+        if (!result?.success) {
+            result = await processManager.hideBrowserWindowsByProfile(this.profileDir);
+        }
+        if (!result.success) {
+            console.warn(`[PortalClient ${this.source}] hideWindow failed: ${result.errorCode || 'NO_MATCHING_WINDOW'}`);
+        }
+        return Boolean(result.success);
+    }
 
-    async restoreWindow() { return this.setWindowState('normal'); }
+    async hideBrowserWindow() { return this.hideWindow(); }
+
+    async minimizeWindow() { return this.hideWindow(); }
+
+    async restoreWindow() {
+        if (this.profileDir) {
+            try {
+                if (this.page) {
+                    const session = await this.page.context().newCDPSession(this.page);
+                    const { windowId } = await session.send('Browser.getWindowForTarget');
+                    await session.detach().catch(() => {});
+                    await processManager.setWindowVisibleByHandleForProfile(this.profileDir, windowId, true).catch(() => {});
+                }
+            } catch (_) {
+                await processManager.showBrowserWindowsByProfile(this.profileDir).catch(() => {});
+            }
+        }
+        return this.setWindowState('normal');
+    }
 
     async performOneLoginAttempt({ username, password, hrmCode }) {
         if (this.loginAttempts >= 1) {

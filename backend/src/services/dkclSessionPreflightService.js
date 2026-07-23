@@ -57,8 +57,8 @@ function getOrCreateRegistryEntry(source) {
             openingPromise: null,
             authenticated: false,
             backgroundReady: false,
-            minimized: false,
-            minimizeAttempted: false,
+            windowHidden: false,
+            hideAttempted: false,
             lastError: null,
             updatedAt: new Date().toISOString()
         });
@@ -135,7 +135,18 @@ class DkclSessionPreflightService {
 
         if (entry.client) {
             let ready = await entry.client.isF13ReportReady().catch(() => false);
-            if (!ready && entry.client.isAuthenticated && await entry.client.isAuthenticated().catch(() => false)) {
+            const authenticated = entry.client.isAuthenticated
+                ? await entry.client.isAuthenticated().catch(() => false)
+                : false;
+            if (!ready && authenticated && sourceConfig.source === 'HUE') {
+                await entry.client.openF13Report?.().catch(() => {});
+                entry.state = 'BACKGROUND_READY';
+                entry.authenticated = true;
+                entry.backgroundReady = true;
+                entry.updatedAt = new Date().toISOString();
+                return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true };
+            }
+            if (!ready && authenticated) {
                 await entry.client.restoreWindow?.().catch(() => {});
                 await entry.client.openF13Report?.().catch(() => {});
                 ready = await entry.client.isF13ReportReady().catch(() => false);
@@ -154,8 +165,8 @@ class DkclSessionPreflightService {
             entry.client = null;
             entry.authenticated = false;
             entry.backgroundReady = false;
-            entry.minimized = false;
-            entry.minimizeAttempted = false;
+            entry.windowHidden = false;
+            entry.hideAttempted = false;
             entry.state = 'SESSION_EXPIRED';
             entry.updatedAt = new Date().toISOString();
             await oldClient.close().catch(() => {});
@@ -274,16 +285,16 @@ class DkclSessionPreflightService {
             entry.client = client;
             entry.authenticated = false;
             entry.backgroundReady = false;
-            entry.minimized = false;
-            entry.minimizeAttempted = false;
+            entry.windowHidden = false;
+            entry.hideAttempted = false;
 
             client.onDisconnect = () => {
                 entry.state = 'SESSION_EXPIRED';
                 entry.client = null;
                 entry.authenticated = false;
                 entry.backgroundReady = false;
-                entry.minimized = false;
-                entry.minimizeAttempted = false;
+                entry.windowHidden = false;
+                entry.hideAttempted = false;
                 entry.updatedAt = new Date().toISOString();
                 client.close().catch(() => {});
             };
@@ -303,11 +314,12 @@ class DkclSessionPreflightService {
                 entry.backgroundReady = false;
                 entry.updatedAt = new Date().toISOString();
 
-                const minimizeSuccess = entry.minimizeAttempted
-                    ? entry.minimized
-                    : await client.minimizeWindow().catch(() => false);
-                entry.minimizeAttempted = true;
-                entry.minimized = Boolean(minimizeSuccess);
+                const hideWindow = client.hideWindow || client.hideBrowserWindow || client.minimizeWindow;
+                const hideSuccess = entry.hideAttempted
+                    ? entry.windowHidden
+                    : await hideWindow.call(client).catch(() => false);
+                entry.hideAttempted = true;
+                entry.windowHidden = Boolean(hideSuccess);
                 entry.state = 'BACKGROUND_READY';
                 entry.backgroundReady = true;
                 entry.updatedAt = new Date().toISOString();
@@ -317,7 +329,7 @@ class DkclSessionPreflightService {
                     status: PREFLIGHT_STATUSES.SESSION_VALID,
                     interactive: true,
                     source_page_ready: true,
-                    browser_minimized: minimizeSuccess,
+                    browser_hidden: hideSuccess,
                     export_readiness: 'SOURCE_PAGE_READY'
                 };
             } catch (error) {
@@ -326,8 +338,8 @@ class DkclSessionPreflightService {
                 entry.client = null;
                 entry.authenticated = false;
                 entry.backgroundReady = false;
-                entry.minimized = false;
-                entry.minimizeAttempted = false;
+                entry.windowHidden = false;
+                entry.hideAttempted = false;
                 entry.updatedAt = new Date().toISOString();
                 await client.close().catch(() => {});
                 throw error;
@@ -375,8 +387,8 @@ class DkclSessionPreflightService {
             entry.openingPromise = null;
             entry.authenticated = false;
             entry.backgroundReady = false;
-            entry.minimized = false;
-            entry.minimizeAttempted = false;
+            entry.windowHidden = false;
+            entry.hideAttempted = false;
             entry.lastError = null;
             entry.updatedAt = new Date().toISOString();
         }

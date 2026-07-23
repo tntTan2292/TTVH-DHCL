@@ -17,13 +17,13 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `REMEDIATION-005 / AWAITING REVIEW` |
+| Current Phase | `REMEDIATION-005A / AWAITING REVIEW` |
 | Current Ticket | `AUTO-IMPORT-006` |
 | Next Ticket | `Chief Architect review, then PO runtime recheck` |
 | Last PO Status | `AUTO-IMPORT-006 PO RECHECK FAILED / REMEDIATION-005 AWAITING REVIEW` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_007.md` |
 | Current State | `ACTIVE / AWAITING REVIEW` |
 | Technical Status | `PASS` |
 | Runtime Status | `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK` |
@@ -66,9 +66,9 @@ Fresh-chat onboarding chain for the active ticket:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_007.md`
 
-AUTO-IMPORT-006 is active in `REMEDIATION-005 / AWAITING REVIEW` after PO runtime findings on HUE/TCT login lifecycle and TCT file retention. Technical status is `PASS`; runtime status is `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`; PO product status is `NOT READY`. The ticket cannot be completed without explicit PO PASS.
+AUTO-IMPORT-006 is active in `REMEDIATION-005A / AWAITING REVIEW` after correcting the browser lifecycle wording and implementation from taskbar minimize to native browser window hide after `SESSION_VALID`. Technical status is `PASS`; runtime status is `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`; PO product status is `NOT READY`. The ticket cannot be completed without explicit PO PASS.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

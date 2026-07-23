@@ -8,7 +8,7 @@
 - Runtime Status: `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT READY`
-- Current Phase: `REMEDIATION-005 / AWAITING REVIEW`
+- Current Phase: `REMEDIATION-005A / AWAITING REVIEW`
 - Last Reviewed Phase: `R4.1B`
 - Last Reviewed Commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`
 - Phase Review Status: `AWAITING REVIEW`
@@ -23,14 +23,14 @@ Required onboarding chain:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_007.md`
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md`
+Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_007.md`
 
 ## Approved Scope
 - Bổ sung nút `Đăng nhập Huế` trên giao diện nạp dữ liệu.
 - Sửa lỗi nút `Đăng nhập TCT` không hiển thị trình duyệt Playwright.
-- Đồng bộ hóa vòng đời trình duyệt (visible browser, minimize/hide sau khi đăng nhập thành công, giữ process chạy ẩn).
+- Đồng bộ hóa vòng đời trình duyệt: visible during manual login → native browser window hidden after `SESSION_VALID` → browser process and persistent session continue running in background.
 - Ngăn chặn việc tự động kích hoạt tiến trình đăng nhập ngầm khi bấm nút Import khi chưa có session.
 
 ## Out of Scope
@@ -114,3 +114,12 @@ Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md`
 - Portal cleanup for generated TCT files runs only after processed workbook persistence is verified.
 - Runtime port for PO recheck remains `5178`.
 - Ticket remains `ACTIVE / AWAITING REVIEW` before Chief Architect review and PO recheck.
+
+## Remediation 005A Native Window Hide
+
+- Baseline remote HEAD: `3c043f29ada39418f1b7cd2750d2541ce089142d`.
+- Corrected PO behavior is native window hide, not taskbar minimize.
+- Authoritative lifecycle wording: visible during manual login → native browser window hidden after `SESSION_VALID` → browser process and persistent session continue running in background.
+- `hideWindow()` uses the current browser target window handle plus exact profile-owned PID tree verification before calling Windows native `ShowWindow(..., SW_HIDE)`.
+- Registry state uses `windowHidden` / `hideAttempted`; API evidence uses `browser_hidden`.
+- Hide failure keeps `SESSION_VALID`, keeps the browser process/context alive, and returns `browser_hidden:false`.

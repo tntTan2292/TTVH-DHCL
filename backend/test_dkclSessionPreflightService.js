@@ -97,7 +97,7 @@ function deferred() {
     const interactiveClient = {
         async openInteractiveAuthentication(args) { interactiveCalls.push(['open', args]); },
         async isF13ReportReady() { interactiveCalls.push(['ready']); return true; },
-        async minimizeWindow() { interactiveCalls.push(['minimize']); },
+        async hideWindow() { interactiveCalls.push(['hide']); return true; },
         async restoreWindow() { interactiveCalls.push(['restore']); },
         async close() { interactiveCalls.push(['close']); }
     };
@@ -107,7 +107,8 @@ function deferred() {
     const interactive = await interactiveService.interactiveAuthenticate('TCT');
     assert.strictEqual(interactive.status, PREFLIGHT_STATUSES.SESSION_VALID, 'manual login returns valid only after the source page is ready');
     assert.strictEqual(interactiveService.getInteractiveClient('TCT'), interactiveClient, 'ready browser is retained for queue work');
-    assert(interactiveCalls.some((call) => call[0] === 'minimize'), 'browser minimizes after login success');
+    assert(interactiveCalls.some((call) => call[0] === 'hide'), 'browser hides after login success');
+    assert.strictEqual(interactive.browser_hidden, true, 'hide success is reported');
     assert.strictEqual(interactive.export_readiness, 'SOURCE_PAGE_READY', 'interactive auth checks source page readiness once before backgrounding');
     const activePreflight = await interactiveService.preflight('TCT');
     assert.strictEqual(activePreflight.status, PREFLIGHT_STATUSES.SESSION_VALID, 'active browser preflight remains valid without opening another process');
@@ -147,7 +148,8 @@ function deferred() {
         openingPromise: Promise.resolve(),
         authenticated: false,
         backgroundReady: false,
-        minimized: false,
+        windowHidden: false,
+        hideAttempted: false,
         lastError: null,
         updatedAt: new Date().toISOString()
     });
@@ -167,7 +169,7 @@ function deferred() {
         },
         async isF13ReportReady() { lifecycleCalls.push(['ready']); return true; },
         async openF13Report() { lifecycleCalls.push(['open-report']); },
-        async minimizeWindow() { lifecycleCalls.push(['minimize']); return true; },
+        async hideWindow() { lifecycleCalls.push(['hide']); return true; },
         async restoreWindow() { lifecycleCalls.push(['restore']); },
         async close() { lifecycleCalls.push(['close']); }
     };
@@ -190,10 +192,10 @@ function deferred() {
     const duplicateAuth = await secondAuth;
     assert.strictEqual(completedAuth.status, PREFLIGHT_STATUSES.SESSION_VALID, 'auth completes after manual login resolves');
     assert.strictEqual(duplicateAuth.status, PREFLIGHT_STATUSES.SESSION_VALID, 'duplicate auth click shares the same lifecycle result');
-    assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'minimize').length, 1, 'minimize is called once after confirmed authentication');
+    assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'hide').length, 1, 'hide is called once after confirmed authentication');
     assert.strictEqual(lifecycleService.getRegistryState('TCT').state, 'BACKGROUND_READY', 'authenticated client transitions to background ready');
 
-    console.log('\nTEST 6: minimize failure and manual close preserve source-keyed lifecycle');
+    console.log('\nTEST 6: hide failure and manual close preserve source-keyed lifecycle');
     globalRegistry.clear();
     globalRegistry.set('HUE', {
         state: 'BACKGROUND_READY',
@@ -201,30 +203,32 @@ function deferred() {
         openingPromise: null,
         authenticated: true,
         backgroundReady: true,
-        minimized: true,
+        windowHidden: true,
+        hideAttempted: true,
         lastError: null,
         updatedAt: new Date().toISOString()
     });
-    const minimizeFailureCalls = [];
-    const minimizeFailureClient = {
-        async openInteractiveAuthentication() { minimizeFailureCalls.push(['open']); },
-        async openF13Report() { minimizeFailureCalls.push(['open-report']); },
-        async isF13ReportReady() { minimizeFailureCalls.push(['ready']); return true; },
-        async minimizeWindow() { minimizeFailureCalls.push(['minimize']); throw new Error('window manager unavailable'); },
-        async close() { minimizeFailureCalls.push(['close']); }
+    const hideFailureCalls = [];
+    const hideFailureClient = {
+        async openInteractiveAuthentication() { hideFailureCalls.push(['open']); },
+        async openF13Report() { hideFailureCalls.push(['open-report']); },
+        async isF13ReportReady() { hideFailureCalls.push(['ready']); return true; },
+        async hideWindow() { hideFailureCalls.push(['hide']); throw new Error('window manager unavailable'); },
+        async close() { hideFailureCalls.push(['close']); }
     };
-    const minimizeFailureService = new DkclSessionPreflightService({
-        interactiveClientFactory: () => minimizeFailureClient
+    const hideFailureService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => hideFailureClient
     });
-    const minimizeFailureResult = await minimizeFailureService.interactiveAuthenticate('TCT');
-    assert.strictEqual(minimizeFailureResult.status, PREFLIGHT_STATUSES.SESSION_VALID, 'minimize failure still returns valid authenticated session');
-    assert.strictEqual(minimizeFailureResult.browser_minimized, false, 'minimize failure is reported as best-effort false');
-    assert.strictEqual(minimizeFailureService.getInteractiveClient('TCT'), minimizeFailureClient, 'authenticated client is preserved when minimize fails');
-    assert.strictEqual(minimizeFailureService.getRegistryState('TCT').minimized, false, 'failed minimize is not recorded as successful');
-    assert.strictEqual(minimizeFailureService.getRegistryState('TCT').minimizeAttempted, true, 'minimize failure is still recorded as attempted once');
-    minimizeFailureClient.onDisconnect();
-    assert.strictEqual(minimizeFailureService.getRegistryState('TCT').state, 'SESSION_EXPIRED', 'manual close expires TCT entry');
-    assert.strictEqual(minimizeFailureService.getInteractiveClient('TCT'), null, 'manual close clears TCT client');
+    const hideFailureResult = await hideFailureService.interactiveAuthenticate('TCT');
+    assert.strictEqual(hideFailureResult.status, PREFLIGHT_STATUSES.SESSION_VALID, 'hide failure still returns valid authenticated session');
+    assert.strictEqual(hideFailureResult.browser_hidden, false, 'hide failure is reported as false');
+    assert.strictEqual(hideFailureService.getInteractiveClient('TCT'), hideFailureClient, 'authenticated client is preserved when hide fails');
+    assert.strictEqual(hideFailureService.getRegistryState('TCT').windowHidden, false, 'failed hide is not recorded as successful');
+    assert.strictEqual(hideFailureService.getRegistryState('TCT').hideAttempted, true, 'hide failure is still recorded as attempted once');
+    assert.strictEqual(hideFailureCalls.filter((call) => call[0] === 'close').length, 0, 'hide failure does not close browser');
+    hideFailureClient.onDisconnect();
+    assert.strictEqual(hideFailureService.getRegistryState('TCT').state, 'SESSION_EXPIRED', 'manual close expires TCT entry');
+    assert.strictEqual(hideFailureService.getInteractiveClient('TCT'), null, 'manual close clears TCT client');
     assert.strictEqual(globalRegistry.get('HUE').client.marker, 'hue', 'manual TCT close does not mutate HUE registry');
 
     console.log('\nTEST 6B: HUE interactive login accepts authenticated marker without TCT report marker');
@@ -275,7 +279,7 @@ function deferred() {
     });
     let cleanupCalled = false;
     browserProcessManager.cleanupStaleLocks = () => { cleanupCalled = true; };
-    globalRegistry.clear(); const noneService = new DkclSessionPreflightService({ interactiveClientFactory: () => ({ openInteractiveAuthentication: async () => {}, minimizeWindow: async () => true, close: async () => {} }) });
+    globalRegistry.clear(); const noneService = new DkclSessionPreflightService({ interactiveClientFactory: () => ({ openInteractiveAuthentication: async () => {}, hideWindow: async () => true, close: async () => {} }) });
     await noneService.interactiveAuthenticate('HUE');
     assert.strictEqual(cleanupCalled, false, 'NONE classification should not clean locks');
     assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree count should be 0');
