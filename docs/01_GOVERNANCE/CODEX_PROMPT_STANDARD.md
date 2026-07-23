@@ -6,6 +6,7 @@
 - [2. Lean Prompt Rule](#2-lean-prompt-rule)
 - [3. Active-Ticket Delta Prompt Rule](#3-active-ticket-delta-prompt-rule)
 - [Single-defect remediation](#single-defect-remediation)
+- [Workspace Hygiene](#workspace-hygiene)
 - [4. Validation Levels](#4-validation-levels)
 - [5. Mandatory Handoff](#5-mandatory-handoff)
 - [6. Active Manifest Readiness Gate](#6-active-manifest-readiness-gate)
@@ -101,6 +102,16 @@ Each executor must report root cause, changed scope, commit, tests, and targeted
 The Product Owner must confirm the current defect `PASS` before the next defect begins. Remaining defects stay recorded in the checkpoint and must not be inserted into an executor prompt already running.
 
 Prefer small delta-only prompts and avoid repeating repository-wide instructions.
+
+## Workspace Hygiene
+
+Use only the canonical project workspace unless the Product Owner explicitly authorizes a different path:
+
+`D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong`
+
+Do not create, reuse, or switch into sibling `TTVH-*` clone/worktree/folder workspaces to bypass a dirty, locked, stale, or wrong-branch canonical workspace.
+
+If the canonical workspace is dirty, locked, missing, inaccessible, or on the wrong branch for the requested task, stop and report the exact blocker. Do not create another workspace as a workaround.
 
 ## 4. Validation Levels
 
