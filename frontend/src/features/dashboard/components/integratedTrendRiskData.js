@@ -152,7 +152,29 @@ function toLeadershipWidgetData(comparison, id, title, comparisonLabel) {
   };
 }
 
-export function buildLeadershipComparisonWidgets({ items = [], fromDate, toDate } = {}) {
+function buildLeadershipComparisonWidgetsFromContract(comparisonContract) {
+  if (!comparisonContract) return null;
+
+  return [
+    toLeadershipWidgetData(
+      comparisonContract.d1,
+      'd-1',
+      'So vá»›i hÃ´m qua',
+      'HÃ´m qua',
+    ),
+    toLeadershipWidgetData(
+      comparisonContract.d7,
+      'd-7',
+      'So vá»›i cÃ¹ng ká»³ tuáº§n trÆ°á»›c',
+      'CÃ¹ng ká»³ tuáº§n trÆ°á»›c',
+    ),
+  ].filter(Boolean);
+}
+
+export function buildLeadershipComparisonWidgets({ items = [], fromDate, toDate, comparisonContract = null } = {}) {
+  const contractWidgets = buildLeadershipComparisonWidgetsFromContract(comparisonContract);
+  if (contractWidgets) return contractWidgets;
+
   return [
     toLeadershipWidgetData(
       buildDayOverDayComparison({ items, fromDate, toDate }),

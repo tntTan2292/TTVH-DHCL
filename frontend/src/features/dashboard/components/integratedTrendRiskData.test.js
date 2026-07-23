@@ -191,6 +191,122 @@ test('leadership comparison widgets keep separate missing-data states for D-1 an
   assert.equal(widgets[1].previous_date, '2026-07-08');
 });
 
+test('leadership comparison widgets use shared contract when both comparisons are available', () => {
+  const widgets = buildLeadershipComparisonWidgets({
+    items: sampleTrend.filter((item) => item.date === '2026-07-15'),
+    fromDate: '2026-07-15',
+    toDate: '2026-07-15',
+    comparisonContract: {
+      current_date: '2026-07-15',
+      d1: {
+        available: true,
+        current_date: '2026-07-15',
+        previous_date: '2026-07-14',
+        pass_rate: { current: 65, previous: 83.33, delta: -18.33 },
+        total_volume: { current: 200, previous: 180, delta: 20 },
+      },
+      d7: {
+        available: true,
+        current_date: '2026-07-15',
+        previous_date: '2026-07-08',
+        pass_rate: { current: 65, previous: 80, delta: -15 },
+        total_volume: { current: 200, previous: 100, delta: 100 },
+      },
+    },
+  });
+
+  assert.equal(widgets[0].available, true);
+  assert.equal(widgets[0].previous_date, '2026-07-14');
+  assert.equal(widgets[0].pass_rate.delta, -18.33);
+  assert.equal(widgets[1].available, true);
+  assert.equal(widgets[1].previous_date, '2026-07-08');
+  assert.equal(widgets[1].pass_rate.delta, -15);
+});
+
+test('leadership comparison contract reports D-1 missing without deriving fallback deltas', () => {
+  const widgets = buildLeadershipComparisonWidgets({
+    comparisonContract: {
+      current_date: '2026-07-15',
+      d1: { available: false, current_date: '2026-07-15', previous_date: '2026-07-14', pass_rate: null, total_volume: null },
+      d7: {
+        available: true,
+        current_date: '2026-07-15',
+        previous_date: '2026-07-08',
+        pass_rate: { current: 65, previous: 80, delta: -15 },
+        total_volume: { current: 200, previous: 100, delta: 100 },
+      },
+    },
+  });
+
+  assert.equal(widgets[0].available, false);
+  assert.equal(widgets[0].pass_rate, null);
+  assert.equal(widgets[1].available, true);
+});
+
+test('leadership comparison contract reports D-7 missing without deriving fallback deltas', () => {
+  const widgets = buildLeadershipComparisonWidgets({
+    comparisonContract: {
+      current_date: '2026-07-15',
+      d1: {
+        available: true,
+        current_date: '2026-07-15',
+        previous_date: '2026-07-14',
+        pass_rate: { current: 65, previous: 83.33, delta: -18.33 },
+        total_volume: { current: 200, previous: 180, delta: 20 },
+      },
+      d7: { available: false, current_date: '2026-07-15', previous_date: '2026-07-08', pass_rate: null, total_volume: null },
+    },
+  });
+
+  assert.equal(widgets[0].available, true);
+  assert.equal(widgets[1].available, false);
+  assert.equal(widgets[1].total_volume, null);
+});
+
+test('leadership comparison contract reports both comparisons missing', () => {
+  const widgets = buildLeadershipComparisonWidgets({
+    comparisonContract: {
+      current_date: '2026-07-15',
+      d1: { available: false, current_date: '2026-07-15', previous_date: '2026-07-14', pass_rate: null, total_volume: null },
+      d7: { available: false, current_date: '2026-07-15', previous_date: '2026-07-08', pass_rate: null, total_volume: null },
+    },
+  });
+
+  assert.deepEqual(widgets.map((item) => item.available), [false, false]);
+  assert.deepEqual(widgets.map((item) => item.pass_rate), [null, null]);
+});
+
+test('summary widgets and BCVH total row share D-1 and D-7 pass-rate deltas', () => {
+  const widgets = buildLeadershipComparisonWidgets({
+    comparisonContract: {
+      current_date: '2026-07-22',
+      d1: {
+        available: true,
+        current_date: '2026-07-22',
+        previous_date: '2026-07-21',
+        pass_rate: { current: 88.8, previous: 64.4, delta: 24.4 },
+        total_volume: { current: 3508, previous: 2581, delta: 927 },
+      },
+      d7: {
+        available: true,
+        current_date: '2026-07-22',
+        previous_date: '2026-07-15',
+        pass_rate: { current: 88.8, previous: 82.9, delta: 5.9 },
+        total_volume: { current: 3508, previous: 2200, delta: 1308 },
+      },
+    },
+  });
+  const bcvhTotalRow = {
+    prior_periods: {
+      d1: { delta: 24.4 },
+      d7: { delta: 5.9 },
+    },
+  };
+
+  assert.equal(widgets[0].pass_rate.delta, bcvhTotalRow.prior_periods.d1.delta);
+  assert.equal(widgets[1].pass_rate.delta, bcvhTotalRow.prior_periods.d7.delta);
+});
+
 test('7-day visible evidence exposes per-day D-7 deltas without tooltip dependency', () => {
   const rows = buildSevenDayVisibleComparisonEvidence(sampleTrend, '2026-07-15');
   const latest = rows.find((item) => item.current_date === '2026-07-15');

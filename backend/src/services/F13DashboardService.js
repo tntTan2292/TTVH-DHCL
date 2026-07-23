@@ -64,6 +64,65 @@ class F13DashboardService {
         return Number((this._calculateRate(currentPassed, currentTotal) - this._calculateRate(previousPassed, previousTotal)).toFixed(2));
     }
 
+    _buildComparisonMetric(current, previous) {
+        const currentTotal = Number(current?.total_bg || 0);
+        const previousTotal = Number(previous?.total_bg || 0);
+        const currentPassed = Number(current?.total_passed || 0);
+        const previousPassed = Number(previous?.total_passed || 0);
+
+        if (!currentTotal || !previousTotal) {
+            return {
+                available: false,
+                pass_rate: null,
+                total_volume: null
+            };
+        }
+
+        const currentRate = this._calculateRate(currentPassed, currentTotal);
+        const previousRate = this._calculateRate(previousPassed, previousTotal);
+
+        return {
+            available: true,
+            pass_rate: {
+                current: currentRate,
+                previous: previousRate,
+                delta: Number((currentRate - previousRate).toFixed(2))
+            },
+            total_volume: {
+                current: currentTotal,
+                previous: previousTotal,
+                delta: currentTotal - previousTotal
+            }
+        };
+    }
+
+    async _getDashboardComparisons(date, normalizedBcvh) {
+        const current = await factBuuGuiRepo.getKpiMetrics(date, date, { bcvhId: normalizedBcvh });
+        const previousDay = this._shiftDate(date, -1);
+        const previousWeek = this._shiftDate(date, -7);
+        const [d1, d7] = await Promise.all([
+            factBuuGuiRepo.getKpiMetrics(previousDay, previousDay, { bcvhId: normalizedBcvh }),
+            factBuuGuiRepo.getKpiMetrics(previousWeek, previousWeek, { bcvhId: normalizedBcvh })
+        ]);
+
+        const d1Metric = this._buildComparisonMetric(current, d1);
+        const d7Metric = this._buildComparisonMetric(current, d7);
+
+        return {
+            current_date: date,
+            d1: {
+                ...d1Metric,
+                current_date: date,
+                previous_date: previousDay
+            },
+            d7: {
+                ...d7Metric,
+                current_date: date,
+                previous_date: previousWeek
+            }
+        };
+    }
+
     _indexByBcvh(rows) {
         return rows.reduce((acc, row) => {
             acc[row.ma_bcvh] = row;
@@ -191,6 +250,7 @@ class F13DashboardService {
                 bcvhId: normalizedBcvh
             });
             const nationalRank = normalizedBcvh ? null : await this._getNationalRankSummary(endDate);
+            const comparisons = await this._getDashboardComparisons(endDate, normalizedBcvh);
 
             if (!result || result.total_bg === 0) {
                 return {
@@ -200,7 +260,8 @@ class F13DashboardService {
                     total_unknown: 0,
                     passed_rate: 0,
                     failed_rate: 0,
-                    national_rank: nationalRank
+                    national_rank: nationalRank,
+                    comparisons
                 };
             }
             
@@ -219,6 +280,7 @@ class F13DashboardService {
                 passed_rate,
                 failed_rate,
                 national_rank: nationalRank,
+                comparisons,
             };
         } catch (error) {
             if (error?.code === 'INVALID_BCVH') throw error;

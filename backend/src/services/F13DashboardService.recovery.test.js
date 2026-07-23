@@ -28,10 +28,11 @@ test('dashboard KPI filters canonical ma_bcvh values and keeps all aggregated', 
     const firstResult = await service.getDashboardKpi('2026-07-01', '2026-07-15', { bcvhId: '535790' });
     const secondResult = await service.getDashboardKpi('2026-07-01', '2026-07-15', { bcvhId: '536250' });
 
-    assert.equal(calls.length, 3);
-    assert.equal(calls[0].filters.bcvhId, null);
-    assert.equal(calls[1].filters.bcvhId, '535790');
-    assert.equal(calls[2].filters.bcvhId, '536250');
+    const primaryCalls = calls.filter((call) => call.startDate === '2026-07-01' && call.endDate === '2026-07-15');
+    assert.equal(primaryCalls.length, 3);
+    assert.equal(primaryCalls[0].filters.bcvhId, null);
+    assert.equal(primaryCalls[1].filters.bcvhId, '535790');
+    assert.equal(primaryCalls[2].filters.bcvhId, '536250');
     assert.equal(allResult.total_bg, 30);
     assert.equal(firstResult.total_bg, 10);
     assert.equal(secondResult.total_bg, 20);
@@ -43,10 +44,109 @@ test('dashboard KPI filters canonical ma_bcvh values and keeps all aggregated', 
     assert.equal(allResult.passed_rate, 70);
     assert.equal(allResult.failed_rate, 30);
     assert.ok(Object.hasOwn(allResult, 'national_rank'));
+    assert.ok(Object.hasOwn(allResult, 'comparisons'));
     } finally {
         repo.getKpiMetrics = original;
         service._getNationalRankSummary = originalNationalRank;
     }
+});
+
+test('dashboard KPI comparison contract reports both D-1 and D-7 when data exists', async () => {
+  const original = repo.getKpiMetrics;
+  const originalNationalRank = service._getNationalRankSummary;
+
+  repo.getKpiMetrics = async (startDate) => {
+    if (startDate === '2026-07-22') return { total_bg: 100, total_passed: 89, total_failed: 11 };
+    if (startDate === '2026-07-21') return { total_bg: 100, total_passed: 65, total_failed: 35 };
+    if (startDate === '2026-07-15') return { total_bg: 100, total_passed: 83, total_failed: 17 };
+    return { total_bg: 0, total_passed: 0, total_failed: 0 };
+  };
+  service._getNationalRankSummary = async () => ({ available: false });
+
+  try {
+    const result = await service.getDashboardKpi('2026-07-22', '2026-07-22', {});
+
+    assert.equal(result.comparisons.d1.available, true);
+    assert.equal(result.comparisons.d1.previous_date, '2026-07-21');
+    assert.equal(result.comparisons.d1.pass_rate.delta, 24);
+    assert.equal(result.comparisons.d7.available, true);
+    assert.equal(result.comparisons.d7.previous_date, '2026-07-15');
+    assert.equal(result.comparisons.d7.pass_rate.delta, 6);
+  } finally {
+    repo.getKpiMetrics = original;
+    service._getNationalRankSummary = originalNationalRank;
+  }
+});
+
+test('dashboard KPI comparison contract keeps D-1 unavailable when prior day is missing', async () => {
+  const original = repo.getKpiMetrics;
+  const originalNationalRank = service._getNationalRankSummary;
+
+  repo.getKpiMetrics = async (startDate) => {
+    if (startDate === '2026-07-22') return { total_bg: 100, total_passed: 89, total_failed: 11 };
+    if (startDate === '2026-07-21') return { total_bg: 0, total_passed: 0, total_failed: 0 };
+    if (startDate === '2026-07-15') return { total_bg: 100, total_passed: 83, total_failed: 17 };
+    return { total_bg: 0, total_passed: 0, total_failed: 0 };
+  };
+  service._getNationalRankSummary = async () => ({ available: false });
+
+  try {
+    const result = await service.getDashboardKpi('2026-07-22', '2026-07-22', {});
+
+    assert.equal(result.comparisons.d1.available, false);
+    assert.equal(result.comparisons.d1.pass_rate, null);
+    assert.equal(result.comparisons.d7.available, true);
+  } finally {
+    repo.getKpiMetrics = original;
+    service._getNationalRankSummary = originalNationalRank;
+  }
+});
+
+test('dashboard KPI comparison contract keeps D-7 unavailable when prior week is missing', async () => {
+  const original = repo.getKpiMetrics;
+  const originalNationalRank = service._getNationalRankSummary;
+
+  repo.getKpiMetrics = async (startDate) => {
+    if (startDate === '2026-07-22') return { total_bg: 100, total_passed: 89, total_failed: 11 };
+    if (startDate === '2026-07-21') return { total_bg: 100, total_passed: 65, total_failed: 35 };
+    if (startDate === '2026-07-15') return { total_bg: 0, total_passed: 0, total_failed: 0 };
+    return { total_bg: 0, total_passed: 0, total_failed: 0 };
+  };
+  service._getNationalRankSummary = async () => ({ available: false });
+
+  try {
+    const result = await service.getDashboardKpi('2026-07-22', '2026-07-22', {});
+
+    assert.equal(result.comparisons.d1.available, true);
+    assert.equal(result.comparisons.d7.available, false);
+    assert.equal(result.comparisons.d7.total_volume, null);
+  } finally {
+    repo.getKpiMetrics = original;
+    service._getNationalRankSummary = originalNationalRank;
+  }
+});
+
+test('dashboard KPI comparison contract keeps both comparisons unavailable when prior rows are missing', async () => {
+  const original = repo.getKpiMetrics;
+  const originalNationalRank = service._getNationalRankSummary;
+
+  repo.getKpiMetrics = async (startDate) => {
+    if (startDate === '2026-07-22') return { total_bg: 100, total_passed: 89, total_failed: 11 };
+    return { total_bg: 0, total_passed: 0, total_failed: 0 };
+  };
+  service._getNationalRankSummary = async () => ({ available: false });
+
+  try {
+    const result = await service.getDashboardKpi('2026-07-22', '2026-07-22', {});
+
+    assert.equal(result.comparisons.d1.available, false);
+    assert.equal(result.comparisons.d7.available, false);
+    assert.equal(result.comparisons.d1.pass_rate, null);
+    assert.equal(result.comparisons.d7.pass_rate, null);
+  } finally {
+    repo.getKpiMetrics = original;
+    service._getNationalRankSummary = originalNationalRank;
+  }
 });
 
 test('dashboard controller forwards ma_bcvh to the KPI service path', async () => {

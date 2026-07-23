@@ -384,8 +384,8 @@ export default function IntegratedTrendRiskWorkspace({
 
   const rows = useMemo(() => buildIntegratedTrendRows({ mode, items: data, toDate }), [data, mode, toDate]);
   const leadershipComparisons = useMemo(
-    () => buildLeadershipComparisonWidgets({ items: data, fromDate, toDate }),
-    [data, fromDate, toDate],
+    () => buildLeadershipComparisonWidgets({ items: data, fromDate, toDate, comparisonContract: kpiData?.comparisons }),
+    [data, fromDate, toDate, kpiData?.comparisons],
   );
   const sevenDayEvidence = useMemo(
     () => buildSevenDayVisibleComparisonEvidence(data, toDate),
