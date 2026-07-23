@@ -17,14 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
-| Current Ticket | `None` |
-| Next Ticket | `TBD by Product Owner` |
-| Last PO Status | `DA-IMPL-007 PO PASS` |
+| Current Phase | `REMEDIATION-004 / PO RECHECK` |
+| Current Ticket | `AUTO-IMPORT-006` |
+| Next Ticket | `PO runtime recheck` |
+| Last PO Status | `AUTO-IMPORT-006 AWAITING PO RECHECK` |
 | Current Branch | `codex/da-impl-006` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md` |
+| Current State | `ACTIVE / PO RECHECK` |
+| Technical Status | `PASS` |
+| Runtime Status | `AWAITING PO RECHECK` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `NOT READY` |
+| Last Reviewed Phase | `R4.1B` |
+| Last Reviewed Commit | `58fb723e9c5eeb82f17b75d14b7662c3503ee262` |
+| Phase Review Status | `REVIEW PASS` |
+| Next Phase Authorization | `PO RUNTIME RECHECK GRANTED` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-07-22` |
+| Last Updated | `2026-07-23` |
 
 ## 3. Usage Rules
 
@@ -50,6 +60,15 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what manifest governs the current reading scope
 
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
+
+Fresh-chat onboarding chain for the active ticket:
+
+1. `README_AI.md`
+2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
+3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`
+
+AUTO-IMPORT-006 is active after `R4.1B` Chief Architect `REVIEW PASS` at commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262`. Technical status is `PASS`; runtime status is `AWAITING PO RECHECK`; PO product status is `NOT READY`. The ticket cannot be completed without explicit PO PASS.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

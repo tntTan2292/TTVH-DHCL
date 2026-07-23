@@ -103,13 +103,15 @@ The lightweight onboarding route is:
 
 ↓
 
-Current Manifest from `PROJECT_SNAPSHOT.md`
+[docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md)
 
 ↓
 
-Required Reading from the manifest
+[docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md)
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
+
+Current active handoff: `AUTO-IMPORT-006 REMEDIATION-004 / PO RECHECK`, Last Reviewed Phase `R4.1B`, Last Reviewed Commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262`, Phase Review Status `REVIEW PASS`, Runtime Status `AWAITING PO RECHECK`, PO Product Status `NOT READY`.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` → `PROJECT_SNAPSHOT.md` → Current Manifest → Required Reading.
 

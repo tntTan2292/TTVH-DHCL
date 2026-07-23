@@ -8,13 +8,24 @@
 - Runtime Status: `AWAITING PO RECHECK`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT READY`
-- Current Phase: `REMEDIATION-003 / PO RECHECK`
-- Last Reviewed Phase: `R2.2`
-- Last Reviewed Commit: `220123d7defa040d340d39750b37b6cba3950301`
+- Current Phase: `REMEDIATION-004 / PO RECHECK`
+- Last Reviewed Phase: `R4.1B`
+- Last Reviewed Commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`
 - Phase Review Status: `REVIEW PASS`
 - Next Phase Authorization: `PO RUNTIME RECHECK GRANTED`
 - Activation date: `2026-07-22`
 - Primary executor: `Antigravity`
+
+## Fresh-Chat Onboarding Authority
+
+Required onboarding chain:
+
+1. `README_AI.md`
+2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
+3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`
+
+Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`
 
 ## Approved Scope
 - Bổ sung nút `Đăng nhập Huế` trên giao diện nạp dữ liệu.
@@ -74,3 +85,21 @@
 - Zoom `100%`.
 - Controls visible and usable.
 - No page-level clipping.
+
+## Remediation 004 Review Alignment
+
+### R4.1
+- Commit `8c22374...` was `REVIEW FAIL`.
+
+### R4.1A
+- Commit `dd0d9f94...` was `REVIEW FAIL`.
+
+### R4.1B
+- Commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262` was `REVIEW PASS`.
+- Browser profile state follows the five-state profile classification contract.
+- `interactiveAuthenticate()` and `recover()` use `_classifyLockState()`.
+- There is no `terminateProcessTree()` call in `interactiveAuthenticate()` or `recover()`.
+- Cleanup is allowed only for `STALE_CONFIRMED`.
+- Runtime port for PO recheck is `5178`.
+- PO login failure for HUE and TCT remains pending PO runtime recheck.
+- Ticket cannot be completed without explicit PO PASS.

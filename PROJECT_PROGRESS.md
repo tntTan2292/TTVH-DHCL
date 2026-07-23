@@ -43,7 +43,7 @@
 - AUTO-IMPORT-003: `Completed / PO PASS`
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
-- AUTO-IMPORT-006: `ACTIVE / PO RECHECK`; Technical Status `PASS`; Runtime Status `AWAITING PO RECHECK`; PO Product Status `NOT READY`
+- AUTO-IMPORT-006: `ACTIVE / PO RECHECK`; Technical Status `PASS`; Runtime Status `AWAITING PO RECHECK`; PO Product Status `NOT READY`; Current Phase `REMEDIATION-004 / PO RECHECK`; Last Reviewed Phase `R4.1B`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -100,10 +100,10 @@
 | Field | Value |
 | --- | --- |
 | Current Ticket | `AUTO-IMPORT-006` |
-| Current Commit | `220123d7defa040d340d39750b37b6cba3950301` |
-| Current Phase | `REMEDIATION-003 / PO RECHECK` |
-| Last Reviewed Phase | `R2.2` |
-| Last Reviewed Commit | `220123d7defa040d340d39750b37b6cba3950301` |
+| Current Commit | `58fb723e9c5eeb82f17b75d14b7662c3503ee262` |
+| Current Phase | `REMEDIATION-004 / PO RECHECK` |
+| Last Reviewed Phase | `R4.1B` |
+| Last Reviewed Commit | `58fb723e9c5eeb82f17b75d14b7662c3503ee262` |
 | Phase Review Status | `REVIEW PASS` |
 | Next Phase Authorization | `PO RUNTIME RECHECK GRANTED` |
 | Next Milestone | `PO runtime recheck` |
@@ -209,9 +209,9 @@
 - Runtime Status: `AWAITING PO RECHECK`.
 - PO UI Check Required: `Yes`.
 - PO Product Status: `NOT READY`.
-- Current Phase: `REMEDIATION-003 / PO RECHECK`.
-- Last Reviewed Phase: `R2.2`.
-- Last Reviewed Commit: `220123d7defa040d340d39750b37b6cba3950301`.
+- Current Phase: `REMEDIATION-004 / PO RECHECK`.
+- Last Reviewed Phase: `R4.1B`.
+- Last Reviewed Commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`.
 - Phase Review Status: `REVIEW PASS`.
 - Next Phase Authorization: `PO RUNTIME RECHECK GRANTED`.
 - Primary executor: `Antigravity`.
@@ -224,3 +224,8 @@
 - PO runtime recheck is authorized and pending. HUE must verify current-HEAD backend restart, hard refresh at `localhost:5178/import`, one `COMPLETE` date checkbox staying checked, `Re-Update (1)`, login through `Mở đăng nhập Huế`, one controlled Re-Update submission, and queue/result without duplicates.
 - TCT must verify `Mở đăng nhập TCT`, one headed browser, no repeated flash/close/reopen, UI text `Đang mở đăng nhập...`, manual login, browser minimize after successful login, `SESSION_VALID`, one controlled `COMPLETE` date Re-Update, authentication-required after manually closing the browser, and no impact to HUE state.
 - Responsive recheck must verify 100% zoom, visible and usable controls, and no page-level clipping.
+- Remediation 004 / R4.1: commit `8c22374...` was `REVIEW FAIL`.
+- Remediation 004 / R4.1A: commit `dd0d9f94...` was `REVIEW FAIL`.
+- Remediation 004 / R4.1B: commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262` was `REVIEW PASS`. Browser profile handling follows the five-state profile classification contract; `interactiveAuthenticate()` and `recover()` use `_classifyLockState()`; neither function calls `terminateProcessTree()`; cleanup is allowed only for `STALE_CONFIRMED`.
+- Fresh-chat onboarding chain is `README_AI.md` -> `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` -> `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` -> `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`.
+- Runtime port for PO recheck is `5178`; PO login failure for HUE and TCT remains pending PO runtime recheck; ticket cannot be completed without explicit PO PASS.
