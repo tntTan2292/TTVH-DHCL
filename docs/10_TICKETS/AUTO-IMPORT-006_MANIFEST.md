@@ -8,7 +8,7 @@
 - Runtime Status: `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT READY`
-- Current Phase: `REMEDIATION-005A / AWAITING REVIEW`
+- Current Phase: `REMEDIATION-005B / AWAITING REVIEW`
 - Last Reviewed Phase: `R4.1B`
 - Last Reviewed Commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`
 - Phase Review Status: `AWAITING REVIEW`
@@ -23,9 +23,9 @@ Required onboarding chain:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_007.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md`
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_007.md`
+Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md`
 
 ## Approved Scope
 - Bổ sung nút `Đăng nhập Huế` trên giao diện nạp dữ liệu.
@@ -123,3 +123,17 @@ Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_007.md`
 - `hideWindow()` uses the current browser target window handle plus exact profile-owned PID tree verification before calling Windows native `ShowWindow(..., SW_HIDE)`.
 - Registry state uses `windowHidden` / `hideAttempted`; API evidence uses `browser_hidden`.
 - Hide failure keeps `SESSION_VALID`, keeps the browser process/context alive, and returns `browser_hidden:false`.
+- Review status: `REVIEW FAIL`.
+- Failure reason: R5A incorrectly treated CDP `Browser.getWindowForTarget().windowId` as a native Windows `HWND`.
+
+## Remediation 005B Native HWND by Profile PID
+
+- Baseline remote HEAD: `52d25e5310550631a8211aead577442994687787`.
+- PowerShell native enumeration was blocked by host `Access is denied`; R5B replaces the PowerShell hide/restore bridge with direct Win32 calls through the minimal prebuilt Node FFI dependency `koffi`.
+- Direct native calls are limited to `EnumWindows`, `GetWindowThreadProcessId`, `IsWindowVisible`, and `ShowWindow`.
+- Authority mapping remains `exact --user-data-dir` -> `owned PID tree` -> `owned HWND`.
+- CDP `windowId` is not used as HWND; windows are not selected by title.
+- Controlled non-portal headed Chromium smoke found owned HWNDs, hid the visible owned HWND to `IsWindowVisible=false`, kept browser/page usable, and restored the same HWND to `IsWindowVisible=true`.
+- Restore is scoped to HWNDs previously hidden by this profile manager to avoid showing hidden utility windows.
+- Technical status: `PASS`.
+- Runtime PO validation remains pending; ticket cannot be completed without explicit PO PASS.

@@ -638,7 +638,7 @@ class TctF13BackfillService {
                 error.readiness = readiness || null;
                 throw error;
             }
-            const hideWindow = client.hideWindow || client.hideBrowserWindow || client.minimizeWindow;
+            const hideWindow = client.hideWindow || client.hideBrowserWindow;
             await hideWindow?.call(client).catch(() => {});
             const exportRequestedAt = this.clock();
             try {

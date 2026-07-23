@@ -314,7 +314,7 @@ class DkclSessionPreflightService {
                 entry.backgroundReady = false;
                 entry.updatedAt = new Date().toISOString();
 
-                const hideWindow = client.hideWindow || client.hideBrowserWindow || client.minimizeWindow;
+                const hideWindow = client.hideWindow || client.hideBrowserWindow;
                 const hideSuccess = entry.hideAttempted
                     ? entry.windowHidden
                     : await hideWindow.call(client).catch(() => false);

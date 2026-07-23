@@ -43,7 +43,7 @@
 - AUTO-IMPORT-003: `Completed / PO PASS`
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
-- AUTO-IMPORT-006: `ACTIVE / PO RECHECK`; Technical Status `PASS`; Runtime Status `AWAITING PO RECHECK`; PO Product Status `NOT READY`; Current Phase `REMEDIATION-004 / PO RECHECK`; Last Reviewed Phase `R4.1B`
+- AUTO-IMPORT-006: `ACTIVE / AWAITING REVIEW`; Technical Status `PASS`; Runtime Status `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`; PO Product Status `NOT READY`; Current Phase `REMEDIATION-005B / AWAITING REVIEW`; Last Reviewed Phase `R4.1B`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -100,8 +100,8 @@
 | Field | Value |
 | --- | --- |
 | Current Ticket | `AUTO-IMPORT-006` |
-| Current Commit | `58fb723e9c5eeb82f17b75d14b7662c3503ee262` |
-| Current Phase | `REMEDIATION-004 / PO RECHECK` |
+| Current Commit | `52d25e5310550631a8211aead577442994687787` |
+| Current Phase | `REMEDIATION-005B / AWAITING REVIEW` |
 | Last Reviewed Phase | `R4.1B` |
 | Last Reviewed Commit | `58fb723e9c5eeb82f17b75d14b7662c3503ee262` |
 | Phase Review Status | `REVIEW PASS` |
@@ -209,7 +209,7 @@
 - Runtime Status: `AWAITING PO RECHECK`.
 - PO UI Check Required: `Yes`.
 - PO Product Status: `NOT READY`.
-- Current Phase: `REMEDIATION-004 / PO RECHECK`.
+- Current Phase: `REMEDIATION-005B / AWAITING REVIEW`.
 - Last Reviewed Phase: `R4.1B`.
 - Last Reviewed Commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`.
 - Phase Review Status: `REVIEW PASS`.
@@ -227,5 +227,7 @@
 - Remediation 004 / R4.1: commit `8c22374...` was `REVIEW FAIL`.
 - Remediation 004 / R4.1A: commit `dd0d9f94...` was `REVIEW FAIL`.
 - Remediation 004 / R4.1B: commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262` was `REVIEW PASS`. Browser profile handling follows the five-state profile classification contract; `interactiveAuthenticate()` and `recover()` use `_classifyLockState()`; neither function calls `terminateProcessTree()`; cleanup is allowed only for `STALE_CONFIRMED`.
-- Fresh-chat onboarding chain is `README_AI.md` -> `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` -> `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` -> `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`.
+- Remediation 005A: commit `52d25e5310550631a8211aead577442994687787` was `REVIEW FAIL` because it treated CDP `Browser.getWindowForTarget().windowId` as a native Windows `HWND`.
+- Remediation 005B: replaces the blocked PowerShell native-window bridge with direct Win32 calls through minimal prebuilt Node FFI dependency `koffi`; authority remains `exact --user-data-dir` -> `owned PID tree` -> `owned HWND`; controlled non-portal headed Chromium smoke proved hide to `IsWindowVisible=false`, browser/page usability after hide, and restore to `IsWindowVisible=true`.
+- Fresh-chat onboarding chain is `README_AI.md` -> `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` -> `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` -> `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md`.
 - Runtime port for PO recheck is `5178`; PO login failure for HUE and TCT remains pending PO runtime recheck; ticket cannot be completed without explicit PO PASS.

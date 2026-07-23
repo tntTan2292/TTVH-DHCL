@@ -4,12 +4,15 @@ const cp = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const util = require('util');
+const nativeWindowManager = require('./nativeWindowManager');
 
 class BrowserProcessManager {
-    constructor({ execAsync = util.promisify(cp.exec), existsSync = fs.existsSync, rmSync = fs.rmSync } = {}) {
+    constructor({ execAsync = util.promisify(cp.exec), existsSync = fs.existsSync, rmSync = fs.rmSync, nativeWindows = nativeWindowManager } = {}) {
         this.execAsync = execAsync;
         this.existsSync = existsSync;
         this.rmSync = rmSync;
+        this.nativeWindows = nativeWindows;
+        this.hiddenHwndsByProfile = new Map();
     }
 
     async findBrowserProcessByProfile(profileDir) {
@@ -22,8 +25,8 @@ class BrowserProcessManager {
         try {
             if (process.platform === 'win32') {
                 try {
-                    // Try CIM/WMI first
-                    const { stdout } = await this.execAsync('powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name=\'chrome.exe\' OR Name=\'msedge.exe\'\\" | Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress"');
+                    // Query browser-like processes broadly, then accept only exact --user-data-dir matches.
+                    const { stdout } = await this.execAsync('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \'--user-data-dir\' } | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress"');
                     if (stdout.trim()) {
                         let processes = [];
                         try {
@@ -44,7 +47,8 @@ class BrowserProcessManager {
                                     if (path.resolve(dir).toLowerCase() === path.resolve(profileDir).toLowerCase()) {
                                         result.matchingProcesses.push({
                                             pid: parseInt(proc.ProcessId, 10),
-                                            executable: 'chrome.exe',
+                                            executable: proc.Name || path.basename(proc.ExecutablePath || '') || 'browser',
+                                            executablePath: proc.ExecutablePath || null,
                                             commandLine: cmdLine,
                                             exactProfileMatch: true,
                                             ownershipEvidence: true
@@ -61,15 +65,17 @@ class BrowserProcessManager {
                     }
                 } catch (cimErr) {
                     // Fallback to wmic
-                    const { stdout } = await this.execAsync('wmic process where "name=\'chrome.exe\' or name=\'msedge.exe\'" get ProcessId,CommandLine /FORMAT:CSV');
+                    const { stdout } = await this.execAsync('wmic process get ProcessId,Name,ExecutablePath,CommandLine /FORMAT:CSV');
                     const lines = stdout.split('\n');
                     for (let line of lines) {
                         line = line.trim();
                         if (!line) continue;
                         const parts = line.split(',');
-                        if (parts.length >= 3) {
+                        if (parts.length >= 5) {
                             const pidStr = parts[parts.length - 1];
-                            const cmdLine = parts.slice(1, parts.length - 1).join(',');
+                            const name = parts[parts.length - 2];
+                            const executablePath = parts[parts.length - 3];
+                            const cmdLine = parts.slice(1, parts.length - 3).join(',');
                             if (cmdLine.toLowerCase().includes('--user-data-dir')) {
                                 const match = cmdLine.match(/--user-data-dir=(?:"([^"]+)"|([^\s]+))/i);
                                 if (match) {
@@ -77,7 +83,8 @@ class BrowserProcessManager {
                                     if (path.resolve(dir).toLowerCase() === path.resolve(profileDir).toLowerCase()) {
                                         result.matchingProcesses.push({
                                             pid: parseInt(pidStr, 10),
-                                            executable: 'chrome.exe',
+                                            executable: name || path.basename(executablePath || '') || 'browser',
+                                            executablePath: executablePath || null,
                                             commandLine: cmdLine,
                                             exactProfileMatch: true,
                                             ownershipEvidence: true
@@ -165,158 +172,15 @@ class BrowserProcessManager {
             };
         }
 
-        const action = visible ? 'SHOW' : 'HIDE';
-        const showCommand = visible ? 5 : 0; // SW_SHOW / SW_HIDE
-        const script = `
-$ErrorActionPreference = 'Stop'
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-using System.Text;
-public static class NativeWindow {
-  public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-  [DllImport("user32.dll")] public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
-  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
-  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-  [DllImport("user32.dll", SetLastError=true)] public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-}
-"@
-$targetPids = @(${targetPids.join(',')})
-$showCommand = ${showCommand}
-$matches = New-Object System.Collections.Generic.List[object]
-$script:affected = 0
-$callback = [NativeWindow+EnumWindowsProc]{
-  param([IntPtr]$hWnd, [IntPtr]$lParam)
-  [uint32]$pid = 0
-  [void][NativeWindow]::GetWindowThreadProcessId($hWnd, [ref]$pid)
-  if ($targetPids -contains [int]$pid) {
-    $titleBuilder = New-Object System.Text.StringBuilder 512
-    [void][NativeWindow]::GetWindowText($hWnd, $titleBuilder, $titleBuilder.Capacity)
-    $wasVisible = [NativeWindow]::IsWindowVisible($hWnd)
-    $ok = [NativeWindow]::ShowWindow($hWnd, $showCommand)
-    $isVisible = [NativeWindow]::IsWindowVisible($hWnd)
-    if ((${visible ? '$isVisible' : '-not $isVisible'})) { $script:affected += 1 }
-    $matches.Add([pscustomobject]@{
-      hwnd = $hWnd.ToInt64()
-      pid = [int]$pid
-      title = $titleBuilder.ToString()
-      wasVisible = [bool]$wasVisible
-      isVisible = [bool]$isVisible
-      nativeResult = [bool]$ok
-    })
-  }
-  return $true
-}
-[void][NativeWindow]::EnumWindows($callback, [IntPtr]::Zero)
-[pscustomobject]@{
-  success = ($matches.Count -gt 0 -and $affected -gt 0)
-  action = '${action}'
-  matchedWindowCount = $matches.Count
-  affectedWindowCount = $script:affected
-  windows = $matches
-} | ConvertTo-Json -Compress -Depth 5
-`;
-        const encoded = Buffer.from(script, 'utf16le').toString('base64');
         try {
-            const { stdout } = await this.execAsync(`powershell -NoProfile -EncodedCommand ${encoded}`);
-            return stdout.trim()
-                ? JSON.parse(stdout)
-                : { success: false, action, matchedWindowCount: 0, affectedWindowCount: 0, errorCode: 'NO_OUTPUT' };
+            return this.nativeWindows.setWindowsVisibleForProcessIds(targetPids, visible);
         } catch (error) {
             return {
                 success: false,
-                action,
+                action: visible ? 'SHOW' : 'HIDE',
                 matchedWindowCount: 0,
                 affectedWindowCount: 0,
-                errorCode: 'NATIVE_WINDOW_COMMAND_FAILED'
-            };
-        }
-    }
-
-    async setWindowVisibleByHandleForProfile(profileDir, windowHandle, visible) {
-        const hwnd = Number(windowHandle);
-        if (!Number.isFinite(hwnd) || hwnd <= 0 || process.platform !== 'win32') {
-            return {
-                success: false,
-                action: visible ? 'SHOW' : 'HIDE',
-                hwnd,
-                errorCode: process.platform === 'win32' ? 'INVALID_WINDOW_HANDLE' : 'UNSUPPORTED_PLATFORM'
-            };
-        }
-
-        const inspection = await this.findBrowserProcessByProfile(profileDir);
-        if (inspection.inspectionStatus !== 'SUCCESS' || inspection.matchingProcesses.length === 0) {
-            return {
-                success: false,
-                action: visible ? 'SHOW' : 'HIDE',
-                hwnd,
-                inspection,
-                errorCode: inspection.errorCode || inspection.inspectionStatus
-            };
-        }
-
-        const rootPids = inspection.matchingProcesses.map((proc) => proc.pid);
-        const processIds = await this.getDescendantProcessIds(rootPids);
-        const showCommand = visible ? 5 : 0;
-        const action = visible ? 'SHOW' : 'HIDE';
-        const script = `
-$ErrorActionPreference = 'Stop'
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public static class NativeWindowHandle {
-  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-  [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);
-  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-}
-"@
-$hwnd = [IntPtr]${hwnd}
-$targetPids = @(${processIds.join(',')})
-$showCommand = ${showCommand}
-[uint32]$pid = 0
-[void][NativeWindowHandle]::GetWindowThreadProcessId($hwnd, [ref]$pid)
-$owned = $targetPids -contains [int]$pid
-$beforeVisible = [NativeWindowHandle]::IsWindowVisible($hwnd)
-$nativeResult = $false
-if ($owned) {
-  $nativeResult = [NativeWindowHandle]::ShowWindow($hwnd, $showCommand)
-}
-$afterVisible = [NativeWindowHandle]::IsWindowVisible($hwnd)
-[pscustomobject]@{
-  success = ($owned -and ${visible ? '$afterVisible' : '-not $afterVisible'})
-  action = '${action}'
-  hwnd = ${hwnd}
-  pid = [int]$pid
-  owned = [bool]$owned
-  wasVisible = [bool]$beforeVisible
-  isVisible = [bool]$afterVisible
-  nativeResult = [bool]$nativeResult
-} | ConvertTo-Json -Compress
-`;
-        const encoded = Buffer.from(script, 'utf16le').toString('base64');
-        try {
-            const { stdout } = await this.execAsync(`powershell -NoProfile -EncodedCommand ${encoded}`);
-            const native = stdout.trim()
-                ? JSON.parse(stdout)
-                : { success: false, action, hwnd, errorCode: 'NO_OUTPUT' };
-            return {
-                ...native,
-                profileDir,
-                rootPids,
-                processIds,
-                inspection
-            };
-        } catch (error) {
-            return {
-                success: false,
-                action,
-                hwnd,
-                profileDir,
-                rootPids,
-                processIds,
-                inspection,
-                errorCode: 'NATIVE_WINDOW_HANDLE_COMMAND_FAILED'
+                errorCode: 'NATIVE_WINDOW_FFI_FAILED'
             };
         }
     }
@@ -334,7 +198,31 @@ $afterVisible = [NativeWindowHandle]::IsWindowVisible($hwnd)
         }
         const rootPids = inspection.matchingProcesses.map((proc) => proc.pid);
         const processIds = await this.getDescendantProcessIds(rootPids);
-        const result = await this.setWindowsVisibleForProcessIds(processIds, visible);
+        const normalizedProfileDir = path.resolve(profileDir).toLowerCase();
+        const options = visible && this.hiddenHwndsByProfile.has(normalizedProfileDir)
+            ? { hwndAllowList: this.hiddenHwndsByProfile.get(normalizedProfileDir) }
+            : {};
+        let result;
+        try {
+            result = await this.nativeWindows.setWindowsVisibleForProcessIds(processIds, visible, options);
+        } catch (error) {
+            result = {
+                success: false,
+                action: visible ? 'SHOW' : 'HIDE',
+                matchedWindowCount: 0,
+                affectedWindowCount: 0,
+                errorCode: 'NATIVE_WINDOW_FFI_FAILED'
+            };
+        }
+        if (!visible && result?.success) {
+            const hiddenHwnds = (result.windows || [])
+                .filter((win) => win.wasVisible && !win.isVisible)
+                .map((win) => win.hwnd);
+            if (hiddenHwnds.length > 0) this.hiddenHwndsByProfile.set(normalizedProfileDir, hiddenHwnds);
+        }
+        if (visible && result?.success) {
+            this.hiddenHwndsByProfile.delete(normalizedProfileDir);
+        }
         return {
             ...result,
             profileDir,
@@ -395,6 +283,5 @@ module.exports = {
     terminateProcessTree: defaultInstance.terminateProcessTree.bind(defaultInstance),
     cleanupStaleLocks: defaultInstance.cleanupStaleLocks.bind(defaultInstance),
     hideBrowserWindowsByProfile: defaultInstance.hideBrowserWindowsByProfile.bind(defaultInstance),
-    showBrowserWindowsByProfile: defaultInstance.showBrowserWindowsByProfile.bind(defaultInstance),
-    setWindowVisibleByHandleForProfile: defaultInstance.setWindowVisibleByHandleForProfile.bind(defaultInstance)
+    showBrowserWindowsByProfile: defaultInstance.showBrowserWindowsByProfile.bind(defaultInstance)
 };
