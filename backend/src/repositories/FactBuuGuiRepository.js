@@ -314,6 +314,7 @@ class FactBuuGuiRepository {
                     skipped_records
                 FROM import_log
                 WHERE status = 'SUCCESS'
+                  AND date(ngay_do_kiem) <= date('now', 'localtime')
                 ORDER BY date(ngay_do_kiem) DESC, datetime(created_at) DESC, id DESC
                 LIMIT 1
             `;

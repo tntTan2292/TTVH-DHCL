@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 
 const service = require('./F13DashboardService');
 const repo = require('../repositories/FactBuuGuiRepository');
@@ -174,4 +175,10 @@ test('BCVH ranking returns null D-1 and D-7 deltas when comparison rows are unav
   } finally {
     Object.assign(repo, originals);
   }
+});
+
+test('latest import freshness ignores future-dated recovery artifacts', () => {
+  const source = fs.readFileSync(require.resolve('../repositories/FactBuuGuiRepository'), 'utf8');
+
+  assert.match(source, /WHERE status = 'SUCCESS'\s+AND date\(ngay_do_kiem\) <= date\('now', 'localtime'\)/);
 });

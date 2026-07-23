@@ -10,8 +10,9 @@ test('dashboard page clears stale KPI payloads before scoped requests resolve', 
   assert.match(dashboardSource, /data:\s*null/);
   assert.match(dashboardSource, /const kpiRequestSeqRef = useRef\(0\);/);
   assert.match(dashboardSource, /const kpiActiveKeyRef = useRef\(''\);/);
-  assert.match(dashboardSource, /useEffect\(\(\) => \{[\r\n]+\s+if \(!fromDate \|\| !toDate\) return undefined;/);
-  assert.match(dashboardSource, /\}, \[fromDate, maBcvh, toDate\]\);/);
+  assert.match(dashboardSource, /const dashboardReady = metadataState\.status === 'success' && range\.ready && !range\.normalized/);
+  assert.match(dashboardSource, /if \(!dashboardReady\) \{[\s\S]*?kpiRequestSeqRef\.current \+= 1;/);
+  assert.match(dashboardSource, /\}, \[dashboardReady, fromDate, maBcvh, toDate\]\);/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/kpi'/);
   assert.equal((dashboardSource.match(/api\.get\('\/f13\/dashboard\/kpi'/g) || []).length, 1);
   assert.doesNotMatch(summarySource, /api\.get\('\/f13\/dashboard\/kpi'/);
@@ -59,10 +60,26 @@ test('operation dashboard uses one normalized date range for selected-period wid
   assert.match(dashboardSource, /rawToDate:\s*searchParams\.get\('to_date'\)/);
   assert.match(dashboardSource, /params\.set\('from_date',\s*range\.fromDate\)/);
   assert.match(dashboardSource, /params\.set\('to_date',\s*range\.toDate\)/);
+  assert.match(dashboardSource, /const showWidgets = dashboardReady/);
+  assert.match(dashboardSource, /\{showWidgets \? \(/);
   assert.match(trendWindowSource, /from_date:\s*reportingFromDate/);
   assert.match(bcvhTableSource, /from_date:\s*fromDate/);
   assert.match(bcvhTableSource, /to_date:\s*toDate/);
   assert.match(actionCenterSource, /params:\s*\{\s*fromDate,\s*toDate\s*\}/);
+});
+
+test('operation dashboard atomically normalizes stale URL state before widget fetches', () => {
+  const dashboardSource = fs.readFileSync(new URL('../DashboardPage.jsx', import.meta.url), 'utf8');
+
+  assert.match(dashboardSource, /recoverDashboardDateState\(\)/);
+  assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/meta',\s*\{/);
+  assert.match(dashboardSource, /'Cache-Control': 'no-cache'/);
+  assert.match(dashboardSource, /if \(range\.ready && range\.normalized\) \{[\s\S]*?params\.set\('from_date', range\.fromDate\);[\s\S]*?params\.set\('to_date', range\.toDate\);/);
+  assert.match(dashboardSource, /if \(params\.has\('kpi'\)\) \{[\s\S]*?params\.delete\('kpi'\);/);
+  assert.match(dashboardSource, /if \(!isCanonicalBcvhCode\(maBcvh\)\) \{[\s\S]*?params\.set\('ma_bcvh', 'all'\);/);
+  assert.equal((dashboardSource.match(/setSearchParams\(params, \{ replace: true \}\);/g) || []).length, 1);
+  assert.match(dashboardSource, /if \(!dashboardReady\) \{[\s\S]*?trendRequestSeqRef\.current \+= 1;/);
+  assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/daily-trend', \{ params, signal: controller\.signal \}\)/);
 });
 
 test('legacy dashboard adapters preserve stable filter identity between equivalent renders', () => {

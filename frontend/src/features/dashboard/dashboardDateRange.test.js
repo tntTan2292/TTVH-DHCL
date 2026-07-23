@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resolveDashboardDateRange } from './dashboardDateRange.js';
+import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboardDateRange.js';
 
 test('dashboard date range normalizes invalid year 2098 to available coverage', () => {
   const range = resolveDashboardDateRange({
@@ -16,6 +16,69 @@ test('dashboard date range normalizes invalid year 2098 to available coverage', 
     normalized: true,
     ready: true,
   });
+});
+
+function createStorage(initial = {}) {
+  const map = new Map(Object.entries(initial));
+  return {
+    get length() {
+      return map.size;
+    },
+    key(index) {
+      return Array.from(map.keys())[index] || null;
+    },
+    getItem(key) {
+      return map.has(key) ? map.get(key) : null;
+    },
+    setItem(key, value) {
+      map.set(key, String(value));
+    },
+    removeItem(key) {
+      map.delete(key);
+    },
+    snapshot() {
+      return Object.fromEntries(map.entries());
+    },
+  };
+}
+
+test('dashboard date recovery removes stale persisted filter keys without touching auth or table columns', () => {
+  const localStorage = createStorage({
+    'qis.dashboard.filters': '{"from_date":"2098-02-18","to_date":"2098-02-18"}',
+    'qis.unifiedBcvhAnalysisTable.columns.v3': '{"preset":"default"}',
+    qis_session_id: 'session-for-test',
+  });
+  const sessionStorage = createStorage({
+    'f13-dashboard-date-range': '2098-02-18',
+    theme: 'light',
+  });
+
+  const result = recoverDashboardDateState({ localStorage, sessionStorage });
+
+  assert.equal(result.skipped, false);
+  assert.deepEqual(result.removedLocalKeys, ['qis.dashboard.filters']);
+  assert.deepEqual(result.removedSessionKeys, ['f13-dashboard-date-range']);
+  assert.equal(localStorage.getItem('qis.dashboard.filters'), null);
+  assert.equal(sessionStorage.getItem('f13-dashboard-date-range'), null);
+  assert.equal(localStorage.getItem('qis.unifiedBcvhAnalysisTable.columns.v3'), '{"preset":"default"}');
+  assert.equal(localStorage.getItem('qis_session_id'), 'session-for-test');
+  assert.equal(sessionStorage.getItem('theme'), 'light');
+});
+
+test('dashboard date recovery runs once per recovery version', () => {
+  const localStorage = createStorage({
+    'qis.dashboard.filters': '{"from_date":"2098-02-18"}',
+  });
+  const sessionStorage = createStorage();
+
+  recoverDashboardDateState({ localStorage, sessionStorage });
+  localStorage.setItem('qis.dashboard.filters', '{"from_date":"2098-02-18"}');
+
+  const result = recoverDashboardDateState({ localStorage, sessionStorage });
+
+  assert.equal(result.skipped, true);
+  assert.deepEqual(result.removedLocalKeys, []);
+  assert.equal(localStorage.getItem('qis.dashboard.filters'), '{"from_date":"2098-02-18"}');
 });
 
 test('dashboard date range clamps before coverage and keeps valid no-data dates inside coverage', () => {

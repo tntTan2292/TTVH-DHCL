@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 
 const dashboardController = require('./DashboardController');
 const service = require('../services/F13DashboardService');
@@ -133,4 +134,11 @@ test('dashboard KPI request with ma_bcvh=all is normalized at the controller bou
   } finally {
     service.getDashboardKpi = originalService;
   }
+});
+
+test('dashboard metadata coverage excludes future-dated fact outliers', () => {
+  const source = fs.readFileSync(require.resolve('./kpiController'), 'utf8');
+
+  assert.match(source, /SELECT MIN\(ngay_do_kiem\) as min_date, MAX\(ngay_do_kiem\) as max_date/);
+  assert.match(source, /WHERE date\(ngay_do_kiem\) <= date\('now', 'localtime'\)/);
 });

@@ -18,7 +18,7 @@ import {
 } from './components/dashboardFilterOptions';
 import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
-import { resolveDashboardDateRange } from './dashboardDateRange';
+import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboardDateRange';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -34,10 +34,17 @@ export default function DashboardPage() {
   });
   const kpiRequestSeqRef = useRef(0);
   const kpiActiveKeyRef = useRef('');
+  const trendRequestSeqRef = useRef(0);
 
   const loadDashboardMeta = () => {
     setMetadataState((prev) => ({ ...prev, status: 'loading', error: null }));
-    api.get('/f13/dashboard/meta')
+    api.get('/f13/dashboard/meta', {
+      params: { _ts: Date.now() },
+      headers: {
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      },
+    })
       .then((res) => {
         const data = res.data?.data || {};
         if (res.data?.success && data.max_date) {
@@ -72,6 +79,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    recoverDashboardDateState();
     loadDashboardMeta();
   }, []);
 
@@ -86,9 +94,15 @@ export default function DashboardPage() {
   const interval = searchParams.get('interval') || 'daily';
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
+  const dashboardReady = metadataState.status === 'success' && range.ready && !range.normalized && Boolean(fromDate && toDate);
 
   useEffect(() => {
-    if (!fromDate || !toDate) return undefined;
+    if (!dashboardReady) {
+      kpiRequestSeqRef.current += 1;
+      kpiActiveKeyRef.current = '';
+      setKpiState({ loading: true, error: null, data: null });
+      return undefined;
+    }
 
     const requestKey = `${fromDate}|${toDate}|${maBcvh}`;
     const requestSeq = kpiRequestSeqRef.current + 1;
@@ -144,10 +158,18 @@ export default function DashboardPage() {
     return () => {
       controller.abort();
     };
-  }, [fromDate, maBcvh, toDate]);
+  }, [dashboardReady, fromDate, maBcvh, toDate]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!dashboardReady) {
+      trendRequestSeqRef.current += 1;
+      setTrendState({ loading: true, error: null, data: [] });
+      return undefined;
+    }
+
+    const requestSeq = trendRequestSeqRef.current + 1;
+    trendRequestSeqRef.current = requestSeq;
+    const controller = new AbortController();
 
     const loadTrend = async () => {
       try {
@@ -163,8 +185,8 @@ export default function DashboardPage() {
           throw new Error('Không thể xác định cửa sổ 30 ngày cho biểu đồ.');
         }
 
-        const response = await api.get('/f13/dashboard/daily-trend', { params });
-        if (!cancelled && response?.data?.success) {
+        const response = await api.get('/f13/dashboard/daily-trend', { params, signal: controller.signal });
+        if (!controller.signal.aborted && trendRequestSeqRef.current === requestSeq && response?.data?.success) {
           setTrendState({
             loading: false,
             error: null,
@@ -172,7 +194,7 @@ export default function DashboardPage() {
           });
         }
       } catch (error) {
-        if (!cancelled) {
+        if (!controller.signal.aborted && trendRequestSeqRef.current === requestSeq) {
           setTrendState({
             loading: false,
             error: error?.message || 'Không thể tải dữ liệu xu hướng.',
@@ -182,37 +204,38 @@ export default function DashboardPage() {
       }
     };
 
-    if (metadataState.status === 'success' && fromDate && toDate) {
-      loadTrend();
-    }
+    loadTrend();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [fromDate, latestDate, maBcvh, metadataState.status, toDate]);
-
-  useEffect(() => {
-    if (metadataState.status !== 'success' || !range.ready || !range.normalized) return;
-    const params = new URLSearchParams(searchParams);
-    params.set('from_date', range.fromDate);
-    params.set('to_date', range.toDate);
-    setSearchParams(params, { replace: true });
-  }, [metadataState.status, range.fromDate, range.normalized, range.ready, range.toDate, searchParams, setSearchParams]);
-
-  useEffect(() => {
-    if (!searchParams.has('kpi')) return;
-    const params = new URLSearchParams(searchParams);
-    params.delete('kpi');
-    setSearchParams(params, { replace: true });
-  }, [searchParams, setSearchParams]);
+  }, [dashboardReady, fromDate, latestDate, maBcvh, toDate]);
 
   useEffect(() => {
     if (metadataState.status !== 'success') return;
-    if (isCanonicalBcvhCode(maBcvh)) return;
     const params = new URLSearchParams(searchParams);
-    params.set('ma_bcvh', 'all');
-    setSearchParams(params, { replace: true });
-  }, [maBcvh, metadataState.status, searchParams, setSearchParams]);
+    let changed = false;
+
+    if (range.ready && range.normalized) {
+      params.set('from_date', range.fromDate);
+      params.set('to_date', range.toDate);
+      changed = true;
+    }
+
+    if (params.has('kpi')) {
+      params.delete('kpi');
+      changed = true;
+    }
+
+    if (!isCanonicalBcvhCode(maBcvh)) {
+      params.set('ma_bcvh', 'all');
+      changed = true;
+    }
+
+    if (changed) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [maBcvh, metadataState.status, range.fromDate, range.normalized, range.ready, range.toDate, searchParams, setSearchParams]);
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);
@@ -226,6 +249,8 @@ export default function DashboardPage() {
 
   const selectedBcvhLabel = metadataState.bcvhOptions.find((option) => option.value === maBcvh)?.label
     || (maBcvh === 'all' ? 'Toàn mạng' : 'Theo BCVH');
+
+  const showWidgets = dashboardReady;
 
   return (
     <PageContainer
@@ -278,14 +303,16 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
-        <UnifiedCommandSummary
-          kpiData={kpiState.data}
-          loading={kpiState.loading}
-          error={kpiState.error}
-          fromDate={fromDate}
-          toDate={toDate}
-          bcvhLabel={selectedBcvhLabel}
-        />
+        {showWidgets ? (
+          <>
+            <UnifiedCommandSummary
+              kpiData={kpiState.data}
+              loading={kpiState.loading}
+              error={kpiState.error}
+              fromDate={fromDate}
+              toDate={toDate}
+              bcvhLabel={selectedBcvhLabel}
+            />
 
         <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
 
@@ -305,15 +332,17 @@ export default function DashboardPage() {
           maBcvh={maBcvh}
         />
 
-        <UnifiedActionCenter
-          fromDate={fromDate}
-          toDate={toDate}
-          maBcvh={maBcvh}
-          bcvhLabel={selectedBcvhLabel}
-          kpiData={kpiState.data}
-          kpiLoading={kpiState.loading}
-          kpiError={kpiState.error}
-        />
+            <UnifiedActionCenter
+              fromDate={fromDate}
+              toDate={toDate}
+              maBcvh={maBcvh}
+              bcvhLabel={selectedBcvhLabel}
+              kpiData={kpiState.data}
+              kpiLoading={kpiState.loading}
+              kpiError={kpiState.error}
+            />
+          </>
+        ) : null}
       </div>
     </PageContainer>
   );
