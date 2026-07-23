@@ -15,6 +15,7 @@ import {
 import { buildTrendlineRequestParams } from './qualityTrendlineWindow.js';
 
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
+const mojibakePattern = /Ã|Â|á»|Æ°/;
 
 const sampleTrend = [
   { date: '2026-07-07', total_volume: 90, passed: 82, failed: 8, quality_rate: 91.11, data_available: true },
@@ -216,11 +217,16 @@ test('leadership comparison widgets use shared contract when both comparisons ar
   });
 
   assert.equal(widgets[0].available, true);
+  assert.equal(widgets[0].title, 'So với hôm qua');
+  assert.equal(widgets[0].comparison_label, 'Hôm qua');
   assert.equal(widgets[0].previous_date, '2026-07-14');
   assert.equal(widgets[0].pass_rate.delta, -18.33);
   assert.equal(widgets[1].available, true);
+  assert.equal(widgets[1].title, 'So với cùng kỳ tuần trước');
+  assert.equal(widgets[1].comparison_label, 'Cùng kỳ tuần trước');
   assert.equal(widgets[1].previous_date, '2026-07-08');
   assert.equal(widgets[1].pass_rate.delta, -15);
+  assert.equal(widgets.some((widget) => mojibakePattern.test(`${widget.title} ${widget.comparison_label}`)), false);
 });
 
 test('leadership comparison contract reports D-1 missing without deriving fallback deltas', () => {

@@ -159,14 +159,14 @@ function buildLeadershipComparisonWidgetsFromContract(comparisonContract) {
     toLeadershipWidgetData(
       comparisonContract.d1,
       'd-1',
-      'So vá»›i hÃ´m qua',
-      'HÃ´m qua',
+      'So với hôm qua',
+      'Hôm qua',
     ),
     toLeadershipWidgetData(
       comparisonContract.d7,
       'd-7',
-      'So vá»›i cÃ¹ng ká»³ tuáº§n trÆ°á»›c',
-      'CÃ¹ng ká»³ tuáº§n trÆ°á»›c',
+      'So với cùng kỳ tuần trước',
+      'Cùng kỳ tuần trước',
     ),
   ].filter(Boolean);
 }
