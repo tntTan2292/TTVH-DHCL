@@ -254,14 +254,27 @@ class DkclHueF13SyncService {
             return { complete: true, rowCount, distinctCount, processedPath };
         }
 
-        if (rowCount > 0 || logs.length > 0 || hasProcessedFile) {
+        if (rowCount > 0 && distinctCount !== rowCount) {
             return {
                 inconsistent: true,
-                reason: 'Existing data, logs, or processed file require manual review before DKCL acquisition.'
+                rowCount,
+                distinctCount,
+                reason: 'Existing Hue F1.3 database rows are not internally consistent.'
             };
         }
 
-        return { complete: false, inconsistent: false };
+        if (rowCount > 0 || logs.length > 0 || hasProcessedFile) {
+            return {
+                complete: false,
+                inconsistent: false,
+                rowCount,
+                distinctCount,
+                staleEvidence: true,
+                reason: 'No valid completed Hue F1.3 import evidence; stale logs/files do not block Update.'
+            };
+        }
+
+        return { complete: false, inconsistent: false, rowCount, distinctCount };
     }
 
     async runWorkflow(run, options = {}) {

@@ -80,8 +80,12 @@ async function runTests() {
             }
             if (date === '2026-07-17') {
                 return {
-                    inconsistent: true,
-                    reason: 'Existing data, logs, or processed file require manual review before DKCL acquisition.'
+                    complete: false,
+                    inconsistent: false,
+                    staleEvidence: true,
+                    rowCount: 0,
+                    distinctCount: 0,
+                    reason: 'No valid completed Hue F1.3 import evidence; stale logs/files do not block Update.'
                 };
             }
             return { complete: false, inconsistent: false };
@@ -94,12 +98,12 @@ async function runTests() {
     });
 
     assert('completion check is called sequentially by date', calls.join(',') === '2026-07-16,2026-07-17,2026-07-18');
-    assert('summary counts are correct', result.complete_count === 1 && result.manual_review_count === 1 && result.missing_count === 1);
+    assert('summary counts are correct', result.complete_count === 1 && result.manual_review_count === 0 && result.missing_count === 2);
     assert('complete date is selectable', result.results[0].status === 'COMPLETE' && result.results[0].selectable === true);
-    assert('manual review date is not selectable', result.results[1].status === 'MANUAL_REVIEW_REQUIRED' && result.results[1].selectable === false);
+    assert('stale evidence date is selectable as missing', result.results[1].status === 'MISSING' && result.results[1].selectable === true);
     assert('missing date is selectable', result.results[2].status === 'MISSING' && result.results[2].selectable === true);
     assert('standardized evidence filename is returned', result.results[2].evidence.standardized_filename === 'F1.3-2026.07.18.xlsx');
-    assert('scan exposes explicit date lists', result.existing_dates.join(',') === '2026-07-16,2026-07-17' && result.missing_dates.join(',') === '2026-07-18' && result.completed_dates.join(',') === '2026-07-16');
+    assert('scan exposes explicit date lists', result.existing_dates.join(',') === '2026-07-16' && result.missing_dates.join(',') === '2026-07-17,2026-07-18' && result.completed_dates.join(',') === '2026-07-16');
 
     console.log('\nTEST 4: coverage summary exposes database coverage and selected range');
     const coverageService = new DkclHueF13BackfillService({

@@ -410,15 +410,37 @@ async function runTests() {
     assert('corrupt or non-XLSX download fails safely', corruptRun.status === STATUSES.FAILED && /valid XLSX/i.test(corruptRun.safeErrorMessage));
     assert('download failure does not trigger delete', !corruptService.portalClient.calls.some((call) => call[0] === 'deleteGeneratedFile'));
 
-    console.log('\nTEST 6: inconsistent existing state prevents automatic replacement');
+    console.log('\nTEST 6: stale existing state does not require manual review');
     await run(
         `INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh, ten_bcvh, danh_gia_2026)
          VALUES (?, 'AUTO002_INCONSISTENT', '533140', 'BCVH TEST', 'Đạt')`,
         [manualDate]
     );
-    const manualService = new DkclHueF13SyncService({ portalClient: makePortalClient({ sourcePath: validFixture, total: 2 }) });
+    const manualService = new DkclHueF13SyncService({
+        portalClient: makePortalClient({ sourcePath: validFixture, total: 2 }),
+        config: { enabled: false }
+    });
     const manualResult = await manualService.start(manualDate);
-    assert('manual review is required for inconsistent existing data', manualResult.status === STATUSES.MANUAL_REVIEW_REQUIRED);
+    assert('stale row evidence no longer returns manual review', manualResult.status !== STATUSES.MANUAL_REVIEW_REQUIRED);
+    assert('disabled automation is reached after stale evidence is ignored', manualResult.status === STATUSES.FAILED);
+
+    console.log('\nTEST 6B: success log with zero DB rows is selectable for acquisition');
+    const staleLogDate = '2098-02-15';
+    await cleanupDate(staleLogDate);
+    await run(
+        `INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+         VALUES (?, ?, 'SUCCESS', 34, 0, 0)`,
+        [standardizedFilename(staleLogDate), staleLogDate]
+    );
+    const staleLogService = new DkclHueF13SyncService({
+        portalClient: makePortalClient({ sourcePath: validFixture, total: 2 }),
+        config: { enabled: false }
+    });
+    const staleCompletion = await staleLogService.checkCompleted(staleLogDate);
+    const staleStart = await staleLogService.start(staleLogDate);
+    assert('stale success log with zero rows is not complete', staleCompletion.complete === false && staleCompletion.inconsistent === false);
+    assert('stale success log carries explicit reason', /stale logs\/files do not block Update/.test(staleCompletion.reason || ''));
+    assert('stale success log reaches acquisition gate instead of manual review', staleStart.status === STATUSES.FAILED);
 
     console.log('\nTEST 7: sensitive values are absent from safe errors');
     const sanitized = safeErrorMessage(new Error('password=secret cookie=session csrf=token authorization=bearer'));
