@@ -78,6 +78,17 @@ function ensureDir(dir) {
     fs.mkdirSync(dir, { recursive: true });
 }
 
+function safeDestinationPath(dir, filename) {
+    const parsed = path.parse(filename);
+    let candidate = path.join(dir, filename);
+    let index = 1;
+    while (fs.existsSync(candidate)) {
+        candidate = path.join(dir, `${parsed.name}-${index}${parsed.ext}`);
+        index += 1;
+    }
+    return candidate;
+}
+
 function isLikelyXlsx(filePath) {
     const header = fs.readFileSync(filePath, { encoding: null, flag: 'r' }).subarray(0, 4);
     return header.length === 4 && header[0] === 0x50 && header[1] === 0x4b;
@@ -92,6 +103,7 @@ class TctF13BackfillService {
         this.portalBaseUrl = options.portalBaseUrl || process.env.PORTAL_BASE_URL || 'https://dkcl.vnpost.vn/';
         this.profileDir = options.profileDir || process.env.DKCL_TCT_PROFILE_DIR || path.resolve(process.cwd(), '../Data DKCL/BrowserProfiles/TCT');
         this.rawDownloadDir = options.rawDownloadDir || process.env.DKCL_TCT_RAW_DOWNLOAD_DIR || path.resolve(process.cwd(), '../portal-downloads/dkcl/tct/f13/raw');
+        this.processedDir = options.processedDir || process.env.DKCL_TCT_PROCESSED_DIR || path.resolve(process.cwd(), '../Data DKCL/F1.3/Processed/TCT');
         this.portalClientFactory = options.portalClientFactory || (() => new DkclHueF13PortalClient({
             headless: process.env.DKCL_TCT_HEADLESS !== 'false',
             manualAuthWaitMs: Number(process.env.DKCL_TCT_MANUAL_AUTH_WAIT_MS || 120000)
@@ -237,6 +249,8 @@ class TctF13BackfillService {
     }
 
     async checkCompleted(measurementDate) {
+        const processedPath = path.join(this.processedDir, standardizedFilename(measurementDate));
+        const hasProcessedFile = fs.existsSync(processedPath);
         const row = await this.db.get(
             `SELECT COUNT(*) AS row_count, COUNT(DISTINCT ma_tinh_phat) AS distinct_count
              FROM fact_f13_national
@@ -257,13 +271,14 @@ class TctF13BackfillService {
         const failedLogCount = logs.filter((log) => log.status === 'FAILED').length;
         const complete = rowCount === this.rankedPopulationCount &&
             distinctCount === this.rankedPopulationCount &&
-            successLogCount > 0;
+            successLogCount > 0 &&
+            hasProcessedFile;
 
         if (complete) {
-            return { complete: true, incomplete: false, rowCount, distinctCount, successLogCount, failedLogCount, importLogCount: logs.length };
+            return { complete: true, incomplete: false, rowCount, distinctCount, successLogCount, failedLogCount, importLogCount: logs.length, processedPath };
         }
 
-        if (rowCount > 0 || successLogCount > 0 || logs.length > 0) {
+        if (rowCount > 0 || successLogCount > 0 || logs.length > 0 || hasProcessedFile) {
             return {
                 complete: false,
                 incomplete: true,
@@ -272,11 +287,15 @@ class TctF13BackfillService {
                 successLogCount,
                 failedLogCount,
                 importLogCount: logs.length,
-                reason: `TCT F1.3 evidence is incomplete: expected ${this.rankedPopulationCount} ranked units.`
+                hasProcessedFile,
+                processedPath: hasProcessedFile ? processedPath : null,
+                reason: hasProcessedFile
+                    ? `TCT F1.3 evidence is incomplete: expected ${this.rankedPopulationCount} ranked units.`
+                    : 'TCT F1.3 local processed workbook evidence is missing.'
             };
         }
 
-        return { complete: false, incomplete: false, rowCount, distinctCount, successLogCount, failedLogCount, importLogCount: logs.length };
+        return { complete: false, incomplete: false, rowCount, distinctCount, successLogCount, failedLogCount, importLogCount: logs.length, hasProcessedFile };
     }
 
     async preflight() {
@@ -475,7 +494,11 @@ class TctF13BackfillService {
                 error_log_count: 0,
                 error_code: null,
                 error_message: null,
-                temp_file_deleted: null
+                temp_file_deleted: null,
+                processed_filename: null,
+                processed_file_path: null,
+                local_file_retained: null,
+                portal_cleanup_status: null
             }
         };
     }
@@ -566,16 +589,20 @@ class TctF13BackfillService {
         let client = null;
         let downloadedPath = null;
         let cleanupDeleted = null;
-        let ownsClient = true;
-        const evidence = {
-            run_id: runId,
-            downloaded_filename: null,
-            workbook_row_count: null,
-            parsed_ranked_unit_count: null,
-            imported_database_row_count: null,
-            replaced_incomplete_evidence: false,
-            temp_file_deleted: null
-        };
+            let ownsClient = true;
+            const evidence = {
+                run_id: runId,
+                downloaded_filename: null,
+                processed_filename: null,
+                processed_file_path: null,
+                workbook_row_count: null,
+                parsed_ranked_unit_count: null,
+                imported_database_row_count: null,
+                replaced_incomplete_evidence: false,
+                temp_file_deleted: null,
+                local_file_retained: null,
+                portal_cleanup_status: null
+            };
 
         try {
             client = this.sessionPreflightService.getInteractiveClient?.('TCT') || this.portalClientFactory();
@@ -658,34 +685,67 @@ class TctF13BackfillService {
             });
             evidence.imported_database_row_count = importResult.inserted;
             evidence.replaced_incomplete_evidence = Boolean(existingBeforeImport.incomplete || refreshRequested);
-            cleanupDeleted = this.cleanupDownloadedWorkbook(downloadedPath);
+            const persistedPath = this.persistProcessedWorkbook(downloadedPath, standardizedFilename(measurementDate));
+            evidence.processed_filename = path.basename(persistedPath);
+            evidence.processed_file_path = persistedPath;
+            evidence.local_file_retained = fs.existsSync(persistedPath);
+            if (!evidence.local_file_retained) {
+                const error = new Error('TCT processed workbook persistence could not be verified.');
+                error.code = 'TCT_PROCESSED_FILE_NOT_VERIFIED';
+                throw error;
+            }
             downloadedPath = null;
+            const portalCleanup = await this.cleanupPortalGeneratedFile(client, generatedFile);
+            evidence.portal_cleanup_status = portalCleanup?.status || null;
             return {
                 ...evidence,
                 queue_id: queueId,
-                temp_file_deleted: cleanupDeleted
+                temp_file_deleted: false
             };
         } catch (error) {
-            cleanupDeleted = this.cleanupDownloadedWorkbook(downloadedPath);
-            downloadedPath = null;
-            error.evidence = { ...evidence, temp_file_deleted: cleanupDeleted };
+            error.evidence = {
+                ...evidence,
+                temp_file_deleted: false,
+                local_file_retained: downloadedPath ? fs.existsSync(downloadedPath) : evidence.local_file_retained
+            };
             throw error;
         } finally {
-            if (downloadedPath) {
-                cleanupDeleted = this.cleanupDownloadedWorkbook(downloadedPath);
-            }
-            evidence.temp_file_deleted = cleanupDeleted;
             if (client?.close && ownsClient) await client.close().catch(() => {});
         }
     }
 
-    cleanupDownloadedWorkbook(filePath) {
-        if (!filePath) return null;
+    persistProcessedWorkbook(sourcePath, filename) {
+        if (!sourcePath || !fs.existsSync(sourcePath)) {
+            const error = new Error('Downloaded TCT workbook is missing before persistence.');
+            error.code = 'TCT_SOURCE_FILE_MISSING';
+            throw error;
+        }
+        ensureDir(this.processedDir);
+        const destinationPath = safeDestinationPath(this.processedDir, filename || path.basename(sourcePath));
         try {
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-            return !fs.existsSync(filePath);
-        } catch {
-            return false;
+            fs.renameSync(sourcePath, destinationPath);
+        } catch (error) {
+            error.code = error.code || 'TCT_PROCESSED_MOVE_FAILED';
+            throw error;
+        }
+        if (!fs.existsSync(destinationPath)) {
+            const error = new Error('TCT processed workbook persistence could not be verified.');
+            error.code = 'TCT_PROCESSED_FILE_NOT_VERIFIED';
+            throw error;
+        }
+        return destinationPath;
+    }
+
+    async cleanupPortalGeneratedFile(client, generatedFile) {
+        if (!client?.deleteGeneratedFile) return { status: 'NOT_SUPPORTED' };
+        try {
+            return await client.deleteGeneratedFile(generatedFile);
+        } catch (error) {
+            return {
+                status: 'FAILED',
+                code: error?.code || 'PORTAL_CLEANUP_FAILED',
+                message: error?.message || 'Portal cleanup failed.'
+            };
         }
     }
 
@@ -729,6 +789,8 @@ class TctF13BackfillService {
             start_time: item.startTime,
             end_time: context.endTime || item.endTime,
             downloaded_filename: runEvidence?.downloaded_filename || null,
+            processed_filename: runEvidence?.processed_filename || null,
+            processed_file_path: runEvidence?.processed_file_path || null,
             workbook_row_count: runEvidence?.workbook_row_count || null,
             parsed_ranked_unit_count: runEvidence?.parsed_ranked_unit_count || null,
             imported_database_row_count: runEvidence?.imported_database_row_count ?? dbEvidence.rowCount,
@@ -742,7 +804,9 @@ class TctF13BackfillService {
             error_log_count: dbEvidence.errorLogCount,
             error_code: ['FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(context.status) ? context.errorCode : null,
             error_message: ['FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(context.status) ? context.errorMessage : null,
-            temp_file_deleted: runEvidence?.temp_file_deleted ?? null
+            temp_file_deleted: runEvidence?.temp_file_deleted ?? null,
+            local_file_retained: runEvidence?.local_file_retained ?? null,
+            portal_cleanup_status: runEvidence?.portal_cleanup_status || null
         };
     }
 

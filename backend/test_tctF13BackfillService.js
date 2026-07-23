@@ -55,6 +55,10 @@ function makeDb() {
 }
 
 (async () => {
+    const fixtureProcessedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tct-f13-fixture-processed-'));
+    process.env.DKCL_TCT_PROCESSED_DIR = fixtureProcessedDir;
+    fs.writeFileSync(path.join(fixtureProcessedDir, 'F1.3-2026.07.19.xlsx'), Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+
     const service = new TctF13BackfillService({ db: makeDb() });
 
     console.log('\nTEST 1: TCT coverage summary');
@@ -104,7 +108,10 @@ function makeDb() {
             workbook_row_count: 39,
             parsed_ranked_unit_count: 34,
             imported_database_row_count: 34,
-            temp_file_deleted: true
+            temp_file_deleted: false,
+            local_file_retained: true,
+            processed_filename: `F1.3-${date}.xlsx`,
+            portal_cleanup_status: 'NOT_SUPPORTED'
         };
     };
     queueService.checkCompleted = async (date) => ({ complete: false, inconsistent: false, rowCount: 0, distinctCount: 0, successLogCount: 0 });
@@ -118,7 +125,8 @@ function makeDb() {
     assert.strictEqual(finalQueue.status, 'SUCCESS', 'queue reaches success');
     assert.strictEqual(finalQueue.items[0].evidence.parsed_ranked_unit_count, 34, 'evidence includes exact 34-unit parse');
     assert.strictEqual(finalQueue.items[0].evidence.hue_rank, 24, 'evidence includes Hue rank');
-    assert.strictEqual(finalQueue.items[0].evidence.temp_file_deleted, true, 'evidence includes temp cleanup');
+    assert.strictEqual(finalQueue.items[0].evidence.temp_file_deleted, false, 'evidence confirms temp file was not deleted');
+    assert.strictEqual(finalQueue.items[0].evidence.local_file_retained, true, 'evidence includes local file retention');
 
     console.log('\nTEST 4: duplicate/completed/preflight rejection before RUNNING');
     await assert.rejects(
@@ -138,7 +146,8 @@ function makeDb() {
         parsed_ranked_unit_count: 34,
         imported_database_row_count: 34,
         replaced_incomplete_evidence: true,
-        temp_file_deleted: true
+        temp_file_deleted: false,
+        local_file_retained: true
     });
     completedService.loadDatabaseEvidence = async () => ({ rowCount: 34, distinctCount: 34, successLogCount: 1, errorLogCount: 0 });
     completedService.loadHueEvidence = async () => ({ volume: null, pass: null, kpi: null, rank: null });
@@ -180,7 +189,8 @@ function makeDb() {
             workbook_row_count: 39,
             parsed_ranked_unit_count: 34,
             imported_database_row_count: 34,
-            temp_file_deleted: true
+            temp_file_deleted: false,
+            local_file_retained: true
         });
     });
     const slowQueue = await slowService.startQueue(['2026-07-20', '2026-07-21']);
@@ -214,11 +224,12 @@ function makeDb() {
     retryService.runOneDateImport = async () => ({
         run_id: 'retry-run',
         downloaded_filename: 'retry.xlsx',
-        workbook_row_count: 39,
-        parsed_ranked_unit_count: 34,
-        imported_database_row_count: 34,
-        temp_file_deleted: true
-    });
+            workbook_row_count: 39,
+            parsed_ranked_unit_count: 34,
+            imported_database_row_count: 34,
+            temp_file_deleted: false,
+            local_file_retained: true
+        });
     const retryQueue = await retryService.retryQueueItem(failedQueue.queueId, '2026-07-20');
     assert(['QUEUED', 'RUNNING'].includes(retryQueue.items[0].status), 'failed item retry creates a new queue');
     await new Promise((resolve) => setTimeout(resolve, 20));
@@ -280,11 +291,12 @@ function makeDb() {
         () => cleanupService.runOneDateImport('2026-07-20', 'queue-cleanup'),
         (error) => {
             assert.strictEqual(error.code, 'INVALID_XLSX', 'invalid workbook fails validation');
-            assert.strictEqual(error.evidence.temp_file_deleted, true, 'failure evidence confirms temp workbook deletion');
+            assert.strictEqual(error.evidence.temp_file_deleted, false, 'failure evidence confirms temp workbook is not deleted');
+            assert.strictEqual(error.evidence.local_file_retained, true, 'failure evidence keeps local workbook for investigation');
             return true;
         }
     );
-    assert.strictEqual(fs.existsSync(invalidWorkbook), false, 'temporary workbook is deleted after failure');
+    assert.strictEqual(fs.existsSync(invalidWorkbook), true, 'temporary workbook is retained after failure');
     fs.rmSync(cleanupDir, { recursive: true, force: true });
 
     const authRetryService = new TctF13BackfillService({
@@ -308,18 +320,23 @@ function makeDb() {
         workbook_row_count: 39,
         parsed_ranked_unit_count: 34,
         imported_database_row_count: 34,
-        temp_file_deleted: true
+        temp_file_deleted: false,
+        local_file_retained: true
     });
     const authRetryQueue = await authRetryService.retryQueueItem(authFailedQueue.queueId, '2026-07-22');
     assert(['QUEUED', 'RUNNING'].includes(authRetryQueue.items[0].status), 'authentication-required item retry creates a new queue');
 
     console.log('\nTEST 7: incomplete retry replaces only invalid evidence and still blocks complete dates');
     const replaceDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tct-f13-replace-'));
+    const replaceProcessedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tct-f13-processed-'));
+    fs.writeFileSync(path.join(replaceProcessedDir, 'F1.3-2026.07.19.xlsx'), Buffer.from([0x50, 0x4b, 0x03, 0x04]));
     const downloadedWorkbook = path.join(replaceDir, 'valid.xlsx');
     const importCalls = [];
+    const cleanupOrder = [];
     const replaceService = new TctF13BackfillService({
         db: makeDb(),
         rawDownloadDir: replaceDir,
+        processedDir: replaceProcessedDir,
         importNationalParsedData: async (payload) => {
             importCalls.push(payload);
             return { inserted: 34 };
@@ -331,11 +348,18 @@ function makeDb() {
             async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
             async requestSummaryExport() {},
             async pollGeneratedFile() {
-                return { fileName: 'valid.xlsx' };
+                return { filename: 'valid.xlsx' };
             },
             async downloadXlsx() {
                 fs.writeFileSync(downloadedWorkbook, Buffer.from([0x50, 0x4b, 0x03, 0x04]));
                 return downloadedWorkbook;
+            },
+            async deleteGeneratedFile(file) {
+                cleanupOrder.push({
+                    file: file.filename,
+                    processedExists: fs.existsSync(path.join(replaceProcessedDir, 'F1.3-2026.07.18.xlsx'))
+                });
+                return { status: 'DELETED' };
             },
             async close() {}
         })
@@ -350,7 +374,16 @@ function makeDb() {
     const replaced = await replaceService.runOneDateImport('2026-07-18', 'queue-replace');
     assert.strictEqual(importCalls[0].forceReimport, true, 'incomplete rows are safely replaced during retry');
     assert.strictEqual(replaced.replaced_incomplete_evidence, true, 'evidence marks incomplete replacement');
-    assert.strictEqual(fs.existsSync(downloadedWorkbook), false, 'temporary workbook is removed after incomplete replacement');
+    assert.strictEqual(replaced.temp_file_deleted, false, 'successful import does not delete local evidence');
+    assert.strictEqual(replaced.local_file_retained, true, 'successful import retains local processed evidence');
+    assert.strictEqual(replaced.processed_filename, 'F1.3-2026.07.18.xlsx', 'processed TCT workbook is standardized');
+    assert.strictEqual(fs.existsSync(path.join(replaceProcessedDir, 'F1.3-2026.07.18.xlsx')), true, 'processed TCT workbook is retained');
+    assert.strictEqual(fs.existsSync(downloadedWorkbook), false, 'raw download is moved rather than unlinked');
+    assert.strictEqual(replaced.portal_cleanup_status, 'DELETED', 'portal cleanup status is reported after persistence');
+    assert.deepStrictEqual(cleanupOrder[0], {
+        file: 'valid.xlsx',
+        processedExists: true
+    }, 'portal cleanup runs only after processed workbook exists');
     await assert.rejects(
         () => replaceService.runOneDateImport('2026-07-19', 'queue-complete'),
         /already has completed/,
@@ -359,7 +392,56 @@ function makeDb() {
     const refreshed = await replaceService.runOneDateImport('2026-07-19', 'queue-refresh', { refreshRequested: true });
     assert.strictEqual(importCalls.at(-1).forceReimport, true, 'explicit COMPLETE refresh uses transactional re-import');
     assert.strictEqual(refreshed.replaced_incomplete_evidence, true, 'refresh evidence records the reconciliation path');
+    assert.strictEqual(fs.existsSync(refreshed.processed_file_path), true, 'refreshed processed workbook exists');
     fs.rmSync(replaceDir, { recursive: true, force: true });
+    fs.rmSync(replaceProcessedDir, { recursive: true, force: true });
+
+    console.log('\nTEST 8: persistence failure keeps source file and skips portal cleanup');
+    const persistRawDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tct-f13-persist-'));
+    const blockedProcessedPath = path.join(os.tmpdir(), `tct-f13-processed-file-${Date.now()}.tmp`);
+    fs.writeFileSync(blockedProcessedPath, 'not a directory');
+    const persistWorkbook = path.join(persistRawDir, 'persist.xlsx');
+    let cleanupAttempted = false;
+    const persistService = new TctF13BackfillService({
+        db: makeDb(),
+        rawDownloadDir: persistRawDir,
+        processedDir: blockedProcessedPath,
+        importNationalParsedData: async () => ({ inserted: 34 }),
+        portalClientFactory: () => ({
+            async authenticate() {},
+            async openF13Report() {},
+            async submitFilters() {},
+            async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
+            async requestSummaryExport() {},
+            async pollGeneratedFile() { return { filename: 'persist.xlsx' }; },
+            async downloadXlsx() {
+                fs.writeFileSync(persistWorkbook, Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+                return persistWorkbook;
+            },
+            async deleteGeneratedFile() { cleanupAttempted = true; },
+            async close() {}
+        })
+    });
+    persistService.validateWorkbook = () => ({
+        workbookRowCount: 40,
+        parsed: {
+            totalParsed: 34,
+            parsedData: [{ ma_tinh_phat: '53' }]
+        }
+    });
+    await assert.rejects(
+        () => persistService.runOneDateImport('2026-07-18', 'queue-persist'),
+        (error) => {
+            assert.strictEqual(error.evidence.temp_file_deleted, false, 'persistence failure does not delete source evidence');
+            assert.strictEqual(error.evidence.local_file_retained, true, 'source workbook remains for investigation');
+            return true;
+        }
+    );
+    assert.strictEqual(cleanupAttempted, false, 'portal cleanup is skipped when processed persistence fails');
+    assert.strictEqual(fs.existsSync(persistWorkbook), true, 'source workbook remains after persistence failure');
+    fs.rmSync(persistRawDir, { recursive: true, force: true });
+    fs.rmSync(blockedProcessedPath, { force: true });
+    fs.rmSync(fixtureProcessedDir, { recursive: true, force: true });
 
     console.log('\nRESULT: tctF13BackfillService checks passed');
 })().catch((error) => {

@@ -160,6 +160,13 @@ class DkclHueF13PortalClient {
                 throw portalError('AUTHENTICATION_REQUIRED: manual DKCL login was not completed.', 'AUTHENTICATION_REQUIRED');
             }
         }
+        if (this.source === 'HUE') {
+            await this.openF13Report().catch(() => {});
+            if (!await this.isAuthenticated()) {
+                throw portalError('AUTHENTICATION_REQUIRED: manual DKCL login was not confirmed.', 'AUTHENTICATION_REQUIRED');
+            }
+            return;
+        }
         await this.openF13Report();
         if (!await this.isF13ReportReady()) {
             throw portalError('SOURCE_PAGE_REQUIRED: DKCL F1.3 source page is not ready.', 'SOURCE_PAGE_REQUIRED');

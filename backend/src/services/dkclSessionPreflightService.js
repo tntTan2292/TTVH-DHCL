@@ -58,6 +58,7 @@ function getOrCreateRegistryEntry(source) {
             authenticated: false,
             backgroundReady: false,
             minimized: false,
+            minimizeAttempted: false,
             lastError: null,
             updatedAt: new Date().toISOString()
         });
@@ -143,7 +144,6 @@ class DkclSessionPreflightService {
                 entry.state = 'BACKGROUND_READY';
                 entry.authenticated = true;
                 entry.backgroundReady = true;
-                entry.minimized = true;
                 entry.updatedAt = new Date().toISOString();
                 return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true };
             }
@@ -155,6 +155,7 @@ class DkclSessionPreflightService {
             entry.authenticated = false;
             entry.backgroundReady = false;
             entry.minimized = false;
+            entry.minimizeAttempted = false;
             entry.state = 'SESSION_EXPIRED';
             entry.updatedAt = new Date().toISOString();
             await oldClient.close().catch(() => {});
@@ -274,6 +275,7 @@ class DkclSessionPreflightService {
             entry.authenticated = false;
             entry.backgroundReady = false;
             entry.minimized = false;
+            entry.minimizeAttempted = false;
 
             client.onDisconnect = () => {
                 entry.state = 'SESSION_EXPIRED';
@@ -281,6 +283,7 @@ class DkclSessionPreflightService {
                 entry.authenticated = false;
                 entry.backgroundReady = false;
                 entry.minimized = false;
+                entry.minimizeAttempted = false;
                 entry.updatedAt = new Date().toISOString();
                 client.close().catch(() => {});
             };
@@ -300,10 +303,11 @@ class DkclSessionPreflightService {
                 entry.backgroundReady = false;
                 entry.updatedAt = new Date().toISOString();
 
-                const minimizeSuccess = entry.minimized
-                    ? true
+                const minimizeSuccess = entry.minimizeAttempted
+                    ? entry.minimized
                     : await client.minimizeWindow().catch(() => false);
-                entry.minimized = true;
+                entry.minimizeAttempted = true;
+                entry.minimized = Boolean(minimizeSuccess);
                 entry.state = 'BACKGROUND_READY';
                 entry.backgroundReady = true;
                 entry.updatedAt = new Date().toISOString();
@@ -323,6 +327,7 @@ class DkclSessionPreflightService {
                 entry.authenticated = false;
                 entry.backgroundReady = false;
                 entry.minimized = false;
+                entry.minimizeAttempted = false;
                 entry.updatedAt = new Date().toISOString();
                 await client.close().catch(() => {});
                 throw error;
@@ -371,6 +376,7 @@ class DkclSessionPreflightService {
             entry.authenticated = false;
             entry.backgroundReady = false;
             entry.minimized = false;
+            entry.minimizeAttempted = false;
             entry.lastError = null;
             entry.updatedAt = new Date().toISOString();
         }

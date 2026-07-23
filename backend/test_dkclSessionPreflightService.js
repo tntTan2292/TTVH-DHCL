@@ -3,6 +3,7 @@
 const assert = require('assert/strict');
 const path = require('path');
 const { DkclSessionPreflightService, PREFLIGHT_STATUSES, SOURCE_CONFIG, globalRegistry } = require('./src/services/dkclSessionPreflightService');
+const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClient');
 const browserProcessManager = require('./src/services/browserProcessManager');
 
 // Mock browserProcessManager for these tests to avoid real OS process calls
@@ -219,10 +220,51 @@ function deferred() {
     assert.strictEqual(minimizeFailureResult.status, PREFLIGHT_STATUSES.SESSION_VALID, 'minimize failure still returns valid authenticated session');
     assert.strictEqual(minimizeFailureResult.browser_minimized, false, 'minimize failure is reported as best-effort false');
     assert.strictEqual(minimizeFailureService.getInteractiveClient('TCT'), minimizeFailureClient, 'authenticated client is preserved when minimize fails');
+    assert.strictEqual(minimizeFailureService.getRegistryState('TCT').minimized, false, 'failed minimize is not recorded as successful');
+    assert.strictEqual(minimizeFailureService.getRegistryState('TCT').minimizeAttempted, true, 'minimize failure is still recorded as attempted once');
     minimizeFailureClient.onDisconnect();
     assert.strictEqual(minimizeFailureService.getRegistryState('TCT').state, 'SESSION_EXPIRED', 'manual close expires TCT entry');
     assert.strictEqual(minimizeFailureService.getInteractiveClient('TCT'), null, 'manual close clears TCT client');
     assert.strictEqual(globalRegistry.get('HUE').client.marker, 'hue', 'manual TCT close does not mutate HUE registry');
+
+    console.log('\nTEST 6B: HUE interactive login accepts authenticated marker without TCT report marker');
+    const hueClient = new DkclHueF13PortalClient({
+        source: 'HUE',
+        playwright: {
+            chromium: {
+                launchPersistentContext: async () => ({
+                    on() {},
+                    pages: () => [{
+                        url: () => 'https://dkcl.example/login',
+                        goto: async () => {},
+                        waitForTimeout: async () => {}
+                    }],
+                    newPage: async () => ({
+                        url: () => 'https://dkcl.example/login',
+                        goto: async () => {},
+                        waitForTimeout: async () => {}
+                    })
+                })
+            }
+        }
+    });
+    const hueClientCalls = [];
+    hueClient.acquireProfileLock = () => { hueClientCalls.push(['lock']); };
+    hueClient.restoreWindow = async () => { hueClientCalls.push(['restore']); };
+    hueClient.isAuthenticated = async () => {
+        hueClientCalls.push(['authenticated']);
+        return hueClientCalls.filter((call) => call[0] === 'authenticated').length > 1;
+    };
+    hueClient.openF13Report = async () => { hueClientCalls.push(['open-report']); throw new Error('HUE report marker unavailable'); };
+    hueClient.isF13ReportReady = async () => { hueClientCalls.push(['ready']); return false; };
+    hueClient.waitForManualAuthentication = async () => { hueClientCalls.push(['wait-manual']); return true; };
+    await hueClient.openInteractiveAuthentication({
+        baseUrl: 'https://dkcl.example/',
+        profileDir: path.join('tmp', 'HUE')
+    });
+    assert(hueClientCalls.some((call) => call[0] === 'wait-manual'), 'HUE waits for manual login completion');
+    assert(hueClientCalls.some((call) => call[0] === 'open-report'), 'HUE still attempts to navigate toward F1.3 after login');
+    assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'ready').length, 0, 'HUE does not require the TCT report-ready select marker');
 
 
     console.log('\nTEST 7: R4.1B interactive NONE classification (no cleanup, launch proceeds)');

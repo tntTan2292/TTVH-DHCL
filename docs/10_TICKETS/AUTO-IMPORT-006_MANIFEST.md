@@ -3,15 +3,15 @@
 - Ticket ID: `AUTO-IMPORT-006`
 - Ticket Name: `Unified DKCL Authentication Lifecycle Recovery`
 - Phase: `Auto Import / Smart Leadership Dashboard Implementation`
-- Current State: `ACTIVE / PO RECHECK`
+- Current State: `ACTIVE / AWAITING REVIEW`
 - Technical Status: `PASS`
-- Runtime Status: `AWAITING PO RECHECK`
+- Runtime Status: `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT READY`
-- Current Phase: `REMEDIATION-004 / PO RECHECK`
+- Current Phase: `REMEDIATION-005 / AWAITING REVIEW`
 - Last Reviewed Phase: `R4.1B`
 - Last Reviewed Commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`
-- Phase Review Status: `REVIEW PASS`
+- Phase Review Status: `AWAITING REVIEW`
 - Next Phase Authorization: `PO RUNTIME RECHECK GRANTED`
 - Activation date: `2026-07-22`
 - Primary executor: `Antigravity`
@@ -23,9 +23,9 @@ Required onboarding chain:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md`
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`
+Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md`
 
 ## Approved Scope
 - Bổ sung nút `Đăng nhập Huế` trên giao diện nạp dữ liệu.
@@ -103,3 +103,14 @@ Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`
 - Runtime port for PO recheck is `5178`.
 - PO login failure for HUE and TCT remains pending PO runtime recheck.
 - Ticket cannot be completed without explicit PO PASS.
+
+## Remediation 005 Technical Handoff
+
+- Baseline remote HEAD: `1f55576f229606024f1c6843ad1005d948a870d2`.
+- Prior reviewed code commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`.
+- HUE PO login opened but did not minimize and did not reach `SESSION_VALID`; HUE completion now accepts a confirmed authenticated marker without requiring the TCT report-ready select marker.
+- HUE/TCT minimize now tracks attempted versus successful minimize and does not invalidate a valid session when minimize fails.
+- TCT successful downloads are retained in `Processed/TCT`; local workbook evidence is not deleted after successful import.
+- Portal cleanup for generated TCT files runs only after processed workbook persistence is verified.
+- Runtime port for PO recheck remains `5178`.
+- Ticket remains `ACTIVE / AWAITING REVIEW` before Chief Architect review and PO recheck.

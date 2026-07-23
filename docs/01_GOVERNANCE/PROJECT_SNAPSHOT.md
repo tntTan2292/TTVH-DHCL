@@ -17,21 +17,21 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `REMEDIATION-004 / PO RECHECK` |
+| Current Phase | `REMEDIATION-005 / AWAITING REVIEW` |
 | Current Ticket | `AUTO-IMPORT-006` |
-| Next Ticket | `PO runtime recheck` |
-| Last PO Status | `AUTO-IMPORT-006 AWAITING PO RECHECK` |
+| Next Ticket | `Chief Architect review, then PO runtime recheck` |
+| Last PO Status | `AUTO-IMPORT-006 PO RECHECK FAILED / REMEDIATION-005 AWAITING REVIEW` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md` |
-| Current State | `ACTIVE / PO RECHECK` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md` |
+| Current State | `ACTIVE / AWAITING REVIEW` |
 | Technical Status | `PASS` |
-| Runtime Status | `AWAITING PO RECHECK` |
+| Runtime Status | `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `NOT READY` |
 | Last Reviewed Phase | `R4.1B` |
 | Last Reviewed Commit | `58fb723e9c5eeb82f17b75d14b7662c3503ee262` |
-| Phase Review Status | `REVIEW PASS` |
+| Phase Review Status | `AWAITING REVIEW` |
 | Next Phase Authorization | `PO RUNTIME RECHECK GRANTED` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-23` |
@@ -66,9 +66,9 @@ Fresh-chat onboarding chain for the active ticket:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_006.md`
 
-AUTO-IMPORT-006 is active after `R4.1B` Chief Architect `REVIEW PASS` at commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262`. Technical status is `PASS`; runtime status is `AWAITING PO RECHECK`; PO product status is `NOT READY`. The ticket cannot be completed without explicit PO PASS.
+AUTO-IMPORT-006 is active in `REMEDIATION-005 / AWAITING REVIEW` after PO runtime findings on HUE/TCT login lifecycle and TCT file retention. Technical status is `PASS`; runtime status is `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`; PO product status is `NOT READY`. The ticket cannot be completed without explicit PO PASS.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 
