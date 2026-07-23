@@ -19,7 +19,7 @@ import {
   toggleDateSelection,
   clearDateSelection,
   selectAllImportableDates,
-  selectMissingDates,
+  selectUnfinishedDates,
   isCheckboxDisabled,
   isSubmitDisabled,
 } from './hueSelectionHelpers.js';
@@ -140,17 +140,37 @@ assert.strictEqual(
 
 // ─── toggleAllDates ───────────────────────────────────────────────────────────
 
-// Missing-only bulk action: selects only selectable MISSING rows and keeps Update mode
+// Unfinished bulk action: selects selectable MISSING and INCOMPLETE rows and keeps Update mode
 {
   const rows = [
     { measurement_date: '2025-07-01', status: 'COMPLETE', selectable: true },
     { measurement_date: '2025-07-02', status: 'MISSING', selectable: true },
-    { measurement_date: '2025-07-03', status: 'COMPLETE', selectable: true },
+    { measurement_date: '2025-07-03', status: 'INCOMPLETE', selectable: true },
     { measurement_date: '2025-07-04', status: 'MANUAL_REVIEW_REQUIRED', selectable: false },
   ];
-  const result = selectMissingDates(rows);
-  assert.deepEqual(result.selectedDates, ['2025-07-02'], 'Missing-only bulk action selects only selectable MISSING dates');
-  assert.deepEqual(result.refreshDates, [], 'Missing-only bulk action must not send refreshDates');
+  const result = selectUnfinishedDates(rows);
+  assert.deepEqual(result.selectedDates, ['2025-07-02', '2025-07-03'], 'Unfinished bulk action selects selectable MISSING and INCOMPLETE dates');
+  assert.deepEqual(result.refreshDates, [], 'Unfinished bulk action must not send refreshDates');
+}
+
+// TCT PO unfinished case: selects exactly the 5 recovery dates and excludes COMPLETE rows
+{
+  const rows = [
+    { measurement_date: '2026-07-16', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-17', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-18', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-19', status: 'COMPLETE', selectable: true },
+    { measurement_date: '2026-07-20', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-21', status: 'COMPLETE', selectable: true },
+    { measurement_date: '2026-07-22', status: 'INCOMPLETE', selectable: true },
+  ];
+  const result = selectUnfinishedDates(rows);
+  assert.deepEqual(
+    result.selectedDates,
+    ['2026-07-16', '2026-07-17', '2026-07-18', '2026-07-20', '2026-07-22'],
+    'Unfinished bulk action must select exactly the PO recovery dates'
+  );
+  assert.deepEqual(result.refreshDates, [], 'Unfinished bulk action must not include COMPLETE refresh dates');
 }
 
 // All-importable bulk action: selects selectable MISSING, INCOMPLETE, and COMPLETE rows
@@ -219,8 +239,20 @@ assert.match(
 
 assert.match(
   src,
-  /selectMissingDates\(selectableScanRows\)/,
-  'Production missing-only bulk action must use selectMissingDates helper'
+  /selectUnfinishedDates\(selectableScanRows\)/,
+  'Production unfinished bulk action must use selectUnfinishedDates helper'
+);
+
+assert.match(
+  src,
+  /const unfinishedSelectableRows = selectableScanRows\.filter\(\(item\) => \['MISSING', 'INCOMPLETE'\]\.includes\(item\.status\)\);/,
+  'Hue unfinished bulk button must stay enabled for selectable INCOMPLETE dates'
+);
+
+assert.match(
+  src,
+  /Chọn tất cả chưa hoàn tất/,
+  'Bulk unfinished action must use the approved label'
 );
 
 assert.match(

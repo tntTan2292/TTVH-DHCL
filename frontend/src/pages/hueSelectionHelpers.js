@@ -38,15 +38,16 @@ export function toggleDateSelection(currentSelected, currentRefresh, date, statu
 }
 
 /**
- * Select only MISSING rows eligible for normal Update.
+ * Select unfinished rows eligible for normal Update.
+ * COMPLETE rows are excluded because they require explicit Re-Update.
  *
  * @param {object[]} rows - scan result rows
  * @returns {{ selectedDates: string[], refreshDates: string[] }}
  */
-export function selectMissingDates(rows) {
+export function selectUnfinishedDates(rows) {
   return {
     selectedDates: rows
-      .filter((item) => item.selectable && item.status === 'MISSING')
+      .filter((item) => item.selectable && ['MISSING', 'INCOMPLETE'].includes(item.status))
       .map((item) => item.measurement_date)
       .sort(),
     refreshDates: [],

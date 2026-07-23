@@ -50,8 +50,8 @@ assert.match(
 );
 assert.match(
   pageSource,
-  /selectMissingDates\(tctSelectableScanRows\)/,
-  'TCT missing-only bulk action must use shared missing-date selection helper'
+  /selectUnfinishedDates\(tctSelectableScanRows\)/,
+  'TCT unfinished bulk action must use shared unfinished-date selection helper'
 );
 assert.match(
   pageSource,
@@ -63,7 +63,13 @@ assert.match(
   /const tctImportableScanRows = tctSelectableScanRows\.filter\(\(item\) => \['MISSING', 'INCOMPLETE', 'COMPLETE'\]\.includes\(item\.status\)\);/,
   'TCT select-all button must stay enabled for selectable Xử lý lại dates'
 );
-assert.match(pageSource, /data-testid="tct-select-missing"/, 'TCT missing-only bulk button must be present');
+assert.match(
+  pageSource,
+  /const tctUnfinishedSelectableRows = tctSelectableScanRows\.filter\(\(item\) => \['MISSING', 'INCOMPLETE'\]\.includes\(item\.status\)\);/,
+  'TCT unfinished bulk button must stay enabled for selectable Xử lý lại dates'
+);
+assert.match(pageSource, /Chọn tất cả chưa hoàn tất/, 'TCT unfinished bulk button must use approved label');
+assert.match(pageSource, /data-testid="tct-select-missing"/, 'TCT unfinished bulk button must be present');
 assert.match(pageSource, /data-testid="tct-select-all-importable"/, 'TCT all-importable bulk button must be present');
 assert.match(pageSource, /data-testid="tct-clear-selection"/, 'TCT clear-selection button must be present');
 assert.doesNotMatch(

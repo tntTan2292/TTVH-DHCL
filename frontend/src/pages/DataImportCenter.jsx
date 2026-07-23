@@ -9,7 +9,7 @@ import {
   isCheckboxDisabled,
   isSubmitDisabled,
   selectAllImportableDates,
-  selectMissingDates,
+  selectUnfinishedDates,
   toggleDateSelection
 } from './hueSelectionHelpers';
 
@@ -427,14 +427,14 @@ export default function DataImportCenter() {
   };
 
   const selectableScanRows = scanResult?.results?.filter((item) => item.selectable) || [];
-  const missingSelectableRows = selectableScanRows.filter((item) => item.status === 'MISSING');
+  const unfinishedSelectableRows = selectableScanRows.filter((item) => ['MISSING', 'INCOMPLETE'].includes(item.status));
   const importableScanRows = selectableScanRows.filter((item) => ['MISSING', 'INCOMPLETE', 'COMPLETE'].includes(item.status));
   const tctSelectableScanRows = tctScanResult?.results?.filter((item) => item.selectable) || [];
-  const tctMissingSelectableRows = tctSelectableScanRows.filter((item) => item.status === 'MISSING');
+  const tctUnfinishedSelectableRows = tctSelectableScanRows.filter((item) => ['MISSING', 'INCOMPLETE'].includes(item.status));
   const tctImportableScanRows = tctSelectableScanRows.filter((item) => ['MISSING', 'INCOMPLETE', 'COMPLETE'].includes(item.status));
 
   const selectHueMissingDates = () => {
-    const next = selectMissingDates(selectableScanRows);
+    const next = selectUnfinishedDates(selectableScanRows);
     setSelectedDates(next.selectedDates);
     setRefreshDates(next.refreshDates);
   };
@@ -452,7 +452,7 @@ export default function DataImportCenter() {
   };
 
   const selectTctMissingDates = () => {
-    const next = selectMissingDates(tctSelectableScanRows);
+    const next = selectUnfinishedDates(tctSelectableScanRows);
     setTctSelectedDates(next.selectedDates);
     setTctRefreshDates(next.refreshDates);
   };
@@ -850,11 +850,11 @@ export default function DataImportCenter() {
               <button
                 type="button"
                 onClick={selectTctMissingDates}
-                disabled={tctMissingSelectableRows.length === 0}
+                disabled={tctUnfinishedSelectableRows.length === 0}
                 data-testid="tct-select-missing"
                 className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
               >
-                Chọn tất cả chưa Import
+                Chọn tất cả chưa hoàn tất
               </button>
               <button
                 type="button"
@@ -1216,11 +1216,11 @@ export default function DataImportCenter() {
               <button
                 type="button"
                 onClick={selectHueMissingDates}
-                disabled={missingSelectableRows.length === 0}
+                disabled={unfinishedSelectableRows.length === 0}
                 data-testid="hue-select-missing"
                 className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
               >
-                Chọn tất cả chưa Import
+                Chọn tất cả chưa hoàn tất
               </button>
               <button
                 type="button"
