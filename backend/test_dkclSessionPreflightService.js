@@ -6,8 +6,12 @@ const { DkclSessionPreflightService, PREFLIGHT_STATUSES, SOURCE_CONFIG, globalRe
 const browserProcessManager = require('./src/services/browserProcessManager');
 
 // Mock browserProcessManager for these tests to avoid real OS process calls
-browserProcessManager.findBrowserProcessByProfile = async () => null;
-browserProcessManager.terminateProcessTree = async () => {};
+browserProcessManager.findBrowserProcessByProfile = async () => ({
+    inspectionStatus: 'SUCCESS',
+    matchingProcesses: [],
+    errorCode: null
+});
+browserProcessManager.terminateProcessTree = async () => { global.terminateCount = (global.terminateCount || 0) + 1; };
 browserProcessManager.cleanupStaleLocks = () => {};
 
 function makeClient({ authenticateImpl, calls }) {
@@ -219,6 +223,62 @@ function deferred() {
     assert.strictEqual(minimizeFailureService.getRegistryState('TCT').state, 'SESSION_EXPIRED', 'manual close expires TCT entry');
     assert.strictEqual(minimizeFailureService.getInteractiveClient('TCT'), null, 'manual close clears TCT client');
     assert.strictEqual(globalRegistry.get('HUE').client.marker, 'hue', 'manual TCT close does not mutate HUE registry');
+
+
+    console.log('\nTEST 7: R4.1B interactive NONE classification (no cleanup, launch proceeds)');
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [],
+        errorCode: null
+    });
+    let cleanupCalled = false;
+    browserProcessManager.cleanupStaleLocks = () => { cleanupCalled = true; };
+    globalRegistry.clear(); const noneService = new DkclSessionPreflightService({ interactiveClientFactory: () => ({ openInteractiveAuthentication: async () => {}, minimizeWindow: async () => true, close: async () => {} }) });
+    await noneService.interactiveAuthenticate('HUE');
+    assert.strictEqual(cleanupCalled, false, 'NONE classification should not clean locks');
+    assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree count should be 0');
+
+    console.log('\nTEST 8: R4.1B interactive STALE_CONFIRMED classification (cleanup once, launch proceeds)');
+    const fsMod = require('fs');
+    const originalExistsSync = fsMod.existsSync;
+    fsMod.existsSync = (path) => path.endsWith('.lock') ? true : originalExistsSync(path);
+    globalRegistry.clear(); cleanupCalled = false;
+    await noneService.interactiveAuthenticate('TCT');
+    assert.strictEqual(cleanupCalled, true, 'STALE_CONFIRMED classification should clean locks');
+    fsMod.existsSync = originalExistsSync;
+
+    console.log('\nTEST 9: R4.1B interactive LIVE_UNVERIFIED classification (no terminate, no cleanup, throws explicit code)');
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [{ pid: 999 }],
+        errorCode: null
+    });
+    cleanupCalled = false;
+    try {
+        await noneService.interactiveAuthenticate('HUE');
+        assert.fail('Should have thrown PROFILE_OWNERSHIP_UNVERIFIED');
+    } catch (err) {
+        assert.strictEqual(err.code, 'PROFILE_OWNERSHIP_UNVERIFIED');
+    }
+    assert.strictEqual(cleanupCalled, false, 'LIVE_UNVERIFIED should not clean locks');
+    assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree count should be 0');
+
+    console.log('\nTEST 10: R4.1B recover STALE_CONFIRMED classification');
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [],
+        errorCode: null
+    });
+    fsMod.existsSync = (path) => path.endsWith('.lock') ? true : originalExistsSync(path);
+    cleanupCalled = false;
+    const recRes = await noneService.recover('HUE');
+    assert.strictEqual(recRes.status, 'STALE_LOCK_CLEANED');
+    assert.strictEqual(cleanupCalled, true);
+    fsMod.existsSync = originalExistsSync;
+
+    console.log('\nTEST 11: R4.1B terminateProcessTree call count remains zero');
+    assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree must never be called by interactive or recover in R4.1B');
+
 
     console.log('\nRESULT: dkclSessionPreflightService checks passed');
 })().catch((error) => {

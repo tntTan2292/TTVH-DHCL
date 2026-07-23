@@ -96,21 +96,21 @@ class DkclSessionPreflightService {
     async _classifyLockState(sourceConfig, entry, profileDir) {
         const inspection = await processManager.findBrowserProcessByProfile(profileDir);
         const lockDirExists = require('fs').existsSync(`${profileDir}.lock`);
-        
+
         if (inspection.inspectionStatus !== 'SUCCESS') {
             return { lockState: 'UNKNOWN', inspection };
         }
 
         const hasLiveProcess = inspection.matchingProcesses.length > 0;
-        
+
         if (hasLiveProcess) {
-            if (entry.client || entry.openingPromise) {
+            if (entry.client) {
                 return { lockState: 'LIVE_OWNED', inspection };
             }
             return { lockState: 'LIVE_UNVERIFIED', inspection };
         }
 
-        if (!hasLiveProcess && lockDirExists && !entry.client && !entry.openingPromise) {
+        if (!hasLiveProcess && lockDirExists && !entry.client) {
             return { lockState: 'STALE_CONFIRMED', inspection };
         }
 
@@ -131,7 +131,7 @@ class DkclSessionPreflightService {
                 message: `Đang mở đăng nhập DKCL ${sourceConfig.displayName}.`
             };
         }
-        
+
         if (entry.client) {
             let ready = await entry.client.isF13ReportReady().catch(() => false);
             if (!ready && entry.client.isAuthenticated && await entry.client.isAuthenticated().catch(() => false)) {
@@ -148,7 +148,7 @@ class DkclSessionPreflightService {
                 return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true };
             }
             await entry.client.restoreWindow?.().catch(() => {});
-            
+
             // Clean up stale client in registry if no longer valid
             const oldClient = entry.client;
             entry.client = null;
@@ -246,23 +246,28 @@ class DkclSessionPreflightService {
             entry.state = 'OPENING_BROWSER';
             entry.lastError = null;
             entry.updatedAt = new Date().toISOString();
-            
+
             const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
-            
-            // R4.1 Automatic Reconciliation
-            const existingPid = await processManager.findBrowserProcessByProfile(profileDir);
-            if (existingPid) {
-                // Orphaned process unquestionably belongs to this profile. Terminate it to recover.
-                try {
-                    await processManager.terminateProcessTree(existingPid);
-                } catch (err) {
-                    const recErr = new Error('Failed to recover orphaned process');
-                    recErr.code = 'ORPHAN_PROCESS_RECOVERY_FAILED';
-                    throw recErr;
-                }
+
+            // R4.1A Automatic Reconciliation
+            const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
+
+            if (classification.lockState === 'UNKNOWN' || classification.lockState === 'LIVE_UNVERIFIED') {
+                const errCode = classification.lockState === 'UNKNOWN' ? 'PROCESS_INSPECTION_UNAVAILABLE' : 'PROFILE_OWNERSHIP_UNVERIFIED';
+                const recErr = new Error(errCode);
+                recErr.code = errCode;
+                throw recErr;
             }
-            // Always clean up any stale lock files before launching
-            processManager.cleanupStaleLocks(profileDir);
+
+            if (classification.lockState === 'LIVE_OWNED') {
+                const recErr = new Error('PROFILE_IN_USE_OWNED');
+                recErr.code = 'PROFILE_IN_USE_OWNED';
+                throw recErr;
+            }
+
+            if (classification.lockState === 'STALE_CONFIRMED') {
+                processManager.cleanupStaleLocks(profileDir);
+            }
 
             const client = this.interactiveClientFactory(sourceConfig);
             entry.client = client;
@@ -341,39 +346,46 @@ class DkclSessionPreflightService {
     async recover(source) {
         const sourceConfig = this.normalizeSource(source);
         const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
-        
-        let terminated = false;
-        const pid = await processManager.findBrowserProcessByProfile(profileDir);
-        
-        if (pid) {
-            await processManager.terminateProcessTree(pid);
-            terminated = true;
-        }
-        
-        processManager.cleanupStaleLocks(profileDir);
-        
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
-        if (entry.client) {
-            await entry.client.close().catch(() => {});
+
+        const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
+
+        let action = 'NO_RECOVERY_NEEDED';
+
+        if (classification.lockState === 'UNKNOWN') {
+            action = 'PROCESS_INSPECTION_UNAVAILABLE';
+        } else if (classification.lockState === 'LIVE_UNVERIFIED') {
+            action = 'PROFILE_OWNERSHIP_UNVERIFIED';
+        } else if (classification.lockState === 'LIVE_OWNED') {
+            action = 'PROFILE_IN_USE_OWNED';
+        } else if (classification.lockState === 'STALE_CONFIRMED') {
+            processManager.cleanupStaleLocks(profileDir);
+            action = 'STALE_LOCK_CLEANED';
+
+            if (entry.client) {
+                await entry.client.close().catch(() => {});
+            }
+            entry.state = 'NOT_AUTHENTICATED';
+            entry.client = null;
+            entry.openingPromise = null;
+            entry.authenticated = false;
+            entry.backgroundReady = false;
+            entry.minimized = false;
+            entry.lastError = null;
+            entry.updatedAt = new Date().toISOString();
         }
-        
-        entry.state = 'NOT_AUTHENTICATED';
-        entry.client = null;
-        entry.openingPromise = null;
-        entry.authenticated = false;
-        entry.backgroundReady = false;
-        entry.minimized = false;
-        entry.lastError = null;
-        entry.updatedAt = new Date().toISOString();
+
+        if (action === 'PROCESS_INSPECTION_UNAVAILABLE' || action === 'PROFILE_OWNERSHIP_UNVERIFIED' || action === 'PROFILE_IN_USE_OWNED') {
+            const err = new Error(action);
+            err.code = action;
+            throw err;
+        }
 
         return {
             source: sourceConfig.source,
-            status: 'RECOVERED',
+            status: action,
             details: {
-                profile_dir_resolved: profileDir,
-                orphan_process_found: !!pid,
-                terminated_pid: pid || null,
-                registry_cleared: true
+                classification: classification.lockState
             }
         };
     }
