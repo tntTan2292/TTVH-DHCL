@@ -1,7 +1,7 @@
 /**
  * test_importProcessor.js — Task 2.2 Integration Test
  *
- * Tests importParsedData() against the REAL database using a test-only date '2099-12-31'.
+ * Tests importParsedData() against the REAL database using a test-only date '2000-01-01'.
  * All test data is cleaned up after the suite.
  *
  * Run: node test_importProcessor.js
@@ -13,8 +13,12 @@ const { run, all, get } = require('./src/config/db');
 const { parseF13Excel, DB_COLUMNS }   = require('./src/services/excelParser');
 const { importParsedData }            = require('./src/services/importProcessor');
 
-const TEST_DATE     = '2099-12-31';        // Isolated test date — will not conflict with real data
-const TEST_FILENAME = 'F1.3-2099.12.31.xlsx';
+const TEST_DATE     = '2000-01-01';
+const TEST_FILENAME = 'F1.3-2000.01.01.xlsx';
+const FUTURE_TEST_DATE = '2098-02-18';
+const FUTURE_TEST_FILENAME = 'F1.3-2098.02.18.xlsx';
+const INVALID_TEST_DATE = '2026-02-30';
+const INVALID_TEST_FILENAME = 'F1.3-2026.02.30.xlsx';
 
 let passed = 0;
 let failed = 0;
@@ -174,7 +178,7 @@ async function runTests() {
         const result = await importParsedData({
             parsedData,
             ngay_do_kiem : TEST_DATE,
-            filename     : 'F1.3-2099.12.31.xlsx',
+            filename     : TEST_FILENAME,
             forceReimport: true   // DELETE all rows for TEST_DATE first
         });
 
@@ -198,6 +202,79 @@ async function runTests() {
 
     } catch (e) {
         console.error('  TEST 3 UNEXPECTED ERROR:', e.message);
+        failed++;
+    }
+
+    // =========================================================================
+    // TEST 3B: Future import date rejected before fact_f13 write
+    // =========================================================================
+    console.log('\n📋 TEST 3B: Future import date rejected before fact_f13 write');
+    try {
+        const parsedData = [
+            makeRow('BG_2098_REJECTED', 'BC01', 'BCVH 01', 'Đạt'),
+        ];
+        const logCountBefore = await get('SELECT COUNT(*) as c FROM import_log WHERE file_name = ?', [FUTURE_TEST_FILENAME]);
+
+        let thrown = null;
+        try {
+            await importParsedData({
+                parsedData,
+                ngay_do_kiem : FUTURE_TEST_DATE,
+                filename     : FUTURE_TEST_FILENAME,
+                forceReimport: false
+            });
+        } catch (e) {
+            thrown = e;
+        }
+
+        assert('Future 2098 import throws validation error', thrown && thrown.code === 'INVALID_FACT_F13_IMPORT_DATE', thrown && thrown.message);
+        assert('Error records rejected date value', thrown && thrown.ngay_do_kiem === FUTURE_TEST_DATE, thrown && thrown.ngay_do_kiem);
+        assert('Error records related row ma_bg', thrown && thrown.message.includes('BG_2098_REJECTED'), thrown && thrown.message);
+
+        const futureRows = await get('SELECT COUNT(*) as c FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bg = ?', [FUTURE_TEST_DATE, 'BG_2098_REJECTED']);
+        const futureLogs = await get('SELECT COUNT(*) as c FROM import_log WHERE file_name = ?', [FUTURE_TEST_FILENAME]);
+        assert('DB: 0 fact_f13 rows inserted for rejected future shipment', futureRows.c === 0, `Got: ${futureRows.c}`);
+        assert('DB: rejected future file creates no new import_log row', futureLogs.c === logCountBefore.c, `Before: ${logCountBefore.c}, After: ${futureLogs.c}`);
+
+    } catch (e) {
+        console.error('  TEST 3B UNEXPECTED ERROR:', e.message);
+        failed++;
+    }
+
+    // =========================================================================
+    // TEST 3C: Invalid calendar date rejected before fact_f13 write
+    // =========================================================================
+    console.log('\n📋 TEST 3C: Invalid calendar date rejected before fact_f13 write');
+    try {
+        const parsedData = [
+            makeRow('BG_INVALID_DATE_REJECTED', 'BC01', 'BCVH 01', 'Đạt'),
+        ];
+        const logCountBefore = await get('SELECT COUNT(*) as c FROM import_log WHERE file_name = ?', [INVALID_TEST_FILENAME]);
+
+        let thrown = null;
+        try {
+            await importParsedData({
+                parsedData,
+                ngay_do_kiem : INVALID_TEST_DATE,
+                filename     : INVALID_TEST_FILENAME,
+                forceReimport: false
+            });
+        } catch (e) {
+            thrown = e;
+        }
+
+        assert('Invalid calendar import throws validation error', thrown && thrown.code === 'INVALID_FACT_F13_IMPORT_DATE', thrown && thrown.message);
+        assert('Error reason is INVALID_DATE', thrown && thrown.reason === 'INVALID_DATE', thrown && thrown.reason);
+        assert('Error records invalid date value', thrown && thrown.ngay_do_kiem === INVALID_TEST_DATE, thrown && thrown.ngay_do_kiem);
+        assert('Error records related invalid-date row ma_bg', thrown && thrown.message.includes('BG_INVALID_DATE_REJECTED'), thrown && thrown.message);
+
+        const invalidRows = await get('SELECT COUNT(*) as c FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bg = ?', [INVALID_TEST_DATE, 'BG_INVALID_DATE_REJECTED']);
+        const invalidLogs = await get('SELECT COUNT(*) as c FROM import_log WHERE file_name = ?', [INVALID_TEST_FILENAME]);
+        assert('DB: 0 fact_f13 rows inserted for invalid calendar shipment', invalidRows.c === 0, `Got: ${invalidRows.c}`);
+        assert('DB: invalid calendar file creates no new import_log row', invalidLogs.c === logCountBefore.c, `Before: ${logCountBefore.c}, After: ${invalidLogs.c}`);
+
+    } catch (e) {
+        console.error('  TEST 3C UNEXPECTED ERROR:', e.message);
         failed++;
     }
 

@@ -40,6 +40,54 @@ const BATCH_SIZE        = Math.floor(MAX_SQLITE_PARAMS / INSERT_COLUMNS.length);
 const SINGLE_ROW_PLACEHOLDER = `(${INSERT_COLUMNS.map(() => '?').join(', ')})`;
 const COLUMN_LIST             = INSERT_COLUMNS.join(', ');
 
+function isIsoCalendarDate(value) {
+    if (typeof value !== 'string') return false;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function getBusinessCurrentDate() {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 10);
+}
+
+function buildRejectedRowEvidence(parsedData = []) {
+    return parsedData.slice(0, 5).map((row, index) => ({
+        row_number: index + 1,
+        ma_bg: row?.ma_bg ?? null,
+        ma_bcvh: row?.ma_bcvh ?? null,
+        ten_bcvh: row?.ten_bcvh ?? null
+    }));
+}
+
+function validateFactF13BusinessDate({ ngay_do_kiem, parsedData = [], filename }) {
+    const businessCurrentDate = getBusinessCurrentDate();
+    const rejectedRows = buildRejectedRowEvidence(parsedData);
+    let reason = null;
+
+    if (!isIsoCalendarDate(ngay_do_kiem)) {
+        reason = 'INVALID_DATE';
+    } else if (ngay_do_kiem > businessCurrentDate) {
+        reason = 'FUTURE_DATE';
+    }
+
+    if (!reason) return;
+
+    const error = new Error(
+        `Rejected fact_f13 import date '${ngay_do_kiem}' from '${filename || 'unknown file'}': ${reason}. ` +
+        `Business current date is '${businessCurrentDate}'. ` +
+        `Related rows: ${JSON.stringify(rejectedRows)}`
+    );
+    error.code = 'INVALID_FACT_F13_IMPORT_DATE';
+    error.reason = reason;
+    error.ngay_do_kiem = ngay_do_kiem;
+    error.businessCurrentDate = businessCurrentDate;
+    error.rejectedRows = rejectedRows;
+    throw error;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Core Import Function
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,6 +128,8 @@ const COLUMN_LIST             = INSERT_COLUMNS.join(', ');
  */
 async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false }) {
     const totalParsed = parsedData.length;
+
+    validateFactF13BusinessDate({ ngay_do_kiem, parsedData, filename });
 
     await run('BEGIN TRANSACTION');
     let import_log_id = null;

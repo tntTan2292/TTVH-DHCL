@@ -36,6 +36,32 @@ Accepted commits:
 - Root cause: future artifact rows such as `2098` contaminated shared `fact_f13` date coverage.
 - Required direction: fix the import/date-validation path without reopening completed Dashboard tickets or broad-auditing the repository.
 
+## Import Date Validation Implementation
+
+- Scoped writer path: `backend/src/services/importProcessor.js` -> `importParsedData()` -> `fact_f13`.
+- Guard added before `BEGIN TRANSACTION`, before `DELETE FROM fact_f13`, before `import_log`, and before `INSERT OR IGNORE INTO fact_f13`.
+- Rejected dates:
+  - invalid calendar values, for example `2026-02-30`;
+  - values greater than the local business current date.
+- Rejection does not normalize or rewrite the bad date.
+- Rejection error records:
+  - rejected `ngay_do_kiem`;
+  - rejection reason;
+  - business current date;
+  - related row evidence from the parsed data, including `row_number`, `ma_bg`, `ma_bcvh`, and `ten_bcvh`.
+- Valid non-future imports continue through the existing idempotent `INSERT OR IGNORE` and `forceReimport` contracts.
+
+Read-only database evidence found existing future `fact_f13` rows:
+
+- `2098-02-16`: `2` rows, `2` distinct shipments.
+- `2098-02-18`: `2` rows, `2` distinct shipments.
+
+No production data was deleted or corrected. Cleanup of existing future rows requires separate authority.
+
+Validation:
+
+- `node test_importProcessor.js`: `PASS` (`56` passed, `0` failed).
+
 ## Deferred Runtime Validation
 
 Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required.
