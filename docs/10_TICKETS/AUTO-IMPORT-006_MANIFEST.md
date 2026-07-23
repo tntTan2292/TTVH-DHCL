@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-006`
 - Ticket Name: `Unified DKCL Authentication Lifecycle Recovery`
 - Phase: `Auto Import / Smart Leadership Dashboard Implementation`
-- Current State: `ACTIVE / AWAITING REVIEW`
+- Current State: `ACTIVE / READY FOR IMPLEMENTATION`
 - Technical Status: `PASS`
-- Runtime Status: `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`
-- PO UI Check Required: `Yes`
-- PO Product Status: `NOT READY`
-- Current Phase: `REMEDIATION-005B / AWAITING REVIEW`
-- Last Reviewed Phase: `R4.1B`
-- Last Reviewed Commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`
-- Phase Review Status: `AWAITING REVIEW`
-- Next Phase Authorization: `PO RUNTIME RECHECK GRANTED`
+- Runtime Status: `DASHBOARD PO PASS / IMPORT VALIDATION READY`
+- PO UI Check Required: `No for completed Dashboard items; Yes for future runtime import validation if UI-visible`
+- PO Product Status: `NOT READY - AUTO-IMPORT-006 remains active`
+- Current Phase: `REMEDIATION-006 / READY FOR IMPLEMENTATION`
+- Last Reviewed Phase: `Dashboard date consistency follow-ups`
+- Last Reviewed Commit: `4c7df0180471724116c05e3278999abc31cd1108`
+- Phase Review Status: `PO PASS for Dashboard follow-ups`
+- Next Phase Authorization: `Import date validation granted for Codex`
 - Activation date: `2026-07-22`
 - Primary executor: `Antigravity`
 
@@ -23,9 +23,9 @@ Required onboarding chain:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md`
+Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`
 
 ## Approved Scope
 - Bổ sung nút `Đăng nhập Huế` trên giao diện nạp dữ liệu.
@@ -150,3 +150,21 @@ RECHECK:
 - one browser only;
 - process/profile/session remain alive;
 - no transient process-verification warning.
+
+## Remediation 006 Dashboard PO PASS and Next Defect
+
+- Latest verified remote commit: `4c7df0180471724116c05e3278999abc31cd1108`.
+- Accepted Dashboard commits:
+  - `7c166452...` - Dashboard date consistency and startup normalization.
+  - `07d2a3a4...` - Dashboard D-1/D-7 comparison consistency.
+  - `37dff2ee...` - Shared D-1/D-7 comparison result contract.
+  - `378d22f4...` - Vietnamese UTF-8 comparison labels.
+  - `4c7df018...` - 30-day trend request/window contract.
+- PO status: Dashboard date consistency, startup normalization, D-1/D-7 contract, Vietnamese encoding, and 30-day window are `PO PASS`.
+- Current ticket remains `AUTO-IMPORT-006`.
+- Current phase: `REMEDIATION-006 / READY FOR IMPLEMENTATION`.
+- Next authorized defect: `Import date validation`.
+- Executor: `Codex`.
+- Root cause for next defect: future artifact rows such as `2098` contaminated shared `fact_f13` date coverage.
+- Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required.
+- Do not reopen completed Dashboard tickets or broad-audit the repository.

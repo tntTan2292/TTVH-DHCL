@@ -107,11 +107,11 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_005.md)
+[docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md)
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-006 REMEDIATION-004 / PO RECHECK`, Last Reviewed Phase `R4.1B`, Last Reviewed Commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262`, Phase Review Status `REVIEW PASS`, Runtime Status `AWAITING PO RECHECK`, PO Product Status `NOT READY`.
+Current active handoff: `AUTO-IMPORT-006 REMEDIATION-006 / READY FOR IMPLEMENTATION`, latest verified remote commit `4c7df0180471724116c05e3278999abc31cd1108`, Dashboard consistency fixes `PO PASS`, next authorized defect `Import date validation`, executor `Codex`.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` → `PROJECT_SNAPSHOT.md` → Current Manifest → Required Reading.
 

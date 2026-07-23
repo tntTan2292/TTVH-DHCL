@@ -17,22 +17,22 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `REMEDIATION-005B / AWAITING REVIEW` |
+| Current Phase | `REMEDIATION-006 / READY FOR IMPLEMENTATION` |
 | Current Ticket | `AUTO-IMPORT-006` |
-| Next Ticket | `Chief Architect review, then PO runtime recheck` |
-| Last PO Status | `AUTO-IMPORT-006 PO RECHECK FAILED / REMEDIATION-005 AWAITING REVIEW` |
+| Next Ticket | `Import date validation` |
+| Last PO Status | `Dashboard date consistency remediation set PO PASS` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md` |
-| Current State | `ACTIVE / AWAITING REVIEW` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md` |
+| Current State | `ACTIVE / READY FOR IMPLEMENTATION` |
 | Technical Status | `PASS` |
-| Runtime Status | `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `NOT READY` |
-| Last Reviewed Phase | `R4.1B` |
-| Last Reviewed Commit | `58fb723e9c5eeb82f17b75d14b7662c3503ee262` |
-| Phase Review Status | `AWAITING REVIEW` |
-| Next Phase Authorization | `PO RUNTIME RECHECK GRANTED` |
+| Runtime Status | `DASHBOARD PO PASS / IMPORT VALIDATION READY` |
+| PO UI Check Required | `No for completed Dashboard items; Yes for future runtime import validation if UI-visible` |
+| PO Product Status | `NOT READY - AUTO-IMPORT-006 remains active` |
+| Last Reviewed Phase | `Dashboard date consistency follow-ups` |
+| Last Reviewed Commit | `4c7df0180471724116c05e3278999abc31cd1108` |
+| Phase Review Status | `PO PASS for Dashboard follow-ups` |
+| Next Phase Authorization | `Import date validation granted for Codex` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-23` |
 
@@ -66,9 +66,9 @@ Fresh-chat onboarding chain for the active ticket:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`
 
-AUTO-IMPORT-006 is active in `REMEDIATION-005B / AWAITING REVIEW` after replacing the blocked PowerShell native-window bridge with minimal direct Win32 calls through `koffi`. R5A was `REVIEW FAIL` because it treated CDP `Browser.getWindowForTarget().windowId` as a native Windows `HWND`; R5B restores the authority chain `exact --user-data-dir` -> `owned PID tree` -> `owned HWND`. Technical status is `PASS`; runtime status is `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`; PO product status is `NOT READY`. The ticket cannot be completed without explicit PO PASS.
+AUTO-IMPORT-006 remains the active ticket in `REMEDIATION-006 / READY FOR IMPLEMENTATION`. Dashboard date consistency, startup normalization, D-1/D-7 comparison contract, Vietnamese encoding, and 30-day trend window follow-ups are `PO PASS` at latest verified remote commit `4c7df0180471724116c05e3278999abc31cd1108`. The next authorized defect is `Import date validation`, executor `Codex`; root cause is future artifact rows such as `2098` contaminating shared `fact_f13` date coverage. Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required. Do not reopen completed Dashboard tickets or broad-audit the repository.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 
