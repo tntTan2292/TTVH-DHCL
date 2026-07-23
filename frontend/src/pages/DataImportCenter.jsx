@@ -103,13 +103,14 @@ export default function DataImportCenter() {
   const [tctQueue, setTctQueue] = useState(null);
   const [tctQueueError, setTctQueueError] = useState(null);
   const [tctQueueSubmitting, setTctQueueSubmitting] = useState(false);
-  const [hueSessionStatus, setHueSessionStatus] = useState(null);
+  const [hueSessionStatus, setHueSessionStatus] = useState('CHECKING');
   const [hueSessionError, setHueSessionError] = useState(null);
   const [hueSessionLoading, setHueSessionLoading] = useState(false);
   const [importMode, setImportMode] = useState('HUE');
 
   const preflightHueSession = useCallback(async () => {
     setHueSessionError(null);
+    setHueSessionStatus((current) => current === 'SESSION_VALID' ? current : 'CHECKING');
     try {
       const res = await api.post('/import/dkcl/session/preflight', { source: 'HUE' });
       setHueSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
@@ -458,6 +459,8 @@ export default function DataImportCenter() {
   // Submit is disabled if: no session, no dates selected, submitting, or queue active.
   // Checkbox selection is INDEPENDENT of session readiness per contract.
   const updateDisabled = isSubmitDisabled(hueSessionReady, selectedDates.length, queueSubmitting, queueIsActive);
+  const hueSessionChecking = hueSessionStatus === 'CHECKING' || hueSessionStatus === null || hueSessionStatus === 'LOGIN_IN_PROGRESS';
+  const hueLoginRequired = ['AUTHENTICATION_REQUIRED', 'SESSION_EXPIRED'].includes(hueSessionStatus);
 
   const handleStartBackfillQueue = async () => {
     setQueueSubmitting(true);
@@ -1079,7 +1082,13 @@ export default function DataImportCenter() {
             </div>
           )}
 
-          {!hueSessionReady && (
+          {hueSessionChecking && (
+            <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800" data-testid="hue-session-checking">
+              <span>Đang kiểm tra phiên Huế DKCL...</span>
+            </div>
+          )}
+
+          {hueLoginRequired && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" data-testid="hue-not-ready">
               <span>Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ Huế.</span>
               <button

@@ -209,6 +209,36 @@ assert.match(
   'Submit button must be disabled through the helper when session is not ready'
 );
 
+assert.match(
+  src,
+  /useState\('CHECKING'\)/,
+  'Hue session status must start in neutral CHECKING state, not auth-required'
+);
+
+assert.match(
+  src,
+  /setHueSessionStatus\(\(current\) => current === 'SESSION_VALID' \? current : 'CHECKING'\)/,
+  'Hue preflight polling must not replace a valid session with a transient warning state'
+);
+
+assert.match(
+  src,
+  /const hueLoginRequired = \['AUTHENTICATION_REQUIRED', 'SESSION_EXPIRED'\]\.includes\(hueSessionStatus\)/,
+  'Hue login warning must render only for confirmed invalid or expired session states'
+);
+
+assert.doesNotMatch(
+  src,
+  /\{!hueSessionReady && \(\s*<div[^>]+data-testid="hue-not-ready"/,
+  'Hue login warning must not render for every non-valid or pending status'
+);
+
+assert.match(
+  src,
+  /data-testid="hue-session-checking"/,
+  'Hue pending preflight must use a neutral checking state'
+);
+
 // New scan must clear refreshDates to prevent stale Re-Update state
 assert.match(
   src,
