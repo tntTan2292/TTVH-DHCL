@@ -59,6 +59,11 @@ class F13DashboardService {
         return { start, end };
     }
 
+    _calculateNullableRateDelta(currentPassed, currentTotal, previousPassed, previousTotal) {
+        if (!currentTotal || !previousTotal) return null;
+        return Number((this._calculateRate(currentPassed, currentTotal) - this._calculateRate(previousPassed, previousTotal)).toFixed(2));
+    }
+
     _indexByBcvh(rows) {
         return rows.reduce((acc, row) => {
             acc[row.ma_bcvh] = row;
@@ -224,16 +229,17 @@ class F13DashboardService {
     async getBcvhRanking(date, page, pageSize, sort, order) {
         try {
             const monthStart = this._getMonthStart(date);
-            const monthToDateCutoff = await factBuuGuiRepo.getLatestBcvhDataDateInRange(monthStart, date);
-            const effectiveDate = monthToDateCutoff || date;
+            const currentMetrics = await factBuuGuiRepo.getBcvhOperationMetricsByDate(date);
+            const selectedDateHasData = currentMetrics.length > 0;
+            const monthToDateCutoff = selectedDateHasData ? date : null;
+            const effectiveDate = date;
             const previousMonthPeriod = this._getPreviousMonthComparablePeriod(effectiveDate);
             const result = await factBuuGuiRepo.getBcvhRanking(effectiveDate, page, pageSize, sort, order);
             const yesterdayStr = this._shiftDate(effectiveDate, -1);
             const swcStr = this._shiftDate(effectiveDate, -7);
             const currentFacts = await factBuuGuiRepo.getFactByDate(effectiveDate);
 
-            const [currentMetrics, yesterdayMetrics, swcMetrics, monthToDateMetrics, previousMonthToDateMetrics] = await Promise.all([
-                factBuuGuiRepo.getBcvhOperationMetricsByDate(effectiveDate),
+            const [yesterdayMetrics, swcMetrics, monthToDateMetrics, previousMonthToDateMetrics] = await Promise.all([
                 factBuuGuiRepo.getBcvhOperationMetricsByDate(yesterdayStr),
                 factBuuGuiRepo.getBcvhOperationMetricsByDate(swcStr),
                 monthToDateCutoff
@@ -266,26 +272,18 @@ class F13DashboardService {
                     currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
                     currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg
                 ),
-                kpi_2026_dod: Number((
-                    this._calculateRate(
-                        currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
-                        currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg
-                    ) -
-                    this._calculateRate(
-                        yesterdayMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
-                        yesterdayMap[item.ma_bcvh]?.sl_bg_ptc ?? 0
-                    )
-                ).toFixed(2)),
-                kpi_2026_swc: Number((
-                    this._calculateRate(
-                        currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
-                        currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg
-                    ) -
-                    this._calculateRate(
-                        swcMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
-                        swcMap[item.ma_bcvh]?.sl_bg_ptc ?? 0
-                    )
-                ).toFixed(2)),
+                kpi_2026_dod: this._calculateNullableRateDelta(
+                    currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                    currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg,
+                    yesterdayMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                    yesterdayMap[item.ma_bcvh]?.sl_bg_ptc ?? 0
+                ),
+                kpi_2026_swc: this._calculateNullableRateDelta(
+                    currentMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                    currentMap[item.ma_bcvh]?.sl_bg_ptc ?? item.total_bg,
+                    swcMap[item.ma_bcvh]?.dat_kpi_2026 ?? 0,
+                    swcMap[item.ma_bcvh]?.sl_bg_ptc ?? 0
+                ),
                 month_to_date_sl_bg_ptc: monthToDateMap[item.ma_bcvh]?.sl_bg_ptc ?? null,
                 month_to_date_dat_kpi_2026: monthToDateMap[item.ma_bcvh]?.dat_kpi_2026 ?? null,
                 month_to_date_khong_dat_kpi_2026: monthToDateMap[item.ma_bcvh]?.khong_dat_kpi_2026 ?? null,
@@ -375,12 +373,18 @@ class F13DashboardService {
                 return acc;
             }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
 
-            totalRow.kpi_2026_dod = Number((
-                totalRow.kpi_2026 - this._calculateRate(totalYesterday.dat_kpi_2026, totalYesterday.sl_bg_ptc)
-            ).toFixed(2));
-            totalRow.kpi_2026_swc = Number((
-                totalRow.kpi_2026 - this._calculateRate(totalSwc.dat_kpi_2026, totalSwc.sl_bg_ptc)
-            ).toFixed(2));
+            totalRow.kpi_2026_dod = this._calculateNullableRateDelta(
+                totalCurrent.dat_kpi_2026,
+                totalCurrent.sl_bg_ptc,
+                totalYesterday.dat_kpi_2026,
+                totalYesterday.sl_bg_ptc
+            );
+            totalRow.kpi_2026_swc = this._calculateNullableRateDelta(
+                totalCurrent.dat_kpi_2026,
+                totalCurrent.sl_bg_ptc,
+                totalSwc.dat_kpi_2026,
+                totalSwc.sl_bg_ptc
+            );
 
             return {
                 data: mappedData,

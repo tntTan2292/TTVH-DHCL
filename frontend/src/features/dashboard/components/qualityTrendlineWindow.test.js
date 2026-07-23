@@ -17,19 +17,34 @@ test('rolling window falls back to latest date when no end date is selected', ()
 
 test('trendline request includes BCVH filter without changing the rolling window', () => {
   const params = buildTrendlineRequestParams({
+    reportingFromDate: '2026-07-10',
     reportingToDate: '2026-07-15',
     latestDate: '2026-07-15',
     maBcvh: '535790',
   });
 
   assert.deepEqual(params, {
-    from_date: '2026-06-16',
+    from_date: '2026-07-10',
     to_date: '2026-07-15',
     ma_bcvh: '535790',
   });
 });
 
 test('trendline request omits BCVH filter when set to all', () => {
+  const params = buildTrendlineRequestParams({
+    reportingFromDate: '2026-07-10',
+    reportingToDate: '2026-07-15',
+    latestDate: '2026-07-15',
+    maBcvh: 'all',
+  });
+
+  assert.deepEqual(params, {
+    from_date: '2026-07-10',
+    to_date: '2026-07-15',
+  });
+});
+
+test('trendline request falls back to rolling latest only without a valid selected range', () => {
   const params = buildTrendlineRequestParams({
     reportingToDate: '2026-07-15',
     latestDate: '2026-07-15',

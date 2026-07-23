@@ -41,13 +41,14 @@ test('only canonical values remain selectable and preserved as ma_bcvh', () => {
   for (const unit of canonicalBcvhUnits) {
     assert.equal(isCanonicalBcvhCode(unit.ma_bcvh), true);
     const params = buildTrendlineRequestParams({
+      reportingFromDate: '2026-07-10',
       reportingToDate: '2026-07-15',
       latestDate: '2026-07-15',
       maBcvh: unit.ma_bcvh,
     });
 
     assert.deepEqual(params, {
-      from_date: '2026-06-16',
+      from_date: '2026-07-10',
       to_date: '2026-07-15',
       ma_bcvh: unit.ma_bcvh,
     });

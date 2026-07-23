@@ -393,11 +393,11 @@ async function getDashboardMessage(req, res) {
 // GET /api/f13/dashboard/meta
 async function getDashboardMeta(req, res) {
     try {
-        const { max_date } = await get(`SELECT MAX(ngay_do_kiem) as max_date FROM fact_f13`);
+        const { min_date, max_date } = await get(`SELECT MIN(ngay_do_kiem) as min_date, MAX(ngay_do_kiem) as max_date FROM fact_f13`);
         res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.set('Pragma', 'no-cache');
         res.set('Expires', '0');
-        res.json({ success: true, data: buildDashboardMeta(max_date) });
+        res.json({ success: true, data: buildDashboardMeta(max_date, min_date) });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

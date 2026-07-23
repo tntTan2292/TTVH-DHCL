@@ -35,7 +35,20 @@ export function resolveRollingTrendlineWindow({ reportingToDate, latestDate } = 
   };
 }
 
-export function buildTrendlineRequestParams({ reportingToDate, latestDate, maBcvh } = {}) {
+export function buildTrendlineRequestParams({ reportingFromDate, reportingToDate, latestDate, maBcvh } = {}) {
+  if (isIsoDate(reportingFromDate) && isIsoDate(reportingToDate) && reportingFromDate <= reportingToDate) {
+    const params = {
+      from_date: reportingFromDate,
+      to_date: reportingToDate,
+    };
+
+    if (maBcvh && maBcvh !== 'all') {
+      params.ma_bcvh = maBcvh;
+    }
+
+    return params;
+  }
+
   const { trendFromDate, trendToDate } = resolveRollingTrendlineWindow({
     reportingToDate,
     latestDate,

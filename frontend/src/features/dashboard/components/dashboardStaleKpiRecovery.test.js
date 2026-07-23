@@ -10,7 +10,7 @@ test('dashboard page clears stale KPI payloads before scoped requests resolve', 
   assert.match(dashboardSource, /data:\s*null/);
   assert.match(dashboardSource, /const kpiRequestSeqRef = useRef\(0\);/);
   assert.match(dashboardSource, /const kpiActiveKeyRef = useRef\(''\);/);
-  assert.match(dashboardSource, /useEffect\(\(\) => \{\n\s+if \(!fromDate \|\| !toDate\) return undefined;/);
+  assert.match(dashboardSource, /useEffect\(\(\) => \{[\r\n]+\s+if \(!fromDate \|\| !toDate\) return undefined;/);
   assert.match(dashboardSource, /\}, \[fromDate, maBcvh, toDate\]\);/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/kpi'/);
   assert.equal((dashboardSource.match(/api\.get\('\/f13\/dashboard\/kpi'/g) || []).length, 1);
@@ -25,7 +25,7 @@ test('dashboard page restores the timeline and executive summary surfaces', () =
   const executiveSummarySource = fs.readFileSync(new URL('../../../components/f13/ExecutiveSummary.jsx', import.meta.url), 'utf8');
   const dailyBriefSource = fs.readFileSync(new URL('./ExecutiveDailyBriefAdapter.jsx', import.meta.url), 'utf8');
 
-  assert.match(dashboardSource, /QualityTimelineAdapter/);
+  assert.match(dashboardSource, /IntegratedTrendRiskWorkspace/);
   assert.match(dashboardSource, /BcvhOperationTableAdapter/);
   assert.match(dashboardSource, /UnifiedCommandSummary/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/kpi'/);
@@ -48,6 +48,23 @@ test('dashboard page restores the timeline and executive summary surfaces', () =
   assert.doesNotMatch(executiveSummarySource, /Award/);
 });
 
+test('operation dashboard uses one normalized date range for selected-period widgets', () => {
+  const dashboardSource = fs.readFileSync(new URL('../DashboardPage.jsx', import.meta.url), 'utf8');
+  const trendWindowSource = fs.readFileSync(new URL('./qualityTrendlineWindow.js', import.meta.url), 'utf8');
+  const bcvhTableSource = fs.readFileSync(new URL('./UnifiedBcvhAnalysisTable.jsx', import.meta.url), 'utf8');
+  const actionCenterSource = fs.readFileSync(new URL('./UnifiedActionCenter.jsx', import.meta.url), 'utf8');
+
+  assert.match(dashboardSource, /resolveDashboardDateRange/);
+  assert.match(dashboardSource, /rawFromDate:\s*searchParams\.get\('from_date'\)/);
+  assert.match(dashboardSource, /rawToDate:\s*searchParams\.get\('to_date'\)/);
+  assert.match(dashboardSource, /params\.set\('from_date',\s*range\.fromDate\)/);
+  assert.match(dashboardSource, /params\.set\('to_date',\s*range\.toDate\)/);
+  assert.match(trendWindowSource, /from_date:\s*reportingFromDate/);
+  assert.match(bcvhTableSource, /from_date:\s*fromDate/);
+  assert.match(bcvhTableSource, /to_date:\s*toDate/);
+  assert.match(actionCenterSource, /params:\s*\{\s*fromDate,\s*toDate\s*\}/);
+});
+
 test('legacy dashboard adapters preserve stable filter identity between equivalent renders', () => {
   const qualityTimelineAdapterSource = fs.readFileSync(new URL('./QualityTimelineAdapter.jsx', import.meta.url), 'utf8');
   const messageGenerationAdapterSource = fs.readFileSync(new URL('./MessageGenerationAdapter.jsx', import.meta.url), 'utf8');
@@ -58,7 +75,6 @@ test('legacy dashboard adapters preserve stable filter identity between equivale
     qualityTimelineAdapterSource,
     messageGenerationAdapterSource,
     ruleRecommendationAdapterSource,
-    bcvhOperationTableAdapterSource,
   ].forEach((source) => {
     assert.match(source, /useMemo/);
     assert.match(source, /dateRange:\s*\[fromDate,\s*toDate\]/);
@@ -67,5 +83,9 @@ test('legacy dashboard adapters preserve stable filter identity between equivale
   assert.match(qualityTimelineAdapterSource, /\[fromDate,\s*interval,\s*maBcvh,\s*toDate\]/);
   assert.match(messageGenerationAdapterSource, /\[fromDate,\s*toDate\]/);
   assert.match(ruleRecommendationAdapterSource, /\[fromDate,\s*interval,\s*maBcvh,\s*toDate\]/);
-  assert.match(bcvhOperationTableAdapterSource, /\[fromDate,\s*interval,\s*maBcvh,\s*toDate\]/);
+  assert.match(bcvhOperationTableAdapterSource, /<UnifiedBcvhAnalysisTable/);
+  assert.match(bcvhOperationTableAdapterSource, /fromDate=\{fromDate\}/);
+  assert.match(bcvhOperationTableAdapterSource, /toDate=\{toDate\}/);
+  assert.match(bcvhOperationTableAdapterSource, /interval=\{interval\}/);
+  assert.match(bcvhOperationTableAdapterSource, /maBcvh=\{maBcvh\}/);
 });

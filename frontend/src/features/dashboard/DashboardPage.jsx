@@ -18,11 +18,13 @@ import {
 } from './components/dashboardFilterOptions';
 import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
+import { resolveDashboardDateRange } from './dashboardDateRange';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
+  const [earliestDate, setEarliestDate] = useState(null);
   const [kpiState, setKpiState] = useState({ loading: true, error: null, data: null });
   const [trendState, setTrendState] = useState({ loading: true, error: null, data: [] });
   const [metadataState, setMetadataState] = useState({
@@ -40,6 +42,7 @@ export default function DashboardPage() {
         const data = res.data?.data || {};
         if (res.data?.success && data.max_date) {
           setLatestDate(data.max_date);
+          setEarliestDate(data.min_date || data.max_date);
         }
 
         const validation = validateBcvhUnits(data.bcvh_units);
@@ -72,9 +75,14 @@ export default function DashboardPage() {
     loadDashboardMeta();
   }, []);
 
-  const defaultDate = latestDate || '2026-07-15';
-  const fromDate = searchParams.get('from_date') || defaultDate;
-  const toDate = searchParams.get('to_date') || defaultDate;
+  const range = resolveDashboardDateRange({
+    rawFromDate: searchParams.get('from_date'),
+    rawToDate: searchParams.get('to_date'),
+    minDate: earliestDate,
+    maxDate: latestDate,
+  });
+  const fromDate = range.fromDate;
+  const toDate = range.toDate;
   const interval = searchParams.get('interval') || 'daily';
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
@@ -145,6 +153,7 @@ export default function DashboardPage() {
       try {
         setTrendState((prev) => ({ ...prev, loading: true, error: null }));
         const params = buildTrendlineRequestParams({
+          reportingFromDate: fromDate,
           reportingToDate: toDate,
           latestDate,
           maBcvh,
@@ -173,14 +182,22 @@ export default function DashboardPage() {
       }
     };
 
-    if (metadataState.status === 'success' && (toDate || latestDate)) {
+    if (metadataState.status === 'success' && fromDate && toDate) {
       loadTrend();
     }
 
     return () => {
       cancelled = true;
     };
-  }, [latestDate, maBcvh, metadataState.status, toDate]);
+  }, [fromDate, latestDate, maBcvh, metadataState.status, toDate]);
+
+  useEffect(() => {
+    if (metadataState.status !== 'success' || !range.ready || !range.normalized) return;
+    const params = new URLSearchParams(searchParams);
+    params.set('from_date', range.fromDate);
+    params.set('to_date', range.toDate);
+    setSearchParams(params, { replace: true });
+  }, [metadataState.status, range.fromDate, range.normalized, range.ready, range.toDate, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!searchParams.has('kpi')) return;
@@ -229,7 +246,7 @@ export default function DashboardPage() {
         <GlobalFilterBar
           fromDate={fromDate}
           toDate={toDate}
-          maxDate={latestDate || defaultDate}
+          maxDate={latestDate || undefined}
           onFromDateChange={(value) => updateParam('from_date', value)}
           onToDateChange={(value) => updateParam('to_date', value)}
           showKpiFilter={false}
@@ -277,7 +294,7 @@ export default function DashboardPage() {
           loading={trendState.loading}
           error={trendState.error}
           fromDate={fromDate}
-          toDate={toDate || latestDate || defaultDate}
+          toDate={toDate}
           maBcvh={maBcvh}
           kpiData={kpiState.data}
         />

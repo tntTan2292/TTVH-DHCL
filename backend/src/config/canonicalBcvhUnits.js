@@ -11,8 +11,9 @@ function getCanonicalBcvhUnits() {
     return CANONICAL_BCVH_UNITS.map((unit) => ({ ...unit }));
 }
 
-function buildDashboardMeta(maxDate) {
+function buildDashboardMeta(maxDate, minDate = null) {
     return {
+        min_date: minDate || null,
         max_date: maxDate || null,
         bcvh_units: getCanonicalBcvhUnits()
     };
