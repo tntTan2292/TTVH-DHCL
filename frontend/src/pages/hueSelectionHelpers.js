@@ -15,7 +15,7 @@
  * @param {string[]} currentSelected - currently selected dates
  * @param {string[]} currentRefresh  - currently tracked refresh (COMPLETE) dates
  * @param {string}   date            - measurement_date to toggle
- * @param {string}   status          - 'MISSING' | 'COMPLETE' | 'MANUAL_REVIEW_REQUIRED'
+ * @param {string}   status          - 'MISSING' | 'INCOMPLETE' | 'COMPLETE' | 'MANUAL_REVIEW_REQUIRED'
  * @returns {{ selectedDates: string[], refreshDates: string[] }}
  */
 export function toggleDateSelection(currentSelected, currentRefresh, date, status) {
@@ -54,14 +54,15 @@ export function selectMissingDates(rows) {
 }
 
 /**
- * Select all importable MISSING and COMPLETE rows.
+ * Select all importable rows.
+ * MISSING and INCOMPLETE rows run as normal Update dates.
  * COMPLETE rows are tracked as refresh dates for controlled Re-Update.
  *
  * @param {object[]} rows - scan result rows
  * @returns {{ selectedDates: string[], refreshDates: string[] }}
  */
 export function selectAllImportableDates(rows) {
-  const importableRows = rows.filter((item) => item.selectable && ['MISSING', 'COMPLETE'].includes(item.status));
+  const importableRows = rows.filter((item) => item.selectable && ['MISSING', 'INCOMPLETE', 'COMPLETE'].includes(item.status));
   return {
     selectedDates: importableRows.map((item) => item.measurement_date).sort(),
     refreshDates: importableRows

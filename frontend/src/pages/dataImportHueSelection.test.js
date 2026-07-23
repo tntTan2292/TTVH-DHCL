@@ -153,7 +153,7 @@ assert.strictEqual(
   assert.deepEqual(result.refreshDates, [], 'Missing-only bulk action must not send refreshDates');
 }
 
-// All-importable bulk action: selects selectable MISSING and COMPLETE only
+// All-importable bulk action: selects selectable MISSING, INCOMPLETE, and COMPLETE rows
 {
   const rows = [
     { measurement_date: '2025-07-01', status: 'COMPLETE', selectable: true },
@@ -163,8 +163,33 @@ assert.strictEqual(
     { measurement_date: '2025-07-05', status: 'INCOMPLETE', selectable: true },
   ];
   const result = selectAllImportableDates(rows);
-  assert.deepEqual(result.selectedDates, ['2025-07-01', '2025-07-02', '2025-07-03'], 'Select-all adds all selectable dates');
+  assert.deepEqual(result.selectedDates, ['2025-07-01', '2025-07-02', '2025-07-03', '2025-07-05'], 'Select-all adds all selectable update and re-update dates');
   assert.deepEqual(result.refreshDates, ['2025-07-01', '2025-07-03'], 'Select-all puts only COMPLETE dates in refreshDates');
+}
+
+// TCT PO case: 5 INCOMPLETE recovery days + 2 COMPLETE re-update days are all selected
+{
+  const rows = [
+    { measurement_date: '2026-07-16', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-17', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-18', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-19', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-20', status: 'INCOMPLETE', selectable: true },
+    { measurement_date: '2026-07-21', status: 'COMPLETE', selectable: true },
+    { measurement_date: '2026-07-22', status: 'COMPLETE', selectable: true },
+    { measurement_date: '2026-07-23', status: 'MANUAL_REVIEW_REQUIRED', selectable: false },
+  ];
+  const result = selectAllImportableDates(rows);
+  assert.deepEqual(
+    result.selectedDates,
+    ['2026-07-16', '2026-07-17', '2026-07-18', '2026-07-19', '2026-07-20', '2026-07-21', '2026-07-22'],
+    'TCT select-all must include Xử lý lại and complete dates'
+  );
+  assert.deepEqual(
+    result.refreshDates,
+    ['2026-07-21', '2026-07-22'],
+    'TCT select-all sends only complete dates as refreshDates'
+  );
 }
 
 // Deselect-all: clears both arrays

@@ -428,10 +428,10 @@ export default function DataImportCenter() {
 
   const selectableScanRows = scanResult?.results?.filter((item) => item.selectable) || [];
   const missingSelectableRows = selectableScanRows.filter((item) => item.status === 'MISSING');
-  const importableScanRows = selectableScanRows.filter((item) => ['MISSING', 'COMPLETE'].includes(item.status));
+  const importableScanRows = selectableScanRows.filter((item) => ['MISSING', 'INCOMPLETE', 'COMPLETE'].includes(item.status));
   const tctSelectableScanRows = tctScanResult?.results?.filter((item) => item.selectable) || [];
   const tctMissingSelectableRows = tctSelectableScanRows.filter((item) => item.status === 'MISSING');
-  const tctImportableScanRows = tctSelectableScanRows.filter((item) => ['MISSING', 'COMPLETE'].includes(item.status));
+  const tctImportableScanRows = tctSelectableScanRows.filter((item) => ['MISSING', 'INCOMPLETE', 'COMPLETE'].includes(item.status));
 
   const selectHueMissingDates = () => {
     const next = selectMissingDates(selectableScanRows);

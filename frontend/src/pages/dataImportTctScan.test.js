@@ -58,6 +58,11 @@ assert.match(
   /selectAllImportableDates\(tctSelectableScanRows\)/,
   'TCT select-all bulk action must include COMPLETE refresh dates through shared helper'
 );
+assert.match(
+  pageSource,
+  /const tctImportableScanRows = tctSelectableScanRows\.filter\(\(item\) => \['MISSING', 'INCOMPLETE', 'COMPLETE'\]\.includes\(item\.status\)\);/,
+  'TCT select-all button must stay enabled for selectable Xử lý lại dates'
+);
 assert.match(pageSource, /data-testid="tct-select-missing"/, 'TCT missing-only bulk button must be present');
 assert.match(pageSource, /data-testid="tct-select-all-importable"/, 'TCT all-importable bulk button must be present');
 assert.match(pageSource, /data-testid="tct-clear-selection"/, 'TCT clear-selection button must be present');
