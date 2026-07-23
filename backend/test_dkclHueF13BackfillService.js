@@ -148,9 +148,20 @@ async function runTests() {
     console.log('\nTEST 5: queue processes dates sequentially and returns evidence');
     const sequentialEvents = [];
     const sequentialOptions = [];
+    const sequentialPortalClient = { marker: 'registered-hue-client' };
     const sequentialRuns = new Map();
     const sequentialService = new DkclHueF13BackfillService({
         pollIntervalMs: 1,
+        sessionPreflightService: {
+            async preflight(source) {
+                sequentialOptions.push(['preflight', source]);
+                return { status: 'SESSION_VALID' };
+            },
+            getInteractiveClient(source) {
+                sequentialOptions.push(['getInteractiveClient', source]);
+                return sequentialPortalClient;
+            }
+        },
         syncService: {
             db: makeEvidenceDb({ '2026-07-20': 5, '2026-07-21': 7 }),
             async checkCompleted() { return { complete: false, inconsistent: false }; },
@@ -158,7 +169,7 @@ async function runTests() {
                 sequentialOptions.push(['validateAuthentication', options?.requireExistingSession]);
             },
             async start(date, options) {
-                sequentialOptions.push(['start', date, options?.requireExistingSession]);
+                sequentialOptions.push(['start', date, options?.requireExistingSession, options?.portalClient === sequentialPortalClient]);
                 sequentialEvents.push(['start', date]);
                 const run = {
                     runId: `run-${date}`,
@@ -183,7 +194,7 @@ async function runTests() {
     assert('queue sorts selected dates ascending', sequentialDone.items.map((item) => item.measurementDate).join(',') === '2026-07-20,2026-07-21');
     assert('second date starts after first finishes', sequentialEvents.map((event) => event.join(':')).join('|') === 'start:2026-07-20|finish:2026-07-20|start:2026-07-21|finish:2026-07-21', JSON.stringify(sequentialEvents));
     assert('queue reaches SUCCESS', sequentialDone.status === 'SUCCESS');
-    assert('queue validates authentication before running and requires existing session for worker', sequentialOptions.map((event) => event.join(':')).join('|') === 'validateAuthentication:true|start:2026-07-20:true|start:2026-07-21:true', JSON.stringify(sequentialOptions));
+    assert('queue preflights HUE once and passes the registered client to workers', sequentialOptions.map((event) => event.join(':')).join('|') === 'preflight:HUE|getInteractiveClient:HUE|start:2026-07-20:true:true|start:2026-07-21:true:true', JSON.stringify(sequentialOptions));
     assert('evidence includes run, export, workbook, DB and logs', sequentialDone.items[0].evidence.run_id === 'run-2026-07-20' && sequentialDone.items[0].evidence.exported_filename === 'export-2026-07-20.xlsx' && sequentialDone.items[0].evidence.workbook_row_count === 5 && sequentialDone.items[0].evidence.imported_database_row_count === 5 && sequentialDone.items[0].evidence.distinct_shipment_count === 5 && sequentialDone.items[0].evidence.success_log_count === 1);
     assert('queue status progress summarizes items', sequentialDone.progress.total === 2 && sequentialDone.progress.success === 2 && sequentialDone.progress.completed === 2);
     assert('restart limitation is exposed', /in memory/i.test(sequentialDone.restartNotice));
@@ -214,6 +225,14 @@ async function runTests() {
     let authRejectCode = null;
     let authRejectStarted = false;
     const authRejectService = new DkclHueF13BackfillService({
+        sessionPreflightService: {
+            async preflight() {
+                return { status: 'AUTHENTICATION_REQUIRED' };
+            },
+            getInteractiveClient() {
+                return null;
+            }
+        },
         syncService: {
             async validateAuthentication() {
                 const error = new Error('expired DKCL session');

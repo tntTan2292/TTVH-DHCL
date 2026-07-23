@@ -237,12 +237,13 @@ class DkclHueF13BackfillService {
             }
             items.push(this.createQueueItem(date));
         }
-        await this.validateAuthenticationBeforeQueue();
+        const portalClient = await this.validateAuthenticationBeforeQueue();
 
         const queue = {
             queueId: this.createQueueId(),
             source: 'HUE',
             report: 'F1.3',
+            portalClient,
             status: 'QUEUED',
             stopRequested: false,
             createdAt: this.clock().toISOString(),
@@ -329,12 +330,13 @@ class DkclHueF13BackfillService {
             error.code = 'DATE_ALREADY_COMPLETED';
             throw error;
         }
-        await this.validateAuthenticationBeforeQueue();
+        const portalClient = await this.validateAuthenticationBeforeQueue();
 
         const retryQueue = {
             queueId: this.createQueueId(),
             source: 'HUE',
             report: 'F1.3',
+            portalClient,
             status: 'QUEUED',
             stopRequested: false,
             retryOf: { queueId, measurementDate: normalizedDate },
@@ -370,15 +372,13 @@ class DkclHueF13BackfillService {
     }
 
     async validateAuthenticationBeforeQueue() {
-        if (this.syncService.validateAuthentication) {
-            await this.syncService.validateAuthentication({ requireExistingSession: true });
-        }
         const preflight = await this.sessionPreflightService.preflight('HUE');
         if (preflight.status !== 'SESSION_VALID') {
             const authError = new Error('Không thể tạo hàng đợi Huế F1.3 vì phiên đăng nhập DKCL không hợp lệ. Vui lòng đăng nhập/cập nhật phiên DKCL trước khi chạy bù dữ liệu.');
             authError.code = 'AUTHENTICATION_REQUIRED';
             throw authError;
         }
+        return this.sessionPreflightService.getInteractiveClient?.('HUE') || null;
     }
 
     createQueueId() {
@@ -458,7 +458,10 @@ class DkclHueF13BackfillService {
             }
         });
 
-        const result = await this.syncService.start(item.measurementDate, { requireExistingSession: true });
+        const result = await this.syncService.start(item.measurementDate, {
+            requireExistingSession: true,
+            portalClient: queue.portalClient || this.sessionPreflightService.getInteractiveClient?.('HUE') || null
+        });
         const run = result?.run || null;
         this.updateItem(item, {
             runId: run?.runId || null,

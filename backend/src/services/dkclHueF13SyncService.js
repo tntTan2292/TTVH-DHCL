@@ -278,31 +278,39 @@ class DkclHueF13SyncService {
     }
 
     async runWorkflow(run, options = {}) {
+        const portalClient = options.portalClient || this.portalClient;
+        const ownsPortalClient = !options.portalClient;
         try {
             this.updateRun(run, { status: STATUSES.RUNNING });
-            await this.portalClient.authenticate({
-                baseUrl: this.config.portalBaseUrl,
-                username: process.env.PORTAL_HUE_USERNAME,
-                password: process.env.PORTAL_HUE_PASSWORD,
-                hrmCode: process.env.PORTAL_HUE_HRM_CODE,
-                profileDir: this.config.profileDir,
-                requireExistingSession: options?.requireExistingSession
-            });
+            if (!options.portalClient) {
+                await portalClient.authenticate({
+                    baseUrl: this.config.portalBaseUrl,
+                    username: process.env.PORTAL_HUE_USERNAME,
+                    password: process.env.PORTAL_HUE_PASSWORD,
+                    hrmCode: process.env.PORTAL_HUE_HRM_CODE,
+                    profileDir: this.config.profileDir,
+                    requireExistingSession: options?.requireExistingSession
+                });
+            } else if (portalClient.isAuthenticated && !await portalClient.isAuthenticated().catch(() => false)) {
+                const error = new Error('Existing Hue DKCL session is no longer authenticated.');
+                error.code = 'AUTHENTICATION_REQUIRED';
+                throw error;
+            }
 
-            await this.portalClient.openF13Report();
-            await this.portalClient.submitFilters({
+            await portalClient.openF13Report();
+            await portalClient.submitFilters({
                 groupBy: 'BC',
                 provinceCode: '53',
                 fromDate: run.measurementDate,
                 toDate: run.measurementDate
             });
-            if (this.portalClient.getSelectedFilters) {
+            if (portalClient.getSelectedFilters) {
                 this.updateRun(run, {
-                    selectedFilters: await this.portalClient.getSelectedFilters()
+                    selectedFilters: await portalClient.getSelectedFilters()
                 });
             }
 
-            const portalSummaryTotal = await this.portalClient.readDetailTotal();
+            const portalSummaryTotal = await portalClient.readDetailTotal();
             if (Number(portalSummaryTotal) === 0) {
                 this.updateRun(run, {
                     portalDetailTotal: portalSummaryTotal,
@@ -319,8 +327,8 @@ class DkclHueF13SyncService {
             });
 
             const exportRequestedAt = this.clock();
-            const detailMetric = await this.portalClient.openDetailTable();
-            const confirmedTotal = await this.portalClient.readDetailTableTotal();
+            const detailMetric = await portalClient.openDetailTable();
+            const confirmedTotal = await portalClient.readDetailTableTotal();
             this.updateRun(run, {
                 portalDetailTotal: Number(confirmedTotal),
                 detailTableTotal: Number(confirmedTotal),
@@ -332,9 +340,9 @@ class DkclHueF13SyncService {
             ) {
                 throw new Error('Portal detail table total differs from both selected visible metric total and summary total.');
             }
-            await this.portalClient.requestDetailExport();
+            await portalClient.requestDetailExport();
 
-            const generatedFile = await this.portalClient.pollGeneratedFile({
+            const generatedFile = await portalClient.pollGeneratedFile({
                 requestedAt: exportRequestedAt,
                 timeoutMs: this.config.generationTimeoutMs,
                 intervalMs: this.config.generationPollingIntervalMs,
@@ -349,7 +357,7 @@ class DkclHueF13SyncService {
             });
 
             ensureDir(this.config.rawDownloadDir);
-            const downloadedPath = await this.portalClient.downloadXlsx({
+            const downloadedPath = await portalClient.downloadXlsx({
                 file: generatedFile,
                 targetDir: this.config.rawDownloadDir
             });
@@ -365,7 +373,7 @@ class DkclHueF13SyncService {
                 status: STATUSES.VALIDATING
             });
 
-            await this.cleanupPortalExport(run, generatedFile);
+            await this.cleanupPortalExport(run, generatedFile, portalClient);
 
             const validation = this.validateWorkbook(stablePath, Number(confirmedTotal));
             this.updateRun(run, { workbookRowCount: validation.rowCount });
@@ -415,8 +423,8 @@ class DkclHueF13SyncService {
             });
             this.logger.error?.(`[DKCL_HUE_F13_SYNC] ${run.runId} ${run.status}: ${run.safeErrorMessage}`);
         } finally {
-            if (this.portalClient.close) {
-                await this.portalClient.close().catch((error) => {
+            if (ownsPortalClient && portalClient.close) {
+                await portalClient.close().catch((error) => {
                     this.logger.warn?.(`[DKCL_HUE_F13_SYNC] ${run.runId} portal close warning: ${safeErrorMessage(error)}`);
                 });
             }
@@ -439,11 +447,11 @@ class DkclHueF13SyncService {
         return { rowCount: parsed.totalParsed };
     }
 
-    async cleanupPortalExport(run, generatedFile) {
-        if (!this.portalClient.deleteGeneratedFile) return;
+    async cleanupPortalExport(run, generatedFile, portalClient = this.portalClient) {
+        if (!portalClient.deleteGeneratedFile) return;
 
         try {
-            await this.portalClient.deleteGeneratedFile(generatedFile);
+            await portalClient.deleteGeneratedFile(generatedFile);
         } catch (error) {
             this.updateRun(run, {
                 cleanupWarning: safeErrorMessage(error) || 'Portal export cleanup failed.'

@@ -283,8 +283,10 @@ async function runTests() {
     const noDataDate = '2098-02-12';
     const detailMismatchDate = '2098-02-13';
     const summaryAuthoritativeDate = '2098-02-14';
+    const sharedSessionDate = '2098-02-16';
+    const expiredSharedSessionDate = '2098-02-17';
 
-    for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate]) {
+    for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, sharedSessionDate, expiredSharedSessionDate]) {
         await cleanupDate(date);
     }
 
@@ -359,6 +361,67 @@ async function runTests() {
     const detailMismatchRun = await waitForRun(detailMismatchService, detailMismatchStart.run.runId);
     assert('detail-table mismatch returns FAILED', detailMismatchRun.status === STATUSES.FAILED && /differs from both/i.test(detailMismatchRun.safeErrorMessage));
     assert('detail-table mismatch does not export', !detailMismatchClient.calls.some((call) => call[0] === 'requestDetailExport'));
+
+    console.log('\nTEST 2E: externally owned Hue session is reused without re-authentication or close');
+    const sharedClient = makePortalClient({ sourcePath: validFixture, total: 2 });
+    sharedClient.isAuthenticated = async () => {
+        sharedClient.calls.push(['isAuthenticated']);
+        return true;
+    };
+    sharedClient.close = async () => {
+        sharedClient.calls.push(['close']);
+    };
+    const privateClient = {
+        calls: [],
+        async authenticate() {
+            privateClient.calls.push(['authenticate']);
+            throw new Error('private client should not authenticate when shared session is supplied');
+        }
+    };
+    const sharedSessionService = new DkclHueF13SyncService({
+        portalClient: privateClient,
+        config: { enabled: true, rawDownloadDir: tmpDir, importCompletionTimeoutMs: 3000 }
+    });
+    const sharedSessionStart = await sharedSessionService.start(sharedSessionDate, {
+        requireExistingSession: true,
+        portalClient: sharedClient
+    });
+    const sharedSessionRun = await waitForRun(sharedSessionService, sharedSessionStart.run.runId);
+    const sharedRows = await get('SELECT COUNT(*) AS c, COUNT(DISTINCT ma_bg) AS d FROM fact_f13 WHERE ngay_do_kiem = ?', [sharedSessionDate]);
+    assert('shared session run reaches SUCCESS', sharedSessionRun.status === STATUSES.SUCCESS, sharedSessionRun.safeErrorMessage);
+    assert('shared session imported rows idempotently', sharedRows.c === 2 && sharedRows.d === 2, JSON.stringify(sharedRows));
+    assert('private portal client is not used', privateClient.calls.length === 0, JSON.stringify(privateClient.calls));
+    assert('shared client is verified and reused for report actions', sharedClient.calls.some((call) => call[0] === 'isAuthenticated') && sharedClient.calls.some((call) => call[0] === 'openF13Report'));
+    assert('shared session lifecycle remains owned by registry', !sharedClient.calls.some((call) => call[0] === 'authenticate' || call[0] === 'close'), JSON.stringify(sharedClient.calls));
+
+    console.log('\nTEST 2F: expired externally owned Hue session returns authentication required');
+    const expiredSharedClient = {
+        calls: [],
+        async isAuthenticated() {
+            this.calls.push(['isAuthenticated']);
+            return false;
+        },
+        async authenticate() {
+            this.calls.push(['authenticate']);
+        },
+        async openF13Report() {
+            this.calls.push(['openF13Report']);
+        },
+        async close() {
+            this.calls.push(['close']);
+        }
+    };
+    const expiredSharedService = new DkclHueF13SyncService({
+        portalClient: privateClient,
+        config: { enabled: true, rawDownloadDir: tmpDir, importCompletionTimeoutMs: 3000 }
+    });
+    const expiredSharedStart = await expiredSharedService.start(expiredSharedSessionDate, {
+        requireExistingSession: true,
+        portalClient: expiredSharedClient
+    });
+    const expiredSharedRun = await waitForRun(expiredSharedService, expiredSharedStart.run.runId);
+    assert('expired shared session returns AUTHENTICATION_REQUIRED', expiredSharedRun.status === STATUSES.AUTHENTICATION_REQUIRED, expiredSharedRun.safeErrorMessage);
+    assert('expired shared session is not reauthenticated or closed by sync service', expiredSharedClient.calls.map((call) => call[0]).join('|') === 'isAuthenticated', JSON.stringify(expiredSharedClient.calls));
 
     console.log('\nTEST 3: existing completed date returns ALREADY_COMPLETED without portal access');
     const existingFile = pathIn(BASE_PROCESSED, standardizedFilename(existingDate));
