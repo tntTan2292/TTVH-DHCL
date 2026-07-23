@@ -151,7 +151,7 @@ class DkclHueF13SyncService {
         }
 
         const completed = await this.checkCompleted(normalizedDate);
-        if (completed.complete) {
+        if (completed.complete && !options?.forceReimport) {
             const run = this.createRun(normalizedDate);
             this.updateRun(run, {
                 status: STATUSES.ALREADY_COMPLETED,
@@ -383,7 +383,7 @@ class DkclHueF13SyncService {
 
             const importResult = await this.executeImport({
                 filePath: incomingPath,
-                forceReimport: false,
+                forceReimport: Boolean(options?.forceReimport),
                 source: 'DKCL_HUE_SYNC'
             });
 
@@ -525,7 +525,7 @@ class DkclHueF13SyncService {
 
             if (
                 this.fs.existsSync(processedPath) &&
-                successLogs.length === 1 &&
+                successLogs.length >= 1 &&
                 rowCount === expectedRows &&
                 distinctCount === expectedRows
             ) {

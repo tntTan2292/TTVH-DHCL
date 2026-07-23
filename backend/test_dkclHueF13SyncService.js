@@ -285,8 +285,9 @@ async function runTests() {
     const summaryAuthoritativeDate = '2098-02-14';
     const sharedSessionDate = '2098-02-16';
     const expiredSharedSessionDate = '2098-02-17';
+    const refreshCompletedDate = '2098-02-18';
 
-    for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, sharedSessionDate, expiredSharedSessionDate]) {
+    for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, sharedSessionDate, expiredSharedSessionDate, refreshCompletedDate]) {
         await cleanupDate(date);
     }
 
@@ -422,6 +423,33 @@ async function runTests() {
     const expiredSharedRun = await waitForRun(expiredSharedService, expiredSharedStart.run.runId);
     assert('expired shared session returns AUTHENTICATION_REQUIRED', expiredSharedRun.status === STATUSES.AUTHENTICATION_REQUIRED, expiredSharedRun.safeErrorMessage);
     assert('expired shared session is not reauthenticated or closed by sync service', expiredSharedClient.calls.map((call) => call[0]).join('|') === 'isAuthenticated', JSON.stringify(expiredSharedClient.calls));
+
+    console.log('\nTEST 2G: completed Hue date can be force re-imported without duplicates');
+    const refreshExistingFile = pathIn(BASE_PROCESSED, standardizedFilename(refreshCompletedDate));
+    ensureDir(path.dirname(refreshExistingFile));
+    fs.writeFileSync(refreshExistingFile, buildWorkbook(1));
+    await run(
+        `INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+         VALUES (?, ?, 'SUCCESS', 1, 0, 0)`,
+        [standardizedFilename(refreshCompletedDate), refreshCompletedDate]
+    );
+    await run(
+        `INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh, ten_bcvh, danh_gia_2026)
+         VALUES (?, 'AUTO002_OLD', '533140', 'BCVH TEST', 'Không đạt')`,
+        [refreshCompletedDate]
+    );
+    const refreshCompletedClient = makePortalClient({ sourcePath: validFixture, total: 2 });
+    const refreshCompletedService = new DkclHueF13SyncService({
+        portalClient: refreshCompletedClient,
+        config: { enabled: true, rawDownloadDir: tmpDir, importCompletionTimeoutMs: 3000 }
+    });
+    const refreshCompletedStart = await refreshCompletedService.start(refreshCompletedDate, { forceReimport: true });
+    const refreshCompletedRun = await waitForRun(refreshCompletedService, refreshCompletedStart.run.runId);
+    const refreshCompletedRows = await get('SELECT COUNT(*) AS c, COUNT(DISTINCT ma_bg) AS d FROM fact_f13 WHERE ngay_do_kiem = ?', [refreshCompletedDate]);
+    const oldRow = await get('SELECT COUNT(*) AS c FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bg = ?', [refreshCompletedDate, 'AUTO002_OLD']);
+    assert('force re-import of completed date reaches SUCCESS', refreshCompletedRun.status === STATUSES.SUCCESS, refreshCompletedRun.safeErrorMessage);
+    assert('force re-import replaces previous date rows without duplicates', refreshCompletedRows.c === 2 && refreshCompletedRows.d === 2 && oldRow.c === 0, JSON.stringify({ refreshCompletedRows, oldRow }));
+    assert('force re-import does not return already completed', refreshCompletedStart.status !== STATUSES.ALREADY_COMPLETED);
 
     console.log('\nTEST 3: existing completed date returns ALREADY_COMPLETED without portal access');
     const existingFile = pathIn(BASE_PROCESSED, standardizedFilename(existingDate));

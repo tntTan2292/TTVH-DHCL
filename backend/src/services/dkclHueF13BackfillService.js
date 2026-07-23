@@ -235,7 +235,7 @@ class DkclHueF13BackfillService {
                 error.code = 'DATE_ALREADY_IN_ACTIVE_QUEUE';
                 throw error;
             }
-            items.push(this.createQueueItem(date));
+            items.push(this.createQueueItem(date, { refreshRequested }));
         }
         const portalClient = await this.validateAuthenticationBeforeQueue();
 
@@ -386,9 +386,10 @@ class DkclHueF13BackfillService {
         return `hue-f13-backfill-${this.clock().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${String(this.queueSequence).padStart(4, '0')}`;
     }
 
-    createQueueItem(measurementDate) {
+    createQueueItem(measurementDate, options = {}) {
         return {
             measurementDate,
+            refreshRequested: Boolean(options.refreshRequested),
             status: 'QUEUED',
             runId: null,
             startTime: null,
@@ -460,6 +461,7 @@ class DkclHueF13BackfillService {
 
         const result = await this.syncService.start(item.measurementDate, {
             requireExistingSession: true,
+            forceReimport: item.refreshRequested,
             portalClient: queue.portalClient || this.sessionPreflightService.getInteractiveClient?.('HUE') || null
         });
         const run = result?.run || null;

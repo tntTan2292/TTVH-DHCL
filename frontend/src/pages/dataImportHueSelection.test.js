@@ -230,6 +230,12 @@ assert.match(
   'Button label must show Update with count when missing dates are selected'
 );
 
+assert.match(
+  src,
+  /api\.post\('\/import\/dkcl\/hue\/f13\/backfill-queue',\s*\{\s*dates: selectedDates,\s*refresh_dates: refreshDates\s*\}\)/,
+  'Hue queue submit must send selected COMPLETE dates in refresh_dates'
+);
+
 const nonResetFunctionPatterns = [
   /const preflightHueSession = useCallback\(async \(\) => \{[\s\S]*?\n  \}, \[\]\);/,
   /const fetchStatus = useCallback\(async \(\{[\s\S]*?\n  \}, \[page, pageSize\]\);/,

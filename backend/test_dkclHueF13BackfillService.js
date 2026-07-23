@@ -169,7 +169,7 @@ async function runTests() {
                 sequentialOptions.push(['validateAuthentication', options?.requireExistingSession]);
             },
             async start(date, options) {
-                sequentialOptions.push(['start', date, options?.requireExistingSession, options?.portalClient === sequentialPortalClient]);
+                sequentialOptions.push(['start', date, options?.requireExistingSession, options?.forceReimport, options?.portalClient === sequentialPortalClient]);
                 sequentialEvents.push(['start', date]);
                 const run = {
                     runId: `run-${date}`,
@@ -194,10 +194,48 @@ async function runTests() {
     assert('queue sorts selected dates ascending', sequentialDone.items.map((item) => item.measurementDate).join(',') === '2026-07-20,2026-07-21');
     assert('second date starts after first finishes', sequentialEvents.map((event) => event.join(':')).join('|') === 'start:2026-07-20|finish:2026-07-20|start:2026-07-21|finish:2026-07-21', JSON.stringify(sequentialEvents));
     assert('queue reaches SUCCESS', sequentialDone.status === 'SUCCESS');
-    assert('queue preflights HUE once and passes the registered client to workers', sequentialOptions.map((event) => event.join(':')).join('|') === 'preflight:HUE|getInteractiveClient:HUE|start:2026-07-20:true:true|start:2026-07-21:true:true', JSON.stringify(sequentialOptions));
+    assert('queue preflights HUE once and passes the registered client to workers', sequentialOptions.map((event) => event.join(':')).join('|') === 'preflight:HUE|getInteractiveClient:HUE|start:2026-07-20:true:false:true|start:2026-07-21:true:false:true', JSON.stringify(sequentialOptions));
     assert('evidence includes run, export, workbook, DB and logs', sequentialDone.items[0].evidence.run_id === 'run-2026-07-20' && sequentialDone.items[0].evidence.exported_filename === 'export-2026-07-20.xlsx' && sequentialDone.items[0].evidence.workbook_row_count === 5 && sequentialDone.items[0].evidence.imported_database_row_count === 5 && sequentialDone.items[0].evidence.distinct_shipment_count === 5 && sequentialDone.items[0].evidence.success_log_count === 1);
     assert('queue status progress summarizes items', sequentialDone.progress.total === 2 && sequentialDone.progress.success === 2 && sequentialDone.progress.completed === 2);
     assert('restart limitation is exposed', /in memory/i.test(sequentialDone.restartNotice));
+
+    console.log('\nTEST 5B: COMPLETE refresh dates run as controlled re-import');
+    const refreshOptions = [];
+    const refreshRuns = new Map();
+    const refreshClient = { marker: 'refresh-hue-client' };
+    const refreshService = new DkclHueF13BackfillService({
+        pollIntervalMs: 1,
+        sessionPreflightService: {
+            async preflight() { return { status: 'SESSION_VALID' }; },
+            getInteractiveClient() { return refreshClient; }
+        },
+        syncService: {
+            db: makeEvidenceDb({ '2026-07-21': 2581, '2026-07-22': 3508 }),
+            async checkCompleted(date) {
+                if (date === '2026-07-21') return { complete: true, rowCount: 2581, distinctCount: 2581, processedPath: 'done.xlsx' };
+                return { complete: false, inconsistent: false };
+            },
+            async start(date, options) {
+                refreshOptions.push([date, options?.forceReimport, options?.portalClient === refreshClient]);
+                const run = {
+                    runId: `refresh-${date}`,
+                    status: 'SUCCESS',
+                    generatedPortalFilename: `refresh-${date}.xlsx`,
+                    workbookRowCount: date === '2026-07-21' ? 2581 : 3508,
+                    importedCount: date === '2026-07-21' ? 2581 : 3508
+                };
+                refreshRuns.set(run.runId, run);
+                return { accepted: true, status: 'QUEUED', run };
+            },
+            getRun(runId) { return refreshRuns.get(runId); }
+        }
+    });
+    const refreshQueue = await refreshService.startQueue(['2026-07-21', '2026-07-22'], ['2026-07-21']);
+    await waitForQueue(refreshService, refreshQueue.queueId);
+    const refreshDone = refreshService.getQueue(refreshQueue.queueId);
+    assert('mixed Update/Re-Update queue succeeds', refreshDone.status === 'SUCCESS');
+    assert('COMPLETE date is marked refresh and MISSING date is normal update', refreshDone.items.map((item) => `${item.measurementDate}:${item.refreshRequested}`).join('|') === '2026-07-21:true|2026-07-22:false', JSON.stringify(refreshDone.items));
+    assert('worker passes forceReimport only for COMPLETE refresh date', refreshOptions.map((event) => event.join(':')).join('|') === '2026-07-21:true:true|2026-07-22:false:true', JSON.stringify(refreshOptions));
 
     console.log('\nTEST 6: duplicate and completed dates are rejected');
     let duplicateCode = null;
