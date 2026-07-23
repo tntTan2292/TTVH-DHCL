@@ -43,7 +43,7 @@
 - AUTO-IMPORT-003: `Completed / PO PASS`
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
-- AUTO-IMPORT-006: `Active / PO Recheck`
+- AUTO-IMPORT-006: `ACTIVE / PO RECHECK`; Technical Status `PASS`; Runtime Status `AWAITING PO RECHECK`; PO Product Status `NOT READY`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -99,10 +99,14 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `None` |
-| Current Commit | `See remote branch HEAD` |
-| Current Phase | `Auto Import / Smart Leadership Dashboard Implementation` |
-| Next Milestone | `TBD by Product Owner` |
+| Current Ticket | `AUTO-IMPORT-006` |
+| Current Commit | `220123d7defa040d340d39750b37b6cba3950301` |
+| Current Phase | `REMEDIATION-003 / PO RECHECK` |
+| Last Reviewed Phase | `R2.2` |
+| Last Reviewed Commit | `220123d7defa040d340d39750b37b6cba3950301` |
+| Phase Review Status | `REVIEW PASS` |
+| Next Phase Authorization | `PO RUNTIME RECHECK GRANTED` |
+| Next Milestone | `PO runtime recheck` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `NOT READY` |
 
@@ -201,8 +205,22 @@
 ## AUTO-IMPORT-006 Unified DKCL Authentication Lifecycle Recovery Status
 
 - Ticket status: `ACTIVE / PO RECHECK`.
+- Technical Status: `PASS`.
+- Runtime Status: `AWAITING PO RECHECK`.
+- PO UI Check Required: `Yes`.
+- PO Product Status: `NOT READY`.
+- Current Phase: `REMEDIATION-003 / PO RECHECK`.
+- Last Reviewed Phase: `R2.2`.
+- Last Reviewed Commit: `220123d7defa040d340d39750b37b6cba3950301`.
+- Phase Review Status: `REVIEW PASS`.
+- Next Phase Authorization: `PO RUNTIME RECHECK GRANTED`.
 - Primary executor: `Antigravity`.
 - Scope: separate HUE login trigger, block automatic interactive login in HUE queue check, resolve TCT interactive client factory configuration omission, CDP best-effort minimize, and browser manual closed listener/Registry.
 - Technical evidence: all unit tests passed for sync and backfill service components, oxlint passed with zero errors, production bundle built successfully.
 - Remediation 001: Resolved initialization crash on `/import` due to lexical declaration order of `preflightHueSession` and `preflightTctSession`. Added frontend source-contract test validation.
 - Remediation 002: Implemented responsive layout, restored Re-Update for complete dates (HUE/TCT), and cleaned up duplicate TCT login buttons. Phase changes were not separated atomically (see Checkpoint 004). PO runtime verification has not yet been performed.
+- Remediation 003 / R2.1 Remediation A: initial attempt `7ac4fb3` was `REVIEW FAIL`; actual root cause was stale local backend returning `selectable:false`; follow-up commit `3e3309bf959582c681f4a81f319f7128fcde7f87` wired production to shared Hue selection helpers; runtime DOM smoke confirmed checkbox selection and `Re-Update (1)`; no portal login or submission was performed.
+- Remediation 003 / R2.2 TCT Login Lifecycle: root cause was preflight collapsing an in-progress interactive session into expired/auth-required handling; commit `220123d7defa040d340d39750b37b6cba3950301` adds `LOGIN_IN_PROGRESS`; controller maps it to HTTP `202`; polling preserves the client; duplicate auth uses one `openingPromise`; frontend disables the button and displays `Đang mở đăng nhập...`; code review passed; stable headed-browser behavior remains pending PO runtime verification.
+- PO runtime recheck is authorized and pending. HUE must verify current-HEAD backend restart, hard refresh at `localhost:5178/import`, one `COMPLETE` date checkbox staying checked, `Re-Update (1)`, login through `Mở đăng nhập Huế`, one controlled Re-Update submission, and queue/result without duplicates.
+- TCT must verify `Mở đăng nhập TCT`, one headed browser, no repeated flash/close/reopen, UI text `Đang mở đăng nhập...`, manual login, browser minimize after successful login, `SESSION_VALID`, one controlled `COMPLETE` date Re-Update, authentication-required after manually closing the browser, and no impact to HUE state.
+- Responsive recheck must verify 100% zoom, visible and usable controls, and no page-level clipping.
