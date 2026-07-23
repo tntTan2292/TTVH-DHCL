@@ -135,6 +135,9 @@ class BrowserProcessManager {
     }
 
     async getDescendantProcessIds(rootPids) {
+        if (typeof this.nativeWindows.getDescendantProcessIds === 'function') {
+            return this.nativeWindows.getDescendantProcessIds(rootPids);
+        }
         const roots = new Set((rootPids || []).map((pid) => Number(pid)).filter(Number.isFinite));
         if (roots.size === 0 || process.platform !== 'win32') return Array.from(roots);
 
@@ -185,51 +188,111 @@ class BrowserProcessManager {
         }
     }
 
-    async setBrowserWindowsVisibleByProfile(profileDir, visible) {
-        const inspection = await this.findBrowserProcessByProfile(profileDir);
-        if (inspection.inspectionStatus !== 'SUCCESS' || inspection.matchingProcesses.length === 0) {
-            return {
-                success: false,
-                action: visible ? 'SHOW' : 'HIDE',
-                profileDir,
-                inspection,
-                errorCode: inspection.errorCode || inspection.inspectionStatus
-            };
-        }
-        const rootPids = inspection.matchingProcesses.map((proc) => proc.pid);
-        const processIds = await this.getDescendantProcessIds(rootPids);
+    async setBrowserWindowsVisibleByProfile(profileDir, visible, maxRetries = 10, retryDelayMs = 500) {
         const normalizedProfileDir = path.resolve(profileDir).toLowerCase();
-        const options = visible && this.hiddenHwndsByProfile.has(normalizedProfileDir)
-            ? { hwndAllowList: this.hiddenHwndsByProfile.get(normalizedProfileDir) }
-            : {};
-        let result;
-        try {
-            result = await this.nativeWindows.setWindowsVisibleForProcessIds(processIds, visible, options);
-        } catch (error) {
-            result = {
-                success: false,
-                action: visible ? 'SHOW' : 'HIDE',
-                matchedWindowCount: 0,
-                affectedWindowCount: 0,
-                errorCode: 'NATIVE_WINDOW_FFI_FAILED'
-            };
+        let attempts = 0;
+        let lastResult = null;
+
+        while (attempts < maxRetries) {
+            attempts++;
+            const inspection = await this.findBrowserProcessByProfile(profileDir);
+            
+            if (inspection.inspectionStatus !== 'SUCCESS' || inspection.matchingProcesses.length === 0) {
+                lastResult = {
+                    success: false,
+                    action: visible ? 'SHOW' : 'HIDE',
+                    profileDir,
+                    inspection,
+                    errorCode: inspection.errorCode || inspection.inspectionStatus,
+                    status: 'VERIFYING',
+                    attempts
+                };
+                await new Promise(r => setTimeout(r, retryDelayMs));
+                continue;
+            }
+
+            const rootPids = inspection.matchingProcesses.map((proc) => proc.pid);
+            const processIds = await this.getDescendantProcessIds(rootPids);
+            
+            const options = visible && this.hiddenHwndsByProfile.has(normalizedProfileDir)
+                ? { hwndAllowList: this.hiddenHwndsByProfile.get(normalizedProfileDir) }
+                : {};
+                
+            let result;
+            try {
+                result = await this.nativeWindows.setWindowsVisibleForProcessIds(processIds, visible, options);
+            } catch (error) {
+                result = {
+                    success: false,
+                    action: visible ? 'SHOW' : 'HIDE',
+                    matchedWindowCount: 0,
+                    affectedWindowCount: 0,
+                    errorCode: 'NATIVE_WINDOW_FFI_FAILED'
+                };
+            }
+
+            if (!visible) {
+                if (result.matchedWindowCount > 0 && result.success) {
+                    const hiddenHwnds = (result.windows || [])
+                        .filter((win) => win.wasVisible && !win.isVisible)
+                        .map((win) => win.hwnd);
+                    if (hiddenHwnds.length > 0) this.hiddenHwndsByProfile.set(normalizedProfileDir, hiddenHwnds);
+                    
+                    return {
+                        ...result,
+                        profileDir,
+                        rootPids,
+                        processIds,
+                        inspection,
+                        status: 'SUCCESS',
+                        attempts
+                    };
+                } else {
+                    lastResult = {
+                        ...result,
+                        profileDir,
+                        rootPids,
+                        processIds,
+                        inspection,
+                        status: 'VERIFYING',
+                        attempts
+                    };
+                    await new Promise(r => setTimeout(r, retryDelayMs));
+                    continue;
+                }
+            } else {
+                if (result.success || result.matchedWindowCount > 0) {
+                    this.hiddenHwndsByProfile.delete(normalizedProfileDir);
+                    return {
+                        ...result,
+                        profileDir,
+                        rootPids,
+                        processIds,
+                        inspection,
+                        status: 'SUCCESS',
+                        attempts
+                    };
+                } else {
+                    lastResult = {
+                        ...result,
+                        profileDir,
+                        rootPids,
+                        processIds,
+                        inspection,
+                        status: 'VERIFYING',
+                        attempts
+                    };
+                    await new Promise(r => setTimeout(r, retryDelayMs));
+                    continue;
+                }
+            }
         }
-        if (!visible && result?.success) {
-            const hiddenHwnds = (result.windows || [])
-                .filter((win) => win.wasVisible && !win.isVisible)
-                .map((win) => win.hwnd);
-            if (hiddenHwnds.length > 0) this.hiddenHwndsByProfile.set(normalizedProfileDir, hiddenHwnds);
+        
+        if (lastResult) {
+            lastResult.status = 'FAILED';
+            lastResult.errorCode = 'MAX_RETRIES_EXCEEDED';
         }
-        if (visible && result?.success) {
-            this.hiddenHwndsByProfile.delete(normalizedProfileDir);
-        }
-        return {
-            ...result,
-            profileDir,
-            rootPids,
-            processIds,
-            inspection
-        };
+        return lastResult;
     }
 
     async hideBrowserWindowsByProfile(profileDir) {

@@ -137,3 +137,16 @@ Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md`
 - Restore is scoped to HWNDs previously hidden by this profile manager to avoid showing hidden utility windows.
 - Technical status: `PASS`.
 - Runtime PO validation remains pending; ticket cannot be completed without explicit PO PASS.
+
+STATUS: IMPLEMENTED – AWAITING PO RUNTIME VALIDATION
+TECHNICAL TESTS: PASS
+PO RUNTIME PASS: NO
+REASON: Existing HUE/TCT sessions prevent reproduction of the first-login hide flow.
+REOPEN TRIGGER: HUE or TCT requires login again.
+RECHECK:
+- HUE 5/5 hide cycles;
+- TCT 5/5 hide cycles;
+- absent from desktop and taskbar;
+- one browser only;
+- process/profile/session remain alive;
+- no transient process-verification warning.

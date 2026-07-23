@@ -79,14 +79,10 @@ async function runTests() {
 
     console.log('--- TEST 5: descendant process tree includes browser children ---');
     const treeMgr = new BrowserProcessManager({
-        execAsync: async () => ({
-            stdout: JSON.stringify([
-                { ProcessId: 100, ParentProcessId: 1 },
-                { ProcessId: 110, ParentProcessId: 100 },
-                { ProcessId: 111, ParentProcessId: 110 },
-                { ProcessId: 200, ParentProcessId: 1 }
-            ])
-        })
+        nativeWindows: {
+            getDescendantProcessIds: async () => [100, 110, 111]
+        },
+        execAsync: async () => ({})
     });
     const descendants = await treeMgr.getDescendantProcessIds([100]);
     assert.deepStrictEqual(descendants.sort((a, b) => a - b), [100, 110, 111]);
