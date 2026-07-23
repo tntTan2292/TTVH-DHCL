@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [earliestDate, setEarliestDate] = useState(null);
   const [kpiState, setKpiState] = useState({ loading: true, error: null, data: null });
   const [trendState, setTrendState] = useState({ loading: true, error: null, data: [] });
+  const [trendMode, setTrendMode] = useState('30-days');
   const [metadataState, setMetadataState] = useState({
     status: 'loading',
     bcvhOptions: [],
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   const kpiRequestSeqRef = useRef(0);
   const kpiActiveKeyRef = useRef('');
   const trendRequestSeqRef = useRef(0);
+  const trendActiveKeyRef = useRef('');
 
   const loadDashboardMeta = () => {
     setMetadataState((prev) => ({ ...prev, status: 'loading', error: null }));
@@ -163,12 +165,15 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!dashboardReady) {
       trendRequestSeqRef.current += 1;
+      trendActiveKeyRef.current = '';
       setTrendState({ loading: true, error: null, data: [] });
       return undefined;
     }
 
     const requestSeq = trendRequestSeqRef.current + 1;
     trendRequestSeqRef.current = requestSeq;
+    const requestKey = `${trendMode}|${fromDate}|${toDate}|${latestDate}|${maBcvh}`;
+    trendActiveKeyRef.current = requestKey;
     const controller = new AbortController();
 
     const loadTrend = async () => {
@@ -179,6 +184,7 @@ export default function DashboardPage() {
           reportingToDate: toDate,
           latestDate,
           maBcvh,
+          mode: trendMode,
         });
 
         if (!params) {
@@ -186,7 +192,7 @@ export default function DashboardPage() {
         }
 
         const response = await api.get('/f13/dashboard/daily-trend', { params, signal: controller.signal });
-        if (!controller.signal.aborted && trendRequestSeqRef.current === requestSeq && response?.data?.success) {
+        if (!controller.signal.aborted && trendRequestSeqRef.current === requestSeq && trendActiveKeyRef.current === requestKey && response?.data?.success) {
           setTrendState({
             loading: false,
             error: null,
@@ -194,7 +200,7 @@ export default function DashboardPage() {
           });
         }
       } catch (error) {
-        if (!controller.signal.aborted && trendRequestSeqRef.current === requestSeq) {
+        if (!controller.signal.aborted && trendRequestSeqRef.current === requestSeq && trendActiveKeyRef.current === requestKey) {
           setTrendState({
             loading: false,
             error: error?.message || 'Không thể tải dữ liệu xu hướng.',
@@ -209,7 +215,7 @@ export default function DashboardPage() {
     return () => {
       controller.abort();
     };
-  }, [dashboardReady, fromDate, latestDate, maBcvh, toDate]);
+  }, [dashboardReady, fromDate, latestDate, maBcvh, toDate, trendMode]);
 
   useEffect(() => {
     if (metadataState.status !== 'success') return;
@@ -324,6 +330,8 @@ export default function DashboardPage() {
           toDate={toDate}
           maBcvh={maBcvh}
           kpiData={kpiState.data}
+          mode={trendMode}
+          onModeChange={setTrendMode}
         />
 
         <OperatingPatternTabsCard

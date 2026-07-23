@@ -100,13 +100,28 @@ test('D-1 comparison reports unavailable when previous calendar day is missing',
 
 test('trendline request preserves aggregate and canonical BCVH context for D-1 source data', () => {
   assert.deepEqual(
-    buildTrendlineRequestParams({ reportingFromDate: '2026-07-10', reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: 'all' }),
+    buildTrendlineRequestParams({ reportingFromDate: '2026-07-10', reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: 'all', mode: '7-days' }),
     { from_date: '2026-07-10', to_date: '2026-07-15' },
   );
   assert.deepEqual(
-    buildTrendlineRequestParams({ reportingFromDate: '2026-07-10', reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: '533140' }),
+    buildTrendlineRequestParams({ reportingFromDate: '2026-07-10', reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: '533140', mode: '7-days' }),
     { from_date: '2026-07-10', to_date: '2026-07-15', ma_bcvh: '533140' },
   );
+});
+
+test('30-day mode renders multiple returned daily points instead of selected-day only', () => {
+  const rows = buildIntegratedTrendRows({
+    mode: '30-days',
+    items: [
+      { date: '2026-07-20', total_volume: 50, passed: 40, failed: 10, quality_rate: 80, data_available: true },
+      { date: '2026-07-21', total_volume: 70, passed: 56, failed: 14, quality_rate: 80, data_available: true },
+      { date: '2026-07-22', total_volume: 90, passed: 72, failed: 18, quality_rate: 80, data_available: true },
+    ],
+    toDate: '2026-07-22',
+  });
+
+  assert.deepEqual(rows.map((row) => row.date), ['2026-07-20', '2026-07-21', '2026-07-22']);
+  assert.equal(rows.length, 3);
 });
 
 test('leadership comparison switches between D-1 and D-7 values', () => {

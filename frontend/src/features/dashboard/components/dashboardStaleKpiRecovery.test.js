@@ -62,7 +62,8 @@ test('operation dashboard uses one normalized date range for selected-period wid
   assert.match(dashboardSource, /params\.set\('to_date',\s*range\.toDate\)/);
   assert.match(dashboardSource, /const showWidgets = dashboardReady/);
   assert.match(dashboardSource, /\{showWidgets \? \(/);
-  assert.match(trendWindowSource, /from_date:\s*reportingFromDate/);
+  assert.match(trendWindowSource, /mode !== '30-days'[\s\S]*?from_date:\s*reportingFromDate/);
+  assert.match(trendWindowSource, /trendFromDate[\s\S]*?trendToDate/);
   assert.match(bcvhTableSource, /from_date:\s*fromDate/);
   assert.match(bcvhTableSource, /to_date:\s*toDate/);
   assert.match(actionCenterSource, /params:\s*\{\s*fromDate,\s*toDate\s*\}/);
@@ -80,6 +81,14 @@ test('operation dashboard atomically normalizes stale URL state before widget fe
   assert.equal((dashboardSource.match(/setSearchParams\(params, \{ replace: true \}\);/g) || []).length, 1);
   assert.match(dashboardSource, /if \(!dashboardReady\) \{[\s\S]*?trendRequestSeqRef\.current \+= 1;/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/daily-trend', \{ params, signal: controller\.signal \}\)/);
+  assert.match(dashboardSource, /const \[trendMode,\s*setTrendMode\] = useState\('30-days'\);/);
+  assert.match(dashboardSource, /const trendActiveKeyRef = useRef\(''\);/);
+  assert.match(dashboardSource, /trendActiveKeyRef\.current = requestKey;/);
+  assert.match(dashboardSource, /trendActiveKeyRef\.current === requestKey/);
+  assert.match(dashboardSource, /mode:\s*trendMode/);
+  assert.match(dashboardSource, /\}, \[dashboardReady, fromDate, latestDate, maBcvh, toDate, trendMode\]\);/);
+  assert.match(dashboardSource, /mode=\{trendMode\}/);
+  assert.match(dashboardSource, /onModeChange=\{setTrendMode\}/);
 });
 
 test('legacy dashboard adapters preserve stable filter identity between equivalent renders', () => {

@@ -340,8 +340,9 @@ export default function IntegratedTrendRiskWorkspace({
   toDate,
   maBcvh,
   kpiData,
+  mode = '30-days',
+  onModeChange,
 }) {
-  const [mode, setMode] = useState('30-days');
   const [pulseState, setPulseState] = useState({ loading: true, error: null, pulse: null });
 
   useEffect(() => {
@@ -402,7 +403,7 @@ export default function IntegratedTrendRiskWorkspace({
           type="button"
           role="tab"
           aria-selected={mode === item.id}
-          onClick={() => setMode(item.id)}
+          onClick={() => onModeChange?.(item.id)}
           className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
             mode === item.id
               ? 'bg-[var(--color-primary-600)] text-white'

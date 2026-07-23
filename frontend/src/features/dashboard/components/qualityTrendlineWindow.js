@@ -35,8 +35,8 @@ export function resolveRollingTrendlineWindow({ reportingToDate, latestDate } = 
   };
 }
 
-export function buildTrendlineRequestParams({ reportingFromDate, reportingToDate, latestDate, maBcvh } = {}) {
-  if (isIsoDate(reportingFromDate) && isIsoDate(reportingToDate) && reportingFromDate <= reportingToDate) {
+export function buildTrendlineRequestParams({ reportingFromDate, reportingToDate, latestDate, maBcvh, mode = '30-days' } = {}) {
+  if (mode !== '30-days' && isIsoDate(reportingFromDate) && isIsoDate(reportingToDate) && reportingFromDate <= reportingToDate) {
     const params = {
       from_date: reportingFromDate,
       to_date: reportingToDate,
