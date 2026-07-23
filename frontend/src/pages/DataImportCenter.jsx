@@ -197,9 +197,9 @@ export default function DataImportCenter() {
         setHueSessionError(null);
       }
     } catch (err) {
-      const status = err.response?.data?.data?.status || 'AUTHENTICATION_REQUIRED';
+      const status = err.response?.data?.error?.code || 'AUTHENTICATION_REQUIRED';
       setHueSessionStatus(status);
-      setHueSessionError(err.response?.data?.data?.error?.message || 'Không thể hoàn tất đăng nhập Huế DKCL.');
+      setHueSessionError(err.response?.data?.error?.message || 'Không thể hoàn tất đăng nhập Huế DKCL.');
     } finally {
       setHueSessionLoading(false);
     }
@@ -563,9 +563,9 @@ export default function DataImportCenter() {
         await handleScanTctMissingDates({ sessionReadyOverride: true });
       }
     } catch (err) {
-      const status = err.response?.data?.data?.status || 'AUTHENTICATION_REQUIRED';
+      const status = err.response?.data?.error?.code || 'AUTHENTICATION_REQUIRED';
       setTctSessionStatus(status);
-      setTctSessionError(err.response?.data?.data?.error?.message || 'Không thể hoàn tất đăng nhập TCT DKCL.');
+      setTctSessionError(err.response?.data?.error?.message || 'Không thể hoàn tất đăng nhập TCT DKCL.');
     } finally {
       setTctSessionLoading(false);
     }

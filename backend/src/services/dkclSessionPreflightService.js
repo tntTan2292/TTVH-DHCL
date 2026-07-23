@@ -2,6 +2,7 @@
 
 const path = require('path');
 const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
+const processManager = require('./browserProcessManager');
 
 const PREFLIGHT_STATUSES = Object.freeze({
     SESSION_VALID: 'SESSION_VALID',
@@ -31,8 +32,14 @@ function safeMessage(error, sourceLabel) {
     if (error?.code === 'AUTHENTICATION_REQUIRED') {
         return `Phiên đăng nhập DKCL ${sourceLabel} không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập/cập nhật phiên rồi thử lại.`;
     }
-    if (error?.code === 'PROFILE_LOCKED') {
-        return `Hồ sơ trình duyệt DKCL ${sourceLabel} đang được sử dụng bởi tác vụ khác. Vui lòng chờ tác vụ hiện tại kết thúc.`;
+    if (error?.code === 'PROFILE_LOCKED' || error?.code === 'PROFILE_LOCK_STALE') {
+        return `Hồ sơ trình duyệt DKCL ${sourceLabel} đang được sử dụng bởi tác vụ khác. Hãy đóng đúng cửa sổ trình duyệt đó rồi thử lại.`;
+    }
+    if (error?.code === 'PROFILE_IN_USE_OWNED') {
+        return `Trình duyệt đăng nhập ${sourceLabel} đang chạy. Hệ thống đang kết nối lại, vui lòng chờ.`;
+    }
+    if (error?.code === 'ORPHAN_PROCESS_RECOVERY_FAILED') {
+        return `Không thể khôi phục tiến trình đăng nhập ${sourceLabel}. Vui lòng khởi động lại backend và thử lại.`;
     }
     return `Không thể kiểm tra phiên DKCL ${sourceLabel}. Vui lòng thử lại hoặc mở đăng nhập thủ công nếu cần.`;
 }
@@ -213,6 +220,22 @@ class DkclSessionPreflightService {
             entry.updatedAt = new Date().toISOString();
             
             const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+            
+            // R4.1 Automatic Reconciliation
+            const existingPid = await processManager.findBrowserProcessByProfile(profileDir);
+            if (existingPid) {
+                // Orphaned process unquestionably belongs to this profile. Terminate it to recover.
+                try {
+                    await processManager.terminateProcessTree(existingPid);
+                } catch (err) {
+                    const recErr = new Error('Failed to recover orphaned process');
+                    recErr.code = 'ORPHAN_PROCESS_RECOVERY_FAILED';
+                    throw recErr;
+                }
+            }
+            // Always clean up any stale lock files before launching
+            processManager.cleanupStaleLocks(profileDir);
+
             const client = this.interactiveClientFactory(sourceConfig);
             entry.client = client;
             entry.authenticated = false;
@@ -285,6 +308,46 @@ class DkclSessionPreflightService {
 
     getRegistryState(source) {
         return getOrCreateRegistryEntry(this.normalizeSource(source).source);
+    }
+
+    async recover(source) {
+        const sourceConfig = this.normalizeSource(source);
+        const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+        
+        let terminated = false;
+        const pid = await processManager.findBrowserProcessByProfile(profileDir);
+        
+        if (pid) {
+            await processManager.terminateProcessTree(pid);
+            terminated = true;
+        }
+        
+        processManager.cleanupStaleLocks(profileDir);
+        
+        const entry = getOrCreateRegistryEntry(sourceConfig.source);
+        if (entry.client) {
+            await entry.client.close().catch(() => {});
+        }
+        
+        entry.state = 'NOT_AUTHENTICATED';
+        entry.client = null;
+        entry.openingPromise = null;
+        entry.authenticated = false;
+        entry.backgroundReady = false;
+        entry.minimized = false;
+        entry.lastError = null;
+        entry.updatedAt = new Date().toISOString();
+
+        return {
+            source: sourceConfig.source,
+            status: 'RECOVERED',
+            details: {
+                profile_dir_resolved: profileDir,
+                orphan_process_found: !!pid,
+                terminated_pid: pid || null,
+                registry_cleared: true
+            }
+        };
     }
 }
 

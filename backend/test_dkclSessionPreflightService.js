@@ -1,12 +1,14 @@
 'use strict';
 
-const assert = require('assert');
-const {
-    DkclSessionPreflightService,
-    PREFLIGHT_STATUSES,
-    SOURCE_CONFIG,
-    globalRegistry
-} = require('./src/services/dkclSessionPreflightService');
+const assert = require('assert/strict');
+const path = require('path');
+const { DkclSessionPreflightService, PREFLIGHT_STATUSES, SOURCE_CONFIG, globalRegistry } = require('./src/services/dkclSessionPreflightService');
+const browserProcessManager = require('./src/services/browserProcessManager');
+
+// Mock browserProcessManager for these tests to avoid real OS process calls
+browserProcessManager.findBrowserProcessByProfile = async () => null;
+browserProcessManager.terminateProcessTree = async () => {};
+browserProcessManager.cleanupStaleLocks = () => {};
 
 function makeClient({ authenticateImpl, calls }) {
     return {

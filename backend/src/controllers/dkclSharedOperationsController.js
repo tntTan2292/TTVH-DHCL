@@ -51,6 +51,24 @@ class DkclSharedOperationsController {
         }
     }
 
+    async recover(req, res) {
+        try {
+            const result = await sessionPreflightService.recover(req.body?.source || req.query?.source);
+            return res.status(200).json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: error.code || 'RECOVERY_FAILED',
+                    message: error.message || 'Failed to recover DKCL session.'
+                }
+            });
+        }
+    }
+
     async getTctCoverageSummary(req, res) {
         try {
             const data = await tctBackfillService.getCoverageSummary({
