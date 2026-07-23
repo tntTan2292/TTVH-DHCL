@@ -62,6 +62,36 @@ Validation:
 
 - `node test_importProcessor.js`: `PASS` (`56` passed, `0` failed).
 
+## Controlled Future Data Cleanup
+
+PO authorized cleanup for only the confirmed existing future `fact_f13` rows:
+
+Before cleanup:
+
+- `2098-02-16`: `2` rows, `2` distinct shipments.
+- `2098-02-18`: `2` rows, `2` distinct shipments.
+- Identifying keys deleted:
+  - `id=650039`, `ngay_do_kiem=2098-02-16`, `ma_bg=AUTO002_0001`, `ma_bcvh=533140`, `import_log_id=617`.
+  - `id=650040`, `ngay_do_kiem=2098-02-16`, `ma_bg=AUTO002_0002`, `ma_bcvh=533140`, `import_log_id=617`.
+  - `id=650042`, `ngay_do_kiem=2098-02-18`, `ma_bg=AUTO002_0001`, `ma_bcvh=533140`, `import_log_id=619`.
+  - `id=650043`, `ngay_do_kiem=2098-02-18`, `ma_bg=AUTO002_0002`, `ma_bcvh=533140`, `import_log_id=619`.
+- Pre-cleanup check found no other `fact_f13` rows greater than business date `2026-07-23`.
+
+Cleanup mechanism:
+
+- `BEGIN TRANSACTION`.
+- Precondition: `SELECT COUNT(*) FROM fact_f13 WHERE ngay_do_kiem IN ('2098-02-16', '2098-02-18')` must equal `4`.
+- `DELETE FROM fact_f13 WHERE ngay_do_kiem IN ('2098-02-16', '2098-02-18')`.
+- Confirm `DELETE` changes equals `4`.
+- `COMMIT`.
+
+After cleanup:
+
+- `0` rows remain for `2098-02-16` and `2098-02-18`.
+- No `fact_f13.ngay_do_kiem` remains greater than business date `2026-07-23`.
+- `fact_f13` date coverage is `2026-01-01` to `2026-07-22` across `201` distinct dates.
+- No other dates or tables were deleted.
+
 ## Deferred Runtime Validation
 
 Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required.
