@@ -5,6 +5,7 @@
 - [1. Purpose](#1-purpose)
 - [2. Lean Prompt Rule](#2-lean-prompt-rule)
 - [3. Active-Ticket Delta Prompt Rule](#3-active-ticket-delta-prompt-rule)
+- [Single-defect remediation](#single-defect-remediation)
 - [4. Validation Levels](#4-validation-levels)
 - [5. Mandatory Handoff](#5-mandatory-handoff)
 - [6. Active Manifest Readiness Gate](#6-active-manifest-readiness-gate)
@@ -83,6 +84,23 @@ Required workflow:
 `Khoanh vùng → đọc tối thiểu → xác minh nguyên nhân → sửa đúng chỗ → test đúng phạm vi → dừng.`
 
 The under-250-word default remains mandatory unless a documented exception applies.
+
+## Single-defect remediation
+
+When the Product Owner reports multiple independent defects, each remediation prompt must handle only one independently verifiable defect.
+
+Do not mix frontend, backend, native runtime, or business logic unless evidence proves one shared root cause and the same correction point. Multiple symptoms may be grouped only when that shared root cause is proven.
+
+Choose the executor by defect boundary:
+
+- Codex: logic, backend, frontend, tests, contracts, and documentation.
+- Antigravity: real-machine runtime, browser, process, HWND, and OS integration.
+
+Each executor must report root cause, changed scope, commit, tests, and targeted evidence.
+
+The Product Owner must confirm the current defect `PASS` before the next defect begins. Remaining defects stay recorded in the checkpoint and must not be inserted into an executor prompt already running.
+
+Prefer small delta-only prompts and avoid repeating repository-wide instructions.
 
 ## 4. Validation Levels
 
