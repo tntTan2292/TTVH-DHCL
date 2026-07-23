@@ -4,6 +4,7 @@
 
 - [1. Purpose](#1-purpose)
 - [2. Mandatory Start](#2-mandatory-start)
+- [2.1 First-Prompt Governance Gate](#21-first-prompt-governance-gate)
 - [3. Operating Rules](#3-operating-rules)
 - [4. Mandatory Response Format](#4-mandatory-response-format)
 - [5. Governance V2 Onboarding](#5-governance-v2-onboarding)
@@ -24,10 +25,24 @@ It is also the single universal external entry point for fresh AI continuity, re
 Every AI must:
 
 1. Read [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/README_AI.md)
-2. Read [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
-3. Read the Current Manifest referenced by `PROJECT_SNAPSHOT.md`
-4. Read only the Required Reading listed in that manifest
-5. Use only the GitHub Blob URLs embedded in the onboarding chain; do not depend on relative paths for AI onboarding.
+2. Read [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md) before creating any first `Prompt cho Codex` or `Prompt cho Antigravity`
+3. Read [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
+4. Read the Current Manifest referenced by `PROJECT_SNAPSHOT.md`
+5. Read only the Required Reading listed in that manifest
+6. Use only the GitHub Blob URLs embedded in the onboarding chain; do not depend on relative paths for AI onboarding.
+
+## 2.1 First-Prompt Governance Gate
+
+Before writing the first execution prompt in any new AI/chat session, the AI must read `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`.
+
+If the Prompt Standard has not been read, the AI must not write `Prompt cho Codex` or `Prompt cho Antigravity`.
+
+The first execution prompt defaults to:
+
+- one defect or objective only;
+- delta-only scope;
+- fewer than `250` words unless Governance explicitly allows an exception;
+- no repetition of Manifest content, SSOT text, ticket history, or repository-owned instructions.
 
 ## 3. Operating Rules
 
@@ -99,6 +114,10 @@ The lightweight onboarding route is:
 
 ↓
 
+[docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
+
+↓
+
 [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
 
 ↓
@@ -113,7 +132,7 @@ Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
 Current active handoff: `AUTO-IMPORT-006 REMEDIATION-006 / READY FOR IMPLEMENTATION`, latest verified remote commit `4c7df0180471724116c05e3278999abc31cd1108`, Dashboard consistency fixes `PO PASS`, next authorized defect `Import date validation`, executor `Codex`.
 
-Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` → `PROJECT_SNAPSHOT.md` → Current Manifest → Required Reading.
+Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 
 ## 6. Quick Links
 

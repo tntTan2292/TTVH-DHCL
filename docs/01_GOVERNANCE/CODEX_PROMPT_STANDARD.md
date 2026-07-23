@@ -4,6 +4,7 @@
 
 - [1. Purpose](#1-purpose)
 - [2. Lean Prompt Rule](#2-lean-prompt-rule)
+- [2.1 First-Prompt Governance Gate](#21-first-prompt-governance-gate)
 - [3. Active-Ticket Delta Prompt Rule](#3-active-ticket-delta-prompt-rule)
 - [Single-defect remediation](#single-defect-remediation)
 - [Workspace Hygiene](#workspace-hygiene)
@@ -51,6 +52,16 @@ The prompt must not duplicate:
 The active manifest remains responsible for detailed scope, Required Reading, validation, PO acceptance requirements, documents to update, and next-ticket handoff.
 
 If the ticket named in the generated prompt does not match the Current Ticket in `PROJECT_SNAPSHOT.md`, the executor must stop and report the conflict instead of choosing either ticket by assumption.
+
+## 2.1 First-Prompt Governance Gate
+
+In every new AI/chat session, `README_AI.md` must route the AI to this Prompt Standard before the first execution prompt is written.
+
+Until this Prompt Standard has been read, the AI must not write either `Prompt cho Codex` or `Prompt cho Antigravity`.
+
+The first execution prompt for Codex or Antigravity defaults to one independently verifiable defect or objective, delta-only scope, and fewer than `250` words unless a Governance-approved exception applies.
+
+The first execution prompt must not repeat Manifest content, SSOT text, ticket history, standard workflow instructions, or repository-owned guidance already available through onboarding.
 
 ## 3. Active-Ticket Delta Prompt Rule
 
