@@ -17,7 +17,9 @@
 import assert from 'node:assert/strict';
 import {
   toggleDateSelection,
-  toggleAllDates,
+  clearDateSelection,
+  selectAllImportableDates,
+  selectMissingDates,
   isCheckboxDisabled,
   isSubmitDisabled,
 } from './hueSelectionHelpers.js';
@@ -138,22 +140,36 @@ assert.strictEqual(
 
 // ─── toggleAllDates ───────────────────────────────────────────────────────────
 
-// Select-all: adds all selectable dates and puts COMPLETE ones in refreshDates
+// Missing-only bulk action: selects only selectable MISSING rows and keeps Update mode
 {
   const rows = [
     { measurement_date: '2025-07-01', status: 'COMPLETE', selectable: true },
     { measurement_date: '2025-07-02', status: 'MISSING', selectable: true },
     { measurement_date: '2025-07-03', status: 'COMPLETE', selectable: true },
+    { measurement_date: '2025-07-04', status: 'MANUAL_REVIEW_REQUIRED', selectable: false },
   ];
-  const allDates = rows.map((r) => r.measurement_date);
-  const result = toggleAllDates(false, allDates, rows);
+  const result = selectMissingDates(rows);
+  assert.deepEqual(result.selectedDates, ['2025-07-02'], 'Missing-only bulk action selects only selectable MISSING dates');
+  assert.deepEqual(result.refreshDates, [], 'Missing-only bulk action must not send refreshDates');
+}
+
+// All-importable bulk action: selects selectable MISSING and COMPLETE only
+{
+  const rows = [
+    { measurement_date: '2025-07-01', status: 'COMPLETE', selectable: true },
+    { measurement_date: '2025-07-02', status: 'MISSING', selectable: true },
+    { measurement_date: '2025-07-03', status: 'COMPLETE', selectable: true },
+    { measurement_date: '2025-07-04', status: 'MANUAL_REVIEW_REQUIRED', selectable: false },
+    { measurement_date: '2025-07-05', status: 'INCOMPLETE', selectable: true },
+  ];
+  const result = selectAllImportableDates(rows);
   assert.deepEqual(result.selectedDates, ['2025-07-01', '2025-07-02', '2025-07-03'], 'Select-all adds all selectable dates');
   assert.deepEqual(result.refreshDates, ['2025-07-01', '2025-07-03'], 'Select-all puts only COMPLETE dates in refreshDates');
 }
 
 // Deselect-all: clears both arrays
 {
-  const result = toggleAllDates(true, ['2025-07-01', '2025-07-02'], []);
+  const result = clearDateSelection();
   assert.deepEqual(result.selectedDates, [], 'Deselect-all clears selectedDates');
   assert.deepEqual(result.refreshDates, [], 'Deselect-all clears refreshDates');
 }
@@ -178,8 +194,20 @@ assert.match(
 
 assert.match(
   src,
-  /toggleAllDates\(allSelectableChosen, allSelectableDates, selectableScanRows\)/,
-  'Production select-all must use toggleAllDates helper'
+  /selectMissingDates\(selectableScanRows\)/,
+  'Production missing-only bulk action must use selectMissingDates helper'
+);
+
+assert.match(
+  src,
+  /selectAllImportableDates\(selectableScanRows\)/,
+  'Production all-importable bulk action must use selectAllImportableDates helper'
+);
+
+assert.match(
+  src,
+  /clearDateSelection\(\)/,
+  'Production clear-selection action must use clearDateSelection helper'
 );
 
 assert.doesNotMatch(
@@ -265,6 +293,10 @@ assert.match(
   /api\.post\('\/import\/dkcl\/hue\/f13\/backfill-queue',\s*\{\s*dates: selectedDates,\s*refresh_dates: refreshDates\s*\}\)/,
   'Hue queue submit must send selected COMPLETE dates in refresh_dates'
 );
+
+assert.match(src, /data-testid="hue-select-missing"/, 'Hue missing-only bulk button must be present');
+assert.match(src, /data-testid="hue-select-all-importable"/, 'Hue all-importable bulk button must be present');
+assert.match(src, /data-testid="hue-clear-selection"/, 'Hue clear-selection button must be present');
 
 const nonResetFunctionPatterns = [
   /const preflightHueSession = useCallback\(async \(\) => \{[\s\S]*?\n  \}, \[\]\);/,

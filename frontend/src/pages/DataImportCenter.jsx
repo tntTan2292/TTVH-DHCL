@@ -5,9 +5,11 @@ import api from '../api/client';
 import UploadWidget from '../components/UploadWidget';
 import { buildImportReconciliationContext } from './importDashboardReconciliation';
 import {
+  clearDateSelection,
   isCheckboxDisabled,
   isSubmitDisabled,
-  toggleAllDates,
+  selectAllImportableDates,
+  selectMissingDates,
   toggleDateSelection
 } from './hueSelectionHelpers';
 
@@ -425,29 +427,46 @@ export default function DataImportCenter() {
   };
 
   const selectableScanRows = scanResult?.results?.filter((item) => item.selectable) || [];
-  const allSelectableDates = selectableScanRows.map((item) => item.measurement_date);
-  const allSelectableChosen = allSelectableDates.length > 0 && allSelectableDates.every((date) => selectedDates.includes(date));
+  const missingSelectableRows = selectableScanRows.filter((item) => item.status === 'MISSING');
+  const importableScanRows = selectableScanRows.filter((item) => ['MISSING', 'COMPLETE'].includes(item.status));
   const tctSelectableScanRows = tctScanResult?.results?.filter((item) => item.selectable) || [];
-  const tctAllSelectableDates = tctSelectableScanRows.map((item) => item.measurement_date);
-  const tctAllSelectableChosen = tctAllSelectableDates.length > 0 && tctAllSelectableDates.every((date) => tctSelectedDates.includes(date));
+  const tctMissingSelectableRows = tctSelectableScanRows.filter((item) => item.status === 'MISSING');
+  const tctImportableScanRows = tctSelectableScanRows.filter((item) => ['MISSING', 'COMPLETE'].includes(item.status));
 
-  const toggleAllSelectableDates = () => {
-    const next = toggleAllDates(allSelectableChosen, allSelectableDates, selectableScanRows);
+  const selectHueMissingDates = () => {
+    const next = selectMissingDates(selectableScanRows);
     setSelectedDates(next.selectedDates);
     setRefreshDates(next.refreshDates);
   };
 
-  const toggleAllTctSelectableDates = () => {
-    if (tctAllSelectableChosen) {
-      setTctSelectedDates([]);
-      setTctRefreshDates([]);
-    } else {
-      setTctSelectedDates(tctAllSelectableDates);
-      const completeSelectables = tctSelectableScanRows
-        .filter((item) => item.status === 'COMPLETE')
-        .map((item) => item.measurement_date);
-      setTctRefreshDates(completeSelectables);
-    }
+  const selectAllHueImportableDates = () => {
+    const next = selectAllImportableDates(selectableScanRows);
+    setSelectedDates(next.selectedDates);
+    setRefreshDates(next.refreshDates);
+  };
+
+  const clearHueSelectedDates = () => {
+    const next = clearDateSelection();
+    setSelectedDates(next.selectedDates);
+    setRefreshDates(next.refreshDates);
+  };
+
+  const selectTctMissingDates = () => {
+    const next = selectMissingDates(tctSelectableScanRows);
+    setTctSelectedDates(next.selectedDates);
+    setTctRefreshDates(next.refreshDates);
+  };
+
+  const selectAllTctImportableDates = () => {
+    const next = selectAllImportableDates(tctSelectableScanRows);
+    setTctSelectedDates(next.selectedDates);
+    setTctRefreshDates(next.refreshDates);
+  };
+
+  const clearTctSelectedDates = () => {
+    const next = clearDateSelection();
+    setTctSelectedDates(next.selectedDates);
+    setTctRefreshDates(next.refreshDates);
   };
 
   const queueIsActive = queue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(queue.status);
@@ -830,11 +849,30 @@ export default function DataImportCenter() {
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-3">
               <button
                 type="button"
-                onClick={toggleAllTctSelectableDates}
-                disabled={tctAllSelectableDates.length === 0}
+                onClick={selectTctMissingDates}
+                disabled={tctMissingSelectableRows.length === 0}
+                data-testid="tct-select-missing"
                 className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
               >
-                {tctAllSelectableChosen ? 'Bỏ chọn tất cả' : 'Chọn tất cả ngày có thể xử lý'}
+                Chọn tất cả chưa Import
+              </button>
+              <button
+                type="button"
+                onClick={selectAllTctImportableDates}
+                disabled={tctImportableScanRows.length === 0}
+                data-testid="tct-select-all-importable"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              >
+                Chọn tất cả
+              </button>
+              <button
+                type="button"
+                onClick={clearTctSelectedDates}
+                disabled={tctSelectedDates.length === 0}
+                data-testid="tct-clear-selection"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              >
+                Bỏ chọn tất cả
               </button>
               <button
                 type="button"
@@ -1177,11 +1215,30 @@ export default function DataImportCenter() {
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-3">
               <button
                 type="button"
-                onClick={toggleAllSelectableDates}
-                disabled={allSelectableDates.length === 0}
+                onClick={selectHueMissingDates}
+                disabled={missingSelectableRows.length === 0}
+                data-testid="hue-select-missing"
                 className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
               >
-                {allSelectableChosen ? 'Bỏ chọn tất cả' : 'Chọn tất cả ngày có thể xử lý'}
+                Chọn tất cả chưa Import
+              </button>
+              <button
+                type="button"
+                onClick={selectAllHueImportableDates}
+                disabled={importableScanRows.length === 0}
+                data-testid="hue-select-all-importable"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              >
+                Chọn tất cả
+              </button>
+              <button
+                type="button"
+                onClick={clearHueSelectedDates}
+                disabled={selectedDates.length === 0}
+                data-testid="hue-clear-selection"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              >
+                Bỏ chọn tất cả
               </button>
               <button
                 type="button"

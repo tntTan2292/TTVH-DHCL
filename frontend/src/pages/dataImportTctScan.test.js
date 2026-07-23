@@ -48,6 +48,19 @@ assert.match(
   /refresh_dates: tctRefreshDates\.filter\(\(date\) => allowedDates\.includes\(date\)\)/,
   'TCT Update must submit explicit operator-selected COMPLETE refresh dates'
 );
+assert.match(
+  pageSource,
+  /selectMissingDates\(tctSelectableScanRows\)/,
+  'TCT missing-only bulk action must use shared missing-date selection helper'
+);
+assert.match(
+  pageSource,
+  /selectAllImportableDates\(tctSelectableScanRows\)/,
+  'TCT select-all bulk action must include COMPLETE refresh dates through shared helper'
+);
+assert.match(pageSource, /data-testid="tct-select-missing"/, 'TCT missing-only bulk button must be present');
+assert.match(pageSource, /data-testid="tct-select-all-importable"/, 'TCT all-importable bulk button must be present');
+assert.match(pageSource, /data-testid="tct-clear-selection"/, 'TCT clear-selection button must be present');
 assert.doesNotMatch(
   pageSource,
   /new Set\(tctScanResult\?\.missing_dates/,

@@ -38,24 +38,41 @@ export function toggleDateSelection(currentSelected, currentRefresh, date, statu
 }
 
 /**
- * Toggle all selectable dates (select-all / deselect-all behaviour).
+ * Select only MISSING rows eligible for normal Update.
  *
- * @param {boolean}  allChosen          - whether all selectable dates are already chosen
- * @param {string[]} allSelectableDates  - dates with selectable=true
- * @param {object[]} selectableScanRows  - scan result rows with selectable=true
+ * @param {object[]} rows - scan result rows
  * @returns {{ selectedDates: string[], refreshDates: string[] }}
  */
-export function toggleAllDates(allChosen, allSelectableDates, selectableScanRows) {
-  if (allChosen) {
-    return { selectedDates: [], refreshDates: [] };
-  }
-  const completeSelectables = selectableScanRows
-    .filter((item) => item.status === 'COMPLETE')
-    .map((item) => item.measurement_date);
+export function selectMissingDates(rows) {
   return {
-    selectedDates: allSelectableDates,
-    refreshDates: completeSelectables,
+    selectedDates: rows
+      .filter((item) => item.selectable && item.status === 'MISSING')
+      .map((item) => item.measurement_date)
+      .sort(),
+    refreshDates: [],
   };
+}
+
+/**
+ * Select all importable MISSING and COMPLETE rows.
+ * COMPLETE rows are tracked as refresh dates for controlled Re-Update.
+ *
+ * @param {object[]} rows - scan result rows
+ * @returns {{ selectedDates: string[], refreshDates: string[] }}
+ */
+export function selectAllImportableDates(rows) {
+  const importableRows = rows.filter((item) => item.selectable && ['MISSING', 'COMPLETE'].includes(item.status));
+  return {
+    selectedDates: importableRows.map((item) => item.measurement_date).sort(),
+    refreshDates: importableRows
+      .filter((item) => item.status === 'COMPLETE')
+      .map((item) => item.measurement_date)
+      .sort(),
+  };
+}
+
+export function clearDateSelection() {
+  return { selectedDates: [], refreshDates: [] };
 }
 
 /**
