@@ -32,11 +32,14 @@ function safeMessage(error, sourceLabel) {
     if (error?.code === 'AUTHENTICATION_REQUIRED') {
         return `Phiên đăng nhập DKCL ${sourceLabel} không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập/cập nhật phiên rồi thử lại.`;
     }
-    if (error?.code === 'PROFILE_LOCKED' || error?.code === 'PROFILE_LOCK_STALE') {
-        return `Hồ sơ trình duyệt DKCL ${sourceLabel} đang được sử dụng bởi tác vụ khác. Hãy đóng đúng cửa sổ trình duyệt đó rồi thử lại.`;
+    if (error?.code === 'PROFILE_OWNERSHIP_UNVERIFIED' || error?.code === 'PROFILE_LOCKED' || error?.code === 'PROFILE_LOCK_STALE') {
+        return `Không thể xác minh tiến trình đang sử dụng hồ sơ trình duyệt ${sourceLabel}. Hãy đóng đúng cửa sổ DKCL đang mở hoặc khởi động lại backend rồi thử lại.`;
+    }
+    if (error?.code === 'PROCESS_INSPECTION_UNAVAILABLE') {
+        return `Không thể kiểm tra tiến trình trình duyệt ${sourceLabel} trên máy này. Hệ thống chưa thay đổi hồ sơ để bảo đảm an toàn.`;
     }
     if (error?.code === 'PROFILE_IN_USE_OWNED') {
-        return `Trình duyệt đăng nhập ${sourceLabel} đang chạy. Hệ thống đang kết nối lại, vui lòng chờ.`;
+        return `Trình duyệt đăng nhập ${sourceLabel} đang chạy. Vui lòng hoàn tất hoặc đóng cửa sổ hiện tại trước khi mở lại.`;
     }
     if (error?.code === 'ORPHAN_PROCESS_RECOVERY_FAILED') {
         return `Không thể khôi phục tiến trình đăng nhập ${sourceLabel}. Vui lòng khởi động lại backend và thử lại.`;
@@ -87,6 +90,31 @@ class DkclSessionPreflightService {
             throw error;
         }
         return config;
+    }
+
+
+    async _classifyLockState(sourceConfig, entry, profileDir) {
+        const inspection = await processManager.findBrowserProcessByProfile(profileDir);
+        const lockDirExists = require('fs').existsSync(`${profileDir}.lock`);
+        
+        if (inspection.inspectionStatus !== 'SUCCESS') {
+            return { lockState: 'UNKNOWN', inspection };
+        }
+
+        const hasLiveProcess = inspection.matchingProcesses.length > 0;
+        
+        if (hasLiveProcess) {
+            if (entry.client || entry.openingPromise) {
+                return { lockState: 'LIVE_OWNED', inspection };
+            }
+            return { lockState: 'LIVE_UNVERIFIED', inspection };
+        }
+
+        if (!hasLiveProcess && lockDirExists && !entry.client && !entry.openingPromise) {
+            return { lockState: 'STALE_CONFIRMED', inspection };
+        }
+
+        return { lockState: 'NONE', inspection };
     }
 
     async preflight(source) {
