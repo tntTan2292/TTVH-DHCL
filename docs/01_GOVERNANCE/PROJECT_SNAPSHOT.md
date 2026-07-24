@@ -17,22 +17,22 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `ACCELERATED DELIVERY WAVE 1` |
+| Current Phase | `ACCELERATED DELIVERY WAVE 2` |
 | Current Ticket | `AUTO-IMPORT-007` |
-| Next Ticket | `None authorized beyond AUTO-IMPORT-007 Wave 1` |
-| Last PO Status | `DOC-GOV-CLEANUP-001 TECHNICAL PASS` |
+| Next Ticket | `AUTO-IMPORT-007 Accelerated Delivery Wave 3 - fresh conversation required after Wave 2 remote verification` |
+| Last PO Status | `AUTO-IMPORT-007 WAVE 2 AUTHORIZED BY PO` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / WAVE 1 IMPLEMENTED` |
-| Technical Status | `WAVE 1 TECHNICAL PASS` |
+| Current State | `ACTIVE / WAVE 2 IMPLEMENTED` |
+| Technical Status | `WAVE 2 TECHNICAL PASS` |
 | Runtime Status | `NOT STARTED` |
 | PO UI Check Required | `No` |
-| PO Product Status | `NOT READY - AUTO-IMPORT-007 planning active` |
-| Last Reviewed Phase | `AUTO-IMPORT-007 WAVE 1` |
-| Last Reviewed Commit | `this Wave 1 delivery commit` |
+| PO Product Status | `NOT READY - AUTO-IMPORT-007 Wave 2 technical delivery complete; runtime/UI validation deferred` |
+| Last Reviewed Phase | `AUTO-IMPORT-007 WAVE 2` |
+| Last Reviewed Commit | `this Wave 2 delivery commit` |
 | Phase Review Status | `TECHNICAL PASS` |
-| Next Phase Authorization | `READY FOR ACCELERATED DELIVERY WAVE 2 AUTHORIZATION` |
+| Next Phase Authorization | `READY FOR ACCELERATED DELIVERY WAVE 3 AUTHORIZATION IN FRESH CONVERSATION` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-24` |
 
@@ -68,7 +68,9 @@ Fresh-chat onboarding chain for the active ticket:
 3. `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`
 4. Required Reading from the current manifest
 
-DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 Wave 1 is implemented for shared DKCL lifecycle contract/state standardization. Further implementation remains unauthorized until separate Product Owner approval for Wave 2.
+DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 Wave 1 is implemented for shared DKCL lifecycle contract/state standardization. Product Owner authorized Accelerated Delivery Wave 2 at baseline `1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`.
+
+AUTO-IMPORT-007 Wave 2 is implemented with `TECHNICAL PASS` for bounded backend/data import architecture. Accepted technical scope: shared F13 queue/evidence contract helpers, source-explicit HUE/TCT queue identity, smallest post-`F13_READY` adapter boundary through `HueF13Adapter` and `TctF13Adapter`, explicit source metadata across queue items and evidence, and future report contract placeholders for `F1.1`, `F1.2`, and `F4.1` without implementing those reports. Preserved exclusions: no operator-visible lifecycle redesign, no broad DataImportCenter redesign, no browser/HWND runtime validation, no portal login, no production database writes or cleanup, no KPI/Dashboard changes, no scheduling, and no Wave 3 implementation.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

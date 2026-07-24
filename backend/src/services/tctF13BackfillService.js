@@ -10,6 +10,13 @@ const {
     NATIONAL_RANKED_PROVINCE_CODES
 } = require('./nationalExcelParser');
 const { importNationalParsedData } = require('./importProcessor');
+const { TctF13Adapter } = require('./f13Adapters');
+const {
+    attachSourceEvidence,
+    createBaseEvidence,
+    createQueueId,
+    publicQueue
+} = require('./dkclImportOperationsContract');
 
 function normalizeDate(value, fieldName) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) {
@@ -115,6 +122,9 @@ class TctF13BackfillService {
         this.queues = new Map();
         this.activeQueueId = null;
         this.queueSequence = 0;
+        this.adapter = options.adapter || new TctF13Adapter({
+            runOneDateImport: (measurementDate, queueId, adapterOptions) => this.runOneDateImport(measurementDate, queueId, adapterOptions)
+        });
     }
 
     async scanMissingDates({ fromDate, toDate }) {
@@ -486,7 +496,13 @@ class TctF13BackfillService {
 
     createQueueId() {
         this.queueSequence += 1;
-        return `tct-f13-backfill-${this.clock().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${String(this.queueSequence).padStart(4, '0')}`;
+        return createQueueId({
+            source: 'TCT',
+            report: 'F1.3',
+            purpose: 'backfill',
+            clock: this.clock,
+            sequence: this.queueSequence
+        });
     }
 
     createQueueItem(measurementDate, { refreshRequested = false } = {}) {
@@ -499,6 +515,11 @@ class TctF13BackfillService {
             attempts: 0,
             refreshRequested,
             evidence: {
+                ...createBaseEvidence({
+                    source: 'TCT',
+                    report: 'F1.3',
+                    businessDate: measurementDate
+                }),
                 business_date: measurementDate,
                 queue_id: null,
                 run_id: null,
@@ -583,7 +604,10 @@ class TctF13BackfillService {
         let errorMessage = null;
         let systemicFailure = false;
         try {
-            runEvidence = await this.runOneDateImport(item.measurementDate, queue.queueId, { refreshRequested: item.refreshRequested });
+            runEvidence = await this.adapter.runOneDate(item.measurementDate, {
+                queueId: queue.queueId,
+                refreshRequested: item.refreshRequested
+            });
         } catch (error) {
             finalStatus = error?.code === 'AUTHENTICATION_REQUIRED' ? 'AUTHENTICATION_REQUIRED' : 'FAILED';
             errorCode = error?.code || 'TCT_IMPORT_FAILED';
@@ -614,6 +638,13 @@ class TctF13BackfillService {
         let cleanupDeleted = null;
             let ownsClient = true;
             const evidence = {
+                ...createBaseEvidence({
+                    source: 'TCT',
+                    report: 'F1.3',
+                    businessDate: measurementDate,
+                    queueId,
+                    runId
+                }),
                 run_id: runId,
                 downloaded_filename: null,
                 processed_filename: null,
@@ -685,6 +716,7 @@ class TctF13BackfillService {
             ensureDir(this.rawDownloadDir);
             downloadedPath = await client.downloadXlsx({ file: generatedFile, targetDir: this.rawDownloadDir });
             evidence.downloaded_filename = path.basename(downloadedPath);
+            evidence.source_original_filename = generatedFile?.filename || generatedFile?.fileName || evidence.downloaded_filename;
             const validation = this.validateWorkbook(downloadedPath);
             evidence.workbook_row_count = validation.workbookRowCount;
             evidence.parsed_ranked_unit_count = validation.parsed.totalParsed;
@@ -712,6 +744,8 @@ class TctF13BackfillService {
             const persistedPath = this.persistProcessedWorkbook(downloadedPath, standardizedFilename(measurementDate));
             evidence.processed_filename = path.basename(persistedPath);
             evidence.processed_file_path = persistedPath;
+            evidence.source_standardized_filename = evidence.processed_filename;
+            evidence.source_processed_artifact = persistedPath;
             evidence.local_file_retained = fs.existsSync(persistedPath);
             if (!evidence.local_file_retained) {
                 const error = new Error('TCT processed workbook persistence could not be verified.');
@@ -806,7 +840,7 @@ class TctF13BackfillService {
     async buildItemEvidence(queue, item, runEvidence, context = {}) {
         const dbEvidence = await this.loadDatabaseEvidence(item.measurementDate);
         const hue = await this.loadHueEvidence(item.measurementDate);
-        return {
+        return attachSourceEvidence({
             business_date: item.measurementDate,
             queue_id: queue.queueId,
             run_id: runEvidence?.run_id || item.runId || null,
@@ -831,7 +865,13 @@ class TctF13BackfillService {
             temp_file_deleted: runEvidence?.temp_file_deleted ?? null,
             local_file_retained: runEvidence?.local_file_retained ?? null,
             portal_cleanup_status: runEvidence?.portal_cleanup_status || null
-        };
+        }, {
+            source: 'TCT',
+            report: queue.report,
+            originalFilename: runEvidence?.source_original_filename || runEvidence?.downloaded_filename || null,
+            standardizedFilename: runEvidence?.source_standardized_filename || runEvidence?.processed_filename || standardizedFilename(item.measurementDate),
+            processedPath: runEvidence?.source_processed_artifact || runEvidence?.processed_file_path || null
+        });
     }
 
     async loadDatabaseEvidence(measurementDate) {
@@ -897,32 +937,12 @@ class TctF13BackfillService {
 
     publicQueue(queue) {
         if (!queue) return null;
-        const total = queue.items.length;
-        const completed = queue.items.filter((item) => QUEUE_TERMINAL_STATUSES.has(item.status)).length;
-        return {
-            queueId: queue.queueId,
-            source: queue.source,
-            report: queue.report,
-            status: queue.status,
-            stopRequested: queue.stopRequested,
-            retryOf: queue.retryOf || null,
-            createdAt: queue.createdAt,
-            startedAt: queue.startedAt,
-            endedAt: queue.endedAt,
-            restartNotice: queue.restartNotice,
-            progress: {
-                total,
-                completed,
-                running: queue.items.filter((item) => item.status === 'RUNNING').length,
-                queued: queue.items.filter((item) => item.status === 'QUEUED').length,
-                failed: queue.items.filter((item) => item.status === 'FAILED').length,
-                authenticatedRequired: queue.items.filter((item) => item.status === 'AUTHENTICATION_REQUIRED').length,
-                blocked: queue.status === 'BLOCKED' ? 1 : 0,
-                stopped: queue.items.filter((item) => item.status === 'STOPPED').length,
-                success: queue.items.filter((item) => item.status === 'SUCCESS').length
-            },
-            items: queue.items.map((item) => ({ ...item, evidence: { ...item.evidence } }))
-        };
+        return publicQueue(queue, {
+            terminalStatuses: QUEUE_TERMINAL_STATUSES,
+            extraProgress: {
+                blocked: queue.status === 'BLOCKED' ? 1 : 0
+            }
+        });
     }
 }
 

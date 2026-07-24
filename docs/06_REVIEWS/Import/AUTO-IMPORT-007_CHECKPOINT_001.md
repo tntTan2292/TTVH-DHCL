@@ -4,13 +4,13 @@
 
 - Ticket: `AUTO-IMPORT-007`
 - Ticket name: `Chuan hoa va nang cap kien truc Import`
-- Phase: `ACCELERATED DELIVERY WAVE 1`
-- Current state: `ACTIVE / WAVE 1 IMPLEMENTED`
-- Technical status: `WAVE 1 TECHNICAL PASS`
+- Phase: `ACCELERATED DELIVERY WAVE 2`
+- Current state: `ACTIVE / WAVE 2 IMPLEMENTED`
+- Technical status: `WAVE 2 TECHNICAL PASS`
 - Runtime status: `NOT STARTED`
 - PO product status: `NOT READY`
 - Latest verified DOC-GOV-CLEANUP-001 technical pass commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
-- Authority: `PO authorized AUTO-IMPORT-007 Wave 1 implementation at baseline dff97ba5ac79551bf18a3125f22ff9689dd761a8; further implementation remains unauthorized`
+- Authority: `PO authorized AUTO-IMPORT-007 Wave 1 implementation at baseline dff97ba5ac79551bf18a3125f22ff9689dd761a8; PO authorized Accelerated Delivery Wave 2 at baseline 1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`
 
 ## Scope Lock
 
@@ -108,9 +108,24 @@ Both discovery inputs are completed and accepted by the Product Owner.
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-007`.
-- Current phase: `ACCELERATED DELIVERY WAVE 1`.
+- Current phase: `ACCELERATED DELIVERY WAVE 2`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`.
-- Next action: Product Owner authorization decision for Accelerated Delivery Wave 2.
-- Fresh-chat condition: Accelerated Delivery Wave 2 must begin in a fresh Codex conversation after this Governance commit is pushed and remote state is verified.
+- Next action: Product Owner authorization decision for Accelerated Delivery Wave 3 in a fresh conversation.
+- Fresh-chat condition: Accelerated Delivery Wave 3 must begin in a fresh Codex conversation after this Wave 2 delivery commit is pushed and remote state is verified.
 - No further code implementation is authorized.
+
+## Wave 2 Implementation Result
+
+- Phase: bounded backend/data Import architecture after Wave 1.
+- Executor: `Codex`.
+- Scope: shared source/session registry compatibility, smallest safe post-`F13_READY` adapter boundary, shared queue/progress/status/evidence contract, and source-explicit metadata.
+- Result: `TECHNICAL PASS`.
+- Architecture limitation confirmed: HUE and TCT still branch after `F13_READY`; source-specific acquisition, parsing, validation, and database writes remain inside the existing accepted source services.
+- Implementation boundaries: shared helpers own queue identity/progress/public evidence shape; `HueF13Adapter` and `TctF13Adapter` are thin post-`F13_READY` delegates.
+- Compatibility protections: existing route paths, queue status names, progress counters, evidence fields, HUE controlled Re-Update/idempotency, date validation, TCT ranking/import behavior, and frontend contract consumers remain preserved.
+- Source metadata: queue items and evidence carry explicit `source`, `report`, `source_report`, original filename, standardized filename, and processed artifact fields to distinguish identical original portal filenames.
+- Future readiness: report identifiers are reserved for `F1.1`, `F1.2`, and `F4.1` only; no future report implementation was started.
+- Validation: `node backend/test_dkclImportOperationsContract.js` PASS; `node backend/test_dkclSessionPreflightService.js` PASS; `node backend/test_browserProfileLock.js` PASS; `node backend/test_dkclHueF13BackfillService.js` PASS; `node backend/test_tctF13BackfillService.js` PASS; `node frontend/src/pages/dataImportHueSelection.test.js` PASS; `node frontend/src/pages/dataImportTctScan.test.js` PASS; `node frontend/src/pages/dataImportBackfillQueue.test.js` PASS; `node backend/test_importProcessor.js` PASS; `node backend/test_importPipelineRace.js` PASS; `node backend/test_nationalExcelParser.js` PASS; targeted backend syntax checks PASS; `npm.cmd run lint` PASS with existing warnings; `git diff --check` PASS.
+- Deferred checks: native browser/HWND runtime validation, portal login, production database writes, and PO runtime/UI validation remain deferred by Wave 2 exclusions.
+- Commit: `this Wave 2 delivery commit`.

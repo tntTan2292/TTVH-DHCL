@@ -196,6 +196,7 @@ async function runTests() {
     assert('queue reaches SUCCESS', sequentialDone.status === 'SUCCESS');
     assert('queue preflights HUE once and passes the registered client to workers', sequentialOptions.map((event) => event.join(':')).join('|') === 'preflight:HUE|getInteractiveClient:HUE|start:2026-07-20:true:false:true|start:2026-07-21:true:false:true', JSON.stringify(sequentialOptions));
     assert('evidence includes run, export, workbook, DB and logs', sequentialDone.items[0].evidence.run_id === 'run-2026-07-20' && sequentialDone.items[0].evidence.exported_filename === 'export-2026-07-20.xlsx' && sequentialDone.items[0].evidence.workbook_row_count === 5 && sequentialDone.items[0].evidence.imported_database_row_count === 5 && sequentialDone.items[0].evidence.distinct_shipment_count === 5 && sequentialDone.items[0].evidence.success_log_count === 1);
+    assert('HUE queue and evidence expose source identity without breaking legacy fields', sequentialDone.source === 'HUE' && sequentialDone.source_report === 'HUE_F13' && sequentialDone.items[0].source === 'HUE' && sequentialDone.items[0].evidence.source === 'HUE' && sequentialDone.items[0].evidence.source_standardized_filename === 'F1.3-2026.07.20.xlsx');
     assert('queue status progress summarizes items', sequentialDone.progress.total === 2 && sequentialDone.progress.success === 2 && sequentialDone.progress.completed === 2);
     assert('restart limitation is exposed', /in memory/i.test(sequentialDone.restartNotice));
 

@@ -138,6 +138,8 @@ function removeDirEventually(dir) {
     assert.strictEqual(finalQueue.items[0].evidence.hue_rank, 24, 'evidence includes Hue rank');
     assert.strictEqual(finalQueue.items[0].evidence.temp_file_deleted, false, 'evidence confirms temp file was not deleted');
     assert.strictEqual(finalQueue.items[0].evidence.local_file_retained, true, 'evidence includes local file retention');
+    assert.strictEqual(finalQueue.source_report, 'TCT_F13', 'TCT queue exposes source/report identity');
+    assert.strictEqual(finalQueue.items[0].evidence.source, 'TCT', 'TCT evidence keeps source identity');
 
     console.log('\nTEST 4: duplicate/completed/preflight rejection before RUNNING');
     await assert.rejects(
@@ -396,6 +398,8 @@ function removeDirEventually(dir) {
     assert.strictEqual(replaced.temp_file_deleted, false, 'successful import does not delete local evidence');
     assert.strictEqual(replaced.local_file_retained, true, 'successful import retains local processed evidence');
     assert.strictEqual(replaced.processed_filename, 'F1.3-2026.07.18.xlsx', 'processed TCT workbook is standardized');
+    assert.strictEqual(replaced.source_original_filename, 'valid.xlsx', 'TCT evidence retains original portal filename');
+    assert.strictEqual(replaced.source_standardized_filename, 'F1.3-2026.07.18.xlsx', 'TCT evidence distinguishes standardized source artifact from identical originals');
     assert.strictEqual(fs.existsSync(path.join(replaceProcessedDir, 'F1.3-2026.07.18.xlsx')), true, 'processed TCT workbook is retained');
     assert.strictEqual(fs.existsSync(downloadedWorkbook), false, 'raw download is moved rather than unlinked');
     assert.strictEqual(replaced.portal_cleanup_status, 'DELETED', 'portal cleanup status is reported after persistence');

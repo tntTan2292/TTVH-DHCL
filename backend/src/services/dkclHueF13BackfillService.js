@@ -5,6 +5,13 @@ const {
     standardizedFilename
 } = require('./dkclHueF13SyncService');
 const { DkclSessionPreflightService } = require('./dkclSessionPreflightService');
+const { HueF13Adapter } = require('./f13Adapters');
+const {
+    attachSourceEvidence,
+    createBaseEvidence,
+    createQueueId,
+    publicQueue
+} = require('./dkclImportOperationsContract');
 const sessionPreflightService = new DkclSessionPreflightService();
 
 const QUEUE_TERMINAL_STATUSES = new Set([
@@ -65,6 +72,10 @@ class DkclHueF13BackfillService {
         this.queues = new Map();
         this.activeQueueId = null;
         this.queueSequence = 0;
+        this.adapter = options.adapter || new HueF13Adapter({
+            syncService: this.syncService,
+            sessionPreflightService: this.sessionPreflightService
+        });
     }
 
     async scanMissingDates({ fromDate, toDate }) {
@@ -383,7 +394,13 @@ class DkclHueF13BackfillService {
 
     createQueueId() {
         this.queueSequence += 1;
-        return `hue-f13-backfill-${this.clock().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}-${String(this.queueSequence).padStart(4, '0')}`;
+        return createQueueId({
+            source: 'HUE',
+            report: 'F1.3',
+            purpose: 'backfill',
+            clock: this.clock,
+            sequence: this.queueSequence
+        });
     }
 
     createQueueItem(measurementDate, options = {}) {
@@ -396,6 +413,11 @@ class DkclHueF13BackfillService {
             endTime: null,
             attempts: 0,
             evidence: {
+                ...createBaseEvidence({
+                    source: 'HUE',
+                    report: 'F1.3',
+                    businessDate: measurementDate
+                }),
                 business_date: measurementDate,
                 queue_id: null,
                 run_id: null,
@@ -459,9 +481,8 @@ class DkclHueF13BackfillService {
             }
         });
 
-        const result = await this.syncService.start(item.measurementDate, {
-            requireExistingSession: true,
-            forceReimport: item.refreshRequested,
+        const result = await this.adapter.runOneDate(item.measurementDate, {
+            refreshRequested: item.refreshRequested,
             portalClient: queue.portalClient || this.sessionPreflightService.getInteractiveClient?.('HUE') || null
         });
         const run = result?.run || null;
@@ -493,7 +514,7 @@ class DkclHueF13BackfillService {
         let current = this.syncService.getRun(run.runId) || run;
         while (current && !SYNC_TERMINAL_STATUSES.has(current.status)) {
             await new Promise((resolve) => setTimeout(resolve, this.pollIntervalMs));
-            current = this.syncService.getRun(run.runId) || current;
+            current = (this.adapter.getRun?.(run.runId) || this.syncService.getRun(run.runId)) || current;
         }
         return current;
     }
@@ -508,7 +529,7 @@ class DkclHueF13BackfillService {
 
     async buildItemEvidence(queue, item, run, context = {}) {
         const dbEvidence = await this.loadDatabaseEvidence(item.measurementDate);
-        return {
+        return attachSourceEvidence({
             business_date: item.measurementDate,
             queue_id: queue.queueId,
             run_id: item.runId || run?.runId || null,
@@ -522,7 +543,13 @@ class DkclHueF13BackfillService {
             error_log_count: dbEvidence.errorLogCount,
             error_code: ['FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(context.status) ? context.errorCode : null,
             error_message: ['FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(context.status) ? context.errorMessage : null
-        };
+        }, {
+            source: 'HUE',
+            report: queue.report,
+            originalFilename: run?.generatedPortalFilename || run?.downloadedFilename || null,
+            standardizedFilename: standardizedFilename(item.measurementDate),
+            processedPath: run?.finalFileLocation || null
+        });
     }
 
     async loadDatabaseEvidence(measurementDate) {
@@ -580,31 +607,7 @@ class DkclHueF13BackfillService {
 
     publicQueue(queue) {
         if (!queue) return null;
-        const total = queue.items.length;
-        const completed = queue.items.filter((item) => QUEUE_TERMINAL_STATUSES.has(item.status)).length;
-        return {
-            queueId: queue.queueId,
-            source: queue.source,
-            report: queue.report,
-            status: queue.status,
-            stopRequested: queue.stopRequested,
-            retryOf: queue.retryOf || null,
-            createdAt: queue.createdAt,
-            startedAt: queue.startedAt,
-            endedAt: queue.endedAt,
-            restartNotice: queue.restartNotice,
-            progress: {
-                total,
-                completed,
-                running: queue.items.filter((item) => item.status === 'RUNNING').length,
-                queued: queue.items.filter((item) => item.status === 'QUEUED').length,
-                failed: queue.items.filter((item) => item.status === 'FAILED').length,
-                authenticatedRequired: queue.items.filter((item) => item.status === 'AUTHENTICATION_REQUIRED').length,
-                stopped: queue.items.filter((item) => item.status === 'STOPPED').length,
-                success: queue.items.filter((item) => item.status === 'SUCCESS').length
-            },
-            items: queue.items.map((item) => ({ ...item, evidence: { ...item.evidence } }))
-        };
+        return publicQueue(queue, { terminalStatuses: QUEUE_TERMINAL_STATUSES });
     }
 }
 

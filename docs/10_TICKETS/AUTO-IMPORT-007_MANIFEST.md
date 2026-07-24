@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-007`
 - Ticket Name: `Chuan hoa va nang cap kien truc Import`
 - Phase: `Auto Import / Architecture Planning`
-- Current State: `ACTIVE / WAVE 1 IMPLEMENTED`
-- Technical Status: `WAVE 1 TECHNICAL PASS`
+- Current State: `ACTIVE / WAVE 2 IMPLEMENTED`
+- Technical Status: `WAVE 2 TECHNICAL PASS`
 - Runtime Status: `NOT STARTED`
 - PO UI Check Required: `No`
 - PO Product Status: `NOT READY`
-- Current Phase: `ACCELERATED DELIVERY WAVE 1`
-- Last Reviewed Phase: `AUTO-IMPORT-007 WAVE 1`
-- Last Reviewed Commit: `this Wave 1 delivery commit`
+- Current Phase: `ACCELERATED DELIVERY WAVE 2`
+- Last Reviewed Phase: `AUTO-IMPORT-007 WAVE 2`
+- Last Reviewed Commit: `this Wave 2 delivery commit`
 - Phase Review Status: `TECHNICAL PASS`
-- Next Phase Authorization: `READY FOR ACCELERATED DELIVERY WAVE 2 AUTHORIZATION`
+- Next Phase Authorization: `READY FOR ACCELERATED DELIVERY WAVE 3 AUTHORIZATION IN FRESH CONVERSATION`
 - Activation date: `2026-07-24`
 - Primary executor: `Codex for code/data analysis; Antigravity for runtime/UI analysis`
 
@@ -37,7 +37,9 @@ Product Owner authorized `AUTO-IMPORT-007` for plan/discovery after `DOC-GOV-CLE
 
 Product Owner authorized Accelerated Delivery Wave 1 at baseline `dff97ba5ac79551bf18a3125f22ff9689dd761a8`.
 
-Wave 1 implementation scope is complete for shared lifecycle contract/state standardization. Do not modify queue execution, import execution, database writes, Dashboard, KPI, frontend visual behavior, adapter extraction, portal login, or PO runtime validation until a later implementation authorization is recorded.
+Product Owner authorized Accelerated Delivery Wave 2 at baseline `1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`.
+
+Wave 1 implementation scope is complete for shared lifecycle contract/state standardization. Wave 2 implementation scope is complete for bounded backend/data import architecture after `F13_READY`. Do not modify operator-visible lifecycle UI, browser/HWND runtime behavior, portal login, production data, Dashboard/KPI, automatic scheduling, or Wave 3 scope until later implementation authorization is recorded.
 
 ## Objective
 
@@ -160,10 +162,25 @@ Each phase must be independently verifiable and separately authorized before exe
 ## Current Status
 
 - AUTO-IMPORT-007 Wave 1 is implemented.
+- AUTO-IMPORT-007 Wave 2 is implemented.
 - Discovery inputs are completed and accepted.
 - Six-phase architecture plan is approved.
 - No further implementation is authorized.
 - No portal login is authorized.
 - No PO runtime validation is authorized.
-- Next required action: Product Owner authorization decision for Accelerated Delivery Wave 2.
-- Fresh-chat condition: Accelerated Delivery Wave 2 must begin in a fresh Codex conversation after this Governance commit is pushed and remote state is verified.
+- Next required action: Product Owner authorization decision for Accelerated Delivery Wave 3 in a fresh conversation.
+- Fresh-chat condition: Accelerated Delivery Wave 3 must begin in a fresh Codex conversation after this Wave 2 delivery commit is pushed and remote state is verified.
+
+## Wave 2 Implementation Result
+
+- Phase: bounded backend/data Import architecture after Wave 1.
+- Executor: `Codex`.
+- Scope: shared source/session registry compatibility, smallest safe post-`F13_READY` adapter boundary, shared queue/progress/status/evidence contract, and source-explicit metadata.
+- Result: `TECHNICAL PASS`.
+- Implementation boundaries: `HueF13Adapter` and `TctF13Adapter` delegate acquisition, parsing, validation, and database writes back to the existing PASS source services; shared operations helpers standardize public queue identity, progress, terminal states, and evidence metadata.
+- Compatibility protections: existing routes, queue IDs, status names, progress fields, evidence fields, HUE Re-Update/idempotency, TCT ranked-population behavior, and frontend consumers remain compatible.
+- Source metadata: queue items and evidence now carry explicit `source`, `report`, `source_report`, original filename, standardized filename, and processed artifact fields so identical portal filenames remain distinguishable by source.
+- Future readiness: contract constants reserve `F1.1`, `F1.2`, and `F4.1` report identifiers only; those reports are not implemented.
+- Exclusions: no operator-visible lifecycle redesign, no broad DataImportCenter redesign, no native browser/HWND runtime validation, no portal login, no production database writes or cleanup, no KPI/Dashboard changes, no automatic scheduling, and no Wave 3 implementation.
+- Validation: `node backend/test_dkclImportOperationsContract.js` PASS; `node backend/test_dkclSessionPreflightService.js` PASS; `node backend/test_browserProfileLock.js` PASS; `node backend/test_dkclHueF13BackfillService.js` PASS; `node backend/test_tctF13BackfillService.js` PASS; `node frontend/src/pages/dataImportHueSelection.test.js` PASS; `node frontend/src/pages/dataImportTctScan.test.js` PASS; `node frontend/src/pages/dataImportBackfillQueue.test.js` PASS; `node backend/test_importProcessor.js` PASS; `node backend/test_importPipelineRace.js` PASS; `node backend/test_nationalExcelParser.js` PASS; targeted backend syntax checks PASS; `npm.cmd run lint` PASS with existing warnings; `git diff --check` PASS.
+- Commit: `this Wave 2 delivery commit`.
