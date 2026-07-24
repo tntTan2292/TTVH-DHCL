@@ -44,7 +44,8 @@
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
 - AUTO-IMPORT-006: `Completed through TCT unfinished bulk-selection PO PASS`; Technical Status `PASS`; Runtime Status `PO PASS`; Last accepted commit `313b16a2f0e3259562681d26a581e5c9f2bba960`
-- AUTO-IMPORT-007: `ACTIVE / PLAN ONLY`; Technical Status `PLANNING`; Runtime Status `NOT STARTED`; PO Product Status `NOT READY`; Current Phase `PLAN ONLY`; Authority `PO authorized planning only`
+- AUTO-IMPORT-007: `AUTHORIZED / QUEUED`; Technical Status `QUEUED`; Runtime Status `NOT STARTED`; PO Product Status `NOT READY`; Current Phase `WAITING FOR DOC-GOV-CLEANUP-001`; no discovery or implementation while DOC-GOV-CLEANUP-001 is active
+- DOC-GOV-CLEANUP-001: `ACTIVE / PLAN-EXECUTION`; Technical Status `PLANNING`; Runtime Status `NOT APPLICABLE`; Scope `Governance document cleanup only`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -100,22 +101,30 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `AUTO-IMPORT-007` |
-| Current Commit | `671284822ab35324f17cd1205ab63a6b955d23d4` |
-| Current Phase | `PLAN ONLY` |
-| Last Reviewed Phase | `AUTO-IMPORT-006 TCT unfinished bulk-selection` |
-| Last Reviewed Commit | `671284822ab35324f17cd1205ab63a6b955d23d4` |
-| Phase Review Status | `PO AUTHORIZED PLAN` |
-| Next Phase Authorization | `PLAN ONLY - no functional code changes authorized` |
-| Next Milestone | `Codex code/data analysis and Antigravity runtime/UI analysis` |
+| Current Ticket | `DOC-GOV-CLEANUP-001` |
+| Current Commit | `2c9447d33b25460b0c2b283365535dd6ffe6df5d` |
+| Current Phase | `PLAN-EXECUTION` |
+| Last Reviewed Phase | `AUTO-IMPORT-007 plan activation` |
+| Last Reviewed Commit | `2c9447d33b25460b0c2b283365535dd6ffe6df5d` |
+| Phase Review Status | `PO AUTHORIZED` |
+| Next Phase Authorization | `Governance document cleanup only; AUTO-IMPORT-007 queued` |
+| Next Milestone | `DOC-GOV-CLEANUP-001 docs inventory and onboarding cleanup` |
 | PO UI Check Required | `No` |
-| PO Product Status | `NOT READY` |
+| PO Product Status | `NOT APPLICABLE` |
 
-## AUTO-IMPORT-007 Plan Activation
+## DOC-GOV-CLEANUP-001 Activation
+
+- Ticket name: `Toi gian va chuan hoa he thong tai lieu du an`.
+- State: `ACTIVE / PLAN-EXECUTION`.
+- Scope: inventory `docs`, identify at most `5` active onboarding documents, convert old documents to conditional reference or archive status, correct wrong status entries in `DOCUMENT_INDEX`, preserve history.
+- Restrictions: no functional code changes, no code audit, no business SSOT changes, no history deletion.
+- Queued next ticket: `AUTO-IMPORT-007`.
+
+## AUTO-IMPORT-007 Queued Plan
 
 - Ticket name: `Chuan hoa va nang cap kien truc Import`.
-- State: `ACTIVE / PLAN ONLY`.
-- Authority: PO authorized planning only; functional code changes are not authorized.
+- State: `AUTHORIZED / QUEUED`.
+- Authority: queued behind `DOC-GOV-CLEANUP-001`; discovery and implementation are not authorized while DOC-GOV-CLEANUP-001 is active.
 - Plan locks: shared DKCL lifecycle SSOT `SOURCE_SELECTED` -> `SESSION_CHECK` -> `OPENING_BROWSER` -> `WAITING_FOR_LOGIN` -> `AUTHENTICATED` -> `F13_OPENING` -> `F13_READY`; HUE/TCT share the lifecycle contract while keeping separate account, `profileDir`, Registry entry, PID tree, HWND, and session; branch only after `F13_READY` into `HueF13Adapter` and `TctF13Adapter`; standardize queue, retry, stop, progress, error, and import history; metadata must distinguish source even when original filenames match; architecture must extend to `F1.1`, `F1.2`, and `F4.1`; reuse code already `PASS` and do not plan a full rewrite.
 - Required discovery inputs: `Codex code/data analysis`; `Antigravity runtime/UI analysis`.
 
@@ -222,7 +231,7 @@
 - Last Reviewed Phase: `TCT unfinished bulk-selection`.
 - Last Reviewed Commit: `313b16a2f0e3259562681d26a581e5c9f2bba960`.
 - Phase Review Status: `PO PASS`.
-- Next Phase Authorization: `AUTO-IMPORT-007 PLAN ONLY`.
+- Next Phase Authorization: `AUTO-IMPORT-007 AUTHORIZED / QUEUED, waiting for DOC-GOV-CLEANUP-001`.
 - Primary executor: `Antigravity`.
 - Scope: separate HUE login trigger, block automatic interactive login in HUE queue check, resolve TCT interactive client factory configuration omission, CDP best-effort minimize, and browser manual closed listener/Registry.
 - Technical evidence: all unit tests passed for sync and backfill service components, oxlint passed with zero errors, production bundle built successfully.

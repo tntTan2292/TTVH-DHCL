@@ -122,15 +122,15 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md)
+[docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md)
 
 ↓
 
-[docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md)
+[docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md)
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-007 PLAN ONLY`, latest verified remote commit before activation `671284822ab35324f17cd1205ab63a6b955d23d4`, PO authorized planning only for `Chuan hoa va nang cap kien truc Import`; no functional code changes are authorized.
+Current active handoff: `DOC-GOV-CLEANUP-001 PLAN-EXECUTION`, latest verified remote commit before activation `2c9447d33b25460b0c2b283365535dd6ffe6df5d`, PO authorized governance document cleanup only; `AUTO-IMPORT-007` is authorized/queued and waiting for this cleanup.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

@@ -3,18 +3,18 @@
 - Ticket ID: `AUTO-IMPORT-007`
 - Ticket Name: `Chuan hoa va nang cap kien truc Import`
 - Phase: `Auto Import / Architecture Planning`
-- Current State: `ACTIVE / PLAN ONLY`
-- Technical Status: `PLANNING`
+- Current State: `AUTHORIZED / QUEUED`
+- Technical Status: `QUEUED`
 - Runtime Status: `NOT STARTED`
 - PO UI Check Required: `No`
 - PO Product Status: `NOT READY`
-- Current Phase: `PLAN ONLY`
+- Current Phase: `WAITING FOR DOC-GOV-CLEANUP-001`
 - Last Reviewed Phase: `AUTO-IMPORT-006 TCT unfinished bulk-selection PO PASS`
 - Last Reviewed Commit: `671284822ab35324f17cd1205ab63a6b955d23d4`
 - Phase Review Status: `PO AUTHORIZED PLAN`
-- Next Phase Authorization: `PLAN ONLY - no functional code changes authorized`
+- Next Phase Authorization: `WAIT FOR DOC-GOV-CLEANUP-001`
 - Activation date: `2026-07-24`
-- Primary executor: `Codex for code/data analysis; Antigravity for runtime/UI analysis`
+- Primary executor: `Queued - no discovery or implementation while DOC-GOV-CLEANUP-001 is active`
 
 ## Fresh-Chat Onboarding Authority
 
@@ -29,9 +29,9 @@ Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`
 
 ## Authority
 
-Product Owner authorized planning only for `AUTO-IMPORT-007`.
+Product Owner authorized `AUTO-IMPORT-007`, but it is queued behind `DOC-GOV-CLEANUP-001`.
 
-Functional source-code changes are not authorized under this activation. Do not modify import execution, browser lifecycle, queue execution, database writes, Dashboard, KPI, or authentication behavior until a later implementation authorization is recorded.
+Functional source-code changes, discovery, and implementation are not authorized while `DOC-GOV-CLEANUP-001` is active. Do not modify import execution, browser lifecycle, queue execution, database writes, Dashboard, KPI, or authentication behavior until a later authorization is recorded.
 
 ## Objective
 
@@ -111,8 +111,11 @@ These are discovery inputs only. They do not authorize implementation.
 
 ## Current Status
 
-- AUTO-IMPORT-007 is active in `PLAN ONLY`.
+- AUTO-IMPORT-007 is `AUTHORIZED / QUEUED`.
+- AUTO-IMPORT-007 is `WAITING FOR DOC-GOV-CLEANUP-001`.
 - No functional code changes are authorized.
+- No discovery is authorized.
+- No implementation is authorized.
 - No portal login is authorized.
 - No PO runtime validation is authorized.
-- Next required action: produce the two discovery inputs before drafting implementation scope.
+- Next required action: complete or explicitly release `DOC-GOV-CLEANUP-001` before AUTO-IMPORT-007 proceeds.
