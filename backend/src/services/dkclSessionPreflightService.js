@@ -138,18 +138,13 @@ class DkclSessionPreflightService {
             const authenticated = entry.client.isAuthenticated
                 ? await entry.client.isAuthenticated().catch(() => false)
                 : false;
-            if (!ready && authenticated && sourceConfig.source === 'HUE') {
+            if (!ready && authenticated) {
                 await entry.client.openF13Report?.().catch(() => {});
                 entry.state = 'BACKGROUND_READY';
                 entry.authenticated = true;
                 entry.backgroundReady = true;
                 entry.updatedAt = new Date().toISOString();
                 return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true };
-            }
-            if (!ready && authenticated) {
-                await entry.client.restoreWindow?.().catch(() => {});
-                await entry.client.openF13Report?.().catch(() => {});
-                ready = await entry.client.isF13ReportReady().catch(() => false);
             }
             if (ready) {
                 entry.state = 'BACKGROUND_READY';
