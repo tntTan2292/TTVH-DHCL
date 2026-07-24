@@ -333,12 +333,35 @@ class TctF13BackfillService {
             items.push(this.createQueueItem(date, { refreshRequested }));
         }
 
-        const preflight = await this.preflight();
+        let preflight = await this.preflight();
         if (preflight.status !== 'SESSION_VALID') {
-            const error = new Error(preflight.error?.message || 'TCT DKCL session is not valid.');
-            error.code = preflight.status;
-            error.preflight = preflight;
-            throw error;
+            if (preflight.status === 'SESSION_CHECK_FAILED' || preflight.status === 'AUTHENTICATION_REQUIRED') {
+                try {
+                    await this.sessionPreflightService.recover('TCT');
+                } catch (recErr) {}
+
+                try {
+                    preflight = await this.sessionPreflightService.interactiveAuthenticate('TCT');
+                } catch (authErr) {
+                    const mappedCode = authErr.code === 'PROFILE_OWNERSHIP_UNVERIFIED' ? 'AUTHENTICATION_REQUIRED' : (authErr.code || 'SESSION_CHECK_FAILED');
+                    const error = new Error(authErr.message || 'Interactive authentication failed.');
+                    error.code = mappedCode;
+                    error.preflight = { status: mappedCode, error: { message: authErr.message } };
+                    throw error;
+                }
+            }
+
+            if (preflight.status !== 'SESSION_VALID' && preflight.status !== 'LOGIN_IN_PROGRESS') {
+                const error = new Error(preflight.error?.message || 'TCT DKCL session is not valid.');
+                error.code = preflight.status;
+                error.preflight = preflight;
+                throw error;
+            } else if (preflight.status === 'LOGIN_IN_PROGRESS') {
+                const error = new Error(preflight.message || 'TCT DKCL login is in progress.');
+                error.code = 'LOGIN_IN_PROGRESS';
+                error.preflight = preflight;
+                throw error;
+            }
         }
 
         const queue = {

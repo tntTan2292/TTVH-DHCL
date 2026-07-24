@@ -113,7 +113,7 @@ class DkclSharedOperationsController {
             const code = error.code || 'TCT_F13_BACKFILL_QUEUE_REJECTED';
             const status = code === 'QUEUE_ALREADY_ACTIVE' ? 409
                 : (code === 'SESSION_VALID' ? 202
-                    : (code === 'AUTHENTICATION_REQUIRED' ? 401
+                    : (code === 'AUTHENTICATION_REQUIRED' || code === 'LOGIN_IN_PROGRESS' ? 401
                         : (code === 'SESSION_CHECK_FAILED' ? 503 : 400)));
             return res.status(status).json({
                 success: false,

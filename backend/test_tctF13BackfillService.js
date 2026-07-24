@@ -174,7 +174,15 @@ function removeDirEventually(dir) {
     assert(['QUEUED', 'RUNNING'].includes(recoveryQueue.status), 'incomplete dates are accepted for controlled re-import');
     const authService = new TctF13BackfillService({
         db: makeDb(),
-        sessionPreflightService: { preflight: async () => ({ source: 'TCT', status: 'AUTHENTICATION_REQUIRED', error: { message: 'Đăng nhập lại' } }) }
+        sessionPreflightService: {
+            preflight: async () => ({ source: 'TCT', status: 'AUTHENTICATION_REQUIRED', error: { message: 'Đăng nhập lại' } }),
+            recover: async () => {},
+            interactiveAuthenticate: async () => {
+                const err = new Error('Đăng nhập lại');
+                err.code = 'AUTHENTICATION_REQUIRED';
+                throw err;
+            }
+        }
     });
     authService.checkCompleted = async () => ({ complete: false, inconsistent: false });
     await assert.rejects(
@@ -453,6 +461,31 @@ function removeDirEventually(dir) {
     removeDirEventually(persistRawDir);
     fs.rmSync(blockedProcessedPath, { force: true });
     removeDirEventually(fixtureProcessedDir);
+
+    console.log('\nTEST 9: SESSION_CHECK_FAILED triggers interactiveAuthenticate and returns LOGIN_IN_PROGRESS');
+    const authTriggerService = new TctF13BackfillService({
+        db: makeDb(),
+        sessionPreflightService: {
+            preflight: async () => ({ source: 'TCT', status: 'SESSION_CHECK_FAILED', error: { message: 'Không thể xác minh tiến trình...' } }),
+            recover: async () => { global.recoverCalled = true; },
+            interactiveAuthenticate: async () => {
+                global.interactiveAuthCalled = true;
+                return { source: 'TCT', status: 'LOGIN_IN_PROGRESS' };
+            }
+        }
+    });
+    authTriggerService.checkCompleted = async () => ({ complete: false, inconsistent: false });
+    
+    global.recoverCalled = false;
+    global.interactiveAuthCalled = false;
+    try {
+        await authTriggerService.startQueue(['2026-07-22']);
+        assert.fail('Should have thrown LOGIN_IN_PROGRESS');
+    } catch (err) {
+        assert.strictEqual(err.code, 'LOGIN_IN_PROGRESS', 'throws LOGIN_IN_PROGRESS instead of SESSION_CHECK_FAILED');
+    }
+    assert.strictEqual(global.recoverCalled, true, 'recover should be called');
+    assert.strictEqual(global.interactiveAuthCalled, true, 'interactiveAuthenticate should be called');
 
     console.log('\nRESULT: tctF13BackfillService checks passed');
 })().catch((error) => {
