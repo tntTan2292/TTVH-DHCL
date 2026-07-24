@@ -186,3 +186,10 @@ Both discovery inputs are completed and accepted by the Product Owner.
 
 ### NOT TESTED Items
 - **Staging / Production Deployment**: Out of scope for local real-machine validation.
+
+### Wave 3 PO FAIL Remediation Log
+- **Symptom**: `INTERACTIVE_AUTH_REJECTED` error on `/import` for both HUE and TCT. Browser does not open, and raw technical exception `Cannot read properties of undefined (reading 'showBrowserWindowsByProfile')` is exposed to the operator.
+- **Root Cause**: In `dkclHueF13PortalClient.js` inside `restoreWindow()`, the code attempted to access `showBrowserWindowsByProfile` on `require('./browserProcessManager').defaultInstance`. However, `browserProcessManager.js` exports methods bound to the default instance directly in its `module.exports` object and does not export `defaultInstance` itself. This caused `defaultInstance` to evaluate as `undefined`.
+- **Resolution**: Removed the redundant and incorrect local `require('./browserProcessManager').defaultInstance` call and updated the code to use the already imported top-level `processManager` directly, which has `showBrowserWindowsByProfile` exported and bound correctly.
+- **Error Sanitization**: Updated `dkclSharedOperationsController.js` so that unhandled exceptions/errors log the details in the backend console/logs but return a clean Vietnamese error message to the operator in the UI instead of exposing raw Javascript TypeError stack traces.
+- **Regression Test**: Added `TEST 13: restoreWindow processManager resolution verification` inside `test_dkclSessionPreflightService.js` to assert successful execution of `restoreWindow` and correct invocation of `showBrowserWindowsByProfile` without any exceptions.
