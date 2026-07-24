@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-007 ACTIVE / WAVE 2 IMPLEMENTED`, DOC-GOV-CLEANUP-001 completed `TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`; shared DKCL lifecycle contract/state standardization and bounded backend/data Import architecture are technical PASS; next action is Product Owner authorization for Accelerated Delivery Wave 3 in a fresh Codex conversation after Wave 2 remote verification, not self-authorized implementation.
+Current active handoff: `AUTO-IMPORT-007 ACTIVE / WAVE 2 IMPLEMENTED`, DOC-GOV-CLEANUP-001 completed `TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`; shared DKCL lifecycle contract/state standardization and bounded backend/data Import architecture are technical PASS; next action is Product Owner authorization for Accelerated Delivery Wave 3 in a fresh Antigravity conversation after Wave 2 closure is pushed and remote state is verified, not self-authorized implementation.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

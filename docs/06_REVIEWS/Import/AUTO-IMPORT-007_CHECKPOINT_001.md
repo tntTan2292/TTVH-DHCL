@@ -111,8 +111,10 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - Current phase: `ACCELERATED DELIVERY WAVE 2`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`.
-- Next action: Product Owner authorization decision for Accelerated Delivery Wave 3 in a fresh conversation.
-- Fresh-chat condition: Accelerated Delivery Wave 3 must begin in a fresh Codex conversation after this Wave 2 delivery commit is pushed and remote state is verified.
+- Next action: Product Owner authorization decision for Accelerated Delivery Wave 3 in a fresh Antigravity conversation.
+- Fresh-chat condition: Accelerated Delivery Wave 3 must begin in a fresh Antigravity conversation after Wave 2 closure is pushed and remote state is verified.
+- Wave 3 ownership: operator-visible lifecycle/runtime behavior; concise actionable Vietnamese operator errors; real-machine browser and native HWND validation; HUE/TCT UI and runtime acceptance; PO runtime/UI validation.
+- Wave 3 guard: this handoff does not authorize Codex implementation for Wave 3.
 - No further code implementation is authorized.
 
 ## Wave 2 Implementation Result

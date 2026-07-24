@@ -12,7 +12,7 @@
 - Last Reviewed Phase: `AUTO-IMPORT-007 WAVE 2`
 - Last Reviewed Commit: `this Wave 2 delivery commit`
 - Phase Review Status: `TECHNICAL PASS`
-- Next Phase Authorization: `READY FOR ACCELERATED DELIVERY WAVE 3 AUTHORIZATION IN FRESH CONVERSATION`
+- Next Phase Authorization: `READY FOR ACCELERATED DELIVERY WAVE 3 AUTHORIZATION IN FRESH ANTIGRAVITY CONVERSATION`
 - Activation date: `2026-07-24`
 - Primary executor: `Codex for code/data analysis; Antigravity for runtime/UI analysis`
 
@@ -168,8 +168,10 @@ Each phase must be independently verifiable and separately authorized before exe
 - No further implementation is authorized.
 - No portal login is authorized.
 - No PO runtime validation is authorized.
-- Next required action: Product Owner authorization decision for Accelerated Delivery Wave 3 in a fresh conversation.
-- Fresh-chat condition: Accelerated Delivery Wave 3 must begin in a fresh Codex conversation after this Wave 2 delivery commit is pushed and remote state is verified.
+- Next required action: Product Owner authorization decision for Accelerated Delivery Wave 3 in a fresh Antigravity conversation.
+- Fresh-chat condition: Accelerated Delivery Wave 3 must begin in a fresh Antigravity conversation after Wave 2 closure is pushed and remote state is verified.
+- Wave 3 ownership: operator-visible lifecycle/runtime behavior; concise actionable Vietnamese operator errors; real-machine browser and native HWND validation; HUE/TCT UI and runtime acceptance; PO runtime/UI validation.
+- Wave 3 guard: this handoff does not authorize Codex implementation for Wave 3.
 
 ## Wave 2 Implementation Result
 
