@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-007`
 - Ticket Name: `Chuan hoa va nang cap kien truc Import`
 - Phase: `Auto Import / Architecture Planning`
-- Current State: `ACTIVE / PLAN ONLY`
-- Technical Status: `PLAN CONSOLIDATED`
+- Current State: `ACTIVE / WAVE 1 IMPLEMENTED`
+- Technical Status: `WAVE 1 TECHNICAL PASS`
 - Runtime Status: `NOT STARTED`
 - PO UI Check Required: `No`
 - PO Product Status: `NOT READY`
-- Current Phase: `PLAN ONLY`
-- Last Reviewed Phase: `DOC-GOV-CLEANUP-001`
-- Last Reviewed Commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
-- Phase Review Status: `PO AUTHORIZED PLAN`
-- Next Phase Authorization: `READY FOR PO IMPLEMENTATION AUTHORIZATION`
+- Current Phase: `ACCELERATED DELIVERY WAVE 1`
+- Last Reviewed Phase: `AUTO-IMPORT-007 WAVE 1`
+- Last Reviewed Commit: `this Wave 1 delivery commit`
+- Phase Review Status: `TECHNICAL PASS`
+- Next Phase Authorization: `READY FOR ACCELERATED DELIVERY WAVE 2 AUTHORIZATION`
 - Activation date: `2026-07-24`
 - Primary executor: `Codex for code/data analysis; Antigravity for runtime/UI analysis`
 
@@ -35,7 +35,9 @@ Required Reading:
 
 Product Owner authorized `AUTO-IMPORT-007` for plan/discovery after `DOC-GOV-CLEANUP-001` technical pass.
 
-Functional source-code changes and implementation are not authorized. Discovery and planning consolidation are complete. Do not modify import execution, browser lifecycle, queue execution, database writes, Dashboard, KPI, or authentication behavior until a later implementation authorization is recorded.
+Product Owner authorized Accelerated Delivery Wave 1 at baseline `dff97ba5ac79551bf18a3125f22ff9689dd761a8`.
+
+Wave 1 implementation scope is complete for shared lifecycle contract/state standardization. Do not modify queue execution, import execution, database writes, Dashboard, KPI, frontend visual behavior, adapter extraction, portal login, or PO runtime validation until a later implementation authorization is recorded.
 
 ## Objective
 
@@ -144,21 +146,22 @@ Each phase must be independently verifiable and separately authorized before exe
 5. Post-`F13_READY` adapter extraction for `HueF13Adapter` and `TctF13Adapter`. Executor: `Codex`.
 6. Metadata/source identity completion and extension readiness for `F1.1`, `F1.2`, and `F4.1`. Executor: `Codex`.
 
-## Proposed First Implementation Phase
+## Wave 1 Implementation Result
 
 - Phase: shared lifecycle contract/state standardization.
-- Proposed executor: `Codex`.
-- Scope: standardize lifecycle contract/state naming and backend-facing state semantics.
+- Executor: `Codex`.
+- Scope: standardized lifecycle contract/state naming and backend-facing state semantics.
+- Result: `TECHNICAL PASS`.
+- Public response compatibility: existing preflight `status` values are preserved; shared lifecycle details are exposed through `lifecycle_state` and `lifecycle`.
 - Exclusions: no UI behavior change, no database behavior change, no portal login, no browser runtime execution, no Dashboard/KPI change.
-- Status: proposed only; implementation remains unauthorized until the Product Owner separately approves it.
+- Commit: `this Wave 1 delivery commit`.
 
 ## Current Status
 
-- AUTO-IMPORT-007 is active in `PLAN ONLY`.
-- No functional code changes are authorized.
+- AUTO-IMPORT-007 Wave 1 is implemented.
 - Discovery inputs are completed and accepted.
 - Six-phase architecture plan is approved.
-- No implementation is authorized.
+- No further implementation is authorized.
 - No portal login is authorized.
 - No PO runtime validation is authorized.
-- Next required action: request Product Owner implementation authorization for Phase 1 only.
+- Next required action: Product Owner authorization decision for Accelerated Delivery Wave 2.

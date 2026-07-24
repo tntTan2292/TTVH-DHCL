@@ -17,22 +17,22 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `PLAN ONLY` |
+| Current Phase | `ACCELERATED DELIVERY WAVE 1` |
 | Current Ticket | `AUTO-IMPORT-007` |
-| Next Ticket | `None authorized beyond AUTO-IMPORT-007 planning` |
+| Next Ticket | `None authorized beyond AUTO-IMPORT-007 Wave 1` |
 | Last PO Status | `DOC-GOV-CLEANUP-001 TECHNICAL PASS` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / PLAN ONLY` |
-| Technical Status | `PLAN CONSOLIDATED` |
+| Current State | `ACTIVE / WAVE 1 IMPLEMENTED` |
+| Technical Status | `WAVE 1 TECHNICAL PASS` |
 | Runtime Status | `NOT STARTED` |
 | PO UI Check Required | `No` |
 | PO Product Status | `NOT READY - AUTO-IMPORT-007 planning active` |
-| Last Reviewed Phase | `DOC-GOV-CLEANUP-001` |
-| Last Reviewed Commit | `366fbe0738a1b1f8d3a5c8753d4930b69a97004f` |
+| Last Reviewed Phase | `AUTO-IMPORT-007 WAVE 1` |
+| Last Reviewed Commit | `this Wave 1 delivery commit` |
 | Phase Review Status | `TECHNICAL PASS` |
-| Next Phase Authorization | `READY FOR PO IMPLEMENTATION AUTHORIZATION` |
+| Next Phase Authorization | `READY FOR ACCELERATED DELIVERY WAVE 2 AUTHORIZATION` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-24` |
 
@@ -68,7 +68,7 @@ Fresh-chat onboarding chain for the active ticket:
 3. `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`
 4. Required Reading from the current manifest
 
-DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 is active in `PLAN ONLY` for `Chuan hoa va nang cap kien truc Import`. Both discovery inputs are completed, the six-phase plan is approved, and implementation remains unauthorized until separate Product Owner approval.
+DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 Wave 1 is implemented for shared DKCL lifecycle contract/state standardization. Further implementation remains unauthorized until separate Product Owner approval for Wave 2.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

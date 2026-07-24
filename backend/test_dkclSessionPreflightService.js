@@ -2,7 +2,8 @@
 
 const assert = require('assert/strict');
 const path = require('path');
-const { DkclSessionPreflightService, PREFLIGHT_STATUSES, SOURCE_CONFIG, globalRegistry } = require('./src/services/dkclSessionPreflightService');
+const { DkclSessionPreflightService, PREFLIGHT_STATUSES, SOURCE_CONFIG, DKCL_LIFECYCLE_STATES, globalRegistry } = require('./src/services/dkclSessionPreflightService');
+const { DKCL_PUBLIC_LIFECYCLE_SEQUENCE } = require('./src/services/dkclLifecycleContract');
 const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClient');
 const browserProcessManager = require('./src/services/browserProcessManager');
 
@@ -39,6 +40,17 @@ function deferred() {
 
 (async () => {
     globalRegistry.clear();
+    console.log('\nTEST 0: shared DKCL lifecycle contract sequence');
+    assert.deepStrictEqual(DKCL_PUBLIC_LIFECYCLE_SEQUENCE, [
+        'SOURCE_SELECTED',
+        'SESSION_CHECK',
+        'OPENING_BROWSER',
+        'WAITING_FOR_LOGIN',
+        'AUTHENTICATED',
+        'F13_OPENING',
+        'F13_READY'
+    ]);
+
     console.log('\nTEST 1: Hue/TCT profile separation and background preflight');
     const calls = [];
     const service = new DkclSessionPreflightService({
@@ -57,6 +69,10 @@ function deferred() {
     const tct = await service.preflight('TCT');
     assert.strictEqual(hue.status, PREFLIGHT_STATUSES.SESSION_VALID, 'Hue valid profile returns SESSION_VALID');
     assert.strictEqual(tct.status, PREFLIGHT_STATUSES.SESSION_VALID, 'TCT valid profile returns SESSION_VALID');
+    assert.strictEqual(hue.lifecycle_state, DKCL_LIFECYCLE_STATES.F13_READY, 'Hue preflight exposes shared F13_READY lifecycle');
+    assert.strictEqual(tct.lifecycle_state, DKCL_LIFECYCLE_STATES.F13_READY, 'TCT preflight exposes shared F13_READY lifecycle');
+    assert.strictEqual(hue.lifecycle.source_page_ready, true, 'Hue lifecycle payload preserves source page readiness');
+    assert.strictEqual(tct.lifecycle.source_page_ready, true, 'TCT lifecycle payload preserves source page readiness');
     assert.notStrictEqual(SOURCE_CONFIG.HUE.defaultProfileDir(), SOURCE_CONFIG.TCT.defaultProfileDir(), 'Hue and TCT profiles are separate');
     assert.strictEqual(calls.filter((call) => call[0] === 'close').length, 2, 'profile locks are released via close');
 
@@ -107,10 +123,11 @@ function deferred() {
     });
     const interactive = await interactiveService.interactiveAuthenticate('TCT');
     assert.strictEqual(interactive.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'interactiveAuthenticate returns LOGIN_IN_PROGRESS once window is confirmed open');
+    assert.strictEqual(interactive.lifecycle_state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'interactiveAuthenticate maps public response to WAITING_FOR_LOGIN');
     assert.strictEqual(interactiveCalls.some((c) => c[0] === 'prepare'), true, 'prepareInteractiveAuthentication is called');
     // Allow background waitInteractiveAuthentication to settle
     await new Promise((r) => setTimeout(r, 50));
-    assert.strictEqual(interactiveService.getRegistryState('TCT').state, 'BACKGROUND_READY', 'background task completes to BACKGROUND_READY');
+    assert.strictEqual(interactiveService.getRegistryState('TCT').state, DKCL_LIFECYCLE_STATES.F13_READY, 'background task completes to F13_READY');
     assert(interactiveCalls.some((call) => call[0] === 'hide'), 'browser hides after login success in background');
     const activePreflight = await interactiveService.preflight('TCT');
     assert.strictEqual(activePreflight.status, PREFLIGHT_STATUSES.SESSION_VALID, 'active browser preflight remains valid without opening another process');
@@ -124,7 +141,8 @@ function deferred() {
         async openF13Report() { redirectedCalls.push(['open-report']); }
     };
     globalRegistry.set('TCT', {
-        state: 'BACKGROUND_READY',
+        state: DKCL_LIFECYCLE_STATES.F13_READY,
+        lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
         client: redirectedClient,
         openingPromise: null,
         authenticated: true,
@@ -145,7 +163,7 @@ function deferred() {
         async close() { openingCalls.push(['close']); }
     };
     globalRegistry.set('TCT', {
-        state: 'OPENING_BROWSER',
+        state: DKCL_LIFECYCLE_STATES.OPENING_BROWSER,
         client: openingClient,
         openingPromise: Promise.resolve(),
         authenticated: false,
@@ -158,6 +176,7 @@ function deferred() {
     const openingService = new DkclSessionPreflightService();
     const openingPreflight = await openingService.preflight('TCT');
     assert.strictEqual(openingPreflight.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'preflight reports explicit in-progress status while opening');
+    assert.strictEqual(openingPreflight.lifecycle_state, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, 'opening preflight exposes shared OPENING_BROWSER lifecycle');
     assert.strictEqual(openingService.getInteractiveClient('TCT'), openingClient, 'preflight preserves opening client');
     assert.deepStrictEqual(openingCalls, [], 'preflight does not restore, open report, or close during opening state');
 
@@ -188,6 +207,7 @@ function deferred() {
     assert.strictEqual(lifecycleService.getInteractiveClient('TCT'), lifecycleClient, 'persistent client is retained while login is waiting');
     const waitingPreflight = await lifecycleService.preflight('TCT');
     assert.strictEqual(waitingPreflight.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'preflight reports explicit in-progress status while waiting');
+    assert.strictEqual(waitingPreflight.lifecycle_state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'waiting preflight exposes shared WAITING_FOR_LOGIN lifecycle');
     assert.strictEqual(lifecycleService.getInteractiveClient('TCT'), lifecycleClient, 'preflight preserves waiting client');
     assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'close').length, 0, 'preflight does not close waiting client');
     assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'open-report').length, 0, 'preflight does not open F1.3 report while waiting');
@@ -201,12 +221,13 @@ function deferred() {
     waitForLogin.resolve();
     await new Promise((r) => setTimeout(r, 50));
     assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'hide').length, 1, 'hide is called once after confirmed authentication');
-    assert.strictEqual(lifecycleService.getRegistryState('TCT').state, 'BACKGROUND_READY', 'authenticated client transitions to background ready');
+    assert.strictEqual(lifecycleService.getRegistryState('TCT').state, DKCL_LIFECYCLE_STATES.F13_READY, 'authenticated client transitions to F13_READY');
 
     console.log('\nTEST 6: hide failure and manual close preserve source-keyed lifecycle');
     globalRegistry.clear();
     globalRegistry.set('HUE', {
-        state: 'BACKGROUND_READY',
+        state: DKCL_LIFECYCLE_STATES.F13_READY,
+        lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
         client: { marker: 'hue' },
         openingPromise: null,
         authenticated: true,
@@ -232,7 +253,7 @@ function deferred() {
     assert.strictEqual(hideFailureResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'interactiveAuthenticate returns LOGIN_IN_PROGRESS after window open');
     // Wait for background task to settle with hide failure
     await new Promise((r) => setTimeout(r, 50));
-    assert.strictEqual(hideFailureService.getRegistryState('TCT').state, 'BACKGROUND_READY', 'hide failure still reaches BACKGROUND_READY state');
+    assert.strictEqual(hideFailureService.getRegistryState('TCT').state, DKCL_LIFECYCLE_STATES.F13_READY, 'hide failure still reaches F13_READY state');
     assert.strictEqual(hideFailureService.getRegistryState('TCT').windowHidden, false, 'failed hide is not recorded as successful');
     assert.strictEqual(hideFailureService.getRegistryState('TCT').hideAttempted, true, 'hide failure is still recorded as attempted once');
     assert.strictEqual(hideFailureCalls.filter((call) => call[0] === 'close').length, 0, 'hide failure does not close browser');

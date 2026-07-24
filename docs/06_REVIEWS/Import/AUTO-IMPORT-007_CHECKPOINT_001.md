@@ -4,19 +4,19 @@
 
 - Ticket: `AUTO-IMPORT-007`
 - Ticket name: `Chuan hoa va nang cap kien truc Import`
-- Phase: `PLAN ONLY`
-- Current state: `ACTIVE / PLAN ONLY`
-- Technical status: `PLAN CONSOLIDATED`
+- Phase: `ACCELERATED DELIVERY WAVE 1`
+- Current state: `ACTIVE / WAVE 1 IMPLEMENTED`
+- Technical status: `WAVE 1 TECHNICAL PASS`
 - Runtime status: `NOT STARTED`
 - PO product status: `NOT READY`
 - Latest verified DOC-GOV-CLEANUP-001 technical pass commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
-- Authority: `PO authorized AUTO-IMPORT-007 plan/discovery after DOC-GOV-CLEANUP-001 technical pass; implementation remains unauthorized`
+- Authority: `PO authorized AUTO-IMPORT-007 Wave 1 implementation at baseline dff97ba5ac79551bf18a3125f22ff9689dd761a8; further implementation remains unauthorized`
 
 ## Scope Lock
 
 This checkpoint records the AUTO-IMPORT-007 plan locks and reactivation after DOC-GOV-CLEANUP-001 technical pass.
 
-Discovery and planning consolidation are complete. Do not implement functional code, rewrite import flows, alter browser lifecycle behavior, change database writes, perform portal login, run PO runtime validation, or modify Dashboard/KPI/authentication behavior until a later implementation authorization is recorded.
+Discovery and planning consolidation are complete. Wave 1 implementation is limited to shared lifecycle contract/state standardization. Do not rewrite import flows, redesign queue/import execution, change database writes, perform portal login, run PO runtime validation, modify frontend visual behavior, or modify Dashboard/KPI behavior until a later implementation authorization is recorded.
 
 ## Plan Locks
 
@@ -93,19 +93,23 @@ Both discovery inputs are completed and accepted by the Product Owner.
 5. Post-`F13_READY` adapter extraction for `HueF13Adapter` and `TctF13Adapter`: Codex.
 6. Metadata/source identity completion and extension readiness for `F1.1`, `F1.2`, and `F4.1`: Codex.
 
-## Proposed First Phase
+## Wave 1 Implementation Result
 
 - Phase: shared lifecycle contract/state standardization.
 - Executor: `Codex`.
 - Scope: contract/state alignment only.
+- Result: `TECHNICAL PASS`.
+- Public response compatibility: existing preflight `status` values remain preserved for current API consumers; explicit lifecycle details are exposed through `lifecycle_state` and `lifecycle`.
 - Exclusions: no UI behavior change, no database behavior change, no portal login, no runtime/browser execution, no Dashboard/KPI change.
-- Status: proposed only; implementation remains unauthorized until separately approved.
+- Validation: `node backend/test_dkclSessionPreflightService.js` PASS; `node backend/test_browserProfileLock.js` PASS; `node frontend/src/pages/dataImportHueSelection.test.js` PASS; controller syntax checks PASS.
+- Out-of-scope signal: `node frontend/src/pages/dataImportTctScan.test.js` currently fails an existing source assertion for TCT `LOGIN_IN_PROGRESS` frontend handling; frontend visual/behavior changes are excluded from Wave 1 and require separate authorization if PO wants it handled.
+- Commit: `this Wave 1 delivery commit`.
 
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-007`.
-- Current phase: `PLAN ONLY`.
+- Current phase: `ACCELERATED DELIVERY WAVE 1`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`.
-- Next action: Product Owner implementation authorization decision for Phase 1.
-- No code implementation is authorized.
+- Next action: Product Owner authorization decision for Accelerated Delivery Wave 2.
+- No further code implementation is authorized.
