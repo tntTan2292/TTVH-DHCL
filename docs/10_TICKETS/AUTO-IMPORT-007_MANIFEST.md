@@ -166,3 +166,4 @@ Each phase must be independently verifiable and separately authorized before exe
 - No portal login is authorized.
 - No PO runtime validation is authorized.
 - Next required action: Product Owner authorization decision for Accelerated Delivery Wave 2.
+- Fresh-chat condition: Accelerated Delivery Wave 2 must begin in a fresh Codex conversation after this Governance commit is pushed and remote state is verified.

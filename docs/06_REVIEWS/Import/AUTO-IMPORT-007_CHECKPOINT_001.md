@@ -112,4 +112,5 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`.
 - Next action: Product Owner authorization decision for Accelerated Delivery Wave 2.
+- Fresh-chat condition: Accelerated Delivery Wave 2 must begin in a fresh Codex conversation after this Governance commit is pushed and remote state is verified.
 - No further code implementation is authorized.

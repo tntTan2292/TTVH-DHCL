@@ -254,6 +254,12 @@ Product Owner must:
 
 ## 11. Handover Rules
 
+One conversation serves one ticket or one major delivery wave. Continue remediation and validation for the same bounded ticket or wave in the current conversation. Start a new conversation for a new ticket, a new major wave, or materially different work scope.
+
+ChatGPT, Codex, and Antigravity must proactively warn the Product Owner when the current conversation is excessively long, contains multiple completed phases, or risks mixing obsolete and current authority. Each executor must clearly state when the current conversation should end and a fresh one should begin.
+
+Before changing conversations, update required repository evidence, commit, push, and verify the remote state. Do not open a new conversation to bypass unfinished work, failures, dirty workspace, locks, or a wrong branch.
+
 When moving to a new ChatGPT session, it must read:
 
 1. [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
@@ -266,6 +272,8 @@ When moving to a new ChatGPT session, it must read:
 8. [docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md) when protocol details are needed
 
 The new session must not rely on chat memory as the source of truth.
+Repository Governance is authoritative; conversation history is temporary working context. Do not copy full historical conversations into a new session.
+Carry only repository, branch, active ticket or wave, and Product Owner decisions not yet stored in the repository.
 Governance V1 remains the fallback authority path when the manifest requires it or when authority conflicts need escalation.
 
 ## 12. Golden Rules
