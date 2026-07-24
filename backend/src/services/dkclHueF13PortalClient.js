@@ -224,7 +224,6 @@ class DkclHueF13PortalClient {
     async restoreWindow() {
         let success = true;
         if (this.profileDir) {
-            const processManager = require('./browserProcessManager').defaultInstance;
             const res = await processManager.showBrowserWindowsByProfile(this.profileDir).catch(() => null);
             if (!res || (!res.success && res.matchedWindowCount === 0)) {
                 success = false;

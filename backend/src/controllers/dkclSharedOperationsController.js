@@ -22,16 +22,18 @@ class DkclSharedOperationsController {
                 data: result
             });
         } catch (error) {
+            console.error('[preflight] Error details:', error);
+            const isKnown = error.code && error.code !== 'Error';
             return res.status(400).json({
                 success: false,
                 error: {
                     code: error.code || 'SESSION_PREFLIGHT_REJECTED',
-                    message: error.message || 'Invalid DKCL session preflight request.'
+                    message: isKnown ? error.message : 'Kiểm tra phiên đăng nhập thất bại. Vui lòng kiểm tra lại cấu hình và nhật ký hệ thống.'
                 }
             });
         }
     }
-
+ 
     async interactiveAuthenticate(req, res) {
         try {
             const result = await sessionPreflightService.interactiveAuthenticate(req.body?.source || req.query?.source);
@@ -41,21 +43,24 @@ class DkclSharedOperationsController {
                 data: result
             });
         } catch (error) {
+            console.error('[interactiveAuthenticate] Error details:', error);
+            const isKnown = error.code && error.code !== 'Error';
             return res.status(400).json({
                 success: false,
                 error: {
                     code: error.code || 'INTERACTIVE_AUTH_REJECTED',
-                    message: error.message || 'Invalid DKCL interactive authentication request.'
+                    message: isKnown ? error.message : 'Yêu cầu đăng nhập tương tác thất bại. Vui lòng kiểm tra lại trình duyệt và nhật ký hệ thống.'
                 }
             });
         }
     }
-
+ 
     async cancelLogin(req, res) {
         try {
             const result = await sessionPreflightService.cancelInteractiveLogin(req.body?.source || req.query?.source);
             return res.status(200).json({ success: true, data: result });
         } catch (error) {
+            console.error('[cancelLogin] Error details:', error);
             return res.status(400).json({
                 success: false,
                 error: {

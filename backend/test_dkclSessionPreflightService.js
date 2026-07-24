@@ -383,6 +383,24 @@ function deferred() {
     assert.strictEqual(cancelService.getInteractiveClient('HUE'), null, 'HUE interactive client is cleared');
     assert.strictEqual(cancelService.getRegistryState('TCT').client, null, 'TCT client remains unaffected');
 
+    console.log('\nTEST 13: restoreWindow processManager resolution verification');
+    const client = new DkclHueF13PortalClient({
+        source: 'HUE',
+        playwright: {}
+    });
+    client.profileDir = 'tmp/HUE_TEST_DIR';
+    const originalShow = browserProcessManager.showBrowserWindowsByProfile;
+    let showCalledWith = null;
+    browserProcessManager.showBrowserWindowsByProfile = async (profileDir) => {
+        showCalledWith = profileDir;
+        return { success: true, matchedWindowCount: 1 };
+    };
+    client.setWindowState = async () => true;
+    const restoreResult = await client.restoreWindow();
+    assert.strictEqual(restoreResult, true, 'restoreWindow executes successfully');
+    assert.strictEqual(showCalledWith, 'tmp/HUE_TEST_DIR', 'showBrowserWindowsByProfile was called with the correct profile dir');
+    browserProcessManager.showBrowserWindowsByProfile = originalShow;
+
     console.log('\nRESULT: dkclSessionPreflightService checks passed');
 })().catch((error) => {
     console.error(error);
