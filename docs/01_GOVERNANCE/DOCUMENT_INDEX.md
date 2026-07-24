@@ -1,232 +1,123 @@
 # DOCUMENT INDEX
 
-## Table of Contents
+## Purpose
 
-- [1. Core](#1-core)
-- [2. Architecture](#2-architecture)
-- [3. UX](#3-ux)
-- [4. Technical Planning](#4-technical-planning)
-- [5. Development](#5-development)
-- [6. Governance](#6-governance)
-- [7. Handover](#7-handover)
-- [8. Reviews](#8-reviews)
-- [9. Reference](#9-reference)
-- [10. Archive](#10-archive)
-- [11. Reports](#11-reports)
+This index is metadata only. It does not delete, move, merge, or replace historical documents.
 
-## Index Legend
+Use this file to understand which documents are active in fresh onboarding, which documents are conditional references, and which documents are archive/history.
 
-| Field | Meaning |
+## Status Legend
+
+| Status | Meaning |
 | --- | --- |
-| Status | Draft / Active / Frozen / Deprecated / Archived |
-| Authority Level | L1 = Source of Truth, L2 = Project Control, L3 = Planning, L4 = Reference |
-| Read Priority | 1 = must read first |
-| Update Frequency | Low / Medium / High |
+| Active Onboarding | Part of the fresh onboarding chain. |
+| Current Required Reading | Read only when named by the current manifest/checkpoint. |
+| Conditional Reference | Read only when the active ticket explicitly needs that domain, history, SSOT, design, or evidence. |
+| Archive | Preserved history; do not use as current authority unless explicitly cited by an active document. |
 
-### Authority Resolution Rule
+## Authority Legend
 
-If two documents conflict, always prefer the document with the higher Authority Level.
-If Authority Level is the same, use the lifecycle priority defined in `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md`.
+| Authority | Meaning |
+| --- | --- |
+| L1 | Business or governance source of truth. |
+| L2 | Current project/ticket control. |
+| L3 | Planning, architecture, implementation, or evidence authority within a scoped area. |
+| L4 | Reference, historical, archive, report, or supporting material. |
 
-## 1. Core
+## Fresh Onboarding
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/PROJECT_SSOT.md` | Core | Single source of truth for decisions | Frozen | L1 | 1 | Low | `PROJECT_STATUS.md`, `PROJECT_PROGRESS.md`, all frozen docs |
-| `PROJECT_STATUS.md` | Core | Live project status log | Active | L2 | 1 | Medium | `PROJECT_PROGRESS.md`, `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` |
-| `PROJECT_PROGRESS.md` | Core | Live progress tracker | Active | L2 | 1 | Medium | `PROJECT_STATUS.md`, `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` |
-| `docs/02_ARCHITECTURE/QIS_V2_ARCHITECTURE.md` | Core | Project architecture baseline | Frozen | L2 | 2 | Low | cross-center, UX, planning docs |
+Fresh onboarding must contain at most these `5` steps:
 
-## 2. Architecture
+| Step | Path | Purpose | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | `README_AI.md` | External entry point and onboarding route. | L2 | Active Onboarding | Every fresh AI/chat session. | Mandatory |
+| 2 | `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | First-prompt gate and executor prompt standard. | L2 | Active Onboarding | Before writing the first Codex/Antigravity execution prompt. | Mandatory |
+| 3 | `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Current project/ticket state and active manifest pointer. | L2 | Active Onboarding | After Prompt Standard. | Mandatory |
+| 4 | Current Manifest from `PROJECT_SNAPSHOT.md` | Current ticket authority, scope, exclusions, and required reading. | L2 | Active Onboarding | After Snapshot. | Mandatory |
+| 5 | Required Reading named by Current Manifest | Scoped ticket evidence/checkpoint/reference documents. | L2/L3 | Current Required Reading | Only when the current manifest names it. | Mandatory for current ticket only |
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/02_ARCHITECTURE/CROSS_CENTER_INTERACTION_ARCHITECTURE.md` | Architecture | Cross-center navigation and context rules | Frozen | L3 | 2 | Low | center IA docs |
-| `docs/02_ARCHITECTURE/BCVH/BCVH_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | BCVH information structure | Frozen | L3 | 2 | Low | BCVH widget/screen/UX docs |
-| `docs/02_ARCHITECTURE/ROUTE/ROUTE_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Route information structure | Frozen | L3 | 2 | Low | Route widget/screen/UX docs |
-| `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Shipment information structure | Frozen | L3 | 2 | Low | Shipment widget/screen/UX docs |
-| `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Evidence information structure | Frozen | L3 | 2 | Low | Evidence widget/screen/UX docs |
-| `docs/02_ARCHITECTURE/ACTION/ACTION_CENTER_INFORMATION_ARCHITECTURE.md` | Architecture | Action information structure | Frozen | L3 | 2 | Low | Action widget/screen/UX docs |
-| `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md` | Architecture | Implementation bridge to development | Frozen | L2 | 2 | Low | release/epic/feature/backlog |
+Current ticket at cleanup time:
 
-## 3. UX
+- Current ticket: `DOC-GOV-CLEANUP-001`.
+- Current manifest: `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md`.
+- Current checkpoint: `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md`.
+- Next queued ticket: `AUTO-IMPORT-007`.
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/03_UX/shared/QIS_UX_DESIGN_PRINCIPLES.md` | UX | Global UX principles | Frozen | L3 | 2 | Low | design system, screen docs |
-| `docs/03_UX/shared/QIS_DESIGN_SYSTEM.md` | UX | Shared design system | Frozen | L3 | 2 | Low | screen docs, widget docs |
-| `docs/03_UX/bcvh/BCVH_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | BCVH UX architecture | Frozen | L3 | 3 | Low | BCVH IA/screen/widget docs |
-| `docs/03_UX/route/ROUTE_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | Route UX architecture | Frozen | L3 | 3 | Low | Route IA/screen/widget docs |
-| `docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` | UX | Shipment UX architecture | Frozen | L3 | 3 | Low | Shipment IA/screen/widget docs |
-| `docs/03_UX/evidence/EVIDENCE_CENTER_UX_ARCHITECTURE.md` | UX | Evidence UX architecture | Frozen | L3 | 3 | Low | Evidence IA/screen/widget docs |
-| `docs/03_UX/action/ACTION_CENTER_UX_ARCHITECTURE.md` | UX | Action UX architecture | Frozen | L3 | 3 | Low | Action IA/screen/widget docs |
-| `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` | UX | UX freeze review | Frozen | L2 | 3 | Low | all UX docs |
+## Docs Inventory
 
-## 4. Technical Planning
+Inventory count before cleanup and after metadata cleanup must match unless a future commit creates a new governance metadata file.
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/04_TECHNICAL_PLANNING/Release/RELEASE_PLANNING.md` | Technical Planning | Release sequencing | Frozen | L3 | 3 | Low | epic/feature planning |
-| `docs/04_TECHNICAL_PLANNING/Epic/EPIC_PLANNING.md` | Technical Planning | Epic breakdown | Frozen | L3 | 3 | Medium | release/feature/backlog |
-| `docs/04_TECHNICAL_PLANNING/Feature/FEATURE_PLANNING.md` | Technical Planning | Feature breakdown | Frozen | L3 | 3 | Medium | epic/backlog |
-| `docs/04_TECHNICAL_PLANNING/Backlog/DEVELOPMENT_BACKLOG.md` | Technical Planning | Development ticket queue | Frozen | L3 | 3 | High | feature/implementation docs |
-| `docs/04_TECHNICAL_PLANNING/Implementation/IMPLEMENTATION_ARCHITECTURE.md` | Technical Planning | Implementation structure | Frozen | L2 | 2 | Low | release/epic/feature/backlog |
-| `docs/04_TECHNICAL_PLANNING/Dashboard/SMART_DASHBOARD_IMPLEMENTATION_PLAN.md` | Technical Planning | Approved consolidated smart Dashboard architecture and implementation constraints | Active | L2 | 1 | High | DASHBOARD-AUDIT-001, DA implementation register, DA manifests |
-| `docs/04_TECHNICAL_PLANNING/Dashboard/DA_IMPLEMENTATION_TICKET_REGISTER.md` | Technical Planning | Authoritative DA implementation sequence and activation status | Active | L2 | 1 | High | smart Dashboard plan, PROJECT_SNAPSHOT.md, DA manifests |
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Governance | Prompt gate, single-defect remediation, executor selection, and prompt rules. | L2 | Active Onboarding | Every fresh session before first execution prompt. | Mandatory |
+| `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Governance | Current project/ticket SSOT and manifest/checkpoint pointers. | L2 | Active Onboarding | Every fresh session. | Mandatory |
+| `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md` | Ticket Manifest | Current DOC-GOV-CLEANUP-001 scope and authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md` | Checkpoint | Current cleanup checkpoint, scope lock, and preservation gates. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | Governance Index | Inventory and document-status metadata. | L2 | Current Required Reading | Governance cleanup, documentation audit, or authority conflict checks. | High |
+| `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Governance | Document governance and authority rules. | L1 | Conditional Reference | Governance-rule conflict or document lifecycle questions. | High |
+| `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | Governance | Document state transitions. | L2 | Conditional Reference | Only when lifecycle semantics are disputed. | Medium |
+| `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | Governance | Event-to-document update matrix. | L2 | Conditional Reference | Only when deciding which docs an event must update. | Medium |
+| `docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md` | Governance | Documentation workflow standard. | L2 | Conditional Reference | Only when writing or reviewing documentation workflow. | Medium |
+| `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md` | Governance | PO UI acceptance and Product Owner validation workflow. | L2 | Conditional Reference | UI-visible change, PO checklist, or acceptance dispute. | Medium |
+| `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Governance | AI coordination protocol. | L2 | Conditional Reference | Coordination/protocol conflict only. | Medium |
+| `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Governance | Decision log. | L1 | Conditional Reference | Decision or authority dispute. | High |
+| `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Handover | Older handover/context material. | L2 | Conditional Reference | Only when current Snapshot/Manifest cannot answer continuity context. | Low |
+| `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Handover | Older project context material. | L2 | Conditional Reference | Only when requested by active manifest or missing context. | Low |
+| `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Handover | Legacy startup prompt. | L2 | Archive | Historical prompt reference only. | Low |
+| `docs/01_GOVERNANCE/GOVERNANCE_V2_DESIGN.md` | Governance | Governance V2 design notes. | L3 | Conditional Reference | Governance redesign work only. | Low |
+| `docs/01_GOVERNANCE/DOCUMENT_RESPONSIBILITY_MIGRATION.md` | Governance | Responsibility migration notes. | L3 | Archive | Historical governance migration reference. | Low |
+| `docs/PROJECT_SSOT.md` | Business SSOT | Frozen business decisions and SSOT. | L1 | Conditional Reference | Business-rule or SSOT conflict only. | High |
+| `PROJECT_STATUS.md` | Project Control | Legacy/live status log outside `docs`. | L2 | Conditional Reference | Explicit status-history lookup only. | Medium |
+| `PROJECT_PROGRESS.md` | Project Control | Progress tracker outside `docs`. | L2 | Conditional Reference | Progress/history lookup or mandated update. | Medium |
+| `docs/02_ARCHITECTURE/**` | Architecture | Frozen architecture baselines by center/domain. | L2/L3 | Conditional Reference | Architecture-impacting work only. | Medium |
+| `docs/03_UX/**` | UX | Frozen UX and design-system baselines. | L3 | Conditional Reference | UX/design-impacting work only. | Medium |
+| `docs/04_TECHNICAL_PLANNING/**` | Technical Planning | Implementation plans, registers, backlog, release/epic/feature plans. | L2/L3 | Conditional Reference | Planning or ticket sequencing work only. | Medium |
+| `docs/05_DEVELOPMENT/**` | Development Reference | API, database, deployment, and F1.3 technical references. | L3/L4 | Conditional Reference | Implementation planning or technical discovery only. | Medium |
+| `docs/06_REVIEWS/Governance/**` | Governance Reviews | Governance cleanup checkpoints and evidence. | L2/L3 | Current Required Reading | Only for active governance cleanup tickets. | High |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md` | Import Checkpoint | Queued AUTO-IMPORT-007 plan locks. | L2 | Conditional Reference | Only after DOC-GOV-CLEANUP-001 releases AUTO-IMPORT-007. | High later |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md` | Import Checkpoint | Final AUTO-IMPORT-006 import cleanup and bulk-selection evidence. | L2 | Conditional Reference | AUTO-IMPORT history or handoff evidence only. | Medium |
+| `docs/06_REVIEWS/**` | Reviews and Evidence | Ticket reviews, PO checklists, runtime evidence, screenshots, checkpoints. | L2/L3/L4 | Conditional Reference | Only when current manifest names specific evidence. | Medium |
+| `docs/07_REFERENCE/Shared_Business/**` | Business Reference | Shared terminology, KPI framework, notifications, import-center rules. | L4 | Conditional Reference | Business terminology/reference lookup only. | Medium |
+| `docs/07_REFERENCE/Domains/**` | Domain Reference | Domain knowledge packs and templates. | L4 | Conditional Reference | Domain-specific analysis only. | Medium |
+| `docs/07_REFERENCE/Legacy/**` | Legacy Reference | Legacy v1 design/API/database/spec documents. | L4 | Archive | Historical comparison only. | Low |
+| `docs/08_ARCHIVE/**` | Archive | Archived legacy README, rules, and AI context. | L4 | Archive | Historical reference only. | Low |
+| `docs/09_REPORTS/**` | Reports Archive | Prior documentation/governance audit and migration reports. | L4 | Archive | Historical report lookup only. | Low |
+| `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md` | Manifest | Current governance cleanup ticket. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md` | Manifest | Queued import architecture plan locks. | L2 | Conditional Reference | Only after DOC-GOV-CLEANUP-001 releases AUTO-IMPORT-007. | High later |
+| `docs/10_TICKETS/**` | Manifests | Historical/completed/planned ticket manifests. | L2/L3 | Conditional Reference | Only when current Snapshot/Manifest names that ticket. | Medium |
+| `docs/*_WIDGET_SPECIFICATION.md` | Widget Specs | Frozen widget specifications. | L3 | Conditional Reference | Widget-impacting work only. | Medium |
+| `docs/*REPORT*.md`, `docs/*VALIDATION*.md`, `docs/*CLASSIFICATION*.md` | Root Reports | Prior cleanup/governance/validation reports. | L4 | Archive | Historical report lookup only. | Low |
 
-## 5. Development
+## Folder Count Inventory
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Development | High-level project handover | Active | L2 | 1 | Medium | context/protocol/decisions |
-| `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Development | Project context for new sessions | Active | L2 | 1 | Medium | handover/protocol/decisions |
-| `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Governance | Live project-state SSOT for Governance V2 onboarding | Active | L2 | 1 | High | README_AI.md, ticket manifests |
-| `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Development | Collaboration protocol, mandatory response format, and post-review remediation loop | Active | L2 | 1 | Medium | handover/context/decisions/prompt standard |
-| `docs/01_GOVERNANCE/PO_UI_ACCEPTANCE_WORKFLOW.md` | Governance | PO UI acceptance workflow and active-ticket remediation gate | Active | L2 | 1 | Medium | prompt standard, findings register, AI collaboration protocol |
-| `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Development | Immutable decision log | Active | L1 | 1 | Medium | handover/context/protocol |
-| `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Development | Start prompt for new ChatGPT sessions | Active | L2 | 1 | Medium | handover/context/protocol/decisions |
-| `docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md` | Governance | Codex documentation workflow standard | Active | L2 | 1 | Medium | README_AI.md, PROJECT_SNAPSHOT.md, manifests |
-| `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Governance | Canonical Codex ticket lifecycle, mandatory response format, and remediation prompt standard | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, manifests, AI collaboration protocol |
-| `docs/01_GOVERNANCE/GOVERNANCE_V2_DESIGN.md` | Governance | Governance V2 onboarding design and compatibility plan | Active | L2 | 2 | Medium | PROJECT_SNAPSHOT.md, ticket manifests, onboarding docs |
+| Category | File Count | Markdown | Other | Status |
+| --- | ---: | ---: | ---: | --- |
+| Governance | 15 | 15 | 0 | Active/Conditional Reference/Archive by row above |
+| Architecture | 12 | 12 | 0 | Conditional Reference |
+| UX | 7 | 7 | 0 | Conditional Reference |
+| Technical Planning | 7 | 7 | 0 | Conditional Reference |
+| Development Reference | 4 | 4 | 0 | Conditional Reference |
+| Reviews and Evidence | 128 | 98 | 30 | Conditional Reference |
+| Conditional Reference | 45 | 41 | 4 | Conditional Reference/Archive |
+| Archive | 9 | 9 | 0 | Archive |
+| Reports Archive | 21 | 21 | 0 | Archive |
+| Ticket Manifests | 37 | 37 | 0 | Conditional Reference |
+| Root Legacy/Frozen Docs | 21 | 21 | 0 | Conditional Reference/Archive |
+| Total under `docs` | 306 | 272 | 34 | Preserved |
 
-## 6. Governance
+## Duplicate Content Notes
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Governance | Document governance rules and post-review remediation authority | Active | L1 | 1 | Low | index/lifecycle/matrix/prompt standard |
-| `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | Governance | Document state transitions | Active | L2 | 1 | Low | governance/update matrix |
-| `docs/01_GOVERNANCE/DOCUMENT_UPDATE_MATRIX.md` | Governance | Event-to-document update matrix including prompt/protocol remediation dependencies | Active | L2 | 1 | Medium | governance/lifecycle/prompt standard |
-| `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | Governance | Repository TOC | Active | L2 | 1 | Medium | all docs |
+Exact duplicate scan found only empty placeholder files:
 
-## 7. Handover
+- `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/assets/.gitkeep`
+- `docs/07_REFERENCE/Domains/_template_indicator/assets/.gitkeep`
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/01_GOVERNANCE/PROJECT_HANDOVER.md` | Handover | High-level project transfer document | Active | L2 | 1 | Medium | context/decisions/protocol |
-| `docs/01_GOVERNANCE/PROJECT_CONTEXT.md` | Handover | Full project context | Active | L2 | 1 | Medium | handover/protocol/decisions |
-| `docs/01_GOVERNANCE/AI_COLLABORATION_PROTOCOL.md` | Handover | AI coordination rules | Active | L2 | 1 | Medium | handover/context/decisions |
-| `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Handover | Standard prompt and three-part response structure for future AI tickets | Active | L2 | 1 | Medium | handover/context/protocol |
-| `docs/01_GOVERNANCE/PROJECT_DECISIONS.md` | Handover | Frozen decision log | Active | L1 | 1 | Medium | handover/context/protocol |
-| `docs/01_GOVERNANCE/MASTER_START_PROMPT.md` | Handover | New chat startup prompt | Active | L2 | 1 | Medium | all handover docs |
+Recommendation only: keep both placeholders because they preserve separate directory structures. Do not merge or delete in this ticket.
 
-## 8. Reviews
+## Authority Resolution
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/06_REVIEWS/Dashboard/DASHBOARD_FOUNDATION_REVIEW.md` | Reviews | Dashboard review result | Frozen | L3 | 2 | Low | Dashboard docs |
-| `docs/06_REVIEWS/BCVH/BCVH_PERFORMANCE_CENTER_REVIEW.md` | Reviews | BCVH review result | Frozen | L3 | 2 | Low | BCVH docs |
-| `docs/06_REVIEWS/Route/ROUTE_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Route review result | Frozen | L3 | 2 | Low | Route docs |
-| `docs/06_REVIEWS/Shipment/SHIPMENT_PERFORMANCE_CENTER_REVIEW.md` | Reviews | Shipment review result | Frozen | L3 | 2 | Low | Shipment docs |
-| `docs/06_REVIEWS/Import/TODAY-001_PO_ACCEPTANCE_CLOSURE.md` | Reviews | Import PO acceptance closure evidence | Active | L2 | 1 | Low | PO findings register, Import recovery evidence |
-| `docs/06_REVIEWS/Import/TODAY-001-R1_IMPORT_RUNTIME_ROUTE_AND_REIMPORT_RECOVERY.md` | Reviews | Import runtime route and reimport recovery evidence | Active | L3 | 2 | Low | PO findings register |
-| `docs/06_REVIEWS/Import/TODAY-001-R2_IMPORT_HISTORY_PAGINATION_AND_VIETNAM_TIMEZONE_RECOVERY.md` | Reviews | Import history pagination and Vietnam timezone recovery evidence | Active | L3 | 2 | Low | PO findings register |
-| `docs/06_REVIEWS/Import/TODAY-002_DAILY_TREND_DATA_ADAPTER_REVIEW.md` | Reviews | TODAY-002 daily trend data adapter review evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
-| `docs/06_REVIEWS/Import/TODAY-002-R1_KPI_2026_SOURCE_COLUMN_RECOVERY.md` | Reviews | TODAY-002-R1 KPI 2026 source column recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
-| `docs/06_REVIEWS/Import/TODAY-002-R2_KPI_2026_DASHBOARD_CONSISTENCY_RECOVERY.md` | Reviews | TODAY-002-R2 KPI 2026 dashboard consistency recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
-| `docs/06_REVIEWS/Import/TODAY-003-R1_QUALITY_TRENDLINE_RUNTIME_ROUTE_RECOVERY.md` | Reviews | TODAY-003-R1 quality trendline runtime route recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
-| `docs/06_REVIEWS/Import/TODAY-003-R1_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-003-R1 PO acceptance checklist | Active | L2 | 1 | Low | PO acceptance workflow, review evidence |
-| `docs/06_REVIEWS/Import/TODAY-003-R2_QUALITY_TRENDLINE_30_DAY_WINDOW_RECOVERY.md` | Reviews | TODAY-003-R2 quality trendline 30-day window recovery evidence | Active | L2 | 1 | Low | PO findings register, project control docs |
-| `docs/06_REVIEWS/Import/TODAY-003-R2_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-003-R2 PO acceptance checklist | Active | L2 | 1 | Low | PO acceptance workflow, review evidence |
-| `docs/06_REVIEWS/Shared/PO_ACCEPTANCE_CHECKLIST_TEMPLATE.md` | Reviews | Shared PO acceptance checklist template | Active | L2 | 2 | Low | PO acceptance workflow, ticket checklists |
-| `docs/10_TICKETS/MANIFEST_TEMPLATE.md` | Reviews | Ticket manifest template for V2 onboarding | Active | L2 | 2 | Medium | PROJECT_SNAPSHOT.md, ticket manifests |
-| `docs/10_TICKETS/TODAY-003-R1_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-003-R1 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/10_TICKETS/TODAY-003-R2_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-003-R2 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/10_TICKETS/TODAY-004_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/10_TICKETS/TODAY-004-R1_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004-R1 combo trendline recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/10_TICKETS/TODAY-004-R2_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004-R2 BCVH filter and combo trendline recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/10_TICKETS/TODAY-004-R3_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-004-R3 canonical BCVH options runtime recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/10_TICKETS/TODAY-005_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-005 same-period comparison trendline | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/10_TICKETS/GOV-V2-014_MANIFEST.md` | Reviews | Current ticket manifest for GOV-V2-014 | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/06_REVIEWS/Import/TODAY-004_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, remediation report |
-| `docs/06_REVIEWS/Import/TODAY-004_ACTIVE_MANIFEST_REMEDIATION.md` | Reviews | TODAY-004 active manifest remediation report | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, manifest |
-| `docs/06_REVIEWS/Import/TODAY-004-R1_QUALITY_AND_VOLUME_COMBO_TRENDLINE_RECOVERY.md` | Reviews | TODAY-004-R1 combo trendline recovery evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-004-R1_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004-R1 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/06_REVIEWS/Import/TODAY-004-R2_BCVH_FILTER_AND_COMBO_TRENDLINE_RECOVERY.md` | Reviews | TODAY-004-R2 BCVH filter and combo trendline recovery evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-004-R2_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004-R2 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/06_REVIEWS/Import/TODAY-004-R3_CANONICAL_BCVH_OPTIONS_RUNTIME_RECOVERY.md` | Reviews | TODAY-004-R3 canonical BCVH options runtime recovery evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-004-R3_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-004-R3 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/06_REVIEWS/Import/TODAY-005_SAME_PERIOD_COMPARISON_TRENDLINE.md` | Reviews | TODAY-005 same-period comparison trendline implementation/review evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-005_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-005 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/06_REVIEWS/Import/TODAY-006_RESTORE_AND_PRESERVE_EXISTING_DASHBOARD_CHARTS.md` | Reviews | TODAY-006 dashboard restoration implementation/review evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-006_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/06_REVIEWS/Import/TODAY-006-R1_RUNTIME_KPI_AND_STABLE_DASHBOARD_SURFACES_RECOVERY.md` | Reviews | TODAY-006-R1 runtime KPI and stable dashboard recovery evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-006-R1_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006-R1 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/06_REVIEWS/Import/TODAY-006-R2_AGGREGATE_KPI_CONTEXT_AND_RUNTIME_VALIDATION_RECOVERY.md` | Reviews | TODAY-006-R2 aggregate KPI context recovery evidence | Active | L2 | 1 | High | PO findings register, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-006-R2_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006-R2 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/TODAY-006-R3_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-006-R3 shared KPI request recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/06_REVIEWS/Import/TODAY-006-R3_SHARED_KPI_REQUEST_AND_PO_READINESS_RECOVERY.md` | Reviews | TODAY-006-R3 shared KPI request recovery evidence | Active | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-006-R3_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006-R3 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/TODAY-006-R4_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-006-R4 scoped Executive KPI recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/06_REVIEWS/Import/TODAY-006-R4_BCVH_SCOPED_EXECUTIVE_KPI_RECOVERY.md` | Reviews | TODAY-006-R4 scoped Executive KPI recovery evidence | Active | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-006-R4_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006-R4 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/TODAY-006-R5_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-006-R5 executive KPI infinite loading recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/06_REVIEWS/Import/TODAY-006-R5_EXECUTIVE_KPI_INFINITE_LOADING_RECOVERY.md` | Reviews | TODAY-006-R5 executive KPI infinite loading recovery evidence | Active | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-006-R5_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006-R5 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/TODAY-006-R6_MANIFEST.md` | Reviews | Current ticket manifest for TODAY-006-R6 KPI scoped data contract recovery | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/06_REVIEWS/Import/TODAY-006-R6_KPI_SCOPED_DATA_CONTRACT_RECOVERY.md` | Reviews | TODAY-006-R6 KPI scoped data contract recovery evidence | Active | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-006-R6_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-006-R6 PO acceptance checklist | Active | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/TODAY-007_MANIFEST.md` | Reviews | Completed ticket manifest for TODAY-007 dashboard executive layout cleanup | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/06_REVIEWS/Import/TODAY-007_DUPLICATE_DASHBOARD_REQUEST_RECOVERY.md` | Reviews | TODAY-007 duplicate dashboard request recovery and PO PASS closure evidence | Completed | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-007_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-007 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/TODAY-008_MANIFEST.md` | Reviews | Completed ticket manifest for TODAY-008 PO data reconciliation and leadership view | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, review docs |
-| `docs/06_REVIEWS/Import/TODAY-008_PO_DATA_RECONCILIATION_AND_LEADERSHIP_VIEW.md` | Reviews | TODAY-008 import-to-dashboard reconciliation implementation and PO PASS closure evidence | Completed | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
-| `docs/06_REVIEWS/Import/TODAY-008_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TODAY-008 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/TICKET-0101_MANIFEST.md` | Reviews | Completed ticket manifest for TICKET-0101 Login API and Session | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, backlog, feature, epic, auth implementation files |
-| `docs/06_REVIEWS/Auth/TICKET-0101_LOGIN_API_AND_SESSION.md` | Reviews | TICKET-0101 login API and session implementation/runtime evidence with PO PASS closure | Completed | L2 | 1 | High | PO acceptance workflow, manifest, checklist |
-| `docs/06_REVIEWS/Auth/TICKET-0101_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | TICKET-0101 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, manifest, review evidence |
-| `docs/10_TICKETS/DASHBOARD-AUDIT-001_MANIFEST.md` | Reviews | Completed ticket manifest for Dashboard widget, chart and visual consistency audit with Product Owner PO PASS closure | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, backlog, dashboard evidence |
-| `docs/06_REVIEWS/Dashboard/DASHBOARD-AUDIT-001_LEADERSHIP_DASHBOARD_AUDIT.md` | Reviews | DASHBOARD-AUDIT-001 Leadership Dashboard audit and PO PASS closure evidence | Completed | L2 | 1 | High | DASHBOARD-AUDIT-001 manifest, smart Dashboard plan, PO review checklist |
-| `docs/06_REVIEWS/Dashboard/DASHBOARD-AUDIT-001_PO_REVIEW_CHECKLIST.md` | Reviews | DASHBOARD-AUDIT-001 PO review checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, audit report, DASHBOARD-AUDIT-001 manifest |
-| `docs/10_TICKETS/DA-IMPL-001_MANIFEST.md` | Reviews | Completed manifest for Dashboard Language and Semantic Foundation with PO PASS closure | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, smart Dashboard plan, DA register |
-| `docs/06_REVIEWS/Dashboard/DA-IMPL-001_DASHBOARD_LANGUAGE_AND_SEMANTIC_FOUNDATION.md` | Reviews | DA-IMPL-001 implementation, runtime evidence, PO warning closure, and PO PASS evidence | Completed | L2 | 1 | High | DA-IMPL-001 manifest, PO acceptance checklist |
-| `docs/06_REVIEWS/Dashboard/DA-IMPL-001_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | DA-IMPL-001 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, DA-IMPL-001 evidence |
-| `docs/10_TICKETS/DA-IMPL-002_MANIFEST.md` | Reviews | Completed manifest for Unified Command Summary with PO PASS closure | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, smart Dashboard plan, DA register |
-| `docs/06_REVIEWS/Dashboard/DA-IMPL-002_UNIFIED_COMMAND_SUMMARY.md` | Reviews | DA-IMPL-002 implementation, runtime evidence, and PO PASS closure for Unified Command Summary | Completed | L2 | 1 | High | DA-IMPL-002 manifest, PO acceptance checklist |
-| `docs/06_REVIEWS/Dashboard/DA-IMPL-002_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | DA-IMPL-002 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, DA-IMPL-002 evidence |
-| `docs/10_TICKETS/DA-IMPL-003_MANIFEST.md` | Reviews | Completed manifest for Integrated Trend and Risk Workspace with PO PASS closure | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, smart Dashboard plan, DA register |
-| `docs/06_REVIEWS/Dashboard/DA-IMPL-003_INTEGRATED_TREND_AND_RISK_WORKSPACE.md` | Reviews | DA-IMPL-003 implementation, validation, runtime evidence, and PO PASS closure | Completed | L2 | 1 | High | DA-IMPL-003 manifest, PO acceptance checklist |
-| `docs/06_REVIEWS/Dashboard/DA-IMPL-003_PO_ACCEPTANCE_CHECKLIST.md` | Reviews | DA-IMPL-003 PO acceptance checklist with PO PASS result | Completed | L2 | 1 | High | PO acceptance workflow, DA-IMPL-003 evidence |
-| `docs/10_TICKETS/AUTO-IMPORT-001_MANIFEST.md` | Reviews | Active discovery-only manifest for Source Portal Discovery and Security Assessment | Active | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, smart Dashboard plan, DA register |
-| `docs/06_REVIEWS/Import/AUTO-IMPORT-001_SECURE_LOCAL_CREDENTIAL_SETUP.md` | Reviews | AUTO-IMPORT-001 checkpoint 1 secure local credential setup evidence | Active | L2 | 1 | High | AUTO-IMPORT-001 manifest, `.gitignore`, `.env.example` |
-| `docs/06_REVIEWS/Import/AUTO-IMPORT-001_DKCL_SYNC_ATOMIC_IMPORT_HANDOFF.md` | Reviews | AUTO-IMPORT-001 DKCL Sync atomic import fix, automated tests, and real verification handoff | Active | L2 | 1 | High | AUTO-IMPORT-001 manifest, import pipeline, import watcher |
-| `docs/10_TICKETS/AUTO-IMPORT-002_MANIFEST.md` | Reviews | Completed manifest for Automated Download and Validation Pipeline with PO PASS closure | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, AUTO-IMPORT-001 handoff |
-| `docs/06_REVIEWS/Import/AUTO-IMPORT-002_HUE_F13_ACQUISITION_ENGINE.md` | Reviews | AUTO-IMPORT-002 Hue F1.3 acquisition engine architecture, API, live verification, cleanup evidence, tests, and PO PASS closure | Completed | L2 | 1 | High | AUTO-IMPORT-002 manifest, import pipeline, import watcher |
-| `docs/10_TICKETS/DA-IMPL-004_MANIFEST.md` | Reviews | Planned inactive manifest for Unified BCVH Analysis Table | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
-| `docs/10_TICKETS/DA-IMPL-005_MANIFEST.md` | Reviews | Planned inactive manifest for Operating Pattern Tabs | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
-| `docs/10_TICKETS/DA-IMPL-006_MANIFEST.md` | Reviews | Planned inactive manifest for Unified Action Center | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
-| `docs/10_TICKETS/DA-IMPL-007_MANIFEST.md` | Reviews | Planned inactive manifest for Smart Dashboard Final Assembly | Planned | L2 | 1 | High | smart Dashboard plan, DA register |
-| `docs/10_TICKETS/GOVERNANCE-PO-UI-SEPARATION_MANIFEST.md` | Reviews | Governance amendment manifest between TODAY-006 and TODAY-007 | Completed | L2 | 1 | High | README_AI.md, PROJECT_SNAPSHOT.md, governance workflow docs |
-| `docs/06_REVIEWS/Import/screenshots/` | Reviews | Runtime browser evidence screenshots for TODAY recovery tickets | Active | L2 | 1 | High | Review evidence docs |
-| `docs/06_REVIEWS/Shared/PO_REVIEW_TEMPLATE.md` | Reviews | PO review template | Active | L2 | 1 | Medium | PO findings register, product review docs |
-| `docs/06_REVIEWS/Shared/PO_FINDINGS_REGISTER.md` | Reviews | PO findings traceability register | Active | L2 | 1 | Medium | PO acceptance workflow, review docs |
-| `docs/06_REVIEWS/Shared/ARCHITECTURE_CONSISTENCY_REVIEW.md` | Reviews | Architecture freeze review | Frozen | L2 | 2 | Low | architecture docs |
-| `docs/06_REVIEWS/Shared/UX_CONSISTENCY_REVIEW.md` | Reviews | UX freeze review | Frozen | L2 | 2 | Low | UX docs |
+Fresh onboarding authority is:
 
-## 9. Reference
+`README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/07_REFERENCE/Shared_Business/business_dictionary.md` | Reference | Shared business terminology | Active | L4 | 4 | Low | business glossary, KPI docs |
-| `docs/07_REFERENCE/Shared_Business/global_kpi_framework.md` | Reference | Shared KPI framework | Active | L4 | 4 | Low | KPI decisions, dashboard docs |
-| `docs/07_REFERENCE/Shared_Business/import_center_rules.md` | Reference | Import center rules | Active | L4 | 4 | Low | import workflow docs |
-| `docs/07_REFERENCE/Legacy/API_DESIGN_v1.0.md` | Reference | Legacy API design reference | Deprecated | L4 | 4 | Low | legacy architecture docs |
-| `docs/07_REFERENCE/Legacy/F1.3/F13_303_DEFINITION.md` | Reference | Legacy F13.303 definition | Deprecated | L4 | 4 | Low | F1.3 domain reference |
-
-## 10. Archive
-
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/08_ARCHIVE/Legacy/00_README/PROJECT_CONTEXT.md` | Archive | Archived project context | Archived | L4 | 5 | Low | legacy onboarding docs |
-| `docs/08_ARCHIVE/Legacy/01_RULES/constitution.md` | Archive | Archived governance rules | Archived | L4 | 5 | Low | legacy governance docs |
-| `docs/08_ARCHIVE/Legacy/02_AI_CONTEXT/system_prompt.md` | Archive | Archived system prompt | Archived | L4 | 5 | Low | legacy AI context docs |
-
-## 11. Reports
-
-| File Name | Category | Purpose | Status | Authority Level | Read Priority | Update Frequency | Related Documents |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `docs/09_REPORTS/Documentation/DOCUMENTATION_AUDIT_REPORT.md` | Reports | Documentation audit report | Active | L4 | 4 | Low | documentation governance docs |
-| `docs/09_REPORTS/Documentation/DOCUMENTATION_VALIDATION_REPORT.md` | Reports | Documentation validation report | Active | L4 | 4 | Low | documentation governance docs |
-| `docs/09_REPORTS/Documentation/GOVERNANCE_V2_ONBOARDING_VALIDATION.md` | Reports | Governance V2 onboarding validation report | Active | L4 | 4 | Low | README_AI.md, PROJECT_SNAPSHOT.md, current manifest |
-| `docs/GOVERNANCE_UPDATE_REPORT.md` | Reports | Governance update report | Active | L4 | 4 | Low | governance changes |
-| `docs/09_REPORTS/Documentation/AI_ONBOARDING_VALIDATION_REPORT.md` | Reports | AI onboarding validation report | Active | L4 | 4 | Low | onboarding docs |
-| `docs/09_REPORTS/Documentation/CODEX_PROMPT_STANDARD_REPORT.md` | Reports | Codex prompt standard report | Active | L4 | 4 | Low | governance/prompt docs |
+If any old index row, report, manifest, checklist, or archived document conflicts with the current onboarding chain, treat the older document as Conditional Reference or Archive and follow the active chain.

@@ -130,7 +130,7 @@ The lightweight onboarding route is:
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `DOC-GOV-CLEANUP-001 PLAN-EXECUTION`, latest verified remote commit before activation `2c9447d33b25460b0c2b283365535dd6ffe6df5d`, PO authorized governance document cleanup only; `AUTO-IMPORT-007` is authorized/queued and waiting for this cleanup.
+Current active handoff: `DOC-GOV-CLEANUP-001 READY FOR PO REVIEW`, docs-only cleanup executed, `DOCUMENT_INDEX` now caps fresh onboarding at five steps; `AUTO-IMPORT-007` remains authorized/queued and waiting for this cleanup.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

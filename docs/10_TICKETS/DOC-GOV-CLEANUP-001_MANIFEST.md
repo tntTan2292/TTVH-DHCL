@@ -3,15 +3,15 @@
 - Ticket ID: `DOC-GOV-CLEANUP-001`
 - Ticket Name: `Toi gian va chuan hoa he thong tai lieu du an`
 - Phase: `Governance Documentation Cleanup`
-- Current State: `ACTIVE / PLAN-EXECUTION`
-- Technical Status: `PLANNING`
+- Current State: `ACTIVE / READY FOR PO REVIEW`
+- Technical Status: `PASS`
 - Runtime Status: `NOT APPLICABLE`
 - PO UI Check Required: `No`
 - PO Product Status: `NOT APPLICABLE`
-- Current Phase: `PLAN-EXECUTION`
+- Current Phase: `DOCUMENT CLEANUP EXECUTED`
 - Last Reviewed Phase: `AUTO-IMPORT-007 plan activation`
 - Last Reviewed Commit: `2c9447d33b25460b0c2b283365535dd6ffe6df5d`
-- Phase Review Status: `PO AUTHORIZED`
+- Phase Review Status: `READY FOR PO REVIEW`
 - Next Phase Authorization: `Governance document cleanup only`
 - Activation date: `2026-07-24`
 - Next queued ticket: `AUTO-IMPORT-007`
@@ -44,6 +44,16 @@ Authorized scope:
 - preserve history;
 - avoid code audit;
 - avoid business SSOT changes.
+
+## Cleanup Result
+
+- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` now defines the compact active onboarding chain and classifies non-onboarding documents as `Conditional Reference` or `Archive`.
+- Fresh onboarding is capped at `5` steps: `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
+- Inventory before cleanup: `306` files under `docs`.
+- Inventory after cleanup: `306` files under `docs`.
+- No historical file was deleted, moved, merged, or archived by filesystem move.
+- No functional code, business SSOT, Dashboard, KPI, import execution, or authentication file was changed.
+- Duplicate content proposal only: two empty `.gitkeep` placeholders are exact duplicates and should be kept unless a later cleanup specifically authorizes consolidation.
 
 ## Out of Scope
 

@@ -45,7 +45,7 @@
 - AUTO-IMPORT-005: `Completed / PO PASS`
 - AUTO-IMPORT-006: `Completed through TCT unfinished bulk-selection PO PASS`; Technical Status `PASS`; Runtime Status `PO PASS`; Last accepted commit `313b16a2f0e3259562681d26a581e5c9f2bba960`
 - AUTO-IMPORT-007: `AUTHORIZED / QUEUED`; Technical Status `QUEUED`; Runtime Status `NOT STARTED`; PO Product Status `NOT READY`; Current Phase `WAITING FOR DOC-GOV-CLEANUP-001`; no discovery or implementation while DOC-GOV-CLEANUP-001 is active
-- DOC-GOV-CLEANUP-001: `ACTIVE / PLAN-EXECUTION`; Technical Status `PLANNING`; Runtime Status `NOT APPLICABLE`; Scope `Governance document cleanup only`
+- DOC-GOV-CLEANUP-001: `ACTIVE / READY FOR PO REVIEW`; Technical Status `PASS`; Runtime Status `NOT APPLICABLE`; Scope `Governance document cleanup only`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -103,10 +103,10 @@
 | --- | --- |
 | Current Ticket | `DOC-GOV-CLEANUP-001` |
 | Current Commit | `2c9447d33b25460b0c2b283365535dd6ffe6df5d` |
-| Current Phase | `PLAN-EXECUTION` |
+| Current Phase | `DOCUMENT CLEANUP EXECUTED` |
 | Last Reviewed Phase | `AUTO-IMPORT-007 plan activation` |
 | Last Reviewed Commit | `2c9447d33b25460b0c2b283365535dd6ffe6df5d` |
-| Phase Review Status | `PO AUTHORIZED` |
+| Phase Review Status | `READY FOR PO REVIEW` |
 | Next Phase Authorization | `Governance document cleanup only; AUTO-IMPORT-007 queued` |
 | Next Milestone | `DOC-GOV-CLEANUP-001 docs inventory and onboarding cleanup` |
 | PO UI Check Required | `No` |
@@ -115,9 +115,10 @@
 ## DOC-GOV-CLEANUP-001 Activation
 
 - Ticket name: `Toi gian va chuan hoa he thong tai lieu du an`.
-- State: `ACTIVE / PLAN-EXECUTION`.
+- State: `ACTIVE / READY FOR PO REVIEW`.
 - Scope: inventory `docs`, identify at most `5` active onboarding documents, convert old documents to conditional reference or archive status, correct wrong status entries in `DOCUMENT_INDEX`, preserve history.
 - Restrictions: no functional code changes, no code audit, no business SSOT changes, no history deletion.
+- Result: `DOCUMENT_INDEX` now caps fresh onboarding at five steps and classifies non-onboarding docs as Conditional Reference or Archive; docs file count remained `306`.
 - Queued next ticket: `AUTO-IMPORT-007`.
 
 ## AUTO-IMPORT-007 Queued Plan
