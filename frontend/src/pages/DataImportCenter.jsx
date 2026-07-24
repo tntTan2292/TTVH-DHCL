@@ -92,6 +92,7 @@ export default function DataImportCenter() {
   const [queueSubmitting, setQueueSubmitting] = useState(false);
   const [refreshDates, setRefreshDates] = useState([]);
   const [tctSessionLoading, setTctSessionLoading] = useState(false);
+  const [tctSessionLoading, setTctSessionLoading] = useState(false);
   const [tctWindow, setTctWindow] = useState(defaultBackfillWindow);
   const [tctCoverage, setTctCoverage] = useState(null);
   const [tctCoverageError, setTctCoverageError] = useState(null);
@@ -472,8 +473,13 @@ export default function DataImportCenter() {
   const queueIsActive = queue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(queue.status);
   const tctQueueIsActive = tctQueue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'BLOCKED', 'STOPPED'].includes(tctQueue.status);
   const tctSessionReady = tctSessionStatus === 'SESSION_VALID';
-  const tctLoginInProgress = tctSessionLoading || tctSessionStatus === 'LOGIN_IN_PROGRESS';
+  // tctLoginInProgress: actively in the middle of the async open-browser phase (not stuck yet)
+  const tctLoginInProgress = tctSessionLoading;
+  // tctLoginStuck: server returned LOGIN_IN_PROGRESS and we are not actively loading — window may not have appeared
+  const tctLoginStuck = !tctSessionLoading && tctSessionStatus === 'LOGIN_IN_PROGRESS';
   const hueSessionReady = hueSessionStatus === 'SESSION_VALID';
+  // Update disabled only when session not ready, no dates selected, submitting, or queue active
+  // Quét (scan) is ALWAYS allowed — uses local evidence, does not need portal session
   const tctUpdateDisabled = !tctSessionReady || tctSelectedDates.length === 0 || tctQueueSubmitting || tctQueueIsActive;
   // Submit is disabled if: no session, no dates selected, submitting, or queue active.
   // Checkbox selection is INDEPENDENT of session readiness per contract.
@@ -585,10 +591,23 @@ export default function DataImportCenter() {
         await handleScanTctMissingDates({ sessionReadyOverride: true });
       }
     } catch (err) {
-      const status = err.response?.data?.error?.code || 'AUTHENTICATION_REQUIRED';
+      const status = err.response?.data?.data?.status || err.response?.data?.error?.code || 'AUTHENTICATION_REQUIRED';
       setTctSessionStatus(status);
-      setTctSessionError(err.response?.data?.error?.message || 'Không thể hoàn tất đăng nhập TCT DKCL.');
+      setTctSessionError(err.response?.data?.error?.message || err.response?.data?.data?.error?.message || 'Không thể hoàn tất đăng nhập TCT DKCL.');
     } finally {
+      setTctSessionLoading(false);
+    }
+  };
+
+  const handleCancelTctLogin = async () => {
+    setTctSessionLoading(true);
+    try {
+      await api.post('/import/dkcl/session/cancel-login', { source: 'TCT' });
+    } catch (_err) {
+      // best-effort; ignore errors
+    } finally {
+      setTctSessionStatus('AUTHENTICATION_REQUIRED');
+      setTctSessionError('Đăng nhập đã bị huỷ. Nhấn "Mở đăng nhập TCT" để thử lại.');
       setTctSessionLoading(false);
     }
   };
@@ -714,7 +733,7 @@ export default function DataImportCenter() {
             </div>
           )}
 
-          {!tctSessionReady && (
+          {!tctSessionReady && !tctLoginStuck && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" data-testid="tct-not-ready">
               <span>Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ TCT.</span>
               <button
@@ -725,6 +744,30 @@ export default function DataImportCenter() {
               >
                 {tctLoginInProgress ? 'Đang mở đăng nhập...' : 'Mở đăng nhập TCT'}
               </button>
+            </div>
+          )}
+
+          {tctLoginStuck && (
+            <div className="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800" data-testid="tct-login-stuck">
+              <span>Cửa sổ đăng nhập TCT không xuất hiện hoặc đã bị đóng. Nhấn <strong>Thử lại</strong> để mở lại, hoặc <strong>Huỷ</strong> để thoát.</span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelTctLogin}
+                  disabled={tctLoginInProgress}
+                  className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                >
+                  Huỷ đăng nhập
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => { await handleCancelTctLogin(); await handleInteractiveTctLogin(); }}
+                  disabled={tctLoginInProgress}
+                  className="inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                >
+                  {tctLoginInProgress ? 'Đang xử lý...' : 'Thử lại đăng nhập'}
+                </button>
+              </div>
             </div>
           )}
 
@@ -809,9 +852,9 @@ export default function DataImportCenter() {
             <button
               type="button"
               onClick={handleScanTctMissingDates}
-              disabled={tctScanLoading || !tctSessionReady}
+              disabled={tctScanLoading}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-vnpost-blue px-4 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
-              title="Quét ngày thiếu TCT F1.3"
+              title={tctSessionReady ? 'Quét ngày thiếu TCT F1.3' : 'Quét local evidence (không cần phiên TCT)'}
             >
               {tctScanLoading ? <RefreshCw size={16} className="animate-spin" /> : <Search size={16} />}
               Quét
@@ -880,10 +923,10 @@ export default function DataImportCenter() {
                 disabled={tctUpdateDisabled}
                 data-testid="tct-backfill-update"
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-vnpost-orange px-4 py-2 text-sm font-bold text-white hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-500"
-                title="Tạo hàng đợi bù dữ liệu TCT F1.3"
+                title={!tctSessionReady ? 'Cần đăng nhập TCT để Update' : 'Tạo hàng đợi bù dữ liệu TCT F1.3'}
               >
                 {tctQueueSubmitting ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
-                {tctRefreshDates.length > 0 ? `Re-Update (${tctSelectedDates.length})` : (tctSessionReady ? `Update (${tctSelectedDates.length})` : 'Mở đăng nhập để Update')}
+                {tctRefreshDates.length > 0 ? `Re-Update (${tctSelectedDates.length})` : (tctSessionReady ? `Update (${tctSelectedDates.length})` : 'Cần đăng nhập để Update')}
               </button>
             </div>
 

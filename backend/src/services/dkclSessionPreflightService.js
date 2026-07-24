@@ -295,37 +295,56 @@ class DkclSessionPreflightService {
             };
 
             try {
-                entry.state = 'WAITING_FOR_LOGIN';
+                entry.state = 'OPENING_BROWSER';
                 entry.updatedAt = new Date().toISOString();
 
-                await client.openInteractiveAuthentication({
+                await client.prepareInteractiveAuthentication({
                     baseUrl: this.portalBaseUrl,
                     profileDir
                 });
 
-                entry.state = 'AUTHENTICATED';
-                entry.client = client;
-                entry.authenticated = true;
-                entry.backgroundReady = false;
+                entry.state = 'WAITING_FOR_LOGIN';
                 entry.updatedAt = new Date().toISOString();
 
-                const hideWindow = client.hideWindow || client.hideBrowserWindow;
-                const hideSuccess = entry.hideAttempted
-                    ? entry.windowHidden
-                    : await hideWindow.call(client).catch(() => false);
-                entry.hideAttempted = true;
-                entry.windowHidden = Boolean(hideSuccess);
-                entry.state = 'BACKGROUND_READY';
-                entry.backgroundReady = true;
-                entry.updatedAt = new Date().toISOString();
+                // Spawn background task to wait for login
+                (async () => {
+                    try {
+                        await client.waitInteractiveAuthentication();
+
+                        entry.state = 'AUTHENTICATED';
+                        entry.client = client;
+                        entry.authenticated = true;
+                        entry.backgroundReady = false;
+                        entry.updatedAt = new Date().toISOString();
+
+                        const hideWindow = client.hideWindow || client.hideBrowserWindow;
+                        const hideSuccess = entry.hideAttempted
+                            ? entry.windowHidden
+                            : await hideWindow.call(client).catch(() => false);
+                        entry.hideAttempted = true;
+                        entry.windowHidden = Boolean(hideSuccess);
+                        entry.state = 'BACKGROUND_READY';
+                        entry.backgroundReady = true;
+                        entry.updatedAt = new Date().toISOString();
+                    } catch (err) {
+                        entry.state = 'ERROR';
+                        entry.lastError = err.message;
+                        entry.client = null;
+                        entry.authenticated = false;
+                        entry.backgroundReady = false;
+                        entry.windowHidden = false;
+                        entry.hideAttempted = false;
+                        entry.updatedAt = new Date().toISOString();
+                        await client.close().catch(() => {});
+                    }
+                })();
 
                 return {
                     source: sourceConfig.source,
-                    status: PREFLIGHT_STATUSES.SESSION_VALID,
+                    status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
                     interactive: true,
-                    source_page_ready: true,
-                    browser_hidden: hideSuccess,
-                    export_readiness: 'SOURCE_PAGE_READY'
+                    lifecycle_state: entry.state,
+                    source_page_ready: false
                 };
             } catch (error) {
                 entry.state = 'ERROR';
@@ -349,6 +368,40 @@ class DkclSessionPreflightService {
     getInteractiveClient(source) {
         const entry = getOrCreateRegistryEntry(this.normalizeSource(source).source);
         return entry.client || null;
+    }
+
+    /**
+     * Cancel a stuck OPENING_BROWSER / WAITING_FOR_LOGIN interactive session.
+     * Called explicitly by the frontend "Thử lại / Huỷ" button.
+     */
+    async cancelInteractiveLogin(source) {
+        const sourceConfig = this.normalizeSource(source);
+        const entry = getOrCreateRegistryEntry(sourceConfig.source);
+
+        const wasInProgress = INTERACTIVE_IN_PROGRESS_STATES.has(entry.state);
+
+        // Close any existing client
+        const clientToClose = entry.client;
+        entry.client = null;
+        entry.openingPromise = null;
+        entry.authenticated = false;
+        entry.backgroundReady = false;
+        entry.windowHidden = false;
+        entry.hideAttempted = false;
+        entry.state = 'NOT_AUTHENTICATED';
+        entry.lastError = 'Cancelled by user.';
+        entry.updatedAt = new Date().toISOString();
+
+        if (clientToClose) {
+            await clientToClose.close().catch(() => {});
+        }
+
+        return {
+            source: sourceConfig.source,
+            status: PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED,
+            cancelled: true,
+            was_in_progress: wasInProgress
+        };
     }
 
     getRegistryState(source) {

@@ -139,24 +139,38 @@ class DkclHueF13PortalClient {
         return /Quan ly tep|Quản lý tệp|Tra cứu thông tin bưu gửi|Tra cuu thong tin buu gui|Dang xuat|Đăng xuất|Logout|tantn\.bdtth/i.test(bodyText);
     }
 
-    async openInteractiveAuthentication({ baseUrl, profileDir }) {
+    async prepareInteractiveAuthentication({ baseUrl, profileDir }) {
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
         this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), `../Data DKCL/BrowserProfiles/${this.source}`));
         this.acquireProfileLock();
         const { chromium } = this.playwright || loadPlaywright();
-        this.context = await chromium.launchPersistentContext(this.profileDir, { headless: false, acceptDownloads: true });
+        const launchPromise = chromium.launchPersistentContext(this.profileDir, { headless: false, acceptDownloads: true });
+        this.context = await Promise.race([
+            launchPromise,
+            new Promise((_, reject) => setTimeout(() => reject(portalError('BROWSER_LAUNCH_TIMEOUT: Browser took too long to launch or is stuck.', 'BROWSER_LAUNCH_TIMEOUT')), 15000))
+        ]);
+
         if (this.context.on) {
             this.context.on('close', () => {
                 if (this.onDisconnect) this.onDisconnect();
             });
         }
         this.page = this.context.pages()[0] || await this.context.newPage();
-        await this.restoreWindow();
+        const restoreResult = await this.restoreWindow();
+        if (!restoreResult) {
+            throw portalError('BROWSER_WINDOW_HIDDEN: Cannot show browser window for manual login. The process might be hung or the window is forcefully hidden.', 'BROWSER_WINDOW_HIDDEN');
+        }
+
         await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
         if (!await this.isAuthenticated()) {
             if (!this.page.url().includes('/login')) {
                 await this.page.goto(`${this.baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
             }
+        }
+    }
+
+    async waitInteractiveAuthentication() {
+        if (!await this.isAuthenticated()) {
             if (!await this.waitForManualAuthentication()) {
                 throw portalError('AUTHENTICATION_REQUIRED: manual DKCL login was not completed.', 'AUTHENTICATION_REQUIRED');
             }
@@ -208,10 +222,16 @@ class DkclHueF13PortalClient {
     async minimizeWindow() { return this.hideWindow(); }
 
     async restoreWindow() {
+        let success = true;
         if (this.profileDir) {
-            await processManager.showBrowserWindowsByProfile(this.profileDir).catch(() => {});
+            const processManager = require('./browserProcessManager').defaultInstance;
+            const res = await processManager.showBrowserWindowsByProfile(this.profileDir).catch(() => null);
+            if (!res || (!res.success && res.matchedWindowCount === 0)) {
+                success = false;
+            }
         }
-        return this.setWindowState('normal');
+        await this.setWindowState('normal');
+        return success;
     }
 
     async performOneLoginAttempt({ username, password, hrmCode }) {

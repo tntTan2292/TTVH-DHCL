@@ -12,6 +12,7 @@ router.get('/f13/status', importController.status.bind(importController));
 router.get('/status', importController.status.bind(importController));
 router.post('/dkcl/session/preflight', dkclSharedOperationsController.preflight.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/interactive-auth', dkclSharedOperationsController.interactiveAuthenticate.bind(dkclSharedOperationsController));
+router.post('/dkcl/session/cancel-login', dkclSharedOperationsController.cancelLogin.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/recover', dkclSharedOperationsController.recover.bind(dkclSharedOperationsController));
 router.get('/dkcl/hue/f13/coverage-summary', dkclHueF13SyncController.getCoverageSummary.bind(dkclHueF13SyncController));
 router.get('/dkcl/hue/f13/missing-dates', dkclHueF13SyncController.scanMissingDates.bind(dkclHueF13SyncController));

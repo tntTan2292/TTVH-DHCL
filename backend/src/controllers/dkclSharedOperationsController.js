@@ -51,6 +51,21 @@ class DkclSharedOperationsController {
         }
     }
 
+    async cancelLogin(req, res) {
+        try {
+            const result = await sessionPreflightService.cancelInteractiveLogin(req.body?.source || req.query?.source);
+            return res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: error.code || 'CANCEL_LOGIN_REJECTED',
+                    message: error.message || 'Invalid DKCL cancel-login request.'
+                }
+            });
+        }
+    }
+
     async recover(req, res) {
         try {
             const result = await sessionPreflightService.recover(req.body?.source || req.query?.source);
