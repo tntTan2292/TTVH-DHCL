@@ -17,22 +17,22 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION` |
-| Current Ticket | `AUTO-IMPORT-006` |
-| Next Ticket | `None authorized` |
-| Last PO Status | `TCT unfinished bulk-selection PO PASS` |
+| Current Phase | `PLAN ONLY` |
+| Current Ticket | `AUTO-IMPORT-007` |
+| Next Ticket | `None authorized beyond AUTO-IMPORT-007 planning` |
+| Last PO Status | `AUTO-IMPORT-006 TCT unfinished bulk-selection PO PASS` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md` |
-| Current State | `ACTIVE / AWAITING NEXT AUTHORIZATION` |
-| Technical Status | `PASS` |
-| Runtime Status | `TCT UNFINISHED BULK-SELECTION PO PASS` |
-| PO UI Check Required | `No for completed TCT bulk-selection; Yes for future UI-visible runtime work if authorized` |
-| PO Product Status | `NOT READY - AUTO-IMPORT-006 remains active` |
-| Last Reviewed Phase | `TCT unfinished bulk-selection` |
-| Last Reviewed Commit | `313b16a2f0e3259562681d26a581e5c9f2bba960` |
-| Phase Review Status | `PO PASS` |
-| Next Phase Authorization | `None recorded after TCT unfinished bulk-selection PO PASS` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md` |
+| Current State | `ACTIVE / PLAN ONLY` |
+| Technical Status | `PLANNING` |
+| Runtime Status | `NOT STARTED` |
+| PO UI Check Required | `No` |
+| PO Product Status | `NOT READY - AUTO-IMPORT-007 planning active` |
+| Last Reviewed Phase | `AUTO-IMPORT-006 TCT unfinished bulk-selection` |
+| Last Reviewed Commit | `671284822ab35324f17cd1205ab63a6b955d23d4` |
+| Phase Review Status | `PO AUTHORIZED PLAN` |
+| Next Phase Authorization | `PLAN ONLY - no functional code changes authorized` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-24` |
 
@@ -65,10 +65,10 @@ Fresh-chat onboarding chain for the active ticket:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`
+3. `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`
+4. `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`
 
-AUTO-IMPORT-006 remains the active ticket in `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`. Dashboard date consistency, startup normalization, D-1/D-7 comparison contract, Vietnamese encoding, and 30-day trend window follow-ups are `PO PASS`; import date validation and controlled future-data cleanup evidence are recorded in the current checkpoint; TCT unfinished bulk-selection is `PO PASS` at latest verified remote commit `313b16a2f0e3259562681d26a581e5c9f2bba960`. No next action is authorized after this PO PASS. Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required. Do not reopen completed Dashboard tickets or broad-audit the repository.
+AUTO-IMPORT-007 is active in `PLAN ONLY` for `Chuan hoa va nang cap kien truc Import`. PO authorized planning only; functional code changes are not authorized. The plan must lock the shared DKCL lifecycle SSOT, HUE/TCT separation, post-`F13_READY` adapter boundary, standardized queue/retry/stop/progress/error/import-history contracts, source-distinguishing metadata, extensibility to `F1.1`, `F1.2`, and `F4.1`, and reuse of code already `PASS`. Required discovery inputs are `Codex code/data analysis` and `Antigravity runtime/UI analysis`.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

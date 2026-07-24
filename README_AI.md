@@ -122,15 +122,15 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md)
+[docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md)
 
 ↓
 
-[docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md)
+[docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md)
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-006 REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`, latest verified remote commit `313b16a2f0e3259562681d26a581e5c9f2bba960`, TCT unfinished bulk-selection `PO PASS`, no next action authorized after this PO PASS.
+Current active handoff: `AUTO-IMPORT-007 PLAN ONLY`, latest verified remote commit before activation `671284822ab35324f17cd1205ab63a6b955d23d4`, PO authorized planning only for `Chuan hoa va nang cap kien truc Import`; no functional code changes are authorized.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

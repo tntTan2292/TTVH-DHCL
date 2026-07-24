@@ -43,7 +43,8 @@
 - AUTO-IMPORT-003: `Completed / PO PASS`
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
-- AUTO-IMPORT-006: `ACTIVE / AWAITING NEXT AUTHORIZATION`; Technical Status `PASS`; Runtime Status `TCT UNFINISHED BULK-SELECTION PO PASS`; PO Product Status `NOT READY`; Current Phase `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`; Last Reviewed Phase `TCT unfinished bulk-selection`
+- AUTO-IMPORT-006: `Completed through TCT unfinished bulk-selection PO PASS`; Technical Status `PASS`; Runtime Status `PO PASS`; Last accepted commit `313b16a2f0e3259562681d26a581e5c9f2bba960`
+- AUTO-IMPORT-007: `ACTIVE / PLAN ONLY`; Technical Status `PLANNING`; Runtime Status `NOT STARTED`; PO Product Status `NOT READY`; Current Phase `PLAN ONLY`; Authority `PO authorized planning only`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -99,16 +100,24 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `AUTO-IMPORT-006` |
-| Current Commit | `313b16a2f0e3259562681d26a581e5c9f2bba960` |
-| Current Phase | `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION` |
-| Last Reviewed Phase | `TCT unfinished bulk-selection` |
-| Last Reviewed Commit | `313b16a2f0e3259562681d26a581e5c9f2bba960` |
-| Phase Review Status | `PO PASS` |
-| Next Phase Authorization | `None recorded after TCT unfinished bulk-selection PO PASS` |
-| Next Milestone | `Await explicit PO/authority direction` |
-| PO UI Check Required | `No for completed TCT bulk-selection` |
+| Current Ticket | `AUTO-IMPORT-007` |
+| Current Commit | `671284822ab35324f17cd1205ab63a6b955d23d4` |
+| Current Phase | `PLAN ONLY` |
+| Last Reviewed Phase | `AUTO-IMPORT-006 TCT unfinished bulk-selection` |
+| Last Reviewed Commit | `671284822ab35324f17cd1205ab63a6b955d23d4` |
+| Phase Review Status | `PO AUTHORIZED PLAN` |
+| Next Phase Authorization | `PLAN ONLY - no functional code changes authorized` |
+| Next Milestone | `Codex code/data analysis and Antigravity runtime/UI analysis` |
+| PO UI Check Required | `No` |
 | PO Product Status | `NOT READY` |
+
+## AUTO-IMPORT-007 Plan Activation
+
+- Ticket name: `Chuan hoa va nang cap kien truc Import`.
+- State: `ACTIVE / PLAN ONLY`.
+- Authority: PO authorized planning only; functional code changes are not authorized.
+- Plan locks: shared DKCL lifecycle SSOT `SOURCE_SELECTED` -> `SESSION_CHECK` -> `OPENING_BROWSER` -> `WAITING_FOR_LOGIN` -> `AUTHENTICATED` -> `F13_OPENING` -> `F13_READY`; HUE/TCT share the lifecycle contract while keeping separate account, `profileDir`, Registry entry, PID tree, HWND, and session; branch only after `F13_READY` into `HueF13Adapter` and `TctF13Adapter`; standardize queue, retry, stop, progress, error, and import history; metadata must distinguish source even when original filenames match; architecture must extend to `F1.1`, `F1.2`, and `F4.1`; reuse code already `PASS` and do not plan a full rewrite.
+- Required discovery inputs: `Codex code/data analysis`; `Antigravity runtime/UI analysis`.
 
 ## Pre-DA-IMPL-007 Regression Closure
 
@@ -204,16 +213,16 @@
 
 ## AUTO-IMPORT-006 Unified DKCL Authentication Lifecycle Recovery Status
 
-- Ticket status: `ACTIVE / AWAITING NEXT AUTHORIZATION`.
+- Ticket status: `COMPLETED THROUGH TCT UNFINISHED BULK-SELECTION PO PASS`.
 - Technical Status: `PASS`.
 - Runtime Status: `TCT UNFINISHED BULK-SELECTION PO PASS`.
 - PO UI Check Required: `No for completed TCT bulk-selection`.
 - PO Product Status: `NOT READY`.
-- Current Phase: `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`.
+- Current Phase: `REMEDIATION-006 / CLOSED FOR AUTO-IMPORT-007 PLAN ACTIVATION`.
 - Last Reviewed Phase: `TCT unfinished bulk-selection`.
 - Last Reviewed Commit: `313b16a2f0e3259562681d26a581e5c9f2bba960`.
 - Phase Review Status: `PO PASS`.
-- Next Phase Authorization: `None recorded after TCT unfinished bulk-selection PO PASS`.
+- Next Phase Authorization: `AUTO-IMPORT-007 PLAN ONLY`.
 - Primary executor: `Antigravity`.
 - Scope: separate HUE login trigger, block automatic interactive login in HUE queue check, resolve TCT interactive client factory configuration omission, CDP best-effort minimize, and browser manual closed listener/Registry.
 - Technical evidence: all unit tests passed for sync and backfill service components, oxlint passed with zero errors, production bundle built successfully.
@@ -229,5 +238,5 @@
 - Remediation 004 / R4.1B: commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262` was `REVIEW PASS`. Browser profile handling follows the five-state profile classification contract; `interactiveAuthenticate()` and `recover()` use `_classifyLockState()`; neither function calls `terminateProcessTree()`; cleanup is allowed only for `STALE_CONFIRMED`.
 - Remediation 005A: commit `52d25e5310550631a8211aead577442994687787` was `REVIEW FAIL` because it treated CDP `Browser.getWindowForTarget().windowId` as a native Windows `HWND`.
 - Remediation 005B: replaces the blocked PowerShell native-window bridge with direct Win32 calls through minimal prebuilt Node FFI dependency `koffi`; authority remains `exact --user-data-dir` -> `owned PID tree` -> `owned HWND`; controlled non-portal headed Chromium smoke proved hide to `IsWindowVisible=false`, browser/page usability after hide, and restore to `IsWindowVisible=true`.
-- Fresh-chat onboarding chain is `README_AI.md` -> `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` -> `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` -> `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`.
+- Historical AUTO-IMPORT-006 archive chain is `README_AI.md` -> `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` -> `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` -> `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`; current fresh-chat onboarding is owned by `AUTO-IMPORT-007`.
 - Latest PO PASS: TCT unfinished bulk-selection at commit `313b16a2f0e3259562681d26a581e5c9f2bba960`; no backend/import execution/Dashboard/KPI/authentication changes were made for that defect; no next action is authorized after this PO PASS.
