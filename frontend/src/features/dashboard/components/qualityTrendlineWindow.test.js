@@ -46,9 +46,8 @@ test('30-day trend request uses selected end date minus 29 calendar days', () =>
   });
 });
 
-test('7-day trend request includes BCVH filter without changing the reporting window', () => {
+test('7-day comparison request includes current week and prior-week chart data', () => {
   const params = buildTrendlineRequestParams({
-    reportingFromDate: '2026-07-10',
     reportingToDate: '2026-07-15',
     latestDate: '2026-07-15',
     maBcvh: '535790',
@@ -56,13 +55,28 @@ test('7-day trend request includes BCVH filter without changing the reporting wi
   });
 
   assert.deepEqual(params, {
-    from_date: '2026-07-10',
+    from_date: '2026-07-02',
     to_date: '2026-07-15',
     ma_bcvh: '535790',
   });
 });
 
-test('BCVH trend request omits BCVH filter when set to all and preserves reporting window', () => {
+test('single-day 7-day comparison request still returns enough points for chart rendering', () => {
+  const params = buildTrendlineRequestParams({
+    reportingFromDate: '2026-07-22',
+    reportingToDate: '2026-07-22',
+    latestDate: '2026-07-22',
+    maBcvh: 'all',
+    mode: '7-days',
+  });
+
+  assert.deepEqual(params, {
+    from_date: '2026-07-09',
+    to_date: '2026-07-22',
+  });
+});
+
+test('BCVH trend request omits BCVH filter when set to all and returns the display window', () => {
   const params = buildTrendlineRequestParams({
     reportingFromDate: '2026-07-10',
     reportingToDate: '2026-07-15',
@@ -72,7 +86,7 @@ test('BCVH trend request omits BCVH filter when set to all and preserves reporti
   });
 
   assert.deepEqual(params, {
-    from_date: '2026-07-10',
+    from_date: '2026-07-09',
     to_date: '2026-07-15',
   });
 });

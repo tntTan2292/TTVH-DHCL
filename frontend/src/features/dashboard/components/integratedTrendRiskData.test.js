@@ -98,14 +98,14 @@ test('D-1 comparison reports unavailable when previous calendar day is missing',
   assert.equal(withoutPreviousDay.previous_date, '2026-07-14');
 });
 
-test('trendline request preserves aggregate and canonical BCVH context for D-1 source data', () => {
+test('trendline request preserves aggregate and canonical BCVH context while keeping chart-safe windows', () => {
   assert.deepEqual(
     buildTrendlineRequestParams({ reportingFromDate: '2026-07-10', reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: 'all', mode: '7-days' }),
-    { from_date: '2026-07-10', to_date: '2026-07-15' },
+    { from_date: '2026-07-02', to_date: '2026-07-15' },
   );
   assert.deepEqual(
     buildTrendlineRequestParams({ reportingFromDate: '2026-07-10', reportingToDate: '2026-07-15', latestDate: '2026-07-15', maBcvh: '533140', mode: '7-days' }),
-    { from_date: '2026-07-10', to_date: '2026-07-15', ma_bcvh: '533140' },
+    { from_date: '2026-07-02', to_date: '2026-07-15', ma_bcvh: '533140' },
   );
 });
 
