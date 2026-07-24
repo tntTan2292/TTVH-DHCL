@@ -219,6 +219,18 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - **Exclusions Preserved**: no recovery or import of HUE `2026-07-18`, `2026-07-19`, or `2026-07-23`; no Dashboard changes; no operational evidence committed; no portal/browser/database recovery activity.
 - **Recovery Readiness**: HUE automated-test isolation, file/DB/log consistency, and transactional write atomicity are ready for a future governed recovery run. Actual HUE data recovery remains blocked until Product Owner explicitly authorizes recovery.
 
+### HUE Controlled Recovery - 2026-07-18
+- **PO Authorization**: Product Owner approved controlled recovery for HUE date `2026-07-18` only at baseline `d6ca69201a03f8f1ec3fae240c9308ac27345813`.
+- **Pre-Write Guards**: Local HEAD and remote `origin/codex/da-impl-006` both matched baseline `d6ca69201a03f8f1ec3fae240c9308ac27345813`; operational `fact_f13` for `2026-07-18` was exactly `0` rows / `0` distinct `ma_bg`; no import_log row existed for the date.
+- **Evidence File**: `F1.3-2026.07.18.xlsx`; SHA-256 `f5523a88ccad1738039a7f0a62eb16056f0b2f9e48e0741e327b0db210ba85d9`; dry-run parse returned `3,157` valid rows and `3,157` distinct `ma_bg`.
+- **Backup**: Current operational SQLite DB was backed up before write to ignored incident evidence path `backend/incident_evidence/db_backups/database-before-hue-20260718-20260724-231326.sqlite`; backup/evidence artifacts were not committed.
+- **Execution**: Ran one controlled HUE recovery through the hardened `executeImport` path using source `CONTROLLED-HUE-RECOVERY-20260718`. Result: `SUCCESS`, total `3,157`, inserted `3,157`, verified_count `3,157`, skipped `0`, errors `0`; final file moved to operational `Processed/HUE` with matching SHA-256.
+- **Post-Commit DB Evidence**: `fact_f13` rows for `2026-07-18` = `3,157`; distinct `ma_bg` = `3,157`; facts linked to exactly `1` import_log id; import_log id `679` has status `SUCCESS`, total_records `3,157`, error_records `0`, skipped_records `0`; linked facts to success log = `3,157`.
+- **Isolation Evidence**: Other-date aggregate fact/log counts were unchanged during recovery; HUE `2026-07-19` and `2026-07-23` remained untouched with no `fact_f13` rows created.
+- **Dashboard/API Read Evidence**: Backend Dashboard service read for `2026-07-18` returned `total_bg = 3,157`, `total_passed = 1,872`, `total_failed = 1,130`, `total_unknown = 155`, `passed_rate = 59.3`, and national rank data available for the same date.
+- **Exclusions Preserved**: no recovery or import of `2026-07-19` or `2026-07-23`; no Dashboard code changes; no operational data committed to Git; no portal/browser activity; `TTVH_ControlCenter_Temp.ps1` untouched.
+- **PO Check**: Product Owner should verify Dashboard date `2026-07-18` shows HUE volume `3,157` and expected KPI/ranking context; this technical recovery does not self-award PO PASS.
+
 ### Wave 3 PO FAIL Remediation Log
 - **Symptom**: `INTERACTIVE_AUTH_REJECTED` error on `/import` for both HUE and TCT. Browser does not open, and raw technical exception `Cannot read properties of undefined (reading 'showBrowserWindowsByProfile')` is exposed to the operator.
 - **Root Cause**: In `dkclHueF13PortalClient.js` inside `restoreWindow()`, the code attempted to access `showBrowserWindowsByProfile` on `require('./browserProcessManager').defaultInstance`. However, `browserProcessManager.js` exports methods bound to the default instance directly in its `module.exports` object and does not export `defaultInstance` itself. This caused `defaultInstance` to evaluate as `undefined`.
