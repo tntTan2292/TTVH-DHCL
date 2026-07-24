@@ -535,16 +535,36 @@ class DkclHueF13PortalClient {
         const timeoutAt = Date.now() + timeoutMs;
         while (Date.now() < timeoutAt) {
             await this.page.goto(`${this.baseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-            const files = await this.page.evaluate(() => Array.from(document.querySelectorAll('table tbody tr')).map((tr) => {
-                const cells = Array.from(tr.querySelectorAll('td')).map((td) => td.innerText.trim().replace(/\s+/g, ' '));
-                const xlsx = Array.from(tr.querySelectorAll('a')).find((a) => /files-xlsx/i.test(a.href));
-                return {
-                    filename: cells[1],
-                    createdAtText: cells[3],
-                    createdAt: cells[3],
-                    href: xlsx?.getAttribute('href') || null
-                };
-            }));
+            
+            let files = null;
+            let readAttempts = 0;
+            while (readAttempts < 3) {
+                try {
+                    files = await this.page.evaluate(() => Array.from(document.querySelectorAll('table tbody tr')).map((tr) => {
+                        const cells = Array.from(tr.querySelectorAll('td')).map((td) => td.innerText.trim().replace(/\s+/g, ' '));
+                        const xlsx = Array.from(tr.querySelectorAll('a')).find((a) => /files-xlsx/i.test(a.href));
+                        return {
+                            filename: cells[1],
+                            createdAtText: cells[3],
+                            createdAt: cells[3],
+                            href: xlsx?.getAttribute('href') || null
+                        };
+                    }));
+                    break;
+                } catch (error) {
+                    const isNavError = error.message.includes('context was destroyed') || 
+                                       error.message.includes('navigation') || 
+                                       error.message.includes('loading');
+                    if (isNavError && readAttempts < 2) {
+                        readAttempts++;
+                        await this.page.waitForLoadState('domcontentloaded').catch(() => {});
+                        await this.page.locator('table tbody tr').first().waitFor({ timeout: 5000 }).catch(() => {});
+                        continue;
+                    }
+                    throw error;
+                }
+            }
+
             const normalized = files.map((file) => ({
                 ...file,
                 createdAt: this.parsePortalTimestamp(file.createdAtText)

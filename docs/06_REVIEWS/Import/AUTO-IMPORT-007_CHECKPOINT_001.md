@@ -275,3 +275,13 @@ Both discovery inputs are completed and accepted by the Product Owner.
   2. `node backend/test_dkclHueF13BackfillService.js` (39/39 checks PASS)
   3. Real-machine HUE Sync execution for today's date `2026-07-24` returned `NO_DATA` successfully and cleanly (proving no `XLSX_DOWNLOAD_NOT_FOUND` errors, correct workflow progression, and correct browser hide/restore).
 - **Exclusions Preserved**: No recovery or import of `2026-07-23`; no Dashboard code changes; PO PASS dates `18` and `19` remain protected and unaltered.
+
+### HUE Polling Context Destruction Remediation
+- **Symptom**: Real-machine HUE Sync for date `2026-07-23` failed with error: `page.evaluate: Execution context was destroyed, most likely because of a navigation`.
+- **Root Cause**: In `dkclHueF13PortalClient.js` inside `pollGeneratedFile`, `page.evaluate` reads the `/files` table rows. When the portal triggers a page navigation or refresh concurrently with the evaluation, Playwright's execution context is destroyed, raising a hard exception.
+- **Resolution**: Wrapped the `page.evaluate` DOM read inside a try/catch block. If a context destruction or navigation error is detected, the service waits for the page load state to settle (`domcontentloaded` and waiting for the target result table rows to appear) and retries the DOM read up to 3 times before throwing. This safely handles concurrent portal navigation during polling without duplicating report generation or triggering duplicate downloads.
+- **Validation**:
+  1. `node backend/test_dkclHueF13SyncService.js` (94/94 checks PASS)
+  2. `node backend/test_dkclHueF13BackfillService.js` (39/39 checks PASS)
+  3. Real-machine HUE Sync execution for today's date `2026-07-24` returned `NO_DATA` successfully and cleanly.
+- **Exclusions Preserved**: No recovery or import of `2026-07-23`; no Dashboard code changes; PO PASS dates `18` and `19` remain protected and unaltered.
