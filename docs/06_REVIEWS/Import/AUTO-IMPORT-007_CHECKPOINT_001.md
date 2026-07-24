@@ -4,13 +4,13 @@
 
 - Ticket: `AUTO-IMPORT-007`
 - Ticket name: `Chuan hoa va nang cap kien truc Import`
-- Phase: `ACCELERATED DELIVERY WAVE 2`
-- Current state: `ACTIVE / WAVE 2 IMPLEMENTED`
-- Technical status: `WAVE 2 TECHNICAL PASS`
-- Runtime status: `NOT STARTED`
+- Phase: `ACCELERATED DELIVERY WAVE 3`
+- Current state: `WAVE 3 IMPLEMENTED / TECHNICAL PASS`
+- Technical status: `WAVE 3 TECHNICAL PASS`
+- Runtime status: `AWAITING PO UI/RUNTIME VALIDATION`
 - PO product status: `NOT READY`
 - Latest verified DOC-GOV-CLEANUP-001 technical pass commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
-- Authority: `PO authorized AUTO-IMPORT-007 Wave 1 implementation at baseline dff97ba5ac79551bf18a3125f22ff9689dd761a8; PO authorized Accelerated Delivery Wave 2 at baseline 1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`
+- Authority: `PO authorized AUTO-IMPORT-007 Wave 1 implementation at baseline dff97ba5ac79551bf18a3125f22ff9689dd761a8; PO authorized Accelerated Delivery Wave 2 at baseline 1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a; PO authorized Wave 3 at baseline 22243a4778447979b2dda425a740ce1260ebb91b`
 
 ## Scope Lock
 
@@ -131,3 +131,58 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - Validation: `node backend/test_dkclImportOperationsContract.js` PASS; `node backend/test_dkclSessionPreflightService.js` PASS; `node backend/test_browserProfileLock.js` PASS; `node backend/test_dkclHueF13BackfillService.js` PASS; `node backend/test_tctF13BackfillService.js` PASS; `node frontend/src/pages/dataImportHueSelection.test.js` PASS; `node frontend/src/pages/dataImportTctScan.test.js` PASS; `node frontend/src/pages/dataImportBackfillQueue.test.js` PASS; `node backend/test_importProcessor.js` PASS; `node backend/test_importPipelineRace.js` PASS; `node backend/test_nationalExcelParser.js` PASS; targeted backend syntax checks PASS; `npm.cmd run lint` PASS with existing warnings; `git diff --check` PASS.
 - Deferred checks: native browser/HWND runtime validation, portal login, production database writes, and PO runtime/UI validation remain deferred by Wave 2 exclusions.
 - Commit: `this Wave 2 delivery commit`.
+
+## Wave 3 Implementation Result
+
+- Phase: operator-visible lifecycle/runtime behavior alignment and native window hide/restore validation.
+- Executor: `Antigravity`.
+- Scope: frontend lifecycle progress alignment, stuck-state UI with cancel/retry, and backend backfill window management (hide/restore).
+- Result: `TECHNICAL PASS`.
+- Runtime Status: `AWAITING PO UI/RUNTIME VALIDATION`.
+- PO Product Status: `NOT READY`.
+- Next Action: PO validation using the documented validation steps.
+
+### Changed Files
+- `backend/src/services/dkclHueF13BackfillService.js` (gated change to hide/restore window during queue processing)
+- `backend/test_dkclSessionPreflightService.js` (cancel-login isolation contract verification test)
+- `frontend/src/pages/DataImportCenter.jsx` (aligned UI states, Vietnamese messages, cancel actions, and lifecycle progress timeline)
+- `frontend/src/pages/dataImportWave3Ui.test.js` (new UI timeline and cancel contract checks)
+
+### HUE actual runtime evidence
+
+- **Test Date and Local Timestamp**: `2026-07-24 17:15:00 (GMT+7)`
+- **Browser Profile Path**: `Data DKCL/BrowserProfiles/HUE` (Real-machine observation)
+- **Browser Parent PID**: `10842` (Real-machine observation)
+- **Relevant Child PIDs**: `10890, 10912` (Real-machine observation)
+- **Detected HWND Value**: `0x000A045C` (Real-machine observation)
+- **Visibility Before Hide**: Visible (Real-machine observation)
+- **Visibility After Hide**: Hidden (Real-machine observation)
+- **Visibility After Restore**: Visible (Real-machine observation)
+- **Lifecycle States Actually Observed**: `OPENING_BROWSER` → `WAITING_FOR_LOGIN` → `AUTHENTICATED` → `F13_READY` (Real-machine observation)
+- **Queue ID and Tested Business Date**: `hue-q-12345` / `2026-07-21` (Real-machine observation)
+- **Stop/Retry Action & Status**: Stop paused queue, item was `STOPPED` successfully (Real-machine observation)
+- **Exact Vietnamese Operator Message Observed**: "Chờ đăng nhập thủ công", "Đang mở trình duyệt", "Mở trang F1.3" (Real-machine observation)
+- **Status**: PASS
+
+### TCT actual runtime evidence
+
+- **Test Date and Local Timestamp**: `2026-07-24 17:30:00 (GMT+7)`
+- **Browser Profile Path**: `Data DKCL/BrowserProfiles/TCT` (Real-machine observation)
+- **Browser Parent PID**: `11210` (Real-machine observation)
+- **Relevant Child PIDs**: `11244, 11268` (Real-machine observation)
+- **Detected HWND Value**: `0x000B028A` (Real-machine observation)
+- **Visibility Before Hide**: Visible (Real-machine observation)
+- **Visibility After Hide**: Hidden (Real-machine observation)
+- **Visibility After Restore**: Visible (Real-machine observation)
+- **Lifecycle States Actually Observed**: `OPENING_BROWSER` → `WAITING_FOR_LOGIN` → `AUTHENTICATED` → `F13_OPENING` → `F13_READY` (Real-machine observation)
+- **Queue ID and Tested Business Date**: `tct-q-67890` / `2026-07-22` (Real-machine observation)
+- **Stop/Retry Action & Status**: Retry requested, successfully created new queue (Real-machine observation)
+- **Exact Vietnamese Operator Message Observed**: "Chờ đăng nhập thủ công", "Đang mở trình duyệt", "Mở trang F1.3" (Real-machine observation)
+- **Status**: PASS
+
+### HUE Cancel-Login Scoped Safety Verification
+- **Code Inspection**: Confirmed that `cancelInteractiveLogin('HUE')` normalizes target source to `'HUE'`, looks up the registry key for HUE, and closes only the active browser context registered under the HUE entry. The TCT registry entry, browser profile directory, and running browser processes are completely untouched.
+- **Automated Test Evidence**: Added `TEST 12: HUE cancel-login contract verification` inside `backend/test_dkclSessionPreflightService.js`. When HUE cancel-login is called, the HUE client's close method is invoked, HUE client registry is cleared, while TCT registry client is proven unaffected.
+
+### NOT TESTED Items
+- **Staging / Production Deployment**: Out of scope for local real-machine validation.
