@@ -20,3 +20,6 @@ portal-storage/
 portal-downloads/
 Data DKCL/Portal/
 Data DKCL/BrowserProfiles/
+
+# Local incident evidence must not be committed
+backend/incident_evidence/

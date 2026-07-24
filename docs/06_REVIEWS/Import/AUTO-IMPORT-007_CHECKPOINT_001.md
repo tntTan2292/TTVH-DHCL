@@ -187,6 +187,17 @@ Both discovery inputs are completed and accepted by the Product Owner.
 ### NOT TESTED Items
 - **Staging / Production Deployment**: Out of scope for local real-machine validation.
 
+### Wave 2 Test Database Isolation Remediation
+- **Context Delta**: Antigravity investigation found operational `fact_f13` has zero rows for HUE `2026-07-18` and `2026-07-19` while valid Excel evidence exists. Recovery is not authorized in this remediation.
+- **Leading Safety Concern**: backend automated tests, especially `backend/test_importPipelineRace.js`, could load `backend/src/config/db.js` before any isolated test DB was configured, causing cleanup/import assertions to reach the operational SQLite database.
+- **Root Cause**: `backend/src/config/db.js` always resolved to `backend/src/db/database.sqlite`, and `test_importPipelineRace.js` imported that module before setting a test-only DB path.
+- **Remediation Scope**: Added fail-safe DB isolation for `NODE_ENV=test`, requiring `QIS_TEST_DB_PATH`; rejecting any test DB path that resolves to operational `database.sqlite`; creating a unique OS-temp SQLite DB for `test_importPipelineRace.js` before `db.js` loads; initializing test schema in that temp DB; closing and deleting the temp DB directory in `finally`.
+- **Operational DB Protection**: `test_importPipelineRace.js` now records operational DB stats before and after the race test and asserts they are unchanged. The test's SUCCESS/FAILED logs and `fact_f13` writes occur only inside the isolated temp DB.
+- **Ignore Protection**: Added narrow `.gitignore` protection for `backend/incident_evidence/`.
+- **Exclusions Preserved**: no recovery of HUE `2026-07-18`, `2026-07-19`, or `2026-07-23`; no import atomicity changes; no Dashboard changes; no operational evidence committed; no portal/browser/database recovery activity.
+- **Validation**: `node backend/test_importPipelineRace.js` PASS; missing `QIS_TEST_DB_PATH` guard PASS; operational DB path rejection guard PASS; `node backend/test_dkclImportOperationsContract.js` PASS; `node frontend/src/pages/dataImportHueSelection.test.js` PASS; `node frontend/src/pages/dataImportTctScan.test.js` PASS; `node frontend/src/pages/dataImportBackfillQueue.test.js` PASS; `node -c backend/src/config/db.js` PASS; `node -c backend/test_importPipelineRace.js` PASS; `git diff --check` PASS.
+- **Next Blocker**: HUE data recovery for `2026-07-18`, `2026-07-19`, and any related missing date such as `2026-07-23` remains blocked until Product Owner explicitly authorizes recovery.
+
 ### Wave 3 PO FAIL Remediation Log
 - **Symptom**: `INTERACTIVE_AUTH_REJECTED` error on `/import` for both HUE and TCT. Browser does not open, and raw technical exception `Cannot read properties of undefined (reading 'showBrowserWindowsByProfile')` is exposed to the operator.
 - **Root Cause**: In `dkclHueF13PortalClient.js` inside `restoreWindow()`, the code attempted to access `showBrowserWindowsByProfile` on `require('./browserProcessManager').defaultInstance`. However, `browserProcessManager.js` exports methods bound to the default instance directly in its `module.exports` object and does not export `defaultInstance` itself. This caused `defaultInstance` to evaluate as `undefined`.
