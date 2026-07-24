@@ -8,7 +8,7 @@
 - Current state: `WAVE 3 IMPLEMENTED / TECHNICAL PASS`
 - Technical status: `WAVE 3 TECHNICAL PASS`
 - Runtime status: `AWAITING PO UI/RUNTIME VALIDATION`
-- PO product status: `NOT READY`
+- PO product status: `Recovery 18 & 19: PO PASS; Date 23: LOCKED`
 - Latest verified DOC-GOV-CLEANUP-001 technical pass commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
 - Authority: `PO authorized AUTO-IMPORT-007 Wave 1 implementation at baseline dff97ba5ac79551bf18a3125f22ff9689dd761a8; PO authorized Accelerated Delivery Wave 2 at baseline 1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a; PO authorized Wave 3 at baseline 22243a4778447979b2dda425a740ce1260ebb91b`
 
@@ -71,6 +71,8 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - Operator errors use concise actionable Vietnamese.
 - Technical details remain in logs.
 - The six-phase architecture plan is approved.
+- HUE Controlled Recovery for 2026-07-18 and 2026-07-19: PO PASS.
+- HUE Business Date 2026-07-23: Locked (no successful download; keep locked and do not investigate or recover it).
 
 ## Preserved PASS Behaviors
 
