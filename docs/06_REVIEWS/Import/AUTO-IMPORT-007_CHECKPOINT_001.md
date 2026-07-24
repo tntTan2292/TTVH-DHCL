@@ -193,3 +193,17 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - **Resolution**: Removed the redundant and incorrect local `require('./browserProcessManager').defaultInstance` call and updated the code to use the already imported top-level `processManager` directly, which has `showBrowserWindowsByProfile` exported and bound correctly.
 - **Error Sanitization**: Updated `dkclSharedOperationsController.js` so that unhandled exceptions/errors log the details in the backend console/logs but return a clean Vietnamese error message to the operator in the UI instead of exposing raw Javascript TypeError stack traces.
 - **Regression Test**: Added `TEST 13: restoreWindow processManager resolution verification` inside `test_dkclSessionPreflightService.js` to assert successful execution of `restoreWindow` and correct invocation of `showBrowserWindowsByProfile` without any exceptions.
+
+### Wave 3 End-to-End PO FAIL Remediation Log
+- **Symptom 1 (High Failure Rate)**: Operators observed high import FAILED rates caused by `Required select not found: select[name="TuyChonGR"]` or `Timeout exceeded waiting for export form`.
+- **Symptom 2 (Browser Window Remains Visible)**: Browser windows remained visible after successful manual login and F1.3 report page loading.
+- **Root Cause 1 & 2**:
+  1. The PowerShell process query command in `browserProcessManager.js` lacked proper escaping for `$_` within the double-quoted `-Command` string (interpreting it as `$_.CommandLine` without escaping). Because of this, it threw variable resolution errors in PowerShell and fell back to WMIC. When WMIC failed or was disabled on the machine, process mapping yielded 0 PIDs, causing window hiding to fail.
+  2. The window hide verification check `result.matchedWindowCount > 0` was overly strict. When a window was already hidden or in transition (0 visible windows to hide), it was treated as a verification failure, causing repeated loop retries and eventual timeout failure.
+  3. HUE's `waitInteractiveAuthentication` did not enforce F1.3 report readiness, causing the preflight service to trigger window hide and return `F13_READY` immediately while the browser was still mid-navigation.
+- **Resolution**:
+  1. Escaped `$_` as ``$_` in the PowerShell query inside `browserProcessManager.js` to prevent shell variable interpolation.
+  2. Changed the window hiding success check to check `result.success` directly so that already-hidden states do not trigger timeouts.
+  3. Refactored the preflight service background loop to wait up to 15 seconds for `client.isF13ReportReady` before transitioning to `F13_READY` and initiating window hiding, ensuring the UI does not claim ready until the hide attempt has finished.
+- **Regression Test**: Added polling loops and validation checks inside `test_dkclSessionPreflightService.js`.
+- **E2E Result**: PASS (both HUE and TCT browsers open, wait for manual login, verify F1.3 readiness, successfully hide, and successfully complete backfill imports).
