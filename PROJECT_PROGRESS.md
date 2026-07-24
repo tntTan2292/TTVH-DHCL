@@ -44,7 +44,7 @@
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
 - AUTO-IMPORT-006: `Completed through TCT unfinished bulk-selection PO PASS`; Technical Status `PASS`; Runtime Status `PO PASS`; Last accepted commit `313b16a2f0e3259562681d26a581e5c9f2bba960`
-- AUTO-IMPORT-007: `ACTIVE / PLAN ONLY`; Technical Status `PLANNING`; Runtime Status `NOT STARTED`; PO Product Status `NOT READY`; Current Phase `PLAN ONLY`; next action `Discovery only`
+- AUTO-IMPORT-007: `ACTIVE / PLAN ONLY`; Technical Status `PLAN CONSOLIDATED`; Runtime Status `NOT STARTED`; PO Product Status `NOT READY`; Current Phase `PLAN ONLY`; next action `PO implementation authorization`
 - DOC-GOV-CLEANUP-001: `COMPLETED / TECHNICAL PASS`; Technical Status `PASS`; Runtime Status `NOT APPLICABLE`; Evidence `306 before / 306 after; no delete/move/merge; link check PASS; authority conflict check PASS; git diff --check PASS`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
@@ -107,8 +107,8 @@
 | Last Reviewed Phase | `DOC-GOV-CLEANUP-001` |
 | Last Reviewed Commit | `366fbe0738a1b1f8d3a5c8753d4930b69a97004f` |
 | Phase Review Status | `TECHNICAL PASS` |
-| Next Phase Authorization | `AUTO-IMPORT-007 DISCOVERY ONLY` |
-| Next Milestone | `Codex code/data analysis discovery` |
+| Next Phase Authorization | `READY FOR PO IMPLEMENTATION AUTHORIZATION` |
+| Next Milestone | `PO authorization decision for AUTO-IMPORT-007 Phase 1` |
 | PO UI Check Required | `No` |
 | PO Product Status | `NOT READY` |
 
@@ -126,9 +126,12 @@
 
 - Ticket name: `Chuan hoa va nang cap kien truc Import`.
 - State: `ACTIVE / PLAN ONLY`.
-- Authority: discovery is authorized as next action; implementation is not authorized.
+- Authority: discovery and planning consolidation are complete; implementation is not authorized.
 - Plan locks: shared DKCL lifecycle SSOT `SOURCE_SELECTED` -> `SESSION_CHECK` -> `OPENING_BROWSER` -> `WAITING_FOR_LOGIN` -> `AUTHENTICATED` -> `F13_OPENING` -> `F13_READY`; HUE/TCT share the lifecycle contract while keeping separate account, `profileDir`, Registry entry, PID tree, HWND, and session; branch only after `F13_READY` into `HueF13Adapter` and `TctF13Adapter`; standardize queue, retry, stop, progress, error, and import history; metadata must distinguish source even when original filenames match; architecture must extend to `F1.1`, `F1.2`, and `F4.1`; reuse code already `PASS` and do not plan a full rewrite.
-- Required discovery inputs: `Codex code/data analysis`; `Antigravity runtime/UI analysis`.
+- Completed discovery inputs: `Codex code/data analysis`; `Antigravity runtime/UI analysis`.
+- Product Owner decisions: HUE and TCT use the same operator-visible stages `OPENING_BROWSER` -> `WAITING_FOR_LOGIN` -> `F13_OPENING` -> `F13_READY`; manual login timeout default remains `4` minutes; operator errors use concise actionable Vietnamese; technical details remain in logs.
+- Approved six-phase plan: shared lifecycle contract/state standardization; shared source/session registry and profile ownership hardening; operator-visible lifecycle/runtime behavior alignment; shared queue/retry/stop/progress/error/history contract standardization; post-`F13_READY` adapter extraction; metadata/source identity completion and extension readiness.
+- Proposed first implementation phase: shared lifecycle contract/state standardization by Codex, with no UI or database behavior change.
 
 ## Pre-DA-IMPL-007 Regression Closure
 

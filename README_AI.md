@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-007 ACTIVE / PLAN ONLY`, DOC-GOV-CLEANUP-001 completed `TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`; next action is discovery, not implementation.
+Current active handoff: `AUTO-IMPORT-007 ACTIVE / PLAN ONLY`, DOC-GOV-CLEANUP-001 completed `TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`; both AUTO-IMPORT-007 discovery inputs are completed and the six-phase plan is approved; next action is Product Owner implementation authorization, not implementation.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

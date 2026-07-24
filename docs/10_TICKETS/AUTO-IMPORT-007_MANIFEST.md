@@ -4,7 +4,7 @@
 - Ticket Name: `Chuan hoa va nang cap kien truc Import`
 - Phase: `Auto Import / Architecture Planning`
 - Current State: `ACTIVE / PLAN ONLY`
-- Technical Status: `PLANNING`
+- Technical Status: `PLAN CONSOLIDATED`
 - Runtime Status: `NOT STARTED`
 - PO UI Check Required: `No`
 - PO Product Status: `NOT READY`
@@ -12,7 +12,7 @@
 - Last Reviewed Phase: `DOC-GOV-CLEANUP-001`
 - Last Reviewed Commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
 - Phase Review Status: `PO AUTHORIZED PLAN`
-- Next Phase Authorization: `DISCOVERY ONLY`
+- Next Phase Authorization: `READY FOR PO IMPLEMENTATION AUTHORIZATION`
 - Activation date: `2026-07-24`
 - Primary executor: `Codex for code/data analysis; Antigravity for runtime/UI analysis`
 
@@ -35,7 +35,7 @@ Required Reading:
 
 Product Owner authorized `AUTO-IMPORT-007` for plan/discovery after `DOC-GOV-CLEANUP-001` technical pass.
 
-Functional source-code changes and implementation are not authorized. Discovery is authorized as the next action. Do not modify import execution, browser lifecycle, queue execution, database writes, Dashboard, KPI, or authentication behavior until a later implementation authorization is recorded.
+Functional source-code changes and implementation are not authorized. Discovery and planning consolidation are complete. Do not modify import execution, browser lifecycle, queue execution, database writes, Dashboard, KPI, or authentication behavior until a later implementation authorization is recorded.
 
 ## Objective
 
@@ -106,19 +106,59 @@ The architecture must be extensible to:
 
 The plan must identify which contracts are DKCL-general, F13-specific, and source-specific.
 
-## Required Discovery Inputs
+## Completed Discovery Inputs
 
 1. Codex code/data analysis.
 2. Antigravity runtime/UI analysis.
 
-These are discovery inputs only. They do not authorize implementation.
+Both discovery inputs are completed and accepted by the Product Owner. These discovery inputs do not authorize implementation.
+
+## Product Owner Planning Decisions
+
+- HUE and TCT use the same operator-visible stages: `OPENING_BROWSER` -> `WAITING_FOR_LOGIN` -> `F13_OPENING` -> `F13_READY`.
+- Manual login timeout default remains `4` minutes.
+- Operator errors must be concise, actionable Vietnamese.
+- Technical detail remains in logs.
+- Product Owner approved the six-phase architecture plan.
+
+## Preserved PASS Behaviors
+
+- Existing HUE/TCT source separation, sessions, profiles, registry identity, PID tree, HWND handling, files, logs, queue items, and history must remain preserved.
+- Existing HUE session reuse, controlled Re-Update/idempotency, TCT incomplete-date selection, manual login behavior, and accepted import evidence contracts must remain preserved.
+- Existing Dashboard/KPI accepted behavior is out of scope for AUTO-IMPORT-007 implementation.
+
+## Executor Responsibility Boundaries
+
+- Codex owns shared lifecycle contract, backend/API/data contracts, queue/history contracts, tests, and governance documentation.
+- Antigravity owns real-machine runtime/UI validation, browser window behavior, operator-visible lifecycle behavior, and OS/HWND evidence.
+- Neither executor may self-authorize implementation or broaden scope beyond the phase authorized by the Product Owner.
+
+## Approved Six-Phase Implementation Plan
+
+Each phase must be independently verifiable and separately authorized before execution.
+
+1. Shared lifecycle contract/state standardization. Executor: `Codex`. Scope: contract/state alignment only; no UI or database behavior change.
+2. Shared source/session registry and profile ownership hardening. Executor: `Codex`, with Antigravity runtime evidence where needed.
+3. Operator-visible lifecycle/runtime behavior alignment for HUE and TCT. Executor: `Antigravity`.
+4. Shared queue, retry, stop, progress, error, and history contract standardization. Executor: `Codex`.
+5. Post-`F13_READY` adapter extraction for `HueF13Adapter` and `TctF13Adapter`. Executor: `Codex`.
+6. Metadata/source identity completion and extension readiness for `F1.1`, `F1.2`, and `F4.1`. Executor: `Codex`.
+
+## Proposed First Implementation Phase
+
+- Phase: shared lifecycle contract/state standardization.
+- Proposed executor: `Codex`.
+- Scope: standardize lifecycle contract/state naming and backend-facing state semantics.
+- Exclusions: no UI behavior change, no database behavior change, no portal login, no browser runtime execution, no Dashboard/KPI change.
+- Status: proposed only; implementation remains unauthorized until the Product Owner separately approves it.
 
 ## Current Status
 
 - AUTO-IMPORT-007 is active in `PLAN ONLY`.
 - No functional code changes are authorized.
-- Discovery is the next authorized action.
+- Discovery inputs are completed and accepted.
+- Six-phase architecture plan is approved.
 - No implementation is authorized.
 - No portal login is authorized.
 - No PO runtime validation is authorized.
-- Next required action: produce discovery input `1. Codex code/data analysis`; implementation remains unauthorized.
+- Next required action: request Product Owner implementation authorization for Phase 1 only.
