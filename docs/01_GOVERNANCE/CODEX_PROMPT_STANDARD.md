@@ -233,13 +233,21 @@ The required autonomous output is exactly:
 1. `### Phân tích kết quả`
    - fewer than 5 sentences
    - state only the result, finding, blocker, or readiness
+   - use Product Owner management/no-code language
+   - explain what happened, the user/project impact, and the current progress or blocker
 2. `### Phương án`
    - fewer than 5 sentences
    - state the immediate execution path
+   - use Product Owner management/no-code language
+   - state the handling goal, expected result, executor, and next check milestone
 3. exactly one of:
    - `### Prompt cho Codex`
    - `### Prompt cho Antigravity`
    - `### Yêu cầu PO quyết định`
+
+Do not use class names, function names, code paths, raw logs, or technical jargon in the first two sections unless they are necessary for a Product Owner decision.
+
+Put technical details in the executor prompt, validation evidence, or a separate technical note.
 
 ## 7.1 Post-Review Remediation Loop
 
@@ -284,6 +292,8 @@ Restrictions:
 Report:
 - use `### Phân tích kết quả`, `### Phương án`, and exactly one of `### Prompt cho Codex`, `### Prompt cho Antigravity`, or `### Yêu cầu PO quyết định`;
 - keep the first two sections under 5 sentences each;
+- write the first two sections in Product Owner management/no-code language;
+- keep class names, function names, code paths, raw logs, and technical jargon out of the first two sections unless needed for a PO decision;
 - include implementation, validation, PO check, commit, remote push, and handoff status only when applicable.
 ```
 
@@ -294,6 +304,8 @@ Every execution report generated from this standard must stay concise and should
 The prompt is considered valid when it is sufficient for the selected executor to implement the ticket by following the repository onboarding chain, while staying below 250 words unless a documented exception applies.
 
 The three-part response format applies to post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation.
+
+In the first two sections, the reader is the Product Owner. The result analysis must say what happened, how it affects users or the project, and whether progress is clear or blocked. The plan section must say the handling goal, expected outcome, executor, and next check milestone. Technical detail belongs in the executor prompt, validation evidence, or a separate technical note.
 
 ## 10. Technical Validation vs PO UI Acceptance
 

@@ -74,13 +74,21 @@ After onboarding and for post-onboarding continuation, implementation-result rev
 1. `### Phân tích kết quả`
    - fewer than 5 sentences
    - state only the result, finding, blocker, or readiness
+   - use Product Owner management/no-code language
+   - explain what happened, the user/project impact, and the current progress or blocker
 2. `### Phương án`
    - fewer than 5 sentences
    - state the immediate execution path
+   - use Product Owner management/no-code language
+   - state the handling goal, expected result, executor, and next check milestone
 3. exactly one of:
    - `### Prompt cho Codex`
    - `### Prompt cho Antigravity`
    - `### Yêu cầu PO quyết định`
+
+Do not use class names, function names, code paths, raw logs, or technical jargon in the first two sections unless they are necessary for a Product Owner decision.
+
+Put technical details in the executor prompt, validation evidence, or a separate technical note.
 
 If the active manifest authorizes implementation and no governance blocker exists, the AI must continue immediately into prompt generation without waiting for another user request.
 
