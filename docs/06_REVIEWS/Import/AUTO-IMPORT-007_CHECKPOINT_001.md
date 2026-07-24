@@ -265,3 +265,13 @@ Both discovery inputs are completed and accepted by the Product Owner.
   3. Refactored the preflight service background loop to wait up to 15 seconds for `client.isF13ReportReady` before transitioning to `F13_READY` and initiating window hiding, ensuring the UI does not claim ready until the hide attempt has finished.
 - **Regression Test**: Added polling loops and validation checks inside `test_dkclSessionPreflightService.js`.
 - **E2E Result**: PASS (both HUE and TCT browsers open, wait for manual login, verify F1.3 readiness, successfully hide, and successfully complete backfill imports).
+
+### HUE Download Selector Resolution Remediation
+- **Symptom**: Real-machine HUE Sync runs returned `XLSX_DOWNLOAD_NOT_FOUND` error at the download stage despite a successful report generation.
+- **Root Cause**: In `dkclHueF13PortalClient.js` inside `pollGeneratedFile`, the link URL was extracted via the resolved absolute `a.href` property (e.g. `https://dkcl.vnpost.vn/files-xlsx/...`). However, the actual DOM attribute in the portal's HTML uses a relative path (e.g. `/files-xlsx/...`). Because of this, Playwright's exact attribute selector `a[href="${file.href}"]` failed to match the relative href, resulting in a download locator error.
+- **Resolution**: Updated `pollGeneratedFile` in `dkclHueF13PortalClient.js` to retrieve the raw attribute value using `xlsx?.getAttribute('href')` instead of the resolved absolute `.href` property. This guarantees exact matching by the Playwright CSS selector whether the portal uses relative or absolute URLs.
+- **Validation**:
+  1. `node backend/test_dkclHueF13SyncService.js` (94/94 checks PASS)
+  2. `node backend/test_dkclHueF13BackfillService.js` (39/39 checks PASS)
+  3. Real-machine HUE Sync execution for today's date `2026-07-24` returned `NO_DATA` successfully and cleanly (proving no `XLSX_DOWNLOAD_NOT_FOUND` errors, correct workflow progression, and correct browser hide/restore).
+- **Exclusions Preserved**: No recovery or import of `2026-07-23`; no Dashboard code changes; PO PASS dates `18` and `19` remain protected and unaltered.

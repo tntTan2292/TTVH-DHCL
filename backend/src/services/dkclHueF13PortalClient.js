@@ -542,7 +542,7 @@ class DkclHueF13PortalClient {
                     filename: cells[1],
                     createdAtText: cells[3],
                     createdAt: cells[3],
-                    href: xlsx?.href || null
+                    href: xlsx?.getAttribute('href') || null
                 };
             }));
             const normalized = files.map((file) => ({
