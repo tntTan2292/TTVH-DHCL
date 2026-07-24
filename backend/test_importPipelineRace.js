@@ -26,14 +26,25 @@ const {
     BASE_INCOMING,
     BASE_PROCESSING,
     BASE_PROCESSED,
-    BASE_ERROR
+    BASE_ERROR,
+    BASE_QUARANTINE,
+    verifyHueImportCommit,
+    getHueCommittedEvidence
 } = require('./src/services/importPipeline');
 
 const SUCCESS_DATE = '2026-07-18';
 const SUCCESS_FILENAME = 'F1.3-2026.07.18.xlsx';
 const FAILURE_DATE = '2026-07-19';
 const FAILURE_FILENAME = 'F1.3-2026.07.19.xlsx';
+const STALE_DATE = '2026-07-20';
+const STALE_FILENAME = 'F1.3-2026.07.20.xlsx';
+const COUNT_MISMATCH_DATE = '2026-07-21';
+const COUNT_MISMATCH_FILENAME = 'F1.3-2026.07.21.xlsx';
+const MOVE_FAILURE_DATE = '2026-07-22';
+const MOVE_FAILURE_FILENAME = 'F1.3-2026.07.22.xlsx';
 const SCHEMA_PATH = path.resolve(__dirname, 'src/db/schema.sql');
+const TEST_DATES = [SUCCESS_DATE, FAILURE_DATE, STALE_DATE, COUNT_MISMATCH_DATE, MOVE_FAILURE_DATE];
+const TEST_FILENAMES = [SUCCESS_FILENAME, FAILURE_FILENAME, STALE_FILENAME, COUNT_MISMATCH_FILENAME, MOVE_FAILURE_FILENAME];
 
 let passed = 0;
 let failed = 0;
@@ -79,13 +90,14 @@ function sqliteGet(dbFile, sql, params = []) {
 }
 
 async function readOperationalStats() {
+    const placeholders = TEST_DATES.map(() => '?').join(',');
     const row = await sqliteGet(
         operationalDbPath,
         `SELECT
-            (SELECT COUNT(*) FROM fact_f13 WHERE ngay_do_kiem IN (?, ?)) AS fact_count,
-            (SELECT COUNT(*) FROM import_log WHERE ngay_do_kiem IN (?, ?)) AS log_count,
-            (SELECT COALESCE(SUM(total_records), 0) FROM import_log WHERE ngay_do_kiem IN (?, ?)) AS log_total_records`,
-        [SUCCESS_DATE, FAILURE_DATE, SUCCESS_DATE, FAILURE_DATE, SUCCESS_DATE, FAILURE_DATE]
+            (SELECT COUNT(*) FROM fact_f13 WHERE ngay_do_kiem IN (${placeholders})) AS fact_count,
+            (SELECT COUNT(*) FROM import_log WHERE ngay_do_kiem IN (${placeholders})) AS log_count,
+            (SELECT COALESCE(SUM(total_records), 0) FROM import_log WHERE ngay_do_kiem IN (${placeholders})) AS log_total_records`,
+        [...TEST_DATES, ...TEST_DATES, ...TEST_DATES]
     );
     const stat = fs.statSync(operationalDbPath);
     return {
@@ -145,13 +157,27 @@ function buildInvalidWorkbook() {
 }
 
 async function cleanup() {
-    await run('DELETE FROM fact_f13 WHERE ngay_do_kiem IN (?, ?)', [SUCCESS_DATE, FAILURE_DATE]);
-    await run('DELETE FROM import_log WHERE ngay_do_kiem IN (?, ?)', [SUCCESS_DATE, FAILURE_DATE]);
+    const placeholders = TEST_DATES.map(() => '?').join(',');
+    await run(`DELETE FROM fact_f13 WHERE ngay_do_kiem IN (${placeholders})`, TEST_DATES);
+    await run(`DELETE FROM import_log WHERE ngay_do_kiem IN (${placeholders})`, TEST_DATES);
 
-    for (const base of [BASE_INCOMING, BASE_PROCESSING, BASE_PROCESSED, BASE_ERROR]) {
+    for (const base of [BASE_INCOMING, BASE_PROCESSING, BASE_PROCESSED, BASE_ERROR, BASE_QUARANTINE]) {
         ensureDir(path.join(base, 'HUE'));
-        safeUnlink(pathIn(base, SUCCESS_FILENAME));
-        safeUnlink(pathIn(base, FAILURE_FILENAME));
+        for (const filename of TEST_FILENAMES) {
+            const target = pathIn(base, filename);
+            if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
+                fs.rmSync(target, { recursive: true, force: true });
+            } else {
+                safeUnlink(target);
+            }
+        }
+        if (base === BASE_QUARANTINE) {
+            for (const entry of fs.readdirSync(path.join(base, 'HUE'))) {
+                if (entry.startsWith('F1.3-2026.07.20.stale-')) {
+                    safeUnlink(path.join(base, 'HUE', entry));
+                }
+            }
+        }
     }
 }
 
@@ -232,6 +258,95 @@ async function runTests() {
             assert('file not left in Processing', !fs.existsSync(pathIn(BASE_PROCESSING, FAILURE_FILENAME)));
         } catch (error) {
             console.error('  TEST 2 UNEXPECTED ERROR:', error.message);
+            failed++;
+        }
+
+        try {
+            console.log('\nTEST 3: stale Processed evidence is quarantined and does not block valid import');
+            await run(
+                `INSERT INTO import_log
+                    (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+                 VALUES (?, ?, 'SUCCESS', 2, 0, 0)`,
+                [STALE_FILENAME, STALE_DATE]
+            );
+            const staleProcessedPath = pathIn(BASE_PROCESSED, STALE_FILENAME);
+            ensureDir(path.dirname(staleProcessedPath));
+            fs.writeFileSync(staleProcessedPath, Buffer.from('stale processed evidence'));
+            const incomingPath = pathIn(BASE_INCOMING, STALE_FILENAME);
+            fs.writeFileSync(incomingPath, buildValidWorkbook());
+
+            const result = await executeImport({ filePath: incomingPath, forceReimport: false, source: 'TEST-STALE' });
+            const facts = await get('SELECT COUNT(*) AS count FROM fact_f13 WHERE ngay_do_kiem = ?', [STALE_DATE]);
+            const staleStillExists = fs.existsSync(staleProcessedPath) && fs.readFileSync(staleProcessedPath).toString() === 'stale processed evidence';
+            const quarantineFiles = fs.readdirSync(path.join(BASE_QUARANTINE, 'HUE')).filter((name) => name.includes('F1.3-2026.07.20.stale-'));
+
+            assert('stale SUCCESS log without facts does not trigger reimport confirmation', result.success === true && !result.requiresConfirmation);
+            assert('valid import commits verified rows after stale evidence', facts.count === 2, `Got: ${facts.count}`);
+            assert('stale Processed file is quarantined before final Processed move', staleStillExists === false && quarantineFiles.length === 1, JSON.stringify(quarantineFiles));
+            assert('new verified workbook is in Processed', fs.existsSync(pathIn(BASE_PROCESSED, STALE_FILENAME)));
+        } catch (error) {
+            console.error('  TEST 3 UNEXPECTED ERROR:', error.message);
+            failed++;
+        }
+
+        try {
+            console.log('\nTEST 4: count mismatch prevents SUCCESS without verified fact rows');
+            const log = await run(
+                `INSERT INTO import_log
+                    (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+                 VALUES (?, ?, 'SUCCESS', 2, 0, 0)`,
+                [COUNT_MISMATCH_FILENAME, COUNT_MISMATCH_DATE]
+            );
+            let mismatchCode = null;
+            try {
+                await verifyHueImportCommit({
+                    ngay_do_kiem: COUNT_MISMATCH_DATE,
+                    importLogId: log.lastID,
+                    inserted: 2,
+                    filename: COUNT_MISMATCH_FILENAME
+                });
+            } catch (error) {
+                mismatchCode = error.code;
+            }
+            const mismatchLog = await get('SELECT status, error_records FROM import_log WHERE id = ?', [log.lastID]);
+            assert('count mismatch throws explicit verification failure', mismatchCode === 'IMPORT_COMMIT_VERIFICATION_FAILED', mismatchCode);
+            assert('count mismatch removes SUCCESS status', mismatchLog.status === 'FAILED' && mismatchLog.error_records === 2, JSON.stringify(mismatchLog));
+        } catch (error) {
+            console.error('  TEST 4 UNEXPECTED ERROR:', error.message);
+            failed++;
+        }
+
+        try {
+            console.log('\nTEST 5: post-commit Processed move failure preserves DB and records recoverable status');
+            const incomingPath = pathIn(BASE_INCOMING, MOVE_FAILURE_FILENAME);
+            fs.writeFileSync(incomingPath, buildValidWorkbook());
+
+            const originalRenameSync = fs.renameSync;
+            fs.renameSync = (from, to) => {
+                if (from === pathIn(BASE_PROCESSING, MOVE_FAILURE_FILENAME) && to === pathIn(BASE_PROCESSED, MOVE_FAILURE_FILENAME)) {
+                    const error = new Error('simulated post-commit processed move failure');
+                    error.code = 'EACCES';
+                    throw error;
+                }
+                return originalRenameSync(from, to);
+            };
+            let result = null;
+            try {
+                result = await executeImport({ filePath: incomingPath, forceReimport: false, source: 'TEST-MOVE-FAIL' });
+            } finally {
+                fs.renameSync = originalRenameSync;
+            }
+            const facts = await get('SELECT COUNT(*) AS count FROM fact_f13 WHERE ngay_do_kiem = ?', [MOVE_FAILURE_DATE]);
+            const logRow = await get('SELECT status, error_records FROM import_log WHERE ngay_do_kiem = ? ORDER BY id DESC LIMIT 1', [MOVE_FAILURE_DATE]);
+            const committedEvidence = await getHueCommittedEvidence(MOVE_FAILURE_DATE);
+
+            assert('file move failure is recoverable and not reported as SUCCESS', result.status === 'FILE_MOVE_FAILED' && result.committed === true && result.recoverable === true);
+            assert('DB rows remain committed after file move failure', facts.count === 2, `Got: ${facts.count}`);
+            assert('import_log records recoverable file-move status', logRow.status === 'FILE_MOVE_FAILED' && logRow.error_records === 0, JSON.stringify(logRow));
+            assert('recoverable committed evidence prevents reimport requirement gaps', committedEvidence?.status === 'FILE_MOVE_FAILED' && committedEvidence.factCount === 2, JSON.stringify(committedEvidence));
+            assert('Processing file remains available for file-state recovery', fs.existsSync(pathIn(BASE_PROCESSING, MOVE_FAILURE_FILENAME)));
+        } catch (error) {
+            console.error('  TEST 5 UNEXPECTED ERROR:', error.message);
             failed++;
         }
     } finally {
