@@ -3,13 +3,13 @@
 ## Phase
 
 - Ticket: `AUTO-IMPORT-006`
-- Phase: `REMEDIATION-006 / READY FOR IMPLEMENTATION`
-- Latest verified remote commit: `4c7df0180471724116c05e3278999abc31cd1108`
-- Current state: `ACTIVE / READY FOR IMPLEMENTATION`
+- Phase: `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`
+- Latest verified remote commit: `313b16a2f0e3259562681d26a581e5c9f2bba960`
+- Current state: `ACTIVE / AWAITING NEXT AUTHORIZATION`
 - Technical status: `PASS`
 - PO product status: `NOT READY - AUTO-IMPORT-006 remains active`
-- Next authorized defect: `Import date validation`
-- Executor: `Codex`
+- Next authorized action: `None recorded after TCT unfinished bulk-selection PO PASS`
+- Executor: `TBD by PO/authority`
 
 ## Dashboard PO PASS Set
 
@@ -92,6 +92,25 @@ After cleanup:
 - `fact_f13` date coverage is `2026-01-01` to `2026-07-22` across `201` distinct dates.
 - No other dates or tables were deleted.
 
+## TCT Unfinished Bulk-Selection PO PASS
+
+PO accepted commit `313b16a2f0e3259562681d26a581e5c9f2bba960` as `PO PASS`.
+
+Defect completed:
+
+- `Chọn tất cả chưa hoàn tất` selects exactly selectable `INCOMPLETE` / `Xử lý lại` dates for the PO case.
+- For the 16-22/07/2026 evidence set, the action selected the expected `5` unfinished dates: `2026-07-16`, `2026-07-17`, `2026-07-18`, `2026-07-20`, and `2026-07-22`.
+- The action did not select the `2` `COMPLETE` dates.
+- `Chọn tất cả` remains the separate action for selectable `MISSING`, `INCOMPLETE`, and `COMPLETE`.
+- `Bỏ chọn tất cả` remains the action that clears all selected checkboxes.
+- Update/Re-Update count matches the selected checkbox count.
+
+Validation status:
+
+- Technical validation: `PASS`.
+- PO UI validation: `PASS`.
+- Backend/import execution/Dashboard/KPI/authentication changes: `None`.
+
 ## Deferred Runtime Validation
 
 Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required.
@@ -108,7 +127,8 @@ Do not treat this deferred validation as a blocker for the next Codex import-dat
 ## Guardrails
 
 - Current ticket remains `AUTO-IMPORT-006`.
-- Current phase is `REMEDIATION-006 / READY FOR IMPLEMENTATION`.
+- Current phase is `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`.
 - Do not reopen completed Dashboard tickets.
 - Do not broad-audit the repository.
 - Do not perform portal login unless the next authorized prompt explicitly requires PO runtime validation.
+- No next action is authorized in this checkpoint after TCT unfinished bulk-selection `PO PASS`; wait for explicit PO/authority direction.

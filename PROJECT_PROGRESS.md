@@ -43,7 +43,7 @@
 - AUTO-IMPORT-003: `Completed / PO PASS`
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
-- AUTO-IMPORT-006: `ACTIVE / AWAITING REVIEW`; Technical Status `PASS`; Runtime Status `AWAITING CHIEF ARCHITECT REVIEW / PO RECHECK`; PO Product Status `NOT READY`; Current Phase `REMEDIATION-005B / AWAITING REVIEW`; Last Reviewed Phase `R4.1B`
+- AUTO-IMPORT-006: `ACTIVE / AWAITING NEXT AUTHORIZATION`; Technical Status `PASS`; Runtime Status `TCT UNFINISHED BULK-SELECTION PO PASS`; PO Product Status `NOT READY`; Current Phase `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`; Last Reviewed Phase `TCT unfinished bulk-selection`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -100,14 +100,14 @@
 | Field | Value |
 | --- | --- |
 | Current Ticket | `AUTO-IMPORT-006` |
-| Current Commit | `52d25e5310550631a8211aead577442994687787` |
-| Current Phase | `REMEDIATION-005B / AWAITING REVIEW` |
-| Last Reviewed Phase | `R4.1B` |
-| Last Reviewed Commit | `58fb723e9c5eeb82f17b75d14b7662c3503ee262` |
-| Phase Review Status | `REVIEW PASS` |
-| Next Phase Authorization | `PO RUNTIME RECHECK GRANTED` |
-| Next Milestone | `PO runtime recheck` |
-| PO UI Check Required | `Yes` |
+| Current Commit | `313b16a2f0e3259562681d26a581e5c9f2bba960` |
+| Current Phase | `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION` |
+| Last Reviewed Phase | `TCT unfinished bulk-selection` |
+| Last Reviewed Commit | `313b16a2f0e3259562681d26a581e5c9f2bba960` |
+| Phase Review Status | `PO PASS` |
+| Next Phase Authorization | `None recorded after TCT unfinished bulk-selection PO PASS` |
+| Next Milestone | `Await explicit PO/authority direction` |
+| PO UI Check Required | `No for completed TCT bulk-selection` |
 | PO Product Status | `NOT READY` |
 
 ## Pre-DA-IMPL-007 Regression Closure
@@ -204,16 +204,16 @@
 
 ## AUTO-IMPORT-006 Unified DKCL Authentication Lifecycle Recovery Status
 
-- Ticket status: `ACTIVE / PO RECHECK`.
+- Ticket status: `ACTIVE / AWAITING NEXT AUTHORIZATION`.
 - Technical Status: `PASS`.
-- Runtime Status: `AWAITING PO RECHECK`.
-- PO UI Check Required: `Yes`.
+- Runtime Status: `TCT UNFINISHED BULK-SELECTION PO PASS`.
+- PO UI Check Required: `No for completed TCT bulk-selection`.
 - PO Product Status: `NOT READY`.
-- Current Phase: `REMEDIATION-005B / AWAITING REVIEW`.
-- Last Reviewed Phase: `R4.1B`.
-- Last Reviewed Commit: `58fb723e9c5eeb82f17b75d14b7662c3503ee262`.
-- Phase Review Status: `REVIEW PASS`.
-- Next Phase Authorization: `PO RUNTIME RECHECK GRANTED`.
+- Current Phase: `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`.
+- Last Reviewed Phase: `TCT unfinished bulk-selection`.
+- Last Reviewed Commit: `313b16a2f0e3259562681d26a581e5c9f2bba960`.
+- Phase Review Status: `PO PASS`.
+- Next Phase Authorization: `None recorded after TCT unfinished bulk-selection PO PASS`.
 - Primary executor: `Antigravity`.
 - Scope: separate HUE login trigger, block automatic interactive login in HUE queue check, resolve TCT interactive client factory configuration omission, CDP best-effort minimize, and browser manual closed listener/Registry.
 - Technical evidence: all unit tests passed for sync and backfill service components, oxlint passed with zero errors, production bundle built successfully.
@@ -221,13 +221,13 @@
 - Remediation 002: Implemented responsive layout, restored Re-Update for complete dates (HUE/TCT), and cleaned up duplicate TCT login buttons. Phase changes were not separated atomically (see Checkpoint 004). PO runtime verification has not yet been performed.
 - Remediation 003 / R2.1 Remediation A: initial attempt `7ac4fb3` was `REVIEW FAIL`; actual root cause was stale local backend returning `selectable:false`; follow-up commit `3e3309bf959582c681f4a81f319f7128fcde7f87` wired production to shared Hue selection helpers; runtime DOM smoke confirmed checkbox selection and `Re-Update (1)`; no portal login or submission was performed.
 - Remediation 003 / R2.2 TCT Login Lifecycle: root cause was preflight collapsing an in-progress interactive session into expired/auth-required handling; commit `220123d7defa040d340d39750b37b6cba3950301` adds `LOGIN_IN_PROGRESS`; controller maps it to HTTP `202`; polling preserves the client; duplicate auth uses one `openingPromise`; frontend disables the button and displays `Đang mở đăng nhập...`; code review passed; stable headed-browser behavior remains pending PO runtime verification.
-- PO runtime recheck is authorized and pending. HUE must verify current-HEAD backend restart, hard refresh at `localhost:5178/import`, one `COMPLETE` date checkbox staying checked, `Re-Update (1)`, login through `Mở đăng nhập Huế`, one controlled Re-Update submission, and queue/result without duplicates.
-- TCT must verify `Mở đăng nhập TCT`, one headed browser, no repeated flash/close/reopen, UI text `Đang mở đăng nhập...`, manual login, browser minimize after successful login, `SESSION_VALID`, one controlled `COMPLETE` date Re-Update, authentication-required after manually closing the browser, and no impact to HUE state.
+- Earlier PO runtime recheck authorization for login lifecycle is not the current next action; native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required.
+- Historical login-lifecycle recheck details are retained in the AUTO-IMPORT-006 manifest/checkpoint history and must not be treated as newly authorized work without explicit PO direction.
 - Responsive recheck must verify 100% zoom, visible and usable controls, and no page-level clipping.
 - Remediation 004 / R4.1: commit `8c22374...` was `REVIEW FAIL`.
 - Remediation 004 / R4.1A: commit `dd0d9f94...` was `REVIEW FAIL`.
 - Remediation 004 / R4.1B: commit `58fb723e9c5eeb82f17b75d14b7662c3503ee262` was `REVIEW PASS`. Browser profile handling follows the five-state profile classification contract; `interactiveAuthenticate()` and `recover()` use `_classifyLockState()`; neither function calls `terminateProcessTree()`; cleanup is allowed only for `STALE_CONFIRMED`.
 - Remediation 005A: commit `52d25e5310550631a8211aead577442994687787` was `REVIEW FAIL` because it treated CDP `Browser.getWindowForTarget().windowId` as a native Windows `HWND`.
 - Remediation 005B: replaces the blocked PowerShell native-window bridge with direct Win32 calls through minimal prebuilt Node FFI dependency `koffi`; authority remains `exact --user-data-dir` -> `owned PID tree` -> `owned HWND`; controlled non-portal headed Chromium smoke proved hide to `IsWindowVisible=false`, browser/page usability after hide, and restore to `IsWindowVisible=true`.
-- Fresh-chat onboarding chain is `README_AI.md` -> `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` -> `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` -> `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_008.md`.
-- Runtime port for PO recheck is `5178`; PO login failure for HUE and TCT remains pending PO runtime recheck; ticket cannot be completed without explicit PO PASS.
+- Fresh-chat onboarding chain is `README_AI.md` -> `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` -> `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` -> `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`.
+- Latest PO PASS: TCT unfinished bulk-selection at commit `313b16a2f0e3259562681d26a581e5c9f2bba960`; no backend/import execution/Dashboard/KPI/authentication changes were made for that defect; no next action is authorized after this PO PASS.

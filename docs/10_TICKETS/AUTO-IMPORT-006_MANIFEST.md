@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-006`
 - Ticket Name: `Unified DKCL Authentication Lifecycle Recovery`
 - Phase: `Auto Import / Smart Leadership Dashboard Implementation`
-- Current State: `ACTIVE / READY FOR IMPLEMENTATION`
+- Current State: `ACTIVE / AWAITING NEXT AUTHORIZATION`
 - Technical Status: `PASS`
-- Runtime Status: `DASHBOARD PO PASS / IMPORT VALIDATION READY`
-- PO UI Check Required: `No for completed Dashboard items; Yes for future runtime import validation if UI-visible`
+- Runtime Status: `TCT UNFINISHED BULK-SELECTION PO PASS`
+- PO UI Check Required: `No for completed TCT bulk-selection; Yes for future UI-visible runtime work if authorized`
 - PO Product Status: `NOT READY - AUTO-IMPORT-006 remains active`
-- Current Phase: `REMEDIATION-006 / READY FOR IMPLEMENTATION`
-- Last Reviewed Phase: `Dashboard date consistency follow-ups`
-- Last Reviewed Commit: `4c7df0180471724116c05e3278999abc31cd1108`
-- Phase Review Status: `PO PASS for Dashboard follow-ups`
-- Next Phase Authorization: `Import date validation granted for Codex`
+- Current Phase: `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`
+- Last Reviewed Phase: `TCT unfinished bulk-selection`
+- Last Reviewed Commit: `313b16a2f0e3259562681d26a581e5c9f2bba960`
+- Phase Review Status: `PO PASS`
+- Next Phase Authorization: `None recorded after TCT unfinished bulk-selection PO PASS`
 - Activation date: `2026-07-22`
 - Primary executor: `Antigravity`
 
@@ -151,7 +151,7 @@ RECHECK:
 - process/profile/session remain alive;
 - no transient process-verification warning.
 
-## Remediation 006 Dashboard PO PASS and Next Defect
+## Remediation 006 Dashboard PO PASS and Import Validation Authorization
 
 - Latest verified remote commit: `4c7df0180471724116c05e3278999abc31cd1108`.
 - Accepted Dashboard commits:
@@ -162,9 +162,19 @@ RECHECK:
   - `4c7df018...` - 30-day trend request/window contract.
 - PO status: Dashboard date consistency, startup normalization, D-1/D-7 contract, Vietnamese encoding, and 30-day window are `PO PASS`.
 - Current ticket remains `AUTO-IMPORT-006`.
-- Current phase: `REMEDIATION-006 / READY FOR IMPLEMENTATION`.
-- Next authorized defect: `Import date validation`.
-- Executor: `Codex`.
-- Root cause for next defect: future artifact rows such as `2098` contaminated shared `fact_f13` date coverage.
+- Historical authorization at that point: `Import date validation`, executor `Codex`.
+- That authorized defect has since been implemented and recorded in `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`.
+- Root cause: future artifact rows such as `2098` contaminated shared `fact_f13` date coverage.
 - Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required.
 - Do not reopen completed Dashboard tickets or broad-audit the repository.
+
+## Remediation 006 Import Validation and TCT Bulk Selection PO PASS
+
+- Import date validation and controlled cleanup evidence are recorded in `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`.
+- TCT bulk-selection recovery commit `a7d5d01af276d9bf410e30f7102d12c9821a5fed` corrected `Chọn tất cả` to include selectable `MISSING`, `INCOMPLETE`, and `COMPLETE`.
+- TCT unfinished bulk-selection commit `313b16a2f0e3259562681d26a581e5c9f2bba960` corrected `Chọn tất cả chưa hoàn tất` to select selectable `MISSING` and `INCOMPLETE` only.
+- PO evidence confirms `Chọn tất cả chưa hoàn tất` selected exactly `5` `INCOMPLETE` / `Xử lý lại` dates in the 16-22/07/2026 set and did not select the `2` `COMPLETE` dates.
+- Technical validation: `PASS`.
+- PO UI validation: `PASS`.
+- Backend/import execution/Dashboard/KPI/authentication changes: `None`.
+- Next authorized action after this PO PASS: `None recorded`; do not open a new ticket or defect without explicit PO/authority direction.

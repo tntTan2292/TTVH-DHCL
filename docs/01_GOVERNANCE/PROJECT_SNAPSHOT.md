@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `REMEDIATION-006 / READY FOR IMPLEMENTATION` |
+| Current Phase | `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION` |
 | Current Ticket | `AUTO-IMPORT-006` |
-| Next Ticket | `Import date validation` |
-| Last PO Status | `Dashboard date consistency remediation set PO PASS` |
+| Next Ticket | `None authorized` |
+| Last PO Status | `TCT unfinished bulk-selection PO PASS` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md` |
-| Current State | `ACTIVE / READY FOR IMPLEMENTATION` |
+| Current State | `ACTIVE / AWAITING NEXT AUTHORIZATION` |
 | Technical Status | `PASS` |
-| Runtime Status | `DASHBOARD PO PASS / IMPORT VALIDATION READY` |
-| PO UI Check Required | `No for completed Dashboard items; Yes for future runtime import validation if UI-visible` |
+| Runtime Status | `TCT UNFINISHED BULK-SELECTION PO PASS` |
+| PO UI Check Required | `No for completed TCT bulk-selection; Yes for future UI-visible runtime work if authorized` |
 | PO Product Status | `NOT READY - AUTO-IMPORT-006 remains active` |
-| Last Reviewed Phase | `Dashboard date consistency follow-ups` |
-| Last Reviewed Commit | `4c7df0180471724116c05e3278999abc31cd1108` |
-| Phase Review Status | `PO PASS for Dashboard follow-ups` |
-| Next Phase Authorization | `Import date validation granted for Codex` |
+| Last Reviewed Phase | `TCT unfinished bulk-selection` |
+| Last Reviewed Commit | `313b16a2f0e3259562681d26a581e5c9f2bba960` |
+| Phase Review Status | `PO PASS` |
+| Next Phase Authorization | `None recorded after TCT unfinished bulk-selection PO PASS` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-07-23` |
+| Last Updated | `2026-07-24` |
 
 ## 3. Usage Rules
 
@@ -68,7 +68,7 @@ Fresh-chat onboarding chain for the active ticket:
 3. `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md`
 4. `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`
 
-AUTO-IMPORT-006 remains the active ticket in `REMEDIATION-006 / READY FOR IMPLEMENTATION`. Dashboard date consistency, startup normalization, D-1/D-7 comparison contract, Vietnamese encoding, and 30-day trend window follow-ups are `PO PASS` at latest verified remote commit `4c7df0180471724116c05e3278999abc31cd1108`. The next authorized defect is `Import date validation`, executor `Codex`; root cause is future artifact rows such as `2098` contaminating shared `fact_f13` date coverage. Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required. Do not reopen completed Dashboard tickets or broad-audit the repository.
+AUTO-IMPORT-006 remains the active ticket in `REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`. Dashboard date consistency, startup normalization, D-1/D-7 comparison contract, Vietnamese encoding, and 30-day trend window follow-ups are `PO PASS`; import date validation and controlled future-data cleanup evidence are recorded in the current checkpoint; TCT unfinished bulk-selection is `PO PASS` at latest verified remote commit `313b16a2f0e3259562681d26a581e5c9f2bba960`. No next action is authorized after this PO PASS. Native HUE/TCT window-hide runtime validation remains deferred until re-authentication is required. Do not reopen completed Dashboard tickets or broad-audit the repository.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

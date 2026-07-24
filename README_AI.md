@@ -130,7 +130,7 @@ The lightweight onboarding route is:
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-006 REMEDIATION-006 / READY FOR IMPLEMENTATION`, latest verified remote commit `4c7df0180471724116c05e3278999abc31cd1108`, Dashboard consistency fixes `PO PASS`, next authorized defect `Import date validation`, executor `Codex`.
+Current active handoff: `AUTO-IMPORT-006 REMEDIATION-006 / AWAITING NEXT AUTHORIZATION`, latest verified remote commit `313b16a2f0e3259562681d26a581e5c9f2bba960`, TCT unfinished bulk-selection `PO PASS`, no next action authorized after this PO PASS.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 
