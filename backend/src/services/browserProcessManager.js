@@ -26,7 +26,7 @@ class BrowserProcessManager {
             if (process.platform === 'win32') {
                 try {
                     // Query browser-like processes broadly, then accept only exact --user-data-dir matches.
-                    const { stdout } = await this.execAsync('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \'--user-data-dir\' } | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress"');
+                    const { stdout } = await this.execAsync('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { `$_.CommandLine -match \'--user-data-dir\' } | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress"');
                     if (stdout.trim()) {
                         let processes = [];
                         try {
@@ -232,11 +232,15 @@ class BrowserProcessManager {
             }
 
             if (!visible) {
-                if (result.matchedWindowCount > 0 && result.success) {
+                if (result.success) {
                     const hiddenHwnds = (result.windows || [])
                         .filter((win) => win.wasVisible && !win.isVisible)
                         .map((win) => win.hwnd);
-                    if (hiddenHwnds.length > 0) this.hiddenHwndsByProfile.set(normalizedProfileDir, hiddenHwnds);
+                    if (hiddenHwnds.length > 0) {
+                        const existing = this.hiddenHwndsByProfile.get(normalizedProfileDir) || [];
+                        const merged = Array.from(new Set([...existing, ...hiddenHwnds]));
+                        this.hiddenHwndsByProfile.set(normalizedProfileDir, merged);
+                    }
                     
                     return {
                         ...result,

@@ -265,6 +265,7 @@ function deferred() {
     console.log('\nTEST 6B: HUE interactive login accepts authenticated marker without TCT report marker');
     const hueClient = new DkclHueF13PortalClient({
         source: 'HUE',
+        manualAuthPollMs: 1,
         playwright: {
             chromium: {
                 launchPersistentContext: async () => ({

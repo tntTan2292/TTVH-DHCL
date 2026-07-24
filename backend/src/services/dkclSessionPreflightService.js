@@ -359,10 +359,27 @@ class DkclSessionPreflightService {
                             authenticated: true,
                             backgroundReady: false
                         });
+
+                        if (client.isF13ReportReady) {
+                            const delayMs = client.manualAuthPollMs || 1000;
+                            const maxAttempts = Math.max(1, Math.floor(15000 / delayMs));
+                            for (let i = 0; i < maxAttempts; i++) {
+                                const ready = await client.isF13ReportReady().catch(() => false);
+                                if (ready) break;
+                                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                            }
+                        }
+
+                        transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                            authenticated: true,
+                            backgroundReady: false
+                        });
+
                         const hideWindow = client.hideWindow || client.hideBrowserWindow;
                         const hideSuccess = entry.hideAttempted
                             ? entry.windowHidden
                             : await hideWindow.call(client).catch(() => false);
+
                         transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
                             hideAttempted: true,
                             windowHidden: Boolean(hideSuccess),
