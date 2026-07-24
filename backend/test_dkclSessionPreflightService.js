@@ -363,6 +363,26 @@ function deferred() {
     assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree must never be called by interactive or recover in R4.1B');
 
 
+    console.log('\nTEST 12: HUE cancel-login contract verification');
+    globalRegistry.clear();
+    let hueCancelCloseCalled = false;
+    const hueCancelClient = {
+        async prepareInteractiveAuthentication() { return true; },
+        async waitInteractiveAuthentication() { },
+        async close() { hueCancelCloseCalled = true; }
+    };
+    const cancelService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => hueCancelClient
+    });
+    // Set HUE in progress
+    await cancelService.interactiveAuthenticate('HUE');
+    // Call cancel
+    const cancelRes = await cancelService.cancelInteractiveLogin('HUE');
+    assert.strictEqual(cancelRes.cancelled, true, 'cancellation is successful');
+    assert.strictEqual(hueCancelCloseCalled, true, 'HUE client close was invoked');
+    assert.strictEqual(cancelService.getInteractiveClient('HUE'), null, 'HUE interactive client is cleared');
+    assert.strictEqual(cancelService.getRegistryState('TCT').client, null, 'TCT client remains unaffected');
+
     console.log('\nRESULT: dkclSessionPreflightService checks passed');
 })().catch((error) => {
     console.error(error);

@@ -69,9 +69,53 @@ const getApiErrorCode = (error, fallback = 'API_ERROR') => (
   (error?.response?.status ? `HTTP_${error.response.status}` : fallback)
 );
 
-const getApiErrorDetail = (error) => {
-  const message = error?.response?.data?.error?.message;
-  return message ? ` (${message})` : '';
+const renderLifecycleTimeline = (status, lifecycleState) => {
+  if (!lifecycleState) return null;
+  const steps = [
+    { key: 'OPENING_BROWSER', label: 'Đang mở trình duyệt' },
+    { key: 'WAITING_FOR_LOGIN', label: 'Chờ đăng nhập thủ công' },
+    { key: 'F13_OPENING', label: 'Mở trang F1.3' },
+    { key: 'F13_READY', label: 'Sẵn sàng' }
+  ];
+  const currentIndex = steps.findIndex((step) => step.key === lifecycleState);
+  if (currentIndex === -1 && lifecycleState !== 'AUTHENTICATED') return null;
+
+  return (
+    <div className="mt-4 p-4 rounded-xl border border-blue-100 bg-blue-50/50" data-testid="lifecycle-timeline">
+      <p className="text-xs font-bold text-vnpost-blue-dark uppercase tracking-wider mb-2">Tiến trình liên kết hệ thống (Chi tiết: {lifecycleState})</p>
+      <div className="flex flex-wrap items-center gap-3">
+        {steps.map((step, index) => {
+          const isDone = currentIndex > index || lifecycleState === 'AUTHENTICATED' || lifecycleState === 'F13_READY';
+          const isCurrent = step.key === lifecycleState || (step.key === 'F13_OPENING' && lifecycleState === 'AUTHENTICATED');
+          return (
+            <div key={step.key} className="flex items-center gap-2">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-black transition-all ${
+                isDone
+                  ? 'bg-green-600 text-white'
+                  : isCurrent
+                    ? 'bg-vnpost-blue text-white animate-pulse shadow-sm scale-110'
+                    : 'bg-gray-100 text-gray-400'
+              }`}>
+                {index + 1}
+              </span>
+              <span className={`text-xs font-bold ${
+                isDone
+                  ? 'text-green-800'
+                  : isCurrent
+                    ? 'text-vnpost-blue-dark font-black'
+                    : 'text-gray-400'
+              }`}>
+                {step.label}
+              </span>
+              {index < steps.length - 1 && (
+                <span className="text-gray-300 text-sm font-semibold">→</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 };
 
 export default function DataImportCenter() {
@@ -109,6 +153,8 @@ export default function DataImportCenter() {
   const [hueSessionError, setHueSessionError] = useState(null);
   const [hueSessionLoading, setHueSessionLoading] = useState(false);
   const [importMode, setImportMode] = useState('HUE');
+  const [hueLifecycleState, setHueLifecycleState] = useState(null);
+  const [tctLifecycleState, setTctLifecycleState] = useState(null);
 
   const preflightHueSession = useCallback(async () => {
     setHueSessionError(null);
@@ -116,9 +162,11 @@ export default function DataImportCenter() {
     try {
       const res = await api.post('/import/dkcl/session/preflight', { source: 'HUE' });
       setHueSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+      setHueLifecycleState(res.data.data?.lifecycle_state || null);
     } catch (err) {
       const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
       setHueSessionStatus(status);
+      setHueLifecycleState(err.response?.data?.data?.lifecycle_state || null);
       setHueSessionError(err.response?.data?.data?.error?.message || `Không thể kiểm tra phiên Huế F1.3. Mã lỗi: ${getApiErrorCode(err, 'HUE_SESSION_PREFLIGHT_ERROR')}`);
     }
   }, []);
@@ -127,12 +175,14 @@ export default function DataImportCenter() {
     try {
       const res = await api.post('/import/dkcl/session/preflight', { source: 'TCT' });
       setTctSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+      setTctLifecycleState(res.data.data?.lifecycle_state || null);
       if (res.data.data?.status !== 'LOGIN_IN_PROGRESS') {
         setTctSessionError(null);
       }
     } catch (err) {
       const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
       setTctSessionStatus(status);
+      setTctLifecycleState(err.response?.data?.data?.lifecycle_state || null);
       setTctSessionError(err.response?.data?.data?.error?.message || `Không thể kiểm tra phiên TCT. Mã lỗi: ${getApiErrorCode(err, 'TCT_SESSION_PREFLIGHT_ERROR')}`);
     }
   }, []);
@@ -196,14 +246,29 @@ export default function DataImportCenter() {
     try {
       const res = await api.post('/import/dkcl/session/interactive-auth', { source: 'HUE' });
       setHueSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+      setHueLifecycleState(res.data.data?.lifecycle_state || null);
       if (res.data.data?.status === 'SESSION_VALID') {
         setHueSessionError(null);
       }
     } catch (err) {
-      const status = err.response?.data?.error?.code || 'AUTHENTICATION_REQUIRED';
+      const status = err.response?.data?.data?.status || err.response?.data?.error?.code || 'AUTHENTICATION_REQUIRED';
       setHueSessionStatus(status);
-      setHueSessionError(err.response?.data?.error?.message || 'Không thể hoàn tất đăng nhập Huế DKCL.');
+      setHueLifecycleState(err.response?.data?.data?.lifecycle_state || null);
+      setHueSessionError(err.response?.data?.error?.message || err.response?.data?.data?.error?.message || 'Không thể hoàn tất đăng nhập Huế DKCL.');
     } finally {
+      setHueSessionLoading(false);
+    }
+  };
+
+  const handleCancelHueLogin = async () => {
+    setHueSessionLoading(true);
+    try {
+      await api.post('/import/dkcl/session/cancel-login', { source: 'HUE' });
+    } catch (_err) {
+      // best-effort
+    } finally {
+      setHueSessionStatus('AUTHENTICATION_REQUIRED');
+      setHueSessionError('Đăng nhập đã bị huỷ. Nhấn "Mở đăng nhập Huế" để thử lại.');
       setHueSessionLoading(false);
     }
   };
@@ -475,8 +540,9 @@ export default function DataImportCenter() {
   // tctLoginInProgress: actively in the middle of the async open-browser phase (not stuck yet)
   const tctLoginInProgress = tctSessionLoading || tctSessionStatus === 'LOGIN_IN_PROGRESS';
   // tctLoginStuck: server returned LOGIN_IN_PROGRESS and we are not actively loading — window may not have appeared
-  const tctLoginStuck = false;
+  const tctLoginStuck = tctSessionStatus === 'LOGIN_IN_PROGRESS' || tctSessionStatus === 'SESSION_CHECK_FAILED';
   const hueSessionReady = hueSessionStatus === 'SESSION_VALID';
+  const hueLoginStuck = hueSessionStatus === 'LOGIN_IN_PROGRESS' || hueSessionStatus === 'SESSION_CHECK_FAILED';
   // Update disabled only when session not ready, no dates selected, submitting, or queue active
   // Quét (scan) is ALWAYS allowed — uses local evidence, does not need portal session
   const tctUpdateDisabled = !tctSessionReady || tctSelectedDates.length === 0 || tctQueueSubmitting || tctQueueIsActive;
@@ -769,6 +835,8 @@ export default function DataImportCenter() {
               </div>
             </div>
           )}
+
+          {renderLifecycleTimeline(tctSessionStatus, tctLifecycleState)}
 
           {tctCoverageError && (
             <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -1095,15 +1163,30 @@ export default function DataImportCenter() {
               </h2>
               <p className="text-sm text-gray-500 mt-1">Xem nhanh dữ liệu đã có và ngày còn thiếu, không cần đọc bảng nhật ký import.</p>
             </div>
-            <button
-              type="button"
-              onClick={() => fetchCoverage(scanResult ? backfillWindow : null)}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
-              title="Làm mới tổng quan dữ liệu"
-            >
-              <RefreshCw size={15} />
-              Làm mới
-            </button>
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <button
+                type="button"
+                onClick={() => { fetchCoverage(scanResult ? backfillWindow : null); preflightHueSession(); }}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50"
+                title="Làm mới tổng quan dữ liệu"
+              >
+                <RefreshCw size={15} />
+                Làm mới
+              </button>
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  hueSessionStatus === 'SESSION_VALID'
+                    ? 'bg-green-100 text-green-800'
+                    : hueSessionStatus === 'AUTHENTICATION_REQUIRED'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-slate-100 text-slate-700'
+                }`}
+                aria-label={hueSessionStatus === 'SESSION_VALID' ? 'Phiên hợp lệ, chưa kiểm tra xuất dữ liệu' : 'Chưa sẵn sàng'}
+                data-testid="hue-session-status"
+              >
+                {hueSessionStatus === 'SESSION_VALID' ? 'SESSION_VALID - Chưa kiểm tra xuất' : (hueSessionStatus || 'Chưa kiểm tra phiên Huế')}
+              </span>
+            </div>
           </div>
 
           {coverageError && (
@@ -1168,7 +1251,7 @@ export default function DataImportCenter() {
             </div>
           )}
 
-          {hueLoginRequired && (
+           {hueLoginRequired && !hueLoginStuck && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" data-testid="hue-not-ready">
               <span>Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ Huế.</span>
               <button
@@ -1181,6 +1264,32 @@ export default function DataImportCenter() {
               </button>
             </div>
           )}
+
+          {hueLoginStuck && (
+            <div className="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800" data-testid="hue-login-stuck">
+              <span>Cửa sổ đăng nhập Huế không xuất hiện hoặc đã bị đóng. Nhấn <strong>Thử lại</strong> để mở lại, hoặc <strong>Huỷ</strong> để thoát.</span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelHueLogin}
+                  disabled={hueSessionLoading}
+                  className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                >
+                  Huỷ đăng nhập
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => { await handleCancelHueLogin(); await handleInteractiveHueLogin(); }}
+                  disabled={hueSessionLoading}
+                  className="inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                >
+                  {hueSessionLoading ? 'Đang xử lý...' : 'Thử lại đăng nhập'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {renderLifecycleTimeline(hueSessionStatus, hueLifecycleState)}
         </div>
 
         <div className="px-6 py-4 border-b border-gray-100 bg-slate-50 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

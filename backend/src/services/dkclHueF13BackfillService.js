@@ -481,10 +481,25 @@ class DkclHueF13BackfillService {
             }
         });
 
-        const result = await this.adapter.runOneDate(item.measurementDate, {
-            refreshRequested: item.refreshRequested,
-            portalClient: queue.portalClient || this.sessionPreflightService.getInteractiveClient?.('HUE') || null
-        });
+        const client = queue.portalClient || this.sessionPreflightService.getInteractiveClient?.('HUE') || null;
+        if (client) {
+            const hideWindow = client.hideWindow || client.hideBrowserWindow;
+            await hideWindow?.call(client).catch(() => {});
+        }
+
+        let result;
+        try {
+            result = await this.adapter.runOneDate(item.measurementDate, {
+                refreshRequested: item.refreshRequested,
+                portalClient: client
+            });
+        } catch (error) {
+            if (client) {
+                await client.restoreWindow?.().catch(() => {});
+            }
+            throw error;
+        }
+
         const run = result?.run || null;
         this.updateItem(item, {
             runId: run?.runId || null,
@@ -496,6 +511,12 @@ class DkclHueF13BackfillService {
 
         const finalRun = await this.waitForSyncRun(run);
         const status = this.queueStatusFromSyncResult(result, finalRun);
+        if (status === 'AUTHENTICATION_REQUIRED' || status === 'FAILED') {
+            if (client) {
+                await client.restoreWindow?.().catch(() => {});
+            }
+        }
+
         const endTime = this.clock().toISOString();
         this.updateItem(item, {
             status,
