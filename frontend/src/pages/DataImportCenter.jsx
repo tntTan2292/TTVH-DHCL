@@ -92,7 +92,6 @@ export default function DataImportCenter() {
   const [queueSubmitting, setQueueSubmitting] = useState(false);
   const [refreshDates, setRefreshDates] = useState([]);
   const [tctSessionLoading, setTctSessionLoading] = useState(false);
-  const [tctSessionLoading, setTctSessionLoading] = useState(false);
   const [tctWindow, setTctWindow] = useState(defaultBackfillWindow);
   const [tctCoverage, setTctCoverage] = useState(null);
   const [tctCoverageError, setTctCoverageError] = useState(null);
