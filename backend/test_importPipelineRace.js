@@ -20,7 +20,8 @@ process.env.NODE_ENV = 'test';
 process.env.QIS_TEST_DB_PATH = testDbPath;
 
 const { run, get, all, db, dbPath, operationalDbPath: configuredOperationalDbPath } = require('./src/config/db');
-const { COLUMN_MAPPING } = require('./src/services/excelParser');
+const { COLUMN_MAPPING, parseF13Excel } = require('./src/services/excelParser');
+const { importParsedData } = require('./src/services/importProcessor');
 const {
     executeImport,
     BASE_INCOMING,
@@ -28,7 +29,6 @@ const {
     BASE_PROCESSED,
     BASE_ERROR,
     BASE_QUARANTINE,
-    verifyHueImportCommit,
     getHueCommittedEvidence
 } = require('./src/services/importPipeline');
 
@@ -42,9 +42,11 @@ const COUNT_MISMATCH_DATE = '2026-07-21';
 const COUNT_MISMATCH_FILENAME = 'F1.3-2026.07.21.xlsx';
 const MOVE_FAILURE_DATE = '2026-07-22';
 const MOVE_FAILURE_FILENAME = 'F1.3-2026.07.22.xlsx';
+const TRANSACTION_FAILURE_DATE = '2026-07-24';
+const TRANSACTION_FAILURE_FILENAME = 'F1.3-2026.07.24.xlsx';
 const SCHEMA_PATH = path.resolve(__dirname, 'src/db/schema.sql');
-const TEST_DATES = [SUCCESS_DATE, FAILURE_DATE, STALE_DATE, COUNT_MISMATCH_DATE, MOVE_FAILURE_DATE];
-const TEST_FILENAMES = [SUCCESS_FILENAME, FAILURE_FILENAME, STALE_FILENAME, COUNT_MISMATCH_FILENAME, MOVE_FAILURE_FILENAME];
+const TEST_DATES = [SUCCESS_DATE, FAILURE_DATE, STALE_DATE, COUNT_MISMATCH_DATE, MOVE_FAILURE_DATE, TRANSACTION_FAILURE_DATE];
+const TEST_FILENAMES = [SUCCESS_FILENAME, FAILURE_FILENAME, STALE_FILENAME, COUNT_MISMATCH_FILENAME, MOVE_FAILURE_FILENAME, TRANSACTION_FAILURE_FILENAME];
 
 let passed = 0;
 let failed = 0;
@@ -146,6 +148,10 @@ function buildValidWorkbook() {
     return xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
 }
 
+function buildValidParsedData() {
+    return parseF13Excel(buildValidWorkbook()).parsedData;
+}
+
 function buildInvalidWorkbook() {
     const ws = xlsx.utils.aoa_to_sheet([
         ['Wrong header'],
@@ -224,6 +230,7 @@ async function runTests() {
             assert('one SUCCESS log is created in isolated test DB', successLog?.count === 1, `Got: ${JSON.stringify(logRows)}`);
             assert('no FAILED log is created for losing worker', !failedLog, `Got: ${JSON.stringify(logRows)}`);
             assert('two facts imported into isolated test DB', factCount.count === 2, `Got: ${factCount.count}`);
+            assert('successful commit matches inserted and final fact counts', successResults[0].inserted === 2 && successResults[0].verified_count === factCount.count, JSON.stringify(successResults[0]));
             assert('file moved to Processed', fs.existsSync(pathIn(BASE_PROCESSED, SUCCESS_FILENAME)));
             assert('file not left in Incoming', !fs.existsSync(incomingPath));
             assert('file not left in Processing', !fs.existsSync(pathIn(BASE_PROCESSING, SUCCESS_FILENAME)));
@@ -290,29 +297,57 @@ async function runTests() {
         }
 
         try {
-            console.log('\nTEST 4: count mismatch prevents SUCCESS without verified fact rows');
-            const log = await run(
-                `INSERT INTO import_log
-                    (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-                 VALUES (?, ?, 'SUCCESS', 2, 0, 0)`,
-                [COUNT_MISMATCH_FILENAME, COUNT_MISMATCH_DATE]
-            );
+            console.log('\nTEST 4: count mismatch rolls back facts and SUCCESS evidence atomically');
             let mismatchCode = null;
             try {
-                await verifyHueImportCommit({
+                await importParsedData({
+                    parsedData: buildValidParsedData(),
                     ngay_do_kiem: COUNT_MISMATCH_DATE,
-                    importLogId: log.lastID,
-                    inserted: 2,
-                    filename: COUNT_MISMATCH_FILENAME
+                    filename: COUNT_MISMATCH_FILENAME,
+                    verifyExpectedCount: 3
                 });
             } catch (error) {
                 mismatchCode = error.code;
             }
-            const mismatchLog = await get('SELECT status, error_records FROM import_log WHERE id = ?', [log.lastID]);
+            const facts = await get('SELECT COUNT(*) AS count FROM fact_f13 WHERE ngay_do_kiem = ?', [COUNT_MISMATCH_DATE]);
+            const logRows = await countLogs(COUNT_MISMATCH_DATE);
+            const successLog = logRows.find((row) => row.status === 'SUCCESS');
+            const failedLog = logRows.find((row) => row.status === 'FAILED');
+
             assert('count mismatch throws explicit verification failure', mismatchCode === 'IMPORT_COMMIT_VERIFICATION_FAILED', mismatchCode);
-            assert('count mismatch removes SUCCESS status', mismatchLog.status === 'FAILED' && mismatchLog.error_records === 2, JSON.stringify(mismatchLog));
+            assert('count mismatch leaves zero committed facts', facts.count === 0, `Got: ${facts.count}`);
+            assert('count mismatch leaves no SUCCESS evidence', !successLog, `Got: ${JSON.stringify(logRows)}`);
+            assert('count mismatch records at most one FAILED log after rollback', !failedLog || failedLog.count === 1, `Got: ${JSON.stringify(logRows)}`);
         } catch (error) {
             console.error('  TEST 4 UNEXPECTED ERROR:', error.message);
+            failed++;
+        }
+
+        try {
+            console.log('\nTEST 4B: transaction failure rolls back pending log and facts');
+            let failureCode = null;
+            try {
+                await importParsedData({
+                    parsedData: buildValidParsedData(),
+                    ngay_do_kiem: TRANSACTION_FAILURE_DATE,
+                    filename: TRANSACTION_FAILURE_FILENAME,
+                    failBeforeSuccessLogUpdate: true
+                });
+            } catch (error) {
+                failureCode = error.code;
+            }
+            const facts = await get('SELECT COUNT(*) AS count FROM fact_f13 WHERE ngay_do_kiem = ?', [TRANSACTION_FAILURE_DATE]);
+            const pendingLog = await get('SELECT COUNT(*) AS count FROM import_log WHERE ngay_do_kiem = ? AND status = ?', [TRANSACTION_FAILURE_DATE, 'PENDING']);
+            const successLog = await get('SELECT COUNT(*) AS count FROM import_log WHERE ngay_do_kiem = ? AND status = ?', [TRANSACTION_FAILURE_DATE, 'SUCCESS']);
+            const failedLog = await get('SELECT COUNT(*) AS count FROM import_log WHERE ngay_do_kiem = ? AND status = ?', [TRANSACTION_FAILURE_DATE, 'FAILED']);
+
+            assert('transaction failure throws explicit simulated failure', failureCode === 'SIMULATED_IMPORT_TRANSACTION_FAILURE', failureCode);
+            assert('transaction failure leaves zero committed facts', facts.count === 0, `Got: ${facts.count}`);
+            assert('transaction failure rolls back pending log', pendingLog.count === 0, `Got: ${pendingLog.count}`);
+            assert('transaction failure leaves no SUCCESS evidence', successLog.count === 0, `Got: ${successLog.count}`);
+            assert('transaction failure records one FAILED log after rollback', failedLog.count === 1, `Got: ${failedLog.count}`);
+        } catch (error) {
+            console.error('  TEST 4B UNEXPECTED ERROR:', error.message);
             failed++;
         }
 
@@ -338,10 +373,13 @@ async function runTests() {
             }
             const facts = await get('SELECT COUNT(*) AS count FROM fact_f13 WHERE ngay_do_kiem = ?', [MOVE_FAILURE_DATE]);
             const logRow = await get('SELECT status, error_records FROM import_log WHERE ngay_do_kiem = ? ORDER BY id DESC LIMIT 1', [MOVE_FAILURE_DATE]);
+            const factLogIds = await get('SELECT COUNT(DISTINCT import_log_id) AS count FROM fact_f13 WHERE ngay_do_kiem = ?', [MOVE_FAILURE_DATE]);
+            const logCount = await get('SELECT COUNT(*) AS count FROM import_log WHERE ngay_do_kiem = ?', [MOVE_FAILURE_DATE]);
             const committedEvidence = await getHueCommittedEvidence(MOVE_FAILURE_DATE);
 
             assert('file move failure is recoverable and not reported as SUCCESS', result.status === 'FILE_MOVE_FAILED' && result.committed === true && result.recoverable === true);
             assert('DB rows remain committed after file move failure', facts.count === 2, `Got: ${facts.count}`);
+            assert('file move failure preserves one committed import only', factLogIds.count === 1 && logCount.count === 1, JSON.stringify({ factLogIds, logCount }));
             assert('import_log records recoverable file-move status', logRow.status === 'FILE_MOVE_FAILED' && logRow.error_records === 0, JSON.stringify(logRow));
             assert('recoverable committed evidence prevents reimport requirement gaps', committedEvidence?.status === 'FILE_MOVE_FAILED' && committedEvidence.factCount === 2, JSON.stringify(committedEvidence));
             assert('Processing file remains available for file-state recovery', fs.existsSync(pathIn(BASE_PROCESSING, MOVE_FAILURE_FILENAME)));

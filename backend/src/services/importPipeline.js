@@ -96,32 +96,6 @@ async function getHueCommittedEvidence(ngay_do_kiem) {
     };
 }
 
-async function verifyHueImportCommit({ ngay_do_kiem, importLogId, inserted, filename }) {
-    const fact = await get(
-        `SELECT COUNT(*) AS fact_count
-         FROM fact_f13
-         WHERE ngay_do_kiem = ? AND import_log_id = ?`,
-        [ngay_do_kiem, importLogId]
-    );
-    const factCount = Number(fact?.fact_count || 0);
-    if (factCount <= 0 || factCount !== Number(inserted || 0)) {
-        await run(
-            `UPDATE import_log
-             SET status = 'FAILED',
-                 error_records = total_records,
-                 skipped_records = 0
-             WHERE id = ?`,
-            [importLogId]
-        );
-        const error = new Error(`HUE F1.3 import commit verification failed for ${filename}: expected ${inserted} rows, found ${factCount}.`);
-        error.code = 'IMPORT_COMMIT_VERIFICATION_FAILED';
-        error.factCount = factCount;
-        error.expectedCount = Number(inserted || 0);
-        throw error;
-    }
-    return factCount;
-}
-
 async function recordRecoverableFileMoveFailure({ importLogId, filename, ngay_do_kiem, moveError }) {
     await run(
         `UPDATE import_log
@@ -240,12 +214,6 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO' 
                 filename,
                 forceReimport
             });
-            await verifyHueImportCommit({
-                ngay_do_kiem,
-                importLogId: result.import_log_id,
-                inserted: result.inserted,
-                filename
-            });
         }
 
         let moveResult = null;
@@ -273,6 +241,7 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO' 
             skipped: result.skipped,
             errors: result.errors,
             ngay_do_kiem,
+            verified_count: result.verified_count,
             processedPath: moveResult?.destinationPath || null
         };
 
@@ -308,7 +277,6 @@ module.exports = {
     BASE_PROCESSED,
     BASE_ERROR,
     BASE_QUARANTINE,
-    verifyHueImportCommit,
     getHueCommittedEvidence,
     quarantineStaleProcessedEvidence
 };

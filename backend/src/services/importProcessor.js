@@ -20,7 +20,7 @@
 const fs   = require('fs');
 const path = require('path');
 
-const { run }                                            = require('../config/db');
+const { run, get }                                       = require('../config/db');
 const { extractDateFromFilename, parseF13Excel, DB_COLUMNS } = require('./excelParser');
 const { NATIONAL_DB_COLUMNS } = require('./nationalExcelParser');
 
@@ -88,6 +88,28 @@ function validateFactF13BusinessDate({ ngay_do_kiem, parsedData = [], filename }
     throw error;
 }
 
+function buildHueCommitVerificationError({ filename, expectedCount, factCount }) {
+    const error = new Error(`HUE F1.3 import commit verification failed for ${filename}: expected ${expectedCount} rows, found ${factCount}.`);
+    error.code = 'IMPORT_COMMIT_VERIFICATION_FAILED';
+    error.factCount = factCount;
+    error.expectedCount = Number(expectedCount || 0);
+    return error;
+}
+
+async function verifyHueImportTransaction({ ngay_do_kiem, importLogId, expectedCount, filename }) {
+    const fact = await get(
+        `SELECT COUNT(*) AS fact_count
+         FROM fact_f13
+         WHERE ngay_do_kiem = ? AND import_log_id = ?`,
+        [ngay_do_kiem, importLogId]
+    );
+    const factCount = Number(fact?.fact_count || 0);
+    if (factCount <= 0 || factCount !== Number(expectedCount || 0)) {
+        throw buildHueCommitVerificationError({ filename, expectedCount, factCount });
+    }
+    return factCount;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Core Import Function
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,7 +148,14 @@ function validateFactF13BusinessDate({ ngay_do_kiem, parsedData = [], filename }
  * @throws {Error} Re-throws after ROLLBACK + FAILED log write.
  *   SSOT: rollback only on database/system errors, never on duplicate rows.
  */
-async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false }) {
+async function importParsedData({
+    parsedData,
+    ngay_do_kiem,
+    filename,
+    forceReimport = false,
+    verifyExpectedCount = null,
+    failBeforeSuccessLogUpdate = false
+}) {
     const totalParsed = parsedData.length;
 
     validateFactF13BusinessDate({ ngay_do_kiem, parsedData, filename });
@@ -146,7 +175,7 @@ async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimp
         const logResult = await run(
             `INSERT INTO import_log
                 (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-             VALUES (?, ?, 'SUCCESS', ?, 0, 0)`,
+             VALUES (?, ?, 'PENDING', ?, 0, 0)`,
             [filename, ngay_do_kiem, totalParsed]
         );
         import_log_id = logResult.lastID;
@@ -180,13 +209,29 @@ async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimp
             totalInserted += result.changes;
         }
 
+        const expectedCount = verifyExpectedCount === null ? totalInserted : verifyExpectedCount;
+        const verifiedFactCount = await verifyHueImportTransaction({
+            ngay_do_kiem,
+            importLogId: import_log_id,
+            expectedCount,
+            filename
+        });
+
+        if (failBeforeSuccessLogUpdate) {
+            const error = new Error('Simulated transaction failure before SUCCESS log update.');
+            error.code = 'SIMULATED_IMPORT_TRANSACTION_FAILURE';
+            throw error;
+        }
+
         // ── Step 4: Update import_log with accurate skip/error counts ─────────
         // New Business Rule: skipped_records = duplicates, error_records = real errors
         const skippedRecords = totalParsed - totalInserted;
         const errorRecords = 0; // Success path = 0 real errors
 
         await run(
-            'UPDATE import_log SET skipped_records = ?, error_records = ? WHERE id = ?',
+            `UPDATE import_log
+             SET status = 'SUCCESS', skipped_records = ?, error_records = ?
+             WHERE id = ?`,
             [skippedRecords, errorRecords, import_log_id]
         );
 
@@ -199,7 +244,8 @@ async function importParsedData({ parsedData, ngay_do_kiem, filename, forceReimp
             inserted     : totalInserted,
             skipped      : skippedRecords,
             errors       : errorRecords,
-            import_log_id: import_log_id
+            import_log_id: import_log_id,
+            verified_count: verifiedFactCount
         };
 
     } catch (error) {
