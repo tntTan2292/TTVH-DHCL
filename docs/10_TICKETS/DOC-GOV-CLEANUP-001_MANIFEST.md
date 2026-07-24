@@ -3,16 +3,16 @@
 - Ticket ID: `DOC-GOV-CLEANUP-001`
 - Ticket Name: `Toi gian va chuan hoa he thong tai lieu du an`
 - Phase: `Governance Documentation Cleanup`
-- Current State: `ACTIVE / READY FOR PO REVIEW`
+- Current State: `COMPLETED / TECHNICAL PASS`
 - Technical Status: `PASS`
 - Runtime Status: `NOT APPLICABLE`
 - PO UI Check Required: `No`
 - PO Product Status: `NOT APPLICABLE`
-- Current Phase: `DOCUMENT CLEANUP EXECUTED`
+- Current Phase: `COMPLETED`
 - Last Reviewed Phase: `AUTO-IMPORT-007 plan activation`
 - Last Reviewed Commit: `2c9447d33b25460b0c2b283365535dd6ffe6df5d`
-- Phase Review Status: `READY FOR PO REVIEW`
-- Next Phase Authorization: `Governance document cleanup only`
+- Phase Review Status: `TECHNICAL PASS`
+- Next Phase Authorization: `AUTO-IMPORT-007 PLAN ONLY`
 - Activation date: `2026-07-24`
 - Next queued ticket: `AUTO-IMPORT-007`
 
@@ -52,6 +52,9 @@ Authorized scope:
 - Inventory before cleanup: `306` files under `docs`.
 - Inventory after cleanup: `306` files under `docs`.
 - No historical file was deleted, moved, merged, or archived by filesystem move.
+- Link check: `PASS`.
+- Authority conflict check: `PASS`.
+- `git diff --check`: `PASS`.
 - No functional code, business SSOT, Dashboard, KPI, import execution, or authentication file was changed.
 - Duplicate content proposal only: two empty `.gitkeep` placeholders are exact duplicates and should be kept unless a later cleanup specifically authorizes consolidation.
 
@@ -65,6 +68,6 @@ Authorized scope:
 
 ## AUTO-IMPORT-007 Relationship
 
-`AUTO-IMPORT-007` is queued and waiting for `DOC-GOV-CLEANUP-001`.
+`AUTO-IMPORT-007` is reactivated as `ACTIVE / PLAN ONLY`.
 
-Do not run AUTO-IMPORT-007 discovery or implementation until this governance cleanup is completed or explicitly released by PO authority.
+Next AUTO-IMPORT-007 action is discovery, not implementation.

@@ -44,8 +44,8 @@
 - AUTO-IMPORT-004: `Completed / PO PASS`
 - AUTO-IMPORT-005: `Completed / PO PASS`
 - AUTO-IMPORT-006: `Completed through TCT unfinished bulk-selection PO PASS`; Technical Status `PASS`; Runtime Status `PO PASS`; Last accepted commit `313b16a2f0e3259562681d26a581e5c9f2bba960`
-- AUTO-IMPORT-007: `AUTHORIZED / QUEUED`; Technical Status `QUEUED`; Runtime Status `NOT STARTED`; PO Product Status `NOT READY`; Current Phase `WAITING FOR DOC-GOV-CLEANUP-001`; no discovery or implementation while DOC-GOV-CLEANUP-001 is active
-- DOC-GOV-CLEANUP-001: `ACTIVE / READY FOR PO REVIEW`; Technical Status `PASS`; Runtime Status `NOT APPLICABLE`; Scope `Governance document cleanup only`
+- AUTO-IMPORT-007: `ACTIVE / PLAN ONLY`; Technical Status `PLANNING`; Runtime Status `NOT STARTED`; PO Product Status `NOT READY`; Current Phase `PLAN ONLY`; next action `Discovery only`
+- DOC-GOV-CLEANUP-001: `COMPLETED / TECHNICAL PASS`; Technical Status `PASS`; Runtime Status `NOT APPLICABLE`; Evidence `306 before / 306 after; no delete/move/merge; link check PASS; authority conflict check PASS; git diff --check PASS`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
 - TICKET-0102: `Deferred / Inactive`
@@ -101,31 +101,32 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `DOC-GOV-CLEANUP-001` |
-| Current Commit | `2c9447d33b25460b0c2b283365535dd6ffe6df5d` |
-| Current Phase | `DOCUMENT CLEANUP EXECUTED` |
-| Last Reviewed Phase | `AUTO-IMPORT-007 plan activation` |
-| Last Reviewed Commit | `2c9447d33b25460b0c2b283365535dd6ffe6df5d` |
-| Phase Review Status | `READY FOR PO REVIEW` |
-| Next Phase Authorization | `Governance document cleanup only; AUTO-IMPORT-007 queued` |
-| Next Milestone | `DOC-GOV-CLEANUP-001 docs inventory and onboarding cleanup` |
+| Current Ticket | `AUTO-IMPORT-007` |
+| Current Commit | `366fbe0738a1b1f8d3a5c8753d4930b69a97004f` |
+| Current Phase | `PLAN ONLY` |
+| Last Reviewed Phase | `DOC-GOV-CLEANUP-001` |
+| Last Reviewed Commit | `366fbe0738a1b1f8d3a5c8753d4930b69a97004f` |
+| Phase Review Status | `TECHNICAL PASS` |
+| Next Phase Authorization | `AUTO-IMPORT-007 DISCOVERY ONLY` |
+| Next Milestone | `Codex code/data analysis discovery` |
 | PO UI Check Required | `No` |
-| PO Product Status | `NOT APPLICABLE` |
+| PO Product Status | `NOT READY` |
 
 ## DOC-GOV-CLEANUP-001 Activation
 
 - Ticket name: `Toi gian va chuan hoa he thong tai lieu du an`.
-- State: `ACTIVE / READY FOR PO REVIEW`.
+- State: `COMPLETED / TECHNICAL PASS`.
 - Scope: inventory `docs`, identify at most `5` active onboarding documents, convert old documents to conditional reference or archive status, correct wrong status entries in `DOCUMENT_INDEX`, preserve history.
 - Restrictions: no functional code changes, no code audit, no business SSOT changes, no history deletion.
 - Result: `DOCUMENT_INDEX` now caps fresh onboarding at five steps and classifies non-onboarding docs as Conditional Reference or Archive; docs file count remained `306`.
+- Closure evidence: `306` files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`.
 - Queued next ticket: `AUTO-IMPORT-007`.
 
-## AUTO-IMPORT-007 Queued Plan
+## AUTO-IMPORT-007 Plan
 
 - Ticket name: `Chuan hoa va nang cap kien truc Import`.
-- State: `AUTHORIZED / QUEUED`.
-- Authority: queued behind `DOC-GOV-CLEANUP-001`; discovery and implementation are not authorized while DOC-GOV-CLEANUP-001 is active.
+- State: `ACTIVE / PLAN ONLY`.
+- Authority: discovery is authorized as next action; implementation is not authorized.
 - Plan locks: shared DKCL lifecycle SSOT `SOURCE_SELECTED` -> `SESSION_CHECK` -> `OPENING_BROWSER` -> `WAITING_FOR_LOGIN` -> `AUTHENTICATED` -> `F13_OPENING` -> `F13_READY`; HUE/TCT share the lifecycle contract while keeping separate account, `profileDir`, Registry entry, PID tree, HWND, and session; branch only after `F13_READY` into `HueF13Adapter` and `TctF13Adapter`; standardize queue, retry, stop, progress, error, and import history; metadata must distinguish source even when original filenames match; architecture must extend to `F1.1`, `F1.2`, and `F4.1`; reuse code already `PASS` and do not plan a full rewrite.
 - Required discovery inputs: `Codex code/data analysis`; `Antigravity runtime/UI analysis`.
 
@@ -232,7 +233,7 @@
 - Last Reviewed Phase: `TCT unfinished bulk-selection`.
 - Last Reviewed Commit: `313b16a2f0e3259562681d26a581e5c9f2bba960`.
 - Phase Review Status: `PO PASS`.
-- Next Phase Authorization: `AUTO-IMPORT-007 AUTHORIZED / QUEUED, waiting for DOC-GOV-CLEANUP-001`.
+- Next Phase Authorization: `AUTO-IMPORT-007 ACTIVE / PLAN ONLY, discovery only`.
 - Primary executor: `Antigravity`.
 - Scope: separate HUE login trigger, block automatic interactive login in HUE queue check, resolve TCT interactive client factory configuration omission, CDP best-effort minimize, and browser manual closed listener/Registry.
 - Technical evidence: all unit tests passed for sync and backfill service components, oxlint passed with zero errors, production bundle built successfully.

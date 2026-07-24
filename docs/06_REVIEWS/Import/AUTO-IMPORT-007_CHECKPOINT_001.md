@@ -4,19 +4,19 @@
 
 - Ticket: `AUTO-IMPORT-007`
 - Ticket name: `Chuan hoa va nang cap kien truc Import`
-- Phase: `WAITING FOR DOC-GOV-CLEANUP-001`
-- Current state: `AUTHORIZED / QUEUED`
-- Technical status: `QUEUED`
+- Phase: `PLAN ONLY`
+- Current state: `ACTIVE / PLAN ONLY`
+- Technical status: `PLANNING`
 - Runtime status: `NOT STARTED`
 - PO product status: `NOT READY`
-- Latest verified remote commit before activation: `671284822ab35324f17cd1205ab63a6b955d23d4`
-- Authority: `PO authorized AUTO-IMPORT-007, queued behind DOC-GOV-CLEANUP-001`
+- Latest verified DOC-GOV-CLEANUP-001 technical pass commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
+- Authority: `PO authorized AUTO-IMPORT-007 plan/discovery after DOC-GOV-CLEANUP-001 technical pass`
 
 ## Scope Lock
 
-This checkpoint records the AUTO-IMPORT-007 plan locks, but AUTO-IMPORT-007 is now queued.
+This checkpoint records the AUTO-IMPORT-007 plan locks and reactivation after DOC-GOV-CLEANUP-001 technical pass.
 
-Do not run discovery, implement functional code, rewrite import flows, alter browser lifecycle behavior, change database writes, perform portal login, run PO runtime validation, or modify Dashboard/KPI/authentication behavior while `DOC-GOV-CLEANUP-001` is active.
+Discovery is authorized as the next action. Do not implement functional code, rewrite import flows, alter browser lifecycle behavior, change database writes, perform portal login, run PO runtime validation, or modify Dashboard/KPI/authentication behavior until a later implementation authorization is recorded.
 
 ## Plan Locks
 
@@ -62,14 +62,13 @@ The plan must reuse code that is already `PASS`; do not plan a full rewrite.
 1. Codex code/data analysis.
 2. Antigravity runtime/UI analysis.
 
-Both discovery inputs are recorded for later, but are not authorized while `DOC-GOV-CLEANUP-001` is active.
+Both discovery inputs remain required before implementation authorization is requested.
 
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-007`.
-- Current phase: `AUTHORIZED / QUEUED`.
+- Current phase: `PLAN ONLY`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`.
-- Waiting for: `DOC-GOV-CLEANUP-001`.
-- Next action: none for AUTO-IMPORT-007 until DOC-GOV-CLEANUP-001 completes or PO explicitly releases the queue.
+- Next action: discovery input `1. Codex code/data analysis`.
 - No code implementation is authorized.

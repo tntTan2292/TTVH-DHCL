@@ -17,22 +17,22 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `DOCUMENT CLEANUP EXECUTED` |
-| Current Ticket | `DOC-GOV-CLEANUP-001` |
-| Next Ticket | `AUTO-IMPORT-007 queued` |
-| Last PO Status | `PO authorized governance document cleanup` |
+| Current Phase | `PLAN ONLY` |
+| Current Ticket | `AUTO-IMPORT-007` |
+| Next Ticket | `None authorized beyond AUTO-IMPORT-007 discovery` |
+| Last PO Status | `DOC-GOV-CLEANUP-001 TECHNICAL PASS` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / READY FOR PO REVIEW` |
-| Technical Status | `PASS` |
-| Runtime Status | `NOT APPLICABLE` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md` |
+| Current State | `ACTIVE / PLAN ONLY` |
+| Technical Status | `PLANNING` |
+| Runtime Status | `NOT STARTED` |
 | PO UI Check Required | `No` |
-| PO Product Status | `NOT APPLICABLE` |
-| Last Reviewed Phase | `AUTO-IMPORT-007 plan activation` |
-| Last Reviewed Commit | `2c9447d33b25460b0c2b283365535dd6ffe6df5d` |
-| Phase Review Status | `READY FOR PO REVIEW` |
-| Next Phase Authorization | `Governance document cleanup only; AUTO-IMPORT-007 queued` |
+| PO Product Status | `NOT READY - AUTO-IMPORT-007 planning active` |
+| Last Reviewed Phase | `DOC-GOV-CLEANUP-001` |
+| Last Reviewed Commit | `366fbe0738a1b1f8d3a5c8753d4930b69a97004f` |
+| Phase Review Status | `TECHNICAL PASS` |
+| Next Phase Authorization | `AUTO-IMPORT-007 DISCOVERY ONLY` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-24` |
 
@@ -65,10 +65,10 @@ Fresh-chat onboarding chain for the active ticket:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-3. `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md`
-4. `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md`
+3. `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`
+4. Required Reading from the current manifest
 
-DOC-GOV-CLEANUP-001 is `ACTIVE / READY FOR PO REVIEW` for `Toi gian va chuan hoa he thong tai lieu du an`. Cleanup executed docs-only: inventory completed, fresh onboarding capped at `5` steps, old documents classified as Conditional Reference or Archive, wrong Active/Read Priority metadata corrected in `DOCUMENT_INDEX`, and history preserved. Functional code changes, code audit, business SSOT changes, and document-history deletion were not performed. AUTO-IMPORT-007 remains `AUTHORIZED / QUEUED` and `WAITING FOR DOC-GOV-CLEANUP-001`; do not run AUTO-IMPORT-007 discovery or implementation while this ticket is active.
+DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 is active again in `PLAN ONLY` for `Chuan hoa va nang cap kien truc Import`. Next action is discovery, not implementation; functional code changes remain unauthorized.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

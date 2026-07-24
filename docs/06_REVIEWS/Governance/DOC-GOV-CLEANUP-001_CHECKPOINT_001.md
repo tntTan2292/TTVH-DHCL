@@ -4,8 +4,8 @@
 
 - Ticket: `DOC-GOV-CLEANUP-001`
 - Ticket name: `Toi gian va chuan hoa he thong tai lieu du an`
-- Phase: `PLAN-EXECUTION`
-- Current state: `ACTIVE / READY FOR PO REVIEW`
+- Phase: `COMPLETED`
+- Current state: `COMPLETED / TECHNICAL PASS`
 - Technical status: `PASS`
 - Runtime status: `NOT APPLICABLE`
 - PO product status: `NOT APPLICABLE`
@@ -114,21 +114,23 @@ Recommendation only: keep both placeholders because they preserve separate direc
 - Fresh onboarding route checked: `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 - Current manifest link checked: `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md`.
 - Current checkpoint link checked: `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md`.
-- AUTO-IMPORT-007 remains `AUTHORIZED / QUEUED` and `WAITING FOR DOC-GOV-CLEANUP-001`.
+- AUTO-IMPORT-007 is reactivated as `ACTIVE / PLAN ONLY`.
 - No authority conflict found in the active onboarding chain after cleanup.
 
 ## Queued Work
 
-`AUTO-IMPORT-007` is `AUTHORIZED / QUEUED` and `WAITING FOR DOC-GOV-CLEANUP-001`.
+`AUTO-IMPORT-007` is reactivated as `ACTIVE / PLAN ONLY`.
 
-No AUTO-IMPORT-007 discovery or implementation is authorized while this ticket is active.
+AUTO-IMPORT-007 next action is discovery only; implementation is not authorized.
 
 ## Current Handoff
 
-- Current ticket: `DOC-GOV-CLEANUP-001`.
-- Current phase: `DOCUMENT CLEANUP EXECUTED`.
-- Current manifest: `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md`.
-- Current checkpoint: `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md`.
-- Next queued ticket: `AUTO-IMPORT-007`.
+- Closed ticket: `DOC-GOV-CLEANUP-001`.
+- Current phase: `COMPLETED`.
+- Closed manifest: `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md`.
+- Closed checkpoint: `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md`.
+- Next ticket: `AUTO-IMPORT-007 ACTIVE / PLAN ONLY`.
 - Functional code changes are not authorized.
-- Next status: ready for PO review of governance document cleanup.
+- Closure commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`.
+- Closure status: `TECHNICAL PASS`.
+- Verified evidence: `306` files before, `306` files after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`.

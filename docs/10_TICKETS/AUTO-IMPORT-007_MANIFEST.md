@@ -3,18 +3,18 @@
 - Ticket ID: `AUTO-IMPORT-007`
 - Ticket Name: `Chuan hoa va nang cap kien truc Import`
 - Phase: `Auto Import / Architecture Planning`
-- Current State: `AUTHORIZED / QUEUED`
-- Technical Status: `QUEUED`
+- Current State: `ACTIVE / PLAN ONLY`
+- Technical Status: `PLANNING`
 - Runtime Status: `NOT STARTED`
 - PO UI Check Required: `No`
 - PO Product Status: `NOT READY`
-- Current Phase: `WAITING FOR DOC-GOV-CLEANUP-001`
-- Last Reviewed Phase: `AUTO-IMPORT-006 TCT unfinished bulk-selection PO PASS`
-- Last Reviewed Commit: `671284822ab35324f17cd1205ab63a6b955d23d4`
+- Current Phase: `PLAN ONLY`
+- Last Reviewed Phase: `DOC-GOV-CLEANUP-001`
+- Last Reviewed Commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
 - Phase Review Status: `PO AUTHORIZED PLAN`
-- Next Phase Authorization: `WAIT FOR DOC-GOV-CLEANUP-001`
+- Next Phase Authorization: `DISCOVERY ONLY`
 - Activation date: `2026-07-24`
-- Primary executor: `Queued - no discovery or implementation while DOC-GOV-CLEANUP-001 is active`
+- Primary executor: `Codex for code/data analysis; Antigravity for runtime/UI analysis`
 
 ## Fresh-Chat Onboarding Authority
 
@@ -23,15 +23,19 @@ Required onboarding chain:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 3. `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`
-4. `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`
+4. Required Reading from this manifest
 
 Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`
 
+Required Reading:
+
+- `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`
+
 ## Authority
 
-Product Owner authorized `AUTO-IMPORT-007`, but it is queued behind `DOC-GOV-CLEANUP-001`.
+Product Owner authorized `AUTO-IMPORT-007` for plan/discovery after `DOC-GOV-CLEANUP-001` technical pass.
 
-Functional source-code changes, discovery, and implementation are not authorized while `DOC-GOV-CLEANUP-001` is active. Do not modify import execution, browser lifecycle, queue execution, database writes, Dashboard, KPI, or authentication behavior until a later authorization is recorded.
+Functional source-code changes and implementation are not authorized. Discovery is authorized as the next action. Do not modify import execution, browser lifecycle, queue execution, database writes, Dashboard, KPI, or authentication behavior until a later implementation authorization is recorded.
 
 ## Objective
 
@@ -111,11 +115,10 @@ These are discovery inputs only. They do not authorize implementation.
 
 ## Current Status
 
-- AUTO-IMPORT-007 is `AUTHORIZED / QUEUED`.
-- AUTO-IMPORT-007 is `WAITING FOR DOC-GOV-CLEANUP-001`.
+- AUTO-IMPORT-007 is active in `PLAN ONLY`.
 - No functional code changes are authorized.
-- No discovery is authorized.
+- Discovery is the next authorized action.
 - No implementation is authorized.
 - No portal login is authorized.
 - No PO runtime validation is authorized.
-- Next required action: complete or explicitly release `DOC-GOV-CLEANUP-001` before AUTO-IMPORT-007 proceeds.
+- Next required action: produce discovery input `1. Codex code/data analysis`; implementation remains unauthorized.
