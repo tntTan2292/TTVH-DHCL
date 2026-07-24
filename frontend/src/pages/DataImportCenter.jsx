@@ -473,9 +473,9 @@ export default function DataImportCenter() {
   const tctQueueIsActive = tctQueue && !['SUCCESS', 'FAILED', 'AUTHENTICATION_REQUIRED', 'BLOCKED', 'STOPPED'].includes(tctQueue.status);
   const tctSessionReady = tctSessionStatus === 'SESSION_VALID';
   // tctLoginInProgress: actively in the middle of the async open-browser phase (not stuck yet)
-  const tctLoginInProgress = tctSessionLoading;
+  const tctLoginInProgress = tctSessionLoading || tctSessionStatus === 'LOGIN_IN_PROGRESS';
   // tctLoginStuck: server returned LOGIN_IN_PROGRESS and we are not actively loading — window may not have appeared
-  const tctLoginStuck = !tctSessionLoading && tctSessionStatus === 'LOGIN_IN_PROGRESS';
+  const tctLoginStuck = false;
   const hueSessionReady = hueSessionStatus === 'SESSION_VALID';
   // Update disabled only when session not ready, no dates selected, submitting, or queue active
   // Quét (scan) is ALWAYS allowed — uses local evidence, does not need portal session

@@ -131,7 +131,7 @@
 - Completed discovery inputs: `Codex code/data analysis`; `Antigravity runtime/UI analysis`.
 - Product Owner decisions: HUE and TCT use the same operator-visible stages `OPENING_BROWSER` -> `WAITING_FOR_LOGIN` -> `F13_OPENING` -> `F13_READY`; manual login timeout default remains `4` minutes; operator errors use concise actionable Vietnamese; technical details remain in logs.
 - Approved six-phase plan: shared lifecycle contract/state standardization; shared source/session registry and profile ownership hardening; operator-visible lifecycle/runtime behavior alignment; shared queue/retry/stop/progress/error/history contract standardization; post-`F13_READY` adapter extraction; metadata/source identity completion and extension readiness.
-- Wave 1 implementation result: shared lifecycle contract/state standardization by Codex, with no frontend visual or database behavior change; technical validation PASS; further implementation requires Product Owner Wave 2 authorization.
+- Wave 1 implementation result: shared lifecycle contract/state standardization by Codex, with no frontend visual or database behavior change; final TCT `LOGIN_IN_PROGRESS` compatibility regression closure PASS; further implementation requires Product Owner Wave 2 authorization.
 
 ## Pre-DA-IMPL-007 Regression Closure
 

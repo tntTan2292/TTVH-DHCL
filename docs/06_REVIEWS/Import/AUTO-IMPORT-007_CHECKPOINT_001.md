@@ -101,8 +101,8 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - Result: `TECHNICAL PASS`.
 - Public response compatibility: existing preflight `status` values remain preserved for current API consumers; explicit lifecycle details are exposed through `lifecycle_state` and `lifecycle`.
 - Exclusions: no UI behavior change, no database behavior change, no portal login, no runtime/browser execution, no Dashboard/KPI change.
-- Validation: `node backend/test_dkclSessionPreflightService.js` PASS; `node backend/test_browserProfileLock.js` PASS; `node frontend/src/pages/dataImportHueSelection.test.js` PASS; controller syntax checks PASS.
-- Out-of-scope signal: `node frontend/src/pages/dataImportTctScan.test.js` currently fails an existing source assertion for TCT `LOGIN_IN_PROGRESS` frontend handling; frontend visual/behavior changes are excluded from Wave 1 and require separate authorization if PO wants it handled.
+- Final regression closure: TCT `LOGIN_IN_PROGRESS` frontend compatibility restored without Wave 2 lifecycle UI.
+- Validation: `node backend/test_dkclSessionPreflightService.js` PASS; `node backend/test_browserProfileLock.js` PASS; `node frontend/src/pages/dataImportHueSelection.test.js` PASS; `node frontend/src/pages/dataImportTctScan.test.js` PASS; backend syntax checks PASS; frontend lint PASS with existing warnings; `git diff --check` PASS.
 - Commit: `this Wave 1 delivery commit`.
 
 ## Current Handoff

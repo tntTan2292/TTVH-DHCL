@@ -153,6 +153,7 @@ Each phase must be independently verifiable and separately authorized before exe
 - Scope: standardized lifecycle contract/state naming and backend-facing state semantics.
 - Result: `TECHNICAL PASS`.
 - Public response compatibility: existing preflight `status` values are preserved; shared lifecycle details are exposed through `lifecycle_state` and `lifecycle`.
+- Final regression closure: TCT `LOGIN_IN_PROGRESS` frontend recognition compatibility restored without introducing Wave 2 visual lifecycle UI.
 - Exclusions: no UI behavior change, no database behavior change, no portal login, no browser runtime execution, no Dashboard/KPI change.
 - Commit: `this Wave 1 delivery commit`.
 
