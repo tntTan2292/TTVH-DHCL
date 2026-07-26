@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `ACCELERATED DELIVERY WAVE 2` |
+| Current Phase | `AUTO-IMPORT-007 GOVERNANCE CLOSURE` |
 | Current Ticket | `AUTO-IMPORT-007` |
 | Next Ticket | `Dashboard defect remediation - fresh conversation, specific PO-provided Dashboard symptom/evidence only` |
-| Last PO Status | `AUTO-IMPORT-007 HUE recovery 2026-07-18 and 2026-07-19 PO PASS; 2026-07-23 missing / not authorized` |
+| Last PO Status | `AUTO-IMPORT-007 authorized Auto Import runtime scope PO PASS; HUE recovery 2026-07-18 and 2026-07-19 locked PO PASS; 2026-07-23 missing / not authorized` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / WAVE 2 IMPLEMENTED` |
-| Technical Status | `WAVE 2 TECHNICAL PASS` |
-| Runtime Status | `HUE RETEST DEFERRED - DKCL portal maintenance after 12:00` |
+| Current State | `AUTO-IMPORT-007 GOVERNANCE CLOSURE / PO PASS` |
+| Technical Status | `AUTO-IMPORT-007 TECHNICAL PASS` |
+| Runtime Status | `PASS` |
 | PO UI Check Required | `No` |
-| PO Product Status | `AUTO-IMPORT-007 Import data recovery accepted for 2026-07-18 and 2026-07-19; 2026-07-23 missing and not authorized` |
-| Last Reviewed Phase | `AUTO-IMPORT-007 WAVE 2` |
-| Last Reviewed Commit | `this Wave 2 delivery commit` |
-| Phase Review Status | `TECHNICAL PASS` |
+| PO Product Status | `PO PASS for authorized Auto Import runtime scope; no remaining authorized Auto Import defect/remediation` |
+| Last Reviewed Phase | `AUTO-IMPORT-007 GOVERNANCE CLOSURE` |
+| Last Reviewed Commit | `this governance closure commit` |
+| Phase Review Status | `PO PASS` |
 | Next Phase Authorization | `Dashboard defect remediation only in a fresh conversation with specific PO-provided Dashboard symptom/evidence` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-07-25` |
+| Last Updated | `2026-07-26` |
 
 ## 3. Usage Rules
 
@@ -72,9 +72,9 @@ DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d
 
 AUTO-IMPORT-007 Wave 2 is implemented with `TECHNICAL PASS` for bounded backend/data import architecture. Accepted technical scope: shared F13 queue/evidence contract helpers, source-explicit HUE/TCT queue identity, smallest post-`F13_READY` adapter boundary through `HueF13Adapter` and `TctF13Adapter`, explicit source metadata across queue items and evidence, and future report contract placeholders for `F1.1`, `F1.2`, and `F4.1` without implementing those reports. Preserved exclusions: no operator-visible lifecycle redesign, no broad DataImportCenter redesign, no browser/HWND runtime validation, no portal login, no production database writes or cleanup, no KPI/Dashboard changes, no scheduling, and no Wave 3 implementation.
 
-AUTO-IMPORT-007 recovery closure: HUE `2026-07-18` and `2026-07-19` are explicit Product Owner `PO PASS` and must not be reopened or modified. HUE `2026-07-23` is `MISSING` with `0` operational DB rows, no successful download, and no recovery authorization. The HUE download href fix and polling navigation retry are `TECHNICAL PASS`. The latest PO runtime retest after `12:00` was inconclusive because the DKCL portal was under maintenance; session/queue validation from that attempt must not be classified as a confirmed defect, and HUE runtime retest is deferred until DKCL service is available.
+AUTO-IMPORT-007 governance closure: after DKCL/TCT service became available, Product Owner accepted the authorized Auto Import runtime scope as `PO PASS`; runtime status is `PASS`. The earlier maintenance-related deferred retest is resolved and is no longer current debt. HUE `2026-07-18` and `2026-07-19` remain locked Product Owner `PO PASS` and must not be reopened, reimported, replaced, cleaned up, or otherwise modified without new authorization. HUE `2026-07-23` remains `MISSING` with `0` operational DB rows, no successful download, and no recovery authorization. The HUE download href fix and polling navigation retry remain accepted technical remediation. There is no remaining authorized Auto Import defect/remediation.
 
-Next work boundary: Dashboard defect remediation must start in a fresh conversation and must be based only on the specific Product Owner-provided Dashboard symptom/evidence. Do not perform a broad repository audit, and do not reopen or perform Import remediation unless separately reauthorized.
+Next work boundary: Dashboard defect remediation must start in a fresh conversation and must be based only on the specific Product Owner-provided Dashboard symptom/evidence. Do not perform a broad repository audit, and do not reopen or perform Import remediation unless separately reauthorized. Automatic scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain future unauthorized scope, not current debt.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

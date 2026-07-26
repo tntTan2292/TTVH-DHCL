@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-007`
 - Ticket Name: `Chuan hoa va nang cap kien truc Import`
 - Phase: `Auto Import / Architecture Planning`
-- Current State: `ACTIVE / WAVE 2 IMPLEMENTED`
-- Technical Status: `WAVE 2 TECHNICAL PASS`
-- Runtime Status: `NOT STARTED`
+- Current State: `GOVERNANCE CLOSURE / PO PASS`
+- Technical Status: `AUTO-IMPORT-007 TECHNICAL PASS`
+- Runtime Status: `PASS`
 - PO UI Check Required: `No`
-- PO Product Status: `NOT READY`
-- Current Phase: `ACCELERATED DELIVERY WAVE 2`
-- Last Reviewed Phase: `AUTO-IMPORT-007 WAVE 2`
-- Last Reviewed Commit: `this Wave 2 delivery commit`
-- Phase Review Status: `TECHNICAL PASS`
-- Next Phase Authorization: `READY FOR ACCELERATED DELIVERY WAVE 3 AUTHORIZATION IN FRESH ANTIGRAVITY CONVERSATION`
+- PO Product Status: `PO PASS for authorized Auto Import runtime scope`
+- Current Phase: `AUTO-IMPORT-007 GOVERNANCE CLOSURE`
+- Last Reviewed Phase: `AUTO-IMPORT-007 GOVERNANCE CLOSURE`
+- Last Reviewed Commit: `this governance closure commit`
+- Phase Review Status: `PO PASS`
+- Next Phase Authorization: `Dashboard defect remediation only in a fresh conversation with specific PO-provided Dashboard symptom/evidence`
 - Activation date: `2026-07-24`
 - Primary executor: `Codex for code/data analysis; Antigravity for runtime/UI analysis`
 
@@ -39,7 +39,7 @@ Product Owner authorized Accelerated Delivery Wave 1 at baseline `dff97ba5ac7955
 
 Product Owner authorized Accelerated Delivery Wave 2 at baseline `1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`.
 
-Wave 1 implementation scope is complete for shared lifecycle contract/state standardization. Wave 2 implementation scope is complete for bounded backend/data import architecture after `F13_READY`. Do not modify operator-visible lifecycle UI, browser/HWND runtime behavior, portal login, production data, Dashboard/KPI, automatic scheduling, or Wave 3 scope until later implementation authorization is recorded.
+Wave 1 implementation scope is complete for shared lifecycle contract/state standardization. Wave 2 implementation scope is complete for bounded backend/data import architecture after `F13_READY`. Wave 3 technical/runtime remediation and authorized PO runtime scope are closed as `PASS`. Do not modify operator-visible lifecycle UI, browser/HWND runtime behavior, portal login, production data, Dashboard/KPI, automatic scheduling, or future report scope unless later implementation authorization is recorded.
 
 ## Objective
 
@@ -161,17 +161,20 @@ Each phase must be independently verifiable and separately authorized before exe
 
 ## Current Status
 
-- AUTO-IMPORT-007 Wave 1 is implemented.
-- AUTO-IMPORT-007 Wave 2 is implemented.
+- AUTO-IMPORT-007 is closed for the authorized Auto Import runtime scope.
+- Runtime status: `PASS`.
+- PO product status: `PO PASS for authorized Auto Import runtime scope`.
+- The prior maintenance-related deferred retest is resolved after DKCL/TCT service became available.
+- HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`.
+- HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
+- There is no remaining authorized Auto Import defect/remediation.
 - Discovery inputs are completed and accepted.
-- Six-phase architecture plan is approved.
-- No further implementation is authorized.
+- Six-phase architecture plan remains approved only as governed architecture direction.
+- No further Import implementation is authorized.
 - No portal login is authorized.
-- No PO runtime validation is authorized.
-- Next required action: Product Owner authorization decision for Accelerated Delivery Wave 3 in a fresh Antigravity conversation.
-- Fresh-chat condition: Accelerated Delivery Wave 3 must begin in a fresh Antigravity conversation after Wave 2 closure is pushed and remote state is verified.
-- Wave 3 ownership: operator-visible lifecycle/runtime behavior; concise actionable Vietnamese operator errors; real-machine browser and native HWND validation; HUE/TCT UI and runtime acceptance; PO runtime/UI validation.
-- Wave 3 guard: this handoff does not authorize Codex implementation for Wave 3.
+- No production data modification is authorized.
+- Automatic scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain future unauthorized scope, not current debt.
+- Next required action: Dashboard defect remediation in a fresh conversation using only the specific Product Owner-provided Dashboard symptom/evidence.
 
 ## Wave 2 Implementation Result
 

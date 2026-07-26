@@ -4,11 +4,11 @@
 
 - Ticket: `AUTO-IMPORT-007`
 - Ticket name: `Chuan hoa va nang cap kien truc Import`
-- Phase: `ACCELERATED DELIVERY WAVE 3`
-- Current state: `WAVE 3 IMPLEMENTED / TECHNICAL PASS`
-- Technical status: `WAVE 3 TECHNICAL PASS`
-- Runtime status: `DEFERRED - DKCL PORTAL MAINTENANCE AFTER 12:00`
-- PO product status: `Recovery 18 & 19: PO PASS; Date 23: MISSING / NOT AUTHORIZED`
+- Phase: `AUTO-IMPORT-007 GOVERNANCE CLOSURE`
+- Current state: `GOVERNANCE CLOSURE / PO PASS`
+- Technical status: `AUTO-IMPORT-007 TECHNICAL PASS`
+- Runtime status: `PASS`
+- PO product status: `PO PASS for authorized Auto Import runtime scope; Recovery 18 & 19 locked PO PASS; Date 23 MISSING / NOT AUTHORIZED`
 - Latest verified DOC-GOV-CLEANUP-001 technical pass commit: `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`
 - Authority: `PO authorized AUTO-IMPORT-007 Wave 1 implementation at baseline dff97ba5ac79551bf18a3125f22ff9689dd761a8; PO authorized Accelerated Delivery Wave 2 at baseline 1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a; PO authorized Wave 3 at baseline 22243a4778447979b2dda425a740ce1260ebb91b`
 
@@ -73,8 +73,8 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - The six-phase architecture plan is approved.
 - HUE Controlled Recovery for 2026-07-18 and 2026-07-19: PO PASS.
 - HUE Business Date 2026-07-23: MISSING, `0` DB rows, no successful download, and no recovery authorized.
-- Latest PO runtime retest after 12:00 was inconclusive because the DKCL portal was under maintenance; session/queue validation from that attempt must not be classified as a confirmed defect.
-- HUE runtime retest is deferred until DKCL service is available.
+- The earlier PO runtime retest after 12:00 was inconclusive because the DKCL portal was under maintenance; session/queue validation from that attempt must not be classified as a confirmed defect.
+- After DKCL/TCT service became available, Product Owner accepted the authorized Auto Import runtime scope as `PO PASS`; the maintenance-related deferred retest is resolved.
 
 ## Preserved PASS Behaviors
 
@@ -112,14 +112,15 @@ Both discovery inputs are completed and accepted by the Product Owner.
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-007`.
-- Current phase: `ACCELERATED DELIVERY WAVE 2`.
+- Current phase: `AUTO-IMPORT-007 GOVERNANCE CLOSURE`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md`.
 - Next action: Dashboard defect remediation in a fresh conversation using only the specific Product Owner-provided Dashboard symptom/evidence.
 - Fresh-chat condition: Dashboard defect remediation must begin in a fresh conversation after this documentation boundary commit is pushed and remote state is verified.
 - Dashboard boundary: no broad repository audit; no accepted Import data changes; no Import remediation unless separately reauthorized.
-- HUE runtime boundary: HUE runtime retest is deferred until DKCL service is available; the inconclusive maintenance-window attempt is not a confirmed defect.
+- HUE runtime boundary: runtime status is `PASS`; the inconclusive maintenance-window attempt is resolved and is not current debt.
 - No further Import implementation or recovery is authorized.
+- Automatic scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain future unauthorized scope, not current debt.
 
 ## Wave 2 Implementation Result
 
@@ -142,9 +143,9 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - Executor: `Antigravity`.
 - Scope: frontend lifecycle progress alignment, stuck-state UI with cancel/retry, and backend backfill window management (hide/restore).
 - Result: `TECHNICAL PASS`.
-- Runtime Status: `AWAITING PO UI/RUNTIME VALIDATION`.
-- PO Product Status: `NOT READY`.
-- Next Action: PO validation using the documented validation steps.
+- Runtime Status: `PASS` for the authorized Auto Import runtime scope after DKCL/TCT service became available.
+- PO Product Status: `PO PASS` for the authorized Auto Import runtime scope.
+- Next Action: Dashboard defect remediation in a fresh conversation using only the specific Product Owner-provided Dashboard symptom/evidence.
 
 ### Changed Files
 - `backend/src/services/dkclHueF13BackfillService.js` (gated change to hide/restore window during queue processing)
@@ -292,6 +293,9 @@ Both discovery inputs are completed and accepted by the Product Owner.
 - **Accepted Import Data**: HUE recovery for `2026-07-18` and `2026-07-19` is explicitly `PO PASS`. Do not reopen, reimport, replace, clean up, or otherwise modify those accepted Import data records without a new Product Owner authorization.
 - **Missing Date Lock**: HUE `2026-07-23` is `MISSING`: operational DB has `0` `fact_f13` rows for the date, no successful HUE download exists, and no recovery is authorized.
 - **Technical Fix Status**: HUE download href extraction fix and polling navigation retry are `TECHNICAL PASS` and remain accepted technical remediation.
-- **Runtime Retest Status**: Latest PO runtime retest after `12:00` was inconclusive because the DKCL portal was under maintenance. Session/queue validation from that attempt must not be recorded as a confirmed HUE runtime defect.
-- **Deferred Runtime Check**: HUE runtime retest is deferred until DKCL service is available.
+- **Runtime Retest Status**: The prior PO runtime retest after `12:00` was inconclusive because the DKCL portal was under maintenance. Session/queue validation from that attempt must not be recorded as a confirmed HUE runtime defect.
+- **Final Runtime / PO Status**: After DKCL/TCT service became available, Product Owner accepted the authorized Auto Import runtime scope as `PO PASS`; AUTO-IMPORT-007 runtime status is `PASS`.
+- **Deferred Retest Closure**: The maintenance-related deferred retest is resolved and is not current debt.
+- **Remaining Authorized Remediation**: None. There is no remaining authorized Auto Import defect/remediation.
+- **Unauthorized Future Scope**: Automatic scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain future unauthorized scope, not current debt.
 - **Next Work Boundary**: Next work is Dashboard defect remediation in a fresh conversation, based only on the specific Product Owner-provided Dashboard symptom/evidence. Do not perform a broad repository audit, and do not perform Import remediation unless separately reauthorized.
