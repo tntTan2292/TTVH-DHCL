@@ -36,12 +36,12 @@ Fresh onboarding must contain at most these `5` steps:
 | 4 | Current Manifest from `PROJECT_SNAPSHOT.md` | Current ticket authority, scope, exclusions, and required reading. | L2 | Active Onboarding | After Snapshot. | Mandatory |
 | 5 | Required Reading named by Current Manifest | Scoped ticket evidence/checkpoint/reference documents. | L2/L3 | Current Required Reading | Only when the current manifest names it. | Mandatory for current ticket only |
 
-Current ticket at cleanup time:
+Current active ticket:
 
-- Current ticket: `DOC-GOV-CLEANUP-001`.
-- Current manifest: `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md`.
-- Current checkpoint: `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md`.
-- Next queued ticket: `AUTO-IMPORT-007`.
+- Current ticket: `AUTO-IMPORT-008`.
+- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md`.
+- Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md`.
+- Next queued defect: `AUTO-IMPORT-008 Defect 2 after Defect 1 PO PASS`.
 
 ## Docs Inventory
 
@@ -53,6 +53,8 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Governance | Current project/ticket SSOT and manifest/checkpoint pointers. | L2 | Active Onboarding | Every fresh session. | Mandatory |
 | `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md` | Ticket Manifest | Current DOC-GOV-CLEANUP-001 scope and authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md` | Checkpoint | Current cleanup checkpoint, scope lock, and preservation gates. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-008 bounded remediation scope and defect-order authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` | Import Checkpoint | Current AUTO-IMPORT-008 activation checkpoint and ordered defect register. | L2 | Current Required Reading | Current ticket only. | Mandatory |
 | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | Governance Index | Inventory and document-status metadata. | L2 | Current Required Reading | Governance cleanup, documentation audit, or authority conflict checks. | High |
 | `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Governance | Document governance and authority rules. | L1 | Conditional Reference | Governance-rule conflict or document lifecycle questions. | High |
 | `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | Governance | Document state transitions. | L2 | Conditional Reference | Only when lifecycle semantics are disputed. | Medium |
@@ -75,6 +77,7 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/05_DEVELOPMENT/**` | Development Reference | API, database, deployment, and F1.3 technical references. | L3/L4 | Conditional Reference | Implementation planning or technical discovery only. | Medium |
 | `docs/06_REVIEWS/Governance/**` | Governance Reviews | Governance cleanup checkpoints and evidence. | L2/L3 | Current Required Reading | Only for active governance cleanup tickets. | High |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md` | Import Checkpoint | Queued AUTO-IMPORT-007 plan locks. | L2 | Conditional Reference | Only after DOC-GOV-CLEANUP-001 releases AUTO-IMPORT-007. | High later |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` | Import Checkpoint | Active AUTO-IMPORT-008 bounded remediation checkpoint. | L2 | Current Required Reading | Only when current manifest names it. | High |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md` | Import Checkpoint | Final AUTO-IMPORT-006 import cleanup and bulk-selection evidence. | L2 | Conditional Reference | AUTO-IMPORT history or handoff evidence only. | Medium |
 | `docs/06_REVIEWS/**` | Reviews and Evidence | Ticket reviews, PO checklists, runtime evidence, screenshots, checkpoints. | L2/L3/L4 | Conditional Reference | Only when current manifest names specific evidence. | Medium |
 | `docs/07_REFERENCE/Shared_Business/**` | Business Reference | Shared terminology, KPI framework, notifications, import-center rules. | L4 | Conditional Reference | Business terminology/reference lookup only. | Medium |
@@ -84,6 +87,7 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/09_REPORTS/**` | Reports Archive | Prior documentation/governance audit and migration reports. | L4 | Archive | Historical report lookup only. | Low |
 | `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md` | Manifest | Current governance cleanup ticket. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md` | Manifest | Queued import architecture plan locks. | L2 | Conditional Reference | Only after DOC-GOV-CLEANUP-001 releases AUTO-IMPORT-007. | High later |
+| `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` | Manifest | Active bounded Auto Import remediation manifest. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/**` | Manifests | Historical/completed/planned ticket manifests. | L2/L3 | Conditional Reference | Only when current Snapshot/Manifest names that ticket. | Medium |
 | `docs/*_WIDGET_SPECIFICATION.md` | Widget Specs | Frozen widget specifications. | L3 | Conditional Reference | Widget-impacting work only. | Medium |
 | `docs/*REPORT*.md`, `docs/*VALIDATION*.md`, `docs/*CLASSIFICATION*.md` | Root Reports | Prior cleanup/governance/validation reports. | L4 | Archive | Historical report lookup only. | Low |
@@ -97,13 +101,13 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | UX | 7 | 7 | 0 | Conditional Reference |
 | Technical Planning | 7 | 7 | 0 | Conditional Reference |
 | Development Reference | 4 | 4 | 0 | Conditional Reference |
-| Reviews and Evidence | 128 | 98 | 30 | Conditional Reference |
+| Reviews and Evidence | 129 | 99 | 30 | Conditional Reference |
 | Conditional Reference | 45 | 41 | 4 | Conditional Reference/Archive |
 | Archive | 9 | 9 | 0 | Archive |
 | Reports Archive | 21 | 21 | 0 | Archive |
-| Ticket Manifests | 37 | 37 | 0 | Conditional Reference |
+| Ticket Manifests | 38 | 38 | 0 | Conditional Reference |
 | Root Legacy/Frozen Docs | 21 | 21 | 0 | Conditional Reference/Archive |
-| Total under `docs` | 306 | 272 | 34 | Preserved |
+| Total under `docs` | 308 | 274 | 34 | Preserved |
 
 ## Duplicate Content Notes
 

@@ -17,22 +17,22 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-IMPORT-007 GOVERNANCE CLOSURE` |
-| Current Ticket | `AUTO-IMPORT-007` |
-| Next Ticket | `Dashboard defect remediation - fresh conversation, specific PO-provided Dashboard symptom/evidence only` |
-| Last PO Status | `AUTO-IMPORT-007 authorized Auto Import runtime scope PO PASS; HUE recovery 2026-07-18 and 2026-07-19 locked PO PASS; 2026-07-23 missing / not authorized` |
+| Current Phase | `AUTO-IMPORT-008 DEFECT 1` |
+| Current Ticket | `AUTO-IMPORT-008` |
+| Next Ticket | `AUTO-IMPORT-008 Defect 2 after Defect 1 PO PASS` |
+| Last PO Status | `AUTO-IMPORT-007 remains closed PO PASS; AUTO-IMPORT-008 activated for Defect 1 only` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-007_CHECKPOINT_001.md` |
-| Current State | `AUTO-IMPORT-007 GOVERNANCE CLOSURE / PO PASS` |
-| Technical Status | `AUTO-IMPORT-007 TECHNICAL PASS` |
-| Runtime Status | `PASS` |
-| PO UI Check Required | `No` |
-| PO Product Status | `PO PASS for authorized Auto Import runtime scope; no remaining authorized Auto Import defect/remediation` |
-| Last Reviewed Phase | `AUTO-IMPORT-007 GOVERNANCE CLOSURE` |
-| Last Reviewed Commit | `this governance closure commit` |
-| Phase Review Status | `PO PASS` |
-| Next Phase Authorization | `Dashboard defect remediation only in a fresh conversation with specific PO-provided Dashboard symptom/evidence` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` |
+| Current State | `ACTIVE / DEFECT 1 AUTHORIZED` |
+| Technical Status | `NOT STARTED` |
+| Runtime Status | `NOT STARTED` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `NOT READY` |
+| Last Reviewed Phase | `AUTO-IMPORT-008 ACTIVATION` |
+| Last Reviewed Commit | `this activation commit` |
+| Phase Review Status | `ACTIVATED` |
+| Next Phase Authorization | `Defect 1 implementation only` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-26` |
 
@@ -65,7 +65,7 @@ Fresh-chat onboarding chain for the active ticket:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-3. `docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md`
+3. `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md`
 4. Required Reading from the current manifest
 
 DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 Wave 1 is implemented for shared DKCL lifecycle contract/state standardization. Product Owner authorized Accelerated Delivery Wave 2 at baseline `1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`.
@@ -75,6 +75,8 @@ AUTO-IMPORT-007 Wave 2 is implemented with `TECHNICAL PASS` for bounded backend/
 AUTO-IMPORT-007 governance closure: after DKCL/TCT service became available, Product Owner accepted the authorized Auto Import runtime scope as `PO PASS`; runtime status is `PASS`. The earlier maintenance-related deferred retest is resolved and is no longer current debt. HUE `2026-07-18` and `2026-07-19` remain locked Product Owner `PO PASS` and must not be reopened, reimported, replaced, cleaned up, or otherwise modified without new authorization. HUE `2026-07-23` remains `MISSING` with `0` operational DB rows, no successful download, and no recovery authorization. The HUE download href fix and polling navigation retry remain accepted technical remediation. There is no remaining authorized Auto Import defect/remediation.
 
 Next work boundary: Dashboard defect remediation must start in a fresh conversation and must be based only on the specific Product Owner-provided Dashboard symptom/evidence. Do not perform a broad repository audit, and do not reopen or perform Import remediation unless separately reauthorized. Automatic scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain future unauthorized scope, not current debt.
+
+AUTO-IMPORT-008 activation: Product Owner authorized a new bounded Auto Import remediation phase after completed `AUTO-IMPORT-007`. The next valid sequential Auto Import ticket is `AUTO-IMPORT-008`. It owns three Product Owner-confirmed defects in strict order: 1) HUE and TCT login/browser windows are not hidden reliably; 2) Import History does not clearly distinguish HUE imports from TCT imports; 3) historical Import History row counts are incorrect, with many old records showing fewer than `34` rows while newer corrected imports count correctly. Only Defect 1 is authorized for implementation. Defects 2 and 3 are queued, not authorized, and require separate Product Owner `PO PASS` for the prior defect before activation. `AUTO-IMPORT-007` remains closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

@@ -130,7 +130,7 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-007_MANIFEST.md)
+[docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md)
 
 ↓
 
@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-007 ACTIVE / WAVE 2 IMPLEMENTED`, DOC-GOV-CLEANUP-001 completed `TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`; shared DKCL lifecycle contract/state standardization and bounded backend/data Import architecture are technical PASS; next action is Product Owner authorization for Accelerated Delivery Wave 3 in a fresh Antigravity conversation after Wave 2 closure is pushed and remote state is verified, not self-authorized implementation.
+Current active handoff: `AUTO-IMPORT-008 ACTIVE / DEFECT 1 AUTHORIZED`; `AUTO-IMPORT-007` remains closed `PO PASS`; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-008 owns three PO-confirmed defects in order, but only Defect 1, HUE/TCT login-browser window hide reliability, is authorized for implementation. Defects 2 and 3 are queued and require separate Product Owner `PO PASS` for the prior defect before activation.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 
