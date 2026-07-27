@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -11,8 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { AlertTriangle, CircleHelp, Gauge, Info, Layers, TrendingUp } from 'lucide-react';
-import api from '../../../api/client';
+import { Layers, TrendingUp } from 'lucide-react';
 import { CardContainer, EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
 import {
   formatNumber,
@@ -25,7 +24,6 @@ import {
   buildIntegratedTrendRows,
   buildLeadershipComparisonWidgets,
   buildSevenDayVisibleComparisonEvidence,
-  summarizeRiskEvidence,
   TREND_MODES,
 } from './integratedTrendRiskData';
 
@@ -150,47 +148,6 @@ function LegendItem({ color, label, shape = 'dot', dashed = false }) {
       />
       {label}
     </span>
-  );
-}
-
-function RiskPanel({ risks, loading, error }) {
-  if (loading) {
-    return <LoadingState label="Đang tải ngoại lệ và rủi ro..." className="min-h-[360px]" />;
-  }
-
-  if (error) {
-    return <ErrorState title="Không thể tải ngoại lệ" description={error} className="min-h-[360px]" />;
-  }
-
-  const topRisks = (risks || []).slice(0, 3);
-
-  return (
-    <aside className="flex h-full flex-col rounded-xl border border-[var(--color-surface-200)] bg-[var(--color-surface-50)] p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h4 className="text-sm font-bold text-[var(--color-text-main)]">Ngoại lệ & Rủi ro chính</h4>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">Dựa trên dữ liệu hệ thống đã ghi nhận.</p>
-        </div>
-        <Gauge size={18} className="text-[var(--color-primary-600)]" />
-      </div>
-      <div className="mt-4 space-y-3">
-        {topRisks.map((risk) => (
-          <div key={risk.id} className="rounded-lg border border-white bg-white p-3 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-2">
-                {risk.tone === 'danger' ? <AlertTriangle size={16} className="mt-0.5 text-red-600" /> : risk.tone === 'warning' ? <CircleHelp size={16} className="mt-0.5 text-amber-600" /> : <Info size={16} className="mt-0.5 text-blue-600" />}
-                <div>
-                  <div className="text-sm font-bold text-[var(--color-text-main)]">{risk.title}</div>
-                  <div className="mt-0.5 text-xs text-[var(--color-text-muted)]">{risk.unit}</div>
-                </div>
-              </div>
-              <StatusBadge label={risk.severity} tone={risk.tone} />
-            </div>
-            <p className="mt-2 text-sm text-[var(--color-text-main)]">{risk.evidence}</p>
-          </div>
-        ))}
-      </div>
-    </aside>
   );
 }
 
@@ -343,46 +300,6 @@ export default function IntegratedTrendRiskWorkspace({
   mode = '30-days',
   onModeChange,
 }) {
-  const [pulseState, setPulseState] = useState({ loading: true, error: null, pulse: null });
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadPulse = async () => {
-      try {
-        setPulseState({ loading: true, error: null, pulse: null });
-        const response = await api.get('/f13/dashboard/quality-timeline', {
-          params: {
-            toDate,
-            ma_bcvh: maBcvh,
-          },
-        });
-
-        if (!cancelled) {
-          setPulseState({
-            loading: false,
-            error: null,
-            pulse: response?.data?.data?.pulse || null,
-          });
-        }
-      } catch (fetchError) {
-        if (!cancelled) {
-          setPulseState({
-            loading: false,
-            error: fetchError?.message || 'Không thể tải nhịp chất lượng.',
-            pulse: null,
-          });
-        }
-      }
-    };
-
-    if (toDate) loadPulse();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [maBcvh, toDate]);
-
   const rows = useMemo(() => buildIntegratedTrendRows({ mode, items: data, toDate }), [data, mode, toDate]);
   const leadershipComparisons = useMemo(
     () => buildLeadershipComparisonWidgets({ items: data, fromDate, toDate, comparisonContract: kpiData?.comparisons }),
@@ -392,8 +309,6 @@ export default function IntegratedTrendRiskWorkspace({
     () => buildSevenDayVisibleComparisonEvidence(data, toDate),
     [data, toDate],
   );
-  const risks = useMemo(() => summarizeRiskEvidence(data, kpiData, pulseState.pulse), [data, kpiData, pulseState.pulse]);
-  const isMonthly = mode === '30-days';
 
   const action = (
     <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Chọn chế độ xu hướng">
@@ -430,7 +345,7 @@ export default function IntegratedTrendRiskWorkspace({
       ) : !rows.length ? (
         <EmptyState title="Không có dữ liệu xu hướng" description="Không có dữ liệu bưu gửi hằng ngày cho phạm vi đang chọn." className="min-h-[360px]" />
       ) : (
-        <div className={`grid gap-5 ${isMonthly ? '' : 'xl:grid-cols-[minmax(0,1fr)_360px]'}`}>
+        <div className="grid gap-5">
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
               <StatusBadge label={TREND_MODES.find((item) => item.id === mode)?.label} tone="info" />
@@ -449,9 +364,6 @@ export default function IntegratedTrendRiskWorkspace({
               <LegendItem color={COLORS.warning} label="Marker dưới mục tiêu" />
             </div>
           </div>
-          {!isMonthly && (
-            <RiskPanel risks={risks} loading={pulseState.loading} error={pulseState.error} />
-          )}
         </div>
       )}
     </CardContainer>

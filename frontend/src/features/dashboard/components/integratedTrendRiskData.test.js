@@ -361,6 +361,16 @@ test('integrated workspace source contains visible leadership comparison labels'
   assert.doesNotMatch(comparisonSource, /failed_count|failed-rate|Không đạt|Tỷ lệ không đạt/);
 });
 
+test('integrated workspace uses full chart width in every mode', () => {
+  const source = read('./IntegratedTrendRiskWorkspace.jsx');
+
+  assert.doesNotMatch(source, /function RiskPanel/);
+  assert.doesNotMatch(source, /<RiskPanel/);
+  assert.doesNotMatch(source, /xl:grid-cols-\[minmax\(0,1fr\)_360px\]/);
+  assert.doesNotMatch(source, /\/f13\/dashboard\/quality-timeline/);
+  assert.match(source, /<div className="grid gap-5">/);
+});
+
 test('risk panel uses confirmed values and labels unknown causes explicitly', () => {
   const risks = summarizeRiskEvidence(sampleTrend, { total_failed: 1037, failed_rate: 28.2 }, { text: 'Nhịp chất lượng giảm so với kỳ trước.', color: 'yellow' });
   assert.match(risks[0].evidence, /1\.037/);
