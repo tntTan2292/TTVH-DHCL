@@ -268,9 +268,10 @@ test('weekday cutoffs are approved while heatmap remains relative to monthly ave
 test('timeline service heatmap uses previous month through latest available date without API contract change', () => {
   const serviceSource = fs.readFileSync(new URL('../../../../../backend/src/services/timelineService.js', import.meta.url), 'utf8');
 
-  assert.match(serviceSource, /heatmapStartDate/);
+  assert.match(serviceSource, /_getHeatmapWindowBounds/);
+  assert.match(serviceSource, /Date\.UTC/);
   assert.match(serviceSource, /latestBusinessDate/);
-  assert.match(serviceSource, /heatmapRange/);
+  assert.match(serviceSource, /_buildHeatmapCalendar\(fullData, latestBusinessDate\)/);
   assert.match(serviceSource, /is_empty: Boolean\(d\.isEmpty\)/);
   assert.doesNotMatch(serviceSource, /const last30 = fullData\.slice\(-30\);\s*let currentWeek/s);
 });

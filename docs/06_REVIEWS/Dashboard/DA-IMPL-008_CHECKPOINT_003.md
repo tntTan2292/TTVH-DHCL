@@ -4,9 +4,9 @@
 
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `003 - Full two-month Heatmap and weekday labels`
-- Current state: `READY FOR PO CHECK - RUNTIME RETEST DEFERRED`
+- Current state: `READY FOR PO CHECK - REMEDIATION VALIDATED`
 - Technical status: `PASS`
-- Runtime status: `TARGETED SOURCE/UNIT VALIDATION PASS; RUNTIME RETEST DEFERRED - DO NOT RESTART BACKEND WHILE TCT IMPORT IS RUNNING`
+- Runtime status: `LEVEL 1 TARGETED VALIDATION PASS`
 - PO UI check required: `Yes`
 - PO product status: `WAITING FOR PO CHECK`
 
@@ -41,11 +41,32 @@ Product Owner authorized Checkpoint 003 to improve the Operating Patterns Heatma
 - Dashboard performance optimization was not started.
 - Completed Dashboard and Import tickets were not reopened.
 
+## Remediation
+
+Product Owner runtime evidence showed the Heatmap rendering three month blocks: `05/2026`, `06/2026`, and `07/2026`.
+
+Root cause:
+
+- The backend Heatmap range start used local `Date` construction and then converted that local midnight to ISO.
+- In the runtime timezone, the intended `2026-06-01` previous-month start could serialize as `2026-05-31`.
+- The frontend grouped every dated Heatmap cell by month, so the dated `2026-05-31` padding/boundary cell produced an extra `05/2026` block.
+
+Correction:
+
+- Heatmap month-window boundaries now use UTC-safe calendar-month construction.
+- The backend emits dated cells only inside the intended previous-month-through-latest-data window.
+- Weekday alignment padding remains `null` and cannot create an additional month block.
+- The frontend two-month grouping behavior, weekday labels, relative bands, and missing/unknown semantics are preserved.
+
 ## Validation
 
 - `node --test frontend/src/features/dashboard/components/operatingPatternTabsData.test.js`
   - Result: `PASS`
-  - Evidence: `13` tests passed, `0` failed.
+  - Evidence: `14` tests passed, `0` failed.
+- `node --test backend/src/services/timelineService.recovery.test.js`
+  - Result: `PASS`
+  - Evidence: `4` tests passed, `0` failed.
+  - Coverage: source data spanning more than two months; month-end boundaries; December-to-January transition; padding cells not creating an additional month block.
 - `git diff --check`
   - Result: `PASS`.
 
@@ -62,8 +83,8 @@ Use the normal Dashboard review URL and select the `Heatmap` tab inside `Quy luá
 
 ## Handoff
 
-This checkpoint remains ready for Product Owner visible UI check.
+This checkpoint remains ready for Product Owner visible UI check after remediation.
 
-Product Owner decision recorded on `2026-07-27`: keep Checkpoint 003 at `READY FOR PO CHECK - RUNTIME RETEST DEFERRED`. Do not restart backend while TCT Import is running.
+Product Owner decision recorded on `2026-07-27`: Checkpoint 003 required remediation because runtime showed an extra `05/2026` Heatmap block. Remediation is technically validated, but Product Owner visible acceptance is still required.
 
 Do not mark Checkpoint 003 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.

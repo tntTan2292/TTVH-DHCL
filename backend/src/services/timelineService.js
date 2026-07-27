@@ -1,6 +1,67 @@
 const { all } = require('../config/db');
 
 class TimelineService {
+    _isIsoDate(value) {
+        return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+    }
+
+    _formatUtcDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+
+    _getHeatmapWindowBounds(latestBusinessDate) {
+        if (!this._isIsoDate(latestBusinessDate)) {
+            return {
+                heatmapStartStr: latestBusinessDate,
+                heatmapEndStr: latestBusinessDate
+            };
+        }
+
+        const [year, month] = latestBusinessDate.split('-').map(Number);
+        const heatmapStartDate = new Date(Date.UTC(year, month - 2, 1));
+
+        return {
+            heatmapStartStr: this._formatUtcDate(heatmapStartDate),
+            heatmapEndStr: latestBusinessDate
+        };
+    }
+
+    _buildHeatmapCalendar(fullData, latestBusinessDate) {
+        const calendarData = [];
+        const { heatmapStartStr, heatmapEndStr } = this._getHeatmapWindowBounds(latestBusinessDate);
+        const heatmapRange = fullData.filter(d => d.date >= heatmapStartStr && d.date <= heatmapEndStr);
+        let currentWeek = [];
+
+        // Pad the first week to start on Monday without creating dated cells outside the two-month window.
+        if (heatmapRange.length > 0) {
+            let firstDay = new Date(`${heatmapRange[0].date}T00:00:00Z`).getUTCDay();
+            let padDays = firstDay === 0 ? 6 : firstDay - 1;
+            for (let i = 0; i < padDays; i++) {
+                currentWeek.push(null);
+            }
+        }
+
+        heatmapRange.forEach((d, index) => {
+            currentWeek.push({
+                date: d.date,
+                kpi_rate: parseFloat(d.kpi_rate.toFixed(2)),
+                dod: index > 0 && !heatmapRange[index-1].isEmpty && !d.isEmpty ? parseFloat((d.kpi_rate - heatmapRange[index-1].kpi_rate).toFixed(2)) : 0,
+                is_empty: Boolean(d.isEmpty),
+                color: d.isEmpty ? 'gray' : (d.kpi_rate >= 70 ? 'green' : (d.kpi_rate >= 60 ? 'pink' : (d.kpi_rate >= 50 ? 'yellow' : 'red')))
+            });
+            if (currentWeek.length === 7) {
+                calendarData.push(currentWeek);
+                currentWeek = [];
+            }
+        });
+        if (currentWeek.length > 0) {
+            while (currentWeek.length < 7) currentWeek.push(null);
+            calendarData.push(currentWeek);
+        }
+
+        return calendarData;
+    }
+
     async getQualityTimeline(toDate, ma_bcvh) {
         // Query data for the last 90 days to establish strong patterns
         const endDate = new Date(toDate);
@@ -152,40 +213,7 @@ class TimelineService {
 
         // 4. Quality Calendar (Heatmap for previous full calendar month and current month to latest data)
         // Group into weeks for easier rendering
-        const calendarData = [];
-        const heatmapEndDate = new Date(latestBusinessDate);
-        const heatmapStartDate = new Date(heatmapEndDate.getFullYear(), heatmapEndDate.getMonth() - 1, 1);
-        const heatmapStartStr = heatmapStartDate.toISOString().split('T')[0];
-        const heatmapEndStr = latestBusinessDate;
-        const heatmapRange = fullData.filter(d => d.date >= heatmapStartStr && d.date <= heatmapEndStr);
-        let currentWeek = [];
-        
-        // Pad the first week to start on Monday
-        if (heatmapRange.length > 0) {
-            let firstDay = new Date(heatmapRange[0].date).getDay();
-            let padDays = firstDay === 0 ? 6 : firstDay - 1;
-            for (let i = 0; i < padDays; i++) {
-                currentWeek.push(null);
-            }
-        }
-
-        heatmapRange.forEach((d, index) => {
-            currentWeek.push({
-                date: d.date,
-                kpi_rate: parseFloat(d.kpi_rate.toFixed(2)),
-                dod: index > 0 && !heatmapRange[index-1].isEmpty && !d.isEmpty ? parseFloat((d.kpi_rate - heatmapRange[index-1].kpi_rate).toFixed(2)) : 0,
-                is_empty: Boolean(d.isEmpty),
-                color: d.isEmpty ? 'gray' : (d.kpi_rate >= 70 ? 'green' : (d.kpi_rate >= 60 ? 'pink' : (d.kpi_rate >= 50 ? 'yellow' : 'red')))
-            });
-            if (currentWeek.length === 7) {
-                calendarData.push(currentWeek);
-                currentWeek = [];
-            }
-        });
-        if (currentWeek.length > 0) {
-            while (currentWeek.length < 7) currentWeek.push(null);
-            calendarData.push(currentWeek);
-        }
+        const calendarData = this._buildHeatmapCalendar(fullData, latestBusinessDate);
 
         const ytdByMonth = ytdRows.reduce((acc, row) => {
             acc[row.month_key] = row;

@@ -4,15 +4,17 @@
 
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `004 - Dashboard nationwide ranking range correction`
-- Current state: `READY FOR PO CHECK`
+- Current state: `COMPLETED`
 - Technical status: `PASS`
 - Runtime status: `LEVEL 2 TARGETED VALIDATION PASS; BACKEND RESTART NOT PERFORMED`
 - PO UI check required: `Yes`
-- PO product status: `WAITING FOR PO CHECK`
+- PO product status: `PO PASS`
 
 ## Product Owner Decision
 
 Product Owner expanded Checkpoint 004 to include correction of the top Dashboard `Xep hang toan quoc` widget.
+
+Product Owner accepted `DA-IMPL-008 CHECKPOINT 004` as `PO PASS` on `2026-07-27`.
 
 Required behavior:
 
@@ -113,6 +115,4 @@ Use the existing Dashboard review URL after the running TCT Import can safely co
 
 ## Handoff
 
-This checkpoint is ready for Product Owner visible UI check after backend runtime retest is authorized.
-
-Do not mark Checkpoint 004 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.
+This checkpoint is completed with Product Owner `PO PASS`.
