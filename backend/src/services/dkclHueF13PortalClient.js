@@ -413,10 +413,14 @@ class DkclHueF13PortalClient {
     async readDetailTotal() {
         await this.page.locator('table tr').nth(2).waitFor({ timeout: 30000 });
         const total = await this.page.evaluate(() => {
+            const headerRow = document.querySelectorAll('table tr')[0];
             const summaryRow = document.querySelectorAll('table tr')[2];
-            const cells = summaryRow ? Array.from(summaryRow.children) : [];
-            const detailCell = cells.find((cell) => cell.getAttribute('data-detail') === '1');
-            return detailCell?.innerText || cells[7]?.innerText || '';
+            if (!headerRow || !summaryRow) return '';
+            const headers = Array.from(headerRow.children).map(cell => cell.innerText.trim().replace(/\s+/g, ' '));
+            const targetIndex = headers.indexOf('SL bưu gửi phát thành công/Nộp tiền/CH');
+            if (targetIndex === -1) return '';
+            const cells = Array.from(summaryRow.children);
+            return cells[targetIndex]?.innerText || '';
         });
         return normalizeNumber(total);
     }
