@@ -25,10 +25,10 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` |
 | Current State | `ACTIVE / DEFECT 1 AUTHORIZED` |
-| Technical Status | `NOT STARTED` |
-| Runtime Status | `NOT STARTED` |
+| Technical Status | `COMPLETED / TECHNICAL PASS` |
+| Runtime Status | `COMPLETED / RUNTIME PASS` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `NOT READY` |
+| PO Product Status | `READY FOR PO CHECK` |
 | Last Reviewed Phase | `AUTO-IMPORT-008 ACTIVATION` |
 | Last Reviewed Commit | `this activation commit` |
 | Phase Review Status | `ACTIVATED` |

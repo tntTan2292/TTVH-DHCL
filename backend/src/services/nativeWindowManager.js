@@ -136,18 +136,18 @@ function setWindowsVisibleForProcessIds(pids, visible, { hwndAllowList = null } 
         if (allowedHwnds && !allowedHwnds.has(hwndNumber)) return true;
 
         const wasVisible = Boolean(native.IsWindowVisible(hwnd));
-        
-        // Skip already-hidden windows ONLY for HIDE operation
-        if (!visible && !wasVisible) {
-            return true;
+        const alreadyInTargetState = visible ? wasVisible : !wasVisible;
+
+        let nativeResult = true;
+        let isVisible = wasVisible;
+
+        if (!alreadyInTargetState) {
+            matchedWindowCount += 1;
+            nativeResult = Boolean(native.ShowWindow(hwnd, showCommand));
+            isVisible = Boolean(native.IsWindowVisible(hwnd));
+            const changedToTarget = wasVisible !== isVisible && (visible ? isVisible : !isVisible);
+            if (changedToTarget) affectedWindowCount += 1;
         }
-
-        matchedWindowCount += 1;
-
-        const nativeResult = Boolean(native.ShowWindow(hwnd, showCommand));
-        const isVisible = Boolean(native.IsWindowVisible(hwnd));
-        const changedToTarget = wasVisible !== isVisible && (visible ? isVisible : !isVisible);
-        if (changedToTarget) affectedWindowCount += 1;
 
         windows.push({
             hwnd: hwndNumber,
@@ -155,17 +155,17 @@ function setWindowsVisibleForProcessIds(pids, visible, { hwndAllowList = null } 
             wasVisible,
             isVisible,
             nativeResult,
-            alreadyInTargetState: visible ? wasVisible : !wasVisible
+            alreadyInTargetState
         });
         return true;
     };
 
     native.EnumWindows(callback, 0);
 
+    const success = windows.length > 0 && windows.every(w => w.isVisible === visible);
+
     return {
-        success: affectedWindowCount > 0 || matchedWindowCount === 0, 
-        // Note: browserProcessManager will decide success criteria. 
-        // Here we just return what we did.
+        success,
         action,
         matchedWindowCount,
         affectedWindowCount,
