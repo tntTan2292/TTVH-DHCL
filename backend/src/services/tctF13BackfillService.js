@@ -742,89 +742,43 @@ class TctF13BackfillService {
                 }
             }
 
-            // On Retry, safely download an already-generated identifiable file where possible, without generating duplicate exports
-            let generatedFile = null;
-            try {
-                await client.page.goto(`${this.portalBaseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-                const files = await client.page.evaluate(() => Array.from(document.querySelectorAll('table tbody tr')).map((tr) => {
-                    const cells = Array.from(tr.querySelectorAll('td')).map((td) => td.innerText.trim().replace(/\s+/g, ' '));
-                    const xlsx = Array.from(tr.querySelectorAll('a')).find((a) => /files-xlsx/i.test(a.href));
-                    return {
-                        filename: cells[1],
-                        createdAtText: cells[3],
-                        href: xlsx?.getAttribute('href') || null
-                    };
-                }));
-                const normalized = files.map((file) => ({
-                    ...file,
-                    createdAt: client.parsePortalTimestamp ? client.parsePortalTimestamp(file.createdAtText) : file.createdAtText
-                }));
-                const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
-
-                const filenameContainsDate = (filename, mDate) => {
-                    if (!filename || !mDate) return false;
-                    const cleanDate = mDate.replace(/-/g, '');
-                    const cleanDateDot = mDate.replace(/-/g, '.');
-                    const [y, m, d] = mDate.split('-');
-                    const cleanDateReverse = `${d}${m}${y}`;
-                    const cleanDateReverseDot = `${d}.${m}.${y}`;
-                    return filename.includes(cleanDate) ||
-                           filename.includes(cleanDateDot) ||
-                           filename.includes(cleanDateReverse) ||
-                           filename.includes(cleanDateReverseDot);
-                };
-
-                const candidates = normalized
-                    .filter((file) => String(file.filename || '').includes('F1.3_chat_luong_phat_buu_giay_lien_tinh'))
-                    .filter((file) => new Date(file.createdAt).getTime() > fifteenMinutesAgo)
-                    .filter((file) => filenameContainsDate(file.filename, measurementDate))
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                if (candidates.length > 0) {
-                    generatedFile = candidates[0];
-                }
-            } catch (err) {
-                // Fail-safe: fall back to normal generation
+            await client.openF13Report();
+            await client.submitFilters({
+                groupBy: 'TINH',
+                provinceCode: 'ALL',
+                fromDate: measurementDate,
+                toDate: measurementDate
+            });
+            const readiness = await client.waitForF13ExportReadiness({
+                groupBy: 'TINH',
+                provinceCode: 'ALL',
+                fromDate: measurementDate,
+                toDate: measurementDate
+            });
+            if (!readiness?.ready || readiness.status !== 'READY_TO_EXPORT') {
+                await client.restoreWindow?.().catch(() => {});
+                const error = new Error(readiness?.message || 'TCT F1.3 export is not ready.');
+                error.code = readiness?.code || 'EXPORT_CONTROL_NOT_READY';
+                error.readiness = readiness || null;
+                throw error;
             }
-
+            const exportRequestedAt = this.clock();
+            try {
+                await this.requestSummaryExport(client);
+            } catch (error) {
+                await client.restoreWindow?.().catch(() => {});
+                throw error;
+            }
+            const generatedFile = await client.pollGeneratedFile({
+                requestedAt: exportRequestedAt,
+                timeoutMs: Number(process.env.DKCL_TCT_GENERATION_TIMEOUT_MS || 900000),
+                intervalMs: Number(process.env.DKCL_TCT_GENERATION_POLL_INTERVAL_MS || 30000),
+                match: 'F1.3_chat_luong_phat_buu_giay_lien_tinh'
+            });
             if (!generatedFile) {
-                await client.openF13Report();
-                await client.submitFilters({
-                    groupBy: 'TINH',
-                    provinceCode: 'ALL',
-                    fromDate: measurementDate,
-                    toDate: measurementDate
-                });
-                const readiness = await client.waitForF13ExportReadiness({
-                    groupBy: 'TINH',
-                    provinceCode: 'ALL',
-                    fromDate: measurementDate,
-                    toDate: measurementDate
-                });
-                if (!readiness?.ready || readiness.status !== 'READY_TO_EXPORT') {
-                    await client.restoreWindow?.().catch(() => {});
-                    const error = new Error(readiness?.message || 'TCT F1.3 export is not ready.');
-                    error.code = readiness?.code || 'EXPORT_CONTROL_NOT_READY';
-                    error.readiness = readiness || null;
-                    throw error;
-                }
-                const exportRequestedAt = this.clock();
-                try {
-                    await this.requestSummaryExport(client);
-                } catch (error) {
-                    await client.restoreWindow?.().catch(() => {});
-                    throw error;
-                }
-                generatedFile = await client.pollGeneratedFile({
-                    requestedAt: exportRequestedAt,
-                    timeoutMs: Number(process.env.DKCL_TCT_GENERATION_TIMEOUT_MS || 900000),
-                    intervalMs: Number(process.env.DKCL_TCT_GENERATION_POLL_INTERVAL_MS || 30000),
-                    match: 'F1.3_chat_luong_phat_buu_giay_lien_tinh'
-                });
-                if (!generatedFile) {
-                    const error = new Error('Timed out waiting for generated TCT F1.3 export.');
-                    error.code = 'EXPORT_TIMEOUT';
-                    throw error;
-                }
+                const error = new Error('Timed out waiting for generated TCT F1.3 export.');
+                error.code = 'EXPORT_TIMEOUT';
+                throw error;
             }
 
             ensureDir(this.rawDownloadDir);

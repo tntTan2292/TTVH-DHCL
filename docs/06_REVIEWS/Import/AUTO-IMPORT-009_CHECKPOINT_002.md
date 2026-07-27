@@ -73,11 +73,11 @@ Additionally, a **silent early hide** at the readiness check point (`await hideW
 1. Removed the pre-export silent-swallow hide at the F13-readiness checkpoint.
 2. Before the finalization hide, explicitly call `processManager.clearHiddenHwnds(client.profileDir)` to flush any stale HWND records so the subsequent `hideWindow()` performs a fresh live scan of currently owned windows in the active PID tree.
 
-### 4. TCT Browser Lifecycle, Safe Reuse & Warning Finalization Remediation
+### 4. TCT Browser Lifecycle, Retry Export, & Warning Finalization Remediation
 
 **Root cause analysis & fixes**:
-1. **Browser/Session Disconnection**: When page/context was closed or disconnected, we now detect it via `client.page.isClosed()`, invalidate the stale preflight registry entry, and cleanly recover or throw `AUTHENTICATION_REQUIRED`.
-2. **Safe TCT Tệp Tạm Reuse**: Reusing an existing file is now strictly constrained. The system checks the files list `/files` for files generated within the last 15 minutes, but strictly validates they contain the targeted `measurementDate` in a deterministic format (`YYYYMMDD`, `YYYY.MM.DD`, `DDMMYYYY`, or `DD.MM.YYYY`). Ambiguous files or wrong business dates are never reused, falling back safely to the governed generation path.
+1. **Browser/Session Disconnection**: When page/context is closed or disconnected, we now detect it via `client.page.isClosed()`, invalidate the stale preflight registry entry, and cleanly recover or throw `AUTHENTICATION_REQUIRED`.
+2. **Retry Export Generation**: Following the final PO decision, the system does not attempt to identify or reuse existing files from `/files`. Every retry of an interrupted run starts from a valid browser session and generates a completely new export. Polling and downloading are locked strictly to the newly generated file using the request-specific `requestedAt` timestamp to prevent concurrent mismatch or guess-based reuse.
 3. **Restored Warning Finalization Contract**: As approved in the repository authority chain, when data import and portal cleanup succeed but only the final window hiding fails, the system returns `SUCCESS` with an operational warning (`operational_warning_code: 'TCT_WINDOW_HIDE_FAILED'`, `window_hidden: false`). This prevents blocking success finalization for data operations.
 4. **Preserved Cleanup Evidence**: The catch block preserves the computed `temp_file_deleted` status instead of blindly resetting it to `false`.
 5. **Hide-only Retry**: A hide-only Retry performs zero export/download/import operations, safely targeting only the window visibility.
@@ -90,8 +90,8 @@ Additionally, a **silent early hide** at the readiness check point (`await hideW
 
 Targeted assertions validated:
 - Stale client detected -> registry invalidated -> `AUTHENTICATION_REQUIRED` cleanly returned.
-- Exact date match reused -> new export skipped.
-- Ambiguous/wrong date files -> new export safely generated.
+- Retry always triggers a new export -> skips `/files` reuse.
+- Polling is locked to `requestedAt` matching current attempt -> ignores older/concurrent files.
 - Hide-only retry -> zero export/download/import calls executed.
 - completed import + hide failure -> `SUCCESS` with `TCT_WINDOW_HIDE_FAILED` warning.
 - portal cleanup status is accurately preserved.
@@ -99,10 +99,10 @@ Targeted assertions validated:
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-009`.
-- Current phase: `TCT browser lifecycle, safe reuse, and warning finalization remediation`.
+- Current phase: `TCT browser lifecycle, retry export, and warning finalization remediation`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md`.
-- Next action: Product Owner check for TCT browser lifecycle, safe reuse, and warning finalization status. Do not award PO PASS from Codex.
+- Next action: Product Owner check for TCT browser lifecycle, retry export, and warning finalization status. Do not award PO PASS from Codex.
 
 ## Priority Deferral
 
