@@ -48,14 +48,15 @@ Primary executor: `Antigravity`.
    - Properly halts with `AUTHENTICATION_REQUIRED` if redirected to login, preventing `FILTER_NOT_FOUND`.
 6. In `tctF13BackfillService.js` (`runOneDateImport`):
    - Hides the browser window after the import and portal cleanup attempts are executed.
-   - Throws a `TCT_CLEANUP_FAILED` error if the portal cleanup fails or is skipped, ensuring the task status is set to `FAILED` instead of silently reporting a full success.
+   - Throws a `TCT_CLEANUP_FAILED` error if the portal cleanup fails or is skipped.
+   - Verifies the boolean result returned by `hideWindowFn` and throws `TCT_WINDOW_HIDE_FAILED` if the hide operation fails, is missing, or throws, preventing `SUCCESS` finalization when browser is still visible.
 
 ### 1. Automated Preflight Checks
 `node test_dkclSessionPreflightService.js`, `node test_browserProfileLock.js` and `node test_tctF13BackfillService.js` passed successfully.
 
 ### 2. Safety Contract Verification Tests
 Executed safety verification tests:
-- `node scratch/test_cleanup_safety.js` (Checks deferred cleanup, idempotency, and cleanup failure throws): **PASSED**
+- `node scratch/test_cleanup_safety.js` (Checks deferred cleanup, idempotency, cleanup failure throws, and strict window hide validation): **PASSED**
 - `node scratch/test_redirect_race.js` (Checks redirect race resolution and AUTHENTICATION_REQUIRED on expired sessions): **PASSED**
 
 ## Current Handoff

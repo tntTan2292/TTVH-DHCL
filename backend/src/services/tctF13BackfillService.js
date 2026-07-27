@@ -759,11 +759,28 @@ class TctF13BackfillService {
 
             // Hide the window after F13_READY and import/cleanup attempts
             const hideWindowFn = client.hideWindow || client.hideBrowserWindow;
-            await hideWindowFn?.call(client).catch(() => {});
+            if (!hideWindowFn) {
+                const error = new Error('TCT window hide capability is missing.');
+                error.code = 'TCT_WINDOW_HIDE_FAILED';
+                throw error;
+            }
+
+            let hideSuccess = false;
+            try {
+                hideSuccess = await hideWindowFn.call(client);
+            } catch (err) {
+                // hideSuccess remains false
+            }
 
             if (!temp_file_deleted) {
                 const error = new Error(`TCT portal cleanup failed or was not executed. Status: ${portalCleanup?.status}`);
                 error.code = 'TCT_CLEANUP_FAILED';
+                throw error;
+            }
+
+            if (!hideSuccess) {
+                const error = new Error('TCT browser window could not be confirmed hidden.');
+                error.code = 'TCT_WINDOW_HIDE_FAILED';
                 throw error;
             }
 

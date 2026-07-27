@@ -382,6 +382,7 @@ function removeDirEventually(dir) {
                 });
                 return { status: 'DELETED' };
             },
+            async hideWindow() { return true; },
             async close() {}
         })
     });
