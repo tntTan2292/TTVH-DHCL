@@ -8,9 +8,9 @@
 - Runtime Status: `N/A - ACTIVATION ONLY`
 - PO UI Check Required: `Yes`
 - PO Product Status: `AUTHORIZED`
-- Activation authority: Product Owner priority decision on `2026-07-27` to stop further `AUTO-IMPORT-009` remediation for now and move priority to the previously approved Dashboard overview improvement work.
+- Activation authority: Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6` and returned priority to the previously approved Dashboard overview improvement work.
 - Activation date: `2026-07-27`
-- Primary executor: `Antigravity for Dashboard UI/UX execution; Codex only for bounded logic, contract, regression, or documentation support if assigned`
+- Primary executor: `Codex for the next Dashboard defect remediation`
 
 ## Fresh-Chat Onboarding Authority
 
@@ -48,7 +48,7 @@ Detailed execution scope must be derived only from this manifest and the authori
 ## Preservation Requirements
 
 - Preserve all completed `DA-IMPL-001` through `DA-IMPL-007` PO PASS states.
-- Preserve `AUTO-IMPORT-009` as `DEFERRED / NOT RESOLVED`; do not record Defect 2 as `PO PASS`.
+- Preserve `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`; no further Import remediation is active.
 - Preserve `AUTO-IMPORT-008` and earlier ticket closures.
 - Preserve HUE `2026-07-18` and HUE `2026-07-19` locked `PO PASS`.
 - Preserve HUE `2026-07-23` as `MISSING / NOT AUTHORIZED`.
@@ -59,7 +59,7 @@ Detailed execution scope must be derived only from this manifest and the authori
 - Implementing Dashboard code during this documentation-only priority transition.
 - Reopening completed Dashboard tickets.
 - Continuing `AUTO-IMPORT-009` remediation.
-- Recording `AUTO-IMPORT-009` Defect 2 as `PO PASS`.
+- Reopening `AUTO-IMPORT-009` after PO PASS closure.
 - Inferring Dashboard overview requirements from chat history.
 - TICKET-0102 route protection or access guard implementation unless Product Owner separately activates it.
 - Future `BCVH Ranking` message management unless Product Owner separately activates it.
@@ -75,7 +75,7 @@ For this documentation-only activation commit:
 
 For later DA-IMPL-008 implementation:
 
-- Use the executor selected by Product Owner coordination.
+- Use `Codex` as the primary executor.
 - Use delta-only scope.
 - Use targeted validation appropriate to the implemented Dashboard overview change.
 - Provide Product Owner visible checklist.

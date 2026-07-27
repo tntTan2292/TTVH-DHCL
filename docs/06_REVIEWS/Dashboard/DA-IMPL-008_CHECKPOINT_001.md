@@ -9,17 +9,19 @@
 - Technical status: `NOT STARTED`
 - Runtime status: `N/A - ACTIVATION ONLY`
 - PO product status: `AUTHORIZED`
-- Authority: Product Owner priority decision on `2026-07-27` stopped further `AUTO-IMPORT-009` remediation for now and moved priority to the previously approved Dashboard overview improvement work.
+- Authority: Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6` and returned priority to the previously approved Dashboard overview improvement work.
+- Primary executor: `Codex`
 
-## AUTO-IMPORT-009 Deferral Preservation
+## AUTO-IMPORT-009 Closure Preservation
 
-- `AUTO-IMPORT-009` resulting status is `DEFERRED / NOT RESOLVED`.
-- `AUTO-IMPORT-009` Defect 2 is not Product Owner `PO PASS`.
-- Exact deferred item: TCT window may remain visible after re-authentication.
-- Preserved pass evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass.
+- `AUTO-IMPORT-009` resulting status is `COMPLETED / PO PASS`.
+- PO PASS baseline: `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`.
+- No further Import remediation is active.
+- Preserved pass evidence: import, portal cleanup, WEB cleanup status, local Processed retention, retry export, total reconciliation, and operational window-hide warning handling.
 - `AUTO-IMPORT-008` and earlier tickets remain closed.
 - HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`.
 - HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
+- Unattended scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain unauthorized.
 
 ## Dashboard Priority Activation
 
@@ -30,6 +32,8 @@ The authoritative Dashboard roadmap and ticket register show:
 - `TICKET-0102` remains deferred and inactive unless separately activated.
 
 Next valid Dashboard ticket: `DA-IMPL-008`.
+
+Primary executor for the next Dashboard defect remediation: `Codex`.
 
 Objective: implement the approved Dashboard overview improvement work.
 
@@ -47,4 +51,4 @@ Objective: implement the approved Dashboard overview improvement work.
 - Current phase: `Dashboard overview improvement`.
 - Current manifest: `docs/10_TICKETS/DA-IMPL-008_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_001.md`.
-- Next action: implement DA-IMPL-008 only after following the active onboarding chain.
+- Next action: implement DA-IMPL-008 only after following the active onboarding chain. Do not implement Dashboard code in the documentation-only closure handoff.

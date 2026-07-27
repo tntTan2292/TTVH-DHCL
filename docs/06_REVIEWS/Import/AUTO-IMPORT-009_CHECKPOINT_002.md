@@ -5,10 +5,10 @@
 - Ticket: `AUTO-IMPORT-009`
 - Ticket name: `Auto Import Browser And DKCL Cleanup Remediation`
 - Phase: `BOUNDED TCT WINDOW-HIDE DATA-FINALIZATION REMEDIATION`
-- Current state: `READY FOR PO CHECK`
+- Current state: `COMPLETED / PO PASS`
 - Technical status: `TECHNICAL PASS`
-- Runtime status: `TARGETED TECHNICAL PASS; PO CHECK REQUIRED`
-- PO product status: `DEFECT 1 PO PASS; DEFECT 2 NOT PO PASS; TCT WINDOW-HIDE REMEDIATION READY FOR PO CHECK`
+- Runtime status: `PO PASS`
+- PO product status: `PO PASS`
 
 ## Closure Preservation
 
@@ -22,17 +22,19 @@
 | Order | PO-confirmed defect | Status | Authorization |
 | --- | --- | --- | --- |
 | 1 | HUE/TCT browser windows may fail to hide after a new login or re-authentication cycle. | `COMPLETED` | `PO PASS` |
-| 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `DEFERRED / NOT RESOLVED` | `NOT PO PASS` |
+| 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `COMPLETED` | `PO PASS` |
 
 ## Reactivated Item
 
 Product Owner temporarily paused `DA-IMPL-008` and reactivated `AUTO-IMPORT-009` for one bounded TCT defect on `2026-07-27`.
 
+Product Owner accepted `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`.
+
 Exact reactivated item: `TCT_WINDOW_HIDE_FAILED` must not mark an otherwise completed TCT import as `FAILED` after database import, `34/34` ranked units, portal cleanup, and local Processed-file retention already succeeded.
 
 Preserved pass evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass.
 
-`AUTO-IMPORT-009` Defect 2 is not `PO PASS`.
+`AUTO-IMPORT-009` is now closed as `COMPLETED / PO PASS`.
 
 Required retry behavior: retry window hiding only; never re-import already completed TCT data for this operational warning.
 
@@ -105,16 +107,16 @@ Targeted assertions validated:
 
 ## Current Handoff
 
-- Current ticket: `AUTO-IMPORT-009`.
-- Current phase: `TCT browser lifecycle, retry export, and total reconciliation remediation`.
-- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
-- Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md`.
-- Next action: Product Owner check for TCT browser lifecycle, retry export, and total reconciliation status. Do not award PO PASS from Codex.
+- Current ticket: `DA-IMPL-008`.
+- Current phase: `Dashboard overview improvement`.
+- Current manifest: `docs/10_TICKETS/DA-IMPL-008_MANIFEST.md`.
+- Current checkpoint: `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_001.md`.
+- Next action: implement DA-IMPL-008 only after following the active onboarding chain. Primary executor: `Codex`.
 
-## Priority Deferral
+## Closure Handoff
 
-- `AUTO-IMPORT-009` resulting status is `READY FOR PO CHECK`.
-- Defect 2 is not Product Owner `PO PASS` yet.
-- TCT window-hide remediation is technically complete, pending Product Owner check.
+- `AUTO-IMPORT-009` resulting status is `COMPLETED / PO PASS`.
+- TCT browser lifecycle, retry export, total reconciliation, portal cleanup evidence, Processed-file retention, and hide-warning handling are accepted at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`.
+- No further Import remediation is active.
 - HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`.
 - HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.

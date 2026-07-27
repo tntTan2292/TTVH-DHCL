@@ -13,7 +13,7 @@ Do not activate all DA implementation tickets simultaneously.
 
 The full `DA-IMPL-001` through `DA-IMPL-007` sequence is completed with Product Owner `PO PASS`.
 
-Product Owner priority decision on `2026-07-27` activated `DA-IMPL-008` for the previously approved Dashboard overview improvement work after deferring `AUTO-IMPORT-009` as `DEFERRED / NOT RESOLVED`.
+Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6` and activated `DA-IMPL-008` for the previously approved Dashboard overview improvement work. Primary executor for the next Dashboard defect remediation is `Codex`.
 
 `TICKET-0102` remains deferred and inactive (`DEFERRED / INACTIVE`) unless the Product Owner explicitly activates it.
 
@@ -33,7 +33,7 @@ Product Owner priority decision on `2026-07-27` activated `DA-IMPL-008` for the 
 | 10 | `AUTO-IMPORT-005` TCT Manual Backfill and Shared DKCL Background Operations | `COMPLETED / PO PASS` | `PO PASS` | [docs/10_TICKETS/AUTO-IMPORT-005_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-005_MANIFEST.md) |
 | 11 | `DA-IMPL-006` Unified Action Center | `COMPLETED / PO PASS` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-006_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-006_MANIFEST.md) |
 | 12 | `DA-IMPL-007` Smart Dashboard Final Assembly | `COMPLETED` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-007_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md) |
-| 13 | `DA-IMPL-008` Dashboard Overview Improvement | `ACTIVE / AUTHORIZED` | `AUTHORIZED` | [docs/10_TICKETS/DA-IMPL-008_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md) |
+| 13 | `DA-IMPL-008` Dashboard Overview Improvement | `ACTIVE / AUTHORIZED` | `AUTHORIZED; CODEX PRIMARY EXECUTOR` | [docs/10_TICKETS/DA-IMPL-008_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md) |
 
 ## 4. Consolidated Scope
 

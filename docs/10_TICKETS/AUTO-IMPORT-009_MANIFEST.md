@@ -3,18 +3,18 @@
 - Ticket ID: `AUTO-IMPORT-009`
 - Ticket Name: `Auto Import Browser And DKCL Cleanup Remediation`
 - Phase: `Auto Import / Bounded Remediation`
-- Current State: `REACTIVATED / READY FOR PO CHECK`
+- Current State: `COMPLETED / PO PASS`
 - Technical Status: `TECHNICAL PASS`
-- Runtime Status: `TARGETED TECHNICAL PASS; PO CHECK REQUIRED`
-- PO UI Check Required: `Yes`
-- PO Product Status: `DEFECT 1 PO PASS; DEFECT 2 NOT PO PASS; TCT WINDOW-HIDE REMEDIATION READY FOR PO CHECK`
-- Current Phase: `BOUNDED REMEDIATION REACTIVATED`
+- Runtime Status: `PO PASS`
+- PO UI Check Required: `No`
+- PO Product Status: `PO PASS`
+- Current Phase: `COMPLETED`
 - Last Reviewed Phase: `AUTO-IMPORT-009 TCT WINDOW-HIDE FAILURE DATA-FINALIZATION REMEDIATION`
-- Last Reviewed Commit: `d0ea458bc042c26bea6d048bfce527b245960622`
-- Phase Review Status: `READY FOR PO CHECK`
-- Next Phase Authorization: `Return to DA-IMPL-008 only after Product Owner check/decision`
+- Last Reviewed Commit: `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`
+- Phase Review Status: `COMPLETED / PO PASS`
+- Next Phase Authorization: `DA-IMPL-008 Dashboard Overview Improvement`
 - Activation date: `2026-07-27`
-- Primary executor: `Antigravity for real-machine browser/login/re-authentication runtime validation; Codex only for bounded code, service, and targeted test support if assigned`
+- Primary executor: `Completed; no active executor`
 
 ## Fresh-Chat Onboarding Authority
 
@@ -37,20 +37,22 @@ Product Owner accepted `AUTO-IMPORT-008` Defect 3 as `COMPLETED / PO PASS`, clos
 
 `AUTO-IMPORT-007` remains closed and must not be reopened or altered. HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`. HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
 
-Additional Product Owner decision on `2026-07-27`: temporarily pause `DA-IMPL-008` and reactivate `AUTO-IMPORT-009` for one bounded TCT defect only. Prevent `TCT_WINDOW_HIDE_FAILED` from marking an otherwise completed TCT import as `FAILED` when database import, `34/34` ranked units, portal cleanup, and Processed-file retention already succeeded.
+Additional Product Owner decision on `2026-07-27`: temporarily paused `DA-IMPL-008` and reactivated `AUTO-IMPORT-009` for one bounded TCT defect only. Prevent `TCT_WINDOW_HIDE_FAILED` from marking an otherwise completed TCT import as `FAILED` when database import, `34/34` ranked units, portal cleanup, and Processed-file retention already succeeded.
 
-This ticket records Auto Import remediation history and the current bounded reactivation. Product Owner accepted Defect 1 as `COMPLETED / PO PASS`; the new `2026-07-27` reactivation is limited to preventing a later TCT window-hide operational failure from overturning already completed TCT data finalization. Defect 2 remains not accepted as `PO PASS`.
+Product Owner accepted `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`.
+
+This ticket records Auto Import remediation history and closure. Product Owner accepted Defect 1 as `COMPLETED / PO PASS`; the `2026-07-27` reactivation prevented a later TCT window-hide operational failure from overturning already completed TCT data finalization. The ticket is now closed by Product Owner decision.
 
 ## Objective
 
-Remediate the remaining Auto Import defects one at a time, preserving accepted Import data, locked-data restrictions, physical files, Dashboard behavior, and completed ticket closures.
+Closed by Product Owner acceptance while preserving accepted Import data, locked-data restrictions, physical files, Dashboard behavior, and completed ticket closures.
 
 ## Ordered Defect Register
 
 | Order | Defect | Status | Current Authorization |
 | --- | --- | --- | --- |
 | 1 | HUE/TCT browser windows may fail to hide after a new login or re-authentication cycle. | `COMPLETED` | `PO PASS` |
-| 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `DEFERRED / NOT RESOLVED` | `NOT PO PASS` |
+| 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `COMPLETED` | `PO PASS` |
 
 ## Reactivated Item
 
@@ -60,7 +62,7 @@ Preserved evidence: import, portal cleanup, WEB cleanup status, and local Proces
 
 Retry rule: retry window hiding only; never re-import already completed TCT data for this warning.
 
-`AUTO-IMPORT-009` Defect 2 must not be recorded as `PO PASS`.
+`AUTO-IMPORT-009` is now recorded as `COMPLETED / PO PASS` by Product Owner decision.
 
 ## Completed Defect
 
@@ -88,9 +90,8 @@ Deletion may occur only after the downloaded local file is verified complete and
 
 ## Validation Requirements
 
-For this bounded reactivation:
+For closure and handoff:
 
-- LEVEL 1 targeted service validation.
 - Documentation consistency check.
 - `git diff --check`.
 - Fresh onboarding simulation from `README_AI.md` to this manifest and checkpoint.
@@ -98,6 +99,6 @@ For this bounded reactivation:
 
 ## Completion And Handoff
 
-`AUTO-IMPORT-009` is `READY FOR PO CHECK` for the bounded TCT data-finalization/window-hide-warning remediation.
+`AUTO-IMPORT-009` is `COMPLETED / PO PASS`.
 
-Do not award Product Owner `PASS`. After Product Owner check/decision, return priority to `DA-IMPL-008` unless the Product Owner gives a different explicit decision.
+Next active ticket: `DA-IMPL-008 Dashboard Overview Improvement`. Primary executor for the next Dashboard defect remediation is `Codex`; do not implement Dashboard code during this closure handoff.
