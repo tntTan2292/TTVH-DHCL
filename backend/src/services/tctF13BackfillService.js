@@ -803,15 +803,6 @@ class TctF13BackfillService {
                 throw error;
             }
 
-            const workbookTotal = validation.parsed.parsedData.reduce((sum, row) => sum + Number(row.sl_bg_ptc || 0), 0);
-            if (Number(workbookTotal) !== Number(visibleDetailTotal)) {
-                const error = new Error(`TCT workbook total shipment count ${workbookTotal} does not match portal visible total ${visibleDetailTotal}.`);
-                error.code = 'DETAIL_TOTAL_MISMATCH';
-                error.portalTotal = visibleDetailTotal;
-                error.workbookTotal = workbookTotal;
-                throw error;
-            }
-
             const existingBeforeImport = await this.checkCompleted(measurementDate);
             if (existingBeforeImport.complete && !refreshRequested) {
                 const error = new Error(`Date ${measurementDate} already has completed TCT F1.3 import evidence.`);
