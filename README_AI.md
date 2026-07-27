@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-008 ACTIVE / DEFECT 2 AUTHORIZED`; `AUTO-IMPORT-007` remains closed `PO PASS`; AUTO-IMPORT-008 Defect 1, HUE/TCT login-browser window hide reliability, is `COMPLETED / PO PASS`; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-008 owns three PO-confirmed defects in order, and only Defect 2, Import History source identification and presentation, is authorized for implementation. Defect 3 remains queued and requires separate Product Owner `PO PASS` for Defect 2 before activation.
+Current active handoff: `AUTO-IMPORT-008 DEFECT 2 TECHNICAL PASS / READY FOR PO CHECK`; `AUTO-IMPORT-007` remains closed `PO PASS`; AUTO-IMPORT-008 Defect 1, HUE/TCT login-browser window hide reliability, is `COMPLETED / PO PASS`; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-008 Defect 2, Import History source identification and presentation, is awaiting Product Owner WEB check. Defect 3 remains queued and requires separate Product Owner `PO PASS` for Defect 2 before activation.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

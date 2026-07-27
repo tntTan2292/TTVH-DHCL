@@ -389,6 +389,45 @@ export default function DataImportCenter() {
     : ((pagination.page - 1) * pagination.pageSize) + 1;
   const visibleEnd = Math.min(pagination.page * pagination.pageSize, pagination.totalItems);
 
+  const renderSourceBadge = (source) => {
+    const normalized = String(source || 'UNKNOWN').toUpperCase();
+    const tone = normalized === 'HUE'
+      ? 'bg-blue-100 text-blue-800'
+      : normalized === 'TCT'
+        ? 'bg-purple-100 text-purple-800'
+        : 'bg-gray-100 text-gray-700';
+
+    return (
+      <span className={`inline-flex min-w-[76px] justify-center rounded-full px-3 py-1 text-xs font-black ${tone}`}>
+        {normalized}
+      </span>
+    );
+  };
+
+  const renderFilenameEvidence = (log) => {
+    const original = log.original_filename || null;
+    const standardized = log.standardized_filename || null;
+
+    if (!original && !standardized) {
+      return <span className="text-xs font-medium text-gray-400">UNKNOWN</span>;
+    }
+
+    return (
+      <div className="space-y-1 text-xs">
+        {original && (
+          <p className="text-gray-600">
+            <span className="font-bold text-gray-500">Original:</span> {original}
+          </p>
+        )}
+        {standardized && (
+          <p className="text-vnpost-blue-dark">
+            <span className="font-bold text-gray-500">Standard:</span> {standardized}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const handleRefresh = () => {
     fetchStatus({ requestedPage: page, requestedPageSize: pageSize });
   };
@@ -1623,6 +1662,8 @@ export default function DataImportCenter() {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-gray-500 uppercase bg-white border-b border-gray-100">
               <tr>
+                <th className="px-6 py-4 font-bold text-center">Source</th>
+                <th className="px-6 py-4 font-bold text-center">Report</th>
                 <th className="px-6 py-4 font-bold">Thời gian</th>
                 <th className="px-6 py-4 font-bold">Tên File</th>
                 <th className="px-6 py-4 font-bold text-center">Ngày số liệu</th>
@@ -1630,6 +1671,7 @@ export default function DataImportCenter() {
                 <th className="px-6 py-4 font-bold text-right text-amber-600">Bỏ qua</th>
                 <th className="px-6 py-4 font-bold text-right text-red-600">Lỗi</th>
                 <th className="px-6 py-4 font-bold text-center">Trạng thái</th>
+                <th className="px-6 py-4 font-bold">Evidence</th>
                 <th className="px-6 py-4 font-bold text-center">Đối chiếu</th>
               </tr>
             </thead>
@@ -1639,8 +1681,13 @@ export default function DataImportCenter() {
 
                 return (
                   <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-3 text-center">{renderSourceBadge(log.source)}</td>
+                    <td className="px-6 py-3 text-center font-bold text-gray-600">{log.report_type || 'F1.3'}</td>
                     <td className="px-6 py-3 text-gray-600">{formatVietnamDateTime(log.ngay_import)}</td>
-                    <td className="px-6 py-3 font-semibold text-vnpost-blue-dark">{log.ten_file}</td>
+                    <td className="px-6 py-3">
+                      <p className="font-semibold text-vnpost-blue-dark">{log.ten_file}</p>
+                      <div className="mt-1">{renderFilenameEvidence(log)}</div>
+                    </td>
                     <td className="px-6 py-3 text-center font-medium text-gray-600">{log.ngay_so_lieu}</td>
                     <td className="px-6 py-3 text-right font-bold text-gray-700">
                       {(log.so_luong_bg ?? 0).toLocaleString('vi-VN')}
@@ -1657,6 +1704,9 @@ export default function DataImportCenter() {
                       ) : (
                         <span className="px-3 py-1 rounded-full text-xs bg-red-100 text-red-800 font-bold">Lỗi</span>
                       )}
+                    </td>
+                    <td className="px-6 py-3 text-xs font-medium text-gray-600 max-w-xs">
+                      {log.evidence_message || 'UNKNOWN'}
                     </td>
                     <td className="px-6 py-3 text-center">
                       {reconciliation.canOpenDashboard ? (
@@ -1676,7 +1726,7 @@ export default function DataImportCenter() {
               })}
               {!status?.recentLogs?.length && (
                 <tr>
-                  <td colSpan="8" className="px-6 py-8 text-center text-gray-400">
+                  <td colSpan="11" className="px-6 py-8 text-center text-gray-400">
                     {loading ? 'Đang tải dữ liệu...' : 'Không có dữ liệu nhật ký'}
                   </td>
                 </tr>

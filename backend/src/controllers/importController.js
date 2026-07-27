@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { all, get } = require('../config/db');
 const { executeImport, BASE_INCOMING } = require('../services/importPipeline');
+const { presentImportHistoryRow } = require('../services/importHistoryPresenter');
 
 const ensureDir = (dir) => fs.mkdirSync(dir, { recursive: true });
 const ALLOWED_PAGE_SIZES = [20, 50, 100];
@@ -51,6 +52,7 @@ function buildStatusPayload({ rows, summary, pagination, lastImport }) {
         failCount,
         lastImport: normalizeSqliteUtcTimestamp(lastImport?.created_at),
         recentLogs: rows.map((row) => ({
+            ...presentImportHistoryRow(row),
             id: row.id,
             ngay_import: normalizeSqliteUtcTimestamp(row.created_at),
             ten_file: row.file_name,
@@ -168,17 +170,51 @@ class ImportController {
             );
 
             const rows = await all(
-                `SELECT id, file_name, ngay_do_kiem, created_at, status, total_records, error_records, skipped_records
-                 FROM import_log
-                 ORDER BY datetime(created_at) DESC, id DESC
+                `SELECT
+                    log.id,
+                    log.file_name,
+                    log.ngay_do_kiem,
+                    log.created_at,
+                    log.status,
+                    log.total_records,
+                    log.error_records,
+                    log.skipped_records,
+                    COUNT(fact.id) AS hue_fact_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM fact_f13_national national
+                        WHERE national.ngay_do_kiem = log.ngay_do_kiem
+                    ) AS tct_national_row_count
+                 FROM import_log log
+                 LEFT JOIN fact_f13 fact ON fact.import_log_id = log.id
+                 GROUP BY
+                    log.id,
+                    log.file_name,
+                    log.ngay_do_kiem,
+                    log.created_at,
+                    log.status,
+                    log.total_records,
+                    log.error_records,
+                    log.skipped_records
+                 ORDER BY datetime(log.created_at) DESC, log.id DESC
                  LIMIT ? OFFSET ?`,
                 [requested.pageSize, offset]
             );
 
+            const rowsWithProcessedEvidence = rows.map((row) => {
+                const hueProcessedPath = path.join(BASE_INCOMING, '..', 'Processed', 'HUE', row.file_name);
+                const tctProcessedPath = path.join(BASE_INCOMING, '..', 'Processed', 'TCT', row.file_name);
+                return {
+                    ...row,
+                    hue_processed_path: fs.existsSync(hueProcessedPath) ? hueProcessedPath : null,
+                    tct_processed_path: fs.existsSync(tctProcessedPath) ? tctProcessedPath : null
+                };
+            });
+
             res.status(200).json({
                 success: true,
                 data: buildStatusPayload({
-                    rows,
+                    rows: rowsWithProcessedEvidence,
                     summary,
                     lastImport,
                     pagination: {

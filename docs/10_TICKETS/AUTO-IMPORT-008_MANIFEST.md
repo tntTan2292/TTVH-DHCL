@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-008`
 - Ticket Name: `Auto Import PO Defect Remediation`
 - Phase: `Auto Import / Bounded Remediation`
-- Current State: `ACTIVE / DEFECT 2 AUTHORIZED`
-- Technical Status: `DEFECT 2 NOT STARTED`
-- Runtime Status: `N/A - DEFECT 2 DOCUMENTED ACTIVATION ONLY`
+- Current State: `ACTIVE / DEFECT 2 READY FOR PO CHECK`
+- Technical Status: `DEFECT 2 COMPLETED / TECHNICAL PASS`
+- Runtime Status: `N/A - API/UI BUILD VALIDATED`
 - PO UI Check Required: `Yes`
-- PO Product Status: `DEFECT 1 PO PASS; DEFECT 2 AUTHORIZED FOR IMPLEMENTATION`
+- PO Product Status: `DEFECT 1 PO PASS; DEFECT 2 READY FOR PO CHECK`
 - Current Phase: `DEFECT 2 - IMPORT HISTORY SOURCE IDENTIFICATION AND PRESENTATION`
-- Last Reviewed Phase: `AUTO-IMPORT-008 DEFECT 1 PO ACCEPTANCE / DEFECT 2 ACTIVATION`
-- Last Reviewed Commit: `206d64a78ae13ef7bf6dc93bf3a9fce0efc1ee5c`
-- Phase Review Status: `ACTIVATED`
-- Next Phase Authorization: `Defect 2 implementation only`
+- Last Reviewed Phase: `AUTO-IMPORT-008 DEFECT 2 TECHNICAL IMPLEMENTATION`
+- Last Reviewed Commit: `pending Defect 2 implementation commit`
+- Phase Review Status: `TECHNICAL PASS / READY FOR PO CHECK`
+- Next Phase Authorization: `Defect 3 queued only; not authorized`
 - Activation date: `2026-07-26`
 - Primary executor: `Codex for Import History contract/API/UI and targeted tests`
 
@@ -37,7 +37,7 @@ Product Owner authorized a new bounded Auto Import remediation phase after compl
 
 `AUTO-IMPORT-007` remains closed and must not be reopened or altered. Its accepted closure, HUE `2026-07-18` and `2026-07-19` locked `PO PASS`, and HUE `2026-07-23` `MISSING / NOT AUTHORIZED` status remain preserved.
 
-This activation records three Product Owner-confirmed defects in required handling order. Product Owner accepted Defect 1 as `PO PASS` after technical and runtime pass evidence at baseline `206d64a78ae13ef7bf6dc93bf3a9fce0efc1ee5c`. Implementation is authorized for Defect 2 only. Defect 3 is queued and must not be investigated or implemented until Defect 2 receives separate Product Owner `PO PASS` and governance explicitly activates Defect 3.
+This ticket records three Product Owner-confirmed defects in required handling order. Product Owner accepted Defect 1 as `PO PASS` after technical and runtime pass evidence at baseline `206d64a78ae13ef7bf6dc93bf3a9fce0efc1ee5c`. Defect 2 implementation is technically complete and awaiting Product Owner WEB check. Defect 3 is queued and must not be investigated or implemented until Defect 2 receives separate Product Owner `PO PASS` and governance explicitly activates Defect 3.
 
 ## Objective
 
@@ -48,16 +48,16 @@ Remediate the three Product Owner-confirmed Auto Import defects one at a time, p
 | Order | Defect | Status | Current Authorization |
 | --- | --- | --- | --- |
 | 1 | HUE and TCT login/browser windows are not hidden reliably. | `COMPLETED` | `PO PASS` |
-| 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `ACTIVE` | `AUTHORIZED FOR IMPLEMENTATION` |
+| 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `TECHNICAL PASS / READY FOR PO CHECK` | `AWAITING PO CHECK` |
 | 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. | `QUEUED` | `NOT AUTHORIZED` |
 
 ## Current Authorized Defect
 
-Defect 2 is the only authorized implementation scope.
+Defect 2 implementation is technically complete and awaiting Product Owner WEB check.
 
 Expected outcome: each Import History record on the WEB clearly presents available source, report type, business date, original filename, standardized filename, status, row counts, and concise evidence/operator message; HUE and TCT records remain distinguishable even when original portal filenames match.
 
-Executor boundary: primary executor is `Codex` because the active defect concerns Import History data contract, API/service mapping, WEB presentation, and targeted tests. Use authoritative stored metadata, queue identity, import evidence, processed path, or accepted source contracts; do not infer HUE/TCT from unreliable filename text alone.
+Technical result: Import History API/UI presents source, report type, business date, available filename evidence, status, row counts, and concise evidence/operator message. Source identification uses linked HUE fact evidence, TCT processed-path evidence, or accepted TCT national success evidence; unresolved historical source evidence is labeled `UNKNOWN` / `CHUA XAC DINH`.
 
 ## Queued Defects
 

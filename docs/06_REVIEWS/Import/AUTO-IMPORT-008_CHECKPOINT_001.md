@@ -5,10 +5,10 @@
 - Ticket: `AUTO-IMPORT-008`
 - Ticket name: `Auto Import PO Defect Remediation`
 - Phase: `DEFECT 2 - IMPORT HISTORY SOURCE IDENTIFICATION AND PRESENTATION`
-- Current state: `ACTIVE / DEFECT 2 AUTHORIZED`
-- Technical status: `COMPLETED / TECHNICAL PASS`
-- Runtime status: `COMPLETED / RUNTIME PASS`
-- PO product status: `DEFECT 1 PO PASS; DEFECT 2 AUTHORIZED FOR IMPLEMENTATION`
+- Current state: `ACTIVE / DEFECT 2 READY FOR PO CHECK`
+- Technical status: `DEFECT 2 COMPLETED / TECHNICAL PASS`
+- Runtime status: `N/A - API/UI BUILD VALIDATED`
+- PO product status: `DEFECT 1 PO PASS; DEFECT 2 READY FOR PO CHECK`
 - Authority: Product Owner decision on `2026-07-26` authorized a new bounded Auto Import remediation ticket after completed `AUTO-IMPORT-007`; Product Owner decision on `2026-07-27` accepted Defect 1 as `PO PASS` and activated Defect 2.
 
 ## Closure Preservation
@@ -24,16 +24,16 @@
 | Order | PO-confirmed defect | Status | Authorization |
 | --- | --- | --- | --- |
 | 1 | HUE and TCT login/browser windows are not hidden reliably. | `COMPLETED` | `PO PASS` |
-| 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `ACTIVE` | `AUTHORIZED FOR IMPLEMENTATION` |
+| 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `TECHNICAL PASS / READY FOR PO CHECK` | `AWAITING PO CHECK` |
 | 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. | `QUEUED` | `NOT AUTHORIZED` |
 
 ## Current Authorized Defect
 
-Defect 2 only is authorized.
+Defect 2 implementation is technically complete and awaiting Product Owner WEB check.
 
 Handling goal: make Import History clearly identify and present source, report, business date, filenames, status, row counts, and concise evidence/message while preserving accepted Import behavior, physical files, historical data, and all closed ticket states.
 
-Primary executor: `Codex`, because the active defect concerns Import History contract/API/UI mapping and targeted validation.
+Primary executor: `Codex`, because the active defect concerned Import History contract/API/UI mapping and targeted validation.
 
 ## Queued Defects
 
@@ -84,13 +84,35 @@ Executed `node scratch/validate_real_profiles.js` to verify behavior using the a
 - Restoring TCT browser: TCT windows become visible (`true`) while HUE windows remain hidden (`false`).
 - **SOURCE ISOLATION CONFIRMED**: `true`. HUE and TCT profiles, sessions, PID trees, and HWND ownership are completely isolated.
 
+## Defect 2 Implementation & Validation Evidence
+
+### Technical Fix
+- Added an Import History presentation mapper that preserves legacy response fields and adds source, report type, business date, original filename, standardized filename, status, total rows, imported/success rows, error rows, skipped rows, and concise evidence message.
+- Source identification uses linked `fact_f13.import_log_id` evidence for HUE, processed TCT artifact path evidence when available, or accepted successful `fact_f13_national` business-date evidence for TCT.
+- Historical records without reliable source evidence return `UNKNOWN` / `CHUA XAC DINH`; filename text alone is not used to infer HUE/TCT.
+- WEB Import History now displays Source, Report, filename evidence, status, row counts, and evidence message while preserving existing status/count readability and Dashboard reconciliation action.
+
+### Scope Preservation
+- No physical historical file was renamed, moved, replaced, deleted, rewritten, or migrated.
+- No operational Import data, Dashboard data, row-count correction, or Defect 3 work was performed.
+- Original filename and standardized filename are only populated from authoritative metadata/evidence already present in the response/evidence path; otherwise the WEB displays `UNKNOWN`.
+
+### Targeted Validation
+- `node backend/test_importHistoryPresenter.js` PASS: proves HUE and TCT remain distinguishable with identical filenames, unresolved source becomes `UNKNOWN`, and status/row-count fields remain stable.
+- `node -c backend/src/controllers/importController.js` PASS.
+- `node -c backend/src/services/importHistoryPresenter.js` PASS.
+- Direct read-only controller call for Import History status PASS: response returned HTTP `200`, new source/report/filename/evidence fields, and legacy keys (`ten_file`, `ngay_so_lieu`, `so_luong_bg`, `so_bi_bo_qua`, `so_loi`, `trang_thai`) together.
+- `npm.cmd run lint` PASS with existing warnings only.
+- `npm.cmd run build` PASS with existing chunk-size warning only.
+- `git diff --check` PASS.
+
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-008`.
 - Current phase: `DEFECT 2 - IMPORT HISTORY SOURCE IDENTIFICATION AND PRESENTATION`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md`.
-- Next action: IMPLEMENT DEFECT 2 (Import History source identification and presentation).
+- Next action: PRODUCT OWNER WEB CHECK for Defect 2.
 - Defect 1 final status: `COMPLETED / PO PASS`.
-- Defect 2 activation status: `ACTIVE / AUTHORIZED`.
+- Defect 2 status: `TECHNICAL PASS / READY FOR PO CHECK`.
 - Defect 3 activation condition: Product Owner `PO PASS` for Defect 2.
