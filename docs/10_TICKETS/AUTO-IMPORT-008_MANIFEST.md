@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-008`
 - Ticket Name: `Auto Import PO Defect Remediation`
 - Phase: `Auto Import / Bounded Remediation`
-- Current State: `ACTIVE / DEFECT 3 READY FOR PO CHECK`
+- Current State: `COMPLETED / CLOSED`
 - Technical Status: `DEFECT 3 COMPLETED / TECHNICAL PASS`
 - Runtime Status: `N/A - API/DB HISTORY VALIDATED`
 - PO UI Check Required: `Yes`
-- PO Product Status: `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 READY FOR PO CHECK`
-- Current Phase: `DEFECT 3 - HISTORICAL IMPORT HISTORY ROW-COUNT CORRECTION AND RELIABLE HUE SOURCE RECOVERY`
-- Last Reviewed Phase: `AUTO-IMPORT-008 DEFECT 3 TECHNICAL IMPLEMENTATION`
-- Last Reviewed Commit: `pending Defect 3 implementation commit`
-- Phase Review Status: `TECHNICAL PASS / READY FOR PO CHECK`
-- Next Phase Authorization: `None until Defect 3 PO PASS`
+- PO Product Status: `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 PO PASS`
+- Current Phase: `TICKET CLOSURE`
+- Last Reviewed Phase: `AUTO-IMPORT-008 DEFECT 3 PO ACCEPTANCE / TICKET CLOSURE`
+- Last Reviewed Commit: `e194066c72ec6796c2d85c336ff796c27acf9e3c`
+- Phase Review Status: `CLOSED / PO PASS`
+- Next Phase Authorization: `AUTO-IMPORT-009 Defect 1 only`
 - Activation date: `2026-07-26`
 - Primary executor: `Codex for Import History database/history evidence, bounded correction logic, reliable HUE source recovery, and targeted tests`
 
@@ -37,7 +37,7 @@ Product Owner authorized a new bounded Auto Import remediation phase after compl
 
 `AUTO-IMPORT-007` remains closed and must not be reopened or altered. Its accepted closure, HUE `2026-07-18` and `2026-07-19` locked `PO PASS`, and HUE `2026-07-23` `MISSING / NOT AUTHORIZED` status remain preserved.
 
-This ticket records three Product Owner-confirmed defects in required handling order. Product Owner accepted Defect 1 as `PO PASS` after technical and runtime pass evidence at baseline `206d64a78ae13ef7bf6dc93bf3a9fce0efc1ee5c`. Product Owner accepted Defect 2 as `COMPLETED / PO PASS` after implementation commit `e8930edd0f30ded7ef8b56be6cede7c2cccb25db`. Defect 3 is now active and authorized for implementation.
+This ticket records three Product Owner-confirmed defects in required handling order. Product Owner accepted Defect 1 as `PO PASS` after technical and runtime pass evidence at baseline `206d64a78ae13ef7bf6dc93bf3a9fce0efc1ee5c`. Product Owner accepted Defect 2 as `COMPLETED / PO PASS` after implementation commit `e8930edd0f30ded7ef8b56be6cede7c2cccb25db`. Product Owner accepted Defect 3 as `COMPLETED / PO PASS` after implementation commit `e194066c72ec6796c2d85c336ff796c27acf9e3c`.
 
 ## Objective
 
@@ -49,11 +49,11 @@ Remediate the three Product Owner-confirmed Auto Import defects one at a time, p
 | --- | --- | --- | --- |
 | 1 | HUE and TCT login/browser windows are not hidden reliably. | `COMPLETED` | `PO PASS` |
 | 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `COMPLETED` | `PO PASS` |
-| 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. Reliable HUE source recovery is required where source evidence is authoritative. | `TECHNICAL PASS / READY FOR PO CHECK` | `AWAITING PO CHECK` |
+| 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. Reliable HUE source recovery is required where source evidence is authoritative. | `COMPLETED` | `PO PASS` |
 
-## Current Authorized Defect
+## Closed Defect 3 Result
 
-Defect 3 implementation is technically complete and awaiting Product Owner check.
+Defect 3 is `COMPLETED / PO PASS`.
 
 Technical result: historical HUE source presentation is recovered only where per-import `import_log.total_records` deterministically matches `fact_f13` business-date evidence. Separate same-date TCT `34`-row records remain TCT, unresolved ambiguous low-count rows remain unchanged/UNKNOWN, and synthetic `2098` records are documented as test/anomaly records without guessing.
 
@@ -91,7 +91,7 @@ For this documentation-only governance transition commit:
 - Fresh onboarding simulation from `README_AI.md` to this manifest and checkpoint.
 - Commit, push to `origin/codex/da-impl-006`, and verify remote commit.
 
-For Defect 3 implementation after activation:
+Defect 3 implementation evidence preserved at closure:
 
 - Targeted technical checks for any changed code/tests.
 - Database/history validation proving any corrected historical Import History row-count evidence is authorized, accurate, and bounded.
@@ -101,6 +101,6 @@ For Defect 3 implementation after activation:
 
 ## Completion And Handoff
 
-`AUTO-IMPORT-008` remains active until Defect 3 receives separate Product Owner `PO PASS`.
+`AUTO-IMPORT-008` is closed with all three defects `COMPLETED / PO PASS`.
 
-After Defect 3 `PO PASS`, this ticket can be closed if no new Product Owner-authorized Auto Import remediation remains.
+Next active Auto Import ticket: `AUTO-IMPORT-009`.

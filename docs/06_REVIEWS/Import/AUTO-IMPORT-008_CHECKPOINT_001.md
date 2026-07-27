@@ -4,12 +4,12 @@
 
 - Ticket: `AUTO-IMPORT-008`
 - Ticket name: `Auto Import PO Defect Remediation`
-- Phase: `DEFECT 3 - HISTORICAL IMPORT HISTORY ROW-COUNT CORRECTION AND RELIABLE HUE SOURCE RECOVERY`
-- Current state: `ACTIVE / DEFECT 3 READY FOR PO CHECK`
+- Phase: `TICKET CLOSURE`
+- Current state: `COMPLETED / CLOSED`
 - Technical status: `DEFECT 3 COMPLETED / TECHNICAL PASS`
 - Runtime status: `N/A - API/DB HISTORY VALIDATED`
-- PO product status: `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 READY FOR PO CHECK`
-- Authority: Product Owner decision on `2026-07-26` authorized a new bounded Auto Import remediation ticket after completed `AUTO-IMPORT-007`; Product Owner decision on `2026-07-27` accepted Defect 1 as `PO PASS` and activated Defect 2; Product Owner decision on `2026-07-27` accepted Defect 2 as `PO PASS` and activated Defect 3.
+- PO product status: `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 PO PASS`
+- Authority: Product Owner decision on `2026-07-26` authorized a new bounded Auto Import remediation ticket after completed `AUTO-IMPORT-007`; Product Owner decision on `2026-07-27` accepted Defect 1 as `PO PASS` and activated Defect 2; Product Owner decision on `2026-07-27` accepted Defect 2 as `PO PASS` and activated Defect 3; Product Owner decision on `2026-07-27` accepted Defect 3 as `PO PASS` and closed `AUTO-IMPORT-008`.
 
 ## Closure Preservation
 
@@ -25,11 +25,11 @@
 | --- | --- | --- | --- |
 | 1 | HUE and TCT login/browser windows are not hidden reliably. | `COMPLETED` | `PO PASS` |
 | 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `COMPLETED` | `PO PASS` |
-| 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. Reliable HUE source recovery is required where source evidence is authoritative. | `TECHNICAL PASS / READY FOR PO CHECK` | `AWAITING PO CHECK` |
+| 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. Reliable HUE source recovery is required where source evidence is authoritative. | `COMPLETED` | `PO PASS` |
 
-## Current Authorized Defect
+## Closed Defect 3 Result
 
-Defect 3 implementation is technically complete and awaiting Product Owner check.
+Defect 3 is `COMPLETED / PO PASS`.
 
 Handling result: historical Import History now recovers reliable HUE source presentation only where authoritative count evidence supports it, while preserving accepted Import behavior, physical files, locked data, and all closed ticket states.
 
@@ -155,11 +155,22 @@ Executed `node scratch/validate_real_profiles.js` to verify behavior using the a
 
 ## Current Handoff
 
-- Current ticket: `AUTO-IMPORT-008`.
-- Current phase: `DEFECT 3 - HISTORICAL IMPORT HISTORY ROW-COUNT CORRECTION AND RELIABLE HUE SOURCE RECOVERY`.
-- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md`.
-- Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md`.
-- Next action: PRODUCT OWNER CHECK for Defect 3.
+- Current ticket: `AUTO-IMPORT-009`.
+- Current phase: `DEFECT 1 - HUE/TCT BROWSER WINDOW HIDE RELIABILITY AFTER NEW LOGIN OR RE-AUTHENTICATION`.
+- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
+- Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_001.md`.
+- Next action: Implement AUTO-IMPORT-009 Defect 1 only.
 - Defect 1 final status: `COMPLETED / PO PASS`.
 - Defect 2 final status: `COMPLETED / PO PASS`.
-- Defect 3 status: `TECHNICAL PASS / READY FOR PO CHECK`.
+- Defect 3 final status: `COMPLETED / PO PASS`.
+
+## Defect 3 PO Acceptance And Ticket Closure
+
+- Product Owner accepted Defect 3 as `COMPLETED / PO PASS`.
+- `AUTO-IMPORT-008` is closed with Defect 1, Defect 2, and Defect 3 all `COMPLETED / PO PASS`.
+- This closure transition is documentation-only.
+- No product code, tests, database, Import History records, physical files, operational Import data, or Dashboard files were modified by this transition.
+- `AUTO-IMPORT-007` remains closed.
+- HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`.
+- HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
+- Next active ticket is `AUTO-IMPORT-009`, with Defect 1 authorized and Defect 2 queued/not authorized.

@@ -17,22 +17,22 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-IMPORT-008 DEFECT 3` |
-| Current Ticket | `AUTO-IMPORT-008` |
-| Next Ticket | `AUTO-IMPORT-008 closure after Defect 3 PO PASS` |
-| Last PO Status | `AUTO-IMPORT-007 remains closed PO PASS; AUTO-IMPORT-008 Defect 1 completed PO PASS; Defect 2 completed PO PASS; Defect 3 technical pass ready for PO check` |
+| Current Phase | `AUTO-IMPORT-009 DEFECT 1` |
+| Current Ticket | `AUTO-IMPORT-009` |
+| Next Ticket | `AUTO-IMPORT-009 Defect 2 after Defect 1 PO PASS` |
+| Last PO Status | `AUTO-IMPORT-008 closed with Defect 1, Defect 2, and Defect 3 completed PO PASS; AUTO-IMPORT-009 Defect 1 active authorized; Defect 2 queued not authorized` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / DEFECT 3 READY FOR PO CHECK` |
-| Technical Status | `DEFECT 3 COMPLETED / TECHNICAL PASS` |
-| Runtime Status | `N/A - API/DB HISTORY VALIDATED` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_001.md` |
+| Current State | `ACTIVE / DEFECT 1 AUTHORIZED` |
+| Technical Status | `NOT STARTED` |
+| Runtime Status | `N/A - ACTIVATION ONLY` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 READY FOR PO CHECK` |
-| Last Reviewed Phase | `AUTO-IMPORT-008 DEFECT 3 TECHNICAL IMPLEMENTATION` |
-| Last Reviewed Commit | `pending Defect 3 implementation commit` |
-| Phase Review Status | `TECHNICAL PASS / READY FOR PO CHECK` |
-| Next Phase Authorization | `None until Defect 3 PO PASS` |
+| PO Product Status | `AUTO-IMPORT-008 CLOSED / PO PASS; AUTO-IMPORT-009 DEFECT 1 AUTHORIZED` |
+| Last Reviewed Phase | `AUTO-IMPORT-008 CLOSURE / AUTO-IMPORT-009 ACTIVATION` |
+| Last Reviewed Commit | `e194066c72ec6796c2d85c336ff796c27acf9e3c` |
+| Phase Review Status | `ACTIVE / AUTHORIZED` |
+| Next Phase Authorization | `AUTO-IMPORT-009 Defect 1 only` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-27` |
 
@@ -65,7 +65,7 @@ Fresh-chat onboarding chain for the active ticket:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-3. `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md`
+3. `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`
 4. Required Reading from the current manifest
 
 DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 Wave 1 is implemented for shared DKCL lifecycle contract/state standardization. Product Owner authorized Accelerated Delivery Wave 2 at baseline `1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`.
@@ -76,7 +76,7 @@ AUTO-IMPORT-007 governance closure: after DKCL/TCT service became available, Pro
 
 Next work boundary: Dashboard defect remediation must start in a fresh conversation and must be based only on the specific Product Owner-provided Dashboard symptom/evidence. Do not perform a broad repository audit, and do not reopen or perform Import remediation unless separately reauthorized. Automatic scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain future unauthorized scope, not current debt.
 
-AUTO-IMPORT-008 Defect 3 implementation is `COMPLETED / TECHNICAL PASS` and `READY FOR PO CHECK`: Import History now recovers reliable HUE source presentation for historical rows whose per-import total deterministically matches `fact_f13` business-date evidence, while separate TCT `34`-row records remain TCT and unresolved ambiguous low-count records remain unchanged/UNKNOWN. Dry-run database repair found `55` low-count candidates and `0` authorized deterministic `import_log` row-count writes, so no Import History records, fact rows, Dashboard data, or physical files were modified. Synthetic `2098` records are documented as test/anomaly records and are not guessed. Defect 1 remains `COMPLETED / PO PASS`; Defect 2 remains `COMPLETED / PO PASS`. `AUTO-IMPORT-007` remains closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
+AUTO-IMPORT-008 is closed with all three defects `COMPLETED / PO PASS`. Defect 3 Product Owner acceptance preserves the technical result: reliable HUE source presentation is recovered only from deterministic per-import evidence, unresolved records remain unchanged/UNKNOWN, dry-run repair found `55` low-count candidates and `0` authorized deterministic `import_log` row-count writes, and no Import History records, fact rows, Dashboard data, or physical files were modified. `AUTO-IMPORT-007` remains closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-009 is the active next Auto Import ticket: Defect 1, HUE/TCT browser windows may fail to hide after a new login or re-authentication cycle, is `ACTIVE / AUTHORIZED`; Defect 2, DKCL downloaded-item link/file entry removal after safe completion, is `QUEUED / NOT AUTHORIZED` and may delete only after the downloaded local file is verified complete and safely claimed, never on failed, incomplete, or uncertain download.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 
