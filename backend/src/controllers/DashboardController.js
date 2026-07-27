@@ -31,11 +31,14 @@ class DashboardController {
 
     async getQualityTimeline(req, res) {
         try {
-            const { toDate, ma_bcvh, mode } = req.query;
+            const { toDate, ma_bcvh, mode, include_national_rank } = req.query;
             if (!toDate) {
                 return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu toDate' }});
             }
-            const result = await timelineService.getQualityTimeline(toDate, ma_bcvh, { mode });
+            const result = await timelineService.getQualityTimeline(toDate, ma_bcvh, {
+                mode,
+                includeNationalRank: include_national_rank === '1' || include_national_rank === 'true'
+            });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});

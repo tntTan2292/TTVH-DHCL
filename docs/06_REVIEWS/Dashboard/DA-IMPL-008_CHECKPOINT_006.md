@@ -3,18 +3,26 @@
 ## Phase
 
 - Ticket: `DA-IMPL-008`
-- Checkpoint: `006 - Nationwide Ranking Integration Discovery`
-- Current state: `DISCOVERY COMPLETE / READY FOR PO DECISION`
-- Technical status: `DISCOVERY PASS`
-- Runtime status: `NOT RUN - DISCOVERY ONLY`
-- PO UI check required: `Yes - decision required before implementation`
-- PO product status: `WAITING FOR PO DECISION`
+- Checkpoint: `006 - Nationwide Ranking Integration`
+- Current state: `READY FOR PO CHECK`
+- Technical status: `PASS`
+- Runtime status: `LEVEL 2 TARGETED VALIDATION PASS`
+- PO UI check required: `Yes`
+- PO product status: `WAITING FOR PO CHECK`
 
 ## Product Owner Decision
 
 Product Owner accepted `DA-IMPL-008 CHECKPOINT 005` as `PO PASS` on `2026-07-27`.
 
-Product Owner authorized discovery only for Checkpoint 006. No Dashboard code, schema, KPI formula, Import lifecycle, threshold, mapping, or completed checkpoint behavior was changed.
+Product Owner approved the expanded Checkpoint 006 implementation scope on `2026-07-27`.
+
+Product Owner authorized province-level Hue nationwide ranking in three bounded contexts only:
+
+1. Heatmap daily tooltip/focus for exact Heatmap dates.
+2. Integrated Trend daily point tooltip/detail for exact daily chart points.
+3. Selected-range summary detail where the existing aggregate chart/detail represents the full selected date range.
+
+No Dashboard schema, KPI formula, Import lifecycle, threshold, mapping, completed checkpoint behavior, BCVH row ranking, chart rank line, or duplicate KPI card was changed.
 
 ## Existing Contract Findings
 
@@ -27,16 +35,35 @@ Product Owner authorized discovery only for Checkpoint 006. No Dashboard code, s
 - Heatmap currently receives day-level KPI data from `GET /f13/dashboard/quality-timeline?mode=heatmap`; weekday/month tabs are lazy-scoped from Checkpoint 005.
 - Daily nationwide ranking can be supplied efficiently only if the backend enriches Heatmap dates from `fact_f13_national` in one batched query or shared ranking service. The frontend must not calculate province rank independently.
 
-## Recommended Primary Option
+## Implemented Scope
 
-Add Hue nationwide rank to Heatmap day tooltip/focus detail, supplied by the backend only for Heatmap mode.
+- Added backend daily rank enrichment from authoritative `fact_f13_national` data using the same formula and tie order as Checkpoint 004: `tl_ptc_dung_qd_ct DESC`, then `sl_bg_ptc DESC`.
+- Added one batched backend date query for daily rank maps; no chart point or Heatmap cell performs a per-date query.
+- Enriched `GET /f13/dashboard/daily-trend` rows with backend-provided `national_rank` only for all-network scope.
+- Added optional lazy Heatmap rank enrichment through `GET /f13/dashboard/quality-timeline?mode=heatmap&include_national_rank=1`.
+- Suppressed province-level rank metadata whenever a BCVH filter is active.
+- Preserved visible Heatmap cells; rank appears only in title/focus text.
+- Added Integrated Trend daily point tooltip rank detail without adding a rank series, rank line, or rank axis.
+- Added selected-range rank detail in the existing Integrated Trend context row from the Checkpoint 004 `kpiData.national_rank` contract.
+- Preserved the top Command Summary selected-date/range rank behavior.
 
-Recommended contract shape after PO approval:
+## Missing Data Behavior
+
+- Missing national date returns clear unavailable wording for that exact date.
+- Hue-absent national date returns clear unavailable wording for Hue in the national table.
+- Missing and unavailable states never render fabricated values such as `0/34`, `--/34`, or another date's rank.
+- BCVH-filtered Dashboard state suppresses province-level national rank details instead of showing misleading Hue province rank for a BCVH scope.
+
+## Implemented Option
+
+Added Hue nationwide rank to Heatmap day tooltip/focus detail, Integrated Trend daily point tooltip/detail, and the selected-range Integrated Trend context detail.
+
+Implemented contract shape:
 
 - Keep `GET /f13/dashboard/quality-timeline` backward compatible.
-- Add an opt-in parameter such as `include_national_rank=1` for `mode=heatmap`.
-- Backend enriches each Heatmap date with a compact nullable object, for example `national_rank: { available, rank, total, period, province_code, metric, metric_value, volume, message }`.
-- Frontend displays the rank only in the Heatmap cell tooltip/focus text, leaving the visible cell layout unchanged at first.
+- Added opt-in parameter `include_national_rank=1` for `mode=heatmap`.
+- Backend enriches each Heatmap date and daily-trend date with compact nullable `national_rank` metadata.
+- Frontend displays Heatmap rank only in cell tooltip/focus text, leaving the visible cell layout unchanged.
 - Missing national data never renders `0/34`; it renders clear unavailable wording.
 
 Rationale:
@@ -47,7 +74,7 @@ Rationale:
 - A single backend-enriched Heatmap payload avoids per-cell requests.
 - The existing top Dashboard rank and Action Center selected-range rank remain the primary range-level leadership signals.
 
-## Alternatives And Trade-offs
+## Alternatives And Trade-offs Preserved For Later PO Decision
 
 1. Inline Heatmap day badge such as `#24/34`.
    - Benefit: easiest to scan without hover.
@@ -82,12 +109,12 @@ Rationale:
 
 ## Expected Performance Impact
 
-- Initial Dashboard load request count should remain unchanged because Heatmap is not the default Operating Patterns tab.
-- If implemented as an opt-in Heatmap parameter, rank payload loads only when the user opens the Heatmap tab.
-- Payload growth is bounded to one small rank object per rendered Heatmap business date, at most the prior full month plus current month through latest data.
-- Query cost is bounded by the indexed national table dates: approximately `34` ranked provinces multiplied by up to about `62` Heatmap dates.
-- Implementation must use one batched backend query or request-level cache, not one request or query per Heatmap cell.
-- No backend query optimization is recommended until implementation evidence shows the batched national lookup is a bottleneck.
+- Initial Dashboard request count remains unchanged.
+- Integrated Trend daily-rank metadata is carried on the existing daily-trend request.
+- Heatmap daily-rank metadata loads only on the existing lazy Heatmap timeline request with `include_national_rank=1`.
+- Payload growth is bounded to one small rank object per displayed daily point/date when all-network scope is active.
+- Query cost is bounded by one indexed national table lookup per relevant surface request, not one query per cell or chart point.
+- No database schema or broad query optimization was required.
 
 ## Missing Data Behavior And Wording
 
@@ -103,25 +130,33 @@ Rationale:
 - Integrated Trend default view: potentially misleading without a clearly labeled optional rank overlay because rank direction and KPI rate direction differ.
 - Unified Command Summary and Action Center: already display the selected-date/range ranking and should not receive another duplicate rank surface.
 
-## Proposed Validation
+## Validation
 
-- Backend targeted tests for daily Heatmap rank enrichment using exact date rows from `fact_f13_national`.
-- Backend targeted tests for missing national date and Hue-missing national date.
-- Backend targeted test that Heatmap daily enrichment does not call or change selected-range ranking from Checkpoint 004.
-- Frontend mapper tests preserving optional `national_rank` metadata without changing missing/unknown KPI semantics.
-- Frontend tooltip/focus tests for available and unavailable national-rank wording.
-- Request-count check confirming initial Dashboard load is unchanged and Heatmap rank data is lazy-loaded only when the Heatmap tab is selected.
-- Regression check confirming no national rank is added to BCVH rows or BCVH table data.
-- `git diff --check` and existing targeted Dashboard tests affected by implementation.
+- `node --test backend/src/services/F13DashboardService.recovery.test.js`
+  - Result: `PASS`
+  - Evidence: `14` tests passed, including exact daily rank enrichment, BCVH-filter suppression, batched query ordering, selected-range C004 contract, and BCVH ranking no-latest fallback.
+- `node --test backend/src/services/timelineService.recovery.test.js`
+  - Result: `PASS`
+  - Evidence: `6` tests passed, including Checkpoint 003 two-month Heatmap regressions and Heatmap rank map enrichment.
+- `node --test frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/operatingPatternTabsData.test.js frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/dashboardLoadPerformance.test.js`
+  - Result: `PASS`
+  - Evidence: `49` tests passed, including backend-provided rank mapping, Heatmap tooltip/focus metadata, Integrated Trend tooltip/detail guard, no rank line/axis, no BCVH row ranking, unchanged initial request count, and C003/C005 regressions.
+- `git diff --check`
+  - Result: `PASS`
 
 ## Product Owner Checklist
 
-- Decide whether to approve the recommended Heatmap tooltip/focus rank option.
-- Confirm whether province-level Hue rank should show when a BCVH filter is selected, or only when Dashboard scope is all-network.
-- Confirm whether visible rank badges are desired now or deferred after tooltip/focus validation.
-- Confirm that BCVH rows remain excluded until an authoritative BCVH-level nationwide ranking contract exists.
-- Confirm that top Command Summary selected-range ranking remains unchanged.
+- Open Dashboard with `ma_bcvh=all`.
+- Hover/focus Heatmap dates with TCT national data and confirm exact-day Hue national rank appears in tooltip/focus text.
+- Hover Integrated Trend daily points and confirm exact-day Hue national rank appears with daily KPI/volume detail.
+- Confirm the Integrated Trend selected-range context shows the cumulative Hue national rank for the selected range.
+- Switch to any BCVH filter and confirm Heatmap, Integrated Trend tooltip, and selected-range detail no longer show province-level national rank.
+- Confirm no national rank appears in BCVH rows/tables, weekday summaries, or monthly pattern rows.
+- Confirm no duplicate rank KPI card, chart rank line, rank axis, or inline Heatmap rank badge was added.
+- Confirm top Command Summary selected-date/range rank still behaves as accepted in Checkpoint 004.
 
 ## Handoff
 
-Checkpoint 006 is discovery-only and is ready for Product Owner decision. Do not implement nationwide ranking integration until the Product Owner approves one option.
+Checkpoint 006 implementation is complete and ready for Product Owner visible check.
+
+Do not mark Checkpoint 006 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.

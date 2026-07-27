@@ -70,3 +70,17 @@ test('quality timeline mode stays compatible and recognizes lazy-load surfaces',
     assert.equal(timelineService._normalizeTimelineMode('heatmap'), 'heatmap');
     assert.equal(timelineService._normalizeTimelineMode('unknown'), 'all');
 });
+
+test('heatmap national rank enrichment is applied from a date map without changing cells', () => {
+    const calendar = timelineService._buildHeatmapCalendar(dailyRows('2026-07-01', '2026-07-02'), '2026-07-02');
+    const enriched = timelineService._applyNationalRanksToHeatmap(calendar, {
+        '2026-07-01': { available: true, rank: 24, total: 34, period: '2026-07-01' },
+        '2026-07-02': { available: false, message: 'Chưa có dữ liệu xếp hạng toàn quốc cho ngày 2026-07-02' }
+    });
+    const cells = datedCells(enriched);
+
+    assert.equal(cells[0].date, '2026-07-01');
+    assert.equal(cells[0].national_rank.rank, 24);
+    assert.equal(cells[1].national_rank.available, false);
+    assert.equal(enriched[0][0], null);
+});

@@ -73,6 +73,14 @@ export function formatShortDate(isoDate) {
   return `${day}/${month}`;
 }
 
+export function formatNationalRank(rank) {
+  if (!rank) return null;
+  if (rank.available && rank.rank !== null && rank.rank !== undefined && rank.total !== null && rank.total !== undefined) {
+    return `Xếp hạng toàn quốc Huế: ${rank.rank}/${rank.total}`;
+  }
+  return rank.message || 'Chưa có dữ liệu xếp hạng toàn quốc';
+}
+
 export function getHeatmapRelativeBand(delta) {
   if (delta === null || delta === undefined) return {
     id: 'unavailable',
@@ -229,6 +237,8 @@ export function mapHeatmapPattern(heatmap = []) {
           targetTone: relativeBand.tone,
           bandLabel: relativeBand.label,
           available: !unavailable && rate !== null,
+          nationalRank: day.national_rank || null,
+          nationalRankLabel: formatNationalRank(day.national_rank),
           sourceLabel: 'KPI ngày đo kiểm',
         };
       })

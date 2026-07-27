@@ -192,6 +192,81 @@ test('nationwide ranking contract uses exact selected date or cumulative selecte
   assert.match(source, /await this\._getNationalRankSummary\(startDate, endDate\)/);
 });
 
+test('daily trend enriches all-network rows with backend-provided exact-day nationwide rank', async () => {
+  const originals = {
+    getLatestImportMeta: repo.getLatestImportMeta,
+    getDailyTrendData: repo.getDailyTrendData,
+    getNationalRanksForDates: service.getNationalRanksForDates,
+  };
+  let rankDates = null;
+
+  repo.getLatestImportMeta = async () => ({ ngay_do_kiem: '2026-07-20', created_at: '2026-07-20T00:00:00Z' });
+  repo.getDailyTrendData = async () => ([
+    { date: '2026-07-19', total_volume: 10, passed: 8, failed: 2, quality_rate: 80, data_available: 1 },
+    { date: '2026-07-20', total_volume: 11, passed: 9, failed: 2, quality_rate: 81.82, data_available: 1 },
+  ]);
+  service.getNationalRanksForDates = async (dates) => {
+    rankDates = dates;
+    return {
+      '2026-07-19': { available: true, rank: 24, total: 34, period: '2026-07-19' },
+      '2026-07-20': { available: false, message: 'Chưa có dữ liệu xếp hạng toàn quốc cho ngày 2026-07-20' },
+    };
+  };
+
+  try {
+    const result = await service.getDailyTrend('2026-07-19', '2026-07-20', {});
+
+    assert.deepEqual(rankDates, ['2026-07-19', '2026-07-20']);
+    assert.equal(result.items[0].national_rank.rank, 24);
+    assert.equal(result.items[0].national_rank.total, 34);
+    assert.equal(result.items[1].national_rank.available, false);
+    assert.match(result.items[1].national_rank.message, /Chưa có dữ liệu xếp hạng toàn quốc/);
+  } finally {
+    repo.getLatestImportMeta = originals.getLatestImportMeta;
+    repo.getDailyTrendData = originals.getDailyTrendData;
+    service.getNationalRanksForDates = originals.getNationalRanksForDates;
+  }
+});
+
+test('daily trend suppresses province-level nationwide rank when a BCVH filter is active', async () => {
+  const originals = {
+    getLatestImportMeta: repo.getLatestImportMeta,
+    getDailyTrendData: repo.getDailyTrendData,
+    getNationalRanksForDates: service.getNationalRanksForDates,
+  };
+  let rankCalled = false;
+
+  repo.getLatestImportMeta = async () => ({ ngay_do_kiem: '2026-07-20' });
+  repo.getDailyTrendData = async () => ([
+    { date: '2026-07-20', total_volume: 11, passed: 9, failed: 2, quality_rate: 81.82, data_available: 1 },
+  ]);
+  service.getNationalRanksForDates = async () => {
+    rankCalled = true;
+    return {};
+  };
+
+  try {
+    const result = await service.getDailyTrend('2026-07-20', '2026-07-20', { bcvhId: '535790' });
+
+    assert.equal(rankCalled, false);
+    assert.equal(Object.hasOwn(result.items[0], 'national_rank'), false);
+    assert.equal(result.meta.filters.bcvh_id, '535790');
+  } finally {
+    repo.getLatestImportMeta = originals.getLatestImportMeta;
+    repo.getDailyTrendData = originals.getDailyTrendData;
+    service.getNationalRanksForDates = originals.getNationalRanksForDates;
+  }
+});
+
+test('daily nationwide rank helper uses one batched query and Checkpoint 004 ordering', () => {
+  const source = fs.readFileSync(require.resolve('./F13DashboardService'), 'utf8');
+
+  assert.match(source, /getNationalRanksForDates\(dates = \[\]\)/);
+  assert.match(source, /WHERE ngay_do_kiem IN \(\$\{placeholders\}\)/);
+  assert.match(source, /ORDER BY ngay_do_kiem ASC, tl_ptc_dung_qd_ct DESC, sl_bg_ptc DESC/);
+  assert.doesNotMatch(source, /for \(const date.*await this\._getNationalRankForDate/s);
+});
+
 test('dashboard controller forwards ma_bcvh to the KPI service path', async () => {
   const original = service.getDashboardKpi;
   let captured = null;

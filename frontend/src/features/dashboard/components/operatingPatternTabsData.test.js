@@ -54,6 +54,24 @@ test('maps weekly monthly YTD and heatmap values from quality timeline response'
   assert.equal(model.pulse.text, 'Dá»¯ liá»‡u nhá»‹p cháº¥t lÆ°á»£ng tá»« API.');
 });
 
+test('maps Heatmap backend nationwide rank for tooltip and focus text', () => {
+  const model = mapOperatingPatternResponse({
+    heatmap: [[
+      {
+        date: '2026-07-19',
+        kpi_rate: 52.56,
+        dod: 0,
+        color: 'red',
+        national_rank: { available: true, rank: 24, total: 34, period: '2026-07-19' },
+      },
+    ]],
+  }, { toDate: '2026-07-19' });
+
+  const day = model.heatmap[0].days[0];
+  assert.equal(day.nationalRank.rank, 24);
+  assert.equal(day.nationalRankLabel, 'Xếp hạng toàn quốc Huế: 24/34');
+});
+
 test('monthly YTD combo data exposes management summary and current-month cutoff', () => {
   const model = mapOperatingPatternResponse(sampleTimeline, { toDate: '2026-07-19' });
 

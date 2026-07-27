@@ -56,6 +56,22 @@ test('combo trendline normalization keeps missing dates as chart gaps', () => {
   assert.equal(result[0].target_variance, null);
 });
 
+test('combo trendline normalization preserves backend-provided nationwide rank metadata', () => {
+  const result = normalizeComboTrendlineItems([
+    {
+      date: '2026-07-19',
+      total_volume: 10,
+      passed: 8,
+      failed: 2,
+      quality_rate: 80,
+      data_available: true,
+      national_rank: { available: true, rank: 24, total: 34, period: '2026-07-19' },
+    },
+  ]);
+
+  assert.deepEqual(result[0].national_rank, { available: true, rank: 24, total: 34, period: '2026-07-19' });
+});
+
 test('combo trendline formatting exposes Vietnamese tooltip values with two decimals', () => {
   assert.equal(formatRate(67.2015), '67.20%');
   assert.equal(formatRate(null), 'Không có dữ liệu');

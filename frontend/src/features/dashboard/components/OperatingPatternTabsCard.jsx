@@ -20,6 +20,7 @@ import {
   HEATMAP_WEEKDAY_LABELS,
   OPERATING_PATTERN_TABS,
   buildGroundedOperatingPatternSummary,
+  formatNationalRank,
   hasUsableModeData,
   mapOperatingPatternResponse,
 } from './operatingPatternTabsData';
@@ -244,6 +245,16 @@ function HeatmapManagementSummary({ stats }) {
 }
 
 function HeatmapMonthSection({ month }) {
+  const getDayTitle = (day) => {
+    const parts = [];
+    if (day.deltaFromMonthAverage !== null) {
+      parts.push(`${day.deltaFromMonthAverage > 0 ? '+' : ''}${day.deltaFromMonthAverage.toFixed(2)} so với TB`);
+    }
+    const rankLabel = day.nationalRankLabel || formatNationalRank(day.nationalRank);
+    if (rankLabel) parts.push(rankLabel);
+    return parts.join(' | ');
+  };
+
   return (
     <section className="rounded-xl border border-[var(--color-surface-200)] bg-white p-3 shadow-sm">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -268,7 +279,9 @@ function HeatmapMonthSection({ month }) {
             <div
               key={day.id}
               className={`flex h-14 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
-              title={day.deltaFromMonthAverage !== null ? `${day.deltaFromMonthAverage > 0 ? '+' : ''}${day.deltaFromMonthAverage.toFixed(2)} so với TB` : ''}
+              title={getDayTitle(day)}
+              aria-label={getDayTitle(day) || undefined}
+              tabIndex={day.empty ? undefined : 0}
             >
               <span className="text-[10px] font-bold">{day.dayLabel}</span>
               <span className="text-[10px] font-semibold">{day.valueLabel}</span>
@@ -337,6 +350,7 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
         toDate,
         ma_bcvh: maBcvh,
         mode: activeTab,
+        include_national_rank: activeTab === 'heatmap' && maBcvh === 'all' ? '1' : undefined,
       },
       signal: controller.signal,
     })

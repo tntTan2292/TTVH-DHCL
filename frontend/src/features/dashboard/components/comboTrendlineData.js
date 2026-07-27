@@ -20,6 +20,7 @@ export function normalizeComboTrendlineItems(items = []) {
         target_variance: dataAvailable && qualityRate !== null
           ? Number((qualityRate - QUALITY_TARGET_RATE).toFixed(4))
           : null,
+        national_rank: dataAvailable ? item.national_rank || null : null,
       };
     })
     .sort((a, b) => a.date.localeCompare(b.date));

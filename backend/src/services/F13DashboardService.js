@@ -214,6 +214,82 @@ class F13DashboardService {
         };
     }
 
+    _buildUnavailableNationalRank(dateStr, provinceCode, reason = 'missing_date') {
+        const message = reason === 'missing_province'
+            ? `Chưa có dữ liệu xếp hạng của Huế trong bảng toàn quốc ngày ${dateStr}`
+            : `Chưa có dữ liệu xếp hạng toàn quốc cho ngày ${dateStr}`;
+
+        return {
+            available: false,
+            message,
+            province_code: provinceCode,
+            period: dateStr,
+            period_start: dateStr,
+            period_end: dateStr,
+            period_type: 'single_date'
+        };
+    }
+
+    async getNationalRanksForDates(dates = []) {
+        const uniqueDates = [...new Set((dates || []).filter((date) => this._isIsoDate(date)))].sort();
+        const provinceCode = await this._getDefaultProvinceCode();
+
+        if (!uniqueDates.length) return {};
+
+        const placeholders = uniqueDates.map(() => '?').join(', ');
+        const rows = await all(`
+            SELECT
+                ngay_do_kiem,
+                ma_tinh_phat,
+                ten_tinh_phat,
+                sl_bg_ptc,
+                tl_ptc_dung_qd_ct
+            FROM fact_f13_national
+            WHERE ngay_do_kiem IN (${placeholders})
+            ORDER BY ngay_do_kiem ASC, tl_ptc_dung_qd_ct DESC, sl_bg_ptc DESC
+        `, uniqueDates);
+
+        const rowsByDate = rows.reduce((acc, row) => {
+            if (!acc[row.ngay_do_kiem]) acc[row.ngay_do_kiem] = [];
+            acc[row.ngay_do_kiem].push(row);
+            return acc;
+        }, {});
+
+        return uniqueDates.reduce((acc, dateStr) => {
+            const dateRows = rowsByDate[dateStr] || [];
+            if (!dateRows.length) {
+                acc[dateStr] = this._buildUnavailableNationalRank(dateStr, provinceCode, 'missing_date');
+                return acc;
+            }
+
+            const index = dateRows.findIndex((row) => row.ma_tinh_phat === provinceCode);
+            if (index < 0) {
+                acc[dateStr] = this._buildUnavailableNationalRank(dateStr, provinceCode, 'missing_province');
+                return acc;
+            }
+
+            const province = dateRows[index];
+            acc[dateStr] = {
+                available: true,
+                rank: index + 1,
+                total: dateRows.length,
+                period: dateStr,
+                period_start: dateStr,
+                period_end: dateStr,
+                period_type: 'single_date',
+                province_code: province.ma_tinh_phat,
+                province_name: province.ten_tinh_phat,
+                metric: 'tl_ptc_dung_qd_ct',
+                metric_label: 'Tỷ lệ PTC/nộp tiền đúng QĐ theo chỉ tiêu 2026',
+                metric_value: Number(province.tl_ptc_dung_qd_ct || 0),
+                volume: Number(province.sl_bg_ptc || 0),
+                direction: 'desc',
+                tie_behavior: 'Thứ tự theo tỷ lệ giảm dần, sau đó theo sản lượng giảm dần; không gộp đồng hạng.'
+            };
+            return acc;
+        }, {});
+    }
+
     async _getNationalRankSummary(startDate, endDate) {
         const provinceCode = await this._getDefaultProvinceCode();
 
@@ -653,21 +729,30 @@ class F13DashboardService {
             bcvhId: filters.bcvhId || null
         });
 
+        const normalizedBcvh = normalizeDashboardBcvhCode(filters.bcvhId);
+        const suppressNationalRank = Boolean(filters.bcvhId && filters.bcvhId !== 'all');
         const items = rows.map((row) => this._normalizeDailyTrendRow(row));
+        const nationalRanksByDate = suppressNationalRank ? {} : await this.getNationalRanksForDates(
+            items.filter((item) => item.data_available).map((item) => item.date)
+        );
+        const enrichedItems = suppressNationalRank ? items : items.map((item) => ({
+            ...item,
+            national_rank: item.data_available ? nationalRanksByDate[item.date] || this._buildUnavailableNationalRank(item.date, null) : null
+        }));
 
         return {
             meta: {
                 from_date: fromDate,
                 to_date: toDate,
                 interval: 'daily',
-                record_count: items.length,
+                record_count: enrichedItems.length,
                 latest_import: latestImport?.ngay_do_kiem || null,
                 data_freshness: latestImport?.created_at || null,
                 filters: {
-                    bcvh_id: filters.bcvhId || null
+                    bcvh_id: normalizedBcvh || null
                 }
             },
-            items
+            items: enrichedItems
         };
     }
 }

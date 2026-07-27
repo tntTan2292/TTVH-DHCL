@@ -1,4 +1,5 @@
 const { all } = require('../config/db');
+const f13DashboardService = require('./F13DashboardService');
 
 class TimelineService {
     _isIsoDate(value) {
@@ -62,6 +63,16 @@ class TimelineService {
         return calendarData;
     }
 
+    _applyNationalRanksToHeatmap(calendarData, nationalRanksByDate = {}) {
+        return calendarData.map((week) => week.map((day) => {
+            if (!day?.date) return day;
+            return {
+                ...day,
+                national_rank: nationalRanksByDate[day.date] || null
+            };
+        }));
+    }
+
     _normalizeTimelineMode(mode) {
         return ['month', 'weekday', 'heatmap'].includes(mode) ? mode : 'all';
     }
@@ -72,6 +83,7 @@ class TimelineService {
         const includeWeekly = mode === 'all' || mode === 'weekday';
         const includeMonthly = mode === 'all' || mode === 'month';
         const includeHeatmap = mode === 'all' || mode === 'heatmap';
+        const includeNationalRank = Boolean(options.includeNationalRank) && includeHeatmap && (!ma_bcvh || ma_bcvh === 'all');
         // Query data for the last 90 days to establish strong patterns
         const endDate = new Date(toDate);
         const startDate = new Date(toDate);
@@ -224,7 +236,15 @@ class TimelineService {
 
         // 4. Quality Calendar (Heatmap for previous full calendar month and current month to latest data)
         // Group into weeks for easier rendering
-        const calendarData = includeHeatmap ? this._buildHeatmapCalendar(fullData, latestBusinessDate) : [];
+        let calendarData = includeHeatmap ? this._buildHeatmapCalendar(fullData, latestBusinessDate) : [];
+        if (includeNationalRank) {
+            const heatmapDates = calendarData
+                .flat()
+                .filter((day) => day?.date && !day.is_empty)
+                .map((day) => day.date);
+            const nationalRanksByDate = await f13DashboardService.getNationalRanksForDates(heatmapDates);
+            calendarData = this._applyNationalRanksToHeatmap(calendarData, nationalRanksByDate);
+        }
 
         const ytdByMonth = ytdRows.reduce((acc, row) => {
             acc[row.month_key] = row;

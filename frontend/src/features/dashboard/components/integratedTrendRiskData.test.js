@@ -371,6 +371,17 @@ test('integrated workspace uses full chart width in every mode', () => {
   assert.match(source, /<div className="grid gap-5">/);
 });
 
+test('integrated trend shows backend rank details without adding a rank line or axis', () => {
+  const workspaceSource = read('./IntegratedTrendRiskWorkspace.jsx');
+  const mapperSource = read('./comboTrendlineData.js');
+
+  assert.match(mapperSource, /national_rank: dataAvailable \? item\.national_rank \|\| null : null/);
+  assert.match(workspaceSource, /Xếp hạng toàn quốc Huế/);
+  assert.match(workspaceSource, /selectedRangeRankLabel/);
+  assert.doesNotMatch(workspaceSource, /dataKey="national_rank"|dataKey='national_rank'/);
+  assert.doesNotMatch(workspaceSource, /yAxisId="rank"|yAxisId='rank'/);
+});
+
 test('risk panel uses confirmed values and labels unknown causes explicitly', () => {
   const risks = summarizeRiskEvidence(sampleTrend, { total_failed: 1037, failed_rate: 28.2 }, { text: 'Nhịp chất lượng giảm so với kỳ trước.', color: 'yellow' });
   assert.match(risks[0].evidence, /1\.037/);

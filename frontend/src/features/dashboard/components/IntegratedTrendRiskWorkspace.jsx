@@ -70,9 +70,30 @@ function IntegratedTooltip({ active, payload, label }) {
           <span className="text-[var(--color-text-muted)]">{DASHBOARD_LABELS.target}</span>
           <span className="font-semibold text-[var(--color-text-main)]">{formatRate(point.target_rate)}</span>
         </div>
+        {point.national_rank ? (
+          <div className="flex items-center justify-between gap-4 border-t border-[var(--color-surface-100)] pt-1">
+            <span className="text-[var(--color-text-muted)]">Xếp hạng toàn quốc Huế</span>
+            <span className="font-semibold text-[var(--color-text-main)]">
+              {point.national_rank.available
+                ? `${point.national_rank.rank}/${point.national_rank.total}`
+                : point.national_rank.message || 'Chưa có dữ liệu xếp hạng toàn quốc'}
+            </span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
+}
+
+function formatSelectedRangeRank(rank) {
+  if (!rank) return null;
+  if (rank.available && rank.rank !== null && rank.rank !== undefined && rank.total !== null && rank.total !== undefined) {
+    const period = rank.period_start && rank.period_end
+      ? (rank.period_start === rank.period_end ? rank.period_end : `${rank.period_start} đến ${rank.period_end}`)
+      : rank.period || null;
+    return `Xếp hạng toàn quốc Huế theo kỳ đang chọn${period ? ` (${period})` : ''}: ${rank.rank}/${rank.total}`;
+  }
+  return rank.message || 'Chưa có dữ liệu xếp hạng toàn quốc cho kỳ đang chọn';
 }
 
 function MarkerShape({ cx, cy, payload }) {
@@ -309,6 +330,7 @@ export default function IntegratedTrendRiskWorkspace({
     () => buildSevenDayVisibleComparisonEvidence(data, toDate),
     [data, toDate],
   );
+  const selectedRangeRankLabel = maBcvh === 'all' ? formatSelectedRangeRank(kpiData?.national_rank) : null;
 
   const action = (
     <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Chọn chế độ xu hướng">
@@ -349,6 +371,7 @@ export default function IntegratedTrendRiskWorkspace({
           <div>
             <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
               <StatusBadge label={TREND_MODES.find((item) => item.id === mode)?.label} tone="info" />
+              {selectedRangeRankLabel ? <span>{selectedRangeRankLabel}</span> : null}
               <span className="inline-flex items-center gap-1"><Layers size={13} /> Chỉ hiển thị một câu chuyện xu hướng chính</span>
               <span className="inline-flex items-center gap-1"><TrendingUp size={13} /> Mốc dưới mục tiêu hiển thị bằng marker</span>
             </div>

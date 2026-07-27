@@ -36,11 +36,30 @@ test('operating patterns lazy-loads inactive tabs through compatible timeline mo
 
   assert.match(componentSource, /mode:\s*activeTab/);
   assert.match(componentSource, /\[activeTab, maBcvh, toDate\]/);
-  assert.match(controllerSource, /const \{ toDate, ma_bcvh, mode \} = req\.query/);
-  assert.match(controllerSource, /getQualityTimeline\(toDate, ma_bcvh, \{ mode \}\)/);
+  assert.match(controllerSource, /const \{ toDate, ma_bcvh, mode, include_national_rank \} = req\.query/);
+  assert.match(controllerSource, /getQualityTimeline\(toDate, ma_bcvh, \{/);
   assert.match(serviceSource, /_normalizeTimelineMode/);
   assert.match(serviceSource, /const includeDaily = mode === 'all'/);
   assert.match(serviceSource, /const includeWeekly = mode === 'all' \|\| mode === 'weekday'/);
   assert.match(serviceSource, /const includeMonthly = mode === 'all' \|\| mode === 'month'/);
   assert.match(serviceSource, /const includeHeatmap = mode === 'all' \|\| mode === 'heatmap'/);
+});
+
+test('nationwide rank enrichment keeps initial request count unchanged and uses lazy Heatmap opt-in', () => {
+  const dashboardSource = read('../DashboardPage.jsx');
+  const operatingSource = read('./OperatingPatternTabsCard.jsx');
+  const controllerSource = read('../../../../../backend/src/controllers/DashboardController.js');
+
+  assert.equal((dashboardSource.match(/\/f13\/dashboard\/daily-trend/g) || []).length, 1);
+  assert.equal((operatingSource.match(/\/f13\/dashboard\/quality-timeline/g) || []).length, 1);
+  assert.match(operatingSource, /include_national_rank: activeTab === 'heatmap' && maBcvh === 'all' \? '1' : undefined/);
+  assert.match(controllerSource, /includeNationalRank: include_national_rank === '1' \|\| include_national_rank === 'true'/);
+});
+
+test('nationwide rank is not added to BCVH row ranking surfaces', () => {
+  const bcvhTableSource = read('./UnifiedBcvhAnalysisTable.jsx');
+  const bcvhDataSource = read('./unifiedBcvhAnalysisTableData.js');
+
+  assert.doesNotMatch(bcvhTableSource, /national_rank|nationalRank|Xếp hạng toàn quốc Huế/);
+  assert.doesNotMatch(bcvhDataSource, /national_rank|nationalRank|Xếp hạng toàn quốc Huế/);
 });
