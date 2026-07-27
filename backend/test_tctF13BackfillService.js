@@ -297,6 +297,7 @@ function removeDirEventually(dir) {
             async openF13Report() {},
             async submitFilters() {},
             async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
+            async readDetailTotal() { return 0; },
             async requestSummaryExport() {},
             async pollGeneratedFile() {
                 return { fileName: 'invalid.xlsx' };
@@ -367,6 +368,7 @@ function removeDirEventually(dir) {
             async openF13Report() {},
             async submitFilters() {},
             async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
+            async readDetailTotal() { return 0; },
             async requestSummaryExport() {},
             async pollGeneratedFile() {
                 return { filename: 'valid.xlsx' };
@@ -421,6 +423,7 @@ function removeDirEventually(dir) {
             async openF13Report() {},
             async submitFilters() {},
             async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
+            async readDetailTotal() { return 0; },
             async requestSummaryExport() {},
             async pollGeneratedFile() { return { filename: 'hide-warning.xlsx' }; },
             async downloadXlsx() {
@@ -520,6 +523,7 @@ function removeDirEventually(dir) {
             async openF13Report() {},
             async submitFilters() {},
             async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
+            async readDetailTotal() { return 0; },
             async requestSummaryExport() {},
             async pollGeneratedFile() { return { filename: 'persist.xlsx' }; },
             async downloadXlsx() {

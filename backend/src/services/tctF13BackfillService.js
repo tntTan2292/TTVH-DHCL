@@ -762,6 +762,15 @@ class TctF13BackfillService {
                 error.readiness = readiness || null;
                 throw error;
             }
+
+            const visibleDetailTotal = await client.readDetailTotal().catch(() => null);
+            if (visibleDetailTotal === null || visibleDetailTotal === undefined || isNaN(visibleDetailTotal)) {
+                await client.restoreWindow?.().catch(() => {});
+                const error = new Error('TCT authoritative visible detail total could not be read or is unreadable.');
+                error.code = 'DETAIL_TOTAL_UNREADABLE';
+                throw error;
+            }
+
             const exportRequestedAt = this.clock();
             try {
                 await this.requestSummaryExport(client);
@@ -791,6 +800,13 @@ class TctF13BackfillService {
             if (validation.parsed.totalParsed !== this.rankedPopulationCount) {
                 const error = new Error(`TCT workbook parsed ${validation.parsed.totalParsed} ranked units; expected ${this.rankedPopulationCount}.`);
                 error.code = 'RANKED_POPULATION_MISMATCH';
+                throw error;
+            }
+
+            const workbookTotal = validation.parsed.parsedData.reduce((sum, row) => sum + (row.sl_bg_ptc || 0), 0);
+            if (workbookTotal !== visibleDetailTotal) {
+                const error = new Error(`TCT workbook total shipment count ${workbookTotal} does not match portal visible total ${visibleDetailTotal}.`);
+                error.code = 'DETAIL_TOTAL_MISMATCH';
                 throw error;
             }
 
