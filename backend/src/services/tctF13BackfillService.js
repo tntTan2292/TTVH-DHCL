@@ -763,7 +763,8 @@ class TctF13BackfillService {
                 throw error;
             }
 
-            const visibleDetailTotal = await client.readDetailTotal().catch(() => null);
+            await client.openDetailTable?.().catch(() => {});
+            const visibleDetailTotal = await client.readDetailTableTotal().catch(() => null);
             if (visibleDetailTotal === null || visibleDetailTotal === undefined || isNaN(visibleDetailTotal)) {
                 await client.restoreWindow?.().catch(() => {});
                 const error = new Error('TCT authoritative visible detail total could not be read or is unreadable.');
