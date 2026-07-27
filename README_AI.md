@@ -130,7 +130,7 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/DA-IMPL-008_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md)
+[docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md)
 
 ↓
 
@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `DA-IMPL-008 ACTIVE / AUTHORIZED`; `AUTO-IMPORT-009` is `DEFERRED / NOT RESOLVED` and must not be recorded as Defect 2 `PO PASS`; `AUTO-IMPORT-008` and earlier tickets remain closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-009 preserved evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass; deferred item: TCT window may remain visible after re-authentication. Current priority is the approved Dashboard overview improvement work under `DA-IMPL-008`; do not implement Dashboard code during this documentation-only transition.
+Current active handoff: `AUTO-IMPORT-009 READY FOR PO CHECK`; do not award Product Owner `PASS`. `AUTO-IMPORT-008` and earlier tickets remain closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-009 preserved evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass; `TCT_WINDOW_HIDE_FAILED` is recorded separately as an operational warning with hide-only retry after completed TCT data finalization. `DA-IMPL-008` is temporarily paused and must resume only after Product Owner check/decision.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

@@ -30,7 +30,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | PO UI Check Required | `Yes` |
 | PO Product Status | `AUTO-IMPORT-009 READY FOR PO CHECK; NO PO PASS AWARDED; DA-IMPL-008 TEMPORARILY PAUSED` |
 | Last Reviewed Phase | `AUTO-IMPORT-009 BOUNDED TCT REMEDIATION` |
-| Last Reviewed Commit | `2733184121e057a1c85610c20577aec1a5704e1a` |
+| Last Reviewed Commit | `d0ea458bc042c26bea6d048bfce527b245960622` |
 | Phase Review Status | `READY FOR PO CHECK` |
 | Next Phase Authorization | `Return to DA-IMPL-008 after PO check/decision` |
 | Governance Version | `V2 Active` |

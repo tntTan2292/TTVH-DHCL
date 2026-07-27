@@ -53,7 +53,7 @@ Required retry behavior: retry window hiding only; never re-import already compl
 6. In `tctF13BackfillService.js` (`runOneDateImport`):
    - Hides the browser window after the import and portal cleanup attempts are executed.
    - Throws a `TCT_CLEANUP_FAILED` error if the portal cleanup fails or is skipped.
-   - Verifies the boolean result returned by `hideWindowFn` and throws `TCT_WINDOW_HIDE_FAILED` if the hide operation fails, is missing, or throws, preventing `SUCCESS` finalization when browser is still visible.
+   - Earlier checkpoint behavior verified the boolean result returned by `hideWindowFn` and treated `TCT_WINDOW_HIDE_FAILED` as blocking `SUCCESS` finalization; this behavior is superseded by the bounded reactivation fix below when import, `34/34` ranked units, portal cleanup, and Processed-file retention have already succeeded.
 
 ### 1. Automated Preflight Checks
 `node test_dkclSessionPreflightService.js`, `node test_browserProfileLock.js` and `node test_tctF13BackfillService.js` passed successfully.
