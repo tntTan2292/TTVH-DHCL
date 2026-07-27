@@ -4,11 +4,11 @@
 
 - Ticket: `AUTO-IMPORT-009`
 - Ticket name: `Auto Import Browser And DKCL Cleanup Remediation`
-- Phase: `DEFECT 2 - DKCL DOWNLOADED-ITEM LINK/FILE ENTRY REMOVAL AFTER SAFE CLAIM`
-- Current state: `DEFERRED / NOT RESOLVED`
-- Technical status: `PARTIAL PASS / DEFERRED`
-- Runtime status: `PARTIAL PASS / DEFERRED`
-- PO product status: `DEFECT 1 PO PASS; DEFECT 2 NOT PO PASS; TCT WINDOW-HIDE DEFERRED / NOT RESOLVED`
+- Phase: `BOUNDED TCT WINDOW-HIDE DATA-FINALIZATION REMEDIATION`
+- Current state: `READY FOR PO CHECK`
+- Technical status: `TECHNICAL PASS`
+- Runtime status: `TARGETED TECHNICAL PASS; PO CHECK REQUIRED`
+- PO product status: `DEFECT 1 PO PASS; DEFECT 2 NOT PO PASS; TCT WINDOW-HIDE REMEDIATION READY FOR PO CHECK`
 
 ## Closure Preservation
 
@@ -24,15 +24,17 @@
 | 1 | HUE/TCT browser windows may fail to hide after a new login or re-authentication cycle. | `COMPLETED` | `PO PASS` |
 | 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `DEFERRED / NOT RESOLVED` | `NOT PO PASS` |
 
-## Deferred Item
+## Reactivated Item
 
-Product Owner stopped further remediation of the TCT window-hide issue for now.
+Product Owner temporarily paused `DA-IMPL-008` and reactivated `AUTO-IMPORT-009` for one bounded TCT defect on `2026-07-27`.
 
-Exact deferred item: TCT window may remain visible after re-authentication.
+Exact reactivated item: `TCT_WINDOW_HIDE_FAILED` must not mark an otherwise completed TCT import as `FAILED` after database import, `34/34` ranked units, portal cleanup, and local Processed-file retention already succeeded.
 
 Preserved pass evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass.
 
 `AUTO-IMPORT-009` Defect 2 is not `PO PASS`.
+
+Required retry behavior: retry window hiding only; never re-import already completed TCT data for this operational warning.
 
 ## Implementation & Validation Evidence
 
@@ -71,20 +73,40 @@ Additionally, a **silent early hide** at the readiness check point (`await hideW
 1. Removed the pre-export silent-swallow hide at the F13-readiness checkpoint.
 2. Before the finalization hide, explicitly call `processManager.clearHiddenHwnds(client.profileDir)` to flush any stale HWND records so the subsequent `hideWindow()` performs a fresh live scan of currently owned windows in the active PID tree.
 
+### 4. Bounded Reactivation Fix
+
+**Root cause confirmed**: The TCT import finalization path treated `TCT_WINDOW_HIDE_FAILED` as a hard import failure after database import, `34/34` ranked-unit parsing, processed-workbook retention, and portal cleanup had already completed. The catch-path also forced `temp_file_deleted` to `false`, which could overwrite true portal-cleanup evidence merely because the later window-hide operation failed.
+
+**Fix applied** in `tctF13BackfillService.js`:
+1. Completed TCT data operations now return `SUCCESS` when import, processed retention, and portal cleanup have succeeded, even if final window hiding cannot be confirmed.
+2. Window-hide failure is recorded separately in evidence as `operational_warning_code = TCT_WINDOW_HIDE_FAILED`, `operational_warning_message`, and `window_hidden = false`.
+3. Actual `portal_cleanup_status` and `temp_file_deleted = true` are preserved after hide failure.
+4. Queue retry for a `SUCCESS` item with `TCT_WINDOW_HIDE_FAILED` performs hide-only retry through the active TCT client and does not start a new import queue or re-import data.
+5. Successful hide-only retry clears the warning and records `window_hidden = true`.
+
+### 5. LEVEL 1 Targeted Validation
+
+- `node backend\test_tctF13BackfillService.js`: `PASS`
+
+Targeted assertions added:
+- hide failure after completed TCT import preserves `34/34`, database import, Processed-file retention, portal cleanup status, and `temp_file_deleted = true`.
+- hide failure is recorded as operational warning evidence, not as failed import evidence.
+- retry after hide warning invokes only the window-hide operation and does not call the import path again.
+
 ## Current Handoff
 
-- Current ticket: `DA-IMPL-008`.
-- Current phase: `Dashboard overview improvement`.
-- Current manifest: `docs/10_TICKETS/DA-IMPL-008_MANIFEST.md`.
-- Current checkpoint: `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_001.md`.
-- Next action: implement DA-IMPL-008 only.
+- Current ticket: `AUTO-IMPORT-009`.
+- Current phase: `Bounded TCT window-hide data-finalization remediation`.
+- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
+- Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md`.
+- Next action: Product Owner technical/product check for the bounded TCT warning behavior. Do not award PO PASS from Codex.
 
 ## Priority Deferral
 
-- `AUTO-IMPORT-009` resulting status is `DEFERRED / NOT RESOLVED`.
+- `AUTO-IMPORT-009` resulting status is `READY FOR PO CHECK` for the bounded TCT remediation only.
 - Defect 2 is not Product Owner `PO PASS`.
-- TCT window-hide remediation is stopped for now.
-- No code, tests, database, Import data, physical files, or Dashboard files were modified by this documentation-only priority transition.
+- TCT window-hide remediation is technically complete for the data-finalization warning behavior, pending Product Owner check.
+- No database, Import data, physical files, or Dashboard files were modified by this remediation.
 - `AUTO-IMPORT-008` and earlier tickets remain closed.
 - HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`.
 - HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.

@@ -453,6 +453,11 @@ class TctF13BackfillService {
             throw error;
         }
         const retryableBlockedItem = queue.status === 'BLOCKED' && item.status === 'QUEUED';
+        const retryableWindowHideWarning = item.status === 'SUCCESS'
+            && item.evidence?.operational_warning_code === 'TCT_WINDOW_HIDE_FAILED';
+        if (retryableWindowHideWarning) {
+            return this.retryWindowHideOnly(queue, item);
+        }
         if (!['FAILED', 'AUTHENTICATION_REQUIRED'].includes(item.status) && !retryableBlockedItem) {
             const error = new Error(`Date ${normalizedDate} cannot be retried from status ${item.status}.`);
             error.code = 'QUEUE_ITEM_NOT_RETRYABLE';
@@ -460,6 +465,37 @@ class TctF13BackfillService {
         }
 
         return this.startQueue([normalizedDate]);
+    }
+
+    async retryWindowHideOnly(queue, item) {
+        const client = this.sessionPreflightService.getInteractiveClient?.('TCT');
+        const hideWindowFn = client && (client.hideWindow || client.hideBrowserWindow);
+        if (!hideWindowFn) {
+            const error = new Error('TCT window hide capability is not available for retry.');
+            error.code = 'TCT_WINDOW_HIDE_RETRY_UNAVAILABLE';
+            throw error;
+        }
+
+        if (client.profileDir) {
+            const { defaultInstance: pm } = require('./browserProcessManager');
+            pm.clearHiddenHwnds?.(client.profileDir);
+        }
+
+        const hideSuccess = await hideWindowFn.call(client).catch(() => false);
+        const now = this.clock().toISOString();
+        this.updateItem(item, {
+            status: 'SUCCESS',
+            endTime: item.endTime || now,
+            evidence: {
+                ...item.evidence,
+                window_hidden: Boolean(hideSuccess),
+                operational_warning_code: hideSuccess ? null : 'TCT_WINDOW_HIDE_FAILED',
+                operational_warning_message: hideSuccess ? null : 'TCT browser window could not be confirmed hidden after hide-only retry.',
+                window_hide_retry_at: now
+            }
+        });
+
+        return this.publicQueue(queue);
     }
 
     normalizeSelectedDates(dates) {
@@ -538,6 +574,9 @@ class TctF13BackfillService {
                 error_log_count: 0,
                 error_code: null,
                 error_message: null,
+                operational_warning_code: null,
+                operational_warning_message: null,
+                window_hidden: null,
                 temp_file_deleted: null,
                 processed_filename: null,
                 processed_file_path: null,
@@ -655,7 +694,10 @@ class TctF13BackfillService {
                 replaced_incomplete_evidence: false,
                 temp_file_deleted: null,
                 local_file_retained: null,
-                portal_cleanup_status: null
+                portal_cleanup_status: null,
+                window_hidden: null,
+                operational_warning_code: null,
+                operational_warning_message: null
             };
 
         try {
@@ -784,21 +826,18 @@ class TctF13BackfillService {
                 throw error;
             }
 
-            if (!hideSuccess) {
-                const error = new Error('TCT browser window could not be confirmed hidden.');
-                error.code = 'TCT_WINDOW_HIDE_FAILED';
-                throw error;
-            }
-
             return {
                 ...evidence,
                 queue_id: queueId,
-                temp_file_deleted
+                temp_file_deleted,
+                window_hidden: Boolean(hideSuccess),
+                operational_warning_code: hideSuccess ? null : 'TCT_WINDOW_HIDE_FAILED',
+                operational_warning_message: hideSuccess ? null : 'TCT browser window could not be confirmed hidden.'
             };
         } catch (error) {
             error.evidence = {
                 ...evidence,
-                temp_file_deleted: false,
+                temp_file_deleted: evidence.temp_file_deleted ?? false,
                 local_file_retained: downloadedPath ? fs.existsSync(downloadedPath) : evidence.local_file_retained
             };
             throw error;
@@ -899,7 +938,11 @@ class TctF13BackfillService {
             error_message: ['FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(context.status) ? context.errorMessage : null,
             temp_file_deleted: runEvidence?.temp_file_deleted ?? null,
             local_file_retained: runEvidence?.local_file_retained ?? null,
-            portal_cleanup_status: runEvidence?.portal_cleanup_status || null
+            portal_cleanup_status: runEvidence?.portal_cleanup_status || null,
+            window_hidden: runEvidence?.window_hidden ?? null,
+            operational_warning_code: runEvidence?.operational_warning_code || null,
+            operational_warning_message: runEvidence?.operational_warning_message || null,
+            window_hide_retry_at: runEvidence?.window_hide_retry_at || null
         }, {
             source: 'TCT',
             report: queue.report,

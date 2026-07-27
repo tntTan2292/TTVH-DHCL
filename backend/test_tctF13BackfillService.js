@@ -408,6 +408,42 @@ function removeDirEventually(dir) {
         file: 'valid.xlsx',
         processedExists: true
     }, 'portal cleanup runs only after processed workbook exists');
+
+    let hideOnlyFailureAttempted = false;
+    const hideFailureService = new TctF13BackfillService({
+        db: makeDb(),
+        rawDownloadDir: replaceDir,
+        processedDir: replaceProcessedDir,
+        importNationalParsedData: async () => ({ inserted: 34 }),
+        portalClientFactory: () => ({
+            profileDir: replaceDir,
+            async authenticate() {},
+            async openF13Report() {},
+            async submitFilters() {},
+            async waitForF13ExportReadiness() { return { ready: true, status: 'READY_TO_EXPORT' }; },
+            async requestSummaryExport() {},
+            async pollGeneratedFile() { return { filename: 'hide-warning.xlsx' }; },
+            async downloadXlsx() {
+                const hideWarningWorkbook = path.join(replaceDir, 'hide-warning.xlsx');
+                fs.writeFileSync(hideWarningWorkbook, Buffer.from([0x50, 0x4b, 0x03, 0x04]));
+                return hideWarningWorkbook;
+            },
+            async deleteGeneratedFile() { return { status: 'DELETED' }; },
+            async hideWindow() { hideOnlyFailureAttempted = true; return false; },
+            async close() {}
+        })
+    });
+    hideFailureService.validateWorkbook = replaceService.validateWorkbook;
+    const hideWarning = await hideFailureService.runOneDateImport('2026-07-18', 'queue-hide-warning', { refreshRequested: true });
+    assert.strictEqual(hideOnlyFailureAttempted, true, 'window hide is still attempted after completed import');
+    assert.strictEqual(hideWarning.imported_database_row_count, 34, 'completed database import evidence is preserved');
+    assert.strictEqual(hideWarning.parsed_ranked_unit_count, 34, 'completed 34/34 ranked-unit evidence is preserved');
+    assert.strictEqual(hideWarning.temp_file_deleted, true, 'successful portal cleanup is not overwritten by hide failure');
+    assert.strictEqual(hideWarning.portal_cleanup_status, 'DELETED', 'actual portal cleanup evidence is preserved');
+    assert.strictEqual(hideWarning.local_file_retained, true, 'processed workbook retention remains true');
+    assert.strictEqual(hideWarning.window_hidden, false, 'window hide failure is recorded separately');
+    assert.strictEqual(hideWarning.operational_warning_code, 'TCT_WINDOW_HIDE_FAILED', 'hide failure becomes an operational warning');
+
     await assert.rejects(
         () => replaceService.runOneDateImport('2026-07-19', 'queue-complete'),
         /already has completed/,
@@ -417,6 +453,54 @@ function removeDirEventually(dir) {
     assert.strictEqual(importCalls.at(-1).forceReimport, true, 'explicit COMPLETE refresh uses transactional re-import');
     assert.strictEqual(refreshed.replaced_incomplete_evidence, true, 'refresh evidence records the reconciliation path');
     assert.strictEqual(fs.existsSync(refreshed.processed_file_path), true, 'refreshed processed workbook exists');
+
+    console.log('\nTEST 7B: retry after hide warning hides only and never re-imports completed data');
+    let retryImportCalls = 0;
+    let retryHideCalls = 0;
+    const hideRetryService = new TctF13BackfillService({
+        db: makeDb(),
+        pollIntervalMs: 1,
+        sessionPreflightService: {
+            preflight: async () => ({ source: 'TCT', status: 'SESSION_VALID' }),
+            getInteractiveClient: () => ({
+                async hideWindow() {
+                    retryHideCalls += 1;
+                    return true;
+                }
+            })
+        }
+    });
+    hideRetryService.checkCompleted = async () => ({ complete: false, incomplete: false, rowCount: 0, distinctCount: 0, successLogCount: 0 });
+    hideRetryService.loadDatabaseEvidence = async () => ({ rowCount: 34, distinctCount: 34, successLogCount: 1, errorLogCount: 0 });
+    hideRetryService.loadHueEvidence = async () => ({ volume: null, pass: null, kpi: null, rank: null });
+    hideRetryService.runOneDateImport = async () => {
+        retryImportCalls += 1;
+        return {
+            run_id: 'hide-warning-run',
+            downloaded_filename: 'hide-warning.xlsx',
+            processed_filename: 'F1.3-2026.07.20.xlsx',
+            processed_file_path: path.join(replaceProcessedDir, 'F1.3-2026.07.20.xlsx'),
+            workbook_row_count: 40,
+            parsed_ranked_unit_count: 34,
+            imported_database_row_count: 34,
+            temp_file_deleted: true,
+            local_file_retained: true,
+            portal_cleanup_status: 'DELETED',
+            window_hidden: false,
+            operational_warning_code: 'TCT_WINDOW_HIDE_FAILED',
+            operational_warning_message: 'TCT browser window could not be confirmed hidden.'
+        };
+    };
+    const hideRetryQueue = await hideRetryService.startQueue(['2026-07-20']);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.strictEqual(hideRetryService.getQueue(hideRetryQueue.queueId).status, 'SUCCESS', 'hide warning does not fail the completed data operation');
+    const retryResult = await hideRetryService.retryQueueItem(hideRetryQueue.queueId, '2026-07-20');
+    assert.strictEqual(retryImportCalls, 1, 'hide warning retry does not re-import data');
+    assert.strictEqual(retryHideCalls, 1, 'hide warning retry invokes only the window hide operation');
+    assert.strictEqual(retryResult.items[0].status, 'SUCCESS', 'item remains successful after hide-only retry');
+    assert.strictEqual(retryResult.items[0].evidence.operational_warning_code, null, 'successful hide-only retry clears the warning');
+    assert.strictEqual(retryResult.items[0].evidence.window_hidden, true, 'successful hide-only retry records hidden window');
+
     removeDirEventually(replaceDir);
     removeDirEventually(replaceProcessedDir);
 

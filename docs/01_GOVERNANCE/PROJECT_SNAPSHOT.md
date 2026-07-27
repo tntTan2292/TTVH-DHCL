@@ -17,22 +17,22 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `DA-IMPL-008 DASHBOARD OVERVIEW IMPROVEMENT` |
-| Current Ticket | `DA-IMPL-008` |
-| Next Ticket | `TBD after DA-IMPL-008 PO acceptance` |
-| Last PO Status | `AUTO-IMPORT-009 deferred not resolved; Defect 2 not PO PASS; priority moved to Dashboard overview improvement` |
+| Current Phase | `AUTO-IMPORT-009 BOUNDED TCT WINDOW-HIDE DATA-FINALIZATION REMEDIATION` |
+| Current Ticket | `AUTO-IMPORT-009` |
+| Next Ticket | `Return to DA-IMPL-008 after Product Owner check/decision unless PO redirects` |
+| Last PO Status | `AUTO-IMPORT-009 bounded remediation reactivated by Product Owner; ready for PO check; do not award PO PASS` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / AUTHORIZED` |
-| Technical Status | `NOT STARTED` |
-| Runtime Status | `N/A - ACTIVATION ONLY` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md` |
+| Current State | `READY FOR PO CHECK` |
+| Technical Status | `TECHNICAL PASS` |
+| Runtime Status | `TARGETED TECHNICAL PASS; PO CHECK REQUIRED` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `DA-IMPL-008 AUTHORIZED; AUTO-IMPORT-009 DEFERRED / NOT RESOLVED` |
-| Last Reviewed Phase | `AUTO-IMPORT-009 DEFERRAL / DA-IMPL-008 ACTIVATION` |
+| PO Product Status | `AUTO-IMPORT-009 READY FOR PO CHECK; NO PO PASS AWARDED; DA-IMPL-008 TEMPORARILY PAUSED` |
+| Last Reviewed Phase | `AUTO-IMPORT-009 BOUNDED TCT REMEDIATION` |
 | Last Reviewed Commit | `2733184121e057a1c85610c20577aec1a5704e1a` |
-| Phase Review Status | `ACTIVE / AUTHORIZED` |
-| Next Phase Authorization | `DA-IMPL-008 only` |
+| Phase Review Status | `READY FOR PO CHECK` |
+| Next Phase Authorization | `Return to DA-IMPL-008 after PO check/decision` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-27` |
 
@@ -65,7 +65,7 @@ Fresh-chat onboarding chain for the active ticket:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-3. `docs/10_TICKETS/DA-IMPL-008_MANIFEST.md`
+3. `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`
 4. Required Reading from the current manifest
 
 DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 Wave 1 is implemented for shared DKCL lifecycle contract/state standardization. Product Owner authorized Accelerated Delivery Wave 2 at baseline `1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`.
@@ -76,7 +76,7 @@ AUTO-IMPORT-007 governance closure: after DKCL/TCT service became available, Pro
 
 Next work boundary: Dashboard defect remediation must start in a fresh conversation and must be based only on the specific Product Owner-provided Dashboard symptom/evidence. Do not perform a broad repository audit, and do not reopen or perform Import remediation unless separately reauthorized. Automatic scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain future unauthorized scope, not current debt.
 
-AUTO-IMPORT-008 remains closed with all three defects `COMPLETED / PO PASS`. Defect 3 Product Owner acceptance preserves the technical result: reliable HUE source presentation is recovered only from deterministic per-import evidence, unresolved records remain unchanged/UNKNOWN, dry-run repair found `55` low-count candidates and `0` authorized deterministic `import_log` row-count writes, and no Import History records, fact rows, Dashboard data, or physical files were modified. `AUTO-IMPORT-007` remains closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-009 is `DEFERRED / NOT RESOLVED`; do not record Defect 2 as `PO PASS`. Preserved AUTO-IMPORT-009 evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass. Deferred item: TCT window may remain visible after re-authentication. Current priority moves to the approved Dashboard overview improvement work under `DA-IMPL-008`; Dashboard scope must come from the authoritative Dashboard roadmap/manifests and this manifest, not chat-history inference.
+AUTO-IMPORT-008 remains closed with all three defects `COMPLETED / PO PASS`. Defect 3 Product Owner acceptance preserves the technical result: reliable HUE source presentation is recovered only from deterministic per-import evidence, unresolved records remain unchanged/UNKNOWN, dry-run repair found `55` low-count candidates and `0` authorized deterministic `import_log` row-count writes, and no Import History records, fact rows, Dashboard data, or physical files were modified. `AUTO-IMPORT-007` remains closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-009 bounded TCT remediation is `READY FOR PO CHECK`; do not record Defect 2 as `PO PASS`. Preserved AUTO-IMPORT-009 evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass. Reactivated item: `TCT_WINDOW_HIDE_FAILED` no longer marks a completed TCT data operation as `FAILED`; it is recorded separately as an operational warning with hide-only retry. `DA-IMPL-008` is temporarily paused and must resume only after Product Owner check/decision.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 
