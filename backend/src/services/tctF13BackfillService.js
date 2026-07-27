@@ -807,6 +807,8 @@ class TctF13BackfillService {
             if (workbookTotal !== visibleDetailTotal) {
                 const error = new Error(`TCT workbook total shipment count ${workbookTotal} does not match portal visible total ${visibleDetailTotal}.`);
                 error.code = 'DETAIL_TOTAL_MISMATCH';
+                error.portalTotal = visibleDetailTotal;
+                error.workbookTotal = workbookTotal;
                 throw error;
             }
 
