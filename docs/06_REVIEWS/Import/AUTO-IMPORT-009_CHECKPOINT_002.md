@@ -73,33 +73,38 @@ Additionally, a **silent early hide** at the readiness check point (`await hideW
 1. Removed the pre-export silent-swallow hide at the F13-readiness checkpoint.
 2. Before the finalization hide, explicitly call `processManager.clearHiddenHwnds(client.profileDir)` to flush any stale HWND records so the subsequent `hideWindow()` performs a fresh live scan of currently owned windows in the active PID tree.
 
-### 4. Bounded Reactivation Fix
+### 4. Bounded TCT browser/session lifecycle & retry finalization remediation
 
-**Root cause confirmed**: The TCT import finalization path treated `TCT_WINDOW_HIDE_FAILED` as a hard import failure after database import, `34/34` ranked-unit parsing, processed-workbook retention, and portal cleanup had already completed. The catch-path also forced `temp_file_deleted` to `false`, which could overwrite true portal-cleanup evidence merely because the later window-hide operation failed.
+**Root cause confirmed**:
+1. **Disconnected/Closed Page context**: When a TCT page/context became disconnected or was closed by the browser/system, the backfill worker reused the stale registered client instance, leading to Playwright errors like `page.waitForEvent: Target page, context or browser has been closed`.
+2. **Duplicate Exports on Retry**: The retry worker blindly clicked filter/submit buttons and requested new exports even if the TCT export was already generated and visible in the portal's "Quản lý tệp" page.
+3. **Hide failure contract**: The previous implementation recorded hide failure only as a warning, allowing `SUCCESS` to be published despite the window remaining visible. Furthermore, when hide threw an error, it erroneously reset `temp_file_deleted` to `false` in the catch-block.
 
-**Fix applied** in `tctF13BackfillService.js`:
-1. Completed TCT data operations now return `SUCCESS` when import, processed retention, and portal cleanup have succeeded, even if final window hiding cannot be confirmed.
-2. Window-hide failure is recorded separately in evidence as `operational_warning_code = TCT_WINDOW_HIDE_FAILED`, `operational_warning_message`, and `window_hidden = false`.
-3. Actual `portal_cleanup_status` and `temp_file_deleted = true` are preserved after hide failure.
-4. Queue retry for a `SUCCESS` item with `TCT_WINDOW_HIDE_FAILED` performs hide-only retry through the active TCT client and does not start a new import queue or re-import data.
-5. Successful hide-only retry clears the warning and records `window_hidden = true`.
+**Fixes applied** in `tctF13BackfillService.js`:
+1. **Stale/Closed Client Check**: Added check for closed or disconnected client page/context. If the client is stale, it is invalidated in the preflight registry and a fresh client is initiated, ensuring `AUTHENTICATION_REQUIRED` is cleanly returned when manual login is needed.
+2. **Avoid Duplicate Exports**: Before starting the export/filter sequence, the client checks the portal's files list (`/files`). If a file matching the target F1.3 report was generated recently (within the last 15 minutes), the export generation steps are safely skipped and the existing file is downloaded.
+3. **Hard Finalization Hide Failure**: Enforced that `SUCCESS` requires the window to be confirmed hidden. Hide failure now throws a hard `TCT_WINDOW_HIDE_FAILED` error, resulting in a `FAILED` queue item status.
+4. **Preserved Cleanup Evidence**: Fixed the catch-block so that the already computed `temp_file_deleted` status is preserved and not overwritten.
 
 ### 5. LEVEL 1 Targeted Validation
 
 - `node backend\test_tctF13BackfillService.js`: `PASS`
+- `node scratch/test_cleanup_safety.js`: `PASS`
 
-Targeted assertions added:
-- hide failure after completed TCT import preserves `34/34`, database import, Processed-file retention, portal cleanup status, and `temp_file_deleted = true`.
-- hide failure is recorded as operational warning evidence, not as failed import evidence.
-- retry after hide warning invokes only the window-hide operation and does not call the import path again.
+Targeted assertions validated:
+- cleanup success + hide success -> `SUCCESS`
+- cleanup failure -> `FAILED` (`TCT_CLEANUP_FAILED`)
+- cleanup success + hide throws -> `FAILED` (`TCT_WINDOW_HIDE_FAILED`)
+- cleanup success + window remains visible -> `FAILED` (`TCT_WINDOW_HIDE_FAILED`)
+- queue evidence records cleanup and hide results accurately.
 
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-009`.
-- Current phase: `Bounded TCT window-hide data-finalization remediation`.
+- Current phase: `TCT browser lifecycle & retry finalization remediation`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md`.
-- Next action: Product Owner technical/product check for the bounded TCT warning behavior. Do not award PO PASS from Codex.
+- Next action: Product Owner check for TCT browser lifecycle, retry, and hard hide-failure finalization status. Do not award PO PASS from Codex.
 
 ## Priority Deferral
 
