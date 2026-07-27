@@ -51,19 +51,39 @@ We refined the visibility success contract in `nativeWindowManager.js`:
 - Zero windows found is treated as retryable/not-ready (not successful), preventing premature exit of the retry loop.
 
 ### 1. Automated Preflight Checks
-`node test_dkclSessionPreflightService.js` passed successfully.
+`node test_dkclSessionPreflightService.js` and `node test_browserProfileLock.js` passed successfully.
 
-### 2. 5-Cycle Hide/Show Verification
-The smoke test `node smoke_test_hide.js` executed 5 cycles successfully for HUE and TCT:
-- **HUE (Profile Path: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\tmp\HUE)**:
-  - Cycle 1: Windows initially hidden, `alreadyInTargetState = true` (treated as successful). Show restores both HWNDs (71764970, 23331876).
-  - Cycles 2-5: Successfully hides and shows both HWNDs.
-- **TCT (Profile Path: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\tmp\TCT)**:
-  - Cycle 1: Windows initially hidden, `alreadyInTargetState = true` (treated as successful). Show restores both HWNDs (95687474, 71436760).
-  - Cycles 2-5: Successfully hides and shows both HWNDs.
+### 2. 5-Cycle Hide/Show Verification (Smoke test)
+`node smoke_test_hide.js` successfully ran 5/5 cycles for HUE and TCT tmp profiles.
 
-- All 5/5 cycles passed for both HUE and TCT.
-- HUE and TCT profile paths and PID trees are completely isolated.
+### 3. Actual HUE/TCT Operational Profile Validation
+Executed `node scratch/validate_real_profiles.js` to verify behavior using the actual operational directory paths:
+
+#### HUE Profile Evidence
+- **Actual profile path**: `D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\Data DKCL\BrowserProfiles\HUE`
+- **PID tree**:
+  - Root: `25884,75000,78640,40156,47460`
+  - Descendants: `[25884,75000,78640,40156,47460]`
+- **Detected HWNDs**: `[15798240,6099046]`
+- **Manual interaction state**: Windows visible (`VISIBLE`)
+- **Hide state (after F13_READY)**: Both HWNDs hidden successfully (`HIDDEN`), `Hide Success result: true`
+- **Already hidden check**: Returns success `true`, flags: `[true,true]` (no redundant `ShowWindow` calls)
+- **Restore behavior**: Both HWNDs become visible (`VISIBLE`), `Restore success result: true`
+
+#### TCT Profile Evidence
+- **Actual profile path**: `D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\Data DKCL\BrowserProfiles\TCT`
+- **PID tree**:
+  - Root: `65260,34852,97608,59956,71948,54544`
+  - Descendants: `[65260,34852,97608,59956,71948,54544]`
+- **Detected HWNDs**: `[54397962,44108764,28184220]`
+- **Manual interaction state**: Windows visible (`VISIBLE`)
+- **Hide state (after F13_READY)**: All HWNDs hidden successfully (`HIDDEN`), `Hide Success result: true`
+- **Already hidden check**: Returns success `true`, flags: `[true,true,true]`
+
+#### Source Isolation Proof
+- HUE browser is hidden (HUE windows visible = `false`).
+- Restoring TCT browser: TCT windows become visible (`true`) while HUE windows remain hidden (`false`).
+- **SOURCE ISOLATION CONFIRMED**: `true`. HUE and TCT profiles, sessions, PID trees, and HWND ownership are completely isolated.
 
 ## Current Handoff
 
