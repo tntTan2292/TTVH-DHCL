@@ -62,7 +62,16 @@ class TimelineService {
         return calendarData;
     }
 
-    async getQualityTimeline(toDate, ma_bcvh) {
+    _normalizeTimelineMode(mode) {
+        return ['month', 'weekday', 'heatmap'].includes(mode) ? mode : 'all';
+    }
+
+    async getQualityTimeline(toDate, ma_bcvh, options = {}) {
+        const mode = this._normalizeTimelineMode(options.mode);
+        const includeDaily = mode === 'all';
+        const includeWeekly = mode === 'all' || mode === 'weekday';
+        const includeMonthly = mode === 'all' || mode === 'month';
+        const includeHeatmap = mode === 'all' || mode === 'heatmap';
         // Query data for the last 90 days to establish strong patterns
         const endDate = new Date(toDate);
         const startDate = new Date(toDate);
@@ -142,11 +151,11 @@ class TimelineService {
         });
 
         // 1. Daily Timeline (last 30 days only)
-        const dailyTimeline = fullData.slice(-30).map(d => ({
+        const dailyTimeline = includeDaily ? fullData.slice(-30).map(d => ({
             date: d.date,
             kpi_rate: parseFloat(d.kpi_rate.toFixed(2)),
             color: d.kpi_rate >= 70 ? 'green' : (d.kpi_rate >= 60 ? 'pink' : (d.kpi_rate >= 50 ? 'yellow' : 'red'))
-        }));
+        })) : [];
 
         // 2. Weekly Pattern (Average by day of week over 90 days)
         const weekDays = [
@@ -159,20 +168,22 @@ class TimelineService {
             { id: 0, name: 'CN', sum: 0, count: 0, total: 0, passed: 0 }
         ];
 
-        fullData.forEach(d => {
-            if (!d.isEmpty) {
-                const dayOfWeek = new Date(d.date).getDay();
-                const target = weekDays.find(w => w.id === dayOfWeek);
-                if (target) {
-                    target.sum += d.kpi_rate;
-                    target.count += 1;
-                    target.total += Number(d.total || 0);
-                    target.passed += Number(d.passed || 0);
+        if (includeWeekly) {
+            fullData.forEach(d => {
+                if (!d.isEmpty) {
+                    const dayOfWeek = new Date(d.date).getDay();
+                    const target = weekDays.find(w => w.id === dayOfWeek);
+                    if (target) {
+                        target.sum += d.kpi_rate;
+                        target.count += 1;
+                        target.total += Number(d.total || 0);
+                        target.passed += Number(d.passed || 0);
+                    }
                 }
-            }
-        });
+            });
+        }
 
-        const weeklyPattern = weekDays.map(w => {
+        const weeklyPattern = includeWeekly ? weekDays.map(w => {
             const avg = w.count > 0 ? w.sum / w.count : 0;
             return {
                 day: w.name,
@@ -182,12 +193,12 @@ class TimelineService {
                 pass_rate: w.total > 0 ? parseFloat(((w.passed / w.total) * 100).toFixed(2)) : 0,
                 color: avg >= 70 ? 'green' : (avg >= 60 ? 'pink' : (avg >= 50 ? 'yellow' : 'red'))
             };
-        });
+        }) : [];
         // Reorder so T2 is first, CN is last
-        const orderedWeekly = [
+        const orderedWeekly = includeWeekly ? [
             ...weeklyPattern.filter(w => w.day !== 'CN'),
             weeklyPattern.find(w => w.day === 'CN')
-        ];
+        ] : [];
 
         // 3. Monthly Pattern (Average by day of month over 90 days)
         const monthDays = Array.from({ length: 31 }, (_, i) => ({ day: i + 1, sum: 0, count: 0 }));
@@ -213,7 +224,7 @@ class TimelineService {
 
         // 4. Quality Calendar (Heatmap for previous full calendar month and current month to latest data)
         // Group into weeks for easier rendering
-        const calendarData = this._buildHeatmapCalendar(fullData, latestBusinessDate);
+        const calendarData = includeHeatmap ? this._buildHeatmapCalendar(fullData, latestBusinessDate) : [];
 
         const ytdByMonth = ytdRows.reduce((acc, row) => {
             acc[row.month_key] = row;
@@ -274,8 +285,8 @@ class TimelineService {
         return {
             daily: dailyTimeline,
             weekly: orderedWeekly,
-            monthly: monthlyPattern,
-            monthly_ytd: monthlyYtd,
+            monthly: includeMonthly ? monthlyPattern : [],
+            monthly_ytd: includeMonthly ? monthlyYtd : [],
             latest_business_date: latestBusinessDate,
             heatmap: calendarData,
             pulse: pulse

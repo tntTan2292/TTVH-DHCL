@@ -211,6 +211,8 @@ test('component source supports one-mode rendering combo charts and filter propa
   assert.match(source, /role="tabpanel"/);
   assert.match(source, /setActiveTab\(tab\.id\)/);
   assert.match(source, /toDate,\s*\n\s*ma_bcvh: maBcvh/);
+  assert.match(source, /mode:\s*activeTab/);
+  assert.match(source, /\[activeTab, maBcvh, toDate\]/);
   assert.doesNotMatch(source, /from_date:\s*fromDate/);
   assert.match(source, /<ComboChartPanel rows=\{rows\} mode="month" \/>/);
   assert.match(source, /<ComboChartPanel rows=\{rows\} mode="weekday" \/>/);

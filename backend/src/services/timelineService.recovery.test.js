@@ -61,3 +61,12 @@ test('heatmap weekday padding does not create an additional dated month block', 
     assert.deepEqual(monthKeys(calendar), ['2026-07', '2026-08']);
     assert.equal(datedCells(calendar).some((day) => day.date.startsWith('2026-06-')), false);
 });
+
+test('quality timeline mode stays compatible and recognizes lazy-load surfaces', () => {
+    assert.equal(timelineService._normalizeTimelineMode(), 'all');
+    assert.equal(timelineService._normalizeTimelineMode('all'), 'all');
+    assert.equal(timelineService._normalizeTimelineMode('month'), 'month');
+    assert.equal(timelineService._normalizeTimelineMode('weekday'), 'weekday');
+    assert.equal(timelineService._normalizeTimelineMode('heatmap'), 'heatmap');
+    assert.equal(timelineService._normalizeTimelineMode('unknown'), 'all');
+});

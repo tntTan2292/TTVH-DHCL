@@ -336,6 +336,7 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
       params: {
         toDate,
         ma_bcvh: maBcvh,
+        mode: activeTab,
       },
       signal: controller.signal,
     })
@@ -359,7 +360,7 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
     return () => {
       controller.abort();
     };
-  }, [maBcvh, toDate]);
+  }, [activeTab, maBcvh, toDate]);
 
   useEffect(() => loadTimeline(), [loadTimeline]);
 

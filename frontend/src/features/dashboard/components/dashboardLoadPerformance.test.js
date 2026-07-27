@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import test from 'node:test';
+
+const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
+
+test('dashboard initial load keeps one metadata gate and five surface requests', () => {
+  const dashboardSource = read('../DashboardPage.jsx');
+  const bcvhSource = read('./UnifiedBcvhAnalysisTable.jsx');
+  const operatingSource = read('./OperatingPatternTabsCard.jsx');
+  const actionSource = read('./UnifiedActionCenter.jsx');
+
+  const requests = [
+    ...dashboardSource.matchAll(/api\.get\('([^']+)'/g),
+    ...bcvhSource.matchAll(/api\.get\('([^']+)'/g),
+    ...operatingSource.matchAll(/api\.get\('([^']+)'/g),
+    ...actionSource.matchAll(/api\.get\('([^']+)'/g),
+  ].map((match) => match[1]);
+
+  assert.deepEqual(requests.sort(), [
+    '/f13/dashboard/daily-trend',
+    '/f13/dashboard/kpi',
+    '/f13/dashboard/meta',
+    '/f13/dashboard/quality-timeline',
+    '/f13/ranking/bcvh',
+    '/f13/recommendations',
+  ].sort());
+  assert.equal(requests.length, 6);
+  assert.equal((dashboardSource.match(/dashboardReady/g) || []).length > 0, true);
+});
+
+test('operating patterns lazy-loads inactive tabs through compatible timeline mode', () => {
+  const componentSource = read('./OperatingPatternTabsCard.jsx');
+  const controllerSource = read('../../../../../backend/src/controllers/DashboardController.js');
+  const serviceSource = read('../../../../../backend/src/services/timelineService.js');
+
+  assert.match(componentSource, /mode:\s*activeTab/);
+  assert.match(componentSource, /\[activeTab, maBcvh, toDate\]/);
+  assert.match(controllerSource, /const \{ toDate, ma_bcvh, mode \} = req\.query/);
+  assert.match(controllerSource, /getQualityTimeline\(toDate, ma_bcvh, \{ mode \}\)/);
+  assert.match(serviceSource, /_normalizeTimelineMode/);
+  assert.match(serviceSource, /const includeDaily = mode === 'all'/);
+  assert.match(serviceSource, /const includeWeekly = mode === 'all' \|\| mode === 'weekday'/);
+  assert.match(serviceSource, /const includeMonthly = mode === 'all' \|\| mode === 'month'/);
+  assert.match(serviceSource, /const includeHeatmap = mode === 'all' \|\| mode === 'heatmap'/);
+});
