@@ -130,7 +130,7 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md)
+[docs/10_TICKETS/DA-IMPL-008_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md)
 
 ↓
 
@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-009 DEFECT 2 ACTIVE / AUTHORIZED`; `AUTO-IMPORT-008` is closed with all three defects `COMPLETED / PO PASS`; `AUTO-IMPORT-007` remains closed `PO PASS`; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-009 Defect 1, HUE/TCT browser windows may fail to hide after a new login or re-authentication cycle, is `COMPLETED / PO PASS`. AUTO-IMPORT-009 Defect 2, remove the DKCL downloaded-item link/file entry only after the local download has been verified complete and safely claimed, is `ACTIVE / AUTHORIZED`; never delete on failed, incomplete, uncertain, unverified, or unclaimed download, and do not delete the local downloaded file.
+Current active handoff: `DA-IMPL-008 ACTIVE / AUTHORIZED`; `AUTO-IMPORT-009` is `DEFERRED / NOT RESOLVED` and must not be recorded as Defect 2 `PO PASS`; `AUTO-IMPORT-008` and earlier tickets remain closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. AUTO-IMPORT-009 preserved evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass; deferred item: TCT window may remain visible after re-authentication. Current priority is the approved Dashboard overview improvement work under `DA-IMPL-008`; do not implement Dashboard code during this documentation-only transition.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

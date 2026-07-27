@@ -228,7 +228,9 @@ All tickets in the Smart Dashboard sequence are completed:
 - `DA-IMPL-006` - Unified Action Center: `COMPLETED / PO PASS`
 - `DA-IMPL-007` - Smart Dashboard Final Assembly: `COMPLETED / PO PASS`
 
-Active DA Ticket: `None`.
+Active DA Ticket: `DA-IMPL-008`.
+
+Post-closure priority activation: Product Owner decision on `2026-07-27` activated `DA-IMPL-008` for the approved Dashboard overview improvement work after deferring `AUTO-IMPORT-009` as `DEFERRED / NOT RESOLVED`. Do not reopen completed `DA-IMPL-001` through `DA-IMPL-007` tickets.
 
 From DA-IMPL-002 onward, compactness is a cross-ticket Dashboard acceptance constraint. At the desktop reference viewport `1440x900`, the primary leadership summary should be visible within the first viewport, and the final Dashboard direction target of no more than approximately two vertical viewports has been preserved.
 

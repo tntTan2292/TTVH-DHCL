@@ -5,10 +5,10 @@
 - Ticket: `AUTO-IMPORT-009`
 - Ticket name: `Auto Import Browser And DKCL Cleanup Remediation`
 - Phase: `DEFECT 2 - DKCL DOWNLOADED-ITEM LINK/FILE ENTRY REMOVAL AFTER SAFE CLAIM`
-- Current state: `ACTIVE / DEFECT 2 AUTHORIZED`
-- Technical status: `TECHNICAL PASS`
-- Runtime status: `PASS`
-- PO product status: `DEFECT 1 PO PASS; DEFECT 2 READY FOR PO CHECK`
+- Current state: `DEFERRED / NOT RESOLVED`
+- Technical status: `PARTIAL PASS / DEFERRED`
+- Runtime status: `PARTIAL PASS / DEFERRED`
+- PO product status: `DEFECT 1 PO PASS; DEFECT 2 NOT PO PASS; TCT WINDOW-HIDE DEFERRED / NOT RESOLVED`
 
 ## Closure Preservation
 
@@ -22,15 +22,17 @@
 | Order | PO-confirmed defect | Status | Authorization |
 | --- | --- | --- | --- |
 | 1 | HUE/TCT browser windows may fail to hide after a new login or re-authentication cycle. | `COMPLETED` | `PO PASS` |
-| 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `READY FOR PO` | `AUTHORIZED` |
+| 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `DEFERRED / NOT RESOLVED` | `NOT PO PASS` |
 
-## Current Authorized Defect
+## Deferred Item
 
-Defect 2 implementation is completed.
+Product Owner stopped further remediation of the TCT window-hide issue for now.
 
-Handling goal: remove the corresponding downloaded item/link entry from DKCL only after the local file has been successfully verified and claimed by the import workflow.
+Exact deferred item: TCT window may remain visible after re-authentication.
 
-Primary executor: `Antigravity`.
+Preserved pass evidence: import, portal cleanup, WEB cleanup status, and local Processed retention pass.
+
+`AUTO-IMPORT-009` Defect 2 is not `PO PASS`.
 
 ## Implementation & Validation Evidence
 
@@ -71,9 +73,18 @@ Additionally, a **silent early hide** at the readiness check point (`await hideW
 
 ## Current Handoff
 
-- Current ticket: `AUTO-IMPORT-009`.
-- Current phase: `DEFECT 2 - DKCL DOWNLOADED-ITEM LINK/FILE ENTRY REMOVAL AFTER SAFE CLAIM`.
-- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
-- Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md`.
-- Next action: WAITING FOR PRODUCT OWNER REVIEW (Defect 2 Final PO PASS / Ticket Closure).
+- Current ticket: `DA-IMPL-008`.
+- Current phase: `Dashboard overview improvement`.
+- Current manifest: `docs/10_TICKETS/DA-IMPL-008_MANIFEST.md`.
+- Current checkpoint: `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_001.md`.
+- Next action: implement DA-IMPL-008 only.
 
+## Priority Deferral
+
+- `AUTO-IMPORT-009` resulting status is `DEFERRED / NOT RESOLVED`.
+- Defect 2 is not Product Owner `PO PASS`.
+- TCT window-hide remediation is stopped for now.
+- No code, tests, database, Import data, physical files, or Dashboard files were modified by this documentation-only priority transition.
+- `AUTO-IMPORT-008` and earlier tickets remain closed.
+- HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`.
+- HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
