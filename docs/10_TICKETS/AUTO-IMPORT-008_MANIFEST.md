@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-008`
 - Ticket Name: `Auto Import PO Defect Remediation`
 - Phase: `Auto Import / Bounded Remediation`
-- Current State: `ACTIVE / DEFECT 3 AUTHORIZED`
-- Technical Status: `DEFECT 3 NOT STARTED`
-- Runtime Status: `N/A - DEFECT 3 DOCUMENTED ACTIVATION ONLY`
+- Current State: `ACTIVE / DEFECT 3 READY FOR PO CHECK`
+- Technical Status: `DEFECT 3 COMPLETED / TECHNICAL PASS`
+- Runtime Status: `N/A - API/DB HISTORY VALIDATED`
 - PO UI Check Required: `Yes`
-- PO Product Status: `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 AUTHORIZED FOR IMPLEMENTATION`
+- PO Product Status: `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 READY FOR PO CHECK`
 - Current Phase: `DEFECT 3 - HISTORICAL IMPORT HISTORY ROW-COUNT CORRECTION AND RELIABLE HUE SOURCE RECOVERY`
-- Last Reviewed Phase: `AUTO-IMPORT-008 DEFECT 2 PO ACCEPTANCE / DEFECT 3 ACTIVATION`
-- Last Reviewed Commit: `e8930edd0f30ded7ef8b56be6cede7c2cccb25db`
-- Phase Review Status: `ACTIVATED`
-- Next Phase Authorization: `Defect 3 implementation only`
+- Last Reviewed Phase: `AUTO-IMPORT-008 DEFECT 3 TECHNICAL IMPLEMENTATION`
+- Last Reviewed Commit: `pending Defect 3 implementation commit`
+- Phase Review Status: `TECHNICAL PASS / READY FOR PO CHECK`
+- Next Phase Authorization: `None until Defect 3 PO PASS`
 - Activation date: `2026-07-26`
 - Primary executor: `Codex for Import History database/history evidence, bounded correction logic, reliable HUE source recovery, and targeted tests`
 
@@ -49,15 +49,15 @@ Remediate the three Product Owner-confirmed Auto Import defects one at a time, p
 | --- | --- | --- | --- |
 | 1 | HUE and TCT login/browser windows are not hidden reliably. | `COMPLETED` | `PO PASS` |
 | 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `COMPLETED` | `PO PASS` |
-| 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. Reliable HUE source recovery is required where source evidence is authoritative. | `ACTIVE` | `AUTHORIZED FOR IMPLEMENTATION` |
+| 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. Reliable HUE source recovery is required where source evidence is authoritative. | `TECHNICAL PASS / READY FOR PO CHECK` | `AWAITING PO CHECK` |
 
 ## Current Authorized Defect
 
-Defect 3 is the only authorized implementation scope.
+Defect 3 implementation is technically complete and awaiting Product Owner check.
 
-Expected outcome: historical Import History row-count evidence is corrected only within Defect 3 authority, and reliable HUE source recovery is performed only when authoritative evidence supports it.
+Technical result: historical HUE source presentation is recovered only where per-import `import_log.total_records` deterministically matches `fact_f13` business-date evidence. Separate same-date TCT `34`-row records remain TCT, unresolved ambiguous low-count rows remain unchanged/UNKNOWN, and synthetic `2098` records are documented as test/anomaly records without guessing.
 
-Executor boundary: primary executor is `Codex` because the active defect concerns Import History database/history evidence, API/service mapping, targeted data correction authority, and validation. Do not infer missing source or row-count evidence from unreliable filename text alone.
+Dry-run database repair found `55` low-count candidates and `0` authorized deterministic `import_log` row-count writes, so no operational database correction was applied.
 
 ## Completed Defects
 
@@ -101,6 +101,6 @@ For Defect 3 implementation after activation:
 
 ## Completion And Handoff
 
-`AUTO-IMPORT-008` remains active until Defect 3 is handled and receives separate Product Owner `PO PASS`.
+`AUTO-IMPORT-008` remains active until Defect 3 receives separate Product Owner `PO PASS`.
 
 After Defect 3 `PO PASS`, this ticket can be closed if no new Product Owner-authorized Auto Import remediation remains.

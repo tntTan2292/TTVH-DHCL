@@ -184,7 +184,23 @@ class ImportController {
                         SELECT COUNT(*)
                         FROM fact_f13_national national
                         WHERE national.ngay_do_kiem = log.ngay_do_kiem
-                    ) AS tct_national_row_count
+                    ) AS tct_national_row_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM fact_f13 fact_same_date
+                        WHERE fact_same_date.ngay_do_kiem = log.ngay_do_kiem
+                    ) AS same_date_fact_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM import_log peer
+                        WHERE peer.ngay_do_kiem = log.ngay_do_kiem
+                          AND peer.status IN ('SUCCESS', 'FILE_MOVE_FAILED')
+                          AND peer.total_records = (
+                              SELECT COUNT(*)
+                              FROM fact_f13 fact_same_date
+                              WHERE fact_same_date.ngay_do_kiem = log.ngay_do_kiem
+                          )
+                    ) AS matching_hue_import_count
                  FROM import_log log
                  LEFT JOIN fact_f13 fact ON fact.import_log_id = log.id
                  GROUP BY

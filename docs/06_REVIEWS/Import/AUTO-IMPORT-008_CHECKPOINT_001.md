@@ -5,10 +5,10 @@
 - Ticket: `AUTO-IMPORT-008`
 - Ticket name: `Auto Import PO Defect Remediation`
 - Phase: `DEFECT 3 - HISTORICAL IMPORT HISTORY ROW-COUNT CORRECTION AND RELIABLE HUE SOURCE RECOVERY`
-- Current state: `ACTIVE / DEFECT 3 AUTHORIZED`
-- Technical status: `DEFECT 3 NOT STARTED`
-- Runtime status: `N/A - DEFECT 3 DOCUMENTED ACTIVATION ONLY`
-- PO product status: `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 AUTHORIZED FOR IMPLEMENTATION`
+- Current state: `ACTIVE / DEFECT 3 READY FOR PO CHECK`
+- Technical status: `DEFECT 3 COMPLETED / TECHNICAL PASS`
+- Runtime status: `N/A - API/DB HISTORY VALIDATED`
+- PO product status: `DEFECT 1 PO PASS; DEFECT 2 PO PASS; DEFECT 3 READY FOR PO CHECK`
 - Authority: Product Owner decision on `2026-07-26` authorized a new bounded Auto Import remediation ticket after completed `AUTO-IMPORT-007`; Product Owner decision on `2026-07-27` accepted Defect 1 as `PO PASS` and activated Defect 2; Product Owner decision on `2026-07-27` accepted Defect 2 as `PO PASS` and activated Defect 3.
 
 ## Closure Preservation
@@ -25,13 +25,13 @@
 | --- | --- | --- | --- |
 | 1 | HUE and TCT login/browser windows are not hidden reliably. | `COMPLETED` | `PO PASS` |
 | 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `COMPLETED` | `PO PASS` |
-| 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. Reliable HUE source recovery is required where source evidence is authoritative. | `ACTIVE` | `AUTHORIZED FOR IMPLEMENTATION` |
+| 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. Reliable HUE source recovery is required where source evidence is authoritative. | `TECHNICAL PASS / READY FOR PO CHECK` | `AWAITING PO CHECK` |
 
 ## Current Authorized Defect
 
-Defect 3 only is authorized.
+Defect 3 implementation is technically complete and awaiting Product Owner check.
 
-Handling goal: correct historical Import History row-count evidence and recover reliable HUE source identification only where authoritative evidence supports it, while preserving accepted Import behavior, physical files, locked data, and all closed ticket states.
+Handling result: historical Import History now recovers reliable HUE source presentation only where authoritative count evidence supports it, while preserving accepted Import behavior, physical files, locked data, and all closed ticket states.
 
 Primary executor: `Codex`, because the active defect concerns Import History database/history evidence, API/service mapping, targeted data correction authority, and validation.
 
@@ -118,13 +118,48 @@ Executed `node scratch/validate_real_profiles.js` to verify behavior using the a
 - HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`.
 - HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
 
+## Defect 3 Implementation & Validation Evidence
+
+### Technical Fix
+- Extended Import History API history evidence with same-date `fact_f13` count and matching HUE import count.
+- Updated Import History presentation so historical HUE rows are recovered as HUE only when the row's own `total_records` is greater than `34`, equals same-date `fact_f13` count, and exactly one same-date import log has that matching count.
+- TCT `34`-row records with processed TCT evidence remain TCT, even when original filename and business date match a HUE record.
+- Low-count records without deterministic HUE import evidence remain unchanged/UNKNOWN.
+- Synthetic `2098` business-date records are treated as test/anomaly records; they are preserved and not guessed unless linked `fact_f13.import_log_id` evidence exists.
+
+### Database Correction Finding
+- Dry-run repair scan: `55` low-count Import History candidates, `0` authorized deterministic row-count writes, `55` preserved.
+- Reason: linked HUE rows with low counts already matched their linked `fact_f13` rows; most `34`-row historical candidates share the same business date with multiple imports and therefore cannot be corrected from business-date totals without cross-contaminating HUE and TCT records.
+- No `--apply` database repair was run.
+- No `import_log`, `fact_f13`, `fact_f13_national`, Dashboard data, or physical files were modified.
+
+### Targeted Before/After Evidence
+- Same filename/date `F1.3-2026.07.20.xlsx`:
+  - HUE record `id=565` presents source `HUE`, total rows `4372`, evidence `FACT_F13_IMPORT_LOG_LINK`.
+  - TCT records `id=566` and `id=714` present source `TCT`, total rows `34`, evidence `PROCESSED_TCT_PATH`.
+- Same filename/date `F1.3-2026.07.16.xlsx`:
+  - TCT records `id=569` and `id=731` remain source `TCT`, total rows `34`.
+- Synthetic `2098` examples:
+  - `id=704` and `id=706` are HUE only because linked `fact_f13.import_log_id` evidence exists.
+  - `id=705` and `id=709` remain `UNKNOWN`.
+
+### Targeted Validation
+- `node backend/test_importHistoryPresenter.js` PASS.
+- `node backend/test_importHistoryDefect3Recovery.js` PASS.
+- `node backend/repair_import_history_defect3.js` DRY_RUN PASS: `candidateCount=55`, `correctionCount=0`, `preservedCount=55`.
+- `node -c backend/src/controllers/importController.js` PASS.
+- `node -c backend/src/services/importHistoryPresenter.js` PASS.
+- `node -c backend/src/services/importHistoryDefect3Recovery.js` PASS.
+- `node -c backend/repair_import_history_defect3.js` PASS.
+- Direct read-only Import History controller call PASS for representative HUE/TCT/2098 records.
+
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-008`.
 - Current phase: `DEFECT 3 - HISTORICAL IMPORT HISTORY ROW-COUNT CORRECTION AND RELIABLE HUE SOURCE RECOVERY`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md`.
-- Next action: IMPLEMENT DEFECT 3.
+- Next action: PRODUCT OWNER CHECK for Defect 3.
 - Defect 1 final status: `COMPLETED / PO PASS`.
 - Defect 2 final status: `COMPLETED / PO PASS`.
-- Defect 3 activation status: `ACTIVE / AUTHORIZED`.
+- Defect 3 status: `TECHNICAL PASS / READY FOR PO CHECK`.

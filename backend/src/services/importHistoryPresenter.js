@@ -16,7 +16,9 @@ function basenameOrNull(value) {
 
 function buildEvidenceMessage({ source, reason, missingEvidence }) {
     if (source === 'HUE') {
-        return 'HUE identified from linked fact_f13 import evidence.';
+        return reason === 'FACT_F13_BUSINESS_DATE_COUNT_MATCH'
+            ? 'HUE identified from deterministic fact_f13 business-date count evidence.'
+            : 'HUE identified from linked fact_f13 import evidence.';
     }
     if (source === 'TCT') {
         return reason === 'PROCESSED_TCT_PATH'
@@ -31,12 +33,25 @@ function resolveImportHistorySource(row = {}) {
     const hasTctNationalEvidence = row.status === 'SUCCESS' && positiveCount(row.tct_national_row_count);
     const hasHueProcessedPath = Boolean(row.hue_processed_path);
     const hasTctProcessedPath = Boolean(row.tct_processed_path);
+    const totalRows = Number(row.total_records || 0);
+    const sameDateFactCount = Number(row.same_date_fact_count || 0);
+    const matchingHueImportCount = Number(row.matching_hue_import_count || 0);
 
     if (hasHueFactEvidence) {
         return {
             source: 'HUE',
             source_label: 'HUE',
             evidence_reason: 'FACT_F13_IMPORT_LOG_LINK',
+            evidence_path: row.hue_processed_path || null,
+            missing_evidence: null
+        };
+    }
+
+    if (totalRows > 34 && sameDateFactCount === totalRows && matchingHueImportCount === 1) {
+        return {
+            source: 'HUE',
+            source_label: 'HUE',
+            evidence_reason: 'FACT_F13_BUSINESS_DATE_COUNT_MATCH',
             evidence_path: row.hue_processed_path || null,
             missing_evidence: null
         };

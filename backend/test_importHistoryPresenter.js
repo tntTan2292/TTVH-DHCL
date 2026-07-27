@@ -45,6 +45,37 @@ function runTests() {
     assert.equal(tct.standardized_filename, identicalFilename);
     assert.notEqual(hue.source, tct.source, 'identical filenames remain distinguishable by source evidence');
 
+    const historicalHue = presentImportHistoryRow(baseRow({
+        id: 13,
+        file_name: identicalFilename,
+        total_records: 4372,
+        error_records: 0,
+        skipped_records: 0,
+        hue_fact_count: 0,
+        same_date_fact_count: 4372,
+        matching_hue_import_count: 1,
+        tct_national_row_count: 34,
+        tct_processed_path: `D:\\Data DKCL\\F1.3\\Processed\\TCT\\${identicalFilename}`
+    }));
+    assert.equal(historicalHue.source, 'HUE');
+    assert.equal(historicalHue.total_rows, 4372);
+    assert.equal(historicalHue.evidence_reason, 'FACT_F13_BUSINESS_DATE_COUNT_MATCH');
+
+    const historicalTct = presentImportHistoryRow(baseRow({
+        id: 14,
+        file_name: identicalFilename,
+        total_records: 34,
+        error_records: 0,
+        skipped_records: 0,
+        hue_fact_count: 0,
+        same_date_fact_count: 4372,
+        matching_hue_import_count: 1,
+        tct_national_row_count: 34,
+        tct_processed_path: `D:\\Data DKCL\\F1.3\\Processed\\TCT\\${identicalFilename}`
+    }));
+    assert.equal(historicalTct.source, 'TCT');
+    assert.equal(historicalTct.total_rows, 34);
+
     const unknown = presentImportHistoryRow(baseRow({
         id: 12,
         file_name: 'TCT-looking-name.xlsx',
