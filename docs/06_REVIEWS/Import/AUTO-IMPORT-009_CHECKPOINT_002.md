@@ -41,18 +41,21 @@ Primary executor: `Antigravity`.
    - Returns `{ status: 'ALREADY_DELETED' }` gracefully if the row is not found, making cleanup retries idempotent.
    - Throws `CLEANUP_ROW_NOT_FOUND` if multiple matching rows are found, preventing cross-deletion.
 4. In `tctF13BackfillService.js`, `dkclHueF13SyncService.js` and `dkclHueF13BackfillService.js`:
-   - Mapped `temp_file_deleted` dynamically based on portal cleanup status (`SUCCESS` or `ALREADY_DELETED`).
+   - Mapped `temp_file_deleted` dynamically based on portal cleanup status (`SUCCESS`, `ALREADY_DELETED`, or `DELETED`).
    - Assured that failed or unexecuted cleanups show up as `false` ("Không") while successful or idempotent ones show up as `true` ("Có").
 5. In `dkclHueF13PortalClient.js` (`openF13Report`):
    - Wait for either report filters (`select[name="TuyChonGR"]`) or login controls (`input[name="login"]`) to be attached, resolving the redirect race condition when sessions are expired.
    - Properly halts with `AUTHENTICATION_REQUIRED` if redirected to login, preventing `FILTER_NOT_FOUND`.
+6. In `tctF13BackfillService.js` (`runOneDateImport`):
+   - Hides the browser window after the import and portal cleanup attempts are executed.
+   - Throws a `TCT_CLEANUP_FAILED` error if the portal cleanup fails or is skipped, ensuring the task status is set to `FAILED` instead of silently reporting a full success.
 
 ### 1. Automated Preflight Checks
 `node test_dkclSessionPreflightService.js`, `node test_browserProfileLock.js` and `node test_tctF13BackfillService.js` passed successfully.
 
 ### 2. Safety Contract Verification Tests
 Executed safety verification tests:
-- `node scratch/test_cleanup_safety.js` (Checks deferred cleanup and idempotency): **PASSED**
+- `node scratch/test_cleanup_safety.js` (Checks deferred cleanup, idempotency, and cleanup failure throws): **PASSED**
 - `node scratch/test_redirect_race.js` (Checks redirect race resolution and AUTHENTICATION_REQUIRED on expired sessions): **PASSED**
 
 ## Current Handoff

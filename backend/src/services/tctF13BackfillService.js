@@ -755,7 +755,18 @@ class TctF13BackfillService {
             downloadedPath = null;
             const portalCleanup = await this.cleanupPortalGeneratedFile(client, generatedFile);
             evidence.portal_cleanup_status = portalCleanup?.status || null;
-            const temp_file_deleted = portalCleanup && (portalCleanup.status === 'SUCCESS' || portalCleanup.status === 'ALREADY_DELETED');
+            const temp_file_deleted = portalCleanup && (portalCleanup.status === 'SUCCESS' || portalCleanup.status === 'ALREADY_DELETED' || portalCleanup.status === 'DELETED');
+
+            // Hide the window after F13_READY and import/cleanup attempts
+            const hideWindowFn = client.hideWindow || client.hideBrowserWindow;
+            await hideWindowFn?.call(client).catch(() => {});
+
+            if (!temp_file_deleted) {
+                const error = new Error(`TCT portal cleanup failed or was not executed. Status: ${portalCleanup?.status}`);
+                error.code = 'TCT_CLEANUP_FAILED';
+                throw error;
+            }
+
             return {
                 ...evidence,
                 queue_id: queueId,

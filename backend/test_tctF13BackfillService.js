@@ -395,7 +395,7 @@ function removeDirEventually(dir) {
     const replaced = await replaceService.runOneDateImport('2026-07-18', 'queue-replace');
     assert.strictEqual(importCalls[0].forceReimport, true, 'incomplete rows are safely replaced during retry');
     assert.strictEqual(replaced.replaced_incomplete_evidence, true, 'evidence marks incomplete replacement');
-    assert.strictEqual(replaced.temp_file_deleted, false, 'successful import does not delete local evidence');
+    assert.strictEqual(replaced.temp_file_deleted, true, 'successful import deletes portal temp entry');
     assert.strictEqual(replaced.local_file_retained, true, 'successful import retains local processed evidence');
     assert.strictEqual(replaced.processed_filename, 'F1.3-2026.07.18.xlsx', 'processed TCT workbook is standardized');
     assert.strictEqual(replaced.source_original_filename, 'valid.xlsx', 'TCT evidence retains original portal filename');
