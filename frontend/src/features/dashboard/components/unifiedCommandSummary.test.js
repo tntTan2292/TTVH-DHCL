@@ -16,7 +16,9 @@ test('unified command summary builds four leadership cards without standalone fa
       available: true,
       rank: 14,
       total: 34,
-      period: '2026-06-28',
+      period: '2026-07-15',
+      period_start: '2026-07-15',
+      period_end: '2026-07-15',
       metric_label: 'Tỷ lệ PTC/nộp tiền đúng QĐ theo chỉ tiêu 2026',
     },
   }, {
@@ -29,13 +31,57 @@ test('unified command summary builds four leadership cards without standalone fa
   assert.equal(cards.length, 4);
   assert.equal(cards[1].value, '14/34');
   assert.match(cards[1].support, /Kỳ đang chọn: 2026-07-15/);
-  assert.match(cards[1].support, /dữ liệu toàn quốc gần nhất: 2026-06-28/);
+  assert.match(cards[1].support, /kỳ xếp hạng: 2026-07-15/);
   assert.equal(cards[3].value, '1.037');
   assert.deepEqual(cards.map((card) => card.question), ['Chất lượng', 'Vị thế toàn quốc', 'Quy mô', 'Cần xử lý']);
   assert.match(cards[2].support, /3 bưu gửi chuyển hoàn/);
   assert.match(cards[3].support, /Kèm 3 chuyển hoàn/);
   assert.equal(cards.filter((card) => card.label === 'Tỷ lệ không đạt').length, 0);
   assert.equal(cards[3].tone, 'danger');
+});
+
+test('unified command summary labels nationwide rank for the exact selected range', () => {
+  const cards = buildUnifiedCommandCards({
+    total_bg: 3677,
+    total_failed: 1037,
+    passed_rate: 67.2,
+    national_rank: {
+      available: true,
+      rank: 18,
+      total: 34,
+      period: '2026-07-10..2026-07-19',
+      period_start: '2026-07-10',
+      period_end: '2026-07-19',
+      period_type: 'selected_range',
+    },
+  }, {
+    fromDate: '2026-07-10',
+    toDate: '2026-07-19',
+    bcvhLabel: 'Tất cả BCVH',
+  });
+
+  const insight = buildExecutiveInsight({
+    total_bg: 3677,
+    total_failed: 1037,
+    passed_rate: 67.2,
+    national_rank: {
+      available: true,
+      rank: 18,
+      total: 34,
+      period_start: '2026-07-10',
+      period_end: '2026-07-19',
+    },
+  }, {
+    fromDate: '2026-07-10',
+    toDate: '2026-07-19',
+    bcvhLabel: 'Tất cả BCVH',
+  });
+
+  assert.equal(cards[1].value, '18/34');
+  assert.match(cards[1].support, /Kỳ đang chọn: 2026-07-10 đến 2026-07-19/);
+  assert.match(cards[1].support, /kỳ xếp hạng: 2026-07-10 đến 2026-07-19/);
+  assert.match(insight, /kỳ xếp hạng toàn quốc 2026-07-10 đến 2026-07-19/);
+  assert.doesNotMatch(cards[1].support, /gần nhất/);
 });
 
 test('measurement composition equation is preserved for aggregate data', () => {
@@ -135,7 +181,7 @@ test('executive insight is grounded, compact and keeps unknown data distinct', (
     total_failed: 9,
     total_unknown: 2,
     passed_rate: 89,
-    national_rank: { available: true, rank: 14, total: 34, period: '2026-06-28' },
+    national_rank: { available: true, rank: 14, total: 34, period: '2026-07-15', period_start: '2026-07-15', period_end: '2026-07-15' },
   }, {
     fromDate: '2026-07-15',
     toDate: '2026-07-15',
@@ -154,7 +200,7 @@ test('aggregate filter wording uses selected scope language instead of treating 
     total_bg: 3677,
     total_failed: 1037,
     passed_rate: 67.2,
-    national_rank: { available: true, rank: 14, total: 34, period: '2026-06-28' },
+    national_rank: { available: true, rank: 14, total: 34, period: '2026-07-15', period_start: '2026-07-15', period_end: '2026-07-15' },
   }, {
     fromDate: '2026-07-15',
     toDate: '2026-07-15',
@@ -176,5 +222,5 @@ test('dashboard page removes duplicate KPI grid and executive summary presentati
   assert.doesNotMatch(dashboardSource, /<KPICard/);
   assert.match(dataSource, /Bưu gửi cần xử lý/);
   assert.match(commandSource, /Chuyển hoàn được giữ riêng/);
-  assert.match(commandSource, /nationalRank\.period/);
+  assert.match(commandSource, /nationalRankPeriod/);
 });

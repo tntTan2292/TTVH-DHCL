@@ -3,6 +3,14 @@ const formatRate = (value) => `${Number(value || 0).toFixed(2)}%`;
 const hasValue = (source, key) => Object.prototype.hasOwnProperty.call(source, key) && source[key] !== null && source[key] !== undefined;
 const getApiCount = (source, key) => (hasValue(source, key) ? Number(source[key]) : null);
 
+function formatRankPeriod(rank) {
+  if (!rank?.available) return null;
+  if (rank.period_start && rank.period_end && rank.period_start !== rank.period_end) {
+    return `${rank.period_start} đến ${rank.period_end}`;
+  }
+  return rank.period_end || rank.period || null;
+}
+
 export function buildMeasurementComposition(kpiData = {}) {
   const total = getApiCount(kpiData, 'total_bg') ?? 0;
   const passed = getApiCount(kpiData, 'total_passed') ?? 0;
@@ -38,6 +46,8 @@ function buildSummaryModel(kpiData = {}, context = {}) {
     ? (context.fromDate === context.toDate ? context.toDate : `${context.fromDate} đến ${context.toDate}`)
     : 'kỳ đã chọn';
 
+  const rankPeriod = formatRankPeriod(rank);
+
   return {
     total,
     passedRate,
@@ -46,6 +56,7 @@ function buildSummaryModel(kpiData = {}, context = {}) {
     returned,
     composition,
     rank,
+    rankPeriod,
     scope,
     range,
   };
@@ -59,7 +70,7 @@ export function buildExecutiveInsight(kpiData = {}, context = {}) {
   }
 
   const rankText = model.rank?.available
-    ? ` Xếp hạng toàn quốc ${model.rank.rank}/${model.rank.total}; kỳ đang chọn ${model.range}, dữ liệu toàn quốc gần nhất ${model.rank.period}.`
+    ? ` Xếp hạng toàn quốc ${model.rank.rank}/${model.rank.total}; kỳ xếp hạng toàn quốc ${model.rankPeriod || model.range}.`
     : ' Chưa có dữ liệu xếp hạng toàn quốc.';
   const returnedText = model.returned > 0 ? ` Có ${formatCount(model.returned)} bưu gửi chuyển hoàn.` : '';
   const mismatchText = model.composition.matches ? '' : ` Cần kiểm tra hợp đồng dữ liệu: Đạt + Không đạt + Chuyển hoàn = ${formatCount(model.composition.calculated_total)}, khác tổng mẫu đo kiểm ${formatCount(model.composition.total_measurement_sample)}.`;
@@ -86,7 +97,7 @@ export function buildUnifiedCommandCards(kpiData = {}, context = {}) {
       label: 'Xếp hạng toàn quốc',
       value: model.rank?.available ? `${model.rank.rank}/${model.rank.total}` : '--',
       support: model.rank?.available
-        ? `Kỳ đang chọn: ${model.range}; dữ liệu toàn quốc gần nhất: ${model.rank.period}`
+        ? `Kỳ đang chọn: ${model.range}; kỳ xếp hạng: ${model.rankPeriod || model.range}`
         : 'Chưa có dữ liệu xếp hạng toàn quốc',
       tone: 'comparison',
     },

@@ -45,6 +45,9 @@ export default function UnifiedCommandSummary({
   const cards = buildUnifiedCommandCards(kpiData || {}, summaryContext);
   const insight = buildExecutiveInsight(kpiData || {}, summaryContext);
   const nationalRank = kpiData?.national_rank;
+  const nationalRankPeriod = nationalRank?.period_start && nationalRank?.period_end && nationalRank.period_start !== nationalRank.period_end
+    ? `${nationalRank.period_start} đến ${nationalRank.period_end}`
+    : nationalRank?.period_end || nationalRank?.period;
   const returnedCount = Number(kpiData?.total_returned ?? kpiData?.total_unknown ?? 0);
 
   return (
@@ -58,7 +61,7 @@ export default function UnifiedCommandSummary({
         </div>
         {nationalRank?.available ? (
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-            Xếp hạng theo kỳ toàn quốc {nationalRank.period}
+            Xếp hạng theo kỳ toàn quốc {nationalRankPeriod}
           </span>
         ) : null}
       </div>

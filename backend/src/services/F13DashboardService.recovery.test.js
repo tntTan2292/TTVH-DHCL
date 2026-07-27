@@ -149,6 +149,49 @@ test('dashboard KPI comparison contract keeps both comparisons unavailable when 
   }
 });
 
+test('dashboard KPI passes selected date range to nationwide ranking summary', async () => {
+  const original = repo.getKpiMetrics;
+  const originalNationalRank = service._getNationalRankSummary;
+  let rankCall = null;
+
+  repo.getKpiMetrics = async () => ({ total_bg: 100, total_passed: 80, total_failed: 20 });
+  service._getNationalRankSummary = async (startDate, endDate) => {
+    rankCall = { startDate, endDate };
+    return {
+      available: true,
+      rank: 2,
+      total: 34,
+      period: `${startDate}..${endDate}`,
+      period_start: startDate,
+      period_end: endDate,
+      period_type: 'selected_range',
+    };
+  };
+
+  try {
+    const result = await service.getDashboardKpi('2026-07-10', '2026-07-19', {});
+
+    assert.deepEqual(rankCall, { startDate: '2026-07-10', endDate: '2026-07-19' });
+    assert.equal(result.national_rank.period_start, '2026-07-10');
+    assert.equal(result.national_rank.period_end, '2026-07-19');
+  } finally {
+    repo.getKpiMetrics = original;
+    service._getNationalRankSummary = originalNationalRank;
+  }
+});
+
+test('nationwide ranking contract uses exact selected date or cumulative selected range without latest fallback', () => {
+  const source = fs.readFileSync(require.resolve('./F13DashboardService'), 'utf8');
+
+  assert.match(source, /_getNationalRankSummary\(startDate, endDate\)/);
+  assert.match(source, /_getNationalRankForDate\(endDate, provinceCode\)/);
+  assert.match(source, /_getNationalRankForRange\(startDate, endDate, provinceCode\)/);
+  assert.match(source, /WHERE ngay_do_kiem BETWEEN \? AND \?/);
+  assert.match(source, /SUM\(sl_ptc_dung_qd_ct\) \* 1\.0 \/ NULLIF\(SUM\(sl_bg_ptc\), 0\)/);
+  assert.doesNotMatch(source, /WHERE ngay_do_kiem <= \?/);
+  assert.match(source, /await this\._getNationalRankSummary\(startDate, endDate\)/);
+});
+
 test('dashboard controller forwards ma_bcvh to the KPI service path', async () => {
   const original = service.getDashboardKpi;
   let captured = null;

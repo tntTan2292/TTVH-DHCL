@@ -169,31 +169,76 @@ class F13DashboardService {
         };
     }
 
-    async _getNationalRankSummary(endDate) {
-        const provinceCode = await this._getDefaultProvinceCode();
-        const latestRow = await get(`
-            SELECT MAX(ngay_do_kiem) as period
+    async _getNationalRankForRange(startDate, endDate, provinceCode) {
+        const rows = await all(`
+            SELECT
+                ma_tinh_phat,
+                ten_tinh_phat,
+                SUM(sl_bg_ptc) as sl_bg_ptc,
+                SUM(sl_ptc_dung_qd_ct) as sl_ptc_dung_qd_ct
             FROM fact_f13_national
-            WHERE ngay_do_kiem <= ?
-        `, [endDate]);
+            WHERE ngay_do_kiem BETWEEN ? AND ?
+            GROUP BY ma_tinh_phat, ten_tinh_phat
+            HAVING SUM(sl_bg_ptc) > 0
+            ORDER BY
+                (SUM(sl_ptc_dung_qd_ct) * 1.0 / NULLIF(SUM(sl_bg_ptc), 0)) DESC,
+                SUM(sl_bg_ptc) DESC
+        `, [startDate, endDate]);
 
-        if (!latestRow?.period) {
+        if (!rows.length) return null;
+
+        const index = rows.findIndex(row => row.ma_tinh_phat === provinceCode);
+        if (index < 0) return null;
+
+        const province = rows[index];
+        const volume = Number(province.sl_bg_ptc || 0);
+        const passed = Number(province.sl_ptc_dung_qd_ct || 0);
+
+        return {
+            available: true,
+            rank: index + 1,
+            total: rows.length,
+            period: startDate === endDate ? endDate : `${startDate}..${endDate}`,
+            period_start: startDate,
+            period_end: endDate,
+            period_type: startDate === endDate ? 'single_date' : 'selected_range',
+            province_code: province.ma_tinh_phat,
+            province_name: province.ten_tinh_phat,
+            metric: 'tl_ptc_dung_qd_ct',
+            metric_label: 'Tỷ lệ PTC/nộp tiền đúng QĐ theo chỉ tiêu 2026',
+            metric_value: this._calculateRate(passed, volume),
+            volume,
+            passed,
+            direction: 'desc',
+            tie_behavior: 'Thứ tự theo tỷ lệ giảm dần, sau đó theo sản lượng giảm dần; không gộp đồng hạng.'
+        };
+    }
+
+    async _getNationalRankSummary(startDate, endDate) {
+        const provinceCode = await this._getDefaultProvinceCode();
+
+        if (!this._isIsoDate(startDate) || !this._isIsoDate(endDate) || startDate > endDate) {
             return {
                 available: false,
                 message: 'Chưa có dữ liệu xếp hạng toàn quốc',
                 province_code: provinceCode,
-                requested_period: endDate
+                requested_period: endDate,
+                requested_period_start: startDate,
+                requested_period_end: endDate
             };
         }
 
-        const current = await this._getNationalRankForDate(latestRow.period, provinceCode);
+        const current = startDate === endDate
+            ? await this._getNationalRankForDate(endDate, provinceCode)
+            : await this._getNationalRankForRange(startDate, endDate, provinceCode);
         if (!current) {
             return {
                 available: false,
                 message: 'Chưa có dữ liệu xếp hạng toàn quốc',
                 province_code: provinceCode,
-                period: latestRow.period,
-                requested_period: endDate
+                requested_period: endDate,
+                requested_period_start: startDate,
+                requested_period_end: endDate
             };
         }
 
@@ -201,7 +246,7 @@ class F13DashboardService {
             SELECT MAX(ngay_do_kiem) as period
             FROM fact_f13_national
             WHERE ngay_do_kiem < ?
-        `, [latestRow.period]);
+        `, [startDate === endDate ? endDate : startDate]);
         const previous = previousRow?.period
             ? await this._getNationalRankForDate(previousRow.period, provinceCode)
             : null;
@@ -209,6 +254,8 @@ class F13DashboardService {
         return {
             ...current,
             requested_period: endDate,
+            requested_period_start: startDate,
+            requested_period_end: endDate,
             previous_period: previous?.period || null,
             previous_rank: previous?.rank || null,
             movement: previous ? previous.rank - current.rank : null
@@ -249,7 +296,7 @@ class F13DashboardService {
             const result = await factBuuGuiRepo.getKpiMetrics(startDate, endDate, {
                 bcvhId: normalizedBcvh
             });
-            const nationalRank = normalizedBcvh ? null : await this._getNationalRankSummary(endDate);
+            const nationalRank = normalizedBcvh ? null : await this._getNationalRankSummary(startDate, endDate);
             const comparisons = await this._getDashboardComparisons(endDate, normalizedBcvh);
 
             if (!result || result.total_bg === 0) {

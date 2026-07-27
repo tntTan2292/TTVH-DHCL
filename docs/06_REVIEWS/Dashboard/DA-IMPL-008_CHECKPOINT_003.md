@@ -4,9 +4,9 @@
 
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `003 - Full two-month Heatmap and weekday labels`
-- Current state: `READY FOR PO CHECK`
+- Current state: `READY FOR PO CHECK - RUNTIME RETEST DEFERRED`
 - Technical status: `PASS`
-- Runtime status: `TARGETED SOURCE/UNIT VALIDATION PASS`
+- Runtime status: `TARGETED SOURCE/UNIT VALIDATION PASS; RUNTIME RETEST DEFERRED - DO NOT RESTART BACKEND WHILE TCT IMPORT IS RUNNING`
 - PO UI check required: `Yes`
 - PO product status: `WAITING FOR PO CHECK`
 
@@ -62,6 +62,8 @@ Use the normal Dashboard review URL and select the `Heatmap` tab inside `Quy luá
 
 ## Handoff
 
-This checkpoint is ready for Product Owner visible UI check.
+This checkpoint remains ready for Product Owner visible UI check.
+
+Product Owner decision recorded on `2026-07-27`: keep Checkpoint 003 at `READY FOR PO CHECK - RUNTIME RETEST DEFERRED`. Do not restart backend while TCT Import is running.
 
 Do not mark Checkpoint 003 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.

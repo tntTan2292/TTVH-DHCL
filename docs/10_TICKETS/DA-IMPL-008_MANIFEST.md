@@ -4,10 +4,10 @@
 - Ticket Name: `Dashboard Overview Improvement`
 - Phase: `Smart Leadership Dashboard Implementation`
 - Current state: `ACTIVE / AUTHORIZED`
-- Technical Status: `PASS - CHECKPOINT 003 TARGETED VALIDATION`
-- Runtime Status: `TARGETED SOURCE/UNIT VALIDATION PASS`
+- Technical Status: `PASS - CHECKPOINT 004 LEVEL 2 TARGETED VALIDATION`
+- Runtime Status: `LEVEL 2 TARGETED VALIDATION PASS; CHECKPOINT 003 RUNTIME RETEST DEFERRED - DO NOT RESTART BACKEND WHILE TCT IMPORT IS RUNNING`
 - PO UI Check Required: `Yes`
-- PO Product Status: `CHECKPOINT 002 PO PASS; CHECKPOINT 003 READY FOR PO CHECK`
+- PO Product Status: `CHECKPOINT 002 PO PASS; CHECKPOINT 003 READY FOR PO CHECK - RUNTIME RETEST DEFERRED; CHECKPOINT 004 READY FOR PO CHECK`
 - Activation authority: Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6` and returned priority to the previously approved Dashboard overview improvement work.
 - Activation date: `2026-07-27`
 - Primary executor: `Codex for the next Dashboard defect remediation`
@@ -21,7 +21,7 @@ Required onboarding chain:
 3. `docs/10_TICKETS/DA-IMPL-008_MANIFEST.md`
 4. Required Reading from this manifest
 
-Current checkpoint: `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_003.md`
+Current checkpoint: `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_004.md`
 
 Required Reading:
 
@@ -29,6 +29,7 @@ Required Reading:
 - `docs/04_TECHNICAL_PLANNING/Dashboard/DA_IMPLEMENTATION_TICKET_REGISTER.md`
 - `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_002.md`
 - `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_003.md`
+- `docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_004.md`
 
 ## Authority
 
