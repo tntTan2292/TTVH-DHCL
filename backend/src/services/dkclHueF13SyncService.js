@@ -450,9 +450,17 @@ class DkclHueF13SyncService {
         if (!portalClient.deleteGeneratedFile) return;
 
         try {
-            await portalClient.deleteGeneratedFile(generatedFile);
+            const cleanupResult = await portalClient.deleteGeneratedFile(generatedFile);
+            const status = cleanupResult?.status || 'SUCCESS';
+            const temp_file_deleted = status === 'SUCCESS' || status === 'ALREADY_DELETED';
+            this.updateRun(run, {
+                portal_cleanup_status: status,
+                temp_file_deleted
+            });
         } catch (error) {
             this.updateRun(run, {
+                portal_cleanup_status: 'FAILED',
+                temp_file_deleted: false,
                 cleanupWarning: safeErrorMessage(error) || 'Portal export cleanup failed.'
             });
             this.logger.warn?.(`[DKCL_HUE_F13_SYNC] ${run.runId} cleanup warning: ${run.cleanupWarning}`);

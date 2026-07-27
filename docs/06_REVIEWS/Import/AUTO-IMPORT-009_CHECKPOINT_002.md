@@ -40,15 +40,20 @@ Primary executor: `Antigravity`.
 3. In `dkclHueF13PortalClient.js` (`deleteGeneratedFile`):
    - Returns `{ status: 'ALREADY_DELETED' }` gracefully if the row is not found, making cleanup retries idempotent.
    - Throws `CLEANUP_ROW_NOT_FOUND` if multiple matching rows are found, preventing cross-deletion.
+4. In `tctF13BackfillService.js`, `dkclHueF13SyncService.js` and `dkclHueF13BackfillService.js`:
+   - Mapped `temp_file_deleted` dynamically based on portal cleanup status (`SUCCESS` or `ALREADY_DELETED`).
+   - Assured that failed or unexecuted cleanups show up as `false` ("Không") while successful or idempotent ones show up as `true` ("Có").
 
 ### 1. Automated Preflight Checks
-`node test_dkclSessionPreflightService.js` and `node test_browserProfileLock.js` passed successfully.
+`node test_dkclSessionPreflightService.js`, `node test_browserProfileLock.js` and `node test_tctF13BackfillService.js` passed successfully.
 
 ### 2. Safety Contract Verification Tests
 Executed `node scratch/test_cleanup_safety.js` which verifies the following safety behaviors:
 - HUE deferred cleanup on successful import & preservation on failure: **PASSED**
+- HUE `temp_file_deleted` is `true` on successful cleanup & `false` on failure: **PASSED**
 - TCT deferred cleanup on successful import & preservation on failure: **PASSED**
-- Portal client idempotence (graceful handle of already-deleted file): **PASSED**
+- TCT `temp_file_deleted` is `true` on successful cleanup & `false` on failure: **PASSED**
+- Portal client idempotence (graceful handle of `ALREADY_DELETED` returns `temp_file_deleted` as `true`): **PASSED**
 - Cross-deletion prevention (throws error if multiple rows match the filename): **PASSED**
 
 ## Current Handoff

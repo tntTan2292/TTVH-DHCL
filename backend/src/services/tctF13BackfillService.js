@@ -755,10 +755,11 @@ class TctF13BackfillService {
             downloadedPath = null;
             const portalCleanup = await this.cleanupPortalGeneratedFile(client, generatedFile);
             evidence.portal_cleanup_status = portalCleanup?.status || null;
+            const temp_file_deleted = portalCleanup && (portalCleanup.status === 'SUCCESS' || portalCleanup.status === 'ALREADY_DELETED');
             return {
                 ...evidence,
                 queue_id: queueId,
-                temp_file_deleted: false
+                temp_file_deleted
             };
         } catch (error) {
             error.evidence = {

@@ -563,7 +563,9 @@ class DkclHueF13BackfillService {
             success_log_count: dbEvidence.successLogCount,
             error_log_count: dbEvidence.errorLogCount,
             error_code: ['FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(context.status) ? context.errorCode : null,
-            error_message: ['FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(context.status) ? context.errorMessage : null
+            error_message: ['FAILED', 'AUTHENTICATION_REQUIRED', 'STOPPED'].includes(context.status) ? context.errorMessage : null,
+            temp_file_deleted: run?.temp_file_deleted ?? false,
+            portal_cleanup_status: run?.portal_cleanup_status || null
         }, {
             source: 'HUE',
             report: queue.report,
