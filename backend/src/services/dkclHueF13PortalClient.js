@@ -593,12 +593,11 @@ class DkclHueF13PortalClient {
 
     async downloadXlsx({ file, targetDir }) {
         fs.mkdirSync(targetDir, { recursive: true });
-        const locator = this.page.locator(`a[href="${file.href}"]`);
-        if (await locator.count() !== 1) {
-            throw portalError('Generated XLSX download button was not found uniquely.', 'XLSX_DOWNLOAD_NOT_FOUND');
-        }
         const downloadPromise = this.page.waitForEvent('download', { timeout: 120000 });
-        await locator.click();
+        const downloadUrl = file.href.startsWith('http') ? file.href : `${this.baseUrl}${file.href}`;
+        await this.page.evaluate((url) => {
+            window.location.href = url;
+        }, downloadUrl);
         const download = await downloadPromise;
         const targetPath = path.join(targetDir, file.filename);
         await download.saveAs(targetPath);
