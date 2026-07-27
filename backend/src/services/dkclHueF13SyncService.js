@@ -373,8 +373,6 @@ class DkclHueF13SyncService {
                 status: STATUSES.VALIDATING
             });
 
-            await this.cleanupPortalExport(run, generatedFile, portalClient);
-
             const validation = this.validateWorkbook(stablePath, Number(confirmedTotal));
             this.updateRun(run, { workbookRowCount: validation.rowCount });
 
@@ -397,6 +395,7 @@ class DkclHueF13SyncService {
             }
 
             const final = await this.verifyImport(run.measurementDate, run.standardizedFilename, validation.rowCount);
+            await this.cleanupPortalExport(run, generatedFile, portalClient);
             this.updateRun(run, {
                 status: STATUSES.SUCCESS,
                 endTime: this.clock().toISOString(),

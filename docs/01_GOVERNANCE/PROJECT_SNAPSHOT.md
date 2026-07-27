@@ -23,12 +23,12 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Last PO Status | `AUTO-IMPORT-008 remains closed PO PASS; AUTO-IMPORT-009 Defect 1 completed PO PASS; Defect 2 active authorized` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_001.md` |
+| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md` |
 | Current State | `ACTIVE / DEFECT 2 AUTHORIZED` |
-| Technical Status | `NOT STARTED` |
-| Runtime Status | `N/A - ACTIVATION ONLY` |
+| Technical Status | `TECHNICAL PASS` |
+| Runtime Status | `PASS` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `AUTO-IMPORT-009 DEFECT 1 PO PASS; DEFECT 2 AUTHORIZED` |
+| PO Product Status | `AUTO-IMPORT-009 DEFECT 1 PO PASS; DEFECT 2 READY FOR PO CHECK` |
 | Last Reviewed Phase | `AUTO-IMPORT-009 DEFECT 1 PO ACCEPTANCE / DEFECT 2 ACTIVATION` |
 | Last Reviewed Commit | `9b0fc0951b1eb7a2179b64c9daf40d6ca2a6a3b5` |
 | Phase Review Status | `ACTIVE / AUTHORIZED` |
