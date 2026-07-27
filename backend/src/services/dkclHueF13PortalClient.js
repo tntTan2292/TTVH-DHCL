@@ -295,7 +295,14 @@ class DkclHueF13PortalClient {
             timeout: 60000
         });
         await this.stopForSecurityChallenge({ allowHrm: false });
-        if (this.page.url().includes('/login')) {
+
+        // Wait for either the F1.3 report controls or the login inputs to be attached
+        await Promise.race([
+            this.page.waitForSelector('select[name="TuyChonGR"], select#TuyChonGR', { state: 'attached', timeout: 20000 }).catch(() => null),
+            this.page.waitForSelector('input[name="login"], input[id="login"], input[type="password"]', { state: 'attached', timeout: 20000 }).catch(() => null)
+        ]);
+
+        if (this.page.url().includes('/login') || await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count() > 0) {
             throw portalError('AUTHENTICATION_REQUIRED: login required', 'AUTHENTICATION_REQUIRED');
         }
     }

@@ -43,18 +43,17 @@ Primary executor: `Antigravity`.
 4. In `tctF13BackfillService.js`, `dkclHueF13SyncService.js` and `dkclHueF13BackfillService.js`:
    - Mapped `temp_file_deleted` dynamically based on portal cleanup status (`SUCCESS` or `ALREADY_DELETED`).
    - Assured that failed or unexecuted cleanups show up as `false` ("Không") while successful or idempotent ones show up as `true` ("Có").
+5. In `dkclHueF13PortalClient.js` (`openF13Report`):
+   - Wait for either report filters (`select[name="TuyChonGR"]`) or login controls (`input[name="login"]`) to be attached, resolving the redirect race condition when sessions are expired.
+   - Properly halts with `AUTHENTICATION_REQUIRED` if redirected to login, preventing `FILTER_NOT_FOUND`.
 
 ### 1. Automated Preflight Checks
 `node test_dkclSessionPreflightService.js`, `node test_browserProfileLock.js` and `node test_tctF13BackfillService.js` passed successfully.
 
 ### 2. Safety Contract Verification Tests
-Executed `node scratch/test_cleanup_safety.js` which verifies the following safety behaviors:
-- HUE deferred cleanup on successful import & preservation on failure: **PASSED**
-- HUE `temp_file_deleted` is `true` on successful cleanup & `false` on failure: **PASSED**
-- TCT deferred cleanup on successful import & preservation on failure: **PASSED**
-- TCT `temp_file_deleted` is `true` on successful cleanup & `false` on failure: **PASSED**
-- Portal client idempotence (graceful handle of `ALREADY_DELETED` returns `temp_file_deleted` as `true`): **PASSED**
-- Cross-deletion prevention (throws error if multiple rows match the filename): **PASSED**
+Executed safety verification tests:
+- `node scratch/test_cleanup_safety.js` (Checks deferred cleanup and idempotency): **PASSED**
+- `node scratch/test_redirect_race.js` (Checks redirect race resolution and AUTHENTICATION_REQUIRED on expired sessions): **PASSED**
 
 ## Current Handoff
 
