@@ -232,14 +232,23 @@ class BrowserProcessManager {
             }
 
             if (!visible) {
-                if (result.success) {
+                const recordedHwnds = this.hiddenHwndsByProfile.get(normalizedProfileDir) || [];
+                const currentHwndsSet = new Set((result.windows || []).map(w => w.hwnd));
+                const validRecordedHwnds = recordedHwnds.filter(hwnd => currentHwndsSet.has(hwnd));
+
+                const alreadyHasRecord = validRecordedHwnds.length > 0;
+                const actuallyHidVisibleWindow = (result.windows || []).some(w => w.wasVisible && !w.isVisible);
+                const isReliableHide = alreadyHasRecord || actuallyHidVisibleWindow;
+
+                if (result.success && isReliableHide) {
                     const hiddenHwnds = (result.windows || [])
                         .filter((win) => win.wasVisible && !win.isVisible)
                         .map((win) => win.hwnd);
                     if (hiddenHwnds.length > 0) {
-                        const existing = this.hiddenHwndsByProfile.get(normalizedProfileDir) || [];
-                        const merged = Array.from(new Set([...existing, ...hiddenHwnds]));
+                        const merged = Array.from(new Set([...validRecordedHwnds, ...hiddenHwnds]));
                         this.hiddenHwndsByProfile.set(normalizedProfileDir, merged);
+                    } else if (validRecordedHwnds.length > 0) {
+                        this.hiddenHwndsByProfile.set(normalizedProfileDir, validRecordedHwnds);
                     }
                     
                     return {
@@ -307,6 +316,11 @@ class BrowserProcessManager {
         return this.setBrowserWindowsVisibleByProfile(profileDir, true);
     }
 
+    clearHiddenHwnds(profileDir) {
+        const normalizedProfileDir = path.resolve(profileDir).toLowerCase();
+        this.hiddenHwndsByProfile.delete(normalizedProfileDir);
+    }
+
     async terminateProcessTree(pid) {
         try {
             if (process.platform === 'win32') {
@@ -346,9 +360,11 @@ const defaultInstance = new BrowserProcessManager();
 
 module.exports = {
     BrowserProcessManager,
+    defaultInstance,
     findBrowserProcessByProfile: defaultInstance.findBrowserProcessByProfile.bind(defaultInstance),
     terminateProcessTree: defaultInstance.terminateProcessTree.bind(defaultInstance),
     cleanupStaleLocks: defaultInstance.cleanupStaleLocks.bind(defaultInstance),
     hideBrowserWindowsByProfile: defaultInstance.hideBrowserWindowsByProfile.bind(defaultInstance),
-    showBrowserWindowsByProfile: defaultInstance.showBrowserWindowsByProfile.bind(defaultInstance)
+    showBrowserWindowsByProfile: defaultInstance.showBrowserWindowsByProfile.bind(defaultInstance),
+    clearHiddenHwnds: defaultInstance.clearHiddenHwnds.bind(defaultInstance)
 };

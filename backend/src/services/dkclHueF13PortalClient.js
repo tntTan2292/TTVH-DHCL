@@ -128,6 +128,9 @@ class DkclHueF13PortalClient {
             await this.context.close().catch(() => {});
             this.context = null;
         }
+        if (this.profileDir) {
+            processManager.clearHiddenHwnds?.(this.profileDir);
+        }
         if (this.lockDir && this.fs.existsSync(this.lockDir)) {
             this.fs.rmSync(this.lockDir, { recursive: true, force: true });
         }
@@ -142,6 +145,7 @@ class DkclHueF13PortalClient {
     async prepareInteractiveAuthentication({ baseUrl, profileDir }) {
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
         this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), `../Data DKCL/BrowserProfiles/${this.source}`));
+        processManager.clearHiddenHwnds?.(this.profileDir);
         this.acquireProfileLock();
         const { chromium } = this.playwright || loadPlaywright();
         const launchPromise = chromium.launchPersistentContext(this.profileDir, { headless: false, acceptDownloads: true });

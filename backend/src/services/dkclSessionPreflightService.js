@@ -235,6 +235,8 @@ class DkclSessionPreflightService {
                 message: `Phiên DKCL ${sourceConfig.displayName} hợp lệ. Tác vụ nền có thể tiếp tục.`
             };
         } catch (error) {
+            const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+            processManager.clearHiddenHwnds?.(profileDir);
             const status = error?.code === 'AUTHENTICATION_REQUIRED'
                 ? PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED
                 : PREFLIGHT_STATUSES.SESSION_CHECK_FAILED;
@@ -293,6 +295,7 @@ class DkclSessionPreflightService {
             });
 
             const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+            processManager.clearHiddenHwnds?.(profileDir);
 
             // R4.1A Automatic Reconciliation
             const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
