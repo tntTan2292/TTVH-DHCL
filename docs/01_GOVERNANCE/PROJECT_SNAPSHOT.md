@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-IMPORT-008 DEFECT 1` |
+| Current Phase | `AUTO-IMPORT-008 DEFECT 2` |
 | Current Ticket | `AUTO-IMPORT-008` |
-| Next Ticket | `AUTO-IMPORT-008 Defect 2 after Defect 1 PO PASS` |
-| Last PO Status | `AUTO-IMPORT-007 remains closed PO PASS; AUTO-IMPORT-008 activated for Defect 1 only` |
+| Next Ticket | `AUTO-IMPORT-008 Defect 3 after Defect 2 PO PASS` |
+| Last PO Status | `AUTO-IMPORT-007 remains closed PO PASS; AUTO-IMPORT-008 Defect 1 completed PO PASS; Defect 2 activated` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / DEFECT 1 AUTHORIZED` |
-| Technical Status | `COMPLETED / TECHNICAL PASS` |
-| Runtime Status | `COMPLETED / RUNTIME PASS` |
+| Current State | `ACTIVE / DEFECT 2 AUTHORIZED` |
+| Technical Status | `DEFECT 2 NOT STARTED` |
+| Runtime Status | `N/A - DEFECT 2 DOCUMENTED ACTIVATION ONLY` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO CHECK` |
-| Last Reviewed Phase | `AUTO-IMPORT-008 ACTIVATION` |
-| Last Reviewed Commit | `this activation commit` |
+| PO Product Status | `DEFECT 1 PO PASS; DEFECT 2 AUTHORIZED FOR IMPLEMENTATION` |
+| Last Reviewed Phase | `AUTO-IMPORT-008 DEFECT 1 PO ACCEPTANCE / DEFECT 2 ACTIVATION` |
+| Last Reviewed Commit | `206d64a78ae13ef7bf6dc93bf3a9fce0efc1ee5c` |
 | Phase Review Status | `ACTIVATED` |
-| Next Phase Authorization | `Defect 1 implementation only` |
+| Next Phase Authorization | `Defect 2 implementation only` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-07-26` |
+| Last Updated | `2026-07-27` |
 
 ## 3. Usage Rules
 
@@ -76,7 +76,7 @@ AUTO-IMPORT-007 governance closure: after DKCL/TCT service became available, Pro
 
 Next work boundary: Dashboard defect remediation must start in a fresh conversation and must be based only on the specific Product Owner-provided Dashboard symptom/evidence. Do not perform a broad repository audit, and do not reopen or perform Import remediation unless separately reauthorized. Automatic scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain future unauthorized scope, not current debt.
 
-AUTO-IMPORT-008 activation: Product Owner authorized a new bounded Auto Import remediation phase after completed `AUTO-IMPORT-007`. The next valid sequential Auto Import ticket is `AUTO-IMPORT-008`. It owns three Product Owner-confirmed defects in strict order: 1) HUE and TCT login/browser windows are not hidden reliably; 2) Import History does not clearly distinguish HUE imports from TCT imports; 3) historical Import History row counts are incorrect, with many old records showing fewer than `34` rows while newer corrected imports count correctly. Only Defect 1 is authorized for implementation. Defects 2 and 3 are queued, not authorized, and require separate Product Owner `PO PASS` for the prior defect before activation. `AUTO-IMPORT-007` remains closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
+AUTO-IMPORT-008 transition: Product Owner accepted Defect 1, HUE and TCT login/browser window hide reliability, as `PO PASS` after technical and runtime pass evidence at baseline `206d64a78ae13ef7bf6dc93bf3a9fce0efc1ee5c`. Defect 2, Import History source identification and presentation, is now `ACTIVE / AUTHORIZED` for delta-only implementation. Defect 3, historical Import History row-count correction, remains `QUEUED / NOT AUTHORIZED` and must not be investigated or implemented until Defect 2 receives separate Product Owner `PO PASS`. `AUTO-IMPORT-007` remains closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
 
 TODAY-007 is completed with explicit Product Owner `PO PASS`.
 

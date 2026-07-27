@@ -4,12 +4,12 @@
 
 - Ticket: `AUTO-IMPORT-008`
 - Ticket name: `Auto Import PO Defect Remediation`
-- Phase: `DEFECT 1 - HUE/TCT LOGIN WINDOW HIDE RELIABILITY`
-- Current state: `ACTIVE / DEFECT 1 AUTHORIZED`
+- Phase: `DEFECT 2 - IMPORT HISTORY SOURCE IDENTIFICATION AND PRESENTATION`
+- Current state: `ACTIVE / DEFECT 2 AUTHORIZED`
 - Technical status: `COMPLETED / TECHNICAL PASS`
 - Runtime status: `COMPLETED / RUNTIME PASS`
-- PO product status: `READY FOR PO CHECK`
-- Authority: Product Owner decision on `2026-07-26` authorized a new bounded Auto Import remediation ticket after completed `AUTO-IMPORT-007`.
+- PO product status: `DEFECT 1 PO PASS; DEFECT 2 AUTHORIZED FOR IMPLEMENTATION`
+- Authority: Product Owner decision on `2026-07-26` authorized a new bounded Auto Import remediation ticket after completed `AUTO-IMPORT-007`; Product Owner decision on `2026-07-27` accepted Defect 1 as `PO PASS` and activated Defect 2.
 
 ## Closure Preservation
 
@@ -23,22 +23,21 @@
 
 | Order | PO-confirmed defect | Status | Authorization |
 | --- | --- | --- | --- |
-| 1 | HUE and TCT login/browser windows are not hidden reliably. | `ACTIVE` | `AUTHORIZED FOR IMPLEMENTATION` |
-| 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `QUEUED` | `NOT AUTHORIZED` |
+| 1 | HUE and TCT login/browser windows are not hidden reliably. | `COMPLETED` | `PO PASS` |
+| 2 | Import History does not clearly distinguish HUE imports from TCT imports. | `ACTIVE` | `AUTHORIZED FOR IMPLEMENTATION` |
 | 3 | Historical Import History row counts are incorrect; many old records show fewer than `34` rows while newer corrected imports count correctly. | `QUEUED` | `NOT AUTHORIZED` |
 
 ## Current Authorized Defect
 
-Defect 1 only is authorized.
+Defect 2 only is authorized.
 
-Handling goal: make HUE and TCT login/browser windows hide reliably while preserving existing browser process/session continuity, HUE/TCT profile and HWND separation, accepted Import behavior, and all closed ticket states.
+Handling goal: make Import History clearly identify and present source, report, business date, filenames, status, row counts, and concise evidence/message while preserving accepted Import behavior, physical files, historical data, and all closed ticket states.
 
-Primary executor: `Antigravity`, because the active defect requires real-machine browser/window/runtime verification. Codex may be used only for a bounded code/test sub-scope if ChatGPT coordination assigns it.
+Primary executor: `Codex`, because the active defect concerns Import History contract/API/UI mapping and targeted validation.
 
 ## Queued Defects
 
-- Defect 2 is recorded for later handling only and must not be implemented during Defect 1.
-- Defect 3 is recorded for later handling only and must not be investigated or implemented during Defect 1.
+- Defect 3 is recorded for later handling only and must not be investigated or implemented during Defect 2.
 - Each defect requires separate Product Owner `PO PASS` before the next defect can activate.
 
 ## Implementation & Validation Evidence
@@ -88,9 +87,10 @@ Executed `node scratch/validate_real_profiles.js` to verify behavior using the a
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-008`.
-- Current phase: `DEFECT 1 - HUE/TCT LOGIN WINDOW HIDE RELIABILITY`.
+- Current phase: `DEFECT 2 - IMPORT HISTORY SOURCE IDENTIFICATION AND PRESENTATION`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md`.
-- Next action: WAITING FOR PRODUCT OWNER REVIEW (Defect 1 PO PASS).
-- Defect 2 activation condition: Product Owner `PO PASS` for Defect 1.
+- Next action: IMPLEMENT DEFECT 2 (Import History source identification and presentation).
+- Defect 1 final status: `COMPLETED / PO PASS`.
+- Defect 2 activation status: `ACTIVE / AUTHORIZED`.
 - Defect 3 activation condition: Product Owner `PO PASS` for Defect 2.
