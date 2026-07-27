@@ -434,21 +434,15 @@ function removeDirEventually(dir) {
         })
     });
     hideFailureService.validateWorkbook = replaceService.validateWorkbook;
-    let hideWarningError = null;
-    try {
-        await hideFailureService.runOneDateImport('2026-07-18', 'queue-hide-warning', { refreshRequested: true });
-    } catch (err) {
-        hideWarningError = err;
-    }
-    assert.ok(hideWarningError, 'should throw on hide failure');
-    assert.strictEqual(hideWarningError.code, 'TCT_WINDOW_HIDE_FAILED');
-    const hideWarning = hideWarningError.evidence;
+    const hideWarning = await hideFailureService.runOneDateImport('2026-07-18', 'queue-hide-warning', { refreshRequested: true });
     assert.strictEqual(hideOnlyFailureAttempted, true, 'window hide is still attempted after completed import');
     assert.strictEqual(hideWarning.imported_database_row_count, 34, 'completed database import evidence is preserved');
     assert.strictEqual(hideWarning.parsed_ranked_unit_count, 34, 'completed 34/34 ranked-unit evidence is preserved');
     assert.strictEqual(hideWarning.temp_file_deleted, true, 'successful portal cleanup is not overwritten by hide failure');
     assert.strictEqual(hideWarning.portal_cleanup_status, 'DELETED', 'actual portal cleanup evidence is preserved');
     assert.strictEqual(hideWarning.local_file_retained, true, 'processed workbook retention remains true');
+    assert.strictEqual(hideWarning.window_hidden, false, 'window hide failure is recorded separately');
+    assert.strictEqual(hideWarning.operational_warning_code, 'TCT_WINDOW_HIDE_FAILED', 'hide failure becomes an operational warning');
 
     await assert.rejects(
         () => replaceService.runOneDateImport('2026-07-19', 'queue-complete'),

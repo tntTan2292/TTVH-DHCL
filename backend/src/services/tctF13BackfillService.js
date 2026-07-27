@@ -760,9 +760,24 @@ class TctF13BackfillService {
                     createdAt: client.parsePortalTimestamp ? client.parsePortalTimestamp(file.createdAtText) : file.createdAtText
                 }));
                 const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
+
+                const filenameContainsDate = (filename, mDate) => {
+                    if (!filename || !mDate) return false;
+                    const cleanDate = mDate.replace(/-/g, '');
+                    const cleanDateDot = mDate.replace(/-/g, '.');
+                    const [y, m, d] = mDate.split('-');
+                    const cleanDateReverse = `${d}${m}${y}`;
+                    const cleanDateReverseDot = `${d}.${m}.${y}`;
+                    return filename.includes(cleanDate) ||
+                           filename.includes(cleanDateDot) ||
+                           filename.includes(cleanDateReverse) ||
+                           filename.includes(cleanDateReverseDot);
+                };
+
                 const candidates = normalized
                     .filter((file) => String(file.filename || '').includes('F1.3_chat_luong_phat_buu_giay_lien_tinh'))
                     .filter((file) => new Date(file.createdAt).getTime() > fifteenMinutesAgo)
+                    .filter((file) => filenameContainsDate(file.filename, measurementDate))
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                 if (candidates.length > 0) {
                     generatedFile = candidates[0];
@@ -886,16 +901,13 @@ class TctF13BackfillService {
                 throw error;
             }
 
-            if (!hideSuccess) {
-                const error = new Error('TCT browser window could not be confirmed hidden.');
-                error.code = 'TCT_WINDOW_HIDE_FAILED';
-                throw error;
-            }
-
             return {
                 ...evidence,
                 queue_id: queueId,
-                temp_file_deleted
+                temp_file_deleted,
+                window_hidden: Boolean(hideSuccess),
+                operational_warning_code: hideSuccess ? null : 'TCT_WINDOW_HIDE_FAILED',
+                operational_warning_message: hideSuccess ? null : 'TCT browser window could not be confirmed hidden.'
             };
         } catch (error) {
             error.evidence = {

@@ -73,45 +73,41 @@ Additionally, a **silent early hide** at the readiness check point (`await hideW
 1. Removed the pre-export silent-swallow hide at the F13-readiness checkpoint.
 2. Before the finalization hide, explicitly call `processManager.clearHiddenHwnds(client.profileDir)` to flush any stale HWND records so the subsequent `hideWindow()` performs a fresh live scan of currently owned windows in the active PID tree.
 
-### 4. Bounded TCT browser/session lifecycle & retry finalization remediation
+### 4. TCT Browser Lifecycle, Safe Reuse & Warning Finalization Remediation
 
-**Root cause confirmed**:
-1. **Disconnected/Closed Page context**: When a TCT page/context became disconnected or was closed by the browser/system, the backfill worker reused the stale registered client instance, leading to Playwright errors like `page.waitForEvent: Target page, context or browser has been closed`.
-2. **Duplicate Exports on Retry**: The retry worker blindly clicked filter/submit buttons and requested new exports even if the TCT export was already generated and visible in the portal's "Quản lý tệp" page.
-3. **Hide failure contract**: The previous implementation recorded hide failure only as a warning, allowing `SUCCESS` to be published despite the window remaining visible. Furthermore, when hide threw an error, it erroneously reset `temp_file_deleted` to `false` in the catch-block.
-
-**Fixes applied** in `tctF13BackfillService.js`:
-1. **Stale/Closed Client Check**: Added check for closed or disconnected client page/context. If the client is stale, it is invalidated in the preflight registry and a fresh client is initiated, ensuring `AUTHENTICATION_REQUIRED` is cleanly returned when manual login is needed.
-2. **Avoid Duplicate Exports**: Before starting the export/filter sequence, the client checks the portal's files list (`/files`). If a file matching the target F1.3 report was generated recently (within the last 15 minutes), the export generation steps are safely skipped and the existing file is downloaded.
-3. **Hard Finalization Hide Failure**: Enforced that `SUCCESS` requires the window to be confirmed hidden. Hide failure now throws a hard `TCT_WINDOW_HIDE_FAILED` error, resulting in a `FAILED` queue item status.
-4. **Preserved Cleanup Evidence**: Fixed the catch-block so that the already computed `temp_file_deleted` status is preserved and not overwritten.
+**Root cause analysis & fixes**:
+1. **Browser/Session Disconnection**: When page/context was closed or disconnected, we now detect it via `client.page.isClosed()`, invalidate the stale preflight registry entry, and cleanly recover or throw `AUTHENTICATION_REQUIRED`.
+2. **Safe TCT Tệp Tạm Reuse**: Reusing an existing file is now strictly constrained. The system checks the files list `/files` for files generated within the last 15 minutes, but strictly validates they contain the targeted `measurementDate` in a deterministic format (`YYYYMMDD`, `YYYY.MM.DD`, `DDMMYYYY`, or `DD.MM.YYYY`). Ambiguous files or wrong business dates are never reused, falling back safely to the governed generation path.
+3. **Restored Warning Finalization Contract**: As approved in the repository authority chain, when data import and portal cleanup succeed but only the final window hiding fails, the system returns `SUCCESS` with an operational warning (`operational_warning_code: 'TCT_WINDOW_HIDE_FAILED'`, `window_hidden: false`). This prevents blocking success finalization for data operations.
+4. **Preserved Cleanup Evidence**: The catch block preserves the computed `temp_file_deleted` status instead of blindly resetting it to `false`.
+5. **Hide-only Retry**: A hide-only Retry performs zero export/download/import operations, safely targeting only the window visibility.
 
 ### 5. LEVEL 1 Targeted Validation
 
 - `node backend\test_tctF13BackfillService.js`: `PASS`
 - `node scratch/test_cleanup_safety.js`: `PASS`
+- `node scratch/test_tct_remediation.js` (Targeted suite): `PASS`
 
 Targeted assertions validated:
-- cleanup success + hide success -> `SUCCESS`
-- cleanup failure -> `FAILED` (`TCT_CLEANUP_FAILED`)
-- cleanup success + hide throws -> `FAILED` (`TCT_WINDOW_HIDE_FAILED`)
-- cleanup success + window remains visible -> `FAILED` (`TCT_WINDOW_HIDE_FAILED`)
-- queue evidence records cleanup and hide results accurately.
+- Stale client detected -> registry invalidated -> `AUTHENTICATION_REQUIRED` cleanly returned.
+- Exact date match reused -> new export skipped.
+- Ambiguous/wrong date files -> new export safely generated.
+- Hide-only retry -> zero export/download/import calls executed.
+- completed import + hide failure -> `SUCCESS` with `TCT_WINDOW_HIDE_FAILED` warning.
+- portal cleanup status is accurately preserved.
 
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-009`.
-- Current phase: `TCT browser lifecycle & retry finalization remediation`.
+- Current phase: `TCT browser lifecycle, safe reuse, and warning finalization remediation`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md`.
-- Next action: Product Owner check for TCT browser lifecycle, retry, and hard hide-failure finalization status. Do not award PO PASS from Codex.
+- Next action: Product Owner check for TCT browser lifecycle, safe reuse, and warning finalization status. Do not award PO PASS from Codex.
 
 ## Priority Deferral
 
-- `AUTO-IMPORT-009` resulting status is `READY FOR PO CHECK` for the bounded TCT remediation only.
-- Defect 2 is not Product Owner `PO PASS`.
-- TCT window-hide remediation is technically complete for the data-finalization warning behavior, pending Product Owner check.
-- No database, Import data, physical files, or Dashboard files were modified by this remediation.
-- `AUTO-IMPORT-008` and earlier tickets remain closed.
+- `AUTO-IMPORT-009` resulting status is `READY FOR PO CHECK`.
+- Defect 2 is not Product Owner `PO PASS` yet.
+- TCT window-hide remediation is technically complete, pending Product Owner check.
 - HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`.
 - HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
