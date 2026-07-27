@@ -692,8 +692,6 @@ class TctF13BackfillService {
                 error.readiness = readiness || null;
                 throw error;
             }
-            const hideWindow = client.hideWindow || client.hideBrowserWindow;
-            await hideWindow?.call(client).catch(() => {});
             const exportRequestedAt = this.clock();
             try {
                 await this.requestSummaryExport(client);
@@ -757,12 +755,20 @@ class TctF13BackfillService {
             evidence.portal_cleanup_status = portalCleanup?.status || null;
             const temp_file_deleted = portalCleanup && (portalCleanup.status === 'SUCCESS' || portalCleanup.status === 'ALREADY_DELETED' || portalCleanup.status === 'DELETED');
 
-            // Hide the window after F13_READY and import/cleanup attempts
+            // Hide the window after F13_READY and import/cleanup attempts.
+            // Clear the HWND cache first so a fresh re-authentication session
+            // performs a live scan instead of re-using stale handles from a
+            // prior session that may have already been restored.
             const hideWindowFn = client.hideWindow || client.hideBrowserWindow;
             if (!hideWindowFn) {
                 const error = new Error('TCT window hide capability is missing.');
                 error.code = 'TCT_WINDOW_HIDE_FAILED';
                 throw error;
+            }
+
+            if (client.profileDir) {
+                const { defaultInstance: pm } = require('./browserProcessManager');
+                pm.clearHiddenHwnds?.(client.profileDir);
             }
 
             let hideSuccess = false;

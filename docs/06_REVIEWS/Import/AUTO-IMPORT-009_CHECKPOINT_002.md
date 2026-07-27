@@ -59,10 +59,21 @@ Executed safety verification tests:
 - `node scratch/test_cleanup_safety.js` (Checks deferred cleanup, idempotency, cleanup failure throws, and strict window hide validation): **PASSED**
 - `node scratch/test_redirect_race.js` (Checks redirect race resolution and AUTHENTICATION_REQUIRED on expired sessions): **PASSED**
 
+### 3. Re-authentication Lifecycle Remediation (Final Defect 2 Fix)
+
+**Root cause confirmed**: After re-authentication, the `globalRegistry` interactive client has a fresh browser/PID/HWND but the `browserProcessManager.hiddenHwndsByProfile` HWND cache still contains entries from the **previous session** that was restored to the screen for operator interaction. When finalization called `hideWindowFn`, `processManager` saw `alreadyHasRecord = true` (from stale cache), treated the hide as successful without targeting any live window — so the visible window was never hidden.
+
+Additionally, a **silent early hide** at the readiness check point (`await hideWindow?.call(client).catch(() => {})`) was writing stale HWNDs into the cache before export even started, masking the problem.
+
+**Fix applied** in `tctF13BackfillService.js` (`runOneDateImport`):
+1. Removed the pre-export silent-swallow hide at the F13-readiness checkpoint.
+2. Before the finalization hide, explicitly call `processManager.clearHiddenHwnds(client.profileDir)` to flush any stale HWND records so the subsequent `hideWindow()` performs a fresh live scan of currently owned windows in the active PID tree.
+
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-009`.
 - Current phase: `DEFECT 2 - DKCL DOWNLOADED-ITEM LINK/FILE ENTRY REMOVAL AFTER SAFE CLAIM`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_002.md`.
-- Next action: WAITING FOR PRODUCT OWNER REVIEW (Defect 2 PO PASS / Ticket Closure).
+- Next action: WAITING FOR PRODUCT OWNER REVIEW (Defect 2 Final PO PASS / Ticket Closure).
+
