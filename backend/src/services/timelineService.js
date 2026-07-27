@@ -150,26 +150,31 @@ class TimelineService {
             };
         });
 
-        // 4. Quality Calendar (Heatmap for last 30 days)
+        // 4. Quality Calendar (Heatmap for previous full calendar month and current month to latest data)
         // Group into weeks for easier rendering
         const calendarData = [];
-        const last30 = fullData.slice(-30);
+        const heatmapEndDate = new Date(latestBusinessDate);
+        const heatmapStartDate = new Date(heatmapEndDate.getFullYear(), heatmapEndDate.getMonth() - 1, 1);
+        const heatmapStartStr = heatmapStartDate.toISOString().split('T')[0];
+        const heatmapEndStr = latestBusinessDate;
+        const heatmapRange = fullData.filter(d => d.date >= heatmapStartStr && d.date <= heatmapEndStr);
         let currentWeek = [];
         
         // Pad the first week to start on Monday
-        if (last30.length > 0) {
-            let firstDay = new Date(last30[0].date).getDay();
+        if (heatmapRange.length > 0) {
+            let firstDay = new Date(heatmapRange[0].date).getDay();
             let padDays = firstDay === 0 ? 6 : firstDay - 1;
             for (let i = 0; i < padDays; i++) {
                 currentWeek.push(null);
             }
         }
 
-        last30.forEach((d, index) => {
+        heatmapRange.forEach((d, index) => {
             currentWeek.push({
                 date: d.date,
                 kpi_rate: parseFloat(d.kpi_rate.toFixed(2)),
-                dod: index > 0 && !last30[index-1].isEmpty && !d.isEmpty ? parseFloat((d.kpi_rate - last30[index-1].kpi_rate).toFixed(2)) : 0,
+                dod: index > 0 && !heatmapRange[index-1].isEmpty && !d.isEmpty ? parseFloat((d.kpi_rate - heatmapRange[index-1].kpi_rate).toFixed(2)) : 0,
+                is_empty: Boolean(d.isEmpty),
                 color: d.isEmpty ? 'gray' : (d.kpi_rate >= 70 ? 'green' : (d.kpi_rate >= 60 ? 'pink' : (d.kpi_rate >= 50 ? 'yellow' : 'red')))
             });
             if (currentWeek.length === 7) {
@@ -214,6 +219,7 @@ class TimelineService {
             color: 'gray'
         };
 
+        const last30 = fullData.slice(-30);
         if (last30.length >= 6) {
             const validLast30 = last30.filter(d => !d.isEmpty);
             if (validLast30.length >= 6) {

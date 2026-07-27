@@ -4,11 +4,11 @@
 
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `002 - Integrated Trend full-width remediation`
-- Current state: `READY FOR PO CHECK`
+- Current state: `COMPLETED / PO PASS`
 - Technical status: `PASS`
 - Runtime status: `TARGETED SOURCE/UNIT VALIDATION PASS`
 - PO UI check required: `Yes`
-- PO product status: `WAITING FOR PO CHECK`
+- PO product status: `PO PASS`
 
 ## Product Owner Decision
 
@@ -56,8 +56,6 @@ Use the Dashboard URL for the normal DA-IMPL-008 review context.
 
 ## Handoff
 
-This checkpoint is ready for Product Owner visible UI check.
+Product Owner accepted this checkpoint as `PO PASS`.
 
-Do not mark DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.
-
-Do not start remaining DA-IMPL-008 checkpoints yet.
+Next authorized work: `DA-IMPL-008 CHECKPOINT 003 - Full two-month Heatmap and weekday labels`.

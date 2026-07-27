@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict';
+﻿import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import {
@@ -6,6 +6,7 @@ import {
   OPERATING_PATTERN_TABS,
   buildHeatmapMonthStats,
   buildGroundedOperatingPatternSummary,
+  HEATMAP_WEEKDAY_LABELS,
   getApprovedWeekdayBand,
   getHeatmapRelativeBand,
   hasUsableModeData,
@@ -28,7 +29,7 @@ const sampleTimeline = {
     { date: '2026-07-16', kpi_rate: 87.4, dod: -2.1 },
   ]],
   pulse: {
-    text: 'Dữ liệu nhịp chất lượng từ API.',
+    text: 'Dá»¯ liá»‡u nhá»‹p cháº¥t lÆ°á»£ng tá»« API.',
     color: 'blue',
   },
 };
@@ -50,7 +51,7 @@ test('maps weekly monthly YTD and heatmap values from quality timeline response'
   assert.equal(model.month[2].cumulativeLabel, 'Lũy kế đến ngày 16/07/2026');
   assert.equal(model.heatmap[0].days[1].date, '2026-07-15');
   assert.equal(model.heatmap[0].days[1].dayLabel, '15/07');
-  assert.equal(model.pulse.text, 'Dữ liệu nhịp chất lượng từ API.');
+  assert.equal(model.pulse.text, 'Dá»¯ liá»‡u nhá»‹p cháº¥t lÆ°á»£ng tá»« API.');
 });
 
 test('monthly YTD combo data exposes management summary and current-month cutoff', () => {
@@ -118,6 +119,51 @@ test('heatmap month average relative classification uses displayed authoritative
   assert.equal(model.heatmapMonths[0].rangeLabel, 'Từ 01/07/2026 đến 05/07/2026');
 });
 
+test('heatmap groups complete previous month and current month through cutoff with unknown days preserved', () => {
+  const heatmap = [
+    [
+      { date: '2026-06-01', kpi_rate: 80 },
+      { date: '2026-06-02', kpi_rate: 0, is_empty: true, color: 'gray' },
+      { date: '2026-06-03', kpi_rate: 70 },
+      { date: '2026-06-04', kpi_rate: 66 },
+      { date: '2026-06-05', kpi_rate: 60 },
+      { date: '2026-06-06', kpi_rate: 75 },
+      { date: '2026-06-07', kpi_rate: 74 },
+    ],
+    [
+      { date: '2026-06-30', kpi_rate: 90 },
+      { date: '2026-07-01', kpi_rate: 82 },
+      { date: '2026-07-02', kpi_rate: 81 },
+      { date: '2026-07-03', kpi_rate: 80 },
+      { date: '2026-07-04', kpi_rate: 79 },
+      { date: '2026-07-05', kpi_rate: 78 },
+      { date: '2026-07-06', kpi_rate: 77 },
+    ],
+    [
+      { date: '2026-07-16', kpi_rate: 76 },
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+    ],
+  ];
+
+  const model = mapOperatingPatternResponse({ heatmap }, { toDate: '2026-07-16' });
+  assert.deepEqual(model.heatmapMonths.map((month) => month.month), ['2026-06', '2026-07']);
+  assert.equal(model.heatmapMonths[0].days[0].date, '2026-06-01');
+  assert.equal(model.heatmapMonths[0].days.at(-1).date, '2026-06-30');
+  assert.equal(model.heatmapMonths[0].rangeLabel, 'Từ 01/06/2026 đến 30/06/2026');
+  assert.equal(model.heatmapMonths[1].days.at(-1).date, '2026-07-16');
+  assert.equal(model.heatmapMonths[1].rangeLabel, 'Từ 01/07/2026 đến 16/07/2026');
+
+  const unknownDay = model.heatmapMonths[0].days.find((day) => day.date === '2026-06-02');
+  assert.equal(unknownDay.available, false);
+  assert.equal(unknownDay.valueLabel, 'Chưa có dữ liệu');
+  assert.equal(unknownDay.targetTone, 'unavailable');
+});
+
 test('loading empty partial and unavailable mode contracts keep missing values explicit', () => {
   const model = mapOperatingPatternResponse({
     weekly: [{ day: 'T2', avg_kpi: 0, total_volume: 0, pass_rate: 0 }],
@@ -177,10 +223,13 @@ test('component source exposes required legends labels and heatmap month separat
   assert.match(source, /Chú giải màu theo ngưỡng cảnh báo đã phê duyệt/);
   assert.match(source, /So sánh với KPI trung bình tháng/);
   assert.match(source, /KPI trung bình tháng/);
-  assert.match(source, /Ngày tốt nhất/);
-  assert.match(source, /Ngày thấp nhất/);
+  assert.match(source, /Tốt nhất/);
+  assert.match(source, /Thấp nhất/);
   assert.match(source, /Tháng hiện tại/);
   assert.match(source, /month\.rangeLabel/);
+  assert.match(source, /HEATMAP_WEEKDAY_LABELS\.map/);
+  assert.match(source, /min-w-\[420px\]/);
+  assert.deepEqual(HEATMAP_WEEKDAY_LABELS, ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']);
 });
 
 test('component source defines loading empty partial unavailable and API-error states', () => {
@@ -214,4 +263,14 @@ test('weekday cutoffs are approved while heatmap remains relative to monthly ave
   assert.match(mapperSource, /min: 50/);
   assert.match(componentSource, /So sánh với KPI trung bình tháng/);
   assert.doesNotMatch(componentSource, /TCT/);
+});
+
+test('timeline service heatmap uses previous month through latest available date without API contract change', () => {
+  const serviceSource = fs.readFileSync(new URL('../../../../../backend/src/services/timelineService.js', import.meta.url), 'utf8');
+
+  assert.match(serviceSource, /heatmapStartDate/);
+  assert.match(serviceSource, /latestBusinessDate/);
+  assert.match(serviceSource, /heatmapRange/);
+  assert.match(serviceSource, /is_empty: Boolean\(d\.isEmpty\)/);
+  assert.doesNotMatch(serviceSource, /const last30 = fullData\.slice\(-30\);\s*let currentWeek/s);
 });

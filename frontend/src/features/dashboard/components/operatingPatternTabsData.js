@@ -8,6 +8,8 @@ export const OPERATING_PATTERN_TABS = [
 
 export const DEFAULT_OPERATING_PATTERN_TAB = 'month';
 
+export const HEATMAP_WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
 export const APPROVED_WEEKDAY_BANDS = [
   { id: 'green', label: 'Xanh', description: 'KPI từ 70% trở lên', min: 70, max: 100, tone: 'band-green' },
   { id: 'pink', label: 'Hồng', description: 'KPI từ 60% đến dưới 70%', min: 60, max: 70, tone: 'band-pink' },
@@ -193,9 +195,7 @@ export function buildMonthlyManagementSummary(monthRows = []) {
   };
 }
 
-export function mapHeatmapPattern(heatmap = [], preferredMonth = null) {
-  const monthStats = buildHeatmapMonthStats(heatmap, preferredMonth);
-
+export function mapHeatmapPattern(heatmap = []) {
   return heatmap.map((week, weekIndex) => ({
     id: `week-${weekIndex + 1}`,
     days: Array.isArray(week)
@@ -207,8 +207,10 @@ export function mapHeatmapPattern(heatmap = [], preferredMonth = null) {
           };
         }
 
-        const rate = normalizeRate(day.kpi_rate);
+        const unavailable = Boolean(day.is_empty || day.isEmpty || day.color === 'gray');
+        const rate = unavailable ? null : normalizeRate(day.kpi_rate);
         const dod = normalizeRate(day.dod);
+        const monthStats = buildHeatmapMonthStats(heatmap, getMonthKey(day.date));
         const monthAverage = monthStats?.average ?? null;
         const deltaFromMonthAverage = rate !== null && monthAverage !== null
           ? Number((rate - monthAverage).toFixed(2))
@@ -218,6 +220,7 @@ export function mapHeatmapPattern(heatmap = [], preferredMonth = null) {
           id: day.date || `week-${weekIndex + 1}-day-${dayIndex + 1}`,
           date: day.date || null,
           dayLabel: formatShortDate(day.date),
+          weekdayLabel: HEATMAP_WEEKDAY_LABELS[dayIndex] || '',
           rate,
           valueLabel: formatPatternRate(rate),
           dod,
@@ -225,7 +228,7 @@ export function mapHeatmapPattern(heatmap = [], preferredMonth = null) {
           deltaFromMonthAverage,
           targetTone: relativeBand.tone,
           bandLabel: relativeBand.label,
-          available: rate !== null,
+          available: !unavailable && rate !== null,
           sourceLabel: 'KPI ngày đo kiểm',
         };
       })
@@ -236,7 +239,7 @@ export function mapHeatmapPattern(heatmap = [], preferredMonth = null) {
 export function groupHeatmapByMonth(heatmapWeeks = []) {
   const cells = heatmapWeeks
     .flatMap((week) => week.days || [])
-    .filter((day) => !day.empty && day.date);
+    .filter((day) => day.date);
   const grouped = cells.reduce((acc, day) => {
     const monthKey = getMonthKey(day.date);
     if (!monthKey) return acc;

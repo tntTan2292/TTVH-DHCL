@@ -1,0 +1,67 @@
+# DA-IMPL-008 CHECKPOINT 003
+
+## Phase
+
+- Ticket: `DA-IMPL-008`
+- Checkpoint: `003 - Full two-month Heatmap and weekday labels`
+- Current state: `READY FOR PO CHECK`
+- Technical status: `PASS`
+- Runtime status: `TARGETED SOURCE/UNIT VALIDATION PASS`
+- PO UI check required: `Yes`
+- PO product status: `WAITING FOR PO CHECK`
+
+## Product Owner Decision
+
+Product Owner accepted `DA-IMPL-008 CHECKPOINT 002` as `PO PASS`.
+
+Product Owner authorized Checkpoint 003 to improve the Operating Patterns Heatmap only:
+
+- Display the complete previous calendar month.
+- Display the current calendar month through the latest available date.
+- Preserve the existing two-month block layout.
+- Add clear weekday labels above the corresponding dates.
+- Preserve missing/unknown data semantics.
+- Keep desktop usability at `100%` zoom with controlled responsive behavior.
+
+## Implemented Scope
+
+- Extended the existing `quality-timeline` Heatmap payload content to cover previous-month start through latest available data date while keeping the same endpoint, request params, and `heatmap` week-array response field.
+- Preserved missing calendar dates as unavailable Heatmap cells instead of treating them as valid `0%` KPI days.
+- Kept Heatmap relative coloring based on each displayed day compared with its own month average.
+- Added weekday header labels `T2` through `CN` above each month block.
+- Kept the two-month block layout and added controlled horizontal scrolling for compact widths.
+
+## Preserved Scope
+
+- KPI formulas are unchanged.
+- Thresholds and relative Heatmap bands are unchanged.
+- Canonical BCVH mappings are unchanged.
+- API endpoint, request parameters, database schema, filters, and accepted data sources are unchanged.
+- Nationwide-ranking integration was not started.
+- Dashboard performance optimization was not started.
+- Completed Dashboard and Import tickets were not reopened.
+
+## Validation
+
+- `node --test frontend/src/features/dashboard/components/operatingPatternTabsData.test.js`
+  - Result: `PASS`
+  - Evidence: `13` tests passed, `0` failed.
+- `git diff --check`
+  - Result: `PASS`.
+
+## Product Owner Checklist
+
+Use the normal Dashboard review URL and select the `Heatmap` tab inside `Quy luật vận hành`.
+
+- Confirm there are two month blocks.
+- Confirm the previous calendar month block starts on day `01` and ends on the final day of that previous month.
+- Confirm the current calendar month block starts on day `01` and ends at the latest available data date, not necessarily today.
+- Confirm weekday labels `T2`, `T3`, `T4`, `T5`, `T6`, `T7`, `CN` appear above the corresponding date columns.
+- Confirm missing/unknown days remain visually unavailable and are not presented as valid KPI performance.
+- Confirm the Heatmap remains usable at desktop `100%` zoom, with controlled horizontal scrolling if viewport width is constrained.
+
+## Handoff
+
+This checkpoint is ready for Product Owner visible UI check.
+
+Do not mark Checkpoint 003 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.

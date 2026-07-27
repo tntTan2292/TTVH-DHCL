@@ -17,6 +17,7 @@ import {
   DEFAULT_OPERATING_PATTERN_TAB,
   APPROVED_WEEKDAY_BANDS,
   HEATMAP_RELATIVE_BANDS,
+  HEATMAP_WEEKDAY_LABELS,
   OPERATING_PATTERN_TABS,
   buildGroundedOperatingPatternSummary,
   hasUsableModeData,
@@ -254,11 +255,19 @@ function HeatmapMonthSection({ month }) {
       </div>
       <HeatmapManagementSummary stats={month.stats} />
       <div className="overflow-x-auto pb-1">
-        <div className="grid min-w-[320px] grid-cols-7 gap-1.5">
+        <div className="grid min-w-[420px] grid-cols-7 gap-1.5">
+          {HEATMAP_WEEKDAY_LABELS.map((label) => (
+            <div
+              key={`${month.month}-${label}`}
+              className="rounded-md bg-[var(--color-surface-100)] px-1.5 py-1 text-center text-[10px] font-bold uppercase text-[var(--color-text-muted)]"
+            >
+              {label}
+            </div>
+          ))}
           {month.days.map((day) => (
             <div
               key={day.id}
-              className={`flex h-12 flex-col justify-center rounded-lg border px-1 text-center ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
+              className={`flex h-14 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
               title={day.deltaFromMonthAverage !== null ? `${day.deltaFromMonthAverage > 0 ? '+' : ''}${day.deltaFromMonthAverage.toFixed(2)} so với TB` : ''}
             >
               <span className="text-[10px] font-bold">{day.dayLabel}</span>
