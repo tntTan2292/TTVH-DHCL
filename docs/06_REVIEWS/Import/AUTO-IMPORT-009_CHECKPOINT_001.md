@@ -4,12 +4,12 @@
 
 - Ticket: `AUTO-IMPORT-009`
 - Ticket name: `Auto Import Browser And DKCL Cleanup Remediation`
-- Phase: `DEFECT 1 - HUE/TCT BROWSER WINDOW HIDE RELIABILITY AFTER NEW LOGIN OR RE-AUTHENTICATION`
-- Current state: `ACTIVE / DEFECT 1 AUTHORIZED`
-- Technical status: `TECHNICAL PASS`
-- Runtime status: `PASS`
-- PO product status: `DEFECT 1 READY FOR PO CHECK; DEFECT 2 QUEUED / NOT AUTHORIZED`
-- Authority: Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-008` Defect 3 as `COMPLETED / PO PASS`, closed `AUTO-IMPORT-008`, and activated `AUTO-IMPORT-009` Defect 1 only.
+- Phase: `DEFECT 2 - DKCL DOWNLOADED-ITEM LINK/FILE ENTRY REMOVAL AFTER SAFE CLAIM`
+- Current state: `ACTIVE / DEFECT 2 AUTHORIZED`
+- Technical status: `NOT STARTED`
+- Runtime status: `N/A - ACTIVATION ONLY`
+- PO product status: `DEFECT 1 PO PASS; DEFECT 2 AUTHORIZED`
+- Authority: Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-008` Defect 3 as `COMPLETED / PO PASS`, closed `AUTO-IMPORT-008`, and activated `AUTO-IMPORT-009` Defect 1 only. Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` Defect 1 as `COMPLETED / PO PASS` and activated Defect 2.
 
 ## Closure Preservation
 
@@ -24,22 +24,24 @@
 
 | Order | PO-confirmed defect | Status | Authorization |
 | --- | --- | --- | --- |
-| 1 | HUE/TCT browser windows may fail to hide after a new login or re-authentication cycle. | `READY FOR PO` | `AUTHORIZED` |
-| 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `QUEUED` | `NOT AUTHORIZED` |
+| 1 | HUE/TCT browser windows may fail to hide after a new login or re-authentication cycle. | `COMPLETED` | `PO PASS` |
+| 2 | After a DKCL download is safely completed, the downloaded-item link/file entry on DKCL is not removed as required. | `ACTIVE` | `AUTHORIZED` |
 
 ## Current Authorized Defect
 
-Defect 1 implementation is completed.
+Defect 2 is authorized for implementation.
 
-Handling goal: make HUE/TCT browser windows hide reliably after a new login or re-authentication cycle while preserving completed Auto Import behavior and locked-data restrictions.
+Handling goal: remove the DKCL downloaded-item link/file entry only after the local download has been verified complete and safely claimed, while preserving completed Auto Import behavior and locked-data restrictions.
 
-Primary executor: `Antigravity`.
+Primary executor: `Codex for bounded safe-claim logic and targeted validation; Antigravity only if real-machine DKCL runtime confirmation is required`.
 
-## Queued Defect
+## Completed Defect
 
-Defect 2 remains `QUEUED / NOT AUTHORIZED`.
+Defect 1 is `COMPLETED / PO PASS`.
 
-Safety rule: deletion may occur only after the downloaded local file is verified complete and safely claimed; never delete on failed, incomplete, or uncertain download.
+## Defect 2 Safety Rule
+
+Deletion may occur only after the downloaded local file is verified complete and safely claimed. Never delete on failed, incomplete, uncertain, unverified, or unclaimed download. Do not delete the local downloaded file.
 
 ## Implementation & Validation Evidence
 
@@ -77,8 +79,20 @@ Executed `node scratch/validate_real_profiles.js` to verify behavior.
 ## Current Handoff
 
 - Current ticket: `AUTO-IMPORT-009`.
-- Current phase: `DEFECT 1 - HUE/TCT BROWSER WINDOW HIDE RELIABILITY AFTER NEW LOGIN OR RE-AUTHENTICATION`.
+- Current phase: `DEFECT 2 - DKCL DOWNLOADED-ITEM LINK/FILE ENTRY REMOVAL AFTER SAFE CLAIM`.
 - Current manifest: `docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-009_CHECKPOINT_001.md`.
-- Next action: WAITING FOR PRODUCT OWNER REVIEW (Defect 1 PO PASS).
-- Defect 2 activation condition: Product Owner `PO PASS` for Defect 1.
+- Next action: implement AUTO-IMPORT-009 Defect 2 only.
+- Defect 1 final status: `COMPLETED / PO PASS`.
+- Defect 2 status: `ACTIVE / AUTHORIZED`.
+
+## Defect 1 PO Acceptance And Defect 2 Activation
+
+- Product Owner accepted Defect 1 as `COMPLETED / PO PASS`.
+- Defect 2 is now `ACTIVE / AUTHORIZED`.
+- This transition is documentation-only.
+- No product code, tests, database, Import data, physical files, or Dashboard files were modified by this transition.
+- `AUTO-IMPORT-008` and earlier tickets remain closed.
+- HUE `2026-07-18` and HUE `2026-07-19` remain locked `PO PASS`.
+- HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`.
+- Defect 2 safety rule is active: never delete on failed, incomplete, uncertain, unverified, or unclaimed download; do not delete the local downloaded file.
