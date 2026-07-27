@@ -827,33 +827,30 @@ class TctF13BackfillService {
             const temp_file_deleted = portalCleanup && (portalCleanup.status === 'SUCCESS' || portalCleanup.status === 'ALREADY_DELETED' || portalCleanup.status === 'DELETED');
             evidence.temp_file_deleted = temp_file_deleted;
 
-            // Hide the window after F13_READY and import/cleanup attempts.
-            // Clear the HWND cache first so a fresh re-authentication session
-            // performs a live scan instead of re-using stale handles from a
-            // prior session that may have already been restored.
             const hideWindowFn = client.hideWindow || client.hideBrowserWindow;
-            if (!hideWindowFn) {
-                const error = new Error('TCT window hide capability is missing.');
-                error.code = 'TCT_WINDOW_HIDE_FAILED';
-                throw error;
-            }
-
-            if (client.profileDir) {
+            if (hideWindowFn && client.profileDir) {
                 const { defaultInstance: pm } = require('./browserProcessManager');
                 pm.clearHiddenHwnds?.(client.profileDir);
             }
 
             let hideSuccess = false;
-            try {
-                hideSuccess = await hideWindowFn.call(client);
-            } catch (err) {
-                // hideSuccess remains false
+            if (hideWindowFn) {
+                try {
+                    hideSuccess = await hideWindowFn.call(client);
+                } catch (err) {
+                    // hideSuccess remains false
+                }
             }
 
+            const warnings = [];
+            const warningMessages = [];
             if (!temp_file_deleted) {
-                const error = new Error(`TCT portal cleanup failed or was not executed. Status: ${portalCleanup?.status}`);
-                error.code = 'TCT_CLEANUP_FAILED';
-                throw error;
+                warnings.push('TCT_CLEANUP_FAILED');
+                warningMessages.push(`TCT portal cleanup failed or was not executed. Status: ${portalCleanup?.status}`);
+            }
+            if (!hideSuccess) {
+                warnings.push('TCT_WINDOW_HIDE_FAILED');
+                warningMessages.push('TCT browser window could not be confirmed hidden.');
             }
 
             return {
@@ -861,8 +858,8 @@ class TctF13BackfillService {
                 queue_id: queueId,
                 temp_file_deleted,
                 window_hidden: Boolean(hideSuccess),
-                operational_warning_code: hideSuccess ? null : 'TCT_WINDOW_HIDE_FAILED',
-                operational_warning_message: hideSuccess ? null : 'TCT browser window could not be confirmed hidden.'
+                operational_warning_code: warnings.length > 0 ? warnings.join(', ') : null,
+                operational_warning_message: warningMessages.length > 0 ? warningMessages.join('; ') : null
             };
         } catch (error) {
             error.evidence = {
