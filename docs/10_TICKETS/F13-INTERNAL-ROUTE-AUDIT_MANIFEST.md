@@ -3,11 +3,11 @@
 - Ticket ID: `F13-INTERNAL-ROUTE-AUDIT`
 - Ticket Name: `Internal Route Classification and Route Ranking Filter`
 - Phase: `F1.3 Operational Module`
-- Current state: `READY FOR PO RUNTIME/UI REVIEW`
+- Current state: `COMPLETED / PO PASS`
 - Technical Status: `IMPLEMENTED - TARGETED VALIDATION PASS`
-- Runtime Status: `DATABASE AUDIT PASS`
-- PO UI Check Required: `Yes`
-- PO Product Status: `WAITING FOR PO RUNTIME/UI REVIEW`
+- Runtime Status: `PO RUNTIME/UI PASS`
+- PO UI Check Required: `No - PO PASS recorded`
+- PO Product Status: `COMPLETED / PO PASS`
 - Activation authority: `PO AUTHORIZATION: IMPLEMENT`
 - Audit date: `2026-07-28`
 - Recommended executor after PO decision: `Codex only if Product Owner authorizes a follow-up implementation ticket`
@@ -39,6 +39,9 @@ Required Reading:
 - Default filter is `Tuyến bưu tá`.
 - Hue Route Ranking includes only route codes starting with `53`.
 - Confirmed customer-pickup/internal post-office routes must not be counted as postman delivery routes.
+- Product Owner confirmed Route Ranking runtime/UI `PO PASS`.
+- `Tất cả` includes the `7` PO-confirmed customer-pickup/internal post-office routes and displays classification `Nhận tại bưu cục`.
+- Minimal runtime-backed Route Ranking table is Product Owner approved.
 
 ## Audit Rule
 
@@ -72,12 +75,19 @@ No fuzzy synonyms or inferred route types are authorized.
 - BCVH Ranking, Route Ranking, Shipment, Data Quality, or other F1.3 implementation.
 - Person ownership, RCA cause, lifecycle, message, export, or evidence implementation.
 
-## Decision Required
+## PO PASS Closure
 
-Product Owner must perform runtime/UI review for the Route Ranking filter.
+- Route Ranking filter labels are exactly `Tuyến bưu tá | Tất cả`.
+- Default filter is `Tuyến bưu tá`.
+- Hue Route Ranking excludes route codes not starting with `53`.
+- The `7` PO-confirmed customer-pickup/internal post-office routes are not counted as postman delivery routes.
+- `Tất cả` includes those routes and displays classification `Nhận tại bưu cục`.
+- Minimal runtime-backed Route Ranking table is `PO PASS`.
 
 ## Handoff
 
-Status: `READY FOR PO RUNTIME/UI REVIEW`.
+Status: `COMPLETED / PO PASS`.
 
-Route Ranking is implemented with catalog-backed classification, the `Tuyến bưu tá | Tất cả` filter, and a minimal route table connected to displayed runtime data. Do not self-award PO PASS.
+Route Ranking is implemented and Product Owner approved with catalog-backed classification, the `Tuyến bưu tá | Tất cả` filter, and a minimal route table connected to displayed runtime data.
+
+Next authorized state: `F13-BCVH-RANKING-REDESIGN-PLAN READY FOR PO PLANNING`. This is planning only; no BCVH Ranking implementation authority exists yet.

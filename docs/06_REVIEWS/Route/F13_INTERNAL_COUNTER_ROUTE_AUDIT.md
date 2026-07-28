@@ -6,7 +6,7 @@
 - Source table: `fact_f13`
 - Business-date cutoff: `2026-07-28`
 - Implementation performed: `Route classification catalog and Route Ranking filter`
-- Status: `READY FOR PO RUNTIME/UI REVIEW`
+- Status: `COMPLETED / PO PASS`
 
 ## Product Owner Decision Recorded
 
@@ -33,6 +33,17 @@ Additional confirmed non-postman routes:
 - `53625013 - 536250 - Phát tại Bưu cục`
 - `5370155 - Phát tại bưu cục`
 - `5372204 - 537220 - Phát tại Bưu cục`
+
+Product Owner confirmed final Route Ranking runtime/UI `PO PASS`.
+
+Approved outcome:
+
+- Route Ranking filter labels are exactly `Tuyến bưu tá | Tất cả`.
+- Default filter is `Tuyến bưu tá`.
+- Hue Route Ranking excludes route codes not starting with `53`.
+- The `7` PO-confirmed customer-pickup/internal post-office routes are not counted as postman routes.
+- `Tất cả` includes those routes and displays classification `Nhận tại bưu cục`.
+- Minimal runtime-backed Route Ranking table is Product Owner approved.
 
 ## Matching Rule
 
@@ -151,6 +162,8 @@ Additional validation after label remediation:
 
 ## Handoff
 
-Status: `READY FOR PO RUNTIME/UI REVIEW`.
+Status: `COMPLETED / PO PASS`.
 
-Route Ranking filter is implemented. Do not self-award PO PASS.
+Route Ranking filter and minimal runtime-backed Route Ranking table are Product Owner approved.
+
+Next ticket handoff: `F13-BCVH-RANKING-REDESIGN-PLAN READY FOR PO PLANNING`. This next phase is planning only and must preserve current day vs previous day vs comparison day, delayed cash handover count, participating postman-route count, and route quality distribution by Dashboard color bands. No BCVH Ranking implementation authority exists yet.

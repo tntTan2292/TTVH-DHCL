@@ -37,4 +37,12 @@ The remaining unconfirmed near-match routes listed in `docs/06_REVIEWS/Route/F13
 
 ## Handoff
 
-Implemented Route Ranking may consume this catalog for the bounded `Tuyến bưu tá | Tất cả` filter. Other modules need separate Product Owner authorization before consuming it.
+Implemented Route Ranking consumes this catalog for the Product Owner-approved `Tuyến bưu tá | Tất cả` filter.
+
+Approved Route Ranking behavior:
+
+- Default `Tuyến bưu tá` excludes these confirmed customer-pickup/internal post-office routes from participating postman-route counts.
+- `Tất cả` includes these routes and displays classification `Nhận tại bưu cục`.
+- Hue Route Ranking automatically excludes route codes not starting with `53`.
+
+Other modules need separate Product Owner authorization before consuming this catalog.
