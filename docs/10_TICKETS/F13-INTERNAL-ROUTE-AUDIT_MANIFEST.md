@@ -25,6 +25,7 @@ Required onboarding chain:
 Required Reading:
 
 - `docs/06_REVIEWS/Route/F13_INTERNAL_COUNTER_ROUTE_AUDIT.md`
+- `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`
 - `docs/04_TECHNICAL_PLANNING/F13_OPERATIONAL_CAPABILITY_AUDIT.md`
 - `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md`
 - `docs/10_TICKETS/F13-SHIPMENT-001_MANIFEST.md`
@@ -33,7 +34,10 @@ Required Reading:
 
 - `F13-DATA-QUALITY-001` implementation is deferred by Product Owner. Its manifest remains preserved and must not be deleted or treated as rejected.
 - `F13-SHIPMENT-001` implementation remains deferred and preserved.
-- The current authorized work is only a bounded route-name audit for Product Owner verification.
+- Product Owner confirmed route `53314018 - 533140 - Phát tại quầy` as an internal-counter route of `533140 - BCVH Thuận Hóa`.
+- Route `53314018` must not be counted as a postman delivery route.
+- The `11` near-match routes remain unclassified pending PO verification.
+- The current authorized work is only route-classification documentation handoff.
 
 ## Audit Rule
 
@@ -52,22 +56,23 @@ No fuzzy synonyms or inferred route types are authorized.
 - Route name groups profiled: `158`.
 - Exact candidates found: `1`.
 - Near matches found: `11`.
-- Official classification saved: `None`.
+- Official classification saved: `1` confirmed internal-counter route in `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`.
+- Near-match classifications saved: `None`.
 
 ## Out Of Scope
 
 - Product code, UI, API, schema, formulas, business rules, or operational-data changes.
-- Official route catalog creation.
+- Product code consumption of the route catalog.
 - Permanent classification of all other routes as postman routes.
 - BCVH Ranking, Route Ranking, Shipment, Data Quality, or other F1.3 implementation.
 - Person ownership, RCA cause, lifecycle, message, export, or evidence implementation.
 
 ## Decision Required
 
-Product Owner must verify whether the candidate route and any near-match routes should be treated as internal-counter routes in a future authorized ticket.
+Product Owner must verify whether any of the `11` near-match routes should be treated as internal-counter routes in a future authorized ticket.
 
 ## Handoff
 
 Status: `READY FOR PO VERIFICATION`.
 
-No implementation is authorized until Product Owner confirms route classification and approves a follow-up ticket.
+Route `53314018` is confirmed in the catalog. The `11` near-match routes remain pending Product Owner verification. No implementation is authorized until Product Owner approves a follow-up ticket.
