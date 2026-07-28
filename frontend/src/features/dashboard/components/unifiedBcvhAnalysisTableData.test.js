@@ -171,6 +171,12 @@ test('Wave 2 component source exposes grouped columns, 4-band route cells, dough
   assert.match(componentSource, /'D-1 \/ Sản lượng'/);
   assert.match(componentSource, /'D-7 \/ Tỷ lệ F1\.3'/);
   assert.match(pageSource, /UnifiedBcvhAnalysisTable/);
-  assert.match(pageSource, /4 dải tuyến giữ nguyên/);
+  assert.match(pageSource, /Sản lượng ngày đánh giá/);
+  assert.match(pageSource, /Chất lượng F1\.3/);
+  assert.match(pageSource, /Chậm nộp tiền/);
+  assert.match(pageSource, /Phân bổ chất lượng tuyến/);
+  assert.match(pageSource, /Xem ngày gần nhất/);
+  assert.match(pageSource, /Ngày gần nhất đang được metadata hỗ trợ/);
   assert.match(pageSource, /Drill-down giữ nguyên context Route Ranking/);
+  assert.doesNotMatch(pageSource, /Bố cục đã khóa|4 dải tuyến giữ nguyên|Không tính fallback/);
 });

@@ -331,6 +331,7 @@ export default function UnifiedBcvhAnalysisTable({
   interval = 'daily',
   maBcvh = 'all',
   search = '',
+  prefetchedData = null,
 }) {
   const navigate = useNavigate();
   const requestSeqRef = useRef(0);
@@ -381,8 +382,12 @@ export default function UnifiedBcvhAnalysisTable({
   }, [fromDate, requestContext, toDate]);
 
   useEffect(() => {
+    if (prefetchedData) {
+      setState({ status: 'success', data: prefetchedData, error: null });
+      return;
+    }
     if (fromDate && toDate) loadRows();
-  }, [fromDate, toDate, loadRows]);
+  }, [fromDate, toDate, loadRows, prefetchedData]);
 
   const filteredRows = useMemo(() => {
     const rows = state.data?.rows || [];

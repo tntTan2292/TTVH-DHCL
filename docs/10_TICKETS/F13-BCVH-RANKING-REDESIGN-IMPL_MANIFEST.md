@@ -40,6 +40,8 @@ Implement only the approved BCVH Ranking redesign documented in `F13_BCVH_RANKIN
 
 This manifest now records that both implementation waves are complete and that the next state is Product Owner UI verification only unless a defect is found.
 
+The currently approved remediation authority on this ticket is limited to bounded PO-check defects only. The latest approved remediation replaced the old low-value summary shell with runtime-backed operational KPI widgets and improved the factual no-data state without reopening backend formulas, thresholds, exclusions, or grouped-table scope.
+
 The implementation must preserve:
 
 - Dashboard SSOT
@@ -131,6 +133,13 @@ Wave 2 completed the frontend scope for:
 - preserved Route Ranking drill-down context
 - factual unavailable states without fallback calculations
 
+Latest bounded PO remediation also completed:
+
+- runtime-backed operational KPI widgets for evaluation-day volume, F1.3 quality, delayed cash handover, and 4-band route-quality distribution
+- compact doughnut bound to the same green / pink / yellow / red runtime distribution counts
+- removal of visible technical/explanatory placeholder cards
+- factual no-data state with selected date, supported nearest available date, and `Xem ngay gan nhat` when metadata support exists
+
 ## Documents To Update
 
 - `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md`
@@ -144,6 +153,7 @@ Wave 2 completed the frontend scope for:
 
 - Backend/service targeted tests for newly added BCVH ranking fields and non-postman route exclusions are complete for Wave 1.
 - Frontend mapper/component tests for grouped columns, unavailable states, independent signals, doughnut data binding, and inline `Phan tich BCVH` are complete for Wave 2.
+- Frontend validation for runtime-backed summary widgets and nearest-available-date no-data UX is complete for the latest PO remediation.
 - Focused build/lint/test only in the touched backend/frontend scope.
 - `git diff --check`
 - Remote verification of the pushed commit and active onboarding Blob URLs.

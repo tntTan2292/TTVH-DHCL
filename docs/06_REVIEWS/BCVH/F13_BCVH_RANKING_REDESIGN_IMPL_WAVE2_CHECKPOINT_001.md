@@ -23,6 +23,16 @@ Delivered:
 - preserved Route Ranking drill-down context
 - factual unavailable states without fallback calculations
 
+PO UI remediation on the same ticket baseline also delivered:
+
+- runtime-backed operational summary widgets instead of low-value explanatory cards
+- `San luong ngay danh gia` with total volume, passed, failed, and `BCVH co du lieu / tong BCVH` when metadata support exists
+- `Chat luong F1.3` with current rate plus separate `D-1` and `D-7` deltas using existing Dashboard SSOT color semantics
+- `Cham nop tien` with delayed cash-handover count, delayed rate, and affected BCVH count while remaining neutral without a new threshold rule
+- `Phan bo chat luong tuyen` with participating postman-route count plus a compact 4-band doughnut bound to the same runtime route-distribution data
+- factual no-data state with the selected date, supported nearest available date, and `Xem ngay gan nhat`
+- removal of visible technical/explanatory cards such as locked-layout and fallback notes
+
 ## Preserved Authority
 
 - Dashboard SSOT route-quality bands remain exactly:
@@ -63,6 +73,8 @@ Wave 2 consumes the Wave 1 runtime fields directly:
 
 The doughnut visualization is bound to the same `route_distribution` counts and does not compute any independent totals.
 
+The no-data remediation reuses supported dashboard metadata for the nearest available date and does not query broad historical data or fabricate fallback dates.
+
 ## UI Behavior Lock
 
 - Only raw `D-1` / `D-7` `San luong` and raw `Ty le F1.3` can be hidden by the operator.
@@ -89,7 +101,6 @@ Route drill-down remains:
 Focused frontend validation completed:
 
 - `node --test frontend/src/features/dashboard/components/unifiedBcvhAnalysisTableData.test.js`
-- `node --test frontend/src/features/dashboard/components/dashboardLoadPerformance.test.js`
 - `npm.cmd run build`
 - `npm.cmd run lint`
 - `git diff --check`
@@ -99,6 +110,7 @@ Validation result notes:
 - frontend mapper and source-contract tests passed
 - production build passed
 - lint completed with existing repository warnings outside this ticket scope
+- no backend formulas, thresholds, route exclusions, or historical fallback calculations were changed
 
 ## Manual PO UI Checklist
 
@@ -109,32 +121,43 @@ Screen:
 Steps:
 
 1. Open BCVH Ranking and confirm the page loads one grouped management table instead of the old shell layout.
-2. Confirm the grouped headers appear for:
-   - `Đơn vị`
-   - `Kết quả ngày đánh giá`
-   - `So sánh D-1`
-   - `So sánh D-7`
-   - `Chậm nộp tiền`
-   - `Phân bổ tuyến`
-   - `Phân tích BCVH`
-   - `Hành động`
-3. Open column options and verify only raw `D-1` / `D-7` volume and raw `D-1` / `D-7` F1.3 columns can be hidden.
-4. Confirm `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible.
-5. Confirm route columns include exactly:
-   - `Tuyến xanh`
-   - `Tuyến hồng`
-   - `Tuyến vàng`
-   - `Tuyến đỏ`
-6. Confirm the doughnut shows 4 segments and the pink segment is present when backend data provides it.
-7. Confirm KPI, late-cash, and rank-movement signals are shown independently.
-8. Confirm `Phân tích BCVH` stays factual and does not claim root cause beyond visible metrics.
-9. Click `Mở tuyến` on one BCVH row and verify Route Ranking opens with preserved `from_date`, `to_date`, `interval`, `bcvh_id`, and `bcvh_name`.
-10. Check at least one unavailable state and confirm the UI shows unavailable text instead of calculating a fallback value.
+2. Confirm the four top widgets are runtime-backed and management-useful:
+   - `San luong ngay danh gia`
+   - `Chat luong F1.3`
+   - `Cham nop tien`
+   - `Phan bo chat luong tuyen`
+3. Confirm the grouped headers appear for:
+   - `Don vi`
+   - `Ket qua ngay danh gia`
+   - `So sanh D-1`
+   - `So sanh D-7`
+   - `Cham nop tien`
+   - `Phan bo tuyen`
+   - `Phan tich BCVH`
+   - `Hanh dong`
+4. Open column options and verify only raw `D-1` / `D-7` volume and raw `D-1` / `D-7` F1.3 columns can be hidden.
+5. Confirm `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible.
+6. Confirm route columns include exactly:
+   - `Tuyen xanh`
+   - `Tuyen hong`
+   - `Tuyen vang`
+   - `Tuyen do`
+7. Confirm the doughnut shows 4 segments and the pink segment is present when backend data provides it.
+8. Confirm KPI, late-cash, and rank-movement signals are shown independently.
+9. Confirm no visible technical/explanatory cards remain above the table.
+10. Change to a date with no supported ranking data and confirm the empty state:
+    - states the selected date clearly
+    - shows the nearest available date only when metadata supports it
+    - offers `Xem ngay gan nhat`
+11. Confirm `Phan tich BCVH` stays factual and does not claim root cause beyond visible metrics.
+12. Click `Mo tuyen` on one BCVH row and verify Route Ranking opens with preserved `from_date`, `to_date`, `interval`, `bcvh_id`, and `bcvh_name`.
+13. Check at least one unavailable state and confirm the UI shows unavailable text instead of calculating a fallback value.
 
 PASS criteria:
 
 - All approved column groups are visible.
 - Pink route band is preserved in both counts and doughnut.
+- The top widget area is runtime-backed and management-useful.
 - Drill-down context is preserved.
 - Unavailable data is shown factually.
 
@@ -148,6 +171,6 @@ FAIL criteria:
 - Pink is missing, merged, or renamed.
 - Route drill-down loses BCVH/date context.
 - Hidden-column behavior affects non-hideable visible delta or movement columns.
-- UI invents fallback comparison values or late-cash thresholds.
+- UI invents fallback comparison values, late-cash thresholds, or unsupported nearest-date behavior.
 
 Do not self-award PO PASS from this checkpoint.

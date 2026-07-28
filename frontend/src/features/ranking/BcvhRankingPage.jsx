@@ -1,15 +1,98 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { LayoutGrid, Route, ShieldCheck, Sparkles } from 'lucide-react';
-import { PageContainer, KPICard, StatusBadge, ErrorState } from '../../components/shared/SharedComponents';
+import { Clock3, Donut, Target } from 'lucide-react';
+import { EmptyState, ErrorState, KPICard, PageContainer, StatusBadge } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
-import UnifiedBcvhAnalysisTable from '../dashboard/components/UnifiedBcvhAnalysisTable';
 import api from '../../api/client';
+import UnifiedBcvhAnalysisTable from '../dashboard/components/UnifiedBcvhAnalysisTable';
 import { buildBcvhOptions, validateBcvhUnits } from '../dashboard/components/dashboardFilterOptions';
+import { buildDoughnutAriaLabel, formatNumber, formatRate, formatSignedDelta, mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData';
+
+function toneFromKpi(rate) {
+  if (rate === null || rate === undefined) return 'neutral';
+  if (rate >= 70) return 'success';
+  if (rate >= 60) return 'info';
+  if (rate >= 50) return 'warning';
+  return 'danger';
+}
+
+function toPct(value, total) {
+  if (!total) return '0,0%';
+  return `${((Number(value || 0) / Number(total || 0)) * 100).toLocaleString('vi-VN', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+function SummaryRouteBands({ routeDistribution }) {
+  const total = Number(routeDistribution?.participating_postman_route_count || 0);
+  const counts = routeDistribution?.counts || {};
+
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+      {[
+        ['Xanh', counts.green],
+        ['Hồng', counts.pink],
+        ['Vàng', counts.yellow],
+        ['Đỏ', counts.red],
+      ].map(([label, value]) => (
+        <div key={label} className="rounded-xl bg-[var(--color-surface-50)] px-3 py-2 text-[var(--color-text-main)]">
+          <div className="font-semibold">{label}</div>
+          <div>{formatNumber(value)} · {toPct(value, total)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DoughnutSummary({ routeDistribution }) {
+  const segments = routeDistribution?.segments || [];
+  const total = Number(routeDistribution?.participating_postman_route_count || 0);
+  if (!total || !segments.length) {
+    return <div className="text-sm text-[var(--color-text-muted)]">Chưa có dữ liệu phân bổ tuyến.</div>;
+  }
+
+  const gradientStops = [];
+  let offset = 0;
+  segments.forEach((segment) => {
+    const percent = segment.value / total;
+    const nextOffset = offset + percent;
+    gradientStops.push(`${segment.color} ${Math.round(offset * 100)}% ${Math.round(nextOffset * 100)}%`);
+    offset = nextOffset;
+  });
+
+  return (
+    <div className="flex items-center gap-4">
+      <div
+        aria-label={buildDoughnutAriaLabel(routeDistribution)}
+        className="relative h-24 w-24 rounded-full"
+        style={{ background: `conic-gradient(${gradientStops.join(', ')})` }}
+      >
+        <div className="absolute inset-[18px] flex items-center justify-center rounded-full bg-white text-center">
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">Tuyến</div>
+            <div className="text-sm font-bold text-[var(--color-text-main)]">{formatNumber(total)}</div>
+          </div>
+        </div>
+      </div>
+      <SummaryRouteBands routeDistribution={routeDistribution} />
+    </div>
+  );
+}
 
 export default function BcvhRankingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [metaState, setMetaState] = useState({ status: 'loading', options: [], error: null });
+  const [metaState, setMetaState] = useState({
+    status: 'loading',
+    options: [],
+    error: null,
+    maxDate: null,
+  });
+  const [rankingState, setRankingState] = useState({
+    status: 'loading',
+    data: null,
+    error: null,
+  });
 
   const fromDate = searchParams.get('from_date') || '2026-07-28';
   const toDate = searchParams.get('to_date') || '2026-07-28';
@@ -26,54 +109,122 @@ export default function BcvhRankingPage() {
 
   useEffect(() => {
     let active = true;
-    setMetaState({ status: 'loading', options: [], error: null });
+    setMetaState((prev) => ({ ...prev, status: 'loading', error: null }));
     api.get('/f13/dashboard/meta', { params: { _ts: Date.now() } })
       .then((res) => {
         if (!active) return;
         const units = res.data?.data?.bcvh_units || [];
         const validation = validateBcvhUnits(units);
         if (!validation.ok) {
-          setMetaState({ status: 'error', options: [], error: validation.error });
+          setMetaState({ status: 'error', options: [], error: validation.error, maxDate: null });
           return;
         }
-        setMetaState({ status: 'success', options: buildBcvhOptions(units), error: null });
+        setMetaState({
+          status: 'success',
+          options: buildBcvhOptions(units),
+          error: null,
+          maxDate: res.data?.data?.max_date || null,
+        });
       })
       .catch(() => {
         if (!active) return;
-        setMetaState({ status: 'error', options: [], error: 'Không thể tải metadata BCVH. Vui lòng thử lại.' });
+        setMetaState({ status: 'error', options: [], error: 'Không thể tải metadata BCVH. Vui lòng thử lại.', maxDate: null });
       });
-
     return () => {
       active = false;
     };
   }, []);
 
-  const summaryCards = useMemo(() => ([
+  useEffect(() => {
+    let active = true;
+    setRankingState({ status: 'loading', data: null, error: null });
+    api.get('/f13/ranking/bcvh', {
+      params: {
+        from_date: fromDate,
+        to_date: toDate,
+        page: 1,
+        page_size: 1000,
+        sort: 'rank',
+        order: 'asc',
+      },
+    })
+      .then((response) => {
+        if (!active) return;
+        if (!response?.data?.success) {
+          throw new Error(response?.data?.error?.message || 'Không thể tải BCVH Ranking.');
+        }
+        setRankingState({
+          status: 'success',
+          data: mapBcvhRankingResponse(response.data, { fromDate, toDate, interval, maBcvh, search }),
+          error: null,
+        });
+      })
+      .catch((error) => {
+        if (!active) return;
+        setRankingState({
+          status: 'error',
+          data: null,
+          error: error?.response?.data?.error?.message || error?.message || 'Không thể tải BCVH Ranking.',
+        });
+      });
+    return () => {
+      active = false;
+    };
+  }, [fromDate, toDate, interval, maBcvh, search]);
+
+  const filteredRows = useMemo(() => {
+    const rows = rankingState.data?.rows || [];
+    return rows.filter((row) => {
+      const matchesBcvh = maBcvh === 'all' || row.ma_bcvh === maBcvh;
+      const q = search.trim().toLowerCase();
+      const matchesSearch = !q || row.ten_bcvh.toLowerCase().includes(q) || row.ma_bcvh.toLowerCase().includes(q);
+      return matchesBcvh && matchesSearch;
+    });
+  }, [rankingState.data?.rows, maBcvh, search]);
+
+  const totalRow = rankingState.data?.total_row || null;
+  const totalBcvh = Math.max(0, metaState.options.length - 1);
+  const bcvhWithData = filteredRows.length;
+  const affectedLateCashCount = filteredRows.filter((row) => Number(row.late_cash.count || 0) > 0).length;
+  const routeDistribution = totalRow?.route_distribution || {
+    participating_postman_route_count: 0,
+    counts: { green: 0, pink: 0, yellow: 0, red: 0 },
+    segments: [],
+  };
+
+  const summaryCards = [
     {
-      label: 'Kỳ đang xem',
-      value: fromDate === toDate ? toDate : `${fromDate} → ${toDate}`,
-      delta: 'Dữ liệu theo URL hiện hành',
+      label: 'Sản lượng ngày đánh giá',
+      value: formatNumber(totalRow?.current_day.volume),
+      delta: `${formatNumber(totalRow?.current_day.pass_count)} đạt · ${formatNumber(totalRow?.current_day.fail_count)} không đạt`,
+      trend: totalBcvh ? `${formatNumber(bcvhWithData)}/${formatNumber(totalBcvh)} BCVH có dữ liệu` : undefined,
       tone: 'primary',
     },
     {
-      label: 'Phạm vi BCVH',
-      value: metaState.options.find((option) => option.value === maBcvh)?.label || 'Tất cả BCVH',
-      delta: 'Bộ lọc điều hành',
-      tone: 'success',
+      label: 'Chất lượng F1.3',
+      value: formatRate(totalRow?.current_day.rate),
+      delta: `D-1 ${formatSignedDelta(totalRow?.comparisons?.d1?.rate_delta, 'điểm %')} · D-7 ${formatSignedDelta(totalRow?.comparisons?.d7?.rate_delta, 'điểm %')}`,
+      trend: totalRow?.current_day?.signal?.label || undefined,
+      tone: toneFromKpi(totalRow?.current_day.rate),
     },
     {
-      label: 'So sánh',
-      value: 'D-1 / D-7 tách riêng',
-      delta: 'Theo quyết định PO ngày 28/07/2026',
+      label: 'Chậm nộp tiền',
+      value: formatNumber(totalRow?.late_cash.count),
+      delta: `Tỷ lệ ${formatRate(totalRow?.late_cash.rate)}`,
+      trend: bcvhWithData ? `${formatNumber(affectedLateCashCount)}/${formatNumber(bcvhWithData)} BCVH bị ảnh hưởng` : undefined,
       tone: 'warning',
     },
     {
-      label: 'Phân bổ tuyến',
-      value: '4 dải màu',
-      delta: 'Xanh · Hồng · Vàng · Đỏ',
+      label: 'Phân bổ chất lượng tuyến',
+      value: formatNumber(routeDistribution.participating_postman_route_count),
+      delta: `X ${formatNumber(routeDistribution.counts.green)} · H ${formatNumber(routeDistribution.counts.pink)} · V ${formatNumber(routeDistribution.counts.yellow)} · Đ ${formatNumber(routeDistribution.counts.red)}`,
+      trend: buildDoughnutAriaLabel(routeDistribution),
       tone: 'danger',
     },
-  ]), [fromDate, maBcvh, metaState.options, toDate]);
+  ];
+
+  const showNoData = rankingState.status === 'success' && filteredRows.length === 0;
+  const nearestAvailableDate = metaState.maxDate && metaState.maxDate !== toDate ? metaState.maxDate : null;
 
   return (
     <PageContainer
@@ -81,9 +232,7 @@ export default function BcvhRankingPage() {
       subtitle="Bảng điều hành BCVH theo hợp đồng Wave 1 và quyết định PO ngày 28/07/2026."
       action={(
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label="Wave 2 Frontend" tone="info" />
           <StatusBadge label={interval === 'daily' ? 'Theo ngày' : 'Khoảng ngày'} tone="neutral" />
-          <StatusBadge label="4 dải tuyến giữ nguyên SSOT" tone="success" />
         </div>
       )}
     >
@@ -112,72 +261,94 @@ export default function BcvhRankingPage() {
           <ErrorState title="Không thể tải danh sách BCVH" description={metaState.error} />
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {summaryCards.map((item) => (
-            <KPICard key={item.label} label={item.label} value={item.value} delta={item.delta} tone={item.tone} />
-          ))}
-        </div>
+        {rankingState.status === 'error' ? (
+          <ErrorState title="Không thể tải BCVH Ranking" description={rankingState.error} />
+        ) : null}
 
-        <div className="grid gap-4 xl:grid-cols-3">
-          <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
-                <LayoutGrid size={18} />
+        {!showNoData ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <KPICard {...summaryCards[0]} />
+            <KPICard {...summaryCards[1]} />
+            <KPICard {...summaryCards[2]} />
+            <div className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{summaryCards[3].label}</p>
+                  <p className="mt-2 text-3xl font-black text-[var(--color-text-main)]">{summaryCards[3].value}</p>
+                </div>
+                <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--color-text-main)] shadow-sm">
+                  <Donut className="h-4 w-4" />
+                </div>
               </div>
-              <div>
-                <h2 className="text-sm font-bold text-[var(--color-text-main)]">Bố cục đã khóa</h2>
-                <p className="text-xs text-[var(--color-text-muted)]">Nhóm cột ngày đánh giá, D-1, D-7, chậm nộp tiền, phân bổ tuyến, phân tích và hành động.</p>
-              </div>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 text-rose-700">
-                <Route size={18} />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-[var(--color-text-main)]">4 dải tuyến giữ nguyên</h2>
-                <p className="text-xs text-[var(--color-text-muted)]">Không gộp, không bỏ, không diễn giải lại dải hồng.</p>
+              <p className="mt-3 text-sm font-medium text-[var(--color-text-muted)]">{summaryCards[3].delta}</p>
+              <div className="mt-4">
+                <DoughnutSummary routeDistribution={routeDistribution} />
               </div>
             </div>
           </div>
-          <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
-                <ShieldCheck size={18} />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-[var(--color-text-main)]">Không tính fallback</h2>
-                <p className="text-xs text-[var(--color-text-muted)]">Thiếu dữ liệu sẽ hiển thị trạng thái unavailable theo đúng hợp đồng runtime.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <EmptyState
+            title={`Không có dữ liệu BCVH cho ngày ${toDate}`}
+            description={
+              nearestAvailableDate
+                ? `Ngày gần nhất đang được metadata hỗ trợ là ${nearestAvailableDate}. Không có phép tính fallback nào được tạo thêm cho ngày đã chọn.`
+                : `Không có dữ liệu BCVH cho ngày đã chọn và không xác định được ngày gần nhất từ contract metadata hiện có.`
+            }
+            action={nearestAvailableDate ? (
+              <button
+                type="button"
+                onClick={() => {
+                  updateParam('from_date', nearestAvailableDate);
+                  updateParam('to_date', nearestAvailableDate);
+                }}
+                className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)]"
+              >
+                Xem ngày gần nhất
+              </button>
+            ) : null}
+          />
+        )}
 
-        <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-surface-200)] px-5 py-4">
-            <div>
-              <h2 className="text-base font-bold text-[var(--color-text-main)]">Bảng BCVH theo hợp đồng Wave 1</h2>
-              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                <Sparkles size={12} className="mr-1 inline-block" />
-                D-1 và D-7 tách riêng; chỉ raw volume và raw F1.3 được phép ẩn.
-              </p>
+        {!showNoData ? (
+          <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-surface-200)] px-5 py-4">
+              <div>
+                <h2 className="text-base font-bold text-[var(--color-text-main)]">Bảng BCVH theo hợp đồng Wave 1</h2>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                  <Target size={12} className="mr-1 inline-block" />
+                  D-1 và D-7 tách riêng; chỉ raw volume và raw F1.3 được phép ẩn.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge label={`BCVH: ${metaState.options.find((option) => option.value === maBcvh)?.label || 'Tất cả BCVH'}`} tone="neutral" />
+                <StatusBadge label={`Search: ${search || 'Không'}`} tone="info" />
+                {nearestAvailableDate ? <StatusBadge label={`Ngày gần nhất: ${nearestAvailableDate}`} tone="warning" /> : null}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge label={`BCVH: ${metaState.options.find((option) => option.value === maBcvh)?.label || 'Tất cả BCVH'}`} tone="neutral" />
-              <StatusBadge label={`Search: ${search || 'Không'}`} tone="info" />
+            <div className="p-5">
+              <UnifiedBcvhAnalysisTable
+                fromDate={fromDate}
+                toDate={toDate}
+                interval={interval}
+                maBcvh={maBcvh}
+                search={search}
+                prefetchedData={rankingState.data}
+              />
             </div>
           </div>
-          <div className="p-5">
-            <UnifiedBcvhAnalysisTable
-              fromDate={fromDate}
-              toDate={toDate}
-              interval={interval}
-              maBcvh={maBcvh}
-              search={search}
-            />
+        ) : (
+          <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+                <Clock3 size={18} />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-[var(--color-text-main)]">Không có dữ liệu trong ngày đã chọn</h2>
+                <p className="text-xs text-[var(--color-text-muted)]">Không hiển thị bảng khi không có dữ liệu runtime cho ngày {toDate}.</p>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </PageContainer>
   );
