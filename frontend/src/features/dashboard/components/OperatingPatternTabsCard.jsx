@@ -339,6 +339,31 @@ function HeatmapMonthSection({ month }) {
   );
 }
 
+function MonthlyRankStrip({ rows }) {
+  const rankedRows = rows.filter((row) => row.nationalRank);
+  if (!rankedRows.length) return null;
+
+  return (
+    <div className="mb-4 overflow-x-auto border-y border-[var(--color-surface-200)] py-2">
+      <div className="flex min-w-max items-center gap-2">
+        {rankedRows.map((row) => (
+          <div
+            key={`${row.id}-national-rank`}
+            className="flex min-w-[96px] flex-col rounded-md bg-[var(--color-surface-50)] px-2 py-1.5 text-xs text-[var(--color-text-main)]"
+            title={row.monthlyRankDetail || undefined}
+            aria-label={row.monthlyRankDetail || undefined}
+            tabIndex={0}
+          >
+            <span className="font-bold">{row.label}</span>
+            <span className="font-semibold">{row.nationalRankLabel}</span>
+            <span className="text-[11px] text-[var(--color-text-muted)]">{row.rankMovementLabel || 'Chưa có so sánh'}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function HeatmapPanel({ months }) {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
@@ -365,11 +390,12 @@ function ModePanel({ activeTab, model }) {
   if (activeTab === 'heatmap') return <HeatmapPanel months={model.heatmapMonths} />;
   if (activeTab === 'month') {
     return (
-      <div>
-        <MonthlySummary summary={model.monthlySummary} />
-        <ComboChartPanel rows={rows} mode="month" />
-      </div>
-    );
+        <div>
+          <MonthlySummary summary={model.monthlySummary} />
+          <MonthlyRankStrip rows={rows} />
+          <ComboChartPanel rows={rows} mode="month" />
+        </div>
+      );
   }
   return <ComboChartPanel rows={rows} mode="weekday" />;
 }
@@ -396,7 +422,7 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
         toDate,
         ma_bcvh: maBcvh,
         mode: activeTab,
-        include_national_rank: activeTab === 'heatmap' && maBcvh === 'all' ? '1' : undefined,
+        include_national_rank: ['month', 'heatmap'].includes(activeTab) && maBcvh === 'all' ? '1' : undefined,
       },
       signal: controller.signal,
     })

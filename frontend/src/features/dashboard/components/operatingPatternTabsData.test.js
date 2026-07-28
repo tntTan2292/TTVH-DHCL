@@ -8,6 +8,7 @@ import {
   buildHeatmapDayDetailText,
   buildHeatmapDetailLayerModel,
   buildHeatmapMonthStats,
+  buildMonthlyRankDetail,
   buildGroundedOperatingPatternSummary,
   HEATMAP_WEEKDAY_LABELS,
   getApprovedWeekdayBand,
@@ -23,8 +24,8 @@ const sampleTimeline = {
   ],
   monthly_ytd: [
     { month: '2026-01', label: 'T1', total_volume: 1000, passed: 800, pass_rate: 80, from_date: '2026-01-01', to_date: '2026-01-31' },
-    { month: '2026-02', label: 'T2', total_volume: 2000, passed: 1800, pass_rate: 90, from_date: '2026-02-01', to_date: '2026-02-28' },
-    { month: '2026-07', label: 'T7', total_volume: 1500, passed: 1200, pass_rate: 80, from_date: '2026-07-01', to_date: '2026-07-16', is_current_month: true },
+    { month: '2026-02', label: 'T2', total_volume: 2000, passed: 1800, pass_rate: 90, from_date: '2026-02-01', to_date: '2026-02-28', national_rank: { available: true, rank: 12, total: 34, movement: null, period_start: '2026-02-01', period_end: '2026-02-28' } },
+    { month: '2026-07', label: 'T7', total_volume: 1500, passed: 1200, pass_rate: 80, from_date: '2026-07-01', to_date: '2026-07-16', is_current_month: true, national_rank: { available: true, rank: 9, total: 34, movement: 3, movement_label: '↑ 3 hạng', period_start: '2026-07-01', period_end: '2026-07-16' } },
   ],
   heatmap: [[
     null,
@@ -52,9 +53,43 @@ test('maps weekly monthly YTD and heatmap values from quality timeline response'
   assert.equal(model.month[0].label, 'T1');
   assert.equal(model.month[1].totalVolume, 2000);
   assert.equal(model.month[2].cumulativeLabel, 'Lũy kế đến ngày 16/07/2026');
+  assert.equal(model.month[1].nationalRankLabel, 'Hạng 12/34');
+  assert.equal(model.month[2].nationalRankLabel, 'Hạng 9/34');
+  assert.equal(model.month[2].rankMovementLabel, '↑ 3 hạng');
+  assert.match(model.month[2].monthlyRankDetail, /T7: Hạng 9\/34/);
   assert.equal(model.heatmap[0].days[1].date, '2026-07-15');
   assert.equal(model.heatmap[0].days[1].dayLabel, '15/07');
   assert.equal(model.pulse.text, 'Dá»¯ liá»‡u nhá»‹p cháº¥t lÆ°á»£ng tá»« API.');
+});
+
+test('maps monthly nationwide rank movement labels and missing-month wording from backend payload', () => {
+  const model = mapOperatingPatternResponse({
+    monthly_ytd: [
+      { month: '2026-06', label: 'T6', total_volume: 1000, passed: 700, pass_rate: 70, national_rank: { available: true, rank: 9, total: 34, movement: null, period_start: '2026-06-01', period_end: '2026-06-30' } },
+      { month: '2026-07', label: 'T7', total_volume: 1100, passed: 720, pass_rate: 65.45, national_rank: { available: true, rank: 14, total: 34, movement: -5, movement_label: '↓ 5 hạng', period_start: '2026-07-01', period_end: '2026-07-19' } },
+      { month: '2026-08', label: 'T8', total_volume: 0, passed: 0, pass_rate: null, national_rank: { available: false, message: 'Chưa có dữ liệu xếp hạng tháng T8', period_start: '2026-08-01', period_end: '2026-08-16' } },
+    ],
+  });
+
+  assert.equal(model.month[0].rankMovementLabel, null);
+  assert.equal(model.month[1].nationalRankLabel, 'Hạng 14/34');
+  assert.equal(model.month[1].rankMovementLabel, '↓ 5 hạng');
+  assert.match(model.month[1].monthlyRankDetail, /Kỳ xếp hạng: 01\/07\/2026 đến 19\/07\/2026/);
+  assert.equal(model.month[2].nationalRankLabel, 'Chưa có dữ liệu xếp hạng tháng T8');
+  assert.equal(model.month[2].rankMovementLabel, null);
+  assert.equal(buildMonthlyRankDetail(model.month[2]), model.month[2].monthlyRankDetail);
+});
+
+test('monthly rank is absent when backend suppresses province-level rank metadata', () => {
+  const model = mapOperatingPatternResponse({
+    monthly_ytd: [
+      { month: '2026-07', label: 'T7', total_volume: 1500, passed: 1200, pass_rate: 80 },
+    ],
+  });
+
+  assert.equal(model.month[0].nationalRank, null);
+  assert.equal(model.month[0].nationalRankLabel, null);
+  assert.equal(model.month[0].monthlyRankDetail, null);
 });
 
 test('maps Heatmap backend nationwide rank for tooltip and focus text', () => {

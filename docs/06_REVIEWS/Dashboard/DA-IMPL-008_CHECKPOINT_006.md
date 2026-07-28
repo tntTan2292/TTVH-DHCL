@@ -5,7 +5,7 @@
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `006 - Nationwide Ranking Integration`
 - Current state: `REMEDIATION REQUIRED / READY FOR PO RECHECK`
-- Technical status: `PASS - INLINE HEATMAP RANK REMEDIATION LEVEL 2 TARGETED VALIDATION`
+- Technical status: `PASS - MONTHLY RANK REMEDIATION LEVEL 2 TARGETED VALIDATION`
 - Runtime status: `LEVEL 2 TARGETED VALIDATION PASS`
 - PO UI check required: `Yes`
 - PO product status: `REMEDIATION REQUIRED - WAITING FOR PO RECHECK`
@@ -19,6 +19,8 @@ Product Owner approved the expanded Checkpoint 006 implementation scope on `2026
 Product Owner runtime result on `2026-07-28`: Heatmap inside `Quy luật vận hành` did not display nationwide ranking. Checkpoint 006 is not `PO PASS`; remediation remains required until Product Owner rechecks the runtime UI.
 
 Product Owner decision on `2026-07-28`: tooltip-only Heatmap ranking is not accepted. Nationwide rank must be visible directly inside each dated all-network Heatmap cell. Checkpoint 006 remains `REMEDIATION REQUIRED` and is not `PO PASS`.
+
+Product Owner decision on `2026-07-28`: Heatmap inline ranking is accepted visually. Extend province-level Hue nationwide ranking into `Quy luáº­t váº­n hÃ nh -> Theo thÃ¡ng`, showing monthly cumulative rank and month-over-month rank movement. Checkpoint 006 remains `REMEDIATION REQUIRED` and is not `PO PASS`.
 
 Product Owner authorized province-level Hue nationwide ranking in three bounded contexts only:
 
@@ -252,8 +254,57 @@ Rationale:
 - Confirm no duplicate rank KPI card, chart rank line, rank axis, or inline Heatmap rank badge was added.
 - Confirm top Command Summary selected-date/range rank still behaves as accepted in Checkpoint 004.
 
+## Monthly Rank Remediation - 2026-07-28
+
+- Product Owner decision:
+  - Heatmap inline ranking is accepted visually.
+  - Add Hue province-level nationwide ranking to `Quy luáº­t váº­n hÃ nh -> Theo thÃ¡ng`.
+  - Show each displayed month's backend-provided cumulative rank as `Háº¡ng X/Y` and movement versus the immediately previous displayed month as `â†‘ N háº¡ng`, `â†“ N háº¡ng`, or `KhÃ´ng Ä‘á»•i`.
+  - Checkpoint 006 remains `REMEDIATION REQUIRED`; this remediation does not self-award `PO PASS`.
+- Backend implementation:
+  - Added `getNationalRanksForPeriods(periods = [])` to calculate monthly cumulative Hue province rank from authoritative `fact_f13_national`.
+  - Uses one batched national query across all displayed month periods; no per-month query loop.
+  - Reuses Checkpoint 004 formula and ordering: aggregated KPI descending, then volume descending, with ordinal rank positions and no grouped tied ranks.
+  - Completed prior months use full calendar month periods, for example `2026-06-01..2026-06-30`.
+  - Current/latest-data month uses day `01` through latest available business-data date, for example `2026-07-01..2026-07-19`.
+  - Missing month or Hue-absent national data returns backend Vietnamese unavailable wording and does not fabricate `0/34`, `--/34`, or another month's rank.
+  - Movement is calculated only when both adjacent displayed months have valid ranks; smaller numeric rank is improvement.
+- Frontend implementation:
+  - Added a compact monthly rank strip in `Theo thÃ¡ng`, aligned above the existing monthly bar/line chart.
+  - Preserved monthly bars, KPI-rate line, management summary, legend, and layout.
+  - Full detail is available through `title` and focusable `aria-label`, including rank period and movement.
+  - Province-level monthly rank is requested and rendered only for `ma_bcvh=all`.
+  - BCVH filters suppress monthly rank request metadata and UI.
+  - No ranking line, extra chart axis, duplicate KPI card, rank legend entry, BCVH row/table ranking, weekday ranking, or monthly chart series was added.
+- Service-level runtime evidence without restarting the shared backend process:
+  - Direct service call `getQualityTimeline('2026-07-19', 'all', { mode: 'month', includeNationalRank: true })` returned `7` monthly rows and `7` monthly rank objects.
+  - Sample `2026-06`: `period_start=2026-06-01`, `period_end=2026-06-30`, `rank=18/34`, movement `â†“ 8 háº¡ng`.
+  - Sample `2026-07`: `period_start=2026-07-01`, `period_end=2026-07-19`, `rank=13/34`, movement `â†‘ 5 háº¡ng`.
+  - Direct BCVH service call with `ma_bcvh=535790` returned `7` monthly rows and `0` monthly rank objects.
+  - Live `localhost:5050` process was not restarted; its API response lacked new `rank_period_*` fields, indicating it was still running pre-change code. Import lifecycle was not disturbed.
+- LEVEL 2 targeted validation:
+  - `node --test backend/src/services/F13DashboardService.recovery.test.js backend/src/services/timelineService.recovery.test.js backend/src/controllers/DashboardController.test.js`
+    - Result: `PASS`
+    - Evidence: `25` tests passed, covering C004 selected-date/range rank, daily and monthly rank batching, movement direction, missing-adjacent movement suppression, full prior-month periods, latest-data current month, BCVH suppression, C003 Heatmap regressions, and C005 lazy mode.
+  - `node --test frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/operatingPatternTabsData.test.js frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/dashboardLoadPerformance.test.js`
+    - Result: `PASS`
+    - Evidence: `57` tests passed, covering rendered monthly rank labels, movement labels, missing-month wording, BCVH suppression, no rank chart line/axis, no duplicate card, unchanged initial request count, and existing C006 Heatmap/Integrated Trend behavior.
+  - `git diff --check`
+    - Result: `PASS`
+
+## Monthly Rank PO Recheck Checklist
+
+- Open Dashboard with `ma_bcvh=all`, `Quy luáº­t váº­n hÃ nh -> Theo thÃ¡ng`.
+- Confirm the monthly rank strip shows compact `Háº¡ng X/Y` for each available month.
+- Confirm movement text uses `â†‘ N háº¡ng` for improvement, `â†“ N háº¡ng` for decline, and `KhÃ´ng Ä‘á»•i` when unchanged.
+- Confirm completed prior months rank against full calendar months and the current month ranks only through latest available business-data date.
+- Confirm unavailable monthly rank uses clear Vietnamese missing-data wording and no fabricated rank.
+- Switch to a BCVH filter and confirm monthly province-level rank strip/details are suppressed.
+- Confirm no rank line, rank axis, duplicate KPI card, volume/rate legend rank item, BCVH row/table ranking, weekday ranking, or monthly chart-series ranking was added.
+- Confirm Heatmap daily inline rank, Integrated Trend rank detail, C004 top selected-range rank, and C005 initial request count remain unchanged.
+
 ## Handoff
 
-Checkpoint 006 inline Heatmap rank remediation is complete and ready for Product Owner visible recheck.
+Checkpoint 006 monthly rank remediation is complete and ready for Product Owner visible recheck.
 
 Do not mark Checkpoint 006 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.

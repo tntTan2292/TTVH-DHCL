@@ -27,6 +27,11 @@ class TimelineService {
         };
     }
 
+    _getMonthEndDate(monthKey) {
+        const [year, month] = monthKey.split('-').map(Number);
+        return this._formatUtcDate(new Date(Date.UTC(year, month, 0)));
+    }
+
     _buildHeatmapCalendar(fullData, latestBusinessDate) {
         const calendarData = [];
         const { heatmapStartStr, heatmapEndStr } = this._getHeatmapWindowBounds(latestBusinessDate);
@@ -84,6 +89,7 @@ class TimelineService {
         const includeMonthly = mode === 'all' || mode === 'month';
         const includeHeatmap = mode === 'all' || mode === 'heatmap';
         const includeNationalRank = Boolean(options.includeNationalRank) && includeHeatmap && (!ma_bcvh || ma_bcvh === 'all');
+        const includeMonthlyNationalRank = Boolean(options.includeNationalRank) && mode === 'month' && (!ma_bcvh || ma_bcvh === 'all');
         // Query data for the last 90 days to establish strong patterns
         const endDate = new Date(toDate);
         const startDate = new Date(toDate);
@@ -258,6 +264,7 @@ class TimelineService {
             const total = Number(row.total_bg || 0);
             const passed = Number(row.passed_bg || 0);
             const isCurrentMonth = monthKey === latestBusinessDate.slice(0, 7);
+            const rankPeriodEndDate = isCurrentMonth ? latestBusinessDate : this._getMonthEndDate(monthKey);
             monthlyYtd.push({
                 month: monthKey,
                 label: `T${month}`,
@@ -267,7 +274,22 @@ class TimelineService {
                 from_date: row.from_date || `${monthKey}-01`,
                 to_date: isCurrentMonth ? latestBusinessDate : (row.to_date || null),
                 is_current_month: isCurrentMonth,
+                rank_period_start: `${monthKey}-01`,
+                rank_period_end: rankPeriodEndDate,
                 cumulative_label: isCurrentMonth ? `Luy ke den ngay ${latestBusinessDate}` : null
+            });
+        }
+
+        if (includeMonthlyNationalRank) {
+            const monthRankPeriods = monthlyYtd.map((month) => ({
+                month: month.month,
+                label: month.label,
+                startDate: month.rank_period_start,
+                endDate: month.rank_period_end
+            }));
+            const nationalRanksByMonth = await f13DashboardService.getNationalRanksForPeriods(monthRankPeriods);
+            monthlyYtd.forEach((month) => {
+                month.national_rank = nationalRanksByMonth[month.month] || null;
             });
         }
 

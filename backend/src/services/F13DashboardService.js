@@ -230,6 +230,23 @@ class F13DashboardService {
         };
     }
 
+    _buildUnavailableMonthlyNationalRank(period, provinceCode, reason = 'missing_month') {
+        const label = period?.label || period?.month || 'tháng';
+        const message = reason === 'missing_province'
+            ? `Chưa có dữ liệu xếp hạng tháng của Huế trong bảng toàn quốc ${label}`
+            : `Chưa có dữ liệu xếp hạng tháng ${label}`;
+
+        return {
+            available: false,
+            message,
+            province_code: provinceCode,
+            period: period?.month || null,
+            period_start: period?.startDate || null,
+            period_end: period?.endDate || null,
+            period_type: 'month'
+        };
+    }
+
     async getNationalRanksForDates(dates = []) {
         const uniqueDates = [...new Set((dates || []).filter((date) => this._isIsoDate(date)))].sort();
         const provinceCode = await this._getDefaultProvinceCode();
@@ -288,6 +305,125 @@ class F13DashboardService {
             };
             return acc;
         }, {});
+    }
+
+    _applyMonthlyRankMovements(normalizedPeriods = [], ranksByMonth = {}) {
+        let previousRank = null;
+        for (const period of normalizedPeriods) {
+            const rank = ranksByMonth[period.month];
+            if (!rank?.available) {
+                if (rank) rank.movement = null;
+                previousRank = null;
+                continue;
+            }
+
+            if (previousRank?.available) {
+                const delta = previousRank.rank - rank.rank;
+                rank.previous_period = previousRank.period;
+                rank.previous_rank = previousRank.rank;
+                rank.movement = delta;
+                rank.movement_label = delta > 0
+                    ? `↑ ${delta} hạng`
+                    : delta < 0
+                        ? `↓ ${Math.abs(delta)} hạng`
+                        : 'Không đổi';
+            } else {
+                rank.previous_period = null;
+                rank.previous_rank = null;
+                rank.movement = null;
+                rank.movement_label = null;
+            }
+            previousRank = rank;
+        }
+
+        return ranksByMonth;
+    }
+
+    async getNationalRanksForPeriods(periods = []) {
+        const normalizedPeriods = (periods || [])
+            .filter((period) => period?.month && this._isIsoDate(period.startDate) && this._isIsoDate(period.endDate) && period.startDate <= period.endDate)
+            .sort((a, b) => a.startDate.localeCompare(b.startDate));
+        const provinceCode = await this._getDefaultProvinceCode();
+
+        if (!normalizedPeriods.length) return {};
+
+        const minStart = normalizedPeriods[0].startDate;
+        const maxEnd = normalizedPeriods.reduce((result, period) => period.endDate > result ? period.endDate : result, normalizedPeriods[0].endDate);
+        const rows = await all(`
+            SELECT
+                ngay_do_kiem,
+                ma_tinh_phat,
+                ten_tinh_phat,
+                sl_bg_ptc,
+                sl_ptc_dung_qd_ct
+            FROM fact_f13_national
+            WHERE ngay_do_kiem BETWEEN ? AND ?
+            ORDER BY ngay_do_kiem ASC
+        `, [minStart, maxEnd]);
+
+        const ranksByMonth = normalizedPeriods.reduce((acc, period) => {
+            const periodRows = rows.filter((row) => row.ngay_do_kiem >= period.startDate && row.ngay_do_kiem <= period.endDate);
+            if (!periodRows.length) {
+                acc[period.month] = this._buildUnavailableMonthlyNationalRank(period, provinceCode, 'missing_month');
+                return acc;
+            }
+
+            const provinceTotals = periodRows.reduce((totals, row) => {
+                if (!totals[row.ma_tinh_phat]) {
+                    totals[row.ma_tinh_phat] = {
+                        ma_tinh_phat: row.ma_tinh_phat,
+                        ten_tinh_phat: row.ten_tinh_phat,
+                        sl_bg_ptc: 0,
+                        sl_ptc_dung_qd_ct: 0
+                    };
+                }
+                totals[row.ma_tinh_phat].sl_bg_ptc += Number(row.sl_bg_ptc || 0);
+                totals[row.ma_tinh_phat].sl_ptc_dung_qd_ct += Number(row.sl_ptc_dung_qd_ct || 0);
+                return totals;
+            }, {});
+
+            const ranked = Object.values(provinceTotals)
+                .filter((row) => row.sl_bg_ptc > 0)
+                .sort((a, b) => {
+                    const rateDelta = (b.sl_ptc_dung_qd_ct / b.sl_bg_ptc) - (a.sl_ptc_dung_qd_ct / a.sl_bg_ptc);
+                    if (rateDelta !== 0) return rateDelta;
+                    return b.sl_bg_ptc - a.sl_bg_ptc;
+                });
+
+            if (!ranked.length) {
+                acc[period.month] = this._buildUnavailableMonthlyNationalRank(period, provinceCode, 'missing_month');
+                return acc;
+            }
+
+            const index = ranked.findIndex((row) => row.ma_tinh_phat === provinceCode);
+            if (index < 0) {
+                acc[period.month] = this._buildUnavailableMonthlyNationalRank(period, provinceCode, 'missing_province');
+                return acc;
+            }
+
+            const province = ranked[index];
+            acc[period.month] = {
+                available: true,
+                rank: index + 1,
+                total: ranked.length,
+                period: period.month,
+                period_start: period.startDate,
+                period_end: period.endDate,
+                period_type: 'month',
+                province_code: province.ma_tinh_phat,
+                province_name: province.ten_tinh_phat,
+                metric: 'tl_ptc_dung_qd_ct',
+                metric_label: 'Tỷ lệ PTC/nộp tiền đúng QĐ theo chỉ tiêu 2026',
+                metric_value: this._calculateRate(province.sl_ptc_dung_qd_ct, province.sl_bg_ptc),
+                volume: province.sl_bg_ptc,
+                passed: province.sl_ptc_dung_qd_ct,
+                direction: 'desc',
+                tie_behavior: 'Thứ tự theo tỷ lệ giảm dần, sau đó theo sản lượng giảm dần; không gộp đồng hạng.'
+            };
+            return acc;
+        }, {});
+
+        return this._applyMonthlyRankMovements(normalizedPeriods, ranksByMonth);
     }
 
     async _getNationalRankSummary(startDate, endDate) {

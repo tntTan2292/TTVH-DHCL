@@ -71,6 +71,23 @@ test('quality timeline mode stays compatible and recognizes lazy-load surfaces',
     assert.equal(timelineService._normalizeTimelineMode('unknown'), 'all');
 });
 
+test('timeline service exposes calendar month-end helper including December to January transition', () => {
+    assert.equal(timelineService._getMonthEndDate('2026-06'), '2026-06-30');
+    assert.equal(timelineService._getMonthEndDate('2026-02'), '2026-02-28');
+    assert.equal(timelineService._getMonthEndDate('2025-12'), '2025-12-31');
+});
+
+test('monthly rank enrichment uses full prior months and latest-data current month without BCVH scope', () => {
+    const source = require('node:fs').readFileSync(require.resolve('./timelineService'), 'utf8');
+
+    assert.match(source, /const includeMonthlyNationalRank = Boolean\(options\.includeNationalRank\) && mode === 'month' && \(!ma_bcvh \|\| ma_bcvh === 'all'\)/);
+    assert.match(source, /const rankPeriodEndDate = isCurrentMonth \? latestBusinessDate : this\._getMonthEndDate\(monthKey\)/);
+    assert.match(source, /rank_period_start: `\$\{monthKey\}-01`/);
+    assert.match(source, /rank_period_end: rankPeriodEndDate/);
+    assert.match(source, /getNationalRanksForPeriods\(monthRankPeriods\)/);
+    assert.match(source, /month\.national_rank = nationalRanksByMonth\[month\.month\] \|\| null/);
+});
+
 test('heatmap national rank enrichment is applied from a date map without changing cells', () => {
     const calendar = timelineService._buildHeatmapCalendar(dailyRows('2026-07-01', '2026-07-02'), '2026-07-02');
     const enriched = timelineService._applyNationalRanksToHeatmap(calendar, {

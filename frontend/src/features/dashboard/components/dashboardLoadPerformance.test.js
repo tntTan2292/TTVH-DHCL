@@ -52,13 +52,36 @@ test('nationwide rank enrichment keeps initial request count unchanged and uses 
 
   assert.equal((dashboardSource.match(/\/f13\/dashboard\/daily-trend/g) || []).length, 1);
   assert.equal((operatingSource.match(/\/f13\/dashboard\/quality-timeline/g) || []).length, 1);
-  assert.match(operatingSource, /include_national_rank: activeTab === 'heatmap' && maBcvh === 'all' \? '1' : undefined/);
+  assert.match(operatingSource, /include_national_rank: \['month', 'heatmap'\]\.includes\(activeTab\) && maBcvh === 'all' \? '1' : undefined/);
   assert.match(controllerSource, /includeNationalRank: include_national_rank === '1' \|\| include_national_rank === 'true'/);
+});
+
+test('monthly nationwide rank uses existing lazy timeline request without rank chart axis or duplicate card', () => {
+  const operatingSource = read('./OperatingPatternTabsCard.jsx');
+  const mapperSource = read('./operatingPatternTabsData.js');
+  const timelineSource = read('../../../../../backend/src/services/timelineService.js');
+  const comboChartSource = operatingSource.slice(
+    operatingSource.indexOf('function ComboChartPanel'),
+    operatingSource.indexOf('function MonthlySummary'),
+  );
+
+  assert.equal((operatingSource.match(/\/f13\/dashboard\/quality-timeline/g) || []).length, 1);
+  assert.match(timelineSource, /getNationalRanksForPeriods\(monthRankPeriods\)/);
+  assert.match(mapperSource, /formatMonthlyRank/);
+  assert.match(mapperSource, /formatMonthlyRankMovement/);
+  assert.match(operatingSource, /function MonthlyRankStrip/);
+  assert.match(operatingSource, /<MonthlyRankStrip rows=\{rows\} \/>/);
+  assert.doesNotMatch(comboChartSource, /dataKey="nationalRank"|dataKey='nationalRank'|YAxis[^]*nationalRank|Line[^]*nationalRank/);
+  assert.doesNotMatch(operatingSource, /Xếp hạng toàn quốc<\/div>[\s\S]*rounded-lg border/);
 });
 
 test('Heatmap renders backend national rank inline and keeps shared tooltip detail', () => {
   const operatingSource = read('./OperatingPatternTabsCard.jsx');
   const mapperSource = read('./operatingPatternTabsData.js');
+  const heatmapSectionSource = operatingSource.slice(
+    operatingSource.indexOf('function HeatmapMonthSection'),
+    operatingSource.indexOf('function MonthlyRankStrip'),
+  );
 
   assert.match(mapperSource, /Xếp hạng toàn quốc: Hạng/);
   assert.match(mapperSource, /formatCompactNationalRank/);
@@ -78,7 +101,7 @@ test('Heatmap renders backend national rank inline and keeps shared tooltip deta
   assert.match(operatingSource, /role="tooltip"/);
   assert.match(operatingSource, /data-testid="heatmap-rank-detail-layer"/);
   assert.doesNotMatch(operatingSource, /group-hover:block|group-focus:block/);
-  assert.doesNotMatch(operatingSource, /#\{day\.nationalRank|nationalRankLabel\}<\/span>|YAxis[^]*nationalRank|Line[^]*nationalRank/);
+  assert.doesNotMatch(heatmapSectionSource, /#\{day\.nationalRank|nationalRankLabel\}<\/span>/);
 });
 
 test('nationwide rank is not added to BCVH row ranking surfaces', () => {

@@ -89,6 +89,39 @@ export function formatCompactNationalRank(rank) {
   return 'H–';
 }
 
+export function formatMonthlyRank(rank) {
+  if (!rank) return null;
+  if (rank.available && rank.rank !== null && rank.rank !== undefined && rank.total !== null && rank.total !== undefined) {
+    return `Hạng ${rank.rank}/${rank.total}`;
+  }
+  return rank.message || 'Chưa có dữ liệu xếp hạng tháng';
+}
+
+export function formatMonthlyRankMovement(rank) {
+  if (!rank?.available || rank.movement === null || rank.movement === undefined) return null;
+  if (rank.movement > 0) return `↑ ${rank.movement} hạng`;
+  if (rank.movement < 0) return `↓ ${Math.abs(rank.movement)} hạng`;
+  return 'Không đổi';
+}
+
+export function buildMonthlyRankDetail(row = {}) {
+  const rankLabel = row.nationalRankLabel || formatMonthlyRank(row.nationalRank);
+  if (!rankLabel) return null;
+
+  const parts = [
+    `${row.label || row.month}: ${rankLabel}`,
+  ];
+  const movementLabel = row.rankMovementLabel || formatMonthlyRankMovement(row.nationalRank);
+  if (movementLabel) parts.push(`So với tháng trước: ${movementLabel}`);
+  if (row.nationalRank?.period_start && row.nationalRank?.period_end) {
+    parts.push(`Kỳ xếp hạng: ${formatDisplayDate(row.nationalRank.period_start)} đến ${formatDisplayDate(row.nationalRank.period_end)}`);
+  }
+  if (row.nationalRank?.message && !row.nationalRank?.available) {
+    parts.push(row.nationalRank.message);
+  }
+  return parts.join(' | ');
+}
+
 export function buildHeatmapCellLines(day = {}) {
   if (!day || day.empty) return [];
 
@@ -231,6 +264,14 @@ export function mapMonthlyPattern(monthly = []) {
       cumulativeLabel: item?.is_current_month && item?.to_date
         ? `Lũy kế đến ngày ${formatDisplayDate(item.to_date)}`
         : null,
+      nationalRank: item?.national_rank || null,
+      nationalRankLabel: formatMonthlyRank(item?.national_rank),
+      rankMovementLabel: formatMonthlyRankMovement(item?.national_rank),
+      monthlyRankDetail: buildMonthlyRankDetail({
+        label: item?.label || `T${index + 1}`,
+        month: item?.month || null,
+        nationalRank: item?.national_rank || null,
+      }),
       targetTone: getTargetTone(rate),
       available: totalVolume > 0 && rate !== null,
       sourceLabel: 'Sản lượng và tỷ lệ đạt theo tháng',

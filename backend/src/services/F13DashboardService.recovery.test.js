@@ -267,6 +267,59 @@ test('daily nationwide rank helper uses one batched query and Checkpoint 004 ord
   assert.doesNotMatch(source, /for \(const date.*await this\._getNationalRankForDate/s);
 });
 
+test('monthly nationwide rank helper uses one batched range query and cumulative C004 ordering', () => {
+  const source = fs.readFileSync(require.resolve('./F13DashboardService'), 'utf8');
+  const helperSource = source.slice(
+    source.indexOf('async getNationalRanksForPeriods'),
+    source.indexOf('async _getNationalRankSummary'),
+  );
+
+  assert.match(source, /getNationalRanksForPeriods\(periods = \[\]\)/);
+  assert.match(source, /WHERE ngay_do_kiem BETWEEN \? AND \?/);
+  assert.match(source, /sl_ptc_dung_qd_ct \/ b\.sl_bg_ptc|sl_ptc_dung_qd_ct \/ a\.sl_bg_ptc/);
+  assert.match(source, /return b\.sl_bg_ptc - a\.sl_bg_ptc/);
+  assert.match(source, /_applyMonthlyRankMovements\(normalizedPeriods, ranksByMonth\)/);
+  assert.doesNotMatch(helperSource, /await this\._getNationalRankForRange/);
+});
+
+test('monthly nationwide rank movement treats smaller numeric rank as improvement', () => {
+  const ranked = service._applyMonthlyRankMovements([
+    { month: '2026-05' },
+    { month: '2026-06' },
+    { month: '2026-07' },
+    { month: '2026-08' },
+  ], {
+    '2026-05': { available: true, period: '2026-05', rank: 12, total: 34 },
+    '2026-06': { available: true, period: '2026-06', rank: 9, total: 34 },
+    '2026-07': { available: true, period: '2026-07', rank: 14, total: 34 },
+    '2026-08': { available: true, period: '2026-08', rank: 14, total: 34 },
+  });
+
+  assert.equal(ranked['2026-05'].movement, null);
+  assert.equal(ranked['2026-06'].movement, 3);
+  assert.equal(ranked['2026-06'].movement_label, '↑ 3 hạng');
+  assert.equal(ranked['2026-07'].movement, -5);
+  assert.equal(ranked['2026-07'].movement_label, '↓ 5 hạng');
+  assert.equal(ranked['2026-08'].movement, 0);
+  assert.equal(ranked['2026-08'].movement_label, 'Không đổi');
+});
+
+test('monthly nationwide rank movement is skipped when adjacent rank is unavailable', () => {
+  const ranked = service._applyMonthlyRankMovements([
+    { month: '2026-06' },
+    { month: '2026-07' },
+    { month: '2026-08' },
+  ], {
+    '2026-06': { available: true, period: '2026-06', rank: 9, total: 34 },
+    '2026-07': { available: false, message: 'Chưa có dữ liệu xếp hạng tháng' },
+    '2026-08': { available: true, period: '2026-08', rank: 7, total: 34 },
+  });
+
+  assert.equal(ranked['2026-07'].movement, null);
+  assert.equal(ranked['2026-08'].movement, null);
+  assert.equal(ranked['2026-08'].previous_rank, null);
+});
+
 test('dashboard controller forwards ma_bcvh to the KPI service path', async () => {
   const original = service.getDashboardKpi;
   let captured = null;
