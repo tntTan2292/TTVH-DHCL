@@ -56,14 +56,20 @@ test('nationwide rank enrichment keeps initial request count unchanged and uses 
   assert.match(controllerSource, /includeNationalRank: include_national_rank === '1' \|\| include_national_rank === 'true'/);
 });
 
-test('Heatmap renders same national rank detail for hover and focus without inline badge', () => {
+test('Heatmap renders backend national rank inline and keeps shared tooltip detail', () => {
   const operatingSource = read('./OperatingPatternTabsCard.jsx');
   const mapperSource = read('./operatingPatternTabsData.js');
 
   assert.match(mapperSource, /Xếp hạng toàn quốc: Hạng/);
+  assert.match(mapperSource, /formatCompactNationalRank/);
+  assert.match(mapperSource, /return `H\$\{rank\.rank\}\/\$\{rank\.total\}`/);
+  assert.match(mapperSource, /return 'H–'/);
+  assert.match(mapperSource, /buildHeatmapCellLines/);
   assert.match(mapperSource, /formatNationalRank/);
   assert.match(mapperSource, /buildHeatmapDetailLayerModel/);
   assert.match(mapperSource, /placement:\s*'viewport-fixed'/);
+  assert.match(operatingSource, /buildHeatmapCellLines\(day\)/);
+  assert.match(operatingSource, /line\.id === 'rank'/);
   assert.match(operatingSource, /title=\{dayTitle\}/);
   assert.match(operatingSource, /aria-label=\{dayTitle \|\| undefined\}/);
   assert.match(operatingSource, /onMouseEnter=\{\(event\) => showDayDetail\(day, event\)\}/);
@@ -72,7 +78,7 @@ test('Heatmap renders same national rank detail for hover and focus without inli
   assert.match(operatingSource, /role="tooltip"/);
   assert.match(operatingSource, /data-testid="heatmap-rank-detail-layer"/);
   assert.doesNotMatch(operatingSource, /group-hover:block|group-focus:block/);
-  assert.doesNotMatch(operatingSource, /#\{day\.nationalRank|nationalRankLabel\}<\/span>/);
+  assert.doesNotMatch(operatingSource, /#\{day\.nationalRank|nationalRankLabel\}<\/span>|YAxis[^]*nationalRank|Line[^]*nationalRank/);
 });
 
 test('nationwide rank is not added to BCVH row ranking surfaces', () => {

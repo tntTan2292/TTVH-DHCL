@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   DEFAULT_OPERATING_PATTERN_TAB,
   OPERATING_PATTERN_TABS,
+  buildHeatmapCellLines,
   buildHeatmapDayDetailText,
   buildHeatmapDetailLayerModel,
   buildHeatmapMonthStats,
@@ -72,6 +73,11 @@ test('maps Heatmap backend nationwide rank for tooltip and focus text', () => {
   const day = model.heatmap[0].days[0];
   assert.equal(day.nationalRank.rank, 24);
   assert.equal(day.nationalRankLabel, 'Xếp hạng toàn quốc: Hạng 24/34');
+  assert.equal(day.compactNationalRankLabel, 'H24/34');
+  assert.deepEqual(
+    buildHeatmapCellLines(day).map((line) => line.label),
+    ['19/07', '52.56%', 'H24/34'],
+  );
 });
 
 test('maps Heatmap unavailable nationwide rank using backend message', () => {
@@ -88,6 +94,31 @@ test('maps Heatmap unavailable nationwide rank using backend message', () => {
   }, { toDate: '2026-07-20' });
 
   assert.equal(model.heatmap[0].days[0].nationalRankLabel, 'Chưa có dữ liệu xếp hạng toàn quốc cho ngày 2026-07-20');
+  assert.equal(model.heatmap[0].days[0].compactNationalRankLabel, 'H–');
+  assert.deepEqual(
+    buildHeatmapCellLines(model.heatmap[0].days[0]).map((line) => line.label),
+    ['20/07', '52.56%', 'H–'],
+  );
+});
+
+test('Heatmap cell rendering model suppresses inline province rank when backend rank is absent', () => {
+  const day = mapOperatingPatternResponse({
+    heatmap: [[
+      {
+        date: '2026-07-19',
+        kpi_rate: 52.56,
+        dod: 0,
+        color: 'red',
+      },
+    ]],
+  }, { toDate: '2026-07-19' }).heatmap[0].days[0];
+
+  assert.equal(day.nationalRank, null);
+  assert.equal(day.compactNationalRankLabel, null);
+  assert.deepEqual(
+    buildHeatmapCellLines(day).map((line) => line.label),
+    ['19/07', '52.56%'],
+  );
 });
 
 test('Heatmap rank detail layer becomes visible from runtime hover or focus geometry', () => {
@@ -314,6 +345,8 @@ test('component source exposes required legends labels and heatmap month separat
   assert.match(source, /data-testid="heatmap-rank-detail-layer"/);
   assert.match(source, /role="tooltip"/);
   assert.match(source, /className="pointer-events-none fixed/);
+  assert.match(source, /buildHeatmapCellLines\(day\)/);
+  assert.match(source, /h-16/);
   assert.doesNotMatch(source, /group-hover:block|group-focus:block/);
   assert.deepEqual(HEATMAP_WEEKDAY_LABELS, ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']);
 });

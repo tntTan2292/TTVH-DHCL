@@ -81,6 +81,30 @@ export function formatNationalRank(rank) {
   return rank.message || 'Chưa có dữ liệu xếp hạng toàn quốc';
 }
 
+export function formatCompactNationalRank(rank) {
+  if (!rank) return null;
+  if (rank.available && rank.rank !== null && rank.rank !== undefined && rank.total !== null && rank.total !== undefined) {
+    return `H${rank.rank}/${rank.total}`;
+  }
+  return 'H–';
+}
+
+export function buildHeatmapCellLines(day = {}) {
+  if (!day || day.empty) return [];
+
+  const lines = [
+    { id: 'date', label: day.dayLabel || '--' },
+    { id: 'kpi', label: day.valueLabel || 'Chưa có dữ liệu' },
+  ];
+
+  const compactRank = day.compactNationalRankLabel || formatCompactNationalRank(day.nationalRank);
+  if (compactRank) {
+    lines.push({ id: 'rank', label: compactRank });
+  }
+
+  return lines;
+}
+
 export function buildHeatmapDayDetailText(day = {}) {
   if (!day || day.empty) return '';
 
@@ -268,6 +292,7 @@ export function mapHeatmapPattern(heatmap = []) {
           available: !unavailable && rate !== null,
           nationalRank: day.national_rank || null,
           nationalRankLabel: formatNationalRank(day.national_rank),
+          compactNationalRankLabel: formatCompactNationalRank(day.national_rank),
           sourceLabel: 'KPI ngày đo kiểm',
         };
       })

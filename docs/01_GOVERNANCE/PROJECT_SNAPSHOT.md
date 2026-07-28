@@ -25,7 +25,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_006.md` |
 | Current State | `ACTIVE / AUTHORIZED` |
-| Technical Status | `PASS - CHECKPOINT 006 HEATMAP RANK RUNTIME REMEDIATION LEVEL 2 TARGETED VALIDATION` |
+| Technical Status | `PASS - CHECKPOINT 006 INLINE HEATMAP RANK REMEDIATION LEVEL 2 TARGETED VALIDATION` |
 | Runtime Status | `LEVEL 2 TARGETED VALIDATION PASS` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `DA-IMPL-008 CHECKPOINT 002 PO PASS; CHECKPOINT 003 PO PASS; CHECKPOINT 004 PO PASS; CHECKPOINT 005 PO PASS; CHECKPOINT 006 REMEDIATION REQUIRED - READY FOR PO RECHECK; AUTO-IMPORT-009 COMPLETED / PO PASS` |

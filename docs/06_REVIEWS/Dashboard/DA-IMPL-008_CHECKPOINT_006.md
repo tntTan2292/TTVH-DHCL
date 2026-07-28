@@ -5,7 +5,7 @@
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `006 - Nationwide Ranking Integration`
 - Current state: `REMEDIATION REQUIRED / READY FOR PO RECHECK`
-- Technical status: `PASS - HEATMAP RANK RUNTIME REMEDIATION LEVEL 2 TARGETED VALIDATION`
+- Technical status: `PASS - INLINE HEATMAP RANK REMEDIATION LEVEL 2 TARGETED VALIDATION`
 - Runtime status: `LEVEL 2 TARGETED VALIDATION PASS`
 - PO UI check required: `Yes`
 - PO product status: `REMEDIATION REQUIRED - WAITING FOR PO RECHECK`
@@ -17,6 +17,8 @@ Product Owner accepted `DA-IMPL-008 CHECKPOINT 005` as `PO PASS` on `2026-07-27`
 Product Owner approved the expanded Checkpoint 006 implementation scope on `2026-07-27`.
 
 Product Owner runtime result on `2026-07-28`: Heatmap inside `Quy luật vận hành` did not display nationwide ranking. Checkpoint 006 is not `PO PASS`; remediation remains required until Product Owner rechecks the runtime UI.
+
+Product Owner decision on `2026-07-28`: tooltip-only Heatmap ranking is not accepted. Nationwide rank must be visible directly inside each dated all-network Heatmap cell. Checkpoint 006 remains `REMEDIATION REQUIRED` and is not `PO PASS`.
 
 Product Owner authorized province-level Hue nationwide ranking in three bounded contexts only:
 
@@ -44,7 +46,7 @@ No Dashboard schema, KPI formula, Import lifecycle, threshold, mapping, complete
 - Enriched `GET /f13/dashboard/daily-trend` rows with backend-provided `national_rank` only for all-network scope.
 - Added optional lazy Heatmap rank enrichment through `GET /f13/dashboard/quality-timeline?mode=heatmap&include_national_rank=1`.
 - Suppressed province-level rank metadata whenever a BCVH filter is active.
-- Preserved visible Heatmap cells; rank appears only in title/focus text.
+- Heatmap all-network dated cells show compact exact-day Hue province rank inline while preserving the full hover/focus detail.
 - Added Integrated Trend daily point tooltip rank detail without adding a rank series, rank line, or rank axis.
 - Added selected-range rank detail in the existing Integrated Trend context row from the Checkpoint 004 `kpiData.national_rank` contract.
 - Preserved the top Command Summary selected-date/range rank behavior.
@@ -207,10 +209,42 @@ Rationale:
 - `git diff --check`
   - Result: `PASS`
 
+## Inline Heatmap Rank Remediation - 2026-07-28
+
+- Product Owner decision:
+  - Tooltip-only Heatmap ranking was not accepted.
+  - All-network dated Heatmap cells must show rank at a glance as a third line, preferred format `H21/34`.
+  - Checkpoint 006 remains `REMEDIATION REQUIRED`; this remediation does not self-award `PO PASS`.
+- Implemented smallest correction:
+  - Line 1 remains the existing date label.
+  - Line 2 remains the existing KPI rate label.
+  - Line 3 now shows compact backend-provided exact-day Hue national rank such as `H21/34`.
+  - If backend rank metadata is present but unavailable, line 3 shows neutral compact `H–`; the existing tooltip/focus detail keeps the backend-provided Vietnamese reason.
+  - If backend rank metadata is absent, no rank line is rendered. This preserves BCVH-filter suppression because BCVH Heatmap payloads do not receive province-level rank metadata.
+  - Heatmap cells were increased from `h-14` to `h-16` with smaller secondary rank text to keep desktop 100% readability without horizontal overflow, month misalignment, clipped text, or overlap.
+- Browser runtime evidence:
+  - All-network route: `http://localhost:5178/f13/dashboard?from_date=2026-07-13&to_date=2026-07-19&ma_bcvh=all`.
+  - Heatmap rendered exactly `Tháng 06/2026` and `Tháng 07/2026`.
+  - Sample date `2026-07-19` rendered cell lines `19/07`, `52.56%`, `H21/34`.
+  - Sample cell full detail remained `-7.73 so với TB | Xếp hạng toàn quốc: Hạng 21/34`.
+  - Sample cell dimensions were `~54.86px x 64px`; runtime checks found no horizontal or vertical cell overflow.
+  - Existing floating tooltip remained visible on click/focus with full wording.
+  - BCVH route `ma_bcvh=535790` rendered Heatmap sample cell lines `19/07`, `74.47%` only; no compact rank pattern, no rank aria label, and no rank tooltip layer appeared.
+- `node --test backend/src/services/F13DashboardService.recovery.test.js backend/src/services/timelineService.recovery.test.js backend/src/controllers/DashboardController.test.js`
+  - Result: `PASS`
+  - Evidence: `20` tests passed; C004 selected-date/range rank, daily rank batching, BCVH suppression, C003 two-month Heatmap, and C005 lazy mode remained covered.
+- `node --test frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/operatingPatternTabsData.test.js frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/dashboardLoadPerformance.test.js`
+  - Result: `PASS`
+  - Evidence: `54` tests passed; rendered cell line model covers `H21/34`, `H–`, backend-rank absence suppression, tooltip detail, unchanged initial request count, no BCVH rows/tables ranking, and no chart rank line or axis.
+- `git diff --check`
+  - Result: `PASS`
+
 ## Product Owner Checklist
 
 - Open Dashboard with `ma_bcvh=all`.
-- Hover/focus Heatmap dates with TCT national data and confirm exact-day Hue national rank appears in tooltip/focus text.
+- Confirm all-network dated Heatmap cells show a third compact line such as `H21/34`.
+- Hover/focus Heatmap dates with TCT national data and confirm exact-day Hue national rank still appears in tooltip/focus text.
+- Confirm unavailable national rank dates show neutral compact `H–` and the tooltip/focus detail explains the backend-provided reason.
 - Hover Integrated Trend daily points and confirm exact-day Hue national rank appears with daily KPI/volume detail.
 - Confirm the Integrated Trend selected-range context shows the cumulative Hue national rank for the selected range.
 - Switch to any BCVH filter and confirm Heatmap, Integrated Trend tooltip, and selected-range detail no longer show province-level national rank.
@@ -220,6 +254,6 @@ Rationale:
 
 ## Handoff
 
-Checkpoint 006 remediation is complete and ready for Product Owner visible recheck.
+Checkpoint 006 inline Heatmap rank remediation is complete and ready for Product Owner visible recheck.
 
 Do not mark Checkpoint 006 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.

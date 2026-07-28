@@ -19,6 +19,7 @@ import {
   HEATMAP_RELATIVE_BANDS,
   HEATMAP_WEEKDAY_LABELS,
   OPERATING_PATTERN_TABS,
+  buildHeatmapCellLines,
   buildHeatmapDayDetailText,
   buildHeatmapDetailLayerModel,
   buildGroundedOperatingPatternSummary,
@@ -286,11 +287,12 @@ function HeatmapMonthSection({ month }) {
           ))}
           {month.days.map((day) => {
             const dayTitle = buildHeatmapDayDetailText(day);
+            const cellLines = buildHeatmapCellLines(day);
 
             return (
               <div
                 key={day.id}
-                className={`relative flex h-14 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
+                className={`relative flex h-16 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
                 title={dayTitle}
                 aria-label={dayTitle || undefined}
                 tabIndex={day.empty ? undefined : 0}
@@ -301,8 +303,18 @@ function HeatmapMonthSection({ month }) {
                 onClick={(event) => showDayDetail(day, event)}
                 onKeyDown={handleDayKeyDown}
               >
-                <span className="text-[10px] font-bold">{day.dayLabel}</span>
-                <span className="text-[10px] font-semibold">{day.valueLabel}</span>
+                {cellLines.map((line) => (
+                  <span
+                    key={line.id}
+                    className={line.id === 'rank'
+                      ? 'text-[9px] font-bold leading-3 text-current opacity-85'
+                      : line.id === 'date'
+                        ? 'text-[10px] font-bold leading-3'
+                        : 'text-[10px] font-semibold leading-3'}
+                  >
+                    {line.label}
+                  </span>
+                ))}
               </div>
             );
           })}
