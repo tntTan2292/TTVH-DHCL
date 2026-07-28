@@ -24,6 +24,71 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function formatRate(value) {
+  return `${toNumber(value).toFixed(1)}%`;
+}
+
+function RouteRankingTable({ rows, selectedRouteId, onSelectRoute }) {
+  if (!rows.length) {
+    return (
+      <div className="rounded-xl border border-[var(--color-surface-200)] bg-white p-6 text-sm text-[var(--color-text-muted)]">
+        Không có tuyến phù hợp với bộ lọc hiện tại.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-[var(--color-surface-200)] bg-white shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm" data-testid="route-ranking-table">
+          <thead className="bg-[var(--color-surface-50)] text-left text-xs font-semibold uppercase text-[var(--color-text-muted)]">
+            <tr>
+              <th className="px-4 py-3">XH</th>
+              <th className="px-4 py-3">Mã tuyến</th>
+              <th className="px-4 py-3">Tên tuyến</th>
+              <th className="px-4 py-3 text-right">Tổng BG</th>
+              <th className="px-4 py-3 text-right">Đạt</th>
+              <th className="px-4 py-3 text-right">Không đạt</th>
+              <th className="px-4 py-3 text-right">Tỷ lệ đạt</th>
+              <th className="px-4 py-3">Phân loại</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--color-surface-100)]">
+            {rows.map((row, index) => {
+              const routeId = row.id || row.ma_tuyen;
+              const selected = routeId === selectedRouteId;
+              return (
+                <tr key={routeId} className={selected ? 'bg-[var(--color-primary-50)]' : 'hover:bg-[var(--color-surface-50)]'}>
+                  <td className="px-4 py-3 font-semibold text-[var(--color-text-muted)]">{index + 1}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-[var(--color-text-main)]">{row.code || row.ma_tuyen}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => onSelectRoute(routeId)}
+                      className="text-left font-semibold text-[var(--color-primary-700)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)]"
+                    >
+                      {row.name || row.ten_tuyen || row.ma_tuyen}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono">{toNumber(row.total_bg).toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right font-mono text-green-700">{toNumber(row.passed).toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right font-mono text-red-600">{toNumber(row.failed ?? row.total_failed).toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right font-semibold">{formatRate(row.passed_rate)}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${row.is_postman_delivery_route ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
+                      {row.is_postman_delivery_route ? 'Tuyến bưu tá' : 'Tất cả'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function RoutePerformancePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState('loading');
@@ -207,6 +272,13 @@ export default function RoutePerformancePage() {
             <KPICard key={item.label} label={item.label} value={item.value} delta={item.delta} tone={item.tone} />
           ))}
         </div>
+
+        <SectionHeader title="B?ng Tuy?n Ranking" subtitle="Danh s?ch tuy?n runtime theo b? l?c ?ang ch?n." />
+        <RouteRankingTable
+          rows={filteredRows}
+          selectedRouteId={selectedRouteId}
+          onSelectRoute={setSelectedRouteId}
+        />
 
         <SectionHeader title="Executive Brief Area" subtitle="Khối executive mở đầu cho Route Performance Center." />
         <RouteExecutiveBrief

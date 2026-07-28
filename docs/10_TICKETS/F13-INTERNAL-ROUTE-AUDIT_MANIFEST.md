@@ -59,6 +59,7 @@ No fuzzy synonyms or inferred route types are authorized.
 - Near matches found: `11`.
 - Official classifications saved: `7` confirmed customer-pickup/internal post-office routes in `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`.
 - Route Ranking implementation: default `Tuyến bưu tá` excludes confirmed non-postman routes; `Tất cả` includes all Hue routes.
+- Route Ranking remediation: active page now includes a minimal runtime-backed `Bảng Tuyến Ranking` connected to the selected filter.
 - Remaining unconfirmed near-match classifications saved: `None`.
 
 ## Out Of Scope
@@ -78,4 +79,4 @@ Product Owner must perform runtime/UI review for the Route Ranking filter.
 
 Status: `READY FOR PO RUNTIME/UI REVIEW`.
 
-Route Ranking is implemented with catalog-backed classification and the `Tuyến bưu tá | Tất cả` filter. Do not self-award PO PASS.
+Route Ranking is implemented with catalog-backed classification, the `Tuyến bưu tá | Tất cả` filter, and a minimal route table connected to displayed runtime data. Do not self-award PO PASS.

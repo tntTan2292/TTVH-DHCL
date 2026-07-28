@@ -25,6 +25,9 @@ test('Route Performance page sends default postman filter and can switch to all 
   assert.match(pageSource, /DEFAULT_ROUTE_TYPE_FILTER/);
   assert.match(pageSource, /searchParams\.get\('route_type'\)/);
   assert.match(pageSource, /getRouteRanking\(fromDate, bcvhId, 1, 1000, sort, order, routeType\)/);
+  assert.match(pageSource, /function RouteRankingTable/);
+  assert.match(pageSource, /data-testid="route-ranking-table"/);
+  assert.match(pageSource, /rows=\{filteredRows\}/);
   assert.match(pageSource, /updateParam\('route_type', item\.value === DEFAULT_ROUTE_TYPE_FILTER \? '' : item\.value\)/);
   assert.match(pageSource, /bcvhOptions=\{ROUTE_BCVH_OPTIONS\}/);
   assert.match(pageSource, /aria-pressed=\{routeType === item\.value\}/);

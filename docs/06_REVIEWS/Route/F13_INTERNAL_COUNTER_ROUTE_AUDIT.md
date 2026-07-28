@@ -109,6 +109,26 @@ Near-match list rule:
 - Diff hygiene: `git diff --check` - `PASS`.
 - Direct service check for `2026-07-27`, `533140`: default `Tuyến bưu tá` returned `33` postman routes and excluded `53314018`; `Tất cả` returned `34` Hue routes and included `53314018`; non-Hue routes present in `Tất cả`: `false`.
 
+## PO Recheck Remediation
+
+Product Owner recheck found the filter labels visible in Module Tuyến Ranking, but no practical route list was available for runtime/UI verification.
+
+Remediation completed:
+
+- Added a minimal runtime-backed `Bảng Tuyến Ranking` table to the active Tuyến Ranking page.
+- The table uses the same backend `rows` returned by the selected `Tuyến bưu tá | Tất cả` filter.
+- The table shows route rank, route code, route name, total volume, passed volume, failed volume, pass rate, and current displayed classification.
+- Row selection updates the existing downstream route context panels.
+- Added frontend regression coverage that the table exists and is fed by `filteredRows`.
+
+Additional validation after remediation:
+
+- `node --test frontend/src/features/route/routeRankingFilters.test.js` - `PASS`.
+- `node backend/test_f13_route_classification.js` - `PASS`.
+- `npm.cmd run build` in `frontend` - `PASS` with existing Vite chunk-size warning.
+- `npm.cmd run lint` in `frontend` - `PASS` with pre-existing warnings outside this change.
+- `git diff --check` - `PASS`.
+
 ## Handoff
 
 Status: `READY FOR PO RUNTIME/UI REVIEW`.
