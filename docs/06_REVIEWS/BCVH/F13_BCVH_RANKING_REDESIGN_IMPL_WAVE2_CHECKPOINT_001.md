@@ -33,6 +33,12 @@ PO UI remediation on the same ticket baseline also delivered:
 - factual no-data state with the selected date, supported nearest available date, and `Xem ngay gan nhat`
 - removal of visible technical/explanatory cards such as locked-layout and fallback notes
 
+Latest bounded PO-check remediation also delivered:
+
+- delayed-cash widget now binds the existing runtime delayed-cash rate from the active BCVH scope and no longer shows an unavailable state when the runtime rate already exists
+- management wording replaces technical or implementation-facing labels on the PO screen
+- `Hạng`, `Mã BCVH`, and `Tên BCVH` are frozen for readability while later metric groups remain horizontally scrollable
+
 ## Preserved Authority
 
 - Dashboard SSOT route-quality bands remain exactly:
@@ -126,7 +132,12 @@ Steps:
    - `Chat luong F1.3`
    - `Cham nop tien`
    - `Phan bo chat luong tuyen`
-3. Confirm the grouped headers appear for:
+3. Confirm the delayed-cash widget shows the runtime delayed-cash rate when the selected BCVH scope already has that rate.
+4. Confirm management wording is visible instead of technical implementation wording:
+   - `Bảng xếp hạng chất lượng BCVH`
+   - `So sánh kỳ trước`
+   - `Xem chi tiết tuyến`
+5. Confirm the grouped headers appear for:
    - `Don vi`
    - `Ket qua ngay danh gia`
    - `So sanh D-1`
@@ -135,29 +146,31 @@ Steps:
    - `Phan bo tuyen`
    - `Phan tich BCVH`
    - `Hanh dong`
-4. Open column options and verify only raw `D-1` / `D-7` volume and raw `D-1` / `D-7` F1.3 columns can be hidden.
-5. Confirm `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible.
-6. Confirm route columns include exactly:
+6. Open column options and verify only raw `D-1` / `D-7` volume and raw `D-1` / `D-7` F1.3 columns can be hidden.
+7. Confirm `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible.
+8. Confirm `Hạng`, `Mã BCVH`, and `Tên BCVH` remain visible while scrolling horizontally across later metric groups.
+9. Confirm route columns include exactly:
    - `Tuyen xanh`
    - `Tuyen hong`
    - `Tuyen vang`
    - `Tuyen do`
-7. Confirm the doughnut shows 4 segments and the pink segment is present when backend data provides it.
-8. Confirm KPI, late-cash, and rank-movement signals are shown independently.
-9. Confirm no visible technical/explanatory cards remain above the table.
-10. Change to a date with no supported ranking data and confirm the empty state:
+10. Confirm the doughnut shows 4 segments and the pink segment is present when backend data provides it.
+11. Confirm KPI, late-cash, and rank-movement signals are shown independently.
+12. Confirm no visible technical/explanatory cards remain above the table.
+13. Change to a date with no supported ranking data and confirm the empty state:
     - states the selected date clearly
     - shows the nearest available date only when metadata supports it
     - offers `Xem ngay gan nhat`
-11. Confirm `Phan tich BCVH` stays factual and does not claim root cause beyond visible metrics.
-12. Click `Mo tuyen` on one BCVH row and verify Route Ranking opens with preserved `from_date`, `to_date`, `interval`, `bcvh_id`, and `bcvh_name`.
-13. Check at least one unavailable state and confirm the UI shows unavailable text instead of calculating a fallback value.
+14. Confirm `Phan tich BCVH` stays factual and does not claim root cause beyond visible metrics.
+15. Click `Xem chi tiết tuyến` on one BCVH row and verify Route Ranking opens with preserved `from_date`, `to_date`, `interval`, `bcvh_id`, and `bcvh_name`.
+16. Check at least one unavailable state and confirm the UI shows unavailable text instead of calculating a fallback value.
 
 PASS criteria:
 
 - All approved column groups are visible.
 - Pink route band is preserved in both counts and doughnut.
 - The top widget area is runtime-backed and management-useful.
+- Identity columns remain readable during horizontal scroll.
 - Drill-down context is preserved.
 - Unavailable data is shown factually.
 

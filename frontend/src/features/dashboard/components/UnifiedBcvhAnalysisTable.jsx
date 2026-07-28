@@ -18,8 +18,8 @@ import {
 const STORAGE_KEY = 'qis.bcvhRankingWave2.columns.v1';
 
 const TEXT = {
-  title: 'Bảng xếp hạng BCVH điều hành',
-  source: 'Nguồn: BCVH Ranking runtime',
+  title: 'Bảng xếp hạng chất lượng BCVH',
+  source: 'Ngày đánh giá',
   loading: 'Đang tải bảng xếp hạng BCVH...',
   loadErrorTitle: 'Không thể tải bảng xếp hạng BCVH',
   loadErrorMessage: 'Không thể tải bảng xếp hạng BCVH.',
@@ -53,7 +53,7 @@ const TEXT = {
   routeYellow: 'Tuyến vàng',
   routeRed: 'Tuyến đỏ',
   doughnut: 'Doughnut',
-  detail: 'Mở tuyến',
+  detailManagement: 'Xem chi tiết tuyến',
   columnOptions: 'Ẩn / hiện cột',
   reset: 'Khôi phục',
   hideableColumns: 'Chỉ 4 cột raw D-1 / D-7 được phép ẩn',
@@ -65,6 +65,10 @@ const DEFAULT_COLUMNS = {
   d7Volume: true,
   d7Rate: true,
 };
+
+const STICKY_RANK = 'sticky left-0 z-20';
+const STICKY_CODE = 'sticky left-[64px] z-20';
+const STICKY_NAME = 'sticky left-[168px] z-20';
 
 function readStoredColumns() {
   try {
@@ -217,9 +221,9 @@ function UnifiedHeader({ columns }) {
         <HeaderGroup label={TEXT.action} colSpan={1} className="bg-[var(--color-surface-50)] text-[var(--color-text-main)]" />
       </tr>
       <tr className="border-b border-[var(--color-surface-200)]">
-        <th className="bg-[var(--color-surface-50)] px-2 py-2 text-right">{TEXT.rank}</th>
-        <th className="bg-[var(--color-surface-50)] px-2 py-2 text-left">{TEXT.code}</th>
-        <th className="bg-[var(--color-surface-50)] px-2 py-2 text-left">{TEXT.name}</th>
+        <th className={`${STICKY_RANK} bg-[var(--color-surface-50)] px-2 py-2 text-right`}>{TEXT.rank}</th>
+        <th className={`${STICKY_CODE} bg-[var(--color-surface-50)] px-2 py-2 text-left`}>{TEXT.code}</th>
+        <th className={`${STICKY_NAME} bg-[var(--color-surface-50)] px-2 py-2 text-left`}>{TEXT.name}</th>
 
         <th className="bg-[var(--color-primary-50)] px-2 py-2 text-right">{TEXT.volume}</th>
         <th className="bg-[var(--color-primary-50)] px-2 py-2 text-right">{TEXT.pass}</th>
@@ -259,12 +263,13 @@ function UnifiedHeader({ columns }) {
 
 function Row({ row, columns, onOpenDetail }) {
   const isTotal = row.ma_bcvh === 'total';
+  const stickyBg = isTotal ? 'bg-[var(--color-surface-50)]' : 'bg-white';
 
   return (
     <tr className={`border-b border-[var(--color-surface-100)] ${isTotal ? 'bg-[var(--color-surface-50)] font-semibold' : 'hover:bg-[var(--color-surface-50)]'}`}>
-      <td className="px-2 py-2 text-right">{row.rank ?? '—'}</td>
-      <td className="px-2 py-2 font-mono text-[11px]">{row.ma_bcvh}</td>
-      <td className="px-2 py-2 text-[var(--color-text-main)]">{row.ten_bcvh}</td>
+      <td className={`${STICKY_RANK} ${stickyBg} px-2 py-2 text-right shadow-[1px_0_0_0_var(--color-surface-200)]`}>{row.rank ?? '—'}</td>
+      <td className={`${STICKY_CODE} ${stickyBg} px-2 py-2 font-mono text-[11px] shadow-[1px_0_0_0_var(--color-surface-200)]`}>{row.ma_bcvh}</td>
+      <td className={`${STICKY_NAME} ${stickyBg} px-2 py-2 text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]`}>{row.ten_bcvh}</td>
 
       <td className="px-2 py-2 text-right">{formatNumber(row.current_day.volume)}</td>
       <td className="px-2 py-2 text-right">{formatNumber(row.current_day.pass_count)}</td>
@@ -314,7 +319,7 @@ function Row({ row, columns, onOpenDetail }) {
             onClick={() => onOpenDetail(row)}
             className="inline-flex items-center gap-1 rounded-md border border-[var(--color-surface-200)] bg-white px-2 py-1 text-[11px] font-semibold text-[var(--color-primary-700)] shadow-sm hover:bg-[var(--color-primary-50)]"
           >
-            {TEXT.detail}
+            {TEXT.detailManagement}
             <ArrowRight size={12} />
           </button>
         ) : (

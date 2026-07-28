@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Clock3, Donut, Target } from 'lucide-react';
+import { Clock3, Donut } from 'lucide-react';
 import { EmptyState, ErrorState, KPICard, PageContainer, StatusBadge } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import api from '../../api/client';
@@ -186,6 +186,9 @@ export default function BcvhRankingPage() {
   const totalBcvh = Math.max(0, metaState.options.length - 1);
   const bcvhWithData = filteredRows.length;
   const affectedLateCashCount = filteredRows.filter((row) => Number(row.late_cash.count || 0) > 0).length;
+  const summaryRow = maBcvh !== 'all'
+    ? (filteredRows[0] || totalRow)
+    : totalRow;
   const routeDistribution = totalRow?.route_distribution || {
     participating_postman_route_count: 0,
     counts: { green: 0, pink: 0, yellow: 0, red: 0 },
@@ -195,24 +198,24 @@ export default function BcvhRankingPage() {
   const summaryCards = [
     {
       label: 'Sản lượng ngày đánh giá',
-      value: formatNumber(totalRow?.current_day.volume),
-      delta: `${formatNumber(totalRow?.current_day.pass_count)} đạt · ${formatNumber(totalRow?.current_day.fail_count)} không đạt`,
+      value: formatNumber(summaryRow?.current_day.volume),
+      delta: `${formatNumber(summaryRow?.current_day.pass_count)} đạt · ${formatNumber(summaryRow?.current_day.fail_count)} không đạt`,
       trend: totalBcvh ? `${formatNumber(bcvhWithData)}/${formatNumber(totalBcvh)} BCVH có dữ liệu` : undefined,
       tone: 'primary',
     },
     {
       label: 'Chất lượng F1.3',
-      value: formatRate(totalRow?.current_day.rate),
-      delta: `D-1 ${formatSignedDelta(totalRow?.comparisons?.d1?.rate_delta, 'điểm %')} · D-7 ${formatSignedDelta(totalRow?.comparisons?.d7?.rate_delta, 'điểm %')}`,
-      trend: totalRow?.current_day?.signal?.label || undefined,
-      tone: toneFromKpi(totalRow?.current_day.rate),
+      value: formatRate(summaryRow?.current_day.rate),
+      delta: `D-1 ${formatSignedDelta(summaryRow?.comparisons?.d1?.rate_delta, 'điểm %')} · D-7 ${formatSignedDelta(summaryRow?.comparisons?.d7?.rate_delta, 'điểm %')}`,
+      trend: summaryRow?.current_day?.signal?.label || undefined,
+      tone: toneFromKpi(summaryRow?.current_day.rate),
     },
     {
       label: 'Chậm nộp tiền',
-      value: formatNumber(totalRow?.late_cash.count),
-      delta: `Tỷ lệ ${formatRate(totalRow?.late_cash.rate)}`,
+      value: formatNumber(summaryRow?.late_cash.count),
+      delta: `Tỷ lệ ${formatRate(summaryRow?.late_cash.rate)}`,
       trend: bcvhWithData ? `${formatNumber(affectedLateCashCount)}/${formatNumber(bcvhWithData)} BCVH bị ảnh hưởng` : undefined,
-      tone: 'warning',
+      tone: 'neutral',
     },
     {
       label: 'Phân bổ chất lượng tuyến',
@@ -229,7 +232,7 @@ export default function BcvhRankingPage() {
   return (
     <PageContainer
       title="BCVH Ranking"
-      subtitle="Bảng điều hành BCVH theo hợp đồng Wave 1 và quyết định PO ngày 28/07/2026."
+      subtitle="Bảng xếp hạng chất lượng BCVH theo ngày đánh giá."
       action={(
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge label={interval === 'daily' ? 'Theo ngày' : 'Khoảng ngày'} tone="neutral" />
@@ -251,8 +254,8 @@ export default function BcvhRankingPage() {
           onSearchChange={(value) => updateParam('search', value)}
           actions={(
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge label="KPI / chậm nộp / hạng độc lập" tone="warning" />
-              <StatusBadge label="Drill-down giữ nguyên context Route Ranking" tone="info" />
+              <StatusBadge label="So sánh kỳ trước" tone="warning" />
+              <StatusBadge label="Xem chi tiết tuyến" tone="info" />
             </div>
           )}
         />
@@ -292,7 +295,7 @@ export default function BcvhRankingPage() {
             description={
               nearestAvailableDate
                 ? `Ngày gần nhất đang được metadata hỗ trợ là ${nearestAvailableDate}. Không có phép tính fallback nào được tạo thêm cho ngày đã chọn.`
-                : `Không có dữ liệu BCVH cho ngày đã chọn và không xác định được ngày gần nhất từ contract metadata hiện có.`
+                : 'Không có dữ liệu BCVH cho ngày đã chọn và không xác định được ngày gần nhất từ metadata hiện có.'
             }
             action={nearestAvailableDate ? (
               <button
@@ -313,15 +316,12 @@ export default function BcvhRankingPage() {
           <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-surface-200)] px-5 py-4">
               <div>
-                <h2 className="text-base font-bold text-[var(--color-text-main)]">Bảng BCVH theo hợp đồng Wave 1</h2>
-                <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                  <Target size={12} className="mr-1 inline-block" />
-                  D-1 và D-7 tách riêng; chỉ raw volume và raw F1.3 được phép ẩn.
-                </p>
+                <h2 className="text-base font-bold text-[var(--color-text-main)]">Bảng xếp hạng chất lượng BCVH</h2>
+                <p className="mt-1 text-xs text-[var(--color-text-muted)]">So sánh kỳ trước theo D-1 và D-7.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge label={`BCVH: ${metaState.options.find((option) => option.value === maBcvh)?.label || 'Tất cả BCVH'}`} tone="neutral" />
-                <StatusBadge label={`Search: ${search || 'Không'}`} tone="info" />
+                <StatusBadge label={`Tìm kiếm: ${search || 'Không'}`} tone="info" />
                 {nearestAvailableDate ? <StatusBadge label={`Ngày gần nhất: ${nearestAvailableDate}`} tone="warning" /> : null}
               </div>
             </div>

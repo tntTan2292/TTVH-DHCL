@@ -148,7 +148,7 @@ test('builds four-band doughnut aria label and preserves pink band metadata', ()
   );
 });
 
-test('Wave 2 component source exposes grouped columns, 4-band route cells, doughnut, and hideable D-1/D-7 raw columns', () => {
+test('Wave 2 component source exposes grouped columns, management wording, sticky identity columns, and hideable D-1/D-7 raw columns', () => {
   const componentSource = read('./UnifiedBcvhAnalysisTable.jsx');
   const pageSource = read('../../ranking/BcvhRankingPage.jsx');
 
@@ -170,13 +170,19 @@ test('Wave 2 component source exposes grouped columns, 4-band route cells, dough
   assert.match(componentSource, /d7Rate: true/);
   assert.match(componentSource, /'D-1 \/ Sản lượng'/);
   assert.match(componentSource, /'D-7 \/ Tỷ lệ F1\.3'/);
+  assert.match(componentSource, /sticky left-0/);
+  assert.match(componentSource, /sticky left-\[64px\]/);
+  assert.match(componentSource, /sticky left-\[168px\]/);
+  assert.match(componentSource, /Xem chi tiết tuyến/);
   assert.match(pageSource, /UnifiedBcvhAnalysisTable/);
   assert.match(pageSource, /Sản lượng ngày đánh giá/);
   assert.match(pageSource, /Chất lượng F1\.3/);
   assert.match(pageSource, /Chậm nộp tiền/);
   assert.match(pageSource, /Phân bổ chất lượng tuyến/);
+  assert.match(pageSource, /Bảng xếp hạng chất lượng BCVH/);
+  assert.match(pageSource, /So sánh kỳ trước/);
+  assert.match(pageSource, /Xem chi tiết tuyến/);
   assert.match(pageSource, /Xem ngày gần nhất/);
   assert.match(pageSource, /Ngày gần nhất đang được metadata hỗ trợ/);
-  assert.match(pageSource, /Drill-down giữ nguyên context Route Ranking/);
-  assert.doesNotMatch(pageSource, /Bố cục đã khóa|4 dải tuyến giữ nguyên|Không tính fallback/);
+  assert.doesNotMatch(pageSource, /KPI \/ chậm nộp \/ hạng độc lập|Drill-down giữ nguyên context Route Ranking|Bảng BCVH theo hợp đồng Wave 1|Wave 1|raw volume/);
 });
