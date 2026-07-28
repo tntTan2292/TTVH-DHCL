@@ -3,11 +3,11 @@
 - Ticket ID: `F13-SHIPMENT-001`
 - Ticket Name: `Shipment Failure Drill-down and Evidence Handoff`
 - Phase: `F1.3 Operational Module`
-- Current state: `PROPOSED / READY FOR PO DECISION`
+- Current state: `DEFERRED / PRESERVED`
 - Technical Status: `DISCOVERY ONLY - NO IMPLEMENTATION`
 - Runtime Status: `NOT RUN - DISCOVERY ONLY`
 - PO UI Check Required: `Yes after implementation approval`
-- PO Product Status: `WAITING FOR PO APPROVAL`
+- PO Product Status: `DEFERRED BY PRODUCT OWNER`
 - Activation authority: `None yet`
 - Recommendation date: `2026-07-28`
 - Recommended executor if approved: `Codex first for data/API/contract, then Antigravity only for visual polish if Product Owner separately authorizes it`
@@ -32,7 +32,7 @@ Required Reading:
 
 ## Decision Required
 
-Product Owner must approve or reject this exact next ticket before implementation starts.
+Product Owner deferred this ticket on `2026-07-28`. The manifest remains preserved and must not be deleted or treated as rejected.
 
 Recommended next ticket:
 
@@ -97,6 +97,6 @@ Primary management question:
 
 ## Handoff
 
-Status: `READY FOR PO DECISION`.
+Status: `DEFERRED / PRESERVED`.
 
-No code implementation is authorized until Product Owner approves this proposed ticket.
+No code implementation is authorized until Product Owner explicitly reactivates this ticket.
