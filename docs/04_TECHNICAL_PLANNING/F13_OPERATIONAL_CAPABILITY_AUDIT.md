@@ -3,7 +3,7 @@
 - Audit date: `2026-07-28`
 - Scope: data-first capability audit using only the current SQLite database and existing authoritative contracts.
 - Database: `backend/src/db/database.sqlite`
-- Status: `DISCOVERY COMPLETE / READY FOR PO DECISION`
+- Status: `DISCOVERY COMPLETE / SUPERSEDED BY PO DEFERRAL`
 - Implementation performed: `None`
 
 ## Product Owner Decision Recorded
@@ -11,6 +11,8 @@
 Product Owner deferred `F13-SHIPMENT-001` implementation. Its manifest remains preserved and must not be deleted or treated as rejected.
 
 Before selecting the next F1.3 implementation ticket, Product Owner required a data-first audit of current F1.3 modules/menu using only current database evidence and existing authoritative contracts.
+
+Product Owner later deferred `F13-DATA-QUALITY-001` implementation. Its manifest remains preserved and must not be deleted or treated as rejected. Current active handoff is the bounded internal-counter route candidate audit documented in `docs/06_REVIEWS/Route/F13_INTERNAL_COUNTER_ROUTE_AUDIT.md`.
 
 ## Database Capability Matrix
 
@@ -102,6 +104,6 @@ Minimum approved outcome if Product Owner approves:
 
 ## Handoff
 
-Status: `READY FOR PO DECISION`.
+Status: `SUPERSEDED BY PO DEFERRAL`.
 
-No implementation is authorized until Product Owner approves the recommended ticket.
+No implementation is authorized until Product Owner reactivates this ticket or approves another follow-up ticket.

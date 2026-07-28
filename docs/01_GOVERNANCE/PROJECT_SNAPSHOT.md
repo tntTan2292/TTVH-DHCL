@@ -17,23 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `F1.3 OPERATIONAL MODULE NEXT-TICKET DECISION` |
-| Current Ticket | `F13-DATA-QUALITY-001` |
-| Next Ticket | `F13-DATA-QUALITY-001 pending Product Owner approval` |
-| Last PO Status | `F13-SHIPMENT-001 implementation deferred and manifest preserved; data-first capability audit completed; DA-IMPL-008 completed with Product Owner PO PASS including Checkpoint 006; Dashboard visual audit and polish deferred to Antigravity; AUTO-IMPORT-009 completed with PO PASS at remote baseline 29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
+| Current Phase | `F1.3 INTERNAL COUNTER ROUTE VERIFICATION` |
+| Current Ticket | `F13-INTERNAL-ROUTE-AUDIT` |
+| Next Ticket | `Pending Product Owner route classification decision` |
+| Last PO Status | `F13-DATA-QUALITY-001 implementation deferred and manifest preserved; F13-SHIPMENT-001 implementation deferred and manifest preserved; internal-counter route candidate audit completed; DA-IMPL-008 completed with Product Owner PO PASS including Checkpoint 006; Dashboard visual audit and polish deferred to Antigravity; AUTO-IMPORT-009 completed with PO PASS at remote baseline 29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md` |
-| Current Checkpoint | `None - proposed ticket awaiting PO decision` |
-| Current State | `READY FOR PO DECISION` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` |
+| Current Checkpoint | `Internal-counter route candidate audit` |
+| Current State | `READY FOR PO VERIFICATION` |
 | Technical Status | `DISCOVERY ONLY - NO IMPLEMENTATION` |
-| Runtime Status | `NOT RUN - DISCOVERY ONLY` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `F13-DATA-QUALITY-001 WAITING FOR PO APPROVAL; F13-SHIPMENT-001 DEFERRED / PRESERVED; DA-IMPL-008 COMPLETED / PO PASS; AUTO-IMPORT-009 COMPLETED / PO PASS` |
+| Runtime Status | `DATABASE AUDIT PASS` |
+| PO UI Check Required | `No - PO data verification required` |
+| PO Product Status | `F13-INTERNAL-ROUTE-AUDIT WAITING FOR PO VERIFICATION; F13-DATA-QUALITY-001 DEFERRED / PRESERVED; F13-SHIPMENT-001 DEFERRED / PRESERVED; DA-IMPL-008 COMPLETED / PO PASS; AUTO-IMPORT-009 COMPLETED / PO PASS` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md` |
-| Last Reviewed Phase | `F1.3 DATA-FIRST CAPABILITY AUDIT / F13-DATA-QUALITY-001 PROPOSAL` |
+| Last Reviewed Phase | `F1.3 INTERNAL COUNTER ROUTE CANDIDATE AUDIT` |
 | Last Reviewed Commit | `See latest verified remote branch HEAD` |
-| Phase Review Status | `READY FOR PO DECISION` |
-| Next Phase Authorization | `No implementation authority until PO approves F13-DATA-QUALITY-001` |
+| Phase Review Status | `READY FOR PO VERIFICATION` |
+| Next Phase Authorization | `No implementation authority until PO verifies route classifications and approves a follow-up ticket` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-28` |
 
@@ -60,7 +60,7 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `DA-IMPL-008` is completed with Product Owner `PO PASS`. Product Owner deferred Dashboard visual audit and polish to Antigravity. Product Owner also deferred `F13-SHIPMENT-001` implementation while preserving its manifest. The data-first capability audit recommends exactly one next ticket: `F13-DATA-QUALITY-001 - F1.3 Data Coverage & Quality Module`; it is `READY FOR PO DECISION` and has no implementation authority until Product Owner approval.
+Current handoff: `F13-INTERNAL-ROUTE-AUDIT` is `READY FOR PO VERIFICATION`. Product Owner deferred `F13-DATA-QUALITY-001` implementation while preserving its manifest. Product Owner also deferred `F13-SHIPMENT-001` implementation while preserving its manifest. The bounded route-name audit found `1` exact candidate internal-counter route and `11` near-match routes that are not automatically classified. No implementation authority exists until Product Owner verifies route classifications and approves a follow-up ticket.
 
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
 
@@ -68,7 +68,7 @@ Fresh-chat onboarding chain for the current proposed ticket:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-3. `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md`
+3. `docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md`
 4. Required Reading from the current manifest
 
 DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 Wave 1 is implemented for shared DKCL lifecycle contract/state standardization. Product Owner authorized Accelerated Delivery Wave 2 at baseline `1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`.

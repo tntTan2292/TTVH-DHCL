@@ -3,11 +3,11 @@
 - Ticket ID: `F13-DATA-QUALITY-001`
 - Ticket Name: `F1.3 Data Coverage & Quality Module`
 - Phase: `F1.3 Operational Module`
-- Current state: `PROPOSED / READY FOR PO DECISION`
+- Current state: `DEFERRED / PRESERVED`
 - Technical Status: `DISCOVERY COMPLETE - NO IMPLEMENTATION`
 - Runtime Status: `DATABASE AUDIT PASS`
 - PO UI Check Required: `Yes after implementation approval`
-- PO Product Status: `WAITING FOR PO APPROVAL`
+- PO Product Status: `DEFERRED BY PRODUCT OWNER`
 - Activation authority: `None yet`
 - Recommendation date: `2026-07-28`
 - Recommended executor if approved: `Codex`
@@ -32,7 +32,7 @@ Required Reading:
 
 ## Decision Required
 
-Product Owner must approve or reject this exact next ticket before implementation starts.
+Product Owner deferred this ticket on `2026-07-28`. The manifest remains preserved and must not be deleted or treated as rejected.
 
 Recommended next ticket:
 
@@ -92,12 +92,12 @@ Current audit evidence:
 
 ## PO Decision Options
 
-1. Approve `F13-DATA-QUALITY-001` exactly as recommended.
-2. Defer this ticket and keep the project at `READY FOR PO DECISION`.
+1. Reactivate `F13-DATA-QUALITY-001` exactly as recommended.
+2. Keep this ticket deferred and preserve the manifest.
 3. Provide another single authorized next ticket.
 
 ## Handoff
 
-Status: `READY FOR PO DECISION`.
+Status: `DEFERRED / PRESERVED`.
 
-No code implementation is authorized until Product Owner approves this proposed ticket.
+No code implementation is authorized until Product Owner explicitly reactivates this ticket.

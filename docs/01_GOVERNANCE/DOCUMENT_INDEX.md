@@ -38,10 +38,10 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `F13-DATA-QUALITY-001`.
-- Current manifest: `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md`.
-- Current checkpoint: `None - proposed ticket awaiting PO decision`.
-- Next required action: Product Owner approval, deferral, or replacement of the proposed ticket.
+- Current ticket: `F13-INTERNAL-ROUTE-AUDIT`.
+- Current manifest: `docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md`.
+- Current checkpoint: `Internal-counter route candidate audit`.
+- Next required action: Product Owner verification of candidate and near-match route classifications.
 
 ## Docs Inventory
 
@@ -56,8 +56,10 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-008 bounded remediation scope and defect-order authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` | Import Checkpoint | Current AUTO-IMPORT-008 activation checkpoint and ordered defect register. | L2 | Current Required Reading | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-SHIPMENT-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 shipment failure drill-down proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when shipment work is reactivated or current manifest names it. | Medium |
-| `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md` | Ticket Manifest | Proposed F1.3 data coverage and quality module awaiting Product Owner approval. | L2 | Active Onboarding | Current proposed ticket only. | Mandatory |
-| `docs/04_TECHNICAL_PLANNING/F13_OPERATIONAL_CAPABILITY_AUDIT.md` | Technical Planning | Data-first F1.3 module capability matrix, gap matrix, target architecture, roadmap, and recommended next ticket. | L2/L3 | Current Required Reading | Current proposed ticket only. | Mandatory |
+| `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 data coverage and quality module proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when data-quality work is reactivated or current manifest names it. | Medium |
+| `docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` | Ticket Manifest | Current F1.3 internal-counter route candidate audit awaiting Product Owner verification. | L2 | Active Onboarding | Current route verification only. | Mandatory |
+| `docs/06_REVIEWS/Route/F13_INTERNAL_COUNTER_ROUTE_AUDIT.md` | Route Review | Bounded database audit listing exact internal-counter route candidates and unclassified near matches. | L2/L3 | Current Required Reading | Current route verification only. | Mandatory |
+| `docs/04_TECHNICAL_PLANNING/F13_OPERATIONAL_CAPABILITY_AUDIT.md` | Technical Planning | Data-first F1.3 module capability matrix, gap matrix, target architecture, roadmap, and deferred data-quality proposal basis. | L2/L3 | Current Required Reading | Current route verification only. | Mandatory |
 | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | Governance Index | Inventory and document-status metadata. | L2 | Current Required Reading | Governance cleanup, documentation audit, or authority conflict checks. | High |
 | `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Governance | Document governance and authority rules. | L1 | Conditional Reference | Governance-rule conflict or document lifecycle questions. | High |
 | `docs/01_GOVERNANCE/DOCUMENT_LIFECYCLE.md` | Governance | Document state transitions. | L2 | Conditional Reference | Only when lifecycle semantics are disputed. | Medium |
@@ -104,13 +106,13 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | UX | 7 | 7 | 0 | Conditional Reference |
 | Technical Planning | 7 | 7 | 0 | Conditional Reference |
 | Development Reference | 4 | 4 | 0 | Conditional Reference |
-| Reviews and Evidence | 129 | 99 | 30 | Conditional Reference |
+| Reviews and Evidence | 130 | 100 | 30 | Conditional Reference |
 | Conditional Reference | 45 | 41 | 4 | Conditional Reference/Archive |
 | Archive | 9 | 9 | 0 | Archive |
 | Reports Archive | 21 | 21 | 0 | Archive |
-| Ticket Manifests | 40 | 40 | 0 | Conditional Reference |
+| Ticket Manifests | 41 | 41 | 0 | Conditional Reference |
 | Root Legacy/Frozen Docs | 21 | 21 | 0 | Conditional Reference/Archive |
-| Total under `docs` | 311 | 277 | 34 | Preserved |
+| Total under `docs` | 313 | 279 | 34 | Preserved |
 
 ## Duplicate Content Notes
 
