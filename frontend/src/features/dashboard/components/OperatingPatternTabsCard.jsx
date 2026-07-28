@@ -19,8 +19,9 @@ import {
   HEATMAP_RELATIVE_BANDS,
   HEATMAP_WEEKDAY_LABELS,
   OPERATING_PATTERN_TABS,
+  buildHeatmapDayDetailText,
+  buildHeatmapDetailLayerModel,
   buildGroundedOperatingPatternSummary,
-  formatNationalRank,
   hasUsableModeData,
   mapOperatingPatternResponse,
 } from './operatingPatternTabsData';
@@ -245,14 +246,22 @@ function HeatmapManagementSummary({ stats }) {
 }
 
 function HeatmapMonthSection({ month }) {
-  const getDayTitle = (day) => {
-    const parts = [];
-    if (day.deltaFromMonthAverage !== null) {
-      parts.push(`${day.deltaFromMonthAverage > 0 ? '+' : ''}${day.deltaFromMonthAverage.toFixed(2)} so với TB`);
+  const [activeDetail, setActiveDetail] = useState(null);
+
+  const showDayDetail = (day, event) => {
+    const detail = buildHeatmapDetailLayerModel(day, event.currentTarget.getBoundingClientRect());
+    setActiveDetail(detail);
+  };
+
+  const hideDayDetail = () => {
+    setActiveDetail(null);
+  };
+
+  const handleDayKeyDown = (event) => {
+    if (event.key === 'Escape') {
+      hideDayDetail();
+      event.currentTarget.blur();
     }
-    const rankLabel = day.nationalRankLabel || formatNationalRank(day.nationalRank);
-    if (rankLabel) parts.push(rankLabel);
-    return parts.join(' | ');
   };
 
   return (
@@ -275,25 +284,45 @@ function HeatmapMonthSection({ month }) {
               {label}
             </div>
           ))}
-          {month.days.map((day) => (
-            <div
-              key={day.id}
-              className={`group relative flex h-14 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
-              title={getDayTitle(day)}
-              aria-label={getDayTitle(day) || undefined}
-              tabIndex={day.empty ? undefined : 0}
-            >
-              <span className="text-[10px] font-bold">{day.dayLabel}</span>
-              <span className="text-[10px] font-semibold">{day.valueLabel}</span>
-              {getDayTitle(day) ? (
-                <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 hidden w-max max-w-[240px] -translate-x-1/2 rounded-lg border border-[var(--color-surface-200)] bg-white px-2 py-1 text-left text-[11px] font-semibold leading-4 text-[var(--color-text-main)] shadow-xl group-hover:block group-focus:block">
-                  {getDayTitle(day)}
-                </span>
-              ) : null}
-            </div>
-          ))}
+          {month.days.map((day) => {
+            const dayTitle = buildHeatmapDayDetailText(day);
+
+            return (
+              <div
+                key={day.id}
+                className={`relative flex h-14 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
+                title={dayTitle}
+                aria-label={dayTitle || undefined}
+                tabIndex={day.empty ? undefined : 0}
+                onMouseEnter={(event) => showDayDetail(day, event)}
+                onMouseLeave={hideDayDetail}
+                onFocus={(event) => showDayDetail(day, event)}
+                onBlur={hideDayDetail}
+                onClick={(event) => showDayDetail(day, event)}
+                onKeyDown={handleDayKeyDown}
+              >
+                <span className="text-[10px] font-bold">{day.dayLabel}</span>
+                <span className="text-[10px] font-semibold">{day.valueLabel}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
+      {activeDetail ? (
+        <div
+          id={`heatmap-rank-detail-${activeDetail.id}`}
+          role="tooltip"
+          data-testid="heatmap-rank-detail-layer"
+          className="pointer-events-none fixed max-w-[260px] -translate-x-1/2 -translate-y-full rounded-lg border border-[var(--color-surface-200)] bg-white px-2 py-1 text-left text-[11px] font-semibold leading-4 text-[var(--color-text-main)] shadow-xl"
+          style={{
+            left: activeDetail.left,
+            top: activeDetail.top,
+            zIndex: activeDetail.zIndex,
+          }}
+        >
+          {activeDetail.label}
+        </div>
+      ) : null}
     </section>
   );
 }

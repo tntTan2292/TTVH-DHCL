@@ -5,7 +5,7 @@
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `006 - Nationwide Ranking Integration`
 - Current state: `REMEDIATION REQUIRED / READY FOR PO RECHECK`
-- Technical status: `PASS`
+- Technical status: `PASS - HEATMAP RANK RUNTIME REMEDIATION LEVEL 2 TARGETED VALIDATION`
 - Runtime status: `LEVEL 2 TARGETED VALIDATION PASS`
 - PO UI check required: `Yes`
 - PO product status: `REMEDIATION REQUIRED - WAITING FOR PO RECHECK`
@@ -173,12 +173,37 @@ Rationale:
 
 ## Remediation Validation - 2026-07-28
 
+- Product Owner runtime evidence after backend/frontend reset and hard refresh:
+  - Heatmap inside `Quy luật vận hành -> Heatmap -> Toàn mạng` still showed no visible nationwide rank detail.
+  - Checkpoint 006 remains `REMEDIATION REQUIRED`; this remediation does not self-award `PO PASS`.
+- Runtime-first discovery:
+  - Browser route: `http://localhost:5178/f13/dashboard?from_date=2026-07-13&to_date=2026-07-19&ma_bcvh=all`.
+  - API contract evidence: `GET /api/f13/dashboard/quality-timeline?toDate=2026-07-19&ma_bcvh=all&mode=heatmap&include_national_rank=1`.
+  - Payload evidence: sample Heatmap date `2026-07-19` returned `national_rank.available=true`, `rank=21`, `total=34`.
+  - BCVH suppression evidence: `GET /api/f13/dashboard/quality-timeline?toDate=2026-07-19&ma_bcvh=535790&mode=heatmap&include_national_rank=1` returned `0` dated cells with `national_rank`.
+  - Runtime mapped model evidence: the rendered `2026-07-19` Heatmap cell carried `aria-label="-7.73 so với TB | Xếp hạng toàn quốc: Hạng 21/34"`.
+  - DOM/CSS break point: the previous popup existed only as a hidden absolute child under the Heatmap cell path; runtime computed style stayed `display:none` and the ancestor path included the month scroller plus the card `overflow-hidden` boundary.
+  - Built CSS evidence: `group-hover` utilities were present, but runtime hover/focus visibility remained fragile and PO-visible rank detail did not render reliably.
+- Implemented smallest runtime correction:
+  - Kept normal Heatmap cells unchanged and removed the in-cell hidden detail span.
+  - Added one state-driven floating `role="tooltip"` detail layer with `data-testid="heatmap-rank-detail-layer"`.
+  - The layer is anchored from the active cell's runtime bounding box and rendered as `position: fixed` with `z-index: 1000`, outside the month-cell and `overflow-x-auto` wrapper path.
+  - Hover, focus, and click use the same `showDayDetail` path; mouseleave, blur, and `Escape` close the layer.
+  - Available text remains `Xếp hạng toàn quốc: Hạng X/Y`; unavailable text uses the backend-provided Vietnamese message.
+- Browser runtime recheck after implementation:
+  - All-network Heatmap rendered exactly `Tháng 06/2026` and `Tháng 07/2026`.
+  - All-network Heatmap exposed `49` dated cells with national-rank detail labels.
+  - Clicking/focusing `2026-07-19` rendered one floating layer with text `-7.73 so với TB | Xếp hạng toàn quốc: Hạng 21/34`.
+  - Floating layer computed style: `display=block`, `visibility=visible`, `opacity=1`, `position=fixed`, `z-index=1000`.
+  - Floating layer placement evidence: `insideCell=false`; `insideOverflowXWrapper=false`.
+  - `Escape` removed the floating layer.
+  - BCVH-filter browser route rendered no national-rank labels and no floating rank layer.
 - `node --test backend/src/services/F13DashboardService.recovery.test.js backend/src/services/timelineService.recovery.test.js`
   - Result: `PASS`
   - Evidence: `20` tests passed; C004 selected-range ranking, daily rank batching, BCVH suppression, C003 two-month Heatmap, and C005 lazy mode remained covered.
 - `node --test frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/operatingPatternTabsData.test.js frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/dashboardLoadPerformance.test.js`
   - Result: `PASS`
-  - Evidence: `51` tests passed; request opt-in, mapper preservation, available wording, unavailable backend message, hover/focus rendering, BCVH suppression, no inline badge, no BCVH row/table ranking, and unchanged request count remained covered.
+  - Evidence: `53` tests passed; request opt-in, mapper preservation, available wording, unavailable backend message, runtime fixed-layer model, hover/focus/click source path, BCVH suppression, no inline badge, no BCVH row/table ranking, and unchanged request count remained covered.
 - `git diff --check`
   - Result: `PASS`
 

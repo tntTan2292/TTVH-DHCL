@@ -61,9 +61,17 @@ test('Heatmap renders same national rank detail for hover and focus without inli
   const mapperSource = read('./operatingPatternTabsData.js');
 
   assert.match(mapperSource, /Xếp hạng toàn quốc: Hạng/);
-  assert.match(operatingSource, /title=\{getDayTitle\(day\)\}/);
-  assert.match(operatingSource, /aria-label=\{getDayTitle\(day\) \|\| undefined\}/);
-  assert.match(operatingSource, /group-hover:block group-focus:block/);
+  assert.match(mapperSource, /formatNationalRank/);
+  assert.match(mapperSource, /buildHeatmapDetailLayerModel/);
+  assert.match(mapperSource, /placement:\s*'viewport-fixed'/);
+  assert.match(operatingSource, /title=\{dayTitle\}/);
+  assert.match(operatingSource, /aria-label=\{dayTitle \|\| undefined\}/);
+  assert.match(operatingSource, /onMouseEnter=\{\(event\) => showDayDetail\(day, event\)\}/);
+  assert.match(operatingSource, /onFocus=\{\(event\) => showDayDetail\(day, event\)\}/);
+  assert.match(operatingSource, /onClick=\{\(event\) => showDayDetail\(day, event\)\}/);
+  assert.match(operatingSource, /role="tooltip"/);
+  assert.match(operatingSource, /data-testid="heatmap-rank-detail-layer"/);
+  assert.doesNotMatch(operatingSource, /group-hover:block|group-focus:block/);
   assert.doesNotMatch(operatingSource, /#\{day\.nationalRank|nationalRankLabel\}<\/span>/);
 });
 

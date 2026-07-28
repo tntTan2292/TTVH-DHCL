@@ -4,6 +4,8 @@ import test from 'node:test';
 import {
   DEFAULT_OPERATING_PATTERN_TAB,
   OPERATING_PATTERN_TABS,
+  buildHeatmapDayDetailText,
+  buildHeatmapDetailLayerModel,
   buildHeatmapMonthStats,
   buildGroundedOperatingPatternSummary,
   HEATMAP_WEEKDAY_LABELS,
@@ -86,6 +88,50 @@ test('maps Heatmap unavailable nationwide rank using backend message', () => {
   }, { toDate: '2026-07-20' });
 
   assert.equal(model.heatmap[0].days[0].nationalRankLabel, 'Chưa có dữ liệu xếp hạng toàn quốc cho ngày 2026-07-20');
+});
+
+test('Heatmap rank detail layer becomes visible from runtime hover or focus geometry', () => {
+  const model = mapOperatingPatternResponse({
+    heatmap: [[
+      {
+        date: '2026-07-19',
+        kpi_rate: 52.56,
+        dod: 0,
+        color: 'red',
+        national_rank: { available: true, rank: 21, total: 34, period: '2026-07-19' },
+      },
+    ]],
+  }, { toDate: '2026-07-19' });
+
+  const day = model.heatmap[0].days[0];
+  const rectFromHoverOrFocus = { left: 994.92, top: 359.62, width: 54.86, height: 56 };
+  const detail = buildHeatmapDetailLayerModel(day, rectFromHoverOrFocus);
+
+  assert.equal(buildHeatmapDayDetailText(day), '0.00 so với TB | Xếp hạng toàn quốc: Hạng 21/34');
+  assert.equal(detail.label, '0.00 so với TB | Xếp hạng toàn quốc: Hạng 21/34');
+  assert.equal(detail.position, 'fixed');
+  assert.equal(detail.placement, 'viewport-fixed');
+  assert.equal(detail.zIndex, 1000);
+  assert.equal(Number(detail.left.toFixed(2)), 1022.35);
+  assert.equal(detail.top, 351.62);
+});
+
+test('Heatmap unavailable rank detail uses backend wording in the visible layer model', () => {
+  const day = mapOperatingPatternResponse({
+    heatmap: [[
+      {
+        date: '2026-07-20',
+        kpi_rate: 52.56,
+        color: 'red',
+        national_rank: { available: false, message: 'Chưa có dữ liệu xếp hạng toàn quốc cho ngày 2026-07-20' },
+      },
+    ]],
+  }, { toDate: '2026-07-20' }).heatmap[0].days[0];
+
+  const detail = buildHeatmapDetailLayerModel(day, { left: 100, top: 200, width: 40, height: 56 });
+
+  assert.equal(detail.label, '0.00 so với TB | Chưa có dữ liệu xếp hạng toàn quốc cho ngày 2026-07-20');
+  assert.equal(detail.position, 'fixed');
 });
 
 test('monthly YTD combo data exposes management summary and current-month cutoff', () => {
@@ -265,6 +311,10 @@ test('component source exposes required legends labels and heatmap month separat
   assert.match(source, /month\.rangeLabel/);
   assert.match(source, /HEATMAP_WEEKDAY_LABELS\.map/);
   assert.match(source, /min-w-\[420px\]/);
+  assert.match(source, /data-testid="heatmap-rank-detail-layer"/);
+  assert.match(source, /role="tooltip"/);
+  assert.match(source, /className="pointer-events-none fixed/);
+  assert.doesNotMatch(source, /group-hover:block|group-focus:block/);
   assert.deepEqual(HEATMAP_WEEKDAY_LABELS, ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']);
 });
 

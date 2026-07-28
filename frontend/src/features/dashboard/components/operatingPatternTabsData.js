@@ -81,6 +81,35 @@ export function formatNationalRank(rank) {
   return rank.message || 'Chưa có dữ liệu xếp hạng toàn quốc';
 }
 
+export function buildHeatmapDayDetailText(day = {}) {
+  if (!day || day.empty) return '';
+
+  const parts = [];
+  if (day.deltaFromMonthAverage !== null && day.deltaFromMonthAverage !== undefined) {
+    parts.push(`${day.deltaFromMonthAverage > 0 ? '+' : ''}${Number(day.deltaFromMonthAverage).toFixed(2)} so với TB`);
+  }
+
+  const rankLabel = day.nationalRankLabel || formatNationalRank(day.nationalRank);
+  if (rankLabel) parts.push(rankLabel);
+
+  return parts.join(' | ');
+}
+
+export function buildHeatmapDetailLayerModel(day = {}, rect = null) {
+  const label = buildHeatmapDayDetailText(day);
+  if (!label || !rect) return null;
+
+  return {
+    id: day.id || day.date || 'heatmap-day-detail',
+    label,
+    position: 'fixed',
+    placement: 'viewport-fixed',
+    left: Number(rect.left) + (Number(rect.width) / 2),
+    top: Number(rect.top) - 8,
+    zIndex: 1000,
+  };
+}
+
 export function getHeatmapRelativeBand(delta) {
   if (delta === null || delta === undefined) return {
     id: 'unavailable',
