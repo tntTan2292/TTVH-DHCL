@@ -3,11 +3,11 @@
 - Ticket ID: `F13-BCVH-RANKING-REDESIGN-IMPL`
 - Ticket Name: `BCVH Ranking Redesign Implementation`
 - Phase: `F1.3 Operational Module`
-- Current state: `READY FOR IMPLEMENTATION`
-- Technical Status: `IMPLEMENTATION AUTHORIZED - NOT STARTED`
-- Runtime Status: `NOT RUN`
-- PO UI Check Required: `Yes - visible BCVH Ranking redesign`
-- PO Product Status: `PO APPROVED SCOPE - IMPLEMENTATION PENDING`
+- Current state: `WAVE 1 COMPLETE / READY FOR FRONTEND WAVE 2`
+- Technical Status: `BACKEND/RUNTIME WAVE 1 COMPLETE`
+- Runtime Status: `FOCUSED BACKEND VALIDATION PASS`
+- PO UI Check Required: `Yes - after frontend Wave 2 visible redesign`
+- PO Product Status: `PO APPROVED SCOPE - WAVE 1 COMPLETE / WAVE 2 PENDING`
 - Activation authority: `PO APPROVE the BCVH Ranking redesign agreed in planning session`
 - Handoff date: `2026-07-28`
 - Primary executor: `Codex`
@@ -26,6 +26,7 @@ Required onboarding chain:
 Required Reading:
 
 - `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`
+- `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_IMPL_WAVE1_CHECKPOINT_001.md`
 - `docs/06_REVIEWS/Dashboard/DA-IMPL-004_UNIFIED_BCVH_ANALYSIS_TABLE.md`
 - `docs/06_REVIEWS/Route/F13_INTERNAL_COUNTER_ROUTE_AUDIT.md`
 - `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`
@@ -35,6 +36,8 @@ Required Reading:
 ## Product Owner Scope Locked
 
 Implement only the approved BCVH Ranking redesign documented in `F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`.
+
+This manifest now records that Wave 1 backend/runtime delivery is complete and that the next executor must continue with frontend Wave 2 only unless new Product Owner authority changes the scope.
 
 The implementation must preserve:
 
@@ -63,14 +66,11 @@ Visibility lock:
 
 ## In Scope
 
-- Implement the approved grouped BCVH Ranking table structure.
-- Render supported current-day ranking fields from the current API/runtime contract.
-- Implement independent signal presentation for KPI, late-cash-handover, and route-distribution signals without inventing thresholds.
-- Implement inline `Phan tich BCVH` from existing supported metrics/status semantics only.
-- Implement route-distribution columns and doughnut visualization only after the supporting runtime fields are added under this ticket.
-- Add the required backend/runtime fields for approved columns that are currently missing.
+- Preserve the completed Wave 1 backend/runtime contract documented in `F13_BCVH_RANKING_REDESIGN_IMPL_WAVE1_CHECKPOINT_001.md`.
+- Continue with frontend Wave 2 only: grouped BCVH Ranking table structure, supported column wiring, visibility handling, independent signal presentation, inline `Phan tich BCVH`, doughnut binding, and route drill-down preservation.
+- Reuse the existing runtime fields and the newly added Wave 1 contract without changing formulas or thresholds.
 - Preserve existing route drill-down parameters and current Route Ranking exclusions/behavior.
-- Add focused backend/frontend tests for supported fields, unavailable states, route exclusions, and the new presentation contract.
+- Add focused frontend tests for supported fields, unavailable states, route exclusions, and the new presentation contract.
 - Update the applicable ticket/governance docs, commit, push, verify the remote state, and run fresh onboarding validation.
 
 ## Out Of Scope
@@ -86,27 +86,37 @@ Visibility lock:
 ## Technical Contract Direction
 
 - Use the current BCVH ranking endpoint as the base contract: `GET /api/f13/ranking/bcvh`.
-- Reuse existing accepted D-1 and D-7 comparison fields only where already provided: `kpi_2026_dod`, `kpi_2026_swc`.
+- Reuse existing accepted D-1 and D-7 comparison delta fields: `kpi_2026_dod`, `kpi_2026_swc`.
+- Consume the Wave 1 runtime contract additions from `F13_BCVH_RANKING_REDESIGN_IMPL_WAVE1_CHECKPOINT_001.md`.
 - Preserve current route drill-down params: `from_date`, `to_date`, `interval`, `bcvh_id`, `bcvh_name`.
 - Preserve the `7` confirmed non-postman/customer-pickup routes as excluded from participating postman-route counts.
-- If a required approved field has no existing API/runtime field, add the smallest bounded backend/runtime contract necessary under this ticket and document it in the ticket review evidence.
+- Do not reopen backend/runtime formulas in Wave 2 unless a documented defect is proven.
 
-### Comparison Column Classification Lock
+### Wave 1 Delivery Lock
 
-| Column | Classification | Implementation note |
-| --- | --- | --- |
-| `San luong D-1` | `Contract gap` | Underlying prior-day comparison data exists in current service comparison maps but is not exposed in the BCVH ranking response contract. |
-| `Ty le F1.3 D-1` | `Contract gap` | Underlying prior-day comparison rate is derivable from current service comparison maps but is not exposed in the BCVH ranking response contract. |
-| `Delta san luong D-1` | `Contract gap` | Visible column; preserve accepted D-1 semantics and do not invent a new formula. |
-| `Delta F1.3 D-1` | `Already supported` | Existing response field: `kpi_2026_dod`. |
-| `Hang D-1` | `Backend/runtime gap` | Prior-day rank is not currently exposed by the BCVH ranking runtime. |
-| `Dich chuyen hang D-1` | `Unavailable pending authority` | BCVH D-1 rank-movement semantics are not yet explicitly approved. |
-| `San luong D-7` | `Contract gap` | Underlying prior-week comparison data exists in current service comparison maps but is not exposed in the BCVH ranking response contract. |
-| `Ty le F1.3 D-7` | `Contract gap` | Underlying prior-week comparison rate is derivable from current service comparison maps but is not exposed in the BCVH ranking response contract. |
-| `Delta san luong D-7` | `Contract gap` | Visible column; preserve accepted D-7 semantics and do not invent a new formula. |
-| `Delta F1.3 D-7` | `Already supported` | Existing response field: `kpi_2026_swc`. |
-| `Hang D-7` | `Backend/runtime gap` | Prior-week rank is not currently exposed by the BCVH ranking runtime. |
-| `Dich chuyen hang D-7` | `Unavailable pending authority` | BCVH D-7 rank-movement semantics are not yet explicitly approved. |
+Wave 1 completed the backend/runtime scope for:
+
+- raw `San luong D-1`
+- raw `San luong D-7`
+- raw `Ty le F1.3 D-1`
+- raw `Ty le F1.3 D-7`
+- `Delta san luong D-1`
+- `Delta san luong D-7`
+- `Hang D-1`
+- `Hang D-7`
+- `Dich chuyen hang D-1`
+- `Dich chuyen hang D-7`
+- `BG cham nop tien`
+- `So tuyen buu ta tham gia`
+- `Tuyen xanh`
+- `Tuyen vang`
+- `Tuyen do`
+
+Authority now explicitly confirms BCVH rank-movement semantics:
+
+- current rank lower than comparison rank = improvement
+- current rank higher than comparison rank = decline
+- equal = unchanged
 
 ## Documents To Update
 
@@ -119,8 +129,8 @@ Visibility lock:
 
 ## Validation
 
-- Backend/service/repository targeted tests for newly added BCVH ranking fields and non-postman route exclusions.
-- Frontend mapper/component tests for grouped columns, unavailable states, independent signals, doughnut data binding, and inline `Phan tich BCVH`.
+- Backend/service targeted tests for newly added BCVH ranking fields and non-postman route exclusions are complete for Wave 1.
+- Frontend mapper/component tests for grouped columns, unavailable states, independent signals, doughnut data binding, and inline `Phan tich BCVH` remain required for Wave 2.
 - Focused build/lint/test only in the touched backend/frontend scope.
 - `git diff --check`
 - Remote verification of the pushed commit and active onboarding Blob URLs.
@@ -128,7 +138,7 @@ Visibility lock:
 
 ## PO Acceptance
 
-Ready-for-PO handoff must include a concise manual checklist covering:
+Ready-for-PO handoff after Wave 2 must include a concise manual checklist covering:
 
 - BCVH Ranking screen URL
 - expected grouped columns
@@ -143,11 +153,12 @@ Do not self-award PO PASS.
 
 ## Next Ticket
 
-- Next ticket ID: `Pending after implementation and PO review`
+- Next ticket ID: `Continue F13-BCVH-RANKING-REDESIGN-IMPL for frontend Wave 2`
 - Blockers or handoff notes:
-  - If late-cash-handover or route-distribution fields cannot be added without changing business rules, formulas, or thresholds, stop and report the exact blocker.
-  - If final visual density or chart polish remains after runtime-backed implementation is technically complete, recommend a narrow Antigravity follow-up instead of expanding this ticket silently.
+  - Wave 1 runtime fields are available and documented; do not reopen formulas or thresholds during Wave 2.
+  - Frontend Wave 2 may use `route_distribution.pink_route_count` if needed to preserve exact Dashboard SSOT distribution totals, but the approved Wave 1 requested counts remain green/yellow/red.
+  - If final visual density or chart polish remains after the runtime-backed UI is technically complete, recommend a narrow Antigravity follow-up instead of expanding this ticket silently.
 
 ## Handoff
 
-This manifest is implementation-ready. A fresh executor must read the onboarding chain, implement only the approved redesign scope, perform targeted validation, update documentation, push, verify remote state, and finish with fresh-onboarding handoff.
+This manifest is now a Wave 2 handoff. A fresh executor must read the onboarding chain, preserve the completed Wave 1 runtime contract, implement only the remaining approved frontend scope, perform targeted validation, update documentation, push, verify remote state, and finish with fresh-onboarding handoff.

@@ -448,6 +448,143 @@ test('BCVH ranking returns null D-1 and D-7 deltas when comparison rows are unav
   }
 });
 
+test('BCVH ranking exposes Wave 1 comparison, delayed-cash, and route-distribution fields', async () => {
+  const originals = {
+    getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
+    getBcvhRanking: repo.getBcvhRanking,
+    getFactByDate: repo.getFactByDate,
+    getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
+  };
+
+  repo.getBcvhOperationMetricsByDate = async (date) => {
+    if (date === '2026-07-22') {
+      return [
+        {
+          ma_bcvh: '535790',
+          ten_bcvh: 'BCVH A Luoi',
+          sl_bg_ptc: 10,
+          sl_ptc_nop_tien: 10,
+          dat_kpi_2026: 8,
+          khong_dat_kpi_2026: 2,
+        },
+        {
+          ma_bcvh: '536250',
+          ten_bcvh: 'BCVH Huong Thuy',
+          sl_bg_ptc: 8,
+          sl_ptc_nop_tien: 8,
+          dat_kpi_2026: 4,
+          khong_dat_kpi_2026: 4,
+        },
+      ];
+    }
+    if (date === '2026-07-21') {
+      return [
+        {
+          ma_bcvh: '535790',
+          ten_bcvh: 'BCVH A Luoi',
+          sl_bg_ptc: 6,
+          sl_ptc_nop_tien: 6,
+          dat_kpi_2026: 3,
+          khong_dat_kpi_2026: 3,
+        },
+        {
+          ma_bcvh: '536250',
+          ten_bcvh: 'BCVH Huong Thuy',
+          sl_bg_ptc: 9,
+          sl_ptc_nop_tien: 9,
+          dat_kpi_2026: 7,
+          khong_dat_kpi_2026: 2,
+        },
+      ];
+    }
+    if (date === '2026-07-15') {
+      return [
+        {
+          ma_bcvh: '535790',
+          ten_bcvh: 'BCVH A Luoi',
+          sl_bg_ptc: 12,
+          sl_ptc_nop_tien: 12,
+          dat_kpi_2026: 10,
+          khong_dat_kpi_2026: 2,
+        },
+        {
+          ma_bcvh: '536250',
+          ten_bcvh: 'BCVH Huong Thuy',
+          sl_bg_ptc: 5,
+          sl_ptc_nop_tien: 5,
+          dat_kpi_2026: 1,
+          khong_dat_kpi_2026: 4,
+        },
+      ];
+    }
+    return [];
+  };
+  repo.getBcvhRanking = async () => ({
+    data: [
+      {
+        ma_bcvh: '535790',
+        ten_bcvh: 'BCVH A Luoi',
+        total_bg: 10,
+        total_passed: 8,
+        total_failed: 2,
+        rank: 1,
+      },
+      {
+        ma_bcvh: '536250',
+        ten_bcvh: 'BCVH Huong Thuy',
+        total_bg: 8,
+        total_passed: 4,
+        total_failed: 4,
+        rank: 2,
+      },
+    ],
+    totalItems: 2,
+  });
+  repo.getFactByDate = async () => ([
+    { ma_bcvh: '535790', ma_tuyen: '53579001', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '535790', ma_tuyen: '53579001', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '535790', ma_tuyen: '53579002', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T13:30:00Z' },
+    { ma_bcvh: '535790', ma_tuyen: '53579002', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '535790', ma_tuyen: '53579027', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '536250', ma_tuyen: '53625001', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '536250', ma_tuyen: '53625001', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '536250', ma_tuyen: '53625002', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T12:30:00Z' },
+  ]);
+  repo.getBcvhOperationMetricsBetween = async () => [];
+
+  try {
+    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+
+    assert.equal(result.data[0].comparisons.d1.volume, 6);
+    assert.equal(result.data[0].comparisons.d1.f1_3_rate, 50);
+    assert.equal(result.data[0].comparisons.d1.volume_delta, 4);
+    assert.equal(result.data[0].comparisons.d1.comparison_rank, 2);
+    assert.equal(result.data[0].comparisons.d1.rank_movement.delta, 1);
+    assert.equal(result.data[0].comparisons.d1.rank_movement.direction, 'improved');
+    assert.equal(result.data[0].comparisons.d7.volume, 12);
+    assert.equal(result.data[0].comparisons.d7.rank_movement.direction, 'unchanged');
+    assert.equal(result.data[0].delayed_cash_handover_count, 1);
+    assert.equal(result.data[0].route_distribution.participating_postman_route_count, 2);
+    assert.equal(result.data[0].route_distribution.green_route_count, 1);
+    assert.equal(result.data[0].route_distribution.red_route_count, 1);
+    assert.equal(result.data[0].route_distribution.pink_route_count, 0);
+    assert.equal(result.data[1].comparisons.d1.rank_movement.direction, 'declined');
+    assert.equal(result.data[1].comparisons.d1.rank_movement.delta, -1);
+    assert.equal(result.data[1].comparisons.d7.rank_movement.direction, 'unchanged');
+    assert.equal(result.data[1].delayed_cash_handover_count, 1);
+    assert.equal(result.data[1].route_distribution.participating_postman_route_count, 2);
+    assert.equal(result.data[1].route_distribution.yellow_route_count, 1);
+    assert.equal(result.data[1].route_distribution.red_route_count, 1);
+    assert.equal(result.meta.total_row.delayed_cash_handover_count, 2);
+    assert.equal(result.meta.total_row.route_distribution.participating_postman_route_count, 4);
+    assert.equal(result.meta.total_row.route_distribution.green_route_count, 1);
+    assert.equal(result.meta.total_row.route_distribution.yellow_route_count, 1);
+    assert.equal(result.meta.total_row.route_distribution.red_route_count, 2);
+  } finally {
+    Object.assign(repo, originals);
+  }
+});
+
 test('latest import freshness ignores future-dated recovery artifacts', () => {
   const source = fs.readFileSync(require.resolve('../repositories/FactBuuGuiRepository'), 'utf8');
 

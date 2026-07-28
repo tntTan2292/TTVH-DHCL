@@ -134,6 +134,113 @@ class F13DashboardService {
         }, {});
     }
 
+    _buildBcvhRankMap(rows = []) {
+        return [...rows]
+            .sort((a, b) => {
+                const rateDelta = this._calculateRate(Number(b.dat_kpi_2026 || 0), Number(b.sl_bg_ptc || 0))
+                    - this._calculateRate(Number(a.dat_kpi_2026 || 0), Number(a.sl_bg_ptc || 0));
+                if (rateDelta !== 0) return rateDelta;
+                return Number(b.sl_bg_ptc || 0) - Number(a.sl_bg_ptc || 0);
+            })
+            .reduce((acc, row, index) => {
+                acc[row.ma_bcvh] = index + 1;
+                return acc;
+            }, {});
+    }
+
+    _buildComparisonBlock(currentRow, comparisonRow, comparisonRank) {
+        const currentVolume = Number(currentRow?.sl_bg_ptc || currentRow?.total_bg || 0);
+        const comparisonVolume = comparisonRow ? Number(comparisonRow.sl_bg_ptc || 0) : null;
+        const comparisonPassed = comparisonRow ? Number(comparisonRow.dat_kpi_2026 || 0) : null;
+
+        return {
+            volume: comparisonVolume,
+            f1_3_rate: comparisonRow && comparisonVolume
+                ? this._calculateRate(comparisonPassed, comparisonVolume)
+                : null,
+            volume_delta: comparisonRow ? currentVolume - comparisonVolume : null,
+            comparison_rank: comparisonRank ?? null,
+        };
+    }
+
+    _buildRankMovement(currentRank, comparisonRank) {
+        if (!currentRank || !comparisonRank) {
+            return {
+                comparison_rank: comparisonRank ?? null,
+                delta: null,
+                direction: 'unavailable',
+            };
+        }
+
+        const delta = comparisonRank - currentRank;
+        let direction = 'unchanged';
+        if (currentRank < comparisonRank) direction = 'improved';
+        if (currentRank > comparisonRank) direction = 'declined';
+
+        return {
+            comparison_rank: comparisonRank,
+            delta,
+            direction,
+        };
+    }
+
+    _buildRouteDistributionMap(facts = []) {
+        return facts.reduce((acc, fact) => {
+            const maBcvh = fact?.ma_bcvh;
+            const maTuyen = String(fact?.ma_tuyen || '').trim();
+            if (!maBcvh || !maTuyen) return acc;
+
+            const classification = classifyRoute(maTuyen);
+            if (classification.route_scope !== 'hue' || !classification.is_postman_delivery_route) {
+                return acc;
+            }
+
+            if (!acc[maBcvh]) acc[maBcvh] = {};
+            if (!acc[maBcvh][maTuyen]) {
+                acc[maBcvh][maTuyen] = {
+                    total_bg: 0,
+                    dat_kpi_2026: 0,
+                };
+            }
+
+            acc[maBcvh][maTuyen].total_bg += 1;
+            if (fact.danh_gia_2026 === 'Đạt') {
+                acc[maBcvh][maTuyen].dat_kpi_2026 += 1;
+            }
+
+            return acc;
+        }, {});
+    }
+
+    _buildRouteDistributionSummary(routeMap = {}) {
+        return Object.entries(routeMap).reduce((acc, [maBcvh, routes]) => {
+            const routeRows = Object.values(routes);
+            const summary = {
+                participating_postman_route_count: routeRows.length,
+                green_route_count: 0,
+                yellow_route_count: 0,
+                red_route_count: 0,
+                pink_route_count: 0,
+            };
+
+            routeRows.forEach((route) => {
+                const rate = this._calculateRate(route.dat_kpi_2026, route.total_bg);
+                if (rate >= 70) {
+                    summary.green_route_count += 1;
+                } else if (rate >= 60) {
+                    summary.pink_route_count += 1;
+                } else if (rate >= 50) {
+                    summary.yellow_route_count += 1;
+                } else {
+                    summary.red_route_count += 1;
+                }
+            });
+
+            acc[maBcvh] = summary;
+            return acc;
+        }, {});
+    }
+
     async _getDefaultProvinceCode() {
         const row = await get("SELECT config_value FROM system_config WHERE config_key = 'default_province_code'");
         return row?.config_value || '53';
@@ -478,26 +585,41 @@ class F13DashboardService {
         };
     }
 
-    _buildF13302RateMap(facts) {
+    _buildF13302SummaryMap(facts = []) {
         if (!ruleRegistry.rules.some(rule => rule?.id === 'RULE_F13_302')) {
             ruleRegistry.register(new RuleF13302());
         }
+        const delayedCashRule = ruleRegistry.rules.find((rule) => rule?.id === 'RULE_F13_302');
 
         const byBcvh = new Map();
 
-        for (const fact of facts || []) {
+        for (const fact of facts) {
             if (!fact?.ma_bcvh) continue;
             if (!byBcvh.has(fact.ma_bcvh)) byBcvh.set(fact.ma_bcvh, []);
             byBcvh.get(fact.ma_bcvh).push(fact);
         }
 
         const rateMap = {};
+        const summaryMap = {};
         for (const [maBcvh, items] of byBcvh.entries()) {
             const result = ruleRegistry.execute(items);
             rateMap[maBcvh] = result.f13_303_rate ?? 0;
+            summaryMap[maBcvh] = {
+                delayed_cash_handover_count: delayedCashRule
+                    ? items.filter((fact) => delayedCashRule.evaluate(fact)).length
+                    : 0,
+                delayed_cash_handover_rate: result.f13_303_rate ?? 0,
+            };
         }
 
-        return rateMap;
+        return {
+            rateMap,
+            summaryMap,
+        };
+    }
+
+    _buildF13302RateMap(facts) {
+        return this._buildF13302SummaryMap(facts).rateMap;
     }
 
     async getDashboardKpi(startDate, endDate, filters = {}) {
@@ -580,7 +702,12 @@ class F13DashboardService {
             const swcMap = this._indexByBcvh(swcMetrics);
             const monthToDateMap = this._indexByBcvh(monthToDateMetrics);
             const previousMonthToDateMap = this._indexByBcvh(previousMonthToDateMetrics);
-            const f13302RateMap = this._buildF13302RateMap(currentFacts);
+            const yesterdayRankMap = this._buildBcvhRankMap(yesterdayMetrics);
+            const swcRankMap = this._buildBcvhRankMap(swcMetrics);
+            const { rateMap: f13302RateMap, summaryMap: f13302SummaryMap } = this._buildF13302SummaryMap(currentFacts);
+            const routeDistributionSummaryMap = this._buildRouteDistributionSummary(
+                this._buildRouteDistributionMap(currentFacts)
+            );
             
             const mappedData = result.data.map(item => ({
                 ...(currentMap[item.ma_bcvh] || {}),
@@ -621,6 +748,24 @@ class F13DashboardService {
                     ? this._calculateRate(previousMonthToDateMap[item.ma_bcvh].dat_kpi_2026, previousMonthToDateMap[item.ma_bcvh].sl_bg_ptc)
                     : null,
                 f13_303_rate: f13302RateMap[item.ma_bcvh] ?? 0,
+                delayed_cash_handover_count: f13302SummaryMap[item.ma_bcvh]?.delayed_cash_handover_count ?? 0,
+                route_distribution: {
+                    participating_postman_route_count: routeDistributionSummaryMap[item.ma_bcvh]?.participating_postman_route_count ?? 0,
+                    green_route_count: routeDistributionSummaryMap[item.ma_bcvh]?.green_route_count ?? 0,
+                    yellow_route_count: routeDistributionSummaryMap[item.ma_bcvh]?.yellow_route_count ?? 0,
+                    red_route_count: routeDistributionSummaryMap[item.ma_bcvh]?.red_route_count ?? 0,
+                    pink_route_count: routeDistributionSummaryMap[item.ma_bcvh]?.pink_route_count ?? 0,
+                },
+                comparisons: {
+                    d1: {
+                        ...this._buildComparisonBlock(currentMap[item.ma_bcvh] || item, yesterdayMap[item.ma_bcvh], yesterdayRankMap[item.ma_bcvh]),
+                        rank_movement: this._buildRankMovement(item.rank, yesterdayRankMap[item.ma_bcvh]),
+                    },
+                    d7: {
+                        ...this._buildComparisonBlock(currentMap[item.ma_bcvh] || item, swcMap[item.ma_bcvh], swcRankMap[item.ma_bcvh]),
+                        rank_movement: this._buildRankMovement(item.rank, swcRankMap[item.ma_bcvh]),
+                    },
+                },
                 rank: item.rank
             }));
 
@@ -629,6 +774,12 @@ class F13DashboardService {
                 acc.sl_ptc_nop_tien += item.sl_ptc_nop_tien || 0;
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
                 acc.khong_dat_kpi_2026 += item.khong_dat_kpi_2026 || 0;
+                acc.delayed_cash_handover_count += item.delayed_cash_handover_count || 0;
+                acc.route_distribution.participating_postman_route_count += item.route_distribution?.participating_postman_route_count || 0;
+                acc.route_distribution.green_route_count += item.route_distribution?.green_route_count || 0;
+                acc.route_distribution.yellow_route_count += item.route_distribution?.yellow_route_count || 0;
+                acc.route_distribution.red_route_count += item.route_distribution?.red_route_count || 0;
+                acc.route_distribution.pink_route_count += item.route_distribution?.pink_route_count || 0;
                 acc.month_to_date_sl_bg_ptc += item.month_to_date_sl_bg_ptc || 0;
                 acc.month_to_date_dat_kpi_2026 += item.month_to_date_dat_kpi_2026 || 0;
                 acc.month_to_date_khong_dat_kpi_2026 += item.month_to_date_khong_dat_kpi_2026 || 0;
@@ -641,6 +792,14 @@ class F13DashboardService {
                 sl_ptc_nop_tien: 0,
                 dat_kpi_2026: 0,
                 khong_dat_kpi_2026: 0,
+                delayed_cash_handover_count: 0,
+                route_distribution: {
+                    participating_postman_route_count: 0,
+                    green_route_count: 0,
+                    yellow_route_count: 0,
+                    red_route_count: 0,
+                    pink_route_count: 0,
+                },
                 month_to_date_sl_bg_ptc: 0,
                 month_to_date_dat_kpi_2026: 0,
                 month_to_date_khong_dat_kpi_2026: 0,
