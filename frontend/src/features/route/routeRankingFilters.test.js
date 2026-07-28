@@ -28,6 +28,15 @@ test('Route Performance page sends default postman filter and can switch to all 
   assert.match(pageSource, /function RouteRankingTable/);
   assert.match(pageSource, /data-testid="route-ranking-table"/);
   assert.match(pageSource, /rows=\{filteredRows\}/);
+  assert.match(pageSource, /Bảng Tuyến Ranking/);
+  assert.match(pageSource, /Nhận tại bưu cục/);
+  const brokenVietnamesePattern = new RegExp([
+    'B\\?ng Tuy\\?n Ranking',
+    'Danh s\\?ch tuy\\?n',
+    'Tuy\\u00e1\\u00ba\\u00bfn b\\u00c6\\u00b0u t\\u00c3\\u00a1',
+    'T\\u00e1\\u00ba\\u00a5t c\\u00c3\\u00a1',
+  ].join('|'));
+  assert.doesNotMatch(pageSource, brokenVietnamesePattern);
   assert.match(pageSource, /updateParam\('route_type', item\.value === DEFAULT_ROUTE_TYPE_FILTER \? '' : item\.value\)/);
   assert.match(pageSource, /bcvhOptions=\{ROUTE_BCVH_OPTIONS\}/);
   assert.match(pageSource, /aria-pressed=\{routeType === item\.value\}/);

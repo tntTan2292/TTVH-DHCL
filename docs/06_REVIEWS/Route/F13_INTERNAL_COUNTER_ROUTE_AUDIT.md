@@ -129,6 +129,26 @@ Additional validation after remediation:
 - `npm.cmd run lint` in `frontend` - `PASS` with pre-existing warnings outside this change.
 - `git diff --check` - `PASS`.
 
+## PO Recheck Vietnamese Label Remediation
+
+Product Owner recheck then found the table had real data but needed Vietnamese text and route classification label cleanup before final UI review.
+
+Remediation completed:
+
+- Cleaned Vietnamese labels in the active Tuyến Ranking page and filter helper.
+- Kept the filter labels exactly `Tuyến bưu tá | Tất cả`.
+- Changed the table route-classification badge for confirmed non-postman/customer-pickup rows from the filter label `Tất cả` to `Nhận tại bưu cục`.
+- Added regression coverage for clean Vietnamese table/filter labels and the `Nhận tại bưu cục` classification label.
+
+Additional validation after label remediation:
+
+- `node --test frontend/src/features/route/routeRankingFilters.test.js` - `PASS`.
+- `node backend/test_f13_route_classification.js` - `PASS`.
+- UTF-8 label check for touched route UI files - `PASS`.
+- `npm.cmd run build` in `frontend` - `PASS` with existing Vite chunk-size warning.
+- `npm.cmd run lint` in `frontend` - `PASS` with pre-existing warnings outside this change.
+- `git diff --check` - `PASS`.
+
 ## Handoff
 
 Status: `READY FOR PO RUNTIME/UI REVIEW`.

@@ -76,7 +76,7 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute }) {
                   <td className="px-4 py-3 text-right font-semibold">{formatRate(row.passed_rate)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${row.is_postman_delivery_route ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
-                      {row.is_postman_delivery_route ? 'Tuyến bưu tá' : 'Tất cả'}
+                      {row.is_postman_delivery_route ? 'Tuyến bưu tá' : 'Nhận tại bưu cục'}
                     </span>
                   </td>
                 </tr>
@@ -273,7 +273,7 @@ export default function RoutePerformancePage() {
           ))}
         </div>
 
-        <SectionHeader title="B?ng Tuy?n Ranking" subtitle="Danh s?ch tuy?n runtime theo b? l?c ?ang ch?n." />
+        <SectionHeader title="Bảng Tuyến Ranking" subtitle="Danh sách tuyến runtime theo bộ lọc đang chọn." />
         <RouteRankingTable
           rows={filteredRows}
           selectedRouteId={selectedRouteId}

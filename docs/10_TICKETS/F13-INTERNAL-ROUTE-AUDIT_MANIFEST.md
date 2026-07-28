@@ -60,6 +60,7 @@ No fuzzy synonyms or inferred route types are authorized.
 - Official classifications saved: `7` confirmed customer-pickup/internal post-office routes in `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`.
 - Route Ranking implementation: default `Tuyến bưu tá` excludes confirmed non-postman routes; `Tất cả` includes all Hue routes.
 - Route Ranking remediation: active page now includes a minimal runtime-backed `Bảng Tuyến Ranking` connected to the selected filter.
+- Route Ranking label remediation: Vietnamese table/filter labels are cleaned, and confirmed non-postman/customer-pickup rows show classification label `Nhận tại bưu cục` instead of filter label `Tất cả`.
 - Remaining unconfirmed near-match classifications saved: `None`.
 
 ## Out Of Scope
