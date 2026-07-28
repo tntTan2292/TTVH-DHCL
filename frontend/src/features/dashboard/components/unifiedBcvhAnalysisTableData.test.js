@@ -15,7 +15,7 @@ import {
 
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 
-test('maps Wave 1 runtime row into current-day, D-1, D-7, late-cash, route, and analysis groups', () => {
+test('maps runtime row into current-day, D-1, D-7, late-cash, route, and analysis groups', () => {
   const row = mapBcvhRankingRow({
     ma_bcvh: '533140',
     ten_bcvh: 'BCVH Thuận Hóa',
@@ -75,11 +75,11 @@ test('maps Wave 1 runtime row into current-day, D-1, D-7, late-cash, route, and 
   assert.equal(row.route_distribution.counts.pink, 1);
   assert.equal(row.route_distribution.segments.length, 4);
   assert.match(row.analysis, /KPI ngày 75,0%/);
-  assert.match(row.analysis, /hồng 1/);
+  assert.match(row.analysis, /khá 1/);
   assert.equal(row.action.route, '/f13/ranking/route');
 });
 
-test('maps total row and preserves canonical filtering only', () => {
+test('maps total row without exposing raw total or unsupported action and analysis', () => {
   const mapped = mapBcvhRankingResponse({
     success: true,
     data: [
@@ -88,10 +88,12 @@ test('maps total row and preserves canonical filtering only', () => {
     ],
     meta: {
       total_row: {
-        ten_bcvh: 'TỔNG CỘNG',
         sl_bg_ptc: 10,
         dat_kpi_2026: 8,
         khong_dat_kpi_2026: 2,
+        kpi_2026: 80,
+        delayed_cash_handover_count: 1,
+        f13_303_rate: 5.5,
         route_distribution: {
           participating_postman_route_count: 4,
           green_route_count: 1,
@@ -109,9 +111,16 @@ test('maps total row and preserves canonical filtering only', () => {
   });
 
   assert.deepEqual(mapped.rows.map((row) => row.ma_bcvh), ['533140']);
-  assert.equal(mapped.total_row.ma_bcvh, 'total');
+  assert.equal(mapped.total_row.is_total, true);
+  assert.equal(mapped.total_row.ma_bcvh, '');
+  assert.equal(mapped.total_row.ten_bcvh, 'Tổng cộng');
+  assert.equal(mapped.total_row.rank, null);
+  assert.equal(mapped.total_row.action, null);
+  assert.equal(mapped.total_row.analysis, null);
+  assert.equal(mapped.total_row.current_day.rate, 80);
+  assert.equal(mapped.total_row.late_cash.rate, 5.5);
   assert.equal(mapped.total_row.route_distribution.counts.pink, 1);
-  assert.match(mapped.meta.evaluation_label, /Ngày đánh giá/);
+  assert.match(mapped.meta.evaluation_label, /28\/07/);
 });
 
 test('formats unavailable states and factual deltas without fallback', () => {
@@ -132,57 +141,50 @@ test('formats unavailable states and factual deltas without fallback', () => {
   assert.match(row.analysis, /Chưa có dữ liệu/);
 });
 
-test('builds four-band doughnut aria label and preserves pink band metadata', () => {
-  assert.equal(ROUTE_BAND_META.pink.label, 'Hồng');
+test('builds semantic four-band doughnut labels and preserves SSOT colors', () => {
+  assert.equal(ROUTE_BAND_META.green.label, 'Tốt');
+  assert.equal(ROUTE_BAND_META.pink.label, 'Khá');
+  assert.equal(ROUTE_BAND_META.yellow.label, 'Trung bình');
+  assert.equal(ROUTE_BAND_META.red.label, 'Kém');
   assert.equal(ROUTE_BAND_META.pink.color, '#ec4899');
   assert.equal(
     buildDoughnutAriaLabel({
       segments: [
-        { label: 'Xanh', value: 2 },
-        { label: 'Hồng', value: 1 },
-        { label: 'Vàng', value: 3 },
-        { label: 'Đỏ', value: 2 },
+        { label: 'Tốt', value: 2 },
+        { label: 'Khá', value: 1 },
+        { label: 'Trung bình', value: 3 },
+        { label: 'Kém', value: 2 },
       ],
     }),
-    'Xanh 2 · Hồng 1 · Vàng 3 · Đỏ 2',
+    'Tốt 2 · Khá 1 · Trung bình 3 · Kém 2',
   );
 });
 
-test('Wave 2 component source exposes grouped columns, management wording, sticky identity columns, and hideable D-1/D-7 raw columns', () => {
+test('component source exposes total-row presentation, expandable analysis, semantic route labels, and no duplicated labels', () => {
   const componentSource = read('./UnifiedBcvhAnalysisTable.jsx');
   const pageSource = read('../../ranking/BcvhRankingPage.jsx');
 
-  assert.match(componentSource, /Kết quả ngày đánh giá/);
-  assert.match(componentSource, /So sánh D-1/);
-  assert.match(componentSource, /So sánh D-7/);
-  assert.match(componentSource, /Chậm nộp tiền/);
-  assert.match(componentSource, /Phân bổ tuyến/);
-  assert.match(componentSource, /Phân tích BCVH/);
-  assert.match(componentSource, /routeDistribution/);
-  assert.match(componentSource, /routePink: 'Tuyến hồng'/);
-  assert.match(componentSource, /DoughnutCell/);
-  assert.match(componentSource, /PieChart/);
-  assert.match(componentSource, /Cell key=\{segment\.id\} fill=\{segment\.color\}/);
-  assert.match(componentSource, /qis\.bcvhRankingWave2\.columns\.v1/);
-  assert.match(componentSource, /d1Volume: true/);
-  assert.match(componentSource, /d1Rate: true/);
-  assert.match(componentSource, /d7Volume: true/);
-  assert.match(componentSource, /d7Rate: true/);
-  assert.match(componentSource, /'D-1 \/ Sản lượng'/);
-  assert.match(componentSource, /'D-7 \/ Tỷ lệ F1\.3'/);
+  assert.match(componentSource, /Tốt/);
+  assert.match(componentSource, /Khá/);
+  assert.match(componentSource, /Trung bình/);
+  assert.match(componentSource, /Kém/);
+  assert.match(componentSource, /expandedRowId/);
+  assert.match(componentSource, /AnalysisPanel/);
+  assert.match(componentSource, /onToggleAnalysis/);
+  assert.match(componentSource, /row\.is_total/);
+  assert.match(componentSource, /Xem chi tiết tuyến/);
+  assert.match(componentSource, /Phân tích/);
   assert.match(componentSource, /sticky left-0/);
   assert.match(componentSource, /sticky left-\[64px\]/);
   assert.match(componentSource, /sticky left-\[168px\]/);
-  assert.match(componentSource, /Xem chi tiết tuyến/);
-  assert.match(pageSource, /UnifiedBcvhAnalysisTable/);
-  assert.match(pageSource, /Sản lượng ngày đánh giá/);
-  assert.match(pageSource, /Chất lượng F1\.3/);
-  assert.match(pageSource, /Chậm nộp tiền/);
-  assert.match(pageSource, /Phân bổ chất lượng tuyến/);
+  assert.doesNotMatch(componentSource, /<th[^>]*>.*Phân tích BCVH.*<\/th>/s);
   assert.match(pageSource, /Bảng xếp hạng chất lượng BCVH/);
   assert.match(pageSource, /So sánh kỳ trước/);
-  assert.match(pageSource, /Xem chi tiết tuyến/);
-  assert.match(pageSource, /Xem ngày gần nhất/);
-  assert.match(pageSource, /Ngày gần nhất đang được metadata hỗ trợ/);
-  assert.doesNotMatch(pageSource, /KPI \/ chậm nộp \/ hạng độc lập|Drill-down giữ nguyên context Route Ranking|Bảng BCVH theo hợp đồng Wave 1|Wave 1|raw volume/);
+  assert.match(pageSource, /Tốt/);
+  assert.match(pageSource, /Khá/);
+  assert.match(pageSource, /Trung bình/);
+  assert.match(pageSource, /Kém/);
+  assert.doesNotMatch(pageSource, /Ngày đánh giá · Ngày đánh giá/);
+  assert.doesNotMatch(componentSource, /total<\/td>|>total</);
+  assert.doesNotMatch(pageSource, /Bảng xếp hạng chất lượng BCVH[\s\S]*Bảng xếp hạng chất lượng BCVH/);
 });

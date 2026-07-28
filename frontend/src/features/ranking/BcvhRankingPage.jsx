@@ -31,10 +31,10 @@ function SummaryRouteBands({ routeDistribution }) {
   return (
     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
       {[
-        ['Xanh', counts.green],
-        ['Hồng', counts.pink],
-        ['Vàng', counts.yellow],
-        ['Đỏ', counts.red],
+        ['Tốt', counts.green],
+        ['Khá', counts.pink],
+        ['Trung bình', counts.yellow],
+        ['Kém', counts.red],
       ].map(([label, value]) => (
         <div key={label} className="rounded-xl bg-[var(--color-surface-50)] px-3 py-2 text-[var(--color-text-main)]">
           <div className="font-semibold">{label}</div>
@@ -220,7 +220,7 @@ export default function BcvhRankingPage() {
     {
       label: 'Phân bổ chất lượng tuyến',
       value: formatNumber(routeDistribution.participating_postman_route_count),
-      delta: `X ${formatNumber(routeDistribution.counts.green)} · H ${formatNumber(routeDistribution.counts.pink)} · V ${formatNumber(routeDistribution.counts.yellow)} · Đ ${formatNumber(routeDistribution.counts.red)}`,
+      delta: `Tốt ${formatNumber(routeDistribution.counts.green)} · Khá ${formatNumber(routeDistribution.counts.pink)} · Trung bình ${formatNumber(routeDistribution.counts.yellow)} · Kém ${formatNumber(routeDistribution.counts.red)}`,
       trend: buildDoughnutAriaLabel(routeDistribution),
       tone: 'danger',
     },
@@ -231,8 +231,8 @@ export default function BcvhRankingPage() {
 
   return (
     <PageContainer
-      title="BCVH Ranking"
-      subtitle="Bảng xếp hạng chất lượng BCVH theo ngày đánh giá."
+      title="Bảng xếp hạng chất lượng BCVH"
+      subtitle="Theo ngày đánh giá."
       action={(
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge label={interval === 'daily' ? 'Theo ngày' : 'Khoảng ngày'} tone="neutral" />
@@ -316,8 +316,7 @@ export default function BcvhRankingPage() {
           <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-surface-200)] px-5 py-4">
               <div>
-                <h2 className="text-base font-bold text-[var(--color-text-main)]">Bảng xếp hạng chất lượng BCVH</h2>
-                <p className="mt-1 text-xs text-[var(--color-text-muted)]">So sánh kỳ trước theo D-1 và D-7.</p>
+                <p className="text-xs text-[var(--color-text-muted)]">So sánh kỳ trước theo D-1 và D-7.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge label={`BCVH: ${metaState.options.find((option) => option.value === maBcvh)?.label || 'Tất cả BCVH'}`} tone="neutral" />

@@ -6,10 +6,10 @@ const DASH = '\u2014';
 const MIDDLE_DOT = '\u00b7';
 
 const ROUTE_BAND_META = Object.freeze({
-  green: { label: 'Xanh', color: '#22c55e', tone: 'success' },
-  pink: { label: 'Hồng', color: '#ec4899', tone: 'info' },
-  yellow: { label: 'Vàng', color: '#eab308', tone: 'warning' },
-  red: { label: 'Đỏ', color: '#ef4444', tone: 'danger' },
+  green: { label: 'Tốt', color: '#22c55e', tone: 'success' },
+  pink: { label: 'Khá', color: '#ec4899', tone: 'info' },
+  yellow: { label: 'Trung bình', color: '#eab308', tone: 'warning' },
+  red: { label: 'Kém', color: '#ef4444', tone: 'danger' },
 });
 
 const KPI_STATUS_META = Object.freeze([
@@ -116,7 +116,7 @@ function buildAnalysisText(row) {
     `D-1 ${formatSignedDelta(row.comparisons.d1.rate_delta ?? row.current_day.d1_rate_delta, 'điểm %')}`,
     `D-7 ${formatSignedDelta(row.comparisons.d7.rate_delta ?? row.current_day.d7_rate_delta, 'điểm %')}`,
     `Chậm nộp tiền ${formatNumber(row.late_cash.count)} BG (${formatRate(row.late_cash.rate)})`,
-    `Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count)}: xanh ${formatNumber(row.route_distribution.counts.green)}, hồng ${formatNumber(row.route_distribution.counts.pink)}, vàng ${formatNumber(row.route_distribution.counts.yellow)}, đỏ ${formatNumber(row.route_distribution.counts.red)}`,
+    `Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count)}: tốt ${formatNumber(row.route_distribution.counts.green)}, khá ${formatNumber(row.route_distribution.counts.pink)}, trung bình ${formatNumber(row.route_distribution.counts.yellow)}, kém ${formatNumber(row.route_distribution.counts.red)}`,
   ];
 
   const d1Movement = row.comparisons.d1.rank_movement.signal.label;
@@ -127,6 +127,7 @@ function buildAnalysisText(row) {
 }
 
 function buildAction(row, context = {}) {
+  if (row.is_total) return null;
   return {
     route: '/f13/ranking/route',
     params: {
@@ -146,11 +147,13 @@ export function mapBcvhRankingRow(row = {}, context = {}) {
   d1.rate_delta = toNumberOrNull(row.kpi_2026_dod);
   d7.rate_delta = toNumberOrNull(row.kpi_2026_swc);
 
+  const isTotal = row.is_total === true || row.ma_bcvh === 'total';
   const mapped = {
-    id: row.ma_bcvh || row.ten_bcvh || `bcvh-${row.rank ?? 'unknown'}`,
-    ma_bcvh: row.ma_bcvh || UNAVAILABLE_TEXT,
-    ten_bcvh: row.ten_bcvh || UNAVAILABLE_TEXT,
-    rank: toNumberOrNull(row.rank),
+    id: isTotal ? 'total-row' : (row.ma_bcvh || row.ten_bcvh || `bcvh-${row.rank ?? 'unknown'}`),
+    ma_bcvh: isTotal ? '' : (row.ma_bcvh || ''),
+    ten_bcvh: isTotal ? 'Tổng cộng' : (row.ten_bcvh || UNAVAILABLE_TEXT),
+    rank: isTotal ? null : toNumberOrNull(row.rank),
+    is_total: isTotal,
     current_day: {
       volume: toNumberOrNull(row.sl_bg_ptc ?? row.total_bg),
       pass_count: toNumberOrNull(row.dat_kpi_2026),
@@ -172,10 +175,10 @@ export function mapBcvhRankingRow(row = {}, context = {}) {
       },
     },
     route_distribution: buildRouteDistribution(row.route_distribution),
-    action: buildAction(row, context),
   };
 
-  mapped.analysis = buildAnalysisText(mapped);
+  mapped.action = buildAction(mapped, context);
+  mapped.analysis = isTotal ? null : buildAnalysisText(mapped);
   return mapped;
 }
 
@@ -191,7 +194,7 @@ export function mapBcvhRankingResponse(responseData = {}, context = {}) {
     });
 
   const totalRow = responseData?.meta?.total_row
-    ? mapBcvhRankingRow({ ...responseData.meta.total_row, ma_bcvh: 'total', ten_bcvh: 'TỔNG CỘNG', rank: null }, context)
+    ? mapBcvhRankingRow({ ...responseData.meta.total_row, is_total: true, ma_bcvh: '', ten_bcvh: 'Tổng cộng', rank: null }, context)
     : null;
 
   return {
@@ -203,7 +206,7 @@ export function mapBcvhRankingResponse(responseData = {}, context = {}) {
       interval: context.interval || null,
       ma_bcvh: context.maBcvh || 'all',
       search: context.search || '',
-      evaluation_label: context.toDate ? `Ngày đánh giá ${DASH} ${buildContextDateLabel(context.toDate)}` : `Ngày đánh giá ${DASH} ${UNAVAILABLE_TEXT}`,
+      evaluation_label: context.toDate ? `${buildContextDateLabel(context.toDate)}` : UNAVAILABLE_TEXT,
       pagination: responseData?.meta?.pagination || null,
     },
   };
@@ -241,4 +244,4 @@ export function buildDoughnutAriaLabel(routeDistribution = {}) {
   return segments.map((segment) => `${segment.label} ${segment.value}`).join(` ${MIDDLE_DOT} `);
 }
 
-export { ROUTE_BAND_META };
+export { ROUTE_BAND_META, DASH };

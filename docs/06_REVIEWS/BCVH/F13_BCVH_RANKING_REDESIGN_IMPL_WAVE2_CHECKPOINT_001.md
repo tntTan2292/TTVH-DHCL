@@ -33,11 +33,22 @@ PO UI remediation on the same ticket baseline also delivered:
 - factual no-data state with the selected date, supported nearest available date, and `Xem ngay gan nhat`
 - removal of visible technical/explanatory cards such as locked-layout and fallback notes
 
-Latest bounded PO-check remediation also delivered:
+Later bounded PO-check remediation also delivered:
 
-- delayed-cash widget now binds the existing runtime delayed-cash rate from the active BCVH scope and no longer shows an unavailable state when the runtime rate already exists
+- delayed-cash widget binds the existing runtime delayed-cash rate from the active BCVH scope and no longer shows an unavailable state when the runtime rate already exists
 - management wording replaces technical or implementation-facing labels on the PO screen
 - `Hạng`, `Mã BCVH`, and `Tên BCVH` are frozen for readability while later metric groups remain horizontally scrollable
+
+Latest bounded PO-check remediation also delivered:
+
+- total row now displays only `Tổng cộng`, with blank/`—` identity fields where rank or BCVH code do not apply
+- total row binds supported aggregate values without exposing raw `total`
+- total row does not expose analysis text or route drill-down action
+- management-facing route terminology now uses `Tốt / Khá / Trung bình / Kém` while preserving existing SSOT colors, thresholds, backend fields, and formulas
+- long analysis text was removed from the main table and replaced by a single-row expandable analysis panel shown directly below the selected BCVH row
+- only one BCVH analysis panel can be open at a time
+- the expandable panel uses existing runtime fields only: current-day results, `D-1`, `D-7`, delayed cash handover, participating routes, semantic route distribution, 4-band doughnut, and `Xem chi tiết tuyến`
+- duplicated ranking title and duplicated `Ngày đánh giá` presentation were removed
 
 ## Preserved Authority
 
@@ -77,7 +88,7 @@ Wave 2 consumes the Wave 1 runtime fields directly:
 - `route_distribution.yellow_route_count`
 - `route_distribution.red_route_count`
 
-The doughnut visualization is bound to the same `route_distribution` counts and does not compute any independent totals.
+The doughnut visualization and the expandable analysis panel are both bound to the same runtime route-distribution counts and do not compute independent totals.
 
 The no-data remediation reuses supported dashboard metadata for the nearest available date and does not query broad historical data or fabricate fallback dates.
 
@@ -132,11 +143,13 @@ Steps:
    - `Chat luong F1.3`
    - `Cham nop tien`
    - `Phan bo chat luong tuyen`
-3. Confirm the delayed-cash widget shows the runtime delayed-cash rate when the selected BCVH scope already has that rate.
-4. Confirm management wording is visible instead of technical implementation wording:
-   - `Bảng xếp hạng chất lượng BCVH`
-   - `So sánh kỳ trước`
-   - `Xem chi tiết tuyến`
+3. Confirm the total row shows `Tổng cộng` only, with no raw `total` text and no drill-down or analysis action.
+4. Confirm management terminology uses:
+   - `Tốt`
+   - `Khá`
+   - `Trung bình`
+   - `Kém`
+   across route columns, legends, summary widget, doughnut, and analysis content.
 5. Confirm the grouped headers appear for:
    - `Don vi`
    - `Ket qua ngay danh gia`
@@ -144,33 +157,28 @@ Steps:
    - `So sanh D-7`
    - `Cham nop tien`
    - `Phan bo tuyen`
-   - `Phan tich BCVH`
    - `Hanh dong`
 6. Open column options and verify only raw `D-1` / `D-7` volume and raw `D-1` / `D-7` F1.3 columns can be hidden.
 7. Confirm `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible.
 8. Confirm `Hạng`, `Mã BCVH`, and `Tên BCVH` remain visible while scrolling horizontally across later metric groups.
-9. Confirm route columns include exactly:
-   - `Tuyen xanh`
-   - `Tuyen hong`
-   - `Tuyen vang`
-   - `Tuyen do`
-10. Confirm the doughnut shows 4 segments and the pink segment is present when backend data provides it.
-11. Confirm KPI, late-cash, and rank-movement signals are shown independently.
-12. Confirm no visible technical/explanatory cards remain above the table.
-13. Change to a date with no supported ranking data and confirm the empty state:
+9. Click one BCVH row or `Phân tích` and confirm one full-width analysis panel opens directly below that row.
+10. Confirm opening another BCVH row closes the previous analysis panel so only one is open at a time.
+11. Confirm the analysis panel stays factual and concise, using current-day results, `D-1`, `D-7`, delayed cash handover, participating routes, semantic route distribution, doughnut, and `Xem chi tiết tuyến`.
+12. Confirm the delayed-cash widget and row data show the runtime rate when the selected BCVH scope already has it.
+13. Confirm there is no duplicated ranking title and no duplicated `Ngày đánh giá · Ngày đánh giá`.
+14. Change to a date with no supported ranking data and confirm the empty state:
     - states the selected date clearly
     - shows the nearest available date only when metadata supports it
     - offers `Xem ngay gan nhat`
-14. Confirm `Phan tich BCVH` stays factual and does not claim root cause beyond visible metrics.
-15. Click `Xem chi tiết tuyến` on one BCVH row and verify Route Ranking opens with preserved `from_date`, `to_date`, `interval`, `bcvh_id`, and `bcvh_name`.
-16. Check at least one unavailable state and confirm the UI shows unavailable text instead of calculating a fallback value.
+15. Click `Xem chi tiết tuyến` in the analysis panel and verify Route Ranking opens with preserved `from_date`, `to_date`, `interval`, `bcvh_id`, and `bcvh_name`.
 
 PASS criteria:
 
 - All approved column groups are visible.
-- Pink route band is preserved in both counts and doughnut.
+- Pink route band semantics are preserved through visual color and threshold behavior while management text shows `Khá`.
 - The top widget area is runtime-backed and management-useful.
 - Identity columns remain readable during horizontal scroll.
+- Expandable analysis is row-scoped, factual, and single-open.
 - Drill-down context is preserved.
 - Unavailable data is shown factually.
 
@@ -181,9 +189,9 @@ WARNING criteria:
 
 FAIL criteria:
 
-- Pink is missing, merged, or renamed.
+- Raw `total` is exposed.
 - Route drill-down loses BCVH/date context.
 - Hidden-column behavior affects non-hideable visible delta or movement columns.
-- UI invents fallback comparison values, late-cash thresholds, or unsupported nearest-date behavior.
+- UI invents fallback comparison values, late-cash thresholds, unsupported nearest-date behavior, or RCA claims.
 
 Do not self-award PO PASS from this checkpoint.
