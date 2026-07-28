@@ -194,10 +194,32 @@ class FactBuuGuiRepository {
         });
     }
 
-    getRouteRanking(date, bcvh, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc') {
+    getRouteRanking(date, bcvh, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc', options = {}) {
         return new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;
-            const sqlCount = `SELECT COUNT(DISTINCT ma_tuyen) as total FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen IS NOT NULL`;
+            const routeType = options.routeType === 'all' ? 'all' : 'postman';
+            const confirmedNonPostmanRouteCodes = Array.isArray(options.confirmedNonPostmanRouteCodes)
+                ? options.confirmedNonPostmanRouteCodes.map(String)
+                : [];
+            const nonPostmanPlaceholders = confirmedNonPostmanRouteCodes.map(() => '?').join(', ');
+            const routeFilters = [
+                'ngay_do_kiem = ?',
+                'ma_bcvh = ?',
+                'ma_tuyen IS NOT NULL',
+                "TRIM(ma_tuyen) != ''",
+                "ma_tuyen LIKE '53%'",
+            ];
+            const countParams = [date, bcvh];
+            const dataParams = [date, bcvh];
+
+            if (routeType === 'postman' && confirmedNonPostmanRouteCodes.length) {
+                routeFilters.push(`ma_tuyen NOT IN (${nonPostmanPlaceholders})`);
+                countParams.push(...confirmedNonPostmanRouteCodes);
+                dataParams.push(...confirmedNonPostmanRouteCodes);
+            }
+
+            const whereClause = routeFilters.join(' AND ');
+            const sqlCount = `SELECT COUNT(DISTINCT ma_tuyen) as total FROM fact_f13 WHERE ${whereClause}`;
             
             const allowedSorts = ['total_bg', 'total_passed', 'total_failed'];
             const safeSort = allowedSorts.includes(sort) ? sort : 'total_bg';
@@ -211,15 +233,15 @@ class FactBuuGuiRepository {
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
                     SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed
                 FROM fact_f13
-                WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen IS NOT NULL
+                WHERE ${whereClause}
                 GROUP BY ma_tuyen
                 ORDER BY ${safeSort} ${safeOrder}
                 LIMIT ? OFFSET ?
             `;
             
-            db.get(sqlCount, [date, bcvh], (err, countRow) => {
+            db.get(sqlCount, countParams, (err, countRow) => {
                 if (err) return reject(err);
-                db.all(sqlData, [date, bcvh, pageSize, offset], (err, rows) => {
+                db.all(sqlData, [...dataParams, pageSize, offset], (err, rows) => {
                     if (err) reject(err);
                     else resolve({ data: rows, totalItems: countRow.total });
                 });

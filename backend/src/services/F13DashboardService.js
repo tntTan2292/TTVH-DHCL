@@ -2,6 +2,10 @@ const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 const ruleRegistry = require('../engine/rules/RuleRegistry');
 const RuleF13302 = require('../engine/rules/RuleF13302');
 const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+const {
+    CONFIRMED_NON_POSTMAN_ROUTES,
+    classifyRoute,
+} = require('../config/f13RouteClassificationCatalog');
 const { all, get } = require('../config/db');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
@@ -743,22 +747,51 @@ class F13DashboardService {
         }
     }
 
-    async getRouteRanking(date, bcvh, page, pageSize, sort, order) {
+    async getRouteRanking(date, bcvh, page, pageSize, sort, order, options = {}) {
         try {
-            const result = await factBuuGuiRepo.getRouteRanking(date, bcvh, page, pageSize, sort, order);
+            const routeType = options.routeType === 'all' ? 'all' : 'postman';
+            const confirmedNonPostmanRouteCodes = CONFIRMED_NON_POSTMAN_ROUTES.map((route) => route.ma_tuyen);
+            const result = await factBuuGuiRepo.getRouteRanking(date, bcvh, page, pageSize, sort, order, {
+                routeType,
+                confirmedNonPostmanRouteCodes,
+            });
             
             const mappedData = result.data.map(item => ({
                 ma_tuyen: item.ma_tuyen,
+                id: item.ma_tuyen,
+                code: item.ma_tuyen,
                 ten_tuyen: item.ten_tuyen,
+                name: item.ten_tuyen || item.ma_tuyen,
                 total_bg: item.total_bg,
+                passed: item.total_passed,
                 passed_rate: this._calculateRate(item.total_passed, item.total_bg),
                 total_failed: item.total_failed,
+                failed: item.total_failed,
+                ...classifyRoute(item.ma_tuyen),
                 f13_303_rate: 0 // Delegate to D4
             }));
 
             return {
                 data: mappedData,
                 meta: {
+                    route_filter: {
+                        selected: routeType,
+                        labels: {
+                            postman: 'Tuyến bưu tá',
+                            all: 'Tất cả',
+                        },
+                    },
+                    route_scope: {
+                        hue_prefix: '53',
+                        excluded_non_hue: true,
+                    },
+                    route_classification: {
+                        confirmed_non_postman_route_count: CONFIRMED_NON_POSTMAN_ROUTES.length,
+                        participating_postman_route_count: routeType === 'postman'
+                            ? result.totalItems
+                            : mappedData.filter((item) => item.is_postman_delivery_route).length,
+                        confirmed_non_postman_routes: CONFIRMED_NON_POSTMAN_ROUTES,
+                    },
                     pagination: {
                         page,
                         page_size: pageSize,

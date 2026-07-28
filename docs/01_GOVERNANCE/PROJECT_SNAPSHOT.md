@@ -17,23 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `F1.3 INTERNAL COUNTER ROUTE VERIFICATION` |
+| Current Phase | `F1.3 ROUTE CLASSIFICATION FILTER REVIEW` |
 | Current Ticket | `F13-INTERNAL-ROUTE-AUDIT` |
-| Next Ticket | `Pending Product Owner route classification decision` |
-| Last PO Status | `Route 53314018 confirmed as internal-counter route and not postman delivery route; 11 near-match routes remain unclassified pending PO verification; F13-DATA-QUALITY-001 implementation deferred and manifest preserved; F13-SHIPMENT-001 implementation deferred and manifest preserved; DA-IMPL-008 completed with Product Owner PO PASS including Checkpoint 006; Dashboard visual audit and polish deferred to Antigravity; AUTO-IMPORT-009 completed with PO PASS at remote baseline 29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
+| Next Ticket | `Pending Product Owner runtime/UI review result` |
+| Last PO Status | `Route Ranking filter implementation authorized; 7 confirmed customer-pickup/internal post-office routes must not count as postman delivery routes; Route Ranking filter labels are Tuyến bưu tá and Tất cả; F13-DATA-QUALITY-001 implementation deferred and manifest preserved; F13-SHIPMENT-001 implementation deferred and manifest preserved; DA-IMPL-008 completed with Product Owner PO PASS including Checkpoint 006; Dashboard visual audit and polish deferred to Antigravity; AUTO-IMPORT-009 completed with PO PASS at remote baseline 29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` |
-| Current Checkpoint | `Internal-counter route catalog handoff and near-match verification` |
-| Current State | `READY FOR PO VERIFICATION` |
-| Technical Status | `DISCOVERY ONLY - NO IMPLEMENTATION` |
-| Runtime Status | `DATABASE AUDIT PASS` |
-| PO UI Check Required | `No - PO data verification required` |
-| PO Product Status | `F13-INTERNAL-ROUTE-AUDIT WAITING FOR PO VERIFICATION OF 11 NEAR-MATCH ROUTES; ROUTE 53314018 CONFIRMED INTERNAL-COUNTER; F13-DATA-QUALITY-001 DEFERRED / PRESERVED; F13-SHIPMENT-001 DEFERRED / PRESERVED; DA-IMPL-008 COMPLETED / PO PASS; AUTO-IMPORT-009 COMPLETED / PO PASS` |
+| Current Checkpoint | `Route Ranking filter implementation` |
+| Current State | `READY FOR PO RUNTIME/UI REVIEW` |
+| Technical Status | `IMPLEMENTED - TARGETED VALIDATION PASS` |
+| Runtime Status | `TARGETED API/SERVICE CHECK PASS` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `F13-INTERNAL-ROUTE-AUDIT WAITING FOR PO RUNTIME/UI REVIEW; 7 ROUTES CONFIRMED NON-POSTMAN; F13-DATA-QUALITY-001 DEFERRED / PRESERVED; F13-SHIPMENT-001 DEFERRED / PRESERVED; DA-IMPL-008 COMPLETED / PO PASS; AUTO-IMPORT-009 COMPLETED / PO PASS` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md` |
 | Last Reviewed Phase | `F1.3 INTERNAL COUNTER ROUTE CANDIDATE AUDIT` |
 | Last Reviewed Commit | `See latest verified remote branch HEAD` |
-| Phase Review Status | `READY FOR PO VERIFICATION` |
-| Next Phase Authorization | `No implementation authority until PO verifies remaining near-match route classifications and approves a follow-up ticket` |
+| Phase Review Status | `READY FOR PO RUNTIME/UI REVIEW` |
+| Next Phase Authorization | `No next implementation authority until PO completes Route Ranking runtime/UI review` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-28` |
 
@@ -60,7 +60,7 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `F13-INTERNAL-ROUTE-AUDIT` is `READY FOR PO VERIFICATION`. Product Owner confirmed route `53314018 - 533140 - Phát tại quầy` as an internal-counter route of `533140 - BCVH Thuận Hóa`; it must not be counted as a postman delivery route and is recorded in `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`. The `11` near-match routes remain unclassified pending Product Owner verification. Product Owner deferred `F13-DATA-QUALITY-001` and `F13-SHIPMENT-001` implementation while preserving both manifests. No implementation authority exists until Product Owner verifies remaining route classifications and approves a follow-up ticket.
+Current handoff: `F13-INTERNAL-ROUTE-AUDIT` is `READY FOR PO RUNTIME/UI REVIEW`. Route Ranking implements the exact filters `Tuyến bưu tá | Tất cả`; default is `Tuyến bưu tá`. Hue scope excludes route codes not starting with `53`. The PO-confirmed catalog records `7` customer-pickup/internal post-office routes that must not be counted as postman delivery routes. Product Owner deferred `F13-DATA-QUALITY-001` and `F13-SHIPMENT-001` implementation while preserving both manifests. Do not self-award PO PASS or start the next module.
 
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
 

@@ -8,12 +8,15 @@ import RoutePriorityAnalysis from './RoutePriorityAnalysis';
 import RouteRootCause from './RouteRootCause';
 import RouteRecommendation from './RouteRecommendation';
 import RouteDrilldown from './RouteDrilldown';
+import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
 
-const BCVH_OPTIONS = [
-  { value: 'all', label: 'Tất cả BCVH' },
-  { value: 'BC_HUE01', label: 'BCVH TP Huế' },
-  { value: 'BC_HUE02', label: 'BCVH Hương Thủy' },
-  { value: 'BC_HUE03', label: 'BCVH Phú Lộc' },
+const ROUTE_BCVH_OPTIONS = [
+  { value: '533140', label: 'BCVH Thuận Hóa' },
+  { value: '535470', label: 'BCVH Hương Trà' },
+  { value: '535790', label: 'BCVH A Lưới' },
+  { value: '536250', label: 'BCVH Hương Thủy' },
+  { value: '537015', label: 'BCVH Thuận An' },
+  { value: '537220', label: 'BCVH Phú Lộc' },
 ];
 
 function toNumber(value) {
@@ -32,11 +35,12 @@ export default function RoutePerformancePage() {
   const fromDate = searchParams.get('from_date') || '2026-06-23';
   const toDate = searchParams.get('to_date') || '2026-06-23';
   const interval = searchParams.get('interval') || 'daily';
-  const bcvhId = searchParams.get('bcvh_id') || 'BC_HUE01';
-  const bcvhName = searchParams.get('bcvh_name') || 'BCVH TP Huế';
+  const bcvhId = searchParams.get('bcvh_id') || '533140';
+  const bcvhName = searchParams.get('bcvh_name') || 'BCVH Thuận Hóa';
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || 'passed_rate';
   const order = searchParams.get('order') || 'asc';
+  const routeType = normalizeRouteTypeFilter(searchParams.get('route_type') || DEFAULT_ROUTE_TYPE_FILTER);
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);
@@ -54,7 +58,7 @@ export default function RoutePerformancePage() {
       try {
         setStatus('loading');
         setError(null);
-        const result = await f13DashboardClient.getRouteRanking(fromDate, bcvhId, 1, 1000, sort, order);
+        const result = await f13DashboardClient.getRouteRanking(fromDate, bcvhId, 1, 1000, sort, order, routeType);
         if (!mounted) return;
         setRows(Array.isArray(result.data) ? result.data : []);
         setMeta(result.meta || {});
@@ -72,7 +76,7 @@ export default function RoutePerformancePage() {
     return () => {
       mounted = false;
     };
-  }, [bcvhId, fromDate, order, sort]);
+  }, [bcvhId, fromDate, order, routeType, sort]);
 
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
 
@@ -92,11 +96,11 @@ export default function RoutePerformancePage() {
   }, [filteredRows, selectedRouteId]);
 
   const summaryStats = useMemo(() => ([
-    { label: 'Route theo dõi', value: toNumber(meta?.total_records || filteredRows.length || rows.length).toLocaleString('vi-VN'), delta: 'Runtime value', tone: 'primary' },
+    { label: 'Route theo dõi', value: toNumber(meta?.pagination?.total_items || filteredRows.length || rows.length).toLocaleString('vi-VN'), delta: routeType === 'postman' ? 'Tuyến bưu tá' : 'Tất cả', tone: 'primary' },
     { label: 'BCVH context', value: bcvhName, delta: bcvhId, tone: 'warning' },
     { label: 'Interval', value: intervalLabel, delta: 'URL state', tone: 'success' },
     { label: 'Search', value: search || 'N/A', delta: 'URL state', tone: 'danger' },
-  ]), [bcvhId, bcvhName, filteredRows.length, intervalLabel, meta?.total_records, rows.length, search]);
+  ]), [bcvhId, bcvhName, filteredRows.length, intervalLabel, meta?.pagination?.total_items, routeType, rows.length, search]);
 
   const executiveContext = [
     { label: 'BCVH', value: bcvhName },
@@ -130,6 +134,7 @@ export default function RoutePerformancePage() {
     `BCVH context: ${bcvhName}`,
     `Route context: ${selectedRow ? (selectedRow.name || selectedRow.ten_tuyen) : 'N/A'}`,
     `Date window: ${fromDate} → ${toDate}`,
+    `Route filter: ${routeType === 'postman' ? 'Tuyến bưu tá' : 'Tất cả'}`,
     `Sort: ${sort}/${order}`,
   ];
 
@@ -169,11 +174,29 @@ export default function RoutePerformancePage() {
           onToDateChange={(value) => updateParam('to_date', value)}
           bcvhValue={bcvhId}
           onBcvhChange={(value) => updateParam('bcvh_id', value)}
+          bcvhOptions={ROUTE_BCVH_OPTIONS}
           searchValue={search}
           onSearchChange={(value) => updateParam('search', value)}
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge label={BCVH_OPTIONS.find((item) => item.value === bcvhId)?.label || bcvhName} tone="info" />
+              <div className="inline-flex overflow-hidden rounded-md border border-[var(--color-surface-200)] bg-white">
+                {ROUTE_TYPE_FILTERS.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => updateParam('route_type', item.value === DEFAULT_ROUTE_TYPE_FILTER ? '' : item.value)}
+                    className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      routeType === item.value
+                        ? 'bg-[var(--color-primary-600)] text-white'
+                        : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-50)]'
+                    }`}
+                    aria-pressed={routeType === item.value}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <StatusBadge label={ROUTE_BCVH_OPTIONS.find((item) => item.value === bcvhId)?.label || bcvhName} tone="info" />
               <StatusBadge label={intervalLabel} tone="neutral" />
             </div>
           }

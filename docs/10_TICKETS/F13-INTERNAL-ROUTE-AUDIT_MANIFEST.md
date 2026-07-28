@@ -1,14 +1,14 @@
 # F13-INTERNAL-ROUTE-AUDIT Manifest
 
 - Ticket ID: `F13-INTERNAL-ROUTE-AUDIT`
-- Ticket Name: `Internal Counter Route Candidate Audit`
-- Phase: `F1.3 Operational Module Planning`
-- Current state: `READY FOR PO VERIFICATION`
-- Technical Status: `DISCOVERY COMPLETE - NO IMPLEMENTATION`
+- Ticket Name: `Internal Route Classification and Route Ranking Filter`
+- Phase: `F1.3 Operational Module`
+- Current state: `READY FOR PO RUNTIME/UI REVIEW`
+- Technical Status: `IMPLEMENTED - TARGETED VALIDATION PASS`
 - Runtime Status: `DATABASE AUDIT PASS`
-- PO UI Check Required: `No - PO data verification required`
-- PO Product Status: `WAITING FOR PO VERIFICATION`
-- Activation authority: `Discovery only`
+- PO UI Check Required: `Yes`
+- PO Product Status: `WAITING FOR PO RUNTIME/UI REVIEW`
+- Activation authority: `PO AUTHORIZATION: IMPLEMENT`
 - Audit date: `2026-07-28`
 - Recommended executor after PO decision: `Codex only if Product Owner authorizes a follow-up implementation ticket`
 
@@ -34,10 +34,11 @@ Required Reading:
 
 - `F13-DATA-QUALITY-001` implementation is deferred by Product Owner. Its manifest remains preserved and must not be deleted or treated as rejected.
 - `F13-SHIPMENT-001` implementation remains deferred and preserved.
-- Product Owner confirmed route `53314018 - 533140 - Phát tại quầy` as an internal-counter route of `533140 - BCVH Thuận Hóa`.
-- Route `53314018` must not be counted as a postman delivery route.
-- The `11` near-match routes remain unclassified pending PO verification.
-- The current authorized work is only route-classification documentation handoff.
+- Product Owner authorized implementation of the confirmed F1.3 route classification and Route Ranking filter.
+- Route Ranking visible filter labels must be exactly `Tuyến bưu tá | Tất cả`.
+- Default filter is `Tuyến bưu tá`.
+- Hue Route Ranking includes only route codes starting with `53`.
+- Confirmed customer-pickup/internal post-office routes must not be counted as postman delivery routes.
 
 ## Audit Rule
 
@@ -56,23 +57,25 @@ No fuzzy synonyms or inferred route types are authorized.
 - Route name groups profiled: `158`.
 - Exact candidates found: `1`.
 - Near matches found: `11`.
-- Official classification saved: `1` confirmed internal-counter route in `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`.
-- Near-match classifications saved: `None`.
+- Official classifications saved: `7` confirmed customer-pickup/internal post-office routes in `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`.
+- Route Ranking implementation: default `Tuyến bưu tá` excludes confirmed non-postman routes; `Tất cả` includes all Hue routes.
+- Remaining unconfirmed near-match classifications saved: `None`.
 
 ## Out Of Scope
 
-- Product code, UI, API, schema, formulas, business rules, or operational-data changes.
-- Product code consumption of the route catalog.
+- Full BCVH Ranking redesign.
+- F1.3 calculation formula changes.
+- Historical fact data or operational data changes.
 - Permanent classification of all other routes as postman routes.
 - BCVH Ranking, Route Ranking, Shipment, Data Quality, or other F1.3 implementation.
 - Person ownership, RCA cause, lifecycle, message, export, or evidence implementation.
 
 ## Decision Required
 
-Product Owner must verify whether any of the `11` near-match routes should be treated as internal-counter routes in a future authorized ticket.
+Product Owner must perform runtime/UI review for the Route Ranking filter.
 
 ## Handoff
 
-Status: `READY FOR PO VERIFICATION`.
+Status: `READY FOR PO RUNTIME/UI REVIEW`.
 
-Route `53314018` is confirmed in the catalog. The `11` near-match routes remain pending Product Owner verification. No implementation is authorized until Product Owner approves a follow-up ticket.
+Route Ranking is implemented with catalog-backed classification and the `Tuyến bưu tá | Tất cả` filter. Do not self-award PO PASS.

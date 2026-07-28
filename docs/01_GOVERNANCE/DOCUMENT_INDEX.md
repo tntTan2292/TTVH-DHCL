@@ -40,8 +40,8 @@ Current active ticket:
 
 - Current ticket: `F13-INTERNAL-ROUTE-AUDIT`.
 - Current manifest: `docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md`.
-- Current checkpoint: `Internal-counter route catalog handoff and near-match verification`.
-- Next required action: Product Owner verification of the `11` near-match route classifications.
+- Current checkpoint: `Route Ranking filter implementation`.
+- Next required action: Product Owner runtime/UI review for the `Tuyến bưu tá | Tất cả` Route Ranking filter.
 
 ## Docs Inventory
 

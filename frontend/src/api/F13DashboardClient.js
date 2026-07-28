@@ -61,14 +61,15 @@ class F13DashboardClient {
     /**
      * API Contract: GET /ranking/route
      */
-    getRouteRanking(date, bcvh, page, pageSize, sort, order) {
-        return httpClient.get('/ranking/route', { 
+    getRouteRanking(date, bcvh, page, pageSize, sort, order, routeType = 'postman') {
+        return httpClient.get('/f13/ranking/route', {
             date, 
             bcvh, 
             page, 
             page_size: pageSize, 
             sort, 
-            order 
+            order,
+            route_type: routeType,
         });
     }
 

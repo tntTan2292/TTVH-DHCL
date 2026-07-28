@@ -91,13 +91,15 @@ class DashboardController {
 
     async getRoute(req, res) {
         try {
-            const { date, bcvh, sort, order } = req.query;
+            const { date, bcvh, sort, order, route_type } = req.query;
             const page = parseInt(req.query.page) || 1;
             const pageSize = parseInt(req.query.page_size) || 20;
 
             if (!date || !bcvh) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date và bcvh' }});
 
-            const result = await f13DashboardService.getRouteRanking(date, bcvh, page, pageSize, sort, order);
+            const result = await f13DashboardService.getRouteRanking(date, bcvh, page, pageSize, sort, order, {
+                routeType: route_type,
+            });
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
