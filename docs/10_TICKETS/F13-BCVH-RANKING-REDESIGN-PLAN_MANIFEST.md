@@ -3,12 +3,12 @@
 - Ticket ID: `F13-BCVH-RANKING-REDESIGN-PLAN`
 - Ticket Name: `BCVH Ranking Redesign Planning`
 - Phase: `F1.3 Operational Module Planning`
-- Current state: `READY FOR PO PLANNING`
-- Technical Status: `PLANNING ONLY - NO IMPLEMENTATION`
+- Current state: `COMPLETED / HANDOFF TO IMPLEMENTATION`
+- Technical Status: `PLANNING COMPLETE - IMPLEMENTATION HANDOFF READY`
 - Runtime Status: `NOT RUN - PLANNING ONLY`
 - PO UI Check Required: `No - planning decision required`
-- PO Product Status: `WAITING FOR PO PLANNING`
-- Activation authority: `Planning only`
+- PO Product Status: `PO APPROVED PLANNING COMPLETE`
+- Activation authority: `Planning only - completed`
 - Handoff date: `2026-07-28`
 - Recommended executor after PO planning decision: `Codex for data/contracts/tests; Antigravity only for later visual redesign after explicit UI authority`
 
@@ -61,12 +61,16 @@ The planning output must preserve these Product Owner management requirements:
 - Do not classify unconfirmed routes as postman routes by inference.
 - Use the authoritative route catalog for confirmed non-postman routes in future planning.
 
-## Decision Required
+## Decision Recorded
 
-Product Owner must approve exactly one next BCVH Ranking planning direction before implementation can begin.
+Product Owner approved the BCVH Ranking redesign agreed in planning session.
+
+Planning is complete. Implementation authority now moves to `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md`.
 
 ## Handoff
 
-Status: `READY FOR PO PLANNING`.
+Status: `COMPLETED / HANDOFF TO IMPLEMENTATION`.
 
-Next session should produce a planning-only BCVH Ranking redesign proposal that maps the required management outcomes to currently supported data/contracts and asks for Product Owner approval before any code changes.
+Planning output is captured in `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`.
+
+Next authorized state: `F13-BCVH-RANKING-REDESIGN-IMPL READY FOR IMPLEMENTATION`.
