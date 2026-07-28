@@ -45,6 +45,22 @@ The implementation must preserve:
 - current Route Ranking route-context contract
 - current D-1 and D-7 comparison semantics only where already supported
 
+The approved D-1 and D-7 design uses separate grouped comparison blocks, not one combined comparison field.
+
+For each of `D-1` and `D-7`, the implementation scope must map independently:
+
+- raw `San luong`
+- raw `Ty le F1.3`
+- `Delta san luong`
+- `Delta F1.3`
+- comparison-period `Hang`
+- `Dich chuyen hang`
+
+Visibility lock:
+
+- raw `San luong` and raw `Ty le F1.3` may be hidden
+- `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible
+
 ## In Scope
 
 - Implement the approved grouped BCVH Ranking table structure.
@@ -74,6 +90,23 @@ The implementation must preserve:
 - Preserve current route drill-down params: `from_date`, `to_date`, `interval`, `bcvh_id`, `bcvh_name`.
 - Preserve the `7` confirmed non-postman/customer-pickup routes as excluded from participating postman-route counts.
 - If a required approved field has no existing API/runtime field, add the smallest bounded backend/runtime contract necessary under this ticket and document it in the ticket review evidence.
+
+### Comparison Column Classification Lock
+
+| Column | Classification | Implementation note |
+| --- | --- | --- |
+| `San luong D-1` | `Contract gap` | Underlying prior-day comparison data exists in current service comparison maps but is not exposed in the BCVH ranking response contract. |
+| `Ty le F1.3 D-1` | `Contract gap` | Underlying prior-day comparison rate is derivable from current service comparison maps but is not exposed in the BCVH ranking response contract. |
+| `Delta san luong D-1` | `Contract gap` | Visible column; preserve accepted D-1 semantics and do not invent a new formula. |
+| `Delta F1.3 D-1` | `Already supported` | Existing response field: `kpi_2026_dod`. |
+| `Hang D-1` | `Backend/runtime gap` | Prior-day rank is not currently exposed by the BCVH ranking runtime. |
+| `Dich chuyen hang D-1` | `Unavailable pending authority` | BCVH D-1 rank-movement semantics are not yet explicitly approved. |
+| `San luong D-7` | `Contract gap` | Underlying prior-week comparison data exists in current service comparison maps but is not exposed in the BCVH ranking response contract. |
+| `Ty le F1.3 D-7` | `Contract gap` | Underlying prior-week comparison rate is derivable from current service comparison maps but is not exposed in the BCVH ranking response contract. |
+| `Delta san luong D-7` | `Contract gap` | Visible column; preserve accepted D-7 semantics and do not invent a new formula. |
+| `Delta F1.3 D-7` | `Already supported` | Existing response field: `kpi_2026_swc`. |
+| `Hang D-7` | `Backend/runtime gap` | Prior-week rank is not currently exposed by the BCVH ranking runtime. |
+| `Dich chuyen hang D-7` | `Unavailable pending authority` | BCVH D-7 rank-movement semantics are not yet explicitly approved. |
 
 ## Documents To Update
 

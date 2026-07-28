@@ -29,7 +29,8 @@ The approved BCVH Ranking redesign is one unified ranking table with grouped col
 | --- | --- | --- |
 | `Don vi` | `Hang`, `Ma BCVH`, `Ten BCVH` | Identity and stable drill-down context. |
 | `Ket qua ngay danh gia` | `San luong`, `Dat`, `Khong dat`, `Ty le dat` | Uses the same current-day/runtime row contract already used by BCVH ranking. |
-| `So sanh` | `D-1`, `D-7` | Visible only where current comparison data already exists. |
+| `So sanh D-1` | `San luong D-1`, `Ty le F1.3 D-1`, `Delta san luong D-1`, `Delta F1.3 D-1`, `Hang D-1`, `Dich chuyen hang D-1` | Raw `San luong` and raw `Ty le F1.3` may be hidden. Delta and rank-movement columns remain visible. |
+| `So sanh D-7` | `San luong D-7`, `Ty le F1.3 D-7`, `Delta san luong D-7`, `Delta F1.3 D-7`, `Hang D-7`, `Dich chuyen hang D-7` | Raw `San luong` and raw `Ty le F1.3` may be hidden. Delta and rank-movement columns remain visible. |
 | `Cham nop tien` | `BG cham nop tien`, `Ty le cham nop tien` | Independent late-cash-handover signal; does not replace ranking KPI. |
 | `Phan bo tuyen` | `So tuyen buu ta tham gia`, `Tuyen xanh`, `Tuyen vang`, `Tuyen do`, `Doughnut` | Route distribution by Dashboard color bands plus compact doughnut visualization. |
 | `Phan tich BCVH` | Inline text summary | Inline management summary per BCVH row using already available row metrics plus supported warning semantics. |
@@ -37,9 +38,12 @@ The approved BCVH Ranking redesign is one unified ranking table with grouped col
 
 ### D-1 and D-7 Visibility Rule
 
-- `D-1` and `D-7` remain visible only for fields already backed by accepted comparison contracts.
-- The current approved source is the existing BCVH ranking comparison data: `kpi_2026_dod` and `kpi_2026_swc`.
-- The redesign must not invent D-1 or D-7 for late-cash-handover counts, route-distribution counts, doughnut segments, or inline analysis text unless a runtime/backend contract is added under the implementation ticket.
+- `D-1` and `D-7` are separate grouped comparison blocks, not one combined comparison field.
+- For each comparison block, the approved planning scope records and maps independently: raw `San luong`, raw `Ty le F1.3`, `Delta san luong`, `Delta F1.3`, comparison-period `Hang`, and `Dich chuyen hang`.
+- Only the raw `San luong` and raw `Ty le F1.3` columns of `D-1` and `D-7` may be hidden.
+- `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible in the approved design.
+- The current accepted BCVH ranking comparison source already exposed in the row contract is limited to `kpi_2026_dod` and `kpi_2026_swc`.
+- The redesign must not invent D-1 or D-7 semantics for late-cash-handover counts, route-distribution counts, doughnut segments, or inline analysis text unless a runtime/backend contract is added under the implementation ticket.
 - When comparison data is unavailable, the redesign must show the existing unavailable-state behavior rather than calculating fallback deltas.
 
 ### Independent Signal Colors
@@ -51,6 +55,13 @@ The approved BCVH Ranking redesign is one unified ranking table with grouped col
 
 ## Approved Field Mapping and Gap Classification
 
+Allowed classifications for this correction:
+
+- `Already supported`
+- `Backend/runtime gap`
+- `Contract gap`
+- `Unavailable pending authority`
+
 | Approved field / element | Current API / contract | Backend/runtime source | Frontend presentation contract | Classification | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `Hang` | `GET /api/f13/ranking/bcvh` -> `rank` | `FactBuuGuiRepository.getBcvhRanking` | `UnifiedBcvhAnalysisTable` mapper and `BcvhRankingPage` runtime rows | `Already supported` | Preserve backend ranking order. |
@@ -60,14 +71,24 @@ The approved BCVH Ranking redesign is one unified ranking table with grouped col
 | `Dat` | `dat_kpi_2026` | Existing BCVH aggregation | Existing unified-table mapper | `Already supported` | No formula change. |
 | `Khong dat` | `khong_dat_kpi_2026` / `total_failed` | Existing BCVH aggregation | Existing unified-table mapper | `Already supported` | Keep current fail semantics. |
 | `Ty le dat` | `kpi_2026` | Existing service/repository calculation | Existing unified-table mapper and BCVH runtime page | `Already supported` | Preserve existing business thresholds. |
-| `D-1` | `kpi_2026_dod` | Existing ranking service comparison field | Existing unified-table mapper | `Already supported` | Visible only on supported KPI comparison. |
-| `D-7` | `kpi_2026_swc` | Existing ranking service comparison field | Existing unified-table mapper | `Already supported` | Visible only on supported KPI comparison. |
+| `San luong D-1` | Not exposed in current BCVH ranking response | Prior-day BCVH volume exists in the service comparison maps used to compute current deltas | No active BCVH table column contract yet | `Contract gap` | Approved column may be hidden, but must be mapped independently in the design. |
+| `Ty le F1.3 D-1` | Not exposed in current BCVH ranking response | Prior-day BCVH pass-rate is derivable from the service comparison maps used for current deltas | No active BCVH table column contract yet | `Contract gap` | Approved column may be hidden, but must be mapped independently in the design. |
+| `Delta san luong D-1` | Not exposed in current BCVH ranking response | Prior-day volume data exists in current comparison maps, but no row-level response field is emitted | No active BCVH table column contract yet | `Contract gap` | Visible column; preserve accepted D-1 comparison semantics without inventing a new formula. |
+| `Delta F1.3 D-1` | `kpi_2026_dod` | Existing ranking service comparison field | Existing unified-table mapper supports row-level D-1 KPI delta | `Already supported` | Visible column. |
+| `Hang D-1` | No current BCVH ranking response field | Requires prior-day BCVH rank output from the ranking runtime | No active BCVH table column contract yet | `Backend/runtime gap` | Current runtime does not expose prior-day rank. |
+| `Dich chuyen hang D-1` | No current BCVH ranking response field | No current BCVH runtime field or documented BCVH D-1 movement contract | No active BCVH table column contract yet | `Unavailable pending authority` | Direction/sign and presentation semantics are not yet explicitly approved for BCVH D-1 movement. |
+| `San luong D-7` | Not exposed in current BCVH ranking response | Same-weekday-prior-week BCVH volume exists in the service comparison maps used to compute current deltas | No active BCVH table column contract yet | `Contract gap` | Approved column may be hidden, but must be mapped independently in the design. |
+| `Ty le F1.3 D-7` | Not exposed in current BCVH ranking response | Same-weekday-prior-week BCVH pass-rate is derivable from the service comparison maps used for current deltas | No active BCVH table column contract yet | `Contract gap` | Approved column may be hidden, but must be mapped independently in the design. |
+| `Delta san luong D-7` | Not exposed in current BCVH ranking response | Same-weekday-prior-week volume data exists in current comparison maps, but no row-level response field is emitted | No active BCVH table column contract yet | `Contract gap` | Visible column; preserve accepted D-7 comparison semantics without inventing a new formula. |
+| `Delta F1.3 D-7` | `kpi_2026_swc` | Existing ranking service comparison field | Existing unified-table mapper supports row-level D-7 KPI delta | `Already supported` | Visible column. |
+| `Hang D-7` | No current BCVH ranking response field | Requires prior-week BCVH rank output from the ranking runtime | No active BCVH table column contract yet | `Backend/runtime gap` | Current runtime does not expose prior-week rank. |
+| `Dich chuyen hang D-7` | No current BCVH ranking response field | No current BCVH runtime field or documented BCVH D-7 movement contract | No active BCVH table column contract yet | `Unavailable pending authority` | Direction/sign and presentation semantics are not yet explicitly approved for BCVH D-7 movement. |
 | `BG cham nop tien` | No current BCVH ranking response field | Late-payment logic exists in rule engine; not exposed as BCVH ranking row contract | Not currently mapped on BCVH runtime surfaces | `Backend/runtime gap` | Requires runtime aggregation field per BCVH row. |
-| `Ty le cham nop tien` | `f13_303_rate` already present in ranking response | Existing backend/service response field | Not consistently rendered in the active unified BCVH surfaces | `Frontend-only` | Existing response should be reused; no formula change. |
+| `Ty le cham nop tien` | `f13_303_rate` already present in ranking response | Existing backend/service response field | Not consistently rendered in the active unified BCVH surfaces | `Already supported` | Existing response should be reused; no formula change. |
 | `So tuyen buu ta tham gia` | No current BCVH ranking response field | Derivable from route data and confirmed non-postman exclusions, but not returned by BCVH ranking API today | Not present in current BCVH UI contract | `Backend/runtime gap` | Must preserve confirmed non-postman route exclusions. |
 | `Tuyen xanh / vang / do` counts | No current BCVH ranking response field | Route quality color-band breakdown is not returned per BCVH today | Not present in current BCVH UI contract | `Backend/runtime gap` | Must preserve Dashboard semantic colors and thresholds. |
 | `Doughnut` visualization | Depends on route-distribution counts | Requires route-band distribution data first | New BCVH presentation element | `Backend/runtime gap` | Frontend work is blocked until distribution counts are available. |
-| Inline `Phan tich BCVH` | Existing BCVH row metrics + existing status/warning semantics | Existing row metrics exist; optional warning semantics exist | New inline analysis renderer | `Frontend-only` | Must stay factual; no invented RCA claims. |
+| Inline `Phan tich BCVH` | Existing BCVH row metrics + existing status/warning semantics | Existing row metrics exist; optional warning semantics exist | New inline analysis renderer | `Contract gap` | Must stay factual; no invented RCA claims. |
 | Route drill-down action | Existing route contract params `from_date`, `to_date`, `interval`, `bcvh_id`, `bcvh_name` | Existing route endpoint and navigation context | Existing BCVH and Route page navigation pattern | `Already supported` | Preserve route exclusions and current route filter behavior. |
 
 ## Test Requirement and Blocker Register
