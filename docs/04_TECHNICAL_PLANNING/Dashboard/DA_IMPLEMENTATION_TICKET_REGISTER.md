@@ -13,7 +13,9 @@ Do not activate all DA implementation tickets simultaneously.
 
 The full `DA-IMPL-001` through `DA-IMPL-007` sequence is completed with Product Owner `PO PASS`.
 
-Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6` and activated `DA-IMPL-008` for the previously approved Dashboard overview improvement work. Primary executor for the next Dashboard defect remediation is `Codex`.
+Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` as `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6` and activated `DA-IMPL-008` for the previously approved Dashboard overview improvement work.
+
+Product Owner decision on `2026-07-28` accepted `DA-IMPL-008 CHECKPOINT 006` as `PO PASS`; `DA-IMPL-008` is now completed with Product Owner `PO PASS`. Dashboard visual audit and polish is deferred to Antigravity.
 
 `TICKET-0102` remains deferred and inactive (`DEFERRED / INACTIVE`) unless the Product Owner explicitly activates it.
 
@@ -33,7 +35,7 @@ Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` as `COMPLETED 
 | 10 | `AUTO-IMPORT-005` TCT Manual Backfill and Shared DKCL Background Operations | `COMPLETED / PO PASS` | `PO PASS` | [docs/10_TICKETS/AUTO-IMPORT-005_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/AUTO-IMPORT-005_MANIFEST.md) |
 | 11 | `DA-IMPL-006` Unified Action Center | `COMPLETED / PO PASS` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-006_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-006_MANIFEST.md) |
 | 12 | `DA-IMPL-007` Smart Dashboard Final Assembly | `COMPLETED` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-007_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/10_TICKETS/DA-IMPL-007_MANIFEST.md) |
-| 13 | `DA-IMPL-008` Dashboard Overview Improvement | `ACTIVE / AUTHORIZED` | `AUTHORIZED; CODEX PRIMARY EXECUTOR` | [docs/10_TICKETS/DA-IMPL-008_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md) |
+| 13 | `DA-IMPL-008` Dashboard Overview Improvement | `COMPLETED` | `PO PASS` | [docs/10_TICKETS/DA-IMPL-008_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md) |
 
 ## 4. Consolidated Scope
 
@@ -49,7 +51,7 @@ Product Owner decision on `2026-07-27` accepted `AUTO-IMPORT-009` as `COMPLETED 
 - `AUTO-IMPORT-005`: completed with Product Owner `PO PASS` on `2026-07-20`. Product Owner accepted TCT manual backfill, session preflight and explicit re-authentication, missing/incomplete/completed date classification, controlled re-import, sequential in-memory queue, graceful Stop, eligible Retry, Hue/TCT source separation, and cumulative range-based nationwide ranking.
 - `DA-IMPL-006`: completed with Product Owner `PO PASS`. Dashboard retains Unified Action Center recommendations/issues, KPI context, evidence, and follow-up; Top 2 area and Dashboard message drafts were removed by final PO decision. Future `Tin điều hành` / `Tin báo cáo` management belongs in a future governed `BCVH Ranking` module ticket.
 - `DA-IMPL-007`: completed with Product Owner `PO PASS` on `2026-07-22`. Primary executor: `Antigravity`. Smart Dashboard visual hierarchy, today metric prioritization, full-width monthly trend workspace, 06 canonical BCVH records, and layout flow are closed.
-- `DA-IMPL-008`: active and authorized for the approved Dashboard overview improvement work. Scope must not be inferred from chat history.
+- `DA-IMPL-008`: completed with Product Owner `PO PASS` on `2026-07-28`. Accepted scope includes Checkpoint 002 through Checkpoint 006. Dashboard visual audit and polish is deferred to Antigravity and is not an open blocker.
 
 ## 5. Compactness Rule
 

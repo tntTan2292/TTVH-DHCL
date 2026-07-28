@@ -17,22 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `DA-IMPL-008 DASHBOARD OVERVIEW IMPROVEMENT` |
-| Current Ticket | `DA-IMPL-008` |
-| Next Ticket | `TBD after DA-IMPL-008 PO acceptance` |
-| Last PO Status | `DA-IMPL-008 Checkpoint 002 PO PASS; Checkpoint 003 PO PASS; Checkpoint 004 PO PASS; Checkpoint 005 PO PASS; Checkpoint 006 monthly rank remediation required and ready for PO recheck; AUTO-IMPORT-009 completed with PO PASS at remote baseline 29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
+| Current Phase | `F1.3 OPERATIONAL MODULE NEXT-TICKET DECISION` |
+| Current Ticket | `F13-SHIPMENT-001` |
+| Next Ticket | `F13-SHIPMENT-001 pending Product Owner approval` |
+| Last PO Status | `DA-IMPL-008 completed with Product Owner PO PASS including Checkpoint 006; Dashboard visual audit and polish deferred to Antigravity; AUTO-IMPORT-009 completed with PO PASS at remote baseline 29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/Dashboard/DA-IMPL-008_CHECKPOINT_006.md` |
-| Current State | `ACTIVE / AUTHORIZED` |
-| Technical Status | `PASS - CHECKPOINT 006 MONTHLY RANK REMEDIATION LEVEL 2 TARGETED VALIDATION` |
-| Runtime Status | `LEVEL 2 TARGETED VALIDATION PASS` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHIPMENT-001_MANIFEST.md` |
+| Current Checkpoint | `None - proposed ticket awaiting PO decision` |
+| Current State | `READY FOR PO DECISION` |
+| Technical Status | `DISCOVERY ONLY - NO IMPLEMENTATION` |
+| Runtime Status | `NOT RUN - DISCOVERY ONLY` |
 | PO UI Check Required | `Yes` |
-| PO Product Status | `DA-IMPL-008 CHECKPOINT 002 PO PASS; CHECKPOINT 003 PO PASS; CHECKPOINT 004 PO PASS; CHECKPOINT 005 PO PASS; CHECKPOINT 006 MONTHLY RANK REMEDIATION REQUIRED - READY FOR PO RECHECK; AUTO-IMPORT-009 COMPLETED / PO PASS` |
-| Last Reviewed Phase | `AUTO-IMPORT-009 CLOSURE / DA-IMPL-008 ACTIVATION` |
-| Last Reviewed Commit | `29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
-| Phase Review Status | `ACTIVE / AUTHORIZED` |
-| Next Phase Authorization | `DA-IMPL-008 only` |
+| PO Product Status | `F13-SHIPMENT-001 WAITING FOR PO APPROVAL; DA-IMPL-008 COMPLETED / PO PASS; AUTO-IMPORT-009 COMPLETED / PO PASS` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/DA-IMPL-008_MANIFEST.md` |
+| Last Reviewed Phase | `DA-IMPL-008 CLOSURE / F13-SHIPMENT-001 PROPOSAL` |
+| Last Reviewed Commit | `See latest verified remote branch HEAD` |
+| Phase Review Status | `READY FOR PO DECISION` |
+| Next Phase Authorization | `No implementation authority until PO approves F13-SHIPMENT-001` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-28` |
 
@@ -59,13 +60,15 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
+Current handoff: `DA-IMPL-008` is completed with Product Owner `PO PASS`. Product Owner deferred Dashboard visual audit and polish to Antigravity. The only current proposed next work is `F13-SHIPMENT-001 - Shipment Failure Drill-down and Evidence Handoff`; it is `READY FOR PO DECISION` and has no implementation authority until Product Owner approval.
+
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
 
-Fresh-chat onboarding chain for the active ticket:
+Fresh-chat onboarding chain for the current proposed ticket:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-3. `docs/10_TICKETS/DA-IMPL-008_MANIFEST.md`
+3. `docs/10_TICKETS/F13-SHIPMENT-001_MANIFEST.md`
 4. Required Reading from the current manifest
 
 DOC-GOV-CLEANUP-001 is `COMPLETED / TECHNICAL PASS` at commit `366fbe0738a1b1f8d3a5c8753d4930b69a97004f`: `306` docs files before, `306` after; no delete/move/merge; link check `PASS`; authority conflict check `PASS`; `git diff --check` `PASS`. AUTO-IMPORT-007 Wave 1 is implemented for shared DKCL lifecycle contract/state standardization. Product Owner authorized Accelerated Delivery Wave 2 at baseline `1d74a66de678f7d39c5f8bc8810f00d01bd6ab9a`.

@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `DA-IMPL-008 ACTIVE / AUTHORIZED`; primary executor is `Codex`. `AUTO-IMPORT-009` is `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`; no further Import remediation is active. `AUTO-IMPORT-008` and earlier tickets remain closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. Unattended scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain unauthorized. Do not implement Dashboard code during this documentation-only closure handoff.
+Current active handoff: `F13-SHIPMENT-001 PROPOSED / READY FOR PO DECISION`; no implementation authority exists until Product Owner approval. `DA-IMPL-008` is `COMPLETED / PO PASS`; Dashboard visual audit and polish is deferred to Antigravity. `AUTO-IMPORT-009` is `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`; no further Import remediation is active. `AUTO-IMPORT-008` and earlier tickets remain closed; HUE `2026-07-18` and `2026-07-19` remain locked `PO PASS`; HUE `2026-07-23` remains `MISSING / NOT AUTHORIZED`. Unattended scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain unauthorized.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

@@ -4,11 +4,11 @@
 
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `006 - Nationwide Ranking Integration`
-- Current state: `REMEDIATION REQUIRED / READY FOR PO RECHECK`
+- Current state: `COMPLETED / PO PASS`
 - Technical status: `PASS - MONTHLY RANK REMEDIATION LEVEL 2 TARGETED VALIDATION`
 - Runtime status: `LEVEL 2 TARGETED VALIDATION PASS`
 - PO UI check required: `Yes`
-- PO product status: `REMEDIATION REQUIRED - WAITING FOR PO RECHECK`
+- PO product status: `PO PASS`
 
 ## Product Owner Decision
 
@@ -21,6 +21,8 @@ Product Owner runtime result on `2026-07-28`: Heatmap inside `Quy luật vận h
 Product Owner decision on `2026-07-28`: tooltip-only Heatmap ranking is not accepted. Nationwide rank must be visible directly inside each dated all-network Heatmap cell. Checkpoint 006 remains `REMEDIATION REQUIRED` and is not `PO PASS`.
 
 Product Owner decision on `2026-07-28`: Heatmap inline ranking is accepted visually. Extend province-level Hue nationwide ranking into `Quy luáº­t váº­n hÃ nh -> Theo thÃ¡ng`, showing monthly cumulative rank and month-over-month rank movement. Checkpoint 006 remains `REMEDIATION REQUIRED` and is not `PO PASS`.
+
+Product Owner decision on `2026-07-28`: `DA-IMPL-008 CHECKPOINT 006` is accepted as `PO PASS`. Dashboard visual audit and polish is deferred to Antigravity and is not an open blocker for DA-IMPL-008 closure.
 
 Product Owner authorized province-level Hue nationwide ranking in three bounded contexts only:
 
@@ -305,6 +307,6 @@ Rationale:
 
 ## Handoff
 
-Checkpoint 006 monthly rank remediation is complete and ready for Product Owner visible recheck.
+Checkpoint 006 is completed with Product Owner `PO PASS`.
 
-Do not mark Checkpoint 006 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.
+DA-IMPL-008 can close after manifest/snapshot handoff records the PO PASS decision and next-work recommendation.
