@@ -1,81 +1,93 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, RefreshCw, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import api from '../../../api/client';
 import { EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
 import {
-  formatDelta,
+  buildDoughnutAriaLabel,
   formatNumber,
   formatRate,
-  formatRateDelta,
+  formatSignedDelta,
   formatVolumeDelta,
   mapBcvhRankingResponse,
+  ROUTE_BAND_META,
   UNAVAILABLE_TEXT,
 } from './unifiedBcvhAnalysisTableData';
 
-const STORAGE_KEY = 'qis.unifiedBcvhAnalysisTable.columns.v3';
-const MIDDLE_DOT = String.fromCharCode(0x00b7);
+const STORAGE_KEY = 'qis.bcvhRankingWave2.columns.v1';
 
 const TEXT = {
-  source: 'Nguồn: xếp hạng BCVH',
-  evidence: 'Dữ liệu ngày đánh giá và lũy kế tháng được tách riêng theo hợp đồng API hiện có.',
-  loadErrorMessage: 'Không thể tải bảng phân tích BCVH.',
-  loading: 'Đang tải bảng phân tích BCVH...',
-  loadErrorTitle: 'Không thể tải bảng phân tích BCVH',
+  title: 'Bảng xếp hạng BCVH điều hành',
+  source: 'Nguồn: BCVH Ranking runtime',
+  loading: 'Đang tải bảng xếp hạng BCVH...',
+  loadErrorTitle: 'Không thể tải bảng xếp hạng BCVH',
+  loadErrorMessage: 'Không thể tải bảng xếp hạng BCVH.',
   retry: 'Thử lại',
   emptyTitle: 'Không có dữ liệu BCVH',
-  emptyDescription: 'Chưa có bản ghi xếp hạng BCVH cho kỳ đang chọn.',
-  title: 'Bảng phân tích BCVH thống nhất',
-  subtitleSuffix: 'thứ tự mặc định theo xếp hạng hiện có',
-  bcvhContext: 'BCVH',
-  mtdFallback: 'LŨY KẾ THÁNG',
-  evaluationFallback: 'NGÀY ĐÁNH GIÁ',
+  emptyDescription: 'Chưa có bản ghi BCVH cho kỳ đang chọn.',
+  currentDay: 'Kết quả ngày đánh giá',
+  comparisonD1: 'So sánh D-1',
+  comparisonD7: 'So sánh D-7',
+  lateCash: 'Chậm nộp tiền',
+  routeDistribution: 'Phân bổ tuyến',
+  analysis: 'Phân tích BCVH',
+  action: 'Hành động',
+  identity: 'Đơn vị',
+  rank: 'Hạng',
+  code: 'Mã BCVH',
+  name: 'Tên BCVH',
   volume: 'Sản lượng',
   pass: 'Đạt',
-  passRate: 'Tỷ lệ đạt',
-  volumeDelta: 'Δ SL',
-  rateDelta: 'Δ Tỷ lệ',
-  d1: 'D-1',
-  d7: 'D-7',
-  supplemental: 'Bổ sung',
-  action: 'Chi tiết',
-  returned: 'Chuyển hoàn',
-  warning: 'Cảnh báo',
-  detail: 'Chi tiết',
-  columnOptions: 'Tùy chọn cột',
-  compact: 'Gọn',
-  standard: 'Mặc định',
-  reset: 'Khôi phục mặc định',
-  alwaysShown: 'Luôn hiển thị',
-  showColumn: 'Hiển thị cột',
-  volumeDeltaTooltip: 'Δ SL = (Sản lượng lũy kế hiện tại - sản lượng cùng kỳ tháng trước) / sản lượng cùng kỳ tháng trước.',
-  rateDeltaTooltip: 'Δ Tỷ lệ = Tỷ lệ đạt lũy kế hiện tại - tỷ lệ đạt cùng kỳ tháng trước.',
-  dayComparisonTooltip: 'So sánh của ngày đánh giá, không phải lũy kế tháng.',
+  fail: 'Không đạt',
+  rate: 'Tỷ lệ F1.3',
+  volumeDelta: 'Delta SL',
+  rateDelta: 'Delta F1.3',
+  comparisonRank: 'Hạng kỳ so sánh',
+  rankMovement: 'Dịch chuyển hạng',
+  lateCashCount: 'BG chậm nộp tiền',
+  lateCashRate: 'Tỷ lệ chậm nộp tiền',
+  routeCount: 'Số tuyến tham gia',
+  routeGreen: 'Tuyến xanh',
+  routePink: 'Tuyến hồng',
+  routeYellow: 'Tuyến vàng',
+  routeRed: 'Tuyến đỏ',
+  doughnut: 'Doughnut',
+  detail: 'Mở tuyến',
+  columnOptions: 'Ẩn / hiện cột',
+  reset: 'Khôi phục',
+  hideableColumns: 'Chỉ 4 cột raw D-1 / D-7 được phép ẩn',
 };
 
-const COLUMN_DEFS = {
-  bcvh: { group: 'identity', mandatory: true, label: TEXT.bcvhContext },
-  dayVolume: { group: 'day', mandatory: true, label: TEXT.volume },
-  dayPass: { group: 'day', label: TEXT.pass },
-  dayRate: { group: 'day', mandatory: true, label: TEXT.passRate },
-  d1: { group: 'day', label: TEXT.d1, tooltip: TEXT.dayComparisonTooltip },
-  d7: { group: 'day', label: TEXT.d7, tooltip: TEXT.dayComparisonTooltip },
-  supplemental: { group: 'day', label: TEXT.supplemental },
-  mtdVolume: { group: 'mtd', mandatory: true, label: TEXT.volume },
-  mtdVolumeDelta: { group: 'mtd', label: TEXT.volumeDelta, tooltip: TEXT.volumeDeltaTooltip },
-  mtdRate: { group: 'mtd', mandatory: true, label: TEXT.passRate },
-  mtdRateDelta: { group: 'mtd', label: TEXT.rateDelta, tooltip: TEXT.rateDeltaTooltip },
-  action: { group: 'action', mandatory: true, label: TEXT.action },
+const DEFAULT_COLUMNS = {
+  d1Volume: true,
+  d1Rate: true,
+  d7Volume: true,
+  d7Rate: true,
 };
 
-const PRESETS = {
-  compact: ['bcvh', 'dayVolume', 'dayPass', 'dayRate', 'd1', 'd7', 'mtdVolume', 'mtdRate', 'action'],
-  default: ['bcvh', 'dayVolume', 'dayPass', 'dayRate', 'd1', 'd7', 'supplemental', 'mtdVolume', 'mtdVolumeDelta', 'mtdRate', 'mtdRateDelta', 'action'],
-};
-const DEFAULT_COLUMNS = PRESETS.default;
-function getDeltaTone(value) {
-  if (value === null || value === undefined || Number(value) === 0) return 'neutral';
-  return Number(value) > 0 ? 'info' : 'warning';
+function readStoredColumns() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_COLUMNS;
+    const parsed = JSON.parse(raw);
+    return {
+      d1Volume: parsed?.d1Volume !== false,
+      d1Rate: parsed?.d1Rate !== false,
+      d7Volume: parsed?.d7Volume !== false,
+      d7Rate: parsed?.d7Rate !== false,
+    };
+  } catch {
+    return DEFAULT_COLUMNS;
+  }
+}
+
+function writeStoredColumns(columns) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(columns));
+  } catch {
+    // Local storage is optional for this view.
+  }
 }
 
 function buildDetailUrl(action) {
@@ -86,159 +98,217 @@ function buildDetailUrl(action) {
   return `${action?.route || '/f13/ranking/route'}?${params.toString()}`;
 }
 
-function normalizeColumns(columns) {
-  const selected = new Set(Array.isArray(columns) ? columns : DEFAULT_COLUMNS);
-  Object.entries(COLUMN_DEFS).forEach(([key, column]) => {
-    if (column.mandatory) selected.add(key);
-  });
-  return Object.keys(COLUMN_DEFS).filter((key) => selected.has(key));
+function signalToneToBadge(tone) {
+  if (tone === 'success') return 'success';
+  if (tone === 'warning') return 'warning';
+  if (tone === 'danger') return 'danger';
+  if (tone === 'info') return 'info';
+  return 'neutral';
 }
 
-function readStoredColumns() {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) return { preset: 'default', columns: DEFAULT_COLUMNS };
-    const parsed = JSON.parse(stored);
-    if (!parsed || !Array.isArray(parsed.columns)) return { preset: 'default', columns: DEFAULT_COLUMNS };
-    return {
-      preset: parsed.preset || 'custom',
-      columns: normalizeColumns(parsed.columns),
-    };
-  } catch {
-    return { preset: 'default', columns: DEFAULT_COLUMNS };
+function DoughnutCell({ routeDistribution }) {
+  const total = routeDistribution.segments.reduce((sum, segment) => sum + segment.value, 0);
+  if (!total) {
+    return <span className="text-[11px] text-[var(--color-text-muted)]">{UNAVAILABLE_TEXT}</span>;
   }
-}
 
-function EvidenceNote() {
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
-      <StatusBadge label={TEXT.source} tone="info" />
-      <span>{TEXT.evidence}</span>
+    <div className="h-16 w-16" aria-label={buildDoughnutAriaLabel(routeDistribution)}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Tooltip formatter={(value, name) => [`${value}`, name]} />
+          <Pie
+            data={routeDistribution.segments}
+            dataKey="value"
+            nameKey="label"
+            innerRadius={18}
+            outerRadius={28}
+            stroke="none"
+            paddingAngle={2}
+          >
+            {routeDistribution.segments.map((segment) => (
+              <Cell key={segment.id} fill={segment.color} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
-function DeltaBadge({ value, type }) {
-  const label = type === 'volume' ? formatVolumeDelta(value) : formatRateDelta(value);
-  if (label === UNAVAILABLE_TEXT) {
-    return <span className="text-[11px] font-medium text-[var(--color-text-muted)]">{label}</span>;
+function ComparisonValue({ value, type = 'number' }) {
+  if (type === 'rate') return <span>{formatRate(value)}</span>;
+  if (type === 'signed') return <span>{formatSignedDelta(value, 'điểm %')}</span>;
+  if (type === 'volumeDelta') return <span>{formatVolumeDelta(value)}</span>;
+  if (type === 'rankMovement') {
+    if (!value?.signal) return <span>{UNAVAILABLE_TEXT}</span>;
+    return <StatusBadge label={value.signal.shortLabel} tone={signalToneToBadge(value.signal.tone)} />;
   }
-  return <div className="inline-block whitespace-nowrap"><StatusBadge label={label} tone={getDeltaTone(value)} /></div>;
+  return <span>{formatNumber(value)}</span>;
 }
 
-function DayDeltaCell({ value }) {
-  return <div className="inline-block whitespace-nowrap"><StatusBadge label={formatDelta(value)} tone={getDeltaTone(value)} /></div>;
-}
-
-function ColumnOptions({ visibleColumns, setVisibleColumns }) {
+function ColumnOptions({ columns, setColumns }) {
   const [open, setOpen] = useState(false);
-  const visible = new Set(visibleColumns);
 
-  const applyColumns = (columns, preset = 'custom') => {
-    const normalized = normalizeColumns(columns);
-    setVisibleColumns(normalized);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ preset, columns: normalized }));
-    } catch {
-      // Local storage is optional; the table falls back to the default layout.
-    }
+  const toggle = (key) => {
+    const next = { ...columns, [key]: !columns[key] };
+    setColumns(next);
+    writeStoredColumns(next);
   };
 
-  const toggleColumn = (columnKey) => {
-    const next = new Set(visibleColumns);
-    if (next.has(columnKey)) next.delete(columnKey);
-    else next.add(columnKey);
-    applyColumns([...next], 'custom');
+  const reset = () => {
+    setColumns(DEFAULT_COLUMNS);
+    writeStoredColumns(DEFAULT_COLUMNS);
   };
 
   return (
     <div className="relative">
       <button
         type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-surface-200)] bg-white px-3 py-2 text-xs font-semibold text-[var(--color-text-main)] shadow-sm hover:bg-[var(--color-surface-50)]"
+        onClick={() => setOpen((value) => !value)}
+        className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-surface-200)] bg-white px-3 py-2 text-xs font-semibold text-[var(--color-text-main)] shadow-sm hover:bg-[var(--color-surface-50)]"
       >
         <Settings2 size={14} />
         {TEXT.columnOptions}
       </button>
       {open ? (
-        <div
-          role="menu"
-          aria-label={TEXT.columnOptions}
-          className="absolute right-0 z-20 mt-2 w-72 rounded-lg border border-[var(--color-surface-200)] bg-white p-3 text-xs shadow-lg"
-        >
-          <div className="mb-2 grid grid-cols-2 gap-1">
-            <button type="button" onClick={() => applyColumns(PRESETS.compact, 'compact')} className="rounded border px-2 py-1 font-semibold hover:bg-[var(--color-surface-50)]">{TEXT.compact}</button>
-            <button type="button" onClick={() => applyColumns(PRESETS.default, 'default')} className="rounded border px-2 py-1 font-semibold hover:bg-[var(--color-surface-50)]">{TEXT.standard}</button>
-          </div>
-          <button type="button" onClick={() => applyColumns(PRESETS.default, 'default')} className="mb-2 w-full rounded bg-[var(--color-surface-100)] px-2 py-1.5 font-semibold hover:bg-[var(--color-surface-200)]">
-            {TEXT.reset}
-          </button>
-          <div className="max-h-64 space-y-1 overflow-y-auto">
-            {Object.entries(COLUMN_DEFS).map(([key, column]) => (
-              <label key={key} className="flex items-center gap-2 rounded px-2 py-1 hover:bg-[var(--color-surface-50)]">
-                <input
-                  type="checkbox"
-                  checked={visible.has(key)}
-                  disabled={column.mandatory}
-                  onChange={() => toggleColumn(key)}
-                  aria-label={`${TEXT.showColumn} ${column.label}`}
-                />
-                <span className={column.mandatory ? 'font-semibold text-[var(--color-text-muted)]' : 'text-[var(--color-text-main)]'}>
-                  {column.label}{column.mandatory ? ` ${MIDDLE_DOT} ${TEXT.alwaysShown}` : ''}
-                </span>
+        <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-[var(--color-surface-200)] bg-white p-3 text-xs shadow-lg">
+          <div className="mb-2 text-[11px] text-[var(--color-text-muted)]">{TEXT.hideableColumns}</div>
+          <div className="space-y-2">
+            {[
+              ['d1Volume', 'D-1 / Sản lượng'],
+              ['d1Rate', 'D-1 / Tỷ lệ F1.3'],
+              ['d7Volume', 'D-7 / Sản lượng'],
+              ['d7Rate', 'D-7 / Tỷ lệ F1.3'],
+            ].map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-[var(--color-surface-50)]">
+                <input type="checkbox" checked={columns[key]} onChange={() => toggle(key)} />
+                <span>{label}</span>
               </label>
             ))}
           </div>
+          <button type="button" onClick={reset} className="mt-3 w-full rounded-md bg-[var(--color-surface-100)] px-3 py-2 font-semibold hover:bg-[var(--color-surface-200)]">
+            {TEXT.reset}
+          </button>
         </div>
       ) : null}
     </div>
   );
 }
 
-function RowCells({ row, onOpenDetail, visibleColumns }) {
-  const canOpenDetail = row.ma_bcvh !== 'total' && row.action?.params?.bcvh_id;
-  const isTotalRow = row.ma_bcvh === 'total';
-  const rowTone = isTotalRow ? 'bg-[var(--color-surface-50)] font-semibold' : 'hover:bg-[var(--color-surface-50)]';
-  const bcvhWidth = visibleColumns.length <= PRESETS.compact.length ? 'w-[24%]' : 'w-[180px]';
+function HeaderGroup({ label, colSpan, className = '' }) {
+  return <th colSpan={colSpan} className={`px-2 py-2 text-center text-[11px] font-bold uppercase ${className}`}>{label}</th>;
+}
 
-  const renderers = {
-    bcvh: (
-      <td className={`${bcvhWidth} px-2 py-1 align-middle`}>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--color-surface-100)] px-1.5 text-[10px] font-bold text-[var(--color-text-main)]">
-            {row.rank ?? '-'}
-          </span>
-          <div className="min-w-0">
-            <div className="line-clamp-2 text-xs font-semibold leading-snug text-[var(--color-text-main)]">
-              {isTotalRow ? 'T\u1ed4NG C\u1ed8NG' : row.ten_bcvh}
-            </div>
-            {!isTotalRow ? <div className="mt-0.5 truncate font-mono text-[10px] text-[var(--color-text-muted)]">{row.ma_bcvh}</div> : null}
-          </div>
+function UnifiedHeader({ columns }) {
+  const d1Span = 4 + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0);
+  const d7Span = 4 + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0);
+
+  return (
+    <thead className="sticky top-0 z-10 bg-white text-[11px] uppercase text-[var(--color-text-muted)]">
+      <tr className="border-b border-[var(--color-surface-200)]">
+        <HeaderGroup label={TEXT.identity} colSpan={3} className="bg-[var(--color-surface-50)] text-[var(--color-text-main)]" />
+        <HeaderGroup label={TEXT.currentDay} colSpan={4} className="bg-[var(--color-primary-50)] text-[var(--color-primary-800)]" />
+        <HeaderGroup label={TEXT.comparisonD1} colSpan={d1Span} className="bg-emerald-50 text-emerald-800" />
+        <HeaderGroup label={TEXT.comparisonD7} colSpan={d7Span} className="bg-sky-50 text-sky-800" />
+        <HeaderGroup label={TEXT.lateCash} colSpan={2} className="bg-amber-50 text-amber-800" />
+        <HeaderGroup label={TEXT.routeDistribution} colSpan={6} className="bg-rose-50 text-rose-800" />
+        <HeaderGroup label={TEXT.analysis} colSpan={1} className="bg-[var(--color-surface-50)] text-[var(--color-text-main)]" />
+        <HeaderGroup label={TEXT.action} colSpan={1} className="bg-[var(--color-surface-50)] text-[var(--color-text-main)]" />
+      </tr>
+      <tr className="border-b border-[var(--color-surface-200)]">
+        <th className="bg-[var(--color-surface-50)] px-2 py-2 text-right">{TEXT.rank}</th>
+        <th className="bg-[var(--color-surface-50)] px-2 py-2 text-left">{TEXT.code}</th>
+        <th className="bg-[var(--color-surface-50)] px-2 py-2 text-left">{TEXT.name}</th>
+
+        <th className="bg-[var(--color-primary-50)] px-2 py-2 text-right">{TEXT.volume}</th>
+        <th className="bg-[var(--color-primary-50)] px-2 py-2 text-right">{TEXT.pass}</th>
+        <th className="bg-[var(--color-primary-50)] px-2 py-2 text-right">{TEXT.fail}</th>
+        <th className="bg-[var(--color-primary-50)] px-2 py-2 text-center">{TEXT.rate}</th>
+
+        {columns.d1Volume ? <th className="bg-emerald-50 px-2 py-2 text-right">{TEXT.volume}</th> : null}
+        {columns.d1Rate ? <th className="bg-emerald-50 px-2 py-2 text-center">{TEXT.rate}</th> : null}
+        <th className="bg-emerald-50 px-2 py-2 text-right">{TEXT.volumeDelta}</th>
+        <th className="bg-emerald-50 px-2 py-2 text-center">{TEXT.rateDelta}</th>
+        <th className="bg-emerald-50 px-2 py-2 text-center">{TEXT.comparisonRank}</th>
+        <th className="bg-emerald-50 px-2 py-2 text-center">{TEXT.rankMovement}</th>
+
+        {columns.d7Volume ? <th className="bg-sky-50 px-2 py-2 text-right">{TEXT.volume}</th> : null}
+        {columns.d7Rate ? <th className="bg-sky-50 px-2 py-2 text-center">{TEXT.rate}</th> : null}
+        <th className="bg-sky-50 px-2 py-2 text-right">{TEXT.volumeDelta}</th>
+        <th className="bg-sky-50 px-2 py-2 text-center">{TEXT.rateDelta}</th>
+        <th className="bg-sky-50 px-2 py-2 text-center">{TEXT.comparisonRank}</th>
+        <th className="bg-sky-50 px-2 py-2 text-center">{TEXT.rankMovement}</th>
+
+        <th className="bg-amber-50 px-2 py-2 text-right">{TEXT.lateCashCount}</th>
+        <th className="bg-amber-50 px-2 py-2 text-center">{TEXT.lateCashRate}</th>
+
+        <th className="bg-rose-50 px-2 py-2 text-right">{TEXT.routeCount}</th>
+        <th className="bg-rose-50 px-2 py-2 text-right">{TEXT.routeGreen}</th>
+        <th className="bg-rose-50 px-2 py-2 text-right">{TEXT.routePink}</th>
+        <th className="bg-rose-50 px-2 py-2 text-right">{TEXT.routeYellow}</th>
+        <th className="bg-rose-50 px-2 py-2 text-right">{TEXT.routeRed}</th>
+        <th className="bg-rose-50 px-2 py-2 text-center">{TEXT.doughnut}</th>
+
+        <th className="bg-[var(--color-surface-50)] px-2 py-2 text-left">{TEXT.analysis}</th>
+        <th className="bg-[var(--color-surface-50)] px-2 py-2 text-right">{TEXT.action}</th>
+      </tr>
+    </thead>
+  );
+}
+
+function Row({ row, columns, onOpenDetail }) {
+  const isTotal = row.ma_bcvh === 'total';
+
+  return (
+    <tr className={`border-b border-[var(--color-surface-100)] ${isTotal ? 'bg-[var(--color-surface-50)] font-semibold' : 'hover:bg-[var(--color-surface-50)]'}`}>
+      <td className="px-2 py-2 text-right">{row.rank ?? '—'}</td>
+      <td className="px-2 py-2 font-mono text-[11px]">{row.ma_bcvh}</td>
+      <td className="px-2 py-2 text-[var(--color-text-main)]">{row.ten_bcvh}</td>
+
+      <td className="px-2 py-2 text-right">{formatNumber(row.current_day.volume)}</td>
+      <td className="px-2 py-2 text-right">{formatNumber(row.current_day.pass_count)}</td>
+      <td className="px-2 py-2 text-right">{formatNumber(row.current_day.fail_count)}</td>
+      <td className="px-2 py-2 text-center">
+        <div className="flex flex-col items-center gap-1">
+          <span className="font-semibold">{formatRate(row.current_day.rate)}</span>
+          <StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} />
         </div>
       </td>
-    ),
-    dayVolume: <td className="border-l-2 border-[var(--color-surface-300)] bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-right font-mono text-xs">{formatNumber(row.total_volume)}</td>,
-    dayPass: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-right font-mono text-xs text-green-700">{formatNumber(row.pass_count)}</td>,
-    dayRate: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-center text-xs font-bold text-[var(--color-text-main)]">{formatRate(row.current_kpi)}</td>,
-    d1: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-center text-xs"><DayDeltaCell value={row.prior_periods.d1.delta} /></td>,
-    d7: <td className="bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-center text-xs"><DayDeltaCell value={row.prior_periods.d7.delta} /></td>,
-    supplemental: (
-      <td className="max-w-[120px] bg-[var(--color-surface-50)]/70 px-1.5 py-1 text-xs text-[var(--color-text-muted)]">
-        <span title={`${TEXT.returned}: ${formatNumber(row.returned_count)} ${MIDDLE_DOT} ${TEXT.warning}: ${row.warning.label || UNAVAILABLE_TEXT}`} className="block truncate">
-          {TEXT.returned}: {formatNumber(row.returned_count)}
-        </span>
+
+      {columns.d1Volume ? <td className="px-2 py-2 text-right">{formatNumber(row.comparisons.d1.volume)}</td> : null}
+      {columns.d1Rate ? <td className="px-2 py-2 text-center">{formatRate(row.comparisons.d1.rate)}</td> : null}
+      <td className="px-2 py-2 text-right">{formatVolumeDelta(row.comparisons.d1.volume_delta)}</td>
+      <td className="px-2 py-2 text-center">{formatSignedDelta(row.comparisons.d1.rate_delta, 'điểm %')}</td>
+      <td className="px-2 py-2 text-center">{formatNumber(row.comparisons.d1.comparison_rank)}</td>
+      <td className="px-2 py-2 text-center">
+        <ComparisonValue value={row.comparisons.d1.rank_movement} type="rankMovement" />
       </td>
-    ),
-    mtdVolume: <td className="border-l-2 border-[var(--color-primary-200)] bg-[var(--color-primary-50)]/40 px-1.5 py-1 text-right font-mono text-xs">{formatNumber(row.month_to_date.total_volume)}</td>,
-    mtdVolumeDelta: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1 text-center text-xs"><DeltaBadge value={row.month_to_date.volume_delta_percent} type="volume" /></td>,
-    mtdRate: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1 text-center text-xs font-bold text-[var(--color-text-main)]">{formatRate(row.month_to_date.pass_rate)}</td>,
-    mtdRateDelta: <td className="bg-[var(--color-primary-50)]/40 px-1.5 py-1 text-center text-xs"><DeltaBadge value={row.month_to_date.pass_rate_delta_points} type="rate" /></td>,
-    action: (
-      <td className="px-1.5 py-1 text-right">
-        {canOpenDetail ? (
+
+      {columns.d7Volume ? <td className="px-2 py-2 text-right">{formatNumber(row.comparisons.d7.volume)}</td> : null}
+      {columns.d7Rate ? <td className="px-2 py-2 text-center">{formatRate(row.comparisons.d7.rate)}</td> : null}
+      <td className="px-2 py-2 text-right">{formatVolumeDelta(row.comparisons.d7.volume_delta)}</td>
+      <td className="px-2 py-2 text-center">{formatSignedDelta(row.comparisons.d7.rate_delta, 'điểm %')}</td>
+      <td className="px-2 py-2 text-center">{formatNumber(row.comparisons.d7.comparison_rank)}</td>
+      <td className="px-2 py-2 text-center">
+        <ComparisonValue value={row.comparisons.d7.rank_movement} type="rankMovement" />
+      </td>
+
+      <td className="px-2 py-2 text-right">{formatNumber(row.late_cash.count)}</td>
+      <td className="px-2 py-2 text-center">
+        <StatusBadge label={row.late_cash.signal.label} tone="neutral" />
+      </td>
+
+      <td className="px-2 py-2 text-right">{formatNumber(row.route_distribution.participating_postman_route_count)}</td>
+      <td className="px-2 py-2 text-right">{formatNumber(row.route_distribution.counts.green)}</td>
+      <td className="px-2 py-2 text-right">{formatNumber(row.route_distribution.counts.pink)}</td>
+      <td className="px-2 py-2 text-right">{formatNumber(row.route_distribution.counts.yellow)}</td>
+      <td className="px-2 py-2 text-right">{formatNumber(row.route_distribution.counts.red)}</td>
+      <td className="px-2 py-2 text-center"><DoughnutCell routeDistribution={row.route_distribution} /></td>
+
+      <td className="max-w-[280px] px-2 py-2 text-[11px] leading-5 text-[var(--color-text-main)]">{row.analysis}</td>
+      <td className="px-2 py-2 text-right">
+        {!isTotal ? (
           <button
             type="button"
             onClick={() => onOpenDetail(row)}
@@ -248,78 +318,34 @@ function RowCells({ row, onOpenDetail, visibleColumns }) {
             <ArrowRight size={12} />
           </button>
         ) : (
-          <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">{UNAVAILABLE_TEXT}</span>
+          <span className="text-[11px] text-[var(--color-text-muted)]">{UNAVAILABLE_TEXT}</span>
         )}
       </td>
-    ),
-  };
-
-  return (
-    <tr className={`border-b border-[var(--color-surface-100)] ${rowTone}`}>
-      {visibleColumns.map((columnKey) => <FragmentCell key={columnKey}>{renderers[columnKey]}</FragmentCell>)}
     </tr>
   );
 }
 
-function FragmentCell({ children }) {
-  return children;
-}
-
-function HeaderRows({ visibleColumns, monthToDateGroupLabel, evaluationDateLabel }) {
-  const count = (group) => visibleColumns.filter((key) => COLUMN_DEFS[key]?.group === group).length;
-  const has = (columnKey) => visibleColumns.includes(columnKey);
-  const mtdCount = count('mtd');
-  const dayCount = count('day');
-  const bcvhWidth = visibleColumns.length <= PRESETS.compact.length ? 'w-[24%]' : 'w-[180px]';
-
-  return (
-    <thead className="bg-white text-[11px] uppercase text-[var(--color-text-muted)]">
-      <tr className="border-b border-[var(--color-surface-200)]">
-        {has('bcvh') ? <th rowSpan={2} className={`${bcvhWidth} px-2 py-1.5 text-left font-semibold`}>{TEXT.bcvhContext}</th> : null}
-        {dayCount ? (
-          <th colSpan={dayCount} className="border-l-2 border-[var(--color-surface-300)] bg-[var(--color-surface-100)] px-2 py-1.5 text-center font-bold text-[var(--color-text-main)]">
-            {evaluationDateLabel}
-          </th>
-        ) : null}
-        {mtdCount ? (
-          <th colSpan={mtdCount} className="border-l-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] px-2 py-1.5 text-center font-semibold text-[var(--color-primary-800)]">
-            {monthToDateGroupLabel}
-          </th>
-        ) : null}
-        {has('action') ? <th rowSpan={2} className="w-[76px] px-1.5 py-2 text-right font-semibold">{TEXT.action}</th> : null}
-      </tr>
-      <tr className="border-b border-[var(--color-surface-200)]">
-        {visibleColumns.filter((key) => ['day', 'mtd'].includes(COLUMN_DEFS[key]?.group)).map((key) => {
-          const column = COLUMN_DEFS[key];
-          const align = ['mtdVolume', 'dayVolume', 'dayPass'].includes(key) ? 'text-right' : 'text-center';
-          const bg = column.group === 'mtd' ? 'bg-[var(--color-primary-50)]' : column.group === 'day' ? 'bg-[var(--color-surface-100)]' : 'bg-white';
-          const border = key === 'dayVolume' ? 'border-l-2 border-[var(--color-surface-300)]' : key === 'mtdVolume' ? 'border-l-2 border-[var(--color-primary-300)]' : '';
-          return (
-            <th key={key} title={column.tooltip || ''} className={`${border} ${bg} px-1 py-1.5 ${align} font-semibold`}>
-              {column.label}
-            </th>
-          );
-        })}
-      </tr>
-    </thead>
-  );
-}
-
-export default function UnifiedBcvhAnalysisTable({ fromDate, toDate, interval = 'daily', maBcvh = 'all' }) {
+export default function UnifiedBcvhAnalysisTable({
+  fromDate,
+  toDate,
+  interval = 'daily',
+  maBcvh = 'all',
+  search = '',
+}) {
   const navigate = useNavigate();
-  const [state, setState] = useState({ status: 'loading', data: null, error: null });
-  const [visibleColumns, setVisibleColumns] = useState(DEFAULT_COLUMNS);
   const requestSeqRef = useRef(0);
-  const requestContext = useMemo(() => ({ fromDate, toDate, interval, maBcvh }), [fromDate, interval, maBcvh, toDate]);
+  const [columns, setColumns] = useState(DEFAULT_COLUMNS);
+  const [state, setState] = useState({ status: 'loading', data: null, error: null });
 
   useEffect(() => {
-    setVisibleColumns(readStoredColumns().columns);
+    setColumns(readStoredColumns());
   }, []);
 
+  const requestContext = useMemo(() => ({ fromDate, toDate, interval, maBcvh, search }), [fromDate, toDate, interval, maBcvh, search]);
+
   const loadRows = useCallback(async () => {
-    const requestSeq = requestSeqRef.current + 1;
-    requestSeqRef.current = requestSeq;
-    const activeContext = requestContext;
+    const seq = requestSeqRef.current + 1;
+    requestSeqRef.current = seq;
 
     try {
       setState({ status: 'loading', data: null, error: null });
@@ -338,16 +364,14 @@ export default function UnifiedBcvhAnalysisTable({ fromDate, toDate, interval = 
         throw new Error(response?.data?.error?.message || TEXT.loadErrorMessage);
       }
 
-      if (requestSeqRef.current !== requestSeq) return;
-
+      if (requestSeqRef.current !== seq) return;
       setState({
         status: 'success',
-        data: mapBcvhRankingResponse(response.data, activeContext),
+        data: mapBcvhRankingResponse(response.data, requestContext),
         error: null,
       });
     } catch (error) {
-      if (requestSeqRef.current !== requestSeq) return;
-
+      if (requestSeqRef.current !== seq) return;
       setState({
         status: 'error',
         data: null,
@@ -358,7 +382,17 @@ export default function UnifiedBcvhAnalysisTable({ fromDate, toDate, interval = 
 
   useEffect(() => {
     if (fromDate && toDate) loadRows();
-  }, [fromDate, loadRows, toDate]);
+  }, [fromDate, toDate, loadRows]);
+
+  const filteredRows = useMemo(() => {
+    const rows = state.data?.rows || [];
+    return rows.filter((row) => {
+      const matchesBcvh = maBcvh === 'all' || row.ma_bcvh === maBcvh;
+      const q = search.trim().toLowerCase();
+      const matchesSearch = !q || row.ten_bcvh.toLowerCase().includes(q) || row.ma_bcvh.toLowerCase().includes(q);
+      return matchesBcvh && matchesSearch;
+    });
+  }, [maBcvh, search, state.data?.rows]);
 
   const handleOpenDetail = (row) => {
     navigate(buildDetailUrl(row.action));
@@ -387,17 +421,8 @@ export default function UnifiedBcvhAnalysisTable({ fromDate, toDate, interval = 
     );
   }
 
-  const rows = state.data?.rows || [];
-  const monthToDateGroupLabel = state.data?.meta?.month_to_date?.group_label || TEXT.mtdFallback;
-  const evaluationDateLabel = state.data?.meta?.evaluation_date?.label || TEXT.evaluationFallback;
-
-  if (!rows.length) {
-    return (
-      <EmptyState
-        title={TEXT.emptyTitle}
-        description={TEXT.emptyDescription}
-      />
-    );
+  if (!filteredRows.length) {
+    return <EmptyState title={TEXT.emptyTitle} description={TEXT.emptyDescription} />;
   }
 
   return (
@@ -406,36 +431,23 @@ export default function UnifiedBcvhAnalysisTable({ fromDate, toDate, interval = 
         <div>
           <h3 className="text-base font-bold text-[var(--color-text-main)]">{TEXT.title}</h3>
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            {fromDate} đến {toDate} · {TEXT.subtitleSuffix}
+            {TEXT.source} · {state.data?.meta?.evaluation_label || UNAVAILABLE_TEXT}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <EvidenceNote />
-          <ColumnOptions visibleColumns={visibleColumns} setVisibleColumns={setVisibleColumns} />
+        <div className="flex flex-wrap items-center gap-2">
+          {Object.entries(ROUTE_BAND_META).map(([id, meta]) => (
+            <StatusBadge key={id} label={meta.label} tone={signalToneToBadge(meta.tone)} />
+          ))}
+          <ColumnOptions columns={columns} setColumns={setColumns} />
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full table-auto text-xs">
-          <HeaderRows
-            visibleColumns={visibleColumns}
-            monthToDateGroupLabel={monthToDateGroupLabel}
-            evaluationDateLabel={evaluationDateLabel}
-          />
+        <table className="min-w-[2200px] table-auto text-xs">
+          <UnifiedHeader columns={columns} />
           <tbody>
-            {state.data?.total_row ? (
-              <RowCells
-                row={state.data.total_row}
-                onOpenDetail={handleOpenDetail}
-                visibleColumns={visibleColumns}
-              />
-            ) : null}
-            {rows.map((row) => (
-              <RowCells
-                key={row.id}
-                row={row}
-                onOpenDetail={handleOpenDetail}
-                visibleColumns={visibleColumns}
-              />
+            {state.data?.total_row ? <Row row={state.data.total_row} columns={columns} onOpenDetail={handleOpenDetail} /> : null}
+            {filteredRows.map((row) => (
+              <Row key={row.id} row={row} columns={columns} onOpenDetail={handleOpenDetail} />
             ))}
           </tbody>
         </table>

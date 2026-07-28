@@ -3,11 +3,11 @@
 - Ticket ID: `F13-BCVH-RANKING-REDESIGN-IMPL`
 - Ticket Name: `BCVH Ranking Redesign Implementation`
 - Phase: `F1.3 Operational Module`
-- Current state: `WAVE 1 COMPLETE / READY FOR FRONTEND WAVE 2`
-- Technical Status: `BACKEND/RUNTIME WAVE 1 COMPLETE`
-- Runtime Status: `FOCUSED BACKEND VALIDATION PASS`
-- PO UI Check Required: `Yes - after frontend Wave 2 visible redesign`
-- PO Product Status: `PO APPROVED SCOPE - WAVE 1 COMPLETE / WAVE 2 PENDING`
+- Current state: `IMPLEMENTATION COMPLETE / READY FOR PO CHECK`
+- Technical Status: `WAVE 1 + WAVE 2 COMPLETE`
+- Runtime Status: `FOCUSED BACKEND + FRONTEND VALIDATION PASS`
+- PO UI Check Required: `Yes - visible BCVH Ranking redesign`
+- PO Product Status: `PO APPROVED SCOPE - IMPLEMENTATION COMPLETE / PO CHECK PENDING`
 - Activation authority: `PO APPROVE the BCVH Ranking redesign agreed in planning session`
 - Handoff date: `2026-07-28`
 - Primary executor: `Codex`
@@ -27,6 +27,7 @@ Required Reading:
 
 - `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`
 - `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_IMPL_WAVE1_CHECKPOINT_001.md`
+- `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_IMPL_WAVE2_CHECKPOINT_001.md`
 - `docs/06_REVIEWS/Dashboard/DA-IMPL-004_UNIFIED_BCVH_ANALYSIS_TABLE.md`
 - `docs/06_REVIEWS/Route/F13_INTERNAL_COUNTER_ROUTE_AUDIT.md`
 - `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md`
@@ -37,7 +38,7 @@ Required Reading:
 
 Implement only the approved BCVH Ranking redesign documented in `F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`.
 
-This manifest now records that Wave 1 backend/runtime delivery is complete and that the next executor must continue with frontend Wave 2 only unless new Product Owner authority changes the scope.
+This manifest now records that both implementation waves are complete and that the next state is Product Owner UI verification only unless a defect is found.
 
 The implementation must preserve:
 
@@ -67,11 +68,10 @@ Visibility lock:
 ## In Scope
 
 - Preserve the completed Wave 1 backend/runtime contract documented in `F13_BCVH_RANKING_REDESIGN_IMPL_WAVE1_CHECKPOINT_001.md`.
-- Continue with frontend Wave 2 only: grouped BCVH Ranking table structure, supported column wiring, visibility handling, independent signal presentation, inline `Phan tich BCVH`, doughnut binding, and route drill-down preservation.
-- Reuse the existing runtime fields and the newly added Wave 1 contract without changing formulas or thresholds.
+- Preserve the completed Wave 2 frontend presentation documented in `F13_BCVH_RANKING_REDESIGN_IMPL_WAVE2_CHECKPOINT_001.md`.
+- Reuse the existing runtime fields without changing formulas or thresholds.
 - Preserve existing route drill-down parameters and current Route Ranking exclusions/behavior.
-- Add focused frontend tests for supported fields, unavailable states, route exclusions, and the new presentation contract.
-- Update the applicable ticket/governance docs, commit, push, verify the remote state, and run fresh onboarding validation.
+- Finish with Product Owner UI verification and any bounded remediation only if a concrete defect is found.
 
 ## Out Of Scope
 
@@ -92,7 +92,7 @@ Visibility lock:
 - Preserve the `7` confirmed non-postman/customer-pickup routes as excluded from participating postman-route counts.
 - Do not reopen backend/runtime formulas in Wave 2 unless a documented defect is proven.
 
-### Wave 1 Delivery Lock
+### Delivery Lock
 
 Wave 1 completed the backend/runtime scope for:
 
@@ -118,6 +118,19 @@ Authority now explicitly confirms BCVH rank-movement semantics:
 - current rank higher than comparison rank = decline
 - equal = unchanged
 
+Wave 2 completed the frontend scope for:
+
+- grouped BCVH ranking table
+- current-day fields
+- separate `D-1` and `D-7` grouped columns
+- allowed hide/show behavior for raw comparison columns only
+- independent KPI, late-cash, and rank-movement signals
+- green / pink / yellow / red route columns
+- 4-segment doughnut
+- inline `Phan tich BCVH`
+- preserved Route Ranking drill-down context
+- factual unavailable states without fallback calculations
+
 ## Documents To Update
 
 - `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md`
@@ -130,7 +143,7 @@ Authority now explicitly confirms BCVH rank-movement semantics:
 ## Validation
 
 - Backend/service targeted tests for newly added BCVH ranking fields and non-postman route exclusions are complete for Wave 1.
-- Frontend mapper/component tests for grouped columns, unavailable states, independent signals, doughnut data binding, and inline `Phan tich BCVH` remain required for Wave 2.
+- Frontend mapper/component tests for grouped columns, unavailable states, independent signals, doughnut data binding, and inline `Phan tich BCVH` are complete for Wave 2.
 - Focused build/lint/test only in the touched backend/frontend scope.
 - `git diff --check`
 - Remote verification of the pushed commit and active onboarding Blob URLs.
@@ -138,7 +151,7 @@ Authority now explicitly confirms BCVH rank-movement semantics:
 
 ## PO Acceptance
 
-Ready-for-PO handoff after Wave 2 must include a concise manual checklist covering:
+Ready-for-PO handoff must include a concise manual checklist covering:
 
 - BCVH Ranking screen URL
 - expected grouped columns
@@ -153,12 +166,11 @@ Do not self-award PO PASS.
 
 ## Next Ticket
 
-- Next ticket ID: `Continue F13-BCVH-RANKING-REDESIGN-IMPL for frontend Wave 2`
+- Next ticket ID: `Pending only if PO finds a concrete BCVH Ranking defect`
 - Blockers or handoff notes:
-  - Wave 1 runtime fields are available and documented; do not reopen formulas or thresholds during Wave 2.
-  - Frontend Wave 2 may use `route_distribution.pink_route_count` if needed to preserve exact Dashboard SSOT distribution totals, but the approved Wave 1 requested counts remain green/yellow/red.
-  - If final visual density or chart polish remains after the runtime-backed UI is technically complete, recommend a narrow Antigravity follow-up instead of expanding this ticket silently.
+  - Do not reopen formulas, thresholds, or exclusions without explicit new authority.
+  - If PO only requests visual polish after PASS/WARNING, recommend a narrow Antigravity follow-up instead of reopening this ticket broadly.
 
 ## Handoff
 
-This manifest is now a Wave 2 handoff. A fresh executor must read the onboarding chain, preserve the completed Wave 1 runtime contract, implement only the remaining approved frontend scope, perform targeted validation, update documentation, push, verify remote state, and finish with fresh-onboarding handoff.
+This manifest is now a PO-check handoff. A fresh executor must read the onboarding chain, preserve the completed runtime and frontend contracts, perform only bounded remediation if a concrete defect is found, update documentation, push, verify remote state, and finish with fresh-onboarding handoff.

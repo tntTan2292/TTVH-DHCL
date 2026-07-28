@@ -1,29 +1,23 @@
+import { CANONICAL_BCVH_CODES } from './dashboardFilterOptions.js';
+
 export const UNAVAILABLE_TEXT = 'Chưa có dữ liệu';
 
-import { CANONICAL_BCVH_CODES } from './dashboardFilterOptions';
-const EN_DASH = String.fromCharCode(0x2013);
-const EM_DASH = String.fromCharCode(0x2014);
-const MIDDLE_DOT = String.fromCharCode(0x00b7);
+const DASH = '\u2014';
+const MIDDLE_DOT = '\u00b7';
 
-const TEXT = {
-  latestAvailable: 'd\u1eef li\u1ec7u g\u1ea7n nh\u1ea5t',
-  mtdUnavailable: `L\u0168Y K\u1ebe TH\u00c1NG ${EM_DASH} ch\u01b0a c\u00f3 d\u1eef li\u1ec7u`,
-  evaluationUnavailable: `NG\u00c0Y \u0110\u00c1NH GI\u00c1 ${EM_DASH} ch\u01b0a c\u00f3 d\u1eef li\u1ec7u`,
-  increased: 'T\u0103ng',
-  decreased: 'Gi\u1ea3m',
-  unchanged: 'Kh\u00f4ng \u0111\u1ed5i',
-  better: 'T\u1ed1t h\u01a1n',
-  percentPoint: '\u0111i\u1ec3m %',
-};
+const ROUTE_BAND_META = Object.freeze({
+  green: { label: 'Xanh', color: '#22c55e', tone: 'success' },
+  pink: { label: 'Hồng', color: '#ec4899', tone: 'info' },
+  yellow: { label: 'Vàng', color: '#eab308', tone: 'warning' },
+  red: { label: 'Đỏ', color: '#ef4444', tone: 'danger' },
+});
 
-const WARNING_FIELD_CANDIDATES = [
-  'warning_level',
-  'warningLevel',
-  'quality_pulse_level',
-  'qualityPulseLevel',
-  'risk_level',
-  'riskLevel',
-];
+const KPI_STATUS_META = Object.freeze([
+  { min: 70, id: 'green', label: 'Tốt', tone: 'success' },
+  { min: 60, id: 'pink', label: 'Cần chú ý', tone: 'info' },
+  { min: 50, id: 'yellow', label: 'Cảnh báo', tone: 'warning' },
+  { min: -Infinity, id: 'red', label: 'Rủi ro cao', tone: 'danger' },
+]);
 
 function toNumberOrNull(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -36,205 +30,182 @@ function toNumber(value, fallback = 0) {
   return numeric === null ? fallback : numeric;
 }
 
-function formatDateRange(fromDate, toDate) {
-  if (fromDate && toDate && fromDate !== toDate) return `${fromDate} \u0111\u1ebfn ${toDate}`;
-  return toDate || fromDate || UNAVAILABLE_TEXT;
+function buildContextDateLabel(dateStr) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ''))) return UNAVAILABLE_TEXT;
+  const [, month, day] = dateStr.split('-');
+  return `${day}/${month}`;
 }
 
-export function formatDisplayDate(dateStr) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ''))) return dateStr || UNAVAILABLE_TEXT;
-  const [year, month, day] = dateStr.split('-');
-  return `${day}/${month}/${year}`;
+function buildSignal(value) {
+  const numeric = toNumberOrNull(value);
+  if (numeric === null) return { id: 'unavailable', label: UNAVAILABLE_TEXT, tone: 'neutral' };
+  return KPI_STATUS_META.find((item) => numeric >= item.min) || KPI_STATUS_META.at(-1);
 }
 
-function formatCompactDateRange(fromDate, toDate) {
-  if (!fromDate && !toDate) return UNAVAILABLE_TEXT;
-  if (!fromDate || !toDate || fromDate === toDate) return formatDisplayDate(toDate || fromDate);
-
-  const [fromYear, fromMonth, fromDay] = fromDate.split('-');
-  const [toYear, toMonth, toDay] = toDate.split('-');
-  if (fromYear === toYear && fromMonth === toMonth) {
-    return `${fromDay}/${fromMonth}${EN_DASH}${toDay}/${toMonth}/${toYear}`;
-  }
-  return `${formatDisplayDate(fromDate)}${EN_DASH}${formatDisplayDate(toDate)}`;
-}
-
-function appendLatestAvailable(label, usedLatestAvailable) {
-  return usedLatestAvailable ? `${label} ${MIDDLE_DOT} ${TEXT.latestAvailable}` : label;
-}
-
-function buildMonthToDateGroupLabel(monthToDate) {
-  if (!monthToDate?.available) return TEXT.mtdUnavailable;
-  const period = formatCompactDateRange(monthToDate.from_date, monthToDate.to_date);
-  return appendLatestAvailable(`L\u0168Y K\u1ebe TH\u00c1NG ${EM_DASH} ${period}`, monthToDate.used_latest_available);
-}
-
-function buildEvaluationDateLabel(evaluationDate, monthToDate) {
-  const source = evaluationDate || {};
-  const date = source.date || monthToDate?.current_data_date || monthToDate?.to_date;
-  if (!source.available && !monthToDate?.available) return TEXT.evaluationUnavailable;
-  const usedLatestAvailable = Boolean(source.used_latest_available ?? monthToDate?.used_latest_available);
-  return appendLatestAvailable(`NG\u00c0Y \u0110\u00c1NH GI\u00c1 ${EM_DASH} ${formatDisplayDate(date)}`, usedLatestAvailable);
-}
-
-function getWarning(row = {}) {
-  const sourceField = WARNING_FIELD_CANDIDATES.find((field) => row[field] !== undefined && row[field] !== null && row[field] !== '');
-
-  if (!sourceField) {
+function buildMovementSignal(movement = {}) {
+  const direction = movement?.direction || 'unavailable';
+  if (direction === 'improved') {
     return {
-      level: 'unavailable',
-      label: UNAVAILABLE_TEXT,
-      source: 'unavailable',
+      label: `Cải thiện ${Math.abs(toNumber(movement.delta))} hạng`,
+      tone: 'success',
+      shortLabel: `↑ ${Math.abs(toNumber(movement.delta))}`,
     };
   }
-
+  if (direction === 'declined') {
+    return {
+      label: `Suy giảm ${Math.abs(toNumber(movement.delta))} hạng`,
+      tone: 'danger',
+      shortLabel: `↓ ${Math.abs(toNumber(movement.delta))}`,
+    };
+  }
+  if (direction === 'unchanged') {
+    return {
+      label: 'Không đổi',
+      tone: 'neutral',
+      shortLabel: 'Không đổi',
+    };
+  }
   return {
-    level: String(row[sourceField]),
-    label: row.warning_label || row.warningLabel || String(row[sourceField]),
-    source: sourceField,
+    label: UNAVAILABLE_TEXT,
+    tone: 'neutral',
+    shortLabel: UNAVAILABLE_TEXT,
   };
 }
 
-function buildAction(row, { fromDate, toDate, interval }) {
-  const params = {
-    from_date: fromDate || '',
-    to_date: toDate || '',
-    interval: interval || (fromDate && toDate && fromDate !== toDate ? 'range' : 'daily'),
-    bcvh_id: row.ma_bcvh || '',
-    bcvh_name: row.ten_bcvh || '',
+function buildComparisonPeriod(source = {}) {
+  const movement = source.rank_movement || {};
+  return {
+    volume: toNumberOrNull(source.volume),
+    rate: toNumberOrNull(source.f1_3_rate),
+    volume_delta: toNumberOrNull(source.volume_delta),
+    rate_delta: null,
+    comparison_rank: toNumberOrNull(source.comparison_rank),
+    rank_movement: {
+      ...movement,
+      delta: toNumberOrNull(movement.delta),
+      signal: buildMovementSignal(movement),
+    },
+  };
+}
+
+function buildRouteDistribution(routeDistribution = {}) {
+  const participating = toNumber(routeDistribution.participating_postman_route_count);
+  const counts = {
+    green: toNumber(routeDistribution.green_route_count),
+    pink: toNumber(routeDistribution.pink_route_count),
+    yellow: toNumber(routeDistribution.yellow_route_count),
+    red: toNumber(routeDistribution.red_route_count),
   };
 
   return {
-    type: 'navigate',
+    participating_postman_route_count: participating,
+    counts,
+    segments: Object.entries(counts).map(([id, value]) => ({
+      id,
+      value,
+      label: ROUTE_BAND_META[id].label,
+      color: ROUTE_BAND_META[id].color,
+      tone: ROUTE_BAND_META[id].tone,
+    })),
+  };
+}
+
+function buildAnalysisText(row) {
+  const parts = [
+    `KPI ngày ${formatRate(row.current_day.rate)}`,
+    `D-1 ${formatSignedDelta(row.comparisons.d1.rate_delta ?? row.current_day.d1_rate_delta, 'điểm %')}`,
+    `D-7 ${formatSignedDelta(row.comparisons.d7.rate_delta ?? row.current_day.d7_rate_delta, 'điểm %')}`,
+    `Chậm nộp tiền ${formatNumber(row.late_cash.count)} BG (${formatRate(row.late_cash.rate)})`,
+    `Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count)}: xanh ${formatNumber(row.route_distribution.counts.green)}, hồng ${formatNumber(row.route_distribution.counts.pink)}, vàng ${formatNumber(row.route_distribution.counts.yellow)}, đỏ ${formatNumber(row.route_distribution.counts.red)}`,
+  ];
+
+  const d1Movement = row.comparisons.d1.rank_movement.signal.label;
+  const d7Movement = row.comparisons.d7.rank_movement.signal.label;
+  if (d1Movement !== UNAVAILABLE_TEXT) parts.push(`Hạng D-1 ${d1Movement.toLowerCase()}`);
+  if (d7Movement !== UNAVAILABLE_TEXT) parts.push(`Hạng D-7 ${d7Movement.toLowerCase()}`);
+  return parts.join(` ${MIDDLE_DOT} `);
+}
+
+function buildAction(row, context = {}) {
+  return {
     route: '/f13/ranking/route',
-    params,
+    params: {
+      from_date: context.fromDate || '',
+      to_date: context.toDate || '',
+      interval: context.interval || (context.fromDate === context.toDate ? 'daily' : 'range'),
+      bcvh_id: row.ma_bcvh || '',
+      bcvh_name: row.ten_bcvh || '',
+    },
   };
-}
-
-function calculateVolumeDelta(currentVolume, previousVolume) {
-  if (currentVolume === null || previousVolume === null || previousVolume <= 0) return null;
-  return ((currentVolume - previousVolume) / previousVolume) * 100;
-}
-
-function calculateRateDelta(currentRate, previousRate) {
-  if (currentRate === null || previousRate === null) return null;
-  return currentRate - previousRate;
 }
 
 export function mapBcvhRankingRow(row = {}, context = {}) {
-  const totalVolume = toNumber(row.sl_bg_ptc ?? row.total_bg);
-  const passCount = toNumber(row.dat_kpi_2026 ?? row.total_passed ?? row.passed_bg);
-  const failCount = toNumber(row.khong_dat_kpi_2026 ?? row.total_failed ?? row.failed_bg);
-  const returnedCount = Math.max(0, totalVolume - passCount - failCount);
-  const currentKpi = toNumberOrNull(row.kpi_2026 ?? row.passed_rate ?? row.kpi_rate);
-  const d1Delta = toNumberOrNull(row.kpi_2026_dod);
-  const d7Delta = toNumberOrNull(row.kpi_2026_swc);
-  const monthToDateVolume = toNumberOrNull(row.month_to_date_sl_bg_ptc);
-  const monthToDatePass = toNumberOrNull(row.month_to_date_dat_kpi_2026);
-  const monthToDateFail = toNumberOrNull(row.month_to_date_khong_dat_kpi_2026);
-  const monthToDateKpi = toNumberOrNull(row.month_to_date_kpi_2026);
-  const previousMonthToDateVolume = toNumberOrNull(row.previous_month_to_date_sl_bg_ptc);
-  const previousMonthToDatePass = toNumberOrNull(row.previous_month_to_date_dat_kpi_2026);
-  const previousMonthToDateKpi = toNumberOrNull(row.previous_month_to_date_kpi_2026);
+  const currentRate = toNumberOrNull(row.kpi_2026);
+  const d1 = buildComparisonPeriod(row.comparisons?.d1 || {});
+  const d7 = buildComparisonPeriod(row.comparisons?.d7 || {});
+  d1.rate_delta = toNumberOrNull(row.kpi_2026_dod);
+  d7.rate_delta = toNumberOrNull(row.kpi_2026_swc);
 
-  return {
+  const mapped = {
     id: row.ma_bcvh || row.ten_bcvh || `bcvh-${row.rank ?? 'unknown'}`,
     ma_bcvh: row.ma_bcvh || UNAVAILABLE_TEXT,
     ten_bcvh: row.ten_bcvh || UNAVAILABLE_TEXT,
     rank: toNumberOrNull(row.rank),
-    context_label: formatDateRange(context.fromDate, context.toDate),
-    total_volume: totalVolume,
-    pass_count: passCount,
-    fail_count: failCount,
-    returned_count: returnedCount,
-    current_kpi: currentKpi,
-    prior_periods: {
-      d1: { delta: d1Delta, label: 'D-1' },
-      d7: { delta: d7Delta, label: 'D-7' },
+    current_day: {
+      volume: toNumberOrNull(row.sl_bg_ptc ?? row.total_bg),
+      pass_count: toNumberOrNull(row.dat_kpi_2026),
+      fail_count: toNumberOrNull(row.khong_dat_kpi_2026 ?? row.total_failed),
+      rate: currentRate,
+      signal: buildSignal(currentRate),
+      d1_rate_delta: toNumberOrNull(row.kpi_2026_dod),
+      d7_rate_delta: toNumberOrNull(row.kpi_2026_swc),
     },
-    month_to_date: {
-      total_volume: monthToDateVolume,
-      pass_count: monthToDatePass,
-      fail_count: monthToDateFail,
-      pass_rate: monthToDateKpi,
-      previous_total_volume: previousMonthToDateVolume,
-      previous_pass_count: previousMonthToDatePass,
-      previous_pass_rate: previousMonthToDateKpi,
-      volume_delta_percent: calculateVolumeDelta(monthToDateVolume, previousMonthToDateVolume),
-      pass_rate_delta_points: calculateRateDelta(monthToDateKpi, previousMonthToDateKpi),
+    comparisons: { d1, d7 },
+    late_cash: {
+      count: toNumberOrNull(row.delayed_cash_handover_count),
+      rate: toNumberOrNull(row.f13_303_rate),
+      signal: {
+        label: row.delayed_cash_handover_count === undefined && row.f13_303_rate === undefined
+          ? UNAVAILABLE_TEXT
+          : `${formatNumber(row.delayed_cash_handover_count)} BG ${MIDDLE_DOT} ${formatRate(row.f13_303_rate)}`,
+        tone: 'neutral',
+      },
     },
-    compact_trend: {
-      available: false,
-      points: [],
-    },
-    warning: getWarning(row),
+    route_distribution: buildRouteDistribution(row.route_distribution),
     action: buildAction(row, context),
-    source: {
-      endpoint: 'GET /api/f13/ranking/bcvh',
-      total_volume: row.sl_bg_ptc !== undefined ? 'sl_bg_ptc' : 'total_bg',
-      pass_count: row.dat_kpi_2026 !== undefined ? 'dat_kpi_2026' : row.total_passed !== undefined ? 'total_passed' : 'passed_bg',
-      fail_count: row.khong_dat_kpi_2026 !== undefined ? 'khong_dat_kpi_2026' : row.total_failed !== undefined ? 'total_failed' : 'failed_bg',
-      current_kpi: row.kpi_2026 !== undefined ? 'kpi_2026' : row.passed_rate !== undefined ? 'passed_rate' : 'kpi_rate',
-      d1_delta: row.kpi_2026_dod !== undefined ? 'kpi_2026_dod' : null,
-      d7_delta: row.kpi_2026_swc !== undefined ? 'kpi_2026_swc' : null,
-      month_to_date_total_volume: row.month_to_date_sl_bg_ptc !== undefined ? 'month_to_date_sl_bg_ptc' : null,
-      month_to_date_pass_count: row.month_to_date_dat_kpi_2026 !== undefined ? 'month_to_date_dat_kpi_2026' : null,
-      month_to_date_fail_count: row.month_to_date_khong_dat_kpi_2026 !== undefined ? 'month_to_date_khong_dat_kpi_2026' : null,
-      month_to_date_pass_rate: row.month_to_date_kpi_2026 !== undefined ? 'month_to_date_kpi_2026' : null,
-      previous_month_to_date_total_volume: row.previous_month_to_date_sl_bg_ptc !== undefined ? 'previous_month_to_date_sl_bg_ptc' : null,
-      previous_month_to_date_pass_count: row.previous_month_to_date_dat_kpi_2026 !== undefined ? 'previous_month_to_date_dat_kpi_2026' : null,
-      previous_month_to_date_pass_rate: row.previous_month_to_date_kpi_2026 !== undefined ? 'previous_month_to_date_kpi_2026' : null,
-    },
   };
+
+  mapped.analysis = buildAnalysisText(mapped);
+  return mapped;
 }
 
 export function mapBcvhRankingResponse(responseData = {}, context = {}) {
-  const rawRows = Array.isArray(responseData?.data) ? responseData.data : [];
   const canonicalSet = new Set(CANONICAL_BCVH_CODES);
+  const rawRows = Array.isArray(responseData?.data) ? responseData.data : [];
   const rows = rawRows
     .filter((row) => canonicalSet.has(String(row.ma_bcvh)))
     .map((row) => mapBcvhRankingRow(row, context))
     .sort((a, b) => {
       if (a.rank !== null && b.rank !== null && a.rank !== b.rank) return a.rank - b.rank;
-      return b.total_volume - a.total_volume;
+      return toNumber(b.current_day.volume) - toNumber(a.current_day.volume);
     });
 
   const totalRow = responseData?.meta?.total_row
-    ? mapBcvhRankingRow({ ...responseData.meta.total_row, ma_bcvh: 'total', rank: null }, context)
+    ? mapBcvhRankingRow({ ...responseData.meta.total_row, ma_bcvh: 'total', ten_bcvh: 'TỔNG CỘNG', rank: null }, context)
     : null;
 
-  const monthToDate = responseData?.meta?.month_to_date || null;
-  const previousMonthToDate = responseData?.meta?.previous_month_to_date || null;
-  const evaluationDate = responseData?.meta?.evaluation_date || null;
-
   return {
+    rows,
+    total_row: totalRow,
     meta: {
       from_date: context.fromDate || null,
       to_date: context.toDate || null,
+      interval: context.interval || null,
       ma_bcvh: context.maBcvh || 'all',
-      default_order: 'rank_asc',
-      optional_evidence: {
-        returned_available: true,
-        month_to_date_available: Boolean(monthToDate?.available),
-        previous_month_to_date_available: Boolean(previousMonthToDate?.available),
-        compact_trend_available: false,
-        warning_available: rows.some((row) => row.warning.source !== 'unavailable'),
-      },
-      month_to_date: monthToDate
-        ? {
-            ...monthToDate,
-            group_label: buildMonthToDateGroupLabel(monthToDate),
-          }
-        : null,
-      previous_month_to_date: previousMonthToDate,
-      evaluation_date: {
-        ...(evaluationDate || {}),
-        label: buildEvaluationDateLabel(evaluationDate, monthToDate),
-      },
+      search: context.search || '',
+      evaluation_label: context.toDate ? `Ngày đánh giá ${DASH} ${buildContextDateLabel(context.toDate)}` : `Ngày đánh giá ${DASH} ${UNAVAILABLE_TEXT}`,
       pagination: responseData?.meta?.pagination || null,
     },
-    rows,
-    total_row: totalRow,
   };
 }
 
@@ -250,25 +221,24 @@ export function formatRate(value) {
   return `${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
-export function formatDelta(value) {
+export function formatSignedDelta(value, unit = '') {
   const numeric = toNumberOrNull(value);
   if (numeric === null) return UNAVAILABLE_TEXT;
   const sign = numeric > 0 ? '+' : '';
-  return `${sign}${numeric.toFixed(2)} ${TEXT.percentPoint}`;
+  return `${sign}${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`;
 }
 
 export function formatVolumeDelta(value) {
   const numeric = toNumberOrNull(value);
   if (numeric === null) return UNAVAILABLE_TEXT;
-  const label = numeric > 0 ? TEXT.increased : numeric < 0 ? TEXT.decreased : TEXT.unchanged;
   const sign = numeric > 0 ? '+' : '';
-  return `${sign}${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}% ${MIDDLE_DOT} ${label}`;
+  return `${sign}${numeric.toLocaleString('vi-VN')}`;
 }
 
-export function formatRateDelta(value) {
-  const numeric = toNumberOrNull(value);
-  if (numeric === null) return UNAVAILABLE_TEXT;
-  const label = numeric > 0 ? TEXT.better : numeric < 0 ? TEXT.decreased : TEXT.unchanged;
-  const sign = numeric > 0 ? '+' : '';
-  return `${sign}${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${TEXT.percentPoint} ${MIDDLE_DOT} ${label}`;
+export function buildDoughnutAriaLabel(routeDistribution = {}) {
+  const segments = routeDistribution.segments || [];
+  if (!segments.length) return 'Phân bổ tuyến chưa có dữ liệu';
+  return segments.map((segment) => `${segment.label} ${segment.value}`).join(` ${MIDDLE_DOT} `);
 }
+
+export { ROUTE_BAND_META };
