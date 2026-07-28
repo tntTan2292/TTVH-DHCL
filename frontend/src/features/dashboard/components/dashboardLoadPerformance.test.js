@@ -56,6 +56,17 @@ test('nationwide rank enrichment keeps initial request count unchanged and uses 
   assert.match(controllerSource, /includeNationalRank: include_national_rank === '1' \|\| include_national_rank === 'true'/);
 });
 
+test('Heatmap renders same national rank detail for hover and focus without inline badge', () => {
+  const operatingSource = read('./OperatingPatternTabsCard.jsx');
+  const mapperSource = read('./operatingPatternTabsData.js');
+
+  assert.match(mapperSource, /Xếp hạng toàn quốc: Hạng/);
+  assert.match(operatingSource, /title=\{getDayTitle\(day\)\}/);
+  assert.match(operatingSource, /aria-label=\{getDayTitle\(day\) \|\| undefined\}/);
+  assert.match(operatingSource, /group-hover:block group-focus:block/);
+  assert.doesNotMatch(operatingSource, /#\{day\.nationalRank|nationalRankLabel\}<\/span>/);
+});
+
 test('nationwide rank is not added to BCVH row ranking surfaces', () => {
   const bcvhTableSource = read('./UnifiedBcvhAnalysisTable.jsx');
   const bcvhDataSource = read('./unifiedBcvhAnalysisTableData.js');

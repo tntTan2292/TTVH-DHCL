@@ -278,13 +278,18 @@ function HeatmapMonthSection({ month }) {
           {month.days.map((day) => (
             <div
               key={day.id}
-              className={`flex h-14 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
+              className={`group relative flex h-14 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
               title={getDayTitle(day)}
               aria-label={getDayTitle(day) || undefined}
               tabIndex={day.empty ? undefined : 0}
             >
               <span className="text-[10px] font-bold">{day.dayLabel}</span>
               <span className="text-[10px] font-semibold">{day.valueLabel}</span>
+              {getDayTitle(day) ? (
+                <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 hidden w-max max-w-[240px] -translate-x-1/2 rounded-lg border border-[var(--color-surface-200)] bg-white px-2 py-1 text-left text-[11px] font-semibold leading-4 text-[var(--color-text-main)] shadow-xl group-hover:block group-focus:block">
+                  {getDayTitle(day)}
+                </span>
+              ) : null}
             </div>
           ))}
         </div>

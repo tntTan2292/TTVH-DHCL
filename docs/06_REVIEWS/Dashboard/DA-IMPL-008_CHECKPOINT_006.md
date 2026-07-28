@@ -4,17 +4,19 @@
 
 - Ticket: `DA-IMPL-008`
 - Checkpoint: `006 - Nationwide Ranking Integration`
-- Current state: `READY FOR PO CHECK`
+- Current state: `REMEDIATION REQUIRED / READY FOR PO RECHECK`
 - Technical status: `PASS`
 - Runtime status: `LEVEL 2 TARGETED VALIDATION PASS`
 - PO UI check required: `Yes`
-- PO product status: `WAITING FOR PO CHECK`
+- PO product status: `REMEDIATION REQUIRED - WAITING FOR PO RECHECK`
 
 ## Product Owner Decision
 
 Product Owner accepted `DA-IMPL-008 CHECKPOINT 005` as `PO PASS` on `2026-07-27`.
 
 Product Owner approved the expanded Checkpoint 006 implementation scope on `2026-07-27`.
+
+Product Owner runtime result on `2026-07-28`: Heatmap inside `Quy luật vận hành` did not display nationwide ranking. Checkpoint 006 is not `PO PASS`; remediation remains required until Product Owner rechecks the runtime UI.
 
 Product Owner authorized province-level Hue nationwide ranking in three bounded contexts only:
 
@@ -46,6 +48,31 @@ No Dashboard schema, KPI formula, Import lifecycle, threshold, mapping, complete
 - Added Integrated Trend daily point tooltip rank detail without adding a rank series, rank line, or rank axis.
 - Added selected-range rank detail in the existing Integrated Trend context row from the Checkpoint 004 `kpiData.national_rank` contract.
 - Preserved the top Command Summary selected-date/range rank behavior.
+
+## Remediation Evidence - 2026-07-28
+
+Root cause:
+
+- Backend Heatmap enrichment was available, and the frontend request path used the opt-in rank parameter only for all-network Heatmap scope.
+- Runtime API evidence confirmed dated all-network Heatmap cells contained backend `national_rank`.
+- Runtime API evidence confirmed BCVH-filtered Heatmap cells did not contain province-level `national_rank`.
+- The UI break point was frontend rendering: Heatmap rank detail existed only in a passive native `title` attribute and used non-approved wording, so the PO-visible Heatmap did not reliably display the ranking on hover/focus.
+
+Remediation:
+
+- Updated Heatmap rank wording to `Xếp hạng toàn quốc: Hạng X/Y`.
+- Rendered the same Heatmap detail content in an on-hover and on-focus popup while keeping normal Heatmap cells unchanged.
+- Preserved the backend-provided unavailable message for missing national data.
+- Preserved BCVH-filter suppression: no rank opt-in request and no province-level rank display when a BCVH filter is active.
+
+Runtime API check:
+
+- `GET /api/f13/dashboard/quality-timeline?toDate=2026-07-19&ma_bcvh=all&mode=heatmap&include_national_rank=1`
+  - Result: `PASS`
+  - Evidence: `49` dated Heatmap cells; sample `2026-07-19` contains `national_rank.rank=21`, `national_rank.total=34`.
+- `GET /api/f13/dashboard/quality-timeline?toDate=2026-07-19&ma_bcvh=535790&mode=heatmap&include_national_rank=1`
+  - Result: `PASS`
+  - Evidence: `49` dated Heatmap cells; `0` cells contain `national_rank`.
 
 ## Missing Data Behavior
 
@@ -144,6 +171,17 @@ Rationale:
 - `git diff --check`
   - Result: `PASS`
 
+## Remediation Validation - 2026-07-28
+
+- `node --test backend/src/services/F13DashboardService.recovery.test.js backend/src/services/timelineService.recovery.test.js`
+  - Result: `PASS`
+  - Evidence: `20` tests passed; C004 selected-range ranking, daily rank batching, BCVH suppression, C003 two-month Heatmap, and C005 lazy mode remained covered.
+- `node --test frontend/src/features/dashboard/components/comboTrendlineData.test.js frontend/src/features/dashboard/components/operatingPatternTabsData.test.js frontend/src/features/dashboard/components/integratedTrendRiskData.test.js frontend/src/features/dashboard/components/dashboardLoadPerformance.test.js`
+  - Result: `PASS`
+  - Evidence: `51` tests passed; request opt-in, mapper preservation, available wording, unavailable backend message, hover/focus rendering, BCVH suppression, no inline badge, no BCVH row/table ranking, and unchanged request count remained covered.
+- `git diff --check`
+  - Result: `PASS`
+
 ## Product Owner Checklist
 
 - Open Dashboard with `ma_bcvh=all`.
@@ -157,6 +195,6 @@ Rationale:
 
 ## Handoff
 
-Checkpoint 006 implementation is complete and ready for Product Owner visible check.
+Checkpoint 006 remediation is complete and ready for Product Owner visible recheck.
 
 Do not mark Checkpoint 006 or DA-IMPL-008 as `PO PASS` until Product Owner explicitly accepts it.

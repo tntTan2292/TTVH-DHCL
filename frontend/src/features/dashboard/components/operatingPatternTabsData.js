@@ -76,7 +76,7 @@ export function formatShortDate(isoDate) {
 export function formatNationalRank(rank) {
   if (!rank) return null;
   if (rank.available && rank.rank !== null && rank.rank !== undefined && rank.total !== null && rank.total !== undefined) {
-    return `Xếp hạng toàn quốc Huế: ${rank.rank}/${rank.total}`;
+    return `Xếp hạng toàn quốc: Hạng ${rank.rank}/${rank.total}`;
   }
   return rank.message || 'Chưa có dữ liệu xếp hạng toàn quốc';
 }

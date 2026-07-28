@@ -69,7 +69,23 @@ test('maps Heatmap backend nationwide rank for tooltip and focus text', () => {
 
   const day = model.heatmap[0].days[0];
   assert.equal(day.nationalRank.rank, 24);
-  assert.equal(day.nationalRankLabel, 'Xếp hạng toàn quốc Huế: 24/34');
+  assert.equal(day.nationalRankLabel, 'Xếp hạng toàn quốc: Hạng 24/34');
+});
+
+test('maps Heatmap unavailable nationwide rank using backend message', () => {
+  const model = mapOperatingPatternResponse({
+    heatmap: [[
+      {
+        date: '2026-07-20',
+        kpi_rate: 52.56,
+        dod: 0,
+        color: 'red',
+        national_rank: { available: false, message: 'Chưa có dữ liệu xếp hạng toàn quốc cho ngày 2026-07-20' },
+      },
+    ]],
+  }, { toDate: '2026-07-20' });
+
+  assert.equal(model.heatmap[0].days[0].nationalRankLabel, 'Chưa có dữ liệu xếp hạng toàn quốc cho ngày 2026-07-20');
 });
 
 test('monthly YTD combo data exposes management summary and current-month cutoff', () => {
