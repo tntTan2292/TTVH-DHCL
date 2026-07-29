@@ -3,17 +3,17 @@
 - Ticket ID: `F13-UI-AUDIT-PLAN`
 - Ticket Name: `F1.3 UI Audit and Standardization Planning`
 - Phase: `F1.3 UI Planning & Execution`
-- Current state: `PHASE 1 & PHASE 2 PO PASS / READY FOR PHASE 3 DISPATCH`
-- Technical Status: `PHASE 1 & 2 IMPLEMENTED (COMMITS 6ea7819, cbe5bc2, dd9cbf5) / PHASE 3 NOT YET DISPATCHED`
-- Runtime Status: `PHASE 1 & 2 VERIFIED PASS`
-- PO UI Check Required: `Yes - Phase 1 Remediation & Phase 2 PO PASS recorded`
-- PO Product Status: `PHASE 1 & PHASE 2 PO PASS`
-- Activation authority: `Product Owner recorded: PO PASS PHASE 1 REMEDIATION; PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX.`
+- Current state: `PHASE 1, 2 & 3 PO PASS / READY FOR PHASE 4 DISPATCH`
+- Technical Status: `PHASE 1, 2 & 3 IMPLEMENTED (COMMITS 6ea7819, cbe5bc2, dd9cbf5, 32c10f5) / PHASE 4 NOT YET DISPATCHED`
+- Runtime Status: `PHASE 1, 2 & 3 VERIFIED PASS`
+- PO UI Check Required: `Yes - Phase 1, 2 & 3 PO PASS recorded`
+- PO Product Status: `PHASE 1, 2 & 3 PO PASS`
+- Activation authority: `Product Owner recorded: PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX (Commit 32c10f5470bf1d3a530a767b42ab1948f7f3e61d).`
 - Handoff date: `2026-07-29`
 - Coordination owner: `ChatGPT with Product Owner`
 - Primary executor: `Antigravity`
-- Antigravity executor state: `PHASE 1 & 2 COMPLETED / AWAITING PHASE 3 DISPATCH`
-- Execution boundary: `PHASE 1 & 2 PO PASS / DO NOT DISPATCH PHASE 3 UNTIL CHATGPT COORDINATION ISSUES A SEPARATELY BOUNDED PROMPT`
+- Antigravity executor state: `PHASE 1, 2 & 3 COMPLETED / AWAITING PHASE 4 DISPATCH`
+- Execution boundary: `PHASE 1, 2 & 3 PO PASS / DO NOT DISPATCH PHASE 4 UNTIL CHATGPT COORDINATION ISSUES A SEPARATELY BOUNDED PROMPT`
 
 ## Fresh-Chat Onboarding Authority
 
@@ -59,11 +59,10 @@ Accepted closure state:
 
 Approved Operation Dashboard Plan & Execution Workflow:
 
-1. Product Owner recorded: `PO PASS PHASE 1 REMEDIATION` (Commit `cbe5bc2`) and `PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX` (Commit `dd9cbf5`).
-2. Current ticket `F13-UI-AUDIT-PLAN` checkpoint updated to record PO decisions, deferred Executive Insight content quality finding, shared component policy, and table isolation policy.
-3. Phase 3 and Phase 4 implementation are NOT dispatched in this step.
-4. ChatGPT coordination will issue a separately bounded prompt when dispatching Phase 3 implementation (Charts, Patterns & Action Center Polish).
-5. Complete Phase 3 before activating Phase 4.
+1. Product Owner recorded: `PO PASS PHASE 1 REMEDIATION` (Commit `cbe5bc2`), `PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX` (Commit `dd9cbf5`), and `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX` (Commit `32c10f5`).
+2. Current ticket `F13-UI-AUDIT-PLAN` checkpoint updated to record PO decisions, deferred Executive Insight content quality finding, target-line semantic color normalization deferred finding, shared component policy, and table isolation policy.
+3. Phase 4 implementation is NOT dispatched in this step.
+4. ChatGPT coordination will issue a separately bounded prompt when dispatching Phase 4 implementation (Section height, scroll remediation, density & interaction polish).
 
 Approved focus:
 
@@ -79,25 +78,34 @@ Future sequence, not currently authorized:
 
 ## Objective
 
-Antigravity has inspected Operation Dashboard, submitted a PO-approved UI/UX plan, implemented Phase 1, Phase 1 Remediation, and Phase 2. Product Owner recorded `PO PASS PHASE 1 REMEDIATION` and `PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX.`
+Antigravity has inspected Operation Dashboard, submitted a PO-approved UI/UX plan, implemented Phase 1, Phase 1 Remediation, Phase 2, and Phase 3. Product Owner recorded `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX.`
 
-The completed Phase 1 & 2 scope includes:
+The completed Phase 1, 2 & 3 scope includes:
 
 - Operation Dashboard filter bar (`GlobalFilterBar`)
 - Executive command summary cards & full-width briefing banner (`UnifiedCommandSummary`)
 - Compact 9-column BCVH overview table (`BcvhOperationTable`)
-- CRM 3.0-inspired surface depth, border, shadow, and tabular-nums styling
-- Restrained geometry-matched pulse skeletons for Phase 1 & 2 loading states
+- Integrated trend risk workspace (`IntegratedTrendRiskWorkspace`) with gradient volume bars, high-visibility reference line for target 90% (`QUALITY_TARGET_RATE`), floating dark glass tooltip, and D-1/D-7 leadership comparison cards
+- Operating pattern tabs card (`OperatingPatternTabsCard`) with segmented pill-belt tabs, top-accented 5 monthly summary cards, high-contrast heatmap cells with `tabular-nums` typography, and floating detail tooltip
+- Unified action center (`UnifiedActionCenter`) with Executive Bulletin visual alignment, solid P1/P2/P3 priority badges, left accent border cards, and CTA action buttons
 - Preserved compact 9-column BCVH table contract and isolated BCVH Ranking table
-- Consumed business-semantic colors, KPI labels, thresholds, formulas, and target lines from authoritative SSOT
-- Recorded protected findings for shared components, table isolation, and deferred Executive Insight content review
+- Consumed business-semantic colors, KPI labels, thresholds, formulas, and target lines from authoritative SSOT (the authoritative current dashboard target is 90%, consumed from `QUALITY_TARGET_RATE`)
+- Recorded protected findings for shared components, table isolation, deferred Executive Insight content review, and deferred target-line semantic color normalization
 
 ## Protected & Deferred Findings Recorded
 
-1. **Executive Insight Content Quality Review — DEFERRED / NOT AUTHORIZED under current UI/UX implementation phases**: Visual presentation and full-width card layout of *"Bản tin chỉ đạo điều hành"* is accepted. Generated wording, recommendations, prioritization, and business usefulness belong to content-generation/business-interpretation logic, NOT current UI/UX scope. Future Phase 3 & 4 work MUST preserve existing content-generation logic and MUST NOT rewrite, remove, or add generated conclusions. A separately authorized future ticket must trace content sources, determine rule-based vs AI-generated behavior, and assess factual accuracy and leadership usefulness.
-2. **Shared Visual Components Policy**: Phase 1 styling on `GlobalFilterBar` appearing on BCVH Ranking is accepted for the current visual treatment. Any future change to a shared component must validate both `/f13/dashboard` and `/f13/ranking/bcvh`. A future BCVH Ranking ticket must not assume changing shared styling is automatically authorized for Dashboard.
-3. **Table Presentation Isolation Policy**: Operation Dashboard continues rendering compact 9-column `BcvhOperationTable`. BCVH Ranking continues rendering detailed `UnifiedBcvhAnalysisTable`. Do not reconnect or replace either table unless Product Owner explicitly approves a new contract. Future BCVH Ranking remediation must verify Dashboard table structure and behavior remain unchanged.
-4. **Current Phase Status**: Phase 1 & Remediation: `PO PASS`. Phase 2: `PO PASS`. Phase 3 & 4: not yet dispatched. Zero product code modified in this step.
+1. **Executive Insight Content Quality Review — DEFERRED / NOT AUTHORIZED under current UI/UX implementation phases**: Visual presentation and full-width card layout of *"Bản tin chỉ đạo điều hành"* is accepted. Generated wording, recommendations, prioritization, and business usefulness belong to content-generation/business-interpretation logic, NOT current UI/UX scope. Future Phase 4 work MUST preserve existing content-generation logic and MUST NOT rewrite, remove, or add generated conclusions.
+2. **Target-line Semantic Color Normalization — MINOR / DEFERRED / NON-BLOCKING**: Current target-line color presentation does not affect data, formulas, APIs, permissions, target calculation, or business behavior. Local hard-coded color versus central semantic token inconsistency (`#DC2626` local vs `#7c3aed` token) is accepted for the current Phase 3 release. It may be normalized later during a bounded theme/semantic-token cleanup and MUST NOT block Phase 3 PO PASS or Phase 4 dispatch.
+3. **Shared Visual Components Policy**: Phase 1 styling on `GlobalFilterBar` appearing on BCVH Ranking is accepted for the current visual treatment. Any future change to a shared component must validate both `/f13/dashboard` and `/f13/ranking/bcvh`. A future BCVH Ranking ticket must not assume changing shared styling is automatically authorized for Dashboard.
+4. **Table Presentation Isolation Policy**: Operation Dashboard continues rendering compact 9-column `BcvhOperationTable`. BCVH Ranking continues rendering detailed `UnifiedBcvhAnalysisTable`. Do not reconnect or replace either table unless Product Owner explicitly approves a new contract. Future BCVH Ranking remediation must verify Dashboard table structure and behavior remain unchanged.
+5. **Current Phase Status**:
+   - Phase 1: `COMPLETED / PO PASS`
+   - Phase 1 Remediation: `COMPLETED / PO PASS`
+   - Phase 2: `COMPLETED / PO PASS`
+   - Phase 3: `COMPLETED / PO PASS`
+   - Phase 4: `NOT YET DISPATCHED`
+   - Next state: `READY FOR PHASE 4 DISPATCH`
+
 
 ## Out Of Scope
 

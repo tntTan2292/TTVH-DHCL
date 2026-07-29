@@ -4,8 +4,8 @@
 - Date: `2026-07-29`
 - Target Component: `Operation Dashboard (/f13/dashboard)`
 - Visual Inspiration: `CRM 3.0 Dashboard (Interface surfaces, depth, saturation, borders, shadows, typography, controls, feedback)`
-- Authority: `PO PASS PHASE 1 REMEDIATION & PO PASS PHASE 2 / READY FOR PHASE 3 DISPATCH`
-- PO Status: `PO PASS PHASE 1 REMEDIATION; PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX`
+- Authority: `PO PASS PHASE 1, PHASE 1 REMEDIATION, PHASE 2 & PHASE 3 / READY FOR PHASE 4 DISPATCH`
+- PO Status: `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX`
 
 ---
 
@@ -16,13 +16,15 @@ This UI/UX Plan defines the visual, interaction, and structural standardization 
 The Product Owner has officially recorded:
 - **`PO PASS PHASE 1 REMEDIATION`**
 - **`PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX`**
+- **`PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX`** (Commit `32c10f5470bf1d3a530a767b42ab1948f7f3e61d`)
 
 ### Current Workflow & Handoff Status:
 - **Phase 1**: `COMPLETED / PO PASS` (Commit `6ea7819`).
 - **Phase 1 Remediation**: `COMPLETED / PO PASS` (Commit `cbe5bc2`).
 - **Phase 2**: `COMPLETED / PO PASS` (Commit `dd9cbf5`).
-- **Phase 3 and Phase 4**: `NOT YET DISPATCHED`. Do not implement additional UI changes or start Phase 3 in this step.
-- **Next Action**: Awaiting ChatGPT coordination to issue a separately bounded prompt for Phase 3 implementation (Charts, Patterns & Action Center Polish).
+- **Phase 3**: `COMPLETED / PO PASS` (Commit `32c10f5`).
+- **Phase 4**: `NOT YET DISPATCHED`.
+- **Next State**: `READY FOR PHASE 4 DISPATCH`.
 
 ---
 
@@ -33,24 +35,32 @@ The Product Owner has officially recorded:
 > **Executive Insight Content Quality Review — DEFERRED / NOT AUTHORIZED under current UI/UX implementation phases.**
 > 1. **Visual Presentation Accepted**: The visual presentation and layout of *"Bản tin chỉ đạo điều hành"* (full-width CRM 3.0 card banner) is accepted by Product Owner.
 > 2. **Scope Isolation**: Its generated wording, recommendations, prioritization, and business usefulness belong to backend content-generation/business-interpretation logic, NOT the current UI/UX scope.
-> 3. **Preservation Mandate**: Future Phase 3 and Phase 4 work must preserve existing content-generation logic exactly and MUST NOT rewrite, remove, or add generated conclusions.
+> 3. **Preservation Mandate**: Future Phase 4 work must preserve existing content-generation logic exactly and MUST NOT rewrite, remove, or add generated conclusions.
 > 4. **Future Ticket Authorization**: A separately authorized future ticket must trace the content source, determine whether it is rule/template-based or AI-generated, and assess factual accuracy and leadership usefulness.
 
-### B. Shared Visual Components Policy
+### B. Deferred Finding: Target-line Semantic Color Normalization
+> [!NOTE]
+> **Target-line semantic color normalization — MINOR / DEFERRED / NON-BLOCKING.**
+> 1. **No Business Impact**: The current target-line color presentation does not affect data, formulas, APIs, permissions, target calculation, or business behavior.
+> 2. **Accepted Release Inconsistency**: The local hard-coded color versus central semantic token inconsistency (`#DC2626` local vs `#7c3aed` token) is accepted for the current Phase 3 release.
+> 3. **Future Cleanup**: It may be normalized later during a bounded theme/semantic-token cleanup.
+> 4. **Non-blocking Authorization**: It MUST NOT block Phase 3 PO PASS or Phase 4 dispatch.
+
+### C. Shared Visual Components Policy
 1. The current Phase 1 styling (`GlobalFilterBar` in `SharedLayout.jsx`) that also appears on BCVH Ranking (`/f13/ranking/bcvh`) is accepted by Product Owner.
 2. This acceptance applies **ONLY** to the current shared visual treatment.
 3. Any future change to a shared component must validate both `/f13/dashboard` and `/f13/ranking/bcvh`.
 4. A future BCVH Ranking ticket must not assume that changing shared styling is automatically authorized for Operation Dashboard.
 
-### C. Table Presentation Isolation Policy
+### D. Table Presentation Isolation Policy
 1. **Operation Dashboard Table**: Operation Dashboard continues rendering the accepted compact 9-column `BcvhOperationTable` (`src/components/f13/BcvhOperationTable.jsx`).
 2. **BCVH Ranking Table**: BCVH Ranking continues rendering the independent detailed `UnifiedBcvhAnalysisTable` (`features/dashboard/components/UnifiedBcvhAnalysisTable.jsx`).
 3. **No Reconnection**: Do not reconnect the Ranking table, its adapter, expandable analysis presentation, column model, or detailed ranking behavior to Dashboard.
 4. **No Shared Component Replacement**: Do not replace either table with a shared presentation component unless Product Owner explicitly approves a new contract.
 5. **Future Verification**: Future BCVH Ranking remediation must verify that Dashboard table structure, styling, and behavior remain unchanged.
 
-### D. SSOT & Scope Boundaries
-- **Authoritative SSOT Consumption**: Business-semantic colors, KPI labels, status meanings, thresholds, formulas, target lines, and route-quality classifications remain 100% UNCHANGED, consumed directly from SSOT mappers.
+### E. SSOT & Scope Boundaries
+- **Authoritative SSOT Consumption**: Business-semantic colors, KPI labels, status meanings, thresholds, formulas, target lines, and route-quality classifications remain 100% UNCHANGED, consumed directly from SSOT mappers. The authoritative current dashboard target is 90%, consumed from `QUALITY_TARGET_RATE`.
 - **Documentation Only**: Zero product code is modified in this step.
 
 ---
@@ -71,6 +81,7 @@ The Product Owner has officially recorded:
 - Do not replace a defined risk color with an unknown or fallback color.
 - Do not merge Attention and Warning unless the current authoritative SSOT explicitly maps them to the same presentation.
 - Unknown, unavailable and no-data states remain separate from adverse business-performance states.
+- The authoritative current dashboard target is 90%, consumed from `QUALITY_TARGET_RATE`.
 
 ---
 
@@ -94,9 +105,9 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
 ├── [Section 1] GlobalFilterBar (Date Range, BCVH Selector, Search Input) [Phase 1 COMPLETED / PO PASS]
 ├── [Section 2] UnifiedCommandSummary (4 Executive KPI Cards + Executive Insight Callout) [Phase 1 Remediation COMPLETED / PO PASS]
 ├── [Section 3] BcvhOperationTable (Compact 9-Column BCVH Overview Table) [Phase 2 COMPLETED / PO PASS]
-├── [Section 4] IntegratedTrendRiskWorkspace (Trend Chart & Leadership D-1/D-7 Grid) [Phase 3 COMPLETED / READY FOR PO CHECK]
-├── [Section 5] OperatingPatternTabsCard (Weekday/Month/Heatmap Patterns & Charts) [Phase 3 COMPLETED / READY FOR PO CHECK]
-└── [Section 6] UnifiedActionCenter (Executive Bulletin & Recommendation Cards) [Phase 3 COMPLETED / READY FOR PO CHECK]
+├── [Section 4] IntegratedTrendRiskWorkspace (Trend Chart & Leadership D-1/D-7 Grid) [Phase 3 COMPLETED / PO PASS]
+├── [Section 5] OperatingPatternTabsCard (Weekday/Month/Heatmap Patterns & Charts) [Phase 3 COMPLETED / PO PASS]
+└── [Section 6] UnifiedActionCenter (Executive Bulletin & Recommendation Cards) [Phase 3 COMPLETED / PO PASS]
 ```
 
 ---
@@ -113,14 +124,15 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
 - **Files Modified**: `src/components/f13/BcvhOperationTable.jsx`.
 - **PO Decision**: `PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX.`
 
-### **Phase 3: Charts, Patterns & Action Center Polish (Sections 4, 5 & 6) - [COMPLETED / READY FOR PO CHECK]**
-- **Status**: `COMPLETED / READY FOR PO CHECK`.
+### **Phase 3: Charts, Patterns & Action Center Polish (Sections 4, 5 & 6) - [COMPLETED / PO PASS]**
+- **Status**: `COMPLETED / PO PASS` (Commit `32c10f5470bf1d3a530a767b42ab1948f7f3e61d`).
+- **PO Decision**: `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX.`
 - **Files Modified**:
   - `src/features/dashboard/components/IntegratedTrendRiskWorkspace.jsx`
   - `src/features/dashboard/components/OperatingPatternTabsCard.jsx`
   - `src/features/dashboard/components/UnifiedActionCenter.jsx`
 - **Key Outcomes**:
-  - **IntegratedTrendRiskWorkspace**: Applied CRM 3.0 depth to chart container (`rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md`), volume bar SVG gradient (`#003E7E` to `#2563EB`), high-visibility 95% target reference line (`#DC2626` stroke with label pill), floating dark glass tooltip (`bg-slate-900/95 text-white shadow-xl`), styled D-1/D-7 comparison cards with bold tabular metrics and delta chips.
+  - **IntegratedTrendRiskWorkspace**: Applied CRM 3.0 depth to chart container (`rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md`), volume bar SVG gradient (`#003E7E` to `#2563EB`), high-visibility target reference line (`#DC2626` stroke with label pill for `QUALITY_TARGET_RATE = 90%`), floating dark glass tooltip (`bg-slate-900/95 text-white shadow-xl`), styled D-1/D-7 comparison cards with bold tabular metrics and delta chips.
   - **OperatingPatternTabsCard**: Redesigned tab selectors into a segmented pill-belt (`bg-slate-100 p-1 rounded-xl`), top-accented 5 monthly summary cards (`border-t-2 border-t-[#003E7E]`), high-contrast heatmap cell background fills preserving exact SSOT relative bands with `tabular-nums` readability at 100% zoom, and floating dark detail layer tooltip.
   - **UnifiedActionCenter**: Visually aligned "Bản tin nhanh" with Phase 1 "Bản tin chỉ đạo" identity (`bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 border-blue-200/90`), added solid P1 (`bg-red-600`), P2 (`bg-amber-500`), P3 (`bg-blue-600`) priority badges, left accent border cards (`P1 border-l-red-600`, `P2 border-l-amber-500`, `P3 border-l-blue-600`), and CTA action buttons (`bg-[#003E7E]`).
 - **Verification Evidence**:
@@ -128,20 +140,28 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
   - `vite build` completed successfully with 0 errors.
   - `oxlint` completed with 0 errors.
   - BCVH Ranking (`/f13/ranking/bcvh`) verified 100% unaffected.
-  - Preserved all SSOT colors, targets, formulas, recommendation text, and data contracts.
+  - Preserved all SSOT colors, targets, formulas, recommendation text, and data contracts. The authoritative current dashboard target is 90%, consumed from `QUALITY_TARGET_RATE`.
 
 ### **Phase 4: Interaction Polish & Motion Support (Operation Dashboard-Wide) - [NOT YET DISPATCHED]**
 - **Status**: `NOT YET DISPATCHED`.
+- **Next State**: `READY FOR PHASE 4 DISPATCH`.
 - **Scope**: Dashboard-wide 150ms transition and `prefers-reduced-motion` validation, section height, scroll remediation, and zoom density.
 
 ---
 
 ## 7. Protected Boundaries & Governance State
 
-- **Existing KPI Targets & Thresholds**: Existing KPI targets (e.g. 95% quality target line) and thresholds remain exactly as defined by authoritative SSOT.
+- **Existing KPI Targets & Thresholds**: Existing KPI targets (the authoritative current dashboard target is 90%, consumed from `QUALITY_TARGET_RATE`) and thresholds remain exactly as defined by authoritative SSOT.
 - **No Data or API Contract Changes**: Parameters for `/f13/ranking/bcvh` and `/f13/dashboard/*` remain 100% unchanged.
 - **No Generated Content Alteration**: Recommendation texts, priority logic, and bulletin content in Action Center remain 100% untouched.
 - **No Permission or Navigation Changes**: Viewer/Admin access levels, port 5178/5050, and route `/f13/dashboard` remain fixed.
-- **Governance State**: Phase 1, Phase 1 Remediation, and Phase 2 are awarded PO PASS. Phase 3 UI implementation is complete and set to `READY FOR PO CHECK`. Phase 4 execution is NOT started.
+- **Governance State**:
+  - Phase 1: `COMPLETED / PO PASS`
+  - Phase 1 Remediation: `COMPLETED / PO PASS`
+  - Phase 2: `COMPLETED / PO PASS`
+  - Phase 3: `COMPLETED / PO PASS`
+  - Phase 4: `NOT YET DISPATCHED`
+  - Next state: `READY FOR PHASE 4 DISPATCH`
+
 
 
