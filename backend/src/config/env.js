@@ -29,9 +29,11 @@ function loadLocalEnv(options = {}) {
         path.resolve(process.cwd(), '.env'),
         path.resolve(process.cwd(), '..', '.env')
     ];
+    const loadedFiles = [];
 
     for (const filePath of candidates) {
         if (!fs.existsSync(filePath)) continue;
+        loadedFiles.push(filePath);
 
         const lines = fs.readFileSync(filePath, 'utf8').split(/\r?\n/);
         for (const line of lines) {
@@ -41,6 +43,11 @@ function loadLocalEnv(options = {}) {
             }
         }
     }
+
+    return {
+        candidates,
+        loadedFiles,
+    };
 }
 
 module.exports = { loadLocalEnv };

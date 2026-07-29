@@ -92,9 +92,20 @@ npm.cmd run build
 Start the backend API service:
 
 ```powershell
-cd "D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend"
-node .\server.js
+cd "D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong"
+powershell -ExecutionPolicy Bypass -File .\scripts\start-qis-backend.ps1
 ```
+
+This canonical startup path:
+
+- starts `backend/server.js` from the correct backend directory
+- refuses to start if port `5050` is already occupied
+- avoids stale-process confusion from ad hoc working directories
+- prints only safe viewer diagnostics:
+  - loaded `.env` path
+  - viewer username
+  - viewer enabled `yes/no`
+  - viewer hash valid `yes/no`
 
 Start the frontend host separately:
 

@@ -110,6 +110,8 @@ The implementation must preserve:
 - Normal LAN access path is `http://<server-ip>:5178`, with frontend API requests targeting backend port `5050` on the same hostname.
 - If either port is occupied, startup must fail clearly instead of changing ports automatically.
 - Windows pre-start conflict inspection is provided by `scripts/check-qis-lan-ports.ps1`.
+- Canonical backend startup is provided by `scripts/start-qis-backend.ps1`.
+- Backend startup diagnostics must reveal only: loaded `.env` path, configured viewer username, viewer enabled `yes/no`, and viewer hash valid `yes/no`.
 
 ## Validation
 

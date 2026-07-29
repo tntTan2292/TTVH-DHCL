@@ -56,6 +56,8 @@ Viewer-blocked screens:
 - Frontend remains a separate Vite-hosted surface on port `5178`.
 - Frontend API requests resolve to backend port `5050` on the same hostname for both localhost and LAN access.
 - Windows pre-start port inspection is provided by `scripts/check-qis-lan-ports.ps1`.
+- Backend startup now reports the loaded `.env` path, configured viewer username, viewer enabled state, and viewer hash format validity without exposing the hash value.
+- Canonical backend startup is provided by `scripts/start-qis-backend.ps1` so operators start from the correct directory and fail fast on stale port `5050` listeners.
 
 ## Runtime Evidence
 
@@ -71,6 +73,7 @@ Confirmed on `2026-07-29`:
 - unauthenticated `GET /api/import/status` returned `401`
 - occupied frontend port fails clearly with `Port 5178 is already in use`
 - occupied backend port fails clearly with `PORT 5050 IS OCCUPIED`
+- viewer runtime remediation confirmed the active backend loaded `.env` from repository root, accepted overridden viewer username `ttvhhue`, and rejected the previous malformed plaintext value that had been stored in `QIS_VIEWER_PASSWORD_HASH`
 
 ## Validation Evidence
 
@@ -100,6 +103,7 @@ Additional checks:
 - direct URL and API-boundary verification: `PASS`
 - LAN frontend to backend port `5050` verification: `PASS`
 - Windows port-conflict inspection script: `PASS`
+- viewer runtime credential verification after local correction: `PASS`
 - `git diff --check`: pending final delivery step
 
 ## PO Manual Check Focus

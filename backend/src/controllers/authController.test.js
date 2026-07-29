@@ -2,7 +2,11 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const authController = require('./authController');
 const authSessionStore = require('../services/auth/AuthSessionStore');
-const { DEFAULT_ADMIN, DEFAULT_VIEWER_USERNAME } = require('../services/auth/runtimeUsers');
+const {
+    DEFAULT_ADMIN,
+    DEFAULT_VIEWER_USERNAME,
+    getViewerConfigStatus,
+} = require('../services/auth/runtimeUsers');
 const { hashPassword } = require('../services/auth/passwordHash');
 
 const ORIGINAL_ENV = {
@@ -112,6 +116,26 @@ test('login rejects missing or invalid credentials', () => {
     assert.equal(invalid.statusCode, 401);
     assert.equal(invalid.body.success, false);
     assert.equal(invalid.body.error.code, 'UNAUTHORIZED');
+});
+
+test('viewer config status distinguishes missing and malformed hashes without exposing secrets', () => {
+    let status = getViewerConfigStatus();
+    assert.equal(status.viewerUsername, DEFAULT_VIEWER_USERNAME);
+    assert.equal(status.viewerEnabled, false);
+    assert.equal(status.hashFormatValid, false);
+
+    process.env.QIS_VIEWER_USERNAME = 'ttvhhue';
+    process.env.QIS_VIEWER_PASSWORD_HASH = 'ttvh@2026';
+    status = getViewerConfigStatus();
+    assert.equal(status.viewerUsername, 'ttvhhue');
+    assert.equal(status.viewerEnabled, true);
+    assert.equal(status.hashFormatValid, false);
+
+    process.env.QIS_VIEWER_PASSWORD_HASH = hashPassword('Viewer#2026!');
+    status = getViewerConfigStatus();
+    assert.equal(status.viewerUsername, 'ttvhhue');
+    assert.equal(status.viewerEnabled, true);
+    assert.equal(status.hashFormatValid, true);
 });
 
 test('me restores authenticated user from bearer or x-session-id headers', () => {

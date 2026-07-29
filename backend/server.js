@@ -1,8 +1,9 @@
 const express = require('express');
 const cors = require('cors');
 const { loadLocalEnv } = require('./src/config/env');
+const { getViewerConfigStatus } = require('./src/services/auth/runtimeUsers');
 
-loadLocalEnv();
+const envLoadResult = loadLocalEnv();
 
 const f13Routes = require('./src/routes/f13Routes');
 const importRoutes = require('./src/routes/importRoutes');
@@ -14,12 +15,22 @@ const PORT = Number(process.env.PORT || 5050);
 const HOST = process.env.HOST || '0.0.0.0';
 
 const logRuntimeBanner = () => {
+    const viewerConfig = getViewerConfigStatus();
+    const loadedEnvPath =
+        envLoadResult.loadedFiles[0] ||
+        envLoadResult.candidates.find(Boolean) ||
+        'NO_LOCAL_ENV_FOUND';
+
     console.log('====================================');
     console.log('Backend Runtime Started');
     console.log(`PID: ${process.pid}`);
     console.log(`Node: ${process.version}`);
     console.log(`Host: ${HOST}`);
     console.log(`Port: ${PORT}`);
+    console.log(`Loaded .env: ${loadedEnvPath}`);
+    console.log(`Viewer username: ${viewerConfig.viewerUsername || 'N/A'}`);
+    console.log(`Viewer enabled: ${viewerConfig.viewerEnabled ? 'yes' : 'no'}`);
+    console.log(`Viewer hash valid: ${viewerConfig.hashFormatValid ? 'yes' : 'no'}`);
     console.log(`Time: ${new Date().toISOString()}`);
     console.log('====================================');
 };

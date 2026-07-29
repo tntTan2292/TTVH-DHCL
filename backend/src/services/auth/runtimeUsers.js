@@ -8,6 +8,7 @@ const DEFAULT_ADMIN = {
 };
 
 const DEFAULT_VIEWER_USERNAME = 'f13viewer';
+const VIEWER_HASH_PATTERN = /^scrypt\$[0-9a-f]+\$[0-9a-f]+$/i;
 
 function normalizeUser(user) {
     if (!user) return null;
@@ -38,6 +39,19 @@ function getViewerUser() {
     });
 }
 
+function getViewerConfigStatus() {
+    const viewerUsername = String(process.env.QIS_VIEWER_USERNAME || DEFAULT_VIEWER_USERNAME).trim();
+    const viewerHash = String(process.env.QIS_VIEWER_PASSWORD_HASH || '').trim();
+    const hashPresent = viewerHash.length > 0;
+    const hashFormatValid = VIEWER_HASH_PATTERN.test(viewerHash);
+
+    return {
+        viewerUsername,
+        viewerEnabled: hashPresent,
+        hashFormatValid,
+    };
+}
+
 function authenticateRuntimeUser(username, password) {
     const normalizedUsername = String(username || '').trim();
     const normalizedPassword = String(password || '');
@@ -65,6 +79,7 @@ module.exports = {
     DEFAULT_ADMIN,
     DEFAULT_VIEWER_USERNAME,
     getViewerUser,
+    getViewerConfigStatus,
     getAdminUser,
     authenticateRuntimeUser,
 };
