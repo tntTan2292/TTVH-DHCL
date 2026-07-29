@@ -164,6 +164,50 @@ class F13DashboardService {
         };
     }
 
+    _buildTotalComparisonBlock(currentTotals, comparisonMetrics, canonicalCount) {
+        const currentVolume = Number(currentTotals?.sl_bg_ptc || 0);
+        const currentPassed = Number(currentTotals?.dat_kpi_2026 || 0);
+        const currentRate = currentVolume > 0 ? this._calculateRate(currentPassed, currentVolume) : null;
+
+        const coverageRows = Array.isArray(comparisonMetrics)
+            ? comparisonMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')))
+            : [];
+        const coverageCount = coverageRows.length;
+
+        if (coverageCount === 0) {
+            return {
+                volume: null,
+                f1_3_rate: null,
+                volume_delta: null,
+                rate_delta: null,
+                coverage: {
+                    available_rows: 0,
+                    canonical_total: canonicalCount,
+                    is_partial: false,
+                    is_complete: false,
+                },
+            };
+        }
+
+        const isComplete = coverageCount === canonicalCount;
+        const comparisonVolume = coverageRows.reduce((sum, item) => sum + Number(item?.sl_bg_ptc || 0), 0);
+        const comparisonPassed = coverageRows.reduce((sum, item) => sum + Number(item?.dat_kpi_2026 || 0), 0);
+        const comparisonRate = isComplete ? this._calculateRate(comparisonPassed, comparisonVolume) : null;
+
+        return {
+            volume: isComplete ? comparisonVolume : null,
+            f1_3_rate: comparisonRate,
+            volume_delta: isComplete ? currentVolume - comparisonVolume : null,
+            rate_delta: isComplete && currentRate !== null ? Number((currentRate - comparisonRate).toFixed(2)) : null,
+            coverage: {
+                available_rows: coverageCount,
+                canonical_total: canonicalCount,
+                is_partial: coverageCount > 0 && coverageCount < canonicalCount,
+                is_complete: isComplete,
+            },
+        };
+    }
+
     _buildRankMovement(currentRank, comparisonRank) {
         if (!currentRank || !comparisonRank) {
             return {
@@ -857,6 +901,12 @@ class F13DashboardService {
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
                 return acc;
             }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
+
+            const canonicalCurrentCount = currentMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || ''))).length;
+            totalRow.comparisons = {
+                d1: this._buildTotalComparisonBlock(totalCurrent, yesterdayMetrics, canonicalCurrentCount),
+                d7: this._buildTotalComparisonBlock(totalCurrent, swcMetrics, canonicalCurrentCount),
+            };
 
             totalRow.kpi_2026_dod = this._calculateNullableRateDelta(
                 totalCurrent.dat_kpi_2026,

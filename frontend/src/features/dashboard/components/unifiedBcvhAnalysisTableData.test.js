@@ -95,6 +95,10 @@ test('maps total row without exposing raw total and preserves valid aggregate va
         dat_kpi_2026: 8,
         khong_dat_kpi_2026: 2,
         kpi_2026: 80,
+        comparisons: {
+          d1: { volume: 6, f1_3_rate: 50, volume_delta: 4, comparison_rank: null, rank_movement: { direction: 'unavailable', delta: null } },
+          d7: { volume: 8, f1_3_rate: 62.5, volume_delta: 2, comparison_rank: null, rank_movement: { direction: 'unavailable', delta: null } },
+        },
         delayed_cash_handover_count: 1,
         f13_303_rate: 5.5,
         route_distribution: {
@@ -125,6 +129,13 @@ test('maps total row without exposing raw total and preserves valid aggregate va
   assert.equal(mapped.total_row.current_day.fail_count, 2);
   assert.equal(mapped.total_row.current_day.rate, 80);
   assert.equal(mapped.total_row.current_day.signal.label, 'Tốt');
+  assert.equal(mapped.total_row.comparisons.d1.volume, 6);
+  assert.equal(mapped.total_row.comparisons.d1.rate, 50);
+  assert.equal(mapped.total_row.comparisons.d1.volume_delta, 4);
+  assert.equal(mapped.total_row.comparisons.d1.rate_delta, null);
+  assert.equal(mapped.total_row.comparisons.d7.volume, 8);
+  assert.equal(mapped.total_row.comparisons.d7.rate, 62.5);
+  assert.equal(mapped.total_row.comparisons.d7.volume_delta, 2);
   assert.equal(mapped.total_row.late_cash.count, 1);
   assert.equal(mapped.total_row.late_cash.rate, 5.5);
   assert.equal(mapped.total_row.route_distribution.participating_postman_route_count, 4);
@@ -192,6 +203,7 @@ test('component sources preserve four-column comparison order and dashboard isol
   const dashboardSource = read('../../../components/f13/BcvhOperationTable.jsx');
   const dashboardAdapterSource = read('./BcvhOperationTableAdapter.jsx');
 
+  assert.match(componentSource, /STORAGE_KEY = 'qis\.bcvhRankingWave2\.columns\.v2'/);
   assert.match(componentSource, /rate: 'Tỷ lệ'/);
   assert.match(componentSource, /volumeDelta: 'SS SL'/);
   assert.match(componentSource, /rateDelta: 'SS Tỷ lệ'/);
@@ -199,6 +211,7 @@ test('component sources preserve four-column comparison order and dashboard isol
   assert.match(componentSource, /D-1 \/ Tỷ lệ/);
   assert.match(componentSource, /D-7 \/ Sản lượng/);
   assert.match(componentSource, /D-7 \/ Tỷ lệ/);
+  assert.match(componentSource, /HeaderGroup label=\{TEXT\.identity\}[\s\S]*HeaderGroup label=\{TEXT\.currentDay\}[\s\S]*HeaderGroup label=\{TEXT\.lateCash\}[\s\S]*HeaderGroup label=\{TEXT\.comparisonD1\}[\s\S]*HeaderGroup label=\{TEXT\.comparisonD7\}[\s\S]*HeaderGroup label=\{TEXT\.routeDistribution\}[\s\S]*HeaderGroup label=\{TEXT\.action\}/);
   assert.match(componentSource, /Sản lượng: <span className="font-semibold">\{formatNumber\(row\.comparisons\.d1\.volume\)\}<\/span>/);
   assert.match(componentSource, /Tỷ lệ: <span className="font-semibold">\{formatRate\(row\.comparisons\.d1\.rate\)\}<\/span>/);
   assert.match(componentSource, /SS SL: <span className="font-semibold">\{formatVolumeDelta\(row\.comparisons\.d1\.volume_delta\)\}<\/span>/);
@@ -210,6 +223,7 @@ test('component sources preserve four-column comparison order and dashboard isol
   assert.match(componentSource, /const d1Span = 2 \+/);
   assert.match(componentSource, /const d7Span = 2 \+/);
   assert.match(componentSource, /const colSpan = 18 \+/);
+  assert.match(componentSource, /readStoredColumns\(\)[\s\S]*return DEFAULT_COLUMNS;/);
   assert.doesNotMatch(componentSource, /Hạng kỳ so sánh|Dịch chuyển hạng/);
   assert.doesNotMatch(componentSource, /comparison_rank, isTotal/);
   assert.doesNotMatch(componentSource, /rank_movement/);

@@ -103,6 +103,31 @@ Latest bounded D-1 / D-7 remediation on `2026-07-29` delivered:
 - preserved the approved visibility rule so only raw `Sản lượng` and `Tỷ lệ` may be hidden while `SS SL` and `SS Tỷ lệ` stay visible
 - updated grouped headers, row rendering, total-row rendering behavior, expandable analysis wording, regression tests, and checkpoint wording to the same four-column contract
 
+Latest bounded total-row and comparison-order remediation on `2026-07-29` delivered:
+
+- backend now builds authoritative `meta.total_row.comparisons.d1` and `meta.total_row.comparisons.d7` aggregates instead of leaving the total-row comparison block unavailable when full comparison coverage exists
+- total comparison aggregation uses summed numerators and denominators only:
+  - aggregate comparison volume = sum of canonical BCVH comparison volumes
+  - aggregate comparison passed = sum of canonical BCVH comparison passed counts
+  - aggregate comparison F1.3 = `sum comparison passed / sum comparison volume`
+  - `SS SL` = `current total volume - comparison total volume`
+  - `SS Tỷ lệ` = `current total F1.3 - comparison aggregate F1.3`
+- total-row comparison aggregation does not average BCVH percentages and does not compute browser fallback totals
+- total-row coverage stays factual:
+  - if every canonical BCVH in the current total has a comparison row, the total-row comparison values are shown
+  - if comparison coverage is only partial, the total-row comparison values remain unavailable and the backend exposes partial-coverage metadata instead of a misleading complete total
+- frontend mapper now binds total-row comparison values from the backend contract for `Tổng cộng`
+- column preference storage was versioned from the previous schema so stale localStorage preferences cannot silently hide newly approved raw comparison columns after the contract change
+- post-remediation default visible columns now show all four approved comparison fields in both `D-1` and `D-7`
+- grouped block order is now:
+  - `Đơn vị`
+  - `Kết quả ngày đánh giá`
+  - `Chậm nộp tiền`
+  - `So sánh D-1`
+  - `So sánh D-7`
+  - `Phân bổ tuyến`
+  - `Hành động`
+
 ## Preserved Authority
 
 - Dashboard SSOT route-quality bands remain exactly:

@@ -15,7 +15,7 @@ import {
   UNAVAILABLE_TEXT,
 } from './unifiedBcvhAnalysisTableData';
 
-const STORAGE_KEY = 'qis.bcvhRankingWave2.columns.v1';
+const STORAGE_KEY = 'qis.bcvhRankingWave2.columns.v2';
 
 const TEXT = {
   loading: 'Đang tải bảng xếp hạng BCVH...',
@@ -246,9 +246,9 @@ function UnifiedHeader({ columns }) {
       <tr className="border-b border-[var(--color-surface-200)]">
         <HeaderGroup label={TEXT.identity} colSpan={3} className={GROUP_STYLES.identity.header} />
         <HeaderGroup label={TEXT.currentDay} colSpan={4} className={GROUP_STYLES.currentDay.header} />
+        <HeaderGroup label={TEXT.lateCash} colSpan={2} className={GROUP_STYLES.lateCash.header} />
         <HeaderGroup label={TEXT.comparisonD1} colSpan={d1Span} className={GROUP_STYLES.d1.header} />
         <HeaderGroup label={TEXT.comparisonD7} colSpan={d7Span} className={GROUP_STYLES.d7.header} />
-        <HeaderGroup label={TEXT.lateCash} colSpan={2} className={GROUP_STYLES.lateCash.header} />
         <HeaderGroup label={TEXT.routeDistribution} colSpan={6} className={GROUP_STYLES.route.header} />
         <HeaderGroup label={TEXT.action} colSpan={1} className={GROUP_STYLES.action.header} />
       </tr>
@@ -260,7 +260,10 @@ function UnifiedHeader({ columns }) {
         <th className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.volume}</th>
         <th className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.pass}</th>
         <th className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.fail}</th>
-        <th className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.currentDay.divider} px-3 py-3 text-center`}>{TEXT.rate}</th>
+        <th className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>{TEXT.rate}</th>
+
+        <th className={`${GROUP_STYLES.lateCash.cell} px-3 py-3 text-right`}>{TEXT.lateCashCount}</th>
+        <th className={`${GROUP_STYLES.lateCash.cell} ${GROUP_STYLES.d1.divider} px-3 py-3 text-center`}>{TEXT.lateCashRate}</th>
 
         {columns.d1Volume ? <th className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-right`}>{TEXT.volume}</th> : null}
         {columns.d1Rate ? <th className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-center`}>{TEXT.rate}</th> : null}
@@ -271,9 +274,6 @@ function UnifiedHeader({ columns }) {
         {columns.d7Rate ? <th className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-center`}>{TEXT.rate}</th> : null}
         <th className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-right`}>{TEXT.volumeDelta}</th>
         <th className={`${GROUP_STYLES.d7.cell} ${GROUP_STYLES.d7.divider} px-3 py-3 text-center`}>{TEXT.rateDelta}</th>
-
-        <th className={`${GROUP_STYLES.lateCash.cell} px-3 py-3 text-right`}>{TEXT.lateCashCount}</th>
-        <th className={`${GROUP_STYLES.lateCash.cell} ${GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>{TEXT.lateCashRate}</th>
 
         <th className={`${GROUP_STYLES.route.cell} px-3 py-3 text-right`}>{TEXT.routeCount}</th>
         <th className={`${GROUP_STYLES.route.cell} px-3 py-3 text-right`}>{TEXT.routeGreen}</th>
@@ -300,19 +300,19 @@ function AnalysisPanel({ row, onOpenDetail }) {
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-xl bg-white p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{TEXT.lateCashSummary}</div>
+              <div className="mt-3 space-y-2 text-sm text-[var(--color-text-main)]">
+                <div>BG chậm nộp tiền: <span className="font-semibold">{formatNumber(row.late_cash.count)}</span></div>
+                <div>Tỷ lệ chậm nộp tiền: <span className="font-semibold">{formatRate(row.late_cash.rate)}</span></div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-white p-4 shadow-sm">
               <div className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{TEXT.currentSummary}</div>
               <div className="mt-3 space-y-2 text-sm text-[var(--color-text-main)]">
                 <div>Sản lượng: <span className="font-semibold">{formatNumber(row.current_day.volume)}</span></div>
                 <div>Đạt: <span className="font-semibold">{formatNumber(row.current_day.pass_count)}</span></div>
                 <div>Không đạt: <span className="font-semibold">{formatNumber(row.current_day.fail_count)}</span></div>
                 <div className="flex items-center gap-2">Tỷ lệ F1.3: <span className="font-semibold">{formatRate(row.current_day.rate)}</span><StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} /></div>
-              </div>
-            </div>
-            <div className="rounded-xl bg-white p-4 shadow-sm">
-              <div className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{TEXT.lateCashSummary}</div>
-              <div className="mt-3 space-y-2 text-sm text-[var(--color-text-main)]">
-                <div>BG chậm nộp tiền: <span className="font-semibold">{formatNumber(row.late_cash.count)}</span></div>
-                <div>Tỷ lệ chậm nộp tiền: <span className="font-semibold">{formatRate(row.late_cash.rate)}</span></div>
               </div>
             </div>
             <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -383,12 +383,15 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
         <td className="px-3 py-3 text-right">{formatNumber(row.current_day.volume, isTotal)}</td>
         <td className="px-3 py-3 text-right">{formatNumber(row.current_day.pass_count, isTotal)}</td>
         <td className="px-3 py-3 text-right">{formatNumber(row.current_day.fail_count, isTotal)}</td>
-        <td className="border-r border-sky-200 px-3 py-3 text-center">
+        <td className="border-r border-amber-200 px-3 py-3 text-center">
           <div className="flex flex-col items-center gap-1">
             <span className={`font-semibold ${isTotal ? 'text-[15px]' : ''}`}>{formatRate(row.current_day.rate, isTotal)}</span>
             <StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} />
           </div>
         </td>
+
+        <td className="px-3 py-3 text-right">{formatNumber(row.late_cash.count, isTotal)}</td>
+        <td className="border-r border-emerald-200 px-3 py-3 text-center">{formatRate(row.late_cash.rate, isTotal)}</td>
 
         {columns.d1Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d1.volume, isTotal)}</td> : null}
         {columns.d1Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d1.rate, isTotal)}</td> : null}
@@ -399,9 +402,6 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
         {columns.d7Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d7.rate, isTotal)}</td> : null}
         <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d7.volume_delta, isTotal)}</td>
         <td className="border-r border-violet-200 px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d7.rate_delta, 'điểm %', isTotal)}</td>
-
-        <td className="px-3 py-3 text-right">{formatNumber(row.late_cash.count, isTotal)}</td>
-        <td className="border-r border-amber-200 px-3 py-3 text-center">{formatRate(row.late_cash.rate, isTotal)}</td>
 
         <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.participating_postman_route_count, isTotal)}</td>
         <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.green, isTotal)}</td>

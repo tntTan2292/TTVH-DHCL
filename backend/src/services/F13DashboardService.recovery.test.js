@@ -654,6 +654,112 @@ test('BCVH ranking preserves genuine zero comparison rates instead of marking th
   }
 });
 
+test('BCVH ranking total-row comparison aggregates use summed numerators and denominators', async () => {
+  const originals = {
+    getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
+    getBcvhRanking: repo.getBcvhRanking,
+    getFactByDate: repo.getFactByDate,
+    getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
+  };
+
+  repo.getBcvhOperationMetricsByDate = async (date) => {
+    if (date === '2026-07-22') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 10, sl_ptc_nop_tien: 10, dat_kpi_2026: 8, khong_dat_kpi_2026: 2 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 8, sl_ptc_nop_tien: 8, dat_kpi_2026: 4, khong_dat_kpi_2026: 4 },
+      ];
+    }
+    if (date === '2026-07-21') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 6, sl_ptc_nop_tien: 6, dat_kpi_2026: 3, khong_dat_kpi_2026: 3 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 9, sl_ptc_nop_tien: 9, dat_kpi_2026: 7, khong_dat_kpi_2026: 2 },
+      ];
+    }
+    if (date === '2026-07-15') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 12, sl_ptc_nop_tien: 12, dat_kpi_2026: 10, khong_dat_kpi_2026: 2 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 5, sl_ptc_nop_tien: 5, dat_kpi_2026: 1, khong_dat_kpi_2026: 4 },
+      ];
+    }
+    return [];
+  };
+  repo.getBcvhRanking = async () => ({
+    data: [
+      { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', total_bg: 10, total_passed: 8, total_failed: 2, rank: 1 },
+      { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', total_bg: 8, total_passed: 4, total_failed: 4, rank: 2 },
+    ],
+    totalItems: 2,
+  });
+  repo.getFactByDate = async () => [];
+  repo.getBcvhOperationMetricsBetween = async () => [];
+
+  try {
+    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+
+    assert.equal(result.meta.total_row.sl_bg_ptc, 18);
+    assert.equal(result.meta.total_row.dat_kpi_2026, 12);
+    assert.equal(result.meta.total_row.kpi_2026, 66.7);
+    assert.equal(result.meta.total_row.comparisons.d1.volume, 15);
+    assert.equal(result.meta.total_row.comparisons.d1.f1_3_rate, 66.7);
+    assert.equal(result.meta.total_row.comparisons.d1.volume_delta, 3);
+    assert.equal(result.meta.total_row.comparisons.d1.rate_delta, 0);
+    assert.equal(result.meta.total_row.comparisons.d7.volume, 17);
+    assert.equal(result.meta.total_row.comparisons.d7.f1_3_rate, 64.7);
+    assert.equal(result.meta.total_row.comparisons.d7.volume_delta, 1);
+    assert.equal(result.meta.total_row.comparisons.d7.rate_delta, 2);
+  } finally {
+    Object.assign(repo, originals);
+  }
+});
+
+test('BCVH ranking total-row comparison coverage stays unavailable when canonical comparison coverage is partial', async () => {
+  const originals = {
+    getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
+    getBcvhRanking: repo.getBcvhRanking,
+    getFactByDate: repo.getFactByDate,
+    getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
+  };
+
+  repo.getBcvhOperationMetricsByDate = async (date) => {
+    if (date === '2026-07-22') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 10, sl_ptc_nop_tien: 10, dat_kpi_2026: 8, khong_dat_kpi_2026: 2 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 8, sl_ptc_nop_tien: 8, dat_kpi_2026: 4, khong_dat_kpi_2026: 4 },
+      ];
+    }
+    if (date === '2026-07-21') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 6, sl_ptc_nop_tien: 6, dat_kpi_2026: 3, khong_dat_kpi_2026: 3 },
+      ];
+    }
+    return [];
+  };
+  repo.getBcvhRanking = async () => ({
+    data: [
+      { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', total_bg: 10, total_passed: 8, total_failed: 2, rank: 1 },
+      { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', total_bg: 8, total_passed: 4, total_failed: 4, rank: 2 },
+    ],
+    totalItems: 2,
+  });
+  repo.getFactByDate = async () => [];
+  repo.getBcvhOperationMetricsBetween = async () => [];
+
+  try {
+    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+
+    assert.equal(result.meta.total_row.comparisons.d1.volume, null);
+    assert.equal(result.meta.total_row.comparisons.d1.f1_3_rate, null);
+    assert.equal(result.meta.total_row.comparisons.d1.volume_delta, null);
+    assert.equal(result.meta.total_row.comparisons.d1.rate_delta, null);
+    assert.equal(result.meta.total_row.comparisons.d1.coverage.available_rows, 1);
+    assert.equal(result.meta.total_row.comparisons.d1.coverage.canonical_total, 2);
+    assert.equal(result.meta.total_row.comparisons.d1.coverage.is_partial, true);
+    assert.equal(result.meta.total_row.comparisons.d1.coverage.is_complete, false);
+  } finally {
+    Object.assign(repo, originals);
+  }
+});
+
 test('latest import freshness ignores future-dated recovery artifacts', () => {
   const source = fs.readFileSync(require.resolve('../repositories/FactBuuGuiRepository'), 'utf8');
 
