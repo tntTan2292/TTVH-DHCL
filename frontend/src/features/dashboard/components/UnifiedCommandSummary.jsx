@@ -108,7 +108,7 @@ export default function UnifiedCommandSummary({
                 <CommandCard key={card.key} card={card} />
               ))}
             </div>
-            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+            <div className="mt-4">
               <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 p-4 shadow-2xs text-slate-900 transition-all duration-150 motion-reduce:transition-none">
                 <div className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#003E7E]">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#003E7E] text-white">
@@ -120,11 +120,6 @@ export default function UnifiedCommandSummary({
                   {insight}
                 </p>
               </div>
-              {returnedCount > 0 ? (
-                <p className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-xs leading-5 font-medium text-slate-700">
-                  Chuyển hoàn được giữ riêng trong mẫu đo kiểm, không tính vào bưu gửi cần xử lý.
-                </p>
-              ) : null}
             </div>
           </>
         )}

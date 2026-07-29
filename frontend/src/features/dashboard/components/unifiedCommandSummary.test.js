@@ -221,6 +221,7 @@ test('dashboard page removes duplicate KPI grid and executive summary presentati
   assert.doesNotMatch(dashboardSource, /ExecutiveSummaryAdapter/);
   assert.doesNotMatch(dashboardSource, /<KPICard/);
   assert.match(dataSource, /Bưu gửi cần xử lý/);
-  assert.match(commandSource, /Chuyển hoàn được giữ riêng/);
+  assert.match(commandSource, /Bản tin chỉ đạo điều hành/);
+  assert.doesNotMatch(commandSource, /Chuyển hoàn được giữ riêng trong mẫu đo kiểm/);
   assert.match(commandSource, /nationalRankPeriod/);
 });

@@ -4,8 +4,8 @@
 - Date: `2026-07-29`
 - Target Component: `Operation Dashboard (/f13/dashboard)`
 - Visual Inspiration: `CRM 3.0 Dashboard (Interface surfaces, depth, saturation, borders, shadows, typography, controls, feedback)`
-- Authority: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`
-- PO Status: `READY FOR PO CHECK (Phase 2 Implementation Complete)`
+- Authority: `PHASE 1 REMEDIATED & PHASE 2 IMPLEMENTED / READY FOR PO CHECK`
+- PO Status: `READY FOR PO CHECK (Phase 1 Remediation & Phase 2 Complete)`
 
 ---
 
@@ -13,12 +13,10 @@
 
 This UI/UX Plan defines the visual, interaction, and structural standardization for the **Operation Dashboard** (`/f13/dashboard`) of QIS V2.
 
-The Product Owner previously recorded: **`PO PASS PHASE 1 – OPERATION DASHBOARD UI/UX.`**
-
-### Phase 2 Implementation Status:
-- **Scope Implemented**: Phase 2 (`BcvhOperationTable` compact 9-column overview table on `/f13/dashboard`).
-- **UI Treatment Applied**: CRM 3.0-inspired neutral header surfaces (`bg-slate-100 text-slate-700 font-bold`), visual shadow separator for the sticky `Tên BCVH` column (`shadow-[4px_0_10px_-4px_rgba(0,0,0,0.12)] border-r border-slate-200`), tabular number readability (`tabular-nums`), visually restyled guidance drawer with clean status cards, 150ms transitions (`motion-reduce:transition-none`), and geometry-matched skeleton loading rows.
-- **Validation**: 100% focused unit tests passed. Presentation isolation verified for both `/f13/dashboard` and `/f13/ranking/bcvh`. Zero business logic or API contracts changed.
+### Phase 1 Visual Remediation & Phase 2 Status:
+- **Phase 1 Remediation Implemented**: Removed secondary note *"Chuyển hoàn được giữ riêng trong mẫu đo kiểm, không tính vào bưu gửi cần xử lý."* from `UnifiedCommandSummary`. Expanded the "Bản tin chỉ đạo điều hành" block to use the 100% full available width of that row.
+- **Phase 2 Implemented**: CRM 3.0-inspired neutral header surfaces (`bg-slate-100 text-slate-700 font-bold`), visual shadow separator for sticky `Tên BCVH` column (`shadow-[4px_0_10px_-4px_rgba(0,0,0,0.12)]`), tabular number readability (`tabular-nums`), visually restyled guidance drawer with clean status cards, 150ms transitions (`motion-reduce:transition-none`), and geometry-matched skeleton loading rows.
+- **Validation**: 100% unit tests passed. Presentation isolation verified for both `/f13/dashboard` and `/f13/ranking/bcvh`. Zero business logic or API contracts changed.
 - **Current State**: Stopped at `READY FOR PO CHECK`. Phase 3 and Phase 4 implementation is NOT dispatched.
 
 ---
@@ -40,7 +38,7 @@ The Product Owner previously recorded: **`PO PASS PHASE 1 – OPERATION DASHBOAR
 
 ### C. SSOT & Scope Boundaries
 - **Authoritative SSOT Consumption**: Business-semantic colors, KPI labels, status meanings, thresholds, formulas, target lines, and route-quality classifications remain 100% UNCHANGED, consumed directly from SSOT mappers.
-- **No Phase 3 or 4 Code Implementation**: Execution stops at Phase 2 `READY FOR PO CHECK`.
+- **No Phase 3 or 4 Code Implementation**: Execution stops at `READY FOR PO CHECK`.
 
 ---
 
@@ -81,7 +79,7 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
 ```
 [Header & QuickNav Area] Page Title + "Mở xếp hạng BCVH" Action Button
 ├── [Section 1] GlobalFilterBar (Date Range, BCVH Selector, Search Input) [Phase 1 COMPLETED / PO PASS]
-├── [Section 2] UnifiedCommandSummary (4 Executive KPI Cards + Executive Insight Callout) [Phase 1 COMPLETED / PO PASS]
+├── [Section 2] UnifiedCommandSummary (4 Executive KPI Cards + Executive Insight Callout) [Phase 1 REMEDIATED / READY FOR PO CHECK]
 ├── [Section 3] BcvhOperationTable (Compact 9-Column BCVH Overview Table) [Phase 2 IMPLEMENTED / READY FOR PO CHECK]
 ├── [Section 4] IntegratedTrendRiskWorkspace (Trend Chart & Leadership D-1/D-7 Grid) [Phase 3 Pending]
 ├── [Section 5] OperatingPatternTabsCard (Weekday/Month/Heatmap Patterns & Charts) [Phase 3 Pending]
@@ -92,25 +90,15 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
 
 ## 6. Phase Status & Implementation Evidence
 
-### **Phase 1: Filter Bar & Executive Command Belt (Sections 1 & 2) - [PO PASS]**
-- **Status**: `COMPLETED / PO PASS` (Commit `6ea7819`).
+### **Phase 1: Filter Bar & Executive Command Belt (Sections 1 & 2) - [REMEDIATED / READY FOR PO CHECK]**
+- **Status**: `REMEDIATED / READY FOR PO CHECK`.
+- **Files Modified**: `UnifiedCommandSummary.jsx`, `unifiedCommandSummary.test.js`.
+- **Key Remediation**: Removed secondary note *"Chuyển hoàn được giữ riêng trong mẫu đo kiểm, không tính vào bưu gửi cần xử lý."* to the right of Executive Insight. Expanded "Bản tin chỉ đạo điều hành" banner to full available width (100%) of the row.
 
 ### **Phase 2: Compact 9-Column BCVH Table Visual Polish (Section 3) - [IMPLEMENTED / READY FOR PO CHECK]**
-- **Status**: `READY FOR PO CHECK`.
+- **Status**: `READY FOR PO CHECK` (Commit `dd9cbf5`).
 - **Files Modified**: `src/components/f13/BcvhOperationTable.jsx`.
-- **Key Enhancements Implemented**:
-  1. Table container and header upgraded with CRM 3.0 depth (`bg-slate-100`, `text-slate-700 font-bold`, `border-slate-200`).
-  2. Sticky `Tên BCVH` column visual separator added (`shadow-[4px_0_10px_-4px_rgba(0,0,0,0.12)] border-r border-slate-200`).
-  3. Tabular numbers typography (`tabular-nums`) applied to count and percentage columns for alignment readability.
-  4. Row guidance drawer ("Hướng dẫn điều hành theo dòng dữ liệu") restyled visually with card containers, subtle borders, and smooth chevron rotation (`rotate-180 transition-transform duration-150`).
-  5. 6 geometry-matched skeleton pulse rows implemented for loading state with `motion-reduce:animate-none` support.
-  6. Verified presentation isolation: BCVH Ranking detailed table (`UnifiedBcvhAnalysisTable`) remains 100% untouched and isolated.
-- **PO Visual Verification Checklist Phase 2**:
-  - [ ] **Table Header**: Hover over header columns to observe subtle slate highlight (`hover:bg-slate-200`) and bold uppercase text.
-  - [ ] **Sticky Column Separator**: Scroll table horizontally to observe the smooth shadow separator behind sticky `Tên BCVH`.
-  - [ ] **Tabular Numbers**: Observe numeric count and KPI percentage values aligned cleanly in tabular numbers.
-  - [ ] **Expandable Guidance Drawer**: Click any BCVH row to expand the restyled guidance drawer with clean status cards.
-  - [ ] **Loading Skeleton**: Verify 6 geometry-matched pulse skeleton rows display during fetch.
+- **Key Enhancements**: CRM 3.0 header surfaces, sticky column shadow separator, tabular numbers, guidance drawer restyling, pulse skeleton rows.
 
 ---
 
@@ -119,5 +107,5 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
 - **Existing KPI Targets & Thresholds**: Existing KPI targets and thresholds remain exactly as defined by the authoritative SSOT.
 - **No Data or API Contract Changes**: Parameters for `/f13/ranking/bcvh` and `/f13/dashboard/*` stay unchanged.
 - **No Permission or Navigation Changes**: Viewer/Admin access levels, port 5178/5050, and route `/f13/dashboard` remain fixed.
-- **Handoff Directive**: Phase 2 implementation complete. Execution stopped at `READY FOR PO CHECK`. Phase 3 and Phase 4 implementation is NOT dispatched until PO reviews and approves Phase 2.
+- **Handoff Directive**: Phase 1 remediation and Phase 2 implementation complete. Execution stopped at `READY FOR PO CHECK`. Phase 3 and Phase 4 implementation is NOT dispatched until PO reviews and approves Phase 1 & 2.
 
