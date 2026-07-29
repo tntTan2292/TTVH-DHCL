@@ -150,15 +150,16 @@ class F13DashboardService {
 
     _buildComparisonBlock(currentRow, comparisonRow, comparisonRank) {
         const currentVolume = Number(currentRow?.sl_bg_ptc || currentRow?.total_bg || 0);
-        const comparisonVolume = comparisonRow ? Number(comparisonRow.sl_bg_ptc || 0) : null;
-        const comparisonPassed = comparisonRow ? Number(comparisonRow.dat_kpi_2026 || 0) : null;
+        const hasComparisonRow = comparisonRow !== undefined && comparisonRow !== null;
+        const comparisonVolume = hasComparisonRow ? Number(comparisonRow.sl_bg_ptc || 0) : null;
+        const comparisonPassed = hasComparisonRow ? Number(comparisonRow.dat_kpi_2026 || 0) : null;
 
         return {
             volume: comparisonVolume,
-            f1_3_rate: comparisonRow && comparisonVolume
+            f1_3_rate: hasComparisonRow
                 ? this._calculateRate(comparisonPassed, comparisonVolume)
                 : null,
-            volume_delta: comparisonRow ? currentVolume - comparisonVolume : null,
+            volume_delta: hasComparisonRow ? currentVolume - comparisonVolume : null,
             comparison_rank: comparisonRank ?? null,
         };
     }

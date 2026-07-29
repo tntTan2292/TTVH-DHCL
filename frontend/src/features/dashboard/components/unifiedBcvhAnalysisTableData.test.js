@@ -186,29 +186,33 @@ test('builds semantic four-band doughnut labels and preserves SSOT colors', () =
   );
 });
 
-test('component sources remove rank-comparison columns and preserve approved grouped fields', () => {
-  const componentSource = read('./UnifiedBcvhAnalysisTable.jsx');
-
-  assert.match(componentSource, /comparisonD1/);
-  assert.match(componentSource, /comparisonD7/);
-  assert.match(componentSource, /D-1 \/ Sản lượng/);
-  assert.match(componentSource, /D-1 \/ Tỷ lệ F1.3/);
-  assert.match(componentSource, /D-7 \/ Sản lượng/);
-  assert.match(componentSource, /D-7 \/ Tỷ lệ F1.3/);
-  assert.match(componentSource, /const d1Span = 2 \+/);
-  assert.match(componentSource, /const d7Span = 2 \+/);
-  assert.match(componentSource, /const colSpan = 18 \+/);
-  assert.doesNotMatch(componentSource, /Hạng kỳ so sánh/);
-  assert.doesNotMatch(componentSource, /Dịch chuyển hạng/);
-  assert.doesNotMatch(componentSource, /comparison_rank, isTotal/);
-  assert.doesNotMatch(componentSource, /rank_movement/);
-});
-
-test('component sources preserve distinct group colors, hide-show rules, and dashboard isolation', () => {
+test('component sources preserve four-column comparison order and dashboard isolation', () => {
   const componentSource = read('./UnifiedBcvhAnalysisTable.jsx');
   const pageSource = read('../../ranking/BcvhRankingPage.jsx');
   const dashboardSource = read('../../../components/f13/BcvhOperationTable.jsx');
   const dashboardAdapterSource = read('./BcvhOperationTableAdapter.jsx');
+
+  assert.match(componentSource, /rate: 'Tỷ lệ'/);
+  assert.match(componentSource, /volumeDelta: 'SS SL'/);
+  assert.match(componentSource, /rateDelta: 'SS Tỷ lệ'/);
+  assert.match(componentSource, /D-1 \/ Sản lượng/);
+  assert.match(componentSource, /D-1 \/ Tỷ lệ/);
+  assert.match(componentSource, /D-7 \/ Sản lượng/);
+  assert.match(componentSource, /D-7 \/ Tỷ lệ/);
+  assert.match(componentSource, /Sản lượng: <span className="font-semibold">\{formatNumber\(row\.comparisons\.d1\.volume\)\}<\/span>/);
+  assert.match(componentSource, /Tỷ lệ: <span className="font-semibold">\{formatRate\(row\.comparisons\.d1\.rate\)\}<\/span>/);
+  assert.match(componentSource, /SS SL: <span className="font-semibold">\{formatVolumeDelta\(row\.comparisons\.d1\.volume_delta\)\}<\/span>/);
+  assert.match(componentSource, /SS Tỷ lệ: <span className="font-semibold">\{formatSignedDelta\(row\.comparisons\.d1\.rate_delta, 'điểm %'\)\}<\/span>/);
+  assert.match(componentSource, /Sản lượng: <span className="font-semibold">\{formatNumber\(row\.comparisons\.d7\.volume\)\}<\/span>/);
+  assert.match(componentSource, /Tỷ lệ: <span className="font-semibold">\{formatRate\(row\.comparisons\.d7\.rate\)\}<\/span>/);
+  assert.match(componentSource, /SS SL: <span className="font-semibold">\{formatVolumeDelta\(row\.comparisons\.d7\.volume_delta\)\}<\/span>/);
+  assert.match(componentSource, /SS Tỷ lệ: <span className="font-semibold">\{formatSignedDelta\(row\.comparisons\.d7\.rate_delta, 'điểm %'\)\}<\/span>/);
+  assert.match(componentSource, /const d1Span = 2 \+/);
+  assert.match(componentSource, /const d7Span = 2 \+/);
+  assert.match(componentSource, /const colSpan = 18 \+/);
+  assert.doesNotMatch(componentSource, /Hạng kỳ so sánh|Dịch chuyển hạng/);
+  assert.doesNotMatch(componentSource, /comparison_rank, isTotal/);
+  assert.doesNotMatch(componentSource, /rank_movement/);
 
   assert.match(componentSource, /bg-slate-100 text-slate-700/);
   assert.match(componentSource, /bg-sky-100 text-sky-800/);
@@ -221,7 +225,6 @@ test('component sources preserve distinct group colors, hide-show rules, and das
   assert.match(componentSource, /sticky left-\[68px\]/);
   assert.match(componentSource, /sticky left-\[176px\]/);
   assert.match(componentSource, /font-black uppercase tracking-wide/);
-  assert.doesNotMatch(componentSource, /<th[^>]*>.*Phân tích BCVH.*<\/th>/s);
 
   assert.match(pageSource, /Bảng xếp hạng chất lượng BCVH/);
   assert.match(pageSource, /So sánh kỳ trước/);

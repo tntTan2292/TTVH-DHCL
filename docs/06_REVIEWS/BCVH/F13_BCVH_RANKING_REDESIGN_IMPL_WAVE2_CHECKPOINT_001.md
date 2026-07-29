@@ -88,6 +88,21 @@ Latest bounded BCVH Ranking UI remediation on `2026-07-29` delivered:
 - added distinct, subtle visual grouping for `Đơn vị`, `Kết quả ngày đánh giá`, `So sánh D-1`, `So sánh D-7`, `Chậm nộp tiền`, `Phân bổ tuyến`, and `Hành động`
 - preserved sticky identity columns, horizontal scrolling, and Dashboard isolation
 
+Latest bounded D-1 / D-7 remediation on `2026-07-29` delivered:
+
+- verified the runtime path end to end for `/api/f13/ranking/bcvh` using repository reads, service output, controller payload shape, and frontend mapper input
+- confirmed the selected-date comparison contract uses exact `D-1 = selected date - 1 day` and `D-7 = selected date - 7 days`
+- confirmed sample runtime data exists for `2026-07-28`, including populated `comparisons.d1` and `comparisons.d7` fields for canonical BCVH rows
+- fixed the smallest confirmed backend root cause: comparison-rate construction no longer treats a genuine zero-rate comparison as unavailable when the comparison row exists
+- preserved canonical BCVH key matching and kept all frontend comparison rendering bound to runtime data only
+- updated each comparison block presentation to the approved four-column order:
+  - `Sản lượng`
+  - `Tỷ lệ`
+  - `SS SL`
+  - `SS Tỷ lệ`
+- preserved the approved visibility rule so only raw `Sản lượng` and `Tỷ lệ` may be hidden while `SS SL` and `SS Tỷ lệ` stay visible
+- updated grouped headers, row rendering, total-row rendering behavior, expandable analysis wording, regression tests, and checkpoint wording to the same four-column contract
+
 ## Preserved Authority
 
 - Dashboard SSOT route-quality bands remain exactly:

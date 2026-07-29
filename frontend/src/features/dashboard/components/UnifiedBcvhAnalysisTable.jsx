@@ -38,9 +38,9 @@ const TEXT = {
   volume: 'Sản lượng',
   pass: 'Đạt',
   fail: 'Không đạt',
-  rate: 'Tỷ lệ F1.3',
-  volumeDelta: 'Delta SL',
-  rateDelta: 'Delta F1.3',
+  rate: 'Tỷ lệ',
+  volumeDelta: 'SS SL',
+  rateDelta: 'SS Tỷ lệ',
   lateCashCount: 'BG chậm nộp tiền',
   lateCashRate: 'Tỷ lệ chậm nộp tiền',
   routeCount: 'Số tuyến tham gia',
@@ -214,9 +214,9 @@ function ColumnOptions({ columns, setColumns }) {
           <div className="space-y-2">
             {[
               ['d1Volume', 'D-1 / Sản lượng'],
-              ['d1Rate', 'D-1 / Tỷ lệ F1.3'],
+              ['d1Rate', 'D-1 / Tỷ lệ'],
               ['d7Volume', 'D-7 / Sản lượng'],
-              ['d7Rate', 'D-7 / Tỷ lệ F1.3'],
+              ['d7Rate', 'D-7 / Tỷ lệ'],
             ].map(([key, label]) => (
               <label key={key} className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-[var(--color-surface-50)]">
                 <input type="checkbox" checked={columns[key]} onChange={() => toggle(key)} />
@@ -319,18 +319,18 @@ function AnalysisPanel({ row, onOpenDetail }) {
               <div className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{TEXT.comparisonSummary} D-1</div>
               <div className="mt-3 space-y-2 text-sm text-[var(--color-text-main)]">
                 <div>Sản lượng: <span className="font-semibold">{formatNumber(row.comparisons.d1.volume)}</span></div>
-                <div>Tỷ lệ F1.3: <span className="font-semibold">{formatRate(row.comparisons.d1.rate)}</span></div>
-                <div>Delta SL: <span className="font-semibold">{formatVolumeDelta(row.comparisons.d1.volume_delta)}</span></div>
-                <div>Delta F1.3: <span className="font-semibold">{formatSignedDelta(row.comparisons.d1.rate_delta, 'điểm %')}</span></div>
+                <div>Tỷ lệ: <span className="font-semibold">{formatRate(row.comparisons.d1.rate)}</span></div>
+                <div>SS SL: <span className="font-semibold">{formatVolumeDelta(row.comparisons.d1.volume_delta)}</span></div>
+                <div>SS Tỷ lệ: <span className="font-semibold">{formatSignedDelta(row.comparisons.d1.rate_delta, 'điểm %')}</span></div>
               </div>
             </div>
             <div className="rounded-xl bg-white p-4 shadow-sm">
               <div className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{TEXT.comparisonSummary} D-7</div>
               <div className="mt-3 space-y-2 text-sm text-[var(--color-text-main)]">
                 <div>Sản lượng: <span className="font-semibold">{formatNumber(row.comparisons.d7.volume)}</span></div>
-                <div>Tỷ lệ F1.3: <span className="font-semibold">{formatRate(row.comparisons.d7.rate)}</span></div>
-                <div>Delta SL: <span className="font-semibold">{formatVolumeDelta(row.comparisons.d7.volume_delta)}</span></div>
-                <div>Delta F1.3: <span className="font-semibold">{formatSignedDelta(row.comparisons.d7.rate_delta, 'điểm %')}</span></div>
+                <div>Tỷ lệ: <span className="font-semibold">{formatRate(row.comparisons.d7.rate)}</span></div>
+                <div>SS SL: <span className="font-semibold">{formatVolumeDelta(row.comparisons.d7.volume_delta)}</span></div>
+                <div>SS Tỷ lệ: <span className="font-semibold">{formatSignedDelta(row.comparisons.d7.rate_delta, 'điểm %')}</span></div>
               </div>
             </div>
           </div>

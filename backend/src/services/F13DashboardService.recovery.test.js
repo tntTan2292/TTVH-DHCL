@@ -585,6 +585,75 @@ test('BCVH ranking exposes Wave 1 comparison, delayed-cash, and route-distributi
   }
 });
 
+test('BCVH ranking preserves genuine zero comparison rates instead of marking them unavailable', async () => {
+  const originals = {
+    getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
+    getBcvhRanking: repo.getBcvhRanking,
+    getFactByDate: repo.getFactByDate,
+    getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
+  };
+
+  repo.getBcvhOperationMetricsByDate = async (date) => {
+    if (date === '2026-07-22') {
+      return [{
+        ma_bcvh: '535790',
+        ten_bcvh: 'BCVH A Luoi',
+        sl_bg_ptc: 10,
+        sl_ptc_nop_tien: 10,
+        dat_kpi_2026: 8,
+        khong_dat_kpi_2026: 2,
+      }];
+    }
+    if (date === '2026-07-21') {
+      return [{
+        ma_bcvh: '535790',
+        ten_bcvh: 'BCVH A Luoi',
+        sl_bg_ptc: 4,
+        sl_ptc_nop_tien: 4,
+        dat_kpi_2026: 0,
+        khong_dat_kpi_2026: 4,
+      }];
+    }
+    if (date === '2026-07-15') {
+      return [{
+        ma_bcvh: '535790',
+        ten_bcvh: 'BCVH A Luoi',
+        sl_bg_ptc: 6,
+        sl_ptc_nop_tien: 6,
+        dat_kpi_2026: 0,
+        khong_dat_kpi_2026: 6,
+      }];
+    }
+    return [];
+  };
+  repo.getBcvhRanking = async () => ({
+    data: [{
+      ma_bcvh: '535790',
+      ten_bcvh: 'BCVH A Luoi',
+      total_bg: 10,
+      total_passed: 8,
+      total_failed: 2,
+      rank: 1,
+    }],
+    totalItems: 1,
+  });
+  repo.getFactByDate = async () => [];
+  repo.getBcvhOperationMetricsBetween = async () => [];
+
+  try {
+    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+
+    assert.equal(result.data[0].comparisons.d1.volume, 4);
+    assert.equal(result.data[0].comparisons.d1.f1_3_rate, 0);
+    assert.equal(result.data[0].comparisons.d1.volume_delta, 6);
+    assert.equal(result.data[0].comparisons.d7.volume, 6);
+    assert.equal(result.data[0].comparisons.d7.f1_3_rate, 0);
+    assert.equal(result.data[0].comparisons.d7.volume_delta, 4);
+  } finally {
+    Object.assign(repo, originals);
+  }
+});
+
 test('latest import freshness ignores future-dated recovery artifacts', () => {
   const source = fs.readFileSync(require.resolve('../repositories/FactBuuGuiRepository'), 'utf8');
 
