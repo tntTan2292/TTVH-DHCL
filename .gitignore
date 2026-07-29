@@ -3,10 +3,17 @@ Data DKCL/
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.sqlite-journal
 backend/backend.log
 backend/backend_err.log
 frontend/frontend.log
 frontend/frontend_err.log
+logs/
+*.out
+*.tmp
+*.temp
+*.bak
 
 # Local environment and portal discovery secrets
 .env
@@ -23,3 +30,71 @@ Data DKCL/BrowserProfiles/
 
 # Local incident evidence must not be committed
 backend/incident_evidence/
+
+# Runtime browser profiles, session stores, and crash/cache artifacts
+backend/tmp/
+**/BrowserMetrics/
+**/Crashpad/
+**/Cache/
+**/Code Cache/
+**/GPUCache/
+**/ShaderCache/
+**/GrShaderCache/
+**/GPUPersistentCache/
+**/component_crx_cache/
+**/extensions_crx_cache/
+**/Local Storage/
+**/Session Storage/
+**/Sessions/
+**/Cookies
+**/Cookies-journal
+**/Login Data
+**/Login Data-journal
+**/Login Data For Account
+**/Login Data For Account-journal
+**/History
+**/History-journal
+**/Web Data
+**/Web Data-journal
+**/Account Web Data
+**/Account Web Data-journal
+**/Network/
+**/Local State
+**/Preferences
+**/Secure Preferences
+**/TransportSecurity
+**/Trust Tokens
+**/Trust Tokens-journal
+**/Device Bound Sessions
+**/Device Bound Sessions-journal
+**/Reporting and NEL
+**/Reporting and NEL-journal
+**/Safe Browsing Network/
+**/ClientCertificates/
+**/shared_proto_db/
+**/Segmentation Platform/
+**/segmentation_platform/
+**/chrome_cart_db/
+**/commerce_subscription_db/
+**/discount_infos_db/
+**/discounts_db/
+**/parcel_tracking_db/
+**/PersistentOriginTrials/
+**/Site Characteristics Database/
+**/Sync Data/
+**/AutofillAiModelCache/
+**/AutofillStrikeDatabase/
+**/BudgetDatabase/
+**/GCM Store/
+**/DawnGraphiteCache/
+**/DawnWebGPUCache/
+**/Extension Rules/
+**/Extension Scripts/
+**/Extension State/
+
+# Local scripts and investigation scratch artifacts outside product scope
+backend/incident_*.js
+frontend/capture_groups.cjs
+frontend/debug_dom.cjs
+frontend/test_login.cjs
+TTVH_ControlCenter_Temp.ps1
