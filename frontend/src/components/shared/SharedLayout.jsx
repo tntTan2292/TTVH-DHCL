@@ -173,36 +173,36 @@ export function GlobalFilterBar({
   actions,
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-[var(--color-surface-200)] bg-white p-4 shadow-sm xl:flex-row xl:items-center xl:justify-between">
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none xl:flex-row xl:items-center xl:justify-between">
       <div className="flex flex-1 flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
-          <CalendarDays size={16} className="text-[var(--color-text-muted)]" />
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+          <CalendarDays size={16} className="text-slate-400 shrink-0" />
           <input
             type="date"
             value={fromDate}
             onChange={(e) => onFromDateChange?.(e.target.value)}
-            className="border-none bg-transparent text-sm focus:ring-0"
+            className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0"
             aria-label="Từ ngày"
           />
         </div>
-        <span className="text-[var(--color-text-muted)]">-</span>
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
-          <CalendarDays size={16} className="text-[var(--color-text-muted)]" />
+        <span className="text-slate-400 font-semibold">-</span>
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+          <CalendarDays size={16} className="text-slate-400 shrink-0" />
           <input
             type="date"
             value={toDate}
             onChange={(e) => onToDateChange?.(e.target.value)}
-            className="border-none bg-transparent text-sm focus:ring-0"
+            className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0"
             aria-label="Đến ngày"
           />
         </div>
         {showKpiFilter ? (
-          <div className="flex items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
-            <Filter size={16} className="text-[var(--color-text-muted)]" />
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+            <Filter size={16} className="text-slate-400 shrink-0" />
             <select
               value={kpiValue}
               onChange={(e) => onKpiChange?.(e.target.value)}
-              className="border-none bg-transparent text-sm focus:ring-0"
+              className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 cursor-pointer"
               aria-label="Bộ lọc KPI"
             >
               <option value="all">Tất cả KPI</option>
@@ -211,13 +211,13 @@ export function GlobalFilterBar({
             </select>
           </div>
         ) : null}
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
-          <Filter size={16} className="text-[var(--color-text-muted)]" />
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+          <Filter size={16} className="text-slate-400 shrink-0" />
           <select
             value={bcvhValue}
             onChange={(e) => onBcvhChange?.(e.target.value)}
             disabled={bcvhDisabled}
-            className="border-none bg-transparent text-sm focus:ring-0"
+            className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Bộ lọc BCVH"
           >
             {bcvhOptions.map((option) => (
@@ -225,13 +225,13 @@ export function GlobalFilterBar({
             ))}
           </select>
         </div>
-        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-[var(--color-surface-200)] px-3 py-2">
-          <Search size={16} className="text-[var(--color-text-muted)]" />
+        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+          <Search size={16} className="text-slate-400 shrink-0" />
           <input
             value={searchValue}
             onChange={(e) => onSearchChange?.(e.target.value)}
             placeholder="Tìm kiếm..."
-            className="w-full border-none bg-transparent text-sm focus:ring-0"
+            className="w-full border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 placeholder:text-slate-400"
             aria-label="Tìm kiếm"
           />
         </div>

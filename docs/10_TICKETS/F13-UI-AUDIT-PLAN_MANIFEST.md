@@ -3,17 +3,17 @@
 - Ticket ID: `F13-UI-AUDIT-PLAN`
 - Ticket Name: `F1.3 UI Audit and Standardization Planning`
 - Phase: `F1.3 UI Planning`
-- Current state: `READY FOR PO UI/UX PLANNING`
-- Technical Status: `PLANNING SCOPE NOT YET DISPATCHED`
+- Current state: `PO APPROVED PLAN / READY FOR PHASED DISPATCH`
+- Technical Status: `APPROVED PLAN - IMPLEMENTATION NOT YET DISPATCHED`
 - Runtime Status: `NOT RUN - PLANNING ONLY`
-- PO UI Check Required: `No - planning review only`
-- PO Product Status: `NOT READY`
-- Activation authority: `Product Owner authorized Antigravity UI audit planning after QIS-LAN-DEPLOY-001 PO PASS closure`
+- PO UI Check Required: `No - planning review approved`
+- PO Product Status: `APPROVED PLAN`
+- Activation authority: `Product Owner recorded: PO APPROVE UI/UX AUDIT AND STANDARDIZATION PLAN.`
 - Handoff date: `2026-07-29`
 - Coordination owner: `ChatGPT with Product Owner`
 - Primary executor: `Antigravity`
-- Antigravity executor state: `NOT YET DISPATCHED`
-- Execution boundary: `DISCUSSION AND PLANNING ONLY / NO IMPLEMENTATION`
+- Antigravity executor state: `NOT YET DISPATCHED FOR IMPLEMENTATION`
+- Execution boundary: `APPROVED PLAN ONLY / DO NOT DISPATCH IMPLEMENTATION UNTIL CHATGPT COORDINATION ISSUES A SEPARATELY BOUNDED PROMPT`
 
 ## Fresh-Chat Onboarding Authority
 
@@ -57,19 +57,17 @@ Accepted closure state:
 
 ## Current Workflow State
 
-Required incremental workflow:
+Approved Operation Dashboard Plan Workflow:
 
-1. Product Owner opens a fresh ChatGPT coordination chat.
-2. ChatGPT and Product Owner define the Operation Dashboard audit scope.
-3. Only after Product Owner agreement, ChatGPT writes one bounded Antigravity prompt.
-4. Antigravity audits Operation Dashboard and submits a plan only.
-5. ChatGPT reviews that plan as CTO, data-analysis specialist, and postal-quality specialist.
-6. Product Owner approves or requests changes.
-7. Complete one UI area before activating the next.
+1. Product Owner recorded: `PO APPROVE UI/UX AUDIT AND STANDARDIZATION PLAN.`
+2. Current ticket `F13-UI-AUDIT-PLAN` checkpoint updated to record PO decision.
+3. UI implementation is NOT started and implementation phases are NOT dispatched in this step.
+4. ChatGPT coordination will issue a separately bounded prompt when dispatching the first implementation phase (Phase 1: Filter Bar & Executive Command Belt).
+5. Complete one implementation phase before activating the next.
 
-Current authorized focus only:
+Approved focus:
 
-- `Operation Dashboard`
+- `Operation Dashboard (/f13/dashboard)`
 
 Future sequence, not currently authorized:
 
@@ -81,16 +79,16 @@ Future sequence, not currently authorized:
 
 ## Objective
 
-Antigravity will inspect the current completed F1.3 product and prepare a Product Owner review plan to standardize and improve the UI, but only after ChatGPT coordination and Product Owner finish the bounded Operation Dashboard scope discussion.
+Antigravity has inspected the current completed F1.3 product and submitted a Product Owner UI/UX improvement plan for Operation Dashboard. Product Owner has recorded `PO APPROVE UI/UX AUDIT AND STANDARDIZATION PLAN.`
 
-The first bounded audit scope includes only:
+The approved audit scope includes:
 
 - Operation Dashboard
 - dashboard filters
 - dashboard cards
-- dashboard tables
+- dashboard tables (compact 9-column BCVH overview table)
 - dashboard charts
-- dashboard loading states
+- dashboard loading states (structural pulse skeletons)
 - dashboard empty-data states
 - dashboard warning and error states
 - dashboard desktop usage
@@ -101,17 +99,15 @@ The first bounded audit scope includes only:
 
 - Current UI inventory for Operation Dashboard.
 - Findings for the Operation Dashboard scope with severity and user impact.
-- Layout, spacing, typography, color, table-readability, and chart-readability findings for Operation Dashboard.
-- Leadership-presentation suitability assessment for Operation Dashboard.
-- Proposed visual design principles and standardized component/layout rules beginning with Operation Dashboard.
-- Operation Dashboard remediation plan.
-- Implementation priority and future sequence proposal after Operation Dashboard planning review.
-- Product Owner acceptance checklist for later remediation.
-- Risks, protected boundaries, and decisions requiring Product Owner approval.
+- CRM 3.0 visual inspiration for interface surfaces, visual depth, borders, shadows, typography, controls, and feedback.
+- Operation Dashboard 4-phase remediation plan with phase-specific PO acceptance checklists.
+- Preserved compact 9-column BCVH table contract.
+- Consumed business-semantic colors, KPI labels, thresholds, formulas, and target lines from authoritative SSOT.
+- Handoff directive for phased implementation prompt generation by ChatGPT coordination.
 
 ## Out Of Scope
 
-- Product-code or UI implementation.
+- Product-code or UI implementation in this ticket.
 - F1.3 formula, threshold, data, or calculation changes.
 - Business-contract changes for Dashboard, BCVH Ranking, or Route Ranking.
 - Viewer/admin permission changes.
@@ -119,13 +115,12 @@ The first bounded audit scope includes only:
 - Import remediation reopening.
 - Implementation of `F1.1`, `F1.2`, `F4.1`, Shipment, Pareto, Evidence, or Message modules.
 - Public-Internet exposure.
-- Writing a Codex implementation prompt before Product Owner approves the plan.
-- Dispatching Antigravity before ChatGPT coordination and Product Owner agree the bounded Operation Dashboard scope.
+- Dispatching UI implementation before ChatGPT coordination issues a separately bounded prompt.
 
 ## Locked Boundaries
 
 - Preserve accepted F1.3 screens and runtime behavior.
-- Preserve Dashboard BCVH compact overview contract.
+- Preserve Dashboard BCVH compact 9-column overview contract.
 - Preserve `/f13/ranking/bcvh` accepted detailed ranking contract.
 - Preserve Route Ranking accepted runtime contract and internal-route audit outcome.
 - Preserve viewer/admin permissions and LAN deployment contract exactly as accepted.
@@ -137,17 +132,11 @@ The first bounded audit scope includes only:
 1. current UI inventory for Operation Dashboard
 2. findings by screen within the bounded Operation Dashboard scope
 3. severity and user impact
-4. inconsistent layout, spacing, typography and color findings
-5. table readability findings
-6. chart readability findings
-7. leadership-presentation suitability assessment
-8. proposed visual design principles
-9. standardized component and layout rules
-10. Operation Dashboard remediation plan
-11. implementation priority and future sequence
-12. Product Owner acceptance checklist
-13. risks and protected boundaries
-14. decisions requiring Product Owner approval
+4. CRM 3.0-inspired visual design principles for UI surfaces and controls
+5. SSOT consumption rules for business-semantic colors and thresholds
+6. Operation Dashboard 4-phase remediation plan
+7. Phase-specific Product Owner acceptance checklists
+8. risks, protected boundaries, and recorded PO approval decision
 
 ## Documentation Requirements
 
@@ -166,10 +155,10 @@ The first bounded audit scope includes only:
 
 ## Next Action
 
-ChatGPT and Product Owner define the bounded Operation Dashboard audit scope in a fresh coordination chat. Antigravity prompt creation is authorized only after that agreement.
+Product Owner recorded `PO APPROVE UI/UX AUDIT AND STANDARDIZATION PLAN.` Next step is for ChatGPT coordination to write a separately bounded prompt for Phase 1 implementation (Filter Bar & Executive Command Belt). UI implementation must not be dispatched until that prompt is issued.
 
 ## Handoff
 
-Status: `READY FOR PO UI/UX PLANNING`.
+Status: `PO APPROVED PLAN / READY FOR PHASED DISPATCH`.
 
-This ticket authorizes discussion and planning only. Antigravity is not yet dispatched. ChatGPT coordination must first align the Operation Dashboard scope with Product Owner, then write one bounded Antigravity prompt for plan-only audit work.
+Product Owner approved the Operation Dashboard UI/UX plan. UI implementation is not started and implementation phases are not dispatched until ChatGPT coordination issues a separately bounded prompt.

@@ -19,21 +19,21 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | --- | --- |
 | Current Phase | `F1.3 UI AUDIT AND STANDARDIZATION PLANNING` |
 | Current Ticket | `F13-UI-AUDIT-PLAN` |
-| Next Ticket | `None currently authorized beyond current planning activity` |
-| Last PO Status | `Product Owner closed QIS-LAN-DEPLOY-001 as COMPLETED / PO PASS / CLOSED at accepted runtime remediation commit 99c865e92b840a587dc9a889294c535fecc68816, then corrected F13-UI-AUDIT-PLAN to READY FOR PO UI/UX PLANNING with discussion-and-planning-only authority and Operation Dashboard as the first bounded focus` |
+| Next Ticket | `F13-UI-DASHBOARD-IMPL-PHASE1 (pending ChatGPT coordination dispatch prompt)` |
+| Last PO Status | `Product Owner recorded PO APPROVE UI/UX AUDIT AND STANDARDIZATION PLAN for Operation Dashboard UI/UX plan. UI implementation is not yet dispatched until ChatGPT coordination issues a separately bounded prompt` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` |
-| Current Checkpoint | `F13-UI-AUDIT-PLAN ready for PO UI/UX planning with Operation Dashboard as first bounded focus` |
-| Current State | `READY FOR PO UI/UX PLANNING` |
-| Technical Status | `PLANNING SCOPE NOT YET DISPATCHED` |
+| Current Checkpoint | `F13-UI-AUDIT-PLAN approved by Product Owner; ready for phased implementation dispatch` |
+| Current State | `PO APPROVED PLAN / READY FOR PHASED DISPATCH` |
+| Technical Status | `APPROVED PLAN - IMPLEMENTATION NOT YET DISPATCHED` |
 | Runtime Status | `NOT RUN - PLANNING ONLY` |
-| PO UI Check Required | `No - planning review only` |
-| PO Product Status | `NOT READY` |
+| PO UI Check Required | `No - planning review approved` |
+| PO Product Status | `APPROVED PLAN` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` |
-| Last Reviewed Phase | `QIS-LAN-DEPLOY-001 CLOSURE / F13-UI-AUDIT-PLAN ACTIVATION` |
+| Last Reviewed Phase | `F13-UI-AUDIT-PLAN PO PLAN APPROVAL` |
 | Last Reviewed Commit | `99c865e92b840a587dc9a889294c535fecc68816` |
-| Phase Review Status | `READY FOR PO UI/UX PLANNING` |
-| Next Phase Authorization | `ChatGPT and Product Owner define Operation Dashboard audit scope first; Antigravity prompt may be written only after scope agreement; no implementation authority yet` |
+| Phase Review Status | `PO APPROVED PLAN / READY FOR PHASED DISPATCH` |
+| Next Phase Authorization | `Product Owner recorded PO APPROVE UI/UX AUDIT AND STANDARDIZATION PLAN. Next step: ChatGPT coordination writes a separately bounded prompt for Phase 1 implementation. Do not start UI implementation or dispatch Phase 1 until that prompt is issued.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-29` |
 
@@ -60,9 +60,9 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `QIS-LAN-DEPLOY-001` is `COMPLETED / PO PASS / CLOSED` at accepted runtime remediation commit `99c865e92b840a587dc9a889294c535fecc68816`. The accepted contract is fixed: frontend LAN port `5178`, backend/API port `5050`, normal LAN URL `http://<server-ip>:5178`, local viewer username configuration `ttvhhue`, operational viewer authentication, read-only viewer access to completed F1.3 screens only, preserved viewer restrictions, preserved admin access, and untracked local `.env` correction for the malformed password-hash defect. Current active ticket is `F13-UI-AUDIT-PLAN`, which is `READY FOR PO UI/UX PLANNING` with `DISCUSSION AND PLANNING ONLY / NO IMPLEMENTATION` authority. Coordination owner is ChatGPT with Product Owner, Antigravity is not yet dispatched, and the first bounded focus is Operation Dashboard only. The next step is a fresh ChatGPT coordination chat where Product Owner and ChatGPT define the Operation Dashboard audit scope before any Antigravity prompt is written.
+Current handoff: `F13-UI-AUDIT-PLAN` is `PO APPROVED PLAN / READY FOR PHASED DISPATCH`. Product Owner officially recorded `PO APPROVE UI/UX AUDIT AND STANDARDIZATION PLAN.` The approved scope governs Operation Dashboard (`/f13/dashboard`) only, inspired by CRM 3.0 interface surfaces and control states, while preserving semantic colors, KPI labels, thresholds, formulas, target lines, and the compact 9-column BCVH table contract. UI implementation is NOT started and implementation phases are NOT dispatched in this step. The next step is for ChatGPT coordination to issue a separately bounded prompt for Phase 1 implementation (Filter Bar & Executive Command Belt).
 
-Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
+Historical note: `QIS-LAN-DEPLOY-001` is completed, accepted, and closed.
 
 Fresh-chat onboarding chain for the current active ticket:
 
@@ -71,3 +71,4 @@ Fresh-chat onboarding chain for the current active ticket:
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 4. `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`
 5. Required Reading from the current manifest
+
