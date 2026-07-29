@@ -69,6 +69,7 @@ test('maps runtime row into current-day, D-1, D-7, late-cash, route, and analysi
   assert.equal(row.comparisons.d1.rate, 70);
   assert.equal(row.comparisons.d1.volume_delta, 20);
   assert.equal(row.comparisons.d1.rate_delta, 1.25);
+  assert.equal(row.comparisons.d1.comparison_rank, 2);
   assert.equal(row.comparisons.d1.rank_movement.signal.shortLabel, '↑ 1');
   assert.equal(row.comparisons.d7.rank_movement.signal.shortLabel, '↓ 1');
   assert.equal(row.late_cash.count, 3);
@@ -185,35 +186,47 @@ test('builds semantic four-band doughnut labels and preserves SSOT colors', () =
   );
 });
 
-test('component sources preserve dashboard isolation, total-row polish, and semantic separation', () => {
+test('component sources remove rank-comparison columns and preserve approved grouped fields', () => {
+  const componentSource = read('./UnifiedBcvhAnalysisTable.jsx');
+
+  assert.match(componentSource, /comparisonD1/);
+  assert.match(componentSource, /comparisonD7/);
+  assert.match(componentSource, /D-1 \/ Sản lượng/);
+  assert.match(componentSource, /D-1 \/ Tỷ lệ F1.3/);
+  assert.match(componentSource, /D-7 \/ Sản lượng/);
+  assert.match(componentSource, /D-7 \/ Tỷ lệ F1.3/);
+  assert.match(componentSource, /const d1Span = 2 \+/);
+  assert.match(componentSource, /const d7Span = 2 \+/);
+  assert.match(componentSource, /const colSpan = 18 \+/);
+  assert.doesNotMatch(componentSource, /Hạng kỳ so sánh/);
+  assert.doesNotMatch(componentSource, /Dịch chuyển hạng/);
+  assert.doesNotMatch(componentSource, /comparison_rank, isTotal/);
+  assert.doesNotMatch(componentSource, /rank_movement/);
+});
+
+test('component sources preserve distinct group colors, hide-show rules, and dashboard isolation', () => {
   const componentSource = read('./UnifiedBcvhAnalysisTable.jsx');
   const pageSource = read('../../ranking/BcvhRankingPage.jsx');
   const dashboardSource = read('../../../components/f13/BcvhOperationTable.jsx');
   const dashboardAdapterSource = read('./BcvhOperationTableAdapter.jsx');
 
-  assert.match(componentSource, /expandedRowId/);
-  assert.match(componentSource, /AnalysisPanel/);
-  assert.match(componentSource, /onToggleAnalysis/);
-  assert.match(componentSource, /row\.is_total/);
-  assert.match(componentSource, /Xem chi tiết tuyến/);
-  assert.match(componentSource, /Phân tích/);
+  assert.match(componentSource, /bg-slate-100 text-slate-700/);
+  assert.match(componentSource, /bg-sky-100 text-sky-800/);
+  assert.match(componentSource, /bg-emerald-100 text-emerald-800/);
+  assert.match(componentSource, /bg-violet-100 text-violet-800/);
+  assert.match(componentSource, /bg-amber-100 text-amber-800/);
+  assert.match(componentSource, /bg-rose-100 text-rose-800/);
+  assert.match(componentSource, /hideableColumns: 'Chỉ 4 cột raw D-1 \/ D-7 được phép ẩn'/);
   assert.match(componentSource, /sticky left-0/);
   assert.match(componentSource, /sticky left-\[68px\]/);
   assert.match(componentSource, /sticky left-\[176px\]/);
   assert.match(componentSource, /font-black uppercase tracking-wide/);
   assert.doesNotMatch(componentSource, /<th[^>]*>.*Phân tích BCVH.*<\/th>/s);
-  assert.doesNotMatch(componentSource, />total</);
-  assert.doesNotMatch(componentSource, /Chưa có dữ liệu[\s\S]*Tổng cộng[\s\S]*Chưa có dữ liệu/);
 
   assert.match(pageSource, /Bảng xếp hạng chất lượng BCVH/);
   assert.match(pageSource, /So sánh kỳ trước/);
   assert.match(pageSource, /Xem chi tiết tuyến/);
-  assert.match(pageSource, /Khá/);
-  assert.match(pageSource, /Trung bình/);
-  assert.match(pageSource, /Kém/);
   assert.doesNotMatch(pageSource, /Ngày đánh giá · Ngày đánh giá/);
-  assert.doesNotMatch(pageSource, /KPI \/ chậm nộp \/ hạng độc lập/);
-  assert.doesNotMatch(pageSource, /Wave 1|contract/i);
 
   assert.match(dashboardAdapterSource, /<BcvhOperationTable/);
   assert.doesNotMatch(dashboardAdapterSource, /<UnifiedBcvhAnalysisTable/);

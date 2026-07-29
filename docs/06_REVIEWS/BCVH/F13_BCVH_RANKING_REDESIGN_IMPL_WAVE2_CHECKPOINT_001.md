@@ -77,6 +77,17 @@ Latest bounded BCVH Ranking remediation on `2026-07-29` delivered:
   - `Kém`
 - KPI status and route-distribution semantics are now explicitly separated in mapper and presentation tests so similar colors do not collapse into shared wording
 
+Latest bounded BCVH Ranking UI remediation on `2026-07-29` delivered:
+
+- removed the four comparison-rank presentation columns from `/f13/ranking/bcvh`
+- removed those same comparison-rank outputs from grouped headers, rows, total-row rendering, expandable analysis, column-span calculations, frontend tests, and visible descriptions
+- preserved the backend response contract unchanged; comparison-rank fields may remain present but unused by this screen
+- `D-1` now keeps only `Sản lượng`, `Tỷ lệ F1.3`, `Delta SL`, and `Delta F1.3`
+- `D-7` now keeps only `Sản lượng`, `Tỷ lệ F1.3`, `Delta SL`, and `Delta F1.3`
+- preserved the approved hide/show rule so only raw `D-1` / `D-7` `Sản lượng` and `Tỷ lệ F1.3` may be hidden while delta columns remain visible
+- added distinct, subtle visual grouping for `Đơn vị`, `Kết quả ngày đánh giá`, `So sánh D-1`, `So sánh D-7`, `Chậm nộp tiền`, `Phân bổ tuyến`, and `Hành động`
+- preserved sticky identity columns, horizontal scrolling, and Dashboard isolation
+
 ## Preserved Authority
 
 - Dashboard SSOT route-quality bands remain exactly:
@@ -132,7 +143,8 @@ The no-data remediation reuses supported dashboard metadata for the nearest avai
 - Dashboard must not render grouped ranking columns, extended `D-1` / `D-7` ranking fields, route doughnut, expandable BCVH analysis, or BCVH Ranking-specific actions.
 - `/f13/ranking/bcvh` keeps the redesigned grouped table, route distribution, expandable analysis, hide/show rules, and drill-down.
 - Only raw `D-1` / `D-7` `San luong` and raw `Ty le F1.3` can be hidden by the operator on BCVH Ranking.
-- `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible.
+- `Delta san luong` and `Delta F1.3` remain visible.
+- comparison-rank and rank-movement columns are not rendered on `/f13/ranking/bcvh`, while backend fields remain unchanged.
 - KPI signal uses the existing Dashboard quality-band semantics.
 - KPI 2026 labels on BCVH Ranking must remain:
   - `Tốt`
@@ -179,6 +191,10 @@ Validation result notes:
   - KPI labels match Dashboard SSOT
   - route-distribution labels remain `Tốt / Khá / Trung bình / Kém`
   - KPI and route semantics are not mixed
+  - the four comparison-rank columns are absent
+  - `D-1` and `D-7` each retain only the approved four visible fields
+  - grouped header color treatments are distinct by block
+  - hide/show rules remain limited to raw `D-1` / `D-7` volume and F1.3 columns
 - production build passed
 - lint completed with existing repository warnings outside this ticket scope
 - no backend formulas, thresholds, route exclusions, Dashboard business behavior, or historical fallback calculations were changed
@@ -207,6 +223,9 @@ Checks:
 4. Confirm `Tổng cộng` keeps supported aggregate values visible, shows `—` instead of repeated unavailable badges for unsupported fields, and still has no analysis action.
 5. Confirm KPI 2026 labels read `Tốt / Cần chú ý / Cảnh báo / Rủi ro cao` in the F1.3 widget, KPI cells, and expandable analysis panel.
 6. Confirm route-distribution labels remain `Tốt / Khá / Trung bình / Kém` in route columns, doughnut labels, and route analysis content.
+7. Confirm `D-1` and `D-7` each show only `Sản lượng`, `Tỷ lệ F1.3`, `Delta SL`, and `Delta F1.3`.
+8. Confirm no `Hạng kỳ so sánh` or `Dịch chuyển hạng` columns appear anywhere on the BCVH Ranking screen.
+9. Confirm each table block keeps its own light background grouping and that these colors do not imply KPI or route-quality status.
 
 PASS criteria:
 
