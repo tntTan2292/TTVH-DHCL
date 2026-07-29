@@ -1,13 +1,5 @@
 const authSessionStore = require('../services/auth/AuthSessionStore');
-
-const DEMO_USERS = [
-    {
-        username: 'admin',
-        password: 'admin123',
-        display_name: 'Quản trị viên',
-        role: 'admin',
-    },
-];
+const { authenticateRuntimeUser } = require('../services/auth/runtimeUsers');
 
 const getSessionId = (req) => req.header('x-session-id') || req.header('authorization')?.replace(/^Bearer\s+/i, '') || '';
 
@@ -33,7 +25,7 @@ exports.login = (req, res) => {
         });
     }
 
-    const user = DEMO_USERS.find((item) => item.username === username && item.password === password);
+    const user = authenticateRuntimeUser(username, password);
     if (!user) {
         return sendUnauthorized(res, 'Sai tên đăng nhập hoặc mật khẩu');
     }

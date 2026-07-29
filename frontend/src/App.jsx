@@ -6,9 +6,9 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 import SharedComponentsDemo from './pages/SharedComponentsDemo';
 import SharedLayoutDemo from './pages/SharedLayoutDemo';
 import ProtectedRoute from './components/ProtectedRoute';
-import { AuthProvider } from './auth/AuthContext';
+import { AuthProvider, useAuth } from './auth/AuthContext';
+import { ROLE_ADMIN, ROLE_VIEWER, getDefaultRouteForRole } from './auth/roles';
 
-// Old F11, F12, F41, System modules
 import F11Quality from './pages/F11Quality';
 import F12Quality from './pages/F12Quality';
 import F41Quality from './pages/F41Quality';
@@ -16,13 +16,23 @@ import DataImportCenter from './pages/DataImportCenter';
 import KpiConfiguration from './pages/KpiConfiguration';
 import SystemInformation from './pages/SystemInformation';
 
-// D7 Foundation F1.3 Pages & Containers
 import DashboardPage from './features/dashboard/DashboardPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
 import ShipmentPerformancePage from './features/shipment/ShipmentPerformancePage';
 import { PlaceholderPage } from './components/common/Containers';
 import { ErrorLayout } from './components/common/StateLayouts';
+
+function HomeRoute() {
+  const { user } = useAuth();
+  const target = getDefaultRouteForRole(user?.role);
+
+  if (target !== '/') {
+    return <Navigate to={target} replace />;
+  }
+
+  return <DashboardHome />;
+}
 
 function App() {
   return (
@@ -34,7 +44,7 @@ function App() {
           <Route
             path="/dev/shared-components"
             element={
-              <ProtectedRoute allowedRoles={['admin']}>
+              <ProtectedRoute allowedRoles={[ROLE_ADMIN]}>
                 <SharedComponentsDemo />
               </ProtectedRoute>
             }
@@ -42,7 +52,7 @@ function App() {
           <Route
             path="/dev/shared-layout"
             element={
-              <ProtectedRoute allowedRoles={['admin']}>
+              <ProtectedRoute allowedRoles={[ROLE_ADMIN]}>
                 <SharedLayoutDemo />
               </ProtectedRoute>
             }
@@ -50,35 +60,32 @@ function App() {
           <Route
             path="/"
             element={
-              <ProtectedRoute allowedRoles={['admin']}>
+              <ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}>
                 <MainLayout />
               </ProtectedRoute>
             }
           >
-            <Route index element={<DashboardHome />} />
+            <Route index element={<HomeRoute />} />
 
-            {/* OLD ARCHITECTURE ROUTES */}
-            <Route path="f11" element={<F11Quality />} />
-            <Route path="f12" element={<F12Quality />} />
-            <Route path="f41" element={<F41Quality />} />
-            <Route path="import" element={<DataImportCenter />} />
-            <Route path="kpi-config" element={<KpiConfiguration />} />
-            <Route path="system-info" element={<SystemInformation />} />
+            <Route path="f11" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F11Quality /></ProtectedRoute>} />
+            <Route path="f12" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F12Quality /></ProtectedRoute>} />
+            <Route path="f41" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F41Quality /></ProtectedRoute>} />
+            <Route path="import" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><DataImportCenter /></ProtectedRoute>} />
+            <Route path="kpi-config" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><KpiConfiguration /></ProtectedRoute>} />
+            <Route path="system-info" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><SystemInformation /></ProtectedRoute>} />
 
-            {/* D7.1 ARCHITECTURE MERGE (F1.3 FEATURE MODULE) */}
             <Route path="f13">
               <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="ranking/bcvh" element={<BcvhRankingPage />} />
-              <Route path="ranking/route" element={<RoutePerformancePage />} />
-              <Route path="ranking/shipment" element={<ShipmentPerformancePage />} />
-              <Route path="pareto" element={<PlaceholderPage title="Pareto / RCA" />} />
-              <Route path="evidence" element={<PlaceholderPage title="Evidence List" />} />
-              <Route path="message" element={<PlaceholderPage title="Message Center" />} />
+              <Route path="dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><DashboardPage /></ProtectedRoute>} />
+              <Route path="ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><BcvhRankingPage /></ProtectedRoute>} />
+              <Route path="ranking/route" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><RoutePerformancePage /></ProtectedRoute>} />
+              <Route path="ranking/shipment" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><ShipmentPerformancePage /></ProtectedRoute>} />
+              <Route path="pareto" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Pareto / RCA" /></ProtectedRoute>} />
+              <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Evidence List" /></ProtectedRoute>} />
+              <Route path="message" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Message Center" /></ProtectedRoute>} />
             </Route>
           </Route>
 
-          {/* GLOBAL CATCH-ALL */}
           <Route
             path="*"
             element={

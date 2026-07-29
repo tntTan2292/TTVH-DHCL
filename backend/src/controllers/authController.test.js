@@ -1,17 +1,16 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
 const authController = require('./authController');
 const authSessionStore = require('../services/auth/AuthSessionStore');
+const { DEFAULT_ADMIN, DEFAULT_VIEWER_USERNAME } = require('../services/auth/runtimeUsers');
+const { hashPassword } = require('../services/auth/passwordHash');
 
-function getConfiguredCredentialPair() {
-    const source = fs.readFileSync(require.resolve('./authController'), 'utf8');
-    const username = source.match(/username:\s*'([^']+)'/)?.[1];
-    const password = source.match(/password:\s*'([^']+)'/)?.[1];
-    assert.ok(username);
-    assert.ok(password);
-    return { username, password };
-}
+const ORIGINAL_ENV = {
+    QIS_ADMIN_USERNAME: process.env.QIS_ADMIN_USERNAME,
+    QIS_ADMIN_PASSWORD: process.env.QIS_ADMIN_PASSWORD,
+    QIS_VIEWER_USERNAME: process.env.QIS_VIEWER_USERNAME,
+    QIS_VIEWER_PASSWORD_HASH: process.env.QIS_VIEWER_PASSWORD_HASH,
+};
 
 function createRequest({ body = {}, headers = {} } = {}) {
     const normalizedHeaders = Object.fromEntries(
@@ -43,10 +42,27 @@ function createResponse() {
 
 test.beforeEach(() => {
     authSessionStore.clear();
+    process.env.QIS_ADMIN_USERNAME = DEFAULT_ADMIN.username;
+    process.env.QIS_ADMIN_PASSWORD = DEFAULT_ADMIN.password;
+    process.env.QIS_VIEWER_USERNAME = DEFAULT_VIEWER_USERNAME;
+    delete process.env.QIS_VIEWER_PASSWORD_HASH;
+});
+
+test.after(() => {
+    for (const [key, value] of Object.entries(ORIGINAL_ENV)) {
+        if (value === undefined) {
+            delete process.env[key];
+        } else {
+            process.env[key] = value;
+        }
+    }
 });
 
 test('login returns a session for the configured runtime user without returning a password', () => {
-    const credentials = getConfiguredCredentialPair();
+    const credentials = {
+        username: process.env.QIS_ADMIN_USERNAME,
+        password: process.env.QIS_ADMIN_PASSWORD,
+    };
     const res = createResponse();
 
     authController.login(createRequest({ body: credentials }), res);
@@ -56,6 +72,24 @@ test('login returns a session for the configured runtime user without returning 
     assert.ok(res.body.data.session_id);
     assert.equal(res.body.data.user.username, credentials.username);
     assert.equal(res.body.data.user.role, 'admin');
+    assert.equal(Object.hasOwn(res.body.data.user, 'password'), false);
+});
+
+test('login supports env-configured viewer credentials without hardcoding a password', () => {
+    process.env.QIS_VIEWER_PASSWORD_HASH = hashPassword('Viewer#2026!');
+    const res = createResponse();
+
+    authController.login(createRequest({
+        body: {
+            username: process.env.QIS_VIEWER_USERNAME,
+            password: 'Viewer#2026!',
+        },
+    }), res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.success, true);
+    assert.equal(res.body.data.user.username, DEFAULT_VIEWER_USERNAME);
+    assert.equal(res.body.data.user.role, 'viewer');
     assert.equal(Object.hasOwn(res.body.data.user, 'password'), false);
 });
 

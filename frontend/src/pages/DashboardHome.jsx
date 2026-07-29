@@ -5,6 +5,8 @@ import {
     TrendingUp, TrendingDown, UploadCloud, ArrowRight
 } from 'lucide-react';
 import api from '../api/client';
+import { useAuth } from '../auth/AuthContext';
+import { getDashboardQuickLinks } from '../navigation/appNavigation.jsx';
 
 /**
  * DashboardHome — Trang tổng quan hệ thống
@@ -25,6 +27,7 @@ const getDateString = (daysAgo) => {
 
 export default function DashboardHome() {
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const [importStatus, setImportStatus] = useState(null);
     const [kpiToday, setKpiToday]         = useState(null);
@@ -53,11 +56,7 @@ export default function DashboardHome() {
 
     const dodPositive = (kpiToday?.dod ?? 0) >= 0;
 
-    const quickLinks = [
-        { label: 'F1.3 Dashboard',      path: '/f13/dashboard',      color: 'bg-vnpost-blue',   description: 'KPI chất lượng phát liên tỉnh' },
-        { label: 'Xếp hạng BCVH',       path: '/f13/ranking/bcvh',   color: 'bg-green-600',     description: 'So sánh hiệu quả theo bưu cục' },
-        { label: 'Data Import Center',   path: '/import',             color: 'bg-vnpost-orange', description: 'Nạp & quản lý dữ liệu Excel' },
-    ];
+    const quickLinks = getDashboardQuickLinks(user?.role);
 
     return (
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -192,4 +191,3 @@ export default function DashboardHome() {
         </div>
     );
 }
-

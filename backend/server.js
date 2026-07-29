@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { loadLocalEnv } = require('./src/config/env');
 
 loadLocalEnv();
@@ -10,13 +11,16 @@ const authRoutes = require('./src/routes/authRoutes');
 const { startWatcher } = require('./src/services/importWatcher');
 
 const app = express();
-const PORT = 5050;
+const PORT = Number(process.env.PORT || 5050);
+const HOST = process.env.HOST || '0.0.0.0';
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 
 const logRuntimeBanner = () => {
     console.log('====================================');
     console.log('Backend Runtime Started');
     console.log(`PID: ${process.pid}`);
     console.log(`Node: ${process.version}`);
+    console.log(`Host: ${HOST}`);
     console.log(`Port: ${PORT}`);
     console.log(`Time: ${new Date().toISOString()}`);
     console.log('====================================');
@@ -73,8 +77,19 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
+app.use(express.static(frontendDistPath, { index: false, extensions: ['html'] }));
 
-app.listen(PORT, () => {
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+        return next();
+    }
+
+    return res.sendFile(path.join(frontendDistPath, 'index.html'), (error) => {
+        if (error) next();
+    });
+});
+
+app.listen(PORT, HOST, () => {
     logRuntimeBanner();
     console.log(`TTVH Backend running on port ${PORT}`);
     startWatcher();

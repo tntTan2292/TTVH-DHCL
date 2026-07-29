@@ -1,6 +1,7 @@
 import { Menu, UserCircle, Bell, ChevronDown, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { ROLE_VIEWER } from '../auth/roles';
 
 export default function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth();
@@ -39,7 +40,7 @@ export default function Topbar({ onMenuClick }) {
                 {user?.display_name || 'Quản trị viên'}
               </p>
               <p className="text-[10px] text-gray-500 uppercase tracking-tighter font-semibold">
-                {user?.role || 'admin'}
+                {user?.role === ROLE_VIEWER ? 'viewer f1.3' : (user?.role || 'admin')}
               </p>
             </div>
             <div className="relative">

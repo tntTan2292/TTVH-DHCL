@@ -22,8 +22,8 @@ Quy tắc cập nhật:
 
 ## Current Ticket
 
-- `None`
-- `Status: COMPLETED / PO PASS`
+- `QIS-LAN-DEPLOY-001`
+- `Status: READY FOR PO REVIEW`
 
 ## Completed Tickets
 
@@ -57,6 +57,7 @@ Quy tắc cập nhật:
 - `DA-IMPL-007 Smart Dashboard Final Assembly` - PO PASS / COMPLETED
 - `F13-BCVH-RANKING-REDESIGN-PLAN` - COMPLETED / HANDOFF
 - `F13-BCVH-RANKING-REDESIGN-IMPL` - PO PASS / COMPLETED / CLOSED
+- `QIS-LAN-DEPLOY-001 F1.3 Local Network Viewer Deployment` - READY FOR PO REVIEW
 
 ## Current Progress
 
@@ -100,12 +101,12 @@ Quy tắc cập nhật:
 - TICKET-0102: `DEFERRED / INACTIVE`
 - PO findings from TODAY-001: `CLOSED`
 - PO UI Check Required: `No`
-- PO Product Status: `F13-BCVH-RANKING-REDESIGN-IMPL PO PASS / CLOSED`
+- PO Product Status: `QIS-LAN-DEPLOY-001 READY FOR PO REVIEW`
 
 ## Next Ticket
 
-- Current active ticket: `None`.
-- Next planned ticket: `Awaiting Product Owner direction`.
+- Current active ticket: `QIS-LAN-DEPLOY-001`.
+- Next planned ticket: `QIS-LAN-DEPLOY-001 active; no later ticket authorized yet.`
 
 ## Notes
 

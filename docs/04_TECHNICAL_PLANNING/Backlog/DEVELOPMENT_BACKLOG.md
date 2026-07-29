@@ -47,6 +47,17 @@ PO findings traceability:
 
 The following queue is the current PO-prioritized delivery order for leadership reporting.
 
+### QIS-LAN-DEPLOY-001 F1.3 Local Network Viewer Deployment
+
+- Module: F1.3 Deployment / Access Control
+- Route / URL: `/login`, `/f13/dashboard`, `/f13/ranking/bcvh`, `/f13/ranking/route`, `/f13/ranking/shipment`, blocked `/import`, `/kpi-config`, `/system-info`, `/f11`, `/f12`, `/f41`
+- Goal: Deploy the completed F1.3 product for read-only LAN access from other computers on the same local network.
+- PO UI Check Required: `Yes`
+- Affected Screen / Menu: Login, shared navigation, F1.3 screens, System Administration, and direct URL authorization boundary
+- Business Impact: Allows read-only operational viewing of the completed F1.3 product from second computers without exposing unfinished modules or administrative operations.
+- Expected Visible Result: Viewer can log in, open completed F1.3 screens, is blocked from System Administration and unfinished top-level modules, and can access the server over LAN using the documented local-network URL.
+- Blocking Issue: `None`
+
 ### TODAY-001 Import Daily Data Verification
 
 - Module: Data Import Center

@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-- `Awaiting Product Owner direction`
+- `F1.3 Local Network Viewer Deployment`
 
 ## Completion By Phase
 
@@ -50,6 +50,7 @@
 - DA-IMPL-007: `Completed / PO PASS`
 - F13-BCVH-RANKING-REDESIGN-PLAN: `Completed / Handoff`
 - F13-BCVH-RANKING-REDESIGN-IMPL: `Completed / PO PASS / Closed`; latest verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
+- QIS-LAN-DEPLOY-001: `READY FOR PO REVIEW`
 - TICKET-0102: `Deferred / Inactive`
 
 ## Frozen Documents
@@ -90,7 +91,7 @@
 
 ## Outstanding Decisions
 
-- Next ticket authorization is pending Product Owner direction after `F13-BCVH-RANKING-REDESIGN-IMPL` closure.
+- `QIS-LAN-DEPLOY-001` implementation is complete. Viewer hash setup, LAN URL `http://10.47.33.24:5050`, direct URL/API authorization proof, and PO second-computer recheck are recorded for review.
 
 ## Open Issues
 
@@ -103,16 +104,16 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `None` |
-| Current Commit | `a6235b2fc99fd662971a7c0fc9d7f43190b133b4` |
-| Current Phase | `AWAITING PRODUCT OWNER DIRECTION` |
-| Last Reviewed Phase | `F13-BCVH-RANKING-REDESIGN-IMPL CLOSURE` |
-| Last Reviewed Commit | `a6235b2fc99fd662971a7c0fc9d7f43190b133b4` |
-| Phase Review Status | `PO PASS` |
-| Next Phase Authorization | `WAIT FOR NEXT PRODUCT OWNER TICKET AUTHORIZATION` |
-| Next Milestone | `Product Owner direction for the next authorized ticket` |
-| PO UI Check Required | `No` |
-| PO Product Status | `F13-BCVH-RANKING-REDESIGN-IMPL PO PASS / CLOSED` |
+| Current Ticket | `QIS-LAN-DEPLOY-001` |
+| Current Commit | `7ea633fc30c1d68cdebf57532d3e0bd776737387` |
+| Current Phase | `F1.3 LOCAL NETWORK VIEWER DEPLOYMENT` |
+| Last Reviewed Phase | `QIS-LAN-DEPLOY-001 IMPLEMENTATION` |
+| Last Reviewed Commit | `7ea633fc30c1d68cdebf57532d3e0bd776737387` |
+| Phase Review Status | `READY FOR PO REVIEW` |
+| Next Phase Authorization | `IMPLEMENT THE BOUNDED LAN VIEWER DEPLOYMENT ONLY` |
+| Next Milestone | `PO LAN recheck from a second computer` |
+| PO UI Check Required | `Yes` |
+| PO Product Status | `READY FOR PO REVIEW` |
 
 ## F13-BCVH-RANKING-REDESIGN-IMPL Closure
 

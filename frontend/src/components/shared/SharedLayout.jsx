@@ -1,43 +1,18 @@
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, Database, FileSpreadsheet, Info, LayoutDashboard, Menu, PieChart, Target, Activity, Settings, BarChart2, Search, CalendarDays, Filter, X, LoaderCircle, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle } from 'lucide-react';
 import Topbar from '../Topbar';
-import { ErrorState, LoadingState } from './SharedComponents';
-
-const navGroups = [
-  { name: 'Dashboard Home', path: '/', icon: <LayoutDashboard size={20} /> },
-  {
-    title: 'F1.3 Quality Management',
-    icon: <Target size={20} />,
-    subItems: [
-      { name: 'Operation Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
-      { name: 'BCVH Ranking', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
-      { name: 'Tuyến Ranking', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
-      { name: 'Pareto / RCA', path: '/f13/pareto', icon: <PieChart size={18} /> },
-      { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
-      { name: 'Message Center', path: '/f13/message', icon: <Info size={18} /> },
-    ],
-  },
-  { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={20} /> },
-  { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={20} /> },
-  { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={20} /> },
-  {
-    title: 'System Administration',
-    icon: <Settings size={20} />,
-    subItems: [
-      { name: 'Data Import Center', path: '/import', icon: <FileSpreadsheet size={18} /> },
-      { name: 'KPI Configuration', path: '/kpi-config', icon: <Settings size={18} /> },
-      { name: 'System Information', path: '/system-info', icon: <Info size={18} /> },
-    ],
-  },
-];
+import { useAuth } from '../../auth/AuthContext';
+import { getNavigationForRole } from '../../navigation/appNavigation.jsx';
 
 export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
+  const { user } = useAuth();
   const [expandedGroups, setExpandedGroups] = useState({
     'F1.3 Quality Management': true,
     'System Administration': false,
   });
+  const navGroups = getNavigationForRole(user?.role);
 
   const toggleGroup = (groupTitle) => {
     setExpandedGroups((prev) => ({ ...prev, [groupTitle]: !prev[groupTitle] }));
@@ -267,6 +242,7 @@ export function GlobalFilterBar({
     </div>
   );
 }
+
 export function PageToolbar({ children }) {
   return <div className="flex flex-wrap items-center gap-2">{children}</div>;
 }
