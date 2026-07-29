@@ -4,26 +4,48 @@
 - Date: `2026-07-29`
 - Target Component: `Operation Dashboard (/f13/dashboard)`
 - Visual Inspiration: `CRM 3.0 Dashboard (Interface surfaces, depth, saturation, borders, shadows, typography, controls, feedback)`
-- Authority: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`
-- PO Status: `READY FOR PO CHECK (Phase 1 Implementation Complete)`
+- Authority: `PO PASS PHASE 1 / READY FOR PHASE 2 DISPATCH`
+- PO Status: `PO PASS PHASE 1 – OPERATION DASHBOARD UI/UX`
 
 ---
 
-## 1. Executive Summary & Design Scope Clarification
+## 1. Executive Summary & Recorded PO Decision
 
 This UI/UX Plan defines the visual, interaction, and structural standardization for the **Operation Dashboard** (`/f13/dashboard`) of QIS V2.
 
-The Product Owner previously recorded: **`PO APPROVE UI/UX AUDIT AND STANDARDIZATION PLAN.`**
+The Product Owner has officially recorded: **`PO PASS PHASE 1 – OPERATION DASHBOARD UI/UX.`**
 
-### Phase 1 Implementation Status:
-- **Scope Implemented**: Phase 1 (`GlobalFilterBar` & `UnifiedCommandSummary` on `/f13/dashboard`).
-- **UI Treatment Applied**: CRM 3.0-inspired surface depth (`bg-white` cards with `border-slate-200/90` and `shadow-sm hover:shadow-md`), input hover/focus-within ring outlines, tag chips for metric questions, prominent Executive Insight Callout banner, 150ms transitions (`motion-reduce:transition-none`), and geometry-matched pulse skeletons.
-- **Validation**: 100% focused unit tests passed (`node --test frontend/src/features/dashboard/components/unifiedCommandSummary.test.js`). 110+ dashboard suite tests passed. Zero business logic or API contracts changed.
-- **Current State**: Stopped at `READY FOR PO CHECK`. Phase 2, 3, and 4 implementation is NOT dispatched.
+The Product Owner also accepts the current shared visual styling impact on BCVH Ranking (`GlobalFilterBar` styling) because it remains visually suitable and reduces future standardization effort.
+
+### Current Workflow & Handoff Status:
+- **Phase 1 Status**: `COMPLETED / PO PASS`.
+- **Phase 2, Phase 3, Phase 4**: Not yet dispatched. Do not implement additional UI changes in this step.
+- **Next Action**: Awaiting ChatGPT coordination to issue a separately bounded prompt for Phase 2 implementation (Compact 9-Column BCVH Table Visual Polish).
 
 ---
 
-## 2. Color Palette & Visual System
+## 2. Protected Boundaries & Component Isolation Rules
+
+### A. Shared Visual Components Policy
+1. The current Phase 1 styling (`GlobalFilterBar` in `SharedLayout.jsx`) that also appears on BCVH Ranking (`/f13/ranking/bcvh`) is accepted by Product Owner.
+2. This acceptance applies **ONLY** to the current shared visual treatment.
+3. Any future change to a shared component must validate both `/f13/dashboard` and `/f13/ranking/bcvh`.
+4. A future BCVH Ranking ticket must not assume that changing shared styling is automatically authorized for Operation Dashboard.
+
+### B. Table Presentation Isolation Policy
+1. **Operation Dashboard Table**: Operation Dashboard must continue rendering the accepted compact 9-column `BcvhOperationTable` (`src/components/f13/BcvhOperationTable.jsx`).
+2. **BCVH Ranking Table**: BCVH Ranking must continue rendering the independent detailed `UnifiedBcvhAnalysisTable` (`features/dashboard/components/UnifiedBcvhAnalysisTable.jsx`).
+3. **No Reconnection**: Do not reconnect the Ranking table, its adapter, expandable analysis presentation, column model, or detailed ranking behavior to Dashboard.
+4. **No Shared Component Replacement**: Do not replace either table with a shared presentation component unless Product Owner explicitly approves a new contract.
+5. **Future Verification**: Future BCVH Ranking remediation must verify that Dashboard table structure, styling, and behavior remain unchanged.
+
+### C. SSOT & Scope Boundaries
+- **Authoritative SSOT Consumption**: Business-semantic colors, KPI labels, status meanings, thresholds, formulas, target lines, and route-quality classifications remain 100% UNCHANGED, consumed directly from SSOT mappers.
+- **No Code Implementation in this Step**: Documentation, commit, and push pass only.
+
+---
+
+## 3. Color Palette & Visual System
 
 ### A. Interface & Decorative Palette (UI Surfaces, Navigation & Controls)
 *CRM 3.0 inspiration applies exclusively to interface surfaces and controls:*
@@ -44,7 +66,7 @@ The Product Owner previously recorded: **`PO APPROVE UI/UX AUDIT AND STANDARDIZA
 
 ---
 
-## 3. Interaction, Feedback & Motion Standard
+## 4. Interaction, Feedback & Motion Standard
 
 - **Transition Speed**: All hover, focus, and state transitions use strictly `150ms` (restrained 120–200 ms window) with `ease-in-out` curve (`transition-all duration-150 ease-in-out`).
 - **No Layout Shift on Press**: Eliminates font resizing or scale bounce on click. Active press feedback uses solid color/shadow state updates (`active:bg-blue-800 active:border-blue-900`).
@@ -68,57 +90,38 @@ The Product Owner previously recorded: **`PO APPROVE UI/UX AUDIT AND STANDARDIZA
 
 ---
 
-## 4. Structure & Exact Content Section Inventory
+## 5. Structure & Content Section Inventory
 
 The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main Content Sections**:
 
 ```
 [Header & QuickNav Area] Page Title + "Mở xếp hạng BCVH" Action Button
-├── [Section 1] GlobalFilterBar (Date Range, BCVH Selector, Search Input) [Phase 1 Implemented]
-├── [Section 2] UnifiedCommandSummary (4 Executive KPI Cards + Executive Insight Callout) [Phase 1 Implemented]
+├── [Section 1] GlobalFilterBar (Date Range, BCVH Selector, Search Input) [Phase 1 COMPLETED / PO PASS]
+├── [Section 2] UnifiedCommandSummary (4 Executive KPI Cards + Executive Insight Callout) [Phase 1 COMPLETED / PO PASS]
 ├── [Section 3] BcvhOperationTable (Compact 9-Column BCVH Overview Table) [Phase 2 Pending]
 ├── [Section 4] IntegratedTrendRiskWorkspace (Trend Chart & Leadership D-1/D-7 Grid) [Phase 3 Pending]
 ├── [Section 5] OperatingPatternTabsCard (Weekday/Month/Heatmap Patterns & Charts) [Phase 3 Pending]
 └── [Section 6] UnifiedActionCenter (Executive Bulletin & Recommendation Cards) [Phase 3 Pending]
 ```
 
-### Exact Skeleton Loading Scope by Section
-When data is loading, exact structural pulse skeletons are rendered:
-- **Section 1 (`GlobalFilterBar`)**: Skeleton select box during metadata loading. [Phase 1 Implemented]
-- **Section 2 (`UnifiedCommandSummary`)**: 4 Skeleton KPI Cards (stat value + subtitle label) + 1 Skeleton Insight Box. [Phase 1 Implemented]
-- **Section 3 (`BcvhOperationTable`)**: 6 Skeleton Table Rows with sticky cell placeholders.
-- **Section 4 (`IntegratedTrendRiskWorkspace`)**: 2 Skeleton Comparison Cards + 1 Skeleton Chart Container.
-- **Section 5 (`OperatingPatternTabsCard`)**: 1 Skeleton Summary Box + 1 Skeleton Chart / Heatmap Matrix.
-- **Section 6 (`UnifiedActionCenter`)**: 4 Skeleton Context Blocks + 3 Skeleton Action Cards.
-
 ---
 
-## 5. Phase 1 Implementation Evidence & PO Checklists
+## 6. Phase Status & Remediation Roadmap
 
-### **Phase 1: Filter Bar & Executive Command Belt (Sections 1 & 2) - [IMPLEMENTED]**
-- **Files Modified**:
-  - `frontend/src/components/shared/SharedLayout.jsx` (`GlobalFilterBar`)
-  - `frontend/src/features/dashboard/components/UnifiedCommandSummary.jsx` (`CommandCard`, `CommandSummarySkeleton`, `Executive Insight Banner`)
-- **Key Enhancements Implemented**:
-  1. Filter inputs upgraded with hover highlight (`hover:border-blue-400 hover:bg-slate-50/50`) and focus ring outline (`focus-within:ring-2 focus-within:ring-blue-600`).
-  2. 4 Executive KPI Cards upgraded with metric tag chips (`card.question`), bold tabular numbers (`text-2xl xl:text-3xl font-black tabular-nums`), and preserved semantic tone classes (`success`, `comparison`, `volume`, `danger`).
-  3. Executive Insight Callout transformed into a prominent Bản tin chỉ đạo điều hành banner with brand blue badge icon (`#003E7E`) and subtle gradient backdrop (`from-blue-50/90 via-indigo-50/30 to-blue-50/50`).
-  4. Restrained geometry-matched pulse skeletons (`CommandSummarySkeleton`) implemented for loading states with `motion-reduce:animate-none` support.
-  5. 150ms transitions applied without layout shift.
-- **PO Visual Verification Checklist Phase 1**:
-  - [ ] **Filter Bar Inputs**: Hover over date inputs, BCVH dropdown, and search input to observe smooth blue border highlights and focus-within ring outlines.
-  - [ ] **KPI Command Cards**: Verify 4 cards render metric tag chips ("Chất lượng", "Vị thế toàn quốc", "Quy mô", "Cần xử lý"), bold tabular metrics, and smooth hover depth.
-  - [ ] **Executive Insight Banner**: Observe high-visibility "Bản tin chỉ đạo điều hành" callout with brand icon and blue accent border.
-  - [ ] **Loading Skeleton**: Verify restrained geometry-matched pulse skeleton cards display smoothly during fetch.
+### **Phase 1: Filter Bar & Executive Command Belt (Sections 1 & 2) - [PO PASS]**
+- **Status**: `COMPLETED / PO PASS`.
+- **Files Modified**: `SharedLayout.jsx` (`GlobalFilterBar`), `UnifiedCommandSummary.jsx`.
+- **Commit**: `6ea7819`.
 
----
+### **Phase 2: Compact 9-Column BCVH Table Visual Polish (Section 3) - [NOT DISPATCHED]**
+- **Status**: `NOT YET DISPATCHED`.
+- **Scope**: Upgrade `BcvhOperationTable` (`src/components/f13/BcvhOperationTable.jsx`) header `bg-slate-50`, sticky drop shadow, progress bar, and restyle existing guidance drawer.
 
-## 6. Protected Boundaries & Handoff Directive
+### **Phase 3: Charts, Patterns & Action Center Polish (Sections 4, 5 & 6) - [NOT DISPATCHED]**
+- **Status**: `NOT YET DISPATCHED`.
+- **Scope**: Polish `IntegratedTrendRiskWorkspace`, `OperatingPatternTabsCard`, and `UnifiedActionCenter`.
 
-- **Existing KPI Targets & Thresholds**: Existing KPI targets and thresholds remain exactly as defined by the authoritative SSOT.
-- **No Data or API Contract Changes**: Parameters for `/f13/ranking/bcvh` and `/f13/dashboard/*` stay unchanged.
-- **No Permission or Navigation Changes**: Viewer/Admin access levels, port 5178/5050, and route `/f13/dashboard` remain fixed.
-- **Preserve Semantic SSOT Colors**: Operational status colors, labels, and thresholds remain 100% untouched in meaning and logic, consumed directly from current SSOT.
-- **Preserve Compact 9-Column BCVH Contract**: Dashboard uses compact 9-column `BcvhOperationTable`. Detailed 22-column ranking stays on `/f13/ranking/bcvh`.
-- **Handoff Directive**: Phase 1 implementation complete. Execution stopped at `READY FOR PO CHECK`. Phase 2, 3, and 4 implementation is NOT dispatched until PO reviews and approves Phase 1.
+### **Phase 4: Interaction Polish & Motion Support (Operation Dashboard-Wide) - [NOT DISPATCHED]**
+- **Status**: `NOT YET DISPATCHED`.
+- **Scope**: Dashboard-wide 150ms transition and `prefers-reduced-motion` validation.
 
