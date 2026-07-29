@@ -256,7 +256,7 @@ Current PO gate rule:
 - internal governance-only tickets use PO UI Check Required = No
 - Technical PASS and Runtime PASS do not imply PO Product PASS
 - current ticket, next ticket, and repository state are resolved through `PROJECT_SNAPSHOT.md`
-- as of `2026-07-29`, `F13-BCVH-RANKING-REDESIGN-IMPL` is `COMPLETED / PO PASS / CLOSED` at verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
+- as of `2026-07-29`, `QIS-LAN-DEPLOY-001` is `COMPLETED / PO PASS / CLOSED` at accepted runtime remediation commit `99c865e92b840a587dc9a889294c535fecc68816`
 - accepted product contract remains fixed:
   - Dashboard BCVH table keeps the original compact overview surface
   - `/f13/ranking/bcvh` keeps the detailed independent ranking surface
@@ -265,7 +265,11 @@ Current PO gate rule:
   - KPI labels remain `Tốt / Cần chú ý / Cảnh báo / Rủi ro cao`
   - route-distribution labels remain `Tốt / Khá / Trung bình / Kém`
   - delayed-cash SSOT for `2026-07-28` is accepted with numerator `334`, denominator `1536`, and rate `21.7%`
-- no next ticket is active; the repository is awaiting Product Owner direction
+- current active ticket is `F13-UI-AUDIT-PLAN`
+- current state is `READY FOR ANTIGRAVITY DISCOVERY`
+- primary executor is `Antigravity`
+- boundary is `PLAN REVIEW ONLY / NO IMPLEMENTATION`
+- next action is Antigravity UI audit discovery and Product Owner review plan submission
 
 ## 10. Continuation Rule
 

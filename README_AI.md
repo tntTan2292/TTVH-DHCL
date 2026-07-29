@@ -130,7 +130,7 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md)
+[docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md)
 
 ↓
 
@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `QIS-LAN-DEPLOY-001 READY FOR PO REVIEW` from verified baseline `7ea633fc30c1d68cdebf57532d3e0bd776737387`. The bounded delivery has been implemented and self-validated: the completed F1.3 product is now served for LAN viewing on `http://<server-ip>:5178`, backend API remains on `http://<server-ip>:5050`, localhost remains available, the viewer role is read-only with secure hash-based initial password setup, unfinished top-level modules `F1.1`, `F1.2`, and `F4.1` are hidden from the viewer role, direct URL plus backend API authorization boundaries block viewer access to System Administration and data-changing operations, and startup fails clearly if `5178` or `5050` is already occupied. `F13-INTERNAL-ROUTE-AUDIT` remains `COMPLETED / PO PASS`: Route Ranking uses exact labels `Tuyến bưu tá | Tất cả`, defaults to `Tuyến bưu tá`, excludes route codes not starting with `53`, includes those routes under `Tất cả`, displays them as `Nhận tại bưu cục`, and includes a PO-approved minimal runtime-backed `Bảng Tuyến Ranking`. `F13-DATA-QUALITY-001` implementation is deferred and its manifest is preserved. `F13-SHIPMENT-001` implementation is deferred and its manifest is preserved. `DA-IMPL-008` is `COMPLETED / PO PASS`; Dashboard visual audit and polish is deferred to Antigravity. `AUTO-IMPORT-009` is `COMPLETED / PO PASS` at remote baseline `29e3a383a25c72a2dc9e5f2cc8667461803e78f6`; no further Import remediation is active. Unattended scheduling and `F1.1`/`F1.2`/`F4.1` implementation remain unauthorized outside this bounded menu/access deployment.
+Current active handoff: `F13-UI-AUDIT-PLAN READY FOR ANTIGRAVITY DISCOVERY`. `QIS-LAN-DEPLOY-001` is `COMPLETED / PO PASS / CLOSED` at accepted runtime remediation commit `99c865e92b840a587dc9a889294c535fecc68816`: frontend LAN port remains `5178`, backend/API port remains `5050`, normal LAN URL remains `http://<server-ip>:5178`, viewer username is configured locally as `ttvhhue`, viewer authentication is operational, viewer access remains limited to completed F1.3 screens, restricted screens and APIs remain blocked, and admin access remains unchanged. The next authorized activity is planning only: Antigravity audits the current F1.3 UI and submits a standardization plan for Product Owner review. No UI implementation, formula change, permission change, port change, Import reopening, or new module activation is authorized under this handoff.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

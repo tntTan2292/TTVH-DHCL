@@ -56,6 +56,21 @@ The following queue is the current PO-prioritized delivery order for leadership 
 - Affected Screen / Menu: Login, shared navigation, F1.3 screens, System Administration, and direct URL authorization boundary
 - Business Impact: Allows read-only operational viewing of the completed F1.3 product from second computers without exposing unfinished modules or administrative operations.
 - Expected Visible Result: Viewer can log in, open completed F1.3 screens, is blocked from System Administration and unfinished top-level modules, and can access the server over LAN using the documented local-network URL.
+- Final Completion Status: `COMPLETED / PO PASS / CLOSED`
+- Evidence: `docs/06_REVIEWS/Deployment/QIS_LAN_DEPLOY_001_CHECKPOINT_001.md`
+- Commit: `99c865e92b840a587dc9a889294c535fecc68816`
+- Blocking Issue: `Closed`
+
+### F13-UI-AUDIT-PLAN F1.3 UI Audit and Standardization Planning
+
+- Module: F1.3 UI Planning
+- Route / URL: `/login`, `/f13/dashboard`, `/f13/ranking/bcvh`, `/f13/ranking/route`
+- Goal: Audit the current completed F1.3 UI and prepare a Product Owner reviewable standardization plan.
+- PO UI Check Required: `No`
+- Decision reason: planning review only; no implementation is authorized.
+- Affected Screen / Menu: Login, shared navigation, Operation Dashboard, BCVH Ranking, Route Ranking, viewer-facing states and presentation
+- Business Impact: Establishes a controlled Antigravity planning baseline for later UI standardization without disturbing accepted runtime behavior.
+- Expected Visible Result: None under this ticket; output is a planning package only.
 - Blocking Issue: `None`
 
 ### TODAY-001 Import Daily Data Verification

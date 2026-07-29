@@ -3,13 +3,14 @@
 - Ticket ID: `QIS-LAN-DEPLOY-001`
 - Ticket Name: `F1.3 Local Network Viewer Deployment`
 - Phase: `F1.3 Local Network Deployment`
-- Current state: `IMPLEMENTATION COMPLETE / READY FOR PO REVIEW`
-- Technical Status: `IMPLEMENTED / SELF-VALIDATED`
-- Runtime Status: `LAN SELF-VERIFIED`
-- PO UI Check Required: `Yes - login, navigation, access control, and LAN startup are visible behaviors`
-- PO Product Status: `READY FOR PO REVIEW`
+- Current state: `COMPLETED / PO PASS / CLOSED`
+- Technical Status: `PASS`
+- Runtime Status: `PO VERIFIED`
+- PO UI Check Required: `No - Product Owner verification completed`
+- PO Product Status: `PO PASS`
 - Activation authority: `Product Owner authorization to deploy the completed F1.3 product for read-only access from other computers on the same local network`
 - Handoff date: `2026-07-29`
+- Closure date: `2026-07-29`
 - Primary executor: `Codex`
 - Secondary executor: `None unless a later explicit UI-polish-only follow-up is authorized`
 
@@ -112,6 +113,7 @@ The implementation must preserve:
 - Windows pre-start conflict inspection is provided by `scripts/check-qis-lan-ports.ps1`.
 - Canonical backend startup is provided by `scripts/start-qis-backend.ps1`.
 - Backend startup diagnostics must reveal only: loaded `.env` path, configured viewer username, viewer enabled `yes/no`, and viewer hash valid `yes/no`.
+- Final accepted local viewer username configuration is `ttvhhue`.
 
 ## Validation
 
@@ -125,23 +127,29 @@ The implementation must preserve:
 
 ## PO Acceptance
 
-Ready-for-PO handoff must include a concise manual checklist covering:
+Product Owner decision recorded: `PO PASS`.
 
-- viewer login
-- accessible F1.3 screens
-- blocked System Administrator and import/admin screens
-- direct URL authorization checks
-- LAN startup and second-computer access steps
-- PASS / WARNING / FAIL criteria
+Accepted implementation and remediation evidence:
 
-Do not self-award PO PASS.
+- frontend LAN port: `5178`
+- backend/API LAN port: `5050`
+- normal LAN URL: `http://<server-ip>:5178`
+- viewer username is configured locally as `ttvhhue`
+- viewer authentication is operational
+- viewer may access only completed F1.3 screens
+- viewer remains blocked from System Administrator, Import, unfinished modules, and restricted APIs
+- admin access remains unchanged
+- viewer credential failure was caused by a malformed local password-hash value
+- local `.env` was corrected without committing plaintext credentials or hashes
+- accepted runtime remediation commit: `99c865e92b840a587dc9a889294c535fecc68816`
 
 ## Next Ticket
 
-- Next ticket ID: `None currently authorized`
+- Next ticket ID: `F13-UI-AUDIT-PLAN`
 - Blockers or handoff notes:
-  - After this delivery, await Product Owner direction unless a concrete deployment defect is found.
+  - Next authorized activity is Antigravity planning discovery only.
+  - No UI implementation is authorized until Product Owner approves the audit plan.
 
 ## Handoff
 
-This manifest authorizes one bounded delivery only. A fresh executor must read the onboarding chain, implement the LAN-only viewer deployment without reopening closed F1.3 behavior, update documentation, push, verify remote state, and finish with a fresh-onboarding handoff.
+This manifest is now a closure record. A fresh executor must preserve the accepted LAN deployment contract, treat this ticket as closed, and continue from `F13-UI-AUDIT-PLAN` for planning-only Antigravity discovery.

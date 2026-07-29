@@ -17,23 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `F1.3 LOCAL NETWORK VIEWER DEPLOYMENT` |
-| Current Ticket | `QIS-LAN-DEPLOY-001` |
-| Next Ticket | `None currently authorized` |
-| Last PO Status | `Product Owner authorized QIS-LAN-DEPLOY-001 to deploy the completed F1.3 product for read-only LAN access on the same local network from verified baseline 7ea633fc30c1d68cdebf57532d3e0bd776737387, then corrected the deployment path to preserve frontend port 5178 and backend port 5050 for LAN use; preserve accepted F1.3 screens, formulas, data, and closed-ticket behavior; do not expose the service to the public Internet` |
+| Current Phase | `F1.3 UI AUDIT AND STANDARDIZATION PLANNING` |
+| Current Ticket | `F13-UI-AUDIT-PLAN` |
+| Next Ticket | `None currently authorized beyond current planning activity` |
+| Last PO Status | `Product Owner closed QIS-LAN-DEPLOY-001 as COMPLETED / PO PASS / CLOSED at accepted runtime remediation commit 99c865e92b840a587dc9a889294c535fecc68816, then activated F13-UI-AUDIT-PLAN as READY FOR ANTIGRAVITY DISCOVERY with plan-review-only authority` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` |
-| Current Checkpoint | `QIS-LAN-DEPLOY-001 implementation complete; ready for PO review with corrected 5178/5050 LAN evidence` |
-| Current State | `READY FOR PO REVIEW` |
-| Technical Status | `IMPLEMENTED / SELF-VALIDATED` |
-| Runtime Status | `LAN SELF-VERIFIED` |
-| PO UI Check Required | `Yes - login, navigation, access control, and LAN startup are visible behaviors` |
-| PO Product Status | `READY FOR PO REVIEW` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` |
-| Last Reviewed Phase | `QIS-LAN-DEPLOY-001 IMPLEMENTATION` |
-| Last Reviewed Commit | `7ea633fc30c1d68cdebf57532d3e0bd776737387` |
-| Phase Review Status | `READY FOR PO REVIEW` |
-| Next Phase Authorization | `Implement only the bounded LAN viewer deployment defined in the active manifest` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` |
+| Current Checkpoint | `F13-UI-AUDIT-PLAN ready for Antigravity discovery with plan-review-only boundary` |
+| Current State | `READY FOR ANTIGRAVITY DISCOVERY` |
+| Technical Status | `PLANNING NOT STARTED` |
+| Runtime Status | `NOT RUN - PLANNING ONLY` |
+| PO UI Check Required | `No - planning review only` |
+| PO Product Status | `NOT READY` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` |
+| Last Reviewed Phase | `QIS-LAN-DEPLOY-001 CLOSURE / F13-UI-AUDIT-PLAN ACTIVATION` |
+| Last Reviewed Commit | `99c865e92b840a587dc9a889294c535fecc68816` |
+| Phase Review Status | `READY FOR ANTIGRAVITY DISCOVERY` |
+| Next Phase Authorization | `Antigravity audits the current UI and submits a standardization plan for Product Owner review; no implementation authority yet` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-29` |
 
@@ -60,7 +60,7 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `QIS-LAN-DEPLOY-001` implementation is complete from verified baseline `7ea633fc30c1d68cdebf57532d3e0bd776737387` and is ready for Product Owner review. The bounded delivery now exposes the completed F1.3 product on the LAN through `http://<server-ip>:5178`, preserves backend API access on `http://<server-ip>:5050`, preserves localhost, keeps Dashboard and BCVH Ranking accepted contracts unchanged, adds one read-only viewer role with secure hash-based password setup, blocks viewer access to System Administration and data-changing operations by direct URL and backend API boundary, and fails clearly if `5178` or `5050` is occupied. Do not self-award PO PASS; the next step is PO validation on a second computer.
+Current handoff: `QIS-LAN-DEPLOY-001` is `COMPLETED / PO PASS / CLOSED` at accepted runtime remediation commit `99c865e92b840a587dc9a889294c535fecc68816`. The accepted contract is fixed: frontend LAN port `5178`, backend/API port `5050`, normal LAN URL `http://<server-ip>:5178`, local viewer username configuration `ttvhhue`, operational viewer authentication, read-only viewer access to completed F1.3 screens only, preserved viewer restrictions, preserved admin access, and untracked local `.env` correction for the malformed password-hash defect. Current active ticket is `F13-UI-AUDIT-PLAN`, which is `READY FOR ANTIGRAVITY DISCOVERY` with `PLAN REVIEW ONLY / NO IMPLEMENTATION` authority. The next step is Antigravity audit discovery and submission of a UI standardization plan for Product Owner review.
 
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
 
@@ -69,5 +69,5 @@ Fresh-chat onboarding chain for the current active ticket:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-4. `docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md`
+4. `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`
 5. Required Reading from the current manifest

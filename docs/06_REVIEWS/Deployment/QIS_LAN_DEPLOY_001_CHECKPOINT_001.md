@@ -3,8 +3,8 @@
 - Ticket: `QIS-LAN-DEPLOY-001`
 - Date: `2026-07-29`
 - Scope: `F1.3 local network viewer deployment`
-- Status: `IMPLEMENTATION COMPLETE / READY FOR PO REVIEW`
-- PO UI Check Required: `Yes`
+- Status: `COMPLETED / PO PASS / CLOSED`
+- PO UI Check Required: `No`
 
 ## Delivered Scope
 
@@ -117,3 +117,21 @@ Additional checks:
 7. Log in as administrator and confirm import/admin screens still work.
 8. Confirm localhost `http://localhost:5178` and `http://localhost:5050` still work on the server machine.
 9. Occupy either port intentionally and confirm startup fails clearly instead of changing ports automatically.
+
+## Closure
+
+Product Owner recorded `PO PASS`.
+
+Accepted closure evidence:
+
+- frontend LAN port: `5178`
+- backend/API LAN port: `5050`
+- normal LAN URL: `http://<server-ip>:5178`
+- viewer username is configured locally as `ttvhhue`
+- viewer authentication is operational
+- viewer may access only completed F1.3 screens
+- viewer remains blocked from System Administrator, Import, unfinished modules, and restricted APIs
+- admin access remains unchanged
+- viewer credential failure root cause: malformed local password-hash value
+- local `.env` correction remained untracked for plaintext credentials and hashes
+- accepted runtime remediation commit: `99c865e92b840a587dc9a889294c535fecc68816`

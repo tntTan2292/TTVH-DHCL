@@ -38,10 +38,10 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `QIS-LAN-DEPLOY-001`.
-- Current manifest: `docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md`.
-- Current checkpoint: `QIS_LAN_DEPLOY_001_CHECKPOINT_001.md`.
-- Next required action: Implement the bounded F1.3 LAN viewer deployment within the active manifest boundary.
+- Current ticket: `F13-UI-AUDIT-PLAN`.
+- Current manifest: `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`.
+- Current checkpoint: `F13_UI_AUDIT_PLAN_CHECKPOINT_001.md`.
+- Next required action: Antigravity audits the current UI and submits a standardization plan for Product Owner review.
 
 ## Docs Inventory
 
@@ -59,10 +59,12 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 data coverage and quality module proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when data-quality work is reactivated or current manifest names it. | Medium |
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-PLAN_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign planning handoff with no implementation authority. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign implementation scope, authority, validation, and handoff rules. | L2 | Active Onboarding | Current implementation ticket only. | Mandatory |
-| `docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` | Ticket Manifest | Current F1.3 LAN-only viewer deployment scope, access-control authority, LAN runtime restrictions, and deployment handoff rules. | L2 | Active Onboarding | Current LAN deployment ticket only. | Mandatory |
+| `docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` | Ticket Manifest | Closed F1.3 LAN-only viewer deployment authority and accepted runtime remediation record. | L2 | Conditional Reference | When LAN deployment contract, viewer access boundary, or closure evidence is needed. | High |
+| `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Current F1.3 UI audit and standardization planning authority for Antigravity discovery only. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` | Ticket Manifest | Completed F1.3 internal route classification and Route Ranking filter scope with Product Owner PO PASS. | L2 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` | BCVH Checkpoint | Approved BCVH Ranking redesign structure, field-to-contract mapping, gaps, test requirements, and implementation handoff. | L2/L3 | Current Required Reading | Current BCVH implementation ticket only. | Mandatory |
-| `docs/06_REVIEWS/Deployment/QIS_LAN_DEPLOY_001_CHECKPOINT_001.md` | Deployment Checkpoint | Current LAN deployment activation scope, read-only viewer boundary, preserved F1.3 contract, and validation plan. | L2/L3 | Current Required Reading | Current LAN deployment ticket only. | Mandatory |
+| `docs/06_REVIEWS/Deployment/QIS_LAN_DEPLOY_001_CHECKPOINT_001.md` | Deployment Checkpoint | Closed LAN deployment checkpoint with accepted viewer-auth remediation and preserved access contract. | L2/L3 | Current Required Reading | When the current planning ticket needs the accepted LAN baseline. | Mandatory |
+| `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` | UI Planning Checkpoint | Current Antigravity discovery boundary, audit deliverables, and protected contracts for F1.3 UI standardization planning. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/06_REVIEWS/Route/F13_INTERNAL_COUNTER_ROUTE_AUDIT.md` | Route Review | Completed bounded database audit, route catalog handoff, and PO-approved Route Ranking outcome. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md` | Business Reference | Product Owner-confirmed internal-counter route catalog for later F1.3 daily analysis. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/04_TECHNICAL_PLANNING/F13_OPERATIONAL_CAPABILITY_AUDIT.md` | Technical Planning | Data-first F1.3 module capability matrix, gap matrix, target architecture, roadmap, and deferred data-quality proposal basis. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |

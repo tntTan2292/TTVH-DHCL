@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-- `F1.3 Local Network Viewer Deployment`
+- `F1.3 UI Audit and Standardization Planning`
 
 ## Completion By Phase
 
@@ -50,7 +50,8 @@
 - DA-IMPL-007: `Completed / PO PASS`
 - F13-BCVH-RANKING-REDESIGN-PLAN: `Completed / Handoff`
 - F13-BCVH-RANKING-REDESIGN-IMPL: `Completed / PO PASS / Closed`; latest verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
-- QIS-LAN-DEPLOY-001: `READY FOR PO REVIEW`
+- QIS-LAN-DEPLOY-001: `COMPLETED / PO PASS / CLOSED`; latest accepted runtime remediation commit `99c865e92b840a587dc9a889294c535fecc68816`
+- F13-UI-AUDIT-PLAN: `READY FOR ANTIGRAVITY DISCOVERY`
 - TICKET-0102: `Deferred / Inactive`
 
 ## Frozen Documents
@@ -91,7 +92,7 @@
 
 ## Outstanding Decisions
 
-- `QIS-LAN-DEPLOY-001` implementation is complete. Viewer hash setup, LAN URL `http://10.47.33.24:5178`, backend API port `5050`, direct URL/API authorization proof, port-conflict handling, and PO second-computer recheck are recorded for review.
+- `F13-UI-AUDIT-PLAN` is active. Antigravity must audit the current completed F1.3 UI and submit a standardization plan for Product Owner review without implementing UI code.
 
 ## Open Issues
 
@@ -104,16 +105,16 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `QIS-LAN-DEPLOY-001` |
-| Current Commit | `7ea633fc30c1d68cdebf57532d3e0bd776737387` |
-| Current Phase | `F1.3 LOCAL NETWORK VIEWER DEPLOYMENT` |
-| Last Reviewed Phase | `QIS-LAN-DEPLOY-001 IMPLEMENTATION` |
-| Last Reviewed Commit | `7ea633fc30c1d68cdebf57532d3e0bd776737387` |
-| Phase Review Status | `READY FOR PO REVIEW` |
-| Next Phase Authorization | `IMPLEMENT THE BOUNDED LAN VIEWER DEPLOYMENT ONLY` |
-| Next Milestone | `PO LAN recheck from a second computer on frontend 5178 with backend 5050` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `READY FOR PO REVIEW` |
+| Current Ticket | `F13-UI-AUDIT-PLAN` |
+| Current Commit | `99c865e92b840a587dc9a889294c535fecc68816` |
+| Current Phase | `F1.3 UI AUDIT AND STANDARDIZATION PLANNING` |
+| Last Reviewed Phase | `QIS-LAN-DEPLOY-001 CLOSURE / F13-UI-AUDIT-PLAN ACTIVATION` |
+| Last Reviewed Commit | `99c865e92b840a587dc9a889294c535fecc68816` |
+| Phase Review Status | `READY FOR ANTIGRAVITY DISCOVERY` |
+| Next Phase Authorization | `ANTIGRAVITY PLANNING DISCOVERY ONLY` |
+| Next Milestone | `Antigravity audit and standardization planning submission for PO review` |
+| PO UI Check Required | `No` |
+| PO Product Status | `NOT READY` |
 
 ## F13-BCVH-RANKING-REDESIGN-IMPL Closure
 
