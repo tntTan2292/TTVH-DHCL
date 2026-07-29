@@ -3,8 +3,8 @@
 - Ticket: `F13-BCVH-RANKING-REDESIGN-IMPL`
 - Date: `2026-07-29`
 - Scope: `Wave 2 frontend presentation`
-- Status: `IMPLEMENTATION COMPLETE / READY FOR PO CHECK`
-- PO UI Check Required: `Yes`
+- Status: `COMPLETED / PO PASS / CLOSED`
+- PO UI Check Required: `No`
 
 ## Scope Applied
 
@@ -157,6 +157,51 @@ Latest bounded delayed-cash total-row remediation on `2026-07-29` delivered:
   - `meta.total_row.delayed_cash_handover_eligible_count = 1536`
   - `meta.total_row.f13_303_rate = 21.7`
 - backend process restart is required only for a running server instance to load the updated service code; no schema or import migration is required
+
+## Final Closure
+
+- Product Owner decision: `PO PASS`
+- Ticket state: `COMPLETED / PO PASS / CLOSED`
+- Runtime PO verification: `COMPLETE`
+- Latest verified implementation commit: `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
+
+Accepted contract:
+
+- Dashboard BCVH table remains the original compact overview surface.
+- `/f13/ranking/bcvh` remains the detailed independent ranking surface.
+- `D-1` and `D-7` each show:
+  - `Sản lượng`
+  - `Tỷ lệ`
+  - `SS SL`
+  - `SS Tỷ lệ`
+- comparison-rank and rank-movement columns are not rendered.
+- table block order remains:
+  - `Đơn vị`
+  - `Kết quả ngày đánh giá`
+  - `Chậm nộp tiền`
+  - `So sánh D-1`
+  - `So sánh D-7`
+  - `Phân bổ tuyến`
+  - `Hành động`
+- KPI 2026 labels remain:
+  - `Tốt`
+  - `Cần chú ý`
+  - `Cảnh báo`
+  - `Rủi ro cao`
+- route-distribution labels remain:
+  - `Tốt`
+  - `Khá`
+  - `Trung bình`
+  - `Kém`
+- delayed-cash SSOT remains:
+  - denominator includes selected-day canonical BCVH facts with `danh_gia_2026 != Đạt`
+  - delayed only when valid `thoi_gian_ptc` and `thoi_gian_nop_tien` both exist and the gap is strictly greater than `3` hours
+  - missing or invalid timestamps remain in the denominator but are not delayed
+  - zero denominator publishes `0%`
+- accepted runtime evidence for `2026-07-28`:
+  - delayed numerator `334`
+  - eligible denominator `1536`
+  - delayed rate `21.7%`
 
 ## Preserved Authority
 

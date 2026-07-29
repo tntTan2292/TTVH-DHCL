@@ -138,7 +138,7 @@ Current ticket, commit, phase, next milestone, and repository status are owned b
 Use the current manifest for ticket-specific scope and reading order.
 Use `CODEX_DOCUMENTATION_STANDARD.md` when the reading or update order itself must be interpreted.
 
-As of `2026-07-20`, `DA-IMPL-006` is `COMPLETED / PO PASS` and `DA-IMPL-007 Smart Dashboard Final Assembly` is active for handoff only. Primary executor for DA-IMPL-007 is `Antigravity`; Antigravity must directly execute final visual assembly, must not reopen DA-IMPL-006, and must not generate a Codex prompt as its end state. Codex should be called back only for logic, contract, backend, or technical regression blockers confirmed by ChatGPT coordination. A fresh ChatGPT conversation must onboard from `README_AI.md` and write a dedicated `Prompt cho Antigravity` before any DA-IMPL-007 implementation.
+As of `2026-07-29`, `F13-BCVH-RANKING-REDESIGN-IMPL` is `COMPLETED / PO PASS / CLOSED` at verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`. The accepted contract is fixed: Dashboard keeps the original compact BCVH overview table; `/f13/ranking/bcvh` keeps the detailed independent ranking surface; `D-1` and `D-7` each show `Sản lượng`, `Tỷ lệ`, `SS SL`, and `SS Tỷ lệ`; comparison-rank and rank-movement columns are not rendered; KPI 2026 labels remain `Tốt / Cần chú ý / Cảnh báo / Rủi ro cao`; route-distribution labels remain `Tốt / Khá / Trung bình / Kém`; delayed-cash SSOT for `2026-07-28` is accepted with numerator `334`, denominator `1536`, and rate `21.7%`. No next ticket is active; the repository is awaiting Product Owner direction.
 
 ## 8. Technical Debt
 

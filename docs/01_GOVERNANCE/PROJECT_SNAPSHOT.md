@@ -17,25 +17,25 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `F1.3 BCVH RANKING REDESIGN IMPLEMENTATION` |
-| Current Ticket | `F13-BCVH-RANKING-REDESIGN-IMPL` |
-| Next Ticket | `Pending only if PO finds a concrete BCVH Ranking defect` |
-| Last PO Status | `F13-BCVH-RANKING-REDESIGN-PLAN completed with Product Owner approval of the BCVH Ranking redesign scope; F13-INTERNAL-ROUTE-AUDIT completed with Product Owner PO PASS; approved Route Ranking outcome preserves exact labels Tuyen buu ta | Tat ca, default Tuyen buu ta, Hue-only route prefix 53, exclusion of 7 confirmed customer-pickup/internal post-office routes from postman route counts, Tat ca inclusion with classification Nhan tai buu cuc, and minimal runtime-backed Route Ranking table approval; F13-DATA-QUALITY-001 implementation deferred and manifest preserved; F13-SHIPMENT-001 implementation deferred and manifest preserved; DA-IMPL-008 completed with Product Owner PO PASS including Checkpoint 006; AUTO-IMPORT-009 completed with PO PASS at remote baseline 29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
+| Current Phase | `AWAITING PRODUCT OWNER DIRECTION` |
+| Current Ticket | `None` |
+| Next Ticket | `Awaiting Product Owner direction` |
+| Last PO Status | `F13-BCVH-RANKING-REDESIGN-IMPL completed with runtime PO verification complete and Product Owner PO PASS at verified implementation commit a6235b2fc99fd662971a7c0fc9d7f43190b133b4; Dashboard BCVH table remains the original compact overview surface; /f13/ranking/bcvh remains the detailed independent ranking surface; delayed-cash SSOT accepted for 2026-07-28 with numerator 334, denominator 1536, and rate 21.7%; F13-INTERNAL-ROUTE-AUDIT completed with Product Owner PO PASS; F13-DATA-QUALITY-001 implementation deferred and manifest preserved; F13-SHIPMENT-001 implementation deferred and manifest preserved; DA-IMPL-008 completed with Product Owner PO PASS including Checkpoint 006; AUTO-IMPORT-009 completed with PO PASS at remote baseline 29e3a383a25c72a2dc9e5f2cc8667461803e78f6` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` |
-| Current Checkpoint | `BCVH Ranking redesign implementation complete; PO UI remediation applied and ready for PO check` |
-| Current State | `READY FOR PO CHECK` |
-| Technical Status | `WAVE 1 + WAVE 2 COMPLETE` |
-| Runtime Status | `FOCUSED BACKEND + FRONTEND VALIDATION PASS` |
-| PO UI Check Required | `Yes - visible BCVH Ranking redesign` |
-| PO Product Status | `F13-BCVH-RANKING-REDESIGN-PLAN COMPLETED / HANDOFF; F13-BCVH-RANKING-REDESIGN-IMPL IMPLEMENTATION COMPLETE / PO CHECK PENDING; F13-INTERNAL-ROUTE-AUDIT COMPLETED / PO PASS; F13-DATA-QUALITY-001 DEFERRED / PRESERVED; F13-SHIPMENT-001 DEFERRED / PRESERVED; DA-IMPL-008 COMPLETED / PO PASS; AUTO-IMPORT-009 COMPLETED / PO PASS` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-PLAN_MANIFEST.md` |
-| Last Reviewed Phase | `F1.3 BCVH RANKING REDESIGN IMPLEMENTATION` |
-| Last Reviewed Commit | `See latest verified remote branch HEAD` |
-| Phase Review Status | `READY FOR PO CHECK` |
-| Next Phase Authorization | `Perform only bounded PO-check remediation within the active implementation manifest if a concrete defect is found` |
+| Current Checkpoint | `F13 BCVH Ranking redesign implementation closed with PO PASS and final contract/evidence synchronized` |
+| Current State | `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION` |
+| Technical Status | `F13-BCVH-RANKING-REDESIGN-IMPL COMPLETE` |
+| Runtime Status | `RUNTIME PO VERIFICATION COMPLETE` |
+| PO UI Check Required | `No` |
+| PO Product Status | `F13-BCVH-RANKING-REDESIGN-PLAN COMPLETED / HANDOFF; F13-BCVH-RANKING-REDESIGN-IMPL COMPLETED / PO PASS / CLOSED; F13-INTERNAL-ROUTE-AUDIT COMPLETED / PO PASS; F13-DATA-QUALITY-001 DEFERRED / PRESERVED; F13-SHIPMENT-001 DEFERRED / PRESERVED; DA-IMPL-008 COMPLETED / PO PASS; AUTO-IMPORT-009 COMPLETED / PO PASS` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` |
+| Last Reviewed Phase | `F13-BCVH-RANKING-REDESIGN-IMPL CLOSURE` |
+| Last Reviewed Commit | `a6235b2fc99fd662971a7c0fc9d7f43190b133b4` |
+| Phase Review Status | `PO PASS` |
+| Next Phase Authorization | `Await explicit Product Owner direction before activating another ticket` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-07-28` |
+| Last Updated | `2026-07-29` |
 
 ## 3. Usage Rules
 
@@ -60,14 +60,14 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `F13-BCVH-RANKING-REDESIGN-PLAN` is `COMPLETED / HANDOFF` and the Product Owner approved the BCVH Ranking redesign scope. `F13-BCVH-RANKING-REDESIGN-IMPL` has completed both backend/runtime Wave 1 and frontend Wave 2, including the bounded PO UI remediation that replaces the old summary shell with runtime-backed operational KPI widgets and a factual nearest-available-date empty state. The ticket remains `READY FOR PO CHECK`. Preserve the delivered grouped BCVH table, separate `D-1` and `D-7` blocks, delayed cash handover count, participating postman-route count, exact route quality distribution by Dashboard color bands including `pink`, Dashboard SSOT, semantic colors, existing business thresholds, and the `7` PO-confirmed non-postman/customer-pickup route exclusions from postman counts. `F13-INTERNAL-ROUTE-AUDIT` remains `COMPLETED / PO PASS`: Route Ranking uses exact filters `Tuyen buu ta | Tat ca`; default is `Tuyen buu ta`; the active page includes a minimal runtime-backed `Bang Tuyen Ranking`; confirmed non-postman/customer-pickup rows show `Nhan tai buu cuc`; Hue scope excludes route codes not starting with `53`. Product Owner deferred `F13-DATA-QUALITY-001` and `F13-SHIPMENT-001` implementation while preserving both manifests. Do not expand implementation beyond the active BCVH Ranking redesign manifest.
+Current handoff: `F13-BCVH-RANKING-REDESIGN-PLAN` is `COMPLETED / HANDOFF`, and `F13-BCVH-RANKING-REDESIGN-IMPL` is now `COMPLETED / PO PASS / CLOSED` at verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`. The accepted contract is fixed: Dashboard keeps the original compact BCVH overview table; `/f13/ranking/bcvh` keeps the detailed independent ranking surface; `D-1` and `D-7` each show `Sản lượng`, `Tỷ lệ`, `SS SL`, and `SS Tỷ lệ`; comparison-rank and rank-movement columns are not rendered; KPI 2026 labels remain `Tốt / Cần chú ý / Cảnh báo / Rủi ro cao`; route-distribution labels remain `Tốt / Khá / Trung bình / Kém`; delayed-cash SSOT for `2026-07-28` is accepted with numerator `334`, denominator `1536`, and rate `21.7%`. `F13-INTERNAL-ROUTE-AUDIT` remains `COMPLETED / PO PASS`; `F13-DATA-QUALITY-001` and `F13-SHIPMENT-001` remain deferred and preserved. No next ticket is active; the project is awaiting Product Owner direction.
 
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
 
-Fresh-chat onboarding chain for the current proposed ticket:
+Fresh-chat onboarding chain while no next ticket is active:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 4. `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md`
-5. Required Reading from the current manifest
+5. Required Reading from that closure manifest

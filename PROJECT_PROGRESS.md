@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-- `Auto Import / Smart Leadership Dashboard Implementation`
+- `Awaiting Product Owner direction`
 
 ## Completion By Phase
 
@@ -48,6 +48,8 @@
 - DOC-GOV-CLEANUP-001: `COMPLETED / TECHNICAL PASS`; Technical Status `PASS`; Runtime Status `NOT APPLICABLE`; Evidence `306 before / 306 after; no delete/move/merge; link check PASS; authority conflict check PASS; git diff --check PASS`
 - DA-IMPL-006: `Completed / PO PASS`
 - DA-IMPL-007: `Completed / PO PASS`
+- F13-BCVH-RANKING-REDESIGN-PLAN: `Completed / Handoff`
+- F13-BCVH-RANKING-REDESIGN-IMPL: `Completed / PO PASS / Closed`; latest verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
 - TICKET-0102: `Deferred / Inactive`
 
 ## Frozen Documents
@@ -88,7 +90,7 @@
 
 ## Outstanding Decisions
 
-- None. Product Owner accepted `PO PASS` for `DA-IMPL-007 Smart Dashboard Final Assembly`.
+- Next ticket authorization is pending Product Owner direction after `F13-BCVH-RANKING-REDESIGN-IMPL` closure.
 
 ## Open Issues
 
@@ -101,16 +103,34 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `AUTO-IMPORT-007` |
-| Current Commit | `366fbe0738a1b1f8d3a5c8753d4930b69a97004f` |
-| Current Phase | `ACCELERATED DELIVERY WAVE 1` |
-| Last Reviewed Phase | `AUTO-IMPORT-007 WAVE 1` |
-| Last Reviewed Commit | `this Wave 1 delivery commit` |
-| Phase Review Status | `TECHNICAL PASS` |
-| Next Phase Authorization | `READY FOR ACCELERATED DELIVERY WAVE 2 AUTHORIZATION` |
-| Next Milestone | `PO authorization decision for AUTO-IMPORT-007 Wave 2` |
+| Current Ticket | `None` |
+| Current Commit | `a6235b2fc99fd662971a7c0fc9d7f43190b133b4` |
+| Current Phase | `AWAITING PRODUCT OWNER DIRECTION` |
+| Last Reviewed Phase | `F13-BCVH-RANKING-REDESIGN-IMPL CLOSURE` |
+| Last Reviewed Commit | `a6235b2fc99fd662971a7c0fc9d7f43190b133b4` |
+| Phase Review Status | `PO PASS` |
+| Next Phase Authorization | `WAIT FOR NEXT PRODUCT OWNER TICKET AUTHORIZATION` |
+| Next Milestone | `Product Owner direction for the next authorized ticket` |
 | PO UI Check Required | `No` |
-| PO Product Status | `NOT READY` |
+| PO Product Status | `F13-BCVH-RANKING-REDESIGN-IMPL PO PASS / CLOSED` |
+
+## F13-BCVH-RANKING-REDESIGN-IMPL Closure
+
+- Ticket status: `COMPLETED / PO PASS / CLOSED`.
+- Final accepted product contract:
+  - Dashboard BCVH table remains the original compact overview surface.
+  - `/f13/ranking/bcvh` remains the detailed independent ranking surface.
+  - `D-1` and `D-7` each show `Sản lượng`, `Tỷ lệ`, `SS SL`, and `SS Tỷ lệ`.
+  - comparison-rank and rank-movement columns are not rendered.
+  - table block order remains `Đơn vị -> Kết quả ngày đánh giá -> Chậm nộp tiền -> So sánh D-1 -> So sánh D-7 -> Phân bổ tuyến -> Hành động`.
+  - KPI 2026 labels remain `Tốt / Cần chú ý / Cảnh báo / Rủi ro cao`.
+  - route-distribution labels remain `Tốt / Khá / Trung bình / Kém`.
+- Delayed-cash SSOT accepted:
+  - denominator includes selected-day canonical BCVH facts with `danh_gia_2026 != Đạt`
+  - delayed only when valid PTC and cash-handover timestamps exist and the gap is strictly greater than `3` hours
+  - missing or invalid timestamps remain in the denominator but are not delayed
+  - zero denominator publishes `0%`
+- Accepted runtime evidence for `2026-07-28`: numerator `334`, denominator `1536`, rate `21.7%`.
 
 ## DOC-GOV-CLEANUP-001 Activation
 

@@ -256,11 +256,16 @@ Current PO gate rule:
 - internal governance-only tickets use PO UI Check Required = No
 - Technical PASS and Runtime PASS do not imply PO Product PASS
 - current ticket, next ticket, and repository state are resolved through `PROJECT_SNAPSHOT.md`
-- as of `2026-07-20`, `DA-IMPL-006` is `COMPLETED / PO PASS` and `DA-IMPL-007 Smart Dashboard Final Assembly` is active for handoff only
-- primary executor for `DA-IMPL-007` is `Antigravity`
-- Antigravity must directly execute final visual assembly for `DA-IMPL-007`, must not reopen `DA-IMPL-006`, and must not generate a Codex prompt as its end state
-- Codex may be called back only for logic, contract, backend, or technical regression blockers confirmed by ChatGPT coordination
-- Pre-DA-IMPL-007 regression remediation is `COMPLETED / PO PASS` on `2026-07-21`. Preserve the contracts in `docs/06_REVIEWS/Import/PRE_DA_IMPL_007_REGRESSION_PO_PASS.md`; missing data or contracts are blockers, not grounds to restore legacy source.
+- as of `2026-07-29`, `F13-BCVH-RANKING-REDESIGN-IMPL` is `COMPLETED / PO PASS / CLOSED` at verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
+- accepted product contract remains fixed:
+  - Dashboard BCVH table keeps the original compact overview surface
+  - `/f13/ranking/bcvh` keeps the detailed independent ranking surface
+  - `D-1` and `D-7` each render `Sản lượng / Tỷ lệ / SS SL / SS Tỷ lệ`
+  - comparison-rank and rank-movement columns are not rendered
+  - KPI labels remain `Tốt / Cần chú ý / Cảnh báo / Rủi ro cao`
+  - route-distribution labels remain `Tốt / Khá / Trung bình / Kém`
+  - delayed-cash SSOT for `2026-07-28` is accepted with numerator `334`, denominator `1536`, and rate `21.7%`
+- no next ticket is active; the repository is awaiting Product Owner direction
 
 ## 10. Continuation Rule
 

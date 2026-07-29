@@ -3,13 +3,15 @@
 - Ticket ID: `F13-BCVH-RANKING-REDESIGN-IMPL`
 - Ticket Name: `BCVH Ranking Redesign Implementation`
 - Phase: `F1.3 Operational Module`
-- Current state: `IMPLEMENTATION COMPLETE / READY FOR PO CHECK`
+- Current state: `COMPLETED / PO PASS / CLOSED`
 - Technical Status: `WAVE 1 + WAVE 2 COMPLETE`
-- Runtime Status: `FOCUSED BACKEND + FRONTEND VALIDATION PASS`
-- PO UI Check Required: `Yes - visible BCVH Ranking redesign`
-- PO Product Status: `PO APPROVED SCOPE - IMPLEMENTATION COMPLETE / PO CHECK PENDING`
+- Runtime Status: `RUNTIME PO VERIFICATION COMPLETE`
+- PO UI Check Required: `No - Product Owner verification completed`
+- PO Product Status: `PO PASS`
 - Activation authority: `PO APPROVE the BCVH Ranking redesign agreed in planning session`
-- Handoff date: `2026-07-28`
+- Handoff date: `2026-07-29`
+- Closure date: `2026-07-29`
+- Latest verified implementation commit: `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
 - Primary executor: `Codex`
 - Secondary executor: `Antigravity only if a later explicit UI-polish follow-up is requested after runtime-backed implementation is stable`
 
@@ -38,11 +40,9 @@ Required Reading:
 
 Implement only the approved BCVH Ranking redesign documented in `F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`.
 
-This manifest now records that both implementation waves are complete and that the next state is Product Owner UI verification only unless a defect is found.
+This manifest now records that both implementation waves are complete, runtime PO verification is complete, the Product Owner recorded `PO PASS`, and the ticket is closed.
 
-The currently approved remediation authority on this ticket is limited to bounded PO-check defects only. The latest approved remediation replaced the old low-value summary shell with runtime-backed operational KPI widgets and improved the factual no-data state without reopening backend formulas, thresholds, exclusions, or grouped-table scope.
-
-The implementation must preserve:
+The accepted product contract preserves:
 
 - Dashboard SSOT
 - semantic colors
@@ -51,21 +51,46 @@ The implementation must preserve:
 - current Route Ranking route-context contract
 - current D-1 and D-7 comparison semantics only where already supported
 
-The approved D-1 and D-7 design uses separate grouped comparison blocks, not one combined comparison field.
+## Final Accepted Product Contract
 
-For each of `D-1` and `D-7`, the implementation scope must map independently:
-
-- raw `San luong`
-- raw `Ty le F1.3`
-- `Delta san luong`
-- `Delta F1.3`
-- comparison-period `Hang`
-- `Dich chuyen hang`
-
-Visibility lock:
-
-- raw `San luong` and raw `Ty le F1.3` may be hidden
-- `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible
+- Dashboard BCVH table remains the original compact overview surface.
+- `/f13/ranking/bcvh` remains the detailed independent ranking surface.
+- `D-1` and `D-7` each render exactly:
+  - `Sản lượng`
+  - `Tỷ lệ`
+  - `SS SL`
+  - `SS Tỷ lệ`
+- comparison-rank and rank-movement columns are not rendered on the BCVH Ranking screen.
+- table block order remains:
+  - `Đơn vị`
+  - `Kết quả ngày đánh giá`
+  - `Chậm nộp tiền`
+  - `So sánh D-1`
+  - `So sánh D-7`
+  - `Phân bổ tuyến`
+  - `Hành động`
+- KPI 2026 labels remain:
+  - `Tốt`
+  - `Cần chú ý`
+  - `Cảnh báo`
+  - `Rủi ro cao`
+- route-distribution labels remain:
+  - `Tốt`
+  - `Khá`
+  - `Trung bình`
+  - `Kém`
+- visibility rule remains:
+  - raw `Sản lượng` and raw `Tỷ lệ` in `D-1` / `D-7` may be hidden
+  - `SS SL` and `SS Tỷ lệ` remain visible
+- delayed-cash SSOT remains:
+  - denominator includes selected-day canonical BCVH facts with `danh_gia_2026 != Đạt`
+  - delayed only when valid `thoi_gian_ptc` and `thoi_gian_nop_tien` both exist and the gap is strictly greater than `3` hours
+  - missing or invalid timestamps remain in the denominator but are not delayed
+  - zero denominator publishes `0%`
+- accepted runtime evidence for `2026-07-28`:
+  - delayed numerator `334`
+  - eligible denominator `1536`
+  - delayed rate `21.7%`
 
 ## In Scope
 
@@ -73,7 +98,7 @@ Visibility lock:
 - Preserve the completed Wave 2 frontend presentation documented in `F13_BCVH_RANKING_REDESIGN_IMPL_WAVE2_CHECKPOINT_001.md`.
 - Reuse the existing runtime fields without changing formulas or thresholds.
 - Preserve existing route drill-down parameters and current Route Ranking exclusions/behavior.
-- Finish with Product Owner UI verification and any bounded remediation only if a concrete defect is found.
+- Close the ticket as completed and preserve the accepted contract and evidence for fresh onboarding.
 
 ## Out Of Scope
 
@@ -83,7 +108,6 @@ Visibility lock:
 - Reopening Dashboard, Route Ranking, Shipment, Data Quality, or Import tickets.
 - Broad repository audit.
 - Antigravity-led final visual polish unless separately authorized after runtime-backed implementation is stable.
-- PO self-check automation or self-awarded PO PASS.
 
 ## Technical Contract Direction
 
@@ -92,7 +116,7 @@ Visibility lock:
 - Consume the Wave 1 runtime contract additions from `F13_BCVH_RANKING_REDESIGN_IMPL_WAVE1_CHECKPOINT_001.md`.
 - Preserve current route drill-down params: `from_date`, `to_date`, `interval`, `bcvh_id`, `bcvh_name`.
 - Preserve the `7` confirmed non-postman/customer-pickup routes as excluded from participating postman-route counts.
-- Do not reopen backend/runtime formulas in Wave 2 unless a documented defect is proven.
+- Do not reopen backend/runtime formulas, thresholds, exclusions, or accepted semantics unless explicit new authority is granted.
 
 ### Delivery Lock
 
@@ -145,42 +169,37 @@ Latest bounded PO remediation also completed:
 - `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md`
 - implementation review/checkpoint document(s) created under `docs/06_REVIEWS/BCVH/`
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` if onboarding/current-required-reading changes
 - `README_AI.md` if the active handoff/current manifest changes
-- `PROJECT_PROGRESS.md` only if required by the governed ticket handoff workflow for milestone/status synchronization
+- `PROJECT_PROGRESS.md`
+- `PROJECT_STATUS.md`
+- `docs/01_GOVERNANCE/PROJECT_HANDOVER.md`
+- `docs/01_GOVERNANCE/PROJECT_CONTEXT.md`
 
 ## Validation
 
-- Backend/service targeted tests for newly added BCVH ranking fields and non-postman route exclusions are complete for Wave 1.
-- Frontend mapper/component tests for grouped columns, unavailable states, independent signals, doughnut data binding, and inline `Phan tich BCVH` are complete for Wave 2.
-- Frontend validation for runtime-backed summary widgets and nearest-available-date no-data UX is complete for the latest PO remediation.
-- Focused build/lint/test only in the touched backend/frontend scope.
+- Final accepted implementation evidence:
+  - `node --test backend/src/services/F13DashboardService.recovery.test.js`
+  - `node --test frontend/src/features/dashboard/components/dashboardComposition.smoke.test.js frontend/src/features/dashboard/components/dashboardStaleKpiRecovery.test.js frontend/src/features/dashboard/components/unifiedBcvhAnalysisTableData.test.js`
+  - `npm.cmd run build`
+  - `npm.cmd run lint`
+- Governance closure validation:
+  - fresh authority-chain reread from `README_AI.md`
+  - document state synchronization for `PO PASS`
 - `git diff --check`
 - Remote verification of the pushed commit and active onboarding Blob URLs.
 - Fresh onboarding simulation starting from `README_AI.md`.
 
 ## PO Acceptance
 
-Ready-for-PO handoff must include a concise manual checklist covering:
-
-- BCVH Ranking screen URL
-- expected grouped columns
-- D-1 and D-7 visibility only where supported
-- independent signal colors
-- inline `Phan tich BCVH`
-- route-distribution columns and doughnut behavior
-- preserved route drill-down context
-- PASS / WARNING / FAIL criteria
-
-Do not self-award PO PASS.
+Product Owner decision recorded: `PO PASS`.
 
 ## Next Ticket
 
-- Next ticket ID: `Pending only if PO finds a concrete BCVH Ranking defect`
+- Next ticket ID: `None currently authorized`
 - Blockers or handoff notes:
-  - Do not reopen formulas, thresholds, or exclusions without explicit new authority.
-  - If PO only requests visual polish after PASS/WARNING, recommend a narrow Antigravity follow-up instead of reopening this ticket broadly.
+  - Project is awaiting Product Owner direction for the next authorized ticket.
+  - Do not reopen this ticket, Dashboard isolation, or Import remediation without explicit new authority.
 
 ## Handoff
 
-This manifest is now a PO-check handoff. A fresh executor must read the onboarding chain, preserve the completed runtime and frontend contracts, perform only bounded remediation if a concrete defect is found, update documentation, push, verify remote state, and finish with fresh-onboarding handoff.
+This manifest is now a closure record. A fresh executor must read the onboarding chain, confirm that `F13-BCVH-RANKING-REDESIGN-IMPL` is `COMPLETED / PO PASS / CLOSED`, preserve the accepted BCVH Ranking and Dashboard contracts, and wait for a newly authorized ticket before implementing more work.

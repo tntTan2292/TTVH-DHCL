@@ -55,6 +55,8 @@ Quy tắc cập nhật:
 - `AUTO-IMPORT-005 TCT Manual Backfill and Shared DKCL Background Operations` - PO PASS / COMPLETED
 - `DA-IMPL-006 Unified Action Center` - PO PASS / COMPLETED
 - `DA-IMPL-007 Smart Dashboard Final Assembly` - PO PASS / COMPLETED
+- `F13-BCVH-RANKING-REDESIGN-PLAN` - COMPLETED / HANDOFF
+- `F13-BCVH-RANKING-REDESIGN-IMPL` - PO PASS / COMPLETED / CLOSED
 
 ## Current Progress
 
@@ -91,16 +93,19 @@ Quy tắc cập nhật:
 - AUTO-IMPORT-005: `COMPLETED / PO PASS`
 - DA-IMPL-006: `COMPLETED / PO PASS`
 - DA-IMPL-007: `COMPLETED / PO PASS`
+- F13-BCVH-RANKING-REDESIGN-IMPL: `COMPLETED / PO PASS / CLOSED`; verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
+- F13 accepted contract: Dashboard BCVH table stays compact overview; `/f13/ranking/bcvh` stays detailed independent ranking; `D-1` and `D-7` each render `Sản lượng / Tỷ lệ / SS SL / SS Tỷ lệ`; comparison-rank and rank-movement columns are not rendered; KPI labels remain `Tốt / Cần chú ý / Cảnh báo / Rủi ro cao`; route-distribution labels remain `Tốt / Khá / Trung bình / Kém`
+- F13 delayed-cash SSOT accepted for `2026-07-28`: numerator `334`, denominator `1536`, rate `21.7%`; denominator includes canonical selected-day BCVH facts with `danh_gia_2026 != Đạt`, missing/invalid timestamps stay in the denominator, and zero denominator publishes `0%`
 - Pre-DA-IMPL-007 focused Import Center/Dashboard regression remediation: `COMPLETED / PO PASS` on `2026-07-21`; accepted commits are `f32afc3`, `43dc587`, `5d44b69`, and `de8bcbd27470e521d4c52be1d16b2be01fb73dc8`.
 - TICKET-0102: `DEFERRED / INACTIVE`
 - PO findings from TODAY-001: `CLOSED`
 - PO UI Check Required: `No`
-- PO Product Status: `DA-IMPL-007 PO PASS`
+- PO Product Status: `F13-BCVH-RANKING-REDESIGN-IMPL PO PASS / CLOSED`
 
 ## Next Ticket
 
 - Current active ticket: `None`.
-- Next planned ticket: `TBD by Product Owner after DA-IMPL-007 PO PASS`.
+- Next planned ticket: `Awaiting Product Owner direction`.
 
 ## Notes
 
