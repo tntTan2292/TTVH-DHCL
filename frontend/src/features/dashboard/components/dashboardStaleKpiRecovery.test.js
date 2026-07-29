@@ -44,15 +44,15 @@ test('dashboard page restores the timeline and executive summary surfaces', () =
   assert.match(timelineSource, /Heatmap lịch chất lượng/);
   assert.match(timelineSource, /Quy luật theo thứ/);
   assert.match(timelineSource, /Không có dữ liệu diễn biến chất lượng/);
-  assert.doesNotMatch(dashboardSource, /f13_303_rate.*Xáº¿p háº¡ng/s);
-  assert.doesNotMatch(executiveSummarySource, /Xáº¿p háº¡ng/i);
+  assert.doesNotMatch(dashboardSource, /f13_303_rate.*Xếp hạng/s);
+  assert.doesNotMatch(executiveSummarySource, /Xếp hạng/i);
   assert.doesNotMatch(executiveSummarySource, /Award/);
 });
 
 test('operation dashboard uses one normalized date range for selected-period widgets', () => {
   const dashboardSource = fs.readFileSync(new URL('../DashboardPage.jsx', import.meta.url), 'utf8');
   const trendWindowSource = fs.readFileSync(new URL('./qualityTrendlineWindow.js', import.meta.url), 'utf8');
-  const bcvhTableSource = fs.readFileSync(new URL('./UnifiedBcvhAnalysisTable.jsx', import.meta.url), 'utf8');
+  const compactTableSource = fs.readFileSync(new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url), 'utf8');
   const actionCenterSource = fs.readFileSync(new URL('./UnifiedActionCenter.jsx', import.meta.url), 'utf8');
 
   assert.match(dashboardSource, /resolveDashboardDateRange/);
@@ -62,10 +62,12 @@ test('operation dashboard uses one normalized date range for selected-period wid
   assert.match(dashboardSource, /params\.set\('to_date',\s*range\.toDate\)/);
   assert.match(dashboardSource, /const showWidgets = dashboardReady/);
   assert.match(dashboardSource, /\{showWidgets \? \(/);
-  assert.match(trendWindowSource, /mode !== '30-days'[\s\S]*?from_date:\s*reportingFromDate/);
+  assert.match(trendWindowSource, /buildTrendlineRequestParams/);
+  assert.match(trendWindowSource, /mode === '7-days'/);
+  assert.match(trendWindowSource, /mode === 'by-bcvh'/);
   assert.match(trendWindowSource, /trendFromDate[\s\S]*?trendToDate/);
-  assert.match(bcvhTableSource, /from_date:\s*fromDate/);
-  assert.match(bcvhTableSource, /to_date:\s*toDate/);
+  assert.match(compactTableSource, /fromDate: globalFilter\.dateRange\[0\]/);
+  assert.match(compactTableSource, /toDate: globalFilter\.dateRange\[1\]/);
   assert.match(actionCenterSource, /params:\s*\{\s*fromDate,\s*toDate\s*\}/);
 });
 
@@ -91,27 +93,23 @@ test('operation dashboard atomically normalizes stale URL state before widget fe
   assert.match(dashboardSource, /onModeChange=\{setTrendMode\}/);
 });
 
-test('legacy dashboard adapters preserve stable filter identity between equivalent renders', () => {
-  const qualityTimelineAdapterSource = fs.readFileSync(new URL('./QualityTimelineAdapter.jsx', import.meta.url), 'utf8');
-  const messageGenerationAdapterSource = fs.readFileSync(new URL('./MessageGenerationAdapter.jsx', import.meta.url), 'utf8');
-  const ruleRecommendationAdapterSource = fs.readFileSync(new URL('./RuleRecommendationAdapter.jsx', import.meta.url), 'utf8');
-  const bcvhOperationTableAdapterSource = fs.readFileSync(new URL('./BcvhOperationTableAdapter.jsx', import.meta.url), 'utf8');
+test('dashboard keeps compact BCVH table while ranking keeps redesigned table', () => {
+  const dashboardAdapterSource = fs.readFileSync(new URL('./BcvhOperationTableAdapter.jsx', import.meta.url), 'utf8');
+  const compactTableSource = fs.readFileSync(new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url), 'utf8');
+  const rankingTableSource = fs.readFileSync(new URL('./UnifiedBcvhAnalysisTable.jsx', import.meta.url), 'utf8');
 
-  [
-    qualityTimelineAdapterSource,
-    messageGenerationAdapterSource,
-    ruleRecommendationAdapterSource,
-  ].forEach((source) => {
-    assert.match(source, /useMemo/);
-    assert.match(source, /dateRange:\s*\[fromDate,\s*toDate\]/);
-  });
+  assert.match(dashboardAdapterSource, /useMemo/);
+  assert.match(dashboardAdapterSource, /dateRange:\s*\[fromDate,\s*toDate\]/);
+  assert.match(dashboardAdapterSource, /<BcvhOperationTable/);
+  assert.doesNotMatch(dashboardAdapterSource, /<UnifiedBcvhAnalysisTable/);
 
-  assert.match(qualityTimelineAdapterSource, /\[fromDate,\s*interval,\s*maBcvh,\s*toDate\]/);
-  assert.match(messageGenerationAdapterSource, /\[fromDate,\s*toDate\]/);
-  assert.match(ruleRecommendationAdapterSource, /\[fromDate,\s*interval,\s*maBcvh,\s*toDate\]/);
-  assert.match(bcvhOperationTableAdapterSource, /<UnifiedBcvhAnalysisTable/);
-  assert.match(bcvhOperationTableAdapterSource, /fromDate=\{fromDate\}/);
-  assert.match(bcvhOperationTableAdapterSource, /toDate=\{toDate\}/);
-  assert.match(bcvhOperationTableAdapterSource, /interval=\{interval\}/);
-  assert.match(bcvhOperationTableAdapterSource, /maBcvh=\{maBcvh\}/);
+  assert.match(compactTableSource, /Bảng điều hành BCVH/);
+  assert.match(compactTableSource, /SL PTC\/NT\/CH/);
+  assert.doesNotMatch(compactTableSource, /Doughnut|Phân tích BCVH|So sánh D-1|So sánh D-7|Xem chi tiết tuyến/);
+
+  assert.match(rankingTableSource, /AnalysisPanel/);
+  assert.match(rankingTableSource, /DoughnutCell/);
+  assert.match(rankingTableSource, /So sánh D-1/);
+  assert.match(rankingTableSource, /So sánh D-7/);
+  assert.match(rankingTableSource, /Xem chi tiết tuyến/);
 });

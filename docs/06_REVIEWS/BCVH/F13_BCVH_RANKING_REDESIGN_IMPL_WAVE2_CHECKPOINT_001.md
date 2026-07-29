@@ -1,7 +1,7 @@
 # F13 BCVH Ranking Redesign Implementation Wave 2 Checkpoint 001
 
 - Ticket: `F13-BCVH-RANKING-REDESIGN-IMPL`
-- Date: `2026-07-28`
+- Date: `2026-07-29`
 - Scope: `Wave 2 frontend presentation`
 - Status: `IMPLEMENTATION COMPLETE / READY FOR PO CHECK`
 - PO UI Check Required: `Yes`
@@ -19,7 +19,6 @@ Delivered:
 - independent KPI, late-cash, and rank-movement signals
 - route columns for green, pink, yellow, and red
 - 4-segment doughnut bound to the same route-distribution data
-- inline `Phan tich BCVH`
 - preserved Route Ranking drill-down context
 - factual unavailable states without fallback calculations
 
@@ -39,7 +38,7 @@ Later bounded PO-check remediation also delivered:
 - management wording replaces technical or implementation-facing labels on the PO screen
 - `Hạng`, `Mã BCVH`, and `Tên BCVH` are frozen for readability while later metric groups remain horizontally scrollable
 
-Latest bounded PO-check remediation also delivered:
+Latest bounded BCVH Ranking PO-check remediation also delivered:
 
 - total row now displays only `Tổng cộng`, with blank/`—` identity fields where rank or BCVH code do not apply
 - total row binds supported aggregate values without exposing raw `total`
@@ -49,6 +48,14 @@ Latest bounded PO-check remediation also delivered:
 - only one BCVH analysis panel can be open at a time
 - the expandable panel uses existing runtime fields only: current-day results, `D-1`, `D-7`, delayed cash handover, participating routes, semantic route distribution, 4-band doughnut, and `Xem chi tiết tuyến`
 - duplicated ranking title and duplicated `Ngày đánh giá` presentation were removed
+
+Dashboard isolation remediation on `2026-07-29` delivered:
+
+- verified the regression root cause: `DashboardPage` still rendered `BcvhOperationTableAdapter`, and that adapter had been switched to `UnifiedBcvhAnalysisTable`, which caused BCVH Ranking redesign changes to appear on Dashboard
+- restored Dashboard to its previously approved compact BCVH overview table path through `components/f13/BcvhOperationTable.jsx`
+- preserved the redesigned BCVH Ranking table on `/f13/ranking/bcvh`
+- kept shared data access and ranking runtime contracts intact while separating the presentation contracts
+- explicitly deferred any remaining BCVH Ranking total-row polish beyond the already shipped scoped fixes; no additional total-row polish was performed in the Dashboard isolation remediation
 
 ## Preserved Authority
 
@@ -92,9 +99,19 @@ The doughnut visualization and the expandable analysis panel are both bound to t
 
 The no-data remediation reuses supported dashboard metadata for the nearest available date and does not query broad historical data or fabricate fallback dates.
 
+## Dashboard Isolation Root Cause
+
+- Shared presentation seam: [frontend/src/features/dashboard/components/BcvhOperationTableAdapter.jsx](D:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/frontend/src/features/dashboard/components/BcvhOperationTableAdapter.jsx)
+- Regression cause: Dashboard adapter rendered `UnifiedBcvhAnalysisTable`, which is the BCVH Ranking redesign surface
+- Restored Dashboard surface: [frontend/src/components/f13/BcvhOperationTable.jsx](D:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/frontend/src/components/f13/BcvhOperationTable.jsx)
+- Preserved BCVH Ranking surface: [frontend/src/features/dashboard/components/UnifiedBcvhAnalysisTable.jsx](D:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/frontend/src/features/dashboard/components/UnifiedBcvhAnalysisTable.jsx)
+
 ## UI Behavior Lock
 
-- Only raw `D-1` / `D-7` `San luong` and raw `Ty le F1.3` can be hidden by the operator.
+- Dashboard must render the previously approved compact BCVH overview table only.
+- Dashboard must not render grouped ranking columns, extended `D-1` / `D-7` ranking fields, route doughnut, expandable BCVH analysis, or BCVH Ranking-specific actions.
+- `/f13/ranking/bcvh` keeps the redesigned grouped table, route distribution, expandable analysis, hide/show rules, and drill-down.
+- Only raw `D-1` / `D-7` `San luong` and raw `Ty le F1.3` can be hidden by the operator on BCVH Ranking.
 - `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible.
 - KPI signal uses the existing Dashboard quality-band semantics.
 - Late-cash signal is shown independently without inventing a new threshold scale.
@@ -117,81 +134,56 @@ Route drill-down remains:
 
 Focused frontend validation completed:
 
-- `node --test frontend/src/features/dashboard/components/unifiedBcvhAnalysisTableData.test.js`
+- `node --test frontend/src/features/dashboard/components/dashboardComposition.smoke.test.js frontend/src/features/dashboard/components/dashboardStaleKpiRecovery.test.js frontend/src/features/dashboard/components/unifiedBcvhAnalysisTableData.test.js`
 - `npm.cmd run build`
 - `npm.cmd run lint`
 - `git diff --check`
 
 Validation result notes:
 
-- frontend mapper and source-contract tests passed
+- Dashboard regression tests passed and confirm compact BCVH table restoration
+- BCVH Ranking regression tests passed and confirm redesigned grouped table preservation
 - production build passed
 - lint completed with existing repository warnings outside this ticket scope
-- no backend formulas, thresholds, route exclusions, or historical fallback calculations were changed
+- no backend formulas, thresholds, route exclusions, Dashboard business behavior, or historical fallback calculations were changed
 
 ## Manual PO UI Checklist
 
-Screen:
+Screen 1:
+
+- URL: `/dashboard`
+
+Checks:
+
+1. Confirm Dashboard renders the original compact BCVH overview table rather than the redesigned ranking table.
+2. Confirm Dashboard does not show grouped `D-1` / `D-7` ranking columns, route doughnut, expandable BCVH analysis, or `Xem chi tiết tuyến`.
+3. Confirm Dashboard BCVH overview still uses its previously accepted compact title, compact totals row, and prior behavior.
+
+Screen 2:
 
 - URL: `/f13/ranking/bcvh`
 
-Steps:
+Checks:
 
-1. Open BCVH Ranking and confirm the page loads one grouped management table instead of the old shell layout.
-2. Confirm the four top widgets are runtime-backed and management-useful:
-   - `San luong ngay danh gia`
-   - `Chat luong F1.3`
-   - `Cham nop tien`
-   - `Phan bo chat luong tuyen`
-3. Confirm the total row shows `Tổng cộng` only, with no raw `total` text and no drill-down or analysis action.
-4. Confirm management terminology uses:
-   - `Tốt`
-   - `Khá`
-   - `Trung bình`
-   - `Kém`
-   across route columns, legends, summary widget, doughnut, and analysis content.
-5. Confirm the grouped headers appear for:
-   - `Don vi`
-   - `Ket qua ngay danh gia`
-   - `So sanh D-1`
-   - `So sanh D-7`
-   - `Cham nop tien`
-   - `Phan bo tuyen`
-   - `Hanh dong`
-6. Open column options and verify only raw `D-1` / `D-7` volume and raw `D-1` / `D-7` F1.3 columns can be hidden.
-7. Confirm `Delta san luong`, `Delta F1.3`, and `Dich chuyen hang` remain visible.
-8. Confirm `Hạng`, `Mã BCVH`, and `Tên BCVH` remain visible while scrolling horizontally across later metric groups.
-9. Click one BCVH row or `Phân tích` and confirm one full-width analysis panel opens directly below that row.
-10. Confirm opening another BCVH row closes the previous analysis panel so only one is open at a time.
-11. Confirm the analysis panel stays factual and concise, using current-day results, `D-1`, `D-7`, delayed cash handover, participating routes, semantic route distribution, doughnut, and `Xem chi tiết tuyến`.
-12. Confirm the delayed-cash widget and row data show the runtime rate when the selected BCVH scope already has it.
-13. Confirm there is no duplicated ranking title and no duplicated `Ngày đánh giá · Ngày đánh giá`.
-14. Change to a date with no supported ranking data and confirm the empty state:
-    - states the selected date clearly
-    - shows the nearest available date only when metadata supports it
-    - offers `Xem ngay gan nhat`
-15. Click `Xem chi tiết tuyến` in the analysis panel and verify Route Ranking opens with preserved `from_date`, `to_date`, `interval`, `bcvh_id`, and `bcvh_name`.
+1. Confirm BCVH Ranking still renders the redesigned grouped table.
+2. Confirm `D-1` / `D-7` blocks, route distribution, expandable analysis, hide/show rules, and drill-down are preserved.
+3. Confirm Dashboard isolation did not remove BCVH Ranking-specific grouped columns, doughnut, semantic route labels, or analysis expansion.
 
 PASS criteria:
 
-- All approved column groups are visible.
-- Pink route band semantics are preserved through visual color and threshold behavior while management text shows `Khá`.
-- The top widget area is runtime-backed and management-useful.
-- Identity columns remain readable during horizontal scroll.
-- Expandable analysis is row-scoped, factual, and single-open.
-- Drill-down context is preserved.
-- Unavailable data is shown factually.
+- Dashboard compact BCVH overview is restored.
+- BCVH Ranking redesigned table is preserved.
+- The two surfaces no longer share the same presentation contract.
 
 WARNING criteria:
 
-- The table loads but one non-blocking label, spacing, or density issue remains.
+- Isolation is correct but one non-blocking label or spacing issue remains on one surface.
 - Lint warnings remain unrelated and pre-existing only.
 
 FAIL criteria:
 
-- Raw `total` is exposed.
-- Route drill-down loses BCVH/date context.
-- Hidden-column behavior affects non-hideable visible delta or movement columns.
-- UI invents fallback comparison values, late-cash thresholds, unsupported nearest-date behavior, or RCA claims.
+- Dashboard still renders grouped BCVH Ranking UI.
+- BCVH Ranking loses grouped columns, route distribution, expandable analysis, or drill-down.
+- Fix changes Dashboard business formulas, SSOT thresholds, filters, or previously accepted layout beyond restoring the compact table.
 
 Do not self-award PO PASS from this checkpoint.

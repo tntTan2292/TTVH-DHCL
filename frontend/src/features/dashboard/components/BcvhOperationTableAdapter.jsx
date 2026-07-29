@@ -1,14 +1,16 @@
-import UnifiedBcvhAnalysisTable from './UnifiedBcvhAnalysisTable';
+import { useMemo } from 'react';
+import BcvhOperationTable from '../../../components/f13/BcvhOperationTable';
 
 export default function BcvhOperationTableAdapter({ fromDate, toDate, interval, maBcvh }) {
+  const globalFilter = useMemo(() => ({
+    dateRange: [fromDate, toDate],
+    interval,
+    maBcvh,
+  }), [fromDate, interval, maBcvh, toDate]);
+
   return (
     <div className="bcvh-operation-table-adapter-wrapper w-full">
-      <UnifiedBcvhAnalysisTable
-        fromDate={fromDate}
-        toDate={toDate}
-        interval={interval}
-        maBcvh={maBcvh}
-      />
+      <BcvhOperationTable globalFilter={globalFilter} />
     </div>
   );
 }
