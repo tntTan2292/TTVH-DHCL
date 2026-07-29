@@ -51,7 +51,7 @@
 - F13-BCVH-RANKING-REDESIGN-PLAN: `Completed / Handoff`
 - F13-BCVH-RANKING-REDESIGN-IMPL: `Completed / PO PASS / Closed`; latest verified implementation commit `a6235b2fc99fd662971a7c0fc9d7f43190b133b4`
 - QIS-LAN-DEPLOY-001: `COMPLETED / PO PASS / CLOSED`; latest accepted runtime remediation commit `99c865e92b840a587dc9a889294c535fecc68816`
-- F13-UI-AUDIT-PLAN: `READY FOR ANTIGRAVITY DISCOVERY`
+- F13-UI-AUDIT-PLAN: `READY FOR PO UI/UX PLANNING`
 - TICKET-0102: `Deferred / Inactive`
 
 ## Frozen Documents
@@ -92,7 +92,7 @@
 
 ## Outstanding Decisions
 
-- `F13-UI-AUDIT-PLAN` is active. Antigravity must audit the current completed F1.3 UI and submit a standardization plan for Product Owner review without implementing UI code.
+- `F13-UI-AUDIT-PLAN` is active. ChatGPT and Product Owner must first define the Operation Dashboard audit scope. Antigravity is not yet dispatched, and later UI areas remain future sequence only.
 
 ## Open Issues
 
@@ -110,9 +110,9 @@
 | Current Phase | `F1.3 UI AUDIT AND STANDARDIZATION PLANNING` |
 | Last Reviewed Phase | `QIS-LAN-DEPLOY-001 CLOSURE / F13-UI-AUDIT-PLAN ACTIVATION` |
 | Last Reviewed Commit | `99c865e92b840a587dc9a889294c535fecc68816` |
-| Phase Review Status | `READY FOR ANTIGRAVITY DISCOVERY` |
-| Next Phase Authorization | `ANTIGRAVITY PLANNING DISCOVERY ONLY` |
-| Next Milestone | `Antigravity audit and standardization planning submission for PO review` |
+| Phase Review Status | `READY FOR PO UI/UX PLANNING` |
+| Next Phase Authorization | `CHATGPT/PO OPERATION DASHBOARD PLANNING ONLY` |
+| Next Milestone | `Fresh ChatGPT coordination chat defines Operation Dashboard audit scope before Antigravity dispatch` |
 | PO UI Check Required | `No` |
 | PO Product Status | `NOT READY` |
 

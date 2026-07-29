@@ -266,10 +266,12 @@ Current PO gate rule:
   - route-distribution labels remain `Tốt / Khá / Trung bình / Kém`
   - delayed-cash SSOT for `2026-07-28` is accepted with numerator `334`, denominator `1536`, and rate `21.7%`
 - current active ticket is `F13-UI-AUDIT-PLAN`
-- current state is `READY FOR ANTIGRAVITY DISCOVERY`
-- primary executor is `Antigravity`
-- boundary is `PLAN REVIEW ONLY / NO IMPLEMENTATION`
-- next action is Antigravity UI audit discovery and Product Owner review plan submission
+- current state is `READY FOR PO UI/UX PLANNING`
+- coordination owner is `ChatGPT with Product Owner`
+- Antigravity is `NOT YET DISPATCHED`
+- boundary is `DISCUSSION AND PLANNING ONLY / NO IMPLEMENTATION`
+- first bounded focus is `Operation Dashboard only`
+- next action is a fresh ChatGPT coordination chat to define the Operation Dashboard audit scope before any Antigravity prompt is written
 
 ## 10. Continuation Rule
 

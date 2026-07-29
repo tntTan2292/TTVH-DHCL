@@ -3,15 +3,17 @@
 - Ticket ID: `F13-UI-AUDIT-PLAN`
 - Ticket Name: `F1.3 UI Audit and Standardization Planning`
 - Phase: `F1.3 UI Planning`
-- Current state: `READY FOR ANTIGRAVITY DISCOVERY`
-- Technical Status: `PLANNING NOT STARTED`
+- Current state: `READY FOR PO UI/UX PLANNING`
+- Technical Status: `PLANNING SCOPE NOT YET DISPATCHED`
 - Runtime Status: `NOT RUN - PLANNING ONLY`
 - PO UI Check Required: `No - planning review only`
 - PO Product Status: `NOT READY`
 - Activation authority: `Product Owner authorized Antigravity UI audit planning after QIS-LAN-DEPLOY-001 PO PASS closure`
 - Handoff date: `2026-07-29`
+- Coordination owner: `ChatGPT with Product Owner`
 - Primary executor: `Antigravity`
-- Execution boundary: `PLAN REVIEW ONLY / NO IMPLEMENTATION`
+- Antigravity executor state: `NOT YET DISPATCHED`
+- Execution boundary: `DISCUSSION AND PLANNING ONLY / NO IMPLEMENTATION`
 
 ## Fresh-Chat Onboarding Authority
 
@@ -53,37 +55,57 @@ Accepted closure state:
 - local `.env` was corrected without committing plaintext credentials or hashes
 - accepted runtime remediation commit: `99c865e92b840a587dc9a889294c535fecc68816`
 
+## Current Workflow State
+
+Required incremental workflow:
+
+1. Product Owner opens a fresh ChatGPT coordination chat.
+2. ChatGPT and Product Owner define the Operation Dashboard audit scope.
+3. Only after Product Owner agreement, ChatGPT writes one bounded Antigravity prompt.
+4. Antigravity audits Operation Dashboard and submits a plan only.
+5. ChatGPT reviews that plan as CTO, data-analysis specialist, and postal-quality specialist.
+6. Product Owner approves or requests changes.
+7. Complete one UI area before activating the next.
+
+Current authorized focus only:
+
+- `Operation Dashboard`
+
+Future sequence, not currently authorized:
+
+- `BCVH Ranking`
+- `Route Ranking`
+- `shared navigation/frame/filters`
+- `Login and system states`
+- `final consistency review`
+
 ## Objective
 
-Antigravity must inspect the current completed F1.3 product and prepare a Product Owner review plan to standardize and improve the UI.
+Antigravity will inspect the current completed F1.3 product and prepare a Product Owner review plan to standardize and improve the UI, but only after ChatGPT coordination and Product Owner finish the bounded Operation Dashboard scope discussion.
 
-The audit scope includes:
+The first bounded audit scope includes only:
 
-- Login
-- global navigation and page frame
 - Operation Dashboard
-- BCVH Ranking
-- Route Ranking
-- filters
-- cards
-- tables
-- charts
-- loading states
-- empty-data states
-- warning and error states
-- desktop usage
-- leadership presentation and large-screen readability
-- viewer experience
+- dashboard filters
+- dashboard cards
+- dashboard tables
+- dashboard charts
+- dashboard loading states
+- dashboard empty-data states
+- dashboard warning and error states
+- dashboard desktop usage
+- dashboard leadership presentation and large-screen readability
+- dashboard viewer experience
 
 ## In Scope
 
-- Current UI inventory across the completed F1.3 surfaces.
-- Findings by screen with severity and user impact.
-- Layout, spacing, typography, color, table-readability, and chart-readability findings.
-- Leadership-presentation suitability assessment.
-- Proposed visual design principles and standardized component/layout rules.
-- Screen-by-screen remediation plan.
-- Implementation priority and sequence proposal.
+- Current UI inventory for Operation Dashboard.
+- Findings for the Operation Dashboard scope with severity and user impact.
+- Layout, spacing, typography, color, table-readability, and chart-readability findings for Operation Dashboard.
+- Leadership-presentation suitability assessment for Operation Dashboard.
+- Proposed visual design principles and standardized component/layout rules beginning with Operation Dashboard.
+- Operation Dashboard remediation plan.
+- Implementation priority and future sequence proposal after Operation Dashboard planning review.
 - Product Owner acceptance checklist for later remediation.
 - Risks, protected boundaries, and decisions requiring Product Owner approval.
 
@@ -98,6 +120,7 @@ The audit scope includes:
 - Implementation of `F1.1`, `F1.2`, `F4.1`, Shipment, Pareto, Evidence, or Message modules.
 - Public-Internet exposure.
 - Writing a Codex implementation prompt before Product Owner approves the plan.
+- Dispatching Antigravity before ChatGPT coordination and Product Owner agree the bounded Operation Dashboard scope.
 
 ## Locked Boundaries
 
@@ -111,8 +134,8 @@ The audit scope includes:
 
 ## Required Antigravity Deliverables
 
-1. current UI inventory
-2. findings by screen
+1. current UI inventory for Operation Dashboard
+2. findings by screen within the bounded Operation Dashboard scope
 3. severity and user impact
 4. inconsistent layout, spacing, typography and color findings
 5. table readability findings
@@ -120,8 +143,8 @@ The audit scope includes:
 7. leadership-presentation suitability assessment
 8. proposed visual design principles
 9. standardized component and layout rules
-10. screen-by-screen remediation plan
-11. implementation priority and sequence
+10. Operation Dashboard remediation plan
+11. implementation priority and future sequence
 12. Product Owner acceptance checklist
 13. risks and protected boundaries
 14. decisions requiring Product Owner approval
@@ -143,10 +166,10 @@ The audit scope includes:
 
 ## Next Action
 
-Antigravity audits the current UI and submits a standardization plan for Product Owner review.
+ChatGPT and Product Owner define the bounded Operation Dashboard audit scope in a fresh coordination chat. Antigravity prompt creation is authorized only after that agreement.
 
 ## Handoff
 
-Status: `READY FOR ANTIGRAVITY DISCOVERY`.
+Status: `READY FOR PO UI/UX PLANNING`.
 
-This ticket authorizes planning review only. Antigravity must audit the current completed F1.3 product, produce the planning deliverables above, preserve all locked boundaries, and stop without implementing UI code.
+This ticket authorizes discussion and planning only. Antigravity is not yet dispatched. ChatGPT coordination must first align the Operation Dashboard scope with Product Owner, then write one bounded Antigravity prompt for plan-only audit work.
