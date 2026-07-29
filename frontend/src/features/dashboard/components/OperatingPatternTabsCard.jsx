@@ -28,33 +28,33 @@ import {
 } from './operatingPatternTabsData';
 
 const TONE_CLASS = {
-  'on-target': 'border-green-200 bg-green-50 text-green-800',
-  'below-target': 'border-amber-200 bg-amber-50 text-amber-800',
-  'band-green': 'border-green-200 bg-green-50 text-green-800',
-  'band-pink': 'border-pink-200 bg-pink-50 text-pink-800',
-  'band-yellow': 'border-yellow-200 bg-yellow-50 text-yellow-800',
-  'band-red': 'border-red-200 bg-red-50 text-red-800',
-  'relative-high': 'border-emerald-200 bg-emerald-50 text-emerald-800',
-  'relative-above': 'border-green-200 bg-green-50 text-green-800',
-  'relative-average': 'border-slate-200 bg-slate-50 text-slate-800',
-  'relative-below': 'border-yellow-200 bg-yellow-50 text-yellow-800',
-  'relative-low': 'border-red-200 bg-red-50 text-red-800',
-  unavailable: 'border-[var(--color-surface-200)] bg-[var(--color-surface-50)] text-[var(--color-text-muted)]',
+  'on-target': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
+  'below-target': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
+  'band-green': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
+  'band-pink': 'border-pink-300 bg-pink-100 text-pink-950 font-bold shadow-2xs hover:bg-pink-200',
+  'band-yellow': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
+  'band-red': 'border-red-300 bg-red-100 text-red-950 font-bold shadow-2xs hover:bg-red-200',
+  'relative-high': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
+  'relative-above': 'border-green-300 bg-green-100 text-green-950 font-bold shadow-2xs hover:bg-green-200',
+  'relative-average': 'border-slate-300 bg-slate-100 text-slate-900 font-semibold shadow-2xs hover:bg-slate-200',
+  'relative-below': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
+  'relative-low': 'border-red-300 bg-red-100 text-red-950 font-bold shadow-2xs hover:bg-red-200',
+  unavailable: 'border-slate-200 bg-slate-50 text-slate-400 font-medium',
 };
 
 const TONE_BAR = {
-  'on-target': 'bg-green-600',
+  'on-target': 'bg-emerald-600',
   'below-target': 'bg-amber-500',
-  'band-green': 'bg-green-600',
+  'band-green': 'bg-emerald-600',
   'band-pink': 'bg-pink-500',
-  'band-yellow': 'bg-yellow-500',
+  'band-yellow': 'bg-amber-500',
   'band-red': 'bg-red-600',
   'relative-high': 'bg-emerald-700',
   'relative-above': 'bg-green-600',
   'relative-average': 'bg-slate-500',
-  'relative-below': 'bg-yellow-500',
+  'relative-below': 'bg-amber-500',
   'relative-low': 'bg-red-600',
-  unavailable: 'bg-[var(--color-surface-200)]',
+  unavailable: 'bg-slate-300',
 };
 
 const TAB_ICON = {
@@ -71,14 +71,14 @@ function getApiErrorMessage(error) {
 }
 
 function LegendDot({ tone }) {
-  return <span className={`h-2 w-2 rounded-full ${TONE_BAR[tone] || TONE_BAR.unavailable}`} />;
+  return <span className={`h-2.5 w-2.5 rounded-full shadow-2xs ${TONE_BAR[tone] || TONE_BAR.unavailable}`} />;
 }
 
 function PatternLegend({ activeTab }) {
   if (activeTab === 'weekday') {
     return (
-      <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
-        <div className="font-semibold text-[var(--color-text-main)]">Chú giải màu theo ngưỡng cảnh báo đã phê duyệt</div>
+      <div className="space-y-2 text-xs text-slate-600 font-medium">
+        <div className="font-bold text-slate-900">Chú giải màu theo ngưỡng cảnh báo đã phê duyệt</div>
         <div className="flex flex-wrap items-center gap-4">
           {APPROVED_WEEKDAY_BANDS.map((band) => (
             <span key={band.id} className="inline-flex items-center gap-2">
@@ -97,8 +97,8 @@ function PatternLegend({ activeTab }) {
 
   if (activeTab === 'heatmap') {
     return (
-      <div className="space-y-2 text-xs text-[var(--color-text-muted)]">
-        <div className="font-semibold text-[var(--color-text-main)]">So sánh với KPI trung bình tháng</div>
+      <div className="space-y-2 text-xs text-slate-600 font-medium">
+        <div className="font-bold text-slate-900">So sánh với KPI trung bình tháng</div>
         <div className="flex flex-wrap items-center gap-4">
           {HEATMAP_RELATIVE_BANDS.map((band) => (
             <span key={band.id} className="inline-flex items-center gap-2">
@@ -116,13 +116,13 @@ function PatternLegend({ activeTab }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--color-text-muted)]">
+    <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 font-medium">
       <span className="inline-flex items-center gap-2">
-        <span className="h-2 w-3 rounded-sm bg-[#174ea6]" />
+        <span className="h-2.5 w-3.5 rounded-sm bg-[#003E7E] shadow-2xs" />
         Cột: sản lượng tháng
       </span>
       <span className="inline-flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-[#16a34a]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />
         Đường: tỷ lệ đạt
       </span>
     </div>
@@ -134,11 +134,11 @@ function ComboTooltip({ active, payload, label }) {
   const point = payload.find((item) => item?.payload)?.payload || {};
 
   return (
-    <div className="rounded-lg border border-[var(--color-surface-200)] bg-white px-3 py-2 text-xs shadow-lg">
-      <div className="font-bold text-[var(--color-text-main)]">{label}</div>
-      <div className="mt-1 text-[var(--color-text-muted)]">Sản lượng: <span className="font-semibold text-[var(--color-text-main)]">{formatNumber(point.totalVolume)}</span></div>
-      <div className="text-[var(--color-text-muted)]">Tỷ lệ đạt: <span className="font-semibold text-[var(--color-text-main)]">{formatRate(point.rate)}</span></div>
-      {point.cumulativeLabel ? <div className="mt-1 text-[var(--color-text-muted)]">{point.cumulativeLabel}</div> : null}
+    <div className="rounded-xl border border-slate-700 bg-slate-900/95 px-3.5 py-2.5 text-xs font-medium text-white shadow-xl backdrop-blur-xs">
+      <div className="font-bold text-white mb-1">{label}</div>
+      <div className="text-slate-300">Sản lượng: <span className="font-bold tabular-nums text-white">{formatNumber(point.totalVolume)}</span></div>
+      <div className="text-slate-300">Tỷ lệ đạt: <span className="font-bold tabular-nums text-emerald-400">{formatRate(point.rate)}</span></div>
+      {point.cumulativeLabel ? <div className="mt-1 text-slate-400 text-[11px] border-t border-slate-800 pt-1">{point.cumulativeLabel}</div> : null}
     </div>
   );
 }
@@ -151,14 +151,20 @@ function ComboChartPanel({ rows, mode }) {
       <div className="h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={rows} margin={{ top: 16, right: 18, bottom: 8, left: 0 }} barCategoryGap="32%">
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-surface-200)" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} />
+            <defs>
+              <linearGradient id="patternVolumeGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
+                <stop offset="100%" stopColor="#003E7E" stopOpacity={0.8} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#64748B', fontWeight: 600 }} />
             <YAxis
               yAxisId="volume"
               domain={[0, volumeAxisMax]}
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+              tick={{ fontSize: 12, fill: '#64748B', fontWeight: 600 }}
               tickFormatter={(value) => Number(value).toLocaleString('vi-VN')}
               width={78}
             />
@@ -168,23 +174,23 @@ function ComboChartPanel({ rows, mode }) {
               domain={[0, 100]}
               tickLine={false}
               axisLine={false}
-              tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+              tick={{ fontSize: 12, fill: '#64748B', fontWeight: 600 }}
               tickFormatter={(value) => `${value}%`}
               width={70}
             />
             <Tooltip content={<ComboTooltip />} />
-            <Bar yAxisId="volume" dataKey="totalVolume" name="Sản lượng" fill="#174ea6" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-            <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#16a34a" strokeWidth={3} dot={{ r: 3, strokeWidth: 2, fill: '#fff' }} connectNulls={false} isAnimationActive={false} />
+            <Bar yAxisId="volume" dataKey="totalVolume" name="Sản lượng" fill="url(#patternVolumeGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+            <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-4 flex flex-col gap-1.5 pb-2">
-        <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-muted)]">
-          <span className="inline-flex items-center gap-2"><span className="h-2 w-3 rounded-sm bg-[#174ea6]" />Cột: sản lượng</span>
-          <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[#16a34a]" />Đường: tỷ lệ đạt</span>
+        <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-700">
+          <span className="inline-flex items-center gap-2"><span className="h-2.5 w-3.5 rounded-sm bg-[#003E7E] shadow-2xs" />Cột: sản lượng</span>
+          <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />Đường: tỷ lệ đạt</span>
         </div>
         {mode === 'month' ? (
-          <div className="text-[11px] leading-relaxed text-[var(--color-text-muted)]">
+          <div className="text-[11px] leading-relaxed text-slate-500 font-medium">
             Lũy kế tháng hiện tại dùng ngày dữ liệu mới nhất trong tháng.
           </div>
         ) : null}
@@ -206,9 +212,9 @@ function MonthlySummary({ summary }) {
   return (
     <div className="mb-4 grid gap-3 md:grid-cols-5">
       {items.map(([label, value]) => (
-        <div key={label} className="rounded-lg border border-[var(--color-surface-200)] bg-white p-3">
-          <div className="text-[11px] font-semibold uppercase text-[var(--color-text-muted)]">{label}</div>
-          <div className="mt-1 text-sm font-bold text-[var(--color-text-main)]">{value}</div>
+        <div key={label} className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs border-t-2 border-t-[#003E7E]">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</div>
+          <div className="mt-1 text-sm font-bold text-slate-900">{value}</div>
         </div>
       ))}
     </div>
@@ -220,27 +226,27 @@ function HeatmapManagementSummary({ stats }) {
 
   return (
     <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-      <div className="rounded-lg border border-[var(--color-surface-200)] bg-white p-2">
-        <div className="text-[10px] font-semibold uppercase text-[var(--color-text-muted)]">TB tháng</div>
-        <div className="mt-0.5 text-sm font-bold text-[var(--color-text-main)]">{stats.average.toFixed(2)}%</div>
+      <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-2xs">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">TB tháng</div>
+        <div className="mt-0.5 text-sm font-bold tabular-nums text-slate-900">{stats.average.toFixed(2)}%</div>
       </div>
-      <div className="rounded-lg border border-green-100 bg-green-50 p-2 text-green-800">
-        <div className="text-[10px] font-semibold uppercase">Tốt nhất</div>
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-2.5 text-emerald-950 shadow-2xs">
+        <div className="text-[10px] font-bold uppercase tracking-wider">Tốt nhất</div>
         <div className="mt-0.5 text-xs font-bold">{stats.best.date}</div>
-        <div className="text-[10px]">{stats.best.rate.toFixed(2)}%</div>
+        <div className="text-[10px] font-bold tabular-nums">{stats.best.rate.toFixed(2)}%</div>
       </div>
-      <div className="rounded-lg border border-red-100 bg-red-50 p-2 text-red-800">
-        <div className="text-[10px] font-semibold uppercase">Thấp nhất</div>
+      <div className="rounded-xl border border-red-200 bg-red-50/90 p-2.5 text-red-950 shadow-2xs">
+        <div className="text-[10px] font-bold uppercase tracking-wider">Thấp nhất</div>
         <div className="mt-0.5 text-xs font-bold">{stats.worst.date}</div>
-        <div className="text-[10px]">{stats.worst.rate.toFixed(2)}%</div>
+        <div className="text-[10px] font-bold tabular-nums">{stats.worst.rate.toFixed(2)}%</div>
       </div>
-      <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-2 text-emerald-800">
-        <div className="text-[10px] font-semibold uppercase">&gt; TB</div>
-        <div className="mt-0.5 text-sm font-bold">{stats.aboveAverageCount}</div>
+      <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-2.5 text-emerald-950 shadow-2xs">
+        <div className="text-[10px] font-bold uppercase tracking-wider">&gt; TB</div>
+        <div className="mt-0.5 text-sm font-bold tabular-nums">{stats.aboveAverageCount}</div>
       </div>
-      <div className="rounded-lg border border-yellow-100 bg-yellow-50 p-2 text-yellow-800">
-        <div className="text-[10px] font-semibold uppercase">&lt; TB</div>
-        <div className="mt-0.5 text-sm font-bold">{stats.belowAverageCount}</div>
+      <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-2.5 text-amber-950 shadow-2xs">
+        <div className="text-[10px] font-bold uppercase tracking-wider">&lt; TB</div>
+        <div className="mt-0.5 text-sm font-bold tabular-nums">{stats.belowAverageCount}</div>
       </div>
     </div>
   );
@@ -266,11 +272,11 @@ function HeatmapMonthSection({ month }) {
   };
 
   return (
-    <section className="rounded-xl border border-[var(--color-surface-200)] bg-white p-3 shadow-sm">
+    <section className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h4 className="text-sm font-bold text-[var(--color-text-main)]">{month.label}</h4>
-          <p className="text-xs text-[var(--color-text-muted)]">{month.rangeLabel}</p>
+          <h4 className="text-sm font-bold text-slate-900">{month.label}</h4>
+          <p className="text-xs font-medium text-slate-500">{month.rangeLabel}</p>
         </div>
         {month.stats ? <StatusBadge label={`TB ${month.stats.average.toFixed(2)}%`} tone="neutral" /> : null}
       </div>
@@ -280,7 +286,7 @@ function HeatmapMonthSection({ month }) {
           {HEATMAP_WEEKDAY_LABELS.map((label) => (
             <div
               key={`${month.month}-${label}`}
-              className="rounded-md bg-[var(--color-surface-100)] px-1.5 py-1 text-center text-[10px] font-bold uppercase text-[var(--color-text-muted)]"
+              className="rounded-md bg-slate-100 px-1.5 py-1 text-center text-[10px] font-bold uppercase tracking-wider text-slate-600"
             >
               {label}
             </div>
@@ -292,7 +298,7 @@ function HeatmapMonthSection({ month }) {
             return (
               <div
                 key={day.id}
-                className={`relative flex h-16 flex-col justify-center rounded-lg border px-1 text-center ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
+                className={`relative flex h-16 flex-col justify-center rounded-lg border px-1 text-center transition-all duration-150 motion-reduce:transition-none ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
                 title={dayTitle}
                 aria-label={dayTitle || undefined}
                 tabIndex={day.empty ? undefined : 0}
@@ -307,10 +313,10 @@ function HeatmapMonthSection({ month }) {
                   <span
                     key={line.id}
                     className={line.id === 'rank'
-                      ? 'text-[9px] font-bold leading-3 text-current opacity-85'
+                      ? 'text-[10px] font-bold leading-3 text-current opacity-90 tabular-nums'
                       : line.id === 'date'
-                        ? 'text-[10px] font-bold leading-3'
-                        : 'text-[10px] font-semibold leading-3'}
+                        ? 'text-[11px] font-black leading-3 tracking-tight'
+                        : 'text-[11px] font-bold leading-3 tabular-nums'}
                   >
                     {line.label}
                   </span>
@@ -325,7 +331,7 @@ function HeatmapMonthSection({ month }) {
           id={`heatmap-rank-detail-${activeDetail.id}`}
           role="tooltip"
           data-testid="heatmap-rank-detail-layer"
-          className="pointer-events-none fixed max-w-[260px] -translate-x-1/2 -translate-y-full rounded-lg border border-[var(--color-surface-200)] bg-white px-2 py-1 text-left text-[11px] font-semibold leading-4 text-[var(--color-text-main)] shadow-xl"
+          className="pointer-events-none fixed max-w-[280px] -translate-x-1/2 -translate-y-full rounded-xl border border-slate-700 bg-slate-900/95 px-3 py-2 text-left text-xs font-semibold leading-5 text-white shadow-xl backdrop-blur-xs z-50"
           style={{
             left: activeDetail.left,
             top: activeDetail.top,
@@ -344,19 +350,19 @@ function MonthlyRankStrip({ rows }) {
   if (!rankedRows.length) return null;
 
   return (
-    <div className="mb-4 overflow-x-auto border-y border-[var(--color-surface-200)] py-2">
+    <div className="mb-4 overflow-x-auto border-y border-slate-200/80 py-2.5">
       <div className="flex min-w-max items-center gap-2">
         {rankedRows.map((row) => (
           <div
             key={`${row.id}-national-rank`}
-            className="flex min-w-[96px] flex-col rounded-md bg-[var(--color-surface-50)] px-2 py-1.5 text-xs text-[var(--color-text-main)]"
+            className="flex min-w-[100px] flex-col rounded-lg border border-slate-200/80 bg-slate-50/80 px-2.5 py-1.5 text-xs font-semibold text-slate-900 shadow-2xs"
             title={row.monthlyRankDetail || undefined}
             aria-label={row.monthlyRankDetail || undefined}
             tabIndex={0}
           >
-            <span className="font-bold">{row.label}</span>
-            <span className="font-semibold">{row.nationalRankLabel}</span>
-            <span className="text-[11px] text-[var(--color-text-muted)]">{row.rankMovementLabel || 'Chưa có so sánh'}</span>
+            <span className="font-bold text-slate-900">{row.label}</span>
+            <span className="font-bold text-emerald-700">{row.nationalRankLabel}</span>
+            <span className="text-[11px] font-medium text-slate-500">{row.rankMovementLabel || 'Chưa có so sánh'}</span>
           </div>
         ))}
       </div>
@@ -390,12 +396,12 @@ function ModePanel({ activeTab, model }) {
   if (activeTab === 'heatmap') return <HeatmapPanel months={model.heatmapMonths} />;
   if (activeTab === 'month') {
     return (
-        <div>
-          <MonthlySummary summary={model.monthlySummary} />
-          <MonthlyRankStrip rows={rows} />
-          <ComboChartPanel rows={rows} mode="month" />
-        </div>
-      );
+      <div>
+        <MonthlySummary summary={model.monthlySummary} />
+        <MonthlyRankStrip rows={rows} />
+        <ComboChartPanel rows={rows} mode="month" />
+      </div>
+    );
   }
   return <ComboChartPanel rows={rows} mode="weekday" />;
 }
@@ -462,7 +468,7 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
   );
 
   const action = (
-    <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Chọn quy luật vận hành">
+    <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/80" role="tablist" aria-label="Chọn quy luật vận hành">
       {OPERATING_PATTERN_TABS.map((tab) => {
         const Icon = TAB_ICON[tab.id];
         return (
@@ -472,10 +478,10 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
             role="tab"
             aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 motion-reduce:transition-none ${
               activeTab === tab.id
-                ? 'bg-[var(--color-primary-600)] text-white'
-                : 'bg-[var(--color-surface-100)] text-[var(--color-text-main)] hover:bg-[var(--color-surface-200)]'
+                ? 'bg-[#003E7E] text-white font-bold shadow-2xs'
+                : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
             }`}
           >
             <Icon size={14} />
@@ -491,9 +497,9 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
       title="Quy luật vận hành"
       subtitle="Một thẻ quy luật theo thứ, theo tháng hoặc heatmap, dùng dữ liệu hệ thống hiện có."
       action={action}
-      className="overflow-hidden"
+      className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none"
     >
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-[var(--color-text-muted)]">
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
         <StatusBadge label={OPERATING_PATTERN_TABS.find((tab) => tab.id === activeTab)?.label} tone="info" />
         <StatusBadge label={maBcvh === 'all' ? 'Toàn mạng' : `BCVH ${maBcvh}`} tone="neutral" />
         <span>Bối cảnh bộ lọc: {fromDate || 'Chưa chọn'} đến {toDate || 'Chưa chọn'}</span>
@@ -509,7 +515,7 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
             <button
               type="button"
               onClick={loadTimeline}
-              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-3 py-2 text-xs font-semibold text-white hover:bg-[var(--color-primary-700)]"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#003E7E] px-3 py-2 text-xs font-bold text-white hover:bg-blue-900 transition-all duration-150"
             >
               <RefreshCw size={14} />
               Thử lại
@@ -525,10 +531,10 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
         />
       ) : (
         <div role="tabpanel" aria-label={OPERATING_PATTERN_TABS.find((tab) => tab.id === activeTab)?.label}>
-          <div className="mb-4 rounded-lg border border-[var(--color-surface-200)] bg-[var(--color-surface-50)] px-4 py-3 text-sm text-[var(--color-text-main)]">
+          <div className="mb-4 rounded-xl border border-slate-200/90 bg-slate-50/80 px-4 py-3 text-sm font-medium text-slate-900 shadow-2xs">
             {summary}
             {state.data?.pulse?.text ? (
-              <div className="mt-1 text-xs text-[var(--color-text-muted)]">Nhịp chất lượng: {state.data.pulse.text}</div>
+              <div className="mt-1 text-xs font-semibold text-slate-500">Nhịp chất lượng: {state.data.pulse.text}</div>
             ) : null}
           </div>
           <ModePanel activeTab={activeTab} model={state.data} />
