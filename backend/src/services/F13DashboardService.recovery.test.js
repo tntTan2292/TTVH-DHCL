@@ -576,6 +576,8 @@ test('BCVH ranking exposes Wave 1 comparison, delayed-cash, and route-distributi
     assert.equal(result.data[1].route_distribution.yellow_route_count, 1);
     assert.equal(result.data[1].route_distribution.red_route_count, 1);
     assert.equal(result.meta.total_row.delayed_cash_handover_count, 2);
+    assert.equal(result.meta.total_row.delayed_cash_handover_eligible_count, 4);
+    assert.equal(result.meta.total_row.f13_303_rate, 50);
     assert.equal(result.meta.total_row.route_distribution.participating_postman_route_count, 4);
     assert.equal(result.meta.total_row.route_distribution.green_route_count, 1);
     assert.equal(result.meta.total_row.route_distribution.yellow_route_count, 1);
@@ -755,6 +757,105 @@ test('BCVH ranking total-row comparison coverage stays unavailable when canonica
     assert.equal(result.meta.total_row.comparisons.d1.coverage.canonical_total, 2);
     assert.equal(result.meta.total_row.comparisons.d1.coverage.is_partial, true);
     assert.equal(result.meta.total_row.comparisons.d1.coverage.is_complete, false);
+  } finally {
+    Object.assign(repo, originals);
+  }
+});
+
+test('BCVH ranking total-row delayed-cash summary uses authoritative summed numerator and denominator', async () => {
+  const originals = {
+    getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
+    getBcvhRanking: repo.getBcvhRanking,
+    getFactByDate: repo.getFactByDate,
+    getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
+  };
+
+  repo.getBcvhOperationMetricsByDate = async (date) => {
+    if (date === '2026-07-22') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 100, sl_ptc_nop_tien: 80, dat_kpi_2026: 70, khong_dat_kpi_2026: 30 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 20, sl_ptc_nop_tien: 15, dat_kpi_2026: 10, khong_dat_kpi_2026: 10 },
+      ];
+    }
+    return [];
+  };
+  repo.getBcvhRanking = async () => ({
+    data: [
+      { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', total_bg: 100, total_passed: 70, total_failed: 30, rank: 1 },
+      { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', total_bg: 20, total_passed: 10, total_failed: 10, rank: 2 },
+    ],
+    totalItems: 2,
+  });
+  repo.getFactByDate = async () => ([
+    { ma_bcvh: '535790', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T12:30:00Z' },
+    { ma_bcvh: '535790', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T12:15:00Z' },
+    { ma_bcvh: '535790', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '535790', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '536250', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T12:45:00Z' },
+    { ma_bcvh: '536250', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: null },
+    { ma_bcvh: '536250', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+  ]);
+  repo.getBcvhOperationMetricsBetween = async () => [];
+
+  try {
+    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+
+    assert.equal(result.data[0].delayed_cash_handover_count, 2);
+    assert.equal(result.data[0].f13_303_rate, 66.7);
+    assert.equal(result.data[1].delayed_cash_handover_count, 1);
+    assert.equal(result.data[1].f13_303_rate, 50);
+
+    assert.equal(result.meta.total_row.delayed_cash_handover_count, 3);
+    assert.equal(result.meta.total_row.delayed_cash_handover_eligible_count, 5);
+    assert.equal(result.meta.total_row.f13_303_rate, 60);
+    assert.notEqual(result.meta.total_row.f13_303_rate, 58.4);
+    assert.notEqual(
+      result.meta.total_row.f13_303_rate,
+      Number(((result.meta.total_row.delayed_cash_handover_count / result.meta.total_row.sl_bg_ptc) * 100).toFixed(1)),
+    );
+  } finally {
+    Object.assign(repo, originals);
+  }
+});
+
+test('BCVH ranking total-row delayed-cash summary preserves genuine zero and SSOT zero-denominator behavior', async () => {
+  const originals = {
+    getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
+    getBcvhRanking: repo.getBcvhRanking,
+    getFactByDate: repo.getFactByDate,
+    getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
+  };
+
+  repo.getBcvhOperationMetricsByDate = async (date) => {
+    if (date === '2026-07-22') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 5, sl_ptc_nop_tien: 5, dat_kpi_2026: 4, khong_dat_kpi_2026: 1 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 7, sl_ptc_nop_tien: 7, dat_kpi_2026: 6, khong_dat_kpi_2026: 1 },
+      ];
+    }
+    return [];
+  };
+  repo.getBcvhRanking = async () => ({
+    data: [
+      { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', total_bg: 5, total_passed: 4, total_failed: 1, rank: 1 },
+      { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', total_bg: 7, total_passed: 6, total_failed: 1, rank: 2 },
+    ],
+    totalItems: 2,
+  });
+  repo.getFactByDate = async () => ([
+    { ma_bcvh: '535790', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
+    { ma_bcvh: '536250', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: null },
+  ]);
+  repo.getBcvhOperationMetricsBetween = async () => [];
+
+  try {
+    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+
+    assert.equal(result.data[0].f13_303_rate, 0);
+    assert.equal(result.data[1].f13_303_rate, 0);
+    assert.equal(result.meta.total_row.delayed_cash_handover_count, 0);
+    assert.equal(result.meta.total_row.delayed_cash_handover_eligible_count, 2);
+    assert.equal(result.meta.total_row.f13_303_rate, 0);
   } finally {
     Object.assign(repo, originals);
   }

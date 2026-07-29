@@ -128,6 +128,36 @@ Latest bounded total-row and comparison-order remediation on `2026-07-29` delive
   - `Phân bổ tuyến`
   - `Hành động`
 
+Latest bounded delayed-cash total-row remediation on `2026-07-29` delivered:
+
+- verified the authoritative delayed-cash SSOT directly in `RuleF13302` and `RuleRegistry` before implementation
+- confirmed the delayed condition remains exactly:
+  - only facts with `danh_gia_2026 != Đạt` are eligible for the denominator
+  - delayed only when both `thoi_gian_ptc` and `thoi_gian_nop_tien` exist, parse successfully, and `thoi_gian_nop_tien - thoi_gian_ptc > 3 giờ`
+  - missing or invalid timestamps do not create a delay violation but still remain in the denominator when `danh_gia_2026 != Đạt`
+- confirmed the canonical published field remains `f13_303_rate`
+- confirmed zero-denominator behavior remains the SSOT engine rule:
+  - `f13_303_rate = 0`
+- confirmed root cause of the PO defect:
+  - BCVH row-level delayed-cash summaries already consumed the authoritative rule output
+  - `meta.total_row` only summed `delayed_cash_handover_count`
+  - backend never assigned the authoritative total delayed-cash denominator or `f13_303_rate`, so the UI correctly received no total-row rate and rendered `—`
+- backend now builds an authoritative delayed-cash aggregate summary for the selected-day canonical BCVH fact scope using the same registered rule execution path as SSOT, instead of averaging BCVH percentages or deriving from `sl_bg_ptc`
+- total-row contract now exposes:
+  - `delayed_cash_handover_count`
+  - `delayed_cash_handover_eligible_count`
+  - `f13_303_rate`
+- frontend mapper binds the same `f13_303_rate` field for `Tổng cộng`, so no browser fallback calculation was introduced
+- real runtime evidence for `2026-07-28` after remediation:
+  - numerator: `334`
+  - denominator: `1536`
+  - rate: `21.7%`
+- sample runtime contract evidence on `2026-07-28` now includes:
+  - `meta.total_row.delayed_cash_handover_count = 334`
+  - `meta.total_row.delayed_cash_handover_eligible_count = 1536`
+  - `meta.total_row.f13_303_rate = 21.7`
+- backend process restart is required only for a running server instance to load the updated service code; no schema or import migration is required
+
 ## Preserved Authority
 
 - Dashboard SSOT route-quality bands remain exactly:
@@ -221,6 +251,10 @@ Focused frontend validation completed:
 - `npm.cmd run lint`
 - `git diff --check`
 
+Focused backend validation also completed:
+
+- `node --test backend/src/services/F13DashboardService.recovery.test.js`
+
 Validation result notes:
 
 - Dashboard regression tests passed and confirm compact BCVH table restoration
@@ -235,6 +269,12 @@ Validation result notes:
   - `D-1` and `D-7` each retain only the approved four visible fields
   - grouped header color treatments are distinct by block
   - hide/show rules remain limited to raw `D-1` / `D-7` volume and F1.3 columns
+  - total-row delayed-cash rate uses authoritative summed numerator and denominator
+  - total-row delayed-cash rate is not an average of BCVH rates
+  - total-row delayed-cash rate is not derived from `delayed_cash_handover_count / sl_bg_ptc`
+  - genuine `0%` delayed-cash rates remain visible as valid runtime values
+  - missing timestamps and zero-denominator cases follow SSOT behavior
+  - individual BCVH delayed-cash counts and rates remain unchanged
 - production build passed
 - lint completed with existing repository warnings outside this ticket scope
 - no backend formulas, thresholds, route exclusions, Dashboard business behavior, or historical fallback calculations were changed

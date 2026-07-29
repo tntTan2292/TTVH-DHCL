@@ -663,6 +663,23 @@ class F13DashboardService {
         };
     }
 
+    _buildF13302AggregateSummary(facts = []) {
+        if (!ruleRegistry.rules.some(rule => rule?.id === 'RULE_F13_302')) {
+            ruleRegistry.register(new RuleF13302());
+        }
+        const delayedCashRule = ruleRegistry.rules.find((rule) => rule?.id === 'RULE_F13_302');
+        const result = ruleRegistry.execute(facts);
+
+        return {
+            delayed_cash_handover_count: result.total_late_payment ?? 0,
+            delayed_cash_handover_eligible_count: result.total_failed ?? 0,
+            f13_303_rate: result.f13_303_rate ?? 0,
+            delayed_cash_handover_rate: result.f13_303_rate ?? 0,
+            has_authoritative_denominator: true,
+            delayed_condition_rule_id: delayedCashRule?.id ?? null,
+        };
+    }
+
     _buildF13302RateMap(facts) {
         return this._buildF13302SummaryMap(facts).rateMap;
     }
@@ -750,6 +767,8 @@ class F13DashboardService {
             const yesterdayRankMap = this._buildBcvhRankMap(yesterdayMetrics);
             const swcRankMap = this._buildBcvhRankMap(swcMetrics);
             const { rateMap: f13302RateMap, summaryMap: f13302SummaryMap } = this._buildF13302SummaryMap(currentFacts);
+            const canonicalCurrentFacts = currentFacts.filter((fact) => canonicalBcvhCodes.has(String(fact?.ma_bcvh || '')));
+            const f13302TotalSummary = this._buildF13302AggregateSummary(canonicalCurrentFacts);
             const routeDistributionSummaryMap = this._buildRouteDistributionSummary(
                 this._buildRouteDistributionMap(currentFacts)
             );
@@ -877,6 +896,9 @@ class F13DashboardService {
             totalRow.sl_ptc_nop_tien = totalCurrent.sl_ptc_nop_tien;
             totalRow.dat_kpi_2026 = totalCurrent.dat_kpi_2026;
             totalRow.khong_dat_kpi_2026 = totalCurrent.khong_dat_kpi_2026;
+            totalRow.delayed_cash_handover_count = f13302TotalSummary.delayed_cash_handover_count;
+            totalRow.delayed_cash_handover_eligible_count = f13302TotalSummary.delayed_cash_handover_eligible_count;
+            totalRow.f13_303_rate = f13302TotalSummary.f13_303_rate;
             totalRow.kpi_2026 = this._calculateRate(totalCurrent.dat_kpi_2026, totalCurrent.sl_bg_ptc);
             totalRow.month_to_date_sl_bg_ptc = monthToDateCutoff ? totalMonthToDate.sl_bg_ptc : null;
             totalRow.month_to_date_dat_kpi_2026 = monthToDateCutoff ? totalMonthToDate.dat_kpi_2026 : null;
