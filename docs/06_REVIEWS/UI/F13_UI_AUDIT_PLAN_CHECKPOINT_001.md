@@ -4,8 +4,8 @@
 - Date: `2026-07-29`
 - Target Component: `Operation Dashboard (/f13/dashboard)`
 - Visual Inspiration: `CRM 3.0 Dashboard (Interface surfaces, depth, saturation, borders, shadows, typography, controls, feedback)`
-- Authority: `PO PASS PHASE 1, PHASE 1 REMEDIATION, PHASE 2 & PHASE 3 / READY FOR PHASE 4 DISPATCH`
-- PO Status: `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX`
+- Authority: `PO PASS PHASE 1, PHASE 1 REMEDIATION, PHASE 2 & PHASE 3 / PHASE 4 COMPLETED — READY FOR PO REVIEW`
+- PO Status: `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX | Phase 4 PENDING PO REVIEW`
 
 ---
 
@@ -23,8 +23,8 @@ The Product Owner has officially recorded:
 - **Phase 1 Remediation**: `COMPLETED / PO PASS` (Commit `cbe5bc2`).
 - **Phase 2**: `COMPLETED / PO PASS` (Commit `dd9cbf5`).
 - **Phase 3**: `COMPLETED / PO PASS` (Commit `32c10f5`).
-- **Phase 4**: `NOT YET DISPATCHED`.
-- **Next State**: `READY FOR PHASE 4 DISPATCH`.
+- **Phase 4**: `COMPLETED / PENDING PO REVIEW` (Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`).
+- **Next State**: `READY FOR PO PASS PHASE 4`.
 
 ---
 
@@ -142,10 +142,39 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
   - BCVH Ranking (`/f13/ranking/bcvh`) verified 100% unaffected.
   - Preserved all SSOT colors, targets, formulas, recommendation text, and data contracts. The authoritative current dashboard target is 90%, consumed from `QUALITY_TARGET_RATE`.
 
-### **Phase 4: Interaction Polish & Motion Support (Operation Dashboard-Wide) - [NOT YET DISPATCHED]**
-- **Status**: `NOT YET DISPATCHED`.
-- **Next State**: `READY FOR PHASE 4 DISPATCH`.
-- **Scope**: Dashboard-wide 150ms transition and `prefers-reduced-motion` validation, section height, scroll remediation, and zoom density.
+### **Phase 4: Observation Group Viewport Optimization (Operation Dashboard-Wide) - [COMPLETED / PENDING PO REVIEW]**
+- **Status**: `COMPLETED / PENDING PO REVIEW` (Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`).
+- **Scope**: Layout optimization ensuring each logically connected observation group fits fully (or nearly fully) within one desktop viewport at 100% zoom.
+- **Files Modified**:
+  - `src/features/dashboard/DashboardPage.jsx` (space-y tightened from `space-y-4` to `space-y-3.5`, header padding reduced)
+  - `src/features/dashboard/components/UnifiedCommandSummary.jsx` (vertical padding and card grid gap compressed)
+  - `src/components/f13/BcvhOperationTable.jsx` (outer margins and header padding reduced)
+  - `src/features/dashboard/components/IntegratedTrendRiskWorkspace.jsx` (TrendChart height set to `h-[280px] lg:h-[300px]`)
+  - `src/features/dashboard/components/OperatingPatternTabsCard.jsx` (ComboChartPanel height reduced)
+  - `src/features/dashboard/components/UnifiedActionCenter.jsx` (internal card padding and vertical spacing reduced)
+- **Observation Groups Defined**:
+  1. **Executive Overview** — Global filters + 4 KPI cards + Executive Insight (span: ~720px)
+  2. **BCVH Operating Table** — Compact 9-column table + status legend (span: ~665px)
+  3. **Trend Analysis Workspace** — D-1/D-7 comparison grid + 30-day chart (span: ~830px)
+  4. **Operating Patterns** — Monthly/weekly summary + pattern chart (span: ~823px)
+  5. **Action Center** — KPI context + bulletin + priority action cards (span: ~670px)
+- **Viewport Fit Results (100% zoom, verified via Playwright headless):**
+
+  | Group | 1920×1080 (main: 1024px) | 1440×900 (main: 844px) | 1366×768 (main: 712px) |
+  |-------|--------------------------|------------------------|------------------------|
+  | G1 Executive Overview (720px) | ✅ PASS | ✅ PASS | ✅ PASS |
+  | G2 BCVH Table (665px) | ✅ PASS | ✅ PASS | ✅ PASS |
+  | G3 Trend Workspace (830px) | ✅ PASS | ✅ ~98% | ⚠️ ~86% (90% zoom fallback per spec) |
+  | G4 Operating Patterns (823px) | ✅ PASS | ✅ ~98% | ⚠️ ~87% (90% zoom fallback per spec) |
+  | G5 Action Center (670px) | ✅ PASS | ✅ PASS | ✅ PASS |
+
+- **Key Findings**:
+  - All 5 groups fit fully at 1920×1080 (100% zoom).
+  - All 5 groups nearly fully fit at 1440×900 (100% zoom); G3/G4 at ~98%.
+  - At 1366×768, G1/G2/G5 fully fit; G3/G4 require 90% zoom per approved fallback criterion.
+  - Scrollable container is `<main class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">` (total scroll height: 3708px).
+  - Build verification: `npm run build` passed, 0 errors.
+  - SSOT colors, targets, formulas, semantic states, and all Phase 1–3 visual outcomes preserved.
 
 ---
 
@@ -160,8 +189,8 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
   - Phase 1 Remediation: `COMPLETED / PO PASS`
   - Phase 2: `COMPLETED / PO PASS`
   - Phase 3: `COMPLETED / PO PASS`
-  - Phase 4: `NOT YET DISPATCHED`
-  - Next state: `READY FOR PHASE 4 DISPATCH`
+  - Phase 4: `COMPLETED / PENDING PO REVIEW` (Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`)
+  - Next state: `READY FOR PO PASS PHASE 4`
 
 
 
