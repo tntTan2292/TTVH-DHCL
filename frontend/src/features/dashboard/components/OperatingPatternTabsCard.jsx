@@ -148,7 +148,7 @@ function ComboChartPanel({ rows, mode }) {
 
   return (
     <div className="w-full">
-      <div className="h-[320px] w-full">
+      <div className="h-[260px] lg:h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={rows} margin={{ top: 16, right: 18, bottom: 8, left: 0 }} barCategoryGap="32%">
             <defs>

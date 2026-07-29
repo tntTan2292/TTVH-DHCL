@@ -263,17 +263,17 @@ export default function DashboardPage() {
       title="Dashboard điều hành chất lượng F1.3"
       subtitle="Theo dõi chất lượng phát theo kỳ đã chọn và phạm vi BCVH hiện hành."
       action={(
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-2 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-1.5 shadow-2xs">
           <button
             onClick={() => navigate('/f13/ranking/bcvh')}
-            className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)]"
+            className="rounded-lg bg-[#003E7E] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-900 transition-all duration-150"
           >
             Mở xếp hạng BCVH
           </button>
         </div>
       )}
     >
-      <div className="space-y-4">
+      <div className="space-y-3.5">
         <GlobalFilterBar
           fromDate={fromDate}
           toDate={toDate}

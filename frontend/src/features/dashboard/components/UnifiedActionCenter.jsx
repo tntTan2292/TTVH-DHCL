@@ -219,33 +219,33 @@ function UnifiedActionCenterContent({
           <SourceState label="KPI" state={kpiLoading ? 'loading' : model.states.kpi_context} />
         </div>
 
-        <div className="grid gap-3 md:grid-cols-4">
-          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-3 shadow-2xs">
+        <div className="grid gap-2.5 md:grid-cols-4">
+          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 shadow-2xs">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Kỳ dữ liệu</p>
             <p className="mt-1 text-sm font-bold text-slate-900">{model.meta.source_period_label}</p>
           </div>
-          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-3 shadow-2xs">
+          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 shadow-2xs">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Sản lượng</p>
             <p className="mt-1 text-sm font-bold tabular-nums text-slate-900">{formatNumber(model.kpi_context.total_volume)}</p>
           </div>
-          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-3 shadow-2xs">
+          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 shadow-2xs">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Tỷ lệ đạt</p>
             <p className="mt-1 text-sm font-bold tabular-nums text-emerald-700">{formatPercent(model.kpi_context.pass_rate)}</p>
           </div>
-          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-3 shadow-2xs">
+          <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-2.5 shadow-2xs">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Xếp hạng toàn quốc</p>
             <p className="mt-1 text-sm font-bold text-slate-900">{model.kpi_context.national_rank}</p>
           </div>
         </div>
 
-        <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 p-4 shadow-2xs text-slate-900 transition-all duration-150 motion-reduce:transition-none">
-          <div className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#003E7E]">
+        <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 p-3.5 shadow-2xs text-slate-900 transition-all duration-150 motion-reduce:transition-none">
+          <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#003E7E]">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#003E7E] text-white">
               <Target size={12} />
             </span>
             Bản tin nhanh điều hành
           </div>
-          <p className="text-xs font-semibold leading-relaxed text-slate-900 md:text-sm">
+          <p className="text-xs font-semibold leading-snug text-slate-900 md:text-sm">
             Phạm vi {model.meta.source_period_label}: sản lượng {formatNumber(model.kpi_context.total_volume)},
             tỷ lệ đạt {formatPercent(model.kpi_context.pass_rate)}, tỷ lệ chưa đạt {formatPercent(model.kpi_context.failed_rate)}.
           </p>

@@ -112,7 +112,7 @@ function TrendChart({ rows, mode }) {
   const xKey = mode === '7-days' ? 'dayLabel' : mode === 'by-bcvh' ? 'date_label' : 'date';
 
   return (
-    <div className="h-[380px] w-full">
+    <div className="h-[280px] lg:h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={rows} margin={{ top: 18, right: 18, bottom: 8, left: 0 }} barCategoryGap="34%">
           <defs>

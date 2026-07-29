@@ -139,8 +139,8 @@ export default function BcvhOperationTable({ globalFilter }) {
   };
 
   return (
-    <div className="mb-6 flex flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
-      <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/80 px-4 py-3.5">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
+      <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-50/80 px-3.5 py-2.5">
         <h3 className="text-sm font-bold uppercase tracking-wide text-slate-900">
           Bảng điều hành BCVH
         </h3>

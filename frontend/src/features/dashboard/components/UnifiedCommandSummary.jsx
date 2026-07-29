@@ -80,7 +80,7 @@ export default function UnifiedCommandSummary({
 
   return (
     <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
-      <div className="flex flex-col gap-2 border-b border-slate-200/80 bg-slate-50/80 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-2 border-b border-slate-200/80 bg-slate-50/80 px-3.5 py-2.5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-base font-bold text-slate-900">Tổng quan điều hành</h2>
           <p className="mt-0.5 text-xs text-slate-500 font-medium">
@@ -94,7 +94,7 @@ export default function UnifiedCommandSummary({
         ) : null}
       </div>
 
-      <div className="p-4">
+      <div className="p-3.5">
         {loading ? (
           <CommandSummarySkeleton />
         ) : error ? (
@@ -103,20 +103,20 @@ export default function UnifiedCommandSummary({
           </div>
         ) : (
           <>
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
               {cards.map((card) => (
                 <CommandCard key={card.key} card={card} />
               ))}
             </div>
-            <div className="mt-4">
-              <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 p-4 shadow-2xs text-slate-900 transition-all duration-150 motion-reduce:transition-none">
-                <div className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#003E7E]">
+            <div className="mt-3">
+              <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 p-3.5 shadow-2xs text-slate-900 transition-all duration-150 motion-reduce:transition-none">
+                <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#003E7E]">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#003E7E] text-white">
                     <Target size={12} />
                   </span>
                   Bản tin chỉ đạo điều hành
                 </div>
-                <p className="text-xs font-semibold leading-relaxed text-slate-900 md:text-sm">
+                <p className="text-xs font-semibold leading-snug text-slate-900 md:text-sm">
                   {insight}
                 </p>
               </div>
