@@ -91,7 +91,7 @@
 
 ## Outstanding Decisions
 
-- `QIS-LAN-DEPLOY-001` implementation is complete. Viewer hash setup, LAN URL `http://10.47.33.24:5050`, direct URL/API authorization proof, and PO second-computer recheck are recorded for review.
+- `QIS-LAN-DEPLOY-001` implementation is complete. Viewer hash setup, LAN URL `http://10.47.33.24:5178`, backend API port `5050`, direct URL/API authorization proof, port-conflict handling, and PO second-computer recheck are recorded for review.
 
 ## Open Issues
 
@@ -111,7 +111,7 @@
 | Last Reviewed Commit | `7ea633fc30c1d68cdebf57532d3e0bd776737387` |
 | Phase Review Status | `READY FOR PO REVIEW` |
 | Next Phase Authorization | `IMPLEMENT THE BOUNDED LAN VIEWER DEPLOYMENT ONLY` |
-| Next Milestone | `PO LAN recheck from a second computer` |
+| Next Milestone | `PO LAN recheck from a second computer on frontend 5178 with backend 5050` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `READY FOR PO REVIEW` |
 

@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { SESSION_KEY } from './httpClient.js';
+import { resolveApiBaseUrl } from './apiBaseUrl.js';
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api',
+    baseURL: resolveApiBaseUrl(),
 });
 
 api.interceptors.request.use((config) => {

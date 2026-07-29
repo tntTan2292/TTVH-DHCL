@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const { loadLocalEnv } = require('./src/config/env');
 
 loadLocalEnv();
@@ -13,7 +12,6 @@ const { startWatcher } = require('./src/services/importWatcher');
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
 const HOST = process.env.HOST || '0.0.0.0';
-const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 
 const logRuntimeBanner = () => {
     console.log('====================================');
@@ -77,20 +75,24 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
-app.use(express.static(frontendDistPath, { index: false, extensions: ['html'] }));
 
-app.use((req, res, next) => {
-    if (req.path.startsWith('/api/')) {
-        return next();
-    }
-
-    return res.sendFile(path.join(frontendDistPath, 'index.html'), (error) => {
-        if (error) next();
-    });
-});
-
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
     logRuntimeBanner();
     console.log(`TTVH Backend running on port ${PORT}`);
     startWatcher();
+});
+
+server.on('error', (error) => {
+    if (error?.code === 'EADDRINUSE') {
+        console.error('====================================');
+        console.error(`PORT ${PORT} IS OCCUPIED`);
+        console.error(`Host: ${HOST}`);
+        console.error('Run the Windows port check first:');
+        console.error('powershell -ExecutionPolicy Bypass -File .\\scripts\\check-qis-lan-ports.ps1');
+        console.error('Then stop the owning process before restarting QIS V2.');
+        console.error('====================================');
+        process.exit(1);
+    }
+
+    throw error;
 });

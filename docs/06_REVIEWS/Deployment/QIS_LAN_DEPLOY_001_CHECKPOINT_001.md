@@ -12,9 +12,9 @@
 - added one read-only F1.3 viewer role backed by the existing session model
 - preserved existing administrator access
 - enforced direct-URL and API authorization boundaries
-- configured LAN hosting on `0.0.0.0:5050` while preserving localhost
-- served the built frontend from the backend for one final LAN URL
-- documented Windows startup, firewall, IP discovery, and LAN access steps
+- configured frontend LAN hosting on `0.0.0.0:5178` with `strictPort: true` while preserving localhost
+- configured backend/API LAN hosting on `0.0.0.0:5050` while preserving localhost
+- documented Windows startup, port-conflict inspection, firewall, IP discovery, and LAN access steps
 
 ## Viewer Contract
 
@@ -53,20 +53,24 @@ Viewer-blocked screens:
 - Backend session/auth remains in-memory and reused from the existing runtime seam.
 - Viewer access is enforced in both frontend route protection and backend API middleware.
 - Admin-only import and administration APIs are now blocked with authenticated `403` responses for viewer sessions.
-- Backend now serves `frontend/dist` so the LAN deployment URL stays on the fixed backend port.
-- Vite dev/proxy LAN support remains available for engineering, but the normal deployment path is `http://<server-ip>:5050`.
+- Frontend remains a separate Vite-hosted surface on port `5178`.
+- Frontend API requests resolve to backend port `5050` on the same hostname for both localhost and LAN access.
+- Windows pre-start port inspection is provided by `scripts/check-qis-lan-ports.ps1`.
 
 ## Runtime Evidence
 
 Confirmed on `2026-07-29`:
 
 - backend started successfully on `Host: 0.0.0.0`, `Port: 5050`
-- localhost root responded `200`
-- LAN root responded `200` at `http://10.47.33.24:5050`
+- frontend preview started successfully on `Host: 0.0.0.0`, `Port: 5178`
+- localhost frontend responded `200` at `http://localhost:5178`
+- LAN frontend responded `200` at `http://10.47.33.24:5178`
 - viewer login returned `success: true`, `username: f13viewer`, `role: viewer`
 - viewer `GET /api/f13/dashboard/meta` returned `success: true`
 - viewer `GET /api/import/status` returned `403`
 - unauthenticated `GET /api/import/status` returned `401`
+- occupied frontend port fails clearly with `Port 5178 is already in use`
+- occupied backend port fails clearly with `PORT 5050 IS OCCUPIED`
 
 ## Validation Evidence
 
@@ -78,7 +82,7 @@ Focused backend tests:
 Focused frontend tests:
 
 - `node --test frontend/src/auth/roles.test.js frontend/src/navigation/appNavigation.test.js frontend/src/api/client.test.js frontend/src/App.role-routing.test.js frontend/src/api/httpClient.test.js frontend/src/api/authClient.test.js frontend/src/auth/AuthContext.test.js frontend/src/pages/LoginPage.test.js`
-- Result: `15` passed, `0` failed
+- Result: `19` passed, `0` failed
 
 Frontend build:
 
@@ -94,13 +98,18 @@ Additional checks:
 
 - runtime LAN URL verification: `PASS`
 - direct URL and API-boundary verification: `PASS`
+- LAN frontend to backend port `5050` verification: `PASS`
+- Windows port-conflict inspection script: `PASS`
 - `git diff --check`: pending final delivery step
 
 ## PO Manual Check Focus
 
-1. Configure the viewer hash in `.env`, build frontend, and start `backend/server.js`.
-2. From a second computer, open `http://10.47.33.24:5050`.
-3. Log in as the viewer and confirm only completed F1.3 screens are reachable.
-4. Enter blocked direct URLs manually and confirm the viewer cannot access them.
-5. Log in as administrator and confirm import/admin screens still work.
-6. Confirm localhost `http://localhost:5050` still works on the server machine.
+1. Configure the viewer hash in `.env`, then run the Windows port check before startup.
+2. Start backend on `5050` and frontend on `5178`.
+3. From a second computer, open `http://10.47.33.24:5178`.
+4. Confirm the screen loads data from backend port `5050`.
+5. Log in as the viewer and confirm only completed F1.3 screens are reachable.
+6. Enter blocked direct URLs manually and confirm the viewer cannot access them.
+7. Log in as administrator and confirm import/admin screens still work.
+8. Confirm localhost `http://localhost:5178` and `http://localhost:5050` still work on the server machine.
+9. Occupy either port intentionally and confirm startup fails clearly instead of changing ports automatically.

@@ -21,13 +21,17 @@ This runbook applies only to the bounded LAN deployment authorized by `QIS-LAN-D
 
 ## Runtime Contract
 
+- Frontend host: `0.0.0.0`
+- Frontend port: `5178`
+- Frontend strict-port behavior: `true`
 - Backend host: `0.0.0.0`
 - Backend port: `5050`
-- Frontend LAN deployment: built Vite assets served by `backend/server.js`
-- Localhost URL: `http://localhost:5050`
-- Current detected LAN URL format on the server machine: `http://10.47.33.24:5050`
+- Frontend localhost URL: `http://localhost:5178`
+- Backend localhost URL: `http://localhost:5050`
+- Current detected LAN URL format on the server machine: `http://10.47.33.24:5178`
+- Frontend API target for LAN access: `http://<SERVER_IPV4>:5050`
 
-The backend also keeps Vite LAN development support on `5178` for engineering use, but the deployment URL for normal LAN viewers is the backend-served URL on `5050`.
+Normal LAN access must stay on the separate frontend port `5178`. The backend remains an API-only service on `5050`.
 
 ## Viewer Credential Setup
 
@@ -64,6 +68,20 @@ Notes:
 
 ## Startup Commands
 
+Run the Windows port check before startup:
+
+```powershell
+cd "D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong"
+powershell -ExecutionPolicy Bypass -File .\scripts\check-qis-lan-ports.ps1
+```
+
+If a port is occupied, the script reports:
+
+- occupied port
+- owning PID
+- owning process
+- a stop instruction such as `Stop-Process -Id <PID> -Force`
+
 Build the frontend once after pulling the approved commit:
 
 ```powershell
@@ -71,25 +89,47 @@ cd "D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\frontend"
 npm.cmd run build
 ```
 
-Start the backend host that serves both `/api/*` and the built frontend:
+Start the backend API service:
 
 ```powershell
 cd "D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend"
 node .\server.js
 ```
 
+Start the frontend host separately:
+
+```powershell
+cd "D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\frontend"
+npm.cmd run preview -- --host 0.0.0.0 --port 5178 --strictPort
+```
+
 Expected listening contract:
 
 - `Host: 0.0.0.0`
+- `Port: 5178`
+- `Strict port: true`
+- `Host: 0.0.0.0`
 - `Port: 5050`
 
-## Firewall Rule
+If port `5178` is already occupied, Vite must fail with `Port 5178 is already in use`.
 
-Allow inbound TCP `5050` on the Windows Private profile only:
+If port `5050` is already occupied, the backend must fail with `PORT 5050 IS OCCUPIED` and instruct the operator to run the port check script.
+
+## Firewall Rules
+
+Allow inbound TCP `5178` and `5050` on the Windows Private profile only:
 
 ```powershell
 New-NetFirewallRule `
-  -DisplayName "QIS V2 F1.3 LAN Viewer 5050" `
+  -DisplayName "QIS V2 F1.3 LAN Frontend 5178" `
+  -Direction Inbound `
+  -Protocol TCP `
+  -LocalPort 5178 `
+  -Action Allow `
+  -Profile Private
+
+New-NetFirewallRule `
+  -DisplayName "QIS V2 F1.3 LAN Backend 5050" `
   -Direction Inbound `
   -Protocol TCP `
   -LocalPort 5050 `
@@ -116,12 +156,18 @@ Current detected IPv4 from implementation validation:
 Use this format from another computer on the same network:
 
 ```text
-http://<SERVER_IPV4>:5050
+http://<SERVER_IPV4>:5178
 ```
 
 Validated example on the current server machine:
 
-- `http://10.47.33.24:5050`
+- `http://10.47.33.24:5178`
+
+Backend API format:
+
+```text
+http://<SERVER_IPV4>:5050
+```
 
 ## Access Contract
 
@@ -174,4 +220,4 @@ Viewer-blocked backend APIs:
 - Use the Windows Private firewall profile only.
 - Do not configure router port-forwarding.
 - Do not publish the URL through a public DNS name.
-- Do not expose `5050` to the public Internet.
+- Do not expose `5178` or `5050` to the public Internet.

@@ -105,7 +105,11 @@ The implementation must preserve:
   - `/f13/ranking/route`
 - Viewer may not access System Administration, import flows, unfinished top-level modules, Shipment, Pareto, Evidence, or Message.
 - Backend import/admin APIs require `admin`.
-- Backend serves the built frontend on `0.0.0.0:5050`, preserving localhost and allowing LAN access on `http://<server-ip>:5050`.
+- Frontend LAN path remains `0.0.0.0:5178` with `strictPort: true`.
+- Backend/API LAN path remains `0.0.0.0:5050`.
+- Normal LAN access path is `http://<server-ip>:5178`, with frontend API requests targeting backend port `5050` on the same hostname.
+- If either port is occupied, startup must fail clearly instead of changing ports automatically.
+- Windows pre-start conflict inspection is provided by `scripts/check-qis-lan-ports.ps1`.
 
 ## Validation
 

@@ -20,10 +20,10 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Phase | `F1.3 LOCAL NETWORK VIEWER DEPLOYMENT` |
 | Current Ticket | `QIS-LAN-DEPLOY-001` |
 | Next Ticket | `None currently authorized` |
-| Last PO Status | `Product Owner authorized QIS-LAN-DEPLOY-001 to deploy the completed F1.3 product for read-only LAN access on the same local network from verified baseline 7ea633fc30c1d68cdebf57532d3e0bd776737387; preserve accepted F1.3 screens, formulas, data, and closed-ticket behavior; do not expose the service to the public Internet` |
+| Last PO Status | `Product Owner authorized QIS-LAN-DEPLOY-001 to deploy the completed F1.3 product for read-only LAN access on the same local network from verified baseline 7ea633fc30c1d68cdebf57532d3e0bd776737387, then corrected the deployment path to preserve frontend port 5178 and backend port 5050 for LAN use; preserve accepted F1.3 screens, formulas, data, and closed-ticket behavior; do not expose the service to the public Internet` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` |
-| Current Checkpoint | `QIS-LAN-DEPLOY-001 implementation complete; ready for PO review with LAN/self-validation evidence` |
+| Current Checkpoint | `QIS-LAN-DEPLOY-001 implementation complete; ready for PO review with corrected 5178/5050 LAN evidence` |
 | Current State | `READY FOR PO REVIEW` |
 | Technical Status | `IMPLEMENTED / SELF-VALIDATED` |
 | Runtime Status | `LAN SELF-VERIFIED` |
@@ -60,7 +60,7 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `QIS-LAN-DEPLOY-001` implementation is complete from verified baseline `7ea633fc30c1d68cdebf57532d3e0bd776737387` and is ready for Product Owner review. The bounded delivery now exposes the completed F1.3 product on the LAN through `http://<server-ip>:5050`, preserves localhost, keeps Dashboard and BCVH Ranking accepted contracts unchanged, adds one read-only viewer role with secure hash-based password setup, and blocks viewer access to System Administration and data-changing operations by direct URL and backend API boundary. Do not self-award PO PASS; the next step is PO validation on a second computer.
+Current handoff: `QIS-LAN-DEPLOY-001` implementation is complete from verified baseline `7ea633fc30c1d68cdebf57532d3e0bd776737387` and is ready for Product Owner review. The bounded delivery now exposes the completed F1.3 product on the LAN through `http://<server-ip>:5178`, preserves backend API access on `http://<server-ip>:5050`, preserves localhost, keeps Dashboard and BCVH Ranking accepted contracts unchanged, adds one read-only viewer role with secure hash-based password setup, blocks viewer access to System Administration and data-changing operations by direct URL and backend API boundary, and fails clearly if `5178` or `5050` is occupied. Do not self-award PO PASS; the next step is PO validation on a second computer.
 
 Historical note: `GOVERNANCE-PO-UI-SEPARATION` is completed and preserved for reference only.
 
