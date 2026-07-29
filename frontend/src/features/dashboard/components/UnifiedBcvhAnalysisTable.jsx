@@ -12,7 +12,6 @@ import {
   formatSignedDelta,
   formatVolumeDelta,
   mapBcvhRankingResponse,
-  ROUTE_BAND_META,
   UNAVAILABLE_TEXT,
 } from './unifiedBcvhAnalysisTableData';
 
@@ -72,8 +71,8 @@ const DEFAULT_COLUMNS = {
 };
 
 const STICKY_RANK = 'sticky left-0 z-20';
-const STICKY_CODE = 'sticky left-[64px] z-20';
-const STICKY_NAME = 'sticky left-[168px] z-20';
+const STICKY_CODE = 'sticky left-[68px] z-20';
+const STICKY_NAME = 'sticky left-[176px] z-20';
 
 function readStoredColumns() {
   try {
@@ -149,15 +148,15 @@ function DoughnutCell({ routeDistribution, size = 'small' }) {
   );
 }
 
-function ComparisonValue({ value, type = 'number' }) {
-  if (type === 'rate') return <span>{formatRate(value)}</span>;
-  if (type === 'signed') return <span>{formatSignedDelta(value, 'điểm %')}</span>;
-  if (type === 'volumeDelta') return <span>{formatVolumeDelta(value)}</span>;
+function ComparisonValue({ value, type = 'number', nonApplicable = false }) {
+  if (type === 'rate') return <span>{formatRate(value, nonApplicable)}</span>;
+  if (type === 'signed') return <span>{formatSignedDelta(value, 'điểm %', nonApplicable)}</span>;
+  if (type === 'volumeDelta') return <span>{formatVolumeDelta(value, nonApplicable)}</span>;
   if (type === 'rankMovement') {
-    if (!value?.signal) return <span>{UNAVAILABLE_TEXT}</span>;
+    if (!value?.signal) return <span>{nonApplicable ? DASH : UNAVAILABLE_TEXT}</span>;
     return <StatusBadge label={value.signal.shortLabel} tone={signalToneToBadge(value.signal.tone)} />;
   }
-  return <span>{formatNumber(value)}</span>;
+  return <span>{formatNumber(value, nonApplicable)}</span>;
 }
 
 function ColumnOptions({ columns, setColumns }) {
@@ -285,7 +284,7 @@ function AnalysisPanel({ row, onOpenDetail }) {
                 <div>Sản lượng: <span className="font-semibold">{formatNumber(row.current_day.volume)}</span></div>
                 <div>Đạt: <span className="font-semibold">{formatNumber(row.current_day.pass_count)}</span></div>
                 <div>Không đạt: <span className="font-semibold">{formatNumber(row.current_day.fail_count)}</span></div>
-                <div>Tỷ lệ F1.3: <span className="font-semibold">{formatRate(row.current_day.rate)}</span></div>
+                <div className="flex items-center gap-2">Tỷ lệ F1.3: <span className="font-semibold">{formatRate(row.current_day.rate)}</span><StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} /></div>
               </div>
             </div>
             <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -350,52 +349,52 @@ function AnalysisPanel({ row, onOpenDetail }) {
 
 function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
   const isTotal = row.is_total;
-  const stickyBg = isTotal ? 'bg-[var(--color-surface-50)]' : 'bg-white';
+  const stickyBg = isTotal ? 'bg-[var(--color-primary-50)]' : 'bg-white';
   const isExpanded = expandedRowId === row.id;
   const colSpan = 22 + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0) + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0);
 
   return (
     <>
       <tr
-        className={`border-b border-[var(--color-surface-100)] ${isTotal ? 'bg-[var(--color-surface-50)] font-semibold' : 'cursor-pointer hover:bg-[var(--color-surface-50)]'}`}
+        className={`border-b ${isTotal ? 'border-[var(--color-primary-200)] bg-[var(--color-primary-50)] font-semibold' : 'border-[var(--color-surface-100)] cursor-pointer hover:bg-[var(--color-surface-50)]'}`}
         onClick={isTotal ? undefined : () => onToggleAnalysis(row.id)}
       >
-        <td className={`${STICKY_RANK} ${stickyBg} px-3 py-3 text-right shadow-[1px_0_0_0_var(--color-surface-200)]`}>{row.rank ?? DASH}</td>
-        <td className={`${STICKY_CODE} ${stickyBg} px-3 py-3 font-mono text-[11px] shadow-[1px_0_0_0_var(--color-surface-200)]`}>{row.ma_bcvh || DASH}</td>
-        <td className={`${STICKY_NAME} ${stickyBg} px-3 py-3 text-[13px] font-semibold text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]`}>{row.ten_bcvh}</td>
+        <td className={`${STICKY_RANK} ${stickyBg} px-3 py-3 text-right ${isTotal ? 'text-[12px] font-bold text-[var(--color-primary-800)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.rank ?? DASH}</td>
+        <td className={`${STICKY_CODE} ${stickyBg} px-3 py-3 font-mono text-[11px] ${isTotal ? 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.ma_bcvh || DASH}</td>
+        <td className={`${STICKY_NAME} ${stickyBg} px-3 py-3 ${isTotal ? 'text-[15px] font-black uppercase tracking-wide text-[var(--color-primary-900)] shadow-[8px_0_12px_-12px_rgba(59,130,246,0.25)]' : 'text-[14px] font-semibold text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]'}`}>{row.ten_bcvh}</td>
 
-        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.volume)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.pass_count)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.fail_count)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.volume, isTotal)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.pass_count, isTotal)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.fail_count, isTotal)}</td>
         <td className="px-3 py-3 text-center">
           <div className="flex flex-col items-center gap-1">
-            <span className="font-semibold">{formatRate(row.current_day.rate)}</span>
+            <span className={`font-semibold ${isTotal ? 'text-[15px]' : ''}`}>{formatRate(row.current_day.rate, isTotal)}</span>
             <StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} />
           </div>
         </td>
 
-        {columns.d1Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d1.volume)}</td> : null}
-        {columns.d1Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d1.rate)}</td> : null}
-        <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d1.volume_delta)}</td>
-        <td className="px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d1.rate_delta, 'điểm %')}</td>
-        <td className="px-3 py-3 text-center">{formatNumber(row.comparisons.d1.comparison_rank)}</td>
-        <td className="px-3 py-3 text-center"><ComparisonValue value={row.comparisons.d1.rank_movement} type="rankMovement" /></td>
+        {columns.d1Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d1.volume, isTotal)}</td> : null}
+        {columns.d1Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d1.rate, isTotal)}</td> : null}
+        <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d1.volume_delta, isTotal)}</td>
+        <td className="px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d1.rate_delta, 'điểm %', isTotal)}</td>
+        <td className="px-3 py-3 text-center">{formatNumber(row.comparisons.d1.comparison_rank, isTotal)}</td>
+        <td className="px-3 py-3 text-center"><ComparisonValue value={row.comparisons.d1.rank_movement} type="rankMovement" nonApplicable={isTotal} /></td>
 
-        {columns.d7Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d7.volume)}</td> : null}
-        {columns.d7Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d7.rate)}</td> : null}
-        <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d7.volume_delta)}</td>
-        <td className="px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d7.rate_delta, 'điểm %')}</td>
-        <td className="px-3 py-3 text-center">{formatNumber(row.comparisons.d7.comparison_rank)}</td>
-        <td className="px-3 py-3 text-center"><ComparisonValue value={row.comparisons.d7.rank_movement} type="rankMovement" /></td>
+        {columns.d7Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d7.volume, isTotal)}</td> : null}
+        {columns.d7Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d7.rate, isTotal)}</td> : null}
+        <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d7.volume_delta, isTotal)}</td>
+        <td className="px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d7.rate_delta, 'điểm %', isTotal)}</td>
+        <td className="px-3 py-3 text-center">{formatNumber(row.comparisons.d7.comparison_rank, isTotal)}</td>
+        <td className="px-3 py-3 text-center"><ComparisonValue value={row.comparisons.d7.rank_movement} type="rankMovement" nonApplicable={isTotal} /></td>
 
-        <td className="px-3 py-3 text-right">{formatNumber(row.late_cash.count)}</td>
-        <td className="px-3 py-3 text-center">{formatRate(row.late_cash.rate)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.late_cash.count, isTotal)}</td>
+        <td className="px-3 py-3 text-center">{formatRate(row.late_cash.rate, isTotal)}</td>
 
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.participating_postman_route_count)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.green)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.pink)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.yellow)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.red)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.participating_postman_route_count, isTotal)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.green, isTotal)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.pink, isTotal)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.yellow, isTotal)}</td>
+        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.red, isTotal)}</td>
         <td className="px-3 py-3 text-center"><DoughnutCell routeDistribution={row.route_distribution} /></td>
 
         <td className="px-3 py-3 text-center">
@@ -412,7 +411,7 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
               <ChevronDown size={12} className={isExpanded ? 'rotate-180 transition-transform' : 'transition-transform'} />
             </button>
           ) : (
-            <span className="text-[11px] text-[var(--color-text-muted)]">{DASH}</span>
+            <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">{DASH}</span>
           )}
         </td>
       </tr>
@@ -545,14 +544,13 @@ export default function UnifiedBcvhAnalysisTable({
     <div className="overflow-hidden rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-[var(--color-surface-200)] bg-[var(--color-surface-50)] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-              <p className="text-xs text-[var(--color-text-muted)]">
-                {TEXT.source} · {state.data?.meta?.evaluation_label || UNAVAILABLE_TEXT}
-              </p>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            {TEXT.source} · {state.data?.meta?.evaluation_label || UNAVAILABLE_TEXT}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {Object.entries(ROUTE_BAND_META).map(([id, meta]) => (
-            <StatusBadge key={id} label={meta.label} tone={signalToneToBadge(meta.tone)} />
-          ))}
+          <StatusBadge label="KPI 2026" tone="neutral" />
+          <StatusBadge label="Tuyến chất lượng" tone="neutral" />
           <ColumnOptions columns={columns} setColumns={setColumns} />
         </div>
       </div>

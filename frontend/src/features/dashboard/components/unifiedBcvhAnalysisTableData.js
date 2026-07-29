@@ -38,7 +38,7 @@ function buildContextDateLabel(dateStr) {
 
 function buildSignal(value) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return { id: 'unavailable', label: UNAVAILABLE_TEXT, tone: 'neutral' };
+  if (numeric === null) return { id: 'unavailable', label: DASH, tone: 'neutral' };
   return KPI_STATUS_META.find((item) => numeric >= item.min) || KPI_STATUS_META.at(-1);
 }
 
@@ -66,9 +66,9 @@ function buildMovementSignal(movement = {}) {
     };
   }
   return {
-    label: UNAVAILABLE_TEXT,
+    label: DASH,
     tone: 'neutral',
-    shortLabel: UNAVAILABLE_TEXT,
+    shortLabel: DASH,
   };
 }
 
@@ -112,17 +112,17 @@ function buildRouteDistribution(routeDistribution = {}) {
 
 function buildAnalysisText(row) {
   const parts = [
-    `KPI ngày ${formatRate(row.current_day.rate)}`,
-    `D-1 ${formatSignedDelta(row.comparisons.d1.rate_delta ?? row.current_day.d1_rate_delta, 'điểm %')}`,
-    `D-7 ${formatSignedDelta(row.comparisons.d7.rate_delta ?? row.current_day.d7_rate_delta, 'điểm %')}`,
-    `Chậm nộp tiền ${formatNumber(row.late_cash.count)} BG (${formatRate(row.late_cash.rate)})`,
-    `Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count)}: tốt ${formatNumber(row.route_distribution.counts.green)}, khá ${formatNumber(row.route_distribution.counts.pink)}, trung bình ${formatNumber(row.route_distribution.counts.yellow)}, kém ${formatNumber(row.route_distribution.counts.red)}`,
+    `KPI ngày ${formatRate(row.current_day.rate, row.is_total)}`,
+    `D-1 ${formatSignedDelta(row.comparisons.d1.rate_delta ?? row.current_day.d1_rate_delta, 'điểm %', row.is_total)}`,
+    `D-7 ${formatSignedDelta(row.comparisons.d7.rate_delta ?? row.current_day.d7_rate_delta, 'điểm %', row.is_total)}`,
+    `Chậm nộp tiền ${formatNumber(row.late_cash.count, row.is_total)} BG (${formatRate(row.late_cash.rate, row.is_total)})`,
+    `Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count, row.is_total)}: tốt ${formatNumber(row.route_distribution.counts.green, row.is_total)}, khá ${formatNumber(row.route_distribution.counts.pink, row.is_total)}, trung bình ${formatNumber(row.route_distribution.counts.yellow, row.is_total)}, kém ${formatNumber(row.route_distribution.counts.red, row.is_total)}`,
   ];
 
   const d1Movement = row.comparisons.d1.rank_movement.signal.label;
   const d7Movement = row.comparisons.d7.rank_movement.signal.label;
-  if (d1Movement !== UNAVAILABLE_TEXT) parts.push(`Hạng D-1 ${d1Movement.toLowerCase()}`);
-  if (d7Movement !== UNAVAILABLE_TEXT) parts.push(`Hạng D-7 ${d7Movement.toLowerCase()}`);
+  if (d1Movement !== DASH) parts.push(`Hạng D-1 ${d1Movement.toLowerCase()}`);
+  if (d7Movement !== DASH) parts.push(`Hạng D-7 ${d7Movement.toLowerCase()}`);
   return parts.join(` ${MIDDLE_DOT} `);
 }
 
@@ -169,8 +169,8 @@ export function mapBcvhRankingRow(row = {}, context = {}) {
       rate: toNumberOrNull(row.f13_303_rate),
       signal: {
         label: row.delayed_cash_handover_count === undefined && row.f13_303_rate === undefined
-          ? UNAVAILABLE_TEXT
-          : `${formatNumber(row.delayed_cash_handover_count)} BG ${MIDDLE_DOT} ${formatRate(row.f13_303_rate)}`,
+          ? DASH
+          : `${formatNumber(row.delayed_cash_handover_count, isTotal)} BG ${MIDDLE_DOT} ${formatRate(row.f13_303_rate, isTotal)}`,
         tone: 'neutral',
       },
     },
@@ -212,28 +212,28 @@ export function mapBcvhRankingResponse(responseData = {}, context = {}) {
   };
 }
 
-export function formatNumber(value) {
+export function formatNumber(value, nonApplicable = false) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return UNAVAILABLE_TEXT;
+  if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
   return numeric.toLocaleString('vi-VN');
 }
 
-export function formatRate(value) {
+export function formatRate(value, nonApplicable = false) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return UNAVAILABLE_TEXT;
+  if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
   return `${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
-export function formatSignedDelta(value, unit = '') {
+export function formatSignedDelta(value, unit = '', nonApplicable = false) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return UNAVAILABLE_TEXT;
+  if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
   const sign = numeric > 0 ? '+' : '';
   return `${sign}${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`;
 }
 
-export function formatVolumeDelta(value) {
+export function formatVolumeDelta(value, nonApplicable = false) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return UNAVAILABLE_TEXT;
+  if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
   const sign = numeric > 0 ? '+' : '';
   return `${sign}${numeric.toLocaleString('vi-VN')}`;
 }
@@ -244,4 +244,4 @@ export function buildDoughnutAriaLabel(routeDistribution = {}) {
   return segments.map((segment) => `${segment.label} ${segment.value}`).join(` ${MIDDLE_DOT} `);
 }
 
-export { ROUTE_BAND_META, DASH };
+export { ROUTE_BAND_META, DASH, KPI_STATUS_META };

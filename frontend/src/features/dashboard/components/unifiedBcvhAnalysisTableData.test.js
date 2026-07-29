@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
   buildDoughnutAriaLabel,
+  DASH,
   formatNumber,
   formatRate,
   formatSignedDelta,
   formatVolumeDelta,
+  KPI_STATUS_META,
   mapBcvhRankingResponse,
   mapBcvhRankingRow,
   ROUTE_BAND_META,
@@ -79,7 +81,7 @@ test('maps runtime row into current-day, D-1, D-7, late-cash, route, and analysi
   assert.equal(row.action.route, '/f13/ranking/route');
 });
 
-test('maps total row without exposing raw total or unsupported action and analysis', () => {
+test('maps total row without exposing raw total and preserves valid aggregate values', () => {
   const mapped = mapBcvhRankingResponse({
     success: true,
     data: [
@@ -117,13 +119,19 @@ test('maps total row without exposing raw total or unsupported action and analys
   assert.equal(mapped.total_row.rank, null);
   assert.equal(mapped.total_row.action, null);
   assert.equal(mapped.total_row.analysis, null);
+  assert.equal(mapped.total_row.current_day.volume, 10);
+  assert.equal(mapped.total_row.current_day.pass_count, 8);
+  assert.equal(mapped.total_row.current_day.fail_count, 2);
   assert.equal(mapped.total_row.current_day.rate, 80);
+  assert.equal(mapped.total_row.current_day.signal.label, 'Tốt');
+  assert.equal(mapped.total_row.late_cash.count, 1);
   assert.equal(mapped.total_row.late_cash.rate, 5.5);
+  assert.equal(mapped.total_row.route_distribution.participating_postman_route_count, 4);
   assert.equal(mapped.total_row.route_distribution.counts.pink, 1);
   assert.match(mapped.meta.evaluation_label, /28\/07/);
 });
 
-test('formats unavailable states and factual deltas without fallback', () => {
+test('renders unsupported total-row fields as dash and unavailable row fields as factual unavailable', () => {
   const row = mapBcvhRankingRow({
     ma_bcvh: '535790',
     ten_bcvh: 'BCVH A Lưới',
@@ -137,8 +145,25 @@ test('formats unavailable states and factual deltas without fallback', () => {
   assert.equal(formatRate(null), UNAVAILABLE_TEXT);
   assert.equal(formatSignedDelta(null, 'điểm %'), UNAVAILABLE_TEXT);
   assert.equal(formatVolumeDelta(null), UNAVAILABLE_TEXT);
-  assert.equal(row.comparisons.d1.rank_movement.signal.label, UNAVAILABLE_TEXT);
+  assert.equal(formatNumber(null, true), DASH);
+  assert.equal(formatRate(null, true), DASH);
+  assert.equal(formatSignedDelta(null, 'điểm %', true), DASH);
+  assert.equal(formatVolumeDelta(null, true), DASH);
+  assert.equal(row.comparisons.d1.rank_movement.signal.label, DASH);
   assert.match(row.analysis, /Chưa có dữ liệu/);
+});
+
+test('keeps KPI 2026 SSOT labels separate from route-distribution labels', () => {
+  assert.deepEqual(
+    KPI_STATUS_META.map((item) => item.label),
+    ['Tốt', 'Cần chú ý', 'Cảnh báo', 'Rủi ro cao'],
+  );
+  assert.deepEqual(
+    Object.values(ROUTE_BAND_META).map((item) => item.label),
+    ['Tốt', 'Khá', 'Trung bình', 'Kém'],
+  );
+  assert.notEqual(KPI_STATUS_META[1].label, ROUTE_BAND_META.pink.label);
+  assert.notEqual(KPI_STATUS_META[2].label, ROUTE_BAND_META.yellow.label);
 });
 
 test('builds semantic four-band doughnut labels and preserves SSOT colors', () => {
@@ -160,14 +185,12 @@ test('builds semantic four-band doughnut labels and preserves SSOT colors', () =
   );
 });
 
-test('component source exposes total-row presentation, expandable analysis, semantic route labels, and no duplicated labels', () => {
+test('component sources preserve dashboard isolation, total-row polish, and semantic separation', () => {
   const componentSource = read('./UnifiedBcvhAnalysisTable.jsx');
   const pageSource = read('../../ranking/BcvhRankingPage.jsx');
+  const dashboardSource = read('../../../components/f13/BcvhOperationTable.jsx');
+  const dashboardAdapterSource = read('./BcvhOperationTableAdapter.jsx');
 
-  assert.match(componentSource, /Tốt/);
-  assert.match(componentSource, /Khá/);
-  assert.match(componentSource, /Trung bình/);
-  assert.match(componentSource, /Kém/);
   assert.match(componentSource, /expandedRowId/);
   assert.match(componentSource, /AnalysisPanel/);
   assert.match(componentSource, /onToggleAnalysis/);
@@ -175,16 +198,24 @@ test('component source exposes total-row presentation, expandable analysis, sema
   assert.match(componentSource, /Xem chi tiết tuyến/);
   assert.match(componentSource, /Phân tích/);
   assert.match(componentSource, /sticky left-0/);
-  assert.match(componentSource, /sticky left-\[64px\]/);
-  assert.match(componentSource, /sticky left-\[168px\]/);
+  assert.match(componentSource, /sticky left-\[68px\]/);
+  assert.match(componentSource, /sticky left-\[176px\]/);
+  assert.match(componentSource, /font-black uppercase tracking-wide/);
   assert.doesNotMatch(componentSource, /<th[^>]*>.*Phân tích BCVH.*<\/th>/s);
+  assert.doesNotMatch(componentSource, />total</);
+  assert.doesNotMatch(componentSource, /Chưa có dữ liệu[\s\S]*Tổng cộng[\s\S]*Chưa có dữ liệu/);
+
   assert.match(pageSource, /Bảng xếp hạng chất lượng BCVH/);
   assert.match(pageSource, /So sánh kỳ trước/);
-  assert.match(pageSource, /Tốt/);
+  assert.match(pageSource, /Xem chi tiết tuyến/);
   assert.match(pageSource, /Khá/);
   assert.match(pageSource, /Trung bình/);
   assert.match(pageSource, /Kém/);
   assert.doesNotMatch(pageSource, /Ngày đánh giá · Ngày đánh giá/);
-  assert.doesNotMatch(componentSource, /total<\/td>|>total</);
-  assert.doesNotMatch(pageSource, /Bảng xếp hạng chất lượng BCVH[\s\S]*Bảng xếp hạng chất lượng BCVH/);
+  assert.doesNotMatch(pageSource, /KPI \/ chậm nộp \/ hạng độc lập/);
+  assert.doesNotMatch(pageSource, /Wave 1|contract/i);
+
+  assert.match(dashboardAdapterSource, /<BcvhOperationTable/);
+  assert.doesNotMatch(dashboardAdapterSource, /<UnifiedBcvhAnalysisTable/);
+  assert.doesNotMatch(dashboardSource, /Phân tích BCVH|Xem chi tiết tuyến|Doughnut|So sánh D-1|So sánh D-7/);
 });
