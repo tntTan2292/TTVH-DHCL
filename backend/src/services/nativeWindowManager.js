@@ -19,6 +19,12 @@ function getApi() {
     const EnumWindowsProc = koffi.proto('BOOL __stdcall EnumWindowsProc(HWND hWnd, LPARAM lParam)');
 
     const TH32CS_SNAPPROCESS = 0x00000002;
+    const RECT = koffi.struct('RECT', {
+        left: 'int32_t',
+        top: 'int32_t',
+        right: 'int32_t',
+        bottom: 'int32_t'
+    });
     const PROCESSENTRY32 = koffi.struct('PROCESSENTRY32', {
         dwSize: 'uint32_t',
         cntUsage: 'uint32_t',
@@ -36,12 +42,14 @@ function getApi() {
         EnumWindows: user32.func('BOOL __stdcall EnumWindows(EnumWindowsProc *lpEnumFunc, LPARAM lParam)'),
         GetWindowThreadProcessId: user32.func('DWORD __stdcall GetWindowThreadProcessId(HWND hWnd, _Out_ DWORD *lpdwProcessId)'),
         IsWindowVisible: user32.func('BOOL __stdcall IsWindowVisible(HWND hWnd)'),
+        GetWindowRect: user32.func('BOOL __stdcall GetWindowRect(HWND hWnd, _Out_ RECT *lpRect)'),
         ShowWindow: user32.func('BOOL __stdcall ShowWindow(HWND hWnd, int nCmdShow)'),
         CreateToolhelp32Snapshot: kernel32.func('HANDLE __stdcall CreateToolhelp32Snapshot(uint32_t dwFlags, uint32_t th32ProcessID)'),
         Process32First: kernel32.func('bool __stdcall Process32First(HANDLE hSnapshot, _Inout_ PROCESSENTRY32 *lppe)'),
         Process32Next: kernel32.func('bool __stdcall Process32Next(HANDLE hSnapshot, _Inout_ PROCESSENTRY32 *lppe)'),
         CloseHandle: kernel32.func('bool __stdcall CloseHandle(HANDLE hObject)'),
         EnumWindowsProc,
+        RECT,
         PROCESSENTRY32,
         TH32CS_SNAPPROCESS
     };
@@ -134,6 +142,12 @@ function setWindowsVisibleForProcessIds(pids, visible, { hwndAllowList = null } 
         if (!threadId || !targetPids.has(ownerPid)) return true;
         const hwndNumber = hwndToNumber(hwnd);
         if (allowedHwnds && !allowedHwnds.has(hwndNumber)) return true;
+        const rect = { left: 0, top: 0, right: 0, bottom: 0 };
+        native.GetWindowRect(hwnd, rect);
+        const width = Math.max(0, Number(rect.right) - Number(rect.left));
+        const height = Math.max(0, Number(rect.bottom) - Number(rect.top));
+        const isUsableWindow = width > 0 && height > 0;
+        if (!isUsableWindow) return true;
 
         const wasVisible = Boolean(native.IsWindowVisible(hwnd));
         const alreadyInTargetState = visible ? wasVisible : !wasVisible;
@@ -152,6 +166,8 @@ function setWindowsVisibleForProcessIds(pids, visible, { hwndAllowList = null } 
         windows.push({
             hwnd: hwndNumber,
             pid: ownerPid,
+            width,
+            height,
             wasVisible,
             isVisible,
             nativeResult,

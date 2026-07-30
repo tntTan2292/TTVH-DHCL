@@ -66,6 +66,7 @@ class DkclHueF13PortalClient {
         this.loginAttempts = 0;
         this.source = options.source || 'HUE';
         this.onDisconnect = null;
+        this.interactiveAuthenticatedOnOpen = false;
     }
 
     async authenticate({ baseUrl, username, password, hrmCode, profileDir, requireExistingSession = false }) {
@@ -159,10 +160,16 @@ class DkclHueF13PortalClient {
                 if (this.onDisconnect) this.onDisconnect();
             });
         }
-        this.page = this.context.pages()[0] || await this.context.newPage();
-        await this.setWindowState('normal');
+        // Always open a fresh interactive page so authenticated profiles surface a user-visible top-level window.
+        this.page = await this.context.newPage();
+        await this.page.bringToFront?.().catch(() => {});
+        const restoreResult = await this.restoreWindow();
+        if (!restoreResult) {
+            throw portalError('BROWSER_WINDOW_HIDDEN: Cannot show browser window for manual login. The process might be hung or the window is forcefully hidden.', 'BROWSER_WINDOW_HIDDEN');
+        }
 
         await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        this.interactiveAuthenticatedOnOpen = await this.isAuthenticated();
         if (!await this.isAuthenticated()) {
             if (!this.page.url().includes('/login')) {
                 await this.page.goto(`${this.baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });

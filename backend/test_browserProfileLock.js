@@ -2,7 +2,7 @@
 
 const assert = require('assert/strict');
 const path = require('path');
-const { BrowserProcessManager } = require('./src/services/browserProcessManager');
+const { BrowserProcessManager, extractUserDataDir } = require('./src/services/browserProcessManager');
 
 // Fake execAsync for dependency injection
 function createMockExecAsync(mockResult, shouldThrow = false) {
@@ -77,6 +77,71 @@ async function runTests() {
     assert.strictEqual(liveRes.matchingProcesses[0].executablePath, 'C:\\Playwright\\chromium.exe');
     console.log('PASS');
 
+    console.log('--- TEST 4B: quoted whole-argument user-data-dir with spaces resolves real TCT root only ---');
+    const realTctProfile = 'D:\\Antigravity - Project\\TTVH - He thong dieu hanh chat luong\\Data DKCL\\BrowserProfiles\\TCT';
+    const realHueProfile = 'D:\\Antigravity - Project\\TTVH - He thong dieu hanh chat luong\\Data DKCL\\BrowserProfiles\\HUE\\';
+    const quotedWholeArg = 'C:\\Users\\Admin\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe --disable-sync --no-sandbox "--user-data-dir=D:\\Antigravity - Project\\TTVH - He thong dieu hanh chat luong\\Data DKCL\\BrowserProfiles\\TCT" --remote-debugging-pipe about:blank';
+    const bareSeparatedArg = 'chrome.exe --user-data-dir "D:/Antigravity - Project/TTVH - He thong dieu hanh chat luong/Data DKCL/BrowserProfiles/HUE"';
+    assert.strictEqual(extractUserDataDir(quotedWholeArg), realTctProfile, 'extractor preserves quoted whole-argument path with spaces');
+    assert.strictEqual(extractUserDataDir(bareSeparatedArg), 'D:/Antigravity - Project/TTVH - He thong dieu hanh chat luong/Data DKCL/BrowserProfiles/HUE', 'extractor supports separated argument form');
+    const fixtureMgr = new BrowserProcessManager({
+        nativeWindows: {
+            getDescendantProcessIds: async (rootPids) => rootPids[0] === 18240 ? [18240, 20580] : rootPids
+        },
+        execAsync: async (cmd) => {
+            if (cmd.includes('Get-CimInstance') && cmd.includes("Where-Object CommandLine -Match '--user-data-dir'")) {
+                return {
+                    stdout: JSON.stringify([
+                        {
+                            ProcessId: 18240,
+                            Name: 'chrome.exe',
+                            ExecutablePath: 'C:\\Users\\Admin\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe',
+                            CommandLine: quotedWholeArg
+                        },
+                        {
+                            ProcessId: 20580,
+                            Name: 'chrome.exe',
+                            ExecutablePath: 'C:\\Users\\Admin\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe',
+                            CommandLine: '"C:\\Users\\Admin\\AppData\\Local\\ms-playwright\\chromium-1228\\chrome-win64\\chrome.exe" --type=gpu-process --user-data-dir="D:\\Antigravity - Project\\TTVH - He thong dieu hanh chat luong\\Data DKCL\\BrowserProfiles\\TCT"'
+                        },
+                        {
+                            ProcessId: 12588,
+                            Name: 'chrome.exe',
+                            ExecutablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                            CommandLine: '--user-data-dir="D:\\Antigravity - Project\\TTVH - He thong dieu hanh chat luong\\Data DKCL\\BrowserProfiles\\HUE"'
+                        },
+                        {
+                            ProcessId: 30000,
+                            Name: 'chrome.exe',
+                            ExecutablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                            CommandLine: '--user-data-dir="D:\\Some Other Workspace\\BrowserProfiles\\TCT"'
+                        }
+                    ])
+                };
+            }
+            if (cmd.includes('Get-CimInstance Win32_Process | Select-Object ProcessId')) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 18240, ParentProcessId: 100 },
+                        { ProcessId: 20580, ParentProcessId: 18240 },
+                        { ProcessId: 12588, ParentProcessId: 100 },
+                        { ProcessId: 30000, ParentProcessId: 100 }
+                    ])
+                };
+            }
+            throw new Error(`Unexpected command: ${cmd}`);
+        }
+    });
+    const tctFixtureRes = await fixtureMgr.findBrowserProcessByProfile(realTctProfile);
+    assert.strictEqual(tctFixtureRes.inspectionStatus, 'SUCCESS');
+    assert.deepStrictEqual(tctFixtureRes.matchingProcesses.map((proc) => proc.pid).sort((a, b) => a - b), [18240, 20580], 'TCT fixture matches the real root and its child process profile ownership');
+    const tctFixtureTree = await fixtureMgr.getDescendantProcessIds([18240]);
+    assert(tctFixtureTree.includes(20580), 'child PID is associated with the real TCT root');
+    const hueFixtureRes = await fixtureMgr.findBrowserProcessByProfile(realHueProfile);
+    assert.deepStrictEqual(hueFixtureRes.matchingProcesses.map((proc) => proc.pid), [12588], 'HUE fixture cannot cross-match TCT profile');
+    assert(!tctFixtureRes.matchingProcesses.some((proc) => proc.pid === 12588 || proc.pid === 30000), 'unrelated Chromium processes are excluded from TCT matching');
+    console.log('PASS');
+
     console.log('--- TEST 5: descendant process tree includes browser children ---');
     const treeMgr = new BrowserProcessManager({
         nativeWindows: {
@@ -107,7 +172,7 @@ async function runTests() {
         },
         execAsync: async (cmd) => {
             hueCommands.push(cmd);
-            if (cmd.includes('CommandLine -match')) {
+            if (cmd.includes("Where-Object CommandLine -Match '--user-data-dir'")) {
                 return {
                     stdout: JSON.stringify([
                         { ProcessId: 5300, Name: 'chromium.exe', CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\HUE"' },
@@ -153,7 +218,7 @@ async function runTests() {
             }
         },
         execAsync: async (cmd) => {
-            if (cmd.includes('CommandLine -match')) {
+            if (cmd.includes("Where-Object CommandLine -Match '--user-data-dir'")) {
                 return {
                     stdout: JSON.stringify([
                         { ProcessId: 5300, Name: 'msedge.exe', CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\HUE"' },
@@ -227,6 +292,56 @@ async function runTests() {
     assert.strictEqual(utilityHide.affectedWindowCount, 0);
     console.log('PASS');
 
+    console.log('--- TEST 10B: show retries until a usable browser window is actually visible ---');
+    let showAttempts = 0;
+    const showRetryMgr = new BrowserProcessManager({
+        nativeWindows: {
+            setWindowsVisibleForProcessIds: (pids, visible) => {
+                assert.deepStrictEqual(pids, [8100]);
+                assert.strictEqual(visible, true);
+                showAttempts += 1;
+                if (showAttempts === 1) {
+                    return {
+                        success: false,
+                        action: 'SHOW',
+                        matchedWindowCount: 1,
+                        affectedWindowCount: 0,
+                        windows: [{ hwnd: 3001, pid: 8100, width: 0, height: 0, wasVisible: false, isVisible: false }]
+                    };
+                }
+                return {
+                    success: true,
+                    action: 'SHOW',
+                    matchedWindowCount: 1,
+                    affectedWindowCount: 1,
+                    windows: [{ hwnd: 3002, pid: 8100, width: 1280, height: 720, wasVisible: false, isVisible: true }]
+                };
+            }
+        },
+        execAsync: async (cmd) => {
+            if (cmd.includes("Where-Object CommandLine -Match '--user-data-dir'")) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 8100, Name: 'chrome.exe', CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\TCT"' }
+                    ])
+                };
+            }
+            if (cmd.includes('Get-CimInstance Win32_Process | Select-Object ProcessId')) {
+                return {
+                    stdout: JSON.stringify([
+                        { ProcessId: 8100, ParentProcessId: 100 }
+                    ])
+                };
+            }
+            throw new Error(`Unexpected command: ${cmd}`);
+        }
+    });
+    const showRetryResult = await showRetryMgr.showBrowserWindowsByProfile('D:\\Data DKCL\\BrowserProfiles\\TCT');
+    assert.strictEqual(showRetryResult.success, true);
+    assert.strictEqual(showRetryResult.attempts, 2);
+    assert.strictEqual(showAttempts, 2);
+    console.log('PASS');
+
     console.log('--- TEST 11: restore only shows HWNDs hidden by this profile manager ---');
     const restoreCalls = [];
     const restoreMgr = new BrowserProcessManager({
@@ -256,7 +371,7 @@ async function runTests() {
             }
         },
         execAsync: async (cmd) => {
-            if (cmd.includes('CommandLine -match')) {
+            if (cmd.includes("Where-Object CommandLine -Match '--user-data-dir'")) {
                 return {
                     stdout: JSON.stringify([
                         { ProcessId: 7100, Name: 'chrome.exe', CommandLine: '--user-data-dir="D:\\\\Data DKCL\\\\BrowserProfiles\\\\HUE"' }

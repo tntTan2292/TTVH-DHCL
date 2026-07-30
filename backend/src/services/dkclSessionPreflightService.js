@@ -378,16 +378,24 @@ class DkclSessionPreflightService {
                             backgroundReady: false
                         });
 
-                        const hideWindow = client.hideWindow || client.hideBrowserWindow;
-                        const hideSuccess = entry.hideAttempted
-                            ? entry.windowHidden
-                            : await hideWindow.call(client).catch(() => false);
+                        if (client.interactiveAuthenticatedOnOpen) {
+                            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                                hideAttempted: false,
+                                windowHidden: false,
+                                backgroundReady: true
+                            });
+                        } else {
+                            const hideWindow = client.hideWindow || client.hideBrowserWindow;
+                            const hideSuccess = entry.hideAttempted
+                                ? entry.windowHidden
+                                : await hideWindow.call(client).catch(() => false);
 
-                        transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
-                            hideAttempted: true,
-                            windowHidden: Boolean(hideSuccess),
-                            backgroundReady: true
-                        });
+                            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                                hideAttempted: true,
+                                windowHidden: Boolean(hideSuccess),
+                                backgroundReady: true
+                            });
+                        }
                     } catch (err) {
                         transitionLifecycle(entry, DKCL_LEGACY_STATES.ERROR, {
                             lastError: err.message,

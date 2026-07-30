@@ -6,6 +6,35 @@ const fs = require('fs');
 const util = require('util');
 const nativeWindowManager = require('./nativeWindowManager');
 
+function normalizeProfilePath(inputPath) {
+    const resolved = path.resolve(String(inputPath || ''));
+    return resolved.replace(/[\\/]+$/, '').toLowerCase();
+}
+
+function extractUserDataDir(commandLine) {
+    const value = String(commandLine || '');
+    if (!value) return null;
+
+    const normalized = value.replace(/"--user-data-dir=([^"]+)"/i, '--user-data-dir="$1"');
+
+    const inlineQuotedMatch = normalized.match(/--user-data-dir=(?:"([^"]+)"|'([^']+)')/i);
+    if (inlineQuotedMatch) {
+        return inlineQuotedMatch[1] || inlineQuotedMatch[2] || null;
+    }
+
+    const inlineBareMatch = normalized.match(/--user-data-dir=([^\s"]+)/i);
+    if (inlineBareMatch) {
+        return inlineBareMatch[1] || null;
+    }
+
+    const separatedMatch = normalized.match(/--user-data-dir\s+(?:"([^"]+)"|'([^']+)'|([^\s"]+))/i);
+    if (separatedMatch) {
+        return separatedMatch[1] || separatedMatch[2] || separatedMatch[3] || null;
+    }
+
+    return null;
+}
+
 class BrowserProcessManager {
     constructor({ execAsync = util.promisify(cp.exec), existsSync = fs.existsSync, rmSync = fs.rmSync, nativeWindows = nativeWindowManager } = {}) {
         this.execAsync = execAsync;
@@ -26,7 +55,7 @@ class BrowserProcessManager {
             if (process.platform === 'win32') {
                 try {
                     // Query browser-like processes broadly, then accept only exact --user-data-dir matches.
-                    const { stdout } = await this.execAsync('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { `$_.CommandLine -match \'--user-data-dir\' } | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress"');
+                    const { stdout } = await this.execAsync('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object CommandLine -Match \'--user-data-dir\' | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress"');
                     if (stdout.trim()) {
                         let processes = [];
                         try {
@@ -41,19 +70,16 @@ class BrowserProcessManager {
                         for (const proc of processes) {
                             const cmdLine = proc.CommandLine || '';
                             if (cmdLine.toLowerCase().includes('--user-data-dir')) {
-                                const match = cmdLine.match(/--user-data-dir=(?:"([^"]+)"|([^\s]+))/i);
-                                if (match) {
-                                    const dir = match[1] || match[2];
-                                    if (path.resolve(dir).toLowerCase() === path.resolve(profileDir).toLowerCase()) {
-                                        result.matchingProcesses.push({
-                                            pid: parseInt(proc.ProcessId, 10),
-                                            executable: proc.Name || path.basename(proc.ExecutablePath || '') || 'browser',
-                                            executablePath: proc.ExecutablePath || null,
-                                            commandLine: cmdLine,
-                                            exactProfileMatch: true,
-                                            ownershipEvidence: true
-                                        });
-                                    }
+                                const dir = extractUserDataDir(cmdLine);
+                                if (dir && normalizeProfilePath(dir) === normalizeProfilePath(profileDir)) {
+                                    result.matchingProcesses.push({
+                                        pid: parseInt(proc.ProcessId, 10),
+                                        executable: proc.Name || path.basename(proc.ExecutablePath || '') || 'browser',
+                                        executablePath: proc.ExecutablePath || null,
+                                        commandLine: cmdLine,
+                                        exactProfileMatch: true,
+                                        ownershipEvidence: true
+                                    });
                                 }
                             }
                         }
@@ -77,19 +103,16 @@ class BrowserProcessManager {
                             const executablePath = parts[parts.length - 3];
                             const cmdLine = parts.slice(1, parts.length - 3).join(',');
                             if (cmdLine.toLowerCase().includes('--user-data-dir')) {
-                                const match = cmdLine.match(/--user-data-dir=(?:"([^"]+)"|([^\s]+))/i);
-                                if (match) {
-                                    const dir = match[1] || match[2];
-                                    if (path.resolve(dir).toLowerCase() === path.resolve(profileDir).toLowerCase()) {
-                                        result.matchingProcesses.push({
-                                            pid: parseInt(pidStr, 10),
-                                            executable: name || path.basename(executablePath || '') || 'browser',
-                                            executablePath: executablePath || null,
-                                            commandLine: cmdLine,
-                                            exactProfileMatch: true,
-                                            ownershipEvidence: true
-                                        });
-                                    }
+                                const dir = extractUserDataDir(cmdLine);
+                                if (dir && normalizeProfilePath(dir) === normalizeProfilePath(profileDir)) {
+                                    result.matchingProcesses.push({
+                                        pid: parseInt(pidStr, 10),
+                                        executable: name || path.basename(executablePath || '') || 'browser',
+                                        executablePath: executablePath || null,
+                                        commandLine: cmdLine,
+                                        exactProfileMatch: true,
+                                        ownershipEvidence: true
+                                    });
                                 }
                             }
                         }
@@ -105,24 +128,21 @@ class BrowserProcessManager {
                     if (!line) continue;
                     if (line.toLowerCase().includes('--user-data-dir')) {
                         const match = line.match(/^(\d+)\s+(.+)$/);
-                        if (match) {
-                            const pidStr = match[1];
-                            const cmdLine = match[2];
-                            const dirMatch = cmdLine.match(/--user-data-dir=(?:"([^"]+)"|([^\s]+))/i);
-                            if (dirMatch) {
-                                const dir = dirMatch[1] || dirMatch[2];
-                                if (path.resolve(dir) === path.resolve(profileDir)) {
-                                    result.matchingProcesses.push({
-                                        pid: parseInt(pidStr, 10),
-                                        executable: 'browser',
-                                        commandLine: cmdLine,
-                                        exactProfileMatch: true,
-                                        ownershipEvidence: true
-                                    });
-                                }
-                            }
+                    if (match) {
+                        const pidStr = match[1];
+                        const cmdLine = match[2];
+                        const dir = extractUserDataDir(cmdLine);
+                        if (dir && normalizeProfilePath(dir) === normalizeProfilePath(profileDir)) {
+                            result.matchingProcesses.push({
+                                pid: parseInt(pidStr, 10),
+                                executable: 'browser',
+                                commandLine: cmdLine,
+                                exactProfileMatch: true,
+                                ownershipEvidence: true
+                            });
                         }
                     }
+                }
                 }
                 result.inspectionStatus = 'SUCCESS';
                 return result;
@@ -274,7 +294,7 @@ class BrowserProcessManager {
                     continue;
                 }
             } else {
-                if (result.success || result.matchedWindowCount > 0) {
+                if (result.success) {
                     this.hiddenHwndsByProfile.delete(normalizedProfileDir);
                     return {
                         ...result,
@@ -361,6 +381,7 @@ const defaultInstance = new BrowserProcessManager();
 module.exports = {
     BrowserProcessManager,
     defaultInstance,
+    extractUserDataDir,
     findBrowserProcessByProfile: defaultInstance.findBrowserProcessByProfile.bind(defaultInstance),
     terminateProcessTree: defaultInstance.terminateProcessTree.bind(defaultInstance),
     cleanupStaleLocks: defaultInstance.cleanupStaleLocks.bind(defaultInstance),

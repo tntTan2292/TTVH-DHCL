@@ -223,6 +223,33 @@ function deferred() {
     assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'hide').length, 1, 'hide is called once after confirmed authentication');
     assert.strictEqual(lifecycleService.getRegistryState('TCT').state, DKCL_LIFECYCLE_STATES.F13_READY, 'authenticated client transitions to F13_READY');
 
+    console.log('\nTEST 5B: already-authenticated interactive session stays visible for PO review');
+    globalRegistry.clear();
+    const alreadyAuthCalls = [];
+    const alreadyAuthClient = {
+        interactiveAuthenticatedOnOpen: true,
+        async prepareInteractiveAuthentication(args) {
+            alreadyAuthCalls.push(['prepare', args]);
+            return true;
+        },
+        async waitInteractiveAuthentication() {
+            alreadyAuthCalls.push(['wait']);
+        },
+        async isF13ReportReady() { alreadyAuthCalls.push(['ready']); return true; },
+        async openF13Report() { alreadyAuthCalls.push(['open-report']); },
+        async hideWindow() { alreadyAuthCalls.push(['hide']); return true; },
+        async close() { alreadyAuthCalls.push(['close']); }
+    };
+    const alreadyAuthService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => alreadyAuthClient
+    });
+    const alreadyAuthResult = await alreadyAuthService.interactiveAuthenticate('TCT');
+    assert.strictEqual(alreadyAuthResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS);
+    await new Promise((r) => setTimeout(r, 50));
+    assert.strictEqual(alreadyAuthCalls.filter((call) => call[0] === 'hide').length, 0, 'already-authenticated interactive session is not auto-hidden');
+    assert.strictEqual(alreadyAuthService.getRegistryState('TCT').backgroundReady, true, 'already-authenticated session still becomes background-ready');
+    assert.strictEqual(alreadyAuthService.getRegistryState('TCT').windowHidden, false, 'already-authenticated session remains visible');
+
     console.log('\nTEST 6: hide failure and manual close preserve source-keyed lifecycle');
     globalRegistry.clear();
     globalRegistry.set('HUE', {
@@ -287,7 +314,6 @@ function deferred() {
     const hueClientCalls = [];
     hueClient.acquireProfileLock = () => { hueClientCalls.push(['lock']); };
     hueClient.restoreWindow = async () => { hueClientCalls.push(['restore']); return true; };
-    hueClient.setWindowState = async (state) => { hueClientCalls.push(['set-window-state', state]); return true; };
     // Test the split API: prepare navigates to login, waitInteractiveAuthentication waits for user
     // isAuthenticated returns true only after waitForManualAuthentication is called
     hueClient.isAuthenticated = async () => {
@@ -305,8 +331,7 @@ function deferred() {
     await hueClient.waitInteractiveAuthentication();
     assert(hueClientCalls.some((call) => call[0] === 'wait-manual'), 'HUE waits for manual login completion');
     assert(hueClientCalls.some((call) => call[0] === 'open-report'), 'HUE still attempts to navigate toward F1.3 after login');
-    assert(hueClientCalls.some((call) => call[0] === 'set-window-state' && call[1] === 'normal'), 'fresh interactive login normalizes the new browser window state');
-    assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'restore').length, 0, 'fresh interactive login does not depend on native restore to surface a new window');
+    assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'restore').length, 1, 'fresh interactive login restores the launched browser window once');
     assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'ready').length, 0, 'HUE does not require the TCT report-ready select marker');
 
 
