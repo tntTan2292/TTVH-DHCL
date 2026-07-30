@@ -36,12 +36,41 @@ function extractUserDataDir(commandLine) {
 }
 
 class BrowserProcessManager {
-    constructor({ execAsync = util.promisify(cp.exec), existsSync = fs.existsSync, rmSync = fs.rmSync, nativeWindows = nativeWindowManager } = {}) {
+    constructor({ execAsync = null, execFileAsync = util.promisify(cp.execFile), existsSync = fs.existsSync, rmSync = fs.rmSync, nativeWindows = nativeWindowManager } = {}) {
         this.execAsync = execAsync;
+        this.execFileAsync = execFileAsync;
         this.existsSync = existsSync;
         this.rmSync = rmSync;
         this.nativeWindows = nativeWindows;
         this.hiddenHwndsByProfile = new Map();
+    }
+
+    async runCommand(file, args) {
+        if (typeof this.execFileAsync === 'function') {
+            return this.execFileAsync(file, args, { shell: false, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+        }
+        if (typeof this.execAsync === 'function') {
+            const serialized = [file, ...args.map((arg) => /\s/.test(arg) ? `"${String(arg).replace(/"/g, '\\"')}"` : arg)].join(' ');
+            return this.execAsync(serialized);
+        }
+        throw new Error('PROCESS_EXECUTOR_UNAVAILABLE');
+    }
+
+    async listWindowsBrowserProcesses() {
+        const script = "Get-CimInstance Win32_Process | Where-Object CommandLine -Match '--user-data-dir' | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress";
+        const { stdout } = await this.runCommand('powershell.exe', ['-NoProfile', '-Command', script]);
+        return stdout;
+    }
+
+    async listWindowsProcessTree() {
+        const script = 'Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId | ConvertTo-Json -Compress';
+        const { stdout } = await this.runCommand('powershell.exe', ['-NoProfile', '-Command', script]);
+        return stdout;
+    }
+
+    async listWindowsBrowserProcessesFromWmic() {
+        const { stdout } = await this.runCommand('wmic.exe', ['process', 'get', 'ProcessId,Name,ExecutablePath,CommandLine', '/FORMAT:CSV']);
+        return stdout;
     }
 
     async findBrowserProcessByProfile(profileDir) {
@@ -55,7 +84,7 @@ class BrowserProcessManager {
             if (process.platform === 'win32') {
                 try {
                     // Query browser-like processes broadly, then accept only exact --user-data-dir matches.
-                    const { stdout } = await this.execAsync('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object CommandLine -Match \'--user-data-dir\' | Select-Object ProcessId, Name, ExecutablePath, CommandLine | ConvertTo-Json -Compress"');
+                    const stdout = await this.listWindowsBrowserProcesses();
                     if (stdout.trim()) {
                         let processes = [];
                         try {
@@ -91,7 +120,7 @@ class BrowserProcessManager {
                     }
                 } catch (cimErr) {
                     // Fallback to wmic
-                    const { stdout } = await this.execAsync('wmic process get ProcessId,Name,ExecutablePath,CommandLine /FORMAT:CSV');
+                    const stdout = await this.listWindowsBrowserProcessesFromWmic();
                     const lines = stdout.split('\n');
                     for (let line of lines) {
                         line = line.trim();
@@ -121,7 +150,7 @@ class BrowserProcessManager {
                     return result;
                 }
             } else {
-                const { stdout } = await this.execAsync('ps -e -o pid,command');
+                const { stdout } = await this.runCommand('ps', ['-e', '-o', 'pid,command']);
                 const lines = stdout.split('\n');
                 for (let line of lines) {
                     line = line.trim();
@@ -162,7 +191,7 @@ class BrowserProcessManager {
         if (roots.size === 0 || process.platform !== 'win32') return Array.from(roots);
 
         try {
-            const { stdout } = await this.execAsync('powershell -NoProfile -Command "Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId | ConvertTo-Json -Compress"');
+            const stdout = await this.listWindowsProcessTree();
             const parsed = stdout.trim() ? JSON.parse(stdout) : [];
             const processes = Array.isArray(parsed) ? parsed : [parsed];
             let changed = true;
@@ -344,9 +373,9 @@ class BrowserProcessManager {
     async terminateProcessTree(pid) {
         try {
             if (process.platform === 'win32') {
-                await this.execAsync(`taskkill /pid ${pid} /t /f`);
+                await this.runCommand('taskkill.exe', ['/pid', String(pid), '/t', '/f']);
             } else {
-                await this.execAsync(`kill -9 ${pid}`);
+                await this.runCommand('kill', ['-9', String(pid)]);
             }
             await new Promise(res => setTimeout(res, 2000));
         } catch (err) {
