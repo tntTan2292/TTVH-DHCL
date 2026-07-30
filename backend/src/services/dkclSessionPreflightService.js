@@ -29,6 +29,14 @@ function resolveProfileDir(sourceConfig) {
     return resolveRepoRootPath(process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir());
 }
 
+function selectExactProfileRootPids(matchingProcesses = []) {
+    const exactMatches = matchingProcesses.filter((proc) => proc?.exactProfileMatch && Number.isFinite(Number(proc.pid)));
+    const exactPidSet = new Set(exactMatches.map((proc) => Number(proc.pid)));
+    return exactMatches
+        .filter((proc) => !exactPidSet.has(Number(proc.parentPid)))
+        .map((proc) => Number(proc.pid));
+}
+
 const SOURCE_CONFIG = Object.freeze({
     HUE: {
         source: 'HUE',
@@ -170,6 +178,20 @@ class DkclSessionPreflightService {
         });
         await staleClient?.close?.().catch(() => {});
         return null;
+    }
+
+    async reclaimTctOrphanedProfile(classification, profileDir) {
+        const rootPids = selectExactProfileRootPids(classification?.inspection?.matchingProcesses);
+        if (rootPids.length === 0) {
+            const error = new Error('PROFILE_OWNERSHIP_UNVERIFIED');
+            error.code = 'PROFILE_OWNERSHIP_UNVERIFIED';
+            throw error;
+        }
+
+        for (const pid of rootPids) {
+            await processManager.terminateProcessTree(pid);
+        }
+        processManager.cleanupStaleLocks(profileDir);
     }
 
     async preflight(source) {
@@ -353,10 +375,14 @@ class DkclSessionPreflightService {
             const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
 
             if (classification.lockState === 'UNKNOWN' || classification.lockState === 'LIVE_UNVERIFIED') {
-                const errCode = classification.lockState === 'UNKNOWN' ? 'PROCESS_INSPECTION_UNAVAILABLE' : 'PROFILE_OWNERSHIP_UNVERIFIED';
-                const recErr = new Error(errCode);
-                recErr.code = errCode;
-                throw recErr;
+                if (classification.lockState === 'LIVE_UNVERIFIED' && sourceConfig.source === 'TCT' && !entry.client) {
+                    await this.reclaimTctOrphanedProfile(classification, profileDir);
+                } else {
+                    const errCode = classification.lockState === 'UNKNOWN' ? 'PROCESS_INSPECTION_UNAVAILABLE' : 'PROFILE_OWNERSHIP_UNVERIFIED';
+                    const recErr = new Error(errCode);
+                    recErr.code = errCode;
+                    throw recErr;
+                }
             }
 
             if (classification.lockState === 'LIVE_OWNED') {
