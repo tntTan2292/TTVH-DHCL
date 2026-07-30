@@ -447,6 +447,12 @@ class DkclHueF13BackfillService {
     }
 
     async processQueue(queue) {
+        const entry = this.sessionPreflightService.getRegistryState?.('HUE');
+        if (entry) {
+            entry.activeOperation = 'HUE_QUEUE_RUNNING';
+            entry.authenticated = true;
+            entry.backgroundReady = true;
+        }
         queue.status = 'RUNNING';
         queue.startedAt = this.clock().toISOString();
         for (const item of queue.items) {
@@ -613,6 +619,10 @@ class DkclHueF13BackfillService {
     finishQueueIfTerminal(queue) {
         if (!queue.items.every((item) => QUEUE_TERMINAL_STATUSES.has(item.status))) return;
         queue.endedAt = queue.endedAt || this.clock().toISOString();
+        const entry = this.sessionPreflightService.getRegistryState?.('HUE');
+        if (entry) {
+            entry.activeOperation = null;
+        }
         if (queue.items.some((item) => item.status === 'FAILED')) {
             queue.status = 'FAILED';
         } else if (queue.items.some((item) => item.status === 'AUTHENTICATION_REQUIRED')) {

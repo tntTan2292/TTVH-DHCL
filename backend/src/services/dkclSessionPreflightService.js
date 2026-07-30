@@ -65,6 +65,7 @@ function getOrCreateRegistryEntry(source) {
             backgroundReady: false,
             windowHidden: false,
             hideAttempted: false,
+            activeOperation: null,
             lastError: null,
             updatedAt: new Date().toISOString()
         });
@@ -136,6 +137,17 @@ class DkclSessionPreflightService {
                 source_page_ready: false,
                 ...lifecyclePayload(entry),
                 message: `Đang mở đăng nhập DKCL ${sourceConfig.displayName}.`
+            };
+        }
+
+        if (sourceConfig.source === 'HUE' && entry.activeOperation === 'HUE_QUEUE_RUNNING' && entry.authenticated) {
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.SESSION_VALID,
+                interactive: true,
+                source_page_ready: true,
+                ...lifecyclePayload(entry),
+                message: `PhiÃªn DKCL ${sourceConfig.displayName} Ä‘ang Ä‘Æ°á»£c hÃ ng Ä‘á»£i bÃ¹ dá»¯ liá»‡u sá»­ dá»¥ng.`
             };
         }
 
@@ -282,24 +294,38 @@ class DkclSessionPreflightService {
         transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.SOURCE_SELECTED);
 
         if (entry.client) {
-            await entry.client.restoreWindow?.().catch(() => {});
+            const restored = await entry.client.restoreWindow?.().catch(() => false);
             if (sourceConfig.source === 'TCT') {
-                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
-                    client: entry.client,
+                if (restored) {
+                    transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+                        client: entry.client,
+                        windowHidden: false,
+                        hideAttempted: false
+                    });
+                    return {
+                        source: sourceConfig.source,
+                        status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
+                        interactive: true,
+                        source_page_ready: Boolean(entry.backgroundReady),
+                        ...lifecyclePayload(entry)
+                    };
+                }
+                const staleClient = entry.client;
+                transitionLifecycle(entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+                    client: null,
+                    authenticated: false,
+                    backgroundReady: false,
                     windowHidden: false,
-                    hideAttempted: false
+                    hideAttempted: false,
+                    activeOperation: null
                 });
-                return {
-                    source: sourceConfig.source,
-                    status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
-                    interactive: true,
-                    source_page_ready: Boolean(entry.backgroundReady),
-                    ...lifecyclePayload(entry)
-                };
+                await staleClient?.close?.().catch(() => {});
             }
-            const preflightRes = await this.preflight(sourceConfig.source);
-            if (preflightRes.status === PREFLIGHT_STATUSES.SESSION_VALID) {
-                return preflightRes;
+            if (entry.client) {
+                const preflightRes = await this.preflight(sourceConfig.source);
+                if (preflightRes.status === PREFLIGHT_STATUSES.SESSION_VALID) {
+                    return preflightRes;
+                }
             }
         }
 
