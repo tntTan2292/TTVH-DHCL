@@ -160,10 +160,7 @@ class DkclHueF13PortalClient {
             });
         }
         this.page = this.context.pages()[0] || await this.context.newPage();
-        const restoreResult = await this.restoreWindow();
-        if (!restoreResult) {
-            throw portalError('BROWSER_WINDOW_HIDDEN: Cannot show browser window for manual login. The process might be hung or the window is forcefully hidden.', 'BROWSER_WINDOW_HIDDEN');
-        }
+        await this.setWindowState('normal');
 
         await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
         if (!await this.isAuthenticated()) {

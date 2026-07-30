@@ -287,6 +287,7 @@ function deferred() {
     const hueClientCalls = [];
     hueClient.acquireProfileLock = () => { hueClientCalls.push(['lock']); };
     hueClient.restoreWindow = async () => { hueClientCalls.push(['restore']); return true; };
+    hueClient.setWindowState = async (state) => { hueClientCalls.push(['set-window-state', state]); return true; };
     // Test the split API: prepare navigates to login, waitInteractiveAuthentication waits for user
     // isAuthenticated returns true only after waitForManualAuthentication is called
     hueClient.isAuthenticated = async () => {
@@ -304,6 +305,8 @@ function deferred() {
     await hueClient.waitInteractiveAuthentication();
     assert(hueClientCalls.some((call) => call[0] === 'wait-manual'), 'HUE waits for manual login completion');
     assert(hueClientCalls.some((call) => call[0] === 'open-report'), 'HUE still attempts to navigate toward F1.3 after login');
+    assert(hueClientCalls.some((call) => call[0] === 'set-window-state' && call[1] === 'normal'), 'fresh interactive login normalizes the new browser window state');
+    assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'restore').length, 0, 'fresh interactive login does not depend on native restore to surface a new window');
     assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'ready').length, 0, 'HUE does not require the TCT report-ready select marker');
 
 
