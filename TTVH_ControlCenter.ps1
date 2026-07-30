@@ -37,13 +37,9 @@ function Kill-ProcessByPort {
 function Start-System {
     Write-Host "Starting Backend..." -ForegroundColor Yellow
     if (-not (Check-Port $BackendPort)) {
-        $nodeCommand = Get-Command "node" -ErrorAction Stop
-        Start-Process -FilePath $nodeCommand.Source `
-            -ArgumentList "server.js" `
-            -WorkingDirectory "$RootPath\backend" `
-            -WindowStyle Hidden `
-            -RedirectStandardOutput "$RootPath\backend\backend.log" `
-            -RedirectStandardError "$RootPath\backend\backend_err.log"
+        $wsh = New-Object -ComObject WScript.Shell
+        $backendCmd = "cmd.exe /c cd /d `"$RootPath\backend`" && node server.js >> `"$RootPath\backend\backend.log`" 2>> `"$RootPath\backend\backend_err.log`""
+        $null = $wsh.Run($backendCmd, 0, $false)
         Start-Sleep -Seconds 2
     } else {
         Write-Host "Backend is already running!" -ForegroundColor Green
