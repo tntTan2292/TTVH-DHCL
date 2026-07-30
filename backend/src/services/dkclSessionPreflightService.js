@@ -125,6 +125,42 @@ class DkclSessionPreflightService {
         return { lockState: 'NONE', inspection };
     }
 
+    buildInteractiveInProgressResponse(sourceConfig, entry) {
+        return {
+            source: sourceConfig.source,
+            status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
+            interactive: true,
+            source_page_ready: Boolean(entry.backgroundReady),
+            ...lifecyclePayload(entry)
+        };
+    }
+
+    async reuseInteractiveClient(sourceConfig, entry) {
+        if (!entry.client) return null;
+
+        const restored = await entry.client.restoreWindow?.().catch(() => false);
+        if (restored) {
+            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+                client: entry.client,
+                windowHidden: false,
+                hideAttempted: false
+            });
+            return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+        }
+
+        const staleClient = entry.client;
+        transitionLifecycle(entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+            client: null,
+            authenticated: false,
+            backgroundReady: false,
+            windowHidden: false,
+            hideAttempted: false,
+            activeOperation: null
+        });
+        await staleClient?.close?.().catch(() => {});
+        return null;
+    }
+
     async preflight(source) {
         const sourceConfig = this.normalizeSource(source);
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
@@ -282,50 +318,15 @@ class DkclSessionPreflightService {
         }
 
         if (DKCL_IN_PROGRESS_STATES.has(entry.state)) {
-            return {
-                source: sourceConfig.source,
-                status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
-                interactive: true,
-                source_page_ready: false,
-                ...lifecyclePayload(entry)
-            };
+            return this.buildInteractiveInProgressResponse(sourceConfig, entry);
         }
 
         transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.SOURCE_SELECTED);
 
         if (entry.client) {
-            const restored = await entry.client.restoreWindow?.().catch(() => false);
-            if (sourceConfig.source === 'TCT') {
-                if (restored) {
-                    transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
-                        client: entry.client,
-                        windowHidden: false,
-                        hideAttempted: false
-                    });
-                    return {
-                        source: sourceConfig.source,
-                        status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
-                        interactive: true,
-                        source_page_ready: Boolean(entry.backgroundReady),
-                        ...lifecyclePayload(entry)
-                    };
-                }
-                const staleClient = entry.client;
-                transitionLifecycle(entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
-                    client: null,
-                    authenticated: false,
-                    backgroundReady: false,
-                    windowHidden: false,
-                    hideAttempted: false,
-                    activeOperation: null
-                });
-                await staleClient?.close?.().catch(() => {});
-            }
-            if (entry.client) {
-                const preflightRes = await this.preflight(sourceConfig.source);
-                if (preflightRes.status === PREFLIGHT_STATUSES.SESSION_VALID) {
-                    return preflightRes;
-                }
+            const reusedSession = await this.reuseInteractiveClient(sourceConfig, entry);
+            if (reusedSession) {
+                return reusedSession;
             }
         }
 
@@ -462,13 +463,7 @@ class DkclSessionPreflightService {
                     }
                 })();
 
-                return {
-                    source: sourceConfig.source,
-                    status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
-                    interactive: true,
-                    source_page_ready: false,
-                    ...lifecyclePayload(entry)
-                };
+                return this.buildInteractiveInProgressResponse(sourceConfig, entry);
             } catch (error) {
                 transitionLifecycle(entry, DKCL_LEGACY_STATES.ERROR, {
                     lastError: error.message,

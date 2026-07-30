@@ -250,77 +250,83 @@ function deferred() {
     assert.strictEqual(alreadyAuthService.getRegistryState('TCT').backgroundReady, true, 'already-authenticated session still becomes background-ready');
     assert.strictEqual(alreadyAuthService.getRegistryState('TCT').windowHidden, false, 'already-authenticated session remains visible');
 
-    console.log('\nTEST 5C: explicit TCT login reopens hidden source-specific session instead of short-circuiting to SESSION_VALID');
-    globalRegistry.clear();
-    globalRegistry.set('TCT', {
-        state: DKCL_LIFECYCLE_STATES.F13_READY,
-        lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
-        client: {
-            async restoreWindow() { alreadyAuthCalls.push(['restore-existing']); return true; },
-            async isF13ReportReady() { alreadyAuthCalls.push(['ready-existing']); return true; },
-            async isAuthenticated() { alreadyAuthCalls.push(['authenticated-existing']); return true; }
-        },
-        openingPromise: null,
-        authenticated: true,
-        backgroundReady: true,
-        windowHidden: true,
-        hideAttempted: true,
-        lastError: null,
-        updatedAt: new Date().toISOString()
-    });
-    globalRegistry.set('HUE', {
-        state: DKCL_LIFECYCLE_STATES.F13_READY,
-        lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
-        client: { marker: 'hue' },
-        openingPromise: null,
-        authenticated: true,
-        backgroundReady: true,
-        windowHidden: true,
-        hideAttempted: true,
-        lastError: null,
-        updatedAt: new Date().toISOString()
-    });
-    const reopenService = new DkclSessionPreflightService();
-    const reopenResult = await reopenService.interactiveAuthenticate('TCT');
-    assert.strictEqual(reopenResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'explicit TCT login keeps interactive semantics when reusing an existing hidden session');
-    assert.strictEqual(reopenResult.lifecycle_state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'existing hidden TCT session is surfaced as WAITING_FOR_LOGIN');
-    assert.strictEqual(reopenService.getRegistryState('TCT').windowHidden, false, 'restored TCT session clears hidden state');
-    assert.strictEqual(reopenService.getRegistryState('TCT').hideAttempted, false, 'restored TCT session resets hide-attempt bookkeeping');
-    assert.strictEqual(globalRegistry.get('HUE').client.marker, 'hue', 'reopening TCT session does not mutate HUE registry');
+    console.log('\nTEST 5C: explicit HUE/TCT login reuses the same restore flow without cross-session mutation');
+    for (const source of ['TCT', 'HUE']) {
+        globalRegistry.clear();
+        const siblingSource = source === 'TCT' ? 'HUE' : 'TCT';
+        const restoreTag = `restore-${source.toLowerCase()}`;
+        globalRegistry.set(source, {
+            state: DKCL_LIFECYCLE_STATES.F13_READY,
+            lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+            client: {
+                async restoreWindow() { alreadyAuthCalls.push([restoreTag]); return true; },
+                async isF13ReportReady() { alreadyAuthCalls.push([`ready-${source.toLowerCase()}`]); return true; },
+                async isAuthenticated() { alreadyAuthCalls.push([`authenticated-${source.toLowerCase()}`]); return true; }
+            },
+            openingPromise: null,
+            authenticated: true,
+            backgroundReady: true,
+            windowHidden: true,
+            hideAttempted: true,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
+        globalRegistry.set(siblingSource, {
+            state: DKCL_LIFECYCLE_STATES.F13_READY,
+            lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+            client: { marker: siblingSource.toLowerCase() },
+            openingPromise: null,
+            authenticated: true,
+            backgroundReady: true,
+            windowHidden: true,
+            hideAttempted: true,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
+        const reopenService = new DkclSessionPreflightService();
+        const reopenResult = await reopenService.interactiveAuthenticate(source);
+        assert.strictEqual(reopenResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, `${source} explicit login keeps interactive semantics when reusing an existing hidden session`);
+        assert.strictEqual(reopenResult.lifecycle_state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, `${source} reused session is surfaced as WAITING_FOR_LOGIN`);
+        assert.strictEqual(reopenService.getRegistryState(source).windowHidden, false, `${source} restored session clears hidden state`);
+        assert.strictEqual(reopenService.getRegistryState(source).hideAttempted, false, `${source} restored session resets hide-attempt bookkeeping`);
+        assert.strictEqual(globalRegistry.get(siblingSource).client.marker, siblingSource.toLowerCase(), `${source} reopen does not mutate ${siblingSource} registry`);
+    }
 
-    console.log('\nTEST 5D: TCT stale hidden client with failed restore is discarded before reopening');
-    globalRegistry.clear();
-    const staleRestoreCalls = [];
-    globalRegistry.set('TCT', {
-        state: DKCL_LIFECYCLE_STATES.F13_READY,
-        lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
-        client: {
-            async restoreWindow() { staleRestoreCalls.push(['restore-stale']); return false; },
-            async close() { staleRestoreCalls.push(['close-stale']); }
-        },
-        openingPromise: null,
-        authenticated: true,
-        backgroundReady: true,
-        windowHidden: true,
-        hideAttempted: true,
-        activeOperation: null,
-        lastError: null,
-        updatedAt: new Date().toISOString()
-    });
-    const freshClientCalls = [];
-    const staleRecoveryService = new DkclSessionPreflightService({
-        interactiveClientFactory: () => ({
-            async prepareInteractiveAuthentication() { freshClientCalls.push(['prepare-fresh']); return true; },
-            async waitInteractiveAuthentication() { freshClientCalls.push(['wait-fresh']); },
-            async isF13ReportReady() { freshClientCalls.push(['ready-fresh']); return true; },
-            async hideWindow() { freshClientCalls.push(['hide-fresh']); return true; },
-            async close() { freshClientCalls.push(['close-fresh']); }
-        })
-    });
-    const staleRecoveryResult = await staleRecoveryService.interactiveAuthenticate('TCT');
-    assert.strictEqual(staleRecoveryResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'TCT still returns interactive in-progress after stale client recovery');
-    assert.strictEqual(staleRestoreCalls.filter((call) => call[0] === 'close-stale').length, 1, 'stale hidden TCT client is closed when restore fails');
-    assert.strictEqual(freshClientCalls.filter((call) => call[0] === 'prepare-fresh').length, 1, 'failed restore falls through to a fresh interactive TCT browser open');
+    console.log('\nTEST 5D: failed restore falls through to a fresh interactive reopen for both HUE and TCT');
+    for (const source of ['TCT', 'HUE']) {
+        globalRegistry.clear();
+        const staleRestoreCalls = [];
+        globalRegistry.set(source, {
+            state: DKCL_LIFECYCLE_STATES.F13_READY,
+            lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+            client: {
+                async restoreWindow() { staleRestoreCalls.push([`restore-stale-${source.toLowerCase()}`]); return false; },
+                async close() { staleRestoreCalls.push([`close-stale-${source.toLowerCase()}`]); }
+            },
+            openingPromise: null,
+            authenticated: true,
+            backgroundReady: true,
+            windowHidden: true,
+            hideAttempted: true,
+            activeOperation: null,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
+        const freshClientCalls = [];
+        const staleRecoveryService = new DkclSessionPreflightService({
+            interactiveClientFactory: () => ({
+                async prepareInteractiveAuthentication() { freshClientCalls.push([`prepare-fresh-${source.toLowerCase()}`]); return true; },
+                async waitInteractiveAuthentication() { freshClientCalls.push([`wait-fresh-${source.toLowerCase()}`]); },
+                async isF13ReportReady() { freshClientCalls.push([`ready-fresh-${source.toLowerCase()}`]); return true; },
+                async hideWindow() { freshClientCalls.push([`hide-fresh-${source.toLowerCase()}`]); return true; },
+                async close() { freshClientCalls.push([`close-fresh-${source.toLowerCase()}`]); }
+            })
+        });
+        const staleRecoveryResult = await staleRecoveryService.interactiveAuthenticate(source);
+        assert.strictEqual(staleRecoveryResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, `${source} still returns interactive in-progress after stale client recovery`);
+        assert.strictEqual(staleRestoreCalls.filter((call) => call[0] === `close-stale-${source.toLowerCase()}`).length, 1, `${source} stale hidden client is closed when restore fails`);
+        assert.strictEqual(freshClientCalls.filter((call) => call[0] === `prepare-fresh-${source.toLowerCase()}`).length, 1, `${source} failed restore falls through to a fresh interactive browser open`);
+    }
 
     console.log('\nTEST 5E: HUE queue-owned session remains valid without probing live browser state');
     globalRegistry.clear();
