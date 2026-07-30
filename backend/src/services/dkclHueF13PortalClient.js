@@ -140,6 +140,9 @@ class DkclHueF13PortalClient {
     async isAuthenticated() {
         if (this.page.url().includes('/login')) return false;
         const bodyText = await this.page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
+        const loginInputCount = await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count().catch(() => 0);
+        if (loginInputCount > 0) return false;
+        if (/Thá»‘ng kÃª/iu.test(bodyText)) return true;
         return /Quan ly tep|Quản lý tệp|Tra cứu thông tin bưu gửi|Tra cuu thong tin buu gui|Dang xuat|Đăng xuất|Logout|tantn\.bdtth/i.test(bodyText);
     }
 
@@ -187,6 +190,9 @@ class DkclHueF13PortalClient {
             await this.openF13Report().catch(() => {});
             if (!await this.isAuthenticated()) {
                 throw portalError('AUTHENTICATION_REQUIRED: manual DKCL login was not confirmed.', 'AUTHENTICATION_REQUIRED');
+            }
+            if (!await this.isF13ReportReady()) {
+                throw portalError('SOURCE_PAGE_REQUIRED: DKCL HUE F1.3 source page is not ready.', 'SOURCE_PAGE_REQUIRED');
             }
             return;
         }

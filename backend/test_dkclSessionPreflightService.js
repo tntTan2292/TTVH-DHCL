@@ -250,6 +250,44 @@ function deferred() {
     assert.strictEqual(alreadyAuthService.getRegistryState('TCT').backgroundReady, true, 'already-authenticated session still becomes background-ready');
     assert.strictEqual(alreadyAuthService.getRegistryState('TCT').windowHidden, false, 'already-authenticated session remains visible');
 
+    console.log('\nTEST 5C: explicit TCT login reopens hidden source-specific session instead of short-circuiting to SESSION_VALID');
+    globalRegistry.clear();
+    globalRegistry.set('TCT', {
+        state: DKCL_LIFECYCLE_STATES.F13_READY,
+        lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+        client: {
+            async restoreWindow() { alreadyAuthCalls.push(['restore-existing']); return true; },
+            async isF13ReportReady() { alreadyAuthCalls.push(['ready-existing']); return true; },
+            async isAuthenticated() { alreadyAuthCalls.push(['authenticated-existing']); return true; }
+        },
+        openingPromise: null,
+        authenticated: true,
+        backgroundReady: true,
+        windowHidden: true,
+        hideAttempted: true,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
+    globalRegistry.set('HUE', {
+        state: DKCL_LIFECYCLE_STATES.F13_READY,
+        lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+        client: { marker: 'hue' },
+        openingPromise: null,
+        authenticated: true,
+        backgroundReady: true,
+        windowHidden: true,
+        hideAttempted: true,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
+    const reopenService = new DkclSessionPreflightService();
+    const reopenResult = await reopenService.interactiveAuthenticate('TCT');
+    assert.strictEqual(reopenResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'explicit TCT login keeps interactive semantics when reusing an existing hidden session');
+    assert.strictEqual(reopenResult.lifecycle_state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'existing hidden TCT session is surfaced as WAITING_FOR_LOGIN');
+    assert.strictEqual(reopenService.getRegistryState('TCT').windowHidden, false, 'restored TCT session clears hidden state');
+    assert.strictEqual(reopenService.getRegistryState('TCT').hideAttempted, false, 'restored TCT session resets hide-attempt bookkeeping');
+    assert.strictEqual(globalRegistry.get('HUE').client.marker, 'hue', 'reopening TCT session does not mutate HUE registry');
+
     console.log('\nTEST 6: hide failure and manual close preserve source-keyed lifecycle');
     globalRegistry.clear();
     globalRegistry.set('HUE', {
@@ -289,7 +327,7 @@ function deferred() {
     assert.strictEqual(hideFailureService.getInteractiveClient('TCT'), null, 'manual close clears TCT client');
     assert.strictEqual(globalRegistry.get('HUE').client.marker, 'hue', 'manual TCT close does not mutate HUE registry');
 
-    console.log('\nTEST 6B: HUE interactive login accepts authenticated marker without TCT report marker');
+    console.log('\nTEST 6B: HUE interactive login requires source-page confirmation before success');
     const hueClient = new DkclHueF13PortalClient({
         source: 'HUE',
         manualAuthPollMs: 1,
@@ -328,11 +366,53 @@ function deferred() {
         baseUrl: 'https://dkcl.example/',
         profileDir: path.join('tmp', 'HUE')
     });
-    await hueClient.waitInteractiveAuthentication();
+    await assert.rejects(
+        hueClient.waitInteractiveAuthentication(),
+        (error) => error?.code === 'SOURCE_PAGE_REQUIRED'
+    );
     assert(hueClientCalls.some((call) => call[0] === 'wait-manual'), 'HUE waits for manual login completion');
     assert(hueClientCalls.some((call) => call[0] === 'open-report'), 'HUE still attempts to navigate toward F1.3 after login');
     assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'restore').length, 1, 'fresh interactive login restores the launched browser window once');
-    assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'ready').length, 0, 'HUE does not require the TCT report-ready select marker');
+    assert.strictEqual(hueClientCalls.filter((call) => call[0] === 'ready').length, 1, 'HUE now requires source-page confirmation before success');
+
+    console.log('\nTEST 6C: HUE source-page failure keeps visible client and does not mutate TCT entry');
+    globalRegistry.clear();
+    globalRegistry.set('TCT', {
+        state: DKCL_LIFECYCLE_STATES.F13_READY,
+        lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+        client: { marker: 'tct' },
+        openingPromise: null,
+        authenticated: true,
+        backgroundReady: true,
+        windowHidden: true,
+        hideAttempted: true,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
+    const hueFailureCalls = [];
+    const hueFailureClient = {
+        async prepareInteractiveAuthentication() { hueFailureCalls.push(['prepare']); return true; },
+        async waitInteractiveAuthentication() {
+            hueFailureCalls.push(['wait']);
+            const error = new Error('HUE source page is not ready.');
+            error.code = 'SOURCE_PAGE_REQUIRED';
+            throw error;
+        },
+        async restoreWindow() { hueFailureCalls.push(['restore']); return true; },
+        async close() { hueFailureCalls.push(['close']); }
+    };
+    const hueFailureService = new DkclSessionPreflightService({
+        interactiveClientFactory: (sourceConfig) => sourceConfig.source === 'HUE' ? hueFailureClient : { marker: 'unexpected' }
+    });
+    const hueFailureResult = await hueFailureService.interactiveAuthenticate('HUE');
+    assert.strictEqual(hueFailureResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'HUE interactive flow still returns LOGIN_IN_PROGRESS while window is open');
+    await new Promise((r) => setTimeout(r, 50));
+    assert.strictEqual(hueFailureService.getRegistryState('HUE').state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'HUE stays waiting when source-page confirmation fails');
+    assert.strictEqual(hueFailureService.getRegistryState('HUE').backgroundReady, false, 'HUE does not become background-ready on source-page failure');
+    assert.strictEqual(hueFailureService.getRegistryState('HUE').windowHidden, false, 'HUE window stays visible on source-page failure');
+    assert.strictEqual(hueFailureCalls.filter((call) => call[0] === 'restore').length, 1, 'HUE source-page failure restores the visible window instead of closing it');
+    assert.strictEqual(hueFailureCalls.filter((call) => call[0] === 'close').length, 0, 'HUE source-page failure does not close the browser');
+    assert.strictEqual(globalRegistry.get('TCT').client.marker, 'tct', 'HUE failure does not mutate TCT registry state');
 
 
     console.log('\nTEST 7: R4.1B interactive NONE classification (no cleanup, launch proceeds)');

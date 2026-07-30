@@ -283,6 +283,20 @@ class DkclSessionPreflightService {
 
         if (entry.client) {
             await entry.client.restoreWindow?.().catch(() => {});
+            if (sourceConfig.source === 'TCT') {
+                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+                    client: entry.client,
+                    windowHidden: false,
+                    hideAttempted: false
+                });
+                return {
+                    source: sourceConfig.source,
+                    status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
+                    interactive: true,
+                    source_page_ready: Boolean(entry.backgroundReady),
+                    ...lifecyclePayload(entry)
+                };
+            }
             const preflightRes = await this.preflight(sourceConfig.source);
             if (preflightRes.status === PREFLIGHT_STATUSES.SESSION_VALID) {
                 return preflightRes;
@@ -397,6 +411,19 @@ class DkclSessionPreflightService {
                             });
                         }
                     } catch (err) {
+                        const keepWindowVisible = err?.code === 'AUTHENTICATION_REQUIRED' || err?.code === 'SOURCE_PAGE_REQUIRED';
+                        if (keepWindowVisible) {
+                            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+                                client,
+                                lastError: err.message,
+                                authenticated: false,
+                                backgroundReady: false,
+                                windowHidden: false,
+                                hideAttempted: false
+                            });
+                            await client.restoreWindow?.().catch(() => {});
+                            return;
+                        }
                         transitionLifecycle(entry, DKCL_LEGACY_STATES.ERROR, {
                             lastError: err.message,
                             client: null,
