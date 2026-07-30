@@ -223,8 +223,8 @@ function makeFakePortalPage({ events, initialUrl, bodyText }) {
 function makeFakePlaywright(page, events) {
     return {
         chromium: {
-            async launchPersistentContext(profileDir) {
-                events.push(['launchPersistentContext', profileDir]);
+            async launchPersistentContext(profileDir, options) {
+                events.push(['launchPersistentContext', profileDir, options]);
                 fs.mkdirSync(profileDir, { recursive: true });
                 return {
                     pages() { return [page]; },
@@ -933,6 +933,38 @@ async function runTests() {
     assert('cookie not exposed', !authMessage.includes('session'));
     assert('HRM identifier not exposed', !authMessage.includes('employee'));
     assert('profile path not exposed', !authMessage.includes('BrowserProfiles'));
+
+    console.log('\nTEST 21: Chromium launch flags --disable-session-crashed-bubble and --hide-crash-restore-bubble');
+    const { DEFAULT_CHROMIUM_LAUNCH_ARGS, buildPersistentLaunchOptions } = require('./src/services/dkclHueF13PortalClient');
+    assert('DEFAULT_CHROMIUM_LAUNCH_ARGS contains --disable-session-crashed-bubble', DEFAULT_CHROMIUM_LAUNCH_ARGS.includes('--disable-session-crashed-bubble'));
+    assert('DEFAULT_CHROMIUM_LAUNCH_ARGS contains --hide-crash-restore-bubble', DEFAULT_CHROMIUM_LAUNCH_ARGS.includes('--hide-crash-restore-bubble'));
+
+    const launchOptsAuth = buildPersistentLaunchOptions({ headless: true, acceptDownloads: true });
+    assert('authenticate options include --disable-session-crashed-bubble', launchOptsAuth.args.includes('--disable-session-crashed-bubble'));
+    assert('authenticate options include --hide-crash-restore-bubble', launchOptsAuth.args.includes('--hide-crash-restore-bubble'));
+
+    const launchOptsInteractive = buildPersistentLaunchOptions({ headless: false, acceptDownloads: true });
+    assert('prepareInteractiveAuthentication options include --disable-session-crashed-bubble', launchOptsInteractive.args.includes('--disable-session-crashed-bubble'));
+    assert('prepareInteractiveAuthentication options include --hide-crash-restore-bubble', launchOptsInteractive.args.includes('--hide-crash-restore-bubble'));
+
+    const flagEvents = [];
+    const flagProfileDir = path.join(tmpDir, 'profile-flags');
+    fs.rmSync(flagProfileDir, { recursive: true, force: true });
+    fs.rmSync(`${flagProfileDir}.lock`, { recursive: true, force: true });
+    const flagPage = makeFakePortalPage({ events: flagEvents, initialUrl: 'https://dkcl.vnpost.vn/' });
+    const flagClient = new DkclHueF13PortalClient({
+        playwright: makeFakePlaywright(flagPage, flagEvents),
+        fs, path, source: 'HUE'
+    });
+    flagClient.restoreWindow = async () => true;
+
+    await flagClient.prepareInteractiveAuthentication({ baseUrl: 'https://dkcl.vnpost.vn/', profileDir: flagProfileDir });
+    await flagClient.close();
+
+    const launchEvent = flagEvents.find(e => e[0] === 'launchPersistentContext');
+    assert('prepareInteractiveAuthentication passes args to launchPersistentContext', Boolean(launchEvent && launchEvent[2] && Array.isArray(launchEvent[2].args)));
+    assert('prepareInteractiveAuthentication args include --disable-session-crashed-bubble', Boolean(launchEvent && launchEvent[2] && launchEvent[2].args.includes('--disable-session-crashed-bubble')));
+    assert('prepareInteractiveAuthentication args include --hide-crash-restore-bubble', Boolean(launchEvent && launchEvent[2] && launchEvent[2].args.includes('--hide-crash-restore-bubble')));
 
     for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, '2098-02-07', '2098-02-08', '2098-02-09', '2098-02-10', '2098-02-11']) {
         await cleanupDate(date);

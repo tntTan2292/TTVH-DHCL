@@ -7,6 +7,21 @@ const processManager = require('./browserProcessManager');
 
 const DETAIL_METRIC_HEADER = 'SL bưu gửi phát thành công/Nộp tiền/CH';
 
+const DEFAULT_CHROMIUM_LAUNCH_ARGS = Object.freeze([
+    '--disable-session-crashed-bubble',
+    '--hide-crash-restore-bubble'
+]);
+
+function buildPersistentLaunchOptions(options = {}) {
+    const customArgs = Array.isArray(options.args) ? options.args : [];
+    const mergedArgs = Array.from(new Set([...DEFAULT_CHROMIUM_LAUNCH_ARGS, ...customArgs]));
+    return {
+        headless: Boolean(options.headless),
+        acceptDownloads: options.acceptDownloads !== false,
+        args: mergedArgs
+    };
+}
+
 function formatPortalDate(isoDate) {
     const [year, month, day] = isoDate.split('-');
     return `${day}/${month}/${year}`;
@@ -79,10 +94,13 @@ class DkclHueF13PortalClient {
         this.acquireProfileLock();
 
         const { chromium } = this.playwright || loadPlaywright();
-        this.context = await chromium.launchPersistentContext(this.profileDir, {
-            headless: this.headless,
-            acceptDownloads: true
-        });
+        this.context = await chromium.launchPersistentContext(
+            this.profileDir,
+            buildPersistentLaunchOptions({
+                headless: this.headless,
+                acceptDownloads: true
+            })
+        );
         if (this.context.on) {
             this.context.on('close', () => {
                 if (this.onDisconnect) this.onDisconnect();
@@ -152,7 +170,11 @@ class DkclHueF13PortalClient {
         processManager.clearHiddenHwnds?.(this.profileDir);
         this.acquireProfileLock();
         const { chromium } = this.playwright || loadPlaywright();
-        const launchPromise = chromium.launchPersistentContext(this.profileDir, { headless: false, acceptDownloads: true });
+        const launchOptions = buildPersistentLaunchOptions({
+            headless: false,
+            acceptDownloads: true
+        });
+        const launchPromise = chromium.launchPersistentContext(this.profileDir, launchOptions);
         this.context = await Promise.race([
             launchPromise,
             new Promise((_, reject) => setTimeout(() => reject(portalError('BROWSER_LAUNCH_TIMEOUT: Browser took too long to launch or is stuck.', 'BROWSER_LAUNCH_TIMEOUT')), 15000))
@@ -840,6 +862,8 @@ class DkclHueF13PortalClient {
 
 module.exports = {
     DkclHueF13PortalClient,
+    DEFAULT_CHROMIUM_LAUNCH_ARGS,
+    buildPersistentLaunchOptions,
     portalError,
     formatPortalDate,
     formatPortalRequestDate,
