@@ -87,7 +87,55 @@ async function runTests() {
     assert(!tctFixtureRes.matchingProcesses.some((proc) => proc.pid === 12588 || proc.pid === 30000));
     console.log('PASS');
 
-    console.log('--- TEST 5: no shell-string execution fallback exists in production lookup ---');
+    console.log('--- TEST 5: native ownership restores unreadable browser root from matched child process ---');
+    const unreadableRootMgr = new BrowserProcessManager({
+        processEnumerator: createProcessEnumerator([
+            {
+                ProcessId: 9100,
+                ParentProcessId: 100,
+                Name: 'chrome.exe',
+                ExecutablePath: 'C:\\Chrome\\chrome.exe',
+                CommandLine: ''
+            },
+            {
+                ProcessId: 9101,
+                ParentProcessId: 9100,
+                Name: 'chrome.exe',
+                ExecutablePath: 'C:\\Chrome\\chrome.exe',
+                CommandLine: '"C:\\Chrome\\chrome.exe" --type=renderer --user-data-dir="D:\\Data DKCL\\BrowserProfiles\\TCT"'
+            }
+        ]),
+        nativeWindows: {
+            getDescendantProcessIds: async (rootPids) => rootPids[0] === 9100 ? [9100, 9101] : rootPids,
+            setWindowsVisibleForProcessIds: (pids, visible) => {
+                assert.deepStrictEqual(pids.sort((a, b) => a - b), [9100, 9101]);
+                assert.strictEqual(visible, false);
+                return {
+                    success: true,
+                    action: 'HIDE',
+                    matchedWindowCount: 1,
+                    affectedWindowCount: 1,
+                    windows: [{ hwnd: 501, pid: 9100, wasVisible: true, isVisible: false }]
+                };
+            }
+        }
+    });
+    const unreadableRootInspection = await unreadableRootMgr.findBrowserProcessByProfile('D:\\Data DKCL\\BrowserProfiles\\TCT');
+    assert.strictEqual(unreadableRootInspection.inspectionStatus, 'SUCCESS');
+    assert.deepStrictEqual(
+        unreadableRootInspection.matchingProcesses.map((proc) => proc.pid).sort((a, b) => a - b),
+        [9100, 9101]
+    );
+    const unreadableRootHide = await unreadableRootMgr.setBrowserWindowsVisibleByProfile(
+        'D:\\Data DKCL\\BrowserProfiles\\TCT',
+        false,
+        1,
+        1
+    );
+    assert.deepStrictEqual(unreadableRootHide.rootPids, [9100]);
+    console.log('PASS');
+
+    console.log('--- TEST 6: no shell-string execution fallback exists in production lookup ---');
     const noShellMgr = new BrowserProcessManager({
         processEnumerator: createProcessEnumerator([
             { ProcessId: 9100, ParentProcessId: 100, Name: 'chrome.exe', ExecutablePath: 'C:\\Chrome\\chrome.exe', CommandLine: '--user-data-dir="D:\\Data DKCL\\BrowserProfiles\\TCT"' }
@@ -100,7 +148,7 @@ async function runTests() {
     assert.strictEqual(noShellRes.matchingProcesses[0].pid, 9100);
     console.log('PASS');
 
-    console.log('--- TEST 6: HUE hide uses root browser PID and native window path only ---');
+    console.log('--- TEST 7: HUE hide uses root browser PID and native window path only ---');
     const hueCalls = [];
     const hueMgr = new BrowserProcessManager({
         processEnumerator: createProcessEnumerator([
@@ -135,7 +183,7 @@ async function runTests() {
     assert(hueCalls.some((entry) => entry.kind === 'show'));
     console.log('PASS');
 
-    console.log('--- TEST 7: TCT hide excludes HUE profile process ---');
+    console.log('--- TEST 8: TCT hide excludes HUE profile process ---');
     const tctMgr = new BrowserProcessManager({
         processEnumerator: createProcessEnumerator([
             { ProcessId: 5300, ParentProcessId: 100, Name: 'msedge.exe', CommandLine: '--user-data-dir="D:\\Data DKCL\\BrowserProfiles\\HUE"' },
@@ -164,7 +212,7 @@ async function runTests() {
     assert(!tctHide.processIds.includes(5300));
     console.log('PASS');
 
-    console.log('--- TEST 8: show retries until a usable browser window is visible ---');
+    console.log('--- TEST 9: show retries until a usable browser window is visible ---');
     let showAttempts = 0;
     const showRetryMgr = new BrowserProcessManager({
         processEnumerator: createProcessEnumerator([
@@ -201,7 +249,7 @@ async function runTests() {
     assert.strictEqual(showAttempts, 2);
     console.log('PASS');
 
-    console.log('--- TEST 9: restore only re-shows HWNDs hidden by this profile manager ---');
+    console.log('--- TEST 10: restore only re-shows HWNDs hidden by this profile manager ---');
     const restoreCalls = [];
     const restoreMgr = new BrowserProcessManager({
         processEnumerator: createProcessEnumerator([

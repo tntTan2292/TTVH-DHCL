@@ -38,6 +38,54 @@ function extractUserDataDir(commandLine) {
     return null;
 }
 
+function getProcessExecutableName(proc = {}) {
+    return String(proc.Name || path.basename(proc.ExecutablePath || '') || '')
+        .trim()
+        .toLowerCase();
+}
+
+function looksLikeBrowserProcess(proc = {}) {
+    const executableName = getProcessExecutableName(proc);
+    return /(?:^|\\)(chrome|msedge|chromium|playwright-chromium)\.exe$/.test(executableName)
+        || /^(chrome|msedge|chromium|playwright-chromium)\.exe$/.test(executableName);
+}
+
+function includeBrowserAncestors(processes, matchedProcesses) {
+    const allProcesses = Array.isArray(processes) ? processes : [];
+    const exactMatches = Array.isArray(matchedProcesses) ? matchedProcesses : [];
+    if (exactMatches.length === 0) return exactMatches;
+
+    const byPid = new Map();
+    for (const proc of allProcesses) {
+        const pid = Number(proc.ProcessId);
+        if (Number.isFinite(pid)) {
+            byPid.set(pid, proc);
+        }
+    }
+
+    const included = new Map(exactMatches.map((proc) => [proc.pid, proc]));
+    for (const match of exactMatches) {
+        let parentPid = Number(match.parentPid);
+        while (Number.isFinite(parentPid) && parentPid > 0) {
+            if (included.has(parentPid)) break;
+            const parentProc = byPid.get(parentPid);
+            if (!parentProc || !looksLikeBrowserProcess(parentProc)) break;
+            included.set(parentPid, {
+                pid: parentPid,
+                parentPid: Number(parentProc.ParentProcessId),
+                executable: parentProc.Name || path.basename(parentProc.ExecutablePath || '') || 'browser',
+                executablePath: parentProc.ExecutablePath || null,
+                commandLine: parentProc.CommandLine || '',
+                exactProfileMatch: false,
+                ownershipEvidence: true
+            });
+            parentPid = Number(parentProc.ParentProcessId);
+        }
+    }
+
+    return Array.from(included.values());
+}
+
 function getWindowsProcessApi() {
     if (process.platform !== 'win32') return null;
     if (windowsProcessApi) return windowsProcessApi;
@@ -278,6 +326,7 @@ class BrowserProcessManager {
                         });
                     }
                 }
+                result.matchingProcesses = includeBrowserAncestors(processes, result.matchingProcesses);
                 result.inspectionStatus = 'SUCCESS';
                 return result;
             } else {
