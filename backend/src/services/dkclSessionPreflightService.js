@@ -11,6 +11,8 @@ const {
     lifecyclePayload
 } = require('./dkclLifecycleContract');
 
+const REPO_ROOT = path.resolve(__dirname, '../../..');
+
 const PREFLIGHT_STATUSES = Object.freeze({
     SESSION_VALID: 'SESSION_VALID',
     AUTHENTICATION_REQUIRED: 'AUTHENTICATION_REQUIRED',
@@ -18,18 +20,27 @@ const PREFLIGHT_STATUSES = Object.freeze({
     LOGIN_IN_PROGRESS: 'LOGIN_IN_PROGRESS'
 });
 
+function resolveRepoRootPath(targetPath) {
+    if (!targetPath) return targetPath;
+    return path.isAbsolute(targetPath) ? targetPath : path.resolve(REPO_ROOT, targetPath);
+}
+
+function resolveProfileDir(sourceConfig) {
+    return resolveRepoRootPath(process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir());
+}
+
 const SOURCE_CONFIG = Object.freeze({
     HUE: {
         source: 'HUE',
         displayName: 'Huế',
         profileDirEnv: 'DKCL_HUE_PROFILE_DIR',
-        defaultProfileDir: () => path.resolve(process.cwd(), '../Data DKCL/BrowserProfiles/HUE')
+        defaultProfileDir: () => path.join(REPO_ROOT, 'Data DKCL', 'BrowserProfiles', 'HUE')
     },
     TCT: {
         source: 'TCT',
         displayName: 'TCT',
         profileDirEnv: 'DKCL_TCT_PROFILE_DIR',
-        defaultProfileDir: () => path.resolve(process.cwd(), '../Data DKCL/BrowserProfiles/TCT')
+        defaultProfileDir: () => path.join(REPO_ROOT, 'Data DKCL', 'BrowserProfiles', 'TCT')
     }
 });
 
@@ -234,7 +245,7 @@ class DkclSessionPreflightService {
                 error: { code: 'SOURCE_PAGE_REQUIRED', message: 'DKCL source page F1.3 is not ready.' }
             };
         }
-        const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+        const profileDir = resolveProfileDir(sourceConfig);
         const client = this.portalClientFactory(sourceConfig);
 
         try {
@@ -283,7 +294,7 @@ class DkclSessionPreflightService {
                 message: `Phiên DKCL ${sourceConfig.displayName} hợp lệ. Tác vụ nền có thể tiếp tục.`
             };
         } catch (error) {
-            const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+            const profileDir = resolveProfileDir(sourceConfig);
             processManager.clearHiddenHwnds?.(profileDir);
             const status = error?.code === 'AUTHENTICATION_REQUIRED'
                 ? PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED
@@ -335,7 +346,7 @@ class DkclSessionPreflightService {
                 lastError: null
             });
 
-            const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+            const profileDir = resolveProfileDir(sourceConfig);
             processManager.clearHiddenHwnds?.(profileDir);
 
             // R4.1A Automatic Reconciliation
@@ -529,7 +540,7 @@ class DkclSessionPreflightService {
 
     async recover(source) {
         const sourceConfig = this.normalizeSource(source);
-        const profileDir = process.env[sourceConfig.profileDirEnv] || sourceConfig.defaultProfileDir();
+        const profileDir = resolveProfileDir(sourceConfig);
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
 
         const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
@@ -580,6 +591,7 @@ module.exports = {
     DkclSessionPreflightService,
     PREFLIGHT_STATUSES,
     SOURCE_CONFIG,
+    resolveProfileDir,
     DKCL_LIFECYCLE_STATES,
     DKCL_LEGACY_STATES,
     globalRegistry

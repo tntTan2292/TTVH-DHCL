@@ -2,7 +2,7 @@
 
 const assert = require('assert/strict');
 const path = require('path');
-const { DkclSessionPreflightService, PREFLIGHT_STATUSES, SOURCE_CONFIG, DKCL_LIFECYCLE_STATES, globalRegistry } = require('./src/services/dkclSessionPreflightService');
+const { DkclSessionPreflightService, PREFLIGHT_STATUSES, SOURCE_CONFIG, resolveProfileDir, DKCL_LIFECYCLE_STATES, globalRegistry } = require('./src/services/dkclSessionPreflightService');
 const { DKCL_PUBLIC_LIFECYCLE_SEQUENCE } = require('./src/services/dkclLifecycleContract');
 const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClient');
 const browserProcessManager = require('./src/services/browserProcessManager');
@@ -75,6 +75,26 @@ function deferred() {
     assert.strictEqual(tct.lifecycle.source_page_ready, true, 'TCT lifecycle payload preserves source page readiness');
     assert.notStrictEqual(SOURCE_CONFIG.HUE.defaultProfileDir(), SOURCE_CONFIG.TCT.defaultProfileDir(), 'Hue and TCT profiles are separate');
     assert.strictEqual(calls.filter((call) => call[0] === 'close').length, 2, 'profile locks are released via close');
+
+    console.log('\nTEST 1B: HUE relative profile env resolves against repo root when cwd is backend');
+    const originalHueProfileEnv = process.env.DKCL_HUE_PROFILE_DIR;
+    const originalCwd = process.cwd();
+    try {
+        process.env.DKCL_HUE_PROFILE_DIR = 'Data DKCL\\BrowserProfiles\\HUE';
+        process.chdir(path.join(originalCwd, 'backend'));
+        assert.strictEqual(
+            resolveProfileDir(SOURCE_CONFIG.HUE),
+            path.join(originalCwd, 'Data DKCL', 'BrowserProfiles', 'HUE'),
+            'relative HUE profile env remains anchored to repo root'
+        );
+    } finally {
+        process.chdir(originalCwd);
+        if (typeof originalHueProfileEnv === 'string') {
+            process.env.DKCL_HUE_PROFILE_DIR = originalHueProfileEnv;
+        } else {
+            delete process.env.DKCL_HUE_PROFILE_DIR;
+        }
+    }
 
     console.log('\nTEST 2: authentication required result');
     const authService = new DkclSessionPreflightService({
