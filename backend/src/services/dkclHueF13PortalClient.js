@@ -9,7 +9,9 @@ const DETAIL_METRIC_HEADER = 'SL bưu gửi phát thành công/Nộp tiền/CH';
 
 const DEFAULT_CHROMIUM_LAUNCH_ARGS = Object.freeze([
     '--disable-session-crashed-bubble',
-    '--hide-crash-restore-bubble'
+    '--hide-crash-restore-bubble',
+    '--new-window',
+    '--start-maximized'
 ]);
 
 function buildPersistentLaunchOptions(options = {}) {
@@ -18,8 +20,32 @@ function buildPersistentLaunchOptions(options = {}) {
     return {
         headless: Boolean(options.headless),
         acceptDownloads: options.acceptDownloads !== false,
+        handleSIGHUP: false,
+        handleSIGINT: false,
+        handleSIGTERM: false,
         args: mergedArgs
     };
+}
+
+function isDkclUrl(url) {
+    return /^https?:\/\/dkcl\.vnpost\.vn(?:\/|$)/i.test(String(url || ''));
+}
+
+async function waitForPortalCapablePage(context, { timeoutMs = 15000 } = {}) {
+    const timeoutAt = Date.now() + timeoutMs;
+
+    while (Date.now() < timeoutAt) {
+        const pages = typeof context.pages === 'function' ? context.pages() : [];
+        const existingPage = pages.find((page) => page && typeof page.url === 'function');
+        if (existingPage) return existingPage;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    if (typeof context.newPage === 'function') {
+        return context.newPage();
+    }
+
+    throw portalError('BROWSER_PAGE_UNAVAILABLE: Browser page was not created.', 'BROWSER_PAGE_UNAVAILABLE');
 }
 
 function formatPortalDate(isoDate) {
@@ -90,6 +116,7 @@ class DkclHueF13PortalClient {
         }
 
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
+        this.loginUrl = `${this.baseUrl}/login`;
         this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), `../Data DKCL/BrowserProfiles/${this.source}`));
         this.acquireProfileLock();
 
@@ -106,7 +133,12 @@ class DkclHueF13PortalClient {
                 if (this.onDisconnect) this.onDisconnect();
             });
         }
-        this.page = this.context.pages()[0] || await this.context.newPage();
+        this.page = await waitForPortalCapablePage(this.context);
+        if (!isDkclUrl(this.page.url())) {
+            await this.page.goto(this.loginUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        }
+        await this.page.bringToFront?.().catch(() => {});
+        await processManager.setBrowserWindowsVisibleByProfile?.(this.profileDir).catch(() => {});
 
         await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
         await this.stopForSecurityChallenge({ allowHrm: true });
@@ -166,6 +198,7 @@ class DkclHueF13PortalClient {
 
     async prepareInteractiveAuthentication({ baseUrl, profileDir }) {
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
+        this.loginUrl = `${this.baseUrl}/login`;
         this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), `../Data DKCL/BrowserProfiles/${this.source}`));
         processManager.clearHiddenHwnds?.(this.profileDir);
         this.acquireProfileLock();
@@ -185,9 +218,12 @@ class DkclHueF13PortalClient {
                 if (this.onDisconnect) this.onDisconnect();
             });
         }
-        // Always open a fresh interactive page so authenticated profiles surface a user-visible top-level window.
-        this.page = await this.context.newPage();
+        this.page = await waitForPortalCapablePage(this.context);
+        if (!isDkclUrl(this.page.url())) {
+            await this.page.goto(this.loginUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        }
         await this.page.bringToFront?.().catch(() => {});
+        await processManager.setBrowserWindowsVisibleByProfile?.(this.profileDir).catch(() => {});
         const restoreResult = await this.restoreWindow();
         if (!restoreResult) {
             throw portalError('BROWSER_WINDOW_HIDDEN: Cannot show browser window for manual login. The process might be hung or the window is forcefully hidden.', 'BROWSER_WINDOW_HIDDEN');
@@ -864,6 +900,7 @@ module.exports = {
     DkclHueF13PortalClient,
     DEFAULT_CHROMIUM_LAUNCH_ARGS,
     buildPersistentLaunchOptions,
+    waitForPortalCapablePage,
     portalError,
     formatPortalDate,
     formatPortalRequestDate,

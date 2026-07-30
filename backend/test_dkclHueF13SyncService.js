@@ -27,11 +27,15 @@ const {
 } = require('./src/services/importPipeline');
 const {
     DkclHueF13PortalClient,
+    DEFAULT_CHROMIUM_LAUNCH_ARGS,
+    buildPersistentLaunchOptions,
+    waitForPortalCapablePage,
     formatPortalRequestDate,
     findVisibleDetailCandidateIndex,
     findExactFileRowIndexes,
     DETAIL_METRIC_HEADER
 } = require('./src/services/dkclHueF13PortalClient');
+const processManager = require('./src/services/browserProcessManager');
 
 let passed = 0;
 let failed = 0;
@@ -186,6 +190,9 @@ function makeFakePortalPage({ events, initialUrl, bodyText }) {
         afterPasswordSubmit: null,
         afterHrmSubmit: null,
         url() { return this.currentUrl; },
+        async bringToFront() {
+            events.push(['bringToFront']);
+        },
         async goto(url) {
             events.push(['goto', url]);
             this.currentUrl = url;
@@ -232,6 +239,21 @@ function makeFakePlaywright(page, events) {
                     async close() { events.push(['context-close']); }
                 };
             }
+        }
+    };
+}
+
+function makeFakeContext(pages, events) {
+    return {
+        pages() {
+            events.push(['context-pages']);
+            return pages;
+        },
+        async newPage() {
+            events.push(['context-newPage']);
+            const nextPage = pages[0];
+            if (!nextPage) throw new Error('No fake page available');
+            return nextPage;
         }
     };
 }
@@ -934,18 +956,36 @@ async function runTests() {
     assert('HRM identifier not exposed', !authMessage.includes('employee'));
     assert('profile path not exposed', !authMessage.includes('BrowserProfiles'));
 
-    console.log('\nTEST 21: Chromium launch flags --disable-session-crashed-bubble and --hide-crash-restore-bubble');
-    const { DEFAULT_CHROMIUM_LAUNCH_ARGS, buildPersistentLaunchOptions } = require('./src/services/dkclHueF13PortalClient');
+    console.log('\nTEST 21: Chromium launch helper keeps shared windowed launch contract');
     assert('DEFAULT_CHROMIUM_LAUNCH_ARGS contains --disable-session-crashed-bubble', DEFAULT_CHROMIUM_LAUNCH_ARGS.includes('--disable-session-crashed-bubble'));
     assert('DEFAULT_CHROMIUM_LAUNCH_ARGS contains --hide-crash-restore-bubble', DEFAULT_CHROMIUM_LAUNCH_ARGS.includes('--hide-crash-restore-bubble'));
+    assert('DEFAULT_CHROMIUM_LAUNCH_ARGS contains --new-window', DEFAULT_CHROMIUM_LAUNCH_ARGS.includes('--new-window'));
+    assert('DEFAULT_CHROMIUM_LAUNCH_ARGS contains --start-maximized', DEFAULT_CHROMIUM_LAUNCH_ARGS.includes('--start-maximized'));
 
     const launchOptsAuth = buildPersistentLaunchOptions({ headless: true, acceptDownloads: true });
     assert('authenticate options include --disable-session-crashed-bubble', launchOptsAuth.args.includes('--disable-session-crashed-bubble'));
     assert('authenticate options include --hide-crash-restore-bubble', launchOptsAuth.args.includes('--hide-crash-restore-bubble'));
+    assert('authenticate options include --new-window', launchOptsAuth.args.includes('--new-window'));
+    assert('authenticate options include --start-maximized', launchOptsAuth.args.includes('--start-maximized'));
+    assert('authenticate options disable SIGHUP handling', launchOptsAuth.handleSIGHUP === false);
+    assert('authenticate options disable SIGINT handling', launchOptsAuth.handleSIGINT === false);
+    assert('authenticate options disable SIGTERM handling', launchOptsAuth.handleSIGTERM === false);
 
     const launchOptsInteractive = buildPersistentLaunchOptions({ headless: false, acceptDownloads: true });
     assert('prepareInteractiveAuthentication options include --disable-session-crashed-bubble', launchOptsInteractive.args.includes('--disable-session-crashed-bubble'));
     assert('prepareInteractiveAuthentication options include --hide-crash-restore-bubble', launchOptsInteractive.args.includes('--hide-crash-restore-bubble'));
+    assert('prepareInteractiveAuthentication options include --new-window', launchOptsInteractive.args.includes('--new-window'));
+    assert('prepareInteractiveAuthentication options include --start-maximized', launchOptsInteractive.args.includes('--start-maximized'));
+    assert('interactive options disable SIGHUP handling', launchOptsInteractive.handleSIGHUP === false);
+    assert('interactive options disable SIGINT handling', launchOptsInteractive.handleSIGINT === false);
+    assert('interactive options disable SIGTERM handling', launchOptsInteractive.handleSIGTERM === false);
+
+    const helperEvents = [];
+    const helperPage = makeFakePortalPage({ events: helperEvents, initialUrl: 'about:blank', bodyText: 'Login' });
+    const helperContext = makeFakeContext([helperPage], helperEvents);
+    const waitedPage = await waitForPortalCapablePage(helperContext);
+    assert('page helper returns the launched portal-capable page', waitedPage === helperPage);
+    assert('page helper checks context pages before fallback', helperEvents.some((event) => event[0] === 'context-pages'));
 
     const flagEvents = [];
     const flagProfileDir = path.join(tmpDir, 'profile-flags');
@@ -957,14 +997,56 @@ async function runTests() {
         fs, path, source: 'HUE'
     });
     flagClient.restoreWindow = async () => true;
+    const originalSetVisible = processManager.setBrowserWindowsVisibleByProfile;
+    processManager.setBrowserWindowsVisibleByProfile = async (profileDir) => {
+        flagEvents.push(['setBrowserWindowsVisibleByProfile', profileDir]);
+        return { success: true, matchedWindowCount: 1 };
+    };
 
     await flagClient.prepareInteractiveAuthentication({ baseUrl: 'https://dkcl.vnpost.vn/', profileDir: flagProfileDir });
     await flagClient.close();
+    processManager.setBrowserWindowsVisibleByProfile = originalSetVisible;
 
     const launchEvent = flagEvents.find(e => e[0] === 'launchPersistentContext');
     assert('prepareInteractiveAuthentication passes args to launchPersistentContext', Boolean(launchEvent && launchEvent[2] && Array.isArray(launchEvent[2].args)));
     assert('prepareInteractiveAuthentication args include --disable-session-crashed-bubble', Boolean(launchEvent && launchEvent[2] && launchEvent[2].args.includes('--disable-session-crashed-bubble')));
     assert('prepareInteractiveAuthentication args include --hide-crash-restore-bubble', Boolean(launchEvent && launchEvent[2] && launchEvent[2].args.includes('--hide-crash-restore-bubble')));
+    assert('prepareInteractiveAuthentication args include --new-window', Boolean(launchEvent && launchEvent[2] && launchEvent[2].args.includes('--new-window')));
+    assert('prepareInteractiveAuthentication args include --start-maximized', Boolean(launchEvent && launchEvent[2] && launchEvent[2].args.includes('--start-maximized')));
+    assert('prepareInteractiveAuthentication disables signal handlers', Boolean(launchEvent && launchEvent[2] && launchEvent[2].handleSIGHUP === false && launchEvent[2].handleSIGINT === false && launchEvent[2].handleSIGTERM === false));
+    const bringToFrontIndex = flagEvents.findIndex((event) => event[0] === 'bringToFront');
+    const surfaceIndex = flagEvents.findIndex((event) => event[0] === 'setBrowserWindowsVisibleByProfile');
+    assert('prepareInteractiveAuthentication brings page to front before window surfacing', bringToFrontIndex >= 0 && surfaceIndex > bringToFrontIndex);
+    assert('prepareInteractiveAuthentication navigates non-DKCL page to login URL', flagEvents.some((event) => event[0] === 'goto' && event[1] === 'https://dkcl.vnpost.vn/login'));
+
+    const authEvents = [];
+    const authFlagProfileDir = path.join(tmpDir, 'profile-auth-flags');
+    fs.rmSync(authFlagProfileDir, { recursive: true, force: true });
+    fs.rmSync(`${authFlagProfileDir}.lock`, { recursive: true, force: true });
+    const authFlagPage = makeFakePortalPage({ events: authEvents, initialUrl: 'about:blank', bodyText: 'Quản lý tệp tantn.bdtth' });
+    const authFlagClient = new DkclHueF13PortalClient({
+        playwright: makeFakePlaywright(authFlagPage, authEvents),
+        fs, path, source: 'HUE'
+    });
+    processManager.setBrowserWindowsVisibleByProfile = async (profileDir) => {
+        authEvents.push(['setBrowserWindowsVisibleByProfile', profileDir]);
+        return { success: true, matchedWindowCount: 1 };
+    };
+    await authFlagClient.authenticate({
+        baseUrl: 'https://dkcl.vnpost.vn/',
+        username: 'user-secret',
+        password: 'pass-secret',
+        hrmCode: 'hrm-secret',
+        profileDir: authFlagProfileDir
+    });
+    await authFlagClient.close();
+    processManager.setBrowserWindowsVisibleByProfile = originalSetVisible;
+    const authLaunchEvent = authEvents.find((event) => event[0] === 'launchPersistentContext');
+    assert('authenticate uses the same shared launch helper args', Boolean(authLaunchEvent && JSON.stringify(authLaunchEvent[2].args) === JSON.stringify(launchEvent[2].args)));
+    const authBringToFrontIndex = authEvents.findIndex((event) => event[0] === 'bringToFront');
+    const authSurfaceIndex = authEvents.findIndex((event) => event[0] === 'setBrowserWindowsVisibleByProfile');
+    assert('authenticate brings page to front before best-effort surfacing', authBringToFrontIndex >= 0 && authSurfaceIndex > authBringToFrontIndex);
+    assert('authenticate navigates non-DKCL page to login URL before portal use', authEvents.some((event) => event[0] === 'goto' && event[1] === 'https://dkcl.vnpost.vn/login'));
 
     for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, '2098-02-07', '2098-02-08', '2098-02-09', '2098-02-10', '2098-02-11']) {
         await cleanupDate(date);
