@@ -62,6 +62,12 @@ Current Product Owner-visible facts:
 - direct browser proof already showed the browser stack itself can work,
 - management has selected a one-time setup model instead of install-on-launch.
 
+Option provenance locked for this checkpoint:
+
+- `A` and `B` were Sonnet discovery proposals and were both rejected.
+- `C` was formed through architecture challenge and confirmed by Opus review.
+- `C1` / `C2` are not selected.
+
 This ticket is not `PO PASS`, and implementation has not yet been reauthorized.
 
 ## Proven Facts

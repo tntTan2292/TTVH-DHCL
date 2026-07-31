@@ -28,26 +28,40 @@
 
 ### Option A Rejected
 
-`Install dependency during each launcher start`
+Source:
+
+- Sonnet discovery proposal
+
+`Commit backend/node_modules/playwright and backend/node_modules/playwright-core into Git`
 
 Reason rejected:
 
-- startup becomes nondeterministic,
-- launcher behavior becomes heavier and riskier,
-- failure in HUE dependency provisioning could disturb the main backend start path,
-- this does not fit the requirement that Dashboard and core backend remain stable even when HUE is not ready.
+- this only carries the Node package layer,
+- it does not guarantee the matching Chromium binary exists outside the repository,
+- Product Owner runtime would remain only partially reproducible,
+- this was rejected during discovery as insufficient for durable runtime recovery.
 
 ### Option B Rejected
 
-`Commit package declaration only and assume runtime binaries exist`
+Source:
+
+- Sonnet discovery proposal
+
+`Run npm install in the launcher during each startup`
 
 Reason rejected:
 
-- package declaration alone did not guarantee Product Owner runtime success,
-- Chromium/browser runtime assets can still be absent even when manifests look correct,
-- this leaves the environment only partially reproducible.
+- launcher becomes mutating and network-dependent,
+- startup behavior becomes less deterministic and harder to support,
+- tracked `node_modules` can become dirty,
+- backend and Dashboard startup risk becomes unacceptable if install fails or stalls.
 
 ### Option C Selected In Principle
+
+Source:
+
+- formed through architecture challenge
+- confirmed by Opus review
 
 `One-time setup step + read-only launcher verification + graceful HUE-not-ready behavior`
 
@@ -57,6 +71,11 @@ Reason selected:
 - launcher remains lightweight and read-only,
 - backend can keep Dashboard and non-HUE APIs healthy even when HUE browser prerequisites are missing,
 - this creates a cleaner operational contract for Product Owner runtime support.
+
+Decision status:
+
+- `C` is selected in principle only.
+- `C1` / `C2` have not been chosen by Product Owner.
 
 ## Recommended Implementation Shape
 
