@@ -81,8 +81,8 @@ Default onboarding route:
 - Do not change frozen architecture.
 - Do not re-ask decisions that are already frozen.
 - Do not retrain the project from the beginning.
-- If the issue touches SSOT or a business rule, ask the Product Owner.
-- If the issue does not touch SSOT or a business rule, analyze it and continue.
+- Ask the Product Owner only for business rules, product behavior, SSOT, acceptance criteria, or product direction.
+- If the issue is purely technical, CTO/ChatGPT coordination must analyze it and continue without escalating to the Product Owner.
 - Use `README_AI.md` as the external onboarding entry and fall back to this document only when the manifest or authority rules require it.
 
 ## 6. Response Format
@@ -92,12 +92,19 @@ For post-onboarding continuation, implementation-result review, remediation find
 1. `### Phân tích kết quả`
    - fewer than 5 sentences
    - state only the result, finding, blocker, or readiness
+   - use Product Owner management/no-code language
 2. `### Phương án`
    - fewer than 5 sentences
    - state the immediate execution path
+   - use Product Owner management/no-code language
 3. exactly one of:
-   - `### Prompt cho Codex/Antigravity`
+   - `### Prompt cho Codex`
+   - `### Prompt cho Antigravity`
    - `### Yêu cầu PO quyết định`
+
+The 5-sentence limit applies only to Product Owner-facing reporting.
+
+AI-to-AI technical exchanges, architecture challenges, and evidence handoff must preserve full technical context and are not limited to 5 sentences.
 
 ## 7. Development Workflow
 
@@ -235,6 +242,16 @@ Review
 ↓
 
 Decision Support
+
+Executor selection is two-layer:
+
+- first choose the executor environment: `Codex` or `Antigravity`
+- if `Antigravity` is chosen, explicitly choose the model: `Sonnet` or `Opus`
+
+Antigravity model guidance:
+
+- `Sonnet`: default for discovery, routine investigation, bounded technical tasks, and quota-efficient work
+- `Opus`: architecture, complex multi-component failures, technical challenge or review, and high-importance technical decisions
 
 Codex is responsible for:
 

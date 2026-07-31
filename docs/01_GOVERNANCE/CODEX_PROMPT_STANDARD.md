@@ -63,6 +63,11 @@ The first execution prompt for Codex or Antigravity defaults to one independentl
 
 The first execution prompt must not repeat Manifest content, SSOT text, ticket history, standard workflow instructions, or repository-owned guidance already available through onboarding.
 
+Executor selection is two-layer:
+
+- `Executor environment`: `Codex` or `Antigravity`
+- if `Antigravity` is selected, the prompt must also state the `Model`: `Sonnet` or `Opus`
+
 ## 3. Active-Ticket Delta Prompt Rule
 
 Active-ticket follow-up prompts must describe only the new defect, delta, or decision.
@@ -249,6 +254,10 @@ Do not use class names, function names, code paths, raw logs, or technical jargo
 
 Put technical details in the executor prompt, validation evidence, or a separate technical note.
 
+This under-5-sentence constraint applies only to Product Owner-facing reporting.
+
+AI-to-AI coordination, technical handoff, architecture challenge, and evidence exchange must preserve full technical context and are not subject to the 5-sentence limit.
+
 ## 7.1 Post-Review Remediation Loop
 
 When review finds an issue that can be remediated within the active ticket, ChatGPT coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for the correct single executor, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
@@ -407,6 +416,17 @@ Every project prompt must use exactly one of these explicit headings:
 
 Do not use `Prompt cho Codex/Antigravity`.
 
+Executor selection is mandatory in two layers:
+
+1. choose the `Executor environment`
+   - `Codex`
+   - `Antigravity`
+2. if `Antigravity` is selected, choose the `Model`
+   - `Sonnet`
+   - `Opus`
+
+ChatGPT coordination must make the Antigravity model choice explicit in the prompt whenever Antigravity is selected.
+
 Use Codex as the primary executor for:
 
 - business logic
@@ -443,6 +463,12 @@ Use Antigravity as the primary executor for:
 - browser runtime visual check
 - screenshot evidence
 
+Model selection inside Antigravity:
+
+- `Sonnet` is the default Antigravity model for discovery, defect investigation, bounded technical tasks, and quota-efficient work.
+- `Opus` is reserved for architecture work, complex multi-component failures, technical challenge or review, and important technical decisions where deeper reasoning is justified.
+- Do not dispatch `Opus` for ordinary bounded discovery when `Sonnet` is sufficient.
+
 Prompt for Antigravity must state that:
 
 - Antigravity directly implements the assigned UI work
@@ -474,6 +500,22 @@ Each executor must report:
 - validation
 - blocker
 - ticket status
+
+Product Owner-facing reports must stay management-level and no-code:
+
+- `KẾT QUẢ` or `PHÂN TÍCH KẾT QUẢ`: under 5 sentences
+- `PHƯƠNG ÁN`: under 5 sentences
+- then exactly one prompt or one Product Owner decision request when applicable
+
+Only ask the Product Owner about:
+
+- business rules
+- product behavior
+- SSOT
+- acceptance criteria
+- product direction
+
+Purely technical choices are decided by CTO/ChatGPT coordination and must not be escalated to the Product Owner unless they change product authority.
 
 The executor must not end by generating a prompt for the other executor unless ChatGPT coordination explicitly requested that output.
 
