@@ -49,6 +49,7 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 
 | Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
+| `CLAUDE.md` | Governance | Condensed, auto-loaded onboarding equivalent of `README_AI.md` for Claude Code sessions only; points to `PROJECT_SNAPSHOT.md` for live state. | L2 | Active Onboarding | Auto-loaded by Claude Code at the start of every session in this repo. | Mandatory (Claude Code only) |
 | `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Governance | Prompt gate, single-defect remediation, executor selection, and prompt rules. | L2 | Active Onboarding | Every fresh session before first execution prompt. | Mandatory |
 | `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Governance | Current project/ticket SSOT and manifest/checkpoint pointers. | L2 | Active Onboarding | Every fresh session. | Mandatory |
 | `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md` | Ticket Manifest | Current DOC-GOV-CLEANUP-001 scope and authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |

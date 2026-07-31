@@ -167,7 +167,9 @@ The active manifest and Governance normally define these actions, so the executi
 - create the next manifest if it does not exist
 - ensure the next manifest contains actual implementation authority and not only pointer-activation scope
 - update `PROJECT_SNAPSHOT`
+- when Current Ticket changes (a ticket closes or a new ticket activates), append exactly one new line recording the outcome to `PROJECT_PROGRESS.md`'s ticket history; never edit or delete prior lines
 - register new documents in `DOCUMENT_INDEX`
+- review whether `CLAUDE.md` needs an update when this ticket changes governance workflow, executor roles, or model rules
 - commit using One Ticket = One Commit
 - push to `origin/main`
 - verify the remote commit and all required GitHub Blob URLs

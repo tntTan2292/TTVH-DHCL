@@ -54,6 +54,7 @@ Goals:
 | UI/UX and Windows runtime evidence | Antigravity | ChatGPT |
 | Review docs | ChatGPT | Product Owner |
 | Governance / handover docs | ChatGPT | Claude Code |
+| `CLAUDE.md` (Claude Code condensed onboarding) | ChatGPT | Claude Code |
 | PO UI acceptance workflow | Product Owner | ChatGPT |
 | PO findings register | Product Owner | ChatGPT |
 
