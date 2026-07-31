@@ -10,7 +10,7 @@
 - PO Product Status: `PASS`
 - Current Phase: `CLOSED`
 - Last Reviewed Phase: `Product Owner runtime acceptance covering Dashboard, HUE, and TCT`
-- Last Reviewed Commit: `2c207852766b74117674a2316fbe923df61a4b24` (last code-affecting commit; this closure round is documentation only, baseline `f10cbe823af454997def0897c4a3f92425d4da63`)
+- Last Reviewed Commit: `4435d20161fb4ab35509a3a313587887bbccb591` (last code-affecting commit for this ticket; documentation baseline for this correction round is `14a4d5854e6dcb1dcc5678c274323d1220f46c8d`)
 - Phase Review Status: `CLOSED / PO RUNTIME PASS`
 - Next Phase Authorization: `Ticket closed. Import authentication recovery is no longer active. Dashboard Phase 4 UI planning may resume under docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md, discovery/planning only, no implementation authorized yet.`
 - Current PO Runtime Failure Note: `Resolved. Frontend blanket 401 session clearing previously allowed Import authorization failures to invalidate Dashboard session state; the fix narrowing session removal to the official auth validation endpoint is confirmed working under Product Owner runtime testing (see Closure Evidence).`
@@ -37,19 +37,19 @@ Required Reading (historical, for anyone reviewing this closed ticket):
 - `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_002.md`
 - `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md`
 
-## Authority
+## Authority (Historical)
 
-`AUTO-IMPORT-010` is the current highest-priority active ticket for Import authentication recovery.
+`AUTO-IMPORT-010` was the highest-priority active ticket for Import authentication recovery while open. It is now `CLOSED`; the sections below are preserved as historical record and must not be read as describing current active work.
 
-Current boundary is `HUE only`.
+Boundary while active was `HUE only`.
 
-`TCT` is not authorized for expansion inside this ticket unless Product Owner explicitly widens scope.
+`TCT` was not authorized for expansion inside this ticket; TCT ended up verified as part of Closure Evidence, but no TCT-specific scope was opened.
 
-Node console hiding remains a separate ticket and is not part of this ticket.
+Node console hiding remains a separate ticket and was never part of this ticket.
 
-The latest documentation baseline before C1 implementation was `2c207852766b74117674a2316fbe923df61a4b24`.
+The documentation baseline before `C1` implementation was `2c207852766b74117674a2316fbe923df61a4b24`. The last commit that changed product code for this ticket was `4435d20161fb4ab35509a3a313587887bbccb591`.
 
-## Objective
+## Objective (Achieved)
 
 Complete bounded planning for how the standard launcher/runtime should handle HUE browser dependencies without destabilizing the main system, given that:
 
@@ -57,23 +57,25 @@ Complete bounded planning for how the standard launcher/runtime should handle HU
 - direct Playwright + Chromium + HUE profile launch is proven to work, and
 - stale in-memory HUE `LOGIN_IN_PROGRESS` state has been remediated.
 
-## Current Runtime Context
+This objective is achieved; see Closure Evidence.
 
-Current Product Owner-visible facts:
+## Runtime Context At Closure (Historical)
 
-- Dashboard API returns normal `HTTP 200`.
-- Import API returns normal `HTTP 200` for non-browser status endpoints.
-- standard-runtime HUE authentication has already proven vulnerable to missing `playwright` materialization,
-- direct browser proof already showed the browser stack itself can work,
-- management has selected a one-time setup model instead of install-on-launch.
+Product Owner-visible facts at the time `C1` was implemented:
 
-Option provenance locked for this checkpoint:
+- Dashboard API returned normal `HTTP 200`.
+- Import API returned normal `HTTP 200` for non-browser status endpoints.
+- standard-runtime HUE authentication had proven vulnerable to missing `playwright` materialization,
+- direct browser proof had already shown the browser stack itself can work,
+- management selected a one-time setup model instead of install-on-launch.
+
+Option provenance locked for Checkpoint 002:
 
 - `A` and `B` were Sonnet discovery proposals and were both rejected.
 - `C` was formed through architecture challenge and confirmed by Opus review.
-- `C1` / `C2` are not selected.
+- `C1` was selected and implemented; `C2` was not implemented and remains unauthorized.
 
-This ticket is not `PO PASS`. `C1` is now implemented and awaits Product Owner runtime recheck.
+This ticket reached `PO PASS` at closure on `2026-07-31`; see Closure Evidence.
 
 ## Proven Facts
 
@@ -87,18 +89,17 @@ The following facts are now locked:
 - Kaspersky shows no new warning in the current HUE direct-launch evidence.
 - Machine-wide Playwright / Chromium / HUE profile launch is not the shared root cause anymore.
 
-## Current Root Cause
+## Root Cause (Resolved)
 
-The stale in-memory HUE registry defect was real and has been fixed at `1ca7eee11101cbf59390662dbd848f6fcf8c5d60`.
+The stale in-memory HUE registry defect was real and was fixed at `1ca7eee11101cbf59390662dbd848f6fcf8c5d60`.
 
-The current authoritative blocker is different:
+The subsequent authoritative blocker was:
 
-- the standard launcher/runtime path does not guarantee HUE browser dependencies are prepared at the moment HUE interactive authentication runs;
-- therefore `dkclHueF13PortalClient.js` fails at runtime with `MODULE_NOT_FOUND`;
-- browser spawning never starts in the standard PO runtime path.
+- the standard launcher/runtime path did not guarantee HUE browser dependencies were prepared at the moment HUE interactive authentication ran;
+- therefore `dkclHueF13PortalClient.js` failed at runtime with `MODULE_NOT_FOUND`;
+- browser spawning never started in the standard PO runtime path.
 
-Discovery for this root cause is complete. The pending step is bounded implementation authority for the selected recovery model.
-Discovery for this root cause is complete. The current pending step is Product Owner runtime recheck after `C1` dependency materialization.
+This blocker is resolved by `C1` dependency materialization, confirmed working under Product Owner runtime acceptance on `2026-07-31`; see Closure Evidence. No further root cause remains open under this ticket's boundary.
 
 ## Closure Evidence
 
@@ -127,16 +128,14 @@ Product Owner runtime recheck, `2026-07-31`, on the standard launcher path:
 - Browser profile deletion or profile-content edits.
 - Koffi environment artifact cleanup.
 
-## Validation Requirements
+## Validation Requirements (Met At Closure)
 
-For future closure of this ticket:
-
-- Repository-managed runtime packages required by HUE are present in backend runtime.
-- HUE browser opens visibly for the Product Owner through the normal product path.
-- Product Owner can log in successfully.
-- HUE preflight reaches the correct authenticated state.
-- No new Kaspersky blocked-process warning appears.
-- No unrelated TCT, broker, dashboard, launcher-hiding, or profile changes are introduced.
+- Repository-managed runtime packages required by HUE are present in backend runtime. — Met.
+- HUE browser opens visibly for the Product Owner through the normal product path. — Met (with the known first-click residual recorded above).
+- Product Owner can log in successfully. — Met.
+- HUE preflight reaches the correct authenticated state. — Met.
+- No new Kaspersky blocked-process warning appears. — Met.
+- No unrelated TCT, broker, dashboard, launcher-hiding, or profile changes are introduced. — Met.
 
 ## Multi-Model Boundary
 

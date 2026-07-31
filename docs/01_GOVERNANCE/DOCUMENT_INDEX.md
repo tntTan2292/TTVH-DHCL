@@ -41,8 +41,8 @@ Current active ticket:
 - Current ticket: `F13-UI-AUDIT-PLAN`.
 - Current manifest: `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`.
 - Current checkpoint: `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md`.
-- Current state: `READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION` (reactivated 2026-07-31 after `AUTO-IMPORT-010` closure).
-- Next required action: wait for a separately bounded ChatGPT coordination prompt before dispatching Phase 4 UI discovery/planning to Antigravity.
+- Current state: `PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION` (reactivated 2026-07-31 after `AUTO-IMPORT-010` closure). Phase 4 (Observation Group Viewport Optimization, Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`) is implemented; see `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` Section 6.
+- Next required action: Product Owner review of Phase 4. No new UI implementation until that review completes and ChatGPT coordination issues a separately bounded prompt.
 - `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-31` and is no longer part of the fresh onboarding chain; see `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` and `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md` for closure evidence.
 
 ## Docs Inventory
@@ -67,7 +67,7 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-PLAN_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign planning handoff with no implementation authority. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign implementation scope, authority, validation, and handoff rules. | L2 | Active Onboarding | Current implementation ticket only. | Mandatory |
 | `docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` | Ticket Manifest | Closed F1.3 LAN-only viewer deployment authority and accepted runtime remediation record. | L2 | Conditional Reference | When LAN deployment contract, viewer access boundary, or closure evidence is needed. | High |
-| `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Current ticket. Phase 1-3 PO PASS; reactivated 2026-07-31 after AUTO-IMPORT-010 closure, READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION for Phase 4. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
+| `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Current ticket. Phase 1-3 PO PASS; Phase 4 implemented (Commit 235b69d0...), PENDING PO REVIEW; no new implementation authorized. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` | Ticket Manifest | Completed F1.3 internal route classification and Route Ranking filter scope with Product Owner PO PASS. | L2 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` | BCVH Checkpoint | Approved BCVH Ranking redesign structure, field-to-contract mapping, gaps, test requirements, and implementation handoff. | L2/L3 | Current Required Reading | Current BCVH implementation ticket only. | Mandatory |
 | `docs/06_REVIEWS/Deployment/QIS_LAN_DEPLOY_001_CHECKPOINT_001.md` | Deployment Checkpoint | Closed LAN deployment checkpoint with accepted viewer-auth remediation and preserved access contract. | L2/L3 | Current Required Reading | When the current planning ticket needs the accepted LAN baseline. | Mandatory |

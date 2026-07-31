@@ -17,23 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `F1.3 UI Phase 4 Discovery/Planning` |
+| Current Phase | `F1.3 UI Phase 4 PO Review` |
 | Current Ticket | `F13-UI-AUDIT-PLAN` |
-| Next Ticket | `Bounded ChatGPT-issued Phase 4 UI discovery/planning prompt for Antigravity (no implementation authority yet)` |
-| Last PO Status | `AUTO-IMPORT-010 closed with PO RUNTIME PASS on 2026-07-31: Dashboard, HUE, and TCT all confirmed working under the standard launcher, including successful HUE and TCT login/import for 2026-07-30. A known HUE first-click browser-open residual is recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING by explicit Product Owner decision. F13-UI-AUDIT-PLAN is reactivated as Current Ticket; discovery/planning only, no implementation authorized.` |
+| Next Ticket | `Product Owner review of Phase 4 (Observation Group Viewport Optimization); no new implementation authority until that review completes` |
+| Last PO Status | `AUTO-IMPORT-010 closed with PO RUNTIME PASS on 2026-07-31: Dashboard, HUE, and TCT all confirmed working under the standard launcher, including successful HUE and TCT login/import for 2026-07-30. A known HUE first-click browser-open residual is recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING by explicit Product Owner decision. F13-UI-AUDIT-PLAN is reactivated as Current Ticket; Phase 4 is already implemented (Commit 235b69d0aa1a5b776b3398fde50c60172f7e4181) and awaits Product Owner review.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` |
 | Current Checkpoint | `F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` |
-| Current State | `F13-UI-AUDIT-PLAN / READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION` |
-| Technical Status | `PHASE 1, 2 & 3 IMPLEMENTED AND PO PASS; PHASE 4 NOT DISPATCHED` |
-| Runtime Status | `NOT APPLICABLE (PLANNING ONLY)` |
-| PO UI Check Required | `No - no visible product change at this planning step` |
-| PO Product Status | `PHASE 1, 2 & 3 PO PASS / PHASE 4 NOT STARTED` |
+| Current State | `F13-UI-AUDIT-PLAN / PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION` |
+| Technical Status | `PHASE 1, 2, 3 & 4 IMPLEMENTED; PHASE 4 PENDING PO REVIEW` |
+| Runtime Status | `PHASE 4 VERIFIED VIA PLAYWRIGHT VIEWPORT CHECK, NOT YET PO REVIEWED` |
+| PO UI Check Required | `Yes - Phase 4 visible layout change awaits Product Owner review` |
+| PO Product Status | `PHASE 1, 2 & 3 PO PASS / PHASE 4 PENDING PO REVIEW` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-IMPORT-010 closure: Product Owner runtime acceptance covering Dashboard, HUE, and TCT` |
-| Last Reviewed Commit | `f10cbe823af454997def0897c4a3f92425d4da63` |
-| Phase Review Status | `AUTO-IMPORT-010 CLOSED / PO RUNTIME PASS` |
-| Next Phase Authorization | `Repository awaits a separately bounded ChatGPT coordination prompt to dispatch Phase 4 UI discovery/planning for Antigravity. No implementation authorized yet. Do not reopen AUTO-IMPORT-010, broker, coordinator, TCT expansion, or Node window hiding without explicit Product Owner authority.` |
+| Last Reviewed Commit | `4435d20161fb4ab35509a3a313587887bbccb591` (last code-affecting commit; this correction round is documentation only, baseline `14a4d5854e6dcb1dcc5678c274323d1220f46c8d`) |
+| Phase Review Status | `AUTO-IMPORT-010 CLOSED / PO RUNTIME PASS; F13-UI-AUDIT-PLAN PHASE 4 PENDING PO REVIEW` |
+| Next Phase Authorization | `Repository awaits Product Owner review of the already-implemented Phase 4 (docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md Section 6). No new UI implementation is authorized until that review completes and ChatGPT coordination issues a separately bounded prompt for any next scope. Do not reopen AUTO-IMPORT-010, broker, coordinator, TCT expansion, or Node window hiding without explicit Product Owner authority.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-31` |
 
@@ -66,9 +66,9 @@ Current handoff: `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-
 
 Historical Import guidance that previously marked earlier authentication rounds as completed is superseded by the closure record above. Internal unit tests, PID discovery, HWND enumeration, URL reachability, or `LOGIN_IN_PROGRESS` are not sufficient to claim Product Owner pass by themselves; this closure is based on direct Product Owner runtime acceptance.
 
-Operation Dashboard history remains preserved. Phase 1 implementation `6ea7819`, Phase 1 remediation `cbe5bc2`, Phase 2 implementation `dd9cbf5`, Phase 3 implementation `32c10f5470bf1d3a530a767b42ab1948f7f3e61d`, and Phase 3 PO PASS governance `5d29c0f0212fc59fac08131e42b5f1e2cfbacf73` remain accepted. `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` is now the current ticket, reactivated `READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION`.
+Operation Dashboard history remains preserved. Phase 1 implementation `6ea7819`, Phase 1 remediation `cbe5bc2`, Phase 2 implementation `dd9cbf5`, Phase 3 implementation `32c10f5470bf1d3a530a767b42ab1948f7f3e61d`, Phase 3 PO PASS governance `5d29c0f0212fc59fac08131e42b5f1e2cfbacf73`, and Phase 4 implementation `235b69d0aa1a5b776b3398fde50c60172f7e4181` (Observation Group Viewport Optimization) remain accepted as implemented. Phase 4 documentation `5e1fa20` and cleanup `.gitignore` protection `f7df0b56e6ec43d97ff48c68dd6fbb2e5ed3f558` are also part of this history. `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` is now the current ticket, state `PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION`.
 
-Note on an unresolved inconsistency (not resolved in this closure round): this section previously referenced a "Phase 4" already carrying implementation commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`, documentation `5e1fa20`, and `.gitignore` protection `f7df0b56e6ec43d97ff48c68dd6fbb2e5ed3f558`, described as paused pending Import authentication. This conflicts with `F13-UI-AUDIT-PLAN_MANIFEST.md`, which states Phase 4 is `NOT YET DISPATCHED` with no implementation commits recorded. The manifest is treated as authoritative for current Phase 4 status per its `L2 Active Onboarding` authority. This conflict is preserved here for visibility and requires ChatGPT/Product Owner clarification before Phase 4 UI implementation begins; it does not block the current discovery/planning-only state.
+Resolved inconsistency (previously flagged in this section, now closed): an earlier draft of this snapshot described Phase 4 as both "already implemented" and, via the manifest, `NOT YET DISPATCHED`. Verified technical evidence confirms `235b69d0aa1a5b776b3398fde50c60172f7e4181` is an ancestor of the current branch HEAD and is the real Phase 4 implementation commit; `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` independently records Phase 4 as `COMPLETED / PENDING PO REVIEW`. The manifest's prior `NOT YET DISPATCHED` wording was the stale side and has been corrected. Phase 4 is implemented; it awaits Product Owner review, not new implementation.
 
 Fresh-chat onboarding chain for the current active ticket:
 
