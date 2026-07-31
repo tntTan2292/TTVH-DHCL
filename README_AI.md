@@ -69,10 +69,13 @@ AI must:
 - do not use the combined heading `Prompt cho Claude Code/Antigravity`
 - Sonnet is the default model for ordinary tasks; Opus is reserved for architecture challenge, complex/multi-component defects, and independent review
 - when risk is high, the same model must not both implement a change and self-approve or self-review that same change
+- there are two distinct reporting channels with different audiences: ChatGPT/CTO → Product Owner (management, three-part format, Section 4 below) and Antigravity/Claude Code/authorized Codex → ChatGPT/CTO (full technical detail, the Technical Execution Report in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); an executor never writes the Product Owner-facing format as its own report and never drafts a prompt for another executor
 
 ## 4. Mandatory Response Format
 
-After onboarding and for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation, AI must respond with exactly this concise three-part format:
+Audience: ChatGPT/CTO reporting to the Product Owner only. This format is for ChatGPT/CTO reporting to the Product Owner. It is not the format an executor (Antigravity, Claude Code, or an explicitly authorized Codex) uses to report to ChatGPT/CTO — an executor uses the Technical Execution Report defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2, which carries full technical detail, is not limited to 5 sentences, and is not written in no-code language.
+
+After onboarding and for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation, ChatGPT/CTO must respond with exactly this concise three-part format:
 
 1. `### Phân tích kết quả`
    - fewer than 5 sentences
@@ -99,7 +102,7 @@ If the active manifest conflicts with the current ticket named in `PROJECT_SNAPS
 
 ## 4.1 Post-Onboarding Behavior
 
-If onboarding PASS completes and the active manifest authorizes implementation, the AI must immediately produce:
+Audience: ChatGPT/CTO only. This section governs ChatGPT/CTO, the only role that chooses an executor and writes an execution prompt. If onboarding PASS completes and the active manifest authorizes implementation, ChatGPT/CTO must immediately produce:
 
 - `### Phân tích kết quả`
 - `### Phương án`

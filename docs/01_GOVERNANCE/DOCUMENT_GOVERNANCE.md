@@ -278,4 +278,4 @@ The active ticket remains current until review findings within its scope are rem
 
 The next ticket must not be activated before current-ticket PO PASS unless explicit Governance authority permits parallel work.
 
-Responses for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation must follow the canonical three-part format in `CODEX_PROMPT_STANDARD.md`.
+ChatGPT/CTO's responses for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation must follow the canonical three-part format in `CODEX_PROMPT_STANDARD.md` Section 14.1. An executor reporting remediation results to ChatGPT/CTO uses the Technical Execution Report in `CODEX_PROMPT_STANDARD.md` Section 14.2 instead; the two formats are not interchangeable.

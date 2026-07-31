@@ -20,6 +20,7 @@ Filename retained as `CODEX_PROMPT_STANDARD.md` for link continuity. Default exe
 - [11. Additional PO/User Decision Rule](#11-additional-pouser-decision-rule)
 - [12. Conversation Context Capacity and Fresh-Chat Handoff](#12-conversation-context-capacity-and-fresh-chat-handoff)
 - [13. Executor Selection Rule](#13-executor-selection-rule)
+- [14. Two Reporting Channels](#14-two-reporting-channels)
 
 ## 1. Purpose
 
@@ -232,6 +233,8 @@ Mandatory handoff migration check:
 The current ticket must not be reported complete when any applicable step fails.
 
 ## 7. Post-Onboarding Behavior
+
+Audience: ChatGPT/CTO → Product Owner channel only. This section defines what ChatGPT/CTO reports to the Product Owner. It does not define what an executor (Antigravity, Claude Code, or an explicitly authorized Codex) reports to ChatGPT/CTO — that is a separate channel with its own format; see Section 14.
 
 When onboarding PASS completes, behavior depends on the active manifest:
 
@@ -507,19 +510,15 @@ Rules for agent selection:
 - do not choose Antigravity for business-rule implementation
 - do not choose Claude Code as the primary executor for final visual polish when the ticket is mainly UI-facing
 
-Each executor must report:
+Each executor (Antigravity, Claude Code, or an explicitly authorized Codex) must report to ChatGPT/CTO using the `Technical Execution Report` defined in Section 14.2. That report is full technical detail, not the Product Owner-facing format below — executors do not write `### Phân tích kết quả`, `### Phương án`, or a prompt for another executor.
 
-- completed result
-- files changed
-- validation
-- blocker
-- ticket status
-
-Product Owner-facing reports must stay management-level and no-code:
+ChatGPT/CTO alone reads the Technical Execution Report, decides purely technical questions in its own authority, and then authors a separate Product Owner-facing report that must stay management-level and no-code:
 
 - `KẾT QUẢ` or `PHÂN TÍCH KẾT QUẢ`: under 5 sentences
 - `PHƯƠNG ÁN`: under 5 sentences
 - then exactly one prompt or one Product Owner decision request when applicable
+
+This Product Owner-facing format (Section 7, Section 14.1) is authored by ChatGPT/CTO only; it is never the executor's own report format.
 
 Only ask the Product Owner about:
 
@@ -540,3 +539,49 @@ Antigravity results require careful verification before PO PASS:
 - source diff review
 - focused regression
 - PO acceptance handoff
+
+## 14. Two Reporting Channels
+
+Governance uses two distinct reporting channels with different audiences, different purposes, and different formats. Applying one channel's rules to the other's audience is a governance defect, not a stylistic choice.
+
+### 14.1 Channel A — ChatGPT/CTO → Product Owner
+
+Audience: Product Owner. Author: ChatGPT/CTO only.
+
+This is the management report defined in Section 7 and mirrored in `AI_COLLABORATION_PROTOCOL.md` Section 15.1: `### Phân tích kết quả`, `### Phương án`, and exactly one of `### Prompt cho Claude Code`, `### Prompt cho Antigravity`, or `### Yêu cầu PO quyết định`. Under 5 sentences per section, management/no-code language, no class names or code paths unless a PO decision needs them.
+
+ChatGPT/CTO produces this by reading the executor's Technical Execution Report (Section 14.2), applying its own technical judgment, and translating only what the Product Owner needs to decide into plain language. ChatGPT/CTO is the only role that writes this format. An executor must never write this format as its own report.
+
+### 14.2 Channel B — Executor → ChatGPT/CTO (Technical Execution Report)
+
+Audience: ChatGPT/CTO. Authors: Antigravity, Claude Code, or an explicitly Product-Owner-authorized Codex.
+
+This is a full technical report, not a management summary. It is not subject to the 5-sentence limit or the no-code-language rule — technical terms, file paths, function names, commands, and raw evidence are expected and required so ChatGPT/CTO can verify the conclusion rather than take it on faith.
+
+Report using these sections when applicable; write `Not applicable` for a section that genuinely does not apply, but never omit or shrink a section to make the report shorter:
+
+1. `Execution Result` — the final outcome: done, not done, or blocked. Do not write `PASS` without the evidence that backs it up.
+2. `Verified Scope And Baseline` — branch, starting `HEAD`, the authority this work ran under, what was actually done, and which scope boundaries were respected.
+3. `Problem Or Symptom` — the requested symptom, expected versus observed behavior, and reproduction steps if any.
+4. `Technical Evidence` — files, modules, functions, components, or data flow involved; logs, stack traces, query results, screenshots, runtime observations, or Git evidence. Mark clearly which statements are verified fact and which are inference.
+5. `Root Cause` — symptom, direct cause, and systemic/contributing cause if any, with the reasoning chain from evidence to conclusion. If evidence is insufficient, write `ROOT CAUSE NOT YET PROVEN` — do not guess.
+6. `Technical Decision` — the option chosen, why, the alternatives rejected, and the trade-offs that mattered. Purely technical decisions are made by ChatGPT/CTO or by the executor within its granted authority; do not escalate a technical choice to the Product Owner unless it changes product authority.
+7. `Changes Made` — each file or module changed, the purpose and impact of each change, and what product behavior changed or was deliberately preserved.
+8. `Validation Performed` — the exact commands run, their scope, and their actual output — not just `PASS`. Include runtime/browser/data validation performed, and state plainly what could not be validated.
+9. `Residual Risks And Limitations` — known residuals, deferred items, environment or coverage limitations, and remaining regression risk.
+10. `Required Next Check` — only the runtime check, PO acceptance check, or external validation that genuinely remains. Do not draft a prompt for Claude Code, Antigravity, or any other executor here, and do not act as CTO/Coordinator — that decision belongs to ChatGPT/CTO.
+11. `Git Handoff` — files changed, full commit SHA, remote HEAD, push result, and worktree status.
+
+### 14.3 Per-Executor Additions
+
+Antigravity, when reporting discovery, UI/UX, or Windows runtime validation, adds to the Technical Execution Report when relevant: environment and resolution/zoom level, reproduction steps, expected versus observed, affected screen/component, screenshot or runtime evidence, browser/network/console evidence, severity and user-facing scope, and a clear separation between a UI observation and a technical root cause. Antigravity must not assert a backend root cause without backend evidence.
+
+Claude Code, when reporting implementation, backend, data, test, documentation, or Git work, adds to the Technical Execution Report when relevant: code path and dependency involved, data flow or control flow, the exact test command and its output, migration/schema/data impact, compatibility/regression risk, and commit/worktree evidence.
+
+Codex, only when the Product Owner has explicitly authorized it as executor for a specific ticket, uses the same Technical Execution Report as Claude Code.
+
+### 14.4 Boundary Between the Channels
+
+- An executor's Technical Execution Report is never shortened, translated into no-code language, or forced into the three-part PO format by the executor itself.
+- ChatGPT/CTO's Product Owner-facing report is never expanded with raw technical evidence beyond what the Product Owner needs to decide.
+- Neither channel replaces the other. A ticket is not complete until the applicable channel for that step has been produced in full.

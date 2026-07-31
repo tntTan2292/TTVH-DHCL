@@ -42,15 +42,13 @@ That is normally 2-3 reads, not the full `README_AI.md` → `CODEX_PROMPT_STANDA
 - Workspace: only `D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong`. Do not create sibling clone/worktree folders to bypass a dirty or wrong-branch workspace — stop and report instead.
 - Never push with `--force`, never skip hooks, never amend a published commit, unless explicitly instructed.
 
-## 5. Mandatory report format (Product Owner-facing)
+## 5. Your report format: Technical Execution Report (to ChatGPT/CTO, not to the Product Owner)
 
-For post-onboarding continuation, implementation review, remediation findings, validation failures, PO handoff, and next-ticket activation, respond in exactly this structure:
+You report to ChatGPT/CTO, not directly to the Product Owner. Your report is the `Technical Execution Report` defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2 — full technical detail: files, code paths, commands, exact output, root cause reasoning, residual risks, commit SHAs. It is not subject to a 5-sentence limit and is not written in no-code language; technical terms are expected.
 
-1. `### Phân tích kết quả` — under 5 sentences, management/no-code language, states the result/finding/blocker.
-2. `### Phương án` — under 5 sentences, states the immediate execution path, goal, and next check milestone.
-3. Exactly one of: `### Prompt cho Claude Code`, `### Prompt cho Antigravity`, or `### Yêu cầu PO quyết định`.
+Do not write `### Phân tích kết quả`, `### Phương án`, or `### Prompt cho Antigravity` / `### Prompt cho Claude Code` as your own report — that three-part format belongs to ChatGPT/CTO reporting to the Product Owner (`README_AI.md` Section 4, `CODEX_PROMPT_STANDARD.md` Section 14.1). ChatGPT/CTO is the one who reads your Technical Execution Report and translates it into that format; you do not do that translation yourself, and you do not draft a prompt for Antigravity or for another Claude Code session — that is ChatGPT/CTO's coordination role, not yours.
 
-Keep code paths, class names, and raw logs out of sections 1-2 unless needed for a PO decision. AI-to-AI technical handoff and architecture review are not subject to the 5-sentence limit.
+Minimum sections when applicable (write `Not applicable` rather than omitting a section): `Execution Result`, `Verified Scope And Baseline`, `Problem Or Symptom`, `Technical Evidence`, `Root Cause` (or `ROOT CAUSE NOT YET PROVEN` if evidence is insufficient — never guess), `Technical Decision`, `Changes Made`, `Validation Performed` (exact commands and output, not just `PASS`), `Residual Risks And Limitations`, `Required Next Check` (no prompts drafted here), `Git Handoff` (files changed, full commit SHA, remote HEAD, push result, worktree status).
 
 ## 6. Mandatory handoff before reporting a ticket done
 
@@ -62,4 +60,4 @@ Keep code paths, class names, and raw logs out of sections 1-2 unless needed for
 
 ## 7. Maintenance of this file
 
-This file must be reviewed whenever a new `DEC-0xx` governance decision is recorded, or whenever `README_AI.md`, `CODEX_PROMPT_STANDARD.md`, or `AI_COLLABORATION_PROTOCOL.md` change executor roles, model rules, or the report format. Keep it short — it loads into every session whether needed or not.
+This file must be reviewed whenever a new `DEC-0xx` governance decision is recorded, or whenever `README_AI.md`, `CODEX_PROMPT_STANDARD.md`, or `AI_COLLABORATION_PROTOCOL.md` change executor roles, model rules, or either reporting channel's format (Section 14 of `CODEX_PROMPT_STANDARD.md`). Keep it short — it loads into every session whether needed or not. This file is an onboarding shortcut for Claude Code; it does not create authority of its own, and it must not restate the Product Owner-facing format as something Claude Code itself produces.

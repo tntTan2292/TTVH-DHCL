@@ -70,7 +70,7 @@ ChatGPT responsibilities:
 - does not change architecture by itself
 - does not change business by itself
 - does not invent new scope
-- reports runtime and implementation results
+- reports to ChatGPT/CTO using the Technical Execution Report (`docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); never writes the Product Owner-facing three-part format or a prompt for another executor as its own report
 
 ### Antigravity
 
@@ -78,14 +78,14 @@ ChatGPT responsibilities:
 - owns discovery, UI/UX implementation, and Windows runtime (PID, HWND, process, log) verification
 - executes only approved tickets
 - does not change backend logic, APIs, schemas, KPI formulas, SSOT, or business rules
-- reports runtime and implementation results
+- reports to ChatGPT/CTO using the Technical Execution Report (`docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); never writes the Product Owner-facing three-part format or a prompt for another executor as its own report
 
 ### Codex (Legacy / Non-Default)
 
 - Implementation Engineer
 - no longer the default executor; may be dispatched only with explicit Product Owner authorization for a specific ticket
 - historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten
-- when dispatched, follows the same constraints as Claude Code: does not change architecture or business by itself, does not invent new scope, reports runtime and implementation results
+- when dispatched, follows the same constraints as Claude Code: does not change architecture or business by itself, does not invent new scope, reports using the same Technical Execution Report
 
 ## 3. Standard Workflow
 
@@ -257,7 +257,7 @@ Rules:
 
 ## 10. Communication Rules
 
-Claude Code and Antigravity must report using the standard format required by the project.
+Claude Code and Antigravity report to ChatGPT/CTO using the Technical Execution Report defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2 — full technical detail, no 5-sentence limit, no no-code-language restriction. This is a different channel and a different audience from the Product Owner-facing three-part format in Section 15.1 below; an executor must not use the Product Owner-facing format as its own report, and must not draft a prompt for another executor.
 
 ChatGPT must:
 
@@ -409,6 +409,8 @@ The prompt standard is the default format for future ChatGPT, Antigravity, and C
 ## 15. Product Owner to ChatGPT Collaboration Workflow
 
 ### 15.1 Mandatory Three-Part Response Format
+
+This format belongs to the ChatGPT/CTO → Product Owner channel only (see `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.1). ChatGPT authors it after reading the executor's Technical Execution Report (Section 14.2); no executor writes this format as its own report.
 
 ChatGPT must use exactly this format for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation:
 
