@@ -506,15 +506,17 @@ function deferred() {
     });
     let cleanupCalled = false;
     browserProcessManager.cleanupStaleLocks = () => { cleanupCalled = true; };
+    const fsMod = require('fs');
+    const originalExistsSync = fsMod.existsSync;
+    fsMod.existsSync = () => false;
     globalRegistry.clear();
     const noneService = new DkclSessionPreflightService({ interactiveClientFactory: () => ({ prepareInteractiveAuthentication: async () => true, waitInteractiveAuthentication: async () => {}, hideWindow: async () => true, close: async () => {} }) });
     await noneService.interactiveAuthenticate('HUE');
     assert.strictEqual(cleanupCalled, false, 'NONE classification should not clean locks');
     assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree count should be 0');
+    fsMod.existsSync = originalExistsSync;
 
     console.log('\nTEST 8: R4.1B interactive STALE_CONFIRMED classification (cleanup once, launch proceeds)');
-    const fsMod = require('fs');
-    const originalExistsSync = fsMod.existsSync;
     fsMod.existsSync = (path) => path.endsWith('.lock') ? true : originalExistsSync(path);
     globalRegistry.clear(); cleanupCalled = false;
     const noneService2 = new DkclSessionPreflightService({ interactiveClientFactory: () => ({ prepareInteractiveAuthentication: async () => true, waitInteractiveAuthentication: async () => {}, hideWindow: async () => true, close: async () => {} }) });
@@ -538,43 +540,38 @@ function deferred() {
     assert.strictEqual(cleanupCalled, false, 'LIVE_UNVERIFIED should not clean locks');
     assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree count should be 0');
 
-    console.log('\nTEST 9B: R4.1B TCT LIVE_UNVERIFIED reclaims exact-profile orphan and continues launch');
-    globalRegistry.clear();
+    console.log('\nTEST 9B: clean-restart current-backend-owned HUE/TCT sessions are treated as owned and stale disk locks are cleaned');
     global.terminateCount = 0;
-    let reclaimedCleanupCount = 0;
-    const terminatedPids = [];
-    const originalTerminateProcessTree = browserProcessManager.terminateProcessTree;
-    const originalCleanupStaleLocks = browserProcessManager.cleanupStaleLocks;
     browserProcessManager.findBrowserProcessByProfile = async () => ({
         inspectionStatus: 'SUCCESS',
         matchingProcesses: [
-            { pid: 4000, parentPid: 0, exactProfileMatch: true },
-            { pid: 4001, parentPid: 4000, exactProfileMatch: false },
-            { pid: 4002, parentPid: 4000, exactProfileMatch: true }
+            { pid: 4000, parentPid: process.pid, exactProfileMatch: true },
+            { pid: 4001, parentPid: 4000, exactProfileMatch: false }
         ],
         errorCode: null
     });
-    browserProcessManager.cleanupStaleLocks = () => { reclaimedCleanupCount++; };
-    browserProcessManager.terminateProcessTree = async (pid) => {
-        terminatedPids.push(pid);
-        global.terminateCount = (global.terminateCount || 0) + 1;
-    };
-    const reclaimedCalls = [];
-    const reclaimedService = new DkclSessionPreflightService({
-        interactiveClientFactory: () => ({
-            async prepareInteractiveAuthentication(args) { reclaimedCalls.push(['prepare', args]); return true; },
-            async waitInteractiveAuthentication() { reclaimedCalls.push(['wait']); },
-            async hideWindow() { reclaimedCalls.push(['hide']); return true; },
-            async close() { reclaimedCalls.push(['close']); }
-        })
-    });
-    const reclaimed = await reclaimedService.interactiveAuthenticate('TCT');
-    assert.strictEqual(reclaimed.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'TCT orphan reclamation continues into normal interactive login');
-    assert.deepStrictEqual(terminatedPids, [4000], 'only exact-profile TCT root process tree is terminated');
-    assert.strictEqual(reclaimedCleanupCount, 1, 'TCT orphan reclamation cleans stale locks once');
-    assert.strictEqual(reclaimedCalls.filter((call) => call[0] === 'prepare').length, 1, 'TCT orphan reclamation proceeds to open a fresh browser');
-    browserProcessManager.terminateProcessTree = originalTerminateProcessTree;
-    browserProcessManager.cleanupStaleLocks = originalCleanupStaleLocks;
+    for (const source of ['HUE', 'TCT']) {
+        globalRegistry.clear();
+        let ownedCleanupCount = 0;
+        let prepareCount = 0;
+        browserProcessManager.cleanupStaleLocks = () => { ownedCleanupCount++; };
+        fsMod.existsSync = (path) => path.endsWith('.lock') ? true : originalExistsSync(path);
+        const ownedService = new DkclSessionPreflightService({
+            interactiveClientFactory: () => ({
+                async prepareInteractiveAuthentication() { prepareCount++; return true; },
+                async waitInteractiveAuthentication() {},
+                async hideWindow() { return true; },
+                async close() {}
+            })
+        });
+        const owned = await ownedService.interactiveAuthenticate(source);
+        assert.strictEqual(owned.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, `${source} current-backend-owned session is reused as interactive in-progress`);
+        assert.strictEqual(owned.lifecycle_state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, `${source} current-backend-owned session stays in WAITING_FOR_LOGIN after clean restart`);
+        assert.strictEqual(ownedCleanupCount, 1, `${source} current-backend-owned session cleans stale disk lock once`);
+        assert.strictEqual(prepareCount, 0, `${source} current-backend-owned session does not open a duplicate browser`);
+    }
+    fsMod.existsSync = originalExistsSync;
+    browserProcessManager.cleanupStaleLocks = () => { cleanupCalled = true; };
 
     console.log('\nTEST 10: R4.1B recover STALE_CONFIRMED classification');
     browserProcessManager.findBrowserProcessByProfile = async () => ({
@@ -590,7 +587,7 @@ function deferred() {
     fsMod.existsSync = originalExistsSync;
 
     console.log('\nTEST 11: R4.1B terminateProcessTree call count remains zero');
-    assert.strictEqual(global.terminateCount || 0, 1, 'terminateProcessTree is only used for the TCT exact-profile orphan recovery path');
+    assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree remains unused for clean-restart owned-session recovery');
 
 
     console.log('\nTEST 12: HUE cancel-login contract verification');

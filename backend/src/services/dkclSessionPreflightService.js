@@ -37,6 +37,14 @@ function selectExactProfileRootPids(matchingProcesses = []) {
         .map((proc) => Number(proc.pid));
 }
 
+function selectCurrentBackendOwnedRootPids(matchingProcesses = [], backendPid = process.pid) {
+    return selectExactProfileRootPids(matchingProcesses)
+        .filter((pid) => {
+            const match = (matchingProcesses || []).find((proc) => Number(proc.pid) === Number(pid));
+            return match && Number(match.parentPid) === Number(backendPid);
+        });
+}
+
 const SOURCE_CONFIG = Object.freeze({
     HUE: {
         source: 'HUE',
@@ -123,6 +131,7 @@ class DkclSessionPreflightService {
     async _classifyLockState(sourceConfig, entry, profileDir) {
         const inspection = await processManager.findBrowserProcessByProfile(profileDir);
         const lockDirExists = require('fs').existsSync(`${profileDir}.lock`);
+        const currentBackendOwnedRootPids = selectCurrentBackendOwnedRootPids(inspection.matchingProcesses, process.pid);
 
         if (inspection.inspectionStatus !== 'SUCCESS') {
             return { lockState: 'UNKNOWN', inspection };
@@ -131,17 +140,17 @@ class DkclSessionPreflightService {
         const hasLiveProcess = inspection.matchingProcesses.length > 0;
 
         if (hasLiveProcess) {
-            if (entry.client) {
-                return { lockState: 'LIVE_OWNED', inspection };
+            if (entry.client || currentBackendOwnedRootPids.length > 0) {
+                return { lockState: 'LIVE_OWNED', inspection, currentBackendOwnedRootPids, lockDirExists };
             }
             return { lockState: 'LIVE_UNVERIFIED', inspection };
         }
 
         if (!hasLiveProcess && lockDirExists && !entry.client) {
-            return { lockState: 'STALE_CONFIRMED', inspection };
+            return { lockState: 'STALE_CONFIRMED', inspection, lockDirExists };
         }
 
-        return { lockState: 'NONE', inspection };
+        return { lockState: 'NONE', inspection, lockDirExists };
     }
 
     buildInteractiveInProgressResponse(sourceConfig, entry) {
@@ -386,6 +395,20 @@ class DkclSessionPreflightService {
             }
 
             if (classification.lockState === 'LIVE_OWNED') {
+                if (!entry.client && classification.currentBackendOwnedRootPids?.length > 0) {
+                    if (classification.lockDirExists) {
+                        processManager.cleanupStaleLocks(profileDir);
+                    }
+                    transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+                        client: null,
+                        authenticated: false,
+                        backgroundReady: false,
+                        windowHidden: false,
+                        hideAttempted: false,
+                        lastError: null
+                    });
+                    return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+                }
                 const recErr = new Error('PROFILE_IN_USE_OWNED');
                 recErr.code = 'PROFILE_IN_USE_OWNED';
                 throw recErr;
