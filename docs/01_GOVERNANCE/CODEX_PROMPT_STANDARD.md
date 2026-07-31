@@ -556,32 +556,39 @@ ChatGPT/CTO produces this by reading the executor's Technical Execution Report (
 
 Audience: ChatGPT/CTO. Authors: Antigravity, Claude Code, or an explicitly Product-Owner-authorized Codex.
 
-This is a full technical report, not a management summary. It is not subject to the 5-sentence limit or the no-code-language rule — technical terms, file paths, function names, commands, and raw evidence are expected and required so ChatGPT/CTO can verify the conclusion rather than take it on faith.
+This is a technical report, not a management summary — but it is not an audit log either. It is not subject to the 5-sentence limit or the no-code-language rule; technical terms, file paths, and commands are allowed and expected when they matter. It is subject to a different discipline: enough for ChatGPT/CTO to understand and verify the result, without re-narrating the whole process.
 
-Report using these sections when applicable; write `Not applicable` for a section that genuinely does not apply, but never omit or shrink a section to make the report shorter:
+The report scales with task complexity. It does not have a fixed number of mandatory headings.
 
-1. `Execution Result` — the final outcome: done, not done, or blocked. Do not write `PASS` without the evidence that backs it up.
-2. `Verified Scope And Baseline` — branch, starting `HEAD`, the authority this work ran under, what was actually done, and which scope boundaries were respected.
-3. `Problem Or Symptom` — the requested symptom, expected versus observed behavior, and reproduction steps if any.
-4. `Technical Evidence` — files, modules, functions, components, or data flow involved; logs, stack traces, query results, screenshots, runtime observations, or Git evidence. Mark clearly which statements are verified fact and which are inference.
-5. `Root Cause` — symptom, direct cause, and systemic/contributing cause if any, with the reasoning chain from evidence to conclusion. If evidence is insufficient, write `ROOT CAUSE NOT YET PROVEN` — do not guess.
-6. `Technical Decision` — the option chosen, why, the alternatives rejected, and the trade-offs that mattered. Purely technical decisions are made by ChatGPT/CTO or by the executor within its granted authority; do not escalate a technical choice to the Product Owner unless it changes product authority.
-7. `Changes Made` — each file or module changed, the purpose and impact of each change, and what product behavior changed or was deliberately preserved.
-8. `Validation Performed` — the exact commands run, their scope, and their actual output — not just `PASS`. Include runtime/browser/data validation performed, and state plainly what could not be validated.
-9. `Residual Risks And Limitations` — known residuals, deferred items, environment or coverage limitations, and remaining regression risk.
-10. `Required Next Check` — only the runtime check, PO acceptance check, or external validation that genuinely remains. Do not draft a prompt for Claude Code, Antigravity, or any other executor here, and do not act as CTO/Coordinator — that decision belongs to ChatGPT/CTO.
-11. `Git Handoff` — files changed, full commit SHA, remote HEAD, push result, and worktree status.
+Default minimum, for most tasks:
+
+- `Result` — what is done, not done, or blocked.
+- `Cause / Key Evidence` — only if there was a defect or a non-obvious finding; skip for a task that had no defect to explain.
+- `Changes Made` — the files/areas actually changed and their effect.
+- `Validation` — what was actually run/checked and the real outcome, not just `PASS`.
+- `Real Residuals` — only genuine open risk or deferred item; omit if there is none.
+- `Git Handoff` — files changed, commit SHA, remote HEAD, push/worktree result, when Git is involved.
+
+Sections may be merged (e.g. `Result` and `Validation` in one short paragraph) or dropped entirely when not relevant. Do not write `Not applicable` across a run of unused headings — simply omit them.
+
+Do not include: a step-by-step account of which file was read or edited in what order; intermediate actions that were not the point of the task; the full onboarding/authority chain (assume the reader already knows it); restrictions that were simply followed with nothing to report; acceptance criteria copied back from the instructions; an intermediate error that was found and fixed within the same turn (mention only if it changes the residual risk picture); alternatives that were never seriously considered; or the same conclusion restated under two different headings.
+
+Expand into full detail — additional evidence, root-cause reasoning with the fact chain, logs, stack traces, or exact test output — only when at least one applies: the defect is genuinely complex or multi-component, the conclusion is disputed or uncertain, there is material residual risk, or ChatGPT/CTO explicitly asks for it. When root cause is claimed, it must still be evidence-backed, not asserted; if evidence is insufficient, write `ROOT CAUSE NOT YET PROVEN` rather than guessing — but this does not require expanding every other section to match.
+
+Target length as a guide, not a hard cap: roughly 100-250 words for a simple or purely documentation change, roughly 250-500 words for a real technical defect with root cause. Go longer only when the evidence genuinely requires it — never cut evidence, root cause reasoning, or a real residual risk just to fit a word count.
+
+Do not draft a prompt for Claude Code, Antigravity, or any other executor in this report, and do not act as CTO/Coordinator — that decision belongs to ChatGPT/CTO.
 
 ### 14.3 Per-Executor Additions
 
-Antigravity, when reporting discovery, UI/UX, or Windows runtime validation, adds to the Technical Execution Report when relevant: environment and resolution/zoom level, reproduction steps, expected versus observed, affected screen/component, screenshot or runtime evidence, browser/network/console evidence, severity and user-facing scope, and a clear separation between a UI observation and a technical root cause. Antigravity must not assert a backend root cause without backend evidence.
+Antigravity adds, only when relevant to the finding: environment/zoom, reproduction steps, expected versus observed, affected screen/component, and screenshot or runtime/browser/console evidence. Antigravity must not assert a backend root cause without backend evidence.
 
-Claude Code, when reporting implementation, backend, data, test, documentation, or Git work, adds to the Technical Execution Report when relevant: code path and dependency involved, data flow or control flow, the exact test command and its output, migration/schema/data impact, compatibility/regression risk, and commit/worktree evidence.
+Claude Code adds, only when relevant to the finding: code path/dependency involved, the exact test command and its real output, and migration/schema/data or regression impact.
 
 Codex, only when the Product Owner has explicitly authorized it as executor for a specific ticket, uses the same Technical Execution Report as Claude Code.
 
 ### 14.4 Boundary Between the Channels
 
-- An executor's Technical Execution Report is never shortened, translated into no-code language, or forced into the three-part PO format by the executor itself.
+- An executor's Technical Execution Report is never forced into no-code language or the three-part PO format by the executor itself, and is never padded with process narration or unused headings just to look thorough.
 - ChatGPT/CTO's Product Owner-facing report is never expanded with raw technical evidence beyond what the Product Owner needs to decide.
-- Neither channel replaces the other. A ticket is not complete until the applicable channel for that step has been produced in full.
+- Both channels favor being concise over being exhaustive; neither channel replaces the other.
