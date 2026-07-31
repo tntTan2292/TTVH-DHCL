@@ -45,6 +45,18 @@ function selectCurrentBackendOwnedRootPids(matchingProcesses = [], backendPid = 
         });
 }
 
+function selectOrphanedRootPids(matchingProcesses = [], backendPid = process.pid, isProcessAlive = () => false) {
+    return selectExactProfileRootPids(matchingProcesses)
+        .filter((pid) => {
+            const match = (matchingProcesses || []).find((proc) => Number(proc.pid) === Number(pid));
+            if (!match) return false;
+            const parentPid = Number(match.parentPid);
+            if (!Number.isFinite(parentPid) || parentPid <= 0) return false;
+            if (parentPid === Number(backendPid)) return false;
+            return !isProcessAlive(parentPid);
+        });
+}
+
 const SOURCE_CONFIG = Object.freeze({
     HUE: {
         source: 'HUE',
@@ -114,6 +126,16 @@ class DkclSessionPreflightService {
             manualAuthWaitMs: Number(process.env.DKCL_INTERACTIVE_AUTH_WAIT_MS || 240000),
             source: sourceConfig?.source
         }));
+        this.processAliveCheck = options.processAliveCheck || ((pid) => {
+            const numericPid = Number(pid);
+            if (!Number.isFinite(numericPid) || numericPid <= 0) return false;
+            try {
+                process.kill(numericPid, 0);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        });
     }
 
     normalizeSource(source) {
@@ -132,6 +154,8 @@ class DkclSessionPreflightService {
         const inspection = await processManager.findBrowserProcessByProfile(profileDir);
         const lockDirExists = require('fs').existsSync(`${profileDir}.lock`);
         const currentBackendOwnedRootPids = selectCurrentBackendOwnedRootPids(inspection.matchingProcesses, process.pid);
+        const orphanedRootPids = selectOrphanedRootPids(inspection.matchingProcesses, process.pid, this.processAliveCheck);
+        const exactProfileRootPids = selectExactProfileRootPids(inspection.matchingProcesses);
 
         if (inspection.inspectionStatus !== 'SUCCESS') {
             return { lockState: 'UNKNOWN', inspection };
@@ -142,6 +166,9 @@ class DkclSessionPreflightService {
         if (hasLiveProcess) {
             if (entry.client || currentBackendOwnedRootPids.length > 0) {
                 return { lockState: 'LIVE_OWNED', inspection, currentBackendOwnedRootPids, lockDirExists };
+            }
+            if (orphanedRootPids.length > 0 && orphanedRootPids.length === exactProfileRootPids.length) {
+                return { lockState: 'LIVE_ORPHANED', inspection, orphanedRootPids, lockDirExists };
             }
             return { lockState: 'LIVE_UNVERIFIED', inspection };
         }
@@ -189,8 +216,8 @@ class DkclSessionPreflightService {
         return null;
     }
 
-    async reclaimTctOrphanedProfile(classification, profileDir) {
-        const rootPids = selectExactProfileRootPids(classification?.inspection?.matchingProcesses);
+    async reclaimOrphanedProfile(classification, profileDir) {
+        const rootPids = classification?.orphanedRootPids || selectExactProfileRootPids(classification?.inspection?.matchingProcesses);
         if (rootPids.length === 0) {
             const error = new Error('PROFILE_OWNERSHIP_UNVERIFIED');
             error.code = 'PROFILE_OWNERSHIP_UNVERIFIED';
@@ -383,9 +410,9 @@ class DkclSessionPreflightService {
             // R4.1A Automatic Reconciliation
             const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
 
-            if (classification.lockState === 'UNKNOWN' || classification.lockState === 'LIVE_UNVERIFIED') {
-                if (classification.lockState === 'LIVE_UNVERIFIED' && sourceConfig.source === 'TCT' && !entry.client) {
-                    await this.reclaimTctOrphanedProfile(classification, profileDir);
+            if (classification.lockState === 'UNKNOWN' || classification.lockState === 'LIVE_UNVERIFIED' || classification.lockState === 'LIVE_ORPHANED') {
+                if (classification.lockState === 'LIVE_ORPHANED' && !entry.client) {
+                    await this.reclaimOrphanedProfile(classification, profileDir);
                 } else {
                     const errCode = classification.lockState === 'UNKNOWN' ? 'PROCESS_INSPECTION_UNAVAILABLE' : 'PROFILE_OWNERSHIP_UNVERIFIED';
                     const recErr = new Error(errCode);

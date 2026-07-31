@@ -573,6 +573,47 @@ function deferred() {
     fsMod.existsSync = originalExistsSync;
     browserProcessManager.cleanupStaleLocks = () => { cleanupCalled = true; };
 
+    console.log('\nTEST 9C: restart-backend orphaned HUE/TCT sessions reclaim exact-profile roots and reopen fresh browser');
+    global.terminateCount = 0;
+    const originalTerminateProcessTree = browserProcessManager.terminateProcessTree;
+    const terminatedPids = [];
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [
+            { pid: 5000, parentPid: 7777, exactProfileMatch: true },
+            { pid: 5001, parentPid: 5000, exactProfileMatch: false }
+        ],
+        errorCode: null
+    });
+    browserProcessManager.terminateProcessTree = async (pid) => {
+        terminatedPids.push(pid);
+        global.terminateCount = (global.terminateCount || 0) + 1;
+    };
+    for (const source of ['HUE', 'TCT']) {
+        globalRegistry.clear();
+        let orphanCleanupCount = 0;
+        let prepareCount = 0;
+        browserProcessManager.cleanupStaleLocks = () => { orphanCleanupCount++; };
+        fsMod.existsSync = (path) => path.endsWith('.lock') ? true : originalExistsSync(path);
+        const orphanService = new DkclSessionPreflightService({
+            processAliveCheck: () => false,
+            interactiveClientFactory: () => ({
+                async prepareInteractiveAuthentication() { prepareCount++; return true; },
+                async waitInteractiveAuthentication() {},
+                async hideWindow() { return true; },
+                async close() {}
+            })
+        });
+        const orphaned = await orphanService.interactiveAuthenticate(source);
+        assert.strictEqual(orphaned.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, `${source} orphaned exact-profile root is reclaimed then reopened`);
+        assert.strictEqual(orphanCleanupCount, 1, `${source} orphaned exact-profile root cleans stale disk lock once`);
+        assert.strictEqual(prepareCount, 1, `${source} orphaned exact-profile root opens a fresh browser after reclaim`);
+    }
+    assert.deepStrictEqual(terminatedPids, [5000, 5000], 'HUE and TCT each terminate only the orphaned exact-profile root process tree');
+    browserProcessManager.terminateProcessTree = originalTerminateProcessTree;
+    fsMod.existsSync = originalExistsSync;
+    browserProcessManager.cleanupStaleLocks = () => { cleanupCalled = true; };
+
     console.log('\nTEST 10: R4.1B recover STALE_CONFIRMED classification');
     browserProcessManager.findBrowserProcessByProfile = async () => ({
         inspectionStatus: 'SUCCESS',
@@ -587,7 +628,7 @@ function deferred() {
     fsMod.existsSync = originalExistsSync;
 
     console.log('\nTEST 11: R4.1B terminateProcessTree call count remains zero');
-    assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree remains unused for clean-restart owned-session recovery');
+    assert.strictEqual(global.terminateCount || 0, 2, 'terminateProcessTree is only used for orphaned exact-profile restart recovery');
 
 
     console.log('\nTEST 12: HUE cancel-login contract verification');
