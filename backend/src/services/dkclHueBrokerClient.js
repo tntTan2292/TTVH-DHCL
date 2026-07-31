@@ -1,6 +1,6 @@
 'use strict';
 
-const DEFAULT_BROKER_PORT = Number(process.env.DKCL_HUE_BROKER_PORT || 5061);
+const DEFAULT_BROKER_PORT = Number(process.env.DKCL_HUE_BROKER_PORT || 5071);
 const DEFAULT_BROKER_URL = process.env.DKCL_HUE_BROKER_URL || `http://127.0.0.1:${DEFAULT_BROKER_PORT}`;
 
 function normalizeBaseUrl(baseUrl = DEFAULT_BROKER_URL) {
