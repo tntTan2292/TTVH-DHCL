@@ -130,7 +130,7 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-009_MANIFEST.md)
+[docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md)
 
 ↓
 
@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-009 ACTIVE / PO RUNTIME FAIL`. Latest Product Owner tested implementation commit is `be9c5583dad7e116ea338a5cbc923d105fe2fab1`. After backend reset, Product Owner confirmed HUE browser does not open, HUE login is not possible, TCT browser does not open, TCT login is not possible, and Kaspersky shows no new warning. Import authentication is therefore the highest-priority active blocker and must be fixed before any further Operation Dashboard Phase 4 work resumes. Historical Dashboard acceptance remains preserved: Phase 1 implementation `6ea7819`, Phase 1 remediation `cbe5bc2`, Phase 2 implementation `dd9cbf5`, Phase 3 implementation `32c10f5470bf1d3a530a767b42ab1948f7f3e61d`, and Phase 3 governance closure `5d29c0f0212fc59fac08131e42b5f1e2cfbacf73` remain accepted; Phase 4 history at `235b69d0aa1a5b776b3398fde50c60172f7e4181`, documentation `5e1fa20`, and cleanup `f7df0b56e6ec43d97ff48c68dd6fbb2e5ed3f558` remains paused, not PO pass. No Import data/history changes, security-policy weakening, browser-profile restoration, Dashboard implementation, formula change, permission change, port change, or new module activation is authorized in this handoff beyond bounded Import authentication remediation.
+Current active handoff: `AUTO-IMPORT-010 ACTIVE / PO RUNTIME FAIL`. Latest implementation commit is `1ca7eee11101cbf59390662dbd848f6fcf8c5d60`. Direct Playwright + Chromium + HUE profile launch has already been proven to work, and stale HUE cached `LOGIN_IN_PROGRESS` state has been remediated, but Product Owner runtime under the standard launcher still fails because HUE interactive authentication hits `MODULE_NOT_FOUND: playwright`, HUE browser does not open, and login cannot proceed. Dashboard metadata, BCVH ranking, and Import status APIs are back to `HTTP 200`, Kaspersky shows no new warning, TCT is not yet authorized to expand, and Operation Dashboard Phase 4 remains paused until Import authentication receives explicit Product Owner pass.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

@@ -38,10 +38,10 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `F13-UI-AUDIT-PLAN`.
-- Current manifest: `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`.
-- Current checkpoint: `F13_UI_AUDIT_PLAN_CHECKPOINT_001.md`.
-- Next required action: Antigravity audits the current UI and submits a standardization plan for Product Owner review.
+- Current ticket: `AUTO-IMPORT-010`.
+- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md`.
+- Current checkpoint: `AUTO-IMPORT-010_CHECKPOINT_001.md`.
+- Next required action: bounded HUE-only discovery of why the standard launcher/runtime does not materialize `playwright` even though direct Playwright + Chromium launch already passes.
 
 ## Docs Inventory
 
@@ -55,6 +55,8 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md` | Checkpoint | Current cleanup checkpoint, scope lock, and preservation gates. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-008 bounded remediation scope and defect-order authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` | Import Checkpoint | Current AUTO-IMPORT-008 activation checkpoint and ordered defect register. | L2 | Current Required Reading | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-010 HUE browser launch recovery authority and runtime dependency lifecycle boundary. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_001.md` | Import Checkpoint | Current authoritative handoff after stale-state remediation and direct Playwright proof, including Product Owner runtime fail and next discovery boundary. | L2 | Current Required Reading | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-SHIPMENT-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 shipment failure drill-down proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when shipment work is reactivated or current manifest names it. | Medium |
 | `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 data coverage and quality module proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when data-quality work is reactivated or current manifest names it. | Medium |
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-PLAN_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign planning handoff with no implementation authority. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
@@ -114,13 +116,13 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | UX | 7 | 7 | 0 | Conditional Reference |
 | Technical Planning | 7 | 7 | 0 | Conditional Reference |
 | Development Reference | 4 | 4 | 0 | Conditional Reference |
-| Reviews and Evidence | 130 | 100 | 30 | Conditional Reference |
+| Reviews and Evidence | 145 | 115 | 30 | Conditional Reference |
 | Conditional Reference | 46 | 42 | 4 | Conditional Reference/Archive |
 | Archive | 9 | 9 | 0 | Archive |
 | Reports Archive | 21 | 21 | 0 | Archive |
-| Ticket Manifests | 44 | 44 | 0 | Conditional Reference |
+| Ticket Manifests | 48 | 48 | 0 | Conditional Reference |
 | Root Legacy/Frozen Docs | 21 | 21 | 0 | Conditional Reference/Archive |
-| Total under `docs` | 325 | 291 | 34 | Preserved |
+| Total under `docs` | 336 | 302 | 34 | Preserved |
 
 ## Duplicate Content Notes
 
