@@ -1,4 +1,6 @@
-# Lean Codex Prompt Standard
+# Lean Executor Prompt Standard
+
+Filename retained as `CODEX_PROMPT_STANDARD.md` for link continuity. Default executors are `Antigravity` and `Claude Code`; `Codex` is legacy/non-default (see Section 13).
 
 ## Table of Contents
 
@@ -57,16 +59,18 @@ If the ticket named in the generated prompt does not match the Current Ticket in
 
 In every new AI/chat session, `README_AI.md` must route the AI to this Prompt Standard before the first execution prompt is written.
 
-Until this Prompt Standard has been read, the AI must not write either `Prompt cho Codex` or `Prompt cho Antigravity`.
+Until this Prompt Standard has been read, the AI must not write either `Prompt cho Claude Code` or `Prompt cho Antigravity`.
 
-The first execution prompt for Codex or Antigravity defaults to one independently verifiable defect or objective, delta-only scope, and fewer than `250` words unless a Governance-approved exception applies.
+The first execution prompt for Claude Code or Antigravity defaults to one independently verifiable defect or objective, delta-only scope, and fewer than `250` words unless a Governance-approved exception applies.
 
 The first execution prompt must not repeat Manifest content, SSOT text, ticket history, standard workflow instructions, or repository-owned guidance already available through onboarding.
 
 Executor selection is two-layer:
 
-- `Executor environment`: `Codex` or `Antigravity`
-- if `Antigravity` is selected, the prompt must also state the `Model`: `Sonnet` or `Opus`
+- `Executor environment`: `Antigravity` or `Claude Code`
+- the prompt must also state the `Model`: `Sonnet` or `Opus` for the chosen executor
+
+`Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket. Historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten.
 
 ## 3. Active-Ticket Delta Prompt Rule
 
@@ -110,8 +114,8 @@ Do not mix frontend, backend, native runtime, or business logic unless evidence 
 
 Choose the executor by defect boundary:
 
-- Codex: logic, backend, frontend, tests, contracts, and documentation.
-- Antigravity: real-machine runtime, browser, process, HWND, and OS integration.
+- Claude Code: logic, backend, frontend, data, tests, contracts, documentation, and Git.
+- Antigravity: discovery, UI/UX, and real-machine Windows runtime (browser, process, HWND, and OS integration).
 
 Each executor must report root cause, changed scope, commit, tests, and targeted evidence.
 
@@ -246,7 +250,7 @@ The required autonomous output is exactly:
    - use Product Owner management/no-code language
    - state the handling goal, expected result, executor, and next check milestone
 3. exactly one of:
-   - `### Prompt cho Codex`
+   - `### Prompt cho Claude Code`
    - `### Prompt cho Antigravity`
    - `### Yêu cầu PO quyết định`
 
@@ -299,7 +303,7 @@ Restrictions:
 - Use browser automation only for targeted technical diagnosis or explicit authorization.
 
 Report:
-- use `### Phân tích kết quả`, `### Phương án`, and exactly one of `### Prompt cho Codex`, `### Prompt cho Antigravity`, or `### Yêu cầu PO quyết định`;
+- use `### Phân tích kết quả`, `### Phương án`, and exactly one of `### Prompt cho Claude Code`, `### Prompt cho Antigravity`, or `### Yêu cầu PO quyết định`;
 - keep the first two sections under 5 sentences each;
 - write the first two sections in Product Owner management/no-code language;
 - keep class names, function names, code paths, raw logs, and technical jargon out of the first two sections unless needed for a PO decision;
@@ -318,9 +322,9 @@ In the first two sections, the reader is the Product Owner. The result analysis 
 
 ## 10. Technical Validation vs PO UI Acceptance
 
-Codex owns technical validation.
+Claude Code owns technical validation.
 
-Codex responsibilities include:
+Claude Code responsibilities include:
 
 - implementation
 - unit and integration tests
@@ -341,7 +345,7 @@ Product Owner responsibilities include:
 
 Browser automation is optional, not the default. Use it only when the manifest explicitly requires browser evidence, the defect can only be proven in a browser, or the Product Owner explicitly requests it.
 
-Broad browser sweeps, screenshot collection, and visual acceptance runs do not replace PO review. Any browser run performed by Codex remains technical evidence only and never becomes PO PASS.
+Broad browser sweeps, screenshot collection, and visual acceptance runs do not replace PO review. Any browser run performed by Claude Code or Antigravity remains technical evidence only and never becomes PO PASS.
 
 Ready for PO Check handoff requires the applicable technical pass, runtime or API contract pass where relevant, and a governance state of `READY FOR PO CHECK`.
 
@@ -395,7 +399,7 @@ Do not repeatedly ask for a new chat when the current conversation remains manag
 
 ## 13. Executor Selection Rule
 
-ChatGPT in the active Product Owner session is the coordination authority.
+ChatGPT in the active Product Owner session is the CTO / Coordinator / Technical Decision Authority.
 
 ChatGPT coordination is responsible for:
 
@@ -407,28 +411,33 @@ ChatGPT coordination is responsible for:
 - reviewing results
 - asking the Product Owner for decisions
 
-Only ChatGPT coordination may redirect work between Codex and Antigravity.
+Only ChatGPT coordination may redirect work between Antigravity and Claude Code.
+
+The default executors are `Antigravity` and `Claude Code`. `Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket. Historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten.
 
 Every project prompt must use exactly one of these explicit headings:
 
-- `Prompt cho Codex`
+- `Prompt cho Claude Code`
 - `Prompt cho Antigravity`
 
-Do not use `Prompt cho Codex/Antigravity`.
+Do not use `Prompt cho Claude Code/Antigravity`.
 
 Executor selection is mandatory in two layers:
 
 1. choose the `Executor environment`
-   - `Codex`
    - `Antigravity`
-2. if `Antigravity` is selected, choose the `Model`
+   - `Claude Code`
+2. choose the `Model`
    - `Sonnet`
    - `Opus`
 
-ChatGPT coordination must make the Antigravity model choice explicit in the prompt whenever Antigravity is selected.
+ChatGPT coordination must make the model choice explicit in the prompt for whichever executor is selected.
 
-Use Codex as the primary executor for:
+When risk is high (architecture change, cross-module defect, or a decision that is hard to reverse), the same model must not both implement the change and self-approve or self-review it. A different model or a separate session must perform whichever of implementation or review/approval the first one did not perform.
 
+Use Claude Code as the primary executor for:
+
+- implementation
 - business logic
 - API, backend, and database work
 - data flow and contracts
@@ -437,20 +446,22 @@ Use Codex as the primary executor for:
 - tests
 - refactors
 - technical remediation
+- documentation and Git (commit, push)
 - governance and documentation updates for technical tickets
 - KPI, ranking, import, and evidence logic within approved authority
 
-Prompt for Codex must state that:
+Prompt for Claude Code must state that:
 
-- Codex directly executes the assigned task
-- Codex must not stop at discovery and then generate a handoff prompt for Antigravity
-- Codex must not unilaterally transfer the task to Antigravity
-- Codex must keep UI changes narrowly limited to what is technically necessary inside the assigned scope
-- if UI work beyond Codex scope is discovered, Codex only reports a blocker or short handoff note back to ChatGPT coordination
-- Codex must not write a full Antigravity prompt unless the active ticket or repository authority explicitly requires it
+- Claude Code directly executes the assigned task
+- Claude Code must not stop at discovery and then generate a handoff prompt for Antigravity
+- Claude Code must not unilaterally transfer the task to Antigravity
+- Claude Code must keep UI changes narrowly limited to what is technically necessary inside the assigned scope
+- if UI work beyond Claude Code scope is discovered, Claude Code only reports a blocker or short handoff note back to ChatGPT coordination
+- Claude Code must not write a full Antigravity prompt unless the active ticket or repository authority explicitly requires it
 
 Use Antigravity as the primary executor for:
 
+- discovery
 - layout
 - UI/UX
 - responsive behavior
@@ -462,36 +473,37 @@ Use Antigravity as the primary executor for:
 - final visual assembly
 - browser runtime visual check
 - screenshot evidence
+- Windows runtime (PID, HWND, process, log) discovery and evidence
 
-Model selection inside Antigravity:
+Model selection (applies to whichever executor is chosen):
 
-- `Sonnet` is the default Antigravity model for discovery, defect investigation, bounded technical tasks, and quota-efficient work.
+- `Sonnet` is the default model for discovery, defect investigation, bounded technical tasks, and quota-efficient work.
 - `Opus` is reserved for architecture work, complex multi-component failures, technical challenge or review, and important technical decisions where deeper reasoning is justified.
 - Do not dispatch `Opus` for ordinary bounded discovery when `Sonnet` is sufficient.
 
 Prompt for Antigravity must state that:
 
-- Antigravity directly implements the assigned UI work
-- Antigravity must not stop at discovery and then generate a handoff prompt for Codex
-- Antigravity must not unilaterally transfer the task back to Codex
+- Antigravity directly implements the assigned discovery, UI, or runtime work
+- Antigravity must not stop at discovery and then generate a handoff prompt for Claude Code
+- Antigravity must not unilaterally transfer the task back to Claude Code
 - Antigravity must not change backend logic, APIs, schemas, KPI formulas, SSOT, or business rules
 - if logic, backend, or contract work is required, Antigravity must stop that part and report a blocker back to ChatGPT coordination
-- Antigravity must not write a long Codex prompt unless repository authority explicitly requires it
+- Antigravity must not write a long Claude Code prompt unless repository authority explicitly requires it
 
 For mixed tickets:
 
-- Codex handles logic and contract work first
-- Antigravity completes interface and visual work after the logic/contract boundary is stable
+- Claude Code handles logic and contract work first
+- Antigravity completes interface, visual, and runtime work after the logic/contract boundary is stable
 - ChatGPT coordination chooses the execution order
 - each executor performs only the assigned portion
 - no executor may change the chosen executor by itself
 
 Rules for agent selection:
 
-- functionality, data, API, backend, logic, contract, and tests go to Codex
-- interface, layout, responsive behavior, visualization, and final visual polish go to Antigravity
+- functionality, data, API, backend, logic, contract, and tests go to Claude Code
+- discovery, interface, layout, responsive behavior, visualization, final visual polish, and Windows runtime go to Antigravity
 - do not choose Antigravity for business-rule implementation
-- do not choose Codex as the primary executor for final visual polish when the ticket is mainly UI-facing
+- do not choose Claude Code as the primary executor for final visual polish when the ticket is mainly UI-facing
 
 Each executor must report:
 

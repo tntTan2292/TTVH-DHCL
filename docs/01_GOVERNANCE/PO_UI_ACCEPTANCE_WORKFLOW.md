@@ -103,7 +103,7 @@ Module Completed
 
 ## 4. PO UI Acceptance Notice
 
-When `PO UI Check Required = Yes`, Codex must include a clearly visible section titled:
+When `PO UI Check Required = Yes`, the executor (Claude Code or Antigravity) must include a clearly visible section titled:
 
 `PO UI ACCEPTANCE REQUIRED`
 
@@ -124,17 +124,17 @@ The section must include:
 - Blocking Rule
 - PO Response Required
 
-Codex prepares the implementation and technical evidence, but it does not replace PO review.
+The executor prepares the implementation and technical evidence, but it does not replace PO review.
 
-Codex must not self-award PO PASS.
+The executor must not self-award PO PASS.
 
 Screenshot evidence is optional unless it is needed for diagnosis, remote review, or the active manifest explicitly requires it.
 
-Any browser evidence captured by Codex remains technical evidence only.
+Any browser evidence captured by the executor remains technical evidence only.
 
 The PO checklist should be concise and actionable so the Product Owner can confirm the visible result quickly.
 
-If PO observations conflict with Codex visual assessment, PO observations override.
+If PO observations conflict with the executor's visual assessment, PO observations override.
 
 ## 5. PO Result Definitions
 
@@ -193,7 +193,7 @@ Every PO finding must be traceable to:
 - A finding cannot be closed without PO recheck evidence when PO review applies.
 - When a PO WARNING or PO FAIL is resolvable within the active ticket, the active ticket remains current until remediation, revalidation, and required PO acceptance are complete.
 - The next ticket must not be activated before current-ticket PO PASS unless explicit Governance authority permits parallel work.
-- ChatGPT/Codex must generate a remediation prompt immediately for active-ticket findings that do not require a Product Owner decision.
+- ChatGPT coordination must generate a remediation prompt immediately for active-ticket findings that do not require a Product Owner decision.
 
 ## 8.1 PO Decision Boundary
 
@@ -207,4 +207,4 @@ Product Owner has final authority over PO PASS, PO WARNING, and PO FAIL.
 
 ChatGPT may classify and recommend, but cannot override Product Owner product acceptance.
 
-Codex must report the PO gate status explicitly and must not collapse technical acceptance into product acceptance.
+The executor must report the PO gate status explicitly and must not collapse technical acceptance into product acceptance.

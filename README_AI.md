@@ -25,7 +25,7 @@ It is also the single universal external entry point for fresh AI continuity, re
 Every AI must:
 
 1. Read [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/README_AI.md)
-2. Read [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md) before creating any first `Prompt cho Codex` or `Prompt cho Antigravity`
+2. Read [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md) before creating any first `Prompt cho Claude Code` or `Prompt cho Antigravity`
 3. Read [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
 4. Read the Current Manifest referenced by `PROJECT_SNAPSHOT.md`
 5. Read only the Required Reading listed in that manifest
@@ -35,7 +35,7 @@ Every AI must:
 
 Before writing the first execution prompt in any new AI/chat session, the AI must read `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`.
 
-If the Prompt Standard has not been read, the AI must not write `Prompt cho Codex` or `Prompt cho Antigravity`.
+If the Prompt Standard has not been read, the AI must not write `Prompt cho Claude Code` or `Prompt cho Antigravity`.
 
 The first execution prompt defaults to:
 
@@ -55,17 +55,20 @@ AI must:
 - not change frozen documents
 - not infer business rules
 - own implementation, automated testing, build/lint, API validation, database validation, contract validation, and targeted technical runtime checks
-- treat Product Owner visible UI and product acceptance as separate from Codex technical validation
+- treat Product Owner visible UI and product acceptance as separate from executor technical validation
 - stop at `READY FOR PO CHECK` when `PO UI Check Required = Yes`
 - provide a concise manual PO checklist for visible changes
 - not perform broad UI acceptance or award PO PASS
 - treat Technical PASS and Runtime/API Contract PASS as non-equivalent to PO PASS
 - before drafting or executing a prompt, follow [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md) and [docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md); active-ticket follow-ups default to delta-only and LEVEL 1 unless broader scope is explicitly justified
-- ChatGPT in the active Product Owner session is the coordination authority: receive requests, analyze tickets, finalize scope, choose the executor, write the prompt, review results, and request PO decisions
-- only ChatGPT coordination may redirect work between Codex and Antigravity
-- every future execution prompt must explicitly choose exactly one title: `Prompt cho Codex` or `Prompt cho Antigravity`
-- use Codex for logic/contracts/backend/data/tests and Antigravity for layout, UI/UX, responsive behavior, visual polish, and final visual assembly
-- do not use the combined heading `Prompt cho Codex/Antigravity`
+- ChatGPT is the CTO / Coordinator / Technical Decision Authority in the active Product Owner session: receive requests, analyze tickets, finalize scope, choose the executor, write the prompt, review results, and request PO decisions only for business rules, product behavior, SSOT, acceptance criteria, or product direction
+- the default executors are `Antigravity` and `Claude Code`; only ChatGPT coordination may redirect work between them
+- `Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket; historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten
+- every future execution prompt must explicitly choose exactly one title: `Prompt cho Claude Code` or `Prompt cho Antigravity`, plus the Model (`Sonnet` or `Opus`) for the chosen executor
+- use Claude Code for implementation, backend, data, tests, documentation, and Git; use Antigravity for discovery, UI/UX, responsive behavior, visual polish, final visual assembly, and Windows runtime (PID/HWND/process/log) work
+- do not use the combined heading `Prompt cho Claude Code/Antigravity`
+- Sonnet is the default model for ordinary tasks; Opus is reserved for architecture challenge, complex/multi-component defects, and independent review
+- when risk is high, the same model must not both implement a change and self-approve or self-review that same change
 
 ## 4. Mandatory Response Format
 
@@ -82,7 +85,7 @@ After onboarding and for post-onboarding continuation, implementation-result rev
    - use Product Owner management/no-code language
    - state the handling goal, expected result, executor, and next check milestone
 3. exactly one of:
-   - `### Prompt cho Codex`
+   - `### Prompt cho Claude Code`
    - `### Prompt cho Antigravity`
    - `### Yêu cầu PO quyết định`
 
@@ -100,7 +103,7 @@ If onboarding PASS completes and the active manifest authorizes implementation, 
 
 - `### Phân tích kết quả`
 - `### Phương án`
-- exactly one of `### Prompt cho Codex` or `### Prompt cho Antigravity`
+- exactly one of `### Prompt cho Claude Code` or `### Prompt cho Antigravity`
 
 Allowed stop conditions after onboarding are limited to manifests that explicitly indicate:
 
@@ -162,7 +165,7 @@ Ticket naming conventions do not change this route; the live state must always b
 
 ## 7. Conversation Context Capacity and Fresh-Chat Handoff
 
-The assistant or Codex must monitor whether the current conversation has become excessively long, repetitive, difficult to navigate, or likely to lose critical project context.
+The assistant, Antigravity, or Claude Code must monitor whether the current conversation has become excessively long, repetitive, difficult to navigate, or likely to lose critical project context.
 
 One conversation serves one ticket or one major delivery wave. Continue remediation and validation for that same bounded ticket or wave in the current conversation. Start a new conversation only for a new ticket, a new major delivery wave, or materially different work scope.
 

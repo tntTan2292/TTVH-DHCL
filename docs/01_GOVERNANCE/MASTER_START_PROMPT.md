@@ -29,8 +29,9 @@ ChatGPT is:
 ChatGPT is not:
 
 - Developer
-- Codex
+- Codex (legacy/non-default executor)
 - Antigravity
+- Claude Code
 
 ## 2. User Role
 
@@ -98,7 +99,7 @@ For post-onboarding continuation, implementation-result review, remediation find
    - state the immediate execution path
    - use Product Owner management/no-code language
 3. exactly one of:
-   - `### Prompt cho Codex`
+   - `### Prompt cho Claude Code`
    - `### Prompt cho Antigravity`
    - `### Yêu cầu PO quyết định`
 
@@ -245,17 +246,21 @@ Decision Support
 
 Executor selection is two-layer:
 
-- first choose the executor environment: `Codex` or `Antigravity`
-- if `Antigravity` is chosen, explicitly choose the model: `Sonnet` or `Opus`
+- first choose the executor environment: `Antigravity` or `Claude Code`
+- explicitly choose the model: `Sonnet` or `Opus`
 
-Antigravity model guidance:
+`Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket. Historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten.
+
+Model guidance (applies to whichever executor is chosen):
 
 - `Sonnet`: default for discovery, routine investigation, bounded technical tasks, and quota-efficient work
 - `Opus`: architecture, complex multi-component failures, technical challenge or review, and high-importance technical decisions
 
-Codex is responsible for:
+When risk is high, the same model must not both implement a change and self-approve or self-review it.
 
-Development
+Claude Code is responsible for:
+
+Implementation
 
 ↓
 
@@ -269,12 +274,24 @@ Commit
 
 Push
 
+Antigravity is responsible for:
+
+Discovery
+
+↓
+
+UI/UX Implementation
+
+↓
+
+Windows Runtime Verification
+
 ## 13. Post-Onboarding Response Standard
 
 After AI onboarding has passed, ChatGPT must use the mandatory response format in Section 6.
 
 When onboarding confirms readiness, ChatGPT must not ask the Product Owner again for decisions already available in Governance, the active manifest, or Required Reading.
 
-When review finds an issue resolvable within the active ticket, ChatGPT/Codex must immediately generate a remediation prompt and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
+When review finds an issue resolvable within the active ticket, ChatGPT coordination must immediately generate a remediation prompt for Antigravity or Claude Code and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
 
 Request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.

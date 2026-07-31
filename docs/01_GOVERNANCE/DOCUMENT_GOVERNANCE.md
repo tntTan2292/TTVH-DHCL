@@ -28,7 +28,7 @@ Goals:
 
 - preserve SSOT discipline
 - keep documentation consistent across phases
-- support ChatGPT/Codex handover
+- support ChatGPT/Antigravity/Claude Code handover
 - make freeze boundaries explicit
 - avoid document drift
 
@@ -50,9 +50,10 @@ Goals:
 | Architecture docs | ChatGPT | Product Owner |
 | UX docs | ChatGPT | Product Owner |
 | Planning docs | ChatGPT | Product Owner |
-| Development tickets / runtime evidence | Codex | ChatGPT |
+| Implementation tickets / backend evidence | Claude Code | ChatGPT |
+| UI/UX and Windows runtime evidence | Antigravity | ChatGPT |
 | Review docs | ChatGPT | Product Owner |
-| Governance / handover docs | ChatGPT | Codex |
+| Governance / handover docs | ChatGPT | Claude Code |
 | PO UI acceptance workflow | Product Owner | ChatGPT |
 | PO findings register | Product Owner | ChatGPT |
 
@@ -60,7 +61,7 @@ Ownership rules:
 
 - Product Owner owns business decisions
 - ChatGPT owns structure, continuity, and review framing
-- Codex owns implementation evidence
+- Claude Code and Antigravity own implementation evidence within their respective scope
 - no document may be updated by a role that does not own its change intent
 
 ## 4. AI Responsibilities
@@ -73,12 +74,23 @@ Ownership rules:
 - review architecture, UX, and technical alignment
 - propose next steps without changing frozen decisions
 
-### Codex
+### Claude Code
 
 - implement approved tickets
 - produce repository changes
 - keep code and docs aligned to frozen contracts
 - report runtime and commit evidence
+
+### Antigravity
+
+- discovery, UI/UX implementation, and Windows runtime (PID, HWND, process, log) verification
+- keep UI aligned to frozen contracts
+- report runtime and implementation evidence
+
+### Codex (Legacy / Non-Default)
+
+- no longer the default executor; may be dispatched only with explicit Product Owner authorization
+- historical Codex documents and evidence remain valid and must not be rewritten
 
 ## 5. Product Owner Responsibilities
 
@@ -113,7 +125,7 @@ Review outputs may be:
 - WARNING
 - FAIL
 
-When review finds an issue resolvable within the active ticket, ChatGPT/Codex must not stop after reporting the finding. It must immediately generate a remediation prompt for Codex/Antigravity, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
+When review finds an issue resolvable within the active ticket, ChatGPT coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for Antigravity or Claude Code, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
 
 Request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
 
@@ -237,8 +249,8 @@ Mark the conflict as:
 ### 15.4 AI Rule
 
 - ChatGPT must not select a lower-authority document when a higher-authority document exists.
-- Codex must not override the authority hierarchy.
-- Both AI roles must escalate unresolved conflicts instead of guessing.
+- Antigravity and Claude Code must not override the authority hierarchy.
+- All AI roles must escalate unresolved conflicts instead of guessing.
 
 ## 16. PO UI Acceptance Governance
 

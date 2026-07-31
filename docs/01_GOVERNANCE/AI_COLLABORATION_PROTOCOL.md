@@ -21,7 +21,7 @@
 
 ## 1. Purpose
 
-AI Collaboration Protocol defines how Product Owner, ChatGPT, and Codex work together across the full lifecycle of QIS V2.
+AI Collaboration Protocol defines how Product Owner, ChatGPT, Antigravity, and Claude Code work together across the full lifecycle of QIS V2. `Codex` is preserved below as a legacy/non-default role for historical continuity; see Section 2 for current default executors.
 
 Purpose:
 
@@ -43,6 +43,7 @@ Purpose:
 
 ### ChatGPT
 
+- CTO / Coordinator / Technical Decision Authority
 - Chief Solution Architect
 - Product Architect
 - Business Architect
@@ -58,15 +59,33 @@ ChatGPT responsibilities:
 - review architecture, UX, and technical consistency
 - identify gaps, risks, and technical debt
 - ensure continuity for new sessions
+- choose the executor (`Antigravity` or `Claude Code`) and the model (`Sonnet` or `Opus`)
+- ask the Product Owner only for business rules, product behavior, SSOT, acceptance criteria, or product direction; decide purely technical choices without escalation
 
-### Codex
+### Claude Code
 
 - Implementation Engineer
 - executes only approved tickets
+- owns implementation, backend, data, tests, documentation, and Git (commit, push)
 - does not change architecture by itself
 - does not change business by itself
 - does not invent new scope
 - reports runtime and implementation results
+
+### Antigravity
+
+- Discovery and UI/UX Engineer
+- owns discovery, UI/UX implementation, and Windows runtime (PID, HWND, process, log) verification
+- executes only approved tickets
+- does not change backend logic, APIs, schemas, KPI formulas, SSOT, or business rules
+- reports runtime and implementation results
+
+### Codex (Legacy / Non-Default)
+
+- Implementation Engineer
+- no longer the default executor; may be dispatched only with explicit Product Owner authorization for a specific ticket
+- historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten
+- when dispatched, follows the same constraints as Claude Code: does not change architecture or business by itself, does not invent new scope, reports runtime and implementation results
 
 ## 3. Standard Workflow
 
@@ -138,13 +157,13 @@ ChatGPT reviews:
 - Technical Debt
 - PASS / WARNING / FAIL
 
-Codex must not self-declare PASS for the project lifecycle unless the accepted runtime and review evidence support it.
+Claude Code and Antigravity must not self-declare PASS for the project lifecycle unless the accepted runtime and review evidence support it.
 
 Review principle:
 
 - PO owns final acceptance
 - ChatGPT owns structured review
-- Codex owns implementation evidence
+- Claude Code and Antigravity own implementation evidence within their respective scope
 
 ## 6. Ticket Rules
 
@@ -238,7 +257,7 @@ Rules:
 
 ## 10. Communication Rules
 
-Codex must report using the standard format required by the project.
+Claude Code and Antigravity must report using the standard format required by the project.
 
 ChatGPT must:
 
@@ -256,7 +275,7 @@ Product Owner must:
 
 One conversation serves one ticket or one major delivery wave. Continue remediation and validation for the same bounded ticket or wave in the current conversation. Start a new conversation for a new ticket, a new major wave, or materially different work scope.
 
-ChatGPT, Codex, and Antigravity must proactively warn the Product Owner when the current conversation is excessively long, contains multiple completed phases, or risks mixing obsolete and current authority. Each executor must clearly state when the current conversation should end and a fresh one should begin.
+ChatGPT, Antigravity, and Claude Code must proactively warn the Product Owner when the current conversation is excessively long, contains multiple completed phases, or risks mixing obsolete and current authority. Each executor must clearly state when the current conversation should end and a fresh one should begin.
 
 Before changing conversations, update required repository evidence, commit, push, and verify the remote state. Do not open a new conversation to bypass unfinished work, failures, dirty workspace, locks, or a wrong branch.
 
@@ -287,7 +306,7 @@ Governance V1 remains the fallback authority path when the manifest requires it 
 7. Context must survive drill-down and back navigation.
 8. Each ticket is isolated by scope.
 9. Review comes before the next center.
-10. ChatGPT and Codex must preserve continuity, not recreate history.
+10. ChatGPT, Antigravity, and Claude Code must preserve continuity, not recreate history.
 
 ## 13. Ticket Completion Protocol
 
@@ -384,7 +403,7 @@ All future QIS V2 prompts should follow the canonical prompt standard defined in
 
 - [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
 
-The prompt standard is the default format for future ChatGPT and Codex tickets.
+The prompt standard is the default format for future ChatGPT, Antigravity, and Claude Code tickets.
 
 ## 15. Product Owner to ChatGPT Collaboration Workflow
 
@@ -399,12 +418,13 @@ ChatGPT must use exactly this format for post-onboarding continuation, implement
    - fewer than 5 sentences
    - state the immediate execution path
 3. exactly one of:
-   - `### Prompt cho Codex/Antigravity`
+   - `### Prompt cho Claude Code`
+   - `### Prompt cho Antigravity`
    - `### Yêu cầu PO quyết định`
 
 ### 15.2 Post-Review Remediation Loop
 
-When review finds an issue resolvable within the active ticket, ChatGPT/Codex must not stop after reporting the finding. It must immediately generate a remediation prompt for Codex/Antigravity and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
+When review finds an issue resolvable within the active ticket, ChatGPT coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for Antigravity or Claude Code and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
 
 Do not activate the next ticket before current-ticket PO PASS unless explicit Governance authority permits parallel work.
 

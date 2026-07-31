@@ -31,7 +31,7 @@ Fresh onboarding must contain at most these `5` steps:
 | Step | Path | Purpose | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `README_AI.md` | External entry point and onboarding route. | L2 | Active Onboarding | Every fresh AI/chat session. | Mandatory |
-| 2 | `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | First-prompt gate and executor prompt standard. | L2 | Active Onboarding | Before writing the first Codex/Antigravity execution prompt. | Mandatory |
+| 2 | `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | First-prompt gate and executor prompt standard. | L2 | Active Onboarding | Before writing the first Antigravity/Claude Code execution prompt. | Mandatory |
 | 3 | `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Current project/ticket state and active manifest pointer. | L2 | Active Onboarding | After Prompt Standard. | Mandatory |
 | 4 | Current Manifest from `PROJECT_SNAPSHOT.md` | Current ticket authority, scope, exclusions, and required reading. | L2 | Active Onboarding | After Snapshot. | Mandatory |
 | 5 | Required Reading named by Current Manifest | Scoped ticket evidence/checkpoint/reference documents. | L2/L3 | Current Required Reading | Only when the current manifest names it. | Mandatory for current ticket only |
