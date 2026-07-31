@@ -11,11 +11,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "chokidar": "^5.0.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "koffi": "^3.1.2",
     "multer": "^2.2.0",
+    "playwright": "^1.62.1",
     "sqlite3": "^6.0.1",
     "xlsx": "^0.18.5"
   }
