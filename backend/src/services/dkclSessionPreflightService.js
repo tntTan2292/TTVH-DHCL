@@ -229,6 +229,40 @@ class DkclSessionPreflightService {
         processManager.cleanupStaleLocks(profileDir);
     }
 
+    async recoverStaleHueInProgressEntry(sourceConfig, entry) {
+        if (sourceConfig.source !== 'HUE' || !DKCL_IN_PROGRESS_STATES.has(entry.state)) return false;
+        if (entry.client || entry.openingPromise) return false;
+
+        const profileDir = resolveProfileDir(sourceConfig);
+        const inspection = await processManager.findBrowserProcessByProfile(profileDir).catch(() => ({
+            inspectionStatus: 'FAILED',
+            matchingProcesses: []
+        }));
+        const hasLiveProfileProcess = inspection.inspectionStatus === 'SUCCESS'
+            && inspection.matchingProcesses.some((proc) => proc?.exactProfileMatch);
+
+        if (hasLiveProfileProcess) {
+            return false;
+        }
+
+        if (this.coordinatorEnabled) {
+            this.coordinator.markStale(sourceConfig.source, profileDir, 'Stale in-memory interactive state without live browser evidence');
+        }
+
+        this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+            client: null,
+            openingPromise: null,
+            authenticated: false,
+            backgroundReady: false,
+            windowHidden: false,
+            hideAttempted: false,
+            activeOperation: null,
+            lastError: 'Recovered stale interactive login state.',
+            profileDir
+        });
+        return true;
+    }
+
     async preflight(source) {
         const sourceConfig = this.normalizeSource(source);
         if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
@@ -420,7 +454,10 @@ class DkclSessionPreflightService {
         }
 
         if (DKCL_IN_PROGRESS_STATES.has(entry.state)) {
-            return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+            const recoveredStaleHueEntry = await this.recoverStaleHueInProgressEntry(sourceConfig, entry);
+            if (!recoveredStaleHueEntry) {
+                return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+            }
         }
 
         transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.SOURCE_SELECTED);

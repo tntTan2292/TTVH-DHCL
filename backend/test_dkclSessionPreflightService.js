@@ -326,6 +326,38 @@ function makeCoordinatorFixture() {
     assert.strictEqual(lifecycleCalls.filter((call) => call[0] === 'hide').length, 1, 'hide is called once after confirmed authentication');
     assert.strictEqual(lifecycleService.getRegistryState('TCT').state, DKCL_LIFECYCLE_STATES.F13_READY, 'authenticated client transitions to F13_READY');
 
+    console.log('\nTEST 5A: live HUE waiting session still returns cached LOGIN_IN_PROGRESS');
+    globalRegistry.clear();
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [{ pid: 9300, parentPid: 321, exactProfileMatch: true }],
+        errorCode: null
+    });
+    globalRegistry.set('HUE', {
+        state: DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN,
+        lifecycleState: DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN,
+        client: null,
+        openingPromise: null,
+        authenticated: false,
+        backgroundReady: false,
+        windowHidden: false,
+        hideAttempted: false,
+        activeOperation: null,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
+    let liveHueSpawnCount = 0;
+    const liveHueService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => {
+            liveHueSpawnCount++;
+            throw new Error('live HUE waiting session must not spawn a duplicate browser');
+        }
+    });
+    const liveHueWaiting = await liveHueService.interactiveAuthenticate('HUE');
+    assert.strictEqual(liveHueWaiting.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'live HUE waiting session still returns cached LOGIN_IN_PROGRESS');
+    assert.strictEqual(liveHueWaiting.lifecycle_state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'live HUE waiting session keeps WAITING_FOR_LOGIN state');
+    assert.strictEqual(liveHueSpawnCount, 0, 'live HUE waiting session does not spawn a duplicate browser');
+
     console.log('\nTEST 5B: already-authenticated interactive session stays visible for PO review');
     globalRegistry.clear();
     const alreadyAuthCalls = [];
@@ -396,6 +428,11 @@ function makeCoordinatorFixture() {
     }
 
     console.log('\nTEST 5D: failed restore falls through to a fresh interactive reopen for both HUE and TCT');
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [],
+        errorCode: null
+    });
     for (const source of ['TCT', 'HUE']) {
         globalRegistry.clear();
         const staleRestoreCalls = [];
@@ -430,6 +467,77 @@ function makeCoordinatorFixture() {
         assert.strictEqual(staleRestoreCalls.filter((call) => call[0] === `close-stale-${source.toLowerCase()}`).length, 1, `${source} stale hidden client is closed when restore fails`);
         assert.strictEqual(freshClientCalls.filter((call) => call[0] === `prepare-fresh-${source.toLowerCase()}`).length, 1, `${source} failed restore falls through to a fresh interactive browser open`);
     }
+
+    console.log('\nTEST 5D2: stale HUE WAITING_FOR_LOGIN auto-recovers and spawns exactly once');
+    globalRegistry.clear();
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [],
+        errorCode: null
+    });
+    const staleHueSpawnCalls = [];
+    const staleHueService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => ({
+            async prepareInteractiveAuthentication(args) { staleHueSpawnCalls.push(['prepare', args]); return true; },
+            async waitInteractiveAuthentication() { staleHueSpawnCalls.push(['wait']); },
+            async isF13ReportReady() { staleHueSpawnCalls.push(['ready']); return true; },
+            async hideWindow() { staleHueSpawnCalls.push(['hide']); return true; },
+            async close() { staleHueSpawnCalls.push(['close']); }
+        })
+    });
+    globalRegistry.set('HUE', {
+        state: DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN,
+        lifecycleState: DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN,
+        client: null,
+        openingPromise: null,
+        authenticated: false,
+        backgroundReady: false,
+        windowHidden: false,
+        hideAttempted: false,
+        activeOperation: null,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
+    const staleHueRecovered = await staleHueService.interactiveAuthenticate('HUE');
+    assert.strictEqual(staleHueRecovered.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'stale HUE waiting session re-enters normal interactive login');
+    assert.strictEqual(staleHueSpawnCalls.filter((call) => call[0] === 'prepare').length, 1, 'stale HUE waiting session spawns exactly one fresh browser');
+    await new Promise((r) => setTimeout(r, 50));
+    assert.strictEqual(staleHueService.getRegistryState('HUE').state, DKCL_LIFECYCLE_STATES.F13_READY, 'stale HUE waiting session can complete through the normal lifecycle');
+
+    console.log('\nTEST 5D3: stale HUE recovery surfaces spawn error and clears stale state');
+    globalRegistry.clear();
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [],
+        errorCode: null
+    });
+    const staleHueLaunchError = new Error('chromium launch failed');
+    staleHueLaunchError.code = 'LAUNCH_FAILED';
+    const staleHueErrorService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => ({
+            async prepareInteractiveAuthentication() { throw staleHueLaunchError; },
+            async close() {}
+        })
+    });
+    globalRegistry.set('HUE', {
+        state: DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN,
+        lifecycleState: DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN,
+        client: null,
+        openingPromise: null,
+        authenticated: false,
+        backgroundReady: false,
+        windowHidden: false,
+        hideAttempted: false,
+        activeOperation: null,
+        lastError: null,
+        updatedAt: new Date().toISOString()
+    });
+    await assert.rejects(
+        staleHueErrorService.interactiveAuthenticate('HUE'),
+        (error) => error?.code === 'LAUNCH_FAILED'
+    );
+    assert.strictEqual(staleHueErrorService.getRegistryState('HUE').state, 'ERROR', 'failed stale HUE recovery returns the real launch error and does not leave WAITING_FOR_LOGIN behind');
+    assert.strictEqual(staleHueErrorService.getRegistryState('HUE').client, null, 'failed stale HUE recovery clears stale client references');
 
     console.log('\nTEST 5E: HUE queue-owned session remains valid without probing live browser state');
     globalRegistry.clear();
@@ -587,6 +695,7 @@ function makeCoordinatorFixture() {
         matchingProcesses: [],
         errorCode: null
     });
+    global.terminateCount = 0;
     let cleanupCalled = false;
     browserProcessManager.cleanupStaleLocks = () => { cleanupCalled = true; };
     const fsMod = require('fs');
