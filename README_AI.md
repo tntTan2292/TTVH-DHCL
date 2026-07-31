@@ -138,7 +138,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-010 CHECKPOINT 002 / IMPLEMENTATION AUTHORITY PENDING`. The stale HUE cached `LOGIN_IN_PROGRESS` defect has already been remediated, direct Playwright + Chromium + HUE profile launch has already been proven to work, and Dashboard metadata, BCVH ranking, and Import status APIs are back to `HTTP 200`. Management has now completed discovery and architecture review for the remaining HUE runtime blocker and has selected a one-time setup plus read-only readiness-check direction in principle, but Product Owner has not yet granted product-code implementation authority. TCT is not authorized to expand, and Operation Dashboard Phase 4 remains paused until Import authentication receives explicit Product Owner pass.
+Current active handoff: `AUTO-IMPORT-010 CHECKPOINT 002 / C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`. The stale HUE cached `LOGIN_IN_PROGRESS` defect has already been remediated, direct Playwright + Chromium + HUE profile launch has already been proven to work, and Dashboard metadata, BCVH ranking, and Import status APIs are back to `HTTP 200`. Product Owner has now approved and completed `C1` only: the repository-managed backend runtime packages needed for HUE standard runtime have been materialized without changing launcher behavior. TCT is not authorized to expand, and Operation Dashboard Phase 4 remains paused until Import authentication receives explicit Product Owner pass.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

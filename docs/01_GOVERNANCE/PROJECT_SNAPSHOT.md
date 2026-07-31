@@ -19,21 +19,21 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | --- | --- |
 | Current Phase | `HUE BROWSER RUNTIME PREPARATION PLANNING` |
 | Current Ticket | `AUTO-IMPORT-010` |
-| Next Ticket | `Bounded HUE runtime preparation implementation awaiting Product Owner authority` |
-| Last PO Status | `Management has accepted the discovery result: direct Playwright + Chromium + HUE profile launch already works, Dashboard and Import APIs are healthy, and the remaining issue is standard-runtime HUE dependency preparedness. AUTO-IMPORT-010 is now at CHECKPOINT 002 with implementation authority pending.` |
+| Next Ticket | `Product Owner HUE standard-runtime recheck after C1 dependency materialization` |
+| Last PO Status | `Product Owner approved C1. Backend runtime packages required for HUE standard runtime have now been materialized in the repository-managed backend environment, with no launcher change in this round. AUTO-IMPORT-010 now waits for Product Owner runtime recheck.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` |
 | Current Checkpoint | `AUTO-IMPORT-010 CHECKPOINT 002 - discovery complete and bounded implementation plan pending authority` |
-| Current State | `AUTO-IMPORT-010 CHECKPOINT 002 / HUE ONLY / IMPLEMENTATION AUTHORITY PENDING / DASHBOARD PHASE 4 PAUSED` |
-| Technical Status | `DISCOVERY COMPLETE; DIRECT PLAYWRIGHT PROOF PASS; ONE-TIME SETUP + READ-ONLY READINESS MODEL SELECTED IN PRINCIPLE` |
-| Runtime Status | `PLANNING HOLD` |
+| Current State | `AUTO-IMPORT-010 CHECKPOINT 002 / HUE ONLY / C1 IMPLEMENTED / DASHBOARD PHASE 4 PAUSED` |
+| Technical Status | `BACKEND PLAYWRIGHT/BCRYPTJS RUNTIME PACKAGES MATERIALIZED; NO LAUNCHER CHANGE` |
+| Runtime Status | `PO RUNTIME RECHECK REQUIRED` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `NOT PASS` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-IMPORT-010 Product Owner HUE runtime recheck after stale-state remediation` |
-| Last Reviewed Commit | `c10151a43b0126c27cbee211f3547946310e68c6` |
-| Phase Review Status | `DISCOVERY COMPLETED / IMPLEMENTATION AUTHORITY PENDING` |
-| Next Phase Authorization | `Do not implement until Product Owner explicitly authorizes the one-time HUE setup and read-only readiness-check path. Do not resume Dashboard Phase 4 and do not expand to TCT.` |
+| Last Reviewed Commit | `2c207852766b74117674a2316fbe923df61a4b24` |
+| Phase Review Status | `C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED` |
+| Next Phase Authorization | `Do not expand beyond approved C1 until Product Owner completes HUE standard-runtime recheck. Do not resume Dashboard Phase 4 and do not expand to TCT.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-31` |
 
@@ -60,7 +60,7 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `AUTO-IMPORT-010` remains the active highest-priority ticket, but it is now at `CHECKPOINT 002 / IMPLEMENTATION AUTHORITY PENDING`. Direct Playwright + Chromium + HUE profile launch has already been proven to work, stale HUE cached `LOGIN_IN_PROGRESS` recovery has already been fixed at `1ca7eee11101cbf59390662dbd848f6fcf8c5d60`, and management has selected the one-time setup plus read-only readiness-check model in principle. In this checkpoint, `A` and `B` remain rejected Sonnet discovery proposals, `C` is the architecture-reviewed direction confirmed by Opus, and `C1` / `C2` are still not chosen by Product Owner. Product code is intentionally unchanged while Product Owner reviews the bounded implementation plan.
+Current handoff: `AUTO-IMPORT-010` remains the active highest-priority ticket and is now at `CHECKPOINT 002 / C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`. Direct Playwright + Chromium + HUE profile launch had already been proven to work, stale HUE cached `LOGIN_IN_PROGRESS` recovery had already been fixed at `1ca7eee11101cbf59390662dbd848f6fcf8c5d60`, and Product Owner has now approved `C1` only. This round materialized the missing backend runtime packages required for HUE standard runtime, without changing launcher behavior, TCT scope, Dashboard scope, or browser-flow logic.
 
 Historical Import guidance that previously marked earlier authentication rounds as completed is superseded by the current manifest and checkpoint. Internal unit tests, PID discovery, HWND enumeration, URL reachability, or `LOGIN_IN_PROGRESS` are not sufficient to claim Product Owner pass. Direct Playwright browser launch success is also not Product Owner pass by itself; it only proves the current blocker has narrowed to standard-runtime dependency preparedness and operational setup design.
 

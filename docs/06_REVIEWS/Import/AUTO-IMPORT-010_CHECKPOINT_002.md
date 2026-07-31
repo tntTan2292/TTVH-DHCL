@@ -4,7 +4,7 @@
 
 - Ticket: `AUTO-IMPORT-010`
 - Ticket name: `HUE Browser Broker / Browser Launch Recovery`
-- Current state: `CHECKPOINT 002 / DISCOVERY COMPLETED / IMPLEMENTATION AUTHORITY PENDING`
+- Current state: `CHECKPOINT 002 / C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`
 - Current boundary: `HUE only`
 - Current branch baseline: `codex/da-impl-006`
 - Current authoritative baseline `HEAD` / `remote`: `c10151a43b0126c27cbee211f3547946310e68c6`
@@ -13,8 +13,8 @@
 
 - Discovery for the current HUE runtime blocker is completed.
 - Architecture review for the current HUE runtime blocker is completed.
-- Product code is intentionally unchanged in this checkpoint.
-- Product Owner has not yet granted implementation authority for the selected recovery path.
+- C1 implementation is now completed within the approved dependency-materialization scope.
+- Product Owner runtime recheck is now required before any further expansion.
 
 ## Locked Findings
 
@@ -79,31 +79,32 @@ Decision status:
 
 ## Recommended Implementation Shape
 
-No implementation authority is granted yet in this checkpoint.
+Approved implementation status in this checkpoint:
 
-If Product Owner authorizes implementation, the bounded plan is:
-
-1. Add one dedicated setup script that prepares HUE browser dependencies one time on the target machine.
-2. Add one read-only runtime check that verifies whether HUE browser prerequisites are already present.
-3. Keep HUE browser open/login flow isolated so missing HUE dependencies return a controlled HUE-specific readiness failure instead of damaging the main backend or Dashboard runtime.
+1. `C1` approved and implemented:
+   materialize and commit the required backend runtime packages so HUE standard runtime can require Playwright.
+2. `C2` remains unimplemented:
+   no launcher changes were introduced in this round.
+3. Any next expansion remains blocked on Product Owner runtime evidence.
 
 ## Expected File Scope
 
 Planned files to change after authority is granted:
 
-- `backend/package.json`
-  only if a small setup/readiness command entry is needed
-- `backend/package-lock.json`
-  only if the setup contract requires lock-consistent scripting metadata
-- `backend/scripts/*`
-  one-time HUE dependency setup and local readiness verification
-- `backend/src/services/dkclHueF13PortalClient.js`
-  only if needed to surface a controlled HUE-not-ready error
-- `backend/src/services/dkclSessionPreflightService.js`
-  only if needed to map HUE-not-ready into the existing preflight response path
-- `backend/server.js` or current backend bootstrap surface
-  only if needed for a read-only startup check registration
-- targeted HUE tests only
+Implemented in `C1`:
+
+- `backend/node_modules/playwright/**`
+- `backend/node_modules/playwright-core/**`
+- `backend/node_modules/bcryptjs/**`
+
+Not changed in `C1`:
+
+- launcher files
+- backend service logic
+- dashboard files
+- TCT files
+- broker/coordinator files
+- profile or Import data files
 
 Not authorized in this plan:
 
@@ -114,24 +115,15 @@ Not authorized in this plan:
 - profile-content changes
 - Import data changes
 
-## One-Time Setup Contract
+## C1 Implementation Result
 
-The setup step should:
+This round implemented the approved repository-managed dependency materialization only:
 
-- run separately from normal product launch,
-- install or verify the exact HUE browser runtime dependency set once,
-- verify both Node package availability and Chromium executable availability,
-- produce a clear success/fail result for support handoff,
-- avoid modifying business data, browser profile content, or Dashboard behavior.
-
-## Launcher Read-Only Check
-
-The normal launcher should only:
-
-- verify whether HUE browser prerequisites are present,
-- record a simple readiness result,
-- avoid running install or repair logic automatically,
-- continue bringing up Dashboard/backend even if HUE is marked not ready.
+- backend lockfile was used to materialize missing runtime packages,
+- `playwright` now resolves successfully from backend runtime,
+- `bcryptjs` now resolves successfully from backend runtime,
+- no launcher mutation was introduced,
+- no browser-flow logic was changed.
 
 ## Backend Error Contract
 
@@ -156,13 +148,12 @@ The selected path must ensure:
 
 Technical validation after implementation authority:
 
-- unit test one-time setup readiness detection,
-- unit test launcher read-only check,
-- unit test controlled HUE-not-ready response path,
-- regression test that Dashboard/backend startup remains healthy when HUE dependency is absent,
-- regression test that HUE open/login proceeds when dependency is present,
-- `npm ci` reproducibility check for declared backend packages,
-- Product Owner runtime validation on the normal launcher path.
+- `npm ci` materialization from backend lockfile,
+- `require('playwright')` PASS,
+- `require('bcryptjs')` PASS,
+- `node backend/test_dkclHueF13SyncService.js` PASS,
+- `node backend/test_dkclSessionPreflightService.js` PASS,
+- Product Owner runtime validation on the normal launcher path remains required.
 
 ## Product Owner Acceptance
 
@@ -184,15 +175,13 @@ Product Owner acceptance after implementation should verify:
 
 ## Required PO Decision
 
-Before any implementation begins, Product Owner must explicitly authorize:
+Next Product Owner decision remains runtime-only:
 
-- the one-time setup model,
-- the exact bounded file scope,
-- the controlled HUE-not-ready runtime response,
-- the rule that Dashboard/backend health is protected even when HUE setup is incomplete.
+- verify HUE standard runtime after C1,
+- decide whether C1 is sufficient,
+- authorize or reject any later `C2` expansion.
 
-Until that authority is granted:
+Until that runtime decision is recorded:
 
-- no product-code implementation should begin,
-- no dependency install should be committed as part of product startup,
+- no launcher change should begin,
 - no expansion to TCT, broker, coordinator, window hiding, Kaspersky, profile, or Import data is allowed.

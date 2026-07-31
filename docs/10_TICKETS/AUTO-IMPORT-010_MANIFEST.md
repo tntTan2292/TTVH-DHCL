@@ -3,16 +3,16 @@
 - Ticket ID: `AUTO-IMPORT-010`
 - Ticket Name: `HUE Browser Broker / Browser Launch Recovery`
 - Phase: `Import Authentication Recovery`
-- Current State: `CHECKPOINT 002 / IMPLEMENTATION AUTHORITY PENDING`
-- Technical Status: `DISCOVERY COMPLETED; IMPLEMENTATION PLAN PREPARED; PRODUCT CODE UNCHANGED`
+- Current State: `CHECKPOINT 002 / C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`
+- Technical Status: `PLAYWRIGHT RUNTIME PACKAGES MATERIALIZED IN REPOSITORY; NO LAUNCHER CHANGE`
 - Runtime Status: `PO RUNTIME FAIL`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT PASS`
 - Current Phase: `ACTIVE HUE BROWSER LAUNCH RECOVERY`
-- Last Reviewed Phase: `Checkpoint 002 management review and bounded implementation planning`
-- Last Reviewed Commit: `c10151a43b0126c27cbee211f3547946310e68c6`
-- Phase Review Status: `DISCOVERY COMPLETED / IMPLEMENTATION AUTHORITY PENDING`
-- Next Phase Authorization: `Waiting for explicit Product Owner implementation authority for one-time HUE setup and read-only readiness check path`
+- Last Reviewed Phase: `Checkpoint 002 C1 dependency materialization implementation`
+- Last Reviewed Commit: `2c207852766b74117674a2316fbe923df61a4b24`
+- Phase Review Status: `C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`
+- Next Phase Authorization: `Run Product Owner HUE standard-runtime recheck before considering any launcher or wider-scope change`
 - Activation date: `2026-07-31`
 - Primary executor: `Codex`
 
@@ -42,7 +42,7 @@ Current boundary is `HUE only`.
 
 Node console hiding remains a separate ticket and is not part of this ticket.
 
-The latest documentation baseline commit is `c10151a43b0126c27cbee211f3547946310e68c6`, and current `HEAD` / `remote` match that commit before this checkpoint update.
+The latest documentation baseline before C1 implementation was `2c207852766b74117674a2316fbe923df61a4b24`.
 
 ## Objective
 
@@ -68,7 +68,7 @@ Option provenance locked for this checkpoint:
 - `C` was formed through architecture challenge and confirmed by Opus review.
 - `C1` / `C2` are not selected.
 
-This ticket is not `PO PASS`, and implementation has not yet been reauthorized.
+This ticket is not `PO PASS`. `C1` is now implemented and awaits Product Owner runtime recheck.
 
 ## Proven Facts
 
@@ -93,6 +93,7 @@ The current authoritative blocker is different:
 - browser spawning never starts in the standard PO runtime path.
 
 Discovery for this root cause is complete. The pending step is bounded implementation authority for the selected recovery model.
+Discovery for this root cause is complete. The current pending step is Product Owner runtime recheck after `C1` dependency materialization.
 
 ## Out Of Scope
 
@@ -110,8 +111,7 @@ Discovery for this root cause is complete. The pending step is bounded implement
 
 For future closure of this ticket:
 
-- One-time setup prepares the required HUE browser dependency set before HUE interactive authentication is attempted.
-- Standard launcher performs only a read-only readiness check.
+- Repository-managed runtime packages required by HUE are present in backend runtime.
 - HUE browser opens visibly for the Product Owner through the normal product path.
 - Product Owner can log in successfully.
 - HUE preflight reaches the correct authenticated state.
@@ -136,13 +136,14 @@ Avoid JScript, VBScript, WScript, Start-Process, and nested command wrappers whe
 
 ## Completion And Handoff
 
-This manifest does not authorize product-code implementation yet.
+This manifest does not authorize expansion beyond approved `C1`.
 
-Next proposed implementation after Product Owner approval:
+Next required Product Owner runtime check:
 
-- add one-time HUE dependency setup support,
-- add read-only HUE readiness verification,
-- keep Dashboard/backend healthy when HUE setup is incomplete,
-- return a controlled HUE-specific not-ready response instead of a runtime crash path.
+- start the system through the normal runtime path,
+- trigger HUE login from the product,
+- verify browser opens usable,
+- complete login and refresh preflight,
+- confirm whether standard runtime now clears the prior `MODULE_NOT_FOUND` blocker.
 
 Do not return to broker, coordinator, TCT, or Node window hiding without explicit Product Owner authority.
