@@ -16,14 +16,14 @@ Quy tắc cập nhật:
 
 ## Current Phase
 
-- `F1.3 UI Audit and Standardization Planning`
+- `F1.3 UI Phase 4 Discovery/Planning`
 - `QIS V2`
-- `Status: READY FOR PO UI/UX PLANNING`
+- `Status: READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION`
 
 ## Current Ticket
 
 - `F13-UI-AUDIT-PLAN`
-- `Status: READY FOR PO UI/UX PLANNING`
+- `Status: READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION (reactivated 2026-07-31 after AUTO-IMPORT-010 closure)`
 
 ## Completed Tickets
 
@@ -58,6 +58,7 @@ Quy tắc cập nhật:
 - `F13-BCVH-RANKING-REDESIGN-PLAN` - COMPLETED / HANDOFF
 - `F13-BCVH-RANKING-REDESIGN-IMPL` - PO PASS / COMPLETED / CLOSED
 - `QIS-LAN-DEPLOY-001 F1.3 Local Network Viewer Deployment` - PO PASS / COMPLETED / CLOSED
+- `AUTO-IMPORT-010 HUE Browser Broker / Browser Launch Recovery` - PO RUNTIME PASS / COMPLETED / CLOSED; HUE first-click browser-open residual recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING
 
 ## Current Progress
 

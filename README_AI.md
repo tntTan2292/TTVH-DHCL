@@ -133,7 +133,7 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md)
+[docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md)
 
 ↓
 
@@ -141,7 +141,7 @@ Required Reading from the Current Manifest
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-010 CHECKPOINT 002 / C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`. The stale HUE cached `LOGIN_IN_PROGRESS` defect has already been remediated, direct Playwright + Chromium + HUE profile launch has already been proven to work, and Dashboard metadata, BCVH ranking, and Import status APIs are back to `HTTP 200`. Product Owner has now approved and completed `C1` only: the repository-managed backend runtime packages needed for HUE standard runtime have been materialized without changing launcher behavior. TCT is not authorized to expand, and Operation Dashboard Phase 4 remains paused until Import authentication receives explicit Product Owner pass.
+Current active handoff: `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-31`. Product Owner runtime acceptance confirmed Dashboard, HUE, and TCT all working under the standard launcher, including successful HUE and TCT login/import for `2026-07-30`. A known HUE first-click browser-open residual is recorded as `KNOWN RESIDUAL / DEFERRED / NON-BLOCKING` by explicit Product Owner decision and is not an open defect. `F13-UI-AUDIT-PLAN` is now the current ticket, reactivated `READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION`; Phase 1-3 already carry PO PASS, and Phase 4 implementation is not authorized until ChatGPT coordination issues a separately bounded prompt.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

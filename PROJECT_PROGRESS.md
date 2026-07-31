@@ -53,6 +53,8 @@
 - QIS-LAN-DEPLOY-001: `COMPLETED / PO PASS / CLOSED`; latest accepted runtime remediation commit `99c865e92b840a587dc9a889294c535fecc68816`
 - F13-UI-AUDIT-PLAN: `READY FOR PO UI/UX PLANNING`
 - TICKET-0102: `Deferred / Inactive`
+- AUTO-IMPORT-010: `COMPLETED / PO RUNTIME PASS / CLOSED`; Dashboard/HUE/TCT accepted 2026-07-31; HUE first-click browser-open residual recorded as `KNOWN RESIDUAL / DEFERRED / NON-BLOCKING` by explicit Product Owner decision
+- F13-UI-AUDIT-PLAN: `READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION` (reactivated as Current Ticket 2026-07-31 after AUTO-IMPORT-010 closure; Phase 1-3 PO PASS retained, Phase 4 not authorized)
 
 ## Frozen Documents
 
@@ -92,7 +94,8 @@
 
 ## Outstanding Decisions
 
-- `F13-UI-AUDIT-PLAN` is active. ChatGPT and Product Owner must first define the Operation Dashboard audit scope. Antigravity is not yet dispatched, and later UI areas remain future sequence only.
+- `F13-UI-AUDIT-PLAN` is active and reactivated (2026-07-31) after `AUTO-IMPORT-010` closure. Phase 1, 2, and 3 already carry PO PASS; Phase 4 (Operation Dashboard) discovery/planning is the next step. Antigravity is not yet dispatched for Phase 4, and later UI areas remain future sequence only.
+- An unresolved inconsistency between `PROJECT_SNAPSHOT.md`'s prior narrative and `F13-UI-AUDIT-PLAN_MANIFEST.md` about whether a "Phase 4" implementation already exists (commit `235b69d0...`) is recorded in `PROJECT_SNAPSHOT.md` Section 4 and requires ChatGPT/Product Owner clarification before Phase 4 implementation begins.
 
 ## Open Issues
 

@@ -38,10 +38,12 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `AUTO-IMPORT-010`.
-- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md`.
-- Current checkpoint: `AUTO-IMPORT-010_CHECKPOINT_002.md`.
-- Next required action: wait for Product Owner authority on the bounded HUE one-time setup and read-only readiness-check implementation plan.
+- Current ticket: `F13-UI-AUDIT-PLAN`.
+- Current manifest: `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`.
+- Current checkpoint: `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md`.
+- Current state: `READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION` (reactivated 2026-07-31 after `AUTO-IMPORT-010` closure).
+- Next required action: wait for a separately bounded ChatGPT coordination prompt before dispatching Phase 4 UI discovery/planning to Antigravity.
+- `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-31` and is no longer part of the fresh onboarding chain; see `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` and `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md` for closure evidence.
 
 ## Docs Inventory
 
@@ -56,15 +58,16 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md` | Checkpoint | Current cleanup checkpoint, scope lock, and preservation gates. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-008 bounded remediation scope and defect-order authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` | Import Checkpoint | Current AUTO-IMPORT-008 activation checkpoint and ordered defect register. | L2 | Current Required Reading | Current ticket only. | Mandatory |
-| `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-010 HUE browser launch recovery authority and runtime dependency lifecycle boundary. | L2 | Active Onboarding | Current ticket only. | Mandatory |
-| `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_001.md` | Import Checkpoint | Current authoritative handoff after stale-state remediation and direct Playwright proof, including Product Owner runtime fail and next discovery boundary. | L2 | Current Required Reading | Current ticket only. | Mandatory |
-| `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_002.md` | Import Checkpoint | Current management checkpoint confirming discovery completion, rejected options, selected one-time setup direction, and bounded implementation plan pending authority. | L2 | Current Required Reading | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` | Ticket Manifest | Closed HUE browser launch recovery ticket; PO RUNTIME PASS with Dashboard/HUE/TCT acceptance and a recorded non-blocking residual. | L2 | Conditional Reference | When Import authentication history, the HUE first-click residual, or closure evidence is needed. | High |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_001.md` | Import Checkpoint | Historical handoff after stale-state remediation and direct Playwright proof, including Product Owner runtime fail and next discovery boundary. | L2 | Conditional Reference | Import authentication history lookup only. | Medium |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_002.md` | Import Checkpoint | Historical management checkpoint confirming discovery completion, rejected options, selected one-time setup direction, and the C1 implementation plan. | L2 | Conditional Reference | Import authentication history lookup only. | Medium |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md` | Import Checkpoint | Closure checkpoint recording Product Owner runtime acceptance (Dashboard, HUE, TCT) and the known non-blocking HUE first-click residual. | L2 | Conditional Reference | Import authentication closure evidence lookup only. | High |
 | `docs/10_TICKETS/F13-SHIPMENT-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 shipment failure drill-down proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when shipment work is reactivated or current manifest names it. | Medium |
 | `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 data coverage and quality module proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when data-quality work is reactivated or current manifest names it. | Medium |
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-PLAN_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign planning handoff with no implementation authority. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign implementation scope, authority, validation, and handoff rules. | L2 | Active Onboarding | Current implementation ticket only. | Mandatory |
 | `docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` | Ticket Manifest | Closed F1.3 LAN-only viewer deployment authority and accepted runtime remediation record. | L2 | Conditional Reference | When LAN deployment contract, viewer access boundary, or closure evidence is needed. | High |
-| `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Current F1.3 UI audit and standardization planning authority for Antigravity discovery only. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
+| `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Current ticket. Phase 1-3 PO PASS; reactivated 2026-07-31 after AUTO-IMPORT-010 closure, READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION for Phase 4. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` | Ticket Manifest | Completed F1.3 internal route classification and Route Ranking filter scope with Product Owner PO PASS. | L2 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` | BCVH Checkpoint | Approved BCVH Ranking redesign structure, field-to-contract mapping, gaps, test requirements, and implementation handoff. | L2/L3 | Current Required Reading | Current BCVH implementation ticket only. | Mandatory |
 | `docs/06_REVIEWS/Deployment/QIS_LAN_DEPLOY_001_CHECKPOINT_001.md` | Deployment Checkpoint | Closed LAN deployment checkpoint with accepted viewer-auth remediation and preserved access contract. | L2/L3 | Current Required Reading | When the current planning ticket needs the accepted LAN baseline. | Mandatory |
@@ -118,13 +121,13 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | UX | 7 | 7 | 0 | Conditional Reference |
 | Technical Planning | 7 | 7 | 0 | Conditional Reference |
 | Development Reference | 4 | 4 | 0 | Conditional Reference |
-| Reviews and Evidence | 146 | 116 | 30 | Conditional Reference |
+| Reviews and Evidence | 147 | 117 | 30 | Conditional Reference |
 | Conditional Reference | 46 | 42 | 4 | Conditional Reference/Archive |
 | Archive | 9 | 9 | 0 | Archive |
 | Reports Archive | 21 | 21 | 0 | Archive |
 | Ticket Manifests | 48 | 48 | 0 | Conditional Reference |
 | Root Legacy/Frozen Docs | 21 | 21 | 0 | Conditional Reference/Archive |
-| Total under `docs` | 337 | 303 | 34 | Preserved |
+| Total under `docs` | 338 | 304 | 34 | Preserved |
 
 ## Duplicate Content Notes
 

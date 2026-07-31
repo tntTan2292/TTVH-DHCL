@@ -3,23 +3,26 @@
 - Ticket ID: `AUTO-IMPORT-010`
 - Ticket Name: `HUE Browser Broker / Browser Launch Recovery`
 - Phase: `Import Authentication Recovery`
-- Current State: `CHECKPOINT 002 / C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`
-- Technical Status: `PLAYWRIGHT RUNTIME PACKAGES MATERIALIZED; FRONTEND SESSION INVALIDATION NARROWED TO OFFICIAL AUTH VALIDATION ONLY`
-- Runtime Status: `PO RUNTIME FAIL`
-- PO UI Check Required: `Yes`
-- PO Product Status: `NOT PASS`
-- Current Phase: `ACTIVE HUE BROWSER LAUNCH RECOVERY`
-- Last Reviewed Phase: `Checkpoint 002 C1 dependency materialization implementation`
-- Last Reviewed Commit: `2c207852766b74117674a2316fbe923df61a4b24`
-- Phase Review Status: `C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`
-- Next Phase Authorization: `Run Product Owner HUE standard-runtime recheck before considering any launcher or wider-scope change`
-- Current PO Runtime Failure Note: `Frontend blanket 401 session clearing previously allowed Import authorization failures to invalidate Dashboard session state. This correction narrows session removal to the official auth validation endpoint only.`
+- Current State: `COMPLETED / PO RUNTIME PASS / CLOSED`
+- Technical Status: `PLAYWRIGHT RUNTIME PACKAGES MATERIALIZED; FRONTEND SESSION INVALIDATION NARROWED TO OFFICIAL AUTH VALIDATION ONLY; PRODUCT OWNER RUNTIME ACCEPTANCE CONFIRMED`
+- Runtime Status: `PO RUNTIME PASS`
+- PO UI Check Required: `Yes - PO PASS recorded`
+- PO Product Status: `PASS`
+- Current Phase: `CLOSED`
+- Last Reviewed Phase: `Product Owner runtime acceptance covering Dashboard, HUE, and TCT`
+- Last Reviewed Commit: `2c207852766b74117674a2316fbe923df61a4b24` (last code-affecting commit; this closure round is documentation only, baseline `f10cbe823af454997def0897c4a3f92425d4da63`)
+- Phase Review Status: `CLOSED / PO RUNTIME PASS`
+- Next Phase Authorization: `Ticket closed. Import authentication recovery is no longer active. Dashboard Phase 4 UI planning may resume under docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md, discovery/planning only, no implementation authorized yet.`
+- Current PO Runtime Failure Note: `Resolved. Frontend blanket 401 session clearing previously allowed Import authorization failures to invalidate Dashboard session state; the fix narrowing session removal to the official auth validation endpoint is confirmed working under Product Owner runtime testing (see Closure Evidence).`
 - Activation date: `2026-07-31`
+- Closure date: `2026-07-31`
 - Primary executor: `Codex`
 
 ## Fresh-Chat Onboarding Authority
 
-Required onboarding chain:
+This ticket is `CLOSED`. It is no longer part of the fresh onboarding chain; fresh onboarding now resolves through `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` to `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`.
+
+Historical onboarding chain used while this ticket was active:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
@@ -27,11 +30,12 @@ Required onboarding chain:
 4. `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md`
 5. Required Reading from this manifest
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_002.md`
+Closure checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md`
 
-Required Reading:
+Required Reading (historical, for anyone reviewing this closed ticket):
 
 - `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_002.md`
+- `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md`
 
 ## Authority
 
@@ -96,6 +100,21 @@ The current authoritative blocker is different:
 Discovery for this root cause is complete. The pending step is bounded implementation authority for the selected recovery model.
 Discovery for this root cause is complete. The current pending step is Product Owner runtime recheck after `C1` dependency materialization.
 
+## Closure Evidence
+
+Product Owner runtime recheck, `2026-07-31`, on the standard launcher path:
+
+- Dashboard: `PASS`. No session loss and no authentication error observed after operating Import, confirming the frontend session-clearing narrowing is effective under real use.
+- HUE: login succeeded; import of `2026-07-30` data succeeded.
+- TCT: browser opened on the first click; login succeeded; import of `2026-07-30` data succeeded.
+
+## Known Residual (Non-Blocking)
+
+- `KNOWN RESIDUAL / DEFERRED / NON-BLOCKING`: on the first HUE login click, the browser window did not open within the expected wait; the second click opened it successfully and login proceeded normally.
+- Product Owner explicitly decided this residual does not block acceptance of this ticket.
+- No remediation ticket is opened for this residual under this closure; it is recorded here for visibility and must not be hidden or removed from this document.
+- Any future remediation of this residual requires a separate Product Owner-authorized ticket; it is out of scope for `AUTO-IMPORT-010`.
+
 ## Out Of Scope
 
 - Any TCT remediation or TCT expansion.
@@ -137,14 +156,10 @@ Avoid JScript, VBScript, WScript, Start-Process, and nested command wrappers whe
 
 ## Completion And Handoff
 
-This manifest does not authorize expansion beyond approved `C1`.
+Product Owner runtime check completed and accepted; see Closure Evidence above. This ticket is `COMPLETED / PO RUNTIME PASS / CLOSED`.
 
-Next required Product Owner runtime check:
+This manifest does not authorize any further implementation. It does not authorize reopening broker, coordinator, TCT expansion, or Node window hiding.
 
-- start the system through the normal runtime path,
-- trigger HUE login from the product,
-- verify browser opens usable,
-- complete login and refresh preflight,
-- confirm whether standard runtime now clears the prior `MODULE_NOT_FOUND` blocker.
+The known HUE first-click residual remains recorded above and requires separate Product Owner authorization before any remediation ticket is opened.
 
-Do not return to broker, coordinator, TCT, or Node window hiding without explicit Product Owner authority.
+Next ticket: `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`, state `READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION`. Do not dispatch implementation there until ChatGPT coordination issues a separately bounded prompt.

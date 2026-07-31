@@ -17,23 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `HUE BROWSER RUNTIME PREPARATION PLANNING` |
-| Current Ticket | `AUTO-IMPORT-010` |
-| Next Ticket | `Product Owner HUE standard-runtime recheck after C1 dependency materialization` |
-| Last PO Status | `Product Owner approved C1. Backend runtime packages required for HUE standard runtime have now been materialized in the repository-managed backend environment, with no launcher change in this round. AUTO-IMPORT-010 now waits for Product Owner runtime recheck.` |
+| Current Phase | `F1.3 UI Phase 4 Discovery/Planning` |
+| Current Ticket | `F13-UI-AUDIT-PLAN` |
+| Next Ticket | `Bounded ChatGPT-issued Phase 4 UI discovery/planning prompt for Antigravity (no implementation authority yet)` |
+| Last PO Status | `AUTO-IMPORT-010 closed with PO RUNTIME PASS on 2026-07-31: Dashboard, HUE, and TCT all confirmed working under the standard launcher, including successful HUE and TCT login/import for 2026-07-30. A known HUE first-click browser-open residual is recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING by explicit Product Owner decision. F13-UI-AUDIT-PLAN is reactivated as Current Ticket; discovery/planning only, no implementation authorized.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` |
-| Current Checkpoint | `AUTO-IMPORT-010 CHECKPOINT 002 - discovery complete and bounded implementation plan pending authority` |
-| Current State | `AUTO-IMPORT-010 CHECKPOINT 002 / HUE ONLY / C1 IMPLEMENTED / DASHBOARD PHASE 4 PAUSED` |
-| Technical Status | `BACKEND PLAYWRIGHT/BCRYPTJS MATERIALIZED; FRONTEND SESSION CLEARING NARROWED TO OFFICIAL AUTH VALIDATION ENDPOINT` |
-| Runtime Status | `PO RUNTIME RECHECK REQUIRED` |
-| PO UI Check Required | `Yes` |
-| PO Product Status | `NOT PASS` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` |
-| Last Reviewed Phase | `AUTO-IMPORT-010 Product Owner HUE runtime recheck after stale-state remediation` |
-| Last Reviewed Commit | `2c207852766b74117674a2316fbe923df61a4b24` |
-| Phase Review Status | `C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED` |
-| Next Phase Authorization | `Do not expand beyond approved C1 until Product Owner completes HUE standard-runtime recheck. Do not resume Dashboard Phase 4 and do not expand to TCT.` |
+| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` |
+| Current Checkpoint | `F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` |
+| Current State | `F13-UI-AUDIT-PLAN / READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION` |
+| Technical Status | `PHASE 1, 2 & 3 IMPLEMENTED AND PO PASS; PHASE 4 NOT DISPATCHED` |
+| Runtime Status | `NOT APPLICABLE (PLANNING ONLY)` |
+| PO UI Check Required | `No - no visible product change at this planning step` |
+| PO Product Status | `PHASE 1, 2 & 3 PO PASS / PHASE 4 NOT STARTED` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` |
+| Last Reviewed Phase | `AUTO-IMPORT-010 closure: Product Owner runtime acceptance covering Dashboard, HUE, and TCT` |
+| Last Reviewed Commit | `f10cbe823af454997def0897c4a3f92425d4da63` |
+| Phase Review Status | `AUTO-IMPORT-010 CLOSED / PO RUNTIME PASS` |
+| Next Phase Authorization | `Repository awaits a separately bounded ChatGPT coordination prompt to dispatch Phase 4 UI discovery/planning for Antigravity. No implementation authorized yet. Do not reopen AUTO-IMPORT-010, broker, coordinator, TCT expansion, or Node window hiding without explicit Product Owner authority.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-07-31` |
 
@@ -62,16 +62,18 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `AUTO-IMPORT-010` remains the active highest-priority ticket and is now at `CHECKPOINT 002 / C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`. Direct Playwright + Chromium + HUE profile launch had already been proven to work, stale HUE cached `LOGIN_IN_PROGRESS` recovery had already been fixed at `1ca7eee11101cbf59390662dbd848f6fcf8c5d60`, and Product Owner has now approved `C1` only. This round materialized the missing backend runtime packages required for HUE standard runtime, without changing launcher behavior, TCT scope, Dashboard scope, or browser-flow logic.
+Current handoff: `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-31`. Product Owner runtime acceptance confirmed Dashboard, HUE, and TCT all working under the standard launcher, including successful HUE and TCT login/import for `2026-07-30`. A known HUE first-click browser-open residual is recorded in `AUTO-IMPORT-010_MANIFEST.md` and `AUTO-IMPORT-010_CHECKPOINT_003.md` as `KNOWN RESIDUAL / DEFERRED / NON-BLOCKING` by explicit Product Owner decision; it is not an open defect and has no remediation ticket. Import authentication recovery is no longer active.
 
-Historical Import guidance that previously marked earlier authentication rounds as completed is superseded by the current manifest and checkpoint. Internal unit tests, PID discovery, HWND enumeration, URL reachability, or `LOGIN_IN_PROGRESS` are not sufficient to claim Product Owner pass. Direct Playwright browser launch success is also not Product Owner pass by itself; it only proves the current blocker has narrowed to standard-runtime dependency preparedness and operational setup design.
+Historical Import guidance that previously marked earlier authentication rounds as completed is superseded by the closure record above. Internal unit tests, PID discovery, HWND enumeration, URL reachability, or `LOGIN_IN_PROGRESS` are not sufficient to claim Product Owner pass by themselves; this closure is based on direct Product Owner runtime acceptance.
 
-Operation Dashboard history remains preserved. Phase 1 implementation `6ea7819`, Phase 1 remediation `cbe5bc2`, Phase 2 implementation `dd9cbf5`, Phase 3 implementation `32c10f5470bf1d3a530a767b42ab1948f7f3e61d`, and Phase 3 PO PASS governance `5d29c0f0212fc59fac08131e42b5f1e2cfbacf73` remain accepted. Phase 4 history also remains preserved at implementation `235b69d0aa1a5b776b3398fde50c60172f7e4181`, documentation `5e1fa20`, and cleanup `.gitignore` protection `f7df0b56e6ec43d97ff48c68dd6fbb2e5ed3f558`. Phase 4 is not `PO PASS`; it is paused until Import authentication is fixed and explicitly accepted by Product Owner.
+Operation Dashboard history remains preserved. Phase 1 implementation `6ea7819`, Phase 1 remediation `cbe5bc2`, Phase 2 implementation `dd9cbf5`, Phase 3 implementation `32c10f5470bf1d3a530a767b42ab1948f7f3e61d`, and Phase 3 PO PASS governance `5d29c0f0212fc59fac08131e42b5f1e2cfbacf73` remain accepted. `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` is now the current ticket, reactivated `READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION`.
+
+Note on an unresolved inconsistency (not resolved in this closure round): this section previously referenced a "Phase 4" already carrying implementation commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`, documentation `5e1fa20`, and `.gitignore` protection `f7df0b56e6ec43d97ff48c68dd6fbb2e5ed3f558`, described as paused pending Import authentication. This conflicts with `F13-UI-AUDIT-PLAN_MANIFEST.md`, which states Phase 4 is `NOT YET DISPATCHED` with no implementation commits recorded. The manifest is treated as authoritative for current Phase 4 status per its `L2 Active Onboarding` authority. This conflict is preserved here for visibility and requires ChatGPT/Product Owner clarification before Phase 4 UI implementation begins; it does not block the current discovery/planning-only state.
 
 Fresh-chat onboarding chain for the current active ticket:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-4. `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md`
+4. `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`
 5. Required Reading from the current manifest
