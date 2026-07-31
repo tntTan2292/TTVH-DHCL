@@ -1,10 +1,14 @@
 'use strict';
 
 const assert = require('assert/strict');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { DkclSessionPreflightService, PREFLIGHT_STATUSES, SOURCE_CONFIG, resolveProfileDir, DKCL_LIFECYCLE_STATES, globalRegistry } = require('./src/services/dkclSessionPreflightService');
 const { DKCL_PUBLIC_LIFECYCLE_SEQUENCE } = require('./src/services/dkclLifecycleContract');
 const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClient');
+const { DkclSessionStore } = require('./src/services/dkclSessionStore');
+const { DkclSessionCoordinator } = require('./src/services/dkclSessionCoordinator');
 const browserProcessManager = require('./src/services/browserProcessManager');
 
 // Mock browserProcessManager for these tests to avoid real OS process calls
@@ -36,6 +40,20 @@ function deferred() {
         reject = rej;
     });
     return { promise, resolve, reject };
+}
+
+function makeCoordinatorFixture() {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dkcl-preflight-'));
+    const filePath = path.join(root, 'session-store.json');
+    const store = new DkclSessionStore({ filePath });
+    store.clearAll();
+    return {
+        store,
+        coordinator: new DkclSessionCoordinator({
+            store,
+            backendInstanceId: 'test-backend'
+        })
+    };
 }
 
 (async () => {
@@ -95,6 +113,71 @@ function deferred() {
             delete process.env.DKCL_HUE_PROFILE_DIR;
         }
     }
+
+    console.log('\nTEST 1C: coordinator recovers WAITING_FOR_LOGIN after backend restart without parentPid ownership');
+    globalRegistry.clear();
+    const waitingFixture = makeCoordinatorFixture();
+    waitingFixture.coordinator.recordState('TCT', {
+        sessionId: 'waiting-session',
+        state: DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN,
+        profileDir: SOURCE_CONFIG.TCT.defaultProfileDir(),
+        authenticated: false,
+        sourcePageReady: false
+    });
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [{ pid: 9100, parentPid: 111, exactProfileMatch: true }],
+        errorCode: null
+    });
+    let recoveredShowCount = 0;
+    browserProcessManager.showBrowserWindowsByProfile = async () => {
+        recoveredShowCount++;
+        return { success: false, matchedWindowCount: 0 };
+    };
+    const waitingRecoveryService = new DkclSessionPreflightService({
+        coordinatorEnabled: true,
+        coordinator: waitingFixture.coordinator,
+        interactiveClientFactory: () => {
+            throw new Error('recovery path should not relaunch a duplicate browser');
+        }
+    });
+    const waitingRecovery = await waitingRecoveryService.interactiveAuthenticate('TCT');
+    assert.strictEqual(waitingRecovery.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'coordinator recovery resumes waiting session after restart');
+    assert.strictEqual(waitingRecovery.lifecycle_state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'recovered waiting session keeps WAITING_FOR_LOGIN state');
+    assert.strictEqual(recoveredShowCount, 1, 'recovered waiting session only best-effort surfaces browser windows');
+
+    console.log('\nTEST 1D: coordinator recovers F13_READY without HWND authority');
+    globalRegistry.clear();
+    const readyFixture = makeCoordinatorFixture();
+    readyFixture.coordinator.recordState('HUE', {
+        sessionId: 'ready-session',
+        state: DKCL_LIFECYCLE_STATES.F13_READY,
+        profileDir: SOURCE_CONFIG.HUE.defaultProfileDir(),
+        authenticated: true,
+        sourcePageReady: true
+    });
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [{ pid: 9200, parentPid: 222, exactProfileMatch: true }],
+        errorCode: null
+    });
+    browserProcessManager.showBrowserWindowsByProfile = async () => ({ success: false, matchedWindowCount: 0 });
+    const readyRecoveryService = new DkclSessionPreflightService({
+        coordinatorEnabled: true,
+        coordinator: readyFixture.coordinator,
+        portalClientFactory: () => {
+            throw new Error('ready recovery should not reopen portal headlessly');
+        }
+    });
+    const readyRecovery = await readyRecoveryService.preflight('HUE');
+    assert.strictEqual(readyRecovery.status, PREFLIGHT_STATUSES.SESSION_VALID, 'SESSION_VALID is recovered from durable READY state');
+    assert.strictEqual(readyRecovery.lifecycle_state, DKCL_LIFECYCLE_STATES.F13_READY, 'recovered ready session keeps F13_READY');
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [],
+        errorCode: null
+    });
+    browserProcessManager.showBrowserWindowsByProfile = async () => ({ success: true, matchedWindowCount: 1 });
 
     console.log('\nTEST 2: authentication required result');
     const authService = new DkclSessionPreflightService({

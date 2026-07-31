@@ -3,6 +3,7 @@
 const path = require('path');
 const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
 const processManager = require('./browserProcessManager');
+const { DkclSessionCoordinator } = require('./dkclSessionCoordinator');
 const {
     DKCL_LIFECYCLE_STATES,
     DKCL_LEGACY_STATES,
@@ -106,6 +107,10 @@ class DkclSessionPreflightService {
             manualAuthWaitMs: Number(process.env.DKCL_INTERACTIVE_AUTH_WAIT_MS || 240000),
             source: sourceConfig?.source
         }));
+        this.coordinatorEnabled = typeof options.coordinatorEnabled === 'boolean'
+            ? options.coordinatorEnabled
+            : DkclSessionCoordinator.isEnabled();
+        this.coordinator = options.coordinator || new DkclSessionCoordinator(options.coordinatorOptions);
     }
 
     normalizeSource(source) {
@@ -154,12 +159,37 @@ class DkclSessionPreflightService {
         };
     }
 
+    transitionEntry(source, entry, state, patch = {}) {
+        transitionLifecycle(entry, state, patch);
+        if (this.coordinatorEnabled) {
+            this.coordinator.syncLifecycle(source, entry, patch.profileDir || null, patch);
+        }
+        return entry;
+    }
+
+    recoverFromCoordinator(sourceConfig, entry, profileDir, inspection) {
+        if (!this.coordinatorEnabled) return null;
+        const record = this.coordinator.getSession(sourceConfig.source);
+        if (!this.coordinator.canRecover(record, profileDir, inspection)) return null;
+
+        const recoveredState = this.coordinator.getRecoveredState(record);
+        this.transitionEntry(sourceConfig.source, entry, recoveredState, {
+            authenticated: Boolean(record.authenticated || recoveredState === DKCL_LIFECYCLE_STATES.F13_READY),
+            backgroundReady: Boolean(record.sourcePageReady),
+            windowHidden: false,
+            hideAttempted: false,
+            lastError: null,
+            profileDir
+        });
+        return { record, recoveredState };
+    }
+
     async reuseInteractiveClient(sourceConfig, entry) {
         if (!entry.client) return null;
 
         const restored = await entry.client.restoreWindow?.().catch(() => false);
         if (restored) {
-            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
                 client: entry.client,
                 windowHidden: false,
                 hideAttempted: false
@@ -168,7 +198,7 @@ class DkclSessionPreflightService {
         }
 
         const staleClient = entry.client;
-        transitionLifecycle(entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+        this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
             client: null,
             authenticated: false,
             backgroundReady: false,
@@ -229,19 +259,19 @@ class DkclSessionPreflightService {
                 ? await entry.client.isAuthenticated().catch(() => false)
                 : false;
             if (!ready && authenticated) {
-                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
                     authenticated: true,
                     backgroundReady: false
                 });
                 await entry.client.openF13Report?.().catch(() => {});
-                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
                     authenticated: true,
                     backgroundReady: true
                 });
                 return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
             }
             if (ready) {
-                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
                     authenticated: true,
                     backgroundReady: true
                 });
@@ -251,7 +281,7 @@ class DkclSessionPreflightService {
 
             // Clean up stale client in registry if no longer valid
             const oldClient = entry.client;
-            transitionLifecycle(entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
                 client: null,
                 authenticated: false,
                 backgroundReady: false,
@@ -268,6 +298,27 @@ class DkclSessionPreflightService {
             };
         }
         const profileDir = resolveProfileDir(sourceConfig);
+        const inspection = await processManager.findBrowserProcessByProfile(profileDir).catch(() => ({ inspectionStatus: 'FAILED', matchingProcesses: [] }));
+        const recovered = this.recoverFromCoordinator(sourceConfig, entry, profileDir, inspection);
+        if (recovered) {
+            if (recovered.recoveredState === DKCL_LIFECYCLE_STATES.F13_READY) {
+                return {
+                    source: sourceConfig.source,
+                    status: PREFLIGHT_STATUSES.SESSION_VALID,
+                    interactive: true,
+                    source_page_ready: true,
+                    ...lifecyclePayload(entry)
+                };
+            }
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
+                interactive: true,
+                source_page_ready: Boolean(entry.backgroundReady),
+                ...lifecyclePayload(entry),
+                message: `Đang khôi phục phiên đăng nhập DKCL ${sourceConfig.displayName}.`
+            };
+        }
         const client = this.portalClientFactory(sourceConfig);
 
         try {
@@ -276,21 +327,24 @@ class DkclSessionPreflightService {
                 profileDir,
                 requireExistingSession: true
             });
-            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.AUTHENTICATED, {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.AUTHENTICATED, {
                 authenticated: true,
-                backgroundReady: false
+                backgroundReady: false,
+                profileDir
             });
             if (client.openF13Report) {
-                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
                     authenticated: true,
-                    backgroundReady: false
+                    backgroundReady: false,
+                    profileDir
                 });
                 await client.openF13Report();
             }
             if (client.isF13ReportReady && !await client.isF13ReportReady()) {
-                transitionLifecycle(entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
                     authenticated: false,
-                    backgroundReady: false
+                    backgroundReady: false,
+                    profileDir
                 });
                 return {
                     source: sourceConfig.source,
@@ -299,9 +353,10 @@ class DkclSessionPreflightService {
                     error: { code: 'SOURCE_PAGE_REQUIRED', message: 'DKCL source page F1.3 is not ready.' }
                 };
             }
-            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
                 authenticated: true,
-                backgroundReady: true
+                backgroundReady: true,
+                profileDir
             });
             return {
                 source: sourceConfig.source,
@@ -318,6 +373,9 @@ class DkclSessionPreflightService {
         } catch (error) {
             const profileDir = resolveProfileDir(sourceConfig);
             processManager.clearHiddenHwnds?.(profileDir);
+            if (this.coordinatorEnabled) {
+                this.coordinator.markFailed(sourceConfig.source, profileDir, error);
+            }
             const status = error?.code === 'AUTHENTICATION_REQUIRED'
                 ? PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED
                 : PREFLIGHT_STATUSES.SESSION_CHECK_FAILED;
@@ -364,18 +422,35 @@ class DkclSessionPreflightService {
         }
 
         entry.openingPromise = (async () => {
-            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
-                lastError: null
-            });
-
             const profileDir = resolveProfileDir(sourceConfig);
+            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
+                lastError: null,
+                profileDir
+            });
             processManager.clearHiddenHwnds?.(profileDir);
 
             // R4.1A Automatic Reconciliation
             const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
+            const recovered = this.recoverFromCoordinator(sourceConfig, entry, profileDir, classification.inspection);
+            if (recovered) {
+                await processManager.showBrowserWindowsByProfile?.(profileDir).catch(() => {});
+                if (recovered.recoveredState === DKCL_LIFECYCLE_STATES.F13_READY) {
+                    return {
+                        source: sourceConfig.source,
+                        status: PREFLIGHT_STATUSES.SESSION_VALID,
+                        interactive: true,
+                        source_page_ready: true,
+                        ...lifecyclePayload(entry)
+                    };
+                }
+                return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+            }
+            if (this.coordinatorEnabled) {
+                this.coordinator.beginOpening(sourceConfig.source, profileDir);
+            }
 
             if (classification.lockState === 'UNKNOWN' || classification.lockState === 'LIVE_UNVERIFIED') {
-                if (classification.lockState === 'LIVE_UNVERIFIED' && sourceConfig.source === 'TCT' && !entry.client) {
+                if (!this.coordinatorEnabled && classification.lockState === 'LIVE_UNVERIFIED' && sourceConfig.source === 'TCT' && !entry.client) {
                     await this.reclaimTctOrphanedProfile(classification, profileDir);
                 } else {
                     const errCode = classification.lockState === 'UNKNOWN' ? 'PROCESS_INSPECTION_UNAVAILABLE' : 'PROFILE_OWNERSHIP_UNVERIFIED';
@@ -396,49 +471,56 @@ class DkclSessionPreflightService {
             }
 
             const client = this.interactiveClientFactory(sourceConfig);
-            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
                 client,
                 authenticated: false,
                 backgroundReady: false,
                 windowHidden: false,
-                hideAttempted: false
+                hideAttempted: false,
+                profileDir
             });
 
             client.onDisconnect = () => {
-                transitionLifecycle(entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
                     client: null,
                     authenticated: false,
                     backgroundReady: false,
                     windowHidden: false,
-                    hideAttempted: false
+                    hideAttempted: false,
+                    profileDir
                 });
+                if (this.coordinatorEnabled) {
+                    this.coordinator.markStale(sourceConfig.source, profileDir, 'Browser disconnected');
+                }
                 client.close().catch(() => {});
             };
 
             try {
-                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER);
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, { profileDir });
 
                 await client.prepareInteractiveAuthentication({
                     baseUrl: this.portalBaseUrl,
                     profileDir
                 });
 
-                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN);
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, { profileDir });
 
                 // Spawn background task to wait for login
                 (async () => {
                     try {
                         await client.waitInteractiveAuthentication();
 
-                        transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.AUTHENTICATED, {
+                        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.AUTHENTICATED, {
                             client,
                             authenticated: true,
-                            backgroundReady: false
+                            backgroundReady: false,
+                            profileDir
                         });
 
-                        transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
+                        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
                             authenticated: true,
-                            backgroundReady: false
+                            backgroundReady: false,
+                            profileDir
                         });
 
                         if (client.isF13ReportReady) {
@@ -451,16 +533,18 @@ class DkclSessionPreflightService {
                             }
                         }
 
-                        transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
                             authenticated: true,
-                            backgroundReady: false
+                            backgroundReady: false,
+                            profileDir
                         });
 
                         if (client.interactiveAuthenticatedOnOpen) {
-                            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
                                 hideAttempted: false,
                                 windowHidden: false,
-                                backgroundReady: true
+                                backgroundReady: true,
+                                profileDir
                             });
                         } else {
                             const hideWindow = client.hideWindow || client.hideBrowserWindow;
@@ -468,48 +552,58 @@ class DkclSessionPreflightService {
                                 ? entry.windowHidden
                                 : await hideWindow.call(client).catch(() => false);
 
-                            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
                                 hideAttempted: true,
                                 windowHidden: Boolean(hideSuccess),
-                                backgroundReady: true
+                                backgroundReady: true,
+                                profileDir
                             });
                         }
                     } catch (err) {
                         const keepWindowVisible = err?.code === 'AUTHENTICATION_REQUIRED' || err?.code === 'SOURCE_PAGE_REQUIRED';
                         if (keepWindowVisible) {
-                            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+                            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
                                 client,
                                 lastError: err.message,
                                 authenticated: false,
                                 backgroundReady: false,
                                 windowHidden: false,
-                                hideAttempted: false
+                                hideAttempted: false,
+                                profileDir
                             });
                             await client.restoreWindow?.().catch(() => {});
                             return;
                         }
-                        transitionLifecycle(entry, DKCL_LEGACY_STATES.ERROR, {
+                        this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.ERROR, {
                             lastError: err.message,
                             client: null,
                             authenticated: false,
                             backgroundReady: false,
                             windowHidden: false,
-                            hideAttempted: false
+                            hideAttempted: false,
+                            profileDir
                         });
+                        if (this.coordinatorEnabled) {
+                            this.coordinator.markFailed(sourceConfig.source, profileDir, err);
+                        }
                         await client.close().catch(() => {});
                     }
                 })();
 
                 return this.buildInteractiveInProgressResponse(sourceConfig, entry);
             } catch (error) {
-                transitionLifecycle(entry, DKCL_LEGACY_STATES.ERROR, {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.ERROR, {
                     lastError: error.message,
                     client: null,
                     authenticated: false,
                     backgroundReady: false,
                     windowHidden: false,
-                    hideAttempted: false
+                    hideAttempted: false,
+                    profileDir
                 });
+                if (this.coordinatorEnabled) {
+                    this.coordinator.markFailed(sourceConfig.source, profileDir, error);
+                }
                 await client.close().catch(() => {});
                 throw error;
             } finally {
@@ -537,7 +631,7 @@ class DkclSessionPreflightService {
 
         // Close any existing client
         const clientToClose = entry.client;
-        transitionLifecycle(entry, DKCL_LEGACY_STATES.NOT_AUTHENTICATED, {
+        this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.NOT_AUTHENTICATED, {
             client: null,
             openingPromise: null,
             authenticated: false,
@@ -546,6 +640,9 @@ class DkclSessionPreflightService {
             hideAttempted: false,
             lastError: 'Cancelled by user.'
         });
+        if (this.coordinatorEnabled) {
+            this.coordinator.clearSession(sourceConfig.source);
+        }
 
         if (clientToClose) {
             await clientToClose.close().catch(() => {});
@@ -586,7 +683,7 @@ class DkclSessionPreflightService {
             if (entry.client) {
                 await entry.client.close().catch(() => {});
             }
-            transitionLifecycle(entry, DKCL_LEGACY_STATES.NOT_AUTHENTICATED, {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.NOT_AUTHENTICATED, {
                 client: null,
                 openingPromise: null,
                 authenticated: false,
@@ -595,6 +692,9 @@ class DkclSessionPreflightService {
                 hideAttempted: false,
                 lastError: null
             });
+            if (this.coordinatorEnabled) {
+                this.coordinator.clearSession(sourceConfig.source);
+            }
         }
 
         if (action === 'PROCESS_INSPECTION_UNAVAILABLE' || action === 'PROFILE_OWNERSHIP_UNVERIFIED' || action === 'PROFILE_IN_USE_OWNED') {
