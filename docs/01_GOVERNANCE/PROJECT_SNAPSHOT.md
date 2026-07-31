@@ -25,7 +25,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` |
 | Current Checkpoint | `AUTO-IMPORT-010 CHECKPOINT 002 - discovery complete and bounded implementation plan pending authority` |
 | Current State | `AUTO-IMPORT-010 CHECKPOINT 002 / HUE ONLY / C1 IMPLEMENTED / DASHBOARD PHASE 4 PAUSED` |
-| Technical Status | `BACKEND PLAYWRIGHT/BCRYPTJS RUNTIME PACKAGES MATERIALIZED; NO LAUNCHER CHANGE` |
+| Technical Status | `BACKEND PLAYWRIGHT/BCRYPTJS MATERIALIZED; FRONTEND SESSION CLEARING NARROWED TO OFFICIAL AUTH VALIDATION ENDPOINT` |
 | Runtime Status | `PO RUNTIME RECHECK REQUIRED` |
 | PO UI Check Required | `Yes` |
 | PO Product Status | `NOT PASS` |

@@ -125,6 +125,29 @@ This round implemented the approved repository-managed dependency materializatio
 - no launcher mutation was introduced,
 - no browser-flow logic was changed.
 
+## Post-C1 Delta Correction
+
+Additional bounded remediation after `C1`:
+
+- frontend session removal on `401` is now limited to the official auth validation endpoint only,
+- business API `401` responses no longer automatically delete `qis_auth_session`,
+- Import authorization failures therefore no longer force Dashboard logout through blanket client behavior.
+
+Official session validation endpoint confirmed from backend authority:
+
+- `GET /api/auth/me`
+
+Backend restart classification for the cited PO runtime failure:
+
+- `UNCONFIRMED`
+
+Evidence:
+
+- `backend/src/services/auth/AuthSessionStore.js` is in-memory and would lose all sessions on backend restart,
+- current `backend/backend.log` shows a runtime banner for PID `8448` at `2026-07-31T08:51:41.176Z`,
+- current live backend process `8448` was created at `2026-07-31 15:51:40` local time,
+- current `backend/backend.log` / `backend/backend_err.log` do not contain timestamped evidence proving an additional backend restart exactly at the Product Owner failure moment.
+
 ## Backend Error Contract
 
 When HUE prerequisites are missing, backend behavior should:

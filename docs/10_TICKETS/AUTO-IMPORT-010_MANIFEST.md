@@ -4,7 +4,7 @@
 - Ticket Name: `HUE Browser Broker / Browser Launch Recovery`
 - Phase: `Import Authentication Recovery`
 - Current State: `CHECKPOINT 002 / C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`
-- Technical Status: `PLAYWRIGHT RUNTIME PACKAGES MATERIALIZED IN REPOSITORY; NO LAUNCHER CHANGE`
+- Technical Status: `PLAYWRIGHT RUNTIME PACKAGES MATERIALIZED; FRONTEND SESSION INVALIDATION NARROWED TO OFFICIAL AUTH VALIDATION ONLY`
 - Runtime Status: `PO RUNTIME FAIL`
 - PO UI Check Required: `Yes`
 - PO Product Status: `NOT PASS`
@@ -13,6 +13,7 @@
 - Last Reviewed Commit: `2c207852766b74117674a2316fbe923df61a4b24`
 - Phase Review Status: `C1 IMPLEMENTED / PO RUNTIME RECHECK REQUIRED`
 - Next Phase Authorization: `Run Product Owner HUE standard-runtime recheck before considering any launcher or wider-scope change`
+- Current PO Runtime Failure Note: `Frontend blanket 401 session clearing previously allowed Import authorization failures to invalidate Dashboard session state. This correction narrows session removal to the official auth validation endpoint only.`
 - Activation date: `2026-07-31`
 - Primary executor: `Codex`
 

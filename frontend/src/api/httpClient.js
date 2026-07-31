@@ -2,6 +2,17 @@ import { resolveApiBaseUrl } from './apiBaseUrl.js';
 
 const BASE_URL = resolveApiBaseUrl();
 const SESSION_KEY = 'qis_auth_session';
+const SESSION_VALIDATION_PATH = '/auth/me';
+
+function isOfficialSessionValidationEndpoint(endpoint = '') {
+    try {
+        const normalized = String(endpoint || '');
+        const url = new URL(normalized, `${BASE_URL}/`);
+        return url.pathname === SESSION_VALIDATION_PATH || url.pathname === `/api${SESSION_VALIDATION_PATH}`;
+    } catch {
+        return false;
+    }
+}
 
 class HttpClient {
     async request(endpoint, options = {}) {
@@ -28,7 +39,7 @@ class HttpClient {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                if (response.status === 401) {
+                if (response.status === 401 && isOfficialSessionValidationEndpoint(endpoint)) {
                     localStorage.removeItem(SESSION_KEY);
                 }
 
@@ -84,5 +95,5 @@ class HttpClient {
     }
 }
 
-export { SESSION_KEY };
+export { SESSION_KEY, SESSION_VALIDATION_PATH, isOfficialSessionValidationEndpoint };
 export default new HttpClient();

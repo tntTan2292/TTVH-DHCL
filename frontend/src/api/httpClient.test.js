@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import httpClient, { SESSION_KEY } from './httpClient.js';
+import httpClient, { SESSION_KEY, isOfficialSessionValidationEndpoint, SESSION_VALIDATION_PATH } from './httpClient.js';
 import { resolveApiBaseUrl } from './apiBaseUrl.js';
 
 function installLocalStorage() {
@@ -54,7 +54,27 @@ test('http client propagates stored session through bearer and x-session-id head
   assert.equal(response.success, true);
 });
 
-test('http client clears stored session on unauthorized responses', async () => {
+test('http client keeps stored session when a business API returns unauthorized', async () => {
+  globalThis.localStorage.setItem(SESSION_KEY, 'session-for-test');
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    success: false,
+    error: {
+      code: 'UNAUTHORIZED',
+      message: 'unauthorized',
+    },
+  }), {
+    status: 401,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  await assert.rejects(() => httpClient.post('/import/dkcl/session/preflight', { source: 'HUE' }), { status: 401, code: 'UNAUTHORIZED' });
+
+  assert.equal(globalThis.localStorage.getItem(SESSION_KEY), 'session-for-test');
+});
+
+test('http client clears stored session only when official session validation returns unauthorized', async () => {
   globalThis.localStorage.setItem(SESSION_KEY, 'session-for-test');
   globalThis.fetch = async () => new Response(JSON.stringify({
     success: false,
@@ -72,6 +92,13 @@ test('http client clears stored session on unauthorized responses', async () => 
   await assert.rejects(() => httpClient.get('/auth/me'), { status: 401, code: 'UNAUTHORIZED' });
 
   assert.equal(globalThis.localStorage.getItem(SESSION_KEY), null);
+});
+
+test('official session validation matcher accepts only the me endpoint', () => {
+  assert.equal(isOfficialSessionValidationEndpoint(SESSION_VALIDATION_PATH), true);
+  assert.equal(isOfficialSessionValidationEndpoint('/auth/login'), false);
+  assert.equal(isOfficialSessionValidationEndpoint('/import/dkcl/session/preflight'), false);
+  assert.equal(isOfficialSessionValidationEndpoint('http://127.0.0.1:5050/api/auth/me'), true);
 });
 
 test('http client default api base keeps frontend 5178 separate from backend 5050', () => {

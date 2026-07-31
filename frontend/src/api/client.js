@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { SESSION_KEY } from './httpClient.js';
+import { SESSION_KEY, isOfficialSessionValidationEndpoint } from './httpClient.js';
 import { resolveApiBaseUrl } from './apiBaseUrl.js';
 
 const api = axios.create({
@@ -19,7 +19,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error?.response?.status === 401) {
+        const endpoint = error?.config?.url || '';
+        if (error?.response?.status === 401 && isOfficialSessionValidationEndpoint(endpoint)) {
             globalThis.localStorage?.removeItem(SESSION_KEY);
         }
         return Promise.reject(error);
