@@ -4,6 +4,7 @@ const path = require('path');
 const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
 const processManager = require('./browserProcessManager');
 const { DkclSessionCoordinator } = require('./dkclSessionCoordinator');
+const { DkclHueBrokerClient, isHueBrokerEnabled } = require('./dkclHueBrokerClient');
 const {
     DKCL_LIFECYCLE_STATES,
     DKCL_LEGACY_STATES,
@@ -111,6 +112,10 @@ class DkclSessionPreflightService {
             ? options.coordinatorEnabled
             : DkclSessionCoordinator.isEnabled();
         this.coordinator = options.coordinator || new DkclSessionCoordinator(options.coordinatorOptions);
+        this.hueBrokerEnabled = typeof options.hueBrokerEnabled === 'boolean'
+            ? options.hueBrokerEnabled
+            : isHueBrokerEnabled();
+        this.hueBrokerClient = options.hueBrokerClient || (this.hueBrokerEnabled ? new DkclHueBrokerClient(options.hueBrokerClientOptions) : null);
     }
 
     normalizeSource(source) {
@@ -226,6 +231,9 @@ class DkclSessionPreflightService {
 
     async preflight(source) {
         const sourceConfig = this.normalizeSource(source);
+        if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
+            return this.preflightViaHueBroker(sourceConfig);
+        }
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
 
         if (DKCL_IN_PROGRESS_STATES.has(entry.state)) {
@@ -402,6 +410,9 @@ class DkclSessionPreflightService {
 
     async interactiveAuthenticate(source) {
         const sourceConfig = this.normalizeSource(source);
+        if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
+            return this.interactiveAuthenticateViaHueBroker(sourceConfig);
+        }
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
 
         if (entry.openingPromise) {
@@ -615,7 +626,11 @@ class DkclSessionPreflightService {
     }
 
     getInteractiveClient(source) {
-        const entry = getOrCreateRegistryEntry(this.normalizeSource(source).source);
+        const sourceConfig = this.normalizeSource(source);
+        if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
+            return null;
+        }
+        const entry = getOrCreateRegistryEntry(sourceConfig.source);
         return entry.client || null;
     }
 
@@ -625,6 +640,16 @@ class DkclSessionPreflightService {
      */
     async cancelInteractiveLogin(source) {
         const sourceConfig = this.normalizeSource(source);
+        if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
+            const data = await this.hueBrokerClient.close();
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED,
+                cancelled: true,
+                was_in_progress: true,
+                broker: data
+            };
+        }
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
 
         const wasInProgress = DKCL_IN_PROGRESS_STATES.has(entry.state);
@@ -663,6 +688,13 @@ class DkclSessionPreflightService {
 
     async recover(source) {
         const sourceConfig = this.normalizeSource(source);
+        if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
+            return {
+                source: sourceConfig.source,
+                status: 'BROKER_MANAGED',
+                details: await this.hueBrokerClient.getStatus()
+            };
+        }
         const profileDir = resolveProfileDir(sourceConfig);
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
 
@@ -709,6 +741,47 @@ class DkclSessionPreflightService {
             details: {
                 classification: classification.lockState
             }
+        };
+    }
+
+    async preflightViaHueBroker(sourceConfig) {
+        try {
+            const status = await this.hueBrokerClient.getStatus();
+            return {
+                source: sourceConfig.source,
+                status: status.status,
+                interactive: true,
+                source_page_ready: Boolean(status.source_page_ready),
+                broker_state: status.broker_state,
+                authenticated: Boolean(status.authenticated),
+                updated_at: status.updated_at,
+                error: status.error || null
+            };
+        } catch (error) {
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.SESSION_CHECK_FAILED,
+                interactive: true,
+                source_page_ready: false,
+                error: {
+                    code: error.code || 'HUE_BROKER_UNAVAILABLE',
+                    message: error.message || 'HUE broker is unavailable.'
+                }
+            };
+        }
+    }
+
+    async interactiveAuthenticateViaHueBroker(sourceConfig) {
+        const result = await this.hueBrokerClient.openLogin();
+        return {
+            source: sourceConfig.source,
+            status: result.status,
+            interactive: true,
+            source_page_ready: Boolean(result.source_page_ready),
+            broker_state: result.broker_state,
+            authenticated: Boolean(result.authenticated),
+            updated_at: result.updated_at,
+            error: result.error || null
         };
     }
 }

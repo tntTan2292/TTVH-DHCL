@@ -5,6 +5,7 @@ const {
     standardizedFilename
 } = require('./dkclHueF13SyncService');
 const { DkclSessionPreflightService } = require('./dkclSessionPreflightService');
+const { isHueBrokerEnabled } = require('./dkclHueBrokerClient');
 const { HueF13Adapter } = require('./f13Adapters');
 const {
     attachSourceEvidence,
@@ -383,6 +384,11 @@ class DkclHueF13BackfillService {
     }
 
     async validateAuthenticationBeforeQueue() {
+        if (isHueBrokerEnabled()) {
+            const error = new Error('Hue queue/export workflow is not available while the HUE browser broker proof-of-concept flag is enabled.');
+            error.code = 'HUE_BROKER_EXPORT_NOT_IMPLEMENTED';
+            throw error;
+        }
         const preflight = await this.sessionPreflightService.preflight('HUE');
         if (preflight.status !== 'SESSION_VALID') {
             const authError = new Error('Không thể tạo hàng đợi Huế F1.3 vì phiên đăng nhập DKCL không hợp lệ. Vui lòng đăng nhập/cập nhật phiên DKCL trước khi chạy bù dữ liệu.');
