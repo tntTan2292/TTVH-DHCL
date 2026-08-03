@@ -38,11 +38,11 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `None`.
-- Current manifest: `None`. Last closed: `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` (`COMPLETED / PO PASS PHASE 1-4 / CLOSED`, 2026-08-03, commit `cdb9eab246415a3835210dd70329996e6ef6521c`).
-- Current checkpoint: `None`.
-- Next required action: await explicit Product Owner direction. No ticket is self-activated from the future sequence recorded in the closed manifest.
-- `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-31` and is no longer part of the fresh onboarding chain; see `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` and `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md` for closure evidence.
+- Current ticket: `F13-SHARED-NAV-FILTERS-PLAN`.
+- Current manifest: `docs/10_TICKETS/F13-SHARED-NAV-FILTERS-PLAN_MANIFEST.md` (`ACTIVE / PLANNING ONLY / READY FOR PO PLAN REVIEW`).
+- Current checkpoint: `docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md`.
+- Next required action: PO review of `F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md`. No implementation authorized.
+
 
 ## Docs Inventory
 
