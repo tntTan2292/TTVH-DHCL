@@ -86,7 +86,7 @@ class TimelineService {
         const mode = this._normalizeTimelineMode(options.mode);
         const includeDaily = mode === 'all';
         const includeWeekly = mode === 'all' || mode === 'weekday';
-        const includeMonthly = mode === 'all' || mode === 'month';
+        const includeMonthly = mode === 'all' || mode === 'month' || mode === 'heatmap';
         const includeHeatmap = mode === 'all' || mode === 'heatmap';
         const includeNationalRank = Boolean(options.includeNationalRank) && includeHeatmap && (!ma_bcvh || ma_bcvh === 'all');
         const includeMonthlyNationalRank = Boolean(options.includeNationalRank) && (mode === 'month' || mode === 'heatmap') && (!ma_bcvh || ma_bcvh === 'all');
