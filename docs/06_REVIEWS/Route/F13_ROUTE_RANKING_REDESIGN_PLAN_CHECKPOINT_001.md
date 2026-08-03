@@ -186,3 +186,40 @@ Re-deriving the PO's cited `2026-07-28` BCVH reference (`334/1536 = 21.7%`) via 
 - Diff scope verified: `FactBuuGuiRepository.js` (additive `getRouteRankingFacts`), `F13DashboardService.js` (additive delayed-cash wiring + backward-compatible `_buildF13302SummaryMap` generalization), `RoutePerformancePage.jsx`, `routeRankingCalculations.js`, and their tests. No BCVH Ranking, Dashboard, Import, schema, or historical-data file touched; `RuleF13302`'s `>3h` threshold unchanged.
 
 Status after R2: `REMEDIATED / READY FOR PO RECHECK`. **Recheck scope is Item 2 (BLACK/Chuyển hoàn) and Item 10 (delayed-cash metrics)** — Items 1, 3–9 remain untouched and already PO PASS. Not closed; no PO PASS claimed; no next ticket activated.
+
+## 13. PO Runtime Fail R3 (`2026-08-03`) — Item 10 all-zero, root cause and fix
+
+PO ran a runtime check on commit `62753c0` and observed `Số BG chậm nộp tiền = 0` and `Tỷ lệ chậm nộp tiền = 0%` on every route row and in the selected-route panel — `PO RUNTIME FAIL / ITEM 10`.
+
+### Root cause
+
+**Not a code defect.** The backend process listening on port `5050` (PID `6276`) had started at `2026-08-03 09:36:20` — before every one of today's 5 commits (`10:35:57` through `14:52:22`). It is a plain `node server.js` process with no file-watch/hot-reload, so it was still serving code from before the entire Route Ranking session began, including before the Item 10 delayed-cash wiring landed. Frontend's `toNumber(undefined)` naturally rendered `0` for the missing fields, and the pre-Item-10 code's hardcoded `f13_303_rate: 0` rendered `0%`.
+
+### Diagnostic evidence (targeted, no broad audit)
+
+Reproduced with real data (`2026-07-28`, BCVH `533140`) by invoking the actual production functions directly against the live `database.sqlite` — `FactBuuGuiRepository.getRouteRankingFacts` → `F13DashboardService._buildF13302SummaryMap`/`_buildF13302AggregateSummary` → `F13DashboardService.getRouteRanking` → `DashboardController.getRoute`. Every layer returned correct, non-zero results:
+
+| Layer | Observed value | Expected value | Conclusion |
+|---|---|---|---|
+| Backend process (before fix) | PID `6276`, started `09:36:20`, predates all 5 commits today | Should be running `62753c0` | **Stale — root cause** |
+| Repository facts (`getRouteRankingFacts`) | 1617 total, 806 with `danh_gia_2026 != Đạt`, 1563 with valid `thoi_gian_ptc`, 704 with valid `thoi_gian_nop_tien` (both present in all 704), 32 distinct routes, 0 null/empty route codes | Real facts for this scope | Correct |
+| Rule/grouping result | `delayed=229`, `eligible=806`, `rate=28.4%`; 22/32 routes nonzero | Nonzero, matches known BCVH-wide figure | Correct |
+| API route row | e.g. route `533140133`: `count=52`, `eligible=89`, `rate=58.4%` | Nonzero per route | Correct |
+| API aggregate | `count=229`, `eligible=806`, `rate=28.4%`; `Σ`row `=229` (exact) | Aggregate = `Σ`, not average | Correct |
+| Frontend display (PO's browser, before restart) | `0`/`0%` everywhere | Nonzero per above | Caused entirely by the stale process, not by any Route Ranking code |
+
+Repository contract, route-grouping key matching, and "missing → silently 0" fallback logic were each specifically checked (Section 5-6 of the diagnostic sequence) and found sound: `getRouteRankingFacts` selects exactly the fields `RuleF13302` reads, mirrors `getRouteRanking`'s WHERE clause exactly, is unpaginated, and the `ma_tuyen` grouping key from `_buildF13302SummaryMap` matches `getRouteRanking()`'s route key exactly (proven by the row-sum-equals-aggregate check above, both for `route_type=all` and for the frontend's actual default `route_type=postman`, which independently gave `227/750=30.3%`).
+
+### Fix
+
+Stopped the stale process on port `5050` and started a fresh one using the project's own standard command (matching `TTVH_ControlCenter.ps1`'s `Start-System`: `node server.js`, same working directory, same log redirection), new PID `28920`, confirmed listening with no crash. **Zero product code changed** in this remediation.
+
+### Runtime validation after the fix
+
+New `backend/src/controllers/DashboardController.routeDelayedCash.integration.test.js` (2/2 pass) exercises the real end-to-end path over live HTTP against the restarted server and real database: logs in via `/auth/login` with the project's existing test-admin fixture (`admin`/`admin123`, already used by `DashboardController.r6.integration.test.js`), calls `/f13/ranking/route`, and asserts numeric fields on every row, `Σ`row `=` aggregate for both count and eligible, both the aggregate and every per-route rate independently satisfy `count/eligible*100` (1 decimal), at least one route has a nonzero delayed count (positive evidence), and pagination to `page_size=3` does not shrink the aggregate.
+
+Browser validation was not performed — logging in as the Product Owner's user requires entering credentials, which is not permitted. No PO PASS is claimed.
+
+Discovered but out of scope: the 2 pre-existing baseline integration-test failures fail because Node's `fetch` resolves `"localhost"` to `::1` first in this environment, which the IPv4-only-bound backend refuses — unrelated to Route Ranking; the shared `test_support/httpTestClient.js` those tests depend on was intentionally left untouched.
+
+Status after R3: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope remains **Item 2** and **Item 10**. Not closed; no PO PASS claimed; no next ticket activated.
