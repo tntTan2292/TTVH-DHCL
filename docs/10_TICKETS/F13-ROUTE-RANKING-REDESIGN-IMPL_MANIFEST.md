@@ -1,5 +1,7 @@
 # F13-ROUTE-RANKING-REDESIGN-IMPL Manifest
 
+Status: `COMPLETED / PO PASS / CLOSED` (`2026-08-03`). Final PO-accepted implementation commit: `43819b9272910fcaddb9c058c97913648b10654d`. See Section 16 Closure.
+
 ## 1. Ticket Information
 
 - Ticket ID: `F13-ROUTE-RANKING-REDESIGN-IMPL`
@@ -18,9 +20,9 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / REMEDIATED / READY FOR PO RECHECK`
-- PO UI Check Required: `Yes — recheck required on Item 12 (BCVH Ranking default-date fix, Section 16 R7); Items 2, 11, and the shared-engine-synced Item 10 numbers are PO PASS on commit 4e80fdfd; Items 1, 3-9 already PO PASS on commit ee73feed`
-- PO Product Status: `PO CHECK (commit ee73feed): Items 1, 3-9 PASS. Item 2 (Chuyển hoàn/BLACK, R1) PO PASS. Item 10 (table/panel delayed-cash UI, commit 185b7dd) PO PASS; its numbers were corrected twice (R5, R6) and PO PASSED the shared-engine-synced result on commit 4e80fdfd. Item 11 (BG CHẬM NỘP TIỀN widget) PO PASS on commit 4e80fdfd. PO NEW FINDING (2026-08-03): BCVH Ranking's date filter defaulted to a hardcoded stale date (2026-07-28) instead of the latest date with real data — implemented as Item 12 (Section 16 R7), a targeted BCVH Ranking fix authorized within this open ticket. Ticket not closed; no PO PASS declared for Item 12 yet.`
+- Current state: `COMPLETED / PO PASS / CLOSED`
+- PO UI Check Required: `No — all items (1-12) PO PASS; ticket closed`
+- PO Product Status: `PO PASS — ALL ITEMS. Items 1, 3-9 PASS on commit ee73feed. Item 2 (Chuyển hoàn/BLACK naming) PO PASS. Item 10 (Route Ranking table/panel delayed-cash) PO PASS, numbers corrected twice (R5, R6) and re-confirmed PO PASS on commit 4e80fdfd. Item 11 (BG CHẬM NỘP TIỀN widget) PO PASS on commit 4e80fdfd. Item 12 (BCVH Ranking default-date fix) PO PASS on commit 43819b9. Final PO PASS covering the full ticket, including Item 12, confirmed 2026-08-03 on final implementation commit 43819b9272910fcaddb9c058c97913648b10654d. Ticket CLOSED.`
 
 ## 4. Required Reading
 
@@ -87,7 +89,7 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 - PO RUNTIME FAIL — DELAYED-CASH METRICS ALL ZERO (`2026-08-03`, commit `62753c0`): PO observed `Số BG chậm nộp tiền = 0` and `Tỷ lệ chậm nộp tiền = 0%` on every route, including the selected-route panel. Diagnosed and remediated — see Section 16 R3. Root cause: a stale backend server process, not a code defect. **Confirmed PO PASS on commit `185b7dd`** — the table columns and selected-route panel block are accepted and must not be re-touched absent a regression.
 - PO NEW FINDING — DELAYED-CASH KPI WIDGET MISSING (`2026-08-03`, commit `185b7dd`): the 4th KPI widget (`Tổng số tuyến`) must be replaced with a `BG CHẬM NỘP TIỀN` widget bound strictly to `meta.delayed_cash_handover_summary`. Implemented as Item 11 (Section 16 R4). Pending first PO check.
 - PO SSOT CORRECTION — DELAYED-CASH DENOMINATOR MUST EXCLUDE CHUYỂN HOÀN (`2026-08-03`, commit `2a0a06d`): while reviewing the new widget, PO identified that the eligible denominator (`543` for `2026-08-02`/BCVH `533140`) included `87` `Chuyển hoàn` (BLACK) facts alongside `456` `Không đạt` facts, and confirmed the correct rate must be `delayed / Không đạt` only (`116/456 = 25.4%`, not `116/543 = 21.4%`) — returned shipments never enter the cash-remittance workflow. Diagnosed and remediated — see Section 16 R5. This corrects the denominator scope stated in Section 5 for Route Ranking specifically; `RuleF13302`/`RuleRegistry` and BCVH Ranking's own denominator are unchanged. **Confirmed PO PASS after being synced into the shared engine on commit `4e80fdfd`** (Section 16 R6) — Items 2, 10, 11 all PO PASS as of that commit.
-- PO NEW FINDING — BCVH RANKING DEFAULT DATE FILTER STALE (`2026-08-03`, commit `4e80fdfd`): BCVH Ranking's date filter defaulted to a hardcoded `2026-07-28` instead of the latest date with real data. Authorized as a targeted BCVH Ranking fix within this open ticket (explicitly in scope this time, unlike prior tickets' "do not touch BCVH Ranking" boundary). Implemented as Item 12 (Section 16 R7). Pending PO recheck.
+- PO NEW FINDING — BCVH RANKING DEFAULT DATE FILTER STALE (`2026-08-03`, commit `4e80fdfd`): BCVH Ranking's date filter defaulted to a hardcoded `2026-07-28` instead of the latest date with real data. Authorized as a targeted BCVH Ranking fix within this open ticket (explicitly in scope this time, unlike prior tickets' "do not touch BCVH Ranking" boundary). Implemented as Item 12 (Section 16 R7). **Confirmed PO PASS on commit `43819b9`** — all 12 items are now PO PASS; ticket closed (Section 16 Closure).
 
 ## 10. Documents To Update
 
@@ -138,7 +140,7 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 - Data conditions: verify against `2026-08-02` (or the latest valid date at check time) with both `Tuyến bưu tá` and `Tất cả` filters, including at least one of the 7 catalog routes under `Tất cả` to confirm the `Chuyển hoàn` display, and at least one route with a nonzero delayed-cash count to confirm Item 10.
 - Step-by-step checks: per checkpoint Section 8, items 1–9, plus new Item 10 (Section 16 R2). **Recheck scope is Item 2** (BLACK/`Chuyển hoàn` naming and meaning) **and Item 10** (`Số BG chậm nộp tiền` / `Tỷ lệ chậm nộp tiền` column group, aggregate, and selected-route panel block) — Items 1, 3–9 are already PO PASS on commit `ee73feed` and were not touched by either remediation.
 - PASS / WARNING / FAIL criteria: FAIL if any forbidden item (Section 12) is present; WARNING if a required field/filter is present but visually unclear; PASS only if all 9 acceptance criteria are met with no forbidden inference.
-- Follow-up action after PASS: close ticket, update `PROJECT_SNAPSHOT.md`/`PROJECT_PROGRESS.md`/`DOCUMENT_INDEX.md`, record Deferred items as still-open for future authorization.
+- Follow-up action after PASS: close ticket, update `PROJECT_SNAPSHOT.md`/`PROJECT_PROGRESS.md`/`DOCUMENT_INDEX.md`, record Deferred items as still-open for future authorization. **Executed (`2026-08-03`)** — see Section 16 Closure.
 - Follow-up action after WARNING: targeted remediation within this ticket, no scope expansion.
 - Follow-up action after FAIL: remediation ticket or immediate fix within this ticket per `One Bug → One Ticket → One Commit`, re-run PO UI check.
 
@@ -310,3 +312,31 @@ PO finding: opening BCVH Ranking, the date filter defaults to `28/07/2026` inste
 **Validation:** `oxlint` clean on `frontend/src/features/ranking/`. `vite build` succeeds. Ran the full existing test set touching this area (`src/features/ranking/*.test.js`, `src/App.role-routing.test.js`, `src/features/dashboard/components/*.test.js`): 111/113 pass; the 2 failures (`dashboardFilterOptions.test.js`, `dashboardLanguageSemantics.test.js`) are pre-existing baseline failures unrelated to `BcvhRankingPage.jsx` — confirmed via `git stash` re-run before this change, same 2 failures present at baseline. Diff scope: `BcvhRankingPage.jsx` and one new test file only. No backend file, no `RuleF13302`/`RuleRegistry`, no Route Ranking file, no Dashboard/Import/schema file touched.
 
 Status after R7: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 12** only (BCVH Ranking default date). Items 1-11 remain PO PASS and are not part of this recheck. Not closed; no PO PASS claimed; no next ticket activated; no Governance Closure performed.
+
+## Closure (`2026-08-03`)
+
+PO confirmed final `PO PASS` on the full ticket, including Item 12, on commit `43819b9272910fcaddb9c058c97913648b10654d`. All 12 items (Section 3/9/16) are `PO PASS`:
+
+| Item | Description | Status | Commit |
+|---|---|---|---|
+| 1, 3-9 | Default sort, KPI row, table columns, only-failed filter, layout, no forbidden inference | PO PASS | `ee73feed` |
+| 2 | BLACK/`Chuyển hoàn` naming and meaning | PO PASS | `6133a46` |
+| 10 | Delayed-cash table columns + selected-route panel | PO PASS (numbers corrected R5/R6, re-confirmed) | `62753c0` → `4e80fdfd` |
+| 11 | `BG CHẬM NỘP TIỀN` KPI widget | PO PASS | `2a0a06d` |
+| 12 | BCVH Ranking default-date fix | PO PASS | `43819b9` |
+
+**Final implementation commit:** `43819b9272910fcaddb9c058c97913648b10654d`.
+
+**Deferred items — still open, no next ticket authorized to address them:**
+- Bưu tá phụ trách (responsible postman) — no data source exists (Section 5 of the design checkpoint).
+- Root cause / nguyên nhân F1.3 — no reason field exists in `fact_f13`.
+- Route → Shipment drill-down runtime — design-only per PO; requires separate future validation/authorization.
+- Date-range/trend comparison — backend accepts a single evaluation date only.
+
+**Governance Closure actions performed:**
+- This manifest updated to `COMPLETED / PO PASS / CLOSED`.
+- `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` updated to closed status.
+- `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` synced: `Current Ticket = None`, pointing to this manifest as `Last Closed Manifest`.
+- `PROJECT_PROGRESS.md` appended with one new closure line (no prior line edited).
+- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` synced to reflect closed status.
+- No product code changed as part of this closure. No next ticket activated or inferred — Deferred items above require a separate future PO/CTO decision before any next ticket can be scoped.

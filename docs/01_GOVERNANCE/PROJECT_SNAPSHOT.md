@@ -17,23 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `F13-ROUTE-RANKING-REDESIGN-IMPL — Implementation` |
-| Current Ticket | `F13-ROUTE-RANKING-REDESIGN-IMPL` |
-| Next Ticket | `None selected beyond this implementation ticket. Deferred items (bưu tá mapping, root cause, Shipment drill-down runtime, date-range/trend) each require a separate future PO/CTO decision before a next ticket is scoped. Remaining future sequence (BCVH Ranking, shared navigation/filters, Login/system states, final consistency review) stays not authorized and not self-activated.` |
-| Last PO Status | `F13-UI-AUDIT-PLAN closed 2026-08-03 with PO PASS on all phases (unchanged). F13-ROUTE-RANKING-REDESIGN-PLAN closed 2026-08-03: Product Owner approved the design plan and ChatGPT/CTO finalized the implementation scope in F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md, cancelling all inferred priority-tier/threshold logic (no sys_kpi_thresholds usage, no color tiers, no intervention threshold, no unevaluated-exclusion rule). F13-ROUTE-RANKING-REDESIGN-IMPL activated 2026-08-03 with implementation authorized for executor Claude Code-Sonnet.` |
+| Current Phase | `Awaiting Product Owner Direction` |
+| Current Ticket | `None` |
+| Next Ticket | `None selected. Deferred items from F13-ROUTE-RANKING-REDESIGN-IMPL (bưu tá mapping, root cause, Shipment drill-down runtime, date-range/trend) each require a separate future PO/CTO decision before a next ticket is scoped. Remaining future sequence (shared navigation/filters, Login/system states, final consistency review) stays not authorized and not self-activated.` |
+| Last PO Status | `F13-ROUTE-RANKING-REDESIGN-IMPL closed 2026-08-03 with PO PASS on all 12 items: default sort/columns/KPI/filter/layout (1, 3-9), BLACK=Chuyển hoàn naming (2), delayed-cash table/panel (10, numbers corrected via R5/R6 shared-engine sync), BG CHẬM NỘP TIỀN widget (11), and BCVH Ranking default-date fix (12). Final implementation commit 43819b9272910fcaddb9c058c97913648b10654d.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` (binding locked scope for implementation) |
-| Current State | `ACTIVE / IMPLEMENTED / READY FOR PO UI CHECK` |
-| Technical Status | `IMPLEMENTED — Route Ranking redesign (2-column layout, default sort Tỷ lệ đạt DESC, full column set incl. Chưa đánh giá, 4-card KPI row, Chỉ tuyến có bưu gửi không đạt filter, latest-valid-date default) landed per checkpoint-locked scope; oxlint clean, vite build passes, all Route Ranking-scoped tests pass (see checkpoint Section 10)` |
-| Runtime Status | `NOT YET BROWSER-VERIFIED — pending PO UI check` |
-| PO UI Check Required | `Yes — required before F13-ROUTE-RANKING-REDESIGN-IMPL can close` |
-| PO Product Status | `IMPLEMENTED, NOT YET PO-VERIFIED` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-PLAN_MANIFEST.md` |
-| Last Reviewed Phase | `F13-ROUTE-RANKING-REDESIGN-PLAN closure: PO approved design plan, CTO finalized implementation scope` |
-| Last Reviewed Commit | `bf0cfc605530b0f3e989ed50639a9316173f5a05` |
-| Phase Review Status | `F13-ROUTE-RANKING-REDESIGN-PLAN CLOSED / PO APPROVED / CTO FINALIZED; F13-ROUTE-RANKING-REDESIGN-IMPL IMPLEMENTED / READY FOR PO UI CHECK` |
-| Next Phase Authorization | `F13-ROUTE-RANKING-REDESIGN-IMPL is authorized for implementation strictly within the scope locked in the checkpoint (Section 3) and manifest Section 12 forbidden list. No other ticket (Dashboard, BCVH Ranking, Import, or any closed ticket) is authorized to be reopened or modified.` |
+| Current Manifest | `None — no active ticket. See Last Closed Manifest.` |
+| Current Checkpoint | `None — no active ticket.` |
+| Current State | `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION` |
+| Technical Status | `F13-ROUTE-RANKING-REDESIGN-IMPL COMPLETED — Route Ranking redesign, delayed-cash metrics (shared RuleF13302/RuleRegistry engine), and a BCVH Ranking default-date fix all implemented and PO PASS` |
+| Runtime Status | `NOT APPLICABLE (no active ticket)` |
+| PO UI Check Required | `No — no active ticket` |
+| PO Product Status | `F13-ROUTE-RANKING-REDESIGN-IMPL PO PASS (ALL 12 ITEMS) / CLOSED` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` |
+| Last Reviewed Phase | `F13-ROUTE-RANKING-REDESIGN-IMPL closure: Product Owner PO PASS on all 12 items` |
+| Last Reviewed Commit | `43819b9272910fcaddb9c058c97913648b10654d` |
+| Phase Review Status | `F13-ROUTE-RANKING-REDESIGN-IMPL CLOSED / PO PASS (ALL 12 ITEMS)` |
+| Next Phase Authorization | `No ticket is authorized. Repository awaits explicit Product Owner direction before opening any next scope, including the Deferred items recorded in the closed manifest. Do not reopen F13-ROUTE-RANKING-REDESIGN-IMPL, F13-UI-AUDIT-PLAN, or AUTO-IMPORT-010 without explicit Product Owner authority.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-03` |
 
@@ -74,13 +74,14 @@ Activation (`2026-08-03`): Product Owner explicitly authorized `F13-ROUTE-RANKIN
 
 Closure (`2026-08-03`): `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-PLAN_MANIFEST.md` is `COMPLETED / CLOSED / PO APPROVED / CTO FINALIZED`. Product Owner confirmed the redesign business objective, then approved a design plan built on static-code inspection (Antigravity, `docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`) and targeted read-only data discovery (Claude Code–Opus, against `backend/src/db/database.sqlite`). ChatGPT/CTO finalized the implementation scope, explicitly cancelling all inferred priority-tier/threshold logic from the draft (no `sys_kpi_thresholds` usage, no color tiers, no `<60%` intervention threshold, no unevaluated-exclusion rule). The binding locked scope is recorded in `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`. No product code was modified by the planning ticket.
 
-Activation (`2026-08-03`): `F13-ROUTE-RANKING-REDESIGN-IMPL` is created and authorized for implementation, executor `Claude Code–Sonnet`, strictly within the checkpoint's locked scope and forbidden-inference list. See `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md`.
+Activation (`2026-08-03`): `F13-ROUTE-RANKING-REDESIGN-IMPL` is created and authorized for implementation, executor `Claude Code–Sonnet`, strictly within the checkpoint's locked scope and forbidden-inference list.
 
-Fresh-chat onboarding chain (active implementation ticket):
+Closure (`2026-08-03`): `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` is `COMPLETED / PO PASS / CLOSED`. Product Owner confirmed final `PO PASS` on all 12 items: the Route Ranking redesign (default sort, full column set, 4-card KPI row, only-failed filter, two-column layout, no forbidden inference — Items 1, 3-9); the `BLACK` = `Chuyển hoàn` naming/meaning correction (Item 2); delayed-cash table columns and selected-route panel (Item 10), whose numbers were corrected twice as the eligible-denominator SSOT was first fixed locally then synced into the shared `RuleF13302`/`RuleRegistry` engine so BCVH Ranking and Route Ranking compute identically; the `BG CHẬM NỘP TIỀN` KPI widget bound to the backend aggregate (Item 11); and a BCVH Ranking default-date fix, so its date filter now resolves to the latest date with real data instead of a hardcoded stale date (Item 12, explicitly authorized as an in-scope BCVH Ranking fix for this ticket). Final implementation commit: `43819b9272910fcaddb9c058c97913648b10654d`. Deferred items (bưu tá mapping, root cause, Shipment drill-down runtime, date-range/trend) remain open, requiring separate future PO/CTO authorization; no next ticket was self-activated by this closure. Full detail: `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` Section 16 Closure and `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` Section 18.
+
+Fresh-chat onboarding chain (no active ticket):
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-4. `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md`
-5. Required Reading from that manifest, including `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` (binding scope).
-6. Proceed into implementation per the manifest's Section 12 scope and forbidden list; escalate per manifest Section 15 instead of inferring anything outside it.
+4. No Current Manifest — Current Ticket is `None`. Consult `Last Closed Manifest` (`F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md`) for continuity only; do not treat it as active scope.
+5. Await Product Owner direction before activating any next ticket.

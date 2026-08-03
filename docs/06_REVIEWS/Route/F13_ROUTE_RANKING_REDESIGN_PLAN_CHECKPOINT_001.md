@@ -1,7 +1,7 @@
 # F13 Route Ranking Redesign — Plan Checkpoint 001
 
-- Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, in progress)
-- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 12 only, BCVH Ranking default date — see Section 17; Items 1-11 are PO PASS as of commit `4e80fdfd`)
+- Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, `COMPLETED / PO PASS / CLOSED`)
+- Status: `CLOSED / PO PASS — ALL 12 ITEMS` (final implementation commit `43819b9272910fcaddb9c058c97913648b10654d`; see Section 18 Closure)
 - Date: `2026-08-03`
 - Authors: static-code inspection by Antigravity (`docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`), targeted data discovery and design plan by Claude Code–Opus, final scope lock by ChatGPT/CTO.
 - Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`; no product code changed in this ticket.
@@ -291,3 +291,13 @@ PO finding: BCVH Ranking's date filter defaulted to a hardcoded `28/07/2026` ins
 **Validation:** `oxlint` clean, `vite build` succeeds. Existing suite in this area (`ranking`, `App.role-routing`, `dashboard/components`): 111/113 pass; the 2 failures are pre-existing baseline, confirmed via `git stash` re-run, unrelated to this file. Diff scope: `BcvhRankingPage.jsx` + 1 new test file only.
 
 Status after R7: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 12** only. Items 1-11 remain PO PASS. Not closed; no PO PASS claimed; no next ticket activated; no Governance Closure performed.
+
+## 18. Closure (`2026-08-03`)
+
+PO confirmed final `PO PASS` on the full ticket, including Item 12, on commit `43819b9272910fcaddb9c058c97913648b10654d`. All 12 items PO PASS: 1/3-9 (`ee73feed`), 2 (`6133a46`), 10 (`62753c0`→`4e80fdfd`), 11 (`2a0a06d`), 12 (`43819b9`).
+
+Deferred items remain open, no next ticket authorized: bưu tá phụ trách (no data source), root cause/nguyên nhân F1.3 (no reason field in `fact_f13`), Route → Shipment drill-down runtime (design-only, needs separate authorization), date-range/trend comparison (backend accepts a single evaluation date only).
+
+Full closure detail: `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` Section 16 Closure.
+
+`F13-ROUTE-RANKING-REDESIGN-IMPL` is `COMPLETED / PO PASS / CLOSED`. No next ticket activated or inferred.
