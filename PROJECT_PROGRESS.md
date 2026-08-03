@@ -281,3 +281,13 @@
 - Remediation 005B: replaces the blocked PowerShell native-window bridge with direct Win32 calls through minimal prebuilt Node FFI dependency `koffi`; authority remains `exact --user-data-dir` -> `owned PID tree` -> `owned HWND`; controlled non-portal headed Chromium smoke proved hide to `IsWindowVisible=false`, browser/page usability after hide, and restore to `IsWindowVisible=true`.
 - Historical AUTO-IMPORT-006 archive chain is `README_AI.md` -> `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` -> `docs/10_TICKETS/AUTO-IMPORT-006_MANIFEST.md` -> `docs/06_REVIEWS/Import/AUTO-IMPORT-006_CHECKPOINT_009.md`; current fresh-chat onboarding is owned by `AUTO-IMPORT-007`.
 - Latest PO PASS: TCT unfinished bulk-selection at commit `313b16a2f0e3259562681d26a581e5c9f2bba960`; no backend/import execution/Dashboard/KPI/authentication changes were made for that defect; no next action is authorized after this PO PASS.
+
+## F13-ROUTE-RANKING-REDESIGN-PLAN Activation
+
+- Ticket status: `ACTIVE / DISCOVERY-PLANNING ONLY / NO IMPLEMENTATION AUTHORITY`.
+- Activation date: `2026-08-03`. Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`.
+- Authority: explicit Product Owner authorization for discovery/planning only, following closure of `F13-UI-AUDIT-PLAN` with `Current Ticket = None`.
+- Scope: delta-only discovery — verified baseline, minimum templates/rules required to activate the ticket, and Route Ranking source files with direct dependencies. Dashboard, BCVH Ranking, Import, and closed tickets were not reopened or inspected.
+- Result: manifest `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-PLAN_MANIFEST.md` records the current live Route Ranking implementation inventory (frontend `RoutePerformancePage.jsx` at `/f13/ranking/route`, `F13DashboardClient.getRouteRanking`, backend `DashboardController`/`F13DashboardService`/`FactBuuGuiRepository` chain) and the accepted filter/classification contract carried forward from `F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md`.
+- Residual: the specific redesign objective is not yet defined by Product Owner; three open questions are recorded in the manifest Section 5. No implementation ticket can be authorized until answered.
+- No product code was changed.
