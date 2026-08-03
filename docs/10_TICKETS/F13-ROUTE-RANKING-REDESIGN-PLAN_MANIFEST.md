@@ -1,5 +1,7 @@
 # F13-ROUTE-RANKING-REDESIGN-PLAN Manifest
 
+Status: `COMPLETED / CLOSED (2026-08-03)`. Final locked design decisions are recorded in `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`. Implementation is owned by `F13-ROUTE-RANKING-REDESIGN-IMPL`.
+
 ## 1. Ticket Information
 
 - Ticket ID: `F13-ROUTE-RANKING-REDESIGN-PLAN`
@@ -17,9 +19,9 @@ Produce a discovery-backed plan for redesigning Route Ranking without implementi
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / PLANNING ONLY / OBJECTIVE PO-CONFIRMED / NO IMPLEMENTATION AUTHORITY`
+- Current state: `COMPLETED / CLOSED / PO APPROVED / CTO FINALIZED`
 - PO UI Check Required: `No — planning ticket only`
-- PO Product Status: `OBJECTIVE CONFIRMED (2026-08-03) — design and implementation ticket not yet created`
+- PO Product Status: `DESIGN PLAN ACCEPTED (2026-08-03) — see checkpoint for final locked scope`
 
 ## 4. Required Reading
 
@@ -94,9 +96,9 @@ Current live implementation (delta-only discovery, verified against baseline `7f
 
 ## 13. Next Ticket
 
-- Next ticket ID: `F13-ROUTE-RANKING-REDESIGN-IMPL` (not created — this ticket does not create or activate it)
+- Next ticket ID: `F13-ROUTE-RANKING-REDESIGN-IMPL` (created and authorized)
 - Next ticket name: `Route Ranking Redesign — Implementation`
-- Blockers or handoff notes: business objective is now Product Owner-confirmed (Section 5), but no design plan has been produced and no implementation ticket is created or activated by this update. Route → Shipment drill-down runtime work additionally requires its own separate validation and authorization before it can be scoped into any future implementation ticket.
+- Handoff: design plan finalized in `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` with PO-approved objective and CTO-locked scope. Route → Shipment drill-down remains Deferred, not rendered even as a disabled placeholder in MVP, and requires its own separate validation/authorization before any future scoping.
 
 ## 14. PO Acceptance Checklist
 
@@ -104,4 +106,4 @@ Not applicable — `PO UI Check Required = No` for this planning ticket.
 
 ## 15. Authority Escalation
 
-Escalated: the specific redesign objective for Route Ranking is not yet defined by authoritative SSOT or Product Owner decision. No business rule is inferred here. This manifest stops at discovery/planning and awaits Product Owner direction on Section 5's open questions before any implementation ticket can be authorized.
+Resolved: Product Owner confirmed the redesign objective and approved the design plan; ChatGPT/CTO finalized the implementation scope in `F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md`, cancelling all inferred priority-tier/threshold logic from the draft design. No further escalation open on this ticket.
