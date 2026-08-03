@@ -94,8 +94,10 @@ export default function BcvhRankingPage() {
     error: null,
   });
 
-  const fromDate = searchParams.get('from_date') || '2026-07-28';
-  const toDate = searchParams.get('to_date') || '2026-07-28';
+  const fromDateParam = searchParams.get('from_date') || '';
+  const toDateParam = searchParams.get('to_date') || '';
+  const fromDate = fromDateParam || metaState.maxDate || '';
+  const toDate = toDateParam || metaState.maxDate || '';
   const maBcvh = searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
   const interval = searchParams.get('interval') || (fromDate === toDate ? 'daily' : 'range');
@@ -137,6 +139,15 @@ export default function BcvhRankingPage() {
 
   useEffect(() => {
     let active = true;
+
+    if (!fromDate || !toDate) {
+      // Waiting for /f13/dashboard/meta to resolve the latest valid date (no from_date/to_date
+      // URL param present yet). Do not call the ranking API with empty dates.
+      return () => {
+        active = false;
+      };
+    }
+
     setRankingState({ status: 'loading', data: null, error: null });
     api.get('/f13/ranking/bcvh', {
       params: {

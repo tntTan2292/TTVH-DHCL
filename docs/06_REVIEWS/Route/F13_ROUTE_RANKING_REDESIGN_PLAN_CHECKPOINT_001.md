@@ -1,7 +1,7 @@
 # F13 Route Ranking Redesign — Plan Checkpoint 001
 
 - Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, in progress)
-- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2, Item 11, and a data-only glance at Item 10's corrected numbers — see Section 16; PO directed the delayed-cash denominator correction be synced into the shared RuleF13302/RuleRegistry engine, `2026-08-03`, so BCVH Ranking and Route Ranking compute identically)
+- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 12 only, BCVH Ranking default date — see Section 17; Items 1-11 are PO PASS as of commit `4e80fdfd`)
 - Date: `2026-08-03`
 - Authors: static-code inspection by Antigravity (`docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`), targeted data discovery and design plan by Claude Code–Opus, final scope lock by ChatGPT/CTO.
 - Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`; no product code changed in this ticket.
@@ -273,3 +273,21 @@ PO confirmed R5's correction and directed it be moved from a Route-Ranking-local
 **Diff scope:** `RuleF13302.js`, `RuleRegistry.js`, `F13DashboardService.js` (filter removal), 2 new engine test files. No frontend, no BCVH Ranking UI, no Dashboard/Import/schema file touched.
 
 Status after R6: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 2**, **Item 11**, and a data-only glance at **Item 10**'s numbers (now via the shared, synced engine). Not closed; no PO PASS claimed; no next ticket activated.
+
+**PO PASS confirmed on commit `4e80fdfd`:** Items 2, 10 (shared-engine numbers), and 11.
+
+## 17. BCVH Ranking Fix R7 (`2026-08-03`) — Item 12: default date filter stale
+
+PO finding: BCVH Ranking's date filter defaulted to a hardcoded `28/07/2026` instead of the latest date with real data. Authorized as a targeted BCVH Ranking fix within this open ticket.
+
+**Root cause:** `BcvhRankingPage.jsx` hardcoded `|| '2026-07-28'` for both `from_date`/`to_date`, ignoring `metaState.maxDate` that the page's own `/f13/dashboard/meta` fetch already loads — the data was already there, just not wired to the default.
+
+**Fix (frontend only):** `fromDate`/`toDate` now resolve as `urlParam || metaState.maxDate || ''`; the ranking-fetch effect returns early when either is empty (waiting for metadata) instead of calling the API with blank dates. Users still pick any older date exactly as before via the same `updateParam` calls. No formula, `RuleF13302`/`RuleRegistry`, or unrelated module touched.
+
+**Runtime confirmation:** live `/f13/dashboard/meta` returns `max_date: "2026-08-02"` — the value BCVH Ranking now defaults to.
+
+**Tests:** new `BcvhRankingPage.defaultDate.test.js`, 4/4 pass (hardcoded date removed; correct fallback resolution with URL-param priority; empty-date fetch guard present; date inputs still user-editable).
+
+**Validation:** `oxlint` clean, `vite build` succeeds. Existing suite in this area (`ranking`, `App.role-routing`, `dashboard/components`): 111/113 pass; the 2 failures are pre-existing baseline, confirmed via `git stash` re-run, unrelated to this file. Diff scope: `BcvhRankingPage.jsx` + 1 new test file only.
+
+Status after R7: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 12** only. Items 1-11 remain PO PASS. Not closed; no PO PASS claimed; no next ticket activated; no Governance Closure performed.
