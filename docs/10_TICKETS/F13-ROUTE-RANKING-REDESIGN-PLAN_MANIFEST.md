@@ -17,9 +17,9 @@ Produce a discovery-backed plan for redesigning Route Ranking without implementi
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / DISCOVERY-PLANNING ONLY / NO IMPLEMENTATION AUTHORITY`
+- Current state: `ACTIVE / PLANNING ONLY / OBJECTIVE PO-CONFIRMED / NO IMPLEMENTATION AUTHORITY`
 - PO UI Check Required: `No — planning ticket only`
-- PO Product Status: `NOT STARTED — awaiting redesign objective from Product Owner`
+- PO Product Status: `OBJECTIVE CONFIRMED (2026-08-03) — design and implementation ticket not yet created`
 
 ## 4. Required Reading
 
@@ -32,16 +32,16 @@ Produce a discovery-backed plan for redesigning Route Ranking without implementi
 
 ## 5. Business Context
 
-- Business problem: not yet defined by Product Owner. This activation authorizes discovery/planning only; no redesign objective, defect, or business rule change has been specified yet.
-- Business impact: unknown until Product Owner defines the specific redesign goal.
-- Approved business rule constraints (must be preserved by any future redesign, per `F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` and the route catalog):
+- Business problem (Product Owner confirmed, `2026-08-03`): build an operational decision-support tool that identifies which routes require intervention, their priority level, root cause, the responsible postman, and the next action.
+- Business impact: elevates Route Ranking from a runtime-backed listing to an executive decision-support surface, per the confirmed objective.
+- Approved business rule constraints (must be preserved by any future redesign, per `F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` and the route catalog) — Product Owner reconfirmed these must remain fully intact:
   - Filter labels exactly `Tuyến bưu tá | Tất cả`; default filter `Tuyến bưu tá`.
   - Hue Route Ranking includes only route codes starting with `53`.
   - The `7` PO-confirmed customer-pickup/internal post-office routes (see `F13_INTERNAL_ROUTE_CATALOG.md`) are excluded from postman-route counts under `Tuyến bưu tá` and shown as `Nhận tại bưu cục` under `Tất cả`.
-- Open questions for Product Owner (must be answered before any implementation ticket can be authorized):
-  1. What specific problem or gap in the current Route Ranking screen does the redesign address?
-  2. Does the redesign change the accepted filter contract, route classification rules, or is it strictly presentation/UX?
-  3. Does the redesign affect the Route → Shipment drill-down contract noted as `WARNING` (contract prepared, not yet end-to-end validated) in `ROUTE_PERFORMANCE_CENTER_REVIEW.md`?
+- Product Owner decisions recorded (`2026-08-03`), resolving the prior open questions:
+  1. Redesign objective: a decision-support tool covering route-level intervention need, priority, root cause, responsible postman, and recommended next action.
+  2. Filter/classification contract: unchanged — the full accepted `Tuyến bưu tá | Tất cả` filter/classification contract from Section 5's constraints above must be preserved as-is.
+  3. Route → Shipment drill-down: design-only for this redesign. Runtime implementation of the drill-down remains explicitly not authorized until it receives its own separate validation and authorization.
 
 ## 6. Technical Context
 
@@ -94,9 +94,9 @@ Current live implementation (delta-only discovery, verified against baseline `7f
 
 ## 13. Next Ticket
 
-- Next ticket ID: `F13-ROUTE-RANKING-REDESIGN-IMPL` (not created)
+- Next ticket ID: `F13-ROUTE-RANKING-REDESIGN-IMPL` (not created — this ticket does not create or activate it)
 - Next ticket name: `Route Ranking Redesign — Implementation`
-- Blockers or handoff notes: cannot be created or activated until Product Owner answers the open questions in Section 5. Per template Section 15 (Authority Escalation), this ticket stops at planning because implementation scope is not yet defined by authoritative SSOT.
+- Blockers or handoff notes: business objective is now Product Owner-confirmed (Section 5), but no design plan has been produced and no implementation ticket is created or activated by this update. Route → Shipment drill-down runtime work additionally requires its own separate validation and authorization before it can be scoped into any future implementation ticket.
 
 ## 14. PO Acceptance Checklist
 

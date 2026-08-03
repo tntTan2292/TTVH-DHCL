@@ -289,5 +289,12 @@
 - Authority: explicit Product Owner authorization for discovery/planning only, following closure of `F13-UI-AUDIT-PLAN` with `Current Ticket = None`.
 - Scope: delta-only discovery — verified baseline, minimum templates/rules required to activate the ticket, and Route Ranking source files with direct dependencies. Dashboard, BCVH Ranking, Import, and closed tickets were not reopened or inspected.
 - Result: manifest `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-PLAN_MANIFEST.md` records the current live Route Ranking implementation inventory (frontend `RoutePerformancePage.jsx` at `/f13/ranking/route`, `F13DashboardClient.getRouteRanking`, backend `DashboardController`/`F13DashboardService`/`FactBuuGuiRepository` chain) and the accepted filter/classification contract carried forward from `F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md`.
-- Residual: the specific redesign objective is not yet defined by Product Owner; three open questions are recorded in the manifest Section 5. No implementation ticket can be authorized until answered.
 - No product code was changed.
+
+## F13-ROUTE-RANKING-REDESIGN-PLAN Objective Confirmed
+
+- Date: `2026-08-03`.
+- Product Owner confirmed the redesign objective: an operational decision-support tool identifying which routes need intervention, priority level, root cause, responsible postman, and next action.
+- Product Owner reconfirmed the full accepted filter/classification contract (`Tuyến bưu tá | Tất cả`, Hue `53%` scope, 7 confirmed internal-counter routes) must be preserved unchanged.
+- Route -> Shipment drill-down is design-only for this redesign; runtime implementation remains not authorized pending its own separate validation/authorization.
+- No design plan was produced, no product code was changed, and no implementation ticket was created or activated by this update.

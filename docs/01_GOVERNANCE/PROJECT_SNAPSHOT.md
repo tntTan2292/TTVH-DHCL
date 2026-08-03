@@ -19,16 +19,16 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | --- | --- |
 | Current Phase | `F13-ROUTE-RANKING-REDESIGN-PLAN — Discovery and Planning Only` |
 | Current Ticket | `F13-ROUTE-RANKING-REDESIGN-PLAN` |
-| Next Ticket | `F13-ROUTE-RANKING-REDESIGN-IMPL — not created; blocked until Product Owner defines the redesign objective (see manifest Section 5 open questions). Remaining future sequence (BCVH Ranking, shared navigation/filters, Login/system states, final consistency review) stays not authorized and not self-activated.` |
-| Last PO Status | `F13-UI-AUDIT-PLAN closed 2026-08-03 with PO PASS on all phases (unchanged by this activation). F13-ROUTE-RANKING-REDESIGN-PLAN activated 2026-08-03 by explicit PO authorization for discovery/planning only, no implementation.` |
+| Next Ticket | `F13-ROUTE-RANKING-REDESIGN-IMPL — not created; objective is Product Owner-confirmed (manifest Section 5) but no design plan exists and this record does not create or activate the implementation ticket. Remaining future sequence (BCVH Ranking, shared navigation/filters, Login/system states, final consistency review) stays not authorized and not self-activated.` |
+| Last PO Status | `F13-UI-AUDIT-PLAN closed 2026-08-03 with PO PASS on all phases (unchanged). F13-ROUTE-RANKING-REDESIGN-PLAN activated 2026-08-03 for discovery/planning only; Product Owner confirmed the redesign objective 2026-08-03 (route intervention/priority/root cause/responsible postman/next action tool), reconfirmed the full filter/classification contract must be preserved, and limited Route -> Shipment drill-down to design-only pending separate validation/authorization for runtime.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-PLAN_MANIFEST.md` |
 | Current Checkpoint | `None — discovery/planning ticket, no checkpoint produced yet.` |
-| Current State | `ACTIVE / DISCOVERY-PLANNING ONLY / NO IMPLEMENTATION AUTHORITY` |
+| Current State | `ACTIVE / PLANNING ONLY / OBJECTIVE PO-CONFIRMED / NO IMPLEMENTATION AUTHORITY` |
 | Technical Status | `DISCOVERY COMPLETE — delta-only inventory of live Route Ranking implementation recorded in the manifest; no code changed` |
 | Runtime Status | `NOT APPLICABLE (planning ticket, no runtime change)` |
 | PO UI Check Required | `No — planning ticket only` |
-| PO Product Status | `NOT STARTED — awaiting Product Owner answers to manifest Section 5 open questions` |
+| PO Product Status | `OBJECTIVE CONFIRMED (2026-08-03) — design and implementation ticket not yet created` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` |
 | Last Reviewed Phase | `F13-UI-AUDIT-PLAN closure: Product Owner PO PASS on Phase 4 - Operation Dashboard (unchanged)` |
 | Last Reviewed Commit | `cdb9eab246415a3835210dd70329996e6ef6521c` |
