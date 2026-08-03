@@ -1,4 +1,4 @@
-﻿import assert from 'node:assert/strict';
+import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 import {
@@ -381,7 +381,7 @@ test('component source exposes required legends labels and heatmap month separat
   assert.match(source, /role="tooltip"/);
   assert.match(source, /className="pointer-events-none fixed/);
   assert.match(source, /buildHeatmapCellLines\(day\)/);
-  assert.match(source, /h-16/);
+  assert.match(source, /h-14/);
   assert.doesNotMatch(source, /group-hover:block|group-focus:block/);
   assert.deepEqual(HEATMAP_WEEKDAY_LABELS, ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']);
 });

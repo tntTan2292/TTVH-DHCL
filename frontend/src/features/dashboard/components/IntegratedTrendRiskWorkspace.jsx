@@ -195,9 +195,12 @@ function formatDeltaValue(value, formatter) {
   return `${sign}${formatter(value)}`;
 }
 
-function getDeltaTone(value) {
+function getDeltaTone(value, type = 'rate') {
   if (value === null || value === undefined || Number(value) === 0) return 'neutral';
-  return Number(value) > 0 ? 'info' : 'warning';
+  if (type === 'volume') {
+    return Number(value) > 0 ? 'info' : 'neutral';
+  }
+  return Number(value) > 0 ? 'success' : 'danger';
 }
 
 function getDirectionLabel(value) {
@@ -213,7 +216,7 @@ function LeadershipComparisonCard({ comparison }) {
       value: formatRate(comparison.pass_rate.current),
       comparisonValue: formatRate(comparison.pass_rate.previous),
       delta: formatDeltaValue(comparison.pass_rate.delta, (delta) => `${Number(delta).toFixed(2)} điểm %`),
-      tone: getDeltaTone(comparison.pass_rate.delta),
+      tone: getDeltaTone(comparison.pass_rate.delta, 'rate'),
       rawDelta: comparison.pass_rate.delta,
     },
     {
@@ -222,17 +225,17 @@ function LeadershipComparisonCard({ comparison }) {
       value: formatNumber(comparison.total_volume.current),
       comparisonValue: formatNumber(comparison.total_volume.previous),
       delta: formatDeltaValue(comparison.total_volume.delta, formatNumber),
-      tone: getDeltaTone(comparison.total_volume.delta),
+      tone: getDeltaTone(comparison.total_volume.delta, 'volume'),
       rawDelta: comparison.total_volume.delta,
     },
   ] : [];
 
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50/90 via-white to-slate-50/40 p-4 shadow-2xs hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50/90 via-white to-slate-50/40 p-3 shadow-2xs hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h4 className="text-sm font-bold text-slate-900">{comparison?.title}</h4>
-          <p className="mt-1 text-xs font-medium text-slate-500">
+          <h4 className="text-xs font-bold text-slate-900">{comparison?.title}</h4>
+          <p className="mt-0.5 text-[11px] font-medium text-slate-500">
             {comparison?.current_date && comparison?.previous_date
               ? `${comparison.current_date} so với ${comparison.previous_date}`
               : 'Dựa trên ngày mới nhất có dữ liệu trong phạm vi đang chọn.'}
@@ -242,22 +245,22 @@ function LeadershipComparisonCard({ comparison }) {
       </div>
 
       {comparison?.available ? (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
           {metrics.map((metric) => (
-            <div key={metric.id} className="rounded-xl border border-slate-200/80 bg-white p-3 shadow-2xs">
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">{metric.label}</div>
-              <div className="mt-2 flex flex-col gap-1.5">
+            <div key={metric.id} className="rounded-lg border border-slate-200/80 bg-white p-2.5 shadow-2xs">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{metric.label}</div>
+              <div className="mt-1 flex flex-col gap-1">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#003E7E]">Hôm nay</span>
-                  <div className={metric.id === 'pass-rate' ? 'text-2xl xl:text-3xl font-black tabular-nums text-slate-900 leading-none mt-0.5' : 'text-lg xl:text-xl font-black tabular-nums text-slate-900 leading-none mt-0.5'}>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#003E7E]">Hôm nay</span>
+                  <div className={metric.id === 'pass-rate' ? 'text-xl xl:text-2xl font-black tabular-nums text-slate-900 leading-none mt-0.5' : 'text-base xl:text-lg font-black tabular-nums text-slate-900 leading-none mt-0.5'}>
                     {metric.value}
                   </div>
                 </div>
-                <div className="border-t border-dashed border-slate-200 my-1"></div>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                <div className="border-t border-dashed border-slate-200 my-0.5"></div>
+                <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-slate-600">
                   <div>
-                    <span className="font-medium mr-1">{comparison.comparison_label}:</span>
-                    <span className="font-bold tabular-nums text-slate-900">{metric.comparisonValue}</span>
+                    <span className="font-medium text-[11px] mr-1">{comparison.comparison_label}:</span>
+                    <span className="font-bold text-[11px] tabular-nums text-slate-900">{metric.comparisonValue}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <StatusBadge label={metric.delta} tone={metric.tone} />
@@ -269,7 +272,7 @@ function LeadershipComparisonCard({ comparison }) {
           ))}
         </div>
       ) : (
-        <p className="mt-3 text-sm font-semibold text-slate-500">Không có dữ liệu so sánh</p>
+        <p className="mt-2 text-xs font-semibold text-slate-500">Không có dữ liệu so sánh</p>
       )}
     </div>
   );
@@ -310,11 +313,15 @@ function SevenDayComparisonEvidenceTable({ rows }) {
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-slate-500">Tỷ lệ đạt</span>
-                  <span className="font-bold tabular-nums text-emerald-700">{formatDeltaValue(row.pass_rate_delta, (delta) => `${Number(delta).toFixed(2)} điểm %`)}</span>
+                  <span className={`font-bold tabular-nums ${row.pass_rate_delta > 0 ? 'text-emerald-700' : row.pass_rate_delta < 0 ? 'text-red-600' : 'text-slate-900'}`}>
+                    {formatDeltaValue(row.pass_rate_delta, (delta) => `${Number(delta).toFixed(2)} điểm %`)}
+                  </span>
                 </div>
                 <div className="flex justify-between gap-1">
                   <span className="text-slate-500">Không đạt</span>
-                  <span className="font-bold tabular-nums text-red-600">{formatDeltaValue(row.failed_count_delta, formatNumber)}</span>
+                  <span className={`font-bold tabular-nums ${row.failed_count_delta > 0 ? 'text-red-600' : row.failed_count_delta < 0 ? 'text-emerald-700' : 'text-slate-900'}`}>
+                    {formatDeltaValue(row.failed_count_delta, formatNumber)}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -384,9 +391,8 @@ export default function IntegratedTrendRiskWorkspace({
       ) : !rows.length ? (
         <EmptyState title="Không có dữ liệu xu hướng" description="Không có dữ liệu bưu gửi hằng ngày cho phạm vi đang chọn." className="min-h-[360px]" />
       ) : (
-        <div className="grid gap-5">
-          <div>
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
               <StatusBadge label={TREND_MODES.find((item) => item.id === mode)?.label} tone="info" />
               {selectedRangeRankLabel ? <span>{selectedRangeRankLabel}</span> : null}
               <span className="inline-flex items-center gap-1"><Layers size={13} /> Chỉ hiển thị một câu chuyện xu hướng chính</span>
@@ -395,7 +401,7 @@ export default function IntegratedTrendRiskWorkspace({
             <LeadershipComparisonGrid comparisons={leadershipComparisons} />
             <TrendChart rows={rows} mode={mode} />
             {mode === '7-days' ? <SevenDayComparisonEvidenceTable rows={sevenDayEvidence} /> : null}
-            <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-600 font-medium">
+            <div className="pt-1 flex flex-wrap items-center gap-3.5 text-xs text-slate-600 font-medium border-t border-slate-100">
               <LegendItem color="#2563EB" label="Sản lượng, trục trái" shape="bar" />
               {mode === '7-days' ? <LegendItem color="#64748B" label="Sản lượng kỳ so sánh" shape="bar" /> : null}
               <LegendItem color="#059669" label="Tỷ lệ đạt, trục phải" />
@@ -404,7 +410,6 @@ export default function IntegratedTrendRiskWorkspace({
               <LegendItem color={COLORS.warning} label="Marker dưới mục tiêu" />
             </div>
           </div>
-        </div>
       )}
     </CardContainer>
   );

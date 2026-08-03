@@ -368,7 +368,7 @@ test('integrated workspace uses full chart width in every mode', () => {
   assert.doesNotMatch(source, /<RiskPanel/);
   assert.doesNotMatch(source, /xl:grid-cols-\[minmax\(0,1fr\)_360px\]/);
   assert.doesNotMatch(source, /\/f13\/dashboard\/quality-timeline/);
-  assert.match(source, /<div className="grid gap-5">/);
+  assert.match(source, /<div className="space-y-3">/);
 });
 
 test('integrated trend shows backend rank details without adding a rank line or axis', () => {

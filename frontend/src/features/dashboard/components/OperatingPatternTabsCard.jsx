@@ -184,14 +184,14 @@ function ComboChartPanel({ rows, mode }) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      <div className="mt-4 flex flex-col gap-1.5 pb-2">
-        <div className="flex flex-wrap gap-4 text-xs font-semibold text-slate-700">
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 font-medium">
+        <div className="flex flex-wrap gap-4 font-semibold text-slate-700">
           <span className="inline-flex items-center gap-2"><span className="h-2.5 w-3.5 rounded-sm bg-[#003E7E] shadow-2xs" />Cột: sản lượng</span>
           <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />Đường: tỷ lệ đạt</span>
         </div>
         {mode === 'month' ? (
-          <div className="text-[11px] leading-relaxed text-slate-500 font-medium">
-            Lũy kế tháng hiện tại dùng ngày dữ liệu mới nhất trong tháng.
+          <div className="text-[11px] text-slate-500 font-medium italic">
+            * Lũy kế tháng hiện tại theo ngày mới nhất trong tháng
           </div>
         ) : null}
       </div>
@@ -202,19 +202,19 @@ function ComboChartPanel({ rows, mode }) {
 function MonthlySummary({ summary }) {
   if (!summary) return null;
   const items = [
-    ['Sản lượng cao nhất', `${summary.highestVolumeMonth.label} - ${summary.highestVolumeMonth.volumeLabel}`],
-    ['Sản lượng thấp nhất', `${summary.lowestVolumeMonth.label} - ${summary.lowestVolumeMonth.volumeLabel}`],
-    ['Tỷ lệ đạt tốt nhất', `${summary.bestPassRateMonth.label} - ${summary.bestPassRateMonth.valueLabel}`],
-    ['Tỷ lệ đạt thấp nhất', `${summary.lowestPassRateMonth.label} - ${summary.lowestPassRateMonth.valueLabel}`],
-    ['Tháng hiện tại', `${summary.currentMonth.volumeLabel} - ${summary.currentMonth.valueLabel}`],
+    ['SL cao nhất', `${summary.highestVolumeMonth.label}: ${summary.highestVolumeMonth.volumeLabel}`],
+    ['SL thấp nhất', `${summary.lowestVolumeMonth.label}: ${summary.lowestVolumeMonth.volumeLabel}`],
+    ['Tỷ lệ tốt nhất', `${summary.bestPassRateMonth.label}: ${summary.bestPassRateMonth.valueLabel}`],
+    ['Tỷ lệ thấp nhất', `${summary.lowestPassRateMonth.label}: ${summary.lowestPassRateMonth.valueLabel}`],
+    ['Tháng hiện tại', `${summary.currentMonth.volumeLabel} (${summary.currentMonth.valueLabel})`],
   ];
 
   return (
-    <div className="mb-4 grid gap-3 md:grid-cols-5">
+    <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
       {items.map(([label, value]) => (
-        <div key={label} className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs border-t-2 border-t-[#003E7E]">
+        <div key={label} className="rounded-lg border border-slate-200 bg-white p-2 shadow-2xs border-t-2 border-t-[#003E7E]">
           <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</div>
-          <div className="mt-1 text-sm font-bold text-slate-900">{value}</div>
+          <div className="mt-0.5 text-xs font-bold text-slate-900 truncate" title={value}>{value}</div>
         </div>
       ))}
     </div>
@@ -298,7 +298,7 @@ function HeatmapMonthSection({ month }) {
             return (
               <div
                 key={day.id}
-                className={`relative flex h-16 flex-col justify-center rounded-lg border px-1 text-center transition-all duration-150 motion-reduce:transition-none ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
+                className={`relative flex h-14 flex-col justify-center items-center rounded-md border px-0.5 py-0.5 text-center transition-all duration-150 motion-reduce:transition-none ${day.empty ? 'invisible' : ''} ${TONE_CLASS[day.targetTone] || TONE_CLASS.unavailable}`}
                 title={dayTitle}
                 aria-label={dayTitle || undefined}
                 tabIndex={day.empty ? undefined : 0}
@@ -313,10 +313,10 @@ function HeatmapMonthSection({ month }) {
                   <span
                     key={line.id}
                     className={line.id === 'rank'
-                      ? 'text-[10px] font-bold leading-3 text-current opacity-90 tabular-nums'
+                      ? 'text-[9px] font-bold leading-none opacity-90 tabular-nums'
                       : line.id === 'date'
-                        ? 'text-[11px] font-black leading-3 tracking-tight'
-                        : 'text-[11px] font-bold leading-3 tabular-nums'}
+                        ? 'text-[10px] font-black leading-tight tracking-tight'
+                        : 'text-[10px] font-bold leading-tight tabular-nums'}
                   >
                     {line.label}
                   </span>
@@ -350,19 +350,19 @@ function MonthlyRankStrip({ rows }) {
   if (!rankedRows.length) return null;
 
   return (
-    <div className="mb-4 overflow-x-auto border-y border-slate-200/80 py-2.5">
+    <div className="mb-2.5 overflow-x-auto border-y border-slate-200/80 py-1.5">
       <div className="flex min-w-max items-center gap-2">
         {rankedRows.map((row) => (
           <div
             key={`${row.id}-national-rank`}
-            className="flex min-w-[100px] flex-col rounded-lg border border-slate-200/80 bg-slate-50/80 px-2.5 py-1.5 text-xs font-semibold text-slate-900 shadow-2xs"
+            className="flex min-w-[90px] flex-col rounded-md border border-slate-200/80 bg-slate-50/80 px-2 py-1 text-xs font-semibold text-slate-900 shadow-2xs"
             title={row.monthlyRankDetail || undefined}
             aria-label={row.monthlyRankDetail || undefined}
             tabIndex={0}
           >
-            <span className="font-bold text-slate-900">{row.label}</span>
-            <span className="font-bold text-emerald-700">{row.nationalRankLabel}</span>
-            <span className="text-[11px] font-medium text-slate-500">{row.rankMovementLabel || 'Chưa có so sánh'}</span>
+            <span className="font-bold text-slate-900 text-[11px]">{row.label}</span>
+            <span className="font-bold text-emerald-700 text-xs">{row.nationalRankLabel}</span>
+            <span className="text-[10px] font-medium text-slate-500">{row.rankMovementLabel || 'Chưa có so sánh'}</span>
           </div>
         ))}
       </div>
