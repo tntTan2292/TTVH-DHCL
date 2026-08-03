@@ -1,7 +1,7 @@
 # F13 Route Ranking Redesign — Plan Checkpoint 001
 
 - Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, in progress)
-- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2 and new Item 10 — see Section 12; PO NEW FINDING, `2026-08-03`, DELAYED-CASH METRICS MISSING)
+- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2 and Item 11 — see Section 14; Item 10 is PO PASS on commit `185b7dd` and not part of this recheck; PO NEW FINDING, `2026-08-03`, DELAYED-CASH KPI WIDGET MISSING)
 - Date: `2026-08-03`
 - Authors: static-code inspection by Antigravity (`docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`), targeted data discovery and design plan by Claude Code–Opus, final scope lock by ChatGPT/CTO.
 - Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`; no product code changed in this ticket.
@@ -223,3 +223,17 @@ Browser validation was not performed — logging in as the Product Owner's user 
 Discovered but out of scope: the 2 pre-existing baseline integration-test failures fail because Node's `fetch` resolves `"localhost"` to `::1` first in this environment, which the IPv4-only-bound backend refuses — unrelated to Route Ranking; the shared `test_support/httpTestClient.js` those tests depend on was intentionally left untouched.
 
 Status after R3: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope remains **Item 2** and **Item 10**. Not closed; no PO PASS claimed; no next ticket activated.
+
+## 14. Scope Extension R4 (`2026-08-03`) — PO NEW FINDING: DELAYED-CASH KPI WIDGET MISSING (Item 11)
+
+PO confirmed Item 10 (the Route Ranking table's `Số BG chậm nộp tiền`/`Tỷ lệ chậm nộp tiền` columns and the selected-route panel's delayed-cash block) as `PO PASS` on commit `185b7dd`, and explicitly directed that neither be re-touched absent a regression. Not touched in this update.
+
+**New requirement:** replace the 4th KPI widget (`Tổng số tuyến`) with `BG CHẬM NỘP TIỀN` — main value = total `delayed_cash_handover_count`, subline = `{f13_303_rate}% / {delayed_cash_handover_eligible_count} BG thuộc mẫu` — bound strictly to `meta.delayed_cash_handover_summary`, with no page-row summation, no per-route rate averaging, no frontend `RuleF13302` recomputation, no `delayed_count / total_bg`, and no fabricated `0` when the contract is unavailable.
+
+**Implementation:** new `computeDelayedCashWidget(summary)` in `routeRankingCalculations.js` reads exactly the three declared summary fields and nothing else; returns `{ value: '—', delta: '—' }` when the aggregate is absent or its count is `null`/`undefined`, and the real count/rate/eligible otherwise (including a genuine `0`/`0.0%`, never conflated with unavailable). `RoutePerformancePage.jsx` re-introduced a `meta` state populated from the existing `getRouteRanking(...)` fetch effect — the same effect already keyed on date/BCVH/route-type/sort/order — so the widget updates on every filter change exactly like the table. The other 3 widgets, the 4-widget row layout, the table, and the selected-route panel are unchanged.
+
+**Tests:** 4 new `computeDelayedCashWidget` unit tests (binds to the aggregate; genuine zero-denominator renders `0`/`0.0%`; missing/absent/empty summary renders `—`/`—`; ignores extraneous fields like `total_bg`). New `RoutePerformancePage.delayedCashWidget.test.js`, 4 tests (widget present with the exact label and binding expression; `Tổng số tuyến` fully removed; no summation/averaging/`RuleF13302`-recompute/`delayed_count / total_bg` pattern in source; the other 3 widgets and the Item 10 table/panel markers remain present; no new severity/threshold text).
+
+**Validation:** `oxlint` clean, `vite build` succeeds, `node --test src/features/route/*.test.js` 33/33 pass (all 25 pre-existing tests pass unmodified — no regression to Items 1–10 — plus 8 new). No backend file touched; `RuleF13302`, BCVH Ranking, Dashboard, Import, and schema untouched.
+
+Status after R4: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 2** (still pending from R1) and **Item 11** (this widget). Item 10 remains PO PASS, not part of this recheck. Not closed; no PO PASS claimed; no next ticket activated.

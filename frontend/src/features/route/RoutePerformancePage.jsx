@@ -4,7 +4,7 @@ import { PageContainer, KPICard, SectionHeader, StatusBadge, LoadingState, Error
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import f13DashboardClient from '../../api/F13DashboardClient';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
-import { toNumber, formatRate, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, resolveDefaultRouteDate } from './routeRankingCalculations';
+import { toNumber, formatRate, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, computeDelayedCashWidget, resolveDefaultRouteDate } from './routeRankingCalculations';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -225,6 +225,7 @@ export default function RoutePerformancePage() {
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState('');
   const [sortState, setSortState] = useState({ key: 'passed_rate', dir: 'desc' });
   const [metaMaxDate, setMetaMaxDate] = useState(null);
@@ -283,6 +284,7 @@ export default function RoutePerformancePage() {
         const result = await f13DashboardClient.getRouteRanking(fromDate, bcvhId, 1, 1000, sort, order, routeType);
         if (!mounted) return;
         setRows(Array.isArray(result.data) ? result.data : []);
+        setMeta(result.meta || null);
         const firstSelectable = (Array.isArray(result.data) ? result.data : []).find((item) => item?.id || item?.ma_tuyen);
         setSelectedRouteId((prev) => prev || firstSelectable?.id || firstSelectable?.ma_tuyen || '');
         setStatus('success');
@@ -326,6 +328,7 @@ export default function RoutePerformancePage() {
   }, [filteredRows, selectedRouteId]);
 
   const kpiStats = useMemo(() => computeRouteKpiStats(rows), [rows]);
+  const delayedCashWidget = useMemo(() => computeDelayedCashWidget(meta?.delayed_cash_handover_summary), [meta]);
 
   const summaryStats = [
     {
@@ -347,9 +350,9 @@ export default function RoutePerformancePage() {
       tone: 'warning',
     },
     {
-      label: 'Tổng số tuyến',
-      value: kpiStats.totalRoutes.toLocaleString('vi-VN'),
-      delta: routeType === 'postman' ? 'Tuyến bưu tá' : 'Tất cả',
+      label: 'BG CHẬM NỘP TIỀN',
+      value: delayedCashWidget.value,
+      delta: delayedCashWidget.delta,
       tone: 'success',
     },
   ];

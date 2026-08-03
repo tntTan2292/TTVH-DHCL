@@ -19,8 +19,8 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 ## 3. Current Status
 
 - Current state: `ACTIVE / REMEDIATED / READY FOR PO RECHECK`
-- PO UI Check Required: `Yes — recheck required on Item 2 (BLACK/Chuyển hoàn naming) and Item 10 (Số BG chậm nộp tiền / Tỷ lệ chậm nộp tiền); Items 1, 3-9 already PO PASS on commit ee73feed and unchanged since`
-- PO Product Status: `PO CHECK (commit ee73feed): Items 1, 3-9 PASS, Item 2 FAILED (remediated, pending recheck). PO NEW FINDING: delayed-cash metrics implemented as Item 10 (commit 62753c0). PO RUNTIME FAIL on Item 10 (2026-08-03): all-zero values observed — root cause was a stale backend server process (not a code defect); see Section 16 R3. Ticket not closed; no PO PASS declared.`
+- PO UI Check Required: `Yes — recheck required on Item 2 (BLACK/Chuyển hoàn naming) and Item 11 (BG CHẬM NỘP TIỀN KPI widget); Items 1, 3-9 already PO PASS on commit ee73feed, and Item 10 (Route Ranking table delayed-cash columns/panel) already PO PASS on commit 185b7dd — none of these are touched by this update`
+- PO Product Status: `PO CHECK (commit ee73feed): Items 1, 3-9 PASS, Item 2 FAILED (remediated, pending recheck). Item 10 (table/panel delayed-cash) PASSED on commit 185b7dd after the runtime-restart remediation. PO NEW FINDING (2026-08-03): the 4th KPI widget "Tổng số tuyến" must be replaced with a "BG CHẬM NỘP TIỀN" widget bound to meta.delayed_cash_handover_summary — implemented as Item 11, pending first PO check. Ticket not closed; no PO PASS declared.`
 
 ## 4. Required Reading
 
@@ -83,7 +83,8 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 
 - PO NEW FINDING — DELAYED-CASH METRICS MISSING (`2026-08-03`): Route Ranking was missing `Số BG chậm nộp tiền` and `Tỷ lệ chậm nộp tiền`, already implemented and `PO PASS` on BCVH Ranking. Authorized as a targeted scope extension within this open ticket, not a Route Ranking redesign re-authorization.
 - Implemented as Item 10 (Section 16 R2), reusing `RuleF13302`/`RuleRegistry` and the same aggregate-summary execution path as BCVH Ranking, unmodified.
-- PO RUNTIME FAIL — DELAYED-CASH METRICS ALL ZERO (`2026-08-03`, commit `62753c0`): PO observed `Số BG chậm nộp tiền = 0` and `Tỷ lệ chậm nộp tiền = 0%` on every route, including the selected-route panel. Diagnosed and remediated — see Section 16 R3. Root cause: a stale backend server process, not a code defect. Pending PO recheck.
+- PO RUNTIME FAIL — DELAYED-CASH METRICS ALL ZERO (`2026-08-03`, commit `62753c0`): PO observed `Số BG chậm nộp tiền = 0` and `Tỷ lệ chậm nộp tiền = 0%` on every route, including the selected-route panel. Diagnosed and remediated — see Section 16 R3. Root cause: a stale backend server process, not a code defect. **Confirmed PO PASS on commit `185b7dd`** — the table columns and selected-route panel block are accepted and must not be re-touched absent a regression.
+- PO NEW FINDING — DELAYED-CASH KPI WIDGET MISSING (`2026-08-03`, commit `185b7dd`): the 4th KPI widget (`Tổng số tuyến`) must be replaced with a `BG CHẬM NỘP TIỀN` widget bound strictly to `meta.delayed_cash_handover_summary`. Implemented as Item 11 (Section 16 R4). Pending first PO check.
 
 ## 10. Documents To Update
 
@@ -101,6 +102,7 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 - Runtime validation (post-restart, real HTTP against the live server, real database): new `DashboardController.routeDelayedCash.integration.test.js`, 2/2 pass — full end-to-end path (real login, real `/f13/ranking/route` call) confirms nonzero delayed-cash values, `Σrow = aggregate`, aggregate `Sum/Sum` formula holds, and pagination does not shrink the aggregate.
 - Browser validation: **not performed** — logging in as the Product Owner's user requires entering credentials, which is not permitted; equivalent evidence was captured via a real authenticated HTTP call using the project's existing test-admin fixture (`admin`/`admin123`, already used by `DashboardController.r6.integration.test.js`). No PO PASS is claimed on this basis.
 - Diff scope verified: **zero product code changed** in this remediation. Only one new file added: `backend/src/controllers/DashboardController.routeDelayedCash.integration.test.js`. (Prior remediation's diff — `FactBuuGuiRepository.js` new `getRouteRankingFacts` method, `F13DashboardService.js` generalized `_buildF13302SummaryMap` grouping key + wired delayed-cash fields, `RoutePerformancePage.jsx`, `routeRankingCalculations.js`, and their tests — remains as committed in `62753c0`, confirmed correct.) No BCVH Ranking, Dashboard, Import, schema, or historical-data file touched.
+- Item 11 (`BG CHẬM NỘP TIỀN` widget, this commit): `oxlint` clean on changed files. `vite build` succeeds. Frontend suite `node --test src/features/route/*.test.js`: 33/33 pass — the 25 pre-existing tests (contract, sort, KPI, filter, date, BLACK/`Chuyển hoàn`, delayed-cash table/panel) pass unmodified (no regression), plus 4 new `computeDelayedCashWidget` tests (binds to the aggregate, genuine `0`/`0.0%` vs `—` for a missing contract, ignores any extraneous fields like `total_bg`) and 4 new `RoutePerformancePage.delayedCashWidget.test.js` source-string tests (widget present with the exact label and binding expression, `Tổng số tuyến` fully removed, no page-row summation/average/`RuleF13302` recompute/`delayed_count / total_bg` pattern, all 3 retained widgets and the Item 10 table/panel markers intact, no new severity/threshold text). Diff scope: only `RoutePerformancePage.jsx`, `routeRankingCalculations.js`, and their tests — no backend file touched.
 
 ## 12. Expected Output
 
@@ -205,3 +207,23 @@ Escalate instead of implementing if, during implementation, any of the following
 **Browser validation:** not performed. Logging in as would require entering credentials into a live login form, which is not permitted; the HTTP integration test above is the closest available equivalent (real auth, real endpoint, real database) without doing so. No PO PASS is claimed.
 
 Status after R3: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope remains **Item 2** and **Item 10**. Not closed; no PO PASS claimed; no next ticket activated.
+
+### R4 (`2026-08-03`) — PO NEW FINDING: DELAYED-CASH KPI WIDGET MISSING (Item 11)
+
+**PO confirmation received first:** on commit `185b7dd`, the Route Ranking table's `Số BG chậm nộp tiền`/`Tỷ lệ chậm nộp tiền` columns and the selected-route panel's delayed-cash block are `PO PASS`. Not re-touched in this update, per explicit PO instruction ("Không sửa lại bảng và selected-route panel nếu không có lỗi regression").
+
+**New requirement:** replace the 4th KPI widget, `Tổng số tuyến`, with a `BG CHẬM NỘP TIỀN` widget:
+- Main value: total `delayed_cash_handover_count`.
+- Subline: `{f13_303_rate}% / {delayed_cash_handover_eligible_count} BG thuộc mẫu`.
+- Bound only to `meta.delayed_cash_handover_summary` from the Route Ranking API response — no page-row summation, no per-route rate averaging, no frontend re-derivation of `RuleF13302`, no `delayed_count / total_bg`, no fabricated `0` for a missing contract.
+
+**Implementation:**
+
+- `routeRankingCalculations.js`: new `computeDelayedCashWidget(summary)` — reads only `summary.delayed_cash_handover_count`, `summary.delayed_cash_handover_eligible_count`, `summary.f13_303_rate`. Returns `{ value: '—', delta: '—' }` when `summary` is absent or `delayed_cash_handover_count` is `null`/`undefined` (contract unavailable — never rendered as a fabricated `0`); otherwise returns the real count and a subline built from `formatDelayedCashRate` (already distinguishes a genuine `0%` from unavailable) and the eligible count. No other argument (rows, total_bg, etc.) is read.
+- `RoutePerformancePage.jsx`: re-introduced a `meta` state (removed as unused in an earlier pass, now needed again) populated from `getRouteRanking(...)`'s response `meta` on every fetch — the same fetch effect that already reacts to date/BCVH/route-type/sort/order changes, so the widget updates whenever the evaluation date, selected BCVH, or `Tuyến bưu tá | Tất cả` filter changes, exactly like the table and the other 3 widgets. The 4th `summaryStats` entry became `{ label: 'BG CHẬM NỘP TIỀN', value: delayedCashWidget.value, delta: delayedCashWidget.delta, tone: 'success' }` (same static `tone` slot as the widget it replaces — a fixed visual choice, not a value-driven judgment). The other 3 widgets (`Tuyến phát sinh không đạt`, `Tỷ lệ đạt toàn BCVH`, `Tổng BG không đạt`), the 4-widget row layout, the table, and the selected-route panel are untouched.
+
+**Tests:** 4 new `computeDelayedCashWidget` tests in `routeRankingCalculations.test.js` (binds to the aggregate and renders count/rate/eligible; a genuine zero-denominator summary renders `0`/`0.0%`, not `—`; a missing/absent/empty summary renders `—`/`—`, never a fabricated `0`; ignores extraneous fields such as `total_bg` even if present). New `RoutePerformancePage.delayedCashWidget.test.js`, 4 tests: the widget is present with the exact label and is bound to `computeDelayedCashWidget(meta?.delayed_cash_handover_summary)`; `Tổng số tuyến` is fully removed; no page-row summation, per-route averaging, `RuleF13302`-recompute, or `delayed_count / total_bg` pattern appears in the page source; the other 3 widgets and the already-PO-PASS table/panel markers (`Số BG chậm nộp tiền`, `Tỷ lệ chậm nộp tiền`, the `>3h` caption, `Chuyển hoàn`, default sort) remain present; no new severity/threshold/`sys_kpi_thresholds` text was introduced.
+
+**Validation:** `oxlint` clean. `vite build` succeeds. `node --test src/features/route/*.test.js`: 33/33 pass — all 25 pre-existing Route Ranking frontend tests pass unmodified (no regression to Items 1–10), plus the 8 new tests above. No backend file touched; no BCVH Ranking/Dashboard/Import/schema file touched; `RuleF13302` untouched.
+
+Status after R4: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 2** (`Chuyển hoàn`/BLACK, still pending from R1) and **Item 11** (the new widget). Item 10 (table/panel) remains PO PASS and is not part of this recheck. Not closed; no PO PASS claimed; no next ticket activated.

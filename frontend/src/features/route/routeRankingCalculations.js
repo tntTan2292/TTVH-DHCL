@@ -53,3 +53,20 @@ export function computeRouteKpiStats(rows) {
 export function resolveDefaultRouteDate({ param, metaMaxDate }) {
   return param || metaMaxDate || '';
 }
+
+// Binds the "BG CHẬM NỘP TIỀN" KPI widget strictly to the backend's
+// meta.delayed_cash_handover_summary — never recomputed from page rows, never averaged,
+// never delayed_count/total_bg. A missing/absent summary (contract unavailable) renders
+// "—", not a fabricated 0; a real zero-denominator summary renders 0/0.0% as valid data.
+export function computeDelayedCashWidget(summary) {
+  const count = summary?.delayed_cash_handover_count;
+  if (count === null || count === undefined) {
+    return { value: '—', delta: '—' };
+  }
+  const eligible = toNumber(summary.delayed_cash_handover_eligible_count);
+  const rate = formatDelayedCashRate(summary.f13_303_rate);
+  return {
+    value: toNumber(count).toLocaleString('vi-VN'),
+    delta: `${rate} / ${eligible.toLocaleString('vi-VN')} BG thuộc mẫu`,
+  };
+}

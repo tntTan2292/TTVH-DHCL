@@ -8,6 +8,7 @@ import {
   applyRouteFilters,
   sortRouteRows,
   computeRouteKpiStats,
+  computeDelayedCashWidget,
   resolveDefaultRouteDate,
 } from './routeRankingCalculations.js';
 
@@ -109,4 +110,42 @@ test('formatDelayedCashRate renders "—" only when the backend contract marks t
 
 test('formatDelayedCashRate renders a normal rate the same way as formatRate', () => {
   assert.equal(formatDelayedCashRate(21.7), formatRate(21.7));
+});
+
+test('BG CHẬM NỘP TIỀN widget binds only to meta.delayed_cash_handover_summary and shows count/rate/eligible', () => {
+  const widget = computeDelayedCashWidget({
+    delayed_cash_handover_count: 229,
+    delayed_cash_handover_eligible_count: 806,
+    f13_303_rate: 28.4,
+  });
+  assert.equal(widget.value, '229');
+  assert.equal(widget.delta, '28.4% / 806 BG thuộc mẫu');
+});
+
+test('widget renders a genuine zero-denominator summary as 0 / 0.0%, not as unavailable', () => {
+  const widget = computeDelayedCashWidget({
+    delayed_cash_handover_count: 0,
+    delayed_cash_handover_eligible_count: 0,
+    f13_303_rate: 0,
+  });
+  assert.equal(widget.value, '0');
+  assert.equal(widget.delta, '0.0% / 0 BG thuộc mẫu');
+});
+
+test('widget renders "—" when the aggregate contract is missing entirely, never a fabricated 0', () => {
+  assert.deepEqual(computeDelayedCashWidget(undefined), { value: '—', delta: '—' });
+  assert.deepEqual(computeDelayedCashWidget(null), { value: '—', delta: '—' });
+  assert.deepEqual(computeDelayedCashWidget({}), { value: '—', delta: '—' });
+});
+
+test('widget never averages, never recomputes from page rows, and never divides by total_bg', () => {
+  // Only the three declared summary fields are read; nothing derived from an extra "rows"/"total_bg" argument.
+  const widget = computeDelayedCashWidget({
+    delayed_cash_handover_count: 10,
+    delayed_cash_handover_eligible_count: 40,
+    f13_303_rate: 25,
+    total_bg: 999999, // must be ignored even if present alongside the contract fields
+  });
+  assert.equal(widget.value, '10');
+  assert.equal(widget.delta, '25.0% / 40 BG thuộc mẫu');
 });
