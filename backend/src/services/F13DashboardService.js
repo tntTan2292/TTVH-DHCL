@@ -630,29 +630,31 @@ class F13DashboardService {
         };
     }
 
-    _buildF13302SummaryMap(facts = []) {
+    _buildF13302SummaryMap(facts = [], groupKey = 'ma_bcvh') {
         if (!ruleRegistry.rules.some(rule => rule?.id === 'RULE_F13_302')) {
             ruleRegistry.register(new RuleF13302());
         }
         const delayedCashRule = ruleRegistry.rules.find((rule) => rule?.id === 'RULE_F13_302');
 
-        const byBcvh = new Map();
+        const grouped = new Map();
 
         for (const fact of facts) {
-            if (!fact?.ma_bcvh) continue;
-            if (!byBcvh.has(fact.ma_bcvh)) byBcvh.set(fact.ma_bcvh, []);
-            byBcvh.get(fact.ma_bcvh).push(fact);
+            const key = fact?.[groupKey];
+            if (!key) continue;
+            if (!grouped.has(key)) grouped.set(key, []);
+            grouped.get(key).push(fact);
         }
 
         const rateMap = {};
         const summaryMap = {};
-        for (const [maBcvh, items] of byBcvh.entries()) {
+        for (const [key, items] of grouped.entries()) {
             const result = ruleRegistry.execute(items);
-            rateMap[maBcvh] = result.f13_303_rate ?? 0;
-            summaryMap[maBcvh] = {
+            rateMap[key] = result.f13_303_rate ?? 0;
+            summaryMap[key] = {
                 delayed_cash_handover_count: delayedCashRule
                     ? items.filter((fact) => delayedCashRule.evaluate(fact)).length
                     : 0,
+                delayed_cash_handover_eligible_count: result.total_failed ?? 0,
                 delayed_cash_handover_rate: result.f13_303_rate ?? 0,
             };
         }
@@ -987,7 +989,14 @@ class F13DashboardService {
                 routeType,
                 confirmedNonPostmanRouteCodes,
             });
-            
+
+            const routeFacts = await factBuuGuiRepo.getRouteRankingFacts(date, bcvh, {
+                routeType,
+                confirmedNonPostmanRouteCodes,
+            });
+            const { summaryMap: delayedCashByRoute } = this._buildF13302SummaryMap(routeFacts, 'ma_tuyen');
+            const delayedCashAggregate = this._buildF13302AggregateSummary(routeFacts);
+
             const mappedData = result.data.map(item => ({
                 ma_tuyen: item.ma_tuyen,
                 id: item.ma_tuyen,
@@ -1001,12 +1010,19 @@ class F13DashboardService {
                 failed: item.total_failed,
                 returned: item.total_returned ?? 0,
                 ...classifyRoute(item.ma_tuyen),
-                f13_303_rate: 0 // Delegate to D4
+                delayed_cash_handover_count: delayedCashByRoute[item.ma_tuyen]?.delayed_cash_handover_count ?? 0,
+                delayed_cash_handover_eligible_count: delayedCashByRoute[item.ma_tuyen]?.delayed_cash_handover_eligible_count ?? 0,
+                f13_303_rate: delayedCashByRoute[item.ma_tuyen]?.delayed_cash_handover_rate ?? 0,
             }));
 
             return {
                 data: mappedData,
                 meta: {
+                    delayed_cash_handover_summary: {
+                        delayed_cash_handover_count: delayedCashAggregate.delayed_cash_handover_count,
+                        delayed_cash_handover_eligible_count: delayedCashAggregate.delayed_cash_handover_eligible_count,
+                        f13_303_rate: delayedCashAggregate.f13_303_rate,
+                    },
                     route_filter: {
                         selected: routeType,
                         labels: {

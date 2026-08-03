@@ -250,6 +250,44 @@ class FactBuuGuiRepository {
         });
     }
 
+    // Raw facts for the same date/BCVH/route-classification scope as getRouteRanking(),
+    // used to feed RuleF13302/RuleRegistry for per-route delayed-cash counts. Mirrors that
+    // method's WHERE clause exactly (not paginated) so the rule engine sees the full scope.
+    getRouteRankingFacts(date, bcvh, options = {}) {
+        return new Promise((resolve, reject) => {
+            const routeType = options.routeType === 'all' ? 'all' : 'postman';
+            const confirmedNonPostmanRouteCodes = Array.isArray(options.confirmedNonPostmanRouteCodes)
+                ? options.confirmedNonPostmanRouteCodes.map(String)
+                : [];
+            const nonPostmanPlaceholders = confirmedNonPostmanRouteCodes.map(() => '?').join(', ');
+            const routeFilters = [
+                'ngay_do_kiem = ?',
+                'ma_bcvh = ?',
+                'ma_tuyen IS NOT NULL',
+                "TRIM(ma_tuyen) != ''",
+                "ma_tuyen LIKE '53%'",
+            ];
+            const params = [date, bcvh];
+
+            if (routeType === 'postman' && confirmedNonPostmanRouteCodes.length) {
+                routeFilters.push(`ma_tuyen NOT IN (${nonPostmanPlaceholders})`);
+                params.push(...confirmedNonPostmanRouteCodes);
+            }
+
+            const whereClause = routeFilters.join(' AND ');
+            const sql = `
+                SELECT ma_tuyen, danh_gia_2026, thoi_gian_ptc, thoi_gian_nop_tien
+                FROM fact_f13
+                WHERE ${whereClause}
+            `;
+
+            db.all(sql, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows);
+            });
+        });
+    }
+
     getParetoData(date, bcvh) {
         return new Promise((resolve, reject) => {
             let sql = `

@@ -7,6 +7,13 @@ export function formatRate(value) {
   return `${toNumber(value).toFixed(1)}%`;
 }
 
+// Distinguishes a genuine 0% (backend returned a real number) from an unavailable
+// rate (backend returned null/undefined) — 0% must render as valid data, not as "—".
+export function formatDelayedCashRate(value) {
+  if (value === null || value === undefined) return '—';
+  return formatRate(value);
+}
+
 export function sortableValue(row, key) {
   if (key === 'failed') return toNumber(row.failed ?? row.total_failed);
   return toNumber(row[key]);

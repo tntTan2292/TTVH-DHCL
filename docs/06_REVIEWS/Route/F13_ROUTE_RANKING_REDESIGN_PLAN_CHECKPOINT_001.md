@@ -1,7 +1,7 @@
 # F13 Route Ranking Redesign — Plan Checkpoint 001
 
 - Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, in progress)
-- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2 only — see Section 11)
+- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2 and new Item 10 — see Section 12; PO NEW FINDING, `2026-08-03`, DELAYED-CASH METRICS MISSING)
 - Date: `2026-08-03`
 - Authors: static-code inspection by Antigravity (`docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`), targeted data discovery and design plan by Claude Code–Opus, final scope lock by ChatGPT/CTO.
 - Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`; no product code changed in this ticket.
@@ -147,3 +147,42 @@ Validation:
 - Diff scope verified: only the `unevaluated` → `returned`/`Chuyển hoàn` rename across Route Ranking files and their tests.
 
 Status after R1: `REMEDIATED / READY FOR PO RECHECK`. **Recheck scope is Item 2 only** — Items 1, 3–9 do not need to be rechecked as they were not touched by this remediation. Not closed; no PO PASS claimed.
+
+## 12. Scope Extension R2 (`2026-08-03`) — PO NEW FINDING: DELAYED-CASH METRICS MISSING (Item 10)
+
+PO finding: Route Ranking was missing two governance-locked KPIs already implemented and `PO PASS` on BCVH Ranking — `Số BG chậm nộp tiền` and `Tỷ lệ chậm nộp tiền`. Authorized as a **targeted scope extension within this open ticket**, explicitly not a Route Ranking redesign re-authorization.
+
+### SSOT read before implementing (targeted, not a broad audit)
+
+- `backend/src/engine/rules/RuleF13302.js`: bypasses `danh_gia_2026 === 'Đạt'`; requires both `thoi_gian_ptc` and `thoi_gian_nop_tien` to parse; delayed only when `nop - ptc > 3` hours (strict).
+- `backend/src/engine/rules/RuleRegistry.js`: `execute(facts)` counts `danh_gia_2026 !== 'Đạt'` as the eligible denominator (`totalKhongDat`), runs all registered rules per fact, and computes `f13_303_rate = totalViPham / totalKhongDat` (`0` when denominator is `0`).
+- `backend/src/services/F13DashboardService.js`'s existing BCVH Ranking usage: `_buildF13302SummaryMap` (per-BCVH grouping) and `_buildF13302AggregateSummary` (flat aggregate, already shaped exactly as `{ delayed_cash_handover_count, delayed_cash_handover_eligible_count, f13_303_rate }`), wired into `getBcvhRanking`.
+- `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` and `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_IMPL_WAVE2_CHECKPOINT_001.md`: confirm the same denominator/threshold contract and record the `2026-07-28` runtime evidence `334/1536 = 21.7%`.
+
+### Reuse, not duplication
+
+- `_buildF13302AggregateSummary(facts)` is called **unmodified** with Route Ranking's route-scoped fact set — no copy, no altered business rule.
+- `_buildF13302SummaryMap(facts, groupKey = 'ma_bcvh')` was generalized from a hardcoded `ma_bcvh` grouping to an explicit `groupKey` parameter. The default preserves BCVH Ranking's existing call site byte-for-byte; Route Ranking calls it with `groupKey = 'ma_tuyen'`. `RuleF13302` and `RuleRegistry` themselves were not touched.
+- New `FactBuuGuiRepository.getRouteRankingFacts(date, bcvh, options)` mirrors `getRouteRanking()`'s exact WHERE clause (date, BCVH, Hue `53%` scope, postman/all + confirmed-non-postman exclusion), unpaginated, selecting only `ma_tuyen, danh_gia_2026, thoi_gian_ptc, thoi_gian_nop_tien`.
+
+### Implementation
+
+- Backend: `F13DashboardService.getRouteRanking(...)` fetches `routeFacts`, groups by `ma_tuyen`, and attaches `delayed_cash_handover_count`, `delayed_cash_handover_eligible_count`, `f13_303_rate` to each row (replacing the prior hardcoded `f13_303_rate: 0 // Delegate to D4`), plus `meta.delayed_cash_handover_summary` for the aggregate — computed over the full unpaginated route scope, independent of the ranking list's `page`/`page_size`.
+- Frontend: `RoutePerformancePage.jsx` table header restructured to a two-row `<thead>` (group row + sortable sub-column row) with a new `Chậm nộp tiền` group (`Số BG chậm nộp tiền`, `Tỷ lệ chậm nộp tiền`) placed after `Kết quả ngày đánh giá` and before `Phân loại`. Cells bind directly to `row.delayed_cash_handover_count`/`row.f13_303_rate` — no client-side division formula. Selected-route panel gained a factual `Chậm nộp tiền` block (count, eligible sample size, rate, caption `Chậm khi thời gian nộp tiền sau thời gian PTC trên 3 giờ.`). No color, threshold, severity, or recommendation text introduced.
+- New `formatDelayedCashRate(value)`: `null`/`undefined` → `—` (unavailable per contract); any real number including `0` → a normal percentage, so `0%` is never conflated with unavailable.
+
+### Data-drift note (not a defect)
+
+Re-deriving the PO's cited `2026-07-28` BCVH reference (`334/1536 = 21.7%`) via the same live `_buildF13302AggregateSummary` path on `2026-08-03` produced `390/1553 = 25.1%` for the same historical date. The calculation path is verified byte-identical to BCVH Ranking's (same function, unmodified); the underlying `fact_f13` rows for that date have changed since the reference was captured, consistent with this system's known pattern of later imports/corrections touching historical dates (see `TODAY-002-R1`/`R2`). PO recheck evidence will show current-data numbers, not the cited reference numbers — this is expected, not a scope or logic error.
+
+### Validation
+
+- Backend `node --test` full suite: 61/65 pass; same 4 pre-existing baseline failures as before R1/R2, unchanged. `F13DashboardService.recovery.test.js` (BCVH Ranking regression, 23 tests): 23/23 pass — confirms the `_buildF13302SummaryMap` generalization does not change BCVH Ranking's output.
+- New `F13DashboardService.routeDelayedCash.test.js`, 9/9 pass: row-level fields; `>3h` delayed vs exactly-`3h` not delayed; missing/invalid timestamps stay in denominator only; `Đạt` excluded from denominator; zero denominator → `0%`; per-route isolation (no cross-route leakage); aggregate `Σdelayed/Σeligible` not an average of per-route rates; aggregate unaffected by pagination; existing route-classification/exclusion filter passed through unchanged to the facts fetch.
+- `FactBuuGuiRepository.routeRanking.test.js` gained 2 tests: `getRouteRankingFacts` WHERE-clause parity with `getRouteRanking`, not paginated, correct postman/all exclusion behavior.
+- New `RoutePerformancePage.delayedCash.test.js`, 5/5 pass: `Chậm nộp tiền` group present with the two PO-mandated sub-column labels, positioned after `Kết quả ngày đánh giá`; cells bind to backend fields only (no client formula); selected-route panel shows count/eligible/rate and the exact `>3h` caption; no new severity/threshold/recommendation text; PO-PASS markers (`Chuyển hoàn`, default sort, only-failed filter, `data-testid`) intact.
+- `routeRankingCalculations.test.js` gained 3 `formatDelayedCashRate` tests (17/17 total pass).
+- `oxlint`: zero warnings/errors. `vite build`: succeeds.
+- Diff scope verified: `FactBuuGuiRepository.js` (additive `getRouteRankingFacts`), `F13DashboardService.js` (additive delayed-cash wiring + backward-compatible `_buildF13302SummaryMap` generalization), `RoutePerformancePage.jsx`, `routeRankingCalculations.js`, and their tests. No BCVH Ranking, Dashboard, Import, schema, or historical-data file touched; `RuleF13302`'s `>3h` threshold unchanged.
+
+Status after R2: `REMEDIATED / READY FOR PO RECHECK`. **Recheck scope is Item 2 (BLACK/Chuyển hoàn) and Item 10 (delayed-cash metrics)** — Items 1, 3–9 remain untouched and already PO PASS. Not closed; no PO PASS claimed; no next ticket activated.

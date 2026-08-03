@@ -67,3 +67,53 @@ test('route ranking excludes confirmed non-postman routes only under the postman
     dbModule.db.all = originalAll;
   }
 });
+
+test('getRouteRankingFacts mirrors getRouteRanking\'s WHERE clause (same date/BCVH/Hue/postman scope) and is not paginated', async () => {
+  const originalAll = dbModule.db.all;
+  const observedSql = [];
+  const observedParams = [];
+
+  dbModule.db.all = (sql, params, callback) => {
+    observedSql.push(sql);
+    observedParams.push(params);
+    callback(null, [{ ma_tuyen: '53100001', danh_gia_2026: 'Không đạt', thoi_gian_ptc: null, thoi_gian_nop_tien: null }]);
+  };
+
+  try {
+    const rows = await repo.getRouteRankingFacts('2026-08-02', '533140', {
+      routeType: 'postman',
+      confirmedNonPostmanRouteCodes: ['53314018'],
+    });
+
+    assert.equal(observedSql.length, 1);
+    assert.match(observedSql[0], /ma_tuyen LIKE '53%'/);
+    assert.match(observedSql[0], /ma_tuyen NOT IN \(\?\)/);
+    assert.doesNotMatch(observedSql[0], /LIMIT/);
+    assert.doesNotMatch(observedSql[0], /GROUP BY/);
+    assert.deepEqual(observedParams[0], ['2026-08-02', '533140', '53314018']);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].ma_tuyen, '53100001');
+  } finally {
+    dbModule.db.all = originalAll;
+  }
+});
+
+test('getRouteRankingFacts does not exclude non-postman routes under the "all" filter', async () => {
+  const originalAll = dbModule.db.all;
+  const observedSql = [];
+
+  dbModule.db.all = (sql, params, callback) => {
+    observedSql.push(sql);
+    callback(null, []);
+  };
+
+  try {
+    await repo.getRouteRankingFacts('2026-08-02', '533140', {
+      routeType: 'all',
+      confirmedNonPostmanRouteCodes: ['53314018'],
+    });
+    assert.doesNotMatch(observedSql[0], /ma_tuyen NOT IN/);
+  } finally {
+    dbModule.db.all = originalAll;
+  }
+});

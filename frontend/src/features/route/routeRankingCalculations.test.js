@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   toNumber,
   formatRate,
+  formatDelayedCashRate,
   applyRouteFilters,
   sortRouteRows,
   computeRouteKpiStats,
@@ -95,4 +96,17 @@ test('toNumber/formatRate treat missing or non-numeric values as zero, never as 
   assert.equal(toNumber(null), 0);
   assert.equal(toNumber('abc'), 0);
   assert.equal(formatRate(undefined), '0.0%');
+});
+
+test('formatDelayedCashRate renders a genuine 0% as valid data, not as unavailable', () => {
+  assert.equal(formatDelayedCashRate(0), '0.0%');
+});
+
+test('formatDelayedCashRate renders "—" only when the backend contract marks the rate unavailable (null/undefined)', () => {
+  assert.equal(formatDelayedCashRate(null), '—');
+  assert.equal(formatDelayedCashRate(undefined), '—');
+});
+
+test('formatDelayedCashRate renders a normal rate the same way as formatRate', () => {
+  assert.equal(formatDelayedCashRate(21.7), formatRate(21.7));
 });

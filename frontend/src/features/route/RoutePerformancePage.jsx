@@ -4,7 +4,7 @@ import { PageContainer, KPICard, SectionHeader, StatusBadge, LoadingState, Error
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import f13DashboardClient from '../../api/F13DashboardClient';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
-import { toNumber, formatRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, resolveDefaultRouteDate } from './routeRankingCalculations';
+import { toNumber, formatRate, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, resolveDefaultRouteDate } from './routeRankingCalculations';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -31,6 +31,31 @@ const SORTABLE_COLUMNS = [
   { key: 'passed_rate', label: 'Tỷ lệ đạt' },
 ];
 
+const DELAYED_CASH_COLUMNS = [
+  { key: 'delayed_cash_handover_count', label: 'Số BG chậm nộp tiền' },
+  { key: 'f13_303_rate', label: 'Tỷ lệ chậm nộp tiền' },
+];
+
+function SortHeaderCell({ column, sortState, onSort }) {
+  const isActive = sortState.key === column.key;
+  const arrow = isActive ? (sortState.dir === 'asc' ? '▲' : '▼') : '';
+  return (
+    <th className="px-4 py-2 text-right">
+      <button
+        type="button"
+        onClick={() => onSort(column.key)}
+        aria-sort={isActive ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+        className={`inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide ${
+          isActive ? 'text-[var(--color-primary-700)]' : 'text-[var(--color-text-muted)]'
+        }`}
+      >
+        {column.label}
+        {arrow ? <span aria-hidden="true">{arrow}</span> : null}
+      </button>
+    </th>
+  );
+}
+
 function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, onSort }) {
   if (!rows.length) {
     return (
@@ -46,29 +71,24 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, on
         <table className="min-w-full text-sm" data-testid="route-ranking-table">
           <thead className="bg-[var(--color-surface-50)] text-left text-xs font-semibold uppercase text-[var(--color-text-muted)]">
             <tr>
-              <th className="px-4 py-3">XH</th>
-              <th className="px-4 py-3">Mã tuyến</th>
-              <th className="px-4 py-3">Tên tuyến</th>
-              {SORTABLE_COLUMNS.map((column) => {
-                const isActive = sortState.key === column.key;
-                const arrow = isActive ? (sortState.dir === 'asc' ? '▲' : '▼') : '';
-                return (
-                  <th key={column.key} className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      onClick={() => onSort(column.key)}
-                      aria-sort={isActive ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                      className={`inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide ${
-                        isActive ? 'text-[var(--color-primary-700)]' : 'text-[var(--color-text-muted)]'
-                      }`}
-                    >
-                      {column.label}
-                      {arrow ? <span aria-hidden="true">{arrow}</span> : null}
-                    </button>
-                  </th>
-                );
-              })}
-              <th className="px-4 py-3">Phân loại</th>
+              <th className="px-4 py-2" rowSpan={2}>XH</th>
+              <th className="px-4 py-2" rowSpan={2}>Mã tuyến</th>
+              <th className="px-4 py-2" rowSpan={2}>Tên tuyến</th>
+              <th className="border-l border-[var(--color-surface-200)] px-4 py-2 text-center" colSpan={SORTABLE_COLUMNS.length}>
+                Kết quả ngày đánh giá
+              </th>
+              <th className="border-l border-[var(--color-surface-200)] px-4 py-2 text-center" colSpan={DELAYED_CASH_COLUMNS.length}>
+                Chậm nộp tiền
+              </th>
+              <th className="px-4 py-2" rowSpan={2}>Phân loại</th>
+            </tr>
+            <tr>
+              {SORTABLE_COLUMNS.map((column) => (
+                <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} />
+              ))}
+              {DELAYED_CASH_COLUMNS.map((column) => (
+                <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} />
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-surface-100)]">
@@ -93,6 +113,10 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, on
                   <td className="px-4 py-3 text-right font-mono text-red-600">{toNumber(row.failed ?? row.total_failed).toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right font-mono">{toNumber(row.returned).toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right font-semibold">{formatRate(row.passed_rate)}</td>
+                  <td className="border-l border-[var(--color-surface-100)] px-4 py-3 text-right font-mono">
+                    {toNumber(row.delayed_cash_handover_count).toLocaleString('vi-VN')}
+                  </td>
+                  <td className="px-4 py-3 text-right font-semibold">{formatDelayedCashRate(row.f13_303_rate)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${classificationBadgeClass(row)}`}>
                       {classificationLabel(row)}
@@ -122,6 +146,8 @@ function RouteSelectedPanel({ route, bcvhName, fromDate }) {
   const passed = toNumber(route.passed);
   const failed = toNumber(route.failed ?? route.total_failed);
   const returned = toNumber(route.returned);
+  const delayedCount = toNumber(route.delayed_cash_handover_count);
+  const delayedEligible = toNumber(route.delayed_cash_handover_eligible_count);
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
@@ -164,6 +190,27 @@ function RouteSelectedPanel({ route, bcvhName, fromDate }) {
             Bưu gửi chuyển hoàn, được ghi nhận BLACK trong Đánh giá KPI 2026.
           </p>
         ) : null}
+      </div>
+
+      <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
+        <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Chậm nộp tiền</p>
+        <div className="mt-1 grid grid-cols-3 gap-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">Số BG chậm nộp tiền</p>
+            <p className="text-lg font-semibold text-[var(--color-text-main)]">{delayedCount.toLocaleString('vi-VN')}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">Mẫu đánh giá</p>
+            <p className="text-lg font-semibold text-[var(--color-text-main)]">{delayedEligible.toLocaleString('vi-VN')}</p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">Tỷ lệ chậm nộp tiền</p>
+            <p className="text-lg font-semibold text-[var(--color-text-main)]">{formatDelayedCashRate(route.f13_303_rate)}</p>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+          Chậm khi thời gian nộp tiền sau thời gian PTC trên 3 giờ.
+        </p>
       </div>
 
       <div className="border-t border-[var(--color-surface-200)] pt-3 text-xs text-[var(--color-text-muted)]">
