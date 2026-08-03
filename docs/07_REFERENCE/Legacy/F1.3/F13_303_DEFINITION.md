@@ -22,6 +22,8 @@ Phục vụ mục tiêu phân tích nguyên nhân gốc rễ (Root Cause Analysi
 
 *(Ghi chú: Tỷ lệ F13_303 chỉ được tính toán trên tập Bưu gửi Không đạt KPI F1.3. Loại trừ toàn bộ các bưu gửi Đạt KPI khỏi phép tính).*
 
+**[Đồng bộ SSOT, `2026-08-03`]** Kể từ khi hệ thống chính thức có nhóm phân loại thứ ba `Chuyển hoàn` (BLACK, `danh_gia_2026 IS NULL`), điều khoản "Loại trừ toàn bộ các bưu gửi Đạt KPI khỏi phép tính" ở trên được làm rõ để không bị hiểu nhầm là "mẫu số = mọi bưu gửi khác Đạt": mẫu số và tử số của F13_303 **chỉ** tính trên nhóm `Không đạt`, loại trừ **cả** `Đạt` **và** `Chuyển hoàn` — vì bưu gửi chuyển hoàn không đi qua luồng thu-nộp tiền COD nên không thuộc phạm vi chỉ tiêu này. Cách hiểu này áp dụng thống nhất cho `RuleF13302`/`RuleRegistry` dùng chung ở mọi cấp (Toàn mạng, BCVH, Tuyến phát).
+
 ## 6. Dashboard Usage
 Chỉ số này xuất hiện ở:
 - Màn hình 04 (Root Cause Analysis) - Tab Chậm nộp tiền.

@@ -26,7 +26,9 @@ class RuleRegistry {
 
         facts.forEach(fact => {
             // Đếm tập mẫu "Không Đạt" để phục vụ tính F13_303 theo SSOT
-            if (fact.danh_gia_2026 !== 'Đạt') {
+            // (docs/07_REFERENCE/Legacy/F1.3/F13_303_DEFINITION.md, Section 3: mẫu số =
+            // Tổng số BG Không đạt). Đạt và Chuyển hoàn (BLACK) đều không tham gia mẫu số.
+            if (fact.danh_gia_2026 === 'Không đạt') {
                 totalKhongDat++;
             }
 

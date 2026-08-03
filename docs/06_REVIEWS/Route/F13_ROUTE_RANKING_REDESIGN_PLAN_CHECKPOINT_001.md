@@ -1,7 +1,7 @@
 # F13 Route Ranking Redesign — Plan Checkpoint 001
 
 - Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, in progress)
-- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2, Item 11, and a data-only glance at Item 10's corrected numbers — see Section 15; PO SSOT CORRECTION, `2026-08-03`, delayed-cash denominator excludes Chuyển hoàn)
+- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2, Item 11, and a data-only glance at Item 10's corrected numbers — see Section 16; PO directed the delayed-cash denominator correction be synced into the shared RuleF13302/RuleRegistry engine, `2026-08-03`, so BCVH Ranking and Route Ranking compute identically)
 - Date: `2026-08-03`
 - Authors: static-code inspection by Antigravity (`docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`), targeted data discovery and design plan by Claude Code–Opus, final scope lock by ChatGPT/CTO.
 - Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`; no product code changed in this ticket.
@@ -255,3 +255,21 @@ Verified with real data before fixing (`2026-08-02`/`533140`/`all`): `456` `Khô
 **Note on Item 10:** the table's `Chậm nộp tiền` columns and the panel's delayed-cash block (`PO PASS` on `185b7dd`) read the same corrected fields — their UI is unchanged but their displayed numbers are now different (denominator shrank). Flagged, not hidden.
 
 Status after R5: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 2**, **Item 11**, and a data-only glance at **Item 10**'s corrected numbers. Not closed; no PO PASS claimed; no next ticket activated.
+
+## 16. Shared-Engine Sync R6 (`2026-08-03`) — one formula for both screens
+
+PO confirmed R5's correction and directed it be moved from a Route-Ranking-local filter into the shared `RuleF13302`/`RuleRegistry` engine, so BCVH Ranking and Route Ranking compute delayed-cash identically; the local filter was removed as no longer needed.
+
+`docs/07_REFERENCE/Legacy/F1.3/F13_303_DEFINITION.md` already stated the denominator as "Tổng số BG Không đạt" — the engine's prior `!= Đạt` implementation had drifted from its own written SSOT once `Chuyển hoàn` became a recognized third category. This change realigns the code with the pre-existing doc (now annotated to say so explicitly), not a new rule layered on top.
+
+**Fix:** `RuleF13302.evaluate` bypass changed from `=== 'Đạt'` to `!== 'Không đạt'`; `RuleRegistry.execute`'s denominator changed from `!== 'Đạt'` to `=== 'Không đạt'`. `F13DashboardService.getRouteRanking`'s R5 local filter removed — the full unfiltered fact set is passed straight to the shared functions, exactly like BCVH Ranking.
+
+**Regression check before changing shared code:** every BCVH Ranking delayed-cash test fixture uses only `Đạt`/`Không đạt`, never BLACK — confirmed by inspection before the change, so `!= Đạt` and `= Không đạt` are byte-identical for all existing BCVH Ranking tests. Zero regression risk established up front, confirmed after (all pass).
+
+**Runtime confirmation (real HTTP, backend restarted, PID `26416`):** Route Ranking `2026-08-02`/`533140`/`Tất cả` still gives `116/456 = 25.4%` (same as R5, now via the shared engine with no local filter). BCVH Ranking `2026-08-02` (all canonical BCVH) now gives `163/907 = 18.0%` — its own numbers changed too, confirming one shared formula.
+
+**Tests:** new `RuleF13302.test.js` (6) and `RuleRegistry.test.js` (3) — direct unit coverage of the shared engine (Đạt bypassed, Chuyển hoàn/BLACK bypassed even with a qualifying gap, empty-string bypassed, `>3h`/exactly-`3h`/missing-timestamp behavior, denominator/numerator/rate, `is_late_payment` flagging). Backend suite re-enumerated correctly with `shopt -s globstar` (a prior grep-based count had silently skipped two-level-deep test files): **82 tests, 78 pass**, same 4 pre-existing baseline failures — no regression anywhere.
+
+**Diff scope:** `RuleF13302.js`, `RuleRegistry.js`, `F13DashboardService.js` (filter removal), 2 new engine test files. No frontend, no BCVH Ranking UI, no Dashboard/Import/schema file touched.
+
+Status after R6: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 2**, **Item 11**, and a data-only glance at **Item 10**'s numbers (now via the shared, synced engine). Not closed; no PO PASS claimed; no next ticket activated.

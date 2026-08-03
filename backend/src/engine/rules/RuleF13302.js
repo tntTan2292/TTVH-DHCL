@@ -34,11 +34,13 @@ class RuleF13302 extends BaseRule {
      * @returns {boolean} True nếu vi phạm chậm nộp
      */
     evaluate(fact) {
-        // Nguyên tắc Bypass: Bưu gửi Đạt tự động bỏ qua
-        if (fact.danh_gia_2026 === 'Đạt') {
+        // SSOT (docs/07_REFERENCE/Legacy/F1.3/F13_303_DEFINITION.md, Section 3/5): mẫu số
+        // và tử số của F13_303 chỉ tính trên bưu gửi Không đạt. Đạt và Chuyển hoàn (BLACK,
+        // danh_gia_2026 IS NULL) đều bị bỏ qua — Chuyển hoàn không đi qua luồng nộp tiền.
+        if (fact.danh_gia_2026 !== 'Không đạt') {
             return false;
         }
-        
+
         // Không có dữ liệu thời gian => Không đủ cơ sở tính trễ
         if (!fact.thoi_gian_ptc || !fact.thoi_gian_nop_tien) {
             return false;

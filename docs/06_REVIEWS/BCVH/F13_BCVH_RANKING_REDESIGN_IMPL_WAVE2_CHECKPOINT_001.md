@@ -6,6 +6,8 @@
 - Status: `COMPLETED / PO PASS / CLOSED`
 - PO UI Check Required: `No`
 
+**[SSOT correction, `2026-08-03`, from `F13-ROUTE-RANKING-REDESIGN-IMPL`]** The delayed-cash denominator described below as `danh_gia_2026 != Đạt` was corrected in the shared engine (`RuleF13302`/`RuleRegistry`) to `danh_gia_2026 = 'Không đạt'` only, excluding `Chuyển hoàn` (BLACK, `danh_gia_2026 IS NULL`) — see `docs/07_REFERENCE/Legacy/F1.3/F13_303_DEFINITION.md` Section 5 and `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` Section 16 R6. This changes BCVH Ranking's own delayed-cash numbers (denominator shrinks, rate rises) even though this ticket's `PO PASS` closure and UI are otherwise unaffected. This ticket is not reopened; the correction is recorded here for traceability only.
+
 ## Scope Applied
 
 Wave 2 implemented the approved frontend BCVH Ranking redesign on top of the Wave 1 runtime contract.

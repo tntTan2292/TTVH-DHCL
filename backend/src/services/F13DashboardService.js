@@ -994,17 +994,12 @@ class F13DashboardService {
                 routeType,
                 confirmedNonPostmanRouteCodes,
             });
-            // Chuyển hoàn (BLACK, danh_gia_2026 IS NULL) never goes through the cash-remittance
-            // workflow, so it is excluded from the delayed-cash population entirely (both
-            // denominator and numerator) — the eligible denominator is "Không đạt" only, not
-            // the broader "!= Đạt" population. This does not modify RuleF13302/RuleRegistry
-            // themselves, only the fact set fed into them for Route Ranking's delayed-cash metric.
-            const delayedCashEligibleFacts = routeFacts.filter((fact) => {
-                const value = fact?.danh_gia_2026;
-                return value !== null && value !== undefined && String(value).trim() !== '';
-            });
-            const { summaryMap: delayedCashByRoute } = this._buildF13302SummaryMap(delayedCashEligibleFacts, 'ma_tuyen');
-            const delayedCashAggregate = this._buildF13302AggregateSummary(delayedCashEligibleFacts);
+            // RuleF13302/RuleRegistry themselves already restrict F13_303's denominator and
+            // numerator to "Không đạt" only (Đạt and Chuyển hoàn/BLACK are bypassed inside the
+            // shared engine), so the full unfiltered fact set is passed through as-is — same
+            // as BCVH Ranking's own call sites.
+            const { summaryMap: delayedCashByRoute } = this._buildF13302SummaryMap(routeFacts, 'ma_tuyen');
+            const delayedCashAggregate = this._buildF13302AggregateSummary(routeFacts);
 
             const mappedData = result.data.map(item => ({
                 ma_tuyen: item.ma_tuyen,
