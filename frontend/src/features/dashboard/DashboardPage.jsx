@@ -6,6 +6,7 @@ import {
   StatusBadge,
 } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
+import { buildPreservedPath } from '../../navigation/urlPreservation';
 import IntegratedTrendRiskWorkspace from './components/IntegratedTrendRiskWorkspace';
 import BcvhOperationTableAdapter from './components/BcvhOperationTableAdapter';
 import OperatingPatternTabsCard from './components/OperatingPatternTabsCard';
@@ -277,7 +278,7 @@ export default function DashboardPage() {
       action={(
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-1.5 shadow-2xs">
           <button
-            onClick={() => navigate('/f13/ranking/bcvh')}
+            onClick={() => navigate(buildPreservedPath('/f13/ranking/bcvh', searchParams))}
             className="rounded-lg bg-[#003E7E] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-900 transition-all duration-150"
           >
             Mở xếp hạng BCVH

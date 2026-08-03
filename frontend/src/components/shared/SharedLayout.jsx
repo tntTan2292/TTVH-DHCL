@@ -4,6 +4,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, L
 import Topbar from '../Topbar';
 import { useAuth } from '../../auth/AuthContext';
 import { getNavigationForRole } from '../../navigation/appNavigation.jsx';
+import { buildPreservedPath } from '../../navigation/urlPreservation';
 
 export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
@@ -56,7 +57,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                 return (
                   <li key={idx}>
                     <NavLink
-                      to={item.path}
+                      to={buildPreservedPath(item.path, location.search)}
                       className={({ isActive }) =>
                         `relative flex items-center py-3 transition-all duration-200 group ${isCollapsed ? 'mx-2 justify-center px-0' : 'px-6'} ${isActive ? 'border-l-4 border-white bg-gradient-to-r from-vnpost-orange/90 to-orange-500/90 font-bold text-white' : 'border-l-4 border-transparent text-blue-100 hover:bg-white/5 hover:text-white'}`
                       }
@@ -95,7 +96,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                       {item.subItems.map((sub) => (
                         <li key={sub.path}>
                           <NavLink
-                            to={sub.path}
+                            to={buildPreservedPath(sub.path, location.search)}
                             className={({ isActive }) =>
                               `relative flex items-center py-2.5 pl-14 pr-6 transition-all duration-200 ${isActive ? 'border-l-4 border-vnpost-orange bg-white/5 font-bold text-white' : 'border-l-4 border-transparent text-blue-200/80 hover:bg-white/5 hover:text-white'}`
                             }

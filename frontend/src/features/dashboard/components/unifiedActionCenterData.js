@@ -76,11 +76,12 @@ export function buildActionCenterMeta({
   };
 }
 
-export function normalizeRecommendationItem(item = {}, index = 0) {
+export function normalizeRecommendationItem(item = {}, index = 0, context = {}) {
   const id = buildRecommendationId(item, index);
   const condition = valueOrUnavailable(item.condition);
   const impact = valueOrUnavailable(item.impact);
   const hasBcvhCode = Boolean(normalizeText(item.ma_bcvh));
+  const { fromDate, toDate } = context;
 
   return {
     id,
@@ -106,7 +107,15 @@ export function normalizeRecommendationItem(item = {}, index = 0) {
     status: UNAVAILABLE_TEXT,
     follow_up: {
       label: 'Chi tiết',
-      href: hasBcvhCode ? `/f13/ranking/route?bcvh_id=${encodeURIComponent(item.ma_bcvh)}` : '/f13/ranking/bcvh',
+      href: (() => {
+        const params = new URLSearchParams();
+        if (fromDate) params.set('from_date', fromDate);
+        if (toDate) params.set('to_date', toDate);
+        if (hasBcvhCode) params.set('bcvh_id', item.ma_bcvh);
+        const query = params.toString();
+        const basePath = hasBcvhCode ? '/f13/ranking/route' : '/f13/ranking/bcvh';
+        return query ? `${basePath}?${query}` : basePath;
+      })(),
     },
     message_draft: null,
   };
@@ -125,7 +134,7 @@ export function mapUnifiedActionCenter({
   const items = [];
 
   for (const [index, recommendation] of (Array.isArray(recommendations) ? recommendations : []).entries()) {
-    const item = normalizeRecommendationItem(recommendation, index);
+    const item = normalizeRecommendationItem(recommendation, index, { fromDate, toDate });
     if (seen.has(item.dedupe_key)) continue;
     seen.add(item.dedupe_key);
     items.push(item);

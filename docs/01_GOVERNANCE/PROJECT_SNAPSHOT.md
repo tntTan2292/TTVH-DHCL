@@ -24,11 +24,11 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHARED-NAV-FILTERS-IMPL_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / IMPLEMENTATION COMPLETED / READY FOR PO UI REVIEW` |
-| Technical Status | `Implementation of F13-SHARED-NAV-FILTERS-IMPL completed. Parameter dual-read compatibility (bcvh_id || ma_bcvh), Route Ranking dynamic BCVH metadata, title update ("Bảng xếp hạng Tuyến Bưu tá"), and GlobalFilterBar default prop cleanup implemented.` |
+| Current State | `ACTIVE / IMPLEMENTATION COMPLETED / READY FOR PO UI RECHECK` |
+| Technical Status | `Implementation & cross-module link remediation of F13-SHARED-NAV-FILTERS-IMPL completed. Parameter dual-read & write synchronization, cross-module URL parameter preservation (from_date, to_date, bcvh_id via urlPreservation.js), Route Ranking dynamic BCVH metadata, and title update ("Bảng xếp hạng Tuyến Bưu tá") implemented.` |
 | Runtime Status | `READY FOR PO UI VERIFICATION` |
 | PO UI Check Required | `Yes — implementation ticket active` |
-| PO Product Status | `IMPLEMENTATION COMPLETED — AWAITING PO UI REVIEW` |
+| PO Product Status | `IMPLEMENTATION REMEDIATED — AWAITING PO UI RECHECK` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHARED-NAV-FILTERS-PLAN_MANIFEST.md` |
 | Last Reviewed Phase | `F13-SHARED-NAV-FILTERS-PLAN closure: Product Owner PO PLAN PASS (2026-08-03)` |
 | Last Reviewed Commit | `af42d370` |

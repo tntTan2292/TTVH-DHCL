@@ -22,9 +22,11 @@ Implement the locked, PO-approved scope from `docs/06_REVIEWS/UI/F13_SHARED_NAV_
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / IMPLEMENTATION COMPLETED / READY FOR PO UI REVIEW`
+- Current state: `ACTIVE / IMPLEMENTATION COMPLETED / READY FOR PO UI RECHECK`
 - PO UI Check Required: `Yes — implementation ticket`
-- PO Product Status: `IMPLEMENTATION COMPLETED — AWAITING PO UI RECHECK`
+- PO Product Status: `IMPLEMENTATION REMEDIATED — AWAITING PO UI RECHECK`
+- Remediation Note: Implemented `urlPreservation.js` helper (`buildPreservedPath`, `buildPreservedSearchString`) and wired into `SidebarNavigation` (`NavLink`), Dashboard action button (`Mở xếp hạng BCVH`), and `UnifiedActionCenter` (`follow_up.href`) to preserve `from_date`, `to_date`, and `bcvh_id` across cross-module navigation between Dashboard, BCVH Ranking, and Route Ranking.
+
 
 
 ## 4. Required Reading
