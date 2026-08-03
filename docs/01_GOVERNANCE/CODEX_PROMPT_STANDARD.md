@@ -20,6 +20,7 @@ Filename retained as `CODEX_PROMPT_STANDARD.md` for link continuity. Default exe
 - [11. Additional PO/User Decision Rule](#11-additional-pouser-decision-rule)
 - [12. Conversation Context Capacity and Fresh-Chat Handoff](#12-conversation-context-capacity-and-fresh-chat-handoff)
 - [13. Executor Selection Rule](#13-executor-selection-rule)
+- [13.1 Claude Code Model Selection](#131-claude-code-model-selection)
 - [14. Two Reporting Channels](#14-two-reporting-channels)
 
 ## 1. Purpose
@@ -66,10 +67,10 @@ The first execution prompt for Claude Code or Antigravity defaults to one indepe
 
 The first execution prompt must not repeat Manifest content, SSOT text, ticket history, standard workflow instructions, or repository-owned guidance already available through onboarding.
 
-Executor selection is two-layer:
+Executor selection is two-layer, and the model is not interchangeable across executors — see Section 13 for the full, authoritative pairing:
 
-- `Executor environment`: `Antigravity` or `Claude Code`
-- the prompt must also state the `Model`: `Sonnet` or `Opus` for the chosen executor
+- `Executor`: `Antigravity` (model fixed: `Gemini`) or `Claude Code` (model: `Sonnet` or `Opus`)
+- the prompt must state the resulting pairing explicitly: `Antigravity (Gemini)`, `Claude Code (Sonnet)`, or `Claude Code (Opus)`
 
 `Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket. Historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten.
 
@@ -115,8 +116,8 @@ Do not mix frontend, backend, native runtime, or business logic unless evidence 
 
 Choose the executor by defect boundary:
 
-- Claude Code: logic, backend, frontend, data, tests, contracts, documentation, and Git.
-- Antigravity: discovery, UI/UX, and real-machine Windows runtime (browser, process, HWND, and OS integration).
+- Claude Code (Sonnet for bounded work, Opus for complex/cross-module planning): logic, backend, frontend, data, local/bounded discovery, tests, contracts, documentation, and Git.
+- Antigravity (Gemini, fixed): UI/UX, visual polish, and real-machine Windows runtime inspection (browser, process, HWND, and OS integration).
 
 Each executor must report root cause, changed scope, commit, tests, and targeted evidence.
 
@@ -427,22 +428,29 @@ Every project prompt must use exactly one of these explicit headings:
 
 Do not use `Prompt cho Claude Code/Antigravity`.
 
-Executor selection is mandatory in two layers:
+Executor selection is mandatory, and each prompt has exactly one primary executor. Model is not a free choice layered on top of any executor — it is a fixed pairing per executor:
 
-1. choose the `Executor environment`
-   - `Antigravity`
-   - `Claude Code`
-2. choose the `Model`
-   - `Sonnet`
-   - `Opus`
+- `Antigravity` — model is `Gemini`, fixed. There is no Sonnet/Opus choice for Antigravity.
+- `Claude Code` — model is `Sonnet` or `Opus`, chosen per Section 13.1 below.
+- `Codex` — only when the Product Owner or repository authority explicitly names it for a specific ticket.
 
-ChatGPT coordination must make the model choice explicit in the prompt for whichever executor is selected.
+ChatGPT coordination must state the resulting pairing explicitly in every prompt: `Antigravity (Gemini)`, `Claude Code (Sonnet)`, or `Claude Code (Opus)`.
 
-When risk is high (architecture change, cross-module defect, or a decision that is hard to reverse), the same model must not both implement the change and self-approve or self-review it. A different model or a separate session must perform whichever of implementation or review/approval the first one did not perform.
+Do not use a pairing that does not exist. In particular, do not write `Antigravity–Sonnet`, `Antigravity–Opus`, `Antigravity (Sonnet)`, `Antigravity (Opus)`, or `Claude Code–Gemini` — these labels do not exist in this governance and must be treated as a defect if written.
+
+When risk is high (architecture change, cross-module defect, or a decision that is hard to reverse), the same executor/model pairing must not both implement the change and self-approve or self-review it. A different pairing or a separate session must perform whichever of implementation or review/approval the first one did not perform.
+
+## 13.1 Claude Code Model Selection
+
+- `Claude Code Opus` — complex or cross-module planning, architecture decisions, and high-risk technical decisions. For planning that is genuinely complex or cross-module, Opus starts the plan directly; do not begin with Sonnet and escalate for a full re-analysis.
+- `Claude Code Sonnet` — local/bounded discovery, implementing a plan Opus (or ChatGPT/CTO) has already approved, tests, documentation, and Git. This is the default for ordinary, quota-efficient work.
+- Sonnet → Opus handoff is narrow: it is used only to have Opus review a small number (1-3) of specific sensitive decisions that Sonnet's work already surfaced. It is not a request for Opus to re-analyze the whole task from scratch.
+- Do not dispatch `Opus` for ordinary bounded discovery or routine implementation when `Sonnet` is sufficient.
 
 Use Claude Code as the primary executor for:
 
-- implementation
+- local/bounded technical discovery
+- implementation of a plan that is already approved (Opus-planned for complex/cross-module work, or directly scoped for simple work)
 - business logic
 - API, backend, and database work
 - data flow and contracts
@@ -454,6 +462,7 @@ Use Claude Code as the primary executor for:
 - documentation and Git (commit, push)
 - governance and documentation updates for technical tickets
 - KPI, ranking, import, and evidence logic within approved authority
+- complex/cross-module planning, architecture decisions, and high-risk technical decisions (`Opus` only — see Section 13.1)
 
 Prompt for Claude Code must state that:
 
@@ -466,30 +475,18 @@ Prompt for Claude Code must state that:
 
 Use Antigravity as the primary executor for:
 
-- discovery
-- layout
-- UI/UX
-- responsive behavior
-- typography
-- spacing
-- visual hierarchy
-- color
+- UI/UX visual work, layout, typography, spacing, visual hierarchy, color, responsive behavior
+- visual polish and final visual assembly
 - chart and heatmap presentation
-- final visual assembly
-- browser runtime visual check
-- screenshot evidence
-- Windows runtime (PID, HWND, process, log) discovery and evidence
+- browser runtime visual check and screenshot evidence
+- Windows runtime (PID, HWND, process, log) inspection and evidence
 
-Model selection (applies to whichever executor is chosen):
-
-- `Sonnet` is the default model for discovery, defect investigation, bounded technical tasks, and quota-efficient work.
-- `Opus` is reserved for architecture work, complex multi-component failures, technical challenge or review, and important technical decisions where deeper reasoning is justified.
-- Do not dispatch `Opus` for ordinary bounded discovery when `Sonnet` is sufficient.
+Antigravity's model is `Gemini`, fixed — it is not selected per task and is not Sonnet or Opus.
 
 Prompt for Antigravity must state that:
 
-- Antigravity directly implements the assigned discovery, UI, or runtime work
-- Antigravity must not stop at discovery and then generate a handoff prompt for Claude Code
+- Antigravity directly implements the assigned UI/UX, visual, or runtime inspection work
+- Antigravity must not stop at UI/runtime inspection and then generate a handoff prompt for Claude Code
 - Antigravity must not unilaterally transfer the task back to Claude Code
 - Antigravity must not change backend logic, APIs, schemas, KPI formulas, SSOT, or business rules
 - if logic, backend, or contract work is required, Antigravity must stop that part and report a blocker back to ChatGPT coordination
@@ -505,8 +502,9 @@ For mixed tickets:
 
 Rules for agent selection:
 
-- functionality, data, API, backend, logic, contract, and tests go to Claude Code
-- discovery, interface, layout, responsive behavior, visualization, final visual polish, and Windows runtime go to Antigravity
+- functionality, data, API, backend, logic, contract, tests, and local/bounded technical discovery go to Claude Code
+- UI/UX, layout, responsive behavior, visualization, final visual polish, and Windows runtime inspection go to Antigravity
+- complex/cross-module planning, architecture, and high-risk technical decisions go to Claude Code Opus, not Antigravity, and not Claude Code Sonnet
 - do not choose Antigravity for business-rule implementation
 - do not choose Claude Code as the primary executor for final visual polish when the ticket is mainly UI-facing
 

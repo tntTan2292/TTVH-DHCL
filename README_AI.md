@@ -64,11 +64,10 @@ AI must:
 - ChatGPT is the CTO / Coordinator / Technical Decision Authority in the active Product Owner session: receive requests, analyze tickets, finalize scope, choose the executor, write the prompt, review results, and request PO decisions only for business rules, product behavior, SSOT, acceptance criteria, or product direction
 - the default executors are `Antigravity` and `Claude Code`; only ChatGPT coordination may redirect work between them
 - `Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket; historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten
-- every future execution prompt must explicitly choose exactly one title: `Prompt cho Claude Code` or `Prompt cho Antigravity`, plus the Model (`Sonnet` or `Opus`) for the chosen executor
-- use Claude Code for implementation, backend, data, tests, documentation, and Git; use Antigravity for discovery, UI/UX, responsive behavior, visual polish, final visual assembly, and Windows runtime (PID/HWND/process/log) work
+- every future execution prompt must explicitly choose exactly one title: `Prompt cho Claude Code` or `Prompt cho Antigravity`, plus the executor/model pairing
+- executor/model is a fixed pairing, not a free choice: `Antigravity (Gemini)` for UI/UX, visual polish, and Windows runtime inspection; `Claude Code (Sonnet)` for local/bounded discovery, implementing an approved plan, tests, documentation, and Git; `Claude Code (Opus)` for complex/cross-module planning, architecture, and high-risk technical decisions — see `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 13/13.1 for the authoritative rule, including the invalid-label list (e.g. `Antigravity–Sonnet`, `Claude Code–Gemini`)
 - do not use the combined heading `Prompt cho Claude Code/Antigravity`
-- Sonnet is the default model for ordinary tasks; Opus is reserved for architecture challenge, complex/multi-component defects, and independent review
-- when risk is high, the same model must not both implement a change and self-approve or self-review that same change
+- when risk is high, the same executor/model pairing must not both implement a change and self-approve or self-review that same change
 - there are two distinct reporting channels with different audiences: ChatGPT/CTO → Product Owner (management, three-part format, Section 4 below) and Antigravity/Claude Code/authorized Codex → ChatGPT/CTO (full technical detail, the Technical Execution Report in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); an executor never writes the Product Owner-facing format as its own report and never drafts a prompt for another executor
 
 ## 4. Mandatory Response Format
