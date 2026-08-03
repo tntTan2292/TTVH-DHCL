@@ -119,7 +119,7 @@ function PatternLegend({ activeTab }) {
     <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 font-medium">
       <span className="inline-flex items-center gap-2">
         <span className="h-2.5 w-3.5 rounded-sm bg-[#003E7E] shadow-2xs" />
-        Cột: sản lượng tháng
+        Cột: sản lượng
       </span>
       <span className="inline-flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />
@@ -184,17 +184,11 @@ function ComboChartPanel({ rows, mode }) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 font-medium">
-        <div className="flex flex-wrap gap-4 font-semibold text-slate-700">
-          <span className="inline-flex items-center gap-2"><span className="h-2.5 w-3.5 rounded-sm bg-[#003E7E] shadow-2xs" />Cột: sản lượng</span>
-          <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />Đường: tỷ lệ đạt</span>
+      {mode === 'month' ? (
+        <div className="mt-2 text-[11px] text-slate-500 font-medium italic text-right">
+          * Lũy kế tháng hiện tại theo ngày mới nhất trong tháng
         </div>
-        {mode === 'month' ? (
-          <div className="text-[11px] text-slate-500 font-medium italic">
-            * Lũy kế tháng hiện tại theo ngày mới nhất trong tháng
-          </div>
-        ) : null}
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -278,7 +272,12 @@ function HeatmapMonthSection({ month }) {
           <h4 className="text-sm font-bold text-slate-900">{month.label}</h4>
           <p className="text-xs font-medium text-slate-500">{month.rangeLabel}</p>
         </div>
-        {month.stats ? <StatusBadge label={`TB ${month.stats.average.toFixed(2)}%`} tone="neutral" /> : null}
+        <div className="flex items-center gap-1.5">
+          {month.nationalRankLabel ? (
+            <StatusBadge label={`Lũy kế: ${month.nationalRankLabel}`} tone="info" />
+          ) : null}
+          {month.stats ? <StatusBadge label={`TB ${month.stats.average.toFixed(2)}%`} tone="neutral" /> : null}
+        </div>
       </div>
       <HeatmapManagementSummary stats={month.stats} />
       <div className="overflow-x-auto pb-1">

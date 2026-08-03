@@ -341,7 +341,7 @@ export function mapHeatmapPattern(heatmap = []) {
   }));
 }
 
-export function groupHeatmapByMonth(heatmapWeeks = []) {
+export function groupHeatmapByMonth(heatmapWeeks = [], monthlyYtdRows = []) {
   const cells = heatmapWeeks
     .flatMap((week) => week.days || [])
     .filter((day) => day.date);
@@ -353,15 +353,26 @@ export function groupHeatmapByMonth(heatmapWeeks = []) {
     return acc;
   }, {});
 
+  const monthlyYtdMap = (monthlyYtdRows || []).reduce((acc, item) => {
+    if (item.month) acc[item.month] = item;
+    return acc;
+  }, {});
+
   return Object.keys(grouped).sort().map((monthKey) => {
     const days = grouped[monthKey].sort((a, b) => a.date.localeCompare(b.date));
     const stats = buildHeatmapMonthStats(days.map((day) => [{ date: day.date, kpi_rate: day.rate }]), monthKey);
+    const monthlyItem = monthlyYtdMap[monthKey] || null;
+    const nationalRank = monthlyItem?.nationalRank || null;
+
     return {
       month: monthKey,
       label: `Tháng ${monthKey.slice(5, 7)}/${monthKey.slice(0, 4)}`,
       rangeLabel: `Từ ${formatDisplayDate(days[0]?.date)} đến ${formatDisplayDate(days.at(-1)?.date)}`,
       days,
       stats,
+      nationalRank,
+      nationalRankLabel: formatMonthlyRank(nationalRank),
+      compactNationalRankLabel: formatCompactNationalRank(nationalRank),
     };
   });
 }
@@ -372,7 +383,7 @@ export function mapOperatingPatternResponse(data = {}, context = {}) {
   const preferredMonth = getMonthKey(context.toDate);
   const heatmapMonthStats = buildHeatmapMonthStats(data.heatmap || [], preferredMonth);
   const heatmap = mapHeatmapPattern(data.heatmap || [], preferredMonth);
-  const heatmapMonths = groupHeatmapByMonth(heatmap);
+  const heatmapMonths = groupHeatmapByMonth(heatmap, monthly);
   const monthlySummary = buildMonthlyManagementSummary(monthly);
   const pulse = data.pulse || null;
 
