@@ -38,11 +38,10 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `F13-UI-AUDIT-PLAN`.
-- Current manifest: `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md`.
-- Current checkpoint: `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md`.
-- Current state: `PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION` (reactivated 2026-07-31 after `AUTO-IMPORT-010` closure). Phase 4 (Observation Group Viewport Optimization, Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`) is implemented; see `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` Section 6.
-- Next required action: Product Owner review of Phase 4. No new UI implementation until that review completes and ChatGPT coordination issues a separately bounded prompt.
+- Current ticket: `None`.
+- Current manifest: `None`. Last closed: `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` (`COMPLETED / PO PASS PHASE 1-4 / CLOSED`, 2026-08-03, commit `cdb9eab246415a3835210dd70329996e6ef6521c`).
+- Current checkpoint: `None`.
+- Next required action: await explicit Product Owner direction. No ticket is self-activated from the future sequence recorded in the closed manifest.
 - `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-31` and is no longer part of the fresh onboarding chain; see `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` and `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md` for closure evidence.
 
 ## Docs Inventory
@@ -67,11 +66,11 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-PLAN_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign planning handoff with no implementation authority. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign implementation scope, authority, validation, and handoff rules. | L2 | Active Onboarding | Current implementation ticket only. | Mandatory |
 | `docs/10_TICKETS/QIS-LAN-DEPLOY-001_MANIFEST.md` | Ticket Manifest | Closed F1.3 LAN-only viewer deployment authority and accepted runtime remediation record. | L2 | Conditional Reference | When LAN deployment contract, viewer access boundary, or closure evidence is needed. | High |
-| `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Current ticket. Phase 1-3 PO PASS; Phase 4 implemented (Commit 235b69d0...), PENDING PO REVIEW; no new implementation authorized. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Closed. Phase 1-4 PO PASS (Phase 4 accepted 2026-08-03, commit cdb9eab2). No active ticket; awaiting Product Owner direction. | L2 | Conditional Reference | When Operation Dashboard history or closure evidence is needed. | High |
 | `docs/10_TICKETS/F13-INTERNAL-ROUTE-AUDIT_MANIFEST.md` | Ticket Manifest | Completed F1.3 internal route classification and Route Ranking filter scope with Product Owner PO PASS. | L2 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/06_REVIEWS/BCVH/F13_BCVH_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` | BCVH Checkpoint | Approved BCVH Ranking redesign structure, field-to-contract mapping, gaps, test requirements, and implementation handoff. | L2/L3 | Current Required Reading | Current BCVH implementation ticket only. | Mandatory |
 | `docs/06_REVIEWS/Deployment/QIS_LAN_DEPLOY_001_CHECKPOINT_001.md` | Deployment Checkpoint | Closed LAN deployment checkpoint with accepted viewer-auth remediation and preserved access contract. | L2/L3 | Current Required Reading | When the current planning ticket needs the accepted LAN baseline. | Mandatory |
-| `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` | UI Planning Checkpoint | Current Antigravity discovery boundary, audit deliverables, and protected contracts for F1.3 UI standardization planning. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
+| `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` | UI Planning Checkpoint | Closed. Full Phase 1-4 implementation record, PO PASS evidence, and protected contracts for F1.3 UI standardization. | L2/L3 | Conditional Reference | When Operation Dashboard implementation history or protected findings are needed. | High |
 | `docs/06_REVIEWS/Route/F13_INTERNAL_COUNTER_ROUTE_AUDIT.md` | Route Review | Completed bounded database audit, route catalog handoff, and PO-approved Route Ranking outcome. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md` | Business Reference | Product Owner-confirmed internal-counter route catalog for later F1.3 daily analysis. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/04_TECHNICAL_PLANNING/F13_OPERATIONAL_CAPABILITY_AUDIT.md` | Technical Planning | Data-first F1.3 module capability matrix, gap matrix, target architecture, roadmap, and deferred data-quality proposal basis. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |

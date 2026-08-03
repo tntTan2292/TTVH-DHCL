@@ -4,8 +4,8 @@
 - Date: `2026-07-29`
 - Target Component: `Operation Dashboard (/f13/dashboard)`
 - Visual Inspiration: `CRM 3.0 Dashboard (Interface surfaces, depth, saturation, borders, shadows, typography, controls, feedback)`
-- Authority: `PO PASS PHASE 1, PHASE 1 REMEDIATION, PHASE 2 & PHASE 3 / PHASE 4 COMPLETED — READY FOR PO REVIEW`
-- PO Status: `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX | Phase 4 PENDING PO REVIEW`
+- Authority: `PO PASS PHASE 1, PHASE 1 REMEDIATION, PHASE 2, PHASE 3 & PHASE 4 — TICKET CLOSED`
+- PO Status: `PO PASS PHASE 4 - OPERATION DASHBOARD (2026-08-03, Commit cdb9eab246415a3835210dd70329996e6ef6521c) | All phases PO PASS | CLOSED`
 
 ---
 
@@ -17,14 +17,15 @@ The Product Owner has officially recorded:
 - **`PO PASS PHASE 1 REMEDIATION`**
 - **`PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX`**
 - **`PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX`** (Commit `32c10f5470bf1d3a530a767b42ab1948f7f3e61d`)
+- **`PO PASS PHASE 4 - OPERATION DASHBOARD`** (2026-08-03, Commit `cdb9eab246415a3835210dd70329996e6ef6521c`)
 
 ### Current Workflow & Handoff Status:
 - **Phase 1**: `COMPLETED / PO PASS` (Commit `6ea7819`).
 - **Phase 1 Remediation**: `COMPLETED / PO PASS` (Commit `cbe5bc2`).
 - **Phase 2**: `COMPLETED / PO PASS` (Commit `dd9cbf5`).
 - **Phase 3**: `COMPLETED / PO PASS` (Commit `32c10f5`).
-- **Phase 4**: `COMPLETED / PENDING PO REVIEW` (Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`).
-- **Next State**: `READY FOR PO PASS PHASE 4`.
+- **Phase 4**: `COMPLETED / PO PASS` (Commit `cdb9eab246415a3835210dd70329996e6ef6521c`).
+- **Next State**: `CLOSED / AWAITING PRODUCT OWNER DIRECTION`.
 
 ---
 
@@ -142,8 +143,10 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
   - BCVH Ranking (`/f13/ranking/bcvh`) verified 100% unaffected.
   - Preserved all SSOT colors, targets, formulas, recommendation text, and data contracts. The authoritative current dashboard target is 90%, consumed from `QUALITY_TARGET_RATE`.
 
-### **Phase 4: Observation Group Viewport Optimization (Operation Dashboard-Wide) - [COMPLETED / PENDING PO REVIEW]**
-- **Status**: `COMPLETED / PENDING PO REVIEW` (Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`).
+### **Phase 4: Observation Group Viewport Optimization (Operation Dashboard-Wide) - [COMPLETED / PO PASS]**
+- **Status**: `COMPLETED / PO PASS` (Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`, extended by follow-on fixes `32ccdb06`, `525339c2`, `77efbcde`, `cdb9eab2`).
+- **Follow-on fixes accepted with Phase 4**: dashboard layout density and 7-day comparison semantics optimization (`32ccdb06`); duplicate pattern legend removed and month-cumulative rank displayed in heatmap (`525339c2`); month-cumulative rank rendered inside the `TB THÁNG` card in heatmap mode, touching `backend/src/services/timelineService.js` (`77efbcde`); `monthly_ytd` array computed correctly in `timelineService` for heatmap mode (`cdb9eab2`).
+- **Final Product Owner Acceptance (2026-08-03)**: Heatmap displays the month-cumulative rank inside the `TB THÁNG` cell as intended; backend was restarted to load the `timelineService.js` fix; Product Owner confirmed the runtime result after restart. Result: `PO PASS PHASE 4 - OPERATION DASHBOARD`.
 - **Scope**: Layout optimization ensuring each logically connected observation group fits fully (or nearly fully) within one desktop viewport at 100% zoom.
 - **Files Modified**:
   - `src/features/dashboard/DashboardPage.jsx` (space-y tightened from `space-y-4` to `space-y-3.5`, header padding reduced)
@@ -189,8 +192,8 @@ The Operation Dashboard UI consists of **1 Header/QuickNav Area** plus **6 Main 
   - Phase 1 Remediation: `COMPLETED / PO PASS`
   - Phase 2: `COMPLETED / PO PASS`
   - Phase 3: `COMPLETED / PO PASS`
-  - Phase 4: `COMPLETED / PENDING PO REVIEW` (Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`)
-  - Next state: `READY FOR PO PASS PHASE 4`
+  - Phase 4: `COMPLETED / PO PASS` (Commit `cdb9eab246415a3835210dd70329996e6ef6521c`, 2026-08-03)
+  - Next state: `CLOSED / AWAITING PRODUCT OWNER DIRECTION`
 
 
 

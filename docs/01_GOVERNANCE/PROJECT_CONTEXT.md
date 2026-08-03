@@ -268,13 +268,10 @@ Current PO gate rule:
   - KPI labels remain `Tốt / Cần chú ý / Cảnh báo / Rủi ro cao`
   - route-distribution labels remain `Tốt / Khá / Trung bình / Kém`
   - delayed-cash SSOT for `2026-07-28` is accepted with numerator `334`, denominator `1536`, and rate `21.7%`
-- current active ticket is `F13-UI-AUDIT-PLAN`
-- current state is `READY FOR PO UI/UX PLANNING`
-- coordination owner is `ChatGPT with Product Owner`
-- Antigravity is `NOT YET DISPATCHED`
-- boundary is `DISCUSSION AND PLANNING ONLY / NO IMPLEMENTATION`
-- first bounded focus is `Operation Dashboard only`
-- next action is a fresh ChatGPT coordination chat to define the Operation Dashboard audit scope before any Antigravity prompt is written
+- `AUTO-IMPORT-010` closed `2026-07-31` with `PO RUNTIME PASS`
+- `F13-UI-AUDIT-PLAN` closed `2026-08-03` with `PO PASS` on Phase 1-4; final acceptance evidence: heatmap shows month-cumulative rank in the `TB THÁNG` cell, backend restarted, commit `cdb9eab246415a3835210dd70329996e6ef6521c`
+- current active ticket is `None`
+- next action is awaiting explicit Product Owner direction; the future sequence recorded in the closed manifest (`BCVH Ranking`, `Route Ranking`, shared navigation/filters, Login/system states, final consistency review) is not authorized and is not self-activated
 
 ## 10. Continuation Rule
 

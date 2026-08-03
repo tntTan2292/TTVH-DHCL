@@ -136,15 +136,15 @@ The lightweight onboarding route is:
 
 ↓
 
-[docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md)
+No Current Manifest — `Current Ticket = None` in `PROJECT_SNAPSHOT.md`
 
 ↓
 
-Required Reading from the Current Manifest
+Await Product Owner direction before activating any next ticket
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-31`. Product Owner runtime acceptance confirmed Dashboard, HUE, and TCT all working under the standard launcher, including successful HUE and TCT login/import for `2026-07-30`. A known HUE first-click browser-open residual is recorded as `KNOWN RESIDUAL / DEFERRED / NON-BLOCKING` by explicit Product Owner decision and is not an open defect. `F13-UI-AUDIT-PLAN` is now the current ticket, state `PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION`; Phase 1-3 already carry PO PASS, Phase 4 (Observation Group Viewport Optimization, Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`) is implemented and awaits Product Owner review, and no new UI implementation is authorized until that review completes and ChatGPT coordination issues a separately bounded prompt.
+Current active handoff: `F13-UI-AUDIT-PLAN` is `COMPLETED / PO PASS (PHASE 1-4) / CLOSED` as of `2026-08-03`. Product Owner confirmed Phase 4 - Operation Dashboard: the heatmap shows month-cumulative rank inside the `TB THÁNG` cell, backend was restarted to load the `timelineService.js` fix, and the runtime result was confirmed correct after restart (latest accepted commit `cdb9eab246415a3835210dd70329996e6ef6521c`). `AUTO-IMPORT-010` remains `CLOSED / PO RUNTIME PASS` from `2026-07-31` with its known HUE first-click residual unchanged and non-blocking. There is no active ticket; the repository awaits explicit Product Owner direction before opening any next scope, including the future-sequence items recorded in the closed `F13-UI-AUDIT-PLAN_MANIFEST.md`.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

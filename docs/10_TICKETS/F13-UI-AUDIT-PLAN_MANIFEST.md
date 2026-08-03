@@ -3,22 +3,35 @@
 - Ticket ID: `F13-UI-AUDIT-PLAN`
 - Ticket Name: `F1.3 UI Audit and Standardization Planning`
 - Phase: `F1.3 UI Planning & Execution`
-- Current state: `PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION`
-- Technical Status: `PHASE 1, 2, 3 & 4 IMPLEMENTED (COMMITS 6ea7819, cbe5bc2, dd9cbf5, 32c10f5, 235b69d0aa1a5b776b3398fde50c60172f7e4181) / PHASE 4 PENDING PO REVIEW`
-- Runtime Status: `PHASE 1, 2 & 3 VERIFIED PASS / PHASE 4 VERIFIED VIA PLAYWRIGHT VIEWPORT CHECK, NOT YET PO REVIEWED`
-- PO UI Check Required: `Yes - Phase 1, 2 & 3 PO PASS recorded; Phase 4 PO review pending`
-- PO Product Status: `PHASE 1, 2 & 3 PO PASS / PHASE 4 PENDING PO REVIEW`
-- Activation authority: `Product Owner recorded: PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX (Commit 32c10f5470bf1d3a530a767b42ab1948f7f3e61d). Phase 4 (Observation Group Viewport Optimization, Commit 235b69d0aa1a5b776b3398fde50c60172f7e4181) was implemented and is COMPLETED / PENDING PO REVIEW per docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md. Reactivated as Current Ticket on 2026-07-31 after AUTO-IMPORT-010 closure (docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md); no new implementation authority granted at reactivation.`
+- Current state: `COMPLETED / PO PASS (PHASE 1-4) / CLOSED`
+- Technical Status: `PHASE 1, 2, 3 & 4 IMPLEMENTED AND PO PASS (COMMITS 6ea7819, cbe5bc2, dd9cbf5, 32c10f5, 235b69d0, 32ccdb06, 525339c2, 77efbcde, cdb9eab2)`
+- Runtime Status: `PHASE 1-4 VERIFIED PO PASS`
+- PO UI Check Required: `Yes - Phase 1-4 PO PASS recorded`
+- PO Product Status: `PHASE 1-4 PO PASS`
+- Activation authority: `Product Owner recorded PO PASS PHASE 3 (Commit 32c10f5470bf1d3a530a767b42ab1948f7f3e61d) and, on 2026-08-03, PO PASS PHASE 4 - OPERATION DASHBOARD (latest accepted runtime implementation commit cdb9eab246415a3835210dd70329996e6ef6521c). Phase 4 spans the original Observation Group Viewport Optimization (235b69d0) plus follow-on layout/heatmap fixes (32ccdb06, 525339c2, 77efbcde, cdb9eab2). All phases are now PO PASS; ticket is closed.`
 - Handoff date: `2026-07-29`
 - Reactivation date: `2026-07-31`
+- Closure date: `2026-08-03`
 - Coordination owner: `ChatGPT with Product Owner`
 - Primary executor: `Antigravity`
-- Antigravity executor state: `PHASE 1, 2, 3 & 4 IMPLEMENTED / PHASE 4 AWAITING PO REVIEW`
-- Execution boundary: `PHASE 1, 2 & 3 PO PASS / PHASE 4 COMPLETED PENDING PO REVIEW / NO NEW IMPLEMENTATION UNTIL PHASE 4 PO REVIEW COMPLETES AND CHATGPT COORDINATION ISSUES A SEPARATELY BOUNDED PROMPT FOR ANY NEXT SCOPE`
+- Antigravity executor state: `PHASE 1-4 COMPLETED / PO PASS`
+- Execution boundary: `PHASE 1-4 PO PASS / CLOSED / NO NEW IMPLEMENTATION AUTHORIZED / repository awaits Product Owner direction for any next scope`
+
+## Closure Evidence
+
+Product Owner runtime acceptance, `2026-08-03`, on the standard launcher path:
+
+- Heatmap in `OperatingPatternTabsCard` displays the month-cumulative rank inside the `TB THÁNG` cell as intended.
+- Backend was restarted to load the `timelineService.js` `monthly_ytd` computation fix (commit `cdb9eab2`).
+- Product Owner confirmed the runtime result after restart.
+
+This is `PO PASS PHASE 4 - OPERATION DASHBOARD`, closing the ticket at Phase 1-4 PO PASS.
 
 ## Fresh-Chat Onboarding Authority
 
-Required onboarding chain:
+This ticket is `CLOSED`. It is no longer part of the fresh onboarding chain; fresh onboarding now resolves through `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`, which currently has `Current Ticket = None` pending Product Owner direction.
+
+Historical onboarding chain used while this ticket was active:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
@@ -60,10 +73,10 @@ Accepted closure state:
 
 Approved Operation Dashboard Plan & Execution Workflow:
 
-1. Product Owner recorded: `PO PASS PHASE 1 REMEDIATION` (Commit `cbe5bc2`), `PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX` (Commit `dd9cbf5`), and `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX` (Commit `32c10f5`).
-2. Current ticket `F13-UI-AUDIT-PLAN` checkpoint updated to record PO decisions, deferred Executive Insight content quality finding, target-line semantic color normalization deferred finding, shared component policy, and table isolation policy.
-3. Phase 4 (Observation Group Viewport Optimization, Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`) has been implemented and is `COMPLETED / PENDING PO REVIEW`; see `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` Section 6.
-4. No further UI implementation is authorized until Phase 4 PO review completes and ChatGPT coordination issues a separately bounded prompt for any next scope.
+1. Product Owner recorded: `PO PASS PHASE 1 REMEDIATION` (Commit `cbe5bc2`), `PO PASS PHASE 2 – COMPACT BCVH TABLE UI/UX` (Commit `dd9cbf5`), `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX` (Commit `32c10f5`), and `PO PASS PHASE 4 - OPERATION DASHBOARD` (Commit `cdb9eab2`).
+2. All four phases are `COMPLETED / PO PASS`. This ticket is `CLOSED`.
+3. No new UI implementation is authorized. `Current Ticket = None` in `PROJECT_SNAPSHOT.md`; the repository awaits Product Owner direction for the next scope.
+4. The future-sequence items below remain unauthorized and are not self-activated by this closure.
 
 Approved focus:
 
@@ -79,7 +92,7 @@ Future sequence, not currently authorized:
 
 ## Objective
 
-Antigravity has inspected Operation Dashboard, submitted a PO-approved UI/UX plan, and implemented Phase 1, Phase 1 Remediation, Phase 2, Phase 3, and Phase 4. Product Owner recorded `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX.` Phase 4 (Observation Group Viewport Optimization, Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`) is implemented and `PENDING PO REVIEW`.
+Antigravity has inspected Operation Dashboard, submitted a PO-approved UI/UX plan, and implemented Phase 1, Phase 1 Remediation, Phase 2, Phase 3, and Phase 4. Product Owner recorded `PO PASS PHASE 3 – CHARTS, OPERATING PATTERNS & ACTION CENTER UI/UX` and, on `2026-08-03`, `PO PASS PHASE 4 - OPERATION DASHBOARD` (Commit `cdb9eab2`). All phases are `COMPLETED / PO PASS`; the ticket is closed.
 
 The completed Phase 1, 2 & 3 scope includes:
 
@@ -104,8 +117,8 @@ The completed Phase 1, 2 & 3 scope includes:
    - Phase 1 Remediation: `COMPLETED / PO PASS`
    - Phase 2: `COMPLETED / PO PASS`
    - Phase 3: `COMPLETED / PO PASS`
-   - Phase 4: `COMPLETED / PENDING PO REVIEW` (Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`)
-   - Next state: `PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION`
+   - Phase 4: `COMPLETED / PO PASS` (Commits `235b69d0`, `32ccdb06`, `525339c2`, `77efbcde`, `cdb9eab2`)
+   - Next state: `CLOSED / AWAITING PRODUCT OWNER DIRECTION`
 
 
 ## Out Of Scope
@@ -158,10 +171,10 @@ The completed Phase 1, 2 & 3 scope includes:
 
 ## Next Action
 
-Product Owner recorded `PO PASS` for Phase 1, Phase 1 Remediation, Phase 2, and Phase 3. Phase 4 (Observation Group Viewport Optimization, Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`) is implemented and `PENDING PO REVIEW`. Next step is Product Owner review of Phase 4 per `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` Section 6. No new UI implementation is dispatched until Phase 4 PO review completes and ChatGPT coordination issues a separately bounded prompt for any next scope.
+Product Owner recorded `PO PASS` for Phase 1, Phase 1 Remediation, Phase 2, Phase 3, and, on `2026-08-03`, Phase 4. All Operation Dashboard phases are `PO PASS`. This ticket is `CLOSED`. `PROJECT_SNAPSHOT.md` now has `Current Ticket = None`. No ticket from the future sequence (`BCVH Ranking`, `Route Ranking`, shared navigation/filters, Login/system states, final consistency review) is self-activated by this closure; the repository awaits explicit Product Owner direction before any of them is opened.
 
 ## Handoff
 
-Status: `PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION`.
+Status: `COMPLETED / PO PASS (PHASE 1-4) / CLOSED`.
 
-Product Owner awarded PO PASS to Phase 1, Phase 1 Remediation, Phase 2, and Phase 3. Phase 4 is implemented and awaits Product Owner review; it is not yet PO PASS. This ticket was reactivated as Current Ticket on `2026-07-31` after `AUTO-IMPORT-010` closed. No new implementation is authorized until Phase 4 PO review completes and ChatGPT coordination issues a separately bounded prompt.
+Product Owner awarded PO PASS to Phase 1, Phase 1 Remediation, Phase 2, Phase 3, and Phase 4 (`2026-08-03`, Commit `cdb9eab246415a3835210dd70329996e6ef6521c`). This ticket is closed. No new implementation is authorized. `Current Ticket = None`; the repository awaits Product Owner direction for the next scope.

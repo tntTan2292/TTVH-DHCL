@@ -56,6 +56,7 @@
 - AUTO-IMPORT-010: `COMPLETED / PO RUNTIME PASS / CLOSED`; Dashboard/HUE/TCT accepted 2026-07-31; HUE first-click browser-open residual recorded as `KNOWN RESIDUAL / DEFERRED / NON-BLOCKING` by explicit Product Owner decision
 - F13-UI-AUDIT-PLAN: `READY FOR DISCOVERY/PLANNING / NO IMPLEMENTATION` (reactivated as Current Ticket 2026-07-31 after AUTO-IMPORT-010 closure; Phase 1-3 PO PASS retained, Phase 4 not authorized)
 - CORRECTION (2026-07-31): the line above understated Phase 4. Verified evidence (`235b69d0aa1a5b776b3398fde50c60172f7e4181` is an ancestor of branch HEAD; `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` independently records it) confirms Phase 4 (Observation Group Viewport Optimization) is already `COMPLETED / PENDING PO REVIEW`, not `NOT YET DISPATCHED`. Corrected state: `F13-UI-AUDIT-PLAN: PHASE 4 COMPLETED / PENDING PO REVIEW / NO NEW IMPLEMENTATION`. See `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` Section 4 for full evidence.
+- F13-UI-AUDIT-PLAN: `COMPLETED / PO PASS (PHASE 1-4) / CLOSED` (2026-08-03). Phase 4 final acceptance: heatmap shows month-cumulative rank in the `TB THÁNG` cell, backend restarted to load the fix, Product Owner confirmed runtime result; latest accepted commit `cdb9eab246415a3835210dd70329996e6ef6521c`. `Current Ticket = None`; future sequence (BCVH Ranking, Route Ranking, shared nav/filters, Login/system states, final consistency review) not authorized or self-activated.
 
 ## Frozen Documents
 
@@ -95,8 +96,8 @@
 
 ## Outstanding Decisions
 
-- `F13-UI-AUDIT-PLAN` is active and reactivated (2026-07-31) after `AUTO-IMPORT-010` closure. Phase 1, 2, 3 already carry PO PASS. Phase 4 (Observation Group Viewport Optimization, Commit `235b69d0aa1a5b776b3398fde50c60172f7e4181`) is implemented and `PENDING PO REVIEW`; it is not a discovery/planning step. Later UI areas remain future sequence only.
-- Resolved: the previously flagged inconsistency between `PROJECT_SNAPSHOT.md` and `F13-UI-AUDIT-PLAN_MANIFEST.md` about Phase 4 is closed. Verified evidence confirms Phase 4 is implemented and pending Product Owner review, not undispatched. No new UI implementation is authorized until that review completes.
+- `F13-UI-AUDIT-PLAN` closed `2026-08-03` with Phase 1-4 PO PASS. No open decision remains on this ticket.
+- Next scope is an open decision: Product Owner has not authorized any item from the future sequence (`BCVH Ranking`, `Route Ranking`, shared navigation/filters, Login/system states, final consistency review). `Current Ticket = None` until that direction is given.
 
 ## Open Issues
 
@@ -109,14 +110,14 @@
 
 | Field | Value |
 | --- | --- |
-| Current Ticket | `F13-UI-AUDIT-PLAN` |
-| Current Commit | `99c865e92b840a587dc9a889294c535fecc68816` |
-| Current Phase | `F1.3 UI AUDIT AND STANDARDIZATION PLANNING` |
-| Last Reviewed Phase | `QIS-LAN-DEPLOY-001 CLOSURE / F13-UI-AUDIT-PLAN ACTIVATION` |
-| Last Reviewed Commit | `99c865e92b840a587dc9a889294c535fecc68816` |
-| Phase Review Status | `READY FOR PO UI/UX PLANNING` |
-| Next Phase Authorization | `CHATGPT/PO OPERATION DASHBOARD PLANNING ONLY` |
-| Next Milestone | `Fresh ChatGPT coordination chat defines Operation Dashboard audit scope before Antigravity dispatch` |
+| Current Ticket | `None` |
+| Current Commit | `cdb9eab246415a3835210dd70329996e6ef6521c` |
+| Current Phase | `Awaiting Product Owner Direction` |
+| Last Reviewed Phase | `F13-UI-AUDIT-PLAN CLOSURE / PO PASS PHASE 1-4` |
+| Last Reviewed Commit | `cdb9eab246415a3835210dd70329996e6ef6521c` |
+| Phase Review Status | `CLOSED / PO PASS` |
+| Next Phase Authorization | `NONE — AWAITING EXPLICIT PRODUCT OWNER DIRECTION` |
+| Next Milestone | `Product Owner selects the next scope; future sequence is not self-activated` |
 | PO UI Check Required | `No` |
 | PO Product Status | `NOT READY` |
 
