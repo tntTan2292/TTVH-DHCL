@@ -163,7 +163,7 @@ export function GlobalFilterBar({
   onToDateChange,
   kpiValue,
   onKpiChange,
-  showKpiFilter = true,
+  showKpiFilter = false,
   bcvhValue,
   onBcvhChange,
   bcvhDisabled = false,

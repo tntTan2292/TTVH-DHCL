@@ -98,7 +98,7 @@ export default function BcvhRankingPage() {
   const toDateParam = searchParams.get('to_date') || '';
   const fromDate = fromDateParam || metaState.maxDate || '';
   const toDate = toDateParam || metaState.maxDate || '';
-  const maBcvh = searchParams.get('ma_bcvh') || 'all';
+  const maBcvh = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
   const interval = searchParams.get('interval') || (fromDate === toDate ? 'daily' : 'range');
 
@@ -108,6 +108,7 @@ export default function BcvhRankingPage() {
     else next.set(key, value);
     setSearchParams(next);
   };
+
 
   useEffect(() => {
     let active = true;

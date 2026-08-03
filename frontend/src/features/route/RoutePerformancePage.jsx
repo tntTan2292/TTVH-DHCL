@@ -234,7 +234,7 @@ export default function RoutePerformancePage() {
   const fromDateParam = searchParams.get('from_date') || '';
   const toDateParam = searchParams.get('to_date') || '';
   const interval = searchParams.get('interval') || 'daily';
-  const bcvhId = searchParams.get('bcvh_id') || '533140';
+  const bcvhId = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || '533140';
   const bcvhName = searchParams.get('bcvh_name') || 'BCVH Thuận Hóa';
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || 'passed_rate';
@@ -255,6 +255,8 @@ export default function RoutePerformancePage() {
     setSearchParams(params);
   };
 
+  const [bcvhOptions, setBcvhOptions] = useState(ROUTE_BCVH_OPTIONS);
+
   useEffect(() => {
     let mounted = true;
     const fetchMeta = async () => {
@@ -262,6 +264,13 @@ export default function RoutePerformancePage() {
         const result = await f13DashboardClient.getDashboardMeta();
         if (!mounted) return;
         setMetaMaxDate(result?.data?.max_date || null);
+        if (Array.isArray(result?.data?.bcvh_units) && result.data.bcvh_units.length > 0) {
+          const formattedOptions = result.data.bcvh_units.map((unit) => ({
+            value: unit.ma_bcvh || unit.value,
+            label: unit.ten_bcvh ? `BCVH ${unit.ten_bcvh.replace(/^BCVH\s+/i, '')}` : (unit.label || unit.ma_bcvh),
+          }));
+          setBcvhOptions(formattedOptions);
+        }
         setMetaStatus('ready');
       } catch {
         if (!mounted) return;
@@ -359,7 +368,7 @@ export default function RoutePerformancePage() {
 
   if (status === 'loading') {
     return (
-      <PageContainer title="Route Performance Center" subtitle="Đang tải dữ liệu Tuyến Ranking.">
+      <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Đang tải dữ liệu Tuyến Ranking.">
         <LoadingState label="Đang tải dữ liệu Tuyến Ranking..." />
       </PageContainer>
     );
@@ -367,7 +376,7 @@ export default function RoutePerformancePage() {
 
   if (status === 'error') {
     return (
-      <PageContainer title="Route Performance Center" subtitle="Không thể tải dữ liệu Tuyến Ranking.">
+      <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Không thể tải dữ liệu Tuyến Ranking.">
         <ErrorState description={error?.message} />
       </PageContainer>
     );
@@ -375,7 +384,7 @@ export default function RoutePerformancePage() {
 
   return (
     <PageContainer
-      title="Route Performance Center"
+      title="Bảng xếp hạng Tuyến Bưu tá"
       subtitle="Xếp hạng tuyến theo tỷ lệ đạt, dùng để xác định tuyến phát sinh bưu gửi không đạt."
       action={
         <div className="flex flex-wrap items-center gap-2">
@@ -392,7 +401,7 @@ export default function RoutePerformancePage() {
           onToDateChange={(value) => updateParam('to_date', value)}
           bcvhValue={bcvhId}
           onBcvhChange={(value) => updateParam('bcvh_id', value)}
-          bcvhOptions={ROUTE_BCVH_OPTIONS}
+          bcvhOptions={bcvhOptions}
           searchValue={search}
           onSearchChange={(value) => updateParam('search', value)}
           actions={

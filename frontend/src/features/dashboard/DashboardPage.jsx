@@ -94,9 +94,10 @@ export default function DashboardPage() {
   const fromDate = range.fromDate;
   const toDate = range.toDate;
   const interval = searchParams.get('interval') || 'daily';
-  const maBcvh = searchParams.get('ma_bcvh') || 'all';
+  const maBcvh = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || 'all';
   const search = searchParams.get('search') || '';
   const dashboardReady = metadataState.status === 'success' && range.ready && !range.normalized && Boolean(fromDate && toDate);
+
 
   useEffect(() => {
     if (!dashboardReady) {
