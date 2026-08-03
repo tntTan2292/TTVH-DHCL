@@ -11,9 +11,9 @@ import {
 } from './routeRankingCalculations.js';
 
 const ROWS = [
-  { ma_tuyen: '53100001', name: 'Tuyến A', total_bg: 100, passed: 90, failed: 10, total_failed: 10, unevaluated: 0, passed_rate: 90 },
-  { ma_tuyen: '53100002', name: 'Tuyến B', total_bg: 50, passed: 20, failed: 30, total_failed: 30, unevaluated: 0, passed_rate: 40 },
-  { ma_tuyen: '53100003', name: 'Tuyến C', total_bg: 87, passed: 1, failed: 2, total_failed: 2, unevaluated: 84, passed_rate: 1.1 },
+  { ma_tuyen: '53100001', name: 'Tuyến A', total_bg: 100, passed: 90, failed: 10, total_failed: 10, returned: 0, passed_rate: 90 },
+  { ma_tuyen: '53100002', name: 'Tuyến B', total_bg: 50, passed: 20, failed: 30, total_failed: 30, returned: 0, passed_rate: 40 },
+  { ma_tuyen: '53100003', name: 'Tuyến C', total_bg: 87, passed: 1, failed: 2, total_failed: 2, returned: 84, passed_rate: 1.1 },
 ];
 
 test('default sort is Tỷ lệ đạt DESC', () => {

@@ -232,7 +232,7 @@ class FactBuuGuiRepository {
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
                     SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed,
-                    SUM(CASE WHEN danh_gia_2026 IS NULL OR TRIM(danh_gia_2026) = '' THEN 1 ELSE 0 END) as total_unevaluated
+                    SUM(CASE WHEN danh_gia_2026 IS NULL OR TRIM(danh_gia_2026) = '' THEN 1 ELSE 0 END) as total_returned
                 FROM fact_f13
                 WHERE ${whereClause}
                 GROUP BY ma_tuyen

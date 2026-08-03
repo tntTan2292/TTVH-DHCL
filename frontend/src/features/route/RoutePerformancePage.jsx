@@ -27,7 +27,7 @@ const SORTABLE_COLUMNS = [
   { key: 'total_bg', label: 'Tổng BG' },
   { key: 'passed', label: 'Đạt' },
   { key: 'failed', label: 'Không đạt' },
-  { key: 'unevaluated', label: 'Chưa đánh giá' },
+  { key: 'returned', label: 'Chuyển hoàn' },
   { key: 'passed_rate', label: 'Tỷ lệ đạt' },
 ];
 
@@ -91,7 +91,7 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, on
                   <td className="px-4 py-3 text-right font-mono">{toNumber(row.total_bg).toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right font-mono text-green-700">{toNumber(row.passed).toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right font-mono text-red-600">{toNumber(row.failed ?? row.total_failed).toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-3 text-right font-mono">{toNumber(row.unevaluated).toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right font-mono">{toNumber(row.returned).toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right font-semibold">{formatRate(row.passed_rate)}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${classificationBadgeClass(row)}`}>
@@ -121,7 +121,7 @@ function RouteSelectedPanel({ route, bcvhName, fromDate }) {
   const totalBg = toNumber(route.total_bg);
   const passed = toNumber(route.passed);
   const failed = toNumber(route.failed ?? route.total_failed);
-  const unevaluated = toNumber(route.unevaluated);
+  const returned = toNumber(route.returned);
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
@@ -155,13 +155,13 @@ function RouteSelectedPanel({ route, bcvhName, fromDate }) {
       </div>
 
       <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
-        <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Chưa đánh giá</p>
+        <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Chuyển hoàn</p>
         <p className="mt-1 text-lg font-semibold text-[var(--color-text-main)]">
-          {unevaluated.toLocaleString('vi-VN')} / {totalBg.toLocaleString('vi-VN')} BG
+          {returned.toLocaleString('vi-VN')} / {totalBg.toLocaleString('vi-VN')} BG
         </p>
-        {unevaluated > 0 ? (
+        {returned > 0 ? (
           <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            Số bưu gửi chưa có kết quả đánh giá — không dùng số này để kết luận chất lượng tuyến.
+            Bưu gửi chuyển hoàn, được ghi nhận BLACK trong Đánh giá KPI 2026.
           </p>
         ) : null}
       </div>

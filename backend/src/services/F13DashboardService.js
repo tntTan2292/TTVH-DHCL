@@ -999,7 +999,7 @@ class F13DashboardService {
                 passed_rate: this._calculateRate(item.total_passed, item.total_bg),
                 total_failed: item.total_failed,
                 failed: item.total_failed,
-                unevaluated: item.total_unevaluated ?? 0,
+                returned: item.total_returned ?? 0,
                 ...classifyRoute(item.ma_tuyen),
                 f13_303_rate: 0 // Delegate to D4
             }));

@@ -1,7 +1,7 @@
 # F13 Route Ranking Redesign — Plan Checkpoint 001
 
 - Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, in progress)
-- Status: `IMPLEMENTED / READY FOR PO UI CHECK`
+- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2 only — see Section 11)
 - Date: `2026-08-03`
 - Authors: static-code inspection by Antigravity (`docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`), targeted data discovery and design plan by Claude Code–Opus, final scope lock by ChatGPT/CTO.
 - Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`; no product code changed in this ticket.
@@ -28,14 +28,14 @@ These decisions supersede the Opus design-plan draft (`priority tiers`, `<60% in
 
 1. **Default sort:** `Tỷ lệ đạt DESC` (passed_rate descending), consistent with BCVH Ranking's sort principle. Not `Không đạt DESC`, not `Tỷ lệ đạt ASC`.
 2. **`sys_kpi_thresholds` is NOT used in MVP.** No color tiering, no `Đỏ/Vàng/Xanh` badges, no priority labels (`Cao/Trung bình/Thấp`), no `<60%` intervention threshold, no `≤20%` unevaluated-exclusion rule. All of this inferred logic from the draft plan is cancelled.
-3. **Table columns (full set, no priority/tier column):** `Tổng BG`, `Đạt`, `Không đạt`, `Chưa đánh giá`, `Tỷ lệ đạt` — plus route identity columns (`Mã tuyến`, `Tên tuyến`) and the existing `Phân loại` badge. `Loại tuyến phát` may be added as an additional column/filter since it is 100%-covered and 1:1 per route.
+3. **Table columns (full set, no priority/tier column):** `Tổng BG`, `Đạt`, `Không đạt`, `Chuyển hoàn`, `Tỷ lệ đạt` — plus route identity columns (`Mã tuyến`, `Tên tuyến`) and the existing `Phân loại` badge. `Loại tuyến phát` may be added as an additional column/filter since it is 100%-covered and 1:1 per route. **[R1 correction, `2026-08-03`]** originally named `Chưa đánh giá`; PO UI Check corrected this to `Chuyển hoàn` (BLACK) — see Section 11.
 4. **KPI row (MVP, 4 cards):**
    - Số tuyến phát sinh không đạt (count of routes with `total_failed > 0`)
    - Tỷ lệ đạt toàn BCVH = `ΣĐạt / ΣTổng BG`
    - Tổng BG không đạt = `Σtotal_failed`
    - Tổng số tuyến
 5. **New filter:** `Chỉ tuyến có bưu gửi không đạt` (routes where `total_failed > 0`). This is a factual filter (no threshold, no inferred priority).
-6. **Unevaluated data (`Chưa đánh giá`):** must be shown as an explicit number/column. No color coding, no quality conclusion, no exclusion rule may be applied to routes carrying unevaluated shipments.
+6. **BLACK / `Chuyển hoàn` data (returned shipments, `danh_gia_2026 IS NULL`):** must be shown as an explicit number/column, labeled `Chuyển hoàn`, not as a data-completeness gap. No color coding, no quality conclusion, no exclusion rule may be applied to routes carrying returned shipments. **[R1 correction, `2026-08-03`]** — originally described as "unevaluated data"; PO's locked SSOT defines this as a genuine classification (bưu gửi chuyển hoàn), not missing/unevaluated data. See Section 11.
 7. **Shipment drill-down:** not rendered in MVP, not even as a disabled placeholder. Recorded in Deferred scope only (see Section 5).
 8. **Default date:** must resolve to the latest valid data date not exceeding the current date, excluding garbage future-dated rows. The `2026-06-23` hardcode must not remain.
 9. **Filter/classification contract:** `Tuyến bưu tá | Tất cả` labels and default, Hue `ma_tuyen LIKE '53%'` scope, the 7 PO-confirmed catalog routes, and `routeRankingFilters.js` remain fully unchanged.
@@ -60,7 +60,7 @@ No dead UI, no placeholder blocks, and no fabricated data may be introduced for 
 - No priority tiering, no severity labels, no color-coded row/cell warnings of any kind.
 - No `sys_kpi_thresholds` consumption.
 - No threshold-based "cần can thiệp" (intervention) classification of any kind — the CTO-approved MVP identifies distress only via factual counts/filters (`Không đạt > 0`), not via a derived priority judgment.
-- No quality conclusion drawn about a route while it carries unevaluated shipments — unevaluated count must be shown as-is.
+- No quality conclusion drawn about a route from its `Chuyển hoàn` (BLACK/returned-shipment) count — the count must be shown as-is, correctly labeled, and never merged with `Không đạt`.
 - No fabricated postman or root-cause data, and no disabled/placeholder UI standing in for them.
 - No change to `passed_rate`'s calculation formula, to the filter/classification contract, or to `routeRankingFilters.js`.
 
@@ -73,10 +73,10 @@ No dead UI, no placeholder blocks, and no fabricated data may be introduced for 
 
 1. Default sort is `Tỷ lệ đạt DESC`; sortable columns work client-side.
 2. Filter/classification contract (`Tuyến bưu tá | Tất cả`, `53%` scope, 7 catalog routes) is byte-identical to the PO-PASS state.
-3. Table shows `Tổng BG`, `Đạt`, `Không đạt`, `Chưa đánh giá`, `Tỷ lệ đạt` with no color tiering or priority labels anywhere.
+3. Table shows `Tổng BG`, `Đạt`, `Không đạt`, `Chuyển hoàn`, `Tỷ lệ đạt` with no color tiering or priority labels anywhere.
 4. KPI row shows exactly the 4 cards in Section 3 item 4, with `Tỷ lệ đạt toàn BCVH` computed as `ΣĐạt / ΣTổng BG`.
 5. `Chỉ tuyến có bưu gửi không đạt` filter works and introduces no threshold logic.
-6. Routes with unevaluated shipments show the unevaluated count plainly; no color/quality treatment differs because of it.
+6. Routes with returned shipments (BLACK) show the `Chuyển hoàn` count plainly, correctly labeled; no color/quality treatment differs because of it, and it is never merged with `Không đạt`.
 7. No Shipment drill-down UI (enabled or disabled) is rendered.
 8. Default date resolves to the latest valid date ≤ current date, excluding future-dated garbage rows; no remaining `2026-06-23` hardcode.
 9. No bưu tá or root-cause UI, placeholder, or fabricated data is present.
@@ -109,3 +109,41 @@ Validation:
 - Diff scope verified: only Route Ranking frontend/backend files and their new tests changed; no other product code touched.
 
 Residual: implementation not yet browser-verified or PO-accepted. `F13-ROUTE-RANKING-REDESIGN-IMPL` remains `PO UI Check Required = Yes`; this checkpoint does not constitute a PO PASS.
+
+## 11. Remediation Evidence R1 (`2026-08-03`) — PO UI Check Item 2 FAIL, BLACK/Chuyển hoàn naming
+
+PO UI check on commit `ee73feed9adb93300d0d976ef1fd462abbe3e3de`: Items 1, 3, 4, 5, 6, 7, 8, 9 `PASS`. **Item 2 `FAIL`** — the implementation named the `danh_gia_2026 IS NULL` group `unevaluated`/`Chưa đánh giá` (implying missing/incomplete data). PO's locked SSOT: this group is `BLACK` = bưu gửi chuyển hoàn (returned shipment), a genuine business classification, not a data-completeness gap.
+
+SSOT locked by Product Owner:
+
+- `Đạt`: `Đánh giá KPI 2026 = Đạt`.
+- `Không đạt`: `Đánh giá KPI 2026 = Không đạt`.
+- `BLACK`: bưu gửi chuyển hoàn — not missing/unevaluated.
+- `Tổng BG = Đạt + Không đạt + Chuyển hoàn`.
+- `Tỷ lệ F1.3 = Đạt / Tổng BG`.
+- `Không đạt` and `Chuyển hoàn` must never be merged.
+
+Targeted verification before fixing (no broad audit, no browser):
+
+- `danh_gia_2026`'s only values across the entire `fact_f13` table (not scope-limited to Hue/30-day — 659,454+ rows total) are `{Đạt, Không đạt, NULL}`; no literal `BLACK` string exists. `NULL` is the encoding for BLACK/chuyển hoàn.
+- Cross-checked against `docs/06_REVIEWS/Import/TODAY-002-R1_KPI_2026_SOURCE_COLUMN_RECOVERY.md` and `TODAY-002-R2_KPI_2026_DASHBOARD_CONSISTENCY_RECOVERY.md`, both independently describing this same `NULL` population as "returned-shipment ... population inclusion" for `danh_gia_2026`.
+- Conclusion: the existing SQL condition (`danh_gia_2026 IS NULL OR TRIM(danh_gia_2026) = ''`) was already counting exactly the BLACK/chuyển hoàn population. This was a **pure naming defect**, not a classification-logic defect — no new logic was introduced.
+
+Fix (rename only):
+
+- `backend/src/repositories/FactBuuGuiRepository.js`: SQL alias `total_unevaluated` → `total_returned`.
+- `backend/src/services/F13DashboardService.js`: mapped field `unevaluated` → `returned`.
+- `frontend/src/features/route/RoutePerformancePage.jsx`: column/label `Chưa đánh giá` → `Chuyển hoàn`; variable `unevaluated` → `returned`; note text replaced with `Bưu gửi chuyển hoàn, được ghi nhận BLACK trong Đánh giá KPI 2026.`; all "chưa đánh giá / chưa có kết quả / chưa đủ dữ liệu" wording removed.
+- Items 1, 3–9 (already PO PASS) untouched: `Tổng BG`, `Đạt`, `Không đạt`, default sort, the 4 KPI cards, the existing filter, the two-column layout, and all previously accepted content.
+
+Validation:
+
+- Backend `node --test` full suite: 50/54 pass; same 4 pre-existing baseline failures as before (unrelated to Route Ranking), unchanged.
+- `FactBuuGuiRepository.routeRanking.test.js` + `F13DashboardService.routeRanking.test.js`: 5/5 pass — renamed to `total_returned`/`returned`, plus a new SSOT test asserting `Tổng BG = Đạt + Không đạt + Chuyển hoàn` and that `Không đạt` is never merged with `Chuyển hoàn`.
+- New `RoutePerformancePage.blackReturned.test.js`: 2/2 pass — asserts `Chuyển hoàn`/`row.returned`/`route.returned`/BLACK tooltip text are present, asserts `Chưa đánh giá`/`unevaluated` are fully absent, and asserts the PO-PASS items 1/3–9 markers (`Tổng BG`/`Đạt`/`Không đạt` labels, `passed_rate`/`desc` default sort, `only_failed` filter) remain unchanged.
+- `routeRankingCalculations.test.js`: 13/13 pass — fixture field renamed for consistency; the calculation functions are field-name-agnostic and required no logic change.
+- `routeRankingFilters.test.js` (existing PO-PASS contract): 2/2 pass, unmodified, no regression.
+- `oxlint`: zero warnings/errors on changed files. `vite build`: succeeds.
+- Diff scope verified: only the `unevaluated` → `returned`/`Chuyển hoàn` rename across Route Ranking files and their tests.
+
+Status after R1: `REMEDIATED / READY FOR PO RECHECK`. **Recheck scope is Item 2 only** — Items 1, 3–9 do not need to be rechecked as they were not touched by this remediation. Not closed; no PO PASS claimed.
