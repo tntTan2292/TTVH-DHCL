@@ -1,7 +1,7 @@
 # F13 Route Ranking Redesign — Plan Checkpoint 001
 
 - Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, in progress)
-- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2 and Item 11 — see Section 14; Item 10 is PO PASS on commit `185b7dd` and not part of this recheck; PO NEW FINDING, `2026-08-03`, DELAYED-CASH KPI WIDGET MISSING)
+- Status: `REMEDIATED / READY FOR PO RECHECK` (recheck scope: Item 2, Item 11, and a data-only glance at Item 10's corrected numbers — see Section 15; PO SSOT CORRECTION, `2026-08-03`, delayed-cash denominator excludes Chuyển hoàn)
 - Date: `2026-08-03`
 - Authors: static-code inspection by Antigravity (`docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`), targeted data discovery and design plan by Claude Code–Opus, final scope lock by ChatGPT/CTO.
 - Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`; no product code changed in this ticket.
@@ -237,3 +237,21 @@ PO confirmed Item 10 (the Route Ranking table's `Số BG chậm nộp tiền`/`T
 **Validation:** `oxlint` clean, `vite build` succeeds, `node --test src/features/route/*.test.js` 33/33 pass (all 25 pre-existing tests pass unmodified — no regression to Items 1–10 — plus 8 new). No backend file touched; `RuleF13302`, BCVH Ranking, Dashboard, Import, and schema untouched.
 
 Status after R4: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 2** (still pending from R1) and **Item 11** (this widget). Item 10 remains PO PASS, not part of this recheck. Not closed; no PO PASS claimed; no next ticket activated.
+
+## 15. SSOT Correction R5 (`2026-08-03`) — delayed-cash denominator must exclude Chuyển hoàn
+
+Reviewing the new widget (`116/543 = 21.4%` for `2026-08-02`/BCVH `533140`/`Tất cả`), PO determined the eligible denominator must be `Không đạt` only (`456`), not the broader `!= Đạt` population `RuleRegistry.execute` computes by default (`543 = 456 Không đạt + 87 Chuyển hoàn`) — returned shipments never enter the cash-remittance workflow.
+
+Verified with real data before fixing (`2026-08-02`/`533140`/`all`): `456` `Không đạt` facts, `87` `Chuyển hoàn` (BLACK) facts, and **0** of the `116` delayed facts came from BLACK — a clean denominator-only correction for this sample.
+
+**Fix:** `F13DashboardService.getRouteRanking` now filters `Chuyển hoàn` (BLACK, `danh_gia_2026 IS NULL`) out of `routeFacts` before calling `_buildF13302SummaryMap`/`_buildF13302AggregateSummary` — only `Đạt` (no-op) and `Không đạt` facts feed the engine. `RuleF13302`/`RuleRegistry` source and BCVH Ranking's own (unmodified, still broader) denominator are untouched.
+
+**Runtime confirmation:** backend restarted (PID `8384`); real HTTP call to `/f13/ranking/route` for `2026-08-02`/`533140`/`Tất cả` now returns `{ delayed_cash_handover_count: 116, delayed_cash_handover_eligible_count: 456, f13_303_rate: 25.4 }` — matching PO's expected `116/456`.
+
+**Tests:** `F13DashboardService.routeDelayedCash.test.js` rewritten (11 tests) with an explicit BLACK-fact-with-qualifying-gap fixture proving exclusion from both numerator and denominator. New real-HTTP test in `DashboardController.routeDelayedCash.integration.test.js` (3 tests total) asserts the eligible denominator equals `Σrow.failed` and differs from `Σ(failed + returned)`.
+
+**Validation:** `oxlint` clean; backend full suite 66/70 pass (same 4 pre-existing baseline failures). Diff scope: `F13DashboardService.js` (exclusion filter only) and the two delayed-cash test files; no frontend, BCVH Ranking, Dashboard, Import, schema, or `RuleF13302`/`RuleRegistry` file touched.
+
+**Note on Item 10:** the table's `Chậm nộp tiền` columns and the panel's delayed-cash block (`PO PASS` on `185b7dd`) read the same corrected fields — their UI is unchanged but their displayed numbers are now different (denominator shrank). Flagged, not hidden.
+
+Status after R5: `REMEDIATED / READY FOR PO RECHECK`. Recheck scope: **Item 2**, **Item 11**, and a data-only glance at **Item 10**'s corrected numbers. Not closed; no PO PASS claimed; no next ticket activated.

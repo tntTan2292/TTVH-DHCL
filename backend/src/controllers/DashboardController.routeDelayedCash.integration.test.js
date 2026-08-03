@@ -102,6 +102,28 @@ test('route ranking delayed-cash metrics flow correctly end-to-end through the l
   }
 });
 
+test('SSOT correction: the delayed-cash eligible denominator equals Không đạt only, excluding Chuyển hoàn (BLACK)', async () => {
+  const login = await requestJson('/auth/login', { username: 'admin', password: 'admin123' });
+  const sessionId = login.body?.data?.session_id;
+
+  const response = await requestJsonWithQuery('/f13/ranking/route', {
+    date: '2026-08-02', bcvh: '533140', page: 1, page_size: 1000, sort: 'total_bg', order: 'desc', route_type: 'all',
+  }, sessionId);
+
+  assert.equal(response.status, 200);
+  const rows = response.body.data;
+  const summary = response.body.meta.delayed_cash_handover_summary;
+
+  const sumKhongDat = rows.reduce((s, r) => s + (r.failed || 0), 0);
+  const sumReturned = rows.reduce((s, r) => s + (r.returned || 0), 0);
+
+  // The eligible denominator must equal the Không đạt population exactly, never the
+  // broader "!= Đạt" population (Không đạt + Chuyển hoàn) that RuleRegistry computes by default.
+  assert.equal(summary.delayed_cash_handover_eligible_count, sumKhongDat);
+  assert.notEqual(summary.delayed_cash_handover_eligible_count, sumKhongDat + sumReturned);
+  assert.ok(sumReturned > 0, 'sanity check: this date/BCVH has Chuyển hoàn facts to actually exclude');
+});
+
 test('paginating the route list does not shrink the delayed-cash aggregate', async () => {
   const login = await requestJson('/auth/login', { username: 'admin', password: 'admin123' });
   const sessionId = login.body?.data?.session_id;
