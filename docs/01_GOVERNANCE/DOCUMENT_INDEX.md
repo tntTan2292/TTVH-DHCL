@@ -39,8 +39,8 @@ Fresh onboarding must contain at most these `5` steps:
 Current active ticket:
 
 - Current ticket: `F13-SHARED-NAV-FILTERS-PLAN`.
-- Current manifest: `docs/10_TICKETS/F13-SHARED-NAV-FILTERS-PLAN_MANIFEST.md` (`ACTIVE / PLANNING ONLY / READY FOR PO PLAN REVIEW`).
-- Current checkpoint: `docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md`.
+- Current manifest: `docs/10_TICKETS/F13-SHARED-NAV-FILTERS-PLAN_MANIFEST.md` (`ACTIVE / PLANNING ONLY / READY FOR PO PLAN RECHECK`).
+- Current checkpoint: `docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` (Revision 2).
 - Next required action: PO review of `F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md`. No implementation authorized.
 
 

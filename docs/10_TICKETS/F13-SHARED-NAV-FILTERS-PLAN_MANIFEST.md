@@ -10,6 +10,7 @@
 - Activation authority: `PO AUTHORIZATION: DISCOVERY AND PLANNING ONLY / NO IMPLEMENTATION`
 - Baseline commit: `db142a065ff1aa7f8471ff0ee5d57bbaefea67be` (verified: matches `HEAD`, working tree clean, branch `codex/da-impl-006`)
 - Activation date: `2026-08-03`
+- Revision date: `2026-08-03` (Revision 2 - Enhanced Scope & No-Code Acceptance Criteria)
 
 ## 2. Objective
 
@@ -17,9 +18,9 @@ Audit and propose a comprehensive standardization plan for shared navigation (`S
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / PLANNING ONLY / READY FOR PO PLAN REVIEW`
+- Current state: `ACTIVE / PLANNING ONLY / READY FOR PO PLAN RECHECK`
 - PO UI Check Required: `No — planning ticket only`
-- PO Product Status: `DISCOVERY & PLANNING COMPLETED — AWAITING PO REVIEW`
+- PO Product Status: `REVISED DISCOVERY & PLANNING COMPLETED — AWAITING PO RECHECK`
 
 ## 4. Required Reading
 
@@ -27,7 +28,7 @@ Audit and propose a comprehensive standardization plan for shared navigation (`S
 - `docs/10_TICKETS/F13-UI-AUDIT-PLAN_MANIFEST.md` (Operation Dashboard UI Audit & Implementation closure)
 - `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-IMPL_MANIFEST.md` (BCVH Ranking Redesign closure)
 - `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` (Route Ranking Redesign closure)
-- `docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` (Planning Checkpoint)
+- `docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` (Planning Checkpoint Revision 2)
 
 ## 5. Scope & Audit Target Files
 
@@ -39,27 +40,20 @@ Audit and propose a comprehensive standardization plan for shared navigation (`S
 - `frontend/src/features/ranking/BcvhRankingPage.jsx`
 - `frontend/src/features/route/RoutePerformancePage.jsx`
 
-## 6. Business & Governance Constraints (Must Preserve)
+## 6. Key Planning Clarifications (Revision 2)
 
-1. **Dashboard (`/f13/dashboard`)**:
-   - Preserved URL params: `from_date`, `to_date`, `interval`, `ma_bcvh`, `search`.
-   - Preserved `GlobalFilterBar` configuration: Date range (`from_date` -> `to_date`), BCVH selector (`ma_bcvh`), Search input, KPI filter hidden (`showKpiFilter=false`).
-   - Preserved compact 9-column BCVH table contract and custom filter dropdown validation.
+1. **Parameter Compatibility Strategy**:
+   - `bcvh_id` adopted as primary frontend parameter.
+   - Dual-read fallback engine (`bcvh_id || ma_bcvh`) implemented on frontend only. Legacy bookmarks with `?ma_bcvh=` remain 100% functional.
+   - Zero backend API changes required.
 
-2. **BCVH Ranking (`/f13/ranking/bcvh`)**:
-   - Preserved URL params: `from_date`, `to_date`, `interval`, `bcvh_id`, `search`.
-   - Preserved `GlobalFilterBar` configuration: Date range, BCVH selector (`bcvh_id`), Search input, KPI filter hidden (`showKpiFilter=false`).
-   - Preserved detailed 17-column ranking table contract, doughnut summary, and auto-resolution of default date to latest available data date (`maxDate`).
+2. **Explicit Scope Matrix**:
+   - Title update: Route Ranking title in `PageContainer` changed to `"Bảng xếp hạng Tuyến Bưu tá"`.
+   - Dynamic Metadata: Route Ranking static `ROUTE_BCVH_OPTIONS` replaced by dynamic `/f13/dashboard/meta` fetch.
+   - Preserved Components: `SharedLayout` frame, `SidebarNavigation`, `Topbar`, `Breadcrumb`, all 3 tables, KPI formulas, Import Center, and role security remain strictly unchanged.
 
-3. **Route Ranking (`/f13/ranking/route`)**:
-   - Preserved URL params: `from_date`, `to_date`, `interval`, `bcvh_id`, `bcvh_name`, `search`, `route_type`, `only_failed`.
-   - Preserved PO-confirmed classification filter contract (`Tuyến bưu tá | Tất cả`, default `Tuyến bưu tá`).
-   - Preserved `GlobalFilterBar` configuration: Date range, BCVH selector (`bcvh_id`), Search input, KPI filter hidden, with custom `actions` slot rendering the route-type toggle pills and BCVH status badge.
-
-4. **Role Permissions & System Protection**:
-   - Viewer role (`ROLE_VIEWER`) strictly constrained to F1.3 screens (`/f13/dashboard`, `/f13/ranking/bcvh`, `/f13/ranking/route`).
-   - Admin-only routes (`/import`, `/kpi-config`, `/system-info`, `/f11`, `/f12`, `/f41`) and System Administration navigation items remain protected by `ProtectedRoute` and `getNavigationForRole()`.
-   - No change to backend APIs (`port 5050`), frontend port (`5178`), or LAN deployment setup.
+3. **No-Code Acceptance Criteria**:
+   - Defined 8 explicit verification criteria covering menu navigation, date auto-selection, BCVH filtering, F5 refresh persistence, legacy URL support, dynamic meta list, role protection, and business contract isolation.
 
 ## 7. Next Ticket
 
@@ -69,4 +63,4 @@ Audit and propose a comprehensive standardization plan for shared navigation (`S
 ## 8. Validation
 
 - Technical validation: `git status` clean, no product code modified.
-- Documentation validation: Checkpoint `F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` created, governance files updated.
+- Documentation validation: Checkpoint `F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` updated to Revision 2, governance files updated.

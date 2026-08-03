@@ -19,21 +19,21 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | --- | --- |
 | Current Phase | `F1.3 Shared Navigation & Filters Audit & Planning` |
 | Current Ticket | `F13-SHARED-NAV-FILTERS-PLAN` |
-| Next Ticket | `F13-SHARED-NAV-FILTERS-IMPL (pending PO approval of planning checkpoint)` |
-| Last PO Status | `F13-SHARED-NAV-FILTERS-PLAN activated by PO authority for DISCOVERY AND PLANNING ONLY / NO IMPLEMENTATION. Audit and planning checkpoint completed; awaiting PO plan review.` |
+| Next Ticket | `F13-SHARED-NAV-FILTERS-IMPL (pending PO approval of planning checkpoint Revision 2)` |
+| Last PO Status | `F13-SHARED-NAV-FILTERS-PLAN updated with Revision 2 planning checkpoint (parameter compatibility, scope matrix, no-code acceptance criteria); awaiting PO plan recheck.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHARED-NAV-FILTERS-PLAN_MANIFEST.md` |
 | Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / PLANNING ONLY / DISCOVERY & AUDIT COMPLETED / READY FOR PO PLAN REVIEW` |
-| Technical Status | `Audit of shared navigation, application frame, and GlobalFilterBar completed across Dashboard, BCVH Ranking, and Route Ranking. Planning checkpoint docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md created.` |
+| Current State | `ACTIVE / PLANNING ONLY / DISCOVERY & REVISED AUDIT COMPLETED / READY FOR PO PLAN RECHECK` |
+| Technical Status | `Revised audit of shared navigation, application frame, and GlobalFilterBar completed. Locked parameter compatibility strategy, scope matrix, and no-code acceptance criteria recorded in docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md.` |
 | Runtime Status | `NOT APPLICABLE (planning ticket only, no code modified)` |
 | PO UI Check Required | `No — planning ticket only` |
-| PO Product Status | `DISCOVERY & PLANNING COMPLETED — AWAITING PO REVIEW` |
+| PO Product Status | `REVISED DISCOVERY & PLANNING COMPLETED — AWAITING PO RECHECK` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` |
 | Last Reviewed Phase | `F13-ROUTE-RANKING-REDESIGN-IMPL closure: Product Owner PO PASS on all 12 items` |
-| Last Reviewed Commit | `db142a065ff1aa7f8471ff0ee5d57bbaefea67be` |
-| Phase Review Status | `F13-SHARED-NAV-FILTERS-PLAN ACTIVE / READY FOR PO PLAN REVIEW` |
-| Next Phase Authorization | `F13-SHARED-NAV-FILTERS-PLAN is authorized for DISCOVERY AND PLANNING ONLY. No implementation authorized until PO reviews and approves F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md.` |
+| Last Reviewed Commit | `30a42da571e0655388fc4d567756f7efb718305c` |
+| Phase Review Status | `F13-SHARED-NAV-FILTERS-PLAN ACTIVE / READY FOR PO PLAN RECHECK` |
+| Next Phase Authorization | `F13-SHARED-NAV-FILTERS-PLAN is authorized for DISCOVERY AND PLANNING ONLY. No implementation authorized until PO reviews and approves F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md (Revision 2).` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-03` |
 
@@ -64,7 +64,7 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 
 Current handoff: `AUTO-IMPORT-010` is `CLOSED / PO RUNTIME PASS` as of `2026-07-31`.
 
-Activation (`2026-08-03`): Product Owner explicitly authorized `F13-SHARED-NAV-FILTERS-PLAN` for `DISCOVERY AND PLANNING ONLY / NO IMPLEMENTATION`. Audit of shared navigation (`SidebarNavigation`, `Topbar`, `Breadcrumb`, `appNavigation.jsx`), application frame (`SharedLayout`, `MainLayout`), and shared filter bar (`GlobalFilterBar`) across Operation Dashboard (`/f13/dashboard`), BCVH Ranking (`/f13/ranking/bcvh`), and Route Ranking (`/f13/ranking/route`) completed without modifying product code or business rules. Checkpoint `docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` created. Ready for PO Plan Review.
+Activation (`2026-08-03`): Product Owner explicitly authorized `F13-SHARED-NAV-FILTERS-PLAN` for `DISCOVERY AND PLANNING ONLY / NO IMPLEMENTATION`. Audit of shared navigation (`SidebarNavigation`, `Topbar`, `Breadcrumb`, `appNavigation.jsx`), application frame (`SharedLayout`, `MainLayout`), and shared filter bar (`GlobalFilterBar`) across Operation Dashboard (`/f13/dashboard`), BCVH Ranking (`/f13/ranking/bcvh`), and Route Ranking (`/f13/ranking/route`) completed without modifying product code or business rules. Checkpoint `docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` updated to Revision 2. Ready for PO Plan Recheck.
 
 Fresh-chat onboarding chain:
 
