@@ -89,7 +89,7 @@ class TimelineService {
         const includeMonthly = mode === 'all' || mode === 'month';
         const includeHeatmap = mode === 'all' || mode === 'heatmap';
         const includeNationalRank = Boolean(options.includeNationalRank) && includeHeatmap && (!ma_bcvh || ma_bcvh === 'all');
-        const includeMonthlyNationalRank = Boolean(options.includeNationalRank) && mode === 'month' && (!ma_bcvh || ma_bcvh === 'all');
+        const includeMonthlyNationalRank = Boolean(options.includeNationalRank) && (mode === 'month' || mode === 'heatmap') && (!ma_bcvh || ma_bcvh === 'all');
         // Query data for the last 90 days to establish strong patterns
         const endDate = new Date(toDate);
         const startDate = new Date(toDate);

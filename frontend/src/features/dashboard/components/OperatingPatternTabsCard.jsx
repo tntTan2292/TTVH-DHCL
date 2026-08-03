@@ -215,14 +215,20 @@ function MonthlySummary({ summary }) {
   );
 }
 
-function HeatmapManagementSummary({ stats }) {
-  if (!stats) return null;
+function HeatmapManagementSummary({ month }) {
+  if (!month?.stats) return null;
+  const { stats, compactNationalRankLabel, nationalRankLabel } = month;
 
   return (
     <div className="mb-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
       <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-2xs">
         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">TB tháng</div>
         <div className="mt-0.5 text-sm font-bold tabular-nums text-slate-900">{stats.average.toFixed(2)}%</div>
+        {compactNationalRankLabel ? (
+          <div className="mt-0.5 text-xs font-bold text-emerald-700 tabular-nums" title={nationalRankLabel || undefined}>
+            Hạng {compactNationalRankLabel.replace(/^H/, '')}
+          </div>
+        ) : null}
       </div>
       <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-2.5 text-emerald-950 shadow-2xs">
         <div className="text-[10px] font-bold uppercase tracking-wider">Tốt nhất</div>
@@ -272,14 +278,9 @@ function HeatmapMonthSection({ month }) {
           <h4 className="text-sm font-bold text-slate-900">{month.label}</h4>
           <p className="text-xs font-medium text-slate-500">{month.rangeLabel}</p>
         </div>
-        <div className="flex items-center gap-1.5">
-          {month.nationalRankLabel ? (
-            <StatusBadge label={`Lũy kế: ${month.nationalRankLabel}`} tone="info" />
-          ) : null}
-          {month.stats ? <StatusBadge label={`TB ${month.stats.average.toFixed(2)}%`} tone="neutral" /> : null}
-        </div>
+        {month.stats ? <StatusBadge label={`TB ${month.stats.average.toFixed(2)}%`} tone="neutral" /> : null}
       </div>
-      <HeatmapManagementSummary stats={month.stats} />
+      <HeatmapManagementSummary month={month} />
       <div className="overflow-x-auto pb-1">
         <div className="grid min-w-[420px] grid-cols-7 gap-1.5">
           {HEATMAP_WEEKDAY_LABELS.map((label) => (
