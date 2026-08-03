@@ -1,7 +1,7 @@
 # F13 Route Ranking Redesign — Plan Checkpoint 001
 
-- Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN`
-- Status: `CLOSED / DESIGN PLAN ACCEPTED / PO APPROVED / CTO FINALIZED`
+- Ticket: `F13-ROUTE-RANKING-REDESIGN-PLAN` (design record) / `F13-ROUTE-RANKING-REDESIGN-IMPL` (implementation, in progress)
+- Status: `IMPLEMENTED / READY FOR PO UI CHECK`
 - Date: `2026-08-03`
 - Authors: static-code inspection by Antigravity (`docs/F13_ROUTE_RANKING_EVIDENCE_HANDOFF.md`), targeted data discovery and design plan by Claude Code–Opus, final scope lock by ChatGPT/CTO.
 - Baseline: `7fd33ce130227a0c2b24d3b36aa0980bf8fc9ad3`; no product code changed in this ticket.
@@ -84,3 +84,28 @@ No dead UI, no placeholder blocks, and no fabricated data may be introduced for 
 ## 9. Handoff
 
 `F13-ROUTE-RANKING-REDESIGN-PLAN` is closed with this checkpoint as its final design record. Next ticket: `F13-ROUTE-RANKING-REDESIGN-IMPL`, authorized by explicit PO approval and CTO scope finalization, executor `Claude Code–Sonnet`. See `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md`.
+
+## 10. Implementation Evidence (F13-ROUTE-RANKING-REDESIGN-IMPL, `2026-08-03`)
+
+Executor: `Claude Code–Sonnet`. Baseline: `2f98e45f3394e787cf218de85390e6a25a049d36`, branch `codex/da-impl-006`, verified clean worktree before implementation.
+
+Implemented exactly the scope authorized in the `BEGIN IMPLEMENTATION` directive (a subset of Section 3 confirmed as the binding MVP for this pass — `loai_tuyen_phat` from Section 3 item 3 was left unimplemented as it was optional ("may be added") and not named in the implementation directive):
+
+- `frontend/src/features/route/RoutePerformancePage.jsx`: rewritten. Two-column desktop layout (ranking table `min-[1200px]:col-span-8` ≈ 65%, selected-route panel `min-[1200px]:col-span-4` ≈ 35%; single column below 1200px). Client-side sortable table defaulting to `passed_rate` DESC (`Tỷ lệ đạt` giảm dần), independent of the (still-present, contract-preserving) backend `sort`/`order` request parameters. Full column set `Tổng BG / Đạt / Không đạt / Chưa đánh giá / Tỷ lệ đạt` plus route identity and the existing classification badge. New `Chỉ tuyến có bưu gửi không đạt` filter (URL param `only_failed`). KPI row: `Tuyến phát sinh không đạt`, `Tỷ lệ đạt toàn BCVH = ΣĐạt/ΣTổng BG`, `Tổng BG không đạt`, `Tổng số tuyến` — all computed from the full fetched BCVH/route-type scope, unaffected by the local search/only-failed narrowing. Default date resolves via the existing `/f13/dashboard/meta` endpoint's `max_date` (which already excludes future-dated rows via `date(ngay_do_kiem) <= date('now','localtime')`, unmodified) when no `from_date` URL param is present; the `2026-06-23` hardcode is removed. Loading/error/empty/no-selected-route states are explicit; `Chưa đánh giá` is shown as a plain count with no color/quality treatment.
+- `frontend/src/features/route/routeRankingCalculations.js`: new — extracted pure functions (`applyRouteFilters`, `sortRouteRows`, `computeRouteKpiStats`, `resolveDefaultRouteDate`, `toNumber`, `formatRate`) for unit testability.
+- `frontend/src/features/route/routeRankingFilters.js`: unchanged.
+- Deleted (orphaned, no longer imported anywhere, contained fabricated shell content contradicting the locked scope): `RouteExecutiveBrief.jsx`, `RoutePriorityAnalysis.jsx`, `RouteRootCause.jsx`, `RouteRecommendation.jsx`, `RouteDrilldown.jsx`, `RouteShellShared.jsx`.
+- `backend/src/repositories/FactBuuGuiRepository.js`: additive only — added `total_unevaluated` to the existing `getRouteRanking` SQL aggregate (`SUM(CASE WHEN danh_gia_2026 IS NULL OR TRIM(danh_gia_2026) = '' THEN 1 ELSE 0 END)`). No WHERE/GROUP BY/scope change.
+- `backend/src/services/F13DashboardService.js`: additive only — maps `unevaluated: item.total_unevaluated ?? 0` into the existing response shape. `passed_rate`'s formula (`_calculateRate`) is untouched.
+- No `sys_kpi_thresholds` consumption, no color tiers, no priority labels, no intervention threshold, no root-cause or bưu tá UI, no Shipment drill-down UI (enabled or disabled) was introduced, per Section 6.
+
+Validation:
+
+- Backend: `node --test` on the full `backend/src` suite: `52/56` pass; the `4` failures (`live KPI database and HTTP payloads...`, `dashboard KPI invalid code returns HTTP 400`, `KPI all and missing ma_bcvh normalize...`, `monthly rank enrichment uses full prior months...`) are pre-existing at baseline `2f98e45f` (confirmed via `git stash` re-run before this change) and unrelated to Route Ranking; not remediated, per scope.
+- Backend: 2 new test files (`FactBuuGuiRepository.routeRanking.test.js`, `F13DashboardService.routeRanking.test.js`), 4 tests, all pass — cover the additive `total_unevaluated` SQL column, the postman-scope `NOT IN` exclusion behavior, and that `passed_rate` is unchanged.
+- Frontend: `routeRankingFilters.test.js` (existing PO-PASS contract test, source-string based) — unchanged, still passes (2/2), confirming no regression to the accepted filter/classification contract.
+- Frontend: new `routeRankingCalculations.test.js`, 13 tests, all pass — covers default sort (`passed_rate` DESC), sort-direction toggling, the `ΣĐạt/ΣTổng BG` KPI formula (explicitly asserted not to equal a naive per-route average), failed-route counting, the `Chỉ tuyến có bưu gửi không đạt` filter, date-default resolution (explicit param wins; falls back to latest valid date; resolves to empty — missing-data state — when neither exists), and zero/undefined-safe numeric handling.
+- Frontend: `oxlint` on all changed files — zero warnings/errors. `vite build` — succeeds.
+- Diff scope verified: only Route Ranking frontend/backend files and their new tests changed; no other product code touched.
+
+Residual: implementation not yet browser-verified or PO-accepted. `F13-ROUTE-RANKING-REDESIGN-IMPL` remains `PO UI Check Required = Yes`; this checkpoint does not constitute a PO PASS.

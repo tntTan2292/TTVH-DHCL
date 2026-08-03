@@ -18,9 +18,9 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / IMPLEMENTATION AUTHORIZED / NOT STARTED`
+- Current state: `ACTIVE / IMPLEMENTED / READY FOR PO UI CHECK`
 - PO UI Check Required: `Yes — required before this ticket can close`
-- PO Product Status: `NOT STARTED`
+- PO Product Status: `IMPLEMENTED, NOT YET PO-VERIFIED`
 
 ## 4. Required Reading
 
@@ -56,7 +56,7 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 
 ## 7. Runtime Context
 
-- Not yet executed. Runtime validation is required before PO UI check (Section 11).
+- Implemented, not yet browser/runtime-verified by PO. Implementation evidence and technical validation results are recorded in `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` Section 10.
 
 ## 8. Related Review
 
@@ -77,10 +77,11 @@ Implement the CTO-finalized Route Ranking redesign: an operational table/KPI/pan
 
 ## 11. Validation
 
-- Technical validation: build/lint pass; existing `routeRankingFilters.test.js` and any Route-scoped tests continue to pass unmodified in behavior.
-- Runtime validation: manual verification that the API contract (`route_type`, `route_filter`/`route_scope`/`route_classification` meta) is unchanged; new fields (`unevaluated`, `loai_tuyen_phat` if added) are additive only.
-- Browser validation: required — verify sort default, KPI values, new filter, unevaluated display, two-column layout at ≥1200px and single-column below, absence of any color-tier/priority UI, absence of Shipment drill-down UI, absence of bưu tá/root-cause UI.
-- Build or lint validation: required before PO UI check.
+- Technical validation: `oxlint` on all changed frontend files — zero warnings/errors. `vite build` — succeeds. Backend full suite `node --test` on `backend/src`: 52/56 pass; the 4 failures are pre-existing at baseline (confirmed via stash re-run) and unrelated to Route Ranking.
+- Automated tests: `routeRankingFilters.test.js` (existing PO-PASS contract, source-string based) — 2/2 pass, unmodified, no regression. New `routeRankingCalculations.test.js` — 13/13 pass (default sort, sort toggling, KPI formula, only-failed filter, date-default resolution incl. missing-data case, numeric safety). New `FactBuuGuiRepository.routeRanking.test.js` + `F13DashboardService.routeRanking.test.js` — 4/4 pass (additive `unevaluated` field, postman-scope exclusion preserved, `passed_rate` formula unchanged).
+- Runtime validation: not yet performed — pending PO UI check.
+- Browser validation: **required, not yet performed.** Full detail in checkpoint Section 10.
+- Diff scope verified: only Route Ranking frontend/backend files and their new tests changed.
 
 ## 12. Expected Output
 

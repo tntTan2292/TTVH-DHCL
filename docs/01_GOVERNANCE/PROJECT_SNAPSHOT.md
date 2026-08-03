@@ -24,15 +24,15 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-IMPL_MANIFEST.md` |
 | Current Checkpoint | `docs/06_REVIEWS/Route/F13_ROUTE_RANKING_REDESIGN_PLAN_CHECKPOINT_001.md` (binding locked scope for implementation) |
-| Current State | `ACTIVE / IMPLEMENTATION AUTHORIZED / NOT STARTED` |
-| Technical Status | `GOVERNANCE ONLY — design plan finalized and implementation ticket activated; no product code changed yet` |
-| Runtime Status | `NOT APPLICABLE (implementation not started)` |
+| Current State | `ACTIVE / IMPLEMENTED / READY FOR PO UI CHECK` |
+| Technical Status | `IMPLEMENTED — Route Ranking redesign (2-column layout, default sort Tỷ lệ đạt DESC, full column set incl. Chưa đánh giá, 4-card KPI row, Chỉ tuyến có bưu gửi không đạt filter, latest-valid-date default) landed per checkpoint-locked scope; oxlint clean, vite build passes, all Route Ranking-scoped tests pass (see checkpoint Section 10)` |
+| Runtime Status | `NOT YET BROWSER-VERIFIED — pending PO UI check` |
 | PO UI Check Required | `Yes — required before F13-ROUTE-RANKING-REDESIGN-IMPL can close` |
-| PO Product Status | `NOT STARTED` |
+| PO Product Status | `IMPLEMENTED, NOT YET PO-VERIFIED` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-ROUTE-RANKING-REDESIGN-PLAN_MANIFEST.md` |
 | Last Reviewed Phase | `F13-ROUTE-RANKING-REDESIGN-PLAN closure: PO approved design plan, CTO finalized implementation scope` |
 | Last Reviewed Commit | `bf0cfc605530b0f3e989ed50639a9316173f5a05` |
-| Phase Review Status | `F13-ROUTE-RANKING-REDESIGN-PLAN CLOSED / PO APPROVED / CTO FINALIZED; F13-ROUTE-RANKING-REDESIGN-IMPL ACTIVE / NOT STARTED` |
+| Phase Review Status | `F13-ROUTE-RANKING-REDESIGN-PLAN CLOSED / PO APPROVED / CTO FINALIZED; F13-ROUTE-RANKING-REDESIGN-IMPL IMPLEMENTED / READY FOR PO UI CHECK` |
 | Next Phase Authorization | `F13-ROUTE-RANKING-REDESIGN-IMPL is authorized for implementation strictly within the scope locked in the checkpoint (Section 3) and manifest Section 12 forbidden list. No other ticket (Dashboard, BCVH Ranking, Import, or any closed ticket) is authorized to be reopened or modified.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-03` |

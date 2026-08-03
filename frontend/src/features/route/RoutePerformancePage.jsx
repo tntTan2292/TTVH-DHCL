@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PageContainer, KPICard, SectionHeader, StatusBadge, LoadingState, ErrorState } from '../../components/shared/SharedComponents';
+import { PageContainer, KPICard, SectionHeader, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import f13DashboardClient from '../../api/F13DashboardClient';
-import RouteExecutiveBrief from './RouteExecutiveBrief';
-import RoutePriorityAnalysis from './RoutePriorityAnalysis';
-import RouteRootCause from './RouteRootCause';
-import RouteRecommendation from './RouteRecommendation';
-import RouteDrilldown from './RouteDrilldown';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
+import { toNumber, formatRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, resolveDefaultRouteDate } from './routeRankingCalculations';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -19,16 +15,23 @@ const ROUTE_BCVH_OPTIONS = [
   { value: '537220', label: 'BCVH Phú Lộc' },
 ];
 
-function toNumber(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+function classificationLabel(row) {
+  return row.is_postman_delivery_route ? 'Tuyến bưu tá' : 'Nhận tại bưu cục';
 }
 
-function formatRate(value) {
-  return `${toNumber(value).toFixed(1)}%`;
+function classificationBadgeClass(row) {
+  return row.is_postman_delivery_route ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-700';
 }
 
-function RouteRankingTable({ rows, selectedRouteId, onSelectRoute }) {
+const SORTABLE_COLUMNS = [
+  { key: 'total_bg', label: 'Tổng BG' },
+  { key: 'passed', label: 'Đạt' },
+  { key: 'failed', label: 'Không đạt' },
+  { key: 'unevaluated', label: 'Chưa đánh giá' },
+  { key: 'passed_rate', label: 'Tỷ lệ đạt' },
+];
+
+function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, onSort }) {
   if (!rows.length) {
     return (
       <div className="rounded-xl border border-[var(--color-surface-200)] bg-white p-6 text-sm text-[var(--color-text-muted)]">
@@ -46,10 +49,25 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute }) {
               <th className="px-4 py-3">XH</th>
               <th className="px-4 py-3">Mã tuyến</th>
               <th className="px-4 py-3">Tên tuyến</th>
-              <th className="px-4 py-3 text-right">Tổng BG</th>
-              <th className="px-4 py-3 text-right">Đạt</th>
-              <th className="px-4 py-3 text-right">Không đạt</th>
-              <th className="px-4 py-3 text-right">Tỷ lệ đạt</th>
+              {SORTABLE_COLUMNS.map((column) => {
+                const isActive = sortState.key === column.key;
+                const arrow = isActive ? (sortState.dir === 'asc' ? '▲' : '▼') : '';
+                return (
+                  <th key={column.key} className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => onSort(column.key)}
+                      aria-sort={isActive ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      className={`inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide ${
+                        isActive ? 'text-[var(--color-primary-700)]' : 'text-[var(--color-text-muted)]'
+                      }`}
+                    >
+                      {column.label}
+                      {arrow ? <span aria-hidden="true">{arrow}</span> : null}
+                    </button>
+                  </th>
+                );
+              })}
               <th className="px-4 py-3">Phân loại</th>
             </tr>
           </thead>
@@ -73,10 +91,11 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute }) {
                   <td className="px-4 py-3 text-right font-mono">{toNumber(row.total_bg).toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right font-mono text-green-700">{toNumber(row.passed).toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right font-mono text-red-600">{toNumber(row.failed ?? row.total_failed).toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-right font-mono">{toNumber(row.unevaluated).toLocaleString('vi-VN')}</td>
                   <td className="px-4 py-3 text-right font-semibold">{formatRate(row.passed_rate)}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${row.is_postman_delivery_route ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-700'}`}>
-                      {row.is_postman_delivery_route ? 'Tuyến bưu tá' : 'Nhận tại bưu cục'}
+                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${classificationBadgeClass(row)}`}>
+                      {classificationLabel(row)}
                     </span>
                   </td>
                 </tr>
@@ -89,16 +108,83 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute }) {
   );
 }
 
+function RouteSelectedPanel({ route, bcvhName, fromDate }) {
+  if (!route) {
+    return (
+      <EmptyState
+        title="Chưa chọn tuyến"
+        description="Chọn một tuyến trong bảng bên trái để xem chi tiết."
+      />
+    );
+  }
+
+  const totalBg = toNumber(route.total_bg);
+  const passed = toNumber(route.passed);
+  const failed = toNumber(route.failed ?? route.total_failed);
+  const unevaluated = toNumber(route.unevaluated);
+
+  return (
+    <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Tuyến đang chọn</p>
+        <p className="mt-1 text-lg font-bold text-[var(--color-text-main)]">{route.name || route.ten_tuyen || route.ma_tuyen}</p>
+        <p className="font-mono text-xs text-[var(--color-text-muted)]">{route.code || route.ma_tuyen}</p>
+      </div>
+
+      <span className={`inline-flex w-fit rounded-full px-2 py-1 text-xs font-semibold ${classificationBadgeClass(route)}`}>
+        {classificationLabel(route)}
+      </span>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
+          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Tổng BG</p>
+          <p className="mt-1 text-xl font-bold text-[var(--color-text-main)]">{totalBg.toLocaleString('vi-VN')}</p>
+        </div>
+        <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
+          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Tỷ lệ đạt</p>
+          <p className="mt-1 text-xl font-bold text-[var(--color-text-main)]">{formatRate(route.passed_rate)}</p>
+        </div>
+        <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
+          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Đạt</p>
+          <p className="mt-1 text-lg font-semibold text-green-700">{passed.toLocaleString('vi-VN')}</p>
+        </div>
+        <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
+          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Không đạt</p>
+          <p className="mt-1 text-lg font-semibold text-red-600">{failed.toLocaleString('vi-VN')}</p>
+        </div>
+      </div>
+
+      <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
+        <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Chưa đánh giá</p>
+        <p className="mt-1 text-lg font-semibold text-[var(--color-text-main)]">
+          {unevaluated.toLocaleString('vi-VN')} / {totalBg.toLocaleString('vi-VN')} BG
+        </p>
+        {unevaluated > 0 ? (
+          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+            Số bưu gửi chưa có kết quả đánh giá — không dùng số này để kết luận chất lượng tuyến.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="border-t border-[var(--color-surface-200)] pt-3 text-xs text-[var(--color-text-muted)]">
+        Ngày dữ liệu: {fromDate || 'N/A'} · BCVH: {bcvhName}
+      </div>
+    </div>
+  );
+}
+
 export default function RoutePerformancePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [rows, setRows] = useState([]);
-  const [meta, setMeta] = useState({});
   const [selectedRouteId, setSelectedRouteId] = useState('');
+  const [sortState, setSortState] = useState({ key: 'passed_rate', dir: 'desc' });
+  const [metaMaxDate, setMetaMaxDate] = useState(null);
+  const [metaStatus, setMetaStatus] = useState('loading');
 
-  const fromDate = searchParams.get('from_date') || '2026-06-23';
-  const toDate = searchParams.get('to_date') || '2026-06-23';
+  const fromDateParam = searchParams.get('from_date') || '';
+  const toDateParam = searchParams.get('to_date') || '';
   const interval = searchParams.get('interval') || 'daily';
   const bcvhId = searchParams.get('bcvh_id') || '533140';
   const bcvhName = searchParams.get('bcvh_name') || 'BCVH Thuận Hóa';
@@ -106,6 +192,10 @@ export default function RoutePerformancePage() {
   const sort = searchParams.get('sort') || 'passed_rate';
   const order = searchParams.get('order') || 'asc';
   const routeType = normalizeRouteTypeFilter(searchParams.get('route_type') || DEFAULT_ROUTE_TYPE_FILTER);
+  const onlyFailed = searchParams.get('only_failed') === '1';
+
+  const fromDate = resolveDefaultRouteDate({ param: fromDateParam, metaMaxDate });
+  const toDate = resolveDefaultRouteDate({ param: toDateParam, metaMaxDate });
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);
@@ -119,6 +209,26 @@ export default function RoutePerformancePage() {
 
   useEffect(() => {
     let mounted = true;
+    const fetchMeta = async () => {
+      try {
+        const result = await f13DashboardClient.getDashboardMeta();
+        if (!mounted) return;
+        setMetaMaxDate(result?.data?.max_date || null);
+        setMetaStatus('ready');
+      } catch {
+        if (!mounted) return;
+        setMetaMaxDate(null);
+        setMetaStatus('error');
+      }
+    };
+    fetchMeta();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
     const fetchRoute = async () => {
       try {
         setStatus('loading');
@@ -126,7 +236,6 @@ export default function RoutePerformancePage() {
         const result = await f13DashboardClient.getRouteRanking(fromDate, bcvhId, 1, 1000, sort, order, routeType);
         if (!mounted) return;
         setRows(Array.isArray(result.data) ? result.data : []);
-        setMeta(result.meta || {});
         const firstSelectable = (Array.isArray(result.data) ? result.data : []).find((item) => item?.id || item?.ma_tuyen);
         setSelectedRouteId((prev) => prev || firstSelectable?.id || firstSelectable?.ma_tuyen || '');
         setStatus('success');
@@ -137,83 +246,78 @@ export default function RoutePerformancePage() {
       }
     };
 
-    if (fromDate && bcvhId) fetchRoute();
+    if (fromDate && bcvhId) {
+      fetchRoute();
+    } else if (!fromDateParam) {
+      if (metaStatus === 'error') {
+        setStatus('error');
+        setError({ message: 'Không thể xác định ngày dữ liệu hợp lệ mới nhất.' });
+      } else if (metaStatus === 'ready' && !metaMaxDate) {
+        setStatus('error');
+        setError({ message: 'Không có ngày dữ liệu hợp lệ trong hệ thống.' });
+      }
+    }
     return () => {
       mounted = false;
     };
-  }, [bcvhId, fromDate, order, routeType, sort]);
+  }, [bcvhId, fromDate, fromDateParam, order, routeType, sort, metaStatus, metaMaxDate]);
 
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
 
-  const filteredRows = useMemo(() => {
-    let list = [...rows];
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((item) => (item.name || item.ten_tuyen || item.code || '').toLowerCase().includes(q));
-    }
-    return list;
-  }, [rows, search]);
+  const handleSort = (key) => {
+    setSortState((prev) => (prev.key === key ? { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' }));
+  };
 
-  const visibleRows = useMemo(() => filteredRows.slice(0, 3), [filteredRows]);
+  const filteredRows = useMemo(
+    () => sortRouteRows(applyRouteFilters(rows, { search, onlyFailed }), sortState),
+    [rows, search, onlyFailed, sortState]
+  );
+
   const selectedRow = useMemo(() => {
     if (!filteredRows.length) return null;
     return filteredRows.find((item) => (item.id || item.ma_tuyen) === selectedRouteId) || filteredRows[0];
   }, [filteredRows, selectedRouteId]);
 
-  const summaryStats = useMemo(() => ([
-    { label: 'Route theo dõi', value: toNumber(meta?.pagination?.total_items || filteredRows.length || rows.length).toLocaleString('vi-VN'), delta: routeType === 'postman' ? 'Tuyến bưu tá' : 'Tất cả', tone: 'primary' },
-    { label: 'BCVH context', value: bcvhName, delta: bcvhId, tone: 'warning' },
-    { label: 'Interval', value: intervalLabel, delta: 'URL state', tone: 'success' },
-    { label: 'Search', value: search || 'N/A', delta: 'URL state', tone: 'danger' },
-  ]), [bcvhId, bcvhName, filteredRows.length, intervalLabel, meta?.pagination?.total_items, routeType, rows.length, search]);
+  const kpiStats = useMemo(() => computeRouteKpiStats(rows), [rows]);
 
-  const executiveContext = [
-    { label: 'BCVH', value: bcvhName },
-    { label: 'Interval', value: intervalLabel },
-    { label: 'Date Window', value: `${fromDate} → ${toDate}` },
-  ];
-  const impactItems = [
-    { label: 'Coverage', value: `Routes: ${filteredRows.length || rows.length}` },
-    { label: 'Selection', value: selectedRow?.name || selectedRow?.ten_tuyen || 'N/A' },
-  ];
-  const priorityItems = visibleRows.map((item) => ({
-    label: item.name || item.ten_tuyen || item.code || 'Route',
-    value: `${Number(item.passed_rate ?? item.kpi_2026 ?? 0).toFixed(1)}%`,
-  }));
-  const severityItems = [
-    { label: 'High', tone: 'red' },
-    { label: 'Medium', tone: 'amber' },
-    { label: 'Low', tone: 'green' },
-    { label: 'N/A', tone: 'neutral' },
-  ];
-  const rootCauseItems = [
-    `• Runtime rows loaded: ${rows.length}`,
-    `• Selected route: ${selectedRow ? (selectedRow.name || selectedRow.ten_tuyen) : 'N/A'}`,
-    '• No extra backend calculation introduced',
-  ];
-  const recommendationItems = [
-    { label: 'Ưu tiên xử lý', value: selectedRow ? (selectedRow.name || selectedRow.ten_tuyen) : 'Runtime recommendation placeholder' },
-    { label: 'Lý do', value: selectedRow ? `Based on runtime score ${Number(selectedRow.passed_rate ?? selectedRow.kpi_2026 ?? 0).toFixed(1)}%` : 'Runtime rationale unavailable' },
-  ];
-  const drilldownContext = [
-    `BCVH context: ${bcvhName}`,
-    `Route context: ${selectedRow ? (selectedRow.name || selectedRow.ten_tuyen) : 'N/A'}`,
-    `Date window: ${fromDate} → ${toDate}`,
-    `Route filter: ${routeType === 'postman' ? 'Tuyến bưu tá' : 'Tất cả'}`,
-    `Sort: ${sort}/${order}`,
+  const summaryStats = [
+    {
+      label: 'Tuyến phát sinh không đạt',
+      value: kpiStats.failedRouteCount.toLocaleString('vi-VN'),
+      delta: `/ ${kpiStats.totalRoutes.toLocaleString('vi-VN')} tuyến`,
+      tone: 'danger',
+    },
+    {
+      label: 'Tỷ lệ đạt toàn BCVH',
+      value: `${kpiStats.bcvhPassedRate.toFixed(1)}%`,
+      delta: bcvhName,
+      tone: 'primary',
+    },
+    {
+      label: 'Tổng BG không đạt',
+      value: kpiStats.totalFailed.toLocaleString('vi-VN'),
+      delta: intervalLabel,
+      tone: 'warning',
+    },
+    {
+      label: 'Tổng số tuyến',
+      value: kpiStats.totalRoutes.toLocaleString('vi-VN'),
+      delta: routeType === 'postman' ? 'Tuyến bưu tá' : 'Tất cả',
+      tone: 'success',
+    },
   ];
 
   if (status === 'loading') {
     return (
-      <PageContainer title="Route Performance Center" subtitle="Đang tải runtime-backed content cho Route.">
-        <LoadingState label="Đang tải dữ liệu Route runtime..." />
+      <PageContainer title="Route Performance Center" subtitle="Đang tải dữ liệu Tuyến Ranking.">
+        <LoadingState label="Đang tải dữ liệu Tuyến Ranking..." />
       </PageContainer>
     );
   }
 
   if (status === 'error') {
     return (
-      <PageContainer title="Route Performance Center" subtitle="Runtime-backed content chưa sẵn sàng.">
+      <PageContainer title="Route Performance Center" subtitle="Không thể tải dữ liệu Tuyến Ranking.">
         <ErrorState description={error?.message} />
       </PageContainer>
     );
@@ -222,12 +326,11 @@ export default function RoutePerformancePage() {
   return (
     <PageContainer
       title="Route Performance Center"
-      subtitle="Route runtime view theo kiến trúc đã Freeze."
+      subtitle="Xếp hạng tuyến theo tỷ lệ đạt, dùng để xác định tuyến phát sinh bưu gửi không đạt."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label="Route Runtime" tone="info" />
           <StatusBadge label={intervalLabel} tone="success" />
-          <StatusBadge label="Shared Layout Ready" tone="neutral" />
+          <StatusBadge label={`Ngày dữ liệu: ${fromDate}`} tone="info" />
         </div>
       }
     >
@@ -261,8 +364,16 @@ export default function RoutePerformancePage() {
                   </button>
                 ))}
               </div>
+              <label className="inline-flex items-center gap-2 rounded-md border border-[var(--color-surface-200)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)]">
+                <input
+                  type="checkbox"
+                  checked={onlyFailed}
+                  onChange={(e) => updateParam('only_failed', e.target.checked ? '1' : '')}
+                  className="h-3.5 w-3.5"
+                />
+                Chỉ tuyến có bưu gửi không đạt
+              </label>
               <StatusBadge label={ROUTE_BCVH_OPTIONS.find((item) => item.value === bcvhId)?.label || bcvhName} tone="info" />
-              <StatusBadge label={intervalLabel} tone="neutral" />
             </div>
           }
         />
@@ -273,38 +384,25 @@ export default function RoutePerformancePage() {
           ))}
         </div>
 
-        <SectionHeader title="Bảng Tuyến Ranking" subtitle="Danh sách tuyến runtime theo bộ lọc đang chọn." />
-        <RouteRankingTable
-          rows={filteredRows}
-          selectedRouteId={selectedRouteId}
-          onSelectRoute={setSelectedRouteId}
+        <SectionHeader
+          title="Bảng Tuyến Ranking"
+          subtitle="Danh sách tuyến runtime theo bộ lọc đang chọn, mặc định sắp xếp theo Tỷ lệ đạt giảm dần."
         />
 
-        <SectionHeader title="Executive Brief Area" subtitle="Khối executive mở đầu cho Route Performance Center." />
-        <RouteExecutiveBrief
-          fromDate={fromDate}
-          toDate={toDate}
-          bcvhName={bcvhName}
-          executiveContext={executiveContext}
-          impactItems={impactItems}
-        />
-
-        <SectionHeader title="Priority Analysis Area" subtitle="Khối ưu tiên tuyến cần điều hành trước." />
-        <RoutePriorityAnalysis priorityItems={priorityItems} severityItems={severityItems} />
-
-        <SectionHeader title="Root Cause Area" subtitle="Khối truy vết nguyên nhân và pattern theo tuyến." />
-        <RouteRootCause rootCauseItems={rootCauseItems} trendLabel={`Route trend window: ${fromDate} → ${toDate}`} />
-
-        <SectionHeader title="Recommendation Area" subtitle="Khối khuyến nghị và điều hướng xuống Shipment." />
-        <RouteRecommendation
-          recommendationItems={recommendationItems}
-          drilldownLabel="Mở Shipment Performance Center"
-        />
-
-        <SectionHeader title="Shipment Drill-down Area" subtitle="Khu điều hướng sang Shipment Performance Center." />
-        <RouteDrilldown
-          drilldownContext={drilldownContext}
-        />
+        <div className="grid grid-cols-1 gap-5 min-[1200px]:grid-cols-12">
+          <div className="min-[1200px]:col-span-8">
+            <RouteRankingTable
+              rows={filteredRows}
+              selectedRouteId={selectedRouteId}
+              onSelectRoute={setSelectedRouteId}
+              sortState={sortState}
+              onSort={handleSort}
+            />
+          </div>
+          <div className="min-[1200px]:col-span-4">
+            <RouteSelectedPanel route={selectedRow} bcvhName={bcvhName} fromDate={fromDate} />
+          </div>
+        </div>
       </div>
     </PageContainer>
   );
