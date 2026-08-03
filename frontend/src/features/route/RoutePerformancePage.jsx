@@ -255,6 +255,18 @@ export default function RoutePerformancePage() {
     setSearchParams(params);
   };
 
+  const updateBcvhParam = (value) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('ma_bcvh');
+    if (value === undefined || value === null || value === '' || value === 'all') {
+      params.delete('bcvh_id');
+    } else {
+      params.set('bcvh_id', value);
+    }
+    setSearchParams(params);
+  };
+
+
   const [bcvhOptions, setBcvhOptions] = useState(ROUTE_BCVH_OPTIONS);
 
   useEffect(() => {
@@ -400,7 +412,7 @@ export default function RoutePerformancePage() {
           onFromDateChange={(value) => updateParam('from_date', value)}
           onToDateChange={(value) => updateParam('to_date', value)}
           bcvhValue={bcvhId}
-          onBcvhChange={(value) => updateParam('bcvh_id', value)}
+          onBcvhChange={(value) => updateBcvhParam(value)}
           bcvhOptions={bcvhOptions}
           searchValue={search}
           onSearchChange={(value) => updateParam('search', value)}

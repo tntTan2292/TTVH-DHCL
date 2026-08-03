@@ -109,6 +109,18 @@ export default function BcvhRankingPage() {
     setSearchParams(next);
   };
 
+  const updateBcvhParam = (value) => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('ma_bcvh');
+    if (value === undefined || value === null || value === '' || value === 'all') {
+      next.delete('bcvh_id');
+    } else {
+      next.set('bcvh_id', value);
+    }
+    setSearchParams(next);
+  };
+
+
 
   useEffect(() => {
     let active = true;
@@ -259,7 +271,7 @@ export default function BcvhRankingPage() {
           onToDateChange={(value) => updateParam('to_date', value)}
           showKpiFilter={false}
           bcvhValue={maBcvh}
-          onBcvhChange={(value) => updateParam('ma_bcvh', value)}
+          onBcvhChange={(value) => updateBcvhParam(value)}
           bcvhOptions={metaState.options}
           bcvhDisabled={metaState.status !== 'success'}
           searchValue={search}

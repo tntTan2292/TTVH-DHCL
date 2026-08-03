@@ -254,6 +254,17 @@ export default function DashboardPage() {
     setSearchParams(params);
   };
 
+  const updateBcvhParam = (value) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('ma_bcvh');
+    if (value === undefined || value === null || value === '' || value === 'all') {
+      params.delete('bcvh_id');
+    } else {
+      params.set('bcvh_id', value);
+    }
+    setSearchParams(params);
+  };
+
   const selectedBcvhLabel = metadataState.bcvhOptions.find((option) => option.value === maBcvh)?.label
     || (maBcvh === 'all' ? 'Toàn mạng' : 'Theo BCVH');
 
@@ -283,7 +294,7 @@ export default function DashboardPage() {
           onToDateChange={(value) => updateParam('to_date', value)}
           showKpiFilter={false}
           bcvhValue={maBcvh}
-          onBcvhChange={(value) => updateParam('ma_bcvh', value)}
+          onBcvhChange={(value) => updateBcvhParam(value)}
           bcvhOptions={metadataState.bcvhOptions}
           bcvhDisabled={metadataState.status !== 'success'}
           searchValue={search}
