@@ -19,6 +19,7 @@ import SystemInformation from './pages/SystemInformation';
 import DashboardPage from './features/dashboard/DashboardPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
+import RouteViolationEvidencePage from './features/route/RouteViolationEvidencePage';
 import ShipmentPerformancePage from './features/shipment/ShipmentPerformancePage';
 import { PlaceholderPage } from './components/common/Containers';
 import { ErrorLayout } from './components/common/StateLayouts';
@@ -79,6 +80,7 @@ function App() {
               <Route path="dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><DashboardPage /></ProtectedRoute>} />
               <Route path="ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><BcvhRankingPage /></ProtectedRoute>} />
               <Route path="ranking/route" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><RoutePerformancePage /></ProtectedRoute>} />
+              <Route path="ranking/route/violations" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><RouteViolationEvidencePage /></ProtectedRoute>} />
               <Route path="ranking/shipment" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><ShipmentPerformancePage /></ProtectedRoute>} />
               <Route path="pareto" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Pareto / RCA" /></ProtectedRoute>} />
               <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Evidence List" /></ProtectedRoute>} />

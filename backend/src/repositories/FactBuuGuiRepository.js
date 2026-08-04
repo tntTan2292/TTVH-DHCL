@@ -226,9 +226,10 @@ class FactBuuGuiRepository {
             const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
             const sqlData = `
-                SELECT 
-                    ma_tuyen, 
+                SELECT
+                    ma_tuyen,
                     MAX(ten_tuyen) as ten_tuyen,
+                    MAX(ten_bcvh) as ten_bcvh,
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
                     SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed,

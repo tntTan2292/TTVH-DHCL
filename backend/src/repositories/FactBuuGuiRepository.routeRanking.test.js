@@ -27,6 +27,7 @@ test('route ranking SQL selects total_returned additively and keeps the Hue/post
 
     assert.equal(observedDataSql.length, 1);
     assert.match(observedDataSql[0], /total_returned/);
+    assert.match(observedDataSql[0], /MAX\(ten_bcvh\) as ten_bcvh/);
     assert.match(observedDataSql[0], /ma_tuyen LIKE '53%'/);
     assert.match(observedDataSql[0], /GROUP BY ma_tuyen/);
     assert.equal(result.data[0].total_returned, 84);

@@ -36,6 +36,16 @@ class F13DashboardService {
         return Number(((part / total) * 100).toFixed(1));
     }
 
+    // Dimensional classification of "Không đạt" volume into the two categories the
+    // existing data can support (delayed cash handover vs. everything else). This is
+    // NOT root-cause analysis — no reason/cause field exists in fact_f13.
+    _resolvePrimaryViolationReason(totalFailed, delayedCashCount) {
+        if (!totalFailed || totalFailed <= 0) return null;
+        const otherFailed = Math.max(0, totalFailed - delayedCashCount);
+        if (delayedCashCount > otherFailed) return 'Chậm nộp tiền';
+        return 'Không đạt khác (chưa phân loại nguyên nhân)';
+    }
+
     _isIsoDate(value) {
         if (typeof value !== 'string') return false;
         if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -1012,12 +1022,21 @@ class F13DashboardService {
             const { summaryMap: delayedCashByRoute } = this._buildF13302SummaryMap(routeFacts, 'ma_tuyen');
             const delayedCashAggregate = this._buildF13302AggregateSummary(routeFacts);
 
-            const mappedData = result.data.map(item => ({
+            const mappedData = result.data.map(item => {
+                const delayedCashCount = delayedCashByRoute[item.ma_tuyen]?.delayed_cash_handover_count ?? 0;
+                return {
+                date: date,
+                ma_bcvh: bcvh,
+                ten_bcvh: item.ten_bcvh,
                 ma_tuyen: item.ma_tuyen,
                 id: item.ma_tuyen,
                 code: item.ma_tuyen,
                 ten_tuyen: item.ten_tuyen,
                 name: item.ten_tuyen || item.ma_tuyen,
+                // No courier/postman field exists anywhere in fact_f13 (confirmed by database
+                // audit, F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT MD-02/OPP-16) — reported as an
+                // explicit unavailable value rather than fabricated.
+                buu_ta: null,
                 total_bg: item.total_bg,
                 passed: item.total_passed,
                 passed_rate: this._calculateRate(item.total_passed, item.total_bg),
@@ -1025,10 +1044,19 @@ class F13DashboardService {
                 failed: item.total_failed,
                 returned: item.total_returned ?? 0,
                 ...classifyRoute(item.ma_tuyen),
-                delayed_cash_handover_count: delayedCashByRoute[item.ma_tuyen]?.delayed_cash_handover_count ?? 0,
+                delayed_cash_handover_count: delayedCashCount,
                 delayed_cash_handover_eligible_count: delayedCashByRoute[item.ma_tuyen]?.delayed_cash_handover_eligible_count ?? 0,
                 f13_303_rate: delayedCashByRoute[item.ma_tuyen]?.delayed_cash_handover_rate ?? 0,
-            }));
+                // Dimensional classification only — NOT root-cause analysis (no reason/cause
+                // field exists in fact_f13; F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT MD-03/OPP-17).
+                // Groups "Không đạt" volume into the two categories the data can actually support.
+                primary_violation_reason: this._resolvePrimaryViolationReason(item.total_failed, delayedCashCount),
+                violation_breakdown: {
+                    delayed_cash_handover_count: delayedCashCount,
+                    other_failed_count: Math.max(0, item.total_failed - delayedCashCount),
+                },
+                };
+            });
 
             return {
                 data: mappedData,
@@ -1111,13 +1139,15 @@ class F13DashboardService {
             const result = await factBuuGuiRepo.getEvidenceList(date, bcvh, route, page, pageSize);
             
             const mappedData = result.data.map(item => {
-                let do_tre_gio = 0;
                 // Khối tính độ trễ này thuộc phạm vi trình bày số liệu cơ bản,
                 // Rule xác định > 3h mới là nhiệm vụ của Engine.
+                // A missing or unparseable timestamp must report null (unavailable),
+                // never a fabricated "0 hours delay".
+                let do_tre_gio = null;
                 const ptc = parseF13Timestamp(item.thoi_gian_ptc);
                 const nop = parseF13Timestamp(item.thoi_gian_nop_tien);
                 if (ptc && nop) {
-                    do_tre_gio = (nop - ptc) / (1000 * 60 * 60);
+                    do_tre_gio = Number(((nop - ptc) / (1000 * 60 * 60)).toFixed(2));
                 }
 
                 return {
@@ -1125,7 +1155,7 @@ class F13DashboardService {
                     thoi_gian_ptc: item.thoi_gian_ptc,
                     thoi_gian_nop_tien: item.thoi_gian_nop_tien,
                     danh_gia_2026: item.danh_gia_2026,
-                    do_tre_gio: Number(do_tre_gio.toFixed(2))
+                    do_tre_gio
                 };
             });
 

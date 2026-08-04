@@ -33,7 +33,9 @@ test('getEvidenceList passes through danh_gia_2026 and computes do_tre_gio from 
     }
 });
 
-test('getEvidenceList degrades to zero delay instead of NaN when a timestamp is unparseable', async () => {
+// Route Ranking drill-down requirement: a missing/unparseable handover timestamp must
+// report null (unavailable), never a fabricated "0 hours delay".
+test('getEvidenceList reports null delay (not 0, not NaN) when a timestamp is unparseable', async () => {
     const original = repo.getEvidenceList;
 
     repo.getEvidenceList = async () => ({
@@ -52,8 +54,32 @@ test('getEvidenceList degrades to zero delay instead of NaN when a timestamp is 
         const result = await service.getEvidenceList('2026-06-14', '533140', '53001', 1, 20);
         const [row] = result.data;
 
-        assert.equal(Number.isNaN(row.do_tre_gio), false);
-        assert.equal(row.do_tre_gio, 0);
+        assert.equal(row.do_tre_gio, null);
+    } finally {
+        repo.getEvidenceList = original;
+    }
+});
+
+test('getEvidenceList reports null delay when the handover timestamp is missing entirely', async () => {
+    const original = repo.getEvidenceList;
+
+    repo.getEvidenceList = async () => ({
+        totalItems: 1,
+        data: [
+            {
+                ma_bg: 'BG003',
+                thoi_gian_ptc: '14/06/2026 09:00:00',
+                thoi_gian_nop_tien: null,
+                danh_gia_2026: 'Không đạt',
+            },
+        ],
+    });
+
+    try {
+        const result = await service.getEvidenceList('2026-06-14', '533140', '53001', 1, 20);
+        const [row] = result.data;
+
+        assert.equal(row.do_tre_gio, null);
     } finally {
         repo.getEvidenceList = original;
     }

@@ -24,7 +24,9 @@ test('Route Performance page sends default postman filter and can switch to all 
 
   assert.match(pageSource, /DEFAULT_ROUTE_TYPE_FILTER/);
   assert.match(pageSource, /searchParams\.get\('route_type'\)/);
-  assert.match(pageSource, /getRouteRanking\(fromDate, bcvhId, 1, 1000, sort, order, routeType\)/);
+  // Bug fix (Tuyến Ranking date/BCVH parameter mismatch): the query date now resolves from
+  // `analysisDate` (to_date-first, matching Dashboard/BCVH Ranking), not the raw `fromDate`.
+  assert.match(pageSource, /getRouteRanking\(analysisDate, bcvhId, 1, 1000, sort, order, routeType\)/);
   assert.match(pageSource, /function RouteRankingTable/);
   assert.match(pageSource, /data-testid="route-ranking-table"/);
   assert.match(pageSource, /rows=\{filteredRows\}/);

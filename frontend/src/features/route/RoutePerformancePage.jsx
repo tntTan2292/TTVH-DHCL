@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { PageContainer, KPICard, SectionHeader, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import f13DashboardClient from '../../api/F13DashboardClient';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
 import { toNumber, formatRate, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, computeDelayedCashWidget, resolveDefaultRouteDate } from './routeRankingCalculations';
+import { buildViolationEvidenceLink } from './routeViolationEvidenceData';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -132,7 +133,7 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, on
   );
 }
 
-function RouteSelectedPanel({ route, bcvhName, fromDate }) {
+function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }) {
   if (!route) {
     return (
       <EmptyState
@@ -141,6 +142,15 @@ function RouteSelectedPanel({ route, bcvhName, fromDate }) {
       />
     );
   }
+
+  const violationLink = buildViolationEvidenceLink({
+    analysisDate: fromDate,
+    bcvhId,
+    bcvhName,
+    routeId: route.id || route.ma_tuyen,
+    routeName: route.name || route.ten_tuyen || route.ma_tuyen,
+    currentSearch,
+  });
 
   const totalBg = toNumber(route.total_bg);
   const passed = toNumber(route.passed);
@@ -213,6 +223,13 @@ function RouteSelectedPanel({ route, bcvhName, fromDate }) {
         </p>
       </div>
 
+      <Link
+        to={violationLink}
+        className="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)]"
+      >
+        Xem bưu gửi vi phạm
+      </Link>
+
       <div className="border-t border-[var(--color-surface-200)] pt-3 text-xs text-[var(--color-text-muted)]">
         Ngày dữ liệu: {fromDate || 'N/A'} · BCVH: {bcvhName}
       </div>
@@ -244,6 +261,11 @@ export default function RoutePerformancePage() {
 
   const fromDate = resolveDefaultRouteDate({ param: fromDateParam, metaMaxDate });
   const toDate = resolveDefaultRouteDate({ param: toDateParam, metaMaxDate });
+  // Dashboard and BCVH Ranking both treat `to_date` as the authoritative single analysis
+  // date (their own queries ignore `from_date`). Route Ranking must resolve the same way
+  // so drill-down links from those screens land on the date the user was actually viewing,
+  // instead of silently falling back to `from_date`, which may be stale or unset.
+  const analysisDate = resolveDefaultRouteDate({ param: toDateParam || fromDateParam, metaMaxDate });
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);
@@ -302,7 +324,7 @@ export default function RoutePerformancePage() {
       try {
         setStatus('loading');
         setError(null);
-        const result = await f13DashboardClient.getRouteRanking(fromDate, bcvhId, 1, 1000, sort, order, routeType);
+        const result = await f13DashboardClient.getRouteRanking(analysisDate, bcvhId, 1, 1000, sort, order, routeType);
         if (!mounted) return;
         setRows(Array.isArray(result.data) ? result.data : []);
         setMeta(result.meta || null);
@@ -316,9 +338,9 @@ export default function RoutePerformancePage() {
       }
     };
 
-    if (fromDate && bcvhId) {
+    if (analysisDate && bcvhId) {
       fetchRoute();
-    } else if (!fromDateParam) {
+    } else if (!fromDateParam && !toDateParam) {
       if (metaStatus === 'error') {
         setStatus('error');
         setError({ message: 'Không thể xác định ngày dữ liệu hợp lệ mới nhất.' });
@@ -330,7 +352,7 @@ export default function RoutePerformancePage() {
     return () => {
       mounted = false;
     };
-  }, [bcvhId, fromDate, fromDateParam, order, routeType, sort, metaStatus, metaMaxDate]);
+  }, [bcvhId, analysisDate, fromDateParam, toDateParam, order, routeType, sort, metaStatus, metaMaxDate]);
 
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
 
@@ -401,7 +423,7 @@ export default function RoutePerformancePage() {
       action={
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge label={intervalLabel} tone="success" />
-          <StatusBadge label={`Ngày dữ liệu: ${fromDate}`} tone="info" />
+          <StatusBadge label={`Ngày dữ liệu: ${analysisDate}`} tone="info" />
         </div>
       }
     >
@@ -471,7 +493,13 @@ export default function RoutePerformancePage() {
             />
           </div>
           <div className="min-[1200px]:col-span-4">
-            <RouteSelectedPanel route={selectedRow} bcvhName={bcvhName} fromDate={fromDate} />
+            <RouteSelectedPanel
+              route={selectedRow}
+              bcvhId={bcvhId}
+              bcvhName={bcvhName}
+              fromDate={analysisDate}
+              currentSearch={searchParams.toString()}
+            />
           </div>
         </div>
       </div>
