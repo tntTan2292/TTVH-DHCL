@@ -135,19 +135,25 @@ The lightweight onboarding route is:
 
 ↓
 
-No Current Manifest — `Current Ticket = None` in `PROJECT_SNAPSHOT.md`
+Current Manifest — `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` (`Current Ticket = NETWORK-MANAGEMENT-001` in `PROJECT_SNAPSHOT.md`)
 
 ↓
 
-Await Product Owner direction before activating any next ticket
+Current Checkpoint — `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md`
+
+↓
+
+Begin `NETWORK-MANAGEMENT-001` Phase 1 (Nền tảng) implementation; do not begin Phase 2/3/4 until the prior phase closes
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: no active ticket. The `F13-STANDARDIZATION-001` program's Tuyến Ranking (Route Ranking) delta closed on `2026-08-04` with explicit Product Owner `PO PASS` (latest implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`) — pagination `10 tuyến/trang`, ascending `passed_rate` default sort, page navigation, and reconciliation table all confirmed correct at runtime. This closure covers only Tuyến Ranking and its violation drill-down; the program's Phase 0 (implemented, not separately closed) and Phase 1-4 (not started) remain open, not closed by this. See `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 16 for the full closure record.
+Current active handoff: active ticket is `NETWORK-MANAGEMENT-001` (Quản lý mạng lưới), `ACTIVE / AUTHORIZED / READY FOR PHASE 1 IMPLEMENTATION` as of `2026-08-04`. Product Owner authorized a locked four-phase plan (Phase 1 Nền tảng, Phase 2 Ba bản đồ, Phase 3 Import, Phase 4 Nghiệm thu) for three independent screens — Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát — to become SQLite-backed, authenticated QIS V2 modules (`admin`+`viewer` read; `admin`-only Import with preview/duplicate-detection/fingerprint/history). Only Phase 1 is `AUTHORIZED / READY FOR IMPLEMENTATION`. The Product Owner-confirmed baseline is locked in the manifest and must not be re-audited: Mạng điểm phục vụ 151 mã điểm (260 rows audited, 109 `Tạm dừng` excluded); Mạng đường thư cấp 2 28 hành trình / 148 lượt dừng / 47 mã điểm / 1.435 km (temporary HTML seed, no business Excel yet); Sơ đồ tuyến phát 143,467 điểm (PO-audited tháng 06/2026 Excel, audited outside this repository, file to be supplied when Phase 3 needs it). This activation is documentation-only — no product code, schema, or database was changed. See `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` for the full record.
+
+Separately, the prior `F13-STANDARDIZATION-001` program's Tuyến Ranking (Route Ranking) delta closed on `2026-08-04` with explicit Product Owner `PO PASS` (latest implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`) — pagination `10 tuyến/trang`, ascending `passed_rate` default sort, page navigation, and reconciliation table all confirmed correct at runtime. This closure covers only Tuyến Ranking and its violation drill-down; the program's Phase 0 (implemented, not separately closed) and Phase 1-4 (not started) remain open, not closed by this, and unrelated to `NETWORK-MANAGEMENT-001`. See `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 16 for the full closure record.
 
 `F13-DATA-2098-CLEANUP-IMPL` is `COMPLETED / TECHNICAL PASS / CLOSED` as of `2026-08-04` (CTO review; reviewed implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`). Year-2098 test/future data was permanently removed: 4 `fact_f13` rows and 4 `import_log` rows deleted, zero 2098 rows and zero `BCVH TEST` rows remain, 2026 unchanged at 663,126 rows / 213 days, and the authoritative `danh_gia_2026` KPI remains `58.6233%`. The pre-cleanup backup is retained and must not be deleted. `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` is `CLOSED — PO DECISIONS RECORDED` as of the same date; `danh_gia_2026` is the authoritative F1.3 result field.
 
-The repository awaits explicit Product Owner direction before opening any next scope. Next-direction candidates are recorded in `PROJECT_SNAPSHOT.md` as candidates only and must not be self-activated.
+Next-direction candidates for the closed-out `F13-STANDARDIZATION-001` program are recorded in `PROJECT_SNAPSHOT.md` as candidates only and must not be self-activated; they are unrelated to the now-active `NETWORK-MANAGEMENT-001` ticket.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

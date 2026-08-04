@@ -1,0 +1,173 @@
+# NETWORK-MANAGEMENT-001 — MANIFEST
+
+## Table of Contents
+
+- [1. Ticket Information](#1-ticket-information)
+- [2. Objective](#2-objective)
+- [3. Current Status](#3-current-status)
+- [4. Required Reading](#4-required-reading)
+- [5. Business Context](#5-business-context)
+- [6. Program Structure — Four Phases](#6-program-structure--four-phases)
+- [7. Locked Baseline (PO-Confirmed)](#7-locked-baseline-po-confirmed)
+- [8. Locked Product Decisions](#8-locked-product-decisions)
+- [9. Locked Out Of Scope](#9-locked-out-of-scope)
+- [10. Executor Plan](#10-executor-plan)
+- [11. PO Gates](#11-po-gates)
+- [12. Documents To Update](#12-documents-to-update)
+- [13. Validation](#13-validation)
+- [14. Next Ticket](#14-next-ticket)
+- [15. Authority Escalation](#15-authority-escalation)
+
+## 1. Ticket Information
+
+- Ticket ID: `NETWORK-MANAGEMENT-001`
+- Ticket Name: Quản lý mạng lưới (Network Management) — Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát
+- Phase: Governance activation (documentation-only). Phase 1 (Nền tảng) is `AUTHORIZED / READY FOR IMPLEMENTATION`; Phases 2-4 remain `PLANNED / NOT ACTIVE`.
+- Owner: Claude Code (implementation, backend, data, tests, documentation, Git per `DEC-020`)
+- Governance Version: `V2 Active`
+- Authorization: Product Owner, `2026-08-04` — explicit activation request naming `NETWORK-MANAGEMENT-001` and locking scope/baseline per the four-phase structure below
+
+## 2. Objective
+
+Activate a single four-phase program to bring three independent map-based screens (Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát — currently three standalone, unauthenticated HTML files with embedded business data) into QIS V2 as SQLite-backed, authenticated modules, under one program ticket, with only Phase 1 (Nền tảng) authorized for implementation and Phases 2-4 held as planned/not active until each prior phase closes.
+
+## 3. Current Status
+
+- Current state: `ACTIVE / AUTHORIZED / READY FOR PHASE 1 IMPLEMENTATION`, as of `2026-08-04`.
+- Phase 1 (Nền tảng): `AUTHORIZED / READY FOR IMPLEMENTATION`; no implementation performed under this governance-activation step.
+- Phase 2 (Ba bản đồ): `PLANNED / NOT ACTIVE`.
+- Phase 3 (Import): `PLANNED / NOT ACTIVE`.
+- Phase 4 (Nghiệm thu): `PLANNED / NOT ACTIVE`.
+- PO UI Check Required: `Yes`, at Phase 4 (final acceptance) at minimum; Antigravity/PO may also runtime-check each screen as Phase 2 delivers it.
+- PO Product Status: not yet applicable — no product code implemented under this ticket yet.
+
+## 4. Required Reading
+
+- `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` — current checkpoint; self-contained
+- `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` — live state
+- Source files referenced by this ticket (read-only, not modified by this activation):
+  - `Ban_do_mang_diem_phuc_vu_BDTP_Hue.html` (Mạng điểm phục vụ reference UX/legend)
+  - `Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html` (Mạng đường thư cấp 2 reference UX + embedded `MAIL_ROUTES` baseline data)
+  - `ban_do_duong_giao_thong_bcvh_postman_06_2026.html` (Sơ đồ tuyến phát reference UX, filter pattern: Ngày → BCVH → Bưu tá)
+- `backend/src/db/schema.sql`, `backend/src/middleware/authMiddleware.js`, `backend/src/routes/f13Routes.js`, `backend/src/services/importPipeline.js`, `backend/src/services/importProcessor.js` — existing conventions for auth, SQLite schema, and import pipeline to be reused/extended in Phase 1 onward.
+- `frontend/src/navigation/appNavigation.jsx`, `frontend/src/auth/roles.js`, `frontend/src/auth/AuthContext.jsx` — existing role-gated navigation/auth conventions.
+
+## 5. Business Context
+
+- Business problem: three network-management maps exist today only as standalone HTML files carrying embedded business data (points, routes, delivery records) with no authentication, no database, and no import governance. This is a data-exposure and data-integrity risk and blocks any controlled update workflow.
+- Business impact: bringing these three screens into QIS V2 as authenticated, SQLite-backed modules with a governed Excel import workflow (preview, error/duplicate detection, file fingerprint, history, no accidental re-import) lets admin maintain network data safely while viewer retains read access, matching the access model already used elsewhere in QIS V2.
+- Approved business rule constraints: this governance-activation step is documentation-only. It creates the ticket package and locks the four-phase plan and the PO-confirmed baseline; it must not implement, modify product code, modify the database, or perform any Phase 1 work.
+
+## 6. Program Structure — Four Phases
+
+### PHASE 1 — Nền tảng (`AUTHORIZED / READY FOR IMPLEMENTATION`)
+
+- Establish SQLite schema for the three independent modules (no required data linkage between them).
+- Establish authenticated API foundation: `admin` + `viewer` read access; `admin`-only Import, enforced at both API and UI.
+- Reuse existing `requireAuth` / `requireRole` middleware pattern (`backend/src/middleware/authMiddleware.js`).
+- Not implemented under this documentation-only ticket.
+
+### PHASE 2 — Ba bản đồ (`PLANNED / NOT ACTIVE`)
+
+- Build the three independent map screens (Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát), each opened directly from its own module entry, preserving the reference HTML files' core UX.
+- Sơ đồ tuyến phát must only query data after Ngày + BCVH + Bưu tá are all selected; must not bulk-load a full month into the browser.
+- Must not send bulk tuyến-phát coordinates to the public OSRM service.
+- No product/business data may be publicly exposed via static HTML; all data flows through authenticated API.
+
+### PHASE 3 — Import (`PLANNED / NOT ACTIVE`)
+
+- Excel import for each module (admin-only, both API and UI), each following its own PO-confirmed update rule (Section 7).
+- Import must include: preview before commit, error/duplicate detection, file fingerprint to block duplicate re-uploads, and persisted import history.
+- Sơ đồ tuyến phát import is sequential by month and must preserve existing (older-month) data — no destructive overwrite of prior months.
+
+### PHASE 4 — Nghiệm thu (`PLANNED / NOT ACTIVE`)
+
+- Cross-module regression: auth, role visibility (admin vs viewer), import correctness, no forbidden-scope drift into other modules.
+- Final PO acceptance across all three screens.
+- Governance update and program closure.
+
+## 7. Locked Baseline (PO-Confirmed)
+
+The following figures are Product Owner-confirmed audit results and are the locked scope baseline. Claude Code must not re-audit the underlying Excel files in this or any future execution step; source Excel files are not currently in the workspace/repository and must not be guessed at — they will be supplied by the Product Owner at the start of the phase that needs them.
+
+1. **Mạng điểm phục vụ**
+   - Audited Excel source: 260 rows.
+   - 109 rows excluded as `Tạm dừng`.
+   - Initialization baseline: 151 unique mã điểm.
+   - Implementation must receive the source file from the Product Owner to verify column mapping before import logic is built.
+
+2. **Mạng đường thư cấp 2**
+   - Initialization source: the existing reference HTML (`Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html`), used temporarily as the seed source.
+   - Baseline: 28 hành trình, 148 lượt dừng, 47 mã điểm, tổng cự ly 1.435 km.
+   - No business Excel source exists yet; when the Product Owner supplies one, it must be audited and Import mapping added as a follow-up within this ticket's Phase 3, not assumed now.
+
+3. **Sơ đồ tuyến phát**
+   - Excel tháng 06/2026 already audited outside this repository by the Product Owner.
+   - Baseline after prioritizing records with valid coordinates: 143,467 điểm.
+   - Import is sequential by month and must preserve prior months' data.
+   - Data must only be queried after Ngày + BCVH + Bưu tá are all selected.
+   - Implementation must receive the source Excel file back from the Product Owner; no substitute/sample data may be created.
+
+## 8. Locked Product Decisions
+
+1. Three screens are independent; no required data linkage between them in this program.
+2. SQLite + authenticated API for all three modules; no module may expose business data via static/public HTML.
+3. `admin` and `viewer` may both view; only `admin` may see and use Import, enforced at both UI and API layers.
+4. Import requires: preview, error/duplicate validation, file fingerprint, persisted history, and protection against duplicate re-ingestion.
+5. Sơ đồ tuyến phát import never discards prior months' data; it appends/extends month by month.
+6. Sơ đồ tuyến phát screen must not bulk-load a full month client-side; it queries only after all three filters (Ngày, BCVH, Bưu tá) are selected.
+7. No bulk transmission of tuyến-phát coordinates to the public OSRM service.
+8. No fabricated data, features, or scope expansion beyond what is named in this manifest.
+9. Only the Product Owner may change scope or bring a deferred item (e.g. Mạng đường thư cấp 2's business Excel source) back into scope.
+
+## 9. Locked Out Of Scope
+
+- Any product code implementation under this governance-activation step.
+- Any Excel re-audit by Claude Code in this ticket step; PO-confirmed figures in Section 7 are locked inputs, not to be independently re-derived.
+- Cross-module data linkage between the three screens.
+- Bulk OSRM routing calls for Sơ đồ tuyến phát.
+- Any module outside Quản lý mạng lưới's three named screens.
+- Business Excel source ingestion for Mạng đường thư cấp 2 until the Product Owner supplies that file.
+
+## 10. Executor Plan
+
+- ChatGPT: CTO, PO scope interpretation, and product decisions.
+- Claude Code (Sonnet): implementation, backend, data, tests, documentation, and Git, per `DEC-020`.
+- Antigravity: discovery, UI/UX, responsive/visual work, and Windows runtime evidence, per `DEC-020`.
+- Codex: legacy/non-default; not used unless the Product Owner explicitly authorizes it for a specific ticket.
+- Opus: architecture blockers, complex multi-component defects, or independent review only; not used for routine work.
+
+## 11. PO Gates
+
+- PO Gate 1: after Phase 1 (Nền tảng) closes — technical validation only (no user-facing UI yet expected).
+- PO Gate 2: after Phase 2 (Ba bản đồ) closes — PO UI Check on the three map screens.
+- PO Gate 3: after Phase 3 (Import) closes — PO UI Check on Import (admin) across all three modules.
+- PO Gate 4: after Phase 4 (Nghiệm thu) closes — final program acceptance.
+
+## 12. Documents To Update
+
+- `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` — created (this document)
+- `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` — created
+- `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` — updated to activate the program and point to this manifest/checkpoint
+- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` — updated to register the new manifest and checkpoint
+- `README_AI.md` — updated live-state pointer
+- `PROJECT_PROGRESS.md` — one new append-only line recording program activation
+
+## 13. Validation
+
+- Authority pointer chain verified: `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> this manifest -> this checkpoint -> Phase 1 required reading.
+- `PROJECT_SNAPSHOT.md` no longer shows `Current Ticket = None` after this activation.
+- Prior ticket `F13-STANDARDIZATION-001` (program, Tuyến Ranking delta closed) is untouched by this activation; not reopened, not superseded.
+- Only Phase 1 is `AUTHORIZED / READY FOR IMPLEMENTATION`; Phases 2-4 remain `PLANNED / NOT ACTIVE`.
+- No product code or database file changed — confirmed by `git status`/`git diff` scope: documentation and governance files only.
+- 02 existing stashes (`F13-SHIPMENT-001` deferred delta; pre-existing HTML maps) and the three source HTML files at repository root are untouched.
+- Build or lint validation: not applicable — no product code was modified.
+
+## 14. Next Ticket
+
+- Next ticket ID: `None` beyond this activation. Phase 1 (Nền tảng) implementation is the next authorized action within this same ticket.
+- No Phase 2, 3, or 4 work is self-activated by this manifest; each requires the prior phase to close and, per PO Gates (Section 11), explicit Product Owner confirmation at Gate 2 and Gate 3 before UI/import are considered accepted.
+
+## 15. Authority Escalation
+
+No escalation required. This activation is a direct execution of explicit Product Owner authorization naming `NETWORK-MANAGEMENT-001`, its four-phase structure, and its locked baseline figures (Section 7). No conflict was found between this authorization and current repository governance state (`PROJECT_SNAPSHOT.md` showed `Current Ticket = None / Awaiting Product Owner Direction` immediately prior to this activation).
