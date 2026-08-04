@@ -6,6 +6,7 @@ import f13DashboardClient from '../../api/F13DashboardClient';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
 import { toNumber, formatRate, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, computeDelayedCashWidget, resolveDefaultRouteDate } from './routeRankingCalculations';
 import { buildViolationEvidenceLink } from './routeViolationEvidenceData';
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, AlertTriangle, ShieldCheck, Flame, Search, Filter } from 'lucide-react';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -21,7 +22,9 @@ function classificationLabel(row) {
 }
 
 function classificationBadgeClass(row) {
-  return row.is_postman_delivery_route ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-700';
+  return row.is_postman_delivery_route
+    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+    : 'bg-slate-100 text-slate-700 border border-slate-200';
 }
 
 const SORTABLE_COLUMNS = [
@@ -33,25 +36,25 @@ const SORTABLE_COLUMNS = [
 ];
 
 const DELAYED_CASH_COLUMNS = [
-  { key: 'delayed_cash_handover_count', label: 'Số BG chậm nộp tiền' },
-  { key: 'f13_303_rate', label: 'Tỷ lệ chậm nộp tiền' },
+  { key: 'delayed_cash_handover_count', label: 'BG Chậm nộp tiền' },
+  { key: 'f13_303_rate', label: 'Tỷ lệ chậm nộp' },
 ];
 
-function SortHeaderCell({ column, sortState, onSort }) {
+function SortHeaderCell({ column, sortState, onSort, isSubHeader = false }) {
   const isActive = sortState.key === column.key;
-  const arrow = isActive ? (sortState.dir === 'asc' ? '▲' : '▼') : '';
+  const ArrowIcon = isActive ? (sortState.dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown;
   return (
-    <th className="px-4 py-2 text-right">
+    <th className={`px-3 py-2.5 text-right transition-colors ${isSubHeader ? 'bg-slate-50/80' : ''}`}>
       <button
         type="button"
         onClick={() => onSort(column.key)}
         aria-sort={isActive ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-        className={`inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide ${
-          isActive ? 'text-[var(--color-primary-700)]' : 'text-[var(--color-text-muted)]'
+        className={`inline-flex items-center justify-end gap-1.5 w-full text-xs font-semibold uppercase tracking-wider transition-colors hover:text-[var(--color-primary-700)] ${
+          isActive ? 'text-[var(--color-primary-700)] font-bold' : 'text-slate-500'
         }`}
       >
-        {column.label}
-        {arrow ? <span aria-hidden="true">{arrow}</span> : null}
+        <span>{column.label}</span>
+        <ArrowIcon size={13} className={isActive ? 'text-[var(--color-primary-600)]' : 'text-slate-400 opacity-60'} />
       </button>
     </th>
   );
@@ -60,66 +63,121 @@ function SortHeaderCell({ column, sortState, onSort }) {
 function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, onSort }) {
   if (!rows.length) {
     return (
-      <div className="rounded-xl border border-[var(--color-surface-200)] bg-white p-6 text-sm text-[var(--color-text-muted)]">
-        Không có tuyến phù hợp với bộ lọc hiện tại.
+      <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-xs">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
+          <Filter size={20} />
+        </div>
+        <h3 className="text-sm font-semibold text-slate-800">Không có tuyến nào phù hợp</h3>
+        <p className="mt-1 text-xs text-slate-500">Vui lòng thử điều chỉnh bộ lọc loại tuyến, ô tìm kiếm hoặc bộ lọc phát sinh lỗi.</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--color-surface-200)] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm" data-testid="route-ranking-table">
-          <thead className="bg-[var(--color-surface-50)] text-left text-xs font-semibold uppercase text-[var(--color-text-muted)]">
-            <tr>
-              <th className="px-4 py-2" rowSpan={2}>XH</th>
-              <th className="px-4 py-2" rowSpan={2}>Mã tuyến</th>
-              <th className="px-4 py-2" rowSpan={2}>Tên tuyến</th>
-              <th className="border-l border-[var(--color-surface-200)] px-4 py-2 text-center" colSpan={SORTABLE_COLUMNS.length}>
+          <thead>
+            <tr className="bg-slate-100/90 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-200">
+              <th className="px-3.5 py-3 w-12 text-center" rowSpan={2}>XH</th>
+              <th className="px-3.5 py-3" rowSpan={2}>Mã tuyến</th>
+              <th className="px-4 py-3" rowSpan={2}>Tên tuyến bưu tá</th>
+              <th className="border-l border-slate-200 px-3 py-2 text-center bg-slate-50 text-slate-700" colSpan={SORTABLE_COLUMNS.length}>
                 Kết quả ngày đánh giá
               </th>
-              <th className="border-l border-[var(--color-surface-200)] px-4 py-2 text-center" colSpan={DELAYED_CASH_COLUMNS.length}>
-                Chậm nộp tiền
+              <th className="border-l border-slate-200 px-3 py-2 text-center bg-amber-50/70 text-amber-900 border-r border-slate-200" colSpan={DELAYED_CASH_COLUMNS.length}>
+                Vi phạm chậm nộp tiền
               </th>
-              <th className="px-4 py-2" rowSpan={2}>Phân loại</th>
+              <th className="px-3.5 py-3 text-center" rowSpan={2}>Phân loại</th>
             </tr>
-            <tr>
+            <tr className="border-b border-slate-200">
               {SORTABLE_COLUMNS.map((column) => (
-                <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} />
+                <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} isSubHeader />
               ))}
               {DELAYED_CASH_COLUMNS.map((column) => (
-                <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} />
+                <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} isSubHeader />
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--color-surface-100)]">
+          <tbody className="divide-y divide-slate-100 font-sans">
             {rows.map((row, index) => {
               const routeId = row.id || row.ma_tuyen;
               const selected = routeId === selectedRouteId;
+              const failedCount = toNumber(row.failed ?? row.total_failed);
+              const delayedCount = toNumber(row.delayed_cash_handover_count);
+              const passedRateVal = toNumber(row.passed_rate);
+
+              const isHighRisk = failedCount > 0 || delayedCount > 0;
+              const isWarningRate = passedRateVal < 90;
+
               return (
-                <tr key={routeId} className={selected ? 'bg-[var(--color-primary-50)]' : 'hover:bg-[var(--color-surface-50)]'}>
-                  <td className="px-4 py-3 font-semibold text-[var(--color-text-muted)]">{index + 1}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-[var(--color-text-main)]">{row.code || row.ma_tuyen}</td>
+                <tr
+                  key={routeId}
+                  onClick={() => onSelectRoute(routeId)}
+                  className={`cursor-pointer transition-colors ${
+                    selected
+                      ? 'bg-blue-50/90 ring-1 ring-inset ring-blue-300'
+                      : isHighRisk
+                        ? 'hover:bg-amber-50/40'
+                        : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <td className="px-3.5 py-3 text-center font-semibold text-slate-500 text-xs">{index + 1}</td>
+                  <td className="px-3.5 py-3 font-mono text-xs font-medium text-slate-600">{row.code || row.ma_tuyen}</td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => onSelectRoute(routeId)}
-                      className="text-left font-semibold text-[var(--color-primary-700)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)]"
-                    >
-                      {row.name || row.ten_tuyen || row.ma_tuyen}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectRoute(routeId);
+                        }}
+                        className={`text-left font-semibold transition-colors hover:underline focus-visible:outline-none ${
+                          selected ? 'text-[var(--color-primary-700)]' : 'text-slate-800'
+                        }`}
+                      >
+                        {row.name || row.ten_tuyen || row.ma_tuyen}
+                      </button>
+                      {failedCount > 5 && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                          <Flame size={10} className="mr-0.5" /> Yếu
+                        </span>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono">{toNumber(row.total_bg).toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-3 text-right font-mono text-green-700">{toNumber(row.passed).toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-3 text-right font-mono text-red-600">{toNumber(row.failed ?? row.total_failed).toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-3 text-right font-mono">{toNumber(row.returned).toLocaleString('vi-VN')}</td>
-                  <td className="px-4 py-3 text-right font-semibold">{formatRate(row.passed_rate)}</td>
-                  <td className="border-l border-[var(--color-surface-100)] px-4 py-3 text-right font-mono">
-                    {toNumber(row.delayed_cash_handover_count).toLocaleString('vi-VN')}
+                  <td className="px-3 py-3 text-right font-mono text-xs text-slate-600">{toNumber(row.total_bg).toLocaleString('vi-VN')}</td>
+                  <td className="px-3 py-3 text-right font-mono text-xs font-semibold text-emerald-700">{toNumber(row.passed).toLocaleString('vi-VN')}</td>
+                  <td className="px-3 py-3 text-right font-mono text-xs font-bold text-rose-600">
+                    {failedCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                        {failedCount.toLocaleString('vi-VN')}
+                      </span>
+                    ) : (
+                      '0'
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-right font-semibold">{formatDelayedCashRate(row.f13_303_rate)}</td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${classificationBadgeClass(row)}`}>
+                  <td className="px-3 py-3 text-right font-mono text-xs text-slate-500">{toNumber(row.returned).toLocaleString('vi-VN')}</td>
+                  <td className="px-3 py-3 text-right">
+                    <span className={`inline-block font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                      isWarningRate ? 'bg-amber-100 text-amber-800' : 'text-emerald-700 bg-emerald-50'
+                    }`}>
+                      {formatRate(row.passed_rate)}
+                    </span>
+                  </td>
+                  <td className="border-l border-slate-100 px-3 py-3 text-right font-mono text-xs">
+                    {delayedCount > 0 ? (
+                      <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
+                        {delayedCount.toLocaleString('vi-VN')}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">0</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono text-xs font-semibold text-amber-800">
+                    {formatDelayedCashRate(row.f13_303_rate)}
+                  </td>
+                  <td className="px-3.5 py-3 text-center">
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${classificationBadgeClass(row)}`}>
                       {classificationLabel(row)}
                     </span>
                   </td>
@@ -138,7 +196,7 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
     return (
       <EmptyState
         title="Chưa chọn tuyến"
-        description="Chọn một tuyến trong bảng bên trái để xem chi tiết."
+        description="Chọn một tuyến trong bảng bên trái để xem chi tiết đối soát vi phạm."
       />
     );
   }
@@ -154,84 +212,94 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
 
   const totalBg = toNumber(route.total_bg);
   const passed = toNumber(route.passed);
-  const failed = toNumber(route.failed ?? route.total_failed);
+  const failed = toNumber(route.failed ?? row.total_failed);
   const returned = toNumber(route.returned);
   const delayedCount = toNumber(route.delayed_cash_handover_count);
   const delayedEligible = toNumber(route.delayed_cash_handover_eligible_count);
+  const passedRateVal = toNumber(route.passed_rate);
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Tuyến đang chọn</p>
-        <p className="mt-1 text-lg font-bold text-[var(--color-text-main)]">{route.name || route.ten_tuyen || route.ma_tuyen}</p>
-        <p className="font-mono text-xs text-[var(--color-text-muted)]">{route.code || route.ma_tuyen}</p>
+    <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs sticky top-4">
+      <div className="flex items-start justify-between border-b border-slate-100 pb-3.5">
+        <div>
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Tuyến được chọn</span>
+          <h3 className="mt-0.5 text-base font-bold text-slate-800 leading-snug">{route.name || route.ten_tuyen || route.ma_tuyen}</h3>
+          <p className="font-mono text-xs text-slate-500 mt-0.5">Mã tuyến: {route.code || route.ma_tuyen}</p>
+        </div>
+        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${classificationBadgeClass(route)}`}>
+          {classificationLabel(route)}
+        </span>
       </div>
 
-      <span className={`inline-flex w-fit rounded-full px-2 py-1 text-xs font-semibold ${classificationBadgeClass(route)}`}>
-        {classificationLabel(route)}
-      </span>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
-          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Tổng BG</p>
-          <p className="mt-1 text-xl font-bold text-[var(--color-text-main)]">{totalBg.toLocaleString('vi-VN')}</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Sản lượng phát</p>
+          <p className="mt-1 text-lg font-bold text-slate-800 font-mono">{totalBg.toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500">bưu gửi</span></p>
         </div>
-        <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
-          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Tỷ lệ đạt</p>
-          <p className="mt-1 text-xl font-bold text-[var(--color-text-main)]">{formatRate(route.passed_rate)}</p>
-        </div>
-        <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
-          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Đạt</p>
-          <p className="mt-1 text-lg font-semibold text-green-700">{passed.toLocaleString('vi-VN')}</p>
-        </div>
-        <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
-          <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Không đạt</p>
-          <p className="mt-1 text-lg font-semibold text-red-600">{failed.toLocaleString('vi-VN')}</p>
-        </div>
-      </div>
-
-      <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
-        <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Chuyển hoàn</p>
-        <p className="mt-1 text-lg font-semibold text-[var(--color-text-main)]">
-          {returned.toLocaleString('vi-VN')} / {totalBg.toLocaleString('vi-VN')} BG
-        </p>
-        {returned > 0 ? (
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            Bưu gửi chuyển hoàn, được ghi nhận BLACK trong Đánh giá KPI 2026.
+        <div className={`rounded-lg p-3 border ${passedRateVal >= 90 ? 'bg-emerald-50/60 border-emerald-200/60' : 'bg-amber-50/60 border-amber-200/60'}`}>
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Tỷ lệ đạt F1.3</p>
+          <p className={`mt-1 text-lg font-bold font-mono ${passedRateVal >= 90 ? 'text-emerald-700' : 'text-amber-700'}`}>
+            {formatRate(route.passed_rate)}
           </p>
-        ) : null}
+        </div>
+        <div className="rounded-lg bg-emerald-50/40 p-2.5 border border-emerald-100">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-emerald-800">Đạt chỉ tiêu</p>
+          <p className="mt-0.5 text-base font-bold text-emerald-700 font-mono">{passed.toLocaleString('vi-VN')}</p>
+        </div>
+        <div className="rounded-lg bg-rose-50/50 p-2.5 border border-rose-100">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-rose-800">Không đạt</p>
+          <p className="mt-0.5 text-base font-bold text-rose-700 font-mono">{failed.toLocaleString('vi-VN')}</p>
+        </div>
       </div>
 
-      <div className="rounded-lg bg-[var(--color-surface-50)] p-3">
-        <p className="text-xs uppercase tracking-wide text-[var(--color-text-muted)]">Chậm nộp tiền</p>
-        <div className="mt-1 grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">Số BG chậm nộp tiền</p>
-            <p className="text-lg font-semibold text-[var(--color-text-main)]">{delayedCount.toLocaleString('vi-VN')}</p>
+      <div className="rounded-xl bg-gradient-to-br from-amber-50/90 to-orange-50/40 p-3.5 border border-amber-200/70">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <AlertTriangle size={15} className="text-amber-600" />
+            <span className="text-xs font-bold text-amber-900 uppercase tracking-wide">Vi phạm Chậm nộp tiền</span>
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">Mẫu đánh giá</p>
-            <p className="text-lg font-semibold text-[var(--color-text-main)]">{delayedEligible.toLocaleString('vi-VN')}</p>
+          <span className="text-[11px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
+            {formatDelayedCashRate(route.f13_303_rate)}
+          </span>
+        </div>
+        <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
+          <div className="bg-white/80 p-2 rounded border border-amber-200/50">
+            <span className="text-[10px] text-slate-500 block">Số BG vi phạm:</span>
+            <span className="text-sm font-bold text-amber-900 font-mono">{delayedCount.toLocaleString('vi-VN')}</span>
           </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)]">Tỷ lệ chậm nộp tiền</p>
-            <p className="text-lg font-semibold text-[var(--color-text-main)]">{formatDelayedCashRate(route.f13_303_rate)}</p>
+          <div className="bg-white/80 p-2 rounded border border-amber-200/50">
+            <span className="text-[10px] text-slate-500 block">Mẫu kiểm tra:</span>
+            <span className="text-sm font-semibold text-slate-700 font-mono">{delayedEligible.toLocaleString('vi-VN')}</span>
           </div>
         </div>
-        <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-          Chậm khi thời gian nộp tiền sau thời gian PTC trên 3 giờ.
+        <p className="mt-2 text-[11px] text-amber-800/90 italic">
+          *Đánh giá chậm khi tiền được nộp sau thời điểm PTC trên 3.0 giờ.
         </p>
       </div>
+
+      {returned > 0 && (
+        <div className="rounded-lg bg-slate-50 p-3 border border-slate-200/80 text-xs">
+          <div className="flex items-center justify-between text-slate-700 font-medium">
+            <span>Bưu gửi chuyển hoàn:</span>
+            <span className="font-mono font-bold text-slate-800">{returned.toLocaleString('vi-VN')} BG</span>
+          </div>
+          <p className="mt-1 text-[11px] text-slate-500">
+            Được ghi nhận phân loại BLACK theo quy chuẩn KPI 2026.
+          </p>
+        </div>
+      )}
 
       <Link
         to={violationLink}
-        className="inline-flex items-center justify-center rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)]"
+        className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-all hover:bg-[var(--color-primary-700)] hover:shadow-md active:scale-[0.99]"
       >
-        Xem bưu gửi vi phạm
+        <span>Mở chi tiết bưu gửi vi phạm</span>
+        <ChevronRight size={16} />
       </Link>
 
-      <div className="border-t border-[var(--color-surface-200)] pt-3 text-xs text-[var(--color-text-muted)]">
-        Ngày dữ liệu: {fromDate || 'N/A'} · BCVH: {bcvhName}
+      <div className="border-t border-slate-100 pt-2.5 text-[11px] text-slate-400 flex justify-between items-center">
+        <span>Ngày dữ liệu: <strong className="text-slate-600">{fromDate || 'N/A'}</strong></span>
+        <span>BCVH: <strong className="text-slate-600">{bcvhName}</strong></span>
       </div>
     </div>
   );
@@ -244,7 +312,7 @@ export default function RoutePerformancePage() {
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState('');
-  const [sortState, setSortState] = useState({ key: 'passed_rate', dir: 'desc' });
+  const [sortState, setSortState] = useState({ key: 'failed', dir: 'desc' });
   const [metaMaxDate, setMetaMaxDate] = useState(null);
   const [metaStatus, setMetaStatus] = useState('loading');
 
@@ -254,17 +322,13 @@ export default function RoutePerformancePage() {
   const bcvhId = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || '533140';
   const bcvhName = searchParams.get('bcvh_name') || 'BCVH Thuận Hóa';
   const search = searchParams.get('search') || '';
-  const sort = searchParams.get('sort') || 'passed_rate';
-  const order = searchParams.get('order') || 'asc';
+  const sort = searchParams.get('sort') || 'failed';
+  const order = searchParams.get('order') || 'desc';
   const routeType = normalizeRouteTypeFilter(searchParams.get('route_type') || DEFAULT_ROUTE_TYPE_FILTER);
   const onlyFailed = searchParams.get('only_failed') === '1';
 
   const fromDate = resolveDefaultRouteDate({ param: fromDateParam, metaMaxDate });
   const toDate = resolveDefaultRouteDate({ param: toDateParam, metaMaxDate });
-  // Dashboard and BCVH Ranking both treat `to_date` as the authoritative single analysis
-  // date (their own queries ignore `from_date`). Route Ranking must resolve the same way
-  // so drill-down links from those screens land on the date the user was actually viewing,
-  // instead of silently falling back to `from_date`, which may be stale or unset.
   const analysisDate = resolveDefaultRouteDate({ param: toDateParam || fromDateParam, metaMaxDate });
 
   const updateParam = (key, value) => {
@@ -287,7 +351,6 @@ export default function RoutePerformancePage() {
     }
     setSearchParams(params);
   };
-
 
   const [bcvhOptions, setBcvhOptions] = useState(ROUTE_BCVH_OPTIONS);
 
@@ -326,10 +389,14 @@ export default function RoutePerformancePage() {
         setError(null);
         const result = await f13DashboardClient.getRouteRanking(analysisDate, bcvhId, 1, 1000, sort, order, routeType);
         if (!mounted) return;
-        setRows(Array.isArray(result.data) ? result.data : []);
+        const routeRows = Array.isArray(result.data) ? result.data : [];
+        setRows(routeRows);
         setMeta(result.meta || null);
-        const firstSelectable = (Array.isArray(result.data) ? result.data : []).find((item) => item?.id || item?.ma_tuyen);
-        setSelectedRouteId((prev) => prev || firstSelectable?.id || firstSelectable?.ma_tuyen || '');
+
+        if (routeRows.length > 0) {
+          const sortedWorst = [...routeRows].sort((a, b) => toNumber(b.failed ?? b.total_failed) - toNumber(a.failed ?? a.total_failed));
+          setSelectedRouteId((prev) => prev || sortedWorst[0]?.id || sortedWorst[0]?.ma_tuyen || '');
+        }
         setStatus('success');
       } catch (e) {
         if (!mounted) return;
@@ -373,36 +440,36 @@ export default function RoutePerformancePage() {
   const kpiStats = useMemo(() => computeRouteKpiStats(rows), [rows]);
   const delayedCashWidget = useMemo(() => computeDelayedCashWidget(meta?.delayed_cash_handover_summary), [meta]);
 
-  const summaryStats = [
+  const executiveKpis = [
     {
-      label: 'Tuyến phát sinh không đạt',
-      value: kpiStats.failedRouteCount.toLocaleString('vi-VN'),
-      delta: `/ ${kpiStats.totalRoutes.toLocaleString('vi-VN')} tuyến`,
-      tone: 'danger',
+      label: 'Tổng tuyến phân tích',
+      value: kpiStats.totalRoutes.toLocaleString('vi-VN'),
+      delta: `${kpiStats.failedRouteCount} tuyến phát sinh lỗi`,
+      tone: kpiStats.failedRouteCount > 0 ? 'warning' : 'success',
     },
     {
       label: 'Tỷ lệ đạt toàn BCVH',
       value: `${kpiStats.bcvhPassedRate.toFixed(1)}%`,
       delta: bcvhName,
-      tone: 'primary',
+      tone: kpiStats.bcvhPassedRate >= 90 ? 'primary' : 'danger',
     },
     {
       label: 'Tổng BG không đạt',
       value: kpiStats.totalFailed.toLocaleString('vi-VN'),
-      delta: intervalLabel,
-      tone: 'warning',
+      delta: `Ngày ${analysisDate}`,
+      tone: 'danger',
     },
     {
-      label: 'BG CHẬM NỘP TIỀN',
+      label: 'BG Chậm nộp tiền',
       value: delayedCashWidget.value,
       delta: delayedCashWidget.delta,
-      tone: 'success',
+      tone: 'warning',
     },
   ];
 
   if (status === 'loading') {
     return (
-      <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Đang tải dữ liệu Tuyến Ranking.">
+      <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Đang tải dữ liệu xếp hạng tuyến và đối soát nghiệp vụ...">
         <LoadingState label="Đang tải dữ liệu Tuyến Ranking..." />
       </PageContainer>
     );
@@ -410,7 +477,7 @@ export default function RoutePerformancePage() {
 
   if (status === 'error') {
     return (
-      <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Không thể tải dữ liệu Tuyến Ranking.">
+      <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Không thể kết nối hoặc tải dữ liệu tuyến.">
         <ErrorState description={error?.message} />
       </PageContainer>
     );
@@ -419,11 +486,11 @@ export default function RoutePerformancePage() {
   return (
     <PageContainer
       title="Bảng xếp hạng Tuyến Bưu tá"
-      subtitle="Xếp hạng tuyến theo tỷ lệ đạt, dùng để xác định tuyến phát sinh bưu gửi không đạt."
+      subtitle="Bảng điều hành chất lượng tuyến: Nhận diện tuyến yếu, đối soát bưu gửi không đạt và chậm nộp tiền."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label={intervalLabel} tone="success" />
-          <StatusBadge label={`Ngày dữ liệu: ${analysisDate}`} tone="info" />
+          <StatusBadge label={intervalLabel} tone="neutral" />
+          <StatusBadge label={`Phân tích: ${analysisDate}`} tone="info" />
         </div>
       }
     >
@@ -440,50 +507,79 @@ export default function RoutePerformancePage() {
           onSearchChange={(value) => updateParam('search', value)}
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex overflow-hidden rounded-md border border-[var(--color-surface-200)] bg-white">
+              <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-slate-100 p-0.5">
                 {ROUTE_TYPE_FILTERS.map((item) => (
                   <button
                     key={item.value}
                     type="button"
                     onClick={() => updateParam('route_type', item.value === DEFAULT_ROUTE_TYPE_FILTER ? '' : item.value)}
-                    className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                       routeType === item.value
-                        ? 'bg-[var(--color-primary-600)] text-white'
-                        : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-50)]'
+                        ? 'bg-white text-slate-800 shadow-xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
-                    aria-pressed={routeType === item.value}
                   >
                     {item.label}
                   </button>
                 ))}
               </div>
-              <label className="inline-flex items-center gap-2 rounded-md border border-[var(--color-surface-200)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-text-muted)]">
-                <input
-                  type="checkbox"
-                  checked={onlyFailed}
-                  onChange={(e) => updateParam('only_failed', e.target.checked ? '1' : '')}
-                  className="h-3.5 w-3.5"
-                />
-                Chỉ tuyến có bưu gửi không đạt
-              </label>
-              <StatusBadge label={ROUTE_BCVH_OPTIONS.find((item) => item.value === bcvhId)?.label || bcvhName} tone="info" />
+              <button
+                type="button"
+                onClick={() => updateParam('only_failed', onlyFailed ? '' : '1')}
+                aria-pressed={onlyFailed}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
+                  onlyFailed
+                    ? 'border-rose-300 bg-rose-50 text-rose-700 shadow-xs'
+                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <Flame size={14} className={onlyFailed ? 'text-rose-600' : 'text-slate-400'} />
+                <span>Chỉ hiện tuyến phát sinh lỗi</span>
+              </button>
             </div>
           }
         />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {summaryStats.map((item) => (
+          {executiveKpis.map((item) => (
             <KPICard key={item.label} label={item.label} value={item.value} delta={item.delta} tone={item.tone} />
           ))}
         </div>
 
-        <SectionHeader
-          title="Bảng Tuyến Ranking"
-          subtitle="Danh sách tuyến runtime theo bộ lọc đang chọn, mặc định sắp xếp theo Tỷ lệ đạt giảm dần."
-        />
+        {kpiStats.failedRouteCount > 0 && (
+          <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-rose-500/10 via-amber-500/5 to-transparent p-4 border border-rose-200/80 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-600 text-white shrink-0 shadow-xs">
+                <AlertTriangle size={18} />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">
+                  Phát hiện <span className="text-rose-700 font-extrabold">{kpiStats.failedRouteCount} tuyến</span> có bưu gửi không đạt trong ngày
+                </h4>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Ưu tiên rà soát các tuyến có tỷ lệ không đạt cao và vi phạm Chậm nộp tiền để chỉ đạo khắc phục kịp thời.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => updateParam('only_failed', '1')}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors shadow-xs shrink-0"
+            >
+              <Filter size={13} />
+              Lọc danh sách tuyến lỗi
+            </button>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 gap-5 min-[1200px]:grid-cols-12">
-          <div className="min-[1200px]:col-span-8">
+        <div className="grid gap-5 xl:grid-cols-3 items-start">
+          <div className="xl:col-span-2 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Bảng xếp hạng hiệu năng tuyến</h3>
+                <p className="text-xs text-slate-500">Hiển thị {filteredRows.length} / {rows.length} tuyến trong phạm vi chọn</p>
+              </div>
+              <span className="text-xs font-medium text-slate-500">Click vào dòng để xem chi tiết đối soát</span>
+            </div>
             <RouteRankingTable
               rows={filteredRows}
               selectedRouteId={selectedRouteId}
@@ -492,7 +588,12 @@ export default function RoutePerformancePage() {
               onSort={handleSort}
             />
           </div>
-          <div className="min-[1200px]:col-span-4">
+
+          <div className="xl:col-span-1">
+            <div className="flex items-center justify-between px-1 mb-3">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Bảng đối soát tuyến</h3>
+              <span className="text-xs font-semibold text-slate-500">Admin Control</span>
+            </div>
             <RouteSelectedPanel
               route={selectedRow}
               bcvhId={bcvhId}
