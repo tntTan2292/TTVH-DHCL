@@ -23,7 +23,7 @@ Quy tắc cập nhật:
 ## Current Ticket
 
 - `None`
-- `Status: F13-UI-AUDIT-PLAN closed 2026-08-03 with PO PASS Phase 1-4 (Commit cdb9eab246415a3835210dd70329996e6ef6521c); repository awaits Product Owner direction for the next scope`
+- `Status: F13-DATA-2098-CLEANUP-IMPL closed 2026-08-04 as COMPLETED / TECHNICAL PASS / CLOSED (reviewed implementation commit 3b605beb7ed2deeae239dbb050cf9b03fbad9c43); repository awaits Product Owner direction for the next scope`
 
 ## Completed Tickets
 
@@ -105,12 +105,17 @@ Quy tắc cập nhật:
 - PO UI Check Required: `No`
 - QIS-LAN-DEPLOY-001: `COMPLETED / PO PASS / CLOSED`; accepted runtime remediation commit `99c865e92b840a587dc9a889294c535fecc68816`; frontend `5178`, backend `5050`, viewer username configured locally as `ttvhhue`, viewer auth operational, viewer restricted to completed F1.3 screens, admin unchanged
 - F13-UI-AUDIT-PLAN: `COMPLETED / PO PASS (PHASE 1-4) / CLOSED` (2026-08-03); Phase 4 - Operation Dashboard final acceptance: heatmap shows month-cumulative rank in the `TB THÁNG` cell, backend restarted, Product Owner confirmed runtime result; latest accepted commit `cdb9eab246415a3835210dd70329996e6ef6521c`
-- PO Product Status: `F13-UI-AUDIT-PLAN PHASE 1-4 PO PASS / CLOSED`
+- F13-SHARED-NAV-FILTERS-IMPL: `COMPLETED / PO UI PASS / CLOSED` (2026-08-04); final implementation commit `e4c57e0d`
+- F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN: `CLOSED — PO DECISIONS RECORDED` (2026-08-04); read-only audit of database, API capabilities, and all F1.3 surfaces. PO decisions: `danh_gia_2026` is the authoritative F1.3 result field (FINAL); the duplicate overwrite/upsert rule on the authoritative business key is already decided; year-2098 removal authorized; the duplicate count is a technical validation item
+- F13-DATA-2098-CLEANUP-IMPL: `COMPLETED / TECHNICAL PASS / CLOSED` (2026-08-04); reviewed implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`; 4 `fact_f13` + 4 `import_log` rows deleted, zero 2098 rows and zero `BCVH TEST` rows remain, 2026 unchanged at 663,126 rows / 213 days, authoritative `danh_gia_2026` KPI remains `58.6233%`; pre-cleanup backup retained and must not be deleted
+- F1.3 confirmed open data-quality defects: `FOUR` — `DQ-02`, `DQ-05`, `DQ-06`, `DQ-08`. `DQ-01` and `DQ-03` closed by the 2098 cleanup; `DQ-04` resolved by PO decision; `DQ-07` retracted (`ma_bg` alone is not the business key; the enforced key is `UNIQUE(ngay_do_kiem, ma_bg)` and zero duplicates exist on it)
+- PO Product Status: `Cleanup closed`
 
 ## Next Ticket
 
 - Current active ticket: `None`.
-- Next planned action: `Await explicit Product Owner direction. The future sequence recorded in the closed F13-UI-AUDIT-PLAN manifest (BCVH Ranking, Route Ranking, shared navigation/filters, Login/system states, final consistency review) is not authorized and is not self-activated.`
+- Next planned action: `Await explicit Product Owner direction. Next Phase Authorization is NONE.`
+- Candidates only, not authorized tickets: `(1) remediate RESIDUAL-01 — the live recommendations path uses the non-authoritative ket_qua_f13 and may display KPI values inconsistent with danh_gia_2026; (2) F13-SURFACE-CLEANUP-PLAN covering Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal; (3) Pareto product design later, distinguishing Pareto analysis from true RCA. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred.`
 
 ## Notes
 

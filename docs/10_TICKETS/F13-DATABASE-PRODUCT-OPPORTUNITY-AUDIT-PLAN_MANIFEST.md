@@ -47,8 +47,8 @@ No other reading is required to act on this ticket. The checkpoint is self-conta
 ## 5. Business Context
 
 - Business problem: F1.3 product direction has been proceeding one Product Owner-identified defect at a time. The database contains substantially more decision-relevant information than the product exposes, but nobody had inventoried it, so opportunity was invisible and each new scope had to originate from the Product Owner.
-- Business impact: The audit converts an undifferentiated data asset into a ranked, evidence-backed opportunity list, and identifies three navigation entries that are non-functional placeholders despite having working backends.
-- Approved business rule constraints: **No business rule may be inferred by this ticket.** Where a conclusion would require one, the gap is registered in the checkpoint's Missing Data Register (Section 14) for Product Owner decision. This applies in particular to which result column is authoritative (`MD-01`), duplicate shipment handling (`MD-05`), and re-import supersede behaviour (`MD-06`).
+- Business impact: The audit converts an undifferentiated data asset into a ranked, evidence-backed opportunity list, and identifies three navigation entries that are non-functional placeholders whose backend endpoints are implemented by static inspection (runtime behavior has not been verified).
+- Approved business rule constraints: **No business rule may be inferred by this ticket.** Where a conclusion would require one, the gap is registered in the checkpoint's Missing Data Register (Section 14) for Product Owner decision. This applied in particular to which result column is authoritative (`MD-01`), duplicate shipment handling (`MD-05`), and re-import supersede behaviour (`MD-06`) — **all three are now CLOSED** (see Section 16).
 
 ## 6. Technical Context
 
@@ -68,15 +68,15 @@ No other reading is required to act on this ticket. The checkpoint is self-conta
 ## 8. Related Review
 
 - Review document: `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md`
-- Review status: `COMPLETE — READY FOR PO DATABASE AUDIT REVIEW`
+- Review status: `CLOSED — PO DECISIONS RECORDED 2026-08-04`
 - Key evidence:
   - 5 tables total; `fact_f13` holds 663,130 rows × 45 columns over 213 usable days (`2026-01-01`–`2026-08-03`)
   - Origin-handover → delivery latency averages `10.97h` on passing vs `47.68h` on failing shipments across 595,046 complete chains with zero parse failures — the strongest explanatory variable in the database, exposed nowhere in the product
   - 10 customer accounts of 17,012 carry `78,091` of `208,121` failures (37.5%)
   - 46 of 154 routes failed above 40% on ≥20 of the last 60 days
   - Route type spreads failure from 12.66% to 63.05%; once-daily commune routes fail 21.5 points worse than twice-daily central routes at comparable volume
-  - Three F1.3 navigation entries (Pareto/RCA, Evidence, Message Center) render `PlaceholderPage` while working backend endpoints exist for all three
-  - Eight data-quality defects catalogued `DQ-01`…`DQ-08`, including a duration column stored as TEXT whose `MIN`/`MAX` return silently wrong values
+  - Three F1.3 navigation entries (Pareto/RCA, Evidence, Message Center) render `PlaceholderPage`; backend endpoints for all three are implemented by static inspection, runtime behavior has not been verified
+  - Eight data-quality defects catalogued `DQ-01`…`DQ-08` at audit time, including a duration column stored as TEXT whose `MIN`/`MAX` return silently wrong values. **Current confirmed open count is four: `DQ-02`, `DQ-05`, `DQ-06`, `DQ-08`**
   - One latent API defect `API-01`: `getKpi` and `getPareto` omit the `/f13` path prefix and would 404
 
 ## 9. Related PO Findings
@@ -109,8 +109,8 @@ No other reading is required to act on this ticket. The checkpoint is self-conta
 
 ## 13. Next Ticket
 
-- Next ticket ID: `F13-DATA-2098-CLEANUP-IMPL`
-- Next ticket name: Permanent removal of year-2098 test/future data from the operational database (bounded, PO-authorized `2026-08-04`).
+- Next ticket ID: `F13-DATA-2098-CLEANUP-IMPL` — since `COMPLETED / TECHNICAL PASS / CLOSED` on `2026-08-04` (reviewed commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`).
+- Next ticket name: Permanent removal of year-2098 test/future data from the operational database (bounded, PO-authorized `2026-08-04`). No ticket is currently active.
 - Blockers or handoff notes: the checkpoint proposes a five-wave sequence (Section 13) for the CTO/Product Owner to authorize or reorder. No implementation ticket is opened by this audit. Three Product Owner decisions gate Wave 1:
   1. **MERGE confirmation** — Evidence is the same data, parameters, and access level as Shipment Ranking; the shipment client method is a direct alias of the evidence method. Confirm folding Evidence into Shipment Ranking rather than building a duplicate screen.
   2. **HIDE confirmation** — Message Center has no message, recipient, or acknowledgement state anywhere in the database, so it cannot track whether anyone acted on a message. Confirm hiding it from navigation pending a lifecycle definition, or re-scoping it as a read-only recommendations panel on the Operation Dashboard.
@@ -150,7 +150,7 @@ Product Owner reviewed the audit on `2026-08-04` and issued authoritative decisi
 3. **Year-2098 test/future data removal is authorized**, executed under `F13-DATA-2098-CLEANUP-IMPL`.
 4. **The duplicate count is a technical validation item, not a Product Owner decision.** Revalidation completed: the audit query grouped by `ma_bg` alone, which is not the business key. The real key is `UNIQUE(ngay_do_kiem, ma_bg)`, declared in the `fact_f13` DDL and enforced as `sqlite_autoindex_fact_f13_1`. On that key there are **zero** duplicates and **zero** exact full-row duplicates; the 9,348 repeated `ma_bg` are single shipments evaluated across 2 or 3 dates — legitimate multiple operational records. **The finding is retracted.** No genuine duplicates exist despite the overwrite rule, so no cause report or row modification is required. Numbering note: the Product Owner's instruction said "DQ-06"; the duplicate finding is `DQ-07`, and `DQ-06` (weight unit) is a separate item that remains open and untouched.
 
-Net effect: confirmed open defects drop from eight to six (`DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`). `DQ-04` resolved by decision; `DQ-07` retracted. `MD-01`, `MD-05`, `MD-06` closed.
+Net effect at the time these decisions were recorded: open defects dropped from eight to six (`DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`); `DQ-04` resolved by decision, `DQ-07` retracted. **Current state after `F13-DATA-2098-CLEANUP-IMPL` closed `DQ-01` and `DQ-03`: the confirmed open defect count is FOUR — `DQ-02`, `DQ-05`, `DQ-06`, `DQ-08`.** `MD-01`, `MD-05`, `MD-06` closed.
 
 Still outstanding and unchanged by this review: MERGE confirmation (Evidence → Shipment Ranking) and HIDE confirmation (Message Center). These continue to gate the proposed Wave 1.
 

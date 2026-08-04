@@ -38,10 +38,10 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `F13-DATA-2098-CLEANUP-IMPL`.
-- Current manifest: `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` (`READY FOR PO DATA CLEANUP RECHECK`, 2026-08-04). Last closed: `docs/10_TICKETS/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN_MANIFEST.md` (`CLOSED — PO DECISIONS RECORDED`, 2026-08-04).
-- Current checkpoint: `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md`.
-- Next required action: Product Owner performs the data recheck in the cleanup manifest Section 14. Still outstanding from the audit: MERGE confirmation (Evidence into Shipment Ranking) and HIDE confirmation (Message Center). `MD-01` is CLOSED — `danh_gia_2026` is authoritative. No implementation ticket is self-activated from the repository.
+- Current ticket: `None`.
+- Current manifest: `None — no active ticket`. Last closed: `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` (`COMPLETED / TECHNICAL PASS / CLOSED`, 2026-08-04, reviewed commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`).
+- Current checkpoint: `None — no active ticket`.
+- Next required action: await explicit Product Owner direction. Next Phase Authorization is `None`. Candidates are recorded in `PROJECT_SNAPSHOT.md` as candidates only. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred. `MD-01` is CLOSED — `danh_gia_2026` is authoritative. No ticket is self-activated from the repository.
 
 
 
@@ -54,10 +54,10 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `CLAUDE.md` | Governance | Condensed, auto-loaded onboarding equivalent of `README_AI.md` for Claude Code sessions only; points to `PROJECT_SNAPSHOT.md` for live state. | L2 | Active Onboarding | Auto-loaded by Claude Code at the start of every session in this repo. | Mandatory (Claude Code only) |
 | `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Governance | Prompt gate, single-defect remediation, executor selection, and prompt rules. | L2 | Active Onboarding | Every fresh session before first execution prompt. | Mandatory |
 | `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Governance | Current project/ticket SSOT and manifest/checkpoint pointers. | L2 | Active Onboarding | Every fresh session. | Mandatory |
-| `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` | Ticket Manifest | Current F13-DATA-2098-CLEANUP-IMPL scope: PO-authorized permanent removal of year-2098 test/future data from the operational database. | L2 | Active Onboarding | Current ticket only. | Mandatory |
-| `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md` | Checkpoint | Cleanup execution evidence: identification across all date fields, backup, transaction, post-delete verification, authoritative-field validation, duplicate revalidation (`DQ-07` retraction), and residuals `RESIDUAL-01`/`RESIDUAL-02`. | L2 | Active Onboarding | Current ticket only. | Mandatory |
-| `docs/10_TICKETS/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Current F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN scope: read-only audit of database, API capabilities, and F1.3 surfaces. | L2 | Active Onboarding | Current ticket only. | Mandatory |
-| `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md` | Checkpoint | Database/API/product-surface inventory, data-quality register (`DQ-01`-`DQ-08`), BUILD/MERGE/HIDE/REMOVE recommendations, ranked Product Opportunity Matrix (`OPP-01`-`OPP-18`), missing-data register (`MD-01`-`MD-12`), and recommended implementation sequence. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` | Ticket Manifest | Closed F13-DATA-2098-CLEANUP-IMPL: PO-authorized permanent removal of year-2098 test/future data. `COMPLETED / TECHNICAL PASS / CLOSED`. | L2 | Conditional Reference | When 2098 cleanup scope, evidence, or closure is needed. | High |
+| `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md` | Checkpoint | Closed cleanup execution evidence: identification across all date fields, backup, transaction, post-delete verification, authoritative-field validation, duplicate revalidation (`DQ-07` retraction), and residuals `RESIDUAL-01`/`RESIDUAL-02`. | L2 | Conditional Reference | When 2098 cleanup evidence or the duplicate retraction is needed. | High |
+| `docs/10_TICKETS/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Closed F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN: read-only audit of database, API capabilities, and F1.3 surfaces. `CLOSED — PO DECISIONS RECORDED`. | L2 | Conditional Reference | When audit scope or the recorded PO decisions are needed. | High |
+| `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md` | Checkpoint | Database/API/product-surface inventory, data-quality register (`DQ-01`-`DQ-08`; confirmed open now four), BUILD/MERGE/HIDE/REMOVE recommendations, ranked Product Opportunity Matrix (`OPP-01`-`OPP-18`), missing-data register (`MD-01`-`MD-12`), recommended implementation sequence, and recorded PO decisions. | L2 | Conditional Reference | When F1.3 data/product opportunity evidence is needed. | High |
 | `docs/10_TICKETS/DOC-GOV-CLEANUP-001_MANIFEST.md` | Ticket Manifest | Current DOC-GOV-CLEANUP-001 scope and authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md` | Checkpoint | Current cleanup checkpoint, scope lock, and preservation gates. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-008 bounded remediation scope and defect-order authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |

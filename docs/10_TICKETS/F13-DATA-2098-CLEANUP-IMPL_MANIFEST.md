@@ -34,9 +34,10 @@ Permanently remove all year-2098 test/future data from the operational system un
 
 ## 3. Current Status
 
-- Current state: `READY FOR PO DATA CLEANUP RECHECK`
-- PO UI Check Required: `No` — no UI change. Product Owner **data recheck** is required instead.
-- PO Product Status: `AWAITING PO DATA CLEANUP RECHECK`
+- Current state: `COMPLETED / TECHNICAL PASS / CLOSED`
+- PO UI Check Required: `No` — no UI change.
+- PO Product Status: `Cleanup technically completed and closed.`
+- Closure commit reviewed by CTO: `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`
 
 ## 4. Required Reading
 
@@ -68,14 +69,14 @@ Permanently remove all year-2098 test/future data from the operational system un
 ## 8. Related Review
 
 - Review document: `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md`
-- Review status: `COMPLETE — READY FOR PO DATA CLEANUP RECHECK`
+- Review status: `COMPLETED / TECHNICAL PASS / CLOSED`
 - Key evidence: 8 rows deleted (4 + 4), transaction `COMMITTED`, zero 2098 rows remaining anywhere, 2026 row count / day count / per-month distribution all unchanged, authoritative KPI `danh_gia_2026` unchanged at `58.6233%`, `integrity_check = ok`, zero orphaned rows, zero duplicates on the business key.
 
 ## 9. Related PO Findings
 
 - PO finding IDs: none. Originates from Product Owner decisions issued on the `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` review.
 - Status: authorization granted `2026-08-04`.
-- Closure requirement: Product Owner data recheck.
+- Closure requirement: satisfied. Closed by CTO review as `TECHNICAL PASS` on `2026-08-04`.
 
 ## 10. Documents To Update
 
@@ -106,8 +107,16 @@ Full evidence in checkpoint Sections 3–8. Summary:
 
 ## 13. Next Ticket
 
-- Next ticket ID: none authorized.
-- Next ticket name: not selected.
+- Next ticket ID: none authorized. No ticket is activated by this closure.
+- Next ticket name: not selected. The repository returns to `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION`.
+
+**Next-direction candidates — recorded as candidates only, NOT authorized tickets:**
+
+1. **Recommended first decision:** remediate `RESIDUAL-01`, because the live recommendations path uses the non-authoritative `ket_qua_f13` and may display KPI values inconsistent with `danh_gia_2026`.
+2. **Subsequent candidate:** `F13-SURFACE-CLEANUP-PLAN`, covering the Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal.
+3. **Later:** Pareto product design, which must distinguish Pareto analysis from true RCA.
+
+Evidence MERGE and Message Center HIDE remain **pending Product Owner confirmation**. No repository authority records an explicit Product Owner decision on either, so approval must not be inferred.
 - Handoff notes: two residuals are reported for Product Owner/CTO consideration but are **not** in scope and were not acted on:
   1. **`RESIDUAL-01` (high):** `ruleEngineService.js` computes live recommendation KPIs on `ket_qua_f13`, the non-authoritative field, making `GET /f13/recommendations` systematically optimistic by up to **5.58 points** per BCVH (province-wide `63.4988%` vs authoritative `58.6233%`). The divergence pre-existed the Product Owner decision; aligning it requires a separate authorized ticket.
   2. **`RESIDUAL-02` (low):** `FactBuuGuiRepository.js` inserts columns (`session_id`, `extended_data`) that do not exist in the `fact_f13` schema.
@@ -116,20 +125,16 @@ Full evidence in checkpoint Sections 3–8. Summary:
 
 ## 14. PO Acceptance Checklist
 
-`PO UI Check Required = No`. A **data recheck** is required.
+`PO UI Check Required = No`. No UI changed, so no PO UI acceptance applies.
 
-- Review document: `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md`
-- PO purpose: confirm year-2098 data is gone and 2026 production data is intact
-- Checks:
-  1. Date range now reads `2026-01-01`–`2026-08-03` on any date-driven screen; no 2098 date appears in any picker or "latest date" control
-  2. Total row count is 663,126 and 2026 day coverage is 213 days
-  3. Authoritative KPI (`danh_gia_2026`) still reports `58.6233%` province-wide
-  4. BCVH list shows 9 units with no `BCVH TEST` entry
-- PASS criteria: all four confirmed → ticket closes, backup may be retired
-- WARNING criteria: cosmetic or unrelated discrepancy → record and close with a follow-up note
-- FAIL criteria: missing or altered 2026 data → restore from `backend/src/db/backups/database.pre-2098-cleanup.2026-08-04.sqlite` by file replace, then re-scope
-- Follow-up after PASS: Product Owner decides whether to authorize a ticket for `RESIDUAL-01`
-- Documents to update per result: `PROJECT_SNAPSHOT.md`, `PROJECT_PROGRESS.md`, and Section 16 of this manifest
+Closure was awarded by CTO review as `TECHNICAL PASS` on commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`. The data recheck items below are retained as a **record of what was verified**, not as an outstanding action:
+
+1. Date range reads `2026-01-01`–`2026-08-03`; no 2098 date remains in any table — verified.
+2. Total row count 663,126 and 2026 day coverage 213 days — verified unchanged.
+3. Authoritative KPI (`danh_gia_2026`) `58.6233%` province-wide — verified unchanged to four decimals.
+4. 9 BCVH units with no `BCVH TEST` entry — verified.
+
+The backup at `backend/src/db/backups/database.pre-2098-cleanup.2026-08-04.sqlite` **must be retained and must not be deleted.**
 
 ## 15. Authority Escalation
 
@@ -139,6 +144,19 @@ Where findings fell outside the authorized scope (`RESIDUAL-01`, `RESIDUAL-02`),
 
 ## 16. Closure
 
-- Status: `READY FOR PO DATA CLEANUP RECHECK`
-- Closure conditions: Product Owner completes the four data rechecks in Section 14 and confirms PASS. The backup is retained until that confirmation.
-- Not claimed: this ticket does not award itself PO acceptance and opens no further scope.
+- Status: `COMPLETED / TECHNICAL PASS / CLOSED`
+- Closed on: `2026-08-04`
+- Closure authority: CTO review — `TECHNICAL PASS`
+- Reviewed implementation commit: `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`
+- Backup: retained at `backend/src/db/backups/database.pre-2098-cleanup.2026-08-04.sqlite`. **Must not be deleted.**
+
+Authoritative closure result:
+
+- 4 `fact_f13` rows deleted; 4 `import_log` rows deleted
+- zero 2098 rows remain; zero `BCVH TEST` rows remain
+- 2026 unchanged at 663,126 rows / 213 days
+- authoritative `danh_gia_2026` KPI remains `58.6233%`
+
+Defect state after cleanup: `DQ-01` CLOSED by this cleanup; `DQ-03` CLOSED because `BCVH TEST` was removed; `DQ-04` RESOLVED by Product Owner decision; `DQ-07` RETRACTED. **Confirmed open defect count is four: `DQ-02`, `DQ-05`, `DQ-06`, `DQ-08`.**
+
+No further ticket is activated by this closure. The repository returns to `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION`.

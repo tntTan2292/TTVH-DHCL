@@ -35,7 +35,7 @@ Five conclusions drive every recommendation in this document:
 
 1. **The single most valuable unused field is time.** `thoi_gian_bckt_tinh_xnd_bd8` → `thoi_gian_ptc` handover latency averages `10.97h` on passing shipments and `47.68h` on failing shipments — a 4.3x separation on 595,046 parseable rows. This is the strongest explanatory variable in the database and nothing in the product surfaces it.
 2. **Failure is highly concentrated and therefore actionable.** 10 customer accounts carry `78,091` of `208,121` total failures (37.5%). 46 routes fail on 20+ of the last 60 days. Concentration this high means a small, targeted intervention list beats any broad dashboard.
-3. **Three of seven F1.3 surfaces are non-functional placeholders** (Pareto/RCA, Evidence, Message Center) even though working backend endpoints already exist for all three. This is the cheapest value in the repository.
+3. **Three of seven F1.3 surfaces are non-functional placeholders** (Pareto/RCA, Evidence, Message Center). Backend endpoints for all three are implemented by static inspection; runtime behavior has not been verified. This is the cheapest value in the repository.
 4. **The geography dimension is completely unused.** `ma_huyen`/`ma_phuong_xa_phat` are populated at 99.6%+ and reveal a 6x spread between best and worst communes. No screen exposes anything below route level.
 5. **Data quality is good but not clean.** Four corrupt rows dated `2098-02`, a triplicated KPI threshold table, and a duration column stored as TEXT are real defects that will distort any new analytic built on top of them. *(Revised 2026-08-04: this point originally also claimed 12,688 excess duplicate rows. That claim was false and is retracted — see 5.7.)*
 
@@ -304,7 +304,9 @@ Comparison with the import rule: the pipeline deletes a whole date and re-insert
 | DQ-07 | ~~Duplicate `ma_bg`~~ | **0** | **RETRACTED** — invalid key; zero duplicates on `UNIQUE(ngay_do_kiem, ma_bg)` |
 | DQ-08 | KPI thresholds triplicated | 12 | Low |
 
-Confirmed open defect count is therefore **six** (`DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`), not eight. `DQ-04` is resolved by Product Owner decision and `DQ-07` is retracted as a false finding.
+State **at initial audit execution, before the 2098 cleanup**: six open (`DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`), with `DQ-04` resolved by Product Owner decision and `DQ-07` retracted as a false finding.
+
+**Current state after `F13-DATA-2098-CLEANUP-IMPL` (authoritative): the confirmed open defect count is FOUR — `DQ-02`, `DQ-05`, `DQ-06`, `DQ-08`.** `DQ-01` is CLOSED by the 2098 cleanup and `DQ-03` is CLOSED because `BCVH TEST` was removed.
 
 ## 6. Sensitive Fields
 
@@ -412,19 +414,19 @@ Shipment Ranking and Evidence are therefore the same data, the same required par
 
 ### 9.5 Pareto / RCA — `BUILD`
 
-Backend `/rca/pareto` exists, is admin-gated, calls `f13DashboardService.getParetoAnalysis(date, bcvh)`, and requires only `date`. The frontend is `<PlaceholderPage title="Pareto / RCA" />` and the client method has the `/f13` prefix defect (`API-01`).
+Backend `/rca/pareto` is implemented by static inspection — admin-gated, calling `f13DashboardService.getParetoAnalysis(date, bcvh)` and requiring only `date`. **Runtime behavior has not been verified.** The frontend is `<PlaceholderPage title="Pareto / RCA" />` and the client method has the `/f13` prefix defect (`API-01`).
 
-This is the highest-value-per-effort item in the repository: the backend work is already done. Section 10 shows the data supports genuine Pareto structure — failure concentrates by customer (top-10 = 37.5%), by route type (12.66% to 63.05% spread), and by commune (12.7% to 77.2% spread).
+This is the highest-value-per-effort item in the repository: the backend appears implemented, so the remaining work is frontend plus runtime verification. Section 10 shows the data supports genuine Pareto structure — failure concentrates by customer (top-10 = 37.5%), by route type (12.66% to 63.05% spread), and by commune (12.7% to 77.2% spread).
 
 **Recommendation: BUILD.** Fix `API-01` in the same ticket.
 
 ### 9.6 Evidence — `MERGE` (into Shipment Ranking, per 9.4)
 
-The endpoint is live and already consumed by Shipment Ranking. Building a standalone Evidence screen duplicates an existing surface. **Recommendation: MERGE into Shipment Ranking; remove the separate `/f13/evidence` navigation entry.** Keep the route registered as a redirect so existing bookmarks and any preserved URL parameters continue to resolve.
+The endpoint is implemented by static inspection and is already referenced by Shipment Ranking; runtime behavior has not been verified. Building a standalone Evidence screen duplicates an existing surface. **Recommendation: MERGE into Shipment Ranking; remove the separate `/f13/evidence` navigation entry.** Keep the route registered as a redirect so existing bookmarks and any preserved URL parameters continue to resolve.
 
 ### 9.7 Message Center — `HIDE`
 
-Two backend endpoints exist (`/messages`, `/dashboard/message`) served by `messageGenerationService` and `RecommendationService`. However `RecommendationController.getMsgs` requires both `from_date` and `to_date`, then passes **only `to_date`** to `recommendationService.getMessages(to_date)` — the range is accepted and discarded. The contract and the behaviour disagree.
+Two backend endpoints are implemented by static inspection (`/messages`, `/dashboard/message`), served by `messageGenerationService` and `RecommendationService`; runtime behavior has not been verified. However `RecommendationController.getMsgs` requires both `from_date` and `to_date`, then passes **only `to_date`** to `recommendationService.getMessages(to_date)` — the range is accepted and discarded. The contract and the behaviour disagree.
 
 More fundamentally, a "Message Center" implies generated operational messages with a defined audience, trigger, and lifecycle (read/unread, acknowledged, assigned). None of that state exists in the database — there is no message table, no recipient field, and no acknowledgement field. Building a Message Center on top of a stateless generator produces a screen that regenerates the same text on every load and cannot track whether anyone acted on it.
 
@@ -664,7 +666,7 @@ No-code framing. "Feasibility" reflects data readiness and backend existence, no
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **OPP-01** | **Latency Decomposition** — show where the hours go between origin handover and delivery, split by stage, with pass/fail overlay | **Very high.** 10.97h vs 47.68h separation (10.1); latency is the mechanism of failure (10.3) | Where to intervene in the chain: origin dispatch, transport, or last-mile | `thoi_gian_bckt_tinh_xnd_bd8`, `thoi_gian_bd10_quet_tms`, `thoi_gian_ptc`, `ket_qua_f13` | **High** — 595,046 complete chains, 0 parse failures | Operation Dashboard (new panel) | None |
 | **OPP-02** | **Chronic Route Watchlist** — routes failing >40% on ≥20 of last 60 days, with persistence count | **Very high.** 46 named routes (10.9) | Which routes get management attention this month | `ma_tuyen`, `ngay_do_kiem`, `ket_qua_f13` | **High** — indexed path, 329ms | Route Ranking (new tab) | None |
-| **OPP-03** | **Pareto / RCA screen** (completes the placeholder) — failure concentration by customer, route type, commune, weight, service | **Very high.** Top-10 customers = 37.5% of failures (10.6) | Where the 80/20 actually is | `ten_khl`, `loai_tuyen_phat`, `ma_phuong_xa_phat`, `khoi_luong_thuc_te`, `dich_vu` | **High** — backend `/rca/pareto` already exists | `/f13/pareto` (replaces placeholder) | None. Must fix `API-01`. |
+| **OPP-03** | **Pareto / RCA screen** (completes the placeholder) — failure concentration by customer, route type, commune, weight, service | **Very high.** Top-10 customers = 37.5% of failures (10.6) | Where the 80/20 actually is | `ten_khl`, `loai_tuyen_phat`, `ma_phuong_xa_phat`, `khoi_luong_thuc_te`, `dich_vu` | **High** — backend `/rca/pareto` implemented by static inspection; runtime unverified | `/f13/pareto` (replaces placeholder) | None. Must fix `API-01`. |
 | **OPP-04** | **Route Type Performance** — compare the 9 route-type categories | **High.** 12.66%–63.05% spread; 21.5pt gap between two comparable-volume categories (10.4) | Route model / delivery frequency policy | `loai_tuyen_phat`, `ket_qua_f13` | **High** — 100% populated | BCVH Ranking (new view) or Pareto | None |
 | **OPP-05** | **Commune Heatmap** — failure rate by delivery commune with volume weighting | **High.** 12.7%–77.2% spread, several high-volume + high-fail (10.5) | Which localities need route redesign or added capacity | `ma_phuong_xa_phat`, `ten_phuong_xa_phat`, `ket_qua_f13` | **High** — 99.6% populated. Needs min-volume guard | Route Ranking or new geography view | Commune→route mapping table would improve it |
 | **OPP-06** | **National Position Card** — provincial rank of 34 with monthly trend | **High.** Rank 10–18, trend reversal visible (10.10) | Whether provincial performance is competitive | `fact_f13_national` (all) | **High** — clean, pre-aggregated, 5ms query | Operation Dashboard (header card) | None |
@@ -710,7 +712,7 @@ No-code framing. "Feasibility" reflects data readiness and backend existence, no
 | OPP-04 | Route Type Performance | Single `GROUP BY` on a 100%-populated column |
 | OPP-07 | Day-of-Week / Hour Pattern | Two `GROUP BY` queries, no new fields |
 | OPP-12 | Service Mix Performance | Single `GROUP BY`, fully populated |
-| OPP-03 | Pareto / RCA screen | **Backend endpoint already exists** — frontend only, plus the `API-01` fix |
+| OPP-03 | Pareto / RCA screen | **Backend endpoint implemented by static inspection** (runtime unverified) — frontend work, runtime verification, plus the `API-01` fix |
 | OPP-13 | Data Quality Monitor | All eight checks already written in Section 5 |
 
 ### 12.2 Needs care but no new data — existing data with a technical caveat
@@ -748,7 +750,7 @@ Each wave is scoped so that it can be a separate ticket under One Bug → One Ti
 Rationale: DQ-05 and DQ-01 will silently corrupt every function in Waves 1–3 if left in place.
 
 **Wave 1 — Complete what already exists (highest value per unit of work)**
-- **OPP-03** Build the Pareto / RCA screen against the existing backend
+- **OPP-03** Build the Pareto / RCA screen against the existing backend (verify backend runtime first)
 - **OPP-06** National Position card on the Operation Dashboard
 - **OPP-02** Chronic Route Watchlist on Route Ranking
 - Decide **MERGE** for Evidence → Shipment Ranking (PO confirmation required, per 9.4/9.6)
@@ -796,8 +798,10 @@ Items the Product Owner must decide or the organisation must begin collecting. T
 ## 15. Audit Limitations
 
 - **Read-only.** The database was opened with `OPEN_READONLY`. No schema, data, index, or product code was modified. No defect identified in Section 5 was repaired.
-- **Static analysis of the running product.** API and screen coverage was determined by reading route registrations, controllers, and client code. No endpoint was invoked and no browser session was run; runtime behaviour evidence is Antigravity's ownership per DEC-020.
-- **No business rules inferred.** Where a conclusion would require a business rule (MD-01, MD-05, MD-06, MD-11 in particular), the gap is registered rather than resolved. In particular, this audit does **not** assert which result column is correct, does **not** assert that duplicate `ma_bg` rows are errors, and does **not** propose SLA target changes.
+- **Static analysis only — no runtime verification.** API and screen coverage was determined by reading route registrations, controllers, and client code. **No endpoint was invoked and no browser session was run.** Every statement that a backend endpoint is implemented rests on static inspection alone; runtime behavior has not been verified. Runtime evidence is Antigravity's ownership per DEC-020.
+- **No business rules inferred.** **As at initial audit execution**, where a conclusion would require a business rule (`MD-01`, `MD-05`, `MD-06`, `MD-11` in particular), the gap was registered rather than resolved: the audit did **not** assert which result column was correct, did **not** assert that duplicate `ma_bg` rows were errors, and did **not** propose SLA target changes.
+
+  **Current status (superseding the condition above): `MD-01` is CLOSED — `danh_gia_2026` is authoritative. `MD-05` is CLOSED — zero duplicates exist on the real business key; `DQ-07` retracted. `MD-06` is CLOSED — the overwrite/upsert rule is decided.** `MD-11` remains open. See Section 14 and Section 16.
 - **Correlation, not causation.** Sections 10.2, 10.4, 10.5, 10.7, and 10.8 report measured associations between dimensions and failure rate. They do not establish cause. `ket_qua_f13` being a deterministic function of elapsed time (10.3) is the one exception and is an arithmetic relationship, not an inferred one.
 - **`BCVH TEST` and `2098-02` rows excluded** from all analytics in Sections 10–11 via the stated clean filter, but retained in the inventory counts in Sections 2–5 so the defects remain visible.
 - **Minimum-volume guards applied** to commune analysis (n≥300) and route-type analysis (n>500) to avoid reporting unstable percentages. Section 4.2 identifies four BCVH too small for stable ranking.
@@ -836,7 +840,7 @@ Permanent removal of all year-2098 test/future data from the operational system 
 
 ### 16.5 Net effect on this audit
 
-Confirmed open defects drop from eight to six: `DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`. `DQ-04` resolved by decision; `DQ-07` retracted as false. `DQ-01` is remediated by the cleanup ticket. Missing Data Register items `MD-01`, `MD-05`, and `MD-06` are closed.
+At the point these decisions were recorded, open defects dropped from eight to six (`DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`); `DQ-04` resolved by decision and `DQ-07` retracted as false. **Following `F13-DATA-2098-CLEANUP-IMPL`, which closed `DQ-01` and `DQ-03`, the current confirmed open defect count is FOUR: `DQ-02`, `DQ-05`, `DQ-06`, `DQ-08`.** Missing Data Register items `MD-01`, `MD-05`, and `MD-06` are closed.
 
 The surface recommendations (Section 9.9) and the opportunity matrix (Section 11) were **not** amended by this review; the MERGE and HIDE confirmations remain outstanding and continue to gate the proposed Wave 1.
 

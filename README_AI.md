@@ -143,7 +143,11 @@ Await Product Owner direction before activating any next ticket
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: `F13-UI-AUDIT-PLAN` is `COMPLETED / PO PASS (PHASE 1-4) / CLOSED` as of `2026-08-03`. Product Owner confirmed Phase 4 - Operation Dashboard: the heatmap shows month-cumulative rank inside the `TB THÁNG` cell, backend was restarted to load the `timelineService.js` fix, and the runtime result was confirmed correct after restart (latest accepted commit `cdb9eab246415a3835210dd70329996e6ef6521c`). `AUTO-IMPORT-010` remains `CLOSED / PO RUNTIME PASS` from `2026-07-31` with its known HUE first-click residual unchanged and non-blocking. There is no active ticket; the repository awaits explicit Product Owner direction before opening any next scope, including the future-sequence items recorded in the closed `F13-UI-AUDIT-PLAN_MANIFEST.md`.
+Current active handoff: none. There is no active ticket.
+
+`F13-DATA-2098-CLEANUP-IMPL` is `COMPLETED / TECHNICAL PASS / CLOSED` as of `2026-08-04` (CTO review; reviewed implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`). Year-2098 test/future data was permanently removed: 4 `fact_f13` rows and 4 `import_log` rows deleted, zero 2098 rows and zero `BCVH TEST` rows remain, 2026 unchanged at 663,126 rows / 213 days, and the authoritative `danh_gia_2026` KPI remains `58.6233%`. The pre-cleanup backup is retained and must not be deleted. `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` is `CLOSED — PO DECISIONS RECORDED` as of the same date; `danh_gia_2026` is the authoritative F1.3 result field.
+
+The repository awaits explicit Product Owner direction before opening any next scope. Next-direction candidates are recorded in `PROJECT_SNAPSHOT.md` as candidates only and must not be self-activated.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 
