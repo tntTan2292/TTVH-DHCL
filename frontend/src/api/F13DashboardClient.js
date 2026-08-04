@@ -1,11 +1,11 @@
-import httpClient from './httpClient';
+import httpClient from './httpClient.js';
 
 class F13DashboardClient {
     /**
-     * API Contract: GET /dashboard/kpi
+     * API Contract: GET /f13/dashboard/kpi
      */
     getKpi(startDate, endDate) {
-        return httpClient.get('/dashboard/kpi', { startDate, endDate });
+        return httpClient.get('/f13/dashboard/kpi', { startDate, endDate });
     }
 
     /**
@@ -74,10 +74,10 @@ class F13DashboardClient {
     }
 
     /**
-     * API Contract: GET /rca/pareto
+     * API Contract: GET /f13/rca/pareto
      */
     getPareto(date, bcvh) {
-        return httpClient.get('/rca/pareto', { date, bcvh });
+        return httpClient.get('/f13/rca/pareto', { date, bcvh });
     }
 
     /**

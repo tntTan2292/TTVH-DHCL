@@ -17,6 +17,17 @@ function normalizeDashboardBcvhCode(ma_bcvh) {
     return undefined;
 }
 
+// fact_f13 event timestamps (thoi_gian_*) are stored as TEXT in 'dd/MM/yyyy HH:mm:ss',
+// which `new Date(string)` cannot parse (returns Invalid Date). Parse explicitly instead.
+function parseF13Timestamp(value) {
+    if (typeof value !== 'string') return null;
+    const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
+    if (!match) return null;
+    const [, day, month, year, hour, minute, second] = match;
+    const date = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
 class F13DashboardService {
     
     // Hàm bọc tính toán an toàn (Tránh lỗi Division by Zero)
@@ -1103,9 +1114,9 @@ class F13DashboardService {
                 let do_tre_gio = 0;
                 // Khối tính độ trễ này thuộc phạm vi trình bày số liệu cơ bản,
                 // Rule xác định > 3h mới là nhiệm vụ của Engine.
-                if (item.thoi_gian_ptc && item.thoi_gian_nop_tien) {
-                    const ptc = new Date(item.thoi_gian_ptc);
-                    const nop = new Date(item.thoi_gian_nop_tien);
+                const ptc = parseF13Timestamp(item.thoi_gian_ptc);
+                const nop = parseF13Timestamp(item.thoi_gian_nop_tien);
+                if (ptc && nop) {
                     do_tre_gio = (nop - ptc) / (1000 * 60 * 60);
                 }
 
@@ -1113,6 +1124,7 @@ class F13DashboardService {
                     ma_bg: item.ma_bg,
                     thoi_gian_ptc: item.thoi_gian_ptc,
                     thoi_gian_nop_tien: item.thoi_gian_nop_tien,
+                    danh_gia_2026: item.danh_gia_2026,
                     do_tre_gio: Number(do_tre_gio.toFixed(2))
                 };
             });

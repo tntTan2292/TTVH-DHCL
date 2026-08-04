@@ -10,6 +10,7 @@ import ShipmentRootCause from './ShipmentRootCause';
 import ShipmentEvidenceSummary from './ShipmentEvidenceSummary';
 import ShipmentRecommendation from './ShipmentRecommendation';
 import ShipmentDrilldown from './ShipmentDrilldown';
+import { calculateDelayHours } from './shipmentPerformanceData';
 
 const SHIPMENT_OPTIONS = [
   { value: 'all', label: 'Tất cả shipment' },
@@ -30,21 +31,6 @@ function formatTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   return date.toLocaleString('vi-VN');
-}
-
-function calculateDelayHours(ptc, nopTien, extendedData) {
-  if (extendedData && typeof extendedData === 'object') {
-    const delay = extendedData.do_tre_gio ?? extendedData.delay_hours ?? extendedData.delayHours;
-    if (delay !== undefined && delay !== null && delay !== '') {
-      return Number(delay);
-    }
-  }
-
-  if (!ptc || !nopTien) return null;
-  const ptcDate = new Date(ptc);
-  const nopTienDate = new Date(nopTien);
-  if (Number.isNaN(ptcDate.getTime()) || Number.isNaN(nopTienDate.getTime())) return null;
-  return Number(((nopTienDate - ptcDate) / (1000 * 60 * 60)).toFixed(1));
 }
 
 function sortShipmentRows(rows, sort, order) {
@@ -121,7 +107,7 @@ export default function ShipmentPerformancePage() {
             bcvhName: item.ten_bcvh || bcvhName,
             routeId: item.ma_tuyen || routeId,
             routeName: item.ten_tuyen || routeName,
-            status: item.ket_qua_f13 || 'Không đạt',
+            status: item.danh_gia_2026 || 'Không đạt',
             pickupTime: item.thoi_gian_ptc || null,
             handoverTime: item.thoi_gian_nop_tien || null,
             delayHours,

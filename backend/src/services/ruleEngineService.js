@@ -1,4 +1,4 @@
-const { all } = require('../config/db');
+const dbHelper = require('../config/db');
 
 /**
  * ARCH-001: Backend Service for Rule Engine & Recommendation Generation.
@@ -36,7 +36,7 @@ class RuleEngineService {
         let specialUnitPctThreshold = null;
 
         try {
-            const configs = await all("SELECT config_key, config_value FROM system_config WHERE config_key IN ('anomaly_drop_threshold', 'anomaly_gap_threshold', 'special_unit_vol_threshold', 'special_unit_pct_threshold')");
+            const configs = await dbHelper.all("SELECT config_key, config_value FROM system_config WHERE config_key IN ('anomaly_drop_threshold', 'anomaly_gap_threshold', 'special_unit_vol_threshold', 'special_unit_pct_threshold')");
             configs.forEach(c => {
                 if (c.config_key === 'anomaly_drop_threshold') anomalyDropThreshold = parseFloat(c.config_value);
                 if (c.config_key === 'anomaly_gap_threshold') anomalyGapThreshold = parseFloat(c.config_value);
@@ -48,27 +48,27 @@ class RuleEngineService {
         }
 
         const todaySql = `
-            SELECT ma_bcvh, ten_bcvh, 
+            SELECT ma_bcvh, ten_bcvh,
                    COUNT(*) as total_bg,
-                   SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1 ELSE 0 END) as passed_bg,
-                   SUM(CASE WHEN ket_qua_f13 = 'Không đạt' THEN 1 ELSE 0 END) as failed_bg,
-                   (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) * 100 as kpi_rate
+                   SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed_bg,
+                   SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as failed_bg,
+                   (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) * 100 as kpi_rate
             FROM fact_f13
             WHERE ngay_do_kiem BETWEEN ? AND ?
             GROUP BY ma_bcvh, ten_bcvh
         `;
-        
+
         // Average KPI of each BCVH in the last 7 days
         const avgBcvhSql = `
-            SELECT ma_bcvh, 
-                   (SUM(CASE WHEN ket_qua_f13 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) * 100 as avg_kpi
+            SELECT ma_bcvh,
+                   (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1.0 ELSE 0.0 END) / COUNT(*)) * 100 as avg_kpi
             FROM fact_f13
             WHERE ngay_do_kiem BETWEEN ? AND ?
             GROUP BY ma_bcvh
         `;
 
-        const todayData = await all(todaySql, [fromDate, toDate]);
-        const avgBcvhData = await all(avgBcvhSql, [last7DaysStr, toDate]);
+        const todayData = await dbHelper.all(todaySql, [fromDate, toDate]);
+        const avgBcvhData = await dbHelper.all(avgBcvhSql, [last7DaysStr, toDate]);
 
         const avgMap = {};
         avgBcvhData.forEach(r => avgMap[r.ma_bcvh] = r.avg_kpi);
