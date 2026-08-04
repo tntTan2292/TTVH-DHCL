@@ -17,25 +17,25 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `F1.3 Shared Navigation & Filters Implementation` |
-| Current Ticket | `F13-SHARED-NAV-FILTERS-IMPL` |
-| Next Ticket | `None selected. Pending PO UI check and ticket closure for F13-SHARED-NAV-FILTERS-IMPL.` |
-| Last PO Status | `F13-SHARED-NAV-FILTERS-PLAN received PO PLAN PASS (2026-08-03). F13-SHARED-NAV-FILTERS-IMPL activated and implemented (parameter dual-read compatibility, Route Ranking dynamic BCVH meta, title update); ready for PO UI review.` |
+| Current Phase | `Awaiting Product Owner Direction` |
+| Current Ticket | `None` |
+| Next Ticket | `None selected. Repository awaits explicit Product Owner direction before opening any next scope.` |
+| Last PO Status | `F13-SHARED-NAV-FILTERS-IMPL closed 2026-08-04 with PO UI PASS. Shared parameter dual-read & write synchronization (bcvh_id), cross-module URL parameter preservation (from_date, to_date, bcvh_id via urlPreservation.js across Sidebar, Dashboard quick links, and Action Center), Route Ranking dynamic BCVH metadata, and title update ("Bảng xếp hạng Tuyến Bưu tá") all implemented and accepted. Final implementation commit e4c57e0d.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHARED-NAV-FILTERS-IMPL_MANIFEST.md` |
-| Current Checkpoint | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/06_REVIEWS/UI/F13_SHARED_NAV_FILTERS_PLAN_CHECKPOINT_001.md` |
-| Current State | `ACTIVE / IMPLEMENTATION COMPLETED / READY FOR PO UI RECHECK` |
-| Technical Status | `Implementation & cross-module link remediation of F13-SHARED-NAV-FILTERS-IMPL completed. Parameter dual-read & write synchronization, cross-module URL parameter preservation (from_date, to_date, bcvh_id via urlPreservation.js), Route Ranking dynamic BCVH metadata, and title update ("Bảng xếp hạng Tuyến Bưu tá") implemented.` |
-| Runtime Status | `READY FOR PO UI VERIFICATION` |
-| PO UI Check Required | `Yes — implementation ticket active` |
-| PO Product Status | `IMPLEMENTATION REMEDIATED — AWAITING PO UI RECHECK` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHARED-NAV-FILTERS-PLAN_MANIFEST.md` |
-| Last Reviewed Phase | `F13-SHARED-NAV-FILTERS-PLAN closure: Product Owner PO PLAN PASS (2026-08-03)` |
-| Last Reviewed Commit | `af42d370` |
-| Phase Review Status | `F13-SHARED-NAV-FILTERS-IMPL ACTIVE / IMPLEMENTATION COMPLETED` |
-| Next Phase Authorization | `F13-SHARED-NAV-FILTERS-IMPL is active for implementation under PO PLAN PASS. Await PO UI review before closing ticket.` |
+| Current Manifest | `None — no active ticket. See Last Closed Manifest.` |
+| Current Checkpoint | `None — no active ticket.` |
+| Current State | `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION` |
+| Technical Status | `F13-SHARED-NAV-FILTERS-IMPL COMPLETED — Cross-module navigation parameter preservation, parameter dual-read/write synchronization, Route Ranking dynamic BCVH metadata, and title update implemented and PO UI PASS.` |
+| Runtime Status | `NOT APPLICABLE (no active ticket)` |
+| PO UI Check Required | `No — no active ticket` |
+| PO Product Status | `F13-SHARED-NAV-FILTERS-IMPL PO UI PASS / CLOSED` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHARED-NAV-FILTERS-IMPL_MANIFEST.md` |
+| Last Reviewed Phase | `F13-SHARED-NAV-FILTERS-IMPL closure: Product Owner PO UI PASS` |
+| Last Reviewed Commit | `e4c57e0d` |
+| Phase Review Status | `F13-SHARED-NAV-FILTERS-IMPL CLOSED / PO UI PASS` |
+| Next Phase Authorization | `No ticket is authorized. Repository awaits explicit Product Owner direction before opening any next scope.` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-08-03` |
+| Last Updated | `2026-08-04` |
 
 ## 3. Usage Rules
 
