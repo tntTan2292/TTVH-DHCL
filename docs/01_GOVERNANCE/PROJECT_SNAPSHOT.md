@@ -17,23 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `Awaiting Product Owner Direction` |
-| Current Ticket | `None` |
-| Next Ticket | `None selected. Repository awaits explicit Product Owner direction before opening any next scope.` |
-| Last PO Status | `F13-SHARED-NAV-FILTERS-IMPL closed 2026-08-04 with PO UI PASS. Shared parameter dual-read & write synchronization (bcvh_id), cross-module URL parameter preservation (from_date, to_date, bcvh_id via urlPreservation.js across Sidebar, Dashboard quick links, and Action Center), Route Ranking dynamic BCVH metadata, and title update ("Bảng xếp hạng Tuyến Bưu tá") all implemented and accepted. Final implementation commit e4c57e0d.` |
+| Current Phase | `Discovery / Read-only Audit` |
+| Current Ticket | `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` |
+| Next Ticket | `None selected. Depends on Product Owner direction from the database audit review; the audit proposes a five-wave sequence but opens no implementation scope.` |
+| Last PO Status | `PO AUTHORIZED PLANNING for F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN on 2026-08-04. Prior ticket F13-SHARED-NAV-FILTERS-IMPL closed 2026-08-04 with PO UI PASS (final implementation commit e4c57e0d).` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `None — no active ticket. See Last Closed Manifest.` |
-| Current Checkpoint | `None — no active ticket.` |
-| Current State | `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION` |
-| Technical Status | `F13-SHARED-NAV-FILTERS-IMPL COMPLETED — Cross-module navigation parameter preservation, parameter dual-read/write synchronization, Route Ranking dynamic BCVH metadata, and title update implemented and PO UI PASS.` |
-| Runtime Status | `NOT APPLICABLE (no active ticket)` |
-| PO UI Check Required | `No — no active ticket` |
-| PO Product Status | `F13-SHARED-NAV-FILTERS-IMPL PO UI PASS / CLOSED` |
+| Current Manifest | `docs/10_TICKETS/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN_MANIFEST.md` |
+| Current Checkpoint | `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md` |
+| Current State | `READY FOR PO DATABASE AUDIT REVIEW` |
+| Technical Status | `AUDIT COMPLETE — Read-only audit of database (5 tables, fact_f13 663,130 rows x 45 columns, 213 usable days), API surface (33 endpoints), and all 7 F1.3 screens. 18 opportunities ranked, 8 data-quality defects catalogued, 1 latent API defect found. No schema, data, or product code changed.` |
+| Runtime Status | `NOT APPLICABLE — no runtime change and no browser session; audit is static analysis plus read-only database query.` |
+| PO UI Check Required | `No — no UI change. Product Owner direction review required instead (see manifest Section 14).` |
+| PO Product Status | `AWAITING PO DATABASE AUDIT REVIEW` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHARED-NAV-FILTERS-IMPL_MANIFEST.md` |
 | Last Reviewed Phase | `F13-SHARED-NAV-FILTERS-IMPL closure: Product Owner PO UI PASS` |
 | Last Reviewed Commit | `e4c57e0d` |
-| Phase Review Status | `F13-SHARED-NAV-FILTERS-IMPL CLOSED / PO UI PASS` |
-| Next Phase Authorization | `No ticket is authorized. Repository awaits explicit Product Owner direction before opening any next scope.` |
+| Phase Review Status | `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN ACTIVE / READY FOR PO DATABASE AUDIT REVIEW` |
+| Next Phase Authorization | `No implementation ticket is authorized. Three Product Owner decisions gate the proposed Wave 1: MERGE confirmation (Evidence into Shipment Ranking), HIDE confirmation (Message Center), and MD-01 (which of ket_qua_f13 / danh_gia_2026 is authoritative).` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-04` |
 
@@ -62,7 +62,11 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `F13-SHARED-NAV-FILTERS-IMPL` is `CLOSED / PO UI PASS` as of `2026-08-04`.
+Current handoff: `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` is `ACTIVE / READY FOR PO DATABASE AUDIT REVIEW` as of `2026-08-04`.
+
+Audit activation (`2026-08-04`): Product Owner authorized planning for a read-only audit of the database, API capabilities, and all F1.3 product surfaces. The audit is complete and is recorded in `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md`. Headline findings: the product exposes only a small fraction of the 45 columns available per shipment; origin-handover-to-delivery latency separates passing from failing shipments by 10.97h vs 47.68h across 595,046 complete chains and is surfaced nowhere; 10 customer accounts carry 37.5% of all failures; 46 of 154 routes are chronically failing; and three F1.3 navigation entries (Pareto/RCA, Evidence, Message Center) are placeholder screens despite having working backend endpoints. Eight data-quality defects (`DQ-01`…`DQ-08`) and one latent API path defect (`API-01`) are catalogued. No schema, data, index, or product code was changed. No implementation ticket is opened by this audit; it awaits Product Owner direction.
+
+Prior ticket: `F13-SHARED-NAV-FILTERS-IMPL` is `CLOSED / PO UI PASS` as of `2026-08-04`.
 
 Implementation & Closure (`2026-08-04`): Product Owner awarded `PO UI PASS` to `F13-SHARED-NAV-FILTERS-IMPL`. Implemented parameter dual-read fallback (`bcvh_id || ma_bcvh`) across Dashboard, BCVH Ranking, and Route Ranking; updated Route Ranking title to `"Bảng xếp hạng Tuyến Bưu tá"`; replaced Route Ranking static BCVH list with dynamic metadata from `/f13/dashboard/meta`; updated `GlobalFilterBar` default prop `showKpiFilter = false`; preserved URL filter parameters (`from_date`, `to_date`, `bcvh_id`) across cross-module navigation via `urlPreservation.js`. Ticket closed. No active ticket. Repository awaits explicit Product Owner direction before opening any next scope.
 
@@ -71,5 +75,5 @@ Fresh-chat onboarding chain:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-4. Current Manifest: `None — no active ticket. See Last Closed Manifest in Current Snapshot table.`
-5. Current Checkpoint: `None — no active ticket.`
+4. Current Manifest: `docs/10_TICKETS/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN_MANIFEST.md`
+5. Current Checkpoint: `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md`
