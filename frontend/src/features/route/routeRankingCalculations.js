@@ -32,9 +32,20 @@ export function applyRouteFilters(rows, { search = '', onlyFailed = false } = {}
 }
 
 export function sortRouteRows(rows, sortState) {
-  const factor = sortState?.dir === 'asc' ? 1 : -1;
+  const dir = sortState?.dir || 'asc';
+  const factor = dir === 'asc' ? 1 : -1;
   const key = sortState?.key || 'passed_rate';
-  return [...rows].sort((a, b) => (sortableValue(a, key) - sortableValue(b, key)) * factor);
+  return [...rows].sort((a, b) => {
+    const valA = sortableValue(a, key);
+    const valB = sortableValue(b, key);
+    if (valA !== valB) {
+      return (valA - valB) * factor;
+    }
+    // Tie-breaker: If key is passed_rate or equal values, prioritize higher failed count
+    const failedA = sortableValue(a, 'failed');
+    const failedB = sortableValue(b, 'failed');
+    return failedB - failedA;
+  });
 }
 
 export function computeRouteKpiStats(rows) {

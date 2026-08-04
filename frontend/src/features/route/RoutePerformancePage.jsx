@@ -6,7 +6,7 @@ import f13DashboardClient from '../../api/F13DashboardClient';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
 import { toNumber, formatRate, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, computeDelayedCashWidget, resolveDefaultRouteDate } from './routeRankingCalculations';
 import { buildViolationEvidenceLink } from './routeViolationEvidenceData';
-import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, AlertTriangle, ShieldCheck, Flame, Search, Filter } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, AlertTriangle, ShieldCheck, Flame, Search, Filter } from 'lucide-react';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -16,6 +16,8 @@ const ROUTE_BCVH_OPTIONS = [
   { value: '537015', label: 'BCVH Thuận An' },
   { value: '537220', label: 'BCVH Phú Lộc' },
 ];
+
+const ITEMS_PER_PAGE = 10;
 
 function classificationLabel(row) {
   return row.is_postman_delivery_route ? 'Tuyến bưu tá' : 'Nhận tại bưu cục';
@@ -60,8 +62,19 @@ function SortHeaderCell({ column, sortState, onSort, isSubHeader = false }) {
   );
 }
 
-function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, onSort }) {
-  if (!rows.length) {
+function RouteRankingTable({
+  rows,
+  pageRows,
+  totalRows,
+  currentPage,
+  totalPages,
+  onPageChange,
+  selectedRouteId,
+  onSelectRoute,
+  sortState,
+  onSort
+}) {
+  if (!totalRows) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-12 text-center shadow-xs">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
@@ -72,6 +85,8 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, on
       </div>
     );
   }
+
+  const startRank = (currentPage - 1) * ITEMS_PER_PAGE;
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
@@ -100,7 +115,7 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, on
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-sans">
-            {rows.map((row, index) => {
+            {pageRows.map((row, index) => {
               const routeId = row.id || row.ma_tuyen;
               const selected = routeId === selectedRouteId;
               const failedCount = toNumber(row.failed ?? row.total_failed);
@@ -122,7 +137,7 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, on
                         : 'hover:bg-slate-50'
                   }`}
                 >
-                  <td className="px-3.5 py-3 text-center font-semibold text-slate-500 text-xs">{index + 1}</td>
+                  <td className="px-3.5 py-3 text-center font-semibold text-slate-500 text-xs">{startRank + index + 1}</td>
                   <td className="px-3.5 py-3 font-mono text-xs font-medium text-slate-600">{row.code || row.ma_tuyen}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -186,6 +201,38 @@ function RouteRankingTable({ rows, selectedRouteId, onSelectRoute, sortState, on
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-3 text-xs">
+        <div className="text-slate-600 font-medium">
+          Hiển thị <strong>{startRank + 1} - {Math.min(startRank + ITEMS_PER_PAGE, totalRows)}</strong> trong tổng số <strong>{totalRows}</strong> tuyến
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-500 mr-2 font-medium">
+            Trang <strong>{currentPage}</strong> / <strong>{totalPages}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
+            aria-label="Trang trước"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+          >
+            <ChevronLeft size={14} />
+            <span>Trước</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            aria-label="Trang sau"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+          >
+            <span>Sau</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -312,7 +359,8 @@ export default function RoutePerformancePage() {
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState('');
-  const [sortState, setSortState] = useState({ key: 'failed', dir: 'desc' });
+  const [sortState, setSortState] = useState({ key: 'passed_rate', dir: 'asc' });
+  const [currentPage, setCurrentPage] = useState(1);
   const [metaMaxDate, setMetaMaxDate] = useState(null);
   const [metaStatus, setMetaStatus] = useState('loading');
 
@@ -322,8 +370,8 @@ export default function RoutePerformancePage() {
   const bcvhId = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || '533140';
   const bcvhName = searchParams.get('bcvh_name') || 'BCVH Thuận Hóa';
   const search = searchParams.get('search') || '';
-  const sort = searchParams.get('sort') || 'failed';
-  const order = searchParams.get('order') || 'desc';
+  const sort = searchParams.get('sort') || 'passed_rate';
+  const order = searchParams.get('order') || 'asc';
   const routeType = normalizeRouteTypeFilter(searchParams.get('route_type') || DEFAULT_ROUTE_TYPE_FILTER);
   const onlyFailed = searchParams.get('only_failed') === '1';
 
@@ -339,6 +387,7 @@ export default function RoutePerformancePage() {
       params.set(key, value);
     }
     setSearchParams(params);
+    setCurrentPage(1);
   };
 
   const updateBcvhParam = (value) => {
@@ -350,6 +399,7 @@ export default function RoutePerformancePage() {
       params.set('bcvh_id', value);
     }
     setSearchParams(params);
+    setCurrentPage(1);
   };
 
   const [bcvhOptions, setBcvhOptions] = useState(ROUTE_BCVH_OPTIONS);
@@ -392,9 +442,16 @@ export default function RoutePerformancePage() {
         const routeRows = Array.isArray(result.data) ? result.data : [];
         setRows(routeRows);
         setMeta(result.meta || null);
+        setCurrentPage(1);
+        setSortState({ key: 'passed_rate', dir: 'asc' });
 
         if (routeRows.length > 0) {
-          const sortedWorst = [...routeRows].sort((a, b) => toNumber(b.failed ?? b.total_failed) - toNumber(a.failed ?? a.total_failed));
+          const sortedWorst = [...routeRows].sort((a, b) => {
+            const rateA = toNumber(a.passed_rate);
+            const rateB = toNumber(b.passed_rate);
+            if (rateA !== rateB) return rateA - rateB;
+            return toNumber(b.failed ?? b.total_failed) - toNumber(a.failed ?? a.total_failed);
+          });
           setSelectedRouteId((prev) => prev || sortedWorst[0]?.id || sortedWorst[0]?.ma_tuyen || '');
         }
         setStatus('success');
@@ -424,13 +481,20 @@ export default function RoutePerformancePage() {
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
 
   const handleSort = (key) => {
-    setSortState((prev) => (prev.key === key ? { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'desc' }));
+    setSortState((prev) => (prev.key === key ? { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'asc' }));
   };
 
   const filteredRows = useMemo(
     () => sortRouteRows(applyRouteFilters(rows, { search, onlyFailed }), sortState),
     [rows, search, onlyFailed, sortState]
   );
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / ITEMS_PER_PAGE));
+
+  const pageRows = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredRows.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredRows, currentPage]);
 
   const selectedRow = useMemo(() => {
     if (!filteredRows.length) return null;
@@ -576,12 +640,17 @@ export default function RoutePerformancePage() {
             <div className="flex items-center justify-between px-1">
               <div>
                 <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Bảng xếp hạng hiệu năng tuyến</h3>
-                <p className="text-xs text-slate-500">Hiển thị {filteredRows.length} / {rows.length} tuyến trong phạm vi chọn</p>
+                <p className="text-xs text-slate-500">Hiển thị {filteredRows.length} tuyến trong phạm vi chọn (10 tuyến/trang)</p>
               </div>
               <span className="text-xs font-medium text-slate-500">Click vào dòng để xem chi tiết đối soát</span>
             </div>
             <RouteRankingTable
               rows={filteredRows}
+              pageRows={pageRows}
+              totalRows={filteredRows.length}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
               selectedRouteId={selectedRouteId}
               onSelectRoute={setSelectedRouteId}
               sortState={sortState}
