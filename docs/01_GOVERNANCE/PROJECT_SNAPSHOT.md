@@ -17,23 +17,23 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `Discovery / Read-only Audit` |
-| Current Ticket | `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` |
-| Next Ticket | `None selected. Depends on Product Owner direction from the database audit review; the audit proposes a five-wave sequence but opens no implementation scope.` |
-| Last PO Status | `PO AUTHORIZED PLANNING for F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN on 2026-08-04. Prior ticket F13-SHARED-NAV-FILTERS-IMPL closed 2026-08-04 with PO UI PASS (final implementation commit e4c57e0d).` |
+| Current Phase | `Bounded Implementation / Data Cleanup` |
+| Current Ticket | `F13-DATA-2098-CLEANUP-IMPL` |
+| Next Ticket | `None authorized. Two residuals reported (RESIDUAL-01 ruleEngineService uses the non-authoritative field; RESIDUAL-02 legacy repository schema mismatch) plus the outstanding MERGE/HIDE confirmations from the audit.` |
+| Last PO Status | `PO DECISIONS ISSUED 2026-08-04: (1) danh_gia_2026 is the authoritative F1.3 result field, FINAL, not to be reopened; (2) the duplicate overwrite/upsert rule on the authoritative business key is already decided and not reopened; (3) permanent removal of year-2098 test/future data is authorized; (4) the duplicate count is a technical validation item, not a PO decision. F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN closed on this basis.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md` |
-| Current State | `READY FOR PO DATABASE AUDIT REVIEW` |
-| Technical Status | `AUDIT COMPLETE — Read-only audit of database (5 tables, fact_f13 663,130 rows x 45 columns, 213 usable days), API surface (33 endpoints), and all 7 F1.3 screens. 18 opportunities ranked, 8 data-quality defects catalogued, 1 latent API defect found. No schema, data, or product code changed.` |
-| Runtime Status | `NOT APPLICABLE — no runtime change and no browser session; audit is static analysis plus read-only database query.` |
-| PO UI Check Required | `No — no UI change. Product Owner direction review required instead (see manifest Section 14).` |
-| PO Product Status | `AWAITING PO DATABASE AUDIT REVIEW` |
+| Current Manifest | `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` |
+| Current Checkpoint | `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md` |
+| Current State | `READY FOR PO DATA CLEANUP RECHECK` |
+| Technical Status | `2098 CLEANUP COMPLETE — 8 rows permanently deleted (4 fact_f13 + 4 import_log) under predicate ngay_do_kiem LIKE '2098%' in a single committed transaction, after a verified VACUUM INTO backup. Zero 2098 rows remain. 2026 data unchanged: 663,126 rows, 213 days, authoritative KPI danh_gia_2026 identical at 58.6233%. integrity_check ok. DQ-01 and DQ-03 closed; DQ-07 retracted as a false finding (invalid key). Confirmed open defects now six, not eight. No product code changed.` |
+| Runtime Status | `NOT APPLICABLE — no product code or runtime change. Backend was live during cleanup, so a transactionally consistent VACUUM INTO snapshot was used instead of a file copy.` |
+| PO UI Check Required | `No — no UI change. Product Owner DATA RECHECK required instead (see manifest Section 14).` |
+| PO Product Status | `AWAITING PO DATA CLEANUP RECHECK` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-SHARED-NAV-FILTERS-IMPL_MANIFEST.md` |
 | Last Reviewed Phase | `F13-SHARED-NAV-FILTERS-IMPL closure: Product Owner PO UI PASS` |
 | Last Reviewed Commit | `e4c57e0d` |
-| Phase Review Status | `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN ACTIVE / READY FOR PO DATABASE AUDIT REVIEW` |
-| Next Phase Authorization | `No implementation ticket is authorized. Three Product Owner decisions gate the proposed Wave 1: MERGE confirmation (Evidence into Shipment Ranking), HIDE confirmation (Message Center), and MD-01 (which of ket_qua_f13 / danh_gia_2026 is authoritative).` |
+| Phase Review Status | `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN CLOSED (PO decisions recorded) / F13-DATA-2098-CLEANUP-IMPL ACTIVE — READY FOR PO DATA CLEANUP RECHECK` |
+| Next Phase Authorization | `No further ticket is authorized. MD-01 is now CLOSED (danh_gia_2026 authoritative). Two audit confirmations still gate the proposed Wave 1: MERGE (Evidence into Shipment Ranking) and HIDE (Message Center). RESIDUAL-01 — ruleEngineService computes live recommendation KPIs on the non-authoritative ket_qua_f13, diverging up to 5.58 points per BCVH — is reported and requires a separate authorized ticket.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-04` |
 
@@ -62,9 +62,11 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` is `ACTIVE / READY FOR PO DATABASE AUDIT REVIEW` as of `2026-08-04`.
+Current handoff: `F13-DATA-2098-CLEANUP-IMPL` is `ACTIVE / READY FOR PO DATA CLEANUP RECHECK` as of `2026-08-04`.
 
-Audit activation (`2026-08-04`): Product Owner authorized planning for a read-only audit of the database, API capabilities, and all F1.3 product surfaces. The audit is complete and is recorded in `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md`. Headline findings: the product exposes only a small fraction of the 45 columns available per shipment; origin-handover-to-delivery latency separates passing from failing shipments by 10.97h vs 47.68h across 595,046 complete chains and is surfaced nowhere; 10 customer accounts carry 37.5% of all failures; 46 of 154 routes are chronically failing; and three F1.3 navigation entries (Pareto/RCA, Evidence, Message Center) are placeholder screens despite having working backend endpoints. Eight data-quality defects (`DQ-01`…`DQ-08`) and one latent API path defect (`API-01`) are catalogued. No schema, data, index, or product code was changed. No implementation ticket is opened by this audit; it awaits Product Owner direction.
+Cleanup execution (`2026-08-04`): Product Owner authorized permanent removal of year-2098 test/future data. All six date-bearing fields were scanned; zero 2098 values existed in any event timestamp, so the predicate `ngay_do_kiem LIKE '2098%'` was verified complete and precise. After a verified `VACUUM INTO` backup (`backend/src/db/backups/database.pre-2098-cleanup.2026-08-04.sqlite`, `integrity_check = ok`), 4 `fact_f13` rows and 4 `import_log` rows were deleted in a single guarded transaction. Zero 2098 rows remain; date range is now `2026-01-01`-`2026-08-03`. 2026 production data is unchanged (663,126 rows, 213 days, per-month counts identical) and the authoritative KPI `danh_gia_2026` is unchanged at `58.6233%`. `DQ-01` and `DQ-03` are closed; `DQ-07` is retracted. Evidence: `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md`.
+
+Prior ticket: `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` is `CLOSED — PO DECISIONS RECORDED` as of `2026-08-04`. The read-only audit found the product exposes only a small fraction of the 45 columns per shipment; origin-handover-to-delivery latency separates passing from failing shipments by 10.97h vs 47.68h across 595,046 complete chains and is surfaced nowhere; 10 customer accounts carry 37.5% of all failures; 46 of 154 routes are chronically failing; and three F1.3 navigation entries (Pareto/RCA, Evidence, Message Center) are placeholder screens despite having working backend endpoints. Evidence: `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md`.
 
 Prior ticket: `F13-SHARED-NAV-FILTERS-IMPL` is `CLOSED / PO UI PASS` as of `2026-08-04`.
 
@@ -75,5 +77,5 @@ Fresh-chat onboarding chain:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-4. Current Manifest: `docs/10_TICKETS/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN_MANIFEST.md`
-5. Current Checkpoint: `docs/06_REVIEWS/Shared/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT_CHECKPOINT_001.md`
+4. Current Manifest: `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md`
+5. Current Checkpoint: `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md`

@@ -25,6 +25,7 @@ All SQL evidence in this document is aggregate or anonymized. No shipment identi
 - [13. Recommended Implementation Sequence](#13-recommended-implementation-sequence)
 - [14. Missing Data Register](#14-missing-data-register)
 - [15. Audit Limitations](#15-audit-limitations)
+- [16. Product Owner Review Outcome](#16-product-owner-review-outcome--2026-08-04-closure)
 
 ## 1. Executive Summary
 
@@ -36,7 +37,7 @@ Five conclusions drive every recommendation in this document:
 2. **Failure is highly concentrated and therefore actionable.** 10 customer accounts carry `78,091` of `208,121` total failures (37.5%). 46 routes fail on 20+ of the last 60 days. Concentration this high means a small, targeted intervention list beats any broad dashboard.
 3. **Three of seven F1.3 surfaces are non-functional placeholders** (Pareto/RCA, Evidence, Message Center) even though working backend endpoints already exist for all three. This is the cheapest value in the repository.
 4. **The geography dimension is completely unused.** `ma_huyen`/`ma_phuong_xa_phat` are populated at 99.6%+ and reveal a 6x spread between best and worst communes. No screen exposes anything below route level.
-5. **Data quality is good but not clean.** Four corrupt rows dated `2098-02`, 12,688 excess duplicate `ma_bg` rows, a triplicated KPI threshold table, and a duration column stored as TEXT are real defects that will distort any new analytic built on top of them.
+5. **Data quality is good but not clean.** Four corrupt rows dated `2098-02`, a triplicated KPI threshold table, and a duration column stored as TEXT are real defects that will distort any new analytic built on top of them. *(Revised 2026-08-04: this point originally also claimed 12,688 excess duplicate rows. That claim was false and is retracted — see 5.7.)*
 
 The system does not need the Product Owner to invent business problems. The data already names them.
 
@@ -215,7 +216,11 @@ WHERE ket_qua_f13 IS NOT NULL AND danh_gia_2026 IS NOT NULL AND ket_qua_f13 <> d
 -- 31,103 rows
 ```
 
-Two result columns disagree on 31,103 rows (4.9% of evaluated rows). Overall: `ket_qua_f13` = 61.05% Đạt; `danh_gia_2026` = 56.35% Đạt — a 4.7 percentage point gap. **Which column is authoritative is a business question, not a technical one.** This is listed in Section 14 as a required Product Owner decision, not resolved here.
+Two result columns disagree on 31,103 rows (4.9% of evaluated rows). Overall: `ket_qua_f13` = 61.05% Đạt; `danh_gia_2026` = 56.35% Đạt — a 4.7 percentage point gap.
+
+**RESOLVED BY PRODUCT OWNER, 2026-08-04 (final):** `danh_gia_2026` is the authoritative F1.3 result field. `ket_qua_f13` is a technical/reference field only until separately documented. Production KPI logic must not be switched to `ket_qua_f13`. `MD-01` is closed and must not be reopened as an unresolved decision.
+
+Consequence for this document: the analytics in Section 10 were computed on `ket_qua_f13`, which was the only basis available at audit time. Their **direction and structure remain valid** — the two fields agree on 95.1% of rows — but any figure carried into a production surface must be recomputed on `danh_gia_2026`. The authoritative province-level baseline is `58.6233%` Đạt across 637,445 evaluated 2026 rows (`danh_gia_2026`), versus the `ket_qua_f13` figure of 61.05% quoted elsewhere in Section 5. Recomputation is an implementation obligation of any follow-up ticket, not a correction to this audit's findings.
 
 ### 5.5 Duration stored as TEXT (`DQ-05`, severity: high — silent wrong answers)
 
@@ -232,14 +237,55 @@ The column is declared `REAL` but stored as TEXT (SQLite applies dynamic typing)
 
 `khoi_luong_thuc_te` averages `3,325.87` with a maximum of `282,000`. Interpreted as kilograms these are absurd; interpreted as grams they are correct for postal items (avg 3.3kg, max 282kg). The column name says "khối lượng" without a unit. Confirmed grams by distribution: 365,539 rows ≤1000 and 297,477 rows >1000.
 
-### 5.7 Duplicate shipment IDs (`DQ-07`, severity: medium)
+### 5.7 Duplicate shipment IDs (`DQ-07`) — **RETRACTED 2026-08-04**
+
+**This finding is withdrawn. The original query used an invalid key definition and the claim of 12,688 excess duplicate rows is false.**
+
+The original audit query grouped by `ma_bg` alone:
 
 ```sql
 SELECT COUNT(*) dup_groups, SUM(n)-COUNT(*) excess FROM (SELECT ma_bg, COUNT(*) n FROM fact_f13 GROUP BY 1 HAVING n>1);
 -- dup_groups=9348  excess_rows=12688
 ```
 
-9,348 shipment IDs appear more than once, contributing 12,688 excess rows (1.9% of the table). These may be legitimate re-delivery attempts or import duplicates — distinguishing the two requires the business rule in Section 14.
+`ma_bg` alone is not the business key. The actual key is declared in the table DDL:
+
+```
+UNIQUE(ngay_do_kiem, ma_bg)
+```
+
+confirmed present and enforced as `sqlite_autoindex_fact_f13_1` (`unique=1, origin=u`) via `pragma_index_list('fact_f13')`. It matches the import logic, which comments `INSERT OR IGNORE skips rows violating UNIQUE(ngay_do_kiem, ma_bg)` (`backend/src/services/importProcessor.js`).
+
+Revalidation against the real key:
+
+```sql
+-- K2: actual import key
+SELECT COUNT(*) dup_groups FROM (SELECT ngay_do_kiem, ma_bg, COUNT(*) n FROM fact_f13 GROUP BY 1,2 HAVING n>1);
+-- dup_groups = 0
+
+-- K5: exact full-row duplicates (same date, bg, bcvh, route, ptc, both result fields, both doc numbers)
+-- groups = 0
+
+-- K6: same-date same-shipment groups with differing content
+-- same_date_dup_groups = 0
+```
+
+**Zero duplicates on the business key. Zero exact full-row duplicates.** The database physically cannot hold them — the UNIQUE constraint prevents it.
+
+What the 9,348 repeated `ma_bg` values actually are: shipments evaluated on more than one date.
+
+```sql
+-- K4: dates per shipment
+-- 1 date  → 641,094 shipments
+-- 2 dates →   6,008 shipments
+-- 3 dates →   3,340 shipments
+```
+
+These are exactly the *legitimate multiple operational/status records belonging to the same shipment* that the Product Owner distinguished. A shipment still in progress on consecutive evaluation days appears once per day by design. Counting them as duplicates was the error.
+
+Comparison with the import rule: the pipeline deletes a whole date and re-inserts it (`DELETE FROM fact_f13 WHERE ngay_do_kiem = ?` then batch `INSERT OR IGNORE`), so the replacement unit is the evaluation date and the row-level guard is `(ngay_do_kiem, ma_bg)`. Both are consistent with the Product Owner's overwrite/upsert rule, and the observed data conforms to it with zero violations.
+
+**Conclusion: no defect exists. No deduplication work is warranted. `DQ-07` is retracted and excluded from the defect count.**
 
 ### 5.8 Triplicated KPI thresholds (`DQ-08`, severity: low)
 
@@ -252,11 +298,13 @@ SELECT COUNT(*) dup_groups, SUM(n)-COUNT(*) excess FROM (SELECT ma_bg, COUNT(*) 
 | DQ-01 | Corrupt `2098-02` dates / test rows in operational DB | 4 | Low volume, high risk |
 | DQ-02 | 198 dates re-imported; 32,941 record reconciliation gap | 198 dates | Medium |
 | DQ-03 | `ma_bcvh` 533140 maps to two names | 4 | Medium |
-| DQ-04 | `ket_qua_f13` vs `danh_gia_2026` disagree | 31,103 | High |
+| DQ-04 | `ket_qua_f13` vs `danh_gia_2026` disagree | 31,103 | **Resolved by PO** — `danh_gia_2026` is authoritative |
 | DQ-05 | Duration stored as TEXT; MIN/MAX silently wrong; 1,566 negative | 637,530 | High |
 | DQ-06 | Weight unit undocumented (grams) | 663,126 | Medium |
-| DQ-07 | Duplicate `ma_bg` | 12,688 excess | Medium |
+| DQ-07 | ~~Duplicate `ma_bg`~~ | **0** | **RETRACTED** — invalid key; zero duplicates on `UNIQUE(ngay_do_kiem, ma_bg)` |
 | DQ-08 | KPI thresholds triplicated | 12 | Low |
+
+Confirmed open defect count is therefore **six** (`DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`), not eight. `DQ-04` is resolved by Product Owner decision and `DQ-07` is retracted as a false finding.
 
 ## 6. Sensitive Fields
 
@@ -681,7 +729,7 @@ No-code framing. "Feasibility" reflects data readiness and backend existence, no
 | ID | Function | What is missing |
 | --- | --- | --- |
 | OPP-09 | Customer Concentration | PO decision on exposing customer names (sensitive) |
-| OPP-14 | Import Reconciliation | Business rule for how re-imports supersede prior imports |
+| OPP-14 | Import Reconciliation | ~~Business rule~~ — **rule now decided by PO (overwrite/upsert on business key)**. Remaining work is technical validation of the 32,941-record reconciliation gap only. |
 | OPP-16 | Courier Accountability | **No courier field in the database.** Requires new data collection. |
 | OPP-17 | Root Cause Codes | **No failure-reason field.** Requires new data collection. |
 | OPP-18 | Message Center lifecycle | Requires new message/recipient/acknowledgement tables |
@@ -732,12 +780,12 @@ Items the Product Owner must decide or the organisation must begin collecting. T
 
 | ID | Gap | Type | Blocks |
 | --- | --- | --- | --- |
-| MD-01 | Which of `ket_qua_f13` / `danh_gia_2026` is authoritative (31,103 rows disagree, 4.7pt gap) | **Business decision** | Every KPI in the system |
+| MD-01 | ~~Which of `ket_qua_f13` / `danh_gia_2026` is authoritative~~ | **CLOSED 2026-08-04** | **`danh_gia_2026` is authoritative. Final. Not to be reopened.** |
 | MD-02 | Courier/postman identity — no field exists anywhere in the database | **New data collection** | OPP-16 |
 | MD-03 | Failure reason / root cause code — no field exists | **New data collection** | OPP-17, true RCA |
 | MD-04 | `so_tien_cod` is 100% NULL — COD amounts never populated | **New data collection** | Financial sizing in OPP-11 |
-| MD-05 | Whether duplicate `ma_bg` (12,688 excess rows) are re-delivery attempts or import duplicates | **Business decision** | OPP-14, accuracy of all counts |
-| MD-06 | Re-import supersede rule (198 dates re-imported, 32,941 record gap) | **Business decision** | OPP-14 |
+| MD-05 | ~~Whether duplicate `ma_bg` are re-delivery attempts or import duplicates~~ | **CLOSED 2026-08-04** | Resolved technically: zero duplicates exist on the business key. Repeated `ma_bg` are the same shipment evaluated on 2–3 dates. `DQ-07` retracted. |
+| MD-06 | ~~Re-import supersede rule~~ | **CLOSED 2026-08-04** | **PO rule: same authoritative business key must be overwritten/upserted, never appended. Decided — not to be reopened.** Observed data conforms with zero violations. The 434-runs-vs-215-dates and 32,941-record reconciliation gap in `DQ-02` remains a **technical validation item**, not a PO decision. |
 | MD-07 | Whether customer names may be displayed in ranking surfaces | **Access/privacy decision** | OPP-09 |
 | MD-08 | Weight unit confirmation (evidence says grams) | **Confirmation** | OPP-10 |
 | MD-09 | Message audience, trigger, and acknowledgement lifecycle | **Business definition** | OPP-18, Message Center |
@@ -757,5 +805,43 @@ Items the Product Owner must decide or the organisation must begin collecting. T
 
 ---
 
-Audit status: `COMPLETE — READY FOR PO DATABASE AUDIT REVIEW`
-Product Owner decisions required before Wave 1 proceeds: MERGE confirmation (Evidence → Shipment Ranking), HIDE confirmation (Message Center), and MD-01.
+## 16. Product Owner Review Outcome — `2026-08-04` (CLOSURE)
+
+The Product Owner reviewed this audit and issued three authoritative decisions. This section records them; the ticket is closed on this basis.
+
+### 16.1 Authoritative F1.3 result field — FINAL
+
+`danh_gia_2026` is the authoritative F1.3 result field. `ket_qua_f13` is a technical/reference field only until separately documented. Production KPI logic must not be switched to `ket_qua_f13`. `MD-01` is closed and must not be reopened as an unresolved Product Owner decision. Recorded in `DQ-04` (5.4) and `MD-01` (Section 14).
+
+Authoritative province baseline on the decided field: **58.6233% Đạt across 637,445 evaluated 2026 rows.**
+
+### 16.2 Import duplicate rule — DECIDED, NOT REOPENED
+
+Records sharing the authoritative business key must be overwritten/upserted, never appended as duplicates. This is a settled business decision and is not reopened by this audit.
+
+### 16.3 Duplicate count revalidation — `DQ-07` RETRACTED
+
+The Product Owner required the 12,688-row duplicate claim to be revalidated. Result, per the required points:
+
+- **Exact key used by the audit query:** `GROUP BY ma_bg` alone.
+- **Actual import/upsert key:** `UNIQUE(ngay_do_kiem, ma_bg)`, declared in the `fact_f13` DDL and enforced as `sqlite_autoindex_fact_f13_1`; matched by `INSERT OR IGNORE` in `importProcessor.js` with date-level replacement (`DELETE FROM fact_f13 WHERE ngay_do_kiem = ?`).
+- **Exact duplicates vs legitimate multiple records:** zero exact full-row duplicates; zero duplicates on the business key; the 9,348 repeated `ma_bg` are single shipments evaluated across 2 dates (6,008) or 3 dates (3,340) — legitimate multiple operational records.
+- **Verdict:** the audit query used an invalid key definition. **The duplicate finding is retracted.** No genuine duplicates exist despite the overwrite rule, so no technical cause report or row modification is required.
+
+Per the Product Owner's framing, the duplicate count is recorded as a **technical validation item, not a Product Owner decision**. Note on numbering: the Product Owner's instruction referenced "DQ-06"; the duplicate finding is `DQ-07` in this document, and `DQ-06` is the separate weight-unit item, which is unaffected and remains open.
+
+### 16.4 Year-2098 data removal — AUTHORIZED
+
+Permanent removal of all year-2098 test/future data from the operational system is authorized. Executed under the bounded implementation ticket `F13-DATA-2098-CLEANUP-IMPL`.
+
+### 16.5 Net effect on this audit
+
+Confirmed open defects drop from eight to six: `DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`. `DQ-04` resolved by decision; `DQ-07` retracted as false. `DQ-01` is remediated by the cleanup ticket. Missing Data Register items `MD-01`, `MD-05`, and `MD-06` are closed.
+
+The surface recommendations (Section 9.9) and the opportunity matrix (Section 11) were **not** amended by this review; the MERGE and HIDE confirmations remain outstanding and continue to gate the proposed Wave 1.
+
+---
+
+Audit status: `CLOSED — PO DECISIONS RECORDED 2026-08-04`
+Still outstanding for Wave 1: MERGE confirmation (Evidence → Shipment Ranking) and HIDE confirmation (Message Center).
+Follow-on ticket: `F13-DATA-2098-CLEANUP-IMPL`.

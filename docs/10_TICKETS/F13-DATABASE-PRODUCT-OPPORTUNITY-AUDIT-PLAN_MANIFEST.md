@@ -33,9 +33,9 @@ Perform a read-only audit of the operational database, API capabilities, and all
 
 ## 3. Current Status
 
-- Current state: `READY FOR PO DATABASE AUDIT REVIEW`
-- PO UI Check Required: `No` — this ticket produces no UI change. It requires Product Owner **review and direction decisions**, not UI acceptance.
-- PO Product Status: `AWAITING PO DATABASE AUDIT REVIEW`
+- Current state: `CLOSED — PO DECISIONS RECORDED 2026-08-04`
+- PO UI Check Required: `No` — this ticket produced no UI change.
+- PO Product Status: `REVIEWED / DECISIONS ISSUED / CLOSED`
 
 ## 4. Required Reading
 
@@ -109,8 +109,8 @@ No other reading is required to act on this ticket. The checkpoint is self-conta
 
 ## 13. Next Ticket
 
-- Next ticket ID: none authorized.
-- Next ticket name: not selected.
+- Next ticket ID: `F13-DATA-2098-CLEANUP-IMPL`
+- Next ticket name: Permanent removal of year-2098 test/future data from the operational database (bounded, PO-authorized `2026-08-04`).
 - Blockers or handoff notes: the checkpoint proposes a five-wave sequence (Section 13) for the CTO/Product Owner to authorize or reorder. No implementation ticket is opened by this audit. Three Product Owner decisions gate Wave 1:
   1. **MERGE confirmation** — Evidence is the same data, parameters, and access level as Shipment Ranking; the shipment client method is a direct alias of the evidence method. Confirm folding Evidence into Shipment Ranking rather than building a duplicate screen.
   2. **HIDE confirmation** — Message Center has no message, recipient, or acknowledgement state anywhere in the database, so it cannot track whether anyone acted on a message. Confirm hiding it from navigation pending a lifecycle definition, or re-scoping it as a read-only recommendations panel on the Operation Dashboard.
@@ -141,6 +141,17 @@ Where a business rule would have been needed to complete an analysis, the audit 
 
 ## 16. Closure
 
-- Status: `READY FOR PO DATABASE AUDIT REVIEW`
-- Closure conditions: Product Owner reviews the checkpoint, records the three gating decisions in Section 13, and authorizes or defers the implementation sequence. This manifest is updated with the outcome and the ticket is closed by a subsequent governance sync.
-- Not claimed: this ticket does not award itself PO acceptance and does not open any implementation scope.
+- Status: `CLOSED — PO DECISIONS RECORDED 2026-08-04`
+
+Product Owner reviewed the audit on `2026-08-04` and issued authoritative decisions. Recorded outcome:
+
+1. **`danh_gia_2026` is the authoritative F1.3 result field. FINAL.** `ket_qua_f13` is a technical/reference field only until separately documented. Production KPI logic must not be switched to `ket_qua_f13`. `MD-01` is closed and must not be reopened as an unresolved Product Owner decision. Authoritative province baseline on the decided field: `58.6233%` Đạt across 637,445 evaluated 2026 rows.
+2. **The duplicate overwrite/upsert rule is already decided and is not reopened:** records sharing the authoritative business key must be overwritten/upserted, never appended.
+3. **Year-2098 test/future data removal is authorized**, executed under `F13-DATA-2098-CLEANUP-IMPL`.
+4. **The duplicate count is a technical validation item, not a Product Owner decision.** Revalidation completed: the audit query grouped by `ma_bg` alone, which is not the business key. The real key is `UNIQUE(ngay_do_kiem, ma_bg)`, declared in the `fact_f13` DDL and enforced as `sqlite_autoindex_fact_f13_1`. On that key there are **zero** duplicates and **zero** exact full-row duplicates; the 9,348 repeated `ma_bg` are single shipments evaluated across 2 or 3 dates — legitimate multiple operational records. **The finding is retracted.** No genuine duplicates exist despite the overwrite rule, so no cause report or row modification is required. Numbering note: the Product Owner's instruction said "DQ-06"; the duplicate finding is `DQ-07`, and `DQ-06` (weight unit) is a separate item that remains open and untouched.
+
+Net effect: confirmed open defects drop from eight to six (`DQ-01`, `DQ-02`, `DQ-03`, `DQ-05`, `DQ-06`, `DQ-08`). `DQ-04` resolved by decision; `DQ-07` retracted. `MD-01`, `MD-05`, `MD-06` closed.
+
+Still outstanding and unchanged by this review: MERGE confirmation (Evidence → Shipment Ranking) and HIDE confirmation (Message Center). These continue to gate the proposed Wave 1.
+
+- Not claimed: this ticket did not award itself PO acceptance and opened no implementation scope of its own.
