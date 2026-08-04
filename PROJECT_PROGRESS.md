@@ -115,20 +115,20 @@
 | Field | Value |
 | --- | --- |
 | Current Ticket | `None` |
-| Current Commit | `cdb9eab246415a3835210dd70329996e6ef6521c` |
+| Current Commit | `8ed0f1513f11e152f477b06425d5643f919f074e` |
 | Current Phase | `Awaiting Product Owner Direction` |
-| Last Reviewed Phase | `F13-UI-AUDIT-PLAN CLOSURE / PO PASS PHASE 1-4` |
-| Last Reviewed Commit | `cdb9eab246415a3835210dd70329996e6ef6521c` |
-| Phase Review Status | `CLOSED / PO PASS` |
+| Last Closed Ticket | `F13-SHARED-NAV-FILTERS-IMPL` |
+| Last Reviewed Phase | `F13-SHARED-NAV-FILTERS-IMPL CLOSURE / PO UI PASS` |
+| Last Reviewed Commit | `8ed0f1513f11e152f477b06425d5643f919f074e` |
+| Phase Review Status | `CLOSED / PO UI PASS` |
 | Next Phase Authorization | `NONE — AWAITING EXPLICIT PRODUCT OWNER DIRECTION` |
 | Next Milestone | `Product Owner selects the next scope; future sequence is not self-activated` |
-| PO UI Check Required | `No` |
-| PO Product Status | `NOT READY` |
+| PO UI Check Required | `No — PO UI PASS awarded; ticket closed` |
+| PO Product Status | `F13-SHARED-NAV-FILTERS-IMPL PO UI PASS / CLOSED` |
 
 ## F13-BCVH-RANKING-REDESIGN-IMPL Closure
 
 - Ticket status: `COMPLETED / PO PASS / CLOSED`.
-- Final accepted product contract:
   - Dashboard BCVH table remains the original compact overview surface.
   - `/f13/ranking/bcvh` remains the detailed independent ranking surface.
   - `D-1` and `D-7` each show `Sản lượng`, `Tỷ lệ`, `SS SL`, and `SS Tỷ lệ`.
