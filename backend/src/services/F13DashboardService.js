@@ -10,6 +10,21 @@ const { all, get } = require('../config/db');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
 
+// Evidence-list violation classification: three mutually exclusive groups for the
+// "Không đạt" population, derived strictly from RULE_F13_302 (the existing SSOT delayed-
+// cash rule) — no new business threshold is invented here.
+const VIOLATION_REASON = {
+    DELAYED_CASH: 'Chậm nộp tiền',
+    OTHER: 'Không đạt khác',
+    UNKNOWN: 'Chưa xác định nguyên nhân',
+};
+
+const VIOLATION_REASON_FILTER_SLUGS = {
+    delayed_cash: VIOLATION_REASON.DELAYED_CASH,
+    other: VIOLATION_REASON.OTHER,
+    unknown: VIOLATION_REASON.UNKNOWN,
+};
+
 function normalizeDashboardBcvhCode(ma_bcvh) {
     if (ma_bcvh === undefined || ma_bcvh === null || ma_bcvh === '') return null;
     if (ma_bcvh === 'all') return null;
@@ -34,6 +49,29 @@ class F13DashboardService {
     _calculateRate(part, total) {
         if (!total || total === 0) return 0;
         return Number(((part / total) * 100).toFixed(1));
+    }
+
+    // Per-shipment classification for a "Không đạt" fact, reusing RULE_F13_302 (the SSOT
+    // delayed-cash rule) as the single source of truth for the >3h threshold. This only
+    // splits that rule's "false" outcome into "definitively not delayed" (both timestamps
+    // present and parseable, gap <= 3h) vs. "insufficient data to conclude" (either
+    // timestamp missing or unparseable) — it does not change RULE_F13_302's own semantics
+    // and does not infer a reason from anything RULE_F13_302 does not already check.
+    _classifyViolationReason(item) {
+        if (item.danh_gia_2026 !== 'Không đạt') return null;
+
+        const ptc = parseF13Timestamp(item.thoi_gian_ptc);
+        const nop = parseF13Timestamp(item.thoi_gian_nop_tien);
+        if (!item.thoi_gian_ptc || !item.thoi_gian_nop_tien || !ptc || !nop) {
+            return VIOLATION_REASON.UNKNOWN;
+        }
+
+        if (!ruleRegistry.rules.some((rule) => rule?.id === 'RULE_F13_302')) {
+            ruleRegistry.register(new RuleF13302());
+        }
+        const delayedCashRule = ruleRegistry.rules.find((rule) => rule?.id === 'RULE_F13_302');
+
+        return delayedCashRule.evaluate(item) ? VIOLATION_REASON.DELAYED_CASH : VIOLATION_REASON.OTHER;
     }
 
     // Dimensional classification of "Không đạt" volume into the two categories the
@@ -1134,11 +1172,11 @@ class F13DashboardService {
         }
     }
 
-    async getEvidenceList(date, bcvh, route, page, pageSize) {
+    async getEvidenceList(date, bcvh, route, page, pageSize, reason) {
         try {
-            const result = await factBuuGuiRepo.getEvidenceList(date, bcvh, route, page, pageSize);
-            
-            const mappedData = result.data.map(item => {
+            const facts = await factBuuGuiRepo.getEvidenceListFacts(date, bcvh, route);
+
+            const classified = facts.map(item => {
                 // Khối tính độ trễ này thuộc phạm vi trình bày số liệu cơ bản,
                 // Rule xác định > 3h mới là nhiệm vụ của Engine.
                 // A missing or unparseable timestamp must report null (unavailable),
@@ -1155,18 +1193,41 @@ class F13DashboardService {
                     thoi_gian_ptc: item.thoi_gian_ptc,
                     thoi_gian_nop_tien: item.thoi_gian_nop_tien,
                     danh_gia_2026: item.danh_gia_2026,
-                    do_tre_gio
+                    do_tre_gio,
+                    violation_reason: this._classifyViolationReason(item),
                 };
             });
 
+            const violationSummary = {
+                total_failed: classified.length,
+                delayed_cash_count: classified.filter((r) => r.violation_reason === VIOLATION_REASON.DELAYED_CASH).length,
+                other_failed_count: classified.filter((r) => r.violation_reason === VIOLATION_REASON.OTHER).length,
+                unknown_count: classified.filter((r) => r.violation_reason === VIOLATION_REASON.UNKNOWN).length,
+            };
+
+            const requestedReasonLabel = reason ? VIOLATION_REASON_FILTER_SLUGS[reason] : undefined;
+            const filtered = requestedReasonLabel
+                ? classified.filter((r) => r.violation_reason === requestedReasonLabel)
+                : classified;
+
+            const safePage = page > 0 ? page : 1;
+            const safePageSize = pageSize > 0 ? pageSize : 20;
+            const offset = (safePage - 1) * safePageSize;
+            const pageData = filtered.slice(offset, offset + safePageSize);
+
             return {
-                data: mappedData,
+                data: pageData,
                 meta: {
                     pagination: {
-                        page,
-                        page_size: pageSize,
-                        total_items: result.totalItems,
-                        total_pages: Math.ceil(result.totalItems / pageSize)
+                        page: safePage,
+                        page_size: safePageSize,
+                        total_items: filtered.length,
+                        total_pages: Math.ceil(filtered.length / safePageSize)
+                    },
+                    violation_summary: violationSummary,
+                    violation_filter: {
+                        selected: reason && VIOLATION_REASON_FILTER_SLUGS[reason] ? reason : 'all',
+                        available: ['all', ...Object.keys(VIOLATION_REASON_FILTER_SLUGS)],
                     }
                 }
             };

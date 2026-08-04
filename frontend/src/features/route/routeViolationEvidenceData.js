@@ -41,5 +41,23 @@ export function mapViolationRows(rows = []) {
     handoverTime: item.thoi_gian_nop_tien || null,
     delayHours: item.do_tre_gio ?? null,
     delayLabel: formatDelayLabel(item.do_tre_gio),
+    violationReason: item.violation_reason || null,
   }));
+}
+
+// Chậm nộp tiền is listed first and marked as the highlighted default group, per PO
+// requirement. Counts come straight from the backend's violation_summary — never
+// recomputed client-side from the (possibly paginated) row list.
+export function buildViolationGroupTabs(summary = {}) {
+  const totalFailed = summary.total_failed ?? 0;
+  const delayedCashCount = summary.delayed_cash_count ?? 0;
+  const otherFailedCount = summary.other_failed_count ?? 0;
+  const unknownCount = summary.unknown_count ?? 0;
+
+  return [
+    { slug: 'delayed_cash', label: 'Chậm nộp tiền', count: delayedCashCount, highlight: true },
+    { slug: 'other', label: 'Không đạt khác', count: otherFailedCount, highlight: false },
+    { slug: 'unknown', label: 'Chưa xác định nguyên nhân', count: unknownCount, highlight: false },
+    { slug: 'all', label: 'Tất cả không đạt', count: totalFailed, highlight: false },
+  ];
 }

@@ -6,6 +6,7 @@ import {
   buildViolationEvidenceLink,
   buildBackToRouteRankingLink,
   mapViolationRows,
+  buildViolationGroupTabs,
 } from './routeViolationEvidenceData.js';
 
 test('parseF13Timestamp parses dd/MM/yyyy HH:mm:ss into a valid Date', () => {
@@ -57,14 +58,41 @@ test('buildBackToRouteRankingLink falls back to the bare Route Ranking path when
   assert.equal(buildBackToRouteRankingLink(null), '/f13/ranking/route');
 });
 
-test('mapViolationRows carries status and a null-safe delay label through unchanged', () => {
+test('mapViolationRows carries status, violation reason, and a null-safe delay label through unchanged', () => {
   const rows = mapViolationRows([
-    { ma_bg: 'BG001', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '23/06/2026 12:25:46', thoi_gian_nop_tien: null, do_tre_gio: null },
-    { ma_bg: 'BG002', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '23/06/2026 08:00:00', thoi_gian_nop_tien: '23/06/2026 11:30:00', do_tre_gio: 3.5 },
+    { ma_bg: 'BG001', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '23/06/2026 12:25:46', thoi_gian_nop_tien: null, do_tre_gio: null, violation_reason: 'Chưa xác định nguyên nhân' },
+    { ma_bg: 'BG002', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '23/06/2026 08:00:00', thoi_gian_nop_tien: '23/06/2026 11:30:00', do_tre_gio: 3.5, violation_reason: 'Chậm nộp tiền' },
   ]);
 
   assert.equal(rows[0].delayHours, null);
   assert.equal(rows[0].delayLabel, 'Chưa đủ dữ liệu');
+  assert.equal(rows[0].violationReason, 'Chưa xác định nguyên nhân');
   assert.equal(rows[1].delayHours, 3.5);
   assert.equal(rows[1].delayLabel, '3.5h');
+  assert.equal(rows[1].violationReason, 'Chậm nộp tiền');
+});
+
+test('buildViolationGroupTabs lists Chậm nộp tiền first and marks it highlighted', () => {
+  const tabs = buildViolationGroupTabs({
+    total_failed: 10,
+    delayed_cash_count: 4,
+    other_failed_count: 3,
+    unknown_count: 3,
+  });
+
+  assert.equal(tabs[0].slug, 'delayed_cash');
+  assert.equal(tabs[0].highlight, true);
+  assert.equal(tabs[0].count, 4);
+  assert.ok(tabs.slice(1).every((tab) => tab.highlight === false));
+
+  const bySlug = Object.fromEntries(tabs.map((t) => [t.slug, t.count]));
+  assert.equal(bySlug.other, 3);
+  assert.equal(bySlug.unknown, 3);
+  assert.equal(bySlug.all, 10);
+});
+
+test('buildViolationGroupTabs defaults counts to 0 when the summary is empty, without losing the "all" tab', () => {
+  const tabs = buildViolationGroupTabs();
+  assert.equal(tabs.find((t) => t.slug === 'all').count, 0);
+  assert.equal(tabs.length, 4);
 });

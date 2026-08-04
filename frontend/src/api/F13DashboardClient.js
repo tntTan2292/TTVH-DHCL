@@ -83,13 +83,14 @@ class F13DashboardClient {
     /**
      * API Contract: GET /evidence-list
      */
-    getEvidenceList(date, bcvh, route, page, pageSize) {
-        return httpClient.get('/f13/evidence-list', { 
-            date, 
-            bcvh, 
-            route, 
-            page, 
-            page_size: pageSize 
+    getEvidenceList(date, bcvh, route, page, pageSize, reason) {
+        return httpClient.get('/f13/evidence-list', {
+            date,
+            bcvh,
+            route,
+            page,
+            page_size: pageSize,
+            reason,
         });
     }
 

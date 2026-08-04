@@ -344,6 +344,31 @@ class FactBuuGuiRepository {
         });
     }
 
+    // Same date/BCVH/route/Không đạt scope as getEvidenceList(), but unpaginated — used to
+    // classify the full violation population (Chậm nộp tiền / Không đạt khác / Chưa xác
+    // định) and compute accurate group counts regardless of page/page_size.
+    getEvidenceListFacts(date, bcvh, route) {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                SELECT *
+                FROM fact_f13
+                WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND danh_gia_2026 = 'Không đạt'
+            `;
+            db.all(sql, [date, bcvh, route], (err, rows) => {
+                if (err) return reject(err);
+
+                const mappedRows = rows.map(r => {
+                    if (r.extended_data) {
+                        try { r.extended_data = JSON.parse(r.extended_data); } catch (e) {}
+                    }
+                    return r;
+                });
+
+                resolve(mappedRows);
+            });
+        });
+    }
+
     getFactByDate(date) {
         return new Promise((resolve, reject) => {
             const sql = `SELECT * FROM fact_f13 WHERE ngay_do_kiem = ?`;

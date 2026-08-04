@@ -120,13 +120,13 @@ class DashboardController {
 
     async getEvidence(req, res) {
         try {
-            const { date, bcvh, route } = req.query;
+            const { date, bcvh, route, reason } = req.query;
             const page = parseInt(req.query.page) || 1;
             const pageSize = parseInt(req.query.page_size) || 20;
 
             if (!date || !bcvh || !route) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date, bcvh, route' }});
 
-            const result = await f13DashboardService.getEvidenceList(date, bcvh, route, page, pageSize);
+            const result = await f13DashboardService.getEvidenceList(date, bcvh, route, page, pageSize, reason);
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
