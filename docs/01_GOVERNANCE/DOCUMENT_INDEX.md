@@ -38,10 +38,10 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `None`.
-- Current manifest: `None — no active ticket`. Last closed: `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` (`COMPLETED / TECHNICAL PASS / CLOSED`, 2026-08-04, reviewed commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`).
-- Current checkpoint: `None — no active ticket`.
-- Next required action: await explicit Product Owner direction. Next Phase Authorization is `None`. Candidates are recorded in `PROJECT_SNAPSHOT.md` as candidates only. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred. `MD-01` is CLOSED — `danh_gia_2026` is authoritative. No ticket is self-activated from the repository.
+- Current ticket: `F13-STANDARDIZATION-001` — program `ACTIVE / AUTHORIZED`; `PHASE 0 — AUTHORIZED / READY FOR IMPLEMENTATION`; Phases 1-4 `PLANNED / NOT ACTIVE`.
+- Current manifest: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md`. Last closed prior ticket: `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` (`COMPLETED / TECHNICAL PASS / CLOSED`, 2026-08-04, reviewed commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`).
+- Current checkpoint: `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md`.
+- Next required action: `Begin bounded delta-only discovery for Phase 0. Do not implement until onboarding and Phase 0 scope confirmation are complete.` Phases 1-4 require no new ticket if each prior Phase meets its locked exit criteria; only the Product Owner may change program scope. Program-locked product decisions (Evidence is the official shipment detail screen; Message Center temporarily hidden and deferred) are recorded in `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 7 and apply from Phase 1 execution onward. `MD-01` is CLOSED — `danh_gia_2026` is authoritative.
 
 
 
@@ -54,6 +54,8 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `CLAUDE.md` | Governance | Condensed, auto-loaded onboarding equivalent of `README_AI.md` for Claude Code sessions only; points to `PROJECT_SNAPSHOT.md` for live state. | L2 | Active Onboarding | Auto-loaded by Claude Code at the start of every session in this repo. | Mandatory (Claude Code only) |
 | `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` | Governance | Prompt gate, single-defect remediation, executor selection, and prompt rules. | L2 | Active Onboarding | Every fresh session before first execution prompt. | Mandatory |
 | `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` | Governance | Current project/ticket SSOT and manifest/checkpoint pointers. | L2 | Active Onboarding | Every fresh session. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Current program F13-STANDARDIZATION-001: locked five-phase F1.3 module standardization plan. `ACTIVE / AUTHORIZED`; Phase 0 `AUTHORIZED / READY FOR IMPLEMENTATION`; Phases 1-4 `PLANNED / NOT ACTIVE`. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md` | Checkpoint | Current program checkpoint: program/Phase state, baseline, allowed/locked scope, required reading, exact next action, proposed executor, next PO gate. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` | Ticket Manifest | Closed F13-DATA-2098-CLEANUP-IMPL: PO-authorized permanent removal of year-2098 test/future data. `COMPLETED / TECHNICAL PASS / CLOSED`. | L2 | Conditional Reference | When 2098 cleanup scope, evidence, or closure is needed. | High |
 | `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md` | Checkpoint | Closed cleanup execution evidence: identification across all date fields, backup, transaction, post-delete verification, authoritative-field validation, duplicate revalidation (`DQ-07` retraction), and residuals `RESIDUAL-01`/`RESIDUAL-02`. | L2 | Conditional Reference | When 2098 cleanup evidence or the duplicate retraction is needed. | High |
 | `docs/10_TICKETS/F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN_MANIFEST.md` | Ticket Manifest | Closed F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN: read-only audit of database, API capabilities, and F1.3 surfaces. `CLOSED — PO DECISIONS RECORDED`. | L2 | Conditional Reference | When audit scope or the recorded PO decisions are needed. | High |
@@ -129,13 +131,13 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | UX | 7 | 7 | 0 | Conditional Reference |
 | Technical Planning | 7 | 7 | 0 | Conditional Reference |
 | Development Reference | 4 | 4 | 0 | Conditional Reference |
-| Reviews and Evidence | 147 | 117 | 30 | Conditional Reference |
+| Reviews and Evidence | 148 | 118 | 30 | Conditional Reference |
 | Conditional Reference | 46 | 42 | 4 | Conditional Reference/Archive |
 | Archive | 9 | 9 | 0 | Archive |
 | Reports Archive | 21 | 21 | 0 | Archive |
-| Ticket Manifests | 48 | 48 | 0 | Conditional Reference |
+| Ticket Manifests | 49 | 49 | 0 | Conditional Reference |
 | Root Legacy/Frozen Docs | 21 | 21 | 0 | Conditional Reference/Archive |
-| Total under `docs` | 338 | 304 | 34 | Preserved |
+| Total under `docs` | 340 | 306 | 34 | Preserved |
 
 ## Duplicate Content Notes
 

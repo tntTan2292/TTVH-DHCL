@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `Awaiting Product Owner Direction` |
-| Current Ticket | `None` |
-| Next Ticket | `None. Candidates only, not authorized: (1) remediate RESIDUAL-01; (2) F13-SURFACE-CLEANUP-PLAN; (3) Pareto product design. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred.` |
-| Last PO Status | `PO DECISIONS ISSUED 2026-08-04: (1) danh_gia_2026 is the authoritative F1.3 result field, FINAL, not to be reopened; (2) the duplicate overwrite/upsert rule on the authoritative business key is already decided and not reopened; (3) permanent removal of year-2098 test/future data is authorized; (4) the duplicate count is a technical validation item, not a PO decision. F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN closed on this basis.` |
+| Current Phase | `F13-STANDARDIZATION-001 — PHASE 0 — AUTHORIZED / READY FOR IMPLEMENTATION` |
+| Current Ticket | `F13-STANDARDIZATION-001` |
+| Next Ticket | `No separate next ticket. Phase 0 implementation continues within the current program ticket per its manifest. Phases 1-4 remain PLANNED / NOT ACTIVE until each prior Phase's locked exit criteria are met; only the Product Owner may change program scope.` |
+| Last PO Status | `PO AUTHORIZATION ISSUED 2026-08-04: Product Owner approved the F13-STANDARDIZATION-001 rapid standardization program for the F1.3 module group and authorized two documentation-only activation steps: (1) create the activation package; (2) lock the five-phase plan into one manifest with only Phase 0 set to READY FOR IMPLEMENTATION. No Phase 0 work was authorized or performed in this step.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `None — no active ticket` |
-| Current Checkpoint | `None — no active ticket` |
-| Current State | `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION` |
-| Technical Status | `F13-DATA-2098-CLEANUP-IMPL COMPLETED / TECHNICAL PASS / CLOSED — 8 rows permanently deleted (4 fact_f13 + 4 import_log) under predicate ngay_do_kiem LIKE '2098%' in a single committed transaction, after a verified VACUUM INTO backup. Zero 2098 rows and zero BCVH TEST rows remain. 2026 data unchanged: 663,126 rows, 213 days, authoritative KPI danh_gia_2026 identical at 58.6233%. integrity_check ok. Backup retained and must not be deleted. DQ-01 and DQ-03 CLOSED; DQ-04 RESOLVED by PO decision; DQ-07 RETRACTED. Confirmed open defect count is FOUR: DQ-02, DQ-05, DQ-06, DQ-08. No product code changed.` |
-| Runtime Status | `NOT APPLICABLE — no product code or runtime change. Backend was live during cleanup, so a transactionally consistent VACUUM INTO snapshot was used instead of a file copy.` |
+| Current Manifest | `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` |
+| Current Checkpoint | `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md` |
+| Current State | `PROGRAM ACTIVE — PHASE 0 AUTHORIZED / READY FOR IMPLEMENTATION; PHASES 1-4 PLANNED / NOT ACTIVE` |
+| Technical Status | `F13-STANDARDIZATION-001 activation package created (manifest + checkpoint). No product code, database, or runtime changed. Prior ticket F13-DATA-2098-CLEANUP-IMPL remains COMPLETED / TECHNICAL PASS / CLOSED — 8 rows permanently deleted (4 fact_f13 + 4 import_log) under predicate ngay_do_kiem LIKE '2098%' in a single committed transaction, after a verified VACUUM INTO backup. Zero 2098 rows and zero BCVH TEST rows remain. 2026 data unchanged: 663,126 rows, 213 days, authoritative KPI danh_gia_2026 identical at 58.6233%. integrity_check ok. Backup retained and must not be deleted. DQ-01 and DQ-03 CLOSED; DQ-04 RESOLVED by PO decision; DQ-07 RETRACTED. Confirmed open defect count is FOUR: DQ-02, DQ-05, DQ-06, DQ-08.` |
+| Runtime Status | `NOT APPLICABLE — this activation step changed only documentation/governance files.` |
 | PO UI Check Required | `No` |
-| PO Product Status | `Cleanup technically completed and closed.` |
+| PO Product Status | `Documentation-only activation completed; Phase 0 implementation not yet started.` |
 | Last Closed Ticket | `F13-DATA-2098-CLEANUP-IMPL` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` |
 | Last Reviewed Phase | `F13-DATA-2098-CLEANUP-IMPL closure: CTO TECHNICAL PASS` |
 | Last Reviewed Implementation Commit | `3b605beb7ed2deeae239dbb050cf9b03fbad9c43` |
-| Phase Review Status | `COMPLETED / TECHNICAL PASS / CLOSED` |
-| Next Phase Authorization | `None` |
+| Phase Review Status | `F13-STANDARDIZATION-001 activation: DOCUMENTATION COMPLETE. Phase 0 implementation not started.` |
+| Next Phase Authorization | `Phase 0 discovery/implementation, within the locked Phase 0 scope in docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md Section 6.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-04` |
 
@@ -63,7 +63,9 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: no active ticket. `F13-DATA-2098-CLEANUP-IMPL` is `COMPLETED / TECHNICAL PASS / CLOSED` as of `2026-08-04` (CTO review, implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`). The repository awaits explicit Product Owner direction before opening any next scope.
+Current handoff: `F13-STANDARDIZATION-001` is `ACTIVE / AUTHORIZED` as of `2026-08-04`. This is a single five-phase program, not five independent tickets. Only `PHASE 0 — AUTHORIZED / READY FOR IMPLEMENTATION` is open for work; Phases 1-4 are `PLANNED / NOT ACTIVE`. This activation step was documentation-only: no Phase 0 work was performed. `F13-DATA-2098-CLEANUP-IMPL` remains `COMPLETED / TECHNICAL PASS / CLOSED` as of `2026-08-04` (CTO review, implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`).
+
+Program activation (`2026-08-04`): Product Owner approved the rapid standardization plan for the F1.3 module group, program `F13-STANDARDIZATION-001`. Two documentation-only steps were executed: (1) creation of the activation package — manifest `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` and checkpoint `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md`; (2) the full five-phase plan (Phase 0 Khóa nền số liệu, Phase 1 Chuẩn hóa cấu trúc F1.3, Phase 2 Hoàn thiện điều hành, Phase 3 Pareto và Evidence, Phase 4 Regression và đóng F1.3) locked into that single manifest, with only Phase 0 set to `READY FOR IMPLEMENTATION`. Locked product decisions and locked out-of-scope items are recorded once in the manifest (Sections 7-8) and must not be duplicated elsewhere. Exact next authorized action: `Begin bounded delta-only discovery for Phase 0. Do not implement until onboarding and Phase 0 scope confirmation are complete.`
 
 Cleanup execution (`2026-08-04`): Product Owner authorized permanent removal of year-2098 test/future data. All six date-bearing fields were scanned; zero 2098 values existed in any event timestamp, so the predicate `ngay_do_kiem LIKE '2098%'` was verified complete and precise. After a verified `VACUUM INTO` backup (`backend/src/db/backups/database.pre-2098-cleanup.2026-08-04.sqlite`, `integrity_check = ok`), 4 `fact_f13` rows and 4 `import_log` rows were deleted in a single guarded transaction. Zero 2098 rows remain; date range is now `2026-01-01`-`2026-08-03`. 2026 production data is unchanged (663,126 rows, 213 days, per-month counts identical) and the authoritative KPI `danh_gia_2026` is unchanged at `58.6233%`. `DQ-01` and `DQ-03` are closed; `DQ-07` is retracted. Evidence: `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md`.
 
@@ -86,7 +88,8 @@ Fresh-chat onboarding chain:
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-4. No Current Manifest — `Current Ticket = None`. The onboarding chain ends at this document.
-5. No Current Checkpoint — `Current Ticket = None`.
+4. `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` (Current Manifest)
+5. `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md` (Current Checkpoint)
+6. Phase 0 Required Reading named by the checkpoint, once Phase 0 discovery begins.
 
-Await explicit Product Owner direction before activating any next ticket.
+Next authorized action: `Begin bounded delta-only discovery for Phase 0. Do not implement until onboarding and Phase 0 scope confirmation are complete.`
