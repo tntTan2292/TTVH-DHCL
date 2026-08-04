@@ -23,7 +23,7 @@ Quy tắc cập nhật:
 ## Current Ticket
 
 - `None`
-- `Status: F13-DATA-2098-CLEANUP-IMPL closed 2026-08-04 as COMPLETED / TECHNICAL PASS / CLOSED (reviewed implementation commit 3b605beb7ed2deeae239dbb050cf9b03fbad9c43); repository awaits Product Owner direction for the next scope`
+- `Status: F13-STANDARDIZATION-001 Tuyến Ranking (Route Ranking) delta closed 2026-08-04 as COMPLETED / PO PASS / CLOSED (latest PO-tested implementation commit 03ce28bacc36b49d961caa1c006a011beb804bc7); this closes only the Tuyến Ranking delta — the program's Phase 0 (implemented, not separately closed) and Phase 1-4 (not started) remain open; repository awaits Product Owner direction for the next scope`
 
 ## Completed Tickets
 
@@ -60,6 +60,7 @@ Quy tắc cập nhật:
 - `QIS-LAN-DEPLOY-001 F1.3 Local Network Viewer Deployment` - PO PASS / COMPLETED / CLOSED
 - `AUTO-IMPORT-010 HUE Browser Broker / Browser Launch Recovery` - PO RUNTIME PASS / COMPLETED / CLOSED; HUE first-click browser-open residual recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING
 - `F13-UI-AUDIT-PLAN F1.3 UI Audit and Standardization Planning` - PO PASS PHASE 1-4 / COMPLETED / CLOSED (2026-08-03); latest accepted runtime implementation commit `cdb9eab246415a3835210dd70329996e6ef6521c`
+- `F13-STANDARDIZATION-001 — Tuyến Ranking (Route Ranking) delta` - PO PASS / COMPLETED / CLOSED (2026-08-04); latest PO-tested implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`; covers only Tuyến Ranking and its violation drill-down — the program's Phase 0-4 remain otherwise unclosed
 
 ## Current Progress
 
@@ -109,13 +110,16 @@ Quy tắc cập nhật:
 - F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN: `CLOSED — PO DECISIONS RECORDED` (2026-08-04); read-only audit of database, API capabilities, and all F1.3 surfaces. PO decisions: `danh_gia_2026` is the authoritative F1.3 result field (FINAL); the duplicate overwrite/upsert rule on the authoritative business key is already decided; year-2098 removal authorized; the duplicate count is a technical validation item
 - F13-DATA-2098-CLEANUP-IMPL: `COMPLETED / TECHNICAL PASS / CLOSED` (2026-08-04); reviewed implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`; 4 `fact_f13` + 4 `import_log` rows deleted, zero 2098 rows and zero `BCVH TEST` rows remain, 2026 unchanged at 663,126 rows / 213 days, authoritative `danh_gia_2026` KPI remains `58.6233%`; pre-cleanup backup retained and must not be deleted
 - F1.3 confirmed open data-quality defects: `FOUR` — `DQ-02`, `DQ-05`, `DQ-06`, `DQ-08`. `DQ-01` and `DQ-03` closed by the 2098 cleanup; `DQ-04` resolved by PO decision; `DQ-07` retracted (`ma_bg` alone is not the business key; the enforced key is `UNIQUE(ngay_do_kiem, ma_bg)` and zero duplicates exist on it)
-- PO Product Status: `Cleanup closed`
+- F13-STANDARDIZATION-001 program activated (2026-08-04): locked five-phase F1.3 standardization plan; Phase 0 foundational items implemented and technically validated (commit `e3ca2429`) — KPI field standardization to `danh_gia_2026` (remediates `RESIDUAL-01`), two audited `/f13` API path fixes, `dd/MM/yyyy` timestamp parsing fix; not separately PO-runtime-confirmed as its own closure.
+- F13-STANDARDIZATION-001 Tuyến Ranking (Route Ranking) delta: `COMPLETED / PO PASS / CLOSED` (2026-08-04); Route Ranking data contract standardized (`a0d4b041`), violations classified into `Chậm nộp tiền` / `Không đạt khác` / `Chưa xác định nguyên nhân` with API contract (`a892a276`), UI/UX refined (`6e575308`), pagination `10 tuyến/trang` and default ascending `passed_rate` sort added and PO-confirmed (`03ce28ba`). Scope: Tuyến Ranking and its violation drill-down only.
+- F13-SHIPMENT-001 (Shipment Performance Center): remains `DEFERRED / PRESERVED`; its delta changes are preserved untouched in git stash (`F13-SHIPMENT-001: preserved Shipment Performance Center delay/status changes`), pending Product Owner reactivation.
+- PO Product Status: `Tuyến Ranking (Route Ranking) delta closed; program otherwise awaiting Product Owner direction`
 
 ## Next Ticket
 
 - Current active ticket: `None`.
 - Next planned action: `Await explicit Product Owner direction. Next Phase Authorization is NONE.`
-- Candidates only, not authorized tickets: `(1) remediate RESIDUAL-01 — the live recommendations path uses the non-authoritative ket_qua_f13 and may display KPI values inconsistent with danh_gia_2026; (2) F13-SURFACE-CLEANUP-PLAN covering Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal; (3) Pareto product design later, distinguishing Pareto analysis from true RCA. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred.`
+- Candidates only, not authorized tickets: `(1) formally start F13-STANDARDIZATION-001 Phase 1 (Chuẩn hóa cấu trúc F1.3); (2) reactivate deferred F13-SHIPMENT-001 (Shipment Performance Center), whose delta remains preserved in a git stash; (3) F13-SURFACE-CLEANUP-PLAN covering Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal; (4) Pareto product design later, distinguishing Pareto analysis from true RCA. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred. RESIDUAL-01 is remediated as of Phase 0 implementation commit e3ca2429 and is no longer an open candidate.`
 
 ## Notes
 

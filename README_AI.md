@@ -135,23 +135,19 @@ The lightweight onboarding route is:
 
 ↓
 
-Current Manifest — `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md`
+No Current Manifest — `Current Ticket = None` in `PROJECT_SNAPSHOT.md`
 
 ↓
 
-Current Checkpoint — `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md`
-
-↓
-
-Follow the Exact Next Action recorded in the checkpoint
+Await Product Owner direction before activating any next ticket
 
 Current project state is owned by `PROJECT_SNAPSHOT.md`.
 
-Current active handoff: program `F13-STANDARDIZATION-001` is `ACTIVE / AUTHORIZED` as of `2026-08-04` (Product Owner authorization). This is one five-phase program, not five independent tickets. Only `PHASE 0 — AUTHORIZED / READY FOR IMPLEMENTATION` is open for work; Phases 1-4 are `PLANNED / NOT ACTIVE` and require no new ticket if each prior Phase meets its locked exit criteria. This activation step was documentation-only: no Phase 0 work was performed, and no product code, database, or runtime was changed.
+Current active handoff: no active ticket. The `F13-STANDARDIZATION-001` program's Tuyến Ranking (Route Ranking) delta closed on `2026-08-04` with explicit Product Owner `PO PASS` (latest implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`) — pagination `10 tuyến/trang`, ascending `passed_rate` default sort, page navigation, and reconciliation table all confirmed correct at runtime. This closure covers only Tuyến Ranking and its violation drill-down; the program's Phase 0 (implemented, not separately closed) and Phase 1-4 (not started) remain open, not closed by this. See `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 16 for the full closure record.
 
 `F13-DATA-2098-CLEANUP-IMPL` is `COMPLETED / TECHNICAL PASS / CLOSED` as of `2026-08-04` (CTO review; reviewed implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`). Year-2098 test/future data was permanently removed: 4 `fact_f13` rows and 4 `import_log` rows deleted, zero 2098 rows and zero `BCVH TEST` rows remain, 2026 unchanged at 663,126 rows / 213 days, and the authoritative `danh_gia_2026` KPI remains `58.6233%`. The pre-cleanup backup is retained and must not be deleted. `F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT-PLAN` is `CLOSED — PO DECISIONS RECORDED` as of the same date; `danh_gia_2026` is the authoritative F1.3 result field.
 
-Exact next authorized action: `Begin bounded delta-only discovery for Phase 0. Do not implement until onboarding and Phase 0 scope confirmation are complete.`
+The repository awaits explicit Product Owner direction before opening any next scope. Next-direction candidates are recorded in `PROJECT_SNAPSHOT.md` as candidates only and must not be self-activated.
 
 Ticket naming conventions do not change this route; the live state must always be resolved from `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 

@@ -17,12 +17,13 @@
 - [13. Next Ticket](#13-next-ticket)
 - [14. PO Acceptance Checklist](#14-po-acceptance-checklist)
 - [15. Authority Escalation](#15-authority-escalation)
+- [16. Route Ranking Delta Closure](#16-route-ranking-delta-closure)
 
 ## 1. Ticket Information
 
 - Ticket ID: `F13-STANDARDIZATION-001`
 - Ticket Name: F1.3 Module Standardization Program
-- Phase: Program activation (documentation-only). Execution phase: `PHASE 0 — AUTHORIZED / READY FOR IMPLEMENTATION`. Phases 1-4: `PLANNED / NOT ACTIVE`.
+- Phase: Program activation (documentation-only), followed by a Product Owner-authorized Tuyến Ranking delta (Section 16, `PO PASS / CLOSED`, `2026-08-04`). Phase 0: foundational items implemented, not separately closed. Phases 1-4: `PLANNED / NOT ACTIVE`.
 - Owner: Claude Code (implementation, backend, data, tests, documentation, Git per `DEC-020`)
 - Governance Version: `V2 Active`
 - Authorization: Product Owner, `2026-08-04` — approval of the rapid standardization plan for the F1.3 module group, this program
@@ -33,9 +34,13 @@ Activate a single five-phase standardization program for the F1.3 module group u
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / AUTHORIZED` (program). `PHASE 0 — AUTHORIZED / READY FOR IMPLEMENTATION`. Phases 1-4 `PLANNED / NOT ACTIVE`.
-- PO UI Check Required: `No` for this activation step — no UI or product code changed.
-- PO Product Status: Documentation-only activation package created; no Phase 0 work performed under this ticket.
+- Current state: `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION` (program), as of `2026-08-04`, following the Route Ranking delta closure (Section 16).
+- Phase 0: foundational items implemented (commits `e3ca2429`, `a0d4b041`) and technically validated; not separately closed with its own Product Owner runtime confirmation.
+- Phase 1: not started; PO Gate 1 not reached.
+- Phase 2: `PLANNED / NOT ACTIVE` for Operation Dashboard and BCVH Ranking; its Tuyến Ranking item was executed and closed out of sequence as a bounded delta (Section 16), with explicit Product Owner `PO PASS`.
+- Phases 3-4: `PLANNED / NOT ACTIVE`.
+- PO UI Check Required: `Yes` for the Route Ranking delta — satisfied; see Section 16.
+- PO Product Status: Route Ranking (Tuyến Ranking) and its violation drill-down `PO PASS / CLOSED`. All other F1.3 screens and the remaining Phase 0-4 scope are unaffected by this status and remain as stated above.
 
 ## 4. Required Reading
 
@@ -149,13 +154,28 @@ Scope: Operation Dashboard, BCVH Ranking, Tuyến Ranking.
 
 ## 13. Next Ticket
 
-- Next ticket ID: none opened. Phase 0 is authorized but its implementation is explicitly **not** part of this documentation-only ticket.
-- Exact next action: `Begin bounded delta-only discovery for Phase 0. Do not implement until onboarding and Phase 0 scope confirmation are complete.`
+- Next ticket ID: `None`. No active ticket / Awaiting Product Owner direction.
+- No next Phase or ticket is self-activated by this closure. Starting Phase 1, or any other scope, requires explicit Product Owner authorization.
 
 ## 14. PO Acceptance Checklist
 
-`PO UI Check Required = No` for this activation step. No UI or product code changed. PO Gates 1-3 (Section 10) apply to later phases, not to this documentation activation.
+`PO UI Check Required = Yes` for the Route Ranking delta — satisfied by the Product Owner runtime test recorded in Section 16 (pagination `10 tuyến/trang`, ascending `passed_rate` default sort, page navigation, reconciliation table). PO Gates 1-3 (Section 10) remain unreached; they apply once Phase 1 and later phases are formally executed, not to this delta.
 
 ## 15. Authority Escalation
 
-No escalation required for this activation step — it is a direct execution of explicit Product Owner authorization limited to two documentation actions (activation package, five-phase manifest lock). Any attempt to implement Phase 0 content, run a broad audit, or activate a different ticket under this authorization would require stopping and reporting a boundary conflict; none occurred.
+No escalation required. The Route Ranking delta closure in Section 16 is a direct execution of explicit Product Owner authorization and an explicit Product Owner `PO PASS` runtime result; it does not extend to any phase, screen, or ticket not named there.
+
+## 16. Route Ranking Delta Closure
+
+- Status: `COMPLETED / PO PASS / CLOSED`
+- Closed on: `2026-08-04`
+- Closure authority: Product Owner runtime test — `PO PASS`
+- Latest Product Owner-tested implementation commit: `03ce28bacc36b49d961caa1c006a011beb804bc7`
+
+Product Owner-confirmed result: Tuyến Ranking (`/f13/ranking/route`) and the violation drill-down detail window (`/f13/ranking/route/violations`) were runtime-tested. Pagination `10 tuyến/trang` correct; default sort ascending by `Tỷ lệ đạt` correct, weakest-performing route ranked first; page navigation correct; reconciliation (đối soát) table correct.
+
+Main implementation chain: `a892a276310705920cb298264ebfeb2db3ae64da` (violation-reason classification and API contract), `6e5753089ccda7b4f90706c32ed1482be3aadb12` (UI/UX refinement), `03ce28bacc36b49d961caa1c006a011beb804bc7` (pagination and default sort — this PO PASS). Built on prior branch commits `e3ca24292f39b5c59022b161b63c4603cced1949` (Phase 0 foundations) and `a0d4b041573798b08eb2992698bdc9cc20031083` (Route Ranking contract standardization).
+
+This closure covers only Tuyến Ranking and its violation drill-down. It does not close Operation Dashboard, BCVH Ranking, Pareto/RCA, Evidence, Message Center, or Shipment Performance Center; it does not close Phase 0, Phase 1, Phase 2 in full, Phase 3, Phase 4, or the `F13-STANDARDIZATION-001` program. `stash@{0}` (`F13-SHIPMENT-001`) and `stash@{1}` (pre-existing HTML maps) are untouched by this closure and remain preserved.
+
+No next ticket or Phase is activated by this closure. Repository state returns to `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION`.

@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `F13-STANDARDIZATION-001 — PHASE 0 — AUTHORIZED / READY FOR IMPLEMENTATION` |
-| Current Ticket | `F13-STANDARDIZATION-001` |
-| Next Ticket | `No separate next ticket. Phase 0 implementation continues within the current program ticket per its manifest. Phases 1-4 remain PLANNED / NOT ACTIVE until each prior Phase's locked exit criteria are met; only the Product Owner may change program scope.` |
-| Last PO Status | `PO AUTHORIZATION ISSUED 2026-08-04: Product Owner approved the F13-STANDARDIZATION-001 rapid standardization program for the F1.3 module group and authorized two documentation-only activation steps: (1) create the activation package; (2) lock the five-phase plan into one manifest with only Phase 0 set to READY FOR IMPLEMENTATION. No Phase 0 work was authorized or performed in this step.` |
+| Current Phase | `Awaiting Product Owner Direction` |
+| Current Ticket | `None` |
+| Next Ticket | `None authorized. F13-STANDARDIZATION-001 Phase 1 is the next item in the original five-phase sequence but requires explicit Product Owner authorization to start; not self-activated. F13-SHIPMENT-001 remains DEFERRED / PRESERVED (stash@{0}), pending Product Owner reactivation.` |
+| Last PO Status | `PO PASS ISSUED 2026-08-04: Product Owner runtime-tested Tuyến Ranking (Route Ranking) and its violation drill-down detail window. Confirmed: pagination 10 tuyến/trang correct; default sort ascending by Tỷ lệ đạt correct (weakest-performing route ranked first); page navigation correct; reconciliation (đối soát) table correct. Result: PO PASS / CLOSED for this Tuyến Ranking delta only. Latest PO-tested implementation commit: 03ce28bacc36b49d961caa1c006a011beb804bc7.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md` |
-| Current State | `PROGRAM ACTIVE — PHASE 0 AUTHORIZED / READY FOR IMPLEMENTATION; PHASES 1-4 PLANNED / NOT ACTIVE` |
-| Technical Status | `F13-STANDARDIZATION-001 activation package created (manifest + checkpoint). No product code, database, or runtime changed. Prior ticket F13-DATA-2098-CLEANUP-IMPL remains COMPLETED / TECHNICAL PASS / CLOSED — 8 rows permanently deleted (4 fact_f13 + 4 import_log) under predicate ngay_do_kiem LIKE '2098%' in a single committed transaction, after a verified VACUUM INTO backup. Zero 2098 rows and zero BCVH TEST rows remain. 2026 data unchanged: 663,126 rows, 213 days, authoritative KPI danh_gia_2026 identical at 58.6233%. integrity_check ok. Backup retained and must not be deleted. DQ-01 and DQ-03 CLOSED; DQ-04 RESOLVED by PO decision; DQ-07 RETRACTED. Confirmed open defect count is FOUR: DQ-02, DQ-05, DQ-06, DQ-08.` |
-| Runtime Status | `NOT APPLICABLE — this activation step changed only documentation/governance files.` |
-| PO UI Check Required | `No` |
-| PO Product Status | `Documentation-only activation completed; Phase 0 implementation not yet started.` |
-| Last Closed Ticket | `F13-DATA-2098-CLEANUP-IMPL` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-DATA-2098-CLEANUP-IMPL_MANIFEST.md` |
-| Last Reviewed Phase | `F13-DATA-2098-CLEANUP-IMPL closure: CTO TECHNICAL PASS` |
-| Last Reviewed Implementation Commit | `3b605beb7ed2deeae239dbb050cf9b03fbad9c43` |
-| Phase Review Status | `F13-STANDARDIZATION-001 activation: DOCUMENTATION COMPLETE. Phase 0 implementation not started.` |
-| Next Phase Authorization | `Phase 0 discovery/implementation, within the locked Phase 0 scope in docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md Section 6.` |
+| Current Manifest | `None — no active ticket. Last relevant: docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md (Route Ranking delta closed, Section 16; program otherwise unclosed, awaiting PO direction).` |
+| Current Checkpoint | `None — no active ticket. Last relevant: docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md.` |
+| Current State | `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION` |
+| Technical Status | `F13-STANDARDIZATION-001 Tuyến Ranking (Route Ranking) delta: violation-reason classification and API contract (a892a276), UI/UX refinement (6e575308), pagination and default sort (03ce28ba) — all technically validated (backend/frontend node --test PASS on all new/changed coverage, oxlint clean, vite build succeeds) and now Product Owner PO PASS. Phase 0 foundational items (KPI field, API path, timestamp parsing — e3ca2429) and the first Route Ranking contract pass (a0d4b041) remain implemented and technically validated, not separately PO-runtime-confirmed. Prior ticket F13-DATA-2098-CLEANUP-IMPL remains COMPLETED / TECHNICAL PASS / CLOSED.` |
+| Runtime Status | `Route Ranking and its violation drill-down: Product Owner-confirmed PASS on 2026-08-04. All other F1.3 screens: no new runtime claim recorded by this update.` |
+| PO UI Check Required | `No — the one PO UI check required for this closure (Route Ranking delta) is already satisfied and recorded.` |
+| PO Product Status | `Tuyến Ranking (Route Ranking) and its violation drill-down: PO PASS / CLOSED. Other F1.3 screens and the remaining F13-STANDARDIZATION-001 scope (Phase 0 closure, Phase 1-4): not addressed by this closure, unchanged.` |
+| Last Closed Ticket | `F13-STANDARDIZATION-001 — Tuyến Ranking (Route Ranking) delta only` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` |
+| Last Reviewed Phase | `F13-STANDARDIZATION-001 Route Ranking delta closure: Product Owner PO PASS` |
+| Last Reviewed Implementation Commit | `03ce28bacc36b49d961caa1c006a011beb804bc7` |
+| Phase Review Status | `Route Ranking delta: COMPLETED / PO PASS / CLOSED. Phase 0: implemented, technically validated, not separately closed. Phase 1-4: PLANNED / NOT ACTIVE.` |
+| Next Phase Authorization | `None. Awaiting explicit Product Owner direction on whether to formally start Phase 1 or authorize other next scope.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-04` |
 
@@ -63,9 +63,15 @@ It exists to answer only the questions a fresh AI needs in order to continue:
 - what branch is active
 - what manifest governs the current reading scope
 
-Current handoff: `F13-STANDARDIZATION-001` is `ACTIVE / AUTHORIZED` as of `2026-08-04`. This is a single five-phase program, not five independent tickets. Only `PHASE 0 — AUTHORIZED / READY FOR IMPLEMENTATION` is open for work; Phases 1-4 are `PLANNED / NOT ACTIVE`. This activation step was documentation-only: no Phase 0 work was performed. `F13-DATA-2098-CLEANUP-IMPL` remains `COMPLETED / TECHNICAL PASS / CLOSED` as of `2026-08-04` (CTO review, implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`).
+Current handoff: no active ticket. The `F13-STANDARDIZATION-001` program's Tuyến Ranking (Route Ranking) delta closed on `2026-08-04` with explicit Product Owner `PO PASS` (implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`). The program itself — Phase 0 closure, Phase 1-4 — remains open and unclosed; only the Route Ranking delta item is closed. `F13-DATA-2098-CLEANUP-IMPL` remains `COMPLETED / TECHNICAL PASS / CLOSED` as of `2026-08-04` (CTO review, implementation commit `3b605beb7ed2deeae239dbb050cf9b03fbad9c43`).
 
-Program activation (`2026-08-04`): Product Owner approved the rapid standardization plan for the F1.3 module group, program `F13-STANDARDIZATION-001`. Two documentation-only steps were executed: (1) creation of the activation package — manifest `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` and checkpoint `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md`; (2) the full five-phase plan (Phase 0 Khóa nền số liệu, Phase 1 Chuẩn hóa cấu trúc F1.3, Phase 2 Hoàn thiện điều hành, Phase 3 Pareto và Evidence, Phase 4 Regression và đóng F1.3) locked into that single manifest, with only Phase 0 set to `READY FOR IMPLEMENTATION`. Locked product decisions and locked out-of-scope items are recorded once in the manifest (Sections 7-8) and must not be duplicated elsewhere. Exact next authorized action: `Begin bounded delta-only discovery for Phase 0. Do not implement until onboarding and Phase 0 scope confirmation are complete.`
+Program activation (`2026-08-04`): Product Owner approved the rapid standardization plan for the F1.3 module group, program `F13-STANDARDIZATION-001`. Two documentation-only steps were executed: (1) creation of the activation package — manifest `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` and checkpoint `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md`; (2) the full five-phase plan (Phase 0 Khóa nền số liệu, Phase 1 Chuẩn hóa cấu trúc F1.3, Phase 2 Hoàn thiện điều hành, Phase 3 Pareto và Evidence, Phase 4 Regression và đóng F1.3) locked into that single manifest, with only Phase 0 set to `READY FOR IMPLEMENTATION`. Locked product decisions and locked out-of-scope items are recorded once in the manifest (Sections 7-8) and must not be duplicated elsewhere.
+
+Phase 0 implementation (`2026-08-04`, commit `e3ca24292f39b5c59022b161b63c4603cced1949`): recommendations engine switched from the non-authoritative `ket_qua_f13` to `danh_gia_2026` (this remediates the previously-recorded `RESIDUAL-01`, superseding the candidate below); the two audited `/f13`-prefix API path defects fixed; `dd/MM/yyyy HH:mm:ss` timestamp parsing fixed. Technically validated (backend/frontend test suites, oxlint, `vite build`); not separately closed with its own Product Owner runtime confirmation.
+
+Tuyến Ranking (Route Ranking) delta closure (`2026-08-04`, PO PASS, `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 16): Route Ranking data contract standardized (`a0d4b041`); violations classified into `Chậm nộp tiền` / `Không đạt khác` / `Chưa xác định nguyên nhân` with a corresponding `/f13/evidence-list` API contract (`a892a276`); UI/UX refined (`6e575308`); pagination `10 tuyến/trang` and default ascending `passed_rate` sort added and Product Owner-confirmed (`03ce28ba`). Scope is Tuyến Ranking and its violation drill-down only — no other F1.3 screen, and no other phase of the program, is closed by this. The Shipment Performance Center delta remains preserved in `stash@{0}`, untouched, pending Product Owner reactivation of the deferred `F13-SHIPMENT-001` ticket.
+
+Exact next authorized action: `None. No active ticket / Awaiting Product Owner direction.`
 
 Cleanup execution (`2026-08-04`): Product Owner authorized permanent removal of year-2098 test/future data. All six date-bearing fields were scanned; zero 2098 values existed in any event timestamp, so the predicate `ngay_do_kiem LIKE '2098%'` was verified complete and precise. After a verified `VACUUM INTO` backup (`backend/src/db/backups/database.pre-2098-cleanup.2026-08-04.sqlite`, `integrity_check = ok`), 4 `fact_f13` rows and 4 `import_log` rows were deleted in a single guarded transaction. Zero 2098 rows remain; date range is now `2026-01-01`-`2026-08-03`. 2026 production data is unchanged (663,126 rows, 213 days, per-month counts identical) and the authoritative KPI `danh_gia_2026` is unchanged at `58.6233%`. `DQ-01` and `DQ-03` are closed; `DQ-07` is retracted. Evidence: `docs/06_REVIEWS/Shared/F13-DATA-2098-CLEANUP-IMPL_CHECKPOINT_001.md`.
 
@@ -77,19 +83,19 @@ Implementation & Closure (`2026-08-04`): Product Owner awarded `PO UI PASS` to `
 
 Next-direction candidates — recorded as candidates only, **not authorized tickets**:
 
-1. **Recommended first decision:** remediate `RESIDUAL-01`, because the live recommendations path (`ruleEngineService.js` → `GET /f13/recommendations`) uses the non-authoritative `ket_qua_f13` and may display KPI values inconsistent with `danh_gia_2026` (divergence up to 5.58 points per BCVH).
-2. **Subsequent candidate:** `F13-SURFACE-CLEANUP-PLAN` — Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal.
-3. **Later:** Pareto product design, which must distinguish Pareto analysis from true RCA.
+1. Formally start `F13-STANDARDIZATION-001` Phase 1 (Chuẩn hóa cấu trúc F1.3 — naming/navigation, Evidence as the official shipment detail screen, redirects, Message Center hide, legacy-page removal), the next item in the original five-phase sequence.
+2. Reactivate the deferred `F13-SHIPMENT-001` (Shipment Performance Center), whose delta changes remain preserved in `stash@{0}`.
+3. `F13-SURFACE-CLEANUP-PLAN` — Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal.
+4. Later: Pareto product design, which must distinguish Pareto analysis from true RCA.
 
-Evidence MERGE and Message Center HIDE remain **pending Product Owner confirmation**. No repository authority records an explicit Product Owner decision on either; approval must not be inferred.
+`RESIDUAL-01` (recommendations engine using `ket_qua_f13`) is **remediated** as of Phase 0 implementation commit `e3ca2429`; no longer an open candidate. Evidence MERGE and Message Center HIDE remain **pending Product Owner confirmation**. No repository authority records an explicit Product Owner decision on either; approval must not be inferred.
 
 Fresh-chat onboarding chain:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
 3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-4. `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` (Current Manifest)
-5. `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md` (Current Checkpoint)
-6. Phase 0 Required Reading named by the checkpoint, once Phase 0 discovery begins.
+4. No Current Manifest — `Current Ticket = None`. The onboarding chain ends at this document.
+5. No Current Checkpoint — `Current Ticket = None`.
 
-Next authorized action: `Begin bounded delta-only discovery for Phase 0. Do not implement until onboarding and Phase 0 scope confirmation are complete.`
+Next authorized action: `None. No active ticket / Awaiting Product Owner direction.`
