@@ -10,6 +10,7 @@ import {
   OSM_TILE_URL,
   OSM_ATTRIBUTION,
 } from './mapStyles';
+import { fetchDeliveryRoadRoute } from './deliveryRoutingService';
 
 function ZoomTracker({ onZoomChange }) {
   const map = useMapEvents({
@@ -25,6 +26,9 @@ function ZoomTracker({ onZoomChange }) {
 
 export default function DeliveryRoutesMap({ points }) {
   const [currentZoom, setCurrentZoom] = useState(HUE_MAP_DEFAULT_ZOOM);
+  const [routeResult, setRouteResult] = useState({ segments: [], hasFallback: false, warning: null });
+  const [routingLoading, setRoutingLoading] = useState(false);
+
   const showLabels = currentZoom >= ZOOM_LABEL_THRESHOLD_DELIVERY;
 
   // Group parcels by distinct physical location (lat, lon) to prevent overlapping markers
@@ -50,31 +54,75 @@ export default function DeliveryRoutesMap({ points }) {
     return Array.from(map.values());
   }, [points]);
 
-  // Polyline connects consecutive grouped physical locations chronologically
-  const polylinePositions = useMemo(
+  // Direct straight line positions as initial fallback
+  const straightPositions = useMemo(
     () => groupedLocations.map((loc) => [loc.lat, loc.lon]),
     [groupedLocations],
   );
+
+  // Fetch road-network route when groupedLocations change
+  useEffect(() => {
+    let cancelled = false;
+    if (groupedLocations.length < 2) {
+      setRouteResult({ segments: [], hasFallback: false, warning: null });
+      setRoutingLoading(false);
+      return;
+    }
+
+    setRoutingLoading(true);
+    fetchDeliveryRoadRoute(groupedLocations)
+      .then((res) => {
+        if (cancelled) return;
+        setRouteResult(res);
+        setRoutingLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setRouteResult({
+          segments: [{ isRoad: false, positions: straightPositions, error: err.message }],
+          hasFallback: true,
+          warning: '⚠️ Không thể định tuyến OSRM, hiển thị đường nối thẳng dự phòng.',
+        });
+        setRoutingLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [groupedLocations, straightPositions]);
 
   const totalPoints = points.length;
 
   return (
     <div style={{ height: '70vh' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative">
       <MapContainer
-        center={polylinePositions[0] || HUE_MAP_CENTER}
+        center={straightPositions[0] || HUE_MAP_CENTER}
         zoom={13}
         style={{ height: '100%', width: '100%' }}
       >
         <ZoomTracker onZoomChange={setCurrentZoom} />
         <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} maxZoom={20} />
 
-        {/* Chronological route polyline connecting physical locations */}
-        {polylinePositions.length >= 2 && (
+        {/* Render Road Network Segments or Fallback Polylines */}
+        {routeResult.segments.length > 0 ? (
+          routeResult.segments.map((seg, idx) => (
+            <Polyline
+              key={`segment-${idx}-${seg.isRoad ? 'road' : 'fallback'}`}
+              positions={seg.positions}
+              pathOptions={
+                seg.isRoad
+                  ? { color: '#1D4ED8', weight: 4, opacity: 0.9, dashArray: null }
+                  : { color: '#F59E0B', weight: 4, opacity: 0.85, dashArray: '8, 8' }
+              }
+            />
+          ))
+        ) : straightPositions.length >= 2 ? (
+          // Initial or fallback polyline before async route loads
           <Polyline
-            positions={polylinePositions}
+            positions={straightPositions}
             pathOptions={{ color: '#1D4ED8', weight: 4, opacity: 0.85, dashArray: '6, 6' }}
           />
-        )}
+        ) : null}
 
         {/* Grouped Location Markers */}
         {groupedLocations.map((loc) => {
@@ -199,12 +247,18 @@ export default function DeliveryRoutesMap({ points }) {
         })}
       </MapContainer>
 
+      {/* Warning Overlay when routing fails for some or all chunks */}
+      {routeResult.warning && (
+        <div className="absolute top-2 left-12 z-[1000] bg-amber-50/95 border border-amber-300 text-amber-900 rounded-lg px-3 py-1.5 text-xs shadow-md flex items-center gap-1.5 max-w-md">
+          <span>{routeResult.warning}</span>
+        </div>
+      )}
+
       {/* Zoom Status Overlay */}
-      <div className="absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm rounded-lg px-2.5 py-1 text-xs text-gray-700 font-medium">
-        Zoom: {currentZoom} {showLabels ? '• Hiển thị mã bưu gửi & Thời gian nhập phát' : '• Zoom ≥ 14 để hiện chi tiết'}
+      <div className="absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm rounded-lg px-2.5 py-1 text-xs text-gray-700 font-medium flex items-center gap-1.5">
+        {routingLoading && <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />}
+        <span>Zoom: {currentZoom} {showLabels ? '• Hiển thị mã bưu gửi' : '• Zoom ≥ 14 để hiện chi tiết'}</span>
       </div>
     </div>
   );
 }
-
-

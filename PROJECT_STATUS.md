@@ -17,13 +17,13 @@ Quy tắc cập nhật:
 ## Current Phase
 
 - `QIS V2`
-- `NETWORK-MANAGEMENT-001` — Phase 2 Governance Closure
-- `Status: PHASE 2 CLOSED / AWAITING PO DIRECTION FOR PHASE 3`
+- `NETWORK-MANAGEMENT-001` — Phase 2 Delivery Route Road-Network Remediation
+- `Status: PHASE 2 DELIVERY ROUTE ROAD-NETWORK REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK`
 
 ## Current Ticket
 
-- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Governance Closure)
-- `Status: COMPLETED / PO PASS / CLOSED. Product Owner officially confirmed PO COMBINED VISUAL RECHECK PASS on all 3 map screens (Mạng điểm phục vụ, Sơ đồ ĐTC2, Sơ đồ tuyến phát + Calendar Date Picker). PO Gate 2 officially closed as PASS. Authority chain verified: Phase 3 (Import) is PLANNED / NOT ACTIVE, awaiting explicit Product Owner direction. Zero product code, database schema, or UI changes. 2 stashes preserved.`
+- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Delivery Route Road-Network Remediation)
+- `Status: PHASE 2 DELIVERY ROUTE ROAD-NETWORK REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK. Technical Pass on Delivery Route Road-Network Remediation confirmed. Implemented road-network snapped polylines for Sơ đồ tuyến phát using OSRM routing engine (deliveryRoutingService.js): 1) Preserves strict chronological waypoint sequence ordered by Thời gian nhập phát (no reordering or optimization). 2) Groups duplicate physical coordinates before routing. 3) Splits long routes (>25 waypoints) into chunked requests and concatenates sequentially with 1-point overlap. 4) Implements in-memory route caching engine (generateRouteCacheKey, clearRouteCache). 5) Solid line styling (#1D4ED8, weight 4, opacity 0.9) for road-snapped segments. 6) Graceful straight line fallback (#F59E0B, weight 4, opacity 0.85, dash 8, 8) for failed chunks with prominent visual warning overlay. 7) Preserved Calendar Date Picker, shift filters, KPIs, markers, popups, and database invariants. All 55 unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Ready for PO route visual re-check. NOT moved to Phase 3.`
 
 ## Completed Tickets
 

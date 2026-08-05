@@ -254,4 +254,130 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
     assert.equal(isQueryAllowed('2026-06-01', '533140', ''), false, 'Missing Postman must disallow query');
     assert.equal(isQueryAllowed('2026-06-01', '533140', '53A121'), true, 'All 3 present allows query');
   });
+
+  it('validates Delivery Road Routing waypoint sequence follows Thời gian nhập phát order without reordering', async () => {
+    const { fetchDeliveryRoadRoute } = await import('./deliveryRoutingService.js');
+    const chronologicalWaypoints = [
+      { lat: 16.4637, lon: 107.5909, time: '08:00' },
+      { lat: 16.4680, lon: 107.5950, time: '09:15' },
+      { lat: 16.4720, lon: 107.6000, time: '10:30' },
+    ];
+
+    const mockFetch = async (url) => {
+      const coords = url.split('/route/v1/driving/')[1].split('?')[0].split(';');
+      // Return coordinates matching input URL order exactly
+      const returnedCoords = coords.map((c) => {
+        const [lon, lat] = c.split(',').map(Number);
+        return [lon, lat];
+      });
+
+      return {
+        ok: true,
+        json: async () => ({
+          code: 'Ok',
+          routes: [{ geometry: { coordinates: returnedCoords }, distance: 2500 }],
+        }),
+      };
+    };
+
+    const res = await fetchDeliveryRoadRoute(chronologicalWaypoints, { fetchImpl: mockFetch, useCache: false });
+    assert.equal(res.hasFallback, false);
+    assert.equal(res.segments.length, 1);
+    assert.equal(res.segments[0].isRoad, true);
+
+    // Verify coordinates match input sequence 107.5909, 16.4637 -> 107.5950, 16.4680 -> 107.6000, 16.4720
+    const pos = res.segments[0].positions;
+    assert.equal(pos[0][0], 16.4637);
+    assert.equal(pos[1][0], 16.4680);
+    assert.equal(pos[2][0], 16.4720);
+  });
+
+  it('splits long routes (>25 waypoints) into chunked requests and concatenates sequentially', async () => {
+    const { chunkLocations, fetchDeliveryRoadRoute } = await import('./deliveryRoutingService.js');
+
+    // Create 60 waypoints
+    const locations = Array.from({ length: 60 }, (_, i) => ({
+      lat: 16.46 + i * 0.001,
+      lon: 107.59 + i * 0.001,
+    }));
+
+    const chunks = chunkLocations(locations, 25);
+    assert.equal(chunks.length, 3, '60 waypoints with max 25 per chunk (1 overlap) must split into 3 chunks');
+    assert.equal(chunks[0].length, 25);
+    assert.equal(chunks[1].length, 25);
+    assert.equal(chunks[2].length, 12); // 60 - 24 - 24 = 12
+
+    const mockFetch = async (url) => ({
+      ok: true,
+      json: async () => {
+        const coordsStr = url.split('/route/v1/driving/')[1].split('?')[0];
+        const coords = coordsStr.split(';').map((c) => c.split(',').map(Number));
+        return { code: 'Ok', routes: [{ geometry: { coordinates: coords }, distance: 5000 }] };
+      },
+    });
+
+    const res = await fetchDeliveryRoadRoute(locations, { fetchImpl: mockFetch, useCache: false });
+    assert.equal(res.totalChunks, 3);
+    assert.equal(res.segments.length, 3);
+    assert.equal(res.segments.every((s) => s.isRoad), true);
+  });
+
+  it('validates in-memory route caching engine and clearRouteCache utility', async () => {
+    const { fetchDeliveryRoadRoute, clearRouteCache } = await import('./deliveryRoutingService.js');
+    clearRouteCache();
+
+    const waypoints = [
+      { lat: 16.4637, lon: 107.5909 },
+      { lat: 16.4680, lon: 107.5950 },
+    ];
+
+    let fetchCalls = 0;
+    const mockFetch = async () => {
+      fetchCalls++;
+      return {
+        ok: true,
+        json: async () => ({
+          code: 'Ok',
+          routes: [{ geometry: { coordinates: [[107.5909, 16.4637], [107.5950, 16.4680]] }, distance: 1000 }],
+        }),
+      };
+    };
+
+    // First call: fetches from mock API
+    const res1 = await fetchDeliveryRoadRoute(waypoints, { fetchImpl: mockFetch, useCache: true });
+    assert.equal(fetchCalls, 1);
+
+    // Second call with same waypoints: returned from cache (fetchCalls remains 1)
+    const res2 = await fetchDeliveryRoadRoute(waypoints, { fetchImpl: mockFetch, useCache: true });
+    assert.equal(fetchCalls, 1);
+    assert.deepEqual(res1, res2);
+
+    // After clearing cache: fetches again (fetchCalls becomes 2)
+    clearRouteCache();
+    await fetchDeliveryRoadRoute(waypoints, { fetchImpl: mockFetch, useCache: true });
+    assert.equal(fetchCalls, 2);
+  });
+
+  it('provides graceful fallback to straight line polyline if OSRM endpoint fails', async () => {
+    const { fetchDeliveryRoadRoute } = await import('./deliveryRoutingService.js');
+
+    const waypoints = [
+      { lat: 16.4637, lon: 107.5909 },
+      { lat: 16.4680, lon: 107.5950 },
+    ];
+
+    // Mock failing API (HTTP 500 error)
+    const mockFailingFetch = async () => ({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+    });
+
+    const res = await fetchDeliveryRoadRoute(waypoints, { fetchImpl: mockFailingFetch, useCache: false });
+    assert.equal(res.hasFallback, true);
+    assert.equal(res.segments.length, 1);
+    assert.equal(res.segments[0].isRoad, false, 'Failed chunk must mark isRoad = false');
+    assert.deepEqual(res.segments[0].positions, [[16.4637, 107.5909], [16.4680, 107.5950]], 'Fallback positions must match original waypoints');
+    assert.match(res.warning, /Định tuyến/i);
+  });
 });
