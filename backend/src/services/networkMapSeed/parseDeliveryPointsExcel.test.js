@@ -3,10 +3,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const xlsx = require('xlsx');
-const { parseDeliveryPointsWorkbook, SHEET_NAME, COLUMNS } = require('./parseDeliveryPointsExcel');
+const { parseDeliveryPointsWorkbook, parseImportTime, SHEET_NAME, COLUMNS } = require('./parseDeliveryPointsExcel');
 
 function buildRow(overrides = {}) {
-    const row = new Array(25).fill(null);
+    const row = new Array(29).fill(null);
     row[COLUMNS.LADING_CODE] = 'CN0001';
     row[COLUMNS.MABC_PHAT] = 533140;
     row[COLUMNS.POSTMAN_CODE] = '53A121';
@@ -18,12 +18,14 @@ function buildRow(overrides = {}) {
     row[COLUMNS.LAT] = 16.5;
     row[COLUMNS.LON] = 107.6;
     row[COLUMNS.STATUS_TIME] = 103200;
+    row[28] = '01/06/2026 10:32:00';
     return Object.assign(row, overrides);
 }
 
 function buildWorkbook(rows) {
-    const header = new Array(25).fill('');
+    const header = new Array(29).fill('');
     header[0] = 'LADING_CODE';
+    header[28] = 'Thời gian nhập phát';
     const sheet = xlsx.utils.aoa_to_sheet([header, ...rows]);
     const workbook = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(workbook, sheet, SHEET_NAME);
@@ -39,6 +41,8 @@ test('keeps a valid row and formats date/time deterministically', () => {
     assert.equal(records[0].ma_bcvh, '533140');
     assert.equal(records[0].postman_code, '53A121');
     assert.equal(records[0].route_po_code, '533140145');
+    assert.equal(records[0].thoi_gian_nhap_phat, '2026-06-01 10:32:00');
+    assert.equal(records[0].ca_phat, 'Ca sáng');
 });
 
 test('excludes QUANTITY === -1 rows and counts them separately', () => {
@@ -77,3 +81,27 @@ test('never bulk-loads: stats.total_rows always accounts for every row seen', ()
         stats.total_rows,
     );
 });
+
+test('parseImportTime correctly classifies shift boundaries and missing time', () => {
+    // Ca sáng boundaries: 00:00:00 to 14:00:00 (inclusive)
+    assert.equal(parseImportTime('01/06/2026 00:00:00').caPhat, 'Ca sáng');
+    assert.equal(parseImportTime('01/06/2026 07:29:59').caPhat, 'Ca sáng');
+    assert.equal(parseImportTime('01/06/2026 07:30:00').caPhat, 'Ca sáng');
+    assert.equal(parseImportTime('01/06/2026 13:59:59').caPhat, 'Ca sáng');
+    assert.equal(parseImportTime('01/06/2026 14:00:00').caPhat, 'Ca sáng');
+
+    // Ca chiều boundaries: 14:00:01 to 23:59:59
+    assert.equal(parseImportTime('01/06/2026 14:00:01').caPhat, 'Ca chiều');
+    assert.equal(parseImportTime('01/06/2026 18:30:00').caPhat, 'Ca chiều');
+    assert.equal(parseImportTime('01/06/2026 23:59:59').caPhat, 'Ca chiều');
+
+    // Missing / empty time -> null
+    const missingNull = parseImportTime(null);
+    assert.equal(missingNull.thoiGianNhapPhat, null);
+    assert.equal(missingNull.caPhat, null);
+
+    const missingEmpty = parseImportTime('');
+    assert.equal(missingEmpty.thoiGianNhapPhat, null);
+    assert.equal(missingEmpty.caPhat, null);
+});
+

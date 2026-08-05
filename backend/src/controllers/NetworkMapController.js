@@ -71,33 +71,44 @@ async function listLevel2Routes(req, res) {
 }
 
 // GET /api/network-map/delivery-routes/meta[?ngay=][&ma_bcvh=]
-// Always returns the global date list. When `ngay` is given, also returns the
-// BCVH list scoped to that date. When both `ngay` and `ma_bcvh` are given,
-// also returns the postman_code list scoped to that date+BCVH — this lets the
-// UI cascade Ngày -> BCVH -> Bưu tá dropdowns without ever touching the
-// points endpoint (which still requires all three filters).
 async function getDeliveryRoutesMeta(req, res) {
     const { ngay, ma_bcvh } = req.query;
 
     try {
-        const dates = await all('SELECT DISTINCT ngay_phat FROM network_delivery_point ORDER BY ngay_phat ASC');
-        const meta = { dates: dates.map((row) => row.ngay_phat) };
+        const dates = await all(
+            `SELECT DISTINCT COALESCE(ngay_nhap_phat, ngay_phat) AS ngay_display
+             FROM network_delivery_point
+             WHERE COALESCE(ngay_nhap_phat, ngay_phat) IS NOT NULL
+             ORDER BY ngay_display ASC`,
+        );
+        const meta = { dates: dates.map((row) => row.ngay_display) };
 
         if (ngay) {
             const bcvhList = await all(
-                'SELECT DISTINCT ma_bcvh FROM network_delivery_point WHERE ngay_phat = ? ORDER BY ma_bcvh ASC',
-                [ngay],
+                `SELECT DISTINCT ma_bcvh
+                 FROM network_delivery_point
+                 WHERE (ngay_nhap_phat = ? OR (ngay_nhap_phat IS NULL AND ngay_phat = ?))
+                   AND ma_bcvh IS NOT NULL
+                 ORDER BY ma_bcvh ASC`,
+                [ngay, ngay],
             );
             meta.bcvh = bcvhList.map((row) => row.ma_bcvh);
         } else {
-            const bcvhList = await all('SELECT DISTINCT ma_bcvh FROM network_delivery_point ORDER BY ma_bcvh ASC');
+            const bcvhList = await all(
+                'SELECT DISTINCT ma_bcvh FROM network_delivery_point WHERE ma_bcvh IS NOT NULL ORDER BY ma_bcvh ASC',
+            );
             meta.bcvh = bcvhList.map((row) => row.ma_bcvh);
         }
 
         if (ngay && ma_bcvh) {
             const postmanList = await all(
-                'SELECT DISTINCT postman_code FROM network_delivery_point WHERE ngay_phat = ? AND ma_bcvh = ? ORDER BY postman_code ASC',
-                [ngay, ma_bcvh],
+                `SELECT DISTINCT postman_code
+                 FROM network_delivery_point
+                 WHERE (ngay_nhap_phat = ? OR (ngay_nhap_phat IS NULL AND ngay_phat = ?))
+                   AND ma_bcvh = ?
+                   AND postman_code IS NOT NULL
+                 ORDER BY postman_code ASC`,
+                [ngay, ngay, ma_bcvh],
             );
             meta.postman_codes = postmanList.map((row) => row.postman_code);
         }
@@ -108,10 +119,9 @@ async function getDeliveryRoutesMeta(req, res) {
     }
 }
 
-// GET /api/network-map/delivery-routes/points?ngay=&ma_bcvh=&postman_code=
-// Deliberately requires all three filters — must never allow a full-month/table scan.
+// GET /api/network-map/delivery-routes/points?ngay=&ma_bcvh=&postman_code=[&ca=]
 async function listDeliveryPoints(req, res) {
-    const { ngay, ma_bcvh, postman_code } = req.query;
+    const { ngay, ma_bcvh, postman_code, ca } = req.query;
 
     if (!ngay || !ma_bcvh || !postman_code) {
         return sendError(
@@ -123,10 +133,21 @@ async function listDeliveryPoints(req, res) {
     }
 
     try {
-        const rows = await all(
-            'SELECT * FROM network_delivery_point WHERE ngay_phat = ? AND ma_bcvh = ? AND postman_code = ? ORDER BY status_time ASC',
-            [ngay, ma_bcvh, postman_code],
-        );
+        let sql = `SELECT * FROM network_delivery_point
+                   WHERE (ngay_nhap_phat = ? OR (ngay_nhap_phat IS NULL AND ngay_phat = ?))
+                     AND ma_bcvh = ?
+                     AND postman_code = ?`;
+        const params = [ngay, ngay, ma_bcvh, postman_code];
+
+        if (ca === 'sang') {
+            sql += ` AND ca_phat = 'Ca sáng'`;
+        } else if (ca === 'chieu') {
+            sql += ` AND ca_phat = 'Ca chiều'`;
+        }
+
+        sql += ` ORDER BY CASE WHEN thoi_gian_nhap_phat IS NULL THEN 1 ELSE 0 END, thoi_gian_nhap_phat ASC, status_time ASC, id ASC`;
+
+        const rows = await all(sql, params);
         return sendSuccess(res, rows);
     } catch (error) {
         return sendError(res, 500, 'INTERNAL_ERROR', error.message);

@@ -72,6 +72,57 @@ function isValidCoordinate(value) {
     return typeof value === 'number' && Number.isFinite(value) && value !== 0;
 }
 
+function parseImportTime(value) {
+    if (value === null || value === undefined || value === '') {
+        return { thoiGianNhapPhat: null, rawThoiGianNhapPhat: null, caPhat: null, ngayNhapPhat: null };
+    }
+    const str = String(value).trim();
+    if (!str) {
+        return { thoiGianNhapPhat: null, rawThoiGianNhapPhat: null, caPhat: null, ngayNhapPhat: null };
+    }
+
+    const dmyMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+    if (dmyMatch) {
+        const [, d, m, yyyy, h, mi, s] = dmyMatch;
+        const dd = d.padStart(2, '0');
+        const mm = m.padStart(2, '0');
+        const HH = h.padStart(2, '0');
+        const MM = mi.padStart(2, '0');
+        const SS = s.padStart(2, '0');
+        const ngayNhapPhat = `${yyyy}-${mm}-${dd}`;
+        const timeStr = `${HH}:${MM}:${SS}`;
+        const thoiGianNhapPhat = `${ngayNhapPhat} ${timeStr}`;
+
+        let caPhat = null;
+        if (timeStr >= '00:00:00' && timeStr <= '14:00:00') {
+            caPhat = 'Ca sáng';
+        } else if (timeStr >= '14:00:01' && timeStr <= '23:59:59') {
+            caPhat = 'Ca chiều';
+        }
+
+        return { thoiGianNhapPhat, rawThoiGianNhapPhat: str, caPhat, ngayNhapPhat };
+    }
+
+    const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+    if (isoMatch) {
+        const [, yyyy, mm, dd, HH, MM, SS] = isoMatch;
+        const ngayNhapPhat = `${yyyy}-${mm}-${dd}`;
+        const timeStr = `${HH}:${MM}:${SS}`;
+        const thoiGianNhapPhat = `${ngayNhapPhat} ${timeStr}`;
+
+        let caPhat = null;
+        if (timeStr >= '00:00:00' && timeStr <= '14:00:00') {
+            caPhat = 'Ca sáng';
+        } else if (timeStr >= '14:00:01' && timeStr <= '23:59:59') {
+            caPhat = 'Ca chiều';
+        }
+
+        return { thoiGianNhapPhat, rawThoiGianNhapPhat: str, caPhat, ngayNhapPhat };
+    }
+
+    return { thoiGianNhapPhat: null, rawThoiGianNhapPhat: str, caPhat: null, ngayNhapPhat: null };
+}
+
 function parseDeliveryPointsWorkbook(workbook) {
     if (!workbook.SheetNames.includes(SHEET_NAME)) {
         throw new Error(`Sheet "${SHEET_NAME}" not found. Sheets present: ${workbook.SheetNames.join(', ')}`);
@@ -81,12 +132,18 @@ function parseDeliveryPointsWorkbook(workbook) {
     const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true });
     const header = rows[0] || [];
 
+    let importTimeColIdx = header.findIndex((h) => h && String(h).trim() === 'Thời gian nhập phát');
+    if (importTimeColIdx === -1) {
+        importTimeColIdx = 28;
+    }
+
     const stats = {
         total_rows: 0,
         excluded_quantity_minus_1: 0,
         excluded_invalid_coordinates: 0,
         excluded_duplicate_lading_date_route: 0,
         kept_points: 0,
+        missing_import_time_count: 0,
     };
     const warnings = [];
     const seenKeys = new Set();
@@ -125,6 +182,13 @@ function parseDeliveryPointsWorkbook(workbook) {
             continue;
         }
 
+        const rawImportTimeVal = row[importTimeColIdx];
+        const { thoiGianNhapPhat, rawThoiGianNhapPhat, caPhat, ngayNhapPhat } = parseImportTime(rawImportTimeVal);
+
+        if (!thoiGianNhapPhat) {
+            stats.missing_import_time_count += 1;
+        }
+
         records.push({
             ngay_phat: ngayPhat,
             ma_bcvh: row[COLUMNS.MABC_PHAT] !== null ? String(row[COLUMNS.MABC_PHAT]) : null,
@@ -137,6 +201,10 @@ function parseDeliveryPointsWorkbook(workbook) {
             status_time: formatStatusTime(row[COLUMNS.STATUS_TIME]),
             loai_dich_vu: row[COLUMNS.SERVICE_NAME_PAYROLL] ?? null,
             tien_thu_ho: typeof row[COLUMNS.SO_TIEN_THU_HO] === 'number' ? row[COLUMNS.SO_TIEN_THU_HO] : null,
+            thoi_gian_nhap_phat: thoiGianNhapPhat,
+            raw_thoi_gian_nhap_phat: rawThoiGianNhapPhat,
+            ca_phat: caPhat,
+            ngay_nhap_phat: ngayNhapPhat,
         });
         stats.kept_points += 1;
     }
@@ -149,4 +217,4 @@ function parseDeliveryPointsFile(filePath) {
     return parseDeliveryPointsWorkbook(workbook);
 }
 
-module.exports = { parseDeliveryPointsWorkbook, parseDeliveryPointsFile, SHEET_NAME, COLUMNS };
+module.exports = { parseDeliveryPointsWorkbook, parseDeliveryPointsFile, parseImportTime, SHEET_NAME, COLUMNS };

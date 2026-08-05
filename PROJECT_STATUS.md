@@ -17,13 +17,13 @@ Quy tắc cập nhật:
 ## Current Phase
 
 - `QIS V2`
-- `NETWORK-MANAGEMENT-001` — Phase 2 UI/UX Remediation
-- `Status: PHASE 2 UI/UX REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
+- `NETWORK-MANAGEMENT-001` — Phase 2 Delivery Route Import-Time Delta
+- `Status: PHASE 2 DELIVERY ROUTE IMPORT-TIME DELTA COMPLETED / READY FOR PO VISUAL RECHECK`
 
 ## Current Ticket
 
-- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 UI/UX Remediation)
-- `Status: PHASE 2 UI/UX REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK. Technical Pass on Phase 2 confirmed. Recorded PO evaluation state: PO UI FAIL / FUNCTIONAL PASS. Phase 2 UI/UX Remediation executed without using Browser tools per explicit prompt constraint. Unified color palette, SVG node hierarchy icons, zoom-dependent labeling (zoom >= 13 for service points, zoom >= 14 for delivery points), stop sequence badges (1..N) and timetable drawer for level-2 routes, and delivery route summary KPIs implemented. Verified data invariants (151 service points, 28 routes / 148 stops / 47 points / 1435 km, fact_f13 = 666,153 rows). Built and tested (49 tests pass). Ready for PO visual re-check. NOT moved to Phase 3.`
+- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Delivery Route Import-Time Delta)
+- `Status: PHASE 2 DELIVERY ROUTE IMPORT-TIME DELTA COMPLETED / READY FOR PO VISUAL RECHECK. Technical Pass on Phase 2 Delivery Route Import-Time Delta confirmed. Recorded PO evaluation state: PO UI FAIL / FUNCTIONAL PASS. Additive migration executed to add thoi_gian_nhap_phat, raw_thoi_gian_nhap_phat, ca_phat, ngay_nhap_phat columns to network_delivery_point. Excel parser updated to parse 'Thời gian nhập phát' (column 28, 29th column) from 2026.07.01 - BatchFile Phat thang 06.2026.xlsb. Kept exactly 143,475 points with 39 records missing import time preserved as NULL (not filled with status_time). Shift rules enforced (Ca sáng: 00:00:00 - 14:00:00 inclusive; Ca chiều: 14:00:01 - 23:59:59). Legacy 07:30 shift boundary completely removed. Added Ca shift filter dropdown (Tất cả ca, Ca sáng, Ca chiều), 5 KPI statistics cards (Total parcels, Actual physical locations count, Morning shift count, Afternoon shift count, Missing time count), updated all UI labels from 'Giờ phát' to 'Thời gian nhập phát', implemented coordinate clustering (grouping parcels at identical lat/lon to prevent overlapping markers), and chronological polyline routing. Verified data invariants (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, fact_f13 = 666,153 rows). All unit tests pass, oxlint clean, Vite build succeeds. Ready for PO visual re-check. NOT moved to Phase 3.`
 
 ## Completed Tickets
 

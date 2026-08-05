@@ -25,9 +25,9 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 2 UI/UX REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK` (as of `2026-08-05`) |
+| Program State | `PHASE 2 DELIVERY ROUTE IMPORT-TIME DELTA COMPLETED / READY FOR PO VISUAL RECHECK` (as of `2026-08-05`) |
 | Recorded PO Evaluation | `PO UI FAIL / FUNCTIONAL PASS` |
-| Current Phase | `Phase 2 UI/UX Remediation`, implemented and verified without Browser tools |
+| Current Phase | `Phase 2 Delivery Route Import-Time Delta`, implemented and verified without Browser tools |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
 | Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13 & 14 |
 | Phase 3 (Import) | `PLANNED / NOT ACTIVE` |

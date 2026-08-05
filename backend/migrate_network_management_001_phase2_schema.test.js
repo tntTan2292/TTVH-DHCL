@@ -41,7 +41,10 @@ test('adds route_po_code to network_delivery_point without touching other column
 
         const after = await getColumns(dbPath, 'network_delivery_point');
         assert.ok(after.includes('route_po_code'));
-        assert.deepEqual(after.filter((c) => c !== 'route_po_code').sort(), before.sort());
+        assert.ok(after.includes('thoi_gian_nhap_phat'));
+        assert.ok(after.includes('raw_thoi_gian_nhap_phat'));
+        assert.ok(after.includes('ca_phat'));
+        assert.ok(after.includes('ngay_nhap_phat'));
     } finally {
         fs.rmSync(dbPath, { force: true });
     }

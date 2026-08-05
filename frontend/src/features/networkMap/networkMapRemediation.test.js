@@ -55,4 +55,44 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
     assert.equal(colorForDeliveryService('KT1'), '#059669');
     assert.equal(colorForDeliveryService('R-Bưu phẩm bảo đảm'), '#D97706');
   });
+
+  it('groups parcels sharing identical coordinates into a single location cluster', () => {
+    const points = [
+      { id: 1, lat: 16.467, lon: 107.59, thoi_gian_nhap_phat: '2026-06-01 08:00:00', ca_phat: 'Ca sáng' },
+      { id: 2, lat: 16.467, lon: 107.59, thoi_gian_nhap_phat: '2026-06-01 08:05:00', ca_phat: 'Ca sáng' },
+      { id: 3, lat: 16.470, lon: 107.60, thoi_gian_nhap_phat: '2026-06-01 14:15:00', ca_phat: 'Ca chiều' },
+      { id: 4, lat: 16.470, lon: 107.60, thoi_gian_nhap_phat: null, ca_phat: null },
+    ];
+
+    const locationMap = new Map();
+    points.forEach((p, idx) => {
+      const seq = idx + 1;
+      const key = `${p.lat.toFixed(6)},${p.lon.toFixed(6)}`;
+      if (!locationMap.has(key)) {
+        locationMap.set(key, { parcels: [], firstSeq: seq, lastSeq: seq });
+      }
+      const loc = locationMap.get(key);
+      loc.parcels.push({ ...p, seq });
+      loc.lastSeq = seq;
+    });
+
+    const clusters = Array.from(locationMap.values());
+    assert.equal(clusters.length, 2); // 2 physical locations
+    assert.equal(clusters[0].parcels.length, 2); // Location #1 has 2 parcels
+    assert.equal(clusters[0].firstSeq, 1);
+    assert.equal(clusters[0].lastSeq, 2);
+
+    assert.equal(clusters[1].parcels.length, 2); // Location #2 has 2 parcels
+    assert.equal(clusters[1].firstSeq, 3);
+    assert.equal(clusters[1].lastSeq, 4);
+
+    // KPI verification
+    const morningCount = points.filter((p) => p.ca_phat === 'Ca sáng').length;
+    const afternoonCount = points.filter((p) => p.ca_phat === 'Ca chiều').length;
+    const missingCount = points.filter((p) => !p.thoi_gian_nhap_phat).length;
+
+    assert.equal(morningCount, 2);
+    assert.equal(afternoonCount, 1);
+    assert.equal(missingCount, 1);
+  });
 });

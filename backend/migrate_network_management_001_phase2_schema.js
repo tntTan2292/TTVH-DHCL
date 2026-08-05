@@ -48,18 +48,32 @@ function applyNetworkManagement001Phase2Schema(dbPath) {
             }
 
             try {
-                const hasColumn = await columnExists(db, 'network_delivery_point', 'route_po_code');
-                if (!hasColumn) {
-                    await new Promise((res, rej) => {
-                        db.run('ALTER TABLE network_delivery_point ADD COLUMN route_po_code TEXT', (err) => {
-                            if (err) rej(err);
-                            else res();
+                const columns = ['route_po_code', 'thoi_gian_nhap_phat', 'raw_thoi_gian_nhap_phat', 'ca_phat', 'ngay_nhap_phat'];
+                const addedCols = [];
+
+                for (const col of columns) {
+                    const hasColumn = await columnExists(db, 'network_delivery_point', col);
+                    if (!hasColumn) {
+                        await new Promise((res, rej) => {
+                            db.run(`ALTER TABLE network_delivery_point ADD COLUMN ${col} TEXT`, (err) => {
+                                if (err) rej(err);
+                                else res();
+                            });
                         });
-                    });
+                        addedCols.push(col);
+                    }
                 }
+
+                await new Promise((res, rej) => {
+                    db.run('CREATE INDEX IF NOT EXISTS idx_network_delivery_point_import ON network_delivery_point(ngay_nhap_phat, ma_bcvh, postman_code, ca_phat)', (err) => {
+                        if (err) rej(err);
+                        else res();
+                    });
+                });
+
                 db.close((closeErr) => {
                     if (closeErr) reject(closeErr);
-                    else resolve({ route_po_code_added: !hasColumn });
+                    else resolve({ added_columns: addedCols, route_po_code_added: addedCols.includes('route_po_code') });
                 });
             } catch (error) {
                 db.close(() => reject(error));

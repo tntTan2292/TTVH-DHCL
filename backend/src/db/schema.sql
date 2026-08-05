@@ -222,8 +222,14 @@ CREATE TABLE IF NOT EXISTS network_delivery_point (
     loai_dich_vu TEXT,
     tien_thu_ho REAL,
     route_po_code TEXT,
+    thoi_gian_nhap_phat TEXT,
+    raw_thoi_gian_nhap_phat TEXT,
+    ca_phat TEXT,
+    ngay_nhap_phat TEXT,
     import_log_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(import_log_id) REFERENCES network_import_log(id)
 );
 CREATE INDEX IF NOT EXISTS idx_network_delivery_point_query ON network_delivery_point(ngay_phat, ma_bcvh, postman_code);
+CREATE INDEX IF NOT EXISTS idx_network_delivery_point_import ON network_delivery_point(ngay_nhap_phat, ma_bcvh, postman_code, ca_phat);
+

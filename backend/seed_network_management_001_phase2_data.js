@@ -59,6 +59,7 @@ async function seedServicePoints(db) {
     warnings.forEach((w) => console.warn(`[service-points] WARN: ${w}`));
 
     await dbRun(db, 'DELETE FROM network_service_point');
+    await dbRun(db, "DELETE FROM network_import_log WHERE module = 'service_point'");
     const logResult = await dbRun(
         db,
         `INSERT INTO network_import_log (module, file_name, file_fingerprint, status, total_records, inserted_records, uploaded_by)
@@ -86,6 +87,7 @@ async function seedLevel2Routes(db) {
 
     await dbRun(db, 'DELETE FROM network_level2_route_stop');
     await dbRun(db, 'DELETE FROM network_level2_route');
+    await dbRun(db, "DELETE FROM network_import_log WHERE module = 'level2_route'");
     const logResult = await dbRun(
         db,
         `INSERT INTO network_import_log (module, file_name, file_fingerprint, status, total_records, inserted_records, uploaded_by)
@@ -119,6 +121,7 @@ async function seedDeliveryPoints(db) {
     warnings.forEach((w) => console.warn(`[delivery-points] WARN: ${w}`));
 
     await dbRun(db, 'DELETE FROM network_delivery_point');
+    await dbRun(db, "DELETE FROM network_import_log WHERE module = 'delivery_route'");
     const logResult = await dbRun(
         db,
         `INSERT INTO network_import_log (module, file_name, file_fingerprint, status, total_records, inserted_records, skipped_records, uploaded_by)
@@ -128,15 +131,17 @@ async function seedDeliveryPoints(db) {
 
     await dbRun(db, 'BEGIN IMMEDIATE TRANSACTION');
     try {
-        const stmt = `INSERT INTO network_delivery_point
-            (ngay_phat, ma_bcvh, postman_code, bien_so, ma_buu_gui, lat, lon, status_time, loai_dich_vu, tien_thu_ho, route_po_code, import_log_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        const stmt = db.prepare(`INSERT INTO network_delivery_point
+            (ngay_phat, ma_bcvh, postman_code, bien_so, ma_buu_gui, lat, lon, status_time, loai_dich_vu, tien_thu_ho, route_po_code, thoi_gian_nhap_phat, raw_thoi_gian_nhap_phat, ca_phat, ngay_nhap_phat, import_log_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
         for (const r of records) {
-            await dbRun(db, stmt, [
+            stmt.run([
                 r.ngay_phat, r.ma_bcvh, r.postman_code, r.bien_so, r.ma_buu_gui,
-                r.lat, r.lon, r.status_time, r.loai_dich_vu, r.tien_thu_ho, r.route_po_code, logResult.lastID,
+                r.lat, r.lon, r.status_time, r.loai_dich_vu, r.tien_thu_ho, r.route_po_code,
+                r.thoi_gian_nhap_phat, r.raw_thoi_gian_nhap_phat, r.ca_phat, r.ngay_nhap_phat, logResult.lastID,
             ]);
         }
+        await new Promise((res, rej) => stmt.finalize((err) => (err ? rej(err) : res())));
         await dbRun(db, 'COMMIT');
     } catch (error) {
         await dbRun(db, 'ROLLBACK');

@@ -31,7 +31,7 @@ class NetworkMapClient {
      * API Contract: GET /network-map/delivery-routes/points
      * Requires all three filters — never issues a bulk/full-month request.
      */
-    getDeliveryRoutePoints(ngay, maBcvh, postmanCode) {
+    getDeliveryRoutePoints(ngay, maBcvh, postmanCode, ca) {
         if (!ngay || !maBcvh || !postmanCode) {
             return Promise.reject({
                 status: 400,
@@ -39,11 +39,13 @@ class NetworkMapClient {
                 message: 'Phải chọn đủ Ngày, BCVH và Bưu tá trước khi truy vấn Sơ đồ tuyến phát.',
             });
         }
-        return httpClient.get('/network-map/delivery-routes/points', {
+        const params = {
             ngay,
             ma_bcvh: maBcvh,
             postman_code: postmanCode,
-        });
+        };
+        if (ca) params.ca = ca;
+        return httpClient.get('/network-map/delivery-routes/points', params);
     }
 }
 

@@ -199,12 +199,18 @@ Summary: the three modules were seeded with real data from the actual PO-supplie
 
 This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.
 
-## 18. Phase 2 UI/UX Remediation Closure
+## 19. Phase 2 Delivery Route Import-Time Delta Closure
 
-- Status: `PHASE 2 UI/UX REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
+- Status: `PHASE 2 DELIVERY ROUTE IMPORT-TIME DELTA COMPLETED / READY FOR PO VISUAL RECHECK`
 - Closed on: `2026-08-05`
-- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated.
-- Scope discipline: strictly NO browser tools used. Re-architected `frontend/src/features/networkMap/` components based on reference HTML comparison audit.
-- Implemented: unified color palette (`mapStyles.js`), custom SVG node icons (Star, Truck, Triangle, House, Hub), zoom-dependent code badges (zoom >= 13 for service points, zoom >= 14 for delivery points), stop sequence badges (1..N) and stop timetable drawer for Level 2 routes, delivery route summary KPIs.
-- Verification: 49 unit tests pass, oxlint clean, vite build succeeds. Data invariants verified: 151 service points, 28 routes / 148 stops / 47 points / 1435 km, `fact_f13` = 666,153 rows.
+- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated with import-time delta.
+- Scope discipline: strictly NO browser tools used. Pure source code, unit test, database schema, parser, and component engineering.
+- Implemented:
+  1. Additive database migration: added `thoi_gian_nhap_phat`, `raw_thoi_gian_nhap_phat`, `ca_phat`, `ngay_nhap_phat` columns to `network_delivery_point` table.
+  2. Parser upgrade: updated `parseDeliveryPointsExcel.js` to parse 'Thời gian nhập phát' (column 28, 29th column) from source file `Data QLML/2026.07.01 - BatchFile Phat thang 06.2026.xlsb` (SHA-256 verified). Kept exactly 143,475 points with 39 records missing import time preserved as `NULL` (not filled with `status_time`).
+  3. Shift classification rules: `Ca sáng` (00:00:00 - 14:00:00 inclusive) vs `Ca chiều` (14:00:01 - 23:59:59). Removed legacy `07:30` threshold completely.
+  4. Backend controller & client API: `listDeliveryPoints` supports optional `ca` filter (`sang`, `chieu`, `all`), date selection and route ordering use date part of `thoi_gian_nhap_phat`, sorted ascending by `thoi_gian_nhap_phat` with stable tie-breaker `id`.
+  5. UI & Map upgrades: Added Ca shift filter dropdown, updated all UI labels from 'Giờ phát' to 'Thời gian nhập phát', added 5 KPI statistics cards (Total parcels, Actual physical locations count, Morning shift count, Afternoon shift count, Missing time count), implemented coordinate clustering (grouping parcels at identical lat/lon to prevent overlapping markers), and chronological polyline routing.
+- Verification: 39 backend tests pass, 6 frontend remediation unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Data invariants verified (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, `fact_f13` = 666,153 rows).
+
 
