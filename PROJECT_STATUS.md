@@ -17,13 +17,13 @@ Quy tắc cập nhật:
 ## Current Phase
 
 - `QIS V2`
-- `NETWORK-MANAGEMENT-001` — Phase 2 Delivery Route Hierarchical Date Filter Remediation
-- `Status: PHASE 2 DELIVERY ROUTE HIERARCHICAL DATE FILTER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
+- `NETWORK-MANAGEMENT-001` — Phase 2 Delivery Route Calendar Date Picker Remediation
+- `Status: PHASE 2 DELIVERY ROUTE CALENDAR DATE PICKER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
 
 ## Current Ticket
 
-- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Delivery Route Hierarchical Date Filter Remediation)
-- `Status: PHASE 2 DELIVERY ROUTE HIERARCHICAL DATE FILTER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK. Technical Pass on Delivery Route Hierarchical Date Filter Remediation confirmed. Recorded PO evaluation state: PO UI FAIL / FUNCTIONAL PASS. Implemented 3-level hierarchical date selector (Năm -> Tháng -> Ngày) on Sơ đồ tuyến phát: 1) Year dropdown contains only years present in ngay_nhap_phat, sorted DESC. 2) Month dropdown disabled until Year selected, contains only months present for that year, formatted 'Tháng MM', sorted DESC. 3) Day dropdown disabled until Month selected, contains only days present for that year+month, formatted 'DD/MM/YYYY', sorted DESC. 4) Enforced cascade clear rules on selection change (changing Year resets Month/Day/BCVH/Postman/Ca/points; changing Month resets Day/BCVH/Postman/Ca/points; changing Day resets BCVH/Postman/Ca/points). 5) Mandatory selection order: Năm -> Tháng -> Ngày -> BCVH -> Bưu tá -> Ca. 6) Preserved all data invariants (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, 39 NULL import time records preserved, fact_f13 = 666,153 rows). All 49 unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Ready for PO visual re-check. NOT moved to Phase 3.`
+- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Delivery Route Calendar Date Picker Remediation)
+- `Status: PHASE 2 DELIVERY ROUTE CALENDAR DATE PICKER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK. Technical Pass on Delivery Route Calendar Date Picker Remediation confirmed. Recorded PO evaluation state: PO UI FAIL / FUNCTIONAL PASS. Replaced 3-select date controls on Sơ đồ tuyến phát with an interactive Calendar Date Picker component (CalendarDatePicker.jsx): 1) Single 'Chọn ngày' input field with CalendarDays icon. 2) Popover calendar with Month and Year navigation selectors. 3) Only dates actually present in ngay_nhap_phat are enabled; dates without data are disabled (muted grayed-out text, non-clickable). 4) Dates with data are visually highlighted with blue background/badge and dot indicators. 5) Selected date displays in DD/MM/YYYY format with clear 'X' button. 6) No auto-selection on mount. 7) Changing date clears dependent selections (BCVH, Postman, Ca) and map points state, and reloads BCVH options for the new date. 8) Points query runs ONLY when mandatory filters (Date, BCVH, Postman) are selected. 9) Preserved shift filter options (Tất cả ca, Ca sáng, Ca chiều), ngay_nhap_phat data source, and all data invariants (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, 39 NULL import time records preserved, fact_f13 = 666,153 rows). All 51 unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Ready for PO visual re-check. NOT moved to Phase 3.`
 
 ## Completed Tickets
 

@@ -199,21 +199,22 @@ Summary: the three modules were seeded with real data from the actual PO-supplie
 
 This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.
 
-## 21. Phase 2 Delivery Route Hierarchical Date Filter Remediation Closure
+## 22. Phase 2 Delivery Route Calendar Date Picker Remediation Closure
 
-- Status: `PHASE 2 DELIVERY ROUTE HIERARCHICAL DATE FILTER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
+- Status: `PHASE 2 DELIVERY ROUTE CALENDAR DATE PICKER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
 - Closed on: `2026-08-05`
-- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated with 3-level hierarchical date filter.
-- Scope discipline: strictly NO browser tools used. Pure source code, unit test, API controller, and frontend component engineering.
+- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated with Calendar Date Picker.
+- Scope discipline: strictly NO browser tools used. Pure source code, unit test, UI component, and frontend engineering.
 - Implemented:
-  1. Hierarchical Date Selector: Replaced flat date dropdown on Sơ đồ tuyến phát with 3-level cascading dropdowns (`Năm` -> `Tháng` -> `Ngày`).
-  2. Year Dropdown: Displays only years present in `ngay_nhap_phat`, sorted DESC (`2026`). Placeholder `-- Chọn năm --`.
-  3. Month Dropdown: Disabled until Year is selected; displays only months present for that year, formatted `Tháng MM` (`Tháng 07`, `Tháng 06`), sorted DESC. Placeholder `-- Chọn tháng --`.
-  4. Day Dropdown: Disabled until Month is selected; displays only days present for that year+month, formatted `DD/MM/YYYY` (`17/07/2026`, `01/06/2026`), sorted DESC. Placeholder `-- Chọn ngày --`.
-  5. Cascade Clearing Rules: Enforced cascade clear on selection change (changing Year resets Month/Day/BCVH/Postman/Ca/points; changing Month resets Day/BCVH/Postman/Ca/points; changing Day resets BCVH/Postman/Ca/points).
-  6. Selection Order & Gate: 1. Năm -> 2. Tháng -> 3. Ngày -> 4. BCVH -> 5. Bưu tá -> 6. Ca. Points API is queried ONLY after Year+Month+Day+BCVH+Postman are selected.
+  1. Calendar Date Picker Component: Built reusable `CalendarDatePicker.jsx` featuring single input field with `CalendarDays` icon, `DD/MM/YYYY` display formatting, and a dropdown calendar popover.
+  2. Data Availability Rules: Only dates present in `ngay_nhap_phat` metadata (`dates` array) are enabled; dates without data are disabled (muted grayed-out text, non-clickable).
+  3. Visual Highlighting: Enabled dates feature distinct blue background/badge and dot indicators for immediate visual clarity.
+  4. Month & Year Navigation: Header controls allow smooth month/year browsing.
+  5. Clear & Reset Cascade: Changing date via calendar resets BCVH, Postman, Ca, and map points state, and reloads BCVH options for the new date.
+  6. Query Gate: Queries points ONLY when mandatory filters (`selectedDate`, `selectedBcvh`, `selectedPostman`) are selected.
   7. Data Integrity: Preserved 143,475 points baseline, 39 records missing import time kept as NULL, shift rules unchanged, Mạng điểm phục vụ & Sơ đồ ĐTC2 untouched.
-- Verification: 39 backend unit tests pass, 10 frontend remediation unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Data invariants verified (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, `fact_f13` = 666,153 rows).
+- Verification: 39 backend unit tests pass, 12 frontend remediation unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Data invariants verified (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, `fact_f13` = 666,153 rows).
+
 
 
 

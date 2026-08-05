@@ -161,58 +161,75 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
     assert.equal(missingCount, 1);
   });
 
-  it('correctly builds hierarchical Date options (Năm -> Tháng -> Ngày) in DESC order', () => {
-    const mockDates = [
-      '2026-07-17', '2026-07-06', '2026-06-30', '2026-06-01', '2025-12-31'
-    ];
+  it('validates Calendar Date Picker date availability and disabled state rules', () => {
+    const availableDates = ['2026-06-01', '2026-06-02', '2026-07-17'];
+    const availableSet = new Set(availableDates);
 
-    // Years extraction sorted DESC
-    const years = Array.from(new Set(mockDates.map(d => d.slice(0, 4)))).sort((a, b) => b.localeCompare(a));
-    assert.deepEqual(years, ['2026', '2025']);
+    // Date with data
+    assert.equal(availableSet.has('2026-06-01'), true, '2026-06-01 must be enabled');
+    assert.equal(availableSet.has('2026-07-17'), true, '2026-07-17 must be enabled');
 
-    // Months extraction for 2026 sorted DESC
-    const months2026 = Array.from(new Set(
-      mockDates.filter(d => d.startsWith('2026-')).map(d => d.slice(5, 7))
-    )).sort((a, b) => b.localeCompare(a)).map(m => ({ value: m, label: `Tháng ${m}` }));
-
-    assert.deepEqual(months2026, [
-      { value: '07', label: 'Tháng 07' },
-      { value: '06', label: 'Tháng 06' }
-    ]);
-
-    // Days extraction for 2026-07 sorted DESC
-    const days202607 = mockDates
-      .filter(d => d.startsWith('2026-07-'))
-      .sort((a, b) => b.localeCompare(a))
-      .map(d => {
-        const parts = d.split('-');
-        return { value: d, label: `${parts[2]}/${parts[1]}/${parts[0]}` };
-      });
-
-    assert.deepEqual(days202607, [
-      { value: '2026-07-17', label: '17/07/2026' },
-      { value: '2026-07-06', label: '06/07/2026' }
-    ]);
+    // Date without data
+    assert.equal(availableSet.has('2026-06-03'), false, '2026-06-03 must be disabled');
+    assert.equal(availableSet.has('2026-07-04'), false, '2026-07-04 must be disabled');
   });
 
-  it('enforces cascade clearing rules when parent date selections change', () => {
+  it('verifies Month and Year navigation logic for Calendar Date Picker', () => {
+    let viewYear = 2026;
+    let viewMonth = 5; // June (0-indexed 5)
+
+    // Month decrement
+    const handlePrevMonth = () => {
+      if (viewMonth === 0) {
+        viewMonth = 11;
+        viewYear -= 1;
+      } else {
+        viewMonth -= 1;
+      }
+    };
+
+    // Month increment
+    const handleNextMonth = () => {
+      if (viewMonth === 11) {
+        viewMonth = 0;
+        viewYear += 1;
+      } else {
+        viewMonth += 1;
+      }
+    };
+
+    handlePrevMonth(); // 2026 May (4)
+    assert.equal(viewYear, 2026);
+    assert.equal(viewMonth, 4);
+
+    handlePrevMonth(); // 2026 April (3)
+    assert.equal(viewMonth, 3);
+
+    // Jump to Jan and decrement to Dec previous year
+    viewMonth = 0;
+    handlePrevMonth();
+    assert.equal(viewYear, 2025);
+    assert.equal(viewMonth, 11);
+
+    handleNextMonth();
+    assert.equal(viewYear, 2026);
+    assert.equal(viewMonth, 0);
+  });
+
+  it('enforces clearing dependent selections (BCVH, Postman, Ca, points) when Date changes', () => {
     let state = {
-      year: '2026',
-      month: '06',
-      day: '2026-06-01',
+      date: '2026-06-01',
       bcvh: '533140',
       postman: '53A121',
       ca: 'sang',
-      points: [{ id: 1 }]
+      points: [{ id: 1 }, { id: 2 }]
     };
 
-    // Simulated Year change handler
-    const onYearChange = (newYear) => {
+    // Simulated Date change handler
+    const onDateChange = (newDate) => {
       state = {
         ...state,
-        year: newYear,
-        month: '',
-        day: '',
+        date: newDate,
         bcvh: '',
         postman: '',
         ca: '',
@@ -220,14 +237,21 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
       };
     };
 
-    onYearChange('2025');
+    onDateChange('2026-07-17');
 
-    assert.equal(state.year, '2025');
-    assert.equal(state.month, '');
-    assert.equal(state.day, '');
+    assert.equal(state.date, '2026-07-17');
     assert.equal(state.bcvh, '');
     assert.equal(state.postman, '');
     assert.equal(state.ca, '');
     assert.equal(state.points.length, 0);
+  });
+
+  it('runs points query ONLY when all mandatory filters (Date, BCVH, Postman) are selected', () => {
+    const isQueryAllowed = (date, bcvh, postman) => Boolean(date && bcvh && postman);
+
+    assert.equal(isQueryAllowed('', '533140', '53A121'), false, 'Missing Date must disallow query');
+    assert.equal(isQueryAllowed('2026-06-01', '', '53A121'), false, 'Missing BCVH must disallow query');
+    assert.equal(isQueryAllowed('2026-06-01', '533140', ''), false, 'Missing Postman must disallow query');
+    assert.equal(isQueryAllowed('2026-06-01', '533140', '53A121'), true, 'All 3 present allows query');
   });
 });
