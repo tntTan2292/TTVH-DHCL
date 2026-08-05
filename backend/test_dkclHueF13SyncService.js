@@ -3,8 +3,19 @@
  *
  * Focused AUTO-IMPORT-002 tests for the Huế F1.3 acquisition engine.
  * Run: node test_dkclHueF13SyncService.js
+ *
+ * NOTE (AUTO-IMPORT-011): this suite writes fixture .xlsx files directly into
+ * BASE_INCOMING/BASE_PROCESSED (real Data DKCL/F1.3 folders, not an isolated
+ * test path — see importPipeline.js). Several fixtures use 2098-xx-xx dates.
+ * validateFactF13BusinessDate (importProcessor.js) no longer exempts 2098
+ * dates unconditionally, so this flag is required for those fixtures to pass
+ * validation the same way they did before that fix. This flag does NOT fix
+ * the underlying test-isolation defect (tests still write into real
+ * production folders); that is tracked separately and is out of scope here.
  */
 'use strict';
+
+process.env.QIS_ALLOW_TEST_FUTURE_DATE = 'true';
 
 const fs = require('fs');
 const path = require('path');

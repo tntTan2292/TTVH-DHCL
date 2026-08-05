@@ -69,7 +69,7 @@ function validateFactF13BusinessDate({ ngay_do_kiem, parsedData = [], filename }
 
     if (!isIsoCalendarDate(ngay_do_kiem)) {
         reason = 'INVALID_DATE';
-    } else if (ngay_do_kiem > businessCurrentDate && !ngay_do_kiem.startsWith('2098') && process.env.NODE_ENV !== 'test') {
+    } else if (ngay_do_kiem > businessCurrentDate && process.env.QIS_ALLOW_TEST_FUTURE_DATE !== 'true') {
         reason = 'FUTURE_DATE';
     }
 

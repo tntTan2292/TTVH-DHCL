@@ -16,14 +16,14 @@ Quy tắc cập nhật:
 
 ## Current Phase
 
-- `Awaiting Product Owner Direction`
+- `AUTO-IMPORT-011 Emergency Remediation`
 - `QIS V2`
-- `Status: NO ACTIVE TICKET`
+- `Status: SYMPTOM A FIXED / SYMPTOM B BLOCKED ON PO`
 
 ## Current Ticket
 
-- `None`
-- `Status: F13-STANDARDIZATION-001 Tuyến Ranking (Route Ranking) delta closed 2026-08-04 as COMPLETED / PO PASS / CLOSED (latest PO-tested implementation commit 03ce28bacc36b49d961caa1c006a011beb804bc7); this closes only the Tuyến Ranking delta — the program's Phase 0 (implemented, not separately closed) and Phase 1-4 (not started) remain open; repository awaits Product Owner direction for the next scope`
+- `AUTO-IMPORT-011`
+- `Status: Emergency ticket, 2026-08-05. Symptom A (recurring 2098-dated file import bypassing future-date validation) root-caused, fixed, and verified with a previously-failing regression test now passing. A secondary test-isolation defect (tests writing into real production Data DKCL folders) was found and flagged for a separate follow-up ticket; self-inflicted DB pollution from this ticket's own validation run was found and cleaned up. Symptom B (HUE/TCT browser window not appearing) is discovery-only, not reproduced, blocked on Product Owner/live-runtime data. NETWORK-MANAGEMENT-001 (previous Current Ticket) is paused, not abandoned, Phase 1 remains COMPLETED / TECHNICAL PASS, unaffected.`
 
 ## Completed Tickets
 

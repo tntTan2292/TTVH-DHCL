@@ -38,10 +38,10 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `NETWORK-MANAGEMENT-001` (Quản lý mạng lưới), `PHASE 1 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 1` as of 2026-08-05. Last closed (prior program): `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 16 — Tuyến Ranking (Route Ranking) delta, `COMPLETED / PO PASS / CLOSED`, 2026-08-04, latest PO-tested implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`. That program's Phase 0 (implemented, not separately closed) and Phase 1-4 (not started) remain open, unaffected.
-- Current manifest: `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` (Section 16: Phase 1 closure record).
-- Current checkpoint: `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` (Section 12: Phase 1 implementation evidence).
-- Next required action: await Product Owner PO Gate 1 review / explicit authorization for `NETWORK-MANAGEMENT-001` Phase 2 (Ba bản đồ). Do not begin Phase 2/3/4 without it. Separate next-direction candidates for the closed-out `F13-STANDARDIZATION-001` program (formally starting its Phase 1, reactivating deferred `F13-SHIPMENT-001`, `F13-SURFACE-CLEANUP-PLAN`, later Pareto design) remain recorded in `PROJECT_SNAPSHOT.md` as candidates only, unrelated to `NETWORK-MANAGEMENT-001`.
+- Current ticket: `AUTO-IMPORT-011`, emergency remediation, activated 2026-08-05. `SYMPTOM A FIXED / SYMPTOM B BLOCKED ON PO`. `NETWORK-MANAGEMENT-001` (previous Current Ticket) is paused, not abandoned — Phase 1 remains `COMPLETED / TECHNICAL PASS — READY FOR PO GATE 1`, unaffected.
+- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md`.
+- Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_001.md`.
+- Next required action: Product Owner runtime-confirms the Symptom A fix; provides live-reproduction access or `automate_sync.py` context for Symptom B; decides on the test-isolation follow-up ticket and the orphaned evidence file. `NETWORK-MANAGEMENT-001` PO Gate 1 review remains separately pending, unaffected.
 
 
 
@@ -66,10 +66,12 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md` | Checkpoint | Current cleanup checkpoint, scope lock, and preservation gates. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-008 bounded remediation scope and defect-order authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` | Import Checkpoint | Current AUTO-IMPORT-008 activation checkpoint and ordered defect register. | L2 | Current Required Reading | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` | Ticket Manifest | Current active ticket. Emergency remediation, 2026-08-05: Symptom A (recurring 2098-dated future-file import) fixed and tested; Symptom B (HUE/TCT browser not opening) discovery-only, blocked on PO. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` | Ticket Manifest | Closed HUE browser launch recovery ticket; PO RUNTIME PASS with Dashboard/HUE/TCT acceptance and a recorded non-blocking residual. | L2 | Conditional Reference | When Import authentication history, the HUE first-click residual, or closure evidence is needed. | High |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_001.md` | Import Checkpoint | Historical handoff after stale-state remediation and direct Playwright proof, including Product Owner runtime fail and next discovery boundary. | L2 | Conditional Reference | Import authentication history lookup only. | Medium |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_002.md` | Import Checkpoint | Historical management checkpoint confirming discovery completion, rejected options, selected one-time setup direction, and the C1 implementation plan. | L2 | Conditional Reference | Import authentication history lookup only. | Medium |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md` | Import Checkpoint | Closure checkpoint recording Product Owner runtime acceptance (Dashboard, HUE, TCT) and the known non-blocking HUE first-click residual. | L2 | Conditional Reference | Import authentication closure evidence lookup only. | High |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_001.md` | Import Checkpoint | Current active checkpoint. Full evidence timeline, root cause, fix, self-inflicted-pollution disclosure and cleanup, and Symptom B discovery for the emergency ticket. | L2 | Current Required Reading | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/F13-SHIPMENT-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 shipment failure drill-down proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when shipment work is reactivated or current manifest names it. | Medium |
 | `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 data coverage and quality module proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when data-quality work is reactivated or current manifest names it. | Medium |
 | `docs/10_TICKETS/F13-BCVH-RANKING-REDESIGN-PLAN_MANIFEST.md` | Ticket Manifest | Current F1.3 BCVH Ranking redesign planning handoff with no implementation authority. | L2 | Active Onboarding | Current planning ticket only. | Mandatory |

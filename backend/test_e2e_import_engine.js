@@ -15,6 +15,15 @@
  */
 'use strict';
 
+// This suite deliberately imports data dated far in the future as a safe,
+// collision-free fixture. `validateFactF13BusinessDate` (importProcessor.js)
+// only allows a future date through when this flag is explicitly set — it is
+// intentionally not NODE_ENV (which would also trigger unrelated isolated-DB
+// requirements in src/config/db.js). Fixing AUTO-IMPORT-011 removed the prior
+// unconditional "any 2098-xx-xx date is exempt" backdoor, which silently let
+// a real file dated 2098-02-18 bypass future-date rejection in production.
+process.env.QIS_ALLOW_TEST_FUTURE_DATE = 'true';
+
 const xlsx = require('xlsx');
 const { run, all, get } = require('./src/config/db');
 const { parseF13Excel, extractDateFromFilename } = require('./src/services/excelParser');
