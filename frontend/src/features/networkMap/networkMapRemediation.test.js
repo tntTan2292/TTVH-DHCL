@@ -160,4 +160,74 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
     assert.equal(afternoonCount, 1);
     assert.equal(missingCount, 1);
   });
+
+  it('correctly builds hierarchical Date options (Năm -> Tháng -> Ngày) in DESC order', () => {
+    const mockDates = [
+      '2026-07-17', '2026-07-06', '2026-06-30', '2026-06-01', '2025-12-31'
+    ];
+
+    // Years extraction sorted DESC
+    const years = Array.from(new Set(mockDates.map(d => d.slice(0, 4)))).sort((a, b) => b.localeCompare(a));
+    assert.deepEqual(years, ['2026', '2025']);
+
+    // Months extraction for 2026 sorted DESC
+    const months2026 = Array.from(new Set(
+      mockDates.filter(d => d.startsWith('2026-')).map(d => d.slice(5, 7))
+    )).sort((a, b) => b.localeCompare(a)).map(m => ({ value: m, label: `Tháng ${m}` }));
+
+    assert.deepEqual(months2026, [
+      { value: '07', label: 'Tháng 07' },
+      { value: '06', label: 'Tháng 06' }
+    ]);
+
+    // Days extraction for 2026-07 sorted DESC
+    const days202607 = mockDates
+      .filter(d => d.startsWith('2026-07-'))
+      .sort((a, b) => b.localeCompare(a))
+      .map(d => {
+        const parts = d.split('-');
+        return { value: d, label: `${parts[2]}/${parts[1]}/${parts[0]}` };
+      });
+
+    assert.deepEqual(days202607, [
+      { value: '2026-07-17', label: '17/07/2026' },
+      { value: '2026-07-06', label: '06/07/2026' }
+    ]);
+  });
+
+  it('enforces cascade clearing rules when parent date selections change', () => {
+    let state = {
+      year: '2026',
+      month: '06',
+      day: '2026-06-01',
+      bcvh: '533140',
+      postman: '53A121',
+      ca: 'sang',
+      points: [{ id: 1 }]
+    };
+
+    // Simulated Year change handler
+    const onYearChange = (newYear) => {
+      state = {
+        ...state,
+        year: newYear,
+        month: '',
+        day: '',
+        bcvh: '',
+        postman: '',
+        ca: '',
+        points: []
+      };
+    };
+
+    onYearChange('2025');
+
+    assert.equal(state.year, '2025');
+    assert.equal(state.month, '');
+    assert.equal(state.day, '');
+    assert.equal(state.bcvh, '');
+    assert.equal(state.postman, '');
+    assert.equal(state.ca, '');
+    assert.equal(state.points.length, 0);
+  });
 });

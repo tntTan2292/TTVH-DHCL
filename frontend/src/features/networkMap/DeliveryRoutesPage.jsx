@@ -11,7 +11,9 @@ export default function DeliveryRoutesPage() {
   const [bcvhOptions, setBcvhOptions] = useState([]);
   const [postmanOptions, setPostmanOptions] = useState([]);
 
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedDay, setSelectedDay] = useState('');
   const [selectedBcvh, setSelectedBcvh] = useState('');
   const [selectedPostman, setSelectedPostman] = useState('');
   const [selectedCa, setSelectedCa] = useState(''); // '' = Tất cả ca, 'sang' = Ca sáng, 'chieu' = Ca chiều
@@ -38,7 +40,86 @@ export default function DeliveryRoutesPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // When Date changes, load BCVH scoped to that date
+  // Derived Year options sorted descending
+  const yearsOptions = useMemo(() => {
+    const set = new Set();
+    (dates || []).forEach((d) => {
+      if (typeof d === 'string' && d.length >= 4) {
+        set.add(d.slice(0, 4));
+      }
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [dates]);
+
+  // Derived Month options sorted descending for selected Year
+  const monthsOptions = useMemo(() => {
+    if (!selectedYear) return [];
+    const set = new Set();
+    const prefix = `${selectedYear}-`;
+    (dates || []).forEach((d) => {
+      if (typeof d === 'string' && d.startsWith(prefix) && d.length >= 7) {
+        set.add(d.slice(5, 7));
+      }
+    });
+    return Array.from(set)
+      .sort((a, b) => b.localeCompare(a))
+      .map((m) => ({ value: m, label: `Tháng ${m}` }));
+  }, [dates, selectedYear]);
+
+  // Derived Day options sorted descending for selected Year + Month
+  const daysOptions = useMemo(() => {
+    if (!selectedYear || !selectedMonth) return [];
+    const prefix = `${selectedYear}-${selectedMonth}-`;
+    const matchingDates = (dates || []).filter(
+      (d) => typeof d === 'string' && d.startsWith(prefix)
+    );
+    matchingDates.sort((a, b) => b.localeCompare(a));
+
+    return matchingDates.map((d) => {
+      const parts = d.split('-');
+      const formatted = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+      return { value: d, label: formatted };
+    });
+  }, [dates, selectedYear, selectedMonth]);
+
+  // Cascade clearing handlers
+  const handleYearChange = (year) => {
+    setSelectedYear(year);
+    setSelectedMonth('');
+    setSelectedDay('');
+    setSelectedBcvh('');
+    setSelectedPostman('');
+    setSelectedCa('');
+    setBcvhOptions([]);
+    setPostmanOptions([]);
+    setPoints([]);
+    setPointsStatus('idle');
+  };
+
+  const handleMonthChange = (month) => {
+    setSelectedMonth(month);
+    setSelectedDay('');
+    setSelectedBcvh('');
+    setSelectedPostman('');
+    setSelectedCa('');
+    setBcvhOptions([]);
+    setPostmanOptions([]);
+    setPoints([]);
+    setPointsStatus('idle');
+  };
+
+  const handleDayChange = (dayVal) => {
+    setSelectedDay(dayVal);
+    setSelectedBcvh('');
+    setSelectedPostman('');
+    setSelectedCa('');
+    setBcvhOptions([]);
+    setPostmanOptions([]);
+    setPoints([]);
+    setPointsStatus('idle');
+  };
+
+  // When Day changes, load BCVH scoped strictly to that day
   useEffect(() => {
     setSelectedBcvh('');
     setSelectedPostman('');
@@ -46,10 +127,10 @@ export default function DeliveryRoutesPage() {
     setPostmanOptions([]);
     setPoints([]);
     setPointsStatus('idle');
-    if (!selectedDate) return;
+    if (!selectedDay) return;
 
     let cancelled = false;
-    networkMapClient.getDeliveryRoutesMeta(selectedDate)
+    networkMapClient.getDeliveryRoutesMeta(selectedDay)
       .then((response) => {
         if (cancelled) return;
         setBcvhOptions(response?.data?.bcvh || []);
@@ -59,18 +140,18 @@ export default function DeliveryRoutesPage() {
         setMetaError(error?.message || 'Không thể tải danh sách BCVH.');
       });
     return () => { cancelled = true; };
-  }, [selectedDate]);
+  }, [selectedDay]);
 
-  // When BCVH changes (with Date set), load Postmen scoped strictly to that date+BCVH
+  // When BCVH changes (with Day set), load Postmen scoped strictly to that Day+BCVH
   useEffect(() => {
     setSelectedPostman('');
     setPostmanOptions([]);
     setPoints([]);
     setPointsStatus('idle');
-    if (!selectedDate || !selectedBcvh) return;
+    if (!selectedDay || !selectedBcvh) return;
 
     let cancelled = false;
-    networkMapClient.getDeliveryRoutesMeta(selectedDate, selectedBcvh)
+    networkMapClient.getDeliveryRoutesMeta(selectedDay, selectedBcvh)
       .then((response) => {
         if (cancelled) return;
         setPostmanOptions(response?.data?.postman_codes || []);
@@ -80,15 +161,15 @@ export default function DeliveryRoutesPage() {
         setMetaError(error?.message || 'Không thể tải danh sách Bưu tá.');
       });
     return () => { cancelled = true; };
-  }, [selectedDate, selectedBcvh]);
+  }, [selectedDay, selectedBcvh]);
 
-  // Only query points once all three mandatory filters (Date, BCVH, Postman) are selected
+  // Only query points once all mandatory filters (Year, Month, Day, BCVH, Postman) are selected
   useEffect(() => {
-    if (!selectedDate || !selectedBcvh || !selectedPostman) return;
+    if (!selectedYear || !selectedMonth || !selectedDay || !selectedBcvh || !selectedPostman) return;
 
     let cancelled = false;
     setPointsStatus('loading');
-    networkMapClient.getDeliveryRoutePoints(selectedDate, selectedBcvh, selectedPostman, selectedCa)
+    networkMapClient.getDeliveryRoutePoints(selectedDay, selectedBcvh, selectedPostman, selectedCa)
       .then((response) => {
         if (cancelled) return;
         const data = response?.data || [];
@@ -101,7 +182,7 @@ export default function DeliveryRoutesPage() {
         setPointsStatus('error');
       });
     return () => { cancelled = true; };
-  }, [selectedDate, selectedBcvh, selectedPostman, selectedCa]);
+  }, [selectedYear, selectedMonth, selectedDay, selectedBcvh, selectedPostman, selectedCa]);
 
   // Calculate detailed ca phát KPIs and time range
   const kpis = useMemo(() => {
@@ -137,7 +218,7 @@ export default function DeliveryRoutesPage() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-vnpost-blue-dark">Sơ đồ tuyến phát</h1>
-          <p className="text-gray-600 mt-1">Truy vấn hành trình theo Thời gian nhập phát và phân ca (Ca sáng / Ca chiều).</p>
+          <p className="text-gray-600 mt-1">Truy vấn hành trình theo Bộ lọc ngày phân cấp (Năm → Tháng → Ngày) và phân ca (Ca sáng / Ca chiều).</p>
         </div>
         <ImportPendingButton />
       </div>
@@ -149,31 +230,89 @@ export default function DeliveryRoutesPage() {
       )}
 
       {metaStatus === 'ready' && (
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 mb-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Năm</label>
+            <select
+              className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white"
+              value={selectedYear}
+              onChange={(e) => handleYearChange(e.target.value)}
+            >
+              <option value="">-- Chọn năm --</option>
+              {yearsOptions.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Tháng</label>
+            <select
+              className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+              value={selectedMonth}
+              onChange={(e) => handleMonthChange(e.target.value)}
+              disabled={!selectedYear}
+            >
+              <option value="">-- Chọn tháng --</option>
+              {monthsOptions.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Ngày phát (nhập phát)</label>
-            <select className="w-full border rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)}>
+            <select
+              className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+              value={selectedDay}
+              onChange={(e) => handleDayChange(e.target.value)}
+              disabled={!selectedYear || !selectedMonth}
+            >
               <option value="">-- Chọn ngày --</option>
-              {dates.map((d) => <option key={d} value={d}>{d}</option>)}
+              {daysOptions.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
+
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Bưu cục vận hành (MABC_PHAT)</label>
-            <select className="w-full border rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500" value={selectedBcvh} onChange={(e) => setSelectedBcvh(e.target.value)} disabled={!selectedDate}>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">BCVH (MABC_PHAT)</label>
+            <select
+              className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+              value={selectedBcvh}
+              onChange={(e) => setSelectedBcvh(e.target.value)}
+              disabled={!selectedDay}
+            >
               <option value="">-- Chọn BCVH --</option>
-              {bcvhOptions.map((b) => <option key={b} value={b}>{b}</option>)}
+              {bcvhOptions.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
             </select>
           </div>
+
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Bưu tá (POSTMAN_CODE)</label>
-            <select className="w-full border rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500" value={selectedPostman} onChange={(e) => setSelectedPostman(e.target.value)} disabled={!selectedBcvh}>
+            <select
+              className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+              value={selectedPostman}
+              onChange={(e) => setSelectedPostman(e.target.value)}
+              disabled={!selectedBcvh}
+            >
               <option value="">-- Chọn bưu tá --</option>
-              {postmanOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+              {postmanOptions.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
             </select>
           </div>
+
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Ca phát (Lọc bổ sung)</label>
-            <select className="w-full border rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-blue-500" value={selectedCa} onChange={(e) => setSelectedCa(e.target.value)} disabled={!selectedPostman}>
+            <select
+              className="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+              value={selectedCa}
+              onChange={(e) => setSelectedCa(e.target.value)}
+              disabled={!selectedPostman}
+            >
               <option value="">Tất cả ca</option>
               <option value="sang">Ca sáng (00:00 - 14:00)</option>
               <option value="chieu">Ca chiều (sau 14:00)</option>
@@ -182,11 +321,11 @@ export default function DeliveryRoutesPage() {
         </div>
       )}
 
-      {(!selectedDate || !selectedBcvh || !selectedPostman) && metaStatus === 'ready' && (
-        <MapStateBanner status="empty" emptyMessage="Vui lòng chọn đủ Ngày, BCVH và Bưu tá để hiển thị Sơ đồ tuyến phát." />
+      {(!selectedYear || !selectedMonth || !selectedDay || !selectedBcvh || !selectedPostman) && metaStatus === 'ready' && (
+        <MapStateBanner status="empty" emptyMessage="Vui lòng chọn đủ Năm, Tháng, Ngày, BCVH và Bưu tá để hiển thị Sơ đồ tuyến phát." />
       )}
 
-      {selectedDate && selectedBcvh && selectedPostman && pointsStatus !== 'ready' && (
+      {selectedYear && selectedMonth && selectedDay && selectedBcvh && selectedPostman && pointsStatus !== 'ready' && (
         <MapStateBanner status={pointsStatus === 'idle' ? 'loading' : pointsStatus} errorMessage={pointsError} emptyMessage="Không tìm thấy bưu gửi nào cho lựa chọn này." />
       )}
 

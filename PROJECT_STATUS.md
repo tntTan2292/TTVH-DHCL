@@ -17,13 +17,13 @@ Quy tắc cập nhật:
 ## Current Phase
 
 - `QIS V2`
-- `NETWORK-MANAGEMENT-001` — Phase 2 Service Point Map Visual Remediation
-- `Status: PHASE 2 SERVICE POINT MAP VISUAL REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
+- `NETWORK-MANAGEMENT-001` — Phase 2 Delivery Route Hierarchical Date Filter Remediation
+- `Status: PHASE 2 DELIVERY ROUTE HIERARCHICAL DATE FILTER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
 
 ## Current Ticket
 
-- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Service Point Map Visual Remediation)
-- `Status: PHASE 2 SERVICE POINT MAP VISUAL REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK. Technical Pass on Service Point Map Visual Remediation confirmed. Recorded PO evaluation state: PO UI FAIL / FUNCTIONAL PASS. Root causes audited and fixed: 1) Reconciled loai_diem mapping (normalizing 'VHX' to 'Văn hoá xã (VHX)'), fixing the 102 missing VHX points in legend category counts. 2) Created two audit-reconciled legend sections (Loại điểm and Trạng thái hoạt động) each summing to exactly 151 (Category: 102 VHX + 35 Giao dịch + 7 Văn phòng + 6 BCVH + 1 KT Tỉnh + 0 Khác = 151; Status: 147 Hoạt động + 0 Ngừng hoạt động + 4 Chưa xác định = 151). 3) Unified SVG marker rendering engine between map markers and legend icons for 100% visual consistency. 4) Added visual status indicators: 'Ngừng hoạt động' features dark stroke border + prominent red/white crossmark ✕ overlay; 'Chưa xác định' features amber dashed border + question badge ?. 5) Updated zoom-dependent marker label (zoom >= 13) to format 'Mã bưu cục - Tên điểm' (e.g. '532530 - VHX Hương Sơ'). Verified data invariants (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, fact_f13 = 666,153 rows). All unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Ready for PO visual re-check. NOT moved to Phase 3.`
+- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Delivery Route Hierarchical Date Filter Remediation)
+- `Status: PHASE 2 DELIVERY ROUTE HIERARCHICAL DATE FILTER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK. Technical Pass on Delivery Route Hierarchical Date Filter Remediation confirmed. Recorded PO evaluation state: PO UI FAIL / FUNCTIONAL PASS. Implemented 3-level hierarchical date selector (Năm -> Tháng -> Ngày) on Sơ đồ tuyến phát: 1) Year dropdown contains only years present in ngay_nhap_phat, sorted DESC. 2) Month dropdown disabled until Year selected, contains only months present for that year, formatted 'Tháng MM', sorted DESC. 3) Day dropdown disabled until Month selected, contains only days present for that year+month, formatted 'DD/MM/YYYY', sorted DESC. 4) Enforced cascade clear rules on selection change (changing Year resets Month/Day/BCVH/Postman/Ca/points; changing Month resets Day/BCVH/Postman/Ca/points; changing Day resets BCVH/Postman/Ca/points). 5) Mandatory selection order: Năm -> Tháng -> Ngày -> BCVH -> Bưu tá -> Ca. 6) Preserved all data invariants (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, 39 NULL import time records preserved, fact_f13 = 666,153 rows). All 49 unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Ready for PO visual re-check. NOT moved to Phase 3.`
 
 ## Completed Tickets
 

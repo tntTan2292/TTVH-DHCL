@@ -25,9 +25,9 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 2 SERVICE POINT MAP VISUAL REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK` (as of `2026-08-05`) |
+| Program State | `PHASE 2 DELIVERY ROUTE HIERARCHICAL DATE FILTER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK` (as of `2026-08-05`) |
 | Recorded PO Evaluation | `PO UI FAIL / FUNCTIONAL PASS` |
-| Current Phase | `Phase 2 Service Point Map Visual Remediation`, implemented and verified without Browser tools |
+| Current Phase | `Phase 2 Delivery Route Hierarchical Date Filter Remediation`, implemented and verified without Browser tools |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
 | Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13 & 14 |
 | Phase 3 (Import) | `PLANNED / NOT ACTIVE` |

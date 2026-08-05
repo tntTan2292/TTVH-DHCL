@@ -109,7 +109,7 @@ test('getDeliveryRoutesMeta returns the global date and BCVH lists when no filte
     await networkMapController.getDeliveryRoutesMeta(req, res);
 
     assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body.data.dates, ['2026-06-01', '2026-06-02']);
+    assert.deepEqual(res.body.data.dates, ['2026-06-02', '2026-06-01']);
     assert.deepEqual(res.body.data.bcvh, ['530100', '533140']);
     assert.ok(!('postman_codes' in res.body.data), 'must not return postman_codes without ngay+ma_bcvh');
 });

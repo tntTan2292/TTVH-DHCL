@@ -199,19 +199,22 @@ Summary: the three modules were seeded with real data from the actual PO-supplie
 
 This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.
 
-## 20. Phase 2 Service Point Map Visual Remediation Closure
+## 21. Phase 2 Delivery Route Hierarchical Date Filter Remediation Closure
 
-- Status: `PHASE 2 SERVICE POINT MAP VISUAL REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
+- Status: `PHASE 2 DELIVERY ROUTE HIERARCHICAL DATE FILTER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
 - Closed on: `2026-08-05`
-- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated for Service Points map.
-- Scope discipline: strictly NO browser tools used. Pure source code, unit test, SVG rendering engine, and component engineering.
+- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated with 3-level hierarchical date filter.
+- Scope discipline: strictly NO browser tools used. Pure source code, unit test, API controller, and frontend component engineering.
 - Implemented:
-  1. Root cause audit: Fixed `loai_diem` category mapping by adding alias normalization for `'VHX'` -> `'Văn hoá xã (VHX)'`, restoring the 102 missing VHX points to the category legend.
-  2. Legend reconciliation: Created two audit-reconciled legend sections (`Loại điểm` and `Trạng thái hoạt động`) each proving exact 151 total points (Category: 102 VHX + 35 Giao dịch + 7 Văn phòng + 6 BCVH + 1 KT Tỉnh + 0 Khác = 151; Status: 147 Hoạt động + 0 Ngừng hoạt động + 4 Chưa xác định = 151).
-  3. Visual color & SVG icon synchronization: Unified SVG rendering engine (`createServicePointSvg`) between map markers and sidebar legend items for 100% visual consistency.
-  4. Distinct status markers: Implemented prominent visual status indicators (dark border + red/white crossmark ✕ overlay for `Ngừng hoạt động`; amber dashed border + question badge ? for `Chưa xác định`).
-  5. Zoom label formatting: Updated marker labels at `zoom >= 13` to format `Mã bưu cục - Tên điểm` (e.g. `532530 - VHX Hương Sơ`).
-- Verification: 39 backend unit tests pass, 8 frontend remediation unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Data invariants verified (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, `fact_f13` = 666,153 rows).
+  1. Hierarchical Date Selector: Replaced flat date dropdown on Sơ đồ tuyến phát with 3-level cascading dropdowns (`Năm` -> `Tháng` -> `Ngày`).
+  2. Year Dropdown: Displays only years present in `ngay_nhap_phat`, sorted DESC (`2026`). Placeholder `-- Chọn năm --`.
+  3. Month Dropdown: Disabled until Year is selected; displays only months present for that year, formatted `Tháng MM` (`Tháng 07`, `Tháng 06`), sorted DESC. Placeholder `-- Chọn tháng --`.
+  4. Day Dropdown: Disabled until Month is selected; displays only days present for that year+month, formatted `DD/MM/YYYY` (`17/07/2026`, `01/06/2026`), sorted DESC. Placeholder `-- Chọn ngày --`.
+  5. Cascade Clearing Rules: Enforced cascade clear on selection change (changing Year resets Month/Day/BCVH/Postman/Ca/points; changing Month resets Day/BCVH/Postman/Ca/points; changing Day resets BCVH/Postman/Ca/points).
+  6. Selection Order & Gate: 1. Năm -> 2. Tháng -> 3. Ngày -> 4. BCVH -> 5. Bưu tá -> 6. Ca. Points API is queried ONLY after Year+Month+Day+BCVH+Postman are selected.
+  7. Data Integrity: Preserved 143,475 points baseline, 39 records missing import time kept as NULL, shift rules unchanged, Mạng điểm phục vụ & Sơ đồ ĐTC2 untouched.
+- Verification: 39 backend unit tests pass, 10 frontend remediation unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Data invariants verified (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, `fact_f13` = 666,153 rows).
+
 
 
 

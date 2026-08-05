@@ -79,7 +79,7 @@ async function getDeliveryRoutesMeta(req, res) {
             `SELECT DISTINCT COALESCE(ngay_nhap_phat, ngay_phat) AS ngay_display
              FROM network_delivery_point
              WHERE COALESCE(ngay_nhap_phat, ngay_phat) IS NOT NULL
-             ORDER BY ngay_display ASC`,
+             ORDER BY ngay_display DESC`,
         );
         const meta = { dates: dates.map((row) => row.ngay_display) };
 
