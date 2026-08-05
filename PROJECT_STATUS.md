@@ -17,13 +17,13 @@ Quy tắc cập nhật:
 ## Current Phase
 
 - `QIS V2`
-- `NETWORK-MANAGEMENT-001` — Phase 2 Delivery Route Import-Time Delta
-- `Status: PHASE 2 DELIVERY ROUTE IMPORT-TIME DELTA COMPLETED / READY FOR PO VISUAL RECHECK`
+- `NETWORK-MANAGEMENT-001` — Phase 2 Service Point Map Visual Remediation
+- `Status: PHASE 2 SERVICE POINT MAP VISUAL REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
 
 ## Current Ticket
 
-- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Delivery Route Import-Time Delta)
-- `Status: PHASE 2 DELIVERY ROUTE IMPORT-TIME DELTA COMPLETED / READY FOR PO VISUAL RECHECK. Technical Pass on Phase 2 Delivery Route Import-Time Delta confirmed. Recorded PO evaluation state: PO UI FAIL / FUNCTIONAL PASS. Additive migration executed to add thoi_gian_nhap_phat, raw_thoi_gian_nhap_phat, ca_phat, ngay_nhap_phat columns to network_delivery_point. Excel parser updated to parse 'Thời gian nhập phát' (column 28, 29th column) from 2026.07.01 - BatchFile Phat thang 06.2026.xlsb. Kept exactly 143,475 points with 39 records missing import time preserved as NULL (not filled with status_time). Shift rules enforced (Ca sáng: 00:00:00 - 14:00:00 inclusive; Ca chiều: 14:00:01 - 23:59:59). Legacy 07:30 shift boundary completely removed. Added Ca shift filter dropdown (Tất cả ca, Ca sáng, Ca chiều), 5 KPI statistics cards (Total parcels, Actual physical locations count, Morning shift count, Afternoon shift count, Missing time count), updated all UI labels from 'Giờ phát' to 'Thời gian nhập phát', implemented coordinate clustering (grouping parcels at identical lat/lon to prevent overlapping markers), and chronological polyline routing. Verified data invariants (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, fact_f13 = 666,153 rows). All unit tests pass, oxlint clean, Vite build succeeds. Ready for PO visual re-check. NOT moved to Phase 3.`
+- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Service Point Map Visual Remediation)
+- `Status: PHASE 2 SERVICE POINT MAP VISUAL REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK. Technical Pass on Service Point Map Visual Remediation confirmed. Recorded PO evaluation state: PO UI FAIL / FUNCTIONAL PASS. Root causes audited and fixed: 1) Reconciled loai_diem mapping (normalizing 'VHX' to 'Văn hoá xã (VHX)'), fixing the 102 missing VHX points in legend category counts. 2) Created two audit-reconciled legend sections (Loại điểm and Trạng thái hoạt động) each summing to exactly 151 (Category: 102 VHX + 35 Giao dịch + 7 Văn phòng + 6 BCVH + 1 KT Tỉnh + 0 Khác = 151; Status: 147 Hoạt động + 0 Ngừng hoạt động + 4 Chưa xác định = 151). 3) Unified SVG marker rendering engine between map markers and legend icons for 100% visual consistency. 4) Added visual status indicators: 'Ngừng hoạt động' features dark stroke border + prominent red/white crossmark ✕ overlay; 'Chưa xác định' features amber dashed border + question badge ?. 5) Updated zoom-dependent marker label (zoom >= 13) to format 'Mã bưu cục - Tên điểm' (e.g. '532530 - VHX Hương Sơ'). Verified data invariants (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, fact_f13 = 666,153 rows). All unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Ready for PO visual re-check. NOT moved to Phase 3.`
 
 ## Completed Tickets
 

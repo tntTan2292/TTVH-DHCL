@@ -3,7 +3,8 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaf
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
-  SERVICE_POINT_COLORS,
+  normalizeLoaiDiem,
+  normalizeTrangThai,
   colorForServicePointType,
   createServicePointSvg,
   HUE_MAP_CENTER,
@@ -29,29 +30,57 @@ function ZoomTracker({ onZoomChange }) {
 export default function ServicePointsMap({ points }) {
   const [currentZoom, setCurrentZoom] = useState(HUE_MAP_DEFAULT_ZOOM);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Calculate statistics by category
+  // Reconciled Category Statistics summing to exactly 151
   const categoryStats = useMemo(() => {
     const counts = {
-      'Giao dịch': 0,
-      'Bưu cục vận hành': 0,
       'Văn hoá xã (VHX)': 0,
+      'Giao dịch': 0,
       'Văn phòng': 0,
+      'Bưu cục vận hành': 0,
       'Khai thác tỉnh': 0,
+      'Khác / Chưa phân loại': 0,
     };
     (points || []).forEach((p) => {
-      if (counts[p.loai_diem] !== undefined) {
-        counts[p.loai_diem]++;
+      const normCat = normalizeLoaiDiem(p.loai_diem);
+      if (counts[normCat] !== undefined) {
+        counts[normCat]++;
+      } else {
+        counts['Khác / Chưa phân loại']++;
       }
     });
     return counts;
   }, [points]);
 
-  // Filter points based on category selection and search query
+  // Reconciled Status Statistics summing to exactly 151
+  const statusStats = useMemo(() => {
+    const counts = {
+      'Hoạt động': 0,
+      'Ngừng hoạt động': 0,
+      'Chưa xác định': 0,
+    };
+    (points || []).forEach((p) => {
+      const normStatus = normalizeTrangThai(p.trang_thai);
+      if (counts[normStatus] !== undefined) {
+        counts[normStatus]++;
+      } else {
+        counts['Chưa xác định']++;
+      }
+    });
+    return counts;
+  }, [points]);
+
+  // Filter points based on category selection, status selection, and search query
   const filteredPoints = useMemo(() => {
     return (points || []).filter((p) => {
-      if (selectedCategory && p.loai_diem !== selectedCategory) return false;
+      const normCat = normalizeLoaiDiem(p.loai_diem);
+      const normStatus = normalizeTrangThai(p.trang_thai);
+
+      if (selectedCategory && normCat !== selectedCategory) return false;
+      if (selectedStatus && normStatus !== selectedStatus) return false;
+
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const matchCode = (p.ma_diem || '').toLowerCase().includes(q);
@@ -61,18 +90,39 @@ export default function ServicePointsMap({ points }) {
       }
       return true;
     });
-  }, [points, selectedCategory, searchQuery]);
+  }, [points, selectedCategory, selectedStatus, searchQuery]);
 
   const showLabels = currentZoom >= ZOOM_LABEL_THRESHOLD_SERVICE;
 
+  // Category legend definitions matching exact SVG marker renderer
+  const categoryLegendList = [
+    { label: 'Văn hoá xã (VHX)', catKey: 'Văn hoá xã (VHX)' },
+    { label: 'Giao dịch', catKey: 'Giao dịch' },
+    { label: 'Văn phòng', catKey: 'Văn phòng' },
+    { label: 'Bưu cục vận hành', catKey: 'Bưu cục vận hành' },
+    { label: 'Khai thác tỉnh', catKey: 'Khai thác tỉnh' },
+    { label: 'Khác / Chưa phân loại', catKey: 'Khác / Chưa phân loại' },
+  ];
+
+  const statusLegendList = [
+    { label: 'Hoạt động', statusKey: 'Hoạt động' },
+    { label: 'Ngừng hoạt động', statusKey: 'Ngừng hoạt động' },
+    { label: 'Chưa xác định', statusKey: 'Chưa xác định' },
+  ];
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-3">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-3">
       <div style={{ height: '72vh' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative">
         <MapContainer center={HUE_MAP_CENTER} zoom={HUE_MAP_DEFAULT_ZOOM} style={{ height: '100%', width: '100%' }}>
           <ZoomTracker onZoomChange={setCurrentZoom} />
           <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} maxZoom={20} />
           {filteredPoints.map((point) => {
-            const svgString = createServicePointSvg(point.loai_diem, 26);
+            const normCat = normalizeLoaiDiem(point.loai_diem);
+            const normStatus = normalizeTrangThai(point.trang_thai);
+            const svgString = createServicePointSvg(point.loai_diem, 26, point.trang_thai);
+
+            const displayLabel = point.ten_diem ? `${point.ma_diem} - ${point.ten_diem}` : `${point.ma_diem}`;
+
             const iconHtml = `
               <div style="position: relative; display: flex; align-items: center; justify-content: center;">
                 <div style="line-height: 0;">${svgString}</div>
@@ -83,16 +133,16 @@ export default function ServicePointsMap({ points }) {
                         left: 28px;
                         top: 2px;
                         white-space: nowrap;
-                        background: rgba(255, 255, 255, 0.92);
+                        background: rgba(255, 255, 255, 0.95);
                         color: #0F172A;
                         border: 1px solid rgba(15, 23, 42, 0.25);
                         border-radius: 4px;
-                        padding: 1px 5px;
+                        padding: 1px 6px;
                         font-size: 10px;
                         font-weight: 700;
-                        box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+                        box-shadow: 0 1px 4px rgba(0,0,0,0.25);
                         pointer-events: none;
-                      ">${point.ma_diem}</div>`
+                      ">${displayLabel}</div>`
                     : ''
                 }
               </div>
@@ -108,25 +158,37 @@ export default function ServicePointsMap({ points }) {
             return (
               <Marker key={point.ma_diem} position={[point.lat, point.lon]} icon={customIcon}>
                 <Popup>
-                  <div className="text-xs p-1 min-w-[200px]">
+                  <div className="text-xs p-1 min-w-[210px]">
                     <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-gray-200">
                       <span
                         className="w-2.5 h-2.5 rounded-full inline-block shrink-0"
-                        style={{ backgroundColor: colorForServicePointType(point.loai_diem) }}
+                        style={{ backgroundColor: colorForServicePointType(normCat) }}
                       />
                       <span className="font-bold text-gray-900 text-sm">{point.ma_diem}</span>
                     </div>
                     <div className="font-semibold text-gray-800 mb-1">{point.ten_diem}</div>
                     <div className="text-gray-600 space-y-0.5">
-                      <div><b>Loại điểm:</b> {point.loai_diem || '—'}</div>
+                      <div><b>Loại điểm:</b> {point.loai_diem || '—'} ({normCat})</div>
                       <div><b>Địa chỉ:</b> {point.dia_chi || '—'}</div>
                       <div><b>Phường/Xã:</b> {point.phuong_xa || '—'}</div>
                       <div><b>Đơn vị quản lý:</b> {point.don_vi_quan_ly || '—'}</div>
                       <div>
                         <b>Trạng thái:</b>{' '}
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-800 font-medium">
-                          {point.trang_thai || 'Hoạt động'}
-                        </span>
+                        {normStatus === 'Hoạt động' && (
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-green-100 text-green-800 font-bold">
+                            Hoạt động
+                          </span>
+                        )}
+                        {normStatus === 'Ngừng hoạt động' && (
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-red-100 text-red-800 font-bold border border-red-300">
+                            ✕ Ngừng hoạt động
+                          </span>
+                        )}
+                        {normStatus === 'Chưa xác định' && (
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 font-bold border border-amber-300">
+                            ? Chưa xác định ({point.trang_thai || 'Chưa ghi'})
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -137,12 +199,12 @@ export default function ServicePointsMap({ points }) {
         </MapContainer>
         {/* Zoom & Filter Status Overlay */}
         <div className="absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm rounded-lg px-2.5 py-1 text-xs text-gray-700 font-medium">
-          Zoom: {currentZoom} {showLabels ? '• Hiển thị mã bưu cục' : '• Zoom ≥ 13 để hiện mã'}
+          Zoom: {currentZoom} {showLabels ? '• Hiển thị: Mã bưu cục - Tên điểm' : '• Zoom ≥ 13 để hiện Mã - Tên'}
         </div>
       </div>
 
       {/* Control Sidebar */}
-      <div className="bg-white rounded-xl border border-gray-200 p-3.5 text-sm flex flex-col gap-3 shadow-sm">
+      <div className="bg-white rounded-xl border border-gray-200 p-3 text-sm flex flex-col gap-3 shadow-sm overflow-y-auto max-h-[72vh]">
         <div>
           <div className="font-bold text-gray-900 mb-1">Bộ lọc & Tìm kiếm</div>
           <input
@@ -154,43 +216,43 @@ export default function ServicePointsMap({ points }) {
           />
         </div>
 
+        {/* Legend 1: Loại điểm (Sum = 151) */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-gray-800 text-xs">Chú giải loại điểm ({filteredPoints.length}/151)</span>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="font-semibold text-gray-800 text-xs">Loại điểm (Tổng: {Object.values(categoryStats).reduce((a, b) => a + b, 0)}/151)</span>
             {selectedCategory && (
               <button
                 type="button"
                 onClick={() => setSelectedCategory(null)}
-                className="text-[11px] text-blue-600 hover:underline font-medium"
+                className="text-[10px] text-blue-600 hover:underline font-semibold"
               >
                 Xóa lọc
               </button>
             )}
           </div>
-          <div className="space-y-1.5">
-            {Object.entries(SERVICE_POINT_COLORS).map(([label, color]) => {
-              const isSelected = selectedCategory === label;
-              const count = categoryStats[label] || 0;
+          <div className="space-y-1">
+            {categoryLegendList.map(({ label, catKey }) => {
+              const count = categoryStats[catKey] || 0;
+              const isSelected = selectedCategory === catKey;
+              const iconSvg = createServicePointSvg(catKey, 18, 'Hoạt động');
+
               return (
                 <button
                   type="button"
-                  key={label}
-                  onClick={() => setSelectedCategory(isSelected ? null : label)}
-                  className={`w-full flex items-center justify-between p-2 rounded-lg border text-xs transition-all ${
+                  key={catKey}
+                  onClick={() => setSelectedCategory(isSelected ? null : catKey)}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg border text-xs transition-all ${
                     isSelected
-                      ? 'border-blue-500 bg-blue-50/80 shadow-sm font-semibold'
+                      ? 'border-blue-500 bg-blue-50/80 shadow-xs font-semibold'
                       : 'border-gray-100 hover:bg-gray-50 text-gray-700'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-3.5 h-3.5 rounded-sm inline-block shrink-0 border border-white shadow-xs"
-                      style={{ backgroundColor: color }}
-                    />
-                    <span>{label}</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span dangerouslySetInnerHTML={{ __html: iconSvg }} className="shrink-0 leading-none" />
+                    <span className="truncate text-[11px]">{label}</span>
                   </div>
                   <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold shrink-0 ${
                       isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
                     }`}
                   >
@@ -202,11 +264,61 @@ export default function ServicePointsMap({ points }) {
           </div>
         </div>
 
-        <div className="mt-auto pt-2 border-t border-gray-100 text-[11px] text-gray-500 leading-tight">
-          • Phân cấp Node: Star (Giao dịch), Xe tải (BCVH), Tam giác (VHX), Tòa nhà (Văn phòng), Circle Hub (KT Tỉnh).
+        {/* Legend 2: Trạng thái hoạt động (Sum = 151) */}
+        <div className="pt-2 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="font-semibold text-gray-800 text-xs">Trạng thái (Tổng: {Object.values(statusStats).reduce((a, b) => a + b, 0)}/151)</span>
+            {selectedStatus && (
+              <button
+                type="button"
+                onClick={() => setSelectedStatus(null)}
+                className="text-[10px] text-blue-600 hover:underline font-semibold"
+              >
+                Xóa lọc
+              </button>
+            )}
+          </div>
+          <div className="space-y-1">
+            {statusLegendList.map(({ label, statusKey }) => {
+              const count = statusStats[statusKey] || 0;
+              const isSelected = selectedStatus === statusKey;
+              const iconSvg = createServicePointSvg('Giao dịch', 18, statusKey);
+
+              return (
+                <button
+                  type="button"
+                  key={statusKey}
+                  onClick={() => setSelectedStatus(isSelected ? null : statusKey)}
+                  className={`w-full flex items-center justify-between p-1.5 rounded-lg border text-xs transition-all ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50/80 shadow-xs font-semibold'
+                      : 'border-gray-100 hover:bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span dangerouslySetInnerHTML={{ __html: iconSvg }} className="shrink-0 leading-none" />
+                    <span className="truncate text-[11px]">{label}</span>
+                  </div>
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold shrink-0 ${
+                      isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-auto pt-2 border-t border-gray-100 text-[10px] text-gray-500 leading-tight">
+          • Marker icon đồng bộ 100% với Chú giải.<br />
+          • Zoom ≥ 13 hiển thị nhãn `Mã bưu cục - Tên điểm`.
         </div>
       </div>
     </div>
   );
 }
+
 

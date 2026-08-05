@@ -199,18 +199,19 @@ Summary: the three modules were seeded with real data from the actual PO-supplie
 
 This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.
 
-## 19. Phase 2 Delivery Route Import-Time Delta Closure
+## 20. Phase 2 Service Point Map Visual Remediation Closure
 
-- Status: `PHASE 2 DELIVERY ROUTE IMPORT-TIME DELTA COMPLETED / READY FOR PO VISUAL RECHECK`
+- Status: `PHASE 2 SERVICE POINT MAP VISUAL REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
 - Closed on: `2026-08-05`
-- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated with import-time delta.
-- Scope discipline: strictly NO browser tools used. Pure source code, unit test, database schema, parser, and component engineering.
+- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated for Service Points map.
+- Scope discipline: strictly NO browser tools used. Pure source code, unit test, SVG rendering engine, and component engineering.
 - Implemented:
-  1. Additive database migration: added `thoi_gian_nhap_phat`, `raw_thoi_gian_nhap_phat`, `ca_phat`, `ngay_nhap_phat` columns to `network_delivery_point` table.
-  2. Parser upgrade: updated `parseDeliveryPointsExcel.js` to parse 'Thời gian nhập phát' (column 28, 29th column) from source file `Data QLML/2026.07.01 - BatchFile Phat thang 06.2026.xlsb` (SHA-256 verified). Kept exactly 143,475 points with 39 records missing import time preserved as `NULL` (not filled with `status_time`).
-  3. Shift classification rules: `Ca sáng` (00:00:00 - 14:00:00 inclusive) vs `Ca chiều` (14:00:01 - 23:59:59). Removed legacy `07:30` threshold completely.
-  4. Backend controller & client API: `listDeliveryPoints` supports optional `ca` filter (`sang`, `chieu`, `all`), date selection and route ordering use date part of `thoi_gian_nhap_phat`, sorted ascending by `thoi_gian_nhap_phat` with stable tie-breaker `id`.
-  5. UI & Map upgrades: Added Ca shift filter dropdown, updated all UI labels from 'Giờ phát' to 'Thời gian nhập phát', added 5 KPI statistics cards (Total parcels, Actual physical locations count, Morning shift count, Afternoon shift count, Missing time count), implemented coordinate clustering (grouping parcels at identical lat/lon to prevent overlapping markers), and chronological polyline routing.
-- Verification: 39 backend tests pass, 6 frontend remediation unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Data invariants verified (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, `fact_f13` = 666,153 rows).
+  1. Root cause audit: Fixed `loai_diem` category mapping by adding alias normalization for `'VHX'` -> `'Văn hoá xã (VHX)'`, restoring the 102 missing VHX points to the category legend.
+  2. Legend reconciliation: Created two audit-reconciled legend sections (`Loại điểm` and `Trạng thái hoạt động`) each proving exact 151 total points (Category: 102 VHX + 35 Giao dịch + 7 Văn phòng + 6 BCVH + 1 KT Tỉnh + 0 Khác = 151; Status: 147 Hoạt động + 0 Ngừng hoạt động + 4 Chưa xác định = 151).
+  3. Visual color & SVG icon synchronization: Unified SVG rendering engine (`createServicePointSvg`) between map markers and sidebar legend items for 100% visual consistency.
+  4. Distinct status markers: Implemented prominent visual status indicators (dark border + red/white crossmark ✕ overlay for `Ngừng hoạt động`; amber dashed border + question badge ? for `Chưa xác định`).
+  5. Zoom label formatting: Updated marker labels at `zoom >= 13` to format `Mã bưu cục - Tên điểm` (e.g. `532530 - VHX Hương Sơ`).
+- Verification: 39 backend unit tests pass, 8 frontend remediation unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Data invariants verified (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, `fact_f13` = 666,153 rows).
+
 
 

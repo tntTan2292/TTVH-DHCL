@@ -3,15 +3,39 @@
 export const SERVICE_POINT_COLORS = {
   'Giao dịch': '#F59E0B',        // Amber/Gold Star
   'Bưu cục vận hành': '#2563EB', // Blue Truck/Branch
-  'Văn hoá xã (VHX)': '#16A34A', // Green Triangle
+  'Văn hoá xã (VHX)': '#16A34A', // Green Triangle (includes 'VHX')
+  'VHX': '#16A34A',              // Green Triangle alias
   'Văn phòng': '#DC2626',        // Red Building
   'Khai thác tỉnh': '#7C3AED',   // Purple Hub
+  'Khác / Chưa phân loại': '#6B7280', // Gray Circle fallback
 };
 
 export const SERVICE_POINT_FALLBACK_COLOR = '#6B7280';
 
+export function normalizeLoaiDiem(loaiDiem) {
+  if (!loaiDiem) return 'Khác / Chưa phân loại';
+  const str = String(loaiDiem).trim();
+  if (str === 'VHX' || str.includes('Văn hoá xã') || str.includes('Văn hóa xã')) {
+    return 'Văn hoá xã (VHX)';
+  }
+  if (str.includes('Giao dịch')) return 'Giao dịch';
+  if (str.includes('Bưu cục vận hành')) return 'Bưu cục vận hành';
+  if (str.includes('Văn phòng')) return 'Văn phòng';
+  if (str.includes('Khai thác tỉnh')) return 'Khai thác tỉnh';
+  return 'Khác / Chưa phân loại';
+}
+
+export function normalizeTrangThai(trangThai) {
+  if (!trangThai) return 'Chưa xác định';
+  const str = String(trangThai).trim();
+  if (str === 'Hoạt động') return 'Hoạt động';
+  if (str === 'Ngừng hoạt động' || str === 'Tạm dừng') return 'Ngừng hoạt động';
+  return 'Chưa xác định';
+}
+
 export function colorForServicePointType(loaiDiem) {
-  return SERVICE_POINT_COLORS[loaiDiem] || SERVICE_POINT_FALLBACK_COLOR;
+  const norm = normalizeLoaiDiem(loaiDiem);
+  return SERVICE_POINT_COLORS[norm] || SERVICE_POINT_FALLBACK_COLOR;
 }
 
 // 28 Mạng đường thư cấp 2 route color palette with high contrast
@@ -48,46 +72,65 @@ export function colorForDeliveryService(serviceType) {
   return '#4B5563';
 }
 
-// Custom SVG Icons for Service Points matching reference HTML design
-export function createServicePointSvg(loaiDiem, size = 26) {
-  const color = colorForServicePointType(loaiDiem);
-  switch (loaiDiem) {
+// Custom SVG Icons for Service Points matching reference HTML design & status indication
+export function createServicePointSvg(loaiDiem, size = 26, trangThai = 'Hoạt động') {
+  const normLoai = normalizeLoaiDiem(loaiDiem);
+  const normStatus = normalizeTrangThai(trangThai);
+  const color = colorForServicePointType(normLoai);
+
+  // Border and stroke properties based on status
+  const isInactive = normStatus === 'Ngừng hoạt động';
+  const isUnknown = normStatus === 'Chưa xác định';
+
+  const strokeColor = isInactive ? '#1F2937' : isUnknown ? '#D97706' : 'white';
+  const strokeWidth = isInactive ? '2.4' : '1.8';
+  const strokeDash = isUnknown ? 'stroke-dasharray="3,2"' : '';
+
+  // Inactive badge crossmark overlay (✕)
+  const crossmarkSvg = isInactive
+    ? `<path d="M5 5 L23 23 M23 5 L5 23" stroke="#DC2626" stroke-width="3.5" stroke-linecap="round" filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.6))"/>
+       <path d="M5 5 L23 23 M23 5 L5 23" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>`
+    : '';
+
+  // Unknown status question badge (?)
+  const unknownSvg = isUnknown
+    ? `<circle cx="21" cy="7" r="5" fill="#D97706" stroke="white" stroke-width="1"/>
+       <text x="21" y="10" font-size="8" font-weight="900" fill="white" text-anchor="middle">?</text>`
+    : '';
+
+  let baseShapeSvg = '';
+  switch (normLoai) {
     case 'Giao dịch':
-      // Star polygon
-      return `<svg width="${size}" height="${size}" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="14,1 17.7,9.1 26.5,10 20,16 21.9,24.8 14,20.3 6.1,24.8 8,16 1.5,10 10.3,9.1" fill="${color}" stroke="white" stroke-width="1.8" filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>
-      </svg>`;
+      baseShapeSvg = `<polygon points="14,1 17.7,9.1 26.5,10 20,16 21.9,24.8 14,20.3 6.1,24.8 8,16 1.5,10 10.3,9.1" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash} filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>`;
+      break;
     case 'Bưu cục vận hành':
-      // Delivery Truck
-      return `<svg width="${size}" height="${size}" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-        <rect x="2" y="7" width="15" height="12" rx="2" fill="${color}" stroke="white" stroke-width="1.6" filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>
-        <path d="M17 11 H22 L26 16 V19 H17 Z" fill="${color}" stroke="white" stroke-width="1.6"/>
-        <circle cx="8" cy="21" r="3" fill="${color}" stroke="white" stroke-width="1.6"/>
-        <circle cx="21" cy="21" r="3" fill="${color}" stroke="white" stroke-width="1.6"/>
-      </svg>`;
+      baseShapeSvg = `<rect x="2" y="7" width="15" height="12" rx="2" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash} filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>
+        <path d="M17 11 H22 L26 16 V19 H17 Z" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>
+        <circle cx="8" cy="21" r="3" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>
+        <circle cx="21" cy="21" r="3" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}"/>`;
+      break;
     case 'Văn hoá xã (VHX)':
-      // Triangle
-      return `<svg width="${size}" height="${size}" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="14,2 26,25 2,25" fill="${color}" stroke="white" stroke-width="1.8" filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>
-      </svg>`;
+      baseShapeSvg = `<polygon points="14,2 26,25 2,25" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash} filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>`;
+      break;
     case 'Văn phòng':
-      // House/Office
-      return `<svg width="${size}" height="${size}" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-        <path d="M2 13 L14 2 L26 13 L23 13 L23 26 L6 26 L6 13 Z" fill="${color}" stroke="white" stroke-width="1.8" filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>
-        <rect x="11" y="17" width="6" height="9" fill="white" opacity="0.95"/>
-      </svg>`;
+      baseShapeSvg = `<path d="M2 13 L14 2 L26 13 L23 13 L23 26 L6 26 L6 13 Z" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash} filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>
+        <rect x="11" y="17" width="6" height="9" fill="white" opacity="0.95"/>`;
+      break;
     case 'Khai thác tỉnh':
-      // Central Hub
-      return `<svg width="${size}" height="${size}" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="14" cy="14" r="11" fill="${color}" stroke="white" stroke-width="2" filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>
+      baseShapeSvg = `<circle cx="14" cy="14" r="11" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash} filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.4))"/>
         <circle cx="14" cy="14" r="5" fill="white"/>
-        <circle cx="14" cy="14" r="2.5" fill="${color}"/>
-      </svg>`;
+        <circle cx="14" cy="14" r="2.5" fill="${color}"/>`;
+      break;
     default:
-      return `<svg width="${size}" height="${size}" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="14" cy="14" r="9" fill="${color}" stroke="white" stroke-width="1.8"/>
-      </svg>`;
+      baseShapeSvg = `<circle cx="14" cy="14" r="9" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${strokeDash}/>`;
+      break;
   }
+
+  return `<svg width="${size}" height="${size}" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+    ${baseShapeSvg}
+    ${crossmarkSvg}
+    ${unknownSvg}
+  </svg>`;
 }
 
 export const HUE_MAP_CENTER = [16.46, 107.59];
