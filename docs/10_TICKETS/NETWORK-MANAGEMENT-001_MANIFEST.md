@@ -18,12 +18,13 @@
 - [14. Next Ticket](#14-next-ticket)
 - [15. Authority Escalation](#15-authority-escalation)
 - [16. Phase 1 Implementation Closure](#16-phase-1-implementation-closure)
+- [17. Phase 2 Implementation Closure](#17-phase-2-implementation-closure)
 
 ## 1. Ticket Information
 
 - Ticket ID: `NETWORK-MANAGEMENT-001`
 - Ticket Name: Quản lý mạng lưới (Network Management) — Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát
-- Phase: Governance activation (documentation-only). Phase 1 (Nền tảng) is `AUTHORIZED / READY FOR IMPLEMENTATION`; Phases 2-4 remain `PLANNED / NOT ACTIVE`.
+- Phase: Phase 1 (Nền tảng) and Phase 2 (Ba bản đồ) `COMPLETED / TECHNICAL PASS`; Phase 3-4 remain `PLANNED / NOT ACTIVE`.
 - Owner: Claude Code (implementation, backend, data, tests, documentation, Git per `DEC-020`)
 - Governance Version: `V2 Active`
 - Authorization: Product Owner, `2026-08-04` — explicit activation request naming `NETWORK-MANAGEMENT-001` and locking scope/baseline per the four-phase structure below
@@ -34,13 +35,13 @@ Activate a single four-phase program to bring three independent map-based screen
 
 ## 3. Current Status
 
-- Current state: `PHASE 1 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 1`, as of `2026-08-05`.
-- Phase 1 (Nền tảng): implemented and technically validated (schema, authenticated API foundation, nav/routes). See checkpoint Section 12 for full evidence. PO Gate 1 not yet requested/granted.
-- Phase 2 (Ba bản đồ): `PLANNED / NOT ACTIVE`.
+- Current state: `PHASE 2 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 2`, as of `2026-08-05`.
+- Phase 1 (Nền tảng): `COMPLETED / TECHNICAL PASS`. PO Gate 1 `PASS` (Product Owner, `2026-08-05`).
+- Phase 2 (Ba bản đồ): implemented and technically validated (real data seeded from the 3 Excel/HTML sources, 3 Leaflet map screens, cascading tuyến-phát filters). See checkpoint Section 13 for full evidence. PO Gate 2 not yet requested/granted.
 - Phase 3 (Import): `PLANNED / NOT ACTIVE`.
 - Phase 4 (Nghiệm thu): `PLANNED / NOT ACTIVE`.
-- PO UI Check Required: `No` for Phase 1 (backend/schema/API foundation, no user-facing UI change requiring PO UI check per PO Gate 1 definition); `Yes` starting at Phase 2 (PO Gate 2) and again at Phase 3 (PO Gate 3) and Phase 4 (PO Gate 4).
-- PO Product Status: not yet applicable — Phase 1 is technical foundation only; no screen is presented for PO acceptance yet.
+- PO UI Check Required: `Yes` for Phase 2 (PO Gate 2 — the three map screens are now user-facing) — not yet performed; and again at Phase 3 (PO Gate 3) and Phase 4 (PO Gate 4).
+- PO Product Status: Phase 2 technically complete, not yet PO-reviewed.
 
 ## 4. Required Reading
 
@@ -166,8 +167,8 @@ The following figures are Product Owner-confirmed audit results and are the lock
 
 ## 14. Next Ticket
 
-- Next ticket ID: `None` beyond this activation. Phase 1 (Nền tảng) implementation is the next authorized action within this same ticket.
-- No Phase 2, 3, or 4 work is self-activated by this manifest; each requires the prior phase to close and, per PO Gates (Section 11), explicit Product Owner confirmation at Gate 2 and Gate 3 before UI/import are considered accepted.
+- Next ticket ID: `None` beyond this activation. Phase 3 (Import) is the next item in sequence but is not self-activated.
+- No Phase 3 or 4 work is self-activated by this manifest; each requires the prior phase to close and, per PO Gates (Section 11), explicit Product Owner confirmation at Gate 2 (this Phase 2 closure) and Gate 3 before Import is considered accepted.
 
 ## 15. Authority Escalation
 
@@ -184,3 +185,15 @@ Full implementation evidence, file-by-file changes, and validation commands/outp
 Summary: SQLite schema foundation (5 new, independent, empty tables — `network_import_log`, `network_service_point`, `network_level2_route`, `network_level2_route_stop`, `network_delivery_point`) added additively to `backend/src/db/schema.sql` and applied to the live operational database via an idempotent migration script with zero rows seeded and zero impact on existing tables (`fact_f13` confirmed unchanged at 663,126 rows). Authenticated API foundation mounted at `/api/network-map`: `admin`+`viewer` read access, `admin`-only Import scaffolding (returns `501 NOT_IMPLEMENTED`, no Excel logic), and the Sơ đồ tuyến phát points endpoint hard-rejects any query missing Ngày/BCVH/Bưu tá. Frontend: new `Quản lý mạng lưới` nav group and 3 role-gated routes/screens that prove API connectivity and gate the Import button to `admin` only, with no Leaflet map and no OSRM call. No product/business data was fabricated or inserted; the PO-confirmed baseline figures (151 mã điểm; 28 hành trình/148 lượt dừng/47 mã điểm/1.435 km; 143,467 điểm) remain unimplemented data targets for Phase 3, not touched by Phase 1. 02 pre-existing stashes, the 3 root-level reference HTML files, and the newly-observed `Data QLML/` Excel files were left untouched.
 
 This closure covers Phase 1 (Nền tảng) only. It does not start, authorize, or imply authorization for Phase 2 (Ba bản đồ), Phase 3 (Import), or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates).
+
+## 17. Phase 2 Implementation Closure
+
+- Status: `COMPLETED / TECHNICAL PASS`
+- Closed on: `2026-08-05`
+- Closure authority: direct execution of explicit Product Owner Phase 2 implementation authorization (following PO Gate 1 `PASS`), technically validated by Claude Code; PO Gate 2 (Section 11) itself remains a separate, not-yet-requested Product Owner confirmation.
+
+Full implementation evidence, source inventory, documented mapping decisions, and validation commands/output are recorded in `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` Section 13 and are not duplicated here.
+
+Summary: the three modules were seeded with real data from the actual PO-supplied sources — Mạng điểm phục vụ (151 điểm, 0 warnings, matches locked baseline exactly, from `Data QLML/Mang_diem_phuc_vu_kem_du_lieu_ban_do.xlsx`); Mạng đường thư cấp 2 (28 hành trình / 148 lượt dừng / 47 mã điểm / 1,435 km, 0 warnings, matches locked baseline exactly — route/stop geometry read from the reference HTML's `MAIL_ROUTES` array per the Product Owner's own instruction that Excel has no coordinates and HTML is the coordinate/geometry reference; the "TỔ CHỨC LẠI" proposal block in the new `2026.08. Mang DTC2.xlsx` was explicitly not used); Sơ đồ tuyến phát (143,475 điểm kept of 160,554 rows from `Data QLML/2026.07.01 - BatchFile Phat thang 06.2026.xlsb`, applying the same three exclusion categories the reference HTML's own stats already name — a small, reported-not-forced discrepancy against the locked 143,467 baseline and the HTML's own stated 143,463 is documented in the checkpoint for Product Owner awareness). All three screens now render as real Leaflet maps backed by the authenticated `/api/network-map` read API (data layer and Leaflet display layer kept strictly separate, so Phase 3 Import can replace the data source without rewriting any map component). Sơ đồ tuyến phát enforces the cascading Ngày→BCVH→Bưu tá selection at both API and UI — the points endpoint is never called, and no bulk/full-month data is ever loaded, until all three are chosen. Phase 1's `admin`/`viewer` read access and `admin`-only (still-disabled) Import gate are preserved unchanged. No Excel/HTML source file was modified (SHA-256-verified before and after); `Data QLML/` was never added to git. `fact_f13` confirmed unchanged (666,153 rows, the correct current baseline following the intervening, unrelated `AUTO-IMPORT-011` ticket) before and after. Both Phase 1 and Phase 2 schema migrations are now applied automatically on every backend startup, not manually on one machine.
+
+This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.

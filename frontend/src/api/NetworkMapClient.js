@@ -16,10 +16,15 @@ class NetworkMapClient {
     }
 
     /**
-     * API Contract: GET /network-map/delivery-routes/meta
+     * API Contract: GET /network-map/delivery-routes/meta[?ngay=][&ma_bcvh=]
+     * Cascading: no params -> {dates, bcvh}; +ngay -> bcvh scoped to that date;
+     * +ngay&ma_bcvh -> +postman_codes scoped to date+BCVH.
      */
-    getDeliveryRoutesMeta() {
-        return httpClient.get('/network-map/delivery-routes/meta');
+    getDeliveryRoutesMeta(ngay, maBcvh) {
+        const params = {};
+        if (ngay) params.ngay = ngay;
+        if (ngay && maBcvh) params.ma_bcvh = maBcvh;
+        return httpClient.get('/network-map/delivery-routes/meta', params);
     }
 
     /**

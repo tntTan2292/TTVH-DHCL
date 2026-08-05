@@ -53,9 +53,20 @@ test('getLevel2Routes requests /api/network-map/level2-routes', async () => {
   await networkMapClient.getLevel2Routes();
 });
 
-test('getDeliveryRoutesMeta requests /api/network-map/delivery-routes/meta', async () => {
-  stubFetch('/api/network-map/delivery-routes/meta');
+test('getDeliveryRoutesMeta requests /api/network-map/delivery-routes/meta with no params by default', async () => {
+  stubFetch('/api/network-map/delivery-routes/meta', '');
   await networkMapClient.getDeliveryRoutesMeta();
+});
+
+test('getDeliveryRoutesMeta adds ngay when given, and ma_bcvh only alongside ngay', async () => {
+  stubFetch('/api/network-map/delivery-routes/meta', '?ngay=20260601');
+  await networkMapClient.getDeliveryRoutesMeta('20260601');
+
+  stubFetch('/api/network-map/delivery-routes/meta', '?ngay=20260601&ma_bcvh=533140');
+  await networkMapClient.getDeliveryRoutesMeta('20260601', '533140');
+
+  stubFetch('/api/network-map/delivery-routes/meta', '');
+  await networkMapClient.getDeliveryRoutesMeta(null, '533140');
 });
 
 test('getDeliveryRoutePoints requests only after all three filters are given', async () => {

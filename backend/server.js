@@ -10,6 +10,9 @@ const importRoutes = require('./src/routes/importRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const networkMapRoutes = require('./src/routes/networkMapRoutes');
 const { startWatcher } = require('./src/services/importWatcher');
+const { dbPath: activeDbPath } = require('./src/config/db');
+const { applyNetworkManagement001Phase1Schema } = require('./migrate_network_management_001_phase1_schema');
+const { applyNetworkManagement001Phase2Schema } = require('./migrate_network_management_001_phase2_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -89,23 +92,41 @@ app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
 app.use('/api/network-map', networkMapRoutes);
 
-const server = app.listen(PORT, HOST, () => {
-    logRuntimeBanner();
-    console.log(`TTVH Backend running on port ${PORT}`);
-    startWatcher();
-});
+// NETWORK-MANAGEMENT-001: additive, idempotent schema migrations applied on
+// every startup so any environment running this codebase self-heals its
+// schema instead of depending on a manual one-off script per machine.
+async function ensureNetworkManagementSchema() {
+    await applyNetworkManagement001Phase1Schema(activeDbPath);
+    await applyNetworkManagement001Phase2Schema(activeDbPath);
+}
 
-server.on('error', (error) => {
-    if (error?.code === 'EADDRINUSE') {
+ensureNetworkManagementSchema()
+    .then(() => {
+        const server = app.listen(PORT, HOST, () => {
+            logRuntimeBanner();
+            console.log(`TTVH Backend running on port ${PORT}`);
+            startWatcher();
+        });
+
+        server.on('error', (error) => {
+            if (error?.code === 'EADDRINUSE') {
+                console.error('====================================');
+                console.error(`PORT ${PORT} IS OCCUPIED`);
+                console.error(`Host: ${HOST}`);
+                console.error('Run the Windows port check first:');
+                console.error('powershell -ExecutionPolicy Bypass -File .\\scripts\\check-qis-lan-ports.ps1');
+                console.error('Then stop the owning process before restarting QIS V2.');
+                console.error('====================================');
+                process.exit(1);
+            }
+
+            throw error;
+        });
+    })
+    .catch((error) => {
         console.error('====================================');
-        console.error(`PORT ${PORT} IS OCCUPIED`);
-        console.error(`Host: ${HOST}`);
-        console.error('Run the Windows port check first:');
-        console.error('powershell -ExecutionPolicy Bypass -File .\\scripts\\check-qis-lan-ports.ps1');
-        console.error('Then stop the owning process before restarting QIS V2.');
+        console.error('NETWORK-MANAGEMENT-001 SCHEMA MIGRATION FAILED');
+        console.error(`Error: ${error?.message || error}`);
         console.error('====================================');
         process.exit(1);
-    }
-
-    throw error;
-});
+    });

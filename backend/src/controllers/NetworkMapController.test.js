@@ -13,9 +13,11 @@ process.env.NODE_ENV = 'test';
 process.env.QIS_TEST_DB_PATH = testDbPath;
 
 const { applyNetworkManagement001Phase1Schema } = require('../../migrate_network_management_001_phase1_schema');
+const { applyNetworkManagement001Phase2Schema } = require('../../migrate_network_management_001_phase2_schema');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const authSessionStore = require('../services/auth/AuthSessionStore');
 const networkMapController = require('./NetworkMapController');
+const { run } = require('../config/db');
 
 function createResponse() {
     return {
@@ -58,6 +60,14 @@ function runMiddlewareChain(middlewares, req, res) {
 
 test.before(async () => {
     await applyNetworkManagement001Phase1Schema(testDbPath);
+    await applyNetworkManagement001Phase2Schema(testDbPath);
+    await run(
+        `INSERT INTO network_delivery_point (ngay_phat, ma_bcvh, postman_code, lat, lon, status_time)
+         VALUES ('2026-06-01', '533140', '53A121', 16.5, 107.6, '10:00:00'),
+                ('2026-06-01', '533140', '53A999', 16.5, 107.6, '11:00:00'),
+                ('2026-06-01', '530100', '53A555', 16.5, 107.6, '12:00:00'),
+                ('2026-06-02', '533140', '53A121', 16.5, 107.6, '09:00:00')`,
+    );
 });
 
 test.after(() => {
@@ -93,13 +103,32 @@ test('listLevel2Routes returns an empty array with stops attached shape', async 
     assert.deepEqual(res.body.data, []);
 });
 
-test('getDeliveryRoutesMeta returns empty dates/bcvh lists', async () => {
+test('getDeliveryRoutesMeta returns the global date and BCVH lists when no filter is given', async () => {
     const req = createRequest();
     const res = createResponse();
     await networkMapController.getDeliveryRoutesMeta(req, res);
 
     assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body.data, { dates: [], bcvh: [] });
+    assert.deepEqual(res.body.data.dates, ['2026-06-01', '2026-06-02']);
+    assert.deepEqual(res.body.data.bcvh, ['530100', '533140']);
+    assert.ok(!('postman_codes' in res.body.data), 'must not return postman_codes without ngay+ma_bcvh');
+});
+
+test('getDeliveryRoutesMeta scopes BCVH to the selected Ngày', async () => {
+    const req = createRequest({ query: { ngay: '2026-06-02' } });
+    const res = createResponse();
+    await networkMapController.getDeliveryRoutesMeta(req, res);
+
+    assert.deepEqual(res.body.data.bcvh, ['533140']);
+    assert.ok(!('postman_codes' in res.body.data));
+});
+
+test('getDeliveryRoutesMeta scopes Bưu tá (postman_code) to Ngày+BCVH — never bulk-loads points', async () => {
+    const req = createRequest({ query: { ngay: '2026-06-01', ma_bcvh: '533140' } });
+    const res = createResponse();
+    await networkMapController.getDeliveryRoutesMeta(req, res);
+
+    assert.deepEqual(res.body.data.postman_codes, ['53A121', '53A999']);
 });
 
 test('listDeliveryPoints rejects a query missing any of the three required filters', async () => {

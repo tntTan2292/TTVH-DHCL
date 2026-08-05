@@ -70,15 +70,39 @@ async function listLevel2Routes(req, res) {
     }
 }
 
-// GET /api/network-map/delivery-routes/meta
+// GET /api/network-map/delivery-routes/meta[?ngay=][&ma_bcvh=]
+// Always returns the global date list. When `ngay` is given, also returns the
+// BCVH list scoped to that date. When both `ngay` and `ma_bcvh` are given,
+// also returns the postman_code list scoped to that date+BCVH — this lets the
+// UI cascade Ngày -> BCVH -> Bưu tá dropdowns without ever touching the
+// points endpoint (which still requires all three filters).
 async function getDeliveryRoutesMeta(req, res) {
+    const { ngay, ma_bcvh } = req.query;
+
     try {
         const dates = await all('SELECT DISTINCT ngay_phat FROM network_delivery_point ORDER BY ngay_phat ASC');
-        const bcvhList = await all('SELECT DISTINCT ma_bcvh FROM network_delivery_point ORDER BY ma_bcvh ASC');
-        return sendSuccess(res, {
-            dates: dates.map((row) => row.ngay_phat),
-            bcvh: bcvhList.map((row) => row.ma_bcvh),
-        });
+        const meta = { dates: dates.map((row) => row.ngay_phat) };
+
+        if (ngay) {
+            const bcvhList = await all(
+                'SELECT DISTINCT ma_bcvh FROM network_delivery_point WHERE ngay_phat = ? ORDER BY ma_bcvh ASC',
+                [ngay],
+            );
+            meta.bcvh = bcvhList.map((row) => row.ma_bcvh);
+        } else {
+            const bcvhList = await all('SELECT DISTINCT ma_bcvh FROM network_delivery_point ORDER BY ma_bcvh ASC');
+            meta.bcvh = bcvhList.map((row) => row.ma_bcvh);
+        }
+
+        if (ngay && ma_bcvh) {
+            const postmanList = await all(
+                'SELECT DISTINCT postman_code FROM network_delivery_point WHERE ngay_phat = ? AND ma_bcvh = ? ORDER BY postman_code ASC',
+                [ngay, ma_bcvh],
+            );
+            meta.postman_codes = postmanList.map((row) => row.postman_code);
+        }
+
+        return sendSuccess(res, meta);
     } catch (error) {
         return sendError(res, 500, 'INTERNAL_ERROR', error.message);
     }

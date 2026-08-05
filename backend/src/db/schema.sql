@@ -221,6 +221,7 @@ CREATE TABLE IF NOT EXISTS network_delivery_point (
     status_time TEXT,
     loai_dich_vu TEXT,
     tien_thu_ho REAL,
+    route_po_code TEXT,
     import_log_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(import_log_id) REFERENCES network_import_log(id)
