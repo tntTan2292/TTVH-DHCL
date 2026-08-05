@@ -38,10 +38,10 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket: `AUTO-IMPORT-011`, emergency remediation, activated 2026-08-05. `SYMPTOM A FIXED / TEST ISOLATION FIXED (AUTO-IMPORT-012 CLOSED) / SYMPTOM B BLOCKED ON PO`. Last closed: `docs/10_TICKETS/AUTO-IMPORT-012_MANIFEST.md` — Import test-suite production-isolation fix, `COMPLETED / TECHNICAL PASS`, 2026-08-05. `NETWORK-MANAGEMENT-001` (previous Current Ticket) is paused, not abandoned — Phase 1 remains `COMPLETED / TECHNICAL PASS — READY FOR PO GATE 1`, unaffected.
-- Current manifest: `docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md`.
-- Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_001.md`.
-- Next required action: Product Owner runtime-confirms the Symptom A fix; provides live-reproduction access or `automate_sync.py` context for Symptom B; decides on the test-isolation follow-up ticket and the orphaned evidence file. `NETWORK-MANAGEMENT-001` PO Gate 1 review remains separately pending, unaffected.
+- Current ticket: `None`. Last closed: `docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` — emergency Import remediation, `COMPLETED / PO RUNTIME PASS / CLOSED`, 2026-08-05 (Symptom A fixed; Symptom B recovered via server restart, no technical root cause, no code fix). `AUTO-IMPORT-012` (test-isolation fix) remains `COMPLETED / TECHNICAL PASS`, unaffected. `NETWORK-MANAGEMENT-001` remains `PAUSED` per explicit Product Owner instruction — Phase 1 remains `COMPLETED / TECHNICAL PASS — READY FOR PO GATE 1`, unaffected.
+- Current manifest: `None`.
+- Current checkpoint: `None`.
+- Next required action: await explicit Product Owner direction, including whether to resume `NETWORK-MANAGEMENT-001`. If the HUE/TCT browser-open failure recurs, open a new remediation ticket and capture live backend console output before any restart.
 
 
 
@@ -66,13 +66,14 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/06_REVIEWS/Governance/DOC-GOV-CLEANUP-001_CHECKPOINT_001.md` | Checkpoint | Current cleanup checkpoint, scope lock, and preservation gates. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/10_TICKETS/AUTO-IMPORT-008_MANIFEST.md` | Ticket Manifest | Current AUTO-IMPORT-008 bounded remediation scope and defect-order authority. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-008_CHECKPOINT_001.md` | Import Checkpoint | Current AUTO-IMPORT-008 activation checkpoint and ordered defect register. | L2 | Current Required Reading | Current ticket only. | Mandatory |
-| `docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` | Ticket Manifest | Current active ticket. Emergency remediation, 2026-08-05: Symptom A (recurring 2098-dated future-file import) fixed and tested; Symptom B (HUE/TCT browser not opening) discovery-only, blocked on PO. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` | Ticket Manifest | Closed. Emergency remediation, 2026-08-05: Symptom A fixed and tested; Symptom B recovered via server restart, no technical root cause, no code fix. COMPLETED / PO RUNTIME PASS. | L2 | Conditional Reference | When Import emergency history, the 2098 fix, or the Symptom B closure disposition is needed. | High |
 | `docs/10_TICKETS/AUTO-IMPORT-012_MANIFEST.md` | Ticket Manifest | Closed. Emergency follow-up, 2026-08-05: fixed the confirmed Import test-suite production-isolation defect. COMPLETED / TECHNICAL PASS. | L2 | Conditional Reference | When test-isolation history or the fix's evidence is needed. | High |
 | `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` | Ticket Manifest | Closed HUE browser launch recovery ticket; PO RUNTIME PASS with Dashboard/HUE/TCT acceptance and a recorded non-blocking residual. | L2 | Conditional Reference | When Import authentication history, the HUE first-click residual, or closure evidence is needed. | High |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_001.md` | Import Checkpoint | Historical handoff after stale-state remediation and direct Playwright proof, including Product Owner runtime fail and next discovery boundary. | L2 | Conditional Reference | Import authentication history lookup only. | Medium |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_002.md` | Import Checkpoint | Historical management checkpoint confirming discovery completion, rejected options, selected one-time setup direction, and the C1 implementation plan. | L2 | Conditional Reference | Import authentication history lookup only. | Medium |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_003.md` | Import Checkpoint | Closure checkpoint recording Product Owner runtime acceptance (Dashboard, HUE, TCT) and the known non-blocking HUE first-click residual. | L2 | Conditional Reference | Import authentication closure evidence lookup only. | High |
-| `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_001.md` | Import Checkpoint | Current active checkpoint. Full evidence timeline, root cause, fix, self-inflicted-pollution disclosure and cleanup, and Symptom B discovery for the emergency ticket. | L2 | Current Required Reading | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_001.md` | Import Checkpoint | Closed. Full evidence timeline, root cause, fix, self-inflicted-pollution disclosure and cleanup, and Symptom B discovery for the emergency ticket. | L2 | Conditional Reference | Import emergency history lookup only. | Medium |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_002.md` | Import Checkpoint | Closed. PO runtime closure evidence: Symptom B recovered via server restart, no technical root cause, no code fix, standing instruction for recurrence. | L2 | Conditional Reference | Import emergency closure evidence lookup only. | High |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-012_CHECKPOINT_001.md` | Import Checkpoint | Closed. Test-isolation fix evidence: guard design, per-suite isolation approach, two-consecutive-run validation, zero-production-impact proof. | L2 | Conditional Reference | When test-isolation history or the fix's evidence is needed. | High |
 | `docs/10_TICKETS/F13-SHIPMENT-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 shipment failure drill-down proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when shipment work is reactivated or current manifest names it. | Medium |
 | `docs/10_TICKETS/F13-DATA-QUALITY-001_MANIFEST.md` | Ticket Manifest | Deferred F1.3 data coverage and quality module proposal preserved by Product Owner decision. | L2 | Conditional Reference | Only when data-quality work is reactivated or current manifest names it. | Medium |
@@ -137,13 +138,13 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | UX | 7 | 7 | 0 | Conditional Reference |
 | Technical Planning | 7 | 7 | 0 | Conditional Reference |
 | Development Reference | 4 | 4 | 0 | Conditional Reference |
-| Reviews and Evidence | 148 | 118 | 30 | Conditional Reference |
+| Reviews and Evidence | 149 | 119 | 30 | Conditional Reference |
 | Conditional Reference | 46 | 42 | 4 | Conditional Reference/Archive |
 | Archive | 9 | 9 | 0 | Archive |
 | Reports Archive | 21 | 21 | 0 | Archive |
 | Ticket Manifests | 49 | 49 | 0 | Conditional Reference |
 | Root Legacy/Frozen Docs | 21 | 21 | 0 | Conditional Reference/Archive |
-| Total under `docs` | 340 | 306 | 34 | Preserved |
+| Total under `docs` | 341 | 307 | 34 | Preserved |
 
 ## Duplicate Content Notes
 

@@ -3,16 +3,19 @@
 - Ticket ID: `AUTO-IMPORT-011`
 - Ticket Name: `Emergency — 2098 future-date import recurrence and HUE/TCT browser-open failure`
 - Phase: `Emergency remediation`
-- Current State: `SYMPTOM A COMPLETED / FIXED WITH REPRODUCTION; SYMPTOM B DISCOVERY ONLY / BLOCKED ON PO/RUNTIME DATA`
-- Technical Status: `FUTURE-DATE VALIDATION BUG FIXED AND VERIFIED; SELF-INFLICTED TEST POLLUTION CLEANED UP; TEST-ISOLATION DEFECT DISCOVERED AND FLAGGED (SEPARATE TICKET NEEDED)`
-- PO UI Check Required: `No for the code fix itself (backend validation logic, not UI); Yes for confirming HUE/TCT browser opens successfully on PO's machine once Symptom B is addressed`
-- PO Product Status: `NOT PASS — Symptom B unresolved`
+- Current State: `COMPLETED / PO RUNTIME PASS / CLOSED`
+- Technical Status: `FUTURE-DATE VALIDATION BUG FIXED AND VERIFIED (AUTO-IMPORT-011); TEST-ISOLATION DEFECT FIXED AND VERIFIED (AUTO-IMPORT-012); SYMPTOM B RECOVERED AFTER SERVER RESTART, TECHNICAL ROOT CAUSE NOT DETERMINED, NO CODE FIX APPLIED`
+- PO UI Check Required: `Yes — satisfied. Product Owner confirmed HUE and TCT browser login opened, authenticated, and imported successfully after a server restart.`
+- PO Product Status: `PO RUNTIME PASS`
 - Activation date: `2026-08-05`
+- Closure date: `2026-08-05`
 - Primary executor: `Claude Code`
 
 ## Fresh-Chat Onboarding Authority
 
-Required onboarding chain:
+This ticket is `CLOSED`. It is no longer part of the fresh onboarding chain; fresh onboarding now resolves through `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`.
+
+Historical onboarding chain used while this ticket was active:
 
 1. `README_AI.md`
 2. `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md`
@@ -20,11 +23,13 @@ Required onboarding chain:
 4. `docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md`
 5. Required Reading from this manifest
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_001.md`
+Closure checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_002.md`
 
-Required Reading:
+Required Reading (historical, for anyone reviewing this closed ticket):
 
-- `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_001.md` — full evidence, root cause, fix, and residuals
+- `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_001.md` — Symptom A root cause, fix, and self-inflicted test-pollution disclosure
+- `docs/06_REVIEWS/Import/AUTO-IMPORT-011_CHECKPOINT_002.md` — PO runtime closure evidence and Symptom B final state
+- `docs/10_TICKETS/AUTO-IMPORT-012_MANIFEST.md` — the test-isolation follow-up fix, `COMPLETED / TECHNICAL PASS`
 
 ## Authority
 
@@ -80,30 +85,32 @@ Running this test suite against the shared environment plants test fixtures into
 
 **Not confirmed / out of scope**: a Windows Scheduled Task `VnPost_Daily_Sync` (daily trigger `08:00`, action `pythonw.exe "D:\Antigravity - Project\KHHH - Antigravity\backend\scripts\automate_sync.py"`) exists on this machine and ran successfully at `08:00` this morning, roughly 32 minutes before the `08:32` import event. Its action targets a **different, unrelated project** (`KHHH - Antigravity`, not this repository) and is outside this repository's workspace and authority. This ticket does not inspect or modify that project. Whether it independently contributes to the recurrence (e.g., by triggering a backend restart, or by its own unrelated activity) is not established and is flagged for Product Owner/CTO awareness only.
 
-## Symptom B — Discovery Only (Not Reproduced, Not Fixed)
+## Symptom B — Recovered After Server Restart (No Technical Root Cause, No Code Fix)
 
-No root cause was established with reproduction. Per instruction, no code changes were made for this symptom.
+**Initial discovery findings** (unchanged historical record; no technical root cause was ever proven from these):
 
-**Findings**:
+- No `chrome.exe`, `msedge.exe`, or other browser process was running for either profile at the time.
+- `Data DKCL/BrowserProfiles/HUE.lock` and `TCT.lock` were directories (this project's own mutex, not Chromium's), both created very recently (`08:35`/`08:36` local that day) — consistent with a launch attempt that did not clean up afterward.
+- Neither profile had a Chromium-internal `SingletonLock` file, meaning Chromium itself never reached the point of successfully starting for either source at that time.
+- `playwright`/`playwright-core` were present; two Chromium revisions were cached (`chromium-1208`, `chromium-1234`); which revision the installed `playwright` package requires was not verified.
+- A live interactive-auth call was deliberately not triggered during discovery, since it would spawn a real browser action with no way to visually confirm the result and no reproduction evidence in hand to justify it.
 
-- No `chrome.exe`, `msedge.exe`, or other browser process is currently running for either profile.
-- `Data DKCL/BrowserProfiles/HUE.lock` and `TCT.lock` are directories (this project's own mutex, not Chromium's), both created very recently (`08:35`/`08:36` local today) — consistent with a launch attempt around the same time as the Symptom A event, that did not clean up afterward.
-- Neither profile has a Chromium-internal `SingletonLock` file, meaning Chromium itself never reached the point of successfully starting for either source — the failure is at or before `chromium.launchPersistentContext()`, not after.
-- `playwright` and `playwright-core` are present in `backend/node_modules` (previously fixed under `AUTO-IMPORT-010`). Two Chromium revisions are cached (`chromium-1208`, `chromium-1234`); which revision the currently-installed `playwright` package actually requires was not verified within this ticket.
-- The live backend process (port `5050`) could not be identified with certainty as running in an interactive or non-interactive Windows session (session-context query required elevation not available in this session). The one Windows console session found (`Session 1`, `console`, user `Admin`) is active/interactive.
-- The in-memory HUE/TCT session registry (`globalRegistry` in `dkclSessionPreflightService.js`) could not be inspected without an authenticated admin session, which this ticket does not create or bypass.
-- A live interactive-auth call was deliberately **not** triggered, since it would spawn a real browser action on the Product Owner's machine with no way for this session to visually confirm the result, and no reproduction evidence was in hand to justify it.
+**PO runtime result, after a server restart, same day**: Product Owner reported both HUE and TCT browser windows opened for interactive login, authentication succeeded for both sources, and Import completed successfully for both HUE and TCT.
 
-**Blocked on**: this symptom requires either (a) a live reproduction with the Product Owner or Antigravity present, capturing the exact backend console output at the moment interactive login is triggered (not currently captured to any persistent log file — `backend/backend.log` only logs the startup banner, not per-request activity), or (b) confirmation of whether the unrelated `KHHH - Antigravity` project's scheduled Python sync holds any overlapping resource (browser profile, port, or DKCL session) that could interfere.
+**Closure disposition for Symptom B**:
+
+- Symptom B is **recovered** as a runtime outcome. It is **not** technically root-caused — no code change was made that could explain why the restart resolved it, and no mechanism (stale lock clearing, process re-registration, or otherwise) was proven to be the cause.
+- The stale `HUE.lock`/`TCT.lock` directories observed during discovery are a plausible contributing factor (a fresh backend process would not inherit an in-memory client reference tied to a dead browser attempt, and a restart is a known way to clear that class of state), but this is not confirmed — no reproduction was performed with instrumentation before the restart, and none is possible retroactively.
+- **No code fix was applied for Symptom B.** If the browser-open failure recurs, do not assume the previous restart's effect will repeat. Open a new remediation ticket and, before any further restart, capture the live backend process's console output at the exact moment interactive login is triggered (not currently captured to any persistent log file — `backend/backend.log` only logs the startup banner, not per-request activity) — this is the evidence this ticket lacked.
 
 ## Out Of Scope
 
-- `NETWORK-MANAGEMENT-001` module — not touched.
+- `NETWORK-MANAGEMENT-001` module — not touched, remained paused throughout.
 - Any file or code under `D:\Antigravity - Project\KHHH - Antigravity\` — a different project, outside this repository's workspace.
 - Reopening `AUTO-IMPORT-010` or `F13-DATA-2098-CLEANUP-IMPL`.
-- Fixing the test-isolation defect (tests writing into real production folders) — flagged as a new, separately-authorized ticket candidate; too large and risky to fix inside this emergency response.
-- Any fix for Symptom B — no root cause with reproduction was established.
-- Business rules, SSOT, product behavior.
+- The test-isolation defect was fixed under the separate follow-up ticket `AUTO-IMPORT-012` (`COMPLETED / TECHNICAL PASS`), not inside this ticket's own scope.
+- No code fix for Symptom B — recovered via server restart, not via a technical change; see closure disposition above.
+- Business rules, SSOT, product behavior — not touched.
 
 ## Validation Requirements
 
@@ -118,13 +125,14 @@ No root cause was established with reproduction. Per instruction, no code change
 
 ## Completion And Handoff
 
-Symptom A: fixed, tested, reproducible proof provided. Symptom B: discovery only, explicitly blocked on Product Owner/live-runtime data per instruction.
+- Symptom A: fixed, tested, reproducible proof provided (`AUTO-IMPORT-011`).
+- Test-isolation defect: fixed and verified under the follow-up ticket `AUTO-IMPORT-012`, `COMPLETED / TECHNICAL PASS`.
+- Symptom B: recovered after a Product Owner-performed server restart. Both HUE and TCT opened, authenticated, and imported successfully. No technical root cause was determined and no code fix was applied — the restart's effect on the failure is plausible but not proven.
 
-This ticket does not close as fully `PO PASS` — Symptom B remains open. Recorded state: `SYMPTOM A FIXED / SYMPTOM B BLOCKED ON PO`.
+Product Owner confirmed the runtime result directly. This ticket closes: `COMPLETED / PO RUNTIME PASS / CLOSED`.
 
-Two follow-up items require explicit Product Owner/CTO decision before any further action:
+**Standing instruction if Symptom B recurs**: do not assume a restart will resolve it again. Open a new remediation ticket, and before performing any restart, capture the live backend process's console output at the exact moment interactive login is triggered — this is the missing evidence that prevented root-causing it this time.
 
-1. Authorize a bounded ticket to isolate test file-system paths (`BASE_INCOMING`/`BASE_PROCESSED`) from production `Data DKCL` folders, so running the test suite can never again write into live data.
-2. Decide whether to keep or remove the now-orphaned physical file `Data DKCL/F1.3/Processed/HUE/F1.3-2098.02.18.xlsx` (its content is preserved separately at `backend/incident_evidence/F1.3-2098.02.18.xlsx`, captured before this ticket).
+Remaining open item, still requiring Product Owner/CTO decision: disposition of the now-orphaned physical file `Data DKCL/F1.3/Processed/HUE/F1.3-2098.02.18.xlsx` (its content is preserved separately at `backend/incident_evidence/F1.3-2098.02.18.xlsx`, captured before this ticket).
 
-Do not activate any next ticket beyond what Product Owner explicitly authorizes.
+`NETWORK-MANAGEMENT-001` remains `PAUSED`, unaffected by this closure. Do not activate any next ticket beyond what Product Owner explicitly authorizes.

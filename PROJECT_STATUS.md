@@ -16,14 +16,14 @@ Quy tắc cập nhật:
 
 ## Current Phase
 
-- `AUTO-IMPORT-011 Emergency Remediation`
+- `Awaiting Product Owner Direction`
 - `QIS V2`
-- `Status: SYMPTOM A FIXED / TEST ISOLATION FIXED (AUTO-IMPORT-012 CLOSED) / SYMPTOM B BLOCKED ON PO`
+- `Status: NO ACTIVE TICKET`
 
 ## Current Ticket
 
-- `AUTO-IMPORT-011`
-- `Status: Emergency ticket, 2026-08-05, acknowledged by Product Owner at commit d8771174. Symptom A (recurring 2098-dated file import bypassing future-date validation) root-caused, fixed, and verified. Follow-up AUTO-IMPORT-012 (2026-08-05, COMPLETED / TECHNICAL PASS) fixed the confirmed test-isolation defect: importPipeline.js now guards NODE_ENV=test the same way db.js already did; all four Import test files that touch the database or file system run in an isolated sandbox; each run twice consecutively, zero measurable impact on production (fact_f13 stable at 663,126 rows throughout). Symptom B (HUE/TCT browser window not appearing) remains discovery-only, not reproduced, blocked on Product Owner/live-runtime data. NETWORK-MANAGEMENT-001 (previous Current Ticket) is paused, not abandoned, Phase 1 remains COMPLETED / TECHNICAL PASS, unaffected.`
+- `None`
+- `Status: AUTO-IMPORT-011 closed 2026-08-05 as COMPLETED / PO RUNTIME PASS. After a Product Owner-performed server restart, HUE and TCT browser login opened, authenticated, and imported successfully for both sources. Symptom B recovered as a runtime outcome only; no technical root cause determined, no code fix applied — if it recurs, capture live backend console output before any restart. AUTO-IMPORT-012 (test-isolation fix) remains COMPLETED / TECHNICAL PASS, unaffected. NETWORK-MANAGEMENT-001 remains PAUSED per explicit Product Owner instruction this round. Repository awaits Product Owner direction for the next scope.`
 
 ## Completed Tickets
 
@@ -61,7 +61,8 @@ Quy tắc cập nhật:
 - `AUTO-IMPORT-010 HUE Browser Broker / Browser Launch Recovery` - PO RUNTIME PASS / COMPLETED / CLOSED; HUE first-click browser-open residual recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING
 - `F13-UI-AUDIT-PLAN F1.3 UI Audit and Standardization Planning` - PO PASS PHASE 1-4 / COMPLETED / CLOSED (2026-08-03); latest accepted runtime implementation commit `cdb9eab246415a3835210dd70329996e6ef6521c`
 - `F13-STANDARDIZATION-001 — Tuyến Ranking (Route Ranking) delta` - PO PASS / COMPLETED / CLOSED (2026-08-04); latest PO-tested implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`; covers only Tuyến Ranking and its violation drill-down — the program's Phase 0-4 remain otherwise unclosed
-- `AUTO-IMPORT-012 Emergency follow-up — isolate Import test suites from production data` - COMPLETED / TECHNICAL PASS / CLOSED (2026-08-05); fixed the AUTO-IMPORT-011-confirmed test-isolation defect; no PO UI check applicable (test infrastructure only); AUTO-IMPORT-011 remains active as tracking ticket for Symptom B
+- `AUTO-IMPORT-012 Emergency follow-up — isolate Import test suites from production data` - COMPLETED / TECHNICAL PASS / CLOSED (2026-08-05); fixed the AUTO-IMPORT-011-confirmed test-isolation defect; no PO UI check applicable (test infrastructure only)
+- `AUTO-IMPORT-011 Emergency — 2098 future-date import recurrence and HUE/TCT browser-open failure` - COMPLETED / PO RUNTIME PASS / CLOSED (2026-08-05); Symptom A root-caused and fixed; Symptom B recovered via server restart, no technical root cause, no code fix — recurrence requires a new remediation ticket with live backend console capture before any restart
 
 ## Current Progress
 
@@ -119,7 +120,7 @@ Quy tắc cập nhật:
 ## Next Ticket
 
 - Current active ticket: `None`.
-- Next planned action: `Await explicit Product Owner direction. Next Phase Authorization is NONE.`
+- Next planned action: `Await explicit Product Owner direction, including whether to resume NETWORK-MANAGEMENT-001 (Phase 1 COMPLETED / TECHNICAL PASS, PAUSED). If the HUE/TCT browser-open failure recurs, open a new remediation ticket and capture live backend console output before any restart.`
 - Candidates only, not authorized tickets: `(1) formally start F13-STANDARDIZATION-001 Phase 1 (Chuẩn hóa cấu trúc F1.3); (2) reactivate deferred F13-SHIPMENT-001 (Shipment Performance Center), whose delta remains preserved in a git stash; (3) F13-SURFACE-CLEANUP-PLAN covering Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal; (4) Pareto product design later, distinguishing Pareto analysis from true RCA. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred. RESIDUAL-01 is remediated as of Phase 0 implementation commit e3ca2429 and is no longer an open candidate.`
 
 ## Notes
