@@ -199,21 +199,18 @@ Summary: the three modules were seeded with real data from the actual PO-supplie
 
 This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.
 
-## 24. Phase 2 Delivery Route Road-Network Remediation Closure
+## 25. Phase 2 Delivery Route Legend Remediation Closure
 
-- Status: `PHASE 2 DELIVERY ROUTE ROAD-NETWORK REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK`
+- Status: `PHASE 2 DELIVERY ROUTE LEGEND REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK`
 - Closed on: `2026-08-05`
-- Recorded PO Evaluation: `PO COMBINED VISUAL RECHECK PASS` confirmed for prior scope; PO Gate 2 closure paused pending visual recheck of new road routes.
-- Scope discipline: strictly NO browser tools used.
+- Scope discipline: strictly NO browser tools used. Pure source code, unit test, UI component, and frontend engineering.
 - Implemented:
-  1. OSRM Road Snapping Engine: Built `deliveryRoutingService.js` connecting to primary OSRM provider (`https://router.project-osrm.org/route/v1/driving/`) with fallback provider (`https://routing.openstreetmap.de/routed-car/route/v1/driving/`), matching reference architecture in `Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html`.
-  2. Chronological Waypoint Integrity: Preserves exact waypoint ordering by `Thời gian nhập phát` (no reordering or route optimization).
-  3. Duplicate Coordinate Grouping: Groups parcels sharing identical coordinates prior to route calculation.
-  4. Chunking Engine: Splits routes exceeding 25 waypoints into chunked requests with 1-point overlap to satisfy OSRM API limits.
-  5. Route Caching Engine: In-memory cache (`generateRouteCacheKey`, `clearRouteCache`) avoids redundant HTTP calls.
-  6. Visual Styling & Fallback: Solid blue lines (`#1D4ED8`, weight 4, opacity 0.9) for road-snapped segments; dashed amber lines (`#F59E0B`, weight 4, opacity 0.85, dash 8, 8) for failed chunks with prominent visual warning overlay.
-  7. Non-Regression: Preserved Calendar Date Picker, shift filters, KPIs, markers, popups, and database invariants.
-- Verification: 39 backend tests pass, 16 frontend remediation tests pass, oxlint 0 errors/warnings, Vite build succeeds.
-
+  1. Interactive Legend Box: Added collapsible/expandable overlay box ("CHÚ GIẢI BẢN ĐỒ") positioned at bottom-left of map canvas (`DeliveryRoutesMap.jsx`).
+  2. Marker Sequence Explanation: Explains `# number` inside marker = "Thứ tự nhập phát theo thời gian", START (#1), END (#N), and cluster badges.
+  3. Service Category Colors: Derived directly from `DELIVERY_LEGEND_ITEMS` and `DELIVERY_SERVICE_COLORS` in `mapStyles.js` without code drift.
+  4. Route Line Style Explanations: Explains Solid Blue Line = OSRM road network route; Dashed Amber Line = Fallback straight line segment.
+  5. Mandatory Quality Disclaimer Note: Displayed italic note *"Màu điểm chỉ thể hiện nhóm dịch vụ, không phản ánh đạt hoặc không đạt chất lượng."*
+  6. Non-Regression: Preserved OSRM road routing, Calendar Date Picker, shift filters, KPIs, markers, popups, and database invariants.
+- Verification: 39 backend tests pass, 20 frontend remediation tests pass, oxlint 0 errors/warnings, Vite build succeeds.
 
 

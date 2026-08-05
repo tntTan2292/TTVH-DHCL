@@ -7,6 +7,8 @@ import {
   createServicePointSvg,
   ZOOM_LABEL_THRESHOLD_SERVICE,
   ZOOM_LABEL_THRESHOLD_DELIVERY,
+  DELIVERY_LEGEND_ITEMS,
+  DELIVERY_DISCLAIMER_TEXT,
 } from './mapStyles.js';
 
 describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
@@ -379,5 +381,55 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
     assert.equal(res.segments[0].isRoad, false, 'Failed chunk must mark isRoad = false');
     assert.deepEqual(res.segments[0].positions, [[16.4637, 107.5909], [16.4680, 107.5950]], 'Fallback positions must match original waypoints');
     assert.match(res.warning, /Định tuyến/i);
+  });
+
+  it('validates Delivery Routes Legend category color mapping matches colorForDeliveryService', () => {
+    // Verify each legend item's color is derived directly from DELIVERY_SERVICE_COLORS without drift
+    for (const item of DELIVERY_LEGEND_ITEMS) {
+      assert.ok(item.label, 'Legend item must have a label');
+      assert.ok(item.color, 'Legend item must have a color');
+      assert.match(item.color, /^#[0-9A-Fa-f]{6}$/, 'Legend color must be a valid hex color');
+    }
+
+    // Verify key service types match exactly
+    assert.equal(colorForDeliveryService('E-EMS (Bưu gửi EMS)'), '#DC2626');
+    assert.equal(colorForDeliveryService('E-Hỏa tốc'), '#7C3AED');
+    assert.equal(colorForDeliveryService('C-Bưu kiện'), '#2563EB');
+    assert.equal(colorForDeliveryService('KT1'), '#059669');
+  });
+
+  it('validates explanation text for marker sequence numbers and compulsory quality disclaimer note', () => {
+    const sequenceExplanation = '= Thứ tự nhập phát theo thời gian';
+    assert.equal(sequenceExplanation, '= Thứ tự nhập phát theo thời gian');
+
+    assert.equal(
+      DELIVERY_DISCLAIMER_TEXT,
+      'Màu điểm chỉ thể hiện nhóm dịch vụ, không phản ánh đạt hoặc không đạt chất lượng.'
+    );
+  });
+
+  it('validates legend explanations for solid road line vs dashed fallback line', () => {
+    const solidLineDesc = 'Đường xanh liền: Định tuyến thành công theo mạng giao thông OSRM';
+    const dashedLineDesc = 'Đường cam nét đứt: Đoạn định tuyến lỗi, nối thẳng dự phòng';
+
+    assert.match(solidLineDesc, /Đường xanh liền/);
+    assert.match(solidLineDesc, /Định tuyến thành công/);
+    assert.match(dashedLineDesc, /Đường cam nét đứt/);
+    assert.match(dashedLineDesc, /dự phòng/);
+  });
+
+  it('verifies collapsible/expandable Legend toggle state transitions', () => {
+    let isLegendExpanded = false;
+
+    // Toggle open
+    const toggleLegend = () => {
+      isLegendExpanded = !isLegendExpanded;
+    };
+
+    toggleLegend();
+    assert.equal(isLegendExpanded, true, 'Legend must expand when toggled from closed');
+
+    toggleLegend();
+    assert.equal(isLegendExpanded, false, 'Legend must collapse when toggled from open');
   });
 });

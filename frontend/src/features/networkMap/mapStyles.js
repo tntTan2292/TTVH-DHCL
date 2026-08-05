@@ -72,6 +72,19 @@ export function colorForDeliveryService(serviceType) {
   return '#4B5563';
 }
 
+export const DELIVERY_LEGEND_ITEMS = [
+  { label: 'E-EMS / Bưu gửi EMS', color: DELIVERY_SERVICE_COLORS['E-EMS'] },
+  { label: 'E-Hỏa tốc', color: DELIVERY_SERVICE_COLORS['E-Hỏa tốc'] },
+  { label: 'E-Báo Phát', color: DELIVERY_SERVICE_COLORS['E-Báo Phát'] },
+  { label: 'C-Bưu kiện', color: DELIVERY_SERVICE_COLORS['C-Bưu kiện'] },
+  { label: 'KT1 / KT1 C', color: DELIVERY_SERVICE_COLORS['KT1'] },
+  { label: 'R-Bưu phẩm bảo đảm', color: DELIVERY_SERVICE_COLORS['R-Bưu phẩm bảo đảm'] },
+  { label: 'Dịch vụ khác', color: '#4B5563' },
+];
+
+export const DELIVERY_DISCLAIMER_TEXT =
+  'Màu điểm chỉ thể hiện nhóm dịch vụ, không phản ánh đạt hoặc không đạt chất lượng.';
+
 // Custom SVG Icons for Service Points matching reference HTML design & status indication
 export function createServicePointSvg(loaiDiem, size = 26, trangThai = 'Hoạt động') {
   const normLoai = normalizeLoaiDiem(loaiDiem);

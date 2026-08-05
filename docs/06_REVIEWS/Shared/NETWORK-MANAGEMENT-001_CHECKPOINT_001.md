@@ -25,15 +25,15 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 2 DELIVERY ROUTE ROAD-NETWORK REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK` (as of `2026-08-05`) |
-| Recorded PO Evaluation | `PO COMBINED VISUAL RECHECK PASS` (prior scope); Gate 2 closure paused for new route visual check |
-| Current Phase | `Phase 2 Delivery Route Road-Network Remediation`, implemented and verified without Browser tools |
+| Program State | `PHASE 2 DELIVERY ROUTE LEGEND REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK` (as of `2026-08-05`) |
+| Recorded PO Evaluation | `PO COMBINED VISUAL RECHECK PASS` (prior scope); Gate 2 closure paused for route visual check |
+| Current Phase | `Phase 2 Delivery Route Legend Remediation`, implemented and verified without Browser tools |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
 | Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13, 14 & 15 |
 | Phase 3 (Import) | `PLANNED / NOT ACTIVE` |
 | Phase 4 (Nghiệm thu) | `PLANNED / NOT ACTIVE` |
 | PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: Ready for route visual recheck.` |
-| Next State | `PHASE 2 DELIVERY ROUTE ROAD-NETWORK REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK` |
+| Next State | `PHASE 2 DELIVERY ROUTE LEGEND REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK` |
 
 ## 3. Baseline
 

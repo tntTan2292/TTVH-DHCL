@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { ChevronUp, ChevronDown, Info } from 'lucide-react';
 import {
   HUE_MAP_CENTER,
   HUE_MAP_DEFAULT_ZOOM,
@@ -9,6 +10,8 @@ import {
   colorForDeliveryService,
   OSM_TILE_URL,
   OSM_ATTRIBUTION,
+  DELIVERY_LEGEND_ITEMS,
+  DELIVERY_DISCLAIMER_TEXT,
 } from './mapStyles';
 import { fetchDeliveryRoadRoute } from './deliveryRoutingService';
 
@@ -28,6 +31,7 @@ export default function DeliveryRoutesMap({ points }) {
   const [currentZoom, setCurrentZoom] = useState(HUE_MAP_DEFAULT_ZOOM);
   const [routeResult, setRouteResult] = useState({ segments: [], hasFallback: false, warning: null });
   const [routingLoading, setRoutingLoading] = useState(false);
+  const [isLegendExpanded, setIsLegendExpanded] = useState(false);
 
   const showLabels = currentZoom >= ZOOM_LABEL_THRESHOLD_DELIVERY;
 
@@ -258,6 +262,97 @@ export default function DeliveryRoutesMap({ points }) {
       <div className="absolute top-2 right-2 z-[1000] bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm rounded-lg px-2.5 py-1 text-xs text-gray-700 font-medium flex items-center gap-1.5">
         {routingLoading && <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />}
         <span>Zoom: {currentZoom} {showLabels ? '• Hiển thị mã bưu gửi' : '• Zoom ≥ 14 để hiện chi tiết'}</span>
+      </div>
+
+      {/* Interactive Collapsible Legend Box Overlay */}
+      <div className="absolute bottom-3 left-3 z-[1000]">
+        {!isLegendExpanded ? (
+          <button
+            onClick={() => setIsLegendExpanded(true)}
+            className="bg-white/95 backdrop-blur border border-gray-300 shadow-md rounded-lg px-3 py-1.5 text-xs font-bold text-gray-800 hover:bg-blue-50 hover:text-blue-900 flex items-center gap-1.5 transition-all"
+            data-testid="delivery-legend-toggle"
+          >
+            <span>🗺️ CHÚ GIẢI BẢN ĐỒ</span>
+            <ChevronUp size={14} className="text-gray-500" />
+          </button>
+        ) : (
+          <div
+            className="bg-white/95 backdrop-blur-md border border-gray-300 shadow-xl rounded-xl p-3.5 text-xs text-gray-800 max-w-xs sm:max-w-sm w-full space-y-3 transition-all max-h-[60vh] overflow-y-auto"
+            data-testid="delivery-legend-box"
+          >
+            {/* Header with Collapse Button */}
+            <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+              <div className="font-bold text-gray-900 flex items-center gap-1.5 text-xs">
+                <span>🗺️ CHÚ GIẢI BẢN ĐỒ</span>
+              </div>
+              <button
+                onClick={() => setIsLegendExpanded(false)}
+                className="text-gray-400 hover:text-gray-700 p-0.5 rounded-md hover:bg-gray-100 transition-colors"
+                title="Thu gọn chú giải"
+                data-testid="delivery-legend-collapse"
+              >
+                <ChevronDown size={16} />
+              </button>
+            </div>
+
+            {/* 1. Marker Sequence & Badges */}
+            <div>
+              <div className="font-semibold text-gray-700 text-[11px] mb-1.5">Ký hiệu điểm & Thứ tự phát:</div>
+              <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-600 text-white font-extrabold text-[10px]">START (#1)</span>
+                  <span className="text-gray-600 text-[10px]">Đầu tiên</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="px-1.5 py-0.5 rounded bg-red-600 text-white font-extrabold text-[10px]">END (#N)</span>
+                  <span className="text-gray-600 text-[10px]">Cuối cùng</span>
+                </div>
+                <div className="flex items-center gap-1.5 col-span-2">
+                  <span className="px-1.5 py-0.5 rounded bg-orange-600 text-white font-extrabold text-[10px]">#1-#3 (2 BG)</span>
+                  <span className="text-gray-600 text-[10px]">Gộp vị trí &gt; 1 bưu gửi</span>
+                </div>
+                <div className="flex items-center gap-1.5 col-span-2 text-gray-700 bg-blue-50/70 p-1.5 rounded-lg border border-blue-100">
+                  <span className="font-bold text-blue-900 text-[11px]"># số bên trong marker</span>
+                  <span className="text-[10px] text-blue-800">= Thứ tự nhập phát theo thời gian</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Delivery Service Categories */}
+            <div>
+              <div className="font-semibold text-gray-700 text-[11px] mb-1.5">Nhóm dịch vụ (Màu điểm):</div>
+              <div className="grid grid-cols-2 gap-1 text-[10px]">
+                {DELIVERY_LEGEND_ITEMS.map(({ label, color }) => (
+                  <div key={label} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: color }} />
+                    <span className="truncate text-gray-700" title={label}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Route Line Styles */}
+            <div>
+              <div className="font-semibold text-gray-700 text-[11px] mb-1.5">Đường hành trình:</div>
+              <div className="space-y-1.5 text-[10px]">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-1 bg-blue-700 rounded-full shrink-0" />
+                  <span><b>Đường xanh liền:</b> Định tuyến thành công theo mạng giao thông OSRM</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-0 border-t-2 border-dashed border-amber-500 shrink-0" />
+                  <span><b>Đường cam nét đứt:</b> Đoạn định tuyến lỗi, nối thẳng dự phòng</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Mandatory Disclaimer Note */}
+            <div className="pt-2 border-t border-gray-200 text-[10px] text-gray-600 italic bg-amber-50/60 p-2 rounded-lg border border-amber-100 flex items-start gap-1">
+              <Info size={13} className="text-amber-700 shrink-0 mt-0.5" />
+              <span>{DELIVERY_DISCLAIMER_TEXT}</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
