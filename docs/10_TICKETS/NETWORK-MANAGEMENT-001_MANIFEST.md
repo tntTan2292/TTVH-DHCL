@@ -199,18 +199,15 @@ Summary: the three modules were seeded with real data from the actual PO-supplie
 
 This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.
 
-## 25. Phase 2 Delivery Route Legend Remediation Closure
+## 26. Phase 2 Governance Closure (PO Gate 2 PASS)
 
-- Status: `PHASE 2 DELIVERY ROUTE LEGEND REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK`
+- Status: `PHASE 2 COMPLETED / PO PASS / CLOSED`
 - Closed on: `2026-08-05`
-- Scope discipline: strictly NO browser tools used. Pure source code, unit test, UI component, and frontend engineering.
-- Implemented:
-  1. Interactive Legend Box: Added collapsible/expandable overlay box ("CHÚ GIẢI BẢN ĐỒ") positioned at bottom-left of map canvas (`DeliveryRoutesMap.jsx`).
-  2. Marker Sequence Explanation: Explains `# number` inside marker = "Thứ tự nhập phát theo thời gian", START (#1), END (#N), and cluster badges.
-  3. Service Category Colors: Derived directly from `DELIVERY_LEGEND_ITEMS` and `DELIVERY_SERVICE_COLORS` in `mapStyles.js` without code drift.
-  4. Route Line Style Explanations: Explains Solid Blue Line = OSRM road network route; Dashed Amber Line = Fallback straight line segment.
-  5. Mandatory Quality Disclaimer Note: Displayed italic note *"Màu điểm chỉ thể hiện nhóm dịch vụ, không phản ánh đạt hoặc không đạt chất lượng."*
-  6. Non-Regression: Preserved OSRM road routing, Calendar Date Picker, shift filters, KPIs, markers, popups, and database invariants.
-- Verification: 39 backend tests pass, 20 frontend remediation tests pass, oxlint 0 errors/warnings, Vite build succeeds.
-
-
+- PO Evaluation Result: `PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED` officially confirmed for all 3 map screens:
+  1. Mạng điểm phục vụ (Service Points Map)
+  2. Sơ đồ ĐTC2 (Level 2 Routes Map)
+  3. Sơ đồ tuyến phát (Delivery Routes Map with Calendar Date Picker, OSRM road network routing, and interactive Legend Box)
+- Gate Closure: `PO Gate 2: PASS (Product Owner, 2026-08-05)`
+- Authority Chain Inspection: Phase 3 (Import) is `PLANNED / NOT ACTIVE` and is NOT pre-authorized without explicit Product Owner directive.
+- Next State: `PHASE 2 CLOSED / AWAITING PO DIRECTION FOR PHASE 3`
+- Scope discipline: Governance-only update. Zero product code, database schema, parser, UI component, or routing logic modified. Preserved 02 stashes (`stash@{0}` and `stash@{1}`) intact.

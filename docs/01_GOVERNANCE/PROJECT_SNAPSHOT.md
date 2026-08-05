@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `NETWORK-MANAGEMENT-001 Phase 2 — Delivery Route Legend Remediation` |
-| Current Ticket | `NETWORK-MANAGEMENT-001` |
-| Next Ticket | `None beyond NETWORK-MANAGEMENT-001. Phase 2 Delivery Route Legend Remediation is implemented; PO Gate 2 route visual recheck is the next authorized action.` |
-| Last PO Status | `PO COMBINED VISUAL RECHECK PASS (prior scope); PO Gate 2 closure paused pending visual recheck of new road network routes & legend on Sơ đồ tuyến phát.` |
+| Current Phase | `NETWORK-MANAGEMENT-001 Phase 2 — Ba bản đồ, COMPLETED / PO PASS / CLOSED` |
+| Current Ticket | `NETWORK-MANAGEMENT-001 (Phase 2 Closed)` |
+| Next Ticket | `None. Phase 2 (Ba bản đồ) is COMPLETED / PO PASS / CLOSED. PO Gate 2 is PASS. Awaiting Product Owner direction for Phase 3 (Import).` |
+| Last PO Status | `PO GATE 2 PASS (2026-08-05): Product Owner visually rechecked and officially confirmed PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED across all 3 map screens (Mạng điểm phục vụ, Sơ đồ ĐTC2, Sơ đồ tuyến phát with Calendar Date Picker, OSRM road routes, and interactive Legend Box). Phase 2 is COMPLETED / PO PASS / CLOSED.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` (Section 25: Delivery Route Legend Remediation Closure) |
-| Current Checkpoint | `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` (Section 15: Delivery Route Legend Remediation evidence) |
-| Current State | `PHASE 2 DELIVERY ROUTE LEGEND REMEDIATION COMPLETED / READY FOR PO ROUTE VISUAL RECHECK` |
-| Technical Status | `NETWORK-MANAGEMENT-001 Phase 2 Delivery Route Legend Remediation implemented and validated: collapsible 'CHÚ GIẢI BẢN ĐỒ' overlay box with marker sequence explanations, code-aligned service colors, route line styling, and compulsory quality disclaimer note. 39 backend tests pass, 20 frontend tests pass, oxlint clean, vite build succeeds.` |
-| Runtime Status | `NETWORK-MANAGEMENT-001 Phase 2: Legend box and OSRM road snapping active on Sơ đồ tuyến phát map.` |
-| PO UI Check Required | `Yes — PO Gate 2 requires Product Owner visual recheck of new road network routes and legend box on Sơ đồ tuyến phát.` |
-| PO Product Status | `NETWORK-MANAGEMENT-001 Phase 2 Delivery Route Legend Remediation: technically complete, ready for PO visual recheck.` |
-| Last Closed Ticket | `AUTO-IMPORT-011 — Emergency Import remediation, COMPLETED / PO RUNTIME PASS / CLOSED, 2026-08-05` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` |
-| Last Reviewed Phase | `NETWORK-MANAGEMENT-001 Phase 2: Product Owner PO COMBINED VISUAL RECHECK PASS (prior scope)` |
-| Last Reviewed Implementation Commit | `813f647d` |
-| Phase Review Status | `NETWORK-MANAGEMENT-001 Phase 1: COMPLETED / TECHNICAL PASS, PO Gate 1 PASS. Phase 2 (Ba bản đồ): LEGEND REMEDIATION COMPLETED, awaiting PO Gate 2 route visual recheck. Phases 3-4: PLANNED / NOT ACTIVE.` |
-| Next Phase Authorization | `NETWORK-MANAGEMENT-001 Phase 3 (Import) and Phase 4 (Nghiệm thu) each require their own explicit Product Owner authorization before starting; none is self-activated by Phase 2's technical completion.` |
+| Current Manifest | `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` (Section 26: Phase 2 PO Gate 2 PASS closure record) |
+| Current Checkpoint | `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` (Section 16: Phase 2 PO Gate 2 PASS closure record) |
+| Current State | `PHASE 2 CLOSED / AWAITING PO DIRECTION FOR PHASE 3` |
+| Technical Status | `NETWORK-MANAGEMENT-001 Phase 2 (Ba bản đồ) implemented and validated: real data seeded from 3 PO-supplied sources, 3 Leaflet map screens with Calendar Date Picker, OSRM road network routing, and Legend Box. 39 backend tests pass, 20 frontend tests pass, oxlint clean, vite build succeeds. Full evidence: checkpoint Section 16.` |
+| Runtime Status | `NETWORK-MANAGEMENT-001 Phase 2: PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED confirmed by Product Owner for all 3 map screens.` |
+| PO UI Check Required | `No — PO Gate 2 passed by Product Owner on 2026-08-05.` |
+| PO Product Status | `NETWORK-MANAGEMENT-001 Phase 2: COMPLETED / PO PASS / CLOSED.` |
+| Last Closed Ticket | `NETWORK-MANAGEMENT-001 (Phase 2)` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` |
+| Last Reviewed Phase | `NETWORK-MANAGEMENT-001 Phase 2 (Ba bản đồ): Product Owner PO Gate 2 PASS` |
+| Last Reviewed Implementation Commit | `36da1fcd` |
+| Phase Review Status | `NETWORK-MANAGEMENT-001 Phase 1: COMPLETED / TECHNICAL PASS, PO Gate 1 PASS. Phase 2 (Ba bản đồ): COMPLETED / PO PASS / CLOSED, PO Gate 2 PASS. Phases 3-4: PLANNED / NOT ACTIVE.` |
+| Next Phase Authorization | `NETWORK-MANAGEMENT-001 Phase 3 (Import) and Phase 4 (Nghiệm thu) each require their own explicit Product Owner authorization before starting; none is self-activated by Phase 2's completion. Awaiting Product Owner direction for Phase 3.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-05` |
 
