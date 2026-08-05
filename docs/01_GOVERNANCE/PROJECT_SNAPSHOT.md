@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `NETWORK-MANAGEMENT-001 Phase 2 — Ba bản đồ, COMPLETED / TECHNICAL PASS` |
-| Current Ticket | `NETWORK-MANAGEMENT-001` |
-| Next Ticket | `None beyond NETWORK-MANAGEMENT-001. Phase 2 (Ba bản đồ) is implemented and technically validated; PO Gate 2 confirmation and/or explicit authorization to start Phase 3 (Import) is the next authorized action within this ticket. F13-STANDARDIZATION-001 and F13-SHIPMENT-001 (stash@{0}) remain unaffected next-direction candidates, unauthorized.` |
-| Last PO Status | `PO GATE 1 PASS (2026-08-05): Product Owner reviewed and passed NETWORK-MANAGEMENT-001 Phase 1 (Nền tảng), then explicitly authorized Phase 2 (Ba bản đồ) implementation. Phase 2 is now technically complete and validated; no PO UI check has been performed yet (PO Gate 2 not yet requested). Separately, AUTO-IMPORT-011 CLOSED 2026-08-05: COMPLETED / PO RUNTIME PASS (Symptom A fixed; Symptom B recovered via server restart, no code fix). AUTO-IMPORT-012 (test-isolation fix) remains COMPLETED / TECHNICAL PASS. Both unaffected by and unrelated to NETWORK-MANAGEMENT-001.` |
+| Current Phase | `NETWORK-MANAGEMENT-001 Phase 2 — Ba bản đồ, COMPLETED / PO PASS / CLOSED` |
+| Current Ticket | `NETWORK-MANAGEMENT-001 (Phase 2 Closed)` |
+| Next Ticket | `None. Phase 2 (Ba bản đồ) is COMPLETED / PO PASS / CLOSED. PO Gate 2 is PASS. Awaiting Product Owner direction for Phase 3 (Import).` |
+| Last PO Status | `PO GATE 2 PASS (2026-08-05): Product Owner visually rechecked and officially passed all 3 map screens (Mạng điểm phục vụ, Sơ đồ ĐTC2, Sơ đồ tuyến phát + Calendar Date Picker). Phase 2 is COMPLETED / PO PASS / CLOSED.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` (Section 17: Phase 2 closure record) |
-| Current Checkpoint | `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` (Section 13: Phase 2 implementation evidence) |
-| Current State | `PHASE 2 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 2` |
-| Technical Status | `NETWORK-MANAGEMENT-001 Phase 2 (Ba bản đồ) implemented and technically validated: real data seeded from the 3 PO-supplied Excel/HTML sources (151 điểm; 28 hành trình/148 lượt dừng/47 điểm/1,435 km; 143,475 điểm tuyến phát — small documented discrepancy vs. the 143,467 locked baseline), 3 Leaflet map screens with cascading Ngày→BCVH→Bưu tá filters for tuyến phát, data/display layers separated for Phase 3. Backend 31/31 tests pass, frontend 13/13 tests pass, oxlint clean, vite build succeeds, real-browser runtime-verified as admin. Full evidence: checkpoint Section 13. AUTO-IMPORT-011/012 remain CLOSED, unrelated.` |
-| Runtime Status | `NETWORK-MANAGEMENT-001 Phase 2: runtime-verified in a real browser as admin — all 3 maps render real seeded data, unauthenticated access correctly redirects to login. Viewer role verified via the exact production requireAuth/requireRole middleware in automated tests (real viewer password is a one-way hash, not recoverable for a live browser session — documented residual). No Antigravity/PO UI check performed yet.` |
-| PO UI Check Required | `Yes — PO Gate 2 requires a Product Owner UI check on the three map screens now that Phase 2 has real, user-facing data. Not yet performed.` |
-| PO Product Status | `NETWORK-MANAGEMENT-001 Phase 2: technically complete, not yet PO-reviewed (PO Gate 2 not yet requested/granted).` |
-| Last Closed Ticket | `AUTO-IMPORT-011 — Emergency Import remediation, COMPLETED / PO RUNTIME PASS / CLOSED, 2026-08-05 (unrelated to the active NETWORK-MANAGEMENT-001 ticket)` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` |
-| Last Reviewed Phase | `NETWORK-MANAGEMENT-001 Phase 1 (Nền tảng): Product Owner PO Gate 1 PASS` |
-| Last Reviewed Implementation Commit | `50c08daf805a8d1fa80f3876e86c59c85481e994` (Phase 1); Phase 2 commit recorded at Git handoff once committed |
-| Phase Review Status | `NETWORK-MANAGEMENT-001 Phase 1: COMPLETED / TECHNICAL PASS, PO Gate 1 PASS. Phase 2 (Ba bản đồ): COMPLETED / TECHNICAL PASS, awaiting PO Gate 2. Phases 3-4: PLANNED / NOT ACTIVE. AUTO-IMPORT-011 CLOSED / PO RUNTIME PASS; AUTO-IMPORT-012 CLOSED / TECHNICAL PASS — both unrelated.` |
-| Next Phase Authorization | `NETWORK-MANAGEMENT-001 Phase 3 (Import) and Phase 4 (Nghiệm thu) each require their own explicit Product Owner authorization before starting; none is self-activated by Phase 2's technical completion. PO Gates 3-4 require explicit Product Owner confirmation.` |
+| Current Manifest | `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` (Section 23: Phase 2 PO Gate 2 PASS closure record) |
+| Current Checkpoint | `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` (Section 15: Phase 2 PO Gate 2 PASS closure record) |
+| Current State | `PHASE 2 CLOSED / AWAITING PO DIRECTION FOR PHASE 3` |
+| Technical Status | `NETWORK-MANAGEMENT-001 Phase 2 (Ba bản đồ) implemented and validated: real data seeded from 3 PO-supplied sources, 3 Leaflet map screens with Calendar Date Picker, 39 backend tests pass, 12 frontend tests pass, oxlint clean, vite build succeeds. Full evidence: checkpoint Section 15.` |
+| Runtime Status | `NETWORK-MANAGEMENT-001 Phase 2: PO COMBINED VISUAL RECHECK PASS confirmed by Product Owner for all 3 map screens.` |
+| PO UI Check Required | `No — PO Gate 2 passed by Product Owner on 2026-08-05.` |
+| PO Product Status | `NETWORK-MANAGEMENT-001 Phase 2: COMPLETED / PO PASS / CLOSED.` |
+| Last Closed Ticket | `NETWORK-MANAGEMENT-001 (Phase 2)` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` |
+| Last Reviewed Phase | `NETWORK-MANAGEMENT-001 Phase 2 (Ba bản đồ): Product Owner PO Gate 2 PASS` |
+| Last Reviewed Implementation Commit | `813f647d` |
+| Phase Review Status | `NETWORK-MANAGEMENT-001 Phase 1: COMPLETED / TECHNICAL PASS, PO Gate 1 PASS. Phase 2 (Ba bản đồ): COMPLETED / PO PASS / CLOSED, PO Gate 2 PASS. Phases 3-4: PLANNED / NOT ACTIVE.` |
+| Next Phase Authorization | `NETWORK-MANAGEMENT-001 Phase 3 (Import) and Phase 4 (Nghiệm thu) each require their own explicit Product Owner authorization before starting; none is self-activated by Phase 2's completion. Awaiting Product Owner direction for Phase 3.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-05` |
 

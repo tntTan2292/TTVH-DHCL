@@ -199,23 +199,18 @@ Summary: the three modules were seeded with real data from the actual PO-supplie
 
 This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.
 
-## 22. Phase 2 Delivery Route Calendar Date Picker Remediation Closure
+## 23. Phase 2 Governance Closure (PO Gate 2 PASS)
 
-- Status: `PHASE 2 DELIVERY ROUTE CALENDAR DATE PICKER REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
+- Status: `PHASE 2 COMPLETED / PO PASS / CLOSED`
 - Closed on: `2026-08-05`
-- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated with Calendar Date Picker.
-- Scope discipline: strictly NO browser tools used. Pure source code, unit test, UI component, and frontend engineering.
-- Implemented:
-  1. Calendar Date Picker Component: Built reusable `CalendarDatePicker.jsx` featuring single input field with `CalendarDays` icon, `DD/MM/YYYY` display formatting, and a dropdown calendar popover.
-  2. Data Availability Rules: Only dates present in `ngay_nhap_phat` metadata (`dates` array) are enabled; dates without data are disabled (muted grayed-out text, non-clickable).
-  3. Visual Highlighting: Enabled dates feature distinct blue background/badge and dot indicators for immediate visual clarity.
-  4. Month & Year Navigation: Header controls allow smooth month/year browsing.
-  5. Clear & Reset Cascade: Changing date via calendar resets BCVH, Postman, Ca, and map points state, and reloads BCVH options for the new date.
-  6. Query Gate: Queries points ONLY when mandatory filters (`selectedDate`, `selectedBcvh`, `selectedPostman`) are selected.
-  7. Data Integrity: Preserved 143,475 points baseline, 39 records missing import time kept as NULL, shift rules unchanged, Mạng điểm phục vụ & Sơ đồ ĐTC2 untouched.
-- Verification: 39 backend unit tests pass, 12 frontend remediation unit tests pass, oxlint 0 errors/warnings, Vite build succeeds. Data invariants verified (151 service points, 28 routes / 148 stops / 47 points / 1435 km, 143,475 delivery points, `fact_f13` = 666,153 rows).
-
-
+- PO Evaluation Result: `PO COMBINED VISUAL RECHECK PASS` officially confirmed for all 3 map screens:
+  1. Mạng điểm phục vụ (Service Points Map)
+  2. Sơ đồ ĐTC2 (Level 2 Routes Map)
+  3. Sơ đồ tuyến phát (Delivery Routes Map with Calendar Date Picker)
+- Gate Closure: `PO Gate 2: PASS (Product Owner, 2026-08-05)`
+- Authority Chain Inspection: Phase 3 (Import) is `PLANNED / NOT ACTIVE` and is NOT pre-authorized without explicit Product Owner directive.
+- Next State: `PHASE 2 CLOSED / AWAITING PO DIRECTION FOR PHASE 3`
+- Scope discipline: Governance-only update. Zero product code, database schema, parser, or UI component modified. Preserved 02 stashes (`stash@{0}` and `stash@{1}`) intact.
 
 
 
