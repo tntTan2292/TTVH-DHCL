@@ -153,10 +153,27 @@ export default function DeliveryRoutesPage() {
       )}
 
       {pointsStatus === 'ready' && (
-        <>
-          <p className="text-sm text-gray-600 mb-2">{points.length} bưu gửi.</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-blue-50/80 border border-blue-200 rounded-xl p-3">
+              <div className="text-xs font-semibold text-blue-700">Tổng bưu gửi ca phát</div>
+              <div className="text-xl font-bold text-blue-900 mt-0.5">{points.length} <span className="text-xs font-normal">bưu gửi</span></div>
+            </div>
+            <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-3">
+              <div className="text-xs font-semibold text-emerald-700">Tổng tiền thu hộ (COD)</div>
+              <div className="text-xl font-bold text-emerald-900 mt-0.5">
+                {points.reduce((acc, curr) => acc + (Number(curr.tien_thu_ho) || 0), 0).toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+              </div>
+            </div>
+            <div className="bg-purple-50/80 border border-purple-200 rounded-xl p-3">
+              <div className="text-xs font-semibold text-purple-700">Khung giờ di chuyển</div>
+              <div className="text-sm font-bold text-purple-900 mt-1">
+                {points[0]?.status_time || '—'} ➔ {points[points.length - 1]?.status_time || '—'}
+              </div>
+            </div>
+          </div>
           <DeliveryRoutesMap points={points} />
-        </>
+        </div>
       )}
     </div>
   );

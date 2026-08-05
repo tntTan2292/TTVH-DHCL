@@ -25,14 +25,14 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 2 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 2` (as of `2026-08-05`) |
-| Current Phase | `PHASE 2 — Ba bản đồ`, implemented and technically validated; PO Gate 2 (Section 11 of the manifest) not yet reached |
+| Program State | `PHASE 2 UI/UX REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK` (as of `2026-08-05`) |
+| Recorded PO Evaluation | `PO UI FAIL / FUNCTIONAL PASS` |
+| Current Phase | `Phase 2 UI/UX Remediation`, implemented and verified without Browser tools |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
-| Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13 |
+| Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13 & 14 |
 | Phase 3 (Import) | `PLANNED / NOT ACTIVE` |
 | Phase 4 (Nghiệm thu) | `PLANNED / NOT ACTIVE` |
-| Phases Completed | `Phase 1 (technical), Phase 2 (technical)` — neither has a Product Owner PO Gate confirmation yet |
-| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: not yet requested.` |
+| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: Ready for visual recheck.` |
 
 ## 3. Baseline
 

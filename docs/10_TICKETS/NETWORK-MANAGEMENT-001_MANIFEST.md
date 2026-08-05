@@ -35,13 +35,14 @@ Activate a single four-phase program to bring three independent map-based screen
 
 ## 3. Current Status
 
-- Current state: `PHASE 2 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 2`, as of `2026-08-05`.
+- Current state: `PHASE 2 UI/UX REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`, as of `2026-08-05`.
+- Recorded PO evaluation: `PO UI FAIL / FUNCTIONAL PASS`.
 - Phase 1 (Nền tảng): `COMPLETED / TECHNICAL PASS`. PO Gate 1 `PASS` (Product Owner, `2026-08-05`).
-- Phase 2 (Ba bản đồ): implemented and technically validated (real data seeded from the 3 Excel/HTML sources, 3 Leaflet map screens, cascading tuyến-phát filters). See checkpoint Section 13 for full evidence. PO Gate 2 not yet requested/granted.
+- Phase 2 (Ba bản đồ): `FUNCTIONAL PASS`. UI/UX remediated per reference HTML comparison audit.
 - Phase 3 (Import): `PLANNED / NOT ACTIVE`.
 - Phase 4 (Nghiệm thu): `PLANNED / NOT ACTIVE`.
-- PO UI Check Required: `Yes` for Phase 2 (PO Gate 2 — the three map screens are now user-facing) — not yet performed; and again at Phase 3 (PO Gate 3) and Phase 4 (PO Gate 4).
-- PO Product Status: Phase 2 technically complete, not yet PO-reviewed.
+- PO UI Check Required: `Yes` for Phase 2 UI/UX Remediation (PO Gate 2 visual re-check).
+- PO Product Status: Phase 2 UI/UX Remediation completed, ready for PO visual recheck.
 
 ## 4. Required Reading
 
@@ -197,3 +198,13 @@ Full implementation evidence, source inventory, documented mapping decisions, an
 Summary: the three modules were seeded with real data from the actual PO-supplied sources — Mạng điểm phục vụ (151 điểm, 0 warnings, matches locked baseline exactly, from `Data QLML/Mang_diem_phuc_vu_kem_du_lieu_ban_do.xlsx`); Mạng đường thư cấp 2 (28 hành trình / 148 lượt dừng / 47 mã điểm / 1,435 km, 0 warnings, matches locked baseline exactly — route/stop geometry read from the reference HTML's `MAIL_ROUTES` array per the Product Owner's own instruction that Excel has no coordinates and HTML is the coordinate/geometry reference; the "TỔ CHỨC LẠI" proposal block in the new `2026.08. Mang DTC2.xlsx` was explicitly not used); Sơ đồ tuyến phát (143,475 điểm kept of 160,554 rows from `Data QLML/2026.07.01 - BatchFile Phat thang 06.2026.xlsb`, applying the same three exclusion categories the reference HTML's own stats already name — a small, reported-not-forced discrepancy against the locked 143,467 baseline and the HTML's own stated 143,463 is documented in the checkpoint for Product Owner awareness). All three screens now render as real Leaflet maps backed by the authenticated `/api/network-map` read API (data layer and Leaflet display layer kept strictly separate, so Phase 3 Import can replace the data source without rewriting any map component). Sơ đồ tuyến phát enforces the cascading Ngày→BCVH→Bưu tá selection at both API and UI — the points endpoint is never called, and no bulk/full-month data is ever loaded, until all three are chosen. Phase 1's `admin`/`viewer` read access and `admin`-only (still-disabled) Import gate are preserved unchanged. No Excel/HTML source file was modified (SHA-256-verified before and after); `Data QLML/` was never added to git. `fact_f13` confirmed unchanged (666,153 rows, the correct current baseline following the intervening, unrelated `AUTO-IMPORT-011` ticket) before and after. Both Phase 1 and Phase 2 schema migrations are now applied automatically on every backend startup, not manually on one machine.
 
 This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize, or imply authorization for Phase 3 (Import) or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 Import/Dashboard/Ranking code or any module outside this ticket's three named screens was modified.
+
+## 18. Phase 2 UI/UX Remediation Closure
+
+- Status: `PHASE 2 UI/UX REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`
+- Closed on: `2026-08-05`
+- Recorded state: `PO UI FAIL / FUNCTIONAL PASS` -> remediated.
+- Scope discipline: strictly NO browser tools used. Re-architected `frontend/src/features/networkMap/` components based on reference HTML comparison audit.
+- Implemented: unified color palette (`mapStyles.js`), custom SVG node icons (Star, Truck, Triangle, House, Hub), zoom-dependent code badges (zoom >= 13 for service points, zoom >= 14 for delivery points), stop sequence badges (1..N) and stop timetable drawer for Level 2 routes, delivery route summary KPIs.
+- Verification: 49 unit tests pass, oxlint clean, vite build succeeds. Data invariants verified: 151 service points, 28 routes / 148 stops / 47 points / 1435 km, `fact_f13` = 666,153 rows.
+
