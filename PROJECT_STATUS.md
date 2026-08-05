@@ -18,12 +18,12 @@ Quy tắc cập nhật:
 
 - `AUTO-IMPORT-011 Emergency Remediation`
 - `QIS V2`
-- `Status: SYMPTOM A FIXED / SYMPTOM B BLOCKED ON PO`
+- `Status: SYMPTOM A FIXED / TEST ISOLATION FIXED (AUTO-IMPORT-012 CLOSED) / SYMPTOM B BLOCKED ON PO`
 
 ## Current Ticket
 
 - `AUTO-IMPORT-011`
-- `Status: Emergency ticket, 2026-08-05. Symptom A (recurring 2098-dated file import bypassing future-date validation) root-caused, fixed, and verified with a previously-failing regression test now passing. A secondary test-isolation defect (tests writing into real production Data DKCL folders) was found and flagged for a separate follow-up ticket; self-inflicted DB pollution from this ticket's own validation run was found and cleaned up. Symptom B (HUE/TCT browser window not appearing) is discovery-only, not reproduced, blocked on Product Owner/live-runtime data. NETWORK-MANAGEMENT-001 (previous Current Ticket) is paused, not abandoned, Phase 1 remains COMPLETED / TECHNICAL PASS, unaffected.`
+- `Status: Emergency ticket, 2026-08-05, acknowledged by Product Owner at commit d8771174. Symptom A (recurring 2098-dated file import bypassing future-date validation) root-caused, fixed, and verified. Follow-up AUTO-IMPORT-012 (2026-08-05, COMPLETED / TECHNICAL PASS) fixed the confirmed test-isolation defect: importPipeline.js now guards NODE_ENV=test the same way db.js already did; all four Import test files that touch the database or file system run in an isolated sandbox; each run twice consecutively, zero measurable impact on production (fact_f13 stable at 663,126 rows throughout). Symptom B (HUE/TCT browser window not appearing) remains discovery-only, not reproduced, blocked on Product Owner/live-runtime data. NETWORK-MANAGEMENT-001 (previous Current Ticket) is paused, not abandoned, Phase 1 remains COMPLETED / TECHNICAL PASS, unaffected.`
 
 ## Completed Tickets
 
@@ -61,6 +61,7 @@ Quy tắc cập nhật:
 - `AUTO-IMPORT-010 HUE Browser Broker / Browser Launch Recovery` - PO RUNTIME PASS / COMPLETED / CLOSED; HUE first-click browser-open residual recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING
 - `F13-UI-AUDIT-PLAN F1.3 UI Audit and Standardization Planning` - PO PASS PHASE 1-4 / COMPLETED / CLOSED (2026-08-03); latest accepted runtime implementation commit `cdb9eab246415a3835210dd70329996e6ef6521c`
 - `F13-STANDARDIZATION-001 — Tuyến Ranking (Route Ranking) delta` - PO PASS / COMPLETED / CLOSED (2026-08-04); latest PO-tested implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`; covers only Tuyến Ranking and its violation drill-down — the program's Phase 0-4 remain otherwise unclosed
+- `AUTO-IMPORT-012 Emergency follow-up — isolate Import test suites from production data` - COMPLETED / TECHNICAL PASS / CLOSED (2026-08-05); fixed the AUTO-IMPORT-011-confirmed test-isolation defect; no PO UI check applicable (test infrastructure only); AUTO-IMPORT-011 remains active as tracking ticket for Symptom B
 
 ## Current Progress
 

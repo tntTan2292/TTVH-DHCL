@@ -4,24 +4,30 @@
  * Focused AUTO-IMPORT-002 tests for the Huế F1.3 acquisition engine.
  * Run: node test_dkclHueF13SyncService.js
  *
- * NOTE (AUTO-IMPORT-011): this suite writes fixture .xlsx files directly into
- * BASE_INCOMING/BASE_PROCESSED (real Data DKCL/F1.3 folders, not an isolated
- * test path — see importPipeline.js). Several fixtures use 2098-xx-xx dates.
- * validateFactF13BusinessDate (importProcessor.js) no longer exempts 2098
- * dates unconditionally, so this flag is required for those fixtures to pass
- * validation the same way they did before that fix. This flag does NOT fix
- * the underlying test-isolation defect (tests still write into real
- * production folders); that is tracked separately and is out of scope here.
+ * AUTO-IMPORT-012: this suite previously wrote fixture .xlsx files and rows
+ * directly into the real production Data DKCL/F1.3 folders and
+ * database.sqlite (confirmed twice under AUTO-IMPORT-011). It now runs
+ * against an isolated temp sandbox for both the database and the file
+ * system — see test/importTestSandbox.js. NODE_ENV=test plus
+ * QIS_TEST_DB_PATH/QIS_TEST_DATA_ROOT must be set before requiring
+ * ./src/config/db or ./src/services/importPipeline, since both resolve
+ * their paths once at require-time.
  */
 'use strict';
 
+const path = require('path');
+const { createSandbox, initSchema, destroySandbox } = require('./test/importTestSandbox');
+
+const sandbox = createSandbox('qis-hue-f13-sync-test-');
+process.env.NODE_ENV = 'test';
+process.env.QIS_TEST_DB_PATH = sandbox.dbPath;
+process.env.QIS_TEST_DATA_ROOT = sandbox.dataRoot;
 process.env.QIS_ALLOW_TEST_FUTURE_DATE = 'true';
 
 const fs = require('fs');
-const path = require('path');
 const xlsx = require('xlsx');
 
-const { run, get, all, db } = require('./src/config/db');
+const { run, get, all, db, dbPath, operationalDbPath } = require('./src/config/db');
 const { COLUMN_MAPPING } = require('./src/services/excelParser');
 const {
     DkclHueF13SyncService,
@@ -59,6 +65,14 @@ function assert(label, condition, detail = '') {
         console.error(`  FAIL: ${label}${detail ? ' - ' + detail : ''}`);
         failed++;
     }
+}
+
+async function initializeSandbox() {
+    assert('NODE_ENV=test is active before db.js/importPipeline.js load', process.env.NODE_ENV === 'test');
+    assert('test DB path is an isolated temp sqlite file', dbPath === sandbox.dbPath && dbPath.startsWith(sandbox.root) && dbPath.endsWith('.sqlite'), dbPath);
+    assert('test DB path does not resolve to operational database.sqlite', dbPath !== operationalDbPath);
+    assert('BASE_INCOMING resolves inside the isolated sandbox, not production Data DKCL', BASE_INCOMING.startsWith(sandbox.root), BASE_INCOMING);
+    await initSchema(db);
 }
 
 function sleep(ms) {
@@ -1071,8 +1085,13 @@ async function runTests() {
     if (failed > 0) process.exit(1);
 }
 
-runTests().catch((error) => {
+(async () => {
+    await initializeSandbox();
+    await runTests();
+})().catch((error) => {
     console.error('FATAL TEST ERROR:', error);
     db.close();
     process.exit(1);
+}).finally(() => {
+    destroySandbox(sandbox);
 });

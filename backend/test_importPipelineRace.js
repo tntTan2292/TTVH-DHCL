@@ -13,11 +13,21 @@ const sqlite3 = require('sqlite3').verbose();
 const xlsx = require('xlsx');
 
 const operationalDbPath = path.resolve(__dirname, 'src/db/database.sqlite');
+const operationalDataRoot = path.resolve(__dirname, '..', 'Data DKCL', 'F1.3');
 const testDbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qis-import-pipeline-race-'));
 const testDbPath = path.join(testDbDir, `database-${process.pid}-${Date.now()}.sqlite`);
+const testDataRoot = path.join(testDbDir, 'Data-DKCL-F1.3');
+// AUTO-IMPORT-012: this suite already isolated its database; it also reads
+// BASE_INCOMING/BASE_PROCESSED/etc from importPipeline.js, which previously
+// always resolved to the real production Data DKCL/F1.3 tree regardless of
+// NODE_ENV. Isolate the file-system side the same way, in the same sandbox.
+for (const sub of ['Incoming', 'Processing', 'Processed', 'Error', 'Quarantine']) {
+    fs.mkdirSync(path.join(testDataRoot, sub, 'HUE'), { recursive: true });
+}
 
 process.env.NODE_ENV = 'test';
 process.env.QIS_TEST_DB_PATH = testDbPath;
+process.env.QIS_TEST_DATA_ROOT = testDataRoot;
 
 const { run, get, all, db, dbPath, operationalDbPath: configuredOperationalDbPath } = require('./src/config/db');
 const { COLUMN_MAPPING, parseF13Excel } = require('./src/services/excelParser');
@@ -127,6 +137,7 @@ async function initializeTestDb() {
     assert('NODE_ENV=test is active before db.js loads', process.env.NODE_ENV === 'test');
     assert('test DB path is unique OS temp sqlite', dbPath === testDbPath && dbPath.startsWith(testDbDir) && dbPath.endsWith('.sqlite'), dbPath);
     assert('test DB path does not resolve to operational database.sqlite', dbPath !== configuredOperationalDbPath && configuredOperationalDbPath === operationalDbPath);
+    assert('BASE_INCOMING resolves inside the isolated sandbox, not production Data DKCL', BASE_INCOMING.startsWith(testDbDir) && BASE_INCOMING !== path.join(operationalDataRoot, 'Incoming'), BASE_INCOMING);
     await execSql(fs.readFileSync(SCHEMA_PATH, 'utf8'));
 }
 

@@ -1,15 +1,21 @@
 /**
  * test_importProcessor.js — Task 2.2 Integration Test
  *
- * Tests importParsedData() against the REAL database using a test-only date '2000-01-01'.
- * All test data is cleaned up after the suite.
+ * Tests importParsedData() against an isolated temp SQLite database (never
+ * the operational database.sqlite — see AUTO-IMPORT-012 / test/importTestSandbox.js).
  *
  * Run: node test_importProcessor.js
  */
 'use strict';
 
+const { createSandbox, initSchema } = require('./test/importTestSandbox');
+
+const sandbox = createSandbox('qis-import-processor-test-');
+process.env.NODE_ENV = 'test';
+process.env.QIS_TEST_DB_PATH = sandbox.dbPath;
+
 const xlsx = require('xlsx');
-const { run, all, get } = require('./src/config/db');
+const { run, all, get, db, dbPath, operationalDbPath } = require('./src/config/db');
 const { parseF13Excel, DB_COLUMNS }   = require('./src/services/excelParser');
 const { importParsedData }            = require('./src/services/importProcessor');
 
@@ -73,6 +79,10 @@ async function cleanup() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function runTests() {
+    assert('NODE_ENV=test is active before db.js loads', process.env.NODE_ENV === 'test');
+    assert('test DB path is an isolated temp sqlite file', dbPath === sandbox.dbPath && dbPath.startsWith(sandbox.root), dbPath);
+    assert('test DB path does not resolve to operational database.sqlite', dbPath !== operationalDbPath);
+    await initSchema(db);
 
     // Ensure clean state
     await cleanup();

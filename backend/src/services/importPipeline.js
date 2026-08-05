@@ -7,11 +7,31 @@ const { extractDateFromFilename, parseF13Excel } = require('./excelParser');
 const { parseF13NationalExcel } = require('./nationalExcelParser');
 const { importParsedData, importNationalParsedData } = require('./importProcessor');
 
-const BASE_INCOMING = path.resolve(process.cwd(), '../Data DKCL/F1.3/Incoming');
-const BASE_PROCESSING = path.resolve(process.cwd(), '../Data DKCL/F1.3/Processing');
-const BASE_PROCESSED = path.resolve(process.cwd(), '../Data DKCL/F1.3/Processed');
-const BASE_ERROR = path.resolve(process.cwd(), '../Data DKCL/F1.3/Error');
-const BASE_QUARANTINE = path.resolve(process.cwd(), '../Data DKCL/F1.3/Quarantine');
+// AUTO-IMPORT-012: mirror the isolation guard already used by src/config/db.js.
+// Under NODE_ENV=test, these paths must point into an isolated sandbox
+// directory, never into the real production Data DKCL/F1.3 tree, so running
+// any automated test can never read or write live Import data.
+const operationalDataRoot = path.resolve(process.cwd(), '../Data DKCL/F1.3');
+const configuredTestDataRoot = process.env.QIS_TEST_DATA_ROOT
+    ? path.resolve(process.env.QIS_TEST_DATA_ROOT)
+    : null;
+
+if (process.env.NODE_ENV === 'test') {
+    if (!configuredTestDataRoot) {
+        throw new Error('NODE_ENV=test requires QIS_TEST_DATA_ROOT to point to an isolated Import sandbox directory.');
+    }
+    if (configuredTestDataRoot === operationalDataRoot) {
+        throw new Error('QIS_TEST_DATA_ROOT must not resolve to the operational Data DKCL/F1.3 directory.');
+    }
+}
+
+const dataRoot = process.env.NODE_ENV === 'test' ? configuredTestDataRoot : operationalDataRoot;
+
+const BASE_INCOMING = path.join(dataRoot, 'Incoming');
+const BASE_PROCESSING = path.join(dataRoot, 'Processing');
+const BASE_PROCESSED = path.join(dataRoot, 'Processed');
+const BASE_ERROR = path.join(dataRoot, 'Error');
+const BASE_QUARANTINE = path.join(dataRoot, 'Quarantine');
 const HUE_COMMITTED_STATUSES = new Set(['SUCCESS', 'FILE_MOVE_FAILED']);
 
 function isMissingFileError(error) {
@@ -278,5 +298,7 @@ module.exports = {
     BASE_ERROR,
     BASE_QUARANTINE,
     getHueCommittedEvidence,
-    quarantineStaleProcessedEvidence
+    quarantineStaleProcessedEvidence,
+    dataRoot,
+    operationalDataRoot
 };

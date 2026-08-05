@@ -17,15 +17,21 @@
 
 // This suite deliberately imports data dated far in the future as a safe,
 // collision-free fixture. `validateFactF13BusinessDate` (importProcessor.js)
-// only allows a future date through when this flag is explicitly set — it is
-// intentionally not NODE_ENV (which would also trigger unrelated isolated-DB
-// requirements in src/config/db.js). Fixing AUTO-IMPORT-011 removed the prior
-// unconditional "any 2098-xx-xx date is exempt" backdoor, which silently let
-// a real file dated 2098-02-18 bypass future-date rejection in production.
+// only allows a future date through when this flag is explicitly set.
+// AUTO-IMPORT-011 removed the prior unconditional "any 2098-xx-xx date is
+// exempt" backdoor, which silently let a real file dated 2098-02-18 bypass
+// future-date rejection in production.
 process.env.QIS_ALLOW_TEST_FUTURE_DATE = 'true';
 
+// AUTO-IMPORT-012: run against an isolated temp SQLite database, never the
+// operational database.sqlite — see test/importTestSandbox.js.
+const { createSandbox, initSchema } = require('./test/importTestSandbox');
+const sandbox = createSandbox('qis-e2e-import-test-');
+process.env.NODE_ENV = 'test';
+process.env.QIS_TEST_DB_PATH = sandbox.dbPath;
+
 const xlsx = require('xlsx');
-const { run, all, get } = require('./src/config/db');
+const { run, all, get, db, dbPath, operationalDbPath } = require('./src/config/db');
 const { parseF13Excel, extractDateFromFilename } = require('./src/services/excelParser');
 const { importParsedData }  = require('./src/services/importProcessor');
 const { processImport }     = require('./src/services/importService');
@@ -136,6 +142,10 @@ async function countF13() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function runTests() {
+    assert('NODE_ENV=test is active before db.js loads', process.env.NODE_ENV === 'test');
+    assert('test DB path is an isolated temp sqlite file', dbPath === sandbox.dbPath && dbPath.startsWith(sandbox.root), dbPath);
+    assert('test DB path does not resolve to operational database.sqlite', dbPath !== operationalDbPath);
+    await initSchema(db);
     await cleanup();
     console.log(`\n${'─'.repeat(60)}`);
     console.log('E2E Integration Test — Import Engine');
