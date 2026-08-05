@@ -21,6 +21,9 @@ import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
 import RouteViolationEvidencePage from './features/route/RouteViolationEvidencePage';
 import ShipmentPerformancePage from './features/shipment/ShipmentPerformancePage';
+import ServicePointsPage from './features/networkMap/ServicePointsPage';
+import Level2RoutesPage from './features/networkMap/Level2RoutesPage';
+import DeliveryRoutesPage from './features/networkMap/DeliveryRoutesPage';
 import { PlaceholderPage } from './components/common/Containers';
 import { ErrorLayout } from './components/common/StateLayouts';
 
@@ -85,6 +88,12 @@ function App() {
               <Route path="pareto" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Pareto / RCA" /></ProtectedRoute>} />
               <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Evidence List" /></ProtectedRoute>} />
               <Route path="message" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Message Center" /></ProtectedRoute>} />
+            </Route>
+
+            <Route path="network-map">
+              <Route path="service-points" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><ServicePointsPage /></ProtectedRoute>} />
+              <Route path="level2-routes" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><Level2RoutesPage /></ProtectedRoute>} />
+              <Route path="delivery-routes" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><DeliveryRoutesPage /></ProtectedRoute>} />
             </Route>
           </Route>
 

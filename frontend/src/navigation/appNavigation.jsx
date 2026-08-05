@@ -1,5 +1,15 @@
-import { Activity, BarChart2, FileSpreadsheet, Info, LayoutDashboard, PieChart, Settings, Target, Database } from 'lucide-react';
+import { Activity, BarChart2, FileSpreadsheet, Info, LayoutDashboard, MapPin, PieChart, Settings, Target, Database } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
+
+const NETWORK_MANAGEMENT_GROUP = {
+  title: 'Quản lý mạng lưới',
+  icon: <MapPin size={20} />,
+  subItems: [
+    { name: 'Mạng điểm phục vụ', path: '/network-map/service-points', icon: <MapPin size={18} /> },
+    { name: 'Mạng đường thư cấp 2', path: '/network-map/level2-routes', icon: <MapPin size={18} /> },
+    { name: 'Sơ đồ tuyến phát', path: '/network-map/delivery-routes', icon: <MapPin size={18} /> },
+  ],
+};
 
 const F13_GROUP = {
   title: 'F1.3 Quality Management',
@@ -28,6 +38,7 @@ const ADMIN_ONLY_GROUP = {
 const ROOT_ITEMS = [
   { name: 'Dashboard Home', path: '/', icon: <LayoutDashboard size={20} />, roles: [ROLE_ADMIN] },
   F13_GROUP,
+  NETWORK_MANAGEMENT_GROUP,
   { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={20} />, roles: [ROLE_ADMIN] },
   { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={20} />, roles: [ROLE_ADMIN] },
   { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={20} />, roles: [ROLE_ADMIN] },

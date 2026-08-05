@@ -17,6 +17,7 @@
 - [13. Validation](#13-validation)
 - [14. Next Ticket](#14-next-ticket)
 - [15. Authority Escalation](#15-authority-escalation)
+- [16. Phase 1 Implementation Closure](#16-phase-1-implementation-closure)
 
 ## 1. Ticket Information
 
@@ -33,13 +34,13 @@ Activate a single four-phase program to bring three independent map-based screen
 
 ## 3. Current Status
 
-- Current state: `ACTIVE / AUTHORIZED / READY FOR PHASE 1 IMPLEMENTATION`, as of `2026-08-04`.
-- Phase 1 (Nền tảng): `AUTHORIZED / READY FOR IMPLEMENTATION`; no implementation performed under this governance-activation step.
+- Current state: `PHASE 1 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 1`, as of `2026-08-05`.
+- Phase 1 (Nền tảng): implemented and technically validated (schema, authenticated API foundation, nav/routes). See checkpoint Section 12 for full evidence. PO Gate 1 not yet requested/granted.
 - Phase 2 (Ba bản đồ): `PLANNED / NOT ACTIVE`.
 - Phase 3 (Import): `PLANNED / NOT ACTIVE`.
 - Phase 4 (Nghiệm thu): `PLANNED / NOT ACTIVE`.
-- PO UI Check Required: `Yes`, at Phase 4 (final acceptance) at minimum; Antigravity/PO may also runtime-check each screen as Phase 2 delivers it.
-- PO Product Status: not yet applicable — no product code implemented under this ticket yet.
+- PO UI Check Required: `No` for Phase 1 (backend/schema/API foundation, no user-facing UI change requiring PO UI check per PO Gate 1 definition); `Yes` starting at Phase 2 (PO Gate 2) and again at Phase 3 (PO Gate 3) and Phase 4 (PO Gate 4).
+- PO Product Status: not yet applicable — Phase 1 is technical foundation only; no screen is presented for PO acceptance yet.
 
 ## 4. Required Reading
 
@@ -171,3 +172,15 @@ The following figures are Product Owner-confirmed audit results and are the lock
 ## 15. Authority Escalation
 
 No escalation required. This activation is a direct execution of explicit Product Owner authorization naming `NETWORK-MANAGEMENT-001`, its four-phase structure, and its locked baseline figures (Section 7). No conflict was found between this authorization and current repository governance state (`PROJECT_SNAPSHOT.md` showed `Current Ticket = None / Awaiting Product Owner Direction` immediately prior to this activation).
+
+## 16. Phase 1 Implementation Closure
+
+- Status: `COMPLETED / TECHNICAL PASS`
+- Closed on: `2026-08-05`
+- Closure authority: direct execution of explicit Product Owner Phase 1 implementation authorization (this ticket's activation prompt), technically validated by Claude Code; PO Gate 1 (Section 11) itself remains a separate, not-yet-requested Product Owner confirmation.
+
+Full implementation evidence, file-by-file changes, and validation commands/output are recorded in `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` Section 12 and are not duplicated here.
+
+Summary: SQLite schema foundation (5 new, independent, empty tables — `network_import_log`, `network_service_point`, `network_level2_route`, `network_level2_route_stop`, `network_delivery_point`) added additively to `backend/src/db/schema.sql` and applied to the live operational database via an idempotent migration script with zero rows seeded and zero impact on existing tables (`fact_f13` confirmed unchanged at 663,126 rows). Authenticated API foundation mounted at `/api/network-map`: `admin`+`viewer` read access, `admin`-only Import scaffolding (returns `501 NOT_IMPLEMENTED`, no Excel logic), and the Sơ đồ tuyến phát points endpoint hard-rejects any query missing Ngày/BCVH/Bưu tá. Frontend: new `Quản lý mạng lưới` nav group and 3 role-gated routes/screens that prove API connectivity and gate the Import button to `admin` only, with no Leaflet map and no OSRM call. No product/business data was fabricated or inserted; the PO-confirmed baseline figures (151 mã điểm; 28 hành trình/148 lượt dừng/47 mã điểm/1.435 km; 143,467 điểm) remain unimplemented data targets for Phase 3, not touched by Phase 1. 02 pre-existing stashes, the 3 root-level reference HTML files, and the newly-observed `Data QLML/` Excel files were left untouched.
+
+This closure covers Phase 1 (Nền tảng) only. It does not start, authorize, or imply authorization for Phase 2 (Ba bản đồ), Phase 3 (Import), or Phase 4 (Nghiệm thu); each requires its own explicit Product Owner authorization per Section 11 (PO Gates).

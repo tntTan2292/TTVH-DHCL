@@ -135,3 +135,94 @@ CREATE TABLE IF NOT EXISTS fact_f13_national (
 -- Indexes for fact_f13_national
 CREATE INDEX IF NOT EXISTS idx_f13_nat_ngay ON fact_f13_national(ngay_do_kiem);
 CREATE INDEX IF NOT EXISTS idx_f13_nat_tinh_ngay ON fact_f13_national(ma_tinh_phat, ngay_do_kiem);
+
+-- ============================================================
+-- NETWORK-MANAGEMENT-001 Phase 1 — Nền tảng
+-- Three independent modules: Mạng điểm phục vụ, Mạng đường thư cấp 2,
+-- Sơ đồ tuyến phát. No required data linkage between them.
+-- Schema only — no business data seeded by this phase.
+-- ============================================================
+
+-- 5. network_import_log (shared import-history table across the three modules)
+CREATE TABLE IF NOT EXISTS network_import_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    module TEXT NOT NULL CHECK (module IN ('service_point', 'level2_route', 'delivery_route')),
+    file_name TEXT NOT NULL,
+    file_fingerprint TEXT NOT NULL,
+    status TEXT NOT NULL, -- 'SUCCESS', 'FAILED', 'REJECTED_DUPLICATE'
+    total_records INTEGER DEFAULT 0,
+    inserted_records INTEGER DEFAULT 0,
+    updated_records INTEGER DEFAULT 0,
+    skipped_records INTEGER DEFAULT 0,
+    error_records INTEGER DEFAULT 0,
+    uploaded_by TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_network_import_log_fingerprint ON network_import_log(module, file_fingerprint);
+
+-- 6. network_service_point (Mạng điểm phục vụ)
+CREATE TABLE IF NOT EXISTS network_service_point (
+    ma_diem TEXT PRIMARY KEY,
+    ten_diem TEXT,
+    loai_diem TEXT,
+    dia_chi TEXT,
+    phuong_xa TEXT,
+    don_vi_quan_ly TEXT,
+    trang_thai TEXT,
+    dien_thoai TEXT,
+    lat REAL,
+    lon REAL,
+    import_log_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(import_log_id) REFERENCES network_import_log(id)
+);
+
+-- 7. network_level2_route + network_level2_route_stop (Mạng đường thư cấp 2)
+CREATE TABLE IF NOT EXISTS network_level2_route (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    route_name TEXT NOT NULL,
+    declared_km REAL,
+    trips_per_week INTEGER,
+    operator TEXT,
+    import_log_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(import_log_id) REFERENCES network_import_log(id)
+);
+
+CREATE TABLE IF NOT EXISTS network_level2_route_stop (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    route_id INTEGER NOT NULL,
+    seq INTEGER NOT NULL,
+    ma_diem TEXT,
+    stop_name TEXT,
+    arrival TEXT,
+    handling TEXT,
+    departure TEXT,
+    leg_km REAL,
+    note TEXT,
+    lat REAL,
+    lon REAL,
+    FOREIGN KEY(route_id) REFERENCES network_level2_route(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_network_level2_route_stop_route ON network_level2_route_stop(route_id, seq);
+
+-- 8. network_delivery_point (Sơ đồ tuyến phát)
+CREATE TABLE IF NOT EXISTS network_delivery_point (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ngay_phat TEXT NOT NULL,
+    ma_bcvh TEXT NOT NULL,
+    postman_code TEXT NOT NULL,
+    bien_so TEXT,
+    ma_buu_gui TEXT,
+    lat REAL,
+    lon REAL,
+    status_time TEXT,
+    loai_dich_vu TEXT,
+    tien_thu_ho REAL,
+    import_log_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(import_log_id) REFERENCES network_import_log(id)
+);
+CREATE INDEX IF NOT EXISTS idx_network_delivery_point_query ON network_delivery_point(ngay_phat, ma_bcvh, postman_code);

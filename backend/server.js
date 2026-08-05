@@ -8,6 +8,7 @@ const envLoadResult = loadLocalEnv();
 const f13Routes = require('./src/routes/f13Routes');
 const importRoutes = require('./src/routes/importRoutes');
 const authRoutes = require('./src/routes/authRoutes');
+const networkMapRoutes = require('./src/routes/networkMapRoutes');
 const { startWatcher } = require('./src/services/importWatcher');
 
 const app = express();
@@ -86,6 +87,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
+app.use('/api/network-map', networkMapRoutes);
 
 const server = app.listen(PORT, HOST, () => {
     logRuntimeBanner();

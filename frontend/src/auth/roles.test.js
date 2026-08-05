@@ -11,6 +11,9 @@ test('viewer access policy allows only approved completed F1.3 surfaces', () => 
   assert.equal(canViewerAccessPath('/f13/dashboard'), true);
   assert.equal(canViewerAccessPath('/f13/ranking/bcvh'), true);
   assert.equal(canViewerAccessPath('/f13/ranking/route'), true);
+  assert.equal(canViewerAccessPath('/network-map/service-points'), true);
+  assert.equal(canViewerAccessPath('/network-map/level2-routes'), true);
+  assert.equal(canViewerAccessPath('/network-map/delivery-routes'), true);
   assert.equal(canViewerAccessPath('/import'), false);
   assert.equal(canViewerAccessPath('/system-info'), false);
   assert.equal(canViewerAccessPath('/f13/pareto'), false);

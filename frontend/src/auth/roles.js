@@ -5,6 +5,9 @@ export const VIEWER_ALLOWED_PATH_PREFIXES = [
   '/f13/dashboard',
   '/f13/ranking/bcvh',
   '/f13/ranking/route',
+  '/network-map/service-points',
+  '/network-map/level2-routes',
+  '/network-map/delivery-routes',
 ];
 
 export function normalizeRole(role) {
