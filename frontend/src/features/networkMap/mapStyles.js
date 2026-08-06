@@ -161,6 +161,55 @@ export function createTamDungMarkerSvg(size = 26) {
   </svg>`;
 }
 
+// ============================================================
+// ĐTC2 (Mạng đường thư cấp 2) journey visual remediation —
+// outbound/return direction, turnaround, and same-coordinate
+// spiderfy styling. Never reused by any of the marker/legend
+// colors above (Service Points, Delivery Routes, Tạm dừng).
+// ============================================================
+
+export const JOURNEY_DIRECTION_COLORS = {
+  outbound: '#2563EB', // chiều đi — blue
+  return: '#C026D3', // chiều về — magenta/purple
+};
+
+export const JOURNEY_TURNAROUND_COLOR = '#F59E0B'; // quay đầu — amber/gold, distinct from both directions
+
+export function colorForJourneyDirection(direction) {
+  if (direction === 'turnaround') return JOURNEY_TURNAROUND_COLOR;
+  return JOURNEY_DIRECTION_COLORS[direction] || JOURNEY_DIRECTION_COLORS.outbound;
+}
+
+/**
+ * Small rotated triangle marker used to show direction-of-travel along a
+ * journey polyline. `bearingDeg` is a compass bearing (0 = north); the SVG
+ * triangle points up by default (0°), rotated to match.
+ */
+export function createDirectionArrowSvg(bearingDeg = 0, color = JOURNEY_DIRECTION_COLORS.outbound, size = 16) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(${bearingDeg}deg);">
+    <polygon points="10,2 16,16 10,12 4,16" fill="${color}" stroke="white" stroke-width="1"/>
+  </svg>`;
+}
+
+/**
+ * Stop-sequence marker for a single "lượt dừng" (visit) on an ĐTC2 journey.
+ * `direction` selects outbound/return/turnaround color; `isFanned` draws a
+ * slightly heavier white ring so an offset/spiderfied duplicate is visibly
+ * distinguishable from a marker at its true coordinate.
+ */
+export function createJourneyStopSvg(stopNum, direction, { isFanned = false, size = 24 } = {}) {
+  const color = colorForJourneyDirection(direction);
+  const isTurnaround = direction === 'turnaround';
+  const ringWidth = isFanned ? 3 : 2;
+  const shape = isTurnaround
+    ? `<polygon points="12,1 22,12 12,23 2,12" fill="${color}" stroke="white" stroke-width="${ringWidth}"/>`
+    : `<circle cx="12" cy="12" r="10" fill="${color}" stroke="white" stroke-width="${ringWidth}"/>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    ${shape}
+    <text x="12" y="16" font-size="10" font-weight="700" fill="white" text-anchor="middle" font-family="sans-serif">${stopNum}</text>
+  </svg>`;
+}
+
 export const HUE_MAP_CENTER = [16.46, 107.59];
 export const HUE_MAP_DEFAULT_ZOOM = 10;
 export const ZOOM_LABEL_THRESHOLD_SERVICE = 13;
