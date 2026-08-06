@@ -60,14 +60,23 @@ async function listLevel2Routes(req, res) {
 }
 
 // GET /api/network-map/delivery-routes/meta[?ngay=][&ma_bcvh=]
+//
+// PO Gate 3 remediation §4 (locked semantics): `ngay_phat` is the business
+// date used for calendar availability, min/max, the date list, and every
+// delivery-route filter. `ngay_nhap_phat`/`thoi_gian_nhap_phat` are used
+// ONLY to order records within an already-selected `ngay_phat`, never to
+// decide which dates/months are selectable. A record whose `ngay_phat` is
+// June but whose actual `ngay_nhap_phat` scan time drifted into July must
+// still be classified as belonging to June, and must never make a July
+// calendar day/month appear available.
 async function getDeliveryRoutesMeta(req, res) {
     const { ngay, ma_bcvh } = req.query;
 
     try {
         const dates = await all(
-            `SELECT DISTINCT COALESCE(ngay_nhap_phat, ngay_phat) AS ngay_display
+            `SELECT DISTINCT ngay_phat AS ngay_display
              FROM network_delivery_point
-             WHERE COALESCE(ngay_nhap_phat, ngay_phat) IS NOT NULL
+             WHERE ngay_phat IS NOT NULL
              ORDER BY ngay_display DESC`,
         );
         const meta = { dates: dates.map((row) => row.ngay_display) };
@@ -76,10 +85,10 @@ async function getDeliveryRoutesMeta(req, res) {
             const bcvhList = await all(
                 `SELECT DISTINCT ma_bcvh
                  FROM network_delivery_point
-                 WHERE (ngay_nhap_phat = ? OR (ngay_nhap_phat IS NULL AND ngay_phat = ?))
+                 WHERE ngay_phat = ?
                    AND ma_bcvh IS NOT NULL
                  ORDER BY ma_bcvh ASC`,
-                [ngay, ngay],
+                [ngay],
             );
             meta.bcvh = bcvhList.map((row) => row.ma_bcvh);
         } else {
@@ -93,11 +102,11 @@ async function getDeliveryRoutesMeta(req, res) {
             const postmanList = await all(
                 `SELECT DISTINCT postman_code
                  FROM network_delivery_point
-                 WHERE (ngay_nhap_phat = ? OR (ngay_nhap_phat IS NULL AND ngay_phat = ?))
+                 WHERE ngay_phat = ?
                    AND ma_bcvh = ?
                    AND postman_code IS NOT NULL
                  ORDER BY postman_code ASC`,
-                [ngay, ngay, ma_bcvh],
+                [ngay, ma_bcvh],
             );
             meta.postman_codes = postmanList.map((row) => row.postman_code);
         }
@@ -109,6 +118,11 @@ async function getDeliveryRoutesMeta(req, res) {
 }
 
 // GET /api/network-map/delivery-routes/points?ngay=&ma_bcvh=&postman_code=[&ca=]
+//
+// Filters strictly by `ngay_phat` (PO Gate 3 remediation §4). The result
+// set is still ordered by `thoi_gian_nhap_phat`/`status_time` — the actual
+// delivery-entry sequence within the selected business date — which is the
+// only role those two fields play here.
 async function listDeliveryPoints(req, res) {
     const { ngay, ma_bcvh, postman_code, ca } = req.query;
 
@@ -123,10 +137,10 @@ async function listDeliveryPoints(req, res) {
 
     try {
         let sql = `SELECT * FROM network_delivery_point
-                   WHERE (ngay_nhap_phat = ? OR (ngay_nhap_phat IS NULL AND ngay_phat = ?))
+                   WHERE ngay_phat = ?
                      AND ma_bcvh = ?
                      AND postman_code = ?`;
-        const params = [ngay, ngay, ma_bcvh, postman_code];
+        const params = [ngay, ma_bcvh, postman_code];
 
         if (ca === 'sang') {
             sql += ` AND ca_phat = 'Ca sáng'`;

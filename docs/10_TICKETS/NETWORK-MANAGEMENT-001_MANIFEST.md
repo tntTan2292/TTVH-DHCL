@@ -20,12 +20,13 @@
 - [16. Phase 1 Implementation Closure](#16-phase-1-implementation-closure)
 - [17. Phase 2 Implementation Closure](#17-phase-2-implementation-closure)
 - [27. Phase 3 Implementation Closure](#27-phase-3-implementation-closure)
+- [28. PO Gate 3 Runtime Remediation](#28-po-gate-3-runtime-remediation)
 
 ## 1. Ticket Information
 
 - Ticket ID: `NETWORK-MANAGEMENT-001`
 - Ticket Name: Quản lý mạng lưới (Network Management) — Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát
-- Phase: Phase 1 (Nền tảng) `COMPLETED / TECHNICAL PASS`; Phase 2 (Ba bản đồ) `COMPLETED / PO PASS / CLOSED`; Phase 3 (Import) `COMPLETED / TECHNICAL PASS`; Phase 4 remains `PLANNED / NOT ACTIVE`.
+- Phase: Phase 1 (Nền tảng) `COMPLETED / TECHNICAL PASS`; Phase 2 (Ba bản đồ) `COMPLETED / PO PASS / CLOSED`; Phase 3 (Import) `COMPLETED / TECHNICAL PASS` — first PO Gate 3 attempt returned `RUNTIME FAIL` on 3 defects (`2026-08-06`), remediated same day (Section 28), now `REMEDIATED / TECHNICAL PASS — AWAITING PO GATE 3 RUNTIME RECHECK`; Phase 4 remains `PLANNED / NOT ACTIVE`.
 - Owner: Claude Code (implementation, backend, data, tests, documentation, Git per `DEC-020`)
 - Governance Version: `V2 Active`
 - Authorization: Product Owner, `2026-08-04` — explicit activation request naming `NETWORK-MANAGEMENT-001` and locking scope/baseline per the four-phase structure below
@@ -36,13 +37,13 @@ Activate a single four-phase program to bring three independent map-based screen
 
 ## 3. Current Status
 
-- Current state: `PHASE 3 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 3`, as of `2026-08-06`.
+- Current state: `PHASE 3 REMEDIATED / TECHNICAL PASS — AWAITING PO GATE 3 RUNTIME RECHECK`, as of `2026-08-06`.
 - Phase 1 (Nền tảng): `COMPLETED / TECHNICAL PASS`. PO Gate 1 `PASS` (Product Owner, `2026-08-05`).
 - Phase 2 (Ba bản đồ): `COMPLETED / PO PASS / CLOSED`. PO Gate 2 `PASS` (Product Owner, `2026-08-05`).
-- Phase 3 (Import): implemented and technically validated (Export/Preview/Confirm/History/Rollback for all 3 modules, per the PO-approved "Corrected Recommended Design"). See checkpoint Section 14 for full evidence. PO Gate 3 not yet requested/granted.
+- Phase 3 (Import): implemented and technically validated (Export/Preview/Confirm/History/Rollback for all 3 modules, per the PO-approved "Corrected Recommended Design"). See checkpoint Section 14 for full evidence. First PO Gate 3 runtime check (`2026-08-06`) returned `RUNTIME FAIL` on 3 defects (ĐTC2 straight-line routing, tuyến-phát routing resilience, Date Picker month-availability semantics) — root-caused and remediated the same day. See checkpoint Section 15 for the audit, remediation, and re-validation evidence. PO Gate 3 not yet re-requested/re-granted.
 - Phase 4 (Nghiệm thu): `PLANNED / NOT ACTIVE`.
-- PO UI Check Required: `Yes` for Phase 3 (PO Gate 3 — Import/Export/History/Rollback UI check across all 3 modules) — not yet performed.
-- PO Product Status: Phase 3 technically complete, not yet PO-reviewed.
+- PO UI Check Required: `Yes` for Phase 3 (PO Gate 3 — Import/Export/History/Rollback UI check across all 3 modules, plus a runtime recheck of the 3 remediated defects) — not yet performed.
+- PO Product Status: Phase 3 technically complete including remediation; not yet PO-reviewed/re-reviewed.
 
 ## 4. Required Reading
 
@@ -233,3 +234,13 @@ Full implementation evidence, locked-design confirmation, and validation command
 Summary: Import/Export/History/Rollback built for all three modules exactly per the PO-approved design, in three steps (additive DB migration; backend Export/Preview/Confirm/History/Rollback; frontend admin-only UI + map handling + validation), each reaching Technical PASS before the next began. Locked decisions honored unchanged: điểm phục vụ upserts by `ma_diem` with `trang_thai` never transformed; ĐTC2 uses `network_level2_route.id` directly as the stable Route ID (no separate `route_key` needed — AUTOINCREMENT ids are never reused), validates `Mã điểm` existence only (never filtering on `trang_thai`, so "Tạm dừng" points remain valid geometry sources), and replaces stops only for admin-selected routes; tuyến phát keeps the `(ma_buu_gui, ngay_phat, route_po_code)` key unchanged, writes via `ON CONFLICT DO UPDATE` (never `INSERT OR IGNORE`), and now enforces that key with a real DB `UNIQUE` index; rollback records full before-images with an explicit INSERT/UPDATE/DELETE operation type per row and refuses to run when a later, still-active import touched the same scope. Using the finished Import feature, the 5 audited "Tạm dừng" points (`536101`, `536102`, `537200`, `534630`, `534989`) were actually imported into the live database — `network_service_point` grew from 151 to 156 rows, and 11 previously-orphaned ĐTC2 stop references now resolve real geometry. Two real defects (a migration that silently created no rows due to `db.run()` vs `db.exec()`, and a rollback-eligibility check that could miss a same-second later import) were found and fixed by the test suite before being shipped. 77 backend + 25 frontend automated tests pass; `oxlint` clean; `vite build` succeeds; full real-browser runtime validation performed as `admin`; `fact_f13` confirmed unchanged across three checkpoints; all 3 `Data QLML/` source Excel files confirmed byte-identical throughout.
 
 This closure covers Phase 3 (Import) only. It does not start, authorize, or imply authorization for Phase 4 (Nghiệm thu), which requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 code or any module outside this ticket's three named screens was modified.
+
+## 28. PO Gate 3 Runtime Remediation
+
+Product Owner's first PO Gate 3 runtime check (`2026-08-06`, baseline `2efa6fa227d1cda4c514f8afb4f8f91144acf59d`) returned `RUNTIME FAIL` on 3 defects: (1) Mạng đường thư cấp 2 (ĐTC2) drawing straight-line polylines instead of road geometry; (2) Sơ đồ tuyến phát no longer resiliently building road routes through actual delivery coordinates; (3) the Sơ đồ tuyến phát Date Picker allowing a July 2026 selection when only June 2026 had been imported. Claude Code ran an audit-only root-cause investigation first (no code changes), then was explicitly authorized to remediate all 3 within Phase 3 scope.
+
+Root cause, PO-locked remediation decisions, implementation, and full validation evidence (automated tests, real-browser runtime re-check of all 3 map screens after a backend restart) are recorded in full in `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` Section 15 — not duplicated here. Summary: none of the 3 defects were caused by the Phase 3 (Import) diff itself — ĐTC2 routing was never implemented since Phase 2, tuyến-phát routing lacked a provider timeout, and the Date Picker used `COALESCE(ngay_nhap_phat, ngay_phat)` as an undocumented/unlocked filter-date choice. All 3 are fixed: a shared `roadRoutingService.js` (renamed/generalized from the former delivery-only `deliveryRoutingService.js`) now serves both ĐTC2 and Sơ đồ tuyến phát with a 15s per-provider timeout, 2-provider fallback, and a Huế-bounds exclusion filter (never silently dropping or fabricating coordinates — 10 real out-of-bounds rows, inherited unchanged from the Phase 2 seed, are excluded from routing only and named explicitly in the UI); `ngay_phat` is now locked as the sole business date for the Date Picker/filters, with `ngay_nhap_phat`/`thoi_gian_nhap_phat` restricted to intra-day ordering only.
+
+31/31 backend + 39/39 frontend automated tests pass (including new regression tests for each of the 3 defects), `oxlint` clean, `vite build` succeeds, real-browser runtime re-verified as `admin` across all 3 map screens after a backend restart. `fact_f13` (`669,847`) and `network_delivery_point` (`143,475`) row counts unchanged; all `Data QLML/` source files confirmed byte-identical; both pre-existing stashes untouched.
+
+This remediation does **not** constitute PO Gate 3 PASS — it returns Phase 3 to `TECHNICAL PASS`, awaiting a Product Owner runtime recheck. It does not start, authorize, or imply authorization for Phase 4 (Nghiệm thu). No Import/Export/History/Rollback logic was changed; no F1.3 code or any module outside this ticket's three named screens was touched.

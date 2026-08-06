@@ -16,6 +16,7 @@
 - [12. Phase 1 Implementation Closure](#12-phase-1-implementation-closure)
 - [13. Phase 2 Implementation Closure](#13-phase-2-implementation-closure)
 - [14. Phase 3 Implementation Closure](#14-phase-3-implementation-closure)
+- [15. PO Gate 3 Runtime Remediation](#15-po-gate-3-runtime-remediation)
 
 ## 1. Purpose
 
@@ -26,15 +27,15 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 3 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 3` (as of `2026-08-06`) |
+| Program State | `PHASE 3 REMEDIATED / TECHNICAL PASS — AWAITING PO GATE 3 RUNTIME RECHECK` (as of `2026-08-06`) |
 | Recorded PO Evaluation (Phase 2) | `PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED` |
-| Current Phase | `Phase 3 (Import) implemented and technically validated; PO Gate 3 not yet requested` |
+| Current Phase | `Phase 3 (Import) implemented and technically validated; first PO Gate 3 attempt returned RUNTIME FAIL on 3 defects (Section 15); root-caused and remediated same day; awaiting PO Gate 3 runtime recheck` |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
 | Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13, 14, 15 & 16 |
-| Phase 3 (Import) Implementation Performed | `Yes` — see Section 14 (Phase 3 Implementation Closure) |
+| Phase 3 (Import) Implementation Performed | `Yes` — see Section 14 (Phase 3 Implementation Closure) and Section 15 (PO Gate 3 Runtime Remediation) |
 | Phase 4 (Nghiệm thu) | `PLANNED / NOT ACTIVE` |
-| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: not yet requested.` |
-| Next State | `PHASE 3 TECHNICAL COMPLETE / AWAITING PO GATE 3 (UI Check on Import/Export/Rollback)` |
+| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: first attempt RUNTIME FAIL (Product Owner, 2026-08-06) — 3 defects, remediated same day per Section 15; PO Gate 3 not yet re-granted.` |
+| Next State | `PHASE 3 REMEDIATED / TECHNICAL PASS — AWAITING PO GATE 3 RUNTIME RECHECK` |
 
 ## 3. Baseline
 
@@ -89,7 +90,7 @@ Locked product decisions and locked out-of-scope items are recorded once in `doc
 
 ## 7. Exact Next Action
 
-Phase 3 (Import) is implemented and technically validated (Section 14). Exact next action: await explicit Product Owner PO Gate 3 review / authorization to start Phase 4 (Nghiệm thu). Do not begin Phase 4 work without that authorization.
+Phase 3 (Import) is implemented and technically validated (Section 14); the first PO Gate 3 runtime check returned RUNTIME FAIL on 3 defects, root-caused and remediated the same day (Section 15). Exact next action: await Product Owner PO Gate 3 runtime recheck. Do not declare PO Gate 3 PASS and do not begin Phase 4 work without that explicit re-check and authorization.
 
 ## 8. Proposed Executor
 
@@ -97,11 +98,11 @@ Claude Code (Sonnet) — implementation, backend, data, tests, documentation, an
 
 ## 9. Next PO Gate
 
-PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3 sits after Phase 3 (Import) closes (manifest Section 11) and requires a Product Owner UI check on Import/Export/History/Rollback across all three modules — Phase 3 implementation is complete and technically validated (Section 14), but PO Gate 3 itself has not been requested/granted.
+PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3 sits after Phase 3 (Import) closes (manifest Section 11) and requires a Product Owner UI check on Import/Export/History/Rollback across all three modules — the first PO Gate 3 attempt (`2026-08-06`) returned `RUNTIME FAIL` on 3 defects (ĐTC2 straight-line routing, tuyến-phát routing resilience, Date Picker month-availability semantics); all 3 were root-caused and remediated the same day (Section 15) with automated tests and real-browser runtime re-validation, but PO Gate 3 itself has not been re-requested/re-granted.
 
 ## 10. Current Blockers
 
-None for Phase 1, 2, or 3 — all implemented and technically validated. Phase 4 (Nghiệm thu) is blocked pending explicit Product Owner authorization to start, following PO Gate 3.
+None for Phase 1, 2, or 3 technically — all implemented and technically validated, including the PO Gate 3 remediation (Section 15). Phase 4 (Nghiệm thu) is blocked pending explicit Product Owner PO Gate 3 runtime recheck and PASS, then a separate authorization to start Phase 4.
 
 ## 11. Reusable Architecture Notes
 
@@ -212,3 +213,41 @@ Using the new live Import API, the 5 "Tạm dừng" points identified and audite
 ### Scope discipline confirmed
 
 No F1.3 Import/Dashboard/Ranking code touched; no Phase 4 (Nghiệm thu) work started; no bulk OSRM calls; the original merged-layout ĐTC2 Excel and raw `.xlsb` tuyến-phát source remain untouched, read-only historical references — Export/Import only ever round-trips through this ticket's own flat templates. `Data QLML/` source files and file names/sheets/columns unmodified. 02 pre-existing stashes untouched throughout.
+
+## 15. PO Gate 3 Runtime Remediation
+
+Product Owner submitted the first PO Gate 3 runtime check (`2026-08-06`) against baseline commit `2efa6fa227d1cda4c514f8afb4f8f91144acf59d` and returned `RUNTIME FAIL` on 3 defects. Claude Code first ran an audit-only investigation (no code changes), reported root cause per defect, then was explicitly authorized to remediate all 3 in the same scope.
+
+### Root cause per defect (from the audit)
+
+1. **ĐTC2 straight-line routing**: `Level2RoutesMap.jsx` had never called any routing service since its original Phase 2 implementation — it always rendered a plain straight `Polyline` between raw stop coordinates. Not a regression from Phase 3 (no Phase 3 commit touches this file). The reference source `Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html` (`mailLoadRoute`, lines ~10580-10614) does call OSRM with a 2-provider fallback for ĐTC2 routes — this was part of the reference UX the ticket was scoped to preserve and was never ported.
+2. **Sơ đồ tuyến phát routing resilience**: `deliveryRoutingService.js`'s `fetchChunkRoadRoute` called `fetch()` with no timeout/`AbortController`, so an unresponsive OSRM provider could hang the request indefinitely, leaving the UI on an unstyled placeholder line with no warning ever firing — a silent failure mode. Live-DB audit also found 10 out-of-Huế-bounds coordinate rows (8 in Morocco, 2 near Hải Phòng) inherited unchanged from the original Phase 2 `.xlsb` seed, which would break any OSRM waypoint chain that included them.
+3. **Date Picker allowing July with only June imported**: not a hardcode — `getDeliveryRoutesMeta`/`listDeliveryPoints` used `COALESCE(ngay_nhap_phat, ngay_phat)` as the filter/calendar date, and 8 real DB rows have `ngay_phat` in June but `ngay_nhap_phat` (actual delivery-scan timestamp) genuinely drifted into July — real postal data, inherited unchanged from the Phase 2 seed. This was a field-semantics gap never locked by any PO decision, not a bug in the date-picker's navigation logic itself (confirmed no `new Date()`/current-month logic outside its empty-state fallback).
+
+### PO-locked remediation decisions (verbatim intent, honored unchanged)
+
+- ĐTC2 must reuse a routing helper shared with Sơ đồ tuyến phát where appropriate; Route ID, stop order, and the `network_service_point`-via-`ma_diem` coordinate source are unchanged.
+- Each OSRM provider call is bounded by a 15s `AbortController` timeout; on timeout/failure the second provider is tried; if both fail the UI must show an explicit "could not build road route" state — never a silent straight line disguised as real geometry.
+- The 8 Morocco-coordinate rows (and, by the same bounds principle, 2 Hải Phòng-area rows found during the audit) are excluded from routing calculations only — never edited/deleted in `Data QLML/` or the DB — and one bad coordinate must never break routing for the rest of an otherwise-valid route; the UI must name the excluded points explicitly (identifier + coordinates) so Admin can recognize the source data issue.
+- `ngay_phat` is now the sole business date for calendar availability, min/max, the date list, and every delivery-route filter; `ngay_nhap_phat`/`thoi_gian_nhap_phat` are used only to order records within an already-selected `ngay_phat` — `COALESCE(ngay_nhap_phat, ngay_phat)` is no longer used as a filter date anywhere. A June `ngay_phat` row with a July `ngay_nhap_phat` stays classified as June and never makes July calendar-available.
+
+### Implementation
+
+- `frontend/src/features/networkMap/deliveryRoutingService.js` renamed to `roadRoutingService.js` (git-tracked rename) and generalized into the shared routing helper: adds `HUE_ROUTING_BOUNDS`/`isWithinHueRoutingBounds` (bounds-exclusion filter, sized from live `network_service_point`/`network_delivery_point` coordinate ranges to comfortably contain every legitimate Huế-area point while excluding both confirmed artifact clusters), a 15s per-provider `AbortController` timeout in `fetchChunkRoadRoute`, and `fetchRoadRoute` (the new generic entry point; `fetchDeliveryRoadRoute` kept as a backward-compatible alias) which splits routable vs. excluded locations before chunking and returns `excluded` for the caller to surface.
+- `frontend/src/features/networkMap/Level2RoutesMap.jsx`: fetches per-route road geometry via the shared helper for all 28 ĐTC2 routes independently (one route's routing failure never blocks another's), renders one `Polyline` per routing segment (road-colored solid vs. amber-dashed fallback vs. gray-dashed loading placeholder — three visually distinct states, never conflated), and surfaces failed routes both as a map overlay banner and a per-route ⚠️ marker in the sidebar list and tooltip.
+- `frontend/src/features/networkMap/DeliveryRoutesMap.jsx`: switched to the shared `fetchRoadRoute`; combines the routing-failure warning with an explicit excluded-points warning naming each excluded point's `ma_buu_gui` and coordinates; changed the pre-fetch loading placeholder to a neutral gray dashed style (previously identical blue-dashed styling to the confirmed-fallback state, which could be misread as a real/attempted route).
+- `backend/src/controllers/NetworkMapController.js`: `getDeliveryRoutesMeta` and `listDeliveryPoints` filter/aggregate strictly by `ngay_phat`; `ORDER BY thoi_gian_nhap_phat ASC, status_time ASC, id ASC` (unchanged) still governs intra-day sequencing only.
+
+### Validation evidence
+
+- **Automated tests**: 31/31 backend (`NetworkMapController.test.js` — including 2 new PO Gate 3 regression tests for the June/July `ngay_phat`-vs-`ngay_nhap_phat` case — plus `networkMapRoutes.test.js`, `NetworkImportController.test.js`, all 3 phase-migration test files) and 39/39 frontend (`networkMapRemediation.test.js` — including new tests for provider-timeout-then-fallback, both-providers-fail explicit non-silent state, Huế-bounds exclusion not dropping/breaking the rest of a route, 1-point chunk-boundary continuity, and ĐTC2 road-geometry-not-straight-line — plus `NetworkMapClient.test.js`) all pass. `oxlint`: clean (same one pre-existing unrelated warning as Phase 3 closure). `vite build`: succeeds.
+- **Real-browser runtime, all 3 map screens, after a real backend restart** (stale prior-session process on port 5050 killed first, per the project's own port-conflict remediation instructions): logged in as `admin`.
+  - ĐTC2 (`/network-map/level2-routes`): all 28 routes rendered with a single solid (non-dashed) path each — verified via direct DOM inspection of `path.leaflet-interactive[stroke-dasharray]`, confirming zero fallback/loading placeholders remained and all 28 routes built real OSRM road geometry.
+  - Sơ đồ tuyến phát (`/network-map/delivery-routes`): selected `22/06/2026` / BCVH `533140` / Bưu tá `53A141` (413 bưu gửi, 18 distinct locations, matching the live DB exactly) — rendered a single solid blue road polyline, no warning. Selected `03/06/2026` / BCVH `536250` / Bưu tá `53T022` (the Morocco-outlier route) — rendered a solid road polyline for the 4 valid locations and displayed the exact expected warning: *"Đã bỏ qua 1 tọa độ ngoài phạm vi bản đồ Huế khi dựng đường giao thông ... CD398006975VN (31.6597, -8.0231)"*.
+  - Date Picker: navigating the calendar view to Tháng 07/2026 showed all 31 days disabled (`enabledDays: []`) even though the month selector itself is unrestricted; Tháng 06/2026 showed all 30 days enabled, matching `ngay_phat` presence exactly.
+  - Mạng điểm phục vụ (`/network-map/service-points`): unaffected by this remediation — 156 points, "Hiện điểm Tạm dừng (5)" still default-off, confirming no regression from Phase 3 closure.
+- **Data/source integrity**: `fact_f13` unchanged (`669,847`); `network_delivery_point` row count unchanged (`143,475` — query-logic-only change, no data mutation); all `Data QLML/` source files re-verified byte-identical via SHA-256 (2 hashes cross-checked directly against their recorded `network_import_log.file_fingerprint` values); `Data QLML/` never `git add`ed; both pre-existing stashes untouched.
+
+### Scope discipline confirmed
+
+No change to Import/Export/History/Rollback logic, no Phase 4 work, no expansion beyond the 3 named PO Gate 3 defects. PO Gate 3 is **not** declared PASS by this remediation — Product Owner runtime recheck is still required before Phase 4 may be authorized.

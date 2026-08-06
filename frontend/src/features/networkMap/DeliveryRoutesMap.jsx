@@ -13,7 +13,7 @@ import {
   DELIVERY_LEGEND_ITEMS,
   DELIVERY_DISCLAIMER_TEXT,
 } from './mapStyles';
-import { fetchDeliveryRoadRoute } from './deliveryRoutingService';
+import { fetchRoadRoute } from './roadRoutingService';
 
 function ZoomTracker({ onZoomChange }) {
   const map = useMapEvents({
@@ -29,7 +29,7 @@ function ZoomTracker({ onZoomChange }) {
 
 export default function DeliveryRoutesMap({ points }) {
   const [currentZoom, setCurrentZoom] = useState(HUE_MAP_DEFAULT_ZOOM);
-  const [routeResult, setRouteResult] = useState({ segments: [], hasFallback: false, warning: null });
+  const [routeResult, setRouteResult] = useState({ segments: [], hasFallback: false, warning: null, excluded: [] });
   const [routingLoading, setRoutingLoading] = useState(false);
   const [isLegendExpanded, setIsLegendExpanded] = useState(false);
 
@@ -68,13 +68,13 @@ export default function DeliveryRoutesMap({ points }) {
   useEffect(() => {
     let cancelled = false;
     if (groupedLocations.length < 2) {
-      setRouteResult({ segments: [], hasFallback: false, warning: null });
+      setRouteResult({ segments: [], hasFallback: false, warning: null, excluded: [] });
       setRoutingLoading(false);
       return;
     }
 
     setRoutingLoading(true);
-    fetchDeliveryRoadRoute(groupedLocations)
+    fetchRoadRoute(groupedLocations)
       .then((res) => {
         if (cancelled) return;
         setRouteResult(res);
@@ -82,10 +82,14 @@ export default function DeliveryRoutesMap({ points }) {
       })
       .catch((err) => {
         if (cancelled) return;
+        // Unexpected failure of the routing pipeline itself (not a per-provider
+        // failure, which fetchRoadRoute already handles internally). Still must
+        // never present a straight line silently as if it were a real route.
         setRouteResult({
           segments: [{ isRoad: false, positions: straightPositions, error: err.message }],
           hasFallback: true,
-          warning: '⚠️ Không thể định tuyến OSRM, hiển thị đường nối thẳng dự phòng.',
+          warning: '⚠️ Không thể dựng đường giao thông thực tế (lỗi định tuyến ngoài dự kiến). Đoạn nối thẳng hiển thị KHÔNG phải tuyến đường thực tế.',
+          excluded: [],
         });
         setRoutingLoading(false);
       });
@@ -94,6 +98,25 @@ export default function DeliveryRoutesMap({ points }) {
       cancelled = true;
     };
   }, [groupedLocations, straightPositions]);
+
+  // Combine the routing-provider warning with an explicit, identifying
+  // "N points excluded from routing" notice when out-of-Huế-bounds
+  // coordinates were found (PO Gate 3 remediation §3) — never silent.
+  const excludedWarning = useMemo(() => {
+    const excluded = routeResult.excluded || [];
+    if (excluded.length === 0) return null;
+    const labels = excluded
+      .slice(0, 5)
+      .map((loc) => {
+        const ma = loc.parcels?.[0]?.ma_buu_gui;
+        return ma ? `${ma} (${loc.lat.toFixed(4)}, ${loc.lon.toFixed(4)})` : `(${loc.lat.toFixed(4)}, ${loc.lon.toFixed(4)})`;
+      })
+      .join(', ');
+    const more = excluded.length > 5 ? `, +${excluded.length - 5} điểm khác` : '';
+    return `⚠️ Đã bỏ qua ${excluded.length} tọa độ ngoài phạm vi bản đồ Huế khi dựng đường giao thông (vẫn hiển thị trên bản đồ để Admin kiểm tra dữ liệu nguồn): ${labels}${more}.`;
+  }, [routeResult.excluded]);
+
+  const combinedWarning = [routeResult.warning, excludedWarning].filter(Boolean).join(' ');
 
   const totalPoints = points.length;
 
@@ -121,10 +144,12 @@ export default function DeliveryRoutesMap({ points }) {
             />
           ))
         ) : straightPositions.length >= 2 ? (
-          // Initial or fallback polyline before async route loads
+          // Placeholder while the road route is still loading. Styled distinctly
+          // gray (not the road-blue or fallback-amber) so it is never mistaken
+          // for either a real route or a confirmed routing failure.
           <Polyline
             positions={straightPositions}
-            pathOptions={{ color: '#1D4ED8', weight: 4, opacity: 0.85, dashArray: '6, 6' }}
+            pathOptions={{ color: '#9CA3AF', weight: 3, opacity: 0.6, dashArray: '4, 6' }}
           />
         ) : null}
 
@@ -251,10 +276,10 @@ export default function DeliveryRoutesMap({ points }) {
         })}
       </MapContainer>
 
-      {/* Warning Overlay when routing fails for some or all chunks */}
-      {routeResult.warning && (
+      {/* Warning Overlay when routing fails for some/all chunks and/or points were excluded from routing */}
+      {combinedWarning && (
         <div className="absolute top-2 left-12 z-[1000] bg-amber-50/95 border border-amber-300 text-amber-900 rounded-lg px-3 py-1.5 text-xs shadow-md flex items-center gap-1.5 max-w-md">
-          <span>{routeResult.warning}</span>
+          <span>{combinedWarning}</span>
         </div>
       )}
 

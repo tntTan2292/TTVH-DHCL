@@ -68,6 +68,15 @@ test.before(async () => {
                 ('2026-06-01', '530100', '53A555', 16.5, 107.6, '12:00:00'),
                 ('2026-06-02', '533140', '53A121', 16.5, 107.6, '09:00:00')`,
     );
+    // PO Gate 3 remediation §4 regression case: ngay_phat (business date) is
+    // June, but ngay_nhap_phat/thoi_gian_nhap_phat (actual scan time) drifted
+    // into July — mirrors the real 8-row pattern found in the live DB audit.
+    // This must NOT make July calendar-available, and must still be filtered
+    // as a June (ngay_phat) record.
+    await run(
+        `INSERT INTO network_delivery_point (ngay_phat, ma_bcvh, postman_code, lat, lon, status_time, ngay_nhap_phat, thoi_gian_nhap_phat)
+         VALUES ('2026-06-28', '537220', '53B034', 16.5, 107.6, '13:59:00', '2026-07-17', '2026-07-17 13:12:27')`,
+    );
 });
 
 test.after(() => {
@@ -109,9 +118,39 @@ test('getDeliveryRoutesMeta returns the global date and BCVH lists when no filte
     await networkMapController.getDeliveryRoutesMeta(req, res);
 
     assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body.data.dates, ['2026-06-02', '2026-06-01']);
-    assert.deepEqual(res.body.data.bcvh, ['530100', '533140']);
+    assert.deepEqual(res.body.data.dates, ['2026-06-28', '2026-06-02', '2026-06-01']);
+    assert.deepEqual(res.body.data.bcvh, ['530100', '533140', '537220']);
     assert.ok(!('postman_codes' in res.body.data), 'must not return postman_codes without ngay+ma_bcvh');
+});
+
+test('PO Gate 3 remediation §4: calendar/meta dates are keyed by ngay_phat, never by ngay_nhap_phat — a June ngay_phat row with a July ngay_nhap_phat must not make July available', async () => {
+    const req = createRequest();
+    const res = createResponse();
+    await networkMapController.getDeliveryRoutesMeta(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.ok(
+        res.body.data.dates.every((d) => d.startsWith('2026-06')),
+        `dates must all be June (ngay_phat), got: ${JSON.stringify(res.body.data.dates)}`,
+    );
+    assert.ok(!res.body.data.dates.some((d) => d.startsWith('2026-07')), 'July must never appear even though one row has ngay_nhap_phat=2026-07-17');
+});
+
+test('PO Gate 3 remediation §4: listDeliveryPoints filters strictly by ngay_phat (the June business date), and still orders by thoi_gian_nhap_phat within that date', async () => {
+    const req = createRequest({ query: { ngay: '2026-06-28', ma_bcvh: '537220', postman_code: '53B034' } });
+    const res = createResponse();
+    await networkMapController.listDeliveryPoints(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.length, 1, 'The row must be found via its ngay_phat=2026-06-28, not its ngay_nhap_phat=2026-07-17');
+    assert.equal(res.body.data[0].ngay_phat, '2026-06-28');
+    assert.equal(res.body.data[0].ngay_nhap_phat, '2026-07-17');
+
+    // Querying by the (wrong, non-business) ngay_nhap_phat month must return nothing.
+    const julyReq = createRequest({ query: { ngay: '2026-07-17', ma_bcvh: '537220', postman_code: '53B034' } });
+    const julyRes = createResponse();
+    await networkMapController.listDeliveryPoints(julyReq, julyRes);
+    assert.deepEqual(julyRes.body.data, [], 'ngay_nhap_phat must never be usable as the filter date');
 });
 
 test('getDeliveryRoutesMeta scopes BCVH to the selected Ngày', async () => {

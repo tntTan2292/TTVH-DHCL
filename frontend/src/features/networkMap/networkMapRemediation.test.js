@@ -257,8 +257,41 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
     assert.equal(isQueryAllowed('2026-06-01', '533140', '53A121'), true, 'All 3 present allows query');
   });
 
+  it('PO Gate 3 remediation §1: ĐTC2 route stops build real road geometry (via the shared routing helper) instead of a straight polyline, preserving stop order', async () => {
+    const { fetchRoadRoute } = await import('./roadRoutingService.js');
+
+    // Simulates network_level2_route_stop rows in seq order for one hành trình,
+    // sourced from network_service_point lat/lon (unchanged by this remediation).
+    const routeStops = [
+      { id: 1, seq: 1, ma_diem: 'A01', stop_name: 'Điểm đầu', lat: 16.4637, lon: 107.5909 },
+      { id: 2, seq: 2, ma_diem: 'A02', stop_name: 'Điểm giữa', lat: 16.4680, lon: 107.5950 },
+      { id: 3, seq: 3, ma_diem: 'A03', stop_name: 'Điểm cuối', lat: 16.4720, lon: 107.6000 },
+    ];
+
+    const mockFetch = async (url) => {
+      const coords = url.split('/route/v1/driving/')[1].split('?')[0].split(';');
+      const returned = coords.map((c) => c.split(',').map(Number));
+      return {
+        ok: true,
+        json: async () => ({
+          code: 'Ok',
+          routes: [{ geometry: { coordinates: returned }, distance: 3200 }],
+        }),
+      };
+    };
+
+    const res = await fetchRoadRoute(routeStops, { fetchImpl: mockFetch, useCache: false });
+    assert.equal(res.hasFallback, false);
+    assert.equal(res.segments[0].isRoad, true, 'ĐTC2 route must build real road geometry, not a straight polyline');
+    const pos = res.segments[0].positions;
+    // Order preserved: stop 1 → 2 → 3, matching seq, no reordering.
+    assert.equal(pos[0][0], 16.4637);
+    assert.equal(pos[1][0], 16.4680);
+    assert.equal(pos[2][0], 16.4720);
+  });
+
   it('validates Delivery Road Routing waypoint sequence follows Thời gian nhập phát order without reordering', async () => {
-    const { fetchDeliveryRoadRoute } = await import('./deliveryRoutingService.js');
+    const { fetchDeliveryRoadRoute } = await import('./roadRoutingService.js');
     const chronologicalWaypoints = [
       { lat: 16.4637, lon: 107.5909, time: '08:00' },
       { lat: 16.4680, lon: 107.5950, time: '09:15' },
@@ -295,7 +328,7 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
   });
 
   it('splits long routes (>25 waypoints) into chunked requests and concatenates sequentially', async () => {
-    const { chunkLocations, fetchDeliveryRoadRoute } = await import('./deliveryRoutingService.js');
+    const { chunkLocations, fetchDeliveryRoadRoute } = await import('./roadRoutingService.js');
 
     // Create 60 waypoints
     const locations = Array.from({ length: 60 }, (_, i) => ({
@@ -325,7 +358,7 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
   });
 
   it('validates in-memory route caching engine and clearRouteCache utility', async () => {
-    const { fetchDeliveryRoadRoute, clearRouteCache } = await import('./deliveryRoutingService.js');
+    const { fetchDeliveryRoadRoute, clearRouteCache } = await import('./roadRoutingService.js');
     clearRouteCache();
 
     const waypoints = [
@@ -361,7 +394,7 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
   });
 
   it('provides graceful fallback to straight line polyline if OSRM endpoint fails', async () => {
-    const { fetchDeliveryRoadRoute } = await import('./deliveryRoutingService.js');
+    const { fetchDeliveryRoadRoute } = await import('./roadRoutingService.js');
 
     const waypoints = [
       { lat: 16.4637, lon: 107.5909 },
@@ -380,7 +413,142 @@ describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
     assert.equal(res.segments.length, 1);
     assert.equal(res.segments[0].isRoad, false, 'Failed chunk must mark isRoad = false');
     assert.deepEqual(res.segments[0].positions, [[16.4637, 107.5909], [16.4680, 107.5950]], 'Fallback positions must match original waypoints');
-    assert.match(res.warning, /Định tuyến/i);
+    assert.match(res.warning, /không phải tuyến đường thực tế/i, 'Warning must explicitly say the fallback line is NOT a real route — never silent');
+  });
+
+  it('PO Gate 3 remediation: falls over to the second provider when the first times out (15s AbortController)', async () => {
+    const { fetchChunkRoadRoute } = await import('./roadRoutingService.js');
+
+    const chunk = [
+      { lat: 16.4637, lon: 107.5909 },
+      { lat: 16.4680, lon: 107.5950 },
+    ];
+
+    const calledUrls = [];
+    const mockFetch = async (url, opts) => {
+      calledUrls.push(url);
+      if (url.includes('router.project-osrm.org')) {
+        // Simulate an unresponsive first provider: never resolves until aborted.
+        return new Promise((_resolve, reject) => {
+          opts.signal.addEventListener('abort', () => {
+            const err = new Error('The operation was aborted');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        });
+      }
+      // Second provider answers immediately and successfully.
+      return {
+        ok: true,
+        json: async () => ({
+          code: 'Ok',
+          routes: [{ geometry: { coordinates: [[107.5909, 16.4637], [107.5950, 16.4680]] }, distance: 900 }],
+        }),
+      };
+    };
+
+    const result = await fetchChunkRoadRoute(chunk, mockFetch, 50); // short timeout to keep the test fast
+    assert.equal(result.isRoad, true, 'Must succeed via the second provider after the first times out');
+    assert.equal(calledUrls.length, 2, 'Must have tried both providers in order');
+    assert.match(calledUrls[0], /router\.project-osrm\.org/);
+    assert.match(calledUrls[1], /routing\.openstreetmap\.de/);
+  });
+
+  it('PO Gate 3 remediation: both providers failing/timing out yields an explicit non-silent failure state', async () => {
+    const { fetchChunkRoadRoute } = await import('./roadRoutingService.js');
+
+    const chunk = [
+      { lat: 16.4637, lon: 107.5909 },
+      { lat: 16.4680, lon: 107.5950 },
+    ];
+
+    const mockFetch = async () => {
+      throw new Error('network unreachable');
+    };
+
+    const result = await fetchChunkRoadRoute(chunk, mockFetch, 50);
+    assert.equal(result.isRoad, false);
+    assert.ok(result.error, 'error must be populated — never a silent straight line');
+    assert.equal(result.providerErrors.length, 2, 'Both provider attempts must be recorded');
+  });
+
+  it('PO Gate 3 remediation: excludes out-of-Huế-bounds coordinates (e.g. Morocco data artifact) from routing without dropping them from the caller-visible result', async () => {
+    const { fetchRoadRoute, isWithinHueRoutingBounds } = await import('./roadRoutingService.js');
+
+    // Confirmed live-DB artifact coordinates from the PO Gate 3 root-cause audit.
+    const moroccoPoint = { lat: 31.6596742, lon: -8.02315, ma_buu_gui: 'CN612813811VN' };
+    assert.equal(isWithinHueRoutingBounds(moroccoPoint), false);
+    assert.equal(isWithinHueRoutingBounds({ lat: 16.46, lon: 107.59 }), true);
+
+    const waypoints = [
+      { lat: 16.4637, lon: 107.5909, ma_buu_gui: 'A' },
+      moroccoPoint,
+      { lat: 16.4680, lon: 107.5950, ma_buu_gui: 'B' },
+    ];
+
+    const calledCoords = [];
+    const mockFetch = async (url) => {
+      calledCoords.push(url.split('/route/v1/driving/')[1].split('?')[0]);
+      return {
+        ok: true,
+        json: async () => ({
+          code: 'Ok',
+          routes: [{ geometry: { coordinates: [[107.5909, 16.4637], [107.5950, 16.4680]] }, distance: 900 }],
+        }),
+      };
+    };
+
+    const res = await fetchRoadRoute(waypoints, { fetchImpl: mockFetch, useCache: false });
+    assert.equal(res.excluded.length, 1, 'Exactly the 1 out-of-bounds point must be excluded from routing');
+    assert.equal(res.excluded[0].ma_buu_gui, 'CN612813811VN');
+    assert.equal(res.excluded[0].originalIndex, 1, 'Excluded point must retain its original position for identification');
+    assert.equal(calledCoords.length, 1, 'Only 1 OSRM request for the 2 routable points');
+    assert.ok(!calledCoords[0].includes('-8.02315'), 'The Morocco coordinate must never reach the OSRM request URL');
+    assert.equal(res.hasFallback, false, 'The 2 valid points must still route successfully; one bad coordinate must not break the whole route');
+  });
+
+  it('PO Gate 3 remediation: a single invalid coordinate does not prevent the rest of an otherwise-valid route from building', async () => {
+    const { fetchRoadRoute } = await import('./roadRoutingService.js');
+
+    const waypoints = [
+      { lat: 16.4637, lon: 107.5909 },
+      { lat: 16.4680, lon: 107.5950 },
+      { lat: 20.1964123, lon: 106.0982549 }, // confirmed Hải Phòng-area outlier from the live DB audit
+      { lat: 16.4720, lon: 107.6000 },
+    ];
+
+    const mockFetch = async () => ({
+      ok: true,
+      json: async () => ({
+        code: 'Ok',
+        routes: [{ geometry: { coordinates: [[107.5909, 16.4637], [107.5950, 16.4680], [107.6000, 16.4720]] }, distance: 1500 }],
+      }),
+    });
+
+    const res = await fetchRoadRoute(waypoints, { fetchImpl: mockFetch, useCache: false });
+    assert.equal(res.excluded.length, 1);
+    assert.equal(res.segments.length, 1);
+    assert.equal(res.segments[0].isRoad, true, 'The 3 valid points must still build a real road route');
+  });
+
+  it('chunking keeps the last point of one chunk identical to the first point of the next chunk (continuity)', async () => {
+    const { chunkLocations } = await import('./roadRoutingService.js');
+
+    const locations = Array.from({ length: 60 }, (_, i) => ({
+      lat: 16.46 + i * 0.001,
+      lon: 107.59 + i * 0.001,
+    }));
+
+    const chunks = chunkLocations(locations, 25);
+    assert.equal(chunks.length, 3);
+    for (let i = 0; i < chunks.length - 1; i++) {
+      const lastOfCurrent = chunks[i][chunks[i].length - 1];
+      const firstOfNext = chunks[i + 1][0];
+      assert.deepEqual(lastOfCurrent, firstOfNext, `Chunk ${i} boundary must overlap with chunk ${i + 1}`);
+    }
+    // No point dropped: total unique points across all chunks (de-duplicating the overlap) equals the input length.
+    const totalUnique = chunks.reduce((sum, c, idx) => sum + (idx === 0 ? c.length : c.length - 1), 0);
+    assert.equal(totalUnique, locations.length);
   });
 
   it('validates Delivery Routes Legend category color mapping matches colorForDeliveryService', () => {
