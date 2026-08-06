@@ -18,6 +18,7 @@
 - [14. Phase 3 Implementation Closure](#14-phase-3-implementation-closure)
 - [15. PO Gate 3 Runtime Remediation](#15-po-gate-3-runtime-remediation)
 - [16. ĐTC2 Journey Visual Remediation](#16-đtc2-journey-visual-remediation)
+- [17. ĐTC2 Selected-Route Arrow Visibility Remediation](#17-đtc2-selected-route-arrow-visibility-remediation)
 
 ## 1. Purpose
 
@@ -264,3 +265,15 @@ Product Owner reported that a journey's outbound and return legs revisiting the 
 **Validation**: 12 new unit tests in `routeJourneyGeometry.test.js` (turnaround detection against the exact live Tuyến 6 coordinates, direction classification incl. one-way/no-turnaround and simple-3-stop cases, coordinate grouping, fan-angle math, pixel-offset perpendicular math, arrow-sample bearing/spacing) — all pass; 51/51 across the full targeted frontend suite; `oxlint` clean; `vite build` succeeds. Real-browser runtime re-verified as `admin`: Tuyến 6 reproduces the PO's exact example (Quay đầu correctly identified as Lăng Cô; 6/6 stop markers rendered and visibly separated — 2 fanned pairs at 32px apart; mode toggle correctly reduces to 4 markers/1 line in Chiều đi and 3/1 in Chiều về; clicking a fanned BCVH Phú Lộc marker shows a popup listing both lượt 1 and lượt 6 with direction/giờ đến/xử lý/giờ đi; hovering a marker highlights exactly the matching sidebar row). Spot-checked Tuyến 3 (7 stops, all distinct/separated), Tuyến 8 (9 stops, no routing warnings), Tuyến 9 (9 stops, symmetric turnaround at the farthest point, all rendered). Import/Export/History panel (existing history row + Rollback control) confirmed unaffected. `fact_f13` (669,847), `network_level2_route` (28), `network_level2_route_stop` (148), and `network_delivery_point` (143,475) row counts unchanged — no backend or DB code touched by this remediation. Both pre-existing stashes untouched.
 
 This work does not alter Phase 3's technical-completion state or PO Gate 3 status — still awaiting the Product Owner's PO Gate 3 runtime recheck (Section 15) — and does not start Phase 4.
+
+## 17. ĐTC2 Selected-Route Arrow Visibility Remediation
+
+Product Owner runtime feedback on Section 16's arrows: too small to read without zooming to maximum, "chưa đạt yêu cầu sử dụng". Follow-up remediation, same scope (selected-route detail view only):
+
+- `mapStyles.js` `createDirectionArrowSvg` default size raised `16px → 26px` with a thicker white outline and a drop-shadow for contrast against any tile background. The size is a fixed Leaflet `divIcon` screen-pixel value — it was already zoom-invariant before this change (never grew when zooming in), so this only fixes "too small," not any zoom-scaling defect.
+- New pure functions in `routeJourneyGeometry.js` — `computePolylineLengthKm`, `computeArrowCount` (one arrow roughly every 15km of real leg length, clamped 2-8) — replace the previous flat "3 arrows per leg regardless of length" constant, so a short leg isn't over-crowded and a long leg (Tuyến 8, 171km) isn't left too sparse to notice.
+- Arrows are now offset `13px` off the road-line centerline, in the direction "90° clockwise from the arrow's own bearing" — a single consistent rule that, for a there-and-back leg, lands outbound and return arrows on opposite physical sides of the line (verified: no arrow position ever coincides with a stop-marker position). No line/marker/popup/filter/data behavior changed.
+
+**Validation**: 2 new unit tests (`computePolylineLengthKm`, `computeArrowCount`) — 14/14 in `routeJourneyGeometry.test.js`, 53/53 across the full targeted frontend suite; `oxlint` clean; `vite build` succeeds. Real-browser runtime re-verified as `admin` at the map's default zoom (10, unchanged — no `fitBounds`/`setView` call exists in this component): Tuyến 6 renders 9 arrows at 26×26px, none overlapping the 6 stop markers; Tuyến 8 (171km) renders 16 arrows (max-clamped, not overcrowded); Tuyến 2 (8km) renders 4 arrows (min-clamped, not empty); the unselected 28-route overview still renders 0 arrows. No console errors introduced. `fact_f13`/`network_level2_route`/`network_level2_route_stop`/`network_delivery_point` row counts unchanged — no backend/DB touched. Both stashes untouched.
+
+Does not alter Phase 3's `REMEDIATED / TECHNICAL PASS` status or PO Gate 3 (still awaiting Product Owner runtime recheck) and does not start Phase 4.

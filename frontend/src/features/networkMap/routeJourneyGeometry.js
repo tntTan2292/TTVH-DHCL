@@ -210,6 +210,33 @@ export function pickArrowSamplePositions(positions, count) {
   return samples;
 }
 
+/**
+ * Total length (km) of a [lat, lon] position array, summing consecutive
+ * haversine distances. Used to scale arrow count to geometry length.
+ */
+export function computePolylineLengthKm(positions) {
+  if (!positions || positions.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < positions.length; i++) {
+    const [lat1, lon1] = positions[i - 1];
+    const [lat2, lon2] = positions[i];
+    total += haversineKm(lat1, lon1, lat2, lon2);
+  }
+  return total;
+}
+
+/**
+ * How many direction arrows a leg of the given length should get — dense
+ * enough to be visible along a long journey, sparse enough not to clutter a
+ * short one. One arrow roughly every `kmPerArrow` km, clamped to
+ * [minCount, maxCount].
+ */
+export function computeArrowCount(lengthKm, { minCount = 2, maxCount = 8, kmPerArrow = 15 } = {}) {
+  if (!lengthKm || lengthKm <= 0) return minCount;
+  const raw = Math.round(lengthKm / kmPerArrow);
+  return Math.min(maxCount, Math.max(minCount, raw));
+}
+
 export default {
   haversineKm,
   bearingDeg,
@@ -220,4 +247,6 @@ export default {
   fanAngleToOffset,
   offsetPixelPolyline,
   pickArrowSamplePositions,
+  computePolylineLengthKm,
+  computeArrowCount,
 };

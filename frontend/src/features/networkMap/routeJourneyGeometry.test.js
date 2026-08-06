@@ -10,6 +10,8 @@ import {
   fanAngleToOffset,
   offsetPixelPolyline,
   pickArrowSamplePositions,
+  computePolylineLengthKm,
+  computeArrowCount,
 } from './routeJourneyGeometry.js';
 
 describe('ĐTC2 journey visual remediation — routeJourneyGeometry', () => {
@@ -148,5 +150,27 @@ describe('ĐTC2 journey visual remediation — routeJourneyGeometry', () => {
   it('bearingDeg computes 90° due east and 270° due west', () => {
     assert.ok(Math.abs(bearingDeg(16.46, 107.59, 16.46, 107.60) - 90) < 1);
     assert.ok(Math.abs(bearingDeg(16.46, 107.60, 16.46, 107.59) - 270) < 1);
+  });
+
+  it('computePolylineLengthKm sums consecutive haversine distances and returns 0 for a degenerate line', () => {
+    assert.equal(computePolylineLengthKm([]), 0);
+    assert.equal(computePolylineLengthKm([[16.46, 107.59]]), 0);
+    const straightLine = [
+      [16.46, 107.59],
+      [16.46, 107.60],
+      [16.46, 107.61],
+    ];
+    const total = computePolylineLengthKm(straightLine);
+    const expected = haversineKm(16.46, 107.59, 16.46, 107.60) + haversineKm(16.46, 107.60, 16.46, 107.61);
+    assert.ok(Math.abs(total - expected) < 1e-9);
+  });
+
+  it('computeArrowCount scales arrow density with route length, clamped to a sane min/max (PO arrow-visibility remediation)', () => {
+    assert.equal(computeArrowCount(0), 2, 'a degenerate/zero-length leg still gets the minimum');
+    assert.equal(computeArrowCount(8), 2, 'a short ~8km leg (e.g. Tuyến 2) clamps to the minimum, not 0-1');
+    assert.equal(computeArrowCount(60), 4, 'a ~60km leg (Tuyến 6 outbound) gets a proportionate count');
+    assert.equal(computeArrowCount(171), 8, 'a long ~171km leg (Tuyến 8) clamps to the maximum, never unboundedly dense');
+    // Custom options are honored.
+    assert.equal(computeArrowCount(30, { minCount: 1, maxCount: 3, kmPerArrow: 10 }), 3);
   });
 });

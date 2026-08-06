@@ -20,6 +20,8 @@ import {
   fanAngleToOffset,
   offsetPixelPolyline,
   pickArrowSamplePositions,
+  computePolylineLengthKm,
+  computeArrowCount,
 } from './routeJourneyGeometry';
 
 const DIRECTION_LABEL = { outbound: 'Chiều đi', return: 'Chiều về', turnaround: 'Quay đầu' };
@@ -30,7 +32,15 @@ const MODES = [
 ];
 const FAN_RADIUS_PX = 16; // spiderfy fan radius, in screen pixels — zoom-invariant
 const LINE_OFFSET_PX = 3; // perpendicular separation between outbound/return lines when both drawn
-const ARROWS_PER_SEGMENT = 3;
+// PO arrow-visibility remediation: arrows were reported "too small to see
+// without zooming to max". ARROW_ICON_SIZE_PX matches the larger default in
+// createDirectionArrowSvg; ARROW_SIDE_OFFSET_PX nudges each arrow off the
+// line centerline (never directly under it, never over a stop marker), on
+// the *right-hand side relative to its own direction of travel* — a single
+// consistent rule that, for two opposite-direction legs on the same road,
+// automatically lands outbound and return arrows on opposite physical sides.
+const ARROW_ICON_SIZE_PX = 26;
+const ARROW_SIDE_OFFSET_PX = 13;
 
 /**
  * ĐTC2 journey visual remediation — renders one selected route's stops and
@@ -77,6 +87,37 @@ function SelectedRouteJourneyLayer({
   const project = (lat, lon) => map.latLngToLayerPoint([lat, lon]);
   const unproject = (point) => map.layerPointToLatLng(point);
 
+  // Places direction-of-travel arrows along a rendered leg's road geometry:
+  // count scaled to the leg's real length (PO arrow-visibility remediation
+  // §6), each nudged ARROW_SIDE_OFFSET_PX to the right of its own travel
+  // direction (§3/§4 — a single consistent rule that puts outbound/return
+  // arrows on opposite physical sides of the road for a there-and-back leg),
+  // sized ARROW_ICON_SIZE_PX (fixed screen pixels, so it reads clearly at
+  // the default zoom and never grows further when zooming in, §2/§5).
+  const placeDirectionArrows = (positions, direction, keyPrefix) => {
+    const lengthKm = computePolylineLengthKm(positions);
+    const count = computeArrowCount(lengthKm);
+    return pickArrowSamplePositions(positions, count).map((a, aIdx) => {
+      const basePoint = project(a.position[0], a.position[1]);
+      const { x, y } = fanAngleToOffset(a.bearing + 90, ARROW_SIDE_OFFSET_PX);
+      const offsetLatLng = unproject({ x: basePoint.x + x, y: basePoint.y + y });
+      const icon = L.divIcon({
+        html: createDirectionArrowSvg(a.bearing, colorForJourneyDirection(direction), ARROW_ICON_SIZE_PX),
+        className: 'journey-direction-arrow',
+        iconSize: [ARROW_ICON_SIZE_PX, ARROW_ICON_SIZE_PX],
+        iconAnchor: [ARROW_ICON_SIZE_PX / 2, ARROW_ICON_SIZE_PX / 2],
+      });
+      return (
+        <Marker
+          key={`${keyPrefix}-${aIdx}`}
+          position={[offsetLatLng.lat, offsetLatLng.lng]}
+          icon={icon}
+          interactive={false}
+        />
+      );
+    });
+  };
+
   const showOutbound = mode === 'all' || mode === 'outbound';
   const showReturn = mode === 'all' || mode === 'return';
   const bothShown = mode === 'all' && turnaroundIndex !== null;
@@ -113,17 +154,7 @@ function SelectedRouteJourneyLayer({
         </Polyline>,
       );
       if (seg.isRoad) {
-        pickArrowSamplePositions(positions, ARROWS_PER_SEGMENT).forEach((a, aIdx) => {
-          const icon = L.divIcon({
-            html: createDirectionArrowSvg(a.bearing, colorForJourneyDirection('outbound'), 14),
-            className: 'journey-direction-arrow',
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
-          });
-          polylineElements.push(
-            <Marker key={`outbound-arrow-${segIdx}-${aIdx}`} position={a.position} icon={icon} interactive={false} />,
-          );
-        });
+        placeDirectionArrows(positions, 'outbound', `outbound-arrow-${segIdx}`).forEach((el) => polylineElements.push(el));
       }
     });
   }
@@ -156,17 +187,7 @@ function SelectedRouteJourneyLayer({
         </Polyline>,
       );
       if (seg.isRoad) {
-        pickArrowSamplePositions(positions, ARROWS_PER_SEGMENT).forEach((a, aIdx) => {
-          const icon = L.divIcon({
-            html: createDirectionArrowSvg(a.bearing, colorForJourneyDirection('return'), 14),
-            className: 'journey-direction-arrow',
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
-          });
-          polylineElements.push(
-            <Marker key={`return-arrow-${segIdx}-${aIdx}`} position={a.position} icon={icon} interactive={false} />,
-          );
-        });
+        placeDirectionArrows(positions, 'return', `return-arrow-${segIdx}`).forEach((el) => polylineElements.push(el));
       }
     });
   }

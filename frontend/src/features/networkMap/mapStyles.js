@@ -185,9 +185,17 @@ export function colorForJourneyDirection(direction) {
  * journey polyline. `bearingDeg` is a compass bearing (0 = north); the SVG
  * triangle points up by default (0°), rotated to match.
  */
-export function createDirectionArrowSvg(bearingDeg = 0, color = JOURNEY_DIRECTION_COLORS.outbound, size = 16) {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(${bearingDeg}deg);">
-    <polygon points="10,2 16,16 10,12 4,16" fill="${color}" stroke="white" stroke-width="1"/>
+/**
+ * PO arrow-visibility remediation: sized to read clearly at the map's
+ * default zoom without needing to zoom in (previous 16px/1px-outline
+ * version was reported "too small to see except at max zoom"). The size is
+ * a fixed screen-pixel value (Leaflet `divIcon` doesn't scale with zoom),
+ * so it stays this same readable size at any zoom — never grows further
+ * when zooming in ("không phóng đại theo zoom đến mức thô").
+ */
+export function createDirectionArrowSvg(bearingDeg = 0, color = JOURNEY_DIRECTION_COLORS.outbound, size = 26) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="transform: rotate(${bearingDeg}deg); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));">
+    <polygon points="12,2 20,20 12,15 4,20" fill="${color}" stroke="white" stroke-width="2.5" stroke-linejoin="round"/>
   </svg>`;
 }
 
