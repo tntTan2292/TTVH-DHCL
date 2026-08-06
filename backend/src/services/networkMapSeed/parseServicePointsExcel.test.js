@@ -43,17 +43,17 @@ test('parses a well-formed sheet with no header drift', () => {
     });
 });
 
-test('skips rows with missing mã điểm and warns instead of guessing', () => {
+test('keeps a row with missing mã điểm (ma_diem: null) and warns, rather than silently dropping it — Phase 3 classify needs to see it to flag a blocking error', () => {
     const workbook = buildWorkbook(baseRows([
         [1, null, 'Không có mã', 'Giao dịch', 'Ngôi sao', 'X', 'Y', 'Hoạt động', 107.59, 16.46, 'Z'],
         [2, '530001', 'Có mã', 'Giao dịch', 'Ngôi sao', 'X', 'Y', 'Hoạt động', 107.6, 16.47, 'Z'],
     ]));
     const { records, warnings } = parseServicePointsWorkbook(workbook);
 
-    assert.equal(records.length, 1);
-    assert.equal(records[0].ma_diem, '530001');
-    assert.equal(warnings.length, 1);
-    assert.match(warnings[0], /missing Mã điểm phục vụ/);
+    assert.equal(records.length, 2, 'both rows are returned — nothing is silently dropped');
+    assert.equal(records[0].ma_diem, null);
+    assert.equal(records[1].ma_diem, '530001');
+    assert.ok(warnings.some((w) => /missing Mã điểm phục vụ/.test(w)));
 });
 
 test('keeps a record with null coordinates and warns rather than fabricating lat/lon', () => {

@@ -156,16 +156,6 @@ test('listDeliveryPoints queries only after all three filters are provided and n
     assert.deepEqual(res.body.data, []);
 });
 
-test('import endpoints are admin-only scaffolding that report NOT_IMPLEMENTED, not silent success', async () => {
-    const req = createRequest();
-    const res = createResponse();
-    await networkMapController.importServicePoints(req, res);
-
-    assert.equal(res.statusCode, 501);
-    assert.equal(res.body.success, false);
-    assert.equal(res.body.error.code, 'NOT_IMPLEMENTED');
-});
-
 test('read endpoints are reachable by both admin and viewer through the shared middleware chain', () => {
     const allowViewerRead = [requireAuth, requireRole(['admin', 'viewer'])];
 

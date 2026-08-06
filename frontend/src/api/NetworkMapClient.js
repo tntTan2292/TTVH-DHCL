@@ -47,6 +47,64 @@ class NetworkMapClient {
         if (ca) params.ca = ca;
         return httpClient.get('/network-map/delivery-routes/points', params);
     }
+
+    // ==================== Phase 3: Import / Export / History / Rollback (admin only) ====================
+
+    previewServicePoints(file) {
+        const form = new FormData();
+        form.append('file', file);
+        return httpClient.post('/network-map/service-points/import/preview', form);
+    }
+
+    confirmServicePoints(sessionToken) {
+        return httpClient.post('/network-map/service-points/import/confirm', { session_token: sessionToken });
+    }
+
+    exportServicePoints() {
+        return httpClient.getBlob('/network-map/service-points/export');
+    }
+
+    previewLevel2Routes(file) {
+        const form = new FormData();
+        form.append('file', file);
+        return httpClient.post('/network-map/level2-routes/import/preview', form);
+    }
+
+    confirmLevel2Routes(sessionToken, selectedRouteKeys) {
+        return httpClient.post('/network-map/level2-routes/import/confirm', { session_token: sessionToken, selected_route_keys: selectedRouteKeys });
+    }
+
+    exportLevel2Routes() {
+        return httpClient.getBlob('/network-map/level2-routes/export');
+    }
+
+    previewDeliveryRoutes(file) {
+        const form = new FormData();
+        form.append('file', file);
+        return httpClient.post('/network-map/delivery-routes/import/preview', form);
+    }
+
+    confirmDeliveryRoutes(sessionToken) {
+        return httpClient.post('/network-map/delivery-routes/import/confirm', { session_token: sessionToken });
+    }
+
+    exportDeliveryRoutesPreviewCount({ from, to, all } = {}) {
+        const params = all ? { all: 'true' } : { from, to };
+        return httpClient.get('/network-map/delivery-routes/export/preview-count', params);
+    }
+
+    exportDeliveryRoutes({ from, to, all } = {}) {
+        const params = all ? { all: 'true' } : { from, to };
+        return httpClient.getBlob('/network-map/delivery-routes/export', params);
+    }
+
+    importHistory(module) {
+        return httpClient.get(`/network-map/import/history/${module}`);
+    }
+
+    rollbackImport(importLogId) {
+        return httpClient.post(`/network-map/import/${importLogId}/rollback`, {});
+    }
 }
 
 export default new NetworkMapClient();

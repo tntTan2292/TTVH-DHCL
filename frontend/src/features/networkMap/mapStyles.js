@@ -146,6 +146,21 @@ export function createServicePointSvg(loaiDiem, size = 26, trangThai = 'Hoạt �
   </svg>`;
 }
 
+// NETWORK-MANAGEMENT-001 Phase 3: "Tạm dừng" points must render with a
+// marker that is visually distinct from all 5 active loai_diem colors —
+// never reuse Giao dịch/Bưu cục vận hành/VHX/Văn phòng/Khai thác tỉnh
+// colors for a "Tạm dừng" point, so it can never be mistaken for an
+// active point of any category.
+export const TAM_DUNG_MARKER_COLOR = '#9CA3AF';
+
+export function createTamDungMarkerSvg(size = 26) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="14" cy="14" r="10" fill="${TAM_DUNG_MARKER_COLOR}" fill-opacity="0.55" stroke="${TAM_DUNG_MARKER_COLOR}" stroke-width="2" stroke-dasharray="3,2"/>
+    <rect x="10" y="9" width="3" height="10" rx="1" fill="white"/>
+    <rect x="15" y="9" width="3" height="10" rx="1" fill="white"/>
+  </svg>`;
+}
+
 export const HUE_MAP_CENTER = [16.46, 107.59];
 export const HUE_MAP_DEFAULT_ZOOM = 10;
 export const ZOOM_LABEL_THRESHOLD_SERVICE = 13;

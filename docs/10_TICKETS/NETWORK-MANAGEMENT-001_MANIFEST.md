@@ -19,12 +19,13 @@
 - [15. Authority Escalation](#15-authority-escalation)
 - [16. Phase 1 Implementation Closure](#16-phase-1-implementation-closure)
 - [17. Phase 2 Implementation Closure](#17-phase-2-implementation-closure)
+- [27. Phase 3 Implementation Closure](#27-phase-3-implementation-closure)
 
 ## 1. Ticket Information
 
 - Ticket ID: `NETWORK-MANAGEMENT-001`
 - Ticket Name: Quản lý mạng lưới (Network Management) — Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát
-- Phase: Phase 1 (Nền tảng) and Phase 2 (Ba bản đồ) `COMPLETED / TECHNICAL PASS`; Phase 3-4 remain `PLANNED / NOT ACTIVE`.
+- Phase: Phase 1 (Nền tảng) `COMPLETED / TECHNICAL PASS`; Phase 2 (Ba bản đồ) `COMPLETED / PO PASS / CLOSED`; Phase 3 (Import) `COMPLETED / TECHNICAL PASS`; Phase 4 remains `PLANNED / NOT ACTIVE`.
 - Owner: Claude Code (implementation, backend, data, tests, documentation, Git per `DEC-020`)
 - Governance Version: `V2 Active`
 - Authorization: Product Owner, `2026-08-04` — explicit activation request naming `NETWORK-MANAGEMENT-001` and locking scope/baseline per the four-phase structure below
@@ -35,14 +36,13 @@ Activate a single four-phase program to bring three independent map-based screen
 
 ## 3. Current Status
 
-- Current state: `PHASE 2 UI/UX REMEDIATION COMPLETED / READY FOR PO VISUAL RECHECK`, as of `2026-08-05`.
-- Recorded PO evaluation: `PO UI FAIL / FUNCTIONAL PASS`.
+- Current state: `PHASE 3 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 3`, as of `2026-08-06`.
 - Phase 1 (Nền tảng): `COMPLETED / TECHNICAL PASS`. PO Gate 1 `PASS` (Product Owner, `2026-08-05`).
-- Phase 2 (Ba bản đồ): `FUNCTIONAL PASS`. UI/UX remediated per reference HTML comparison audit.
-- Phase 3 (Import): `PLANNED / NOT ACTIVE`.
+- Phase 2 (Ba bản đồ): `COMPLETED / PO PASS / CLOSED`. PO Gate 2 `PASS` (Product Owner, `2026-08-05`).
+- Phase 3 (Import): implemented and technically validated (Export/Preview/Confirm/History/Rollback for all 3 modules, per the PO-approved "Corrected Recommended Design"). See checkpoint Section 14 for full evidence. PO Gate 3 not yet requested/granted.
 - Phase 4 (Nghiệm thu): `PLANNED / NOT ACTIVE`.
-- PO UI Check Required: `Yes` for Phase 2 UI/UX Remediation (PO Gate 2 visual re-check).
-- PO Product Status: Phase 2 UI/UX Remediation completed, ready for PO visual recheck.
+- PO UI Check Required: `Yes` for Phase 3 (PO Gate 3 — Import/Export/History/Rollback UI check across all 3 modules) — not yet performed.
+- PO Product Status: Phase 3 technically complete, not yet PO-reviewed.
 
 ## 4. Required Reading
 
@@ -211,3 +211,15 @@ This closure covers Phase 2 (Ba bản đồ) only. It does not start, authorize,
 - Authority Chain Inspection: Phase 3 (Import) is `PLANNED / NOT ACTIVE` and is NOT pre-authorized without explicit Product Owner directive.
 - Next State: `PHASE 2 CLOSED / AWAITING PO DIRECTION FOR PHASE 3`
 - Scope discipline: Governance-only update. Zero product code, database schema, parser, UI component, or routing logic modified. Preserved 02 stashes (`stash@{0}` and `stash@{1}`) intact.
+
+## 27. Phase 3 Implementation Closure
+
+- Status: `COMPLETED / TECHNICAL PASS`
+- Closed on: `2026-08-06`
+- Closure authority: direct execution of explicit Product Owner Phase 3 Implementation Authorization, following the PO-approved "Corrected Recommended Design" review round; PO Gate 3 (Section 11) itself remains a separate, not-yet-requested Product Owner confirmation.
+
+Full implementation evidence, locked-design confirmation, and validation commands/output are recorded in `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` Section 14 and are not duplicated here.
+
+Summary: Import/Export/History/Rollback built for all three modules exactly per the PO-approved design, in three steps (additive DB migration; backend Export/Preview/Confirm/History/Rollback; frontend admin-only UI + map handling + validation), each reaching Technical PASS before the next began. Locked decisions honored unchanged: điểm phục vụ upserts by `ma_diem` with `trang_thai` never transformed; ĐTC2 uses `network_level2_route.id` directly as the stable Route ID (no separate `route_key` needed — AUTOINCREMENT ids are never reused), validates `Mã điểm` existence only (never filtering on `trang_thai`, so "Tạm dừng" points remain valid geometry sources), and replaces stops only for admin-selected routes; tuyến phát keeps the `(ma_buu_gui, ngay_phat, route_po_code)` key unchanged, writes via `ON CONFLICT DO UPDATE` (never `INSERT OR IGNORE`), and now enforces that key with a real DB `UNIQUE` index; rollback records full before-images with an explicit INSERT/UPDATE/DELETE operation type per row and refuses to run when a later, still-active import touched the same scope. Using the finished Import feature, the 5 audited "Tạm dừng" points (`536101`, `536102`, `537200`, `534630`, `534989`) were actually imported into the live database — `network_service_point` grew from 151 to 156 rows, and 11 previously-orphaned ĐTC2 stop references now resolve real geometry. Two real defects (a migration that silently created no rows due to `db.run()` vs `db.exec()`, and a rollback-eligibility check that could miss a same-second later import) were found and fixed by the test suite before being shipped. 77 backend + 25 frontend automated tests pass; `oxlint` clean; `vite build` succeeds; full real-browser runtime validation performed as `admin`; `fact_f13` confirmed unchanged across three checkpoints; all 3 `Data QLML/` source Excel files confirmed byte-identical throughout.
+
+This closure covers Phase 3 (Import) only. It does not start, authorize, or imply authorization for Phase 4 (Nghiệm thu), which requires its own explicit Product Owner authorization per Section 11 (PO Gates). No F1.3 code or any module outside this ticket's three named screens was modified.

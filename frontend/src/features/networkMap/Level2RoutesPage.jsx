@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import networkMapClient from '../../api/NetworkMapClient';
 import Level2RoutesMap from './Level2RoutesMap';
-import ImportPendingButton from './ImportPendingButton';
 import MapStateBanner from './MapStateBanner';
+import NetworkAdminSection from './import/NetworkAdminSection';
+import Level2RoutesImportPanel from './import/Level2RoutesImportPanel';
+import ExportButton from './import/ExportButton';
 
 export default function Level2RoutesPage() {
   const [status, setStatus] = useState('loading');
@@ -11,28 +13,23 @@ export default function Level2RoutesPage() {
   const [errorMessage, setErrorMessage] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
+  const load = useCallback(() => {
+    setStatus((prev) => (prev === 'ready' ? prev : 'loading'));
     networkMapClient.getLevel2Routes()
       .then((response) => {
-        if (cancelled) return;
         const data = response?.data || [];
         const routesMissingGeometry = data.filter((r) => (r.stops || []).filter((s) => typeof s.lat === 'number' && typeof s.lon === 'number').length < 2).length;
-        if (routesMissingGeometry > 0) {
-          setWarning(`${routesMissingGeometry} tuyến thiếu đủ tọa độ để vẽ đường, chỉ hiển thị trong danh sách.`);
-        }
+        setWarning(routesMissingGeometry > 0 ? `${routesMissingGeometry} tuyến thiếu đủ tọa độ để vẽ đường, chỉ hiển thị trong danh sách.` : null);
         setRoutes(data);
         setStatus(data.length === 0 ? 'empty' : 'ready');
       })
       .catch((error) => {
-        if (cancelled) return;
         setErrorMessage(error?.message || 'Không thể kết nối API Mạng đường thư cấp 2.');
         setStatus('error');
       });
-
-    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const totalKm = routes.reduce((sum, r) => sum + (typeof r.declared_km === 'number' ? r.declared_km : 0), 0);
 
@@ -43,8 +40,15 @@ export default function Level2RoutesPage() {
           <h1 className="text-2xl font-bold text-vnpost-blue-dark">Mạng đường thư cấp 2</h1>
           <p className="text-gray-600 mt-1">Mạng hiện hành — {routes.length} hành trình, tổng {totalKm} km. Không dùng phương án tổ chức lại.</p>
         </div>
-        <ImportPendingButton />
       </div>
+
+      <NetworkAdminSection
+        module="level2_route"
+        exportSlot={<ExportButton onExport={() => networkMapClient.exportLevel2Routes()} label="Export Excel" />}
+        importSlot={(refreshHistory) => (
+          <Level2RoutesImportPanel onConfirmed={() => { load(); refreshHistory(); }} />
+        )}
+      />
 
       {status !== 'ready' && (
         <div className="mb-4">

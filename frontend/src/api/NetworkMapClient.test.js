@@ -87,3 +87,75 @@ test('getDeliveryRoutePoints rejects locally without hitting the network when a 
   );
   assert.equal(fetchCalled, false, 'must not bulk-query the backend without all three filters');
 });
+
+// ==================== Phase 3: Import / Export / History / Rollback ====================
+
+test('previewServicePoints POSTs a FormData file to /import/preview', async () => {
+  let capturedBody;
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/service-points/import/preview');
+    capturedBody = options.body;
+    return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
+  };
+  const fakeFile = new File(['x'], 'a.xlsx');
+  await networkMapClient.previewServicePoints(fakeFile);
+  assert.ok(capturedBody instanceof FormData);
+});
+
+test('confirmServicePoints POSTs session_token to /import/confirm', async () => {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/service-points/import/confirm');
+    assert.deepEqual(JSON.parse(options.body), { session_token: 'tok-1' });
+    return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
+  };
+  await networkMapClient.confirmServicePoints('tok-1');
+});
+
+test('confirmLevel2Routes sends session_token and selected_route_keys', async () => {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/level2-routes/import/confirm');
+    assert.deepEqual(JSON.parse(options.body), { session_token: 'tok-2', selected_route_keys: ['id:1', 'new:X'] });
+    return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
+  };
+  await networkMapClient.confirmLevel2Routes('tok-2', ['id:1', 'new:X']);
+});
+
+test('exportServicePoints requests the export endpoint and returns a blob', async () => {
+  globalThis.fetch = async (url) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/service-points/export');
+    return new Response(new Blob(['xlsx-bytes']), {
+      status: 200,
+      headers: { 'Content-Disposition': 'attachment; filename="export.xlsx"' },
+    });
+  };
+  const { blob, fileName } = await networkMapClient.exportServicePoints();
+  assert.ok(blob instanceof Blob);
+  assert.equal(fileName, 'export.xlsx');
+});
+
+test('exportDeliveryRoutes sends from/to by default, and all=true when requested', async () => {
+  globalThis.fetch = async (url) => {
+    assert.equal(new URL(url).search, '?from=2026-06-01&to=2026-06-30');
+    return new Response(new Blob(['x']), { status: 200, headers: {} });
+  };
+  await networkMapClient.exportDeliveryRoutes({ from: '2026-06-01', to: '2026-06-30' });
+
+  globalThis.fetch = async (url) => {
+    assert.equal(new URL(url).search, '?all=true');
+    return new Response(new Blob(['x']), { status: 200, headers: {} });
+  };
+  await networkMapClient.exportDeliveryRoutes({ all: true });
+});
+
+test('importHistory requests /import/history/:module', async () => {
+  stubFetch('/api/network-map/import/history/service_point');
+  await networkMapClient.importHistory('service_point');
+});
+
+test('rollbackImport POSTs to /import/:id/rollback', async () => {
+  globalThis.fetch = async (url) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/import/42/rollback');
+    return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
+  };
+  await networkMapClient.rollbackImport(42);
+});

@@ -1,11 +1,14 @@
 /**
- * parseServicePointsExcel — NETWORK-MANAGEMENT-001 Phase 2.
+ * parseServicePointsExcel — NETWORK-MANAGEMENT-001 Phase 2/3.
  *
- * Reads the "Dữ liệu bản đồ" sheet of the Mạng điểm phục vụ source workbook.
- * That sheet is already pre-cleaned by the Product Owner's own audit
- * (header row explicitly states: "Giữ lại 151 điểm; đã loại các điểm có
- * trạng thái 'Tạm dừng'. Mã điểm phục vụ lấy từ cột B; tọa độ lấy từ cột W.")
- * so this parser reads it as-is — no additional filtering/inference.
+ * Reads the "Dữ liệu bản đồ" sheet of the Mạng điểm phục vụ workbook — both
+ * the original Phase 2 seed source and, since Phase 3, any Export-produced
+ * re-Import file (identical structure). Read as-is — no filtering/inference.
+ *
+ * A row with a missing/blank Mã điểm phục vụ is still returned (with
+ * `ma_diem: null`) rather than silently dropped: Phase 3's classify step
+ * must see it to flag it as a blocking error row, not have it silently
+ * vanish before classification ever runs.
  */
 
 'use strict';
@@ -42,19 +45,19 @@ function parseServicePointsWorkbook(workbook) {
         if (!row || row.every((cell) => cell === null || cell === '')) continue;
 
         const maDiem = row[1];
-        if (maDiem === null || maDiem === undefined || String(maDiem).trim() === '') {
-            warnings.push(`Row ${i + 1}: missing Mã điểm phục vụ — skipped`);
-            continue;
+        const maDiemMissing = maDiem === null || maDiem === undefined || String(maDiem).trim() === '';
+        if (maDiemMissing) {
+            warnings.push(`Row ${i + 1}: missing Mã điểm phục vụ`);
         }
 
         const lat = row[9];
         const lon = row[8];
         if (typeof lat !== 'number' || typeof lon !== 'number') {
-            warnings.push(`Row ${i + 1} (${maDiem}): missing/invalid coordinates — kept with null lat/lon`);
+            warnings.push(`Row ${i + 1} (${maDiemMissing ? '?' : maDiem}): missing/invalid coordinates — kept with null lat/lon`);
         }
 
         records.push({
-            ma_diem: String(maDiem).trim(),
+            ma_diem: maDiemMissing ? null : String(maDiem).trim(),
             ten_diem: row[2] ?? null,
             loai_diem: row[3] ?? null,
             dia_chi: row[5] ?? null,

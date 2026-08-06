@@ -7,6 +7,7 @@ import {
   normalizeTrangThai,
   colorForServicePointType,
   createServicePointSvg,
+  createTamDungMarkerSvg,
   HUE_MAP_CENTER,
   HUE_MAP_DEFAULT_ZOOM,
   ZOOM_LABEL_THRESHOLD_SERVICE,
@@ -32,6 +33,9 @@ export default function ServicePointsMap({ points }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  // NETWORK-MANAGEMENT-001 Phase 3: "Tạm dừng" points are hidden by default
+  // (data is always kept/returned by the API — this is a display-only toggle).
+  const [showTamDung, setShowTamDung] = useState(false);
 
   // Reconciled Category Statistics summing to exactly 151
   const categoryStats = useMemo(() => {
@@ -73,10 +77,19 @@ export default function ServicePointsMap({ points }) {
   }, [points]);
 
   // Filter points based on category selection, status selection, and search query
+  const tamDungCount = useMemo(
+    () => (points || []).filter((p) => normalizeTrangThai(p.trang_thai) === 'Ngừng hoạt động').length,
+    [points],
+  );
+
   const filteredPoints = useMemo(() => {
     return (points || []).filter((p) => {
       const normCat = normalizeLoaiDiem(p.loai_diem);
       const normStatus = normalizeTrangThai(p.trang_thai);
+
+      // Default-hide Tạm dừng points unless the legend toggle is on, or the
+      // admin explicitly filtered to that status.
+      if (normStatus === 'Ngừng hoạt động' && !showTamDung && selectedStatus !== 'Ngừng hoạt động') return false;
 
       if (selectedCategory && normCat !== selectedCategory) return false;
       if (selectedStatus && normStatus !== selectedStatus) return false;
@@ -90,7 +103,7 @@ export default function ServicePointsMap({ points }) {
       }
       return true;
     });
-  }, [points, selectedCategory, selectedStatus, searchQuery]);
+  }, [points, selectedCategory, selectedStatus, searchQuery, showTamDung]);
 
   const showLabels = currentZoom >= ZOOM_LABEL_THRESHOLD_SERVICE;
 
@@ -119,7 +132,12 @@ export default function ServicePointsMap({ points }) {
           {filteredPoints.map((point) => {
             const normCat = normalizeLoaiDiem(point.loai_diem);
             const normStatus = normalizeTrangThai(point.trang_thai);
-            const svgString = createServicePointSvg(point.loai_diem, 26, point.trang_thai);
+            // "Tạm dừng" always gets the dedicated grey marker — never one of
+            // the 5 active loai_diem colors, so it can never be confused
+            // with an active point of any category.
+            const svgString = normStatus === 'Ngừng hoạt động'
+              ? createTamDungMarkerSvg(26)
+              : createServicePointSvg(point.loai_diem, 26, point.trang_thai);
 
             const displayLabel = point.ten_diem ? `${point.ma_diem} - ${point.ten_diem}` : `${point.ma_diem}`;
 
@@ -216,10 +234,24 @@ export default function ServicePointsMap({ points }) {
           />
         </div>
 
-        {/* Legend 1: Loại điểm (Sum = 151) */}
+        {/* Tạm dừng visibility toggle — hidden by default (NETWORK-MANAGEMENT-001 Phase 3) */}
+        <label className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-xs cursor-pointer select-none">
+          <span className="flex items-center gap-1.5">
+            <span dangerouslySetInnerHTML={{ __html: createTamDungMarkerSvg(16) }} className="shrink-0 leading-none" />
+            <span className="font-medium text-gray-700">Hiện điểm Tạm dừng ({tamDungCount})</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={showTamDung}
+            onChange={(e) => setShowTamDung(e.target.checked)}
+            className="h-3.5 w-3.5 accent-gray-500"
+          />
+        </label>
+
+        {/* Legend 1: Loại điểm */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="font-semibold text-gray-800 text-xs">Loại điểm (Tổng: {Object.values(categoryStats).reduce((a, b) => a + b, 0)}/151)</span>
+            <span className="font-semibold text-gray-800 text-xs">Loại điểm (Tổng: {Object.values(categoryStats).reduce((a, b) => a + b, 0)}/{points.length})</span>
             {selectedCategory && (
               <button
                 type="button"
@@ -267,7 +299,7 @@ export default function ServicePointsMap({ points }) {
         {/* Legend 2: Trạng thái hoạt động (Sum = 151) */}
         <div className="pt-2 border-t border-gray-100">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="font-semibold text-gray-800 text-xs">Trạng thái (Tổng: {Object.values(statusStats).reduce((a, b) => a + b, 0)}/151)</span>
+            <span className="font-semibold text-gray-800 text-xs">Trạng thái (Tổng: {Object.values(statusStats).reduce((a, b) => a + b, 0)}/{points.length})</span>
             {selectedStatus && (
               <button
                 type="button"

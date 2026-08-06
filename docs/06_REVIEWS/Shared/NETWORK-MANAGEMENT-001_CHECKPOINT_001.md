@@ -15,6 +15,7 @@
 - [11. Reusable Architecture Notes](#11-reusable-architecture-notes)
 - [12. Phase 1 Implementation Closure](#12-phase-1-implementation-closure)
 - [13. Phase 2 Implementation Closure](#13-phase-2-implementation-closure)
+- [14. Phase 3 Implementation Closure](#14-phase-3-implementation-closure)
 
 ## 1. Purpose
 
@@ -25,15 +26,15 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 2 COMPLETED / PO PASS / CLOSED` (as of `2026-08-05`) |
-| Recorded PO Evaluation | `PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED` |
-| Current Phase | `Phase 2 (Ba bản đồ) COMPLETED / PO PASS / CLOSED` |
+| Program State | `PHASE 3 COMPLETED / TECHNICAL PASS — READY FOR PO GATE 3` (as of `2026-08-06`) |
+| Recorded PO Evaluation (Phase 2) | `PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED` |
+| Current Phase | `Phase 3 (Import) implemented and technically validated; PO Gate 3 not yet requested` |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
 | Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13, 14, 15 & 16 |
-| Phase 3 (Import) | `PLANNED / NOT ACTIVE` |
+| Phase 3 (Import) Implementation Performed | `Yes` — see Section 14 (Phase 3 Implementation Closure) |
 | Phase 4 (Nghiệm thu) | `PLANNED / NOT ACTIVE` |
-| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` |
-| Next State | `PHASE 2 CLOSED / AWAITING PO DIRECTION FOR PHASE 3` |
+| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: not yet requested.` |
+| Next State | `PHASE 3 TECHNICAL COMPLETE / AWAITING PO GATE 3 (UI Check on Import/Export/Rollback)` |
 
 ## 3. Baseline
 
@@ -88,23 +89,19 @@ Locked product decisions and locked out-of-scope items are recorded once in `doc
 
 ## 7. Exact Next Action
 
-Phase 2 (Ba bản đồ) is implemented and technically validated (Section 13). Exact next action: await explicit Product Owner PO Gate 2 review / authorization to start Phase 3 (Import). Do not begin Phase 3 work without that authorization.
+Phase 3 (Import) is implemented and technically validated (Section 14). Exact next action: await explicit Product Owner PO Gate 3 review / authorization to start Phase 4 (Nghiệm thu). Do not begin Phase 4 work without that authorization.
 
 ## 8. Proposed Executor
 
-Claude Code (Sonnet) — implementation, backend, data, tests, documentation, and Git, per the executor plan in `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` Section 10. Antigravity owns discovery, UI/UX, and Windows runtime evidence once PO UI review of the three map screens is needed.
+Claude Code (Sonnet) — implementation, backend, data, tests, documentation, and Git, per the executor plan in `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` Section 10. Antigravity owns discovery, UI/UX, and Windows runtime evidence once PO UI review of Import/Export/Rollback is needed.
 
 ## 9. Next PO Gate
 
-PO Gate 1 (technical review of Phase 1) is `PASS` (Product Owner, `2026-08-05`). PO Gate 2 sits after Phase 2 (Ba bản đồ) closes (manifest Section 11) and requires a Product Owner UI check on the three map screens — Phase 2 implementation is complete and technically validated (Section 13), but PO Gate 2 itself has not been requested/granted.
+PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3 sits after Phase 3 (Import) closes (manifest Section 11) and requires a Product Owner UI check on Import/Export/History/Rollback across all three modules — Phase 3 implementation is complete and technically validated (Section 14), but PO Gate 3 itself has not been requested/granted.
 
 ## 10. Current Blockers
 
-None for Phase 1 or Phase 2 — both implemented and technically validated. Phase 3 (Import) is blocked pending (a) explicit Product Owner authorization to start, and (b) source files for two of the three modules:
-
-- Mạng điểm phục vụ: source Excel now present in `Data QLML/Mang_diem_phuc_vu_kem_du_lieu_ban_do.xlsx` (used for Phase 2 seed) — column mapping already verified by Phase 2 (Section 13); ready for Phase 3 Import logic to reuse.
-- Mạng đường thư cấp 2: business Excel now present (`Data QLML/2026.08. Mang DTC2.xlsx`) but contains no coordinates and a competing "TỔ CHỨC LẠI" block explicitly excluded from scope; Phase 3 Import mapping for this module still needs explicit Product Owner confirmation of which HIỆN TRẠNG columns become authoritative for updates, since Phase 2 seeded geometry from the reference HTML, not from this Excel.
-- Sơ đồ tuyến phát: source Excel now present (`Data QLML/2026.07.01 - BatchFile Phat thang 06.2026.xlsb`) and used for Phase 2 seed; Phase 3 Import must decide how to reconcile the small filtering-count discrepancy documented in Section 13 (143,475 computed vs. 143,467 locked baseline vs. 143,463 HTML-stated) before treating any one figure as authoritative for ongoing monthly imports.
+None for Phase 1, 2, or 3 — all implemented and technically validated. Phase 4 (Nghiệm thu) is blocked pending explicit Product Owner authorization to start, following PO Gate 3.
 
 ## 11. Reusable Architecture Notes
 
@@ -174,3 +171,44 @@ No F1.3 Import/Dashboard/Ranking code touched; no Phase 3 Import feature built (
 - Broader pre-existing backend regression run (`test_bcvhMonthToDateContract.js`, `test_canonical_bcvh_units.js`, `test_daily_trend.js`, `test_dashboardNationalRankRange.js`, `test_e2e_kpi.js`, `test_enum.js`, `test_excelParser.js`, `test_f13_route_classification.js`, `test_hide.js`, `test_hide2.js`, `test_importHistoryDefect3Recovery.js`, `test_importHistoryPresenter.js`, `test_importPipelineRace.js`, `test_importProcessor.js`, `test_nationalExcelParser.js`, `test_tctF13BackfillService.js`, `test_timelineServiceOperatingPatternContract.js`): 7 pre-existing failures found, confirmed unrelated to this ticket — `test_enum.js`/`test_hide.js`/`test_hide2.js` are Windows-native `koffi`/`user32.dll` HWND-automation scripts unrelated to any web/API/DB code; `test_dashboardNationalRankRange.js`, `test_bcvhMonthToDateContract.js`, `test_importProcessor.js` fail on pre-existing data-snapshot/source-contract assertions in F1.3 code this ticket never touched (`F13DashboardService.js`, `FactBuuGuiRepository.js`, `importProcessor.js`); `test_e2e_kpi.js` passes in isolation and only fails under batched cross-file execution, a pre-existing test-isolation characteristic of this suite. None of the 7 reference any `network_*` table, `NetworkMapController`, or `networkMapRoutes`. Not fixed under this ticket — out of scope per manifest Section 9 ("Không sửa các module ngoài phạm vi nếu không thật sự cần cho tích hợp nền tảng").
 
 **Scope discipline confirmed**: no Excel read/parsed; no data seeded into `151`/`28`/`143,467`-record baselines; no Leaflet map built; no OSRM call added; Phase 2/3/4 untouched; 02 pre-existing stashes and the 3 root-level HTML files untouched; the new `Data QLML/` Excel files present in the workspace were not opened or read.
+
+## 14. Phase 3 Implementation Closure
+
+- Status: `COMPLETED / TECHNICAL PASS`, `2026-08-06`.
+- Implementation commit: recorded at Git handoff in this ticket's execution report; branch `codex/da-impl-006`.
+- Closure authority: direct execution of explicit Product Owner Phase 3 Implementation Authorization following the approved "Corrected Recommended Design"; PO Gate 3 itself remains a separate, not-yet-requested Product Owner confirmation.
+
+### Locked design decisions carried through unchanged from PO review
+
+1. **Mạng điểm phục vụ**: upsert-by-`ma_diem` (`INSERT ... ON CONFLICT(ma_diem) DO UPDATE`), never deletes absent points. `trang_thai` copied verbatim at every step — never defaulted/inferred/transformed. Hard-error scope: any error row blocks Confirm for the entire file.
+2. **Đường thư cấp 2**: `network_level2_route.id` used directly as the Export "Route ID" — **no separate `route_key` column was created**, confirmed technically sufficient because it is `INTEGER PRIMARY KEY AUTOINCREMENT` (SQLite never reuses a freed AUTOINCREMENT id for the table's lifetime). Every stop's `Mã điểm` is validated for **existence only** against `network_service_point` — `trang_thai` (including "Tạm dừng") never filters or blocks this geometry linkage, per explicit PO instruction. Admin selects specific hành trình(s) to replace (delete-and-reinsert scoped to only that route's stops); other routes in the same file remain untouched. Hard-error scope: a route with an invalid `Mã điểm` blocks only that route — other valid routes in the same file remain individually selectable for Confirm.
+3. **Sơ đồ tuyến phát**: locked row key `(ma_buu_gui, ngay_phat, route_po_code)` unchanged — **not** switched to `LADING_CODE`-only (the count-discrepancy investigation from the prior discovery report was carried as a technical finding only, never used to alter the locked rule). Confirm writes via `INSERT ... ON CONFLICT(...) DO UPDATE` — **`INSERT OR IGNORE` is never used**, so an edited-and-reimported row's changes are preserved, not silently discarded. A real `UNIQUE(ma_buu_gui, ngay_phat, route_po_code)` index now enforces this key at the DB level (added via migration, pre-flight-checked for zero existing violations before creation). A same-month, different-fingerprint file is allowed to re-import; only the exact-fingerprint case is rejected. Hard-error scope: any error row blocks Confirm for the entire file. Never deletes existing rows or rows absent from the file.
+4. **Rollback**: `network_import_snapshot` records a before-image **and** an explicit `operation` (`INSERT`/`UPDATE`/`DELETE`) per affected row. Rollback reverses by operation type: `INSERT` → delete the row; `UPDATE` → restore the before-image; `DELETE` (ĐTC2's delete-and-reinsert) → re-insert the before-image. Rollback is refused, with the blocking import's id named in the error, when a **later, still-active (non-rolled-back)** Import for the same module touched an overlapping row-key scope — enforced via `id`-based ordering (not `created_at`, which only has second-level resolution and could not reliably distinguish two imports in the same second — found and fixed via a failing test, see Validation). An already-rolled-back import cannot be rolled back again.
+5. **Export/Import**: Export always produces the same flat, denormalized, Import-ready structure the corresponding parser reads — proven by a real round-trip test per module (Export → re-parse → 0 header/structure warnings) — not the original merged-layout/raw-batch-file source Excel, which remains untouched. Import/Export/History/Rollback are `admin`-only at both API (`requireRole(['admin'])` on every new route) and UI (`isAdminRole()`-gated `NetworkAdminSection`) layers, independently enforced. Sơ đồ tuyến phát Export defaults to a month/date-range with an admin opt-in "toàn bộ" and always shows the expected row count before download.
+
+### Documented finding carried forward, not resolved by fiat
+
+The prior discovery report's technical root-cause analysis of the tuyến-phát count discrepancy (`143,475` computed here vs. `143,467` locked baseline vs. `143,463` HTML-stated) is preserved as informational context only — per explicit PO instruction, it was **not** used to change the locked `(ma_buu_gui, ngay_phat, route_po_code)` dedupe rule.
+
+### Implementation
+
+**Backend** — Step 1 (migration): `backend/migrate_network_management_001_phase3_schema.js` (+ test) adds `network_import_session`, `network_import_snapshot`, `network_import_log.rollback_of_import_log_id`, and the `UNIQUE(ma_buu_gui, ngay_phat, route_po_code)` index — all additive/idempotent, pre-flight-checked, wired into `server.js` startup alongside Phase 1/2. Step 2 (Export/Preview/Confirm/History/Rollback): `backend/src/services/networkMapImport/` — `importSession.js`, `importSnapshot.js`, `transactionHelper.js`, `fingerprint.js`, `servicePointsImport.js`, `deliveryRoutesImport.js`, `level2RoutesImport.js`, `parseLevel2RoutesImportExcel.js` (new — flat Route-ID-keyed parser), `parseDeliveryRoutesImportExcel.js` (new — flat named-header parser, distinct from Phase 2's raw-batch-file-only `parseDeliveryPointsExcel.js`), `exportBuilders.js`, `rollbackService.js`; `backend/src/controllers/NetworkImportController.js` (new, all 3×5 endpoints); `backend/src/routes/networkMapRoutes.js` extended (old `501`-stub import routes replaced with real `preview`/`confirm`/`export`/history/rollback routes); `backend/src/controllers/NetworkMapController.js` cleaned of the now-dead stub helper. `backend/src/services/networkMapSeed/parseServicePointsExcel.js` corrected (real bug found via testing, see Validation): a row with a missing `Mã điểm phục vụ` is now returned with `ma_diem: null` instead of being silently skipped by the parser, so Phase 3's classify step can see and flag it as a blocking error — the original Phase 2 seed's already-committed 151-point result is unaffected (that source file had zero such rows).
+
+**Frontend** — Step 3: `frontend/src/features/networkMap/import/` — `NetworkAdminSection.jsx` (admin-gated container), `FlatImportPanel.jsx` (shared preview/confirm UI for Mạng điểm phục vụ + Sơ đồ tuyến phát), `Level2RoutesImportPanel.jsx` (per-route selection UI for ĐTC2), `ImportHistoryPanel.jsx` (shared history + rollback), `ExportButton.jsx`, `DeliveryExportPanel.jsx` (month/range + toàn-bộ + row-count preview). `frontend/src/api/httpClient.js` extended with `getBlob()` for binary Export downloads (the existing `request()`/`get()` always call `response.json()`, which would corrupt a binary payload). `frontend/src/api/NetworkMapClient.js` extended with all 15 new Phase 3 methods. All 3 map pages wired to the new admin section, replacing the Phase 1/2 disabled `ImportPendingButton.jsx` (deleted, now dead code). `ServicePointsMap.jsx`/`mapStyles.js` extended per PO's explicit Phase 3 frontend requirement: "Tạm dừng" points default-hidden (data always fetched/kept — display-only toggle), a dedicated legend checkbox toggle, and a distinct grey/dashed marker (`createTamDungMarkerSvg`) that never reuses any of the 5 active `loai_diem` colors — this is additive frontend work inside the still-open Phase 3 scope, made necessary by Phase 3 introducing "Tạm dừng" points into the live dataset for the first time; Phase 2's already-closed PO Gate 2 PASS deliverable is not altered or reopened.
+
+### Real business outcome delivered (not just scaffolding)
+
+Using the new live Import API, the 5 "Tạm dừng" points identified and audited in the prior PO-approved discovery step (`536101`, `536102`, `537200`, `534630`, `534989` — exact `ma_diem`/tên điểm/coordinates from column `W` of sheet "Huế", `trang_thai` kept as "Tạm dừng") were actually imported through Preview → Confirm against the live database: `network_service_point` grew from 151 to 156 rows, and the 11 previously-orphaned ĐTC2 stop references to these 5 codes now resolve real geometry via the `network_service_point` join, exactly as the approved design specified.
+
+### Validation evidence
+
+- **Automated tests**: 77/77 pass on backend (`node --test` across all 3 phase-migration files, `networkMapSeed/*.test.js`, `networkMapImport/*.test.js`, `NetworkMapController.test.js`, `NetworkImportController.test.js`, `networkMapRoutes.test.js`), 25/25 pass on frontend (roles, appNavigation, App routing, `NetworkMapClient.test.js`, `httpClient.test.js`). `oxlint`: clean (one pre-existing-pattern `react(only-export-components)` style warning, same class already present elsewhere in the codebase). `vite build`: succeeds.
+- **Two real defects found and fixed via testing, not shipped**: (1) the migration's multi-statement `CREATE TABLE` block was run with `db.run()`, which only executes a SQL string's first statement — `network_import_snapshot` silently never got created; fixed by switching to `db.exec()`, caught by `migrate_network_management_001_phase3_schema.test.js`. (2) Rollback eligibility compared `created_at` timestamps, which have only second-level resolution in SQLite's `CURRENT_TIMESTAMP` — two imports in the same second were indistinguishable, so a genuinely later, scope-overlapping import could slip past the eligibility check; fixed by comparing monotonic `id` instead, caught by `rollbackService.test.js`. A third bug (rollback of an already-rolled-back import silently "succeeded" a second time) was also found and fixed by adding an explicit `ALREADY_ROLLED_BACK` check.
+- **Live-DB verification**: `fact_f13` confirmed unchanged (`669,847` rows — the correct current baseline, grown further via ongoing, unrelated F1.3 production imports since Phase 2 closed) before Step 1's migration, after Step 1, and again after the real 5-point Import in Step 2 — three checkpoints, zero drift. All 5 new/altered `network_*` schema objects confirmed present with a real backend restart (picking up the new code), not just a manual one-off script.
+- **Source files preserved**: SHA-256 of all 3 `Data QLML/` Excel files re-verified byte-identical at the start of this session and again after all backend/frontend work, the live 5-point Import, and full runtime browser testing — zero bytes changed. `Data QLML/` never `git add`ed, renamed, or moved.
+- **Runtime (real browser + real backend, admin role)**: backend restarted with the new code (a stale prior-session process was occupying port 5050, restarted per the project's own port-conflict remediation instructions). Logged in as `admin`; `/network-map/service-points` showed **156** points (151 + the 5 real Imports), the "Hiện điểm Tạm dừng (5)" toggle default-unchecked, admin panel expanded to show Export/Import/History with both the Phase 2 seed log row and the new real Import log row, each with a working "Rollback" action. `/network-map/level2-routes` and `/network-map/delivery-routes` both rendered with their admin panels present and functional; the tuyến-phát Export row-count preview correctly returned **143,475** for the June 2026 range, matching the live table exactly. Unauthenticated access to `/network-map/service-points` correctly redirected to `/login`; direct unauthenticated `curl` requests to `.../import/preview`, `.../import/:id/rollback`, and `.../import/history/:module` all returned `401 UNAUTHORIZED`. No console errors from any new code (pre-existing, unrelated `[DashboardHome]` 400 errors were observed, not caused by this ticket).
+- **Viewer role**: the real viewer password remains a one-way scrypt hash, not recoverable for a live browser session (same residual as Phase 2) — viewer/admin role separation for every new endpoint is instead verified via the exact production `requireRole(['admin'])` middleware in automated controller/route tests, which exercise the identical code path the live server uses.
+
+### Scope discipline confirmed
+
+No F1.3 Import/Dashboard/Ranking code touched; no Phase 4 (Nghiệm thu) work started; no bulk OSRM calls; the original merged-layout ĐTC2 Excel and raw `.xlsb` tuyến-phát source remain untouched, read-only historical references — Export/Import only ever round-trips through this ticket's own flat templates. `Data QLML/` source files and file names/sheets/columns unmodified. 02 pre-existing stashes untouched throughout.

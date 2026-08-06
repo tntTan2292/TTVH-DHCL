@@ -1,10 +1,10 @@
 /**
- * NetworkMapController — NETWORK-MANAGEMENT-001 Phase 1 (Nền tảng).
+ * NetworkMapController — NETWORK-MANAGEMENT-001.
  *
- * Provides the authenticated read-API foundation for the three independent
- * Quản lý mạng lưới screens (Mạng điểm phục vụ, Mạng đường thư cấp 2,
- * Sơ đồ tuyến phát). Import endpoints are role-gated scaffolding only —
- * Excel parsing/preview/commit is out of scope until Phase 3.
+ * Provides the authenticated read-API for the three independent Quản lý
+ * mạng lưới screens (Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến
+ * phát). Import/Export/History/Rollback live in NetworkImportController.js
+ * (Phase 3).
  */
 
 const { all } = require('../config/db');
@@ -22,17 +22,6 @@ function sendError(res, status, code, message) {
         success: false,
         error: { code, message },
     });
-}
-
-function notImplementedImport(module, message) {
-    return async function importStub(req, res) {
-        return sendError(
-            res,
-            501,
-            'NOT_IMPLEMENTED',
-            message || `Import cho ${module} chưa được triển khai — thuộc phạm vi NETWORK-MANAGEMENT-001 Phase 3 (Import).`,
-        );
-    };
 }
 
 // GET /api/network-map/service-points
@@ -159,7 +148,4 @@ module.exports = {
     listLevel2Routes,
     getDeliveryRoutesMeta,
     listDeliveryPoints,
-    importServicePoints: notImplementedImport('Mạng điểm phục vụ'),
-    importLevel2Routes: notImplementedImport('Mạng đường thư cấp 2'),
-    importDeliveryRoutes: notImplementedImport('Sơ đồ tuyến phát'),
 };

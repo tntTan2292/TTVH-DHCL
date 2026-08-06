@@ -1,9 +1,11 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import networkMapClient from '../../api/NetworkMapClient';
 import DeliveryRoutesMap from './DeliveryRoutesMap';
-import ImportPendingButton from './ImportPendingButton';
 import MapStateBanner from './MapStateBanner';
 import CalendarDatePicker from './CalendarDatePicker';
+import NetworkAdminSection from './import/NetworkAdminSection';
+import FlatImportPanel from './import/FlatImportPanel';
+import DeliveryExportPanel from './import/DeliveryExportPanel';
 
 export default function DeliveryRoutesPage() {
   const [metaStatus, setMetaStatus] = useState('loading');
@@ -21,23 +23,22 @@ export default function DeliveryRoutesPage() {
   const [points, setPoints] = useState([]);
   const [pointsError, setPointsError] = useState(null);
 
-  // Load global dates list once
-  useEffect(() => {
-    let cancelled = false;
+  // Load global dates list (also re-callable after an admin Import Confirm)
+  const loadMeta = useCallback(() => {
+    setMetaStatus((prev) => (prev === 'ready' ? prev : 'loading'));
     networkMapClient.getDeliveryRoutesMeta()
       .then((response) => {
-        if (cancelled) return;
         const d = response?.data?.dates || [];
         setDates(d);
         setMetaStatus(d.length === 0 ? 'empty' : 'ready');
       })
       .catch((error) => {
-        if (cancelled) return;
         setMetaError(error?.message || 'Không thể kết nối API Sơ đồ tuyến phát.');
         setMetaStatus('error');
       });
-    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => { loadMeta(); }, [loadMeta]);
 
   // When Date changes via CalendarDatePicker, reset child selections & clear map data
   const handleDateChange = (newDateStr) => {
@@ -152,8 +153,25 @@ export default function DeliveryRoutesPage() {
           <h1 className="text-2xl font-bold text-vnpost-blue-dark">Sơ đồ tuyến phát</h1>
           <p className="text-gray-600 mt-1">Truy vấn hành trình theo Bộ chọn ngày Calendar (Thời gian nhập phát) và phân ca (Ca sáng / Ca chiều).</p>
         </div>
-        <ImportPendingButton />
       </div>
+
+      <NetworkAdminSection
+        module="delivery_route"
+        exportSlot={<DeliveryExportPanel />}
+        importSlot={(refreshHistory) => (
+          <FlatImportPanel
+            rowKeyField="key"
+            rowLabel="Khóa (bưu gửi/ngày/tuyến)"
+            onPreview={(file) => networkMapClient.previewDeliveryRoutes(file)}
+            onConfirm={async (sessionToken) => {
+              const res = await networkMapClient.confirmDeliveryRoutes(sessionToken);
+              loadMeta();
+              refreshHistory();
+              return res;
+            }}
+          />
+        )}
+      />
 
       {metaStatus !== 'ready' && (
         <div className="mb-4">

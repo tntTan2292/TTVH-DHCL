@@ -77,6 +77,47 @@ class HttpClient {
         return this.request(url, { method: 'GET' });
     }
 
+    /**
+     * Like get(), but for a binary file response (e.g. an .xlsx Export) —
+     * request()/get() always call response.json(), which would corrupt a
+     * binary payload. Returns { blob, fileName } on success or throws the
+     * same shaped error as request().
+     */
+    async getBlob(endpoint, params = {}) {
+        const queryParams = new URLSearchParams();
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                queryParams.append(key, value);
+            }
+        });
+        const queryString = queryParams.toString();
+        const url = `${BASE_URL}${endpoint}${queryString ? `?${queryString}` : ''}`;
+
+        const sessionId = localStorage.getItem(SESSION_KEY);
+        const headers = {};
+        if (sessionId) {
+            headers.Authorization = `Bearer ${sessionId}`;
+            headers['x-session-id'] = sessionId;
+        }
+
+        let response;
+        try {
+            response = await fetch(url, { method: 'GET', headers });
+        } catch {
+            throw { status: 0, code: 'NETWORK_UNREACHABLE', message: 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.' };
+        }
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw { status: response.status, code: data?.error?.code || 'NETWORK_ERROR', message: data?.error?.message || 'Có lỗi xảy ra từ máy chủ.' };
+        }
+
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const fileNameMatch = disposition.match(/filename="?([^"]+)"?/);
+        const blob = await response.blob();
+        return { blob, fileName: fileNameMatch ? fileNameMatch[1] : 'export.xlsx' };
+    }
+
     post(endpoint, body = {}) {
         const isFormData = body instanceof FormData;
 

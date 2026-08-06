@@ -233,3 +233,49 @@ CREATE TABLE IF NOT EXISTS network_delivery_point (
 CREATE INDEX IF NOT EXISTS idx_network_delivery_point_query ON network_delivery_point(ngay_phat, ma_bcvh, postman_code);
 CREATE INDEX IF NOT EXISTS idx_network_delivery_point_import ON network_delivery_point(ngay_nhap_phat, ma_bcvh, postman_code, ca_phat);
 
+-- ============================================================
+-- NETWORK-MANAGEMENT-001 Phase 3 — Import/Export/Rollback foundation
+-- ============================================================
+
+-- 9. network_import_session (short-lived preview cache; Confirm never trusts client-echoed data)
+CREATE TABLE IF NOT EXISTS network_import_session (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    module TEXT NOT NULL CHECK (module IN ('service_point', 'level2_route', 'delivery_route')),
+    session_token TEXT NOT NULL UNIQUE,
+    file_name TEXT NOT NULL,
+    file_fingerprint TEXT NOT NULL,
+    parsed_payload TEXT NOT NULL,
+    created_by TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_network_import_session_token ON network_import_session(session_token);
+CREATE INDEX IF NOT EXISTS idx_network_import_session_expiry ON network_import_session(expires_at);
+
+-- 10. network_import_snapshot (before-image + operation type per affected row, for Rollback)
+CREATE TABLE IF NOT EXISTS network_import_snapshot (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    import_log_id INTEGER NOT NULL,
+    table_name TEXT NOT NULL,
+    row_key TEXT NOT NULL,
+    operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
+    before_image TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(import_log_id) REFERENCES network_import_log(id)
+);
+CREATE INDEX IF NOT EXISTS idx_network_import_snapshot_log ON network_import_snapshot(import_log_id);
+
+-- network_import_log.rollback_of_import_log_id — on a fresh bootstrap this
+-- column is included directly in network_import_log below via ALTER-free
+-- CREATE ordering is not possible (network_import_log is defined earlier in
+-- this file); recreate_db.js runs this whole script in one exec() pass, so
+-- the column is added the same way the live-upgrade migration adds it:
+ALTER TABLE network_import_log ADD COLUMN rollback_of_import_log_id INTEGER REFERENCES network_import_log(id);
+
+-- Locked tuyến-phát row key, now DB-enforced. Safe unconditionally here
+-- because schema.sql only runs against a fresh/empty database
+-- (recreate_db.js); the live-database upgrade path in
+-- migrate_network_management_001_phase3_schema.js additionally pre-flights
+-- for existing violations before creating this same index.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_network_delivery_point_unique_key ON network_delivery_point(ma_buu_gui, ngay_phat, route_po_code);
+
