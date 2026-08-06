@@ -19,6 +19,7 @@
 - [15. PO Gate 3 Runtime Remediation](#15-po-gate-3-runtime-remediation)
 - [16. ĐTC2 Journey Visual Remediation](#16-đtc2-journey-visual-remediation)
 - [17. ĐTC2 Selected-Route Arrow Visibility Remediation](#17-đtc2-selected-route-arrow-visibility-remediation)
+- [18. PO Gate 3 PASS — Closure](#18-po-gate-3-pass--closure)
 
 ## 1. Purpose
 
@@ -29,15 +30,15 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 3 REMEDIATED / TECHNICAL PASS — AWAITING PO GATE 3 RUNTIME RECHECK` (as of `2026-08-06`) |
+| Program State | `PHASE 3 COMPLETED / PO PASS / CLOSED — READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` (as of `2026-08-06`) |
 | Recorded PO Evaluation (Phase 2) | `PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED` |
-| Current Phase | `Phase 3 (Import) implemented and technically validated; first PO Gate 3 attempt returned RUNTIME FAIL on 3 defects (Section 15); root-caused and remediated same day; awaiting PO Gate 3 runtime recheck` |
+| Current Phase | `Phase 3 (Import) complete and PO Gate 3 PASSED (Section 29) — program is READY FOR PHASE 4 / AWAITING PO AUTHORIZATION; Phase 4 itself not started` |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
 | Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13, 14, 15 & 16 |
-| Phase 3 (Import) Implementation Performed | `Yes` — see Section 14 (Phase 3 Implementation Closure) and Section 15 (PO Gate 3 Runtime Remediation) |
-| Phase 4 (Nghiệm thu) | `PLANNED / NOT ACTIVE` |
-| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: first attempt RUNTIME FAIL (Product Owner, 2026-08-06) — 3 defects, remediated same day per Section 15; PO Gate 3 not yet re-granted.` |
-| Next State | `PHASE 3 REMEDIATED / TECHNICAL PASS — AWAITING PO GATE 3 RUNTIME RECHECK` |
+| Phase 3 (Import) Implementation Performed | `Yes` — see Section 14 (Phase 3 Implementation Closure), Section 15 (PO Gate 3 Runtime Remediation), Sections 16-17 (ĐTC2 journey visual + arrow remediation), Section 29 (PO Gate 3 PASS closure) |
+| Phase 4 (Nghiệm thu) | `READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` — not started |
+| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: first attempt RUNTIME FAIL (Product Owner, 2026-08-06) — 3 defects, remediated same day per Section 15, further ĐTC2 visual remediation per Sections 16-17, then PASS (Product Owner, 2026-08-06, baseline 7da98a79eb8) per Section 29.` |
+| Next State | `READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` |
 
 ## 3. Baseline
 
@@ -92,7 +93,7 @@ Locked product decisions and locked out-of-scope items are recorded once in `doc
 
 ## 7. Exact Next Action
 
-Phase 3 (Import) is implemented and technically validated (Section 14); the first PO Gate 3 runtime check returned RUNTIME FAIL on 3 defects, root-caused and remediated the same day (Section 15). Exact next action: await Product Owner PO Gate 3 runtime recheck. Do not declare PO Gate 3 PASS and do not begin Phase 4 work without that explicit re-check and authorization.
+Phase 3 (Import) is implemented, technically validated, and closed with `PO GATE 3 PASS` (Section 29). Exact next action: await explicit Product Owner authorization to start Phase 4 (Nghiệm thu). Program state is `READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` — do not begin Phase 4 implementation work, and do not begin the future "Bản đồ tổng thể mạng lưới" module, without that explicit authorization.
 
 ## 8. Proposed Executor
 
@@ -100,11 +101,11 @@ Claude Code (Sonnet) — implementation, backend, data, tests, documentation, an
 
 ## 9. Next PO Gate
 
-PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3 sits after Phase 3 (Import) closes (manifest Section 11) and requires a Product Owner UI check on Import/Export/History/Rollback across all three modules — the first PO Gate 3 attempt (`2026-08-06`) returned `RUNTIME FAIL` on 3 defects (ĐTC2 straight-line routing, tuyến-phát routing resilience, Date Picker month-availability semantics); all 3 were root-caused and remediated the same day (Section 15) with automated tests and real-browser runtime re-validation, but PO Gate 3 itself has not been re-requested/re-granted.
+PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3 sits after Phase 3 (Import) closes (manifest Section 11) and required a Product Owner UI check on Import/Export/History/Rollback across all three modules — the first attempt (`2026-08-06`) returned `RUNTIME FAIL` on 3 defects (ĐTC2 straight-line routing, tuyến-phát routing resilience, Date Picker month-availability semantics), root-caused and remediated the same day (Section 15), followed by a further ĐTC2 journey-visual and arrow-visibility remediation round (Sections 16-17). Product Owner then granted `PO GATE 3 PASS` (`2026-08-06`, baseline `7da98a79eb8`, Section 29). PO Gate 4 sits after Phase 4 (Nghiệm thu) closes and has not been reached — Phase 4 is not yet started.
 
 ## 10. Current Blockers
 
-None for Phase 1, 2, or 3 technically — all implemented and technically validated, including the PO Gate 3 remediation (Section 15). Phase 4 (Nghiệm thu) is blocked pending explicit Product Owner PO Gate 3 runtime recheck and PASS, then a separate authorization to start Phase 4.
+None for Phase 1, 2, or 3 — all implemented, technically validated, and PO-closed (Phase 3 via PO Gate 3 PASS, Section 29). Phase 4 (Nghiệm thu) is blocked only on explicit Product Owner authorization to start — no technical blocker remains.
 
 ## 11. Reusable Architecture Notes
 
@@ -277,3 +278,17 @@ Product Owner runtime feedback on Section 16's arrows: too small to read without
 **Validation**: 2 new unit tests (`computePolylineLengthKm`, `computeArrowCount`) — 14/14 in `routeJourneyGeometry.test.js`, 53/53 across the full targeted frontend suite; `oxlint` clean; `vite build` succeeds. Real-browser runtime re-verified as `admin` at the map's default zoom (10, unchanged — no `fitBounds`/`setView` call exists in this component): Tuyến 6 renders 9 arrows at 26×26px, none overlapping the 6 stop markers; Tuyến 8 (171km) renders 16 arrows (max-clamped, not overcrowded); Tuyến 2 (8km) renders 4 arrows (min-clamped, not empty); the unselected 28-route overview still renders 0 arrows. No console errors introduced. `fact_f13`/`network_level2_route`/`network_level2_route_stop`/`network_delivery_point` row counts unchanged — no backend/DB touched. Both stashes untouched.
 
 Does not alter Phase 3's `REMEDIATED / TECHNICAL PASS` status or PO Gate 3 (still awaiting Product Owner runtime recheck) and does not start Phase 4.
+
+## 18. PO Gate 3 PASS — Closure
+
+Product Owner explicitly granted `PO GATE 3 PASS` on `2026-08-06`, at baseline commit `7da98a79eb8` (branch `codex/da-impl-006`), confirming all of the following with no regression found:
+
+- ĐTC2 road routing and full outbound/return journey display (Section 15 root cause/fix; Section 16 direction split, turnaround, spiderfy; Section 17 arrow visibility).
+- Same-coordinate marker overlap resolution, quay đầu (turnaround) identification, and direction arrows (Sections 16-17).
+- Sơ đồ tuyến phát routing resilience (timeout, 2-provider fallback, non-silent failure) and out-of-Huế-bounds coordinate exclusion/warning (Section 15).
+- Date Picker/filter semantics keyed to `ngay_phat` (Section 15).
+- Import, Export, History, and Rollback — no regression across the full remediation chain (no commit in Sections 15-17 touched `NetworkImportController.js`, `backend/src/services/networkMapImport/`, or the frontend `import/` directory; verified per-commit via `git status`/`git diff` scope at each remediation).
+
+**Program state**: Phase 3 (Import) is `COMPLETED / PO PASS / CLOSED`. Phase 4 (Nghiệm thu) moves to `READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` only — not started, not self-activated by this closure, requires its own explicit Product Owner authorization (manifest Section 11). The Product Owner also named a future "Bản đồ tổng thể mạng lưới" (network-wide overview map) module in the same instruction — recorded as a noted future scope item only, not added to Phase 4's locked scope (manifest Section 6), not authorized, not started.
+
+This closure is documentation-only: no product code, schema, database, or test file was changed by this update.
