@@ -2,13 +2,20 @@
 
 - Ticket ID: `AUTO-IMPORT-013`
 - Ticket Name: `Urgent — TCT interactive login stuck at WAITING_FOR_LOGIN after TCT changed its login flow`
-- Phase: `Emergency remediation — Phase 2 (bounded implementation, PO-authorized); detector fix still pending fresh evidence`
-- Current State: `INSTRUMENTATION + TIMEOUT FIX IMPLEMENTED AND TESTED / DETECTOR MARKER CHANGE NOT YET MADE — awaiting a fresh, instrumented PO reproduction / AWAITING PO RUNTIME RECHECK`
-- Technical Status: `Diagnostic instrumentation, a bounded login-timeout terminal state, and a frontend false-positive-warning fix are implemented and pass all existing regression tests. isAuthenticated()'s marker list is unchanged pending real body-text/URL evidence from a fresh PO login.`
-- PO UI Check Required: `Yes — PO must perform one fresh TCT manual login via Import Center so the new instrumentation logs real evidence; also requires a full runtime recheck (TCT login → F1.3 → import; HUE regression) before any PO PASS`
-- PO Product Status: `NOT PASS — awaiting PO runtime recheck`
+- Phase: `Emergency remediation — CLOSED`
+- Current State: `COMPLETED / PO RUNTIME PASS / CLOSED`
+- Technical Status: `Diagnostic instrumentation, a bounded login-timeout terminal state, and a frontend false-positive-warning fix (commit f7a74d4f) resolved the reported symptom. Real diagnostic evidence captured during the PO's actual TCT login confirmed isAuthenticated()'s existing marker regex matched correctly on TCT's post-login page — no detector change was needed.`
+- PO UI Check Required: `No further check — Product Owner confirmed TCT manual login → F1.3 → Import end-to-end, and HUE regression, in this round.`
+- PO Product Status: `PO RUNTIME PASS (2026-08-07)`
 - Activation date: `2026-08-07`
+- Closed date: `2026-08-07`
 - Primary executor: `Claude Code`
+
+## Closure — PO Runtime PASS (2026-08-07)
+
+Product Owner confirmed: TCT manual login succeeded; QIS recognized the session and proceeded correctly; TCT Import succeeded; no longer stuck at "Đang mở trình duyệt"; manual credential entry accepted as the permanent mechanism (no auto-login requested); HUE unaffected. Full evidence, including the real diagnostic log captured during the PO's actual login (confirming `isAuthenticated()` did not need broadening): `docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_003.md`.
+
+No code changed in this closure round (governance-only). `NETWORK-MANAGEMENT-001` remains `PAUSED`, untouched. Production DB, `Data QLML/`, and both git stashes untouched. Ticket is now closed; do not reopen without a new symptom and a new ticket.
 
 ## Phase 2 — PO-Authorized Bounded Implementation (2026-08-07)
 
@@ -47,12 +54,13 @@ Required onboarding chain:
 4. `docs/10_TICKETS/AUTO-IMPORT-013_MANIFEST.md`
 5. Required Reading from this manifest
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_002.md`
+Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_003.md` (closure)
 
 Required Reading:
 
 - `docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_001.md` — Phase 1 discovery evidence
 - `docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_002.md` — Phase 2 bounded-implementation evidence (code changes, tests, live-system cleanup)
+- `docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_003.md` — closure: PO runtime PASS + real diagnostic evidence from the PO's actual TCT login
 
 ## Authority
 
@@ -122,31 +130,28 @@ This function detects a successful login only by matching specific hardcoded Vie
 - Reading, requesting, logging, or storing the Product Owner's TCT username/password — never done.
 - `Data QLML/` and both pre-existing stashes — untouched.
 
-## Proposed Minimum Fix Scope — Status After Phase 2
+## Proposed Minimum Fix Scope — Final Status (Closed)
 
-Original 4-item proposal, now split by what this round could and could not safely complete:
+Original 4-item proposal, final disposition:
 
-1. **Deferred — needs one more PO action.** Broaden/replace `isAuthenticated()`'s TCT-side post-login detection. Still requires a fresh instrumented reproduction (item 3 of the PO's authorization) to capture real body text/URL evidence — the previously-live incident used for Phase 1 discovery was exhausted as an evidence source (see Phase 2 section above) before this round's cleanup, not converted into an instrumented capture. **Next action:** Product Owner opens Import Center → "Mở đăng nhập TCT" → completes one real manual login. The instrumented code (now deployed) will log the real URL/title/page-count/marker evidence to `backend.log` (`[AUTO-IMPORT-013]` prefix) regardless of whether detection succeeds or times out. That evidence will be reported before touching the marker regex.
-2. **Done, unchanged.** Manual credential entry is untouched — no automated username/password fill exists anywhere in this code path, before or after this round.
-3. **Done.** Bounded diagnostic/timeout implemented: `LOGIN_TIMEOUT` terminal state, browser/lock released, specific message surfaced once via `preflight()`, `WAITING_FOR_LOGIN` no longer parks indefinitely after the wait window elapses. See Phase 2 section for the exact mechanism and code locations.
-4. **Done.** No change to HUE's detection path (`isAuthenticated()` untouched). The shared timeout-handling fix and the frontend false-positive fix were regression-tested against HUE's existing mocked and real-client test suites (see Validation below); a live HUE manual-login regression by the Product Owner is still required before `PO PASS` (see Validation Requirements).
+1. **Resolved without a code change.** The fresh instrumented reproduction happened via the Product Owner's own real TCT login. Captured evidence (`docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_003.md`) shows `isAuthenticated()`'s existing marker regex correctly matched TCT's post-login page (`has_quan_ly_tep: true`) and `openF13Report()` reached the real F1.3 page cleanly. The Phase 1 window-title observation ("Quản trị nội dung") was not representative of the actual body-text marker the detector uses. **No detector change was needed; none was made.**
+2. **Done, unchanged.** Manual credential entry is untouched — no automated username/password fill exists anywhere in this code path.
+3. **Done.** Bounded diagnostic/timeout implemented: `LOGIN_TIMEOUT` terminal state, browser/lock released, specific message surfaced once via `preflight()`, `WAITING_FOR_LOGIN` no longer parks indefinitely after the wait window elapses.
+4. **Done.** No change to HUE's detection path (`isAuthenticated()` untouched). Product Owner confirmed HUE continues to work normally.
 
-## Validation Requirements (Updated After Phase 2 Implementation)
+## Validation Requirements — Final Status (All Complete)
 
-Completed this round:
 - [x] `oxlint` on all 4 changed files — no new warnings vs. pre-change baseline.
 - [x] `test_dkclSessionPreflightService.js`, `test_dkclHueF13SyncService.js`, `test_dkclHueF13BackfillService.js`, `test_tctF13BackfillService.js`, `test_dkclHueBrowserBroker.js` — all pass unchanged.
 - [x] Frontend `dataImportTctScan.test.js`, `dataImportWave3Ui.test.js`, `dataImportHueSelection.test.js`, `importDashboardReconciliation.test.js`, `NetworkMapClient.test.js` — all pass.
 - [x] `fact_f13` row count and existing imported data unchanged; `Data QLML/` and both stashes untouched; no credentials touched.
-
-Still required before this ticket can close / before any `PO PASS`:
-- [ ] A fresh, instrumented reproduction of TCT login (Product Owner performing the actual manual login) — captures real evidence to confirm or revise the detection-mismatch hypothesis; may also directly resolve the symptom if the timeout/cleanup fix alone was sufficient (unlikely to fix detection itself, but will no longer leave the UI stuck/misleading either way).
-- [ ] TCT login → F1.3 report opens → import succeeds, confirmed end-to-end by the Product Owner.
-- [ ] Full HUE regression by the Product Owner: HUE login → import succeeds, unchanged from current passing behavior.
-- [ ] Product Owner runtime confirmation required before any `PO PASS` is recorded. This ticket's own technical work does not self-award `PO PASS`.
+- [x] Real instrumented TCT reproduction (Product Owner performing the actual manual login) — captured real evidence, confirming the detection mismatch hypothesis was not the actual cause.
+- [x] TCT login → F1.3 report opens → import succeeds, confirmed end-to-end by the Product Owner.
+- [x] Full HUE regression confirmed by the Product Owner: HUE login → import succeeds, unchanged.
+- [x] Product Owner runtime confirmation recorded — `PO RUNTIME PASS`, `docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_003.md`.
 
 ## Completion And Handoff
 
-This ticket does not close in this round. Instrumentation and the timeout/false-positive-warning fix are implemented and technically validated; the detection-marker change (item 1/3 of the original proposal) remains deferred pending one fresh PO-performed TCT login to capture real evidence. Awaiting that reproduction, then a full Product Owner runtime recheck (TCT + HUE) before any `PO PASS`.
+`AUTO-IMPORT-013` is `COMPLETED / PO RUNTIME PASS / CLOSED` (2026-08-07). Root cause was the frontend false-positive warning plus the missing bounded timeout (both fixed in commit `f7a74d4f`), not a detector mismatch — confirmed by real evidence from the Product Owner's own login. Do not reopen without a new symptom and a new ticket.
 
 `NETWORK-MANAGEMENT-001` remains `PAUSED` at its current state, untouched. Do not activate any next ticket beyond what Product Owner explicitly authorizes.
