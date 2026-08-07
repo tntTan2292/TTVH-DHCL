@@ -32,7 +32,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Last Closed Ticket | `AUTO-IMPORT-011 — Emergency Import remediation, COMPLETED / PO RUNTIME PASS / CLOSED, 2026-08-05 (unaffected by this ticket)` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-IMPORT-013 Phase 2: bounded instrumentation + timeout fix implemented and tested; detector marker change deferred pending fresh PO login` |
-| Last Reviewed Implementation Commit | `Pending commit of this round's 4-file change (see docs/10_TICKETS/AUTO-IMPORT-013_MANIFEST.md Phase 2 section for full diff description)` |
+| Last Reviewed Implementation Commit | `f7a74d4f` (Phase 2 bounded implementation: instrumentation + LOGIN_TIMEOUT fix + frontend false-positive fix; detector marker change deferred) |
 | Phase Review Status | `AUTO-IMPORT-013 ACTIVE / PHASE 2 IMPLEMENTED AND TESTED / DETECTOR CHANGE DEFERRED. NETWORK-MANAGEMENT-001 PAUSED at its exact current state (see Paused Ticket State below), untouched, not closed.` |
 | Next Phase Authorization | `Product Owner performs one fresh TCT manual login to produce the evidence the detector change is waiting on; that evidence will be reported before any isAuthenticated() change. Do not declare PO PASS before a full PO runtime recheck (TCT + HUE). Do not resume NETWORK-MANAGEMENT-001 without separate explicit Product Owner authorization.` |
 | Governance Version | `V2 Active` |
