@@ -279,3 +279,28 @@ ALTER TABLE network_import_log ADD COLUMN rollback_of_import_log_id INTEGER REFE
 -- for existing violations before creating this same index.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_network_delivery_point_unique_key ON network_delivery_point(ma_buu_gui, ngay_phat, route_po_code);
 
+-- ============================================================
+-- NETWORK-MANAGEMENT-001 Phase 4 — Sơ đồ tuyến phát data
+-- contract remediation (PO-approved, 2026-08-06)
+-- ============================================================
+
+-- network_import_archive: one row per successfully-Confirmed Import,
+-- recording where the original raw source file was archived on disk. No
+-- retention/expiry logic — rows/files are never auto-deleted.
+CREATE TABLE IF NOT EXISTS network_import_archive (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    import_log_id INTEGER NOT NULL,
+    module TEXT NOT NULL,
+    file_name TEXT NOT NULL,
+    file_fingerprint TEXT NOT NULL,
+    byte_size INTEGER NOT NULL,
+    declared_period TEXT,
+    actual_period_months TEXT,
+    archived_path TEXT NOT NULL,
+    uploaded_by TEXT,
+    archived_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(import_log_id) REFERENCES network_import_log(id)
+);
+CREATE INDEX IF NOT EXISTS idx_network_import_archive_log ON network_import_archive(import_log_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_network_import_archive_fingerprint ON network_import_archive(module, file_fingerprint);
+

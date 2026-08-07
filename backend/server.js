@@ -14,6 +14,7 @@ const { dbPath: activeDbPath } = require('./src/config/db');
 const { applyNetworkManagement001Phase1Schema } = require('./migrate_network_management_001_phase1_schema');
 const { applyNetworkManagement001Phase2Schema } = require('./migrate_network_management_001_phase2_schema');
 const { applyNetworkManagement001Phase3Schema } = require('./migrate_network_management_001_phase3_schema');
+const { applyNetworkManagement001Phase4Schema } = require('./migrate_network_management_001_phase4_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -100,6 +101,7 @@ async function ensureNetworkManagementSchema() {
     await applyNetworkManagement001Phase1Schema(activeDbPath);
     await applyNetworkManagement001Phase2Schema(activeDbPath);
     await applyNetworkManagement001Phase3Schema(activeDbPath);
+    await applyNetworkManagement001Phase4Schema(activeDbPath);
 }
 
 ensureNetworkManagementSchema()

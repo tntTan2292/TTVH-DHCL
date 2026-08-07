@@ -13,9 +13,15 @@
 'use strict';
 
 const { all, get } = require('../../config/db');
-const { parseDeliveryRoutesImportFile } = require('./parseDeliveryRoutesImportExcel');
 const { recordSnapshot } = require('./importSnapshot');
 
+// PO Gate 4 remediation note: `bien_so` stays a tracked field for the
+// "changed" diff even though Phase 4's raw-BatchFile parser never sets it
+// (no source column exists — see parseDeliveryRoutesBatchFileExcel.js).
+// Its value therefore stays `null` on both sides of the comparison forever,
+// so this never actually flags a false "changed"; kept unchanged rather
+// than special-cased, per the PO instruction to leave this classify/apply
+// layer untouched.
 const TRACKED_FIELDS = [
     'ma_bcvh', 'postman_code', 'bien_so', 'lat', 'lon', 'status_time',
     'loai_dich_vu', 'tien_thu_ho', 'thoi_gian_nhap_phat', 'raw_thoi_gian_nhap_phat', 'ca_phat', 'ngay_nhap_phat',
@@ -27,12 +33,6 @@ function keyOf(record) {
 
 function fieldsDiffer(existingRow, parsedRecord) {
     return TRACKED_FIELDS.some((field) => (existingRow[field] ?? null) !== (parsedRecord[field] ?? null));
-}
-
-/** Parses the flat Import-ready file (Export's own format) — intra-file duplicates flagged, not dropped. */
-function parseForImport(filePath) {
-    const { records, warnings } = parseDeliveryRoutesImportFile(filePath);
-    return { records, warnings };
 }
 
 async function classifyDeliveryPoints(parsedRecords) {
@@ -159,7 +159,6 @@ async function applyDeliveryRoutesImport(runInTx, importLogId, classifiedRows) {
 }
 
 module.exports = {
-    parseForImport,
     classifyDeliveryPoints,
     hasBlockingError,
     applyDeliveryRoutesImport,

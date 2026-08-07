@@ -20,6 +20,7 @@
 - [16. ĐTC2 Journey Visual Remediation](#16-đtc2-journey-visual-remediation)
 - [17. ĐTC2 Selected-Route Arrow Visibility Remediation](#17-đtc2-selected-route-arrow-visibility-remediation)
 - [18. PO Gate 3 PASS — Closure](#18-po-gate-3-pass--closure)
+- [19. Phase 4 — Sơ đồ tuyến phát Data Contract Audit + Remediation](#19-phase-4--sơ-đồ-tuyến-phát-data-contract-audit--remediation)
 
 ## 1. Purpose
 
@@ -30,15 +31,15 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 3 COMPLETED / PO PASS / CLOSED — READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` (as of `2026-08-06`) |
+| Program State | `PHASE 4 (NGHIỆM THU) IN PROGRESS — first scope item technically complete, awaiting PO runtime recheck` (as of `2026-08-06`) |
 | Recorded PO Evaluation (Phase 2) | `PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED` |
-| Current Phase | `Phase 3 (Import) complete and PO Gate 3 PASSED (Section 29) — program is READY FOR PHASE 4 / AWAITING PO AUTHORIZATION; Phase 4 itself not started` |
+| Current Phase | `Phase 3 (Import) closed with PO Gate 3 PASS (Section 29). Product Owner opened Phase 4 with a first scoped item — Sơ đồ tuyến phát data contract audit + remediation — technically complete (Section 19), awaiting PO runtime recheck.` |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
 | Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13, 14, 15 & 16 |
-| Phase 3 (Import) Implementation Performed | `Yes` — see Section 14 (Phase 3 Implementation Closure), Section 15 (PO Gate 3 Runtime Remediation), Sections 16-17 (ĐTC2 journey visual + arrow remediation), Section 29 (PO Gate 3 PASS closure) |
-| Phase 4 (Nghiệm thu) | `READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` — not started |
-| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: first attempt RUNTIME FAIL (Product Owner, 2026-08-06) — 3 defects, remediated same day per Section 15, further ĐTC2 visual remediation per Sections 16-17, then PASS (Product Owner, 2026-08-06, baseline 7da98a79eb8) per Section 29.` |
-| Next State | `READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` |
+| Phase 3 (Import) Implementation Performed | `Yes` — see Section 14 (Phase 3 Implementation Closure), Section 15 (PO Gate 3 Runtime Remediation), Sections 16-17 (ĐTC2 journey visual + arrow remediation), Section 18 (PO Gate 3 PASS closure) |
+| Phase 4 (Nghiệm thu) | `IN PROGRESS` — first scope item (data contract audit + remediation) technically complete, see Section 19; further Phase 4 scope items not yet authorized |
+| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: first attempt RUNTIME FAIL (Product Owner, 2026-08-06) — 3 defects, remediated same day per Section 15, further ĐTC2 visual remediation per Sections 16-17, then PASS (Product Owner, 2026-08-06, baseline 7da98a79eb8) per Section 18. PO Gate 4: not reached — Phase 4 in progress.` |
+| Next State | `Awaiting Product Owner runtime recheck of the Phase 4 data contract remediation (Section 19)` |
 
 ## 3. Baseline
 
@@ -93,7 +94,7 @@ Locked product decisions and locked out-of-scope items are recorded once in `doc
 
 ## 7. Exact Next Action
 
-Phase 3 (Import) is implemented, technically validated, and closed with `PO GATE 3 PASS` (Section 29). Exact next action: await explicit Product Owner authorization to start Phase 4 (Nghiệm thu). Program state is `READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` — do not begin Phase 4 implementation work, and do not begin the future "Bản đồ tổng thể mạng lưới" module, without that explicit authorization.
+Phase 3 (Import) is implemented, technically validated, and closed with `PO GATE 3 PASS` (Section 18). Product Owner then opened Phase 4 (Nghiệm thu) with a first scoped item — Sơ đồ tuyến phát data contract audit + remediation — technically complete (Section 19). Exact next action: await Product Owner runtime recheck of this Phase 4 remediation. Do not declare Phase 4 or program-wide PO PASS, and do not begin the future "Bản đồ tổng thể mạng lưới" module or any further Phase 4 scope item, without that explicit recheck/authorization.
 
 ## 8. Proposed Executor
 
@@ -101,11 +102,11 @@ Claude Code (Sonnet) — implementation, backend, data, tests, documentation, an
 
 ## 9. Next PO Gate
 
-PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3 sits after Phase 3 (Import) closes (manifest Section 11) and required a Product Owner UI check on Import/Export/History/Rollback across all three modules — the first attempt (`2026-08-06`) returned `RUNTIME FAIL` on 3 defects (ĐTC2 straight-line routing, tuyến-phát routing resilience, Date Picker month-availability semantics), root-caused and remediated the same day (Section 15), followed by a further ĐTC2 journey-visual and arrow-visibility remediation round (Sections 16-17). Product Owner then granted `PO GATE 3 PASS` (`2026-08-06`, baseline `7da98a79eb8`, Section 29). PO Gate 4 sits after Phase 4 (Nghiệm thu) closes and has not been reached — Phase 4 is not yet started.
+PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3 sits after Phase 3 (Import) closes (manifest Section 11) and required a Product Owner UI check on Import/Export/History/Rollback across all three modules — the first attempt (`2026-08-06`) returned `RUNTIME FAIL` on 3 defects (ĐTC2 straight-line routing, tuyến-phát routing resilience, Date Picker month-availability semantics), root-caused and remediated the same day (Section 15), followed by a further ĐTC2 journey-visual and arrow-visibility remediation round (Sections 16-17). Product Owner then granted `PO GATE 3 PASS` (`2026-08-06`, baseline `7da98a79eb8`, Section 18). PO Gate 4 sits after Phase 4 (Nghiệm thu) closes — Phase 4 is now in progress (first scoped item: Section 19, awaiting Product Owner runtime recheck), so PO Gate 4 has not yet been reached.
 
 ## 10. Current Blockers
 
-None for Phase 1, 2, or 3 — all implemented, technically validated, and PO-closed (Phase 3 via PO Gate 3 PASS, Section 29). Phase 4 (Nghiệm thu) is blocked only on explicit Product Owner authorization to start — no technical blocker remains.
+None for Phase 1, 2, or 3 — all implemented, technically validated, and PO-closed (Phase 3 via PO Gate 3 PASS, Section 18). Phase 4 (Nghiệm thu) is in progress; its first scoped item (Section 19) is technically complete with no known blocker — awaiting only the Product Owner's runtime recheck.
 
 ## 11. Reusable Architecture Notes
 
@@ -292,3 +293,28 @@ Product Owner explicitly granted `PO GATE 3 PASS` on `2026-08-06`, at baseline c
 **Program state**: Phase 3 (Import) is `COMPLETED / PO PASS / CLOSED`. Phase 4 (Nghiệm thu) moves to `READY FOR PHASE 4 / AWAITING PO AUTHORIZATION` only — not started, not self-activated by this closure, requires its own explicit Product Owner authorization (manifest Section 11). The Product Owner also named a future "Bản đồ tổng thể mạng lưới" (network-wide overview map) module in the same instruction — recorded as a noted future scope item only, not added to Phase 4's locked scope (manifest Section 6), not authorized, not started.
 
 This closure is documentation-only: no product code, schema, database, or test file was changed by this update.
+
+## 19. Phase 4 — Sơ đồ tuyến phát Data Contract Audit + Remediation
+
+Product Owner opened Phase 4 (Nghiệm thu) with a first scoped item, two rounds: an audit (discovery-only), then a PO-approved remediation, both same day (`2026-08-06`).
+
+**Audit findings**: the real raw source file (`Data QLML/2026.07.01 - BatchFile Phat thang 06.2026.xlsb`) has a true 29-column header — read directly to confirm. The Phase 3 Import feature instead required a hand-built 12-column flat template ("Tuyến phát Import") sharing no header names, order, or count with the real recurring monthly file — meaning an admin literally could not upload the real file without manual reformatting. "Biển số" (`bien_so`) traced to have no source column anywhere — not the raw file, not the reference HTML — and confirmed always `NULL` in all 143,475 live rows, in Export, and in the old Import template; it was added directly into Phase 1's original schema with no documented origin. No filename-vs-content period validation existed anywhere in the codebase. The existing classify/apply/upsert logic (locked `(ma_buu_gui, ngay_phat, route_po_code)` key, `INSERT ... ON CONFLICT DO UPDATE`) was confirmed already multi-month-safe by design — no change needed there. No file-archive mechanism existed: uploads used `multer.memoryStorage()` only, discarded after each request; `network_import_log` recorded only `file_name`/`file_fingerprint`, never the file itself.
+
+**Remediation, PO-locked decisions honored:**
+1. Import now reads the original unmodified 29-column raw BatchFile directly — no sheet/header/column changes required from the admin.
+2. New parser (`parseDeliveryRoutesBatchFileExcel.js`) resolves columns by **header name**, resilient to reordering, fails loudly on a missing required header. Only the 11 fields the map needs are persisted; the other 18 raw columns are accepted (read, never rejected) but never stored.
+3. "Biển số" removed from Import/Export and their documentation — no data ever existed for it. `bien_so` stays in the schema, nullable, untouched — no breaking migration.
+4. Filename period support: `YYYY.MM.DD - BatchFile Phat thang MM.YYYY.xlsb` — prefix is export date (ignored), `thang MM.YYYY` is the declared data period.
+5. Preview cross-checks declared period vs. every parsed row's `ngay_phat`: match → shown normally; mismatch or multiple months present → explicit warning, **never a hard block**.
+6. Classify/apply/upsert layer (`deliveryRoutesImport.js`) **unchanged** — only the parser was replaced — so sequential-month imports remain additive/safe (verified live).
+7. After a successful Confirm, the original raw file is archived to disk (new `network_import_archive` table + `fileArchive.js`): filename, byte size, declared period, actual period (all distinct months found), uploader, import time, keyed by the existing SHA-256 fingerprint. **No retention/expiry logic** — nothing is auto-deleted, per explicit PO instruction.
+8. Preview→Confirm lifecycle: the raw buffer is staged to disk immediately at Preview time (independent of multer's request-scoped memory), promoted to the permanent archive only after Confirm's DB transaction has already committed — never dependent on an in-memory buffer surviving past the original request.
+9. `network_delivery_point` data, road routing, and both pre-existing stashes all untouched.
+
+**Implementation**: new `parseDeliveryRoutesBatchFileExcel.js`, `fileArchive.js`; new migration `migrate_network_management_001_phase4_schema.js` (`network_import_archive`, wired into `server.js`/`schema.sql`); `NetworkImportController.js`'s delivery-route Preview/Confirm rewired to the new parser + staging/archive; `exportBuilders.js` now defines its own 11-column Sơ đồ tuyến phát header (no "Biển số"), decoupled from any Import parser; `deliveryRoutesImport.js` classify/apply logic unchanged; retired `parseDeliveryRoutesImportExcel.js` (+ test) removed, nothing referenced it after the rewire; `FlatImportPanel.jsx` gained period-warning/match display, `.xlsb` accepted in the file picker.
+
+**Validation**: `parseDeliveryRoutesBatchFileExcel.test.js` (13 tests, incl. one parsing the **real, unmodified** `Data QLML` BatchFile end-to-end, reproducing the exact known-good baseline of 143,475 non-duplicate rows), `fileArchive.test.js` (5), `migrate_network_management_001_phase4_schema.test.js` (3); `NetworkImportController.test.js` +7 Phase 4 tests (raw-file Preview/Confirm, period-mismatch warning, multi-month-content warning, missing-header rejection, archive-checksum retrieval, sequential 2-month safety); `exportBuilders.test.js` asserts "Biển số" absent from Export. 104/104 full targeted backend suite, 53/53 frontend, `oxlint` clean, `vite build` succeeds.
+
+**Real-browser + real-API runtime** (admin, after backend restart): the real production BatchFile (already recorded as imported via the Phase 2 seed) Previewed and was correctly rejected `409 DUPLICATE_FILE` — proving the new pipeline recognizes it against its historical fingerprint without touching existing June data. A structurally-identical realistic fixture (same 29-column raw layout, via direct API) Preview→Confirm→Archived successfully: rows inserted with `bien_so` staying `null`, archive record retrievable with a checksum matching the recorded fingerprint. A further fixture was imported through the **real UI** (a file genuinely dispatched into `FlatImportPanel`'s file input, not just the API) — the period-match text ("Kỳ dữ liệu: 2026-10 (khớp tên file và nội dung)") rendered correctly, Confirm succeeded, and Rollback via the real UI's button also succeeded. Two sequential-month imports (API) confirmed June's 143,475 rows were never altered by either. Export downloaded and confirmed to no longer contain "Biển số" in its header. Import History panel confirmed unaffected/correct throughout. All test-injected rows and archived files were rolled back/removed after validation — `network_delivery_point` (143,475) and `fact_f13` (669,847) confirmed back at the exact pre-test baseline; `Data QLML/` untouched; both stashes untouched.
+
+Does **not** constitute Phase 4 or program-wide PO PASS — awaiting Product Owner runtime recheck. Further Phase 4 scope items (per manifest Section 6's enriched Phase 4 acceptance checklist) remain outstanding and unauthorized.

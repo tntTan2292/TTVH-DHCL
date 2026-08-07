@@ -1,10 +1,18 @@
 /**
- * exportBuilders — NETWORK-MANAGEMENT-001 Phase 3.
+ * exportBuilders — NETWORK-MANAGEMENT-001 Phase 3, updated Phase 4.
  *
- * Generates the flat, Import-ready Excel for each module directly from
- * live DB state — the round-trip contract is always this Export's own
- * structure, never the original merged-layout / raw-batch-file source
- * Excel (those remain untouched, read-only historical references).
+ * Mạng điểm phục vụ and Đường thư cấp 2 Export keep the flat, Import-ready
+ * round-trip contract from Phase 3 (their own Import parsers still read
+ * Export's exact structure back). Sơ đồ tuyến phát Export is Phase 4
+ * onward a one-way reporting snapshot only — Import for that module now
+ * reads the original raw BatchFile directly
+ * (`parseDeliveryRoutesBatchFileExcel.js`), not Export's output, so this
+ * builder defines its own header list rather than sharing one with an
+ * Import parser. "Biển số" is intentionally absent — the PO Gate 4 audit
+ * confirmed it never had a real source column anywhere and was always
+ * NULL; removed from this Export and from Import per that decision (the
+ * `bien_so` DB column itself is untouched, still nullable, per the locked
+ * no-breaking-migration decision).
  */
 
 'use strict';
@@ -13,7 +21,12 @@ const xlsx = require('xlsx');
 const { all } = require('../../config/db');
 const { EXPECTED_HEADERS: SERVICE_POINT_HEADERS, SHEET_NAME: SERVICE_POINT_SHEET } = require('../networkMapSeed/parseServicePointsExcel');
 const { EXPECTED_HEADERS: LEVEL2_ROUTE_HEADERS, SHEET_NAME: LEVEL2_ROUTE_SHEET } = require('./parseLevel2RoutesImportExcel');
-const { EXPECTED_HEADERS: DELIVERY_HEADERS, SHEET_NAME: DELIVERY_SHEET } = require('./parseDeliveryRoutesImportExcel');
+
+const DELIVERY_SHEET = 'Tuyến phát Export';
+const DELIVERY_HEADERS = [
+    'Mã bưu gửi', 'Ngày phát', 'Mã BCVH', 'Bưu tá (POSTMAN_CODE)', 'Mã tuyến (ROUTE_PO_CODE)',
+    'Vĩ độ', 'Kinh độ', 'Giờ trạng thái', 'Loại dịch vụ', 'Tiền thu hộ', 'Thời gian nhập phát',
+];
 
 function workbookToBuffer(workbook) {
     return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
@@ -96,7 +109,7 @@ async function buildDeliveryRoutesExport({ from, to, all: exportAll } = {}) {
         DELIVERY_HEADERS,
         ...rows.map((r) => [
             r.ma_buu_gui, r.ngay_phat, r.ma_bcvh, r.postman_code, r.route_po_code,
-            r.bien_so, r.lat, r.lon, r.status_time, r.loai_dich_vu, r.tien_thu_ho, r.raw_thoi_gian_nhap_phat,
+            r.lat, r.lon, r.status_time, r.loai_dich_vu, r.tien_thu_ho, r.raw_thoi_gian_nhap_phat,
         ]),
     ];
 

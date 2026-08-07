@@ -19,7 +19,6 @@ const { run } = require('../../config/db');
 const { buildServicePointsExport, buildLevel2RoutesExport, buildDeliveryRoutesExport, buildDeliveryRoutesExportPreviewCount } = require('./exportBuilders');
 const { parseServicePointsWorkbook } = require('../networkMapSeed/parseServicePointsExcel');
 const { parseLevel2RoutesImportWorkbook, groupStopRowsByRoute } = require('./parseLevel2RoutesImportExcel');
-const { parseDeliveryRoutesImportWorkbook } = require('./parseDeliveryRoutesImportExcel');
 
 test.before(async () => {
     await applyNetworkManagement001Phase1Schema(testDbPath);
@@ -81,9 +80,17 @@ test('delivery routes Export defaults to a date range and supports all=true, row
     const { buffer, rowCount } = await buildDeliveryRoutesExport({ from: '2026-06-01', to: '2026-06-30' });
     assert.equal(rowCount, 1);
 
+    // Phase 4: Export is now a one-way reporting snapshot (Import reads the
+    // raw BatchFile directly, not Export's output) — read the sheet raw
+    // rather than round-tripping through an Import parser.
     const workbook = xlsx.read(buffer, { type: 'buffer' });
-    const { records, warnings } = parseDeliveryRoutesImportWorkbook(workbook);
-    assert.equal(warnings.length, 0);
-    assert.equal(records.length, 1);
-    assert.equal(records[0].ma_buu_gui, 'EE1VN');
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null });
+    assert.equal(rows.length, 2, '1 header row + 1 data row');
+    assert.deepEqual(
+        rows[0],
+        ['Mã bưu gửi', 'Ngày phát', 'Mã BCVH', 'Bưu tá (POSTMAN_CODE)', 'Mã tuyến (ROUTE_PO_CODE)', 'Vĩ độ', 'Kinh độ', 'Giờ trạng thái', 'Loại dịch vụ', 'Tiền thu hộ', 'Thời gian nhập phát'],
+        'PO Gate 4 remediation: "Biển số" must no longer appear anywhere in the Export header',
+    );
+    assert.equal(rows[1][0], 'EE1VN');
 });

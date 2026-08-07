@@ -21,8 +21,9 @@ const { classifyServicePoints, hasBlockingError: hasServicePointError, applyServ
 const { parseLevel2RoutesImportWorkbook, groupStopRowsByRoute } = require('../services/networkMapImport/parseLevel2RoutesImportExcel');
 const { classifyLevel2Routes, applyLevel2RoutesImport } = require('../services/networkMapImport/level2RoutesImport');
 
-const { parseDeliveryRoutesImportWorkbook } = require('../services/networkMapImport/parseDeliveryRoutesImportExcel');
+const { parseDeliveryRoutesBatchFileWorkbook } = require('../services/networkMapImport/parseDeliveryRoutesBatchFileExcel');
 const { classifyDeliveryPoints, hasBlockingError: hasDeliveryError, applyDeliveryRoutesImport } = require('../services/networkMapImport/deliveryRoutesImport');
+const { stageUploadedFile, promoteStagedFileToArchive } = require('../services/networkMapImport/fileArchive');
 
 const {
     buildServicePointsExport, buildLevel2RoutesExport, buildDeliveryRoutesExport, buildDeliveryRoutesExportPreviewCount,
@@ -202,15 +203,38 @@ async function previewDeliveryRoutes(req, res) {
         }
 
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        const { records, warnings } = parseDeliveryRoutesImportWorkbook(workbook);
+        const {
+            records, warnings, declaredPeriod, actualPeriodMonths, periodWarning,
+        } = parseDeliveryRoutesBatchFileWorkbook(workbook, req.file.originalname);
         const { rows, summary } = await classifyDeliveryPoints(records);
 
-        const sessionToken = await createSession({
-            module: 'delivery_route', fileName: req.file.originalname, fingerprint,
-            parsedPayload: records, createdBy: req.auth.user.username,
+        // Stage the raw uploaded file to disk immediately — never rely on
+        // multer's memoryStorage buffer surviving past this request (PO
+        // Gate 4 remediation §8). Archived permanently only after Confirm.
+        await stageUploadedFile({
+            module: 'delivery_route', fingerprint, buffer: req.file.buffer, fileName: req.file.originalname,
         });
 
-        return sendSuccess(res, { session_token: sessionToken, summary, warnings, hasBlockingError: hasDeliveryError(rows), rowCount: rows.length });
+        const sessionToken = await createSession({
+            module: 'delivery_route',
+            fileName: req.file.originalname,
+            fingerprint,
+            parsedPayload: {
+                records, declaredPeriod, actualPeriodMonths, periodWarning,
+            },
+            createdBy: req.auth.user.username,
+        });
+
+        return sendSuccess(res, {
+            session_token: sessionToken,
+            summary,
+            warnings,
+            hasBlockingError: hasDeliveryError(rows),
+            rowCount: rows.length,
+            declaredPeriod,
+            actualPeriodMonths,
+            periodWarning,
+        });
     } catch (error) {
         return sendError(res, 400, 'PARSE_ERROR', error.message);
     }
@@ -228,7 +252,8 @@ async function confirmDeliveryRoutes(req, res) {
         return sendError(res, 409, 'DUPLICATE_FILE', 'File này đã được Import trước đó (trùng fingerprint).');
     }
 
-    const { rows } = await classifyDeliveryPoints(session.parsed_payload);
+    const { records, declaredPeriod, actualPeriodMonths } = session.parsed_payload;
+    const { rows } = await classifyDeliveryPoints(records);
     if (hasDeliveryError(rows)) {
         return sendError(res, 422, 'BLOCKING_ERROR', 'File có dòng lỗi — không thể Confirm cho đến khi sửa toàn bộ lỗi.');
     }
@@ -249,8 +274,20 @@ async function confirmDeliveryRoutes(req, res) {
             return { importLogId, ...applyResult };
         });
 
+        // Archive only after the DB transaction has already committed
+        // successfully — never archive a file whose import failed.
+        const archiveResult = await promoteStagedFileToArchive({
+            module: 'delivery_route',
+            fingerprint: session.file_fingerprint,
+            fileName: session.file_name,
+            importLogId: result.importLogId,
+            declaredPeriod,
+            actualPeriodMonths,
+            uploadedBy: req.auth.user.username,
+        });
+
         await deleteSession(sessionToken);
-        return sendSuccess(res, result);
+        return sendSuccess(res, { ...result, archive: archiveResult });
     } catch (error) {
         return sendError(res, 500, 'CONFIRM_FAILED', error.message);
     }

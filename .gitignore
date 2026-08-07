@@ -31,6 +31,11 @@ Data DKCL/BrowserProfiles/
 # Local incident evidence must not be committed
 backend/incident_evidence/
 
+# NETWORK-MANAGEMENT-001 Phase 4: archived original source files (raw
+# monthly BatchFile uploads) must never be committed — real operational
+# business data, potentially large.
+backend/network_map_archive/
+
 # Runtime browser profiles, session stores, and crash/cache artifacts
 backend/tmp/
 **/BrowserMetrics/

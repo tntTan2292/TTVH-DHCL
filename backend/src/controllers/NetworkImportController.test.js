@@ -9,32 +9,75 @@ const xlsx = require('xlsx');
 
 const testDbDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qis-network-import-controller-'));
 const testDbPath = path.join(testDbDir, `database-${process.pid}-${Date.now()}.sqlite`);
+const testArchiveDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qis-network-import-archive-'));
 process.env.NODE_ENV = 'test';
 process.env.QIS_TEST_DB_PATH = testDbPath;
+process.env.QIS_TEST_NETWORK_ARCHIVE_ROOT = testArchiveDir;
 
 const { applyNetworkManagement001Phase1Schema } = require('../../migrate_network_management_001_phase1_schema');
 const { applyNetworkManagement001Phase2Schema } = require('../../migrate_network_management_001_phase2_schema');
 const { applyNetworkManagement001Phase3Schema } = require('../../migrate_network_management_001_phase3_schema');
+const { applyNetworkManagement001Phase4Schema } = require('../../migrate_network_management_001_phase4_schema');
 const { run, all } = require('../config/db');
 const networkImportController = require('./NetworkImportController');
 const { EXPECTED_HEADERS: SERVICE_POINT_HEADERS, SHEET_NAME: SERVICE_POINT_SHEET } = require('../services/networkMapSeed/parseServicePointsExcel');
+const { readArchivedFileWithChecksum } = require('../services/networkMapImport/fileArchive');
 
 test.before(async () => {
     await applyNetworkManagement001Phase1Schema(testDbPath);
     await applyNetworkManagement001Phase2Schema(testDbPath);
     await applyNetworkManagement001Phase3Schema(testDbPath);
+    await applyNetworkManagement001Phase4Schema(testDbPath);
 });
 
 test.after(() => {
     try { fs.rmSync(testDbDir, { recursive: true, force: true }); } catch { /* Windows file lock, best-effort */ }
+    try { fs.rmSync(testArchiveDir, { recursive: true, force: true }); } catch { /* Windows file lock, best-effort */ }
 });
 
 test.beforeEach(async () => {
     await run('DELETE FROM network_service_point');
+    await run('DELETE FROM network_delivery_point');
+    await run('DELETE FROM network_import_archive');
     await run('DELETE FROM network_import_snapshot');
     await run('DELETE FROM network_import_log');
     await run('DELETE FROM network_import_session');
 });
+
+// Raw BatchFile fixture builder: header-name-based, 29-column layout,
+// matching the real monthly file exactly (column order/count intentionally
+// mirrors the live Data QLML source so this fixture stays representative).
+const RAW_HEADER = [
+    'LADING_CODE', 'Mã Tỉnh', 'Mã huyện', 'Mã bưu cục', 'POSTMAN_CODE', 'ROUTE_PO_CODE', 'STATUS_CODE',
+    'TYPE_CODE_PAYROLL', 'TYPE_NAME_PAYROLL', 'SERVICE_NAME_PAYROLL', 'REGION_CODE', 'KG', 'AREA_CODE',
+    'SERVICE_CODE', 'ITEM_TYPE_CODE', 'STATUS_DATE', 'QUANTITY', 'SERVICE_PRO', 'MABC_CN', 'MABC_PHAT',
+    'SO_TIEN_THU_HO', 'CUSTOMER_CODE', 'LAT', 'LON', 'STATUS_TIME', 'GTGT', 'Xác nhận đến BCP', 'Mã lô',
+    'Thời gian nhập phát',
+];
+
+function buildRawBatchRow(overrides = {}) {
+    const row = new Array(29).fill(null);
+    row[0] = 'CN0001'; // LADING_CODE
+    row[4] = '53A121'; // POSTMAN_CODE
+    row[5] = '533140145'; // ROUTE_PO_CODE
+    row[9] = 'C-Bưu kiện'; // SERVICE_NAME_PAYROLL
+    row[15] = 20260601; // STATUS_DATE
+    row[16] = 1; // QUANTITY
+    row[19] = '533140'; // MABC_PHAT
+    row[20] = 100000; // SO_TIEN_THU_HO
+    row[22] = 16.5; // LAT
+    row[23] = 107.6; // LON
+    row[24] = 103200; // STATUS_TIME
+    row[28] = '01/06/2026 10:32:00'; // Thời gian nhập phát
+    return Object.assign(row, overrides);
+}
+
+function buildRawBatchFileBuffer(rows, sheetName = 'Data_Ghep_1234567890') {
+    const sheet = xlsx.utils.aoa_to_sheet([RAW_HEADER, ...rows]);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, sheet, sheetName);
+    return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+}
 
 function createResponse() {
     return {
@@ -175,4 +218,142 @@ test('importHistory returns entries scoped to the requested module only', async 
 
     assert.equal(res.body.data.length, 1);
     assert.equal(res.body.data[0].module, 'service_point');
+});
+
+// ==================== Phase 4: Sơ đồ tuyến phát raw-BatchFile Import + Archive ====================
+
+test('Preview accepts the raw BatchFile exactly (no reformatting), reports a matching declared/actual period, and writes nothing', async () => {
+    const buffer = buildRawBatchFileBuffer([buildRawBatchRow()]);
+    const fileName = '2026.07.01 - BatchFile Phat thang 06.2026.xlsb';
+    const req = adminReq({ file: { buffer, originalname: fileName } });
+    const res = createResponse();
+
+    await networkImportController.previewDeliveryRoutes(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.declaredPeriod, '2026-06');
+    assert.deepEqual(res.body.data.actualPeriodMonths, ['2026-06']);
+    assert.equal(res.body.data.periodWarning, null, 'declared and actual period match — no warning');
+    assert.equal(res.body.data.summary.added, 1);
+    assert.ok(res.body.data.session_token);
+
+    const rows = await all('SELECT * FROM network_delivery_point');
+    assert.equal(rows.length, 0, 'Preview must never write to the business table');
+});
+
+test('Preview warns (does not block) when the filename period does not match the content period', async () => {
+    // Filename declares July, but the row's STATUS_DATE is in June.
+    const buffer = buildRawBatchFileBuffer([buildRawBatchRow()]);
+    const fileName = '2026.08.01 - BatchFile Phat thang 07.2026.xlsb';
+    const req = adminReq({ file: { buffer, originalname: fileName } });
+    const res = createResponse();
+
+    await networkImportController.previewDeliveryRoutes(req, res);
+
+    assert.equal(res.statusCode, 200, 'mismatch must warn, not hard-block');
+    assert.match(res.body.data.periodWarning, /không khớp/i);
+    assert.equal(res.body.data.hasBlockingError, false);
+});
+
+test('Preview warns when the file contains multiple distinct months', async () => {
+    const buffer = buildRawBatchFileBuffer([
+        buildRawBatchRow({ 0: 'CN0001' }),
+        buildRawBatchRow({ 0: 'CN0002', 15: 20260701 }),
+    ]);
+    const fileName = '2026.07.01 - BatchFile Phat thang 06.2026.xlsb';
+    const req = adminReq({ file: { buffer, originalname: fileName } });
+    const res = createResponse();
+
+    await networkImportController.previewDeliveryRoutes(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.data.actualPeriodMonths, ['2026-06', '2026-07']);
+    assert.match(res.body.data.periodWarning, /nhiều kỳ/i);
+});
+
+test('Preview fails loudly (never silently mis-maps) when a required raw header is missing', async () => {
+    const badHeader = RAW_HEADER.map((h) => (h === 'STATUS_DATE' ? 'STATUS_DATE_RENAMED' : h));
+    const sheet = xlsx.utils.aoa_to_sheet([badHeader, buildRawBatchRow()]);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, sheet, 'Data_Ghep_x');
+    const buffer = xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    const req = adminReq({ file: { buffer, originalname: '2026.07.01 - BatchFile Phat thang 06.2026.xlsb' } });
+    const res = createResponse();
+    await networkImportController.previewDeliveryRoutes(req, res);
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.error.code, 'PARSE_ERROR');
+    assert.match(res.body.error.message, /STATUS_DATE/);
+});
+
+test('Confirm writes rows, then archives the original raw file with a checksum that matches, retrievable by import_log_id', async () => {
+    const buffer = buildRawBatchFileBuffer([buildRawBatchRow()]);
+    const fileName = '2026.07.01 - BatchFile Phat thang 06.2026.xlsb';
+
+    const previewRes = createResponse();
+    await networkImportController.previewDeliveryRoutes(adminReq({ file: { buffer, originalname: fileName } }), previewRes);
+
+    const confirmRes = createResponse();
+    await networkImportController.confirmDeliveryRoutes(adminReq({ body: { session_token: previewRes.body.data.session_token } }), confirmRes);
+
+    assert.equal(confirmRes.statusCode, 200);
+    assert.equal(confirmRes.body.data.inserted, 1);
+    assert.ok(confirmRes.body.data.archive.archivedPath);
+    assert.equal(confirmRes.body.data.archive.byteSize, buffer.length);
+
+    const rows = await all('SELECT * FROM network_delivery_point');
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].ma_buu_gui, 'CN0001');
+    assert.equal(rows[0].bien_so, null, '"Biển số" has no source — must stay null');
+
+    const { record, checksumMatches } = await readArchivedFileWithChecksum(confirmRes.body.data.importLogId);
+    assert.ok(record, 'archive record must be retrievable by import_log_id');
+    assert.equal(record.file_name, fileName);
+    assert.equal(record.declared_period, '2026-06');
+    assert.deepEqual(JSON.parse(record.actual_period_months), ['2026-06']);
+    assert.equal(record.uploaded_by, 'admin');
+    assert.ok(checksumMatches, 'archived file bytes must still match the recorded fingerprint');
+});
+
+test('Sequential import of a second month never alters or duplicates the first month\'s rows', async () => {
+    const juneBuffer = buildRawBatchFileBuffer([buildRawBatchRow({ 0: 'CN-JUNE-1' })]);
+    const junePreview = createResponse();
+    await networkImportController.previewDeliveryRoutes(
+        adminReq({ file: { buffer: juneBuffer, originalname: '2026.07.01 - BatchFile Phat thang 06.2026.xlsb' } }),
+        junePreview,
+    );
+    const juneConfirm = createResponse();
+    await networkImportController.confirmDeliveryRoutes(
+        adminReq({ body: { session_token: junePreview.body.data.session_token } }),
+        juneConfirm,
+    );
+    assert.equal(juneConfirm.statusCode, 200);
+
+    const julyBuffer = buildRawBatchFileBuffer([buildRawBatchRow({ 0: 'CN-JULY-1', 15: 20260701 })]);
+    const julyPreview = createResponse();
+    await networkImportController.previewDeliveryRoutes(
+        adminReq({ file: { buffer: julyBuffer, originalname: '2026.08.01 - BatchFile Phat thang 07.2026.xlsb' } }),
+        julyPreview,
+    );
+    const julyConfirm = createResponse();
+    await networkImportController.confirmDeliveryRoutes(
+        adminReq({ body: { session_token: julyPreview.body.data.session_token } }),
+        julyConfirm,
+    );
+    assert.equal(julyConfirm.statusCode, 200);
+
+    const juneRows = await all("SELECT * FROM network_delivery_point WHERE ngay_phat = '2026-06-01'");
+    assert.equal(juneRows.length, 1, 'June row must be unchanged/untouched by the July import');
+    assert.equal(juneRows[0].ma_buu_gui, 'CN-JUNE-1');
+
+    const julyRows = await all("SELECT * FROM network_delivery_point WHERE ngay_phat = '2026-07-01'");
+    assert.equal(julyRows.length, 1);
+    assert.equal(julyRows[0].ma_buu_gui, 'CN-JULY-1');
+
+    const allRows = await all('SELECT * FROM network_delivery_point');
+    assert.equal(allRows.length, 2, 'no cross-month overwrite or mixing');
+
+    const archives = await all("SELECT * FROM network_import_archive WHERE module = 'delivery_route'");
+    assert.equal(archives.length, 2, 'both months archived independently');
 });

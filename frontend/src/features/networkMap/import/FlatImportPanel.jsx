@@ -66,7 +66,7 @@ export default function FlatImportPanel({ onPreview, onConfirm, rowKeyField, row
         >
           Chọn file Excel để Import
         </button>
-        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
+        <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.xlsb" className="hidden" onChange={handleFileChange} />
         {status === 'previewing' && <span className="text-gray-500">Đang đọc file...</span>}
       </div>
 
@@ -91,6 +91,15 @@ export default function FlatImportPanel({ onPreview, onConfirm, rowKeyField, row
             <p className="text-red-700 font-semibold mb-2">
               File có dòng lỗi — không thể Confirm cho đến khi sửa toàn bộ lỗi.
             </p>
+          )}
+
+          {previewData.periodWarning && (
+            <p className="text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 font-semibold mb-2">
+              ⚠️ {previewData.periodWarning}
+            </p>
+          )}
+          {previewData.declaredPeriod && !previewData.periodWarning && (
+            <p className="text-gray-600 mb-2">Kỳ dữ liệu: <b>{previewData.declaredPeriod}</b> (khớp tên file và nội dung).</p>
           )}
 
           {rows.length > 0 && (
