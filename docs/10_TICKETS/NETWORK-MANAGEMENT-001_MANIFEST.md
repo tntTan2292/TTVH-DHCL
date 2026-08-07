@@ -294,3 +294,19 @@ Two independent recheck-fail/fix cycles against Section 30's remediation, both s
 Live `curl` Preview against the real, unmodified `Data QLML/2026.06.01 - BatchFile Phat thang 05.2026.xlsb`: `added: 144284, duplicate: 5` (144,289 total, matching the PO's own ~144,289-row count), `declaredPeriod`/`actualPeriodMonths` both `2026-05`, no warning. Preview only — not Confirmed. 113/113 targeted backend tests, 13/13 frontend `NetworkMapClient` tests, `oxlint` clean. `network_delivery_point`/`fact_f13` unchanged; May file SHA-256 checksum unchanged; `Data QLML/` and both stashes untouched. Full evidence: checkpoint Section 21.
 
 Does **not** constitute Phase 4 or program-wide PO PASS. Confirm (writing the real May data to production) has not been run and needs its own explicit PO approval.
+
+## 32. Sơ đồ tuyến phát Import — PO PASS (2026-08-07)
+
+Product Owner officially confirmed **PO PASS** for the Sơ đồ tuyến phát Import component (Phase 4's first scoped item — the raw BatchFile data-contract audit, remediation, and both recheck-fail fixes across Sections 30-31). Accepted evidence: the real, unmodified May 2026 BatchFile Preview succeeded (144,289 valid rows: 144,284 new, 5 duplicate, 0 error); declared and actual period both `2026-05`; Confirm Import succeeded (performed by the Product Owner outside this session — `network_import_log.id = 17`, `status: SUCCESS`, fingerprint `3daa53c9…5a687`, matching the accepted counts exactly); period `05/2026` is now available in Sơ đồ tuyến phát (verified read-only: `/api/network-map/delivery-routes/meta` lists `2026-05-01`..`2026-05-31` alongside the pre-existing June dates); the previous 0/0/0/0/0 defect (both root causes — sheet detection and text-cell type coercion) is resolved.
+
+This is a **documentation-only governance update** — no product code changed, no data touched, the May import (`network_import_log.id = 17`) is preserved and was **not** rolled back.
+
+**Scope of this PASS**: Sơ đồ tuyến phát Import only (Phase 4 acceptance checklist item 1 for this module, satisfying the raw-BatchFile-specific recheck this component required beyond the general Phase 3 PO Gate 3 PASS already granted `2026-08-06`). It does **not** constitute Phase 4 or program-wide PO PASS.
+
+**Remaining Phase 4 acceptance checklist items (manifest §6) without recorded Product Owner acceptance:**
+2. Admin-only enforcement re-verified independently at Phase 4 (not assumed from Phase 3 evidence) — viewer-role UI absence and API `401`/`403` on all 3 modules.
+3-4. "Tạm dừng" point handling (default-hidden, legend toggle, visual distinction, ĐTC2 geometry resolution) and the 5 specific audited "Tạm dừng" points, verified as a direct business-outcome check.
+5. Cross-module regression across all 3 modules together (auth, Phase 2 read-only rendering/filter gating, no forbidden-scope drift).
+6. Data-integrity reconfirmation at Phase 4 level (`fact_f13` vs. the Phase 3 closure baseline, `Data QLML/` checksums, both stashes).
+
+Per manifest §6 item 7, Phase 4 may only close once all checklist items have Product Owner acceptance. Full evidence: checkpoint Section 22.
