@@ -2,9 +2,14 @@
  * parseDeliveryRoutesBatchFileExcel — NETWORK-MANAGEMENT-001 Phase 4.
  *
  * Reads the ORIGINAL, unmodified monthly BatchFile the postal system already
- * produces (`YYYY.MM.DD - BatchFile Phat thang MM.YYYY.xlsb`, 29 columns,
- * sheet name varies per file — e.g. `Data_Ghep_1782916740832` — so the sole
- * sheet present is used rather than a hardcoded name). Replaces the former
+ * produces (`YYYY.MM.DD - BatchFile Phat thang MM.YYYY.xlsb`, 29 columns).
+ * The sheet name varies per export — observed as `Data_Ghep_1782916740832`
+ * for one month and `Data_Tong_Hop` for another (PO Gate 4 runtime recheck
+ * finding, 2026-08-06: a hardcoded `Data_Ghep`-prefix-or-first-sheet
+ * heuristic silently picked the wrong/empty sheet for the latter and
+ * produced a false "0 rows" Preview) — so the data sheet is now found by
+ * scanning every sheet's header row for the full required-header set
+ * (`findDataSheet`), never by name or position. Replaces the former
  * flat 12-column "Tuyến phát Import" template
  * (`parseDeliveryRoutesImportExcel.js`, removed) — per PO Gate 4 audit and
  * remediation decision, an admin must be able to upload the exact recurring
@@ -94,7 +99,13 @@ function isValidCoordinate(value) {
     return typeof value === 'number' && Number.isFinite(value) && value !== 0;
 }
 
-function resolveHeaderIndexes(headerRow) {
+/**
+ * Checks a header row against REQUIRED_HEADERS without throwing — used to
+ * probe every sheet in the workbook when auto-detecting the data sheet.
+ * Returns { indexes, missing }: `indexes` is only complete (safe to use)
+ * when `missing` is empty.
+ */
+function tryResolveHeaderIndexes(headerRow) {
     const byName = new Map();
     (headerRow || []).forEach((cell, idx) => {
         if (cell === null || cell === undefined) return;
@@ -111,35 +122,49 @@ function resolveHeaderIndexes(headerRow) {
             missing.push(name);
         }
     }
-    if (missing.length > 0) {
-        throw new Error(
-            `File không đúng cấu trúc BatchFile gốc — thiếu cột bắt buộc: ${missing.join(', ')}. `
-            + `Vui lòng import nguyên file BatchFile định kỳ của hệ thống bưu chính, không chỉnh sửa header.`,
-        );
-    }
-    return indexes;
+    return { indexes, missing };
 }
 
 /**
- * Picks the sheet to read: the one whose name starts with "Data_Ghep" if
- * present (the raw file's known naming convention, which appears to carry
- * a per-export suffix so it is never hardcoded exactly), otherwise the
- * workbook's sole/first sheet.
+ * Auto-detects which sheet in the workbook holds the BatchFile data, by
+ * header CONTENT — never by sheet name. The postal system's export naming
+ * for this sheet has already been observed to vary between exports
+ * (`Data_Ghep_<suffix>` for one month, `Data_Tong_Hop` for another; PO
+ * Gate 4 recheck finding, 2026-08-06) — hardcoding or guessing a name is
+ * exactly the defect being fixed here. Every sheet is checked in workbook
+ * order; the first one whose header row contains all REQUIRED_HEADERS is
+ * used. If none qualifies, throws a single error listing every sheet name
+ * together with that sheet's specific missing headers — never a silent
+ * "0 rows" result.
  */
-function resolveSheetName(workbook) {
-    const dataGhepSheet = workbook.SheetNames.find((name) => name.startsWith('Data_Ghep'));
-    return dataGhepSheet || workbook.SheetNames[0];
+function findDataSheet(workbook) {
+    const attempts = [];
+    for (const sheetName of workbook.SheetNames) {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true });
+        const header = rows[0] || [];
+        const { indexes, missing } = tryResolveHeaderIndexes(header);
+        if (missing.length === 0) {
+            return { sheetName, rows, indexes };
+        }
+        attempts.push({ sheetName, missing });
+    }
+
+    const detail = attempts
+        .map((a) => `"${a.sheetName}" (thiếu: ${a.missing.join(', ')})`)
+        .join('; ');
+    throw new Error(
+        `File không đúng cấu trúc BatchFile gốc — không tìm thấy sheet nào chứa đủ ${REQUIRED_HEADERS.length} cột bắt buộc. `
+        + `Đã kiểm tra ${workbook.SheetNames.length} sheet: ${detail}. `
+        + `Vui lòng import nguyên file BatchFile định kỳ của hệ thống bưu chính, không chỉnh sửa header.`,
+    );
 }
 
 function parseDeliveryRoutesBatchFileWorkbook(workbook, fileName) {
-    const sheetName = resolveSheetName(workbook);
-    if (!sheetName) {
-        throw new Error('Không tìm thấy sheet dữ liệu trong file.');
-    }
-    const sheet = workbook.Sheets[sheetName];
-    const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null, raw: true });
-    const header = rows[0] || [];
-    const idx = resolveHeaderIndexes(header);
+    const { rows, idx } = (() => {
+        const found = findDataSheet(workbook);
+        return { rows: found.rows, idx: found.indexes };
+    })();
 
     const declaredPeriod = parseFilenamePeriod(fileName);
 
@@ -246,6 +271,6 @@ module.exports = {
     parseDeliveryRoutesBatchFileWorkbook,
     parseDeliveryRoutesBatchFileExcel,
     parseFilenamePeriod,
-    resolveSheetName,
+    findDataSheet,
     REQUIRED_HEADERS,
 };

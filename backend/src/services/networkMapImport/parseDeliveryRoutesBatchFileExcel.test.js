@@ -9,7 +9,7 @@ const xlsx = require('xlsx');
 const {
     parseDeliveryRoutesBatchFileWorkbook,
     parseFilenamePeriod,
-    resolveSheetName,
+    findDataSheet,
     REQUIRED_HEADERS,
 } = require('./parseDeliveryRoutesBatchFileExcel');
 
@@ -45,6 +45,16 @@ function buildWorkbook(rows, { header = RAW_HEADER, sheetName = 'Data_Ghep_17829
     return workbook;
 }
 
+/** Builds a workbook with several sheets, each `{ name, header, rows }`. */
+function buildMultiSheetWorkbook(sheetSpecs) {
+    const workbook = xlsx.utils.book_new();
+    sheetSpecs.forEach(({ name, header, rows }) => {
+        const sheet = xlsx.utils.aoa_to_sheet([header, ...(rows || [])]);
+        xlsx.utils.book_append_sheet(workbook, sheet, name);
+    });
+    return workbook;
+}
+
 test('parseFilenamePeriod reads "thang MM.YYYY" from the real naming convention, ignoring the export-date prefix', () => {
     assert.deepEqual(
         parseFilenamePeriod('2026.07.01 - BatchFile Phat thang 06.2026.xlsb'),
@@ -55,12 +65,53 @@ test('parseFilenamePeriod reads "thang MM.YYYY" from the real naming convention,
     assert.equal(parseFilenamePeriod(null), null);
 });
 
-test('resolveSheetName prefers a "Data_Ghep*"-prefixed sheet, falling back to the first sheet', () => {
-    const wbWithDataGhep = buildWorkbook([buildRow()], { sheetName: 'Data_Ghep_999' });
-    assert.equal(resolveSheetName(wbWithDataGhep), 'Data_Ghep_999');
+test('findDataSheet finds the data sheet by header CONTENT, regardless of its name — reproduces the PO Gate 4 recheck finding (2026-08-06)', () => {
+    // The May BatchFile that failed used sheet "Data_Tong_Hop" instead of the
+    // June file's "Data_Ghep_<suffix>" naming — neither name should matter.
+    const wb = buildMultiSheetWorkbook([
+        { name: 'Data_Tong_Hop', header: RAW_HEADER, rows: [buildRow()] },
+    ]);
+    const found = findDataSheet(wb);
+    assert.equal(found.sheetName, 'Data_Tong_Hop');
+    assert.equal(found.rows.length, 2, 'header + 1 data row');
+});
 
-    const wbOther = buildWorkbook([buildRow()], { sheetName: 'Sheet1' });
-    assert.equal(resolveSheetName(wbOther), 'Sheet1');
+test('findDataSheet skips a leading non-data sheet (e.g. a cover/summary tab) and finds the real data sheet by its headers', () => {
+    const wb = buildMultiSheetWorkbook([
+        { name: 'Sheet1', header: ['Ghi chú', 'Không liên quan'], rows: [['abc', 'def']] },
+        { name: 'Data_Tong_Hop', header: RAW_HEADER, rows: [buildRow()] },
+    ]);
+    const found = findDataSheet(wb);
+    assert.equal(found.sheetName, 'Data_Tong_Hop');
+});
+
+test('findDataSheet throws a clear error naming every sheet and its specific missing headers — never a silent 0-row result', () => {
+    const wb = buildMultiSheetWorkbook([
+        { name: 'Sheet1', header: ['Ghi chú'], rows: [] },
+        { name: 'Sheet2', header: RAW_HEADER.filter((h) => h !== 'ROUTE_PO_CODE'), rows: [] },
+    ]);
+    assert.throws(() => findDataSheet(wb), (err) => {
+        assert.match(err.message, /Sheet1/);
+        assert.match(err.message, /Sheet2/);
+        assert.match(err.message, /ROUTE_PO_CODE/);
+        return true;
+    });
+});
+
+test('a workbook shaped like the failing May BatchFile (single "Data_Tong_Hop" sheet) parses successfully end-to-end, not 0/0/0/0/0', () => {
+    const mayRow = (overrides) => buildRow({ 15: 20260515, 28: '15/05/2026 10:32:00', ...overrides });
+    const wb = buildMultiSheetWorkbook([
+        { name: 'Data_Tong_Hop', header: RAW_HEADER, rows: [mayRow(), mayRow({ 0: 'CN0002' })] },
+    ]);
+    const { records, stats, declaredPeriod, actualPeriodMonths, periodWarning } = parseDeliveryRoutesBatchFileWorkbook(
+        wb,
+        '2026.06.01 - BatchFile Phat thang 05.2026.xlsb',
+    );
+    assert.equal(stats.kept_points, 2, 'must not silently yield 0 rows just because the sheet is not named Data_Ghep*');
+    assert.equal(records.length, 2);
+    assert.equal(declaredPeriod, '2026-05');
+    assert.deepEqual(actualPeriodMonths, ['2026-05']);
+    assert.equal(periodWarning, null, 'declared (May, from filename) and actual (May, from content) periods match');
 });
 
 test('parses the exact real 29-column header with zero reformatting required, mapping by header name', () => {
