@@ -13,7 +13,12 @@ const DKCL_LIFECYCLE_STATES = Object.freeze({
 const DKCL_LEGACY_STATES = Object.freeze({
     NOT_AUTHENTICATED: 'NOT_AUTHENTICATED',
     SESSION_EXPIRED: 'SESSION_EXPIRED',
-    ERROR: 'ERROR'
+    ERROR: 'ERROR',
+    // AUTO-IMPORT-013: terminal outcome when the manual-login wait window elapses
+    // without detecting success. Distinct from ERROR (unexpected exception) so the
+    // preflight response can carry an accurate, bounded diagnostic message instead
+    // of leaving the UI reporting WAITING_FOR_LOGIN/LOGIN_IN_PROGRESS indefinitely.
+    LOGIN_TIMEOUT: 'LOGIN_TIMEOUT'
 });
 
 const DKCL_PUBLIC_LIFECYCLE_SEQUENCE = Object.freeze([

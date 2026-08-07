@@ -161,8 +161,12 @@ export default function DataImportCenter() {
     setHueSessionStatus((current) => current === 'SESSION_VALID' ? current : 'CHECKING');
     try {
       const res = await api.post('/import/dkcl/session/preflight', { source: 'HUE' });
-      setHueSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+      const status = res.data.data?.status || 'SESSION_CHECK_FAILED';
+      setHueSessionStatus(status);
       setHueLifecycleState(res.data.data?.lifecycle_state || null);
+      // AUTO-IMPORT-013: LOGIN_TIMEOUT arrives on the success path (not an HTTP error) with its
+      // own accurate diagnostic message — surface it once instead of leaving hueSessionError blank.
+      setHueSessionError(status === 'LOGIN_TIMEOUT' ? (res.data.data?.error?.message || null) : null);
     } catch (err) {
       const status = err.response?.data?.data?.status || (err.response?.status === 401 ? 'AUTHENTICATION_REQUIRED' : 'SESSION_CHECK_FAILED');
       setHueSessionStatus(status);
@@ -174,9 +178,14 @@ export default function DataImportCenter() {
   const preflightTctSession = useCallback(async () => {
     try {
       const res = await api.post('/import/dkcl/session/preflight', { source: 'TCT' });
-      setTctSessionStatus(res.data.data?.status || 'SESSION_CHECK_FAILED');
+      const status = res.data.data?.status || 'SESSION_CHECK_FAILED';
+      setTctSessionStatus(status);
       setTctLifecycleState(res.data.data?.lifecycle_state || null);
-      if (res.data.data?.status !== 'LOGIN_IN_PROGRESS') {
+      // AUTO-IMPORT-013: LOGIN_TIMEOUT arrives on the success path (not an HTTP error) with its
+      // own accurate diagnostic message — surface it once instead of leaving tctSessionError blank.
+      if (status === 'LOGIN_TIMEOUT') {
+        setTctSessionError(res.data.data?.error?.message || null);
+      } else if (status !== 'LOGIN_IN_PROGRESS') {
         setTctSessionError(null);
       }
     } catch (err) {
@@ -578,10 +587,17 @@ export default function DataImportCenter() {
   const tctSessionReady = tctSessionStatus === 'SESSION_VALID';
   // tctLoginInProgress: actively in the middle of the async open-browser phase (not stuck yet)
   const tctLoginInProgress = tctSessionLoading || tctSessionStatus === 'LOGIN_IN_PROGRESS';
-  // tctLoginStuck: server returned LOGIN_IN_PROGRESS and we are not actively loading — window may not have appeared
-  const tctLoginStuck = tctSessionStatus === 'LOGIN_IN_PROGRESS' || tctSessionStatus === 'SESSION_CHECK_FAILED';
+  // AUTO-IMPORT-013: LOGIN_IN_PROGRESS is the normal state for the whole manual-login wait
+  // window (up to DKCL_INTERACTIVE_AUTH_WAIT_MS) — it is NOT evidence the window failed to
+  // appear, so it must not trigger the "stuck" warning on its own (previously it did, showing
+  // a false "window did not appear" message within the first poll of a perfectly normal login).
+  // LOGIN_TIMEOUT is the backend's one-shot, accurate signal that the wait window elapsed with
+  // no login detected and resources were already released; SESSION_CHECK_FAILED is a genuine
+  // check failure. Both are real "stuck"/failed outcomes.
+  const tctLoginStuck = tctSessionStatus === 'LOGIN_TIMEOUT' || tctSessionStatus === 'SESSION_CHECK_FAILED';
+  const tctLoginTimedOut = tctSessionStatus === 'LOGIN_TIMEOUT';
   const hueSessionReady = hueSessionStatus === 'SESSION_VALID';
-  const hueLoginStuck = hueSessionStatus === 'LOGIN_IN_PROGRESS' || hueSessionStatus === 'SESSION_CHECK_FAILED';
+  const hueLoginStuck = hueSessionStatus === 'LOGIN_TIMEOUT' || hueSessionStatus === 'SESSION_CHECK_FAILED';
   // Update disabled only when session not ready, no dates selected, submitting, or queue active
   // Quét (scan) is ALWAYS allowed — uses local evidence, does not need portal session
   const tctUpdateDisabled = !tctSessionReady || tctSelectedDates.length === 0 || tctQueueSubmitting || tctQueueIsActive;
@@ -853,7 +869,12 @@ export default function DataImportCenter() {
 
           {tctLoginStuck && (
             <div className="mt-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800" data-testid="tct-login-stuck">
-              <span>Cửa sổ đăng nhập TCT không xuất hiện hoặc đã bị đóng. Nhấn <strong>Thử lại</strong> để mở lại, hoặc <strong>Huỷ</strong> để thoát.</span>
+              <span>
+                {tctLoginTimedOut
+                  ? (tctSessionError || 'Không xác nhận được đăng nhập TCT trong thời gian chờ. Trình duyệt đã đóng.')
+                  : 'Không thể kiểm tra được phiên đăng nhập TCT.'}
+                {' '}Nhấn <strong>Thử lại</strong> để mở lại, hoặc <strong>Huỷ</strong> để thoát.
+              </span>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"

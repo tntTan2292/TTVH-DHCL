@@ -196,6 +196,32 @@ class DkclHueF13PortalClient {
         return /Quan ly tep|Quản lý tệp|Tra cứu thông tin bưu gửi|Tra cuu thong tin buu gui|Dang xuat|Đăng xuất|Logout|tantn\.bdtth/i.test(bodyText);
     }
 
+    /**
+     * AUTO-IMPORT-013 diagnostic instrumentation. Logs only non-sensitive, structural
+     * signals (URL, page title, page/tab count, body-text length, boolean marker matches).
+     * Never logs raw body text, form field values, cookies, or credentials.
+     */
+    async captureLoginDiagnostics(label) {
+        try {
+            const pages = typeof this.context?.pages === 'function' ? this.context.pages() : [];
+            const url = this.page.url();
+            const title = await this.page.title().catch(() => null);
+            const bodyText = await this.page.locator('body').innerText({ timeout: 3000 }).catch(() => '');
+            const loginInputCount = await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count().catch(() => 0);
+            const markers = {
+                has_quan_ly_tep: /Quan ly tep|Quản lý tệp/i.test(bodyText),
+                has_tra_cuu: /Tra cứu thông tin bưu gửi|Tra cuu thong tin buu gui/i.test(bodyText),
+                has_dang_xuat: /Dang xuat|Đăng xuất|Logout/i.test(bodyText),
+                has_tantn_bdtth: /tantn\.bdtth/i.test(bodyText),
+                has_thong_ke_mojibake: /Thá»‘ng kÃª/iu.test(bodyText),
+                has_login_input: loginInputCount > 0
+            };
+            console.log(`[AUTO-IMPORT-013][PortalClient ${this.source}] diagnostics(${label}): url=${url} title=${JSON.stringify(title)} pageCount=${pages.length} bodyTextLength=${bodyText.length} markers=${JSON.stringify(markers)}`);
+        } catch (err) {
+            console.warn(`[AUTO-IMPORT-013][PortalClient ${this.source}] diagnostics(${label}) capture failed: ${err.message}`);
+        }
+    }
+
     async prepareInteractiveAuthentication({ baseUrl, profileDir }) {
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
         this.loginUrl = `${this.baseUrl}/login`;
@@ -369,6 +395,8 @@ class DkclHueF13PortalClient {
             this.page.waitForSelector('select[name="TuyChonGR"], select#TuyChonGR', { state: 'attached', timeout: 20000 }).catch(() => null),
             this.page.waitForSelector('input[name="login"], input[id="login"], input[type="password"]', { state: 'attached', timeout: 20000 }).catch(() => null)
         ]);
+
+        await this.captureLoginDiagnostics('open_f13_report');
 
         if (this.page.url().includes('/login') || await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count() > 0) {
             throw portalError('AUTHENTICATION_REQUIRED: login required', 'AUTHENTICATION_REQUIRED');
@@ -888,10 +916,15 @@ class DkclHueF13PortalClient {
 
     async waitForManualAuthentication() {
         const timeoutAt = Date.now() + this.manualAuthWaitMs;
+        await this.captureLoginDiagnostics('wait_start');
         while (Date.now() < timeoutAt) {
-            if (await this.isAuthenticated()) return true;
+            if (await this.isAuthenticated()) {
+                await this.captureLoginDiagnostics('wait_detected_authenticated');
+                return true;
+            }
             await this.page.waitForTimeout(this.manualAuthPollMs);
         }
+        await this.captureLoginDiagnostics('wait_timed_out');
         return false;
     }
 }

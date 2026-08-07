@@ -19,7 +19,12 @@ const PREFLIGHT_STATUSES = Object.freeze({
     SESSION_VALID: 'SESSION_VALID',
     AUTHENTICATION_REQUIRED: 'AUTHENTICATION_REQUIRED',
     SESSION_CHECK_FAILED: 'SESSION_CHECK_FAILED',
-    LOGIN_IN_PROGRESS: 'LOGIN_IN_PROGRESS'
+    LOGIN_IN_PROGRESS: 'LOGIN_IN_PROGRESS',
+    // AUTO-IMPORT-013: reported exactly once, right after the manual-login wait window
+    // elapses and resources have been released. Distinct from LOGIN_IN_PROGRESS so the
+    // frontend can show an accurate "timed out, please retry" message instead of an
+    // indefinite/misleading "window did not appear" one.
+    LOGIN_TIMEOUT: 'LOGIN_TIMEOUT'
 });
 
 function resolveRepoRootPath(targetPath) {
@@ -278,6 +283,31 @@ class DkclSessionPreflightService {
                 source_page_ready: false,
                 ...lifecyclePayload(entry),
                 message: `Đang mở đăng nhập DKCL ${sourceConfig.displayName}.`
+            };
+        }
+
+        // AUTO-IMPORT-013: surface the bounded manual-login timeout exactly once with its
+        // specific diagnostic message, then reset to NOT_AUTHENTICATED so the next poll
+        // re-checks the (already-released) profile fresh via requireExistingSession below,
+        // instead of repeating a stale message or falling into the generic SESSION_CHECK_FAILED
+        // bucket that would lose the "why".
+        if (entry.state === DKCL_LEGACY_STATES.LOGIN_TIMEOUT) {
+            const timeoutMessage = entry.lastError;
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.NOT_AUTHENTICATED, {
+                client: null,
+                authenticated: false,
+                backgroundReady: false,
+                windowHidden: false,
+                hideAttempted: false,
+                lastError: null
+            });
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.LOGIN_TIMEOUT,
+                interactive: true,
+                source_page_ready: false,
+                ...lifecyclePayload(entry),
+                error: { code: 'LOGIN_TIMEOUT', message: timeoutMessage }
             };
         }
 
@@ -608,7 +638,36 @@ class DkclSessionPreflightService {
                             });
                         }
                     } catch (err) {
-                        const keepWindowVisible = err?.code === 'AUTHENTICATION_REQUIRED' || err?.code === 'SOURCE_PAGE_REQUIRED';
+                        // AUTO-IMPORT-013: waitInteractiveAuthentication() throws AUTHENTICATION_REQUIRED
+                        // from exactly one place — waitForManualAuthentication() returning false after its
+                        // full wait window elapsed. In the interactive flow, credentials are typed by the
+                        // Product Owner directly in the visible browser (no automated login-attempt path
+                        // exists here), so this is unambiguously a bounded manual-login timeout, not a
+                        // "still on the login form, retry credentials" case. Treat it as terminal: release
+                        // the browser/profile lock and report a specific, accurate diagnostic instead of
+                        // leaving the session parked at WAITING_FOR_LOGIN indefinitely.
+                        if (err?.code === 'AUTHENTICATION_REQUIRED') {
+                            const waitedMs = client.manualAuthWaitMs || 0;
+                            const waitedMinutes = Math.round(waitedMs / 60000);
+                            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.LOGIN_TIMEOUT, {
+                                client: null,
+                                lastError: `Không xác nhận được đăng nhập DKCL ${sourceConfig.displayName} trong ${waitedMinutes} phút. Trình duyệt đã đóng và hồ sơ đã được giải phóng.`,
+                                authenticated: false,
+                                backgroundReady: false,
+                                windowHidden: false,
+                                hideAttempted: false,
+                                profileDir
+                            });
+                            if (this.coordinatorEnabled) {
+                                this.coordinator.markFailed(sourceConfig.source, profileDir, err);
+                            }
+                            await client.close().catch(() => {});
+                            return;
+                        }
+                        // SOURCE_PAGE_REQUIRED: login succeeded but the F1.3 report page did not become
+                        // ready. Keep the window visible/open — the session is authenticated, this is a
+                        // different (portal-page-level) symptom, unchanged from prior behavior.
+                        const keepWindowVisible = err?.code === 'SOURCE_PAGE_REQUIRED';
                         if (keepWindowVisible) {
                             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
                                 client,
