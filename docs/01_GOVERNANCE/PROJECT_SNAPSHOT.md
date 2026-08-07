@@ -17,26 +17,45 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `NETWORK-MANAGEMENT-001 Phase 4 (Nghiệm thu) — IN PROGRESS: Sơ đồ tuyến phát Import component (Phase 4 first scope item) received explicit PO PASS (2026-08-07) after two recheck-fail/fix cycles against the real May BatchFile (sheet detection, then text-cell type coercion) and a PO-performed Confirm of the real May data. Phase 4 acceptance checklist items 2, 3-4, 5, 6 (manifest §6) remain without recorded PO acceptance.` |
-| Current Ticket | `NETWORK-MANAGEMENT-001` |
-| Next Ticket | `None beyond NETWORK-MANAGEMENT-001. Remaining Phase 4 checklist items (admin-only re-verification, "Tạm dừng" point handling, cross-module regression, Phase-4-level data-integrity reconfirmation) each need their own PO review/acceptance before Phase 4 or program closure.` |
-| Last PO Status | `PO PASS for Sơ đồ tuyến phát Import (2026-08-07): real unmodified May 2026 BatchFile Preview succeeded (144,289 valid rows: 144,284 new / 5 duplicate / 0 error), declared period = actual period = 2026-05, Confirm Import succeeded (network_import_log.id=17, PO-performed), period 05/2026 now available in Sơ đồ tuyến phát, prior 0/0/0/0/0 defect resolved. Scope: this Phase 4 component only — not Phase 4 or program-wide PO PASS. (Prior: PO GATE 3 PASS, 2026-08-06, baseline 7da98a79eb8, covering Import/Export/History/Rollback across all 3 modules under the pre-remediation flat-template format.)` |
+| Current Phase | `AUTO-IMPORT-013 Emergency Remediation — Discovery only, no fix implemented. NETWORK-MANAGEMENT-001 is PAUSED at its exact current state (Phase 4 in progress, Sơ đồ tuyến phát Import PO PASS) by explicit Product Owner instruction — not touched, not closed, not rolled back.` |
+| Current Ticket | `AUTO-IMPORT-013` |
+| Next Ticket | `None self-activated. NETWORK-MANAGEMENT-001 remains the paused ticket to resume once explicitly authorized (see Paused Ticket State below). F13-STANDARDIZATION-001 and F13-SHIPMENT-001 (stash@{0}) remain unaffected next-direction candidates, unauthorized.` |
+| Last PO Status | `Urgent directive 2026-08-07: TCT changed its login mechanism; PO still enters credentials manually; HUE (new account) logs in and imports successfully as control baseline; TCT manual login succeeds in the browser but QIS stays at WAITING_FOR_LOGIN. AUTO-IMPORT-013 activated, discovery-only: root-cause hypothesis is evidence-backed (login completes, isAuthenticated()'s hardcoded post-login markers do not match TCT's new destination page — live window title observed as "Quản trị nội dung", matching none of them) but not yet fully confirmed at the page-content level, and no fix has been implemented. NETWORK-MANAGEMENT-001's last PO status (Sơ đồ tuyến phát Import PO PASS, 2026-08-07) is preserved unchanged below and is not affected by this pause.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` (Section 32) |
-| Current Checkpoint | `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` (Section 22) |
-| Current State | `PHASE 4 IN PROGRESS — Sơ đồ tuyến phát Import component CLOSED / PO PASS; remaining Phase 4 checklist items (admin-only re-verification, "Tạm dừng" handling, cross-module regression, data-integrity reconfirmation) not yet PO-reviewed` |
-| Technical Status | `No code change this update — documentation-only. Prior technical fix (commit d830a784) unaffected: toFiniteNumber() normalizes native-number and numeric-text QUANTITY/LAT/LON cells; periodWarning/sourceStats surface exclusion diagnostics. 113/113 backend, 13/13 frontend, oxlint clean (unchanged from prior entry).` |
-| Runtime Status | `Read-only verification (no product code/data touched): network_import_log.id=17 confirms module=delivery_route, file_fingerprint=3daa53c9…5a687 (matches the validated May file byte-for-byte), status=SUCCESS, total_records=144289, inserted_records=144284, skipped_records=5, error_records=0, created_at=2026-08-07 07:20:25, uploaded_by=admin — exact match to PO's accepted evidence. /api/network-map/delivery-routes/meta confirms 2026-05-01..2026-05-31 now listed alongside pre-existing June dates. May import preserved, not rolled back; Data QLML/ and both stashes untouched.` |
-| PO UI Check Required | `Yes — for the remaining Phase 4 acceptance checklist items only (manifest §6 items 2, 3-4, 5, 6). Sơ đồ tuyến phát Import itself is now PO PASS and needs no further check.` |
-| PO Product Status | `NETWORK-MANAGEMENT-001 Phase 4: Sơ đồ tuyến phát Import component CLOSED / PO PASS (2026-08-07). Other Phase 4 checklist items and overall Phase 4/program closure remain outstanding.` |
-| Last Closed Ticket | `NETWORK-MANAGEMENT-001 (Phase 3, PO Gate 3 PASS) — unaffected` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` |
-| Last Reviewed Phase | `NETWORK-MANAGEMENT-001 Phase 3 (Import): Product Owner PO Gate 3 PASS` |
-| Last Reviewed Implementation Commit | `7da98a79eb8` (Phase 3 PO Gate 3 PASS baseline); latest pushed commit is `8cac056d` (Phase 4 recheck-fail fix, not yet PO-reviewed) |
-| Phase Review Status | `NETWORK-MANAGEMENT-001 Phase 1-3: all CLOSED with PO PASS. Phase 4 (Nghiệm thu): IN PROGRESS — Sơ đồ tuyến phát Import component CLOSED / PO PASS (2026-08-07) after two recheck-fail/fix cycles and a PO-performed Confirm. Manifest §6 Phase 4 acceptance checklist items 2 (admin-only re-verification), 3-4 ("Tạm dừng" point handling), 5 (cross-module regression), 6 (Phase-4-level data-integrity reconfirmation) remain without recorded PO acceptance.` |
-| Next Phase Authorization | `Further Phase 4 checklist items and eventual Phase 4/program closure each require their own explicit Product Owner authorization/PASS. Do not declare Phase 4 or program-wide PO PASS until repository authority confirms every remaining Phase 4 checklist item (manifest §6 items 2, 3-4, 5, 6) has also received PO acceptance. The Product Owner-named future "Bản đồ tổng thể mạng lưới" module remains noted only, not authorized.` |
+| Current Manifest | `docs/10_TICKETS/AUTO-IMPORT-013_MANIFEST.md` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-IMPORT-013_CHECKPOINT_001.md` |
+| Current State | `DISCOVERY COMPLETE / ROOT CAUSE HYPOTHESIS EVIDENCE-BACKED / NO FIX IMPLEMENTED / AWAITING PO-CTO DECISION ON PROPOSED FIX SCOPE` |
+| Technical Status | `No code changed. Live incident inspected directly (already in progress at time of discovery): backend PID 29508 running continuously since 2026-08-07 08:45:43; TCT.lock held since 15:46; TCT Chromium process (PID 23140, child of backend) alive since 15:46:02 with a visible window titled "Quản trị nội dung"; isAuthenticated() in dkclHueF13PortalClient.js (shared, unmodified, no per-source override) does not recognize that page as authenticated. No recent commit touches this code (last: 1ca7eee1, 2026-07-31) — not a QIS-side regression.` |
+| Runtime Status | `Not applicable — no fix exists yet to runtime-validate. The live incident inspected was not separately triggered by this session; it was already in progress and was only observed (window title via OS-level EnumWindows, no page content, no credentials).` |
+| PO UI Check Required | `Not yet — no fix has been implemented in AUTO-IMPORT-013.` |
+| PO Product Status | `AUTO-IMPORT-013: NOT PASS — discovery only, awaiting PO/CTO decision on the proposed minimum fix scope before implementation.` |
+| Last Closed Ticket | `AUTO-IMPORT-011 — Emergency Import remediation, COMPLETED / PO RUNTIME PASS / CLOSED, 2026-08-05 (unaffected by this ticket)` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` |
+| Last Reviewed Phase | `AUTO-IMPORT-013 discovery: live TCT login-stall incident inspected, root-cause hypothesis evidence-backed, no fix implemented` |
+| Last Reviewed Implementation Commit | `None — documentation only, no code changed in AUTO-IMPORT-013` |
+| Phase Review Status | `AUTO-IMPORT-013 ACTIVE / DISCOVERY COMPLETE / NO FIX IMPLEMENTED. NETWORK-MANAGEMENT-001 PAUSED at its exact current state (see Paused Ticket State below), untouched, not closed.` |
+| Next Phase Authorization | `Product Owner/CTO must review the proposed minimum fix scope in docs/10_TICKETS/AUTO-IMPORT-013_MANIFEST.md before any implementation begins. Do not resume NETWORK-MANAGEMENT-001 without separate explicit Product Owner authorization.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-07` |
+
+### Paused Ticket State — `NETWORK-MANAGEMENT-001` (frozen verbatim from before this pause; not summarized, not altered)
+
+The table above now tracks `AUTO-IMPORT-013`. `NETWORK-MANAGEMENT-001` is paused, not closed — its own last-known state is preserved here exactly as it stood immediately before the pause, so no detail is lost:
+
+| Field | Value (as of the pause) |
+| --- | --- |
+| Phase | `NETWORK-MANAGEMENT-001 Phase 4 (Nghiệm thu) — IN PROGRESS: Sơ đồ tuyến phát Import component (Phase 4 first scope item) received explicit PO PASS (2026-08-07) after two recheck-fail/fix cycles against the real May BatchFile (sheet detection, then text-cell type coercion) and a PO-performed Confirm of the real May data. Phase 4 acceptance checklist items 2, 3-4, 5, 6 (manifest §6) remain without recorded PO acceptance.` |
+| Manifest | `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` (Section 32) |
+| Checkpoint | `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` (Section 22) |
+| State | `PHASE 4 IN PROGRESS — Sơ đồ tuyến phát Import component CLOSED / PO PASS; remaining Phase 4 checklist items (admin-only re-verification, "Tạm dừng" handling, cross-module regression, data-integrity reconfirmation) not yet PO-reviewed` |
+| Technical Status | `toFiniteNumber() normalizes native-number and numeric-text QUANTITY/LAT/LON cells; periodWarning/sourceStats surface exclusion diagnostics (commit d830a784). 113/113 backend, 13/13 frontend, oxlint clean.` |
+| Runtime Status | `network_import_log.id=17 confirms module=delivery_route, file_fingerprint=3daa53c9…5a687, status=SUCCESS, total_records=144289, inserted_records=144284, skipped_records=5, error_records=0, created_at=2026-08-07 07:20:25, uploaded_by=admin. /api/network-map/delivery-routes/meta confirms 2026-05-01..2026-05-31 listed alongside June. May import preserved, not rolled back.` |
+| PO UI Check Required | `Yes — for the remaining Phase 4 acceptance checklist items only (manifest §6 items 2, 3-4, 5, 6). Sơ đồ tuyến phát Import itself is PO PASS and needs no further check.` |
+| PO Product Status | `Phase 4: Sơ đồ tuyến phát Import component CLOSED / PO PASS (2026-08-07). Other Phase 4 checklist items and overall Phase 4/program closure remain outstanding.` |
+| Last Closed (within this ticket) | `Phase 3, PO Gate 3 PASS, baseline 7da98a79eb8` |
+| Last Reviewed Implementation Commit | `7da98a79eb8` (Phase 3 PO Gate 3 PASS baseline); latest pushed commit `8cac056d` (Phase 4 recheck-fail fix, not yet PO-reviewed) |
+| Phase Review Status | `Phase 1-3: all CLOSED with PO PASS. Phase 4 (Nghiệm thu): IN PROGRESS — Sơ đồ tuyến phát Import component CLOSED / PO PASS (2026-08-07). Manifest §6 items 2, 3-4, 5, 6 remain without recorded PO acceptance.` |
+| Next Phase Authorization (when resumed) | `Further Phase 4 checklist items and eventual Phase 4/program closure each require their own explicit Product Owner authorization/PASS. Do not declare Phase 4 or program-wide PO PASS until every remaining Phase 4 checklist item (manifest §6 items 2, 3-4, 5, 6) has also received PO acceptance. The Product Owner-named future "Bản đồ tổng thể mạng lưới" module remains noted only, not authorized.` |
 
 ## 3. Usage Rules
 
