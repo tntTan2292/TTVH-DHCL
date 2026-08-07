@@ -204,7 +204,7 @@ async function previewDeliveryRoutes(req, res) {
 
         const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
         const {
-            records, warnings, declaredPeriod, actualPeriodMonths, periodWarning,
+            records, warnings, stats: sourceStats, declaredPeriod, actualPeriodMonths, periodWarning,
         } = parseDeliveryRoutesBatchFileWorkbook(workbook, req.file.originalname);
         const { rows, summary } = await classifyDeliveryPoints(records);
 
@@ -234,6 +234,7 @@ async function previewDeliveryRoutes(req, res) {
             declaredPeriod,
             actualPeriodMonths,
             periodWarning,
+            sourceStats,
         });
     } catch (error) {
         return sendError(res, 400, 'PARSE_ERROR', error.message);

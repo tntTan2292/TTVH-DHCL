@@ -10,6 +10,8 @@ const {
     parseDeliveryRoutesBatchFileWorkbook,
     parseFilenamePeriod,
     findDataSheet,
+    toFiniteNumber,
+    isValidCoordinate,
     REQUIRED_HEADERS,
 } = require('./parseDeliveryRoutesBatchFileExcel');
 
@@ -228,6 +230,107 @@ test('required headers list matches exactly what this parser reads (documentatio
         ['LADING_CODE', 'LAT', 'LON', 'MABC_PHAT', 'POSTMAN_CODE', 'QUANTITY', 'ROUTE_PO_CODE',
             'SERVICE_NAME_PAYROLL', 'SO_TIEN_THU_HO', 'STATUS_DATE', 'STATUS_TIME', 'Thời gian nhập phát'].sort(),
     );
+});
+
+// PO Gate 4 second recheck (2026-08-07): the real May BatchFile stores
+// QUANTITY/LAT/LON as text-formatted cells (e.g. "-1", "16.497005") instead
+// of the June file's native numbers, and the old strict `=== -1` /
+// `typeof === 'number'` checks silently excluded every row, producing a
+// false-clean 0/0/0/0/0 Preview with no diagnostic.
+
+test('toFiniteNumber accepts native numbers and numeric text, rejects blank/non-numeric/NaN/Infinity', () => {
+    assert.equal(toFiniteNumber(-1), -1);
+    assert.equal(toFiniteNumber('-1'), -1);
+    assert.equal(toFiniteNumber('16.497005'), 16.497005);
+    assert.equal(toFiniteNumber('  16.5  '), 16.5);
+    assert.equal(toFiniteNumber(''), null);
+    assert.equal(toFiniteNumber('   '), null);
+    assert.equal(toFiniteNumber(null), null);
+    assert.equal(toFiniteNumber(undefined), null);
+    assert.equal(toFiniteNumber('abc'), null);
+    assert.equal(toFiniteNumber('Infinity'), null);
+    assert.equal(toFiniteNumber(Infinity), null);
+    assert.equal(toFiniteNumber(NaN), null);
+});
+
+test('isValidCoordinate accepts numeric-text and native-number coordinates within range, rejects out-of-range/blank/zero/non-numeric', () => {
+    assert.equal(isValidCoordinate('16.497005', { min: -90, max: 90 }), true);
+    assert.equal(isValidCoordinate(16.497005, { min: -90, max: 90 }), true);
+    assert.equal(isValidCoordinate('107.601168333333', { min: -180, max: 180 }), true);
+    assert.equal(isValidCoordinate('', { min: -90, max: 90 }), false, 'blank is invalid');
+    assert.equal(isValidCoordinate('abc', { min: -90, max: 90 }), false, 'non-numeric text is invalid');
+    assert.equal(isValidCoordinate('0', { min: -90, max: 90 }), false, 'zero is invalid');
+    assert.equal(isValidCoordinate(0, { min: -90, max: 90 }), false, 'zero (number) is invalid');
+    assert.equal(isValidCoordinate('999', { min: -90, max: 90 }), false, 'out-of-range latitude is invalid');
+    assert.equal(isValidCoordinate('NaN', { min: -90, max: 90 }), false);
+    assert.equal(isValidCoordinate(Infinity, { min: -90, max: 90 }), false);
+});
+
+test('a workbook shaped like the real May BatchFile (QUANTITY/LAT/LON as TEXT cells) parses successfully — reproduces the PO Gate 4 second recheck finding (2026-08-07)', () => {
+    const textRow = (overrides) => buildRow({
+        16: '1', // QUANTITY as text, not excluded
+        22: '16.497005', // LAT as text
+        23: '107.601168333333', // LON as text
+        15: '20260501',
+        28: '01/05/2026 16:29:15',
+        ...overrides,
+    });
+    const wb = buildMultiSheetWorkbook([
+        { name: 'Data_Tong_Hop', header: RAW_HEADER, rows: [textRow(), textRow({ 0: 'CN0002' })] },
+    ]);
+    const { records, stats, periodWarning } = parseDeliveryRoutesBatchFileWorkbook(
+        wb,
+        '2026.06.01 - BatchFile Phat thang 05.2026.xlsb',
+    );
+    assert.equal(stats.kept_points, 2, 'text-formatted numeric cells must not be silently excluded');
+    assert.equal(records.length, 2);
+    assert.equal(records[0].lat, 16.497005, 'LAT must be normalized to a real number, not left as text');
+    assert.equal(records[0].lon, 107.601168333333, 'LON must be normalized to a real number, not left as text');
+    assert.equal(periodWarning, null);
+});
+
+test('QUANTITY === -1 excludes rows whether it arrives as text "-1" or native number -1', () => {
+    const rows = [
+        buildRow({ 16: '-1' }), // text form
+        buildRow({ 16: -1 }), // numeric form
+        buildRow(),
+    ];
+    const { records, stats } = parseDeliveryRoutesBatchFileWorkbook(buildWorkbook(rows), 'x.xlsb');
+    assert.equal(records.length, 1);
+    assert.equal(stats.excluded_quantity_minus_1, 2);
+});
+
+test('mixed text/number QUANTITY, LAT, LON in the same file (real-world May-file shape) all resolve consistently', () => {
+    const rows = [
+        buildRow({ 16: '-1' }), // excluded: text quantity
+        buildRow({ 22: '', 23: '107.6' }), // excluded: blank text LAT
+        buildRow({ 22: '16.5', 23: '107.6' }), // kept: text LAT/LON
+        buildRow({ 22: 16.5, 23: 107.6 }), // kept: numeric LAT/LON
+        buildRow({ 22: '999', 23: '107.6' }), // excluded: out-of-range LAT
+    ];
+    const { records, stats } = parseDeliveryRoutesBatchFileWorkbook(buildWorkbook(rows), 'x.xlsb');
+    assert.equal(stats.total_rows, 5);
+    assert.equal(stats.excluded_quantity_minus_1, 1);
+    assert.equal(stats.excluded_invalid_coordinates, 2);
+    assert.equal(records.length, 2);
+});
+
+test('when every row is excluded, the period warning names exact exclusion-reason counts instead of a bare "no valid rows" message (PO Gate 4 second recheck fix)', () => {
+    const rows = [
+        buildRow({ 16: -1 }),
+        buildRow({ 22: 0, 23: 0 }),
+        buildRow({ 15: 'not-a-date' }),
+    ];
+    const { stats, periodWarning, actualPeriodMonths } = parseDeliveryRoutesBatchFileWorkbook(
+        buildWorkbook(rows),
+        '2026.07.01 - BatchFile Phat thang 06.2026.xlsb',
+    );
+    assert.deepEqual(actualPeriodMonths, []);
+    assert.equal(stats.total_rows, 3);
+    assert.match(periodWarning, /Đã đọc 3 dòng dữ liệu/);
+    assert.match(periodWarning, /1 dòng loại do QUANTITY=-1/);
+    assert.match(periodWarning, /1 dòng loại do LAT\/LON không hợp lệ/);
+    assert.match(periodWarning, /1 dòng loại do STATUS_DATE không đọc được/);
 });
 
 // PO Gate 4 mandatory test: parse the real, unmodified monthly BatchFile

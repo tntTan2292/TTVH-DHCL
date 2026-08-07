@@ -95,8 +95,39 @@ function formatStatusTime(value) {
     return `${str.slice(0, 2)}:${str.slice(2, 4)}:${str.slice(4, 6)}`;
 }
 
-function isValidCoordinate(value) {
-    return typeof value === 'number' && Number.isFinite(value) && value !== 0;
+/**
+ * Normalizes a cell that may arrive as a native number OR as numeric text —
+ * the exact same logical value can be stored either way depending on how the
+ * postal system's export tool formatted that column for a given month (PO
+ * Gate 4 second recheck finding, 2026-08-07: the May BatchFile's `QUANTITY`/
+ * `LAT`/`LON` cells were text-formatted, e.g. `"-1"` / `"16.497005"`, while
+ * the June file's equivalent cells were native numbers — a strict `=== -1`
+ * or `typeof value === 'number'` check silently excluded every single row).
+ * Returns a finite `number`, or `null` for blank/non-numeric/NaN/Infinity.
+ */
+function toFiniteNumber(value) {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed === '') return null;
+        const num = Number(trimmed);
+        return Number.isFinite(num) ? num : null;
+    }
+    return null;
+}
+
+function isQuantityExcluded(value) {
+    return toFiniteNumber(value) === -1;
+}
+
+function isValidCoordinate(value, { min, max } = {}) {
+    const num = toFiniteNumber(value);
+    if (num === null || num === 0) return false;
+    if (typeof min === 'number' && num < min) return false;
+    if (typeof max === 'number' && num > max) return false;
+    return true;
 }
 
 /**
@@ -172,6 +203,7 @@ function parseDeliveryRoutesBatchFileWorkbook(workbook, fileName) {
         total_rows: 0,
         excluded_quantity_minus_1: 0,
         excluded_invalid_coordinates: 0,
+        excluded_invalid_status_date: 0,
         kept_points: 0,
         missing_import_time_count: 0,
     };
@@ -185,14 +217,17 @@ function parseDeliveryRoutesBatchFileWorkbook(workbook, fileName) {
         if (!row) continue; // eslint-disable-line no-continue
         stats.total_rows += 1;
 
-        if (row[idx.QUANTITY] === -1) {
+        if (isQuantityExcluded(row[idx.QUANTITY])) {
             stats.excluded_quantity_minus_1 += 1;
             continue; // eslint-disable-line no-continue
         }
 
-        const lat = row[idx.LAT];
-        const lon = row[idx.LON];
-        if (!isValidCoordinate(lat) || !isValidCoordinate(lon)) {
+        // Accepts both native-number and numeric-text cells (see
+        // `toFiniteNumber`) — geographic range keeps genuinely bad values
+        // (blank, non-numeric, 0, NaN, Infinity, or out-of-range) invalid.
+        const lat = toFiniteNumber(row[idx.LAT]);
+        const lon = toFiniteNumber(row[idx.LON]);
+        if (!isValidCoordinate(row[idx.LAT], { min: -90, max: 90 }) || !isValidCoordinate(row[idx.LON], { min: -180, max: 180 })) {
             stats.excluded_invalid_coordinates += 1;
             continue; // eslint-disable-line no-continue
         }
@@ -202,6 +237,7 @@ function parseDeliveryRoutesBatchFileWorkbook(workbook, fileName) {
         const routePoCode = row[idx.ROUTE_PO_CODE];
         const ngayPhat = formatStatusDate(statusDate);
         if (!ngayPhat) {
+            stats.excluded_invalid_status_date += 1;
             warnings.push(`Dòng ${i + 1}: STATUS_DATE "${statusDate}" không đọc được — bỏ qua dòng.`);
             continue; // eslint-disable-line no-continue
         }
@@ -245,7 +281,17 @@ function parseDeliveryRoutesBatchFileWorkbook(workbook, fileName) {
     if (!declaredPeriod) {
         periodWarning = 'Không đọc được kỳ dữ liệu từ tên file (định dạng mong đợi: "... Phat thang MM.YYYY..."). Vui lòng kiểm tra thủ công.';
     } else if (actualPeriodMonths.length === 0) {
-        periodWarning = 'Không có dòng dữ liệu hợp lệ nào để đối chiếu kỳ.';
+        // Never a bare "no valid rows" — if the sheet actually had rows,
+        // name exactly why every one was excluded (PO Gate 4 second recheck
+        // finding, 2026-08-07: a silent 0/0/0/0/0 with no diagnostic hid a
+        // type-coercion bug for a full recheck cycle).
+        periodWarning = stats.total_rows > 0
+            ? `Đã đọc ${stats.total_rows} dòng dữ liệu nhưng không có dòng nào hợp lệ để lưu: `
+                + `${stats.excluded_quantity_minus_1} dòng loại do QUANTITY=-1, `
+                + `${stats.excluded_invalid_coordinates} dòng loại do LAT/LON không hợp lệ, `
+                + `${stats.excluded_invalid_status_date} dòng loại do STATUS_DATE không đọc được. `
+                + 'Vui lòng kiểm tra lại file.'
+            : 'Không có dòng dữ liệu hợp lệ nào để đối chiếu kỳ.';
     } else if (actualPeriodMonths.length > 1) {
         periodWarning = `File chứa dữ liệu của nhiều kỳ (${actualPeriodMonths.join(', ')}), không chỉ kỳ khai báo trong tên file (${declaredPeriod.period}). Vui lòng kiểm tra kỹ trước khi Confirm.`;
     } else if (actualPeriodMonths[0] !== declaredPeriod.period) {
@@ -272,5 +318,7 @@ module.exports = {
     parseDeliveryRoutesBatchFileExcel,
     parseFilenamePeriod,
     findDataSheet,
+    toFiniteNumber,
+    isValidCoordinate,
     REQUIRED_HEADERS,
 };
