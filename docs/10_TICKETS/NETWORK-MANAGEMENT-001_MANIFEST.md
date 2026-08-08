@@ -310,3 +310,14 @@ This is a **documentation-only governance update** — no product code changed, 
 6. Data-integrity reconfirmation at Phase 4 level (`fact_f13` vs. the Phase 3 closure baseline, `Data QLML/` checksums, both stashes).
 
 Per manifest §6 item 7, Phase 4 may only close once all checklist items have Product Owner acceptance. Full evidence: checkpoint Section 22.
+
+## 33. Phase 4 Acceptance Checklist — Technical Verification Round (2026-08-08)
+
+Resuming from the pause caused by the unrelated `AUTO-IMPORT-013` ticket, Claude Code performed a read-only technical verification of §6's remaining checklist items 2, 3-4, 5, 6. No browser automation was used; no code was changed (no defect was found to warrant it).
+
+- **Item 2 (admin-only, all 3 modules) — Technical PASS.** `networkMapRoutes.js`: every Import/Export/History/Rollback endpoint on all 3 modules wired to `allowAdminOnly`. `authMiddleware.js` + passing unit tests confirm 401 (no session) / 403 (wrong role). Live `curl`, unauthenticated: 401 on all 3 modules' Import/Export/History/Rollback endpoints. Frontend `NetworkAdminSection.jsx` returns `null` for non-admin roles and is shared by all 3 map pages. Gap: live viewer-role 403 not re-exercised (no viewer credential available) — PO spot-check recommended.
+- **Items 3-4 ("Tạm dừng" handling) — Technical PASS.** Live API confirms all 5 audited points (`536101, 536102, 537200, 534630, 534989`) present, `trạng_thái` verbatim `"Tạm dừng"`, exactly 5 total; 11 ĐTC2 stop references to them all resolve real geometry. Code confirms default-hidden (`showTamDung` defaults `false`), toggleable, dedicated grey marker distinct from all 5 active-category colors. Gap: browser-rendered behavior not observed directly — PO checklist provided.
+- **Item 5 (cross-module regression) — Technical PASS.** `git diff 7da98a79..HEAD` touches only Phase 4 import files plus the unrelated, already-closed `AUTO-IMPORT-013` files — zero touches to Phase 1/2 map/auth/routing code. `deliveryRoutesImport.js` diff is dead-code removal only. 117/117 backend + 13/13 frontend tests pass.
+- **Item 6 (data integrity) — Technical PASS, one explained shift.** `network_delivery_point` 287,759 (143,475 June + 144,284 May); `network_service_point` 156; `network_level2_route` 28; `network_level2_route_stop` 148 — all as expected. `fact_f13` 673,781 vs. Phase 3 baseline 669,847 (+3,934) traced exactly to a single `2026-08-06` cohort matching `AUTO-IMPORT-013`'s real, unrelated, already-PO-confirmed TCT import — not a regression. `Data QLML/` checksums and both stashes unchanged.
+
+Does not constitute Phase 4 or program-wide PO PASS. PO acceptance still required for items 2, 3-4, 5 (item 6 is technical-only). Full evidence: checkpoint Section 23.
