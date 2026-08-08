@@ -32,7 +32,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Last Closed Ticket | `AUTO-IMPORT-013 — Urgent TCT login-detection stall, COMPLETED / PO RUNTIME PASS / CLOSED, 2026-08-07 (unaffected by this ticket)` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-013_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-IMPORT-014 Phase 2: HUE/TCT session-lifecycle hardening implemented and technically validated; PO runtime acceptance outstanding` |
-| Last Reviewed Implementation Commit | `Pending commit of this round's 6-file change (see docs/10_TICKETS/AUTO-IMPORT-014_MANIFEST.md Phase 2 section)` |
+| Last Reviewed Implementation Commit | `0d959eb` (Phase 2 bounded implementation: per-source mutex, generalized activeOperation exemption, bounded-retry classification, multi-page rebind, ownership-scoped reconciliation for both HUE/TCT — Technical Gate PASS) |
 | Phase Review Status | `AUTO-IMPORT-014 ACTIVE / TECHNICAL GATE PASS / AWAITING PO RUNTIME ACCEPTANCE. NETWORK-MANAGEMENT-001 PAUSED at its exact current state (see Paused Ticket State below), untouched, not closed.` |
 | Next Phase Authorization | `Product Owner performs the runtime acceptance checklist in docs/10_TICKETS/AUTO-IMPORT-014_MANIFEST.md whenever ready; only after that should PO PASS/CLOSED be recorded. Do not resume NETWORK-MANAGEMENT-001 without separate explicit Product Owner authorization.` |
 | Governance Version | `V2 Active` |
