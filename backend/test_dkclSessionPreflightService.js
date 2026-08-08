@@ -716,7 +716,7 @@ function makeCoordinatorFixture() {
     assert.strictEqual(cleanupCalled, true, 'STALE_CONFIRMED classification should clean locks');
     fsMod.existsSync = originalExistsSync;
 
-    console.log('\nTEST 9: R4.1B interactive LIVE_UNVERIFIED classification keeps HUE blocked without terminate or cleanup');
+    console.log('\nTEST 9: AUTO-IMPORT-014 — LIVE_UNVERIFIED reclamation is generalized to HUE too (no exactProfileMatch evidence still blocks)');
     browserProcessManager.findBrowserProcessByProfile = async () => ({
         inspectionStatus: 'SUCCESS',
         matchingProcesses: [{ pid: 999 }],
@@ -729,8 +729,48 @@ function makeCoordinatorFixture() {
     } catch (err) {
         assert.strictEqual(err.code, 'PROFILE_OWNERSHIP_UNVERIFIED');
     }
-    assert.strictEqual(cleanupCalled, false, 'LIVE_UNVERIFIED should not clean locks');
-    assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree count should be 0');
+    // AUTO-IMPORT-014: without exactProfileMatch evidence on any matching process, reclamation
+    // still correctly refuses (ownership cannot be confirmed) — this is unchanged for both sources.
+    assert.strictEqual(cleanupCalled, false, 'LIVE_UNVERIFIED without exact-profile evidence should not clean locks');
+    assert.strictEqual(global.terminateCount || 0, 0, 'terminateProcessTree count should be 0 without exact-profile evidence');
+
+    console.log('\nTEST 9-HUE: AUTO-IMPORT-014 — HUE LIVE_UNVERIFIED reclaims an exact-profile orphan and continues launch (previously TCT-only)');
+    globalRegistry.clear();
+    global.terminateCount = 0;
+    let hueReclaimCleanupCount = 0;
+    const hueTerminatedPids = [];
+    const preHueReclaimTerminateProcessTree = browserProcessManager.terminateProcessTree;
+    const preHueReclaimCleanupStaleLocks = browserProcessManager.cleanupStaleLocks;
+    browserProcessManager.findBrowserProcessByProfile = async () => ({
+        inspectionStatus: 'SUCCESS',
+        matchingProcesses: [
+            { pid: 5000, parentPid: 0, exactProfileMatch: true },
+            { pid: 5001, parentPid: 5000, exactProfileMatch: true }
+        ],
+        errorCode: null
+    });
+    browserProcessManager.cleanupStaleLocks = () => { hueReclaimCleanupCount++; };
+    browserProcessManager.terminateProcessTree = async (pid) => {
+        hueTerminatedPids.push(pid);
+        global.terminateCount = (global.terminateCount || 0) + 1;
+    };
+    const hueReclaimCalls = [];
+    const hueReclaimService = new DkclSessionPreflightService({
+        interactiveClientFactory: () => ({
+            async prepareInteractiveAuthentication(args) { hueReclaimCalls.push(['prepare', args]); return true; },
+            async waitInteractiveAuthentication() { hueReclaimCalls.push(['wait']); },
+            async hideWindow() { hueReclaimCalls.push(['hide']); return true; },
+            async close() { hueReclaimCalls.push(['close']); }
+        })
+    });
+    const hueReclaimed = await hueReclaimService.interactiveAuthenticate('HUE');
+    assert.strictEqual(hueReclaimed.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'HUE orphan reclamation continues into normal interactive login');
+    assert.deepStrictEqual(hueTerminatedPids, [5000], 'only the exact-profile HUE root process is terminated (ownership-scoped, never a personal/unrelated Chrome instance)');
+    assert.strictEqual(hueReclaimCleanupCount, 1, 'HUE orphan reclamation cleans stale locks once');
+    assert.strictEqual(hueReclaimCalls.filter((call) => call[0] === 'prepare').length, 1, 'HUE orphan reclamation proceeds to open a fresh browser');
+    browserProcessManager.terminateProcessTree = preHueReclaimTerminateProcessTree;
+    browserProcessManager.cleanupStaleLocks = preHueReclaimCleanupStaleLocks;
+    global.terminateCount = 0;
 
     console.log('\nTEST 9B: R4.1B TCT LIVE_UNVERIFIED reclaims exact-profile orphan and continues launch');
     globalRegistry.clear();
@@ -824,6 +864,202 @@ function makeCoordinatorFixture() {
     assert.strictEqual(restoreResult, true, 'restoreWindow executes successfully');
     assert.strictEqual(showCalledWith, 'tmp/HUE_TEST_DIR', 'showBrowserWindowsByProfile was called with the correct profile dir');
     browserProcessManager.showBrowserWindowsByProfile = originalShow;
+
+    console.log('\nTEST 14: AUTO-IMPORT-014 item 3 — a single transient false reading does not expire a live session (bounded retry recovers)');
+    globalRegistry.clear();
+    {
+        let checkCount = 0;
+        const flakyClient = {
+            async isF13ReportReady() {
+                checkCount += 1;
+                return checkCount >= 2; // false on the first probe, true on the bounded retry
+            },
+            async isAuthenticated() { return false; },
+            async hasLoginForm() { return false; },
+            async restoreWindow() { return true; },
+            async close() { throw new Error('flakyClient should not be closed on a transient reading'); }
+        };
+        const flakyService = new DkclSessionPreflightService({ reprobeRetryDelayMs: 5 });
+        globalRegistry.set('HUE', {
+            state: DKCL_LIFECYCLE_STATES.F13_READY,
+            lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+            client: flakyClient,
+            openingPromise: null,
+            authenticated: true,
+            backgroundReady: true,
+            windowHidden: true,
+            hideAttempted: true,
+            activeOperation: null,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
+        const flakyResult = await flakyService.preflight('HUE');
+        assert.strictEqual(flakyResult.status, PREFLIGHT_STATUSES.SESSION_VALID, 'bounded retry recovers a transient false reading without expiring the session');
+        assert.strictEqual(flakyService.getInteractiveClient('HUE'), flakyClient, 'the same client instance is preserved, not replaced');
+    }
+
+    console.log('\nTEST 15: AUTO-IMPORT-014 item 3 — confirmed logged-out (real login form) after bounded retry does expire, once, under the source lock');
+    globalRegistry.clear();
+    {
+        let closeCount = 0;
+        const loggedOutClient = {
+            async isF13ReportReady() { return false; },
+            async isAuthenticated() { return false; },
+            async hasLoginForm() { return true; },
+            async restoreWindow() { return true; },
+            async close() { closeCount += 1; }
+        };
+        const expireService = new DkclSessionPreflightService({ reprobeRetryDelayMs: 5 });
+        globalRegistry.set('TCT', {
+            state: DKCL_LIFECYCLE_STATES.F13_READY,
+            lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+            client: loggedOutClient,
+            openingPromise: null,
+            authenticated: true,
+            backgroundReady: true,
+            windowHidden: true,
+            hideAttempted: true,
+            activeOperation: null,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
+        const expiredResult = await expireService.preflight('TCT');
+        assert.strictEqual(expiredResult.status, PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED, 'a confirmed login form after bounded retry does expire the session');
+        assert.strictEqual(expiredResult.error?.code, 'SOURCE_PAGE_REQUIRED', 'expire reports the same SOURCE_PAGE_REQUIRED contract as before');
+        assert.strictEqual(closeCount, 1, 'the client is closed exactly once');
+        assert.strictEqual(expireService.getInteractiveClient('TCT'), null, 'client is cleared after a confirmed expire');
+    }
+
+    console.log('\nTEST 16: AUTO-IMPORT-014 item 3 — inconclusive reading (no login form, never ready/authenticated) keeps the session instead of guessing');
+    globalRegistry.clear();
+    {
+        let closeCalled = false;
+        const ambiguousClient = {
+            async isF13ReportReady() { return false; },
+            async isAuthenticated() { return false; },
+            async hasLoginForm() { return false; },
+            async restoreWindow() { return true; },
+            async close() { closeCalled = true; }
+        };
+        const ambiguousService = new DkclSessionPreflightService({ reprobeRetryDelayMs: 5 });
+        globalRegistry.set('HUE', {
+            state: DKCL_LIFECYCLE_STATES.F13_READY,
+            lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+            client: ambiguousClient,
+            openingPromise: null,
+            authenticated: true,
+            backgroundReady: true,
+            windowHidden: true,
+            hideAttempted: true,
+            activeOperation: null,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
+        const ambiguousResult = await ambiguousService.preflight('HUE');
+        assert.strictEqual(ambiguousResult.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'an inconclusive reading is reported as still in-progress, not a confirmed failure');
+        assert.strictEqual(closeCalled, false, 'the client is not closed on ambiguous evidence');
+        assert.strictEqual(ambiguousService.getInteractiveClient('HUE'), ambiguousClient, 'the client is preserved when evidence is inconclusive');
+    }
+
+    console.log('\nTEST 17: AUTO-IMPORT-014 items 1/2 — activeOperation (generalized, not HUE-only) protects a running operation from the destructive probe, for both sources');
+    for (const source of ['HUE', 'TCT']) {
+        globalRegistry.clear();
+        let touchedClient = false;
+        const ownedClient = {
+            async isF13ReportReady() { touchedClient = true; return false; },
+            async isAuthenticated() { touchedClient = true; return false; },
+            async hasLoginForm() { touchedClient = true; return false; },
+            async close() { touchedClient = true; }
+        };
+        const ownedService = new DkclSessionPreflightService({ reprobeRetryDelayMs: 5 });
+        globalRegistry.set(source, {
+            state: DKCL_LIFECYCLE_STATES.F13_READY,
+            lifecycleState: DKCL_LIFECYCLE_STATES.F13_READY,
+            client: ownedClient,
+            openingPromise: null,
+            authenticated: true,
+            backgroundReady: true,
+            windowHidden: true,
+            hideAttempted: true,
+            activeOperation: `${source}_QUEUE_RUNNING`,
+            lastError: null,
+            updatedAt: new Date().toISOString()
+        });
+        const ownedResult = await ownedService.preflight(source);
+        assert.strictEqual(ownedResult.status, PREFLIGHT_STATUSES.SESSION_VALID, `${source}: an owned operation short-circuits preflight without touching the client`);
+        assert.strictEqual(touchedClient, false, `${source}: preflight never calls into the client while an operation owns the session`);
+    }
+
+    console.log('\nTEST 18: AUTO-IMPORT-014 item 1 — the source lock genuinely serializes concurrent callers for the same source, and HUE/TCT never block each other');
+    {
+        const { getSourceLock } = require('./src/services/dkclSessionPreflightService');
+        const hueLock = getSourceLock('HUE');
+        const tctLock = getSourceLock('TCT');
+        assert.notStrictEqual(hueLock, tctLock, 'HUE and TCT use independent lock instances');
+
+        const order = [];
+        const slow = (label, ms) => new Promise((resolve) => setTimeout(() => { order.push(label); resolve(label); }, ms));
+
+        const hueLockService = new DkclSessionPreflightService();
+        const raceStart = Date.now();
+        const [firstHue, secondHue, tctConcurrent] = await Promise.all([
+            hueLockService.withSourceLock('HUE', () => slow('hue-first', 30)),
+            hueLockService.withSourceLock('HUE', () => slow('hue-second', 5)),
+            hueLockService.withSourceLock('TCT', () => slow('tct-concurrent', 5))
+        ]);
+        const raceDurationMs = Date.now() - raceStart;
+        assert.strictEqual(firstHue, 'hue-first', 'first HUE-locked call resolves with its own result');
+        assert.strictEqual(secondHue, 'hue-second', 'second HUE-locked call resolves with its own result');
+        assert.strictEqual(tctConcurrent, 'tct-concurrent', 'TCT-locked call resolves with its own result');
+        assert.deepStrictEqual(order.slice(0, 2).sort(), ['hue-first', 'tct-concurrent'].sort(), 'TCT is not blocked by the HUE lock and finishes alongside the first HUE caller');
+        assert.strictEqual(order[order.length - 1], 'hue-second', 'the second HUE-locked call only runs after the first HUE-locked call completes, proving serialization for the same source');
+        assert.ok(raceDurationMs < 100, `HUE and TCT ran concurrently, not fully serialized (took ${raceDurationMs}ms)`);
+    }
+
+    console.log('\nTEST 19: AUTO-IMPORT-014 — HUE then TCT then HUE again does not leak state across sources or accumulate registry entries');
+    {
+        globalRegistry.clear();
+        const cycleCalls = [];
+        const cycleFactory = (sourceConfig) => ({
+            async prepareInteractiveAuthentication() { cycleCalls.push([sourceConfig.source, 'prepare']); return true; },
+            async waitInteractiveAuthentication() { cycleCalls.push([sourceConfig.source, 'wait']); },
+            async isF13ReportReady() { return true; },
+            async hideWindow() { return true; },
+            async close() { cycleCalls.push([sourceConfig.source, 'close']); }
+        });
+        const cycleService = new DkclSessionPreflightService({ interactiveClientFactory: cycleFactory });
+        for (const source of ['HUE', 'TCT', 'HUE']) {
+            await cycleService.cancelInteractiveLogin(source);
+            await cycleService.interactiveAuthenticate(source);
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        assert.strictEqual(globalRegistry.size, 2, 'exactly one registry entry per source exists after a HUE -> TCT -> HUE cycle, never more');
+        assert.strictEqual(cycleService.getRegistryState('HUE').state, DKCL_LIFECYCLE_STATES.F13_READY, 'HUE ends the cycle in a clean F13_READY state');
+        assert.strictEqual(cycleService.getRegistryState('TCT').state, DKCL_LIFECYCLE_STATES.F13_READY, 'TCT ends the cycle in a clean F13_READY state');
+    }
+
+    console.log('\nTEST 20: AUTO-IMPORT-014 — repeated login/cancel cycles for the same source do not accumulate registry entries or leaked clients (soak-lite)');
+    {
+        globalRegistry.clear();
+        const closeCallCount = { HUE: 0 };
+        const soakFactory = () => ({
+            async prepareInteractiveAuthentication() { return true; },
+            async waitInteractiveAuthentication() { },
+            async isF13ReportReady() { return true; },
+            async hideWindow() { return true; },
+            async close() { closeCallCount.HUE += 1; }
+        });
+        const soakService = new DkclSessionPreflightService({ interactiveClientFactory: soakFactory });
+        const CYCLES = 8;
+        for (let i = 0; i < CYCLES; i++) {
+            await soakService.interactiveAuthenticate('HUE');
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            await soakService.cancelInteractiveLogin('HUE');
+        }
+        assert.strictEqual(globalRegistry.size, 1, `exactly one HUE registry entry exists after ${CYCLES} repeated login/cancel cycles, no accumulation`);
+        assert.strictEqual(soakService.getInteractiveClient('HUE'), null, 'no client is left attached to the registry after the final cancel');
+        assert.strictEqual(closeCallCount.HUE, CYCLES, `each of the ${CYCLES} cycles closed exactly one client, none leaked open`);
+    }
 
     console.log('\nRESULT: dkclSessionPreflightService checks passed');
 })().catch((error) => {

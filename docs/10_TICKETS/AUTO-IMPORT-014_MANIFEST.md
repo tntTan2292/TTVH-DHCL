@@ -2,11 +2,11 @@
 
 - Ticket ID: `AUTO-IMPORT-014`
 - Ticket Name: `HUE/TCT session reliability hardening — shared browser/page lifecycle race`
-- Phase: `Emergency remediation — Phase 1, discovery only`
-- Current State: `DISCOVERY COMPLETE / SYSTEMIC ROOT CAUSE IDENTIFIED BY CODE READING / NO FIX IMPLEMENTED`
-- Technical Status: `Read-only trace of dkclSessionPreflightService.js, dkclHueF13PortalClient.js, browserProcessManager.js, dkclHueF13BackfillService.js, tctF13BackfillService.js, and DataImportCenter.jsx polling. No code changed.`
-- PO UI Check Required: `Not yet — discovery only, no fix implemented`
-- PO Product Status: `NOT PASS — awaiting PO/CTO decision on remediation design before any implementation`
+- Phase: `Emergency remediation — Phase 2, bounded implementation complete`
+- Current State: `TECHNICAL GATE PASS / AWAITING PO RUNTIME ACCEPTANCE`
+- Technical Status: `Per-source mutex, generalized activeOperation exemption, bounded-retry error classification, multi-page rebind, and ownership-scoped reconciliation for both HUE and TCT implemented and covered by new regression tests. Full existing suite passes unchanged.`
+- PO UI Check Required: `Yes — see PO Runtime Acceptance Checklist below. Not requested/required before this Technical Gate.`
+- PO Product Status: `NOT PASS / NOT CLOSED — Technical Gate only; awaiting PO runtime acceptance`
 - Activation date: `2026-08-07`
 - Primary executor: `Claude Code`
 
@@ -20,7 +20,7 @@ Required onboarding chain:
 4. `docs/10_TICKETS/AUTO-IMPORT-014_MANIFEST.md`
 5. Required Reading from this manifest
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_001.md`
+Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_002.md` (Phase 2 implementation; Phase 1 discovery: `_CHECKPOINT_001.md`)
 
 Required Reading:
 
@@ -129,27 +129,45 @@ This design is a starting proposal for Product Owner/CTO review — it is not au
 
 Exact scope to be confirmed once a design is authorized; no file has been touched in this discovery round.
 
-## Test Matrix (Mandatory, For The Implementation Phase Once Authorized)
+## Test Matrix — Status After Phase 2
 
-- Login opens a new page.
-- Two pages exist simultaneously; only one is authenticated.
-- The old/original login page is closed.
-- Retry after `FAILED`.
-- Re-update while the session is still valid, and while it has expired.
-- Backend restart mid-session.
-- HUE → TCT → HUE run in immediate succession.
-- Repeated-cycle / soak test to detect accumulating browser processes or pages over many cycles.
+| Scenario | Automated coverage | Notes |
+| --- | --- | --- |
+| Login opens a new page | ✅ `test_dkclSessionPreflightService.js` TEST 4-6, 9-HUE, 9B, 19 | unit-level, mocked client |
+| Two pages exist simultaneously; only one authenticated | ✅ `test_dkclHueF13SyncService.js` TEST 22-24 | real `DkclHueF13PortalClient`, mocked Playwright pages |
+| The old/original login page is closed | ✅ `test_dkclHueF13SyncService.js` TEST 23 | |
+| Retry after `FAILED` | ✅ `test_dkclSessionPreflightService.js` TEST 5D/5D2/5D3, 9-HUE/9B | |
+| Re-update while the session is still valid, and while it has expired | ✅ `test_dkclSessionPreflightService.js` TEST 14-17 (valid/transient/expired/owned) | |
+| Backend restart mid-session | ✅ pre-existing TEST 1C/1D (coordinator recovery), unaffected | not newly added — confirmed still passing |
+| HUE → TCT → HUE in immediate succession | ✅ `test_dkclSessionPreflightService.js` TEST 19 | |
+| Repeated-cycle / soak to detect accumulation | ✅ `test_dkclSessionPreflightService.js` TEST 20 (soak-lite, 8 cycles, unit-level) | a real, longer soak against the live portal is part of PO runtime acceptance, not self-certifiable here |
 
-## Validation Requirements (For The Implementation Phase, Once Authorized)
+Race between polling and Import, and operation-ownership protection for both sources (test matrix items implied by the PO's own remediation authorization items 7): ✅ `test_dkclSessionPreflightService.js` TEST 14-18.
 
-- No credential, cookie, token, or raw page-content logging introduced.
-- No automated credential entry introduced.
-- `fact_f13` row count and existing imported data unchanged by this ticket; `Data QLML/` and both stashes untouched; `NETWORK-MANAGEMENT-001` untouched.
-- Full regression: existing `AUTO-IMPORT-013` fix (`LOGIN_TIMEOUT`, frontend false-positive fix) remains intact and covered by its existing tests.
-- Product Owner runtime confirmation required across the full test matrix above before any `PO PASS`. This ticket's own technical work does not self-award `PO PASS`.
+## Validation Requirements — Status After Phase 2
+
+- [x] No credential, cookie, token, or raw page-content logging introduced.
+- [x] No automated credential entry introduced.
+- [x] `fact_f13` row count and existing imported data unchanged (no import ran); `Data QLML/` and both stashes untouched; `NETWORK-MANAGEMENT-001` untouched.
+- [x] Full regression: existing `AUTO-IMPORT-013` fix (`LOGIN_TIMEOUT`, frontend false-positive fix) remains intact — untouched by this round, all its coverage still passes.
+- [ ] Product Owner runtime confirmation across the checklist below — **required before any `PO PASS`**. This ticket's own technical work does not self-award `PO PASS`.
+
+## PO Runtime Acceptance Checklist
+
+To be performed whenever the Product Owner is ready — not requested as a precondition of this Technical Gate:
+
+1. Open HUE, complete manual login, confirm Import for a fresh date succeeds and the window hides promptly.
+2. Open TCT, complete manual login, confirm Import for a fresh date succeeds and the window hides promptly.
+3. While a HUE (or TCT) Import is actively running, leave the Import Center tab open so its 5-second preflight poll keeps firing — confirm the session is **not** interrupted, no extra window appears, and the running Import completes normally.
+4. Re-update an already-imported HUE date — confirm the existing session is reused (window does not need to reopen visibly for the whole operation) and the window hides promptly again.
+5. If a genuine login-window closure or timeout occurs, confirm the UI reports a specific, accurate message (not the old generic "window did not appear or was closed") and that retry via "Thử lại" successfully reconciles and reopens cleanly (no duplicate window).
+6. Run HUE → TCT → HUE in one sitting (as in the originally reported sequence) and confirm no cross-source interference and no duplicate windows.
+7. Optional, longer soak: repeat login/Import/hide a number of times across a session and confirm no accumulation of visible Chrome windows or backend memory/process growth over time.
+
+Report back pass/fail per item; only after all pass should `PO PASS`/`CLOSED` be recorded for this ticket.
 
 ## Completion And Handoff
 
-This ticket does not close in this round. It remains `DISCOVERY COMPLETE`, awaiting Product Owner/CTO review of the proposed remediation design and file scope before any implementation begins. No further Product Owner testing was requested in this phase, per instruction.
+Phase 2 implementation is complete and technically validated (`TECHNICAL GATE PASS`). This ticket does not close in this round — no `PO PASS` is declared, and no Product Owner runtime testing was required as a precondition of this gate, per instruction. Full evidence: `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_002.md`.
 
 `NETWORK-MANAGEMENT-001` remains `PAUSED` at its current state, untouched. Do not activate any next ticket beyond what Product Owner explicitly authorizes.

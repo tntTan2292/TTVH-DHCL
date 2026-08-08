@@ -499,12 +499,21 @@ class DkclHueF13BackfillService {
             await hideWindow?.call(client).catch(() => {});
         }
 
+        // AUTO-IMPORT-014 item 1: serialize this Import operation's use of the shared client
+        // against any concurrent preflight()-driven probe/expire for HUE. entry.activeOperation
+        // (set for the whole queue in processQueue()) already exempts preflight()'s destructive
+        // path; this lock is defense-in-depth for the brief window around that check itself.
         let result;
         try {
-            result = await this.adapter.runOneDate(item.measurementDate, {
-                refreshRequested: item.refreshRequested,
-                portalClient: client
-            });
+            result = await (this.sessionPreflightService.withSourceLock
+                ? this.sessionPreflightService.withSourceLock('HUE', () => this.adapter.runOneDate(item.measurementDate, {
+                    refreshRequested: item.refreshRequested,
+                    portalClient: client
+                }))
+                : this.adapter.runOneDate(item.measurementDate, {
+                    refreshRequested: item.refreshRequested,
+                    portalClient: client
+                }));
         } catch (error) {
             if (client) {
                 await client.restoreWindow?.().catch(() => {});

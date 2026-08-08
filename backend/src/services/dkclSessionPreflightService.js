@@ -78,6 +78,35 @@ function safeMessage(error, sourceLabel) {
     return `Không thể kiểm tra phiên DKCL ${sourceLabel}. Vui lòng thử lại hoặc mở đăng nhập thủ công nếu cần.`;
 }
 
+// AUTO-IMPORT-014: per-source serialization. Each source (HUE/TCT) gets its own independent
+// lock instance — one source's operations never wait on the other's. Any code path that must
+// not run concurrently with another for the SAME source (preflight's session-validation/expire
+// branch, a fresh reconciliation+launch, an Import worker actively using the client) acquires
+// this lock around just that critical section — never around the multi-minute manual-login wait,
+// which is already excluded from the race by the lifecycle state machine (DKCL_IN_PROGRESS_STATES
+// is checked, and set, synchronously before any await).
+class SourceOperationLock {
+    constructor() {
+        this._tail = Promise.resolve();
+    }
+
+    run(fn) {
+        const result = this._tail.then(fn, fn);
+        // Keep the chain alive regardless of outcome, without leaking a rejection into it.
+        this._tail = result.then(() => undefined, () => undefined);
+        return result;
+    }
+}
+
+const sourceLocks = new Map();
+
+function getSourceLock(source) {
+    if (!sourceLocks.has(source)) {
+        sourceLocks.set(source, new SourceOperationLock());
+    }
+    return sourceLocks.get(source);
+}
+
 const globalRegistry = new Map();
 
 function getOrCreateRegistryEntry(source) {
@@ -121,6 +150,19 @@ class DkclSessionPreflightService {
             ? options.hueBrokerEnabled
             : isHueBrokerEnabled();
         this.hueBrokerClient = options.hueBrokerClient || (this.hueBrokerEnabled ? new DkclHueBrokerClient(options.hueBrokerClientOptions) : null);
+        // AUTO-IMPORT-014 item 3: bounded retry before treating a single false
+        // isAuthenticated()/isF13ReportReady() reading as a real failure. Overridable for tests.
+        this.reprobeRetryDelayMs = Number.isFinite(options.reprobeRetryDelayMs)
+            ? options.reprobeRetryDelayMs
+            : Number(process.env.DKCL_REPROBE_RETRY_MS || 750);
+    }
+
+    /**
+     * AUTO-IMPORT-014 item 1: run fn serialized against every other caller of this method for
+     * the same source. HUE and TCT are independent — locking one never blocks the other.
+     */
+    withSourceLock(source, fn) {
+        return getSourceLock(this.normalizeSource(source).source).run(fn);
     }
 
     normalizeSource(source) {
@@ -220,7 +262,13 @@ class DkclSessionPreflightService {
         return null;
     }
 
-    async reclaimTctOrphanedProfile(classification, profileDir) {
+    // AUTO-IMPORT-014 item 5: reconcile a confirmed-orphaned QIS-owned browser instance before
+    // launching a new one. Generalized from the prior TCT-only reclaim path — HUE gets the same
+    // reconciliation now. Ownership safety is enforced by selectExactProfileRootPids(), which only
+    // returns PIDs whose own --user-data-dir command-line argument matches this exact profile
+    // directory (exactProfileMatch) — a personal/unrelated Chrome window, or any process not
+    // launched against this profile path, is never selected or terminated by this method.
+    async reclaimOrphanedProfile(classification, profileDir) {
         const rootPids = selectExactProfileRootPids(classification?.inspection?.matchingProcesses);
         if (rootPids.length === 0) {
             const error = new Error('PROFILE_OWNERSHIP_UNVERIFIED');
@@ -268,6 +316,112 @@ class DkclSessionPreflightService {
         return true;
     }
 
+    /**
+     * AUTO-IMPORT-014 item 3: replaces the prior single-reading destructive close. A single
+     * false isF13ReportReady()/isAuthenticated() reading no longer expires a live, in-use
+     * session — it is retried once (bounded, this.reprobeRetryDelayMs) before any conclusion is
+     * drawn. If an owning operation claims the session while probing/retrying, defer to it
+     * entirely. Only a *confirmed* logged-out signal (a real login form present, per
+     * client.hasLoginForm()) after the bounded retry is treated as a genuine failure —
+     * anything else inconclusive keeps the session and reports it as still in-progress rather
+     * than guessing. The actual expire-and-close, when it does happen, runs inside this
+     * source's lock (item 1) so it can never interleave with a concurrent reconciliation/launch
+     * or Import operation for the same source.
+     */
+    async probeAndMaybeExpireClient(sourceConfig, entry) {
+        const client = entry.client;
+        if (!client) {
+            return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+        }
+
+        const check = async () => {
+            // AUTO-IMPORT-014 item 4: isAuthenticated() itself now rebinds to another open,
+            // authenticated page in the same context if the tracked page was closed/invalidated —
+            // check authentication first so isF13ReportReady() below sees the rebound page.
+            const authenticated = client.isAuthenticated
+                ? await client.isAuthenticated().catch(() => false)
+                : false;
+            const ready = await client.isF13ReportReady().catch(() => false);
+            const hasLoginInput = client.hasLoginForm
+                ? await client.hasLoginForm().catch(() => false)
+                : false;
+            return { ready, authenticated, hasLoginInput };
+        };
+
+        let probe = await check();
+        if (!probe.ready && probe.authenticated) {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, { authenticated: true, backgroundReady: false });
+            await client.openF13Report?.().catch(() => {});
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
+            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+        }
+        if (probe.ready) {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
+            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+        }
+
+        // Bounded retry before concluding anything — a single false reading is plausibly a
+        // transient mid-navigation state (e.g. an Import operation is actively using the page).
+        if (this.reprobeRetryDelayMs > 0) {
+            await new Promise((resolve) => setTimeout(resolve, this.reprobeRetryDelayMs));
+        }
+        probe = await check();
+        if (!probe.ready && probe.authenticated) {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, { authenticated: true, backgroundReady: false });
+            await client.openF13Report?.().catch(() => {});
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
+            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+        }
+        if (probe.ready) {
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
+            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+        }
+
+        // An owning operation may have started while we were probing/retrying — defer to it,
+        // never expire a session another operation now owns.
+        if (entry.activeOperation) {
+            return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+        }
+
+        if (!probe.hasLoginInput) {
+            // Inconclusive: neither ready, nor authenticated, nor a confirmed login form —
+            // classify as ambiguous/transient rather than a confirmed failure, and keep the
+            // session. The next poll re-checks; nothing is destroyed on unclear evidence.
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
+                interactive: true,
+                source_page_ready: false,
+                ...lifecyclePayload(entry),
+                message: `Không xác nhận được trạng thái phiên DKCL ${sourceConfig.displayName} — giữ nguyên phiên, sẽ kiểm tra lại.`
+            };
+        }
+
+        // Confirmed logged-out (a real login form is present) after a bounded retry, and no
+        // operation claims ownership: expire, serialized against any concurrent operation.
+        return this.withSourceLock(sourceConfig.source, async () => {
+            if (entry.client !== client) {
+                // Another path already replaced/cleared the client while we waited for the lock.
+                return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+            }
+            await client.restoreWindow?.().catch(() => {});
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+                client: null,
+                authenticated: false,
+                backgroundReady: false,
+                windowHidden: false,
+                hideAttempted: false
+            });
+            await client.close().catch(() => {});
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED,
+                ...lifecyclePayload(entry),
+                error: { code: 'SOURCE_PAGE_REQUIRED', message: 'DKCL source page F1.3 is not ready.' }
+            };
+        });
+    }
+
     async preflight(source) {
         const sourceConfig = this.normalizeSource(source);
         if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
@@ -311,7 +465,12 @@ class DkclSessionPreflightService {
             };
         }
 
-        if (sourceConfig.source === 'HUE' && entry.activeOperation === 'HUE_QUEUE_RUNNING' && entry.authenticated) {
+        // AUTO-IMPORT-014 item 2: generalized from the prior HUE-only 'HUE_QUEUE_RUNNING' check.
+        // ANY owning operation (a running queue, an Update/Re-update, or any other
+        // activeOperation value either source's worker sets) exempts this poll from ever
+        // touching entry.client — the owning operation is the sole authority over the session
+        // while it runs. This now protects TCT identically to HUE.
+        if (entry.activeOperation && entry.authenticated) {
             return {
                 source: sourceConfig.source,
                 status: PREFLIGHT_STATUSES.SESSION_VALID,
@@ -326,48 +485,7 @@ class DkclSessionPreflightService {
         transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.SESSION_CHECK);
 
         if (entry.client) {
-            let ready = await entry.client.isF13ReportReady().catch(() => false);
-            const authenticated = entry.client.isAuthenticated
-                ? await entry.client.isAuthenticated().catch(() => false)
-                : false;
-            if (!ready && authenticated) {
-                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
-                    authenticated: true,
-                    backgroundReady: false
-                });
-                await entry.client.openF13Report?.().catch(() => {});
-                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
-                    authenticated: true,
-                    backgroundReady: true
-                });
-                return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
-            }
-            if (ready) {
-                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
-                    authenticated: true,
-                    backgroundReady: true
-                });
-                return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
-            }
-            await entry.client.restoreWindow?.().catch(() => {});
-
-            // Clean up stale client in registry if no longer valid
-            const oldClient = entry.client;
-            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
-                client: null,
-                authenticated: false,
-                backgroundReady: false,
-                windowHidden: false,
-                hideAttempted: false
-            });
-            await oldClient.close().catch(() => {});
-
-            return {
-                source: sourceConfig.source,
-                status: PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED,
-                ...lifecyclePayload(entry),
-                error: { code: 'SOURCE_PAGE_REQUIRED', message: 'DKCL source page F1.3 is not ready.' }
-            };
+            return this.probeAndMaybeExpireClient(sourceConfig, entry);
         }
         const profileDir = resolveProfileDir(sourceConfig);
         const inspection = await processManager.findBrowserProcessByProfile(profileDir).catch(() => ({ inspectionStatus: 'FAILED', matchingProcesses: [] }));
@@ -499,7 +617,13 @@ class DkclSessionPreflightService {
             }
         }
 
-        entry.openingPromise = (async () => {
+        // AUTO-IMPORT-014 item 1: reconciliation + launch is serialized against any concurrent
+        // probe-and-maybe-expire for this same source (probeAndMaybeExpireClient's destructive
+        // path acquires the same per-source lock). The lock is released once this async function
+        // returns — which happens right after the fire-and-forget background wait task below is
+        // spawned, not after it completes — so a fresh launch is never blocked for the full
+        // multi-minute manual-login window, only for the short reconciliation/launch phase.
+        entry.openingPromise = this.withSourceLock(sourceConfig.source, async () => {
             const profileDir = resolveProfileDir(sourceConfig);
             transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
                 lastError: null,
@@ -528,8 +652,8 @@ class DkclSessionPreflightService {
             }
 
             if (classification.lockState === 'UNKNOWN' || classification.lockState === 'LIVE_UNVERIFIED') {
-                if (!this.coordinatorEnabled && classification.lockState === 'LIVE_UNVERIFIED' && sourceConfig.source === 'TCT' && !entry.client) {
-                    await this.reclaimTctOrphanedProfile(classification, profileDir);
+                if (!this.coordinatorEnabled && classification.lockState === 'LIVE_UNVERIFIED' && !entry.client) {
+                    await this.reclaimOrphanedProfile(classification, profileDir);
                 } else {
                     const errCode = classification.lockState === 'UNKNOWN' ? 'PROCESS_INSPECTION_UNAVAILABLE' : 'PROFILE_OWNERSHIP_UNVERIFIED';
                     const recErr = new Error(errCode);
@@ -716,7 +840,7 @@ class DkclSessionPreflightService {
             } finally {
                 entry.openingPromise = null;
             }
-        })();
+        });
 
         return entry.openingPromise;
     }
@@ -889,5 +1013,7 @@ module.exports = {
     resolveProfileDir,
     DKCL_LIFECYCLE_STATES,
     DKCL_LEGACY_STATES,
-    globalRegistry
+    globalRegistry,
+    getSourceLock,
+    SourceOperationLock
 };

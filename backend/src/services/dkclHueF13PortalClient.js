@@ -187,13 +187,50 @@ class DkclHueF13PortalClient {
         }
     }
 
-    async isAuthenticated() {
-        if (this.page.url().includes('/login')) return false;
-        const bodyText = await this.page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
-        const loginInputCount = await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count().catch(() => 0);
+    // AUTO-IMPORT-014 item 4: authentication-detection logic factored out of isAuthenticated()
+    // so it can run against any candidate page, not just this.page — enabling rebind-to-a-
+    // valid-page below. Detection markers are byte-for-byte unchanged from before this ticket.
+    async _checkPageAuthenticated(page) {
+        if (!page || page.isClosed?.()) return false;
+        if (page.url().includes('/login')) return false;
+        const bodyText = await page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
+        const loginInputCount = await page.locator('input[name="login"], input[id="login"], input[type="password"]').count().catch(() => 0);
         if (loginInputCount > 0) return false;
         if (/Thá»‘ng kÃª/iu.test(bodyText)) return true;
         return /Quan ly tep|Quản lý tệp|Tra cứu thông tin bưu gửi|Tra cuu thong tin buu gui|Dang xuat|Đăng xuất|Logout|tantn\.bdtth/i.test(bodyText);
+    }
+
+    // AUTO-IMPORT-014 item 4: if another open page in the same context is authenticated,
+    // rebind this.page to it. Supports the multi-page case directly — closing a stray/
+    // duplicate page must not fail the session if a valid authenticated page remains open.
+    async findAuthenticatedPage() {
+        if (!this.context || typeof this.context.pages !== 'function') return null;
+        for (const candidatePage of this.context.pages()) {
+            if (candidatePage === this.page) continue;
+            if (await this._checkPageAuthenticated(candidatePage)) {
+                this.page = candidatePage;
+                return candidatePage;
+            }
+        }
+        return null;
+    }
+
+    async isAuthenticated() {
+        if (await this._checkPageAuthenticated(this.page)) return true;
+        // The tracked page may have been closed, redirected away, or simply isn't the one that
+        // completed login — check for another already-authenticated page before concluding the
+        // whole session is unauthenticated (AUTO-IMPORT-014 item 4).
+        const rebound = await this.findAuthenticatedPage();
+        return Boolean(rebound);
+    }
+
+    // AUTO-IMPORT-014 item 3: lets preflight() distinguish a *confirmed* logged-out session
+    // (a real login form present) from an inconclusive/transient reading before it decides
+    // whether to expire anything.
+    async hasLoginForm() {
+        if (!this.page || this.page.isClosed?.()) return false;
+        const count = await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count().catch(() => 0);
+        return count > 0;
     }
 
     /**

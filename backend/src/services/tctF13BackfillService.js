@@ -598,6 +598,14 @@ class TctF13BackfillService {
     }
 
     async processQueue(queue) {
+        // AUTO-IMPORT-014 item 2/6: generalize HUE's 'HUE_QUEUE_RUNNING' pattern to TCT — this
+        // is the previously-missing exemption that let preflight()'s destructive re-probe branch
+        // race a running TCT Import with no protection at all. Cleared in finishQueueIfTerminal().
+        const entry = this.sessionPreflightService.getRegistryState?.('TCT');
+        if (entry) {
+            entry.activeOperation = 'TCT_QUEUE_RUNNING';
+            entry.authenticated = true;
+        }
         queue.status = 'RUNNING';
         queue.startedAt = this.clock().toISOString();
         for (const item of queue.items) {
@@ -643,10 +651,18 @@ class TctF13BackfillService {
         let errorMessage = null;
         let systemicFailure = false;
         try {
-            runEvidence = await this.adapter.runOneDate(item.measurementDate, {
+            // AUTO-IMPORT-014 item 1: serialize this Import operation's use of the shared TCT
+            // client against any concurrent preflight()-driven probe/expire, independent of HUE's
+            // own lock. entry.activeOperation (set for the whole queue below) already exempts
+            // preflight()'s destructive path; this lock is defense-in-depth for the brief window
+            // around that check itself.
+            const runOneDate = () => this.adapter.runOneDate(item.measurementDate, {
                 queueId: queue.queueId,
                 refreshRequested: item.refreshRequested
             });
+            runEvidence = await (this.sessionPreflightService.withSourceLock
+                ? this.sessionPreflightService.withSourceLock('TCT', runOneDate)
+                : runOneDate());
         } catch (error) {
             finalStatus = error?.code === 'AUTHENTICATION_REQUIRED' ? 'AUTHENTICATION_REQUIRED' : 'FAILED';
             errorCode = error?.code || 'TCT_IMPORT_FAILED';
@@ -1025,6 +1041,12 @@ class TctF13BackfillService {
     finishQueueIfTerminal(queue) {
         if (!queue.items.every((item) => QUEUE_TERMINAL_STATUSES.has(item.status))) return;
         queue.endedAt = queue.endedAt || this.clock().toISOString();
+        // AUTO-IMPORT-014 item 2/6: release the TCT queue-running exemption once every item is
+        // terminal, mirroring HUE's equivalent clear.
+        const entry = this.sessionPreflightService.getRegistryState?.('TCT');
+        if (entry) {
+            entry.activeOperation = null;
+        }
         if (queue.items.some((item) => item.status === 'FAILED')) {
             queue.status = 'FAILED';
         } else if (queue.items.some((item) => item.status === 'AUTHENTICATION_REQUIRED')) {

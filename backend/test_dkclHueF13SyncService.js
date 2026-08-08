@@ -1073,6 +1073,55 @@ async function runTests() {
     assert('authenticate brings page to front before best-effort surfacing', authBringToFrontIndex >= 0 && authSurfaceIndex > authBringToFrontIndex);
     assert('authenticate navigates non-DKCL page to login URL before portal use', authEvents.some((event) => event[0] === 'goto' && event[1] === 'https://dkcl.vnpost.vn/login'));
 
+    console.log('\nTEST 22: AUTO-IMPORT-014 item 4 — rebind to another authenticated page when the tracked page is not authenticated');
+    {
+        const events22 = [];
+        const staleLoginPage = makeFakePortalPage({ events: events22, initialUrl: 'https://dkcl.vnpost.vn/login', bodyText: 'Login form' });
+        const authenticatedPage = makeFakePortalPage({ events: events22, initialUrl: 'https://dkcl.vnpost.vn/', bodyText: 'Quan ly tep Tra cứu thông tin bưu gửi' });
+        const client22 = new DkclHueF13PortalClient({ source: 'HUE' });
+        client22.page = staleLoginPage;
+        client22.context = { pages() { return [staleLoginPage, authenticatedPage]; } };
+        const result22 = await client22.isAuthenticated();
+        assert('isAuthenticated() rebinds to the other open, authenticated page instead of concluding the session is gone', result22 === true);
+        assert('isAuthenticated() actually reassigns this.page to the found authenticated page', client22.page === authenticatedPage);
+    }
+
+    console.log('\nTEST 23: AUTO-IMPORT-014 item 4 — closing the stray/old login page does not fail the session if a valid page remains');
+    {
+        const events23 = [];
+        const authenticatedPage23 = makeFakePortalPage({ events: events23, initialUrl: 'https://dkcl.vnpost.vn/', bodyText: 'Quan ly tep Tra cứu thông tin bưu gửi' });
+        const client23 = new DkclHueF13PortalClient({ source: 'HUE' });
+        client23.page = authenticatedPage23;
+        // Simulate a stray/old login page that gets closed shortly after: only the authenticated
+        // page remains in the context by the time isAuthenticated() is asked again.
+        client23.context = { pages() { return [authenticatedPage23]; } };
+        const stillOk = await client23.isAuthenticated();
+        assert('closing a stray page does not fail the session while a valid authenticated page remains', stillOk === true);
+    }
+
+    console.log('\nTEST 24: AUTO-IMPORT-014 item 4 — no authenticated page anywhere in the context is a genuine failure, not a false rebind');
+    {
+        const events24 = [];
+        const loginPage24 = makeFakePortalPage({ events: events24, initialUrl: 'https://dkcl.vnpost.vn/login', bodyText: 'Login form' });
+        const client24 = new DkclHueF13PortalClient({ source: 'HUE' });
+        client24.page = loginPage24;
+        client24.context = { pages() { return [loginPage24]; } };
+        const result24 = await client24.isAuthenticated();
+        assert('isAuthenticated() correctly reports false when no page in the context is authenticated', result24 === false);
+    }
+
+    console.log('\nTEST 25: AUTO-IMPORT-014 item 3 — hasLoginForm() distinguishes a confirmed login form from an authenticated page');
+    {
+        const events25 = [];
+        const loginPage25 = makeFakePortalPage({ events: events25, initialUrl: 'https://dkcl.vnpost.vn/login', bodyText: 'Login form' });
+        const authPage25 = makeFakePortalPage({ events: events25, initialUrl: 'https://dkcl.vnpost.vn/', bodyText: 'Quan ly tep' });
+        const client25 = new DkclHueF13PortalClient({ source: 'HUE' });
+        client25.page = loginPage25;
+        assert('hasLoginForm() is true when the tracked page shows a real login form', await client25.hasLoginForm() === true);
+        client25.page = authPage25;
+        assert('hasLoginForm() is false on an authenticated page', await client25.hasLoginForm() === false);
+    }
+
     for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, '2098-02-07', '2098-02-08', '2098-02-09', '2098-02-10', '2098-02-11']) {
         await cleanupDate(date);
     }
