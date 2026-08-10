@@ -321,3 +321,11 @@ Resuming from the pause caused by the unrelated `AUTO-IMPORT-013` ticket, Claude
 - **Item 6 (data integrity) — Technical PASS, one explained shift.** `network_delivery_point` 287,759 (143,475 June + 144,284 May); `network_service_point` 156; `network_level2_route` 28; `network_level2_route_stop` 148 — all as expected. `fact_f13` 673,781 vs. Phase 3 baseline 669,847 (+3,934) traced exactly to a single `2026-08-06` cohort matching `AUTO-IMPORT-013`'s real, unrelated, already-PO-confirmed TCT import — not a regression. `Data QLML/` checksums and both stashes unchanged.
 
 Does not constitute Phase 4 or program-wide PO PASS. PO acceptance still required for items 2, 3-4, 5 (item 6 is technical-only). Full evidence: checkpoint Section 23.
+
+## 34. 5-Point ĐTC2 Discovery Delta — PO Confirmed (2026-08-10)
+
+Delta-only, read-only source discovery for the 5 audited "Tạm dừng" điểm (`536101, 536102, 537200, 534630, 534989`): traced to `Mang_diem_phuc_vu_kem_du_lieu_ban_do.xlsx` sheet `Huế` (all 5, official registered service points, Loại Pudo/Giao dịch/Khai thác tỉnh) and sheet `TMS- NODE` (2 of 5); confirmed absent from `2026.08. Mang DTC2.xlsx` (ĐTC2 route geometry for these 5 comes from the HTML reference's `MAIL_ROUTES` array instead, coordinates matching exactly); DB traced to a dedicated Import batch `network_import_log.id=10` (`bosung_5diem_tamdung.xlsx`).
+
+**Product Owner confirmed (`2026-08-10`)**: all 5 are real service points (`điểm phục vụ thật`), status `Tạm dừng` — no code/coordinate/classification change needed. The 3 mã with an ĐTC2 route label differing from their official `Tên ĐPV` (536102, 537200, 534630) are accepted as using an **operational label**, not a data defect. The `TMS- NODE` gap for those same 3 mã is explicitly **not** to be investigated further.
+
+Documentation-only. No product code, schema, or data changed at any point in this delta. Full evidence: checkpoint Section 24. This closes the 5-point discovery delta only — does not reopen or advance any other Phase 4 checklist item, and does not start Sơ đồ tuyến phát Import standardization or any other new scope.
