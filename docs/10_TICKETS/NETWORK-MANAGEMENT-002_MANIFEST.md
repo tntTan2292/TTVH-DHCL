@@ -17,12 +17,13 @@
 - [13. Authority Escalation](#13-authority-escalation)
 - [14. Implementation Record — READY FOR PO CHECK](#14-implementation-record--ready-for-po-check)
 - [15. PO Runtime Fail + Remediation — READY FOR PO RECHECK](#15-po-runtime-fail--remediation--ready-for-po-recheck)
+- [16. PO PASS — Closure](#16-po-pass--closure)
 
 ## 1. Ticket Information
 
 - Ticket ID: `NETWORK-MANAGEMENT-002`
 - Ticket Name: Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 (Integrated Service Points + Level-2 Mail Route Map)
-- Phase: `PO RUNTIME FAIL / REMEDIATED — READY FOR PO RECHECK` (`2026-08-11`). Product Owner/CTO approved Option B; implementation delivered (Section 14); Product Owner then reported marker/route density RUNTIME FAIL, remediated same day via independent per-Loại-điểm checkboxes (Section 15). Awaiting Product Owner recheck.
+- Phase: `COMPLETED / PO PASS / CLOSED` (`2026-08-11`). Implementation delivered (Section 14); Product Owner reported marker/route density RUNTIME FAIL, remediated same day (Section 15); Product Owner rechecked and granted `PO PASS`, closing the ticket (Section 16).
 - Owner: Claude Code (implementation, backend, data, tests, documentation, Git per `DEC-020`)
 - Governance Version: `V2 Active`
 - Authorization: Product Owner, `2026-08-10` — explicit activation request naming `NETWORK-MANAGEMENT-002` and locking scope (Section 5) directly in the activation prompt
@@ -34,9 +35,9 @@ Add exactly one new, read-only map screen that renders the existing Mạng đi�
 
 ## 3. Current Status
 
-- Current state: `READY FOR PO RECHECK`, as of `2026-08-11`. Implementation delivered per locked scope (Section 5) via Option B (Section 14); Product Owner reported a runtime FAIL (marker/route overlap density), remediated same day via independent per-Loại-điểm checkboxes (Section 15). No PO PASS declared; ticket not closed.
-- PO UI Check Required: `Yes` — see the runtime recheck checklist in the corresponding chat report / checkpoint Section 13.
-- PO Product Status: remediation technically complete, not yet PO-rechecked.
+- Current state: `COMPLETED / PO PASS / CLOSED`, as of `2026-08-11`. Implementation delivered per locked scope (Section 5) via Option B (Section 14); Product Owner reported a runtime FAIL (marker/route overlap density), remediated same day via independent per-Loại-điểm checkboxes (Section 15); Product Owner rechecked and granted `PO PASS` (Section 16). No active ticket; state after closure is `AWAITING PO DIRECTION`.
+- PO UI Check Required: `No` — Product Owner performed the recheck and granted PASS.
+- PO Product Status: `NETWORK-MANAGEMENT-002 — COMPLETED / PO PASS / CLOSED (2026-08-11)`.
 
 ## 4. Required Reading
 
@@ -152,3 +153,13 @@ Product Owner/CTO approved Option B (Section 8) and authorized implementation. D
 **Validation**: `oxlint` clean, `vite build` succeeds, 53/53 relevant tests pass unchanged. Real-browser re-verified as `admin`: all-on (151/156, matches pre-remediation baseline), 1-category-only (102/156, exact), multi-category (144/156 = 102+35+7, exact), all-off (0/156), category+status+Tạm dừng combined (2/156, exact), category filters unaffected by ĐTC2 layer off/on, ĐTC2 Tuyến 6 selection/deselection re-verified working correctly alongside active category filters. `git diff --name-only` confirms only `IntegratedMap.jsx` changed. `network_service_point`/`network_level2_route`/`network_level2_route_stop`/`network_delivery_point` unchanged; `Data QLML/` and both stashes untouched.
 
 **State**: `READY FOR PO RECHECK`. Not PO PASS, not closed. Full detail: checkpoint Section 13.
+
+## 16. PO PASS — Closure (2026-08-11)
+
+Product Owner performed the runtime recheck and explicitly confirmed `PO PASS`: the per-Loại-điểm checkbox filter (Section 15) resolved the reported marker/route overlap density issue. Product Owner explicitly authorized closing `NETWORK-MANAGEMENT-002`.
+
+Final delivered scope, confirmed still exactly the locked scope (Section 5), nothing added or dropped: one integrated read-only map screen at `/network-map/integrated` (`admin`+`viewer`); Điểm phục vụ and Đường thư cấp 2 layers independently toggleable, both default on; Điểm phục vụ further filterable per Loại điểm (independent checkboxes, derived from real data, default all-on, selection persists across the layer's own toggle); full ĐTC2 routing/journey-visual behavior (route selection, outbound/turnaround/return, spiderfy, direction arrows) preserved; no data duplication, no new database table, no dedicated Import/Export/History/Rollback. The two original screens were never modified across the entire ticket — confirmed by `git diff --name-only` at discovery, implementation, and remediation.
+
+Documentation-only closure — no product code, schema, or database change made or needed. `Data QLML/` and both stashes confirmed untouched throughout the ticket's entire lifecycle.
+
+**State after closure**: no active ticket. `AWAITING PO DIRECTION` for any next scope. `NETWORK-MANAGEMENT-001` remains separately `COMPLETED / PO FINAL PASS / CLOSED` (2026-08-10), unaffected. The Product Owner-named future "Bản đồ tổng thể mạng lưới" module remains noted only, not authorized, not self-activated by this closure.

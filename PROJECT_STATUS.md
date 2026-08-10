@@ -17,13 +17,14 @@ Quy tắc cập nhật:
 ## Current Phase
 
 - `QIS V2`
-- `NETWORK-MANAGEMENT-002` — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2
-- `Status: PO RUNTIME FAIL / REMEDIATED / READY FOR PO RECHECK`
+- No active ticket. Most recently closed: `NETWORK-MANAGEMENT-002` (Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2).
+- `Status: AWAITING PO DIRECTION`
 
 ## Current Ticket
 
-- `NETWORK-MANAGEMENT-002` — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 (Integrated Service Points + Level-2 Mail Route Map)
-- `Status: READY FOR PO RECHECK (2026-08-11). No PO PASS declared, ticket not closed.` Product Owner reported RUNTIME FAIL on the first delivered version: with both layers on, 156 điểm + 28 tuyến overlapped too heavily; the Điểm phục vụ layer only had a whole-layer toggle, no per-Loại-điểm density control. Remediated same day, `IntegratedMap.jsx` only (confirmed via `git diff` — `ServicePointsMap.jsx`/`Level2RoutesMap.jsx`/backend/schema untouched): independent per-category checkboxes derived from real data (never hand-typed), default all-on, state persists across the layer's own on/off toggle, marker filter and legend badges share one filter helper so counts always match markers, combines correctly with status/Tạm dừng/search/ĐTC2 layer/route-selection (all unchanged). `oxlint` clean, `vite build` succeeds, 53/53 relevant tests pass unchanged. Real-browser re-verified as admin: all-on 151/156 (matches baseline); 1-category 102/156 (exact); multi-category 144/156 (exact); all-off 0/156; category+status+Tạm dừng combined 2/156 (exact); ĐTC2 select/deselect re-verified working alongside category filters. `network_service_point`(156)/`network_level2_route`(28)/`network_level2_route_stop`(148)/`network_delivery_point`(287,759) unchanged (zero writes); `Data QLML/` and both stashes untouched. See `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md` Section 15 and checkpoint Section 13 for the full record.
+- `None active.`
+- Most recently closed: `NETWORK-MANAGEMENT-002` — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 (Integrated Service Points + Level-2 Mail Route Map).
+- `Status: COMPLETED / PO PASS / CLOSED (2026-08-11).` Product Owner reported RUNTIME FAIL on the first delivered version (marker/route overlap too dense; Điểm phục vụ layer only had a whole-layer toggle), remediated same day via independent per-Loại-điểm checkboxes (`IntegratedMap.jsx` only, `ServicePointsMap.jsx`/`Level2RoutesMap.jsx`/backend/schema untouched throughout). Product Owner performed the recheck and confirmed the remediation resolved the density issue, granting explicit `PO PASS` and authorizing closure. Zero product code/schema/DB change made in the closure round. `Data QLML/` and both stashes confirmed untouched throughout the ticket's entire lifecycle. See `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md` Section 16 and checkpoint Section 14.
 
 ## Completed Tickets
 
@@ -60,6 +61,7 @@ Quy tắc cập nhật:
 - `QIS-LAN-DEPLOY-001 F1.3 Local Network Viewer Deployment` - PO PASS / COMPLETED / CLOSED
 - `AUTO-IMPORT-010 HUE Browser Broker / Browser Launch Recovery` - PO RUNTIME PASS / COMPLETED / CLOSED; HUE first-click browser-open residual recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING
 - `NETWORK-MANAGEMENT-001 Quản lý mạng lưới` - PO FINAL PASS / COMPLETED / CLOSED (2026-08-10); full 4-phase program (Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát) — see below and `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` Section 36
+- `NETWORK-MANAGEMENT-002 Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2` - PO PASS / COMPLETED / CLOSED (2026-08-11); PO-reported marker/route density runtime fail remediated same day — see below and `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md` Section 16
 - `F13-UI-AUDIT-PLAN F1.3 UI Audit and Standardization Planning` - PO PASS PHASE 1-4 / COMPLETED / CLOSED (2026-08-03); latest accepted runtime implementation commit `cdb9eab246415a3835210dd70329996e6ef6521c`
 - `F13-STANDARDIZATION-001 — Tuyến Ranking (Route Ranking) delta` - PO PASS / COMPLETED / CLOSED (2026-08-04); latest PO-tested implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`; covers only Tuyến Ranking and its violation drill-down — the program's Phase 0-4 remain otherwise unclosed
 - `AUTO-IMPORT-012 Emergency follow-up — isolate Import test suites from production data` - COMPLETED / TECHNICAL PASS / CLOSED (2026-08-05); fixed the AUTO-IMPORT-011-confirmed test-isolation defect; no PO UI check applicable (test infrastructure only)
@@ -128,10 +130,12 @@ Quy tắc cập nhật:
 
 - NETWORK-MANAGEMENT-002: `DISCOVERY + PLANNING COMPLETE` (2026-08-10). New, independent ticket — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 — activated by explicit Product Owner instruction the same day `NETWORK-MANAGEMENT-001` closed; does not reopen it. Read-only discovery only, no product code changed: confirmed the two source screens (Mạng điểm phục vụ, Mạng đường thư cấp 2) already read via existing `admin`+`viewer`-readable API endpoints (zero backend/schema work needed to build the new screen); confirmed both source Map components are self-contained with no existing reusable layer component; identified the ĐTC2 layer's full routing/journey-visual interaction as the main implementation-complexity item; proposed 2 implementation options, recommending the zero-touch-to-originals option by default. See `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md`, `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-002_CHECKPOINT_001.md`.
 
+- NETWORK-MANAGEMENT-002: `COMPLETED / PO PASS / CLOSED` (2026-08-11). Implementation delivered via Option B (new `IntegratedMap.jsx`/`IntegratedMapPage.jsx`, `/network-map/integrated`, both layers default on); Product Owner reported RUNTIME FAIL (marker/route overlap too dense, no per-Loại-điểm density control), remediated same day via independent per-category checkboxes derived from real data (`IntegratedMap.jsx` only, `ServicePointsMap.jsx`/`Level2RoutesMap.jsx`/backend/schema untouched throughout, confirmed via `git diff` at every round); Product Owner performed the recheck and granted explicit `PO PASS`, authorizing closure. Documentation-only closure round; zero product code/schema/DB change. `Data QLML/` and both stashes confirmed untouched throughout the ticket's entire lifecycle. See `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md` Section 16, `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-002_CHECKPOINT_001.md` Section 14.
+
 ## Next Ticket
 
-- Current active ticket: `NETWORK-MANAGEMENT-002` (PO runtime fail remediated same day, READY FOR PO RECHECK). Most recently closed: `NETWORK-MANAGEMENT-001` (full program).
-- Next planned action: `Await Product Owner runtime RECHECK of /network-map/integrated (per-Loại-điểm density remediation) per the checklist provided in the corresponding chat report; do not declare PO PASS or close the ticket without it. NETWORK-MANAGEMENT-001 is fully CLOSED (all 4 phases, PO FINAL PASS) and must not be reopened without new explicit Product Owner authorization.`
+- Current active ticket: `None`. Most recently closed: `NETWORK-MANAGEMENT-002`.
+- Next planned action: `Await explicit Product Owner direction for any next ticket. NETWORK-MANAGEMENT-001 and NETWORK-MANAGEMENT-002 are both fully CLOSED and must not be reopened without new explicit Product Owner authorization.`
 - Candidates only, not authorized tickets: `(1) formally start F13-STANDARDIZATION-001 Phase 1 (Chuẩn hóa cấu trúc F1.3); (2) reactivate deferred F13-SHIPMENT-001 (Shipment Performance Center), whose delta remains preserved in a git stash; (3) F13-SURFACE-CLEANUP-PLAN covering Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal; (4) Pareto product design later, distinguishing Pareto analysis from true RCA. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred. RESIDUAL-01 is remediated as of Phase 0 implementation commit e3ca2429 and is no longer an open candidate.`
 
 ## Notes

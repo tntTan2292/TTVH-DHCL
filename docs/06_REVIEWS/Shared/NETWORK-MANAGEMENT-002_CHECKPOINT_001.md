@@ -15,6 +15,7 @@
 - [11. Discovery — Delta-Only, Read-Only](#11-discovery--delta-only-read-only)
 - [12. Implementation — READY FOR PO CHECK](#12-implementation--ready-for-po-check)
 - [13. PO RUNTIME FAIL / REMEDIATION → READY FOR PO RECHECK](#13-po-runtime-fail--remediation--ready-for-po-recheck)
+- [14. PO PASS — Closure](#14-po-pass--closure)
 
 ## 1. Purpose
 
@@ -25,12 +26,12 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-002`. I
 | Field | Value |
 | --- | --- |
 | Ticket | `NETWORK-MANAGEMENT-002` |
-| Program State | `READY FOR PO RECHECK` — PO runtime fail found and remediated same day, technically re-validated, no PO PASS declared (as of `2026-08-11`) |
-| Current Phase | Single-scope ticket (not phased like `NETWORK-MANAGEMENT-001`). Discovery (Section 11), implementation (Section 12), and a PO-runtime-fail remediation round (Section 13) all complete; awaiting Product Owner recheck. |
+| Program State | `COMPLETED / PO PASS / CLOSED` (as of `2026-08-11`) — see Section 14 |
+| Current Phase | Single-scope ticket (not phased like `NETWORK-MANAGEMENT-001`). Discovery (Section 11), implementation (Section 12), PO-runtime-fail remediation (Section 13), and PO PASS closure (Section 14) all complete. |
 | Discovery Performed | `Yes` — read-only, delta-only, scoped to the two source map modules and the app's routing/nav/auth scaffolding. See Section 11. |
-| Implementation Performed | `Yes` — Option B (manifest Section 8), then remediated for a PO-reported marker/route density issue (Section 13). See Section 12/13 for files changed and validation. |
-| PO Gates Passed | None yet — first PO check returned `RUNTIME FAIL`, remediated same day, awaiting Product Owner recheck. |
-| Next State | Awaiting Product Owner recheck per the checklist in the corresponding chat report; do not declare PO PASS or close this ticket without it. |
+| Implementation Performed | `Yes` — Option B (manifest Section 8), then remediated for a PO-reported marker/route density issue (Section 13), then PO PASS (Section 14). |
+| PO Gates Passed | `PASS` (Product Owner, `2026-08-11`) — confirmed the per-Loại-điểm remediation resolved the reported density issue. |
+| Next State | `None — ticket CLOSED. No active ticket. AWAITING PO DIRECTION.` |
 
 ## 3. Baseline
 
@@ -73,7 +74,7 @@ Not permitted under this checkpoint or this ticket's current activation step:
 
 ## 7. Exact Next Action
 
-Awaiting Product Owner runtime **recheck** of `/network-map/integrated`, specifically the per-Loại-điểm density remediation (Section 13 for the technical validation already performed; a concrete ordered checklist was provided in the corresponding chat report). Claude Code does not self-award PO PASS and has not declared this ticket closed.
+None. `NETWORK-MANAGEMENT-002` is `COMPLETED / PO PASS / CLOSED` (Section 14). No active ticket. State after closure: `AWAITING PO DIRECTION`.
 
 ## 8. Proposed Executor
 
@@ -81,11 +82,11 @@ Claude Code (Sonnet) — implementation, backend confirmation, frontend, tests, 
 
 ## 9. Next PO Gate
 
-The single PO Gate for this ticket: Product Owner UI acceptance of `/network-map/integrated`. Implementation is complete and technically validated (Section 12); this gate has not yet been reached.
+The single PO Gate for this ticket — Product Owner UI acceptance of `/network-map/integrated` — is `PASS` (`2026-08-11`, Section 14). No further gate remains.
 
 ## 10. Current Blockers
 
-None technical. Blocked only on Product Owner performing the runtime checklist provided in the corresponding chat report.
+None. Ticket `COMPLETED / PO PASS / CLOSED`.
 
 ## 11. Discovery — Delta-Only, Read-Only (2026-08-10)
 
@@ -147,3 +148,13 @@ Product Owner/CTO approved Option B (manifest Section 8) and authorized implemen
 - `network_service_point`/`network_level2_route`/`network_level2_route_stop`/`network_delivery_point` unchanged (zero writes); `Data QLML/` and both stashes untouched.
 
 **State**: `READY FOR PO RECHECK`. Claude Code does not self-award PO PASS and does not declare this ticket closed. A concrete, ordered Product Owner recheck checklist was provided in the corresponding chat report.
+
+## 14. PO PASS — Closure (2026-08-11)
+
+Product Owner performed the runtime recheck and explicitly confirmed `PO PASS`: the per-Loại-điểm checkbox filter (Section 13) resolved the reported marker/route overlap density issue. Product Owner explicitly authorized closing `NETWORK-MANAGEMENT-002`.
+
+**Scope confirmed at closure**: one integrated read-only map screen at `/network-map/integrated` (`admin`+`viewer`), Điểm phục vụ and Đường thư cấp 2 layers independently toggleable (both default on), Điểm phục vụ further filterable per Loại điểm (independent checkboxes, derived from real data, default all-on, selection persists across the layer's own on/off toggle), all combining correctly with the existing status filter, "Hiện điểm Tạm dừng" toggle, search, and full ĐTC2 routing/journey-visual behavior (route selection, outbound/turnaround/return, spiderfy, direction arrows). No data duplication, no new database table, no dedicated Import/Export/History/Rollback for this screen. The two original screens (`ServicePointsMap.jsx`/`ServicePointsPage.jsx`, `Level2RoutesMap.jsx`/`Level2RoutesPage.jsx`) were never modified across the entire ticket (discovery Section 11, implementation Section 12, remediation Section 13) — confirmed by `git diff --name-only` at every round.
+
+Documentation-only closure — no product code, schema, or database change made in this round. `Data QLML/` and both pre-existing stashes (`stash@{0}`, `stash@{1}`) confirmed untouched throughout the ticket's entire lifecycle.
+
+**State**: `COMPLETED / PO PASS / CLOSED`. No active ticket. `AWAITING PO DIRECTION` for any next scope. `NETWORK-MANAGEMENT-001` remains separately `COMPLETED / PO FINAL PASS / CLOSED` (2026-08-10), unaffected. The Product Owner-named future "Bản đồ tổng thể mạng lưới" module remains noted only, not authorized, not self-activated by this closure.
