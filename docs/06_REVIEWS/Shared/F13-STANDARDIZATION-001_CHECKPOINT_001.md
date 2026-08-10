@@ -13,6 +13,7 @@
 - [9. Next PO Gate](#9-next-po-gate)
 - [10. Current Blockers](#10-current-blockers)
 - [11. Route Ranking Delta Closure](#11-route-ranking-delta-closure)
+- [12. Evidence / Chi tiết bưu gửi Discovery Delta](#12-evidence--chi-tiết-bưu-gửi-discovery-delta)
 
 ## 1. Purpose
 
@@ -23,7 +24,7 @@ This checkpoint is the current-state entry point for `F13-STANDARDIZATION-001`. 
 | Field | Value |
 | --- | --- |
 | Program | `F13-STANDARDIZATION-001` |
-| Program State | `NO ACTIVE TICKET / AWAITING PRODUCT OWNER DIRECTION` (as of `2026-08-04`, after the Route Ranking delta closure below) |
+| Program State | `DISCOVERY DELTA OPEN / AWAITING PO DECISION` (as of `2026-08-10`, Evidence/Chi tiết bưu gửi discovery delta, Section 12) — no Phase reactivated |
 | Current Phase | `PHASE 0 — foundational items implemented (commits `e3ca2429`, `a0d4b041`), technical validation PASS; no standalone Product Owner runtime confirmation was recorded for this scope specifically` |
 | Phase 0 Implementation Performed | `Yes, partially` — KPI field standardization (`danh_gia_2026`), the two audited `/f13` API path fixes, and `dd/MM/yyyy` timestamp parsing were implemented and technically validated; not separately PO-runtime-confirmed as its own closure |
 | Phase 1 | `PLANNED / NOT ACTIVE` — not started; PO Gate 1 has not been reached |
@@ -93,6 +94,14 @@ None. The Route Ranking delta item is closed. The program returns to `NO ACTIVE 
 Between the original Phase 0 activation and this closure, the Product Owner authorized a bounded delta scope covering only the Tuyến Ranking (Route Ranking) screen and its violation drill-down — executed and documented as an in-branch delta, not as a separately named ticket. This section is the closure record for that delta.
 
 **Product Owner result (`2026-08-04`): `PO PASS / CLOSED`.**
+
+## 12. Evidence / Chi tiết bưu gửi Discovery Delta
+
+- Opened: `2026-08-10`
+- Scope: read-only discovery of the Evidence / Chi tiết bưu gửi (shipment detail) screen area only — no other F1.3 or Network Management screen, no product code change, `Data QLML/`/`.claude/`/both stashes untouched.
+- Status: `DISCOVERY COMPLETE / AWAITING PO DECISION` — does not reactivate Phase 1, Phase 3, or any other Phase of this program, and does not reopen `NETWORK-MANAGEMENT-001`/`NETWORK-MANAGEMENT-002`.
+
+Full findings and the decision request are recorded in `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 17, to avoid duplicating the same evidence in two documents. Summary: the nav-visible `/f13/evidence` route is still a `PlaceholderPage` (unchanged since the `2026-08-04` audit); a real, working shipment-detail implementation already exists at the orphaned (not nav-linked) `/f13/ranking/shipment` (`ShipmentPerformancePage.jsx`); both consume the same single backend contract (`GET /f13/evidence-list`), confirmed via `F13DashboardClient.js`'s `getShipmentEvidenceList()` still being a direct alias of `getEvidenceList()`. This convergence is already recorded, unresolved, in three prior artifacts (this program's own Phase 1/3, the `2026-08-04` database audit's outstanding MERGE confirmation, and the deferred `F13-SHIPMENT-001`), plus a fourth named-but-never-created candidate (`F13-SURFACE-CLEANUP-PLAN`). No implementation is authorized by this delta; a Product Owner MERGE/scope-ownership decision is requested before any of the four converging plans proceeds.
 
 - Tuyến Ranking (`/f13/ranking/route`) and the violation drill-down detail window (`/f13/ranking/route/violations`) were runtime-tested by the Product Owner.
 - Pagination confirmed correct: `10 tuyến/trang`.
