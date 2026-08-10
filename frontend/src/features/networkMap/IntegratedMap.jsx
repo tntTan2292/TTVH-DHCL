@@ -305,27 +305,52 @@ export default function IntegratedMap({
 
   // --- Điểm phục vụ layer state (ported from ServicePointsMap.jsx) ---
   const [currentZoom, setCurrentZoom] = useState(HUE_MAP_DEFAULT_ZOOM);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [spSearchQuery, setSpSearchQuery] = useState('');
   const [showTamDung, setShowTamDung] = useState(false);
 
+  // Per-Loại-điểm independent show/hide (PO runtime-fail remediation,
+  // NETWORK-MANAGEMENT-002: 156 điểm + 28 tuyến on one map was too visually
+  // dense; PO needs to reduce Điểm phục vụ marker density by category
+  // without losing the ĐTC2 layer). `visibleCategories[catKey] === false`
+  // hides that category; any key not yet present defaults to visible (see
+  // the seeding effect below) — every category actually present in `points`
+  // is derived from data via `normalizeLoaiDiem`, never a separate
+  // hand-typed list that could silently omit a real category. State is
+  // never reset when the Điểm phục vụ layer itself is toggled off/on, so
+  // turning it back on restores the same per-category selection from
+  // earlier in this session (PO requirement §7).
+  const [visibleCategories, setVisibleCategories] = useState({});
+
   const categoryStats = useMemo(() => {
-    const counts = {
-      'Văn hoá xã (VHX)': 0,
-      'Giao dịch': 0,
-      'Văn phòng': 0,
-      'Bưu cục vận hành': 0,
-      'Khai thác tỉnh': 0,
-      'Khác / Chưa phân loại': 0,
-    };
+    const counts = {};
     (points || []).forEach((p) => {
       const normCat = normalizeLoaiDiem(p.loai_diem);
-      if (counts[normCat] !== undefined) counts[normCat]++;
-      else counts['Khác / Chưa phân loại']++;
+      counts[normCat] = (counts[normCat] || 0) + 1;
     });
     return counts;
   }, [points]);
+
+  const categoryKeys = useMemo(
+    () => Object.keys(categoryStats).sort((a, b) => a.localeCompare(b, 'vi')),
+    [categoryStats],
+  );
+
+  // Seed any newly-seen category to visible=true without ever clobbering an
+  // existing (possibly unchecked) selection already made this session.
+  useEffect(() => {
+    setVisibleCategories((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      categoryKeys.forEach((key) => {
+        if (!(key in next)) {
+          next[key] = true;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [categoryKeys]);
 
   const statusStats = useMemo(() => {
     const counts = { 'Hoạt động': 0, 'Ngừng hoạt động': 0, 'Chưa xác định': 0 };
@@ -342,34 +367,50 @@ export default function IntegratedMap({
     [points],
   );
 
+  // Every filter EXCEPT the per-category checkboxes — shared by the main
+  // marker filter and the per-category "would show if checked" counts below,
+  // so the two can never drift apart.
+  const passesNonCategoryFilters = (p) => {
+    const normStatus = normalizeTrangThai(p.trang_thai);
+    if (normStatus === 'Ngừng hoạt động' && !showTamDung && selectedStatus !== 'Ngừng hoạt động') return false;
+    if (selectedStatus && normStatus !== selectedStatus) return false;
+    if (spSearchQuery.trim()) {
+      const q = spSearchQuery.toLowerCase().trim();
+      const matchCode = (p.ma_diem || '').toLowerCase().includes(q);
+      const matchName = (p.ten_diem || '').toLowerCase().includes(q);
+      const matchAddr = (p.dia_chi || '').toLowerCase().includes(q);
+      if (!matchCode && !matchName && !matchAddr) return false;
+    }
+    return true;
+  };
+
+  // Per-category count of points that would display if that category's box
+  // were checked (i.e. matches every other active filter) — used for the
+  // legend badges, so they always sum to exactly the marker count actually
+  // rendered for the categories currently checked.
+  const categoryDisplayCounts = useMemo(() => {
+    const counts = {};
+    categoryKeys.forEach((k) => { counts[k] = 0; });
+    (points || []).forEach((p) => {
+      if (!passesNonCategoryFilters(p)) return;
+      const normCat = normalizeLoaiDiem(p.loai_diem);
+      counts[normCat] = (counts[normCat] || 0) + 1;
+    });
+    return counts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, categoryKeys, selectedStatus, spSearchQuery, showTamDung]);
+
   const filteredPoints = useMemo(() => {
     return (points || []).filter((p) => {
       const normCat = normalizeLoaiDiem(p.loai_diem);
-      const normStatus = normalizeTrangThai(p.trang_thai);
-      if (normStatus === 'Ngừng hoạt động' && !showTamDung && selectedStatus !== 'Ngừng hoạt động') return false;
-      if (selectedCategory && normCat !== selectedCategory) return false;
-      if (selectedStatus && normStatus !== selectedStatus) return false;
-      if (spSearchQuery.trim()) {
-        const q = spSearchQuery.toLowerCase().trim();
-        const matchCode = (p.ma_diem || '').toLowerCase().includes(q);
-        const matchName = (p.ten_diem || '').toLowerCase().includes(q);
-        const matchAddr = (p.dia_chi || '').toLowerCase().includes(q);
-        if (!matchCode && !matchName && !matchAddr) return false;
-      }
-      return true;
+      if (visibleCategories[normCat] === false) return false;
+      return passesNonCategoryFilters(p);
     });
-  }, [points, selectedCategory, selectedStatus, spSearchQuery, showTamDung]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, visibleCategories, selectedStatus, spSearchQuery, showTamDung]);
 
   const showLabels = currentZoom >= ZOOM_LABEL_THRESHOLD_SERVICE;
 
-  const categoryLegendList = [
-    { label: 'Văn hoá xã (VHX)', catKey: 'Văn hoá xã (VHX)' },
-    { label: 'Giao dịch', catKey: 'Giao dịch' },
-    { label: 'Văn phòng', catKey: 'Văn phòng' },
-    { label: 'Bưu cục vận hành', catKey: 'Bưu cục vận hành' },
-    { label: 'Khai thác tỉnh', catKey: 'Khai thác tỉnh' },
-    { label: 'Khác / Chưa phân loại', catKey: 'Khác / Chưa phân loại' },
-  ];
   const statusLegendList = [
     { label: 'Hoạt động', statusKey: 'Hoạt động' },
     { label: 'Ngừng hoạt động', statusKey: 'Ngừng hoạt động' },
@@ -833,35 +874,37 @@ export default function IntegratedMap({
 
             <div className="mb-2">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="font-semibold text-gray-800 text-xs">Loại điểm (Tổng: {Object.values(categoryStats).reduce((a, b) => a + b, 0)}/{points.length})</span>
-                {selectedCategory && (
-                  <button type="button" onClick={() => setSelectedCategory(null)} className="text-[10px] text-blue-600 hover:underline font-semibold">
-                    Xóa lọc
-                  </button>
-                )}
+                <span className="font-semibold text-gray-800 text-xs">Loại điểm (đang hiện: {filteredPoints.length}/{points.length})</span>
               </div>
               <div className="space-y-1">
-                {categoryLegendList.map(({ label, catKey }) => {
-                  const count = categoryStats[catKey] || 0;
-                  const isSelected = selectedCategory === catKey;
+                {categoryKeys.map((catKey) => {
+                  const totalCount = categoryStats[catKey] || 0;
+                  const visibleCount = categoryDisplayCounts[catKey] || 0;
+                  const checked = visibleCategories[catKey] !== false;
                   const iconSvg = createServicePointSvg(catKey, 18, 'Hoạt động');
                   return (
-                    <button
-                      type="button"
+                    <label
                       key={catKey}
-                      onClick={() => setSelectedCategory(isSelected ? null : catKey)}
-                      className={`w-full flex items-center justify-between p-1.5 rounded-lg border text-xs transition-all ${
-                        isSelected ? 'border-blue-500 bg-blue-50/80 shadow-xs font-semibold' : 'border-gray-100 hover:bg-gray-50 text-gray-700'
+                      className={`w-full flex items-center justify-between p-1.5 rounded-lg border text-xs cursor-pointer select-none transition-all ${
+                        checked ? 'border-blue-500 bg-blue-50/80 shadow-xs font-semibold' : 'border-gray-100 hover:bg-gray-50 text-gray-700'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="flex items-center gap-1.5 min-w-0">
                         <span dangerouslySetInnerHTML={{ __html: iconSvg }} className="shrink-0 leading-none" />
-                        <span className="truncate text-[11px]">{label}</span>
-                      </div>
-                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold shrink-0 ${isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
-                        {count}
+                        <span className="truncate text-[11px]">{catKey}</span>
                       </span>
-                    </button>
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${checked ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                          {visibleCount}/{totalCount}
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => setVisibleCategories((prev) => ({ ...prev, [catKey]: e.target.checked }))}
+                          className="h-3.5 w-3.5 accent-blue-600"
+                        />
+                      </span>
+                    </label>
                   );
                 })}
               </div>

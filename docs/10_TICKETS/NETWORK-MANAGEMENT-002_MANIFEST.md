@@ -16,12 +16,13 @@
 - [12. Executor Plan](#12-executor-plan)
 - [13. Authority Escalation](#13-authority-escalation)
 - [14. Implementation Record — READY FOR PO CHECK](#14-implementation-record--ready-for-po-check)
+- [15. PO Runtime Fail + Remediation — READY FOR PO RECHECK](#15-po-runtime-fail--remediation--ready-for-po-recheck)
 
 ## 1. Ticket Information
 
 - Ticket ID: `NETWORK-MANAGEMENT-002`
 - Ticket Name: Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 (Integrated Service Points + Level-2 Mail Route Map)
-- Phase: `IMPLEMENTATION COMPLETE — READY FOR PO CHECK` (`2026-08-11`). Product Owner/CTO approved Option B; implementation delivered and technically validated (Section 14). Awaiting Product Owner UI acceptance.
+- Phase: `PO RUNTIME FAIL / REMEDIATED — READY FOR PO RECHECK` (`2026-08-11`). Product Owner/CTO approved Option B; implementation delivered (Section 14); Product Owner then reported marker/route density RUNTIME FAIL, remediated same day via independent per-Loại-điểm checkboxes (Section 15). Awaiting Product Owner recheck.
 - Owner: Claude Code (implementation, backend, data, tests, documentation, Git per `DEC-020`)
 - Governance Version: `V2 Active`
 - Authorization: Product Owner, `2026-08-10` — explicit activation request naming `NETWORK-MANAGEMENT-002` and locking scope (Section 5) directly in the activation prompt
@@ -33,9 +34,9 @@ Add exactly one new, read-only map screen that renders the existing Mạng đi�
 
 ## 3. Current Status
 
-- Current state: `READY FOR PO CHECK`, as of `2026-08-11`. Implementation delivered per locked scope (Section 5) via Option B; technically validated (Section 14). No PO PASS declared; ticket not closed.
-- PO UI Check Required: `Yes` — see the runtime checklist in the corresponding chat report / checkpoint Section 12.
-- PO Product Status: implementation technically complete, not yet PO-reviewed.
+- Current state: `READY FOR PO RECHECK`, as of `2026-08-11`. Implementation delivered per locked scope (Section 5) via Option B (Section 14); Product Owner reported a runtime FAIL (marker/route overlap density), remediated same day via independent per-Loại-điểm checkboxes (Section 15). No PO PASS declared; ticket not closed.
+- PO UI Check Required: `Yes` — see the runtime recheck checklist in the corresponding chat report / checkpoint Section 13.
+- PO Product Status: remediation technically complete, not yet PO-rechecked.
 
 ## 4. Required Reading
 
@@ -141,3 +142,13 @@ Product Owner/CTO approved Option B (Section 8) and authorized implementation. D
 **Validation**: `oxlint` clean, `vite build` succeeds, 53/53 relevant frontend tests pass (unchanged files). Real-browser verification as `admin`: real data loads (156 điểm, 28 hành trình); all 4 layer-toggle states (both on / only Điểm phục vụ / only ĐTC2 / both off) confirmed independently; ĐTC2 route selection on Tuyến 6 reproduces the exact known-good outbound/turnaround/return/spiderfy behavior; deselect reverts cleanly; the two original screens re-verified to render identically to before. Live viewer-role check not performed (no credential available, same precedent as the closed `NETWORK-MANAGEMENT-001` Phase 4 round) — flagged as a PO checklist item; role gating confirmed by static code instead. `network_service_point`/`network_level2_route`/`network_level2_route_stop`/`network_delivery_point` row counts unchanged (zero writes); `Data QLML/` and both stashes untouched. Full detail: checkpoint Section 12.
 
 **State**: `READY FOR PO CHECK`. Not PO PASS, not closed.
+
+## 15. PO Runtime Fail + Remediation — READY FOR PO RECHECK (2026-08-11)
+
+**PO RUNTIME FAIL**: with both layers on (156 điểm + 28 tuyến), markers and route lines overlapped too heavily; the Điểm phục vụ layer only had a whole-layer toggle, no way to reduce density by Loại điểm.
+
+**Remediation** (`frontend/src/features/networkMap/IntegratedMap.jsx` only — no other file touched): replaced the single-select category-filter behavior with independent per-Loại-điểm checkboxes, all default checked; the category list is derived from real data (`normalizeLoaiDiem()` over `points`), not a separately hand-typed array; per-category selection state is seeded once per new category and never reset, so toggling the Điểm phục vụ layer off/on restores the prior selection within the session; marker filtering and the legend's `visible/total` badges share one filter helper so counts can never drift from what's actually rendered; combines correctly with the existing status filter, "Hiện điểm Tạm dừng" toggle, search, and the ĐTC2 layer/route-selection (all unchanged).
+
+**Validation**: `oxlint` clean, `vite build` succeeds, 53/53 relevant tests pass unchanged. Real-browser re-verified as `admin`: all-on (151/156, matches pre-remediation baseline), 1-category-only (102/156, exact), multi-category (144/156 = 102+35+7, exact), all-off (0/156), category+status+Tạm dừng combined (2/156, exact), category filters unaffected by ĐTC2 layer off/on, ĐTC2 Tuyến 6 selection/deselection re-verified working correctly alongside active category filters. `git diff --name-only` confirms only `IntegratedMap.jsx` changed. `network_service_point`/`network_level2_route`/`network_level2_route_stop`/`network_delivery_point` unchanged; `Data QLML/` and both stashes untouched.
+
+**State**: `READY FOR PO RECHECK`. Not PO PASS, not closed. Full detail: checkpoint Section 13.
