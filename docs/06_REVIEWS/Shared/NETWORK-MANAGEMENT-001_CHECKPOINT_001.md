@@ -369,3 +369,15 @@ Delta-only, read-only discovery scoped to exactly the 5 audited "Tạm dừng" �
 **Product Owner confirmed** (`2026-08-10`): cả 5 mã đều là **điểm phục vụ thật, trạng thái Tạm dừng** — không sửa mã, tọa độ, hoặc phân loại (khớp với phân loại hệ thống hiện tại, không có thay đổi kỹ thuật nào cần thực hiện). Tên ĐTC2 khác tên chính thức ở 3 mã được PO chấp nhận là **tên vận hành** (operational label), không phải sai lệch dữ liệu cần sửa. Khoảng trống `TMS- NODE` ở 3/5 mã: PO chỉ đạo **không mở rộng xử lý** — để nguyên, không audit thêm.
 
 Documentation-only — không có product code, schema, hay dữ liệu nào thay đổi trong toàn bộ delta này (cả vòng khảo sát 2026-08-10 lẫn vòng xác nhận này). `Data QLML/` và cả 2 stash không bị đụng tới. Đóng delta khảo sát 5 mã tại đây — không mở rộng sang chuẩn hóa Import tuyến phát hay bất kỳ phạm vi nào khác.
+
+## 25. Chuẩn hóa Import/Export Sơ đồ tuyến phát 29 cột — Discovery + PO Decision (2026-08-10)
+
+Delta-only, read-only discovery cho việc chuẩn hóa Import/Export Sơ đồ tuyến phát theo đúng cấu trúc file BatchFile gốc 29 cột. Không sửa code/CSDL/governance trong vòng khảo sát.
+
+**Hiện trạng xác minh**: parser (`parseDeliveryRoutesBatchFileExcel.js`) đọc đúng 29 cột gốc nhưng chỉ lưu 11 trường vào `network_delivery_point` (18 cột kể cả metadata, đo thực tế 287.759 dòng ~56,2 MB); 17 cột nguồn còn lại bị đọc-qua-rồi-bỏ, chưa lưu ở đâu. File gốc đã được lưu nguyên vẹn sau mỗi Confirm thành công (`fileArchive.js` + `network_import_archive`, không retention/expiry) — cơ chế audit-trail file gốc coi như đã đáp ứng sẵn. Export hiện xuất định dạng báo cáo riêng 11 cột, không phải cấu trúc 29 cột gốc. Cơ chế snapshot/rollback (`network_import_snapshot`) là generic theo bảng, có thể mở rộng cho bảng mới nếu cần mà không phải thiết kế lại.
+
+Đầy đủ mapping 29 cột nguồn, phân loại đề xuất bảng bản đồ/bảng chi tiết, ước tính phình SQLite (~22-36 MB/tháng nếu tạo bảng chi tiết đầy đủ), rủi ro migration/rollback, và danh sách file dự kiến sửa đã trình bày trong report gửi PO qua chat (không lưu file riêng).
+
+**Quyết định Product Owner (`2026-08-10`)**: **không** lưu toàn bộ 29 cột vào CSDL lúc này. Chỉ giữ nguyên các trường phục vụ bản đồ và chức năng hiện tại (`network_delivery_point`, 11 trường nghiệp vụ, không đổi). File BatchFile gốc tiếp tục được lưu nguyên vẹn để audit (cơ chế đã có, không cần thay đổi). Các trường phục vụ KPI sẽ được bổ sung sau, **theo từng nhu cầu cụ thể phát sinh** — không tạo bảng chi tiết 29 cột toàn bộ ngay bây giờ, để tránh CSDL tăng dung lượng không cần thiết. **Không backfill** dữ liệu chi tiết cho 2 tháng đã Import (05/2026, 06/2026). **Không tạo migration**.
+
+Đóng delta khảo sát này tại đây — schema/parser/export hiện tại giữ nguyên không đổi. Documentation-only; không có product code, schema, hay dữ liệu nào thay đổi. `Data QLML/` và cả 2 stash không bị đụng tới. Không tự resume ticket từ trạng thái paused.
