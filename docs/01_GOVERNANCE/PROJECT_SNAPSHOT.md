@@ -32,7 +32,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Last Closed Ticket | `AUTO-IMPORT-013 — Urgent TCT login-detection stall, COMPLETED / PO RUNTIME PASS / CLOSED, 2026-08-07 (unaffected by this ticket)` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-IMPORT-013_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-IMPORT-014 Phase 3: TCT Re-Update DUPLICATE_DATES delta root-caused and fixed; awaiting targeted PO recheck` |
-| Last Reviewed Implementation Commit | `Pending commit of this round's 5-file delta fix (see docs/10_TICKETS/AUTO-IMPORT-014_MANIFEST.md)` |
+| Last Reviewed Implementation Commit | `8ea547e` (TCT Re-Update DUPLICATE_DATES delta fix, frontend-only, backend validation unweakened — Technical Gate PASS for this delta) |
 | Phase Review Status | `AUTO-IMPORT-014 ACTIVE / PO RUNTIME PARTIAL PASS / TCT RE-UPDATE FAIL FIXED / AWAITING TARGETED PO RECHECK. NETWORK-MANAGEMENT-001 PAUSED at its exact current state (see Paused Ticket State below), untouched, not closed.` |
 | Next Phase Authorization | `Product Owner performs the targeted recheck (TCT Re-Update, 2026-08-07) in docs/10_TICKETS/AUTO-IMPORT-014_MANIFEST.md; only after that should PO PASS/CLOSED be recorded. Do not resume NETWORK-MANAGEMENT-001 without separate explicit Product Owner authorization.` |
 | Governance Version | `V2 Active` |
