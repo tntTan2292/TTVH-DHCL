@@ -32,7 +32,7 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Last Closed Ticket | `NETWORK-MANAGEMENT-001 — Quản lý mạng lưới (Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát), COMPLETED / PO FINAL PASS / CLOSED, 2026-08-10 — not reopened by this ticket` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` |
 | Last Reviewed Phase | `NETWORK-MANAGEMENT-002 PO runtime fail remediation, READY FOR PO RECHECK (2026-08-11)` |
-| Last Reviewed Implementation Commit | To be recorded after this round's commit is pushed (IntegratedMap.jsx per-Loại-điểm checkbox remediation — READY FOR PO RECHECK, not yet PO-reviewed) |
+| Last Reviewed Implementation Commit | `ebe47b0` (IntegratedMap.jsx per-Loại-điểm checkbox remediation — READY FOR PO RECHECK, not yet PO-reviewed) |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: PO runtime fail remediated same day, awaiting PO recheck.` |
 | Next Phase Authorization | `Ticket closure requires explicit Product Owner PO PASS on the recheck checklist; Claude Code does not self-award it.` |
 | Governance Version | `V2 Active` |
