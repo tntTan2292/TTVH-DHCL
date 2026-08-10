@@ -17,14 +17,13 @@ Quy tắc cập nhật:
 ## Current Phase
 
 - `QIS V2`
-- No active ticket. Most recently closed: `NETWORK-MANAGEMENT-001` (full program, all 4 phases).
-- `Status: AWAITING PO DIRECTION`
+- `NETWORK-MANAGEMENT-002` — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2
+- `Status: DISCOVERY + PLANNING COMPLETE / AWAITING PO-CTO GO-AHEAD TO IMPLEMENT`
 
 ## Current Ticket
 
-- `None active.`
-- Most recently closed: `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát).
-- `Status: COMPLETED / PO FINAL PASS / CLOSED (2026-08-10).` All 4 phases closed with their own PO Gate PASS (Gate 1: 2026-08-05; Gate 2: 2026-08-05; Gate 3: 2026-08-06, baseline `7da98a79eb8`; Gate 4: 2026-08-10). Phase 4's Sơ đồ tuyến phát Import received explicit PO PASS (2026-08-07) on the real May 2026 BatchFile; manifest §6's full acceptance checklist (admin-only enforcement, "Tạm dừng" point handling, cross-module regression, data-integrity reconfirmation) reached Technical PASS (2026-08-08); Product Owner then reviewed the complete evidence set and granted program-wide PO FINAL PASS, closing the ticket — no new PO recheck was required for this closure. Zero product code, database schema, UI, or routing changes made in the closure round. `Data QLML/` and both stashes confirmed untouched throughout the program's entire lifecycle. See `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` Section 36 and checkpoint Section 26.
+- `NETWORK-MANAGEMENT-002` — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 (Integrated Service Points + Level-2 Mail Route Map)
+- `Status: DISCOVERY + PLANNING COMPLETE (2026-08-10). No product code changed.` Product Owner explicitly authorized this new, independent ticket immediately after `NETWORK-MANAGEMENT-001` closed the same day — that program is `COMPLETED / PO FINAL PASS / CLOSED` and not reopened. Locked scope: one integrated read-only map screen; data read directly from the two existing source modules, no duplication; independently toggleable Điểm phục vụ / ĐTC2 layers; the two source screens' already-approved marker/popup/legend/routing/interaction preserved verbatim; no new database table; no dedicated Import/Export/History/Rollback; no behavior change to the two original screens; no Shipment Detail/Evidence merge. Discovery found both source screens already read via existing admin+viewer-readable API endpoints (zero backend/schema work needed) and identified 2 implementation options, recommending zero-touch-to-originals as the default. `Data QLML/` and both stashes untouched. See `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md` and its checkpoint for the full record.
 
 ## Completed Tickets
 
@@ -127,10 +126,12 @@ Quy tắc cập nhật:
 
 - NETWORK-MANAGEMENT-001: `COMPLETED / PO FINAL PASS / CLOSED` (2026-08-10), superseding the earlier `PAUSED` line above. Product Owner reviewed the complete accumulated evidence set and explicitly authorized closing the full 4-phase program — no new PO runtime/UI recheck required for this closure. Phase 1 `PO Gate 1 PASS` (2026-08-05); Phase 2 `PO Gate 2 PASS` (2026-08-05); Phase 3 `PO Gate 3 PASS` (2026-08-06, baseline `7da98a79eb8`); Phase 4 — Sơ đồ tuyến phát data-contract remediation, two recheck-fail/fix cycles against the real May 2026 BatchFile (sheet-detection then text-cell coercion, both fixed same day), `Sơ đồ tuyến phát Import PO PASS` (2026-08-07, real May file: 144,289 valid rows, Confirm succeeded), manifest §6's full acceptance checklist (admin-only, "Tạm dừng" handling, cross-module regression, data integrity) reaching Technical PASS (2026-08-08), and 2 closed discovery deltas (5-point ĐTC2 classification; 29-column standardization, where PO explicitly decided not to persist all 29 columns now) both 2026-08-10 — Product Owner FINAL PASS (2026-08-10) constitutes PO Gate 4 PASS and program-wide closure. Documentation-only closure round; zero product code/schema/DB change. `Data QLML/` and both stashes confirmed untouched throughout. See `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` Section 36, `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` Section 26.
 
+- NETWORK-MANAGEMENT-002: `DISCOVERY + PLANNING COMPLETE` (2026-08-10). New, independent ticket — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 — activated by explicit Product Owner instruction the same day `NETWORK-MANAGEMENT-001` closed; does not reopen it. Read-only discovery only, no product code changed: confirmed the two source screens (Mạng điểm phục vụ, Mạng đường thư cấp 2) already read via existing `admin`+`viewer`-readable API endpoints (zero backend/schema work needed to build the new screen); confirmed both source Map components are self-contained with no existing reusable layer component; identified the ĐTC2 layer's full routing/journey-visual interaction as the main implementation-complexity item; proposed 2 implementation options, recommending the zero-touch-to-originals option by default. See `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md`, `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-002_CHECKPOINT_001.md`.
+
 ## Next Ticket
 
-- Current active ticket: `None`. Most recently closed: `NETWORK-MANAGEMENT-001` (full program).
-- Next planned action: `Await explicit Product Owner direction for any next ticket. NETWORK-MANAGEMENT-001 is fully CLOSED (all 4 phases, PO FINAL PASS) and must not be reopened without new explicit Product Owner authorization.`
+- Current active ticket: `NETWORK-MANAGEMENT-002` (discovery/planning complete, implementation not started). Most recently closed: `NETWORK-MANAGEMENT-001` (full program).
+- Next planned action: `Await explicit Product Owner/CTO go-ahead to begin NETWORK-MANAGEMENT-002 implementation; default approach is zero-touch to the two original source screens (manifest Section 8, Option B) absent further direction. NETWORK-MANAGEMENT-001 is fully CLOSED (all 4 phases, PO FINAL PASS) and must not be reopened without new explicit Product Owner authorization.`
 - Candidates only, not authorized tickets: `(1) formally start F13-STANDARDIZATION-001 Phase 1 (Chuẩn hóa cấu trúc F1.3); (2) reactivate deferred F13-SHIPMENT-001 (Shipment Performance Center), whose delta remains preserved in a git stash; (3) F13-SURFACE-CLEANUP-PLAN covering Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal; (4) Pareto product design later, distinguishing Pareto analysis from true RCA. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred. RESIDUAL-01 is remediated as of Phase 0 implementation commit e3ca2429 and is no longer an open candidate.`
 
 ## Notes
