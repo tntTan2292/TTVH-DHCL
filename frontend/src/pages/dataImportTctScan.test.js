@@ -45,8 +45,8 @@ assert.match(
 );
 assert.match(
   pageSource,
-  /refresh_dates: tctRefreshDates\.filter\(\(date\) => allowedDates\.includes\(date\)\)/,
-  'TCT Update must submit explicit operator-selected COMPLETE refresh dates'
+  /const refreshDatesToSend = Array\.from\(new Set\(tctRefreshDates\.filter\(\(date\) => allowedDates\.includes\(date\)\)\)\);/,
+  'TCT Update must submit explicit operator-selected COMPLETE refresh dates, de-duplicated (AUTO-IMPORT-014)'
 );
 assert.match(
   pageSource,
@@ -145,6 +145,36 @@ assert.doesNotMatch(
   pageSource,
   /quality-timeline\.|undefined_key|TCT_SCAN_API_ERROR_KEY|raw_/,
   'Operator-facing TCT UI must not expose raw technical or i18n keys'
+);
+
+// AUTO-IMPORT-014 (TCT Re-Update delta): toggleTctSelectedDate's nested setTctRefreshDates call
+// (a side effect inside setTctSelectedDates's functional updater) must be idempotent, because
+// React.StrictMode (src/main.jsx) invokes that outer updater twice in development, and an
+// unconditional append there duplicates a single click into two entries in tctRefreshDates —
+// exactly the "Duplicate refresh_dates are not allowed" (DUPLICATE_DATES) defect reported by the
+// Product Owner. Assert the idempotent guard is present at the exact call site.
+assert.match(
+  pageSource,
+  /setTctRefreshDates\(\(refCurrent\) => \(refCurrent\.includes\(date\) \? refCurrent : \[\.\.\.refCurrent, date\]\.sort\(\)\)\);/,
+  'toggleTctSelectedDate must guard its refresh-dates append against React.StrictMode double-invocation duplicating a single click'
+);
+assert.doesNotMatch(
+  pageSource,
+  /setTctRefreshDates\(\(refCurrent\) => \[\.\.\.refCurrent, date\]\.sort\(\)\);/,
+  'the old unconditional (non-idempotent) refresh-dates append must not be reintroduced'
+);
+
+// Defense-in-depth: the actual TCT backfill-queue submission must never send a duplicate
+// refresh_dates entry, even if state was populated some other way.
+assert.match(
+  pageSource,
+  /const refreshDatesToSend = Array\.from\(new Set\(tctRefreshDates\.filter\(\(date\) => allowedDates\.includes\(date\)\)\)\);/,
+  'TCT backfill-queue submission must de-duplicate refresh_dates before sending'
+);
+assert.match(
+  pageSource,
+  /refresh_dates:\s*refreshDatesToSend/,
+  'TCT backfill-queue submission must send the de-duplicated refresh_dates array'
 );
 
 console.log('DataImportCenter TCT scan UI behavior checks passed.');

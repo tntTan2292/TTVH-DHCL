@@ -194,6 +194,67 @@ function removeDirEventually(dir) {
     );
     assert.strictEqual(authService.getActiveQueue(), null, 'preflight rejection does not create an active queue');
 
+    console.log('\nTEST 4B: AUTO-IMPORT-014 (TCT Re-Update delta) — refresh_dates validation is correct for the exact PO-reported scenario and remains strict for genuine duplicates');
+    const reUpdateService = new TctF13BackfillService({
+        db: makeDb(),
+        pollIntervalMs: 1,
+        sessionPreflightService: { preflight: async () => ({ source: 'TCT', status: 'SESSION_VALID' }) }
+    });
+    reUpdateService.runOneDateImport = async () => ({
+        run_id: 'reupdate-run',
+        downloaded_filename: 'reupdate.xlsx',
+        workbook_row_count: 10,
+        parsed_ranked_unit_count: 10,
+        imported_database_row_count: 10,
+        replaced_incomplete_evidence: true,
+        temp_file_deleted: false,
+        local_file_retained: true
+    });
+    reUpdateService.loadDatabaseEvidence = async () => ({ rowCount: 10, distinctCount: 10, successLogCount: 1, errorLogCount: 0 });
+    reUpdateService.loadHueEvidence = async () => ({ volume: null, pass: null, kpi: null, rank: null });
+    // Exactly the reported PO scenario: one date selected, Re-Update(1) clicked — dates and
+    // refresh_dates both contain that single date exactly once. This must succeed, not throw
+    // DUPLICATE_DATES.
+    const singleDateReupdate = await reUpdateService.startQueue(['2026-08-07'], { refreshDates: ['2026-08-07'] });
+    assert.strictEqual(singleDateReupdate.items.length, 1, 'a single-date Re-Update queues exactly one item');
+    assert.strictEqual(singleDateReupdate.items[0].refreshRequested, true, 'the single selected date is correctly marked as a refresh request');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // Multiple distinct dates, all refreshed — must also succeed without collision.
+    const multiDateService = new TctF13BackfillService({
+        db: makeDb(),
+        pollIntervalMs: 1,
+        sessionPreflightService: { preflight: async () => ({ source: 'TCT', status: 'SESSION_VALID' }) }
+    });
+    multiDateService.checkCompleted = async () => ({ complete: false, inconsistent: false });
+    multiDateService.runOneDateImport = async () => ({
+        run_id: 'multi-run',
+        downloaded_filename: 'multi.xlsx',
+        workbook_row_count: 5,
+        parsed_ranked_unit_count: 5,
+        imported_database_row_count: 5,
+        replaced_incomplete_evidence: false,
+        temp_file_deleted: false,
+        local_file_retained: true
+    });
+    multiDateService.loadDatabaseEvidence = async () => ({ rowCount: 5, distinctCount: 5, successLogCount: 1, errorLogCount: 0 });
+    multiDateService.loadHueEvidence = async () => ({ volume: null, pass: null, kpi: null, rank: null });
+    const multiDateQueue = await multiDateService.startQueue(
+        ['2026-08-05', '2026-08-06', '2026-08-07'],
+        { refreshDates: ['2026-08-05', '2026-08-06', '2026-08-07'] }
+    );
+    assert.strictEqual(multiDateQueue.items.length, 3, 'three distinct dates queue as three distinct items, no collisions');
+    await new Promise((resolve) => setTimeout(resolve, 30));
+
+    // A genuine duplicate in refresh_dates (not just dates) must still be rejected — validation
+    // is not weakened by this fix; only the frontend's accidental duplicate was eliminated.
+    const strictService = new TctF13BackfillService({ db: makeDb() });
+    await assert.rejects(
+        () => strictService.startQueue(['2026-08-07'], { refreshDates: ['2026-08-07', '2026-08-07'] }),
+        (err) => err.code === 'DUPLICATE_DATES' && /refresh_dates/.test(err.message),
+        'a genuine duplicate in refresh_dates is still rejected with DUPLICATE_DATES — backend validation is unweakened'
+    );
+
     console.log('\nTEST 5: one active queue, graceful stop, and retry eligibility');
     const slowService = new TctF13BackfillService({
         db: makeDb(),

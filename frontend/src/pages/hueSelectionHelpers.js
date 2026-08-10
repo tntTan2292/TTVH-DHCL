@@ -30,7 +30,13 @@ export function toggleDateSelection(currentSelected, currentRefresh, date, statu
   } else {
     return {
       selectedDates: [...currentSelected, date].sort(),
-      refreshDates: status === 'COMPLETE'
+      // AUTO-IMPORT-014 (TCT Re-Update delta): idempotent add. This function is called from a
+      // React functional state-updater that itself dispatches a second setState as a side
+      // effect — under React.StrictMode (used by this app), that outer updater is intentionally
+      // invoked twice, so the side-effect dispatch fires twice too. An unconditional
+      // [...currentRefresh, date] would then queue the same date onto refreshDates twice across
+      // the two dispatches, producing a real duplicate even though the user made one selection.
+      refreshDates: status === 'COMPLETE' && !currentRefresh.includes(date)
         ? [...currentRefresh, date].sort()
         : currentRefresh,
     };

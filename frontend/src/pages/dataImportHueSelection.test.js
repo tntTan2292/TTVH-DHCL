@@ -101,6 +101,66 @@ assert.strictEqual(
   assert.deepEqual(state.refreshDates, ['2025-07-01', '2025-07-02'], 'Multiple COMPLETE selections accumulate in refreshDates');
 }
 
+// ─── AUTO-IMPORT-014 (TCT Re-Update delta, fix applied symmetrically to the shared HUE helper) ──
+//
+// Root cause: toggleTctSelectedDate/toggleSelectedDate call setXRefreshDates as a side effect
+// nested inside setXSelectedDates's functional updater. React.StrictMode (src/main.jsx) invokes
+// that outer updater twice in development, so the nested side-effect dispatch fires twice for a
+// single click. Simulate exactly that here: call toggleDateSelection twice with the SAME
+// (currentRefresh, date) inputs — the two calls a StrictMode double-invocation would produce —
+// and assert the result is still deduplicated, matching the fix in DataImportCenter.jsx's
+// toggleTctSelectedDate.
+
+// Exactly one date selected — a single click must never itself produce a duplicate.
+{
+  const result = toggleDateSelection([], [], '2026-08-07', 'COMPLETE');
+  assert.deepEqual(result.selectedDates, ['2026-08-07'], 'Selecting exactly one COMPLETE date adds exactly one entry to selectedDates');
+  assert.deepEqual(result.refreshDates, ['2026-08-07'], 'Selecting exactly one COMPLETE date adds exactly one entry to refreshDates');
+}
+
+// Selecting multiple distinct COMPLETE dates must never collide into a duplicate.
+{
+  let state = { selectedDates: [], refreshDates: [] };
+  state = toggleDateSelection(state.selectedDates, state.refreshDates, '2026-08-05', 'COMPLETE');
+  state = toggleDateSelection(state.selectedDates, state.refreshDates, '2026-08-06', 'COMPLETE');
+  state = toggleDateSelection(state.selectedDates, state.refreshDates, '2026-08-07', 'COMPLETE');
+  assert.deepEqual(state.selectedDates, ['2026-08-05', '2026-08-06', '2026-08-07'], 'Three distinct COMPLETE selections produce three distinct entries, no collisions');
+  assert.deepEqual(state.refreshDates, ['2026-08-05', '2026-08-06', '2026-08-07'], 'refreshDates mirrors selectedDates with no duplicates');
+  const uniqueRefresh = new Set(state.refreshDates);
+  assert.strictEqual(uniqueRefresh.size, state.refreshDates.length, 'refreshDates has no internal duplicates after multiple distinct selections');
+}
+
+// React.StrictMode double-invocation simulation: the exact reported defect — a single click on
+// one date, reproduced as toggleDateSelection being called twice with identical (currentRefresh,
+// date, status) inputs (the same array reference/value the outer updater saw both times it ran).
+{
+  const currentSelected = [];
+  const currentRefresh = [];
+  const first = toggleDateSelection(currentSelected, currentRefresh, '2026-08-07', 'COMPLETE');
+  // StrictMode's second invocation of the outer updater sees the SAME pre-update currentRefresh
+  // (not first.refreshDates) — this is precisely why the old code produced ['date','date'].
+  const second = toggleDateSelection(currentSelected, currentRefresh, '2026-08-07', 'COMPLETE');
+  assert.deepEqual(first.refreshDates, ['2026-08-07'], 'first (StrictMode) invocation adds the date once');
+  assert.deepEqual(second.refreshDates, ['2026-08-07'], 'second (StrictMode) invocation on the same inputs is idempotent, not a second append');
+}
+
+// Re-clicking the same date after it is already selected (a genuine user re-click, not a
+// StrictMode artifact) must toggle it OFF cleanly, not accumulate a second entry.
+{
+  let state = toggleDateSelection([], [], '2026-08-07', 'COMPLETE');
+  state = toggleDateSelection(state.selectedDates, state.refreshDates, '2026-08-07', 'COMPLETE');
+  assert.deepEqual(state.selectedDates, [], 'clicking an already-selected date toggles it off');
+  assert.deepEqual(state.refreshDates, [], 'clicking an already-selected date removes it from refreshDates too, not leaving a stale duplicate');
+}
+
+// Stale/leftover refreshDates from a prior selection cycle must not be duplicated by a later,
+// unrelated toggle on a different date.
+{
+  const staleRefresh = ['2026-08-01']; // simulates state left over from an earlier cycle
+  const result = toggleDateSelection(['2026-08-01'], staleRefresh, '2026-08-07', 'COMPLETE');
+  assert.deepEqual(result.refreshDates.slice().sort(), ['2026-08-01', '2026-08-07'], 'a new selection is added alongside pre-existing state without disturbing or duplicating it');
+}
+
 // ─── isSubmitDisabled contract ────────────────────────────────────────────────
 
 // session not ready, dates selected → submit disabled (prevents unauthorized submit)

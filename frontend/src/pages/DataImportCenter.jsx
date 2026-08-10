@@ -532,7 +532,16 @@ export default function DataImportCenter() {
         return current.filter((item) => item !== date);
       } else {
         if (status === 'COMPLETE') {
-          setTctRefreshDates((refCurrent) => [...refCurrent, date].sort());
+          // AUTO-IMPORT-014 (TCT Re-Update delta): idempotent add, mirroring the shared
+          // toggleDateSelection() fix. This setTctRefreshDates call is a side effect nested
+          // inside setTctSelectedDates's functional updater; React.StrictMode (used by this
+          // app, see src/main.jsx) intentionally invokes that outer updater twice, so an
+          // unconditional [...refCurrent, date] would queue the same date onto
+          // tctRefreshDates twice from a single click, producing a real duplicate even though
+          // tctSelectedDates itself (guarded by the same current.includes(date) check) stays
+          // correct. This was the root cause of "Duplicate refresh_dates are not allowed"
+          // (DUPLICATE_DATES) when Re-Update was clicked for a single date.
+          setTctRefreshDates((refCurrent) => (refCurrent.includes(date) ? refCurrent : [...refCurrent, date].sort()));
         }
         return [...current, date].sort();
       }
@@ -641,9 +650,14 @@ export default function DataImportCenter() {
     setTctQueueSubmitting(true);
     setTctQueueError(null);
     try {
+      // AUTO-IMPORT-014 (TCT Re-Update delta): defense-in-depth de-dup at the actual submission
+      // point, on top of the toggleTctSelectedDate() fix above — never send a duplicate even if
+      // state was populated some other way. This does not change backend validation; the
+      // backend still independently rejects a genuine duplicate array from any caller.
+      const refreshDatesToSend = Array.from(new Set(tctRefreshDates.filter((date) => allowedDates.includes(date))));
       const res = await api.post('/import/dkcl/tct/f13/backfill-queue', {
         dates: allowedDates,
-        refresh_dates: tctRefreshDates.filter((date) => allowedDates.includes(date))
+        refresh_dates: refreshDatesToSend
       });
       if (res.data.success) {
         setTctQueue(res.data.data);
