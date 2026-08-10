@@ -17,13 +17,14 @@ Quy tắc cập nhật:
 ## Current Phase
 
 - `QIS V2`
-- `NETWORK-MANAGEMENT-001` — Phase 2 Governance Closure
-- `Status: PHASE 2 CLOSED / AWAITING PO DIRECTION FOR PHASE 3`
+- No active ticket. Most recently closed: `NETWORK-MANAGEMENT-001` (full program, all 4 phases).
+- `Status: AWAITING PO DIRECTION`
 
 ## Current Ticket
 
-- `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Phase 2 Governance Closure)
-- `Status: COMPLETED / PO PASS / CLOSED. Product Owner officially confirmed PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED across all 3 map screens (Mạng điểm phục vụ, Sơ đồ ĐTC2, Sơ đồ tuyến phát with Calendar Date Picker, OSRM road network routing, and interactive Legend Box). PO Gate 2 officially closed as PASS. Authority chain verified: Phase 3 (Import) is PLANNED / NOT ACTIVE, awaiting explicit Product Owner direction. Zero product code, database schema, UI, or routing changes. 2 stashes preserved.`
+- `None active.`
+- Most recently closed: `NETWORK-MANAGEMENT-001` — Quản lý mạng lưới (Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát).
+- `Status: COMPLETED / PO FINAL PASS / CLOSED (2026-08-10).` All 4 phases closed with their own PO Gate PASS (Gate 1: 2026-08-05; Gate 2: 2026-08-05; Gate 3: 2026-08-06, baseline `7da98a79eb8`; Gate 4: 2026-08-10). Phase 4's Sơ đồ tuyến phát Import received explicit PO PASS (2026-08-07) on the real May 2026 BatchFile; manifest §6's full acceptance checklist (admin-only enforcement, "Tạm dừng" point handling, cross-module regression, data-integrity reconfirmation) reached Technical PASS (2026-08-08); Product Owner then reviewed the complete evidence set and granted program-wide PO FINAL PASS, closing the ticket — no new PO recheck was required for this closure. Zero product code, database schema, UI, or routing changes made in the closure round. `Data QLML/` and both stashes confirmed untouched throughout the program's entire lifecycle. See `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` Section 36 and checkpoint Section 26.
 
 ## Completed Tickets
 
@@ -59,6 +60,7 @@ Quy tắc cập nhật:
 - `F13-BCVH-RANKING-REDESIGN-IMPL` - PO PASS / COMPLETED / CLOSED
 - `QIS-LAN-DEPLOY-001 F1.3 Local Network Viewer Deployment` - PO PASS / COMPLETED / CLOSED
 - `AUTO-IMPORT-010 HUE Browser Broker / Browser Launch Recovery` - PO RUNTIME PASS / COMPLETED / CLOSED; HUE first-click browser-open residual recorded as KNOWN RESIDUAL / DEFERRED / NON-BLOCKING
+- `NETWORK-MANAGEMENT-001 Quản lý mạng lưới` - PO FINAL PASS / COMPLETED / CLOSED (2026-08-10); full 4-phase program (Mạng điểm phục vụ, Mạng đường thư cấp 2, Sơ đồ tuyến phát) — see below and `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` Section 36
 - `F13-UI-AUDIT-PLAN F1.3 UI Audit and Standardization Planning` - PO PASS PHASE 1-4 / COMPLETED / CLOSED (2026-08-03); latest accepted runtime implementation commit `cdb9eab246415a3835210dd70329996e6ef6521c`
 - `F13-STANDARDIZATION-001 — Tuyến Ranking (Route Ranking) delta` - PO PASS / COMPLETED / CLOSED (2026-08-04); latest PO-tested implementation commit `03ce28bacc36b49d961caa1c006a011beb804bc7`; covers only Tuyến Ranking and its violation drill-down — the program's Phase 0-4 remain otherwise unclosed
 - `AUTO-IMPORT-012 Emergency follow-up — isolate Import test suites from production data` - COMPLETED / TECHNICAL PASS / CLOSED (2026-08-05); fixed the AUTO-IMPORT-011-confirmed test-isolation defect; no PO UI check applicable (test infrastructure only)
@@ -123,10 +125,12 @@ Quy tắc cập nhật:
 
 - AUTO-IMPORT-014: `COMPLETED / PO RUNTIME PASS / CLOSED` (2026-08-08). General HUE/TCT session-lifecycle reliability hardening (Phase 2, per-source mutex/generalized activeOperation/bounded-retry classification/multi-page rebind/reconciliation, commit `0d959eb`) plus the TCT Re-Update `DUPLICATE_DATES` delta fix (Phase 3, a React.StrictMode double-invoked nested `setState` side effect duplicating a single click, fixed frontend-only, backend validation unweakened, commit `8ea547e`) — both confirmed end-to-end by the Product Owner on the real machine. Final recheck (commit `6159b8b7`): TCT Re-Update succeeds; window visible while `RUNNING`, auto-hides on completion — explicitly PO-accepted behavior, acceptance criterion corrected to match. See `docs/10_TICKETS/AUTO-IMPORT-014_MANIFEST.md`, `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_001.md` through `_CHECKPOINT_004.md`.
 
+- NETWORK-MANAGEMENT-001: `COMPLETED / PO FINAL PASS / CLOSED` (2026-08-10), superseding the earlier `PAUSED` line above. Product Owner reviewed the complete accumulated evidence set and explicitly authorized closing the full 4-phase program — no new PO runtime/UI recheck required for this closure. Phase 1 `PO Gate 1 PASS` (2026-08-05); Phase 2 `PO Gate 2 PASS` (2026-08-05); Phase 3 `PO Gate 3 PASS` (2026-08-06, baseline `7da98a79eb8`); Phase 4 — Sơ đồ tuyến phát data-contract remediation, two recheck-fail/fix cycles against the real May 2026 BatchFile (sheet-detection then text-cell coercion, both fixed same day), `Sơ đồ tuyến phát Import PO PASS` (2026-08-07, real May file: 144,289 valid rows, Confirm succeeded), manifest §6's full acceptance checklist (admin-only, "Tạm dừng" handling, cross-module regression, data integrity) reaching Technical PASS (2026-08-08), and 2 closed discovery deltas (5-point ĐTC2 classification; 29-column standardization, where PO explicitly decided not to persist all 29 columns now) both 2026-08-10 — Product Owner FINAL PASS (2026-08-10) constitutes PO Gate 4 PASS and program-wide closure. Documentation-only closure round; zero product code/schema/DB change. `Data QLML/` and both stashes confirmed untouched throughout. See `docs/10_TICKETS/NETWORK-MANAGEMENT-001_MANIFEST.md` Section 36, `docs/06_REVIEWS/Shared/NETWORK-MANAGEMENT-001_CHECKPOINT_001.md` Section 26.
+
 ## Next Ticket
 
-- Current active ticket: `None`. Most recently closed: `AUTO-IMPORT-014`.
-- Next planned action: `Await explicit Product Owner direction, including whether to resume NETWORK-MANAGEMENT-001 (paused, not closed, untouched by AUTO-IMPORT-014).`
+- Current active ticket: `None`. Most recently closed: `NETWORK-MANAGEMENT-001` (full program).
+- Next planned action: `Await explicit Product Owner direction for any next ticket. NETWORK-MANAGEMENT-001 is fully CLOSED (all 4 phases, PO FINAL PASS) and must not be reopened without new explicit Product Owner authorization.`
 - Candidates only, not authorized tickets: `(1) formally start F13-STANDARDIZATION-001 Phase 1 (Chuẩn hóa cấu trúc F1.3); (2) reactivate deferred F13-SHIPMENT-001 (Shipment Performance Center), whose delta remains preserved in a git stash; (3) F13-SURFACE-CLEANUP-PLAN covering Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal; (4) Pareto product design later, distinguishing Pareto analysis from true RCA. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred. RESIDUAL-01 is remediated as of Phase 0 implementation commit e3ca2429 and is no longer an open candidate.`
 
 ## Notes

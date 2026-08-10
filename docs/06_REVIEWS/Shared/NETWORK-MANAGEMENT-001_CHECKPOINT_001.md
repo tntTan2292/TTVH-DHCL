@@ -22,6 +22,7 @@
 - [18. PO Gate 3 PASS — Closure](#18-po-gate-3-pass--closure)
 - [19. Phase 4 — Sơ đồ tuyến phát Data Contract Audit + Remediation](#19-phase-4--sơ-đồ-tuyến-phát-data-contract-audit--remediation)
 - [20. PO Gate 4 Recheck FAIL + Fix — Handoff](#20-po-gate-4-recheck-fail--fix--handoff)
+- [26. Program Final Closure — PO FINAL PASS / COMPLETED / CLOSED](#26-program-final-closure--po-final-pass--completed--closed)
 
 ## 1. Purpose
 
@@ -32,15 +33,15 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-001`. I
 | Field | Value |
 | --- | --- |
 | Program | `NETWORK-MANAGEMENT-001` |
-| Program State | `PHASE 4 (NGHIỆM THU) IN PROGRESS — first scope item technically complete, awaiting PO runtime recheck` (as of `2026-08-06`) |
+| Program State | `COMPLETED / PO FINAL PASS / CLOSED` (`2026-08-10`) — see Section 26 |
 | Recorded PO Evaluation (Phase 2) | `PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED` |
-| Current Phase | `Phase 3 (Import) closed with PO Gate 3 PASS (Section 29). Product Owner opened Phase 4 with a first scoped item — Sơ đồ tuyến phát data contract audit + remediation — technically complete (Section 19), awaiting PO runtime recheck.` |
+| Current Phase | `All 4 phases CLOSED. Phase 1 PO Gate 1 PASS; Phase 2 PO Gate 2 PASS; Phase 3 PO Gate 3 PASS; Phase 4 Sơ đồ tuyến phát Import PO PASS + manifest §6 checklist items 2, 3-4, 5, 6 covered by Product Owner FINAL PASS (Section 26).` |
 | Phase 1 Implementation Performed | `Yes` — see Section 12 |
 | Phase 2 (Ba bản đồ) Implementation Performed | `Yes` — see Section 13, 14, 15 & 16 |
 | Phase 3 (Import) Implementation Performed | `Yes` — see Section 14 (Phase 3 Implementation Closure), Section 15 (PO Gate 3 Runtime Remediation), Sections 16-17 (ĐTC2 journey visual + arrow remediation), Section 18 (PO Gate 3 PASS closure) |
-| Phase 4 (Nghiệm thu) | `IN PROGRESS` — first scope item (data contract audit + remediation) technically complete, see Section 19; further Phase 4 scope items not yet authorized |
-| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: first attempt RUNTIME FAIL (Product Owner, 2026-08-06) — 3 defects, remediated same day per Section 15, further ĐTC2 visual remediation per Sections 16-17, then PASS (Product Owner, 2026-08-06, baseline 7da98a79eb8) per Section 18. PO Gate 4: not reached — Phase 4 in progress.` |
-| Next State | `Awaiting Product Owner runtime recheck of the Phase 4 data contract remediation (Section 19)` |
+| Phase 4 (Nghiệm thu) | `COMPLETED / PO PASS / CLOSED` — data contract remediation (Section 19), two recheck-fail/fix cycles (Sections 20-21), Sơ đồ tuyến phát Import PO PASS (Section 22), manifest §6 checklist Technical PASS (Section 23), 2 discovery deltas closed (Sections 24-25), final closure (Section 26) |
+| PO Gates Passed | `PO Gate 1: PASS (Product Owner, 2026-08-05)`. `PO Gate 2: PASS (Product Owner, 2026-08-05).` `PO Gate 3: first attempt RUNTIME FAIL (Product Owner, 2026-08-06) — 3 defects, remediated same day per Section 15, further ĐTC2 visual remediation per Sections 16-17, then PASS (Product Owner, 2026-08-06, baseline 7da98a79eb8) per Section 18. PO Gate 4: PASS (Product Owner FINAL PASS, 2026-08-10, Section 26).` |
+| Next State | `None — program CLOSED. No active ticket. AWAITING PO DIRECTION.` |
 
 ## 3. Baseline
 
@@ -95,7 +96,7 @@ Locked product decisions and locked out-of-scope items are recorded once in `doc
 
 ## 7. Exact Next Action
 
-Phase 3 (Import) is implemented, technically validated, and closed with `PO GATE 3 PASS` (Section 18). Product Owner then opened Phase 4 (Nghiệm thu) with a first scoped item — Sơ đồ tuyến phát data contract audit + remediation — technically complete (Section 19). Exact next action: await Product Owner runtime recheck of this Phase 4 remediation. Do not declare Phase 4 or program-wide PO PASS, and do not begin the future "Bản đồ tổng thể mạng lưới" module or any further Phase 4 scope item, without that explicit recheck/authorization.
+None. `NETWORK-MANAGEMENT-001` is `COMPLETED / PO FINAL PASS / CLOSED` (Section 26). No active ticket. State after closure: `AWAITING PO DIRECTION`. The Product Owner-named future "Bản đồ tổng thể mạng lưới" module remains noted only, not authorized, not started.
 
 ## 8. Proposed Executor
 
@@ -103,11 +104,11 @@ Claude Code (Sonnet) — implementation, backend, data, tests, documentation, an
 
 ## 9. Next PO Gate
 
-PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3 sits after Phase 3 (Import) closes (manifest Section 11) and required a Product Owner UI check on Import/Export/History/Rollback across all three modules — the first attempt (`2026-08-06`) returned `RUNTIME FAIL` on 3 defects (ĐTC2 straight-line routing, tuyến-phát routing resilience, Date Picker month-availability semantics), root-caused and remediated the same day (Section 15), followed by a further ĐTC2 journey-visual and arrow-visibility remediation round (Sections 16-17). Product Owner then granted `PO GATE 3 PASS` (`2026-08-06`, baseline `7da98a79eb8`, Section 18). PO Gate 4 sits after Phase 4 (Nghiệm thu) closes — Phase 4 is now in progress (first scoped item: Section 19, awaiting Product Owner runtime recheck), so PO Gate 4 has not yet been reached.
+PO Gate 1 `PASS` (Product Owner, `2026-08-05`). PO Gate 2 `PASS` (Product Owner, `2026-08-05`). PO Gate 3: first attempt `RUNTIME FAIL` (`2026-08-06`) on 3 defects, remediated same day (Section 15) plus further ĐTC2 journey-visual/arrow remediation (Sections 16-17), then `PASS` (`2026-08-06`, baseline `7da98a79eb8`, Section 18). PO Gate 4 (program closure gate): Sơ đồ tuyến phát Import `PO PASS` (`2026-08-07`, Section 22); manifest §6 checklist items 2, 3-4, 5, 6 Technical PASS (`2026-08-08`, Section 23); Product Owner reviewed the complete evidence set and granted `PO FINAL PASS` (`2026-08-10`, Section 26) — **all 4 PO Gates now PASS. No further gate remains.**
 
 ## 10. Current Blockers
 
-None for Phase 1, 2, or 3 — all implemented, technically validated, and PO-closed (Phase 3 via PO Gate 3 PASS, Section 18). Phase 4 (Nghiệm thu) is in progress; its first scoped item (Section 19) is technically complete with no known blocker — awaiting only the Product Owner's runtime recheck.
+None. All 4 phases implemented, technically validated, and PO-closed. Program `COMPLETED / PO FINAL PASS / CLOSED` (Section 26). No active ticket; state after closure is `AWAITING PO DIRECTION`.
 
 ## 11. Reusable Architecture Notes
 
@@ -381,3 +382,25 @@ Delta-only, read-only discovery cho việc chuẩn hóa Import/Export Sơ đồ 
 **Quyết định Product Owner (`2026-08-10`)**: **không** lưu toàn bộ 29 cột vào CSDL lúc này. Chỉ giữ nguyên các trường phục vụ bản đồ và chức năng hiện tại (`network_delivery_point`, 11 trường nghiệp vụ, không đổi). File BatchFile gốc tiếp tục được lưu nguyên vẹn để audit (cơ chế đã có, không cần thay đổi). Các trường phục vụ KPI sẽ được bổ sung sau, **theo từng nhu cầu cụ thể phát sinh** — không tạo bảng chi tiết 29 cột toàn bộ ngay bây giờ, để tránh CSDL tăng dung lượng không cần thiết. **Không backfill** dữ liệu chi tiết cho 2 tháng đã Import (05/2026, 06/2026). **Không tạo migration**.
 
 Đóng delta khảo sát này tại đây — schema/parser/export hiện tại giữ nguyên không đổi. Documentation-only; không có product code, schema, hay dữ liệu nào thay đổi. `Data QLML/` và cả 2 stash không bị đụng tới. Không tự resume ticket từ trạng thái paused.
+
+## 26. Program Final Closure — PO FINAL PASS / COMPLETED / CLOSED (2026-08-10)
+
+Product Owner confirmed having reviewed the complete evidence set accumulated across this program and explicitly authorized closing `NETWORK-MANAGEMENT-001` in full. Per that instruction, existing evidence is synthesized below — no new PO runtime/UI recheck was requested or performed for this closure round.
+
+**Evidence synthesized (all previously recorded, nothing re-verified this round):**
+
+- **Phase 1 (Nền tảng)** — `PO Gate 1 PASS` (Product Owner, `2026-08-05`). 5 SQLite tables added additively, authenticated API foundation, role-gated scaffold UI. Section 12.
+- **Phase 2 (Ba bản đồ)** — `PO Gate 2 PASS` (Product Owner, `2026-08-05`), "PO ROUTE VISUAL RECHECK PASS — LEGEND AND ROAD ROUTES ACCEPTED" across all 3 map screens. Real data seeded from audited sources; 3 Leaflet map screens live. Sections 13, manifest Section 26.
+- **Phase 3 (Import)** — `PO Gate 3 PASS` (Product Owner, `2026-08-06`, baseline `7da98a79eb8`). Export/Preview/Confirm/History/Rollback for all 3 modules; first runtime recheck found 3 defects, root-caused and remediated same day, plus a further ĐTC2 journey-visual/arrow-visibility round — all confirmed no-regression by Product Owner. Sections 14-18.
+- **Phase 4 (Nghiệm thu)**:
+  - Sơ đồ tuyến phát data-contract audit + remediation (raw-BatchFile-native Import, "Biển số" removed, period cross-check, file archive) — technically validated. Section 19.
+  - Two recheck-fail/fix cycles against the real May 2026 BatchFile (sheet-detection bug, then text-cell type-coercion bug) — both root-caused and fixed same day each occurrence. Sections 20-21.
+  - **Sơ đồ tuyến phát Import — `PO PASS`** (`2026-08-07`): real May BatchFile Preview succeeded (144,289 valid rows: 144,284 new / 5 duplicate / 0 error), Confirm succeeded (`network_import_log.id=17`), period `05/2026` live in the map. Section 22.
+  - Manifest §6 acceptance checklist items 2 (admin-only, all 3 modules), 3-4 ("Tạm dừng" point handling + the 5 audited points), 5 (cross-module regression), 6 (data-integrity reconfirmation) — all **Technical PASS** (`2026-08-08`, read-only verification, no code changed, no defect found). Section 23.
+  - 2 closed discovery deltas, both Product Owner-confirmed, both documentation-only: the 5-point ĐTC2 source-classification discovery (`2026-08-10`, Section 24) and the Sơ đồ tuyến phát 29-column standardization discovery, where the Product Owner explicitly decided **not** to persist all 29 columns now (`2026-08-10`, Section 25).
+
+**Product Owner FINAL PASS (`2026-08-10`)**: Product Owner reviewed this complete evidence set and explicitly authorized closing `NETWORK-MANAGEMENT-001` in full — covering manifest §6 checklist items 2, 3-4, and 5 (previously outstanding for a live PO UI check) together with everything already PO-accepted above. This constitutes **PO Gate 4 PASS** and **program-wide PO FINAL PASS**. `NETWORK-MANAGEMENT-001` is now `COMPLETED / PO PASS / CLOSED`.
+
+**Scope of this closure round**: governance documentation only. No product code, schema, UI, or database change was made to reach this closure — the underlying product state (all 3 map modules, Import/Export/History/Rollback, the May 2026 data) was already in its final accepted state before this round. `Data QLML/` and both pre-existing git stashes (`stash@{0}`, `stash@{1}`) confirmed untouched throughout the program's entire lifecycle and remain untouched by this closure.
+
+**State after closure**: no active ticket. `AWAITING PO DIRECTION` for any next scope — the Product Owner-named future "Bản đồ tổng thể mạng lưới" (network-wide overview map) module remains noted only, not authorized, not started. No next ticket is self-activated by this closure.
