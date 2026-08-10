@@ -13,6 +13,7 @@
 - [9. Next PO Gate](#9-next-po-gate)
 - [10. Current Blockers](#10-current-blockers)
 - [11. Discovery — Delta-Only, Read-Only](#11-discovery--delta-only-read-only)
+- [12. Implementation — READY FOR PO CHECK](#12-implementation--ready-for-po-check)
 
 ## 1. Purpose
 
@@ -23,12 +24,12 @@ This checkpoint is the current-state entry point for `NETWORK-MANAGEMENT-002`. I
 | Field | Value |
 | --- | --- |
 | Ticket | `NETWORK-MANAGEMENT-002` |
-| Program State | `DISCOVERY + PLANNING COMPLETE` — manifest and this checkpoint created, no product code changed (as of `2026-08-10`) |
-| Current Phase | Single-scope ticket (not phased like `NETWORK-MANAGEMENT-001`). Discovery complete (Section 11); implementation not started. |
+| Program State | `READY FOR PO CHECK` — implementation complete, technically validated, no PO PASS declared (as of `2026-08-11`) |
+| Current Phase | Single-scope ticket (not phased like `NETWORK-MANAGEMENT-001`). Discovery (Section 11) and implementation (Section 12) both complete; awaiting Product Owner UI acceptance. |
 | Discovery Performed | `Yes` — read-only, delta-only, scoped to the two source map modules and the app's routing/nav/auth scaffolding. See Section 11. |
-| Implementation Performed | `No` — no product code, schema, or database change made in this round. |
-| PO Gates Passed | None yet — implementation has not started. |
-| Next State | Awaiting a Product Owner/CTO go-ahead to begin implementation (Option B default per manifest Section 8, unless redirected). |
+| Implementation Performed | `Yes` — Option B (manifest Section 8). See Section 12 for files changed and validation. |
+| PO Gates Passed | None yet — awaiting Product Owner UI acceptance of the finished screen. |
+| Next State | Awaiting Product Owner runtime check per the checklist in the corresponding chat report; do not declare PO PASS or close this ticket without it. |
 
 ## 3. Baseline
 
@@ -71,7 +72,7 @@ Not permitted under this checkpoint or this ticket's current activation step:
 
 ## 7. Exact Next Action
 
-Awaiting a Product Owner or CTO go-ahead to begin implementation. Default implementation approach if none is specified: manifest Section 8's Option B (zero-touch to the two original source files). Claude Code will not write product code for this ticket until that go-ahead is given, per the explicit instruction that this round is discovery-and-planning only.
+Awaiting Product Owner runtime UI check of `/network-map/integrated` (Section 12 for the technical validation already performed; a concrete ordered checklist was provided in the corresponding chat report). Claude Code does not self-award PO PASS and has not declared this ticket closed.
 
 ## 8. Proposed Executor
 
@@ -79,11 +80,11 @@ Claude Code (Sonnet) — implementation, backend confirmation, frontend, tests, 
 
 ## 9. Next PO Gate
 
-Not yet defined — this is a single-scope ticket, not phased. The first (and only currently anticipated) PO Gate will be the Product Owner's UI acceptance of the finished integrated map screen once implementation completes and Claude Code hands off a `READY FOR PO CHECK` checklist.
+The single PO Gate for this ticket: Product Owner UI acceptance of `/network-map/integrated`. Implementation is complete and technically validated (Section 12); this gate has not yet been reached.
 
 ## 10. Current Blockers
 
-None for discovery/planning — complete. Implementation is blocked only on an explicit Product Owner/CTO go-ahead (and, optionally, a preference between Option A/B in manifest Section 8, though Claude Code will default to Option B absent one).
+None technical. Blocked only on Product Owner performing the runtime checklist provided in the corresponding chat report.
 
 ## 11. Discovery — Delta-Only, Read-Only (2026-08-10)
 
@@ -98,3 +99,24 @@ Full findings are recorded in `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.m
 - No dedicated component/visual automated tests exist for any of the 3 current map screens — established project precedent is real-browser technical verification + Product Owner UI acceptance for the rendered map, with automated tests reserved for extracted pure logic. This ticket's test plan (manifest Section 11) follows the same precedent.
 
 No product code, schema, or database change was made during this discovery. `Data QLML/` and both stashes confirmed untouched.
+
+## 12. Implementation — READY FOR PO CHECK (2026-08-11)
+
+Product Owner/CTO approved Option B (manifest Section 8) and authorized implementation. Delivered exactly the locked scope (manifest Section 5) — no scope expansion.
+
+**Files changed** (frontend-only, no backend/schema/migration):
+- New `frontend/src/features/networkMap/IntegratedMap.jsx` — the single shared `<MapContainer>` + both layers + sidebar. Both layers default **on**. Re-implements `ServicePointsMap.jsx`'s marker/popup/legend/filter rendering and `Level2RoutesMap.jsx`'s route-overview/road-routing/`SelectedRouteJourneyLayer` (outbound/return, turnaround, spiderfy, direction arrows, mode toggle) verbatim, built on the same shared pure modules (`mapStyles.js`, `roadRoutingService.js`, `routeJourneyGeometry.js`) those two screens already use.
+- New `frontend/src/features/networkMap/IntegratedMapPage.jsx` — fetches `getServicePoints()`/`getLevel2Routes()` independently (same `NetworkMapClient` methods the two source pages already use), owns per-layer loading/error/empty state.
+- Modified `frontend/src/App.jsx` — new `<Route path="integrated">` under `network-map`, `ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}` (identical to the other 3 network-map routes).
+- Modified `frontend/src/navigation/appNavigation.jsx` — one new entry ("Bản đồ tích hợp") in the existing `Quản lý mạng lưới` group.
+- **Not modified, confirmed via `git diff --name-only`**: `ServicePointsMap.jsx`, `Level2RoutesMap.jsx`, their Page wrappers, any backend file, `schema.sql`, any migration, `auth/roles.js` (left untouched per explicit instruction — its `VIEWER_ALLOWED_PATH_PREFIXES` constant has no active consumer, so it was not touched "just in case").
+
+**Validation performed**:
+- `oxlint` clean on all new/changed files; full-repo `oxlint` shows only pre-existing, unrelated warnings.
+- `vite build` succeeds (688 modules, no errors).
+- `node --test` on the 3 relevant frontend suites (`networkMapRemediation.test.js`, `routeJourneyGeometry.test.js`, `NetworkMapClient.test.js`) — 53/53 pass, unchanged (none of these files were touched).
+- Real-browser runtime verification (admin, logged in live): `/network-map/integrated` loads with real data (156 điểm phục vụ, 28 hành trình đường thư cấp 2) via existing APIs, both layers on by default. All 4 layer-toggle states confirmed independently: both on; only Điểm phục vụ (route list/legend for ĐTC2 disappear, its markers/lines gone from the map); only ĐTC2 (Điểm phục vụ legend/filter/zoom-overlay disappear, its markers gone); both off (empty map, only the two toggles remain). ĐTC2 route selection verified on Tuyến 6 — reproduces the exact known-good example from the original screen's PO-approved behavior: outbound stops 1-3 (BCVH Phú Lộc → Lộc Thủy → Thừa Lưu), turnaround at stop 4 (Lăng Cô), return stops 5-6 (Thừa Lưu → BCVH Phú Lộc), same-coordinate Thừa Lưu revisit spiderfied, mode toggle (Toàn hành trình/Chiều đi/Chiều về) and Quick Info Badge rendered correctly. Deselect ("✕ Bỏ chọn") verified — cleanly reverts to the 28-route overview. `ServicePointsPage`/`Level2RoutesPage` (the two original screens) re-verified live and render identically to before (156/156, 28 hành trình/1435 km, same legend counts, admin Import section unaffected).
+- **Live viewer-role check not performed** — no viewer plaintext credential is available or appropriate to obtain (per the same precedent as the Phase 4 verification round, checkpoint Section 23). Role gating is confirmed by static code (`ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}`, byte-identical to the other 3 working network-map routes) — flagged as a PO checklist item.
+- Data-integrity check: `network_service_point` (156), `network_level2_route` (28), `network_level2_route_stop` (148), `network_delivery_point` (287,759) all unchanged before/after — this feature performs zero writes. `fact_f13` moved (682,833, was 673,781 at the last recorded checkpoint) — unrelated background F1.3 activity in this live environment, not touched by this read-only, zero-write ticket. May/June BatchFile SHA-256 checksums unchanged; `Data QLML/` and both stashes (`stash@{0}`, `stash@{1}`) confirmed untouched.
+
+**State**: `READY FOR PO CHECK`. Claude Code does not self-award PO PASS and does not declare this ticket closed. A concrete, ordered Product Owner runtime checklist was provided in the corresponding chat report.

@@ -18,12 +18,12 @@ Quy tắc cập nhật:
 
 - `QIS V2`
 - `NETWORK-MANAGEMENT-002` — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2
-- `Status: DISCOVERY + PLANNING COMPLETE / AWAITING PO-CTO GO-AHEAD TO IMPLEMENT`
+- `Status: IMPLEMENTATION COMPLETE / READY FOR PO CHECK`
 
 ## Current Ticket
 
 - `NETWORK-MANAGEMENT-002` — Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 (Integrated Service Points + Level-2 Mail Route Map)
-- `Status: DISCOVERY + PLANNING COMPLETE (2026-08-10). No product code changed.` Product Owner explicitly authorized this new, independent ticket immediately after `NETWORK-MANAGEMENT-001` closed the same day — that program is `COMPLETED / PO FINAL PASS / CLOSED` and not reopened. Locked scope: one integrated read-only map screen; data read directly from the two existing source modules, no duplication; independently toggleable Điểm phục vụ / ĐTC2 layers; the two source screens' already-approved marker/popup/legend/routing/interaction preserved verbatim; no new database table; no dedicated Import/Export/History/Rollback; no behavior change to the two original screens; no Shipment Detail/Evidence merge. Discovery found both source screens already read via existing admin+viewer-readable API endpoints (zero backend/schema work needed) and identified 2 implementation options, recommending zero-touch-to-originals as the default. `Data QLML/` and both stashes untouched. See `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md` and its checkpoint for the full record.
+- `Status: READY FOR PO CHECK (2026-08-11). No PO PASS declared, ticket not closed.` Product Owner/CTO approved implementation via Option B (manifest §8) after the prior discovery+planning round. Delivered: new `IntegratedMap.jsx`/`IntegratedMapPage.jsx` render Mạng điểm phục vụ + Mạng đường thư cấp 2 on one shared `<MapContainer>` at `/network-map/integrated` (admin+viewer, both layers default on), re-implementing the two source screens' full approved marker/popup/legend/routing/journey-visual behavior (incl. ĐTC2 route selection, outbound/turnaround/return, spiderfy, direction arrows) on the same shared pure modules those screens already use; `App.jsx`/`appNavigation.jsx` wired with 1 new route + nav entry. `ServicePointsMap.jsx`/`Level2RoutesMap.jsx`/any backend/schema/migration file/`auth/roles.js` confirmed untouched. `oxlint` clean, `vite build` succeeds, 53/53 relevant frontend tests pass unchanged. Real-browser verified as admin: all 4 layer-toggle states independently confirmed; ĐTC2 Tuyến 6 selection reproduces the exact known-good turnaround/spiderfy behavior; deselect reverts cleanly; the two original screens re-verified identical to before. Live viewer-role check not performed (no credential available) — flagged as a PO checklist item. `network_service_point`(156)/`network_level2_route`(28)/`network_level2_route_stop`(148)/`network_delivery_point`(287,759) unchanged (zero writes); `Data QLML/` and both stashes untouched. See `docs/10_TICKETS/NETWORK-MANAGEMENT-002_MANIFEST.md` Section 14 and checkpoint Section 12 for the full record.
 
 ## Completed Tickets
 
@@ -130,8 +130,8 @@ Quy tắc cập nhật:
 
 ## Next Ticket
 
-- Current active ticket: `NETWORK-MANAGEMENT-002` (discovery/planning complete, implementation not started). Most recently closed: `NETWORK-MANAGEMENT-001` (full program).
-- Next planned action: `Await explicit Product Owner/CTO go-ahead to begin NETWORK-MANAGEMENT-002 implementation; default approach is zero-touch to the two original source screens (manifest Section 8, Option B) absent further direction. NETWORK-MANAGEMENT-001 is fully CLOSED (all 4 phases, PO FINAL PASS) and must not be reopened without new explicit Product Owner authorization.`
+- Current active ticket: `NETWORK-MANAGEMENT-002` (implementation complete, READY FOR PO CHECK). Most recently closed: `NETWORK-MANAGEMENT-001` (full program).
+- Next planned action: `Await Product Owner runtime UI check of /network-map/integrated per the checklist provided in the corresponding chat report; do not declare PO PASS or close the ticket without it. NETWORK-MANAGEMENT-001 is fully CLOSED (all 4 phases, PO FINAL PASS) and must not be reopened without new explicit Product Owner authorization.`
 - Candidates only, not authorized tickets: `(1) formally start F13-STANDARDIZATION-001 Phase 1 (Chuẩn hóa cấu trúc F1.3); (2) reactivate deferred F13-SHIPMENT-001 (Shipment Performance Center), whose delta remains preserved in a git stash; (3) F13-SURFACE-CLEANUP-PLAN covering Evidence merge, Message Center hide, Vietnamese Shipment Ranking naming, redirect behavior, and verified orphan-page removal; (4) Pareto product design later, distinguishing Pareto analysis from true RCA. Evidence MERGE and Message Center HIDE remain pending explicit Product Owner confirmation and must not be inferred. RESIDUAL-01 is remediated as of Phase 0 implementation commit e3ca2429 and is no longer an open candidate.`
 
 ## Notes

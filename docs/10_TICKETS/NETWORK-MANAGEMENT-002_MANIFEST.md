@@ -15,12 +15,13 @@
 - [11. Test Plan](#11-test-plan)
 - [12. Executor Plan](#12-executor-plan)
 - [13. Authority Escalation](#13-authority-escalation)
+- [14. Implementation Record — READY FOR PO CHECK](#14-implementation-record--ready-for-po-check)
 
 ## 1. Ticket Information
 
 - Ticket ID: `NETWORK-MANAGEMENT-002`
 - Ticket Name: Bản đồ tích hợp Điểm phục vụ + Đường thư cấp 2 (Integrated Service Points + Level-2 Mail Route Map)
-- Phase: `DISCOVERY + PLANNING COMPLETE — READY FOR PO/CTO IMPLEMENTATION DECISION`. No product code changed in this round.
+- Phase: `IMPLEMENTATION COMPLETE — READY FOR PO CHECK` (`2026-08-11`). Product Owner/CTO approved Option B; implementation delivered and technically validated (Section 14). Awaiting Product Owner UI acceptance.
 - Owner: Claude Code (implementation, backend, data, tests, documentation, Git per `DEC-020`)
 - Governance Version: `V2 Active`
 - Authorization: Product Owner, `2026-08-10` — explicit activation request naming `NETWORK-MANAGEMENT-002` and locking scope (Section 5) directly in the activation prompt
@@ -32,9 +33,9 @@ Add exactly one new, read-only map screen that renders the existing Mạng đi�
 
 ## 3. Current Status
 
-- Current state: `DISCOVERY + PLANNING COMPLETE`, as of `2026-08-10`. Manifest and checkpoint created; no product code changed.
-- PO UI Check Required: `Not yet reached` — implementation has not started.
-- PO Product Status: awaiting a PO/CTO decision on implementation approach (Section 8) before Claude Code writes any code.
+- Current state: `READY FOR PO CHECK`, as of `2026-08-11`. Implementation delivered per locked scope (Section 5) via Option B; technically validated (Section 14). No PO PASS declared; ticket not closed.
+- PO UI Check Required: `Yes` — see the runtime checklist in the corresponding chat report / checkpoint Section 12.
+- PO Product Status: implementation technically complete, not yet PO-reviewed.
 
 ## 4. Required Reading
 
@@ -125,3 +126,18 @@ Frontend-only — no backend, schema, or migration file is expected:
 ## 13. Authority Escalation
 
 No escalation required. This activation directly executes explicit Product Owner authorization (`2026-08-10`) naming `NETWORK-MANAGEMENT-002` and locking its scope (Section 5) in the same instruction. No conflict was found with current repository governance state (`PROJECT_SNAPSHOT.md` showed `Current Ticket = None / AWAITING PO DIRECTION` immediately prior to this activation, with `NETWORK-MANAGEMENT-001` `COMPLETED / PO FINAL PASS / CLOSED` and not reopened by this ticket).
+
+## 14. Implementation Record — READY FOR PO CHECK (2026-08-11)
+
+Product Owner/CTO approved Option B (Section 8) and authorized implementation. Delivered exactly the locked scope (Section 5) — no scope expansion, no code touched beyond what follows.
+
+**Files changed**:
+- New `frontend/src/features/networkMap/IntegratedMap.jsx` — single shared `<MapContainer>`, both layers default on, re-implements `ServicePointsMap.jsx`'s and `Level2RoutesMap.jsx`'s approved rendering (including full ĐTC2 selection/routing/journey-visual behavior) on the same shared pure modules those two screens already use.
+- New `frontend/src/features/networkMap/IntegratedMapPage.jsx` — fetches both datasets via the existing `NetworkMapClient` methods.
+- Modified `frontend/src/App.jsx` — new `/network-map/integrated` route, `ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}`.
+- Modified `frontend/src/navigation/appNavigation.jsx` — one new nav entry.
+- **Not modified**: `ServicePointsMap.jsx`, `Level2RoutesMap.jsx`, their Page wrappers, any backend file, `schema.sql`, any migration, `auth/roles.js` (left untouched per explicit instruction not to edit dead configuration defensively).
+
+**Validation**: `oxlint` clean, `vite build` succeeds, 53/53 relevant frontend tests pass (unchanged files). Real-browser verification as `admin`: real data loads (156 điểm, 28 hành trình); all 4 layer-toggle states (both on / only Điểm phục vụ / only ĐTC2 / both off) confirmed independently; ĐTC2 route selection on Tuyến 6 reproduces the exact known-good outbound/turnaround/return/spiderfy behavior; deselect reverts cleanly; the two original screens re-verified to render identically to before. Live viewer-role check not performed (no credential available, same precedent as the closed `NETWORK-MANAGEMENT-001` Phase 4 round) — flagged as a PO checklist item; role gating confirmed by static code instead. `network_service_point`/`network_level2_route`/`network_level2_route_stop`/`network_delivery_point` row counts unchanged (zero writes); `Data QLML/` and both stashes untouched. Full detail: checkpoint Section 12.
+
+**State**: `READY FOR PO CHECK`. Not PO PASS, not closed.
