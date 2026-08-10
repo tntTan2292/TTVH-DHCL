@@ -2,13 +2,20 @@
 
 - Ticket ID: `AUTO-IMPORT-014`
 - Ticket Name: `HUE/TCT session reliability hardening — shared browser/page lifecycle race`
-- Phase: `Emergency remediation — Phase 3, TCT Re-Update delta fix complete`
-- Current State: `PO RUNTIME PARTIAL PASS / TCT RE-UPDATE FAIL — FIXED, TECHNICAL GATE PASS, AWAITING TARGETED PO RECHECK`
-- Technical Status: `Phase 2 (per-source mutex, generalized activeOperation exemption, bounded-retry classification, multi-page rebind, ownership-scoped reconciliation) confirmed on the real machine for HUE, TCT, and HUE→TCT→HUE. One delta found: selecting exactly one TCT date and clicking Re-Update produced DUPLICATE_DATES. Root-caused (a React.StrictMode double-invoked nested setState side effect duplicating a single click into a real array duplicate) and fixed, frontend-only, with regression coverage. Backend validation unweakened.`
-- PO UI Check Required: `Yes — targeted recheck only: TCT, select exactly 2026-08-07, click Re-Update, confirm success. The rest of the original PO Runtime Acceptance Checklist already passed and does not need repeating.`
-- PO Product Status: `PO RUNTIME PARTIAL PASS / TCT RE-UPDATE FAIL (now fixed) — NOT PO PASS, NOT CLOSED`
+- Phase: `Emergency remediation — CLOSED`
+- Current State: `COMPLETED / PO RUNTIME PASS / CLOSED`
+- Technical Status: `Phase 2 (per-source mutex, generalized activeOperation exemption, bounded-retry classification, multi-page rebind, ownership-scoped reconciliation) and Phase 3 (TCT Re-Update DUPLICATE_DATES fix) both confirmed end-to-end by the Product Owner on the real machine (final recheck: commit 6159b8b7).`
+- PO UI Check Required: `No further check — all PO Runtime Acceptance Checklist items confirmed PASS.`
+- PO Product Status: `PO RUNTIME PASS (2026-08-08)`
 - Activation date: `2026-08-07`
+- Closed date: `2026-08-08`
 - Primary executor: `Claude Code`
+
+## Closure — PO Runtime Final PASS (2026-08-08)
+
+Product Owner confirmed, against commit `6159b8b7`: TCT Re-Update for `2026-08-07` succeeded with no `DUPLICATE_DATES` error; the TCT Chrome window is visibly shown while the operation is `RUNNING` and auto-hides correctly immediately after completion — a behavior the Product Owner explicitly accepts (the window is not required to hide while still `RUNNING`, only on completion, which it does); no lost session, no leftover/duplicate window, no new error. All other runtime items (HUE login/Import/Update, HUE Re-update session reuse, TCT login/Import/Update, HUE → TCT → HUE sequence) had already passed in the prior round. Full evidence, including the corrected acceptance criterion wording matching this PO-accepted behavior: `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_004.md`.
+
+No code, test, or data changed in this closure round (governance-only). `NETWORK-MANAGEMENT-001` remains `PAUSED`, untouched. Production DB, `Data QLML/`, and both git stashes untouched. Ticket is now closed; do not reopen without a new symptom and a new ticket.
 
 ## Fresh-Chat Onboarding Authority
 
@@ -20,7 +27,7 @@ Required onboarding chain:
 4. `docs/10_TICKETS/AUTO-IMPORT-014_MANIFEST.md`
 5. Required Reading from this manifest
 
-Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_003.md` (TCT Re-Update delta fix; Phase 2 implementation: `_CHECKPOINT_002.md`; Phase 1 discovery: `_CHECKPOINT_001.md`)
+Current checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_004.md` (closure; TCT Re-Update delta fix: `_CHECKPOINT_003.md`; Phase 2 implementation: `_CHECKPOINT_002.md`; Phase 1 discovery: `_CHECKPOINT_001.md`)
 
 Required Reading:
 
@@ -152,27 +159,22 @@ Race between polling and Import, and operation-ownership protection for both sou
 - [x] Full regression: existing `AUTO-IMPORT-013` fix (`LOGIN_TIMEOUT`, frontend false-positive fix) remains intact — untouched by this round, all its coverage still passes.
 - [ ] Product Owner runtime confirmation across the checklist below — **required before any `PO PASS`**. This ticket's own technical work does not self-award `PO PASS`.
 
-## PO Runtime Acceptance Checklist
+## PO Runtime Acceptance Checklist — Final Result (All PASS)
 
-Result of the Product Owner's runtime test against commit `0c5d02c3`:
+Final Product Owner runtime confirmation, commit `6159b8b7`:
 
 1. ✅ **PASS** — HUE login and Import/Update stable.
 2. ✅ **PASS** — HUE Re-update reuses the existing session.
 3. ✅ **PASS** — TCT login and Import/Update succeeded.
 4. ✅ **PASS** — HUE → TCT → HUE in one sitting: no lost session, no duplicate window, no polling error.
-5. ❌ **FAIL, now fixed** — TCT, selecting exactly one date (`2026-08-07`) and clicking "Re-Update (1)" returned `DUPLICATE_DATES`. Root-caused and fixed (see `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_003.md`); regression coverage added; backend validation confirmed unweakened.
+5. ✅ **PASS** — TCT Re-Update for `2026-08-07` succeeded, no `DUPLICATE_DATES`. **Acceptance criterion corrected to match PO-confirmed behavior**: the TCT Chrome window is visibly shown while the operation is `RUNNING`, and auto-hides correctly immediately after completion — the Product Owner explicitly accepts this and does not require the window to hide while still `RUNNING`. No lost session, no leftover/duplicate window, no new error.
 
-**Targeted recheck requested — only this item, not the full checklist:**
+Optional, not required (never performed, not blocking closure): a longer soak (repeat login/Import/hide many times) to confirm no accumulation of visible Chrome windows or backend process growth over time — may be revisited under a future ticket if ever needed.
 
-- Select exactly `2026-08-07` for TCT, click "Re-Update", confirm it now succeeds end-to-end (Import completes, window hides) with no `DUPLICATE_DATES` error.
-- Optional: repeat with 2-3 distinct dates marked for refresh at once, to confirm no collision there either.
-
-Optional, not required for this ticket to close: a longer soak (repeat login/Import/hide many times) to confirm no accumulation of visible Chrome windows or backend process growth over time.
-
-Report back pass/fail on the targeted recheck; only after it passes should `PO PASS`/`CLOSED` be recorded for this ticket.
+Ticket closed `PO PASS`/`CLOSED`. Full evidence: `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_004.md`.
 
 ## Completion And Handoff
 
-Phase 2 implementation is complete and technically validated (`TECHNICAL GATE PASS`). This ticket does not close in this round — no `PO PASS` is declared, and no Product Owner runtime testing was required as a precondition of this gate, per instruction. Full evidence: `docs/06_REVIEWS/Import/AUTO-IMPORT-014_CHECKPOINT_002.md`.
+`AUTO-IMPORT-014` is `COMPLETED / PO RUNTIME PASS / CLOSED` (2026-08-08). The systemic HUE/TCT session-lifecycle race (Phase 1 discovery), its bounded implementation (Phase 2), and the TCT Re-Update `DUPLICATE_DATES` delta (Phase 3) are all confirmed working end-to-end by the Product Owner on the real machine. Do not reopen without a new symptom and a new ticket.
 
 `NETWORK-MANAGEMENT-001` remains `PAUSED` at its current state, untouched. Do not activate any next ticket beyond what Product Owner explicitly authorizes.
