@@ -18,6 +18,9 @@
 - [14. PO Acceptance Checklist](#14-po-acceptance-checklist)
 - [15. Authority Escalation](#15-authority-escalation)
 - [16. Route Ranking Delta Closure](#16-route-ranking-delta-closure)
+- [17. Evidence / Chi tiết bưu gửi — Discovery Delta](#17-evidence--chi-tiết-bưu-gửi--discovery-delta)
+- [18. Evidence / Chi tiết bưu gửi — PO Decision + Implementation Authorization](#18-evidence--chi-tiết-bưu-gửi--po-decision--implementation-authorization)
+- [19. Evidence / Chi tiết bưu gửi — PO RUNTIME CHECK PASS, Closure (delta only)](#19-evidence--chi-tiết-bưu-gửi--po-runtime-check-pass-closure-delta-only)
 
 ## 1. Ticket Information
 
@@ -290,3 +293,49 @@ No product code, route, navigation entry, API contract, schema, or database was 
 11. Cross-check the Evidence total for a given BCVH/date/route against the equivalent count on Dashboard/BCVH Ranking/Tuyến Ranking for the same context, to confirm the single-day contract stayed consistent.
 
 Governance state: `READY FOR PO CHECK`. Claude Code does not self-award PO PASS.
+
+## 19. Evidence / Chi tiết bưu gửi — PO RUNTIME CHECK PASS, Closure (delta only)
+
+- Status: `CLOSED — PO RUNTIME CHECK PASS`
+- Closed on: `2026-08-11`
+- Closure authority: explicit Product Owner runtime recheck of implementation commit `a66fa57d` (governance baseline before the check: `ca170c40`)
+- Scope of this closure: the Evidence/Chi tiết bưu gửi delta only (Sections 17-19 of this manifest). It does **not** close `F13-STANDARDIZATION-001` as a program — Phase 0 remains partially implemented/not separately closed, Phases 1-4 remain `PLANNED / NOT ACTIVE` (this delta implemented only the Evidence/Chi tiết bưu gửi item named inside Phase 1/3, not the phases themselves).
+
+### Product Owner runtime check result
+
+`8/9 mục PASS`, 1 item `NOT TESTABLE` (not a fail — see below):
+
+1. **PASS** — `/f13/evidence` accepted as the canonical Evidence screen.
+2. **PASS** — legacy `/f13/ranking/shipment` URL redirects while preserving the full query/drill-down context.
+3. **PASS** — single-day analysis contract accepted (no from/to range switch).
+4. **PASS** — real BCVH list.
+5. **PASS** — real Tuyến list.
+6. **PASS** — "Tất cả tuyến" behavior.
+7. **PASS** — shipment_id selection/synchronization.
+8. **PASS** — loading/empty/error states and overall UI/UX.
+9. **NOT TESTABLE** — the >1,000-row live-dataset check: the real production dataset's largest matching Không đạt set found was **318 records**, below the previous 1,000-row cap this delta was fixing. The Product Owner therefore could not runtime-observe the cap actually being exceeded and fixed. This is recorded as `NOT TESTABLE` against live data, not `FAIL` and not a live-runtime `PASS` — the underlying fix has independent coverage: `fetchAllEvidenceRows()`'s page-walking behavior (including the over-ceiling `truncated: true` warning path) has **automated test PASS** (`shipmentPerformanceData.test.js`, 5 tests, confirmed passing at commit `a66fa57d`), but that automated coverage is not itself a live-runtime PASS and is not represented as one here.
+
+### Admin + Viewer access — recorded per actual evidence only
+
+The Product Owner's report does not state that both `admin` and `viewer` sessions were live-logged-in and used to reach `/f13/evidence` during this recheck. Per the closure instruction, this is therefore **not** recorded as a live dual-role runtime PASS. What is confirmed instead:
+
+- **Technical verification**: `frontend/src/App.jsx` gates `evidence` behind `<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}>`, identical in form to the other `admin`+`viewer` F1.3 routes (`dashboard`, `ranking/bcvh`, `ranking/route`).
+- **Automated routing test PASS**: `App.role-routing.test.js` asserts this exact route/role contract in source and passes (confirmed at commit `a66fa57d`).
+- If a future round captures an actual dual-role login trace (Antigravity runtime evidence, per `DEC-020`), that evidence should be added here as an explicit update rather than inferred.
+
+### Backend test status — recorded precisely, not as "full backend PASS"
+
+Full backend sweep at commit `a66fa57d`: **107/111 pass**. The 4 failures (`DashboardController.recovery.test.js` ×3 live-KPI-database tests, `timelineService.recovery.test.js` ×1 monthly-rank test) are **pre-existing** — confirmed present on the pre-delta baseline via `git stash` (105/109 pass/fail before this delta touched anything), unrelated to any file this delta changed. This is not described as "full backend PASS" anywhere in this closure; it is described exactly as 107/111 with the 4 pre-existing failures named.
+
+### What remains open in `F13-STANDARDIZATION-001`
+
+- Phase 0: partially implemented, not separately closed (unaffected by this delta).
+- Phases 1-4: `PLANNED / NOT ACTIVE` (unaffected by this delta; this delta satisfied only the Evidence-specific item named inside Phase 1/3's scope, not the phases in full).
+- `F13-SHIPMENT-001` (`stash@{0}`): remains `DEFERRED / PRESERVED`, not reactivated by this closure.
+- `F13-SURFACE-CLEANUP-PLAN`: remains a named-but-never-created candidate, not created or activated by this closure.
+
+### No next ticket activated
+
+Per explicit instruction, no next ticket is created or activated by this closure. Repository state after this closure: no active ticket, `AWAITING PO DIRECTION` for any next F1.3 or other scope.
+
+`NETWORK-MANAGEMENT-001`/`NETWORK-MANAGEMENT-002` were not reopened; `Data QLML/`, `.claude/`, and both stashes (`stash@{0}`, `stash@{1}`) confirmed untouched by this closure. No product code was changed in this closure round (documentation-only).

@@ -15,6 +15,7 @@
 - [11. Route Ranking Delta Closure](#11-route-ranking-delta-closure)
 - [12. Evidence / Chi tiết bưu gửi Discovery Delta](#12-evidence--chi-tiết-bưu-gửi-discovery-delta)
 - [13. Evidence / Chi tiết bưu gửi Implementation](#13-evidence--chi-tiết-bưu-gửi-implementation)
+- [14. Evidence / Chi tiết bưu gửi PO Runtime Check Pass — Closure](#14-evidence--chi-tiết-bưu-gửi-po-runtime-check-pass--closure)
 
 ## 1. Purpose
 
@@ -25,7 +26,7 @@ This checkpoint is the current-state entry point for `F13-STANDARDIZATION-001`. 
 | Field | Value |
 | --- | --- |
 | Program | `F13-STANDARDIZATION-001` |
-| Program State | `EVIDENCE DELTA — READY FOR PO CHECK` (as of `2026-08-11`, Section 13 / manifest Section 18) — no Phase 1-4 reactivated, delta scope only |
+| Program State | `EVIDENCE DELTA — CLOSED / PO RUNTIME CHECK PASS` (as of `2026-08-11`, Section 14 / manifest Section 19) — Phase 0-4 unaffected, program itself remains open/not fully closed, delta scope only |
 | Current Phase | `PHASE 0 — foundational items implemented (commits `e3ca2429`, `a0d4b041`), technical validation PASS; no standalone Product Owner runtime confirmation was recorded for this scope specifically` |
 | Phase 0 Implementation Performed | `Yes, partially` — KPI field standardization (`danh_gia_2026`), the two audited `/f13` API path fixes, and `dd/MM/yyyy` timestamp parsing were implemented and technically validated; not separately PO-runtime-confirmed as its own closure |
 | Phase 1 | `PLANNED / NOT ACTIVE` — not started; PO Gate 1 has not been reached |
@@ -96,6 +97,21 @@ Between the original Phase 0 activation and this closure, the Product Owner auth
 
 **Product Owner result (`2026-08-04`): `PO PASS / CLOSED`.**
 
+- Tuyến Ranking (`/f13/ranking/route`) and the violation drill-down detail window (`/f13/ranking/route/violations`) were runtime-tested by the Product Owner.
+- Pagination confirmed correct: `10 tuyến/trang`.
+- Default sort confirmed correct: ascending by `Tỷ lệ đạt` (`passed_rate`), so the weakest-performing route ranks first.
+- Page navigation and the reconciliation (đối soát) table confirmed working correctly.
+
+**Implementation chain (main commits, in order):**
+
+1. `a892a276310705920cb298264ebfeb2db3ae64da` — violation-reason classification (Chậm nộp tiền / Không đạt khác / Chưa xác định nguyên nhân) and the corresponding `/f13/evidence-list` API contract (`violation_reason`, `meta.violation_summary`, `reason` filter).
+2. `6e5753089ccda7b4f90706c32ed1482be3aadb12` — UI/UX refinement of the Tuyến Ranking table and the violation drill-down detail window (Antigravity).
+3. `03ce28bacc36b49d961caa1c006a011beb804bc7` — frontend pagination (`10 tuyến/trang`) and default ascending `passed_rate` sort, confirmed by this PO PASS.
+
+Supporting prior commits on the same branch that this delta built on: `e3ca24292f39b5c59022b161b63c4603cced1949` (Phase 0 foundations: KPI field, API path, timestamp parsing) and `a0d4b041573798b08eb2992698bdc9cc20031083` (Route Ranking data-contract standardization and the first violation drill-down).
+
+**Scope discipline:** this closure covers only the Tuyến Ranking screen and its violation drill-down. It does not close Operation Dashboard, BCVH Ranking, Pareto/RCA, Evidence, Message Center, or Shipment Performance Center, and it does not close Phase 0, Phase 1, Phase 2 in full, Phase 3, Phase 4, or the `F13-STANDARDIZATION-001` program as a whole. The Shipment Performance Center delta remains preserved, untouched, in `stash@{0}` (`F13-SHIPMENT-001: preserved Shipment Performance Center delay/status changes`), pending Product Owner reactivation of `F13-SHIPMENT-001`.
+
 ## 12. Evidence / Chi tiết bưu gửi Discovery Delta
 
 - Opened: `2026-08-10`
@@ -114,17 +130,13 @@ Full findings and the decision request are recorded in `docs/10_TICKETS/F13-STAN
 - Runtime: not performed — no usable plaintext credential (admin or viewer) exists in this workspace, same precedent as `NETWORK-MANAGEMENT-001` Phase 4. A concrete PO/Antigravity runtime checklist (11 items) is recorded in manifest Section 18.
 - State: `READY FOR PO CHECK`. Claude Code does not self-award PO PASS.
 
-- Tuyến Ranking (`/f13/ranking/route`) and the violation drill-down detail window (`/f13/ranking/route/violations`) were runtime-tested by the Product Owner.
-- Pagination confirmed correct: `10 tuyến/trang`.
-- Default sort confirmed correct: ascending by `Tỷ lệ đạt` (`passed_rate`), so the weakest-performing route ranks first.
-- Page navigation and the reconciliation (đối soát) table confirmed working correctly.
+## 14. Evidence / Chi tiết bưu gửi PO Runtime Check Pass — Closure
 
-**Implementation chain (main commits, in order):**
-
-1. `a892a276310705920cb298264ebfeb2db3ae64da` — violation-reason classification (Chậm nộp tiền / Không đạt khác / Chưa xác định nguyên nhân) and the corresponding `/f13/evidence-list` API contract (`violation_reason`, `meta.violation_summary`, `reason` filter).
-2. `6e5753089ccda7b4f90706c32ed1482be3aadb12` — UI/UX refinement of the Tuyến Ranking table and the violation drill-down detail window (Antigravity).
-3. `03ce28bacc36b49d961caa1c006a011beb804bc7` — frontend pagination (`10 tuyến/trang`) and default ascending `passed_rate` sort, confirmed by this PO PASS.
-
-Supporting prior commits on the same branch that this delta built on: `e3ca24292f39b5c59022b161b63c4603cced1949` (Phase 0 foundations: KPI field, API path, timestamp parsing) and `a0d4b041573798b08eb2992698bdc9cc20031083` (Route Ranking data-contract standardization and the first violation drill-down).
-
-**Scope discipline:** this closure covers only the Tuyến Ranking screen and its violation drill-down. It does not close Operation Dashboard, BCVH Ranking, Pareto/RCA, Evidence, Message Center, or Shipment Performance Center, and it does not close Phase 0, Phase 1, Phase 2 in full, Phase 3, Phase 4, or the `F13-STANDARDIZATION-001` program as a whole. The Shipment Performance Center delta remains preserved, untouched, in `stash@{0}` (`F13-SHIPMENT-001: preserved Shipment Performance Center delay/status changes`), pending Product Owner reactivation of `F13-SHIPMENT-001`.
+- Closed on: `2026-08-11`
+- Closure authority: explicit Product Owner runtime recheck of implementation commit `a66fa57d` (governance baseline before the check: `ca170c40`)
+- Result: `8/9 mục PASS`, 1 `NOT TESTABLE` (the >1,000-row live-dataset check — the real production dataset's largest matching set found is `318` records, below the cap this delta fixed; not a fail, and the underlying `fetchAllEvidenceRows()` page-walking behavior has independent automated test PASS, not represented here as a live-runtime PASS).
+- Admin+Viewer access: recorded as technical verification (`ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}`) + automated routing test PASS (`App.role-routing.test.js`) only — the Product Owner report does not evidence an actual dual-role live login, so no live dual-role runtime PASS is claimed.
+- Backend test status carried forward precisely: `107/111` at commit `a66fa57d`, the 4 failures pre-existing and confirmed via `git stash` — never described as "full backend PASS".
+- Scope of this closure: the Evidence/Chi tiết bưu gửi delta only (Sections 12-14 here; Sections 17-19 of the manifest). `F13-STANDARDIZATION-001` as a program is **not** closed by this — Phase 0-4 status is unchanged and unaffected.
+- No next ticket activated. `F13-SHIPMENT-001` (`stash@{0}`) and `F13-SURFACE-CLEANUP-PLAN` remain untouched/not created. `NETWORK-MANAGEMENT-001`/`002` not reopened. `Data QLML/`, `.claude/`, both stashes confirmed untouched. Documentation-only closure — no product code changed in this round.
+- Full decision-by-decision detail: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 19.
