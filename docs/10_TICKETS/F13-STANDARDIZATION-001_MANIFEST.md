@@ -23,6 +23,7 @@
 - [19. Evidence / Chi tiết bưu gửi — PO RUNTIME CHECK PASS, Closure (delta only)](#19-evidence--chi-tiết-bưu-gửi--po-runtime-check-pass-closure-delta-only)
 - [20. Evidence Product-Value Audit (Tuyến Ranking → Shipment Detail → Evidence)](#20-evidence-product-value-audit-tuyến-ranking--shipment-detail--evidence)
 - [21. Evidence Consolidation — PO Decision + Plan](#21-evidence-consolidation--po-decision--plan)
+- [22. Evidence Consolidation — Phase 1 Implementation](#22-evidence-consolidation--phase-1-implementation)
 
 ## 1. Ticket Information
 
@@ -411,4 +412,53 @@ Full plan in its own dedicated document (to avoid duplicating the same content i
 
 `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`, `EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md`, `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md`, both `SHIPMENT_PERFORMANCE_CENTER_*` architecture files, both Evidence/Shipment UX architecture files, `SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md`, and the "Frozen Documents" list in `PROJECT_PROGRESS.md`. Each requires separate explicit Product Owner approval before any edit. Full rationale per document: plan Section 8.
 
-No implementation authorized by this plan. Governance state: `PLAN COMPLETE / AWAITING PO APPROVAL`.
+No implementation authorized by this plan. Governance state: `PLAN COMPLETE / AWAITING PO APPROVAL`. **Superseded by Section 22** — the Product Owner approved the plan and Phase 1 was implemented.
+
+## 22. Evidence Consolidation — Phase 1 Implementation
+
+- Status: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`
+- Implemented: `2026-08-11`. Plan commit `34f42c57`.
+- Authority: explicit Product Owner approval of the Evidence Consolidation plan (Section 21), scoped strictly to Phase 1.
+
+### Product Owner approval and decisions received this round
+
+1. Start Phase 1 exactly as locked in the plan.
+2. Screen name (for Phase 2/3, not implemented this round): **"Evidence — Chi tiết bưu gửi vi phạm"**.
+3. Arriving from Tuyến Ranking (for Phase 3, not implemented this round): keep the exact violation group the manager clicked; clicking the total `Không đạt` figure opens "Tất cả không đạt".
+4. Do not show an Action Center button until a real hand-off flow exists (for Phase 2, not implemented this round).
+5. Amending the 8 frozen architecture documents is approved in principle, but **not mixed into Phase 1**; a separate governance delta must be prepared before Phase 2 starts.
+6. Only assert the three violation groups sum to the total after proving mutual exclusion and exhaustiveness; otherwise reconcile via the set of unique `ma_bg` — not via arithmetic sum alone.
+
+Decisions 2-5 are recorded here as locked for Phase 2/3 and were **not implemented in this round** (Phase 1 is backend-contract-only per the plan; implementing them now would have exceeded the explicit "no Giai đoạn 2-4" instruction).
+
+### Implementation — additive backend fix only
+
+`backend/src/services/f13DashboardService.js`, `getEvidenceList()`'s row mapper: now also returns `ma_tuyen`, `ten_tuyen`, `ma_bcvh`, `ten_bcvh`, which `FactBuuGuiRepository.getEvidenceListFacts()`'s `SELECT *` already returned but the mapper was discarding (F-1 from the plan). No new query, no existing field changed, no query predicate changed. Both current consumers (`ShipmentPerformancePage.jsx`'s `routeId: item.ma_tuyen || routeIdParam` / `routeName: item.ten_tuyen || routeName` mapping, and `RouteViolationEvidencePage.jsx`, which never reads these fields) already prefer a real API value over their own fallback via `||` — **confirmed by code read that zero frontend changes were required** for the display/search fix to take effect; the defect was entirely a backend field-discard, not a frontend mapping gap. No frontend file was touched this round.
+
+### Data/context contract — locked
+
+Confirms the contract already recorded in the plan (Section 3), now backed by passing tests instead of a plan-only assertion:
+
+| Field | Source | Contract |
+| --- | --- | --- |
+| Ngày | `ngay_do_kiem`, single day | Unchanged — `WHERE ngay_do_kiem = ?` |
+| BCVH | `ma_bcvh`/`ten_bcvh` | Now returned per row (was previously discarded) |
+| Tuyến | `ma_tuyen`/`ten_tuyen` | Now returned per row (was previously discarded) — fixes "Tất cả tuyến" showing the literal string "Tất cả tuyến" as every row's route |
+| Nhóm vi phạm | `violation_reason`, one of `Chậm nộp tiền`/`Không đạt khác`/`Chưa xác định nguyên nhân` | Unchanged — confirmed by new tests to be a true partition (mutually exclusive, exhaustive) of the failed set, not merely summing to the same number by coincidence |
+| Số lượng đối chiếu | `meta.violation_summary` (3 group counts + `total_failed`) and `meta.pagination.total_items` | Unchanged contract; now additionally proven equal to the unique-`ma_bg`-set sizes, not just the numeric sum, per Product Owner instruction 6 |
+| Bưu gửi | `ma_bg`, `thoi_gian_ptc`, `thoi_gian_nop_tien`, `do_tre_gio`, `danh_gia_2026` | Unchanged |
+
+### Tests
+
+- 2 new tests proving route/BCVH pass-through, for both a single-route request and "Tất cả tuyến" (route omitted) — the second is a direct regression guard for the exact reported defect (asserts two different rows resolve two different, correct route values, never a shared fallback).
+- 2 new tests proving the reconciliation requirement precisely as instructed: one proves `violation_reason` classification is a true partition (union of the three groups' unique `ma_bg` sets equals the full failed set; no `ma_bg` counted in more than one group) *before* asserting the numeric summary; one proves the classifier always returns exactly one of the three known labels across every timestamp-presence/parseability combination it can encounter.
+- Targeted evidence-list suite (service + repository): **20/20 pass** (14 pre-existing + 6 new).
+- Full backend sweep: **111/115 pass**. The same 4 failures already on record (`DashboardController.recovery.test.js` ×3 live-KPI-database tests, `timelineService.recovery.test.js` ×1 monthly-rank test) — pre-existing, unrelated to this change, unchanged in count.
+- Full frontend sweep (no frontend file touched this round, run to confirm no incidental regression): **256/269 pass**, identical to the F-3 baseline recorded in the plan — reported as the true full-suite figure, not narrowed to a targeted subset.
+- No lint step exists for the backend (`backend/package.json` has no `lint` script); no frontend file changed, so `oxlint`/`vite build` were not re-run this round.
+
+### Scope discipline
+
+Backend-only, additive-only change. No Phase 2-4 work performed. No frozen document edited. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, and every `NETWORK-MANAGEMENT` file untouched; `.claude/` and both stashes (`stash@{0}`, `stash@{1}`) confirmed untouched — `git status --porcelain` shows only the two backend files listed above plus documentation.
+
+Governance state: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`. Claude Code does not self-award PO PASS.

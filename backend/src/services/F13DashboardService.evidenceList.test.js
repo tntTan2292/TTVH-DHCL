@@ -151,3 +151,113 @@ test('getEvidenceList treats an unrecognized reason value as "all" rather than d
     assert.equal(result.data.length, MIXED_FACTS.length);
     assert.equal(result.meta.violation_filter.selected, 'all');
 }));
+
+// --- F-1 fix (Evidence Consolidation plan Phase 1): route/BCVH identity pass-through ---
+// The repository's SELECT * already returns ma_tuyen/ten_tuyen/ma_bcvh/ten_bcvh; the
+// mapper was discarding all four, so "Tất cả tuyến" mode could not attribute any row to
+// its real route (every row silently fell back to the caller's own route_id param).
+
+const ROUTE_IDENTITY_FACTS = [
+    { ma_bg: 'BG-R1', danh_gia_2026: 'Không đạt', ma_tuyen: '53001', ten_tuyen: 'Tuyến A', ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', thoi_gian_ptc: '14/06/2026 08:00:00', thoi_gian_nop_tien: '14/06/2026 09:00:00' },
+    { ma_bg: 'BG-R2', danh_gia_2026: 'Không đạt', ma_tuyen: '53002', ten_tuyen: 'Tuyến B', ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', thoi_gian_ptc: '14/06/2026 08:00:00', thoi_gian_nop_tien: '14/06/2026 09:00:00' },
+];
+
+test('getEvidenceList passes through the real route (ma_tuyen/ten_tuyen) and BCVH (ma_bcvh/ten_bcvh) for a single-route request', withMockedFacts(
+    [ROUTE_IDENTITY_FACTS[0]],
+    async () => {
+        const result = await service.getEvidenceList('2026-06-14', '533140', '53001', 1, 20);
+        const [row] = result.data;
+
+        assert.equal(row.ma_tuyen, '53001');
+        assert.equal(row.ten_tuyen, 'Tuyến A');
+        assert.equal(row.ma_bcvh, '533140');
+        assert.equal(row.ten_bcvh, 'BCVH Thuận Hóa');
+    }
+));
+
+test('getEvidenceList passes through each row\'s own real route in "Tất cả tuyến" mode (route omitted) — never a single fallback value for every row', withMockedFacts(
+    ROUTE_IDENTITY_FACTS,
+    async () => {
+        // route intentionally omitted (undefined) — "Tất cả tuyến" contract.
+        const result = await service.getEvidenceList('2026-06-14', '533140', undefined, 1, 20);
+
+        assert.equal(result.data.length, 2);
+        const routesById = Object.fromEntries(result.data.map((r) => [r.ma_bg, r.ma_tuyen]));
+        assert.equal(routesById['BG-R1'], '53001');
+        assert.equal(routesById['BG-R2'], '53002');
+        // Regression guard for the exact reported defect: rows must not collapse onto one
+        // shared route value.
+        assert.notEqual(routesById['BG-R1'], routesById['BG-R2']);
+
+        const namesById = Object.fromEntries(result.data.map((r) => [r.ma_bg, r.ten_tuyen]));
+        assert.equal(namesById['BG-R1'], 'Tuyến A');
+        assert.equal(namesById['BG-R2'], 'Tuyến B');
+    }
+));
+
+// --- Reconciliation requirement (PO instruction): only assert the three violation
+// groups sum to the total after proving the classification is mutually exclusive
+// (no ma_bg in more than one group) and exhaustive (every ma_bg in exactly one group) —
+// otherwise reconcile via the set of unique ma_bg, not via arithmetic sum alone. -------
+
+test('violation_reason classification is a true partition of the failed set: mutually exclusive and exhaustive over ma_bg, for every row shape', withMockedFacts(MIXED_FACTS, async () => {
+    const result = await service.getEvidenceList('2026-06-14', '533140', '53001', 1, 20);
+
+    const groups = {
+        delayed_cash: new Set(),
+        other: new Set(),
+        unknown: new Set(),
+    };
+    const slugByLabel = {
+        'Chậm nộp tiền': 'delayed_cash',
+        'Không đạt khác': 'other',
+        'Chưa xác định nguyên nhân': 'unknown',
+    };
+
+    result.data.forEach((row) => {
+        const slug = slugByLabel[row.violation_reason];
+        assert.ok(slug, `row ${row.ma_bg} produced an unrecognized violation_reason: ${row.violation_reason}`);
+        groups[slug].add(row.ma_bg);
+    });
+
+    // Exhaustive: every failed ma_bg appears in exactly one group.
+    const allMaBg = new Set(result.data.map((r) => r.ma_bg));
+    const unionOfGroups = new Set([...groups.delayed_cash, ...groups.other, ...groups.unknown]);
+    assert.deepEqual([...unionOfGroups].sort(), [...allMaBg].sort(), 'union of the three groups must equal the full failed ma_bg set');
+
+    // Mutually exclusive: no ma_bg appears in more than one group.
+    const totalAcrossGroups = groups.delayed_cash.size + groups.other.size + groups.unknown.size;
+    assert.equal(totalAcrossGroups, unionOfGroups.size, 'a ma_bg was counted in more than one violation group');
+
+    // Only now — with mutual exclusion and exhaustiveness both proven on the actual
+    // unique-ma_bg sets — is it safe to also assert the numeric summary sums correctly.
+    assert.equal(result.meta.violation_summary.delayed_cash_count, groups.delayed_cash.size);
+    assert.equal(result.meta.violation_summary.other_failed_count, groups.other.size);
+    assert.equal(result.meta.violation_summary.unknown_count, groups.unknown.size);
+    assert.equal(
+        result.meta.violation_summary.delayed_cash_count + result.meta.violation_summary.other_failed_count + result.meta.violation_summary.unknown_count,
+        result.meta.violation_summary.total_failed
+    );
+}));
+
+test('violation_reason classification always returns exactly one of the three known labels, never null/undefined/other', withMockedFacts(
+    [
+        // Every timestamp-presence/parseability combination the classifier can see.
+        { ma_bg: 'BOTH-VALID-DELAYED', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '14/06/2026 08:00:00', thoi_gian_nop_tien: '14/06/2026 12:00:01' },
+        { ma_bg: 'BOTH-VALID-NOT-DELAYED', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '14/06/2026 08:00:00', thoi_gian_nop_tien: '14/06/2026 09:00:00' },
+        { ma_bg: 'PTC-MISSING', danh_gia_2026: 'Không đạt', thoi_gian_ptc: null, thoi_gian_nop_tien: '14/06/2026 09:00:00' },
+        { ma_bg: 'PTC-UNPARSEABLE', danh_gia_2026: 'Không đạt', thoi_gian_ptc: 'garbage', thoi_gian_nop_tien: '14/06/2026 09:00:00' },
+        { ma_bg: 'NOP-MISSING', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '14/06/2026 08:00:00', thoi_gian_nop_tien: null },
+        { ma_bg: 'NOP-UNPARSEABLE', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '14/06/2026 08:00:00', thoi_gian_nop_tien: 'garbage' },
+        { ma_bg: 'BOTH-MISSING', danh_gia_2026: 'Không đạt', thoi_gian_ptc: null, thoi_gian_nop_tien: null },
+    ],
+    async () => {
+        const result = await service.getEvidenceList('2026-06-14', '533140', '53001', 1, 20);
+        const knownLabels = new Set(['Chậm nộp tiền', 'Không đạt khác', 'Chưa xác định nguyên nhân']);
+
+        assert.equal(result.data.length, 7);
+        result.data.forEach((row) => {
+            assert.ok(knownLabels.has(row.violation_reason), `row ${row.ma_bg} has an unknown violation_reason: ${row.violation_reason}`);
+        });
+    }
+));

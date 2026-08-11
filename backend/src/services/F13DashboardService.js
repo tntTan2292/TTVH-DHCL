@@ -1190,6 +1190,14 @@ class F13DashboardService {
 
                 return {
                     ma_bg: item.ma_bg,
+                    // F-1 fix (Evidence Consolidation plan Phase 1): the repository already
+                    // returns ma_tuyen/ten_tuyen/ma_bcvh/ten_bcvh via SELECT * — this mapper
+                    // was discarding them, so "Tất cả tuyến" mode could not attribute any row
+                    // to its real route. Additive only: no new query, no existing field changed.
+                    ma_tuyen: item.ma_tuyen,
+                    ten_tuyen: item.ten_tuyen,
+                    ma_bcvh: item.ma_bcvh,
+                    ten_bcvh: item.ten_bcvh,
                     thoi_gian_ptc: item.thoi_gian_ptc,
                     thoi_gian_nop_tien: item.thoi_gian_nop_tien,
                     danh_gia_2026: item.danh_gia_2026,

@@ -13,6 +13,7 @@
 - [9. Task 7 — Implementation Phases, Test Plan, File Scope](#9-task-7--implementation-phases-test-plan-file-scope)
 - [10. Risks And Open Questions](#10-risks-and-open-questions)
 - [11. Scope Discipline](#11-scope-discipline)
+- [12. Phase 1 Implementation Record (2026-08-11)](#12-phase-1-implementation-record-2026-08-11)
 
 ## 1. Purpose And Authority
 
@@ -279,3 +280,42 @@ Remove `RouteViolationEvidencePage.jsx` and its two test files once the merged s
 ## 11. Scope Discipline
 
 Planning only. No product code, route, component, schema, database, or frozen document was changed — `git status` shows documentation files only. `F13-SHIPMENT-001` (`stash@{0}`) was not opened; `stash@{1}` untouched; Dashboard, BCVH Ranking, `Data QLML/` and all `NETWORK-MANAGEMENT` scope untouched and unexpanded; `.claude/` not committed. The `2026-08-11` `PO RUNTIME CHECK PASS` closure is not reopened or amended — this plan builds forward from it.
+
+## 12. Phase 1 Implementation Record (2026-08-11)
+
+Product Owner approved this plan and authorized Phase 1 only. Implemented at plan commit `34f42c57`; status `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`.
+
+### What changed
+
+`backend/src/services/f13DashboardService.js` — `getEvidenceList()`'s row mapper now additionally returns `ma_tuyen`, `ten_tuyen`, `ma_bcvh`, `ten_bcvh` (fixes F-1). `FactBuuGuiRepository.getEvidenceListFacts()`'s `SELECT *` already returned these four fields; the mapper was the only place discarding them. No query changed, no existing field's meaning changed, no query predicate changed.
+
+**No frontend file was touched.** Direct code read confirmed `ShipmentPerformancePage.jsx`'s row mapping (`routeId: item.ma_tuyen || routeIdParam`, `routeName: item.ten_tuyen || routeName`, and the equivalent for `bcvhId`/`bcvhName`) already prefers a real API value over its own URL-parameter fallback via `||` — once the backend stopped discarding the fields, the existing frontend wiring started displaying and searching real per-row routes with zero additional change. This was verified by reasoning over the existing code, not by a runtime session (no credential is available in this workspace, per the precedent already recorded for the prior Evidence rounds).
+
+### Data/context contract — now locked with passing tests, not just a plan-only assertion
+
+Unchanged from Section 3 above, confirmed correct: single-day `ngay_do_kiem`; BCVH and Tuyến now returned per row (previously discarded); `violation_reason` proven to be a true partition of the failed set (mutually exclusive, exhaustive over `ma_bg`) rather than assumed from the numeric sum; `meta.violation_summary`/`meta.pagination.total_items` proven equal to the unique-`ma_bg`-set sizes.
+
+### Tests added (`F13DashboardService.evidenceList.test.js`)
+
+1. Route/BCVH pass-through for a single-route request.
+2. Route/BCVH pass-through in "Tất cả tuyến" mode (route omitted) — asserts two different rows resolve two different, correct routes, directly guarding against the exact reported defect (every row previously collapsed onto one fallback value).
+3. `violation_reason` classification proven to be a true partition: union of the three groups' unique `ma_bg` sets equals the full failed set; no `ma_bg` counted twice; only then is the numeric summary sum asserted — implementing the Product Owner's exact reconciliation instruction rather than assuming AC-2 held.
+4. `violation_reason` classification proven to always return exactly one of the three known labels, exercised across every timestamp-presence/parseability combination the classifier can encounter.
+
+### Validation
+
+- Targeted evidence-list suite (service + repository): **20/20 pass**.
+- Full backend sweep: **111/115 pass** — the same 4 pre-existing failures already on record (`DashboardController.recovery.test.js` live-KPI-database tests ×3, `timelineService.recovery.test.js` monthly-rank test ×1), unrelated to this change.
+- Full frontend sweep, re-run to confirm no incidental regression despite zero frontend files touched: **256/269 pass**, identical to the F-3 baseline in Section 2 — this is the true full-suite figure, reported honestly rather than as a narrowed "25/25"-style subset.
+- Backend has no lint script; no frontend file changed, so `oxlint`/`vite build` were not re-run.
+
+### Decisions received this round, locked for Phase 2/3 (not implemented now)
+
+- Screen name: **"Evidence — Chi tiết bưu gửi vi phạm"**.
+- Arriving from Tuyến Ranking keeps the exact violation group clicked; clicking the total `Không đạt` figure opens "Tất cả không đạt".
+- No Action Center button until a real hand-off flow exists.
+- Frozen-document amendment (Section 8) approved in principle; requires its own separate governance delta before Phase 2, not mixed into any implementation commit.
+
+### Scope discipline for this round
+
+Backend-only, additive-only. No Phase 2-4 work performed. No frozen document edited. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, and every `NETWORK-MANAGEMENT` file untouched; `.claude/` and both stashes confirmed untouched.

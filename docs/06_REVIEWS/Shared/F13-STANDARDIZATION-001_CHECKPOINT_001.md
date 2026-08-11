@@ -18,6 +18,7 @@
 - [14. Evidence / Chi tiết bưu gửi PO Runtime Check Pass — Closure](#14-evidence--chi-tiết-bưu-gửi-po-runtime-check-pass--closure)
 - [15. Evidence Product-Value Audit](#15-evidence-product-value-audit)
 - [16. Evidence Consolidation Plan](#16-evidence-consolidation-plan)
+- [17. Evidence Consolidation Phase 1 Implementation](#17-evidence-consolidation-phase-1-implementation)
 
 ## 1. Purpose
 
@@ -28,7 +29,7 @@ This checkpoint is the current-state entry point for `F13-STANDARDIZATION-001`. 
 | Field | Value |
 | --- | --- |
 | Program | `F13-STANDARDIZATION-001` |
-| Program State | `EVIDENCE CONSOLIDATION — PLAN COMPLETE / AWAITING PO APPROVAL` (as of `2026-08-11`, Section 16 / manifest Section 21) — Phase 0-4 unaffected, program itself remains open/not fully closed, delta scope only |
+| Program State | `EVIDENCE CONSOLIDATION — PHASE 1 IMPLEMENTED / READY FOR PO CHECK` (as of `2026-08-11`, Section 17 / manifest Section 22) — Phase 0-4 of the five-phase program plan unaffected, program itself remains open/not fully closed, delta scope only |
 | Current Phase | `PHASE 0 — foundational items implemented (commits `e3ca2429`, `a0d4b041`), technical validation PASS; no standalone Product Owner runtime confirmation was recorded for this scope specifically` |
 | Phase 0 Implementation Performed | `Yes, partially` — KPI field standardization (`danh_gia_2026`), the two audited `/f13` API path fixes, and `dd/MM/yyyy` timestamp parsing were implemented and technically validated; not separately PO-runtime-confirmed as its own closure |
 | Phase 1 | `PLANNED / NOT ACTIVE` — not started; PO Gate 1 has not been reached |
@@ -167,4 +168,13 @@ Full plan: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_00
 
 **Three new defects found while planning**: (F-1, blocking) the evidence-list API mapper discards `ma_tuyen`/`ten_tuyen`/`ma_bcvh`/`ten_bcvh`, so in "Tất cả tuyến" mode every row displays "Tất cả tuyến" as its route and route search matches nothing; (F-2, latent crash) an out-of-scope `row` reference in `RoutePerformancePage.jsx:262`; (F-3, baseline correction) the true full frontend suite is 256/269 with 13 proven-pre-existing failures, not the "25/25" previously reported for a narrow subset.
 
-No implementation authorized by this plan.
+No implementation authorized by this plan. **Superseded by Section 17** — the Product Owner approved the plan and Phase 1 was implemented.
+
+## 17. Evidence Consolidation Phase 1 Implementation
+
+- Implemented: `2026-08-11`, plan commit `34f42c57`. Status: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`.
+- Scope: backend-only, additive-only. `f13DashboardService.getEvidenceList()`'s mapper now passes through `ma_tuyen`/`ten_tuyen`/`ma_bcvh`/`ten_bcvh` (fixes F-1 — the repository already returned them; the mapper discarded them). Zero frontend changes were required — both existing consumers already prefer a real API value over their own URL-parameter fallback.
+- Tests: 2 new pass-through tests (incl. a direct regression guard proving two rows in "Tất cả tuyến" mode resolve two different real routes, never a shared fallback) + 2 new tests proving the violation-reason classification is a true partition (mutually exclusive, exhaustive over `ma_bg`) before trusting the numeric summary, per explicit Product Owner instruction. Targeted evidence suite 20/20; full backend sweep 111/115 (same 4 pre-existing failures, unchanged); full frontend sweep 256/269 (no frontend file touched, confirms no incidental regression) — reported as the true full-suite figure, not a narrowed subset.
+- Product Owner decisions recorded for Phase 2/3 (not implemented this round): screen name "Evidence — Chi tiết bưu gửi vi phạm"; arriving from Tuyến Ranking keeps the clicked violation group (total click → "Tất cả không đạt"); no Action Center button until a real hand-off exists; frozen-document amendment approved in principle but requires its own governance delta before Phase 2.
+- No Phase 2-4 work performed. No frozen document edited. `F13-SHIPMENT-001` not opened; Dashboard/BCVH Ranking/`Data QLML/`/`NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes untouched.
+- Full decision-by-decision detail: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 22.
