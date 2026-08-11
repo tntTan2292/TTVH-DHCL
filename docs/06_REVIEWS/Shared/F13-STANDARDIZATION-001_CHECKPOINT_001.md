@@ -17,6 +17,7 @@
 - [13. Evidence / Chi tiết bưu gửi Implementation](#13-evidence--chi-tiết-bưu-gửi-implementation)
 - [14. Evidence / Chi tiết bưu gửi PO Runtime Check Pass — Closure](#14-evidence--chi-tiết-bưu-gửi-po-runtime-check-pass--closure)
 - [15. Evidence Product-Value Audit](#15-evidence-product-value-audit)
+- [16. Evidence Consolidation Plan](#16-evidence-consolidation-plan)
 
 ## 1. Purpose
 
@@ -27,7 +28,7 @@ This checkpoint is the current-state entry point for `F13-STANDARDIZATION-001`. 
 | Field | Value |
 | --- | --- |
 | Program | `F13-STANDARDIZATION-001` |
-| Program State | `EVIDENCE PRODUCT-VALUE AUDIT — AUDIT COMPLETE / AWAITING PO DECISION` (as of `2026-08-11`, Section 15 / manifest Section 20) — Phase 0-4 unaffected, program itself remains open/not fully closed, audit scope only |
+| Program State | `EVIDENCE CONSOLIDATION — PLAN COMPLETE / AWAITING PO APPROVAL` (as of `2026-08-11`, Section 16 / manifest Section 21) — Phase 0-4 unaffected, program itself remains open/not fully closed, delta scope only |
 | Current Phase | `PHASE 0 — foundational items implemented (commits `e3ca2429`, `a0d4b041`), technical validation PASS; no standalone Product Owner runtime confirmation was recorded for this scope specifically` |
 | Phase 0 Implementation Performed | `Yes, partially` — KPI field standardization (`danh_gia_2026`), the two audited `/f13` API path fixes, and `dd/MM/yyyy` timestamp parsing were implemented and technically validated; not separately PO-runtime-confirmed as its own closure |
 | Phase 1 | `PLANNED / NOT ACTIVE` — not started; PO Gate 1 has not been reached |
@@ -152,4 +153,18 @@ Full audit in its own dedicated checkpoint (to avoid duplicating the same eviden
 
 **Central finding**: the frozen Evidence Center architecture (`EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`, `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md`) explicitly forbids Evidence Center from duplicating Shipment Performance Center or carrying Recommendation content. The Product Owner-accepted canonical `/f13/evidence` today runs `ShipmentPerformancePage.jsx` — the Shipment Performance Center component itself, including a Recommendation widget — which is exactly what those frozen documents forbid. This is escalated to the Product Owner (Decision 1) rather than resolved by this audit.
 
-No implementation authorized. Does not reopen or amend the Section 14 `PO RUNTIME CHECK PASS` closure — this adds a later, separate finding on top of it, per explicit instruction that the prior closure proved technical function only.
+No implementation authorized. Does not reopen or amend the Section 14 `PO RUNTIME CHECK PASS` closure — this adds a later, separate finding on top of it, per explicit instruction that the prior closure proved technical function only. **Superseded by Section 16** — the Product Owner issued the decision.
+
+## 16. Evidence Consolidation Plan
+
+- Opened: `2026-08-11`, immediately after the Section 15 audit, on explicit Product Owner decision. Baseline `e2c32178`.
+- Scope: planning only. No product code changed; no frozen document edited. `F13-SHIPMENT-001` not opened; Dashboard/BCVH Ranking/`Data QLML/`/`NETWORK-MANAGEMENT` untouched and unexpanded.
+- Status: `PLAN COMPLETE / AWAITING PO APPROVAL`.
+
+Full plan: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md`. Decision text, summary and the frozen-document amendment list are recorded once in `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 21.
+
+**Product Owner decision**: keep `/f13/evidence` as the single shared violation-detail screen; Tuyến Ranking must lead into it; streamline per the audit; remove Recommendation; controlled amendment of the frozen architecture documents may be *planned* (not executed).
+
+**Three new defects found while planning**: (F-1, blocking) the evidence-list API mapper discards `ma_tuyen`/`ten_tuyen`/`ma_bcvh`/`ten_bcvh`, so in "Tất cả tuyến" mode every row displays "Tất cả tuyến" as its route and route search matches nothing; (F-2, latent crash) an out-of-scope `row` reference in `RoutePerformancePage.jsx:262`; (F-3, baseline correction) the true full frontend suite is 256/269 with 13 proven-pre-existing failures, not the "25/25" previously reported for a narrow subset.
+
+No implementation authorized by this plan.

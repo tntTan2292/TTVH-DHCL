@@ -22,6 +22,7 @@
 - [18. Evidence / Chi tiết bưu gửi — PO Decision + Implementation Authorization](#18-evidence--chi-tiết-bưu-gửi--po-decision--implementation-authorization)
 - [19. Evidence / Chi tiết bưu gửi — PO RUNTIME CHECK PASS, Closure (delta only)](#19-evidence--chi-tiết-bưu-gửi--po-runtime-check-pass-closure-delta-only)
 - [20. Evidence Product-Value Audit (Tuyến Ranking → Shipment Detail → Evidence)](#20-evidence-product-value-audit-tuyến-ranking--shipment-detail--evidence)
+- [21. Evidence Consolidation — PO Decision + Plan](#21-evidence-consolidation--po-decision--plan)
 
 ## 1. Ticket Information
 
@@ -372,4 +373,42 @@ The frozen `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`/`EVIDENCE_CENTER_WIDGET
 4. Final route/URL for the merged screen.
 5. Sequencing/authorization to proceed at all.
 
-No implementation authorized by this audit. Governance state: `AUDIT COMPLETE / AWAITING PO DECISION`.
+No implementation authorized by this audit. Governance state: `AUDIT COMPLETE / AWAITING PO DECISION`. **Superseded by Section 21** — the Product Owner issued the decision.
+
+## 21. Evidence Consolidation — PO Decision + Plan
+
+- Status: `PLAN COMPLETE / AWAITING PO APPROVAL`
+- Opened: `2026-08-11`, immediately after the Section 20 audit, on explicit Product Owner decision.
+- Baseline: `e2c32178`. Planning only — no product code changed, no frozen document edited.
+
+Full plan in its own dedicated document (to avoid duplicating the same content in three places): `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md`.
+
+### Product Owner decision received (answers Section 20's 5 requests)
+
+1. Keep `/f13/evidence` as the single shared violation-detail screen.
+2. Tuyến Ranking must lead into Evidence; the separate shipment-detail flow is not maintained.
+3. Streamline Evidence per the audit.
+4. Remove Recommendation within this scope.
+5. Planning a controlled amendment of the frozen architecture documents is permitted (planning only — the documents themselves remain unedited pending separate approval).
+
+### Three new defects found during planning
+
+- **F-1 (blocking)**: `f13DashboardService.getEvidenceList()`'s mapper returns only 6 fields and discards `ma_tuyen`/`ten_tuyen`/`ma_bcvh`/`ten_bcvh`, even though the repository's `SELECT *` already returns them. Consequence: in "Tất cả tuyến" mode every row silently falls back to the URL parameter, so **every shipment displays "Tất cả tuyến" as its route** and route-name search matches nothing — the headline capability of the previous round cannot actually attribute a violation to a route. Fixed by an additive pass-through in Phase 1.
+- **F-2 (latent crash)**: `RoutePerformancePage.jsx:262` references an out-of-scope `row` (`route.failed ?? row.total_failed`), throwing a `ReferenceError` whenever `route.failed` is nullish — currently masked because the backend always populates it. One-line fix in Phase 3.
+- **F-3 (baseline correction)**: the true full frontend suite at `e2c32178` is **256 pass / 13 fail of 269**, not the "25/25" previously reported for a narrow targeted subset. All 13 are proven pre-existing (`git diff --name-only b83900af HEAD` over the route/dashboard/pages directories returns empty). One of them — `RoutePerformancePage.dateResolution.test.js` asserting a button label that does not match the code — sits directly in Phase 3's path and must be reconciled deliberately.
+
+### Plan summary
+
+- **Contract**: Tuyến Ranking sends `from_date` **and** `to_date` with the same resolved analysis day (plus `bcvh_id`, optional `route_id`, `reason`, `return_to`); Evidence keeps the parameter names it already reads, so the entire dialect translation lands in the link builder being rewritten anyway. The single-day rule is unchanged.
+- **Reconciliation**: Evidence's "Tất cả không đạt" must equal Tuyến Ranking's `Không đạt` for the same day/BCVH/route; the three group counts must sum to it; the all-routes total must equal the sum of per-route totals; displayed total must equal `meta.pagination.total_items`.
+- **Wireframe**: three regions — context/filter, violation list with group tabs, evidence detail panel — plus specified desktop, mobile, loading, empty and error behaviour.
+- **Widget disposition**: KEEP the filter bar and the shipment table; MERGE in the violation group tabs, Executive Brief and Timeline; REDESIGN Root Cause into a real evidence-detail panel; REMOVE Impact Overview, Recommendation, Drilldown and the stale "shell" disclaimer.
+- **Old screen**: `/f13/ranking/route/violations` becomes a **translating** redirect (`date` → both `from_date` and `to_date`) opened to `admin`+`viewer` so old bookmarks land on the correct day rather than the newest imported day; the component is retired only after Product Owner acceptance.
+- **Acceptance**: 14 criteria, AC-1..AC-5 for count reconciliation and AC-6..AC-9 for the date-parameter protections. AC-10 requires a real dual-role login as evidence, correcting the previous round's inability to demonstrate it.
+- **Phases**: (1) additive backend pass-through, (2) Evidence screen rebuild, (3) rewire Tuyến Ranking + translating redirect + F-2, (4) retire the old component after acceptance.
+
+### Frozen documents requiring amendment (planning only — none edited)
+
+`EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`, `EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md`, `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md`, both `SHIPMENT_PERFORMANCE_CENTER_*` architecture files, both Evidence/Shipment UX architecture files, `SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md`, and the "Frozen Documents" list in `PROJECT_PROGRESS.md`. Each requires separate explicit Product Owner approval before any edit. Full rationale per document: plan Section 8.
+
+No implementation authorized by this plan. Governance state: `PLAN COMPLETE / AWAITING PO APPROVAL`.
