@@ -21,6 +21,7 @@
 - [17. Evidence / Chi tiết bưu gửi — Discovery Delta](#17-evidence--chi-tiết-bưu-gửi--discovery-delta)
 - [18. Evidence / Chi tiết bưu gửi — PO Decision + Implementation Authorization](#18-evidence--chi-tiết-bưu-gửi--po-decision--implementation-authorization)
 - [19. Evidence / Chi tiết bưu gửi — PO RUNTIME CHECK PASS, Closure (delta only)](#19-evidence--chi-tiết-bưu-gửi--po-runtime-check-pass-closure-delta-only)
+- [20. Evidence Product-Value Audit (Tuyến Ranking → Shipment Detail → Evidence)](#20-evidence-product-value-audit-tuyến-ranking--shipment-detail--evidence)
 
 ## 1. Ticket Information
 
@@ -339,3 +340,36 @@ Full backend sweep at commit `a66fa57d`: **107/111 pass**. The 4 failures (`Dash
 Per explicit instruction, no next ticket is created or activated by this closure. Repository state after this closure: no active ticket, `AWAITING PO DIRECTION` for any next F1.3 or other scope.
 
 `NETWORK-MANAGEMENT-001`/`NETWORK-MANAGEMENT-002` were not reopened; `Data QLML/`, `.claude/`, and both stashes (`stash@{0}`, `stash@{1}`) confirmed untouched by this closure. No product code was changed in this closure round (documentation-only).
+
+## 20. Evidence Product-Value Audit (Tuyến Ranking → Shipment Detail → Evidence)
+
+- Status: `AUDIT COMPLETE / AWAITING PO DECISION`
+- Opened: `2026-08-11`, following explicit Product Owner instruction that the prior `PO RUNTIME CHECK PASS` closure (Section 19) proved only technical function, not product value.
+- Authority: discovery/planning only, within this existing program group. No product code, route, component, schema, or database change was made. `F13-SHIPMENT-001` (`stash@{0}`) not opened; Dashboard/BCVH Ranking/`Data QLML/` not touched or audited; `NETWORK-MANAGEMENT-001`/`002` not reopened.
+
+Full audit, in detail, in its own dedicated checkpoint (to avoid duplicating the same evidence in two documents): `docs/06_REVIEWS/Shared/F13-EVIDENCE-PRODUCT-VALUE-AUDIT_CHECKPOINT_001.md`.
+
+### Central finding
+
+The frozen `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`/`EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` define Evidence Center as a distinct verification/validation stage **after** Shipment Performance Center, explicitly forbidding both "duplicating Shipment Performance Center" and "carrying Recommendation content." What actually runs at the Product Owner-accepted canonical `/f13/evidence` today is `ShipmentPerformancePage.jsx` — the Shipment Performance Center component itself, including a `ShipmentRecommendation` widget — which is, by the frozen document's own stated rules, exactly what Evidence Center is forbidden from being. This is escalated as Decision 1 (checkpoint Section 12), not silently resolved.
+
+### Summary of findings (full detail in the dedicated checkpoint)
+
+1. Tuyến Ranking's "Mở chi tiết bưu gửi vi phạm" button still targets its own separate, `PO PASS`-closed screen (`/f13/ranking/route/violations`, `RouteViolationEvidencePage.jsx`) because that screen was built and closed under a different ticket delta (`2026-08-04`) before `/f13/evidence` was canonicalized (`2026-08-11`) — the two were never reconciled, not an oversight.
+2. Three implementations now share the identical backend contract (`GET /f13/evidence-list`) but split functionality: the violations screen has violation-reason classification but no route selector, no viewer access, and an un-fixed 1,000-row cap; `/f13/evidence` has the route selector, viewer access, and the pagination fix, but never surfaces `violation_reason` at all.
+3. Evidence today functions as a shipment-level exception list for a manager who already knows the failing BCVH/date/route — matching what the frozen IA calls Shipment Performance Center's job, not Evidence Center's.
+4. Widget-by-widget verdict: `ShipmentEvidenceSummary` is the one substantive widget; `ShipmentExecutiveBrief` is real but redundant; `ShipmentImpactOverview`/`ShipmentTimeline`/`ShipmentDrilldown` are decorative or fully redundant; `ShipmentRootCause` never surfaces the one thing it should (`violation_reason`); `ShipmentRecommendation` just echoes the delay number and is a direct frozen-architecture violation.
+5. Denominators are guaranteed identical between the two screens by construction (same repository query) **given the same date/BCVH/route**, but the two screens use an incompatible URL contract (`date` vs `from_date`/`to_date`) that would silently corrupt the date context if the link target were swapped without translation — flagged before it becomes a live defect.
+6. Proposed target flow: Tuyến Ranking → violation list (merge onto the already-real `RouteViolationEvidencePage.jsx`, adding Evidence's route selector/viewer access/pagination fix) → select one shipment → real single-shipment cause/timeline panel → explicit, honestly-labeled hand-off to Action Center.
+7. KEEP/REMOVE/MERGE/REDESIGN classification for every screen area and widget is recorded in full in the dedicated checkpoint Section 10.
+8. A no-code wireframe and 8 reconciliation-checkable acceptance criteria are recorded in the dedicated checkpoint Section 11.
+
+### Decisions requested from Product Owner (full text: dedicated checkpoint Section 12)
+
+1. Frozen-architecture path: amend the frozen Evidence Center docs to match the real, already-accepted product, or build toward the frozen verification/RCA spec as separate new scope with the current screen renamed/re-routed?
+2. Confirm or amend the merge direction (retire Evidence's own table, consolidate onto the violations screen's structure).
+3. `ShipmentRecommendation`: remove per the frozen boundary, or redesign into a real rule-driven widget if the boundary is relaxed?
+4. Final route/URL for the merged screen.
+5. Sequencing/authorization to proceed at all.
+
+No implementation authorized by this audit. Governance state: `AUDIT COMPLETE / AWAITING PO DECISION`.

@@ -16,6 +16,7 @@
 - [12. Evidence / Chi tiết bưu gửi Discovery Delta](#12-evidence--chi-tiết-bưu-gửi-discovery-delta)
 - [13. Evidence / Chi tiết bưu gửi Implementation](#13-evidence--chi-tiết-bưu-gửi-implementation)
 - [14. Evidence / Chi tiết bưu gửi PO Runtime Check Pass — Closure](#14-evidence--chi-tiết-bưu-gửi-po-runtime-check-pass--closure)
+- [15. Evidence Product-Value Audit](#15-evidence-product-value-audit)
 
 ## 1. Purpose
 
@@ -26,7 +27,7 @@ This checkpoint is the current-state entry point for `F13-STANDARDIZATION-001`. 
 | Field | Value |
 | --- | --- |
 | Program | `F13-STANDARDIZATION-001` |
-| Program State | `EVIDENCE DELTA — CLOSED / PO RUNTIME CHECK PASS` (as of `2026-08-11`, Section 14 / manifest Section 19) — Phase 0-4 unaffected, program itself remains open/not fully closed, delta scope only |
+| Program State | `EVIDENCE PRODUCT-VALUE AUDIT — AUDIT COMPLETE / AWAITING PO DECISION` (as of `2026-08-11`, Section 15 / manifest Section 20) — Phase 0-4 unaffected, program itself remains open/not fully closed, audit scope only |
 | Current Phase | `PHASE 0 — foundational items implemented (commits `e3ca2429`, `a0d4b041`), technical validation PASS; no standalone Product Owner runtime confirmation was recorded for this scope specifically` |
 | Phase 0 Implementation Performed | `Yes, partially` — KPI field standardization (`danh_gia_2026`), the two audited `/f13` API path fixes, and `dd/MM/yyyy` timestamp parsing were implemented and technically validated; not separately PO-runtime-confirmed as its own closure |
 | Phase 1 | `PLANNED / NOT ACTIVE` — not started; PO Gate 1 has not been reached |
@@ -140,3 +141,15 @@ Full findings and the decision request are recorded in `docs/10_TICKETS/F13-STAN
 - Scope of this closure: the Evidence/Chi tiết bưu gửi delta only (Sections 12-14 here; Sections 17-19 of the manifest). `F13-STANDARDIZATION-001` as a program is **not** closed by this — Phase 0-4 status is unchanged and unaffected.
 - No next ticket activated. `F13-SHIPMENT-001` (`stash@{0}`) and `F13-SURFACE-CLEANUP-PLAN` remain untouched/not created. `NETWORK-MANAGEMENT-001`/`002` not reopened. `Data QLML/`, `.claude/`, both stashes confirmed untouched. Documentation-only closure — no product code changed in this round.
 - Full decision-by-decision detail: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 19.
+
+## 15. Evidence Product-Value Audit
+
+- Opened: `2026-08-11`, following explicit Product Owner instruction that the Section 14 closure proved technical function only, not product value.
+- Scope: discovery/planning only, tracing Tuyến Ranking → current shipment detail → `/f13/evidence`. No product code changed. `F13-SHIPMENT-001` not opened; Dashboard/BCVH Ranking/`Data QLML/` not touched; `NETWORK-MANAGEMENT-001`/`002` not reopened.
+- Status: `AUDIT COMPLETE / AWAITING PO DECISION`.
+
+Full audit in its own dedicated checkpoint (to avoid duplicating the same evidence in two documents): `docs/06_REVIEWS/Shared/F13-EVIDENCE-PRODUCT-VALUE-AUDIT_CHECKPOINT_001.md`. Summary and the 5 Product Owner decisions requested are also recorded in `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 20, to avoid a third duplication.
+
+**Central finding**: the frozen Evidence Center architecture (`EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`, `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md`) explicitly forbids Evidence Center from duplicating Shipment Performance Center or carrying Recommendation content. The Product Owner-accepted canonical `/f13/evidence` today runs `ShipmentPerformancePage.jsx` — the Shipment Performance Center component itself, including a Recommendation widget — which is exactly what those frozen documents forbid. This is escalated to the Product Owner (Decision 1) rather than resolved by this audit.
+
+No implementation authorized. Does not reopen or amend the Section 14 `PO RUNTIME CHECK PASS` closure — this adds a later, separate finding on top of it, per explicit instruction that the prior closure proved technical function only.
