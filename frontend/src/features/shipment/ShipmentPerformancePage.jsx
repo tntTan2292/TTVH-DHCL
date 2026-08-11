@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Filter } from 'lucide-react';
 import { PageContainer, KPICard, SectionHeader, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import f13DashboardClient from '../../api/F13DashboardClient';
+import { resolveDefaultRouteDate } from '../route/routeRankingCalculations';
 import ShipmentExecutiveBrief from './ShipmentExecutiveBrief';
 import ShipmentImpactOverview from './ShipmentImpactOverview';
 import ShipmentTimeline from './ShipmentTimeline';
@@ -10,11 +12,9 @@ import ShipmentRootCause from './ShipmentRootCause';
 import ShipmentEvidenceSummary from './ShipmentEvidenceSummary';
 import ShipmentRecommendation from './ShipmentRecommendation';
 import ShipmentDrilldown from './ShipmentDrilldown';
-import { calculateDelayHours } from './shipmentPerformanceData';
+import { calculateDelayHours, fetchAllEvidenceRows } from './shipmentPerformanceData';
 
-const SHIPMENT_OPTIONS = [
-  { value: 'all', label: 'Tất cả shipment' },
-];
+const ALL_ROUTES_OPTION = { value: '', label: 'Tất cả tuyến' };
 
 function toNumber(value) {
   const number = Number(value);
@@ -60,42 +60,152 @@ export default function ShipmentPerformancePage() {
   const [error, setError] = useState(null);
   const [runtimeRows, setRuntimeRows] = useState([]);
   const [meta, setMeta] = useState({});
+  const [truncated, setTruncated] = useState(false);
 
-  const fromDate = searchParams.get('from_date') || '2026-06-23';
-  const toDate = searchParams.get('to_date') || '2026-06-23';
+  const [metaStatus, setMetaStatus] = useState('loading');
+  const [metaMaxDate, setMetaMaxDate] = useState(null);
+  const [bcvhOptions, setBcvhOptions] = useState([]);
+
+  const [routeStatus, setRouteStatus] = useState('idle');
+  const [routeOptions, setRouteOptions] = useState([]);
+
+  const fromDateParam = searchParams.get('from_date') || '';
+  const toDateParam = searchParams.get('to_date') || '';
   const interval = searchParams.get('interval') || 'daily';
-  const bcvhId = searchParams.get('bcvh_id') || 'BC_HUE01';
-  const bcvhName = searchParams.get('bcvh_name') || 'BCVH TP Huế';
-  const routeId = searchParams.get('route_id') || 'R_HUE01_01';
-  const routeName = searchParams.get('route_name') || 'Tuyến Phường Phú Hội';
+  const bcvhIdParam = searchParams.get('bcvh_id') || '';
+  const bcvhNameParam = searchParams.get('bcvh_name') || '';
+  // Empty route_id means "Tất cả tuyến" — never a fabricated route ID.
+  const routeIdParam = searchParams.get('route_id') || '';
+  const routeNameParam = searchParams.get('route_name') || '';
   const shipmentId = searchParams.get('shipment_id') || '';
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || 'delay_hours';
   const order = searchParams.get('order') || 'asc';
 
-  const updateParam = (key, value) => {
+  // Same single-day analysis contract already established by Dashboard/BCVH Ranking/Tuyến
+  // Ranking: GlobalFilterBar exposes two date fields, but only one authoritative evaluation
+  // day (ngay_do_kiem) drives the query — resolved via the same shared helper Route Ranking
+  // already uses, never a from_date–to_date range filter.
+  const fromDate = resolveDefaultRouteDate({ param: fromDateParam, metaMaxDate });
+  const toDate = resolveDefaultRouteDate({ param: toDateParam, metaMaxDate });
+  const analysisDate = resolveDefaultRouteDate({ param: toDateParam || fromDateParam, metaMaxDate });
+
+  // Real BCVH, sourced from bcvhOptions — never a hand-typed fallback code/name.
+  const bcvhId = bcvhIdParam || bcvhOptions[0]?.value || '';
+  const bcvhName = bcvhNameParam || bcvhOptions.find((opt) => opt.value === bcvhId)?.label || bcvhId;
+  const routeName = routeIdParam ? (routeNameParam || routeOptions.find((opt) => opt.value === routeIdParam)?.label || routeIdParam) : ALL_ROUTES_OPTION.label;
+
+  const updateParams = (patch) => {
     const params = new URLSearchParams(searchParams);
-    if (value === undefined || value === null || value === '') {
-      params.delete(key);
-    } else {
-      params.set(key, value);
-    }
+    Object.entries(patch).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
     setSearchParams(params);
   };
 
+  const updateParam = (key, value) => updateParams({ [key]: value });
+
+  // Real BCVH list from the same /f13/dashboard/meta contract Route Ranking already uses —
+  // never a hand-typed BCVH list.
+  useEffect(() => {
+    let mounted = true;
+    const fetchMeta = async () => {
+      try {
+        const result = await f13DashboardClient.getDashboardMeta();
+        if (!mounted) return;
+        setMetaMaxDate(result?.data?.max_date || null);
+        const units = Array.isArray(result?.data?.bcvh_units) ? result.data.bcvh_units : [];
+        setBcvhOptions(units.map((unit) => ({
+          value: unit.ma_bcvh || unit.value,
+          label: unit.ten_bcvh ? `BCVH ${unit.ten_bcvh.replace(/^BCVH\s+/i, '')}` : (unit.label || unit.ma_bcvh),
+        })));
+        setMetaStatus('ready');
+      } catch {
+        if (!mounted) return;
+        setMetaMaxDate(null);
+        setBcvhOptions([]);
+        setMetaStatus('error');
+      }
+    };
+    fetchMeta();
+    return () => { mounted = false; };
+  }, []);
+
+  // Real Tuyến list, dependent on the selected BCVH+date, from the same /f13/ranking/route
+  // contract Route Ranking already uses (route_type=all so every route is offered, not only
+  // the postman-classified default) — never a hand-typed route list.
+  useEffect(() => {
+    let mounted = true;
+    const fetchRoutes = async () => {
+      try {
+        setRouteStatus('loading');
+        const result = await f13DashboardClient.getRouteRanking(analysisDate, bcvhId, 1, 1000, 'ten_tuyen', 'asc', 'all');
+        if (!mounted) return;
+        const rows = Array.isArray(result?.data) ? result.data : [];
+        setRouteOptions(rows.map((row) => ({ value: row.ma_tuyen, label: row.ten_tuyen || row.ma_tuyen })));
+        setRouteStatus('ready');
+      } catch {
+        if (!mounted) return;
+        setRouteOptions([]);
+        setRouteStatus('error');
+      }
+    };
+    if (analysisDate && bcvhId) {
+      fetchRoutes();
+    }
+    return () => { mounted = false; };
+  }, [analysisDate, bcvhId]);
+
+  // Changing BCVH can make the current route_id invalid for the new BCVH/date — reset to
+  // "Tất cả tuyến" rather than silently keep querying a route_id that no longer applies.
+  useEffect(() => {
+    if (routeStatus !== 'ready') return;
+    if (!routeIdParam) return;
+    const stillValid = routeOptions.some((opt) => opt.value === routeIdParam);
+    if (!stillValid) {
+      updateParams({ route_id: '', route_name: '' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeStatus, routeOptions, routeIdParam]);
+
+  const handleBcvhChange = (value) => {
+    const option = bcvhOptions.find((opt) => opt.value === value);
+    // Explicit BCVH re-selection always resets Tuyến to "Tất cả tuyến" — the previously
+    // selected route belongs to the old BCVH's route list.
+    updateParams({ bcvh_id: value, bcvh_name: option?.label || '', route_id: '', route_name: '' });
+  };
+
+  const handleRouteChange = (value) => {
+    const option = routeOptions.find((opt) => opt.value === value);
+    updateParams({ route_id: value, route_name: value ? (option?.label || '') : '' });
+  };
+
+  // Fetches the complete matching Evidence set for the current date/BCVH/route — walks every
+  // backend page instead of the previous single hardcoded pageSize=1000 request, so search,
+  // sort, and counts below always reflect the full result, never a silently truncated slice.
   useEffect(() => {
     let mounted = true;
 
-    const fetchShipmentRuntime = async () => {
+    const fetchEvidence = async () => {
       try {
         setStatus('loading');
         setError(null);
 
-        const result = await f13DashboardClient.getShipmentEvidenceList(fromDate, bcvhId, routeId, 1, 1000);
+        const fetchPage = (page, pageSize) => f13DashboardClient.getEvidenceList(
+          analysisDate,
+          bcvhId,
+          routeIdParam || undefined,
+          page,
+          pageSize,
+        );
+        const result = await fetchAllEvidenceRows(fetchPage);
         if (!mounted) return;
 
-        const rows = Array.isArray(result?.data) ? result.data : [];
-        const mappedRows = rows.map((item) => {
+        const mappedRows = result.rows.map((item) => {
           const shipmentKey = item.ma_bg || item.id || item.shipment_id || 'N/A';
           const delayHours = calculateDelayHours(item.thoi_gian_ptc, item.thoi_gian_nop_tien, item.extended_data);
 
@@ -105,7 +215,7 @@ export default function ShipmentPerformancePage() {
             shipmentName: item.ten_bg || shipmentKey,
             bcvhId: item.ma_bcvh || bcvhId,
             bcvhName: item.ten_bcvh || bcvhName,
-            routeId: item.ma_tuyen || routeId,
+            routeId: item.ma_tuyen || routeIdParam,
             routeName: item.ten_tuyen || routeName,
             status: item.danh_gia_2026 || 'Không đạt',
             pickupTime: item.thoi_gian_ptc || null,
@@ -117,7 +227,8 @@ export default function ShipmentPerformancePage() {
         });
 
         setRuntimeRows(mappedRows);
-        setMeta(result?.meta || {});
+        setMeta(result.meta || {});
+        setTruncated(result.truncated);
         setStatus('success');
       } catch (e) {
         if (!mounted) return;
@@ -126,14 +237,22 @@ export default function ShipmentPerformancePage() {
       }
     };
 
-    if (fromDate && bcvhId && routeId) {
-      fetchShipmentRuntime();
+    if (analysisDate && bcvhId) {
+      fetchEvidence();
+    } else if (metaStatus === 'error') {
+      setStatus('error');
+      setError({ message: 'Không thể xác định ngày dữ liệu hoặc BCVH hợp lệ mới nhất.' });
+    } else if (metaStatus === 'ready' && (!analysisDate || !bcvhId)) {
+      setStatus('error');
+      setError({ message: 'Không có dữ liệu ngày hoặc BCVH hợp lệ trong hệ thống.' });
     }
 
-    return () => {
-      mounted = false;
-    };
-  }, [bcvhId, bcvhName, fromDate, routeId, routeName]);
+    return () => { mounted = false; };
+    // bcvhName/routeName are display-only fallbacks used inside the mapper, not fetch
+    // inputs — including them would refetch on every label resolution instead of only
+    // when the actual query (date/BCVH/route) changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisDate, bcvhId, routeIdParam, metaStatus]);
 
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
 
@@ -168,11 +287,11 @@ export default function ShipmentPerformancePage() {
   }, [shipmentId, sortedRows]);
 
   const summaryStats = useMemo(() => ([
-    { label: 'Shipment runtime', value: toNumber(meta?.totalItems || sortedRows.length || runtimeRows.length).toLocaleString('vi-VN'), delta: 'Runtime value', tone: 'primary' },
-    { label: 'BCVH context', value: bcvhName, delta: bcvhId, tone: 'warning' },
-    { label: 'Route context', value: routeName, delta: routeId, tone: 'success' },
+    { label: 'Evidence runtime', value: toNumber(meta?.pagination?.total_items ?? sortedRows.length ?? runtimeRows.length).toLocaleString('vi-VN'), delta: 'Toàn bộ tập kết quả', tone: 'primary' },
+    { label: 'BCVH context', value: bcvhName || 'N/A', delta: bcvhId || 'N/A', tone: 'warning' },
+    { label: 'Route context', value: routeName, delta: routeIdParam || ALL_ROUTES_OPTION.label, tone: 'success' },
     { label: 'Selected shipment', value: selectedShipment?.shipmentId || 'N/A', delta: selectedShipment?.status || 'N/A', tone: 'danger' },
-  ]), [bcvhId, bcvhName, meta?.totalItems, runtimeRows.length, routeId, routeName, selectedShipment, sortedRows.length]);
+  ]), [bcvhId, bcvhName, meta?.pagination?.total_items, routeIdParam, routeName, runtimeRows.length, selectedShipment, sortedRows.length]);
 
   const shipmentContext = [
     { label: 'Shipment ID', value: selectedShipment?.shipmentId || 'N/A' },
@@ -206,7 +325,7 @@ export default function ShipmentPerformancePage() {
     : ['• No runtime shipment data'];
 
   const evidenceContext = [
-    `Source: runtime evidence-list`,
+    `Source: runtime evidence-list (full result set)`,
     `BCVH context: ${bcvhName}`,
     `Route context: ${routeName}`,
     `Sort/order: ${sort}/${order}`,
@@ -235,17 +354,35 @@ export default function ShipmentPerformancePage() {
     updateParam('shipment_id', nextShipmentId);
   };
 
+  const routeSelector = (
+    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+      <Filter size={16} className="text-slate-400 shrink-0" />
+      <select
+        value={routeIdParam}
+        onChange={(e) => handleRouteChange(e.target.value)}
+        disabled={routeStatus !== 'ready'}
+        className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="Bộ lọc Tuyến"
+      >
+        <option value={ALL_ROUTES_OPTION.value}>{ALL_ROUTES_OPTION.label}</option>
+        {routeOptions.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+
   if (status === 'loading') {
     return (
-      <PageContainer title="Shipment Performance Center" subtitle="Đang tải runtime-backed content cho Shipment.">
-        <LoadingState label="Đang tải dữ liệu Shipment runtime..." />
+      <PageContainer title="Evidence — Chi tiết bưu gửi" subtitle="Đang tải runtime-backed content cho Evidence.">
+        <LoadingState label="Đang tải dữ liệu Evidence..." />
       </PageContainer>
     );
   }
 
   if (status === 'error') {
     return (
-      <PageContainer title="Shipment Performance Center" subtitle="Runtime-backed content chưa sẵn sàng.">
+      <PageContainer title="Evidence — Chi tiết bưu gửi" subtitle="Runtime-backed content chưa sẵn sàng.">
         <ErrorState
           description={error?.message}
           action={
@@ -263,7 +400,7 @@ export default function ShipmentPerformancePage() {
 
   if (!sortedRows.length) {
     return (
-      <PageContainer title="Shipment Performance Center" subtitle="Runtime-backed content theo kiến trúc đã Freeze.">
+      <PageContainer title="Evidence — Chi tiết bưu gửi" subtitle="Runtime-backed content theo kiến trúc đã Freeze.">
         <div className="space-y-5">
           <GlobalFilterBar
             fromDate={fromDate}
@@ -271,19 +408,20 @@ export default function ShipmentPerformancePage() {
             onFromDateChange={(value) => updateParam('from_date', value)}
             onToDateChange={(value) => updateParam('to_date', value)}
             bcvhValue={bcvhId}
-            onBcvhChange={(value) => updateParam('bcvh_id', value)}
+            onBcvhChange={handleBcvhChange}
+            bcvhOptions={bcvhOptions}
             searchValue={search}
             onSearchChange={(value) => updateParam('search', value)}
             actions={
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge label={SHIPMENT_OPTIONS[0].label} tone="info" />
+                {routeSelector}
                 <StatusBadge label={intervalLabel} tone="neutral" />
               </div>
             }
           />
           <EmptyState
-            title="Không có shipment runtime"
-            description="Không tìm thấy shipment nào phù hợp với context hiện tại. Hãy đổi bộ lọc hoặc kiểm tra nguồn dữ liệu."
+            title="Không có Evidence phù hợp"
+            description="Không tìm thấy bưu gửi Không đạt nào phù hợp với ngày/BCVH/tuyến hiện tại. Hãy đổi bộ lọc hoặc chọn 'Tất cả tuyến'."
           />
         </div>
       </PageContainer>
@@ -292,13 +430,13 @@ export default function ShipmentPerformancePage() {
 
   return (
     <PageContainer
-      title="Shipment Performance Center"
-      subtitle="Shipment runtime view theo kiến trúc đã Freeze."
+      title="Evidence — Chi tiết bưu gửi"
+      subtitle="Evidence runtime view theo kiến trúc đã Freeze."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label="Shipment Runtime" tone="info" />
+          <StatusBadge label="Evidence Runtime" tone="info" />
           <StatusBadge label={intervalLabel} tone="success" />
-          <StatusBadge label="Shared Layout Ready" tone="neutral" />
+          <StatusBadge label={`Ngày: ${analysisDate}`} tone="neutral" />
         </div>
       }
     >
@@ -309,16 +447,23 @@ export default function ShipmentPerformancePage() {
           onFromDateChange={(value) => updateParam('from_date', value)}
           onToDateChange={(value) => updateParam('to_date', value)}
           bcvhValue={bcvhId}
-          onBcvhChange={(value) => updateParam('bcvh_id', value)}
+          onBcvhChange={handleBcvhChange}
+          bcvhOptions={bcvhOptions}
           searchValue={search}
           onSearchChange={(value) => updateParam('search', value)}
           actions={
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge label={SHIPMENT_OPTIONS[0].label} tone="info" />
+              {routeSelector}
               <StatusBadge label={intervalLabel} tone="neutral" />
             </div>
           }
         />
+
+        {truncated && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Tập kết quả vượt giới hạn an toàn khi tải — một số bản ghi có thể chưa được hiển thị. Hãy thu hẹp bộ lọc (chọn một Tuyến cụ thể) để xem đầy đủ.
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {summaryStats.map((item) => (

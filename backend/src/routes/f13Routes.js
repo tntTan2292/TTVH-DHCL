@@ -23,7 +23,7 @@ router.get('/ranking/route', ...allowViewerRead, dashboardController.getRoute);
 router.get('/recommendations', ...allowViewerRead, kpiController.getRecommendations);
 
 router.get('/rca/pareto', ...allowAdminOnly, dashboardController.getPareto);
-router.get('/evidence-list', ...allowAdminOnly, dashboardController.getEvidence);
+router.get('/evidence-list', ...allowViewerRead, dashboardController.getEvidence);
 router.get('/dashboard/message', ...allowAdminOnly, kpiController.getDashboardMessage);
 router.get('/messages', ...allowAdminOnly, recommendationController.getMsgs);
 

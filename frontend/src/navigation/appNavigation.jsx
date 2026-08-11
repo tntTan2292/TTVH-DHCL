@@ -20,7 +20,7 @@ const F13_GROUP = {
     { name: 'BCVH Ranking', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
     { name: 'Tuyến Ranking', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
     { name: 'Pareto / RCA', path: '/f13/pareto', icon: <PieChart size={18} />, roles: [ROLE_ADMIN] },
-    { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} />, roles: [ROLE_ADMIN] },
+    { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
     { name: 'Message Center', path: '/f13/message', icon: <Info size={18} />, roles: [ROLE_ADMIN] },
   ],
 };

@@ -349,12 +349,22 @@ class FactBuuGuiRepository {
     // định) and compute accurate group counts regardless of page/page_size.
     getEvidenceListFacts(date, bcvh, route) {
         return new Promise((resolve, reject) => {
-            const sql = `
+            // `route` is optional: when absent/'all', every route for this date/BCVH is
+            // included (Product Owner-authorized Evidence "Tất cả tuyến" requirement).
+            // Existing callers that always pass a real route (e.g. RouteViolationEvidencePage)
+            // are unaffected — the ma_tuyen predicate still applies whenever route is given.
+            const params = [date, bcvh];
+            let sql = `
                 SELECT *
                 FROM fact_f13
-                WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ? AND danh_gia_2026 = 'Không đạt'
+                WHERE ngay_do_kiem = ? AND ma_bcvh = ?
             `;
-            db.all(sql, [date, bcvh, route], (err, rows) => {
+            if (route && route !== 'all') {
+                sql += ` AND ma_tuyen = ?`;
+                params.push(route);
+            }
+            sql += ` AND danh_gia_2026 = 'Không đạt'`;
+            db.all(sql, params, (err, rows) => {
                 if (err) return reject(err);
 
                 const mappedRows = rows.map(r => {

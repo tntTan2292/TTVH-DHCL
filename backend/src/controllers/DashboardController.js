@@ -124,9 +124,12 @@ class DashboardController {
             const page = parseInt(req.query.page) || 1;
             const pageSize = parseInt(req.query.page_size) || 20;
 
-            if (!date || !bcvh || !route) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date, bcvh, route' }});
+            if (!date || !bcvh) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date, bcvh' }});
 
-            const result = await f13DashboardService.getEvidenceList(date, bcvh, route, page, pageSize, reason);
+            // `route` is optional: absent or 'all' means "every route for this BCVH/date",
+            // per the Product Owner-authorized Evidence "Tất cả tuyến" requirement.
+            const routeFilter = route && route !== 'all' ? route : undefined;
+            const result = await f13DashboardService.getEvidenceList(date, bcvh, routeFilter, page, pageSize, reason);
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});

@@ -215,3 +215,78 @@ No new technical fact contradicts the `2026-08-04` MERGE recommendation. The sys
 ### What must remain unchanged
 
 No product code, route, navigation entry, API contract, schema, or database was modified by this delta. `git diff --name-only` at the time of writing shows only documentation files touched by this delta.
+
+## 18. Evidence / Chi tiết bưu gửi — PO Decision + Implementation Authorization
+
+- Status: `IMPLEMENTATION AUTHORIZED` (as of `2026-08-11`), scope locked below.
+- Authority: explicit Product Owner remediation decision (12 numbered points), superseding the "Decision required" list in Section 17. Answers Section 17's three open questions: MERGE confirmed (point 1-3); this manifest (`F13-STANDARDIZATION-001`) carries the scope, not `F13-SHIPMENT-001` or `F13-SURFACE-CLEANUP-PLAN` (point 10); implementation authorized now (all points).
+
+### Locked PO decision
+
+1. `ShipmentPerformancePage.jsx` becomes the official component rendered at `/f13/evidence`.
+2. `/f13/evidence` is the canonical route.
+3. `/f13/ranking/shipment` is not deleted; it redirects to `/f13/evidence`, preserving the full query string / deep-link context.
+4. `/f13/evidence` read access opens to `ROLE_ADMIN` and `ROLE_VIEWER`.
+5. Add a real Tuyến (route) selector on Evidence: sourced from real data/API, dependent on the selected BCVH, supporting "Tất cả tuyến" if the data contract allows it, no fake fallback values (`BC_HUE01`/`R_HUE01_01`), correct behavior when a BCVH change invalidates the current `route_id`.
+6. The screen must open usefully from the Sidebar with zero query params — no fabricated/fake default context.
+7. Keep the existing F1.3 single-day analysis contract; do not silently switch to a `from_date`–`to_date` range just because `GlobalFilterBar` exposes two date fields. Verify current authority first and document how Evidence stays consistent with Dashboard/BCVH Ranking/Tuyến Ranking.
+8. Address the implicit `pageSize=1000` cap: verify the `/f13/evidence-list` pagination contract; implement real pagination or an equivalent that guarantees no record loss; search/sort/aggregate counts must have clear semantics over the full matching set, never silently limited to the first 1,000 rows.
+9. Preserve drill-down context: `from_date`/`date`, `bcvh_id`, `bcvh_name`, `route_id`, `route_name`, `shipment_id`.
+10. No competing ticket: do not activate `F13-SHIPMENT-001` (stash), do not create `F13-SURFACE-CLEANUP-PLAN`.
+11. No change to Dashboard, BCVH Ranking, or Tuyến Ranking beyond the minimum wiring genuinely required to preserve deep links.
+12. Do not reopen `NETWORK-MANAGEMENT-001`/`002`; do not touch `Data QLML/`; keep both stashes untouched; do not commit `.claude/`.
+
+### Contract verification performed before implementation (read-only, this round)
+
+- **Date semantics (point 7):** `fact_f13.ngay_do_kiem` is single-day (`WHERE ngay_do_kiem = ?` in `FactBuuGuiRepository.getEvidenceListFacts`); Route Ranking (`RoutePerformancePage.jsx`) already resolves one `analysisDate` from `toDateParam || fromDateParam` via the shared `resolveDefaultRouteDate({ param, metaMaxDate })` helper (`routeRankingCalculations.js`), leaving `GlobalFilterBar`'s two date inputs as display-only surface over one authoritative evaluation day. Evidence reuses this exact same helper and the same `toDateParam || fromDateParam` resolution rule, so its single analysis day is derived identically to Dashboard/BCVH Ranking/Tuyến Ranking — no range-filtering semantics introduced.
+- **BCVH list source (supports point 5/6):** `kpiController.getDashboardMeta` (`GET /f13/dashboard/meta`, `admin`+`viewer`) already returns real `bcvh_units` and `max_date`; `RoutePerformancePage.jsx` already consumes it for its BCVH selector and default date. Evidence reuses the identical pattern instead of a new endpoint.
+- **Route list source (point 5):** `GET /f13/ranking/route?date&bcvh&route_type=all` (`admin`+`viewer`, already implemented) returns real per-BCVH, per-date routes (`ma_tuyen`/`ten_tuyen`) — this is the real data source for the Tuyến selector; no new backend endpoint needed.
+- **"Tất cả tuyến" (point 5):** `FactBuuGuiRepository.getEvidenceListFacts(date, bcvh, route)` currently hard-requires an exact `ma_tuyen` match (`AND ma_tuyen = ?`), and `DashboardController.getEvidence` 400s when `route` is missing — the current contract does **not** allow "all routes" for one BCVH+date. Assessed as a safe, backward-compatible technical relaxation (drop the `ma_tuyen` predicate only when `route` is absent/`'all'`; existing callers that always pass a real route, e.g. `RouteViolationEvidencePage.jsx`, are unaffected) — not a business-rule change, so authorized to implement directly per point 5's "nếu data contract cho phép".
+- **Pagination (point 8):** `f13DashboardService.getEvidenceList` already implements real, correct pagination server-side (`page`/`page_size` → `total_items`/`total_pages`, computed over the full filtered set, independent of the page returned) — the 1,000-row cap is a **frontend-only** defect: `ShipmentPerformancePage.jsx` calls with a single hardcoded `pageSize=1000` and never requests further pages. Remediation: a pure helper fetches every backend page for the current filter and concatenates before any search/sort/render, so counts and search/sort always operate on the complete matching set, with a bounded safety ceiling that surfaces (never silently drops) an over-ceiling condition.
+- **Access role (point 4):** `/evidence-list` is currently `allowAdminOnly` in `f13Routes.js`; `/ranking/route` and `/dashboard/meta` (the two data sources the new selector needs) are already `admin`+`viewer`. `ProtectedRoute` (`frontend/src/components/ProtectedRoute.jsx`) is the only live route gate — it reads only the per-route `allowedRoles` prop passed from `App.jsx`. The separate `VIEWER_ALLOWED_PATH_PREFIXES` constant in `frontend/src/auth/roles.js` is confirmed still dead (not read by `ProtectedRoute` or any live gate, same finding already recorded for `NETWORK-MANAGEMENT-002`) — left untouched per that same precedent instruction not to edit dead defensive configuration.
+- **No authority conflict found.** No conflict between this plan and any frozen document, SSOT, or other active ticket was identified; nothing required escalation.
+
+### Authorized implementation scope (delta-only)
+
+- `frontend/src/features/shipment/ShipmentPerformancePage.jsx` — real BCVH/date/route resolution (no fake fallback), real Tuyến selector with "Tất cả tuyến", full-result-set fetch (no silent 1,000 cap), preserved drill-down context, usable with zero query params.
+- `frontend/src/features/shipment/shipmentPerformanceData.js` — new pure pagination-aggregation helper.
+- `frontend/src/App.jsx` — `evidence` route now renders `ShipmentPerformancePage` (`admin`+`viewer`); `ranking/shipment` becomes a query-preserving redirect to `/f13/evidence`.
+- `frontend/src/navigation/appNavigation.jsx` — `Evidence` nav entry opened to `admin`+`viewer`.
+- `backend/src/routes/f13Routes.js` — `/evidence-list` opened to `admin`+`viewer`.
+- `backend/src/controllers/DashboardController.js` — `getEvidence` validation: `route` becomes optional.
+- `backend/src/repositories/FactBuuGuiRepository.js` — `getEvidenceListFacts`: `route` becomes optional (drops the `ma_tuyen` predicate only when absent/`'all'`).
+- Corresponding test updates: `App.role-routing.test.js`, `FactBuuGuiRepository.evidenceListFacts.test.js`, new `shipmentPerformanceData` pagination-helper tests, new `ShipmentPerformancePage` source-contract tests.
+- Explicitly not touched: `RoutePerformancePage.jsx`, `BcvhRankingPage.jsx`, `DashboardPage.jsx` (Dashboard/BCVH/Tuyến Ranking, point 11), `RouteViolationEvidencePage.jsx`, `frontend/src/auth/roles.js`, `NETWORK-MANAGEMENT-001`/`002` files, `Data QLML/`, both stashes, `.claude/`.
+
+### Implementation record
+
+- `frontend/src/features/shipment/ShipmentPerformancePage.jsx` rewritten: real defaults sourced from `getDashboardMeta()` (date/BCVH) and `getRouteRanking(..., 'all')` (route list) — no more hardcoded `'2026-06-23'`/fake BCVH/route IDs; a real Tuyến `<select>` (`Tất cả tuyến` + real per-BCVH options) added to the filter bar; BCVH re-selection and BCVH-invalidates-route detection both reset `route_id`/`route_name` together; full drill-down context (`from_date`, `bcvh_id`, `bcvh_name`, `route_id`, `route_name`, `shipment_id`) preserved; title updated to "Evidence — Chi tiết bưu gửi".
+- `frontend/src/features/shipment/shipmentPerformanceData.js` — new pure `fetchAllEvidenceRows()` helper walks every backend page (`page`/`page_size` → `total_pages`) and concatenates, replacing the single hardcoded `pageSize=1000` call; a bounded safety ceiling (`maxPages`) reports `truncated: true` instead of silently dropping rows past it, surfaced in the UI as a visible warning banner.
+- `frontend/src/App.jsx` — `evidence` route now renders `ShipmentPerformancePage` (`admin`+`viewer`); new `LegacyShipmentRedirect` component makes `ranking/shipment` a query-string-preserving redirect to `/f13/evidence` (`admin`+`viewer`, not deleted).
+- `frontend/src/navigation/appNavigation.jsx` — `Evidence` nav entry role restriction removed (now visible to `admin`+`viewer`, matching every other F1.3 non-admin-only entry).
+- `backend/src/routes/f13Routes.js` — `/evidence-list` moved from `allowAdminOnly` to `allowViewerRead`.
+- `backend/src/controllers/DashboardController.js` — `getEvidence` validation relaxed to `date`+`bcvh` only; `route` optional, `'all'`/absent treated as "every route".
+- `backend/src/repositories/FactBuuGuiRepository.js` — `getEvidenceListFacts` drops the `ma_tuyen` predicate only when `route` is absent/`'all'`; existing callers passing a real route (`RouteViolationEvidencePage.jsx`) unaffected.
+- Confirmed untouched (`git diff --name-only`): `RoutePerformancePage.jsx`, `BcvhRankingPage.jsx`, `DashboardPage.jsx`, `RouteViolationEvidencePage.jsx`, `frontend/src/auth/roles.js`, all `NETWORK-MANAGEMENT-001`/`002` files, `Data QLML/`, both stashes, `.claude/`.
+
+### Validation
+
+- Backend: `FactBuuGuiRepository.evidenceListFacts.test.js` (2 new tests for the optional-route path), `F13DashboardService.evidenceList.test.js` unchanged — targeted suite 16/16 pass. Full `routes+controllers+services+repositories` sweep: 107/111 pass; the same 4 failures (`DashboardController.recovery.test.js` live-KPI-database tests, `timelineService.recovery.test.js` monthly-rank test) were confirmed present on the pre-existing baseline via `git stash` (105/109 pass/fail before this delta) — pre-existing, environment/live-data-dependent, unrelated to this delta's files.
+- Frontend: `shipmentPerformanceData.test.js` (10, incl. 5 new `fetchAllEvidenceRows` tests), new `ShipmentPerformancePage.contract.test.js` (7), `App.role-routing.test.js` (updated), `auth/roles.test.js`, `RouteViolationEvidencePage.smoke.test.js` — 25/25 pass. `oxlint` clean on all changed files. `vite build` succeeds (688 modules).
+- Runtime: not performed by Claude Code this round. The only credential present in this workspace is `QIS_VIEWER_PASSWORD_HASH` (a hash, not plaintext) — no usable viewer or admin plaintext credential is available, the same precedent already recorded for the `NETWORK-MANAGEMENT-001` Phase 4 verification round. A concrete PO/Antigravity runtime checklist is provided below instead of fabricated browser evidence.
+
+### PO / Antigravity runtime checklist
+
+1. Open `/f13/evidence` from the Sidebar with no query params, as both `admin` and `viewer` — confirm it loads a real date/BCVH (not blank, not an error) and a working Tuyến selector.
+2. Open `/f13/evidence` via an existing drill-down link (with `from_date`/`bcvh_id`/`bcvh_name`/`route_id`/`route_name`/`shipment_id`) — confirm context matches the source screen.
+3. Change BCVH — confirm the Tuyến selector refreshes to that BCVH's real routes and any previously selected route is cleared to "Tất cả tuyến".
+4. Select "Tất cả tuyến" — confirm rows from every route for that BCVH/date appear (not just one route).
+5. Select a specific Tuyến — confirm rows narrow to that route only.
+6. Select a `shipment_id` — confirm the detail widgets update to that shipment.
+7. Open the old URL `/f13/ranking/shipment?...` with query params — confirm it redirects to `/f13/evidence` with the same params intact.
+8. Confirm both `admin` and `viewer` can reach `/f13/evidence` (viewer previously blocked).
+9. Test empty (a date/BCVH/route combination with zero Không đạt rows), loading, and a deliberately broken network/auth case — confirm each renders its intended state, not a crash.
+10. If a real BCVH+date combination is known to exceed 1,000 Không đạt rows, confirm the full count now loads (compare `Evidence runtime` KPI card total against the source Tuyến Ranking/Dashboard figure for that BCVH/date) — otherwise confirm at least one combination under 1,000 still matches exactly.
+11. Cross-check the Evidence total for a given BCVH/date/route against the equivalent count on Dashboard/BCVH Ranking/Tuyến Ranking for the same context, to confirm the single-day contract stayed consistent.
+
+Governance state: `READY FOR PO CHECK`. Claude Code does not self-award PO PASS.

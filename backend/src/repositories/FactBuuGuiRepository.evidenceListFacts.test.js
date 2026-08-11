@@ -31,6 +31,51 @@ test('getEvidenceListFacts selects the full Không đạt population for date/BC
     }
 });
 
+test('getEvidenceListFacts omits the ma_tuyen predicate when route is absent (Evidence "Tất cả tuyến")', async () => {
+    const originalAll = dbModule.db.all;
+    const observedSql = [];
+    const observedParams = [];
+
+    dbModule.db.all = (sql, params, callback) => {
+        observedSql.push(sql);
+        observedParams.push(params);
+        callback(null, [
+            { ma_bg: 'BG010', danh_gia_2026: 'Không đạt' },
+        ]);
+    };
+
+    try {
+        await repo.getEvidenceListFacts('2026-06-14', '533140', undefined);
+
+        assert.equal(observedSql.length, 1);
+        assert.doesNotMatch(observedSql[0], /ma_tuyen/);
+        assert.deepEqual(observedParams[0], ['2026-06-14', '533140']);
+    } finally {
+        dbModule.db.all = originalAll;
+    }
+});
+
+test('getEvidenceListFacts omits the ma_tuyen predicate when route is the "all" sentinel', async () => {
+    const originalAll = dbModule.db.all;
+    const observedSql = [];
+    const observedParams = [];
+
+    dbModule.db.all = (sql, params, callback) => {
+        observedSql.push(sql);
+        observedParams.push(params);
+        callback(null, []);
+    };
+
+    try {
+        await repo.getEvidenceListFacts('2026-06-14', '533140', 'all');
+
+        assert.doesNotMatch(observedSql[0], /ma_tuyen/);
+        assert.deepEqual(observedParams[0], ['2026-06-14', '533140']);
+    } finally {
+        dbModule.db.all = originalAll;
+    }
+});
+
 test('getEvidenceListFacts decodes extended_data JSON when present', async () => {
     const originalAll = dbModule.db.all;
 

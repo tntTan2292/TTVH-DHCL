@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import DashboardHome from './pages/DashboardHome';
 import LoginPage from './pages/LoginPage';
@@ -37,6 +37,14 @@ function HomeRoute() {
   }
 
   return <DashboardHome />;
+}
+
+// /f13/ranking/shipment is not deleted (Product Owner decision, 2026-08-11): it now redirects
+// to the canonical /f13/evidence route, preserving the full query string / deep-link context
+// (from_date, bcvh_id, bcvh_name, route_id, route_name, shipment_id, ...).
+function LegacyShipmentRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/f13/evidence${location.search}`} replace />;
 }
 
 function App() {
@@ -85,9 +93,9 @@ function App() {
               <Route path="ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><BcvhRankingPage /></ProtectedRoute>} />
               <Route path="ranking/route" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><RoutePerformancePage /></ProtectedRoute>} />
               <Route path="ranking/route/violations" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><RouteViolationEvidencePage /></ProtectedRoute>} />
-              <Route path="ranking/shipment" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><ShipmentPerformancePage /></ProtectedRoute>} />
+              <Route path="ranking/shipment" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyShipmentRedirect /></ProtectedRoute>} />
               <Route path="pareto" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Pareto / RCA" /></ProtectedRoute>} />
-              <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Evidence List" /></ProtectedRoute>} />
+              <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><ShipmentPerformancePage /></ProtectedRoute>} />
               <Route path="message" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Message Center" /></ProtectedRoute>} />
             </Route>
 
