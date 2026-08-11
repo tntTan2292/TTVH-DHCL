@@ -172,7 +172,7 @@ No implementation authorized by this plan. **Superseded by Section 17** — the 
 
 ## 17. Evidence Consolidation Phase 1 Implementation
 
-- Implemented: `2026-08-11`, plan commit `34f42c57`. Status: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`.
+- Implemented: `2026-08-11`, implementation commit `b147df7c` (plan approved at `34f42c57`). Status: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`.
 - Scope: backend-only, additive-only. `f13DashboardService.getEvidenceList()`'s mapper now passes through `ma_tuyen`/`ten_tuyen`/`ma_bcvh`/`ten_bcvh` (fixes F-1 — the repository already returned them; the mapper discarded them). Zero frontend changes were required — both existing consumers already prefer a real API value over their own URL-parameter fallback.
 - Tests: 2 new pass-through tests (incl. a direct regression guard proving two rows in "Tất cả tuyến" mode resolve two different real routes, never a shared fallback) + 2 new tests proving the violation-reason classification is a true partition (mutually exclusive, exhaustive over `ma_bg`) before trusting the numeric summary, per explicit Product Owner instruction. Targeted evidence suite 20/20; full backend sweep 111/115 (same 4 pre-existing failures, unchanged); full frontend sweep 256/269 (no frontend file touched, confirms no incidental regression) — reported as the true full-suite figure, not a narrowed subset.
 - Product Owner decisions recorded for Phase 2/3 (not implemented this round): screen name "Evidence — Chi tiết bưu gửi vi phạm"; arriving from Tuyến Ranking keeps the clicked violation group (total click → "Tất cả không đạt"); no Action Center button until a real hand-off exists; frozen-document amendment approved in principle but requires its own governance delta before Phase 2.

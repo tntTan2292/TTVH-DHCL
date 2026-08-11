@@ -283,7 +283,7 @@ Planning only. No product code, route, component, schema, database, or frozen do
 
 ## 12. Phase 1 Implementation Record (2026-08-11)
 
-Product Owner approved this plan and authorized Phase 1 only. Implemented at plan commit `34f42c57`; status `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`.
+Product Owner approved this plan and authorized Phase 1 only. Implemented at commit `b147df7c` (plan approved at `34f42c57`); status `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`.
 
 ### What changed
 

@@ -417,7 +417,7 @@ No implementation authorized by this plan. Governance state: `PLAN COMPLETE / AW
 ## 22. Evidence Consolidation — Phase 1 Implementation
 
 - Status: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`
-- Implemented: `2026-08-11`. Plan commit `34f42c57`.
+- Implemented: `2026-08-11`. Implementation commit `b147df7c` (plan approved at `34f42c57`).
 - Authority: explicit Product Owner approval of the Evidence Consolidation plan (Section 21), scoped strictly to Phase 1.
 
 ### Product Owner approval and decisions received this round
