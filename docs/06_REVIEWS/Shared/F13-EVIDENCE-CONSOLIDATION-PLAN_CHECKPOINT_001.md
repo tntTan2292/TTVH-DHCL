@@ -15,6 +15,7 @@
 - [11. Scope Discipline](#11-scope-discipline)
 - [12. Phase 1 Implementation Record (2026-08-11)](#12-phase-1-implementation-record-2026-08-11)
 - [13. Phase 1 Remediation — PO Runtime Evidence (2026-08-11)](#13-phase-1-remediation--po-runtime-evidence-2026-08-11)
+- [14. PO Finding — Search Result Presentation Ambiguity, Locked Into Phase 2 (2026-08-12)](#14-po-finding--search-result-presentation-ambiguity-locked-into-phase-2-2026-08-12)
 
 ## 1. Purpose And Authority
 
@@ -111,32 +112,39 @@ Regions and behaviour only — not visual design, not implementation-ready marku
 │  Ngày [__/__/____]   BCVH [▼ real list]   Tuyến [▼ incl. Tất cả tuyến]    │
 │  Tìm kiếm [_____________]                                                 │
 ├──────────────────────────────────────────────────────────────────────────┤
+│ SEARCH RESULT SUMMARY  (only rendered while a keyword is active — added   │
+│ 2026-08-12, see Section 14)                                                │
+│  "Tìm thấy [n bưu gửi] thuộc [m tuyến] cho '[keyword]'"   [Xóa từ khóa]   │
+├──────────────────────────────────────────────────────────────────────────┤
 │ VIOLATION GROUP TABS  (counts from the server, never counted on screen)   │
 │  [ Chậm nộp tiền  N ]* [ Không đạt khác  N ] [ Chưa xác định  N ]          │
 │  [ Tất cả không đạt  N ]                          * = default selected     │
 ├────────────────────────────────────────┬─────────────────────────────────┤
 │ VIOLATION TABLE (≈ 2/3 width)          │ EVIDENCE DETAIL (≈ 1/3 width)   │
 │                                         │                                 │
-│  Mã BG │ Tuyến* │ Lý do │ PTC │ Nộp     │  Empty until a row is chosen:   │
-│        │        │       │     │ tiền │  │  "Chọn một bưu gửi để xem      │
-│        │        │       │     │ Độ trễ │   bằng chứng chi tiết."         │
-│  ─────────────────────────────────────  │                                 │
-│  (rows; click selects)                  │  When chosen:                   │
-│                                         │   • Mã bưu gửi                  │
-│  * "Tuyến" column appears only in       │   • BCVH · Tuyến · Ngày         │
-│    "Tất cả tuyến" mode — needs the      │   • Kết quả (danh_gia_2026)     │
-│    F-1 backend fix                      │   • Nhóm vi phạm (badge)        │
-│                                         │   • Mốc thời gian:              │
-│  ─────────────────────────────────────  │       PTC → Nộp tiền            │
-│  Hiển thị X–Y / TỔNG  ◀ Trước  Sau ▶    │   • Độ trễ, and the “> 3.0h”    │
-│  (TỔNG = meta.pagination.total_items)   │     rule stated explicitly when │
-│                                         │     it is what caused the       │
+│  No active keyword: flat table —        │  Empty until a shipment is      │
+│  Mã BG │ Tuyến* │ Lý do │ PTC │ Nộp      │  explicitly chosen:             │
+│  tiền │ Độ trễ — click a row to select. │  "Chọn một bưu gửi để xem       │
+│                                         │   bằng chứng chi tiết." — never │
+│  Active keyword (2026-08-12, Section    │   auto-selected by a keyword    │
+│  14): rows regroup by real route        │   search (Section 14, point 1). │
+│  ([mã] - [tên tuyến] + count); every    │                                 │
+│  matching/near-matching route shown as  │  When chosen:                   │
+│  its own group, expandable to the       │   • Mã bưu gửi                  │
+│  individual bưu gửi (Section 14, points │   • BCVH · Tuyến · Ngày         │
+│  3-4); grouping keyed by real ma_bg/     │   • Kết quả (danh_gia_2026)     │
+│  ma_tuyen, never by route-name text      │   • Nhóm vi phạm (badge)        │
+│  alone (Section 14, point 9).            │   • Mốc thời gian:              │
+│                                         │       PTC → Nộp tiền            │
+│  * "Tuyến" column in "Tất cả tuyến"     │   • Độ trễ, and the "> 3.0h"    │
+│    mode needs the F-1 backend fix       │     rule stated explicitly when │
+│    (already shipped, Phase 1).          │     it is what caused the       │
 │                                         │     classification              │
-│                                         │   • Hand-off: “Chuyển sang      │
-│                                         │     Action Center” — shown as   │
-│                                         │     an honest not-yet-available │
-│                                         │     state while Action Center   │
-│                                         │     does not exist              │
+│  ─────────────────────────────────────  │   • Hand-off: "Chuyển sang      │
+│  Hiển thị X–Y / TỔNG  ◀ Trước  Sau ▶    │     Action Center" — shown as   │
+│  (TỔNG = meta.pagination.total_items;   │     an honest not-yet-available │
+│  distinct from the pre-search context   │     state while Action Center   │
+│  total — Section 14, point 6)           │     does not exist              │
 └────────────────────────────────────────┴─────────────────────────────────┘
 ```
 
@@ -163,7 +171,7 @@ Single column, in this order: context header (collapsible) → group tabs (horiz
 | Context / filter bar (date, BCVH, route selector, search) | **KEEP** | Already real; gains the incoming-context handling from 3.1 |
 | Violation group tabs (currently only on the old screen) | **MERGE** into `/f13/evidence` | The one capability Evidence lacks today; counts stay server-sourced |
 | `ShipmentEvidenceSummary` (the shipment table) | **KEEP + REDESIGN columns** | Add `Lý do vi phạm`; add `Tuyến` in all-routes mode (needs F-1); make it the primary table |
-| `ShipmentExecutiveBrief` | **MERGE** into the context header | Its four values duplicate the header; no separate card |
+| `ShipmentExecutiveBrief` | **MERGE** into the context header — reaffirmed 2026-08-12, no interim patch | Its four values duplicate the header; no separate card. Its "auto-selects the first matching row/route" behavior (Section 14) is a symptom of this widget's design, not something to fix in place — the widget is already locked for removal as a standalone card, so it is addressed by the Section 14 contract (no auto-selection, explicit selection only) applied to the merged context header/detail panel in Phase 2, never by patching `ShipmentExecutiveBrief.jsx` itself (Section 14, point 10) |
 | `ShipmentRootCause` | **REDESIGN** into the evidence-detail panel | Replace canned bullets with real `violation_reason` + timeline + the `> 3.0h` rule statement |
 | `ShipmentTimeline` | **MERGE** into the evidence-detail panel | Becomes the PTC → Nộp tiền timeline block, not a standalone card |
 | `ShipmentImpactOverview` | **REMOVE** | Two of its three fields echo UI state (search text, row count), not business data |
@@ -209,6 +217,20 @@ Numbered so a Product Owner check can cite them individually. AC-1 to AC-5 are t
 | AC-14 | Tuyến Ranking's own table, KPI cards and selected-route panel are visually and numerically unchanged apart from the drill-down button | Compare against the current screen |
 
 AC-10 is stated deliberately: the previous round could not evidence a dual-role login and had to record technical verification instead. This plan treats a real two-role login as a required acceptance item rather than an optional one.
+
+**AC-15 to AC-23 — added 2026-08-12** (Product Owner finding, locked into Phase 2 scope; full evidence and the 10-point source contract: Section 14):
+
+| # | Criterion | How to verify |
+| --- | --- | --- |
+| AC-15 | Typing a keyword only filters the result set — it never auto-selects a row/route as a "representative" result, and the evidence-detail panel stays empty ("Chọn một bưu gửi...") until the user explicitly clicks one shipment | Type a keyword with multiple matches; confirm the detail panel does not populate until a row is clicked |
+| AC-16 | Directly below the filter bar, an active keyword shows the exact line "Tìm thấy [n bưu gửi] thuộc [m tuyến] cho '[keyword]'" | Type a keyword; read the summary line; confirm `n` and `m` match the real result set |
+| AC-17 | All matching shipments are shown, grouped by route as `[mã] - [tên tuyến]` + shipment count, each group expandable to the individual bưu gửi | Type a keyword matching multiple routes; confirm every group is visible and expandable |
+| AC-18 | Every route whose name matches or nearly matches the keyword appears as its own group — never only the first matching route | Use a keyword known to match ≥2 routes (e.g. "hồng th"); confirm all matching route groups appear, not just one |
+| AC-19 | Three counts are visibly distinct and never conflated: total Evidence in the context before search, the count after search, and the currently selected shipment | Apply a keyword; confirm the pre-search total, the post-search count, and the selected-shipment indicator are three separate, correctly-labeled numbers |
+| AC-20 | The Tuyến dropdown remains a separate, independent filter from search — search never implicitly restricts results to one route or behaves like a route selector | Use search and the Tuyến dropdown independently and together; confirm neither silently overrides the other |
+| AC-21 | Explicit 0/1/n result states exist, a "clear keyword" control is present and works, and behavior is correct on both desktop and mobile | Force each result count; confirm state and control; check both viewport sizes |
+| AC-22 | Grouping and reconciliation use real `ma_bg`/`ma_tuyen` values, never route-name text alone — two differently-coded routes must never merge into one group even if their display names are identical or similar | Find or construct a case with similar/duplicate route names on different `ma_tuyen`; confirm they remain separate groups |
+| AC-23 | `ShipmentExecutiveBrief.jsx` receives no interim patch for this finding — its disposition remains exactly what Section 5 already locks (MERGE into the context header, not a standalone auto-selecting card) | Confirm no code change was made to `ShipmentExecutiveBrief.jsx` outside the Phase 2 widget-consolidation work itself |
 
 ## 8. Task 6 — Architecture Documents Needing Amendment
 
@@ -367,3 +389,42 @@ Loading and API/load-error states were already separately handled (`status === '
 Frontend-only. No widget consolidation (Phase 2), no frozen document, no Phase 2-4 work. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, `NETWORK-MANAGEMENT` untouched (the shared `GlobalFilterBar` fix changes search-input *correctness* for those screens' existing search boxes, not any feature/behavior — no new scope was added to those screens). `.claude/` and both stashes confirmed untouched. The direct database query performed for DEFECT B's verification was read-only (`OPEN_READONLY`) against the existing production file; no row was inserted, updated, or deleted.
 
 Governance state: `PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`.
+
+## 14. PO Finding — Search Result Presentation Ambiguity, Locked Into Phase 2 (2026-08-12)
+
+- Status: `FINDING LOCKED INTO PHASE 2 SCOPE / NOT IMPLEMENTED`
+- Authority: Product Owner finding (chat, `2026-08-12`), explicitly scoped as **documentation only** — updates the Phase 2 finding/acceptance-criteria record; **no implementation performed**, and Phase 2 remains blocked on its own prerequisite (the frozen-document governance delta, Section 8) regardless of this addition.
+
+### Product Owner finding
+
+Search now filters the correct data (DEFECT A/B from the `2026-08-11` remediation are not reopened by this), but the *presentation* of a keyword search misleads the reader. Evidence given:
+
+- Keyword "hồng th" matched 9 runtime rows.
+- `ShipmentExecutiveBrief` (already locked `MERGE`, Section 5) auto-displays the first matching shipment and its route as if representative of the whole result.
+- When multiple routes have names matching the keyword, the other matching routes are never shown to the user.
+- The "Evidence Runtime" KPI card kept showing `30` — "toàn bộ tập kết quả" (the pre-search context total) — while the actual 9 filtered results live inside a different widget, with no results list rendered near the search box itself.
+
+Net effect: a manager cannot tell, from the search box alone, how many shipments matched, across how many routes, or see anything beyond the one auto-picked example.
+
+### Locked Phase 2 contract (verbatim intent, 10 points)
+
+1. Typing a keyword only filters the result set; it must never auto-select a row as a "representative" shipment.
+2. Directly below the filter, show: *"Tìm thấy [n bưu gửi] thuộc [m tuyến] cho '[keyword]'."*
+3. Show all matching results, grouped by route first: `[mã] - [tên tuyến]` + shipment count; each group expandable to the individual bưu gửi.
+4. Every route with a matching or near-matching name must appear — not only the first one.
+5. The detail panel updates only after the user explicitly selects one shipment.
+6. Clearly distinguish: total Evidence in context before search; result count after search; the currently selected shipment.
+7. The Tuyến dropdown remains its own, independent filter — search must not become a de facto route dropdown.
+8. Explicit 0/1/n result states, a clear-keyword control, and correct desktop/mobile behavior are all required.
+9. Reconcile/group results by real `ma_bg`/`ma_tuyen` — never by route-name text alone.
+10. Do not patch `ShipmentExecutiveBrief` further if this widget is already locked for removal/merge in Phase 2.
+
+### What this updates
+
+- **Section 4 (wireframe)**: a "SEARCH RESULT SUMMARY" region added below the filter bar; the violation table's active-keyword state now groups by real route (`[mã] - [tên tuyến]` + count, expandable), replacing the flat table only while a keyword is active; the evidence-detail panel note now states explicitly it is never auto-selected by search; the table footer note now distinguishes the post-search total from the pre-search context total.
+- **Section 5 (widget disposition)**: `ShipmentExecutiveBrief`'s row reaffirmed — its auto-selection symptom is addressed by applying this contract to the Phase 2 merged context header, never by an interim patch to the widget itself.
+- **Section 7 (acceptance criteria)**: AC-15 through AC-23 added, one per contract point (points 1 and 5 share AC-15, since both describe "no auto-selection").
+
+### Scope discipline
+
+Documentation only. No product code, route, component, schema, or frozen document was changed. This finding does not reopen or amend the `2026-08-11` Phase 1 / Phase 1 remediation closures — it adds new, later-discovered scope directly into the not-yet-started Phase 2, which remains blocked on the frozen-document governance delta (Section 8) regardless of this addition. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, `NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes confirmed untouched.

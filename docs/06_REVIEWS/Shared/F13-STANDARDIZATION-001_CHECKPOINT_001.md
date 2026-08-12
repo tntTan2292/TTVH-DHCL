@@ -20,6 +20,7 @@
 - [16. Evidence Consolidation Plan](#16-evidence-consolidation-plan)
 - [17. Evidence Consolidation Phase 1 Implementation](#17-evidence-consolidation-phase-1-implementation)
 - [18. Evidence Consolidation Phase 1 Remediation](#18-evidence-consolidation-phase-1-remediation)
+- [19. Evidence Consolidation PO Finding Locked Into Phase 2](#19-evidence-consolidation-po-finding-locked-into-phase-2)
 
 ## 1. Purpose
 
@@ -30,7 +31,7 @@ This checkpoint is the current-state entry point for `F13-STANDARDIZATION-001`. 
 | Field | Value |
 | --- | --- |
 | Program | `F13-STANDARDIZATION-001` |
-| Program State | `EVIDENCE CONSOLIDATION — PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK` (as of `2026-08-11`, Section 18 / manifest Section 23) — Phase 0-4 of the five-phase program plan unaffected, program itself remains open/not fully closed, delta scope only |
+| Program State | `EVIDENCE CONSOLIDATION — PHASE 1 REMEDIATION READY FOR PO RECHECK; PO Finding locked into Phase 2 scope, not implemented` (as of `2026-08-12`, Section 19 / manifest Section 24) — Phase 0-4 of the five-phase program plan unaffected, program itself remains open/not fully closed, delta scope only |
 | Current Phase | `PHASE 0 — foundational items implemented (commits `e3ca2429`, `a0d4b041`), technical validation PASS; no standalone Product Owner runtime confirmation was recorded for this scope specifically` |
 | Phase 0 Implementation Performed | `Yes, partially` — KPI field standardization (`danh_gia_2026`), the two audited `/f13` API path fixes, and `dd/MM/yyyy` timestamp parsing were implemented and technically validated; not separately PO-runtime-confirmed as its own closure |
 | Phase 1 | `PLANNED / NOT ACTIVE` — not started; PO Gate 1 has not been reached |
@@ -188,3 +189,10 @@ No implementation authorized by this plan. **Superseded by Section 17** — the 
 - **DEFECT B**: empty state didn't distinguish "route genuinely has no violations" from "keyword didn't match." Re-verified against the real operational database (read-only) before any code change: Tuyến 53579015 ("Hương Phong"), BCVH A Lưới, 2026-08-10 has exactly 2 real shipments, both `Đạt`, zero `Không đạt` — the filter was correct, only the empty-state messaging needed fixing. Route-dropdown contract also verified correct by construction (routes only appear if they have real activity that day). Empty state now has 3 distinguished, keyword-prioritized messages instead of one generic one.
 - 24 new tests; full frontend sweep 280/293 (same 13 pre-existing failures, unchanged); backend untouched, sanity re-run 111/115 unchanged; `oxlint` clean.
 - Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 13; manifest Section 23.
+
+## 19. Evidence Consolidation PO Finding Locked Into Phase 2
+
+- Recorded: `2026-08-12`. Documentation only — no product code, route, component, schema, or frozen document changed.
+- Product Owner finding: search filters correctly but presentation misleads (keyword "hồng th" matched 9 rows; `ShipmentExecutiveBrief` auto-displayed one representative row/route; other matching routes hidden; "Evidence Runtime" KPI kept showing the pre-search total with no results list near the search box).
+- A 10-point contract is now locked into Phase 2 (no auto-selection on search; explicit result-count summary; results grouped by real route with expandable shipment lists; every matching route shown; detail panel updates only on explicit selection; pre-search/post-search/selected counts kept distinct; Tuyến dropdown stays independent; explicit 0/1/n states + clear-keyword control + desktop/mobile; reconciliation by real `ma_bg`/`ma_tuyen`; no interim patch to `ShipmentExecutiveBrief`). 9 new acceptance criteria (AC-15 to AC-23) added.
+- Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 14; manifest Section 24. Phase 2 remains blocked on the frozen-document governance delta regardless of this addition.

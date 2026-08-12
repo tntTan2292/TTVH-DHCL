@@ -25,6 +25,7 @@
 - [21. Evidence Consolidation — PO Decision + Plan](#21-evidence-consolidation--po-decision--plan)
 - [22. Evidence Consolidation — Phase 1 Implementation](#22-evidence-consolidation--phase-1-implementation)
 - [23. Evidence Consolidation — Phase 1 Remediation](#23-evidence-consolidation--phase-1-remediation)
+- [24. Evidence Consolidation — PO Finding Locked Into Phase 2 (2026-08-12)](#24-evidence-consolidation--po-finding-locked-into-phase-2-2026-08-12)
 
 ## 1. Ticket Information
 
@@ -489,3 +490,14 @@ Re-verification performed before any code change, per explicit instruction: a di
 Frontend-only. No widget consolidation (Phase 2), no frozen document, no Phase 2-4 work. `F13-SHIPMENT-001` not opened; Dashboard/BCVH Ranking/`Data QLML/`/`NETWORK-MANAGEMENT` untouched (the shared search-input fix changes correctness for those screens' existing search boxes only, no new feature/scope). `.claude/` and both stashes confirmed untouched. The DEFECT B database query was read-only against the existing production file — zero rows inserted/updated/deleted.
 
 Governance state: `PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-award PO PASS.
+
+## 24. Evidence Consolidation — PO Finding Locked Into Phase 2 (2026-08-12)
+
+- Status: `FINDING LOCKED INTO PHASE 2 SCOPE / NOT IMPLEMENTED`
+- Authority: Product Owner finding, explicitly scoped as documentation only — updates the Phase 2 finding/acceptance-criteria record. **No implementation performed.** Phase 2 remains blocked on its own prerequisite (the frozen-document governance delta, Section 18/21) regardless.
+
+Product Owner confirmed search now filters correctly (the `2026-08-11` remediation is not reopened), but its presentation misleads: a keyword match ("hồng th", 9 rows) caused `ShipmentExecutiveBrief` to auto-display one representative shipment/route, hid other matching routes, and left the "Evidence Runtime" KPI showing the pre-search total (`30`) with no results list near the search box. A 10-point contract is now locked into Phase 2 (no auto-selection on search; an explicit "Tìm thấy [n] thuộc [m] tuyến cho '[keyword]'" summary; results grouped by real route with expandable shipment lists; every matching/near-matching route shown, not just the first; detail panel updates only on explicit selection; pre-search/post-search/selected counts kept visibly distinct; the Tuyến dropdown stays independent of search; explicit 0/1/n states plus a clear-keyword control and desktop/mobile behavior; reconciliation by real `ma_bg`/`ma_tuyen`, never route-name text; no interim patch to `ShipmentExecutiveBrief`, whose disposition is already locked). 9 new acceptance criteria (AC-15 to AC-23) added to the plan.
+
+Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 14.
+
+No product code, route, component, schema, or frozen document was changed. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, `NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes confirmed untouched.
