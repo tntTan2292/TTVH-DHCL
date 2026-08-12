@@ -12,7 +12,7 @@ import ShipmentRootCause from './ShipmentRootCause';
 import ShipmentEvidenceSummary from './ShipmentEvidenceSummary';
 import ShipmentRecommendation from './ShipmentRecommendation';
 import ShipmentDrilldown from './ShipmentDrilldown';
-import { calculateDelayHours, fetchAllEvidenceRows } from './shipmentPerformanceData';
+import { calculateDelayHours, fetchAllEvidenceRows, matchesSearchQuery } from './shipmentPerformanceData';
 
 const ALL_ROUTES_OPTION = { value: '', label: 'Tất cả tuyến' };
 
@@ -256,17 +256,17 @@ export default function ShipmentPerformancePage() {
 
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
 
+  // DEFECT A remediation: matchesSearchQuery matches route/BCVH names exactly first
+  // (this alone already covers real route codes, which are digits with no diacritics),
+  // and only then falls back to a diacritic-insensitive comparison — so a manager
+  // typing "Huong Phong" still finds "Hương Phong" without ever weakening exact code
+  // search.
   const filteredRows = useMemo(() => {
-    let list = [...runtimeRows];
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((item) => (
-        [item.shipmentId, item.shipmentName, item.routeName, item.routeId, item.bcvhName]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(q))
-      ));
-    }
-    return list;
+    if (!search.trim()) return runtimeRows;
+    return runtimeRows.filter((item) => matchesSearchQuery(
+      [item.shipmentId, item.shipmentName, item.routeName, item.routeId, item.bcvhName],
+      search,
+    ));
   }, [runtimeRows, search]);
 
   const sortedRows = useMemo(() => sortShipmentRows(filteredRows, sort, order), [filteredRows, order, sort]);
@@ -354,6 +354,69 @@ export default function ShipmentPerformancePage() {
     updateParam('shipment_id', nextShipmentId);
   };
 
+  const handleClearSearch = () => updateParam('search', '');
+  const handleViewAllRoutes = () => updateParams({ route_id: '', route_name: '' });
+
+  // DEFECT B remediation (2026-08-11): distinguish the empty-result reasons that were
+  // previously collapsed into one generic "no evidence, try filters or Tất cả tuyến"
+  // message. sortedRows can only be empty two ways — filteredRows/search reduced a
+  // non-empty runtimeRows to zero, or runtimeRows itself is already zero — so exactly
+  // these cases are distinguished, never guessed:
+  //   1. A keyword is active and it matched nothing — the keyword is named as the
+  //      reason, regardless of whether a specific route is selected. Verified
+  //      root-cause finding: this is the only case where the previous unconditional
+  //      "chọn Tất cả tuyến" suggestion made no sense — the route/BCVH/date context
+  //      may be entirely correct and simply have no shipment matching that keyword.
+  //   2. No keyword, a specific Tuyến is selected, and the API returned zero rows for
+  //      it — this route genuinely has no vi phạm bưu gửi for this day/BCVH. Verified
+  //      directly against the operational database for the reported case (Tuyến
+  //      53579015 — "535790 - Hương Phong", BCVH A Lưới, 2026-08-10): exactly 2 real
+  //      shipments that day, both "Đạt", zero "Không đạt" — the filter is correct;
+  //      this was never a filter defect, only a missing empty-state distinction.
+  //   3. No keyword, "Tất cả tuyến" selected, and the API returned zero rows across
+  //      every route for this BCVH/date — nothing to suggest switching to (already
+  //      there), so no "chọn Tất cả tuyến" text is shown.
+  const emptyStateContent = useMemo(() => {
+    if (search.trim()) {
+      return {
+        title: 'Không tìm thấy kết quả phù hợp',
+        description: `Không tìm thấy kết quả phù hợp với từ khóa '${search.trim()}'.`,
+        action: (
+          <button
+            type="button"
+            onClick={handleClearSearch}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Xóa từ khóa
+          </button>
+        ),
+      };
+    }
+
+    if (routeIdParam) {
+      return {
+        title: `Tuyến ${routeIdParam} - ${routeName} không có bưu gửi vi phạm`,
+        description: `Ngày ${analysisDate} · BCVH ${bcvhName}. Đây là kết quả thật — tuyến này không có bưu gửi Không đạt trong bối cảnh hiện tại, không phải lỗi bộ lọc.`,
+        action: (
+          <button
+            type="button"
+            onClick={handleViewAllRoutes}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Xem Tất cả tuyến
+          </button>
+        ),
+      };
+    }
+
+    return {
+      title: 'Không có Evidence trong bối cảnh này',
+      description: `Ngày ${analysisDate} · BCVH ${bcvhName}. Không có bưu gửi Không đạt nào ở bất kỳ tuyến nào trong bối cảnh hiện tại.`,
+      action: null,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, routeIdParam, routeName, analysisDate, bcvhName]);
+
   const routeSelector = (
     <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
       <Filter size={16} className="text-slate-400 shrink-0" />
@@ -420,8 +483,9 @@ export default function ShipmentPerformancePage() {
             }
           />
           <EmptyState
-            title="Không có Evidence phù hợp"
-            description="Không tìm thấy bưu gửi Không đạt nào phù hợp với ngày/BCVH/tuyến hiện tại. Hãy đổi bộ lọc hoặc chọn 'Tất cả tuyến'."
+            title={emptyStateContent.title}
+            description={emptyStateContent.description}
+            action={emptyStateContent.action}
           />
         </div>
       </PageContainer>

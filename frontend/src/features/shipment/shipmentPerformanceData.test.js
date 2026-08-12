@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseF13Timestamp, calculateDelayHours, fetchAllEvidenceRows } from './shipmentPerformanceData.js';
+import { parseF13Timestamp, calculateDelayHours, fetchAllEvidenceRows, stripVietnameseDiacritics, matchesSearchQuery } from './shipmentPerformanceData.js';
 
 // P0-05: fact_f13 timestamps are 'dd/MM/yyyy HH:mm:ss' TEXT, which `new Date(string)`
 // cannot parse (returns Invalid Date in this runtime).
@@ -106,4 +106,43 @@ test('fetchAllEvidenceRows falls back to a page-size heuristic when meta.paginat
 
   assert.equal(result.rows.length, 3);
   assert.equal(result.truncated, false);
+});
+
+// --- DEFECT A remediation: Vietnamese diacritic-insensitive search fallback --------
+
+test('stripVietnameseDiacritics removes diacritics and normalizes đ/Đ, leaving plain text untouched', () => {
+  assert.equal(stripVietnameseDiacritics('Hương Phong'), 'Huong Phong');
+  assert.equal(stripVietnameseDiacritics('Đường Thư'), 'Duong Thu');
+  assert.equal(stripVietnameseDiacritics('535790'), '535790');
+  assert.equal(stripVietnameseDiacritics('Phía Nam Thị trấn'), 'Phia Nam Thi tran');
+});
+
+test('matchesSearchQuery matches a real Vietnamese name typed with correct diacritics (exact path)', () => {
+  assert.equal(matchesSearchQuery(['535790 - Hương Phong'], 'hương phong'), true);
+});
+
+test('matchesSearchQuery also matches the same name typed without diacritics (fallback path)', () => {
+  assert.equal(matchesSearchQuery(['535790 - Hương Phong'], 'huong phong'), true);
+  assert.equal(matchesSearchQuery(['535790 - Hương Phong'], 'Huong'), true);
+});
+
+test('matchesSearchQuery never breaks exact route-code search — codes are digits, diacritic-stripping is a no-op on them', () => {
+  assert.equal(matchesSearchQuery(['53579015'], '53579015'), true);
+  assert.equal(matchesSearchQuery(['53579015'], '5357901'), true);
+  // A code query must not spuriously match an unrelated code via the diacritic path.
+  assert.equal(matchesSearchQuery(['53579015'], '99999999'), false);
+});
+
+test('matchesSearchQuery returns true for every row when the query is empty/whitespace-only (no filter applied)', () => {
+  assert.equal(matchesSearchQuery(['anything'], ''), true);
+  assert.equal(matchesSearchQuery(['anything'], '   '), true);
+  assert.equal(matchesSearchQuery([], ''), true);
+});
+
+test('matchesSearchQuery returns false when no field matches, with or without diacritics', () => {
+  assert.equal(matchesSearchQuery(['535790 - Hương Phong', 'BG001'], 'khong ton tai'), false);
+});
+
+test('matchesSearchQuery skips null/undefined/empty fields without throwing', () => {
+  assert.equal(matchesSearchQuery([null, undefined, '', '535790 - Hương Phong'], 'phong'), true);
 });

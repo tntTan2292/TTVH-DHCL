@@ -19,6 +19,7 @@
 - [15. Evidence Product-Value Audit](#15-evidence-product-value-audit)
 - [16. Evidence Consolidation Plan](#16-evidence-consolidation-plan)
 - [17. Evidence Consolidation Phase 1 Implementation](#17-evidence-consolidation-phase-1-implementation)
+- [18. Evidence Consolidation Phase 1 Remediation](#18-evidence-consolidation-phase-1-remediation)
 
 ## 1. Purpose
 
@@ -29,7 +30,7 @@ This checkpoint is the current-state entry point for `F13-STANDARDIZATION-001`. 
 | Field | Value |
 | --- | --- |
 | Program | `F13-STANDARDIZATION-001` |
-| Program State | `EVIDENCE CONSOLIDATION — PHASE 1 IMPLEMENTED / READY FOR PO CHECK` (as of `2026-08-11`, Section 17 / manifest Section 22) — Phase 0-4 of the five-phase program plan unaffected, program itself remains open/not fully closed, delta scope only |
+| Program State | `EVIDENCE CONSOLIDATION — PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK` (as of `2026-08-11`, Section 18 / manifest Section 23) — Phase 0-4 of the five-phase program plan unaffected, program itself remains open/not fully closed, delta scope only |
 | Current Phase | `PHASE 0 — foundational items implemented (commits `e3ca2429`, `a0d4b041`), technical validation PASS; no standalone Product Owner runtime confirmation was recorded for this scope specifically` |
 | Phase 0 Implementation Performed | `Yes, partially` — KPI field standardization (`danh_gia_2026`), the two audited `/f13` API path fixes, and `dd/MM/yyyy` timestamp parsing were implemented and technically validated; not separately PO-runtime-confirmed as its own closure |
 | Phase 1 | `PLANNED / NOT ACTIVE` — not started; PO Gate 1 has not been reached |
@@ -178,3 +179,12 @@ No implementation authorized by this plan. **Superseded by Section 17** — the 
 - Product Owner decisions recorded for Phase 2/3 (not implemented this round): screen name "Evidence — Chi tiết bưu gửi vi phạm"; arriving from Tuyến Ranking keeps the clicked violation group (total click → "Tất cả không đạt"); no Action Center button until a real hand-off exists; frozen-document amendment approved in principle but requires its own governance delta before Phase 2.
 - No Phase 2-4 work performed. No frozen document edited. `F13-SHIPMENT-001` not opened; Dashboard/BCVH Ranking/`Data QLML/`/`NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes untouched.
 - Full decision-by-decision detail: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 22.
+
+## 18. Evidence Consolidation Phase 1 Remediation
+
+- Implemented: `2026-08-11`, frontend-only. Status: `PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`.
+- Product Owner runtime evidence surfaced 2 defects, both remediated within Phase 1 scope (no widget consolidation, no frozen document, no Phase 2-4).
+- **DEFECT A**: Vietnamese IME input corrupted the shared `GlobalFilterBar` search box (every keystroke triggered a router navigation, interrupting IME composition). Fixed via a new composition-aware debounced controller (`searchCommitController.js`) in the shared component, plus a diacritic-insensitive search fallback that never weakens exact route-code matching.
+- **DEFECT B**: empty state didn't distinguish "route genuinely has no violations" from "keyword didn't match." Re-verified against the real operational database (read-only) before any code change: Tuyến 53579015 ("Hương Phong"), BCVH A Lưới, 2026-08-10 has exactly 2 real shipments, both `Đạt`, zero `Không đạt` — the filter was correct, only the empty-state messaging needed fixing. Route-dropdown contract also verified correct by construction (routes only appear if they have real activity that day). Empty state now has 3 distinguished, keyword-prioritized messages instead of one generic one.
+- 24 new tests; full frontend sweep 280/293 (same 13 pre-existing failures, unchanged); backend untouched, sanity re-run 111/115 unchanged; `oxlint` clean.
+- Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 13; manifest Section 23.

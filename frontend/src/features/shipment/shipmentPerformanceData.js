@@ -1,3 +1,35 @@
+// Vietnamese diacritic-insensitive search support (Product Owner remediation,
+// 2026-08-11 — DEFECT A): a manager typing "Huong Phong" (no diacritics, e.g. from a
+// keyboard/IME state that dropped them) should still find "Hương Phong". This only
+// ever *widens* matching as a fallback after an exact (with-diacritics) match fails —
+// it never narrows or alters matching. Route codes (mã tuyến) are plain digits with no
+// diacritics, so stripping is always a no-op on them: this can never cause a code
+// search to match the wrong route.
+export function stripVietnameseDiacritics(text) {
+  return String(text)
+    .normalize('NFD')
+    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
+// True if `query` matches any of `fields`, either exactly (substring, case-insensitive
+// — this alone already covers route codes and diacritic-correct name search) or, as a
+// fallback, with Vietnamese diacritics stripped from both sides.
+export function matchesSearchQuery(fields, query) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return true;
+
+  const candidates = fields.filter((value) => value !== undefined && value !== null && value !== '');
+  const qStripped = stripVietnameseDiacritics(q);
+
+  return candidates.some((value) => {
+    const text = String(value).toLowerCase();
+    if (text.includes(q)) return true;
+    return stripVietnameseDiacritics(text).includes(qStripped);
+  });
+}
+
 // fact_f13 event timestamps are stored as 'dd/MM/yyyy HH:mm:ss', which `new Date(string)`
 // cannot parse (returns Invalid Date). Parse explicitly instead.
 export function parseF13Timestamp(value) {

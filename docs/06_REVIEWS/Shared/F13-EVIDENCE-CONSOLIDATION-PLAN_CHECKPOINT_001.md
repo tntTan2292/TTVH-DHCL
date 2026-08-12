@@ -14,6 +14,7 @@
 - [10. Risks And Open Questions](#10-risks-and-open-questions)
 - [11. Scope Discipline](#11-scope-discipline)
 - [12. Phase 1 Implementation Record (2026-08-11)](#12-phase-1-implementation-record-2026-08-11)
+- [13. Phase 1 Remediation — PO Runtime Evidence (2026-08-11)](#13-phase-1-remediation--po-runtime-evidence-2026-08-11)
 
 ## 1. Purpose And Authority
 
@@ -319,3 +320,50 @@ Unchanged from Section 3 above, confirmed correct: single-day `ngay_do_kiem`; BC
 ### Scope discipline for this round
 
 Backend-only, additive-only. No Phase 2-4 work performed. No frozen document edited. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, and every `NETWORK-MANAGEMENT` file untouched; `.claude/` and both stashes confirmed untouched.
+
+## 13. Phase 1 Remediation — PO Runtime Evidence (2026-08-11)
+
+Product Owner ran Phase 1 and reported 2 additional defects, both frontend-only, still within Phase 1 scope (no Phase 2-4 work, no widget consolidation, no frozen document).
+
+### DEFECT A — Vietnamese IME input corrupts the search box
+
+**Root cause, traced through the actual event flow** (`onChange` → `setSearchParams` → React Router navigation → full page re-render → widget tree re-render): the search `<input>` inside the shared `GlobalFilterBar` component (used by Dashboard, BCVH Ranking, Route Ranking, and Evidence) was fully controlled straight off the URL — every keystroke's `onChange` synchronously called `setSearchParams`, which is a router navigation that re-renders the whole page tree on every character. When typing Vietnamese via an IME (UniKey/EVKey, Telex/VNI), that heavy synchronous re-render could land mid-composition (`compositionstart`..`compositionend`), corrupting or dropping characters — e.g. "phía" becoming "pịa". The input had no `compositionstart`/`compositionend` handlers at all, so React had no way to know a composition was even in progress.
+
+**Fix, in the shared component** (not duplicated per-consumer, since the `<input>` DOM element only exists in one place): new pure module `frontend/src/components/shared/searchCommitController.js` — a composition-aware, debounced commit controller. Contract: while composing, `onCommit` is never called (an in-progress composed sequence is never treated as a finished search term, never triggers a URL update); `compositionend` commits the final composed value immediately, no extra delay; outside composition, commits are debounced (300ms) so a burst of keystrokes coalesces into one trailing commit instead of one URL update per character. `SharedLayout.jsx`'s `GlobalFilterBar` search field now uses a local, uncontrolled-while-typing `<input>` wired to this controller via `onCompositionStart`/`onCompositionEnd`/`onChange`, syncing from the external `searchValue` prop only when not actively composing (so an external reset, e.g. a future "Xóa từ khóa" action, still works, but never stomps on an in-progress composition) and disposing its pending timer on unmount.
+
+Diacritic-insensitive search was also added (Product Owner: "hỗ trợ tìm tên tuyến có dấu; nếu contract hiện hành cho phép, bổ sung tìm không dấu nhưng không làm sai tìm kiếm mã tuyến"): `frontend/src/features/shipment/shipmentPerformanceData.js` gained `stripVietnameseDiacritics()` and `matchesSearchQuery()` — matching tries an exact (with-diacritics) substring first (this alone already covers route codes, which are digits with no diacritics, and correctly-typed Vietnamese names), then falls back to a diacritic-stripped comparison. This only ever widens matching; it never narrows or alters it, so route-code search cannot be broken by it. `ShipmentPerformancePage.jsx`'s `filteredRows` now calls `matchesSearchQuery()` instead of a raw `.includes()` check.
+
+**Tests** (regression coverage for IME, paste, delete, fast typing, exactly as instructed):
+
+- `searchCommitController.test.js` (8 tests, pure logic, deterministic fake scheduler — no real waiting): intermediate composition states never commit; `compositionend` commits the final value immediately; typing resumes normal debounce after composition; a burst of plain keystrokes (fast typing) coalesces into exactly one trailing commit; a single paste event debounces and commits normally; delete/backspace keystrokes debounce to the final (possibly empty) value; `dispose()` cancels a pending timer; `isComposing()` reflects state correctly.
+- `shipmentPerformanceData.test.js` (+7 tests): diacritic stripping correctness; exact-diacritics match; diacritic-insensitive fallback match; route-code search is never broken by the diacritic path; empty/whitespace query matches everything; no-match returns false; null/undefined/empty fields are skipped safely.
+- `SharedLayout.searchInput.test.js` (4 new tests, source-level regression guards — this repository has no React rendering/jsdom harness): composition handlers present; wired through the shared controller; disposes on unmount; the old raw `onChange={(e) => onSearchChange?.(e.target.value)}` pattern (the exact defect) no longer exists anywhere in the file.
+
+### DEFECT B — Empty state did not distinguish "no violations" from "no match"
+
+**Verification performed before any code change**, per explicit instruction to re-confirm the prior "PO RUNTIME FAIL" reading: a direct, read-only query against the real operational database (`backend/src/db/database.sqlite`, `OPEN_READONLY`) for `ma_bcvh='535790'` (BCVH A Lưới), `ngay_do_kiem='2026-08-10'`, grouped by route and result. Ground truth for Tuyến `53579015` ("535790 - Hương Phong"): **exactly 2 real shipments that day, both `danh_gia_2026='Đạt'`, zero `'Không đạt'`.** Conclusion: **the filter is correct — this route genuinely had no failing shipments that day.** The reported "empty state" was real data, not a filter defect; only the empty-state messaging needed remediation, exactly as the Product Owner's own contingency instruction anticipated ("Nếu không có Evidence: filter đúng, sửa empty-state và ghi lại kết luận").
+
+**Dropdown contract verified** (Product Owner instruction: "không tự kết luận phải loại tuyến khỏi dropdown"): traced `backend/src/repositories/FactBuuGuiRepository.js`'s `getRouteRanking()` — the route dropdown is populated from `fact_f13 GROUP BY ma_tuyen WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen IS NOT NULL ...`, i.e. a route only appears if it has at least one real `fact_f13` row for that exact date+BCVH. A route with literally zero shipments that day cannot appear at all (there is nothing to group). Confirmed: Tuyến 53579015 appearing in the dropdown for 2026-08-10 is therefore evidence of real operational activity that day (the 2 "Đạt" rows above), not a defect to fix by filtering the route out of the dropdown. No change was made to the dropdown population logic — it is already correct by construction, and the finding is recorded here rather than inferred as a needed fix.
+
+**Cross-check against "Tất cả tuyến" by real route code**: the same `ma_tuyen='53579015'` value is used consistently by both the per-route query (`route_id=53579015` sent to `/f13/evidence-list`) and the "Tất cả tuyến" aggregate (route omitted, every row carrying its own real `ma_tuyen` per the Phase 1 F-1 fix) — both draw from the identical `fact_f13` predicate, so the two views cannot disagree for the same date/BCVH/route by construction.
+
+**Fix**: `ShipmentPerformancePage.jsx`'s empty state, previously one generic message ("Không tìm thấy bưu gửi... Hãy đổi bộ lọc hoặc chọn 'Tất cả tuyến'." — shown unconditionally, even while already viewing "Tất cả tuyến") is now `emptyStateContent`, computed with exactly 3 distinguished branches, checked in this priority order per explicit instruction ("Có keyword thì empty state phải ưu tiên giải thích do keyword"):
+1. **A keyword is active and matched nothing** → *"Không tìm thấy kết quả phù hợp với từ khóa '[từ khóa]'."*, with a real "Xóa từ khóa" action button. Checked first regardless of route selection.
+2. **No keyword, a specific Tuyến is selected, zero rows returned** → *"Tuyến [mã] - [tên] không có bưu gửi vi phạm"* plus the current ngày/BCVH, explicitly stating this is a real result, not a filter error, with a real "Xem Tất cả tuyến" action button.
+3. **No keyword, "Tất cả tuyến" selected, zero rows across every route** → *"Không có Evidence trong bối cảnh này"* plus ngày/BCVH — no "chọn Tất cả tuyến" suggestion, since that state is already active.
+
+Loading and API/load-error states were already separately handled (`status === 'loading'` / `status === 'error'` branches, unchanged) and are unaffected by this remediation.
+
+**Tests**: `ShipmentPerformancePage.remediation.test.js` (5 new tests, source-level — no render harness available): the three distinct messages are all present; the old unconditional "chọn 'Tất cả tuyến'" text is confirmed gone; both real action handlers/buttons exist; the keyword branch is confirmed to be checked before the route branch in source order (priority requirement).
+
+### Validation
+
+- Full frontend sweep: **280/293 pass** (24 new tests, all passing; the same 13 pre-existing failures already on record — unchanged file set, confirmed via `git status` showing zero backend files touched this round — remain unrelated and unchanged in count/identity).
+- `oxlint`: clean on all 8 changed/new frontend files.
+- Backend sanity re-run (no backend file touched this round): **111/115**, identical to the Phase 1 baseline — confirms no incidental regression.
+
+### Scope discipline
+
+Frontend-only. No widget consolidation (Phase 2), no frozen document, no Phase 2-4 work. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, `NETWORK-MANAGEMENT` untouched (the shared `GlobalFilterBar` fix changes search-input *correctness* for those screens' existing search boxes, not any feature/behavior — no new scope was added to those screens). `.claude/` and both stashes confirmed untouched. The direct database query performed for DEFECT B's verification was read-only (`OPEN_READONLY`) against the existing production file; no row was inserted, updated, or deleted.
+
+Governance state: `PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`.

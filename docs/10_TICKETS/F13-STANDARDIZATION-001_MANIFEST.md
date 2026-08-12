@@ -24,6 +24,7 @@
 - [20. Evidence Product-Value Audit (Tuyến Ranking → Shipment Detail → Evidence)](#20-evidence-product-value-audit-tuyến-ranking--shipment-detail--evidence)
 - [21. Evidence Consolidation — PO Decision + Plan](#21-evidence-consolidation--po-decision--plan)
 - [22. Evidence Consolidation — Phase 1 Implementation](#22-evidence-consolidation--phase-1-implementation)
+- [23. Evidence Consolidation — Phase 1 Remediation](#23-evidence-consolidation--phase-1-remediation)
 
 ## 1. Ticket Information
 
@@ -461,4 +462,30 @@ Confirms the contract already recorded in the plan (Section 3), now backed by pa
 
 Backend-only, additive-only change. No Phase 2-4 work performed. No frozen document edited. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, and every `NETWORK-MANAGEMENT` file untouched; `.claude/` and both stashes (`stash@{0}`, `stash@{1}`) confirmed untouched — `git status --porcelain` shows only the two backend files listed above plus documentation.
 
-Governance state: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`. Claude Code does not self-award PO PASS.
+Governance state: `PHASE 1 IMPLEMENTED / READY FOR PO CHECK`. Claude Code does not self-award PO PASS. **Superseded by Section 23** — Product Owner runtime evidence surfaced 2 additional defects, remediated same round.
+
+## 23. Evidence Consolidation — Phase 1 Remediation
+
+- Status: `PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Implemented: `2026-08-11`. Frontend-only.
+- Authority: Product Owner runtime evidence on Phase 1, reporting 2 additional defects — both still within Phase 1 scope; no widget consolidation, no frozen document, no Phase 2-4.
+
+Full record (root cause, fix, ground-truth database verification, tests): `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 13.
+
+### DEFECT A — Vietnamese IME input corrupted the search box
+
+Root cause: the shared `GlobalFilterBar` search `<input>` (used by Dashboard, BCVH Ranking, Route Ranking, and Evidence) synchronously pushed a URL/search update on every keystroke via `setSearchParams`, a React Router navigation that re-renders the whole page tree — heavy enough to land mid-IME-composition and corrupt Vietnamese text (e.g. "phía" → "pịa"). No `compositionstart`/`compositionend` handling existed at all. Fixed in the shared component (the only place the `<input>` DOM element exists): new `frontend/src/components/shared/searchCommitController.js`, a composition-aware debounced commit controller — never commits mid-composition, commits the final value immediately on `compositionend`, debounces (300ms) plain typing/paste/delete so a burst of keystrokes coalesces into one commit. Diacritic-insensitive search fallback also added (`stripVietnameseDiacritics`/`matchesSearchQuery` in `shipmentPerformanceData.js`) — exact match tried first, diacritic-stripped fallback only widens matching, never breaks exact route-code search (codes are digits, stripping is a no-op on them).
+
+### DEFECT B — Empty state did not distinguish "no violations" from "no match"
+
+Re-verification performed before any code change, per explicit instruction: a direct, read-only query (`OPEN_READONLY`) against the real operational database for `ma_bcvh='535790'` (BCVH A Lưới), `ngay_do_kiem='2026-08-10'`. Ground truth for Tuyến `53579015` ("535790 - Hương Phong"): **exactly 2 real shipments that day, both `Đạt`, zero `Không đạt`.** Conclusion: **the filter was correct — this was real data, not a filter defect.** Dropdown contract verified: `getRouteRanking()` groups directly from `fact_f13` for the exact date+BCVH, so a route can only appear in the dropdown if it has real activity that day — no change made to dropdown population (already correct by construction). The empty state, previously one generic message shown unconditionally (including a "chọn 'Tất cả tuyến'" suggestion even while already in that mode), is now computed as `emptyStateContent` with 3 distinguished branches, keyword checked first: (1) keyword present and unmatched → names the keyword, offers "Xóa từ khóa"; (2) no keyword, specific route selected, zero rows → names the route/ngày/BCVH, states explicitly this is a real result not a filter error, offers "Xem Tất cả tuyến"; (3) no keyword, "Tất cả tuyến" selected, zero rows anywhere → states the whole context has no Evidence, no route suggestion (already there).
+
+### Tests and validation
+
+24 new tests across 4 files (`searchCommitController.test.js` ×8, `shipmentPerformanceData.test.js` +7, `SharedLayout.searchInput.test.js` ×4, `ShipmentPerformancePage.remediation.test.js` ×5), covering IME composition, paste, delete, fast typing, and the 3 empty-state branches. Full frontend sweep: **280/293 pass** — the same 13 pre-existing failures already on record, unchanged; no backend file touched this round, backend sanity re-run confirms **111/115**, identical to the Phase 1 baseline. `oxlint` clean on all changed files.
+
+### Scope discipline
+
+Frontend-only. No widget consolidation (Phase 2), no frozen document, no Phase 2-4 work. `F13-SHIPMENT-001` not opened; Dashboard/BCVH Ranking/`Data QLML/`/`NETWORK-MANAGEMENT` untouched (the shared search-input fix changes correctness for those screens' existing search boxes only, no new feature/scope). `.claude/` and both stashes confirmed untouched. The DEFECT B database query was read-only against the existing production file — zero rows inserted/updated/deleted.
+
+Governance state: `PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-award PO PASS.

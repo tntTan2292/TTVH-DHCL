@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle } from 'lucide-react';
 import Topbar from '../Topbar';
 import { useAuth } from '../../auth/AuthContext';
 import { getNavigationForRole } from '../../navigation/appNavigation.jsx';
 import { buildPreservedPath } from '../../navigation/urlPreservation';
+import { createSearchCommitController } from './searchCommitController.js';
 
 export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
@@ -157,6 +158,61 @@ export function Breadcrumb() {
   );
 }
 
+// Composition-safe, debounced search input (DEFECT A remediation, 2026-08-11): see
+// searchCommitController.js for the root cause and full contract. The DOM input stays
+// locally controlled while typing/composing (never resets mid-composition, never loses
+// focus) and only pushes a committed value up to the caller (which drives the URL/search
+// state) via the controller — never on every keystroke, never mid-IME-composition.
+function GlobalFilterBarSearchInput({ searchValue, onSearchChange }) {
+  const [localValue, setLocalValue] = useState(searchValue ?? '');
+  const controllerRef = useRef(null);
+  const composingRef = useRef(false);
+
+  if (!controllerRef.current) {
+    controllerRef.current = createSearchCommitController({ onCommit: (value) => onSearchChange?.(value) });
+  }
+
+  useEffect(() => () => controllerRef.current?.dispose(), []);
+
+  // Sync from an external change to searchValue (e.g. a "Xóa từ khóa" action
+  // elsewhere on the page) — but never while the user is actively composing, which
+  // would stomp on an in-progress IME sequence.
+  useEffect(() => {
+    if (composingRef.current) return;
+    setLocalValue(searchValue ?? '');
+  }, [searchValue]);
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setLocalValue(value);
+    controllerRef.current.handleChange(value);
+  };
+
+  const handleCompositionStart = () => {
+    composingRef.current = true;
+    controllerRef.current.handleCompositionStart();
+  };
+
+  const handleCompositionEnd = (e) => {
+    composingRef.current = false;
+    const value = e.target.value;
+    setLocalValue(value);
+    controllerRef.current.handleCompositionEnd(value);
+  };
+
+  return (
+    <input
+      value={localValue}
+      onChange={handleChange}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
+      placeholder="Tìm kiếm..."
+      className="w-full border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 placeholder:text-slate-400"
+      aria-label="Tìm kiếm"
+    />
+  );
+}
+
 export function GlobalFilterBar({
   fromDate,
   toDate,
@@ -228,13 +284,7 @@ export function GlobalFilterBar({
         </div>
         <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
           <Search size={16} className="text-slate-400 shrink-0" />
-          <input
-            value={searchValue}
-            onChange={(e) => onSearchChange?.(e.target.value)}
-            placeholder="Tìm kiếm..."
-            className="w-full border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 placeholder:text-slate-400"
-            aria-label="Tìm kiếm"
-          />
+          <GlobalFilterBarSearchInput searchValue={searchValue} onSearchChange={onSearchChange} />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
