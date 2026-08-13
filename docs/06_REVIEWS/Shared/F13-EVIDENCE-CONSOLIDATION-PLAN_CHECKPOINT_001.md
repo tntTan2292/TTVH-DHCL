@@ -21,6 +21,7 @@
 - [17. Date-Filter Remediation — PO Runtime Recheck PASS, Closure (2026-08-13)](#17-date-filter-remediation--po-runtime-recheck-pass-closure-2026-08-13)
 - [18. Evidence Consolidation Phase 1 — Formal Closure (2026-08-13)](#18-evidence-consolidation-phase-1--formal-closure-2026-08-13)
 - [19. Frozen-Document Governance Delta — Execution Record (2026-08-13)](#19-frozen-document-governance-delta--execution-record-2026-08-13)
+- [20. Phase 2 Implementation Record (2026-08-13)](#20-phase-2-implementation-record-2026-08-13)
 
 ## 1. Purpose And Authority
 
@@ -591,3 +592,60 @@ With this delta executed and Phase 1 formally closed (Section 18), Phase 2's two
 - (b) The frozen-document governance delta — **satisfied** (this section).
 
 **Phase 2 is not thereby authorized to begin implementation.** Per the standing rule that a governance-only round does not itself authorize new product-code work, and per this Product Owner instruction's own explicit boundary ("Chưa triển khai product code Phase 2 trong lượt governance này"), Phase 2 implementation requires a separate, explicit Product Owner authorization to start — the same pattern already used for every prior phase in this program (Phase 1 required its own explicit "PO APPROVES EVIDENCE CONSOLIDATION PLAN — start Phase 1" instruction; Phase 2 will require its own equivalent).
+
+## 20. Phase 2 Implementation Record (2026-08-13)
+
+- Status: `PHASE 2 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`
+- Authority: Product Owner instruction, "PO AUTHORIZATION — BEGIN EVIDENCE CONSOLIDATION PHASE 2 IMPLEMENTATION" (chat, `2026-08-13`), baseline `457329e2` confirmed matching before any edit.
+
+### Scope implemented
+
+Plan Section 9's "Phase 2 — Evidence screen rebuild" file scope, plus the Section 14 search-result-presentation contract (AC-15..AC-23), in the same round per explicit Product Owner instruction. Frontend-only.
+
+### What changed
+
+- `frontend/src/features/shipment/ShipmentPerformancePage.jsx` — rewritten. Violation group tabs (reused from `routeViolationEvidenceData.js`'s `buildViolationGroupTabs`, not reimplemented); `reason` now participates in the evidence fetch, server-scoped per tab; the auto-select-first-row effect removed entirely — `selectedShipment` now derives only from an explicit `shipment_id` match, never a fallback; conditional `Tuyến` column (`showRouteColumn={!routeIdParam}`); a search-result summary region (AC-16) rendered only while a keyword is active; three distinct KPI counts (AC-19: context total / search result count / selected shipment); header merges BCVH/Tuyến/Ngày directly into `PageContainer`'s action badges (replacing the old `ShipmentExecutiveBrief` card). The pre-existing DEFECT A/B empty-state logic (`emptyStateContent`) and the single-day date contract (`analysisDate`) were left byte-for-byte unchanged.
+- `frontend/src/features/shipment/shipmentPerformanceData.js` — added `formatSearchResultSummary` (AC-16's exact wording) and `groupRowsByRoute` (AC-17/18/22: groups by real `ma_tuyen`, never by display-name text; never truncates to the first match; never drops a row). `matchesSearchQuery`, `stripVietnameseDiacritics`, `calculateDelayHours`, `fetchAllEvidenceRows` unchanged.
+- `frontend/src/features/shipment/ShipmentEvidenceSummary.jsx` — reworked from a static candidate list into the primary violation widget: flat table (no active search) or grouped-by-route expandable accordion (active search, AC-17), with a conditional Tuyến column and mobile-hidden secondary columns (`hidden sm:table-cell` on Tuyến/PTC/Nộp tiền, leaving Mã BG/Lý do vi phạm/Độ trễ visible on narrow viewports, per the plan's mobile wireframe).
+- `frontend/src/features/shipment/ShipmentEvidenceDetail.jsx` — **new file**. Consolidates the old `ShipmentTimeline` + `ShipmentRootCause` widgets into one evidence-detail panel (plan Section 5: Timeline MERGE, Root Cause REDESIGN — both "into the evidence-detail panel", so they no longer exist as separate widgets). Renders only when a shipment is explicitly selected (AC-15); shows identity, BCVH/Tuyến/Ngày, kết quả badge, nhóm vi phạm badge, PTC→Nộp tiền timeline, the `>3.0h` rule statement only when the classification is `Chậm nộp tiền`, and an honest "Chưa khả dụng" Action Center hand-off state.
+- **Deleted** (Section 5 widget disposition, REMOVE or fully absorbed elsewhere): `ShipmentImpactOverview.jsx`, `ShipmentRecommendation.jsx`, `ShipmentDrilldown.jsx` (REMOVE, unchanged from plan); `ShipmentExecutiveBrief.jsx` (MERGE into the header — no separate card remains, satisfying AC-23's "no interim patch" by removing the file entirely rather than patching it); `ShipmentTimeline.jsx`, `ShipmentRootCause.jsx` (superseded by the new consolidated `ShipmentEvidenceDetail.jsx`); `ShipmentShellShared.jsx` (its only purpose was the "shell/sẽ được bổ sung ở ticket sau" disclaimer AC-11 already required removed; once every consumer was reworked or deleted, no file imported it any longer, so it was deleted rather than kept as dead code — a minor deviation from the plan's literal "rework" instruction for this one file, made because the file had no remaining purpose or consumer, not a scope expansion).
+
+### Scope discipline confirmed
+
+- No metric, F1.3 formula, date contract, or data source changed — `analysisDate` resolution untouched; `violation_reason`/`do_tre_gio` consumed as-is from the existing (Phase 1) API contract, no new backend field or query.
+- No backend file touched this round (`git diff --name-only -- backend/` empty).
+- No other module touched: Operation Dashboard, BCVH Ranking, Tuyến Ranking, Pareto/RCA, Network Management confirmed untouched (`git status --porcelain` scoped outside `frontend/src/features/shipment/`).
+- `F13-SHIPMENT-001` (`stash@{0}`) not opened. `Data QLML/`, `.claude/`, both stashes confirmed untouched.
+- No redesign beyond the locked plan/AC — the one deviation (deleting `ShipmentShellShared.jsx` instead of reworking it) is disclosed above, not silently made, and is a deletion of now-dead code, not new design.
+
+### Acceptance criteria → implementation/test mapping
+
+| Criterion | Implementation | Test |
+| --- | --- | --- |
+| AC-15 (no auto-selection; explicit selection only) | `selectedShipment` useMemo: `if (!shipmentId) return null;`, no fallback to `sortedRows[0]` | `ShipmentPerformancePage.phase2.test.js` #1 |
+| AC-16 (exact summary line) | `formatSearchResultSummary()` in `shipmentPerformanceData.js`, rendered in `searchResultSummary` only while `isSearchActive` | `shipmentPerformanceData.test.js` (exact-wording + zero-result), `ShipmentPerformancePage.phase2.test.js` #2 |
+| AC-17 (grouped by route, expandable) | `ShipmentEvidenceSummary` `mode="grouped"`, `groupRowsByRoute(sortedRows)`, expand/collapse via `collapsedRouteIds` | `ShipmentPerformancePage.phase2.test.js` #3, `shipmentPerformanceData.test.js` grouping tests |
+| AC-18 (every matching route shown, not just first) | `groupRowsByRoute` has no truncation; all groups passed to the widget (`groups={groupedRows}`) | `shipmentPerformanceData.test.js` "surfaces every matching route" |
+| AC-19 (3 distinct counts) | `contextTotal` / `searchResultCount` / `selectedShipment` rendered as 3 separate `KPICard`s | `ShipmentPerformancePage.phase2.test.js` #4 |
+| AC-20 (Tuyến dropdown independent) | `handleRouteChange` only ever sets `route_id`/`route_name`, never touches `search` | `ShipmentPerformancePage.phase2.test.js` #5 |
+| AC-21 (0/1/n states, clear-keyword, desktop/mobile) | `EmptyState` (0), flat/grouped table (1/n), `handleClearSearch` reused in both the empty state and the search summary; responsive Tailwind (`sm:table-cell`, `xl:grid-cols-3`) | `ShipmentPerformancePage.phase2.test.js` #6; desktop/mobile verified via `vite build` only — **not** verified via a live browser screenshot (no usable login credential in this workspace, same precedent as every prior Evidence round) |
+| AC-22 (real `ma_bg`/`ma_tuyen` reconciliation) | Row mapper keys `routeId: item.ma_tuyen`, `shipmentId: item.ma_bg`-derived; `groupRowsByRoute` groups on `routeId`, never route-name text | `shipmentPerformanceData.test.js` "groups by real ma_tuyen... never route-name text alone"; live backend proof below |
+| AC-23 (no interim patch to `ShipmentExecutiveBrief`) | File deleted entirely | `ShipmentPerformancePage.phase2.test.js` #8 |
+
+### Live-database proof (service layer, not mocked — same technique used throughout this session)
+
+Real context (`2026-07-27`, BCVH Thuận Hóa `533140`, 1,573 "Không đạt" rows): `violation_summary = {total_failed: 1573, delayed_cash_count: 217, other_failed_count: 427, unknown_count: 929}`; "Tất cả tuyến" mode returns 32 distinct real `ma_tuyen` values among the rows (proving route identity survives, not a fallback constant); filtering by `reason=delayed_cash` returns exactly 217 rows, matching `violation_summary.delayed_cash_count` exactly, and every one of those 217 rows has `violation_reason === 'Chậm nộp tiền'` — proving the tab-count-to-row-filter reconciliation this screen depends on.
+
+### Validation
+
+- New tests: `ShipmentPerformancePage.phase2.test.js` (14 tests) + 5 new tests in `shipmentPerformanceData.test.js` — **19/19 pass**.
+- Full frontend sweep: **302/315 pass** — re-verified true baseline before this round was 283/296 (12 fewer tests, same identities); the 13 failures are byte-identical by name to that baseline; zero regressions.
+- `oxlint`: clean on every changed/new file in `frontend/src/features/shipment/`.
+- `vite build`: succeeds.
+- Old `ShipmentPerformancePage.contract.test.js` (Phase 1) and `ShipmentPerformancePage.remediation.test.js` (Phase 1 remediation, DEFECT A/B) — both **unmodified and still 100% passing** (8 + 7 = 15 tests), confirming this round did not regress either prior acceptance.
+
+### Simplification disclosed
+
+The plan's mobile wireframe (Section 4.2) describes tapping a row opening a full-screen sheet. This round implements a lighter responsive layout instead (columns collapse via Tailwind breakpoints; the detail panel stacks below the table on narrow viewports via the existing `xl:grid-cols-3` grid) rather than building a new modal/sheet interaction pattern. This is disclosed as a scope-conscious simplification for Product Owner review, not a silent deviation — the exact-sheet interaction can be a follow-up if required at runtime recheck.
+
+Claude Code does not self-award PO PASS and does not self-close Phase 2.

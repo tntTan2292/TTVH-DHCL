@@ -24,6 +24,7 @@
 - [20. Date-Filter Cross-Module Remediation](#20-date-filter-cross-module-remediation)
 - [21. Evidence Consolidation Phase 1 — Formal Closure](#21-evidence-consolidation-phase-1--formal-closure)
 - [22. Frozen-Document Governance Delta — Execution](#22-frozen-document-governance-delta--execution)
+- [23. Evidence Consolidation Phase 2 — Implementation](#23-evidence-consolidation-phase-2--implementation)
 
 ## 1. Purpose
 
@@ -224,3 +225,17 @@ No implementation authorized by this plan. **Superseded by Section 17** — the 
 - All 8 documents named in the plan's Section 8 amended, each gaining a `## 0. GOVERNANCE AMENDMENT NOTICE` section, original content preserved below as historical record: `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`, `EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md`, `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` (AMENDED — redefined to the merged design); `SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`, `SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md`, `SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` (SUPERSEDED); `EVIDENCE_CENTER_UX_ARCHITECTURE.md` (AMENDED); `SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` (SUPERSEDED). `PROJECT_PROGRESS.md`'s Frozen Documents list updated with the amendment record.
 - Documentation-only; no product code touched. Phase 2 not thereby authorized to begin — both stated prerequisites (PO recheck, frozen-document delta) are now satisfied, but implementation still requires its own separate explicit Product Owner authorization.
 - Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 19.
+
+## 23. Evidence Consolidation Phase 2 — Implementation
+
+- Status: `PHASE 2 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Implemented: `2026-08-13`. Frontend-only.
+- Authority: Product Owner instruction, "PO AUTHORIZATION — BEGIN EVIDENCE CONSOLIDATION PHASE 2 IMPLEMENTATION" (baseline `457329e2`, confirmed matching before any edit).
+- Scope: plan Section 9's "Phase 2 — Evidence screen rebuild" file scope plus the Section 14 search-result-presentation contract (AC-15..AC-23), same round per explicit PO instruction.
+- `ShipmentPerformancePage.jsx` rewritten (violation group tabs, conditional Tuyến column, search-result summary, 3 distinct KPI counts, header-merged BCVH/Tuyến/Ngày, auto-select-first-row removed); `shipmentPerformanceData.js` gained `formatSearchResultSummary`/`groupRowsByRoute`; `ShipmentEvidenceSummary.jsx` reworked into the primary flat/grouped violation table; new `ShipmentEvidenceDetail.jsx` consolidates the old Timeline+RootCause widgets into one evidence-detail panel, populated only on explicit selection. Deleted: `ShipmentImpactOverview.jsx`, `ShipmentRecommendation.jsx`, `ShipmentDrilldown.jsx`, `ShipmentExecutiveBrief.jsx` (AC-23: removed entirely rather than patched), `ShipmentTimeline.jsx`, `ShipmentRootCause.jsx` (superseded by the new consolidated panel), `ShipmentShellShared.jsx` (disclosed deviation — deleted as dead code once its only consumers were reworked/removed, rather than reworked as the plan's file list literally said).
+- No metric/formula/date-contract/data-source change; the pre-existing DEFECT A/B empty-state logic and single-day `analysisDate` resolution left byte-for-byte unchanged. No backend file touched. Operation Dashboard, BCVH Ranking, Tuyến Ranking, Pareto/RCA, Network Management confirmed untouched. `F13-SHIPMENT-001` not opened; `Data QLML/`, `.claude/`, both stashes confirmed untouched.
+- Live-database proof (service layer, not mocked): real context (2026-07-27, BCVH 533140, 1,573 "Không đạt" rows) — `reason=delayed_cash` returns exactly 217 rows, matching `violation_summary.delayed_cash_count` exactly, every row correctly classified; 32 distinct real routes present in "Tất cả tuyến" mode.
+- Tests: 19 new (`ShipmentPerformancePage.phase2.test.js` ×14, `shipmentPerformanceData.test.js` +5), all passing. Full frontend sweep 302/315 — same 13 pre-existing failures by name, zero regressions. Prior Phase 1/remediation source-regex tests (15 tests) unmodified and still 100% passing. `oxlint` clean; `vite build` succeeds.
+- Simplification disclosed: mobile uses responsive column-hiding/stacking rather than a full-screen tap sheet (plan Section 4.2) — a scope-conscious simplification, not a silent deviation.
+- Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 20 (includes the full AC-15..AC-23 → implementation/test mapping table).
+
+Governance state: `PHASE 2 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude Code does not self-award PO PASS and does not self-close Phase 2.

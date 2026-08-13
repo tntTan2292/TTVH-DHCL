@@ -30,6 +30,7 @@
 - [26. Date-Filter Remediation — PO Runtime Recheck PASS, Closure (2026-08-13)](#26-date-filter-remediation--po-runtime-recheck-pass-closure-2026-08-13)
 - [27. Evidence Consolidation Phase 1 — Formal Closure (2026-08-13)](#27-evidence-consolidation-phase-1--formal-closure-2026-08-13)
 - [28. Frozen-Document Governance Delta — Execution (2026-08-13)](#28-frozen-document-governance-delta--execution-2026-08-13)
+- [29. Evidence Consolidation Phase 2 — Implementation (2026-08-13)](#29-evidence-consolidation-phase-2--implementation-2026-08-13)
 
 ## 1. Ticket Information
 
@@ -585,4 +586,19 @@ Documentation-only — no product code, schema, route, or test file touched. Con
 
 Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 19.
 
-Governance state: `F13-STANDARDIZATION-001` — Date-Filter Remediation `CLOSED / PO PASS`; Evidence Consolidation Phase 1 `CLOSED / PO PASS`; frozen-document governance delta `EXECUTED`; Phase 2 `NOT IMPLEMENTED / NOT YET AUTHORIZED`; search-result-presentation finding (Section 24) remains `LOCKED INTO PHASE 2 SCOPE / NOT IMPLEMENTED`, unchanged.
+Governance state: `F13-STANDARDIZATION-001` — Date-Filter Remediation `CLOSED / PO PASS`; Evidence Consolidation Phase 1 `CLOSED / PO PASS`; frozen-document governance delta `EXECUTED`; Phase 2 `IMPLEMENTED / READY FOR PO RUNTIME RECHECK` (Section 29).
+
+## 29. Evidence Consolidation Phase 2 — Implementation (2026-08-13)
+
+- Status: `PHASE 2 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`
+- Authority: Product Owner instruction, "PO AUTHORIZATION — BEGIN EVIDENCE CONSOLIDATION PHASE 2 IMPLEMENTATION" (baseline `457329e2`, confirmed matching before any edit).
+
+Implements plan Section 9's "Phase 2 — Evidence screen rebuild" scope plus the Section 14 search-result-presentation contract (AC-15..AC-23), authorized together in one instruction. `ShipmentPerformancePage.jsx` rewritten: violation group tabs (reused from `routeViolationEvidenceData.js`, not reimplemented), conditional Tuyến column, a keyword-only search-result summary region, three visibly distinct KPI counts, header-merged BCVH/Tuyến/Ngày badges, and removal of the auto-select-first-row effect (selection is now only ever explicit). New `ShipmentEvidenceDetail.jsx` consolidates the old Timeline+RootCause widgets into one evidence-detail panel. `ShipmentImpactOverview.jsx`, `ShipmentRecommendation.jsx`, `ShipmentDrilldown.jsx`, `ShipmentExecutiveBrief.jsx`, `ShipmentTimeline.jsx`, `ShipmentRootCause.jsx`, `ShipmentShellShared.jsx` all deleted (last one a disclosed minor deviation: deleted as dead code once its only consumers were reworked/removed, rather than "reworked" as the plan's file list literally said).
+
+No metric/formula/date-contract/data-source change; no backend file touched; Operation Dashboard, BCVH Ranking, Tuyến Ranking, Pareto/RCA, Network Management confirmed untouched; `F13-SHIPMENT-001` not opened; `Data QLML/`, `.claude/`, both stashes confirmed untouched.
+
+Live-database proof (service layer): real context (2026-07-27, BCVH 533140) — `reason=delayed_cash` returns exactly 217 rows matching `violation_summary.delayed_cash_count` exactly; 32 distinct real routes present in "Tất cả tuyến" mode.
+
+19 new tests, all passing; full frontend sweep 302/315 (same 13 pre-existing failures by name, zero regressions); prior Phase 1/remediation tests (15) unmodified and still 100% passing; `oxlint` clean; `vite build` succeeds. Full AC-15..AC-23 → implementation/test mapping table: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 20.
+
+Governance state: `PHASE 2 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude Code does not self-award PO PASS and does not self-close Phase 2.
