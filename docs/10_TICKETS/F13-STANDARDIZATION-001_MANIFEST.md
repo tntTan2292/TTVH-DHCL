@@ -31,6 +31,7 @@
 - [27. Evidence Consolidation Phase 1 — Formal Closure (2026-08-13)](#27-evidence-consolidation-phase-1--formal-closure-2026-08-13)
 - [28. Frozen-Document Governance Delta — Execution (2026-08-13)](#28-frozen-document-governance-delta--execution-2026-08-13)
 - [29. Evidence Consolidation Phase 2 — Implementation (2026-08-13)](#29-evidence-consolidation-phase-2--implementation-2026-08-13)
+- [30. Evidence Consolidation Phase 2 — Runtime Recheck FAIL + Search-Result Remediation (2026-08-13)](#30-evidence-consolidation-phase-2--runtime-recheck-fail--search-result-remediation-2026-08-13)
 
 ## 1. Ticket Information
 
@@ -601,4 +602,15 @@ Live-database proof (service layer): real context (2026-07-27, BCVH 533140) — 
 
 19 new tests, all passing; full frontend sweep 302/315 (same 13 pre-existing failures by name, zero regressions); prior Phase 1/remediation tests (15) unmodified and still 100% passing; `oxlint` clean; `vite build` succeeds. Full AC-15..AC-23 → implementation/test mapping table: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 20.
 
-Governance state: `PHASE 2 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude Code does not self-award PO PASS and does not self-close Phase 2.
+Governance state: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK` (superseded by Section 30). Claude Code does not self-award PO PASS and does not self-close Phase 2.
+
+## 30. Evidence Consolidation Phase 2 — Runtime Recheck FAIL + Search-Result Remediation (2026-08-13)
+
+- Status: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Authority: Product Owner runtime recheck FAIL (tested at commit `b3de0ea6`/`857f9b55`), authorizing bounded diagnosis and remediation of the search-result-presentation contract only.
+
+Defect: typing a keyword only ever showed one route, violating AC-17/AC-18. Root cause, reproduced via a real React render against real data (temporary, unsaved `jsdom` diagnostic, never committed): the evidence fetch was scoped server-side to the active violation-reason tab (default "Chậm nộp tiền"); a real 1,573-row/8-route context reduced to exactly 1 row/1 route under that default tab — the exact reported symptom. Fix: the fetch now always pulls every reason group; reason-tab scoping became a client-side filter; while a keyword is active, matching spans every reason group (AC-17/18 are unconditional); `contextTotal` re-derived from the tab-scoped subset. Reconciled against real data (8 groups/208 rows restored; route-selected mode stays correctly scoped to 44 rows; clearing search restores the tab-scoped 217, not the broad 1,573).
+
+14 new tests (mapped to the PO's C.1-13 list), all passing; full frontend sweep 316/329 (same 13 pre-existing failures, zero regressions); `oxlint` clean; `vite build` succeeds. Bounded to Phase 2 search-result presentation only — no metric/date-contract/schema change, no backend file touched, no governance closure performed. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 21.
+
+Governance state: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-award PO PASS and does not self-close Phase 2.

@@ -22,6 +22,7 @@
 - [18. Evidence Consolidation Phase 1 — Formal Closure (2026-08-13)](#18-evidence-consolidation-phase-1--formal-closure-2026-08-13)
 - [19. Frozen-Document Governance Delta — Execution Record (2026-08-13)](#19-frozen-document-governance-delta--execution-record-2026-08-13)
 - [20. Phase 2 Implementation Record (2026-08-13)](#20-phase-2-implementation-record-2026-08-13)
+- [21. Phase 2 Runtime Recheck FAIL + Search-Result Remediation (2026-08-13)](#21-phase-2-runtime-recheck-fail--search-result-remediation-2026-08-13)
 
 ## 1. Purpose And Authority
 
@@ -649,3 +650,83 @@ Real context (`2026-07-27`, BCVH Thuận Hóa `533140`, 1,573 "Không đạt" ro
 The plan's mobile wireframe (Section 4.2) describes tapping a row opening a full-screen sheet. This round implements a lighter responsive layout instead (columns collapse via Tailwind breakpoints; the detail panel stacks below the table on narrow viewports via the existing `xl:grid-cols-3` grid) rather than building a new modal/sheet interaction pattern. This is disclosed as a scope-conscious simplification for Product Owner review, not a silent deviation — the exact-sheet interaction can be a follow-up if required at runtime recheck.
 
 Claude Code does not self-award PO PASS and does not self-close Phase 2.
+
+## 21. Phase 2 Runtime Recheck FAIL + Search-Result Remediation (2026-08-13)
+
+- Status: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Authority: Product Owner runtime recheck FAIL (chat, `2026-08-13`), tested at implementation commit `b3de0ea6` / documentation commit `857f9b55`, authorizing bounded diagnosis and remediation.
+
+### Product Owner-reported defect
+
+"Khi PO nhập ký tự vào ô Tìm kiếm, giao diện chỉ đưa ra một tuyến gần nhất. Hệ thống không liệt kê đầy đủ tất cả các tuyến có dữ liệu trùng/khớp với chuỗi đang tìm kiếm để PO lựa chọn." — filed as an AC-15..AC-23 acceptance violation, with an 8-point expected-behavior contract and 9 named diagnostic hypotheses to check before any edit.
+
+### Diagnosis performed before any code change
+
+1. **Pure-function reproduction against real data**: called the actual `matchesSearchQuery`/`groupRowsByRoute`/`fetchAllEvidenceRows` functions directly (Node, real backend service, real database — same technique used throughout this session) for BCVH Thuận Hóa `533140`, `2026-07-27` (1,573 real "Không đạt" rows), keyword `"HCC"` (matches 8 real routes: An Cựu/An Đông/Phú Nhuận/Phước Vĩnh/Thủy Biều/Thủy Xuân/Trường An/Vỹ Dạ — verified independently via a direct read-only SQL query, 208 matching rows). Result: **correct** — 8 groups, 208 rows, no truncation, no best-match-only behavior. This ruled out `matchesSearchQuery`, `groupRowsByRoute`, and `fetchAllEvidenceRows` as the root cause at the pure-logic level.
+2. **Real React render reproduction**: since pure-function testing could not reproduce the defect, a temporary (unsaved, never committed — confirmed via `git status --porcelain -- frontend/package.json frontend/package-lock.json` both empty before and after) `jsdom` install plus Vite's `ssrLoadModule` SSR API was used to actually mount `ShipmentPerformancePage` inside a `MemoryRouter`, with `f13DashboardClient`'s HTTP methods monkey-patched to call the real backend service directly (same seam used throughout this session — only the HTTP transport is mocked, all business logic is real). This is a genuine React render, not a static string check.
+3. **Root cause found and reproduced exactly**: with the **default** reason tab active (`reason` param absent, defaulting to "Chậm nộp tiền" — no page-name branching, this is simply what a fresh arrival at the screen defaults to), the evidence fetch was scoped **server-side** to that one violation-reason group (217 of the 1,573 rows). Searching `"HCC"` within that narrow, already-fetched subset returned **exactly 1 row / 1 route** ("533140 HCC Vỹ Dạ") — reproducing the Product Owner's exact reported symptom, precisely, with real data, via a real render. Switching to `reason=all` in the same render correctly showed all 8 groups — confirming the reason-tab-scoped fetch, not pagination, matching, or grouping, was the defect.
+4. **Diagnosis category** (per the Product Owner's own list): closest to "search chỉ chạy trên page hiện tại" / "API trả kết quả phân trang nên frontend không có toàn bộ tập khớp" — not literally pagination (the existing `fetchAllEvidenceRows` page-walk was already correct and unmodified), but the same class of defect: search operated on an incomplete subset of the true full context, because the *fetch itself* was narrowed to one reason group before search ever ran.
+5. **Contract reconciliation**: the Product Owner's expected-behavior point 1 ("Search trong toàn bộ Evidence context hiện tại: Ngày + BCVH + nhóm vi phạm + dropdown Tuyến nếu đang được chọn") lists nhóm vi phạm as a context dimension, while points 2 and 4 are unconditional ("Liệt kê tất cả bưu gửi khớp từ khóa... không chỉ trang hiện tại"; "Mọi tuyến có kết quả khớp... đều phải xuất hiện"). Given the reproduced defect and the more specific, unconditional wording of points 2/4, the remediation below applies: **while a keyword is active, search intentionally spans every reason group** — nhóm vi phạm remains a real filter for the *non-search* flat view (unchanged), but does not gate what a keyword can find. Each result row still carries its own Lý do vi phạm badge, so no information is hidden — only the search-time visibility gate changed. This reconciliation is stated explicitly here for the Product Owner to confirm or correct at recheck.
+
+### Root cause (one sentence)
+
+The evidence fetch was scoped server-side to the currently active violation-reason tab; because the default tab only holds ~14% of a typical day's "Không đạt" rows, a keyword search almost always appeared to return far fewer routes than genuinely match, down to exactly one in the reproduced case.
+
+### Fix
+
+- `frontend/src/features/shipment/ShipmentPerformancePage.jsx`:
+  - The evidence fetch (`f13DashboardClient.getEvidenceList`) no longer sends a `reason` filter — it always fetches every violation-reason group in one request. `reasonParam` removed from the fetch effect's dependency array; switching tabs no longer triggers a network request at all (a proportionate, unplanned but reasonable efficiency side effect, not a scope expansion).
+  - Reason-tab scoping is now a pure client-side filter (`reasonScopedRows`), derived from `runtimeRows` and the active tab's label (looked up from the already-computed `violationTabs`, no new hardcoded mapping).
+  - `filteredRows` (search-applied): when no keyword is active, equals `reasonScopedRows` (unchanged flat-view behavior — a manager on the default tab still only sees that tab's rows when not searching). When a keyword **is** active, equals `runtimeRows` filtered by `matchesSearchQuery` — i.e., the full multi-reason set, never the tab-narrowed subset. This is the direct fix.
+  - `contextTotal` (AC-19's "trước tìm kiếm" figure) now reads `reasonScopedRows.length` instead of `meta.pagination.total_items`, since the latter now reflects the always-broad fetch total rather than the active tab — this keeps AC-19's pre-search figure correctly tab-scoped, matching what the flat (non-search) view actually displays.
+  - `selectedShipment` unchanged (already correct per the diagnosis — verified via the same real-render harness with a nonexistent `shipment_id`: resolves to `null`, never a fallback row).
+  - Removed the now-dead `meta`/`setMeta` state (only ever used for the value now sourced from `reasonScopedRows.length`).
+
+### Live-database / real-render reconciliation (after the fix)
+
+| Scenario | Before fix | After fix |
+| --- | --- | --- |
+| Default tab (Chậm nộp tiền), search "HCC" | **1 group, 1 row** (defect) | **8 groups, 208 rows** — matches `reason=all` exactly |
+| `reason=all`, search "HCC" | 8 groups, 208 rows (already correct) | 8 groups, 208 rows (unchanged) |
+| Default tab, no search | 217 rows (correct) | 217 rows (unchanged — no regression) |
+| Clear search while on default tab | n/a | 217 rows restored (tab-scoped, not the broad 1,573) |
+| A specific route selected (An Cựu, `53314060`), search "HCC" | not tested at FAIL time | **1 group, 44 rows** — correctly stays scoped to the selected route, confirming AC-20 / point 1's route-scoping intact |
+| Same route selected, no search | not tested at FAIL time | 44 rows — matches the real database count for that route exactly |
+| Keyword with 0 matches | not tested at FAIL time | 0 groups, correct empty state shown |
+| Stale/invalid `shipment_id` | not tested at FAIL time | resolves to no selection, never a substitute row |
+
+All figures independently verified against `database.sqlite` via direct read-only SQL query (e.g., `ma_bcvh='533140' AND ngay_do_kiem='2026-07-27' AND ten_tuyen LIKE '%HCC%'` → 208 rows, matching exactly).
+
+### Tests (mapped to the Product Owner's C.1–13 list)
+
+New file `frontend/src/features/shipment/ShipmentPerformancePage.searchRemediation.test.js` (14 tests, source-level — this repository has no committed React rendering/jsdom harness; the jsdom-based real-render verification above was a temporary, uninstalled diagnostic tool, not a new test dependency):
+
+| # | Requirement | Test |
+| --- | --- | --- |
+| C.1/C.7 | Multi-shipment, multi-route match | fetch no longer reason-scoped; search draws from full `runtimeRows` |
+| C.2 | Same-name/different-`ma_tuyen` routes stay separate | delegated to `groupRowsByRoute`, already unit-tested |
+| C.3 | Not limited to first page | `fetchAllEvidenceRows` walk unchanged, still called before filtering |
+| C.4 / C.5 | 0 and exactly-1 result | same unconditional empty-state/table logic, no special-cased counts |
+| C.6 | n results in one route | route-scoped fetch (`routeIdParam`) verified via real render |
+| C.8 | No auto-select | unchanged, re-verified |
+| C.9 | Manual selection updates detail | `handleSelectShipment` still the only writer; detail panel receives `selectedShipment` directly |
+| C.10 | Route dropdown independent | `handleRouteChange` contains no `search` reference in code (comments excluded) |
+| C.11 | Clear keyword restores context | `filteredRows` falls back to `reasonScopedRows` exactly |
+| C.12 | No Vietnamese/IME regression | `SharedLayout.jsx` confirmed untouched (`git diff` empty) |
+| C.13 | Desktop/mobile don't hide route groups | the group header itself carries no `hidden` class; only secondary table columns do |
+
+`ShipmentPerformancePage.phase2.test.js`'s `contextTotal` assertion updated to match the new `reasonScopedRows`-based computation (1 test edited, not weakened — same assertion intent, new correct source pattern).
+
+### Validation
+
+- New remediation tests: **14/14 pass**.
+- Full frontend sweep: **316/329 pass** — same 13 pre-existing failures by name as every prior round's baseline, zero regressions.
+- Prior Phase 1/remediation/Phase 2 tests (48 across `contract`/`remediation`/`phase2`/`shipmentPerformanceData` test files) — all still passing, 1 updated assertion (`contextTotal` source pattern) to match the new correct implementation.
+- `oxlint`: clean (one `no-unused-vars` warning on the now-dead `meta` state was found and fixed by removing the dead state entirely, not suppressing the warning).
+- `vite build`: succeeds.
+
+### Scope discipline
+
+Bounded to Evidence Consolidation Phase 2's search-result presentation only. No metric, date contract, schema, or data-source change. No backend file touched (`git diff --name-only -- backend/` empty). Operation Dashboard, BCVH Ranking, Tuyến Ranking, Pareto/RCA, Network Management, `F13-SHIPMENT-001` untouched. No governance closure performed this round — Phase 2 remains `NOT CLOSED`, per explicit instruction. `.claude/`, `Data QLML/`, both stashes confirmed untouched throughout, including before/after the temporary unsaved `jsdom` diagnostic install (`git status --porcelain -- frontend/package.json frontend/package-lock.json` empty both times; the diagnostic script itself was deleted, never committed).
+
+Governance state: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-close Phase 2.

@@ -25,6 +25,7 @@
 - [21. Evidence Consolidation Phase 1 — Formal Closure](#21-evidence-consolidation-phase-1--formal-closure)
 - [22. Frozen-Document Governance Delta — Execution](#22-frozen-document-governance-delta--execution)
 - [23. Evidence Consolidation Phase 2 — Implementation](#23-evidence-consolidation-phase-2--implementation)
+- [24. Evidence Consolidation Phase 2 — Runtime Recheck FAIL + Search-Result Remediation](#24-evidence-consolidation-phase-2--runtime-recheck-fail--search-result-remediation)
 
 ## 1. Purpose
 
@@ -238,4 +239,21 @@ No implementation authorized by this plan. **Superseded by Section 17** — the 
 - Simplification disclosed: mobile uses responsive column-hiding/stacking rather than a full-screen tap sheet (plan Section 4.2) — a scope-conscious simplification, not a silent deviation.
 - Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 20 (includes the full AC-15..AC-23 → implementation/test mapping table).
 
-Governance state: `PHASE 2 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude Code does not self-award PO PASS and does not self-close Phase 2.
+Governance state: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK` (superseded by Section 24). Claude Code does not self-award PO PASS and does not self-close Phase 2.
+
+## 24. Evidence Consolidation Phase 2 — Runtime Recheck FAIL + Search-Result Remediation
+
+- Status: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Authority: Product Owner runtime recheck FAIL (tested at commit `b3de0ea6`/`857f9b55`), authorizing bounded diagnosis and remediation of the search-result-presentation contract only.
+
+**Defect**: typing a keyword only ever showed one route ("chỉ đưa ra một tuyến gần nhất"), violating AC-17/AC-18. **Root cause, reproduced with a real React render against real data** (temporary, unsaved `jsdom` + Vite SSR harness — never committed, `git status --porcelain -- frontend/package.json frontend/package-lock.json` confirmed empty before and after): the evidence fetch was scoped server-side to the currently active violation-reason tab (default "Chậm nộp tiền," ~14% of a typical day's rows); a real BCVH/date context with 1,573 rows across 8 routes matching "HCC" reduced to exactly 1 row/1 route under the default tab — the Product Owner's exact symptom, reproduced precisely.
+
+**Fix**: the evidence fetch now always pulls every reason group in one request (`reason` removed from the query and from the fetch effect's dependencies); reason-tab scoping became a pure client-side filter (`reasonScopedRows`); while a keyword is active, matching intentionally spans every reason group (AC-17/18 are unconditional — "mọi tuyến... đều phải xuất hiện" — no matching route is hidden by which tab happens to be selected); `contextTotal` (AC-19) re-derived from the tab-scoped `reasonScopedRows` instead of the now-broad fetch total.
+
+Reconciled against real data: default-tab "HCC" search now correctly shows 8 groups/208 rows (previously 1/1); a specific route selected stays correctly scoped (An Cựu: 1 group/44 rows, matching the database exactly); clearing search restores the tab-scoped 217 rows, not the broad 1,573.
+
+14 new tests (`ShipmentPerformancePage.searchRemediation.test.js`, mapped to the Product Owner's C.1–13 list), all passing; full frontend sweep 316/329 (same 13 pre-existing failures by name, zero regressions); `oxlint` clean (removed a now-dead `meta` state, not suppressed); `vite build` succeeds.
+
+Bounded to Phase 2 search-result presentation only — no metric/date-contract/schema change, no backend file touched, no other module expanded, no governance closure performed. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 21.
+
+Governance state: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-award PO PASS and does not self-close Phase 2.
