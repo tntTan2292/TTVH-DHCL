@@ -1,6 +1,21 @@
 # Evidence Center UX Architecture
 
-## 1. UX Goals
+## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13)
+
+**Status: AMENDED — controlled amendment, not a rewrite.** Authority: same as `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`'s Section 0. Documentation-only.
+
+**What changed:** the journeys and wireflow below open with "Open Evidence Center from Shipment drill-down" and route through the eight retired validation widgets. Retained below as the historical record.
+
+**The amended, current UX** aligns with the wireframe in `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 4 (desktop/mobile/loading/empty/error, and the Section 14 search-result-presentation contract for the not-yet-implemented Phase 2 search UX):
+
+- **Entry:** Tuyến Ranking's drill-down button, or the merged screen's own URL contract (`from_date`/`to_date`/`bcvh_id`/`route_id`/`reason`/`return_to`) — not "from Shipment drill-down," since that stage no longer exists.
+- **Journey (replaces the three journeys in Section 2):** (1) land on `/f13/evidence` with day/BCVH/route/violation-group context preserved from Tuyến Ranking; (2) read the violation group tabs and table for the selected group; (3) optionally search — filters only, never auto-selects a representative row (Phase 2 contract); (4) click a shipment row to populate the evidence-detail panel; (5) read the `>3.0h` rule statement when it caused the classification; (6) see an honest "chưa khả dụng" state for Action Center hand-off, since it does not exist yet.
+- **Wireflow (replaces Section 3):** `Tuyến Ranking → Evidence (context/filter bar → violation group tabs → violation table → evidence-detail panel) → [Action Center — not yet available]`.
+- Return path: "Quay lại Tuyến Ranking" via `return_to`, unchanged from what Section 3 originally intended for the analogous back-link.
+
+---
+
+## 1. UX Goals (historical — original design, see amendment above)
 
 Evidence Center UX phải giúp lãnh đạo xác minh bằng chứng nhanh, biết rõ evidence đã đủ hay chưa, và quyết định có chuyển sang Action Center hay không.
 

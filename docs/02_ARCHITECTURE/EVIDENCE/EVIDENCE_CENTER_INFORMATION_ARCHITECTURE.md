@@ -1,6 +1,22 @@
 # Evidence Center Information Architecture
 
-## 1. Vai trò trong QIS V2
+## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13)
+
+**Status: AMENDED — controlled amendment, not a rewrite.** Authority: Product Owner "PO DATE-FILTER RUNTIME RECHECK PASS" instruction (2026-08-13), executing the frozen-document amendment approved in principle on `2026-08-11` (`F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 8) as its own separate governance delta. This is a documentation-only change — no product code was touched by this amendment.
+
+**What changed:** the design below (Sections 1-8) described Evidence Center as a stage reached *after* a separate Shipment Performance Center stage, with eight validation widgets (Executive Summary, Coverage, Timeline, Scan History, Rule Validation, Supporting Evidence, RCA Evidence, Decision Support). That Shipment Performance Center stage has been merged into Evidence Center as a single screen (`/f13/evidence`, "Evidence — Chi tiết bưu gửi vi phạm"). Sections 1-8 are **retained below as the historical record of the original design intent**, not deleted, per the standing rule against destroying frozen-document history.
+
+**The amended, current design:**
+
+- **Drill-down chain (was Section 6):** `Dashboard → BCVH Performance Center → Route Performance Center → Evidence Center → Action Center`. The separate "Shipment Performance Center" stage no longer exists as its own screen; its role (identifying the shipment/route that represents the problem) is absorbed into Evidence Center's context/filter bar and violation table.
+- **Real widget set (supersedes the eight widgets listed in Sections 3/7):** three regions — a context/filter bar (date, BCVH, Tuyến selector, search), a violation list (server-sourced group tabs: Chậm nộp tiền / Không đạt khác / Chưa xác định nguyên nhân / Tất cả không đạt, plus the violation table), and an evidence-detail panel (per-shipment identity, timeline PTC→Nộp tiền, the `>3.0h` rule statement when it caused the classification). None of Coverage, Scan History, Rule Validation-as-a-widget, Supporting Evidence, or RCA Evidence-as-a-widget have a data source in `fact_f13` and are not implemented; they are retired designs, not outstanding debt (see `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md`'s own amendment notice).
+- **Section 8's prohibitions are now literally satisfied, not just stated:** "Không lặp Shipment Performance Center" is satisfied because that stage was merged away, not duplicated; "Không đưa Recommendation sang Evidence" is satisfied because the merged screen's `ShipmentRecommendation` widget was removed, per Product Owner decision.
+
+Full technical/product record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` (Sections 1-9 for the contract/wireframe/widget-disposition detail this amendment reflects; Section 8 for the amendment authorization itself). Implementation commits: `b147df7c`, `d6cd022d` (Evidence screen itself); this amendment is documentation-only and introduces no new product-code commit.
+
+---
+
+## 1. Vai trò trong QIS V2 (historical — original design, see amendment above)
 
 Evidence Center là tầng xác minh bằng chứng trong QIS V2.
 

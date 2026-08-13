@@ -1,6 +1,35 @@
 # Evidence Center Widget Specification
 
-## 1. Mục tiêu
+## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13)
+
+**Status: AMENDED — controlled amendment, not a rewrite.** Authority: same as `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`'s Section 0. Documentation-only.
+
+**What changed:** Sections 1-7 below specify eight "Must-have" widgets (Executive Summary, Coverage, Timeline, Scan History, Rule Validation, Supporting Evidence, RCA Evidence, Decision Support). None of Coverage, Scan History, Rule Validation-as-a-standalone-widget, Supporting Evidence, or RCA Evidence-as-a-standalone-widget have ever had a data source in `fact_f13` — retained below as the historical record, **explicitly re-classified as "no data source available," not as outstanding implementation debt.**
+
+**The amended, current widget set** (implemented, `/f13/evidence`):
+
+| Widget | Disposition | Data source |
+| --- | --- | --- |
+| Context / filter bar | Real, implemented | `fact_f13` via `/f13/evidence-list` query params (date/bcvh/route/reason) |
+| Violation group tabs | Real, implemented | `meta.violation_summary` (server-computed, mutually exclusive + exhaustive over `ma_bg`) |
+| Violation table (`ShipmentEvidenceSummary`) | Real, implemented | `fact_f13` rows, paginated (`meta.pagination`) |
+| Evidence-detail panel — identity/kết quả/nhóm vi phạm | Real, implemented | Selected row's `ma_bg`, `danh_gia_2026`, `violation_reason` |
+| Evidence-detail panel — timeline (PTC → Nộp tiền) | Real, implemented | `thoi_gian_ptc`, `thoi_gian_nop_tien` |
+| Evidence-detail panel — `>3.0h` rule statement | Real, implemented | `RULE_F13_302` (existing SSOT delayed-cash rule), stated only when it caused the classification |
+| **Evidence Executive Summary Widget** | Retired — no separate widget; its four values are absorbed into the merged context header | superseded, no independent data source needed |
+| **Evidence Coverage Widget** | Retired — no data source available | `fact_f13` has no coverage/gap dimension |
+| **Evidence Timeline Widget** (as a standalone card) | Retired — merged into the evidence-detail panel's timeline block | absorbed, not deleted |
+| **Scan History Widget** | Retired — no data source available | `fact_f13` has no scan/trace log |
+| **Rule Validation Widget** (as a standalone card) | Retired — absorbed into the `>3.0h` rule statement in the evidence-detail panel | absorbed, not deleted |
+| **Supporting Evidence Widget** | Retired — no data source available | `fact_f13` has no secondary/supporting-trace field |
+| **RCA Evidence Widget** | Retired — no data source available; RCA is out of Evidence's scope per the merged design | not a data gap to close, a scope boundary |
+| **Decision Support Widget** | Retired — replaced by an honest "chưa khả dụng" Action Center hand-off state, since Action Center does not exist yet | no Action Center to hand off to |
+
+Full detail: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 5 (widget disposition table, KEEP/REMOVE/MERGE/REDESIGN per widget).
+
+---
+
+## 1. Mục tiêu (historical — original design, see amendment above)
 
 Widget Specification xác định các thành phần cần có cho Evidence Center.
 

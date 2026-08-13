@@ -22,6 +22,8 @@
 - [18. Evidence Consolidation Phase 1 Remediation](#18-evidence-consolidation-phase-1-remediation)
 - [19. Evidence Consolidation PO Finding Locked Into Phase 2](#19-evidence-consolidation-po-finding-locked-into-phase-2)
 - [20. Date-Filter Cross-Module Remediation](#20-date-filter-cross-module-remediation)
+- [21. Evidence Consolidation Phase 1 — Formal Closure](#21-evidence-consolidation-phase-1--formal-closure)
+- [22. Frozen-Document Governance Delta — Execution](#22-frozen-document-governance-delta--execution)
 
 ## 1. Purpose
 
@@ -200,10 +202,25 @@ No implementation authorized by this plan. **Superseded by Section 17** — the 
 
 ## 20. Date-Filter Cross-Module Remediation
 
-- Status: `DATE-FILTER REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Implemented: `2026-08-13`.
+- Status: `CLOSED / PO DATE-FILTER RUNTIME RECHECK PASS`. Implemented: `2026-08-13`. Recheck PASS: `2026-08-13`.
 - PO discovered Operation Dashboard's "Bảng điều hành BCVH" table silently ignored `from_date` and only ever queried a single exact day (`to_date`), contradicting its own page's correctly-ranged KPI cards. A bounded, read-only diagnosis was performed first (recorded in `F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 15); PO then authorized a bounded fix.
 - Fix (backend + one frontend line, purely parameter-driven, no page-name branching): `/f13/ranking/bcvh` now genuinely aggregates `ngay_do_kiem BETWEEN from_date AND to_date` (inclusive); BCVH Ranking's own request now explicitly sends `from_date === to_date` to keep its single-evaluation-day contract; reversed ranges rejected `400 INVALID_RANGE`. Tuyến Ranking, Evidence, Pareto/RCA untouched.
 - Live-database verification reproduced the PO's exact evidence (BCVH Thuận Hóa `533140`: single day `2026-08-11` → `1,820/753/986`; range `2026-08-01`–`2026-08-11` → `18,895/10,179/7,841`). The 81-count gap on `2026-08-11` was confirmed (direct read-only query) to be pre-existing `danh_gia_2026 IS NULL` rows, the same unclassified category already modeled elsewhere (`total_unknown`, `Chưa xác định nguyên nhân`) — no metric/formula changed.
 - 12 new tests (9 backend + 3 frontend source-level), all passing; full backend sweep 209/213 and full frontend sweep 283/296, both against a freshly re-verified true baseline (200/204 backend, 280/293 frontend) — identical pre-existing failures by name, zero regressions.
-- Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 16.
-- Phase 1 closure, the 8-frozen-document governance delta, and all Phase 2 work remain `PAUSED` pending this remediation's own PO runtime recheck.
+- Product Owner runtime recheck PASS confirmed 4 points: (1) Operation Dashboard's BCVH table aggregates correctly across the full selected range; (2) changing the range updates the table correctly; (3) the earlier to_date-only observation was an unrestarted backend process, not a residual defect at commit `0a15ddf4`; (4) a BCVH-filtered Sản lượng widget correctly hides national rank in that context — confirmed as intended behavior, not data loss.
+- Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 16 (implementation) and Section 17 (recheck PASS/closure).
+
+## 21. Evidence Consolidation Phase 1 — Formal Closure
+
+- Status: `PHASE 1 CLOSED / PO PASS`. Closed: `2026-08-13`.
+- Phase 1 (Section 17 above, F-1 backend fix) and its remediation (Section 18, DEFECT A/B) both received Product Owner runtime PASS. Formal closure was sequenced behind the date-filter remediation's own recheck, per explicit PO instruction (`2026-08-12`); that condition is now satisfied.
+- Closes Phase 1 of the Evidence Consolidation plan only — Phase 2 (widget consolidation, the 10-point search-result-presentation contract) remains `NOT IMPLEMENTED`, requiring its own separate implementation authorization. The `F13-STANDARDIZATION-001` program itself remains open (Phase 0 of the original 5-phase program plan partial; Phases 1-4 `PLANNED / NOT ACTIVE`).
+- Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 18.
+
+## 22. Frozen-Document Governance Delta — Execution
+
+- Status: `GOVERNANCE DELTA EXECUTED`. Executed: `2026-08-13`.
+- Authority: Product Owner instruction executing the `2026-08-11` approval-in-principle (plan Section 8) as its own separate governance delta.
+- All 8 documents named in the plan's Section 8 amended, each gaining a `## 0. GOVERNANCE AMENDMENT NOTICE` section, original content preserved below as historical record: `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`, `EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md`, `EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` (AMENDED — redefined to the merged design); `SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`, `SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md`, `SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` (SUPERSEDED); `EVIDENCE_CENTER_UX_ARCHITECTURE.md` (AMENDED); `SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` (SUPERSEDED). `PROJECT_PROGRESS.md`'s Frozen Documents list updated with the amendment record.
+- Documentation-only; no product code touched. Phase 2 not thereby authorized to begin — both stated prerequisites (PO recheck, frozen-document delta) are now satisfied, but implementation still requires its own separate explicit Product Owner authorization.
+- Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 19.

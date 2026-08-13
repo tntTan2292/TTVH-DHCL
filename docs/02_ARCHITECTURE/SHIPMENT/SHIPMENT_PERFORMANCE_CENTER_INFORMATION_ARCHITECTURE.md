@@ -1,6 +1,18 @@
 # Shipment Performance Center Information Architecture
 
-## 1. Vai trò trong QIS V2
+## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13) — SUPERSEDED
+
+**Status: SUPERSEDED.** Authority: Product Owner instruction (2026-08-13) executing the frozen-document amendment approved in principle on `2026-08-11` (`F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 8). Documentation-only — no product code touched by this amendment.
+
+**Shipment Performance Center as a standalone screen/stage no longer exists.** Per Product Owner decision (`2026-08-11`), it was merged into Evidence Center as a single screen (`/f13/evidence`, "Evidence — Chi tiết bưu gửi vi phạm") — Tuyến Ranking leads directly into Evidence, with no separate shipment-detail stage in between. The role this document describes (identifying the shipment representing the problem, preparing evidence/context for Evidence Center) is now performed by the merged Evidence screen's context/filter bar and violation table.
+
+The content below is **retained as the historical record of the original design intent** — not deleted, per the standing rule against destroying frozen-document history. It must not be treated as current architecture; see `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` (its own Section 0 amendment notice) for the current merged design.
+
+Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 5 (widget disposition — every Shipment Performance Center widget's KEEP/REMOVE/MERGE/REDESIGN fate) and Section 6 (old-screen redirect handling). `F13-SHIPMENT-001` (deferred, `stash@{0}`) also describes this superseded stage and remains not opened; it will eventually need reconciling with this supersession.
+
+---
+
+## 1. Vai trò trong QIS V2 (historical — superseded, see amendment above)
 
 Shipment Performance Center là tầng phân tích chi tiết sau Route Performance Center.
 

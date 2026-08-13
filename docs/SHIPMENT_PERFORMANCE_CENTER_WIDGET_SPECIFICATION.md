@@ -1,6 +1,12 @@
 # Shipment Performance Center Widget Specification
 
-## 1. Mục tiêu
+## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13) — SUPERSEDED
+
+**Status: SUPERSEDED.** Same authority as `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`'s Section 0 — Shipment Performance Center no longer exists as a standalone screen; it was merged into Evidence Center (`/f13/evidence`). The widgets below are **retained as the historical record**, not current — see the widget disposition table in `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 5 for each widget's actual fate: `ShipmentEvidenceSummary` (KEEP + REDESIGN into the merged violation table), `ShipmentExecutiveBrief` (MERGE into the context header), `ShipmentRootCause`/`ShipmentTimeline` (REDESIGN/MERGE into the evidence-detail panel), `ShipmentImpactOverview`/`ShipmentRecommendation`/`ShipmentDrilldown` (REMOVE). See `docs/EVIDENCE_CENTER_WIDGET_SPECIFICATION.md`'s Section 0 for the current merged widget set.
+
+---
+
+## 1. Mục tiêu (historical — superseded, see amendment above)
 
 Widget Specification xác định các thành phần cần có cho Shipment Performance Center.
 

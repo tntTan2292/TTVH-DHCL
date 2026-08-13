@@ -1,6 +1,12 @@
 # Shipment Performance Center Screen Architecture
 
-## 1. Vai trò của Screen Architecture
+## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13) — SUPERSEDED
+
+**Status: SUPERSEDED.** Same authority as `SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`'s Section 0 — Shipment Performance Center no longer exists as a standalone screen; it was merged into Evidence Center (`/f13/evidence`). The zone/widget architecture below is **retained as the historical record**, not current. See `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md`'s Section 0 for the current merged screen architecture. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 5.
+
+---
+
+## 1. Vai trò của Screen Architecture (historical — superseded, see amendment above)
 
 Screen Architecture xác định cách các widget của Shipment Performance Center được tổ chức thành các vùng màn hình để hỗ trợ phân tích bưu gửi.
 

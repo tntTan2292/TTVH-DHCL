@@ -91,6 +91,17 @@
 - `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md`
 - `docs/02_ARCHITECTURE/ACTION/ACTION_CENTER_SCREEN_ARCHITECTURE.md`
 
+**Controlled amendment record (2026-08-13):** the 6 documents below (all in this list) plus 2 further documents outside this list's original scope (`docs/03_UX/evidence/EVIDENCE_CENTER_UX_ARCHITECTURE.md`, `docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md`) received a Product Owner-authorized controlled amendment ("PO DATE-FILTER RUNTIME RECHECK PASS" instruction, executing the `2026-08-11` approval-in-principle from `F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 8) reflecting the merged Evidence Center / Shipment Performance Center screen (`/f13/evidence`). Each document gained a `## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13)` section at its top recording the change; original content is retained below each notice as the historical record, not deleted:
+
+- `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` — redefined as the merged violation-detail stage; drill-down chain collapsed to `Dashboard → BCVH → Tuyến → Evidence → Action`.
+- `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` — eight-zone list replaced with the three real regions (context/filter bar, violation list, evidence-detail panel).
+- `docs/EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` — re-specified against the real widget set; retired widgets (Coverage, Scan History, Rule Validation-as-widget, Supporting Evidence, RCA Evidence-as-widget, Decision Support) marked "no data source available," not outstanding debt.
+- `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`, `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md`, `docs/SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` — marked fully `SUPERSEDED` (the standalone Shipment Performance Center stage no longer exists; merged into Evidence Center).
+- `docs/03_UX/evidence/EVIDENCE_CENTER_UX_ARCHITECTURE.md` — journeys/wireflow aligned with the merged screen's entry, journey, and wireflow.
+- `docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` — marked fully `SUPERSEDED`.
+
+Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 17 (governance delta execution record).
+
 ## Business Decisions Frozen
 
 - QIS V2 is a Decision Support System.
@@ -603,3 +614,13 @@
 - 12 new tests, all passing; full backend sweep 209/213 and full frontend sweep 283/296, both re-verified against a freshly-confirmed true baseline (200/204 backend, 280/293 frontend) with identical pre-existing failures by name — zero regressions.
 - Evidence Consolidation Phase 1 Remediation separately received its own PO recheck PASS this same day (2026-08-13); its formal closure stays sequenced behind this date-filter remediation's own recheck, per explicit PO instruction.
 - State: `DATE-FILTER REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Full evidence: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 16; `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 25; `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md` Section 20.
+
+## F13-STANDARDIZATION-001 — Date-Filter Remediation Closed, Evidence Consolidation Phase 1 Formally Closed, Frozen-Document Governance Delta Executed
+
+- Product Owner ran the date-filter fix live (backend restarted) and confirmed `PO DATE-FILTER RUNTIME RECHECK PASS` (2026-08-13): Operation Dashboard's BCVH table aggregates correctly across the selected range; range updates correctly on filter change; the earlier to_date-only observation was an unrestarted backend, not a residual defect at commit `0a15ddf4`; a BCVH-filtered Sản lượng widget correctly omits national rank in that context (confirmed intended, not data loss). Date-filter remediation closed: `CLOSED / PO DATE-FILTER RUNTIME RECHECK PASS`.
+- Evidence Consolidation Phase 1 formally closed: `PHASE 1 CLOSED / PO PASS`. Phase 1 (F-1 backend fix) and its remediation (DEFECT A Vietnamese IME search, DEFECT B empty-state distinction) both already had Product Owner runtime PASS; formal closure had been sequenced behind the date-filter recheck only (per 2026-08-12 PO instruction), now satisfied.
+- Frozen-document governance delta executed (approved in principle 2026-08-11, executed 2026-08-13): all 8 documents amended, each gaining a `## 0. GOVERNANCE AMENDMENT NOTICE` section, original content preserved below as historical record — see the "Controlled amendment record (2026-08-13)" note under Frozen Documents above for the full list and disposition (AMENDED vs SUPERSEDED) of each.
+- Search-result-presentation finding (2026-08-12, AC-15..AC-23) kept exactly as locked, unchanged — no Phase 2 implementation performed this round.
+- Both stated Phase 2 prerequisites (PO recheck, frozen-document delta) are now satisfied, but Phase 2 implementation is not self-authorized by this governance-only round — it requires its own separate, explicit Product Owner instruction.
+- Documentation-only. No product code, schema, route, or test file touched. `F13-SHIPMENT-001` not opened; `Data QLML/`, `NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes confirmed untouched.
+- State: `F13-STANDARDIZATION-001 — Date-Filter Remediation CLOSED / PO PASS; Evidence Consolidation Phase 1 CLOSED / PO PASS; frozen-document governance delta EXECUTED; Phase 2 NOT IMPLEMENTED / NOT YET AUTHORIZED`. Full evidence: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Sections 17-19; `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Sections 26-28; `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md` Sections 20-22.

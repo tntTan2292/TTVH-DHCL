@@ -1,6 +1,24 @@
 # Evidence Center Screen Architecture
 
-## 1. Vai trò của Screen Architecture
+## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13)
+
+**Status: AMENDED — controlled amendment, not a rewrite.** Authority: same as `EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md`'s Section 0 — Product Owner instruction (2026-08-13) executing the frozen-document amendment approved in principle on `2026-08-11`. Documentation-only.
+
+**What changed:** Sections 1-9 below prescribe eight widgets across five zones (Header, Executive, Evidence Validation, Decision Support, Action Trigger) — Coverage, Scan History, Rule Validation, Supporting Evidence, and RCA Evidence have no data source in `fact_f13` and were never implementable against the real schema. Retained below as the historical record of the original design intent.
+
+**The amended, current screen architecture — three real regions, replacing the eight-widget zone list:**
+
+1. **Context / filter bar** (was part of Header Zone) — ngày, BCVH, Tuyến selector (including "Tất cả tuyến"), search box. Always visible, not collapsible.
+2. **Violation list** (replaces Executive Zone + most of Evidence Validation Zone) — server-sourced violation group tabs (`Chậm nộp tiền` / `Không đạt khác` / `Chưa xác định nguyên nhân` / `Tất cả không đạt`, counts from `meta.violation_summary`, never counted client-side) plus the violation table itself (`Mã BG`, `Tuyến`, `Lý do`, `PTC`, `Nộp tiền`, `Độ trễ`). While a search keyword is active, the table groups by real route (`[mã] - [tên tuyến]` + count, expandable) instead of a flat list — see the locked Phase 2 search-result-presentation contract (`F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 14) for the full behavior, not yet implemented.
+3. **Evidence-detail panel** (replaces Decision Support Zone + Action Trigger Zone) — populated only on explicit row selection (never auto-selected by a keyword search); shows shipment identity, BCVH/Tuyến/Ngày, kết quả (`danh_gia_2026`), nhóm vi phạm badge, PTC→Nộp tiền timeline, the `>3.0h` rule statement when applicable, and an honest "chưa khả dụng" hand-off state (Action Center does not exist yet).
+
+Reading flow (replaces Section 5): filter bar → violation group tabs → violation table → (on selection) evidence-detail panel. Interaction flow (replaces Section 6): selecting a violation group tab filters the table; selecting a table row populates the detail panel; the detail panel never triggers navigation on its own (no Action Center hand-off exists to trigger yet).
+
+Full detail: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 4 (wireframe, desktop/mobile/loading/empty/error) and Section 5 (widget disposition table).
+
+---
+
+## 1. Vai trò của Screen Architecture (historical — original design, see amendment above)
 
 Screen Architecture xác định cách các widget của Evidence Center được tổ chức thành các vùng màn hình để phục vụ xác minh bằng chứng.
 

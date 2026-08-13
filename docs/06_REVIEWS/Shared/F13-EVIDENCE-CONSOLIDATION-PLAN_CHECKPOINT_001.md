@@ -18,6 +18,9 @@
 - [14. PO Finding — Search Result Presentation Ambiguity, Locked Into Phase 2 (2026-08-12)](#14-po-finding--search-result-presentation-ambiguity-locked-into-phase-2-2026-08-12)
 - [15. Session Continuity Checkpoint — Work Paused For Date-Filter Diagnosis (2026-08-12)](#15-session-continuity-checkpoint--work-paused-for-date-filter-diagnosis-2026-08-12)
 - [16. Date-Filter Remediation — PO-Authorized Bounded Fix (2026-08-13)](#16-date-filter-remediation--po-authorized-bounded-fix-2026-08-13)
+- [17. Date-Filter Remediation — PO Runtime Recheck PASS, Closure (2026-08-13)](#17-date-filter-remediation--po-runtime-recheck-pass-closure-2026-08-13)
+- [18. Evidence Consolidation Phase 1 — Formal Closure (2026-08-13)](#18-evidence-consolidation-phase-1--formal-closure-2026-08-13)
+- [19. Frozen-Document Governance Delta — Execution Record (2026-08-13)](#19-frozen-document-governance-delta--execution-record-2026-08-13)
 
 ## 1. Purpose And Authority
 
@@ -516,3 +519,75 @@ New file [`frontend/src/features/ranking/BcvhRankingPage.singleDayContract.test.
 Bounded to the date-filter finding only. Tuyến Ranking, Evidence, Pareto/RCA: not touched (confirmed via `git status --porcelain` and `git diff --name-only` scoped to `frontend/src/features/route/`, `frontend/src/features/shipment/`, `frontend/src/features/dashboard/components/UnifiedBcvhAnalysisTable.jsx` other than the one line described above — none touched). No frozen architecture document touched. No Phase 2 work. The 8-frozen-document governance delta not started. `F13-SHIPMENT-001` not opened; `Data QLML/`, `NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes confirmed untouched throughout (re-verified via `git stash list` after every stash/pop cycle used for baseline comparison during this round).
 
 Phase 1 closure, the 8-frozen-document delta, and all Phase 2 work remain `PAUSED`, per explicit PO instruction, pending this remediation's own runtime recheck.
+
+## 17. Date-Filter Remediation — PO Runtime Recheck PASS, Closure (2026-08-13)
+
+- Status: `CLOSED / PO DATE-FILTER RUNTIME RECHECK PASS`
+- Authority: Product Owner runtime recheck (chat, `2026-08-13`), "PO DATE-FILTER RUNTIME RECHECK PASS", performed after a backend restart.
+
+### Product Owner confirmation
+
+1. Operation Dashboard's "Bảng điều hành BCVH" now aggregates correctly across the whole selected date range.
+2. Changing the date range updates the BCVH table's figures correctly per the filter.
+3. The earlier-observed to_date-only behavior was the old backend process not yet restarted to pick up the new implementation — **not** a defect still present at commit `0a15ddf4`.
+4. When a specific BCVH is filtered, the Sản lượng widget scopes to that BCVH and does not show a national rank in that context — **explicitly confirmed as correct behavior**, not a data-loss or missing-ranking defect. (Pre-existing behavior, `getDashboardKpi`'s `nationalRank = normalizedBcvh ? null : await this._getNationalRankSummary(...)` — unrelated to and unmodified by this remediation; recorded here because the Product Owner raised it during this recheck.)
+
+### Implementation commits recorded
+
+- Implementation: `0a15ddf4`
+- Documentation: `4201fca6`
+
+### Closure
+
+The date-filter remediation (Section 16) is closed. No residual defect. No further action required on this finding.
+
+## 18. Evidence Consolidation Phase 1 — Formal Closure (2026-08-13)
+
+- Status: `PHASE 1 CLOSED / PO PASS`
+- Authority: Product Owner instruction (chat, `2026-08-13`), governance-only continuation following the date-filter runtime recheck PASS, explicitly directing formal closure of Evidence Consolidation Phase 1.
+
+Phase 1 (Section 12, backend F-1 fix) and its remediation (Section 13, DEFECT A Vietnamese IME search / DEFECT B empty-state distinction) both received Product Owner runtime PASS — the remediation's own recheck passed `2026-08-13` (recorded in Section 15/16's corrections and manifest Section 23). Formal closure was sequenced behind the date-filter remediation only, per explicit PO instruction on `2026-08-12`; that sequencing condition is now satisfied (Section 17).
+
+**This closes Phase 1 of the Evidence Consolidation plan only.** It does not close:
+
+- Phase 2 (widget consolidation, the 10-point search-result-presentation contract locked in Section 14) — remains `NOT IMPLEMENTED`, now unblocked on the frozen-document delta (Section 19) but still requiring its own separate implementation authorization before any code is written.
+- The `F13-STANDARDIZATION-001` program itself, which remains open (Phase 0 of the original 5-phase program plan partial; Phases 1-4 of that program `PLANNED / NOT ACTIVE` — a different phase sequence from this plan's own 4 phases).
+
+## 19. Frozen-Document Governance Delta — Execution Record (2026-08-13)
+
+- Status: `GOVERNANCE DELTA EXECUTED`
+- Authority: Product Owner instruction (chat, `2026-08-13`) explicitly directing execution of the frozen-document amendment that was approved in principle on `2026-08-11` (Section 12's "Decisions received this round" and Task 6/Section 8 above) as its own separate governance delta.
+
+### What was amended
+
+All 8 documents listed in Section 8 above, plus `PROJECT_PROGRESS.md`'s Frozen Documents list (a 9th document, the registry itself, not one of the 8). Each of the 8 gained a `## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13)` section inserted immediately after its title, recording the authorizing decision and the substance of the change; **original content was preserved below the notice as the historical record, not deleted or rewritten in place**, per the standing rule against destroying frozen-document history and per this plan's own Section 8 instruction ("preserve history rather than deleting").
+
+1. `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` — **AMENDED**. Redefined as the merged violation-detail stage; drill-down chain collapsed from `Dashboard → BCVH → Route → Shipment → Evidence → Action` to `Dashboard → BCVH → Tuyến → Evidence → Action`; the two "Không lặp Shipment Performance Center" / "Không đưa Recommendation sang Evidence" prohibitions in the original Section 8 recorded as now literally satisfied (merge, not duplication; removal, not addition).
+2. `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` — **AMENDED**. Eight-zone/widget list replaced with the three real regions (context/filter bar, violation list, evidence-detail panel), matching this plan's Section 4/5.
+3. `docs/EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` — **AMENDED**. Re-specified against the real, implemented widget set; the six widgets with no `fact_f13` data source (Coverage, Scan History, Rule Validation-as-widget, Supporting Evidence, RCA Evidence-as-widget, Decision Support) explicitly recorded as "no data source available" rather than outstanding implementation debt.
+4. `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` — **SUPERSEDED**. Standalone Shipment Performance Center stage no longer exists; merged into Evidence Center.
+5. `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` — **SUPERSEDED**, same reason.
+6. `docs/03_UX/evidence/EVIDENCE_CENTER_UX_ARCHITECTURE.md` — **AMENDED**. Journeys/wireflow aligned to the merged screen's actual entry point (Tuyến Ranking or the URL contract, not "Shipment drill-down"), journey steps, and wireflow.
+7. `docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` — **SUPERSEDED**, same reason as #4/#5.
+8. `docs/SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` — **SUPERSEDED**. Widget-by-widget fate cross-referenced to this plan's Section 5 disposition table.
+9. `PROJECT_PROGRESS.md`'s "Frozen Documents" section — updated with a controlled-amendment record listing all 8 documents above and pointing back to this section.
+
+### Validation performed (documentation-only change — no product-code test suite applies)
+
+- Every one of the 8 files confirmed to exist and be readable before editing (`find`/`Read`), matching the exact paths named in Section 8 — no path was guessed.
+- Every edit confirmed additive-at-the-top: `git diff` for each of the 8 files (checked before commit) shows only an inserted `## 0. GOVERNANCE AMENDMENT NOTICE` section and a one-line "(historical — ...)" annotation on the immediately-following original heading; zero lines of original body content were deleted, reordered, or rewritten in any of the 8 files.
+- Cross-references between the amended documents verified by direct `grep`: each Evidence-side document's amendment notice points to the correct counterpart document and to this plan checkpoint's Sections 4/5/6 as the source of the real design it now reflects.
+- No product code, schema, route, or test file was touched by this delta — confirmed via `git status --porcelain` / `git diff --name-only` scoped to `backend/` and `frontend/` returning empty for this round's frozen-document changes.
+
+### Scope discipline
+
+Documentation-only. No Phase 2 product code implemented — the 10-point search-result-presentation contract (Section 14, AC-15..AC-23) remains locked as scope only. `F13-SHIPMENT-001` (`stash@{0}`) not opened. `Data QLML/`, `NETWORK-MANAGEMENT` untouched. `.claude/` and both stashes confirmed untouched.
+
+### Phase 2 prerequisite status
+
+With this delta executed and Phase 1 formally closed (Section 18), Phase 2's two stated prerequisites are now both satisfied at the governance level:
+
+- (a) Product Owner recheck of Phase 1 — **satisfied** (Section 17/18).
+- (b) The frozen-document governance delta — **satisfied** (this section).
+
+**Phase 2 is not thereby authorized to begin implementation.** Per the standing rule that a governance-only round does not itself authorize new product-code work, and per this Product Owner instruction's own explicit boundary ("Chưa triển khai product code Phase 2 trong lượt governance này"), Phase 2 implementation requires a separate, explicit Product Owner authorization to start — the same pattern already used for every prior phase in this program (Phase 1 required its own explicit "PO APPROVES EVIDENCE CONSOLIDATION PLAN — start Phase 1" instruction; Phase 2 will require its own equivalent).

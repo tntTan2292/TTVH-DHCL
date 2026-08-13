@@ -1,6 +1,12 @@
 # Shipment Performance Center UX Architecture
 
-## 1. UX Goals
+## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13) — SUPERSEDED
+
+**Status: SUPERSEDED.** Same authority as `SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md`'s Section 0 — Shipment Performance Center no longer exists as a standalone screen; it was merged into Evidence Center (`/f13/evidence`). The journeys/wireflow below are **retained as the historical record**, not current. See `docs/03_UX/evidence/EVIDENCE_CENTER_UX_ARCHITECTURE.md`'s Section 0 for the current merged UX. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 4 (wireframe).
+
+---
+
+## 1. UX Goals (historical — superseded, see amendment above)
 
 Shipment Performance Center UX phải giúp lãnh đạo nhìn đúng bưu gửi đại diện cho vấn đề, hiểu diễn tiến và quyết định có cần sang Evidence Center hay không.
 

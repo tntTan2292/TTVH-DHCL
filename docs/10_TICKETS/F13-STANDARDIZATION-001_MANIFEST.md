@@ -26,6 +26,10 @@
 - [22. Evidence Consolidation — Phase 1 Implementation](#22-evidence-consolidation--phase-1-implementation)
 - [23. Evidence Consolidation — Phase 1 Remediation](#23-evidence-consolidation--phase-1-remediation)
 - [24. Evidence Consolidation — PO Finding Locked Into Phase 2 (2026-08-12)](#24-evidence-consolidation--po-finding-locked-into-phase-2-2026-08-12)
+- [25. Date-Filter Cross-Module Remediation (2026-08-13)](#25-date-filter-cross-module-remediation-2026-08-13)
+- [26. Date-Filter Remediation — PO Runtime Recheck PASS, Closure (2026-08-13)](#26-date-filter-remediation--po-runtime-recheck-pass-closure-2026-08-13)
+- [27. Evidence Consolidation Phase 1 — Formal Closure (2026-08-13)](#27-evidence-consolidation-phase-1--formal-closure-2026-08-13)
+- [28. Frozen-Document Governance Delta — Execution (2026-08-13)](#28-frozen-document-governance-delta--execution-2026-08-13)
 
 ## 1. Ticket Information
 
@@ -535,4 +539,50 @@ Bounded to the date-filter finding only. No widget consolidation, no frozen docu
 
 Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 16.
 
-Governance state: `DATE-FILTER REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Phase 1 closure, the 8-frozen-document governance delta, and all Phase 2 work remain `PAUSED` pending this remediation's own PO runtime recheck. Claude Code does not self-award PO PASS.
+Governance state: `CLOSED / PO DATE-FILTER RUNTIME RECHECK PASS` (recheck passed `2026-08-13` — see Section 26). Claude Code does not self-award PO PASS.
+
+## 26. Date-Filter Remediation — PO Runtime Recheck PASS, Closure (2026-08-13)
+
+- Status: `CLOSED / PO DATE-FILTER RUNTIME RECHECK PASS`
+- Authority: Product Owner runtime recheck (chat, `2026-08-13`), performed after a backend restart.
+
+Product Owner confirmed: (1) Operation Dashboard's "Bảng điều hành BCVH" now aggregates correctly across the full selected date range; (2) changing the range updates the table's figures correctly; (3) the earlier to_date-only observation was the old backend process not yet restarted to pick up the new implementation, **not** a residual defect at commit `0a15ddf4`; (4) a BCVH-filtered Sản lượng widget correctly scopes to that BCVH and omits national rank in that context — confirmed as intended behavior, not data loss or a missing-ranking defect (pre-existing, unmodified by this remediation).
+
+Implementation commit `0a15ddf4`; documentation commit `4201fca6`. No residual defect. This closes the date-filter finding.
+
+Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 17.
+
+## 27. Evidence Consolidation Phase 1 — Formal Closure (2026-08-13)
+
+- Status: `PHASE 1 CLOSED / PO PASS`
+- Authority: Product Owner instruction (chat, `2026-08-13`), governance-only continuation directing formal closure now that the date-filter remediation recheck has passed.
+
+Phase 1 (Section 22, F-1 backend fix) and its remediation (Section 23, DEFECT A/B) both received Product Owner runtime PASS. Formal closure was sequenced behind the date-filter remediation's own recheck, per the explicit `2026-08-12` PO instruction; that condition is now satisfied (Section 26). This closes **Phase 1 of the Evidence Consolidation plan only** — Phase 2 (widget consolidation, the 10-point search-result-presentation contract, Section 24) remains `NOT IMPLEMENTED` and requires its own separate implementation authorization. The `F13-STANDARDIZATION-001` program itself remains open (Phase 0 of the original 5-phase program plan partial; Phases 1-4 `PLANNED / NOT ACTIVE`).
+
+Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 18.
+
+## 28. Frozen-Document Governance Delta — Execution (2026-08-13)
+
+- Status: `GOVERNANCE DELTA EXECUTED`
+- Authority: Product Owner instruction (chat, `2026-08-13`) directing execution of the frozen-document amendment approved in principle on `2026-08-11` (Section 22's decision record; plan Section 8), as its own separate governance delta, not mixed into any implementation commit.
+
+All 8 documents named in the plan's Section 8 amended — each gained a `## 0. GOVERNANCE AMENDMENT NOTICE (2026-08-13)` section at its top; original content preserved below as the historical record, not deleted or rewritten in place:
+
+1. `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_INFORMATION_ARCHITECTURE.md` — AMENDED (redefined to the merged violation-detail stage; drill-down chain collapsed to `Dashboard → BCVH → Tuyến → Evidence → Action`).
+2. `docs/02_ARCHITECTURE/EVIDENCE/EVIDENCE_CENTER_SCREEN_ARCHITECTURE.md` — AMENDED (eight-zone list replaced with the three real regions).
+3. `docs/EVIDENCE_CENTER_WIDGET_SPECIFICATION.md` — AMENDED (re-specified against the real widget set; six retired widgets marked "no data source available").
+4. `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_INFORMATION_ARCHITECTURE.md` — SUPERSEDED.
+5. `docs/02_ARCHITECTURE/SHIPMENT/SHIPMENT_PERFORMANCE_CENTER_SCREEN_ARCHITECTURE.md` — SUPERSEDED.
+6. `docs/03_UX/evidence/EVIDENCE_CENTER_UX_ARCHITECTURE.md` — AMENDED (journeys/wireflow aligned to the merged screen).
+7. `docs/03_UX/shipment/SHIPMENT_PERFORMANCE_CENTER_UX_ARCHITECTURE.md` — SUPERSEDED.
+8. `docs/SHIPMENT_PERFORMANCE_CENTER_WIDGET_SPECIFICATION.md` — SUPERSEDED.
+
+`PROJECT_PROGRESS.md`'s Frozen Documents list also updated with the controlled-amendment record (a 9th document, the registry itself, not one of the 8).
+
+Documentation-only — no product code, schema, route, or test file touched. Confirmed via `git diff` on each of the 8 files: only an inserted amendment-notice section and a one-line historical annotation on the immediately-following heading; zero original body content deleted, reordered, or rewritten.
+
+**Phase 2 prerequisite status**: both stated prerequisites — (a) Product Owner recheck of Phase 1, (b) the frozen-document governance delta — are now satisfied. **Phase 2 is not thereby authorized to begin implementation.** Per this Product Owner instruction's own explicit boundary ("Chưa triển khai product code Phase 2 trong lượt governance này"), Phase 2 implementation requires its own separate, explicit Product Owner authorization to start.
+
+Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 19.
+
+Governance state: `F13-STANDARDIZATION-001` — Date-Filter Remediation `CLOSED / PO PASS`; Evidence Consolidation Phase 1 `CLOSED / PO PASS`; frozen-document governance delta `EXECUTED`; Phase 2 `NOT IMPLEMENTED / NOT YET AUTHORIZED`; search-result-presentation finding (Section 24) remains `LOCKED INTO PHASE 2 SCOPE / NOT IMPLEMENTED`, unchanged.
