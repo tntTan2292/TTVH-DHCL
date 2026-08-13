@@ -16,6 +16,8 @@
 - [12. Phase 1 Implementation Record (2026-08-11)](#12-phase-1-implementation-record-2026-08-11)
 - [13. Phase 1 Remediation — PO Runtime Evidence (2026-08-11)](#13-phase-1-remediation--po-runtime-evidence-2026-08-11)
 - [14. PO Finding — Search Result Presentation Ambiguity, Locked Into Phase 2 (2026-08-12)](#14-po-finding--search-result-presentation-ambiguity-locked-into-phase-2-2026-08-12)
+- [15. Session Continuity Checkpoint — Work Paused For Date-Filter Diagnosis (2026-08-12)](#15-session-continuity-checkpoint--work-paused-for-date-filter-diagnosis-2026-08-12)
+- [16. Date-Filter Remediation — PO-Authorized Bounded Fix (2026-08-13)](#16-date-filter-remediation--po-authorized-bounded-fix-2026-08-13)
 
 ## 1. Purpose And Authority
 
@@ -388,7 +390,7 @@ Loading and API/load-error states were already separately handled (`status === '
 
 Frontend-only. No widget consolidation (Phase 2), no frozen document, no Phase 2-4 work. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, `NETWORK-MANAGEMENT` untouched (the shared `GlobalFilterBar` fix changes search-input *correctness* for those screens' existing search boxes, not any feature/behavior — no new scope was added to those screens). `.claude/` and both stashes confirmed untouched. The direct database query performed for DEFECT B's verification was read-only (`OPEN_READONLY`) against the existing production file; no row was inserted, updated, or deleted.
 
-Governance state: `PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`.
+Governance state: `PO PHASE 1 REMEDIATION RECHECK PASS / CLOSURE PAUSED` (corrected 2026-08-13 per PO instruction — the Product Owner ran this remediation and passed it; formal Phase 1 closure itself remains paused pending the date-filter finding below, not because this remediation is unresolved).
 
 ## 14. PO Finding — Search Result Presentation Ambiguity, Locked Into Phase 2 (2026-08-12)
 
@@ -428,3 +430,89 @@ Net effect: a manager cannot tell, from the search box alone, how many shipments
 ### Scope discipline
 
 Documentation only. No product code, route, component, schema, or frozen document was changed. This finding does not reopen or amend the `2026-08-11` Phase 1 / Phase 1 remediation closures — it adds new, later-discovered scope directly into the not-yet-started Phase 2, which remains blocked on the frozen-document governance delta (Section 8) regardless of this addition. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, `NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes confirmed untouched.
+
+## 15. Session Continuity Checkpoint — Work Paused For Date-Filter Diagnosis (2026-08-12)
+
+Written before a context compaction, per explicit instruction — not a governance state change, no new PO decision, no closure. Purely a continuity record so a fresh session can resume exactly here.
+
+- **Branch / HEAD**: `codex/da-impl-006` at `7215bcb0` (matches `origin/codex/da-impl-006`; this checkpoint edit itself is uncommitted at time of writing — see "Files currently changed" below).
+- **Ticket / state**: `F13-STANDARDIZATION-001` (existing program group). Live state remains exactly as recorded in Section 14 / manifest Section 24: Evidence Consolidation Phase 1 Remediation is `IMPLEMENTED / READY FOR PO RECHECK` (commit `d6cd022d`); the search-result-presentation finding is `FINDING LOCKED INTO PHASE 2 SCOPE / NOT IMPLEMENTED`. Neither changed in this session. *(Correction, 2026-08-13: the Product Owner has since passed this recheck — see Section 16. The status line above is kept as written at the time for an accurate continuity record; it is superseded, not edited in place.)*
+- **PO decision on the date-filter finding**: **none yet.** A bounded, read-only diagnosis was performed and reported in chat (not yet written to a governance document) confirming: `DashboardController.getBcvh` requires `from_date` but silently discards it before querying; both `getBcvhRanking` and `getBcvhOperationMetricsByDate` query `WHERE ngay_do_kiem = ?` (single exact day, `to_date` only), never a range. Live evidence (BCVH Thuận Hóa `533140`): `to_date=2026-08-11` alone and `from_date=2026-08-01/to_date=2026-08-11` both return the identical `{sl_bg_ptc:1820, dat:753, khong_dat:986}`; a true `BETWEEN` range aggregate would be `{18895, 10179, 7841}`. Operation Dashboard's "Bảng điều hành BCVH" table is affected and internally contradicts its own page's correctly-ranged KPI cards (`/f13/dashboard/kpi` genuinely uses `ngay_do_kiem >= ? AND <= ?`). BCVH Ranking hits the same defective endpoint but is UI-self-consistent (single-day labeled throughout, no visible contradiction). Tuyến Ranking, Evidence, Pareto/RCA: not affected / not applicable. **Awaiting Product Owner direction**: fix `from_date` to genuinely range-aggregate, or remove the misleading date-range UI in favor of an explicit single-day contract — this is a product decision, not decided here.
+- **Remediation scope authorized**: **none.** Diagnosis was explicitly bounded to read-only; no code, schema, or document fix was authorized or performed.
+- **Work done this session**: (1) Evidence Consolidation Phase 1 Remediation implemented and pushed (`d6cd022d`, `338a6af5`) — IME-safe debounced search commit controller, diacritic-insensitive search fallback, 3-branch empty state; ground-truth-verified via a direct read-only DB query. (2) A new PO finding (search-result presentation) was recorded and locked into Phase 2 scope, documentation-only, pushed (`7215bcb0`). (3) On explicit "STOP" instruction: Phase 1 closure, the 8-frozen-document governance delta, and all Phase 2 work were paused with zero uncommitted changes at the time (`git status` was clean). (4) A bounded read-only date-filter cross-module diagnosis was performed and reported in chat (Section 15 here is the first written record of it).
+- **Work not done**: no remediation for the date-filter finding (no PO decision yet); Phase 2 implementation not started (blocked on both the frozen-document governance delta and, now, this new finding); the frozen-document governance delta itself not started (requires separate explicit PO approval per the standing instruction, plan Section 8).
+- **Files currently changed (uncommitted)**: only this file, `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` (adding this Section 15 and its Table-of-Contents entry). No other file is modified — confirmed via `git status --porcelain` immediately before this edit (clean except the always-untracked `.claude/` and `Data QLML/`). **Not committed, not pushed**, per explicit instruction not to commit incomplete work.
+- **Tests run this session**: none — this session was diagnosis-only (direct read-only SQLite queries via Node, not the project's automated test suites). The last recorded automated-test state remains the Phase 1 Remediation validation already committed: frontend full sweep 280/293 (13 pre-existing failures, unchanged), backend sanity 111/115 (unchanged), `oxlint` clean.
+- **Blocker**: Product Owner decision on the date-filter finding's remediation direction (fix `from_date` vs remove the misleading range UI). Everything downstream (Phase 1 closure, the frozen-document delta, Phase 2) stays paused until instructed to resume, independent of this blocker resolving.
+- **Next step**: on resuming, either (a) receive and record the Product Owner's date-filter decision and scope its remediation as its own bounded delta, keeping it separate from Phase 1/Phase 2, or (b) receive explicit instruction to resume Phase 1 closure / the frozen-document delta / Phase 2 while the date-filter finding remains a separately tracked, not-yet-actioned item.
+- **Explicitly confirmed still paused**: Phase 1 closure (Evidence Consolidation) — paused, not closed. The 8-frozen-document governance delta — paused, not started. All Phase 2 implementation — paused, not started.
+- **Explicitly confirmed untouched**: `.claude/` (still untracked, not committed). Both stashes present and unchanged — `stash@{0}` (`F13-SHIPMENT-001`, deferred), `stash@{1}` (pre-existing HTML maps).
+
+## 16. Date-Filter Remediation — PO-Authorized Bounded Fix (2026-08-13)
+
+- Status: `DATE-FILTER REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Authority: Product Owner product decision (chat, `2026-08-13`), "PO PRODUCT DECISION — AUTHORIZE BOUNDED DATE-FILTER REMEDIATION", accepting the diagnosis recorded in Section 15 and locking a 3-point contract + explicit bounded remediation scope.
+
+### Contract (as locked by the PO)
+
+1. Operation Dashboard is a range screen: "Bảng điều hành BCVH" must genuinely aggregate `ngay_do_kiem BETWEEN from_date AND to_date`, both bounds inclusive.
+2. BCVH Ranking keeps its single-evaluation-day contract — never becomes a multi-day cumulative ranking; its request must visibly carry `from_date === to_date`.
+3. Tuyến Ranking and Evidence stay single-day, unmodified.
+
+### Root cause (confirmed, unchanged from Section 15)
+
+`DashboardController.getBcvh` required `from_date` at the validation layer but never passed it past that point — `f13DashboardService.getBcvhRanking(to_date, ...)` and `FactBuuGuiRepository.getBcvhRanking(date, ...)` / `getBcvhOperationMetricsByDate(date)` / `getFactByDate(date)` were all single-exact-day queries (`ngay_do_kiem = ?`). `from_date` was accepted, validated as present, then silently discarded.
+
+### What changed
+
+**No branching on caller/page identity anywhere** — the fix is purely parameter-driven, per the PO's explicit "Không tạo branching dựa trên tên trang hoặc logic ngầm":
+
+- [`backend/src/controllers/DashboardController.js`](../../../backend/src/controllers/DashboardController.js) — `getBcvh()` now passes both `from_date` and `to_date` through to the service (previously only `to_date`), and validates `from_date <= to_date` before querying (`400 INVALID_RANGE` otherwise, mirroring the existing `getDailyTrend` pattern).
+- [`backend/src/services/f13DashboardService.js`](../../../backend/src/services/f13DashboardService.js) — `getBcvhRanking(fromDate, toDate, page, pageSize, sort, order)` (was `getBcvhRanking(date, ...)`): validates ISO format and `fromDate <= toDate` (throws `INVALID_DATE`/`INVALID_RANGE`, now propagated instead of swallowed); `currentMetrics` and `currentFacts` (the figures that actually populate the BCVH table's `sl_bg_ptc`/`Đạt`/`Không đạt`/F13.302/route-distribution columns) now source from the new range-aware repository calls below instead of single-day ones; `effectiveDate` (used for D-1/D-7 comparisons and month-to-date, which the PO did not ask to change) stays anchored to `toDate`, unchanged in meaning; `meta.date_range: { from_date, to_date, single_day }` added so both the API contract and the tests below can assert the actual bounds a response was computed over.
+- [`backend/src/repositories/FactBuuGuiRepository.js`](../../../backend/src/repositories/FactBuuGuiRepository.js) — `getBcvhRanking(fromDate, toDate, ...)`'s SQL changed from `WHERE ngay_do_kiem = ?` to `WHERE ngay_do_kiem BETWEEN ? AND ?` (both count and data queries); new `getFactBetween(fromDate, toDate)` added as the range counterpart of the existing `getFactByDate(date)`, same `SELECT * ... BETWEEN` shape, used for the per-BCVH F13.302/route-distribution figures. The pre-existing `getBcvhOperationMetricsBetween(startDate, endDate)` (previously used only for month-to-date) is reused for the requested-period aggregate — no new SQL shape was needed there.
+- [`frontend/src/features/ranking/BcvhRankingPage.jsx`](../../../frontend/src/features/ranking/BcvhRankingPage.jsx) — the `/f13/ranking/bcvh` request now sends `from_date: toDate, to_date: toDate` (previously `from_date: fromDate, to_date: toDate`), so the request explicitly carries the single-day contract regardless of what the two independent date pickers hold. This is a no-op on displayed data: `to_date` was already the only value the backend ever honoured before this fix, so runtime behaviour for this screen is unchanged — only the request itself now states the contract explicitly, as required now that the shared endpoint genuinely honours a range for other callers. The two date pickers themselves (`onFromDateChange`/`onToDateChange`) were not touched.
+
+Nothing else was touched: `getBcvhOperationMetricsByDate` (still used for D-1/D-7), Tuyến Ranking, Evidence, Pareto/RCA, and every other `/f13/ranking/bcvh` call site were confirmed unaffected by direct code trace before implementation (Operation Dashboard's `BcvhOperationTable.jsx` already sent a genuine range and needed no change; `UnifiedBcvhAnalysisTable.jsx`'s own internal fetch is dead code in its only real usage, inside `BcvhRankingPage`, which always supplies `prefetchedData` and short-circuits it; `kpiController.getBcvhRanking` is unregistered dead code, confirmed via `f13Routes.js` — not touched).
+
+### Numeric reconciliation (PO evidence, reproduced against the live database with the fixed code, not mocked)
+
+BCVH Thuận Hóa (`533140`):
+
+| Query | `sl_bg_ptc` | `Đạt` | `Không đạt` |
+| --- | --- | --- | --- |
+| Single day `2026-08-11` (`from_date=to_date=2026-08-11`) | 1,820 | 753 | 986 |
+| Range `2026-08-01`..`2026-08-11` | 18,895 | 10,179 | 7,841 |
+
+Both rows reproduce the PO's own reported figures exactly, run live against `database.sqlite` through the actual fixed `DashboardController`/service/repository chain (`node -e` ad hoc script, not a stub).
+
+**The 81-count gap on `2026-08-11`** (`1820 - 753 - 986 = 81`) was verified by a direct read-only query before concluding anything: `SELECT danh_gia_2026, COUNT(*) FROM fact_f13 WHERE ma_bcvh='533140' AND ngay_do_kiem='2026-08-11' GROUP BY danh_gia_2026` returns exactly `{Đạt: 753, Không đạt: 986, NULL: 81}` — the 81 are rows where `danh_gia_2026 IS NULL`. This is the same pre-existing unclassified/BLACK-style category already modeled elsewhere in this codebase (`getDashboardKpi`'s `total_unknown = total_bg - total_passed - total_failed`; Evidence's `Chưa xác định nguyên nhân` violation-reason group for facts missing a usable result). Per the PO's own instruction not to alter the metric/formula when the gap is a valid existing category, **no formula was changed** — `sl_bg_ptc`, `dat_kpi_2026`, and `khong_dat_kpi_2026` all continue to mean exactly what they meant before this fix; only the date window they aggregate over changed.
+
+### Required test scenarios (PO's 7-point list) — all covered, all passing
+
+New file [`backend/src/controllers/DashboardController.dateFilterRemediation.test.js`](../../../backend/src/controllers/DashboardController.dateFilterRemediation.test.js) (9 tests, numbered to the PO's list):
+
+1. Single day (`from_date === to_date`) resolves to a single-evaluation-day request, `meta.date_range.single_day === true`.
+2. Range `2026-08-01`..`2026-08-11`: both dates forwarded to the service unchanged, `single_day === false`.
+3. Only `from_date` changes (`to_date` held constant) — verified as an independent parameter.
+4. Only `to_date` changes (`from_date` held constant) — verified as an independent parameter.
+5. BCVH Ranking's own single-day contract — covered separately, see below (frontend).
+6. Reversed/invalid range (`from_date > to_date`): rejected `400 INVALID_RANGE` at the controller **before** the service is called (test 6), and independently rejected at the service layer too (test 6b, defence in depth).
+7. Repository issues a genuine `BETWEEN ? AND ?` query with both inclusive bounds as the first two params (test 7, mocked `db.get`/`db.all`, asserts on the actual SQL string and param order — not just the returned data); a single-day call collapses to the same query with both bounds equal (test 7b); and a service-level test (7c) proves the Dashboard table no longer collapses a genuine range onto to_date-only figures, reproducing the PO's own `1820→18895` / `753→10179` / `986→7841` evidence with mocked repo data.
+
+New file [`frontend/src/features/ranking/BcvhRankingPage.singleDayContract.test.js`](../../../frontend/src/features/ranking/BcvhRankingPage.singleDayContract.test.js) (3 tests, source-level — this repository has no React rendering/jsdom harness) covers point 5: the request always sends `from_date: toDate` (not the independently-derived `fromDate`), and the two date pickers remain unchanged.
+
+### Validation
+
+- New dedicated test file: **9/9 pass**.
+- `backend/src/services/F13DashboardService.recovery.test.js`: 9 pre-existing BCVH-ranking tests updated for the new `(fromDate, toDate, ...)` signature (mock data moved from `getBcvhOperationMetricsByDate`/`getFactByDate` to `getBcvhOperationMetricsBetween`/`getFactBetween` for the current-period figures, keeping D-1/D-7/month-to-date stubs unchanged) — **23/23 pass**.
+- Full backend sweep: **209/213 pass** — true baseline established by temporarily removing this round's two new test files and stashing all tracked changes (not merely diffing against memory): **200/204 pass, 4 fail** at baseline, same 4 failures by name after the fix (`live KPI database and HTTP payloads stay aligned for canonical BCVH scope`, `dashboard KPI invalid code returns HTTP 400`, `KPI all and missing ma_bcvh normalize to aggregate null and never pass all to SQL`, `monthly rank enrichment uses full prior months and latest-data current month without BCVH scope`) — all four confirmed pre-existing and unrelated to this change (reproduced identically on the unmodified baseline). Net: `+9` new tests, `0` regressions.
+- Full frontend sweep: **283/296 pass** — same baseline method: **280/293 pass, 13 fail** at baseline, identical 13 failure names after the fix (Route Ranking/RoutePerformancePage/dataImportBackfillQueue/dashboard-metadata tests already on record from prior rounds). Net: `+3` new tests, `0` regressions.
+- `oxlint` on the two changed/new frontend files: clean.
+- Backend has no lint script (unchanged from prior rounds).
+- Live-database verification (not test-mocked): reproduced the PO's exact evidence figures end-to-end through the real fixed code (table above); confirmed `from_date=to_date` (BCVH Ranking's own call pattern) returns `200` with the single-day figures; confirmed a reversed range returns `400 INVALID_RANGE`.
+
+### Scope discipline
+
+Bounded to the date-filter finding only. Tuyến Ranking, Evidence, Pareto/RCA: not touched (confirmed via `git status --porcelain` and `git diff --name-only` scoped to `frontend/src/features/route/`, `frontend/src/features/shipment/`, `frontend/src/features/dashboard/components/UnifiedBcvhAnalysisTable.jsx` other than the one line described above — none touched). No frozen architecture document touched. No Phase 2 work. The 8-frozen-document governance delta not started. `F13-SHIPMENT-001` not opened; `Data QLML/`, `NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes confirmed untouched throughout (re-verified via `git stash list` after every stash/pop cycle used for baseline comparison during this round).
+
+Phase 1 closure, the 8-frozen-document delta, and all Phase 2 work remain `PAUSED`, per explicit PO instruction, pending this remediation's own runtime recheck.

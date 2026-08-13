@@ -489,7 +489,7 @@ Re-verification performed before any code change, per explicit instruction: a di
 
 Frontend-only. No widget consolidation (Phase 2), no frozen document, no Phase 2-4 work. `F13-SHIPMENT-001` not opened; Dashboard/BCVH Ranking/`Data QLML/`/`NETWORK-MANAGEMENT` untouched (the shared search-input fix changes correctness for those screens' existing search boxes only, no new feature/scope). `.claude/` and both stashes confirmed untouched. The DEFECT B database query was read-only against the existing production file — zero rows inserted/updated/deleted.
 
-Governance state: `PHASE 1 REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-award PO PASS.
+Governance state: `PO PHASE 1 REMEDIATION RECHECK PASS / CLOSURE PAUSED` (PO passed this recheck `2026-08-13`; formal closure itself stays paused pending Section 25). Claude Code does not self-award PO PASS.
 
 ## 24. Evidence Consolidation — PO Finding Locked Into Phase 2 (2026-08-12)
 
@@ -501,3 +501,38 @@ Product Owner confirmed search now filters correctly (the `2026-08-11` remediati
 Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 14.
 
 No product code, route, component, schema, or frozen document was changed. `F13-SHIPMENT-001` not opened; Dashboard, BCVH Ranking, `Data QLML/`, `NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes confirmed untouched.
+
+## 25. Date-Filter Cross-Module Remediation (2026-08-13)
+
+- Status: `DATE-FILTER REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Authority: Product Owner product decision, "PO PRODUCT DECISION — AUTHORIZE BOUNDED DATE-FILTER REMEDIATION" (chat, `2026-08-13`), accepting the read-only diagnosis recorded in `F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 15 and authorizing a bounded fix under a 3-point contract.
+
+### Contract
+
+1. Operation Dashboard's "Bảng điều hành BCVH" table is a range screen — must genuinely aggregate `ngay_do_kiem BETWEEN from_date AND to_date`, inclusive.
+2. BCVH Ranking keeps its single-evaluation-day contract; its own request must explicitly send `from_date === to_date`.
+3. Tuyến Ranking and Evidence stay single-day, untouched.
+
+### Root cause
+
+`DashboardController.getBcvh` validated that `from_date` was present but never forwarded it — `f13DashboardService.getBcvhRanking(to_date, ...)` and the underlying repository methods (`getBcvhRanking`, `getBcvhOperationMetricsByDate`, `getFactByDate`) all queried a single exact day (`ngay_do_kiem = ?`), silently discarding `from_date`.
+
+### Fix (purely parameter-driven — no branching on caller/page identity)
+
+`backend/src/controllers/DashboardController.js` (`getBcvh`), `backend/src/services/f13DashboardService.js` (`getBcvhRanking(fromDate, toDate, ...)`), `backend/src/repositories/FactBuuGuiRepository.js` (`getBcvhRanking` now `BETWEEN`; new `getFactBetween`), `frontend/src/features/ranking/BcvhRankingPage.jsx` (request now explicitly sends `from_date: toDate, to_date: toDate`, a no-op on displayed data since `to_date` was already the only value ever honoured). Reversed ranges rejected `400 INVALID_RANGE`. Tuyến Ranking, Evidence, Pareto/RCA confirmed untouched by direct code trace.
+
+### Numeric reconciliation
+
+Reproduced live against the real database through the fixed code (not mocked) — BCVH Thuận Hóa `533140`: single day `2026-08-11` → `1,820/753/986`; range `2026-08-01`–`2026-08-11` → `18,895/10,179/7,841`; both match the PO's own reported evidence exactly. The 81-count gap on `2026-08-11` (`1820 - 753 - 986`) verified as pre-existing `danh_gia_2026 IS NULL` rows — the same unclassified category already modeled elsewhere in this codebase; no metric/formula changed.
+
+### Tests and validation
+
+12 new tests (9 backend in `DashboardController.dateFilterRemediation.test.js`, covering the PO's 7-point required-scenario list; 3 frontend source-level in `BcvhRankingPage.singleDayContract.test.js`), all passing. 9 pre-existing BCVH-ranking tests in `F13DashboardService.recovery.test.js` updated for the new signature — 23/23 pass. Full backend sweep: 209/213 (true baseline re-verified this round by stashing all tracked changes and temporarily removing the new test files: 200/204, 4 pre-existing failures, identical by name after the fix). Full frontend sweep: 283/296 (baseline 280/293, 13 pre-existing failures, identical by name). Net: +12 tests, 0 regressions. `oxlint` clean.
+
+### Scope discipline
+
+Bounded to the date-filter finding only. No widget consolidation, no frozen document, no Phase 2 work. `F13-SHIPMENT-001` not opened; `Data QLML/`, `NETWORK-MANAGEMENT` untouched; `.claude/` and both stashes confirmed untouched (re-verified after every stash/pop cycle used for baseline comparison).
+
+Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 16.
+
+Governance state: `DATE-FILTER REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Phase 1 closure, the 8-frozen-document governance delta, and all Phase 2 work remain `PAUSED` pending this remediation's own PO runtime recheck. Claude Code does not self-award PO PASS.
