@@ -55,7 +55,6 @@ export default function ShipmentPerformancePage() {
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [runtimeRows, setRuntimeRows] = useState([]);
-  const [meta, setMeta] = useState({});
   const [violationSummary, setViolationSummary] = useState({});
   const [truncated, setTruncated] = useState(false);
   const [collapsedRouteIds, setCollapsedRouteIds] = useState(() => new Set());
@@ -193,13 +192,22 @@ export default function ShipmentPerformancePage() {
     updateParam('reason', slug === DEFAULT_REASON ? '' : slug);
   };
 
-  // Fetches the complete matching Evidence set for the current date/BCVH/route/violation
-  // group — walks every backend page instead of a single fixed-size request, so search,
-  // sort, and counts below always reflect the full result, never a silently truncated
-  // slice. `reason` participates in the query so violation group tabs are server-scoped,
-  // consistent with the reconciliation contract (Section 3.3): meta.violation_summary is
-  // computed over the whole "Không đạt" set regardless of the active tab, while the rows
-  // themselves are scoped to the active tab.
+  // Fetches the complete matching "Không đạt" Evidence set for the current date/BCVH/route
+  // — walks every backend page instead of a single fixed-size request, so search, sort,
+  // and counts below always reflect the full result, never a silently truncated slice.
+  //
+  // PO runtime remediation (2026-08-13): this now ALWAYS fetches every violation-reason
+  // group in one request (`reason` no longer participates in the query or the effect's
+  // dependency array), not just the currently active tab. Root cause of the reported
+  // defect, reproduced with a real React render against real data (not mocked): the
+  // previous per-tab fetch scoped the entire dataset to the active reason group (default
+  // "Chậm nộp tiền"), so a keyword search only ever saw that narrow slice — for a real
+  // BCVH/date context with 1,573 "Không đạt" rows across 8 routes matching "HCC", the
+  // default-tab-scoped fetch reduced this to exactly 1 row / 1 route, reproducing PO's
+  // exact "only shows one nearest route" symptom. Switching reason tabs is now a pure
+  // client-side filter (see reasonScopedRows below) — instant, and no longer triggers a
+  // network request. `meta.violation_summary` is unaffected either way: the backend
+  // already computes it over the whole "Không đạt" set before applying any reason filter.
   useEffect(() => {
     let mounted = true;
 
@@ -214,7 +222,7 @@ export default function ShipmentPerformancePage() {
           routeIdParam || undefined,
           page,
           pageSize,
-          reasonParam === 'all' ? undefined : reasonParam,
+          undefined, // always fetch every reason group — see remediation note above
         );
         const result = await fetchAllEvidenceRows(fetchPage);
         if (!mounted) return;
@@ -243,7 +251,6 @@ export default function ShipmentPerformancePage() {
         });
 
         setRuntimeRows(mappedRows);
-        setMeta(result.meta || {});
         setViolationSummary(result.meta?.violation_summary || {});
         setTruncated(result.truncated);
         setStatus('success');
@@ -267,30 +274,56 @@ export default function ShipmentPerformancePage() {
     return () => { mounted = false; };
     // bcvhName/routeName are display-only fallbacks used inside the mapper, not fetch
     // inputs — including them would refetch on every label resolution instead of only
-    // when the actual query (date/BCVH/route/reason) changes.
+    // when the actual query (date/BCVH/route) changes. `reason` deliberately does NOT
+    // appear here any more — see the remediation note above the fetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisDate, bcvhId, routeIdParam, reasonParam, metaStatus]);
+  }, [analysisDate, bcvhId, routeIdParam, metaStatus]);
 
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
 
-  // DEFECT A remediation: matchesSearchQuery matches route/BCVH names exactly first
-  // (this alone already covers real route codes, which are digits with no diacritics),
-  // and only then falls back to a diacritic-insensitive comparison — so a manager
-  // typing "Huong Phong" still finds "Hương Phong" without ever weakening exact code
-  // search.
+  const violationTabs = useMemo(() => buildViolationGroupTabs(violationSummary), [violationSummary]);
+
+  // Reason-tab scoping is now a pure client-side filter over the already-fully-fetched
+  // runtimeRows (see remediation note above the fetch effect) — switching tabs no longer
+  // re-fetches and no longer silently narrows what search can see.
+  const activeReasonLabel = useMemo(() => {
+    if (reasonParam === 'all') return null;
+    return violationTabs.find((tab) => tab.slug === reasonParam)?.label || null;
+  }, [reasonParam, violationTabs]);
+
+  const reasonScopedRows = useMemo(() => {
+    if (!activeReasonLabel) return runtimeRows;
+    return runtimeRows.filter((item) => item.violationReason === activeReasonLabel);
+  }, [runtimeRows, activeReasonLabel]);
+
+  const isSearchActive = Boolean(search.trim());
+
+  // PO runtime remediation (2026-08-13): while a keyword is active, matching intentionally
+  // spans every violation-reason group, not only the currently active tab — this is the
+  // direct fix for the reproduced defect (see the fetch effect's remediation note). AC-17/
+  // AC-18 require every route with a matching result to appear; scoping search to one tab
+  // was proven, with real data, to hide the large majority of matches. Each result row
+  // still carries its own Lý do vi phạm badge, so the reason is never hidden — it is
+  // simply not used to gate which rows search can find. Without an active keyword, the
+  // reason tab continues to scope the flat table exactly as before.
+  //
+  // DEFECT A remediation (unchanged): matchesSearchQuery matches route/BCVH names exactly
+  // first (this alone already covers real route codes, which are digits with no
+  // diacritics), and only then falls back to a diacritic-insensitive comparison — so a
+  // manager typing "Huong Phong" still finds "Hương Phong" without ever weakening exact
+  // code search.
   const filteredRows = useMemo(() => {
-    if (!search.trim()) return runtimeRows;
+    if (!isSearchActive) return reasonScopedRows;
     return runtimeRows.filter((item) => matchesSearchQuery(
       [item.shipmentId, item.shipmentName, item.routeName, item.routeId, item.bcvhName],
       search,
     ));
-  }, [runtimeRows, search]);
+  }, [runtimeRows, reasonScopedRows, isSearchActive, search]);
 
   const sortedRows = useMemo(() => sortShipmentRows(filteredRows, sort, order), [filteredRows, order, sort]);
 
   // AC-17/AC-18/AC-22: while a keyword is active, results group by real route identity.
-  const groupedRows = useMemo(() => (search.trim() ? groupRowsByRoute(sortedRows) : []), [search, sortedRows]);
-  const isSearchActive = Boolean(search.trim());
+  const groupedRows = useMemo(() => (isSearchActive ? groupRowsByRoute(sortedRows) : []), [isSearchActive, sortedRows]);
 
   const expandedRouteIds = useMemo(
     () => new Set(groupedRows.map((g) => g.routeId || g.routeName).filter((key) => !collapsedRouteIds.has(key))),
@@ -306,16 +339,20 @@ export default function ShipmentPerformancePage() {
 
   // AC-15: a keyword only ever filters — it never selects a row on its own. Selection
   // exists only when shipment_id is present in the URL AND still matches a visible row;
-  // there is no fallback to "the first row."
+  // there is no fallback to "the first row." A selection that no longer matches the
+  // current (possibly narrower) result set falls back to "chưa chọn," never to a
+  // different, unintended shipment (PO runtime remediation point 6).
   const selectedShipment = useMemo(() => {
     if (!shipmentId) return null;
     return sortedRows.find((item) => item.shipmentId === shipmentId) || null;
   }, [shipmentId, sortedRows]);
 
-  const violationTabs = useMemo(() => buildViolationGroupTabs(violationSummary), [violationSummary]);
-
   // AC-19: three counts, always visibly distinct — never conflated into one number.
-  const contextTotal = toNumber(meta?.pagination?.total_items ?? runtimeRows.length);
+  // contextTotal is the pre-search total for the currently active reason tab (not the
+  // whole day's "Không đạt" set) — meta.pagination.total_items now reflects every reason
+  // group combined, since the fetch itself is no longer reason-scoped (see above), so the
+  // tab-scoped figure must be computed client-side from reasonScopedRows instead.
+  const contextTotal = toNumber(reasonScopedRows.length);
   const searchResultCount = isSearchActive ? filteredRows.length : null;
 
   const handleSelectShipment = (nextShipmentId) => {
