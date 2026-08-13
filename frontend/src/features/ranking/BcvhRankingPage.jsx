@@ -162,9 +162,14 @@ export default function BcvhRankingPage() {
     }
 
     setRankingState({ status: 'loading', data: null, error: null });
+    // BCVH Ranking keeps a single-evaluation-day contract: the request always sends
+    // from_date === to_date (the anchor day), regardless of what the two date pickers
+    // hold, now that the shared /f13/ranking/bcvh endpoint genuinely honours a range
+    // for other callers (Operation Dashboard). This is unchanged runtime behaviour —
+    // only to_date ever drove this screen's data before this fix.
     api.get('/f13/ranking/bcvh', {
       params: {
-        from_date: fromDate,
+        from_date: toDate,
         to_date: toDate,
         page: 1,
         page_size: 1000,

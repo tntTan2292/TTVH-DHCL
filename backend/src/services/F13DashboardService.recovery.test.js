@@ -361,6 +361,7 @@ test('BCVH ranking does not fall back to latest data for a no-data selected date
     getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
     getBcvhRanking: repo.getBcvhRanking,
     getFactByDate: repo.getFactByDate,
+    getFactBetween: repo.getFactBetween,
     getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
   };
   const calls = [];
@@ -369,12 +370,16 @@ test('BCVH ranking does not fall back to latest data for a no-data selected date
     calls.push({ method: 'getBcvhOperationMetricsByDate', date });
     return [];
   };
-  repo.getBcvhRanking = async (date) => {
-    calls.push({ method: 'getBcvhRanking', date });
+  repo.getBcvhRanking = async (fromDate, toDate) => {
+    calls.push({ method: 'getBcvhRanking', fromDate, toDate });
     return { data: [], totalItems: 0 };
   };
   repo.getFactByDate = async (date) => {
     calls.push({ method: 'getFactByDate', date });
+    return [];
+  };
+  repo.getFactBetween = async (fromDate, toDate) => {
+    calls.push({ method: 'getFactBetween', fromDate, toDate });
     return [];
   };
   repo.getBcvhOperationMetricsBetween = async (startDate, endDate) => {
@@ -383,7 +388,8 @@ test('BCVH ranking does not fall back to latest data for a no-data selected date
   };
 
   try {
-    const result = await service.getBcvhRanking('2026-07-23', 1, 1000, 'rank', 'asc');
+    // Single-day request: from_date === to_date === '2026-07-23' (BCVH Ranking's contract).
+    const result = await service.getBcvhRanking('2026-07-23', '2026-07-23', 1, 1000, 'rank', 'asc');
 
     assert.deepEqual(result.data, []);
     assert.equal(result.meta.evaluation_date.date, '2026-07-23');
@@ -393,8 +399,19 @@ test('BCVH ranking does not fall back to latest data for a no-data selected date
     assert.equal(result.meta.month_to_date.to_date, null);
     assert.equal(result.meta.total_row.kpi_2026_dod, null);
     assert.equal(result.meta.total_row.kpi_2026_swc, null);
-    assert.equal(calls.some((call) => call.method === 'getBcvhRanking' && call.date === '2026-07-22'), false);
-    assert.equal(calls.some((call) => call.method === 'getBcvhOperationMetricsBetween'), false);
+    assert.equal(calls.some((call) => call.method === 'getBcvhRanking' && call.fromDate === '2026-07-22'), false);
+    // currentMetrics is now sourced from getBcvhOperationMetricsBetween(fromDate, toDate) — it
+    // IS called, for the requested single day (fromDate === toDate); it genuinely has no data.
+    assert.equal(
+      calls.some((call) => call.method === 'getBcvhOperationMetricsBetween' && call.startDate === '2026-07-23' && call.endDate === '2026-07-23'),
+      true
+    );
+    // The month-to-date range (a *different* range: monthStart..cutoff) must still not fire,
+    // since the selected day has no data — no fallback to a latest-available day.
+    assert.equal(
+      calls.some((call) => call.method === 'getBcvhOperationMetricsBetween' && call.startDate !== '2026-07-23'),
+      false
+    );
   } finally {
     Object.assign(repo, originals);
   }
@@ -405,22 +422,11 @@ test('BCVH ranking returns null D-1 and D-7 deltas when comparison rows are unav
     getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
     getBcvhRanking: repo.getBcvhRanking,
     getFactByDate: repo.getFactByDate,
+    getFactBetween: repo.getFactBetween,
     getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
   };
 
-  repo.getBcvhOperationMetricsByDate = async (date) => {
-    if (date === '2026-07-22') {
-      return [{
-        ma_bcvh: '535790',
-        ten_bcvh: 'BCVH A Luoi',
-        sl_bg_ptc: 2,
-        sl_ptc_nop_tien: 2,
-        dat_kpi_2026: 1,
-        khong_dat_kpi_2026: 1,
-      }];
-    }
-    return [];
-  };
+  repo.getBcvhOperationMetricsByDate = async () => [];
   repo.getBcvhRanking = async () => ({
     data: [{
       ma_bcvh: '535790',
@@ -433,10 +439,25 @@ test('BCVH ranking returns null D-1 and D-7 deltas when comparison rows are unav
     totalItems: 1,
   });
   repo.getFactByDate = async () => [];
-  repo.getBcvhOperationMetricsBetween = async () => [];
+  repo.getFactBetween = async () => [];
+  // currentMetrics is sourced via the range aggregator; the requested single day is
+  // '2026-07-22' (fromDate === toDate), the month-to-date range is a different span.
+  repo.getBcvhOperationMetricsBetween = async (startDate, endDate) => {
+    if (startDate === '2026-07-22' && endDate === '2026-07-22') {
+      return [{
+        ma_bcvh: '535790',
+        ten_bcvh: 'BCVH A Luoi',
+        sl_bg_ptc: 2,
+        sl_ptc_nop_tien: 2,
+        dat_kpi_2026: 1,
+        khong_dat_kpi_2026: 1,
+      }];
+    }
+    return [];
+  };
 
   try {
-    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+    const result = await service.getBcvhRanking('2026-07-22', '2026-07-22', 1, 1000, 'rank', 'asc');
 
     assert.equal(result.data[0].kpi_2026, 50);
     assert.equal(result.data[0].kpi_2026_dod, null);
@@ -453,30 +474,30 @@ test('BCVH ranking exposes Wave 1 comparison, delayed-cash, and route-distributi
     getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
     getBcvhRanking: repo.getBcvhRanking,
     getFactByDate: repo.getFactByDate,
+    getFactBetween: repo.getFactBetween,
     getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
   };
 
+  const currentMetricsRows = [
+    {
+      ma_bcvh: '535790',
+      ten_bcvh: 'BCVH A Luoi',
+      sl_bg_ptc: 10,
+      sl_ptc_nop_tien: 10,
+      dat_kpi_2026: 8,
+      khong_dat_kpi_2026: 2,
+    },
+    {
+      ma_bcvh: '536250',
+      ten_bcvh: 'BCVH Huong Thuy',
+      sl_bg_ptc: 8,
+      sl_ptc_nop_tien: 8,
+      dat_kpi_2026: 4,
+      khong_dat_kpi_2026: 4,
+    },
+  ];
+
   repo.getBcvhOperationMetricsByDate = async (date) => {
-    if (date === '2026-07-22') {
-      return [
-        {
-          ma_bcvh: '535790',
-          ten_bcvh: 'BCVH A Luoi',
-          sl_bg_ptc: 10,
-          sl_ptc_nop_tien: 10,
-          dat_kpi_2026: 8,
-          khong_dat_kpi_2026: 2,
-        },
-        {
-          ma_bcvh: '536250',
-          ten_bcvh: 'BCVH Huong Thuy',
-          sl_bg_ptc: 8,
-          sl_ptc_nop_tien: 8,
-          dat_kpi_2026: 4,
-          khong_dat_kpi_2026: 4,
-        },
-      ];
-    }
     if (date === '2026-07-21') {
       return [
         {
@@ -540,7 +561,8 @@ test('BCVH ranking exposes Wave 1 comparison, delayed-cash, and route-distributi
     ],
     totalItems: 2,
   });
-  repo.getFactByDate = async () => ([
+  repo.getFactByDate = async () => [];
+  repo.getFactBetween = async () => ([
     { ma_bcvh: '535790', ma_tuyen: '53579001', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
     { ma_bcvh: '535790', ma_tuyen: '53579001', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
     { ma_bcvh: '535790', ma_tuyen: '53579002', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T13:30:00Z' },
@@ -550,10 +572,15 @@ test('BCVH ranking exposes Wave 1 comparison, delayed-cash, and route-distributi
     { ma_bcvh: '536250', ma_tuyen: '53625001', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
     { ma_bcvh: '536250', ma_tuyen: '53625002', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T12:30:00Z' },
   ]);
-  repo.getBcvhOperationMetricsBetween = async () => [];
+  // currentMetrics is now sourced via the range aggregator; month-to-date range calls
+  // (a different span) return empty so they don't interfere with this test.
+  repo.getBcvhOperationMetricsBetween = async (startDate, endDate) => {
+    if (startDate === '2026-07-22' && endDate === '2026-07-22') return currentMetricsRows;
+    return [];
+  };
 
   try {
-    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+    const result = await service.getBcvhRanking('2026-07-22', '2026-07-22', 1, 1000, 'rank', 'asc');
 
     assert.equal(result.data[0].comparisons.d1.volume, 6);
     assert.equal(result.data[0].comparisons.d1.f1_3_rate, 50);
@@ -592,20 +619,11 @@ test('BCVH ranking preserves genuine zero comparison rates instead of marking th
     getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
     getBcvhRanking: repo.getBcvhRanking,
     getFactByDate: repo.getFactByDate,
+    getFactBetween: repo.getFactBetween,
     getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
   };
 
   repo.getBcvhOperationMetricsByDate = async (date) => {
-    if (date === '2026-07-22') {
-      return [{
-        ma_bcvh: '535790',
-        ten_bcvh: 'BCVH A Luoi',
-        sl_bg_ptc: 10,
-        sl_ptc_nop_tien: 10,
-        dat_kpi_2026: 8,
-        khong_dat_kpi_2026: 2,
-      }];
-    }
     if (date === '2026-07-21') {
       return [{
         ma_bcvh: '535790',
@@ -640,10 +658,23 @@ test('BCVH ranking preserves genuine zero comparison rates instead of marking th
     totalItems: 1,
   });
   repo.getFactByDate = async () => [];
-  repo.getBcvhOperationMetricsBetween = async () => [];
+  repo.getFactBetween = async () => [];
+  repo.getBcvhOperationMetricsBetween = async (startDate, endDate) => {
+    if (startDate === '2026-07-22' && endDate === '2026-07-22') {
+      return [{
+        ma_bcvh: '535790',
+        ten_bcvh: 'BCVH A Luoi',
+        sl_bg_ptc: 10,
+        sl_ptc_nop_tien: 10,
+        dat_kpi_2026: 8,
+        khong_dat_kpi_2026: 2,
+      }];
+    }
+    return [];
+  };
 
   try {
-    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+    const result = await service.getBcvhRanking('2026-07-22', '2026-07-22', 1, 1000, 'rank', 'asc');
 
     assert.equal(result.data[0].comparisons.d1.volume, 4);
     assert.equal(result.data[0].comparisons.d1.f1_3_rate, 0);
@@ -661,16 +692,11 @@ test('BCVH ranking total-row comparison aggregates use summed numerators and den
     getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
     getBcvhRanking: repo.getBcvhRanking,
     getFactByDate: repo.getFactByDate,
+    getFactBetween: repo.getFactBetween,
     getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
   };
 
   repo.getBcvhOperationMetricsByDate = async (date) => {
-    if (date === '2026-07-22') {
-      return [
-        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 10, sl_ptc_nop_tien: 10, dat_kpi_2026: 8, khong_dat_kpi_2026: 2 },
-        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 8, sl_ptc_nop_tien: 8, dat_kpi_2026: 4, khong_dat_kpi_2026: 4 },
-      ];
-    }
     if (date === '2026-07-21') {
       return [
         { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 6, sl_ptc_nop_tien: 6, dat_kpi_2026: 3, khong_dat_kpi_2026: 3 },
@@ -693,10 +719,19 @@ test('BCVH ranking total-row comparison aggregates use summed numerators and den
     totalItems: 2,
   });
   repo.getFactByDate = async () => [];
-  repo.getBcvhOperationMetricsBetween = async () => [];
+  repo.getFactBetween = async () => [];
+  repo.getBcvhOperationMetricsBetween = async (startDate, endDate) => {
+    if (startDate === '2026-07-22' && endDate === '2026-07-22') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 10, sl_ptc_nop_tien: 10, dat_kpi_2026: 8, khong_dat_kpi_2026: 2 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 8, sl_ptc_nop_tien: 8, dat_kpi_2026: 4, khong_dat_kpi_2026: 4 },
+      ];
+    }
+    return [];
+  };
 
   try {
-    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+    const result = await service.getBcvhRanking('2026-07-22', '2026-07-22', 1, 1000, 'rank', 'asc');
 
     assert.equal(result.meta.total_row.sl_bg_ptc, 18);
     assert.equal(result.meta.total_row.dat_kpi_2026, 12);
@@ -719,16 +754,11 @@ test('BCVH ranking total-row comparison coverage stays unavailable when canonica
     getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
     getBcvhRanking: repo.getBcvhRanking,
     getFactByDate: repo.getFactByDate,
+    getFactBetween: repo.getFactBetween,
     getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
   };
 
   repo.getBcvhOperationMetricsByDate = async (date) => {
-    if (date === '2026-07-22') {
-      return [
-        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 10, sl_ptc_nop_tien: 10, dat_kpi_2026: 8, khong_dat_kpi_2026: 2 },
-        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 8, sl_ptc_nop_tien: 8, dat_kpi_2026: 4, khong_dat_kpi_2026: 4 },
-      ];
-    }
     if (date === '2026-07-21') {
       return [
         { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 6, sl_ptc_nop_tien: 6, dat_kpi_2026: 3, khong_dat_kpi_2026: 3 },
@@ -744,10 +774,19 @@ test('BCVH ranking total-row comparison coverage stays unavailable when canonica
     totalItems: 2,
   });
   repo.getFactByDate = async () => [];
-  repo.getBcvhOperationMetricsBetween = async () => [];
+  repo.getFactBetween = async () => [];
+  repo.getBcvhOperationMetricsBetween = async (startDate, endDate) => {
+    if (startDate === '2026-07-22' && endDate === '2026-07-22') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 10, sl_ptc_nop_tien: 10, dat_kpi_2026: 8, khong_dat_kpi_2026: 2 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 8, sl_ptc_nop_tien: 8, dat_kpi_2026: 4, khong_dat_kpi_2026: 4 },
+      ];
+    }
+    return [];
+  };
 
   try {
-    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+    const result = await service.getBcvhRanking('2026-07-22', '2026-07-22', 1, 1000, 'rank', 'asc');
 
     assert.equal(result.meta.total_row.comparisons.d1.volume, null);
     assert.equal(result.meta.total_row.comparisons.d1.f1_3_rate, null);
@@ -767,18 +806,11 @@ test('BCVH ranking total-row delayed-cash summary uses authoritative summed nume
     getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
     getBcvhRanking: repo.getBcvhRanking,
     getFactByDate: repo.getFactByDate,
+    getFactBetween: repo.getFactBetween,
     getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
   };
 
-  repo.getBcvhOperationMetricsByDate = async (date) => {
-    if (date === '2026-07-22') {
-      return [
-        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 100, sl_ptc_nop_tien: 80, dat_kpi_2026: 70, khong_dat_kpi_2026: 30 },
-        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 20, sl_ptc_nop_tien: 15, dat_kpi_2026: 10, khong_dat_kpi_2026: 10 },
-      ];
-    }
-    return [];
-  };
+  repo.getBcvhOperationMetricsByDate = async () => [];
   repo.getBcvhRanking = async () => ({
     data: [
       { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', total_bg: 100, total_passed: 70, total_failed: 30, rank: 1 },
@@ -786,7 +818,8 @@ test('BCVH ranking total-row delayed-cash summary uses authoritative summed nume
     ],
     totalItems: 2,
   });
-  repo.getFactByDate = async () => ([
+  repo.getFactByDate = async () => [];
+  repo.getFactBetween = async () => ([
     { ma_bcvh: '535790', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T12:30:00Z' },
     { ma_bcvh: '535790', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T12:15:00Z' },
     { ma_bcvh: '535790', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
@@ -795,10 +828,18 @@ test('BCVH ranking total-row delayed-cash summary uses authoritative summed nume
     { ma_bcvh: '536250', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: null },
     { ma_bcvh: '536250', danh_gia_2026: 'Đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
   ]);
-  repo.getBcvhOperationMetricsBetween = async () => [];
+  repo.getBcvhOperationMetricsBetween = async (startDate, endDate) => {
+    if (startDate === '2026-07-22' && endDate === '2026-07-22') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 100, sl_ptc_nop_tien: 80, dat_kpi_2026: 70, khong_dat_kpi_2026: 30 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 20, sl_ptc_nop_tien: 15, dat_kpi_2026: 10, khong_dat_kpi_2026: 10 },
+      ];
+    }
+    return [];
+  };
 
   try {
-    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+    const result = await service.getBcvhRanking('2026-07-22', '2026-07-22', 1, 1000, 'rank', 'asc');
 
     assert.equal(result.data[0].delayed_cash_handover_count, 2);
     assert.equal(result.data[0].f13_303_rate, 66.7);
@@ -823,18 +864,11 @@ test('BCVH ranking total-row delayed-cash summary preserves genuine zero and SSO
     getBcvhOperationMetricsByDate: repo.getBcvhOperationMetricsByDate,
     getBcvhRanking: repo.getBcvhRanking,
     getFactByDate: repo.getFactByDate,
+    getFactBetween: repo.getFactBetween,
     getBcvhOperationMetricsBetween: repo.getBcvhOperationMetricsBetween,
   };
 
-  repo.getBcvhOperationMetricsByDate = async (date) => {
-    if (date === '2026-07-22') {
-      return [
-        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 5, sl_ptc_nop_tien: 5, dat_kpi_2026: 4, khong_dat_kpi_2026: 1 },
-        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 7, sl_ptc_nop_tien: 7, dat_kpi_2026: 6, khong_dat_kpi_2026: 1 },
-      ];
-    }
-    return [];
-  };
+  repo.getBcvhOperationMetricsByDate = async () => [];
   repo.getBcvhRanking = async () => ({
     data: [
       { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', total_bg: 5, total_passed: 4, total_failed: 1, rank: 1 },
@@ -842,14 +876,23 @@ test('BCVH ranking total-row delayed-cash summary preserves genuine zero and SSO
     ],
     totalItems: 2,
   });
-  repo.getFactByDate = async () => ([
+  repo.getFactByDate = async () => [];
+  repo.getFactBetween = async () => ([
     { ma_bcvh: '535790', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: '2026-07-22T09:00:00Z' },
     { ma_bcvh: '536250', danh_gia_2026: 'Không đạt', thoi_gian_ptc: '2026-07-22T08:00:00Z', thoi_gian_nop_tien: null },
   ]);
-  repo.getBcvhOperationMetricsBetween = async () => [];
+  repo.getBcvhOperationMetricsBetween = async (startDate, endDate) => {
+    if (startDate === '2026-07-22' && endDate === '2026-07-22') {
+      return [
+        { ma_bcvh: '535790', ten_bcvh: 'BCVH A Luoi', sl_bg_ptc: 5, sl_ptc_nop_tien: 5, dat_kpi_2026: 4, khong_dat_kpi_2026: 1 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Huong Thuy', sl_bg_ptc: 7, sl_ptc_nop_tien: 7, dat_kpi_2026: 6, khong_dat_kpi_2026: 1 },
+      ];
+    }
+    return [];
+  };
 
   try {
-    const result = await service.getBcvhRanking('2026-07-22', 1, 1000, 'rank', 'asc');
+    const result = await service.getBcvhRanking('2026-07-22', '2026-07-22', 1, 1000, 'rank', 'asc');
 
     assert.equal(result.data[0].f13_303_rate, 0);
     assert.equal(result.data[1].f13_303_rate, 0);

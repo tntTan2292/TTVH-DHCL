@@ -81,11 +81,16 @@ class DashboardController {
             const pageSize = parseInt(req.query.page_size) || 20;
 
             if (!from_date || !to_date) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' }});
+            if (from_date > to_date) return res.status(400).json({ success: false, error: { code: 'INVALID_RANGE', message: 'from_date phải nhỏ hơn hoặc bằng to_date' }});
 
-            const result = await f13DashboardService.getBcvhRanking(to_date, page, pageSize, sort, order);
+            // Inclusive range: ngay_do_kiem BETWEEN from_date AND to_date.
+            // Callers wanting a single-evaluation-day contract (e.g. BCVH Ranking)
+            // send from_date === to_date; Operation Dashboard sends a real range.
+            const result = await f13DashboardService.getBcvhRanking(from_date, to_date, page, pageSize, sort, order);
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
-            res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
+            const status = error?.code === 'INVALID_DATE' || error?.code === 'INVALID_RANGE' ? 400 : 500;
+            res.status(status).json({ success: false, error: { code: error?.code || 'SERVER_ERROR', message: error.message }});
         }
     }
 

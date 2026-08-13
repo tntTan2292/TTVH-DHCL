@@ -796,18 +796,35 @@ class F13DashboardService {
         }
     }
 
-    async getBcvhRanking(date, page, pageSize, sort, order) {
+    // fromDate/toDate: inclusive range, `ngay_do_kiem BETWEEN fromDate AND toDate`.
+    // Operation Dashboard passes a real range; BCVH Ranking passes fromDate === toDate
+    // to keep its single-evaluation-day contract. Both go through the same code path —
+    // there is no branching on caller/page identity, only on the dates actually received.
+    // D-1/D-7/month-to-date comparisons stay anchored to toDate (the end of the requested
+    // window), unchanged from the previous single-date behaviour.
+    async getBcvhRanking(fromDate, toDate, page, pageSize, sort, order) {
         try {
-            const monthStart = this._getMonthStart(date);
-            const currentMetrics = await factBuuGuiRepo.getBcvhOperationMetricsByDate(date);
+            if (!this._isIsoDate(fromDate) || !this._isIsoDate(toDate)) {
+                const err = new Error('from_date and to_date must be valid ISO dates in YYYY-MM-DD format');
+                err.code = 'INVALID_DATE';
+                throw err;
+            }
+            if (fromDate > toDate) {
+                const err = new Error('from_date must be less than or equal to to_date');
+                err.code = 'INVALID_RANGE';
+                throw err;
+            }
+
+            const effectiveDate = toDate;
+            const monthStart = this._getMonthStart(effectiveDate);
+            const currentMetrics = await factBuuGuiRepo.getBcvhOperationMetricsBetween(fromDate, toDate);
             const selectedDateHasData = currentMetrics.length > 0;
-            const monthToDateCutoff = selectedDateHasData ? date : null;
-            const effectiveDate = date;
+            const monthToDateCutoff = selectedDateHasData ? effectiveDate : null;
             const previousMonthPeriod = this._getPreviousMonthComparablePeriod(effectiveDate);
-            const result = await factBuuGuiRepo.getBcvhRanking(effectiveDate, page, pageSize, sort, order);
+            const result = await factBuuGuiRepo.getBcvhRanking(fromDate, toDate, page, pageSize, sort, order);
             const yesterdayStr = this._shiftDate(effectiveDate, -1);
             const swcStr = this._shiftDate(effectiveDate, -7);
-            const currentFacts = await factBuuGuiRepo.getFactByDate(effectiveDate);
+            const currentFacts = await factBuuGuiRepo.getFactBetween(fromDate, toDate);
 
             const [yesterdayMetrics, swcMetrics, monthToDateMetrics, previousMonthToDateMetrics] = await Promise.all([
                 factBuuGuiRepo.getBcvhOperationMetricsByDate(yesterdayStr),
@@ -1008,12 +1025,17 @@ class F13DashboardService {
                 data: mappedData,
                 meta: {
                     total_row: totalRow,
+                    date_range: {
+                        from_date: fromDate,
+                        to_date: toDate,
+                        single_day: fromDate === toDate
+                    },
                     month_to_date: {
                         from_date: monthStart,
                         to_date: monthToDateCutoff,
-                        requested_to_date: date,
+                        requested_to_date: toDate,
                         current_data_date: effectiveDate,
-                        used_latest_available: Boolean(monthToDateCutoff && monthToDateCutoff !== date),
+                        used_latest_available: Boolean(monthToDateCutoff && monthToDateCutoff !== toDate),
                         available: Boolean(monthToDateCutoff)
                     },
                     previous_month_to_date: {
@@ -1023,8 +1045,8 @@ class F13DashboardService {
                     },
                     evaluation_date: {
                         date: effectiveDate,
-                        requested_to_date: date,
-                        used_latest_available: Boolean(monthToDateCutoff && monthToDateCutoff !== date),
+                        requested_to_date: toDate,
+                        used_latest_available: Boolean(monthToDateCutoff && monthToDateCutoff !== toDate),
                         available: Boolean(monthToDateCutoff)
                     },
                     pagination: {
@@ -1036,6 +1058,7 @@ class F13DashboardService {
                 }
             };
         } catch (error) {
+            if (error?.code === 'INVALID_DATE' || error?.code === 'INVALID_RANGE') throw error;
             throw new Error(`Lỗi Service khi lấy Ranking BCVH: ${error.message}`);
         }
     }

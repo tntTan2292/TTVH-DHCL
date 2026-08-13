@@ -93,19 +93,23 @@ class FactBuuGuiRepository {
         });
     }
 
-    getBcvhRanking(date, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc') {
+    // fromDate/toDate: inclusive range, `ngay_do_kiem BETWEEN fromDate AND toDate`.
+    // A single-day caller passes fromDate === toDate (BCVH Ranking's contract);
+    // a genuine multi-day caller (Operation Dashboard) passes a real range.
+    // Both are the same query — no branching on who the caller is.
+    getBcvhRanking(fromDate, toDate, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc') {
         return new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;
-            const sqlCount = `SELECT COUNT(DISTINCT ma_bcvh) as total FROM fact_f13 WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL`;
-            
+            const sqlCount = `SELECT COUNT(DISTINCT ma_bcvh) as total FROM fact_f13 WHERE ngay_do_kiem BETWEEN ? AND ? AND ma_bcvh IS NOT NULL`;
+
             // Whitelist for sorting columns to prevent SQL Injection
             const allowedSorts = ['total_bg', 'total_passed', 'total_failed'];
             const safeSort = allowedSorts.includes(sort) ? sort : 'total_bg';
             const safeOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
             const sqlData = `
-                SELECT 
-                    ma_bcvh, 
+                SELECT
+                    ma_bcvh,
                     MAX(ten_bcvh) as ten_bcvh,
                     COUNT(ma_bg) as total_bg,
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
@@ -117,15 +121,15 @@ class FactBuuGuiRepository {
                         ORDER BY (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) * 1.0 / COUNT(ma_bg)) DESC, COUNT(ma_bg) DESC
                     ) as rank
                 FROM fact_f13
-                WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL
+                WHERE ngay_do_kiem BETWEEN ? AND ? AND ma_bcvh IS NOT NULL
                 GROUP BY ma_bcvh
                 ORDER BY rank ASC
                 LIMIT ? OFFSET ?
             `;
-            
-            db.get(sqlCount, [date], (err, countRow) => {
+
+            db.get(sqlCount, [fromDate, toDate], (err, countRow) => {
                 if (err) return reject(err);
-                db.all(sqlData, [date, pageSize, offset], (err, rows) => {
+                db.all(sqlData, [fromDate, toDate, pageSize, offset], (err, rows) => {
                     if (err) reject(err);
                     else resolve({ data: rows, totalItems: countRow.total });
                 });
@@ -384,7 +388,7 @@ class FactBuuGuiRepository {
             const sql = `SELECT * FROM fact_f13 WHERE ngay_do_kiem = ?`;
             db.all(sql, [date], (err, rows) => {
                 if (err) return reject(err);
-                
+
                 // Decode JSON extended_data
                 const mappedRows = rows.map(r => {
                     if (r.extended_data) {
@@ -392,7 +396,30 @@ class FactBuuGuiRepository {
                     }
                     return r;
                 });
-                
+
+                resolve(mappedRows);
+            });
+        });
+    }
+
+    // Range counterpart of getFactByDate(), used by getBcvhRanking() so its
+    // per-BCVH F13.302/route-distribution figures aggregate over the same
+    // fromDate..toDate window as the rest of the ranking, not just toDate.
+    // fromDate === toDate collapses to the same single-day result as getFactByDate().
+    getFactBetween(fromDate, toDate) {
+        return new Promise((resolve, reject) => {
+            const sql = `SELECT * FROM fact_f13 WHERE ngay_do_kiem BETWEEN ? AND ?`;
+            db.all(sql, [fromDate, toDate], (err, rows) => {
+                if (err) return reject(err);
+
+                // Decode JSON extended_data, same as getFactByDate()
+                const mappedRows = rows.map(r => {
+                    if (r.extended_data) {
+                        try { r.extended_data = JSON.parse(r.extended_data); } catch(e) {}
+                    }
+                    return r;
+                });
+
                 resolve(mappedRows);
             });
         });
