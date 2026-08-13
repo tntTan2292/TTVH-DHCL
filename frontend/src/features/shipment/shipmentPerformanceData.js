@@ -56,6 +56,45 @@ export function calculateDelayHours(ptc, nopTien, extendedData) {
   return Number(((nopTienDate - ptcDate) / (1000 * 60 * 60)).toFixed(1));
 }
 
+// Phase 2 search-result-presentation contract (Product Owner finding, 2026-08-12,
+// locked into Phase 2 scope — F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md Section
+// 14; AC-16/AC-17/AC-18/AC-22).
+
+// AC-16: the exact required summary line. `routeCount` must be computed over real
+// `ma_tuyen` values (see groupRowsByRoute below), never over display-name text.
+export function formatSearchResultSummary({ count = 0, routeCount = 0, keyword = '' }) {
+  return `Tìm thấy ${count.toLocaleString('vi-VN')} bưu gửi thuộc ${routeCount.toLocaleString('vi-VN')} tuyến cho '${keyword}'.`;
+}
+
+// AC-17/AC-18/AC-22: group rows by their real route identity (ma_tuyen), never by the
+// displayed route-name text alone — two differently-coded routes must never merge into
+// one group even if their display names are identical or similar, and every route with
+// a matching/near-matching name must appear as its own group (this is automatic here:
+// every row already survived the keyword filter before grouping, so every route that
+// row belongs to is included — there is no "first match only" truncation).
+// Rows with no route identity at all (should not occur for canonical data) fall into a
+// single explicit group rather than being silently dropped or merged into an unrelated
+// route.
+export function groupRowsByRoute(rows = []) {
+  const groups = new Map();
+
+  rows.forEach((row) => {
+    const key = row.routeId || `__no-route__:${row.routeName || 'N/A'}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        routeId: row.routeId || '',
+        routeName: row.routeName || 'N/A',
+        rows: [],
+      });
+    }
+    groups.get(key).rows.push(row);
+  });
+
+  return Array.from(groups.values())
+    .map((group) => ({ ...group, count: group.rows.length }))
+    .sort((a, b) => a.routeName.localeCompare(b.routeName, 'vi-VN') || String(a.routeId).localeCompare(String(b.routeId)));
+}
+
 // The backend's GET /f13/evidence-list already implements real, correct server-side
 // pagination (total_items/total_pages computed over the full filtered set, independent
 // of the page returned) — the previous "1000 rows in one request" Evidence bug was purely

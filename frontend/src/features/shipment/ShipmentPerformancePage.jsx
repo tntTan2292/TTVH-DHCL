@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter } from 'lucide-react';
-import { PageContainer, KPICard, SectionHeader, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
+import { AlertTriangle, Filter } from 'lucide-react';
+import { PageContainer, KPICard, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import f13DashboardClient from '../../api/F13DashboardClient';
 import { resolveDefaultRouteDate } from '../route/routeRankingCalculations';
-import ShipmentExecutiveBrief from './ShipmentExecutiveBrief';
-import ShipmentImpactOverview from './ShipmentImpactOverview';
-import ShipmentTimeline from './ShipmentTimeline';
-import ShipmentRootCause from './ShipmentRootCause';
+import { buildViolationGroupTabs } from '../route/routeViolationEvidenceData';
 import ShipmentEvidenceSummary from './ShipmentEvidenceSummary';
-import ShipmentRecommendation from './ShipmentRecommendation';
-import ShipmentDrilldown from './ShipmentDrilldown';
-import { calculateDelayHours, fetchAllEvidenceRows, matchesSearchQuery } from './shipmentPerformanceData';
+import ShipmentEvidenceDetail from './ShipmentEvidenceDetail';
+import {
+  calculateDelayHours,
+  fetchAllEvidenceRows,
+  matchesSearchQuery,
+  formatSearchResultSummary,
+  groupRowsByRoute,
+} from './shipmentPerformanceData';
 
 const ALL_ROUTES_OPTION = { value: '', label: 'Tất cả tuyến' };
+const DEFAULT_REASON = 'delayed_cash';
 
 function toNumber(value) {
   const number = Number(value);
@@ -24,13 +27,6 @@ function toNumber(value) {
 function toText(value, fallback = 'N/A') {
   if (value === undefined || value === null || value === '') return fallback;
   return String(value);
-}
-
-function formatTime(value) {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString('vi-VN');
 }
 
 function sortShipmentRows(rows, sort, order) {
@@ -60,7 +56,9 @@ export default function ShipmentPerformancePage() {
   const [error, setError] = useState(null);
   const [runtimeRows, setRuntimeRows] = useState([]);
   const [meta, setMeta] = useState({});
+  const [violationSummary, setViolationSummary] = useState({});
   const [truncated, setTruncated] = useState(false);
+  const [collapsedRouteIds, setCollapsedRouteIds] = useState(() => new Set());
 
   const [metaStatus, setMetaStatus] = useState('loading');
   const [metaMaxDate, setMetaMaxDate] = useState(null);
@@ -81,6 +79,11 @@ export default function ShipmentPerformancePage() {
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || 'delay_hours';
   const order = searchParams.get('order') || 'asc';
+  // Violation group tab (AC-1..AC-9 reconciliation contract, unchanged): default is
+  // "Chậm nộp tiền", matching the pre-existing RouteViolationEvidencePage default —
+  // no new business decision, just the same accepted default carried into the merged
+  // screen.
+  const reasonParam = searchParams.get('reason') || DEFAULT_REASON;
 
   // Same single-day analysis contract already established by Dashboard/BCVH Ranking/Tuyến
   // Ranking: GlobalFilterBar exposes two date fields, but only one authoritative evaluation
@@ -181,12 +184,22 @@ export default function ShipmentPerformancePage() {
 
   const handleRouteChange = (value) => {
     const option = routeOptions.find((opt) => opt.value === value);
+    // AC-20: the Tuyến dropdown is a separate, independent filter from search — it is
+    // never implicitly changed by a keyword and never overridden by it.
     updateParams({ route_id: value, route_name: value ? (option?.label || '') : '' });
   };
 
-  // Fetches the complete matching Evidence set for the current date/BCVH/route — walks every
-  // backend page instead of the previous single hardcoded pageSize=1000 request, so search,
-  // sort, and counts below always reflect the full result, never a silently truncated slice.
+  const handleReasonChange = (slug) => {
+    updateParam('reason', slug === DEFAULT_REASON ? '' : slug);
+  };
+
+  // Fetches the complete matching Evidence set for the current date/BCVH/route/violation
+  // group — walks every backend page instead of a single fixed-size request, so search,
+  // sort, and counts below always reflect the full result, never a silently truncated
+  // slice. `reason` participates in the query so violation group tabs are server-scoped,
+  // consistent with the reconciliation contract (Section 3.3): meta.violation_summary is
+  // computed over the whole "Không đạt" set regardless of the active tab, while the rows
+  // themselves are scoped to the active tab.
   useEffect(() => {
     let mounted = true;
 
@@ -201,13 +214,14 @@ export default function ShipmentPerformancePage() {
           routeIdParam || undefined,
           page,
           pageSize,
+          reasonParam === 'all' ? undefined : reasonParam,
         );
         const result = await fetchAllEvidenceRows(fetchPage);
         if (!mounted) return;
 
         const mappedRows = result.rows.map((item) => {
           const shipmentKey = item.ma_bg || item.id || item.shipment_id || 'N/A';
-          const delayHours = calculateDelayHours(item.thoi_gian_ptc, item.thoi_gian_nop_tien, item.extended_data);
+          const delayHours = item.do_tre_gio ?? calculateDelayHours(item.thoi_gian_ptc, item.thoi_gian_nop_tien, item.extended_data);
 
           return {
             id: shipmentKey,
@@ -218,16 +232,19 @@ export default function ShipmentPerformancePage() {
             routeId: item.ma_tuyen || routeIdParam,
             routeName: item.ten_tuyen || routeName,
             status: item.danh_gia_2026 || 'Không đạt',
+            violationReason: item.violation_reason || null,
             pickupTime: item.thoi_gian_ptc || null,
             handoverTime: item.thoi_gian_nop_tien || null,
             delayHours,
-            delayLabel: delayHours === null ? 'N/A' : `${delayHours.toFixed(1)}h`,
+            delayLabel: delayHours === null || delayHours === undefined ? 'N/A' : `${Number(delayHours).toFixed(1)}h`,
+            analysisDate,
             extendedData: item.extended_data || {},
           };
         });
 
         setRuntimeRows(mappedRows);
         setMeta(result.meta || {});
+        setViolationSummary(result.meta?.violation_summary || {});
         setTruncated(result.truncated);
         setStatus('success');
       } catch (e) {
@@ -250,9 +267,9 @@ export default function ShipmentPerformancePage() {
     return () => { mounted = false; };
     // bcvhName/routeName are display-only fallbacks used inside the mapper, not fetch
     // inputs — including them would refetch on every label resolution instead of only
-    // when the actual query (date/BCVH/route) changes.
+    // when the actual query (date/BCVH/route/reason) changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisDate, bcvhId, routeIdParam, metaStatus]);
+  }, [analysisDate, bcvhId, routeIdParam, reasonParam, metaStatus]);
 
   const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
 
@@ -271,84 +288,35 @@ export default function ShipmentPerformancePage() {
 
   const sortedRows = useMemo(() => sortShipmentRows(filteredRows, sort, order), [filteredRows, order, sort]);
 
+  // AC-17/AC-18/AC-22: while a keyword is active, results group by real route identity.
+  const groupedRows = useMemo(() => (search.trim() ? groupRowsByRoute(sortedRows) : []), [search, sortedRows]);
+  const isSearchActive = Boolean(search.trim());
+
+  const expandedRouteIds = useMemo(
+    () => new Set(groupedRows.map((g) => g.routeId || g.routeName).filter((key) => !collapsedRouteIds.has(key))),
+    [groupedRows, collapsedRouteIds],
+  );
+  const handleToggleRouteGroup = (key) => {
+    setCollapsedRouteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  // AC-15: a keyword only ever filters — it never selects a row on its own. Selection
+  // exists only when shipment_id is present in the URL AND still matches a visible row;
+  // there is no fallback to "the first row."
   const selectedShipment = useMemo(() => {
-    if (!sortedRows.length) return null;
-    return sortedRows.find((item) => item.shipmentId === shipmentId) || sortedRows[0] || null;
+    if (!shipmentId) return null;
+    return sortedRows.find((item) => item.shipmentId === shipmentId) || null;
   }, [shipmentId, sortedRows]);
 
-  useEffect(() => {
-    if (!sortedRows.length) return;
-    if (shipmentId && sortedRows.some((item) => item.shipmentId === shipmentId)) return;
-    const firstSelectable = sortedRows[0];
-    if (firstSelectable?.shipmentId) {
-      updateParam('shipment_id', firstSelectable.shipmentId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shipmentId, sortedRows]);
+  const violationTabs = useMemo(() => buildViolationGroupTabs(violationSummary), [violationSummary]);
 
-  const summaryStats = useMemo(() => ([
-    { label: 'Evidence runtime', value: toNumber(meta?.pagination?.total_items ?? sortedRows.length ?? runtimeRows.length).toLocaleString('vi-VN'), delta: 'Toàn bộ tập kết quả', tone: 'primary' },
-    { label: 'BCVH context', value: bcvhName || 'N/A', delta: bcvhId || 'N/A', tone: 'warning' },
-    { label: 'Route context', value: routeName, delta: routeIdParam || ALL_ROUTES_OPTION.label, tone: 'success' },
-    { label: 'Selected shipment', value: selectedShipment?.shipmentId || 'N/A', delta: selectedShipment?.status || 'N/A', tone: 'danger' },
-  ]), [bcvhId, bcvhName, meta?.pagination?.total_items, routeIdParam, routeName, runtimeRows.length, selectedShipment, sortedRows.length]);
-
-  const shipmentContext = [
-    { label: 'Shipment ID', value: selectedShipment?.shipmentId || 'N/A' },
-    { label: 'BCVH', value: selectedShipment?.bcvhName || bcvhName },
-    { label: 'Route', value: selectedShipment?.routeName || routeName },
-    { label: 'Result', value: selectedShipment?.status || 'N/A' },
-  ];
-
-  const impactContext = [
-    { label: 'Delay', value: selectedShipment?.delayLabel || 'N/A' },
-    { label: 'Search', value: search || 'N/A' },
-    { label: 'Runtime rows', value: toNumber(sortedRows.length).toLocaleString('vi-VN') },
-  ];
-
-  const timelineItems = selectedShipment
-    ? [
-        `Shipment: ${selectedShipment.shipmentId}`,
-        `Pickup: ${formatTime(selectedShipment.pickupTime)}`,
-        `Handover: ${formatTime(selectedShipment.handoverTime)}`,
-        `Delay: ${selectedShipment.delayLabel || 'N/A'}`,
-        `Status: ${selectedShipment.status}`,
-      ]
-    : ['No shipment selected'];
-
-  const rootCauseItems = selectedShipment
-    ? [
-        `• Shipment ${selectedShipment.shipmentId} is the active runtime selection`,
-        `• Route context: ${selectedShipment.routeName}`,
-        `• Delay signal: ${selectedShipment.delayLabel || 'N/A'}`,
-      ]
-    : ['• No runtime shipment data'];
-
-  const evidenceContext = [
-    `Source: runtime evidence-list (full result set)`,
-    `BCVH context: ${bcvhName}`,
-    `Route context: ${routeName}`,
-    `Sort/order: ${sort}/${order}`,
-  ];
-
-  const recommendationItems = selectedShipment
-    ? [
-        { label: 'Ưu tiên xử lý', value: selectedShipment.shipmentId },
-        { label: 'Lý do', value: `Delay ${selectedShipment.delayLabel || 'N/A'} on ${selectedShipment.routeName}` },
-      ]
-    : [
-        { label: 'Ưu tiên xử lý', value: 'N/A' },
-        { label: 'Lý do', value: 'Chưa có shipment runtime hợp lệ' },
-      ];
-
-  const drilldownContext = [
-    `BCVH: ${bcvhName}`,
-    `Route: ${routeName}`,
-    `Shipment: ${selectedShipment?.shipmentId || 'N/A'}`,
-    `Shipment contract prepared for Evidence Center`,
-    `Date window: ${fromDate} → ${toDate}`,
-    `Sort: ${sort}/${order}`,
-  ];
+  // AC-19: three counts, always visibly distinct — never conflated into one number.
+  const contextTotal = toNumber(meta?.pagination?.total_items ?? runtimeRows.length);
+  const searchResultCount = isSearchActive ? filteredRows.length : null;
 
   const handleSelectShipment = (nextShipmentId) => {
     updateParam('shipment_id', nextShipmentId);
@@ -435,9 +403,65 @@ export default function ShipmentPerformancePage() {
     </div>
   );
 
+  // Violation group tabs — server-sourced counts only, never counted client-side.
+  const violationTabsBar = (
+    <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-xs">
+      <div className="flex flex-wrap gap-1.5">
+        {violationTabs.map((tab) => {
+          const isActive = reasonParam === tab.slug;
+          return (
+            <button
+              key={tab.slug}
+              type="button"
+              onClick={() => handleReasonChange(tab.slug)}
+              aria-pressed={isActive}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold transition-all ${
+                isActive
+                  ? tab.highlight
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-[var(--color-primary-600)] text-white shadow-xs'
+                  : tab.highlight
+                    ? 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100/80'
+                    : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              {tab.highlight && <AlertTriangle size={14} className={isActive ? 'text-white' : 'text-amber-600'} />}
+              <span>{tab.label}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-extrabold ${
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : tab.highlight
+                    ? 'bg-amber-200/80 text-amber-950'
+                    : 'bg-slate-200 text-slate-800'
+              }`}>
+                {tab.count.toLocaleString('vi-VN')}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // AC-16: the exact required summary line, only rendered while a keyword is active.
+  const searchResultSummary = isSearchActive ? (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+      <p className="text-sm font-medium text-blue-900">
+        {formatSearchResultSummary({ count: filteredRows.length, routeCount: groupedRows.length, keyword: search.trim() })}
+      </p>
+      <button
+        type="button"
+        onClick={handleClearSearch}
+        className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-800 hover:bg-blue-100"
+      >
+        Xóa từ khóa
+      </button>
+    </div>
+  ) : null;
+
   if (status === 'loading') {
     return (
-      <PageContainer title="Evidence — Chi tiết bưu gửi" subtitle="Đang tải runtime-backed content cho Evidence.">
+      <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Đang tải dữ liệu Evidence.">
         <LoadingState label="Đang tải dữ liệu Evidence..." />
       </PageContainer>
     );
@@ -445,7 +469,7 @@ export default function ShipmentPerformancePage() {
 
   if (status === 'error') {
     return (
-      <PageContainer title="Evidence — Chi tiết bưu gửi" subtitle="Runtime-backed content chưa sẵn sàng.">
+      <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Không thể tải dữ liệu Evidence.">
         <ErrorState
           description={error?.message}
           action={
@@ -461,27 +485,32 @@ export default function ShipmentPerformancePage() {
     );
   }
 
+  const filterBar = (
+    <GlobalFilterBar
+      fromDate={fromDate}
+      toDate={toDate}
+      onFromDateChange={(value) => updateParam('from_date', value)}
+      onToDateChange={(value) => updateParam('to_date', value)}
+      bcvhValue={bcvhId}
+      onBcvhChange={handleBcvhChange}
+      bcvhOptions={bcvhOptions}
+      searchValue={search}
+      onSearchChange={(value) => updateParam('search', value)}
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          {routeSelector}
+          <StatusBadge label={intervalLabel} tone="neutral" />
+        </div>
+      }
+    />
+  );
+
   if (!sortedRows.length) {
     return (
-      <PageContainer title="Evidence — Chi tiết bưu gửi" subtitle="Runtime-backed content theo kiến trúc đã Freeze.">
+      <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Context/filter · nhóm vi phạm · bằng chứng chi tiết.">
         <div className="space-y-5">
-          <GlobalFilterBar
-            fromDate={fromDate}
-            toDate={toDate}
-            onFromDateChange={(value) => updateParam('from_date', value)}
-            onToDateChange={(value) => updateParam('to_date', value)}
-            bcvhValue={bcvhId}
-            onBcvhChange={handleBcvhChange}
-            bcvhOptions={bcvhOptions}
-            searchValue={search}
-            onSearchChange={(value) => updateParam('search', value)}
-            actions={
-              <div className="flex flex-wrap items-center gap-2">
-                {routeSelector}
-                <StatusBadge label={intervalLabel} tone="neutral" />
-              </div>
-            }
-          />
+          {filterBar}
+          {violationTabsBar}
           <EmptyState
             title={emptyStateContent.title}
             description={emptyStateContent.description}
@@ -494,34 +523,18 @@ export default function ShipmentPerformancePage() {
 
   return (
     <PageContainer
-      title="Evidence — Chi tiết bưu gửi"
-      subtitle="Evidence runtime view theo kiến trúc đã Freeze."
+      title="Evidence — Chi tiết bưu gửi vi phạm"
+      subtitle="Context/filter · nhóm vi phạm · bằng chứng chi tiết."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label="Evidence Runtime" tone="info" />
-          <StatusBadge label={intervalLabel} tone="success" />
-          <StatusBadge label={`Ngày: ${analysisDate}`} tone="neutral" />
+          <StatusBadge label={`BCVH: ${bcvhName}`} tone="info" />
+          <StatusBadge label={`Tuyến: ${routeName}`} tone="neutral" />
+          <StatusBadge label={`Ngày: ${analysisDate}`} tone="success" />
         </div>
       }
     >
       <div className="space-y-5">
-        <GlobalFilterBar
-          fromDate={fromDate}
-          toDate={toDate}
-          onFromDateChange={(value) => updateParam('from_date', value)}
-          onToDateChange={(value) => updateParam('to_date', value)}
-          bcvhValue={bcvhId}
-          onBcvhChange={handleBcvhChange}
-          bcvhOptions={bcvhOptions}
-          searchValue={search}
-          onSearchChange={(value) => updateParam('search', value)}
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              {routeSelector}
-              <StatusBadge label={intervalLabel} tone="neutral" />
-            </div>
-          }
-        />
+        {filterBar}
 
         {truncated && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -529,37 +542,38 @@ export default function ShipmentPerformancePage() {
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {summaryStats.map((item) => (
-            <KPICard key={item.label} label={item.label} value={item.value} delta={item.delta} tone={item.tone} />
-          ))}
-        </div>
+        {searchResultSummary}
 
-        <SectionHeader title="Executive Brief Area" subtitle="Khối dẫn nhập điều hành cấp shipment." />
-        <div className="grid gap-5 xl:grid-cols-2">
-          <ShipmentExecutiveBrief shipmentContext={shipmentContext} />
-          <ShipmentImpactOverview impactItems={impactContext} />
-        </div>
-
-        <SectionHeader title="Shipment Analysis Area" subtitle="Khối timeline và nguyên nhân cho shipment." />
-        <div className="grid gap-5 xl:grid-cols-2">
-          <ShipmentTimeline timelineItems={timelineItems} />
-          <ShipmentRootCause rootCauseItems={rootCauseItems} />
-        </div>
-
-        <SectionHeader title="Evidence Summary Area" subtitle="Khối evidence readiness, selection và recommendation." />
-        <div className="grid gap-5 xl:grid-cols-2">
-          <ShipmentEvidenceSummary
-            evidenceContext={evidenceContext}
-            shipmentRows={sortedRows}
-            selectedShipmentId={selectedShipment?.shipmentId || ''}
-            onSelectShipment={handleSelectShipment}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <KPICard label="Tổng Evidence (bối cảnh)" value={contextTotal.toLocaleString('vi-VN')} delta="Trước tìm kiếm" tone="primary" />
+          <KPICard
+            label="Kết quả tìm kiếm"
+            value={searchResultCount === null ? '—' : searchResultCount.toLocaleString('vi-VN')}
+            delta={isSearchActive ? `Cho '${search.trim()}'` : 'Không có từ khóa'}
+            tone="warning"
           />
-          <ShipmentRecommendation recommendationItems={recommendationItems} />
+          <KPICard label="Bưu gửi đang chọn" value={selectedShipment?.shipmentId || 'Chưa chọn'} delta={selectedShipment?.status || 'N/A'} tone="danger" />
         </div>
 
-        <SectionHeader title="Evidence Drill-down Area" subtitle="Chuẩn bị context cho Evidence Center." />
-        <ShipmentDrilldown drilldownContext={drilldownContext} />
+        {violationTabsBar}
+
+        <div className="grid gap-5 xl:grid-cols-3">
+          <div className="xl:col-span-2">
+            <ShipmentEvidenceSummary
+              mode={isSearchActive ? 'grouped' : 'flat'}
+              rows={sortedRows}
+              groups={groupedRows}
+              showRouteColumn={!routeIdParam}
+              selectedShipmentId={selectedShipment?.shipmentId || ''}
+              onSelectShipment={handleSelectShipment}
+              expandedRouteIds={expandedRouteIds}
+              onToggleRouteGroup={handleToggleRouteGroup}
+            />
+          </div>
+          <div>
+            <ShipmentEvidenceDetail shipment={selectedShipment} />
+          </div>
+        </div>
       </div>
     </PageContainer>
   );

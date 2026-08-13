@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseF13Timestamp, calculateDelayHours, fetchAllEvidenceRows, stripVietnameseDiacritics, matchesSearchQuery } from './shipmentPerformanceData.js';
+import {
+  parseF13Timestamp,
+  calculateDelayHours,
+  fetchAllEvidenceRows,
+  stripVietnameseDiacritics,
+  matchesSearchQuery,
+  formatSearchResultSummary,
+  groupRowsByRoute,
+} from './shipmentPerformanceData.js';
 
 // P0-05: fact_f13 timestamps are 'dd/MM/yyyy HH:mm:ss' TEXT, which `new Date(string)`
 // cannot parse (returns Invalid Date in this runtime).
@@ -145,4 +153,57 @@ test('matchesSearchQuery returns false when no field matches, with or without di
 
 test('matchesSearchQuery skips null/undefined/empty fields without throwing', () => {
   assert.equal(matchesSearchQuery([null, undefined, '', '535790 - Hương Phong'], 'phong'), true);
+});
+
+// --- Phase 2: search-result-presentation contract (AC-16, AC-17/18, AC-22) ---------
+
+test('formatSearchResultSummary produces the exact required wording', () => {
+  assert.equal(
+    formatSearchResultSummary({ count: 9, routeCount: 3, keyword: 'hồng th' }),
+    "Tìm thấy 9 bưu gửi thuộc 3 tuyến cho 'hồng th'."
+  );
+});
+
+test('formatSearchResultSummary handles the zero-result case explicitly, not as a missing value', () => {
+  assert.equal(
+    formatSearchResultSummary({ count: 0, routeCount: 0, keyword: 'khong ton tai' }),
+    "Tìm thấy 0 bưu gửi thuộc 0 tuyến cho 'khong ton tai'."
+  );
+});
+
+test('groupRowsByRoute groups by real ma_tuyen (routeId), never by route-name text alone', () => {
+  const rows = [
+    { shipmentId: 'BG1', routeId: '53579001', routeName: 'Hương Phong' },
+    { shipmentId: 'BG2', routeId: '53579002', routeName: 'Hương Phong' }, // same display name, different real route
+    { shipmentId: 'BG3', routeId: '53579001', routeName: 'Hương Phong' },
+  ];
+  const groups = groupRowsByRoute(rows);
+
+  assert.equal(groups.length, 2, 'two distinct ma_tuyen values must never merge into one group, even with identical names');
+  const byId = Object.fromEntries(groups.map((g) => [g.routeId, g]));
+  assert.equal(byId['53579001'].count, 2);
+  assert.equal(byId['53579002'].count, 1);
+});
+
+test('groupRowsByRoute surfaces every matching route, not only the first', () => {
+  const rows = [
+    { shipmentId: 'BG1', routeId: '535790A', routeName: 'Hồng Thái' },
+    { shipmentId: 'BG2', routeId: '535790B', routeName: 'Hồng Thủy' },
+    { shipmentId: 'BG3', routeId: '535790C', routeName: 'Hồng Tiến' },
+  ];
+  const groups = groupRowsByRoute(rows);
+  assert.equal(groups.length, 3);
+  assert.deepEqual(new Set(groups.map((g) => g.routeId)), new Set(['535790A', '535790B', '535790C']));
+});
+
+test('groupRowsByRoute never drops a row: total across all groups equals the input length', () => {
+  const rows = Array.from({ length: 12 }, (_, i) => ({
+    shipmentId: `BG${i}`,
+    routeId: `R${i % 4}`,
+    routeName: `Route ${i % 4}`,
+  }));
+  const groups = groupRowsByRoute(rows);
+  const total = groups.reduce((sum, g) => sum + g.count, 0);
+  assert.equal(total, 12);
+  assert.equal(groups.length, 4);
 });
