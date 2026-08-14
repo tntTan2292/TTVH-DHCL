@@ -24,6 +24,7 @@
 - [20. Phase 2 Implementation Record (2026-08-13)](#20-phase-2-implementation-record-2026-08-13)
 - [21. Phase 2 Runtime Recheck FAIL + Search-Result Remediation (2026-08-13)](#21-phase-2-runtime-recheck-fail--search-result-remediation-2026-08-13)
 - [22. Phase 2 — Full-Screen PO Runtime Acceptance, Formal Closure (2026-08-13)](#22-phase-2--full-screen-po-runtime-acceptance-formal-closure-2026-08-13)
+- [23. Phase 3 Implementation Record (2026-08-13)](#23-phase-3-implementation-record-2026-08-13)
 
 ## 1. Purpose And Authority
 
@@ -785,3 +786,46 @@ Neither Phase 3 nor Phase 4 nor any next ticket is self-activated by this closur
 Governance-only. No product code, schema, route, or test file touched this round (`git status --porcelain` shows documentation files only). `F13-SHIPMENT-001` (`stash@{0}`) not opened. `Data QLML/`, `NETWORK-MANAGEMENT`, Operation Dashboard, BCVH Ranking, Tuyến Ranking, Pareto/RCA untouched. `.claude/` and both stashes confirmed untouched.
 
 Governance state: `F13-STANDARDIZATION-001` — Evidence Consolidation Phase 2 `CLOSED / PO FULL-SCREEN RUNTIME PASS`. Phase 3/4 and any next ticket remain unauthorized.
+
+## 23. Phase 3 Implementation Record (2026-08-13)
+
+- Status: `PHASE 3 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`
+- Authority: Product Owner instruction, "PO AUTHORIZATION — BEGIN F13-STANDARDIZATION-001 PHASE 3" (chat, `2026-08-13`), baseline `b6177b88` confirmed matching before any edit.
+
+### Scope implemented (Section 9's "Phase 3 — Rewire Tuyến Ranking and redirect the old path")
+
+1. Tuyến Ranking's drill-down button now targets `/f13/evidence` directly, using the Section 3.1 URL contract.
+2. Full context preserved: `from_date`/`to_date` (both set to the identical `analysisDate`), `bcvh_id`/`bcvh_name`, `route_id`/`route_name`, `reason` (defaults to `delayed_cash`, matching the old screen's default group), `return_to`.
+3. `/f13/ranking/route/violations` converted into a translating redirect (widened to `admin`+`viewer`) — old-dialect bookmarks (`date`) resolve to the new dialect (`from_date`+`to_date`, identical value) and land on `/f13/evidence`.
+4. F-2 latent `ReferenceError` fixed and reconciled with its pre-existing failing test (button label).
+5. Phase 4 explicitly **not** performed — `RouteViolationEvidencePage.jsx` and its test files untouched, still present on disk, simply no longer routed.
+
+### What changed
+
+- `frontend/src/features/route/routeViolationEvidenceData.js` — `buildViolationEvidenceLink()` rewired to target `/f13/evidence` with both `from_date`/`to_date` set to `analysisDate` (was a single `date` param targeting the old screen), `reason` defaults to `delayed_cash`. New `translateLegacyViolationsSearch()`: converts the old dialect (`date` → both `from_date`/`to_date`) for the redirect; `bcvh_id`/`bcvh_name`/`route_id`/`route_name`/`reason`/`return_to` pass through unchanged.
+- `frontend/src/App.jsx` — new `LegacyRouteViolationsRedirect` component (mirrors the already-shipped, PO-accepted `LegacyShipmentRedirect` pattern), using `translateLegacyViolationsSearch`. The `/f13/ranking/route/violations` route now renders this redirect instead of `RouteViolationEvidencePage`, widened from `admin`-only to `admin`+`viewer`. `RouteViolationEvidencePage` import removed (the component file itself is untouched on disk — Phase 4 will delete it after acceptance, not this round).
+- `frontend/src/features/route/RoutePerformancePage.jsx` — F-2 fix: `const failed = toNumber(route.failed ?? route.total_failed);` (was `row.total_failed`, a `ReferenceError` for any nullish `route.failed`, masked only because the backend always populated it). Drill-down button label reconciled from "Mở chi tiết bưu gửi vi phạm" to "Xem bưu gửi vi phạm," matching the already-existing, previously-failing `RoutePerformancePage.dateResolution.test.js` assertion (F-3) — this resolves that pre-existing failure as a direct, planned consequence of this exact edit, not a separate unplanned fix.
+
+### Residual finding (disclosed, not fixed this round — out of Phase 3's declared file scope)
+
+`ShipmentPerformancePage.jsx` does not currently read or render the `return_to` parameter — there is no "Quay lại Tuyến Ranking" link on the Evidence screen. `return_to` is correctly *carried* end-to-end (link builder → redirect translator → the `/f13/evidence` URL), satisfying the data-preservation half of Section 6 point 5, but nothing on the destination screen consumes it to render an actual back-link. `ShipmentPerformancePage.jsx` is not in Phase 3's Section 9 file list, so this was not fixed in this round — noted here rather than silently left unrecorded, for the Product Owner to decide whether it needs its own follow-up.
+
+### Tests
+
+- `routeViolationEvidenceData.test.js`: existing `buildViolationEvidenceLink` test rewritten for the new `/f13/evidence` target and `from_date`/`to_date` contract; 2 new tests for the `reason` default/override; 3 new tests for `translateLegacyViolationsSearch` (date translation, unchanged-field passthrough, no-date-omits-both-fields).
+- `RoutePerformancePage.dateResolution.test.js`: existing drill-down-link/label test now passes (previously failing, F-3); 2 new F-2 tests — one source-level (the fixed expression pattern, the old broken pattern confirmed absent), one **behavioral** (calls the real `toNumber` against the exact fixed expression with `route.failed` genuinely `null`/`undefined`/`0`, proving no throw and correct fallback/zero-preservation — not just a regex check).
+- `App.role-routing.test.js`: updated to assert the new redirect element and widened role for `ranking/route/violations`.
+
+### Validation
+
+- New/updated tests across the 3 affected files: **21/21 pass**.
+- Full frontend sweep: **325/337 pass** — the established baseline was 13 pre-existing failures; this round resolves exactly one of them (the F-3 button-label mismatch, a direct and expected consequence of the label reconciliation this phase required) — **12 pre-existing failures remain, by name, unrelated to this change; zero new regressions.**
+- `oxlint`: clean on every changed file (including the round's own new tests — an initial `no-constant-binary-expression` warning in a new test was found and fixed by using realistic object properties instead of literal constants, not suppressed).
+- `vite build`: succeeds.
+- Live logic-level verification (Node, real functions, not mocked): a simulated Tuyến Ranking drill-down click and a simulated old-bookmark redirect were both traced end-to-end, producing correct, fully-populated `/f13/evidence` URLs with every context field intact.
+
+### Scope discipline
+
+Bounded to Phase 3's declared file scope exactly (Section 9): `routeViolationEvidenceData.js`, `RoutePerformancePage.jsx`, `App.jsx`, and their 3 named test files. No backend file touched (`git diff --name-only -- backend/` empty). No metric, schema, or data change. `F13-SHIPMENT-001` not opened; `RouteViolationEvidencePage.jsx` and its test files untouched (Phase 4 explicitly not performed); Operation Dashboard, BCVH Ranking, Pareto/RCA, Network Management untouched; `.claude/`, `Data QLML/`, both stashes confirmed untouched. Phase 2 not reopened.
+
+Governance state: `PHASE 3 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude Code does not self-close Phase 3 and does not self-start Phase 4.

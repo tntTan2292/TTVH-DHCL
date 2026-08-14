@@ -27,6 +27,7 @@
 - [23. Evidence Consolidation Phase 2 — Implementation](#23-evidence-consolidation-phase-2--implementation)
 - [24. Evidence Consolidation Phase 2 — Runtime Recheck FAIL + Search-Result Remediation](#24-evidence-consolidation-phase-2--runtime-recheck-fail--search-result-remediation)
 - [25. Evidence Consolidation Phase 2 — Full-Screen PO Acceptance, Formal Closure](#25-evidence-consolidation-phase-2--full-screen-po-acceptance-formal-closure)
+- [26. Phase 3 — Rewire Tuyến Ranking + Redirect Old Path](#26-phase-3--rewire-tuyến-ranking--redirect-old-path)
 
 ## 1. Purpose
 
@@ -271,3 +272,16 @@ Product Owner tested the complete merged Evidence screen against the full AC-1..
 Governance-only; no product code touched. `F13-SHIPMENT-001` not opened; `Data QLML/`, `NETWORK-MANAGEMENT`, and every other module untouched; `.claude/` and both stashes confirmed untouched. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 22.
 
 Governance state: Evidence Consolidation Phase 2 `CLOSED / PO FULL-SCREEN RUNTIME PASS`. Phase 3/4 and any next ticket remain unauthorized.
+
+## 26. Phase 3 — Rewire Tuyến Ranking + Redirect Old Path
+
+- Status: `PHASE 3 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Implemented: `2026-08-13`. Frontend-only.
+- Authority: Product Owner instruction, "PO AUTHORIZATION — BEGIN F13-STANDARDIZATION-001 PHASE 3" (baseline `b6177b88`, confirmed matching before any edit).
+
+Tuyến Ranking's drill-down button now targets `/f13/evidence` directly (`from_date`/`to_date` both set to the clicked row's `analysisDate`, `bcvh_id`/`bcvh_name`, `route_id`/`route_name`, `reason` defaulting to `delayed_cash`, `return_to`); `/f13/ranking/route/violations` converted into a translating redirect (`admin`+`viewer`) via a new `LegacyRouteViolationsRedirect`/`translateLegacyViolationsSearch` — old `date` bookmarks resolve to the identical `from_date`/`to_date` value. F-2 (`RouteSelectedPanel`'s latent `ReferenceError`, `row` undefined in scope) fixed to `route.total_failed`; the drill-down button's label reconciled to "Xem bưu gửi vi phạm," resolving the one pre-existing test that mismatch caused (F-3) — 12 of the 13 pre-existing failures remain, unrelated.
+
+`RouteViolationEvidencePage.jsx` and its tests untouched (Phase 4 explicitly not performed this round — component stays on disk, simply unrouted). Residual disclosed: `ShipmentPerformancePage.jsx` doesn't yet render a "Quay lại Tuyến Ranking" link from `return_to` (out of Phase 3's declared file scope; the parameter is correctly carried end-to-end, just not consumed on the destination screen).
+
+21 new/updated tests, all passing (including a real behavioral F-2 regression test, not just source-regex); full frontend sweep 325/337 (12 pre-existing failures, down from 13 — the label fix is a disclosed, plan-sanctioned resolution, not scope creep); `oxlint` clean; `vite build` succeeds. No backend file touched; `F13-SHIPMENT-001` not opened; Phase 2 not reopened. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 23.
+
+Governance state: `PHASE 3 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude Code does not self-close Phase 3 and does not self-start Phase 4.
