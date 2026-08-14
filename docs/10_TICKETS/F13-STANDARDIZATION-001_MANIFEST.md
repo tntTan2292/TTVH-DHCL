@@ -32,6 +32,7 @@
 - [28. Frozen-Document Governance Delta — Execution (2026-08-13)](#28-frozen-document-governance-delta--execution-2026-08-13)
 - [29. Evidence Consolidation Phase 2 — Implementation (2026-08-13)](#29-evidence-consolidation-phase-2--implementation-2026-08-13)
 - [30. Evidence Consolidation Phase 2 — Runtime Recheck FAIL + Search-Result Remediation (2026-08-13)](#30-evidence-consolidation-phase-2--runtime-recheck-fail--search-result-remediation-2026-08-13)
+- [31. Evidence Consolidation Phase 2 — Full-Screen PO Acceptance, Formal Closure (2026-08-13)](#31-evidence-consolidation-phase-2--full-screen-po-acceptance-formal-closure-2026-08-13)
 
 ## 1. Ticket Information
 
@@ -613,4 +614,17 @@ Defect: typing a keyword only ever showed one route, violating AC-17/AC-18. Root
 
 14 new tests (mapped to the PO's C.1-13 list), all passing; full frontend sweep 316/329 (same 13 pre-existing failures, zero regressions); `oxlint` clean; `vite build` succeeds. Bounded to Phase 2 search-result presentation only — no metric/date-contract/schema change, no backend file touched, no governance closure performed. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 21.
 
-Governance state: `SEARCH-RESULT REMEDIATION: PO RUNTIME PASS` (2026-08-13, tested at `e2ae87ac`/`1a6c490b`) — Product Owner confirmed all 8 checked items against the real BCVH Thuận Hóa `533140`/`2026-07-27` context. Covers the search-result defect only; does not close Phase 2 or authorize Phase 3/4 — Phase 2 remains open pending full-screen acceptance over AC-1..AC-23. Claude Code does not self-close Phase 2.
+Governance state: `SEARCH-RESULT REMEDIATION: PO RUNTIME PASS` (2026-08-13, tested at `e2ae87ac`/`1a6c490b`) — covered the search-result defect only, superseded by full closure in Section 31 below.
+
+## 31. Evidence Consolidation Phase 2 — Full-Screen PO Acceptance, Formal Closure (2026-08-13)
+
+- Status: `PHASE 2 CLOSED / PO FULL-SCREEN RUNTIME PASS`
+- Authority: Product Owner instruction, "PO EVIDENCE CONSOLIDATION PHASE 2 FULL-SCREEN RUNTIME ACCEPTANCE PASS" (baseline `88c4bfd0`, confirmed matching before any edit).
+
+Product Owner tested the complete merged Evidence screen against the full AC-1..AC-23 set: merged layout/zones, conditional Tuyến column, no auto-selection, detail panel updates only on explicit selection, identity/kết quả/nhóm vi phạm/timeline correct, `>3.0h` rule statement correct, Action Center hand-off state honest, `ShipmentExecutiveBrief`/`ShipmentImpactOverview`/`ShipmentRecommendation`/`ShipmentDrilldown` correctly removed, violation-reason tabs/search/clear-keyword/Tuyến dropdown all correct, desktop/mobile both usable with no acceptance-blocking defect — **AC-1 through AC-23, in full: PO RUNTIME PASS.**
+
+This closes Evidence Consolidation Phase 2 in full, including the search-result-presentation remediation already passed in Section 30. Does not close: Phase 3 (rewire Tuyến Ranking's drill-down button; translating redirect for `/f13/ranking/route/violations`), Phase 4 (retire `RouteViolationEvidencePage.jsx`), or the `F13-STANDARDIZATION-001` program itself — all remain `PLANNED / NOT ACTIVE` / open, each requiring its own separate explicit Product Owner authorization.
+
+Governance-only; no product code touched. `F13-SHIPMENT-001` not opened; `Data QLML/`, `NETWORK-MANAGEMENT`, and every other module untouched; `.claude/` and both stashes confirmed untouched. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 22.
+
+Governance state: Evidence Consolidation Phase 2 `CLOSED / PO FULL-SCREEN RUNTIME PASS`. Phase 3/4 and any next ticket remain unauthorized.

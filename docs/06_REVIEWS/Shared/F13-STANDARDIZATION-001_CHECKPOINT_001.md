@@ -26,6 +26,7 @@
 - [22. Frozen-Document Governance Delta — Execution](#22-frozen-document-governance-delta--execution)
 - [23. Evidence Consolidation Phase 2 — Implementation](#23-evidence-consolidation-phase-2--implementation)
 - [24. Evidence Consolidation Phase 2 — Runtime Recheck FAIL + Search-Result Remediation](#24-evidence-consolidation-phase-2--runtime-recheck-fail--search-result-remediation)
+- [25. Evidence Consolidation Phase 2 — Full-Screen PO Acceptance, Formal Closure](#25-evidence-consolidation-phase-2--full-screen-po-acceptance-formal-closure)
 
 ## 1. Purpose
 
@@ -256,4 +257,17 @@ Reconciled against real data: default-tab "HCC" search now correctly shows 8 gro
 
 Bounded to Phase 2 search-result presentation only — no metric/date-contract/schema change, no backend file touched, no other module expanded, no governance closure performed. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 21.
 
-Governance state: `SEARCH-RESULT REMEDIATION: PO RUNTIME PASS` (2026-08-13, tested at commit `e2ae87ac`/`1a6c490b`) — confirmed against the real BCVH Thuận Hóa `533140`/`2026-07-27`/"Tất cả tuyến" context: search "HCC" correctly returns 208 bưu gửi across 8 real routes; every matching group listed, no auto-selection, detail panel updates only on explicit selection, route-filtered search stays correctly scoped (An Cựu: 1 tuyến/44 bưu gửi), clearing the keyword restores the exact tab-scoped 217 bưu gửi, dropdown independence and IME input both correct. **This PASS covers the search-result defect only** — it does not close Phase 2 and does not authorize Phase 3/4. Evidence Consolidation Phase 2 remains open, awaiting the Product Owner's full-screen acceptance pass over the complete AC-1..AC-23 set. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 21. Claude Code does not self-close Phase 2.
+Governance state: `SEARCH-RESULT REMEDIATION: PO RUNTIME PASS` (2026-08-13, tested at commit `e2ae87ac`/`1a6c490b`) — confirmed against the real BCVH Thuận Hóa `533140`/`2026-07-27`/"Tất cả tuyến" context: search "HCC" correctly returns 208 bưu gửi across 8 real routes; every matching group listed, no auto-selection, detail panel updates only on explicit selection, route-filtered search stays correctly scoped (An Cựu: 1 tuyến/44 bưu gửi), clearing the keyword restores the exact tab-scoped 217 bưu gửi, dropdown independence and IME input both correct. This PASS covered the search-result defect only, superseded by full closure in Section 25 below.
+
+## 25. Evidence Consolidation Phase 2 — Full-Screen PO Acceptance, Formal Closure
+
+- Status: `PHASE 2 CLOSED / PO FULL-SCREEN RUNTIME PASS`
+- Authority: Product Owner instruction, "PO EVIDENCE CONSOLIDATION PHASE 2 FULL-SCREEN RUNTIME ACCEPTANCE PASS" (chat, `2026-08-13`), baseline `88c4bfd0` confirmed matching before any edit.
+
+Product Owner tested the complete merged Evidence screen against the full AC-1..AC-23 set and confirmed 11 checked items: merged layout/zones correct; conditional Tuyến column correct; no auto-selection; detail panel updates only on explicit selection; identity/kết quả/nhóm vi phạm/timeline correctly shown; the `>3.0h` rule statement correct; Action Center hand-off state honestly reflects real scope (no simulated unsupported action); `ShipmentExecutiveBrief`/`ShipmentImpactOverview`/`ShipmentRecommendation`/`ShipmentDrilldown` correctly removed; violation-reason tabs/search/clear-keyword/Tuyến dropdown all function correctly; desktop/mobile both usable with no acceptance-blocking defect; **AC-1 through AC-23, in full: PO RUNTIME PASS.**
+
+**This closes Evidence Consolidation Phase 2 in full**, including the search-result-presentation remediation already passed in Section 24. Does not close: Phase 3 (rewire Tuyến Ranking's drill-down button, translating redirect for the old screen), Phase 4 (retire `RouteViolationEvidencePage.jsx`), or the `F13-STANDARDIZATION-001` program itself — all remain `PLANNED / NOT ACTIVE` / open, each requiring its own separate explicit Product Owner authorization.
+
+Governance-only; no product code touched. `F13-SHIPMENT-001` not opened; `Data QLML/`, `NETWORK-MANAGEMENT`, and every other module untouched; `.claude/` and both stashes confirmed untouched. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 22.
+
+Governance state: Evidence Consolidation Phase 2 `CLOSED / PO FULL-SCREEN RUNTIME PASS`. Phase 3/4 and any next ticket remain unauthorized.

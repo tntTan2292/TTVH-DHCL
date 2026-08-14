@@ -23,6 +23,7 @@
 - [19. Frozen-Document Governance Delta — Execution Record (2026-08-13)](#19-frozen-document-governance-delta--execution-record-2026-08-13)
 - [20. Phase 2 Implementation Record (2026-08-13)](#20-phase-2-implementation-record-2026-08-13)
 - [21. Phase 2 Runtime Recheck FAIL + Search-Result Remediation (2026-08-13)](#21-phase-2-runtime-recheck-fail--search-result-remediation-2026-08-13)
+- [22. Phase 2 — Full-Screen PO Runtime Acceptance, Formal Closure (2026-08-13)](#22-phase-2--full-screen-po-runtime-acceptance-formal-closure-2026-08-13)
 
 ## 1. Purpose And Authority
 
@@ -745,3 +746,42 @@ Product Owner confirmed **`SEARCH-RESULT REMEDIATION: PO RUNTIME PASS`**, tested
 8. Tuyến dropdown remains independent; clearing the keyword restores context correctly; Vietnamese/IME input and the 0/1/n states all work correctly.
 
 **This closes the search-result-presentation defect only.** Per explicit instruction, this PASS does **not** constitute Phase 2 closure and does **not** authorize Phase 3/4 — Evidence Consolidation Phase 2 remains open, awaiting the Product Owner's full-screen acceptance pass covering the complete AC-1..AC-23 set (mapping table: Section 20). Documentation-only round — no product code touched.
+
+## 22. Phase 2 — Full-Screen PO Runtime Acceptance, Formal Closure (2026-08-13)
+
+- Status: `PHASE 2 CLOSED / PO FULL-SCREEN RUNTIME PASS`
+- Authority: Product Owner instruction, "PO EVIDENCE CONSOLIDATION PHASE 2 FULL-SCREEN RUNTIME ACCEPTANCE PASS" (chat, `2026-08-13`), baseline `88c4bfd0` confirmed matching before any edit — authorizing governance-only closure, no product code change.
+
+### Product Owner full-screen confirmation (AC-1..AC-23)
+
+The Product Owner tested the complete merged Evidence screen against every acceptance criterion in Section 7 (AC-1..AC-14, the original reconciliation/date/role/state contract) and Section 14 (AC-15..AC-23, the search-result-presentation contract), and confirmed all 11 checked items:
+
+1. The merged three-region layout and screen zones match the Phase 2 contract.
+2. The Tuyến column shows in "Tất cả tuyến" mode and is correctly hidden once a specific route is selected.
+3. No shipment is auto-selected.
+4. The detail panel updates only after an explicit shipment selection.
+5. The detail panel correctly shows identity, kết quả, nhóm vi phạm, and timeline.
+6. The `>3.0h` delayed-cash rule statement renders per the locked contract.
+7. The Action Center hand-off state correctly reflects current real functional scope — no simulated action beyond what is actually supported.
+8. `ShipmentExecutiveBrief`, `ShipmentImpactOverview`, `ShipmentRecommendation`, and `ShipmentDrilldown` are correctly removed.
+9. Violation-reason tabs, search, clear-keyword, and the Tuyến dropdown all function correctly.
+10. Desktop and mobile are both usable, with no acceptance-blocking defect.
+11. **AC-1 through AC-23, in full: PO RUNTIME PASS.**
+
+**"PO EVIDENCE CONSOLIDATION PHASE 2: FULL-SCREEN PASS."**
+
+### Closure
+
+This closes **Evidence Consolidation Phase 2 (Section 9's "Phase 2 — Evidence screen rebuild") in full**, including the Section 14 search-result-presentation contract remediated and passed in Section 21. It does not close:
+
+- **Phase 3** (rewire Tuyến Ranking's drill-down button to `/f13/evidence` per the Section 3.1 URL contract; convert `/f13/ranking/route/violations` into a translating redirect opened to `admin`+`viewer`; fix the latent F-2 `ReferenceError`) — remains `PLANNED / NOT ACTIVE`.
+- **Phase 4** (retire `RouteViolationEvidencePage.jsx` and its two test files, keeping the redirect permanently) — remains `PLANNED / NOT ACTIVE`.
+- The `F13-STANDARDIZATION-001` program itself, which remains open (Phase 0 of the original 5-phase program plan partial; Phases 1-4 of that program `PLANNED / NOT ACTIVE` — a different phase sequence from this plan's own 4 phases).
+
+Neither Phase 3 nor Phase 4 nor any next ticket is self-activated by this closure — each requires its own separate, explicit Product Owner authorization, consistent with the pattern already used for every prior phase in this program.
+
+### Scope discipline
+
+Governance-only. No product code, schema, route, or test file touched this round (`git status --porcelain` shows documentation files only). `F13-SHIPMENT-001` (`stash@{0}`) not opened. `Data QLML/`, `NETWORK-MANAGEMENT`, Operation Dashboard, BCVH Ranking, Tuyến Ranking, Pareto/RCA untouched. `.claude/` and both stashes confirmed untouched.
+
+Governance state: `F13-STANDARDIZATION-001` — Evidence Consolidation Phase 2 `CLOSED / PO FULL-SCREEN RUNTIME PASS`. Phase 3/4 and any next ticket remain unauthorized.
