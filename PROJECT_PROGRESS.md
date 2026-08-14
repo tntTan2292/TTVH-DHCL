@@ -686,3 +686,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - 7 new/updated tests, targeted sweep 77/77 pass; full frontend sweep 331/343 (12 pre-existing failures, unchanged by name — zero new regressions); `oxlint` clean; `vite build` succeeds.
 - `RoutePerformancePage.jsx`, `App.jsx`, `RouteViolationEvidencePage.jsx` untouched; no backend touched; `F13-SHIPMENT-001` not opened; Phase 2 not reopened; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
 - State: `PHASE 3 RETURN-JOURNEY REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Full evidence: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 24; `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 33.
+
+## F13-STANDARDIZATION-001 — Phase 3 Closed: PO Runtime Pass (Return Journey)
+
+- Product Owner performed the runtime recheck at authoritative HEAD `29373803` (implementation commits `c99ac789`, `29373803`) and confirmed all 8 checked items: back-link shown only with a valid `return_to`; restores `from_date`/`to_date`/`bcvh_id`/`bcvh_name`/`search`/`route_type`/`only_failed` without re-selecting filters; survives an Evidence refresh; no back action on direct-open; loading/error/empty/success states all preserve it; invalid/external `return_to` falls back safely to `/f13/ranking/route`; the round trip loses no supported context. "PHASE 3: PO RUNTIME PASS."
+- Residual explicitly accepted as non-blocking: `selectedRouteId`/`currentPage` remain `RoutePerformancePage.jsx` component-only state, not URL-backed; expanding the URL contract for `route_id`/`page` remains unauthorized and deferred, not a new ticket.
+- Governance-only closure round: no product code changed. Phase 3 (Sections 32-33: rewire Tuyến Ranking drill-down + return-journey remediation) is now `CLOSED / PO RUNTIME PASS` in full.
+- Phase 4 (retire `RouteViolationEvidencePage.jsx`) remains `PLANNED / NOT ACTIVE`, not self-activated by this closure. `F13-SHIPMENT-001` not opened; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
+- State: `PHASE 3 CLOSED / PO RUNTIME PASS`. Full evidence: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 24; `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 33.

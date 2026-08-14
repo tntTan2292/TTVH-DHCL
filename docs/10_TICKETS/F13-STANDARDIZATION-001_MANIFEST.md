@@ -643,9 +643,17 @@ Governance state: `PHASE 3 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude C
 
 ## 33. Phase 3 Return-Journey Remediation (2026-08-14)
 
-- Status: `PHASE 3 RETURN-JOURNEY REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Status: `CLOSED / PO RUNTIME PASS`
 - Authority: Product Owner runtime finding — forward navigation confirmed working, return journey incomplete (`return_to` carried but not consumed).
 
 `ShipmentPerformancePage.jsx` now reads `return_to`, validates it via a new `isValidReturnTo()` (rejects external/protocol-shaped values, requires a recognized Route Ranking key), and renders "← Quay lại Tuyến Ranking" via the pre-existing `buildBackToRouteRankingLink()`, never `navigate(-1)`. Restores date, BCVH, search, route_type, and only_failed (all already URL-backed on `RoutePerformancePage.jsx`); selected-row highlight and page number remain component-only state on `RoutePerformancePage.jsx` and are not restorable without a URL-contract expansion, disclosed rather than silently omitted. 7 new/updated tests; targeted sweep 77/77 pass; full frontend sweep 331/343 (12 pre-existing failures, unchanged by name — zero new regressions); `oxlint` clean; `vite build` succeeds. `RoutePerformancePage.jsx`/`App.jsx`/`RouteViolationEvidencePage.jsx` untouched; no backend touched. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 24.
 
-Governance state: `PHASE 3 RETURN-JOURNEY REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Phase 3 remains not closed; Phase 4 remains `PLANNED / NOT ACTIVE`.
+### Closure (2026-08-14)
+
+Product Owner performed the runtime recheck at authoritative HEAD `29373803` (implementation commits `c99ac789`, `29373803`) and confirmed all 8 checked items: back-link shown only with a valid `return_to`; clicking it restores `from_date`/`to_date`/`bcvh_id`/`bcvh_name`/`search`/`route_type`/`only_failed` without requiring the filters to be re-chosen; the back action survives an Evidence refresh; a direct-opened Evidence screen shows no back action; loading/error/empty/success states all preserve the back action; an invalid/external `return_to` falls back safely to `/f13/ranking/route`; the round trip loses no supported context. "PHASE 3: PO RUNTIME PASS."
+
+Product Owner explicitly accepted the disclosed residual — `selectedRouteId`/`currentPage` remain `RoutePerformancePage.jsx` component state, not URL-backed — as **non-blocking** for Phase 3 and not requiring a new ticket; expanding the URL contract for `route_id`/`page` is deferred, not authorized, and not a Phase 3 blocker.
+
+This closes the Phase 3 return-journey remediation only. Governance-only round: no product code touched at closure. Phase 3 as a whole (forward navigation, Section 32, + this remediation, Section 33) is now `CLOSED / PO RUNTIME PASS`. Phase 4 (retire `RouteViolationEvidencePage.jsx`) remains `PLANNED / NOT ACTIVE`, not self-activated by this closure and requiring its own separate, explicit Product Owner authorization. `F13-SHIPMENT-001` not opened; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
+
+Governance state: `PHASE 3 CLOSED / PO RUNTIME PASS`. Claude Code does not self-start Phase 4.
