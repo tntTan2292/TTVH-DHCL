@@ -15,15 +15,50 @@ export function formatDelayLabel(doTreGio) {
   return `${Number(doTreGio).toFixed(1)}h`;
 }
 
-export function buildViolationEvidenceLink({ analysisDate, bcvhId, bcvhName, routeId, routeName, currentSearch }) {
+// Phase 3 (F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md Section 3.1): Tuyến Ranking's
+// drill-down leads directly into the merged Evidence screen, not the old standalone
+// violations page. Both `from_date` and `to_date` are sent with the identical
+// `analysisDate` value — Evidence never reads a bare `date` param, so omitting either
+// would silently fall back to the newest imported day instead of the exact row clicked.
+// `reason` defaults to `delayed_cash` so the manager lands on the same default group the
+// old screen opened on, per the locked contract.
+export function buildViolationEvidenceLink({ analysisDate, bcvhId, bcvhName, routeId, routeName, currentSearch, reason = 'delayed_cash' }) {
   const params = new URLSearchParams();
-  if (analysisDate) params.set('date', analysisDate);
+  if (analysisDate) {
+    params.set('from_date', analysisDate);
+    params.set('to_date', analysisDate);
+  }
   if (bcvhId) params.set('bcvh_id', bcvhId);
   if (bcvhName) params.set('bcvh_name', bcvhName);
   if (routeId) params.set('route_id', routeId);
   if (routeName) params.set('route_name', routeName);
+  if (reason) params.set('reason', reason);
   if (currentSearch) params.set('return_to', currentSearch);
-  return `/f13/ranking/route/violations?${params.toString()}`;
+  return `/f13/evidence?${params.toString()}`;
+}
+
+// Phase 3, Task 4 point 2: translates an old `/f13/ranking/route/violations` bookmark's
+// dialect into the new `/f13/evidence` dialect, for the translating redirect. `date`
+// becomes both `from_date` and `to_date` (the identical value — the single-day contract
+// is unchanged, only the parameter name changes); `bcvh_id`/`bcvh_name`/`route_id`/
+// `route_name`/`reason`/`return_to` pass through unchanged. An old bookmark therefore
+// lands on the exact day it was saved for, never silently on the newest imported day.
+export function translateLegacyViolationsSearch(search) {
+  const oldParams = new URLSearchParams(search);
+  const newParams = new URLSearchParams();
+
+  const date = oldParams.get('date');
+  if (date) {
+    newParams.set('from_date', date);
+    newParams.set('to_date', date);
+  }
+
+  ['bcvh_id', 'bcvh_name', 'route_id', 'route_name', 'reason', 'return_to'].forEach((key) => {
+    const value = oldParams.get(key);
+    if (value) newParams.set(key, value);
+  });
+
+  return newParams.toString();
 }
 
 export function buildBackToRouteRankingLink(returnToParam) {

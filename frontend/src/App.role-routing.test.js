@@ -12,7 +12,7 @@ test('viewer routing keeps only the approved completed F1.3 surfaces and blocks 
   assert.match(source, /path="import" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN\]\}><DataImportCenter/);
   assert.match(source, /path="system-info" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN\]\}><SystemInformation/);
   assert.match(source, /path="ranking\/shipment" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><LegacyShipmentRedirect/);
-  assert.match(source, /path="ranking\/route\/violations" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN\]\}><RouteViolationEvidencePage/);
+  assert.match(source, /path="ranking\/route\/violations" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><LegacyRouteViolationsRedirect/);
   assert.match(source, /path="evidence" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><ShipmentPerformancePage/);
   assert.match(source, /path="service-points" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><ServicePointsPage/);
   assert.match(source, /path="level2-routes" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><Level2RoutesPage/);

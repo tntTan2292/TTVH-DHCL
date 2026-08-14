@@ -4,6 +4,7 @@ import {
   parseF13Timestamp,
   formatDelayLabel,
   buildViolationEvidenceLink,
+  translateLegacyViolationsSearch,
   buildBackToRouteRankingLink,
   mapViolationRows,
   buildViolationGroupTabs,
@@ -30,7 +31,10 @@ test('formatDelayLabel renders a real numeric delay, including a genuine 0h', ()
   assert.equal(formatDelayLabel(0), '0.0h');
 });
 
-test('buildViolationEvidenceLink preserves date, BCVH, route context and the return path', () => {
+// Phase 3 (F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md Section 3.1): the drill-down
+// now targets the merged Evidence screen directly, with both from_date and to_date sent
+// as the identical analysisDate value — Evidence never reads a bare `date` param.
+test('buildViolationEvidenceLink targets /f13/evidence with both from_date and to_date set to the same analysisDate', () => {
   const link = buildViolationEvidenceLink({
     analysisDate: '2026-08-02',
     bcvhId: '533140',
@@ -40,12 +44,57 @@ test('buildViolationEvidenceLink preserves date, BCVH, route context and the ret
     currentSearch: '?from_date=2026-08-01&to_date=2026-08-02&bcvh_id=533140',
   });
 
-  assert.match(link, /^\/f13\/ranking\/route\/violations\?/);
+  assert.match(link, /^\/f13\/evidence\?/);
   const params = new URLSearchParams(link.split('?')[1]);
-  assert.equal(params.get('date'), '2026-08-02');
+  assert.equal(params.get('from_date'), '2026-08-02');
+  assert.equal(params.get('to_date'), '2026-08-02');
   assert.equal(params.get('bcvh_id'), '533140');
+  assert.equal(params.get('bcvh_name'), 'BCVH Thuận Hóa');
   assert.equal(params.get('route_id'), '53314018');
+  assert.equal(params.get('route_name'), 'Tuyến A');
   assert.ok(params.get('return_to').includes('from_date=2026-08-01'));
+});
+
+test('buildViolationEvidenceLink defaults reason to delayed_cash, matching the old screen\'s default group', () => {
+  const link = buildViolationEvidenceLink({ analysisDate: '2026-08-02', bcvhId: '533140', routeId: '53314018' });
+  const params = new URLSearchParams(link.split('?')[1]);
+  assert.equal(params.get('reason'), 'delayed_cash');
+});
+
+test('buildViolationEvidenceLink lets an explicit reason override the default', () => {
+  const link = buildViolationEvidenceLink({ analysisDate: '2026-08-02', bcvhId: '533140', routeId: '53314018', reason: 'all' });
+  const params = new URLSearchParams(link.split('?')[1]);
+  assert.equal(params.get('reason'), 'all');
+});
+
+// Phase 3, Task 4 point 2: an old bookmark for /f13/ranking/route/violations?date=...
+// must land on the exact same day after the translating redirect, not silently fall back
+// to the newest imported day.
+test('translateLegacyViolationsSearch converts the old `date` param into both from_date and to_date', () => {
+  const translated = translateLegacyViolationsSearch('?date=2026-08-02&bcvh_id=533140&route_id=53314018');
+  const params = new URLSearchParams(translated);
+  assert.equal(params.get('from_date'), '2026-08-02');
+  assert.equal(params.get('to_date'), '2026-08-02');
+});
+
+test('translateLegacyViolationsSearch passes bcvh_id/bcvh_name/route_id/route_name/reason/return_to through unchanged', () => {
+  const translated = translateLegacyViolationsSearch(
+    '?date=2026-08-02&bcvh_id=533140&bcvh_name=BCVH+Thu%E1%BA%ADn+H%C3%B3a&route_id=53314018&route_name=Tuy%E1%BA%BFn+A&reason=other&return_to=from_date%3D2026-08-01'
+  );
+  const params = new URLSearchParams(translated);
+  assert.equal(params.get('bcvh_id'), '533140');
+  assert.equal(params.get('bcvh_name'), 'BCVH Thuận Hóa');
+  assert.equal(params.get('route_id'), '53314018');
+  assert.equal(params.get('route_name'), 'Tuyến A');
+  assert.equal(params.get('reason'), 'other');
+  assert.equal(params.get('return_to'), 'from_date=2026-08-01');
+});
+
+test('translateLegacyViolationsSearch omits from_date/to_date entirely when the old link carried no date', () => {
+  const translated = translateLegacyViolationsSearch('?bcvh_id=533140');
+  const params = new URLSearchParams(translated);
+  assert.equal(params.has('from_date'), false);
+  assert.equal(params.has('to_date'), false);
 });
 
 test('buildBackToRouteRankingLink reconstructs the original Route Ranking filters', () => {

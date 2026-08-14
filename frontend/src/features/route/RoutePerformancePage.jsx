@@ -259,7 +259,10 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
 
   const totalBg = toNumber(route.total_bg);
   const passed = toNumber(route.passed);
-  const failed = toNumber(route.failed ?? row.total_failed);
+  // F-2 fix (F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md Section 2): `row` does not
+  // exist in this scope — this threw a ReferenceError whenever `route.failed` was
+  // null/undefined, masked only because the backend mapper always populated `failed`.
+  const failed = toNumber(route.failed ?? route.total_failed);
   const returned = toNumber(route.returned);
   const delayedCount = toNumber(route.delayed_cash_handover_count);
   const delayedEligible = toNumber(route.delayed_cash_handover_eligible_count);
@@ -340,7 +343,7 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
         to={violationLink}
         className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-all hover:bg-[var(--color-primary-700)] hover:shadow-md active:scale-[0.99]"
       >
-        <span>Mở chi tiết bưu gửi vi phạm</span>
+        <span>Xem bưu gửi vi phạm</span>
         <ChevronRight size={16} />
       </Link>
 

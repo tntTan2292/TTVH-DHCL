@@ -19,7 +19,7 @@ import SystemInformation from './pages/SystemInformation';
 import DashboardPage from './features/dashboard/DashboardPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
-import RouteViolationEvidencePage from './features/route/RouteViolationEvidencePage';
+import { translateLegacyViolationsSearch } from './features/route/routeViolationEvidenceData';
 import ShipmentPerformancePage from './features/shipment/ShipmentPerformancePage';
 import ServicePointsPage from './features/networkMap/ServicePointsPage';
 import Level2RoutesPage from './features/networkMap/Level2RoutesPage';
@@ -45,6 +45,22 @@ function HomeRoute() {
 function LegacyShipmentRedirect() {
   const location = useLocation();
   return <Navigate to={`/f13/evidence${location.search}`} replace />;
+}
+
+// /f13/ranking/route/violations is not deleted (Product Owner Phase 3 decision,
+// F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md Section 6): Tuyến Ranking's
+// drill-down button now targets /f13/evidence directly, and this path becomes a
+// translating redirect for old links/bookmarks — `date` becomes both `from_date` and
+// `to_date` (the same value), while bcvh_id/bcvh_name/route_id/route_name/reason/
+// return_to pass through unchanged, so an old bookmark lands on the exact day it was
+// saved for rather than silently on the newest imported day. Widened to admin+viewer to
+// match the destination — a viewer following an old link is redirected, not bounced to
+// "unauthorized". The RouteViolationEvidencePage component itself is retired only in
+// Phase 4, once accepted; it is simply no longer reachable via this path.
+function LegacyRouteViolationsRedirect() {
+  const location = useLocation();
+  const translated = translateLegacyViolationsSearch(location.search);
+  return <Navigate to={`/f13/evidence${translated ? `?${translated}` : ''}`} replace />;
 }
 
 function App() {
@@ -92,7 +108,7 @@ function App() {
               <Route path="dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><DashboardPage /></ProtectedRoute>} />
               <Route path="ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><BcvhRankingPage /></ProtectedRoute>} />
               <Route path="ranking/route" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><RoutePerformancePage /></ProtectedRoute>} />
-              <Route path="ranking/route/violations" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><RouteViolationEvidencePage /></ProtectedRoute>} />
+              <Route path="ranking/route/violations" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyRouteViolationsRedirect /></ProtectedRoute>} />
               <Route path="ranking/shipment" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyShipmentRedirect /></ProtectedRoute>} />
               <Route path="pareto" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Pareto / RCA" /></ProtectedRoute>} />
               <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><ShipmentPerformancePage /></ProtectedRoute>} />
