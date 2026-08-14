@@ -613,4 +613,4 @@ Defect: typing a keyword only ever showed one route, violating AC-17/AC-18. Root
 
 14 new tests (mapped to the PO's C.1-13 list), all passing; full frontend sweep 316/329 (same 13 pre-existing failures, zero regressions); `oxlint` clean; `vite build` succeeds. Bounded to Phase 2 search-result presentation only — no metric/date-contract/schema change, no backend file touched, no governance closure performed. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 21.
 
-Governance state: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-award PO PASS and does not self-close Phase 2.
+Governance state: `SEARCH-RESULT REMEDIATION: PO RUNTIME PASS` (2026-08-13, tested at `e2ae87ac`/`1a6c490b`) — Product Owner confirmed all 8 checked items against the real BCVH Thuận Hóa `533140`/`2026-07-27` context. Covers the search-result defect only; does not close Phase 2 or authorize Phase 3/4 — Phase 2 remains open pending full-screen acceptance over AC-1..AC-23. Claude Code does not self-close Phase 2.

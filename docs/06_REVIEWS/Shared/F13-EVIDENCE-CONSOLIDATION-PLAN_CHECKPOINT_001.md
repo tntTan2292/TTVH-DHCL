@@ -730,3 +730,18 @@ New file `frontend/src/features/shipment/ShipmentPerformancePage.searchRemediati
 Bounded to Evidence Consolidation Phase 2's search-result presentation only. No metric, date contract, schema, or data-source change. No backend file touched (`git diff --name-only -- backend/` empty). Operation Dashboard, BCVH Ranking, Tuyến Ranking, Pareto/RCA, Network Management, `F13-SHIPMENT-001` untouched. No governance closure performed this round — Phase 2 remains `NOT CLOSED`, per explicit instruction. `.claude/`, `Data QLML/`, both stashes confirmed untouched throughout, including before/after the temporary unsaved `jsdom` diagnostic install (`git status --porcelain -- frontend/package.json frontend/package-lock.json` empty both times; the diagnostic script itself was deleted, never committed).
 
 Governance state: `PHASE 2 SEARCH-RESULT REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-close Phase 2.
+
+### PO Runtime Recheck PASS (2026-08-13)
+
+Product Owner confirmed **`SEARCH-RESULT REMEDIATION: PO RUNTIME PASS`**, tested live at implementation commit `e2ae87ac` / documentation commit `1a6c490b`, against the real context (`2026-07-27`, BCVH Thuận Hóa `533140`, "Tất cả tuyến"):
+
+1. Search "HCC" correctly shows all 208 bưu gửi across 8 real routes (matches the diagnosis's reconciliation table exactly).
+2. Every matching route group is listed for selection — no longer collapsed to one nearest route.
+3. Groups are distinguished by real mã tuyến + tên tuyến; no duplicate/similar-named routes lost.
+4. Search does not auto-select a route or shipment.
+5. The detail panel updates only after an explicit shipment selection.
+6. Filtering to Tuyến An Cựu + search "HCC" correctly returns 1 tuyến / 44 bưu gửi.
+7. Clearing the keyword on the "Chậm nộp tiền" tab correctly restores exactly 217 bưu gửi.
+8. Tuyến dropdown remains independent; clearing the keyword restores context correctly; Vietnamese/IME input and the 0/1/n states all work correctly.
+
+**This closes the search-result-presentation defect only.** Per explicit instruction, this PASS does **not** constitute Phase 2 closure and does **not** authorize Phase 3/4 — Evidence Consolidation Phase 2 remains open, awaiting the Product Owner's full-screen acceptance pass covering the complete AC-1..AC-23 set (mapping table: Section 20). Documentation-only round — no product code touched.
