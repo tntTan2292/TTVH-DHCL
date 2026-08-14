@@ -6,6 +6,7 @@ import {
   buildViolationEvidenceLink,
   translateLegacyViolationsSearch,
   buildBackToRouteRankingLink,
+  isValidReturnTo,
   mapViolationRows,
   buildViolationGroupTabs,
 } from './routeViolationEvidenceData.js';
@@ -105,6 +106,34 @@ test('buildBackToRouteRankingLink reconstructs the original Route Ranking filter
 test('buildBackToRouteRankingLink falls back to the bare Route Ranking path when no context is preserved', () => {
   assert.equal(buildBackToRouteRankingLink(''), '/f13/ranking/route');
   assert.equal(buildBackToRouteRankingLink(null), '/f13/ranking/route');
+});
+
+// Phase 3 return-journey remediation (AC: "Invalid/external return_to is rejected safely").
+test('isValidReturnTo accepts a well-formed Route Ranking query string', () => {
+  assert.equal(isValidReturnTo('from_date=2026-08-01&to_date=2026-08-02&bcvh_id=533140'), true);
+  assert.equal(isValidReturnTo('?search=xin+ch%C3%A0o'), true);
+  assert.equal(isValidReturnTo('only_failed=1'), true);
+});
+
+test('isValidReturnTo rejects empty, missing, or context-free values', () => {
+  assert.equal(isValidReturnTo(''), false);
+  assert.equal(isValidReturnTo(null), false);
+  assert.equal(isValidReturnTo(undefined), false);
+  assert.equal(isValidReturnTo('   '), false);
+  assert.equal(isValidReturnTo('unrelated_key=value'), false);
+});
+
+test('isValidReturnTo rejects external/protocol-shaped values', () => {
+  assert.equal(isValidReturnTo('https://evil.com?from_date=2026-08-01'), false);
+  assert.equal(isValidReturnTo('//evil.com?from_date=2026-08-01'), false);
+  assert.equal(isValidReturnTo('javascript:alert(1)'), false);
+});
+
+test('buildBackToRouteRankingLink falls back to the bare path for an invalid/external return_to', () => {
+  assert.equal(buildBackToRouteRankingLink('https://evil.com'), '/f13/ranking/route');
+  assert.equal(buildBackToRouteRankingLink('//evil.com'), '/f13/ranking/route');
+  assert.equal(buildBackToRouteRankingLink('javascript:alert(1)'), '/f13/ranking/route');
+  assert.equal(buildBackToRouteRankingLink('unrelated_key=value'), '/f13/ranking/route');
 });
 
 test('mapViolationRows carries status, violation reason, and a null-safe delay label through unchanged', () => {

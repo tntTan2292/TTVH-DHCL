@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { AlertTriangle, Filter } from 'lucide-react';
 import { PageContainer, KPICard, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import f13DashboardClient from '../../api/F13DashboardClient';
 import { resolveDefaultRouteDate } from '../route/routeRankingCalculations';
-import { buildViolationGroupTabs } from '../route/routeViolationEvidenceData';
+import { buildViolationGroupTabs, buildBackToRouteRankingLink, isValidReturnTo } from '../route/routeViolationEvidenceData';
 import ShipmentEvidenceSummary from './ShipmentEvidenceSummary';
 import ShipmentEvidenceDetail from './ShipmentEvidenceDetail';
 import {
@@ -83,6 +83,16 @@ export default function ShipmentPerformancePage() {
   // no new business decision, just the same accepted default carried into the merged
   // screen.
   const reasonParam = searchParams.get('reason') || DEFAULT_REASON;
+
+  // Phase 3 return-journey remediation: the "← Quay lại Tuyến Ranking" action only exists
+  // when Evidence was actually opened from Tuyến Ranking (or an old bookmark that itself
+  // carried a valid return_to) — a directly opened Evidence screen shows no back action.
+  // `isValidReturnTo` also rejects any external/protocol-shaped value, and
+  // `buildBackToRouteRankingLink` always resolves to the fixed `/f13/ranking/route` path
+  // regardless, so this cannot be used to redirect off-app.
+  const returnToParam = searchParams.get('return_to') || '';
+  const hasValidReturnTo = isValidReturnTo(returnToParam);
+  const backToRouteRankingLink = hasValidReturnTo ? buildBackToRouteRankingLink(returnToParam) : null;
 
   // Same single-day analysis contract already established by Dashboard/BCVH Ranking/Tuyến
   // Ranking: GlobalFilterBar exposes two date fields, but only one authoritative evaluation
@@ -496,29 +506,50 @@ export default function ShipmentPerformancePage() {
     </div>
   ) : null;
 
+  // Rendered above the page title in every status branch, so refresh/loading/error/empty
+  // states never lose the return path (test scenario: "Refresh Evidence, then Quay lại
+  // still works").
+  const backLinkElement = hasValidReturnTo ? (
+    <div className="px-6 pt-5 md:px-8 md:pt-6 -mb-2">
+      <Link
+        to={backToRouteRankingLink}
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition-colors hover:text-[var(--color-primary-700)]"
+      >
+        <span aria-hidden="true">←</span>
+        <span>Quay lại Tuyến Ranking</span>
+      </Link>
+    </div>
+  ) : null;
+
   if (status === 'loading') {
     return (
-      <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Đang tải dữ liệu Evidence.">
-        <LoadingState label="Đang tải dữ liệu Evidence..." />
-      </PageContainer>
+      <div className="flex h-full flex-col">
+        {backLinkElement}
+        <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Đang tải dữ liệu Evidence.">
+          <LoadingState label="Đang tải dữ liệu Evidence..." />
+        </PageContainer>
+      </div>
     );
   }
 
   if (status === 'error') {
     return (
-      <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Không thể tải dữ liệu Evidence.">
-        <ErrorState
-          description={error?.message}
-          action={
-            <button
-              onClick={() => setSearchParams(searchParams)}
-              className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white"
-            >
-              Thử lại
-            </button>
-          }
-        />
-      </PageContainer>
+      <div className="flex h-full flex-col">
+        {backLinkElement}
+        <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Không thể tải dữ liệu Evidence.">
+          <ErrorState
+            description={error?.message}
+            action={
+              <button
+                onClick={() => setSearchParams(searchParams)}
+                className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white"
+              >
+                Thử lại
+              </button>
+            }
+          />
+        </PageContainer>
+      </div>
     );
   }
 
@@ -544,74 +575,80 @@ export default function ShipmentPerformancePage() {
 
   if (!sortedRows.length) {
     return (
-      <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Context/filter · nhóm vi phạm · bằng chứng chi tiết.">
-        <div className="space-y-5">
-          {filterBar}
-          {violationTabsBar}
-          <EmptyState
-            title={emptyStateContent.title}
-            description={emptyStateContent.description}
-            action={emptyStateContent.action}
-          />
-        </div>
-      </PageContainer>
+      <div className="flex h-full flex-col">
+        {backLinkElement}
+        <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Context/filter · nhóm vi phạm · bằng chứng chi tiết.">
+          <div className="space-y-5">
+            {filterBar}
+            {violationTabsBar}
+            <EmptyState
+              title={emptyStateContent.title}
+              description={emptyStateContent.description}
+              action={emptyStateContent.action}
+            />
+          </div>
+        </PageContainer>
+      </div>
     );
   }
 
   return (
-    <PageContainer
-      title="Evidence — Chi tiết bưu gửi vi phạm"
-      subtitle="Context/filter · nhóm vi phạm · bằng chứng chi tiết."
-      action={
-        <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label={`BCVH: ${bcvhName}`} tone="info" />
-          <StatusBadge label={`Tuyến: ${routeName}`} tone="neutral" />
-          <StatusBadge label={`Ngày: ${analysisDate}`} tone="success" />
-        </div>
-      }
-    >
-      <div className="space-y-5">
-        {filterBar}
-
-        {truncated && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Tập kết quả vượt giới hạn an toàn khi tải — một số bản ghi có thể chưa được hiển thị. Hãy thu hẹp bộ lọc (chọn một Tuyến cụ thể) để xem đầy đủ.
+    <div className="flex h-full flex-col">
+      {backLinkElement}
+      <PageContainer
+        title="Evidence — Chi tiết bưu gửi vi phạm"
+        subtitle="Context/filter · nhóm vi phạm · bằng chứng chi tiết."
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge label={`BCVH: ${bcvhName}`} tone="info" />
+            <StatusBadge label={`Tuyến: ${routeName}`} tone="neutral" />
+            <StatusBadge label={`Ngày: ${analysisDate}`} tone="success" />
           </div>
-        )}
+        }
+      >
+        <div className="space-y-5">
+          {filterBar}
 
-        {searchResultSummary}
+          {truncated && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              Tập kết quả vượt giới hạn an toàn khi tải — một số bản ghi có thể chưa được hiển thị. Hãy thu hẹp bộ lọc (chọn một Tuyến cụ thể) để xem đầy đủ.
+            </div>
+          )}
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <KPICard label="Tổng Evidence (bối cảnh)" value={contextTotal.toLocaleString('vi-VN')} delta="Trước tìm kiếm" tone="primary" />
-          <KPICard
-            label="Kết quả tìm kiếm"
-            value={searchResultCount === null ? '—' : searchResultCount.toLocaleString('vi-VN')}
-            delta={isSearchActive ? `Cho '${search.trim()}'` : 'Không có từ khóa'}
-            tone="warning"
-          />
-          <KPICard label="Bưu gửi đang chọn" value={selectedShipment?.shipmentId || 'Chưa chọn'} delta={selectedShipment?.status || 'N/A'} tone="danger" />
-        </div>
+          {searchResultSummary}
 
-        {violationTabsBar}
-
-        <div className="grid gap-5 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            <ShipmentEvidenceSummary
-              mode={isSearchActive ? 'grouped' : 'flat'}
-              rows={sortedRows}
-              groups={groupedRows}
-              showRouteColumn={!routeIdParam}
-              selectedShipmentId={selectedShipment?.shipmentId || ''}
-              onSelectShipment={handleSelectShipment}
-              expandedRouteIds={expandedRouteIds}
-              onToggleRouteGroup={handleToggleRouteGroup}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <KPICard label="Tổng Evidence (bối cảnh)" value={contextTotal.toLocaleString('vi-VN')} delta="Trước tìm kiếm" tone="primary" />
+            <KPICard
+              label="Kết quả tìm kiếm"
+              value={searchResultCount === null ? '—' : searchResultCount.toLocaleString('vi-VN')}
+              delta={isSearchActive ? `Cho '${search.trim()}'` : 'Không có từ khóa'}
+              tone="warning"
             />
+            <KPICard label="Bưu gửi đang chọn" value={selectedShipment?.shipmentId || 'Chưa chọn'} delta={selectedShipment?.status || 'N/A'} tone="danger" />
           </div>
-          <div>
-            <ShipmentEvidenceDetail shipment={selectedShipment} />
+
+          {violationTabsBar}
+
+          <div className="grid gap-5 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <ShipmentEvidenceSummary
+                mode={isSearchActive ? 'grouped' : 'flat'}
+                rows={sortedRows}
+                groups={groupedRows}
+                showRouteColumn={!routeIdParam}
+                selectedShipmentId={selectedShipment?.shipmentId || ''}
+                onSelectShipment={handleSelectShipment}
+                expandedRouteIds={expandedRouteIds}
+                onToggleRouteGroup={handleToggleRouteGroup}
+              />
+            </div>
+            <div>
+              <ShipmentEvidenceDetail shipment={selectedShipment} />
+            </div>
           </div>
         </div>
-      </div>
-    </PageContainer>
+      </PageContainer>
+    </div>
   );
 }

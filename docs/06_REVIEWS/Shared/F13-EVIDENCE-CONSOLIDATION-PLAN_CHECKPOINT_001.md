@@ -829,3 +829,56 @@ Governance state: `F13-STANDARDIZATION-001` — Evidence Consolidation Phase 2 `
 Bounded to Phase 3's declared file scope exactly (Section 9): `routeViolationEvidenceData.js`, `RoutePerformancePage.jsx`, `App.jsx`, and their 3 named test files. No backend file touched (`git diff --name-only -- backend/` empty). No metric, schema, or data change. `F13-SHIPMENT-001` not opened; `RouteViolationEvidencePage.jsx` and its test files untouched (Phase 4 explicitly not performed); Operation Dashboard, BCVH Ranking, Pareto/RCA, Network Management untouched; `.claude/`, `Data QLML/`, both stashes confirmed untouched. Phase 2 not reopened.
 
 Governance state: `PHASE 3 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude Code does not self-close Phase 3 and does not self-start Phase 4.
+
+## 24. Phase 3 Return-Journey Remediation (2026-08-14)
+
+- Status: `PHASE 3 RETURN-JOURNEY REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Authority: Product Owner runtime finding — Phase 3 forward navigation confirmed working, but the return journey was incomplete (`return_to` carried end-to-end but never consumed on Evidence), baseline `c7fed615` confirmed matching before any edit.
+
+### Diagnosis performed before any code change
+
+- **Exact `return_to` generated:** `buildViolationEvidenceLink()` (unchanged this round) sets `return_to` to Tuyến Ranking's own `searchParams.toString()` at click time — i.e. its current URL query string, not a hand-built subset.
+- **Tuyến Ranking state that is URL-backed:** `from_date`, `to_date`, `bcvh_id` (`ma_bcvh` legacy alias read-only), `bcvh_name` (read but never written by the page itself), `search`, `route_type`, `only_failed`, `interval`. All of these round-trip correctly through `return_to` because `RoutePerformancePage.jsx` already re-derives every one of them from `useSearchParams()` on mount — no change was needed on the Tuyến Ranking side for these to restore.
+- **Selected route, page, sort — confirmed component-only, not URL-backed:** `selectedRouteId` and `currentPage` are plain `useState`, never written to the URL, and are actively reset (`currentPage` to `1`, `selectedRouteId` to the worst-performing route) on every successful data fetch — including a fetch triggered by returning via `return_to`. The `sort`/`order` query params are read and forwarded to the backend ranking call, but the *visible* table order is driven by a separate client-only `sortState` that itself resets to `{ passed_rate, asc }` on every fetch, regardless of any `sort`/`order` value in the URL. This is pre-existing `RoutePerformancePage.jsx` behavior, not introduced or changed by this remediation.
+- **Query parameters `RoutePerformancePage` actually consumes:** `from_date`, `to_date`, `interval`, `bcvh_id`, `ma_bcvh` (legacy), `bcvh_name`, `search`, `sort`, `order`, `route_type`, `only_failed` — confirmed by direct read of the component (`RoutePerformancePage.jsx` lines 370-379).
+- **State that cannot currently be restored without a URL-contract expansion:** the highlighted/selected table row and the current page number. Restoring either would require `RoutePerformancePage.jsx` to start writing `route_id`/`page` into its own URL (a change to a screen not otherwise in this remediation's scope) — a material URL-contract expansion, not authorized this round. Per the governing instruction this was not implemented; it is disclosed here for Product Owner decision rather than silently omitted. "Reason/violation group" is an Evidence-screen concept with no equivalent filter on Tuyến Ranking itself, so there is nothing on the Tuyến Ranking side for it to restore.
+
+### What changed (minimal, Evidence-destination-only, per authorized scope)
+
+- `frontend/src/features/route/routeViolationEvidenceData.js` — new `isValidReturnTo()`: rejects empty/non-string values, rejects protocol- or absolute-URL-shaped values (`https://`, `//host`, `javascript:`, any `scheme:`) via an explicit pattern, and requires at least one recognized Tuyến Ranking query key to be present. `buildBackToRouteRankingLink()` (already existed, previously unconsumed) now routes through this validator instead of only checking truthiness, falling back to the bare `/f13/ranking/route` path on any invalid input. Because this helper always prepends the fixed `/f13/ranking/route` path, a malicious `return_to` could never redirect off-app even before this change — the validator adds an explicit, testable, defense-in-depth rejection rather than closing an actual open redirect.
+- `frontend/src/features/shipment/ShipmentPerformancePage.jsx` — reads `return_to` via `useSearchParams`, gates a new "← Quay lại Tuyến Ranking" `<Link>` on `isValidReturnTo(returnToParam)`, and builds its target via `buildBackToRouteRankingLink(returnToParam)` — never `navigate(-1)`. The link is rendered above the page title in all four render branches (loading, error, empty, success), so a refresh or a direct paste of the Evidence URL preserves the back action identically. No other logic in the file was touched.
+
+### Before / after URL examples
+
+- **Tuyến Ranking → Evidence (unchanged by this round):**
+  `/f13/evidence?from_date=2026-08-10&to_date=2026-08-10&bcvh_id=535470&bcvh_name=BCVH+H%C6%B0%C6%A1ng+Tr%C3%A0&route_id=53547003&route_name=Tuy%E1%BA%BFn+X&reason=delayed_cash&return_to=from_date%3D2026-08-01%26to_date%3D2026-08-10%26bcvh_id%3D535470%26search%3Dphong%26route_type%3Dpostman%26only_failed%3D1`
+- **Evidence → "Quay lại Tuyến Ranking" (new this round):**
+  `/f13/ranking/route?from_date=2026-08-01&to_date=2026-08-10&bcvh_id=535470&search=phong&route_type=postman&only_failed=1`
+- **Invalid/external `return_to` (e.g. `https://evil.com`) → falls back to:** `/f13/ranking/route` (bare path, no back link shown on Evidence).
+- **Direct-open Evidence (no `return_to`) → no back link shown; nothing to fall back from.**
+
+### Filters restored vs. not URL-backed
+
+- **Restored on return:** analysis date (`from_date`/`to_date`), BCVH, search keyword, route-type filter, only-failed toggle — all confirmed via a real logic-level trace (Node, the real `buildViolationEvidenceLink`/`buildBackToRouteRankingLink`/`isValidReturnTo` functions, not mocked).
+- **Not restorable this round (disclosed, not silently omitted):** the previously highlighted table row and the previously viewed page number — both are `RoutePerformancePage.jsx` component-only state today; restoring them would require that screen to start persisting `route_id`/`page` into its own URL, a URL-contract expansion out of this remediation's authorized scope.
+- "Reason/violation group" has no Tuyến Ranking-side equivalent to restore — it is an Evidence-screen concept only.
+
+### Tests
+
+- `routeViolationEvidenceData.test.js`: 4 new tests for `isValidReturnTo` (accepts well-formed Route Ranking query strings; rejects empty/missing/context-free values; rejects external/protocol-shaped values) and 1 new test that `buildBackToRouteRankingLink` falls back to the bare path for each invalid case.
+- `ShipmentPerformancePage.contract.test.js`: 2 new tests — the page reads `return_to` and gates the back action on `isValidReturnTo`/`buildBackToRouteRankingLink` (never on plain presence), and the implementation never uses `navigate(-1)`.
+- `ShipmentPerformancePage.phase2.test.js`: 1 existing test updated for the now-3-item import line from `routeViolationEvidenceData.js` (no behavior change, source-text match only).
+
+### Validation
+
+- New/updated tests across the 3 affected files: **77/77 pass** (full targeted run across `routeViolationEvidenceData.test.js`, `ShipmentPerformancePage.contract/phase2/remediation/searchRemediation.test.js`, `RouteViolationEvidencePage.smoke.test.js`, `RoutePerformancePage.dateResolution.test.js`, `App.role-routing.test.js`).
+- Full frontend sweep: **331/343 pass** — the established baseline was 12 pre-existing failures (unchanged names: `only canonical values remain selectable...`, `operation dashboard hides status filter...`, `dashboard page removes shell...`, 6 Route Ranking delayed-cash/BLACK-label source tests, `Route Performance page sends default postman filter...`, `dataImportBackfillQueue.test.js`) — **zero new regressions, confirmed by name.**
+- `oxlint`: clean on both changed source files (`routeViolationEvidenceData.js`, `ShipmentPerformancePage.jsx`); the repo-wide warning list is unchanged and contains no entry from either file.
+- `vite build`: succeeds (679 modules transformed).
+- Live logic-level verification (Node, real functions, not mocked): a simulated Tuyến Ranking session (date range, BCVH, search, route_type, only_failed all set) was traced through `buildViolationEvidenceLink` → `return_to` → `isValidReturnTo` → `buildBackToRouteRankingLink`, reproducing the exact before/after URLs above with every field intact and decoded exactly once (no double-encoding). A malicious `return_to` (`https://evil.com`) and an empty `return_to` were both traced to the correct safe outcomes (bare-path fallback; no back link). A legacy-redirect scenario carrying its own `return_to` was traced end-to-end through `translateLegacyViolationsSearch` and confirmed the return journey survives the redirect.
+
+### Scope discipline
+
+Bounded to the authorized destination-only change: `routeViolationEvidenceData.js` (validator + reuse of the pre-existing `buildBackToRouteRankingLink`), `ShipmentPerformancePage.jsx` (consumption only), and their test files. `RoutePerformancePage.jsx`, `App.jsx`, and every other Phase 3 file are untouched (no URL-contract expansion performed). `RouteViolationEvidencePage.jsx` and its test files untouched (Phase 4 not started, not performed). No backend file touched (`git diff --name-only -- backend/` empty). No metric, schema, or data change. `F13-SHIPMENT-001` not opened; Phase 2 not reopened; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
+
+Governance state: `PHASE 3 RETURN-JOURNEY REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Phase 3 itself remains not closed; Phase 4 remains not started.

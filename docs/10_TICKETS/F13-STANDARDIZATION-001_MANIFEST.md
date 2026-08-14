@@ -640,3 +640,12 @@ Tuyến Ranking's drill-down button now targets `/f13/evidence` directly with fu
 21 new/updated tests, all passing; full frontend sweep 325/337 (12 pre-existing failures, down from 13 — the resolved one is a disclosed, plan-sanctioned consequence of the label reconciliation, not scope creep); `oxlint` clean; `vite build` succeeds. No backend touched; `F13-SHIPMENT-001` not opened; Phase 2 not reopened. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 23.
 
 Governance state: `PHASE 3 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Claude Code does not self-close Phase 3 and does not self-start Phase 4.
+
+## 33. Phase 3 Return-Journey Remediation (2026-08-14)
+
+- Status: `PHASE 3 RETURN-JOURNEY REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`
+- Authority: Product Owner runtime finding — forward navigation confirmed working, return journey incomplete (`return_to` carried but not consumed).
+
+`ShipmentPerformancePage.jsx` now reads `return_to`, validates it via a new `isValidReturnTo()` (rejects external/protocol-shaped values, requires a recognized Route Ranking key), and renders "← Quay lại Tuyến Ranking" via the pre-existing `buildBackToRouteRankingLink()`, never `navigate(-1)`. Restores date, BCVH, search, route_type, and only_failed (all already URL-backed on `RoutePerformancePage.jsx`); selected-row highlight and page number remain component-only state on `RoutePerformancePage.jsx` and are not restorable without a URL-contract expansion, disclosed rather than silently omitted. 7 new/updated tests; targeted sweep 77/77 pass; full frontend sweep 331/343 (12 pre-existing failures, unchanged by name — zero new regressions); `oxlint` clean; `vite build` succeeds. `RoutePerformancePage.jsx`/`App.jsx`/`RouteViolationEvidencePage.jsx` untouched; no backend touched. Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 24.
+
+Governance state: `PHASE 3 RETURN-JOURNEY REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Phase 3 remains not closed; Phase 4 remains `PLANNED / NOT ACTIVE`.

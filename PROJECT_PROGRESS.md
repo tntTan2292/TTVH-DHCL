@@ -676,3 +676,13 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - 21 new/updated tests, all passing (including a real behavioral F-2 test); full frontend sweep 325/337 (12 pre-existing failures, down from 13, disclosed not hidden); `oxlint` clean; `vite build` succeeds.
 - `RouteViolationEvidencePage.jsx` and its tests untouched (Phase 4 not performed). No backend file touched; `F13-SHIPMENT-001` not opened; Phase 2 not reopened; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
 - State: `PHASE 3 IMPLEMENTED / READY FOR PO RUNTIME RECHECK`. Full evidence: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 23; `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 32; `docs/06_REVIEWS/Shared/F13-STANDARDIZATION-001_CHECKPOINT_001.md` Section 26.
+
+## F13-STANDARDIZATION-001 — Phase 3 Return-Journey Remediation Implemented
+
+- Product Owner runtime recheck found the Phase 3 forward navigation correct but the return journey incomplete: `return_to` was carried end-to-end to `/f13/evidence` but never consumed there, making the drill-down operationally one-way (2026-08-14, baseline `c7fed615`).
+- `routeViolationEvidenceData.js`: new `isValidReturnTo()` rejects empty/external/protocol-shaped values and requires a recognized Route Ranking query key; `buildBackToRouteRankingLink()` (pre-existing, previously unconsumed) now routes through it, falling back to the bare `/f13/ranking/route` path on any invalid input.
+- `ShipmentPerformancePage.jsx`: reads `return_to`, renders "← Quay lại Tuyến Ranking" only when valid, links via `buildBackToRouteRankingLink()` (never `navigate(-1)`), shown in all 4 render branches so refresh preserves it.
+- Restores date, BCVH, search, route_type, only_failed — all already URL-backed on `RoutePerformancePage.jsx`. Diagnosed and disclosed, not fixed: selected-row highlight and page number are component-only state there, not restorable without a URL-contract expansion out of this remediation's authorized scope.
+- 7 new/updated tests, targeted sweep 77/77 pass; full frontend sweep 331/343 (12 pre-existing failures, unchanged by name — zero new regressions); `oxlint` clean; `vite build` succeeds.
+- `RoutePerformancePage.jsx`, `App.jsx`, `RouteViolationEvidencePage.jsx` untouched; no backend touched; `F13-SHIPMENT-001` not opened; Phase 2 not reopened; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
+- State: `PHASE 3 RETURN-JOURNEY REMEDIATION IMPLEMENTED / READY FOR PO RECHECK`. Full evidence: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 24; `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 33.

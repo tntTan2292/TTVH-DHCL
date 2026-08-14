@@ -55,3 +55,19 @@ test('Evidence page reads and preserves the full drill-down context contract', (
     assert.match(source, new RegExp(`searchParams\\.get\\('${key}'\\)`));
   });
 });
+
+// Phase 3 return-journey remediation: reads return_to and gates the back action on a real
+// validity check, never on plain presence — a directly opened Evidence screen (no
+// return_to) or an invalid one must not surface "Quay lại Tuyến Ranking".
+test('Evidence page reads return_to and gates the back action on isValidReturnTo', () => {
+  assert.match(source, /searchParams\.get\('return_to'\)/);
+  assert.match(source, /isValidReturnTo\(returnToParam\)/);
+  assert.match(source, /buildBackToRouteRankingLink\(returnToParam\)/);
+  assert.match(source, /Quay lại Tuyến Ranking/);
+});
+
+// The back link must be built via the shared, validated helper — not navigate(-1) or a
+// hand-rolled path — so refresh/copied links/legacy redirects stay deterministic.
+test('Evidence page does not use navigate(-1) as the back-action implementation', () => {
+  assert.doesNotMatch(source, /navigate\(-1\)/);
+});

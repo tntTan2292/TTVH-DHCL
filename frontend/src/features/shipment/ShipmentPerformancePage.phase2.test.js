@@ -90,7 +90,7 @@ test('ShipmentImpactOverview, ShipmentRecommendation, and ShipmentDrilldown are 
 // Section 4/9: violation group tabs, server-sourced counts, reused from
 // routeViolationEvidenceData.js rather than re-derived.
 test('violation group tabs are built from the shared buildViolationGroupTabs helper, not reimplemented', () => {
-  assert.match(source, /import \{ buildViolationGroupTabs \} from '\.\.\/route\/routeViolationEvidenceData';/);
+  assert.match(source, /import \{ buildViolationGroupTabs, buildBackToRouteRankingLink, isValidReturnTo \} from '\.\.\/route\/routeViolationEvidenceData';/);
   assert.match(source, /buildViolationGroupTabs\(violationSummary\)/);
 });
 

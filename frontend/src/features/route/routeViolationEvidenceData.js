@@ -61,9 +61,40 @@ export function translateLegacyViolationsSearch(search) {
   return newParams.toString();
 }
 
+// Phase 3 return-journey remediation (PO instruction, 2026-08-14): `return_to` is only ever
+// consumed by `buildBackToRouteRankingLink`, which always prepends the fixed
+// `/f13/ranking/route` path — so a malicious value can never redirect off-app by
+// construction (it only ever becomes that path's own query string). This validator adds an
+// explicit, auditable rejection of protocol/absolute-URL-shaped values (`https://`,
+// `//host`, `javascript:`, etc.) as a defense-in-depth control, and also requires the value
+// to actually look like a Route Ranking query string (at least one recognized key) before
+// the "Quay lại Tuyến Ranking" action is shown at all — an unrelated or malformed
+// `return_to` must not surface the link.
+const UNSAFE_RETURN_TO_PATTERN = /^(?:\/\/|[a-z][a-z0-9+.-]*:)/i;
+
+const ROUTE_RANKING_RETURN_TO_KEYS = [
+  'from_date', 'to_date', 'bcvh_id', 'bcvh_name', 'search', 'route_type', 'only_failed', 'interval', 'sort', 'order',
+];
+
+export function isValidReturnTo(returnToParam) {
+  if (typeof returnToParam !== 'string') return false;
+  const trimmed = returnToParam.trim();
+  if (!trimmed) return false;
+  if (UNSAFE_RETURN_TO_PATTERN.test(trimmed)) return false;
+
+  let params;
+  try {
+    params = new URLSearchParams(trimmed.startsWith('?') ? trimmed.slice(1) : trimmed);
+  } catch {
+    return false;
+  }
+  return ROUTE_RANKING_RETURN_TO_KEYS.some((key) => params.has(key));
+}
+
 export function buildBackToRouteRankingLink(returnToParam) {
-  if (!returnToParam) return '/f13/ranking/route';
-  const decoded = returnToParam.startsWith('?') ? returnToParam : `?${returnToParam}`;
+  if (!isValidReturnTo(returnToParam)) return '/f13/ranking/route';
+  const trimmed = returnToParam.trim();
+  const decoded = trimmed.startsWith('?') ? trimmed : `?${trimmed}`;
   return `/f13/ranking/route${decoded}`;
 }
 
