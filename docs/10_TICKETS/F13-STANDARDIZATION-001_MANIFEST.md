@@ -696,3 +696,15 @@ No ambiguity was found; deletion proceeded without a PO-direction stop.
 Exactly the 2 files deleted and 2 files touched above. No backend file touched (`git diff --name-only -- backend/` empty). No metric, schema, data, or URL contract changed. Phase 2/3 not reopened; `F13-SHIPMENT-001`/`F13-SURFACE-CLEANUP-PLAN` not opened; `.claude/`, `Data QLML/`, both stashes confirmed untouched (stash contents re-verified identical via `git stash list` before and after).
 
 Governance state: `PHASE 4 IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-close Phase 4 and does not activate another ticket.
+
+### Closure (2026-08-15)
+
+Product Owner performed the runtime recheck at authoritative HEAD `f3dbe1b9` and confirmed: Tuyến Ranking → Evidence navigation works correctly; "Quay lại Tuyến Ranking" works correctly from Tuyến Ranking; the legacy `/f13/ranking/route/violations` URL auto-redirects to Evidence; direct Evidence access and its existing functionality remain normal; deleting `RouteViolationEvidencePage.jsx` caused no runtime regression. `PHASE 4 RUNTIME RECHECK PASS`.
+
+Product Owner authorized governance-only closure: no product code, test, route, or schema change this round. This closes Phase 4 in full. `RouteViolationEvidencePage.jsx` remains permanently retired (deleted in the Phase 4 implementation round, commit `ede4684c`); the `/f13/ranking/route/violations` translating redirect and the Phase 3 forward/return Evidence navigation are confirmed unaffected. `F13-SHIPMENT-001` and `F13-SURFACE-CLEANUP-PLAN` remain unauthorized, not opened by this closure; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
+
+With Phase 4 closed, the Evidence-consolidation delta this manifest has tracked since Section 20 (Sections 20-34: audit → consolidation plan → Phase 1 → Phase 2 → Phase 3 → Phase 4) is now fully complete and closed end-to-end. No phase of this delta remains open. Separately, the original 5-phase `F13-STANDARDIZATION-001` program plan (Section 6: Phase 0 Khóa nền số liệu partially implemented, Phases 1-4 Chuẩn hóa/Điều hành/Pareto/Regression) remains `PLANNED / NOT ACTIVE` and is not authorized or closed by this — it is a distinct, larger scope from the Evidence-consolidation delta's own Phase 1-4 numbering.
+
+**Authoritative state after closure:** no phase of `F13-STANDARDIZATION-001` is currently Product-Owner-authorized for further work. `NO ACTIVE TICKET / AWAITING PO DIRECTION`. `F13-SHIPMENT-001` (`stash@{0}`) and `F13-SURFACE-CLEANUP-PLAN` remain unauthorized and are not self-activated by this closure.
+
+Governance state: `PHASE 4 CLOSED / PO RUNTIME PASS`. Claude Code does not self-activate any further phase or ticket.
