@@ -55,8 +55,8 @@ function LegacyShipmentRedirect() {
 // return_to pass through unchanged, so an old bookmark lands on the exact day it was
 // saved for rather than silently on the newest imported day. Widened to admin+viewer to
 // match the destination — a viewer following an old link is redirected, not bounced to
-// "unauthorized". The RouteViolationEvidencePage component itself is retired only in
-// Phase 4, once accepted; it is simply no longer reachable via this path.
+// "unauthorized". Phase 4 (PO-accepted) permanently retired the old standalone violations
+// component; this redirect never depended on it and keeps working unchanged.
 function LegacyRouteViolationsRedirect() {
   const location = useLocation();
   const translated = translateLegacyViolationsSearch(location.search);

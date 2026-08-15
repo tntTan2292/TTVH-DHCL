@@ -657,3 +657,42 @@ Product Owner explicitly accepted the disclosed residual — `selectedRouteId`/`
 This closes the Phase 3 return-journey remediation only. Governance-only round: no product code touched at closure. Phase 3 as a whole (forward navigation, Section 32, + this remediation, Section 33) is now `CLOSED / PO RUNTIME PASS`. Phase 4 (retire `RouteViolationEvidencePage.jsx`) remains `PLANNED / NOT ACTIVE`, not self-activated by this closure and requiring its own separate, explicit Product Owner authorization. `F13-SHIPMENT-001` not opened; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
 
 Governance state: `PHASE 3 CLOSED / PO RUNTIME PASS`. Claude Code does not self-start Phase 4.
+
+## 34. Phase 4 — Retire RouteViolationEvidencePage.jsx (2026-08-15)
+
+- Status: `PHASE 4 IMPLEMENTED / READY FOR PO RECHECK`
+- Authority: "PO AUTHORIZATION — BEGIN F13-STANDARDIZATION-001 PHASE 4" (2026-08-15), baseline `f312fa36` confirmed matching before any edit.
+
+### Dependency discovery performed before deletion
+
+Every source reference to `RouteViolationEvidencePage` was inventoried (`grep -r` across `frontend/` and `backend/`, 13 matches). Categorized:
+
+- **Safe to delete:** `frontend/src/features/route/RouteViolationEvidencePage.jsx` (the component itself) and `RouteViolationEvidencePage.smoke.test.js` (its only test file — only one existed, not the two originally estimated during planning). No other source file imports either; `App.jsx` had already dropped the import in Phase 3.
+- **Shared helper, kept:** `routeViolationEvidenceData.js` — `buildBackToRouteRankingLink`, `mapViolationRows`, `buildViolationGroupTabs` are exported from this shared module and consumed by `ShipmentPerformancePage.jsx`/`RoutePerformancePage.jsx` independently of the retired component; untouched.
+- **Confirmed independent — the legacy redirect:** `App.jsx`'s `LegacyRouteViolationsRedirect` (governing `/f13/ranking/route/violations`) is implemented purely via `translateLegacyViolationsSearch` and never referenced the retired component, before or after this round.
+- **Tests replaced:** the old smoke test (asserted properties of the deleted file's own source text) was replaced by a new `RouteViolationEvidencePage.retired.test.js` — asserts both files no longer exist on disk, `App.jsx` no longer references the retired component, and the legacy redirect route still targets `LegacyRouteViolationsRedirect`.
+- **Historical documentation left unchanged:** `PROJECT_PROGRESS.md`, `F13-EVIDENCE-PRODUCT-VALUE-AUDIT_CHECKPOINT_001.md`, and prior sections of this manifest/checkpoint that narrate the retired component's history are untouched, per append-only/frozen-history convention.
+- **Comment-only mentions:** `ShipmentPerformancePage.jsx` (explains why a default value matches the old screen) and `backend/src/repositories/FactBuuGuiRepository.js` (names a historical caller in a comment) are prose only, not dependencies — left unchanged; the backend file additionally falls outside this round's authorized scope. `App.jsx`'s own explanatory comment above `LegacyRouteViolationsRedirect` was reworded (no longer describes the retirement as a future event) since Phase 4 is this round.
+- **Stash overlap check:** `git stash show --stat` on both stashes confirmed neither touches `RouteViolationEvidencePage.jsx`/its test file (stash@{0}: `F13DashboardService.js`/`.evidenceList.test.js`/`ShipmentEvidenceSummary.jsx`/`ShipmentPerformancePage.jsx`; stash@{1}: a single deleted root-level HTML map file). Neither stash inspected further, applied, or popped.
+
+No ambiguity was found; deletion proceeded without a PO-direction stop.
+
+### What changed
+
+- Deleted: `frontend/src/features/route/RouteViolationEvidencePage.jsx`, `frontend/src/features/route/RouteViolationEvidencePage.smoke.test.js`.
+- Added: `frontend/src/features/route/RouteViolationEvidencePage.retired.test.js` (4 tests, see above).
+- Modified: `frontend/src/App.jsx` (one comment reworded above `LegacyRouteViolationsRedirect`; no route/import/behavior change).
+
+### Validation
+
+- Full frontend sweep: **331/343 pass** — the same 12 pre-existing failures, confirmed unchanged by name; zero new regressions (343 = 337 baseline − 4 deleted smoke tests + 4 new retirement tests).
+- `oxlint`: clean; the repo-wide warning list is byte-identical to before this round (the deleted file's own warnings simply disappear with it; nothing new).
+- `vite build`: succeeds — **679 modules transformed, identical to the pre-deletion build**, and the built bundle contains zero occurrences of the string `RouteViolationEvidencePage` (`grep -c` on `dist/assets/*.js` = 0). This confirms the retired file was already unreachable from the build graph since Phase 3's rewire — this deletion is provably zero-impact on the shipped bundle, not just source-tree cleanup.
+- Live logic-level verification (Node, real functions, not mocked, post-deletion): the Tuyến Ranking → Evidence link builder, the "Quay lại Tuyến Ranking" back-link builder, and the legacy `/f13/ranking/route/violations` redirect translator were all re-traced end-to-end and still resolve identically to before deletion.
+- Runtime access: `admin`+`viewer` roles were never gated by the deleted component — the surviving `/f13/evidence` route and the `LegacyRouteViolationsRedirect` route are both already `admin`+`viewer` (Phase 3), unchanged by this round; no role-gating logic touched.
+
+### Scope discipline
+
+Exactly the 2 files deleted and 2 files touched above. No backend file touched (`git diff --name-only -- backend/` empty). No metric, schema, data, or URL contract changed. Phase 2/3 not reopened; `F13-SHIPMENT-001`/`F13-SURFACE-CLEANUP-PLAN` not opened; `.claude/`, `Data QLML/`, both stashes confirmed untouched (stash contents re-verified identical via `git stash list` before and after).
+
+Governance state: `PHASE 4 IMPLEMENTED / READY FOR PO RECHECK`. Claude Code does not self-close Phase 4 and does not activate another ticket.

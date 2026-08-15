@@ -694,3 +694,12 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Governance-only closure round: no product code changed. Phase 3 (Sections 32-33: rewire Tuyến Ranking drill-down + return-journey remediation) is now `CLOSED / PO RUNTIME PASS` in full.
 - Phase 4 (retire `RouteViolationEvidencePage.jsx`) remains `PLANNED / NOT ACTIVE`, not self-activated by this closure. `F13-SHIPMENT-001` not opened; `.claude/`, `Data QLML/`, both stashes confirmed untouched.
 - State: `PHASE 3 CLOSED / PO RUNTIME PASS`. Full evidence: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 24; `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 33.
+
+## F13-STANDARDIZATION-001 — Phase 4 Implemented: Retire RouteViolationEvidencePage.jsx
+
+- Product Owner authorized Phase 4 (2026-08-15, baseline `f312fa36`): retire the legacy `RouteViolationEvidencePage.jsx` surface, bounded dependency discovery required before deletion.
+- Discovery found zero live imports/routes referencing the component or its test file — `App.jsx` had already dropped the import in Phase 3, and the legacy `/f13/ranking/route/violations` redirect was already implemented independently via `translateLegacyViolationsSearch`. Shared helper module `routeViolationEvidenceData.js` (still used by `ShipmentPerformancePage.jsx`/`RoutePerformancePage.jsx`) is untouched.
+- Deleted: `RouteViolationEvidencePage.jsx`, `RouteViolationEvidencePage.smoke.test.js`. Added `RouteViolationEvidencePage.retired.test.js` (4 tests). One `App.jsx` comment reworded (no route/import/behavior change).
+- Full frontend sweep 331/343 (12 pre-existing failures, unchanged by name, zero new regressions); `oxlint` clean; `vite build` succeeds — 679 modules transformed, identical to the pre-deletion build, and the built bundle contains zero occurrences of the deleted component's name, proving it was already unreachable from the build graph.
+- Both stashes confirmed unaffected via `git stash show --stat` (read-only check, neither applied/popped); `.claude/`, `Data QLML/` untouched; `F13-SHIPMENT-001`/`F13-SURFACE-CLEANUP-PLAN` not opened; Phase 2/3 not reopened.
+- State: `PHASE 4 IMPLEMENTED / READY FOR PO RECHECK`. Full evidence: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md` Section 25; `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 34.
