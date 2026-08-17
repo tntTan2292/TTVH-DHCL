@@ -95,7 +95,7 @@ Not applicable — no runtime change was made, no server was started, and no Imp
 
 In scope for this ticket: read-only survey, the plan checkpoint, this manifest, and governance sync.
 
-Out of scope, explicitly: any product code, `backend/src/db/schema.sql`, the live database, the Import pipeline/watcher/portal layer, any F1.3 behavior or `fact_f13` data, any file operation under `Data DKCL/`, and any business rule beyond the seven locked decisions.
+Out of scope, explicitly: any product code, `backend/src/db/schema.sql`, the live database, the Import pipeline/watcher/portal layer, any F1.3 behavior or `fact_f13` data, any file operation under `Data DKCL/`, and any business rule beyond the ten locked decisions (Section 5).
 
 ## 9. Related Review
 
@@ -131,7 +131,12 @@ None open. This ticket was activated from `NO ACTIVE TICKET / AWAITING PO DIRECT
 
 ## 15. PO Acceptance Checklist
 
-Not applicable — `PO UI Check Required = No` for this planning ticket. What the Product Owner is asked to review is the plan itself: checkpoint Section 9 (data contract), Section 10 (phasing), Section 14 (risks) and Section 16 (Q-1..Q-5).
+Not applicable — `PO UI Check Required = No` for this planning ticket. What the Product Owner is asked to approve/acknowledge is the plan itself:
+
+- Approve the data contracts `DC-1..DC-11` (checkpoint Section 9) and `TC-1..TC-10` (Section 20).
+- Approve the five-phase plan (Section 10, as amended by Section 20).
+- Acknowledge `Q-1..Q-5` are closed, resolved, or non-blocking (Section 22) — no Product Owner answer is currently pending on any of them.
+- Acknowledge `Q-6` remains non-blocking and must be resolved only before displaying a TCT-derived rate beside the HUE module KPI (Section 22, `TC-8`).
 
 ## 16. Authority Escalation
 
