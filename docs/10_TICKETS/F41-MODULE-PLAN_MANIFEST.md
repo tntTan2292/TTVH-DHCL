@@ -1,0 +1,127 @@
+# F41-MODULE-PLAN Manifest
+
+Status: `PLAN COMPLETE / AWAITING PO APPROVAL (2026-08-17)`. Planning and documentation only — no product code, database, schema, or Import behavior changed. The full plan, delta survey, data contract, phasing, reconciliation baseline, risks, and open questions live in `docs/06_REVIEWS/Shared/F41-MODULE-PLAN_CHECKPOINT_001.md`; this manifest does not duplicate them.
+
+## Table of Contents
+
+- [1. Ticket Information](#1-ticket-information)
+- [2. Objective](#2-objective)
+- [3. Current Status](#3-current-status)
+- [4. Required Reading](#4-required-reading)
+- [5. Business Context](#5-business-context)
+- [6. Technical Context](#6-technical-context)
+- [7. Runtime Context](#7-runtime-context)
+- [8. Scope](#8-scope)
+- [9. Related Review](#9-related-review)
+- [10. Related PO Findings](#10-related-po-findings)
+- [11. Documents To Update](#11-documents-to-update)
+- [12. Validation](#12-validation)
+- [13. Expected Output](#13-expected-output)
+- [14. Next Ticket](#14-next-ticket)
+- [15. PO Acceptance Checklist](#15-po-acceptance-checklist)
+- [16. Authority Escalation](#16-authority-escalation)
+
+## 1. Ticket Information
+
+- Ticket ID: `F41-MODULE-PLAN`
+- Ticket Name: `F4.1 Quality Management — Discovery and Overall Plan`
+- Phase: `F4.1 Module — Planning`
+- Owner: `Claude Code (Opus)`
+- Governance Version: `V2 Active`
+- Activation authority: `PO AUTHORIZATION: activate F41-MODULE-PLAN from NO ACTIVE TICKET — PLANNING / DOCUMENTATION ONLY, NO IMPLEMENTATION`
+- Branch: `codex/da-impl-006`
+- Baseline commit: `c2f4bdd7730192dbaa2bbe773e6859e0d35ef18b` (verified `HEAD` at activation; working tree clean except pre-existing untracked `.claude/` and `Data QLML/`)
+- Activation date: `2026-08-17`
+
+## 2. Objective
+
+Produce a discovery-backed overall plan for the F4.1 Quality Management module — data contract, phasing, UI, reconciliation, testing, risks, and PO gates — without implementing any code, product, database, or Import change.
+
+## 3. Current Status
+
+- Current state: `PLAN COMPLETE / AWAITING PO APPROVAL`
+- PO UI Check Required: `No — planning ticket only. Gates 2, 3 and 4 of the proposed phase plan each require Yes.`
+- PO Product Status: `Plan submitted 2026-08-17; no phase authorized. Five open questions (Q-1..Q-5) require Product Owner answers before Phase 2 and Phase 3 can be scoped.`
+
+## 4. Required Reading
+
+- `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
+- `docs/06_REVIEWS/Shared/F41-MODULE-PLAN_CHECKPOINT_001.md` — the plan itself; all substantive content is there.
+- `docs/07_REFERENCE/Domains/domain_quality_management/f1.3_chat_luong_phat_lien_tinh/data_blueprint.md` and `measurement.md` — the F1.3 SSOT pattern that Phase 0 mirrors for F4.1.
+- `docs/07_REFERENCE/Domains/_template_indicator/` — the indicator document skeleton Phase 0 instantiates.
+
+## 5. Business Context
+
+- Business problem: F4.1 is a distinct quality indicator with its own daily source file. It has a directory tree, a navigation entry, and a placeholder page, but no data path, no metric, and no screens. The Product Owner wants F4.1 delivered as a real operating module alongside F1.3.
+- Business impact: extends the decision-support system from one indicator to two, and forces Import to become multi-indicator across both Huế and TCT.
+- Approved business rule constraints — locked Product Owner decisions, recorded verbatim in checkpoint Section 3 and not extended:
+  1. F4.1 uses the source column `Đánh giá (thời gian Có TMS PTC 8 giờ)`.
+  2. Authoritative result `2.863 / 4.695 = 60,98%`; all `4.695` rows belong to the denominator.
+  3. Analysis date comes from the file name, as in F1.3.
+  4. Scope is `Dashboard`, `BCVH Ranking`, `Evidence`. No `Tuyến Ranking`.
+  5. `Chậm nộp tiền` handling and acceptance follow F1.3 unchanged; nothing further inferred.
+  6. `531120` is still stored and still counted in the module total, but hidden from `BCVH Ranking`.
+  7. Import direction is multi-indicator, supporting Huế and TCT.
+
+## 6. Technical Context
+
+Delta-only survey against baseline `c2f4bdd7` — full findings D-1..D-18 in checkpoint Sections 5-7. The load-bearing ones:
+
+- No indicator abstraction exists: `danh_gia_2026` is hardwired in 20 backend files (138 occurrences), so F4.1 needs a parallel data path rather than a parameterization of F1.3.
+- The F1.3 BCVH Ranking rate divides by `sl_bg_ptc` (rows with a PTC event). Applied to F4.1 that yields `64,29%`, contradicting the Product Owner's locked `60,98%`. The F4.1 contract divides by total rows.
+- `backend/src/config/canonicalBcvhUnits.js` already freezes exactly the 6 real BCVH found in the F4.1 file, so hiding `531120` needs no new rule and no hardcoded code literal.
+- `backend/src/services/excelParser.js` is not reusable — the F4.1 header set differs in spelling and content; `extractDateFromFilename` is regex-locked to `^F1\.3-`.
+- `backend/src/services/importPipeline.js` hardcodes `../Data DKCL/F1.3`; `importWatcher.js` watches only that tree with `ignoreInitial: false`; the DKCL portal layer is name-locked to the F1.3 export.
+- `Data DKCL/F4.1/{Incoming,Processed,Error}/{HUE,TCT}` already exists and already holds `F4.1-2026.08.01.xlsx` under `Incoming/HUE`, currently inert because the watcher never looks there. `Incoming/TCT` is empty.
+- The F4.1 source has no route column of any kind, so "no Tuyến Ranking" is data-enforced.
+- Frontend `/f41` exists as an admin-only `Coming Soon` placeholder (`App.jsx`:101, `appNavigation.jsx`:45, `pages/F41Quality.jsx`).
+
+## 7. Runtime Context
+
+Not applicable — no runtime change was made and no server was started. The F4.1 source file was opened read-only for inventory; its SHA-256 is recorded in checkpoint Section 7 and the file was not created, moved, renamed, or modified.
+
+## 8. Scope
+
+In scope for this ticket: read-only survey, the plan checkpoint, this manifest, and governance sync.
+
+Out of scope, explicitly: any product code, `backend/src/db/schema.sql`, the live database, the Import pipeline/watcher/portal layer, any F1.3 behavior or `fact_f13` data, any file operation under `Data DKCL/`, and any business rule beyond the seven locked decisions.
+
+## 9. Related Review
+
+- Review document: `docs/06_REVIEWS/Shared/F41-MODULE-PLAN_CHECKPOINT_001.md`
+- Review status: `PLAN COMPLETE / AWAITING PO APPROVAL`
+- Key evidence: the reconciliation baseline in checkpoint Section 8 reproduces the Product Owner's `2.863 / 4.695 = 60,98%` exactly from the real source file, broken down per BCVH, and records the `4.694 / 60,97%` ranking subtotal that decision 6 necessarily creates.
+
+## 10. Related PO Findings
+
+None open. This ticket was activated from `NO ACTIVE TICKET / AWAITING PO DIRECTION`, not from a finding.
+
+## 11. Documents To Update
+
+- This manifest and the checkpoint, on Product Owner approval or on any change of plan.
+- `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`, `PROJECT_PROGRESS.md`, `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` — updated as part of this activation.
+- On Phase 0 authorization: a new `docs/07_REFERENCE/Domains/domain_quality_management/f4.1_.../` package instantiated from `_template_indicator`.
+
+## 12. Validation
+
+- Technical validation: not applicable — no code changed. Verification performed for this ticket was read-only: source-file inventory and aggregation reproducing the Product Owner's locked figures (checkpoint Sections 7-8), and a static survey of the F1.3/Import code paths (checkpoint Sections 5-6).
+- Runtime, browser, build/lint validation: not applicable — no code changed.
+
+## 13. Expected Output
+
+- What the ticket must achieve: a discovery-backed overall plan for F4.1, an evidence-verified reconciliation baseline, a locked data-contract proposal, a phase plan with PO gates, a risk register, and the explicit list of decisions the Product Owner must still make.
+- What must remain unchanged: all product code, `fact_f13`, the F1.3 module and its frozen 41-column mapping, the Import pipeline and watcher, the live database, and every file under `Data DKCL/` and `Data QLML/`.
+- What must not be introduced: any implementation, any inferred business rule, any second source of truth for the F4.1 metric.
+
+## 14. Next Ticket
+
+- Next ticket ID: none activated. The proposed successor is `F41-PHASE-0` (the F4.1 SSOT/reference package, documentation only), which requires explicit Product Owner authorization.
+- Handoff notes: no phase is self-activated. Phase 2 and Phase 3 additionally depend on Product Owner answers to Q-1 (real TCT F4.1 source), Q-2 (DKCL portal report name for F4.1), Q-3 (role gating), Q-4 (module total vs ranking subtotal presentation), and Q-5 (availability of a second F4.1 day).
+
+## 15. PO Acceptance Checklist
+
+Not applicable — `PO UI Check Required = No` for this planning ticket. What the Product Owner is asked to review is the plan itself: checkpoint Section 9 (data contract), Section 10 (phasing), Section 14 (risks) and Section 16 (Q-1..Q-5).
+
+## 16. Authority Escalation
+
+Open and unresolved, escalated rather than guessed: the F4.1 TCT lane (Q-1) and the DKCL portal report identity for F4.1 (Q-2) have no authoritative source anywhere in the repository or workspace. No TCT parser, target table, or sync behavior for F4.1 has been designed or assumed. Everything else in the plan derives either from the seven locked Product Owner decisions or from verified code and file evidence.
