@@ -1,11 +1,7 @@
 const chokidar = require('chokidar');
 const path = require('path');
-const fs = require('fs');
-const { executeImport, BASE_INCOMING } = require('./importPipeline');
-
-// We can rely on BASE_INCOMING from importPipeline but chokidar needs the path
-// so we will just use BASE_INCOMING directly for the watcher.
-const INCOMING_DIR = BASE_INCOMING;
+const { executeImport } = require('./importPipeline');
+const { getWatchIncomingDirs } = require('./importIndicatorRegistry');
 
 class ImportQueue {
     constructor() {
@@ -41,9 +37,10 @@ class ImportQueue {
 const importQueue = new ImportQueue();
 
 function startWatcher() {
-    console.log(`[ImportWatcher] Khởi động giám sát thư mục: ${INCOMING_DIR}`);
+    const incomingDirs = getWatchIncomingDirs();
+    console.log(`[ImportWatcher] Khởi động giám sát thư mục: ${incomingDirs.join(', ')}`);
     
-    const watcher = chokidar.watch(INCOMING_DIR, {
+    const watcher = chokidar.watch(incomingDirs, {
         persistent: true,
         ignoreInitial: false, // Quét cả file đã có sẵn khi khởi động
         awaitWriteFinish: {

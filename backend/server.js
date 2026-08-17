@@ -16,6 +16,7 @@ const { applyNetworkManagement001Phase2Schema } = require('./migrate_network_man
 const { applyNetworkManagement001Phase3Schema } = require('./migrate_network_management_001_phase3_schema');
 const { applyNetworkManagement001Phase4Schema } = require('./migrate_network_management_001_phase4_schema');
 const { applyF41Phase1Schema } = require('./migrate_f41_phase1_schema');
+const { applyF41Phase2Schema } = require('./migrate_f41_phase2_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -104,6 +105,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyNetworkManagement001Phase3Schema(dbPath);
     await applyNetworkManagement001Phase4Schema(dbPath);
     await applyF41Phase1Schema(dbPath);
+    await applyF41Phase2Schema(dbPath);
 }
 
 function startServer() {

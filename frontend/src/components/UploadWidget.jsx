@@ -8,6 +8,8 @@ export default function UploadWidget({ onUploadSuccess }) {
     const [result, setResult] = useState(null);
     const [confirm, setConfirm] = useState(null);
     const [dragOver, setDragOver] = useState(false);
+    const [indicator, setIndicator] = useState('F1.3');
+    const [source, setSource] = useState('HUE');
     const inputRef = useRef(null);
 
     const getErrorMessage = (err) => (
@@ -38,7 +40,8 @@ export default function UploadWidget({ onUploadSuccess }) {
 
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('source', 'HUE');
+        formData.append('indicator', indicator);
+        formData.append('source', source);
 
         try {
             const endpoint = forceReimport ? '/import/upload?force=true' : '/import/upload';
@@ -71,6 +74,39 @@ export default function UploadWidget({ onUploadSuccess }) {
                 <UploadCloud size={20} className="text-vnpost-blue" />
                 Nạp file dữ liệu ngày
             </h2>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <label className="text-xs font-semibold text-gray-600">
+                    Chỉ tiêu
+                    <select
+                        value={indicator}
+                        onChange={(event) => {
+                            setIndicator(event.target.value);
+                            setConfirm(null);
+                            setResult(null);
+                        }}
+                        className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 focus:border-vnpost-blue focus:outline-none"
+                    >
+                        <option value="F1.3">F1.3</option>
+                        <option value="F4.1">F4.1</option>
+                    </select>
+                </label>
+                <label className="text-xs font-semibold text-gray-600">
+                    Nguồn
+                    <select
+                        value={source}
+                        onChange={(event) => {
+                            setSource(event.target.value);
+                            setConfirm(null);
+                            setResult(null);
+                        }}
+                        className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 focus:border-vnpost-blue focus:outline-none"
+                    >
+                        <option value="HUE">HUE</option>
+                        <option value="TCT">TCT</option>
+                    </select>
+                </label>
+            </div>
 
             <div
                 onDragOver={(event) => {

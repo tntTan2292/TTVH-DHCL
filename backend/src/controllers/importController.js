@@ -4,15 +4,16 @@ const fs = require('fs');
 const path = require('path');
 const { all, get } = require('../config/db');
 const { executeImport, BASE_INCOMING } = require('../services/importPipeline');
+const { getIndicatorConfig, normalizeIndicator, normalizeLane } = require('../services/importIndicatorRegistry');
 const { presentImportHistoryRow } = require('../services/importHistoryPresenter');
 
 const ensureDir = (dir) => fs.mkdirSync(dir, { recursive: true });
 const ALLOWED_PAGE_SIZES = [20, 50, 100];
 
-function resolveIncomingDir(source) {
-    const normalized = String(source || 'HUE').toUpperCase();
-    const subDir = normalized === 'TCT' ? 'TCT' : 'HUE';
-    const incomingDir = path.join(BASE_INCOMING, subDir);
+function resolveIncomingDir(indicator, source) {
+    const indicatorConfig = getIndicatorConfig(normalizeIndicator(indicator || 'F1.3'));
+    const subDir = normalizeLane(source || 'HUE');
+    const incomingDir = path.join(indicatorConfig.incomingDir, subDir);
     ensureDir(incomingDir);
     return incomingDir;
 }
@@ -94,7 +95,9 @@ class ImportController {
             });
         }
 
-        const sourceDir = resolveIncomingDir(req.body?.source);
+        const indicator = normalizeIndicator(req.body?.indicator || 'F1.3');
+        const lane = normalizeLane(req.body?.source || 'HUE');
+        const sourceDir = resolveIncomingDir(indicator, lane);
         const tmpPath = path.join(sourceDir, file.originalname);
         fs.writeFileSync(tmpPath, file.buffer);
 
@@ -102,7 +105,9 @@ class ImportController {
             const result = await executeImport({
                 filePath: tmpPath,
                 forceReimport: req.query.force === 'true',
-                source: 'MANUAL'
+                source: 'MANUAL',
+                indicator,
+                lane
             });
 
             if (result?.requiresConfirmation) {
@@ -174,6 +179,9 @@ class ImportController {
                     log.id,
                     log.file_name,
                     log.ngay_do_kiem,
+                    COALESCE(log.indicator, 'F1.3') AS indicator,
+                    log.source_lane,
+                    log.trigger_source,
                     log.created_at,
                     log.status,
                     log.total_records,
@@ -207,6 +215,9 @@ class ImportController {
                     log.id,
                     log.file_name,
                     log.ngay_do_kiem,
+                    COALESCE(log.indicator, 'F1.3'),
+                    log.source_lane,
+                    log.trigger_source,
                     log.created_at,
                     log.status,
                     log.total_records,
@@ -218,8 +229,9 @@ class ImportController {
             );
 
             const rowsWithProcessedEvidence = rows.map((row) => {
-                const hueProcessedPath = path.join(BASE_INCOMING, '..', 'Processed', 'HUE', row.file_name);
-                const tctProcessedPath = path.join(BASE_INCOMING, '..', 'Processed', 'TCT', row.file_name);
+                const indicatorConfig = getIndicatorConfig(row.indicator || 'F1.3');
+                const hueProcessedPath = path.join(indicatorConfig.processedDir, 'HUE', row.file_name);
+                const tctProcessedPath = path.join(indicatorConfig.processedDir, 'TCT', row.file_name);
                 return {
                     ...row,
                     hue_processed_path: fs.existsSync(hueProcessedPath) ? hueProcessedPath : null,

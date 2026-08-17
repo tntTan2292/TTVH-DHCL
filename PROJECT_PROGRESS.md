@@ -774,3 +774,19 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Validation PASS: startup migration test `1/1`; retained F4.1 migration/parser/repository regression `11/11`.
 - No Import/watcher logic, TCT, portal sync, frontend, Dashboard, Ranking, Evidence or Phase 2 work.
 - State remains: `PHASE 1 COMPLETE / READY FOR PO REVIEW`. Phase 2 not activated.
+
+## F41-PHASE-2 - Activated: Multi-Indicator Import
+
+- Product Owner confirmed `F41-PHASE-1: PO PASS` and authorized Phase 2 from baseline `8902fc57`: multi-indicator Import for F1.3/F4.1, HUE/TCT, with controlled first F4.1 import.
+- Scope includes additive `fact_f41_national`, dedicated positional F4.1 TCT parser, indicator registry, generalized pipeline/watcher preserving F1.3 behavior and per-indicator test isolation, admin-only Import selector for indicator/lane, and manual Import independent of portal automation.
+- Explicit exclusions: Dashboard, BCVH Ranking, Evidence, Phase 3, unrelated UI/module changes, and guessing the F4.1 portal export-match string.
+- Governance files: `docs/10_TICKETS/F41-PHASE-2_MANIFEST.md`; `docs/06_REVIEWS/Shared/F41-PHASE-2_CHECKPOINT_001.md`.
+- State: `F41-PHASE-2 ACTIVE / IMPLEMENTATION AUTHORIZED`. Required final stop: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`; Phase 3 not activated.
+
+## F41-PHASE-2 - Implemented: Ready For PO Check
+
+- Implemented additive `fact_f41_national`, startup migration, dedicated frozen 38-column F4.1 TCT parser, multi-indicator Import registry, generalized pipeline/watcher for F1.3/F4.1 HUE/TCT, and Admin Import selector.
+- Controlled real F4.1 Import completed through the pipeline after targeted tests passed: HUE `4,695` rows / `2,863` Đạt / `1,581` Không đạt / `251` blank / `60.98%`; TCT `46` reporting-unit rows with grand total excluded.
+- Regression proof: `fact_f13` remained unchanged at `709,234` rows; isolated retry/dedup test returns confirmation without changing F4.1/F1.3 facts.
+- Validation PASS: F4.1 targeted tests `15/15`; existing F1.3 Import regression set passed; frontend `npm run build` and `npm run lint` passed (lint warnings pre-existing/out of scope).
+- State: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Dashboard, BCVH Ranking, Evidence and Phase 3 remain not activated.

@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS import_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     file_name TEXT NOT NULL,
     ngay_do_kiem TEXT NOT NULL,
+    indicator TEXT DEFAULT 'F1.3',
+    source_lane TEXT,
+    trigger_source TEXT DEFAULT 'AUTO',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     status TEXT NOT NULL, -- 'SUCCESS', 'FAILED'
     total_records INTEGER DEFAULT 0,
@@ -364,3 +367,59 @@ CREATE TABLE IF NOT EXISTS fact_f41 (
 CREATE INDEX IF NOT EXISTS idx_f41_date ON fact_f41(ngay_do_kiem);
 CREATE INDEX IF NOT EXISTS idx_f41_date_bcvh_eval ON fact_f41(ngay_do_kiem, ma_bc_phat, danh_gia_co_tms_ptc_8h);
 CREATE INDEX IF NOT EXISTS idx_f41_bcvh_date ON fact_f41(ma_bc_phat, ngay_do_kiem);
+
+-- ============================================================
+-- F41-PHASE-2 - National aggregate Import foundation
+-- Additive only. Populated only by deliberate F4.1 TCT Import.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS fact_f41_national (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ngay_do_kiem TEXT NOT NULL,
+    import_log_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    stt INTEGER,
+    ma_don_vi TEXT NOT NULL,
+    ten_don_vi TEXT,
+    ma_huyen TEXT,
+    ten_huyen TEXT,
+    ma_bc TEXT,
+    ten_bc TEXT,
+    loai_bc TEXT,
+    ma_khl TEXT,
+    ten_khl TEXT,
+    sl_ptc_nop_tien_ch INTEGER DEFAULT 0,
+    sl_ptc_nop_tien INTEGER DEFAULT 0,
+    tl_ptc_nop_tien REAL DEFAULT 0,
+    sl_dung_12_5h INTEGER DEFAULT 0,
+    tl_dung_12_5h REAL DEFAULT 0,
+    sl_dung_72h INTEGER DEFAULT 0,
+    tl_dung_72h REAL DEFAULT 0,
+    sl_qua_12_5h INTEGER DEFAULT 0,
+    tl_qua_12_5h REAL DEFAULT 0,
+    sl_qua_72h INTEGER DEFAULT 0,
+    tl_qua_72h REAL DEFAULT 0,
+    sl_chua_du_thong_tin INTEGER DEFAULT 0,
+    sl_loai_tru INTEGER DEFAULT 0,
+    sl_chuyen_hoan INTEGER DEFAULT 0,
+    tl_chuyen_hoan REAL DEFAULT 0,
+    sl_ptc_8h_xnd_bd1 INTEGER DEFAULT 0,
+    tl_ptc_8h_xnd_bd1 REAL DEFAULT 0,
+    sl_ptc_8h_co_tms INTEGER DEFAULT 0,
+    tl_ptc_8h_co_tms REAL DEFAULT 0,
+    sl_bucket_12h INTEGER DEFAULT 0,
+    sl_bucket_14h INTEGER DEFAULT 0,
+    sl_bucket_16h INTEGER DEFAULT 0,
+    sl_bucket_36h INTEGER DEFAULT 0,
+    sl_bucket_36h_plus INTEGER DEFAULT 0,
+    sl_ptc_8h_lan_dau_xnd_bd1 INTEGER DEFAULT 0,
+    tl_ptc_8h_lan_dau_xnd_bd1 REAL DEFAULT 0,
+    sl_ptc_8h_lan_dau_co_tms INTEGER DEFAULT 0,
+    tl_ptc_8h_lan_dau_co_tms REAL DEFAULT 0,
+
+    UNIQUE(ngay_do_kiem, ma_don_vi),
+    FOREIGN KEY(import_log_id) REFERENCES import_log(id)
+);
+CREATE INDEX IF NOT EXISTS idx_f41_nat_ngay ON fact_f41_national(ngay_do_kiem);
+CREATE INDEX IF NOT EXISTS idx_f41_nat_don_vi_ngay ON fact_f41_national(ma_don_vi, ngay_do_kiem);

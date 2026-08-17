@@ -3,30 +3,20 @@
 const fs = require('fs');
 const path = require('path');
 const { get, run } = require('../config/db');
-const { extractDateFromFilename, parseF13Excel } = require('./excelParser');
-const { parseF13NationalExcel } = require('./nationalExcelParser');
-const { importParsedData, importNationalParsedData } = require('./importProcessor');
+const {
+    getIndicatorConfig,
+    resolveContextFromFilePath,
+    operationalDataRoot,
+    configuredTestDataRoot,
+} = require('./importIndicatorRegistry');
+const {
+    importParsedData,
+    importNationalParsedData,
+    importF41ParsedData,
+    importF41NationalParsedData,
+} = require('./importProcessor');
 
-// AUTO-IMPORT-012: mirror the isolation guard already used by src/config/db.js.
-// Under NODE_ENV=test, these paths must point into an isolated sandbox
-// directory, never into the real production Data DKCL/F1.3 tree, so running
-// any automated test can never read or write live Import data.
-const operationalDataRoot = path.resolve(process.cwd(), '../Data DKCL/F1.3');
-const configuredTestDataRoot = process.env.QIS_TEST_DATA_ROOT
-    ? path.resolve(process.env.QIS_TEST_DATA_ROOT)
-    : null;
-
-if (process.env.NODE_ENV === 'test') {
-    if (!configuredTestDataRoot) {
-        throw new Error('NODE_ENV=test requires QIS_TEST_DATA_ROOT to point to an isolated Import sandbox directory.');
-    }
-    if (configuredTestDataRoot === operationalDataRoot) {
-        throw new Error('QIS_TEST_DATA_ROOT must not resolve to the operational Data DKCL/F1.3 directory.');
-    }
-}
-
-const dataRoot = process.env.NODE_ENV === 'test' ? configuredTestDataRoot : operationalDataRoot;
-
+const dataRoot = getIndicatorConfig('F1.3').root;
 const BASE_INCOMING = path.join(dataRoot, 'Incoming');
 const BASE_PROCESSING = path.join(dataRoot, 'Processing');
 const BASE_PROCESSED = path.join(dataRoot, 'Processed');
@@ -38,10 +28,10 @@ function isMissingFileError(error) {
     return error?.code === 'ENOENT' || error?.code === 'EPERM';
 }
 
-function claimIncomingFile(filePath) {
+function claimIncomingFile(filePath, indicatorConfig = getIndicatorConfig('F1.3'), relativePathOverride = null) {
     const filename = path.basename(filePath);
-    const relativePath = path.relative(BASE_INCOMING, path.dirname(filePath));
-    const processingDir = path.join(BASE_PROCESSING, relativePath);
+    const relativePath = relativePathOverride || path.relative(indicatorConfig.incomingDir, path.dirname(filePath));
+    const processingDir = path.join(indicatorConfig.processingDir, relativePath);
     const processingPath = path.join(processingDir, filename);
 
     if (!fs.existsSync(filePath)) {
@@ -94,17 +84,22 @@ function moveClaimedFile({ processingPath, filename, relativePath, destDir }) {
 }
 
 async function getHueCommittedEvidence(ngay_do_kiem) {
+    return getCommittedEvidence({ ngay_do_kiem, indicator: 'F1.3', factTable: 'fact_f13' });
+}
+
+async function getCommittedEvidence({ ngay_do_kiem, indicator, factTable }) {
     const row = await get(
         `SELECT log.id, log.status, COUNT(fact.id) AS fact_count
          FROM import_log log
-         LEFT JOIN fact_f13 fact ON fact.import_log_id = log.id
+         LEFT JOIN ${factTable} fact ON fact.import_log_id = log.id
          WHERE log.ngay_do_kiem = ?
+           AND COALESCE(log.indicator, 'F1.3') = ?
            AND log.status IN ('SUCCESS', 'FILE_MOVE_FAILED')
          GROUP BY log.id, log.status
          HAVING COUNT(fact.id) > 0
          ORDER BY log.id DESC
          LIMIT 1`,
-        [ngay_do_kiem]
+        [ngay_do_kiem, indicator]
     );
     if (!row || !HUE_COMMITTED_STATUSES.has(row.status) || Number(row.fact_count || 0) <= 0) {
         return null;
@@ -135,10 +130,10 @@ async function recordRecoverableFileMoveFailure({ importLogId, filename, ngay_do
     };
 }
 
-function quarantineStaleProcessedEvidence({ relativePath, filename, clock = () => new Date() }) {
-    const processedPath = path.join(BASE_PROCESSED, relativePath, filename);
+function quarantineStaleProcessedEvidence({ indicatorConfig = getIndicatorConfig('F1.3'), relativePath, filename, clock = () => new Date() }) {
+    const processedPath = path.join(indicatorConfig.processedDir, relativePath, filename);
     if (!fs.existsSync(processedPath)) return null;
-    const quarantineDir = path.join(BASE_QUARANTINE, relativePath);
+    const quarantineDir = path.join(indicatorConfig.quarantineDir, relativePath);
     if (!fs.existsSync(quarantineDir)) fs.mkdirSync(quarantineDir, { recursive: true });
     const parsed = path.parse(filename);
     const quarantinePath = path.join(
@@ -156,8 +151,10 @@ function quarantineStaleProcessedEvidence({ relativePath, filename, clock = () =
  * @param {boolean} forceReimport - Whether to overwrite existing data
  * @param {string} source - 'AUTO' or 'MANUAL'
  */
-async function executeImport({ filePath, forceReimport = false, source = 'AUTO' }) {
-    const claim = claimIncomingFile(filePath);
+async function executeImport({ filePath, forceReimport = false, source = 'AUTO', indicator = null, lane = null }) {
+    const context = resolveContextFromFilePath(filePath, { indicator, lane });
+    const { indicatorConfig, laneConfig } = context;
+    const claim = claimIncomingFile(filePath, indicatorConfig, context.relativePath);
     if (!claim.claimed) {
         console.log(`[importPipeline][${source}] SKIP | ${claim.filename} | already claimed or processed`);
         return {
@@ -180,19 +177,28 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO' 
 
     try {
         // 1. Validate & Extract Date
-        ngay_do_kiem = extractDateFromFilename(filename);
+        ngay_do_kiem = indicatorConfig.extractDate(filename);
 
         // 2. Check Reimport (only if not forced)
         if (!forceReimport) {
-            const existing = relativePath.startsWith('TCT') || relativePath === 'TCT'
+            const existing = laneConfig.lane === 'TCT'
                 ? await get(
-                    `SELECT id FROM import_log WHERE ngay_do_kiem = ? AND status = 'SUCCESS' LIMIT 1`,
-                    [ngay_do_kiem]
+                    `SELECT id, status FROM import_log
+                     WHERE ngay_do_kiem = ?
+                       AND COALESCE(indicator, 'F1.3') = ?
+                       AND source_lane = 'TCT'
+                       AND status = 'SUCCESS'
+                     LIMIT 1`,
+                    [ngay_do_kiem, laneConfig.indicator]
                 )
-                : await getHueCommittedEvidence(ngay_do_kiem);
+                : await getCommittedEvidence({
+                    ngay_do_kiem,
+                    indicator: laneConfig.indicator,
+                    factTable: laneConfig.targetTable,
+                });
             if (existing) {
                 try {
-                    moveFile(BASE_INCOMING);
+                    moveFile(indicatorConfig.incomingDir);
                 } catch (moveBackError) {
                     console.error(`[importPipeline] Cannot return confirmed file '${filename}' to Incoming: ${moveBackError.message}`);
                 }
@@ -207,40 +213,34 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO' 
 
         let parsedData, result;
 
-        if (relativePath.startsWith('TCT') || relativePath === 'TCT') {
+        if (laneConfig.lane === 'TCT') {
             const buffer = fs.readFileSync(processingPath);
-            const parsed = parseF13NationalExcel(buffer);
+            const parsed = laneConfig.parser(buffer, filename);
             parsedData = parsed.parsedData;
             totalParsed = parsed.totalParsed;
 
             importStarted = true;
-            result = await importNationalParsedData({
-                parsedData,
-                ngay_do_kiem,
-                filename,
-                forceReimport
-            });
+            result = laneConfig.indicator === 'F4.1'
+                ? await importF41NationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport, triggerSource: source })
+                : await importNationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport, indicator: 'F1.3', sourceLane: 'TCT', triggerSource: source });
         } else {
-            quarantineStaleProcessedEvidence({ relativePath, filename });
+            quarantineStaleProcessedEvidence({ indicatorConfig, relativePath, filename });
             const buffer = fs.readFileSync(processingPath);
-            const parsed = parseF13Excel(buffer);
+            const parsed = laneConfig.parser(buffer, filename);
             parsedData = parsed.parsedData;
             totalParsed = parsed.totalParsed;
 
             importStarted = true;
-            result = await importParsedData({
-                parsedData,
-                ngay_do_kiem,
-                filename,
-                forceReimport
-            });
+            result = laneConfig.indicator === 'F4.1'
+                ? await importF41ParsedData({ parsedData, ngay_do_kiem, filename, forceReimport, triggerSource: source })
+                : await importParsedData({ parsedData, ngay_do_kiem, filename, forceReimport, indicator: 'F1.3', sourceLane: 'HUE', triggerSource: source });
         }
 
         let moveResult = null;
         try {
-            moveResult = moveFile(BASE_PROCESSED);
+            moveResult = moveFile(indicatorConfig.processedDir);
         } catch (moveError) {
-            if (!(relativePath.startsWith('TCT') || relativePath === 'TCT') && result?.import_log_id) {
+            if (laneConfig.lane !== 'TCT' && result?.import_log_id) {
                 console.error(`[importPipeline][${source}] FILE_MOVE_FAILED | ${filename} | ${moveError.message}`);
                 return recordRecoverableFileMoveFailure({
                     importLogId: result.import_log_id,
@@ -271,16 +271,16 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO' 
             try {
                 await run(
                     `INSERT INTO import_log
-                        (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-                     VALUES (?, ?, 'FAILED', ?, ?, 0)`,
-                    [filename, ngay_do_kiem, totalParsed, totalParsed || 1]
+                        (file_name, ngay_do_kiem, indicator, source_lane, trigger_source, status, total_records, error_records, skipped_records)
+                     VALUES (?, ?, ?, ?, ?, 'FAILED', ?, ?, 0)`,
+                    [filename, ngay_do_kiem, laneConfig.indicator, laneConfig.lane, source, totalParsed, totalParsed || 1]
                 );
             } catch (logErr) {
                 console.error(`[importPipeline] Could not write FAILED log for '${filename}': ${logErr.message}`);
             }
         }
         try {
-            moveFile(BASE_ERROR);
+            moveFile(indicatorConfig.errorDir);
         } catch (moveError) {
             console.error(`[importPipeline] Cannot move failed file '${filename}' to Error: ${moveError.message}`);
         }
@@ -298,6 +298,7 @@ module.exports = {
     BASE_ERROR,
     BASE_QUARANTINE,
     getHueCommittedEvidence,
+    getCommittedEvidence,
     quarantineStaleProcessedEvidence,
     dataRoot,
     operationalDataRoot

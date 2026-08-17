@@ -23,6 +23,8 @@ const path = require('path');
 const { run, get }                                       = require('../config/db');
 const { extractDateFromFilename, parseF13Excel, DB_COLUMNS } = require('./excelParser');
 const { NATIONAL_DB_COLUMNS } = require('./nationalExcelParser');
+const { F41_HUE_DB_COLUMNS } = require('./f41HueExcelParser');
+const { F41_TCT_DB_COLUMNS } = require('./f41TctExcelParser');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -39,6 +41,26 @@ const BATCH_SIZE        = Math.floor(MAX_SQLITE_PARAMS / INSERT_COLUMNS.length);
 // Pre-build per-row placeholder string: "(?, ?, ...)" with INSERT_COLUMNS.length placeholders
 const SINGLE_ROW_PLACEHOLDER = `(${INSERT_COLUMNS.map(() => '?').join(', ')})`;
 const COLUMN_LIST             = INSERT_COLUMNS.join(', ');
+
+function buildInsertSpec(dbColumns) {
+    const insertColumns = [...dbColumns, 'ngay_do_kiem', 'import_log_id'];
+    return {
+        insertColumns,
+        columnList: insertColumns.join(', '),
+        rowPlaceholder: `(${insertColumns.map(() => '?').join(', ')})`,
+        batchSize: Math.floor(MAX_SQLITE_PARAMS / insertColumns.length),
+    };
+}
+
+async function insertImportLog({ filename, ngay_do_kiem, status, totalRecords, errorRecords = 0, skippedRecords = 0, indicator = 'F1.3', sourceLane = null, triggerSource = 'AUTO' }) {
+    const result = await run(
+        `INSERT INTO import_log
+            (file_name, ngay_do_kiem, indicator, source_lane, trigger_source, status, total_records, error_records, skipped_records)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [filename, ngay_do_kiem, indicator, sourceLane, triggerSource, status, totalRecords, errorRecords, skippedRecords]
+    );
+    return result.lastID;
+}
 
 function isIsoCalendarDate(value) {
     if (typeof value !== 'string') return false;
@@ -97,6 +119,8 @@ function buildHueCommitVerificationError({ filename, expectedCount, factCount })
 }
 
 async function verifyHueImportTransaction({ ngay_do_kiem, importLogId, expectedCount, filename }) {
+    if (Number(expectedCount || 0) === 0) return 0;
+
     const fact = await get(
         `SELECT COUNT(*) AS fact_count
          FROM fact_f13
@@ -154,7 +178,10 @@ async function importParsedData({
     filename,
     forceReimport = false,
     verifyExpectedCount = null,
-    failBeforeSuccessLogUpdate = false
+    failBeforeSuccessLogUpdate = false,
+    indicator = 'F1.3',
+    sourceLane = 'HUE',
+    triggerSource = 'AUTO'
 }) {
     const totalParsed = parsedData.length;
 
@@ -172,13 +199,15 @@ async function importParsedData({
 
         // ── Step 2: Create import_log entry ───────────────────────────────────
         // error_records will be updated at Step 4 with the accurate count.
-        const logResult = await run(
-            `INSERT INTO import_log
-                (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-             VALUES (?, ?, 'PENDING', ?, 0, 0)`,
-            [filename, ngay_do_kiem, totalParsed]
-        );
-        import_log_id = logResult.lastID;
+        import_log_id = await insertImportLog({
+            filename,
+            ngay_do_kiem,
+            status: 'PENDING',
+            totalRecords: totalParsed,
+            indicator,
+            sourceLane,
+            triggerSource,
+        });
 
         // ── Step 3: Batch INSERT OR IGNORE ────────────────────────────────────
         // TD § 2.1: INSERT OR IGNORE skips rows violating UNIQUE(ngay_do_kiem, ma_bg)
@@ -264,9 +293,9 @@ async function importParsedData({
         try {
             await run(
                 `INSERT INTO import_log
-                    (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-                 VALUES (?, ?, 'FAILED', ?, ?, 0)`,
-                [filename, ngay_do_kiem, totalParsed, totalParsed]
+                    (file_name, ngay_do_kiem, indicator, source_lane, trigger_source, status, total_records, error_records, skipped_records)
+                 VALUES (?, ?, ?, ?, ?, 'FAILED', ?, ?, 0)`,
+                [filename, ngay_do_kiem, indicator, sourceLane, triggerSource, totalParsed, totalParsed]
             );
         } catch (logErr) {
             console.error('[importProcessor] Could not write FAILED log:', logErr.message);
@@ -280,7 +309,7 @@ async function importParsedData({
 // National Import Function
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false }) {
+async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, indicator = 'F1.3', sourceLane = 'TCT', triggerSource = 'AUTO' }) {
     const totalParsed = parsedData.length;
 
     await run('BEGIN TRANSACTION');
@@ -291,13 +320,15 @@ async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, fo
             await run('DELETE FROM fact_f13_national WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
         }
 
-        const logResult = await run(
-            `INSERT INTO import_log
-                (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-             VALUES (?, ?, 'SUCCESS', ?, 0, 0)`,
-            [filename, ngay_do_kiem, totalParsed]
-        );
-        import_log_id = logResult.lastID;
+        import_log_id = await insertImportLog({
+            filename,
+            ngay_do_kiem,
+            status: 'SUCCESS',
+            totalRecords: totalParsed,
+            indicator,
+            sourceLane,
+            triggerSource,
+        });
 
         const INSERT_COLS = [...NATIONAL_DB_COLUMNS, 'ngay_do_kiem'];
         const SINGLE_PH = `(${INSERT_COLS.map(() => '?').join(', ')})`;
@@ -349,9 +380,9 @@ async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, fo
         try {
             await run(
                 `INSERT INTO import_log
-                    (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
-                 VALUES (?, ?, 'FAILED', ?, ?, 0)`,
-                [filename, ngay_do_kiem, totalParsed, totalParsed]
+                    (file_name, ngay_do_kiem, indicator, source_lane, trigger_source, status, total_records, error_records, skipped_records)
+                 VALUES (?, ?, ?, ?, ?, 'FAILED', ?, ?, 0)`,
+                [filename, ngay_do_kiem, indicator, sourceLane, triggerSource, totalParsed, totalParsed]
             );
         } catch (e) {}
 
@@ -359,8 +390,98 @@ async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, fo
     }
 }
 
+async function importF41ParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
+    const totalParsed = parsedData.length;
+    const spec = buildInsertSpec(F41_HUE_DB_COLUMNS);
+    await run('BEGIN TRANSACTION');
+    let import_log_id = null;
+
+    try {
+        if (forceReimport) await run('DELETE FROM fact_f41 WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+        import_log_id = await insertImportLog({
+            filename,
+            ngay_do_kiem,
+            status: 'SUCCESS',
+            totalRecords: totalParsed,
+            indicator: 'F4.1',
+            sourceLane: 'HUE',
+            triggerSource,
+        });
+
+        let totalInserted = 0;
+        for (let i = 0; i < totalParsed; i += spec.batchSize) {
+            const batch = parsedData.slice(i, i + spec.batchSize);
+            const values = [];
+            for (const row of batch) {
+                for (const column of F41_HUE_DB_COLUMNS) values.push(row[column] !== undefined ? row[column] : null);
+                values.push(ngay_do_kiem, import_log_id);
+            }
+            const sql = `INSERT OR IGNORE INTO fact_f41 (${spec.columnList}) VALUES ${batch.map(() => spec.rowPlaceholder).join(', ')}`;
+            const result = await run(sql, values);
+            totalInserted += result.changes;
+        }
+
+        const skippedRecords = totalParsed - totalInserted;
+        await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);
+        await run('COMMIT');
+        return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
+    } catch (error) {
+        try { await run('ROLLBACK'); } catch (e) {}
+        try {
+            await insertImportLog({ filename, ngay_do_kiem, status: 'FAILED', totalRecords: totalParsed, errorRecords: totalParsed, indicator: 'F4.1', sourceLane: 'HUE', triggerSource });
+        } catch (e) {}
+        throw error;
+    }
+}
+
+async function importF41NationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
+    const totalParsed = parsedData.length;
+    const spec = buildInsertSpec(F41_TCT_DB_COLUMNS);
+    await run('BEGIN TRANSACTION');
+    let import_log_id = null;
+
+    try {
+        if (forceReimport) await run('DELETE FROM fact_f41_national WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+        import_log_id = await insertImportLog({
+            filename,
+            ngay_do_kiem,
+            status: 'SUCCESS',
+            totalRecords: totalParsed,
+            indicator: 'F4.1',
+            sourceLane: 'TCT',
+            triggerSource,
+        });
+
+        let totalInserted = 0;
+        for (let i = 0; i < totalParsed; i += spec.batchSize) {
+            const batch = parsedData.slice(i, i + spec.batchSize);
+            const values = [];
+            for (const row of batch) {
+                for (const column of F41_TCT_DB_COLUMNS) values.push(row[column] !== undefined ? row[column] : null);
+                values.push(ngay_do_kiem, import_log_id);
+            }
+            const sql = `INSERT OR IGNORE INTO fact_f41_national (${spec.columnList}) VALUES ${batch.map(() => spec.rowPlaceholder).join(', ')}`;
+            const result = await run(sql, values);
+            totalInserted += result.changes;
+        }
+
+        const skippedRecords = totalParsed - totalInserted;
+        await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);
+        await run('COMMIT');
+        return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
+    } catch (error) {
+        try { await run('ROLLBACK'); } catch (e) {}
+        try {
+            await insertImportLog({ filename, ngay_do_kiem, status: 'FAILED', totalRecords: totalParsed, errorRecords: totalParsed, indicator: 'F4.1', sourceLane: 'TCT', triggerSource });
+        } catch (e) {}
+        throw error;
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 module.exports = {
     importParsedData,
-    importNationalParsedData
+    importNationalParsedData,
+    importF41ParsedData,
+    importF41NationalParsedData,
 };

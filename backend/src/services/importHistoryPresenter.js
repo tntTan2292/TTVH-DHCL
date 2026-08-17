@@ -3,6 +3,7 @@
 const path = require('path');
 
 const REPORT_TYPE_F13 = 'F1.3';
+const REPORT_TYPE_F41 = 'F4.1';
 const UNKNOWN_SOURCE = 'UNKNOWN';
 const UNKNOWN_SOURCE_LABEL = 'CHUA XAC DINH';
 
@@ -29,6 +30,16 @@ function buildEvidenceMessage({ source, reason, missingEvidence }) {
 }
 
 function resolveImportHistorySource(row = {}) {
+    if (row.source_lane === 'HUE' || row.source_lane === 'TCT') {
+        return {
+            source: row.source_lane,
+            source_label: row.source_lane,
+            evidence_reason: 'IMPORT_LOG_METADATA',
+            evidence_path: row.source_lane === 'HUE' ? row.hue_processed_path || null : row.tct_processed_path || null,
+            missing_evidence: null
+        };
+    }
+
     const hasHueFactEvidence = positiveCount(row.hue_fact_count);
     const hasTctNationalEvidence = row.status === 'SUCCESS' && positiveCount(row.tct_national_row_count);
     const hasHueProcessedPath = Boolean(row.hue_processed_path);
@@ -101,7 +112,7 @@ function presentImportHistoryRow(row = {}) {
         id: row.id,
         source: sourceResolution.source,
         source_label: sourceResolution.source_label,
-        report_type: REPORT_TYPE_F13,
+        report_type: row.indicator || REPORT_TYPE_F13,
         business_date: row.ngay_do_kiem || null,
         original_filename: originalFilename,
         standardized_filename: standardizedFilename,
@@ -124,6 +135,7 @@ function presentImportHistoryRow(row = {}) {
 
 module.exports = {
     REPORT_TYPE_F13,
+    REPORT_TYPE_F41,
     UNKNOWN_SOURCE,
     UNKNOWN_SOURCE_LABEL,
     resolveImportHistorySource,

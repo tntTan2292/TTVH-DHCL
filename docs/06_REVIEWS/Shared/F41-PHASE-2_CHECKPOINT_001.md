@@ -1,0 +1,95 @@
+# F41-PHASE-2 - Checkpoint 001
+
+## 1. Ticket State
+
+- Ticket: `F41-PHASE-2`
+- State: `ACTIVE / IMPLEMENTATION AUTHORIZED`
+- Executor: `Codex`
+- Parent phase: `F41-PHASE-1`, Product Owner `PO PASS`.
+- Activation baseline: `8902fc57`
+- Activation date: `2026-08-17`
+
+## 2. Baseline And Workspace
+
+- Workspace: `D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong`
+- Branch: `codex/da-impl-006`
+- Baseline commit: `8902fc57`
+- Initial worktree status: only pre-existing untracked baseline exclusions `.claude/` and `Data QLML/`.
+- These two paths remain excluded from inspection, staging, deletion, movement, restore, and modification.
+
+## 3. Activation Authority
+
+Product Owner decisions:
+
+- `F41-PHASE-1`: `PO PASS`.
+- Phase 2 authorized: multi-indicator Import for F1.3/F4.1, HUE/TCT; controlled first F4.1 import.
+- Dashboard, BCVH Ranking and Evidence are explicitly out of scope.
+- Do not guess the F4.1 portal export-match string.
+
+## 4. Scope Lock
+
+Allowed:
+
+- Additive `fact_f41_national`.
+- Dedicated positional F4.1 TCT parser for the frozen 38-column workbook.
+- Indicator registry for F1.3/F4.1 carrying roots, filename rules, parsers and target tables.
+- Generalized pipeline/watcher with unchanged F1.3 behavior and per-indicator test-isolation guards.
+- Admin-only Import selector for indicator and HUE/TCT lane.
+- Manual Import independent of portal automation.
+- One deliberate, observed real F4.1 HUE and TCT import after schema, parsers, and isolated tests pass.
+
+Locked out:
+
+- Dashboard, BCVH Ranking, Evidence, Phase 3.
+- Portal export-match implementation for F4.1.
+- Manual movement/modification of source files.
+- Unrelated UI/module changes.
+
+## 5. Implementation Evidence
+
+- Additive schema/migration:
+  - `backend/migrate_f41_phase2_schema.js` creates `fact_f41_national` and adds `import_log.indicator`, `import_log.source_lane`, `import_log.trigger_source`.
+  - `backend/src/db/schema.sql` includes the same fresh-bootstrap schema.
+  - `backend/server.js` runs `applyF41Phase2Schema(activeDbPath)` after the existing Network Management Phase 1-4 migrations and F41 Phase 1 migration, before `app.listen()` and `startWatcher()`.
+- F4.1 TCT parser:
+  - `backend/src/services/f41TctExcelParser.js` is positional for the frozen 38-column workbook.
+  - It skips header/legend/grand-total rows and requires exactly 46 reporting units.
+- Multi-indicator Import foundation:
+  - `backend/src/services/importIndicatorRegistry.js` carries F1.3/F4.1 roots, filename rules, HUE/TCT parsers, and target tables.
+  - `backend/src/services/importPipeline.js`, `backend/src/services/importProcessor.js`, and `backend/src/services/importWatcher.js` were generalized through the registry while preserving F1.3 defaults and test-isolation guards.
+  - `backend/src/controllers/importController.js` accepts explicit `indicator` and HUE/TCT lane for manual Import.
+  - `frontend/src/components/UploadWidget.jsx` adds the Admin Import selector for `F1.3`/`F4.1` and `HUE`/`TCT`.
+- Controlled real Import:
+  - Applied live migration with `node migrate_f41_phase2_schema.js`; migration inserted no business data.
+  - Deliberately ran manual F4.1 HUE and TCT pipeline imports only after targeted schema/parser/pipeline tests passed.
+  - The source files were not moved by hand; the Import pipeline moved accepted files to `Data DKCL/F4.1/Processed/HUE/` and `Data DKCL/F4.1/Processed/TCT/`.
+
+## 6. Validation Evidence
+
+- Targeted F4.1 validation PASS:
+  - `node --test migrate_f41_phase2_schema.test.js test_f41TctExcelParser.js test_f41ImportPipeline.js server.startupMigrations.test.js test_f41HueExcelParser.js migrate_f41_phase1_schema.test.js`
+  - Result: `15/15` tests passed.
+- F1.3 regression validation PASS:
+  - `node --test test_importProcessor.js test_importPipelineRace.js test_importHistoryPresenter.js test_importHistoryDefect3Recovery.js test_e2e_import_engine.js test_dkclImportOperationsContract.js`
+  - Result: all 6 test files passed; existing F1.3 processor, race, history, E2E import, and DKCL contract checks stayed green.
+- Frontend validation PASS:
+  - `npm run build` in `frontend/` passed.
+  - `npm run lint` in `frontend/` passed with pre-existing warnings outside this Phase 2 change.
+- Live pre/post proof:
+  - `fact_f13` before real F4.1 import: `709,234`.
+  - `fact_f13` after real F4.1 import: `709,234`.
+- Live HUE reconciliation after controlled import:
+  - `fact_f41` date `2026-08-01`: total `4,695`; `Đạt 2,863`; `Không đạt 1,581`; blank `251`; rate `60.98%`.
+- Live TCT reconciliation after controlled import:
+  - `fact_f41_national` date `2026-08-01`: `46` reporting-unit rows; `0` null unit codes; grand total excluded.
+- Live Import logs:
+  - HUE log `id=1245`, indicator `F4.1`, source lane `HUE`, trigger `MANUAL`, status `SUCCESS`, total `4,695`, errors `0`, skipped `0`.
+  - TCT log `id=1246`, indicator `F4.1`, source lane `TCT`, trigger `MANUAL`, status `SUCCESS`, total `46`, errors `0`, skipped `0`.
+- Retry/deduplication proof:
+  - `test_f41ImportPipeline.js` re-submits the same F4.1 HUE date in an isolated temp Import root and receives `requiresConfirmation=true`, with `fact_f41` and `fact_f13` unchanged.
+
+## 7. Handoff
+
+`PHASE 2 IMPLEMENTED / READY FOR PO CHECK`.
+
+Phase 3 remains not activated. Dashboard, BCVH Ranking, Evidence, portal export-match implementation, and unrelated modules remain out of scope.
