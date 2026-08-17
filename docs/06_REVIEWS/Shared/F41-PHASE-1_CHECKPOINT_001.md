@@ -90,3 +90,30 @@ Live database validation:
 State: `PHASE 1 COMPLETE / READY FOR PO REVIEW`.
 
 Phase 2 remains not activated. No Import/watcher, TCT, portal sync, frontend, Dashboard, Ranking or Evidence work was performed.
+
+## 8. Remediation 001 - Startup Migration Gap
+
+Review finding: `fact_f41` migration existed and had been manually applied, but `backend/server.js` did not invoke it during startup. A new or upgraded environment therefore would not self-heal the F4.1 schema.
+
+Remediation scope was single-defect only:
+
+- `backend/server.js` now imports `applyF41Phase1Schema`.
+- Existing startup migration sequence is preserved: Network Management Phase 1 -> Phase 2 -> Phase 3 -> Phase 4, then F41 Phase 1.
+- The sequence completes before `app.listen()` and before `startWatcher()`.
+- Startup failure wording now says `STARTUP SCHEMA MIGRATION FAILED`, truthfully covering all startup schema migrations.
+- Startup sequence was exported for targeted tests without starting a real listener or watcher.
+
+Targeted proof:
+
+- `node --test server.startupMigrations.test.js` -> PASS (`1/1`).
+- Test uses a temporary SQLite database, seeds a single `fact_f13` sentinel row, calls `ensureStartupSchemaMigrations(dbPath)` twice, and verifies:
+  - `fact_f41` is created;
+  - the sequence is idempotent;
+  - `fact_f41` row count remains `0`;
+  - `fact_f13` row count and sentinel values remain unchanged.
+- Regression checks retained:
+  - `node --test migrate_f41_phase1_schema.test.js test_f41HueExcelParser.js src/repositories/FactF41Repository.test.js` -> PASS (`11/11`).
+
+Out-of-scope surfaces remained untouched: Import/watcher logic, TCT, portal sync, frontend, Dashboard, Ranking, Evidence, Phase 2.
+
+State remains: `PHASE 1 COMPLETE / READY FOR PO REVIEW`.

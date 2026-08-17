@@ -60,3 +60,5 @@ Required evidence before closure:
 `PHASE 1 COMPLETE / READY FOR PO REVIEW`. Phase 2 is not activated.
 
 Completion evidence is recorded in `docs/06_REVIEWS/Shared/F41-PHASE-1_CHECKPOINT_001.md` Sections 5-7.
+
+Remediation 001 evidence for the startup migration gap is recorded in checkpoint Section 8. State remains `PHASE 1 COMPLETE / READY FOR PO REVIEW`; Phase 2 is not activated.

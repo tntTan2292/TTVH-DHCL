@@ -765,3 +765,12 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Source-file integrity: HUE source SHA-256 after validation `DCAAE8E10370D9CE3661141E3167A0838329591473FDBC961182757D933636A8`, matching the Phase 0 baseline; no file under `Data DKCL/` was modified.
 - Out-of-scope surfaces remained untouched: Import/watcher, TCT, portal sync, frontend, Dashboard, Ranking, Evidence, `.claude/`, `Data QLML/`.
 - State: `PHASE 1 COMPLETE / READY FOR PO REVIEW`. Phase 2 not activated.
+
+## F41-PHASE-1 - Remediation 001: Startup Migration Gap Fixed
+
+- Review finding fixed: `fact_f41` migration is now part of the backend startup schema migration sequence, after the existing Network Management Phase 1-4 migrations and before `app.listen()` / `startWatcher()`.
+- Failure wording updated from Network-only to `STARTUP SCHEMA MIGRATION FAILED`, matching the broader startup schema sequence.
+- Targeted test added: `server.startupMigrations.test.js` uses a temporary database, does not start a listener or watcher, and proves `fact_f41` is created, the sequence is idempotent, `fact_f41` remains empty, and `fact_f13` remains unchanged.
+- Validation PASS: startup migration test `1/1`; retained F4.1 migration/parser/repository regression `11/11`.
+- No Import/watcher logic, TCT, portal sync, frontend, Dashboard, Ranking, Evidence or Phase 2 work.
+- State remains: `PHASE 1 COMPLETE / READY FOR PO REVIEW`. Phase 2 not activated.

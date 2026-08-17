@@ -15,6 +15,7 @@ const { applyNetworkManagement001Phase1Schema } = require('./migrate_network_man
 const { applyNetworkManagement001Phase2Schema } = require('./migrate_network_management_001_phase2_schema');
 const { applyNetworkManagement001Phase3Schema } = require('./migrate_network_management_001_phase3_schema');
 const { applyNetworkManagement001Phase4Schema } = require('./migrate_network_management_001_phase4_schema');
+const { applyF41Phase1Schema } = require('./migrate_f41_phase1_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -94,43 +95,56 @@ app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
 app.use('/api/network-map', networkMapRoutes);
 
-// NETWORK-MANAGEMENT-001: additive, idempotent schema migrations applied on
-// every startup so any environment running this codebase self-heals its
-// schema instead of depending on a manual one-off script per machine.
-async function ensureNetworkManagementSchema() {
-    await applyNetworkManagement001Phase1Schema(activeDbPath);
-    await applyNetworkManagement001Phase2Schema(activeDbPath);
-    await applyNetworkManagement001Phase3Schema(activeDbPath);
-    await applyNetworkManagement001Phase4Schema(activeDbPath);
+// Additive, idempotent schema migrations applied on every startup so any
+// environment running this codebase self-heals instead of depending on
+// manual one-off scripts per machine.
+async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
+    await applyNetworkManagement001Phase1Schema(dbPath);
+    await applyNetworkManagement001Phase2Schema(dbPath);
+    await applyNetworkManagement001Phase3Schema(dbPath);
+    await applyNetworkManagement001Phase4Schema(dbPath);
+    await applyF41Phase1Schema(dbPath);
 }
 
-ensureNetworkManagementSchema()
-    .then(() => {
-        const server = app.listen(PORT, HOST, () => {
-            logRuntimeBanner();
-            console.log(`TTVH Backend running on port ${PORT}`);
-            startWatcher();
-        });
+function startServer() {
+    return ensureStartupSchemaMigrations(activeDbPath)
+        .then(() => {
+            const server = app.listen(PORT, HOST, () => {
+                logRuntimeBanner();
+                console.log(`TTVH Backend running on port ${PORT}`);
+                startWatcher();
+            });
 
-        server.on('error', (error) => {
-            if (error?.code === 'EADDRINUSE') {
-                console.error('====================================');
-                console.error(`PORT ${PORT} IS OCCUPIED`);
-                console.error(`Host: ${HOST}`);
-                console.error('Run the Windows port check first:');
-                console.error('powershell -ExecutionPolicy Bypass -File .\\scripts\\check-qis-lan-ports.ps1');
-                console.error('Then stop the owning process before restarting QIS V2.');
-                console.error('====================================');
-                process.exit(1);
-            }
+            server.on('error', (error) => {
+                if (error?.code === 'EADDRINUSE') {
+                    console.error('====================================');
+                    console.error(`PORT ${PORT} IS OCCUPIED`);
+                    console.error(`Host: ${HOST}`);
+                    console.error('Run the Windows port check first:');
+                    console.error('powershell -ExecutionPolicy Bypass -File .\\scripts\\check-qis-lan-ports.ps1');
+                    console.error('Then stop the owning process before restarting QIS V2.');
+                    console.error('====================================');
+                    process.exit(1);
+                }
 
-            throw error;
+                throw error;
+            });
+        })
+        .catch((error) => {
+            console.error('====================================');
+            console.error('STARTUP SCHEMA MIGRATION FAILED');
+            console.error(`Error: ${error?.message || error}`);
+            console.error('====================================');
+            process.exit(1);
         });
-    })
-    .catch((error) => {
-        console.error('====================================');
-        console.error('NETWORK-MANAGEMENT-001 SCHEMA MIGRATION FAILED');
-        console.error(`Error: ${error?.message || error}`);
-        console.error('====================================');
-        process.exit(1);
-    });
+}
+
+if (require.main === module) {
+    startServer();
+}
+
+module.exports = {
+    app,
+    ensureStartupSchemaMigrations,
+    startServer,
+};
