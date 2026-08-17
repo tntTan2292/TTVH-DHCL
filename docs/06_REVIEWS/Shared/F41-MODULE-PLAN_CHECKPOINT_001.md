@@ -20,6 +20,12 @@ Planning and documentation only. No product code, database, schema, or Import be
 - [14. Risk Register](#14-risk-register)
 - [15. PO Gates](#15-po-gates)
 - [16. Open Questions For Product Owner](#16-open-questions-for-product-owner)
+- [17. Planning Remediation Round — New PO Decisions](#17-planning-remediation-round--new-po-decisions)
+- [18. Source File Inventory — F4.1 TCT (read-only)](#18-source-file-inventory--f41-tct-read-only)
+- [19. Cross-Lane Reconciliation — HUE vs TCT](#19-cross-lane-reconciliation--hue-vs-tct)
+- [20. Revised TCT Data And Import Contract](#20-revised-tct-data-and-import-contract)
+- [21. Correction To D-17](#21-correction-to-d-17)
+- [22. Disposition Of Q-1..Q-5 And Remaining Open Item](#22-disposition-of-q-1q-5-and-remaining-open-item)
 
 ## 1. Ticket State
 
@@ -28,6 +34,7 @@ Planning and documentation only. No product code, database, schema, or Import be
 - Executor: `Claude Code (Opus)`
 - Activation authority: Product Owner authorized activating `F41-MODULE-PLAN` from `NO ACTIVE TICKET`, planning/documentation only.
 - Activation date: `2026-08-17`
+- Planning remediation round: `2026-08-17`, continued from authoritative `HEAD a0434d7b` under Product Owner authorization for planning remediation only. Sections 17-22 are the delta of that round and **supersede** the earlier text where they say so — specifically `D-10` (Section 6), `D-12` (Section 6), `D-17` (Section 7), risk `R-6`, and open questions `Q-1..Q-5` (Section 16). Sections 1-16 are otherwise unchanged and remain the record of the first round.
 
 ## 2. Baseline And Workspace
 
@@ -50,6 +57,9 @@ Recorded verbatim in effect; not inferred, not extended.
 | PO-5 | `Chậm nộp tiền` handling and acceptance follow F1.3 unchanged. Nothing further is to be inferred. |
 | PO-6 | `531120` is still stored and still counted in the module total, but hidden from `BCVH Ranking`. |
 | PO-7 | Import direction is multi-indicator, supporting both `Huế` and `TCT`. |
+| PO-8 | A real F4.1 **TCT** source now exists at `Data DKCL/F4.1/Incoming/TCT` (2026-08-17, remediation round). |
+| PO-9 | The official DKCL report/module name for F4.1 is `F4.1_Chất lượng phát thành công của bưu cục`, distinct from F1.3's `F1.3_Chất lượng phát bưu gửi liên tỉnh_KPI` (2026-08-17, remediation round). |
+| PO-10 | Role contract: `admin` **and** `viewer` may view Dashboard, BCVH Ranking and Evidence; Import remains `admin`-only (2026-08-17, remediation round). |
 
 ## 4. Allowed And Locked Scope
 
@@ -90,11 +100,11 @@ Verified against baseline `c2f4bdd7`.
 
 **D-9 — The watcher is single-rooted.** `backend/src/services/importWatcher.js:8` watches only `BASE_INCOMING` from the F1.3 pipeline, with `ignoreInitial: false` — i.e. **every `.xlsx` already present at startup is imported**. See risk R-1.
 
-**D-10 — The portal-sync layer is name-locked to F1.3.** `dkclHueF13SyncService.js:50` builds `F1.3-${date}.xlsx`; line 349 matches the DKCL export named `F1.3_chat_luong_phat_buu_giay_lien_tinh_chi_tiet`. `tctF13BackfillService.js`, `dkclHueF13BackfillService.js`, `dkclHueF13PortalClient.js`, `dkclSessionPreflightService.js` and `DataImportCenter.jsx` all carry the same F1.3 assumption in labels, coverage/scan endpoints, and queue logic. PO-7 (multi-indicator, Huế + TCT) therefore touches the portal layer, not just the file pipeline.
+**D-10 — The portal-sync layer is name-locked to F1.3.** *(Amended by Section 17: the F4.1 report name is now known — PO-9.)* `dkclHueF13SyncService.js:50` builds `F1.3-${date}.xlsx`; line 349 matches the DKCL export named `F1.3_chat_luong_phat_buu_giay_lien_tinh_chi_tiet`. `tctF13BackfillService.js`, `dkclHueF13BackfillService.js`, `dkclHueF13PortalClient.js`, `dkclSessionPreflightService.js` and `DataImportCenter.jsx` all carry the same F1.3 assumption in labels, coverage/scan endpoints, and queue logic. PO-7 (multi-indicator, Huế + TCT) therefore touches the portal layer, not just the file pipeline.
 
 **D-11 — The filename-date rule is regex-locked.** `excelParser.extractDateFromFilename()` accepts only `^F1\.3-(\d{4})\.(\d{2})\.(\d{2})\.xlsx$`. The observed F4.1 file `F4.1-2026.08.01.xlsx` follows the identical convention, so PO-3 is directly implementable with an indicator-aware prefix.
 
-**D-12 — The F4.1 directory tree already exists and is already loaded.** `Data DKCL/F4.1/{Incoming,Processed,Error}/{HUE,TCT}` exists with `.gitkeep` files, and `Data DKCL/F4.1/Incoming/HUE/F4.1-2026.08.01.xlsx` is already staged there. It is currently inert because the watcher never looks at that tree. `Data DKCL/F1.1` and `F1.2` have the same empty scaffolding. `Data DKCL/F4.1/Incoming/TCT` is **empty** — there is no TCT sample for F4.1 anywhere in the workspace (Section 16, Q-1).
+**D-12 — The F4.1 directory tree already exists and is already loaded.** `Data DKCL/F4.1/{Incoming,Processed,Error}/{HUE,TCT}` exists with `.gitkeep` files, and `Data DKCL/F4.1/Incoming/HUE/F4.1-2026.08.01.xlsx` is already staged there. It is currently inert because the watcher never looks at that tree. `Data DKCL/F1.1` and `F1.2` have the same empty scaffolding. `Data DKCL/F4.1/Incoming/TCT` was **empty** at the time of the first round — *superseded by Section 18: a real TCT source now exists there (PO-8) and has been inventoried.*
 
 ## 7. Source File Inventory — F4.1 (read-only)
 
@@ -144,7 +154,7 @@ Consequence: `backend/src/services/excelParser.js` is not reusable for F4.1; a s
 
 **D-16 — Duration columns are not fixed-width.** The 4 `Thời gian … thực hiện …` columns are `H:mm`-style strings but the minute part is frequently **not zero-padded** — `46:7`, `6:8`, `13:3`, `1:4` — affecting `900 / 4,695` values in `ko TMS PTC`, `858 / 4,454` in `có TMS PTC`, `573` and `630` in the two PLD columns. Hours also exceed 24 (`107:38`). Any future parser must not assume `\d{2}:\d{2}` and must not coerce these to a time-of-day.
 
-**D-17 — Null-evaluation rows are "not yet delivered", not bad data.** Of the `251` rows where the PO-1 column is empty, `242` have no `Thời gian PTC` and `241` have no `có TMS thực hiện PTC` duration; `0` have all three present. Sampled null rows carry a `Thời gian chuyển hoàn` (returned shipment). They are kept in the denominator per PO-2.
+**D-17 — Blank-evaluation rows.** **Superseded — see Section 21 for the corrected, fully-enumerated split.** The original wording generalized a sampled observation to all `251` rows and must not be relied on. What remains valid from it: all `251` are kept in the denominator per PO-2.
 
 **D-18 — `Chậm nộp tiền` feasibility.** `990` rows carry `Thời gian nộp tiền`; `989` carry both PTC and nộp tiền. The F1.3 3-way classifier (D-4) is therefore applicable and will legitimately produce a large `Chưa xác định nguyên nhân` bucket, exactly as in F1.3.
 
@@ -235,8 +245,9 @@ New backend routes under an `/f41` prefix mirroring the F1.3 shapes (`/f41/dashb
 | R-3 | PO-6's dual treatment of `531120` makes the module total and the Ranking subtotal legitimately differ (`4.695` vs `4.694`), which reads as a bug. | Section 8 records both; UI labels them distinctly (Section 11); reconciliation step 2 asserts both. |
 | R-4 | Non-padded durations and `>24h` values (D-16) break naive time parsing. | DC-9 stores them as raw TEXT; no duration metric in scope. |
 | R-5 | Generalizing `importPipeline`/`importWatcher` (Phase 2) touches code F1.3 depends on, and F1.3 Import is closed and PO-passed. | F1.3 must remain byte-identical in behavior, proven by its existing tests passing unchanged; the AUTO-IMPORT-012 isolation guard is preserved per indicator. |
-| R-6 | No F4.1 TCT source exists anywhere in the workspace (D-12), so the TCT lane cannot be designed. | Q-1: PO must supply a real TCT F4.1 file, or authorize shipping the HUE lane first with TCT deferred. |
-| R-7 | Only one F4.1 day (`2026-08-01`) exists, so period comparisons (D-1/D-7 style, month-to-date, same-period) cannot be validated. | Phase 3 delivers period widgets only after a second day exists, or PO accepts a single-day-only Dashboard first. |
+| R-6 | ~~No F4.1 TCT source exists~~ — **closed** by PO-8; the file exists and is inventoried in Section 18. Replaced by **R-8**. | See R-8. |
+| R-7 | Only one F4.1 HUE day (`2026-08-01`) exists, so period comparisons (D-1/D-7 style, month-to-date, same-period) cannot be validated. **Amended by Section 22:** this is non-blocking — multi-day support remains a required capability; only comparison *acceptance* waits for a second HUE day. | Build multi-day support in Phase 3; defer the comparison acceptance criterion to the first gate at which a second HUE day exists. |
+| R-8 | The TCT lane publishes its own rate on a denominator that does not equal the PO-locked one (`4.684` vs `4.695` for Huế, Section 19), so a TCT figure and the module KPI will legitimately differ by `0,14` percentage points on the same day. Displaying them side by side without a rule reads as a data error. | Section 20, `TC-8`: the module KPI is always the HUE row-level computation per DC-6; any TCT figure is labelled as the published national report value and never substituted for it. The cause of the `11`-row gap is not inferred — Section 22, `Q-6`. |
 
 ## 15. PO Gates
 
@@ -252,6 +263,8 @@ New backend routes under an `/f41` prefix mirroring the F1.3 shapes (`/f41/dashb
 
 ## 16. Open Questions For Product Owner
 
+**All five questions below are closed or resolved as of the remediation round — see Section 22 for their dispositions. The table is preserved as the record of what was asked.**
+
 | ID | Question | Why it blocks |
 | --- | --- | --- |
 | Q-1 | Is there a real F4.1 **TCT** source file, and is it row-level (like HUE F1.3) or aggregate-by-province (like the current TCT F1.3 national file)? `Data DKCL/F4.1/Incoming/TCT` is empty. | PO-7 asks for TCT support, but the TCT lane's parser and target table cannot be designed without knowing the file's shape. Nothing will be inferred. |
@@ -259,3 +272,162 @@ New backend routes under an `/f41` prefix mirroring the F1.3 shapes (`/f41/dashb
 | Q-3 | Should F4.1 screens be `admin`-only (as `/f41` is today) or `admin` + `viewer` (as the F1.3 screens are)? | Changes the role gating on every new route and page. |
 | Q-4 | Confirm that the module total shown to users is the all-rows `4.695 / 60,98%` even on the BCVH Ranking screen, where the visible rows only add to `4.694`. | R-3; determines the ranking screen's summary row. |
 | Q-5 | Is a second F4.1 day expected soon? | R-7; decides whether Phase 3 ships period-comparison widgets or a single-day Dashboard first. |
+
+## 17. Planning Remediation Round — New PO Decisions
+
+Round date `2026-08-17`, continued from authoritative `HEAD a0434d7b`. Planning remediation only: no product code, schema, database, watcher, portal sync, or Import was touched, and `F41-PHASE-0` was not activated.
+
+Three new Product Owner decisions were received and are recorded in Section 3 as `PO-8`, `PO-9`, `PO-10`:
+
+- **PO-8** — a real F4.1 TCT source now exists at `Data DKCL/F4.1/Incoming/TCT`. Audited read-only in Section 18.
+- **PO-9** — the official DKCL report/module name for F4.1 is `F4.1_Chất lượng phát thành công của bưu cục`. The Product Owner supplied a screenshot distinguishing it from the F1.3 report `F1.3_Chất lượng phát bưu gửi liên tỉnh_KPI`. Note that neither of these two official names is the literal string the current code matches — `dkclHueF13SyncService.js:349` matches `F1.3_chat_luong_phat_buu_giay_lien_tinh_chi_tiet` (D-10). Whether that is a different export within the same report or a stale/normalized match string is **not** inferred here; it is a discovery item for the phase that touches portal sync, recorded in Section 20 as `TC-9`.
+- **PO-10** — `admin` and `viewer` may both view Dashboard, BCVH Ranking and Evidence; Import remains `admin`-only. This matches the F1.3 gating pattern already in `f13Routes.js` (`allowViewerRead` vs `allowAdminOnly`) and replaces the `admin`-only placeholder gating currently on `/f41` (D-7).
+
+## 18. Source File Inventory — F4.1 TCT (read-only)
+
+File: `Data DKCL/F4.1/Incoming/TCT/F4.1-2026.08.01.xlsx`
+SHA-256: `6256ef56bba40cee7567dfe6b55d6822adb9923c3644c489382cbfd8d9df18e8`
+Size: `15.963` bytes · Sheet: `Worksheet` (single) · Sheet range `A1:AL50` · Populated columns: `38` · Merged cells: `32`
+
+The file was opened read-only. It was not imported, moved, renamed, or modified; its checksum was re-verified identical after the audit (Section 18.6).
+
+### 18.1 Grain — aggregate, not row-level
+
+**T-1.** The workbook is an **aggregate report at reporting-unit level**, not a shipment-level detail file. `Mã huyện`, `Mã BC` and `Ma KHL` columns exist in the header but are `NULL` in **every** data row (`0 / 46`). There is no `Số hiệu bưu gửi` column and no per-shipment field of any kind. This is the same shape as the existing TCT F1.3 national file that feeds `fact_f13_national`, and the opposite of the HUE F4.1 file, which is row-level (Section 7).
+
+**T-2.** Row layout is four-part and must be parsed positionally:
+
+| Rows | Content |
+| --- | --- |
+| `1` | Header level 1 (group headers span merged ranges) |
+| `2` | Header level 2 (sub-headers under the merged groups `Đúng thời gian quy định` and `Quá thời gian quy định`) |
+| `3` | A column-number legend row (`1`, `2`, … and formula annotations such as `11=10/9`, `27=26/9`) — **not data** |
+| `4` | **Grand-total row** — `TT = 1`, `Mã tỉnh` and `Tên tỉnh` both `NULL` |
+| `5`-`50` | `46` reporting-unit rows, `TT = 2..47` |
+
+**T-3.** The grand-total row is a true sum, verified across all `17` numeric columns — `376.142`, `362.358`, `302.361`, `355.350`, `59.849`, `9.788`, `17.944`, `41.285`, `13.784`, `254.035`, `236.197`, `9.943`, `6.731`, `26.379`, `22.199`, `246.186`, `229.231` — each exactly equal to the sum of the `46` unit rows. It must therefore be **skipped on ingest**, or every national figure doubles.
+
+**T-4.** `46` distinct `Mã tỉnh`, zero duplicates. Not all units are provinces: `01 Tổng công ty EMS`, `08 Bưu điện Trung Ương`, `11 Bưu điện Trung tâm Hoàn Kiếm`, `12 Bưu điện Trung tâm Hà Đông`, `14 Bưu điện Trung tâm Từ Liêm`, `15 Bưu điện Trung tâm Long Biên` are organisational units carried in the same column. The key is therefore "reporting unit", not "province".
+
+### 18.2 Column inventory
+
+Group headers occupy row 1 and are merged over the row-2 sub-headers. Effective columns, with the report's own legend numbering:
+
+| idx | Column | Legend |
+| --- | --- | --- |
+| 0-9 | `TT`, `Mã tỉnh`, `Tên tỉnh`, `Mã huyện`, `Tên huyện`, `Mã BC`, `Tên BC`, `Loại BC`, `Ma KHL`, `Ten KHL` | `1`-`10` |
+| 10 | `Sản lượng PTC/ Nộp tiền/ CH` | col `9` — the report's denominator |
+| 11 | `Sản lượng PTC/ Nộp tiền` | col `10` |
+| 12 | `Tỷ lệ PTC/ Nộp tiền` | `11=10/9` |
+| 13-14 | `Sản lượng` / `Tỷ` `PTC trong thời gian QĐ 12,5 giờ` | `12`, `13` |
+| 15-16 | `Sản lượng` / `Tỷ lệ` `PTC/Nộp tiền/Chuyển hoàn trong thời gian QĐ 72 giờ` | `14`, `15=14/9` |
+| 17-18 | `Sản lượng` / `Tỷ lệ` `phát thành công /Nộp tiền > 12,5 giờ và chuyển hoàn` | `16`, `17=16/9` |
+| 19-20 | `Sản lượng` / `Tỷ lệ` `phát thành công /Nộp tiền/Chuyển hoàn > 72 giờ` | `18`, `19=18/9` |
+| 21 | `Sản lượng chưa đủ thông tin đo kiểm` | `20` |
+| 22 | `SL loại trừ không đo kiểm` | `21` |
+| 23-24 | `SL Chuyển hoàn`, `Tỷ lệ chuyển hoàn` | `22`, `22/9=23` |
+| 25-26 | `Sản lượng` / `Tỷ lệ` `bưu gửi PTC 8 giờ tại bưu cục (XNĐ BD1)` | `24`, `24/9=25` |
+| **27-28** | **`Sản lượng` / `Tỷ lệ` `bưu gửi PTC 8 giờ tại bưu cục (có quét TMS)`** | `26`, `27=26/9` — **the aggregate counterpart of the PO-1 metric** |
+| 29-33 | Duration buckets `≤ 12 giờ`, `> 12 ≤ 14`, `> 14 ≤ 16`, `> 16 ≤ 36`, `> 36 giờ` | `28`-`31` |
+| 34-35 | `Sản lượng` / `Tỷ lệ` `bưu gửi PTC 8 giờ lần đầu tại bưu cục (XNĐ BD1)` | `32`, `33=32/9` |
+| 36-37 | `Sản lượng` / `Tỷ lệ` `bưu gửi PTC 8 giờ lần đầu tại bưu cục (có quét TMS)` | `34`, `35=34/9` |
+
+**T-5.** Per the report's own legend, every published rate divides by col `9` = idx `10` = `Sản lượng PTC/ Nộp tiền/ CH`. In particular `27=26/9`: the PO-1-equivalent rate is `Sản lượng bưu gửi PTC 8 giờ (có quét TMS) / Sản lượng PTC/Nộp tiền/CH`.
+
+### 18.3 Value types
+
+**T-6.** All `Sản lượng` / count columns are numeric. All `Tỷ lệ` columns are **TEXT percent strings** — `"96.34%"`, `"0%"`, `"2.72%"` — not numbers and not Excel percent-formatted cells. They must be recomputed from the counts, or stored raw as text; they must not be parsed into floats and then re-rendered as if computed.
+
+**T-7.** `Mã tỉnh` is inconsistently typed: `"01"` and `"08"` arrive as zero-padded **strings**, `10`, `53`, `90` as **numbers**. Any key handling must normalize, exactly as `canonicalBcvhUnits`/`normalizeDashboardBcvh` already do for BCVH codes.
+
+### 18.4 Dates
+
+**T-8.** There is **no date anywhere in the workbook** — zero `Date`-typed cells and zero date-like strings across all `50 × 38` cells. The reporting date is therefore obtainable *only* from the file name `F4.1-2026.08.01.xlsx`. PO-3 is not merely a convention for the TCT lane; it is the sole available source, and a missing/invalid file name must be a hard parse error, as it already is for F1.3.
+
+### 18.5 Evaluation fields
+
+**T-9.** The TCT file carries no `Đạt` / `Không đạt` text field at all. Every evaluation is expressed as a pre-aggregated count plus a published rate. Consequently the F1.3-style per-shipment reason classification (`Chậm nộp tiền` / `Không đạt khác` / `Chưa xác định nguyên nhân`, DC-10) is **not computable** from the TCT lane, and Evidence has no TCT-side source. This is a structural fact, not a scoping choice.
+
+### 18.6 Integrity
+
+**T-10.** SHA-256 re-verified after the audit: `6256ef56bba40cee7567dfe6b55d6822adb9923c3644c489382cbfd8d9df18e8` — unchanged. The HUE F4.1 file was also re-verified unchanged at `dcaae8e10370d9ce3661141e3167a0838329591473fdbc961182757d933636a8`. No Import was run; no file under `Data DKCL/` was created, moved, renamed, or modified.
+
+## 19. Cross-Lane Reconciliation — HUE vs TCT
+
+The TCT workbook contains a `Mã tỉnh = 53` row (`TT = 29`, `Bưu điện Tỉnh Thừa Thiên Huế`) covering the same day as the HUE row-level file, which makes a direct cross-lane check possible.
+
+**T-11 — Every evaluation measure matches exactly.** Each of the six `Đánh giá (…)` columns counted from the HUE row-level file equals its TCT aggregate counterpart, to the unit:
+
+| Measure | HUE row-level count | TCT Huế row | Match |
+| --- | --- | --- | --- |
+| `PTC 8 giờ (có quét TMS)` = **PO-1 metric**, `Đạt` | **2.863** | idx 27 = **2.863** | exact |
+| `PTC 8 giờ (XNĐ BD1 / không đo TMS)`, `Đạt` | 2.889 | idx 25 = 2.889 | exact |
+| `PTC lần đầu 8 giờ (XNĐ BD1)`, `Đạt` | 2.855 | idx 34 = 2.855 | exact |
+| `PTC lần đầu 8 giờ (có quét TMS)`, `Đạt` | 2.831 | idx 36 = 2.831 | exact |
+| `so sánh với 12,5 giờ`, `Đạt` | 3.341 | idx 13 = 3.341 | exact |
+| `so sánh với 12,5 giờ`, `Không đạt` | 1.112 | idx 17 = 1.112 | exact |
+| `so sánh với 72 giờ`, `Đạt` | 4.194 | idx 15 = 4.194 | exact |
+
+This proves the two lanes measure the same population on the same day, and independently confirms that `Đánh giá (thời gian Có TMS PTC 8 giờ)` (PO-1) is the row-level equivalent of the report's `PTC 8 giờ tại bưu cục (có quét TMS)`.
+
+**T-12 — The denominators do not match, and the published rate therefore differs.**
+
+| Quantity | HUE row-level | TCT Huế row |
+| --- | --- | --- |
+| Numerator (`Đạt`) | 2.863 | 2.863 |
+| Denominator | **4.695** (all rows, PO-2) | **4.684** (`Sản lượng PTC/Nộp tiền/CH`) |
+| Rate | **60,98%** (PO-locked) | `61,12%` (published, idx 28) |
+
+Difference: `11` rows in the denominator, `0,14` percentage points in the rate.
+
+**T-13 — Adjacent counters also differ, and the cause is not inferred.** The TCT row reports `Sản lượng chưa đủ thông tin đo kiểm = 248` against `251` blank evaluations in the HUE file, `SL Chuyển hoàn = 230` against `241` rows carrying a `Thời gian chuyển hoàn`, and `SL loại trừ không đo kiểm = 15` — a concept the row-level file exposes as no field at all. The TCT lane clearly applies exclusions that the row-level export does not surface. **No arithmetic reconciling `4.684` to `4.695` is asserted here**; several combinations of these counters land near the gap, and picking one would be inference. This is recorded as `Q-6` in Section 22.
+
+**T-14 — Consequence for the contract.** `PO-2` is authoritative for the module KPI. The module therefore always computes `2.863 / 4.695 = 60,98%` from the HUE row-level data (DC-6); the TCT `61,12%` is a *published national report value*, never a substitute, never an override, and never silently reconciled. See `TC-8`.
+
+## 20. Revised TCT Data And Import Contract
+
+Revised only where Section 18-19 evidence supports it. Items unchanged from Section 9 are not restated. Still requires PO approval.
+
+| ID | Contract item |
+| --- | --- |
+| TC-1 | The F4.1 TCT lane is **aggregate**, keyed by reporting unit, and lands in its own additive table — proposed `fact_f41_national`, mirroring how `fact_f13_national` serves the F1.3 TCT lane (T-1). It never writes to `fact_f41`, and `fact_f41` never receives an aggregate row. |
+| TC-2 | Row key `UNIQUE(ngay_do_kiem, ma_don_vi)`, matching `fact_f13_national`'s `UNIQUE(ngay_do_kiem, ma_tinh_phat)`. `46` units per day for this file; the key is a reporting unit, not strictly a province (T-4). |
+| TC-3 | The parser is positional, not header-scanning: two header rows, a legend row, one grand-total row, then unit rows (T-2). The **grand-total row is skipped on ingest** and, if used at all, is used only as a self-check against the sum of unit rows (T-3). `parseF13Excel`'s single-header-row scan and `parseF13NationalExcel` are both unsuitable without change; neither may be edited for F4.1. |
+| TC-4 | All `28` measure columns (idx `10`-`37`) are persisted. Counts are stored numeric; published `Tỷ lệ` columns are stored as raw TEXT exactly as they appear and are never parsed into floats (T-6). |
+| TC-5 | `Mã tỉnh` is normalized to a zero-padded string on ingest to absorb the mixed string/number typing (T-7). |
+| TC-6 | `ngay_do_kiem` comes only from the file name `F4.1-YYYY.MM.DD.xlsx`. A missing or unparseable file name is a hard error — there is no fallback, because the workbook contains no date at all (T-8). |
+| TC-7 | The TCT lane produces **no Evidence and no violation-reason classification**: the file has no per-shipment row and no `Đạt`/`Không đạt` field (T-9). Evidence (PO-4) remains HUE-only. |
+| TC-8 | The module KPI is always the HUE row-level computation per DC-6 (`2.863/4.695 = 60,98%`). Any TCT figure displayed is labelled as the published national report value and is never substituted for, blended with, or silently reconciled against the module KPI (T-12, T-14, R-8). |
+| TC-9 | Portal sync for F4.1 targets the report `F4.1_Chất lượng phát thành công của bưu cục` (PO-9). Before any sync code is written, the phase that touches portal sync must first *discover* the actual export/match string on the portal, because the live F1.3 matcher uses `F1.3_chat_luong_phat_buu_giay_lien_tinh_chi_tiet`, which is not the official F1.3 report name either (Section 17). No match string is guessed. |
+| TC-10 | Both lanes remain manual-upload-capable independently of portal sync, so F4.1 is usable before `TC-9`'s discovery completes. |
+
+Effect on the phase plan (Section 10): Phase 1 covers the HUE row-level foundation only; the `fact_f41_national` table and the aggregate parser move into **Phase 2**, where the multi-indicator Import work already lives. No phase is added and no phase is authorized.
+
+Effect on the UI plan (Section 11): per PO-10, the three F4.1 screens are gated `admin` + `viewer` — matching `allowViewerRead` in `f13Routes.js` — and the current `admin`-only gating on `/f41` (`App.jsx:101`, `appNavigation.jsx:45`) is widened accordingly. Import surfaces stay `admin`-only.
+
+## 21. Correction To D-17
+
+D-17 as originally written generalized a sampled observation to all `251` blank-evaluation rows and characterized them as returned / not delivered. That was wrong for `10` of them. All `251` rows were re-audited individually; the corrected split is exhaustive and mutually exclusive:
+
+| Group | Count | Proven field pattern |
+| --- | --- | --- |
+| A | **241** | `Thời gian chuyển hoàn` present **and** `Thời gian PTC` absent. |
+| B | **9** | `Thời gian PTC` present, `Thời gian chuyển hoàn` absent, `Thời gian TMS XNĐ BCP` absent. These rows do carry the non-TMS evaluations (`Đánh giá (thời gian Không đo TMS PTC 8 giờ)` is populated), while the TMS-based evaluation is blank. |
+| C | **1** | `Thời gian PTC` absent, `Thời gian chuyển hoàn` absent, `Thời gian TMS XNĐ BCP` present; carries `Thời gian nộp tiền` and `Thời gian Phát thành công lần đầu`. |
+
+`241 + 9 + 1 = 251`. Zero rows have both a return timestamp and a PTC timestamp.
+
+Only group **A** is evidenced as a return. Groups **B** and **C** are recorded as observed field patterns only — **no cause is asserted**. In particular, the co-occurrence in group B between a blank TMS-based evaluation and an absent `Thời gian TMS XNĐ BCP` is stated as an observation, not as a rule about how the source system computes the field; that rule, if it exists, belongs to the Product Owner or to the DKCL report definition, not to this plan.
+
+All `251` remain in the denominator per PO-2, unchanged. Note that this correction does not alter any figure in Section 8 — it corrects the *characterization* of the blank rows, not their count.
+
+## 22. Disposition Of Q-1..Q-5 And Remaining Open Item
+
+| ID | Disposition |
+| --- | --- |
+| Q-1 | **CLOSED** by PO-8. A real F4.1 TCT source exists and has been audited read-only (Section 18). It is aggregate at reporting-unit level, `46` units plus a grand-total row, with no per-shipment grain. The TCT contract is revised accordingly in Section 20 (`TC-1`..`TC-8`). Risk `R-6` is closed and replaced by `R-8`. |
+| Q-2 | **CLOSED** by PO-9. The official report/module name is `F4.1_Chất lượng phát thành công của bưu cục`, distinct from `F1.3_Chất lượng phát bưu gửi liên tỉnh_KPI`. Recorded as `TC-9`, with the explicit note that the live F1.3 matcher string differs from the official F1.3 report name too, so the portal match string must be discovered rather than derived. |
+| Q-3 | **CLOSED** by PO-10. `admin` + `viewer` for Dashboard, BCVH Ranking and Evidence; Import `admin`-only. Section 20 records the effect on the UI plan. |
+| Q-4 | **RESOLVED — already answered.** The module KPI uses `2.863 / 4.695 = 60,98%`; the six visible BCVH rows reconcile to `2.862 / 4.694 = 60,97%`; the two must carry distinct labels so neither can be read as the other. This was already the content of `DC-6`, `DC-7`, Section 8 and Section 11; it is no longer an open question. Risk `R-3` remains the tracked UI obligation. |
+| Q-5 | **NON-BLOCKING.** Multi-day support remains a required capability of the module and is not deferred. Only the *acceptance* of period-comparison behaviour waits for a second HUE day to exist. `R-7` is amended accordingly: Phase 3 builds multi-day support; the comparison acceptance criterion is verified at the first gate at which a second HUE day is available, and its absence does not block Phase 3. |
+| **Q-6** | **NEW, OPEN — arising from this round's evidence, not from scope expansion.** The TCT lane reports a denominator of `4.684` for Huế where the row-level file has `4.695`, with the numerator identical at `2.863` (T-12), and its adjacent counters (`chưa đủ thông tin đo kiểm 248` vs `251` blanks; `SL Chuyển hoàn 230` vs `241`; `SL loại trừ không đo kiểm 15`, a field the row-level export does not have) do not reconcile by any single stated rule (T-13). Question for the Product Owner: which exclusion rule does the national report apply that the row-level export does not expose? Not blocking — `TC-8` already fixes the module's behaviour by always computing from the HUE row-level data — but it must be answered before any screen shows a TCT-derived rate next to the module KPI. |

@@ -1,6 +1,6 @@
 # F41-MODULE-PLAN Manifest
 
-Status: `PLAN COMPLETE / AWAITING PO APPROVAL (2026-08-17)`. Planning and documentation only — no product code, database, schema, or Import behavior changed. The full plan, delta survey, data contract, phasing, reconciliation baseline, risks, and open questions live in `docs/06_REVIEWS/Shared/F41-MODULE-PLAN_CHECKPOINT_001.md`; this manifest does not duplicate them.
+Status: `PLAN COMPLETE / AWAITING PO APPROVAL (2026-08-17, planning remediation round applied)`. Planning and documentation only — no product code, database, schema, watcher, portal sync, or Import behavior changed, and `F41-PHASE-0` is not activated. The full plan, delta survey, data contract, phasing, reconciliation baseline, risks, and question dispositions live in `docs/06_REVIEWS/Shared/F41-MODULE-PLAN_CHECKPOINT_001.md`; this manifest does not duplicate them. The remediation round (checkpoint Sections 17-22) added three PO decisions, a read-only audit of the now-supplied F4.1 TCT workbook, a revised TCT contract, a correction to `D-17`, and the closure of `Q-1..Q-5`.
 
 ## Table of Contents
 
@@ -32,6 +32,7 @@ Status: `PLAN COMPLETE / AWAITING PO APPROVAL (2026-08-17)`. Planning and docume
 - Branch: `codex/da-impl-006`
 - Baseline commit: `c2f4bdd7730192dbaa2bbe773e6859e0d35ef18b` (verified `HEAD` at activation; working tree clean except pre-existing untracked `.claude/` and `Data QLML/`)
 - Activation date: `2026-08-17`
+- Planning remediation round: `2026-08-17`, continued from authoritative `HEAD a0434d7b` under Product Owner authorization for planning remediation only.
 
 ## 2. Objective
 
@@ -39,9 +40,9 @@ Produce a discovery-backed overall plan for the F4.1 Quality Management module �
 
 ## 3. Current Status
 
-- Current state: `PLAN COMPLETE / AWAITING PO APPROVAL`
+- Current state: `PLAN COMPLETE / AWAITING PO APPROVAL` (unchanged by the remediation round)
 - PO UI Check Required: `No — planning ticket only. Gates 2, 3 and 4 of the proposed phase plan each require Yes.`
-- PO Product Status: `Plan submitted 2026-08-17; no phase authorized. Five open questions (Q-1..Q-5) require Product Owner answers before Phase 2 and Phase 3 can be scoped.`
+- PO Product Status: `Plan submitted 2026-08-17 and revised the same day after three further PO decisions (PO-8 TCT source supplied, PO-9 official DKCL report name, PO-10 role contract). No phase authorized. Q-1, Q-2 and Q-3 are CLOSED by those decisions; Q-4 is RESOLVED as already answered by DC-6/DC-7; Q-5 is NON-BLOCKING (multi-day support still required, comparison acceptance deferred to the first gate with a second HUE day). One new, non-blocking question Q-6 arose from the TCT audit evidence.`
 
 ## 4. Required Reading
 
@@ -62,6 +63,9 @@ Produce a discovery-backed overall plan for the F4.1 Quality Management module �
   5. `Chậm nộp tiền` handling and acceptance follow F1.3 unchanged; nothing further inferred.
   6. `531120` is still stored and still counted in the module total, but hidden from `BCVH Ranking`.
   7. Import direction is multi-indicator, supporting Huế and TCT.
+  8. A real F4.1 TCT source now exists at `Data DKCL/F4.1/Incoming/TCT` (remediation round).
+  9. The official DKCL report/module name for F4.1 is `F4.1_Chất lượng phát thành công của bưu cục`, distinct from F1.3's `F1.3_Chất lượng phát bưu gửi liên tỉnh_KPI` (remediation round).
+  10. `admin` and `viewer` may view Dashboard, BCVH Ranking and Evidence; Import remains `admin`-only (remediation round).
 
 ## 6. Technical Context
 
@@ -72,13 +76,20 @@ Delta-only survey against baseline `c2f4bdd7` — full findings D-1..D-18 in che
 - `backend/src/config/canonicalBcvhUnits.js` already freezes exactly the 6 real BCVH found in the F4.1 file, so hiding `531120` needs no new rule and no hardcoded code literal.
 - `backend/src/services/excelParser.js` is not reusable — the F4.1 header set differs in spelling and content; `extractDateFromFilename` is regex-locked to `^F1\.3-`.
 - `backend/src/services/importPipeline.js` hardcodes `../Data DKCL/F1.3`; `importWatcher.js` watches only that tree with `ignoreInitial: false`; the DKCL portal layer is name-locked to the F1.3 export.
-- `Data DKCL/F4.1/{Incoming,Processed,Error}/{HUE,TCT}` already exists and already holds `F4.1-2026.08.01.xlsx` under `Incoming/HUE`, currently inert because the watcher never looks there. `Incoming/TCT` is empty.
-- The F4.1 source has no route column of any kind, so "no Tuyến Ranking" is data-enforced.
-- Frontend `/f41` exists as an admin-only `Coming Soon` placeholder (`App.jsx`:101, `appNavigation.jsx`:45, `pages/F41Quality.jsx`).
+- `Data DKCL/F4.1/{Incoming,Processed,Error}/{HUE,TCT}` already exists and holds `F4.1-2026.08.01.xlsx` under both `Incoming/HUE` and — since the remediation round — `Incoming/TCT`, both currently inert because the watcher never looks there.
+- The F4.1 HUE source has no route column of any kind, so "no Tuyến Ranking" is data-enforced.
+- Frontend `/f41` exists as an admin-only `Coming Soon` placeholder (`App.jsx`:101, `appNavigation.jsx`:45, `pages/F41Quality.jsx`); per decision 10 its gating widens to `admin` + `viewer` for the three view screens.
+
+Added by the remediation round (checkpoint Sections 18-21):
+
+- The F4.1 TCT workbook is **aggregate at reporting-unit level**, not row-level: `46` unit rows plus a grand-total row, with `Mã huyện` / `Mã BC` / `Ma KHL` NULL in every row and no `Số hiệu bưu gửi` column at all. Its layout is two header rows, a column-number legend row, the grand-total row, then the unit rows — so it needs a positional parser, and the grand-total row must be skipped on ingest or every national figure doubles. It therefore lands in its own additive table, not in `fact_f41`.
+- Cross-lane check on the Huế row: all seven comparable evaluation measures match the row-level file exactly, including the PO-1 metric at `2.863`. The denominators do not: `4.684` (TCT) vs `4.695` (PO-locked), so the TCT lane publishes `61,12%` against the module's `60,98%`. The cause is not inferred — recorded as `Q-6`.
+- The TCT file contains no date anywhere, so the file name is the only possible source of `ngay_do_kiem`, and no `Đạt`/`Không đạt` field, so Evidence and violation-reason classification stay HUE-only.
+- `D-17` corrected: of the `251` blank-evaluation rows, `241` carry a return timestamp, `9` carry a PTC timestamp without a return or TMS scan, and `1` carries neither PTC nor return. Only the `241` are evidenced as returns; the remaining `10` are recorded as observed field patterns with no cause asserted.
 
 ## 7. Runtime Context
 
-Not applicable — no runtime change was made and no server was started. The F4.1 source file was opened read-only for inventory; its SHA-256 is recorded in checkpoint Section 7 and the file was not created, moved, renamed, or modified.
+Not applicable — no runtime change was made, no server was started, and no Import was run. Both F4.1 source files were opened read-only for inventory; their SHA-256 values are recorded in checkpoint Sections 7 and 18 and both were re-verified unchanged after the audit (HUE `dcaae8e1…`, TCT `6256ef56…`). No file under `Data DKCL/` was created, moved, renamed, or modified.
 
 ## 8. Scope
 
@@ -90,7 +101,7 @@ Out of scope, explicitly: any product code, `backend/src/db/schema.sql`, the liv
 
 - Review document: `docs/06_REVIEWS/Shared/F41-MODULE-PLAN_CHECKPOINT_001.md`
 - Review status: `PLAN COMPLETE / AWAITING PO APPROVAL`
-- Key evidence: the reconciliation baseline in checkpoint Section 8 reproduces the Product Owner's `2.863 / 4.695 = 60,98%` exactly from the real source file, broken down per BCVH, and records the `4.694 / 60,97%` ranking subtotal that decision 6 necessarily creates.
+- Key evidence: the reconciliation baseline in checkpoint Section 8 reproduces the Product Owner's `2.863 / 4.695 = 60,98%` exactly from the real source file, broken down per BCVH, and records the `4.694 / 60,97%` ranking subtotal that decision 6 necessarily creates. Section 19 adds an independent confirmation from the newly-supplied TCT report: its Huế row reports the same `2.863` for the PO-1 metric and matches the row-level file exactly on all seven comparable evaluation measures, while differing on the denominator.
 
 ## 10. Related PO Findings
 
@@ -104,7 +115,7 @@ None open. This ticket was activated from `NO ACTIVE TICKET / AWAITING PO DIRECT
 
 ## 12. Validation
 
-- Technical validation: not applicable — no code changed. Verification performed for this ticket was read-only: source-file inventory and aggregation reproducing the Product Owner's locked figures (checkpoint Sections 7-8), and a static survey of the F1.3/Import code paths (checkpoint Sections 5-6).
+- Technical validation: not applicable — no code changed. Verification performed for this ticket was read-only: source-file inventory and aggregation reproducing the Product Owner's locked figures (checkpoint Sections 7-8), a static survey of the F1.3/Import code paths (checkpoint Sections 5-6), and — in the remediation round — a read-only audit of the TCT workbook covering sheets, merged-header layout, row grain, evaluation fields, dates, grand-total-vs-sum verification across all 17 numeric columns, duplicate check, and cross-lane reconciliation against the HUE file (checkpoint Sections 18-19), plus an exhaustive per-row re-audit of the 251 blank-evaluation rows (Section 21). Both source checksums re-verified unchanged afterwards.
 - Runtime, browser, build/lint validation: not applicable — no code changed.
 
 ## 13. Expected Output
@@ -116,7 +127,7 @@ None open. This ticket was activated from `NO ACTIVE TICKET / AWAITING PO DIRECT
 ## 14. Next Ticket
 
 - Next ticket ID: none activated. The proposed successor is `F41-PHASE-0` (the F4.1 SSOT/reference package, documentation only), which requires explicit Product Owner authorization.
-- Handoff notes: no phase is self-activated. Phase 2 and Phase 3 additionally depend on Product Owner answers to Q-1 (real TCT F4.1 source), Q-2 (DKCL portal report name for F4.1), Q-3 (role gating), Q-4 (module total vs ranking subtotal presentation), and Q-5 (availability of a second F4.1 day).
+- Handoff notes: no phase is self-activated. `Q-1`, `Q-2` and `Q-3` are now `CLOSED` by decisions 8, 9 and 10; `Q-4` is `RESOLVED` as already answered by the data contract; `Q-5` is `NON-BLOCKING`. Nothing in the plan is now blocked on a Product Owner answer. One new, non-blocking question `Q-6` (the TCT denominator gap) must be answered before any screen shows a TCT-derived rate beside the module KPI, and the portal match string for F4.1 must be discovered — not guessed — by whichever phase touches portal sync.
 
 ## 15. PO Acceptance Checklist
 
@@ -124,4 +135,11 @@ Not applicable — `PO UI Check Required = No` for this planning ticket. What th
 
 ## 16. Authority Escalation
 
-Open and unresolved, escalated rather than guessed: the F4.1 TCT lane (Q-1) and the DKCL portal report identity for F4.1 (Q-2) have no authoritative source anywhere in the repository or workspace. No TCT parser, target table, or sync behavior for F4.1 has been designed or assumed. Everything else in the plan derives either from the seven locked Product Owner decisions or from verified code and file evidence.
+The two escalations raised in the first round are resolved: the F4.1 TCT lane (`Q-1`) now has a real source, audited read-only, and the report identity (`Q-2`) is supplied as decision 9.
+
+Two items remain escalated rather than guessed:
+
+1. The TCT lane's Huế denominator (`4.684`) does not equal the Product Owner-locked one (`4.695`) even though the numerator is identical, and the report's adjacent exclusion counters do not reconcile the gap by any single stated rule. No reconciling arithmetic is asserted — `Q-6`.
+2. The official F4.1 report name from decision 9 is not the literal string the live sync code matches for F1.3 either, so the portal export/match string for F4.1 must be discovered on the portal before any sync code is written. No match string is inferred.
+
+Everything else in the plan derives either from the ten locked Product Owner decisions or from verified code and file evidence.
