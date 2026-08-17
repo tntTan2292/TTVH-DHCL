@@ -1,0 +1,21 @@
+id: "F4.1"
+name: "Chất lượng phát thành công của bưu cục"
+alias: "PTC 8 giờ (có quét TMS)"
+domain: "Quality Management"
+owner_business: "Product Owner"
+owner_technical: "Architect"
+version: "1.0.0"
+status: "Planned"
+effective_date: "TODO - Waiting Product Owner"
+expiration_date: ""
+review_cycle: "TODO - Waiting Product Owner"
+data_sources:
+  - "F4.1_Chất lượng phát thành công của bưu cục — file chi tiết cấp bưu gửi (HUE), do DKCL cung cấp"
+  - "F4.1_Chất lượng phát thành công của bưu cục — file tổng hợp cấp đơn vị (TCT), do DKCL cung cấp"
+dependencies: []
+tags:
+  - "phat"
+  - "thanh cong"
+  - "buu cuc"
+  - "PTC 8 gio"
+priority: "High"
