@@ -42,32 +42,32 @@ CREATE TABLE IF NOT EXISTS fact_f41_national (
     ten_khl TEXT,
     sl_ptc_nop_tien_ch INTEGER DEFAULT 0,
     sl_ptc_nop_tien INTEGER DEFAULT 0,
-    tl_ptc_nop_tien REAL DEFAULT 0,
+    tl_ptc_nop_tien TEXT,
     sl_dung_12_5h INTEGER DEFAULT 0,
-    tl_dung_12_5h REAL DEFAULT 0,
+    tl_dung_12_5h TEXT,
     sl_dung_72h INTEGER DEFAULT 0,
-    tl_dung_72h REAL DEFAULT 0,
+    tl_dung_72h TEXT,
     sl_qua_12_5h INTEGER DEFAULT 0,
-    tl_qua_12_5h REAL DEFAULT 0,
+    tl_qua_12_5h TEXT,
     sl_qua_72h INTEGER DEFAULT 0,
-    tl_qua_72h REAL DEFAULT 0,
+    tl_qua_72h TEXT,
     sl_chua_du_thong_tin INTEGER DEFAULT 0,
     sl_loai_tru INTEGER DEFAULT 0,
     sl_chuyen_hoan INTEGER DEFAULT 0,
-    tl_chuyen_hoan REAL DEFAULT 0,
+    tl_chuyen_hoan TEXT,
     sl_ptc_8h_xnd_bd1 INTEGER DEFAULT 0,
-    tl_ptc_8h_xnd_bd1 REAL DEFAULT 0,
+    tl_ptc_8h_xnd_bd1 TEXT,
     sl_ptc_8h_co_tms INTEGER DEFAULT 0,
-    tl_ptc_8h_co_tms REAL DEFAULT 0,
+    tl_ptc_8h_co_tms TEXT,
     sl_bucket_12h INTEGER DEFAULT 0,
     sl_bucket_14h INTEGER DEFAULT 0,
     sl_bucket_16h INTEGER DEFAULT 0,
     sl_bucket_36h INTEGER DEFAULT 0,
     sl_bucket_36h_plus INTEGER DEFAULT 0,
     sl_ptc_8h_lan_dau_xnd_bd1 INTEGER DEFAULT 0,
-    tl_ptc_8h_lan_dau_xnd_bd1 REAL DEFAULT 0,
+    tl_ptc_8h_lan_dau_xnd_bd1 TEXT,
     sl_ptc_8h_lan_dau_co_tms INTEGER DEFAULT 0,
-    tl_ptc_8h_lan_dau_co_tms REAL DEFAULT 0,
+    tl_ptc_8h_lan_dau_co_tms TEXT,
 
     UNIQUE(ngay_do_kiem, ma_don_vi),
     FOREIGN KEY(import_log_id) REFERENCES import_log(id)
@@ -78,6 +78,18 @@ CREATE INDEX IF NOT EXISTS idx_f41_nat_don_vi_ngay ON fact_f41_national(ma_don_v
 `;
 
 const F41_PHASE2_TABLE_NAMES = ['fact_f41_national'];
+const F41_TCT_RATE_COLUMNS = [
+    'tl_ptc_nop_tien',
+    'tl_dung_12_5h',
+    'tl_dung_72h',
+    'tl_qua_12_5h',
+    'tl_qua_72h',
+    'tl_chuyen_hoan',
+    'tl_ptc_8h_xnd_bd1',
+    'tl_ptc_8h_co_tms',
+    'tl_ptc_8h_lan_dau_xnd_bd1',
+    'tl_ptc_8h_lan_dau_co_tms',
+];
 
 function resolveDbPath(argv) {
     const flagIndex = argv.indexOf('--db');
@@ -111,6 +123,51 @@ async function ensureImportLogColumn(db, columnName, ddl) {
     await exec(db, `ALTER TABLE import_log ADD COLUMN ${ddl}`);
 }
 
+async function rebuildFactF41NationalForTextRates(db) {
+    const columns = await all(db, 'PRAGMA table_info(fact_f41_national)');
+    if (columns.length === 0) return false;
+
+    const needsRebuild = F41_TCT_RATE_COLUMNS.some((columnName) => {
+        const column = columns.find((item) => item.name === columnName);
+        return !column || String(column.type || '').toUpperCase() !== 'TEXT';
+    });
+    if (!needsRebuild) return false;
+
+    const columnNames = columns.map((column) => column.name);
+    const columnList = columnNames.join(', ');
+    await exec(db, 'PRAGMA foreign_keys=OFF');
+    try {
+        await exec(db, 'BEGIN TRANSACTION');
+        await exec(db, 'ALTER TABLE fact_f41_national RENAME TO fact_f41_national__old');
+        await exec(db, F41_PHASE2_SCHEMA_SQL);
+        await exec(
+            db,
+            `INSERT INTO fact_f41_national (${columnList})
+             SELECT ${columnList}
+             FROM fact_f41_national__old`
+        );
+        const counts = await all(
+            db,
+            `SELECT
+                (SELECT COUNT(*) FROM fact_f41_national__old) AS old_count,
+                (SELECT COUNT(*) FROM fact_f41_national) AS new_count`
+        );
+        if (Number(counts[0]?.old_count || 0) !== Number(counts[0]?.new_count || 0)) {
+            throw new Error(`fact_f41_national rebuild row-count mismatch: old=${counts[0]?.old_count}, new=${counts[0]?.new_count}`);
+        }
+        await exec(db, 'DROP TABLE fact_f41_national__old');
+        await exec(db, 'CREATE INDEX IF NOT EXISTS idx_f41_nat_ngay ON fact_f41_national(ngay_do_kiem)');
+        await exec(db, 'CREATE INDEX IF NOT EXISTS idx_f41_nat_don_vi_ngay ON fact_f41_national(ma_don_vi, ngay_do_kiem)');
+        await exec(db, 'COMMIT');
+        return true;
+    } catch (error) {
+        try { await exec(db, 'ROLLBACK'); } catch (_) {}
+        throw error;
+    } finally {
+        await exec(db, 'PRAGMA foreign_keys=ON');
+    }
+}
+
 async function applyF41Phase2Schema(dbPath) {
     const db = await openDb(dbPath);
     try {
@@ -119,6 +176,7 @@ async function applyF41Phase2Schema(dbPath) {
         await ensureImportLogColumn(db, 'source_lane', 'source_lane TEXT');
         await ensureImportLogColumn(db, 'trigger_source', "trigger_source TEXT DEFAULT 'AUTO'");
         await exec(db, "UPDATE import_log SET indicator = 'F1.3' WHERE indicator IS NULL");
+        await rebuildFactF41NationalForTextRates(db);
         const rows = await all(
             db,
             `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${F41_PHASE2_TABLE_NAMES.map(() => '?').join(',')}) ORDER BY name`,
@@ -150,4 +208,5 @@ module.exports = {
     applyF41Phase2Schema,
     F41_PHASE2_SCHEMA_SQL,
     F41_PHASE2_TABLE_NAMES,
+    F41_TCT_RATE_COLUMNS,
 };

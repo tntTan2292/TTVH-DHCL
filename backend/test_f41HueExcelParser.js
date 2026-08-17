@@ -66,7 +66,7 @@ test('rejects missing required HUE shipment column', () => {
 });
 
 test('read-only reconciliation of the real HUE source file matches the locked baseline', () => {
-    const filePath = path.resolve(__dirname, '../Data DKCL/F4.1/Incoming/HUE/F4.1-2026.08.01.xlsx');
+    const filePath = path.resolve(__dirname, '../Data DKCL/F4.1/Processed/HUE/F4.1-2026.08.01.xlsx');
     const buffer = fs.readFileSync(filePath);
     const result = parseF41HueExcel(buffer, path.basename(filePath));
     const counts = result.parsedData.reduce((acc, row) => {

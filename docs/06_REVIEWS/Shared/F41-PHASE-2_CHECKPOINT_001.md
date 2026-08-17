@@ -63,6 +63,13 @@ Locked out:
   - Applied live migration with `node migrate_f41_phase2_schema.js`; migration inserted no business data.
   - Deliberately ran manual F4.1 HUE and TCT pipeline imports only after targeted schema/parser/pipeline tests passed.
   - The source files were not moved by hand; the Import pipeline moved accepted files to `Data DKCL/F4.1/Processed/HUE/` and `Data DKCL/F4.1/Processed/TCT/`.
+- Remediation 001 — TCT published-rate contract:
+  - Fixed TC-4 defect: every F4.1 TCT published-rate column is now raw TEXT instead of REAL.
+  - Identified rate columns: `tl_ptc_nop_tien`, `tl_dung_12_5h`, `tl_dung_72h`, `tl_qua_12_5h`, `tl_qua_72h`, `tl_chuyen_hoan`, `tl_ptc_8h_xnd_bd1`, `tl_ptc_8h_co_tms`, `tl_ptc_8h_lan_dau_xnd_bd1`, `tl_ptc_8h_lan_dau_co_tms`.
+  - `backend/src/services/f41TctExcelParser.js` preserves these values as trimmed raw TEXT including `%`; count columns remain numeric.
+  - `backend/src/db/schema.sql` and `backend/migrate_f41_phase2_schema.js` define these columns as TEXT for fresh and upgraded environments.
+  - Existing live `fact_f41_national` was migrated transactionally by rebuilding the table with corrected TEXT columns, preserving row count, keys, indexes, and the `import_log` foreign-key relationship.
+  - The 46 TCT rows were reloaded from the existing unmodified Processed workbook read-only; source files were not moved or modified.
 
 ## 6. Validation Evidence
 
@@ -87,6 +94,17 @@ Locked out:
   - TCT log `id=1246`, indicator `F4.1`, source lane `TCT`, trigger `MANUAL`, status `SUCCESS`, total `46`, errors `0`, skipped `0`.
 - Retry/deduplication proof:
   - `test_f41ImportPipeline.js` re-submits the same F4.1 HUE date in an isolated temp Import root and receives `requiresConfirmation=true`, with `fact_f41` and `fact_f13` unchanged.
+- Remediation 001 validation PASS:
+  - `node --test migrate_f41_phase2_schema.test.js test_f41TctExcelParser.js test_f41ImportPipeline.js server.startupMigrations.test.js`
+  - Result: `7/7` remediation-focused tests passed before the live DB repair.
+  - `node --test test_f41HueExcelParser.js migrate_f41_phase1_schema.test.js migrate_f41_phase2_schema.test.js test_f41TctExcelParser.js test_f41ImportPipeline.js server.startupMigrations.test.js`
+  - Result: `16/16` F4.1/remediation tests passed after path updates to read the Phase 2 Processed workbooks.
+  - F1.3 regression command remained PASS: `node --test test_importProcessor.js test_importPipelineRace.js test_importHistoryPresenter.js test_importHistoryDefect3Recovery.js test_e2e_import_engine.js test_dkclImportOperationsContract.js`.
+  - Live TCT after transactional migration and read-only workbook reload: `46` units; grand total absent; Huế numerator `2,863`; denominator `4,684`; published rate stored exactly as `61.12%`.
+  - Live TCT type check: all ten published-rate columns are `TEXT`; all ten rate columns have `%` strings on all 46 rows where present.
+  - Live HUE remained `4,695 / 2,863 / 1,581 / 251`.
+  - Live `fact_f13` remained `709,234`.
+  - Reconciliation reload log: `import_log.id=1247`, indicator `F4.1`, source lane `TCT`, trigger `MANUAL_RECONCILE`, status `SUCCESS`, total `46`, errors `0`, skipped `0`.
 
 ## 7. Handoff
 

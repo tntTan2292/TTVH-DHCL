@@ -71,5 +71,6 @@ Completion evidence is recorded in `docs/06_REVIEWS/Shared/F41-PHASE-2_CHECKPOIN
   - TCT `46` unit rows; grand total excluded.
   - `fact_f13` unchanged at `709,234` rows.
 - Targeted F4.1, F1.3 regression, and frontend checks passed.
+- Remediation 001 fixed TC-4 TCT published-rate storage: all ten `tl_*` columns are TEXT, parser preserves raw percent strings, live `fact_f41_national` was transactionally rebuilt and reloaded from the existing Processed TCT workbook, and Huế TCT now stores numerator `2,863`, denominator `4,684`, published rate `61.12%`.
 
 Final state: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Phase 3 remains not activated.

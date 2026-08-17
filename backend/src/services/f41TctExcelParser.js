@@ -44,6 +44,7 @@ const F41_TCT_DB_COLUMNS = [
     'tl_ptc_8h_lan_dau_co_tms',
 ];
 
+const F41_TCT_RATE_COLUMNS = F41_TCT_DB_COLUMNS.filter((column) => column.startsWith('tl_'));
 const EXPECTED_COLUMN_COUNT = 38;
 const EXPECTED_REPORTING_UNITS = 46;
 const FIRST_REPORTING_ROW_INDEX = 4;
@@ -71,6 +72,11 @@ function normalizeNumber(value) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function normalizeRateText(value) {
+    if (isBlank(value)) return null;
+    return String(value).trim();
+}
+
 function rowHasAnyValue(row = []) {
     return row.some((value) => !isBlank(value));
 }
@@ -96,6 +102,7 @@ function parseF41TctExcel(buffer, filename) {
         const item = { ngay_do_kiem: ngayDoKiem };
         F41_TCT_DB_COLUMNS.forEach((column, index) => {
             if (index === 0) item[column] = normalizeNumber(row[index]);
+            else if (F41_TCT_RATE_COLUMNS.includes(column)) item[column] = normalizeRateText(row[index]);
             else if (index >= 10) item[column] = normalizeNumber(row[index]);
             else if (['ma_don_vi', 'ma_huyen', 'ma_bc', 'ma_khl'].includes(column)) item[column] = normalizeCode(row[index]);
             else item[column] = normalizeText(row[index]);
@@ -120,6 +127,7 @@ function parseF41TctExcel(buffer, filename) {
 module.exports = {
     parseF41TctExcel,
     F41_TCT_DB_COLUMNS,
+    F41_TCT_RATE_COLUMNS,
     EXPECTED_COLUMN_COUNT,
     EXPECTED_REPORTING_UNITS,
     FIRST_REPORTING_ROW_INDEX,
