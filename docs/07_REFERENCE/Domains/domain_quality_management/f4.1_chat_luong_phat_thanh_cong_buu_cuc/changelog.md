@@ -9,7 +9,12 @@ version: 1.0.0
 
 # Changelog
 
-## v1.0.0 — 2026-08-17
+## v1.0.1 - 2026-08-17
+
+- Phase 1 parser/schema validation against the real HUE workbook confirmed the HUE foundation persists all 42 source columns, including `Nhóm khách hàng` as `nhom_khach_hang`.
+- No business rule, KPI numerator, denominator, reconciliation figure, TCT contract, or source file changed.
+
+## v1.0.0 - 2026-08-17
 
 Initial creation. Ticket `F41-PHASE-0`, PO-authorized ("PO APPROVES F41-MODULE-PLAN Gate 0 và cho phép thực hiện F41-PHASE-0"), continued from authoritative `HEAD 94b32885`. Documentation only — no product code, database, or Import was implemented by this phase.
 

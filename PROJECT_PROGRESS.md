@@ -747,3 +747,21 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - New manifest `docs/10_TICKETS/F41-PHASE-0_MANIFEST.md` and checkpoint `docs/06_REVIEWS/Shared/F41-PHASE-0_CHECKPOINT_001.md`, the latter with a full content-traceability table mapping every item the activation prompt required to its exact location in the package.
 - `fact_f41`/`fact_f41_national`, any product code, and `Phase 1` itself were not created or started. `.claude/`, `Data QLML/`, `Data DKCL/`, and both stashes untouched.
 - State: `PHASE 0 COMPLETE / READY FOR PO REVIEW`. `F41-MODULE-PLAN` Gate 0 now `APPROVED`; Gates 1-4 and Phases 1-4 remain unauthorized. Full evidence: `docs/06_REVIEWS/Shared/F41-PHASE-0_CHECKPOINT_001.md`; `docs/10_TICKETS/F41-PHASE-0_MANIFEST.md`.
+
+## F41-PHASE-1 - Activated: F4.1 HUE Data Foundation
+
+- Product Owner confirmed `F41-PHASE-0: PO PASS`, explicitly authorized `Codex` for `F41-PHASE-1`, and limited Phase 1 to HUE data foundation only: additive `fact_f41`, dedicated frozen 42-column HUE parser, filename-derived date, all-row denominator contract, targeted tests, and real-file reconciliation.
+- Baseline verified before activation: workspace `D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong`, branch `codex/da-impl-006`, HEAD `58a052c5`; `git status --short` contained only the known pre-existing untracked exclusions `.claude/` and `Data QLML/`.
+- Exclusions remain locked: `.claude/` and `Data QLML/` must not be inspected, added, staged, deleted, moved, restored, or modified; `Data DKCL/` must not be modified and may be read only for the approved HUE reconciliation.
+- Out of scope: Import pipeline/watcher, TCT, portal sync, frontend, Dashboard, Ranking, Evidence, auto-import, and any change to `fact_f13`.
+- New governance files: `docs/10_TICKETS/F41-PHASE-1_MANIFEST.md`; `docs/06_REVIEWS/Shared/F41-PHASE-1_CHECKPOINT_001.md`.
+- State: `F41-PHASE-1 ACTIVE / IMPLEMENTATION AUTHORIZED`. Required final stop: `PHASE 1 COMPLETE / READY FOR PO REVIEW`; Phase 2 not activated.
+
+## F41-PHASE-1 - Completed: HUE Data Foundation Ready For PO Review
+
+- Implemented HUE-only foundation: additive/idempotent `fact_f41` schema and migration, dedicated frozen 42-column F4.1 HUE parser, filename-derived `ngay_do_kiem`, and repository queries using all stored HUE rows as the denominator.
+- Validation PASS: migration tests `4/4`, parser tests `5/5`, repository tests `2/2`. Real HUE file reconciliation proved `4,695` total / `2,863` Đạt / `1,581` Không đạt / `251` blank / `60.98%`.
+- Live DB validation: before migration `fact_f13` was `709,234` rows (`2026-01-01`..`2026-08-16`); after additive migration it remained exactly `709,234` rows with the same date range, and live `fact_f41` exists with `0` rows. No auto-import was run.
+- Source-file integrity: HUE source SHA-256 after validation `DCAAE8E10370D9CE3661141E3167A0838329591473FDBC961182757D933636A8`, matching the Phase 0 baseline; no file under `Data DKCL/` was modified.
+- Out-of-scope surfaces remained untouched: Import/watcher, TCT, portal sync, frontend, Dashboard, Ranking, Evidence, `.claude/`, `Data QLML/`.
+- State: `PHASE 1 COMPLETE / READY FOR PO REVIEW`. Phase 2 not activated.

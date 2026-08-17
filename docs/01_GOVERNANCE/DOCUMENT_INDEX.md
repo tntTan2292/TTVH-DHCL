@@ -172,3 +172,12 @@ Fresh onboarding authority is:
 `README_AI.md` -> `CODEX_PROMPT_STANDARD.md` -> `PROJECT_SNAPSHOT.md` -> Current Manifest -> Required Reading.
 
 If any old index row, report, manifest, checklist, or archived document conflicts with the current onboarding chain, treat the older document as Conditional Reference or Archive and follow the active chain.
+
+## Current F41 Phase 1 Update - 2026-08-17
+
+`PROJECT_SNAPSHOT.md` is authoritative for the current state. As of the F41 Phase 1 completion update, the current manifest is `docs/10_TICKETS/F41-PHASE-1_MANIFEST.md` and the current checkpoint is `docs/06_REVIEWS/Shared/F41-PHASE-1_CHECKPOINT_001.md`.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F41-PHASE-1_MANIFEST.md` | Ticket Manifest | F41-PHASE-1 HUE Data Foundation: additive `fact_f41`, dedicated F4.1 HUE parser, filename-derived date, all-row denominator contract, targeted validation, and real-file reconciliation. State: `PHASE 1 COMPLETE / READY FOR PO REVIEW`; Phase 2 not activated. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Shared/F41-PHASE-1_CHECKPOINT_001.md` | Checkpoint | F41-PHASE-1 activation, Codex authorization, baseline exclusions, implementation evidence, validation proof, live DB proof that `fact_f13` remained unchanged, and final handoff. | L2 | Active Onboarding | Current ticket only. | Mandatory |

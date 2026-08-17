@@ -72,7 +72,7 @@ Grain: **one row per shipment** (`Số hiệu bưu gửi`). `4.695` distinct val
 | 40 | Đánh giá (thời gian Không đo TMS PTC lần đầu 8 giờ) | `danh_gia_khong_tms_ptc_lan_dau_8h` | `Đạt` / `Không đạt` / NULL. |
 | 41 | Đánh giá (thời gian Có TMS PTC lần đầu 8 giờ) | `danh_gia_co_tms_ptc_lan_dau_8h` | `Đạt` / `Không đạt` / NULL. |
 
-Column 6 in the raw file is a wrapped header cell and carries no data of its own; it is not double-counted against the 42.
+Phase 1 implementation validation against the real workbook corrected this note: the HUE parser persists all 42 source columns. The real header includes `Nhóm khách hàng` between `Tên KHL` and `Số hiệu BD10 XNĐ BCP`, persisted as `nhom_khach_hang`. No KPI figure, denominator rule, or reconciliation baseline changes.
 
 ### 1.2 Structural differences vs the frozen F1.3 41-column mapping
 
