@@ -153,3 +153,54 @@ The first remaining Chrome/Codex difference is account identity: Browser Codex `
 Disposition: HUE and TCT remain `MANUAL_ONLY`. Await PO confirmation whether the supported HUE profile must be manually re-authenticated as `tantn.bdth` before any separately authorized reconciliation probe.
 
 State: `HUE COMPARISON BLOCKED / READY FOR PO REVIEW`.
+
+## 16. PO Account Decision And Outer-Row Gate
+
+PO confirms Browser Codex account `tantn.bdtth` is valid and authorized for HUE automation. No account change or manual re-login is required.
+
+The next HUE probe is read-only and must use direct outer summary rows only. Admission criteria are exactly nine units, `4,695` total, `2,863` passed, `60.98%`, and export identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2`. Nested detail rows are excluded by DOM ownership, not by value heuristics.
+
+HUE adapter work is authorized only after the complete reconciliation. TCT is conditionally authorized afterward through `TINH / ALL / single date` using the F1.3 interaction sequence, with an immediate stop on ambiguity. No operational Import/queue/business write or Gate 4 self-pass is authorized.
+
+State: `ACTIVE / HUE OUTER-ROW RECONCILIATION`.
+
+## 17. Admissible HUE Runtime Proof
+
+The supported client reopened the authorized `tantn.bdtth` HUE profile with `requireExistingSession=true`. The exact PO query state was retained: `BC`, province `53`, empty district, approved `NULL`/`ALL` ancillary values, and single date `2026-08-01`. The GET returned HTTP 200.
+
+The evidence reader selected only top-level tables and direct `TR` children. It excluded every row owned by a nested detail table. The selected outer summary contained exactly nine direct business-unit rows. In the same direct aggregate row, positional columns proved total volume `4,695`, passed volume `2,863`, and rate `60.98%`. The response exposed exactly `/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all`, proving resource identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2`.
+
+No export, download, Import, Queue or database write was used to establish this HUE gate.
+
+## 18. HUE Adapter Implementation
+
+- Added identity `DKCL_F41_HUE_SINGLE_DATE_V1` for exactly `F4.1 / HUE / one business date`.
+- Extended the existing F1.3 Portal client with the proven F4.1 route, exact change-event/cascade filter sequence, direct-outer-summary reader and exact export control. No new selector or report identity was inferred.
+- Added a bounded one-date HUE service and adapter that reuse the existing generated-file polling/download/cleanup, frozen F4.1 HUE parser, standard filename rule and Phase 2 Import pipeline.
+- The executor requires existing `SESSION_VALID` HUE state, the existing per-source lock and active-operation marker. `AUTHENTICATION_REQUIRED` propagates unchanged.
+- Runtime registration now installs F1.3 and verified F4.1/HUE executors before Queue/coordinator construction. Only F4.1/HUE is `AUTOMATED`; F4.1/TCT is unchanged and `MANUAL_ONLY`.
+- `refreshRequested` and `forceReimport` remain false. Existing Queue completion recheck and global SQLite lease are unchanged and remain the concurrency authority.
+
+## 19. Independent TCT Stop Evidence
+
+After HUE implementation tests passed, TCT was opened once through the supported existing TCT profile and the exact F1.3 interaction method. The selected values were `TuyChonGR=TINH`, `stMaTinhPhat=ALL`, and both dates `2026-08-01`.
+
+The resulting request was:
+
+`GET https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc?TuyChonGR=TINH&stMaHuyenPhat=&stMaTinhPhat=ALL&stMaLoaiBCPhat=ALL&stMaBuuCucPhat=NULL&stLoaiDichVu=ALL&stNhomLoaiKH=ALL&stPhamViTinh=ALL&stLoaiTuyenPhat=ALL&stLoaiPhuongXa=ALL&iFrom=08%2F01%2F2026&iTo=08%2F01%2F2026`
+
+DKCL returned HTTP 500 with JSON message `Server Error`. The rendered state retained `Tỉnh / Chọn tất cả`, but had zero direct data rows and no export form; console evidence was the same failed-resource 500. The first ancillary difference from the proven HUE request is `stMaLoaiBCPhat=ALL`, followed by other F1.3-normalized scope fields using `ALL`. No `NULL` substitution, second request, random selector, export or download was attempted.
+
+Disposition: TCT has no independently proven report/export/workbook workflow and remains `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`.
+
+## 20. Validation, Safety And PO Gate
+
+Focused command covering Coverage, Queue, F1.3 executors, the new F4.1 HUE executor, F1.3 legacy HUE/TCT services, F4.1 HUE/TCT parsers and F4.1 Import pipeline completed with `63/63` Node runner tests passing. The legacy HUE suites also reported their internal `39/39` and `135/135` assertions passing; the TCT legacy suite passed.
+
+The HUE adapter acceptance proves exact identity/date, manual session, source lock, active-operation guard, authentication stop, SUCCESS-before-lease skip, registration before coordinator construction, no force overwrite, and a fake generated workbook traversing the existing F4.1 Import pipeline to exact completion evidence. All mutation-capable tests used temporary SQLite databases and directories.
+
+Operational Auto Backfill runs, real Import, live SQLite/business-data writes, frontend, Safety and successor work were zero. Discovery created no export/download artifact. Temporary helpers were removed and only the normal backend runtime is restored.
+
+State: `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`.
+
+Gate 4 remains pending Product Owner review. No successor ticket is activated.

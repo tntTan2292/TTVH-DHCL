@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-F41 Manifest
 
-Status: `HUE COMPARISON BLOCKED / ACCOUNT CONFIRMATION REQUIRED / BOTH LANES MANUAL_ONLY` (2026-08-18).
+Status: `ACTIVE / HUE OUTER-ROW RECONCILIATION / BOTH LANES MANUAL_ONLY` (2026-08-18).
 
 ## 1. Ticket Information
 
@@ -170,3 +170,42 @@ No second submit, export, download, Import, queue execution, DB write or product
 Required PO decision: confirm whether the supported HUE automation profile must be manually re-authenticated as `tantn.bdth` before one separately authorized reconciliation probe.
 
 State: `AUTO-BACKFILL-F41 HUE COMPARISON BLOCKED / READY FOR PO REVIEW`.
+
+## 19. PO Account Decision And HUE Reconciliation Re-entry
+
+PO confirms `tantn.bdtth` is a valid account authorized for the HUE automation profile; re-authentication as `tantn.bdth` is not required.
+
+PO authorizes a read-only HUE verification restricted to direct outer summary rows. The gate requires exactly nine units, total `4,695`, passed `2,863`, rate `60.98%`, and export identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2`. Nested detail-table rows must not participate in the calculation.
+
+Only after all five facts are proven may the HUE single-date adapter be implemented and tested. TCT may then continue only through the verified F1.3 interaction pattern `TINH / ALL / single date`; any uncertain point stops for PO direction. Operational Import, queue execution, business-data writes and self-approval of Gate 4 remain prohibited.
+
+State: `AUTO-BACKFILL-F41 ACTIVE / HUE OUTER-ROW RECONCILIATION`.
+
+## 20. HUE Evidence Gate Passed
+
+The authorized HUE profile returned HTTP 200 for the exact successful F4.1 request. Direct rows belonging to the outer summary table, excluding all nested-table ownership, proved nine units and one aggregate row containing `4,695 / 2,863 / 60.98%`. The same response exposed `/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all`; report/resource identity is therefore independently proven as `sp_Phat_ChatLuong_PTC_BuuCuc_V2`.
+
+HUE discovery used no export, download, Import, Queue or database write.
+
+## 21. HUE Lane Delivery
+
+F4.1/HUE is implemented as verified executor `DKCL_F41_HUE_SINGLE_DATE_V1`. It accepts one exact date, uses the existing manually authenticated HUE session, source lock and active-operation marker, and invokes a bounded one-date workflow. Exact F4.1 filters and readiness are applied through real UI change events and cascade waits. Generated resource polling, temporary download, exact cleanup, parser, filename convention and Phase 2 Import pipeline reuse established code.
+
+The executor is registered before Queue/coordinator startup. Queue completion recheck, one global SQLite lease, `refreshRequested=false` and `forceReimport=false` are preserved. The registry changes only F4.1/HUE to `AUTOMATED`.
+
+## 22. TCT Independent Gate Result
+
+The single authorized TCT attempt reused the F1.3 `TINH / ALL / single date` method without custom filter injection. DKCL returned HTTP 500 `Server Error` for the generated F4.1 GET. The page retained the selected `Tỉnh / Chọn tất cả` scope but contained no data rows and no export control.
+
+No second request, ancillary-filter guess, export, download or Import followed. F4.1/TCT remains `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`; HUE evidence does not authorize it.
+
+## 23. Acceptance And Final State
+
+- New HUE executor tests: `5/5 PASS`.
+- Combined focused Coverage/Queue/F1.3/F4.1 runner: `63/63 PASS`; legacy HUE/TCT assertion suites also pass.
+- Fake HUE export and Import use isolated temporary DB/directories and prove completion evidence; operational data is untouched.
+- Existing F1.3 adapters, Queue/Coverage acceptance, F4.1 parsers/reconciliations and TCT `MANUAL_ONLY` behavior remain green.
+
+State: `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`.
+
+PO Gate 4 is not self-passed. `AUTO-BACKFILL-SAFETY` and every successor remain inactive.

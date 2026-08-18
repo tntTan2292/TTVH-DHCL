@@ -920,3 +920,17 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Cascade waits completed and the generated URL matched the PO URL byte-for-byte. The single submit returned HTTP 200 and exposed the expected export/detail identities.
 - Browser Codex account was `tantn.bdtth`, versus successful Chrome account `tantn.bdth`. Nine rate-bearing rows rendered, but nested table rows contaminated the temporary aggregate reader, so `4,695 / 2,863` is not yet admissibly proven.
 - Zero second submit, export, download, Import, queue/DB write or TCT action. Both lanes remain `MANUAL_ONLY`; state is `HUE COMPARISON BLOCKED / READY FOR PO REVIEW`.
+
+## AUTO-BACKFILL-F41 HUE Outer-Row Reconciliation Re-entry
+
+- PO confirms `tantn.bdtth` is a valid HUE automation account; no re-login as `tantn.bdth` is needed.
+- HUE read-only gate: nine direct outer units, `4,695 / 2,863 / 60.98%`, export identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2`; nested detail rows are excluded.
+- HUE-only adapter implementation follows only after full proof. TCT may then use `TINH / ALL / single date`; Gate 4 and operational mutations remain prohibited.
+
+## AUTO-BACKFILL-F41 HUE Implemented / TCT Discovery Blocked
+
+- The supported HUE client submitted the PO-locked request under authorized account `tantn.bdtth`; direct rows owned by the outer summary table proved exactly nine units and the same direct aggregate row proved `4,695 / 2,863 / 60.98%`. The response returned HTTP 200 and exposed export identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2`.
+- Added the verified `DKCL_F41_HUE_SINGLE_DATE_V1` identity and one-date executor. It reuses the existing HUE session preflight, source lock, active-operation protection, generated-file handling, F4.1 parser and Phase 2 Import pipeline; registration completes before coordinator construction, refresh/force is false, and Queue completion remains authoritative.
+- Only F4.1 HUE changed to `AUTOMATED`. F4.1 TCT used the existing F1.3 `TINH / ALL / 2026-08-01` interaction exactly once; DKCL returned HTTP 500 `Server Error` for the resulting GET, with no result rows or export control. No filter variant or second request was attempted, so TCT remains `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`.
+- Focused shared-platform/F1.3/F4.1 validation passed: 63 Node runner tests, plus the legacy HUE and TCT suites' internal assertions. All mutation-capable tests used temporary databases/directories. No operational Queue, Import, business-data write, discovery export/download, frontend, Safety or successor work occurred.
+- State: `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`. Gate 4 is not self-passed and no successor is activated.

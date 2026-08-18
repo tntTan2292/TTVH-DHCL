@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-F41 — exact HUE request comparison. BLOCKED / READY FOR PO REVIEW (2026-08-18).` |
-| Current Ticket | `AUTO-BACKFILL-F41 — exact URL now returns HTTP 200, but account identity differs and locked totals remain unproven; no successor is active.` |
+| Current Phase | `AUTO-BACKFILL-F41 — HUE direct outer-row reconciliation. ACTIVE (2026-08-18).` |
+| Current Ticket | `AUTO-BACKFILL-F41 — prove HUE 9 / 4,695 / 2,863 / 60.98% and export identity before HUE-only adapter work; no successor is active.` |
 | Next Ticket | `None activated. AUTO-BACKFILL-SAFETY is a planned candidate only after F41 PO Gate 4 and separate explicit authorization. UI/RUNTIME, F41 Phase 3, UI Remediation and unrelated tickets remain inactive.` |
-| Last PO Status | `Product Owner authorized exactly one HUE comparison. It completed with exact URL and HTTP 200; account/reconciliation difference now awaits PO review.` |
+| Last PO Status | `Product Owner confirms tantn.bdtth is authorized and permits direct outer-row HUE verification, then HUE-only adapter implementation if all evidence passes.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-F41_MANIFEST.md` |
 | Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md` — F13 Gate 3 PASS, static/live discovery evidence, blocked lane disposition and validation ledger. |
-| Current State | `AUTO-BACKFILL-F41 HUE COMPARISON BLOCKED / READY FOR PO REVIEW (2026-08-18). HUE/TCT remain MANUAL_ONLY.` |
-| Technical Status | `Exact request transport and report/export/detail identities are proven. Locked 4,695 / 2,863 reconciliation is not yet admissible because the temporary reader traversed nested rows.` |
-| Runtime Status | `Single exact HUE submit returned HTTP 200 under account tantn.bdtth; Chrome PO success account is tantn.bdth. No export/Import/write/TCT action occurred.` |
+| Current State | `AUTO-BACKFILL-F41 ACTIVE / HUE OUTER-ROW RECONCILIATION (2026-08-18). HUE/TCT remain MANUAL_ONLY until proven.` |
+| Technical Status | `Exact request/report/export/detail transport is proven. Next probe excludes nested rows by direct DOM ownership and must reconcile 9 / 4,695 / 2,863 / 60.98%.` |
+| Runtime Status | `Account tantn.bdtth is PO-approved. Backend is on port 5050 before bounded ownership transfer; operational Import/queue/write remains prohibited.` |
 | PO UI Check Required | `No — this ticket has no frontend. AUTO-BACKFILL-UI remains deferred and requires its own later Product Owner activation.` |
-| PO Product Status | `AUTO-BACKFILL-F13 is closed / PO GATE 3 PASS. AUTO-BACKFILL-F41 HUE remains unverified pending account/reconciliation resolution; Gate 4 is not passed.` |
+| PO Product Status | `AUTO-BACKFILL-F13 is closed / PO GATE 3 PASS. AUTO-BACKFILL-F41 HUE awaits direct outer-row proof; Gate 4 is not passed.` |
 | Last Closed Ticket | `AUTO-BACKFILL-F13 — COMPLETED / PO GATE 3 PASS (2026-08-18). Verified F1.3 HUE/TCT shared adapters are accepted; F41 is the active successor.` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-BACKFILL-F13 Gate 3 (2026-08-18): COMPLETED / PO PASS` |
 | Last Reviewed Implementation Commit | `5a2cf358e68baa0ae6f7ae1f22814f535b564fb9 — verified F1.3 adapters accepted at Gate 3.` |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
-| Next Phase Authorization | `None. Await PO confirmation on HUE profile account identity. TCT, AUTO-BACKFILL-SAFETY and every later ticket remain unauthorized.` |
+| Next Phase Authorization | `HUE reconciliation and HUE-only adapter after proof; conditional TCT discovery via F1.3 TINH/ALL/single-date workflow. Safety and later tickets remain unauthorized.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-18` |
 
@@ -249,3 +249,15 @@ Latest authoritative next action (`2026-08-18`, exact HUE comparison; supersedes
 `AUTO-BACKFILL-F41` exact HUE comparison result (`2026-08-18`): all cascade waits completed, the form URL matched the PO URL byte-for-byte, and exactly one submit returned HTTP 200 with the expected export/detail identities. Browser Codex displayed `tantn.bdtth`, unlike Chrome PO `tantn.bdth`. Nine rate-bearing rows rendered, but nested table rows contaminated the temporary aggregate reader, so the locked `4,695 / 2,863` reconciliation remains unproven. No second submit/export/Import/write/TCT action occurred.
 
 Latest authoritative next action (`2026-08-18`, account differential; supersedes every earlier next-action note): `AWAIT PO confirmation whether the supported HUE automation profile must be manually re-authenticated as tantn.bdth before one separately authorized reconciliation probe. Do not continue TCT or implement an adapter.`
+
+`AUTO-BACKFILL-F41` account decision (`2026-08-18`): PO confirms `tantn.bdtth` is a valid authorized HUE automation account. Reconciliation must read direct outer summary rows only and prove nine units, `4,695 / 2,863 / 60.98%`, plus export identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2` before HUE adapter implementation.
+
+Latest authoritative next action (`2026-08-18`, HUE outer-row gate; supersedes every earlier next-action note): `Run bounded read-only HUE direct-row reconciliation. Implement/test HUE only after full proof. Then continue TCT only through F1.3 TINH/ALL/single date and stop on ambiguity. Do not self-pass Gate 4.`
+
+`AUTO-BACKFILL-F41` partial implementation handoff (`2026-08-18`): the supported HUE profile under PO-authorized account `tantn.bdtth` returned the exact locked HTTP 200 request. A DOM reader restricted to direct rows of the top-level summary table proved nine units and located `4,695`, `2,863` and `60.98%` in the same direct aggregate row; nested detail rows were excluded by ownership. The response independently exposed `sp_Phat_ChatLuong_PTC_BuuCuc_V2` and `/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all`. The verified `DKCL_F41_HUE_SINGLE_DATE_V1` executor now wraps exactly one HUE date using existing manual-session preflight, HUE source lock/active-operation protection, exact F4.1 filters, generated-file handling, F4.1 parser and existing Phase 2 Import pipeline. It is registered before Queue/coordinator construction; force/refresh remains false and Queue completion recheck remains unchanged. Only F4.1 HUE is now `AUTOMATED`.
+
+The independently bounded TCT attempt reused the existing F1.3 sequence exactly once with `TINH / ALL / 2026-08-01`. It issued `GET /kpi/chat-luong-phat-thanh-cong-cua-buu-cuc?TuyChonGR=TINH&stMaHuyenPhat=&stMaTinhPhat=ALL&stMaLoaiBCPhat=ALL&stMaBuuCucPhat=NULL&stLoaiDichVu=ALL&stNhomLoaiKH=ALL&stPhamViTinh=ALL&stLoaiTuyenPhat=ALL&stLoaiPhuongXa=ALL&iFrom=08%2F01%2F2026&iTo=08%2F01%2F2026`; DKCL returned HTTP 500 with `{"message":"Server Error"}`. The page retained `Tỉnh / Chọn tất cả` but rendered zero data rows and no export control. No second request or guessed `NULL` variant was attempted. F4.1 TCT remains `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`.
+
+Validation: 63 focused Node runner tests passed with zero failures across Coverage, Queue, F1.3 shared executors and legacy HUE/TCT services, F4.1 HUE/TCT parsers, F4.1 Import pipeline and the new HUE adapter. The fake HUE export/import acceptance used only temporary DB/directories. Operational Queue/Import and business-data writes were zero; discovery export/download count was zero. State: `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`.
+
+Latest authoritative next action (`2026-08-18`, partial F41 handoff; supersedes every earlier next-action note): `AWAIT PO review of the HUE adapter and PO-provided successful TCT request state or explicit TCT direction. Do not guess ancillary TCT filter values, self-pass Gate 4, or activate AUTO-BACKFILL-SAFETY.`

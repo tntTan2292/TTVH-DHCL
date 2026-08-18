@@ -6,6 +6,9 @@ const { selectNewestGeneratedFile } = require('./dkclHueF13SyncService');
 const processManager = require('./browserProcessManager');
 
 const DETAIL_METRIC_HEADER = 'SL bưu gửi phát thành công/Nộp tiền/CH';
+const F41_REPORT_PATH = '/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc';
+const F41_HUE_EXPORT_IDENTITY = 'sp_Phat_ChatLuong_PTC_BuuCuc_V2';
+const F41_HUE_EXPORT_ACTION = `/export/${F41_HUE_EXPORT_IDENTITY}/all`;
 
 const DEFAULT_CHROMIUM_LAUNCH_ARGS = Object.freeze([
     '--disable-session-crashed-bubble',
@@ -438,6 +441,116 @@ class DkclHueF13PortalClient {
         if (this.page.url().includes('/login') || await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count() > 0) {
             throw portalError('AUTHENTICATION_REQUIRED: login required', 'AUTHENTICATION_REQUIRED');
         }
+    }
+
+    async openF41Report() {
+        await this.page.goto(`${this.baseUrl}${F41_REPORT_PATH}`, {
+            waitUntil: 'domcontentloaded',
+            timeout: 60000
+        });
+        await this.stopForSecurityChallenge({ allowHrm: false });
+        await Promise.race([
+            this.page.waitForSelector('select[name="TuyChonGR"]', { state: 'attached', timeout: 20000 }).catch(() => null),
+            this.page.waitForSelector('input[name="login"], input[id="login"], input[type="password"]', { state: 'attached', timeout: 20000 }).catch(() => null)
+        ]);
+        if (this.page.url().includes('/login') || await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count() > 0) {
+            throw portalError('AUTHENTICATION_REQUIRED: login required', 'AUTHENTICATION_REQUIRED');
+        }
+    }
+
+    async waitForF41Cascade(fieldName) {
+        try {
+            await this.page.waitForLoadState('networkidle', { timeout: 15000 });
+            await this.page.waitForTimeout(250);
+        } catch {
+            throw portalError(`F4.1 filter cascade did not finish after ${fieldName}.`, 'F41_FILTER_CASCADE_TIMEOUT');
+        }
+    }
+
+    async selectF41Exact(name, value) {
+        const selector = `select[name="${name}"]`;
+        await this.selectByValueOrLabel(selector, value);
+        await this.waitForSelectValue(selector, value);
+        await this.waitForF41Cascade(name);
+    }
+
+    async submitF41HueFilters({ businessDate }) {
+        await this.selectF41Exact('TuyChonGR', 'BC');
+        await this.selectF41Exact('stMaTinhPhat', '53');
+        await this.selectF41Exact('stMaLoaiBCPhat', 'NULL');
+        await this.selectF41Exact('stMaBuuCucPhat', 'NULL');
+        await this.selectF41Exact('stLoaiDichVu', 'ALL');
+        await this.selectF41Exact('stNhomLoaiKH', 'ALL');
+        await this.selectF41Exact('stPhamViTinh', 'NULL');
+        await this.selectF41Exact('stLoaiTuyenPhat', 'NULL');
+        await this.selectF41Exact('stLoaiPhuongXa', 'NULL');
+
+        const district = this.page.locator('[name="stMaHuyenPhat"]').first();
+        if (await district.count() !== 1 || await district.inputValue() !== '') {
+            throw portalError('F4.1 stMaHuyenPhat must remain empty.', 'F41_FILTER_VALUE_MISMATCH');
+        }
+        const dates = {
+            visibleFromDate: formatPortalDate(businessDate),
+            visibleToDate: formatPortalDate(businessDate),
+            requestFromDate: formatPortalRequestDate(businessDate),
+            requestToDate: formatPortalRequestDate(businessDate)
+        };
+        await this.fillDateInputs(dates);
+        await this.verifyDateInputs(dates);
+        await this.waitForF41Cascade('date-filters');
+
+        const submit = this.page.getByRole('button', { name: 'Thống kê' });
+        if (await submit.count() !== 1 || !await submit.isVisible() || !await submit.isEnabled()) {
+            throw portalError('F4.1 Thống kê control is not uniquely ready.', 'REPORT_SUBMIT_NOT_READY');
+        }
+        await submit.click();
+        await this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+    }
+
+    async readF41HueOuterSummary() {
+        const summary = await this.page.evaluate((exportIdentity) => {
+            const directRows = (table) => Array.from(table.children).flatMap((child) => {
+                if (child.tagName === 'TR') return [child];
+                if (!['THEAD', 'TBODY', 'TFOOT'].includes(child.tagName)) return [];
+                return Array.from(child.children).filter((row) => row.tagName === 'TR');
+            });
+            const normalize = (value) => String(value || '').trim().replace(/\s+/g, ' ');
+            const number = (value) => Number(normalize(value).replace(/[^0-9]/g, '')) || 0;
+            const topLevelTables = Array.from(document.querySelectorAll('table')).filter((table) => !table.parentElement?.closest('table'));
+            const selected = topLevelTables.map((table) => ({ table, rows: directRows(table) })).find(({ rows }) => {
+                const text = rows.map((row) => normalize(row.textContent)).join(' ');
+                return /Sản lượng PTC\s*\/\s*Nộp tiền\s*\/\s*CH/i.test(text) && /quét TMS/i.test(text);
+            });
+            if (!selected) return null;
+            const dataRows = selected.rows.filter((row) => {
+                const cells = Array.from(row.children).filter((cell) => cell.tagName === 'TD');
+                return cells.length >= 38 && /^\d+$/.test(normalize(cells[0]?.textContent));
+            });
+            const overall = dataRows[0];
+            const cells = overall ? Array.from(overall.children).map((cell) => normalize(cell.textContent)) : [];
+            const exportAction = Array.from(document.querySelectorAll('form[action]'))
+                .map((form) => new URL(form.getAttribute('action'), location.origin).pathname)
+                .find((action) => action === `/export/${exportIdentity}/all`) || null;
+            return {
+                unitCount: dataRows.length,
+                totalVolume: number(cells[10]),
+                passedVolume: number(cells[27]),
+                rate: cells[28] || null,
+                exportIdentity: exportAction ? exportIdentity : null,
+                exportAction,
+            };
+        }, F41_HUE_EXPORT_IDENTITY);
+        if (!summary) throw portalError('F4.1 HUE outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
+        return summary;
+    }
+
+    async requestF41HueExport() {
+        const button = this.page.locator(`form[action$="${F41_HUE_EXPORT_ACTION}"] button[type="submit"]`);
+        if (await button.count() !== 1 || !await button.isVisible() || !await button.isEnabled()) {
+            throw portalError('F4.1 HUE export control is not uniquely ready.', 'EXPORT_CONTROL_NOT_READY');
+        }
+        await button.click();
+        await this.page.waitForTimeout(1000);
     }
 
     async submitFilters({ groupBy, provinceCode, fromDate, toDate }) {
@@ -976,5 +1089,8 @@ module.exports = {
     formatPortalRequestDate,
     findVisibleDetailCandidateIndex,
     findExactFileRowIndexes,
-    DETAIL_METRIC_HEADER
+    DETAIL_METRIC_HEADER,
+    F41_REPORT_PATH,
+    F41_HUE_EXPORT_IDENTITY,
+    F41_HUE_EXPORT_ACTION
 };

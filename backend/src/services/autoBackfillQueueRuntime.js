@@ -6,7 +6,7 @@ const { AutoBackfillQueueStore } = require('./autoBackfillQueueStore');
 const { AutoBackfillQueueService } = require('./autoBackfillQueueService');
 const { AutoBackfillExecutorRegistry } = require('./autoBackfillExecutorRegistry');
 const { AutoBackfillWorkerCoordinator } = require('./autoBackfillWorkerCoordinator');
-const { registerF13AutoBackfillExecutors } = require('./autoBackfillF13Executors');
+const { registerVerifiedAutoBackfillExecutors } = require('./autoBackfillExecutors');
 
 let queueService = null;
 let executorRegistry = null;
@@ -15,7 +15,7 @@ let coordinator = null;
 function buildRuntime({
     runtimeDbPath = dbPath,
     completionDb = { all, get },
-    registerExecutors = registerF13AutoBackfillExecutors,
+    registerExecutors = registerVerifiedAutoBackfillExecutors,
     coordinatorFactory = (options) => new AutoBackfillWorkerCoordinator(options),
 } = {}) {
     const runtimeExecutorRegistry = new AutoBackfillExecutorRegistry();

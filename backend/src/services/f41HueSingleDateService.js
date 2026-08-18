@@ -1,0 +1,177 @@
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { executeImport } = require('./importPipeline');
+const { getIndicatorConfig } = require('./importIndicatorRegistry');
+const { parseF41HueExcel } = require('./f41HueExcelParser');
+const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
+
+const REQUIRED_PORTAL_METHODS = Object.freeze([
+    'openF41Report',
+    'submitF41HueFilters',
+    'readF41HueOuterSummary',
+    'requestF41HueExport',
+    'pollGeneratedFile',
+    'downloadXlsx',
+]);
+
+function serviceError(code, message, details = null) {
+    const error = new Error(message);
+    error.code = code;
+    if (details) error.details = details;
+    return error;
+}
+
+function normalizeBusinessDate(value) {
+    const text = String(value || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        throw serviceError('INVALID_DATE', 'F4.1 HUE business date must use YYYY-MM-DD.');
+    }
+    return text;
+}
+
+function standardizedFilename(businessDate) {
+    return `F4.1-${businessDate.replace(/-/g, '.')}.xlsx`;
+}
+
+function normalizeRate(value) {
+    const number = Number(String(value ?? '').replace('%', '').replace(',', '.').trim());
+    return Number.isFinite(number) ? Number(number.toFixed(2)) : null;
+}
+
+class F41HueSingleDateService {
+    constructor(options = {}) {
+        this.executeImport = options.executeImport || executeImport;
+        this.parser = options.parser || parseF41HueExcel;
+        this.fs = options.fs || fs;
+        this.path = options.path || path;
+        this.clock = options.clock || (() => new Date());
+        this.config = {
+            rawDownloadDir: options.rawDownloadDir || path.resolve(process.cwd(), '../portal-downloads/dkcl/hue/f41/raw'),
+            generationTimeoutMs: options.generationTimeoutMs || Number(process.env.DKCL_HUE_GENERATION_TIMEOUT_MS || 900000),
+            generationPollingIntervalMs: options.generationPollingIntervalMs || Number(process.env.DKCL_HUE_GENERATION_POLL_INTERVAL_MS || 30000),
+            downloadStableTimeoutMs: options.downloadStableTimeoutMs || 120000,
+        };
+    }
+
+    async runOneDate(businessDate, { portalClient, refreshRequested = false } = {}) {
+        const date = normalizeBusinessDate(businessDate);
+        if (refreshRequested) {
+            throw serviceError('F41_HUE_FORCE_REIMPORT_FORBIDDEN', 'F4.1 HUE Auto Backfill never force-overwrites completed data.');
+        }
+        for (const method of REQUIRED_PORTAL_METHODS) {
+            if (typeof portalClient?.[method] !== 'function') {
+                throw serviceError('F41_HUE_PORTAL_CLIENT_INCOMPLETE', `F4.1 HUE requires portalClient.${method}().`);
+            }
+        }
+
+        await portalClient.openF41Report();
+        await portalClient.submitF41HueFilters({ businessDate: date });
+        const summary = await portalClient.readF41HueOuterSummary();
+        this.assertSummary(summary);
+
+        const requestedAt = this.clock();
+        await portalClient.requestF41HueExport();
+        const generatedFile = await portalClient.pollGeneratedFile({
+            requestedAt,
+            timeoutMs: this.config.generationTimeoutMs,
+            intervalMs: this.config.generationPollingIntervalMs,
+            match: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+        });
+        if (!generatedFile) {
+            throw serviceError('EXPORT_TIMEOUT', 'Timed out waiting for the verified F4.1 HUE generated resource.');
+        }
+
+        this.fs.mkdirSync(this.config.rawDownloadDir, { recursive: true });
+        const downloadedPath = await portalClient.downloadXlsx({ file: generatedFile, targetDir: this.config.rawDownloadDir });
+        const stablePath = await this.waitForStableFile(downloadedPath);
+        const filename = standardizedFilename(date);
+        const parsed = this.parser(this.fs.readFileSync(stablePath), filename);
+        const passed = parsed.parsedData.filter((row) => row.danh_gia_co_tms_ptc_8h === 'Đạt').length;
+        const rate = parsed.totalParsed > 0 ? Number(((passed / parsed.totalParsed) * 100).toFixed(2)) : null;
+        if (parsed.totalParsed !== summary.totalVolume || passed !== summary.passedVolume || rate !== normalizeRate(summary.rate)) {
+            throw serviceError('F41_HUE_RECONCILIATION_FAILED', 'F4.1 HUE workbook does not reconcile with the verified outer summary.', {
+                workbook: { total: parsed.totalParsed, passed, rate },
+                portal: summary,
+            });
+        }
+
+        const indicator = getIndicatorConfig('F4.1');
+        const incomingDir = this.path.join(indicator.incomingDir, 'HUE');
+        this.fs.mkdirSync(incomingDir, { recursive: true });
+        const incomingPath = this.path.join(incomingDir, filename);
+        if (this.fs.existsSync(incomingPath)) {
+            throw serviceError('MANUAL_REVIEW_REQUIRED', 'Standardized F4.1 HUE Incoming file already exists.');
+        }
+        this.fs.copyFileSync(stablePath, incomingPath);
+
+        const importResult = await this.executeImport({
+            filePath: incomingPath,
+            forceReimport: false,
+            source: 'AUTO_BACKFILL_F41_HUE',
+            indicator: 'F4.1',
+            lane: 'HUE',
+        });
+        if (importResult?.requiresConfirmation) {
+            throw serviceError('MANUAL_REVIEW_REQUIRED', 'F4.1 HUE Import requires confirmation for existing evidence.', importResult);
+        }
+        if (!importResult?.success) {
+            throw serviceError('F41_HUE_IMPORT_FAILED', 'F4.1 HUE Import did not report success.', importResult);
+        }
+
+        let cleanup = { status: 'NOT_SUPPORTED' };
+        if (typeof portalClient.deleteGeneratedFile === 'function') {
+            try {
+                cleanup = await portalClient.deleteGeneratedFile(generatedFile);
+            } catch (error) {
+                cleanup = { status: 'FAILED', warning: error.message };
+            }
+        }
+        return {
+            status: 'SUCCESS',
+            indicator: 'F4.1',
+            sourceLane: 'HUE',
+            businessDate: date,
+            generatedPortalFilename: generatedFile.filename,
+            standardizedFilename: filename,
+            processedPath: importResult.processedPath || null,
+            total: parsed.totalParsed,
+            passed,
+            rate,
+            importResult,
+            cleanup,
+        };
+    }
+
+    assertSummary(summary) {
+        if (summary?.unitCount !== 9
+            || !Number.isInteger(summary.totalVolume)
+            || summary.totalVolume <= 0
+            || !Number.isInteger(summary.passedVolume)
+            || normalizeRate(summary.rate) !== Number(((summary.passedVolume / summary.totalVolume) * 100).toFixed(2))
+            || summary.exportIdentity !== F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity) {
+            throw serviceError('F41_HUE_OUTER_SUMMARY_INVALID', 'F4.1 HUE outer summary is incomplete or inconsistent.', summary);
+        }
+    }
+
+    async waitForStableFile(filePath) {
+        const deadline = Date.now() + this.config.downloadStableTimeoutMs;
+        let previousSize = -1;
+        while (Date.now() < deadline) {
+            if (this.fs.existsSync(filePath)) {
+                const size = this.fs.statSync(filePath).size;
+                if (size > 0 && size === previousSize) return filePath;
+                previousSize = size;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        throw serviceError('DOWNLOAD_NOT_STABLE', 'F4.1 HUE download did not become stable before timeout.');
+    }
+}
+
+module.exports = {
+    F41HueSingleDateService,
+    normalizeRate,
+    standardizedFilename,
+};

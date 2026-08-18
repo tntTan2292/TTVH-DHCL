@@ -24,6 +24,7 @@ const {
     INDICATORS,
     createFilenameDateRule,
 } = require('./src/services/importIndicatorRegistry');
+const { F41_EXECUTOR_IDENTITIES } = require('./src/services/autoBackfillF41Contract');
 
 const CIRCUIT_SCOPE = Object.freeze({
     dimensions: ['adapter', 'source', 'resource'],
@@ -239,13 +240,14 @@ test('runtime registration is complete before queue/coordinator construction', (
     assert.ok(runtime.executorRegistry.getVerified('ORDER_TEST'));
 });
 
-test('production runtime builder installs both verified F1.3 executors without starting work', () => {
+test('production runtime builder installs verified F1.3 and F4.1 HUE executors without starting work', () => {
     const runtime = buildRuntime({
         runtimeDbPath: path.join(os.tmpdir(), `f13-runtime-registration-${Date.now()}.sqlite`),
         completionDb: { async all() { return []; }, async get() { return null; } },
     });
     assert.ok(runtime.executorRegistry.getVerified(F13_EXECUTOR_IDENTITIES.HUE.id));
     assert.ok(runtime.executorRegistry.getVerified(F13_EXECUTOR_IDENTITIES.TCT.id));
+    assert.ok(runtime.executorRegistry.getVerified(F41_EXECUTOR_IDENTITIES.HUE.id));
     assert.equal(runtime.coordinator.snapshot().started, false);
     assert.equal(runtime.coordinator.snapshot().processNextCount, 0);
 });
@@ -345,10 +347,10 @@ test('external SUCCESS before lease skips the F1.3 executor', async () => {
     }
 });
 
-test('F4.1 remains manual-only and exposes no executable Portal adapter', () => {
-    for (const lane of Object.values(INDICATORS['F4.1'].lanes)) {
-        assert.equal(lane.automationMode, 'MANUAL_ONLY');
-        assert.equal(lane.portalAdapter, null);
-        assert.equal(lane.manualOnlyReason, 'PORTAL_ADAPTER_NOT_VERIFIED');
-    }
+test('F4.1 exposes only the verified HUE adapter and keeps TCT manual-only', () => {
+    assert.equal(INDICATORS['F4.1'].lanes.HUE.automationMode, 'AUTOMATED');
+    assert.equal(INDICATORS['F4.1'].lanes.HUE.portalAdapter.id, F41_EXECUTOR_IDENTITIES.HUE.id);
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.automationMode, 'MANUAL_ONLY');
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.portalAdapter, null);
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.manualOnlyReason, 'PORTAL_ADAPTER_NOT_VERIFIED');
 });

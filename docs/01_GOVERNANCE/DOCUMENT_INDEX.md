@@ -285,3 +285,11 @@ Append-only update: manifest Section 17 and checkpoint Section 14 record the PO-
 ## AUTO-BACKFILL-F41 Exact HUE Comparison Result - 2026-08-18
 
 Append-only update: manifest Section 18 and checkpoint Section 15 record byte-for-byte URL equality, completed cascade waits, the single HTTP 200 submit, proven export/detail identities, the account difference (`tantn.bdtth` versus `tantn.bdth`), and the inadmissible nested-row aggregate. Both lanes remain `MANUAL_ONLY`; no second submit/export/Import/write or TCT action occurred.
+
+## AUTO-BACKFILL-F41 HUE Outer-Row Reconciliation Re-entry - 2026-08-18
+
+Append-only update: manifest Section 19 and checkpoint Section 16 record PO confirmation that `tantn.bdtth` is authorized, the direct outer-row gate (`9 / 4,695 / 2,863 / 60.98%` plus export identity), HUE-only implementation authority after proof, and conditional TCT continuation through `TINH / ALL / single date`. Operational mutation and Gate 4 self-pass remain prohibited.
+
+## AUTO-BACKFILL-F41 Partial Implementation Handoff - 2026-08-18
+
+Append-only update: manifest Sections 20-23 and checkpoint Sections 17-20 record the admissible HUE direct-row proof, verified one-date HUE adapter/runtime registration, isolated acceptance and regression results, and the single exact TCT `TINH / ALL` request returning HTTP 500 before any export. F4.1 HUE is `AUTOMATED`; F4.1 TCT remains `MANUAL_ONLY`. Current state is `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`; Gate 4 is not self-passed and no successor is activated.
