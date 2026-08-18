@@ -880,3 +880,17 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Preserved completion recheck/SUCCESS skip and global SQLite leasing; authentication loss now stops the current drain until an explicit wake, without adding Safety retry/circuit behavior.
 - Focused adapter/Queue/Coverage and existing F1.3/F4.1/Import regressions PASS. No real Portal, download, Import, business-data, frontend, schema or successor-ticket work occurred.
 - State: `AUTO-BACKFILL-F13 IMPLEMENTED / READY FOR PO GATE 3`. Gate 3 is pending Product Owner approval.
+
+## AUTO-BACKFILL-F13 Gate 3 PASS / AUTO-BACKFILL-F41 Activated
+
+- Product Owner granted F13 `GATE 3 PASS` and authorized `AUTO-BACKFILL-F41` only from `5a2cf358e68baa0ae6f7ae1f22814f535b564fb9`.
+- F13 closes `COMPLETED / PO GATE 3 PASS`; its verified adapters and shared Queue contracts remain authoritative.
+- F41 is active for discovery-first, independently evidence-gated HUE/TCT adapters. Both lanes remain `MANUAL_ONLY / PENDING VERIFICATION` until real Portal evidence exists.
+- Safety, UI, Runtime and all unrelated tickets remain inactive.
+
+## AUTO-BACKFILL-F41 Discovery Blocked
+
+- Delta inspection confirmed that F4.1 parsers, target tables, completion policies and Import paths exist, but no verified Portal route, filters, export action, readiness signal, generated-resource match or filename behavior exists in code/governance.
+- Existing HUE/TCT browser processes were backend-owned and had no authenticated supported observation channel available to this task. No credentials, Portal action, export, download, Import or operational write occurred.
+- HUE and TCT independently remain `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`; no product code or registry behavior changed.
+- Isolated Coverage/Queue/F1.3/F4.1 and Import regressions PASS. State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED`; no successor is activated.

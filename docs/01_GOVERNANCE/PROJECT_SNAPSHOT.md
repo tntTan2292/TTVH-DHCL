@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-F13 — verified F1.3 HUE/TCT shared one-date adapters. IMPLEMENTED / READY FOR PO GATE 3 (2026-08-18).` |
-| Current Ticket | `AUTO-BACKFILL-F13 — explicitly authorized by Product Owner from baseline 64e9a8550752ef5fc6723dadc9d05d9cda442327 after AUTO-BACKFILL-QUEUE GATE 2 PASS.` |
-| Next Ticket | `None activated. AUTO-BACKFILL-F41 is a planned candidate only after F13 PO Gate 3 and separate explicit authorization. SAFETY/UI/RUNTIME, F41 Phase 3, UI Remediation and unrelated tickets remain inactive.` |
-| Last PO Status | `Product Owner decision (2026-08-18): AUTO-BACKFILL-QUEUE GATE 2 PASS; authorizes AUTO-BACKFILL-F13 only. Requires separate verified HUE/TCT one-date adapters reusing accepted Portal/session/lock/Import flows, registration before coordinator, F1.3 AUTOMATED only, no real execution and no successor activation.` |
+| Current Phase | `AUTO-BACKFILL-F41 — discovery-first F4.1 HUE/TCT Portal verification. DISCOVERY BLOCKED / BOTH LANES MANUAL_ONLY (2026-08-18).` |
+| Current Ticket | `AUTO-BACKFILL-F41 — blocked pending a PO-directed manually authenticated and observable HUE/TCT session handoff; no successor is active.` |
+| Next Ticket | `None activated. AUTO-BACKFILL-SAFETY is a planned candidate only after F41 PO Gate 4 and separate explicit authorization. UI/RUNTIME, F41 Phase 3, UI Remediation and unrelated tickets remain inactive.` |
+| Last PO Status | `Product Owner decision (2026-08-18): AUTO-BACKFILL-F13 GATE 3 PASS; authorizes AUTO-BACKFILL-F41 only. F41 stopped fail-closed because neither lane obtained observable authenticated Portal evidence.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-F13_CHECKPOINT_001.md` — Queue Gate 2 PASS, F1.3 activation authority/baseline, locked adapter boundary and implementation evidence.` |
-| Current State | `AUTO-BACKFILL-F13 IMPLEMENTED / READY FOR PO GATE 3 (2026-08-18). Queue is CLOSED / PO GATE 2 PASS. No later ticket is activated.` |
-| Technical Status | `Separate verified HUE/TCT one-date executors are registered before Queue/coordinator construction; only F1.3 is AUTOMATED. Completion recheck, global lease, manual sessions/source locks and existing Import flows are preserved; focused and regression validation PASS.` |
-| Runtime Status | `No real Portal session, download, queue or Import authorized. All adapter validation must use mocks/fakes and isolated SQLite/filesystem sandboxes.` |
+| Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-F41_MANIFEST.md` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md` — F13 Gate 3 PASS, static/live discovery evidence, blocked lane disposition and validation ledger. |
+| Current State | `AUTO-BACKFILL-F41 DISCOVERY BLOCKED (2026-08-18). HUE/TCT remain MANUAL_ONLY; F13 is CLOSED / PO GATE 3 PASS. No later ticket is activated.` |
+| Technical Status | `Static inspection is complete: F4.1 parser/Import foundations exist, but no Portal identity is verified. HUE and TCT remain independently MANUAL_ONLY.` |
+| Runtime Status | `No observable authenticated session handoff was available. Portal submissions/exports/downloads, operational Auto Backfill/Import and business-data writes were all zero.` |
 | PO UI Check Required | `No — this ticket has no frontend. AUTO-BACKFILL-UI remains deferred and requires its own later Product Owner activation.` |
-| PO Product Status | `AUTO-BACKFILL-QUEUE received PO GATE 2 PASS and is closed. AUTO-BACKFILL-F13 is technically implemented and not yet accepted; Gate 3 remains pending.` |
-| Last Closed Ticket | `AUTO-BACKFILL-QUEUE — COMPLETED / PO GATE 2 PASS (2026-08-18). Durable queue and coordinator contracts are accepted; F13 is the active successor.` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-QUEUE_MANIFEST.md` |
-| Last Reviewed Phase | `AUTO-BACKFILL-QUEUE Gate 2 (2026-08-18): COMPLETED / PO PASS` |
-| Last Reviewed Implementation Commit | `64e9a8550752ef5fc6723dadc9d05d9cda442327 — queue worker coordinator remediation accepted at Gate 2.` |
+| PO Product Status | `AUTO-BACKFILL-F13 received PO GATE 3 PASS and is closed. AUTO-BACKFILL-F41 has no implementation Gate 4 candidate because discovery is blocked.` |
+| Last Closed Ticket | `AUTO-BACKFILL-F13 — COMPLETED / PO GATE 3 PASS (2026-08-18). Verified F1.3 HUE/TCT shared adapters are accepted; F41 is the active successor.` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` |
+| Last Reviewed Phase | `AUTO-BACKFILL-F13 Gate 3 (2026-08-18): COMPLETED / PO PASS` |
+| Last Reviewed Implementation Commit | `5a2cf358e68baa0ae6f7ae1f22814f535b564fb9 — verified F1.3 adapters accepted at Gate 3.` |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
-| Next Phase Authorization | `None beyond AUTO-BACKFILL-F13. AUTO-BACKFILL-F41 and every later ticket require separate explicit Product Owner authorization after Gate 3.` |
+| Next Phase Authorization | `None. Reopening AUTO-BACKFILL-F41 discovery requires explicit PO direction and authenticated observable session handoff; AUTO-BACKFILL-SAFETY and every later ticket remain unauthorized.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-18` |
 
@@ -223,3 +223,11 @@ Latest authoritative next action (`2026-08-17`, `F41-PHASE-0`; supersedes every 
 `AUTO-BACKFILL-F13` implementation handoff (`2026-08-18`, baseline `64e9a8550752ef5fc6723dadc9d05d9cda442327`): implemented separate verified HUE-detail and TCT-summary shared executors around the accepted F1.3 one-date operations. Both require existing manual session preflight, interactive client, per-source operation lock/marker and exact `F1.3 × lane × business_date`; both are registered before Queue/coordinator construction. F1.3 HUE/TCT are now `AUTOMATED`; F4.1 remains `MANUAL_ONLY`. Existing Queue completion checks skip external SUCCESS before execution, SQLite remains the sole global shared-job lease, and authentication loss stops coordinator draining until an explicit wake without adding Safety retry/circuit behavior. Focused adapters plus Queue/Coverage acceptance and F1.3/F4.1/Import regressions PASS. No real Portal, download, queue run, Import, business-data, schema, frontend or successor work was performed. State: `AUTO-BACKFILL-F13 IMPLEMENTED / READY FOR PO GATE 3`.
 
 Latest authoritative next action (`2026-08-18`, AUTO-BACKFILL-F13; supersedes every earlier next-action note): `None self-activated. AWAITING PRODUCT OWNER GATE 3.` `AUTO-BACKFILL-F41`, `AUTO-BACKFILL-SAFETY`, `AUTO-BACKFILL-UI` and `AUTO-BACKFILL-RUNTIME` remain unauthorized and inactive.
+
+`AUTO-BACKFILL-F41` activation (`2026-08-18`, baseline `5a2cf358e68baa0ae6f7ae1f22814f535b564fb9`): Product Owner granted F13 Gate 3 PASS and authorized F41 only. F41 begins with static delta inspection and bounded real Portal discovery using existing manually authenticated HUE/TCT sessions. Each lane remains independently `MANUAL_ONLY` until its complete route/filter/readiness/export/resource/filename/parser/cleanup identity is observed; no identity is inferred from the official display name. No Safety/UI/Runtime successor is active.
+
+Latest authoritative next action (`2026-08-18`, AUTO-BACKFILL-F41; supersedes every earlier next-action note): `Perform bounded per-lane F4.1 discovery. Implement only independently proven lane(s); otherwise stop BLOCKED/MANUAL_ONLY. Do not self-activate AUTO-BACKFILL-SAFETY.`
+
+`AUTO-BACKFILL-F41` discovery disposition (`2026-08-18`): static inspection found the complete F4.1 parser/Import/completion foundations but no verified Portal route, filter, readiness, export or generated-resource identity. Existing HUE/TCT browser processes were private to the running backend and no authenticated supported observation handoff became available. Following the locked no-inference rule, no Portal action/export/download/Import or product change occurred; both lanes remain `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`. Isolated Coverage, Queue, F1.3, F4.1 and Import regressions PASS. State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED`.
+
+Latest authoritative next action (`2026-08-18`, AUTO-BACKFILL-F41 blocked handoff; supersedes every earlier next-action note): `None self-activated. AWAIT PO direction plus a manually authenticated, observable HUE/TCT session handoff to reopen bounded discovery. AUTO-BACKFILL-SAFETY remains unauthorized.`

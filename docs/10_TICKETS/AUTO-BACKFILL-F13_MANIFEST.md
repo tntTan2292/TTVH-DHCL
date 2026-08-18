@@ -106,3 +106,9 @@ No frontend, schema, Portal selector, browser/login flow, retry/circuit runtime,
 `AUTO-BACKFILL-F13 IMPLEMENTED / READY FOR PO GATE 3`
 
 `AUTO-BACKFILL-F41`, `AUTO-BACKFILL-SAFETY`, `AUTO-BACKFILL-UI` and `AUTO-BACKFILL-RUNTIME` remain unauthorized and inactive.
+
+## 11. PO Gate 3 PASS And F41 Activation
+
+On `2026-08-18`, the Product Owner granted `AUTO-BACKFILL-F13 GATE 3 PASS` and explicitly authorized `AUTO-BACKFILL-F41` only from baseline `5a2cf358e68baa0ae6f7ae1f22814f535b564fb9`.
+
+F13 closes `COMPLETED / PO GATE 3 PASS`. Its two verified adapters, completion recheck, authentication contract and shared-lease behavior remain authoritative. F41 begins discovery-first with HUE and TCT independently gated; no later ticket is active.

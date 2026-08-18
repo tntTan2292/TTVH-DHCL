@@ -249,3 +249,19 @@ Current state: `AUTO-BACKFILL-F13 ACTIVE / IMPLEMENTATION AUTHORIZED`. No later 
 ## AUTO-BACKFILL-F13 Implementation Handoff - 2026-08-18
 
 Append-only update: manifest Sections 9-10 and checkpoint Sections 4-7 record the verified HUE/TCT identity contract, bounded one-date adapters, pre-start runtime registration, authentication stop behavior, acceptance/regression evidence and scope proof. Current state is `AUTO-BACKFILL-F13 IMPLEMENTED / READY FOR PO GATE 3`; no successor is activated.
+
+## Current AUTO-BACKFILL-F41 Update - 2026-08-18
+
+This section supersedes F13 current-ticket rows for live onboarding. Historical entries remain preserved; `PROJECT_SNAPSHOT.md` owns mutable live state.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/AUTO-BACKFILL-F41_MANIFEST.md` | Ticket Manifest | PO-authorized F4.1 discovery-first per-lane Portal verification and evidence-gated adapter scope. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md` | Checkpoint / Technical Execution Report | F13 Gate 3 PASS, F41 activation baseline, discovery limits, per-lane evidence and implementation disposition. | L2/L3 | Current Required Reading | When current manifest names it. | Mandatory |
+| `docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` | Closed Predecessor Manifest | Verified F1.3 adapters and explicit PO Gate 3 PASS/F41 handoff. | L2 | Conditional Reference | Required by F41 manifest. | Mandatory |
+
+Current state: `AUTO-BACKFILL-F41 ACTIVE / DISCOVERY AUTHORIZED`. No later ticket is activated.
+
+## AUTO-BACKFILL-F41 Discovery Blocked Handoff - 2026-08-18
+
+Append-only update: the manifest Sections 10-13 and checkpoint Sections 5-10 record the static delta, unavailable authenticated observation handoff, zero-export result, independent HUE/TCT `MANUAL_ONLY` disposition, regression evidence and re-entry gate. Current state is `AUTO-BACKFILL-F41 DISCOVERY BLOCKED`; no successor is activated.
