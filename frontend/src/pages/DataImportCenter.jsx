@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, CalendarDays, CheckCircle2, Clock, Database, HardDrive, Play, RefreshCw, RotateCcw, Search, Square, XCircle } from 'lucide-react';
 import api from '../api/client';
 import UploadWidget from '../components/UploadWidget';
+import AutoBackfillOperatorPanel from '../components/AutoBackfillOperatorPanel';
 import { buildImportReconciliationContext } from './importDashboardReconciliation';
 import {
   clearDateSelection,
@@ -152,7 +153,7 @@ export default function DataImportCenter() {
   const [hueSessionStatus, setHueSessionStatus] = useState('CHECKING');
   const [hueSessionError, setHueSessionError] = useState(null);
   const [hueSessionLoading, setHueSessionLoading] = useState(false);
-  const [importMode, setImportMode] = useState('HUE');
+  const [importMode, setImportMode] = useState('PLATFORM');
   const [hueLifecycleState, setHueLifecycleState] = useState(null);
   const [tctLifecycleState, setTctLifecycleState] = useState(null);
 
@@ -794,31 +795,46 @@ export default function DataImportCenter() {
 
       <div className="mb-6 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-bold text-gray-700">Nguồn import</span>
+          <span className="text-sm font-bold text-gray-700">Chế độ Bù dữ liệu:</span>
+          <button
+            type="button"
+            onClick={() => setImportMode('PLATFORM')}
+            className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+              importMode === 'PLATFORM'
+                ? 'bg-vnpost-blue text-white shadow-sm'
+                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Tự động V2 (Platform F1.3 & F4.1)
+          </button>
           <button
             type="button"
             onClick={() => setImportMode('HUE')}
             className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
               importMode === 'HUE'
-                ? 'bg-vnpost-blue text-white'
+                ? 'bg-vnpost-blue text-white shadow-sm'
                 : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            Huế
+            Huế F1.3 (Thủ công)
           </button>
           <button
             type="button"
             onClick={() => setImportMode('TCT')}
             className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
               importMode === 'TCT'
-                ? 'bg-vnpost-blue text-white'
+                ? 'bg-vnpost-blue text-white shadow-sm'
                 : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            Tổng công ty
+            Tổng công ty F1.3 (Thủ công)
           </button>
         </div>
       </div>
+
+      {importMode === 'PLATFORM' && (
+        <AutoBackfillOperatorPanel />
+      )}
 
       {importMode === 'TCT' && (
       <div className="mb-8 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" data-testid="tct-f13-manual-backfill-section">
