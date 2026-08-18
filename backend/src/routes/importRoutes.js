@@ -5,6 +5,7 @@ const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const importController = require('../controllers/importController');
 const dkclHueF13SyncController = require('../controllers/dkclHueF13SyncController');
 const dkclSharedOperationsController = require('../controllers/dkclSharedOperationsController');
+const autoBackfillCoverageController = require('../controllers/autoBackfillCoverageController');
 
 const upload = multer({ storage: multer.memoryStorage() });
 const adminOnly = [requireAuth, requireRole(['admin'])];
@@ -12,6 +13,7 @@ const adminOnly = [requireAuth, requireRole(['admin'])];
 router.post('/upload', ...adminOnly, upload.single('file'), importController.upload.bind(importController));
 router.get('/f13/status', ...adminOnly, importController.status.bind(importController));
 router.get('/status', ...adminOnly, importController.status.bind(importController));
+router.get('/auto-backfill/coverage', requireAuth, autoBackfillCoverageController.getCoverage.bind(autoBackfillCoverageController));
 router.post('/dkcl/session/preflight', ...adminOnly, dkclSharedOperationsController.preflight.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/interactive-auth', ...adminOnly, dkclSharedOperationsController.interactiveAuthenticate.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/cancel-login', ...adminOnly, dkclSharedOperationsController.cancelLogin.bind(dkclSharedOperationsController));

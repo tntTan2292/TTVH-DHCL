@@ -20,6 +20,7 @@ Planning and documentation only. No product code, schema, database, Import, watc
 - [14. Blockers And Product Owner Questions](#14-blockers-and-product-owner-questions)
 - [15. Governance And Validation](#15-governance-and-validation)
 - [16. Final State](#16-final-state)
+- [17. Product Owner Decisions And Successor Activation](#17-product-owner-decisions-and-successor-activation)
 
 ## 1. Ticket State
 
@@ -508,3 +509,11 @@ Validation performed:
 `PLAN COMPLETE / AWAITING PO APPROVAL`
 
 No successor ticket is activated. No real Import is authorized by this checkpoint.
+
+## 17. Product Owner Decisions And Successor Activation
+
+On `2026-08-18`, the Product Owner approved the plan, decided Q-01..Q-10, and separately authorized `AUTO-BACKFILL-COVERAGE` only from baseline `f376391adfe9546c6c257f8f7bb1230e21d1ef8e`.
+
+The approved decisions are authoritative over Section 14's proposed defaults. In particular, Q-06 is newest-date-first, not oldest-date-first. F4.1 remains manual-only; no Portal identity may be inferred. Queue/restart/retry/circuit/audit decisions are locked contracts for their later tickets but were not implemented by Coverage.
+
+Successor result: `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`. Evidence: `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE_CHECKPOINT_001.md`. No later ticket is activated.

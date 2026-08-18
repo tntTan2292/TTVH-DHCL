@@ -823,3 +823,12 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Seven delivery tickets are planned only: `AUTO-BACKFILL-COVERAGE`, `QUEUE`, `F13`, `F41`, `SAFETY`, `UI`, `RUNTIME`. F4.1 Portal lanes remain `MANUAL_ONLY` until their real Portal workflow/export identity is verified; no name or download behavior was inferred.
 - Extensibility acceptance requires a synthetic indicator to appear in coverage by registry-only test registration with zero shared-engine edit. Full contracts, risks, tests, PO gates and questions: `docs/06_REVIEWS/Import/AUTO-BACKFILL-PLAN_CHECKPOINT_001.md`; manifest: `docs/10_TICKETS/AUTO-BACKFILL-PLAN_MANIFEST.md`.
 - State: `PLAN COMPLETE / AWAITING PO APPROVAL`. No successor ticket, F41 Phase 3, UI work, or runtime is activated.
+
+## AUTO-BACKFILL-COVERAGE - Implemented: Shared Registry And Coverage Scanner
+
+- Product Owner approved `AUTO-BACKFILL-PLAN`, closed Q-01..Q-10, and authorized `AUTO-BACKFILL-COVERAGE` only on `2026-08-18` from exact baseline `f376391adfe9546c6c257f8f7bb1230e21d1ef8e`.
+- Extended the Import indicator registry into a validated shared contract: identity/status/priority/start/timezone, explicit lanes, parser/table/filename rule, completion policy, Portal/manual mode, permissions, approved retry metadata, and exact circuit-scope metadata. Existing F1.3/F4.1 Import consumers and routes remain compatible.
+- Added an indicator-neutral HCM `N-1` coverage scanner and read-only authenticated API. Completion requires exact target facts, exact indicator/lane/date Import evidence and Processed artifact; SUCCESS is never runnable; committed `FILE_MOVE_FAILED` or missing artifact becomes `MANUAL_REVIEW_REQUIRED`; F4.1 stays `MANUAL_ONLY` with no inferred Portal identity.
+- `AB-EXT-01..04` and `AB-ISO-01..02` PASS with fixture-only `F9.TEST`; additional timezone/order/permission/manual-review tests PASS. Existing F1.3/F4.1 Import/backfill regressions PASS in isolated sandboxes; no real Import, operational DB/data mutation, frontend, schema, watcher, Portal, queue, retry/circuit runtime, or UI work occurred.
+- Evidence: `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE_CHECKPOINT_001.md`; manifest: `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE_MANIFEST.md`.
+- State: `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`. `AUTO-BACKFILL-QUEUE` and all later tickets remain inactive.

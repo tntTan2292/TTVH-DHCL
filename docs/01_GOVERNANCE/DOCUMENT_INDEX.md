@@ -192,3 +192,16 @@ This section supersedes older current-ticket rows only for live onboarding. `PRO
 | `docs/06_REVIEWS/Import/AUTO-BACKFILL-PLAN_CHECKPOINT_001.md` | Checkpoint / Technical Plan | Delta-only survey; indicator registration, completion, coverage, queue, API, retry, circuit, session, isolation and audit contracts; ticket plans; extensibility acceptance suite; risks and PO questions. | L2/L3 | Current Required Reading | When current manifest names it. | Mandatory |
 
 Current state: `PLAN COMPLETE / AWAITING PO APPROVAL`. No successor ticket is activated. `AUTO-BACKFILL-COVERAGE` is a candidate only after a separate explicit Product Owner activation.
+
+## Current AUTO-BACKFILL-COVERAGE Update - 2026-08-18
+
+This section supersedes the prior AUTO-BACKFILL-PLAN current-ticket rows for live onboarding. Historical entries remain preserved. `PROJECT_SNAPSHOT.md` remains the exclusive owner of mutable live state.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE_MANIFEST.md` | Ticket Manifest | PO-authorized coverage-only implementation: shared registry, exact completion, indicator-neutral scan/API, acceptance, scope and Gate 1 handoff. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE_CHECKPOINT_001.md` | Checkpoint / Technical Execution Report | Approved Q-01..Q-10, implementation architecture, AB-EXT/AB-ISO results, regression evidence, safety proof, risks and final state. | L2/L3 | Current Required Reading | When current manifest names it. | Mandatory |
+| `docs/10_TICKETS/AUTO-BACKFILL-PLAN_MANIFEST.md` | Approved Predecessor Manifest | Approved shared-platform plan and Product Owner decision handoff; successor Coverage evidence linked in Section 11. | L2 | Conditional Reference | When tracing platform authority. | Mandatory for successor planning |
+| `docs/06_REVIEWS/Import/AUTO-BACKFILL-PLAN_CHECKPOINT_001.md` | Approved Predecessor Plan | Original survey/contracts and appended authoritative Q-01..Q-10 successor activation record. | L2/L3 | Conditional Reference | When tracing platform contract. | Mandatory for successor planning |
+
+Current state: `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`. No successor is activated; `AUTO-BACKFILL-QUEUE` remains planned only.
