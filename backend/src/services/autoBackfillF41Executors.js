@@ -3,6 +3,8 @@
 const { DkclSessionPreflightService } = require('./dkclSessionPreflightService');
 const { F41HueAdapter } = require('./f41HueAdapter');
 const { F41HueSingleDateService } = require('./f41HueSingleDateService');
+const { F41TctAdapter } = require('./f41TctAdapter');
+const { F41TctSingleDateService } = require('./f41TctSingleDateService');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
 
 function executorError(code, message, details = null) {
@@ -12,8 +14,7 @@ function executorError(code, message, details = null) {
     return error;
 }
 
-function assertRequest(request) {
-    const identity = F41_EXECUTOR_IDENTITIES.HUE;
+function assertRequest(identity, request) {
     if (request?.indicator !== identity.indicator
         || request?.sourceLane !== identity.sourceLane
         || !/^\d{4}-\d{2}-\d{2}$/.test(String(request?.businessDate || ''))) {
@@ -24,32 +25,33 @@ function assertRequest(request) {
     }
 }
 
-class F41HueAutoBackfillExecutor {
-    constructor({ adapter, sessionPreflightService }) {
+class F41AutoBackfillExecutor {
+    constructor({ identity, adapter, sessionPreflightService }) {
         for (const method of ['preflight', 'withSourceLock', 'getRegistryState', 'getInteractiveClient']) {
             if (typeof sessionPreflightService?.[method] !== 'function') {
-                throw new Error(`F4.1 HUE Auto Backfill requires sessionPreflightService.${method}().`);
+                throw new Error(`F4.1 Auto Backfill requires sessionPreflightService.${method}().`);
             }
         }
-        this.identity = F41_EXECUTOR_IDENTITIES.HUE;
+        this.identity = identity;
         this.adapter = adapter;
         this.sessionPreflightService = sessionPreflightService;
     }
 
     async execute(request) {
-        assertRequest(request);
-        const preflight = await this.sessionPreflightService.preflight('HUE');
+        assertRequest(this.identity, request);
+        const source = this.identity.sourceLane;
+        const preflight = await this.sessionPreflightService.preflight(source);
         if (preflight?.status !== 'SESSION_VALID') {
-            throw executorError('AUTHENTICATION_REQUIRED', preflight?.error?.message || 'A valid manual HUE session is required.', preflight);
+            throw executorError('AUTHENTICATION_REQUIRED', preflight?.error?.message || `A valid manual ${source} session is required.`, preflight);
         }
-        return this.sessionPreflightService.withSourceLock('HUE', async () => {
-            const entry = this.sessionPreflightService.getRegistryState('HUE');
+        return this.sessionPreflightService.withSourceLock(source, async () => {
+            const entry = this.sessionPreflightService.getRegistryState(source);
             if (entry?.activeOperation) {
-                throw executorError('DKCL_SOURCE_OPERATION_ACTIVE', `DKCL HUE is already owned by '${entry.activeOperation}'.`);
+                throw executorError('DKCL_SOURCE_OPERATION_ACTIVE', `DKCL ${source} is already owned by '${entry.activeOperation}'.`);
             }
-            const portalClient = this.sessionPreflightService.getInteractiveClient('HUE') || null;
-            if (!portalClient) throw executorError('AUTHENTICATION_REQUIRED', 'A valid manual HUE session is required.');
-            const operationId = 'AUTO_BACKFILL_F41_HUE';
+            const portalClient = this.sessionPreflightService.getInteractiveClient(source) || null;
+            if (!portalClient) throw executorError('AUTHENTICATION_REQUIRED', `A valid manual ${source} session is required.`);
+            const operationId = `AUTO_BACKFILL_F41_${source}`;
             if (entry) entry.activeOperation = operationId;
             try {
                 return await this.adapter.runOneDate(request.businessDate, {
@@ -66,22 +68,27 @@ class F41HueAutoBackfillExecutor {
 
 function createF41AutoBackfillExecutors(options = {}) {
     const sessionPreflightService = options.sessionPreflightService || new DkclSessionPreflightService();
-    const service = options.hueService || new F41HueSingleDateService(options.serviceOptions);
-    const adapter = options.hueAdapter || new F41HueAdapter({ service });
+    const hueService = options.hueService || new F41HueSingleDateService(options.hueServiceOptions || options.serviceOptions);
+    const tctService = options.tctService || new F41TctSingleDateService(options.tctServiceOptions || options.serviceOptions);
+    const hueAdapter = options.hueAdapter || new F41HueAdapter({ service: hueService });
+    const tctAdapter = options.tctAdapter || new F41TctAdapter({ service: tctService });
     return {
-        HUE: new F41HueAutoBackfillExecutor({ adapter, sessionPreflightService }),
+        HUE: new F41AutoBackfillExecutor({ identity: F41_EXECUTOR_IDENTITIES.HUE, adapter: hueAdapter, sessionPreflightService }),
+        TCT: new F41AutoBackfillExecutor({ identity: F41_EXECUTOR_IDENTITIES.TCT, adapter: tctAdapter, sessionPreflightService }),
     };
 }
 
 function registerF41AutoBackfillExecutors(executorRegistry, options = {}) {
     const executors = createF41AutoBackfillExecutors(options);
-    executorRegistry.register(F41_EXECUTOR_IDENTITIES.HUE.id, executors.HUE, { verified: true });
+    for (const sourceLane of ['HUE', 'TCT']) {
+        executorRegistry.register(F41_EXECUTOR_IDENTITIES[sourceLane].id, executors[sourceLane], { verified: true });
+    }
     return executors;
 }
 
 module.exports = {
     F41_EXECUTOR_IDENTITIES,
-    F41HueAutoBackfillExecutor,
+    F41AutoBackfillExecutor,
     createF41AutoBackfillExecutors,
     registerF41AutoBackfillExecutors,
 };

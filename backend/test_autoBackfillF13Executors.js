@@ -240,7 +240,7 @@ test('runtime registration is complete before queue/coordinator construction', (
     assert.ok(runtime.executorRegistry.getVerified('ORDER_TEST'));
 });
 
-test('production runtime builder installs verified F1.3 and F4.1 HUE executors without starting work', () => {
+test('production runtime builder installs verified F1.3 and F4.1 executors without starting work', () => {
     const runtime = buildRuntime({
         runtimeDbPath: path.join(os.tmpdir(), `f13-runtime-registration-${Date.now()}.sqlite`),
         completionDb: { async all() { return []; }, async get() { return null; } },
@@ -248,6 +248,7 @@ test('production runtime builder installs verified F1.3 and F4.1 HUE executors w
     assert.ok(runtime.executorRegistry.getVerified(F13_EXECUTOR_IDENTITIES.HUE.id));
     assert.ok(runtime.executorRegistry.getVerified(F13_EXECUTOR_IDENTITIES.TCT.id));
     assert.ok(runtime.executorRegistry.getVerified(F41_EXECUTOR_IDENTITIES.HUE.id));
+    assert.ok(runtime.executorRegistry.getVerified(F41_EXECUTOR_IDENTITIES.TCT.id));
     assert.equal(runtime.coordinator.snapshot().started, false);
     assert.equal(runtime.coordinator.snapshot().processNextCount, 0);
 });
@@ -347,10 +348,9 @@ test('external SUCCESS before lease skips the F1.3 executor', async () => {
     }
 });
 
-test('F4.1 exposes only the verified HUE adapter and keeps TCT manual-only', () => {
+test('F4.1 exposes independently verified HUE and TCT adapters', () => {
     assert.equal(INDICATORS['F4.1'].lanes.HUE.automationMode, 'AUTOMATED');
     assert.equal(INDICATORS['F4.1'].lanes.HUE.portalAdapter.id, F41_EXECUTOR_IDENTITIES.HUE.id);
-    assert.equal(INDICATORS['F4.1'].lanes.TCT.automationMode, 'MANUAL_ONLY');
-    assert.equal(INDICATORS['F4.1'].lanes.TCT.portalAdapter, null);
-    assert.equal(INDICATORS['F4.1'].lanes.TCT.manualOnlyReason, 'PORTAL_ADAPTER_NOT_VERIFIED');
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.automationMode, 'AUTOMATED');
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.portalAdapter.id, F41_EXECUTOR_IDENTITIES.TCT.id);
 });

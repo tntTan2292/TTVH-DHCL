@@ -293,3 +293,11 @@ Append-only update: manifest Section 19 and checkpoint Section 16 record PO conf
 ## AUTO-BACKFILL-F41 Partial Implementation Handoff - 2026-08-18
 
 Append-only update: manifest Sections 20-23 and checkpoint Sections 17-20 record the admissible HUE direct-row proof, verified one-date HUE adapter/runtime registration, isolated acceptance and regression results, and the single exact TCT `TINH / ALL` request returning HTTP 500 before any export. F4.1 HUE is `AUTOMATED`; F4.1 TCT remains `MANUAL_ONLY`. Current state is `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`; Gate 4 is not self-passed and no successor is activated.
+
+## AUTO-BACKFILL-F41 TCT Exact Comparison Re-entry - 2026-08-18
+
+Append-only update: manifest Section 24 and checkpoint Section 21 record the PO-provided successful TCT URL, 47-row UI population, `sp_Phat_ChatLuong_PTC_Tinh_V2` export identity, frozen 46-raw/34-accepted parser contract and authorization for exactly one supported comparison plus at most one temporary export. TCT remains `MANUAL_ONLY` until all independent evidence passes.
+
+## AUTO-BACKFILL-F41 Gate 4 Handoff - 2026-08-18
+
+Append-only update: manifest Sections 25-28 and checkpoint Sections 22-25 record byte-identical TCT request proof, HTTP 200/47 outer rows, the one controlled export checksum and cleanup, frozen 46/34/12 parser reconciliation, verified one-date TCT executor, dual-lane pre-start registration, completion/global-lease safety and `68/68` focused validation. Both F4.1 lanes are `AUTOMATED`. Current state is `AUTO-BACKFILL-F41 READY FOR PO GATE 4`; Gate 4 is not self-passed and no successor is activated.

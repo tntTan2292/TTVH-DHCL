@@ -934,3 +934,18 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Only F4.1 HUE changed to `AUTOMATED`. F4.1 TCT used the existing F1.3 `TINH / ALL / 2026-08-01` interaction exactly once; DKCL returned HTTP 500 `Server Error` for the resulting GET, with no result rows or export control. No filter variant or second request was attempted, so TCT remains `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`.
 - Focused shared-platform/F1.3/F4.1 validation passed: 63 Node runner tests, plus the legacy HUE and TCT suites' internal assertions. All mutation-capable tests used temporary databases/directories. No operational Queue, Import, business-data write, discovery export/download, frontend, Safety or successor work occurred.
 - State: `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`. Gate 4 is not self-passed and no successor is activated.
+
+## AUTO-BACKFILL-F41 TCT Exact Comparison Re-entry
+
+- PO supplied the successful F4.1/TCT HTTP 200 request with exact `TINH / ALL`, empty district, approved ancillary `NULL` values and `2026-08-01` date encoding.
+- PO evidence locks 47 direct UI rows, report identity `sp_Phat_ChatLuong_PTC_Tinh_V2`, export `/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all`, and the existing detail endpoint.
+- One supported Browser Codex submit is authorized after F1.3/TCT change-event and cascade completion. At most one temporary export may be parsed read-only; no Import, database write, operational Queue, Safety, UI or successor work is authorized.
+- TCT remains `MANUAL_ONLY` until transport, direct-row identity and frozen-parser contracts all pass independently.
+
+## AUTO-BACKFILL-F41 Implemented / Ready For PO Gate 4
+
+- The exact TCT form URL matched PO evidence byte-for-byte under supported account `thanhtp.bdqn`; one submit returned HTTP 200 with 47 direct outer rows and export identity `sp_Phat_ChatLuong_PTC_Tinh_V2`.
+- One controlled export produced `18-08-2026_16-00-19_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc(1).xlsx` (SHA-256 `629534ee0afbd32e7c465b065c7bac15abd4827c9cc724e2dab9237e39689457`). The frozen parser proved 46 raw units, 34 accepted national rows, the locked 12 exclusions, raw TEXT percentages, and Huế `2,863 / 4,684 / 61.12%`. Exact Portal and temporary artifacts were cleaned.
+- Added and registered `DKCL_F41_TCT_SINGLE_DATE_V1` before coordinator startup, reusing the existing TCT session, source lock, active-operation protection, Queue completion recheck, global lease and F4.1 Import pipeline. Force/refresh remains disabled.
+- Both F4.1 lanes are now independently `AUTOMATED`. Focused shared-platform/F1.3/F4.1 validation passed `68/68` runner tests plus legacy internal suites; all mutation-capable tests used isolated temporary storage.
+- No operational Queue, real Import, live business-data write, Safety, frontend or successor work occurred. State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4`; Gate 4 is not self-passed.

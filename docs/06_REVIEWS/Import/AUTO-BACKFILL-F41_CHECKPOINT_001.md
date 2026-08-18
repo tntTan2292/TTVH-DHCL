@@ -204,3 +204,60 @@ Operational Auto Backfill runs, real Import, live SQLite/business-data writes, f
 State: `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`.
 
 Gate 4 remains pending Product Owner review. No successor ticket is activated.
+
+## 21. PO TCT Success Evidence And Exact Comparison Gate
+
+PO supplied the successful F4.1/TCT request:
+
+`GET https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc?TuyChonGR=TINH&stMaHuyenPhat=&stMaTinhPhat=ALL&stMaLoaiBCPhat=NULL&stMaBuuCucPhat=NULL&stLoaiDichVu=ALL&stNhomLoaiKH=ALL&stPhamViTinh=NULL&stLoaiTuyenPhat=NULL&stLoaiPhuongXa=NULL&iFrom=08%2F01%2F2026&iTo=08%2F01%2F2026`
+
+Chrome returned HTTP 200 and 47 direct outer rows. The response proves report identity `sp_Phat_ChatLuong_PTC_Tinh_V2`, export action `/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all`, and detail endpoint `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet`.
+
+The independent parser gate remains: one grand-total UI/workbook row plus 46 reporting units; reuse `NATIONAL_RANKED_PROVINCE_CODES`; store 34 rows; exclude the locked 12 additional units; preserve percentage TEXT; Huế code `53` equals `2,863 / 4,684 / 61.12%`.
+
+Authority permits exactly one supported TCT submit after F1.3/TCT UI events and cascade completion, followed only on transport/identity success by at most one export into temporary storage outside Data DKCL. No Import, SQLite/business-data write or operational Queue is permitted. TCT remains `MANUAL_ONLY` until every gate passes.
+
+State: `ACTIVE / ONE BOUNDED TCT COMPARISON`.
+
+## 22. Exact TCT Runtime And Export Proof
+
+The supported TCT profile reopened with `requireExistingSession=true` and displayed account `thanhtp.bdqn`. A first pre-submit helper pass stopped on an already-correct hidden Select2 control; it issued no report submit or export. The helper was corrected to preserve already-selected values, matching the existing F1.3 interaction behavior.
+
+The authorized comparison then completed every change-event/cascade wait. FormData generated a URL byte-for-byte equal to the PO successful URL. Exactly one `Thống kê` submit returned HTTP 200 with no console error. The direct-row reader selected the top-level table only and proved 47 outer data rows. The response exposed exactly `/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all` and identity `sp_Phat_ChatLuong_PTC_Tinh_V2`.
+
+One export produced `18-08-2026_16-00-19_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc(1).xlsx`, 15,960 bytes, SHA-256 `629534ee0afbd32e7c465b065c7bac15abd4827c9cc724e2dab9237e39689457`. The file was downloaded only into task-specific OS temporary storage.
+
+The existing frozen parser proved:
+
+- 46 raw reporting-unit rows after grand-total skip;
+- 34 accepted `NATIONAL_RANKED_PROVINCE_CODES` rows;
+- exclusions exactly `01, 08, 11, 12, 14, 15, 34, 49, 71, 75, 77, 82`;
+- every non-null published percentage remains TEXT ending in `%`;
+- Huế code `53`: passed `2,863`, total `4,684`, rate `61.12%`.
+
+The existing exact-row Portal cleanup completed and the temporary directory was removed. No Import or database write occurred during discovery.
+
+## 23. TCT Adapter Implementation
+
+- Added identity `DKCL_F41_TCT_SINGLE_DATE_V1`, report identity `sp_Phat_ChatLuong_PTC_Tinh_V2`, exact export action and observed generated-filename match `F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc`.
+- Added exact TCT filters and 47-direct-row readiness to the existing client. Already-correct hidden Select2 values are retained rather than forcibly reselected; changed values still use the existing UI event path and cascade waits.
+- Added a bounded one-date TCT service and adapter reusing the existing generated-file polling/download/cleanup, frozen parser, filename rule and Phase 2 Import pipeline.
+- Generalized the F4.1 execution shell over the independently verified HUE/TCT identities. Each lane retains its own session preflight, source lock, active-operation marker and error identity.
+- Registered both F4.1 executors before Queue/coordinator construction. F4.1/TCT changed from `MANUAL_ONLY` to `AUTOMATED`; HUE remains independently verified and unchanged.
+- `refreshRequested=false`, `forceReimport=false`, Queue completion recheck and the SQLite global lease remain authoritative.
+
+## 24. Acceptance And Regression Evidence
+
+The focused F4.1 executor suite passed `10/10`, proving both identities, both session/lock paths, authentication propagation, fake HUE and TCT exports through the existing F4.1 Import pipeline, exact completion evidence, SUCCESS-before-lease skip for both lanes, no concurrent HUE/TCT execution and pre-start runtime registration.
+
+The combined command covering Coverage, Queue, F1.3/F4.1 executors, legacy HUE/TCT services, F4.1 parsers and F4.1 Import pipeline passed `68/68` Node runner tests. Legacy suites additionally reported HUE backfill `39/39`, HUE sync `135/135`, and TCT backfill PASS. All mutation-capable cases used temporary databases/directories.
+
+Locked HUE `4,695 / 2,863 / 1,581 / 251`, TCT raw 46/stored 34, Huế TCT `2,863 / 4,684 / 61.12%`, raw percent TEXT, F1.3 behavior, Queue ordering and Coverage isolation remain green.
+
+## 25. Scope And Gate 4 State
+
+Operational Auto Backfill, real Import, live SQLite/business-data mutation, frontend, Safety, retry/circuit runtime and successor work were not performed. Temporary discovery helpers were removed. `.claude/` and `Data QLML/` were not read, modified or staged.
+
+State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4`.
+
+Gate 4 is not self-passed. `AUTO-BACKFILL-SAFETY` and all successors remain inactive.

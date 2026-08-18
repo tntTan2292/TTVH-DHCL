@@ -9,6 +9,8 @@ const DETAIL_METRIC_HEADER = 'SL bưu gửi phát thành công/Nộp tiền/CH';
 const F41_REPORT_PATH = '/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc';
 const F41_HUE_EXPORT_IDENTITY = 'sp_Phat_ChatLuong_PTC_BuuCuc_V2';
 const F41_HUE_EXPORT_ACTION = `/export/${F41_HUE_EXPORT_IDENTITY}/all`;
+const F41_TCT_EXPORT_IDENTITY = 'sp_Phat_ChatLuong_PTC_Tinh_V2';
+const F41_TCT_EXPORT_ACTION = `/export/${F41_TCT_EXPORT_IDENTITY}/all`;
 
 const DEFAULT_CHROMIUM_LAUNCH_ARGS = Object.freeze([
     '--disable-session-crashed-bubble',
@@ -469,7 +471,13 @@ class DkclHueF13PortalClient {
 
     async selectF41Exact(name, value) {
         const selector = `select[name="${name}"]`;
-        await this.selectByValueOrLabel(selector, value);
+        const control = this.page.locator(selector).first();
+        if (await control.count() !== 1) {
+            throw portalError(`Required F4.1 filter was not found: ${name}.`, 'FILTER_NOT_FOUND');
+        }
+        if (await control.inputValue() !== value) {
+            await this.selectByValueOrLabel(selector, value);
+        }
         await this.waitForSelectValue(selector, value);
         await this.waitForF41Cascade(name);
     }
@@ -548,6 +556,77 @@ class DkclHueF13PortalClient {
         const button = this.page.locator(`form[action$="${F41_HUE_EXPORT_ACTION}"] button[type="submit"]`);
         if (await button.count() !== 1 || !await button.isVisible() || !await button.isEnabled()) {
             throw portalError('F4.1 HUE export control is not uniquely ready.', 'EXPORT_CONTROL_NOT_READY');
+        }
+        await button.click();
+        await this.page.waitForTimeout(1000);
+    }
+
+    async submitF41TctFilters({ businessDate }) {
+        await this.selectF41Exact('TuyChonGR', 'TINH');
+        await this.selectF41Exact('stMaTinhPhat', 'ALL');
+        await this.selectF41Exact('stMaLoaiBCPhat', 'NULL');
+        await this.selectF41Exact('stMaBuuCucPhat', 'NULL');
+        await this.selectF41Exact('stLoaiDichVu', 'ALL');
+        await this.selectF41Exact('stNhomLoaiKH', 'ALL');
+        await this.selectF41Exact('stPhamViTinh', 'NULL');
+        await this.selectF41Exact('stLoaiTuyenPhat', 'NULL');
+        await this.selectF41Exact('stLoaiPhuongXa', 'NULL');
+
+        const district = this.page.locator('[name="stMaHuyenPhat"]').first();
+        if (await district.count() !== 1 || await district.inputValue() !== '') {
+            throw portalError('F4.1 TCT stMaHuyenPhat must remain empty.', 'F41_FILTER_VALUE_MISMATCH');
+        }
+        const dates = {
+            visibleFromDate: formatPortalDate(businessDate),
+            visibleToDate: formatPortalDate(businessDate),
+            requestFromDate: formatPortalRequestDate(businessDate),
+            requestToDate: formatPortalRequestDate(businessDate)
+        };
+        await this.fillDateInputs(dates);
+        await this.verifyDateInputs(dates);
+        await this.waitForF41Cascade('date-filters');
+
+        const submit = this.page.getByRole('button', { name: 'Thống kê' });
+        if (await submit.count() !== 1 || !await submit.isVisible() || !await submit.isEnabled()) {
+            throw portalError('F4.1 TCT Thống kê control is not uniquely ready.', 'REPORT_SUBMIT_NOT_READY');
+        }
+        await submit.click();
+        await this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+    }
+
+    async readF41TctOuterSummary() {
+        const summary = await this.page.evaluate((exportIdentity) => {
+            const directRows = (table) => Array.from(table.children).flatMap((child) => {
+                if (child.tagName === 'TR') return [child];
+                if (!['THEAD', 'TBODY', 'TFOOT'].includes(child.tagName)) return [];
+                return Array.from(child.children).filter((row) => row.tagName === 'TR');
+            });
+            const topLevelTables = Array.from(document.querySelectorAll('table')).filter((table) => !table.parentElement?.closest('table'));
+            const outerRowCount = topLevelTables.reduce((maximum, table) => {
+                const count = directRows(table).filter((row) => (
+                    Array.from(row.children).filter((cell) => cell.tagName === 'TD').length >= 38
+                )).length;
+                return Math.max(maximum, count);
+            }, 0);
+            const exportAction = Array.from(document.querySelectorAll('form[action]'))
+                .map((form) => new URL(form.getAttribute('action'), location.origin).pathname)
+                .find((action) => action === `/export/${exportIdentity}/all`) || null;
+            return {
+                outerRowCount,
+                exportIdentity: exportAction ? exportIdentity : null,
+                exportAction,
+            };
+        }, F41_TCT_EXPORT_IDENTITY);
+        if (!summary?.outerRowCount) {
+            throw portalError('F4.1 TCT outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
+        }
+        return summary;
+    }
+
+    async requestF41TctExport() {
+        const button = this.page.locator(`form[action$="${F41_TCT_EXPORT_ACTION}"] button[type="submit"]`);
+        if (await button.count() !== 1 || !await button.isVisible() || !await button.isEnabled()) {
+            throw portalError('F4.1 TCT export control is not uniquely ready.', 'EXPORT_CONTROL_NOT_READY');
         }
         await button.click();
         await this.page.waitForTimeout(1000);
@@ -1092,5 +1171,7 @@ module.exports = {
     DETAIL_METRIC_HEADER,
     F41_REPORT_PATH,
     F41_HUE_EXPORT_IDENTITY,
-    F41_HUE_EXPORT_ACTION
+    F41_HUE_EXPORT_ACTION,
+    F41_TCT_EXPORT_IDENTITY,
+    F41_TCT_EXPORT_ACTION
 };

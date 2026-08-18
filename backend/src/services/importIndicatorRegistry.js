@@ -9,7 +9,7 @@ const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./a
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
 
-const REGISTRY_VERSION = 'AUTO-BACKFILL-F41-HUE-1';
+const REGISTRY_VERSION = 'AUTO-BACKFILL-F41-1';
 const BUSINESS_TIMEZONE = 'Asia/Ho_Chi_Minh';
 const TRACKING_START_DATE = '2026-01-01';
 const INDICATOR_STATUSES = new Set(['ACTIVE', 'PLANNED', 'PAUSED', 'RETIRED']);
@@ -171,7 +171,11 @@ const INDICATORS = {
                 targetTable: 'fact_f41_national',
                 distinctColumn: 'ma_don_vi',
                 expectedRowCount: 34,
-                manualOnlyReason: 'PORTAL_ADAPTER_NOT_VERIFIED',
+                automationMode: 'AUTOMATED',
+                portalAdapter: {
+                    ...F41_EXECUTOR_IDENTITIES.TCT,
+                    verified: true,
+                },
             }),
         },
     },

@@ -275,7 +275,7 @@ test('committed SUCCESS data with a missing Processed artifact requires manual r
     }
 });
 
-test('approved registry automates verified F1.3 lanes and F4.1 HUE only', () => {
+test('approved registry automates all independently verified F1.3 and F4.1 lanes', () => {
     const { INDICATORS } = require('./src/services/importIndicatorRegistry');
     for (const indicator of Object.values(INDICATORS)) {
         assert.equal(indicator.trackingStartDate, '2026-01-01');
@@ -288,9 +288,9 @@ test('approved registry automates verified F1.3 lanes and F4.1 HUE only', () => 
     assert.equal(INDICATORS['F4.1'].lanes.HUE.automationMode, 'AUTOMATED');
     assert.equal(INDICATORS['F4.1'].lanes.HUE.portalAdapter.id, 'DKCL_F41_HUE_SINGLE_DATE_V1');
     assert.equal(INDICATORS['F4.1'].lanes.HUE.portalAdapter.resourceIdentity, 'sp_Phat_ChatLuong_PTC_BuuCuc_V2');
-    assert.equal(INDICATORS['F4.1'].lanes.TCT.automationMode, 'MANUAL_ONLY');
-    assert.equal(INDICATORS['F4.1'].lanes.TCT.portalAdapter, null);
-    assert.equal(INDICATORS['F4.1'].lanes.TCT.manualOnlyReason, 'PORTAL_ADAPTER_NOT_VERIFIED');
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.automationMode, 'AUTOMATED');
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.portalAdapter.id, 'DKCL_F41_TCT_SINGLE_DATE_V1');
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.portalAdapter.resourceIdentity, 'sp_Phat_ChatLuong_PTC_Tinh_V2');
 });
 
 test('an automated registration never makes an existing SUCCESS queue eligible', async () => {

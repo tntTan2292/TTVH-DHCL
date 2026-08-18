@@ -209,3 +209,39 @@ No second request, ancillary-filter guess, export, download or Import followed. 
 State: `AUTO-BACKFILL-F41 PARTIALLY IMPLEMENTED / READY FOR PO REVIEW`.
 
 PO Gate 4 is not self-passed. `AUTO-BACKFILL-SAFETY` and every successor remain inactive.
+
+## 24. PO TCT Success Evidence And Re-entry
+
+PO supplied a successful TCT HTTP 200 request with exact `TINH / ALL / 2026-08-01`, empty `stMaHuyenPhat`, `stMaLoaiBCPhat=NULL`, `stMaBuuCucPhat=NULL`, and the approved ancillary `NULL`/`ALL` state. Chrome renders 47 direct outer rows and proves identity `sp_Phat_ChatLuong_PTC_Tinh_V2`, export `/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all`, and the common F4.1 detail endpoint.
+
+One supported comparison is authorized. Success requires byte-identical URL, HTTP 200, 47 outer rows and exact identity. Only then may one temporary export be checked by the existing frozen TCT parser for 46 raw units, 34 accepted rows, the locked 12 exclusions, raw percent TEXT and Huế `2,863 / 4,684 / 61.12%`.
+
+TCT remains `MANUAL_ONLY` until all evidence passes. Operational Queue/Import, business-data writes, Safety, UI, Gate 4 self-pass and successor activation remain prohibited.
+
+State: `AUTO-BACKFILL-F41 ACTIVE / ONE BOUNDED TCT COMPARISON`.
+
+## 25. TCT Evidence Gate Passed
+
+The supported `thanhtp.bdqn` TCT session produced the PO URL byte-for-byte after exact UI events and cascade completion. One submit returned HTTP 200, 47 direct outer rows and export identity `sp_Phat_ChatLuong_PTC_Tinh_V2` with action `/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all`.
+
+One temporary export was parsed read-only. It contained one grand-total plus 46 reporting units; the parser stored the existing 34 national codes, excluded the locked 12 additional units, preserved rate TEXT, and reconciled Huế to `2,863 / 4,684 / 61.12%`. Checksum and cleanup evidence are in checkpoint Section 22.
+
+## 26. TCT Lane Delivery
+
+F4.1/TCT is implemented as verified executor `DKCL_F41_TCT_SINGLE_DATE_V1`. It accepts one exact date, uses the manually authenticated TCT session, source lock and active-operation marker, applies only the proven filter/identity contract, and reuses the frozen TCT parser and Phase 2 Import pipeline.
+
+Runtime registers HUE and TCT before Queue/coordinator startup. Existing completion recheck skips externally completed SUCCESS work. The SQLite global lease remains the only cross-lane concurrency authority. Force/refresh remains disabled.
+
+## 27. Validation And Safety
+
+- F4.1 executor suite: `10/10 PASS`.
+- Combined Coverage/Queue/F1.3/F4.1 runner: `68/68 PASS`.
+- Legacy HUE backfill `39/39`, HUE sync `135/135`, and TCT backfill suites PASS.
+- Fake Import tests use isolated temporary databases/directories only; operational Import/Queue was not run.
+- Both independently verified F4.1 lanes are now `AUTOMATED`; no unverified lane or inferred identity remains.
+
+## 28. PO Gate 4 Handoff
+
+State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4`.
+
+Gate 4 is pending Product Owner approval and is not self-passed. Safety, frontend and every successor ticket remain inactive.
