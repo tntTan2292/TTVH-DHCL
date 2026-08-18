@@ -1,16 +1,18 @@
-# Remediated UI/UX Audit & Redesign Plan - Data Import Center (`AUTO-BACKFILL-UI`)
+# Final UI/UX Audit & Redesign Plan - Data Import Center (`AUTO-BACKFILL-UI`)
 
-Status: `AUTO-BACKFILL-UI UX REDESIGN PLAN REMEDIATED / READY FOR PO FINAL PLAN APPROVAL` (2026-08-18).
+Status: `READY FOR PO FINAL PLAN APPROVAL` (2026-08-18).
+Repository Plan Path: `docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md` ([AUTO-BACKFILL-UI_PLAN.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md)).
+Document Index: [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/DOCUMENT_INDEX.md).
 
 > [!IMPORTANT]
-> This document is a **Remediated Plan & Design System Audit ONLY**. Implementation is completely frozen per Product Owner directive until explicit PO review and final plan approval. No source code modifications or execution will occur during this planning phase.
+> This document is a **Remediated Plan & Design System Audit ONLY**. Implementation is completely frozen per Product Owner directive until explicit PO review and final plan approval. No product source code modifications or execution will occur during this planning phase.
 
 ---
 
 ## 1. User Review Required
 
 > [!CAUTION]
-> **Key Plan Remediation Items Submitted for Final Product Owner Approval**:
+> **Key Governance & Technical Scope Items Submitted for Final Product Owner Approval**:
 >
 > 1. **Coverage Pagination & Bounded Container Heights (Zero Infinite Scroll)**:
 >    - Default pagination: **10 rows per page** (with selectable options: `10 / 20 / 50`).
@@ -24,9 +26,10 @@ Status: `AUTO-BACKFILL-UI UX REDESIGN PLAN REMEDIATED / READY FOR PO FINAL PLAN 
 >    - **Audit Events Access**: Accessible **ONLY via Slide-out Right Drawer (`<AuditEventsDrawer />`) on Tab 1**. (Tab 2 contains ONLY formal PO Reconciliation Reports).
 >    - **UX Rationale**: A slide-out drawer enables operators to inspect real-time execution logs side-by-side with active operations without leaving Tab 1 or losing context.
 >
-> 4. **Zero Frontend Code Extensibility & Backend API Metadata Dependency**:
+> 4. **Zero Frontend Code Extensibility & Minimal Additive Read-Only Backend Scope**:
 >    - "Zero-code" means **Zero Frontend Code Modifications**: adding new indicators requires registration in the shared backend indicator registry.
->    - **Backend Coverage API Dependency**: `GET /api/import/auto-backfill/coverage` currently lacks the `indicators` metadata array. Adding backend support for `indicators` metadata is an explicit dependency.
+>    - **Backend Coverage API Scope**: Adding the `data.indicators` metadata array to `GET /api/import/auto-backfill/coverage` is a **minimal additive read-only backend change belonging to this ticket (`AUTO-BACKFILL-UI`)**.
+>    - **Strict Backend Boundaries**: Does **NOT** modify Queue engine, Safety controls, database schema, or Import business rules.
 >    - **Neutral Token Theme**: Uses strictly approved design-token palette (`blue`, `teal`, `indigo`, `purple`, `emerald`). If `badge_theme` is absent, uses a single fixed neutral fallback token: **`slate`** (`bg-slate-100 text-slate-700 border-slate-200`). NO color hashing.
 
 ---
@@ -158,7 +161,7 @@ The redesigned frontend uses dynamic registry iteration to render indicator summ
 +---------------------------------------------------------------------------------------------------+
 ```
 
-### 5.2 Minimum Backend Contract Metadata Specification & Dependency Analysis
+### 5.2 Minimum Backend Contract Metadata Specification & Additive Backend Scope
 
 To support seamless **zero frontend code modifications** for present and future indicators, the backend Coverage API payload schema contract is specified as follows:
 
@@ -210,8 +213,16 @@ To support seamless **zero frontend code modifications** for present and future 
 ```
 
 > [!IMPORTANT]
-> **Explicit Backend Coverage API Dependency**:
-> Currently, `GET /api/import/auto-backfill/coverage` returns `items` containing indicator strings (e.g. `'F1.3'`, `'F4.1'`). Adding the `data.indicators` metadata array to the backend Coverage API response is an **explicit backend API dependency**.
+> **Minimal Additive Read-Only Backend Scope (Belonging to `AUTO-BACKFILL-UI`)**:
+> - Adding `data.indicators` metadata to `GET /api/import/auto-backfill/coverage` is a **minimal additive read-only backend enhancement** within the scope of this ticket (`AUTO-BACKFILL-UI`).
+> - Does **NOT** touch Queue engine, Safety controls, database schema, or Import business rules.
+>
+> **Target Backend Files for Implementation Phase**:
+> - `backend/src/controllers/autoBackfillCoverageController.js` (Include `indicators` registry metadata in response payload).
+> - `backend/src/services/autoBackfillCoverageService.js` (Read-only metadata assembly).
+>
+> **Corresponding Backend Test Contract File**:
+> - `backend/test_autoBackfillCoverageService.js` (Verifies payload contract structure).
 >
 > **Frontend Fallback Token Handling (No Color-Hashing)**:
 > - `display_name`: Defaults to `${indicatorCode}`.
@@ -232,6 +243,14 @@ To support seamless **zero frontend code modifications** for present and future 
 ## 7. Proposed Code Changes & File Strategy
 
 Horizontal rules separate individual files for visual clarity:
+
+---
+
+### Component: `backend/src/controllers/autoBackfillCoverageController.js`
+
+#### [MODIFY] [autoBackfillCoverageController.js](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/backend/src/controllers/autoBackfillCoverageController.js)
+
+- Add `indicators` metadata array to payload response of `GET /api/import/auto-backfill/coverage` (read-only additive).
 
 ---
 
@@ -273,12 +292,14 @@ Horizontal rules separate individual files for visual clarity:
 
 - Run contract test suite with **4-Indicator Fixture** (`F1.3`, `F4.1`, `F2.TEST`, `F5.TEST`):
   `node src/components/AutoBackfillOperatorPanel.test.js` (Must PASS 100%)
+- Run backend coverage contract suite:
+  `node test_autoBackfillCoverageService.js` (Must PASS 100%)
 - Run frontend linter:
   `npm run lint` (Must have 0 errors)
 - Run frontend build:
   `npm run build` (Must complete cleanly)
 - Run backend safety & queue regressions:
-  `node test_autoBackfillSafety.js && node test_autoBackfillQueueService.js && node test_autoBackfillCoverageService.js` (Must PASS 100%)
+  `node test_autoBackfillSafety.js && node test_autoBackfillQueueService.js` (Must PASS 100%)
 
 ### 8.2 Visual Gate 6 Acceptance Checklist
 

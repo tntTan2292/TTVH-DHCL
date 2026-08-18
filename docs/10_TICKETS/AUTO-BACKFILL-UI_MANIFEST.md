@@ -16,9 +16,11 @@ Status: `READY FOR PO FINAL PLAN APPROVAL` (2026-08-18).
 
 Implement the locked No-code Operator UI for Auto Backfill V2 platform: missing dates scan (`01/01/2026` to `N-1`), newest-first ordering (`06/06` rule), per-indicator (F1.3, F4.1) and source lane (HUE, TCT) status visibility, run creation and Pause/Resume control, `WAITING_AUTH` guidance & login triggers, retry/circuit-open/integrity-stop handling and actions, append-only events audit timeline, and PO reconciliation reporting.
 
-## 3. Required Reading
+## 3. Required Reading & Governance Links
 
 - `README_AI.md`
+- `docs/DOCUMENT_INDEX.md` — [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/DOCUMENT_INDEX.md)
+- `docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md` — [AUTO-BACKFILL-UI_PLAN.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md)
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 - `docs/10_TICKETS/AUTO-BACKFILL-PLAN_MANIFEST.md`
 - `docs/06_REVIEWS/Import/AUTO-BACKFILL-PLAN_CHECKPOINT_001.md`
