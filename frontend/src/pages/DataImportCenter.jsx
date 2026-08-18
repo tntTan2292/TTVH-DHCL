@@ -816,7 +816,7 @@ export default function DataImportCenter() {
                 : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            Huế F1.3 (Thủ công)
+            Nạp thủ công HUE
           </button>
           <button
             type="button"
@@ -827,7 +827,7 @@ export default function DataImportCenter() {
                 : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
-            Tổng công ty F1.3 (Thủ công)
+            Nạp thủ công TCT
           </button>
         </div>
       </div>

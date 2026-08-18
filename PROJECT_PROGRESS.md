@@ -984,3 +984,16 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - No operational Queue, Portal execution, real download, or real Import was executed.
 - State: `AUTO-BACKFILL-UI IMPLEMENTED / READY FOR PO GATE 6`. Gate 6 is not self-passed and Runtime is not activated.
 
+## AUTO-BACKFILL-UI Remediated / Ready For PO Gate 6
+
+- Completed 5 Product Owner remediation directives for Gate 6:
+  1. Synchronized `run` contract: Used `run.safety_state || run.status` in `autoBackfillUiHelpers.js` (never `run.state`). Verified rendering for `RUNNING`, `PAUSED`, `WAITING_AUTH`, `CIRCUIT_OPEN`, `BLOCKED_INTEGRITY`, `COMPLETED`, and `COMPLETED_WITH_ERRORS`.
+  2. Synchronized PO report contract: Aggregated `totals` and `items` in `aggregateReportTotals` to eliminate fake zero KPI metrics.
+  3. Filtered `WAITING_AUTH` login triggers: Showed login trigger buttons only for the specific waiting source lane (`HUE` or `TCT`) via `resolveWaitingAuthLanes`.
+  4. Neutral manual tab labels: Renamed tab buttons in `DataImportCenter.jsx` to `"Nạp thủ công HUE"` and `"Nạp thủ công TCT"`.
+  5. API Fixture Behavior Unit Test: Created `AutoBackfillOperatorPanel.test.js` using real API fixtures testing contract resolution, button state rules, and safety state overlays.
+- Frontend lint `0 errors`, `vite build` PASS, contract test suite `AutoBackfillOperatorPanel.test.js` 100% PASS, backend Safety/Queue/Coverage regression suites (11/11, 16/16, 12/12) 100% PASS.
+- No backend code, database, Queue/Safety core, or real Portal/Queue execution modified.
+- State: `AUTO-BACKFILL-UI REMEDIATED / READY FOR PO GATE 6`. Gate 6 is not self-passed and Runtime remains unauthorized.
+
+

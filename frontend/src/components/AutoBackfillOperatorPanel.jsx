@@ -18,6 +18,12 @@ import {
   Zap
 } from 'lucide-react';
 import api from '../api/client';
+import {
+  aggregateReportTotals,
+  resolveEffectiveRunState,
+  resolveRunActionButtons,
+  resolveWaitingAuthLanes
+} from './autoBackfillUiHelpers';
 
 const getApiErrorCode = (error, fallback = 'API_ERROR') => (
   error?.response?.data?.error?.code ||
@@ -45,7 +51,6 @@ export default function AutoBackfillOperatorPanel() {
   // Active Run State
   const [activeRunId, setActiveRunId] = useState(null);
   const [runData, setRunData] = useState(null);
-  const [runLoading, setRunLoading] = useState(false);
   const [runActionLoading, setRunActionLoading] = useState(false);
   const [runError, setRunError] = useState(null);
 
@@ -86,7 +91,6 @@ export default function AutoBackfillOperatorPanel() {
   // Fetch Run Details
   const fetchRunDetails = useCallback(async (runId) => {
     if (!runId) return;
-    setRunLoading(true);
     try {
       const res = await api.get(`/import/auto-backfill/runs/${runId}`);
       if (res.data.success) {
@@ -95,8 +99,6 @@ export default function AutoBackfillOperatorPanel() {
     } catch (err) {
       console.error('[AutoBackfillOperatorPanel] fetchRunDetails error:', err);
       setRunError(`Không thể lấy chi tiết tiến trình ${runId}. ${getApiErrorMessage(err)}`);
-    } finally {
-      setRunLoading(false);
     }
   }, []);
 
@@ -141,7 +143,9 @@ export default function AutoBackfillOperatorPanel() {
     if (!activeRunId) return undefined;
     fetchRunDetails(activeRunId);
 
-    const isNonTerminal = runData?.run?.state && !['COMPLETED', 'CANCELLED'].includes(runData.run.state);
+    const runObj = runData?.run;
+    const effectiveState = resolveEffectiveRunState(runObj);
+    const isNonTerminal = effectiveState && !['COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED'].includes(effectiveState);
     const intervalTime = isNonTerminal ? 3000 : 8000;
 
     const interval = setInterval(() => {
@@ -151,7 +155,7 @@ export default function AutoBackfillOperatorPanel() {
     }, intervalTime);
 
     return () => clearInterval(interval);
-  }, [activeRunId, fetchRunDetails, runData?.run?.state, showEvents, fetchEvents, showReport, fetchReport]);
+  }, [activeRunId, fetchRunDetails, runData?.run, showEvents, fetchEvents, showReport, fetchReport]);
 
   // Handle Create Run
   const handleCreateRun = async () => {
@@ -270,8 +274,15 @@ export default function AutoBackfillOperatorPanel() {
   const runnableJobsCount = coverageData?.runnable_portal_jobs ?? rawItems.filter((item) => item.queue_eligible).length;
   const manualOnlyCount = rawItems.filter((item) => ['MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status)).length;
 
+  // Run contracts resolution
   const currentRun = runData?.run || null;
-  const runState = currentRun?.state || null;
+  const currentJobs = runData?.jobs || [];
+  const effectiveRunState = resolveEffectiveRunState(currentRun);
+  const runActionButtons = resolveRunActionButtons(effectiveRunState);
+  const waitingLanes = resolveWaitingAuthLanes(currentRun, currentJobs);
+
+  // PO Report Aggregation
+  const reportTotals = aggregateReportTotals(report);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8" data-testid="auto-backfill-operator-panel">
@@ -419,36 +430,39 @@ export default function AutoBackfillOperatorPanel() {
           </div>
 
           {/* Active Run Controls */}
-          {activeRunId && runState && (
-            <div className="flex flex-wrap items-center gap-2">
-              {['RUNNING', 'PLANNED'].includes(runState) && (
+          {activeRunId && effectiveRunState && (
+            <div className="flex flex-wrap items-center gap-2" data-testid="run-action-controls">
+              {runActionButtons.canPause && (
                 <button
                   type="button"
                   onClick={handlePauseRun}
                   disabled={runActionLoading}
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                  data-testid="btn-pause-run"
                 >
                   <Pause size={14} />
                   Tạm dừng (Pause)
                 </button>
               )}
-              {['PAUSED', 'WAITING_AUTH'].includes(runState) && (
+              {runActionButtons.canResume && (
                 <button
                   type="button"
                   onClick={handleResumeRun}
                   disabled={runActionLoading}
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-50"
+                  data-testid="btn-resume-run"
                 >
                   <Play size={14} />
                   Tiếp tục (Resume)
                 </button>
               )}
-              {runState === 'CIRCUIT_OPEN' && (
+              {runActionButtons.canResetCircuit && (
                 <button
                   type="button"
                   onClick={handleResetCircuit}
                   disabled={runActionLoading}
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50 animate-bounce"
+                  data-testid="btn-reset-circuit"
                 >
                   <RotateCcw size={14} />
                   Khôi phục Mạch (Reset Circuit)
@@ -475,39 +489,50 @@ export default function AutoBackfillOperatorPanel() {
 
       {/* Special Safety & Operator Guidance Cards */}
       {/* 1. WAITING_AUTH Guidance */}
-      {runState === 'WAITING_AUTH' && (
+      {effectiveRunState === 'WAITING_AUTH' && (
         <div className="mx-6 mt-4 p-5 rounded-2xl border-2 border-amber-300 bg-amber-50/90 shadow-xs space-y-3" data-testid="waiting-auth-banner">
           <div className="flex items-start gap-3">
             <Lock size={22} className="text-amber-700 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-sm font-bold text-amber-900">Yêu cầu Đăng nhập Hệ thống Nguồn (WAITING_AUTH)</h4>
               <p className="text-xs text-amber-800 mt-1">
-                Tiến trình tự động tạm dừng an toàn do hết hạn phiên làm việc trên Cổng thông tin. Vui lòng mở cửa sổ đăng nhập bên dưới để xác thực thủ công, sau đó nhấn <strong>Tiếp tục tiến trình</strong>.
+                Tiến trình tự động tạm dừng an toàn do hết hạn phiên làm việc trên Cổng thông tin.
+                {waitingLanes.length > 0 && (
+                  <span> Nguồn đang chờ đăng nhập: <strong>{waitingLanes.join(', ')}</strong>.</span>
+                )}
+                {' '}Vui lòng mở cửa sổ đăng nhập bên dưới để xác thực thủ công, sau đó nhấn <strong>Tiếp tục tiến trình</strong>.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2.5 pt-1 pl-8">
-            <button
-              type="button"
-              onClick={() => handleInteractiveLogin('HUE')}
-              disabled={loginLoading}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-vnpost-blue px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-50"
-            >
-              Mở đăng nhập Huế
-            </button>
-            <button
-              type="button"
-              onClick={() => handleInteractiveLogin('TCT')}
-              disabled={loginLoading}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-800 disabled:opacity-50"
-            >
-              Mở đăng nhập TCT
-            </button>
+            {(waitingLanes.length === 0 || waitingLanes.includes('HUE')) && (
+              <button
+                type="button"
+                onClick={() => handleInteractiveLogin('HUE')}
+                disabled={loginLoading}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-vnpost-blue px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                data-testid="btn-login-hue"
+              >
+                Mở đăng nhập Huế
+              </button>
+            )}
+            {(waitingLanes.length === 0 || waitingLanes.includes('TCT')) && (
+              <button
+                type="button"
+                onClick={() => handleInteractiveLogin('TCT')}
+                disabled={loginLoading}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-purple-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-800 disabled:opacity-50"
+                data-testid="btn-login-tct"
+              >
+                Mở đăng nhập TCT
+              </button>
+            )}
             <button
               type="button"
               onClick={handleResumeRun}
               disabled={runActionLoading}
               className="inline-flex items-center gap-1.5 rounded-lg bg-green-700 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-green-800 disabled:opacity-50"
+              data-testid="btn-resume-from-auth"
             >
               Xác nhận & Tiếp tục tiến trình
             </button>
@@ -523,7 +548,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* 2. CIRCUIT_OPEN Guidance */}
-      {runState === 'CIRCUIT_OPEN' && (
+      {effectiveRunState === 'CIRCUIT_OPEN' && (
         <div className="mx-6 mt-4 p-5 rounded-2xl border-2 border-red-300 bg-red-50/90 shadow-xs space-y-3" data-testid="circuit-open-banner">
           <div className="flex items-start gap-3">
             <ShieldAlert size={22} className="text-red-600 shrink-0 mt-0.5" />
@@ -552,7 +577,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* 3. BLOCKED_INTEGRITY Guidance */}
-      {runState === 'BLOCKED_INTEGRITY' && (
+      {effectiveRunState === 'BLOCKED_INTEGRITY' && (
         <div className="mx-6 mt-4 p-5 rounded-2xl border-2 border-slate-400 bg-slate-100 shadow-xs" data-testid="blocked-integrity-banner">
           <div className="flex items-start gap-3">
             <XCircle size={22} className="text-slate-700 shrink-0 mt-0.5" />
@@ -570,21 +595,27 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* Active Run Status & Jobs Summary */}
-      {activeRunId && runData && (
+      {activeRunId && currentRun && (
         <div className="mx-6 mt-4 p-4 rounded-xl border border-blue-100 bg-blue-50/50 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Activity size={16} className="text-vnpost-blue" />
               <span className="text-xs font-bold uppercase text-gray-700">Trạng thái Tiến trình Hiện tại:</span>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-black ${
-                runState === 'RUNNING' ? 'bg-blue-600 text-white animate-pulse' :
-                runState === 'PAUSED' ? 'bg-amber-500 text-white' :
-                runState === 'WAITING_AUTH' ? 'bg-amber-600 text-white' :
-                runState === 'CIRCUIT_OPEN' ? 'bg-red-600 text-white' :
-                runState === 'BLOCKED_INTEGRITY' ? 'bg-slate-700 text-white' :
-                runState === 'COMPLETED' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-800'
-              }`}>
-                {runState || 'KHÔNG XÁC ĐỊNH'}
+              <span
+                data-testid="effective-run-state-badge"
+                className={`rounded-full px-2.5 py-0.5 text-xs font-black ${
+                  effectiveRunState === 'RUNNING' ? 'bg-blue-600 text-white animate-pulse' :
+                  effectiveRunState === 'PAUSED' ? 'bg-amber-500 text-white' :
+                  effectiveRunState === 'PAUSING' ? 'bg-amber-400 text-white' :
+                  effectiveRunState === 'WAITING_AUTH' ? 'bg-amber-600 text-white' :
+                  effectiveRunState === 'CIRCUIT_OPEN' ? 'bg-red-600 text-white' :
+                  effectiveRunState === 'BLOCKED_INTEGRITY' ? 'bg-slate-700 text-white' :
+                  effectiveRunState === 'COMPLETED' ? 'bg-green-600 text-white' :
+                  effectiveRunState === 'COMPLETED_WITH_ERRORS' ? 'bg-orange-600 text-white' :
+                  'bg-gray-200 text-gray-800'
+                }`}
+              >
+                {effectiveRunState || 'KHÔNG XÁC ĐỊNH'}
               </span>
             </div>
             {runData.progress && (
@@ -665,7 +696,7 @@ export default function AutoBackfillOperatorPanel() {
 
       {/* PO Reconciliation Report Card */}
       {showReport && activeRunId && (
-        <div className="mx-6 mt-4 p-5 rounded-xl border border-blue-200 bg-blue-50/70 text-xs space-y-3">
+        <div className="mx-6 mt-4 p-5 rounded-xl border border-blue-200 bg-blue-50/70 text-xs space-y-3" data-testid="po-report-card">
           <div className="flex items-center justify-between border-b border-blue-200 pb-2">
             <h4 className="font-bold text-blue-900 flex items-center gap-2">
               <FileText size={16} className="text-blue-700" />
@@ -686,19 +717,19 @@ export default function AutoBackfillOperatorPanel() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-blue-100">
                 <div>
                   <span className="text-gray-500 block">Tổng công việc</span>
-                  <strong className="text-sm text-gray-900">{report.totals?.total_jobs || report.total_jobs || 0}</strong>
+                  <strong className="text-sm text-gray-900" data-testid="report-total-jobs">{reportTotals.total}</strong>
                 </div>
                 <div>
                   <span className="text-green-700 block">Thành công</span>
-                  <strong className="text-sm text-green-700">{report.totals?.success || report.success_jobs || 0}</strong>
+                  <strong className="text-sm text-green-700" data-testid="report-success-jobs">{reportTotals.success}</strong>
                 </div>
                 <div>
                   <span className="text-amber-700 block">Đang chờ / Tạm dừng</span>
-                  <strong className="text-sm text-amber-700">{report.totals?.pending || report.pending_jobs || 0}</strong>
+                  <strong className="text-sm text-amber-700" data-testid="report-pending-jobs">{reportTotals.pending}</strong>
                 </div>
                 <div>
                   <span className="text-red-700 block">Thất bại / Cần xử lý</span>
-                  <strong className="text-sm text-red-700">{report.totals?.failed || report.failed_jobs || 0}</strong>
+                  <strong className="text-sm text-red-700" data-testid="report-failed-jobs">{reportTotals.failed}</strong>
                 </div>
               </div>
               {report.action_required && (

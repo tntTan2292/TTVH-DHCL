@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-UI Checkpoint 001
 
-Status: `AUTO-BACKFILL-UI IMPLEMENTED / READY FOR PO GATE 6` (2026-08-18).
+Status: `AUTO-BACKFILL-UI REMEDIATED / READY FOR PO GATE 6` (2026-08-18).
 
 ## 1. Executive Summary
 
@@ -32,7 +32,16 @@ Zero backend business logic, parser, database, Queue/Safety core or real executi
    - Executed live browser inspection on `http://localhost:5178/import`.
    - Admin authentication, panel rendering, choice cards, stats, and table items confirmed working.
 
-## 4. Gate 6 Handoff
+## 4. Gate 6 Remediation Summary
 
-State: `AUTO-BACKFILL-UI IMPLEMENTED / READY FOR PO GATE 6`.
+Product Owner requested remediation for 5 frontend contract & UI alignment items:
+1. **Run Contract Synchronization**: Aligned `AutoBackfillOperatorPanel.jsx` to use `run.safety_state || run.status` (never `run.state`). Verified rendering for `RUNNING`, `PAUSED`, `WAITING_AUTH`, `CIRCUIT_OPEN`, `BLOCKED_INTEGRITY`, `COMPLETED`, and `COMPLETED_WITH_ERRORS`.
+2. **PO Report Contract Synchronization**: Extracted `totals` & `items` from backend `getReport` response. Implemented `aggregateReportTotals` helper to eliminate fake zero KPI metrics.
+3. **`WAITING_AUTH` Specific Lane Filter**: `resolveWaitingAuthLanes` parses job-level waiting state to show login trigger button ONLY for the specific waiting source lane (`HUE` or `TCT`).
+4. **Neutral Manual Import Tab Labels**: Renamed tab buttons in `DataImportCenter.jsx` from "Huế F1.3" / "Tổng công ty F1.3" to `"Nạp thủ công HUE"` and `"Nạp thủ công TCT"`.
+5. **Contract & Behavior Unit Test Suite**: Created `autoBackfillUiHelpers.js` and `AutoBackfillOperatorPanel.test.js` using real API fixtures to test effective state resolution, WAITING_AUTH lane filtering, report total aggregation, and button enable/disable rules.
+
+## 5. Gate 6 Handoff
+
+State: `AUTO-BACKFILL-UI REMEDIATED / READY FOR PO GATE 6`.
 Next Phase: `AUTO-BACKFILL-RUNTIME` remains planned only and requires explicit Product Owner authorization after Gate 6 PASS.
