@@ -92,4 +92,12 @@ All mutation-capable validation used OS-temporary SQLite databases/directories a
 - `.claude/` and `Data QLML/` were not read, modified or staged.
 - Product Owner Gate 5 is not self-passed; UI, Runtime and every successor remain inactive.
 
-State: `AUTO-BACKFILL-SAFETY IMPLEMENTED / READY FOR PO GATE 5`.
+State (at implementation): `AUTO-BACKFILL-SAFETY IMPLEMENTED / READY FOR PO GATE 5`.
+
+## 7. Gate 5 PASS And UI Activation Blocker (2026-08-18)
+
+Product Owner granted `GATE 5 PASS`, closing `AUTO-BACKFILL-SAFETY` as `COMPLETED / PO GATE 5 PASS`. No new code, schema or data changed for this closure — it is a documentation-only PO decision record.
+
+The Product Owner then instructed Claude Code to implement `AUTO-BACKFILL-UI`. Before any code, Claude Code re-read the frozen `AUTO-BACKFILL-PLAN_MANIFEST.md` Section 6 and `AUTO-BACKFILL-PLAN_CHECKPOINT_001.md` Section 11.6, which lock `AUTO-BACKFILL-UI` as "Operator UI by Antigravity" — matching `CLAUDE.md`'s executor role split. This is a direct conflict between the new instruction and a frozen governance document, so Claude Code reported it instead of silently reassigning the ticket. The Product Owner's explicit resolution: do not implement `AUTO-BACKFILL-UI` under Claude Code; the locked Antigravity assignment stands.
+
+`AUTO-BACKFILL-UI` is therefore **not activated for implementation** in this session. No frontend/UI code, no API contract, and no Import/Queue/Portal runtime work were touched. State: `AUTO-BACKFILL-SAFETY COMPLETED / PO GATE 5 PASS`; `AUTO-BACKFILL-UI PLANNED / NOT ACTIVE (executor: Antigravity, pending its own activation)`.
