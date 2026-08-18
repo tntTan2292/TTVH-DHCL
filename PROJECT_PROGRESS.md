@@ -866,3 +866,17 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Added shared start/wake/drain/stop coordination, create/resume/startup wake integration, bounded lease-expiry polling and clean shutdown while keeping SQLite global leasing authoritative.
 - Focused suite `39/39 PASS`, including seven coordinator tests and unchanged AB-QUE/AB-SUC. Requested F1.3/F4.1 regressions all PASS.
 - Production executors remain empty and real lanes remain `MANUAL_ONLY`; no Portal/Import/Data DKCL execution occurred. State remains `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`.
+
+## AUTO-BACKFILL-QUEUE Gate 2 PASS / AUTO-BACKFILL-F13 Activated
+
+- Product Owner granted Queue `GATE 2 PASS` and authorized `AUTO-BACKFILL-F13` only from `64e9a8550752ef5fc6723dadc9d05d9cda442327`.
+- Queue closes `COMPLETED / PO GATE 2 PASS`; F1.3 is active only to wrap the existing verified HUE/TCT single-date flows as shared adapters.
+- F4.1 adapters, Safety, UI, real Runtime and all unrelated tickets remain inactive.
+
+## AUTO-BACKFILL-F13 - Implemented / Ready For PO Gate 3
+
+- Added separate verified HUE-detail and TCT-summary one-date adapters using the accepted F1.3 report, session, source-lock and Import operations; neither invokes a legacy multi-date queue.
+- Registered both executors before Queue/coordinator construction and switched only F1.3 HUE/TCT to `AUTOMATED`; F4.1 remains `MANUAL_ONLY`.
+- Preserved completion recheck/SUCCESS skip and global SQLite leasing; authentication loss now stops the current drain until an explicit wake, without adding Safety retry/circuit behavior.
+- Focused adapter/Queue/Coverage and existing F1.3/F4.1/Import regressions PASS. No real Portal, download, Import, business-data, frontend, schema or successor-ticket work occurred.
+- State: `AUTO-BACKFILL-F13 IMPLEMENTED / READY FOR PO GATE 3`. Gate 3 is pending Product Owner approval.

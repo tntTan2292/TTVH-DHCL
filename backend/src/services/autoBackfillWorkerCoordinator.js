@@ -29,6 +29,7 @@ class AutoBackfillWorkerCoordinator {
         this.wakeRequested = false;
         this.timer = null;
         this.drainPromise = null;
+        this.authenticationBlocked = false;
         this.metrics = { wakeCount: 0, drainCount: 0, processNextCount: 0, timerCount: 0 };
     }
 
@@ -39,8 +40,9 @@ class AutoBackfillWorkerCoordinator {
         return this;
     }
 
-    wake() {
+    wake(reason = 'external') {
         if (!this.started) return false;
+        if (reason !== 'poll') this.authenticationBlocked = false;
         this.metrics.wakeCount += 1;
         this.wakeRequested = true;
         this.clearPendingTimer();
@@ -58,7 +60,7 @@ class AutoBackfillWorkerCoordinator {
                 this.onError(error);
             } finally {
                 this.drainPromise = null;
-                if (this.started && this.wakeRequested) this.wake();
+                if (this.started && this.wakeRequested && !this.authenticationBlocked) this.wake();
             }
         })();
         return this.drainPromise;
@@ -76,10 +78,15 @@ class AutoBackfillWorkerCoordinator {
                     if (!result) break;
                 } catch (error) {
                     this.onError(error);
+                    if (error?.code === 'AUTHENTICATION_REQUIRED') {
+                        this.authenticationBlocked = true;
+                        return;
+                    }
                     break;
                 }
             }
             if (!this.started) return;
+            if (this.authenticationBlocked) return;
             if (this.wakeRequested) continue;
 
             const state = await this.queueService.store.getCoordinatorState();

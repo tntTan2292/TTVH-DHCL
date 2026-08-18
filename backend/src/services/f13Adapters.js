@@ -56,7 +56,8 @@ class TctF13Adapter extends BaseF13Adapter {
         super({
             source: 'TCT',
             acquisition: (measurementDate, context) => runOneDateImport(measurementDate, context.queueId, {
-                refreshRequested: context.refreshRequested
+                refreshRequested: context.refreshRequested,
+                portalClient: context.portalClient || null,
             })
         });
     }

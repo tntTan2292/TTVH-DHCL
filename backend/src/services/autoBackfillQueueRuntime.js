@@ -6,25 +6,42 @@ const { AutoBackfillQueueStore } = require('./autoBackfillQueueStore');
 const { AutoBackfillQueueService } = require('./autoBackfillQueueService');
 const { AutoBackfillExecutorRegistry } = require('./autoBackfillExecutorRegistry');
 const { AutoBackfillWorkerCoordinator } = require('./autoBackfillWorkerCoordinator');
+const { registerF13AutoBackfillExecutors } = require('./autoBackfillF13Executors');
 
 let queueService = null;
 let executorRegistry = null;
 let coordinator = null;
 
-function ensureRuntime() {
-    if (queueService) return;
-    const completionDb = { all, get };
+function buildRuntime({
+    runtimeDbPath = dbPath,
+    completionDb = { all, get },
+    registerExecutors = registerF13AutoBackfillExecutors,
+    coordinatorFactory = (options) => new AutoBackfillWorkerCoordinator(options),
+} = {}) {
+    const runtimeExecutorRegistry = new AutoBackfillExecutorRegistry();
+    registerExecutors(runtimeExecutorRegistry, { db: completionDb });
     const coverageService = new AutoBackfillCoverageService({ db: completionDb });
-    executorRegistry = new AutoBackfillExecutorRegistry();
-    queueService = new AutoBackfillQueueService({
-        store: new AutoBackfillQueueStore({ dbPath }),
+    const runtimeQueueService = new AutoBackfillQueueService({
+        store: new AutoBackfillQueueStore({ dbPath: runtimeDbPath }),
         coverageService,
         completionDb,
-        // Deliberately empty until a later adapter ticket installs a verified executor.
-        executorRegistry,
+        executorRegistry: runtimeExecutorRegistry,
     });
-    coordinator = new AutoBackfillWorkerCoordinator({ queueService });
-    queueService.setWorkAvailableNotifier(() => coordinator.wake());
+    const runtimeCoordinator = coordinatorFactory({ queueService: runtimeQueueService });
+    runtimeQueueService.setWorkAvailableNotifier(() => runtimeCoordinator.wake());
+    return {
+        queueService: runtimeQueueService,
+        executorRegistry: runtimeExecutorRegistry,
+        coordinator: runtimeCoordinator,
+    };
+}
+
+function ensureRuntime() {
+    if (queueService) return;
+    const runtime = buildRuntime();
+    queueService = runtime.queueService;
+    executorRegistry = runtime.executorRegistry;
+    coordinator = runtime.coordinator;
 }
 
 function getAutoBackfillQueueService() {
@@ -66,6 +83,7 @@ function wakeAutoBackfillQueue() {
 }
 
 module.exports = {
+    buildRuntime,
     getAutoBackfillQueueService,
     getAutoBackfillWorkerCoordinator,
     recoverAutoBackfillQueueOnStartup,

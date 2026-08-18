@@ -686,13 +686,13 @@ class TctF13BackfillService {
         return { systemicFailure };
     }
 
-    async runOneDateImport(measurementDate, queueId, { refreshRequested = false } = {}) {
+    async runOneDateImport(measurementDate, queueId, { refreshRequested = false, portalClient = null } = {}) {
         const runId = createRunId(this.clock);
         let client = null;
         let downloadedPath = null;
         let cleanupDeleted = null;
-            let ownsClient = true;
-            const evidence = {
+        let ownsClient = !portalClient;
+        const evidence = {
                 ...createBaseEvidence({
                     source: 'TCT',
                     report: 'F1.3',
@@ -717,7 +717,7 @@ class TctF13BackfillService {
             };
 
         try {
-            client = this.sessionPreflightService.getInteractiveClient?.('TCT');
+            client = portalClient || this.sessionPreflightService.getInteractiveClient?.('TCT');
             let isStale = false;
             if (client) {
                 if (!client.page || client.page.isClosed()) {

@@ -6,8 +6,9 @@ const { parseF13NationalExcel } = require('./nationalExcelParser');
 const { extractF41DateFromFilename, parseF41HueExcel } = require('./f41HueExcelParser');
 const { parseF41TctExcel } = require('./f41TctExcelParser');
 const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./autoBackfillCompletionPolicies');
+const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 
-const REGISTRY_VERSION = 'AUTO-BACKFILL-COVERAGE-1';
+const REGISTRY_VERSION = 'AUTO-BACKFILL-F13-1';
 const BUSINESS_TIMEZONE = 'Asia/Ho_Chi_Minh';
 const TRACKING_START_DATE = '2026-01-01';
 const INDICATOR_STATUSES = new Set(['ACTIVE', 'PLANNED', 'PAUSED', 'RETIRED']);
@@ -110,7 +111,11 @@ const INDICATORS = {
                 parser: (buffer) => parseF13Excel(buffer),
                 targetTable: 'fact_f13',
                 distinctColumn: 'ma_bg',
-                manualOnlyReason: 'SHARED_PORTAL_ADAPTER_PENDING_AUTO_BACKFILL_F13',
+                automationMode: 'AUTOMATED',
+                portalAdapter: {
+                    ...F13_EXECUTOR_IDENTITIES.HUE,
+                    verified: true,
+                },
             }),
             TCT: createLane({
                 code: 'TCT',
@@ -119,7 +124,11 @@ const INDICATORS = {
                 targetTable: 'fact_f13_national',
                 distinctColumn: 'ma_tinh_phat',
                 expectedRowCount: 34,
-                manualOnlyReason: 'SHARED_PORTAL_ADAPTER_PENDING_AUTO_BACKFILL_F13',
+                automationMode: 'AUTOMATED',
+                portalAdapter: {
+                    ...F13_EXECUTOR_IDENTITIES.TCT,
+                    verified: true,
+                },
             }),
         },
     },

@@ -233,3 +233,19 @@ Append-only update: manifest Section 13 and checkpoint Section 11 record the mis
 ## AUTO-BACKFILL-QUEUE Coordinator Remediation Handoff - 2026-08-18
 
 Manifest Section 14 and checkpoint Section 12 now hold coordinator lifecycle, wake/drain, lease-expiry, shutdown and focused validation evidence. Finding `POF-AUTO-BACKFILL-QUEUE-01` is ready for Gate 2 recheck. Current state remains `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`; no successor is activated.
+
+## Current AUTO-BACKFILL-F13 Update - 2026-08-18
+
+This section supersedes Queue current-ticket rows for live onboarding. Historical entries remain preserved; `PROJECT_SNAPSHOT.md` owns mutable live state.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` | Ticket Manifest | PO-authorized verified F1.3 HUE/TCT one-date adapters, registration, acceptance and exclusions. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-BACKFILL-F13_CHECKPOINT_001.md` | Checkpoint / Technical Execution Report | Queue Gate 2 PASS, F1.3 activation baseline, locked adapter boundary and implementation evidence. | L2/L3 | Current Required Reading | When current manifest names it. | Mandatory |
+| `docs/10_TICKETS/AUTO-BACKFILL-QUEUE_MANIFEST.md` | Closed Predecessor Manifest | Persistent queue/coordinator implementation and explicit PO Gate 2 PASS/F1.3 handoff. | L2 | Conditional Reference | Required by F1.3 manifest. | Mandatory |
+
+Current state: `AUTO-BACKFILL-F13 ACTIVE / IMPLEMENTATION AUTHORIZED`. No later ticket is activated.
+
+## AUTO-BACKFILL-F13 Implementation Handoff - 2026-08-18
+
+Append-only update: manifest Sections 9-10 and checkpoint Sections 4-7 record the verified HUE/TCT identity contract, bounded one-date adapters, pre-start runtime registration, authentication stop behavior, acceptance/regression evidence and scope proof. Current state is `AUTO-BACKFILL-F13 IMPLEMENTED / READY FOR PO GATE 3`; no successor is activated.

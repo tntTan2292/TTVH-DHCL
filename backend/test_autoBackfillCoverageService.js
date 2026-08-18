@@ -275,16 +275,20 @@ test('committed SUCCESS data with a missing Processed artifact requires manual r
     }
 });
 
-test('approved registry starts F1.3/F4.1 on 2026-01-01 and keeps shared adapters gated', () => {
+test('approved registry automates only verified F1.3 adapters and keeps F4.1 manual-only', () => {
     const { INDICATORS } = require('./src/services/importIndicatorRegistry');
     for (const indicator of Object.values(INDICATORS)) {
         assert.equal(indicator.trackingStartDate, '2026-01-01');
         assert.equal(indicator.businessTimezone, 'Asia/Ho_Chi_Minh');
-        for (const lane of Object.values(indicator.lanes)) {
-            assert.equal(lane.automationMode, 'MANUAL_ONLY');
-            assert.equal(lane.portalAdapter, null);
-        }
     }
+    assert.equal(INDICATORS['F1.3'].lanes.HUE.automationMode, 'AUTOMATED');
+    assert.equal(INDICATORS['F1.3'].lanes.HUE.portalAdapter.id, 'DKCL_F13_HUE_SINGLE_DATE_V1');
+    assert.equal(INDICATORS['F1.3'].lanes.TCT.automationMode, 'AUTOMATED');
+    assert.equal(INDICATORS['F1.3'].lanes.TCT.portalAdapter.id, 'DKCL_F13_TCT_SINGLE_DATE_V1');
+    assert.equal(INDICATORS['F4.1'].lanes.HUE.automationMode, 'MANUAL_ONLY');
+    assert.equal(INDICATORS['F4.1'].lanes.HUE.portalAdapter, null);
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.automationMode, 'MANUAL_ONLY');
+    assert.equal(INDICATORS['F4.1'].lanes.TCT.portalAdapter, null);
     assert.equal(INDICATORS['F4.1'].lanes.HUE.manualOnlyReason, 'PORTAL_ADAPTER_NOT_VERIFIED');
     assert.equal(INDICATORS['F4.1'].lanes.TCT.manualOnlyReason, 'PORTAL_ADAPTER_NOT_VERIFIED');
 });
