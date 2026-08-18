@@ -908,3 +908,15 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - TCT was not attempted after the unresolved HUE differential. Zero export, download, Import, queue execution or database/business-data write occurred; no product code changed.
 - HUE and TCT remain `MANUAL_ONLY`. State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED / READY FOR PO REVIEW`; no successor is activated.
 - Focused Coverage/Queue/F1.3/F4.1 regression run: 60 runner tests PASS, 0 fail. Discovery clients closed, temporary directories empty, and normal QIS backend restored on port 5050.
+
+## AUTO-BACKFILL-F41 PO Chrome Evidence And Exact HUE Retry
+
+- PO supplied the successful HUE request: account `tantn.bdth`, HTTP 200, nine rows, `4,695 / 2,863 / 60.98%`.
+- The response proves `sp_Phat_ChatLuong_PTC_BuuCuc_V2`, export `/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all`, and detail endpoint `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet`.
+- The first proven failed-query delta is `stMaLoaiBCPhat=ALL` versus successful `NULL`; PO authorizes exactly one HUE comparison with exact ancillary states and completed cascade requests. TCT remains blocked.
+
+## AUTO-BACKFILL-F41 Exact HUE Comparison Result
+
+- Cascade waits completed and the generated URL matched the PO URL byte-for-byte. The single submit returned HTTP 200 and exposed the expected export/detail identities.
+- Browser Codex account was `tantn.bdtth`, versus successful Chrome account `tantn.bdth`. Nine rate-bearing rows rendered, but nested table rows contaminated the temporary aggregate reader, so `4,695 / 2,863` is not yet admissibly proven.
+- Zero second submit, export, download, Import, queue/DB write or TCT action. Both lanes remain `MANUAL_ONLY`; state is `HUE COMPARISON BLOCKED / READY FOR PO REVIEW`.

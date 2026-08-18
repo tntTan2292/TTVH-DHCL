@@ -131,3 +131,25 @@ State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED / READY FOR PO REVIEW`.
 Focused `node --test --test-concurrency=1` validation covered Coverage, Queue, F1.3 shared executors, legacy F1.3 HUE/TCT services, F4.1 HUE/TCT parsers and pipeline, and queue migration: 60 runner tests passed, 0 failed. Mutation-capable cases used temporary DB/directories only.
 
 Discovery export/download count was zero, both discovery clients were closed, both task-specific temporary directories were empty, and normal QIS backend listening on port `5050` was restored. The final implementation delta is documentation-only.
+
+## 14. PO Chrome Success Evidence And Exact Retry Gate
+
+PO supplied a successful HUE F4.1 GET for `BC / 53 / 2026-08-01`: `HTTP 200`, nine rows, total `4,695`, passed `2,863`, rate `60.98%`, account `tantn.bdth`. The response proves report identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2`, export action `/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all`, and detail endpoint `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet`.
+
+The exact successful query keeps `stMaHuyenPhat` empty and uses `stMaLoaiBCPhat=NULL`, `stMaBuuCucPhat=NULL`, `stPhamViTinh=NULL`, `stLoaiTuyenPhat=NULL`, and `stLoaiPhuongXa=NULL`. The prior Codex request demonstrably differed first at `stMaLoaiBCPhat=ALL`; existing generic F1.3 normalization selected `ALL` for ancillary fields where F4.1 requires the untouched `NULL` state.
+
+Authority is limited to one HUE comparison after change-event/cascade readiness. TCT and all mutating/runtime actions remain blocked until HUE proves nine rows, `4,695` total and `2,863` passed.
+
+State: `ACTIVE / ONE BOUNDED HUE COMPARISON`.
+
+## 15. Exact HUE Comparison Result
+
+The probe used UI `selectOption` interactions and existing F1.3 date events, waiting for network idle after report open, each cascading filter and date assignment. Before submit, `FormData` generated a URL byte-for-byte equal to the PO successful URL. Exactly one report request was submitted and returned `HTTP 200`.
+
+Runtime response evidence confirmed the expected export action and detail endpoint. It also rendered nine rate-bearing rows. However, the temporary evidence reader counted nested table rows and could not establish admissible totals for `4,695 / 2,863`; no adapter proof may rely on the contaminated aggregate.
+
+The first remaining Chrome/Codex difference is account identity: Browser Codex `tantn.bdtth`, Chrome PO `tantn.bdth`. No authentication material was inspected. No second submit, export, download, Import, queue/DB write or TCT action occurred.
+
+Disposition: HUE and TCT remain `MANUAL_ONLY`. Await PO confirmation whether the supported HUE profile must be manually re-authenticated as `tantn.bdth` before any separately authorized reconciliation probe.
+
+State: `HUE COMPARISON BLOCKED / READY FOR PO REVIEW`.

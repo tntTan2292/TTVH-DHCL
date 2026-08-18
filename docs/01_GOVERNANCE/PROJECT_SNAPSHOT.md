@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-F41 — authenticated runtime differential. DISCOVERY BLOCKED / READY FOR PO REVIEW (2026-08-18).` |
-| Current Ticket | `AUTO-BACKFILL-F41 — HUE Codex session request returns DKCL HTTP 500 while Chrome PO proves nine rows / 4,695; no successor is active.` |
+| Current Phase | `AUTO-BACKFILL-F41 — exact HUE request comparison. BLOCKED / READY FOR PO REVIEW (2026-08-18).` |
+| Current Ticket | `AUTO-BACKFILL-F41 — exact URL now returns HTTP 200, but account identity differs and locked totals remain unproven; no successor is active.` |
 | Next Ticket | `None activated. AUTO-BACKFILL-SAFETY is a planned candidate only after F41 PO Gate 4 and separate explicit authorization. UI/RUNTIME, F41 Phase 3, UI Remediation and unrelated tickets remain inactive.` |
-| Last PO Status | `Product Owner runtime evidence (2026-08-18): Chrome PO proves HUE F4.1 BC/53/01-08-2026 has nine rows and total 4,695; diagnose Codex-browser differential with bounded evidence and stop for PO review.` |
+| Last PO Status | `Product Owner authorized exactly one HUE comparison. It completed with exact URL and HTTP 200; account/reconciliation difference now awaits PO review.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-F41_MANIFEST.md` |
 | Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md` — F13 Gate 3 PASS, static/live discovery evidence, blocked lane disposition and validation ledger. |
-| Current State | `AUTO-BACKFILL-F41 DISCOVERY BLOCKED / READY FOR PO REVIEW (2026-08-18). HUE/TCT remain MANUAL_ONLY.` |
-| Technical Status | `F1.3 HUE/TCT workflows were reread and reused. The exact HUE request reaches DKCL but receives HTTP 500; no F4.1 lane has complete adapter evidence.` |
-| Runtime Status | `Supported HUE/TCT preflight was SESSION_VALID. HUE BC/53/2026-08-01 returned three HTTP 500 JSON responses and only header rows; no TCT continuation, export, download, Import or write occurred. Discovery clients are closed and normal backend is restored on port 5050.` |
+| Current State | `AUTO-BACKFILL-F41 HUE COMPARISON BLOCKED / READY FOR PO REVIEW (2026-08-18). HUE/TCT remain MANUAL_ONLY.` |
+| Technical Status | `Exact request transport and report/export/detail identities are proven. Locked 4,695 / 2,863 reconciliation is not yet admissible because the temporary reader traversed nested rows.` |
+| Runtime Status | `Single exact HUE submit returned HTTP 200 under account tantn.bdtth; Chrome PO success account is tantn.bdth. No export/Import/write/TCT action occurred.` |
 | PO UI Check Required | `No — this ticket has no frontend. AUTO-BACKFILL-UI remains deferred and requires its own later Product Owner activation.` |
-| PO Product Status | `AUTO-BACKFILL-F13 is closed / PO GATE 3 PASS. AUTO-BACKFILL-F41 awaits PO review of the HUE Chrome/Codex runtime differential; Gate 4 is not passed.` |
+| PO Product Status | `AUTO-BACKFILL-F13 is closed / PO GATE 3 PASS. AUTO-BACKFILL-F41 HUE remains unverified pending account/reconciliation resolution; Gate 4 is not passed.` |
 | Last Closed Ticket | `AUTO-BACKFILL-F13 — COMPLETED / PO GATE 3 PASS (2026-08-18). Verified F1.3 HUE/TCT shared adapters are accepted; F41 is the active successor.` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-BACKFILL-F13 Gate 3 (2026-08-18): COMPLETED / PO PASS` |
 | Last Reviewed Implementation Commit | `5a2cf358e68baa0ae6f7ae1f22814f535b564fb9 — verified F1.3 adapters accepted at Gate 3.` |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
-| Next Phase Authorization | `None. Await PO direction on the HUE HTTP 500 differential. AUTO-BACKFILL-SAFETY and every later ticket remain unauthorized.` |
+| Next Phase Authorization | `None. Await PO confirmation on HUE profile account identity. TCT, AUTO-BACKFILL-SAFETY and every later ticket remain unauthorized.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-18` |
 
@@ -241,3 +241,11 @@ Latest authoritative next action (`2026-08-18`, authenticated discovery re-entry
 Latest authoritative next action (`2026-08-18`, HUE runtime differential; supersedes every earlier next-action note): `AWAIT PO review and one bounded comparison artifact from the successful Chrome request. Do not continue TCT, implement an executor, pass Gate 4 or activate Safety.`
 
 Validation ledger (`2026-08-18`): 60 focused Node runner tests passed with zero failures across Coverage, Queue, F1.3 adapters/legacy services, F4.1 parsers/pipeline and queue migration. Mutation tests used isolated temporary storage; the discovery left no files and normal QIS backend runtime was restored.
+
+`AUTO-BACKFILL-F41` PO Chrome success evidence (`2026-08-18`): successful HUE GET returned HTTP 200 under account `tantn.bdth`, nine rows and `4,695 / 2,863 / 60.98%`. It proves report identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2`, export action `/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all`, and detail endpoint `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet`. The prior Codex request first differs at ancillary filter `stMaLoaiBCPhat=ALL` versus successful `NULL`.
+
+Latest authoritative next action (`2026-08-18`, exact HUE comparison; supersedes every earlier next-action note): `Run exactly one supported HUE comparison after prerequisite cascade completion using the successful query state. Require nine rows, 4,695 total and 2,863 passed. Do not continue TCT or any mutating action while HUE remains unresolved.`
+
+`AUTO-BACKFILL-F41` exact HUE comparison result (`2026-08-18`): all cascade waits completed, the form URL matched the PO URL byte-for-byte, and exactly one submit returned HTTP 200 with the expected export/detail identities. Browser Codex displayed `tantn.bdtth`, unlike Chrome PO `tantn.bdth`. Nine rate-bearing rows rendered, but nested table rows contaminated the temporary aggregate reader, so the locked `4,695 / 2,863` reconciliation remains unproven. No second submit/export/Import/write/TCT action occurred.
+
+Latest authoritative next action (`2026-08-18`, account differential; supersedes every earlier next-action note): `AWAIT PO confirmation whether the supported HUE automation profile must be manually re-authenticated as tantn.bdth before one separately authorized reconciliation probe. Do not continue TCT or implement an adapter.`

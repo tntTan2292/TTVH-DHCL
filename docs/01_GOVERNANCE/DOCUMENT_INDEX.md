@@ -277,3 +277,11 @@ Append-only update: manifest Section 15 and checkpoint Section 12 record support
 ## AUTO-BACKFILL-F41 Validation And Runtime Restore - 2026-08-18
 
 Append-only update: manifest Section 16 and checkpoint Section 13 record 60 focused runner tests passing with zero failures, isolated mutation-test storage, zero discovery artifacts, closed discovery clients and restored normal backend runtime on port 5050. The committed delta remains documentation-only.
+
+## AUTO-BACKFILL-F41 PO Chrome Success Evidence - 2026-08-18
+
+Append-only update: manifest Section 17 and checkpoint Section 14 record the PO-supplied HTTP 200 HUE request, nine-row `4,695 / 2,863 / 60.98%` result, proven report/export/detail identities, the first failed-query delta (`stMaLoaiBCPhat=ALL` versus `NULL`), and authorization for exactly one supported HUE comparison. TCT and all mutating actions remain blocked.
+
+## AUTO-BACKFILL-F41 Exact HUE Comparison Result - 2026-08-18
+
+Append-only update: manifest Section 18 and checkpoint Section 15 record byte-for-byte URL equality, completed cascade waits, the single HTTP 200 submit, proven export/detail identities, the account difference (`tantn.bdtth` versus `tantn.bdth`), and the inadmissible nested-row aggregate. Both lanes remain `MANUAL_ONLY`; no second submit/export/Import/write or TCT action occurred.

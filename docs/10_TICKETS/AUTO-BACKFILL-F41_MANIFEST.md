@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-F41 Manifest
 
-Status: `DISCOVERY BLOCKED / READY FOR PO REVIEW / BOTH LANES MANUAL_ONLY` (2026-08-18).
+Status: `HUE COMPARISON BLOCKED / ACCOUNT CONFIRMATION REQUIRED / BOTH LANES MANUAL_ONLY` (2026-08-18).
 
 ## 1. Ticket Information
 
@@ -146,3 +146,27 @@ State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED / READY FOR PO REVIEW`.
 - Mutation-capable tests used isolated temporary databases/directories; operational Auto Backfill and Import were not run.
 - Discovery clients were closed, temporary discovery directories contained zero files, and the normal QIS backend was restored on port `5050`.
 - Documentation-only diff check passed; no frontend, backend product code, schema, registry automation state or business data changed.
+
+## 17. PO Chrome Success Evidence And Bounded Comparison
+
+The Product Owner supplied the complete successful HUE F4.1 request and response evidence. The Chrome request returned `HTTP 200`, displayed account `tantn.bdth`, rendered nine result rows, and reconciled `4,695` total / `2,863` passed / `60.98%`.
+
+The response independently proves report identity `sp_Phat_ChatLuong_PTC_BuuCuc_V2`, export action `/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all`, and detail endpoint `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet`.
+
+PO authorizes exactly one supported Browser Codex comparison using the F1.3 interaction sequence and exact successful state. The known first query delta is `stMaLoaiBCPhat=ALL` in the failed Codex request versus `stMaLoaiBCPhat=NULL` in the successful Chrome request; the successful ancillary state also uses empty `stMaHuyenPhat`, `stMaBuuCucPhat=NULL`, `stPhamViTinh=NULL`, `stLoaiTuyenPhat=NULL`, and `stLoaiPhuongXa=NULL`.
+
+No TCT action, export, Import, queue execution, DB write or adapter implementation is authorized until the HUE comparison proves nine rows, `4,695` total and `2,863` passed.
+
+State: `AUTO-BACKFILL-F41 ACTIVE / ONE BOUNDED HUE COMPARISON`.
+
+## 18. Exact HUE Comparison Result
+
+The bounded Browser Codex comparison completed all prerequisite cascade waits and produced a GET URL matching the PO successful URL byte-for-byte. One report submit was performed. DKCL returned `HTTP 200` and the rendered response exposed the proven export action `/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all` and detail endpoint `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet`.
+
+The first remaining runtime difference is the authenticated account: Browser Codex displayed `tantn.bdtth`, while the successful Chrome PO evidence displayed `tantn.bdth`. The response rendered nine rate-bearing business rows, but the temporary DOM counter traversed nested table rows and therefore did not produce admissible `4,695 / 2,863` reconciliation evidence. The lane cannot be promoted on transport/identity evidence alone.
+
+No second submit, export, download, Import, queue execution, DB write or product implementation occurred. HUE and TCT remain `MANUAL_ONLY`; TCT was not opened.
+
+Required PO decision: confirm whether the supported HUE automation profile must be manually re-authenticated as `tantn.bdth` before one separately authorized reconciliation probe.
+
+State: `AUTO-BACKFILL-F41 HUE COMPARISON BLOCKED / READY FOR PO REVIEW`.
