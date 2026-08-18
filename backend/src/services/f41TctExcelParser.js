@@ -2,6 +2,7 @@
 
 const xlsx = require('xlsx');
 const { extractF41DateFromFilename } = require('./f41HueExcelParser');
+const { NATIONAL_RANKED_PROVINCE_CODES } = require('./nationalExcelParser');
 
 const F41_TCT_DB_COLUMNS = [
     'stt',
@@ -46,7 +47,8 @@ const F41_TCT_DB_COLUMNS = [
 
 const F41_TCT_RATE_COLUMNS = F41_TCT_DB_COLUMNS.filter((column) => column.startsWith('tl_'));
 const EXPECTED_COLUMN_COUNT = 38;
-const EXPECTED_REPORTING_UNITS = 46;
+const EXPECTED_RAW_REPORTING_UNITS = 46;
+const EXPECTED_ACCEPTED_REPORTING_UNITS = NATIONAL_RANKED_PROVINCE_CODES.length;
 const FIRST_REPORTING_ROW_INDEX = 4;
 
 function isBlank(value) {
@@ -92,6 +94,8 @@ function parseF41TctExcel(buffer, filename) {
     const rawRows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
     const parsedData = [];
+    const excludedRows = [];
+    let rawReportingRows = 0;
     for (let rowIndex = FIRST_REPORTING_ROW_INDEX; rowIndex < rawRows.length; rowIndex += 1) {
         const row = rawRows[rowIndex] || [];
         if (!rowHasAnyValue(row) || isGrandTotalRow(row)) continue;
@@ -99,6 +103,7 @@ function parseF41TctExcel(buffer, filename) {
             throw new Error(`Invalid F4.1 TCT Excel format. Expected ${EXPECTED_COLUMN_COUNT} positional columns at row ${rowIndex + 1}, got ${row.length}.`);
         }
 
+        rawReportingRows += 1;
         const item = { ngay_do_kiem: ngayDoKiem };
         F41_TCT_DB_COLUMNS.forEach((column, index) => {
             if (index === 0) item[column] = normalizeNumber(row[index]);
@@ -109,16 +114,32 @@ function parseF41TctExcel(buffer, filename) {
         });
 
         if (!item.ma_don_vi) continue;
+        if (!NATIONAL_RANKED_PROVINCE_CODES.includes(item.ma_don_vi)) {
+            excludedRows.push({
+                ma_don_vi: item.ma_don_vi,
+                ten_don_vi: item.ten_don_vi,
+                row_number: rowIndex + 1,
+                exclusion_code: 'NON_NATIONAL_RANKED_PROVINCE_CODE',
+            });
+            continue;
+        }
         parsedData.push(item);
     }
 
-    if (parsedData.length !== EXPECTED_REPORTING_UNITS) {
-        throw new Error(`Invalid F4.1 TCT Excel format. Expected ${EXPECTED_REPORTING_UNITS} reporting units after skipping headers/legend/grand total, got ${parsedData.length}.`);
+    if (rawReportingRows !== EXPECTED_RAW_REPORTING_UNITS) {
+        throw new Error(`Invalid F4.1 TCT Excel format. Expected ${EXPECTED_RAW_REPORTING_UNITS} raw reporting units after skipping headers/legend/grand total, got ${rawReportingRows}.`);
+    }
+    if (parsedData.length !== EXPECTED_ACCEPTED_REPORTING_UNITS) {
+        throw new Error(`Invalid F4.1 TCT Excel format. Expected ${EXPECTED_ACCEPTED_REPORTING_UNITS} accepted national province/city units, got ${parsedData.length}.`);
     }
 
     return {
         parsedData,
         totalParsed: parsedData.length,
+        rawReportingRows,
+        acceptedRows: parsedData.length,
+        excludedRows,
+        excludedRowsCount: excludedRows.length,
         ngayDoKiem,
         dbColumns: ['ngay_do_kiem', ...F41_TCT_DB_COLUMNS],
     };
@@ -129,6 +150,7 @@ module.exports = {
     F41_TCT_DB_COLUMNS,
     F41_TCT_RATE_COLUMNS,
     EXPECTED_COLUMN_COUNT,
-    EXPECTED_REPORTING_UNITS,
+    EXPECTED_RAW_REPORTING_UNITS,
+    EXPECTED_ACCEPTED_REPORTING_UNITS,
     FIRST_REPORTING_ROW_INDEX,
 };

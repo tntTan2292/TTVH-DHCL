@@ -52,7 +52,7 @@ Required:
 - Isolated tests for registry, parsers, schema, pipeline/watcher safety, UI selector, and F1.3 regression.
 - Controlled real F4.1 import proof:
   - HUE: `4,695` rows; `2,863` Đạt; `1,581` Không đạt; `251` blank; `60.98%`.
-  - TCT: `46` unit rows; grand total excluded.
+  - TCT: `46` raw unit rows read; `34` F1.3-parity province/city rows stored; grand total and `12` additional operational/legacy rows excluded.
 - Retry/deduplication proof and F1.3 regression safety.
 - Governance update, commit, push, remote verification.
 
@@ -68,9 +68,11 @@ Completion evidence is recorded in `docs/06_REVIEWS/Shared/F41-PHASE-2_CHECKPOIN
 - Admin Import selector for indicator and lane.
 - Controlled real F4.1 Import:
   - HUE `4,695` rows; `2,863` Đạt; `1,581` Không đạt; `251` blank; `60.98%`.
-  - TCT `46` unit rows; grand total excluded.
+  - TCT `46` raw unit rows read; `34` F1.3-parity province/city rows stored; grand total and `12` additional operational/legacy rows excluded.
   - `fact_f13` unchanged at `709,234` rows.
 - Targeted F4.1, F1.3 regression, and frontend checks passed.
 - Remediation 001 fixed TC-4 TCT published-rate storage: all ten `tl_*` columns are TEXT, parser preserves raw percent strings, live `fact_f41_national` was transactionally rebuilt and reloaded from the existing Processed TCT workbook, and Huế TCT now stores numerator `2,863`, denominator `4,684`, published rate `61.12%`.
+- Remediation 002 fixed national population parity with F1.3: F4.1 TCT now reuses `NATIONAL_RANKED_PROVINCE_CODES` from `nationalExcelParser.js`, reads `46` raw reporting rows, accepts/stores `34`, excludes `12` with code/name evidence, and keeps all excluded operational/legacy units out of `fact_f41_national`.
+- Live Remediation 002 proof: `fact_f41_national` stores `34` rows for `2026-08-01`; Huế `53` remains at `2,863 / 4,684 / 61.12%`; excluded codes `01, 08, 11, 12, 14, 15, 34, 49, 71, 75, 77, 82` are absent; HUE `fact_f41` and `fact_f13` remain unchanged.
 
 Final state: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Phase 3 remains not activated.

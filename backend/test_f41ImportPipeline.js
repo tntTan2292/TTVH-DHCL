@@ -44,15 +44,22 @@ function buildHueFile(filePath) {
 }
 
 function buildTctFile(filePath) {
+    const rawCodes = [
+        '01', '08', '10', '11', '12', '14', '15', '16', '18', '20',
+        '22', '24', '25', '27', '29', '30', '33', '34', '36', '38',
+        '39', '43', '44', '46', '48', '49', '52', '53', '55', '57',
+        '60', '63', '65', '67', '70', '71', '75', '77', '81', '82',
+        '84', '87', '88', '89', '90', '97',
+    ];
     const header = F41_TCT_DB_COLUMNS.map((_, index) => `C${index + 1}`);
     const legend = F41_TCT_DB_COLUMNS.map((_, index) => index + 1);
     const total = [1, null, null, ...Array(35).fill(0)];
     const rows = [header, Array(38).fill(null), legend, total];
-    for (let i = 0; i < 46; i += 1) {
+    for (let i = 0; i < rawCodes.length; i += 1) {
         rows.push([
             i + 2,
-            String(i + 1).padStart(2, '0'),
-            `Unit ${i + 1}`,
+            rawCodes[i],
+            `Unit ${rawCodes[i]}`,
             null,
             null,
             null,
@@ -94,9 +101,10 @@ test('F4.1 pipeline imports HUE/TCT in isolation, deduplicates retry, and leaves
         const tctResult = await executeImport({ filePath: tctFile, indicator: 'F4.1', lane: 'TCT', source: 'MANUAL' });
 
         assert.equal(hueResult.inserted, 1);
-        assert.equal(tctResult.inserted, 46);
+        assert.equal(tctResult.inserted, 34);
         assert.equal((await get('SELECT COUNT(*) AS n FROM fact_f41')).n, 1);
-        assert.equal((await get('SELECT COUNT(*) AS n FROM fact_f41_national')).n, 46);
+        assert.equal((await get('SELECT COUNT(*) AS n FROM fact_f41_national')).n, 34);
+        assert.equal((await get("SELECT COUNT(*) AS n FROM fact_f41_national WHERE ma_don_vi IN ('01','08','11','12','14','15','34','49','71','75','77','82')")).n, 0);
         assert.equal((await get('SELECT COUNT(*) AS n FROM fact_f13')).n, 1);
 
         buildHueFile(hueFile);

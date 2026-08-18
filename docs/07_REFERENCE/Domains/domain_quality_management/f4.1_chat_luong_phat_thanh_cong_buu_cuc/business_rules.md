@@ -63,8 +63,9 @@ The official DKCL report/module name for F4.1 is **`F4.1_Chất lượng phát t
 
 ## 11. TCT Lane Ingest Rules (Evidence-Derived, Not A Separate PO Decision — Locked By The Approved Plan)
 
-- The **grand-total row must be skipped on ingest**; it is a verified true sum of the 46 unit rows, and including it would double every national figure (`data_blueprint.md` §2.1).
-- The TCT lane lands in its **own additive table** (`fact_f41_national`), never in `fact_f41`, and `fact_f41` never receives a TCT row.
+- The **grand-total row must be skipped on parse**; it is a verified true sum of the 46 raw unit rows, and including it would double every national figure (`data_blueprint.md` §2.1).
+- The TCT parser reads all `46` raw reporting-unit rows, then applies the same authoritative 34-code province/city population used by F1.3 (`nationalExcelParser.js`). The `12` additional operational/legacy rows are excluded from `fact_f41_national` with code/name evidence.
+- The TCT lane lands in its **own additive table** (`fact_f41_national`), never in `fact_f41`, and `fact_f41` never receives a TCT row. `fact_f41_national` stores only the 34 F1.3-parity national rows.
 - The TCT lane **produces no Evidence** and **no violation-reason classification** — see §5.
 - The **module KPI is always computed from the HUE row-level data** (§2, `measurement.md` §1). Any TCT-derived figure shown anywhere is labelled as the published national report value and is **never substituted for, blended with, or silently reconciled against** the module KPI.
 

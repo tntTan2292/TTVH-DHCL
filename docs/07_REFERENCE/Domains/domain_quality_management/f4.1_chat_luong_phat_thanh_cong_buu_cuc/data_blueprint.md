@@ -91,7 +91,7 @@ Phase 1 implementation validation against the real workbook corrected this note:
 
 File: `F4.1-YYYY.MM.DD.xlsx` under the `TCT` sub-tree. Sample audited: `Data DKCL/F4.1/Incoming/TCT/F4.1-2026.08.01.xlsx`, SHA-256 `6256ef56bba40cee7567dfe6b55d6822adb9923c3644c489382cbfd8d9df18e8`, 15.963 bytes, sheet `Worksheet`, range `A1:AL50`, **38 populated columns**, **32 merged cells**.
 
-Grain: **one row per reporting unit** (province or organisational unit), **not** per shipment. `Mã huyện`, `Mã BC`, `Ma KHL` are NULL in every one of the 46 unit rows; there is no `Số hiệu bưu gửi` column of any kind.
+Grain: **one raw row per reporting unit** (province or organisational unit), **not** per shipment. `Mã huyện`, `Mã BC`, `Ma KHL` are NULL in every one of the 46 raw unit rows; there is no `Số hiệu bưu gửi` column of any kind. For parity with F1.3 national behavior, `fact_f41_national` stores only the authoritative 34 current province/city codes from `nationalExcelParser.js`; the 12 additional operational/legacy rows remain source evidence and are excluded from the national table.
 
 ### 2.1 Row layout (positional, not header-scanning)
 
@@ -103,7 +103,7 @@ Grain: **one row per reporting unit** (province or organisational unit), **not**
 | 4 | **Grand-total row** — `TT = 1`, `Mã tỉnh`/`Tên tỉnh` both NULL. Verified as a true sum across all 17 numeric columns against the 46 unit rows. **Must be skipped on ingest.** |
 | 5-50 | `46` reporting-unit rows, `TT = 2..47` |
 
-`46` distinct `Mã tỉnh`/unit codes, zero duplicates. Not all units are provinces — the file also carries `01 Tổng công ty EMS`, `08 Bưu điện Trung Ương`, and several Hà Nội `Bưu điện Trung tâm` units in the same column, so the key concept is "reporting unit", not strictly "province".
+`46` distinct raw `Mã tỉnh`/unit codes, zero duplicates. Not all units are provinces — the file also carries `01 Tổng công ty EMS`, `08 Bưu điện Trung Ương`, and several Hà Nội `Bưu điện Trung tâm` units in the same column, so the raw key concept is "reporting unit", not strictly "province". The national storage population is the F1.3 34-code province/city population; excluded raw codes are `01`, `08`, `11`, `12`, `14`, `15`, `34`, `49`, `71`, `75`, `77`, `82`.
 
 ### 2.2 Column mapping (28 measure columns, indices per the report's own header)
 
@@ -150,6 +150,6 @@ Mirroring F1.3's guard on `Số hiệu bưu gửi`: the HUE parser must hard-fai
 ## 5. Target Tables (Proposed, Not Yet Created)
 
 - `fact_f41` — additive, HUE row-level, §0 system fields + §1.1 columns, `UNIQUE(ngay_do_kiem, ma_bg)`. Never receives a TCT aggregate row.
-- `fact_f41_national` — additive, TCT aggregate, §0 system fields + §2.2 columns, `UNIQUE(ngay_do_kiem, ma_don_vi)`. Never receives a HUE row.
+- `fact_f41_national` — additive, TCT aggregate, §0 system fields + §2.2 columns, `UNIQUE(ngay_do_kiem, ma_don_vi)`. Stores only the F1.3-parity 34 province/city rows; never receives a HUE row and never stores the 12 additional raw operational/legacy rows.
 
 Neither table exists yet. Creating them is Phase 1 (`fact_f41`) and Phase 2 (`fact_f41_national`) of the F4.1 module plan — not authorized by this Phase 0 package.

@@ -63,8 +63,8 @@ None of these scenarios has been executed against product code — `fact_f41` an
 
 | ID | Scenario | Expected |
 | --- | --- | --- |
-| T-TCT-01 | Parse the real audited file `F4.1-2026.08.01.xlsx` (TCT) unmodified. | Exactly `46` unit rows ingested; the grand-total row (row 4) is **not** ingested as a unit row. |
-| T-TCT-02 | Sum every numeric measure across the 46 ingested unit rows. | Equals the grand-total row's value for every one of the 17 verified numeric columns — used as a parser self-check, not stored. |
+| T-TCT-01 | Parse the real audited file `F4.1-2026.08.01.xlsx` (TCT) unmodified. | Exactly `46` raw unit rows read; the grand-total row (row 4) is **not** accepted as a unit row; exactly `34` F1.3-parity province/city rows are returned for storage. |
+| T-TCT-02 | Encounter non-province operational/legacy rows such as `01`, `08`, `11`, `12`, `14`, `15`, `34`, `49`, `71`, `75`, `77`, `82`. | These `12` rows are excluded from `fact_f41_national`, with code/name evidence exposed for validation. |
 | T-TCT-03 | A published `Tỷ lệ` percent-string column. | Stored as raw TEXT unchanged; never parsed into a float. |
 | T-TCT-04 | `Mã tỉnh` mixed string/number typing (`"01"` vs `10`). | Normalized to a zero-padded string on ingest. |
 | T-TCT-05 | Filename with an invalid/missing date. | Hard parse error — the TCT file has no date field of any kind to fall back on. |

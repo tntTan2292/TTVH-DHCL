@@ -786,7 +786,7 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 ## F41-PHASE-2 - Implemented: Ready For PO Check
 
 - Implemented additive `fact_f41_national`, startup migration, dedicated frozen 38-column F4.1 TCT parser, multi-indicator Import registry, generalized pipeline/watcher for F1.3/F4.1 HUE/TCT, and Admin Import selector.
-- Controlled real F4.1 Import completed through the pipeline after targeted tests passed: HUE `4,695` rows / `2,863` Đạt / `1,581` Không đạt / `251` blank / `60.98%`; TCT `46` reporting-unit rows with grand total excluded.
+- Controlled real F4.1 Import completed through the pipeline after targeted tests passed: HUE `4,695` rows / `2,863` Đạt / `1,581` Không đạt / `251` blank / `60.98%`; TCT initially stored `46` reporting-unit rows with grand total excluded, later superseded by Remediation 002 national-population parity.
 - Regression proof: `fact_f13` remained unchanged at `709,234` rows; isolated retry/dedup test returns confirmation without changing F4.1/F1.3 facts.
 - Validation PASS: F4.1 targeted tests `15/15`; existing F1.3 Import regression set passed; frontend `npm run build` and `npm run lint` passed (lint warnings pre-existing/out of scope).
 - State: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Dashboard, BCVH Ranking, Evidence and Phase 3 remain not activated.
@@ -797,4 +797,12 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Live `fact_f41_national` was safely rebuilt in one transaction to correct the `tl_*` column types, then reloaded from the existing unmodified Processed TCT workbook read-only. Reload log: `import_log.id=1247`, `F4.1`/`TCT`, `MANUAL_RECONCILE`, `SUCCESS`, total `46`.
 - Live proof: `46` TCT units, grand total absent; Huế numerator `2,863`, denominator `4,684`, published rate stored exactly as `61.12%`; all ten published-rate columns retain `%` strings on all rows where present.
 - Regression proof: HUE `fact_f41` remained `4,695 / 2,863 / 1,581 / 251`; `fact_f13` remained `709,234`. F4.1 remediation tests `16/16` passed; F1.3 Import regression set passed.
+- State remains: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Dashboard, Ranking, Evidence, portal sync, watcher behavior and Phase 3 remain untouched/not activated.
+
+## F41-PHASE-2 - Remediation 002: National Population Parity With F1.3
+
+- Locked PO decision implemented: the F4.1 TCT source workbook remains unchanged with `46` raw reporting rows, but `fact_f41_national` stores only the same `34` current province/city codes as F1.3.
+- Parser now reuses `NATIONAL_RANKED_PROVINCE_CODES` from `nationalExcelParser.js`, accepts `34`, excludes exactly `12` with code/name evidence (`01`, `08`, `11`, `12`, `14`, `15`, `34`, `49`, `71`, `75`, `77`, `82`), and preserves TC-4 raw `%` text rates.
+- Live reconciliation completed from the existing unmodified Processed F4.1 TCT workbook read-only: `fact_f41_national` now stores `34` rows for `2026-08-01`; Huế `53` remains; all 12 additional operational/legacy rows, including `82`, are absent; reload log `import_log.id=1248`, total `34`.
+- Verification PASS: raw rows `46`, accepted `34`, excluded `12`, no grand-total row, Huế `2,863 / 4,684 / 61.12%`, HUE `fact_f41` unchanged `4,695 / 2,863 / 1,581 / 251`, `fact_f13` unchanged `709,234`; F4.1 tests `16/16`, F1.3 Import regression set passed.
 - State remains: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Dashboard, Ranking, Evidence, portal sync, watcher behavior and Phase 3 remain untouched/not activated.

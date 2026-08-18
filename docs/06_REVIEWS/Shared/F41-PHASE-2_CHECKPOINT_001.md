@@ -53,7 +53,7 @@ Locked out:
   - `backend/server.js` runs `applyF41Phase2Schema(activeDbPath)` after the existing Network Management Phase 1-4 migrations and F41 Phase 1 migration, before `app.listen()` and `startWatcher()`.
 - F4.1 TCT parser:
   - `backend/src/services/f41TctExcelParser.js` is positional for the frozen 38-column workbook.
-  - It skips header/legend/grand-total rows and requires exactly 46 reporting units.
+  - It reads exactly `46` raw reporting-unit rows, skips header/legend/grand-total rows, accepts only the same 34 province/city codes as F1.3, and exposes excluded-row evidence.
 - Multi-indicator Import foundation:
   - `backend/src/services/importIndicatorRegistry.js` carries F1.3/F4.1 roots, filename rules, HUE/TCT parsers, and target tables.
   - `backend/src/services/importPipeline.js`, `backend/src/services/importProcessor.js`, and `backend/src/services/importWatcher.js` were generalized through the registry while preserving F1.3 defaults and test-isolation guards.
@@ -70,6 +70,11 @@ Locked out:
   - `backend/src/db/schema.sql` and `backend/migrate_f41_phase2_schema.js` define these columns as TEXT for fresh and upgraded environments.
   - Existing live `fact_f41_national` was migrated transactionally by rebuilding the table with corrected TEXT columns, preserving row count, keys, indexes, and the `import_log` foreign-key relationship.
   - The 46 TCT rows were reloaded from the existing unmodified Processed workbook read-only; source files were not moved or modified.
+- Remediation 002 — national population parity with F1.3:
+  - Locked PO decision supersedes the earlier 46-row storage contract: F4.1 TCT behaves like F1.3 for national storage/display population.
+  - `backend/src/services/f41TctExcelParser.js` now imports and reuses `NATIONAL_RANKED_PROVINCE_CODES` from `nationalExcelParser.js`; no independent 34-code list is defined in F4.1 code.
+  - The parser reads `46` raw reporting rows, accepts/stores `34`, and excludes `12` additional rows with code/name evidence: `01`, `08`, `11`, `12`, `14`, `15`, `34`, `49`, `71`, `75`, `77`, `82`.
+  - TC-4 remains preserved: all published-rate `tl_*` values remain raw TEXT including `%`.
 
 ## 6. Validation Evidence
 
@@ -88,7 +93,7 @@ Locked out:
 - Live HUE reconciliation after controlled import:
   - `fact_f41` date `2026-08-01`: total `4,695`; `Đạt 2,863`; `Không đạt 1,581`; blank `251`; rate `60.98%`.
 - Live TCT reconciliation after controlled import:
-  - `fact_f41_national` date `2026-08-01`: `46` reporting-unit rows; `0` null unit codes; grand total excluded.
+  - Superseded by Remediation 002: initial Phase 2 stored `46` reporting-unit rows; PO later locked F1.3 national-population parity, so the table is reconciled to `34` rows.
 - Live Import logs:
   - HUE log `id=1245`, indicator `F4.1`, source lane `HUE`, trigger `MANUAL`, status `SUCCESS`, total `4,695`, errors `0`, skipped `0`.
   - TCT log `id=1246`, indicator `F4.1`, source lane `TCT`, trigger `MANUAL`, status `SUCCESS`, total `46`, errors `0`, skipped `0`.
@@ -105,6 +110,18 @@ Locked out:
   - Live HUE remained `4,695 / 2,863 / 1,581 / 251`.
   - Live `fact_f13` remained `709,234`.
   - Reconciliation reload log: `import_log.id=1247`, indicator `F4.1`, source lane `TCT`, trigger `MANUAL_RECONCILE`, status `SUCCESS`, total `46`, errors `0`, skipped `0`.
+- Remediation 002 validation PASS:
+  - Parser/live reconcile proof: raw rows `46`; accepted/stored `34`; excluded `12` with audited code list `01, 08, 11, 12, 14, 15, 34, 49, 71, 75, 77, 82`.
+  - Excluded code/name evidence is exposed by the parser for all 12 rows, including `82 Bưu điện Tỉnh Bình Dương`.
+  - Live `fact_f41_national` date `2026-08-01`: `34` rows; Huế code `53` retained; code `82` absent; all 12 additional operational/legacy codes absent; grand-total row absent.
+  - Huế TCT row remains numerator `2,863`, denominator `4,684`, published `61.12%`.
+  - HUE `fact_f41` unchanged: `4,695 / 2,863 / 1,581 / 251`.
+  - `fact_f13` unchanged: `709,234`.
+  - Reconciliation reload log: `import_log.id=1248`, indicator `F4.1`, source lane `TCT`, trigger `MANUAL_RECONCILE_PARITY`, status `SUCCESS`, total `34`, errors `0`, skipped `0`.
+  - Validation commands passed:
+    - `node --test test_f41TctExcelParser.js test_f41ImportPipeline.js migrate_f41_phase2_schema.test.js server.startupMigrations.test.js` — `7/7`.
+    - `node --test test_f41HueExcelParser.js migrate_f41_phase1_schema.test.js migrate_f41_phase2_schema.test.js test_f41TctExcelParser.js test_f41ImportPipeline.js server.startupMigrations.test.js` — `16/16`.
+    - `node --test test_importProcessor.js test_importPipelineRace.js test_importHistoryPresenter.js test_importHistoryDefect3Recovery.js test_e2e_import_engine.js test_dkclImportOperationsContract.js` — PASS.
 
 ## 7. Handoff
 
