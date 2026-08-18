@@ -19,6 +19,9 @@ router.post('/auto-backfill/runs', ...adminOnly, autoBackfillQueueController.cre
 router.get('/auto-backfill/runs/:runId', requireAuth, autoBackfillQueueController.getRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/pause', ...adminOnly, autoBackfillQueueController.pauseRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/resume', ...adminOnly, autoBackfillQueueController.resumeRun.bind(autoBackfillQueueController));
+router.post('/auto-backfill/runs/:runId/circuit/reset', ...adminOnly, autoBackfillQueueController.resetCircuits.bind(autoBackfillQueueController));
+router.get('/auto-backfill/runs/:runId/events', requireAuth, autoBackfillQueueController.getEvents.bind(autoBackfillQueueController));
+router.get('/auto-backfill/runs/:runId/report', requireAuth, autoBackfillQueueController.getReport.bind(autoBackfillQueueController));
 router.post('/dkcl/session/preflight', ...adminOnly, dkclSharedOperationsController.preflight.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/interactive-auth', ...adminOnly, dkclSharedOperationsController.interactiveAuthenticate.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/cancel-login', ...adminOnly, dkclSharedOperationsController.cancelLogin.bind(dkclSharedOperationsController));

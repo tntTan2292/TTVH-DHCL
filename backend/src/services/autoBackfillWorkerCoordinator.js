@@ -30,6 +30,7 @@ class AutoBackfillWorkerCoordinator {
         this.timer = null;
         this.drainPromise = null;
         this.authenticationBlocked = false;
+        this.integrityBlocked = false;
         this.metrics = { wakeCount: 0, drainCount: 0, processNextCount: 0, timerCount: 0 };
     }
 
@@ -60,7 +61,7 @@ class AutoBackfillWorkerCoordinator {
                 this.onError(error);
             } finally {
                 this.drainPromise = null;
-                if (this.started && this.wakeRequested && !this.authenticationBlocked) this.wake();
+                if (this.started && this.wakeRequested && !this.authenticationBlocked && !this.integrityBlocked) this.wake();
             }
         })();
         return this.drainPromise;
@@ -82,11 +83,16 @@ class AutoBackfillWorkerCoordinator {
                         this.authenticationBlocked = true;
                         return;
                     }
+                    if (error?.code === 'AUTO_BACKFILL_INTEGRITY_BLOCKED') {
+                        this.integrityBlocked = true;
+                        return;
+                    }
                     break;
                 }
             }
             if (!this.started) return;
             if (this.authenticationBlocked) return;
+            if (this.integrityBlocked) return;
             if (this.wakeRequested) continue;
 
             const state = await this.queueService.store.getCoordinatorState();
@@ -98,11 +104,17 @@ class AutoBackfillWorkerCoordinator {
     }
 
     nextPollDelay(state) {
+        if (state.waitingAuthCount > 0 || state.integrityBlockedCount > 0) return null;
         if (state.leaseExpiresAt) {
             const expiryDelay = Date.parse(state.leaseExpiresAt) - this.clock().getTime() + this.leaseGraceMs;
             return Math.min(this.maxPollMs, Math.max(this.minPollMs, expiryDelay));
         }
-        if (state.eligibleJobCount > 0 || state.runningJobCount > 0) return this.minPollMs;
+        if (state.eligibleJobCount > 0) return this.minPollMs;
+        if (state.retryReadyAt) {
+            const retryDelay = Date.parse(state.retryReadyAt) - this.clock().getTime();
+            return Math.min(this.maxPollMs, Math.max(this.minPollMs, retryDelay));
+        }
+        if (state.runningJobCount > 0) return this.minPollMs;
         return null;
     }
 

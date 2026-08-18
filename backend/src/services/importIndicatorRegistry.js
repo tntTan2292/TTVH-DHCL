@@ -9,7 +9,7 @@ const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./a
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
 
-const REGISTRY_VERSION = 'AUTO-BACKFILL-F41-1';
+const REGISTRY_VERSION = 'AUTO-BACKFILL-SAFETY-1';
 const BUSINESS_TIMEZONE = 'Asia/Ho_Chi_Minh';
 const TRACKING_START_DATE = '2026-01-01';
 const INDICATOR_STATUSES = new Set(['ACTIVE', 'PLANNED', 'PAUSED', 'RETIRED']);
@@ -24,6 +24,26 @@ const DEFAULT_RETRY_POLICY = Object.freeze({
     maxDelayMs: 30000,
     retryableClasses: Object.freeze(['PORTAL_TRANSIENT', 'LOCAL_SYSTEM']),
     terminalClasses: Object.freeze(['DATE_DATA', 'AUTH', 'PORTAL_SYSTEMIC', 'INTEGRITY_FATAL']),
+});
+
+const DEFAULT_ERROR_MAP = Object.freeze({
+    AUTHENTICATION_REQUIRED: 'AUTHENTICATION',
+    DKCL_SOURCE_OPERATION_ACTIVE: 'TRANSIENT',
+    PORTAL_TRANSIENT: 'TRANSIENT',
+    LOCAL_SYSTEM: 'TRANSIENT',
+    ETIMEDOUT: 'TRANSIENT',
+    ECONNRESET: 'TRANSIENT',
+    ECONNREFUSED: 'TRANSIENT',
+    EAI_AGAIN: 'TRANSIENT',
+    PERMISSION_DENIED: 'PERMISSION',
+    FORBIDDEN: 'PERMISSION',
+    MANUAL_REVIEW_REQUIRED: 'DATA',
+    FILE_MOVE_FAILED: 'DATA',
+    NO_DATA: 'DATA',
+    AUTO_BACKFILL_EXECUTOR_IDENTITY_MISMATCH: 'INTEGRITY_FATAL',
+    AUTO_BACKFILL_COMPLETION_POLICY_MISMATCH: 'INTEGRITY_FATAL',
+    EXECUTION_DID_NOT_SATISFY_COMPLETION_POLICY: 'INTEGRITY_FATAL',
+    INTEGRITY_FATAL: 'INTEGRITY_FATAL',
 });
 
 const DEFAULT_PERMISSIONS = Object.freeze({
@@ -70,6 +90,7 @@ function createLane({
         portalAdapter,
         permissions: DEFAULT_PERMISSIONS,
         retryPolicy: DEFAULT_RETRY_POLICY,
+        errorMap: DEFAULT_ERROR_MAP,
         circuitScope: {
             dimensions: ['adapter', 'source', 'resource'],
             threshold: 5,
@@ -382,6 +403,7 @@ module.exports = {
     BUSINESS_TIMEZONE,
     TRACKING_START_DATE,
     DEFAULT_RETRY_POLICY,
+    DEFAULT_ERROR_MAP,
     DEFAULT_PERMISSIONS,
     INDICATORS,
     createFilenameDateRule,

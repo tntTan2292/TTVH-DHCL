@@ -57,15 +57,20 @@ class F13AutoBackfillExecutor {
 
     async execute(request) {
         assertRequest(this.identity, request);
-        const preflight = await this.sessionPreflightService.preflight(this.identity.sourceLane);
-        if (preflight?.status !== 'SESSION_VALID') {
-            throw authenticationError(this.identity.sourceLane, preflight);
-        }
+        await this.validateSession();
 
         return this.sessionPreflightService.withSourceLock(
             this.identity.sourceLane,
             () => this.executeWithSession(request)
         );
+    }
+
+    async validateSession() {
+        const preflight = await this.sessionPreflightService.preflight(this.identity.sourceLane);
+        if (preflight?.status !== 'SESSION_VALID') {
+            throw authenticationError(this.identity.sourceLane, preflight);
+        }
+        return preflight;
     }
 
     async executeWithSession(request) {

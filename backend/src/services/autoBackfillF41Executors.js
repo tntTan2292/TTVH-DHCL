@@ -40,10 +40,7 @@ class F41AutoBackfillExecutor {
     async execute(request) {
         assertRequest(this.identity, request);
         const source = this.identity.sourceLane;
-        const preflight = await this.sessionPreflightService.preflight(source);
-        if (preflight?.status !== 'SESSION_VALID') {
-            throw executorError('AUTHENTICATION_REQUIRED', preflight?.error?.message || `A valid manual ${source} session is required.`, preflight);
-        }
+        await this.validateSession();
         return this.sessionPreflightService.withSourceLock(source, async () => {
             const entry = this.sessionPreflightService.getRegistryState(source);
             if (entry?.activeOperation) {
@@ -63,6 +60,15 @@ class F41AutoBackfillExecutor {
                 if (entry?.activeOperation === operationId) entry.activeOperation = null;
             }
         });
+    }
+
+    async validateSession() {
+        const source = this.identity.sourceLane;
+        const preflight = await this.sessionPreflightService.preflight(source);
+        if (preflight?.status !== 'SESSION_VALID') {
+            throw executorError('AUTHENTICATION_REQUIRED', preflight?.error?.message || `A valid manual ${source} session is required.`, preflight);
+        }
+        return preflight;
     }
 }
 

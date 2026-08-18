@@ -955,3 +955,16 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Added `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md` as the reusable SSOT for Portal-adapter lifecycle, independent HUE/TCT evidence, supported sessions, exact UI/request filters, bounded discovery, verification/cleanup, error classification/Safety boundary and new-indicator registration.
 - Linked the standard from F41 Required Reading, F41 Gate 4 manifest/checkpoint handoff, `DOCUMENT_INDEX`, the current snapshot, the F4.1 domain package and the new-indicator template. F4.1-specific evidence remains in its manifest/checkpoint instead of being duplicated.
 - Documentation only: product code, database/schema, Import, Queue, runtime and business data are unchanged. State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED`; Gate 4 is not self-passed and no successor is activated.
+
+## AUTO-BACKFILL-F41 Gate 4 PASS / AUTO-BACKFILL-SAFETY Activated
+
+- Product Owner granted F41 `GATE 4 PASS` and authorized `AUTO-BACKFILL-SAFETY` only from `0f363187283846a8456804419900f36ca40ef679`.
+- F41 closes `COMPLETED / PO GATE 4 PASS`; its independently verified adapters and shared Portal Adapter Standard remain authoritative.
+- Safety is active only for generic retry/auth-wait/circuit/integrity/audit/reporting contracts. UI, Runtime, real Queue/Portal/Import and every other successor remain inactive.
+
+## AUTO-BACKFILL-SAFETY Implemented / Ready For PO Gate 5
+
+- Implemented registry-driven three-attempt bounded retry, exact-scope threshold-five circuits, supported-session authentication wait/resume, first-failure integrity stop, completion recheck, immutable attempt/append-only transition evidence and actionable registry-governed PO reports.
+- Synthetic `F9.TEST` proves the shared Safety engine has no F1.3/F4.1/table branch. Existing newest-first Queue ordering, one global SQLite lease, pause/recovery and SUCCESS skip remain unchanged.
+- Coverage, Queue, F1.3, F4.1, migration/startup and legacy Import/backfill regressions PASS in isolated temporary storage. No real Queue, Portal, download, Import, business-data, frontend, UI or Runtime work occurred.
+- State: `AUTO-BACKFILL-SAFETY IMPLEMENTED / READY FOR PO GATE 5`. Gate 5 is not self-passed and no successor is activated.

@@ -75,3 +75,32 @@ test('queue service permission errors retain clear 403 API contracts', async () 
     assert.equal(res.statusCode, 403);
     assert.equal(res.body.error.code, 'AUTO_BACKFILL_ADMIN_REQUIRED');
 });
+
+test('Safety audit and report reads are delegated without mutation', async () => {
+    const calls = [];
+    const controller = new AutoBackfillQueueController({ queueService: {
+        async getEvents(runId, context) { calls.push(['events', runId, context]); return { events: [] }; },
+        async getReport(runId, context) { calls.push(['report', runId, context]); return { items: [] }; },
+    } });
+    const eventResponse = response();
+    const reportResponse = response();
+    await controller.getEvents(request({ role: 'viewer' }), eventResponse);
+    await controller.getReport(request({ role: 'viewer' }), reportResponse);
+    assert.equal(eventResponse.statusCode, 200);
+    assert.equal(reportResponse.statusCode, 200);
+    assert.deepEqual(calls, [
+        ['events', 'run-1', { roles: ['viewer'] }],
+        ['report', 'run-1', { roles: ['viewer'] }],
+    ]);
+});
+
+test('circuit reset forwards only authenticated Admin identity', async () => {
+    let input;
+    const controller = new AutoBackfillQueueController({ queueService: {
+        async resetCircuits(runId, context) { input = { runId, context }; return { run: { id: runId } }; },
+    } });
+    const res = response();
+    await controller.resetCircuits(request(), res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(input, { runId: 'run-1', context: { actor: 'tester', roles: ['admin'] } });
+});

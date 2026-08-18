@@ -85,6 +85,36 @@ class AutoBackfillQueueController {
             return sendError(res, error);
         }
     }
+
+    async resetCircuits(req, res) {
+        try {
+            const data = await this.getService().resetCircuits(req.params.runId, {
+                actor: requestActor(req),
+                roles: requestRoles(req),
+            });
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return sendError(res, error);
+        }
+    }
+
+    async getEvents(req, res) {
+        try {
+            const data = await this.getService().getEvents(req.params.runId, { roles: requestRoles(req) });
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return sendError(res, error);
+        }
+    }
+
+    async getReport(req, res) {
+        try {
+            const data = await this.getService().getReport(req.params.runId, { roles: requestRoles(req) });
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return sendError(res, error);
+        }
+    }
 }
 
 module.exports = new AutoBackfillQueueController();

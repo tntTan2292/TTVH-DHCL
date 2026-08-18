@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
+const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
 const {
     DEFAULT_PERMISSIONS,
     DEFAULT_RETRY_POLICY,
@@ -116,6 +117,7 @@ async function createFixture({
 } = {}) {
     const dbPath = path.join(os.tmpdir(), `auto-backfill-queue-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
     await applyAutoBackfillQueueSchema(dbPath);
+    await applyAutoBackfillSafetySchema(dbPath);
     const statuses = new Map();
     const clockState = { now: new Date(now) };
     const registry = indicators?.(statuses) || [

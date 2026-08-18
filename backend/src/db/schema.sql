@@ -438,6 +438,8 @@ CREATE TABLE IF NOT EXISTS auto_backfill_run (
     requested_by TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('RUNNING', 'PAUSING', 'PAUSED', 'COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED')),
     status_reason TEXT,
+    safety_state TEXT,
+    action_required TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     started_at TEXT,
@@ -456,6 +458,8 @@ CREATE TABLE IF NOT EXISTS auto_backfill_job (
     lane_priority INTEGER NOT NULL,
     completion_policy_id TEXT NOT NULL,
     executor_id TEXT NOT NULL,
+    resource_identity TEXT,
+    circuit_scope_key TEXT,
     registry_version TEXT NOT NULL,
     lease_owner TEXT,
     lease_token TEXT,
@@ -463,6 +467,11 @@ CREATE TABLE IF NOT EXISTS auto_backfill_job (
     lease_expires_at TEXT,
     terminal_reason TEXT,
     completion_evidence_json TEXT,
+    safety_state TEXT,
+    next_attempt_at TEXT,
+    last_error_class TEXT,
+    last_error_signature TEXT,
+    action_required TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     started_at TEXT,
@@ -485,6 +494,11 @@ CREATE TABLE IF NOT EXISTS auto_backfill_attempt (
     ended_at TEXT,
     result_code TEXT,
     evidence_json TEXT,
+    classification TEXT,
+    error_signature TEXT,
+    retry_at TEXT,
+    action_required TEXT,
+    safety_outcome TEXT,
     FOREIGN KEY(job_id) REFERENCES auto_backfill_job(id),
     UNIQUE(job_id, attempt_number),
     UNIQUE(lease_token)
@@ -522,3 +536,21 @@ CREATE INDEX IF NOT EXISTS idx_auto_backfill_event_job ON auto_backfill_event(jo
 
 CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_event_no_update BEFORE UPDATE ON auto_backfill_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_event is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_event_no_delete BEFORE DELETE ON auto_backfill_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_event is append-only'); END;
+
+CREATE TABLE IF NOT EXISTS auto_backfill_circuit (
+    scope_key TEXT PRIMARY KEY,
+    adapter_id TEXT NOT NULL,
+    source_lane TEXT NOT NULL,
+    resource_identity TEXT NOT NULL,
+    error_signature TEXT,
+    consecutive_count INTEGER NOT NULL DEFAULT 0,
+    state TEXT NOT NULL CHECK (state IN ('CLOSED', 'OPEN')),
+    last_error_code TEXT,
+    opened_at TEXT,
+    reset_at TEXT,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_circuit_state ON auto_backfill_circuit(state, updated_at);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_job_safety_ready ON auto_backfill_job(state, safety_state, next_attempt_at, business_date DESC);
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_attempt_no_delete BEFORE DELETE ON auto_backfill_attempt BEGIN SELECT RAISE(ABORT, 'auto_backfill_attempt is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_attempt_terminal_no_update BEFORE UPDATE ON auto_backfill_attempt WHEN OLD.status <> 'RUNNING' BEGIN SELECT RAISE(ABORT, 'completed auto_backfill_attempt is immutable'); END;

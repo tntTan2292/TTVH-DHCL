@@ -14,6 +14,7 @@ process.env.QIS_TEST_DATA_ROOT = path.join(sandbox, 'F1.3');
 process.env.QIS_TEST_DATA_ROOT_F41 = path.join(sandbox, 'F4.1');
 
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
+const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
 const { applyF41Phase1Schema } = require('./migrate_f41_phase1_schema');
 const { applyF41Phase2Schema } = require('./migrate_f41_phase2_schema');
 const { all, db, get } = require('./src/config/db');
@@ -453,6 +454,7 @@ test('F4.1 TCT fake export preserves 46/34 population, raw percentages, and exac
 test('F4.1 HUE queued work externally completed before lease skips executor', async () => {
     const queueDbPath = path.join(sandbox, 'queue-skip.sqlite');
     await applyAutoBackfillQueueSchema(queueDbPath);
+    await applyAutoBackfillSafetySchema(queueDbPath);
     const statuses = new Map();
     let executions = 0;
     const filenameDateRule = createFilenameDateRule({ id: 'F41_HUE_TEST_DATE', prefix: 'F4.1', parse: () => '2026-01-01' });
@@ -503,6 +505,7 @@ test('F4.1 HUE queued work externally completed before lease skips executor', as
 test('F4.1 TCT queued work externally completed before lease skips executor', async () => {
     const queueDbPath = path.join(sandbox, 'queue-tct-skip.sqlite');
     await applyAutoBackfillQueueSchema(queueDbPath);
+    await applyAutoBackfillSafetySchema(queueDbPath);
     const statuses = new Map();
     let executions = 0;
     const executorRegistry = new AutoBackfillExecutorRegistry();
@@ -519,6 +522,7 @@ test('F4.1 TCT queued work externally completed before lease skips executor', as
 test('shared global lease prevents concurrent F4.1 HUE and TCT execution', async () => {
     const queueDbPath = path.join(sandbox, 'queue-f41-global-lease.sqlite');
     await applyAutoBackfillQueueSchema(queueDbPath);
+    await applyAutoBackfillSafetySchema(queueDbPath);
     const statuses = new Map();
     const started = deferred();
     const release = deferred();

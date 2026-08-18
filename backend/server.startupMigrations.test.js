@@ -76,6 +76,8 @@ test('startup schema migrations create fact_f41 without watcher/import side effe
             const queueRunRows = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_run');
             const queueJobRows = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_job');
             const queueEventRows = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_event');
+            const circuitRows = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_circuit');
+            const jobSafetyColumn = await get(db, "SELECT name FROM pragma_table_info('auto_backfill_job') WHERE name = 'safety_state'");
             const f13Sentinel = await get(db, "SELECT ngay_do_kiem, ma_bg, danh_gia_2026 FROM fact_f13 WHERE ma_bg = 'F13-SENTINEL'");
 
             assert.equal(factF41.name, 'fact_f41');
@@ -86,6 +88,8 @@ test('startup schema migrations create fact_f41 without watcher/import side effe
             assert.equal(queueRunRows.n, 0);
             assert.equal(queueJobRows.n, 0);
             assert.equal(queueEventRows.n, 0);
+            assert.equal(circuitRows.n, 0);
+            assert.equal(jobSafetyColumn.name, 'safety_state');
             assert.deepEqual(f13Sentinel, {
                 ngay_do_kiem: '2026-08-01',
                 ma_bg: 'F13-SENTINEL',
@@ -103,11 +107,13 @@ test('startup schema migrations create fact_f41 without watcher/import side effe
             const f13RowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM fact_f13');
             const queueRunRowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_run');
             const queueJobRowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_job');
+            const circuitRowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_circuit');
             assert.equal(f41RowsAfterSecondRun.n, 0);
             assert.equal(f41NationalRowsAfterSecondRun.n, 0);
             assert.equal(f13RowsAfterSecondRun.n, 1);
             assert.equal(queueRunRowsAfterSecondRun.n, 0);
             assert.equal(queueJobRowsAfterSecondRun.n, 0);
+            assert.equal(circuitRowsAfterSecondRun.n, 0);
         } finally {
             await closeDb(db);
         }

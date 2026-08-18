@@ -307,3 +307,19 @@ Append-only update: manifest Sections 25-28 and checkpoint Sections 22-25 record
 ## AUTO-BACKFILL-F41 Gate 4 Documentation Remediation - 2026-08-18
 
 Append-only update: `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md` is now the shared Portal-adapter SSOT and mandatory Required Reading for adapter/new-indicator implementation. Manifest Section 29 and checkpoint Section 26 record this Gate 4 deliverable without duplicating F4.1 evidence. Current state is `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED`; Gate 4 is not self-passed and `AUTO-BACKFILL-SAFETY` remains inactive.
+
+## Current AUTO-BACKFILL-SAFETY Update - 2026-08-18
+
+This section supersedes F41 current-ticket rows for live onboarding. Historical entries remain preserved; `PROJECT_SNAPSHOT.md` owns mutable live state.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/AUTO-BACKFILL-SAFETY_MANIFEST.md` | Ticket Manifest | PO-authorized generic retry, authentication wait, scoped circuit/integrity stop, audit and PO reporting scope. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-BACKFILL-SAFETY_CHECKPOINT_001.md` | Checkpoint / Technical Execution Report | Gate 4 PASS, locked Safety decisions, implementation/validation evidence and Gate 5 handoff. | L2/L3 | Current Required Reading | When current manifest names it. | Mandatory |
+| `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md` | Shared Portal Adapter SSOT | Error propagation, authentication, manual-review and Safety boundary inherited by all adapters. | L4 | Current Required Reading | Required by the Safety manifest. | Mandatory |
+
+Current state: `AUTO-BACKFILL-SAFETY IMPLEMENTED / READY FOR PO GATE 5`. F41 is closed `PO GATE 4 PASS`; Gate 5 is not self-passed and UI, Runtime and every later ticket remain inactive.
+
+## AUTO-BACKFILL-SAFETY Gate 5 Handoff - 2026-08-18
+
+Append-only update: Safety manifest Sections 9-11 and checkpoint Sections 4-6 record generic classification, three-attempt persisted backoff, supported-session auth wait/resume, exact-scope threshold-five circuit, immediate integrity stop, SUCCESS protection, append-only audit/immutable attempts, registry-governed events/report APIs, synthetic `F9.TEST` extensibility and isolated regression evidence. Current state is `AUTO-BACKFILL-SAFETY IMPLEMENTED / READY FOR PO GATE 5`; Gate 5 is not self-passed and UI/Runtime remain inactive.

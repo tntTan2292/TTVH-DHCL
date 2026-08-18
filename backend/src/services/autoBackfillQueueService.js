@@ -10,6 +10,7 @@ const {
     validateIndicatorRegistration,
 } = require('./importIndicatorRegistry');
 const { COMPLETION_STATUSES } = require('./autoBackfillCompletionPolicies');
+const { AutoBackfillSafetyCoordinator, scopeKey } = require('./autoBackfillSafetyCoordinator');
 
 function normalizeRoles(roles) {
     const values = Array.isArray(roles) ? roles : [roles];
@@ -38,6 +39,7 @@ class AutoBackfillQueueService {
         workerId = `backend-${process.pid}-${crypto.randomUUID()}`,
         heartbeatMs = 15000,
         onWorkAvailable = null,
+        safetyCoordinator = new AutoBackfillSafetyCoordinator(),
     } = {}) {
         if (!(store instanceof AutoBackfillQueueStore)) throw new Error('AutoBackfillQueueService requires an AutoBackfillQueueStore.');
         if (!(coverageService instanceof AutoBackfillCoverageService) && typeof coverageService?.scan !== 'function') {
@@ -53,6 +55,7 @@ class AutoBackfillQueueService {
         this.workerId = workerId;
         this.heartbeatMs = heartbeatMs;
         this.onWorkAvailable = onWorkAvailable;
+        this.safetyCoordinator = safetyCoordinator;
     }
 
     setWorkAvailableNotifier(notifier) {
@@ -110,6 +113,12 @@ class AutoBackfillQueueService {
                 lanePriority: registration.lane.priority,
                 completionPolicyId: item.completion_policy_id,
                 executorId: adapter.id,
+                resourceIdentity: adapter.resourceIdentity,
+                circuitScopeKey: scopeKey({
+                    adapterId: adapter.id,
+                    sourceLane: item.source_lane,
+                    resourceIdentity: adapter.resourceIdentity,
+                }),
             };
         });
         jobs.sort((left, right) =>
@@ -139,13 +148,13 @@ class AutoBackfillQueueService {
         return result;
     }
 
-    async getRun(runId, { roles }) {
+    async getRun(runId, { roles, permissionField = 'coverageReadRoles' }) {
         const result = await this.store.getRun(runId);
         const normalizedRoles = normalizeRoles(roles);
         const registrations = this.registrations();
         const readableJobs = result.jobs.filter((job) => {
             const lane = registrations.find((entry) => entry.code === job.indicator)?.lanes?.[job.source_lane];
-            const allowed = lane?.permissions?.coverageReadRoles?.map((role) => String(role).toLowerCase()) || [];
+            const allowed = lane?.permissions?.[permissionField]?.map((role) => String(role).toLowerCase()) || [];
             return normalizedRoles.some((role) => allowed.includes(role));
         });
         if (readableJobs.length === 0) {
@@ -153,11 +162,14 @@ class AutoBackfillQueueService {
         }
         const readableJobIds = new Set(readableJobs.map((job) => job.id));
         const admin = normalizedRoles.includes('admin');
+        const canReadRunEvents = admin || (permissionField === 'auditReadRoles' && readableJobs.length === result.jobs.length);
+        const readableScopeKeys = new Set(readableJobs.map((job) => job.circuit_scope_key).filter(Boolean));
         return {
             run: result.run,
             jobs: readableJobs,
             attempts: result.attempts.filter((attempt) => readableJobIds.has(attempt.job_id)),
-            events: result.events.filter((event) => readableJobIds.has(event.job_id) || (admin && event.job_id === null)),
+            events: result.events.filter((event) => readableJobIds.has(event.job_id) || (canReadRunEvents && event.job_id === null)),
+            circuits: result.circuits.filter((circuit) => readableScopeKeys.has(circuit.scope_key)),
         };
     }
 
@@ -168,9 +180,83 @@ class AutoBackfillQueueService {
 
     async resumeRun(runId, { actor, roles }) {
         assertAdmin(roles);
+        const persisted = await this.store.getRun(runId);
+        if (persisted.run.safety_state === 'WAITING_AUTH') {
+            const waitingJobs = persisted.jobs.filter((job) => job.safety_state === 'WAITING_AUTH');
+            for (const job of waitingJobs) {
+                const executor = this.executorRegistry.getVerified(job.executor_id);
+                if (typeof executor?.validateSession !== 'function') {
+                    throw queueError(
+                        'AUTO_BACKFILL_SESSION_VALIDATOR_UNAVAILABLE',
+                        `Verified executor '${job.executor_id}' cannot validate the supported session.`,
+                        503,
+                    );
+                }
+                await executor.validateSession({
+                    indicator: job.indicator,
+                    sourceLane: job.source_lane,
+                    businessDate: job.business_date,
+                    jobId: job.id,
+                });
+            }
+        }
         const result = await this.store.resumeRun(runId, actor);
         this.notifyWorkAvailable('run-resumed');
         return result;
+    }
+
+    async resetCircuits(runId, { actor, roles }) {
+        assertAdmin(roles);
+        const result = await this.store.resetCircuitsForRun(runId, actor);
+        this.notifyWorkAvailable('circuit-reset');
+        return result;
+    }
+
+    async getEvents(runId, { roles }) {
+        const result = await this.getRun(runId, { roles, permissionField: 'auditReadRoles' });
+        return { run_id: result.run.id, events: result.events };
+    }
+
+    async getReport(runId, { roles }) {
+        const result = await this.getRun(runId, { roles, permissionField: 'auditReadRoles' });
+        const attemptsByJob = new Map();
+        for (const attempt of result.attempts) {
+            if (!attemptsByJob.has(attempt.job_id)) attemptsByJob.set(attempt.job_id, []);
+            attemptsByJob.get(attempt.job_id).push(attempt);
+        }
+        const items = result.jobs.map((job) => {
+            const attempts = attemptsByJob.get(job.id) || [];
+            const latest = attempts.at(-1) || null;
+            return {
+                indicator: job.indicator,
+                source_lane: job.source_lane,
+                business_date: job.business_date,
+                state: job.safety_state || job.state,
+                error_signature: job.last_error_signature || latest?.error_signature || null,
+                classification: job.last_error_class || latest?.classification || null,
+                attempt_count: attempts.length,
+                action_required: job.action_required || latest?.action_required || null,
+            };
+        });
+        return {
+            run_id: result.run.id,
+            run_state: result.run.safety_state || result.run.status,
+            action_required: result.run.action_required || null,
+            totals: items.reduce((totals, item) => {
+                totals.total += 1;
+                totals[item.state] = (totals[item.state] || 0) + 1;
+                return totals;
+            }, { total: 0 }),
+            items,
+            circuits: result.circuits.map((circuit) => ({
+                adapter_id: circuit.adapter_id,
+                source_lane: circuit.source_lane,
+                resource_identity: circuit.resource_identity,
+                state: circuit.state,
+                error_signature: circuit.error_signature,
+                consecutive_count: circuit.consecutive_count,
+            })),
+        };
     }
 
     async evaluateCompletion(job) {
@@ -204,21 +290,18 @@ class AutoBackfillQueueService {
                 return { jobId: job.id, state: 'SKIPPED_ALREADY_SUCCESS' };
             }
             if (before.status !== COMPLETION_STATUSES.MISSING) {
-                await this.store.completeLeasedJob(job.id, job.lease_token, {
-                    state: 'FAILED_TERMINAL',
-                    reasonCode: `COMPLETION_${before.status}`,
-                    evidence: before.evidence,
-                });
-                return { jobId: job.id, state: 'FAILED_TERMINAL' };
+                const completionError = new Error(`Completion state ${before.status} requires manual review.`);
+                completionError.code = `COMPLETION_${before.status}`;
+                completionError.autoBackfill = { classification: 'DATA' };
+                throw completionError;
             }
 
             const executor = this.executorRegistry.getVerified(job.executor_id);
             if (!executor) {
-                await this.store.completeLeasedJob(job.id, job.lease_token, {
-                    state: 'FAILED_TERMINAL',
-                    reasonCode: 'VERIFIED_EXECUTOR_UNAVAILABLE',
-                });
-                return { jobId: job.id, state: 'FAILED_TERMINAL' };
+                const executorError = new Error(`Verified executor '${job.executor_id}' is unavailable.`);
+                executorError.code = 'VERIFIED_EXECUTOR_UNAVAILABLE';
+                executorError.autoBackfill = { classification: 'SYSTEM' };
+                throw executorError;
             }
             heartbeat = setInterval(() => {
                 this.store.renewLease(job.id, job.lease_token).catch(() => clearInterval(heartbeat));
@@ -234,13 +317,13 @@ class AutoBackfillQueueService {
 
             const after = await this.evaluateCompletion(job);
             if (after.status !== COMPLETION_STATUSES.SUCCESS) {
-                await this.store.completeLeasedJob(job.id, job.lease_token, {
-                    state: 'FAILED_TERMINAL',
-                    reasonCode: 'EXECUTION_DID_NOT_SATISFY_COMPLETION_POLICY',
-                    evidence: after.evidence,
-                });
-                return { jobId: job.id, state: 'FAILED_TERMINAL' };
+                const integrityError = new Error('Executor returned without satisfying the exact completion policy.');
+                integrityError.code = 'EXECUTION_DID_NOT_SATISFY_COMPLETION_POLICY';
+                integrityError.autoBackfill = { classification: 'INTEGRITY_FATAL' };
+                throw integrityError;
             }
+            const { lane } = this.findRegistration(job.indicator, job.source_lane);
+            await this.store.recordCircuitSuccess(job, this.safetyCoordinator.scopeFor(lane, job));
             await this.store.completeLeasedJob(job.id, job.lease_token, {
                 state: 'SUCCESS',
                 reasonCode: 'COMPLETION_CONFIRMED_AFTER_EXECUTION',
@@ -249,12 +332,38 @@ class AutoBackfillQueueService {
             return { jobId: job.id, state: 'SUCCESS' };
         } catch (error) {
             try {
-                await this.store.completeLeasedJob(job.id, job.lease_token, {
-                    state: 'FAILED_TERMINAL',
-                    reasonCode: error.code || 'QUEUE_EXECUTION_ERROR',
-                    evidence: { message: error.message },
+                const completion = await this.evaluateCompletion(job).catch(() => null);
+                if (completion?.status === COMPLETION_STATUSES.SUCCESS) {
+                    await this.store.completeLeasedJob(job.id, job.lease_token, {
+                        state: 'SKIPPED_ALREADY_SUCCESS',
+                        reasonCode: 'COMPLETION_CONFIRMED_AFTER_EXECUTOR_ERROR',
+                        evidence: completion.evidence,
+                    });
+                    return { jobId: job.id, state: 'SKIPPED_ALREADY_SUCCESS' };
+                }
+                const { lane } = this.findRegistration(job.indicator, job.source_lane);
+                const failure = this.safetyCoordinator.classify(error, { lane, job });
+                const maxAttempts = this.safetyCoordinator.maxAttempts(lane.retryPolicy);
+                const retryAt = failure.retryable && Number(job.attempt_number) < maxAttempts
+                    ? new Date(this.store.clock().getTime() + this.safetyCoordinator.retryDelayMs(lane.retryPolicy, job.attempt_number)).toISOString()
+                    : null;
+                const result = await this.store.recordLeasedFailure(job.id, job.lease_token, {
+                    failure,
+                    maxAttempts,
+                    retryAt,
+                    circuitThreshold: lane.circuitScope.threshold,
                 });
-            } catch {
+                if (result.haltCoordinator) {
+                    const haltError = new Error(result.actionRequired);
+                    haltError.code = result.state === 'WAITING_AUTH'
+                        ? 'AUTHENTICATION_REQUIRED'
+                        : 'AUTO_BACKFILL_INTEGRITY_BLOCKED';
+                    haltError.safetyHandled = true;
+                    throw haltError;
+                }
+                return { jobId: job.id, ...result };
+            } catch (persistenceError) {
+                if (persistenceError?.safetyHandled) throw persistenceError;
                 // A simulated process failure or lost lease is recovered from persisted state.
             }
             throw error;

@@ -183,8 +183,8 @@ class AutoBackfillQueueStore {
                     `INSERT INTO auto_backfill_job
                         (id, run_id, indicator, source_lane, business_date, state,
                          indicator_priority, lane_priority, completion_policy_id, executor_id,
-                         registry_version, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, ?)`,
+                         resource_identity, circuit_scope_key, registry_version, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         jobId,
                         runId,
@@ -195,6 +195,8 @@ class AutoBackfillQueueStore {
                         job.lanePriority,
                         job.completionPolicyId,
                         job.executorId,
+                        job.resourceIdentity,
+                        job.circuitScopeKey,
                         spec.registryVersion,
                         now,
                         now,
@@ -237,11 +239,24 @@ class AutoBackfillQueueStore {
                 [runId],
             );
             const events = await all(db, 'SELECT * FROM auto_backfill_event WHERE run_id = ? ORDER BY id ASC', [runId]);
+            const scopeKeys = [...new Set(jobs.map((job) => job.circuit_scope_key).filter(Boolean))];
+            const circuits = scopeKeys.length === 0 ? [] : await all(
+                db,
+                `SELECT * FROM auto_backfill_circuit WHERE scope_key IN (${scopeKeys.map(() => '?').join(',')}) ORDER BY scope_key`,
+                scopeKeys,
+            );
             return {
                 run: record,
                 jobs: jobs.map((job) => ({ ...job, completion_evidence: parseJson(job.completion_evidence_json) })),
-                attempts: attempts.map((attempt) => ({ ...attempt, evidence: parseJson(attempt.evidence_json) })),
+                attempts: attempts.map((attempt) => ({
+                    ...attempt,
+                    storage_status: attempt.status,
+                    status: attempt.safety_outcome || attempt.status,
+                    effective_status: attempt.safety_outcome || attempt.status,
+                    evidence: parseJson(attempt.evidence_json),
+                })),
                 events: events.map((event) => ({ ...event, payload: parseJson(event.payload_json) })),
+                circuits,
             };
         });
     }
@@ -251,15 +266,23 @@ class AutoBackfillQueueStore {
             const existingLease = await get(db, "SELECT * FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL'");
             const runningJob = await get(db, "SELECT id FROM auto_backfill_job WHERE state = 'RUNNING'");
             if (existingLease || runningJob) return null;
+            const globalBlock = await get(
+                db,
+                "SELECT id FROM auto_backfill_run WHERE status = 'RUNNING' AND safety_state IN ('WAITING_AUTH', 'BLOCKED_INTEGRITY') LIMIT 1",
+            );
+            if (globalBlock) return null;
 
             const job = await get(
                 db,
                 `SELECT j.* FROM auto_backfill_job j
                  JOIN auto_backfill_run r ON r.id = j.run_id
-                 WHERE j.state = 'QUEUED' AND r.status = 'RUNNING'
+                  WHERE j.state = 'QUEUED' AND r.status = 'RUNNING'
+                    AND (j.safety_state IS NULL OR (j.safety_state = 'RETRY_WAIT' AND j.next_attempt_at <= ?))
+                    AND (r.safety_state IS NULL OR r.safety_state = 'CIRCUIT_OPEN')
                  ORDER BY j.business_date DESC, j.indicator_priority ASC,
                           j.lane_priority ASC, j.created_at ASC, j.id ASC
                  LIMIT 1`,
+                [this.nowIso()],
             );
             if (!job) return null;
 
@@ -273,7 +296,8 @@ class AutoBackfillQueueStore {
             await run(
                 db,
                 `UPDATE auto_backfill_job
-                 SET state = 'RUNNING', lease_owner = ?, lease_token = ?, lease_acquired_at = ?,
+                 SET state = 'RUNNING', safety_state = NULL, next_attempt_at = NULL,
+                     lease_owner = ?, lease_token = ?, lease_acquired_at = ?,
                      lease_expires_at = ?, started_at = COALESCE(started_at, ?), updated_at = ?
                  WHERE id = ? AND state = 'QUEUED'`,
                 [workerId, leaseToken, now, expiresAt, now, now, job.id],
@@ -303,7 +327,15 @@ class AutoBackfillQueueStore {
                 payload: { worker_id: workerId, attempt_number: attemptNumber },
                 createdAt: now,
             });
-            return { ...job, state: 'RUNNING', lease_token: leaseToken, lease_owner: workerId, attempt_id: attemptId };
+            return {
+                ...job,
+                state: 'RUNNING',
+                safety_state: null,
+                lease_token: leaseToken,
+                lease_owner: workerId,
+                attempt_id: attemptId,
+                attempt_number: attemptNumber,
+            };
         });
     }
 
@@ -327,7 +359,14 @@ class AutoBackfillQueueStore {
         });
     }
 
-    async completeLeasedJob(jobId, leaseToken, { state, reasonCode, evidence = null }) {
+    async completeLeasedJob(jobId, leaseToken, {
+        state,
+        reasonCode,
+        evidence = null,
+        classification = null,
+        errorSignature = null,
+        actionRequired = null,
+    }) {
         if (!['SUCCESS', 'SKIPPED_ALREADY_SUCCESS', 'FAILED_TERMINAL'].includes(state)) {
             throw new Error(`Unsupported terminal queue state '${state}'.`);
         }
@@ -339,15 +378,17 @@ class AutoBackfillQueueStore {
             await run(
                 db,
                 `UPDATE auto_backfill_job
-                 SET state = ?, terminal_reason = ?, completion_evidence_json = ?, ended_at = ?, updated_at = ?,
+                 SET state = ?, safety_state = NULL, next_attempt_at = NULL,
+                     terminal_reason = ?, completion_evidence_json = ?, action_required = ?, ended_at = ?, updated_at = ?,
                      lease_owner = NULL, lease_token = NULL, lease_acquired_at = NULL, lease_expires_at = NULL
                  WHERE id = ?`,
-                [state, reasonCode, serializeJson(evidence), now, now, jobId],
+                [state, reasonCode, serializeJson(evidence), actionRequired, now, now, jobId],
             );
             await run(
                 db,
-                `UPDATE auto_backfill_attempt SET status = ?, ended_at = ?, result_code = ?, evidence_json = ? WHERE id = ?`,
-                [state, now, reasonCode, serializeJson(evidence), attempt.id],
+                `UPDATE auto_backfill_attempt SET status = ?, ended_at = ?, result_code = ?, evidence_json = ?,
+                    classification = ?, error_signature = ?, action_required = ? WHERE id = ?`,
+                [state, now, reasonCode, serializeJson(evidence), classification, errorSignature, actionRequired, attempt.id],
             );
             await run(db, "DELETE FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL' AND lease_token = ?", [leaseToken]);
             await this.appendEvent(db, {
@@ -362,6 +403,265 @@ class AutoBackfillQueueStore {
             });
             await this.reconcileRun(db, job.run_id, now);
             return state;
+        });
+    }
+
+    async recordLeasedFailure(jobId, leaseToken, {
+        failure,
+        maxAttempts,
+        retryAt = null,
+        circuitThreshold = 5,
+    }) {
+        return this.transaction(async (db) => {
+            const job = await get(db, 'SELECT * FROM auto_backfill_job WHERE id = ? AND lease_token = ?', [jobId, leaseToken]);
+            if (!job || job.state !== 'RUNNING') throw queueError('AUTO_BACKFILL_LEASE_LOST', 'The job lease is no longer active.', 409);
+            const attempt = await get(db, "SELECT * FROM auto_backfill_attempt WHERE job_id = ? AND lease_token = ? AND status = 'RUNNING'", [jobId, leaseToken]);
+            if (!attempt) throw queueError('AUTO_BACKFILL_ATTEMPT_LOST', 'The running attempt is no longer available.', 409);
+            const now = this.nowIso();
+
+            let circuit = null;
+            let circuitSequenceReset = false;
+            if (failure.systemic) {
+                const previous = await get(db, 'SELECT * FROM auto_backfill_circuit WHERE scope_key = ?', [failure.scope.key]);
+                const consecutiveCount = previous?.error_signature === failure.signature
+                    ? Number(previous.consecutive_count) + 1
+                    : 1;
+                const circuitOpen = consecutiveCount >= circuitThreshold;
+                await run(
+                    db,
+                    `INSERT INTO auto_backfill_circuit
+                        (scope_key, adapter_id, source_lane, resource_identity, error_signature,
+                         consecutive_count, state, last_error_code, opened_at, reset_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+                     ON CONFLICT(scope_key) DO UPDATE SET
+                        error_signature = excluded.error_signature,
+                        consecutive_count = excluded.consecutive_count,
+                        state = excluded.state,
+                        last_error_code = excluded.last_error_code,
+                        opened_at = excluded.opened_at,
+                        reset_at = NULL,
+                        updated_at = excluded.updated_at`,
+                    [
+                        failure.scope.key,
+                        failure.scope.adapterId,
+                        failure.scope.sourceLane,
+                        failure.scope.resourceIdentity,
+                        failure.signature,
+                        consecutiveCount,
+                        circuitOpen ? 'OPEN' : 'CLOSED',
+                        failure.code,
+                        circuitOpen ? now : null,
+                        now,
+                    ],
+                );
+                circuit = { consecutiveCount, open: circuitOpen };
+            } else {
+                const previous = await get(db, 'SELECT * FROM auto_backfill_circuit WHERE scope_key = ?', [failure.scope.key]);
+                if (previous?.state === 'CLOSED' && Number(previous.consecutive_count) > 0) {
+                    await run(
+                        db,
+                        `UPDATE auto_backfill_circuit SET consecutive_count = 0, error_signature = NULL,
+                            last_error_code = NULL, reset_at = ?, updated_at = ? WHERE scope_key = ?`,
+                        [now, now, failure.scope.key],
+                    );
+                    circuitSequenceReset = true;
+                }
+            }
+
+            let jobState = 'FAILED_TERMINAL';
+            let safetyState = null;
+            let nextAttemptAt = null;
+            let outcome = 'FAILED_TERMINAL';
+            let actionRequired = 'Review the terminal failure; automatic retry is not permitted.';
+            let eventType = 'JOB_TERMINAL_FAILURE';
+            let haltCoordinator = false;
+
+            if (failure.classification === 'AUTHENTICATION') {
+                jobState = 'QUEUED';
+                safetyState = 'WAITING_AUTH';
+                outcome = 'WAITING_AUTH';
+                actionRequired = 'Product Owner must complete supported manual login, then Admin must explicitly Resume.';
+                eventType = 'JOB_WAITING_AUTH';
+                haltCoordinator = true;
+            } else if (failure.integrityFatal) {
+                safetyState = 'BLOCKED_INTEGRITY';
+                outcome = 'BLOCKED_INTEGRITY';
+                actionRequired = 'Stop immediately. Do not retry or overwrite; investigate integrity evidence.';
+                eventType = 'INTEGRITY_FATAL_STOP';
+                haltCoordinator = true;
+            } else if (circuit?.open) {
+                jobState = 'QUEUED';
+                safetyState = 'CIRCUIT_OPEN';
+                outcome = 'CIRCUIT_OPEN';
+                actionRequired = 'Investigate the exact adapter/source/resource scope, then Admin must reset the circuit.';
+                eventType = 'CIRCUIT_OPENED';
+            } else if (failure.retryable && Number(attempt.attempt_number) < maxAttempts) {
+                jobState = 'QUEUED';
+                safetyState = 'RETRY_WAIT';
+                nextAttemptAt = retryAt;
+                outcome = 'RETRY_SCHEDULED';
+                actionRequired = `Automatic retry ${Number(attempt.attempt_number) + 1}/${maxAttempts} is scheduled.`;
+                eventType = 'JOB_RETRY_SCHEDULED';
+            } else if (failure.retryable) {
+                actionRequired = `Automatic retry limit of ${maxAttempts} attempts was exhausted; Product Owner review is required.`;
+            } else if (failure.classification === 'PERMISSION') {
+                actionRequired = 'Verify the supported account permission; automatic retry is not permitted.';
+            } else if (failure.classification === 'DATA') {
+                actionRequired = 'Review the isolated date/data evidence; automatic retry is not permitted.';
+            }
+
+            await run(
+                db,
+                `UPDATE auto_backfill_job
+                 SET state = ?, safety_state = ?, next_attempt_at = ?, terminal_reason = ?,
+                     last_error_class = ?, last_error_signature = ?, action_required = ?,
+                     ended_at = ?, updated_at = ?, lease_owner = NULL, lease_token = NULL,
+                     lease_acquired_at = NULL, lease_expires_at = NULL
+                 WHERE id = ?`,
+                [
+                    jobState,
+                    safetyState,
+                    nextAttemptAt,
+                    failure.code,
+                    failure.classification,
+                    failure.signature,
+                    actionRequired,
+                    jobState === 'FAILED_TERMINAL' ? now : null,
+                    now,
+                    jobId,
+                ],
+            );
+            await run(
+                db,
+                `UPDATE auto_backfill_attempt SET status = 'FAILED_TERMINAL', ended_at = ?, result_code = ?,
+                    classification = ?, error_signature = ?, retry_at = ?, action_required = ?, safety_outcome = ?,
+                    evidence_json = ? WHERE id = ?`,
+                [
+                    now,
+                    failure.code,
+                    failure.classification,
+                    failure.signature,
+                    nextAttemptAt,
+                    actionRequired,
+                    outcome,
+                    serializeJson({ classification: failure.classification, signature: failure.signature }),
+                    attempt.id,
+                ],
+            );
+            await run(db, "DELETE FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL' AND lease_token = ?", [leaseToken]);
+            await this.appendEvent(db, {
+                runId: job.run_id,
+                jobId,
+                attemptId: attempt.id,
+                eventType: 'ATTEMPT_FINISHED',
+                fromState: 'RUNNING',
+                toState: outcome,
+                reasonCode: failure.code,
+                payload: {
+                    classification: failure.classification,
+                    signature: failure.signature,
+                    attempt_number: attempt.attempt_number,
+                    action_required: actionRequired,
+                },
+                createdAt: now,
+            });
+            if (circuitSequenceReset) {
+                await this.appendEvent(db, {
+                    runId: job.run_id,
+                    jobId,
+                    attemptId: attempt.id,
+                    eventType: 'CIRCUIT_SEQUENCE_RESET',
+                    reasonCode: 'NON_SYSTEM_FAILURE_BREAKS_SEQUENCE',
+                    payload: { scope_key: failure.scope.key },
+                    createdAt: now,
+                });
+            }
+            await this.appendEvent(db, {
+                runId: job.run_id,
+                jobId,
+                attemptId: attempt.id,
+                eventType,
+                fromState: 'RUNNING',
+                toState: safetyState || jobState,
+                reasonCode: failure.code,
+                payload: {
+                    classification: failure.classification,
+                    signature: failure.signature,
+                    attempt_number: attempt.attempt_number,
+                    next_attempt_at: nextAttemptAt,
+                    circuit_count: circuit?.consecutiveCount || 0,
+                    action_required: actionRequired,
+                },
+                createdAt: now,
+            });
+
+            if (safetyState === 'WAITING_AUTH' || safetyState === 'BLOCKED_INTEGRITY') {
+                await run(
+                    db,
+                    'UPDATE auto_backfill_run SET safety_state = ?, action_required = ?, status_reason = ?, updated_at = ? WHERE id = ?',
+                    [safetyState, actionRequired, failure.code, now, job.run_id],
+                );
+                await this.appendEvent(db, {
+                    runId: job.run_id,
+                    jobId,
+                    attemptId: attempt.id,
+                    eventType: 'RUN_SAFETY_STATE_CHANGED',
+                    fromState: null,
+                    toState: safetyState,
+                    reasonCode: failure.code,
+                    payload: { action_required: actionRequired },
+                    createdAt: now,
+                });
+            } else if (safetyState === 'CIRCUIT_OPEN') {
+                await run(
+                    db,
+                    `UPDATE auto_backfill_job SET safety_state = 'CIRCUIT_OPEN', next_attempt_at = NULL,
+                        action_required = ?, updated_at = ?
+                     WHERE state = 'QUEUED' AND circuit_scope_key = ?`,
+                    [actionRequired, now, failure.scope.key],
+                );
+                await run(
+                    db,
+                    `UPDATE auto_backfill_run SET safety_state = 'CIRCUIT_OPEN', action_required = ?, updated_at = ?
+                     WHERE id IN (SELECT DISTINCT run_id FROM auto_backfill_job WHERE circuit_scope_key = ? AND safety_state = 'CIRCUIT_OPEN')`,
+                    [actionRequired, now, failure.scope.key],
+                );
+            }
+
+            await this.reconcileRun(db, job.run_id, now);
+            return {
+                state: safetyState || jobState,
+                outcome,
+                retryAt: nextAttemptAt,
+                attemptNumber: Number(attempt.attempt_number),
+                circuitCount: circuit?.consecutiveCount || 0,
+                haltCoordinator,
+                actionRequired,
+            };
+        });
+    }
+
+    async recordCircuitSuccess(job, scope) {
+        return this.transaction(async (db) => {
+            const circuit = await get(db, 'SELECT * FROM auto_backfill_circuit WHERE scope_key = ?', [scope.key]);
+            if (!circuit || (circuit.state === 'CLOSED' && Number(circuit.consecutive_count) === 0)) return false;
+            const now = this.nowIso();
+            await run(
+                db,
+                `UPDATE auto_backfill_circuit SET state = 'CLOSED', consecutive_count = 0,
+                    error_signature = NULL, last_error_code = NULL, reset_at = ?, updated_at = ? WHERE scope_key = ?`,
+                [now, now, scope.key],
+            );
+            await this.appendEvent(db, {
+                runId: job.run_id,
+                jobId: job.id,
+                attemptId: job.attempt_id || null,
+                eventType: 'CIRCUIT_RESET_ON_SUCCESS',
+                reasonCode: 'SUCCESS_RESETS_CONSECUTIVE_FAILURES',
+                payload: { scope_key: scope.key },
+                createdAt: now,
+            });
+            return true;
         });
     }
 
@@ -429,6 +729,30 @@ class AutoBackfillQueueStore {
         await this.transaction(async (db) => {
             const runRecord = await get(db, 'SELECT * FROM auto_backfill_run WHERE id = ?', [runId]);
             if (!runRecord) throw queueError('AUTO_BACKFILL_RUN_NOT_FOUND', `Auto Backfill run '${runId}' was not found.`, 404);
+            if (runRecord.safety_state === 'WAITING_AUTH') {
+                const now = this.nowIso();
+                const nextStatus = runRecord.status === 'PAUSED' ? 'RUNNING' : runRecord.status;
+                await run(
+                    db,
+                    "UPDATE auto_backfill_job SET safety_state = NULL, action_required = NULL, updated_at = ? WHERE run_id = ? AND safety_state = 'WAITING_AUTH'",
+                    [now, runId],
+                );
+                await run(
+                    db,
+                    'UPDATE auto_backfill_run SET status = ?, safety_state = NULL, action_required = NULL, status_reason = NULL, updated_at = ?, ended_at = NULL WHERE id = ?',
+                    [nextStatus, now, runId],
+                );
+                await this.appendEvent(db, {
+                    runId,
+                    eventType: 'AUTH_WAIT_RESUMED',
+                    fromState: 'WAITING_AUTH',
+                    toState: 'RUNNING',
+                    reasonCode: 'EXPLICIT_RESUME_REQUESTED',
+                    payload: { actor, action_required: 'Session validity will be rechecked before executor work.' },
+                    createdAt: now,
+                });
+                return;
+            }
             if (runRecord.status === 'RUNNING') return;
             if (runRecord.status !== 'PAUSED') throw queueError('AUTO_BACKFILL_RUN_NOT_PAUSED', 'Only a PAUSED Auto Backfill run can be resumed.', 409);
             const now = this.nowIso();
@@ -442,6 +766,61 @@ class AutoBackfillQueueStore {
                 payload: { actor },
                 createdAt: now,
             });
+        });
+        return this.getRun(runId);
+    }
+
+    async resetCircuitsForRun(runId, actor) {
+        await this.transaction(async (db) => {
+            const runRecord = await get(db, 'SELECT * FROM auto_backfill_run WHERE id = ?', [runId]);
+            if (!runRecord) throw queueError('AUTO_BACKFILL_RUN_NOT_FOUND', `Auto Backfill run '${runId}' was not found.`, 404);
+            const circuits = await all(
+                db,
+                `SELECT DISTINCT c.* FROM auto_backfill_circuit c
+                 JOIN auto_backfill_job j ON j.circuit_scope_key = c.scope_key
+                 WHERE j.run_id = ? AND c.state = 'OPEN'`,
+                [runId],
+            );
+            if (circuits.length === 0) throw queueError('AUTO_BACKFILL_CIRCUIT_NOT_OPEN', 'No open circuit belongs to this run.', 409);
+            const now = this.nowIso();
+            for (const circuit of circuits) {
+                await run(
+                    db,
+                    `UPDATE auto_backfill_circuit SET state = 'CLOSED', consecutive_count = 0,
+                        error_signature = NULL, last_error_code = NULL, reset_at = ?, updated_at = ? WHERE scope_key = ?`,
+                    [now, now, circuit.scope_key],
+                );
+                await run(
+                    db,
+                    `UPDATE auto_backfill_job SET safety_state = NULL, action_required = NULL, updated_at = ?
+                     WHERE circuit_scope_key = ? AND safety_state = 'CIRCUIT_OPEN'`,
+                    [now, circuit.scope_key],
+                );
+                const affectedRuns = await all(db, 'SELECT DISTINCT run_id FROM auto_backfill_job WHERE circuit_scope_key = ?', [circuit.scope_key]);
+                for (const affected of affectedRuns) {
+                    const stillOpen = await get(
+                        db,
+                        "SELECT 1 FROM auto_backfill_job WHERE run_id = ? AND safety_state = 'CIRCUIT_OPEN' LIMIT 1",
+                        [affected.run_id],
+                    );
+                    if (!stillOpen) {
+                        await run(
+                            db,
+                            "UPDATE auto_backfill_run SET safety_state = NULL, action_required = NULL, updated_at = ? WHERE id = ? AND safety_state = 'CIRCUIT_OPEN'",
+                            [now, affected.run_id],
+                        );
+                    }
+                    await this.appendEvent(db, {
+                        runId: affected.run_id,
+                        eventType: 'CIRCUIT_RESET',
+                        fromState: 'CIRCUIT_OPEN',
+                        toState: 'RUNNING',
+                        reasonCode: 'ADMIN_RESET_REQUESTED',
+                        payload: { actor, scope_key: circuit.scope_key },
+                        createdAt: now,
+                    });
+                }
+            }
         });
         return this.getRun(runId);
     }
@@ -529,10 +908,17 @@ class AutoBackfillQueueStore {
             const counts = await get(
                 db,
                 `SELECT
-                    SUM(CASE WHEN j.state = 'QUEUED' AND r.status = 'RUNNING' THEN 1 ELSE 0 END) AS eligible_job_count,
-                    SUM(CASE WHEN j.state = 'RUNNING' THEN 1 ELSE 0 END) AS running_job_count
+                    SUM(CASE WHEN j.state = 'QUEUED' AND r.status = 'RUNNING'
+                        AND (j.safety_state IS NULL OR (j.safety_state = 'RETRY_WAIT' AND j.next_attempt_at <= ?))
+                        AND (r.safety_state IS NULL OR r.safety_state = 'CIRCUIT_OPEN') THEN 1 ELSE 0 END) AS eligible_job_count,
+                    SUM(CASE WHEN j.state = 'RUNNING' THEN 1 ELSE 0 END) AS running_job_count,
+                    SUM(CASE WHEN j.safety_state = 'WAITING_AUTH' THEN 1 ELSE 0 END) AS waiting_auth_count,
+                    SUM(CASE WHEN j.safety_state = 'CIRCUIT_OPEN' THEN 1 ELSE 0 END) AS circuit_open_count,
+                    SUM(CASE WHEN j.safety_state = 'BLOCKED_INTEGRITY' THEN 1 ELSE 0 END) AS integrity_blocked_count,
+                    MIN(CASE WHEN j.safety_state = 'RETRY_WAIT' THEN j.next_attempt_at END) AS retry_ready_at
                  FROM auto_backfill_job j
                  JOIN auto_backfill_run r ON r.id = j.run_id`,
+                [this.nowIso()],
             );
             const lease = await get(
                 db,
@@ -541,6 +927,10 @@ class AutoBackfillQueueStore {
             return {
                 eligibleJobCount: Number(counts?.eligible_job_count || 0),
                 runningJobCount: Number(counts?.running_job_count || 0),
+                waitingAuthCount: Number(counts?.waiting_auth_count || 0),
+                circuitOpenCount: Number(counts?.circuit_open_count || 0),
+                integrityBlockedCount: Number(counts?.integrity_blocked_count || 0),
+                retryReadyAt: counts?.retry_ready_at || null,
                 leaseJobId: lease?.job_id || null,
                 leaseWorkerId: lease?.worker_id || null,
                 leaseExpiresAt: lease?.expires_at || null,
@@ -549,7 +939,7 @@ class AutoBackfillQueueStore {
     }
 
     async countRows(tableName) {
-        if (!['auto_backfill_run', 'auto_backfill_job', 'auto_backfill_attempt', 'auto_backfill_worker_lease', 'auto_backfill_event'].includes(tableName)) {
+        if (!['auto_backfill_run', 'auto_backfill_job', 'auto_backfill_attempt', 'auto_backfill_worker_lease', 'auto_backfill_event', 'auto_backfill_circuit'].includes(tableName)) {
             throw new Error('Unsupported queue table.');
         }
         return this.withDb(async (db) => Number((await get(db, `SELECT COUNT(*) AS n FROM ${tableName}`)).n));
