@@ -423,3 +423,102 @@ CREATE TABLE IF NOT EXISTS fact_f41_national (
 );
 CREATE INDEX IF NOT EXISTS idx_f41_nat_ngay ON fact_f41_national(ngay_do_kiem);
 CREATE INDEX IF NOT EXISTS idx_f41_nat_don_vi_ngay ON fact_f41_national(ma_don_vi, ngay_do_kiem);
+
+-- ============================================================
+-- AUTO-BACKFILL-QUEUE - durable planning and global worker lease
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS auto_backfill_run (
+    id TEXT PRIMARY KEY,
+    request_key TEXT NOT NULL,
+    registry_version TEXT NOT NULL,
+    as_of_business_date TEXT NOT NULL,
+    requested_indicator TEXT,
+    requested_lane TEXT,
+    requested_by TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('RUNNING', 'PAUSING', 'PAUSED', 'COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED')),
+    status_reason TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    started_at TEXT,
+    ended_at TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_active_request ON auto_backfill_run(request_key) WHERE status IN ('RUNNING', 'PAUSING', 'PAUSED');
+
+CREATE TABLE IF NOT EXISTS auto_backfill_job (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL,
+    indicator TEXT NOT NULL,
+    source_lane TEXT NOT NULL,
+    business_date TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('QUEUED', 'RUNNING', 'RECOVERY_CHECK', 'SUCCESS', 'SKIPPED_ALREADY_SUCCESS', 'FAILED_TERMINAL', 'CANCELLED')),
+    indicator_priority INTEGER NOT NULL,
+    lane_priority INTEGER NOT NULL,
+    completion_policy_id TEXT NOT NULL,
+    executor_id TEXT NOT NULL,
+    registry_version TEXT NOT NULL,
+    lease_owner TEXT,
+    lease_token TEXT,
+    lease_acquired_at TEXT,
+    lease_expires_at TEXT,
+    terminal_reason TEXT,
+    completion_evidence_json TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    started_at TEXT,
+    ended_at TEXT,
+    FOREIGN KEY(run_id) REFERENCES auto_backfill_run(id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_active_identity ON auto_backfill_job(indicator, source_lane, business_date) WHERE state IN ('QUEUED', 'RUNNING', 'RECOVERY_CHECK');
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_one_running_job ON auto_backfill_job((1)) WHERE state = 'RUNNING';
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_job_order ON auto_backfill_job(state, business_date DESC, indicator_priority ASC, lane_priority ASC, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_job_run ON auto_backfill_job(run_id, state);
+
+CREATE TABLE IF NOT EXISTS auto_backfill_attempt (
+    id TEXT PRIMARY KEY,
+    job_id TEXT NOT NULL,
+    attempt_number INTEGER NOT NULL,
+    lease_owner TEXT NOT NULL,
+    lease_token TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('RUNNING', 'SUCCESS', 'SKIPPED_ALREADY_SUCCESS', 'FAILED_TERMINAL', 'INTERRUPTED')),
+    started_at TEXT NOT NULL,
+    ended_at TEXT,
+    result_code TEXT,
+    evidence_json TEXT,
+    FOREIGN KEY(job_id) REFERENCES auto_backfill_job(id),
+    UNIQUE(job_id, attempt_number),
+    UNIQUE(lease_token)
+);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_attempt_job ON auto_backfill_attempt(job_id, attempt_number);
+
+CREATE TABLE IF NOT EXISTS auto_backfill_worker_lease (
+    lease_name TEXT PRIMARY KEY CHECK (lease_name = 'GLOBAL_DKCL'),
+    job_id TEXT NOT NULL UNIQUE,
+    worker_id TEXT NOT NULL,
+    lease_token TEXT NOT NULL UNIQUE,
+    acquired_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    FOREIGN KEY(job_id) REFERENCES auto_backfill_job(id)
+);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_worker_lease_expiry ON auto_backfill_worker_lease(expires_at);
+
+CREATE TABLE IF NOT EXISTS auto_backfill_event (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL,
+    job_id TEXT,
+    attempt_id TEXT,
+    event_type TEXT NOT NULL,
+    from_state TEXT,
+    to_state TEXT,
+    reason_code TEXT,
+    payload_json TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(run_id) REFERENCES auto_backfill_run(id),
+    FOREIGN KEY(job_id) REFERENCES auto_backfill_job(id),
+    FOREIGN KEY(attempt_id) REFERENCES auto_backfill_attempt(id)
+);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_event_run ON auto_backfill_event(run_id, id);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_event_job ON auto_backfill_event(job_id, id);
+
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_event_no_update BEFORE UPDATE ON auto_backfill_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_event is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_event_no_delete BEFORE DELETE ON auto_backfill_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_event is append-only'); END;

@@ -73,6 +73,9 @@ test('startup schema migrations create fact_f41 without watcher/import side effe
             const f41Rows = await get(db, 'SELECT COUNT(*) AS n FROM fact_f41');
             const f41NationalRows = await get(db, 'SELECT COUNT(*) AS n FROM fact_f41_national');
             const f13Rows = await get(db, 'SELECT COUNT(*) AS n FROM fact_f13');
+            const queueRunRows = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_run');
+            const queueJobRows = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_job');
+            const queueEventRows = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_event');
             const f13Sentinel = await get(db, "SELECT ngay_do_kiem, ma_bg, danh_gia_2026 FROM fact_f13 WHERE ma_bg = 'F13-SENTINEL'");
 
             assert.equal(factF41.name, 'fact_f41');
@@ -80,6 +83,9 @@ test('startup schema migrations create fact_f41 without watcher/import side effe
             assert.equal(f41Rows.n, 0);
             assert.equal(f41NationalRows.n, 0);
             assert.equal(f13Rows.n, 1);
+            assert.equal(queueRunRows.n, 0);
+            assert.equal(queueJobRows.n, 0);
+            assert.equal(queueEventRows.n, 0);
             assert.deepEqual(f13Sentinel, {
                 ngay_do_kiem: '2026-08-01',
                 ma_bg: 'F13-SENTINEL',
@@ -95,9 +101,13 @@ test('startup schema migrations create fact_f41 without watcher/import side effe
             const f41RowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM fact_f41');
             const f41NationalRowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM fact_f41_national');
             const f13RowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM fact_f13');
+            const queueRunRowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_run');
+            const queueJobRowsAfterSecondRun = await get(db, 'SELECT COUNT(*) AS n FROM auto_backfill_job');
             assert.equal(f41RowsAfterSecondRun.n, 0);
             assert.equal(f41NationalRowsAfterSecondRun.n, 0);
             assert.equal(f13RowsAfterSecondRun.n, 1);
+            assert.equal(queueRunRowsAfterSecondRun.n, 0);
+            assert.equal(queueJobRowsAfterSecondRun.n, 0);
         } finally {
             await closeDb(db);
         }

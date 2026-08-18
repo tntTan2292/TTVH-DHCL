@@ -209,3 +209,19 @@ Current state: `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`. No su
 ## AUTO-BACKFILL-COVERAGE Gate 1 Remediation Update - 2026-08-18
 
 Append-only update to the current manifest/checkpoint: production coverage no longer accepts caller-controlled `as_of`; backend HCM clock ownership, rejection contract, zero-side-effect tests, and focused regressions are recorded in manifest Section 9 and checkpoint Section 9. Current state remains `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`; no successor is activated.
+
+## Current AUTO-BACKFILL-QUEUE Update - 2026-08-18
+
+This section supersedes Coverage current-ticket rows for live onboarding. Historical entries remain preserved; `PROJECT_SNAPSHOT.md` owns mutable live state.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/AUTO-BACKFILL-QUEUE_MANIFEST.md` | Ticket Manifest | Product Owner-authorized persistent queue foundation: exact jobs, one global lease, idempotency, pause/resume, recovery, APIs, tests and exclusions. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-BACKFILL-QUEUE_CHECKPOINT_001.md` | Checkpoint / Technical Execution Report | Gate 1 PASS, Queue activation baseline, locked delivery boundary and mandatory acceptance; implementation evidence appended during execution. | L2/L3 | Current Required Reading | When current manifest names it. | Mandatory |
+| `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE_MANIFEST.md` | Closed Predecessor Manifest | Coverage implementation, Gate 1 remediation and explicit PO Gate 1 PASS/Queue handoff. | L2 | Conditional Reference | Required by Queue manifest. | Mandatory |
+
+Current state: `AUTO-BACKFILL-QUEUE ACTIVE / IMPLEMENTATION AUTHORIZED`. No later ticket is activated.
+
+## AUTO-BACKFILL-QUEUE Implementation Handoff - 2026-08-18
+
+Append-only update: the current Queue manifest/checkpoint now contain the implemented schema/state/API contract, AB-QUE/AB-SUC and competing-worker evidence, permission/read-only proof, F1.3/F4.1 regressions, scope safety and Gate 2 notes. Current state is `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`; no successor ticket is activated.

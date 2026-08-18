@@ -839,3 +839,18 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Production now rejects every supplied `as_of` with HTTP 400 `AUTO_BACKFILL_AS_OF_NOT_ALLOWED` before lazy service/DB initialization; normal requests pass no `asOf`, so `N-1` is always derived from the backend clock in `Asia/Ho_Chi_Minh`. Service-level `asOf`/clock injection remains test-only.
 - New controller/API tests prove backend HCM N-1, rejection of `2098-01-01` and empty overrides, no default DB initialization, and zero scanner/Import/queue/database-write operations on rejection. Combined coverage tests `16/16` and relevant F1.3/F4.1 regressions PASS.
 - No queue, Portal automation, frontend, schema/database change, real Import, business-data mutation, or successor activation occurred. State remains `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`.
+
+## AUTO-BACKFILL-COVERAGE Gate 1 PASS / AUTO-BACKFILL-QUEUE Activated
+
+- Product Owner granted Coverage `GATE 1 PASS` and authorized `AUTO-BACKFILL-QUEUE` only on `2026-08-18` from exact baseline `1d51a693b7f48f104d4dbf694185c06745321d28`.
+- Coverage closes `COMPLETED / PO GATE 1 PASS`; its registry, exact completion, backend-clock N-1, manual-only and extensibility/isolation contracts remain authoritative.
+- Queue is active for persistent run/job/attempt/lease/event state, global sequential leasing, idempotent planning, pause/resume, restart recovery, read/control APIs and injected fake-executor acceptance only.
+- F13/F41 Portal adapters, Safety runtime, UI, real DKCL/Import Runtime and all unrelated tickets remain inactive.
+
+## AUTO-BACKFILL-QUEUE - Implemented / Ready For PO Gate 2
+
+- Added additive/idempotent SQLite persistence for runs, exact jobs, attempts, singleton global lease and append-only state events; no business-data schema or operational data was changed.
+- Implemented coverage-eligible idempotent planning, newest-first global leasing across processes, graceful pause/resume, completion recheck before execution, and restart/pre-lease recovery that skips already-complete work.
+- Added Admin create/pause/resume APIs and registry-governed read API. Production has no registered executor and all current F1.3/F4.1 lanes remain `MANUAL_ONLY`, so production fails closed.
+- Acceptance PASS: AB-QUE-01..03, AB-SUC-01..02, competing workers, duplicate planning, permissions/read-only GET, migration/idempotency and retained AB-EXT/AB-ISO. Relevant F1.3/F4.1 Import and legacy backfill regressions PASS.
+- No real queue, Portal automation, Import, Data DKCL write, frontend, retry/circuit runtime or successor ticket was activated. State: `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`.

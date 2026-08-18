@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-COVERAGE — shared registry and indicator-neutral daily coverage foundation. IMPLEMENTED / READY FOR PO GATE 1 (2026-08-18).` |
-| Current Ticket | `AUTO-BACKFILL-COVERAGE — explicitly authorized by Product Owner from baseline f376391adfe9546c6c257f8f7bb1230e21d1ef8e after approval of AUTO-BACKFILL-PLAN. Coverage only; no persistent queue, Portal adapter, runtime safety engine, UI, or real Import.` |
-| Next Ticket | `None activated. AUTO-BACKFILL-QUEUE remains planned only and requires explicit Product Owner authorization after Gate 1. AUTO-BACKFILL-F13/F41/SAFETY/UI/RUNTIME, F41 Phase 3, UI Remediation, and every unrelated ticket remain inactive.` |
-| Last PO Status | `Product Owner Gate 1 remediation (2026-08-18): continue from d63da43517cb0611853377f29243db8fdad12117 and remove caller control of production as_of. Production must derive N-1 only from the backend Asia/Ho_Chi_Minh clock, reject supplied as_of with 400, retain service injection for tests, prove zero downstream side effects, preserve all coverage contracts, and remain READY FOR PO GATE 1.` |
+| Current Phase | `AUTO-BACKFILL-QUEUE — persistent shared planning and globally sequential execution foundation. IMPLEMENTED / READY FOR PO GATE 2 (2026-08-18).` |
+| Current Ticket | `AUTO-BACKFILL-QUEUE — explicitly authorized by Product Owner from baseline 1d51a693b7f48f104d4dbf694185c06745321d28 after AUTO-BACKFILL-COVERAGE GATE 1 PASS.` |
+| Next Ticket | `None activated. AUTO-BACKFILL-F13 is a planned candidate only after Queue PO Gate 2 and separate explicit authorization. AUTO-BACKFILL-F41/SAFETY/UI/RUNTIME, F41 Phase 3, UI Remediation and unrelated tickets remain inactive.` |
+| Last PO Status | `Product Owner decision (2026-08-18): AUTO-BACKFILL-COVERAGE GATE 1 PASS; authorizes AUTO-BACKFILL-QUEUE only. Requires additive persistent state, exact eligible jobs, newest-first global leasing, idempotency, pause/resume/restart recovery, completion recheck/no double execution, admin controls, registry reads, append-only transitions and fake-executor tests; forbids Portal adapters, real Import/runtime, Safety runtime, frontend and successor activation.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE_CHECKPOINT_001.md` — approved decisions, registry/completion/scanner/API implementation, AB-EXT/AB-ISO proof, Gate 1 production-clock remediation, regressions, scope safety and handoff. |
-| Current State | `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1 (2026-08-18). Shared scanner/policy code has no F1.3/F4.1/table branches; exact completion is indicator x lane x date; F4.1 stays MANUAL_ONLY; no later ticket is activated.` |
-| Technical Status | `Gate 1 remediation implemented: production rejects caller-controlled as_of before lazy service/DB initialization and always derives N-1 from backend HCM time; service injection remains test-only. Controller + unchanged coverage acceptance 16/16 PASS; targeted F1.3/F4.1 regressions PASS.` |
-| Runtime Status | `No real Import or live Portal action. Tests used in-memory/OS-temp SQLite and filesystem sandboxes only; no operational database or business data was mutated.` |
+| Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-QUEUE_MANIFEST.md` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-QUEUE_CHECKPOINT_001.md` — Gate 1 PASS, Queue activation authority/baseline, locked delivery boundary, mandatory tests and implementation evidence.` |
+| Current State | `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2 (2026-08-18). Coverage is CLOSED / PO GATE 1 PASS. No later ticket is activated.` |
+| Technical Status | `Additive durable run/job/attempt/global-lease/event persistence, idempotent planning, deterministic global leasing, pause/resume, completion-safe recovery and four queue APIs implemented. Mandatory acceptance and F1.3/F4.1 regressions PASS.` |
+| Runtime Status | `No real queue, Import or live Portal action ran. Production executor registry is empty; current F1.3/F4.1 lanes remain MANUAL_ONLY. Validation used isolated SQLite and injected fake executors only.` |
 | PO UI Check Required | `No — this ticket has no frontend. AUTO-BACKFILL-UI remains deferred and requires its own later Product Owner activation.` |
-| PO Product Status | `AUTO-BACKFILL-COVERAGE submitted for Product Owner Gate 1. Codex has not self-awarded Gate 1 PASS. F41-PHASE-2 remains separately IMPLEMENTED / READY FOR PO CHECK; F41 Phase 3 is inactive.` |
-| Last Closed Ticket | `F13-STANDARDIZATION-001 — Phase 4 (manifest Section 34: retire RouteViolationEvidencePage.jsx), CLOSED / PO RUNTIME PASS, 2026-08-15 — closes the entire Evidence-consolidation delta end-to-end. Most recently closed full ticket outside this program: NETWORK-MANAGEMENT-002, 2026-08-11.` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` |
-| Last Reviewed Phase | `F13-STANDARDIZATION-001 Phase 4 (2026-08-15): CLOSED / PO RUNTIME PASS` |
-| Last Reviewed Implementation Commit | `ede4684c (Phase 4 — delete RouteViolationEvidencePage.jsx + smoke test, add retired.test.js, reword one App.jsx comment). This closure round is documentation-only, no new product-code commit.` |
+| PO Product Status | `AUTO-BACKFILL-COVERAGE received PO GATE 1 PASS and is closed. AUTO-BACKFILL-QUEUE is technically implemented but not yet accepted; Gate 2 remains pending.` |
+| Last Closed Ticket | `AUTO-BACKFILL-COVERAGE — COMPLETED / PO GATE 1 PASS (2026-08-18). Shared registry, exact completion and backend-clock coverage contracts are accepted; Queue is the active successor.` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-COVERAGE_MANIFEST.md` |
+| Last Reviewed Phase | `AUTO-BACKFILL-COVERAGE Gate 1 (2026-08-18): COMPLETED / PO PASS` |
+| Last Reviewed Implementation Commit | `1d51a693b7f48f104d4dbf694185c06745321d28 — production coverage clock remediation accepted at Gate 1.` |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
-| Next Phase Authorization | `None. AUTO-BACKFILL-QUEUE requires explicit Product Owner authorization after Gate 1; all later Auto Backfill tickets, F41 Phase 3, and UI Remediation remain inactive.` |
+| Next Phase Authorization | `None beyond AUTO-BACKFILL-QUEUE. AUTO-BACKFILL-F13 and every later ticket require separate explicit Product Owner authorization after Gate 2.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-18` |
 
