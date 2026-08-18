@@ -1019,6 +1019,18 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Code & Execution Frozen: No frontend/backend source code modified during planning. Browser subagent remained closed.
 - State: `AUTO-BACKFILL-UI UX AUDIT & REDESIGN PLAN / AWAITING PO APPROVAL`. Gate 6 is not self-passed and Runtime remains unauthorized.
 
+## AUTO-BACKFILL-UI UX Redesign Plan Revised / Awaiting PO Approval
+
+- Revised UI/UX Redesign Plan (`implementation_plan.md`) per Product Owner directive:
+  1. Default 10 rows/page pagination with `10/20/50` options and bounded container height (`max-h-[420px]`).
+  2. Isolated Auto Backfill Audit Events (Slide-out Right Drawer) from Legacy Manual Import History (Tab 3).
+  3. Locked single interaction model: Slide-out Right Drawer (`<AuditEventsDrawer />`) for real-time audit logs; Tab 2 for PO Reports.
+  4. Renamed Tab 1 to neutral name "Bù dữ liệu tự động".
+  5. Demonstrated Future-State 4-Indicator Proof (`F1.3`, `F4.1`, `F2.TEST`, `F5.TEST`) with dynamic backend metadata specification and zero frontend code modifications.
+- Code & Execution Frozen: Zero source code modified during planning phase.
+- State: `AUTO-BACKFILL-UI UX REDESIGN PLAN REVISED / AWAITING PO APPROVAL`. Gate 6 is not self-passed and Runtime remains unauthorized.
+
+
 
 
 

@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-UI Checkpoint 001
 
-Status: `AUTO-BACKFILL-UI UX AUDIT & REDESIGN PLAN / AWAITING PO APPROVAL` (2026-08-18).
+Status: `AUTO-BACKFILL-UI UX REDESIGN PLAN REVISED / AWAITING PO APPROVAL` (2026-08-18).
 
 ## 1. Executive Summary
 
@@ -67,7 +67,16 @@ Per Product Owner directive, implementation was frozen and Antigravity conducted
 4. **Dynamic Indicator Registry**: Auto-scales health cards and filters dynamically for 1 to N indicators from API.
 5. **Progressive Disclosure**: Technical logs moved to slide-out drawer or Tab 2.
 
-## 7. Plan Review Handoff
+## 7. Revised Plan Summary & Future-State Proof
 
-State: `AUTO-BACKFILL-UI UX AUDIT & REDESIGN PLAN / AWAITING PO APPROVAL`.
-Next Phase: Implementation frozen until explicit PO plan approval. Gate 6 is not self-passed and Runtime remains unauthorized.
+Per Product Owner directive, the UI/UX Redesign Plan was revised (`implementation_plan.md`):
+1. **10 Rows/Page Pagination & Bounded Containers**: Default 10 rows/page pagination (with `10/20/50` options) and bounded container heights (`max-h-[420px]`).
+2. **Strict Audit History Isolation**: Auto Backfill Audit Events scoped exclusively to Slide-out Right Drawer; Manual Import History isolated in Tab 3 ("Nạp thủ công").
+3. **Single Interaction Model**: Slide-out Right Drawer (`<AuditEventsDrawer />`) locked for real-time audit logs; Tab 2 reserved for PO Reconciliation Reports.
+4. **Neutral Naming**: Tab 1 named "Bù dữ liệu tự động".
+5. **Future-State 4+ Indicator Proof**: Dynamic indicator health grid and backend API contract metadata specification supporting 4 indicators (`F1.3`, `F4.1`, `F2.TEST`, `F5.TEST`) with zero frontend code modifications.
+
+## 8. Revised Plan Handoff
+
+State: `AUTO-BACKFILL-UI UX REDESIGN PLAN REVISED / AWAITING PO APPROVAL`.
+Next Phase: Implementation remains frozen until explicit PO plan approval. Gate 6 is not self-passed and Runtime remains unauthorized.
