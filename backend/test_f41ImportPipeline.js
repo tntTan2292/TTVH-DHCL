@@ -51,10 +51,36 @@ function buildTctFile(filePath) {
         '60', '63', '65', '67', '70', '71', '75', '77', '81', '82',
         '84', '87', '88', '89', '90', '97',
     ];
-    const header = F41_TCT_DB_COLUMNS.map((_, index) => `C${index + 1}`);
-    const legend = F41_TCT_DB_COLUMNS.map((_, index) => index + 1);
+    const header = [
+        'TT', 'Mã tỉnh', 'Tên tỉnh', 'Mã huyện', 'Tên huyện', 'Mã BC', 'Tên BC', 'Loại BC', 'Ma KHL', 'Ten KHL',
+        'Sản lượng PTC/ Nộp tiền/ CH', 'Sản lượng PTC/ Nộp tiền', 'Tỷ lệ PTC/ Nộp tiền',
+        'Đúng thời gian quy định', null, null, null, 'Quá thời gian quy định', null, null, null,
+        'Sản lượng chưa đủ thông tin đo kiểm', 'SL loại trừ không đo kiểm', 'SL Chuyển hoàn', 'Tỷ lệ chuyển hoàn',
+        'Sản lượng bưu gửi PTC 8 giờ tại bưu cục (XNĐ BD1)', 'Tỷ lệ gửi PTC 8 giờ tại bưu cục ( XNĐ BD1)',
+        'Sản lượng bưu gửi PTC 8 giờ tại bưu cục (có quét TMS)', 'Tỷ lệ gửi PTC 8 giờ tại bưu cục (có quét TMS)',
+        '≤ 12 giờ', '> 12 giờ ≤ 14 giờ', '> 14 giờ ≤ 16 giờ', '> 16 giờ ≤ 36 giờ', '> 36 giờ',
+        'Sản lượng bưu gửi PTC 8 giờ lần đầu tại bưu cục (XNĐ BD1)', 'Tỷ lệ gửi PTC 8 giờ lần đầu tại bưu cục (XNĐ BD1)',
+        'Sản lượng bưu gửi PTC 8 giờ lần đầu tại bưu cục (có quét TMS)', 'Tỷ lệ gửi PTC 8 giờ lần đầu tại bưu cục (có quét TMS)',
+    ];
+    const subHeader = [
+        ...Array(13).fill(null),
+        'Sản lượng PTC trong thời gian QĐ 12,5 giờ',
+        'Tỷ PTC trong thời gian QĐ 12,5 giờ',
+        'Sản lượng bưu gửi PTC/Nộp tiền/Chuyển hoàn trong thời gian QĐ giờ 72 giờ',
+        'Tỷ lệ bưu gửi PTC/Nộp tiền/Chuyển hoàn trong thời gian QĐ giờ/72 giờ',
+        'Sản lượng phát thành công /Nộp tiền>12,5 giờ và chuyển hoàn',
+        'Tỷ lệ phát thành công /Nộp tiền>12,5 giờ và chuyển hoàn',
+        'Sản lượng phát thành công /Nộp tiền/Chuyển hoàn > 72 giờ',
+        'Tỷ lệ phát thành công /Nộp tiền/Chuyển hoàn > 72 giờ',
+        ...Array(17).fill(null),
+    ];
+    const legend = [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, null, null, '11=10/9', 12, 13, 14, '15=14/9', 16,
+        '17=16/9', 18, '19=18/9', 20, 21, 22, '22/9=23', 24, '24/9=25', 26, '27=26/9',
+        28, 29, 30, 31, null, 32, '33=32/9', 34, '35=34/9',
+    ];
     const total = [1, null, null, ...Array(35).fill(0)];
-    const rows = [header, Array(38).fill(null), legend, total];
+    const rows = [header, subHeader, legend, total];
     for (let i = 0; i < rawCodes.length; i += 1) {
         rows.push([
             i + 2,

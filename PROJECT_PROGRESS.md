@@ -806,3 +806,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Live reconciliation completed from the existing unmodified Processed F4.1 TCT workbook read-only: `fact_f41_national` now stores `34` rows for `2026-08-01`; Huế `53` remains; all 12 additional operational/legacy rows, including `82`, are absent; reload log `import_log.id=1248`, total `34`.
 - Verification PASS: raw rows `46`, accepted `34`, excluded `12`, no grand-total row, Huế `2,863 / 4,684 / 61.12%`, HUE `fact_f41` unchanged `4,695 / 2,863 / 1,581 / 251`, `fact_f13` unchanged `709,234`; F4.1 tests `16/16`, F1.3 Import regression set passed.
 - State remains: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Dashboard, Ranking, Evidence, portal sync, watcher behavior and Phase 3 remain untouched/not activated.
+
+## F41-PHASE-2 - Remediation 003: TCT Structural Identity Guard
+
+- Fixed the frozen positional TCT parser guard: before unit parsing, F4.1 TCT now validates required two-level headers, required group/metric labels, the row-3 column-number/formula legend, row-4 grand-total identity, and grand-total numeric count reconciliation against the 46 raw reporting rows.
+- The guard rejects shifted/missing headers, malformed legend rows, missing grand total rows, and non-reconciling grand totals with a clear `Invalid F4.1 TCT Excel format` error. It validates relationships and labels, not one day's absolute totals.
+- Preserved contracts: raw `46` -> accepted `34` -> excluded `12`; shared F1.3 34-code list; raw TEXT `%` rates; Huế TCT `2,863 / 4,684 / 61.12%`.
+- Validation PASS: F4.1 tests `20/20`; F1.3 Import regression set passed.
+- State remains: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Import UI/watcher, portal sync, Dashboard, Ranking, Evidence and Phase 3 remain untouched/not activated.

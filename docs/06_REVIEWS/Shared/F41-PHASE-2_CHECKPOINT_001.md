@@ -75,6 +75,11 @@ Locked out:
   - `backend/src/services/f41TctExcelParser.js` now imports and reuses `NATIONAL_RANKED_PROVINCE_CODES` from `nationalExcelParser.js`; no independent 34-code list is defined in F4.1 code.
   - The parser reads `46` raw reporting rows, accepts/stores `34`, and excludes `12` additional rows with code/name evidence: `01`, `08`, `11`, `12`, `14`, `15`, `34`, `49`, `71`, `75`, `77`, `82`.
   - TC-4 remains preserved: all published-rate `tl_*` values remain raw TEXT including `%`.
+- Remediation 003 — TCT structural identity guard:
+  - `backend/src/services/f41TctExcelParser.js` now validates the frozen workbook identity before parsing units.
+  - Guard checks required two-level header labels, required group/metric labels, row-3 column-number/formula legend, row-4 grand-total identity, raw row count, and grand-total numeric count reconciliation against the 46 raw reporting rows.
+  - The guard validates structure and relationships only; it does not hardcode one day’s total values.
+  - Population and rate contracts remain unchanged: raw `46` -> accepted `34` -> excluded `12`, shared F1.3 34-code list, raw TEXT `%` rates, Huế `2,863 / 4,684 / 61.12%`.
 
 ## 6. Validation Evidence
 
@@ -122,6 +127,11 @@ Locked out:
     - `node --test test_f41TctExcelParser.js test_f41ImportPipeline.js migrate_f41_phase2_schema.test.js server.startupMigrations.test.js` — `7/7`.
     - `node --test test_f41HueExcelParser.js migrate_f41_phase1_schema.test.js migrate_f41_phase2_schema.test.js test_f41TctExcelParser.js test_f41ImportPipeline.js server.startupMigrations.test.js` — `16/16`.
     - `node --test test_importProcessor.js test_importPipelineRace.js test_importHistoryPresenter.js test_importHistoryDefect3Recovery.js test_e2e_import_engine.js test_dkclImportOperationsContract.js` — PASS.
+- Remediation 003 validation PASS:
+  - Negative tests reject missing/shifted header, invalid legend, missing grand total, and non-reconciling grand total with `Invalid F4.1 TCT Excel format` before unit parsing.
+  - `node --test test_f41TctExcelParser.js test_f41ImportPipeline.js migrate_f41_phase2_schema.test.js server.startupMigrations.test.js` — `11/11`.
+  - `node --test test_f41HueExcelParser.js migrate_f41_phase1_schema.test.js migrate_f41_phase2_schema.test.js test_f41TctExcelParser.js test_f41ImportPipeline.js server.startupMigrations.test.js` — `20/20`.
+  - F1.3 regression command remained PASS: `node --test test_importProcessor.js test_importPipelineRace.js test_importHistoryPresenter.js test_importHistoryDefect3Recovery.js test_e2e_import_engine.js test_dkclImportOperationsContract.js`.
 
 ## 7. Handoff
 

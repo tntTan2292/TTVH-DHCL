@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const xlsx = require('xlsx');
 
 const {
     parseF41TctExcel,
@@ -15,6 +16,25 @@ const {
 } = require('./src/services/f41TctExcelParser');
 
 const EXCLUDED_F41_TCT_CODES = ['01', '08', '11', '12', '14', '15', '34', '49', '71', '75', '77', '82'];
+const REAL_TCT_FILE = path.resolve(__dirname, '../Data DKCL/F4.1/Processed/TCT/F4.1-2026.08.01.xlsx');
+
+function readRealRows() {
+    const workbook = xlsx.readFile(REAL_TCT_FILE);
+    return xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: null });
+}
+
+function buildWorkbook(rows) {
+    const worksheet = xlsx.utils.aoa_to_sheet(rows);
+    const workbook = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(workbook, worksheet, 'Worksheet');
+    return xlsx.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+}
+
+function mutateRealWorkbook(mutator) {
+    const rows = readRealRows().map((row) => [...row]);
+    mutator(rows);
+    return buildWorkbook(rows);
+}
 
 test('frozen F4.1 TCT mapping contains 38 positional columns', () => {
     assert.equal(F41_TCT_DB_COLUMNS.length, 38);
@@ -38,7 +58,7 @@ test('frozen F4.1 TCT mapping contains 38 positional columns', () => {
 });
 
 test('read-only reconciliation of the real TCT source file accepts the F1.3 34-code national population', () => {
-    const filePath = path.resolve(__dirname, '../Data DKCL/F4.1/Processed/TCT/F4.1-2026.08.01.xlsx');
+    const filePath = REAL_TCT_FILE;
     const result = parseF41TctExcel(fs.readFileSync(filePath), path.basename(filePath));
 
     assert.equal(result.ngayDoKiem, '2026-08-01');
@@ -64,4 +84,53 @@ test('read-only reconciliation of the real TCT source file accepts the F1.3 34-c
         if (hue[column] !== null) assert.match(hue[column], /%$/);
         assert.equal(typeof hue[column], 'string');
     }
+});
+
+test('rejects missing or shifted F4.1 TCT header labels', () => {
+    const missingHeader = mutateRealWorkbook((rows) => {
+        rows[0][13] = null;
+    });
+    assert.throws(
+        () => parseF41TctExcel(missingHeader, 'F4.1-2026.08.01.xlsx'),
+        /Invalid F4\.1 TCT Excel format\. Header row 1 mismatch/
+    );
+
+    const shiftedHeader = mutateRealWorkbook((rows) => {
+        rows.unshift(Array(38).fill(null));
+    });
+    assert.throws(
+        () => parseF41TctExcel(shiftedHeader, 'F4.1-2026.08.01.xlsx'),
+        /Invalid F4\.1 TCT Excel format\. Header row 1 mismatch/
+    );
+});
+
+test('rejects invalid F4.1 TCT column-number and formula legend row', () => {
+    const buffer = mutateRealWorkbook((rows) => {
+        rows[2][28] = '28=27/9';
+    });
+    assert.throws(
+        () => parseF41TctExcel(buffer, 'F4.1-2026.08.01.xlsx'),
+        /Invalid F4\.1 TCT Excel format\. Column-number\/formula legend row mismatch/
+    );
+});
+
+test('rejects missing F4.1 TCT grand-total row', () => {
+    const buffer = mutateRealWorkbook((rows) => {
+        rows[3][1] = '53';
+        rows[3][2] = 'Bưu điện Tỉnh Thừa Thiên Huế';
+    });
+    assert.throws(
+        () => parseF41TctExcel(buffer, 'F4.1-2026.08.01.xlsx'),
+        /Invalid F4\.1 TCT Excel format\. Row 4 must be the grand-total row/
+    );
+});
+
+test('rejects non-reconciling F4.1 TCT grand-total numeric counts', () => {
+    const buffer = mutateRealWorkbook((rows) => {
+        rows[3][27] = Number(rows[3][27]) + 1;
+    });
+    assert.throws(
+        () => parseF41TctExcel(buffer, 'F4.1-2026.08.01.xlsx'),
+        /Invalid F4\.1 TCT Excel format\. Grand-total row does not reconcile/
+    );
 });

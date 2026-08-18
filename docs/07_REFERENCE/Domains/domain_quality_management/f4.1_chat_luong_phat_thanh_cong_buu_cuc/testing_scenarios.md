@@ -9,7 +9,7 @@ version: 1.0.0
 
 # Testing Scenarios
 
-None of these scenarios has been executed against product code — `fact_f41` and `fact_f41_national` do not exist yet. They are the acceptance bar for the phase(s) that implement them.
+Implementation status: the Phase 1/2 product tables now exist (`fact_f41`, `fact_f41_national`). These scenarios remain the acceptance/regression bar for the implemented contracts.
 
 ## 1. HUE Parser
 
@@ -69,6 +69,7 @@ None of these scenarios has been executed against product code — `fact_f41` an
 | T-TCT-04 | `Mã tỉnh` mixed string/number typing (`"01"` vs `10`). | Normalized to a zero-padded string on ingest. |
 | T-TCT-05 | Filename with an invalid/missing date. | Hard parse error — the TCT file has no date field of any kind to fall back on. |
 | T-TCT-06 | Attempt to write a TCT row into `fact_f41`, or a HUE row into `fact_f41_national`. | Rejected — the two tables are never cross-populated. |
+| T-TCT-07 | Missing/shifted two-level header, malformed formula legend row, missing row-4 grand total, or grand-total counts that do not reconcile to the 46 raw rows. | Hard F4.1 TCT format error before any unit row is returned. |
 
 ## 7. Cross-Lane Reconciliation
 

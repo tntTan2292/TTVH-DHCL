@@ -147,9 +147,9 @@ Every published rate divides by idx 10 (`Sản lượng PTC/ Nộp tiền/ CH`),
 
 Mirroring F1.3's guard on `Số hiệu bưu gửi`: the HUE parser must hard-fail if `Số hiệu bưu gửi` (column 14) is not found in the header row. The TCT parser must hard-fail if the positional layout in §2.1 does not match (wrong row count, missing grand-total row, or a header that does not contain the expected group labels).
 
-## 5. Target Tables (Proposed, Not Yet Created)
+## 5. Target Tables (Implemented In Phase 1/2)
 
 - `fact_f41` — additive, HUE row-level, §0 system fields + §1.1 columns, `UNIQUE(ngay_do_kiem, ma_bg)`. Never receives a TCT aggregate row.
 - `fact_f41_national` — additive, TCT aggregate, §0 system fields + §2.2 columns, `UNIQUE(ngay_do_kiem, ma_don_vi)`. Stores only the F1.3-parity 34 province/city rows; never receives a HUE row and never stores the 12 additional raw operational/legacy rows.
 
-Neither table exists yet. Creating them is Phase 1 (`fact_f41`) and Phase 2 (`fact_f41_national`) of the F4.1 module plan — not authorized by this Phase 0 package.
+Implementation status: `fact_f41` was implemented in F41-PHASE-1; `fact_f41_national` was implemented in F41-PHASE-2 and remediated to F1.3 national-population parity. This section remains the SSOT contract for those tables.
