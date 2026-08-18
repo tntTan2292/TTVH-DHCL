@@ -69,3 +69,26 @@ export function resolveRunActionButtons(effectiveState) {
     isTerminal: ['COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED'].includes(effectiveState),
   };
 }
+
+export function groupItemsByIndicator(items = []) {
+  const result = {};
+  items.forEach((item) => {
+    const key = item.indicator || 'OTHER';
+    if (!result[key]) result[key] = [];
+    result[key].push(item);
+  });
+  return result;
+}
+
+export function groupItemsByDate(items = []) {
+  const map = new Map();
+  items.forEach((item) => {
+    const date = item.business_date || 'N/A';
+    if (!map.has(date)) map.set(date, []);
+    map.get(date).push(item);
+  });
+  return Array.from(map.entries()).map(([date, dateItems]) => ({
+    date,
+    items: dateItems
+  }));
+}

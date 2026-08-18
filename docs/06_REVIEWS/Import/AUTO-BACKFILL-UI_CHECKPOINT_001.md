@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-UI Checkpoint 001
 
-Status: `AUTO-BACKFILL-UI REMEDIATED / READY FOR PO GATE 6` (2026-08-18).
+Status: `AUTO-BACKFILL-UI UX REDESIGNED / READY FOR PO VISUAL GATE 6` (2026-08-18).
 
 ## 1. Executive Summary
 
@@ -41,7 +41,24 @@ Product Owner requested remediation for 5 frontend contract & UI alignment items
 4. **Neutral Manual Import Tab Labels**: Renamed tab buttons in `DataImportCenter.jsx` from "Huế F1.3" / "Tổng công ty F1.3" to `"Nạp thủ công HUE"` and `"Nạp thủ công TCT"`.
 5. **Contract & Behavior Unit Test Suite**: Created `autoBackfillUiHelpers.js` and `AutoBackfillOperatorPanel.test.js` using real API fixtures to test effective state resolution, WAITING_AUTH lane filtering, report total aggregation, and button enable/disable rules.
 
-## 5. Gate 6 Handoff
+## 5. UX Redesign Summary
 
-State: `AUTO-BACKFILL-UI REMEDIATED / READY FOR PO GATE 6`.
+Per Product Owner directive, Antigravity audited and executed a total UI/UX redesign for the Import Center and Auto Backfill V2 Operator Panel:
+1. **Information Architecture Restructuring**:
+   - Auto Backfill V2 Platform placed as the Hero component.
+   - Manual Import (`UploadWidget`) demoted from dominating top space to conditional/collapsible secondary drawer mode (`HUE` / `TCT`).
+2. **Indicator Health Summary Cards**:
+   - Added **F1.3 KPI** and **F4.1 Phát BC** health breakdown cards before the granular details.
+   - Allows No-code operators to instantly understand per-indicator coverage status without reading dense table rows.
+3. **Multi-View Navigation (Timeline Cards vs Granular Table)**:
+   - Implemented a **Timeline Date Cards** view grouping date items side-by-side with clear glowing status badges.
+   - Preserved granular **Table View** with interactive toggle switch for advanced inspection.
+4. **Dark Glassmorphism Command Center Aesthetics**:
+   - Modern dark glass gradient hero header (`bg-slate-950 backdrop-blur-xl border border-slate-800`), glowing status badges, tactile action buttons with micro-interactions (`active:scale-95`).
+5. **Contract & Functionality Integrity**:
+   - Maintained 100% of all technical contracts (`resolveEffectiveRunState`, `resolveWaitingAuthLanes`, `aggregateReportTotals`, `resolveRunActionButtons`).
+
+## 6. Visual Gate 6 Handoff
+
+State: `AUTO-BACKFILL-UI UX REDESIGNED / READY FOR PO VISUAL GATE 6`.
 Next Phase: `AUTO-BACKFILL-RUNTIME` remains planned only and requires explicit Product Owner authorization after Gate 6 PASS.

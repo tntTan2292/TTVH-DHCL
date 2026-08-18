@@ -17,14 +17,14 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-UI — remediated / ready for PO Gate 6 (2026-08-18).` |
-| Current Ticket | `AUTO-BACKFILL-UI — Operator UI remediation complete; awaiting Product Owner Gate 6.` |
+| Current Phase | `AUTO-BACKFILL-UI — UX redesigned / ready for PO Visual Gate 6 (2026-08-18).` |
+| Current Ticket | `AUTO-BACKFILL-UI — Operator UI redesign complete; awaiting Product Owner Visual Gate 6.` |
 | Next Ticket | `None activated. AUTO-BACKFILL-RUNTIME remains planned only and requires separate Product Owner authorization after Gate 6.` |
-| Last PO Status | `Product Owner requested Gate 6 remediation for 5 UI contract items. Operator UI remediation complete and ready for PO Gate 6.` |
+| Last PO Status | `Product Owner authorized full UI redesign for Auto Backfill Operator Panel. UX redesign complete; ready for PO Visual Gate 6.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-UI_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI_CHECKPOINT_001.md` — Gate 5 PASS confirmation, Operator UI implementation & remediation evidence, Gate 6 handoff. |
-| Current State | `AUTO-BACKFILL-UI REMEDIATED / READY FOR PO GATE 6 (2026-08-18).` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI_CHECKPOINT_001.md` — Gate 5 PASS confirmation, Operator UI implementation, remediation & UX redesign evidence, Gate 6 handoff. |
+| Current State | `AUTO-BACKFILL-UI UX REDESIGNED / READY FOR PO VISUAL GATE 6 (2026-08-18).` |
 | Technical Status | `No-code Operator UI component, DataImportCenter integration, oxlint clean, vite build PASS, UI test suite PASS, backend regressions 100% PASS.` |
 | Runtime Status | `No operational Queue, Portal, download or Import ran; validation used fake executors and mock data.` |
 | PO UI Check Required | `Yes — Product Owner Gate 6 UI review required for Auto Backfill V2 Operator Panel.` |

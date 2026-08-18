@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, CheckCircle2, Clock, Database, HardDrive, Play, RefreshCw, RotateCcw, Search, Square, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, Clock, Database, FileSpreadsheet, HardDrive, Play, RefreshCw, RotateCcw, Search, Square, XCircle, Zap } from 'lucide-react';
 import api from '../api/client';
 import UploadWidget from '../components/UploadWidget';
 import AutoBackfillOperatorPanel from '../components/AutoBackfillOperatorPanel';
@@ -771,66 +771,90 @@ export default function DataImportCenter() {
   };
 
   return (
-    <div className="w-full px-4 py-6 md:px-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">Data Import Center</h1>
-          <p className="text-gray-500 mt-1">Trung tâm nạp dữ liệu ngày cho Dashboard điều hành</p>
+    <div className="w-full px-4 py-6 md:px-8 max-w-7xl mx-auto space-y-6">
+      {/* Header & Mode Navigator */}
+      <div className="rounded-2xl bg-slate-900 text-white p-6 shadow-xl border border-slate-800 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="p-2 rounded-xl bg-vnpost-blue/20 text-yellow-400 border border-blue-400/20 backdrop-blur-md">
+                <Database size={24} />
+              </span>
+              <div>
+                <h1 className="text-2xl font-black tracking-tight text-white">Trung tâm Import Dữ liệu Quality Control</h1>
+                <p className="text-xs text-slate-300 mt-0.5">Hệ thống Điều hành Chất lượng Vận hành V2 (TTVH DHCL)</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/15 backdrop-blur-md transition-all active:scale-95 shadow-sm"
+            >
+              <RefreshCw size={14} />
+              Làm mới Hệ thống
+            </button>
+          </div>
         </div>
-        <button onClick={handleRefresh} className="px-4 py-2 bg-vnpost-blue text-white rounded-lg hover:bg-blue-800 transition-colors shadow-sm">
-          Làm mới
-        </button>
-      </div>
 
-      {statusError && (
-        <div className="mb-6 p-4 rounded-xl border border-red-200 bg-red-50 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
-          <p className="text-sm font-medium text-red-700">{statusError}</p>
-        </div>
-      )}
-
-      <div className="mb-8">
-        <UploadWidget onUploadSuccess={handleUploadSuccess} />
-      </div>
-
-      <div className="mb-6 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-bold text-gray-700">Chế độ Bù dữ liệu:</span>
+        {/* Primary Mode Selector */}
+        <div className="mt-6 pt-5 border-t border-slate-800 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-2">Chế độ vận hành:</span>
           <button
             type="button"
             onClick={() => setImportMode('PLATFORM')}
-            className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
               importMode === 'PLATFORM'
-                ? 'bg-vnpost-blue text-white shadow-sm'
-                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-vnpost-blue to-blue-600 text-white ring-2 ring-blue-400/40 shadow-blue-500/20'
+                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
+            <Zap size={15} className={importMode === 'PLATFORM' ? 'text-yellow-300' : 'text-slate-400'} />
             Tự động V2 (Platform F1.3 & F4.1)
           </button>
           <button
             type="button"
             onClick={() => setImportMode('HUE')}
-            className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
               importMode === 'HUE'
-                ? 'bg-vnpost-blue text-white shadow-sm'
-                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white ring-2 ring-purple-400/40 shadow-purple-500/20'
+                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
+            <FileSpreadsheet size={15} className={importMode === 'HUE' ? 'text-purple-200' : 'text-slate-400'} />
             Nạp thủ công HUE
           </button>
           <button
             type="button"
             onClick={() => setImportMode('TCT')}
-            className={`rounded-lg px-4 py-2 text-sm font-bold transition-colors ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
               importMode === 'TCT'
-                ? 'bg-vnpost-blue text-white shadow-sm'
-                : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white ring-2 ring-teal-400/40 shadow-teal-500/20'
+                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
+            <FileSpreadsheet size={15} className={importMode === 'TCT' ? 'text-teal-200' : 'text-slate-400'} />
             Nạp thủ công TCT
           </button>
         </div>
       </div>
+
+      {statusError && (
+        <div className="p-4 rounded-xl border border-red-200 bg-red-50 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-red-700">{statusError}</p>
+        </div>
+      )}
+
+      {/* Manual Upload Widget: Rendered only when manual mode is selected or in collapsible area */}
+      {(importMode === 'HUE' || importMode === 'TCT') && (
+        <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-gray-200">
+          <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Tải File Excel Thủ công ({importMode})</h3>
+          <UploadWidget onUploadSuccess={handleUploadSuccess} />
+        </div>
+      )}
 
       {importMode === 'PLATFORM' && (
         <AutoBackfillOperatorPanel />
