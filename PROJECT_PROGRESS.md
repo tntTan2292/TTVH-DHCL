@@ -814,3 +814,12 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Preserved contracts: raw `46` -> accepted `34` -> excluded `12`; shared F1.3 34-code list; raw TEXT `%` rates; Huế TCT `2,863 / 4,684 / 61.12%`.
 - Validation PASS: F4.1 tests `20/20`; F1.3 Import regression set passed.
 - State remains: `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. Import UI/watcher, portal sync, Dashboard, Ranking, Evidence and Phase 3 remain untouched/not activated.
+
+## AUTO-BACKFILL-PLAN - Activated And Completed: Shared Platform Plan
+
+- Product Owner authorized `AUTO-BACKFILL-PLAN` on `2026-08-18` from exact baseline `f702cddb47286a006072d5aef8b84501ec051bad`, planning/documentation only, with UI Remediation deferred and no real Import.
+- Delta-only survey confirmed current F1.3 HUE/TCT coverage and queues are separate, F1.3-hardcoded and memory-only; F41-PHASE-2 supplies parser/table/filename registry metadata but not shared tracking, completion, Portal, permission, retry, circuit, persistence, or audit contracts.
+- The plan defines an indicator-neutral registry, `indicator x lane x date` coverage, persistent globally-sequential queue, pause/resume/restart recovery, SUCCESS no-reload guard, isolated retry, immediate authentication stop, proposed five-same-signature circuit breaker, and append-only PO audit/reporting.
+- Seven delivery tickets are planned only: `AUTO-BACKFILL-COVERAGE`, `QUEUE`, `F13`, `F41`, `SAFETY`, `UI`, `RUNTIME`. F4.1 Portal lanes remain `MANUAL_ONLY` until their real Portal workflow/export identity is verified; no name or download behavior was inferred.
+- Extensibility acceptance requires a synthetic indicator to appear in coverage by registry-only test registration with zero shared-engine edit. Full contracts, risks, tests, PO gates and questions: `docs/06_REVIEWS/Import/AUTO-BACKFILL-PLAN_CHECKPOINT_001.md`; manifest: `docs/10_TICKETS/AUTO-BACKFILL-PLAN_MANIFEST.md`.
+- State: `PLAN COMPLETE / AWAITING PO APPROVAL`. No successor ticket, F41 Phase 3, UI work, or runtime is activated.

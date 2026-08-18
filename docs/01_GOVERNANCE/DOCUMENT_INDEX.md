@@ -181,3 +181,14 @@ If any old index row, report, manifest, checklist, or archived document conflict
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/10_TICKETS/F41-PHASE-1_MANIFEST.md` | Ticket Manifest | F41-PHASE-1 HUE Data Foundation: additive `fact_f41`, dedicated F4.1 HUE parser, filename-derived date, all-row denominator contract, targeted validation, and real-file reconciliation. State: `PHASE 1 COMPLETE / READY FOR PO REVIEW`; Phase 2 not activated. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Shared/F41-PHASE-1_CHECKPOINT_001.md` | Checkpoint | F41-PHASE-1 activation, Codex authorization, baseline exclusions, implementation evidence, validation proof, live DB proof that `fact_f13` remained unchanged, and final handoff. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+## Current AUTO-BACKFILL-PLAN Update - 2026-08-18
+
+This section supersedes older current-ticket rows only for live onboarding. `PROJECT_SNAPSHOT.md` remains the exclusive owner of mutable live state. Historical rows above remain preserved under the append-only workflow.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/AUTO-BACKFILL-PLAN_MANIFEST.md` | Ticket Manifest | Product Owner-authorized shared Auto Backfill planning ticket; documentation-only scope, required reading, platform boundary, seven-ticket sequence, validation and handoff. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-BACKFILL-PLAN_CHECKPOINT_001.md` | Checkpoint / Technical Plan | Delta-only survey; indicator registration, completion, coverage, queue, API, retry, circuit, session, isolation and audit contracts; ticket plans; extensibility acceptance suite; risks and PO questions. | L2/L3 | Current Required Reading | When current manifest names it. | Mandatory |
+
+Current state: `PLAN COMPLETE / AWAITING PO APPROVAL`. No successor ticket is activated. `AUTO-BACKFILL-COVERAGE` is a candidate only after a separate explicit Product Owner activation.
