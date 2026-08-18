@@ -894,3 +894,17 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Existing HUE/TCT browser processes were backend-owned and had no authenticated supported observation channel available to this task. No credentials, Portal action, export, download, Import or operational write occurred.
 - HUE and TCT independently remain `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`; no product code or registry behavior changed.
 - Isolated Coverage/Queue/F1.3/F4.1 and Import regressions PASS. State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED`; no successor is activated.
+
+## AUTO-BACKFILL-F41 Authenticated Discovery Re-entry
+
+- Product Owner opened Data Import Center, confirmed both HUE and TCT sessions valid, and authorized controlled discovery re-entry from `6bf26eb20835707080d2e8590b3c1c383f155869`.
+- Re-entry remains bounded to `2026-08-01`, one export maximum per lane, temporary files outside Data DKCL, no Import/business-data write, and independent per-lane evidence gates.
+- Both lanes remain `MANUAL_ONLY` until their own Portal workflow and exported workbook are fully proven. Safety, UI, Runtime and all successor tickets remain inactive.
+
+## AUTO-BACKFILL-F41 Authenticated Runtime Differential
+
+- Supported preflight returned `SESSION_VALID` for HUE/TCT and the existing clients reopened with `requireExistingSession=true` after graceful backend ownership release.
+- The single controlled HUE F4.1 probe reused the verified F1.3 HUE filter workflow with `BC / 53 / 2026-08-01`. DKCL received the GET request but returned `HTTP 500 application/json`; the Codex browser rendered only three header rows, not the Chrome PO baseline of nine rows and total `4,695`.
+- TCT was not attempted after the unresolved HUE differential. Zero export, download, Import, queue execution or database/business-data write occurred; no product code changed.
+- HUE and TCT remain `MANUAL_ONLY`. State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED / READY FOR PO REVIEW`; no successor is activated.
+- Focused Coverage/Queue/F1.3/F4.1 regression run: 60 runner tests PASS, 0 fail. Discovery clients closed, temporary directories empty, and normal QIS backend restored on port 5050.

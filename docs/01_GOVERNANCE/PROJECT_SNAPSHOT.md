@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-F41 — discovery-first F4.1 HUE/TCT Portal verification. DISCOVERY BLOCKED / BOTH LANES MANUAL_ONLY (2026-08-18).` |
-| Current Ticket | `AUTO-BACKFILL-F41 — blocked pending a PO-directed manually authenticated and observable HUE/TCT session handoff; no successor is active.` |
+| Current Phase | `AUTO-BACKFILL-F41 — authenticated runtime differential. DISCOVERY BLOCKED / READY FOR PO REVIEW (2026-08-18).` |
+| Current Ticket | `AUTO-BACKFILL-F41 — HUE Codex session request returns DKCL HTTP 500 while Chrome PO proves nine rows / 4,695; no successor is active.` |
 | Next Ticket | `None activated. AUTO-BACKFILL-SAFETY is a planned candidate only after F41 PO Gate 4 and separate explicit authorization. UI/RUNTIME, F41 Phase 3, UI Remediation and unrelated tickets remain inactive.` |
-| Last PO Status | `Product Owner decision (2026-08-18): AUTO-BACKFILL-F13 GATE 3 PASS; authorizes AUTO-BACKFILL-F41 only. F41 stopped fail-closed because neither lane obtained observable authenticated Portal evidence.` |
+| Last PO Status | `Product Owner runtime evidence (2026-08-18): Chrome PO proves HUE F4.1 BC/53/01-08-2026 has nine rows and total 4,695; diagnose Codex-browser differential with bounded evidence and stop for PO review.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-F41_MANIFEST.md` |
 | Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md` — F13 Gate 3 PASS, static/live discovery evidence, blocked lane disposition and validation ledger. |
-| Current State | `AUTO-BACKFILL-F41 DISCOVERY BLOCKED (2026-08-18). HUE/TCT remain MANUAL_ONLY; F13 is CLOSED / PO GATE 3 PASS. No later ticket is activated.` |
-| Technical Status | `Static inspection is complete: F4.1 parser/Import foundations exist, but no Portal identity is verified. HUE and TCT remain independently MANUAL_ONLY.` |
-| Runtime Status | `No observable authenticated session handoff was available. Portal submissions/exports/downloads, operational Auto Backfill/Import and business-data writes were all zero.` |
+| Current State | `AUTO-BACKFILL-F41 DISCOVERY BLOCKED / READY FOR PO REVIEW (2026-08-18). HUE/TCT remain MANUAL_ONLY.` |
+| Technical Status | `F1.3 HUE/TCT workflows were reread and reused. The exact HUE request reaches DKCL but receives HTTP 500; no F4.1 lane has complete adapter evidence.` |
+| Runtime Status | `Supported HUE/TCT preflight was SESSION_VALID. HUE BC/53/2026-08-01 returned three HTTP 500 JSON responses and only header rows; no TCT continuation, export, download, Import or write occurred. Discovery clients are closed and normal backend is restored on port 5050.` |
 | PO UI Check Required | `No — this ticket has no frontend. AUTO-BACKFILL-UI remains deferred and requires its own later Product Owner activation.` |
-| PO Product Status | `AUTO-BACKFILL-F13 received PO GATE 3 PASS and is closed. AUTO-BACKFILL-F41 has no implementation Gate 4 candidate because discovery is blocked.` |
+| PO Product Status | `AUTO-BACKFILL-F13 is closed / PO GATE 3 PASS. AUTO-BACKFILL-F41 awaits PO review of the HUE Chrome/Codex runtime differential; Gate 4 is not passed.` |
 | Last Closed Ticket | `AUTO-BACKFILL-F13 — COMPLETED / PO GATE 3 PASS (2026-08-18). Verified F1.3 HUE/TCT shared adapters are accepted; F41 is the active successor.` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-BACKFILL-F13 Gate 3 (2026-08-18): COMPLETED / PO PASS` |
 | Last Reviewed Implementation Commit | `5a2cf358e68baa0ae6f7ae1f22814f535b564fb9 — verified F1.3 adapters accepted at Gate 3.` |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
-| Next Phase Authorization | `None. Reopening AUTO-BACKFILL-F41 discovery requires explicit PO direction and authenticated observable session handoff; AUTO-BACKFILL-SAFETY and every later ticket remain unauthorized.` |
+| Next Phase Authorization | `None. Await PO direction on the HUE HTTP 500 differential. AUTO-BACKFILL-SAFETY and every later ticket remain unauthorized.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-18` |
 
@@ -231,3 +231,13 @@ Latest authoritative next action (`2026-08-18`, AUTO-BACKFILL-F41; supersedes ev
 `AUTO-BACKFILL-F41` discovery disposition (`2026-08-18`): static inspection found the complete F4.1 parser/Import/completion foundations but no verified Portal route, filter, readiness, export or generated-resource identity. Existing HUE/TCT browser processes were private to the running backend and no authenticated supported observation handoff became available. Following the locked no-inference rule, no Portal action/export/download/Import or product change occurred; both lanes remain `MANUAL_ONLY / PORTAL_ADAPTER_NOT_VERIFIED`. Isolated Coverage, Queue, F1.3, F4.1 and Import regressions PASS. State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED`.
 
 Latest authoritative next action (`2026-08-18`, AUTO-BACKFILL-F41 blocked handoff; supersedes every earlier next-action note): `None self-activated. AWAIT PO direction plus a manually authenticated, observable HUE/TCT session handoff to reopen bounded discovery. AUTO-BACKFILL-SAFETY remains unauthorized.`
+
+`AUTO-BACKFILL-F41` authenticated discovery re-entry (`2026-08-18`, baseline `6bf26eb20835707080d2e8590b3c1c383f155869`): Product Owner opened Data Import Center, confirmed both HUE and TCT sessions valid, and authorized supported preflight followed by controlled ownership transfer and bounded discovery. Credentials/cookies/profile contents remain prohibited; each lane is limited to one temporary export for `2026-08-01`, no Import or business-data write, and independent evidence gating. Both lanes remain `MANUAL_ONLY` until proven.
+
+Latest authoritative next action (`2026-08-18`, authenticated discovery re-entry; supersedes every earlier next-action note): `Confirm HUE/TCT through supported preflight, perform bounded per-lane discovery, implement only independently proven lanes, restore normal backend runtime, and stop at Gate 4 or BLOCKED. Do not activate Safety.`
+
+`AUTO-BACKFILL-F41` authenticated runtime differential (`2026-08-18`): supported preflight returned `SESSION_VALID` for HUE/TCT. The controlled HUE request reused the verified F1.3 HUE workflow with `BC / 53 / 2026-08-01`; DKCL returned `HTTP 500 application/json` and the Codex browser rendered only three header rows, while PO Chrome proves nine rows and total `4,695` for the same business configuration. TCT was not continued. Exports/downloads/Import/queue/database writes and product changes were zero; both lanes remain `MANUAL_ONLY`.
+
+Latest authoritative next action (`2026-08-18`, HUE runtime differential; supersedes every earlier next-action note): `AWAIT PO review and one bounded comparison artifact from the successful Chrome request. Do not continue TCT, implement an executor, pass Gate 4 or activate Safety.`
+
+Validation ledger (`2026-08-18`): 60 focused Node runner tests passed with zero failures across Coverage, Queue, F1.3 adapters/legacy services, F4.1 parsers/pipeline and queue migration. Mutation tests used isolated temporary storage; the discovery left no files and normal QIS backend runtime was restored.

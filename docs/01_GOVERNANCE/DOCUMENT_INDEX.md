@@ -265,3 +265,15 @@ Current state: `AUTO-BACKFILL-F41 ACTIVE / DISCOVERY AUTHORIZED`. No later ticke
 ## AUTO-BACKFILL-F41 Discovery Blocked Handoff - 2026-08-18
 
 Append-only update: the manifest Sections 10-13 and checkpoint Sections 5-10 record the static delta, unavailable authenticated observation handoff, zero-export result, independent HUE/TCT `MANUAL_ONLY` disposition, regression evidence and re-entry gate. Current state is `AUTO-BACKFILL-F41 DISCOVERY BLOCKED`; no successor is activated.
+
+## AUTO-BACKFILL-F41 Authenticated Discovery Re-entry - 2026-08-18
+
+Append-only update: manifest Section 14 and checkpoint Section 11 record Product Owner evidence that HUE/TCT sessions are valid and authorize controlled re-entry from `6bf26eb20835707080d2e8590b3c1c383f155869`. Current state is `ACTIVE / AUTHENTICATED DISCOVERY RE-ENTRY`; both lanes remain `MANUAL_ONLY` pending independent live evidence and no successor is activated.
+
+## AUTO-BACKFILL-F41 Authenticated Runtime Differential - 2026-08-18
+
+Append-only update: manifest Section 15 and checkpoint Section 12 record supported `SESSION_VALID` preflight, exact F1.3 workflow reuse, the HUE `BC / 53 / 2026-08-01` GET receiving DKCL `HTTP 500 application/json`, comparison against the Chrome PO nine-row/`4,695` baseline, the mandated stop before TCT, and zero export/Import/write result. Current state is `DISCOVERY BLOCKED / READY FOR PO REVIEW`; both lanes remain `MANUAL_ONLY` and no successor is activated.
+
+## AUTO-BACKFILL-F41 Validation And Runtime Restore - 2026-08-18
+
+Append-only update: manifest Section 16 and checkpoint Section 13 record 60 focused runner tests passing with zero failures, isolated mutation-test storage, zero discovery artifacts, closed discovery clients and restored normal backend runtime on port 5050. The committed delta remains documentation-only.

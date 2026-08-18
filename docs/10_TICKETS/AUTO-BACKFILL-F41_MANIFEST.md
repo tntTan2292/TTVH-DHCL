@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-F41 Manifest
 
-Status: `DISCOVERY BLOCKED / BOTH LANES MANUAL_ONLY` (2026-08-18).
+Status: `DISCOVERY BLOCKED / READY FOR PO REVIEW / BOTH LANES MANUAL_ONLY` (2026-08-18).
 
 ## 1. Ticket Information
 
@@ -117,3 +117,32 @@ Reopening discovery requires a new PO-directed authenticated handoff through the
 State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED`.
 
 `AUTO-BACKFILL-SAFETY` and every successor remain inactive.
+
+## 14. PO Authenticated Discovery Re-entry
+
+On `2026-08-18`, the Product Owner opened Data Import Center, confirmed that both HUE and TCT sessions were currently valid, and explicitly authorized controlled re-entry from commit `6bf26eb20835707080d2e8590b3c1c383f155869`.
+
+The prior blocked result remains historical evidence. This re-entry permits only the bounded `2026-08-01` discovery, at most one HUE export and one TCT export, temporary storage outside Data DKCL, read-only workbook inspection, exact cleanup of discovery-created artifacts, and implementation only after an individual lane has complete evidence.
+
+The executor must use supported preflight/state first, gracefully release backend-owned session/profile ownership only as needed, reopen with `requireExistingSession=true`, and fail closed if supported preflight cannot return `SESSION_VALID`. Credentials, cookies and raw profile contents remain prohibited.
+
+State: `AUTO-BACKFILL-F41 ACTIVE / AUTHENTICATED DISCOVERY RE-ENTRY`.
+
+## 15. Authenticated Runtime Differential
+
+The supported Data Import Center preflight returned `SESSION_VALID` for both HUE and TCT. After graceful backend shutdown released profile ownership, the existing clients reopened both sources with `requireExistingSession=true`; no credential, cookie, token or raw profile content was inspected.
+
+The controlled HUE probe reused the verified F1.3 sequence and the PO-locked F4.1 configuration: route `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc`, `TuyChonGR=BC`, `stMaTinhPhat=53`, visible dates `01/08/2026`, request dates `08/01/2026`, and existing default filter normalization. The browser issued GET requests, but DKCL returned `HTTP 500 application/json` with a 33-byte body. The response contained no login form, no locked total `4,695`, and no data rows; the rendered table remained at three header rows and the console recorded failed-resource 500 errors.
+
+This conflicts with PO runtime evidence from Chrome using the same business configuration: nine result rows and total production `4,695`. The proven boundary is therefore a server-side 500 for the Codex-owned supported session/request, not absence of F4.1 data and not a verified selector mismatch. The underlying account/session/permission difference remains unproven because raw authentication material is intentionally out of scope.
+
+Per PO direction, TCT discovery did not continue after the unresolved HUE differential. Export/download/Import/SQLite/business-data writes were all zero. No executor was implemented; HUE and TCT remain independently `MANUAL_ONLY`.
+
+State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED / READY FOR PO REVIEW`.
+
+## 16. Validation And Runtime Restore
+
+- Focused Node regression command: 60 runner tests passed, 0 failed. Coverage, Queue, F1.3 adapters and legacy HUE/TCT flows, F4.1 parsers/pipeline, and queue migration remained green.
+- Mutation-capable tests used isolated temporary databases/directories; operational Auto Backfill and Import were not run.
+- Discovery clients were closed, temporary discovery directories contained zero files, and the normal QIS backend was restored on port `5050`.
+- Documentation-only diff check passed; no frontend, backend product code, schema, registry automation state or business data changed.

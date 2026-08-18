@@ -98,3 +98,36 @@ The F4.1 HUE parser reconciliation opened the already governed source read-only 
 State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED`.
 
 `AUTO-BACKFILL-SAFETY`, UI, Runtime and all other tickets remain inactive.
+
+## 11. PO Session Evidence And Discovery Re-entry
+
+- Continuation baseline: `6bf26eb20835707080d2e8590b3c1c383f155869`.
+- Product Owner runtime evidence: Data Import Center showed both HUE and TCT sessions as valid.
+- Product Owner authority: controlled re-entry into `AUTO-BACKFILL-F41` discovery only.
+- Re-entry worktree: clean outside excluded untracked `.claude/` and `Data QLML/`.
+
+Before live action, this checkpoint records the approved sequence: supported preflight/state confirmation; graceful backend stop only if needed for ownership release; existing client/session reopen with `requireExistingSession=true`; supported interactive manual authentication only if persisted validity does not survive transfer; no credential/cookie/profile inspection; bounded `2026-08-01` discovery with one export maximum per lane; no Import or SQLite/business-data write.
+
+The two evidence gates remain independent. A lane changes from `MANUAL_ONLY` only after route, filters, readiness, export action, generated-resource identity, filename behavior, download/cleanup and parser compatibility are all observed for that lane.
+
+State: `ACTIVE / AUTHENTICATED DISCOVERY RE-ENTRY`.
+
+## 12. Controlled HUE Differential And Stop Point
+
+The executor first reread the verified F1.3 runtime contracts. HUE uses `BC / 53`, confirms exact selected filters and one business date, reads the visible aggregate, opens the proven detail metric, confirms the detail total, then requests the detail export. TCT uses `TINH / ALL`, waits for exact scope/date plus a unique enabled summary export control, then requests the summary export. Both flows use bounded waits, generated-file polling, download validation and exact cleanup.
+
+Supported preflight returned `SESSION_VALID` for HUE and TCT. The backend was stopped through its registered graceful shutdown lifecycle, and both clients independently reopened with `requireExistingSession=true` without authentication-material inspection.
+
+For HUE F4.1, the single controlled request used `BC / 53 / 2026-08-01`. Browser state confirmed `BC`, province `53`, visible `01/08/2026` dates and hidden request dates `08/01/2026`. The GET request reached `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc`; three observed responses were `HTTP 500`, `application/json`, 33 bytes. The response evidence contained no login form, no `4,695` total and no data rows. UI evidence was three table header rows rather than the PO-proven nine data rows, and console evidence was three HTTP 500 failed-resource errors.
+
+The Chrome PO baseline remains nine HUE rows and total `4,695` for the same configuration. This establishes a runtime differential but does not establish whether the cause is account, session, permission or another DKCL server-side condition. No unsupported authentication inspection was performed.
+
+TCT was not run after this unresolved HUE stop point. Exports, downloads, Import calls, queue runs, SQLite writes and product-code changes: zero. Both lanes remain `MANUAL_ONLY`.
+
+State: `AUTO-BACKFILL-F41 DISCOVERY BLOCKED / READY FOR PO REVIEW`.
+
+## 13. Validation Ledger
+
+Focused `node --test --test-concurrency=1` validation covered Coverage, Queue, F1.3 shared executors, legacy F1.3 HUE/TCT services, F4.1 HUE/TCT parsers and pipeline, and queue migration: 60 runner tests passed, 0 failed. Mutation-capable cases used temporary DB/directories only.
+
+Discovery export/download count was zero, both discovery clients were closed, both task-specific temporary directories were empty, and normal QIS backend listening on port `5050` was restored. The final implementation delta is documentation-only.
