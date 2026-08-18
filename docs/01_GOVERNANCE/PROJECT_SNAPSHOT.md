@@ -17,24 +17,24 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-F41 — HUE direct outer-row reconciliation. ACTIVE (2026-08-18).` |
-| Current Ticket | `AUTO-BACKFILL-F41 — prove HUE 9 / 4,695 / 2,863 / 60.98% and export identity before HUE-only adapter work; no successor is active.` |
+| Current Phase | `AUTO-BACKFILL-F41 — Gate 4 shared-standard documentation remediation complete (2026-08-18).` |
+| Current Ticket | `AUTO-BACKFILL-F41 — independently verified HUE/TCT adapters plus shared Portal Adapter Standard; awaiting PO Gate 4.` |
 | Next Ticket | `None activated. AUTO-BACKFILL-SAFETY is a planned candidate only after F41 PO Gate 4 and separate explicit authorization. UI/RUNTIME, F41 Phase 3, UI Remediation and unrelated tickets remain inactive.` |
-| Last PO Status | `Product Owner confirms tantn.bdtth is authorized and permits direct outer-row HUE verification, then HUE-only adapter implementation if all evidence passes.` |
+| Last PO Status | `Product Owner accepts the technical HUE/TCT review and requires the shared Portal Adapter Standard before Gate 4 closure; documentation remediation is complete and Gate 4 remains pending.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-F41_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md` — F13 Gate 3 PASS, static/live discovery evidence, blocked lane disposition and validation ledger. |
-| Current State | `AUTO-BACKFILL-F41 ACTIVE / HUE OUTER-ROW RECONCILIATION (2026-08-18). HUE/TCT remain MANUAL_ONLY until proven.` |
-| Technical Status | `Exact request/report/export/detail transport is proven. Next probe excludes nested rows by direct DOM ownership and must reconcile 9 / 4,695 / 2,863 / 60.98%.` |
-| Runtime Status | `Account tantn.bdtth is PO-approved. Backend is on port 5050 before bounded ownership transfer; operational Import/queue/write remains prohibited.` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md` — independent HUE/TCT proof, implementation/validation ledger and Gate 4 shared-standard remediation. |
+| Current State | `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED (2026-08-18).` |
+| Technical Status | `F4.1 HUE/TCT adapters are independently verified and registered; shared Portal adapter lifecycle/evidence/registration rules now live in docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md.` |
+| Runtime Status | `No operational Queue or Import was run for this documentation remediation; product runtime and business data are unchanged.` |
 | PO UI Check Required | `No — this ticket has no frontend. AUTO-BACKFILL-UI remains deferred and requires its own later Product Owner activation.` |
-| PO Product Status | `AUTO-BACKFILL-F13 is closed / PO GATE 3 PASS. AUTO-BACKFILL-F41 HUE awaits direct outer-row proof; Gate 4 is not passed.` |
+| PO Product Status | `AUTO-BACKFILL-F13 is closed / PO GATE 3 PASS. AUTO-BACKFILL-F41 is ready for PO Gate 4 after documentation remediation; Gate 4 is not passed.` |
 | Last Closed Ticket | `AUTO-BACKFILL-F13 — COMPLETED / PO GATE 3 PASS (2026-08-18). Verified F1.3 HUE/TCT shared adapters are accepted; F41 is the active successor.` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-BACKFILL-F13 Gate 3 (2026-08-18): COMPLETED / PO PASS` |
 | Last Reviewed Implementation Commit | `5a2cf358e68baa0ae6f7ae1f22814f535b564fb9 — verified F1.3 adapters accepted at Gate 3.` |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
-| Next Phase Authorization | `HUE reconciliation and HUE-only adapter after proof; conditional TCT discovery via F1.3 TINH/ALL/single-date workflow. Safety and later tickets remain unauthorized.` |
+| Next Phase Authorization | `None. Await Product Owner Gate 4 review. Safety and later tickets remain unauthorized.` |
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-08-18` |
 
@@ -271,3 +271,7 @@ Latest authoritative next action (`2026-08-18`, TCT exact comparison; supersedes
 The verified `DKCL_F41_TCT_SINGLE_DATE_V1` executor accepts exactly F4.1/TCT/one date, uses existing manual TCT preflight/client, source lock and active-operation marker, preserves force/refresh false, and reuses generated-file handling, frozen parser and Phase 2 Import pipeline. Runtime registers both independently verified F4.1 executors before coordinator construction. Queue completion recheck skips external SUCCESS and the database global lease prevents HUE/TCT overlap. Combined focused validation passed `68/68` Node runner tests plus the legacy HUE `39/39`, HUE sync `135/135` and TCT suites; mutation-capable tests used only temporary DB/directories. Operational Queue/Import and live business-data writes were zero.
 
 Latest authoritative next action (`2026-08-18`, F41 Gate 4 handoff; supersedes every earlier next-action note): `None self-activated. AWAIT PRODUCT OWNER GATE 4 review of independently verified F4.1 HUE and TCT adapters. AUTO-BACKFILL-SAFETY and every successor remain inactive.`
+
+`AUTO-BACKFILL-F41` Gate 4 documentation remediation (`2026-08-18`, documentation only): Product Owner accepted the technical HUE/TCT review and required a reusable Portal-adapter SSOT before Gate 4 closure. `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md` now governs the default `MANUAL_ONLY` lifecycle, independent lane evidence, supported session and UI/request contracts, bounded discovery, verification/cleanup gate, Safety boundary, new-indicator registration checklist and platform integration rules. F41 manifest Section 29 and checkpoint Section 26 make it a mandatory Gate 4 deliverable; the governance index and indicator template expose it to fresh executors. Product code, database/schema, Import, Queue, runtime and business data are unchanged.
+
+Latest authoritative next action (`2026-08-18`, F41 documentation-remediated Gate 4 handoff; supersedes every earlier next-action note): `None self-activated. AWAIT PRODUCT OWNER GATE 4 review. AUTO-BACKFILL-SAFETY and every successor remain inactive.` State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED`.

@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-F41 Manifest
 
-Status: `ACTIVE / HUE OUTER-ROW RECONCILIATION / BOTH LANES MANUAL_ONLY` (2026-08-18).
+Status: `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED` (2026-08-18).
 
 ## 1. Ticket Information
 
@@ -25,6 +25,7 @@ Verify the real F4.1 Portal workflow independently for HUE and TCT, then impleme
 - `docs/06_REVIEWS/Import/AUTO-BACKFILL-F13_CHECKPOINT_001.md`
 - `docs/10_TICKETS/F41-PHASE-2_MANIFEST.md`
 - `docs/06_REVIEWS/Shared/F41-PHASE-2_CHECKPOINT_001.md`
+- `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md`
 - `docs/07_REFERENCE/Domains/domain_quality_management/f4.1_chat_luong_phat_thanh_cong_buu_cuc/`
 - Existing DKCL clients, F1.3 adapters, session/preflight locks, F4.1 parsers and Import pipeline
 
@@ -245,3 +246,13 @@ Runtime registers HUE and TCT before Queue/coordinator startup. Existing complet
 State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4`.
 
 Gate 4 is pending Product Owner approval and is not self-passed. Safety, frontend and every successor ticket remain inactive.
+
+## 29. Shared Portal Adapter Standard Gate 4 Deliverable
+
+Product Owner requires the reusable Portal adapter lifecycle, independent-lane rules, session/filter/bounded-discovery contracts, evidence gate, error boundary and new-indicator registration checklist to be owned by the shared SSOT at `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md`.
+
+This shared standard is mandatory Gate 4 material and is now part of Section 3 Required Reading. Sections 10-28 remain the F4.1-specific evidence record; they do not replace or duplicate the cross-indicator standard. Future adapter and indicator tickets must reference the shared document and keep lane-specific facts in their own governed evidence.
+
+State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED`.
+
+Gate 4 remains pending Product Owner approval. `AUTO-BACKFILL-SAFETY` and all successors remain inactive.

@@ -10,6 +10,7 @@ effective_date: ""
 expiration_date: ""
 review_cycle: ""
 data_sources: []
-dependencies: []
+dependencies:
+  - "docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md"
 tags: []
 priority: ""

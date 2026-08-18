@@ -12,7 +12,8 @@ review_cycle: "TODO - Waiting Product Owner"
 data_sources:
   - "F4.1_Chất lượng phát thành công của bưu cục — file chi tiết cấp bưu gửi (HUE), do DKCL cung cấp"
   - "F4.1_Chất lượng phát thành công của bưu cục — file tổng hợp cấp đơn vị (TCT), do DKCL cung cấp"
-dependencies: []
+dependencies:
+  - "docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md"
 tags:
   - "phat"
   - "thanh cong"

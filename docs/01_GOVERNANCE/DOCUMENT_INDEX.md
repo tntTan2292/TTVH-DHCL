@@ -101,6 +101,7 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/06_REVIEWS/UI/F13_UI_AUDIT_PLAN_CHECKPOINT_001.md` | UI Planning Checkpoint | Closed. Full Phase 1-4 implementation record, PO PASS evidence, and protected contracts for F1.3 UI standardization. | L2/L3 | Conditional Reference | When Operation Dashboard implementation history or protected findings are needed. | High |
 | `docs/06_REVIEWS/Route/F13_INTERNAL_COUNTER_ROUTE_AUDIT.md` | Route Review | Completed bounded database audit, route catalog handoff, and PO-approved Route Ranking outcome. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/07_REFERENCE/Shared_Business/F13_INTERNAL_ROUTE_CATALOG.md` | Business Reference | Product Owner-confirmed internal-counter route catalog for later F1.3 daily analysis. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
+| `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md` | Shared Portal Adapter SSOT | Evidence-gated lifecycle, independent HUE/TCT lane, session/filter/bounded-execution, evidence/cleanup, Safety-boundary and new-indicator registration standard. | L4 | Current Required Reading | Mandatory whenever a manifest implements a Portal adapter or registers an indicator that may support Portal automation. | Mandatory |
 | `docs/04_TECHNICAL_PLANNING/F13_OPERATIONAL_CAPABILITY_AUDIT.md` | Technical Planning | Data-first F1.3 module capability matrix, gap matrix, target architecture, roadmap, and deferred data-quality proposal basis. | L2/L3 | Current Required Reading | Current planning ticket only. | Mandatory |
 | `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` | Governance Index | Inventory and document-status metadata. | L2 | Current Required Reading | Governance cleanup, documentation audit, or authority conflict checks. | High |
 | `docs/01_GOVERNANCE/DOCUMENT_GOVERNANCE.md` | Governance | Document governance and authority rules. | L1 | Conditional Reference | Governance-rule conflict or document lifecycle questions. | High |
@@ -259,8 +260,9 @@ This section supersedes F13 current-ticket rows for live onboarding. Historical 
 | `docs/10_TICKETS/AUTO-BACKFILL-F41_MANIFEST.md` | Ticket Manifest | PO-authorized F4.1 discovery-first per-lane Portal verification and evidence-gated adapter scope. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 | `docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md` | Checkpoint / Technical Execution Report | F13 Gate 3 PASS, F41 activation baseline, discovery limits, per-lane evidence and implementation disposition. | L2/L3 | Current Required Reading | When current manifest names it. | Mandatory |
 | `docs/10_TICKETS/AUTO-BACKFILL-F13_MANIFEST.md` | Closed Predecessor Manifest | Verified F1.3 adapters and explicit PO Gate 3 PASS/F41 handoff. | L2 | Conditional Reference | Required by F41 manifest. | Mandatory |
+| `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md` | Shared Portal Adapter SSOT | Cross-indicator Portal adapter lifecycle and registration authority; F1.3/F4.1 are precedents, not identities to infer. | L4 | Current Required Reading | Required by the F41 manifest and every future Portal-adapter/new-indicator ticket. | Mandatory |
 
-Current state: `AUTO-BACKFILL-F41 ACTIVE / DISCOVERY AUTHORIZED`. No later ticket is activated.
+Current state: `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED`. Gate 4 is not self-passed and no later ticket is activated.
 
 ## AUTO-BACKFILL-F41 Discovery Blocked Handoff - 2026-08-18
 
@@ -301,3 +303,7 @@ Append-only update: manifest Section 24 and checkpoint Section 21 record the PO-
 ## AUTO-BACKFILL-F41 Gate 4 Handoff - 2026-08-18
 
 Append-only update: manifest Sections 25-28 and checkpoint Sections 22-25 record byte-identical TCT request proof, HTTP 200/47 outer rows, the one controlled export checksum and cleanup, frozen 46/34/12 parser reconciliation, verified one-date TCT executor, dual-lane pre-start registration, completion/global-lease safety and `68/68` focused validation. Both F4.1 lanes are `AUTOMATED`. Current state is `AUTO-BACKFILL-F41 READY FOR PO GATE 4`; Gate 4 is not self-passed and no successor is activated.
+
+## AUTO-BACKFILL-F41 Gate 4 Documentation Remediation - 2026-08-18
+
+Append-only update: `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md` is now the shared Portal-adapter SSOT and mandatory Required Reading for adapter/new-indicator implementation. Manifest Section 29 and checkpoint Section 26 record this Gate 4 deliverable without duplicating F4.1 evidence. Current state is `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED`; Gate 4 is not self-passed and `AUTO-BACKFILL-SAFETY` remains inactive.

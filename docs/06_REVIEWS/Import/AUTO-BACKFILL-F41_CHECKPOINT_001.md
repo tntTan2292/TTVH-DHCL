@@ -261,3 +261,13 @@ Operational Auto Backfill, real Import, live SQLite/business-data mutation, fron
 State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4`.
 
 Gate 4 is not self-passed. `AUTO-BACKFILL-SAFETY` and all successors remain inactive.
+
+## 26. Gate 4 Shared-Standard Documentation Remediation
+
+The reusable Portal adapter process is now governed by `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md`. It is the shared SSOT for the lifecycle from `MANUAL_ONLY` through independently verified `AUTOMATED` lanes and PO Gate; supported sessions, UI-event and cascade handling, exact request-state proof, finite discovery, evidence/reconciliation/cleanup gates, Safety boundary, and new-indicator registration checklist.
+
+The standard includes short F1.3/F4.1 precedents while leaving report identities, filters, parser evidence and reconciliations owned by each indicator/lane. The F4.1 manifest Required Reading, governance index, current snapshot, F4.1 domain dependency and new-indicator template dependency point to the shared document. No F4.1-specific evidence was copied out of this checkpoint.
+
+This remediation changes documentation only. Product code, database/schema, Import, Queue, runtime and operational data are unchanged. Gate 4 is not self-passed and no successor is activated.
+
+State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED`.

@@ -949,3 +949,9 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Added and registered `DKCL_F41_TCT_SINGLE_DATE_V1` before coordinator startup, reusing the existing TCT session, source lock, active-operation protection, Queue completion recheck, global lease and F4.1 Import pipeline. Force/refresh remains disabled.
 - Both F4.1 lanes are now independently `AUTOMATED`. Focused shared-platform/F1.3/F4.1 validation passed `68/68` runner tests plus legacy internal suites; all mutation-capable tests used isolated temporary storage.
 - No operational Queue, real Import, live business-data write, Safety, frontend or successor work occurred. State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4`; Gate 4 is not self-passed.
+
+## AUTO-BACKFILL-F41 Gate 4 Documentation Remediated
+
+- Added `docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md` as the reusable SSOT for Portal-adapter lifecycle, independent HUE/TCT evidence, supported sessions, exact UI/request filters, bounded discovery, verification/cleanup, error classification/Safety boundary and new-indicator registration.
+- Linked the standard from F41 Required Reading, F41 Gate 4 manifest/checkpoint handoff, `DOCUMENT_INDEX`, the current snapshot, the F4.1 domain package and the new-indicator template. F4.1-specific evidence remains in its manifest/checkpoint instead of being duplicated.
+- Documentation only: product code, database/schema, Import, Queue, runtime and business data are unchanged. State: `AUTO-BACKFILL-F41 READY FOR PO GATE 4 — DOCUMENTATION REMEDIATED`; Gate 4 is not self-passed and no successor is activated.
