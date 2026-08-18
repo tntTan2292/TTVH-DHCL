@@ -17,14 +17,14 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-UI — UX Redesign Plan revised / Awaiting PO Approval (2026-08-18).` |
-| Current Ticket | `AUTO-BACKFILL-UI — Implementation frozen per PO directive; Revised UI/UX Plan submitted for PO review.` |
-| Next Ticket | `None activated. AUTO-BACKFILL-UI implementation requires explicit PO plan approval. AUTO-BACKFILL-RUNTIME remains planned only.` |
-| Last PO Status | `Product Owner requested plan adjustments (10 rows/page, history isolation, drawer locked, 4-indicator proof). Revised plan submitted; awaiting PO review.` |
+| Current Phase | `AUTO-BACKFILL-UI — UI/UX Redesign Plan remediated / READY FOR PO FINAL PLAN APPROVAL (2026-08-18).` |
+| Current Ticket | `AUTO-BACKFILL-UI — Product code implementation frozen; 3 documentation remediation points applied; awaiting PO final plan approval.` |
+| Next Ticket | `None activated. AUTO-BACKFILL-UI product code implementation requires explicit PO final plan approval. AUTO-BACKFILL-RUNTIME remains planned only.` |
+| Last PO Status | `Product Owner requested 3 documentation-only plan remediation points. All 3 points remediated; ready for PO final plan approval.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-UI_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI_CHECKPOINT_001.md` — Gate 5 PASS confirmation, Revised UI/UX Plan & 4-Indicator Scalability Proof, awaiting PO approval. |
-| Current State | `AUTO-BACKFILL-UI UX REDESIGN PLAN REVISED / AWAITING PO APPROVAL (2026-08-18).` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI_CHECKPOINT_001.md` — Gate 5 PASS confirmation, Remediated UI/UX Plan & 3-point remediation summary, ready for PO final plan approval. |
+| Current State | `READY FOR PO FINAL PLAN APPROVAL (2026-08-18).` |
 | Technical Status | `No-code Operator UI component, DataImportCenter integration, oxlint clean, vite build PASS, UI test suite PASS, backend regressions 100% PASS.` |
 | Runtime Status | `No operational Queue, Portal, download or Import ran; validation used fake executors and mock data.` |
 | PO UI Check Required | `Yes — Product Owner Gate 6 UI review required for Auto Backfill V2 Operator Panel.` |

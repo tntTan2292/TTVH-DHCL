@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-UI Checkpoint 001
 
-Status: `AUTO-BACKFILL-UI UX REDESIGN PLAN REVISED / AWAITING PO APPROVAL` (2026-08-18).
+Status: `READY FOR PO FINAL PLAN APPROVAL` (2026-08-18).
 
 ## 1. Executive Summary
 
@@ -76,7 +76,14 @@ Per Product Owner directive, the UI/UX Redesign Plan was revised (`implementatio
 4. **Neutral Naming**: Tab 1 named "Bù dữ liệu tự động".
 5. **Future-State 4+ Indicator Proof**: Dynamic indicator health grid and backend API contract metadata specification supporting 4 indicators (`F1.3`, `F4.1`, `F2.TEST`, `F5.TEST`) with zero frontend code modifications.
 
-## 8. Revised Plan Handoff
+## 8. Documentation-Only Plan Remediation Summary
 
-State: `AUTO-BACKFILL-UI UX REDESIGN PLAN REVISED / AWAITING PO APPROVAL`.
-Next Phase: Implementation remains frozen until explicit PO plan approval. Gate 6 is not self-passed and Runtime remains unauthorized.
+Per Product Owner directive, the UI/UX Redesign Plan was remediated at 3 specific documentation points:
+1. **Audit Events Right Drawer Lock**: Deleted phrase "or detailed in Tab 2". Audit Events accessible ONLY via Right Drawer on Tab 1; Tab 2 reserved exclusively for PO Reports.
+2. **Zero Frontend Code Definition & API Dependency**: Explicitly defined "zero-code" as zero frontend code modifications (backend registry registration still required). Formally recorded backend Coverage API `indicators` metadata support as an explicit dependency.
+3. **Fixed Neutral Slate Token Fallback**: Removed arbitrary color hashing. Missing `badge_theme` fallback set to single fixed neutral token: `slate` (`bg-slate-100 text-slate-700 border-slate-200`).
+
+## 9. Final Plan Approval Handoff
+
+State: `READY FOR PO FINAL PLAN APPROVAL`.
+Next Phase: Product code implementation remains frozen until explicit PO final plan approval. Gate 6 is not self-passed and Runtime remains unauthorized.
