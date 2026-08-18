@@ -524,6 +524,30 @@ class AutoBackfillQueueStore {
         });
     }
 
+    async getCoordinatorState() {
+        return this.withDb(async (db) => {
+            const counts = await get(
+                db,
+                `SELECT
+                    SUM(CASE WHEN j.state = 'QUEUED' AND r.status = 'RUNNING' THEN 1 ELSE 0 END) AS eligible_job_count,
+                    SUM(CASE WHEN j.state = 'RUNNING' THEN 1 ELSE 0 END) AS running_job_count
+                 FROM auto_backfill_job j
+                 JOIN auto_backfill_run r ON r.id = j.run_id`,
+            );
+            const lease = await get(
+                db,
+                "SELECT job_id, worker_id, expires_at FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL'",
+            );
+            return {
+                eligibleJobCount: Number(counts?.eligible_job_count || 0),
+                runningJobCount: Number(counts?.running_job_count || 0),
+                leaseJobId: lease?.job_id || null,
+                leaseWorkerId: lease?.worker_id || null,
+                leaseExpiresAt: lease?.expires_at || null,
+            };
+        });
+    }
+
     async countRows(tableName) {
         if (!['auto_backfill_run', 'auto_backfill_job', 'auto_backfill_attempt', 'auto_backfill_worker_lease', 'auto_backfill_event'].includes(tableName)) {
             throw new Error('Unsupported queue table.');

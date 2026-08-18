@@ -854,3 +854,15 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Added Admin create/pause/resume APIs and registry-governed read API. Production has no registered executor and all current F1.3/F4.1 lanes remain `MANUAL_ONLY`, so production fails closed.
 - Acceptance PASS: AB-QUE-01..03, AB-SUC-01..02, competing workers, duplicate planning, permissions/read-only GET, migration/idempotency and retained AB-EXT/AB-ISO. Relevant F1.3/F4.1 Import and legacy backfill regressions PASS.
 - No real queue, Portal automation, Import, Data DKCL write, frontend, retry/circuit runtime or successor ticket was activated. State: `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`.
+
+## AUTO-BACKFILL-QUEUE - Gate 2 Worker Coordinator Remediation Activated
+
+- Gate 2 review found persisted eligible work had no production coordinator to invoke the execution shell after create, resume or restart.
+- Product Owner authorized a bounded coordinator lifecycle/wakeup/drain/shutdown remediation from `20e70d80a8a88438591bbdd63f4f320fab2f3bde`.
+- Database global leasing, pause semantics, completion recheck, empty production executors and all ticket exclusions remain locked. No successor is activated.
+
+## AUTO-BACKFILL-QUEUE - Gate 2 Worker Coordinator Remediated
+
+- Added shared start/wake/drain/stop coordination, create/resume/startup wake integration, bounded lease-expiry polling and clean shutdown while keeping SQLite global leasing authoritative.
+- Focused suite `39/39 PASS`, including seven coordinator tests and unchanged AB-QUE/AB-SUC. Requested F1.3/F4.1 regressions all PASS.
+- Production executors remain empty and real lanes remain `MANUAL_ONLY`; no Portal/Import/Data DKCL execution occurred. State remains `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`.

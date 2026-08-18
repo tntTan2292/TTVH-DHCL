@@ -37,6 +37,7 @@ class AutoBackfillQueueService {
         fsImpl = null,
         workerId = `backend-${process.pid}-${crypto.randomUUID()}`,
         heartbeatMs = 15000,
+        onWorkAvailable = null,
     } = {}) {
         if (!(store instanceof AutoBackfillQueueStore)) throw new Error('AutoBackfillQueueService requires an AutoBackfillQueueStore.');
         if (!(coverageService instanceof AutoBackfillCoverageService) && typeof coverageService?.scan !== 'function') {
@@ -51,6 +52,17 @@ class AutoBackfillQueueService {
         this.fs = fsImpl || coverageService.fs;
         this.workerId = workerId;
         this.heartbeatMs = heartbeatMs;
+        this.onWorkAvailable = onWorkAvailable;
+    }
+
+    setWorkAvailableNotifier(notifier) {
+        if (notifier !== null && typeof notifier !== 'function') throw new Error('Queue work notifier must be a function or null.');
+        this.onWorkAvailable = notifier;
+        return this;
+    }
+
+    notifyWorkAvailable(reason) {
+        this.onWorkAvailable?.(reason);
     }
 
     registrations() {
@@ -114,7 +126,7 @@ class AutoBackfillQueueService {
             lane: lane ? String(lane).toUpperCase() : null,
             identities: jobs.map((job) => [job.indicator, job.sourceLane, job.businessDate]),
         });
-        return this.store.createRunWithJobs({
+        const result = await this.store.createRunWithJobs({
             requestKey,
             registryVersion: coverage.registry_version || this.registryVersion,
             asOfBusinessDate: coverage.as_of_business_date,
@@ -123,6 +135,8 @@ class AutoBackfillQueueService {
             requestedBy: String(actor || 'unknown'),
             jobs,
         });
+        this.notifyWorkAvailable('run-created');
+        return result;
     }
 
     async getRun(runId, { roles }) {
@@ -154,7 +168,9 @@ class AutoBackfillQueueService {
 
     async resumeRun(runId, { actor, roles }) {
         assertAdmin(roles);
-        return this.store.resumeRun(runId, actor);
+        const result = await this.store.resumeRun(runId, actor);
+        this.notifyWorkAvailable('run-resumed');
+        return result;
     }
 
     async evaluateCompletion(job) {

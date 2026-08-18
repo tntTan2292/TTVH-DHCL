@@ -111,3 +111,24 @@ Gate 2 must review persisted progress, deterministic ordering, one-global-lease 
 Technical implementation is complete with no known blocker. Product Owner Gate 2 remains required and is not self-awarded. `AUTO-BACKFILL-F13` and every later ticket remain inactive.
 
 `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`
+
+## 13. Gate 2 Remediation - Worker Coordinator Activation
+
+Gate 2 review found that durable jobs and `processNext()` existed but no production coordinator invoked the execution shell after create, resume or restart. Persisted eligible work could therefore remain idle, contrary to approved Q-07.
+
+Product Owner authorized a bounded remediation from commit `20e70d80a8a88438591bbdd63f4f320fab2f3bde` to add only the shared coordinator lifecycle (`start`, `wake`, sequential `drain`, `stop`), create/resume/startup wake integration, lease-expiry recovery polling, clean shutdown and focused tests. The database global lease remains authoritative. Production executors remain empty and current real lanes remain `MANUAL_ONLY`; no Portal, Import, retry/circuit, frontend or successor scope is activated.
+
+Remediation state: `ACTIVE / IMPLEMENTATION AUTHORIZED`. Required final state remains `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`.
+
+## 14. Gate 2 Coordinator Remediation Result
+
+- Added indicator-neutral `AutoBackfillWorkerCoordinator` lifecycle: idempotent `start`, coalesced `wake`/`drain`, bounded lease-aware polling, dormant no-work state and clean `stop`.
+- Successful run creation and Resume notify the shared coordinator. Backend startup now awaits migrations and initial recovery, starts the coordinator before listening, and signal/startup failure paths stop it cleanly.
+- `getCoordinatorState()` reads only durable eligible-job/RUNNING/lease state. A live lease schedules one bounded recheck; expired work is recovered through the existing completion policy before execution. The coordinator never overrides the database lease.
+- Runtime exports verified-executor registration and explicit wake hooks for later adapter tickets without changing queue ordering, recovery or lease logic. Production registration remains empty.
+- Seven focused tests prove create drain, Resume continuation, restart after lease safety, PAUSED dormancy, two-coordinator exclusion, empty-registry dormancy/no busy-loop and timer cleanup. Retained AB-QUE-01..03 and AB-SUC-01..02 remain PASS.
+- Focused Queue/API/migration/startup/Coverage suite: `39/39 PASS`. F4.1 pipeline/parser and F1.3 Import/legacy backfill regressions all PASS.
+
+No real queue, executor, Portal, Import or Data DKCL operation ran. Gate 2 remediation is technically complete; PO Gate 2 remains pending and no successor is activated.
+
+`AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`

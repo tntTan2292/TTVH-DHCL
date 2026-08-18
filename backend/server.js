@@ -22,6 +22,8 @@ const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
 const HOST = process.env.HOST || '0.0.0.0';
+let activeServer = null;
+let shutdownPromise = null;
 
 const logRuntimeBanner = () => {
     const viewerConfig = getViewerConfigStatus();
@@ -44,23 +46,29 @@ const logRuntimeBanner = () => {
     console.log('====================================');
 };
 
-process.on('SIGINT', () => {
-    console.log('====================================');
-    console.log('SIGINT RECEIVED');
-    console.log(`Time: ${new Date().toISOString()}`);
-    console.log(`PID: ${process.pid}`);
-    console.log('====================================');
-    process.exit(0);
-});
+async function shutdown(signal, exitCode = 0) {
+    if (shutdownPromise) return shutdownPromise;
+    shutdownPromise = (async () => {
+        console.log('====================================');
+        console.log(`${signal} RECEIVED`);
+        console.log(`Time: ${new Date().toISOString()}`);
+        console.log(`PID: ${process.pid}`);
+        console.log('====================================');
+        try {
+            const { stopAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
+            await stopAutoBackfillQueueRuntime();
+            if (activeServer?.listening) {
+                await new Promise((resolve) => activeServer.close(resolve));
+            }
+        } finally {
+            process.exit(exitCode);
+        }
+    })();
+    return shutdownPromise;
+}
 
-process.on('SIGTERM', () => {
-    console.log('====================================');
-    console.log('SIGTERM RECEIVED');
-    console.log(`Time: ${new Date().toISOString()}`);
-    console.log(`PID: ${process.pid}`);
-    console.log('====================================');
-    process.exit(0);
-});
+process.on('SIGINT', () => { void shutdown('SIGINT'); });
+process.on('SIGTERM', () => { void shutdown('SIGTERM'); });
 
 process.on('uncaughtException', (error) => {
     console.error('====================================');
@@ -113,8 +121,8 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
 function startServer() {
     return ensureStartupSchemaMigrations(activeDbPath)
         .then(async () => {
-            const { recoverAutoBackfillQueueOnStartup } = require('./src/services/autoBackfillQueueRuntime');
-            await recoverAutoBackfillQueueOnStartup();
+            const { startAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
+            await startAutoBackfillQueueRuntime();
         })
         .then(() => {
             const server = app.listen(PORT, HOST, () => {
@@ -122,6 +130,7 @@ function startServer() {
                 console.log(`TTVH Backend running on port ${PORT}`);
                 startWatcher();
             });
+            activeServer = server;
 
             server.on('error', (error) => {
                 if (error?.code === 'EADDRINUSE') {
@@ -132,15 +141,19 @@ function startServer() {
                     console.error('powershell -ExecutionPolicy Bypass -File .\\scripts\\check-qis-lan-ports.ps1');
                     console.error('Then stop the owning process before restarting QIS V2.');
                     console.error('====================================');
-                    process.exit(1);
+                    void shutdown('EADDRINUSE', 1);
+                    return;
                 }
 
                 throw error;
             });
+            return server;
         })
-        .catch((error) => {
+        .catch(async (error) => {
+            const { stopAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
+            await stopAutoBackfillQueueRuntime();
             console.error('====================================');
-            console.error('STARTUP SCHEMA MIGRATION FAILED');
+            console.error('STARTUP INITIALIZATION FAILED');
             console.error(`Error: ${error?.message || error}`);
             console.error('====================================');
             process.exit(1);
@@ -155,4 +168,5 @@ module.exports = {
     app,
     ensureStartupSchemaMigrations,
     startServer,
+    shutdown,
 };

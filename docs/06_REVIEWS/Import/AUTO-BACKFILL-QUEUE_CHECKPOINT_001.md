@@ -129,3 +129,55 @@ Commit proof: this checkpoint is included in the implementation commit; its fina
 ## 10. Final State
 
 `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`
+
+## 11. Gate 2 Remediation - Missing Worker Coordinator
+
+- Review baseline: `20e70d80a8a88438591bbdd63f4f320fab2f3bde`.
+- Finding: production persisted queue state and exposed `processNext()`, but had no lifecycle owner to wake/drain it after create, resume or restart. Startup performed one recovery call only.
+- Authorized correction: add one indicator-neutral coordinator with explicit start/wake/drain/stop behavior, bounded dormant polling for lease expiry, API/startup integration and clean shutdown.
+- Locked safety: database lease remains the sole global concurrency authority; PAUSED/PAUSING stays dormant; production registry remains executor-empty; no real Portal/Import/Data DKCL operation.
+- Mandatory proof: create wake, resume wake, restart recovery after lease safety, PAUSED restart dormancy, two-coordinator global exclusion, empty-registry dormancy/no busy-loop, clean stop, and unchanged AB-QUE/AB-SUC.
+
+This is an in-ticket Gate 2 remediation only. No successor ticket is activated.
+
+## 12. Gate 2 Coordinator Remediation Evidence
+
+### 12.1 Implementation
+
+- Coordinator lifecycle owns only orchestration. SQLite `GLOBAL_DKCL` lease and one-RUNNING unique index remain the concurrency source of truth.
+- `start()` performs an initial wake; `wake()` coalesces onto one in-process drain; `drain()` calls `processNext()` sequentially until no job is eligible; `stop()` clears pending timers and waits for an active atomic call to settle.
+- Create and Resume emit in-process work notifications after successful persistence. Runtime startup awaits migration and recovery, starts the coordinator before `app.listen()`, and clean shutdown is wired for SIGINT/SIGTERM/startup failure.
+- When another process owns a lease, one bounded timer rechecks no later than the configured maximum poll and at lease expiry plus grace. With no eligible/running work or lease, no timer remains.
+- Runtime exposes verified executor registration plus wake for later adapter tickets. The production registry remains empty, so current MANUAL_ONLY lanes perform zero execution and the coordinator becomes dormant.
+
+### 12.2 Focused Acceptance
+
+| Proof | Result |
+| --- | --- |
+| Create wake/drain | PASS: injected verified test executor completed the persisted run automatically |
+| Resume wake | PASS: active atomic job finished into PAUSED; Resume automatically completed remaining work |
+| Restart/lease safety | PASS: new coordinator waited for expiry, recorded interrupted attempt, recovered and continued |
+| PAUSED restart | PASS: no executor call, no poll timer and no repeated `processNext()` |
+| Two coordinators | PASS: two connections/coordinators observed maximum executor concurrency of one |
+| Empty production-style registry | PASS: zero execution, one initial probe, then no polling timer/busy-loop |
+| Clean stop | PASS: pending lease timer cleared; started/draining/timer state all false |
+| Existing acceptance | PASS: AB-QUE-01..03 and AB-SUC-01..02 unchanged |
+
+### 12.3 Validation
+
+| Suite | Result |
+| --- | --- |
+| Queue coordinator + Queue/API/migration/startup/Coverage | `39/39 PASS` |
+| F4.1 Import pipeline | `1/1 PASS` |
+| F4.1 HUE/TCT parsers | `5/5` and `6/6 PASS` |
+| F1.3 Import race / processor | `41/41` and `59/59 PASS` |
+| F1.3 HUE legacy backfill | `39/39 PASS` |
+| F1.3 TCT legacy backfill | all checks PASS |
+
+All mutation-capable validation used OS-temp SQLite/filesystem sandboxes and injected test executors. No production executor, live queue, Portal session, Import or Data DKCL write occurred.
+
+### 12.4 Handoff
+
+Finding `POF-AUTO-BACKFILL-QUEUE-01` is technically remediated and ready for PO Gate 2 recheck. No successor ticket is activated.
+
+`AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`

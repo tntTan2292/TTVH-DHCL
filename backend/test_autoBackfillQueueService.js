@@ -15,6 +15,7 @@ const { AutoBackfillCoverageService } = require('./src/services/autoBackfillCove
 const { AutoBackfillQueueStore } = require('./src/services/autoBackfillQueueStore');
 const { AutoBackfillQueueService } = require('./src/services/autoBackfillQueueService');
 const { AutoBackfillExecutorRegistry } = require('./src/services/autoBackfillExecutorRegistry');
+const { AutoBackfillWorkerCoordinator } = require('./src/services/autoBackfillWorkerCoordinator');
 
 const CIRCUIT_SCOPE = Object.freeze({
     dimensions: ['adapter', 'source', 'resource'],
@@ -27,6 +28,31 @@ function deferred() {
     let resolve;
     const promise = new Promise((done) => { resolve = done; });
     return { promise, resolve };
+}
+
+async function eventually(predicate, { timeoutMs = 2000, intervalMs = 10 } = {}) {
+    const deadline = Date.now() + timeoutMs;
+    let lastValue;
+    while (Date.now() < deadline) {
+        lastValue = await predicate();
+        if (lastValue) return lastValue;
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+    assert.fail(`Condition was not met within ${timeoutMs}ms; last value: ${JSON.stringify(lastValue)}`);
+}
+
+function attachCoordinator(service, clockState, options = {}) {
+    const coordinator = new AutoBackfillWorkerCoordinator({
+        queueService: service,
+        clock: () => clockState.now,
+        minPollMs: 5,
+        maxPollMs: 25,
+        leaseGraceMs: 1,
+        onError(error) { throw error; },
+        ...options,
+    });
+    service.setWorkAvailableNotifier(() => coordinator.wake());
+    return coordinator;
 }
 
 function createLane({ indicator, code, priority, statuses, readRoles = ['admin'] }) {
@@ -344,4 +370,203 @@ test('production-style empty executor registry fails closed before persisting jo
     } finally {
         fixture.cleanup();
     }
+});
+
+test('coordinator wakes on run creation and drains with an injected verified executor', async () => {
+    const fixture = await createFixture({
+        indicators: (statuses) => [createIndicator({ code: 'F9.TEST', priority: 10, startDate: '2026-01-03', laneCodes: ['HUE'], statuses })],
+    });
+    const coordinator = attachCoordinator(fixture.service, fixture.clockState);
+    try {
+        coordinator.start();
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        await eventually(async () => (await fixture.service.store.getRun(created.run.id)).run.status === 'COMPLETED');
+        assert.deepEqual(fixture.calls, ['F9.TEST|HUE|2026-01-03']);
+        await eventually(() => !coordinator.snapshot().draining && !coordinator.snapshot().timerScheduled);
+    } finally {
+        await coordinator.stop();
+        fixture.cleanup();
+    }
+});
+
+test('coordinator wakes on Resume and drains remaining persisted work', async () => {
+    const started = deferred();
+    const release = deferred();
+    let first = true;
+    const fixture = await createFixture({
+        indicators: (statuses) => [createIndicator({ code: 'F9.TEST', priority: 10, startDate: '2026-01-02', laneCodes: ['HUE'], statuses })],
+        execute: async (identity, statuses) => {
+            if (first) {
+                first = false;
+                started.resolve();
+                await release.promise;
+            }
+            statuses.set(`${identity.indicator}|${identity.sourceLane}|${identity.businessDate}`, 'SUCCESS');
+        },
+    });
+    const coordinator = attachCoordinator(fixture.service, fixture.clockState);
+    try {
+        coordinator.start();
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        await started.promise;
+        await fixture.service.pauseRun(created.run.id, { actor: 'admin', roles: ['admin'] });
+        release.resolve();
+        await eventually(async () => (await fixture.service.store.getRun(created.run.id)).run.status === 'PAUSED');
+        assert.equal(fixture.calls.length, 1);
+        await fixture.service.resumeRun(created.run.id, { actor: 'admin', roles: ['admin'] });
+        await eventually(async () => (await fixture.service.store.getRun(created.run.id)).run.status === 'COMPLETED');
+        assert.equal(fixture.calls.length, 2);
+    } finally {
+        release.resolve();
+        await coordinator.stop();
+        fixture.cleanup();
+    }
+});
+
+test('restart coordinator waits for lease safety, recovers, and continues interrupted work', async () => {
+    const fixture = await createFixture({
+        leaseMs: 20,
+        indicators: (statuses) => [createIndicator({ code: 'F9.TEST', priority: 10, startDate: '2026-01-03', laneCodes: ['HUE'], statuses })],
+    });
+    let coordinator;
+    try {
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        await fixture.service.store.acquireNextJob('crashed-process');
+        coordinator = attachCoordinator(fixture.makeService('restarted-process'), fixture.clockState);
+        coordinator.start();
+        await eventually(() => coordinator.snapshot().timerScheduled);
+        assert.equal(fixture.calls.length, 0);
+        fixture.clockState.now = new Date(fixture.clockState.now.getTime() + 1000);
+        await eventually(async () => (await fixture.service.store.getRun(created.run.id)).run.status === 'COMPLETED');
+        assert.equal(fixture.calls.length, 1);
+        const attempts = (await fixture.service.store.getRun(created.run.id)).attempts;
+        assert.deepEqual(attempts.map((attempt) => attempt.status), ['INTERRUPTED', 'SUCCESS']);
+    } finally {
+        if (coordinator) await coordinator.stop();
+        fixture.cleanup();
+    }
+});
+
+test('PAUSED run remains dormant across coordinator restart', async () => {
+    const fixture = await createFixture({
+        indicators: (statuses) => [createIndicator({ code: 'F9.TEST', priority: 10, startDate: '2026-01-03', laneCodes: ['HUE'], statuses })],
+    });
+    const coordinator = attachCoordinator(fixture.makeService('restarted-process'), fixture.clockState);
+    try {
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        await fixture.service.pauseRun(created.run.id, { actor: 'admin', roles: ['admin'] });
+        coordinator.start();
+        await eventually(() => !coordinator.snapshot().draining);
+        const snapshot = coordinator.snapshot();
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        assert.equal((await fixture.service.store.getRun(created.run.id)).run.status, 'PAUSED');
+        assert.equal(fixture.calls.length, 0);
+        assert.equal(coordinator.snapshot().processNextCount, snapshot.processNextCount);
+        assert.equal(coordinator.snapshot().timerScheduled, false);
+    } finally {
+        await coordinator.stop();
+        fixture.cleanup();
+    }
+});
+
+test('two coordinators still execute at most one job concurrently', async () => {
+    const release = deferred();
+    let concurrent = 0;
+    let maxConcurrent = 0;
+    let first = true;
+    const fixture = await createFixture({
+        indicators: (statuses) => [createIndicator({ code: 'F9.TEST', priority: 10, startDate: '2026-01-02', laneCodes: ['HUE'], statuses })],
+        execute: async (identity, statuses) => {
+            concurrent += 1;
+            maxConcurrent = Math.max(maxConcurrent, concurrent);
+            if (first) {
+                first = false;
+                await release.promise;
+            }
+            statuses.set(`${identity.indicator}|${identity.sourceLane}|${identity.businessDate}`, 'SUCCESS');
+            concurrent -= 1;
+        },
+    });
+    const coordinatorA = attachCoordinator(fixture.service, fixture.clockState);
+    const coordinatorB = attachCoordinator(fixture.makeService('worker-b'), fixture.clockState);
+    try {
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        coordinatorA.start();
+        coordinatorB.start();
+        await eventually(() => concurrent === 1);
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        assert.equal(maxConcurrent, 1);
+        assert.equal(await fixture.service.store.countRows('auto_backfill_worker_lease'), 1);
+        release.resolve();
+        await eventually(async () => (await fixture.service.store.getRun(created.run.id)).run.status === 'COMPLETED');
+        assert.equal(maxConcurrent, 1);
+        assert.equal(fixture.calls.length, 2);
+    } finally {
+        release.resolve();
+        await Promise.all([coordinatorA.stop(), coordinatorB.stop()]);
+        fixture.cleanup();
+    }
+});
+
+test('empty executor runtime becomes dormant without polling or execution', async () => {
+    const fixture = await createFixture();
+    const closedService = new AutoBackfillQueueService({
+        store: fixture.service.store,
+        coverageService: fixture.service.coverageService,
+        executorRegistry: new AutoBackfillExecutorRegistry(),
+        registryProvider: () => fixture.registry,
+        completionDb: {},
+    });
+    const coordinator = attachCoordinator(closedService, fixture.clockState);
+    try {
+        coordinator.start();
+        await eventually(() => !coordinator.snapshot().draining);
+        const snapshot = coordinator.snapshot();
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        assert.equal(fixture.calls.length, 0);
+        assert.equal(coordinator.snapshot().processNextCount, snapshot.processNextCount);
+        assert.equal(coordinator.snapshot().timerScheduled, false);
+    } finally {
+        await coordinator.stop();
+        fixture.cleanup();
+    }
+});
+
+test('coordinator stop clears a pending lease timer without handle leakage', async () => {
+    let timerCreated = 0;
+    let timerCleared = 0;
+    const fakeTimer = { unref() {} };
+    const queueService = {
+        async processNext() { return null; },
+        store: {
+            async getCoordinatorState() {
+                return {
+                    eligibleJobCount: 1,
+                    runningJobCount: 1,
+                    leaseExpiresAt: '2098-01-01T00:00:00.000Z',
+                };
+            },
+        },
+    };
+    const coordinator = new AutoBackfillWorkerCoordinator({
+        queueService,
+        minPollMs: 5,
+        maxPollMs: 25,
+        setTimer() { timerCreated += 1; return fakeTimer; },
+        clearTimer(timer) { assert.equal(timer, fakeTimer); timerCleared += 1; },
+    });
+    coordinator.start();
+    await eventually(() => coordinator.snapshot().timerScheduled);
+    await coordinator.stop();
+    assert.equal(timerCreated, 1);
+    assert.equal(timerCleared, 1);
+    assert.deepEqual(coordinator.snapshot(), {
+        started: false,
+        draining: false,
+        timerScheduled: false,
+        wakeCount: 1,
+        drainCount: 1,
+        processNextCount: 1,
+        timerCount: 1,
+    });
 });

@@ -225,3 +225,11 @@ Current state: `AUTO-BACKFILL-QUEUE ACTIVE / IMPLEMENTATION AUTHORIZED`. No late
 ## AUTO-BACKFILL-QUEUE Implementation Handoff - 2026-08-18
 
 Append-only update: the current Queue manifest/checkpoint now contain the implemented schema/state/API contract, AB-QUE/AB-SUC and competing-worker evidence, permission/read-only proof, F1.3/F4.1 regressions, scope safety and Gate 2 notes. Current state is `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`; no successor ticket is activated.
+
+## AUTO-BACKFILL-QUEUE Gate 2 Coordinator Remediation - 2026-08-18
+
+Append-only update: manifest Section 13 and checkpoint Section 11 record the missing production worker-coordinator finding and PO-authorized bounded remediation from `20e70d80a8a88438591bbdd63f4f320fab2f3bde`. The ticket remains current; no successor is activated.
+
+## AUTO-BACKFILL-QUEUE Coordinator Remediation Handoff - 2026-08-18
+
+Manifest Section 14 and checkpoint Section 12 now hold coordinator lifecycle, wake/drain, lease-expiry, shutdown and focused validation evidence. Finding `POF-AUTO-BACKFILL-QUEUE-01` is ready for Gate 2 recheck. Current state remains `AUTO-BACKFILL-QUEUE IMPLEMENTED / READY FOR PO GATE 2`; no successor is activated.
