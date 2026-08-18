@@ -64,9 +64,9 @@ The scanner expands ACTIVE/PAUSED registrations from their own start date throug
 
 The new authenticated read-only route is:
 
-`GET /api/import/auto-backfill/coverage?as_of=YYYY-MM-DD&indicator=...&lane=...`
+`GET /api/import/auto-backfill/coverage?indicator=...&lane=...`
 
-The controller passes the authenticated role to the scanner. Registry permission denial fails closed with HTTP 403. Existing Import routes are unchanged.
+The controller passes the authenticated role to the scanner. Production does not accept a caller-selected business clock: any `as_of` query key is rejected with HTTP 400. Registry permission denial fails closed with HTTP 403. Existing Import routes are unchanged.
 
 ## 4. Extensibility Acceptance
 
@@ -122,3 +122,46 @@ No technical blocker remains for Gate 1. Product Owner approval is still require
 `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`
 
 `AUTO-BACKFILL-QUEUE` and every later ticket remain inactive.
+
+## 9. Gate 1 Remediation - Caller-Controlled `as_of`
+
+### 9.1 Finding And Root Cause
+
+Gate 1 review found that `autoBackfillCoverageController.js` forwarded `req.query.as_of` into `AutoBackfillCoverageService.scan()`. The service intentionally supports deterministic `asOf` injection for tests, but exposing that parameter at the production API boundary allowed callers to move `N` into the future and manufacture a large false gap set.
+
+### 9.2 Fix
+
+- The controller now checks key presence with `Object.hasOwn(req.query || {}, 'as_of')`.
+- Any supplied value, including empty input, returns HTTP 400:
+  - code: `AUTO_BACKFILL_AS_OF_NOT_ALLOWED`;
+  - message: `as_of is not allowed; coverage always uses the backend business clock in Asia/Ho_Chi_Minh.`
+- The production controller no longer passes `asOf` to `scan()`.
+- Default coverage-service/database creation is lazy. Therefore a rejected request returns before the service or DB layer is initialized.
+- Service-level `asOf` and injected `clock` remain unchanged for deterministic scanner tests only.
+
+### 9.3 API Contract Tests
+
+New `test_autoBackfillCoverageController.js` proves:
+
+1. A normal request at `2026-01-03T18:30:00Z` resolves backend HCM business date `2026-01-04`, scans only through `2026-01-03`, and never includes current day.
+2. `as_of=2098-01-01` returns the exact 400 contract before scanner invocation.
+3. `as_of=` is also rejected, preventing bypass through an empty value.
+4. Rejection leaves scanner, Import, queue and database-write counters at zero.
+5. The default production controller rejects before `config/db` is loaded, proving lazy DB/service initialization is not crossed.
+
+### 9.4 Remediation Validation
+
+| Command / suite | Result |
+| --- | --- |
+| `node --test test_autoBackfillCoverageController.js test_autoBackfillCoverageService.js` | `16/16 PASS` (`4` controller + unchanged `12` service/AB acceptance) |
+| `node --test test_f41ImportPipeline.js` | `1/1 PASS` |
+| `node test_importPipelineRace.js` | `41/41 PASS` |
+| `node test_importProcessor.js` | `59/59 PASS` |
+| `node test_dkclHueF13BackfillService.js` | `39/39 PASS` |
+| `node test_tctF13BackfillService.js` | all listed checks PASS |
+
+Preserved unchanged: newest-date-first ordering, indicator/lane/date isolation, F1.3/F4.1 registrations, F4.1 manual-only state, AB-EXT-01..04, AB-ISO-01..02, and read-only production behavior.
+
+No queue, Portal automation, frontend, schema/database change, Import execution, business-data mutation, or successor activation occurred.
+
+Remediation state: `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`.

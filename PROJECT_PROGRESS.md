@@ -832,3 +832,10 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - `AB-EXT-01..04` and `AB-ISO-01..02` PASS with fixture-only `F9.TEST`; additional timezone/order/permission/manual-review tests PASS. Existing F1.3/F4.1 Import/backfill regressions PASS in isolated sandboxes; no real Import, operational DB/data mutation, frontend, schema, watcher, Portal, queue, retry/circuit runtime, or UI work occurred.
 - Evidence: `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE_CHECKPOINT_001.md`; manifest: `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE_MANIFEST.md`.
 - State: `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`. `AUTO-BACKFILL-QUEUE` and all later tickets remain inactive.
+
+## AUTO-BACKFILL-COVERAGE - Gate 1 Remediation: Backend-Owned N-1
+
+- Continued from `d63da43517cb0611853377f29243db8fdad12117` under Product Owner Gate 1 remediation authority. Review found the read-only production endpoint exposed service test injection as caller-controlled `as_of`, permitting false future gaps and oversized scans.
+- Production now rejects every supplied `as_of` with HTTP 400 `AUTO_BACKFILL_AS_OF_NOT_ALLOWED` before lazy service/DB initialization; normal requests pass no `asOf`, so `N-1` is always derived from the backend clock in `Asia/Ho_Chi_Minh`. Service-level `asOf`/clock injection remains test-only.
+- New controller/API tests prove backend HCM N-1, rejection of `2098-01-01` and empty overrides, no default DB initialization, and zero scanner/Import/queue/database-write operations on rejection. Combined coverage tests `16/16` and relevant F1.3/F4.1 regressions PASS.
+- No queue, Portal automation, frontend, schema/database change, real Import, business-data mutation, or successor activation occurred. State remains `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`.

@@ -205,3 +205,7 @@ This section supersedes the prior AUTO-BACKFILL-PLAN current-ticket rows for liv
 | `docs/06_REVIEWS/Import/AUTO-BACKFILL-PLAN_CHECKPOINT_001.md` | Approved Predecessor Plan | Original survey/contracts and appended authoritative Q-01..Q-10 successor activation record. | L2/L3 | Conditional Reference | When tracing platform contract. | Mandatory for successor planning |
 
 Current state: `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`. No successor is activated; `AUTO-BACKFILL-QUEUE` remains planned only.
+
+## AUTO-BACKFILL-COVERAGE Gate 1 Remediation Update - 2026-08-18
+
+Append-only update to the current manifest/checkpoint: production coverage no longer accepts caller-controlled `as_of`; backend HCM clock ownership, rejection contract, zero-side-effect tests, and focused regressions are recorded in manifest Section 9 and checkpoint Section 9. Current state remains `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`; no successor is activated.

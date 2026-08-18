@@ -52,9 +52,9 @@ Each enabled registration declares identity, lifecycle state, priority, tracking
 
 Coverage endpoint:
 
-`GET /api/import/auto-backfill/coverage?as_of=YYYY-MM-DD&indicator=...&lane=...`
+`GET /api/import/auto-backfill/coverage?indicator=...&lane=...`
 
-The response exposes the registry version, business timezone, effective `N-1`, deterministic ordering, lane summaries/counts and flat ordered items. This endpoint plans or executes no work.
+The response exposes the registry version, business timezone, effective `N-1`, deterministic ordering, lane summaries/counts and flat ordered items. Production always derives `N-1` from the backend clock in `Asia/Ho_Chi_Minh`; a supplied `as_of` is rejected. This endpoint plans or executes no work.
 
 ## 5. Acceptance And Regression
 
@@ -104,3 +104,19 @@ No implementation blocker remains. Legacy Import logs without an exact `indicato
 - Next ticket: none activated
 - `AUTO-BACKFILL-QUEUE`: planned only; requires explicit Product Owner approval after Gate 1
 - No real Import, live Portal operation, or business-data mutation was performed
+
+## 9. Gate 1 Remediation - Production Clock Boundary
+
+Review finding: the initial controller forwarded caller-controlled `as_of` to the service, allowing a production request to redefine `N-1` and generate false future coverage.
+
+Remediation from baseline `d63da43517cb0611853377f29243db8fdad12117`:
+
+- production rejects any supplied `as_of`, including an empty value, with HTTP 400 and code `AUTO_BACKFILL_AS_OF_NOT_ALLOWED`;
+- normal production requests omit `asOf` when invoking the scanner, so the scanner uses only its backend clock and `Asia/Ho_Chi_Minh`;
+- service-level injected `asOf`/clock support remains available only for deterministic service tests;
+- rejection occurs before lazy service/database initialization and before any scanner, Import, queue or database-write operation;
+- controller/API contract tests prove backend HCM `N-1`, future-override rejection, and zero downstream calls on rejection.
+
+Validation: combined controller/coverage tests `16/16 PASS`; F4.1 pipeline `1/1`, Import race `41/41`, Import processor `59/59`, HUE backfill `39/39`, and all TCT backfill checks PASS in isolated sandboxes.
+
+State remains `AUTO-BACKFILL-COVERAGE IMPLEMENTED / READY FOR PO GATE 1`. No successor ticket is activated.
