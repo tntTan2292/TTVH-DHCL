@@ -1072,3 +1072,9 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 
 
 
+
+## AUTO-BACKFILL-COVERAGE-EXCEPTION (Phase A) Activated
+
+- Product Owner granted `ARCHITECTURE APPROVAL PASS` on the 5-point remediation plan (`docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md`) and authorized Phase A, `AUTO-BACKFILL-COVERAGE-EXCEPTION`, for Claude Code -- backend-only, in-domain per the `CLAUDE.md` executor split (Antigravity remains reserved for Phase B `AUTO-BACKFILL-UI-REMEDIATION`, not yet activated).
+- New manifest `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE-EXCEPTION_MANIFEST.md` and checkpoint `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE-EXCEPTION_CHECKPOINT_001.md` record activation, executor, and locked scope before any code was written.
+- Scope: registry-driven 6-state coverage model, controlled Legacy Baseline Reconciliation, strict 5-point-proof `VERIFIED_NO_DATA`, reasoned/audited/reversible `PO_EXEMPTED`, single-date retry isolation and system-signature-only circuit breaking confirmed unaffected. No frontend, no real Portal/Queue/Import, no browser, no business-data mutation. State: `AUTO-BACKFILL-COVERAGE-EXCEPTION ACTIVATED / IMPLEMENTATION IN PROGRESS`.

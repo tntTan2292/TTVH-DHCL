@@ -17,26 +17,26 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-UI — Architectural Remediation Plan Complete / READY FOR PO ARCHITECTURE APPROVAL (2026-08-19).` |
-| Current Ticket | `AUTO-BACKFILL-UI — 5 PO architectural remediation points applied (Phase A Backend First -> Phase B Frontend Second; 5-point adapter proof for VERIFIED_NO_DATA; 6 coverage states for baseline reconciliation; exception isolation; No-code Vietnamese labels); awaiting PO architecture approval.` |
-| Next Ticket | `Phase A: AUTO-BACKFILL-COVERAGE-EXCEPTION (Backend First) -> Phase B: AUTO-BACKFILL-UI-REMEDIATION (Frontend Second).` |
-| Last PO Status | `Product Owner requested 5 architectural remediation points for UI/UX plan. All 5 points remediated; ready for PO architecture approval.` |
+| Current Phase | `AUTO-BACKFILL-UI Remediation Plan, Phase A — AUTO-BACKFILL-COVERAGE-EXCEPTION ACTIVATED / IMPLEMENTATION IN PROGRESS (2026-08-19).` |
+| Current Ticket | `AUTO-BACKFILL-COVERAGE-EXCEPTION — backend-only Phase A of the PO-approved 5-point remediation: 6-state coverage model, controlled Legacy Baseline Reconciliation, 5-point-proof VERIFIED_NO_DATA, reasoned/audited/reversible PO_EXEMPTED. Executor: Claude Code (in-domain backend work).` |
+| Next Ticket | `AUTO-BACKFILL-UI-REMEDIATION (Phase B, frontend, Antigravity) depends on this ticket's verified backend APIs and is not yet activated. AUTO-BACKFILL-RUNTIME remains unauthorized.` |
+| Last PO Status | `Product Owner granted ARCHITECTURE APPROVAL PASS on AUTO-BACKFILL-UI_PLAN.md and explicitly authorized Phase A (AUTO-BACKFILL-COVERAGE-EXCEPTION) for Claude Code.` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-UI_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI_CHECKPOINT_001.md` — 5-point architectural remediation plan complete, ready for PO architecture approval. |
-| Current State | `READY FOR PO ARCHITECTURE APPROVAL (2026-08-19).` |
-| Technical Status | `Documentation & Plan ONLY; product code frozen; oxlint clean, vite build PASS, UI test suite PASS, backend regressions 100% PASS.` |
-| Runtime Status | `No operational Queue, Portal, download or Import ran; browser closed.` |
-| PO UI Check Required | `Yes — Product Owner architecture approval required for Revised AUTO-BACKFILL-UI Plan.` |
-| PO Product Status | `AUTO-BACKFILL-F41 closed / PO GATE 4 PASS. AUTO-BACKFILL-SAFETY closed / PO GATE 5 PASS. AUTO-BACKFILL-UI implemented / ready for PO Gate 6.` |
+| Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE-EXCEPTION_MANIFEST.md` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE-EXCEPTION_CHECKPOINT_001.md` — activation record, locked scope, implementation/validation evidence ledger in progress. |
+| Current State | `ACTIVATED / IMPLEMENTATION IN PROGRESS (2026-08-19).` |
+| Technical Status | `Implementation starting: additive SQLite schema/migration, coverage exception service, coverage-service overlay, admin-only REST endpoints, and regression proof against isolated temporary SQLite fixtures only.` |
+| Runtime Status | `No operational Queue, Portal, download or Import ran; no browser opened; no business-data mutation.` |
+| PO UI Check Required | `No — this ticket is backend-only. Frontend remains Phase B (AUTO-BACKFILL-UI-REMEDIATION), Antigravity, not yet activated.` |
+| PO Product Status | `AUTO-BACKFILL-F41 closed / PO GATE 4 PASS. AUTO-BACKFILL-SAFETY closed / PO GATE 5 PASS. AUTO-BACKFILL-UI implemented / ready for PO Gate 6, now superseded in scope by the approved 5-point remediation plan's Phase A/B split. AUTO-BACKFILL-COVERAGE-EXCEPTION (Phase A) is the only active ticket.` |
 | Last Closed Ticket | `AUTO-BACKFILL-SAFETY — COMPLETED / PO GATE 5 PASS (2026-08-18).` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-SAFETY_MANIFEST.md` |
 | Last Reviewed Phase | `AUTO-BACKFILL-SAFETY Gate 5 (2026-08-18): COMPLETED / PO PASS` |
 | Last Reviewed Implementation Commit | `ef7cbe850aab62f157ecbfb6642e999e1fecab25 — verified Safety controls accepted at Gate 5.` |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
-| Next Phase Authorization | `None self-activated. AUTO-BACKFILL-RUNTIME remains unauthorized.` |
+| Next Phase Authorization | `None self-activated. AUTO-BACKFILL-UI-REMEDIATION (Phase B) requires this ticket's verified backend APIs plus its own Antigravity-side activation. AUTO-BACKFILL-RUNTIME remains unauthorized.` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-08-18` |
+| Last Updated | `2026-08-19` |
 
 ## 3. Usage Rules
 
@@ -287,3 +287,7 @@ Latest authoritative next action (`2026-08-18`, Safety Gate 5 handoff; supersede
 `AUTO-BACKFILL-SAFETY` Gate 5 PASS and `AUTO-BACKFILL-UI` executor conflict (`2026-08-18`): Product Owner granted `GATE 5 PASS`, closing `AUTO-BACKFILL-SAFETY` as `COMPLETED / PO GATE 5 PASS`, and instructed Claude Code to implement `AUTO-BACKFILL-UI` next. Before any code, Claude Code re-read the frozen `docs/10_TICKETS/AUTO-BACKFILL-PLAN_MANIFEST.md` Section 6 and `docs/06_REVIEWS/Import/AUTO-BACKFILL-PLAN_CHECKPOINT_001.md` Section 11.6, which lock `AUTO-BACKFILL-UI` as "Operator UI by Antigravity" — matching the `CLAUDE.md` role split. This is a conflict between the new instruction and a frozen governance document, so Claude Code stopped and asked the Product Owner directly rather than silently reassigning the ticket. The Product Owner's explicit resolution: the locked Antigravity executor assignment stands; Claude Code did not implement `AUTO-BACKFILL-UI`. No frontend/UI code, schema, or Import/Queue/Portal runtime work was touched in this session — only this documentation update (Safety manifest/checkpoint, this snapshot, `PROJECT_PROGRESS.md`).
 
 Latest authoritative next action (`2026-08-18`, Gate 5 PASS / UI-blocker handoff; supersedes every earlier next-action note): `None self-activated for Claude Code. AUTO-BACKFILL-UI requires its own Antigravity-side activation under its locked executor assignment. AUTO-BACKFILL-RUNTIME remains unauthorized.` State: `AUTO-BACKFILL-SAFETY COMPLETED / PO GATE 5 PASS`; `AUTO-BACKFILL-UI PLANNED / NOT ACTIVE (executor: Antigravity)`.
+
+`AUTO-BACKFILL-COVERAGE-EXCEPTION` (Phase A) activation (`2026-08-19`, baseline `3fce810f`): Product Owner granted `ARCHITECTURE APPROVAL PASS` on the 5-point remediation plan (`docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md`) and explicitly authorized Phase A, `AUTO-BACKFILL-COVERAGE-EXCEPTION`, for Claude Code -- in-domain backend work per the `CLAUDE.md` executor split (Antigravity remains reserved for Phase B, `AUTO-BACKFILL-UI-REMEDIATION`, frontend, not yet activated). Activation recorded in governance (new manifest `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE-EXCEPTION_MANIFEST.md`, new checkpoint `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE-EXCEPTION_CHECKPOINT_001.md`, this snapshot, `DOCUMENT_INDEX.md`, `PROJECT_PROGRESS.md`) before any code was written, per explicit instruction. Locked scope: registry-driven 6-state coverage model, controlled Legacy Baseline Reconciliation, strict 5-point-proof `VERIFIED_NO_DATA`, reasoned/audited/reversible `PO_EXEMPTED`, single-date retry isolation and system-signature-only circuit breaking unaffected. No real Portal/Queue/Import, no browser, no business-data mutation; temporary SQLite/fixtures only.
+
+Latest authoritative next action (`2026-08-19`, Coverage Exception Phase A activation; supersedes every earlier next-action note): `Implement AUTO-BACKFILL-COVERAGE-EXCEPTION only (backend) and stop at READY FOR PO BACKEND GATE. Do not implement Phase B/UI, do not self-pass the backend gate, do not open a browser or run real Portal/Queue/Import.` State: `AUTO-BACKFILL-COVERAGE-EXCEPTION ACTIVATED / IMPLEMENTATION IN PROGRESS`.
