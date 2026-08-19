@@ -220,12 +220,25 @@ class AutoBackfillCoverageService {
             group.items.push(item);
         }
 
+        const APPROVED_BADGE_THEMES = new Set(['blue', 'teal', 'indigo', 'purple', 'emerald', 'amber', 'rose']);
+        const indicatorsMetadata = scopedIndicators.map((ind, index) => ({
+            code: ind.code,
+            display_name: ind.name,
+            display_order: ind.priority || (index + 1),
+            status: ind.status,
+            tracking_start_date: ind.trackingStartDate,
+            supported_lanes: Object.keys(ind.lanes || {}),
+            automation_mode: Object.values(ind.lanes || {}).some((l) => l.automationMode === 'AUTOMATED') ? 'AUTOMATED' : 'MANUAL_ONLY',
+            badge_theme: APPROVED_BADGE_THEMES.has(ind.badgeTheme) ? ind.badgeTheme : 'slate',
+        }));
+
         return {
             registry_version: this.registryVersion,
             business_timezone: this.businessTimezone,
             as_of_business_date: asOfBusinessDate,
             to_date: toDate,
             ordering: ['business_date_desc', 'indicator_priority_asc', 'lane_priority_asc'],
+            indicators: indicatorsMetadata,
             total_items: items.length,
             runnable_portal_jobs: items.filter((item) => item.queue_eligible).length,
             lanes: [...laneGroups.values()],

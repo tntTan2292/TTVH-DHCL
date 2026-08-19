@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertCircle,
@@ -6,6 +6,8 @@ import {
   Calendar,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Clock,
   FileText,
@@ -19,13 +21,16 @@ import {
   RotateCcw,
   ShieldAlert,
   Sparkles,
-  XCircle
+  XCircle,
+  X
 } from 'lucide-react';
 import api from '../api/client';
 import {
   aggregateReportTotals,
   groupItemsByDate,
   groupItemsByIndicator,
+  paginateItems,
+  resolveDynamicIndicators,
   resolveEffectiveRunState,
   resolveRunActionButtons,
   resolveWaitingAuthLanes
@@ -49,10 +54,12 @@ export default function AutoBackfillOperatorPanel() {
   const [coverageLoading, setCoverageLoading] = useState(false);
   const [coverageError, setCoverageError] = useState(null);
 
-  // Filters
+  // Filters & Pagination
   const [indicatorFilter, setIndicatorFilter] = useState('ALL');
   const [laneFilter, setLaneFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // UI View Mode: 'TABLE' | 'TIMELINE'
   const [viewMode, setViewMode] = useState('TIMELINE');
@@ -267,31 +274,26 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Items processing
-  const rawItems = coverageData?.items || [];
-  const filteredItems = rawItems.filter((item) => {
-    if (indicatorFilter !== 'ALL' && item.indicator !== indicatorFilter) return false;
-    if (laneFilter !== 'ALL' && item.source_lane !== laneFilter) return false;
-    if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
-    return true;
-  });
+  // Items processing & Dynamic Indicators
+  const rawItems = useMemo(() => coverageData?.items || [], [coverageData]);
+  const dynamicIndicators = useMemo(() => resolveDynamicIndicators(coverageData, rawItems), [coverageData, rawItems]);
+
+  const filteredItems = useMemo(() => {
+    return rawItems.filter((item) => {
+      if (indicatorFilter !== 'ALL' && item.indicator !== indicatorFilter) return false;
+      if (laneFilter !== 'ALL' && item.source_lane !== laneFilter) return false;
+      if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+      return true;
+    });
+  }, [rawItems, indicatorFilter, laneFilter, statusFilter]);
+
+  // Pagination calculation (default 10 rows/page)
+  const paginationResult = useMemo(() => paginateItems(filteredItems, currentPage, pageSize), [filteredItems, currentPage, pageSize]);
+  const paginatedDateGroups = useMemo(() => groupItemsByDate(paginationResult.pageItems), [paginationResult.pageItems]);
 
   // Calculate summary numbers
   const runnableJobsCount = coverageData?.runnable_portal_jobs ?? rawItems.filter((item) => item.queue_eligible).length;
   const manualOnlyCount = rawItems.filter((item) => ['MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status)).length;
-
-  // Indicator Health Stats
-  const itemsByIndicator = groupItemsByIndicator(rawItems);
-  const f13Items = itemsByIndicator['F1.3'] || [];
-  const f41Items = itemsByIndicator['F4.1'] || [];
-
-  const f13Missing = f13Items.filter((i) => i.status === 'MISSING').length;
-  const f13Success = f13Items.filter((i) => i.status === 'SUCCESS').length;
-  const f41Missing = f41Items.filter((i) => i.status === 'MISSING').length;
-  const f41Success = f41Items.filter((i) => i.status === 'SUCCESS').length;
-
-  // Date groups for timeline card view
-  const dateGroups = groupItemsByDate(filteredItems);
 
   // Run contracts resolution
   const currentRun = runData?.run || null;
@@ -305,28 +307,24 @@ export default function AutoBackfillOperatorPanel() {
 
   return (
     <div className="space-y-6" data-testid="auto-backfill-operator-panel">
-      {/* 1. HERO GLASS COMMAND HEADER */}
-      <div className="relative rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 p-6 md:p-8 text-white shadow-2xl border border-slate-800 backdrop-blur-xl overflow-hidden">
-        {/* Ambient Glow Elements */}
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+      {/* 1. HERO COMMAND HEADER (VNPost Light Theme Standard) */}
+      <div className="rounded-2xl bg-white p-6 md:p-8 text-slate-900 shadow-sm border border-slate-200 relative overflow-hidden">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-500/20 text-blue-300 border border-blue-400/30 backdrop-blur-md">
-                <Sparkles size={13} className="text-yellow-400" />
-                PLATFORM V2.0 ENGINE
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
+                <Sparkles size={13} className="text-blue-600" />
+                AUTO BACKFILL PLATFORM V2.0
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-800/80 text-slate-300 border border-slate-700">
-                <Clock size={13} className="text-slate-400" />
-                Asia/Ho_Chi_Minh timezone (01/01/2026 ➔ N-1)
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                <Clock size={13} className="text-slate-500" />
+                Múi giờ Asia/Ho_Chi_Minh (01/01/2026 ➔ N-1)
               </span>
             </div>
-            <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+            <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
               Trung tâm Bù dữ liệu Tự động
             </h2>
-            <p className="text-xs lg:text-sm text-slate-300 max-w-2xl">
+            <p className="text-xs lg:text-sm text-slate-500 max-w-2xl">
               Quét độc lập diện rộng, xác định chính xác ngày thiếu dữ liệu theo <strong>Chỉ tiêu</strong> &amp; <strong>Nguồn thông tin</strong>. Ưu tiên tiến trình theo thứ tự ngày mới nhất trước.
             </p>
           </div>
@@ -337,7 +335,7 @@ export default function AutoBackfillOperatorPanel() {
               type="button"
               onClick={fetchCoverage}
               disabled={coverageLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 px-4 py-2.5 text-xs font-bold text-white border border-white/20 backdrop-blur-md transition-all shadow-md disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 px-4 py-2.5 text-xs font-bold text-slate-700 border border-slate-300 transition-all shadow-xs disabled:opacity-50"
             >
               <RefreshCw size={15} className={coverageLoading ? 'animate-spin' : ''} />
               Quét lại Coverage
@@ -347,7 +345,7 @@ export default function AutoBackfillOperatorPanel() {
               type="button"
               onClick={handleCreateRun}
               disabled={runActionLoading || runnableJobsCount === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-vnpost-blue via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 px-6 py-2.5 text-xs font-extrabold text-white transition-all shadow-lg shadow-blue-600/30 border border-blue-400/30 disabled:opacity-40 disabled:pointer-events-none"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-vnpost-blue via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 px-6 py-2.5 text-xs font-extrabold text-white transition-all shadow-md border border-blue-400/30 disabled:opacity-40 disabled:pointer-events-none"
             >
               {runActionLoading ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
               Tạo Tiến trình Bù Tự động ({runnableJobsCount} ngày)
@@ -355,90 +353,65 @@ export default function AutoBackfillOperatorPanel() {
           </div>
         </div>
 
-        {/* 2. INDICATOR HEALTH CARDS GRID (F1.3 vs F4.1) */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-6 border-t border-slate-800/80">
-          {/* Card 1: F1.3 Indicator */}
-          <div
-            onClick={() => setIndicatorFilter('F1.3')}
-            className={`p-4 rounded-xl border backdrop-blur-md cursor-pointer transition-all duration-200 ${
-              indicatorFilter === 'F1.3'
-                ? 'bg-blue-950/80 border-blue-500/60 ring-2 ring-blue-500/30 shadow-lg shadow-blue-950/50'
-                : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-blue-400 uppercase tracking-wider">Chỉ tiêu F1.3 (KPI)</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                {f13Items.length} ngày quét
-              </span>
+        {/* 2. DYNAMIC INDICATOR HEALTH CARDS GRID (Proves N indicators scalability) */}
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6 border-t border-slate-100">
+          {dynamicIndicators.map((ind) => (
+            <div
+              key={ind.code}
+              onClick={() => {
+                setIndicatorFilter(indicatorFilter === ind.code ? 'ALL' : ind.code);
+                setCurrentPage(1);
+              }}
+              className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 shadow-2xs ${
+                indicatorFilter === ind.code
+                  ? 'bg-blue-50/90 border-blue-400 ring-2 ring-blue-500/20 shadow-md'
+                  : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-xs'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-black border ${ind.badgeClass}`}>
+                  {ind.displayName}
+                </span>
+                <span className="text-[11px] font-bold text-slate-500">
+                  {ind.items.length} ngày quét
+                </span>
+              </div>
+              <div className="mt-3 flex items-baseline justify-between">
+                <div>
+                  <span className="text-2xl font-black text-slate-900">{ind.missingCount}</span>
+                  <span className="text-xs font-semibold text-amber-600 ml-1.5">ngày thiếu</span>
+                </div>
+                <div className="text-xs font-bold text-emerald-600">
+                  {ind.successCount} hoàn tất
+                </div>
+              </div>
+              <div className="mt-2.5 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                  style={{ width: `${ind.items.length ? (ind.successCount / ind.items.length) * 100 : 0}%` }}
+                />
+              </div>
             </div>
+          ))}
+
+          {/* Card: Runnable Jobs Summary */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">Khả thi Nạp Tự động</span>
             <div className="mt-3 flex items-baseline justify-between">
-              <div>
-                <span className="text-2xl font-black text-white">{f13Missing}</span>
-                <span className="text-xs font-semibold text-amber-400 ml-1.5">ngày thiếu</span>
-              </div>
-              <div className="text-xs font-bold text-emerald-400">
-                {f13Success} hoàn tất
-              </div>
+              <span className="text-2xl font-black text-slate-900">{runnableJobsCount}</span>
+              <span className="text-xs font-bold text-indigo-600">đã đăng ký Adapter</span>
             </div>
-            <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-blue-500 h-1.5 rounded-full"
-                style={{ width: `${f13Items.length ? (f13Success / f13Items.length) * 100 : 0}%` }}
-              />
-            </div>
+            <p className="mt-2 text-[11px] text-slate-500 truncate">Sẵn sàng kích hoạt qua Portal API</p>
           </div>
 
-          {/* Card 2: F4.1 Indicator */}
-          <div
-            onClick={() => setIndicatorFilter('F4.1')}
-            className={`p-4 rounded-xl border backdrop-blur-md cursor-pointer transition-all duration-200 ${
-              indicatorFilter === 'F4.1'
-                ? 'bg-teal-950/80 border-teal-500/60 ring-2 ring-teal-500/30 shadow-lg shadow-teal-950/50'
-                : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-teal-400 uppercase tracking-wider">Chỉ tiêu F4.1 (Phát BC)</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-400/30">
-                {f41Items.length} ngày quét
-              </span>
-            </div>
+          {/* Card: Manual / Review Required Summary */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <span className="text-xs font-black text-amber-700 uppercase tracking-wider">Cần Soát xét / Thủ công</span>
             <div className="mt-3 flex items-baseline justify-between">
-              <div>
-                <span className="text-2xl font-black text-white">{f41Missing}</span>
-                <span className="text-xs font-semibold text-amber-400 ml-1.5">ngày thiếu</span>
-              </div>
-              <div className="text-xs font-bold text-emerald-400">
-                {f41Success} hoàn tất
-              </div>
+              <span className="text-2xl font-black text-slate-900">{manualOnlyCount}</span>
+              <span className="text-xs font-bold text-amber-600">yêu cầu xử lý</span>
             </div>
-            <div className="mt-2 w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-teal-500 h-1.5 rounded-full"
-                style={{ width: `${f41Items.length ? (f41Success / f41Items.length) * 100 : 0}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Card 3: Runnable Jobs */}
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 backdrop-blur-md">
-            <span className="text-xs font-black text-indigo-400 uppercase tracking-wider">Khả thi nạp tự động</span>
-            <div className="mt-3 flex items-baseline justify-between">
-              <span className="text-2xl font-black text-white">{runnableJobsCount}</span>
-              <span className="text-xs font-bold text-indigo-300">đã đăng ký Adapter</span>
-            </div>
-            <p className="mt-2 text-[11px] text-slate-400 truncate">Sẵn sàng kích hoạt qua Portal API</p>
-          </div>
-
-          {/* Card 4: Manual / Review Required */}
-          <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 backdrop-blur-md">
-            <span className="text-xs font-black text-amber-400 uppercase tracking-wider">Cần Soát xét / Thủ công</span>
-            <div className="mt-3 flex items-baseline justify-between">
-              <span className="text-2xl font-black text-white">{manualOnlyCount}</span>
-              <span className="text-xs font-bold text-amber-300">yêu cầu xử lý</span>
-            </div>
-            <p className="mt-2 text-[11px] text-slate-400 truncate">Không hỗ trợ Portal Adapter tự động</p>
+            <p className="mt-2 text-[11px] text-slate-500 truncate">Không hỗ trợ Portal Adapter tự động</p>
           </div>
         </div>
       </div>
@@ -779,57 +752,90 @@ export default function AutoBackfillOperatorPanel() {
             <p className="text-xs text-slate-500 mt-0.5">Tùy chọn lọc nhanh theo Chỉ tiêu, Nguồn và Trạng thái. Tùy chọn giao diện xem Dạng Bảng hoặc Thẻ Ngày.</p>
           </div>
 
-          {/* View Mode Toggle Switcher */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200 shrink-0">
-            <button
-              type="button"
-              onClick={() => setViewMode('TIMELINE')}
-              className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'TIMELINE'
-                  ? 'bg-vnpost-blue text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-white/60'
-              }`}
-            >
-              <Grid size={14} />
-              Thẻ Ngày (Timeline)
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('TABLE')}
-              className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                viewMode === 'TABLE'
-                  ? 'bg-vnpost-blue text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-white/60'
-              }`}
-            >
-              <List size={14} />
-              Bảng Chi tiết (Table)
-            </button>
+          {/* View Mode & Page Size Selector */}
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Page Size Dropdown */}
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
+              <span>Hiển thị:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:border-vnpost-blue focus:outline-none shadow-2xs"
+              >
+                <option value={10}>10 dòng/trang</option>
+                <option value={20}>20 dòng/trang</option>
+                <option value={50}>50 dòng/trang</option>
+              </select>
+            </div>
+
+            {/* View Switcher */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
+              <button
+                type="button"
+                onClick={() => setViewMode('TIMELINE')}
+                className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'TIMELINE'
+                    ? 'bg-vnpost-blue text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-white/60'
+                }`}
+              >
+                <Grid size={14} />
+                Thẻ Ngày (Timeline)
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('TABLE')}
+                className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'TABLE'
+                    ? 'bg-vnpost-blue text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-white/60'
+                }`}
+              >
+                <List size={14} />
+                Bảng Chi tiết (Table)
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Filter Segmented Controls */}
+        {/* Filter Controls */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Filter 1: Indicator */}
+          {/* Dynamic Indicator Filter */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Lọc Chỉ tiêu</label>
-            <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl">
-              {[
-                { code: 'ALL', label: 'Tất cả' },
-                { code: 'F1.3', label: 'F1.3 KPI' },
-                { code: 'F4.1', label: 'F4.1 Phát BC' }
-              ].map((item) => (
+            <div className="flex flex-wrap gap-1 p-1 bg-slate-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setIndicatorFilter('ALL');
+                  setCurrentPage(1);
+                }}
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  indicatorFilter === 'ALL'
+                    ? 'bg-vnpost-blue text-white shadow-2xs'
+                    : 'text-slate-700 hover:bg-white/80'
+                }`}
+              >
+                Tất cả
+              </button>
+              {dynamicIndicators.map((ind) => (
                 <button
-                  key={item.code}
+                  key={ind.code}
                   type="button"
-                  onClick={() => setIndicatorFilter(item.code)}
-                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                    indicatorFilter === item.code
-                      ? 'bg-vnpost-blue text-white shadow-xs'
+                  onClick={() => {
+                    setIndicatorFilter(ind.code);
+                    setCurrentPage(1);
+                  }}
+                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                    indicatorFilter === ind.code
+                      ? 'bg-vnpost-blue text-white shadow-2xs'
                       : 'text-slate-700 hover:bg-white/80'
                   }`}
                 >
-                  {item.label}
+                  {ind.code}
                 </button>
               ))}
             </div>
@@ -847,10 +853,13 @@ export default function AutoBackfillOperatorPanel() {
                 <button
                   key={item.code}
                   type="button"
-                  onClick={() => setLaneFilter(item.code)}
+                  onClick={() => {
+                    setLaneFilter(item.code);
+                    setCurrentPage(1);
+                  }}
                   className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
                     laneFilter === item.code
-                      ? 'bg-purple-700 text-white shadow-xs'
+                      ? 'bg-purple-700 text-white shadow-2xs'
                       : 'text-slate-700 hover:bg-white/80'
                   }`}
                 >
@@ -865,8 +874,11 @@ export default function AutoBackfillOperatorPanel() {
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Lọc Trạng thái</label>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 focus:border-vnpost-blue focus:outline-none shadow-xs"
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 focus:border-vnpost-blue focus:outline-none shadow-2xs"
             >
               <option value="ALL">Tất cả trạng thái</option>
               <option value="MISSING">Thiếu dữ liệu (MISSING)</option>
@@ -879,167 +891,242 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       </div>
 
-      {/* 6. MAIN CONTENT AREA: TIMELINE CARD VIEW vs TABLE VIEW */}
-      {coverageLoading ? (
-        <div className="p-12 text-center rounded-2xl bg-white border border-slate-200">
-          <RefreshCw size={28} className="animate-spin mx-auto text-vnpost-blue mb-3" />
-          <p className="text-sm font-bold text-slate-700">Đang quét vùng dữ liệu bù tự động...</p>
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-white border border-slate-200">
-          <AlertCircle size={28} className="mx-auto text-slate-400 mb-2" />
-          <p className="text-sm font-bold text-slate-700">Không tìm thấy dữ liệu phù hợp với bộ lọc.</p>
-        </div>
-      ) : viewMode === 'TIMELINE' ? (
-        /* VIEW 1: TIMELINE DATE CARDS (Extensible for multi-indicators) */
-        <div className="space-y-4">
-          {dateGroups.map((group) => (
-            <div key={group.date} className="bg-white rounded-2xl border border-slate-200 shadow-2xs hover:shadow-md transition-all p-5 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <Calendar size={18} className="text-vnpost-blue" />
-                  <span className="text-sm font-black text-slate-900">{group.date}</span>
-                </div>
-                <span className="text-xs font-bold text-slate-400">
-                  {group.items.length} chỉ tiêu/nguồn
-                </span>
-              </div>
-
-              {/* Items grid for this date */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {group.items.map((item, idx) => {
-                  const isSuccess = item.status === 'SUCCESS';
-                  const isMissing = item.status === 'MISSING';
-                  const isReviewReq = item.status === 'MANUAL_REVIEW_REQUIRED';
-                  const isManualOnly = item.status === 'MANUAL_ONLY_MISSING';
-
-                  return (
-                    <div
-                      key={`${item.indicator}-${item.source_lane}-${idx}`}
-                      className={`p-3.5 rounded-xl border transition-all ${
-                        isSuccess ? 'bg-emerald-50/60 border-emerald-200' :
-                        isMissing ? 'bg-amber-50/80 border-amber-200 ring-1 ring-amber-300/50' :
-                        isReviewReq ? 'bg-red-50/80 border-red-200' :
-                        'bg-slate-50 border-slate-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                            item.indicator === 'F1.3' ? 'bg-blue-100 text-blue-800' : 'bg-teal-100 text-teal-800'
-                          }`}>
-                            {item.indicator}
-                          </span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                            item.source_lane === 'HUE' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800'
-                          }`}>
-                            {item.source_lane}
-                          </span>
-                        </div>
+      {/* 6. MAIN BOUNDED CONTENT CONTAINER (max-h-[420px] bounded scroll height) */}
+      <div className="space-y-4">
+        {coverageLoading ? (
+          <div className="p-12 text-center rounded-2xl bg-white border border-slate-200">
+            <RefreshCw size={28} className="animate-spin mx-auto text-vnpost-blue mb-3" />
+            <p className="text-sm font-bold text-slate-700">Đang quét vùng dữ liệu bù tự động...</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="p-12 text-center rounded-2xl bg-white border border-slate-200">
+            <AlertCircle size={28} className="mx-auto text-slate-400 mb-2" />
+            <p className="text-sm font-bold text-slate-700">Không tìm thấy dữ liệu phù hợp với bộ lọc.</p>
+          </div>
+        ) : (
+          <div className="max-h-[420px] overflow-y-auto pr-1 space-y-3 rounded-2xl border border-slate-200 p-2 bg-slate-50/50 scrollbar-thin">
+            {viewMode === 'TIMELINE' ? (
+              /* VIEW 1: TIMELINE DATE CARDS (Extensible for multi-indicators) */
+              <div className="space-y-3">
+                {paginatedDateGroups.map((group) => (
+                  <div key={group.date} className="bg-white rounded-2xl border border-slate-200 shadow-2xs hover:shadow-xs transition-all p-4 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} className="text-vnpost-blue" />
+                        <span className="text-sm font-black text-slate-900">{group.date}</span>
                       </div>
-
-                      {/* Status Pill */}
-                      <div className="flex items-center gap-1.5">
-                        {isSuccess && <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />}
-                        {isMissing && <AlertTriangle size={15} className="text-amber-600 shrink-0" />}
-                        {isReviewReq && <XCircle size={15} className="text-red-600 shrink-0" />}
-                        {isManualOnly && <Lock size={15} className="text-slate-500 shrink-0" />}
-                        <span className={`text-xs font-bold ${
-                          isSuccess ? 'text-emerald-800' :
-                          isMissing ? 'text-amber-900' :
-                          isReviewReq ? 'text-red-800' : 'text-slate-700'
-                        }`}>
-                          {item.status}
-                        </span>
-                      </div>
-
-                      <p className="text-[11px] text-slate-500 mt-2 truncate font-medium" title={item.completion_reason || ''}>
-                        {item.completion_reason || (isManualOnly ? 'Chưa hỗ trợ Adapter' : 'Sẵn sàng nạp')}
-                      </p>
+                      <span className="text-xs font-bold text-slate-500">
+                        {group.items.length} chỉ tiêu/nguồn
+                      </span>
                     </div>
-                  );
-                })}
+
+                    {/* Items grid for this date */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {group.items.map((item, idx) => {
+                        const isSuccess = item.status === 'SUCCESS';
+                        const isMissing = item.status === 'MISSING';
+                        const isReviewReq = item.status === 'MANUAL_REVIEW_REQUIRED';
+                        const isManualOnly = item.status === 'MANUAL_ONLY_MISSING';
+
+                        return (
+                          <div
+                            key={`${item.indicator}-${item.source_lane}-${idx}`}
+                            className={`p-3 rounded-xl border transition-all ${
+                              isSuccess ? 'bg-emerald-50/60 border-emerald-200' :
+                              isMissing ? 'bg-amber-50/80 border-amber-200 ring-1 ring-amber-300/50' :
+                              isReviewReq ? 'bg-red-50/80 border-red-200' :
+                              'bg-slate-50 border-slate-200'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-slate-200 text-slate-800">
+                                  {item.indicator}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                                  item.source_lane === 'HUE' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800'
+                                }`}>
+                                  {item.source_lane}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Status Pill */}
+                            <div className="flex items-center gap-1.5">
+                              {isSuccess && <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />}
+                              {isMissing && <AlertTriangle size={14} className="text-amber-600 shrink-0" />}
+                              {isReviewReq && <XCircle size={14} className="text-red-600 shrink-0" />}
+                              {isManualOnly && <Lock size={14} className="text-slate-500 shrink-0" />}
+                              <span className={`text-xs font-bold ${
+                                isSuccess ? 'text-emerald-800' :
+                                isMissing ? 'text-amber-900' :
+                                isReviewReq ? 'text-red-800' : 'text-slate-700'
+                              }`}>
+                                {item.status}
+                              </span>
+                            </div>
+
+                            <p className="text-[11px] text-slate-500 mt-2 truncate font-medium" title={item.completion_reason || ''}>
+                              {item.completion_reason || (isManualOnly ? 'Chưa hỗ trợ Adapter' : 'Sẵn sàng nạp')}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
+            ) : (
+              /* VIEW 2: GRANULAR TABLE VIEW */
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-900 text-white uppercase font-bold sticky top-0 z-10">
+                      <tr>
+                        <th className="px-4 py-3">Chỉ tiêu</th>
+                        <th className="px-4 py-3">Nguồn</th>
+                        <th className="px-4 py-3">Ngày số liệu</th>
+                        <th className="px-4 py-3">Trạng thái Coverage</th>
+                        <th className="px-4 py-3">Phương thức</th>
+                        <th className="px-4 py-3">Bằng chứng / Khuyến nghị</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {paginationResult.pageItems.map((item, idx) => {
+                        const isSuccess = item.status === 'SUCCESS';
+                        const isMissing = item.status === 'MISSING';
+                        const isManualOnly = item.status === 'MANUAL_ONLY_MISSING';
+                        const isReviewReq = item.status === 'MANUAL_REVIEW_REQUIRED';
+
+                        return (
+                          <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className="hover:bg-blue-50/50 transition-colors">
+                            <td className="px-4 py-2.5 font-black">
+                              <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-black bg-slate-100 text-slate-800 border border-slate-200">
+                                {item.indicator}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-black ${
+                                item.source_lane === 'HUE' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                              }`}>
+                                {item.source_lane}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-2.5 font-bold text-slate-900 whitespace-nowrap">
+                              {item.business_date}
+                            </td>
+
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                isSuccess ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                                isMissing ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                                isReviewReq ? 'bg-red-100 text-red-800 border border-red-200' :
+                                isManualOnly ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {isSuccess && <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />}
+                                {isMissing && <AlertTriangle size={13} className="text-amber-600 shrink-0" />}
+                                {isReviewReq && <XCircle size={13} className="text-red-600 shrink-0" />}
+                                {isManualOnly && <Lock size={13} className="text-slate-500 shrink-0" />}
+                                {item.status}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
+                                item.automation_mode === 'AUTOMATED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {item.automation_mode}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-2.5 text-slate-600 max-w-md">
+                              <p className="truncate font-medium" title={item.completion_reason || ''}>
+                                {item.completion_reason || (isManualOnly ? 'Chưa hỗ trợ Adapter' : 'Sẵn sàng nạp')}
+                              </p>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 7. PAGINATION CONTROLS BAR (Default 10 items per page) */}
+        {filteredItems.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+            <div className="text-xs text-slate-600 font-medium">
+              Hiển thị <strong className="text-slate-900 font-bold">{((paginationResult.currentPage - 1) * paginationResult.pageSize) + 1}</strong> đến <strong className="text-slate-900 font-bold">{Math.min(paginationResult.currentPage * paginationResult.pageSize, paginationResult.totalItems)}</strong> trên tổng số <strong className="text-slate-900 font-bold">{paginationResult.totalItems}</strong> mục
             </div>
-          ))}
-        </div>
-      ) : (
-        /* VIEW 2: GRANULAR TABLE VIEW */
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
-              <thead className="bg-slate-950 text-white uppercase font-bold">
-                <tr>
-                  <th className="px-4 py-3.5">Chỉ tiêu</th>
-                  <th className="px-4 py-3.5">Nguồn</th>
-                  <th className="px-4 py-3.5">Ngày số liệu</th>
-                  <th className="px-4 py-3.5">Trạng thái Coverage</th>
-                  <th className="px-4 py-3.5">Phương thức</th>
-                  <th className="px-4 py-3.5">Bằng chứng / Khuyến nghị</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {filteredItems.map((item, idx) => {
-                  const isSuccess = item.status === 'SUCCESS';
-                  const isMissing = item.status === 'MISSING';
-                  const isManualOnly = item.status === 'MANUAL_ONLY_MISSING';
-                  const isReviewReq = item.status === 'MANUAL_REVIEW_REQUIRED';
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={!paginationResult.hasPrev}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 disabled:opacity-40 disabled:pointer-events-none shadow-2xs"
+              >
+                <ChevronLeft size={14} />
+                Trang trước
+              </button>
+              <span className="text-xs font-black text-slate-800 px-2 py-1 bg-slate-100 rounded-lg border border-slate-200">
+                {paginationResult.currentPage} / {paginationResult.totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(paginationResult.totalPages, p + 1))}
+                disabled={!paginationResult.hasNext}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 disabled:opacity-40 disabled:pointer-events-none shadow-2xs"
+              >
+                Trang sau
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
-                  return (
-                    <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className="hover:bg-blue-50/50 transition-colors">
-                      <td className="px-4 py-3 font-black">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-black ${
-                          item.indicator === 'F1.3' ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-teal-100 text-teal-800 border border-teal-200'
-                        }`}>
-                          {item.indicator}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-black ${
-                          item.source_lane === 'HUE' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                        }`}>
-                          {item.source_lane}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3 font-bold text-slate-900 whitespace-nowrap">
-                        {item.business_date}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
-                          isSuccess ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                          isMissing ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs' :
-                          isReviewReq ? 'bg-red-100 text-red-800 border border-red-200' :
-                          isManualOnly ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {isSuccess && <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />}
-                          {isMissing && <AlertTriangle size={13} className="text-amber-600 shrink-0" />}
-                          {isReviewReq && <XCircle size={13} className="text-red-600 shrink-0" />}
-                          {isManualOnly && <Lock size={13} className="text-slate-500 shrink-0" />}
-                          {item.status}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
-                          item.automation_mode === 'AUTOMATED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {item.automation_mode}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3 text-slate-600 max-w-md">
-                        <p className="truncate font-medium" title={item.completion_reason || ''}>
-                          {item.completion_reason || (isManualOnly ? 'Chưa hỗ trợ Adapter' : 'Sẵn sàng nạp')}
-                        </p>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {/* 8. SLIDE-OUT RIGHT DRAWER FOR AUTO BACKFILL QUEUE AUDIT EVENTS */}
+      {showEvents && (
+        <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/40 backdrop-blur-xs flex justify-end">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col border-l border-slate-200">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
+                <Clock size={18} className="text-vnpost-blue" />
+                Nhật ký Audit Events ({activeRunId || 'Run Current'})
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowEvents(false)}
+                className="p-1 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-4 flex-1 overflow-y-auto space-y-3 text-xs">
+              {eventsLoading ? (
+                <p className="text-slate-400 italic">Đang tải nhật ký audit...</p>
+              ) : events.length === 0 ? (
+                <p className="text-slate-400 italic">Chưa có sự kiện nào được ghi nhận cho tiến trình này.</p>
+              ) : (
+                events.map((evt, idx) => (
+                  <div key={evt.id || idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="flex items-center justify-between text-slate-400 text-[10px]">
+                      <span className="font-mono font-bold text-blue-700 uppercase">{evt.event_type || evt.type}</span>
+                      <span>{evt.created_at || evt.timestamp}</span>
+                    </div>
+                    <p className="text-slate-700 font-medium">{evt.message || JSON.stringify(evt.payload || {})}</p>
+                    {evt.action_required && (
+                      <p className="text-amber-700 font-bold">➔ Hành động: {evt.action_required}</p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}

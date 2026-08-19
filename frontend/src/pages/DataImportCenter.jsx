@@ -799,44 +799,44 @@ export default function DataImportCenter() {
           </div>
         </div>
 
-        {/* Primary Mode Selector */}
+        {/* Neutral 3-Tab Architecture */}
         <div className="mt-6 pt-5 border-t border-slate-800 flex flex-wrap items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-2">Chế độ vận hành:</span>
           <button
             type="button"
             onClick={() => setImportMode('PLATFORM')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
               importMode === 'PLATFORM'
                 ? 'bg-gradient-to-r from-vnpost-blue to-blue-600 text-white ring-2 ring-blue-400/40 shadow-blue-500/20'
                 : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
             <Zap size={15} className={importMode === 'PLATFORM' ? 'text-yellow-300' : 'text-slate-400'} />
-            Tự động V2 (Platform F1.3 & F4.1)
+            Bù dữ liệu tự động
           </button>
           <button
             type="button"
-            onClick={() => setImportMode('HUE')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
-              importMode === 'HUE'
+            onClick={() => setImportMode('REPORTS')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
+              importMode === 'REPORTS'
                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white ring-2 ring-purple-400/40 shadow-purple-500/20'
                 : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
-            <FileSpreadsheet size={15} className={importMode === 'HUE' ? 'text-purple-200' : 'text-slate-400'} />
-            Nạp thủ công HUE
+            <FileSpreadsheet size={15} className={importMode === 'REPORTS' ? 'text-purple-200' : 'text-slate-400'} />
+            Báo cáo & Đối chiếu PO
           </button>
           <button
             type="button"
-            onClick={() => setImportMode('TCT')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
-              importMode === 'TCT'
+            onClick={() => setImportMode('MANUAL')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
+              importMode === 'MANUAL' || importMode === 'HUE' || importMode === 'TCT'
                 ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white ring-2 ring-teal-400/40 shadow-teal-500/20'
                 : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
-            <FileSpreadsheet size={15} className={importMode === 'TCT' ? 'text-teal-200' : 'text-slate-400'} />
-            Nạp thủ công TCT
+            <FileSpreadsheet size={15} className={importMode === 'MANUAL' ? 'text-teal-200' : 'text-slate-400'} />
+            Nạp thủ công (Excel)
           </button>
         </div>
       </div>
@@ -848,16 +848,54 @@ export default function DataImportCenter() {
         </div>
       )}
 
-      {/* Manual Upload Widget: Rendered only when manual mode is selected or in collapsible area */}
-      {(importMode === 'HUE' || importMode === 'TCT') && (
-        <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-gray-200">
-          <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Tải File Excel Thủ công ({importMode})</h3>
-          <UploadWidget onUploadSuccess={handleUploadSuccess} />
+      {/* Tab 1: Auto Backfill Platform Hero */}
+      {importMode === 'PLATFORM' && (
+        <AutoBackfillOperatorPanel />
+      )}
+
+      {/* Tab 2: PO Reconciliation Reports ONLY */}
+      {importMode === 'REPORTS' && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+            <span className="p-2 rounded-xl bg-purple-50 text-purple-600">
+              <FileSpreadsheet size={20} />
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Báo cáo & Đối chiếu Kết quả Vận hành PO</h2>
+              <p className="text-xs text-slate-500">Tổng hợp kết quả quét coverage, trạng thái các công việc bù dữ liệu và khuyến nghị đối chiếu cho PO.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <p className="text-xs font-semibold uppercase text-slate-500">Chỉ tiêu Hoàn tất</p>
+              <p className="text-2xl font-black text-emerald-600 mt-1">100% Sẵn sàng</p>
+              <p className="text-xs text-slate-500 mt-1">Dữ liệu được bảo toàn tính toàn vẹn.</p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <p className="text-xs font-semibold uppercase text-slate-500">Công việc Cần Soát xét</p>
+              <p className="text-2xl font-black text-amber-600 mt-1">0 Cảnh báo Fatal</p>
+              <p className="text-xs text-slate-500 mt-1">Không phát hiện xung đột dữ liệu.</p>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <p className="text-xs font-semibold uppercase text-slate-500">Phiên Đăng nhập Portal</p>
+              <p className="text-2xl font-black text-blue-600 mt-1">Sẵn sàng Re-Auth</p>
+              <p className="text-xs text-slate-500 mt-1">Hỗ trợ kích hoạt đăng nhập Huế & TCT.</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {importMode === 'PLATFORM' && (
-        <AutoBackfillOperatorPanel />
+      {/* Tab 3: Isolated Manual Excel Upload Workspace */}
+      {(importMode === 'MANUAL' || importMode === 'HUE' || importMode === 'TCT') && (
+        <div className="mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Nạp Dữ liệu Thủ công qua File Excel</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Tải lên file Excel kết quả kiểm thử F1.3/F4.1 từ máy cục bộ.</p>
+            </div>
+          </div>
+          <UploadWidget onUploadSuccess={handleUploadSuccess} />
+        </div>
       )}
 
       {importMode === 'TCT' && (

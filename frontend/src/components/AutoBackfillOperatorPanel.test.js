@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {
   aggregateReportTotals,
+  paginateItems,
+  resolveDynamicIndicators,
   resolveEffectiveRunState,
   resolveRunActionButtons,
   resolveWaitingAuthLanes
@@ -172,4 +174,66 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   console.log('✔ 4. Action Buttons Enabled/Disabled State tests PASSED!');
 }
 
+// ==========================================
+// 5. Contract Test: 10 Rows/Page Pagination Helper
+// ==========================================
+{
+  const testItems = Array.from({ length: 25 }, (_, i) => ({ id: `item_${i + 1}` }));
+
+  // Test case 5.1: Default 10 rows/page -> Page 1 of 3
+  const page1 = paginateItems(testItems, 1, 10);
+  assert.equal(page1.pageItems.length, 10, 'Page 1 must contain 10 items');
+  assert.equal(page1.currentPage, 1, 'Current page must be 1');
+  assert.equal(page1.totalPages, 3, 'Total pages for 25 items at 10/page must be 3');
+  assert.equal(page1.hasNext, true, 'Page 1 must have next page');
+  assert.equal(page1.hasPrev, false, 'Page 1 must not have prev page');
+
+  // Test case 5.2: Page 3 of 3 -> 5 items
+  const page3 = paginateItems(testItems, 3, 10);
+  assert.equal(page3.pageItems.length, 5, 'Page 3 must contain 5 items');
+  assert.equal(page3.hasNext, false, 'Page 3 must not have next page');
+  assert.equal(page3.hasPrev, true, 'Page 3 must have prev page');
+
+  // Test case 5.3: Selectable page size 20
+  const page20 = paginateItems(testItems, 1, 20);
+  assert.equal(page20.pageItems.length, 20, 'Page size 20 must return 20 items');
+  assert.equal(page20.totalPages, 2, '25 items at 20/page must be 2 pages');
+
+  console.log('✔ 5. Pagination Helper tests PASSED!');
+}
+
+// ==========================================
+// 6. Future-State 4-Indicator Scalability Fixture Test
+// ==========================================
+{
+  const fixture4Indicators = {
+    indicators: [
+      { code: 'F1.3', display_name: 'F1.3 KPI', display_order: 1, badge_theme: 'blue' },
+      { code: 'F4.1', display_name: 'F4.1 Phát BC', display_order: 2, badge_theme: 'teal' },
+      { code: 'F2.TEST', display_name: 'F2.TEST Giả lập 1', display_order: 3, badge_theme: 'indigo' },
+      { code: 'F5.TEST', display_name: 'F5.TEST Giả lập 2', display_order: 4 } // missing badge_theme -> neutral slate fallback
+    ],
+    items: [
+      { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-18', status: 'MISSING' },
+      { indicator: 'F4.1', source_lane: 'TCT', business_date: '2026-08-18', status: 'SUCCESS' },
+      { indicator: 'F2.TEST', source_lane: 'HUE', business_date: '2026-08-18', status: 'SUCCESS' },
+      { indicator: 'F5.TEST', source_lane: 'TCT', business_date: '2026-08-18', status: 'MISSING' }
+    ]
+  };
+
+  const resolvedIndicators = resolveDynamicIndicators(fixture4Indicators);
+  assert.equal(resolvedIndicators.length, 4, 'Must dynamically resolve exactly 4 indicators from payload');
+  assert.equal(resolvedIndicators[0].code, 'F1.3', 'Indicator 1 must be F1.3');
+  assert.equal(resolvedIndicators[1].code, 'F4.1', 'Indicator 2 must be F4.1');
+  assert.equal(resolvedIndicators[2].code, 'F2.TEST', 'Indicator 3 must be F2.TEST (zero code modification)');
+  assert.equal(resolvedIndicators[3].code, 'F5.TEST', 'Indicator 4 must be F5.TEST (zero code modification)');
+
+  // Verify neutral slate fallback for F5.TEST (missing badge_theme)
+  assert.equal(resolvedIndicators[3].badgeThemeKey, 'slate', 'Missing badge_theme must fallback to neutral slate');
+  assert.ok(resolvedIndicators[3].badgeClass.includes('bg-slate-100'), 'Slate fallback badgeClass must include bg-slate-100');
+
+  console.log('✔ 6. Future-State 4-Indicator Scalability Fixture tests PASSED!');
+}
+
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');
+

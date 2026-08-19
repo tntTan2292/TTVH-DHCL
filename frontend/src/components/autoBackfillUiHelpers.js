@@ -92,3 +92,92 @@ export function groupItemsByDate(items = []) {
     items: dateItems
   }));
 }
+
+export function paginateItems(items = [], page = 1, pageSize = 10) {
+  const safePageSize = Math.max(1, parseInt(pageSize, 10) || 10);
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / safePageSize));
+  const currentPage = Math.min(Math.max(1, parseInt(page, 10) || 1), totalPages);
+  const startIndex = (currentPage - 1) * safePageSize;
+  const endIndex = Math.min(startIndex + safePageSize, totalItems);
+  const pageItems = items.slice(startIndex, endIndex);
+
+  return {
+    pageItems,
+    currentPage,
+    totalPages,
+    totalItems,
+    pageSize: safePageSize,
+    hasNext: currentPage < totalPages,
+    hasPrev: currentPage > 1,
+  };
+}
+
+export function resolveDynamicIndicators(coverageData, rawItems = []) {
+  const APPROVED_THEMES = {
+    blue: { badgeClass: 'bg-blue-50 text-blue-700 border-blue-200', activeTabClass: 'bg-blue-600 text-white' },
+    teal: { badgeClass: 'bg-teal-50 text-teal-700 border-teal-200', activeTabClass: 'bg-teal-600 text-white' },
+    indigo: { badgeClass: 'bg-indigo-50 text-indigo-700 border-indigo-200', activeTabClass: 'bg-indigo-600 text-white' },
+    purple: { badgeClass: 'bg-purple-50 text-purple-700 border-purple-200', activeTabClass: 'bg-purple-600 text-white' },
+    emerald: { badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200', activeTabClass: 'bg-emerald-600 text-white' },
+    amber: { badgeClass: 'bg-amber-50 text-amber-700 border-amber-200', activeTabClass: 'bg-amber-600 text-white' },
+    rose: { badgeClass: 'bg-rose-50 text-rose-700 border-rose-200', activeTabClass: 'bg-rose-600 text-white' },
+    slate: { badgeClass: 'bg-slate-100 text-slate-700 border-slate-200', activeTabClass: 'bg-slate-700 text-white' },
+  };
+
+  const NEUTRAL_FALLBACK = APPROVED_THEMES.slate;
+
+  const items = Array.isArray(rawItems) ? rawItems : (coverageData?.items || []);
+  const apiIndicators = Array.isArray(coverageData?.indicators) ? coverageData.indicators : [];
+
+  if (apiIndicators.length > 0) {
+    return apiIndicators.map((ind) => {
+      const themeKey = APPROVED_THEMES[ind.badge_theme] ? ind.badge_theme : 'slate';
+      const theme = APPROVED_THEMES[themeKey] || NEUTRAL_FALLBACK;
+      const indicatorItems = items.filter((item) => item.indicator === ind.code);
+
+      return {
+        code: ind.code,
+        displayName: ind.display_name || ind.code,
+        displayOrder: ind.display_order || 99,
+        status: ind.status || 'ACTIVE',
+        trackingStartDate: ind.tracking_start_date || '2026-01-01',
+        supportedLanes: ind.supported_lanes || ['HUE', 'TCT'],
+        automationMode: ind.automation_mode || 'AUTOMATED',
+        badgeThemeKey: themeKey,
+        badgeClass: theme.badgeClass,
+        activeTabClass: theme.activeTabClass,
+        items: indicatorItems,
+        missingCount: indicatorItems.filter((i) => i.status === 'MISSING').length,
+        successCount: indicatorItems.filter((i) => i.status === 'SUCCESS').length,
+      };
+    });
+  }
+
+  // Zero-code fallback: Group items dynamically by indicator code
+  const itemsGrouped = groupItemsByIndicator(items);
+  const indicatorCodes = Object.keys(itemsGrouped);
+
+  return indicatorCodes.map((code, index) => {
+    const themeKey = code === 'F1.3' ? 'blue' : code === 'F4.1' ? 'teal' : 'slate';
+    const theme = APPROVED_THEMES[themeKey] || NEUTRAL_FALLBACK;
+    const indicatorItems = itemsGrouped[code] || [];
+
+    return {
+      code,
+      displayName: code === 'F1.3' ? 'F1.3 KPI Chất lượng' : code === 'F4.1' ? 'F4.1 Phát BC' : code,
+      displayOrder: index + 1,
+      status: 'ACTIVE',
+      trackingStartDate: '2026-01-01',
+      supportedLanes: ['HUE', 'TCT'],
+      automationMode: 'AUTOMATED',
+      badgeThemeKey: themeKey,
+      badgeClass: theme.badgeClass,
+      activeTabClass: theme.activeTabClass,
+      items: indicatorItems,
+      missingCount: indicatorItems.filter((i) => i.status === 'MISSING').length,
+      successCount: indicatorItems.filter((i) => i.status === 'SUCCESS').length,
+    };
+  });
+}
+
