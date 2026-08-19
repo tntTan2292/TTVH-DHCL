@@ -6,6 +6,7 @@ const importController = require('../controllers/importController');
 const dkclHueF13SyncController = require('../controllers/dkclHueF13SyncController');
 const dkclSharedOperationsController = require('../controllers/dkclSharedOperationsController');
 const autoBackfillCoverageController = require('../controllers/autoBackfillCoverageController');
+const autoBackfillCoverageExceptionController = require('../controllers/autoBackfillCoverageExceptionController');
 const autoBackfillQueueController = require('../controllers/autoBackfillQueueController');
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -15,6 +16,9 @@ router.post('/upload', ...adminOnly, upload.single('file'), importController.upl
 router.get('/f13/status', ...adminOnly, importController.status.bind(importController));
 router.get('/status', ...adminOnly, importController.status.bind(importController));
 router.get('/auto-backfill/coverage', requireAuth, autoBackfillCoverageController.getCoverage.bind(autoBackfillCoverageController));
+router.get('/auto-backfill/coverage/exceptions', requireAuth, autoBackfillCoverageExceptionController.list.bind(autoBackfillCoverageExceptionController));
+router.post('/auto-backfill/coverage/exceptions', ...adminOnly, autoBackfillCoverageExceptionController.create.bind(autoBackfillCoverageExceptionController));
+router.post('/auto-backfill/coverage/exceptions/:exceptionId/revoke', ...adminOnly, autoBackfillCoverageExceptionController.revoke.bind(autoBackfillCoverageExceptionController));
 router.post('/auto-backfill/runs', ...adminOnly, autoBackfillQueueController.createRun.bind(autoBackfillQueueController));
 router.get('/auto-backfill/runs/:runId', requireAuth, autoBackfillQueueController.getRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/pause', ...adminOnly, autoBackfillQueueController.pauseRun.bind(autoBackfillQueueController));

@@ -554,3 +554,49 @@ CREATE INDEX IF NOT EXISTS idx_auto_backfill_circuit_state ON auto_backfill_circ
 CREATE INDEX IF NOT EXISTS idx_auto_backfill_job_safety_ready ON auto_backfill_job(state, safety_state, next_attempt_at, business_date DESC);
 CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_attempt_no_delete BEFORE DELETE ON auto_backfill_attempt BEGIN SELECT RAISE(ABORT, 'auto_backfill_attempt is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_attempt_terminal_no_update BEFORE UPDATE ON auto_backfill_attempt WHEN OLD.status <> 'RUNNING' BEGIN SELECT RAISE(ABORT, 'completed auto_backfill_attempt is immutable'); END;
+
+-- ============================================================
+-- AUTO-BACKFILL-COVERAGE-EXCEPTION - controlled, audited, reversible
+-- coverage overrides (PO_EXEMPTED, LEGACY_BASELINE, VERIFIED_NO_DATA)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS auto_backfill_coverage_exception (
+    id TEXT PRIMARY KEY,
+    indicator TEXT NOT NULL,
+    source_lane TEXT NOT NULL,
+    business_date TEXT NOT NULL,
+    exception_type TEXT NOT NULL CHECK (exception_type IN ('PO_EXEMPTED', 'LEGACY_BASELINE', 'VERIFIED_NO_DATA')),
+    status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'REVOKED')) DEFAULT 'ACTIVE',
+    reason TEXT NOT NULL,
+    evidence_json TEXT,
+    registry_version TEXT NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    revoked_by TEXT,
+    revoked_at TEXT,
+    revoke_reason TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_coverage_exception_active ON auto_backfill_coverage_exception(indicator, source_lane, business_date) WHERE status = 'ACTIVE';
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_coverage_exception_scope ON auto_backfill_coverage_exception(indicator, source_lane, status);
+
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_coverage_exception_no_delete BEFORE DELETE ON auto_backfill_coverage_exception BEGIN SELECT RAISE(ABORT, 'auto_backfill_coverage_exception cannot be deleted; revoke instead'); END;
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_coverage_exception_revoked_immutable BEFORE UPDATE ON auto_backfill_coverage_exception WHEN OLD.status = 'REVOKED' BEGIN SELECT RAISE(ABORT, 'revoked auto_backfill_coverage_exception is immutable'); END;
+
+CREATE TABLE IF NOT EXISTS auto_backfill_coverage_exception_event (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    exception_id TEXT NOT NULL,
+    event_type TEXT NOT NULL CHECK (event_type IN ('CREATED', 'REVOKED')),
+    exception_type TEXT NOT NULL,
+    indicator TEXT NOT NULL,
+    source_lane TEXT NOT NULL,
+    business_date TEXT NOT NULL,
+    reason TEXT,
+    evidence_json TEXT,
+    actor TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(exception_id) REFERENCES auto_backfill_coverage_exception(id)
+);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_coverage_exception_event_exception ON auto_backfill_coverage_exception_event(exception_id, id);
+
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_coverage_exception_event_no_update BEFORE UPDATE ON auto_backfill_coverage_exception_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_coverage_exception_event is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_coverage_exception_event_no_delete BEFORE DELETE ON auto_backfill_coverage_exception_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_coverage_exception_event is append-only'); END;

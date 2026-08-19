@@ -140,6 +140,35 @@ async function createIsolationFixture() {
         CREATE TABLE fact_f13_tct (ngay_do_kiem TEXT NOT NULL, entity_id TEXT NOT NULL);
         CREATE TABLE fact_f41_hue (ngay_do_kiem TEXT NOT NULL, entity_id TEXT NOT NULL);
         CREATE TABLE fact_f41_tct (ngay_do_kiem TEXT NOT NULL, entity_id TEXT NOT NULL);
+        CREATE TABLE auto_backfill_coverage_exception (
+            id TEXT PRIMARY KEY,
+            indicator TEXT NOT NULL,
+            source_lane TEXT NOT NULL,
+            business_date TEXT NOT NULL,
+            exception_type TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'ACTIVE',
+            reason TEXT NOT NULL,
+            evidence_json TEXT,
+            registry_version TEXT NOT NULL,
+            created_by TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            revoked_by TEXT,
+            revoked_at TEXT,
+            revoke_reason TEXT
+        );
+        CREATE TABLE auto_backfill_coverage_exception_event (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            exception_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            exception_type TEXT NOT NULL,
+            indicator TEXT NOT NULL,
+            source_lane TEXT NOT NULL,
+            business_date TEXT NOT NULL,
+            reason TEXT,
+            evidence_json TEXT,
+            actor TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
     `);
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qis-ab-coverage-'));
     const policyFor = (table) => createSqliteImportCompletionPolicy({
@@ -188,7 +217,7 @@ test('AB-EXT-03 reports one F9.TEST success and two manual-only gaps with zero r
     const service = new AutoBackfillCoverageService({ db: {}, registryProvider: () => [indicator] });
     const coverage = await service.scan({ asOf: '2026-01-04', roles: ['admin'] });
 
-    assert.deepEqual(coverage.items.map((item) => item.status), ['SUCCESS', 'MANUAL_ONLY_MISSING', 'MANUAL_ONLY_MISSING']);
+    assert.deepEqual(coverage.items.map((item) => item.status), ['DATA_COMPLETE_WITH_EVIDENCE', 'TRUE_MISSING', 'TRUE_MISSING']);
     assert.equal(coverage.runnable_portal_jobs, 0);
     assert.ok(coverage.items.every((item) => item.queue_eligible === false));
 });
@@ -214,10 +243,10 @@ test('AB-ISO-01 keeps same-date completion isolated across indicators and lanes'
             .scan({ asOf: '2026-01-03', roles: ['admin'] });
         const statusByKey = Object.fromEntries(coverage.items.map((item) => [`${item.indicator}|${item.source_lane}`, item.status]));
 
-        assert.equal(statusByKey['F1.3|HUE'], 'SUCCESS');
-        assert.equal(statusByKey['F1.3|TCT'], 'MANUAL_ONLY_MISSING');
-        assert.equal(statusByKey['F4.1|HUE'], 'MANUAL_ONLY_MISSING');
-        assert.equal(statusByKey['F4.1|TCT'], 'MANUAL_ONLY_MISSING');
+        assert.equal(statusByKey['F1.3|HUE'], 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(statusByKey['F1.3|TCT'], 'TRUE_MISSING');
+        assert.equal(statusByKey['F4.1|HUE'], 'TRUE_MISSING');
+        assert.equal(statusByKey['F4.1|TCT'], 'TRUE_MISSING');
     } finally {
         await fixture.db.close();
         fs.rmSync(fixture.root, { recursive: true, force: true });
@@ -233,8 +262,8 @@ test('AB-ISO-02 does not reuse HUE facts, log, or artifact for TCT', async () =>
         const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
             .scan({ asOf: '2026-01-03', roles: ['admin'] });
 
-        assert.equal(coverage.items.find((item) => item.source_lane === 'HUE').status, 'SUCCESS');
-        assert.equal(coverage.items.find((item) => item.source_lane === 'TCT').status, 'MANUAL_ONLY_MISSING');
+        assert.equal(coverage.items.find((item) => item.source_lane === 'HUE').status, 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(coverage.items.find((item) => item.source_lane === 'TCT').status, 'TRUE_MISSING');
     } finally {
         await fixture.db.close();
         fs.rmSync(fixture.root, { recursive: true, force: true });
@@ -301,7 +330,7 @@ test('an automated registration never makes an existing SUCCESS queue eligible',
     const coverage = await new AutoBackfillCoverageService({ db: {}, registryProvider: () => [indicator] })
         .scan({ asOf: '2026-01-02', roles: ['admin'] });
 
-    assert.equal(coverage.items[0].status, 'SUCCESS');
+    assert.equal(coverage.items[0].status, 'DATA_COMPLETE_WITH_EVIDENCE');
     assert.equal(coverage.items[0].queue_eligible, false);
     assert.equal(coverage.items[0].queue_ineligible_reason, 'ALREADY_SUCCESS');
     assert.equal(coverage.runnable_portal_jobs, 0);

@@ -8,58 +8,32 @@ const {
     validateIndicatorRegistration,
 } = require('./importIndicatorRegistry');
 const { COMPLETION_STATUSES } = require('./autoBackfillCompletionPolicies');
+const {
+    ISO_DATE,
+    createCalendarError,
+    normalizeBusinessDate,
+    formatDateInTimezone,
+    addUtcDays,
+    enumerateDatesDescending,
+} = require('./autoBackfillBusinessCalendar');
+const { AutoBackfillCoverageExceptionService, COVERAGE_EXCEPTION_TYPES } = require('./autoBackfillCoverageExceptionService');
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+// The 6 canonical, registry-driven Coverage states locked by
+// AUTO-BACKFILL-UI_PLAN.md Section 4. `DATA_COMPLETE_WITH_EVIDENCE` and
+// `TRUE_MISSING`/`MANUAL_REVIEW_REQUIRED` are derived straight from the raw
+// completion policy; `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE`, `VERIFIED_NO_DATA`
+// and `PO_EXEMPTED` are the 3 controlled, audited coverage-exception overlays.
 const COVERAGE_STATUSES = Object.freeze([
-    COMPLETION_STATUSES.SUCCESS,
-    COMPLETION_STATUSES.MISSING,
-    COMPLETION_STATUSES.INCOMPLETE,
-    COMPLETION_STATUSES.MANUAL_REVIEW_REQUIRED,
-    'MANUAL_ONLY_MISSING',
+    'DATA_COMPLETE_WITH_EVIDENCE',
+    'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE',
+    'TRUE_MISSING',
+    'VERIFIED_NO_DATA',
+    'PO_EXEMPTED',
+    'MANUAL_REVIEW_REQUIRED',
 ]);
 
-function normalizeBusinessDate(value, fieldName) {
-    const text = String(value || '');
-    if (!ISO_DATE.test(text)) throw createCoverageError('INVALID_DATE', `${fieldName} must use YYYY-MM-DD.`);
-    const [year, month, day] = text.split('-').map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day));
-    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
-        throw createCoverageError('INVALID_DATE', `${fieldName} is not a valid calendar date.`);
-    }
-    return text;
-}
-
-function formatDateInTimezone(value, timezone) {
-    const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) throw createCoverageError('INVALID_DATE', 'as_of is not a valid date or timestamp.');
-    const parts = new Intl.DateTimeFormat('en-CA', {
-        timeZone: timezone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-    }).formatToParts(date);
-    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return `${values.year}-${values.month}-${values.day}`;
-}
-
-function addUtcDays(businessDate, amount) {
-    const date = new Date(`${normalizeBusinessDate(businessDate, 'businessDate')}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + amount);
-    return date.toISOString().slice(0, 10);
-}
-
-function enumerateDatesDescending(fromDate, toDate) {
-    if (fromDate > toDate) return [];
-    const dates = [];
-    for (let cursor = toDate; cursor >= fromDate; cursor = addUtcDays(cursor, -1)) dates.push(cursor);
-    return dates;
-}
-
 function createCoverageError(code, message, statusCode = 400) {
-    const error = new Error(message);
-    error.code = code;
-    error.statusCode = statusCode;
-    return error;
+    return createCalendarError(code, message, statusCode);
 }
 
 function normalizeRoles(roles) {
@@ -74,9 +48,26 @@ function laneCanBeRead(lane, roles) {
     return roles.some((role) => allowed.includes(role));
 }
 
-function queueDisposition(indicator, lane, completionStatus) {
+// Maps the raw 4-state completion policy result onto the 6 canonical
+// Coverage display states, applying the exception overlay (if any) when the
+// raw result is not already `SUCCESS`. Real, currently-committed complete
+// data always wins over a stale exception record.
+function toCoverageStatus(rawStatus, exception) {
+    if (rawStatus === COMPLETION_STATUSES.SUCCESS) return 'DATA_COMPLETE_WITH_EVIDENCE';
+    if (exception) return exception.exception_type;
+    if (rawStatus === COMPLETION_STATUSES.MISSING) return 'TRUE_MISSING';
+    return 'MANUAL_REVIEW_REQUIRED';
+}
+
+function queueDisposition(indicator, lane, completionStatus, exception) {
     if (completionStatus === COMPLETION_STATUSES.SUCCESS) {
         return { queueEligible: false, reason: 'ALREADY_SUCCESS' };
+    }
+    if (exception) {
+        // VERIFIED_NO_DATA, PO_EXEMPTED and LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE
+        // are valid, audited business outcomes: never queue, retry, or count
+        // them toward a circuit -- they never reach the Queue/Safety layer at all.
+        return { queueEligible: false, reason: exception.exception_type };
     }
     if (indicator.status !== 'ACTIVE') {
         return { queueEligible: false, reason: 'INDICATOR_NOT_ACTIVE' };
@@ -105,6 +96,7 @@ class AutoBackfillCoverageService {
         registryProvider = listIndicatorConfigs,
         registryVersion = REGISTRY_VERSION,
         businessTimezone = BUSINESS_TIMEZONE,
+        exceptionService = null,
     } = {}) {
         this.db = db || require('../config/db');
         this.fs = fsImpl;
@@ -112,6 +104,14 @@ class AutoBackfillCoverageService {
         this.registryProvider = registryProvider;
         this.registryVersion = registryVersion;
         this.businessTimezone = businessTimezone;
+        this.exceptionService = exceptionService || new AutoBackfillCoverageExceptionService({
+            db: this.db,
+            fsImpl: this.fs,
+            clock: this.clock,
+            registryProvider: this.registryProvider,
+            registryVersion: this.registryVersion,
+            businessTimezone: this.businessTimezone,
+        });
     }
 
     async scan({ asOf = null, indicator = null, lane = null, roles = null } = {}) {
@@ -161,6 +161,11 @@ class AutoBackfillCoverageService {
             || left.indicator.code.localeCompare(right.indicator.code)
             || left.lane.code.localeCompare(right.lane.code));
 
+        const exceptionMap = await this.exceptionService.loadActiveExceptionMap({
+            indicatorCodes: scopedIndicators.map((entry) => entry.code),
+            laneCode: laneFilter,
+        });
+
         const items = [];
         for (const tuple of tuples) {
             const completion = await tuple.lane.completionPolicy.evaluate({
@@ -173,10 +178,11 @@ class AutoBackfillCoverageService {
             if (!Object.values(COMPLETION_STATUSES).includes(completion.status)) {
                 throw createCoverageError('INVALID_COMPLETION_STATUS', `${tuple.lane.completionPolicy.id} returned an invalid status.`);
             }
-            const status = completion.status === COMPLETION_STATUSES.MISSING && tuple.lane.automationMode === 'MANUAL_ONLY'
-                ? 'MANUAL_ONLY_MISSING'
-                : completion.status;
-            const disposition = queueDisposition(tuple.indicator, tuple.lane, completion.status);
+            const exception = completion.status === COMPLETION_STATUSES.SUCCESS
+                ? null
+                : exceptionMap.get(tuple.indicator.code + '|' + tuple.lane.code + '|' + tuple.businessDate) || null;
+            const status = toCoverageStatus(completion.status, exception);
+            const disposition = queueDisposition(tuple.indicator, tuple.lane, completion.status, exception);
             items.push({
                 indicator: tuple.indicator.code,
                 source_lane: tuple.lane.code,
@@ -189,6 +195,13 @@ class AutoBackfillCoverageService {
                 queue_eligible: disposition.queueEligible,
                 queue_ineligible_reason: disposition.reason,
                 evidence: completion.evidence,
+                exception: exception ? {
+                    id: exception.id,
+                    exception_type: exception.exception_type,
+                    reason: exception.reason,
+                    created_by: exception.created_by,
+                    created_at: exception.created_at,
+                } : null,
             });
         }
 
@@ -197,7 +210,7 @@ class AutoBackfillCoverageService {
             for (const laneConfig of Object.values(indicatorConfig.lanes)) {
                 if (laneFilter && laneConfig.code !== laneFilter) continue;
                 if (!laneCanBeRead(laneConfig, requesterRoles)) continue;
-                const key = `${indicatorConfig.code}\u0000${laneConfig.code}`;
+                const key = `${indicatorConfig.code} ${laneConfig.code}`;
                 laneGroups.set(key, {
                     indicator: indicatorConfig.code,
                     indicator_name: indicatorConfig.name,
@@ -215,7 +228,7 @@ class AutoBackfillCoverageService {
             }
         }
         for (const item of items) {
-            const group = laneGroups.get(`${item.indicator}\u0000${item.source_lane}`);
+            const group = laneGroups.get(`${item.indicator} ${item.source_lane}`);
             group.counts[item.status] += 1;
             group.items.push(item);
         }
@@ -238,6 +251,7 @@ class AutoBackfillCoverageService {
             as_of_business_date: asOfBusinessDate,
             to_date: toDate,
             ordering: ['business_date_desc', 'indicator_priority_asc', 'lane_priority_asc'],
+            coverage_statuses: COVERAGE_STATUSES,
             indicators: indicatorsMetadata,
             total_items: items.length,
             runnable_portal_jobs: items.filter((item) => item.queue_eligible).length,
@@ -250,6 +264,7 @@ class AutoBackfillCoverageService {
 module.exports = {
     AutoBackfillCoverageService,
     COVERAGE_STATUSES,
+    COVERAGE_EXCEPTION_TYPES,
     normalizeBusinessDate,
     formatDateInTimezone,
     addUtcDays,

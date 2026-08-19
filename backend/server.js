@@ -19,6 +19,7 @@ const { applyF41Phase1Schema } = require('./migrate_f41_phase1_schema');
 const { applyF41Phase2Schema } = require('./migrate_f41_phase2_schema');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
+const { applyAutoBackfillCoverageExceptionSchema } = require('./migrate_auto_backfill_coverage_exception_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -118,6 +119,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyF41Phase2Schema(dbPath);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
+    await applyAutoBackfillCoverageExceptionSchema(dbPath);
 }
 
 function startServer() {
