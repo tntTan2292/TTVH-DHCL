@@ -1,312 +1,167 @@
-# Final UI/UX Audit & Redesign Plan - Data Import Center (`AUTO-BACKFILL-UI`)
+# Revised UI/UX Architecture, Baseline Reconciliation & Exception Governance Plan (`AUTO-BACKFILL-UI`)
 
-Status: `READY FOR PO FINAL PLAN APPROVAL` (2026-08-18).
+Status: `READY FOR PO ARCHITECTURE APPROVAL` (2026-08-19).
 Repository Plan Path: `docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md` ([AUTO-BACKFILL-UI_PLAN.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md)).
 Document Index: [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/01_GOVERNANCE/DOCUMENT_INDEX.md).
 
 > [!IMPORTANT]
-> This document is a **Remediated Plan & Design System Audit ONLY**. Implementation is completely frozen per Product Owner directive until explicit PO review and final plan approval. No product source code modifications or execution will occur during this planning phase.
+> This document is a **Remediated Architecture, Baseline Reconciliation & Exception Governance Plan ONLY**.
+> Documentation-only update per Product Owner directive. Product source code modifications and runtime execution are strictly frozen until explicit PO review and architecture approval.
 
 ---
 
-## 1. User Review Required
+## 1. Executive Summary & Remediation Ledger
 
-> [!CAUTION]
-> **Key Governance & Technical Scope Items Submitted for Final Product Owner Approval**:
->
-> 1. **Coverage Pagination & Bounded Container Heights (Zero Infinite Scroll)**:
->    - Default pagination: **10 rows per page** (with selectable options: `10 / 20 / 50`).
->    - Enforces explicit max-height bounds on content sections (e.g., `max-h-[420px] overflow-y-auto`) to strictly prevent endless page scrolling.
->
-> 2. **Strict Isolation & Positioning of 2 Distinct Audit Histories**:
->    - **Auto Backfill Audit Events**: System queue execution logs (`JOB_CREATED`, `LEASE_ACQUIRED`, `WAITING_AUTH`, `CIRCUIT_OPEN`). Accessible **ONLY via the Slide-out Right Drawer on Tab 1**.
->    - **Legacy Manual Import History**: File upload history of Excel files uploaded manually. Scoped exclusively inside **Tab 3 ("Nạp thủ công")**. NEVER merged on the main auto backfill screen.
->
-> 3. **Locked Interaction Model for Audit Events & PO Report**:
->    - **Audit Events Access**: Accessible **ONLY via Slide-out Right Drawer (`<AuditEventsDrawer />`) on Tab 1**. (Tab 2 contains ONLY formal PO Reconciliation Reports).
->    - **UX Rationale**: A slide-out drawer enables operators to inspect real-time execution logs side-by-side with active operations without leaving Tab 1 or losing context.
->
-> 4. **Zero Frontend Code Extensibility & Minimal Additive Read-Only Backend Scope**:
->    - "Zero-code" means **Zero Frontend Code Modifications**: adding new indicators requires registration in the shared backend indicator registry.
->    - **Backend Coverage API Scope**: Adding the `data.indicators` metadata array to `GET /api/import/auto-backfill/coverage` is a **minimal additive read-only backend change belonging to this ticket (`AUTO-BACKFILL-UI`)**.
->    - **Strict Backend Boundaries**: Does **NOT** modify Queue engine, Safety controls, database schema, or Import business rules.
->    - **Neutral Token Theme**: Uses strictly approved design-token palette (`blue`, `teal`, `indigo`, `purple`, `emerald`). If `badge_theme` is absent, uses a single fixed neutral fallback token: **`slate`** (`bg-slate-100 text-slate-700 border-slate-200`). NO color hashing.
+Following Product Owner feedback, Antigravity incorporated 5 mandatory architectural remediation points into this revised plan:
+
+1. **Inverted Implementation Order**:
+   - **Phase A (`AUTO-BACKFILL-COVERAGE-EXCEPTION`)**: Technical backend executor implements backend schema, registry policies, `VERIFIED_NO_DATA`, `PO_EXEMPTED`, `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` logic, DB persistence, and exception APIs FIRST.
+   - **Phase B (`AUTO-BACKFILL-UI-REMEDIATION`)**: Antigravity implements frontend components and PO confirmation UI AFTER real backend APIs are verified and ready. (No Modal or `PO_EXEMPTED` button will be built before real backend APIs exist).
+2. **Strict Adapter-Proven Criteria for `VERIFIED_NO_DATA`**:
+   - "Portal returned 0 rows" does NOT automatically equal `NO_DATA`.
+   - `VERIFIED_NO_DATA` is valid ONLY when portal adapter explicitly proves 5 criteria: (1) exact report identity, (2) exact indicator/lane/date tuple, (3) successful filter application, (4) valid response readiness, and (5) valid export/table structure confirming exactly 0 rows.
+   - If any criterion is missing ➔ `MANUAL_REVIEW_REQUIRED`. Never auto-exempt.
+3. **Legacy Baseline Reconciliation (6 Coverage States)**:
+   - Solves the 920 "fake missing" items problem by introducing `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` ("Dữ liệu cũ đã có"), preventing unwanted re-imports through a controlled baseline seed.
+   - Registry-driven completion policy per `indicator × lane` (never hardcoded F1.3/F4.1).
+4. **Technical Failure & Exception Isolation**:
+   - Single-date error retries per registry policy (up to 3 times), records result, and continues queue.
+   - Circuit breaker opens ONLY on 5 consecutive system failures (`PORTAL_SYSTEMIC`, `EAI_AGAIN`) with matching error signature.
+   - `VERIFIED_NO_DATA` and `PO_EXEMPTED` MUST NEVER be counted as retries or circuit breaker errors.
+5. **No-Code Vietnamese Status Display**:
+   - Technical codes mapped to user-friendly Vietnamese labels without exposing internal technical terms on the main UI.
 
 ---
 
-## 2. Deep UI/UX Audit Findings & PO Alignment
-
-| PO Issue Reported | Technical & Design Root Cause | Remediated Solution |
-| --- | --- | --- |
-| **Trang quá dài, phải kéo liên tục** | Vertical stacking of unpaginated tables and drawers. | **10 rows/page default pagination** + **bounded height containers (`max-h-[420px]`)** + **3-Tab Navigation**. |
-| **Dồn ép 2 loại nhật ký lộn xộn** | Auto Backfill Queue events and Manual Excel upload history competing on screen. | **Strict Isolation**: Auto Backfill Audit Events -> **Slide-out Right Drawer (Tab 1 Only)**; Manual Excel Upload History -> **Tab 3 ("Nạp thủ công")**. |
-| **Interaction model thiếu nhất quán** | Ambiguous drawer vs. tab placement for event logs and PO reports. | **Locked Model**: Slide-out Right Drawer (`<AuditEventsDrawer />`) exclusively on Tab 1 for real-time audit logs; Tab 2 exclusively for PO Reports. |
-| **Tên tab bị khóa theo chỉ tiêu** | Label "Platform F1.3 & F4.1" hardcoded indicator names. | **Neutral Naming**: Tab 1 labeled **"Bù dữ liệu tự động"**. Indicators generated dynamically from backend API. |
-| **Chưa chứng minh 4+ chỉ tiêu** | Statically mapped indicator cards (2-column layout). | **Zero Frontend Code Extensibility**: Renders 1, 2, 4, to N indicators automatically from API registry. |
-
----
-
-## 3. Design System Alignment & Token Rules
-
-To ensure 100% visual consistency with the existing Dashboard (`SharedComponents.jsx`, `index.css`), the redesigned Import Center adheres strictly to project tokens:
-
-### 3.1 Color Tokens
-
-- **Brand Primary**: `var(--color-vnpost-blue)` (`#0054A6`)
-- **Brand Dark Accent**: `var(--color-vnpost-blue-dark)` (`#003E7E`)
-- **Text Main**: `var(--color-text-main)` (`#0f172a` / Slate-900)
-- **Text Muted**: `var(--color-text-muted)` (`#64748b` / Slate-500)
-- **Card Background**: `#ffffff` (Pure white)
-- **Surface Layer 1**: `var(--color-surface-50)` (`#f8fafc` / Slate-50)
-- **Surface Layer 2**: `var(--color-surface-100)` (`#f1f5f9` / Slate-100)
-- **Border Token**: `var(--color-surface-200)` (`#e2e8f0` / Slate-200)
-
-### 3.2 Status Badge Tokens
-
-- **`SUCCESS` / `SKIPPED`**: Emerald pill (`bg-emerald-50 text-emerald-800 border-emerald-200`)
-- **`MISSING`**: Amber pill (`bg-amber-50 text-amber-900 border-amber-300`)
-- **`INCOMPLETE` / `RUNNING`**: Sky Blue pill (`bg-blue-50 text-blue-800 border-blue-200`)
-- **`MANUAL_REVIEW_REQUIRED`**: Rose Red pill (`bg-rose-50 text-rose-800 border-rose-200`)
-- **`MANUAL_ONLY_MISSING`**: Slate pill (`bg-slate-100 text-slate-700 border-slate-200`)
-
----
-
-## 4. 3-Tab Architecture & Information Isolation
+## 2. Inverted Implementation Sequence (Phase A -> Phase B)
 
 ```
 +---------------------------------------------------------------------------------------------------+
-|  DATA IMPORT CENTER                                                                               |
-|  [Làm mới Hệ thống]                                                                               |
+| PHASE A: BACKFILL COVERAGE EXCEPTION & BASELINE BACKEND (Ticket: AUTO-BACKFILL-COVERAGE-EXCEPTION) |
+| Executed FIRST by Technical Backend Executor                                                      |
+| Status: BACKEND FIRST DEPENDENCY                                                                  |
+| Deliverables:                                                                                     |
+|  - Implement DB schema & persistence for `PO_EXEMPTED` and `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` |
+|  - Implement 5-point adapter verification for `VERIFIED_NO_DATA`                                  |
+|  - Implement registry-driven completion policies per indicator × lane                             |
+|  - Expose verified REST APIs for coverage scan & PO exception confirmation                         |
 +---------------------------------------------------------------------------------------------------+
-|  NAVIGATION TABS:                                                                                |
-|  [ (1) Bù dữ liệu tự động ]      [ (2) Báo cáo & Đối chiếu PO ]    [ (3) Nạp thủ công (Excel) ]  |
+                                                  │
+                                                  ▼ Backend API Verified & PASS
 +---------------------------------------------------------------------------------------------------+
-|                                                                                                   |
-|  TAB 1: BÙ DỮ LIỆU TỰ ĐỘNG (Default Primary Hero View)                                           |
-|                                                                                                   |
-|  +-- SYSTEM HEALTH BAR ------------------------------------------------------------------------+  |
-|  | Run ID: run_101 | Status: [ RUNNING ] | Tiến độ: 14/20 (70%)                                |  |
-|  | Actions: [Tạm dừng] [Tiếp tục] [Khôi phục Mạch] | [Mở Drawer Audit Events (3)]                 |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                                                                                                   |
-|  +-- DYNAMIC INDICATOR HEALTH CARDS (Scales dynamically for 1, 2, 4, N Indicators) ------------+  |
-|  | [F1.3 KPI: 5 Thiếu]  [F4.1 Phát BC: 2 Thiếu]  [F2.TEST: 0 Thiếu]  [F5.TEST: 1 Thiếu]          |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                                                                                                   |
-|  +-- SAFETY WARNING OVERLAY (Rendered only when WAITING_AUTH / CIRCUIT_OPEN) --------------------+  |
-|  | [!] WAITING_AUTH: Yêu cầu đăng nhập phiên Huế -> [Mở đăng nhập Huế]  [Tiếp tục Run]            |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                                                                                                   |
-|  +-- COVERAGE CONTROL & FILTER BAR -------------------------------------------------------------+  |
-|  | Lọc Chỉ tiêu: [Tất cả|F1.3|F4.1|F2.TEST|F5.TEST] | Nguồn: [Tất cả|HUE|TCT] | Trạng thái: [...]     |  |
-|  | Hiển thị: [(o) Thẻ Ngày | ( ) Bảng] | Dòng/trang: [10 (v) | 20 | 50]                             |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                                                                                                   |
-|  +-- DATA LIST CONTAINER (Bounded Height max-h-[420px] - Zero Infinite Scroll!) ----------------+  |
-|  |  [Row/Card 1: 2026-08-18 | F1.3 | HUE | MISSING | Sẵn sàng nạp]                                |  |
-|  |  [Row/Card 2: 2026-08-18 | F4.1 | TCT | SUCCESS | Đã lưu kho]                                  |  |
-|  |  ... (10 items per page max)                                                                 |  |
-|  |  PAGINATION: [< Trang trước]  Trang 1 / 4  [Trang sau >]                                      |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                                                                                                   |
-+---------------------------------------------------------------------------------------------------+
-|                                                                                                   |
-|  SLIDE-OUT RIGHT DRAWER: <AuditEventsDrawer /> (Accessible ONLY from Tab 1 System Health Bar)     |
-|  +---------------------------------------------------------------------------------------------+  |
-|  |  X  NHẬT KÝ SỰ KIỆN AUTO BACKFILL AUDIT (Run run_101)                                      |  |
-|  |  -----------------------------------------------------------------------------------------  |  |
-|  |  17:35:01 - JOB_CREATED (F1.3/HUE/2026-08-18)                                               |  |
-|  |  17:35:02 - LEASE_ACQUIRED (Worker_01)                                                      |  |
-|  |  17:35:03 - WAITING_AUTH (Phát hiện hết hạn phiên Huế)                                      |  |
-|  +---------------------------------------------------------------------------------------------+  |
-|                                                                                                   |
-+---------------------------------------------------------------------------------------------------+
-|                                                                                                   |
-|  TAB 2: BÁO CÁO & ĐỐI CHIẾU PO (PO Reconciliation Reports ONLY)                                  |
-|  +----------------------------------------------------------------------------------------------+  |
-|  |  PO RECONCILIATION REPORT CARDS (Summary metrics, totals, action_required recommendations)    |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                                                                                                   |
-+---------------------------------------------------------------------------------------------------+
-|                                                                                                   |
-|  TAB 3: NẠP THỦ CÔNG (Isolated Manual Import Workspace)                                          |
-|  +----------------------------------------------------------------------------------------------+  |
-|  |  <UploadWidget /> (Drag & drop Excel file upload area)                                       |  |
-|  |  ------------------------------------------------------------------------------------------  |  |
-|  |  LEGACY MANUAL IMPORT FILE HISTORY TABLE (History of uploaded Excel files)                    |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                                                                                                   |
+| PHASE B: AUTO-BACKFILL UI REMEDIATION (Ticket: AUTO-BACKFILL-UI-REMEDIATION)                      |
+| Executed SECOND by Antigravity                                                                    |
+| Status: FRONTEND DEPENDENT ON PHASE A                                                            |
+| Deliverables:                                                                                     |
+|  - Integrate real Phase A backend APIs into Data Import Center                                    |
+|  - Render 6 No-code Vietnamese status badges                                                      |
+|  - Render Smart Monthly Grouping Accordions                                                       |
+|  - Render PO Exception Confirmation Modal & Audit History Drawer                                  |
 +---------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 5. Future-State Readiness (4+ Indicators Proof & Contract Specification)
+## 3. Strict 5-Point Adapter Proof Criteria for `VERIFIED_NO_DATA`
 
-### 5.1 Simulated 4-Indicator Architecture (F1.3, F4.1, F2.TEST, F5.TEST)
-
-The redesigned frontend uses dynamic registry iteration to render indicator summary cards and filters without hardcoding specific codes:
+To prevent false exemptions when a portal fails or returns empty pages due to network/filter errors, `VERIFIED_NO_DATA` requires explicit proof from the portal adapter:
 
 ```
-+---------------------------------------------------------------------------------------------------+
-| DYNAMIC INDICATOR HEALTH CARDS GRID (Desktop: 4 columns; Mobile: scroll ribbon)                   |
-+---------------------------------+---------------------------------+-------------------------------+
-| F1.3 KPI Chất lượng             | F4.1 Chất lượng Phát BC         | F2.TEST Giả lập               |
-| 5 Ngày thiếu / 20 Hoàn tất      | 2 Ngày thiếu / 23 Hoàn tất      | 0 Ngày thiếu / 25 Hoàn tất    |
-| Status: [ ACTIVE ]              | Status: [ ACTIVE ]              | Status: [ SUCCESS ]           |
-+---------------------------------+---------------------------------+-------------------------------+
-| F5.TEST Giả lập 2                                                                                 |
-| 1 Ngày thiếu / 24 Hoàn tất                                                                        |
-| Status: [ ATTENTION ]                                                                             |
-+---------------------------------------------------------------------------------------------------+
+[ Portal Query Response Received ]
+               │
+               ▼
+   Check 5-Point Adapter Criteria:
+   1. Exact Report Identity Verified? ---------------------> NO --+
+   2. Tuple Match (Indicator × Lane × Date)? ---------------> NO --|
+   3. Filter Parameters Applied Successfully? -------------> NO --+--> [ MARK: MANUAL_REVIEW_REQUIRED ]
+   4. Portal Readiness Status Valid? ------------------------> NO --|    (Never auto-exempt!)
+   5. Export/Table Structure Valid & Confirms 0 Rows? ------> NO --+
+               │
+              YES (All 5 Criteria Proven)
+               │
+               ▼
+[ MARK: VERIFIED_NO_DATA ] -> ("Không phát sinh dữ liệu")
+ (Valid Business Outcome: Skip, move to next date, 0 retries, 0 circuit error count)
 ```
 
-### 5.2 Minimum Backend Contract Metadata Specification & Additive Backend Scope
+---
 
-To support seamless **zero frontend code modifications** for present and future indicators, the backend Coverage API payload schema contract is specified as follows:
+## 4. Legacy Baseline Reconciliation & 6 Granular Coverage States
 
-```json
-{
-  "success": true,
-  "data": {
-    "indicators": [
-      {
-        "code": "F1.3",
-        "display_name": "F1.3 KPI Chất lượng",
-        "display_order": 1,
-        "tracking_start_date": "2026-01-01",
-        "supported_lanes": ["HUE", "TCT"],
-        "automation_mode": "AUTOMATED",
-        "badge_theme": "blue"
-      },
-      {
-        "code": "F4.1",
-        "display_name": "F4.1 Chất lượng Phát BC",
-        "display_order": 2,
-        "tracking_start_date": "2026-01-01",
-        "supported_lanes": ["HUE", "TCT"],
-        "automation_mode": "AUTOMATED",
-        "badge_theme": "teal"
-      },
-      {
-        "code": "F2.TEST",
-        "display_name": "F2.TEST Giả lập 1",
-        "display_order": 3,
-        "tracking_start_date": "2026-01-01",
-        "supported_lanes": ["HUE"],
-        "automation_mode": "AUTOMATED",
-        "badge_theme": "indigo"
-      },
-      {
-        "code": "F5.TEST",
-        "display_name": "F5.TEST Giả lập 2",
-        "display_order": 4,
-        "tracking_start_date": "2026-01-01",
-        "supported_lanes": ["TCT"],
-        "automation_mode": "MANUAL_ONLY",
-        "badge_theme": "amber"
-      }
-    ],
-    "items": []
-  }
-}
-```
+To resolve the 920 "fake missing" items issue, coverage evaluation classifies items into 6 distinct states using registry-driven completion policies per `indicator × lane`:
+
+| Coverage State Code | Technical Definition | No-Code Vietnamese Display | Action & Routing Rule |
+| --- | --- | --- | --- |
+| `DATA_COMPLETE_WITH_EVIDENCE` | Fact rows exist & Processed artifact present | **Đã hoàn tất** | Complete. No action required. |
+| `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` | Legacy fact data exists in DB without new artifact | **Dữ liệu cũ đã có** | Resolved baseline. Do NOT auto-reimport. Controlled seed. |
+| `TRUE_MISSING` | No DB data & no artifact; runnable adapter available | **Thật sự còn thiếu** | Queue eligible for auto-backfill. |
+| `VERIFIED_NO_DATA` | Adapter proved 5-point criteria for 0 rows | **Không phát sinh dữ liệu** | Skip. Valid business state. 0 retries. |
+| `PO_EXEMPTED` | PO manually confirmed exception with reason | **PO đã xác nhận** | Exempted by PO. Excluded from coverage gaps. |
+| `MANUAL_REVIEW_REQUIRED` | Missing evidence, integrity error, or unproven 0 rows | **Cần PO kiểm tra** | Requires PO inspection or manual upload. |
 
 > [!IMPORTANT]
-> **Minimal Additive Read-Only Backend Scope (Belonging to `AUTO-BACKFILL-UI`)**:
-> - Adding `data.indicators` metadata to `GET /api/import/auto-backfill/coverage` is a **minimal additive read-only backend enhancement** within the scope of this ticket (`AUTO-BACKFILL-UI`).
-> - Does **NOT** touch Queue engine, Safety controls, database schema, or Import business rules.
->
-> **Target Backend Files for Implementation Phase**:
-> - `backend/src/controllers/autoBackfillCoverageController.js` (Include `indicators` registry metadata in response payload).
-> - `backend/src/services/autoBackfillCoverageService.js` (Read-only metadata assembly).
->
-> **Corresponding Backend Test Contract File**:
-> - `backend/test_autoBackfillCoverageService.js` (Verifies payload contract structure).
->
-> **Frontend Fallback Token Handling (No Color-Hashing)**:
-> - `display_name`: Defaults to `${indicatorCode}`.
-> - `badge_theme`: Uses ONLY approved design-token theme if present (`blue`, `teal`, `indigo`, `purple`, `emerald`). If `badge_theme` is absent/missing, uses a **single fixed neutral fallback token: `slate` (`bg-slate-100 text-slate-700 border-slate-200`)**. No arbitrary color hashing.
+> **Registry-Driven Completion Policy Rule**: Completion policies must be evaluated dynamically per `indicator × lane` from `importIndicatorRegistry.js`. Scanner logic must NEVER check only `rows > 0` and must NEVER hardcode indicator strings (e.g. `F1.3`/`F4.1`).
 
 ---
 
-## 6. Responsiveness Strategy (Desktop & Narrow Viewports)
+## 5. Technical Error Handling & Exception Isolation Rules
 
-| Viewport Size | Indicator Health Grid | Coverage Data View | Navigation Tabs |
-| --- | --- | --- | --- |
-| **Desktop (≥ 1024px)** | 4-Column Grid (`grid-cols-4`) | Table or 2-column Timeline Cards | Full horizontal tab bar |
-| **Tablet (768px - 1023px)** | 2-Column Grid (`grid-cols-2`) | Single column Cards or scrollable Table | Compact horizontal tab bar |
-| **Mobile / Narrow (< 768px)** | Horizontal Scroll Ribbon (`flex overflow-x-auto`) | Single column Cards with 10 rows/page | Dropdown / Segmented tab control |
-
----
-
-## 7. Proposed Code Changes & File Strategy
-
-Horizontal rules separate individual files for visual clarity:
+1. **Single-Date Error Handling**:
+   - When a job encounters a transient error (e.g., connection reset), retry according to registry retry policy (bounded exponential backoff up to 3 attempts).
+   - If attempts exhaust or error is non-retryable, record the error status for that specific date and **continue processing remaining dates in queue**.
+2. **Circuit Breaker Rule**:
+   - Triggered ONLY when 5 consecutive system failures (`PORTAL_SYSTEMIC`, `EAI_AGAIN`) share the exact same error signature on the same adapter scope.
+3. **Exception Isolation Rule**:
+   - `VERIFIED_NO_DATA` and `PO_EXEMPTED` items are valid business outcomes and **MUST NEVER** be counted as retries or circuit breaker errors.
 
 ---
 
-### Component: `backend/src/controllers/autoBackfillCoverageController.js`
+## 6. Smart Monthly Grouping & No-Code UI Design
 
-#### [MODIFY] [autoBackfillCoverageController.js](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/backend/src/controllers/autoBackfillCoverageController.js)
+Missing dates are grouped hierarchically by **Indicator × Year-Month** with expandable accordions:
 
-- Add `indicators` metadata array to payload response of `GET /api/import/auto-backfill/coverage` (read-only additive).
-
----
-
-### Component: `frontend/src/components/autoBackfillUiHelpers.js`
-
-#### [MODIFY] [autoBackfillUiHelpers.js](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/frontend/src/components/autoBackfillUiHelpers.js)
-
-- Retain pure functions: `resolveEffectiveRunState`, `resolveWaitingAuthLanes`, `aggregateReportTotals`, `resolveRunActionButtons`, `groupItemsByIndicator`, `groupItemsByDate`.
-- Add `paginateItems(items, page, pageSize = 10)` for 10-rows-per-page pagination with selectable page size (`10 / 20 / 50`).
-- Add `resolveDynamicIndicators(coverageData)` using approved design tokens with single neutral `slate` fallback.
-
----
-
-### Component: `frontend/src/components/AutoBackfillOperatorPanel.jsx`
-
-#### [MODIFY] [AutoBackfillOperatorPanel.jsx](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/frontend/src/components/AutoBackfillOperatorPanel.jsx)
-
-- Align theme with VNPost Light Dashboard (`bg-white border-slate-200 shadow-sm`).
-- Implement 10-rows-per-page default pagination with selector (`10 / 20 / 50`) and bounded height container (`max-h-[420px]`).
-- Render Indicator Health Cards dynamically over `resolveDynamicIndicators`.
-- Implement slide-out right drawer `<AuditEventsDrawer />` accessible ONLY from Tab 1 System Health Bar for Auto Backfill Queue audit events.
-
----
-
-### Component: `frontend/src/pages/DataImportCenter.jsx`
-
-#### [MODIFY] [DataImportCenter.jsx](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/frontend/src/pages/DataImportCenter.jsx)
-
-- Implement neutral 3-Tab Architecture:
-  - Tab 1: `Bù dữ liệu tự động` [DEFAULT HERO]
-  - Tab 2: `Báo cáo & Đối chiếu PO` (PO Reconciliation Reports ONLY)
-  - Tab 3: `Nạp thủ công (Excel)` (Contains `UploadWidget` and legacy manual import file history).
+```
++---------------------------------------------------------------------------------------------------+
+|  DANH SÁCH NGÀY CẦN XỬ LÝ (BÙ DỮ LIỆU TỰ ĐỘNG)                                                   |
+|  Bộ lọc: [ Tất cả chỉ tiêu v ]  [ Tất cả nguồn v ]  [ Tháng 7/2026 v ]  [ Thật sự còn thiếu v ]   |
++---------------------------------------------------------------------------------------------------+
+|                                                                                                   |
+|  [>] F1.3 - Chất lượng phát bưu gửi liên tỉnh                                                   |
+|      Tháng 8/2026: Đã hoàn tất (0 ngày thiếu)                                                     |
+|                                                                                                   |
+|  [v] F1.3 - Chất lượng phát bưu gửi liên tỉnh                                                   |
+|      Tháng 7/2026 — Còn 4 ngày cần xử lý (Nguồn: HUE 2, TCT 2)                                   |
+|      +-----------------------------------------------------------------------------------------+  |
+|      | 21/07/2026 | Nguồn HUE | Thật sự còn thiếu | [ Chi tiết ]  [ Xác nhận Không phát sinh ]  |  |
+|      | 20/07/2026 | Nguồn HUE | Dữ liệu cũ đã có  | [ Chi tiết ]  [ Xem Baseline ]              |  |
+|      | 19/07/2026 | Nguồn TCT | Không phát sinh   | [ Chi tiết ]  [ Adapter Proof ]             |  |
+|      | 18/07/2026 | Nguồn TCT | PO đã xác nhận    | [ Chi tiết ]  [ Hoàn tác ]                  |  |
+|      +-----------------------------------------------------------------------------------------+  |
+|                                                                                                   |
+|  [v] F4.1 - Chất lượng phát thành công của bưu cục                                              |
+|      Tháng 7/2026 — Còn 2 ngày cần xử lý (Nguồn: TCT 2)                                          |
+|      +-----------------------------------------------------------------------------------------+  |
+|      | 15/07/2026 | Nguồn TCT | Cần PO kiểm tra   | [ Chi tiết ]  [ Tải Excel thủ công ]        |  |
+|      | 14/07/2026 | Nguồn TCT | Thật sự còn thiếu | [ Chi tiết ]  [ Xác nhận Không phát sinh ]  |  |
+|      +-----------------------------------------------------------------------------------------+  |
+|                                                                                                   |
++---------------------------------------------------------------------------------------------------+
+```
 
 ---
 
-## 8. Verification & Visual Gate Acceptance Checklist
+## 7. Verification Plan & Deliverables Checklist
 
-### 8.1 Automated Verification Plan
+### 7.1 Verification Plan
+- **Phase A (Backend Executor)**: Unit & integration tests for 5-point adapter proof, 6 coverage states, registry-driven completion policies, and exception confirmation APIs (`test_autoBackfillCoverageService.js`).
+- **Phase B (Antigravity)**: Frontend contract tests in `AutoBackfillOperatorPanel.test.js` verifying 6 No-code status translations, monthly grouping accordions, and PO exception modal integration.
+- **Linter & Build**: `npm run lint` (0 errors) and `vite build` (PASS).
 
-- Run contract test suite with **4-Indicator Fixture** (`F1.3`, `F4.1`, `F2.TEST`, `F5.TEST`):
-  `node src/components/AutoBackfillOperatorPanel.test.js` (Must PASS 100%)
-- Run backend coverage contract suite:
-  `node test_autoBackfillCoverageService.js` (Must PASS 100%)
-- Run frontend linter:
-  `npm run lint` (Must have 0 errors)
-- Run frontend build:
-  `npm run build` (Must complete cleanly)
-- Run backend safety & queue regressions:
-  `node test_autoBackfillSafety.js && node test_autoBackfillQueueService.js` (Must PASS 100%)
-
-### 8.2 Visual Gate 6 Acceptance Checklist
-
-- [ ] **Default 10 Rows/Page Pagination**: Coverage list defaults to 10 rows per page with page size selector (`10 / 20 / 50`).
-- [ ] **Bounded Height Containers**: List container height capped (`max-h-[420px]`) with vertical scroll, eliminating infinite page scrolling.
-- [ ] **Audit History Isolation**: Auto Backfill Queue Audit Events accessible ONLY via Slide-out Right Drawer on Tab 1; Legacy Manual Import History isolated in Tab 3 ("Nạp thủ công").
-- [ ] **Single Interaction Model**: Real-time event log opens in Slide-out Right Drawer (`<AuditEventsDrawer />`) on Tab 1; Tab 2 dedicated exclusively to PO Reports.
-- [ ] **Neutral Platform Naming**: Tab 1 named "Bù dữ liệu tự động".
-- [ ] **Zero Frontend Code 4+ Indicator Fixture Verification**: Adding `F2.TEST` and `F5.TEST` to API fixture automatically renders their health cards and filter options without frontend code changes.
-- [ ] **Neutral Fallback Token**: Missing `badge_theme` renders using fixed neutral `slate` token (`bg-slate-100 text-slate-700 border-slate-200`). No color hashing.
+### 7.2 Deliverables Checklist
+- [x] Inverted 2-phase sequence defined (Phase A Backend First -> Phase B Frontend Second).
+- [x] 5-point adapter proof criteria for `VERIFIED_NO_DATA` defined.
+- [x] Legacy Baseline Reconciliation (6 coverage states) specified to eliminate 920 fake missing items.
+- [x] Registry-driven completion policy rule (no hardcoding, dynamic indicator × lane evaluation) specified.
+- [x] Technical error handling & exception isolation rules defined (`VERIFIED_NO_DATA` & `PO_EXEMPTED` excluded from retries/circuit).
+- [x] No-code Vietnamese status display mappings specified.
+- [x] Plan saved to `docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md`.

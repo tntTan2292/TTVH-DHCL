@@ -1056,6 +1056,17 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
   - `npm run build`: PASS (688 modules transformed cleanly).
 - State: `AUTO-BACKFILL-UI IMPLEMENTED / READY FOR PO VISUAL GATE 6`. Gate 6 is not self-passed; browser remains closed; Runtime unauthorized.
 
+## AUTO-BACKFILL-UI Architectural Remediation Plan Complete / Ready for PO Architecture Approval
+
+- Remediated `AUTO-BACKFILL-UI_PLAN.md` & `implementation_plan.md` incorporating 5 mandatory PO architectural remediation directives:
+  1. Inverted Implementation Order: Phase A (`AUTO-BACKFILL-COVERAGE-EXCEPTION` Backend First) executed by backend executor before Phase B (`AUTO-BACKFILL-UI-REMEDIATION` Frontend Second) by Antigravity. Zero frontend PO_EXEMPTED UI built before real backend APIs exist.
+  2. Strict 5-Point Adapter Proof for `VERIFIED_NO_DATA`: Portal 0-rows response must explicitly prove report identity, tuple match, filter success, portal readiness, and valid 0-row export structure. Otherwise ➔ `MANUAL_REVIEW_REQUIRED`.
+  3. Legacy Baseline Reconciliation (6 Coverage States): Defined `DATA_COMPLETE_WITH_EVIDENCE` ("Đã hoàn tất"), `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` ("Dữ liệu cũ đã có"), `TRUE_MISSING` ("Thật sự còn thiếu"), `VERIFIED_NO_DATA` ("Không phát sinh dữ liệu"), `PO_EXEMPTED` ("PO đã xác nhận"), and `MANUAL_REVIEW_REQUIRED` ("Cần PO kiểm tra") to eliminate 920 fake missing items via controlled seed. Registry-driven completion policy per indicator × lane without hardcoding.
+  4. Error Handling & Exception Isolation: Single-date transient errors retry per policy then continue queue. Circuit breaker opens ONLY on 5 consecutive same-signature portal errors. `VERIFIED_NO_DATA` and `PO_EXEMPTED` MUST NEVER be counted as retries or circuit breaker errors.
+  5. No-Code Vietnamese Labels: Standardized 6 user-friendly Vietnamese display badges on main UI.
+- Documentation-only; product code frozen; browser closed.
+- State: `READY FOR PO ARCHITECTURE APPROVAL`. Gate 6 is not self-passed and Runtime remains unauthorized.
+
 
 
 

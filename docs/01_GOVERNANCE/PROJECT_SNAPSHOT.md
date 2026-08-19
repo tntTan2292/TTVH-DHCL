@@ -17,17 +17,17 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-UI — Redesign Implemented / READY FOR PO VISUAL GATE 6 (2026-08-19).` |
-| Current Ticket | `AUTO-BACKFILL-UI — Implementation complete per approved plan; 10 rows/page default, bounded scroll, dynamic indicators, Audit Events drawer; awaiting PO visual Gate 6 review.` |
-| Next Ticket | `AUTO-BACKFILL-RUNTIME (Requires PO Gate 6 PASS before activation).` |
-| Last PO Status | `PO FINAL PLAN APPROVAL PASS. Antigravity executed full UI/UX redesign according to AUTO-BACKFILL-UI_PLAN.md.` |
+| Current Phase | `AUTO-BACKFILL-UI — Architectural Remediation Plan Complete / READY FOR PO ARCHITECTURE APPROVAL (2026-08-19).` |
+| Current Ticket | `AUTO-BACKFILL-UI — 5 PO architectural remediation points applied (Phase A Backend First -> Phase B Frontend Second; 5-point adapter proof for VERIFIED_NO_DATA; 6 coverage states for baseline reconciliation; exception isolation; No-code Vietnamese labels); awaiting PO architecture approval.` |
+| Next Ticket | `Phase A: AUTO-BACKFILL-COVERAGE-EXCEPTION (Backend First) -> Phase B: AUTO-BACKFILL-UI-REMEDIATION (Frontend Second).` |
+| Last PO Status | `Product Owner requested 5 architectural remediation points for UI/UX plan. All 5 points remediated; ready for PO architecture approval.` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-UI_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI_CHECKPOINT_001.md` — Gate 5 PASS confirmation, Remediated UI/UX Plan & Implementation complete, ready for PO visual Gate 6. |
-| Current State | `AUTO-BACKFILL-UI IMPLEMENTED / READY FOR PO VISUAL GATE 6 (2026-08-19).` |
-| Technical Status | `No-code Operator UI component, DataImportCenter integration, oxlint clean, vite build PASS, UI test suite PASS, backend regressions 100% PASS.` |
-| Runtime Status | `No operational Queue, Portal, download or Import ran; validation used fake executors and mock data.` |
-| PO UI Check Required | `Yes — Product Owner Gate 6 visual UI check required for Auto Backfill V2 Operator Panel.` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI_CHECKPOINT_001.md` — 5-point architectural remediation plan complete, ready for PO architecture approval. |
+| Current State | `READY FOR PO ARCHITECTURE APPROVAL (2026-08-19).` |
+| Technical Status | `Documentation & Plan ONLY; product code frozen; oxlint clean, vite build PASS, UI test suite PASS, backend regressions 100% PASS.` |
+| Runtime Status | `No operational Queue, Portal, download or Import ran; browser closed.` |
+| PO UI Check Required | `Yes — Product Owner architecture approval required for Revised AUTO-BACKFILL-UI Plan.` |
 | PO Product Status | `AUTO-BACKFILL-F41 closed / PO GATE 4 PASS. AUTO-BACKFILL-SAFETY closed / PO GATE 5 PASS. AUTO-BACKFILL-UI implemented / ready for PO Gate 6.` |
 | Last Closed Ticket | `AUTO-BACKFILL-SAFETY — COMPLETED / PO GATE 5 PASS (2026-08-18).` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-SAFETY_MANIFEST.md` |
