@@ -84,7 +84,7 @@ Per Product Owner directive, the UI/UX Redesign Plan was remediated at 3 specifi
 3. **Fixed Neutral Slate Token Fallback**: Removed arbitrary color hashing. Missing `badge_theme` fallback set to single fixed neutral token: `slate` (`bg-slate-100 text-slate-700 border-slate-200`).
 
 - **Official Plan Location**: [AUTO-BACKFILL-UI_PLAN.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md)
-- **Document Index**: [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/DOCUMENT_INDEX.md)
+- **Document Index**: [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
 
 ## 9. Final Plan Approval Handoff
 

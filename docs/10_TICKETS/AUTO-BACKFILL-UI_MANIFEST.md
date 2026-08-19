@@ -19,7 +19,7 @@ Implement the locked No-code Operator UI for Auto Backfill V2 platform: missing 
 ## 3. Required Reading & Governance Links
 
 - `README_AI.md`
-- `docs/DOCUMENT_INDEX.md` — [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/DOCUMENT_INDEX.md)
+- `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` — [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/01_GOVERNANCE/DOCUMENT_INDEX.md)
 - `docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md` — [AUTO-BACKFILL-UI_PLAN.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md)
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
 - `docs/10_TICKETS/AUTO-BACKFILL-PLAN_MANIFEST.md`

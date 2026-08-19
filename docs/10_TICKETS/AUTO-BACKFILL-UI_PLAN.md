@@ -2,7 +2,7 @@
 
 Status: `READY FOR PO FINAL PLAN APPROVAL` (2026-08-18).
 Repository Plan Path: `docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md` ([AUTO-BACKFILL-UI_PLAN.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md)).
-Document Index: [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/DOCUMENT_INDEX.md).
+Document Index: [DOCUMENT_INDEX.md](file:///d:/Antigravity%20-%20Project/TTVH%20-%20He%20thong%20dieu%20hanh%20chat%20luong/docs/01_GOVERNANCE/DOCUMENT_INDEX.md).
 
 > [!IMPORTANT]
 > This document is a **Remediated Plan & Design System Audit ONLY**. Implementation is completely frozen per Product Owner directive until explicit PO review and final plan approval. No product source code modifications or execution will occur during this planning phase.
