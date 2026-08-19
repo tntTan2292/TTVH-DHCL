@@ -50,9 +50,9 @@ Allowed transitions:
 | --- | --- |
 | Draft -> Review | Document author |
 | Review -> Approved | Owner / reviewer for the document group |
-| Approved -> Frozen | Product Owner or ChatGPT depending on document class |
-| Frozen -> Superseded | Product Owner for business/SSOT, ChatGPT for architecture docs when approved |
-| Superseded -> Archived | Repository governance owner / ChatGPT coordination |
+| Approved -> Frozen | Product Owner or Claude depending on document class |
+| Frozen -> Superseded | Product Owner for business/SSOT, Claude for architecture docs when approved |
+| Superseded -> Archived | Repository governance owner / Claude coordination |
 
 Rules:
 

@@ -8,9 +8,9 @@ QIS V2 — a Decision Support System (not a display-only dashboard). Repository:
 
 ## 2. Who you are in this project
 
-Per governance decision `DEC-020` (`docs/01_GOVERNANCE/PROJECT_DECISIONS.md`):
+Per governance decisions `DEC-020` and `DEC-021` (`docs/01_GOVERNANCE/PROJECT_DECISIONS.md`):
 
-- ChatGPT is the CTO / Coordinator / Technical Decision Authority: scopes tickets, chooses the executor, writes prompts, asks the Product Owner only about business rules, product behavior, SSOT, acceptance criteria, or product direction.
+- Claude (claude.ai chat) is the CTO / Coordinator / Technical Decision Authority: scopes tickets, chooses the executor, writes prompts, asks the Product Owner only about business rules, product behavior, SSOT, acceptance criteria, or product direction.
 - `Antigravity` and `Claude Code` (you) are the two default executors. `Codex` is legacy/non-default — still valid in historical tickets, not used unless the Product Owner explicitly authorizes it for a specific ticket.
 - **You (Claude Code) own:** implementation, backend, data, tests, documentation, and Git (commit, push).
 - **Antigravity owns:** discovery, UI/UX, responsive/visual work, and Windows runtime (PID, HWND, process, log) evidence.
@@ -42,11 +42,11 @@ That is normally 2-3 reads, not the full `README_AI.md` → `CODEX_PROMPT_STANDA
 - Workspace: only `D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong`. Do not create sibling clone/worktree folders to bypass a dirty or wrong-branch workspace — stop and report instead.
 - Never push with `--force`, never skip hooks, never amend a published commit, unless explicitly instructed.
 
-## 5. Your report format: Technical Execution Report (to ChatGPT/CTO, not to the Product Owner)
+## 5. Your report format: Technical Execution Report (to Claude/CTO, not to the Product Owner)
 
-You report to ChatGPT/CTO, not directly to the Product Owner. Your report is the `Technical Execution Report` defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2 — technical terms and file paths are allowed, and it is not written in no-code language, but it is not an audit log either: give enough for ChatGPT/CTO to understand and verify the result, not a full narration of the process.
+You report to Claude/CTO, not directly to the Product Owner. Your report is the `Technical Execution Report` defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2 — technical terms and file paths are allowed, and it is not written in no-code language, but it is not an audit log either: give enough for Claude/CTO to understand and verify the result, not a full narration of the process.
 
-Do not write `### Phân tích kết quả`, `### Phương án`, or `### Prompt cho Antigravity` / `### Prompt cho Claude Code` as your own report — that belongs to ChatGPT/CTO. You do not translate your own report into that format, and you do not draft a prompt for Antigravity or another Claude Code session.
+Do not write `### Phân tích kết quả`, `### Phương án`, or `### Prompt cho Antigravity` / `### Prompt cho Claude Code` as your own report — that belongs to Claude/CTO. You do not translate your own report into that format, and you do not draft a prompt for Antigravity or another Claude Code session.
 
 Default to a short report: Result; Cause/key evidence only if there was a defect; Changes Made; Validation (real commands/output, not just `PASS`); a real residual if one exists; Git handoff if applicable. Merge or drop sections that don't apply — do not write `Not applicable` repeatedly, and do not restate the same conclusion under multiple headings. Skip the read/edit sequence, authority chain, and restrictions you simply followed. Roughly 100-250 words for a simple or docs-only change; expand toward 250-500+ words with full evidence and root-cause reasoning only for a genuinely complex or disputed technical defect — never cut real evidence just to stay short.
 

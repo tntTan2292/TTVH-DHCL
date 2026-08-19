@@ -25,7 +25,7 @@ Filename retained as `CODEX_PROMPT_STANDARD.md` for link continuity. Default exe
 
 ## 1. Purpose
 
-This document defines the lean execution prompt standard that ChatGPT coordination must use after onboarding PASS.
+This document defines the lean execution prompt standard that Claude coordination must use after onboarding PASS.
 
 The repository already owns the authoritative onboarding chain and the manifest-specific working context. Execution prompts should stay concise and avoid repeating repository state that is already stored in governance documents.
 
@@ -235,11 +235,11 @@ The current ticket must not be reported complete when any applicable step fails.
 
 ## 7. Post-Onboarding Behavior
 
-Audience: ChatGPT/CTO → Product Owner channel only. This section defines what ChatGPT/CTO reports to the Product Owner. It does not define what an executor (Antigravity, Claude Code, or an explicitly authorized Codex) reports to ChatGPT/CTO — that is a separate channel with its own format; see Section 14.
+Audience: Claude/CTO → Product Owner channel only. This section defines what Claude/CTO reports to the Product Owner. It does not define what an executor (Antigravity, Claude Code, or an explicitly authorized Codex) reports to Claude/CTO — that is a separate channel with its own format; see Section 14.
 
 When onboarding PASS completes, behavior depends on the active manifest:
 
-- if the active manifest authorizes implementation and no governance blocker exists, ChatGPT coordination must immediately produce the implementation prompt without waiting for another user request
+- if the active manifest authorizes implementation and no governance blocker exists, Claude coordination must immediately produce the implementation prompt without waiting for another user request
 - if the manifest explicitly indicates `BLOCKED`, `WAITING FOR PO`, `WAITING FOR SSOT`, `WAITING FOR REQUIREMENT`, or another governance-defined blocking state, the executor may stop after explaining the blocker precisely
 - post-onboarding autonomy is governed by repository documentation, not chat history
 
@@ -270,7 +270,7 @@ AI-to-AI coordination, technical handoff, architecture challenge, and evidence e
 
 ## 7.1 Post-Review Remediation Loop
 
-When review finds an issue that can be remediated within the active ticket, ChatGPT coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for the correct single executor, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
+When review finds an issue that can be remediated within the active ticket, Claude coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for the correct single executor, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
 
 Do not activate the next ticket before current-ticket PO PASS unless explicit Governance authority permits parallel work.
 
@@ -405,9 +405,9 @@ Do not repeatedly ask for a new chat when the current conversation remains manag
 
 ## 13. Executor Selection Rule
 
-ChatGPT in the active Product Owner session is the CTO / Coordinator / Technical Decision Authority.
+Claude (claude.ai chat) in the active Product Owner session is the CTO / Coordinator / Technical Decision Authority.
 
-ChatGPT coordination is responsible for:
+Claude coordination is responsible for:
 
 - receiving requests
 - analyzing the ticket
@@ -417,7 +417,7 @@ ChatGPT coordination is responsible for:
 - reviewing results
 - asking the Product Owner for decisions
 
-Only ChatGPT coordination may redirect work between Antigravity and Claude Code.
+Only Claude coordination may redirect work between Antigravity and Claude Code.
 
 The default executors are `Antigravity` and `Claude Code`. `Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket. Historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten.
 
@@ -434,7 +434,7 @@ Executor selection is mandatory, and each prompt has exactly one primary executo
 - `Claude Code` — model is `Sonnet` or `Opus`, chosen per Section 13.1 below.
 - `Codex` — only when the Product Owner or repository authority explicitly names it for a specific ticket.
 
-ChatGPT coordination must state the resulting pairing explicitly in every prompt: `Antigravity (Gemini)`, `Claude Code (Sonnet)`, or `Claude Code (Opus)`.
+Claude coordination must state the resulting pairing explicitly in every prompt: `Antigravity (Gemini)`, `Claude Code (Sonnet)`, or `Claude Code (Opus)`.
 
 Do not use a pairing that does not exist. In particular, do not write `Antigravity–Sonnet`, `Antigravity–Opus`, `Antigravity (Sonnet)`, `Antigravity (Opus)`, or `Claude Code–Gemini` — these labels do not exist in this governance and must be treated as a defect if written.
 
@@ -443,7 +443,7 @@ When risk is high (architecture change, cross-module defect, or a decision that 
 ## 13.1 Claude Code Model Selection
 
 - `Claude Code Opus` — complex or cross-module planning, architecture decisions, and high-risk technical decisions. For planning that is genuinely complex or cross-module, Opus starts the plan directly; do not begin with Sonnet and escalate for a full re-analysis.
-- `Claude Code Sonnet` — local/bounded discovery, implementing a plan Opus (or ChatGPT/CTO) has already approved, tests, documentation, and Git. This is the default for ordinary, quota-efficient work.
+- `Claude Code Sonnet` — local/bounded discovery, implementing a plan Opus (or Claude/CTO) has already approved, tests, documentation, and Git. This is the default for ordinary, quota-efficient work.
 - Sonnet → Opus handoff is narrow: it is used only to have Opus review a small number (1-3) of specific sensitive decisions that Sonnet's work already surfaced. It is not a request for Opus to re-analyze the whole task from scratch.
 - Do not dispatch `Opus` for ordinary bounded discovery or routine implementation when `Sonnet` is sufficient.
 
@@ -470,7 +470,7 @@ Prompt for Claude Code must state that:
 - Claude Code must not stop at discovery and then generate a handoff prompt for Antigravity
 - Claude Code must not unilaterally transfer the task to Antigravity
 - Claude Code must keep UI changes narrowly limited to what is technically necessary inside the assigned scope
-- if UI work beyond Claude Code scope is discovered, Claude Code only reports a blocker or short handoff note back to ChatGPT coordination
+- if UI work beyond Claude Code scope is discovered, Claude Code only reports a blocker or short handoff note back to Claude coordination
 - Claude Code must not write a full Antigravity prompt unless the active ticket or repository authority explicitly requires it
 
 Use Antigravity as the primary executor for:
@@ -489,14 +489,14 @@ Prompt for Antigravity must state that:
 - Antigravity must not stop at UI/runtime inspection and then generate a handoff prompt for Claude Code
 - Antigravity must not unilaterally transfer the task back to Claude Code
 - Antigravity must not change backend logic, APIs, schemas, KPI formulas, SSOT, or business rules
-- if logic, backend, or contract work is required, Antigravity must stop that part and report a blocker back to ChatGPT coordination
+- if logic, backend, or contract work is required, Antigravity must stop that part and report a blocker back to Claude coordination
 - Antigravity must not write a long Claude Code prompt unless repository authority explicitly requires it
 
 For mixed tickets:
 
 - Claude Code handles logic and contract work first
 - Antigravity completes interface, visual, and runtime work after the logic/contract boundary is stable
-- ChatGPT coordination chooses the execution order
+- Claude coordination chooses the execution order
 - each executor performs only the assigned portion
 - no executor may change the chosen executor by itself
 
@@ -508,15 +508,15 @@ Rules for agent selection:
 - do not choose Antigravity for business-rule implementation
 - do not choose Claude Code as the primary executor for final visual polish when the ticket is mainly UI-facing
 
-Each executor (Antigravity, Claude Code, or an explicitly authorized Codex) must report to ChatGPT/CTO using the `Technical Execution Report` defined in Section 14.2. That report is full technical detail, not the Product Owner-facing format below — executors do not write `### Phân tích kết quả`, `### Phương án`, or a prompt for another executor.
+Each executor (Antigravity, Claude Code, or an explicitly authorized Codex) must report to Claude/CTO using the `Technical Execution Report` defined in Section 14.2. That report is full technical detail, not the Product Owner-facing format below — executors do not write `### Phân tích kết quả`, `### Phương án`, or a prompt for another executor.
 
-ChatGPT/CTO alone reads the Technical Execution Report, decides purely technical questions in its own authority, and then authors a separate Product Owner-facing report that must stay management-level and no-code:
+Claude/CTO alone reads the Technical Execution Report, decides purely technical questions in its own authority, and then authors a separate Product Owner-facing report that must stay management-level and no-code:
 
 - `KẾT QUẢ` or `PHÂN TÍCH KẾT QUẢ`: under 5 sentences
 - `PHƯƠNG ÁN`: under 5 sentences
 - then exactly one prompt or one Product Owner decision request when applicable
 
-This Product Owner-facing format (Section 7, Section 14.1) is authored by ChatGPT/CTO only; it is never the executor's own report format.
+This Product Owner-facing format (Section 7, Section 14.1) is authored by Claude/CTO only; it is never the executor's own report format.
 
 Only ask the Product Owner about:
 
@@ -526,9 +526,9 @@ Only ask the Product Owner about:
 - acceptance criteria
 - product direction
 
-Purely technical choices are decided by CTO/ChatGPT coordination and must not be escalated to the Product Owner unless they change product authority.
+Purely technical choices are decided by CTO/Claude coordination and must not be escalated to the Product Owner unless they change product authority.
 
-The executor must not end by generating a prompt for the other executor unless ChatGPT coordination explicitly requested that output.
+The executor must not end by generating a prompt for the other executor unless Claude coordination explicitly requested that output.
 
 Antigravity results require careful verification before PO PASS:
 
@@ -542,19 +542,19 @@ Antigravity results require careful verification before PO PASS:
 
 Governance uses two distinct reporting channels with different audiences, different purposes, and different formats. Applying one channel's rules to the other's audience is a governance defect, not a stylistic choice.
 
-### 14.1 Channel A — ChatGPT/CTO → Product Owner
+### 14.1 Channel A — Claude/CTO → Product Owner
 
-Audience: Product Owner. Author: ChatGPT/CTO only.
+Audience: Product Owner. Author: Claude/CTO only.
 
 This is the management report defined in Section 7 and mirrored in `AI_COLLABORATION_PROTOCOL.md` Section 15.1: `### Phân tích kết quả`, `### Phương án`, and exactly one of `### Prompt cho Claude Code`, `### Prompt cho Antigravity`, or `### Yêu cầu PO quyết định`. Under 5 sentences per section, management/no-code language, no class names or code paths unless a PO decision needs them.
 
-ChatGPT/CTO produces this by reading the executor's Technical Execution Report (Section 14.2), applying its own technical judgment, and translating only what the Product Owner needs to decide into plain language. ChatGPT/CTO is the only role that writes this format. An executor must never write this format as its own report.
+Claude/CTO produces this by reading the executor's Technical Execution Report (Section 14.2), applying its own technical judgment, and translating only what the Product Owner needs to decide into plain language. Claude/CTO is the only role that writes this format. An executor must never write this format as its own report.
 
-### 14.2 Channel B — Executor → ChatGPT/CTO (Technical Execution Report)
+### 14.2 Channel B — Executor → Claude/CTO (Technical Execution Report)
 
-Audience: ChatGPT/CTO. Authors: Antigravity, Claude Code, or an explicitly Product-Owner-authorized Codex.
+Audience: Claude/CTO. Authors: Antigravity, Claude Code, or an explicitly Product-Owner-authorized Codex.
 
-This is a technical report, not a management summary — but it is not an audit log either. It is not subject to the 5-sentence limit or the no-code-language rule; technical terms, file paths, and commands are allowed and expected when they matter. It is subject to a different discipline: enough for ChatGPT/CTO to understand and verify the result, without re-narrating the whole process.
+This is a technical report, not a management summary — but it is not an audit log either. It is not subject to the 5-sentence limit or the no-code-language rule; technical terms, file paths, and commands are allowed and expected when they matter. It is subject to a different discipline: enough for Claude/CTO to understand and verify the result, without re-narrating the whole process.
 
 The report scales with task complexity. It does not have a fixed number of mandatory headings.
 
@@ -571,11 +571,11 @@ Sections may be merged (e.g. `Result` and `Validation` in one short paragraph) o
 
 Do not include: a step-by-step account of which file was read or edited in what order; intermediate actions that were not the point of the task; the full onboarding/authority chain (assume the reader already knows it); restrictions that were simply followed with nothing to report; acceptance criteria copied back from the instructions; an intermediate error that was found and fixed within the same turn (mention only if it changes the residual risk picture); alternatives that were never seriously considered; or the same conclusion restated under two different headings.
 
-Expand into full detail — additional evidence, root-cause reasoning with the fact chain, logs, stack traces, or exact test output — only when at least one applies: the defect is genuinely complex or multi-component, the conclusion is disputed or uncertain, there is material residual risk, or ChatGPT/CTO explicitly asks for it. When root cause is claimed, it must still be evidence-backed, not asserted; if evidence is insufficient, write `ROOT CAUSE NOT YET PROVEN` rather than guessing — but this does not require expanding every other section to match.
+Expand into full detail — additional evidence, root-cause reasoning with the fact chain, logs, stack traces, or exact test output — only when at least one applies: the defect is genuinely complex or multi-component, the conclusion is disputed or uncertain, there is material residual risk, or Claude/CTO explicitly asks for it. When root cause is claimed, it must still be evidence-backed, not asserted; if evidence is insufficient, write `ROOT CAUSE NOT YET PROVEN` rather than guessing — but this does not require expanding every other section to match.
 
 Target length as a guide, not a hard cap: roughly 100-250 words for a simple or purely documentation change, roughly 250-500 words for a real technical defect with root cause. Go longer only when the evidence genuinely requires it — never cut evidence, root cause reasoning, or a real residual risk just to fit a word count.
 
-Do not draft a prompt for Claude Code, Antigravity, or any other executor in this report, and do not act as CTO/Coordinator — that decision belongs to ChatGPT/CTO.
+Do not draft a prompt for Claude Code, Antigravity, or any other executor in this report, and do not act as CTO/Coordinator — that decision belongs to Claude/CTO.
 
 ### 14.3 Per-Executor Additions
 
@@ -588,5 +588,5 @@ Codex, only when the Product Owner has explicitly authorized it as executor for 
 ### 14.4 Boundary Between the Channels
 
 - An executor's Technical Execution Report is never forced into no-code language or the three-part PO format by the executor itself, and is never padded with process narration or unused headings just to look thorough.
-- ChatGPT/CTO's Product Owner-facing report is never expanded with raw technical evidence beyond what the Product Owner needs to decide.
+- Claude/CTO's Product Owner-facing report is never expanded with raw technical evidence beyond what the Product Owner needs to decide.
 - Both channels favor being concise over being exhaustive; neither channel replaces the other.

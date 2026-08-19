@@ -193,7 +193,7 @@ Every PO finding must be traceable to:
 - A finding cannot be closed without PO recheck evidence when PO review applies.
 - When a PO WARNING or PO FAIL is resolvable within the active ticket, the active ticket remains current until remediation, revalidation, and required PO acceptance are complete.
 - The next ticket must not be activated before current-ticket PO PASS unless explicit Governance authority permits parallel work.
-- ChatGPT coordination must generate a remediation prompt immediately for active-ticket findings that do not require a Product Owner decision.
+- Claude coordination must generate a remediation prompt immediately for active-ticket findings that do not require a Product Owner decision.
 
 ## 8.1 PO Decision Boundary
 
@@ -205,6 +205,6 @@ A failed repository search alone is not enough to declare missing authority. Rel
 
 Product Owner has final authority over PO PASS, PO WARNING, and PO FAIL.
 
-ChatGPT may classify and recommend, but cannot override Product Owner product acceptance.
+Claude may classify and recommend, but cannot override Product Owner product acceptance.
 
 The executor must report the PO gate status explicitly and must not collapse technical acceptance into product acceptance.

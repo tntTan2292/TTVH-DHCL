@@ -22,7 +22,7 @@ It exists to:
 
 - preserve the final state of decisions
 - prevent accidental re-interpretation of frozen architecture
-- provide a quick reference for new ChatGPT, Antigravity, Claude Code, and developer sessions
+- provide a quick reference for new Claude, Antigravity, Claude Code, and developer sessions
 - distinguish frozen decisions from still-open decision items
 
 ## 2. Decision Log
@@ -49,6 +49,7 @@ It exists to:
 | DEC-018 | Project governance must be PO -> ChatGPT -> Codex | AI collaboration | Clarify ownership and coordination | Unstructured AI interaction | Reduces ambiguity in decision and execution flow | Frozen |
 | DEC-019 | PO UI acceptance is required for tickets with visible product changes | Governance workflow | Separate technical completion from product acceptance | Generic PASS language that hides product review state | Adds PO gating and traceability for user-visible work | Frozen |
 | DEC-020 | Project governance is PO -> ChatGPT (CTO/Coordinator/Technical Decision Authority) -> Antigravity / Claude Code; Codex is no longer the default executor; same model must not both implement and self-approve a high-risk change; PO decides only business rules, product behavior, SSOT, acceptance criteria, and product direction | AI collaboration, 2026-07-31 | Consolidate execution authority under two default executors, add model-level separation of duties for high-risk changes, and narrow PO escalation to business/product decisions only | DEC-018 (`PO -> ChatGPT -> Codex`) default-executor assumption | Updates `AI_COLLABORATION_PROTOCOL.md`, `CODEX_PROMPT_STANDARD.md`, `DOCUMENT_GOVERNANCE.md`, `PROJECT_CONTEXT.md`, `MASTER_START_PROMPT.md`, `README_AI.md`; Codex history, tickets, and checkpoints remain unmodified and Codex remains usable with explicit PO authorization | Frozen |
+| DEC-021 | Project governance CTO/Coordinator/Technical Decision Authority role moves from ChatGPT to Claude (claude.ai chat); Antigravity and Claude Code roles, the 3-part report format, the Lean Prompt Rule, Executor Selection Rule (Section 13), and Model Selection (Section 13.1) are unchanged | AI collaboration, 2026-08-19 | Product Owner stopped using ChatGPT as CTO/Coordinator and moved that role to Claude (claude.ai chat) | DEC-020's `ChatGPT` coordinator identity (Antigravity/Claude Code default-executor split itself is unaffected) | Updates `README_AI.md`, `CLAUDE.md`, `CODEX_PROMPT_STANDARD.md`, `AI_COLLABORATION_PROTOCOL.md`, `DOCUMENT_GOVERNANCE.md`, `PROJECT_CONTEXT.md`, `PROJECT_HANDOVER.md`, `PO_UI_ACCEPTANCE_WORKFLOW.md`, `DOCUMENT_LIFECYCLE.md`, and the live sections of `GOVERNANCE_V2_DESIGN.md`; DEC-018/DEC-020 rows above and the archived `MASTER_START_PROMPT.md`/`DOCUMENT_RESPONSIBILITY_MIGRATION.md` remain unmodified as historical record | Frozen |
 
 ## 3. Business Decisions
 
@@ -145,7 +146,7 @@ When a decision may be changed:
 Who can change decisions:
 
 - Product Owner can approve or reverse business decisions
-- ChatGPT can propose and document decision changes
+- Claude can propose and document decision changes
 - Antigravity and Claude Code cannot change decisions by themselves
 
 If a change is requested:

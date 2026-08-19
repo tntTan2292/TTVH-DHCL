@@ -219,7 +219,7 @@ Product Owner
 
 ↓
 
-ChatGPT
+Claude
 
 Coordination Authority
 
@@ -234,12 +234,12 @@ Direct Executors
 Operational model:
 
 - Product Owner approves business direction and final acceptance
-- ChatGPT is the CTO / Coordinator / Technical Decision Authority: receives requests, analyzes tickets, finalizes scope, chooses the executor, writes the prompt, reviews results, and requests PO decisions only for business rules, product behavior, SSOT, acceptance criteria, or product direction
-- only ChatGPT coordination may redirect work between Antigravity and Claude Code
+- Claude (claude.ai chat) is the CTO / Coordinator / Technical Decision Authority: receives requests, analyzes tickets, finalizes scope, chooses the executor, writes the prompt, reviews results, and requests PO decisions only for business rules, product behavior, SSOT, acceptance criteria, or product direction
+- only Claude coordination may redirect work between Antigravity and Claude Code
 - Claude Code directly executes business logic, backend, data flow, contract, validation, test, refactor, technical remediation, documentation, Git, and technical governance updates
 - Antigravity directly executes discovery, layout, UI/UX, responsive behavior, typography, spacing, color, visual hierarchy, chart and heatmap presentation, final visual assembly, browser visual checks, screenshot evidence, and Windows runtime (PID, HWND, process, log) work
-- mixed tickets must be split by ChatGPT coordination: Claude Code handles logic and contracts first, Antigravity handles UI and runtime after the technical boundary is stable
-- no executor may stop at discovery and hand the task back to the other executor unless ChatGPT coordination explicitly instructs that handoff
+- mixed tickets must be split by Claude coordination: Claude Code handles logic and contracts first, Antigravity handles UI and runtime after the technical boundary is stable
+- no executor may stop at discovery and hand the task back to the other executor unless Claude coordination explicitly instructs that handoff
 - when risk is high, the same model must not both implement a change and self-approve or self-review it
 
 ## 9. Current Project Snapshot
@@ -275,7 +275,7 @@ Current PO gate rule:
 
 ## 10. Continuation Rule
 
-A new ChatGPT, Antigravity, or Claude Code session must read the following files before answering:
+A new Claude, Antigravity, or Claude Code session must read the following files before answering:
 
 1. [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/README_AI.md)
 2. [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)

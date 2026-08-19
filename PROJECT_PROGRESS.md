@@ -1094,3 +1094,13 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Added 4 fault-injection tests proving no partial row/status/event remains after a mid-transaction failure for either operation; verified the tests actually catch the defect by reverting the fix alone and confirming exactly those 2 scenarios fail.
 - Regression: exception service 24/24, controller 4/4, migration 4/4, Coverage 16/16, combined sweep 103/103 -- all PASS. Scope confirmed backend-only (2 files changed); no UI/Queue/Safety/Portal/Import/business-data touched.
 - State: `AUTO-BACKFILL-COVERAGE-EXCEPTION IMPLEMENTED / READY FOR PO BACKEND GATE` (remediated). Not self-passed; Phase B and Runtime remain inactive.
+
+## COORDINATOR-ROLE-MIGRATION Implemented / Ready For PO Check
+
+- Product Owner instructed directly: stop using ChatGPT as CTO/Coordinator/Technical Decision Authority; move that role to Claude (claude.ai chat). Documentation-only, delta-only, parallel to the active AUTO-BACKFILL-COVERAGE-EXCEPTION ticket.
+- Re-verified scope by grep instead of trusting the ~104-occurrence estimate: 104 matching lines / 113 true token occurrences across 13 files in docs/01_GOVERNANCE/, README_AI.md, CLAUDE.md.
+- Renamed the role in 9 files fully, and selectively in 2 files: PROJECT_DECISIONS.md's frozen DEC-018/DEC-020 rows preserved verbatim as historical record (added a new DEC-021 instead, following the document's own supersede-without-rewrite pattern); GOVERNANCE_V2_DESIGN.md's 2 generic multi-AI-tool example sentences (where Claude already appears as a separate list item) preserved unchanged.
+- Left 2 files classified Archive in DOCUMENT_INDEX.md (MASTER_START_PROMPT.md, DOCUMENT_RESPONSIBILITY_MIGRATION.md) untouched as historical reference.
+- Verified unchanged: the 3-part report format, the Lean Prompt Rule, Executor Selection Rule (Section 13), Model Selection (Section 13.1), and every other role's scope -- confirmed via an anchor-integrity script (zero broken ToC links after renaming 2 heading/anchor pairs), a full-repo post-edit grep sweep (only the intentionally preserved locations remain), git diff --name-only (exactly 11 governance/doc files changed, no product code/schema/database), and zero NUL bytes in every changed file.
+- No docs-lint tooling exists in this repository (checked); not applicable.
+- State: `COORDINATOR-ROLE-MIGRATION IMPLEMENTED / READY FOR PO CHECK`. Not self-passed.

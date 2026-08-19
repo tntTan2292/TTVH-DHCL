@@ -10,7 +10,7 @@
 - [6. Ticket Manifest](#6-ticket-manifest)
 - [7. Document Responsibility Matrix](#7-document-responsibility-matrix)
 - [8. Codex Reading Workflow](#8-codex-reading-workflow)
-- [9. ChatGPT Reading Workflow](#9-chatgpt-reading-workflow)
+- [9. Claude Reading Workflow](#9-claude-reading-workflow)
 - [10. Migration Plan](#10-migration-plan)
 - [11. Compatibility with Governance V1](#11-compatibility-with-governance-v1)
 - [12. Mapping Table](#12-mapping-table)
@@ -198,7 +198,7 @@ If a document begins to hold two unrelated responsibilities, split it in V2 rath
 - Do not read unrelated archives unless the manifest requires them.
 - Do not change frozen docs unless an approved governance event requires it.
 
-## 9. ChatGPT Reading Workflow
+## 9. Claude Reading Workflow
 
 ### 9.1 Minimal Flow
 
@@ -209,7 +209,7 @@ If a document begins to hold two unrelated responsibilities, split it in V2 rath
 5. Read only the mapped governance and review documents.
 6. Produce architecture / governance review output.
 
-### 9.2 ChatGPT Rules
+### 9.2 Claude Rules
 
 - Use the snapshot as the canonical current-state source.
 - Use the manifest to avoid over-reading.

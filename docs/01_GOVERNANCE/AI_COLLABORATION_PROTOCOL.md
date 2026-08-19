@@ -16,12 +16,12 @@
 - [12. Golden Rules](#12-golden-rules)
 - [13. Ticket Completion Protocol](#13-ticket-completion-protocol)
 - [14. Prompt Standard](#14-prompt-standard)
-- [15. Product Owner to ChatGPT Collaboration Workflow](#15-product-owner-to-chatgpt-collaboration-workflow)
+- [15. Product Owner to Claude Collaboration Workflow](#15-product-owner-to-claude-collaboration-workflow)
 - [16. PO UI Acceptance Gate](#16-po-ui-acceptance-gate)
 
 ## 1. Purpose
 
-AI Collaboration Protocol defines how Product Owner, ChatGPT, Antigravity, and Claude Code work together across the full lifecycle of QIS V2. `Codex` is preserved below as a legacy/non-default role for historical continuity; see Section 2 for current default executors.
+AI Collaboration Protocol defines how Product Owner, Claude, Antigravity, and Claude Code work together across the full lifecycle of QIS V2. `Codex` is preserved below as a legacy/non-default role for historical continuity; see Section 2 for current default executors.
 
 Purpose:
 
@@ -41,7 +41,7 @@ Purpose:
 - freezes business decisions
 - gives final acceptance
 
-### ChatGPT
+### Claude (claude.ai chat)
 
 - CTO / Coordinator / Technical Decision Authority
 - Chief Solution Architect
@@ -52,7 +52,7 @@ Purpose:
 - Designer
 - Coordinator
 
-ChatGPT responsibilities:
+Claude responsibilities:
 
 - preserve project context
 - translate PO intent into structured requirements
@@ -70,7 +70,7 @@ ChatGPT responsibilities:
 - does not change architecture by itself
 - does not change business by itself
 - does not invent new scope
-- reports to ChatGPT/CTO using the Technical Execution Report (`docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); never writes the Product Owner-facing three-part format or a prompt for another executor as its own report
+- reports to Claude/CTO using the Technical Execution Report (`docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); never writes the Product Owner-facing three-part format or a prompt for another executor as its own report
 
 ### Antigravity
 
@@ -78,7 +78,7 @@ ChatGPT responsibilities:
 - owns discovery, UI/UX implementation, and Windows runtime (PID, HWND, process, log) verification
 - executes only approved tickets
 - does not change backend logic, APIs, schemas, KPI formulas, SSOT, or business rules
-- reports to ChatGPT/CTO using the Technical Execution Report (`docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); never writes the Product Owner-facing three-part format or a prompt for another executor as its own report
+- reports to Claude/CTO using the Technical Execution Report (`docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); never writes the Product Owner-facing three-part format or a prompt for another executor as its own report
 
 ### Codex (Legacy / Non-Default)
 
@@ -148,7 +148,7 @@ Rules:
 
 ## 5. Review Workflow
 
-ChatGPT reviews:
+Claude reviews:
 
 - Architecture
 - Runtime
@@ -162,7 +162,7 @@ Claude Code and Antigravity must not self-declare PASS for the project lifecycle
 Review principle:
 
 - PO owns final acceptance
-- ChatGPT owns structured review
+- Claude owns structured review
 - Claude Code and Antigravity own implementation evidence within their respective scope
 
 ## 6. Ticket Rules
@@ -257,9 +257,9 @@ Rules:
 
 ## 10. Communication Rules
 
-Claude Code and Antigravity report to ChatGPT/CTO using the Technical Execution Report defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2 — full technical detail, no 5-sentence limit, no no-code-language restriction. This is a different channel and a different audience from the Product Owner-facing three-part format in Section 15.1 below; an executor must not use the Product Owner-facing format as its own report, and must not draft a prompt for another executor.
+Claude Code and Antigravity report to Claude/CTO using the Technical Execution Report defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2 — full technical detail, no 5-sentence limit, no no-code-language restriction. This is a different channel and a different audience from the Product Owner-facing three-part format in Section 15.1 below; an executor must not use the Product Owner-facing format as its own report, and must not draft a prompt for another executor.
 
-ChatGPT must:
+Claude must:
 
 - review before issuing the next ticket when review is required
 - keep the conversation anchored to SSOT and frozen documents
@@ -275,11 +275,11 @@ Product Owner must:
 
 One conversation serves one ticket or one major delivery wave. Continue remediation and validation for the same bounded ticket or wave in the current conversation. Start a new conversation for a new ticket, a new major wave, or materially different work scope.
 
-ChatGPT, Antigravity, and Claude Code must proactively warn the Product Owner when the current conversation is excessively long, contains multiple completed phases, or risks mixing obsolete and current authority. Each executor must clearly state when the current conversation should end and a fresh one should begin.
+Claude, Antigravity, and Claude Code must proactively warn the Product Owner when the current conversation is excessively long, contains multiple completed phases, or risks mixing obsolete and current authority. Each executor must clearly state when the current conversation should end and a fresh one should begin.
 
 Before changing conversations, update required repository evidence, commit, push, and verify the remote state. Do not open a new conversation to bypass unfinished work, failures, dirty workspace, locks, or a wrong branch.
 
-When moving to a new ChatGPT session, it must read:
+When moving to a new Claude session, it must read:
 
 1. [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/README_AI.md)
 2. [docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md)
@@ -306,7 +306,7 @@ Governance V1 remains the fallback authority path when the manifest requires it 
 7. Context must survive drill-down and back navigation.
 8. Each ticket is isolated by scope.
 9. Review comes before the next center.
-10. ChatGPT, Antigravity, and Claude Code must preserve continuity, not recreate history.
+10. Claude, Antigravity, and Claude Code must preserve continuity, not recreate history.
 
 ## 13. Ticket Completion Protocol
 
@@ -404,15 +404,15 @@ All future QIS V2 prompts should follow the canonical prompt standard defined in
 
 - [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md)
 
-The prompt standard is the default format for future ChatGPT, Antigravity, and Claude Code tickets.
+The prompt standard is the default format for future Claude, Antigravity, and Claude Code tickets.
 
-## 15. Product Owner to ChatGPT Collaboration Workflow
+## 15. Product Owner to Claude Collaboration Workflow
 
 ### 15.1 Mandatory Three-Part Response Format
 
-This format belongs to the ChatGPT/CTO → Product Owner channel only (see `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.1). ChatGPT authors it after reading the executor's Technical Execution Report (Section 14.2); no executor writes this format as its own report.
+This format belongs to the Claude/CTO → Product Owner channel only (see `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.1). Claude authors it after reading the executor's Technical Execution Report (Section 14.2); no executor writes this format as its own report.
 
-ChatGPT must use exactly this format for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation:
+Claude must use exactly this format for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation:
 
 1. `### Phân tích kết quả`
    - fewer than 5 sentences
@@ -427,7 +427,7 @@ ChatGPT must use exactly this format for post-onboarding continuation, implement
 
 ### 15.2 Post-Review Remediation Loop
 
-When review finds an issue resolvable within the active ticket, ChatGPT coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for Antigravity or Claude Code and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
+When review finds an issue resolvable within the active ticket, Claude coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for Antigravity or Claude Code and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
 
 Do not activate the next ticket before current-ticket PO PASS unless explicit Governance authority permits parallel work.
 

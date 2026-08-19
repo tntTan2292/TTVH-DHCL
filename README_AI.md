@@ -61,20 +61,20 @@ AI must:
 - not perform broad UI acceptance or award PO PASS
 - treat Technical PASS and Runtime/API Contract PASS as non-equivalent to PO PASS
 - before drafting or executing a prompt, follow [docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md) and [docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md](https://github.com/tntTan2292/TTVH-DHCL/blob/main/docs/01_GOVERNANCE/CODEX_DOCUMENTATION_STANDARD.md); active-ticket follow-ups default to delta-only and LEVEL 1 unless broader scope is explicitly justified
-- ChatGPT is the CTO / Coordinator / Technical Decision Authority in the active Product Owner session: receive requests, analyze tickets, finalize scope, choose the executor, write the prompt, review results, and request PO decisions only for business rules, product behavior, SSOT, acceptance criteria, or product direction
-- the default executors are `Antigravity` and `Claude Code`; only ChatGPT coordination may redirect work between them
+- Claude (claude.ai chat) is the CTO / Coordinator / Technical Decision Authority in the active Product Owner session: receive requests, analyze tickets, finalize scope, choose the executor, write the prompt, review results, and request PO decisions only for business rules, product behavior, SSOT, acceptance criteria, or product direction
+- the default executors are `Antigravity` and `Claude Code`; only Claude coordination may redirect work between them
 - `Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket; historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten
 - every future execution prompt must explicitly choose exactly one title: `Prompt cho Claude Code` or `Prompt cho Antigravity`, plus the executor/model pairing
 - executor/model is a fixed pairing, not a free choice: `Antigravity (Gemini)` for UI/UX, visual polish, and Windows runtime inspection; `Claude Code (Sonnet)` for local/bounded discovery, implementing an approved plan, tests, documentation, and Git; `Claude Code (Opus)` for complex/cross-module planning, architecture, and high-risk technical decisions — see `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 13/13.1 for the authoritative rule, including the invalid-label list (e.g. `Antigravity–Sonnet`, `Claude Code–Gemini`)
 - do not use the combined heading `Prompt cho Claude Code/Antigravity`
 - when risk is high, the same executor/model pairing must not both implement a change and self-approve or self-review that same change
-- there are two distinct reporting channels with different audiences: ChatGPT/CTO → Product Owner (management, three-part format, Section 4 below) and Antigravity/Claude Code/authorized Codex → ChatGPT/CTO (full technical detail, the Technical Execution Report in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); an executor never writes the Product Owner-facing format as its own report and never drafts a prompt for another executor
+- there are two distinct reporting channels with different audiences: Claude/CTO → Product Owner (management, three-part format, Section 4 below) and Antigravity/Claude Code/authorized Codex → Claude/CTO (full technical detail, the Technical Execution Report in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2); an executor never writes the Product Owner-facing format as its own report and never drafts a prompt for another executor
 
 ## 4. Mandatory Response Format
 
-Audience: ChatGPT/CTO reporting to the Product Owner only. This format is for ChatGPT/CTO reporting to the Product Owner. It is not the format an executor (Antigravity, Claude Code, or an explicitly authorized Codex) uses to report to ChatGPT/CTO — an executor uses the Technical Execution Report defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2, which carries full technical detail, is not limited to 5 sentences, and is not written in no-code language.
+Audience: Claude/CTO reporting to the Product Owner only. This format is for Claude/CTO reporting to the Product Owner. It is not the format an executor (Antigravity, Claude Code, or an explicitly authorized Codex) uses to report to Claude/CTO — an executor uses the Technical Execution Report defined in `docs/01_GOVERNANCE/CODEX_PROMPT_STANDARD.md` Section 14.2, which carries full technical detail, is not limited to 5 sentences, and is not written in no-code language.
 
-After onboarding and for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation, ChatGPT/CTO must respond with exactly this concise three-part format:
+After onboarding and for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation, Claude/CTO must respond with exactly this concise three-part format:
 
 1. `### Phân tích kết quả`
    - fewer than 5 sentences
@@ -101,7 +101,7 @@ If the active manifest conflicts with the current ticket named in `PROJECT_SNAPS
 
 ## 4.1 Post-Onboarding Behavior
 
-Audience: ChatGPT/CTO only. This section governs ChatGPT/CTO, the only role that chooses an executor and writes an execution prompt. If onboarding PASS completes and the active manifest authorizes implementation, ChatGPT/CTO must immediately produce:
+Audience: Claude/CTO only. This section governs Claude/CTO, the only role that chooses an executor and writes an execution prompt. If onboarding PASS completes and the active manifest authorizes implementation, Claude/CTO must immediately produce:
 
 - `### Phân tích kết quả`
 - `### Phương án`
@@ -115,7 +115,7 @@ Allowed stop conditions after onboarding are limited to manifests that explicitl
 - `WAITING FOR REQUIREMENT`
 - another governance-defined blocking state
 
-When review finds an issue that can be remediated within the active ticket, AI must not stop after reporting the finding. ChatGPT coordination must immediately generate a remediation prompt for the correct single executor and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
+When review finds an issue that can be remediated within the active ticket, AI must not stop after reporting the finding. Claude coordination must immediately generate a remediation prompt for the correct single executor and keep the active ticket current until remediation, revalidation, and required PO acceptance are complete.
 
 AI must request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
 

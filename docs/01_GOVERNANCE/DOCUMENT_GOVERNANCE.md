@@ -28,7 +28,7 @@ Goals:
 
 - preserve SSOT discipline
 - keep documentation consistent across phases
-- support ChatGPT/Antigravity/Claude Code handover
+- support Claude/Antigravity/Claude Code handover
 - make freeze boundaries explicit
 - avoid document drift
 
@@ -46,28 +46,28 @@ Goals:
 
 | Document Group | Primary Owner | Secondary Reviewer |
 | --- | --- | --- |
-| SSOT / Decision docs | Product Owner | ChatGPT |
-| Architecture docs | ChatGPT | Product Owner |
-| UX docs | ChatGPT | Product Owner |
-| Planning docs | ChatGPT | Product Owner |
-| Implementation tickets / backend evidence | Claude Code | ChatGPT |
-| UI/UX and Windows runtime evidence | Antigravity | ChatGPT |
-| Review docs | ChatGPT | Product Owner |
-| Governance / handover docs | ChatGPT | Claude Code |
-| `CLAUDE.md` (Claude Code condensed onboarding) | ChatGPT | Claude Code |
-| PO UI acceptance workflow | Product Owner | ChatGPT |
-| PO findings register | Product Owner | ChatGPT |
+| SSOT / Decision docs | Product Owner | Claude |
+| Architecture docs | Claude | Product Owner |
+| UX docs | Claude | Product Owner |
+| Planning docs | Claude | Product Owner |
+| Implementation tickets / backend evidence | Claude Code | Claude |
+| UI/UX and Windows runtime evidence | Antigravity | Claude |
+| Review docs | Claude | Product Owner |
+| Governance / handover docs | Claude | Claude Code |
+| `CLAUDE.md` (Claude Code condensed onboarding) | Claude | Claude Code |
+| PO UI acceptance workflow | Product Owner | Claude |
+| PO findings register | Product Owner | Claude |
 
 Ownership rules:
 
 - Product Owner owns business decisions
-- ChatGPT owns structure, continuity, and review framing
+- Claude owns structure, continuity, and review framing
 - Claude Code and Antigravity own implementation evidence within their respective scope
 - no document may be updated by a role that does not own its change intent
 
 ## 4. AI Responsibilities
 
-### ChatGPT
+### Claude (claude.ai chat)
 
 - maintain project continuity
 - synthesize current state from repository docs
@@ -126,7 +126,7 @@ Review outputs may be:
 - WARNING
 - FAIL
 
-When review finds an issue resolvable within the active ticket, ChatGPT coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for Antigravity or Claude Code, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
+When review finds an issue resolvable within the active ticket, Claude coordination must not stop after reporting the finding. It must immediately generate a remediation prompt for Antigravity or Claude Code, keep the active ticket current, and require remediation, revalidation, and required PO acceptance before closing or advancing the ticket.
 
 Request a Product Owner decision only when the finding requires a business-rule, SSOT, frozen-behavior, scope, threshold, acceptance, or authority decision.
 
@@ -249,7 +249,7 @@ Mark the conflict as:
 
 ### 15.4 AI Rule
 
-- ChatGPT must not select a lower-authority document when a higher-authority document exists.
+- Claude must not select a lower-authority document when a higher-authority document exists.
 - Antigravity and Claude Code must not override the authority hierarchy.
 - All AI roles must escalate unresolved conflicts instead of guessing.
 
@@ -278,4 +278,4 @@ The active ticket remains current until review findings within its scope are rem
 
 The next ticket must not be activated before current-ticket PO PASS unless explicit Governance authority permits parallel work.
 
-ChatGPT/CTO's responses for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation must follow the canonical three-part format in `CODEX_PROMPT_STANDARD.md` Section 14.1. An executor reporting remediation results to ChatGPT/CTO uses the Technical Execution Report in `CODEX_PROMPT_STANDARD.md` Section 14.2 instead; the two formats are not interchangeable.
+Claude/CTO's responses for post-onboarding continuation, implementation-result review, remediation findings, validation failures, PO handoff, and next-ticket activation must follow the canonical three-part format in `CODEX_PROMPT_STANDARD.md` Section 14.1. An executor reporting remediation results to Claude/CTO uses the Technical Execution Report in `CODEX_PROMPT_STANDARD.md` Section 14.2 instead; the two formats are not interchangeable.

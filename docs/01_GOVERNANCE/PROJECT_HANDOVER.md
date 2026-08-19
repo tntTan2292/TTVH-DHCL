@@ -159,7 +159,7 @@ Open technical debt items captured in the current repo state:
 
 ## 10. Required Reading Order
 
-Recommended reading order for a new ChatGPT, Codex, Antigravity, or developer session:
+Recommended reading order for a new Claude, Codex, Antigravity, or developer session:
 
 1. [README_AI.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/README_AI.md)
 2. [docs/01_GOVERNANCE/PROJECT_HANDOVER.md](https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/01_GOVERNANCE/PROJECT_HANDOVER.md)
