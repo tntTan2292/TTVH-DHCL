@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import {
   aggregateReportTotals,
+  groupItemsByIndicatorAndMonth,
   paginateItems,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
+  resolveNoCodeStatus,
   resolveRunActionButtons,
   resolveWaitingAuthLanes
 } from './autoBackfillUiHelpers.js';
@@ -235,5 +237,75 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   console.log('✔ 6. Future-State 4-Indicator Scalability Fixture tests PASSED!');
 }
 
+// ==========================================
+// 7. Contract Test: 6 Canonical No-Code Status Translations
+// ==========================================
+{
+  // Test case 7.1: DATA_COMPLETE_WITH_EVIDENCE -> "Đã hoàn tất"
+  const completeStatus = resolveNoCodeStatus('DATA_COMPLETE_WITH_EVIDENCE');
+  assert.equal(completeStatus.label, 'Đã hoàn tất', 'DATA_COMPLETE_WITH_EVIDENCE must translate to Đã hoàn tất');
+  assert.equal(completeStatus.isResolved, true);
+
+  // Test case 7.2: LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE -> "Dữ liệu cũ đã có"
+  const legacyStatus = resolveNoCodeStatus('LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE');
+  assert.equal(legacyStatus.label, 'Dữ liệu cũ đã có', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE must translate to Dữ liệu cũ đã có');
+  assert.equal(legacyStatus.isResolved, true);
+
+  // Test case 7.3: TRUE_MISSING -> "Thật sự còn thiếu"
+  const missingStatus = resolveNoCodeStatus('TRUE_MISSING');
+  assert.equal(missingStatus.label, 'Thật sự còn thiếu', 'TRUE_MISSING must translate to Thật sự còn thiếu');
+  assert.equal(missingStatus.isResolved, false);
+
+  // Test case 7.4: VERIFIED_NO_DATA -> "Không phát sinh dữ liệu"
+  const noDataStatus = resolveNoCodeStatus('VERIFIED_NO_DATA');
+  assert.equal(noDataStatus.label, 'Không phát sinh dữ liệu', 'VERIFIED_NO_DATA must translate to Không phát sinh dữ liệu');
+  assert.equal(noDataStatus.isResolved, true);
+
+  // Test case 7.5: PO_EXEMPTED -> "PO đã xác nhận"
+  const exemptedStatus = resolveNoCodeStatus('PO_EXEMPTED');
+  assert.equal(exemptedStatus.label, 'PO đã xác nhận', 'PO_EXEMPTED must translate to PO đã xác nhận');
+  assert.equal(exemptedStatus.isResolved, true);
+
+  // Test case 7.6: MANUAL_REVIEW_REQUIRED -> "Cần PO kiểm tra"
+  const reviewStatus = resolveNoCodeStatus('MANUAL_REVIEW_REQUIRED');
+  assert.equal(reviewStatus.label, 'Cần PO kiểm tra', 'MANUAL_REVIEW_REQUIRED must translate to Cần PO kiểm tra');
+  assert.equal(reviewStatus.isResolved, false);
+
+  console.log('✔ 7. Canonical 6 No-Code Status Translations tests PASSED!');
+}
+
+// ==========================================
+// 8. Contract Test: Smart Monthly Grouping Accordion Helper
+// ==========================================
+{
+  const rawItems = [
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-21', status: 'TRUE_MISSING' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-20', status: 'DATA_COMPLETE_WITH_EVIDENCE' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-08-01', status: 'TRUE_MISSING' },
+    { indicator: 'F4.1', source_lane: 'TCT', business_date: '2026-07-15', status: 'VERIFIED_NO_DATA' },
+  ];
+
+  const grouped = groupItemsByIndicatorAndMonth(rawItems);
+  assert.equal(grouped.length, 3, 'Must group 4 items into 3 indicator::month groups');
+
+  // Verify group 1: F1.3 - 2026-08 (newest month first for F1.3)
+  assert.equal(grouped[0].indicator, 'F1.3');
+  assert.equal(grouped[0].yearMonth, '2026-08');
+  assert.equal(grouped[0].counts.missing, 1);
+
+  // Verify group 2: F1.3 - 2026-07
+  assert.equal(grouped[1].indicator, 'F1.3');
+  assert.equal(grouped[1].yearMonth, '2026-07');
+  assert.equal(grouped[1].counts.missing, 1);
+  assert.equal(grouped[1].counts.complete, 1);
+
+  // Verify item sorting inside month: 2026-07-21 before 2026-07-20
+  assert.equal(grouped[1].items[0].business_date, '2026-07-21');
+  assert.equal(grouped[1].items[1].business_date, '2026-07-20');
+
+  console.log('✔ 8. Smart Monthly Grouping Accordion Helper tests PASSED!');
+}
+
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');
+
 

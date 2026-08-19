@@ -1056,16 +1056,21 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
   - `npm run build`: PASS (688 modules transformed cleanly).
 - State: `AUTO-BACKFILL-UI IMPLEMENTED / READY FOR PO VISUAL GATE 6`. Gate 6 is not self-passed; browser remains closed; Runtime unauthorized.
 
-## AUTO-BACKFILL-UI Architectural Remediation Plan Complete / Ready for PO Architecture Approval
+## AUTO-BACKFILL-UI-REMEDIATION Phase B Implementation Complete / Ready for PO UI Check
 
-- Remediated `AUTO-BACKFILL-UI_PLAN.md` & `implementation_plan.md` incorporating 5 mandatory PO architectural remediation directives:
-  1. Inverted Implementation Order: Phase A (`AUTO-BACKFILL-COVERAGE-EXCEPTION` Backend First) executed by backend executor before Phase B (`AUTO-BACKFILL-UI-REMEDIATION` Frontend Second) by Antigravity. Zero frontend PO_EXEMPTED UI built before real backend APIs exist.
-  2. Strict 5-Point Adapter Proof for `VERIFIED_NO_DATA`: Portal 0-rows response must explicitly prove report identity, tuple match, filter success, portal readiness, and valid 0-row export structure. Otherwise ➔ `MANUAL_REVIEW_REQUIRED`.
-  3. Legacy Baseline Reconciliation (6 Coverage States): Defined `DATA_COMPLETE_WITH_EVIDENCE` ("Đã hoàn tất"), `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` ("Dữ liệu cũ đã có"), `TRUE_MISSING` ("Thật sự còn thiếu"), `VERIFIED_NO_DATA` ("Không phát sinh dữ liệu"), `PO_EXEMPTED` ("PO đã xác nhận"), and `MANUAL_REVIEW_REQUIRED` ("Cần PO kiểm tra") to eliminate 920 fake missing items via controlled seed. Registry-driven completion policy per indicator × lane without hardcoding.
-  4. Error Handling & Exception Isolation: Single-date transient errors retry per policy then continue queue. Circuit breaker opens ONLY on 5 consecutive same-signature portal errors. `VERIFIED_NO_DATA` and `PO_EXEMPTED` MUST NEVER be counted as retries or circuit breaker errors.
-  5. No-Code Vietnamese Labels: Standardized 6 user-friendly Vietnamese display badges on main UI.
-- Documentation-only; product code frozen; browser closed.
-- State: `READY FOR PO ARCHITECTURE APPROVAL`. Gate 6 is not self-passed and Runtime remains unauthorized.
+- Upon explicit Product Owner activation of Phase B (`AUTO-BACKFILL-UI-REMEDIATION`, frontend, Antigravity) following Phase A `PO BACKEND GATE PASS`, Antigravity implemented the complete frontend operator UI per `AUTO-BACKFILL-UI_PLAN.md`:
+  1. Real Phase A REST API Integration: Integrated `GET /api/import/auto-backfill/coverage`, `GET/POST /api/import/auto-backfill/coverage/exceptions`, `POST /api/import/auto-backfill/coverage/exceptions/:id/revoke` with zero mock APIs.
+  2. 6 Canonical No-Code Status Badges: Implemented `DATA_COMPLETE_WITH_EVIDENCE` ("Đã hoàn tất"), `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` ("Dữ liệu cũ đã có"), `TRUE_MISSING` ("Thật sự còn thiếu"), `VERIFIED_NO_DATA` ("Không phát sinh dữ liệu"), `PO_EXEMPTED` ("PO đã xác nhận"), and `MANUAL_REVIEW_REQUIRED` ("Cần PO kiểm tra").
+  3. Smart Monthly Grouping Accordion View (`<MonthlyAccordionGroup />`): Grouped missing dates by `Indicator × Year-Month` with expandable accordions, newest month/dates first (`06/06` ordering rule), and default-collapsed complete months.
+  4. Real PO Exception Confirmation & Revocation Modals: Created `ModalPOExceptionConfirm` (mandatory reason, locked tuple `indicator × source_lane × business_date`, triggers real `POST /exceptions`) and `ModalPOExceptionRevoke` (triggers real `POST /revoke`).
+  5. Slide-out Right Drawers: Audit Events Drawer for queue logs and Exception Audit History Drawer (`<ExceptionHistoryDrawer />`) for viewing exception creation and revocation logs.
+  6. Clean Tab Isolation: Isolated Tab 1 ("Bù dữ liệu tự động"), Tab 2 ("Báo cáo & Đối chiếu PO"), and Tab 3 ("Nạp thủ công (Excel)").
+- All tests & build PASS:
+  - `AutoBackfillOperatorPanel.test.js`: 8/8 PASS.
+  - `oxlint`: 0 errors.
+  - `vite build`: PASS (691 modules transformed cleanly in 1.25s).
+  - Backend regression sweep (`test_autoBackfillCoverageService.js`, `test_autoBackfillCoverageExceptionService.js`): 100% PASS.
+- State: `AUTO-BACKFILL-UI-REMEDIATION IMPLEMENTED / READY FOR PO UI CHECK`. Gate 6 is not self-passed; browser remains closed; Runtime unauthorized.
 
 
 

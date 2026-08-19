@@ -10,9 +10,12 @@ import {
   ChevronRight,
   ChevronUp,
   Clock,
+  Database,
   FileText,
   Filter,
   Grid,
+  HelpCircle,
+  History,
   List,
   Lock,
   Pause,
@@ -20,18 +23,20 @@ import {
   RefreshCw,
   RotateCcw,
   ShieldAlert,
+  ShieldCheck,
   Sparkles,
+  UserCheck,
   XCircle,
   X
 } from 'lucide-react';
 import api from '../api/client';
 import {
   aggregateReportTotals,
-  groupItemsByDate,
-  groupItemsByIndicator,
+  groupItemsByIndicatorAndMonth,
   paginateItems,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
+  resolveNoCodeStatus,
   resolveRunActionButtons,
   resolveWaitingAuthLanes
 } from './autoBackfillUiHelpers';
@@ -57,12 +62,13 @@ export default function AutoBackfillOperatorPanel() {
   // Filters & Pagination
   const [indicatorFilter, setIndicatorFilter] = useState('ALL');
   const [laneFilter, setLaneFilter] = useState('ALL');
+  const [monthFilter, setMonthFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // UI View Mode: 'TABLE' | 'TIMELINE'
-  const [viewMode, setViewMode] = useState('TIMELINE');
+  // UI View Mode: 'GROUPED_MONTH' | 'TABLE'
+  const [viewMode, setViewMode] = useState('GROUPED_MONTH');
 
   // Active Run State
   const [activeRunId, setActiveRunId] = useState(null);
@@ -70,18 +76,36 @@ export default function AutoBackfillOperatorPanel() {
   const [runActionLoading, setRunActionLoading] = useState(false);
   const [runError, setRunError] = useState(null);
 
-  // Audit Events & PO Report
+  // Audit Events & PO Report Drawers
   const [showEvents, setShowEvents] = useState(false);
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
 
-  const [showReport, setShowReport] = useState(false);
-  const [report, setReport] = useState(null);
-  const [reportLoading, setReportLoading] = useState(false);
+  const [showExceptionHistory, setShowExceptionHistory] = useState(false);
+  const [exceptionsList, setExceptionsList] = useState([]);
+  const [exceptionsLoading, setExceptionsLoading] = useState(false);
+
+  // Exception Modals (Real API Calls)
+  const [confirmModalItem, setConfirmModalItem] = useState(null);
+  const [confirmReason, setConfirmReason] = useState('');
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [confirmError, setConfirmError] = useState(null);
+
+  const [revokeModalItem, setRevokeModalItem] = useState(null);
+  const [revokeReason, setRevokeReason] = useState('');
+  const [revokeLoading, setRevokeLoading] = useState(false);
+  const [revokeError, setRevokeError] = useState(null);
 
   // Interactive login state
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginMessage, setLoginMessage] = useState(null);
+
+  // Notification Toast
+  const [toast, setToast] = useState(null);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Fetch Coverage
   const fetchCoverage = useCallback(async () => {
@@ -98,14 +122,14 @@ export default function AutoBackfillOperatorPanel() {
       }
     } catch (err) {
       console.error('[AutoBackfillOperatorPanel] fetchCoverage error:', err);
-      setCoverageError(`Không thể quét dữ liệu bù tự động. Mã lỗi: ${getApiErrorCode(err, 'COVERAGE_ERROR')} - ${getApiErrorMessage(err)}`);
+      setCoverageError(getApiErrorMessage(err, 'Không thể tải thông tin bao phủ dữ liệu.'));
     } finally {
       setCoverageLoading(false);
     }
   }, [indicatorFilter, laneFilter]);
 
-  // Fetch Run Details
-  const fetchRunDetails = useCallback(async (runId) => {
+  // Fetch Run Status
+  const fetchRunStatus = useCallback(async (runId) => {
     if (!runId) return;
     try {
       const res = await api.get(`/import/auto-backfill/runs/${runId}`);
@@ -113,8 +137,7 @@ export default function AutoBackfillOperatorPanel() {
         setRunData(res.data.data);
       }
     } catch (err) {
-      console.error('[AutoBackfillOperatorPanel] fetchRunDetails error:', err);
-      setRunError(`Không thể lấy chi tiết tiến trình ${runId}. ${getApiErrorMessage(err)}`);
+      console.error('[AutoBackfillOperatorPanel] fetchRunStatus error:', err);
     }
   }, []);
 
@@ -125,7 +148,7 @@ export default function AutoBackfillOperatorPanel() {
     try {
       const res = await api.get(`/import/auto-backfill/runs/${runId}/events`);
       if (res.data.success) {
-        setEvents(res.data.data?.events || res.data.data || []);
+        setEvents(res.data.data.items || []);
       }
     } catch (err) {
       console.error('[AutoBackfillOperatorPanel] fetchEvents error:', err);
@@ -134,1000 +157,916 @@ export default function AutoBackfillOperatorPanel() {
     }
   }, []);
 
-  // Fetch Report
-  const fetchReport = useCallback(async (runId) => {
-    if (!runId) return;
-    setReportLoading(true);
+  // Fetch Exception History
+  const fetchExceptionHistory = useCallback(async () => {
+    setExceptionsLoading(true);
     try {
-      const res = await api.get(`/import/auto-backfill/runs/${runId}/report`);
+      const res = await api.get('/import/auto-backfill/coverage/exceptions');
       if (res.data.success) {
-        setReport(res.data.data);
+        setExceptionsList(res.data.data.items || []);
       }
     } catch (err) {
-      console.error('[AutoBackfillOperatorPanel] fetchReport error:', err);
+      console.error('[AutoBackfillOperatorPanel] fetchExceptionHistory error:', err);
     } finally {
-      setReportLoading(false);
+      setExceptionsLoading(false);
     }
   }, []);
 
-  // Initial load & Polling
   useEffect(() => {
     fetchCoverage();
   }, [fetchCoverage]);
 
   useEffect(() => {
-    if (!activeRunId) return undefined;
-    fetchRunDetails(activeRunId);
+    if (activeRunId) {
+      fetchRunStatus(activeRunId);
+      const interval = setInterval(() => {
+        fetchRunStatus(activeRunId);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [activeRunId, fetchRunStatus]);
 
-    const runObj = runData?.run;
-    const effectiveState = resolveEffectiveRunState(runObj);
-    const isNonTerminal = effectiveState && !['COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED'].includes(effectiveState);
-    const intervalTime = isNonTerminal ? 3000 : 8000;
-
-    const interval = setInterval(() => {
-      fetchRunDetails(activeRunId);
-      if (showEvents) fetchEvents(activeRunId);
-      if (showReport) fetchReport(activeRunId);
-    }, intervalTime);
-
-    return () => clearInterval(interval);
-  }, [activeRunId, fetchRunDetails, runData?.run, showEvents, fetchEvents, showReport, fetchReport]);
-
-  // Handle Create Run
-  const handleCreateRun = async () => {
+  // Handlers for Run Actions
+  const handleCreateRun = async (lane = 'ALL') => {
     setRunActionLoading(true);
     setRunError(null);
-    setLoginMessage(null);
     try {
-      const body = {};
-      if (indicatorFilter !== 'ALL') body.indicator = indicatorFilter;
-      if (laneFilter !== 'ALL') body.lane = laneFilter;
-
-      const res = await api.post('/import/auto-backfill/runs', body);
+      const res = await api.post('/import/auto-backfill/runs', { requested_lane: lane });
       if (res.data.success) {
-        const newRunId = res.data.data?.run?.id || res.data.data?.run_id || res.data.data?.id;
-        if (newRunId) {
-          setActiveRunId(newRunId);
-          await fetchRunDetails(newRunId);
-        }
-        await fetchCoverage();
+        const newRun = res.data.data;
+        setActiveRunId(newRun.run_id);
+        setRunData(newRun);
+        showToast(`Đã tạo tiến trình bù mới #${newRun.run_id}`);
+        fetchCoverage();
       }
     } catch (err) {
-      console.error('[AutoBackfillOperatorPanel] handleCreateRun error:', err);
-      setRunError(`Không thể tạo tiến trình bù tự động: ${getApiErrorMessage(err)}`);
+      setRunError(getApiErrorMessage(err, 'Không thể khởi tạo tiến trình bù tự động.'));
     } finally {
       setRunActionLoading(false);
     }
   };
 
-  // Handle Pause Run
   const handlePauseRun = async () => {
     if (!activeRunId) return;
     setRunActionLoading(true);
-    setRunError(null);
     try {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/pause`);
       if (res.data.success) {
-        await fetchRunDetails(activeRunId);
+        fetchRunStatus(activeRunId);
+        showToast('Đã tạm dừng tiến trình bù.');
       }
     } catch (err) {
-      console.error('[AutoBackfillOperatorPanel] handlePauseRun error:', err);
-      setRunError(`Không thể tạm dừng tiến trình: ${getApiErrorMessage(err)}`);
+      setRunError(getApiErrorMessage(err, 'Không thể tạm dừng.'));
     } finally {
       setRunActionLoading(false);
     }
   };
 
-  // Handle Resume Run
   const handleResumeRun = async () => {
     if (!activeRunId) return;
     setRunActionLoading(true);
-    setRunError(null);
     try {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/resume`);
       if (res.data.success) {
-        await fetchRunDetails(activeRunId);
+        fetchRunStatus(activeRunId);
+        showToast('Đã tiếp tục tiến trình bù.');
       }
     } catch (err) {
-      console.error('[AutoBackfillOperatorPanel] handleResumeRun error:', err);
-      setRunError(`Không thể tiếp tục tiến trình: ${getApiErrorMessage(err)}`);
+      setRunError(getApiErrorMessage(err, 'Không thể tiếp tục.'));
     } finally {
       setRunActionLoading(false);
     }
   };
 
-  // Handle Reset Circuit
   const handleResetCircuit = async () => {
     if (!activeRunId) return;
     setRunActionLoading(true);
-    setRunError(null);
     try {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/circuit/reset`);
       if (res.data.success) {
-        await fetchRunDetails(activeRunId);
+        fetchRunStatus(activeRunId);
+        showToast('Đã khôi phục mạch an toàn.');
       }
     } catch (err) {
-      console.error('[AutoBackfillOperatorPanel] handleResetCircuit error:', err);
-      setRunError(`Không thể khôi phục mạch ngắt: ${getApiErrorMessage(err)}`);
+      setRunError(getApiErrorMessage(err, 'Không thể khôi phục mạch.'));
     } finally {
       setRunActionLoading(false);
     }
   };
 
-  // Handle Interactive Login
-  const handleInteractiveLogin = async (source) => {
-    setLoginLoading(true);
-    setLoginMessage(null);
+  // Real PO Exception Confirmation API Call
+  const handleConfirmExemption = async () => {
+    if (!confirmModalItem || !confirmReason.trim()) return;
+    setConfirmLoading(true);
+    setConfirmError(null);
     try {
-      const res = await api.post('/import/dkcl/session/interactive-auth', { source });
-      const status = res.data.data?.status || 'SESSION_CHECK_FAILED';
-      if (status === 'SESSION_VALID') {
-        setLoginMessage({ type: 'success', text: `Phiên ${source} đã xác thực thành công. Bạn có thể nhấn Tiếp tục tiến trình.` });
-      } else {
-        setLoginMessage({ type: 'amber', text: `Trạng thái phiên ${source}: ${status}. Hãy hoàn tất đăng nhập trên cửa sổ trình duyệt vừa mở.` });
+      const payload = {
+        indicator: confirmModalItem.indicator,
+        source_lane: confirmModalItem.source_lane,
+        business_date: confirmModalItem.business_date,
+        reason: confirmReason.trim()
+      };
+      const res = await api.post('/import/auto-backfill/coverage/exceptions', payload);
+      if (res.data.success) {
+        showToast(`Đã xác nhận không phát sinh dữ liệu cho ${confirmModalItem.indicator} (${confirmModalItem.source_lane}) ngày ${confirmModalItem.business_date}`);
+        setConfirmModalItem(null);
+        setConfirmReason('');
+        fetchCoverage();
       }
     } catch (err) {
-      console.error('[AutoBackfillOperatorPanel] handleInteractiveLogin error:', err);
-      setLoginMessage({ type: 'error', text: `Không thể mở đăng nhập ${source}: ${getApiErrorMessage(err)}` });
+      setConfirmError(getApiErrorMessage(err, 'Không thể xác nhận ngoại lệ.'));
     } finally {
-      setLoginLoading(false);
+      setConfirmLoading(false);
     }
   };
 
-  // Items processing & Dynamic Indicators
-  const rawItems = useMemo(() => coverageData?.items || [], [coverageData]);
-  const dynamicIndicators = useMemo(() => resolveDynamicIndicators(coverageData, rawItems), [coverageData, rawItems]);
+  // Real PO Exception Revoke API Call
+  const handleRevokeExemption = async () => {
+    if (!revokeModalItem || !revokeReason.trim()) return;
+    setRevokeLoading(true);
+    setRevokeError(null);
+    try {
+      const exceptionId = revokeModalItem.exception_id || revokeModalItem.id;
+      const res = await api.post(`/import/auto-backfill/coverage/exceptions/${exceptionId}/revoke`, {
+        reason: revokeReason.trim()
+      });
+      if (res.data.success) {
+        showToast('Đã hoàn tác ngoại lệ thành công');
+        setRevokeModalItem(null);
+        setRevokeReason('');
+        fetchCoverage();
+        if (showExceptionHistory) fetchExceptionHistory();
+      }
+    } catch (err) {
+      setRevokeError(getApiErrorMessage(err, 'Không thể hoàn tác ngoại lệ.'));
+    } finally {
+      setRevokeLoading(false);
+    }
+  };
 
-  const filteredItems = useMemo(() => {
-    return rawItems.filter((item) => {
+  // Dynamic Indicator Cards & Filter Options
+  const indicatorsList = useMemo(() => {
+    return resolveDynamicIndicators(coverageData);
+  }, [coverageData]);
+
+  const rawCoverageItems = useMemo(() => {
+    return coverageData?.items || [];
+  }, [coverageData]);
+
+  // Derived Month Options
+  const monthOptions = useMemo(() => {
+    const monthsSet = new Set();
+    rawCoverageItems.forEach((i) => {
+      if (i.business_date && i.business_date.length >= 7) {
+        monthsSet.add(i.business_date.slice(0, 7));
+      }
+    });
+    return Array.from(monthsSet).sort().reverse();
+  }, [rawCoverageItems]);
+
+  // Filtered Coverage Items
+  const filteredCoverageItems = useMemo(() => {
+    return rawCoverageItems.filter((item) => {
       if (indicatorFilter !== 'ALL' && item.indicator !== indicatorFilter) return false;
       if (laneFilter !== 'ALL' && item.source_lane !== laneFilter) return false;
-      if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
+      if (monthFilter !== 'ALL' && (!item.business_date || !item.business_date.startsWith(monthFilter))) return false;
+      if (statusFilter !== 'ALL') {
+        if (statusFilter === 'MISSING' && !['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(item.status)) return false;
+        if (statusFilter === 'COMPLETE' && !['DATA_COMPLETE_WITH_EVIDENCE', 'SUCCESS'].includes(item.status)) return false;
+        if (statusFilter === 'LEGACY' && item.status !== 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE') return false;
+        if (statusFilter === 'NO_DATA' && item.status !== 'VERIFIED_NO_DATA') return false;
+        if (statusFilter === 'PO_EXEMPTED' && item.status !== 'PO_EXEMPTED') return false;
+        if (statusFilter === 'REVIEW' && item.status !== 'MANUAL_REVIEW_REQUIRED') return false;
+      }
       return true;
     });
-  }, [rawItems, indicatorFilter, laneFilter, statusFilter]);
+  }, [rawCoverageItems, indicatorFilter, laneFilter, monthFilter, statusFilter]);
 
-  // Pagination calculation (default 10 rows/page)
-  const paginationResult = useMemo(() => paginateItems(filteredItems, currentPage, pageSize), [filteredItems, currentPage, pageSize]);
-  const paginatedDateGroups = useMemo(() => groupItemsByDate(paginationResult.pageItems), [paginationResult.pageItems]);
+  // Smart Grouping by Indicator × Month
+  const monthlyGroups = useMemo(() => {
+    return groupItemsByIndicatorAndMonth(filteredCoverageItems);
+  }, [filteredCoverageItems]);
 
-  // Calculate summary numbers
-  const runnableJobsCount = coverageData?.runnable_portal_jobs ?? rawItems.filter((item) => item.queue_eligible).length;
-  const manualOnlyCount = rawItems.filter((item) => ['MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status)).length;
+  // Pagination for Table View
+  const paginatedCoverage = useMemo(() => {
+    return paginateItems(filteredCoverageItems, currentPage, pageSize);
+  }, [filteredCoverageItems, currentPage, pageSize]);
 
-  // Run contracts resolution
-  const currentRun = runData?.run || null;
-  const currentJobs = runData?.jobs || [];
-  const effectiveRunState = resolveEffectiveRunState(currentRun);
-  const runActionButtons = resolveRunActionButtons(effectiveRunState);
-  const waitingLanes = resolveWaitingAuthLanes(currentRun, currentJobs);
+  // Effective Run State
+  const effectiveRunState = useMemo(() => {
+    return resolveEffectiveRunState(runData?.run);
+  }, [runData]);
 
-  // PO Report Aggregation
-  const reportTotals = aggregateReportTotals(report);
+  const actionButtons = useMemo(() => {
+    return resolveRunActionButtons(effectiveRunState);
+  }, [effectiveRunState]);
+
+  const waitingLanes = useMemo(() => {
+    return resolveWaitingAuthLanes(runData?.run, runData?.jobs);
+  }, [runData]);
 
   return (
-    <div className="space-y-6" data-testid="auto-backfill-operator-panel">
-      {/* 1. HERO COMMAND HEADER (VNPost Light Theme Standard) */}
-      <div className="rounded-2xl bg-white p-6 md:p-8 text-slate-900 shadow-sm border border-slate-200 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-blue-50 text-blue-700 border border-blue-200">
-                <Sparkles size={13} className="text-blue-600" />
-                AUTO BACKFILL PLATFORM V2.0
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                <Clock size={13} className="text-slate-500" />
-                Múi giờ Asia/Ho_Chi_Minh (01/01/2026 ➔ N-1)
+    <div className="flex flex-col gap-6 font-sans text-slate-800">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 rounded-xl px-4 py-3 shadow-lg border text-sm font-medium ${
+          toast.type === 'error' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+        }`}>
+          {toast.type === 'error' ? <AlertCircle className="h-5 w-5 text-red-600" /> : <CheckCircle2 className="h-5 w-5 text-emerald-600" />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
+      {/* HERO SYSTEM CONTROL HEADER */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-slate-900">Trung tâm Điều hành Bù dữ liệu Tự động</h2>
+              <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-[var(--color-vnpost-blue)] border border-blue-100">
+                QIS V2 Platform
               </span>
             </div>
-            <h2 className="text-2xl lg:text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
-              Trung tâm Bù dữ liệu Tự động
-            </h2>
-            <p className="text-xs lg:text-sm text-slate-500 max-w-2xl">
-              Quét độc lập diện rộng, xác định chính xác ngày thiếu dữ liệu theo <strong>Chỉ tiêu</strong> &amp; <strong>Nguồn thông tin</strong>. Ưu tiên tiến trình theo thứ tự ngày mới nhất trước.
+            <p className="mt-1 text-sm text-slate-500">
+              Tự động rà soát ngày thiếu, nạp bù dữ liệu từ Portal Huế/TCT và quản lý ngoại lệ nghiệp vụ cho người No-code.
             </p>
           </div>
 
-          {/* Quick Command Action Group */}
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              type="button"
-              onClick={fetchCoverage}
+              onClick={() => fetchCoverage()}
               disabled={coverageLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 px-4 py-2.5 text-xs font-bold text-slate-700 border border-slate-300 transition-all shadow-xs disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
             >
-              <RefreshCw size={15} className={coverageLoading ? 'animate-spin' : ''} />
-              Quét lại Coverage
+              <RefreshCw className={`h-4 w-4 ${coverageLoading ? 'animate-spin' : ''}`} />
+              <span>Quét phủ dữ liệu</span>
             </button>
 
             <button
-              type="button"
-              onClick={handleCreateRun}
-              disabled={runActionLoading || runnableJobsCount === 0}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-vnpost-blue via-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 px-6 py-2.5 text-xs font-extrabold text-white transition-all shadow-md border border-blue-400/30 disabled:opacity-40 disabled:pointer-events-none"
-            >
-              {runActionLoading ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} />}
-              Tạo Tiến trình Bù Tự động ({runnableJobsCount} ngày)
-            </button>
-          </div>
-        </div>
-
-        {/* 2. DYNAMIC INDICATOR HEALTH CARDS GRID (Proves N indicators scalability) */}
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6 border-t border-slate-100">
-          {dynamicIndicators.map((ind) => (
-            <div
-              key={ind.code}
               onClick={() => {
-                setIndicatorFilter(indicatorFilter === ind.code ? 'ALL' : ind.code);
-                setCurrentPage(1);
+                setShowExceptionHistory(true);
+                fetchExceptionHistory();
               }}
-              className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 shadow-2xs ${
-                indicatorFilter === ind.code
-                  ? 'bg-blue-50/90 border-blue-400 ring-2 ring-blue-500/20 shadow-md'
-                  : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-xs'
-              }`}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
-              <div className="flex items-center justify-between">
-                <span className={`px-2.5 py-1 rounded-lg text-xs font-black border ${ind.badgeClass}`}>
-                  {ind.displayName}
-                </span>
-                <span className="text-[11px] font-bold text-slate-500">
-                  {ind.items.length} ngày quét
-                </span>
-              </div>
-              <div className="mt-3 flex items-baseline justify-between">
-                <div>
-                  <span className="text-2xl font-black text-slate-900">{ind.missingCount}</span>
-                  <span className="text-xs font-semibold text-amber-600 ml-1.5">ngày thiếu</span>
-                </div>
-                <div className="text-xs font-bold text-emerald-600">
-                  {ind.successCount} hoàn tất
-                </div>
-              </div>
-              <div className="mt-2.5 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                <div
-                  className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${ind.items.length ? (ind.successCount / ind.items.length) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          ))}
+              <History className="h-4 w-4 text-purple-600" />
+              <span>Lịch sử Ngoại lệ PO</span>
+            </button>
 
-          {/* Card: Runnable Jobs Summary */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <span className="text-xs font-black text-indigo-700 uppercase tracking-wider">Khả thi Nạp Tự động</span>
-            <div className="mt-3 flex items-baseline justify-between">
-              <span className="text-2xl font-black text-slate-900">{runnableJobsCount}</span>
-              <span className="text-xs font-bold text-indigo-600">đã đăng ký Adapter</span>
-            </div>
-            <p className="mt-2 text-[11px] text-slate-500 truncate">Sẵn sàng kích hoạt qua Portal API</p>
-          </div>
+            {!activeRunId ? (
+              <button
+                onClick={() => handleCreateRun('ALL')}
+                disabled={runActionLoading}
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-vnpost-blue)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-vnpost-blue-dark)] disabled:opacity-50"
+              >
+                <Play className="h-4 w-4 fill-current" />
+                <span>Bắt đầu Bù tất cả</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                {actionButtons.canPause && (
+                  <button
+                    onClick={handlePauseRun}
+                    disabled={runActionLoading}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 shadow-sm hover:bg-amber-100"
+                  >
+                    <Pause className="h-4 w-4" />
+                    <span>Tạm dừng</span>
+                  </button>
+                )}
 
-          {/* Card: Manual / Review Required Summary */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
-            <span className="text-xs font-black text-amber-700 uppercase tracking-wider">Cần Soát xét / Thủ công</span>
-            <div className="mt-3 flex items-baseline justify-between">
-              <span className="text-2xl font-black text-slate-900">{manualOnlyCount}</span>
-              <span className="text-xs font-bold text-amber-600">yêu cầu xử lý</span>
-            </div>
-            <p className="mt-2 text-[11px] text-slate-500 truncate">Không hỗ trợ Portal Adapter tự động</p>
+                {actionButtons.canResume && (
+                  <button
+                    onClick={handleResumeRun}
+                    disabled={runActionLoading}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    <span>Tiếp tục Run</span>
+                  </button>
+                )}
+
+                {actionButtons.canResetCircuit && (
+                  <button
+                    onClick={handleResetCircuit}
+                    disabled={runActionLoading}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-900 shadow-sm hover:bg-red-100"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    <span>Khôi phục Mạch</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setShowEvents(true);
+                    fetchEvents(activeRunId);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  <Activity className="h-4 w-4 text-blue-600" />
+                  <span>Audit Logs</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* ACTIVE RUN STATUS BAR */}
+        {runData && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-4 text-sm">
+            <div className="flex items-center gap-3">
+              <span className="font-semibold text-slate-700">Tiến trình #{runData.run.run_id}</span>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                effectiveRunState === 'RUNNING' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
+                effectiveRunState === 'PAUSED' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                effectiveRunState === 'CIRCUIT_OPEN' ? 'bg-red-50 text-red-800 border border-red-200' :
+                'bg-emerald-50 text-emerald-800 border border-emerald-200'
+              }`}>
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                {effectiveRunState || 'PENDING'}
+              </span>
+            </div>
+
+            {waitingLanes.length > 0 && (
+              <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-1.5 border border-amber-200 text-xs text-amber-900 font-medium">
+                <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>Yêu cầu xác thực phiên portal nguồn: <strong>{waitingLanes.join(', ')}</strong></span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 3. SAFETY & OPERATOR GUIDANCE BANNERS */}
-      {coverageError && (
-        <div className="p-4 rounded-2xl border border-red-300 bg-red-50 text-red-900 text-xs font-semibold flex items-start gap-3 shadow-md">
-          <AlertTriangle size={18} className="text-red-600 shrink-0 mt-0.5" />
-          <div>{coverageError}</div>
-        </div>
-      )}
-      {runError && (
-        <div className="p-4 rounded-2xl border border-red-300 bg-red-50 text-red-900 text-xs font-semibold flex items-start gap-3 shadow-md">
-          <XCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
-          <div>{runError}</div>
-        </div>
-      )}
-
-      {/* WAITING_AUTH Guidance Card */}
-      {effectiveRunState === 'WAITING_AUTH' && (
-        <div className="p-5 rounded-2xl border-2 border-amber-400 bg-gradient-to-r from-amber-500/10 via-amber-50 to-orange-50/80 backdrop-blur-md shadow-lg space-y-4" data-testid="waiting-auth-banner">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-amber-500 text-white shadow-md">
-              <Lock size={22} />
+      {/* DYNAMIC INDICATOR HEALTH CARDS GRID */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {indicatorsList.map((ind) => (
+          <div
+            key={ind.code}
+            onClick={() => setIndicatorFilter(indicatorFilter === ind.code ? 'ALL' : ind.code)}
+            className={`cursor-pointer rounded-2xl border p-5 transition shadow-sm ${
+              indicatorFilter === ind.code
+                ? 'border-[var(--color-vnpost-blue)] bg-blue-50/50 ring-2 ring-[var(--color-vnpost-blue)]/20'
+                : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className={`rounded-lg px-2 py-1 text-xs font-bold border ${ind.badgeClass}`}>
+                {ind.code}
+              </span>
+              <span className="text-xs font-medium text-slate-500">Nguồn: {ind.supportedLanes.join(', ')}</span>
             </div>
-            <div>
-              <h4 className="text-sm font-black text-amber-950">Yêu cầu Đăng nhập Hệ thống Nguồn (WAITING_AUTH)</h4>
-              <p className="text-xs text-amber-900 mt-1">
-                Tiến trình tự động tạm dừng an toàn do hết hạn phiên làm việc trên Cổng thông tin.
-                {waitingLanes.length > 0 && (
-                  <span> Nguồn đang chờ xác thực: <strong>{waitingLanes.join(', ')}</strong>.</span>
-                )}
-                {' '}Vui lòng mở cửa sổ đăng nhập bên dưới để hoàn tất xác thực, sau đó nhấn <strong>Tiếp tục tiến trình</strong>.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 pl-12">
-            {(waitingLanes.length === 0 || waitingLanes.includes('HUE')) && (
-              <button
-                type="button"
-                onClick={() => handleInteractiveLogin('HUE')}
-                disabled={loginLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 active:scale-95 px-4 py-2 text-xs font-bold text-white shadow-md hover:from-blue-700 hover:to-indigo-800 disabled:opacity-50"
-                data-testid="btn-login-hue"
-              >
-                <Lock size={14} />
-                Mở đăng nhập Huế
-              </button>
-            )}
-            {(waitingLanes.length === 0 || waitingLanes.includes('TCT')) && (
-              <button
-                type="button"
-                onClick={() => handleInteractiveLogin('TCT')}
-                disabled={loginLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-700 active:scale-95 px-4 py-2 text-xs font-bold text-white shadow-md hover:from-purple-700 hover:to-pink-800 disabled:opacity-50"
-                data-testid="btn-login-tct"
-              >
-                <Lock size={14} />
-                Mở đăng nhập TCT
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleResumeRun}
-              disabled={runActionLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-4 py-2 text-xs font-bold text-white shadow-md disabled:opacity-50"
-              data-testid="btn-resume-from-auth"
-            >
-              <Play size={14} />
-              Xác nhận &amp; Tiếp tục tiến trình
-            </button>
-          </div>
-          {loginMessage && (
-            <div className={`ml-12 p-3 rounded-xl text-xs font-bold ${
-              loginMessage.type === 'success' ? 'bg-green-100 text-green-900 border border-green-200' : 'bg-amber-100 text-amber-950 border border-amber-200'
-            }`}>
-              {loginMessage.text}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* CIRCUIT_OPEN Guidance Card */}
-      {effectiveRunState === 'CIRCUIT_OPEN' && (
-        <div className="p-5 rounded-2xl border-2 border-red-500 bg-gradient-to-r from-red-500/10 via-red-50 to-rose-50/80 backdrop-blur-md shadow-lg space-y-4" data-testid="circuit-open-banner">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-red-600 text-white shadow-md">
-              <ShieldAlert size={22} />
-            </div>
-            <div>
-              <h4 className="text-sm font-black text-red-950">Mạch Tự Động Ngắt Bảo Vệ (CIRCUIT_OPEN)</h4>
-              <p className="text-xs text-red-900 mt-1">
-                Phát hiện <strong>5 lần lỗi liên tiếp cùng chữ ký hệ thống</strong> trong cùng phạm vi Adapter/Source. Tiến trình tự động khóa để bảo vệ hệ thống khỏi lặp lỗi tràn mạng.
-              </p>
-              <p className="text-xs font-bold text-red-950 mt-1">
-                Hành động cần thực hiện: Kiểm tra mạng/kết nối portal, sau đó nhấn <strong>Khôi phục Mạch (Reset Circuit)</strong> để tiếp tục.
-              </p>
-            </div>
-          </div>
-          <div className="pl-12">
-            <button
-              type="button"
-              onClick={handleResetCircuit}
-              disabled={runActionLoading}
-              className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 px-5 py-2.5 text-xs font-bold text-white shadow-md disabled:opacity-50 animate-pulse"
-            >
-              <RotateCcw size={15} />
-              Khôi phục Mạch &amp; Thử lại (Reset Circuit)
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* BLOCKED_INTEGRITY Guidance Card */}
-      {effectiveRunState === 'BLOCKED_INTEGRITY' && (
-        <div className="p-5 rounded-2xl border-2 border-slate-500 bg-slate-900 text-white shadow-lg space-y-3" data-testid="blocked-integrity-banner">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-slate-800 text-red-400 border border-slate-700">
-              <XCircle size={22} />
-            </div>
-            <div>
-              <h4 className="text-sm font-black text-white">Khóa An Toàn Toàn Vẹn Dữ Liệu (BLOCKED_INTEGRITY)</h4>
-              <p className="text-xs text-slate-300 mt-1">
-                Phát hiện lỗi vi phạm cấu trúc dữ liệu hoặc kiểm tra toàn vẹn không đạt. Tiến trình đã bị ngắt tức thì để tránh gây sai lệch database.
-              </p>
-              <p className="text-xs font-bold text-amber-400 mt-1.5">
-                Hành động cần thực hiện: Liên hệ QTV hệ thống để soát xét file nguồn thô hoặc kiểm tra log chi tiết trước khi khởi tạo lại.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. ACTIVE RUN CONTROL & MONITOR BAR */}
-      {activeRunId && currentRun && (
-        <div className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 p-5 shadow-sm space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-vnpost-blue text-white shadow-sm">
-                <Activity size={18} />
-              </div>
+            <h3 className="mt-2 text-base font-bold text-slate-900 line-clamp-1">{ind.displayName}</h3>
+            <div className="mt-4 flex items-baseline justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase text-slate-500">Tiến trình ID:</span>
-                  <code className="text-xs font-mono font-bold text-vnpost-blue bg-blue-100/80 px-2 py-0.5 rounded border border-blue-200">{activeRunId}</code>
-                  <span
-                    data-testid="effective-run-state-badge"
-                    className={`rounded-full px-3 py-0.5 text-xs font-black shadow-xs ${
-                      effectiveRunState === 'RUNNING' ? 'bg-blue-600 text-white animate-pulse' :
-                      effectiveRunState === 'PAUSED' ? 'bg-amber-500 text-white' :
-                      effectiveRunState === 'PAUSING' ? 'bg-amber-400 text-white' :
-                      effectiveRunState === 'WAITING_AUTH' ? 'bg-amber-600 text-white' :
-                      effectiveRunState === 'CIRCUIT_OPEN' ? 'bg-red-600 text-white' :
-                      effectiveRunState === 'BLOCKED_INTEGRITY' ? 'bg-slate-800 text-white' :
-                      effectiveRunState === 'COMPLETED' ? 'bg-emerald-600 text-white' :
-                      effectiveRunState === 'COMPLETED_WITH_ERRORS' ? 'bg-orange-600 text-white' :
-                      'bg-slate-200 text-slate-800'
-                    }`}
-                  >
-                    {effectiveRunState || 'KHÔNG XÁC ĐỊNH'}
-                  </span>
-                </div>
-                {runData.progress && (
-                  <p className="text-xs font-semibold text-slate-600 mt-1">
-                    Tiến độ hoàn thành: <strong className="text-slate-900 font-bold">{runData.progress.completed || 0}/{runData.progress.total || 0}</strong> việc ({runData.progress.percent || 0}%)
-                  </p>
-                )}
+                <span className="text-2xl font-extrabold text-amber-600">{ind.missingCount}</span>
+                <span className="ml-1.5 text-xs text-slate-500">ngày còn thiếu</span>
               </div>
-            </div>
-
-            {/* Run Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2" data-testid="run-action-controls">
-              {runActionButtons.canPause && (
-                <button
-                  type="button"
-                  onClick={handlePauseRun}
-                  disabled={runActionLoading}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-100/80 hover:bg-amber-200 active:scale-95 px-4 py-2 text-xs font-bold text-amber-950 transition-all shadow-xs disabled:opacity-50"
-                  data-testid="btn-pause-run"
-                >
-                  <Pause size={14} />
-                  Tạm dừng (Pause)
-                </button>
-              )}
-              {runActionButtons.canResume && (
-                <button
-                  type="button"
-                  onClick={handleResumeRun}
-                  disabled={runActionLoading}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 px-4 py-2 text-xs font-bold text-white transition-all shadow-md disabled:opacity-50"
-                  data-testid="btn-resume-run"
-                >
-                  <Play size={14} />
-                  Tiếp tục (Resume)
-                </button>
-              )}
-              {runActionButtons.canResetCircuit && (
-                <button
-                  type="button"
-                  onClick={handleResetCircuit}
-                  disabled={runActionLoading}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 px-4 py-2 text-xs font-bold text-white transition-all shadow-md disabled:opacity-50 animate-bounce"
-                  data-testid="btn-reset-circuit"
-                >
-                  <RotateCcw size={14} />
-                  Khôi phục Mạch (Reset Circuit)
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !showEvents;
-                  setShowEvents(next);
-                  if (next) fetchEvents(activeRunId);
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs"
-              >
-                <Clock size={14} />
-                {showEvents ? 'Ẩn Events' : 'Xem Audit Events'}
-                {showEvents ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !showReport;
-                  setShowReport(next);
-                  if (next) fetchReport(activeRunId);
-                }}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs"
-              >
-                <FileText size={14} />
-                {showReport ? 'Ẩn Báo cáo PO' : 'Xem Báo cáo PO'}
-                {showReport ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              </button>
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                {ind.successCount} xong
+              </span>
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* Events Timeline Drawer */}
-          {showEvents && (
-            <div className="p-4 rounded-xl bg-slate-950 text-slate-100 text-xs font-mono space-y-3 border border-slate-800">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2 font-sans">
-                <h4 className="font-bold text-white flex items-center gap-2">
-                  <Clock size={15} className="text-blue-400" />
-                  Nhật ký Sự kiện Append-Only Audit (Run {activeRunId})
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => fetchEvents(activeRunId)}
-                  className="text-xs text-blue-400 hover:underline"
-                >
-                  Cập nhật
-                </button>
-              </div>
-              <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                {eventsLoading ? (
-                  <p className="text-slate-400 font-sans italic">Đang tải nhật ký...</p>
-                ) : events.length === 0 ? (
-                  <p className="text-slate-400 font-sans italic">Chưa có sự kiện nào được ghi nhận.</p>
-                ) : (
-                  events.map((ev, idx) => (
-                    <div key={ev.id || idx} className="p-2.5 rounded bg-slate-900 border border-slate-800">
-                      <div className="flex items-center justify-between text-slate-400 text-[11px]">
-                        <span className="font-bold text-blue-300">{ev.event_type || ev.type}</span>
-                        <span>{ev.created_at || ev.timestamp}</span>
-                      </div>
-                      <p className="text-slate-200 mt-1">{ev.message || JSON.stringify(ev.payload || ev)}</p>
-                      {ev.action_required && (
-                        <p className="text-amber-400 font-bold mt-1">➔ Action required: {ev.action_required}</p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* PO Report Drawer */}
-          {showReport && (
-            <div className="p-5 rounded-xl bg-white border border-blue-200 shadow-sm text-xs space-y-3" data-testid="po-report-card">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                <h4 className="font-bold text-slate-900 flex items-center gap-2">
-                  <FileText size={16} className="text-vnpost-blue" />
-                  Báo cáo Đối chiếu Kết quả cho Product Owner (Run {activeRunId})
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => fetchReport(activeRunId)}
-                  className="font-bold text-vnpost-blue hover:underline"
-                >
-                  Cập nhật
-                </button>
-              </div>
-              {reportLoading ? (
-                <p className="text-slate-400 italic">Đang tổng hợp báo cáo...</p>
-              ) : report ? (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <div>
-                      <span className="text-slate-500 block font-semibold">Tổng công việc</span>
-                      <strong className="text-base text-slate-900" data-testid="report-total-jobs">{reportTotals.total}</strong>
-                    </div>
-                    <div>
-                      <span className="text-emerald-700 block font-semibold">Thành công</span>
-                      <strong className="text-base text-emerald-700" data-testid="report-success-jobs">{reportTotals.success}</strong>
-                    </div>
-                    <div>
-                      <span className="text-amber-700 block font-semibold">Đang chờ / Tạm dừng</span>
-                      <strong className="text-base text-amber-700" data-testid="report-pending-jobs">{reportTotals.pending}</strong>
-                    </div>
-                    <div>
-                      <span className="text-red-700 block font-semibold">Thất bại / Soát xét</span>
-                      <strong className="text-base text-red-700" data-testid="report-failed-jobs">{reportTotals.failed}</strong>
-                    </div>
-                  </div>
-                  {report.action_required && (
-                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 font-bold">
-                      Khuyến nghị cho PO: {report.action_required}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p className="text-slate-400 italic">Chưa có dữ liệu báo cáo.</p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 5. FILTERING & MULTI-VIEW NAVIGATION BAR */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-          <div>
-            <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-              <Filter size={18} className="text-vnpost-blue" />
-              Bộ lọc &amp; Hiển thị Trạng thái Bù Dữ liệu ({filteredItems.length} mục)
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Tùy chọn lọc nhanh theo Chỉ tiêu, Nguồn và Trạng thái. Tùy chọn giao diện xem Dạng Bảng hoặc Thẻ Ngày.</p>
-          </div>
-
-          {/* View Mode & Page Size Selector */}
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            {/* Page Size Dropdown */}
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-              <span>Hiển thị:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 focus:border-vnpost-blue focus:outline-none shadow-2xs"
-              >
-                <option value={10}>10 dòng/trang</option>
-                <option value={20}>20 dòng/trang</option>
-                <option value={50}>50 dòng/trang</option>
-              </select>
+      {/* CONTROL & FILTER BAR */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+              <Filter className="h-4 w-4 text-slate-500" />
+              <span>Bộ lọc:</span>
             </div>
 
-            {/* View Switcher */}
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setViewMode('TIMELINE')}
-                className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                  viewMode === 'TIMELINE'
-                    ? 'bg-vnpost-blue text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-white/60'
-                }`}
-              >
-                <Grid size={14} />
-                Thẻ Ngày (Timeline)
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('TABLE')}
-                className={`inline-flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                  viewMode === 'TABLE'
-                    ? 'bg-vnpost-blue text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-white/60'
-                }`}
-              >
-                <List size={14} />
-                Bảng Chi tiết (Table)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Filter Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Dynamic Indicator Filter */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Lọc Chỉ tiêu</label>
-            <div className="flex flex-wrap gap-1 p-1 bg-slate-100 rounded-xl">
-              <button
-                type="button"
-                onClick={() => {
-                  setIndicatorFilter('ALL');
-                  setCurrentPage(1);
-                }}
-                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                  indicatorFilter === 'ALL'
-                    ? 'bg-vnpost-blue text-white shadow-2xs'
-                    : 'text-slate-700 hover:bg-white/80'
-                }`}
-              >
-                Tất cả
-              </button>
-              {dynamicIndicators.map((ind) => (
-                <button
-                  key={ind.code}
-                  type="button"
-                  onClick={() => {
-                    setIndicatorFilter(ind.code);
-                    setCurrentPage(1);
-                  }}
-                  className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                    indicatorFilter === ind.code
-                      ? 'bg-vnpost-blue text-white shadow-2xs'
-                      : 'text-slate-700 hover:bg-white/80'
-                  }`}
-                >
-                  {ind.code}
-                </button>
+            {/* Indicator Filter */}
+            <select
+              value={indicatorFilter}
+              onChange={(e) => {
+                setIndicatorFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Tất cả Chỉ tiêu</option>
+              {indicatorsList.map((ind) => (
+                <option key={ind.code} value={ind.code}>
+                  {ind.code} — {ind.displayName}
+                </option>
               ))}
-            </div>
-          </div>
+            </select>
 
-          {/* Filter 2: Source Lane */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Lọc Nguồn Nạp</label>
-            <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl">
-              {[
-                { code: 'ALL', label: 'Tất cả nguồn' },
-                { code: 'HUE', label: 'HUE (Huế)' },
-                { code: 'TCT', label: 'TCT (Tổng Cty)' }
-              ].map((item) => (
-                <button
-                  key={item.code}
-                  type="button"
-                  onClick={() => {
-                    setLaneFilter(item.code);
-                    setCurrentPage(1);
-                  }}
-                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                    laneFilter === item.code
-                      ? 'bg-purple-700 text-white shadow-2xs'
-                      : 'text-slate-700 hover:bg-white/80'
-                  }`}
-                >
-                  {item.label}
-                </button>
+            {/* Lane Filter */}
+            <select
+              value={laneFilter}
+              onChange={(e) => {
+                setLaneFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Tất cả Nguồn (HUE/TCT)</option>
+              <option value="HUE">Nguồn Huế (F1.3 HUE)</option>
+              <option value="TCT">Nguồn Tổng công ty (TCT)</option>
+            </select>
+
+            {/* Month Filter */}
+            <select
+              value={monthFilter}
+              onChange={(e) => {
+                setMonthFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Tất cả Tháng</option>
+              {monthOptions.map((m) => (
+                <option key={m} value={m}>
+                  Tháng {m}
+                </option>
               ))}
-            </div>
-          </div>
+            </select>
 
-          {/* Filter 3: Status dropdown */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Lọc Trạng thái</label>
+            {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 focus:border-vnpost-blue focus:outline-none shadow-2xs"
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="ALL">Tất cả trạng thái</option>
-              <option value="MISSING">Thiếu dữ liệu (MISSING)</option>
-              <option value="SUCCESS">Đã hoàn tất (SUCCESS)</option>
-              <option value="INCOMPLETE">Chưa hoàn tất (INCOMPLETE)</option>
-              <option value="MANUAL_REVIEW_REQUIRED">Cần soát xét (REVIEW_REQ)</option>
-              <option value="MANUAL_ONLY_MISSING">Chưa hỗ trợ Adapter (MANUAL_ONLY)</option>
+              <option value="ALL">Tất cả Trạng thái (6 loại)</option>
+              <option value="MISSING">Thật sự còn thiếu</option>
+              <option value="COMPLETE">Đã hoàn tất</option>
+              <option value="LEGACY">Dữ liệu cũ đã có</option>
+              <option value="NO_DATA">Không phát sinh dữ liệu</option>
+              <option value="PO_EXEMPTED">PO đã xác nhận</option>
+              <option value="REVIEW">Cần PO kiểm tra</option>
             </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* View Mode Switcher */}
+            <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+              <button
+                onClick={() => setViewMode('GROUPED_MONTH')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition ${
+                  viewMode === 'GROUPED_MONTH' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Grid className="h-3.5 w-3.5" />
+                <span>Nhóm theo Tháng</span>
+              </button>
+              <button
+                onClick={() => setViewMode('TABLE')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition ${
+                  viewMode === 'TABLE' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <List className="h-3.5 w-3.5" />
+                <span>Bảng Chi tiết</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 6. MAIN BOUNDED CONTENT CONTAINER (max-h-[420px] bounded scroll height) */}
-      <div className="space-y-4">
-        {coverageLoading ? (
-          <div className="p-12 text-center rounded-2xl bg-white border border-slate-200">
-            <RefreshCw size={28} className="animate-spin mx-auto text-vnpost-blue mb-3" />
-            <p className="text-sm font-bold text-slate-700">Đang quét vùng dữ liệu bù tự động...</p>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl bg-white border border-slate-200">
-            <AlertCircle size={28} className="mx-auto text-slate-400 mb-2" />
-            <p className="text-sm font-bold text-slate-700">Không tìm thấy dữ liệu phù hợp với bộ lọc.</p>
-          </div>
-        ) : (
-          <div className="max-h-[420px] overflow-y-auto pr-1 space-y-3 rounded-2xl border border-slate-200 p-2 bg-slate-50/50 scrollbar-thin">
-            {viewMode === 'TIMELINE' ? (
-              /* VIEW 1: TIMELINE DATE CARDS (Extensible for multi-indicators) */
-              <div className="space-y-3">
-                {paginatedDateGroups.map((group) => (
-                  <div key={group.date} className="bg-white rounded-2xl border border-slate-200 shadow-2xs hover:shadow-xs transition-all p-4 space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <Calendar size={16} className="text-vnpost-blue" />
-                        <span className="text-sm font-black text-slate-900">{group.date}</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-500">
-                        {group.items.length} chỉ tiêu/nguồn
-                      </span>
-                    </div>
-
-                    {/* Items grid for this date */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {group.items.map((item, idx) => {
-                        const isSuccess = item.status === 'SUCCESS';
-                        const isMissing = item.status === 'MISSING';
-                        const isReviewReq = item.status === 'MANUAL_REVIEW_REQUIRED';
-                        const isManualOnly = item.status === 'MANUAL_ONLY_MISSING';
-
-                        return (
-                          <div
-                            key={`${item.indicator}-${item.source_lane}-${idx}`}
-                            className={`p-3 rounded-xl border transition-all ${
-                              isSuccess ? 'bg-emerald-50/60 border-emerald-200' :
-                              isMissing ? 'bg-amber-50/80 border-amber-200 ring-1 ring-amber-300/50' :
-                              isReviewReq ? 'bg-red-50/80 border-red-200' :
-                              'bg-slate-50 border-slate-200'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-1.5">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-slate-200 text-slate-800">
-                                  {item.indicator}
-                                </span>
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
-                                  item.source_lane === 'HUE' ? 'bg-purple-100 text-purple-800' : 'bg-indigo-100 text-indigo-800'
-                                }`}>
-                                  {item.source_lane}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Status Pill */}
-                            <div className="flex items-center gap-1.5">
-                              {isSuccess && <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />}
-                              {isMissing && <AlertTriangle size={14} className="text-amber-600 shrink-0" />}
-                              {isReviewReq && <XCircle size={14} className="text-red-600 shrink-0" />}
-                              {isManualOnly && <Lock size={14} className="text-slate-500 shrink-0" />}
-                              <span className={`text-xs font-bold ${
-                                isSuccess ? 'text-emerald-800' :
-                                isMissing ? 'text-amber-900' :
-                                isReviewReq ? 'text-red-800' : 'text-slate-700'
-                              }`}>
-                                {item.status}
-                              </span>
-                            </div>
-
-                            <p className="text-[11px] text-slate-500 mt-2 truncate font-medium" title={item.completion_reason || ''}>
-                              {item.completion_reason || (isManualOnly ? 'Chưa hỗ trợ Adapter' : 'Sẵn sàng nạp')}
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              /* VIEW 2: GRANULAR TABLE VIEW */
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="bg-slate-900 text-white uppercase font-bold sticky top-0 z-10">
-                      <tr>
-                        <th className="px-4 py-3">Chỉ tiêu</th>
-                        <th className="px-4 py-3">Nguồn</th>
-                        <th className="px-4 py-3">Ngày số liệu</th>
-                        <th className="px-4 py-3">Trạng thái Coverage</th>
-                        <th className="px-4 py-3">Phương thức</th>
-                        <th className="px-4 py-3">Bằng chứng / Khuyến nghị</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {paginationResult.pageItems.map((item, idx) => {
-                        const isSuccess = item.status === 'SUCCESS';
-                        const isMissing = item.status === 'MISSING';
-                        const isManualOnly = item.status === 'MANUAL_ONLY_MISSING';
-                        const isReviewReq = item.status === 'MANUAL_REVIEW_REQUIRED';
-
-                        return (
-                          <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className="hover:bg-blue-50/50 transition-colors">
-                            <td className="px-4 py-2.5 font-black">
-                              <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-black bg-slate-100 text-slate-800 border border-slate-200">
-                                {item.indicator}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-2.5">
-                              <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-black ${
-                                item.source_lane === 'HUE' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                              }`}>
-                                {item.source_lane}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-2.5 font-bold text-slate-900 whitespace-nowrap">
-                              {item.business_date}
-                            </td>
-
-                            <td className="px-4 py-2.5">
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                                isSuccess ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
-                                isMissing ? 'bg-amber-100 text-amber-900 border border-amber-300' :
-                                isReviewReq ? 'bg-red-100 text-red-800 border border-red-200' :
-                                isManualOnly ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-800'
-                              }`}>
-                                {isSuccess && <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />}
-                                {isMissing && <AlertTriangle size={13} className="text-amber-600 shrink-0" />}
-                                {isReviewReq && <XCircle size={13} className="text-red-600 shrink-0" />}
-                                {isManualOnly && <Lock size={13} className="text-slate-500 shrink-0" />}
-                                {item.status}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-2.5">
-                              <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
-                                item.automation_mode === 'AUTOMATED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'
-                              }`}>
-                                {item.automation_mode}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-2.5 text-slate-600 max-w-md">
-                              <p className="truncate font-medium" title={item.completion_reason || ''}>
-                                {item.completion_reason || (isManualOnly ? 'Chưa hỗ trợ Adapter' : 'Sẵn sàng nạp')}
-                              </p>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 7. PAGINATION CONTROLS BAR (Default 10 items per page) */}
-        {filteredItems.length > 0 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-            <div className="text-xs text-slate-600 font-medium">
-              Hiển thị <strong className="text-slate-900 font-bold">{((paginationResult.currentPage - 1) * paginationResult.pageSize) + 1}</strong> đến <strong className="text-slate-900 font-bold">{Math.min(paginationResult.currentPage * paginationResult.pageSize, paginationResult.totalItems)}</strong> trên tổng số <strong className="text-slate-900 font-bold">{paginationResult.totalItems}</strong> mục
+      {/* VIEW MODE 1: SMART MONTHLY GROUPING ACCORDION VIEW */}
+      {viewMode === 'GROUPED_MONTH' && (
+        <div className="flex flex-col gap-4">
+          {monthlyGroups.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+              <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
+              <h3 className="mt-3 text-lg font-bold text-slate-900">Không có dữ liệu phù hợp bộ lọc</h3>
+              <p className="mt-1 text-sm text-slate-500">Tất cả các ngày trong phạm vi lựa chọn đã được xử lý hoàn tất hoặc ngoại lệ.</p>
             </div>
+          ) : (
+            monthlyGroups.map((group) => (
+              <MonthlyAccordionGroup
+                key={`${group.indicator}::${group.yearMonth}`}
+                group={group}
+                onConfirmClick={(item) => {
+                  setConfirmModalItem(item);
+                  setConfirmReason('');
+                }}
+                onRevokeClick={(item) => {
+                  setRevokeModalItem(item);
+                  setRevokeReason('');
+                }}
+              />
+            ))
+          )}
+        </div>
+      )}
+
+      {/* VIEW MODE 2: TABLE VIEW WITH BOUNDED HEIGHT & PAGINATION */}
+      {viewMode === 'TABLE' && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+          <div className="max-h-[460px] overflow-y-auto">
+            <table className="w-full text-left text-sm text-slate-700">
+              <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
+                <tr>
+                  <th className="px-5 py-3.5">Ngày Nghiệp vụ</th>
+                  <th className="px-5 py-3.5">Chỉ tiêu</th>
+                  <th className="px-5 py-3.5">Nguồn Lane</th>
+                  <th className="px-5 py-3.5">Trạng thái No-Code</th>
+                  <th className="px-5 py-3.5 text-right">Thao tác Ngoại lệ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {paginatedCoverage.pageItems.map((item, idx) => {
+                  const statusInfo = resolveNoCodeStatus(item.status);
+                  return (
+                    <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className="hover:bg-slate-50/80 transition">
+                      <td className="px-5 py-3.5 font-bold text-slate-900">{item.business_date}</td>
+                      <td className="px-5 py-3.5">
+                        <span className="font-semibold text-slate-700">{item.indicator}</span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                          {item.source_lane}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${statusInfo.badgeClass}`}>
+                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                          {statusInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right">
+                        {['TRUE_MISSING', 'MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status) && (
+                          <button
+                            onClick={() => {
+                              setConfirmModalItem(item);
+                              setConfirmReason('');
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
+                          >
+                            <UserCheck className="h-3.5 w-3.5" />
+                            <span>Xác nhận Không phát sinh</span>
+                          </button>
+                        )}
+
+                        {item.status === 'PO_EXEMPTED' && (
+                          <button
+                            onClick={() => {
+                              setRevokeModalItem(item);
+                              setRevokeReason('');
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Hoàn tác</span>
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* PAGINATION BAR */}
+          <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-3 text-sm font-medium text-slate-600">
+            <div className="flex items-center gap-2">
+              <span>Hiển thị</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-sm"
+              >
+                <option value={10}>10 dòng/trang</option>
+                <option value={20}>20 dòng/trang</option>
+                <option value={50}>50 dòng/trang</option>
+              </select>
+              <span>trên tổng {paginatedCoverage.totalItems} ngày</span>
+            </div>
+
             <div className="flex items-center gap-2">
               <button
-                type="button"
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={!paginationResult.hasPrev}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 disabled:opacity-40 disabled:pointer-events-none shadow-2xs"
+                disabled={!paginatedCoverage.hasPrev}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40"
               >
-                <ChevronLeft size={14} />
-                Trang trước
+                <ChevronLeft className="h-4 w-4" />
+                <span>Trang trước</span>
               </button>
-              <span className="text-xs font-black text-slate-800 px-2 py-1 bg-slate-100 rounded-lg border border-slate-200">
-                {paginationResult.currentPage} / {paginationResult.totalPages}
+              <span className="text-xs font-bold text-slate-800">
+                Trang {paginatedCoverage.currentPage} / {paginatedCoverage.totalPages}
               </span>
               <button
-                type="button"
-                onClick={() => setCurrentPage((p) => Math.min(paginationResult.totalPages, p + 1))}
-                disabled={!paginationResult.hasNext}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 disabled:opacity-40 disabled:pointer-events-none shadow-2xs"
+                onClick={() => setCurrentPage((p) => Math.min(paginatedCoverage.totalPages, p + 1))}
+                disabled={!paginatedCoverage.hasNext}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:opacity-40"
               >
-                Trang sau
-                <ChevronRight size={14} />
+                <span>Trang sau</span>
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* 8. SLIDE-OUT RIGHT DRAWER FOR AUTO BACKFILL QUEUE AUDIT EVENTS */}
-      {showEvents && (
-        <div className="fixed inset-0 z-50 overflow-hidden bg-slate-900/40 backdrop-blur-xs flex justify-end">
-          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col border-l border-slate-200">
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-              <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
-                <Clock size={18} className="text-vnpost-blue" />
-                Nhật ký Audit Events ({activeRunId || 'Run Current'})
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowEvents(false)}
-                className="p-1 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors"
-              >
-                <X size={18} />
+      {/* REAL PO EXEMPTION CONFIRMATION MODAL */}
+      {confirmModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+                  <UserCheck className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Xác nhận Ngày Không phát sinh Dữ liệu</h3>
+              </div>
+              <button onClick={() => setConfirmModalItem(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="p-4 flex-1 overflow-y-auto space-y-3 text-xs">
-              {eventsLoading ? (
-                <p className="text-slate-400 italic">Đang tải nhật ký audit...</p>
-              ) : events.length === 0 ? (
-                <p className="text-slate-400 italic">Chưa có sự kiện nào được ghi nhận cho tiến trình này.</p>
+
+            <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-1.5 font-medium">
+              <div>Định danh khóa: <strong className="text-slate-900">{confirmModalItem.indicator} × Nguồn {confirmModalItem.source_lane} × Ngày {confirmModalItem.business_date}</strong></div>
+              <div>Trạng thái hiện tại: <span className="font-semibold text-amber-800">{confirmModalItem.status}</span></div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-slate-700">Lý do xác nhận của PO (Bắt buộc):</label>
+              <textarea
+                value={confirmReason}
+                onChange={(e) => setConfirmReason(e.target.value)}
+                placeholder="VD: Ngày nghỉ lễ Quốc Khánh 02/09 portal không phát sinh bưu gửi..."
+                rows={3}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {confirmError && (
+              <div className="mt-3 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+                {confirmError}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setConfirmModalItem(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleConfirmExemption}
+                disabled={confirmLoading || !confirmReason.trim()}
+                className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-50"
+              >
+                {confirmLoading ? 'Đang lưu...' : 'Xác nhận Lưu Ngoại lệ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REAL EXCEPTION REVOKE MODAL */}
+      {revokeModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-slate-100 p-2 text-slate-700">
+                  <RotateCcw className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Hoàn tác Ngoại lệ PO</h3>
+              </div>
+              <button onClick={() => setRevokeModalItem(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-1.5 font-medium">
+              <div>Định danh ngoại lệ ID: <strong className="text-slate-900">{revokeModalItem.exception_id || revokeModalItem.id}</strong></div>
+              <div>Ngày: <strong>{revokeModalItem.business_date}</strong> ({revokeModalItem.indicator} - {revokeModalItem.source_lane})</div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-slate-700">Lý do hoàn tác (Bắt buộc):</label>
+              <textarea
+                value={revokeReason}
+                onChange={(e) => setRevokeReason(e.target.value)}
+                placeholder="VD: Cần khôi phục quét lại dữ liệu bổ sung..."
+                rows={3}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {revokeError && (
+              <div className="mt-3 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+                {revokeError}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setRevokeModalItem(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleRevokeExemption}
+                disabled={revokeLoading || !revokeReason.trim()}
+                className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-900 disabled:opacity-50"
+              >
+                {revokeLoading ? 'Đang xử lý...' : 'Xác nhận Hoàn tác'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SLIDE-OUT EXCEPTION HISTORY DRAWER */}
+      {showExceptionHistory && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs">
+          <div className="w-full max-w-xl bg-white p-6 shadow-2xl flex flex-col h-full border-l border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5 text-purple-600" />
+                <h3 className="text-lg font-bold text-slate-900">Lịch sử Ngoại lệ PO</h3>
+              </div>
+              <button onClick={() => setShowExceptionHistory(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex-1 overflow-y-auto space-y-3">
+              {exceptionsLoading ? (
+                <div className="py-12 text-center text-sm text-slate-500">Đang tải lịch sử ngoại lệ...</div>
+              ) : exceptionsList.length === 0 ? (
+                <div className="py-12 text-center text-sm text-slate-500">Chưa có bản ghi ngoại lệ nào.</div>
               ) : (
-                events.map((evt, idx) => (
-                  <div key={evt.id || idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                    <div className="flex items-center justify-between text-slate-400 text-[10px]">
-                      <span className="font-mono font-bold text-blue-700 uppercase">{evt.event_type || evt.type}</span>
-                      <span>{evt.created_at || evt.timestamp}</span>
+                exceptionsList.map((exc) => (
+                  <div key={exc.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700 space-y-2">
+                    <div className="flex items-center justify-between font-bold text-slate-900">
+                      <span>{exc.indicator} × {exc.source_lane} × {exc.business_date}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        exc.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {exc.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã hoàn tác'}
+                      </span>
                     </div>
-                    <p className="text-slate-700 font-medium">{evt.message || JSON.stringify(evt.payload || {})}</p>
-                    {evt.action_required && (
-                      <p className="text-amber-700 font-bold">➔ Hành động: {evt.action_required}</p>
+                    <div className="text-slate-600">Loại: <strong className="text-slate-800">{exc.exception_type}</strong></div>
+                    <div className="bg-white p-2 rounded-lg border border-slate-200 italic">"{exc.reason}"</div>
+                    <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                      <span>Tạo bởi: {exc.created_by_user_id || 'PO Admin'}</span>
+                      <span>{new Date(exc.created_at).toLocaleString('vi-VN')}</span>
+                    </div>
+
+                    {exc.status === 'ACTIVE' && (
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          onClick={() => {
+                            setRevokeModalItem(exc);
+                            setRevokeReason('');
+                          }}
+                          className="text-xs text-red-600 font-semibold hover:underline"
+                        >
+                          [Hoàn tác ngoại lệ này]
+                        </button>
+                      </div>
                     )}
                   </div>
                 ))
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* SLIDE-OUT AUDIT EVENTS DRAWER */}
+      {showEvents && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs">
+          <div className="w-full max-w-xl bg-white p-6 shadow-2xl flex flex-col h-full border-l border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+              <div className="flex items-center gap-2">
+                <Activity className="h-5 w-5 text-blue-600" />
+                <h3 className="text-lg font-bold text-slate-900">Nhật ký Audit Events Run #{activeRunId}</h3>
+              </div>
+              <button onClick={() => setShowEvents(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex-1 overflow-y-auto space-y-2">
+              {eventsLoading ? (
+                <div className="py-12 text-center text-sm text-slate-500">Đang tải nhật ký sự kiện...</div>
+              ) : events.length === 0 ? (
+                <div className="py-12 text-center text-sm text-slate-500">Chưa có sự kiện audit nào.</div>
+              ) : (
+                events.map((ev, idx) => (
+                  <div key={idx} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs space-y-1">
+                    <div className="flex items-center justify-between font-bold text-slate-900">
+                      <span>{ev.event_type}</span>
+                      <span className="text-slate-400 font-normal">{new Date(ev.created_at).toLocaleTimeString('vi-VN')}</span>
+                    </div>
+                    <p className="text-slate-600">{ev.details ? JSON.stringify(ev.details) : 'Không có chi tiết'}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// SUBCOMPONENT: SMART MONTHLY ACCORDION GROUP
+function MonthlyAccordionGroup({ group, onConfirmClick, onRevokeClick }) {
+  const [isOpen, setIsOpen] = useState(group.counts.missing > 0 || group.counts.reviewReq > 0);
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex cursor-pointer items-center justify-between bg-slate-50/80 px-6 py-4 transition hover:bg-slate-100/80 border-b border-slate-200"
+      >
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-white p-1.5 text-slate-600 shadow-xs border border-slate-200">
+            {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-base font-bold text-slate-900">{group.indicator}</span>
+              <span className="text-sm font-semibold text-slate-600">— Tháng {group.yearMonth}</span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Tổng {group.counts.total} ngày • {group.counts.complete} xong • {group.counts.legacy} dữ liệu cũ • {group.counts.noData} không phát sinh
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {group.counts.missing > 0 ? (
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300">
+              Còn thiếu {group.counts.missing} ngày
+            </span>
+          ) : (
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900 border border-emerald-300">
+              100% Hoàn tất
+            </span>
+          )}
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="divide-y divide-slate-100">
+          {group.items.map((item, idx) => {
+            const statusInfo = resolveNoCodeStatus(item.status);
+            return (
+              <div key={idx} className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/60 transition text-sm">
+                <div className="flex items-center gap-4">
+                  <span className="font-bold text-slate-900 w-24">{item.business_date}</span>
+                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                    Nguồn {item.source_lane}
+                  </span>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium border ${statusInfo.badgeClass}`}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    {statusInfo.label}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {['TRUE_MISSING', 'MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onConfirmClick(item);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
+                    >
+                      <UserCheck className="h-3.5 w-3.5" />
+                      <span>Xác nhận Không phát sinh</span>
+                    </button>
+                  )}
+
+                  {item.status === 'PO_EXEMPTED' && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRevokeClick(item);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                      <span>Hoàn tác</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

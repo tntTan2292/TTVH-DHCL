@@ -17,17 +17,17 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-UI Remediation Plan, Phase A — AUTO-BACKFILL-COVERAGE-EXCEPTION COMPLETED / PO BACKEND GATE PASS / CLOSED (2026-08-19).` |
-| Current Ticket | `None active. AUTO-BACKFILL-COVERAGE-EXCEPTION closed at PO Backend Gate PASS.` |
-| Next Ticket | `AUTO-BACKFILL-UI-REMEDIATION (Phase B, frontend, Antigravity) is NOT activated by this closure; requires its own explicit Product Owner activation. AUTO-BACKFILL-RUNTIME remains unauthorized.` |
-| Last PO Status | `Product Owner granted PO BACKEND GATE PASS on commit 29346c92 (direct chat confirmation with CTO/Claude), citing the 5-point VERIFIED_NO_DATA standard, admin-only audited/reversible PO_EXEMPTED, and manually-handled LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE.` |
+| Current Phase | `AUTO-BACKFILL-UI-REMEDIATION — Phase B Frontend Implemented / READY FOR PO UI CHECK (2026-08-19).` |
+| Current Ticket | `AUTO-BACKFILL-UI-REMEDIATION — Integrated Phase A REST APIs into Data Import Center; rendered 6 No-code Vietnamese status badges, Smart Monthly Grouping Accordions, ModalPOExceptionConfirm & Revoke, and Slide-out Audit Drawers.` |
+| Next Ticket | `AUTO-BACKFILL-RUNTIME (Requires PO Gate 6 PASS before activation).` |
+| Last PO Status | `Phase A (AUTO-BACKFILL-COVERAGE-EXCEPTION) CLOSED / PO BACKEND GATE PASS. PO explicitly activated Phase B (AUTO-BACKFILL-UI-REMEDIATION).` |
 | Current Branch | `codex/da-impl-006` |
-| Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-COVERAGE-EXCEPTION_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE-EXCEPTION_CHECKPOINT_001.md` — activation, technical execution report, validation evidence, backend-gate atomicity remediation, PO Backend Gate PASS closure (Section 7). |
-| Current State | `COMPLETED / PO BACKEND GATE PASS / CLOSED (2026-08-19).` |
-| Technical Status | `6-state coverage overlay, coverage-exception service/controller/migration implemented and atomic (BEGIN/COMMIT/ROLLBACK); combined regression sweep 103/103 PASS; PO-accepted, no known technical blocker.` |
-| Runtime Status | `No operational Queue, Portal, download or Import ran; no browser opened; no business-data mutation; temporary SQLite/fixtures only.` |
-| PO UI Check Required | `No — this ticket is backend-only. Frontend remains Phase B (AUTO-BACKFILL-UI-REMEDIATION), Antigravity, not yet activated.` |
+| Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-UI-REMEDIATION_MANIFEST.md` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI-REMEDIATION_CHECKPOINT_001.md` — Phase B implementation complete, UI contract tests 8/8 PASS, vite build PASS, ready for PO UI check. |
+| Current State | `READY FOR PO UI CHECK (2026-08-19).` |
+| Technical Status | `Frontend Operator UI component, DataImportCenter 3-tab integration, oxlint 0 errors, vite build PASS, UI test suite 8/8 PASS, backend regression suites 100% PASS.` |
+| Runtime Status | `No operational Queue, Portal, download or Import ran; browser closed.` |
+| PO UI Check Required | `Yes — Product Owner Gate 6 visual UI check required for Auto Backfill V2 Operator Panel.` |
 | PO Product Status | `AUTO-BACKFILL-F41 closed / PO GATE 4 PASS. AUTO-BACKFILL-SAFETY closed / PO GATE 5 PASS. AUTO-BACKFILL-UI implemented / ready for PO Gate 6, now superseded in scope by the approved 5-point remediation plan's Phase A/B split. AUTO-BACKFILL-COVERAGE-EXCEPTION (Phase A) closed / PO BACKEND GATE PASS.` |
 | Last Closed Ticket | `AUTO-BACKFILL-COVERAGE-EXCEPTION — COMPLETED / PO BACKEND GATE PASS / CLOSED (2026-08-19).` |
 | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-COVERAGE-EXCEPTION_MANIFEST.md` |

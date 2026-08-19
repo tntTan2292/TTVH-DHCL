@@ -148,8 +148,8 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
         badgeClass: theme.badgeClass,
         activeTabClass: theme.activeTabClass,
         items: indicatorItems,
-        missingCount: indicatorItems.filter((i) => i.status === 'MISSING').length,
-        successCount: indicatorItems.filter((i) => i.status === 'SUCCESS').length,
+        missingCount: indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status)).length,
+        successCount: indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'SUCCESS'].includes(i.status)).length,
       };
     });
   }
@@ -175,9 +175,141 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
       badgeClass: theme.badgeClass,
       activeTabClass: theme.activeTabClass,
       items: indicatorItems,
-      missingCount: indicatorItems.filter((i) => i.status === 'MISSING').length,
-      successCount: indicatorItems.filter((i) => i.status === 'SUCCESS').length,
+      missingCount: indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status)).length,
+      successCount: indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'SUCCESS'].includes(i.status)).length,
     };
   });
 }
+
+export function resolveNoCodeStatus(status) {
+  const STATUS_MAPPINGS = {
+    DATA_COMPLETE_WITH_EVIDENCE: {
+      label: 'Đã hoàn tất',
+      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      isResolved: true,
+      iconType: 'success',
+    },
+    LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE: {
+      label: 'Dữ liệu cũ đã có',
+      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
+      isResolved: true,
+      iconType: 'legacy',
+    },
+    TRUE_MISSING: {
+      label: 'Thật sự còn thiếu',
+      badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
+      isResolved: false,
+      iconType: 'missing',
+    },
+    VERIFIED_NO_DATA: {
+      label: 'Không phát sinh dữ liệu',
+      badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
+      isResolved: true,
+      iconType: 'no_data',
+    },
+    PO_EXEMPTED: {
+      label: 'PO đã xác nhận',
+      badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold',
+      isResolved: true,
+      iconType: 'exempted',
+    },
+    MANUAL_REVIEW_REQUIRED: {
+      label: 'Cần PO kiểm tra',
+      badgeClass: 'bg-orange-50 text-orange-800 border-orange-200',
+      isResolved: false,
+      iconType: 'review',
+    },
+    // Backward-compatibility fallbacks
+    SUCCESS: {
+      label: 'Đã hoàn tất',
+      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      isResolved: true,
+      iconType: 'success',
+    },
+    MISSING: {
+      label: 'Thật sự còn thiếu',
+      badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
+      isResolved: false,
+      iconType: 'missing',
+    },
+    MANUAL_ONLY_MISSING: {
+      label: 'Thật sự còn thiếu',
+      badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
+      isResolved: false,
+      iconType: 'missing',
+    },
+  };
+
+  return STATUS_MAPPINGS[status] || {
+    label: status || 'Chưa xác định',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
+    isResolved: false,
+    iconType: 'neutral',
+  };
+}
+
+export function groupItemsByIndicatorAndMonth(items = []) {
+  const map = new Map();
+
+  items.forEach((item) => {
+    const indicator = item.indicator || 'OTHER';
+    const dateStr = item.business_date || '';
+    const yearMonth = dateStr.length >= 7 ? dateStr.slice(0, 7) : 'N/A';
+    const key = `${indicator}::${yearMonth}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        indicator,
+        yearMonth,
+        items: [],
+        counts: {
+          total: 0,
+          missing: 0,
+          complete: 0,
+          legacy: 0,
+          noData: 0,
+          exempted: 0,
+          reviewReq: 0,
+        },
+      });
+    }
+
+    const group = map.get(key);
+    group.items.push(item);
+    group.counts.total += 1;
+
+    const st = item.status;
+    if (['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(st)) {
+      group.counts.missing += 1;
+    } else if (st === 'DATA_COMPLETE_WITH_EVIDENCE' || st === 'SUCCESS') {
+      group.counts.complete += 1;
+    } else if (st === 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE') {
+      group.counts.legacy += 1;
+    } else if (st === 'VERIFIED_NO_DATA') {
+      group.counts.noData += 1;
+    } else if (st === 'PO_EXEMPTED') {
+      group.counts.exempted += 1;
+    } else if (st === 'MANUAL_REVIEW_REQUIRED') {
+      group.counts.reviewReq += 1;
+    }
+  });
+
+  const groups = Array.from(map.values());
+
+  // Sort groups: indicator priority first, then yearMonth descending (newest month first)
+  groups.sort((a, b) => {
+    if (a.indicator !== b.indicator) {
+      return a.indicator.localeCompare(b.indicator);
+    }
+    return b.yearMonth.localeCompare(a.yearMonth);
+  });
+
+  // Sort items inside each month descending by business_date
+  groups.forEach((g) => {
+    g.items.sort((left, right) => (right.business_date || '').localeCompare(left.business_date || ''));
+  });
+
+  return groups;
+}
+
 

@@ -1,0 +1,35 @@
+# AUTO-BACKFILL-UI-REMEDIATION Manifest
+
+Ticket Name: `AUTO-BACKFILL-UI-REMEDIATION` (Phase B, Frontend).
+Status: `ACTIVE` (2026-08-19).
+Baseline: `29346c92` (Phase A `AUTO-BACKFILL-COVERAGE-EXCEPTION` CLOSED / PO BACKEND GATE PASS).
+Branch: `codex/da-impl-006`.
+
+## 1. Ticket Objective
+
+Implement the complete No-code frontend operator UI for the Auto Backfill V2 Platform in `DataImportCenter.jsx` & `AutoBackfillOperatorPanel.jsx` per the PO-approved plan (`docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md`).
+
+This ticket integrates the real, verified backend REST APIs created in Phase A (`AUTO-BACKFILL-COVERAGE-EXCEPTION`), rendering the 6 canonical coverage statuses, smart monthly grouping accordions, interactive PO exception confirmation modal (`PO_EXEMPTED`), exception revocation (`Hoàn tác`), slide-out audit drawers, and VNPost Light Dashboard design system tokens (`#0054A6`, white cards, slate-100 surfaces).
+
+## 2. Required Reading & Authority Chain
+
+1. `README_AI.md` (L2 Authority)
+2. `docs/01_GOVERNANCE/DOCUMENT_INDEX.md` (L2 Index Authority)
+3. `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md` (L2 Snapshot Authority)
+4. `docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md` (L2 Ticket Plan Authority)
+5. `docs/06_REVIEWS/Import/AUTO-BACKFILL-COVERAGE-EXCEPTION_CHECKPOINT_001.md` (Phase A Backend Reference)
+
+## 3. Scope Boundaries & Constraints
+
+- **STRICT FRONTEND ONLY**: Modify ONLY frontend files (`frontend/src/components/`, `frontend/src/pages/`, `frontend/src/components/AutoBackfillOperatorPanel.test.js`).
+- **ZERO BACKEND / DATABASE MUTATIONS**: Do NOT modify backend code, database schema, or migrations.
+- **REAL APIs ONLY**: Use real REST endpoints provided by Phase A (`GET /api/import/auto-backfill/coverage`, `GET/POST /api/import/auto-backfill/coverage/exceptions`, `POST /api/import/auto-backfill/coverage/exceptions/:id/revoke`). NO mock APIs.
+- **NO BROWSER / PORTAL EXECUTION**: Do NOT open real browser, do NOT visit DKCL portal, do NOT run real Portal/Queue/Import operations.
+- **NO SELF PO PASS**: Stop at `READY FOR PO UI CHECK`.
+
+## 4. Verification Plan
+
+- `node src/components/AutoBackfillOperatorPanel.test.js` (Frontend contract test suite PASS)
+- `cmd /c "npm run lint"` (0 errors)
+- `cmd /c "npm run build"` (PASS)
+- Backend regression sweep (`test_autoBackfillCoverageService.js`, `test_autoBackfillCoverageExceptionService.js`).
