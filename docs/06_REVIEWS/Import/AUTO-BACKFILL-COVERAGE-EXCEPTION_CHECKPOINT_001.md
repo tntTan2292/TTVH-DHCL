@@ -41,3 +41,31 @@ See manifest Sections 4-6. Backend only: 6-state coverage model, controlled Lega
 - Product Owner backend gate is not self-passed; Phase B, UI, and Runtime remain inactive.
 
 State: `AUTO-BACKFILL-COVERAGE-EXCEPTION IMPLEMENTED / READY FOR PO BACKEND GATE`.
+
+## 6. Backend Gate Remediation -- Atomic Create/Revoke (2026-08-19)
+
+A CTO-reviewed integrity defect was confirmed against commit `2c633f0c`: `AutoBackfillCoverageExceptionService.create()` wrote the exception row and its mandatory `CREATED` audit event as two separate, unguarded `db.run()` calls; `revoke()` likewise wrote the status update and the `REVOKED` event separately. A failure between the two statements could leave effective exception state persisted without its mandatory append-only audit event (or, for `revoke()`, a status change with no matching event).
+
+**Fix**: `autoBackfillCoverageExceptionService.js` gains `withTransaction(fn)`, which runs `fn` between `BEGIN TRANSACTION` and `COMMIT` on the shared injected connection and rolls back (`ROLLBACK`, with the rollback failure itself caught so the original error is preserved) on any failure -- this mirrors the repository's already-established transaction pattern in `backend/src/services/importProcessor.js`. `create()`'s state INSERT + `CREATED` event INSERT now run inside one `withTransaction` call; `revoke()`'s status UPDATE + `REVOKED` event INSERT run inside another. Every other line -- validation, the active-exception-exists precheck, raw-completion evaluation, `assertPermitted` admin-role authorization, the SQLite append-only/no-hard-delete triggers, the one-`ACTIVE`-per-tuple partial unique index, and all request/response/error-code API contracts -- is unchanged.
+
+**Fault-injection tests** (`test_autoBackfillCoverageExceptionService.js`, 4 new): a `createFlakyDb` proxy wraps the real SQLite fixture connection so one specific statement (matched by a SQL substring unique to it) rejects while `BEGIN`/`COMMIT`/`ROLLBACK` and every other statement pass through untouched.
+
+- `create()`, event write fails (the exact original defect scenario): asserts the call rejects, zero rows exist in `auto_backfill_coverage_exception`, zero rows exist in `auto_backfill_coverage_exception_event`, and the same tuple can be cleanly created afterwards (no dangling `UNIQUE`-index lock from an uncommitted insert).
+- `create()`, state write fails: asserts the same zero/zero outcome.
+- `revoke()`, event write fails (the exact original defect scenario): asserts the call rejects, the exception row's `status` is still `ACTIVE` with `revoked_by`/`revoked_at` still `NULL`, no `REVOKED` event exists, and the exception can still be genuinely revoked afterwards.
+- `revoke()`, status-update write fails: asserts the same still-`ACTIVE`/no-event outcome.
+
+**Sanity check that the tests are real**: reverted the fix alone via `git stash push -- src/services/autoBackfillCoverageExceptionService.js` (test file untouched) and reran the suite -- exactly the 2 event-write-failure tests failed (`not ok 21`, `not ok 23`) while the other 22 passed, confirming the tests fail without the fix and pass with it, not vacuously.
+
+**Validation**:
+
+- `autoBackfillCoverageExceptionService.js`: `node -c` syntax-check PASS; zero NUL bytes (learned from the prior implementation round, re-verified explicitly).
+- Exception service suite: `24/24` PASS (20 existing + 4 new fault-injection).
+- Exception controller suite: `4/4` PASS (unaffected, mocks the service).
+- Coverage-exception migration suite: `4/4` PASS (unaffected, schema unchanged).
+- Coverage service/controller suite (6-state overlay, unaffected by the transaction change): `16/16` PASS.
+- Combined regression sweep -- Coverage, Coverage Exception (service/controller/migration), Queue (service/controller), Safety, F1.3/F4.1 executors, Queue/Safety migrations, server startup migrations: `103/103` PASS.
+- `git diff --name-only` confirms exactly 2 files changed: `backend/src/services/autoBackfillCoverageExceptionService.js` and its test file. No schema/migration file, no controller, no route, no frontend/UI file, no Queue/Safety file, and no business-data table were touched.
+- No real Portal session, Queue worker, or Import ran; no browser was opened; `Data QLML/` and both pre-existing stashes untouched.
+
+State: `AUTO-BACKFILL-COVERAGE-EXCEPTION IMPLEMENTED / READY FOR PO BACKEND GATE` (remediated). Product Owner backend gate is not self-passed; Phase B (`AUTO-BACKFILL-UI-REMEDIATION`, Antigravity) and Runtime remain inactive.

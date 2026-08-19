@@ -117,6 +117,30 @@ class AutoBackfillCoverageExceptionService {
         return { indicatorConfig, laneConfig, businessDate: normalizedDate };
     }
 
+    /**
+     * Runs `fn` inside a SQLite transaction on the shared injected connection,
+     * matching the repository's established BEGIN TRANSACTION / COMMIT /
+     * ROLLBACK pattern (see `importProcessor.js`). Any failure -- the state
+     * write, the mandatory append-only event write, or anything else inside
+     * `fn` -- rolls back the entire operation so an exception's effective
+     * state and its audit event can never diverge.
+     */
+    async withTransaction(fn) {
+        await this.db.run('BEGIN TRANSACTION');
+        try {
+            const result = await fn();
+            await this.db.run('COMMIT');
+            return result;
+        } catch (error) {
+            try {
+                await this.db.run('ROLLBACK');
+            } catch {
+                // Preserve the original transaction error over a rollback failure.
+            }
+            throw error;
+        }
+    }
+
     async evaluateRawCompletion({ indicatorConfig, laneConfig, businessDate }) {
         const completion = await laneConfig.completionPolicy.evaluate({
             db: this.db,
@@ -235,18 +259,20 @@ class AutoBackfillCoverageExceptionService {
 
         const id = crypto.randomUUID();
         const now = new Date().toISOString();
-        await this.db.run(
-            `INSERT INTO auto_backfill_coverage_exception
-                (id, indicator, source_lane, business_date, exception_type, status, reason, evidence_json, registry_version, created_by, created_at)
-             VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?)`,
-            [id, indicatorConfig.code, laneConfig.code, normalizedDate, type, trimmedReason, serializeJson(storedEvidence), this.registryVersion, actor, now],
-        );
-        await this.db.run(
-            `INSERT INTO auto_backfill_coverage_exception_event
-                (exception_id, event_type, exception_type, indicator, source_lane, business_date, reason, evidence_json, actor, created_at)
-             VALUES (?, 'CREATED', ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, type, indicatorConfig.code, laneConfig.code, normalizedDate, trimmedReason, serializeJson(storedEvidence), actor, now],
-        );
+        await this.withTransaction(async () => {
+            await this.db.run(
+                `INSERT INTO auto_backfill_coverage_exception
+                    (id, indicator, source_lane, business_date, exception_type, status, reason, evidence_json, registry_version, created_by, created_at)
+                 VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?, ?, ?, ?, ?)`,
+                [id, indicatorConfig.code, laneConfig.code, normalizedDate, type, trimmedReason, serializeJson(storedEvidence), this.registryVersion, actor, now],
+            );
+            await this.db.run(
+                `INSERT INTO auto_backfill_coverage_exception_event
+                    (exception_id, event_type, exception_type, indicator, source_lane, business_date, reason, evidence_json, actor, created_at)
+                 VALUES (?, 'CREATED', ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [id, type, indicatorConfig.code, laneConfig.code, normalizedDate, trimmedReason, serializeJson(storedEvidence), actor, now],
+            );
+        });
 
         return this.getById(id, { roles });
     }
@@ -266,18 +292,20 @@ class AutoBackfillCoverageExceptionService {
         assertPermitted(laneConfig, 'runControlRoles', roles);
 
         const now = new Date().toISOString();
-        await this.db.run(
-            `UPDATE auto_backfill_coverage_exception
-             SET status = 'REVOKED', revoked_by = ?, revoked_at = ?, revoke_reason = ?
-             WHERE id = ? AND status = 'ACTIVE'`,
-            [actor, now, trimmedReason, exceptionId],
-        );
-        await this.db.run(
-            `INSERT INTO auto_backfill_coverage_exception_event
-                (exception_id, event_type, exception_type, indicator, source_lane, business_date, reason, evidence_json, actor, created_at)
-             VALUES (?, 'REVOKED', ?, ?, ?, ?, ?, NULL, ?, ?)`,
-            [exceptionId, row.exception_type, indicatorConfig.code, laneConfig.code, row.business_date, trimmedReason, actor, now],
-        );
+        await this.withTransaction(async () => {
+            await this.db.run(
+                `UPDATE auto_backfill_coverage_exception
+                 SET status = 'REVOKED', revoked_by = ?, revoked_at = ?, revoke_reason = ?
+                 WHERE id = ? AND status = 'ACTIVE'`,
+                [actor, now, trimmedReason, exceptionId],
+            );
+            await this.db.run(
+                `INSERT INTO auto_backfill_coverage_exception_event
+                    (exception_id, event_type, exception_type, indicator, source_lane, business_date, reason, evidence_json, actor, created_at)
+                 VALUES (?, 'REVOKED', ?, ?, ?, ?, ?, NULL, ?, ?)`,
+                [exceptionId, row.exception_type, indicatorConfig.code, laneConfig.code, row.business_date, trimmedReason, actor, now],
+            );
+        });
 
         return this.getById(exceptionId, { roles });
     }

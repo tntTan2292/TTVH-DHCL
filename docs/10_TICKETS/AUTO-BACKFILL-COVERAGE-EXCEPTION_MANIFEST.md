@@ -85,7 +85,19 @@ Implement the backend half of the Product Owner-approved 5-point architectural r
 - All touched/added backend files pass `node -c` syntax checks; no lint script exists for the backend (oxlint is frontend-only and untouched this ticket).
 - A self-inflicted defect was found and fixed during implementation: initial drafts of `autoBackfillCoverageService.js`/`autoBackfillCoverageExceptionService.js` contained literal NUL control-byte characters inside internal Map keys (an editing-tool escaping artifact), silently breaking the exception-overlay lookup. Found via the new tests, fixed by using plain pipe-joined string keys, and confirmed zero NUL bytes remain in every touched file.
 
-## 10. Stop Condition
+## 10. Backend Gate Remediation -- Atomic Create/Revoke (2026-08-19)
+
+A CTO-reviewed defect against commit `2c633f0c` was confirmed: `AutoBackfillCoverageExceptionService.create()` wrote the exception row and its mandatory `CREATED` audit event as two separate, unguarded statements; `revoke()` likewise wrote the status update and the `REVOKED` event separately. A failure between the two statements (disk/DB error, process interruption) could leave an exception's effective state persisted without its append-only audit event, or vice versa for `revoke()`.
+
+Fix: a new `withTransaction(fn)` helper wraps each write pair in `BEGIN TRANSACTION` / `COMMIT`, rolling back on any failure -- matching the repository's already-established transaction pattern in `backend/src/services/importProcessor.js` (`BEGIN TRANSACTION` / `COMMIT` / try-caught `ROLLBACK` that preserves the original error). `create()`'s state INSERT + `CREATED` event INSERT, and `revoke()`'s status UPDATE + `REVOKED` event INSERT, each now run inside one such transaction. Everything else -- validation, the active-exception-exists check, the raw-completion evaluation, admin-role authorization (`assertPermitted`), the append-only/no-hard-delete SQLite triggers, the one-`ACTIVE`-per-tuple unique index, and every public API contract (request/response shapes, error codes) -- is unchanged.
+
+4 new fault-injection tests (`test_autoBackfillCoverageExceptionService.js`) inject a failure into the second write of each operation (and, for completeness, the first write too) via a thin proxy around the real SQLite connection that lets `BEGIN`/`COMMIT`/`ROLLBACK` and every other statement pass through untouched. Each test asserts the operation rejects and that **no** exception row, status change, or event row survives -- and that the tuple remains cleanly usable afterwards (a fresh `create()`/`revoke()` succeeds with no dangling lock or stuck status). Sanity-checked by reverting the fix alone (`git stash` on the service file only) and confirming exactly the two event-write-failure tests fail while the other 22 stay green -- proving the tests actually exercise the defect, not just pass vacuously.
+
+Validation: exception service suite `24/24` (20 existing + 4 new), exception controller `4/4`, migration `4/4`, Coverage service/controller `16/16`, and the full combined regression sweep (adds Queue service/controller, Safety, F1.3/F4.1 executors, Queue/Safety migrations, server startup migrations) `103/103` -- all PASS. `node -c` syntax-checked; no backend lint script exists. Scope confirmed backend-only via `git diff --name-only` (exactly the service file and its test file); no UI, Queue/Safety behavior, Portal, Import, or business data touched.
+
+State: `AUTO-BACKFILL-COVERAGE-EXCEPTION IMPLEMENTED / READY FOR PO BACKEND GATE` (remediated). Not self-passed; Phase B and Runtime remain inactive.
+
+## 11. Stop Condition
 
 `AUTO-BACKFILL-COVERAGE-EXCEPTION IMPLEMENTED / READY FOR PO BACKEND GATE`.
 

@@ -203,6 +203,24 @@ function createServices(fixture) {
     return { exceptionService, coverageService };
 }
 
+// Wraps a real db handle so a specific SQL statement (matched by a substring
+// unique to it) fails, while every other statement -- including
+// BEGIN/COMMIT/ROLLBACK and reads -- passes through to the real connection
+// untouched. Used to prove the create/revoke transaction actually rolls back
+// when the mandatory append-only event write fails.
+function createFlakyDb(realDb, failOnSqlIncludes) {
+    return {
+        get: (...args) => realDb.get(...args),
+        all: (...args) => realDb.all(...args),
+        run: (sql, params) => {
+            if (sql.includes(failOnSqlIncludes)) {
+                return Promise.reject(new Error('INJECTED_FAULT: simulated write failure'));
+            }
+            return realDb.run(sql, params);
+        },
+    };
+}
+
 async function teardown(fixture) {
     await fixture.db.close();
     fs.rmSync(fixture.root, { recursive: true, force: true });
@@ -565,4 +583,126 @@ test('an unrelated F1.3-shaped registration proves exception logic contains no i
 
 test('exports the canonical exception type constants', () => {
     assert.deepEqual(Object.values(COVERAGE_EXCEPTION_TYPES).sort(), ['LEGACY_BASELINE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA'].sort());
+});
+
+test('fault injection: create() rolls back the state row when the append-only event write fails', async () => {
+    const fixture = await createFixture();
+    try {
+        const registryProvider = () => [fixture.indicator];
+        const flakyService = new AutoBackfillCoverageExceptionService({
+            db: createFlakyDb(fixture.db, 'auto_backfill_coverage_exception_event'),
+            clock: fixture.clock, registryProvider,
+        });
+
+        await assert.rejects(
+            flakyService.create({
+                indicator: 'F9.TEST', lane: 'HUE', businessDate: '2026-01-03',
+                exceptionType: 'PO_EXEMPTED', reason: 'Ly do', actor: 'po-user',
+            }),
+            /INJECTED_FAULT/,
+        );
+
+        const rows = await fixture.db.all('SELECT * FROM auto_backfill_coverage_exception');
+        assert.equal(rows.length, 0, 'no partial exception row must remain after a failed event write');
+        const events = await fixture.db.all('SELECT * FROM auto_backfill_coverage_exception_event');
+        assert.equal(events.length, 0, 'no event can exist without its exception row either');
+
+        // The tuple must still be creatable afterwards (no dangling UNIQUE-index lock).
+        const realService = new AutoBackfillCoverageExceptionService({ db: fixture.db, clock: fixture.clock, registryProvider });
+        const record = await realService.create({
+            indicator: 'F9.TEST', lane: 'HUE', businessDate: '2026-01-03',
+            exceptionType: 'PO_EXEMPTED', reason: 'Ly do sau khi rollback', actor: 'po-user',
+        });
+        assert.equal(record.status, 'ACTIVE');
+    } finally {
+        await teardown(fixture);
+    }
+});
+
+test('fault injection: create() rolls back cleanly when the state write itself fails', async () => {
+    const fixture = await createFixture();
+    try {
+        const registryProvider = () => [fixture.indicator];
+        const flakyService = new AutoBackfillCoverageExceptionService({
+            db: createFlakyDb(fixture.db, "exception_type, status, reason, evidence_json, registry_version"),
+            clock: fixture.clock, registryProvider,
+        });
+
+        await assert.rejects(
+            flakyService.create({
+                indicator: 'F9.TEST', lane: 'HUE', businessDate: '2026-01-03',
+                exceptionType: 'PO_EXEMPTED', reason: 'Ly do', actor: 'po-user',
+            }),
+            /INJECTED_FAULT/,
+        );
+
+        const rows = await fixture.db.all('SELECT * FROM auto_backfill_coverage_exception');
+        assert.equal(rows.length, 0);
+        const events = await fixture.db.all('SELECT * FROM auto_backfill_coverage_exception_event');
+        assert.equal(events.length, 0, 'the event write must never be reached, let alone persisted, once the state write fails');
+    } finally {
+        await teardown(fixture);
+    }
+});
+
+test('fault injection: revoke() rolls back the status change when the append-only event write fails', async () => {
+    const fixture = await createFixture();
+    try {
+        const registryProvider = () => [fixture.indicator];
+        const realService = new AutoBackfillCoverageExceptionService({ db: fixture.db, clock: fixture.clock, registryProvider });
+        const created = await realService.create({
+            indicator: 'F9.TEST', lane: 'HUE', businessDate: '2026-01-03',
+            exceptionType: 'PO_EXEMPTED', reason: 'Ly do', actor: 'po-user',
+        });
+
+        const flakyService = new AutoBackfillCoverageExceptionService({
+            db: createFlakyDb(fixture.db, 'auto_backfill_coverage_exception_event'),
+            clock: fixture.clock, registryProvider,
+        });
+        await assert.rejects(
+            flakyService.revoke({ exceptionId: created.id, reason: 'Huy bo', actor: 'po-user' }),
+            /INJECTED_FAULT/,
+        );
+
+        const row = await fixture.db.get('SELECT * FROM auto_backfill_coverage_exception WHERE id = ?', [created.id]);
+        assert.equal(row.status, 'ACTIVE', 'status must remain ACTIVE; it must never be REVOKED without its audit event');
+        assert.equal(row.revoked_by, null);
+        assert.equal(row.revoked_at, null);
+        const events = await fixture.db.all("SELECT * FROM auto_backfill_coverage_exception_event WHERE exception_id = ? AND event_type = 'REVOKED'", [created.id]);
+        assert.equal(events.length, 0, 'no REVOKED event can exist without the status actually changing');
+
+        // The exception must still be genuinely revocable afterwards.
+        const revoked = await realService.revoke({ exceptionId: created.id, reason: 'Huy bo lai', actor: 'po-user' });
+        assert.equal(revoked.status, 'REVOKED');
+    } finally {
+        await teardown(fixture);
+    }
+});
+
+test('fault injection: revoke() rolls back cleanly when the status-update write itself fails', async () => {
+    const fixture = await createFixture();
+    try {
+        const registryProvider = () => [fixture.indicator];
+        const realService = new AutoBackfillCoverageExceptionService({ db: fixture.db, clock: fixture.clock, registryProvider });
+        const created = await realService.create({
+            indicator: 'F9.TEST', lane: 'HUE', businessDate: '2026-01-03',
+            exceptionType: 'PO_EXEMPTED', reason: 'Ly do', actor: 'po-user',
+        });
+
+        const flakyService = new AutoBackfillCoverageExceptionService({
+            db: createFlakyDb(fixture.db, "SET status = 'REVOKED'"),
+            clock: fixture.clock, registryProvider,
+        });
+        await assert.rejects(
+            flakyService.revoke({ exceptionId: created.id, reason: 'Huy bo', actor: 'po-user' }),
+            /INJECTED_FAULT/,
+        );
+
+        const row = await fixture.db.get('SELECT * FROM auto_backfill_coverage_exception WHERE id = ?', [created.id]);
+        assert.equal(row.status, 'ACTIVE');
+        const events = await fixture.db.all("SELECT * FROM auto_backfill_coverage_exception_event WHERE exception_id = ? AND event_type = 'REVOKED'", [created.id]);
+        assert.equal(events.length, 0, 'the event write must never be reached once the status-update write fails');
+    } finally {
+        await teardown(fixture);
+    }
 });

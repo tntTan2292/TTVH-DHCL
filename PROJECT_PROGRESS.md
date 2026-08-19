@@ -1086,3 +1086,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - A self-inflicted defect (literal NUL bytes in internal Map keys from an editing-tool escaping artifact) was found via the new tests and fixed before commit.
 - Combined regression sweep: `124/124` PASS (Coverage, Coverage Exception, Queue, Safety, F1.3/F4.1 executors and backfill/sync, Import pipeline race/processor, F4.1 Import pipeline/parsers, e2e Import engine, all migrations, server startup). No frontend/UI, real Portal/Queue/Import, browser, or business-data mutation occurred.
 - State: `AUTO-BACKFILL-COVERAGE-EXCEPTION IMPLEMENTED / READY FOR PO BACKEND GATE`. The backend gate is not self-passed; Phase B (`AUTO-BACKFILL-UI-REMEDIATION`, Antigravity) and Runtime remain inactive.
+
+## AUTO-BACKFILL-COVERAGE-EXCEPTION Backend Gate Remediation
+
+- Fixed a confirmed integrity defect in commit `2c633f0c`: `AutoBackfillCoverageExceptionService.create()`/`revoke()` wrote their state row and mandatory append-only audit event as two separate, unguarded statements, so a mid-sequence failure could leave effective state without its event.
+- Added `withTransaction()` (BEGIN TRANSACTION / COMMIT / ROLLBACK) matching the repository's existing `importProcessor.js` pattern; wrapped both write pairs. Admin authorization, immutable-history triggers, the one-ACTIVE-per-tuple uniqueness rule, and all API contracts unchanged.
+- Added 4 fault-injection tests proving no partial row/status/event remains after a mid-transaction failure for either operation; verified the tests actually catch the defect by reverting the fix alone and confirming exactly those 2 scenarios fail.
+- Regression: exception service 24/24, controller 4/4, migration 4/4, Coverage 16/16, combined sweep 103/103 -- all PASS. Scope confirmed backend-only (2 files changed); no UI/Queue/Safety/Portal/Import/business-data touched.
+- State: `AUTO-BACKFILL-COVERAGE-EXCEPTION IMPLEMENTED / READY FOR PO BACKEND GATE` (remediated). Not self-passed; Phase B and Runtime remain inactive.
