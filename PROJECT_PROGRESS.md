@@ -1104,3 +1104,8 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Verified unchanged: the 3-part report format, the Lean Prompt Rule, Executor Selection Rule (Section 13), Model Selection (Section 13.1), and every other role's scope -- confirmed via an anchor-integrity script (zero broken ToC links after renaming 2 heading/anchor pairs), a full-repo post-edit grep sweep (only the intentionally preserved locations remain), git diff --name-only (exactly 11 governance/doc files changed, no product code/schema/database), and zero NUL bytes in every changed file.
 - No docs-lint tooling exists in this repository (checked); not applicable.
 - State: `COORDINATOR-ROLE-MIGRATION IMPLEMENTED / READY FOR PO CHECK`. Not self-passed.
+
+## AUTO-BACKFILL-COVERAGE-EXCEPTION Closed / PO Backend Gate PASS
+
+- Product Owner granted `PO BACKEND GATE PASS` on commit `29346c92` (direct chat confirmation with CTO/Claude), citing 3 points: the 5-point `VERIFIED_NO_DATA` adapter-proof standard, admin-only audited/reversible `PO_EXEMPTED`, and manually-handled `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE`.
+- Closes `AUTO-BACKFILL-COVERAGE-EXCEPTION` as `COMPLETED / PO BACKEND GATE PASS / CLOSED`. Documentation-only closure; no product code, schema, or database changed. `AUTO-BACKFILL-UI-REMEDIATION` (Phase B, Antigravity) is not activated by this closure and requires its own explicit Product Owner activation. `AUTO-BACKFILL-RUNTIME` remains unauthorized.

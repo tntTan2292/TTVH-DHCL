@@ -69,3 +69,15 @@ A CTO-reviewed integrity defect was confirmed against commit `2c633f0c`: `AutoBa
 - No real Portal session, Queue worker, or Import ran; no browser was opened; `Data QLML/` and both pre-existing stashes untouched.
 
 State: `AUTO-BACKFILL-COVERAGE-EXCEPTION IMPLEMENTED / READY FOR PO BACKEND GATE` (remediated). Product Owner backend gate is not self-passed; Phase B (`AUTO-BACKFILL-UI-REMEDIATION`, Antigravity) and Runtime remain inactive.
+
+## 7. PO Backend Gate PASS -- Closure (2026-08-19)
+
+Product Owner granted `PO BACKEND GATE PASS` on commit `29346c92` (direct confirmation in chat with CTO/Claude), citing 3 points reviewed and accepted:
+
+1. The strict 5-point adapter-proof standard for `VERIFIED_NO_DATA` (report identity, tuple match, filter applied, response readiness, structure confirms zero rows -- any gap rejected `422`, never auto-exempted).
+2. `PO_EXEMPTED` is admin-only, requires a reason, is append-only audited, and is reversible (`revoke`) without ever hard-deleting the record.
+3. `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` is handled as a controlled, manual reconciliation (`LEGACY_BASELINE`) -- accepted only when the raw completion policy already shows committed rows without complete import evidence, never a bare label.
+
+This closes `AUTO-BACKFILL-COVERAGE-EXCEPTION` as `COMPLETED / PO BACKEND GATE PASS / CLOSED`. Documentation-only closure -- no product code, schema, or database changed. `AUTO-BACKFILL-UI-REMEDIATION` (Phase B, frontend, Antigravity) is not self-activated by this closure and remains `PLANNED / NOT ACTIVE`, requiring its own explicit Product Owner activation. `AUTO-BACKFILL-RUNTIME` remains unauthorized.
+
+State: `AUTO-BACKFILL-COVERAGE-EXCEPTION COMPLETED / PO BACKEND GATE PASS / CLOSED`.
