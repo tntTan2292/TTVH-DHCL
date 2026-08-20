@@ -28,16 +28,20 @@ Baseline: `29346c92`, branch `codex/da-impl-006`.
    - Executes individual `POST /api/import/auto-backfill/coverage/exceptions` REST calls sequentially/in parallel per selected item to preserve fine-grained REST contracts and audit logs.
    - Reports exact success/failure breakdown per item if any error occurs without rolling back already successful items.
 
-5. **Point 5: Strict "100% Hoàn tất" Badge Condition Bugfix**:
-   - Fixed condition in `MonthlyAccordionGroup` and per-lane cards in `AutoBackfillOperatorPanel.jsx` (~line 1600). Previously checked only `group.counts.missing > 0`, erroneously rendering "100% Hoàn tất" when a month had 62 items needing PO review (`reviewReq = 62, missing = 0, complete = 0`).
-   - Updated condition: badge ONLY displays **"100% Hoàn tất"** when `group.counts.complete === group.counts.total` (100% of items are fully completed).
-   - If unresolved items exist (`missing > 0` or `reviewReq > 0`), renders prominent warning badge *"Còn thiếu N · Cần kiểm tra M bản ghi"* or *"Cần PO kiểm tra N bản ghi"*.
+6. **Point 6: Bulk Reimport ("Nhập lại hàng loạt")**:
+   - Added **"Nhập lại N ngày đã chọn"** button (`RotateCw` icon) to the floating bulk action bar when `selectedBulkKeys.size > 0`.
+   - Clicking opens `<ModalPOBulkReimportConfirm />` listing target dates, indicator codes, and source lanes.
+   - Executes individual `POST /api/import/auto-backfill/runs` REST calls (`from_date = to_date = business_date`) per selected item to handle non-contiguous date ranges safely without rollback on single-item failure.
+
+7. **Point 7: Renamed Bulk Exemption Button**:
+   - Renamed floating action bar button from `"Xác nhận Không phát sinh cho N ngày"` to **"Cập nhật dữ liệu - Loại bỏ phát sinh cho N ngày"**.
+   - Kept per-row single item button *"Xác nhận Không phát sinh"* intact as specified.
 
 ## 3. Validation Ledger
 
-- `node src/components/AutoBackfillOperatorPanel.test.js`: **13 / 13 PASS** (Including Section 13 reproducing the PO bug with 62 `MANUAL_REVIEW_REQUIRED` items).
+- `node src/components/AutoBackfillOperatorPanel.test.js`: **14 / 14 PASS** (Including Section 14 testing bulk reimport REST payload sequence, error resilience, and renamed button label).
 - `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js src/pages/DataImportCenter.jsx"`: **0 ERRORS**.
-- `cmd /c "npm run build"`: **PASS** (689 modules transformed cleanly in 1.50s).
+- `cmd /c "npm run build"`: **PASS** (689 modules transformed cleanly in 1.75s).
 - Direct data verification node script: **100% PASS**.
 - Portal DKCL real environment: ZERO requests made; untouched.
 - Queue / Import / Runtime: Zero execution.

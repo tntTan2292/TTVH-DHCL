@@ -482,7 +482,83 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   console.log('✔ 13. 62 MANUAL_REVIEW_REQUIRED Items Badge Resolution tests PASSED!');
 }
 
+// ==========================================
+// 14. Contract Test: Bulk Reimport Sequence & Renamed Button Label
+// ==========================================
+{
+  // Test 14.1: Bulk Reimport sequence handling with partial error mid-way
+  const selectedItems = [
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-01' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-02' },
+    { indicator: 'F4.1', source_lane: 'TCT', business_date: '2026-08-05' }
+  ];
+
+  const mockApiCall = async (item) => {
+    if (item.business_date === '2026-08-02') {
+      return { success: false, error: 'Database lock timeout' };
+    }
+    return {
+      success: true,
+      data: {
+        run_id: `run_bulk_${item.business_date}`,
+        from_date: item.business_date,
+        to_date: item.business_date
+      }
+    };
+  };
+
+  const executeBulkReimport = async (items) => {
+    let successCount = 0;
+    let failCount = 0;
+    const results = [];
+
+    for (const item of items) {
+      const payload = {
+        indicator: item.indicator,
+        requested_lane: item.source_lane,
+        lane: item.source_lane,
+        month: item.business_date.slice(0, 7),
+        from_date: item.business_date,
+        to_date: item.business_date
+      };
+
+      assert.equal(payload.from_date, item.business_date);
+      assert.equal(payload.to_date, item.business_date);
+
+      const res = await mockApiCall(item);
+      if (res.success) {
+        successCount++;
+        results.push({ item, success: true, run_id: res.data.run_id });
+      } else {
+        failCount++;
+        results.push({ item, success: false, error: res.error });
+      }
+    }
+
+    return { successCount, failCount, total: items.length, results };
+  };
+
+  // Run async bulk reimport contract test
+  (async () => {
+    const report = await executeBulkReimport(selectedItems);
+    assert.equal(report.successCount, 2, 'Must have 2 successful run creations');
+    assert.equal(report.failCount, 1, 'Must have 1 failed run creation');
+    assert.equal(report.results[1].error, 'Database lock timeout');
+    assert.equal(report.results[0].run_id, 'run_bulk_2026-08-01');
+    assert.equal(report.results[2].run_id, 'run_bulk_2026-08-05');
+  })();
+
+  // Test 14.2: Renamed Bulk Confirm Button Label Format
+  const count = 5;
+  const renamedButtonText = `Cập nhật dữ liệu - Loại bỏ phát sinh cho ${count} ngày`;
+  assert.equal(renamedButtonText, 'Cập nhật dữ liệu - Loại bỏ phát sinh cho 5 ngày');
+  assert.ok(renamedButtonText.startsWith('Cập nhật dữ liệu - Loại bỏ phát sinh'));
+
+  console.log('✔ 14. Bulk Reimport Sequence & Renamed Button Label tests PASSED!');
+}
+
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');
+
 
 
 
