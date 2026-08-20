@@ -136,6 +136,12 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
       const theme = APPROVED_THEMES[themeKey] || NEUTRAL_FALLBACK;
       const indicatorItems = items.filter((item) => item.indicator === ind.code);
 
+      const missingItems = indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
+      const uniqueMissingDates = new Set(missingItems.map((i) => i.business_date).filter(Boolean));
+
+      const successItems = indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
+      const uniqueSuccessDates = new Set(successItems.map((i) => i.business_date).filter(Boolean));
+
       return {
         code: ind.code,
         displayName: ind.display_name || ind.code,
@@ -148,8 +154,8 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
         badgeClass: theme.badgeClass,
         activeTabClass: theme.activeTabClass,
         items: indicatorItems,
-        missingCount: indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status)).length,
-        successCount: indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'SUCCESS'].includes(i.status)).length,
+        missingCount: uniqueMissingDates.size,
+        successCount: uniqueSuccessDates.size,
       };
     });
   }
@@ -163,6 +169,12 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
     const theme = APPROVED_THEMES[themeKey] || NEUTRAL_FALLBACK;
     const indicatorItems = itemsGrouped[code] || [];
 
+    const missingItems = indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
+    const uniqueMissingDates = new Set(missingItems.map((i) => i.business_date).filter(Boolean));
+
+    const successItems = indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
+    const uniqueSuccessDates = new Set(successItems.map((i) => i.business_date).filter(Boolean));
+
     return {
       code,
       displayName: code === 'F1.3' ? 'F1.3 KPI Chất lượng' : code === 'F4.1' ? 'F4.1 Phát BC' : code,
@@ -175,8 +187,8 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
       badgeClass: theme.badgeClass,
       activeTabClass: theme.activeTabClass,
       items: indicatorItems,
-      missingCount: indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status)).length,
-      successCount: indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'SUCCESS'].includes(i.status)).length,
+      missingCount: uniqueMissingDates.size,
+      successCount: uniqueSuccessDates.size,
     };
   });
 }

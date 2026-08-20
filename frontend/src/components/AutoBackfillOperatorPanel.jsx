@@ -2,36 +2,25 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
   AlertCircle,
-  AlertTriangle,
-  Calendar,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
-  Clock,
-  Database,
-  FileText,
   Filter,
   Grid,
-  HelpCircle,
   History,
   List,
-  Lock,
   Pause,
   Play,
   RefreshCw,
   RotateCcw,
   ShieldAlert,
-  ShieldCheck,
-  Sparkles,
   UserCheck,
-  XCircle,
   X
 } from 'lucide-react';
 import api from '../api/client';
 import {
-  aggregateReportTotals,
   groupItemsByIndicatorAndMonth,
   paginateItems,
   resolveDynamicIndicators,
@@ -67,6 +56,10 @@ export default function AutoBackfillOperatorPanel() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Run Creation Target Selection (Safety Lock - Point 3)
+  const [runTargetIndicator, setRunTargetIndicator] = useState('ALL');
+  const [runTargetMonth, setRunTargetMonth] = useState('ALL');
+
   // UI View Mode: 'GROUPED_MONTH' | 'TABLE'
   const [viewMode, setViewMode] = useState('GROUPED_MONTH');
 
@@ -95,10 +88,6 @@ export default function AutoBackfillOperatorPanel() {
   const [revokeReason, setRevokeReason] = useState('');
   const [revokeLoading, setRevokeLoading] = useState(false);
   const [revokeError, setRevokeError] = useState(null);
-
-  // Interactive login state
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginMessage, setLoginMessage] = useState(null);
 
   // Notification Toast
   const [toast, setToast] = useState(null);
@@ -181,22 +170,40 @@ export default function AutoBackfillOperatorPanel() {
       fetchRunStatus(activeRunId);
       const interval = setInterval(() => {
         fetchRunStatus(activeRunId);
-      }, 5000);
+      }, 4000);
       return () => clearInterval(interval);
     }
   }, [activeRunId, fetchRunStatus]);
 
   // Handlers for Run Actions
-  const handleCreateRun = async (lane = 'ALL') => {
+  const handleCreateRun = async () => {
+    if (!runTargetIndicator || !runTargetMonth) return;
     setRunActionLoading(true);
     setRunError(null);
     try {
-      const res = await api.post('/import/auto-backfill/runs', { requested_lane: lane });
+      let from_date = null;
+      let to_date = null;
+      if (runTargetMonth !== 'ALL') {
+        const [year, month] = runTargetMonth.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate();
+        from_date = `${runTargetMonth}-01`;
+        to_date = `${runTargetMonth}-${String(lastDay).padStart(2, '0')}`;
+      }
+
+      const payload = {
+        requested_lane: laneFilter !== 'ALL' ? laneFilter : 'ALL',
+        lane: laneFilter !== 'ALL' ? laneFilter : null,
+        indicator: runTargetIndicator !== 'ALL' ? runTargetIndicator : null,
+        month: runTargetMonth,
+        from_date,
+        to_date
+      };
+      const res = await api.post('/import/auto-backfill/runs', payload);
       if (res.data.success) {
         const newRun = res.data.data;
         setActiveRunId(newRun.run_id);
         setRunData(newRun);
-        showToast(`Đã tạo tiến trình bù mới #${newRun.run_id}`);
+        showToast(`Đã tạo tiến trình bù #${newRun.run_id} cho chỉ tiêu ${runTargetIndicator} (${runTargetMonth})`);
         fetchCoverage();
       }
     } catch (err) {
@@ -254,7 +261,7 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Real PO Exception Confirmation API Call
+  // Real PO Exception Confirmation API Call (Fix Point 1: exception_type included!)
   const handleConfirmExemption = async () => {
     if (!confirmModalItem || !confirmReason.trim()) return;
     setConfirmLoading(true);
@@ -264,6 +271,7 @@ export default function AutoBackfillOperatorPanel() {
         indicator: confirmModalItem.indicator,
         source_lane: confirmModalItem.source_lane,
         business_date: confirmModalItem.business_date,
+        exception_type: 'PO_EXEMPTED', // CRITICAL FIX: Explicit backend contract field
         reason: confirmReason.trim()
       };
       const res = await api.post('/import/auto-backfill/coverage/exceptions', payload);
@@ -352,7 +360,7 @@ export default function AutoBackfillOperatorPanel() {
     return paginateItems(filteredCoverageItems, currentPage, pageSize);
   }, [filteredCoverageItems, currentPage, pageSize]);
 
-  // Effective Run State
+  // Effective Run State & Active Job Granular Visibility (Point 4)
   const effectiveRunState = useMemo(() => {
     return resolveEffectiveRunState(runData?.run);
   }, [runData]);
@@ -363,6 +371,15 @@ export default function AutoBackfillOperatorPanel() {
 
   const waitingLanes = useMemo(() => {
     return resolveWaitingAuthLanes(runData?.run, runData?.jobs);
+  }, [runData]);
+
+  const activeExecutingJob = useMemo(() => {
+    const jobs = runData?.jobs || [];
+    return (
+      jobs.find((j) => ['RUNNING', 'LEASED', 'RECOVERY_CHECK'].includes(j.state || j.status || j.safety_state)) ||
+      jobs.find((j) => (j.state || j.safety_state) === 'WAITING_AUTH') ||
+      null
+    );
   }, [runData]);
 
   return (
@@ -377,7 +394,7 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
-      {/* HERO SYSTEM CONTROL HEADER */}
+      {/* HERO CONTROL HEADER - SYSTEM DESIGN TOKENS ALIGNED (Point 2) */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -412,25 +429,78 @@ export default function AutoBackfillOperatorPanel() {
               <History className="h-4 w-4 text-purple-600" />
               <span>Lịch sử Ngoại lệ PO</span>
             </button>
+          </div>
+        </div>
 
-            {!activeRunId ? (
-              <button
-                onClick={() => handleCreateRun('ALL')}
-                disabled={runActionLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-vnpost-blue)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-vnpost-blue-dark)] disabled:opacity-50"
+        {/* SAFE RUN CREATION CONTROLS (Point 3) */}
+        {!activeRunId && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-4 border border-slate-200">
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Tạo tiến trình bù an toàn:</span>
+            
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-600">Chỉ tiêu:</label>
+              <select
+                value={runTargetIndicator}
+                onChange={(e) => setRunTargetIndicator(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <Play className="h-4 w-4 fill-current" />
-                <span>Bắt đầu Bù tất cả</span>
-              </button>
-            ) : (
+                <option value="ALL">Tất cả chỉ tiêu</option>
+                {indicatorsList.map((ind) => (
+                  <option key={ind.code} value={ind.code}>{ind.code} ({ind.displayName})</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-slate-600">Tháng:</label>
+              <select
+                value={runTargetMonth}
+                onChange={(e) => setRunTargetMonth(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">Tất cả các tháng</option>
+                {monthOptions.map((m) => (
+                  <option key={m} value={m}>Tháng {m}</option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={handleCreateRun}
+              disabled={runActionLoading || !runTargetIndicator || !runTargetMonth}
+              className="ml-auto inline-flex items-center gap-2 rounded-xl bg-[var(--color-vnpost-blue)] px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[var(--color-vnpost-blue-dark)] disabled:opacity-40"
+            >
+              <Play className="h-3.5 w-3.5 fill-current" />
+              <span>Kích hoạt Bù: {runTargetIndicator === 'ALL' ? 'Tất cả' : runTargetIndicator} ({runTargetMonth === 'ALL' ? 'Tất cả tháng' : runTargetMonth})</span>
+            </button>
+          </div>
+        )}
+
+        {/* ACTIVE RUN CONTROL & GRANULAR ACTIVE JOB VISIBILITY (Point 4) */}
+        {activeRunId && runData && (
+          <div className="mt-4 flex flex-col gap-3 rounded-xl bg-slate-50 p-4 border border-slate-200">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="font-bold text-slate-900 text-sm">Tiến trình #{runData.run.run_id}</span>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  effectiveRunState === 'RUNNING' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
+                  effectiveRunState === 'PAUSED' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
+                  effectiveRunState === 'CIRCUIT_OPEN' ? 'bg-red-50 text-red-800 border border-red-200' :
+                  'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                }`}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  {effectiveRunState || 'PENDING'}
+                </span>
+              </div>
+
               <div className="flex items-center gap-2">
                 {actionButtons.canPause && (
                   <button
                     onClick={handlePauseRun}
                     disabled={runActionLoading}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 shadow-sm hover:bg-amber-100"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 shadow-sm hover:bg-amber-100"
                   >
-                    <Pause className="h-4 w-4" />
+                    <Pause className="h-3.5 w-3.5" />
                     <span>Tạm dừng</span>
                   </button>
                 )}
@@ -439,9 +509,9 @@ export default function AutoBackfillOperatorPanel() {
                   <button
                     onClick={handleResumeRun}
                     disabled={runActionLoading}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-700"
                   >
-                    <Play className="h-4 w-4 fill-current" />
+                    <Play className="h-3.5 w-3.5 fill-current" />
                     <span>Tiếp tục Run</span>
                   </button>
                 )}
@@ -450,9 +520,9 @@ export default function AutoBackfillOperatorPanel() {
                   <button
                     onClick={handleResetCircuit}
                     disabled={runActionLoading}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-900 shadow-sm hover:bg-red-100"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-900 shadow-sm hover:bg-red-100"
                   >
-                    <RotateCcw className="h-4 w-4" />
+                    <RotateCcw className="h-3.5 w-3.5" />
                     <span>Khôi phục Mạch</span>
                   </button>
                 )}
@@ -462,43 +532,37 @@ export default function AutoBackfillOperatorPanel() {
                     setShowEvents(true);
                     fetchEvents(activeRunId);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
                 >
-                  <Activity className="h-4 w-4 text-blue-600" />
+                  <Activity className="h-3.5 w-3.5 text-blue-600" />
                   <span>Audit Logs</span>
                 </button>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* ACTIVE RUN STATUS BAR */}
-        {runData && (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-4 text-sm">
-            <div className="flex items-center gap-3">
-              <span className="font-semibold text-slate-700">Tiến trình #{runData.run.run_id}</span>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                effectiveRunState === 'RUNNING' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
-                effectiveRunState === 'PAUSED' ? 'bg-amber-50 text-amber-800 border border-amber-200' :
-                effectiveRunState === 'CIRCUIT_OPEN' ? 'bg-red-50 text-red-800 border border-red-200' :
-                'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              }`}>
-                <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                {effectiveRunState || 'PENDING'}
-              </span>
             </div>
 
-            {waitingLanes.length > 0 && (
-              <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-1.5 border border-amber-200 text-xs text-amber-900 font-medium">
-                <ShieldAlert className="h-4 w-4 text-amber-600 shrink-0" />
-                <span>Yêu cầu xác thực phiên portal nguồn: <strong>{waitingLanes.join(', ')}</strong></span>
-              </div>
-            )}
+            {/* GRANULAR JOB STATUS & WAITING_AUTH WARNING (Point 4) */}
+            <div className="flex flex-wrap items-center justify-between border-t border-slate-200 pt-3 text-xs">
+              {activeExecutingJob ? (
+                <div className="flex items-center gap-2 font-medium text-slate-700">
+                  <Activity className="h-4 w-4 text-blue-600 animate-pulse" />
+                  <span>Đang xử lý: <strong className="text-slate-900">Chỉ tiêu {activeExecutingJob.indicator} × Nguồn {activeExecutingJob.source_lane} × Ngày {activeExecutingJob.business_date}</strong></span>
+                </div>
+              ) : (
+                <span className="text-slate-500">Đang khởi tạo các luồng bù dữ liệu...</span>
+              )}
+
+              {(waitingLanes.length > 0 || effectiveRunState === 'WAITING_AUTH') && (
+                <div className="flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300 animate-bounce">
+                  <ShieldAlert className="h-4 w-4 text-amber-700 shrink-0" />
+                  <span>Cần đăng nhập thủ công [{waitingLanes.join(' / ') || 'Portal'}]</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* DYNAMIC INDICATOR HEALTH CARDS GRID */}
+      {/* DYNAMIC INDICATOR HEALTH CARDS GRID (Point 5: Unique Calendar Date Count) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {indicatorsList.map((ind) => (
           <div
@@ -520,10 +584,10 @@ export default function AutoBackfillOperatorPanel() {
             <div className="mt-4 flex items-baseline justify-between">
               <div>
                 <span className="text-2xl font-extrabold text-amber-600">{ind.missingCount}</span>
-                <span className="ml-1.5 text-xs text-slate-500">ngày còn thiếu</span>
+                <span className="ml-1.5 text-xs text-slate-500">ngày lịch còn thiếu</span>
               </div>
               <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                {ind.successCount} xong
+                {ind.successCount} ngày xong
               </span>
             </div>
           </div>
@@ -1002,7 +1066,7 @@ function MonthlyAccordionGroup({ group, onConfirmClick, onRevokeClick }) {
               <span className="text-sm font-semibold text-slate-600">— Tháng {group.yearMonth}</span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tổng {group.counts.total} ngày • {group.counts.complete} xong • {group.counts.legacy} dữ liệu cũ • {group.counts.noData} không phát sinh
+              Tổng {group.counts.total} bản ghi • {group.counts.complete} xong • {group.counts.legacy} dữ liệu cũ • {group.counts.noData} không phát sinh
             </p>
           </div>
         </div>
@@ -1010,7 +1074,7 @@ function MonthlyAccordionGroup({ group, onConfirmClick, onRevokeClick }) {
         <div className="flex items-center gap-3">
           {group.counts.missing > 0 ? (
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300">
-              Còn thiếu {group.counts.missing} ngày
+              Còn thiếu {group.counts.missing} bản ghi
             </span>
           ) : (
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900 border border-emerald-300">

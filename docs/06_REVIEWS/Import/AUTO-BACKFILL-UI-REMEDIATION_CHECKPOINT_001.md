@@ -1,35 +1,28 @@
 # AUTO-BACKFILL-UI-REMEDIATION Checkpoint 001
 
-Status: `Frontend READY FOR PO UI CHECK; Backend delta (Section 4) IMPLEMENTED / READY FOR PO BACKEND GATE` (2026-08-19).
+Status: `READY FOR PO UI CHECK` (2026-08-20).
 
-## 1. Activation
+## 1. Activation & Baseline
 
 Product Owner activated Phase B, `AUTO-BACKFILL-UI-REMEDIATION` (Frontend, Antigravity) following Phase A (`AUTO-BACKFILL-COVERAGE-EXCEPTION`, backend) `PO BACKEND GATE PASS` (commit `29346c92`).
 
 Baseline: `29346c92`, branch `codex/da-impl-006`.
 
-## 2. Implementation Scope
+## 2. 5-Point PO Remediation Summary
 
-1. Integrated real Phase A backend APIs into `DataImportCenter.jsx` & `AutoBackfillOperatorPanel.jsx` (`GET /coverage`, `GET/POST /coverage/exceptions`, `POST /coverage/exceptions/:id/revoke`).
-2. Implemented 6 No-code Vietnamese status badges:
-   - `DATA_COMPLETE_WITH_EVIDENCE` -> **"Đã hoàn tất"**
-   - `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` -> **"Dữ liệu cũ đã có"**
-   - `TRUE_MISSING` -> **"Thật sự còn thiếu"**
-   - `VERIFIED_NO_DATA` -> **"Không phát sinh dữ liệu"**
-   - `PO_EXEMPTED` -> **"PO đã xác nhận"**
-   - `MANUAL_REVIEW_REQUIRED` -> **"Cần PO kiểm tra"**
-3. Implemented Smart Monthly Grouping Accordions by `Indicator × Year-Month` with `06/06` ordering rule (newest month/dates first).
-4. Implemented `ModalPOExceptionConfirm` for PO manual exception confirmation (`PO_EXEMPTED`) and `ModalPOExceptionRevoke` for exception revocation (`Hoàn tác`) using real backend REST endpoints.
-5. Implemented Slide-out Right Drawers for Audit Queue Events and Exception Audit History (`<ExceptionHistoryDrawer />`).
-6. Extended `AutoBackfillOperatorPanel.test.js` to cover 6-state translations, monthly grouping, and PO exception API contracts.
+1. **Point 1: Real API Modal Exception Payload (`exception_type: 'PO_EXEMPTED'`)**: Fixed 422 error on `POST /api/import/auto-backfill/coverage/exceptions` by explicitly including `exception_type: 'PO_EXEMPTED'` in `handleConfirmExemption`.
+2. **Point 2: Standardized Header Styling**: Aligned "Trung tâm Điều hành Bù dữ liệu Tự động" banner and control cards with system design tokens (`var(--color-vnpost-blue)` `#0054A6`, white cards, `border-slate-200`, `text-slate-900`, `text-slate-500`).
+3. **Point 3: Safe Run Controls (`from_date` / `to_date`)**: Required explicit operator selection of Indicator (`targetIndicator`) and Month (`targetMonth`). Automatically computes inclusive `from_date` and `to_date` (e.g. `2026-07-01` to `2026-07-31`) for backend commit `3572593d` contract. Button disabled until selections are set.
+4. **Point 4: Granular Active Execution Visibility & WAITING_AUTH Warning**: Displays active processing job (`Chỉ tiêu × Nguồn × Ngày`) when run state is `RUNNING`. When `safety_state === 'WAITING_AUTH'`, renders prominent warning badge *"Cần đăng nhập thủ công [HUE / TCT]"* with lane action guidance.
+5. **Point 5: Unique Calendar Date Missing Count**: Fixed `missingCount` in `autoBackfillUiHelpers.js` to count unique calendar dates (`Set` of `business_date` strings for `TRUE_MISSING`/`MISSING` items) so missing HUE and TCT on the same date count as 1 missing date on top health summary cards.
 
 ## 3. Validation Ledger
 
 - `node src/components/AutoBackfillOperatorPanel.test.js`: 8/8 PASS.
-- `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js"`: 0 ERRORS.
-- `cmd /c "npm run build"`: PASS (691 modules transformed cleanly in 1.25s).
-- `node test_autoBackfillCoverageService.js` (backend): 12/12 PASS.
-- `node test_autoBackfillCoverageExceptionService.js` (backend): 24/24 PASS.
+- `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js"`: 0 ERRORS (3 unused variable warnings).
+- `cmd /c "npm run build"`: PASS (687 modules transformed cleanly in 1.24s).
+- Portal DKCL real environment: ZERO requests made; untouched.
+- Queue / Import / Runtime: Zero execution.
 
 ## 4. Backend Remediation Delta -- Optional `from_date`/`to_date` Enqueue Scope (2026-08-19, Claude Code)
 
