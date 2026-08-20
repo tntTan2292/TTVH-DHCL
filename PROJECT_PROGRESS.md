@@ -1146,3 +1146,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Both independent backend deltas closed PO BACKEND GATE PASS: 3572593d (optional from_date/to_date enqueue scope) and 5d425d72 (SUCCESS completion policy simplified to data-presence-only).
 - CODEX_PROMPT_STANDARD.md Section 13.2 (CTO Self-Pass Criteria) and Section 2.2 (Active-Session Delta Prompt Rule), commit 0ceee25a: Product Owner confirmed acceptance -- approved.
 - AUTO-BACKFILL-RUNTIME not activated by this closure; no manifest/checkpoint exists for it yet, awaiting its own explicit Product Owner authorization. Documentation-only update; no product code, schema, or database touched.
+
+## AUTO-BACKFILL-RUNTIME Activated / Ready For PO Check
+
+- Product Owner separately authorized the final Runtime ticket, `AUTO-BACKFILL-RUNTIME`, from baseline `a135f799`. Claude Code completed the initial readiness audit and left an untracked manifest; Codex continuation independently verified the live state, created the required checkpoint, and synchronized governance without changing product code, schema, queue state, Portal state, or business data.
+- Actual `importIndicatorRegistry.js` evaluation confirms every lane is `AUTOMATED` with a verified adapter: F1.3/HUE, F1.3/TCT, F4.1/HUE, and F4.1/TCT. A no-filter POST would cover all four lanes.
+- Safety remains unchanged from accepted Gate 5: max three bounded retry attempts; `adapter × source × resource` circuit scope; threshold five same-signature failures; immediate integrity stop; persisted `WAITING_AUTH` and explicit validated Resume. Commit `5d425d72` only relaxed completion provenance (correct committed data is SUCCESS without log/artifact); it did not alter Safety/Queue/Circuit files.
+- Read-only operational audit: 472 queued jobs and four RUNNING runs, including one global `WAITING_AUTH` blocker; zero open circuits. Resume would release the backlog to automatic drain and is not a controlled one-day test.
+- State: `AUTO-BACKFILL-RUNTIME ACTIVATED / READY FOR PO CHECK`. PO must decide the stale queue/run disposition, then test exactly one date and one source by per-row "Nhập lại" (including `WAITING_AUTH`/login/explicit Resume) before any month, lane, or backlog expansion. No real run and no PO Gate 7 PASS was performed or awarded.
