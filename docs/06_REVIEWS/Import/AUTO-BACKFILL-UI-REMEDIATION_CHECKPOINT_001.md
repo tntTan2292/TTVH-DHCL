@@ -28,16 +28,16 @@ Baseline: `29346c92`, branch `codex/da-impl-006`.
    - Executes individual `POST /api/import/auto-backfill/coverage/exceptions` REST calls sequentially/in parallel per selected item to preserve fine-grained REST contracts and audit logs.
    - Reports exact success/failure breakdown per item if any error occurs without rolling back already successful items.
 
-4. **Point 4: Dynamic Indicator Cards Grid Layout**:
-   - Replaced fixed `grid-cols-4` class in `AutoBackfillOperatorPanel.jsx` with dynamic grid class resolver `resolveIndicatorGridClass(indicatorsList.length)`.
-   - When 2 indicators exist (F1.3 & F4.1), layout renders 2 equal columns (`grid-cols-1 sm:grid-cols-2`), perfectly balancing across the row without leaving empty blank column slots on the right.
-   - Automatically adapts if future indicators are added (1 col for 1, 2 cols for 2, 3 cols for 3, 4 cols for 4+), without hardcoded placeholder cards.
+5. **Point 5: Strict "100% Hoàn tất" Badge Condition Bugfix**:
+   - Fixed condition in `MonthlyAccordionGroup` and per-lane cards in `AutoBackfillOperatorPanel.jsx` (~line 1600). Previously checked only `group.counts.missing > 0`, erroneously rendering "100% Hoàn tất" when a month had 62 items needing PO review (`reviewReq = 62, missing = 0, complete = 0`).
+   - Updated condition: badge ONLY displays **"100% Hoàn tất"** when `group.counts.complete === group.counts.total` (100% of items are fully completed).
+   - If unresolved items exist (`missing > 0` or `reviewReq > 0`), renders prominent warning badge *"Còn thiếu N · Cần kiểm tra M bản ghi"* or *"Cần PO kiểm tra N bản ghi"*.
 
 ## 3. Validation Ledger
 
-- `node src/components/AutoBackfillOperatorPanel.test.js`: **12 / 12 PASS** (Including Section 12 testing dynamic indicator card grid class resolution).
+- `node src/components/AutoBackfillOperatorPanel.test.js`: **13 / 13 PASS** (Including Section 13 reproducing the PO bug with 62 `MANUAL_REVIEW_REQUIRED` items).
 - `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js src/pages/DataImportCenter.jsx"`: **0 ERRORS**.
-- `cmd /c "npm run build"`: **PASS** (689 modules transformed cleanly in 1.65s).
+- `cmd /c "npm run build"`: **PASS** (689 modules transformed cleanly in 1.50s).
 - Direct data verification node script: **100% PASS**.
 - Portal DKCL real environment: ZERO requests made; untouched.
 - Queue / Import / Runtime: Zero execution.

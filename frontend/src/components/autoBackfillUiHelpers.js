@@ -161,17 +161,29 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
         const laneItems = indicatorItems.filter((i) => (i.source_lane || i.lane || '').trim().toUpperCase() === lane.toUpperCase());
         const laneMissingItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
         const laneMissingDates = Array.from(new Set(laneMissingItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
+
+        const laneReviewItems = laneItems.filter((i) => i.status === 'MANUAL_REVIEW_REQUIRED');
+        const laneReviewDates = Array.from(new Set(laneReviewItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
         
-        const laneSuccessItems = laneItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
+        const laneActionableItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(i.status));
+
+        const laneSuccessItems = laneItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'SUCCESS'].includes(i.status));
         const laneSuccessDates = Array.from(new Set(laneSuccessItems.map((i) => i.business_date).filter(Boolean)));
 
         lanesBreakdown[lane] = {
           lane,
-          missingCount: laneMissingDates.length,
+          missingCount: laneMissingItems.length,
           missingDates: laneMissingDates,
           missingItems: laneMissingItems,
-          successCount: laneSuccessDates.length,
+          reviewReqCount: laneReviewItems.length,
+          reviewReqDates: laneReviewDates,
+          reviewReqItems: laneReviewItems,
+          unresolvedCount: laneMissingItems.length + laneReviewItems.length,
+          actionableItems: laneActionableItems,
+          successCount: laneSuccessItems.length,
           successDates: laneSuccessDates,
+          totalCount: laneItems.length,
+          isFullyComplete: laneItems.length > 0 && laneSuccessItems.length === laneItems.length,
         };
       });
 
@@ -216,16 +228,28 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
       const laneMissingItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
       const laneMissingDates = Array.from(new Set(laneMissingItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
       
-      const laneSuccessItems = laneItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
+      const laneReviewItems = laneItems.filter((i) => i.status === 'MANUAL_REVIEW_REQUIRED');
+      const laneReviewDates = Array.from(new Set(laneReviewItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
+
+      const laneActionableItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(i.status));
+
+      const laneSuccessItems = laneItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'SUCCESS'].includes(i.status));
       const laneSuccessDates = Array.from(new Set(laneSuccessItems.map((i) => i.business_date).filter(Boolean)));
 
       lanesBreakdown[lane] = {
         lane,
-        missingCount: laneMissingDates.length,
+        missingCount: laneMissingItems.length,
         missingDates: laneMissingDates,
         missingItems: laneMissingItems,
-        successCount: laneSuccessDates.length,
+        reviewReqCount: laneReviewItems.length,
+        reviewReqDates: laneReviewDates,
+        reviewReqItems: laneReviewItems,
+        unresolvedCount: laneMissingItems.length + laneReviewItems.length,
+        actionableItems: laneActionableItems,
+        successCount: laneSuccessItems.length,
         successDates: laneSuccessDates,
+        totalCount: laneItems.length,
+        isFullyComplete: laneItems.length > 0 && laneSuccessItems.length === laneItems.length,
       };
     });
 

@@ -763,19 +763,30 @@ export default function AutoBackfillOperatorPanel() {
             {/* PER-LANE BREAKDOWN */}
             <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3">
               {ind.supportedLanes.map((lane) => {
-                const laneData = ind.lanesBreakdown?.[lane] || { missingCount: 0, successCount: 0, missingItems: [] };
+                const laneData = ind.lanesBreakdown?.[lane] || {
+                  missingCount: 0,
+                  reviewReqCount: 0,
+                  unresolvedCount: 0,
+                  successCount: 0,
+                  missingItems: [],
+                  actionableItems: [],
+                  isFullyComplete: false
+                };
+                const hasUnresolved = (laneData.unresolvedCount || 0) > 0 || (laneData.missingCount || 0) > 0 || (laneData.reviewReqCount || 0) > 0;
+                const itemsToShowInModal = laneData.actionableItems && laneData.actionableItems.length > 0 ? laneData.actionableItems : laneData.missingItems || [];
+
                 return (
                   <div
                     key={lane}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (laneData.missingCount > 0) {
+                      if (hasUnresolved && itemsToShowInModal.length > 0) {
                         setSelectedLaneModal({
                           indicator: ind.code,
                           displayName: ind.displayName,
                           lane,
-                          missingCount: laneData.missingCount,
-                          missingItems: laneData.missingItems
+                          missingCount: itemsToShowInModal.length,
+                          missingItems: itemsToShowInModal
                         });
                       }
                     }}
@@ -786,11 +797,21 @@ export default function AutoBackfillOperatorPanel() {
                     </span>
                     <div className="flex items-center gap-1.5">
                       <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full border ${
-                        laneData.missingCount > 0 ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-emerald-100 text-emerald-900 border-emerald-200'
+                        hasUnresolved ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                        laneData.isFullyComplete ? 'bg-emerald-100 text-emerald-900 border-emerald-200' :
+                        'bg-slate-100 text-slate-700 border-slate-200'
                       }`}>
-                        {laneData.missingCount > 0 ? `Thiếu ${laneData.missingCount} ngày` : '100% Hoàn tất'}
+                        {hasUnresolved
+                          ? (laneData.missingCount > 0 && laneData.reviewReqCount > 0
+                              ? `Thiếu ${laneData.missingCount} · Kiểm tra ${laneData.reviewReqCount}`
+                              : laneData.missingCount > 0
+                              ? `Thiếu ${laneData.missingCount} ngày`
+                              : `Cần kiểm tra ${laneData.reviewReqCount} ngày`)
+                          : laneData.isFullyComplete
+                          ? '100% Hoàn tất'
+                          : 'Đã giải quyết'}
                       </span>
-                      {laneData.missingCount > 0 && (
+                      {hasUnresolved && itemsToShowInModal.length > 0 && (
                         <span className="text-[11px] text-blue-700 font-bold group-hover:underline">
                           [Xem ngày]
                         </span>
@@ -1578,13 +1599,21 @@ function MonthlyAccordionGroup({ group, selectedBulkKeys, onToggleSelectItem, on
         </div>
 
         <div className="flex items-center gap-3">
-          {group.counts.missing > 0 ? (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300">
-              Còn thiếu {group.counts.missing} bản ghi
-            </span>
-          ) : (
+          {group.counts.complete === group.counts.total ? (
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900 border border-emerald-300">
               100% Hoàn tất
+            </span>
+          ) : (group.counts.missing > 0 || group.counts.reviewReq > 0) ? (
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300">
+              {group.counts.missing > 0 && group.counts.reviewReq > 0
+                ? `Còn thiếu ${group.counts.missing} · Cần kiểm tra ${group.counts.reviewReq} bản ghi`
+                : group.counts.missing > 0
+                ? `Còn thiếu ${group.counts.missing} bản ghi`
+                : `Cần PO kiểm tra ${group.counts.reviewReq} bản ghi`}
+            </span>
+          ) : (
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 border border-slate-300">
+              Đã giải quyết {group.counts.total} bản ghi
             </span>
           )}
         </div>

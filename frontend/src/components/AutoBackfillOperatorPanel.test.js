@@ -439,7 +439,51 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   console.log('✔ 12. Dynamic Indicator Card Grid Class Resolution tests PASSED!');
 }
 
+// ==========================================
+// 13. Contract Test: 62 MANUAL_REVIEW_REQUIRED Items Badge Resolution (PO Bugfix)
+// ==========================================
+{
+  // Test case 13.1: 62 items with MANUAL_REVIEW_REQUIRED (missing = 0, complete = 0)
+  const items62Review = Array.from({ length: 62 }, (_, i) => ({
+    indicator: 'F1.3',
+    source_lane: 'HUE',
+    business_date: `2026-07-${String((i % 30) + 1).padStart(2, '0')}`,
+    status: 'MANUAL_REVIEW_REQUIRED'
+  }));
+
+  const groups = groupItemsByIndicatorAndMonth(items62Review);
+  assert.equal(groups.length, 1);
+  const group = groups[0];
+
+  assert.equal(group.counts.total, 62, 'Total items must be 62');
+  assert.equal(group.counts.missing, 0, 'Missing items must be 0');
+  assert.equal(group.counts.reviewReq, 62, 'ReviewReq items must be 62');
+  assert.equal(group.counts.complete, 0, 'Complete items must be 0');
+
+  // CRITICAL ASSERTION: complete === total MUST be FALSE when reviewReq > 0
+  const isFullyComplete = group.counts.complete === group.counts.total;
+  assert.equal(isFullyComplete, false, 'Group with 62 reviewReq items must NOT be 100% complete');
+
+  const hasUnresolved = group.counts.missing > 0 || group.counts.reviewReq > 0;
+  assert.equal(hasUnresolved, true, 'Group with 62 reviewReq items MUST be flagged as unresolved (hasUnresolved = true)');
+
+  // Test case 13.2: resolveDynamicIndicators per-lane breakdown for 62 reviewReq items
+  const fixtureData = {
+    indicators: [{ code: 'F1.3', display_name: 'F1.3 KPI', supported_lanes: ['HUE', 'TCT'] }],
+    items: items62Review
+  };
+  const resolved = resolveDynamicIndicators(fixtureData);
+  const hueBreakdown = resolved[0].lanesBreakdown.HUE;
+
+  assert.equal(hueBreakdown.reviewReqCount, 62);
+  assert.equal(hueBreakdown.unresolvedCount, 62);
+  assert.equal(hueBreakdown.isFullyComplete, false, 'Lane with 62 reviewReq items must NOT be isFullyComplete');
+
+  console.log('✔ 13. 62 MANUAL_REVIEW_REQUIRED Items Badge Resolution tests PASSED!');
+}
+
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');
+
 
 
 
