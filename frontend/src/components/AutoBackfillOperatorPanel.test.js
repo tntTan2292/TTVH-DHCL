@@ -382,7 +382,40 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   console.log('✔ 10. Accordion Internal Pagination & Bulk Selection logic tests PASSED!');
 }
 
+// ==========================================
+// 11. Contract Test: Single-Date Reimport Run Payload Construction
+// ==========================================
+{
+  const itemToReimport = {
+    indicator: 'F1.3',
+    source_lane: 'HUE',
+    business_date: '2026-08-15',
+    status: 'DATA_COMPLETE_WITH_EVIDENCE'
+  };
+
+  const buildReimportPayload = (item) => ({
+    indicator: item.indicator,
+    requested_lane: item.source_lane,
+    lane: item.source_lane,
+    month: item.business_date.slice(0, 7),
+    from_date: item.business_date,
+    to_date: item.business_date
+  });
+
+  const payload = buildReimportPayload(itemToReimport);
+
+  assert.equal(payload.indicator, 'F1.3');
+  assert.equal(payload.requested_lane, 'HUE');
+  assert.equal(payload.lane, 'HUE');
+  assert.equal(payload.month, '2026-08');
+  assert.equal(payload.from_date, '2026-08-15');
+  assert.equal(payload.to_date, '2026-08-15');
+
+  console.log('✔ 11. Single-Date Reimport Run Payload Construction tests PASSED!');
+}
+
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');
+
 
 
 
