@@ -773,17 +773,16 @@ export default function DataImportCenter() {
   return (
     <div className="w-full px-4 py-6 md:px-8 max-w-7xl mx-auto space-y-6">
       {/* Header & Mode Navigator */}
-      <div className="rounded-2xl bg-slate-900 text-white p-6 shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <span className="p-2 rounded-xl bg-vnpost-blue/20 text-yellow-400 border border-blue-400/20 backdrop-blur-md">
+              <span className="p-2.5 rounded-xl bg-blue-50 text-[var(--color-vnpost-blue)] border border-blue-100">
                 <Database size={24} />
               </span>
               <div>
-                <h1 className="text-2xl font-black tracking-tight text-white">Trung tâm Import Dữ liệu Quality Control</h1>
-                <p className="text-xs text-slate-300 mt-0.5">Hệ thống Điều hành Chất lượng Vận hành V2 (TTVH DHCL)</p>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Trung tâm Import Dữ liệu Quality Control</h1>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">Hệ thống Điều hành Chất lượng Vận hành V2 (TTVH DHCL)</p>
               </div>
             </div>
           </div>
@@ -791,7 +790,7 @@ export default function DataImportCenter() {
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/15 backdrop-blur-md transition-all active:scale-95 shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all active:scale-95"
             >
               <RefreshCw size={14} />
               Làm mới Hệ thống

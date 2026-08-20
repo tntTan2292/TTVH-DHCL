@@ -30,11 +30,6 @@ import {
   resolveWaitingAuthLanes
 } from './autoBackfillUiHelpers';
 
-const getApiErrorCode = (error, fallback = 'API_ERROR') => (
-  error?.response?.data?.error?.code ||
-  (error?.response?.status ? `HTTP_${error.response.status}` : fallback)
-);
-
 const getApiErrorMessage = (error, fallback = 'Đã xảy ra lỗi khi gọi API.') => (
   error?.response?.data?.error?.message ||
   error?.response?.data?.message ||
@@ -69,7 +64,7 @@ export default function AutoBackfillOperatorPanel() {
   const [runActionLoading, setRunActionLoading] = useState(false);
   const [runError, setRunError] = useState(null);
 
-  // Audit Events & PO Report Drawers
+  // Drawers & Modals
   const [showEvents, setShowEvents] = useState(false);
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -77,6 +72,9 @@ export default function AutoBackfillOperatorPanel() {
   const [showExceptionHistory, setShowExceptionHistory] = useState(false);
   const [exceptionsList, setExceptionsList] = useState([]);
   const [exceptionsLoading, setExceptionsLoading] = useState(false);
+
+  // Per-Lane Missing Dates Detail Modal (Point 4)
+  const [selectedLaneModal, setSelectedLaneModal] = useState(null);
 
   // Exception Modals (Real API Calls)
   const [confirmModalItem, setConfirmModalItem] = useState(null);
@@ -96,7 +94,7 @@ export default function AutoBackfillOperatorPanel() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Fetch Coverage
+  // Fetch Coverage with exception_id merging (Point 2 & Point 3 Fix)
   const fetchCoverage = useCallback(async () => {
     setCoverageLoading(true);
     setCoverageError(null);
@@ -105,9 +103,38 @@ export default function AutoBackfillOperatorPanel() {
       if (indicatorFilter !== 'ALL') params.indicator = indicatorFilter;
       if (laneFilter !== 'ALL') params.lane = laneFilter;
 
-      const res = await api.get('/import/auto-backfill/coverage', { params });
-      if (res.data.success) {
-        setCoverageData(res.data.data);
+      const [resCoverage, resExceptions] = await Promise.all([
+        api.get('/import/auto-backfill/coverage', { params }),
+        api.get('/import/auto-backfill/coverage/exceptions').catch(() => ({ data: { success: false } }))
+      ]);
+
+      if (resCoverage.data.success) {
+        const rawData = resCoverage.data.data;
+        const exceptionsList = resExceptions.data?.success ? (resExceptions.data.data.items || []) : [];
+        
+        const excMap = new Map();
+        exceptionsList.forEach((exc) => {
+          if (exc.status === 'ACTIVE') {
+            const key = `${(exc.indicator || '').trim().toUpperCase()}::${(exc.source_lane || '').trim().toUpperCase()}::${exc.business_date}`;
+            excMap.set(key, exc);
+          }
+        });
+
+        const mergedItems = (rawData.items || []).map((item) => {
+          const itemKey = `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
+          const activeExc = excMap.get(itemKey) || item.exception;
+          const exception_id = activeExc?.id || activeExc?.exception_id || item.exception_id || null;
+          return {
+            ...item,
+            exception_id,
+            exception: activeExc || item.exception
+          };
+        });
+
+        setCoverageData({
+          ...rawData,
+          items: mergedItems
+        });
       }
     } catch (err) {
       console.error('[AutoBackfillOperatorPanel] fetchCoverage error:', err);
@@ -261,7 +288,7 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Real PO Exception Confirmation API Call (Fix Point 1: exception_type included!)
+  // Real PO Exception Confirmation API Call
   const handleConfirmExemption = async () => {
     if (!confirmModalItem || !confirmReason.trim()) return;
     setConfirmLoading(true);
@@ -271,7 +298,7 @@ export default function AutoBackfillOperatorPanel() {
         indicator: confirmModalItem.indicator,
         source_lane: confirmModalItem.source_lane,
         business_date: confirmModalItem.business_date,
-        exception_type: 'PO_EXEMPTED', // CRITICAL FIX: Explicit backend contract field
+        exception_type: 'PO_EXEMPTED',
         reason: confirmReason.trim()
       };
       const res = await api.post('/import/auto-backfill/coverage/exceptions', payload);
@@ -288,13 +315,17 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Real PO Exception Revoke API Call
+  // Real PO Exception Revoke API Call (Point 2 Fix: robust exception_id resolution)
   const handleRevokeExemption = async () => {
     if (!revokeModalItem || !revokeReason.trim()) return;
+    const exceptionId = revokeModalItem.exception_id || revokeModalItem.exception?.id || revokeModalItem.id;
+    if (!exceptionId) {
+      setRevokeError('Không tìm thấy ID bản ghi ngoại lệ PO để hoàn tác. Vui lòng thử tải lại trang.');
+      return;
+    }
     setRevokeLoading(true);
     setRevokeError(null);
     try {
-      const exceptionId = revokeModalItem.exception_id || revokeModalItem.id;
       const res = await api.post(`/import/auto-backfill/coverage/exceptions/${exceptionId}/revoke`, {
         reason: revokeReason.trim()
       });
@@ -335,8 +366,11 @@ export default function AutoBackfillOperatorPanel() {
   // Filtered Coverage Items
   const filteredCoverageItems = useMemo(() => {
     return rawCoverageItems.filter((item) => {
-      if (indicatorFilter !== 'ALL' && item.indicator !== indicatorFilter) return false;
-      if (laneFilter !== 'ALL' && item.source_lane !== laneFilter) return false;
+      const itemInd = (item.indicator || '').trim().toUpperCase();
+      const itemLane = (item.source_lane || item.lane || '').trim().toUpperCase();
+
+      if (indicatorFilter !== 'ALL' && itemInd !== indicatorFilter.toUpperCase()) return false;
+      if (laneFilter !== 'ALL' && itemLane !== laneFilter.toUpperCase()) return false;
       if (monthFilter !== 'ALL' && (!item.business_date || !item.business_date.startsWith(monthFilter))) return false;
       if (statusFilter !== 'ALL') {
         if (statusFilter === 'MISSING' && !['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(item.status)) return false;
@@ -360,7 +394,7 @@ export default function AutoBackfillOperatorPanel() {
     return paginateItems(filteredCoverageItems, currentPage, pageSize);
   }, [filteredCoverageItems, currentPage, pageSize]);
 
-  // Effective Run State & Active Job Granular Visibility (Point 4)
+  // Effective Run State & Active Job Granular Visibility
   const effectiveRunState = useMemo(() => {
     return resolveEffectiveRunState(runData?.run);
   }, [runData]);
@@ -394,7 +428,7 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
-      {/* HERO CONTROL HEADER - SYSTEM DESIGN TOKENS ALIGNED (Point 2) */}
+      {/* HERO CONTROL HEADER - SYSTEM DESIGN TOKENS ALIGNED */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -476,7 +510,7 @@ export default function AutoBackfillOperatorPanel() {
           </div>
         )}
 
-        {/* ACTIVE RUN CONTROL & GRANULAR ACTIVE JOB VISIBILITY (Point 4) */}
+        {/* ACTIVE RUN CONTROL & GRANULAR ACTIVE JOB VISIBILITY */}
         {activeRunId && runData && (
           <div className="mt-4 flex flex-col gap-3 rounded-xl bg-slate-50 p-4 border border-slate-200">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -540,7 +574,7 @@ export default function AutoBackfillOperatorPanel() {
               </div>
             </div>
 
-            {/* GRANULAR JOB STATUS & WAITING_AUTH WARNING (Point 4) */}
+            {/* GRANULAR JOB STATUS & WAITING_AUTH WARNING */}
             <div className="flex flex-wrap items-center justify-between border-t border-slate-200 pt-3 text-xs">
               {activeExecutingJob ? (
                 <div className="flex items-center gap-2 font-medium text-slate-700">
@@ -562,7 +596,7 @@ export default function AutoBackfillOperatorPanel() {
         )}
       </div>
 
-      {/* DYNAMIC INDICATOR HEALTH CARDS GRID (Point 5: Unique Calendar Date Count) */}
+      {/* DYNAMIC INDICATOR HEALTH CARDS GRID (Point 4: Per-Lane Breakdown HUE vs TCT) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {indicatorsList.map((ind) => (
           <div
@@ -578,17 +612,50 @@ export default function AutoBackfillOperatorPanel() {
               <span className={`rounded-lg px-2 py-1 text-xs font-bold border ${ind.badgeClass}`}>
                 {ind.code}
               </span>
-              <span className="text-xs font-medium text-slate-500">Nguồn: {ind.supportedLanes.join(', ')}</span>
+              <span className="text-xs font-medium text-slate-500">Tổng: {ind.missingCount} ngày lịch thiếu</span>
             </div>
+            
             <h3 className="mt-2 text-base font-bold text-slate-900 line-clamp-1">{ind.displayName}</h3>
-            <div className="mt-4 flex items-baseline justify-between">
-              <div>
-                <span className="text-2xl font-extrabold text-amber-600">{ind.missingCount}</span>
-                <span className="ml-1.5 text-xs text-slate-500">ngày lịch còn thiếu</span>
-              </div>
-              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                {ind.successCount} ngày xong
-              </span>
+
+            {/* PER-LANE BREAKDOWN (Point 4) */}
+            <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3">
+              {ind.supportedLanes.map((lane) => {
+                const laneData = ind.lanesBreakdown?.[lane] || { missingCount: 0, successCount: 0, missingItems: [] };
+                return (
+                  <div
+                    key={lane}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (laneData.missingCount > 0) {
+                        setSelectedLaneModal({
+                          indicator: ind.code,
+                          displayName: ind.displayName,
+                          lane,
+                          missingCount: laneData.missingCount,
+                          missingItems: laneData.missingItems
+                        });
+                      }
+                    }}
+                    className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 hover:bg-blue-50/80 transition border border-slate-200 group"
+                  >
+                    <span className="text-xs font-bold text-slate-800">
+                      Nguồn {lane === 'HUE' ? 'Huế' : lane}:
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full border ${
+                        laneData.missingCount > 0 ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-emerald-100 text-emerald-900 border-emerald-200'
+                      }`}>
+                        {laneData.missingCount > 0 ? `Thiếu ${laneData.missingCount} ngày` : '100% Hoàn tất'}
+                      </span>
+                      {laneData.missingCount > 0 && (
+                        <span className="text-[11px] text-blue-700 font-bold group-hover:underline">
+                          [Xem ngày]
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
@@ -836,6 +903,60 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
+      {/* PER-LANE MISSING DATES MODAL (Point 4) */}
+      {selectedLaneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Danh sách Ngày thiếu: {selectedLaneModal.indicator} ({selectedLaneModal.lane === 'HUE' ? 'Nguồn Huế' : selectedLaneModal.lane})
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                  Tổng {selectedLaneModal.missingCount} ngày thiếu dữ liệu cần PO xem xét hoặc ngoại lệ.
+                </p>
+              </div>
+              <button onClick={() => setSelectedLaneModal(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex-1 overflow-y-auto divide-y divide-slate-100 pr-1">
+              {selectedLaneModal.missingItems.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between py-3 hover:bg-slate-50 px-2 rounded-lg transition">
+                  <div>
+                    <span className="font-bold text-slate-900 text-sm">{item.business_date}</span>
+                    <span className="ml-2 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200">
+                      {item.status}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedLaneModal(null);
+                      setConfirmModalItem(item);
+                      setConfirmReason('');
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs"
+                  >
+                    <UserCheck className="h-3.5 w-3.5 text-amber-700" />
+                    <span>Xác nhận Không phát sinh</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-200 flex justify-end">
+              <button
+                onClick={() => setSelectedLaneModal(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* REAL PO EXEMPTION CONFIRMATION MODAL */}
       {confirmModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
@@ -910,7 +1031,7 @@ export default function AutoBackfillOperatorPanel() {
             </div>
 
             <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-1.5 font-medium">
-              <div>Định danh ngoại lệ ID: <strong className="text-slate-900">{revokeModalItem.exception_id || revokeModalItem.id}</strong></div>
+              <div>Định danh ngoại lệ ID: <strong className="text-slate-900">{revokeModalItem.exception_id || revokeModalItem.exception?.id || revokeModalItem.id || 'N/A'}</strong></div>
               <div>Ngày: <strong>{revokeModalItem.business_date}</strong> ({revokeModalItem.indicator} - {revokeModalItem.source_lane})</div>
             </div>
 

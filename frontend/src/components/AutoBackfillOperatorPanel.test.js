@@ -306,6 +306,43 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   console.log('✔ 8. Smart Monthly Grouping Accordion Helper tests PASSED!');
 }
 
+// ==========================================
+// 9. Contract Test: Per-Lane Breakdown & Robust Code Matching
+// ==========================================
+{
+  const fixtureCoverageData = {
+    indicators: [
+      { code: 'F1.3', display_name: 'F1.3 KPI', supported_lanes: ['HUE', 'TCT'] }
+    ],
+    items: [
+      { indicator: 'f1.3', source_lane: 'HUE', business_date: '2026-07-20', status: 'TRUE_MISSING' },
+      { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-21', status: 'TRUE_MISSING' },
+      { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-20', status: 'TRUE_MISSING' },
+      { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-21', status: 'DATA_COMPLETE_WITH_EVIDENCE' }
+    ]
+  };
+
+  const resolved = resolveDynamicIndicators(fixtureCoverageData);
+  assert.equal(resolved.length, 1);
+  assert.equal(resolved[0].code, 'F1.3');
+
+  // Verify robust matching (lowercase 'f1.3' matched 'F1.3')
+  assert.equal(resolved[0].items.length, 4, 'Must match all 4 items regardless of case');
+  assert.equal(resolved[0].missingCount, 2, 'Unique calendar missing dates for F1.3 must be 2 (2026-07-20, 2026-07-21)');
+
+  // Verify per-lane breakdown
+  const hueBreakdown = resolved[0].lanesBreakdown.HUE;
+  assert.equal(hueBreakdown.missingCount, 2, 'Hue must have 2 missing dates');
+  assert.deepEqual(hueBreakdown.missingDates, ['2026-07-21', '2026-07-20']);
+
+  const tctBreakdown = resolved[0].lanesBreakdown.TCT;
+  assert.equal(tctBreakdown.missingCount, 1, 'TCT must have 1 missing date');
+  assert.deepEqual(tctBreakdown.missingDates, ['2026-07-20']);
+
+  console.log('✔ 9. Per-Lane Breakdown & Robust Code Matching tests PASSED!');
+}
+
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');
+
 
 

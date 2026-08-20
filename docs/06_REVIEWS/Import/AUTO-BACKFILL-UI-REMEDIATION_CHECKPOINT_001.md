@@ -8,21 +8,30 @@ Product Owner activated Phase B, `AUTO-BACKFILL-UI-REMEDIATION` (Frontend, Antig
 
 Baseline: `29346c92`, branch `codex/da-impl-006`.
 
-## 2. 5-Point PO Remediation Summary
+## 2. PO Remediation Round 1 & Round 2 Summary
 
-1. **Point 1: Real API Modal Exception Payload (`exception_type: 'PO_EXEMPTED'`)**: Fixed 422 error on `POST /api/import/auto-backfill/coverage/exceptions` by explicitly including `exception_type: 'PO_EXEMPTED'` in `handleConfirmExemption`.
-2. **Point 2: Standardized Header Styling**: Aligned "Trung tâm Điều hành Bù dữ liệu Tự động" banner and control cards with system design tokens (`var(--color-vnpost-blue)` `#0054A6`, white cards, `border-slate-200`, `text-slate-900`, `text-slate-500`).
-3. **Point 3: Safe Run Controls (`from_date` / `to_date`)**: Required explicit operator selection of Indicator (`targetIndicator`) and Month (`targetMonth`). Automatically computes inclusive `from_date` and `to_date` (e.g. `2026-07-01` to `2026-07-31`) for backend commit `3572593d` contract. Button disabled until selections are set.
-4. **Point 4: Granular Active Execution Visibility & WAITING_AUTH Warning**: Displays active processing job (`Chỉ tiêu × Nguồn × Ngày`) when run state is `RUNNING`. When `safety_state === 'WAITING_AUTH'`, renders prominent warning badge *"Cần đăng nhập thủ công [HUE / TCT]"* with lane action guidance.
-5. **Point 5: Unique Calendar Date Missing Count**: Fixed `missingCount` in `autoBackfillUiHelpers.js` to count unique calendar dates (`Set` of `business_date` strings for `TRUE_MISSING`/`MISSING` items) so missing HUE and TCT on the same date count as 1 missing date on top health summary cards.
+### Round 1 Remediations:
+1. **Real API Modal Exception Payload (`exception_type: 'PO_EXEMPTED'`)**: Fixed 422 error on `POST /api/import/auto-backfill/coverage/exceptions` by explicitly including `exception_type: 'PO_EXEMPTED'` in `handleConfirmExemption`.
+2. **Standardized Header Styling**: Aligned "Trung tâm Điều hành Bù dữ liệu Tự động" banner and control cards with system design tokens (`var(--color-vnpost-blue)` `#0054A6`, white cards, `border-slate-200`, `text-slate-900`, `text-slate-500`).
+3. **Safe Run Controls (`from_date` / `to_date`)**: Required explicit operator selection of Indicator (`targetIndicator`) and Month (`targetMonth`). Automatically computes inclusive `from_date` and `to_date` (e.g. `2026-07-01` to `2026-07-31`) for backend commit `3572593d` contract. Button disabled until selections are set.
+4. **Granular Active Execution Visibility & WAITING_AUTH Warning**: Displays active processing job (`Chỉ tiêu × Nguồn × Ngày`) when run state is `RUNNING`. When `safety_state === 'WAITING_AUTH'`, renders prominent warning badge *"Cần đăng nhập thủ công [HUE / TCT]"* with lane action guidance.
+5. **Unique Calendar Date Missing Count**: Fixed `missingCount` in `autoBackfillUiHelpers.js` to count unique calendar dates (`Set` of `business_date` strings for `TRUE_MISSING`/`MISSING` items) so missing HUE and TCT on the same date count as 1 missing date on top health summary cards.
+
+### Round 2 Remediations (2026-08-20):
+1. **Point 1: Scope Fix — Dark Banner in `DataImportCenter.jsx`**: Replaced dark `bg-slate-900` header in `DataImportCenter.jsx` (line 776) with system light theme tokens (white card, `border-slate-200`, `text-slate-900`, `text-slate-500`, VNPost blue badge `#0054A6`).
+2. **Point 2: Exception ID Resolution on Revoke**: Fixed `"Exception 'undefined' does not exist."` by merging active exceptions from `GET /api/import/auto-backfill/coverage/exceptions` into coverage items in `fetchCoverage()`, attaching valid `exception_id` to items before opening `ModalPOExceptionRevoke`.
+3. **Point 3: Robust Indicator Card Counting**: Normalized indicator code matching in `resolveDynamicIndicators` using `(item.indicator || item.indicator_code || '').trim().toUpperCase() === (ind.code || '').trim().toUpperCase()`, ensuring F1.3 and F4.1 correctly filter and calculate non-zero counts.
+4. **Point 4: Per-Lane Breakdown (HUE vs TCT) & Missing Dates Modal**: Added per-lane breakdown on Indicator Cards (*"Huế: X thiếu · Y xong | TCT: X thiếu · Y xong"*). Clicking a lane opens `<LaneMissingDatesModal />` listing exact missing `business_date` items for that lane with single-click PO exception triggers.
 
 ## 3. Validation Ledger
 
-- `node src/components/AutoBackfillOperatorPanel.test.js`: 8/8 PASS.
-- `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js"`: 0 ERRORS (3 unused variable warnings).
-- `cmd /c "npm run build"`: PASS (687 modules transformed cleanly in 1.24s).
+- `node src/components/AutoBackfillOperatorPanel.test.js`: 9/9 PASS.
+- `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js src/pages/DataImportCenter.jsx"`: 0 ERRORS.
+- `cmd /c "npm run build"`: PASS (687 modules transformed cleanly in 1.64s).
+- Direct data verification node script: 100% PASS (verified exact indicator counts, per-lane breakdown, and exception mapping).
 - Portal DKCL real environment: ZERO requests made; untouched.
 - Queue / Import / Runtime: Zero execution.
+
 
 ## 4. Backend Remediation Delta -- Optional `from_date`/`to_date` Enqueue Scope (2026-08-19, Claude Code)
 

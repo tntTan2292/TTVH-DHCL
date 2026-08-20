@@ -73,7 +73,7 @@ export function resolveRunActionButtons(effectiveState) {
 export function groupItemsByIndicator(items = []) {
   const result = {};
   items.forEach((item) => {
-    const key = item.indicator || 'OTHER';
+    const key = (item.indicator || item.indicator_code || 'OTHER').trim().toUpperCase();
     if (!result[key]) result[key] = [];
     result[key].push(item);
   });
@@ -127,14 +127,19 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
 
   const NEUTRAL_FALLBACK = APPROVED_THEMES.slate;
 
-  const items = Array.isArray(rawItems) ? rawItems : (coverageData?.items || []);
+  const items = (Array.isArray(rawItems) && rawItems.length > 0)
+    ? rawItems
+    : (Array.isArray(coverageData?.items) ? coverageData.items : []);
   const apiIndicators = Array.isArray(coverageData?.indicators) ? coverageData.indicators : [];
 
   if (apiIndicators.length > 0) {
     return apiIndicators.map((ind) => {
       const themeKey = APPROVED_THEMES[ind.badge_theme] ? ind.badge_theme : 'slate';
       const theme = APPROVED_THEMES[themeKey] || NEUTRAL_FALLBACK;
-      const indicatorItems = items.filter((item) => item.indicator === ind.code);
+      const indCodeNormalized = (ind.code || '').trim().toUpperCase();
+      const indicatorItems = items.filter(
+        (item) => (item.indicator || item.indicator_code || '').trim().toUpperCase() === indCodeNormalized
+      );
 
       const missingItems = indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
       const uniqueMissingDates = new Set(missingItems.map((i) => i.business_date).filter(Boolean));
@@ -142,13 +147,33 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
       const successItems = indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
       const uniqueSuccessDates = new Set(successItems.map((i) => i.business_date).filter(Boolean));
 
+      const supportedLanes = ind.supported_lanes || ['HUE', 'TCT'];
+      const lanesBreakdown = {};
+      supportedLanes.forEach((lane) => {
+        const laneItems = indicatorItems.filter((i) => (i.source_lane || i.lane || '').trim().toUpperCase() === lane.toUpperCase());
+        const laneMissingItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
+        const laneMissingDates = Array.from(new Set(laneMissingItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
+        
+        const laneSuccessItems = laneItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
+        const laneSuccessDates = Array.from(new Set(laneSuccessItems.map((i) => i.business_date).filter(Boolean)));
+
+        lanesBreakdown[lane] = {
+          lane,
+          missingCount: laneMissingDates.length,
+          missingDates: laneMissingDates,
+          missingItems: laneMissingItems,
+          successCount: laneSuccessDates.length,
+          successDates: laneSuccessDates,
+        };
+      });
+
       return {
         code: ind.code,
         displayName: ind.display_name || ind.code,
         displayOrder: ind.display_order || 99,
         status: ind.status || 'ACTIVE',
         trackingStartDate: ind.tracking_start_date || '2026-01-01',
-        supportedLanes: ind.supported_lanes || ['HUE', 'TCT'],
+        supportedLanes,
         automationMode: ind.automation_mode || 'AUTOMATED',
         badgeThemeKey: themeKey,
         badgeClass: theme.badgeClass,
@@ -156,6 +181,7 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
         items: indicatorItems,
         missingCount: uniqueMissingDates.size,
         successCount: uniqueSuccessDates.size,
+        lanesBreakdown,
       };
     });
   }
@@ -175,13 +201,33 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
     const successItems = indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
     const uniqueSuccessDates = new Set(successItems.map((i) => i.business_date).filter(Boolean));
 
+    const supportedLanes = ['HUE', 'TCT'];
+    const lanesBreakdown = {};
+    supportedLanes.forEach((lane) => {
+      const laneItems = indicatorItems.filter((i) => (i.source_lane || i.lane || '').trim().toUpperCase() === lane.toUpperCase());
+      const laneMissingItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
+      const laneMissingDates = Array.from(new Set(laneMissingItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
+      
+      const laneSuccessItems = laneItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
+      const laneSuccessDates = Array.from(new Set(laneSuccessItems.map((i) => i.business_date).filter(Boolean)));
+
+      lanesBreakdown[lane] = {
+        lane,
+        missingCount: laneMissingDates.length,
+        missingDates: laneMissingDates,
+        missingItems: laneMissingItems,
+        successCount: laneSuccessDates.length,
+        successDates: laneSuccessDates,
+      };
+    });
+
     return {
       code,
       displayName: code === 'F1.3' ? 'F1.3 KPI Chất lượng' : code === 'F4.1' ? 'F4.1 Phát BC' : code,
       displayOrder: index + 1,
       status: 'ACTIVE',
       trackingStartDate: '2026-01-01',
-      supportedLanes: ['HUE', 'TCT'],
+      supportedLanes,
       automationMode: 'AUTOMATED',
       badgeThemeKey: themeKey,
       badgeClass: theme.badgeClass,
@@ -189,6 +235,7 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
       items: indicatorItems,
       missingCount: uniqueMissingDates.size,
       successCount: uniqueSuccessDates.size,
+      lanesBreakdown,
     };
   });
 }
