@@ -1130,3 +1130,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Added the explicitly requested case (data present + valid integrity + no log + no artifact -> SUCCESS) and a genuine-integrity-violation case proving MANUAL_REVIEW_REQUIRED remains correct for real duplicate/mismatched data.
 - Combined regression (Coverage, Coverage Exception, Safety, Queue, F1.3/F4.1 executors, migrations) 114/114 PASS; also re-ran F1.3/F4.1 backfill/sync/Import pipeline/e2e 7/7 PASS. Scope confirmed backend-only (exactly 3 files changed); frontend, schema, and Queue/Safety/Portal/Import execution untouched.
 - State: `AUTO-BACKFILL-UI-REMEDIATION backend delta (Section 5) IMPLEMENTED / READY FOR PO BACKEND GATE`. Not self-passed; does not affect the separate frontend `READY FOR PO UI CHECK` state.
+
+## CODEX_PROMPT_STANDARD.md: CTO Self-Pass Criteria & Active-Session Delta Prompt Rule
+
+- Product Owner instructed 2 new coordination rules, documentation-only, parallel to the active AUTO-BACKFILL-UI-REMEDIATION ticket.
+- Section 13.2 CTO Self-Pass Criteria: Claude/CTO may self-pass a Technical Execution Report without a separate PO decision request only when all 4 hold together -- technical-only within already-approved scope (no new inferred business rule), no UI touched, no new operational risk (no newly-enabled real run/write), no schema or business-data-meaning change. Missing any one, or any new business decision, still escalates to the PO as normal.
+- Section 2.2 Active-Session Delta Prompt Rule, clarifying Section 2.1: within the same already-onboarded session, a follow-up prompt does not need to repeat the README_AI.md onboarding-chain instruction, only the new delta; full onboarding is required again only for a genuinely new session (new terminal/chat, or Claude Code restart/context loss).
+- No product code, schema, or database touched; git diff --name-only confirms exactly 1 file changed; zero NUL bytes and zero broken ToC anchors confirmed.
+- State: `CODEX_PROMPT_STANDARD.md governance rules IMPLEMENTED / READY FOR PO CHECK`. Not self-passed.

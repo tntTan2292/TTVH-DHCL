@@ -7,6 +7,7 @@ Filename retained as `CODEX_PROMPT_STANDARD.md` for link continuity. Default exe
 - [1. Purpose](#1-purpose)
 - [2. Lean Prompt Rule](#2-lean-prompt-rule)
 - [2.1 First-Prompt Governance Gate](#21-first-prompt-governance-gate)
+- [2.2 Active-Session Delta Prompt Rule](#22-active-session-delta-prompt-rule)
 - [3. Active-Ticket Delta Prompt Rule](#3-active-ticket-delta-prompt-rule)
 - [Single-defect remediation](#single-defect-remediation)
 - [Workspace Hygiene](#workspace-hygiene)
@@ -21,6 +22,7 @@ Filename retained as `CODEX_PROMPT_STANDARD.md` for link continuity. Default exe
 - [12. Conversation Context Capacity and Fresh-Chat Handoff](#12-conversation-context-capacity-and-fresh-chat-handoff)
 - [13. Executor Selection Rule](#13-executor-selection-rule)
 - [13.1 Claude Code Model Selection](#131-claude-code-model-selection)
+- [13.2 CTO Self-Pass Criteria](#132-cto-self-pass-criteria)
 - [14. Two Reporting Channels](#14-two-reporting-channels)
 
 ## 1. Purpose
@@ -73,6 +75,14 @@ Executor selection is two-layer, and the model is not interchangeable across exe
 - the prompt must state the resulting pairing explicitly: `Antigravity (Gemini)`, `Claude Code (Sonnet)`, or `Claude Code (Opus)`
 
 `Codex` is no longer the default executor and must not be selected unless the Product Owner explicitly authorizes it for a specific ticket. Historical Codex tickets, checkpoints, and manifests remain valid records and must not be rewritten.
+
+## 2.2 Active-Session Delta Prompt Rule
+
+This clarifies Section 2.1 for continuation inside the same active AI/chat session; it does not replace Section 2.1's new-session gate, and it is distinct from Section 3's rule about prompt *content* (which still applies in full either way).
+
+When Claude Code is already in the same session that has read the onboarding chain and already holds the current ticket's context, the next prompt in that same session does not need to repeat the `Đọc README_AI.md → CODEX_PROMPT_STANDARD.md → PROJECT_SNAPSHOT.md → ...` onboarding instruction. State only the new defect, delta, or decision, per Section 3.
+
+Full onboarding must be read again only when a genuinely new session starts: a new terminal, a new chat, or Claude Code restarting or otherwise losing context. When it is unclear whether context was lost, re-read onboarding rather than assume continuity.
 
 ## 3. Active-Ticket Delta Prompt Rule
 
@@ -537,6 +547,19 @@ Antigravity results require careful verification before PO PASS:
 - source diff review
 - focused regression
 - PO acceptance handoff
+
+## 13.2 CTO Self-Pass Criteria
+
+Claude/CTO may self-pass a Technical Execution Report -- close the item as `PASS` on its own authority, without a separate Product Owner decision request -- only when **all four** of the following hold together:
+
+1. The change implements only technical scope already approved by the Product Owner; it does not infer a new business rule.
+2. The change does not touch UI (UI always requires the Product Owner's own eyes before `PASS` -- see Section 10).
+3. The change does not raise operational risk -- it does not newly enable a real run, a real write, or any other new live/production capability.
+4. The change does not alter schema or the meaning of business data.
+
+If even one of the four is missing, or the change is or implies a new business decision, escalate to the Product Owner as normal (Section 7, Section 14.1). Do not infer that self-pass applies -- when in doubt, it does not apply.
+
+Self-pass never applies to Antigravity or Codex work (see Section 13.1's Antigravity verification requirements), and never applies when the ticket's `PO UI Check Required = Yes` (Section 10). Self-pass is authority to close a Technical Execution Report that already satisfies all four criteria; it is not authority to skip validation, testing, or the governance handoff in Section 5/Section 6.
 
 ## 14. Two Reporting Channels
 
