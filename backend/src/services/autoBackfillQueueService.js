@@ -11,6 +11,7 @@ const {
 } = require('./importIndicatorRegistry');
 const { COMPLETION_STATUSES } = require('./autoBackfillCompletionPolicies');
 const { AutoBackfillSafetyCoordinator, scopeKey } = require('./autoBackfillSafetyCoordinator');
+const { normalizeBusinessDate } = require('./autoBackfillBusinessCalendar');
 
 function normalizeRoles(roles) {
     const values = Array.isArray(roles) ? roles : [roles];
@@ -25,6 +26,21 @@ function assertAdmin(roles) {
 
 function stableRequestKey(value) {
     return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+// Optional enqueue-scope filter for createRun(): when neither bound is
+// supplied, behavior is unchanged (the full coverage-eligible set is
+// enqueued). Reuses the shared business-date validator so malformed dates
+// fail the same way (`INVALID_DATE`, 400) as everywhere else in Auto
+// Backfill; an inverted range is rejected explicitly rather than silently
+// producing an empty job set.
+function normalizeOptionalDateRange(fromDate, toDate) {
+    const normalizedFrom = fromDate ? normalizeBusinessDate(fromDate, 'from_date') : null;
+    const normalizedTo = toDate ? normalizeBusinessDate(toDate, 'to_date') : null;
+    if (normalizedFrom && normalizedTo && normalizedFrom > normalizedTo) {
+        throw queueError('AUTO_BACKFILL_DATE_RANGE_INVALID', 'from_date must be less than or equal to to_date.', 400);
+    }
+    return { fromDate: normalizedFrom, toDate: normalizedTo };
 }
 
 class AutoBackfillQueueService {
@@ -81,10 +97,14 @@ class AutoBackfillQueueService {
         return { indicator, lane };
     }
 
-    async createRun({ indicator = null, lane = null, actor, roles }) {
+    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, actor, roles }) {
         assertAdmin(roles);
+        const range = normalizeOptionalDateRange(fromDate, toDate);
         const coverage = await this.coverageService.scan({ indicator, lane, roles: ['admin'] });
-        const eligible = coverage.items.filter((item) => item.queue_eligible);
+        const eligible = coverage.items
+            .filter((item) => item.queue_eligible)
+            .filter((item) => !range.fromDate || item.business_date >= range.fromDate)
+            .filter((item) => !range.toDate || item.business_date <= range.toDate);
         if (eligible.length === 0) {
             throw queueError(
                 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE',
@@ -402,4 +422,5 @@ module.exports = {
     AutoBackfillQueueService,
     assertAdmin,
     stableRequestKey,
+    normalizeOptionalDateRange,
 };

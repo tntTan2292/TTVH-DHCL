@@ -1,7 +1,7 @@
 # AUTO-BACKFILL-UI-REMEDIATION Manifest
 
-Ticket Name: `AUTO-BACKFILL-UI-REMEDIATION` (Phase B, Frontend).
-Status: `ACTIVE` (2026-08-19).
+Ticket Name: `AUTO-BACKFILL-UI-REMEDIATION` (Phase B, Frontend; Section 5 below is a PO-instructed backend delta).
+Status: `Frontend READY FOR PO UI CHECK; Backend delta IMPLEMENTED / READY FOR PO BACKEND GATE` (2026-08-19).
 Baseline: `29346c92` (Phase A `AUTO-BACKFILL-COVERAGE-EXCEPTION` CLOSED / PO BACKEND GATE PASS).
 Branch: `codex/da-impl-006`.
 
@@ -33,3 +33,37 @@ This ticket integrates the real, verified backend REST APIs created in Phase A (
 - `cmd /c "npm run lint"` (0 errors)
 - `cmd /c "npm run build"` (PASS)
 - Backend regression sweep (`test_autoBackfillCoverageService.js`, `test_autoBackfillCoverageExceptionService.js`).
+
+## 5. Backend Remediation Delta -- Optional `from_date`/`to_date` Enqueue Scope (2026-08-19, Claude Code)
+
+The Product Owner directly instructed one backend point for this ticket: add an optional date-range filter to `POST /api/import/auto-backfill/runs` so an operator can limit which missing dates get enqueued (e.g. to enqueue one specific month at a time from the Smart Monthly Grouping accordions built in Section 2). This widens Section 3's "STRICT FRONTEND ONLY" lock by explicit PO instruction, for this one backend delta only -- every other Section 3 constraint (real APIs only, no browser/Portal execution, no self PO PASS) still applies.
+
+### 5.1 Locked Contract
+
+- `POST /api/import/auto-backfill/runs` accepts optional `from_date`/`to_date` (`YYYY-MM-DD`) in the request body.
+- Neither supplied: unchanged behavior -- the full coverage-eligible window is enqueued, exactly as before this delta.
+- Only one bound supplied: an open-ended range on the other side (`from_date` alone keeps every eligible date `>= from_date`; `to_date` alone keeps every eligible date `<= to_date`).
+- Both supplied: only dates within the inclusive `[from_date, to_date]` range are enqueued.
+- `from_date > to_date`: rejected `400 AUTO_BACKFILL_DATE_RANGE_INVALID`, before any coverage scan or queue write.
+- A malformed date (bad format or an invalid calendar date) is rejected `400 INVALID_DATE`, reusing the same shared business-date validator (`autoBackfillBusinessCalendar.js`) already used elsewhere in Auto Backfill.
+- No schema, migration, or persisted-run-record change -- the filter narrows what `createRun()` enqueues; it is not stored on the run row.
+
+### 5.2 In Scope
+
+- `backend/src/controllers/autoBackfillQueueController.js`: forward `from_date`/`to_date` from the request body.
+- `backend/src/services/autoBackfillQueueService.js`: `createRun()` validation and date-range filtering.
+- Backend tests only.
+
+### 5.3 Out Of Scope
+
+- Frontend (`AutoBackfillOperatorPanel.jsx`, `DataImportCenter.jsx`) -- untouched; Section 2's `READY FOR PO UI CHECK` state is unaffected.
+- Any schema/migration change, any change to Coverage/Safety/Portal/Import behavior.
+- `AUTO-BACKFILL-RUNTIME` or any successor activation.
+
+### 5.4 Required Validation
+
+- With/without `from_date`/`to_date`; one specific calendar month; regression across Queue, Coverage, and Safety suites all PASS.
+
+### 5.5 Stop Condition
+
+`AUTO-BACKFILL-UI-REMEDIATION backend delta IMPLEMENTED / READY FOR PO BACKEND GATE`. Not self-passed. Does not affect Section 2's frontend `READY FOR PO UI CHECK` state, and does not activate `AUTO-BACKFILL-RUNTIME`.

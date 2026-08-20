@@ -44,6 +44,8 @@ class AutoBackfillQueueController {
             const data = await this.getService().createRun({
                 indicator: req.body?.indicator || null,
                 lane: req.body?.lane || null,
+                fromDate: req.body?.from_date || null,
+                toDate: req.body?.to_date || null,
                 actor: requestActor(req),
                 roles: requestRoles(req),
             });

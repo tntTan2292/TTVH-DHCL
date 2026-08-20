@@ -1114,3 +1114,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 
 - Product Owner granted `PO BACKEND GATE PASS` on commit `29346c92` (direct chat confirmation with CTO/Claude), citing 3 points: the 5-point `VERIFIED_NO_DATA` adapter-proof standard, admin-only audited/reversible `PO_EXEMPTED`, and manually-handled `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE`.
 - Closes `AUTO-BACKFILL-COVERAGE-EXCEPTION` as `COMPLETED / PO BACKEND GATE PASS / CLOSED`. Documentation-only closure; no product code, schema, or database changed. `AUTO-BACKFILL-UI-REMEDIATION` (Phase B, Antigravity) is not activated by this closure and requires its own explicit Product Owner activation. `AUTO-BACKFILL-RUNTIME` remains unauthorized.
+
+## AUTO-BACKFILL-UI-REMEDIATION Backend Delta: Optional from_date/to_date Enqueue Scope
+
+- Product Owner instructed one backend point on the active Phase B ticket: POST /api/import/auto-backfill/runs now accepts optional from_date/to_date to scope which missing dates get enqueued (e.g. one specific month at a time), reusing the shared business-date validator for consistent 400 errors and rejecting an inverted range explicitly.
+- Neither supplied keeps prior behavior unchanged (full coverage-eligible window enqueued); no schema/migration change.
+- 9 new/updated tests (no bounds, from-only, to-only, both bounds, one full calendar month, inverted-range rejection, malformed-date rejection, zero-eligible-coverage). Targeted Queue suite 31/31 PASS; required Queue/Coverage/Safety regression sweep 112/112 PASS.
+- Scope confirmed backend-only (exactly 4 files changed); frontend, schema, and Coverage/Safety/Portal/Import behavior untouched.
+- State: `AUTO-BACKFILL-UI-REMEDIATION backend delta IMPLEMENTED / READY FOR PO BACKEND GATE`. Not self-passed; does not affect the separate frontend `READY FOR PO UI CHECK` state.

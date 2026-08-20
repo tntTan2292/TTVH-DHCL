@@ -205,6 +205,110 @@ test('AB-QUE-01 persists deterministic priority and permits exactly one global R
     }
 });
 
+test('createRun with no from_date/to_date enqueues the full coverage-eligible window (unchanged behavior)', async () => {
+    const fixture = await createFixture();
+    try {
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        assert.deepEqual(created.jobs.map((job) => job.business_date).sort(), ['2026-01-02', '2026-01-02', '2026-01-02', '2026-01-03', '2026-01-03', '2026-01-03']);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('createRun with only from_date keeps every eligible date on or after it', async () => {
+    const fixture = await createFixture();
+    try {
+        const created = await fixture.service.createRun({ fromDate: '2026-01-03', actor: 'admin', roles: ['admin'] });
+        assert.deepEqual(new Set(created.jobs.map((job) => job.business_date)), new Set(['2026-01-03']));
+        assert.equal(created.jobs.length, 3);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('createRun with only to_date keeps every eligible date on or before it', async () => {
+    const fixture = await createFixture();
+    try {
+        const created = await fixture.service.createRun({ toDate: '2026-01-02', actor: 'admin', roles: ['admin'] });
+        assert.deepEqual(new Set(created.jobs.map((job) => job.business_date)), new Set(['2026-01-02']));
+        assert.equal(created.jobs.length, 3);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('createRun with from_date and to_date enqueues only the inclusive range', async () => {
+    const fixture = await createFixture();
+    try {
+        const created = await fixture.service.createRun({ fromDate: '2026-01-02', toDate: '2026-01-02', actor: 'admin', roles: ['admin'] });
+        assert.deepEqual(new Set(created.jobs.map((job) => job.business_date)), new Set(['2026-01-02']));
+        assert.equal(created.jobs.length, 3);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('createRun scoped to one specific calendar month enqueues exactly that month and nothing outside it', async () => {
+    const fixture = await createFixture({
+        indicators: (statuses) => [createIndicator({ code: 'F9.TEST', priority: 10, startDate: '2025-11-15', laneCodes: ['HUE'], statuses })],
+        now: '2026-01-04T01:00:00.000Z',
+    });
+    try {
+        const created = await fixture.service.createRun({ fromDate: '2025-12-01', toDate: '2025-12-31', actor: 'admin', roles: ['admin'] });
+        const dates = created.jobs.map((job) => job.business_date).sort();
+        assert.equal(dates.length, 31);
+        assert.equal(dates[0], '2025-12-01');
+        assert.equal(dates.at(-1), '2025-12-31');
+        assert.ok(dates.every((date) => date >= '2025-12-01' && date <= '2025-12-31'));
+        assert.ok(!dates.some((date) => date.startsWith('2025-11') || date.startsWith('2026-01')));
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('createRun rejects from_date after to_date with 400 before any scan or write', async () => {
+    const fixture = await createFixture();
+    try {
+        await assert.rejects(
+            fixture.service.createRun({ fromDate: '2026-01-03', toDate: '2026-01-02', actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_DATE_RANGE_INVALID' && error.statusCode === 400,
+        );
+        assert.equal(await fixture.service.store.countRows('auto_backfill_run'), 0);
+        assert.equal(await fixture.service.store.countRows('auto_backfill_job'), 0);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('createRun rejects a malformed from_date/to_date the same way as every other business-date validator', async () => {
+    const fixture = await createFixture();
+    try {
+        await assert.rejects(
+            fixture.service.createRun({ fromDate: '2026-02-30', actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'INVALID_DATE' && error.statusCode === 400,
+        );
+        await assert.rejects(
+            fixture.service.createRun({ toDate: 'not-a-date', actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'INVALID_DATE' && error.statusCode === 400,
+        );
+        assert.equal(await fixture.service.store.countRows('auto_backfill_run'), 0);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('createRun with a from_date/to_date window matching no eligible coverage rejects with the existing no-executable-coverage error', async () => {
+    const fixture = await createFixture();
+    try {
+        await assert.rejects(
+            fixture.service.createRun({ fromDate: '2020-01-01', toDate: '2020-01-31', actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
+        );
+    } finally {
+        fixture.cleanup();
+    }
+});
+
 test('AB-QUE-02 pause lets the atomic job finish, blocks the next lease, and resume continues', async () => {
     const started = deferred();
     const release = deferred();
