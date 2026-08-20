@@ -270,7 +270,7 @@ test('AB-ISO-02 does not reuse HUE facts, log, or artifact for TCT', async () =>
     }
 });
 
-test('committed FILE_MOVE_FAILED data is MANUAL_REVIEW_REQUIRED and never queue eligible', async () => {
+test('PO policy: committed data with a FILE_MOVE_FAILED log is still SUCCESS -- data presence, not import source, decides completion', async () => {
     const fixture = await createIsolationFixture();
     try {
         await fixture.db.run("INSERT INTO fact_f13_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-02', 'BG-1')");
@@ -278,16 +278,20 @@ test('committed FILE_MOVE_FAILED data is MANUAL_REVIEW_REQUIRED and never queue 
         const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
             .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
 
-        assert.equal(coverage.items[0].status, 'MANUAL_REVIEW_REQUIRED');
-        assert.equal(coverage.items[0].completion_reason, 'COMMITTED_DATA_FILE_MOVE_FAILED');
+        assert.equal(coverage.items[0].status, 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(coverage.items[0].completion_reason, 'COMPLETE_EVIDENCE');
         assert.equal(coverage.items[0].queue_eligible, false);
+        assert.equal(coverage.items[0].queue_ineligible_reason, 'ALREADY_SUCCESS');
+        // Internal evidence is preserved even though it no longer gates the status.
+        assert.equal(coverage.items[0].evidence.file_move_failed_log_count, 1);
+        assert.equal(coverage.items[0].evidence.success_log_count, 0);
     } finally {
         await fixture.db.close();
         fs.rmSync(fixture.root, { recursive: true, force: true });
     }
 });
 
-test('committed SUCCESS data with a missing Processed artifact requires manual review', async () => {
+test('PO policy: committed data with a missing Processed artifact is still SUCCESS', async () => {
     const fixture = await createIsolationFixture();
     try {
         await fixture.db.run("INSERT INTO fact_f13_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-02', 'BG-1')");
@@ -295,9 +299,55 @@ test('committed SUCCESS data with a missing Processed artifact requires manual r
         const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
             .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
 
-        assert.equal(coverage.items[0].status, 'MANUAL_REVIEW_REQUIRED');
-        assert.equal(coverage.items[0].completion_reason, 'COMMITTED_DATA_PROCESSED_ARTIFACT_MISSING');
+        assert.equal(coverage.items[0].status, 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(coverage.items[0].completion_reason, 'COMPLETE_EVIDENCE');
         assert.equal(coverage.items[0].queue_eligible, false);
+        // Internal evidence is preserved even though it no longer gates the status.
+        assert.equal(coverage.items[0].evidence.processed_artifact_present, false);
+    } finally {
+        await fixture.db.close();
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+    }
+});
+
+test('PO policy: committed data with NEITHER an import_log row NOR a Processed artifact is still SUCCESS', async () => {
+    const fixture = await createIsolationFixture();
+    try {
+        await fixture.db.run("INSERT INTO fact_f13_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-02', 'BG-1')");
+        const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
+            .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
+
+        assert.equal(coverage.items[0].status, 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(coverage.items[0].completion_reason, 'COMPLETE_EVIDENCE');
+        assert.equal(coverage.items[0].queue_eligible, false);
+        assert.equal(coverage.items[0].evidence.import_log_count, 0);
+        assert.equal(coverage.items[0].evidence.success_log_count, 0);
+        assert.equal(coverage.items[0].evidence.processed_artifact_present, false);
+    } finally {
+        await fixture.db.close();
+        fs.rmSync(fixture.root, { recursive: true, force: true });
+    }
+});
+
+test('duplicate committed rows (integrity invalid) still require manual review, never SUCCESS', async () => {
+    const fixture = await createIsolationFixture();
+    try {
+        // expectedRowCount is 1 for this fixture's policy; a 2nd distinct entity
+        // for the same date makes rowCount (2) diverge from expectedRowCount,
+        // and distinctCount (2) === rowCount (2) so this exercises the
+        // rowCount-mismatch integrity path, not the duplicate-id path.
+        await fixture.db.run("INSERT INTO fact_f13_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-02', 'BG-1')");
+        await fixture.db.run("INSERT INTO fact_f13_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-02', 'BG-2')");
+        await fixture.db.run("INSERT INTO import_log (indicator, source_lane, ngay_do_kiem, status) VALUES ('F1.3', 'HUE', '2026-01-02', 'SUCCESS')");
+        writeArtifact(fixture.registry[0], 'HUE', '2026-01-02');
+        const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
+            .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
+
+        assert.equal(coverage.items[0].status, 'MANUAL_REVIEW_REQUIRED');
+        assert.equal(coverage.items[0].completion_reason, 'COMMITTED_DATA_INTEGRITY_MISMATCH');
+        assert.equal(coverage.items[0].queue_eligible, false);
+        assert.equal(coverage.items[0].evidence.row_count, 2);
+        assert.equal(coverage.items[0].evidence.expected_row_count, 1);
     } finally {
         await fixture.db.close();
         fs.rmSync(fixture.root, { recursive: true, force: true });

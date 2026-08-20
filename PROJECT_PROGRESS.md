@@ -1122,3 +1122,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - 9 new/updated tests (no bounds, from-only, to-only, both bounds, one full calendar month, inverted-range rejection, malformed-date rejection, zero-eligible-coverage). Targeted Queue suite 31/31 PASS; required Queue/Coverage/Safety regression sweep 112/112 PASS.
 - Scope confirmed backend-only (exactly 4 files changed); frontend, schema, and Coverage/Safety/Portal/Import behavior untouched.
 - State: `AUTO-BACKFILL-UI-REMEDIATION backend delta IMPLEMENTED / READY FOR PO BACKEND GATE`. Not self-passed; does not affect the separate frontend `READY FOR PO UI CHECK` state.
+
+## AUTO-BACKFILL-UI-REMEDIATION Backend Delta: "Đã hoàn tất" Policy Simplified To Data-Presence-Only
+
+- Product Owner instructed a policy change: committed target-table data alone (integrity valid, no duplicates) is sufficient for SUCCESS ("Đã hoàn tất"); the import source (a completed Import run vs. legacy/direct data) is no longer relevant. successLogCount/artifactRequirementMet removed from the SUCCESS gate in createSqliteImportCompletionPolicy().evaluate(); MANUAL_REVIEW_REQUIRED/INCOMPLETE/MISSING branch logic and the evidence object's shape/content are unchanged.
+- Found and fixed the downstream ripple: 2 existing Coverage tests and 1 Coverage-Exception (LEGACY_BASELINE) test fixture relied on the now-superseded MANUAL_REVIEW_REQUIRED outcome for "data present, no log/artifact" as their setup/precondition; updated to the correct new SUCCESS assertion or a genuine integrity-invalid fixture respectively.
+- Added the explicitly requested case (data present + valid integrity + no log + no artifact -> SUCCESS) and a genuine-integrity-violation case proving MANUAL_REVIEW_REQUIRED remains correct for real duplicate/mismatched data.
+- Combined regression (Coverage, Coverage Exception, Safety, Queue, F1.3/F4.1 executors, migrations) 114/114 PASS; also re-ran F1.3/F4.1 backfill/sync/Import pipeline/e2e 7/7 PASS. Scope confirmed backend-only (exactly 3 files changed); frontend, schema, and Queue/Safety/Portal/Import execution untouched.
+- State: `AUTO-BACKFILL-UI-REMEDIATION backend delta (Section 5) IMPLEMENTED / READY FOR PO BACKEND GATE`. Not self-passed; does not affect the separate frontend `READY FOR PO UI CHECK` state.

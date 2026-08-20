@@ -80,7 +80,12 @@ function createSqliteImportCompletionPolicy({
                 processed_artifact_filename: artifactFilename,
             };
 
-            if (integrityValid && successLogCount > 0 && artifactRequirementMet) {
+            // PO policy: committed data alone is sufficient for SUCCESS -- the import
+            // source (a completed Import run vs. a legacy/direct row) is not relevant
+            // to the "Đã hoàn tất" status. `successLogCount`/`artifactRequirementMet`
+            // are intentionally not part of this gate; they remain in `evidence` for
+            // internal inspection only.
+            if (integrityValid) {
                 return { status: COMPLETION_STATUSES.SUCCESS, reason: 'COMPLETE_EVIDENCE', evidence };
             }
 

@@ -367,7 +367,13 @@ test('LEGACY_BASELINE is rejected when there is no committed data to reconcile',
 test('LEGACY_BASELINE is accepted when committed rows exist without complete import evidence', async () => {
     const fixture = await createFixture();
     try {
+        // PO policy: a single committed row with no log/artifact is now SUCCESS
+        // on its own (data presence is sufficient), so this scenario needs a
+        // genuine integrity mismatch (rowCount != expectedRowCount, which is 1
+        // for this fixture's policy) to still land on MANUAL_REVIEW_REQUIRED,
+        // the only raw status LEGACY_BASELINE is allowed to overlay.
         await fixture.db.run("INSERT INTO fact_f9_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-03', 'X-1')");
+        await fixture.db.run("INSERT INTO fact_f9_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-03', 'X-2')");
         const { exceptionService, coverageService } = createServices(fixture);
         const record = await exceptionService.create({
             indicator: 'F9.TEST', lane: 'HUE', businessDate: '2026-01-03',

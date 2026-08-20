@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-UI-REMEDIATION Checkpoint 001
 
-Status: `READY FOR PO UI CHECK` (2026-08-20).
+Status: `Frontend READY FOR PO UI CHECK (2026-08-20); Backend deltas (Sections 4-5) IMPLEMENTED / READY FOR PO BACKEND GATE`.
 
 ## 1. Activation & Baseline
 
@@ -67,4 +67,37 @@ Product Owner instructed one backend point: add an optional `from_date`/`to_date
 - `AUTO-BACKFILL-RUNTIME` not activated. Product Owner backend gate is not self-passed.
 
 State: `AUTO-BACKFILL-UI-REMEDIATION backend delta IMPLEMENTED / READY FOR PO BACKEND GATE`.
+
+## 5. Backend Remediation Delta -- "Đã hoàn tất" (SUCCESS) Policy Simplified To Data-Presence-Only (2026-08-19, Claude Code)
+
+Product Owner instructed a policy change: committed target-table data alone is sufficient for the `SUCCESS` ("Đã hoàn tất") completion status -- the import source (a completed Import run vs. legacy/direct data) is no longer relevant. Manifest Section 6 has the locked contract. This is a second PO-instructed exception to Section 3's "STRICT FRONTEND ONLY" lock, backend-only.
+
+### 5.1 Implementation
+
+`backend/src/services/autoBackfillCompletionPolicies.js`, `createSqliteImportCompletionPolicy().evaluate()`: the `SUCCESS` gate changed from `integrityValid && successLogCount > 0 && artifactRequirementMet` to `integrityValid` alone (`rowCount > 0`, matching a declared `expectedRowCount`, and `distinctCount === rowCount`). The `MANUAL_REVIEW_REQUIRED`/`INCOMPLETE`/`MISSING` branches and their reason cascade are byte-for-byte unchanged, now reached under the narrower "not `SUCCESS`" condition. The `evidence` object's shape and content (`success_log_count`, `processed_artifact_present`, etc.) is unchanged -- only the status-decision condition changed, no internal information was dropped.
+
+### 5.2 Downstream Ripple Found And Fixed
+
+Loosening the `SUCCESS` gate changed the raw completion result for the specific scenario of "committed data present, integrity valid, but no `SUCCESS` import-log row and/or no Processed artifact" -- that now correctly resolves `SUCCESS` instead of `MANUAL_REVIEW_REQUIRED`. Two existing Coverage tests asserting the old outcome for exactly that scenario were updated to assert `SUCCESS`/`DATA_COMPLETE_WITH_EVIDENCE`, with the preserved internal `evidence` fields asserted directly to prove nothing was silently dropped. The Coverage-Exception `LEGACY_BASELINE`-acceptance test's fixture (a single committed row, no log, no artifact) relied on the now-superseded `MANUAL_REVIEW_REQUIRED` outcome as its precondition; its setup was changed to a genuine integrity-invalid scenario (`rowCount` diverging from the lane's `expectedRowCount`) so it still exercises `LEGACY_BASELINE`'s real, current precondition.
+
+### 5.3 Tests Added/Updated
+
+- Coverage (`test_autoBackfillCoverageService.js`): updated 2 existing tests (FILE_MOVE_FAILED log present, missing Processed artifact) to assert the new `SUCCESS` outcome with internal-evidence assertions; added the explicitly requested case (`rowCount > 0` + valid integrity, **no** `import_log` row, **no** Processed artifact -> `SUCCESS`); added a genuine-integrity-violation case (rowCount mismatch vs. `expectedRowCount`) proving `MANUAL_REVIEW_REQUIRED` still fires correctly.
+- Coverage Exception (`test_autoBackfillCoverageExceptionService.js`): updated the `LEGACY_BASELINE` acceptance test's fixture to a genuine integrity-invalid scenario so its `MANUAL_REVIEW_REQUIRED` precondition still holds.
+
+### 5.4 Validation Result
+
+- Coverage + Coverage Exception (service/controller): `38/38` PASS.
+- Required regression: Coverage, Coverage Exception, Safety, Queue (service/controller), F1.3/F4.1 executors, Queue/Safety/Coverage-Exception migrations, server startup migrations: `114/114` PASS.
+- Also re-ran F1.3/F4.1 HUE/TCT backfill/sync, Import pipeline race/processor, F4.1 Import pipeline, e2e Import engine: `7/7` PASS.
+- `node -c` syntax-checked; zero NUL bytes confirmed in all 3 touched files.
+- `git diff --name-only` confirms exactly 3 backend files changed (`autoBackfillCompletionPolicies.js` and its 2 downstream test files) -- no frontend file, no schema/migration, no other backend service touched.
+
+### 5.5 Scope Proof
+
+- No frontend file touched; frontend `READY FOR PO UI CHECK` state (Sections 1-3) is unaffected.
+- No real Portal, Queue worker execution, Import, or browser; no business-data mutation; no schema/migration change.
+- `AUTO-BACKFILL-RUNTIME` not activated. Product Owner backend gate is not self-passed.
+
+State: `AUTO-BACKFILL-UI-REMEDIATION backend delta (Section 5) IMPLEMENTED / READY FOR PO BACKEND GATE`.
 
