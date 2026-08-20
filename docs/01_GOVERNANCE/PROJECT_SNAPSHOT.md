@@ -17,26 +17,26 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 
 | Field | Value |
 | --- | --- |
-| Current Phase | `AUTO-BACKFILL-UI-REMEDIATION — Phase B Frontend READY FOR PO UI CHECK (Round 3, 2026-08-20); backend deltas (optional from_date/to_date enqueue scope; SUCCESS policy simplified to data-presence-only) IMPLEMENTED / READY FOR PO BACKEND GATE (2026-08-19).` |
-| Current Ticket | `AUTO-BACKFILL-UI-REMEDIATION — Integrated Phase A REST APIs into Data Import Center; rendered 6 No-code Vietnamese status badges, Smart Monthly Grouping Accordions, ModalPOExceptionConfirm & Revoke, and Slide-out Audit Drawers; Round 3 UX (default-closed accordions, internal pagination, bulk exemption). Backend deltas: (1) POST /api/import/auto-backfill/runs accepts optional from_date/to_date to scope enqueue; (2) SUCCESS ("Đã hoàn tất") now requires only committed-data integrity, not import source.` |
-| Next Ticket | `AUTO-BACKFILL-RUNTIME (Requires PO Gate 6 PASS before activation).` |
-| Last PO Status | `Phase A (AUTO-BACKFILL-COVERAGE-EXCEPTION) CLOSED / PO BACKEND GATE PASS. PO explicitly activated Phase B (AUTO-BACKFILL-UI-REMEDIATION), then instructed 2 backend deltas (from_date/to_date enqueue scope; SUCCESS policy simplification), both implemented and awaiting their own PO backend gate.` |
+| Current Phase | `AUTO-BACKFILL-UI-REMEDIATION — COMPLETED / PO UI CHECK PASS / CLOSED (2026-08-20). Both backend deltas PO BACKEND GATE PASS.` |
+| Current Ticket | `None active. AUTO-BACKFILL-UI-REMEDIATION closed at PO UI Check PASS; both backend deltas closed at PO Backend Gate PASS.` |
+| Next Ticket | `AUTO-BACKFILL-RUNTIME — not yet created; requires its own explicit Product Owner activation. No manifest/checkpoint exists for it yet.` |
+| Last PO Status | `Product Owner confirmed PASS directly with CTO/Claude for AUTO-BACKFILL-UI-REMEDIATION (frontend, commits a9cd4091/22c96981/7968c79d/a8dc4fab/5cdc061d/92163470/1df314c9/4bd76d71) and both independent backend deltas (3572593d, 5d425d72), recorded now due to continuous follow-on work. Also confirmed acceptance of the 2 new CODEX_PROMPT_STANDARD.md governance rules (Section 13.2, Section 2.2).` |
 | Current Branch | `codex/da-impl-006` |
 | Current Manifest | `docs/10_TICKETS/AUTO-BACKFILL-UI-REMEDIATION_MANIFEST.md` |
-| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI-REMEDIATION_CHECKPOINT_001.md` — Phase B frontend implementation (Sections 1-3) plus 2 backend deltas (Sections 4-5), ready for PO UI check and PO backend gate respectively. |
-| Current State | `Frontend READY FOR PO UI CHECK; 2 backend deltas IMPLEMENTED / READY FOR PO BACKEND GATE (2026-08-19).` |
-| Technical Status | `Frontend Operator UI component, DataImportCenter 3-tab integration, oxlint 0 errors, vite build PASS, UI test suite 10/10 PASS. Backend deltas: (1) createRun() optional from_date/to_date filter; (2) completion-policy SUCCESS gate simplified to integrityValid alone. Combined Coverage/Coverage-Exception/Safety/Queue regression 114/114 PASS.` |
+| Current Checkpoint | `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI-REMEDIATION_CHECKPOINT_001.md` — Section 6 (Section 7 in the manifest) is the consolidated PO closure record for all 8 frontend commits and both backend deltas. |
+| Current State | `COMPLETED / PO UI CHECK PASS / CLOSED (2026-08-20).` |
+| Technical Status | `Frontend Operator UI component, DataImportCenter 3-tab integration, oxlint 0 errors, vite build PASS, UI test suite 10/10 PASS. Backend deltas: (1) createRun() optional from_date/to_date filter; (2) completion-policy SUCCESS gate simplified to integrityValid alone. Combined Coverage/Coverage-Exception/Safety/Queue regression 114/114 PASS. All PO-accepted; no known technical blocker.` |
 | Runtime Status | `No operational Queue, Portal, download or Import ran; browser closed.` |
-| PO UI Check Required | `Yes — Product Owner Gate 6 visual UI check required for Auto Backfill V2 Operator Panel.` |
-| PO Product Status | `AUTO-BACKFILL-F41 closed / PO GATE 4 PASS. AUTO-BACKFILL-SAFETY closed / PO GATE 5 PASS. AUTO-BACKFILL-UI implemented / ready for PO Gate 6, now superseded in scope by the approved 5-point remediation plan's Phase A/B split. AUTO-BACKFILL-COVERAGE-EXCEPTION (Phase A) closed / PO BACKEND GATE PASS.` |
-| Last Closed Ticket | `AUTO-BACKFILL-COVERAGE-EXCEPTION — COMPLETED / PO BACKEND GATE PASS / CLOSED (2026-08-19).` |
-| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-COVERAGE-EXCEPTION_MANIFEST.md` |
-| Last Reviewed Phase | `AUTO-BACKFILL-COVERAGE-EXCEPTION PO Backend Gate (2026-08-19): COMPLETED / PO BACKEND GATE PASS` |
-| Last Reviewed Implementation Commit | `29346c92 — verified atomic create()/revoke() and the 3 cited points accepted at PO Backend Gate.` |
+| PO UI Check Required | `No — closed at PO UI Check PASS (2026-08-20).` |
+| PO Product Status | `AUTO-BACKFILL-F41 closed / PO GATE 4 PASS. AUTO-BACKFILL-SAFETY closed / PO GATE 5 PASS. AUTO-BACKFILL-UI implemented / ready for PO Gate 6, superseded in scope by the approved 5-point remediation plan's Phase A/B split. AUTO-BACKFILL-COVERAGE-EXCEPTION (Phase A) closed / PO BACKEND GATE PASS. AUTO-BACKFILL-UI-REMEDIATION (Phase B) closed / PO UI CHECK PASS.` |
+| Last Closed Ticket | `AUTO-BACKFILL-UI-REMEDIATION — COMPLETED / PO UI CHECK PASS / CLOSED (2026-08-20); both backend deltas PO BACKEND GATE PASS.` |
+| Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-UI-REMEDIATION_MANIFEST.md` |
+| Last Reviewed Phase | `AUTO-BACKFILL-UI-REMEDIATION PO Closure (2026-08-20): COMPLETED / PO UI CHECK PASS + 2x PO BACKEND GATE PASS` |
+| Last Reviewed Implementation Commit | `1df314c9 — last frontend commit in the PO-accepted chain; backend deltas verified at 3572593d and 5d425d72.` |
 | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
-| Next Phase Authorization | `None self-activated. AUTO-BACKFILL-UI-REMEDIATION (Phase B) requires this ticket's verified backend APIs plus its own Antigravity-side activation. AUTO-BACKFILL-RUNTIME remains unauthorized.` |
+| Next Phase Authorization | `None self-activated. AUTO-BACKFILL-RUNTIME remains unauthorized and has no manifest/checkpoint yet; requires its own explicit Product Owner activation.` |
 | Governance Version | `V2 Active` |
-| Last Updated | `2026-08-19` |
+| Last Updated | `2026-08-20` |
 
 ## 3. Usage Rules
 
@@ -319,3 +319,14 @@ Latest authoritative next action (`2026-08-19`, UI-Remediation SUCCESS-policy ba
 `CODEX_PROMPT_STANDARD.md` -- 2 new coordination rules (`2026-08-20`, documentation-only, parallel to the active `AUTO-BACKFILL-UI-REMEDIATION` ticket above; does not change `Current Ticket`): Product Owner instructed 2 additions. (1) Section 13.2 `CTO Self-Pass Criteria` -- Claude/CTO may self-pass a Technical Execution Report without a separate PO decision request only when all 4 hold: technical-only within already-approved scope (no new inferred business rule), no UI touched, no new operational risk (no newly-enabled real run/write), no schema or business-data-meaning change; missing any one, or any new business decision, still escalates to the Product Owner as normal. (2) Section 2.2 `Active-Session Delta Prompt Rule`, clarifying Section 2.1 -- within the same already-onboarded session/context, a follow-up prompt does not need to repeat the `Đọc README_AI.md → ...` onboarding instruction, only the new delta; full onboarding is required again only for a genuinely new session (new terminal/chat, or Claude Code restart/context loss). No product code, schema, or database touched; zero NUL bytes and zero broken ToC anchors confirmed. `git diff --name-only` confirms exactly 1 file changed.
 
 Latest authoritative next action (`2026-08-20`, CODEX_PROMPT_STANDARD.md governance-rules addition; independent of the `AUTO-BACKFILL-UI-REMEDIATION` next action above, which still stands unchanged): `None self-activated. AWAIT PRODUCT OWNER CHECK on the 2 new rules (Section 13.2, Section 2.2).` State: `CODEX_PROMPT_STANDARD.md governance rules IMPLEMENTED / READY FOR PO CHECK`.
+
+`AUTO-BACKFILL-UI-REMEDIATION` PO Closure -- consolidated (`2026-08-20`): Product Owner confirmed `PASS` directly with CTO/Claude for the whole ticket, not yet recorded in repository governance because of continuous follow-on work; recorded now in full.
+
+1. Frontend (Phase B), `PO UI CHECK PASS`, covering commits `a9cd4091` (Phase B base), `22c96981` (Round 1), `7968c79d` (Round 2), `a8dc4fab` (Round 3 UX), `5cdc061d` (dynamic indicator-cards grid), `92163470` (fixed "100% Hoàn tất" badge to require `complete === total`), `1df314c9` (bulk reimport; renamed bulk exemption button), `4bd76d71` (per-row Reimport button/modal). Closes as `COMPLETED / PO UI CHECK PASS / CLOSED`.
+2. Backend delta -- optional `from_date`/`to_date` enqueue scope, commit `3572593d`: `PO BACKEND GATE PASS`.
+3. Backend delta -- SUCCESS completion policy simplified to data-presence-only, commit `5d425d72`: `PO BACKEND GATE PASS`.
+4. `CODEX_PROMPT_STANDARD.md` Section 13.2 (`CTO Self-Pass Criteria`) and Section 2.2 (`Active-Session Delta Prompt Rule`), commit `0ceee25a`: Product Owner confirmed acceptance -- approved, no longer awaiting PO.
+
+Documentation-only closure -- no product code, schema, or database changed for this update. `AUTO-BACKFILL-RUNTIME` is not activated by this closure; it has no manifest or checkpoint yet and remains a separate, not-yet-created ticket requiring its own explicit Product Owner authorization. Full evidence: `docs/06_REVIEWS/Import/AUTO-BACKFILL-UI-REMEDIATION_CHECKPOINT_001.md` Section 6; `docs/10_TICKETS/AUTO-BACKFILL-UI-REMEDIATION_MANIFEST.md` Section 7.
+
+Latest authoritative next action (`2026-08-20`, AUTO-BACKFILL-UI-REMEDIATION PO closure; supersedes every earlier next-action note for this ticket and its 2 backend deltas): `None self-activated. AUTO-BACKFILL-RUNTIME requires its own new ticket activation, explicitly authorized by the Product Owner, before any implementation.` State: `AUTO-BACKFILL-UI-REMEDIATION COMPLETED / PO UI CHECK PASS / CLOSED`; `Current Ticket = None`.

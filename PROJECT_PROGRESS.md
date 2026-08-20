@@ -1138,3 +1138,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Section 2.2 Active-Session Delta Prompt Rule, clarifying Section 2.1: within the same already-onboarded session, a follow-up prompt does not need to repeat the README_AI.md onboarding-chain instruction, only the new delta; full onboarding is required again only for a genuinely new session (new terminal/chat, or Claude Code restart/context loss).
 - No product code, schema, or database touched; git diff --name-only confirms exactly 1 file changed; zero NUL bytes and zero broken ToC anchors confirmed.
 - State: `CODEX_PROMPT_STANDARD.md governance rules IMPLEMENTED / READY FOR PO CHECK`. Not self-passed.
+
+## AUTO-BACKFILL-UI-REMEDIATION Closed / PO UI Check PASS + Both Backend Deltas PO Backend Gate PASS + Governance Rules Approved
+
+- Product Owner confirmed PASS directly with CTO/Claude for the whole AUTO-BACKFILL-UI-REMEDIATION ticket, not yet recorded in repository governance because of continuous follow-on work; recorded now in full.
+- Frontend (Phase B) closes COMPLETED / PO UI CHECK PASS / CLOSED, covering commits a9cd4091 (Phase B base), 22c96981 (Round 1), 7968c79d (Round 2), a8dc4fab (Round 3 UX), 5cdc061d (dynamic indicator-cards grid), 92163470 (fixed "100% Hoàn tất" badge), 1df314c9 (bulk reimport; renamed bulk exemption button), 4bd76d71 (per-row Reimport button/modal).
+- Both independent backend deltas closed PO BACKEND GATE PASS: 3572593d (optional from_date/to_date enqueue scope) and 5d425d72 (SUCCESS completion policy simplified to data-presence-only).
+- CODEX_PROMPT_STANDARD.md Section 13.2 (CTO Self-Pass Criteria) and Section 2.2 (Active-Session Delta Prompt Rule), commit 0ceee25a: Product Owner confirmed acceptance -- approved.
+- AUTO-BACKFILL-RUNTIME not activated by this closure; no manifest/checkpoint exists for it yet, awaiting its own explicit Product Owner authorization. Documentation-only update; no product code, schema, or database touched.

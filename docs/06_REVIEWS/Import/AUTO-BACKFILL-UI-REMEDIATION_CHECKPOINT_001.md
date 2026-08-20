@@ -1,6 +1,6 @@
 # AUTO-BACKFILL-UI-REMEDIATION Checkpoint 001
 
-Status: `Frontend READY FOR PO UI CHECK (2026-08-20); Backend deltas (Sections 4-5) IMPLEMENTED / READY FOR PO BACKEND GATE`.
+Status: `CLOSED / PO UI CHECK PASS` (frontend, 2026-08-20); backend deltas (Sections 4-5) `PO BACKEND GATE PASS`. See Section 6 for the consolidated closure record.
 
 ## 1. Activation & Baseline
 
@@ -75,7 +75,7 @@ Product Owner instructed one backend point: add an optional `from_date`/`to_date
 - No real Portal, Queue worker execution, Import, or browser; no business-data mutation; no schema/migration change.
 - `AUTO-BACKFILL-RUNTIME` not activated. Product Owner backend gate is not self-passed.
 
-State: `AUTO-BACKFILL-UI-REMEDIATION backend delta IMPLEMENTED / READY FOR PO BACKEND GATE`.
+State: `AUTO-BACKFILL-UI-REMEDIATION backend delta IMPLEMENTED / READY FOR PO BACKEND GATE`. **PO Backend Gate PASS confirmed 2026-08-20 (see Section 6).**
 
 ## 5. Backend Remediation Delta -- "Đã hoàn tất" (SUCCESS) Policy Simplified To Data-Presence-Only (2026-08-19, Claude Code)
 
@@ -108,5 +108,17 @@ Loosening the `SUCCESS` gate changed the raw completion result for the specific 
 - No real Portal, Queue worker execution, Import, or browser; no business-data mutation; no schema/migration change.
 - `AUTO-BACKFILL-RUNTIME` not activated. Product Owner backend gate is not self-passed.
 
-State: `AUTO-BACKFILL-UI-REMEDIATION backend delta (Section 5) IMPLEMENTED / READY FOR PO BACKEND GATE`.
+State: `AUTO-BACKFILL-UI-REMEDIATION backend delta (Section 5) IMPLEMENTED / READY FOR PO BACKEND GATE`. **PO Backend Gate PASS confirmed 2026-08-20 (see Section 6).**
+
+## 6. PO Closure Record (2026-08-20)
+
+Product Owner confirmed `PASS` for this ticket directly with CTO/Claude, not yet recorded in repository governance because of continuous follow-on work. Covers:
+
+1. **Frontend (Sections 1-3), `PO UI CHECK PASS`** -- commits `a9cd4091` (Phase B base), `22c96981` (Round 1: `exception_type` payload fix, banner styling, safe run-creation date range, active job status, unique missing-dates count), `7968c79d` (Round 2: light header banner, exception-ID merging on revoke, indicator-code filter matching, per-lane breakdown/missing-dates modal), `a8dc4fab` (Round 3 UX: default-closed accordions, internal pagination, bulk checkboxes/bulk exemption modal), `5cdc061d` (dynamic indicator-cards grid layout), `92163470` (fixed "100% Hoàn tất" badge to require `complete === total`), `1df314c9` (bulk reimport feature; bulk exemption button renamed), `4bd76d71` (per-row Reimport button and confirmation modal).
+2. **Backend delta, Section 4, `PO BACKEND GATE PASS`** -- commit `3572593d` (optional `from_date`/`to_date` enqueue scope).
+3. **Backend delta, Section 5, `PO BACKEND GATE PASS`** -- commit `5d425d72` (SUCCESS completion policy simplified to data-presence-only).
+
+Documentation-only closure -- no product code, schema, or database changed for this update. `AUTO-BACKFILL-RUNTIME` is not activated by this closure and remains a separate, not-yet-created ticket requiring its own explicit Product Owner authorization.
+
+State: `AUTO-BACKFILL-UI-REMEDIATION COMPLETED / PO UI CHECK PASS / CLOSED`; both backend deltas `PO BACKEND GATE PASS`.
 

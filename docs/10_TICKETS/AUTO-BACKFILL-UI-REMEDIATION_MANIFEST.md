@@ -1,7 +1,7 @@
 # AUTO-BACKFILL-UI-REMEDIATION Manifest
 
 Ticket Name: `AUTO-BACKFILL-UI-REMEDIATION` (Phase B, Frontend; Sections 5-6 below are PO-instructed backend deltas).
-Status: `Frontend READY FOR PO UI CHECK; Backend deltas (Sections 5-6) IMPLEMENTED / READY FOR PO BACKEND GATE` (2026-08-19).
+Status: `CLOSED / PO UI CHECK PASS` (frontend, 2026-08-20); backend deltas (Sections 5-6) `PO BACKEND GATE PASS`. See Section 7 for the consolidated closure record.
 Baseline: `29346c92` (Phase A `AUTO-BACKFILL-COVERAGE-EXCEPTION` CLOSED / PO BACKEND GATE PASS).
 Branch: `codex/da-impl-006`.
 
@@ -68,6 +68,8 @@ The Product Owner directly instructed one backend point for this ticket: add an 
 
 `AUTO-BACKFILL-UI-REMEDIATION backend delta IMPLEMENTED / READY FOR PO BACKEND GATE`. Not self-passed. Does not affect Section 2's frontend `READY FOR PO UI CHECK` state, and does not activate `AUTO-BACKFILL-RUNTIME`.
 
+**PO Backend Gate PASS (2026-08-20)**: Product Owner confirmed `PASS` for this delta directly with CTO/Claude (see Section 7 closure record). `AUTO-BACKFILL-UI-REMEDIATION` Section 5 delta is `PASSED`, commit `3572593d`.
+
 ## 6. Backend Remediation Delta -- "Đã hoàn tất" (SUCCESS) Policy Simplified To Data-Presence-Only (2026-08-19, Claude Code)
 
 Product Owner instructed a policy change to `createSqliteImportCompletionPolicy().evaluate()` in `backend/src/services/autoBackfillCompletionPolicies.js`: committed target-table data alone is sufficient for `SUCCESS` ("Đã hoàn tất") -- the import source (a completed Import run producing an `import_log` `SUCCESS` row and a Processed artifact, vs. legacy/direct data) is no longer relevant to that status.
@@ -103,3 +105,24 @@ Loosening the `SUCCESS` gate changed the raw completion result for scenarios tha
 ### 6.6 Stop Condition
 
 `AUTO-BACKFILL-UI-REMEDIATION backend delta (Section 6) IMPLEMENTED / READY FOR PO BACKEND GATE`. Not self-passed. Does not affect Section 2's frontend `READY FOR PO UI CHECK` state, and does not activate `AUTO-BACKFILL-RUNTIME`.
+
+**PO Backend Gate PASS (2026-08-20)**: Product Owner confirmed `PASS` for this delta directly with CTO/Claude (see Section 7 closure record). `AUTO-BACKFILL-UI-REMEDIATION` Section 6 delta is `PASSED`, commit `5d425d72`.
+
+## 7. PO Closure Record (2026-08-20)
+
+Product Owner confirmed `PASS` for this ticket directly with CTO/Claude, covering the following commits, not yet recorded in repository governance because of continuous follow-on work:
+
+| Commit | Description |
+| --- | --- |
+| `a9cd4091` | Phase B frontend base implementation (6 No-code status badges, monthly grouping accordions, real PO exception confirmation/revoke APIs) |
+| `22c96981` | Round 1 remediation: `exception_type` payload fix, banner styling, safe run-creation date range, active job status, unique missing-dates count |
+| `7968c79d` | Round 2 remediation: light header banner in `DataImportCenter`, exception-ID merging on revoke, indicator-code filter matching, per-lane breakdown and missing-dates modal |
+| `a8dc4fab` | Round 3 UX remediation: default-closed accordions, internal accordion pagination, bulk item checkboxes and bulk exemption modal |
+| `5cdc061d` | Indicator-cards grid layout made dynamic (no empty column slots when 2 indicators exist) |
+| `92163470` | Fixed "100% Hoàn tất" badge to require `complete === total`, not just `complete` alone |
+| `1df314c9` | Bulk reimport feature added; bulk exemption button on the floating bar renamed |
+| `4bd76d71` | Per-row Reimport button and confirmation modal for a single-date backfill request |
+
+This closes `AUTO-BACKFILL-UI-REMEDIATION` (frontend, Sections 1-4) as `COMPLETED / PO UI CHECK PASS / CLOSED`, and closes both backend deltas (Sections 5-6, commits `3572593d` and `5d425d72`) as `PO BACKEND GATE PASS`. Documentation-only closure -- no product code, schema, or database changed for this update. `AUTO-BACKFILL-RUNTIME` is not activated by this closure and remains a separate, not-yet-created ticket requiring its own explicit Product Owner authorization.
+
+`AUTO-BACKFILL-UI-REMEDIATION COMPLETED / PO UI CHECK PASS / CLOSED`.
