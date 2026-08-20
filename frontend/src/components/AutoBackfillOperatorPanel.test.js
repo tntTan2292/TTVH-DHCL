@@ -5,6 +5,7 @@ import {
   paginateItems,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
+  resolveIndicatorGridClass,
   resolveNoCodeStatus,
   resolveRunActionButtons,
   resolveWaitingAuthLanes
@@ -414,7 +415,32 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   console.log('✔ 11. Single-Date Reimport Run Payload Construction tests PASSED!');
 }
 
+// ==========================================
+// 12. Contract Test: Dynamic Indicator Card Grid Class Resolution (No Empty Slots)
+// ==========================================
+{
+  // Test 12.1: 2 Indicators (F1.3 and F4.1) must stretch across 2 equal columns without empty right slots
+  const grid2Class = resolveIndicatorGridClass(2);
+  assert.equal(grid2Class, 'grid grid-cols-1 sm:grid-cols-2 gap-4', '2 indicators must resolve to 2-column grid layout');
+  assert.ok(!grid2Class.includes('grid-cols-4'), '2 indicators grid class must NOT force grid-cols-4');
+
+  // Test 12.2: 4 Indicators fixture must resolve to 4-column layout
+  const grid4Class = resolveIndicatorGridClass(4);
+  assert.equal(grid4Class, 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4', '4 indicators must resolve to 4-column grid layout');
+
+  // Test 12.3: 1 Indicator must resolve to single-column layout
+  const grid1Class = resolveIndicatorGridClass(1);
+  assert.equal(grid1Class, 'grid grid-cols-1 gap-4');
+
+  // Test 12.4: 3 Indicators must resolve to 3-column layout
+  const grid3Class = resolveIndicatorGridClass(3);
+  assert.equal(grid3Class, 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4');
+
+  console.log('✔ 12. Dynamic Indicator Card Grid Class Resolution tests PASSED!');
+}
+
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');
+
 
 
 

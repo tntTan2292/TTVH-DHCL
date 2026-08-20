@@ -28,16 +28,16 @@ Baseline: `29346c92`, branch `codex/da-impl-006`.
    - Executes individual `POST /api/import/auto-backfill/coverage/exceptions` REST calls sequentially/in parallel per selected item to preserve fine-grained REST contracts and audit logs.
    - Reports exact success/failure breakdown per item if any error occurs without rolling back already successful items.
 
-3. **Point 3: Per-Row Single-Date Reimport Request ("Nhập lại")**:
-   - Added a **"Nhập lại"** button (`RotateCw` icon) to EVERY row item across all views (`MonthlyAccordionGroup` and `TABLE` view), regardless of status (including `DATA_COMPLETE_WITH_EVIDENCE`, `SUCCESS`, `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE`, `VERIFIED_NO_DATA`, `TRUE_MISSING`, `PO_EXEMPTED`, `MANUAL_REVIEW_REQUIRED`).
-   - Clicking "Nhập lại" opens a confirmation modal `<ModalReimportConfirm />` clearly displaying the target indicator, source lane, and business date.
-   - On confirmation, executes `POST /api/import/auto-backfill/runs` with exact single-date targeting (`from_date = to_date = business_date`), reusing the backend contract from commit `3572593d`.
+4. **Point 4: Dynamic Indicator Cards Grid Layout**:
+   - Replaced fixed `grid-cols-4` class in `AutoBackfillOperatorPanel.jsx` with dynamic grid class resolver `resolveIndicatorGridClass(indicatorsList.length)`.
+   - When 2 indicators exist (F1.3 & F4.1), layout renders 2 equal columns (`grid-cols-1 sm:grid-cols-2`), perfectly balancing across the row without leaving empty blank column slots on the right.
+   - Automatically adapts if future indicators are added (1 col for 1, 2 cols for 2, 3 cols for 3, 4 cols for 4+), without hardcoded placeholder cards.
 
 ## 3. Validation Ledger
 
-- `node src/components/AutoBackfillOperatorPanel.test.js`: **11 / 11 PASS** (Including Section 11 testing single-date reimport payload builder).
+- `node src/components/AutoBackfillOperatorPanel.test.js`: **12 / 12 PASS** (Including Section 12 testing dynamic indicator card grid class resolution).
 - `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js src/pages/DataImportCenter.jsx"`: **0 ERRORS**.
-- `cmd /c "npm run build"`: **PASS** (689 modules transformed cleanly in 1.22s).
+- `cmd /c "npm run build"`: **PASS** (689 modules transformed cleanly in 1.65s).
 - Direct data verification node script: **100% PASS**.
 - Portal DKCL real environment: ZERO requests made; untouched.
 - Queue / Import / Runtime: Zero execution.

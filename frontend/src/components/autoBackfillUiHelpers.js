@@ -7,6 +7,14 @@ export function resolveEffectiveRunState(run) {
   return run.safety_state || run.status || null;
 }
 
+export function resolveIndicatorGridClass(count = 0) {
+  const safeCount = Math.max(0, parseInt(count, 10) || 0);
+  if (safeCount <= 1) return 'grid grid-cols-1 gap-4';
+  if (safeCount === 2) return 'grid grid-cols-1 sm:grid-cols-2 gap-4';
+  if (safeCount === 3) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4';
+  return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4';
+}
+
 export function resolveWaitingAuthLanes(run, jobs = []) {
   if (!run) return [];
   const waitingJobs = (jobs || []).filter(

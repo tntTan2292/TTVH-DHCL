@@ -28,6 +28,7 @@ import {
   paginateItems,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
+  resolveIndicatorGridClass,
   resolveNoCodeStatus,
   resolveRunActionButtons,
   resolveWaitingAuthLanes
@@ -738,8 +739,8 @@ export default function AutoBackfillOperatorPanel() {
         )}
       </div>
 
-      {/* DYNAMIC INDICATOR HEALTH CARDS GRID */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* DYNAMIC INDICATOR HEALTH CARDS GRID (Responsive layout matching actual indicator count) */}
+      <div className={resolveIndicatorGridClass(indicatorsList.length)}>
         {indicatorsList.map((ind) => (
           <div
             key={ind.code}
