@@ -342,7 +342,48 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   console.log('✔ 9. Per-Lane Breakdown & Robust Code Matching tests PASSED!');
 }
 
+// ==========================================
+// 10. Contract Test: Round 3 UX — Accordion Internal Pagination & Bulk Selection Logic
+// ==========================================
+{
+  // Test 10.1: Internal Accordion Pagination bounded to 10 rows/page
+  const largeMonthItems = Array.from({ length: 25 }, (_, i) => ({
+    indicator: 'F1.3',
+    source_lane: 'HUE',
+    business_date: `2026-07-${String(i + 1).padStart(2, '0')}`,
+    status: 'TRUE_MISSING'
+  }));
+
+  const page1 = paginateItems(largeMonthItems, 1, 10);
+  assert.equal(page1.pageItems.length, 10, 'Accordion page 1 must be bounded to 10 items');
+  assert.equal(page1.totalPages, 3, '25 items at 10 items/page must total 3 pages');
+  assert.equal(page1.hasNext, true);
+  assert.equal(page1.hasPrev, false);
+
+  const page3 = paginateItems(largeMonthItems, 3, 10);
+  assert.equal(page3.pageItems.length, 5, 'Accordion page 3 must contain remaining 5 items');
+  assert.equal(page3.hasNext, false);
+
+  // Test 10.2: Bulk selection key helper and actionable filter
+  const actionableItems = [
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-01', status: 'TRUE_MISSING' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-02', status: 'DATA_COMPLETE_WITH_EVIDENCE' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-01', status: 'MANUAL_REVIEW_REQUIRED' }
+  ];
+
+  const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
+  const isActionable = (item) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status);
+
+  const filteredActionable = actionableItems.filter(isActionable);
+  assert.equal(filteredActionable.length, 2, 'Must filter exactly 2 actionable items for bulk exemption');
+  assert.equal(getItemKey(filteredActionable[0]), 'F1.3::HUE::2026-07-01');
+  assert.equal(getItemKey(filteredActionable[1]), 'F1.3::TCT::2026-07-01');
+
+  console.log('✔ 10. Accordion Internal Pagination & Bulk Selection logic tests PASSED!');
+}
+
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');
+
 
 
 

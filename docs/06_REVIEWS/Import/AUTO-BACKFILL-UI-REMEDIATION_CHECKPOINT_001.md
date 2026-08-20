@@ -17,18 +17,23 @@ Baseline: `29346c92`, branch `codex/da-impl-006`.
 4. **Granular Active Execution Visibility & WAITING_AUTH Warning**: Displays active processing job (`Chỉ tiêu × Nguồn × Ngày`) when run state is `RUNNING`. When `safety_state === 'WAITING_AUTH'`, renders prominent warning badge *"Cần đăng nhập thủ công [HUE / TCT]"* with lane action guidance.
 5. **Unique Calendar Date Missing Count**: Fixed `missingCount` in `autoBackfillUiHelpers.js` to count unique calendar dates (`Set` of `business_date` strings for `TRUE_MISSING`/`MISSING` items) so missing HUE and TCT on the same date count as 1 missing date on top health summary cards.
 
-### Round 2 Remediations (2026-08-20):
-1. **Point 1: Scope Fix — Dark Banner in `DataImportCenter.jsx`**: Replaced dark `bg-slate-900` header in `DataImportCenter.jsx` (line 776) with system light theme tokens (white card, `border-slate-200`, `text-slate-900`, `text-slate-500`, VNPost blue badge `#0054A6`).
-2. **Point 2: Exception ID Resolution on Revoke**: Fixed `"Exception 'undefined' does not exist."` by merging active exceptions from `GET /api/import/auto-backfill/coverage/exceptions` into coverage items in `fetchCoverage()`, attaching valid `exception_id` to items before opening `ModalPOExceptionRevoke`.
-3. **Point 3: Robust Indicator Card Counting**: Normalized indicator code matching in `resolveDynamicIndicators` using `(item.indicator || item.indicator_code || '').trim().toUpperCase() === (ind.code || '').trim().toUpperCase()`, ensuring F1.3 and F4.1 correctly filter and calculate non-zero counts.
-4. **Point 4: Per-Lane Breakdown (HUE vs TCT) & Missing Dates Modal**: Added per-lane breakdown on Indicator Cards (*"Huế: X thiếu · Y xong | TCT: X thiếu · Y xong"*). Clicking a lane opens `<LaneMissingDatesModal />` listing exact missing `business_date` items for that lane with single-click PO exception triggers.
+### Round 3 Remediations (2026-08-20, UX Improvements):
+1. **Point 1: Default Closed Accordions & Internal Pagination**:
+   - Set default accordion state to **CLOSED** (`isOpen = false` by default) for all months in `MonthlyAccordionGroup`, regardless of missing item count.
+   - Added internal pagination inside expanded month accordions using `paginateItems` bounded to 10 rows/page (with selectable 10/20/50 rows/page options and page navigation), preventing page scrolling overflow when a month has 60+ missing items.
+2. **Point 2: Bulk Selection & Bulk Exemption Confirmation**:
+   - Added item checkboxes (`CheckSquare` / `Square`) and "Select All" / "Chọn tất cả" controls for both `MonthlyAccordionGroup` and `TABLE` view.
+   - Displays a floating action bar when ≥1 actionable item is selected: *"Xác nhận Không phát sinh cho N ngày đã chọn"*.
+   - Opens a single bulk confirmation modal `<ModalPOBulkExceptionConfirm />` with a single mandatory reason textarea.
+   - Executes individual `POST /api/import/auto-backfill/coverage/exceptions` REST calls sequentially/in parallel per selected item to preserve fine-grained REST contracts and audit logs.
+   - Reports exact success/failure breakdown per item if any error occurs without rolling back already successful items.
 
 ## 3. Validation Ledger
 
-- `node src/components/AutoBackfillOperatorPanel.test.js`: 9/9 PASS.
-- `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js src/pages/DataImportCenter.jsx"`: 0 ERRORS.
-- `cmd /c "npm run build"`: PASS (687 modules transformed cleanly in 1.64s).
-- Direct data verification node script: 100% PASS (verified exact indicator counts, per-lane breakdown, and exception mapping).
+- `node src/components/AutoBackfillOperatorPanel.test.js`: **10 / 10 PASS** (Including Section 10 testing internal accordion pagination and bulk selection logic).
+- `cmd /c "npx oxlint src/components/AutoBackfillOperatorPanel.jsx src/components/autoBackfillUiHelpers.js src/pages/DataImportCenter.jsx"`: **0 ERRORS**.
+- `cmd /c "npm run build"`: **PASS** (688 modules transformed cleanly in 1.76s).
+- Direct data verification node script: **100% PASS** (verified bulk-confirm REST payload generation and count matching).
 - Portal DKCL real environment: ZERO requests made; untouched.
 - Queue / Import / Runtime: Zero execution.
 

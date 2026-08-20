@@ -3,6 +3,7 @@ import {
   Activity,
   AlertCircle,
   CheckCircle2,
+  CheckSquare,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   RotateCcw,
   ShieldAlert,
+  Square,
   UserCheck,
   X
 } from 'lucide-react';
@@ -37,6 +39,10 @@ const getApiErrorMessage = (error, fallback = 'Đã xảy ra lỗi khi gọi API
   fallback
 );
 
+const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
+
+const isActionableForExemption = (item) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status);
+
 export default function AutoBackfillOperatorPanel() {
   // State for coverage scan
   const [coverageData, setCoverageData] = useState(null);
@@ -51,7 +57,7 @@ export default function AutoBackfillOperatorPanel() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Run Creation Target Selection (Safety Lock - Point 3)
+  // Run Creation Target Selection (Safety Lock)
   const [runTargetIndicator, setRunTargetIndicator] = useState('ALL');
   const [runTargetMonth, setRunTargetMonth] = useState('ALL');
 
@@ -73,10 +79,10 @@ export default function AutoBackfillOperatorPanel() {
   const [exceptionsList, setExceptionsList] = useState([]);
   const [exceptionsLoading, setExceptionsLoading] = useState(false);
 
-  // Per-Lane Missing Dates Detail Modal (Point 4)
+  // Per-Lane Missing Dates Detail Modal
   const [selectedLaneModal, setSelectedLaneModal] = useState(null);
 
-  // Exception Modals (Real API Calls)
+  // Exception Modals (Single API Calls)
   const [confirmModalItem, setConfirmModalItem] = useState(null);
   const [confirmReason, setConfirmReason] = useState('');
   const [confirmLoading, setConfirmLoading] = useState(false);
@@ -87,6 +93,13 @@ export default function AutoBackfillOperatorPanel() {
   const [revokeLoading, setRevokeLoading] = useState(false);
   const [revokeError, setRevokeError] = useState(null);
 
+  // Bulk Selection State (Point 2)
+  const [selectedBulkKeys, setSelectedBulkKeys] = useState(new Set());
+  const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+  const [bulkReason, setBulkReason] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResultReport, setBulkResultReport] = useState(null);
+
   // Notification Toast
   const [toast, setToast] = useState(null);
   const showToast = (message, type = 'success') => {
@@ -94,7 +107,43 @@ export default function AutoBackfillOperatorPanel() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Fetch Coverage with exception_id merging (Point 2 & Point 3 Fix)
+  // Toggle Bulk Select Item
+  const toggleSelectBulkItem = (item) => {
+    if (!isActionableForExemption(item)) return;
+    const key = getItemKey(item);
+    setSelectedBulkKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  // Select/Unselect All Actionable Items in a list
+  const toggleSelectAllItems = (itemsList) => {
+    const actionable = itemsList.filter(isActionableForExemption);
+    const actionableKeys = actionable.map(getItemKey);
+    const allSelected = actionableKeys.length > 0 && actionableKeys.every((k) => selectedBulkKeys.has(k));
+
+    setSelectedBulkKeys((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        actionableKeys.forEach((k) => next.delete(k));
+      } else {
+        actionableKeys.forEach((k) => next.add(k));
+      }
+      return next;
+    });
+  };
+
+  const clearBulkSelection = () => {
+    setSelectedBulkKeys(new Set());
+  };
+
+  // Fetch Coverage with exception_id merging
   const fetchCoverage = useCallback(async () => {
     setCoverageLoading(true);
     setCoverageError(null);
@@ -288,7 +337,7 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Real PO Exception Confirmation API Call
+  // Real Single PO Exception Confirmation API Call
   const handleConfirmExemption = async () => {
     if (!confirmModalItem || !confirmReason.trim()) return;
     setConfirmLoading(true);
@@ -315,7 +364,7 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Real PO Exception Revoke API Call (Point 2 Fix: robust exception_id resolution)
+  // Real PO Exception Revoke API Call
   const handleRevokeExemption = async () => {
     if (!revokeModalItem || !revokeReason.trim()) return;
     const exceptionId = revokeModalItem.exception_id || revokeModalItem.exception?.id || revokeModalItem.id;
@@ -340,6 +389,53 @@ export default function AutoBackfillOperatorPanel() {
       setRevokeError(getApiErrorMessage(err, 'Không thể hoàn tác ngoại lệ.'));
     } finally {
       setRevokeLoading(false);
+    }
+  };
+
+  // Bulk Exception Confirmation Execution Handler (Point 2)
+  const handleExecuteBulkConfirm = async () => {
+    if (!bulkReason.trim() || selectedBulkKeys.size === 0) return;
+    setBulkLoading(true);
+    setBulkResultReport(null);
+
+    const selectedItems = rawCoverageItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of selectedItems) {
+      try {
+        const payload = {
+          indicator: item.indicator,
+          source_lane: item.source_lane,
+          business_date: item.business_date,
+          exception_type: 'PO_EXEMPTED',
+          reason: bulkReason.trim()
+        };
+        const res = await api.post('/import/auto-backfill/coverage/exceptions', payload);
+        if (res.data.success) {
+          successCount++;
+          results.push({ item, success: true });
+        } else {
+          failCount++;
+          results.push({ item, success: false, error: res.data.error?.message || 'Lỗi API' });
+        }
+      } catch (err) {
+        failCount++;
+        results.push({ item, success: false, error: getApiErrorMessage(err, 'Lỗi kết nối API') });
+      }
+    }
+
+    setBulkLoading(false);
+    setBulkResultReport({ successCount, failCount, total: selectedItems.length, results });
+
+    if (successCount > 0) {
+      fetchCoverage();
+    }
+    if (failCount === 0) {
+      showToast(`Đã xác nhận thành công ${successCount}/${selectedItems.length} ngày không phát sinh`);
+      clearBulkSelection();
+      setShowBulkConfirmModal(false);
     }
   };
 
@@ -394,6 +490,16 @@ export default function AutoBackfillOperatorPanel() {
     return paginateItems(filteredCoverageItems, currentPage, pageSize);
   }, [filteredCoverageItems, currentPage, pageSize]);
 
+  // Table View Select All helper
+  const tableActionableItems = useMemo(() => {
+    return paginatedCoverage.pageItems.filter(isActionableForExemption);
+  }, [paginatedCoverage.pageItems]);
+
+  const isAllTableItemsSelected = useMemo(() => {
+    const keys = tableActionableItems.map(getItemKey);
+    return keys.length > 0 && keys.every((k) => selectedBulkKeys.has(k));
+  }, [tableActionableItems, selectedBulkKeys]);
+
   // Effective Run State & Active Job Granular Visibility
   const effectiveRunState = useMemo(() => {
     return resolveEffectiveRunState(runData?.run);
@@ -417,7 +523,7 @@ export default function AutoBackfillOperatorPanel() {
   }, [runData]);
 
   return (
-    <div className="flex flex-col gap-6 font-sans text-slate-800">
+    <div className="flex flex-col gap-6 font-sans text-slate-800 relative pb-20">
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 rounded-xl px-4 py-3 shadow-lg border text-sm font-medium ${
@@ -428,7 +534,7 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
-      {/* HERO CONTROL HEADER - SYSTEM DESIGN TOKENS ALIGNED */}
+      {/* HERO CONTROL HEADER */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -466,7 +572,7 @@ export default function AutoBackfillOperatorPanel() {
           </div>
         </div>
 
-        {/* SAFE RUN CREATION CONTROLS (Point 3) */}
+        {/* SAFE RUN CREATION CONTROLS */}
         {!activeRunId && (
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-4 border border-slate-200">
             <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Tạo tiến trình bù an toàn:</span>
@@ -596,7 +702,7 @@ export default function AutoBackfillOperatorPanel() {
         )}
       </div>
 
-      {/* DYNAMIC INDICATOR HEALTH CARDS GRID (Point 4: Per-Lane Breakdown HUE vs TCT) */}
+      {/* DYNAMIC INDICATOR HEALTH CARDS GRID */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {indicatorsList.map((ind) => (
           <div
@@ -617,7 +723,7 @@ export default function AutoBackfillOperatorPanel() {
             
             <h3 className="mt-2 text-base font-bold text-slate-900 line-clamp-1">{ind.displayName}</h3>
 
-            {/* PER-LANE BREAKDOWN (Point 4) */}
+            {/* PER-LANE BREAKDOWN */}
             <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3">
               {ind.supportedLanes.map((lane) => {
                 const laneData = ind.lanesBreakdown?.[lane] || { missingCount: 0, successCount: 0, missingItems: [] };
@@ -763,7 +869,7 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       </div>
 
-      {/* VIEW MODE 1: SMART MONTHLY GROUPING ACCORDION VIEW */}
+      {/* VIEW MODE 1: SMART MONTHLY GROUPING ACCORDION VIEW (Point 1: Default closed & Paginated) */}
       {viewMode === 'GROUPED_MONTH' && (
         <div className="flex flex-col gap-4">
           {monthlyGroups.length === 0 ? (
@@ -777,6 +883,9 @@ export default function AutoBackfillOperatorPanel() {
               <MonthlyAccordionGroup
                 key={`${group.indicator}::${group.yearMonth}`}
                 group={group}
+                selectedBulkKeys={selectedBulkKeys}
+                onToggleSelectItem={toggleSelectBulkItem}
+                onToggleSelectAllItems={toggleSelectAllItems}
                 onConfirmClick={(item) => {
                   setConfirmModalItem(item);
                   setConfirmReason('');
@@ -791,13 +900,26 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
-      {/* VIEW MODE 2: TABLE VIEW WITH BOUNDED HEIGHT & PAGINATION */}
+      {/* VIEW MODE 2: TABLE VIEW WITH BULK CHECKBOXES */}
       {viewMode === 'TABLE' && (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
           <div className="max-h-[460px] overflow-y-auto">
             <table className="w-full text-left text-sm text-slate-700">
               <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
                 <tr>
+                  <th className="px-4 py-3.5 w-12 text-center">
+                    <button
+                      type="button"
+                      onClick={() => toggleSelectAllItems(paginatedCoverage.pageItems)}
+                      className="text-slate-500 hover:text-slate-800"
+                    >
+                      {isAllTableItemsSelected ? (
+                        <CheckSquare className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <Square className="h-4 w-4" />
+                      )}
+                    </button>
+                  </th>
                   <th className="px-5 py-3.5">Ngày Nghiệp vụ</th>
                   <th className="px-5 py-3.5">Chỉ tiêu</th>
                   <th className="px-5 py-3.5">Nguồn Lane</th>
@@ -808,8 +930,28 @@ export default function AutoBackfillOperatorPanel() {
               <tbody className="divide-y divide-slate-100">
                 {paginatedCoverage.pageItems.map((item, idx) => {
                   const statusInfo = resolveNoCodeStatus(item.status);
+                  const isActionable = isActionableForExemption(item);
+                  const isSelected = selectedBulkKeys.has(getItemKey(item));
+
                   return (
-                    <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className="hover:bg-slate-50/80 transition">
+                    <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className={`hover:bg-slate-50/80 transition ${isSelected ? 'bg-blue-50/40' : ''}`}>
+                      <td className="px-4 py-3.5 text-center">
+                        {isActionable ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectBulkItem(item)}
+                            className="text-slate-400 hover:text-blue-600"
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </button>
+                        ) : (
+                          <span className="text-slate-200 text-xs">•</span>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5 font-bold text-slate-900">{item.business_date}</td>
                       <td className="px-5 py-3.5">
                         <span className="font-semibold text-slate-700">{item.indicator}</span>
@@ -826,7 +968,7 @@ export default function AutoBackfillOperatorPanel() {
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        {['TRUE_MISSING', 'MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status) && (
+                        {isActionable && (
                           <button
                             onClick={() => {
                               setConfirmModalItem(item);
@@ -903,7 +1045,115 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
-      {/* PER-LANE MISSING DATES MODAL (Point 4) */}
+      {/* FLOATING BULK ACTION BAR (Point 2) */}
+      {selectedBulkKeys.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-slate-900 px-6 py-3.5 text-white shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2 text-sm font-bold">
+            <CheckSquare className="h-5 w-5 text-amber-400" />
+            <span>Đã chọn {selectedBulkKeys.size} ngày thiếu</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setShowBulkConfirmModal(true);
+                setBulkReason('');
+                setBulkResultReport(null);
+              }}
+              className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm"
+            >
+              Xác nhận Không phát sinh cho {selectedBulkKeys.size} ngày
+            </button>
+            <button
+              onClick={clearBulkSelection}
+              className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+            >
+              Hủy chọn
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BULK CONFIRMATION MODAL (Point 2) */}
+      {showBulkConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 max-h-[85vh] flex flex-col">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+                  <UserCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Xác nhận Hàng loạt Ngày Không phát sinh Dữ liệu</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Áp dụng 1 lý do ngoại lệ cho <strong>{selectedBulkKeys.size} ngày</strong> đã chọn.
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowBulkConfirmModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex-1 overflow-y-auto max-h-40 rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs text-slate-700 space-y-1">
+              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày được chọn ({selectedBulkKeys.size}):</span>
+              {Array.from(selectedBulkKeys).map((key) => {
+                const [ind, lane, date] = key.split('::');
+                return (
+                  <div key={key} className="flex items-center justify-between py-0.5 border-b border-slate-100 last:border-0">
+                    <span className="font-semibold text-slate-900">{date}</span>
+                    <span className="text-slate-500">{ind} — {lane}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-slate-700">Lý do xác nhận của PO (Áp dụng cho tất cả ngày đã chọn):</label>
+              <textarea
+                value={bulkReason}
+                onChange={(e) => setBulkReason(e.target.value)}
+                placeholder="VD: Nghỉ lễ Quốc Khánh hoặc đợt rà soát dữ liệu đã được PO xác nhận không phát sinh bưu gửi..."
+                rows={3}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            {bulkResultReport && (
+              <div className="mt-3 text-xs rounded-xl p-3 border bg-slate-50 space-y-1">
+                <div className="font-bold text-slate-900">
+                  Kết quả xử lý: {bulkResultReport.successCount}/{bulkResultReport.total} thành công
+                  {bulkResultReport.failCount > 0 && <span className="text-red-600 ml-2">({bulkResultReport.failCount} thất bại)</span>}
+                </div>
+                {bulkResultReport.results.filter(r => !r.success).map((r, i) => (
+                  <div key={i} className="text-red-600">
+                    • {r.item.indicator} × {r.item.source_lane} × {r.item.business_date}: {r.error}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowBulkConfirmModal(false)}
+                disabled={bulkLoading}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleExecuteBulkConfirm}
+                disabled={bulkLoading || !bulkReason.trim()}
+                className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-50"
+              >
+                {bulkLoading ? `Đang xử lý ${selectedBulkKeys.size} ngày...` : `Xác nhận ${selectedBulkKeys.size} ngày`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PER-LANE MISSING DATES MODAL */}
       {selectedLaneModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 max-h-[85vh] flex flex-col">
@@ -1167,9 +1417,24 @@ export default function AutoBackfillOperatorPanel() {
   );
 }
 
-// SUBCOMPONENT: SMART MONTHLY ACCORDION GROUP
-function MonthlyAccordionGroup({ group, onConfirmClick, onRevokeClick }) {
-  const [isOpen, setIsOpen] = useState(group.counts.missing > 0 || group.counts.reviewReq > 0);
+// SUBCOMPONENT: SMART MONTHLY ACCORDION GROUP (Point 1: Default closed & Paginated internally; Checkbox support)
+function MonthlyAccordionGroup({ group, selectedBulkKeys, onToggleSelectItem, onToggleSelectAllItems, onConfirmClick, onRevokeClick }) {
+  const [isOpen, setIsOpen] = useState(false); // DEFAULT CLOSED FOR ALL MONTHS (Point 1)
+  const [accordionPage, setAccordionPage] = useState(1);
+  const [accordionPageSize, setAccordionPageSize] = useState(10);
+
+  const paginatedGroup = useMemo(() => {
+    return paginateItems(group.items, accordionPage, accordionPageSize);
+  }, [group.items, accordionPage, accordionPageSize]);
+
+  const groupActionableItems = useMemo(() => {
+    return paginatedGroup.pageItems.filter(isActionableForExemption);
+  }, [paginatedGroup.pageItems]);
+
+  const isAllGroupPageSelected = useMemo(() => {
+    const keys = groupActionableItems.map(getItemKey);
+    return keys.length > 0 && keys.every((k) => selectedBulkKeys.has(k));
+  }, [groupActionableItems, selectedBulkKeys]);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -1206,52 +1471,141 @@ function MonthlyAccordionGroup({ group, onConfirmClick, onRevokeClick }) {
       </div>
 
       {isOpen && (
-        <div className="divide-y divide-slate-100">
-          {group.items.map((item, idx) => {
-            const statusInfo = resolveNoCodeStatus(item.status);
-            return (
-              <div key={idx} className="flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/60 transition text-sm">
-                <div className="flex items-center gap-4">
-                  <span className="font-bold text-slate-900 w-24">{item.business_date}</span>
-                  <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-                    Nguồn {item.source_lane}
-                  </span>
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium border ${statusInfo.badgeClass}`}>
-                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                    {statusInfo.label}
-                  </span>
-                </div>
+        <div className="flex flex-col">
+          {/* Group Header Checkbox Bar */}
+          <div className="bg-slate-100/60 px-6 py-2 border-b border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-600">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelectAllItems(paginatedGroup.pageItems);
+              }}
+              className="flex items-center gap-2 text-slate-700 hover:text-blue-700 font-bold"
+            >
+              {isAllGroupPageSelected ? (
+                <CheckSquare className="h-4 w-4 text-blue-600" />
+              ) : (
+                <Square className="h-4 w-4 text-slate-400" />
+              )}
+              <span>Chọn tất cả {groupActionableItems.length} ngày thiếu trên trang này</span>
+            </button>
+            <span>Hiển thị {paginatedGroup.pageItems.length}/{group.items.length} bản ghi</span>
+          </div>
 
-                <div className="flex items-center gap-2">
-                  {['TRUE_MISSING', 'MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status) && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onConfirmClick(item);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
-                    >
-                      <UserCheck className="h-3.5 w-3.5" />
-                      <span>Xác nhận Không phát sinh</span>
-                    </button>
-                  )}
+          <div className="divide-y divide-slate-100">
+            {paginatedGroup.pageItems.map((item, idx) => {
+              const statusInfo = resolveNoCodeStatus(item.status);
+              const isActionable = isActionableForExemption(item);
+              const isSelected = selectedBulkKeys.has(getItemKey(item));
 
-                  {item.status === 'PO_EXEMPTED' && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRevokeClick(item);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
-                    >
-                      <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
-                      <span>Hoàn tác</span>
-                    </button>
-                  )}
+              return (
+                <div key={idx} className={`flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/80 transition text-sm ${isSelected ? 'bg-blue-50/40' : ''}`}>
+                  <div className="flex items-center gap-4">
+                    {isActionable ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleSelectItem(item);
+                        }}
+                        className="text-slate-400 hover:text-blue-600"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
+                    ) : (
+                      <span className="w-4 text-center text-slate-200 text-xs">•</span>
+                    )}
+
+                    <span className="font-bold text-slate-900 w-24">{item.business_date}</span>
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                      Nguồn {item.source_lane}
+                    </span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium border ${statusInfo.badgeClass}`}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      {statusInfo.label}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {isActionable && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onConfirmClick(item);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
+                      >
+                        <UserCheck className="h-3.5 w-3.5" />
+                        <span>Xác nhận Không phát sinh</span>
+                      </button>
+                    )}
+
+                    {item.status === 'PO_EXEMPTED' && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRevokeClick(item);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                        <span>Hoàn tác</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Internal Accordion Pagination Bar */}
+          {paginatedGroup.totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-2.5 text-xs font-medium text-slate-600">
+              <div className="flex items-center gap-2">
+                <span>Số dòng:</span>
+                <select
+                  value={accordionPageSize}
+                  onChange={(e) => {
+                    setAccordionPageSize(Number(e.target.value));
+                    setAccordionPage(1);
+                  }}
+                  className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700"
+                >
+                  <option value={10}>10 dòng/trang</option>
+                  <option value={20}>20 dòng/trang</option>
+                  <option value={50}>50 dòng/trang</option>
+                </select>
               </div>
-            );
-          })}
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAccordionPage((p) => Math.max(1, p - 1))}
+                  disabled={!paginatedGroup.hasPrev}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-100 disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <span>Trước</span>
+                </button>
+                <span className="font-bold text-slate-800">
+                  Trang {paginatedGroup.currentPage} / {paginatedGroup.totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAccordionPage((p) => Math.min(paginatedGroup.totalPages, p + 1))}
+                  disabled={!paginatedGroup.hasNext}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-100 disabled:opacity-40"
+                >
+                  <span>Sau</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
