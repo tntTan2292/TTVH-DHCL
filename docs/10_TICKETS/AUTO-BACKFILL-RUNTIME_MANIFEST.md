@@ -189,3 +189,90 @@ The executor stops here, before any real run. The Product Owner reviews Sections
 ## 13. Next Ticket / PO Runtime Gate (Not Activated)
 
 After the Product Owner decides the disposition of the existing four `RUNNING` runs and 472 queued jobs, the only authorized first runtime experiment is **one date, one source**, initiated with the per-row **"Nhập lại"** button. The Product Owner must verify that one-day result, including the intentional `WAITING_AUTH` path, before any wider range, second source, monthly run, or backlog release is considered. This is a PO-controlled Gate 7 sequence, not a self-awarded PASS and not an authorization to Resume the stale run.
+
+## 14. Backlog Investigation -- Read-Only Findings (2026-08-20, Claude Code)
+
+Product Owner instructed a **read-only investigation** of the 472 `QUEUED` jobs and the `WAITING_AUTH` run before deciding any cleanup. Nothing was cancelled, deleted, or modified: the operational database was opened with `sqlite3.OPEN_READONLY`, so writes were impossible at the driver level. No business logic changed; `fact_f13`, `fact_f41`, `fact_f41_national` untouched.
+
+### 14.1 Where The 472 Jobs Came From
+
+All four runs were created by `admin` through the real `POST /api/import/auto-backfill/runs` API -- **none are test fixtures** (test suites use isolated temp databases under the OS temp directory). They are real enqueue requests, but three of the four were issued **unfiltered**.
+
+| Run | Created | requested_indicator / lane | Registry version | `QUEUED` | Date span | Reading |
+| --- | --- | --- | --- | --- | --- | --- |
+| `fa694495` | 2026-08-18T10:12:59Z | null / null (fully unfiltered) | `AUTO-BACKFILL-F41-1` (stale) | **463** | 2026-01-01 to 2026-08-17 | Full historical sweep -- the accidental mass enqueue |
+| `9769766f` | 2026-08-19T08:18:42Z | null / `HUE` | `AUTO-BACKFILL-F41-1` (stale) | 2 | 2026-08-17 to 2026-08-18 | Lane-scoped attempt; now `WAITING_AUTH` |
+| `7356faa4` | 2026-08-19T10:26:05Z | null / null | `AUTO-BACKFILL-SAFETY-1` | 3 | 2026-08-18 | Looks like a daily catch-up |
+| `e28f81fe` | 2026-08-20T02:02:24Z | null / null | `AUTO-BACKFILL-SAFETY-1` | 4 | 2026-08-19 | Looks like a daily catch-up |
+
+Totals reconcile: 463 + 2 + 3 + 4 = 472. Per-lane: F4.1/HUE 230, F4.1/TCT 230, F1.3/TCT 8, F1.3/HUE 4.
+
+Runs `fa694495` and `9769766f` carry registry version `AUTO-BACKFILL-F41-1`, which predates the current `AUTO-BACKFILL-SAFETY-1` -- an independent staleness signal.
+
+### 14.2 Are They Garbage Or Real Work? -- Neither Label Is Accurate
+
+Each of the 472 jobs was checked against the **current** contents of its target table using that lane's real completion rule (`expectedRowCount` 34 for both TCT lanes, row count greater than zero for both HUE lanes, plus the no-duplicates check):
+
+| Verdict | Count |
+| --- | --- |
+| Points at a date that is **genuinely still missing** (real pending work) | **472** |
+| Already satisfied / obsolete (data since imported) | 0 |
+| Data present but integrity mismatch | 0 |
+
+So the jobs are **not stale garbage pointing at completed work** -- every one targets a date that really is absent. What is wrong is not the *target* but the *origin and scale*: 463 of them came from a single unfiltered sweep the Product Owner did not intend as a controlled run.
+
+### 14.3 Effect On The `WAITING_AUTH` Run (`9769766f`)
+
+- It holds exactly 3 jobs: 2 `QUEUED` (F4.1/HUE `2026-08-17`, `2026-08-18`) and 1 `FAILED_TERMINAL` (F1.3/HUE `2026-08-18`). It holds **no** worker lease -- `auto_backfill_worker_lease` is empty.
+- `WAITING_AUTH` lives on the **run** row, not on its jobs. The global guard inside `acquireNextJob()` selects any run where `status = 'RUNNING'` and `safety_state` is `WAITING_AUTH` or `BLOCKED_INTEGRITY`.
+- Therefore **cancelling `QUEUED` jobs in any run -- including this one -- does not clear the block**, because the block is keyed on the run's status and safety_state, not on job rows.
+- Conversely, the block currently protects everything: while it stands, `acquireNextJob()` returns nothing for every job, so the backlog cannot drain.
+
+### 14.4 The Blocker That Makes Cleanup Mandatory, Not Optional
+
+`createRunWithJobs()` rejects a job whose `(indicator, source_lane, business_date)` identity is already active, matching on job state in `QUEUED`, `RUNNING`, or `RECOVERY_CHECK` -- **with no run-status filter**. Two consequences:
+
+1. **Pausing a run does not free its identities.** A `PAUSED` run's jobs stop draining, because job selection additionally requires the parent run to be `RUNNING`, but the rows still occupy the unique identity.
+2. **On a full conflict the API does not error.** It returns `created: false`, `duplicate: true`, `skippedConflicts: n` together with the **existing** run's full payload. The UI then sets its active run to that old run -- so pressing "Nhập lại" on an occupied date would silently display the 463-job backlog run while appearing to have started a one-day test.
+
+Cross-checking the full coverage window (`2026-01-01` to `2026-08-19`, 231 dates) against occupied identities:
+
+| Lane | Missing dates | Already occupied by a `QUEUED` job | Free and missing (testable now) |
+| --- | --- | --- | --- |
+| F1.3 / HUE | 4 | 4 | **NONE** |
+| F1.3 / TCT | 8 | 8 | **NONE** |
+| F4.1 / HUE | 230 | 230 | **NONE** |
+| F4.1 / TCT | 230 | 230 | **NONE** |
+
+**Every missing date on every lane is already occupied.** There is currently no date on which the Product Owner's one-day / one-source "Nhập lại" test can create a new run. A date that already has data is not queue-eligible and would be rejected with `AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE`. Cleanup is therefore a prerequisite, not a tidiness preference.
+
+### 14.5 What Cleanup Is Mechanically Available
+
+- **No cancel endpoint exists.** The auto-backfill routes expose only create-run, get-run, pause, resume, circuit reset, events, and report. `CANCELLED` exists as a declared terminal state for both runs and jobs, but no code path ever sets it.
+- `auto_backfill_job` has **no triggers**, so a state transition to `CANCELLED` is mechanically possible. `auto_backfill_event` and `auto_backfill_attempt` are append-only guarded against update and delete, but inserts remain permitted, so an audit trail can still be written.
+
+### 14.6 Proposed Options -- For Product Owner Decision, NOT Executed
+
+**Option 1 -- Pause all four runs. API-only, reversible, no SQL, no code change.**
+
+Call the existing admin pause endpoint once per run id:
+
+- `fa694495-3953-4cc7-9ed8-f58f1a85b3bc`
+- `9769766f-4416-45a3-9da9-014eb941d4cb`
+- `7356faa4-ae2b-4525-95ff-4b137220260e`
+- `e28f81fe-671e-474e-9fbe-4ffa5971124b`
+
+using `POST /api/import/auto-backfill/runs/{runId}/pause`.
+
+Effect: each run leaves `RUNNING`, so no job is selectable and the backlog can never drain. Pausing `9769766f` additionally clears the global `WAITING_AUTH` guard, because that guard matches only runs still in `RUNNING` -- this removes the "Resume releases everything" hazard. Fully reversible with the resume endpoint. **Limitation: this does not free the occupied identities, so the one-day "Nhập lại" test still cannot run.** Recommended as an immediate safety step, but not sufficient on its own.
+
+**Option 2 -- Also release the identities by cancelling the `QUEUED` jobs.** Required before the one-day test. Two ways:
+
+- **2a, admin SQL.** Fastest. Requires explicit Product Owner approval and a database backup first. Transition `auto_backfill_job` rows from `QUEUED` to `CANCELLED` with a terminal reason such as `PO_CLEANUP_BEFORE_RUNTIME_TEST`, close the four runs to `CANCELLED`, and insert matching `auto_backfill_event` rows so the audit trail stays intact. Exact statements will be prepared for review once the Product Owner picks this option; nothing is pre-executed.
+- **2b, add a proper admin cancel endpoint** such as a run-level cancel route, in a separate ticket. Cleanest and auditable by construction, but it is a code change and therefore outside this ticket's no-business-logic-change scope.
+
+**Scope choice within Option 2.** Cancelling only `fa694495` (463 jobs) would remove the mass sweep but still leave `2026-08-18` and `2026-08-19` occupied by the two smaller runs -- exactly the freshest dates a one-day test would target. To actually unblock the test, the jobs covering the chosen test date must be released too.
+
+### 14.7 Stop
+
+No job or run was cancelled, deleted, paused, resumed, reset, or modified. State: `READY FOR PO DECISION` -- awaiting the Product Owner's choice of cleanup option before any write to the job queue.
