@@ -276,3 +276,76 @@ Effect: each run leaves `RUNNING`, so no job is selectable and the backlog can n
 ### 14.7 Stop
 
 No job or run was cancelled, deleted, paused, resumed, reset, or modified. State: `READY FOR PO DECISION` -- awaiting the Product Owner's choice of cleanup option before any write to the job queue.
+
+## 15. Option A Executed -- Backlog Cleanup Complete (2026-08-21, Claude Code)
+
+Product Owner selected **Option A** from Section 14.6: pause all 4 runs, then cancel the 472 `QUEUED` jobs via direct SQL (no cancel endpoint exists), so a real one-day / one-source "Nhập lại" test can be created today. Executed in the mandated order; every step verified before proceeding to the next; no business-logic file was changed and no cancel endpoint was added.
+
+### 15.1 Step 1 -- Backup (Before Any Write)
+
+- Method: `VACUUM INTO`, taken on the live database, following the existing backup naming convention already present in `backend/src/db/backups/`.
+- Path: `backend/src/db/backups/database.pre-runtime-queue-cleanup.2026-08-21T225400.sqlite`
+- Size: 759,324,672 bytes (759 MB; smaller than the 801 MB source because `VACUUM INTO` compacts free pages -- this is expected and does not indicate missing data, confirmed by the row-count verification below).
+- Verification performed, not skipped: the backup file was opened as an **independent SQLite connection** (not just copied) and read: `PRAGMA integrity_check` returned `ok`, and row counts for every business and Auto Backfill table (`fact_f13`, `fact_f13_national`, `fact_f41`, `fact_f41_national`, `import_log`, `auto_backfill_run`, `auto_backfill_job`, `auto_backfill_event`, `auto_backfill_attempt`, `auto_backfill_circuit`, `auto_backfill_coverage_exception`) matched the live database exactly (11/11 tables MATCH).
+
+### 15.2 Step 2 -- Pause All 4 Runs (API/Store Mechanism, No Raw SQL)
+
+Used the existing `AutoBackfillQueueStore.pauseRun()` method (the same code path the admin pause endpoint calls) for each of the 4 runs, so the transition emitted a proper `RUN_STATE_CHANGED` audit event through the normal mechanism rather than a hand-written one:
+
+| Run | Before | After |
+| --- | --- | --- |
+| `fa694495-3953-4cc7-9ed8-f58f1a85b3bc` | `RUNNING` | `PAUSED` |
+| `9769766f-4416-45a3-9da9-014eb941d4cb` | `RUNNING`, `safety_state=WAITING_AUTH` | `PAUSED`, `safety_state=WAITING_AUTH` (pause does not itself clear `safety_state`; Step 3 clears it explicitly when the run is closed) |
+| `7356faa4-ae2b-4525-95ff-4b137220260e` | `RUNNING` | `PAUSED` |
+| `e28f81fe-671e-474e-9fbe-4ffa5971124b` | `RUNNING` | `PAUSED` |
+
+Verified before proceeding: `SELECT COUNT(*) FROM auto_backfill_run WHERE status='RUNNING'` returned `0`. The global `WAITING_AUTH`/`BLOCKED_INTEGRITY` lease guard in `acquireNextJob()` also cleared at this point, because that guard matches only `status='RUNNING'`.
+
+### 15.3 Step 3 -- Cancel The 472 QUEUED Jobs + Close The 4 Runs (Single Transaction)
+
+No cancel endpoint exists (confirmed in Section 14.5), so this step used direct SQL inside one `BEGIN IMMEDIATE` / `COMMIT` transaction, scoped by the **exact 472 job ids captured from a fresh read immediately before the transaction started** (not a bare `WHERE state='QUEUED'`, to guarantee only the investigated set was touched even if state had changed concurrently):
+
+- `auto_backfill_job`: `state: QUEUED -> CANCELLED`, `terminal_reason = 'PO-approved bulk cleanup, AUTO-BACKFILL-RUNTIME ticket, Option A'`, `ended_at`/`updated_at` set -- for exactly those 472 rows, matched by `id`. In-transaction guard: the `UPDATE` was run once per captured id and the accumulated `changes` count was required to equal exactly `472` before commit, or the whole transaction rolls back.
+- The 2 pre-existing `FAILED_TERMINAL` jobs were never referenced by id or by any `WHERE` clause in this transaction -- confirmed unchanged (still `FAILED_TERMINAL`, still 2).
+- One append-only `auto_backfill_event` row per cancelled job: `event_type='JOB_CANCELLED'`, `from_state='QUEUED'`, `to_state='CANCELLED'`, `reason_code='PO_APPROVED_BULK_CLEANUP'`, payload includes the reason text, indicator, lane, date, option, and ticket id -- 472 rows.
+- The 4 runs closed: `status: PAUSED -> CANCELLED`, `safety_state` explicitly set to `NULL` (this is what releases `9769766f`'s `WAITING_AUTH`), `action_required` cleared, `status_reason` set to the same PO-approved reason, `ended_at`/`updated_at` set. One `RUN_STATE_CHANGED` event per run (4), plus one additional `RUN_SAFETY_STATE_CHANGED` event recording the `WAITING_AUTH -> NULL` transition specifically for `9769766f` (1) -- 5 rows total.
+- **No statement in this transaction referenced `fact_f13`, `fact_f13_national`, `fact_f41`, or `fact_f41_national`.** Only `auto_backfill_job`, `auto_backfill_run`, and `auto_backfill_event` were written.
+- In-transaction guards checked immediately before `COMMIT`, any failure would have rolled back the whole transaction: `QUEUED` count `=0`; `FAILED_TERMINAL` count `=2` (unchanged); active (`RUNNING`/`PAUSING`/`PAUSED`) run count `=0`. All three held; the transaction committed.
+
+### 15.4 Step 4 -- Post-Change Verification
+
+| Check | Before | After | Result |
+| --- | --- | --- | --- |
+| `auto_backfill_job` state `QUEUED` | 472 | **0** | PASS |
+| `auto_backfill_job` state `CANCELLED` | 0 | 472 | PASS (exactly the cancelled set) |
+| `auto_backfill_job` state `FAILED_TERMINAL` | 2 | 2 | PASS (untouched) |
+| Runs `RUNNING`/`PAUSING`/`PAUSED` | 4 | **0** | PASS |
+| Runs with any non-null `safety_state` | 1 (`WAITING_AUTH`) | **0** | PASS |
+| Open circuits (`state='OPEN'`) | 0 | 0 | PASS |
+| `fact_f13` | 714,613 | 714,613 | PASS -- identical |
+| `fact_f13_national` | 7,582 | 7,582 | PASS -- identical |
+| `fact_f41` | 4,695 | 4,695 | PASS -- identical |
+| `fact_f41_national` | 34 | 34 | PASS -- identical |
+| `import_log` | 488 | 488 | PASS -- identical, confirming no Import ran |
+| `auto_backfill_event` | 486 | 967 | +481 = 4 pause + 472 job-cancel + 4 run-close + 1 safety-clear, arithmetic confirmed |
+| `auto_backfill_attempt` | 3 | 3 | PASS -- identical, confirming no executor ran |
+
+Final `PRAGMA integrity_check` on the live database after the transaction: `ok`.
+
+### 15.5 Confirmed: A Real Test Date Is Now Free -- Read-Only Query Only, No Run Created
+
+Per instruction, this confirms availability by query only; **no `POST /runs` call was made and no run was created**.
+
+- `F1.3/HUE` / `2026-08-19`: the exact active-identity conflict query used inside `createRunWithJobs()` (`state IN ('QUEUED','RUNNING','RECOVERY_CHECK')`) now returns **no row** -- the identity is free. `fact_f13` has 0 rows for that date, confirming it is genuinely missing, not already imported.
+- Re-running the full Section 14.4 cross-check (231-date window, all 4 lanes) now shows **zero** still-occupied identities and **every** missing date free-and-testable: F1.3/HUE 4/4 free, F1.3/TCT 8/8 free, F4.1/HUE 230/230 free, F4.1/TCT 230/230 free.
+
+The Product Owner's one-day / one-source "Nhập lại" test can now create a new run on any missing date on any lane.
+
+### 15.6 Scope Confirmation
+
+- No file under `backend/src/services/`, `backend/src/controllers/`, or `backend/src/routes/` was modified. No cancel endpoint was added (per explicit instruction, that remains a separate future ticket if needed).
+- No product code, schema, or migration changed.
+- `Data QLML/` and both pre-existing git stashes untouched (unrelated to this ticket; not touched by any step above).
+- This was a governed, transactional, verified data operation against the live operational database, executed only after an independently-verified backup existed -- not a code change, and out of scope for `git diff` accordingly.
+
+State: `AUTO-BACKFILL-RUNTIME READY -- queue path clear, awaiting the Product Owner's own one-day / one-source "Nhập lại" test.` No real run, Portal session, download, or Import was performed by this ticket. `PO Gate 7` is not self-awarded.
