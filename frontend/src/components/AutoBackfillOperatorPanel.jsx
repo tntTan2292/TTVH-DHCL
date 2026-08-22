@@ -287,9 +287,9 @@ export default function AutoBackfillOperatorPanel() {
       const res = await api.post('/import/auto-backfill/runs', payload);
       if (res.data.success) {
         const newRun = res.data.data;
-        setActiveRunId(newRun.run_id);
+        setActiveRunId(newRun.run.id);
         setRunData(newRun);
-        showToast(`Đã tạo tiến trình bù #${newRun.run_id} cho chỉ tiêu ${runTargetIndicator} (${runTargetMonth})`);
+        showToast(`Đã tạo tiến trình bù #${newRun.run.id} cho chỉ tiêu ${runTargetIndicator} (${runTargetMonth})`);
         fetchCoverage();
       }
     } catch (err) {
@@ -364,7 +364,7 @@ export default function AutoBackfillOperatorPanel() {
       const res = await api.post('/import/auto-backfill/runs', payload);
       if (res.data.success) {
         const newRun = res.data.data;
-        setActiveRunId(newRun.run_id);
+        setActiveRunId(newRun.run.id);
         setRunData(newRun);
         showToast(`Đã khởi tạo yêu cầu nhập lại cho ${reimportModalItem.indicator} (${reimportModalItem.source_lane}) ngày ${reimportModalItem.business_date}`);
         setReimportModalItem(null);
@@ -503,7 +503,7 @@ export default function AutoBackfillOperatorPanel() {
         const res = await api.post('/import/auto-backfill/runs', payload);
         if (res.data.success) {
           successCount++;
-          results.push({ item, success: true, run_id: res.data.data?.run_id });
+          results.push({ item, success: true, run_id: res.data.data?.run?.id });
         } else {
           failCount++;
           results.push({ item, success: false, error: res.data.error?.message || 'Lỗi API' });
@@ -709,7 +709,7 @@ export default function AutoBackfillOperatorPanel() {
           <div className="mt-4 flex flex-col gap-3 rounded-xl bg-slate-50 p-4 border border-slate-200">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="font-bold text-slate-900 text-sm">Tiến trình #{runData.run.run_id}</span>
+                <span className="font-bold text-slate-900 text-sm">Tiến trình #{runData.run.id}</span>
                 <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                   effectiveRunState === 'RUNNING' ? 'bg-blue-50 text-blue-800 border border-blue-200' :
                   effectiveRunState === 'PAUSED' ? 'bg-amber-50 text-amber-800 border border-amber-200' :

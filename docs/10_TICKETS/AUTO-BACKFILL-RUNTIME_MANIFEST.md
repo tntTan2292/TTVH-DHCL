@@ -349,3 +349,53 @@ The Product Owner's one-day / one-source "Nhập lại" test can now create a ne
 - This was a governed, transactional, verified data operation against the live operational database, executed only after an independently-verified backup existed -- not a code change, and out of scope for `git diff` accordingly.
 
 State: `AUTO-BACKFILL-RUNTIME READY -- queue path clear, awaiting the Product Owner's own one-day / one-source "Nhập lại" test.` No real run, Portal session, download, or Import was performed by this ticket. `PO Gate 7` is not self-awarded.
+
+## 16. UI Fix -- run_id Field Shape Mismatch In AutoBackfillOperatorPanel.jsx (2026-08-22, Claude Code)
+
+Root cause investigation (prior turn) found a deterministic, code-proven bug: `AutoBackfillCoverageService`/`AutoBackfillQueueStore.getRun()` returns `{ run: { id, status, safety_state, ... }, jobs, attempts, events, circuits, creation }` -- there is no top-level `run_id` field, only `run.id`. All 4 places in `AutoBackfillOperatorPanel.jsx` that create a run (manual create, per-row "Nhập lại", bulk reimport) read the non-existent `.run_id` off the response, which silently evaluated to `undefined` (optional chaining, no thrown exception). `activeRunId` was therefore never set for any run created through this UI, so the entire progress/`WAITING_AUTH` panel (gated on `activeRunId && runData`) never rendered -- exactly the symptom the Product Owner reported (no progress bar, no `WAITING_AUTH` banner, no error) for the 2026-08-18 F1.3 HUE+TCT bulk "Nhập lại" test.
+
+### 16.1 Fix Applied -- Exactly 5 Lines, Nothing Else
+
+| # | Location | Before | After |
+| --- | --- | --- | --- |
+| 1 | `handleCreateRun` | `setActiveRunId(newRun.run_id)` | `setActiveRunId(newRun.run.id)` |
+| 2 | `handleCreateRun` (same block) | `` `...#${newRun.run_id}...` `` | `` `...#${newRun.run.id}...` `` |
+| 3 | Per-row "Nhập lại" handler | `setActiveRunId(newRun.run_id)` | `setActiveRunId(newRun.run.id)` |
+| 4 | `handleExecuteBulkReimport` | `run_id: res.data.data?.run_id` | `run_id: res.data.data?.run?.id` |
+| 5 | Progress panel display | `Tiến trình #{runData.run.run_id}` | `Tiến trình #{runData.run.id}` |
+
+`git diff --stat`: exactly `frontend/src/components/AutoBackfillOperatorPanel.jsx`, `5 insertions(+), 5 deletions(-)`. No backend, schema, database, or other frontend file touched. No real run was created to test this.
+
+### 16.2 Re-Verification -- No Similar Mismatch Left
+
+`grep -n "run_id" AutoBackfillOperatorPanel.jsx` after the fix returns exactly 2 lines, both correct and unrelated to the backend contract:
+
+```
+results.push({ item, success: true, run_id: res.data.data?.run?.id });   // our own pushed object's key -- correct
+const lastSuccessfulRun = results.find((r) => r.success)?.run_id;         // reads our own array's key -- correct
+```
+
+No remaining reference reads a non-existent top-level `run_id` off a backend response. A broader `grep -n "\.run\."` pass confirms `resolveEffectiveRunState(runData?.run)` and `resolveWaitingAuthLanes(runData?.run, ...)` already used the raw row correctly (`run.safety_state`, `run.status`, `run.requested_lane` are real columns).
+
+### 16.3 Validation
+
+- `npm run build` (vite): PASS, 689 modules, no errors (pre-existing large-chunk advisory only, unrelated).
+- `npx oxlint AutoBackfillOperatorPanel.jsx`: 0 errors; the 2 pre-existing `no-unused-vars` warnings (`coverageError`, `runError`) confirmed present before this fix too (`git stash` diff check) -- not introduced by this change.
+- `node src/components/AutoBackfillOperatorPanel.test.js`: 14/14 PASSED (unchanged by this fix -- see Section 16.5 residual).
+- Zero NUL bytes in the touched file.
+
+### 16.4 Read-Only Check -- Can The Product Owner Still See The 2026-08-18 Runs?
+
+Both runs (`69b9fff1` F1.3/HUE, `bad55114` F1.3/TCT) were confirmed still present and unmodified in the database: `RUNNING`, HUE still `WAITING_AUTH`. **Data is fully intact and safe.**
+
+**But there is no way to reach them through the current UI, and this fix does not add one.** Confirmed by code inspection, not assumption:
+
+- The backend exposes only `GET /runs/:runId` (exact ID required) and `POST /runs` (create). **There is no `GET /runs` listing endpoint anywhere in `importRoutes.js`.**
+- The frontend has no run-history browser, no URL/query-param persistence, and no localStorage/sessionStorage for `activeRunId` -- it is pure in-memory React state (`useState(null)`), reset on every reload or navigation. Nothing in the codebase ever calls `GET /runs/:runId` for an ID the user did not just create in the same still-open browser tab.
+- **Conclusion: only a run created after this fix, viewed in the same tab session without reloading, will display correctly.** The 2 pre-existing runs from 2026-08-18 are permanently unreachable through the Operator UI as it exists today -- not because of this bug, but because no run-listing/history feature exists at all. Building that capability is out of scope here, left for a separate ticket if the Product Owner wants it.
+
+### 16.5 Residual Found, Not Fixed (Reported Only)
+
+`AutoBackfillOperatorPanel.test.js` (lines ~93, 124, 503, 531, 547-548) mocks the create-run response with a **flat, non-existent shape** (`{ run_id: 'run_301', ... }` at the top level) and re-implements the bulk-reimport loop inline rather than calling the real component handler. This is why the "contract test" suite (14/14) did not catch the bug this fix addresses -- the test was never actually exercising the real API contract, only a self-consistent but incorrect mock. Not touched in this ticket per explicit scope ("KHÔNG SỬA GÌ KHÁC"); flagged here for a future test-suite correction.
+
+State: fix applied and verified technically; **not self-passed**. `READY FOR PO UI CHECK` -- this changes what the Product Owner sees on screen and must be visually confirmed by the Product Owner, not by Claude Code.
