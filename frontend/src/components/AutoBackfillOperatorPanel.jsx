@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   AlertCircle,
@@ -41,6 +41,13 @@ const getApiErrorMessage = (error, fallback = 'Đã xảy ra lỗi khi gọi API
   fallback
 );
 
+// Statuses that genuinely mean the manual DKCL login failed/expired. LOGIN_IN_PROGRESS
+// (and any other transitional status) is NOT an error -- it just means the browser window
+// is open and waiting on the PO, same as DataImportCenter.jsx's preflightHueSession/preflightTctSession.
+const AUTH_LOGIN_ERROR_STATUSES = new Set(['SESSION_CHECK_FAILED', 'LOGIN_TIMEOUT', 'AUTHENTICATION_REQUIRED']);
+const AUTH_LOGIN_POLL_INTERVAL_MS = 5000;
+const AUTH_LOGIN_POLL_MAX_ATTEMPTS = 60; // 5 minutes, matching the backend's ~4-minute manualAuthWaitMs plus buffer
+
 const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
 
 const isActionableForExemption = (item) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status);
@@ -76,6 +83,8 @@ export default function AutoBackfillOperatorPanel() {
   // the same endpoint already proven working in DataImportCenter.jsx (handleInteractiveHueLogin/handleInteractiveTctLogin).
   const [authLoginLoading, setAuthLoginLoading] = useState(false);
   const [authLoginError, setAuthLoginError] = useState(null);
+  const [authLoginPending, setAuthLoginPending] = useState(false);
+  const authLoginPollRef = useRef(null);
 
   // Drawers & Modals
   const [showEvents, setShowEvents] = useState(false);
@@ -352,21 +361,86 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
+  const stopAuthLoginPolling = useCallback(() => {
+    if (authLoginPollRef.current) {
+      clearInterval(authLoginPollRef.current);
+      authLoginPollRef.current = null;
+    }
+  }, []);
+
+  // Stop any in-flight polling on unmount, or when the active run changes (a stale poll
+  // for a lane tied to a run the PO already navigated away from must not keep running).
+  useEffect(() => stopAuthLoginPolling, [stopAuthLoginPolling]);
+  useEffect(() => {
+    stopAuthLoginPolling();
+    setAuthLoginPending(false);
+  }, [activeRunId, stopAuthLoginPolling]);
+
+  // Poll POST /import/dkcl/session/preflight every few seconds while a manual login is
+  // in progress -- same endpoint/pattern DataImportCenter.jsx uses (preflightHueSession/
+  // preflightTctSession) to detect SESSION_VALID without the PO needing to press anything.
+  const startAuthLoginPolling = useCallback((lane) => {
+    stopAuthLoginPolling();
+    let attempts = 0;
+    authLoginPollRef.current = setInterval(async () => {
+      attempts += 1;
+      try {
+        const res = await api.post('/import/dkcl/session/preflight', { source: lane });
+        const status = res.data.data?.status;
+        if (status === 'SESSION_VALID') {
+          stopAuthLoginPolling();
+          setAuthLoginPending(false);
+          setAuthLoginError(null);
+          if (activeRunId) fetchRunStatus(activeRunId);
+          return;
+        }
+        if (AUTH_LOGIN_ERROR_STATUSES.has(status)) {
+          stopAuthLoginPolling();
+          setAuthLoginPending(false);
+          setAuthLoginError(res.data.data?.error?.message || `Không thể hoàn tất đăng nhập ${lane} DKCL.`);
+          return;
+        }
+        // Still LOGIN_IN_PROGRESS or another transitional status -- keep waiting.
+      } catch (err) {
+        const status = err.response?.data?.data?.status;
+        if (AUTH_LOGIN_ERROR_STATUSES.has(status)) {
+          stopAuthLoginPolling();
+          setAuthLoginPending(false);
+          setAuthLoginError(err.response?.data?.data?.error?.message || `Không thể hoàn tất đăng nhập ${lane} DKCL.`);
+          return;
+        }
+        // Transient/network hiccup during polling -- keep retrying until the attempt cap.
+      }
+      if (attempts >= AUTH_LOGIN_POLL_MAX_ATTEMPTS) {
+        stopAuthLoginPolling();
+        setAuthLoginPending(false);
+        setAuthLoginError(`Hết thời gian chờ đăng nhập ${lane} DKCL. Vui lòng thử lại.`);
+      }
+    }, AUTH_LOGIN_POLL_INTERVAL_MS);
+  }, [activeRunId, fetchRunStatus, stopAuthLoginPolling]);
+
   // Open manual DKCL login browser window for a WAITING_AUTH lane. Same API contract as
   // DataImportCenter.jsx's handleInteractiveHueLogin/handleInteractiveTctLogin, trimmed down:
   // this panel doesn't track the full lifecycle_state, only enough to unblock the banner.
   const handleOpenManualLogin = async (lane) => {
     setAuthLoginError(null);
+    setAuthLoginPending(false);
     setAuthLoginLoading(true);
     try {
       const res = await api.post('/import/dkcl/session/interactive-auth', { source: lane });
-      if (res.data.data?.status === 'SESSION_VALID') {
+      const status = res.data.data?.status;
+      if (status === 'SESSION_VALID') {
         setAuthLoginError(null);
         if (activeRunId) {
           fetchRunStatus(activeRunId);
         }
-      } else {
+      } else if (AUTH_LOGIN_ERROR_STATUSES.has(status)) {
         setAuthLoginError(res.data.data?.error?.message || `Không thể hoàn tất đăng nhập ${lane} DKCL.`);
+      } else {
+        // LOGIN_IN_PROGRESS (or any other transitional status): the browser just opened and
+        // is waiting on the PO to log in -- this is normal, not an error. Poll for completion.
+        setAuthLoginPending(true);
+        startAuthLoginPolling(lane);
       }
     } catch (err) {
       setAuthLoginError(err.response?.data?.error?.message || err.response?.data?.data?.error?.message || `Không thể hoàn tất đăng nhập ${lane} DKCL.`);
@@ -816,15 +890,21 @@ export default function AutoBackfillOperatorPanel() {
                       key={lane}
                       type="button"
                       onClick={() => handleOpenManualLogin(lane)}
-                      disabled={authLoginLoading}
+                      disabled={authLoginLoading || authLoginPending}
                       className="inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-50"
                     >
-                      {authLoginLoading ? 'Đang mở trình duyệt...' : `Mở đăng nhập ${lane}`}
+                      {authLoginLoading ? 'Đang mở trình duyệt...' : authLoginPending ? 'Đang chờ đăng nhập...' : `Mở đăng nhập ${lane}`}
                     </button>
                   ))}
                 </div>
               )}
             </div>
+
+            {authLoginPending && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
+                Đang chờ bạn đăng nhập trong cửa sổ vừa mở… Banner này sẽ tự tắt khi đăng nhập xong.
+              </div>
+            )}
 
             {authLoginError && (
               <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">

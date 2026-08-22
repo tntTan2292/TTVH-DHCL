@@ -431,3 +431,40 @@ The existing "Resume" button (`handleResumeRun`, line ~318) is untouched -- it r
 `AutoBackfillOperatorPanel.test.js` still does not exercise the real component render tree (it tests pure helper functions and reimplements logic inline), so it does not and cannot cover this new button's wiring. This is the same residual already documented in Section 16.5, not a new one introduced here.
 
 State: fix applied and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- the Product Owner must visually confirm the button appears in a real WAITING_AUTH state and that clicking it actually opens the DKCL manual login window as expected.
+
+## 18. UI Fix -- False-Positive Error On LOGIN_IN_PROGRESS In handleOpenManualLogin (2026-08-22, Claude Code)
+
+### 18.1 Root Cause (Investigated By Claude Opus 5, Fixed By Claude Sonnet 5, Same Ticket)
+
+The Product Owner reported two symptoms while testing the Section 17 "Mở đăng nhập [LANE]" button against a real HUE login: (1) a generic error banner appeared 1-3 seconds after clicking, before login was even possible, and (2) a second click succeeded but left the browser window visible instead of auto-hiding it.
+
+A read-only, log/DB/process-verified investigation (Windows process creation timestamps, `backend.log`/`backend_err.log`, direct SQLite reads of `auto_backfill_run`/`auto_backfill_job`/`fact_f13`) established:
+
+- **Only one browser window was ever opened** (Chromium PID 25036, created 14:42:38). The Product Owner's first click succeeded end-to-end: login was detected (`wait_detected_authenticated` in `backend.log`), the window was hidden, and the pre-existing 2026-08-18 HUE run (`69b9fff1`) auto-drained to `COMPLETED` at 14:45:00 UTC with 3266 rows imported into `fact_f13`. The 4-minute `manualAuthWaitMs` timeout was never reached (full cycle: 2m19s).
+- **Symptom 1 (false error) was a regression introduced by this ticket's own prior commit (`6501bef5`)**, not a backend defect. `interactiveAuthenticate()` is fire-and-forget: it returns `status: 'LOGIN_IN_PROGRESS'` (HTTP 202, `success: true`, no `error` field) immediately after opening the browser, before the Product Owner has logged in. The handler written in Section 17 treated any status other than `SESSION_VALID` as an error and read a non-existent `error.message`, producing the generic fallback string. `DataImportCenter.jsx`'s original `handleInteractiveHueLogin`/`handleInteractiveTctLogin` never had this bug -- they never set an error for `LOGIN_IN_PROGRESS`, relying instead on a 5-second `preflightHueSession`/`preflightTctSession` poll to detect completion.
+- **Symptom 2 (window not re-hidden) is a separate, real backend behavior**, not something this ticket's frontend scope touches: a second `interactiveAuthenticate()` call while `entry.client` still exists from the first routes into `reuseInteractiveClient()`, which calls `restoreWindow()` and returns immediately -- no background task, so `hideWindow()` is never called again. Flagged for a future backend ticket; **not fixed here** (backend change, out of scope, requires its own PO/CTO decision per the investigation report already delivered in chat).
+
+### 18.2 Fix Applied -- handleOpenManualLogin Only
+
+`frontend/src/components/AutoBackfillOperatorPanel.jsx`, `85 insertions(+), 5 deletions(-)`, no other file touched:
+
+- New constants `AUTH_LOGIN_ERROR_STATUSES` (`SESSION_CHECK_FAILED`, `LOGIN_TIMEOUT`, `AUTHENTICATION_REQUIRED`), `AUTH_LOGIN_POLL_INTERVAL_MS` (5000), `AUTH_LOGIN_POLL_MAX_ATTEMPTS` (60, i.e. 5 minutes -- a safety cap beyond the backend's ~4-minute `manualAuthWaitMs`, absent from `DataImportCenter.jsx` but added here as a defensive bound so a polling interval can never run forever if the PO abandons the login).
+- New state `authLoginPending` and a `useRef`-held interval handle (`authLoginPollRef`).
+- `handleOpenManualLogin(lane)` now only calls `setAuthLoginError(...)` when `status` is in `AUTH_LOGIN_ERROR_STATUSES` or a real exception is thrown. On `SESSION_VALID` it behaves as before. On any other status (in practice, `LOGIN_IN_PROGRESS`) it sets `authLoginPending(true)` and starts polling instead of reporting an error.
+- New `startAuthLoginPolling(lane)`: polls `POST /import/dkcl/session/preflight` (the same endpoint `DataImportCenter.jsx` already uses for this exact purpose) every 5s. On `SESSION_VALID` it stops polling, clears pending, and calls the existing `fetchRunStatus(activeRunId)` so the WAITING_AUTH banner disappears without the Product Owner pressing anything else. On an error status it stops polling and surfaces `authLoginError`. On the attempt cap it stops and reports a timeout message.
+- Cleanup: a `useEffect` clears the interval on unmount; a second `useEffect` keyed on `activeRunId` clears the interval and resets `authLoginPending` whenever the active run changes, preventing a stale poll for an abandoned run from continuing in the background.
+- Banner: while `authLoginPending`, the button is disabled and reads "Đang chờ đăng nhập..."; a new neutral blue-styled line reads "Đang chờ bạn đăng nhập trong cửa sổ vừa mở… Banner này sẽ tự tắt khi đăng nhập xong." The existing red error line is unchanged and now only appears for genuine errors.
+
+### 18.3 Validation
+
+- `npm run build` (vite): PASS, 689 modules, no errors.
+- `npx oxlint AutoBackfillOperatorPanel.jsx`: 0 errors; same 2 pre-existing `no-unused-vars` warnings as Sections 16-17, unchanged.
+- `node src/components/AutoBackfillOperatorPanel.test.js`: 14/14 PASSED, unchanged (same residual as Section 16.5/17.4 -- the suite does not exercise the render tree or this polling logic).
+- Zero NUL bytes. `git diff --stat`: exactly this one file.
+- No real DKCL login was performed and no run was created to test this change, per the explicit "không tự đăng nhập, không tự tạo run" instruction; verified by code reading only.
+
+### 18.4 Residual, Not Fixed Here (Backend, Separate Scope)
+
+The "window does not re-hide on a second click" behavior in `reuseInteractiveClient()` (`backend/src/services/dkclSessionPreflightService.js`) is unchanged. With this fix, the Product Owner should no longer be misled into clicking a second time by a false error -- which removes the main trigger for hitting that behavior -- but the underlying backend gap still exists if a second click happens for any other reason (e.g. a stuck window, an unrelated retry). Left for a separate backend ticket per the investigation report already delivered in chat; CTO/PO scope decision pending.
+
+State: fix applied and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- the Product Owner must re-test the real "Mở đăng nhập HUE/TCT" flow end-to-end and confirm the banner now shows the neutral waiting message (not a false error) and clears automatically once login completes.
