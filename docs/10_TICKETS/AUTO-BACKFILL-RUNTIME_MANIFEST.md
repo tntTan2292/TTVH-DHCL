@@ -399,3 +399,35 @@ Both runs (`69b9fff1` F1.3/HUE, `bad55114` F1.3/TCT) were confirmed still presen
 `AutoBackfillOperatorPanel.test.js` (lines ~93, 124, 503, 531, 547-548) mocks the create-run response with a **flat, non-existent shape** (`{ run_id: 'run_301', ... }` at the top level) and re-implements the bulk-reimport loop inline rather than calling the real component handler. This is why the "contract test" suite (14/14) did not catch the bug this fix addresses -- the test was never actually exercising the real API contract, only a self-consistent but incorrect mock. Not touched in this ticket per explicit scope ("KHÔNG SỬA GÌ KHÁC"); flagged here for a future test-suite correction.
 
 State: fix applied and verified technically; **not self-passed**. `READY FOR PO UI CHECK` -- this changes what the Product Owner sees on screen and must be visually confirmed by the Product Owner, not by Claude Code.
+
+## 17. UI Enhancement -- Manual Login Button Added To WAITING_AUTH Banner (2026-08-22, Claude Code)
+
+### 17.1 Prior Investigation Recap (Not Repeated Here)
+
+An earlier read-only investigation in this ticket (undocumented turn, superseded by this section) established that the WAITING_AUTH banner in `AutoBackfillOperatorPanel.jsx` (~line 782-787) was text-only -- it correctly reported which lane needed manual DKCL login, but had no button to trigger it. The real login-opening endpoint (`POST /import/dkcl/session/interactive-auth`, backed by `sessionPreflightService.interactiveAuthenticate()`) was proven to already work, but only via a different page, `DataImportCenter.jsx` (`handleInteractiveHueLogin` line ~253, `handleInteractiveTctLogin` line ~718) -- which the Auto Backfill Operator Panel had no navigation path to (`setImportMode('HUE'/'TCT')` is never called anywhere; only `'PLATFORM'/'REPORTS'/'MANUAL'` are reachable through the 3 existing tabs). This was dead code, not a regression from any prior fix.
+
+### 17.2 Change Applied -- Reuses The Existing, Proven API Contract Only
+
+No backend change, no new API, no change to `DataImportCenter.jsx`. Three additions to `AutoBackfillOperatorPanel.jsx`:
+
+1. New state (next to the existing Active Run State block, ~line 70): `authLoginLoading`, `authLoginError`.
+2. New handler `handleOpenManualLogin(lane)` -- calls `POST /import/dkcl/session/interactive-auth` with `{ source: lane }`, the identical endpoint and payload shape already proven in `DataImportCenter.jsx`. Trimmed relative to the original: this panel does not track `lifecycle_state` (no multi-step login-in-progress/stuck UI here, matching the ticket's explicit "gọn hơn" scope). On `status === 'SESSION_VALID'` it calls the existing `fetchRunStatus(activeRunId)` so the banner updates automatically without the Product Owner needing to press anything else. On any other status or a thrown error, it sets `authLoginError` for display.
+3. The WAITING_AUTH banner (~line 782) now renders one button per lane in `waitingLanes` -- `Mở đăng nhập ${lane}` -- styled with `bg-vnpost-blue` (Tailwind v4 utility auto-generated from the `--color-vnpost-blue` token in `src/index.css:6`), the same class `DataImportCenter.jsx` uses for its own "Mở đăng nhập Huế/TCT" buttons, so the two pages look consistent. Button disables and its label switches to `Đang mở trình duyệt...` while `authLoginLoading` is true. A red error line renders below the banner when `authLoginError` is set, mirroring `DataImportCenter.jsx`'s `hueSessionError`/`tctSessionError` display pattern.
+
+The existing "Resume" button (`handleResumeRun`, line ~318) is untouched -- it remains the Product Owner's fallback if the automatic `fetchRunStatus` refresh after login doesn't land in time.
+
+`git diff --stat`: exactly `frontend/src/components/AutoBackfillOperatorPanel.jsx`, `46 insertions(+), 1 deletion(-)`. No other file touched.
+
+### 17.3 Validation
+
+- `npm run build` (vite): PASS, 689 modules, no errors (same module count as before this change -- no new files pulled in, matching the "no new API/dependency" constraint).
+- `npx oxlint AutoBackfillOperatorPanel.jsx`: 0 errors; the same 2 pre-existing `no-unused-vars` warnings (`coverageError`, `runError`) as documented in Section 16.3 -- not introduced by this change.
+- `node src/components/AutoBackfillOperatorPanel.test.js`: 14/14 PASSED, unchanged.
+- Zero NUL bytes in the touched file.
+- No real DKCL login was triggered and no run was created to test this -- verified by button behavior only through code reading, per the explicit "không tự tạo run/đăng nhập thật để test thay PO" instruction.
+
+### 17.4 Residual, Unchanged From Section 16
+
+`AutoBackfillOperatorPanel.test.js` still does not exercise the real component render tree (it tests pure helper functions and reimplements logic inline), so it does not and cannot cover this new button's wiring. This is the same residual already documented in Section 16.5, not a new one introduced here.
+
+State: fix applied and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- the Product Owner must visually confirm the button appears in a real WAITING_AUTH state and that clicking it actually opens the DKCL manual login window as expected.

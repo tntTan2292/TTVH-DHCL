@@ -72,6 +72,11 @@ export default function AutoBackfillOperatorPanel() {
   const [runActionLoading, setRunActionLoading] = useState(false);
   const [runError, setRunError] = useState(null);
 
+  // Manual DKCL Login (WAITING_AUTH remediation) -- reuses POST /import/dkcl/session/interactive-auth,
+  // the same endpoint already proven working in DataImportCenter.jsx (handleInteractiveHueLogin/handleInteractiveTctLogin).
+  const [authLoginLoading, setAuthLoginLoading] = useState(false);
+  const [authLoginError, setAuthLoginError] = useState(null);
+
   // Drawers & Modals
   const [showEvents, setShowEvents] = useState(false);
   const [events, setEvents] = useState([]);
@@ -344,6 +349,29 @@ export default function AutoBackfillOperatorPanel() {
       setRunError(getApiErrorMessage(err, 'Không thể khôi phục mạch.'));
     } finally {
       setRunActionLoading(false);
+    }
+  };
+
+  // Open manual DKCL login browser window for a WAITING_AUTH lane. Same API contract as
+  // DataImportCenter.jsx's handleInteractiveHueLogin/handleInteractiveTctLogin, trimmed down:
+  // this panel doesn't track the full lifecycle_state, only enough to unblock the banner.
+  const handleOpenManualLogin = async (lane) => {
+    setAuthLoginError(null);
+    setAuthLoginLoading(true);
+    try {
+      const res = await api.post('/import/dkcl/session/interactive-auth', { source: lane });
+      if (res.data.data?.status === 'SESSION_VALID') {
+        setAuthLoginError(null);
+        if (activeRunId) {
+          fetchRunStatus(activeRunId);
+        }
+      } else {
+        setAuthLoginError(res.data.data?.error?.message || `Không thể hoàn tất đăng nhập ${lane} DKCL.`);
+      }
+    } catch (err) {
+      setAuthLoginError(err.response?.data?.error?.message || err.response?.data?.data?.error?.message || `Không thể hoàn tất đăng nhập ${lane} DKCL.`);
+    } finally {
+      setAuthLoginLoading(false);
     }
   };
 
@@ -780,12 +808,29 @@ export default function AutoBackfillOperatorPanel() {
               )}
 
               {(waitingLanes.length > 0 || effectiveRunState === 'WAITING_AUTH') && (
-                <div className="flex items-center gap-2 rounded-lg bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300 animate-bounce">
+                <div className="flex flex-wrap items-center gap-2 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-900 border border-amber-300 animate-bounce">
                   <ShieldAlert className="h-4 w-4 text-amber-700 shrink-0" />
                   <span>Cần đăng nhập thủ công [{waitingLanes.join(' / ') || 'Portal'}]</span>
+                  {waitingLanes.map((lane) => (
+                    <button
+                      key={lane}
+                      type="button"
+                      onClick={() => handleOpenManualLogin(lane)}
+                      disabled={authLoginLoading}
+                      className="inline-flex items-center justify-center rounded-lg bg-vnpost-blue px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                    >
+                      {authLoginLoading ? 'Đang mở trình duyệt...' : `Mở đăng nhập ${lane}`}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
+
+            {authLoginError && (
+              <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
+                {authLoginError}
+              </div>
+            )}
           </div>
         )}
       </div>
