@@ -468,3 +468,31 @@ A read-only, log/DB/process-verified investigation (Windows process creation tim
 The "window does not re-hide on a second click" behavior in `reuseInteractiveClient()` (`backend/src/services/dkclSessionPreflightService.js`) is unchanged. With this fix, the Product Owner should no longer be misled into clicking a second time by a false error -- which removes the main trigger for hitting that behavior -- but the underlying backend gap still exists if a second click happens for any other reason (e.g. a stuck window, an unrelated retry). Left for a separate backend ticket per the investigation report already delivered in chat; CTO/PO scope decision pending.
 
 State: fix applied and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- the Product Owner must re-test the real "Mở đăng nhập HUE/TCT" flow end-to-end and confirm the banner now shows the neutral waiting message (not a false error) and clears automatically once login completes.
+
+## 19. UI Fix -- False-Positive "Cần đăng nhập thủ công" Banner On A Normally Running Run (2026-08-22, Claude Code)
+
+### 19.1 Root Cause (Investigated By Claude Opus 5, Fixed By Claude Sonnet 5, Same Ticket)
+
+The Product Owner reported the amber "Cần đăng nhập thủ công [HUE]" banner flashing on a run that was genuinely `RUNNING` with a real job actively executing (`activeExecutingJob` resolved correctly). Root cause, previously identified and left unfixed pending this delta: `resolveWaitingAuthLanes(run, jobs)` in `frontend/src/components/autoBackfillUiHelpers.js` fell back to `[run.requested_lane]` whenever `jobs` contained no `WAITING_AUTH` entry -- with no check that `run.safety_state` was actually `'WAITING_AUTH'`. Any timing window where the jobs array momentarily had no matching row (a normal `RUNNING` run, or a terminal `COMPLETED`/`COMPLETED_WITH_ERRORS`/`CANCELLED` run) produced a false-positive banner.
+
+Two secondary defects in the same UI surface were fixed alongside it, all pre-identified and explicitly scoped by the Product Owner delta before implementation:
+
+- `authLoginError`/`authLoginPending` (state left over from a prior WAITING_AUTH episode, e.g. Section 18's manual-login flow) had no cleanup tied to the run actually leaving `WAITING_AUTH` -- a stale error/pending banner could keep showing after the run had already resumed or completed.
+- The idle line in the "GRANULAR JOB STATUS" row unconditionally read "Đang khởi tạo các luồng bù dữ liệu..." whenever `activeExecutingJob` was falsy, including on a terminal run (`COMPLETED`/`COMPLETED_WITH_ERRORS`/`CANCELLED`) -- misleadingly implying work was still starting up.
+
+### 19.2 Fix Applied -- Exactly 3 Locations, No Other File Touched
+
+- **`frontend/src/components/autoBackfillUiHelpers.js`**, `resolveWaitingAuthLanes()`: the `[run.requested_lane]` fallback now requires `run.safety_state === 'WAITING_AUTH'` in addition to the existing `requested_lane` check. Any other `safety_state` (`null`, or a terminal run) returns `[]`.
+- **`frontend/src/components/AutoBackfillOperatorPanel.jsx`**: new `useEffect` keyed on `effectiveRunState`, placed next to the existing `waitingLanes` memo -- whenever `effectiveRunState !== 'WAITING_AUTH'`, it calls `setAuthLoginError(null)` and `setAuthLoginPending(false)`, so stale Section 18 banner state cannot outlive the WAITING_AUTH episode that produced it.
+- **`frontend/src/components/AutoBackfillOperatorPanel.jsx`**: the idle-state branch (`activeExecutingJob` falsy) in the "GRANULAR JOB STATUS" row now branches on `effectiveRunState` -- `COMPLETED` -> "Đã hoàn tất", `COMPLETED_WITH_ERRORS` -> "Hoàn tất có lỗi", `CANCELLED` -> "Đã huỷ", any other state (unchanged) -> "Đang khởi tạo các luồng bù dữ liệu...".
+
+Regression coverage: two new assertions added to `AutoBackfillOperatorPanel.test.js` (Test cases 2.5/2.6) directly reproducing the reported false-positive -- a `RUNNING`/`safety_state: null` run and a `COMPLETED`/`safety_state: null` run, each with an empty `jobs` array and a set `requested_lane`, both now assert `resolveWaitingAuthLanes` returns `[]`.
+
+### 19.3 Validation
+
+- `node src/components/AutoBackfillOperatorPanel.test.js`: 14/14 PASSED, including the 2 new regression cases.
+- `npm run build` (vite): PASS, 689 modules, no errors.
+- `npx oxlint` on the 3 changed files: 0 new findings; same 2 pre-existing `no-unused-vars` warnings (`coverageError`, `runError`) as Sections 16-18, unchanged, not introduced by this delta.
+- No backend file touched, no database touched, no real DKCL login performed, no run created -- verified by `git diff --stat` (frontend-only, exactly the 3 files above) and by not invoking any backend/browser tool during this delta.
+
+State: fix applied and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- the Product Owner must confirm in the live UI that the "Cần đăng nhập thủ công" banner no longer appears on a normally running or completed run, and that a genuine `WAITING_AUTH` run still shows it correctly (unchanged from Sections 17-18).

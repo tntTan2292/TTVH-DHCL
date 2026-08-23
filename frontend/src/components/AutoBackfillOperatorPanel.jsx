@@ -703,6 +703,15 @@ export default function AutoBackfillOperatorPanel() {
     return resolveWaitingAuthLanes(runData?.run, runData?.jobs);
   }, [runData]);
 
+  // Once the run leaves WAITING_AUTH (resumed, completed, cancelled, ...), any stale manual-login
+  // error/pending banner from a previous WAITING_AUTH episode must clear itself automatically.
+  useEffect(() => {
+    if (effectiveRunState !== 'WAITING_AUTH') {
+      setAuthLoginError(null);
+      setAuthLoginPending(false);
+    }
+  }, [effectiveRunState]);
+
   const activeExecutingJob = useMemo(() => {
     const jobs = runData?.jobs || [];
     return (
@@ -877,6 +886,12 @@ export default function AutoBackfillOperatorPanel() {
                   <Activity className="h-4 w-4 text-blue-600 animate-pulse" />
                   <span>Đang xử lý: <strong className="text-slate-900">Chỉ tiêu {activeExecutingJob.indicator} × Nguồn {activeExecutingJob.source_lane} × Ngày {activeExecutingJob.business_date}</strong></span>
                 </div>
+              ) : effectiveRunState === 'COMPLETED' ? (
+                <span className="text-slate-500">Đã hoàn tất</span>
+              ) : effectiveRunState === 'COMPLETED_WITH_ERRORS' ? (
+                <span className="text-slate-500">Hoàn tất có lỗi</span>
+              ) : effectiveRunState === 'CANCELLED' ? (
+                <span className="text-slate-500">Đã huỷ</span>
               ) : (
                 <span className="text-slate-500">Đang khởi tạo các luồng bù dữ liệu...</span>
               )}

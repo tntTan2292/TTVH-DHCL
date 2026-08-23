@@ -24,7 +24,10 @@ export function resolveWaitingAuthLanes(run, jobs = []) {
     const lanes = new Set(waitingJobs.map((j) => j.source_lane).filter(Boolean));
     return Array.from(lanes);
   }
-  if (run.requested_lane && run.requested_lane !== 'ALL') {
+  // Only fall back to the requested lane when the run itself is genuinely
+  // WAITING_AUTH — never infer it merely from an empty waitingJobs list
+  // (e.g. a normally RUNNING/COMPLETED run with no matching job in `jobs`).
+  if (run.safety_state === 'WAITING_AUTH' && run.requested_lane && run.requested_lane !== 'ALL') {
     return [run.requested_lane];
   }
   return [];

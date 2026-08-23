@@ -81,6 +81,18 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   const waitingLanesFallback = resolveWaitingAuthLanes(runWithRequestedLane, []);
   assert.deepEqual(waitingLanesFallback, ['HUE'], 'Must use requested_lane fallback when no waiting job is found');
 
+  // Test case 2.5: Regression — a genuinely RUNNING run (safety_state null) must NEVER
+  // fall back to requested_lane just because no job in `jobs` matches WAITING_AUTH.
+  // This was a false-positive "Cần đăng nhập thủ công" banner on a normally running run.
+  const runActuallyRunning = { id: 'run_205', status: 'RUNNING', safety_state: null, requested_lane: 'HUE' };
+  const waitingLanesRunning = resolveWaitingAuthLanes(runActuallyRunning, []);
+  assert.deepEqual(waitingLanesRunning, [], 'Must NOT fall back to requested_lane when run.safety_state is not WAITING_AUTH');
+
+  // Test case 2.6: Regression — same false-positive risk on a COMPLETED run.
+  const runCompletedForLanes = { id: 'run_206', status: 'COMPLETED', safety_state: null, requested_lane: 'TCT' };
+  const waitingLanesCompleted = resolveWaitingAuthLanes(runCompletedForLanes, []);
+  assert.deepEqual(waitingLanesCompleted, [], 'Must NOT fall back to requested_lane on a COMPLETED run');
+
   console.log('✔ 2. WAITING_AUTH Lane Resolution tests PASSED!');
 }
 
