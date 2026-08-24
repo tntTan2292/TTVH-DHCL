@@ -496,3 +496,41 @@ Regression coverage: two new assertions added to `AutoBackfillOperatorPanel.test
 - No backend file touched, no database touched, no real DKCL login performed, no run created -- verified by `git diff --stat` (frontend-only, exactly the 3 files above) and by not invoking any backend/browser tool during this delta.
 
 State: fix applied and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- the Product Owner must confirm in the live UI that the "Cần đăng nhập thủ công" banner no longer appears on a normally running or completed run, and that a genuine `WAITING_AUTH` run still shows it correctly (unchanged from Sections 17-18).
+
+## 20. AB-AUTH-01 + AB-AUTH-02 -- First Two Redesign Tickets Executed (2026-08-24, Claude Code Opus 5)
+
+Following Product Owner approval of `docs/10_TICKETS/AUTO-BACKFILL-AUTH-REDESIGN_DESIGN.md` (commit `1e19c5f3`) -- Plan A1 confirmed over A2, "Xoá phiên" feature confirmed, proposed ticket order confirmed, small-batch execution confirmed, and `AB-AUTH-04`'s `EXPORT_TIMEOUT` retry ceiling changed to a maximum 10-minute total wait (overriding the design's original ~65-minute estimate for that ticket only, not applicable here) -- the first two tickets in that sequence were executed in this delta.
+
+### 20.1 AB-AUTH-01 -- Profile Lock Ownership Fix (commit `1d79d0c`)
+
+Implements design Section 6.2 (D1) exactly as specified, no alternate approach substituted.
+
+`backend/src/services/dkclHueF13PortalClient.js`, `acquireProfileLock()`: previously `this.lockDir` was assigned *before* `mkdirSync()` could throw `EEXIST`, so a client that lost the profile-lock race (rejected with `PROFILE_LOCKED`) still carried a `lockDir` into `close()`. `preflight()` calls `close()` unconditionally in a `finally` block, so a losing client would delete the winning client's live lock -- the exact bug identified in the design and in the prior investigation report, and the reason automated `WAITING_AUTH` release via a separate script was previously refused.
+
+Fix: `this.lockDir` is now assigned only *after* `mkdirSync()` has actually created the directory, tracked by a new `this.ownsLock` flag; `close()` only removes the lock when `this.ownsLock` is true, and resets both fields (idempotent on a second `close()`). The success path is unchanged; only the `PROFILE_LOCKED` failure path stops causing harm.
+
+Design's "safe orphan-lock cleanup" requirement was checked and found already satisfied: all three call sites of `processManager.cleanupStaleLocks()` (`dkclSessionPreflightService.js:282, 672, 932`) are already gated on `STALE_CONFIRMED` classification or a verified-and-terminated PID, so no new cleanup mechanism was built.
+
+**Regression tests** -- 2 new cases in `backend/test_browserProfileLock.js` (TEST 11/12): a losing client must not delete the winner's lock (asserted on the actual side effect -- the deletion call -- not just an internal flag); the real lock owner must still release its own lock on `close()`. Both were run against the pre-fix code and confirmed to fail (TEST 11 fails on `close() must not remove a lock owned by another process`), then confirmed to pass with the fix restored.
+
+**Validation:** `test_autoBackfillSafety.js` (Gate 5 suite) 11/11 PASS, suite itself not modified. `test_browserProfileLock.js` 12/12 PASS. `test_dkclSessionPreflightService.js`, `test_dkclHueF13SyncService.js`, `test_dkclHueF13BackfillService.js`, `test_dkclSessionCoordinator.js`, `test_dkclHueBrowserBroker.js` all PASS. `oxlint`: 1 pre-existing `no-dupe-class-members` warning (line shifted from 843 to 856 by the fix, confirmed present before this change too), no new findings. `git diff --stat`: exactly 2 files (`dkclHueF13PortalClient.js`, `test_browserProfileLock.js`). No database touched, no login performed, no run created.
+
+State: `READY` -- backend-only, Gate 5 suite green, build/lint clean. Per CTO Self-Pass Criteria this is eligible for technical self-pass; flagged here for explicit CTO confirmation rather than self-declared.
+
+### 20.2 AB-AUTH-02 -- Render `runError` (commit `07ef28f`)
+
+Implements design Section 5.2 (C3).
+
+`frontend/src/components/AutoBackfillOperatorPanel.jsx`: `runError` was set on every failed Pause/Resume/Reset-circuit/Create-run call (5 `setRunError` sites, dating back before this delta) but no JSX ever read it -- every one of those failures was silently swallowed, first flagged as `P1-E` in the original cross-cutting investigation and carried into the redesign design as Section 5.
+
+Fix: a new dismissible red error block, placed *outside* both the run-creation-controls block and the active-run block -- deliberately, because `handleCreateRun` can fail while `activeRunId` is still `null`, so nesting the error display inside the active-run block would have kept the single most common failure case invisible. `handlePauseRun`/`handleResumeRun`/`handleResetCircuit` now call `setRunError(null)` at the start of the request, matching the pre-existing `handleCreateRun` pattern, so a stale error from a previous action does not linger across a new one.
+
+Side effect: this also resolves the pre-existing `no-unused-vars(runError)` `oxlint` warning noted in Sections 16-19 -- `runError` is now referenced.
+
+**Validation:** `npm run build` (vite) PASS, 689 modules. `oxlint`: 0 new findings; the `runError` warning is gone, only the unrelated pre-existing `coverageError` warning remains. `node AutoBackfillOperatorPanel.test.js`: 14/14 PASS (unchanged -- this project has no render-tree test harness for this component, same residual noted in Sections 16-19; no new assertions were added because there is nothing a pure-function contract test can assert about JSX visibility). `git diff --stat`: exactly this one file. No backend/database touched, no login performed, no run created.
+
+State: fix applied and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- the Product Owner must confirm in the live UI that a genuine Pause/Resume/Reset-circuit/Create-run failure now shows a visible, dismissible red error message instead of failing silently.
+
+### 20.3 Handoff
+
+Both commits are on `codex/da-impl-006`, pushed to `origin`. `AB-AUTH-03` (lane-aware blocking, Plan A1) is next per the confirmed order; not started in this delta. The 10-minute `EXPORT_TIMEOUT` ceiling PO specified applies only to `AB-AUTH-04` and is recorded here for continuity, not acted on by this delta.
