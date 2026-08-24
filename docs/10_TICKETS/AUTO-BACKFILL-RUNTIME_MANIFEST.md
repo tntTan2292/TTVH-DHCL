@@ -599,3 +599,30 @@ The Product Owner released the 23/08 TCT block during this work. Run `2d817c59` 
 Plan A2 (true per-lane parallelism, requiring two schema migrations) remains explicitly out of scope and not recommended.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- per the design's own risk note this is the largest behavioural change in the programme, so the Product Owner must confirm on a real run that a `WAITING_AUTH` run on one source no longer stalls work on the other, and that a blocked source still refuses to execute until its own manual login and explicit Resume.
+
+## 22. AB-AUTH-03 Live Verification -- Deferred By Product Owner Decision (2026-08-24)
+
+### 22.1 Status Of Implementation
+
+`AB-AUTH-03` (commit `966427f5`) is implemented and code-reviewed per Section 21: lane-aware blocking replaces the global `WAITING_AUTH`/`BLOCKED_INTEGRITY` guard, with a dedicated regression suite that reproduces the exact 20/08-22/08 incident (Section 21.3) and was verified to fail against the pre-fix code before the fix was restored. It has **not** been confirmed by the Product Owner on the live system.
+
+### 22.2 Why A Deliberate Test Was Not Attempted
+
+A read-only survey was performed to design a repeatable Product Owner checklist for exercising the fix on purpose (one source deliberately put into `WAITING_AUTH` while the other keeps working). The survey found:
+
+- `F1.3` has **0** queue-eligible missing dates on either lane (fully backfilled). `F4.1` has **234** queue-eligible missing dates on each of HUE and TCT -- real, safe test material exists (re-importing an already-covered date is harmless and repeatable).
+- No run was `RUNNING`/`PAUSED` at survey time; both HUE and TCT browser sessions were live (both `HUE.lock`/`TCT.lock` held, matching Chromium process groups present for each profile) -- there was no naturally-occurring `WAITING_AUTH` condition to observe.
+- The only way to deliberately force one session invalid on demand today is to kill its Chromium process outside the application (e.g. Task Manager). This was evaluated against `dkclSessionPreflightService.js`'s `probeAndMaybeExpireClient()` and found **not safe/predictable**: a killed process leaves the backend still holding a reference to a dead browser context; the probe's own ambiguity handling (`if (!probe.hasLoginInput) ... "keep the session"`) means the outcome is not a clean `AUTHENTICATION_REQUIRED` but an indeterminate `LOGIN_IN_PROGRESS`-like state, and the profile lock is not guaranteed to be released cleanly (nothing calls `close()` on a killed process). It was therefore **not** included in any checklist and **not** performed.
+- `AB-AUTH-10` ("Đăng xuất / Xoá phiên" -- Section 6.3 of the design), which would let the Product Owner cleanly and deterministically invalidate one lane's session on demand for exactly this purpose, was proposed for earlier prioritisation specifically to enable safe on-demand testing.
+
+### 22.3 Product Owner Decision
+
+The Product Owner declined to schedule a deliberate test at this time: `F4.1` backfill has been blocked by import-mechanism defects for over a week, and the Product Owner's priority is importing real data, not manufacturing a test condition. `AB-AUTH-10` is **deferred indefinitely, not cancelled** -- it remains in the design's ticket list (Section 10) and can be picked up whenever the Product Owner wants an on-demand way to invalidate a session, for testing or otherwise.
+
+### 22.4 Standing Instruction
+
+No further test of this ticket is to be proactively scheduled. If the Product Owner reports the original symptom again -- one source in `WAITING_AUTH` blocking backfill work on an unrelated source -- this is to be treated as a **regression** of `AB-AUTH-03` specifically, reopened under this section, and given immediate priority (ahead of whatever ticket is then in progress).
+
+### 22.5 State
+
+`AB-AUTH-03: DEPLOYED / LIVE VERIFICATION PENDING (deferred by Product Owner)`. This is distinct from both `READY FOR PO UI CHECK` (Section 21, superseded by this entry) and `PO PASS` -- it is not blocking any other ticket, and Section 21's technical validation (Gate 5 11/11, 28/28 queue-service suite, 15 related suites, oxlint clean) stands as the record of correctness in the absence of live confirmation. `AB-AUTH-10` status: `PROPOSED / DEFERRED INDEFINITELY`, not cancelled.
