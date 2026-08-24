@@ -20,6 +20,10 @@ router.get('/auto-backfill/coverage/exceptions', requireAuth, autoBackfillCovera
 router.post('/auto-backfill/coverage/exceptions', ...adminOnly, autoBackfillCoverageExceptionController.create.bind(autoBackfillCoverageExceptionController));
 router.post('/auto-backfill/coverage/exceptions/:exceptionId/revoke', ...adminOnly, autoBackfillCoverageExceptionController.revoke.bind(autoBackfillCoverageExceptionController));
 router.post('/auto-backfill/runs', ...adminOnly, autoBackfillQueueController.createRun.bind(autoBackfillQueueController));
+// AB-AUTH-06: list every open run (design Section 5, C1) -- must be registered before the
+// '/:runId' route below only as a matter of readability; Express does not confuse the two since
+// '/auto-backfill/runs' and '/auto-backfill/runs/:runId' are distinct path shapes.
+router.get('/auto-backfill/runs', requireAuth, autoBackfillQueueController.listRuns.bind(autoBackfillQueueController));
 router.get('/auto-backfill/runs/:runId', requireAuth, autoBackfillQueueController.getRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/pause', ...adminOnly, autoBackfillQueueController.pauseRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/resume', ...adminOnly, autoBackfillQueueController.resumeRun.bind(autoBackfillQueueController));

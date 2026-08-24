@@ -694,3 +694,68 @@ Verified to fail without the fix (same method as AB-AUTH-01/03): all three chang
 `AB-AUTH-05` (PENDING vs BLOCKED session semantics) is next in the confirmed order and depends on this ticket's backoff mechanism per design Section 9.1 -- not started here.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- this changes real Product Owner-visible behaviour (an F4.1/F1.3 HUE job that previously failed permanently after one `EXPORT_TIMEOUT` will now retry up to 3 times before giving up, and will visibly sit in `RETRY_WAIT` between attempts instead of `FAILED_TERMINAL` immediately). The Product Owner should confirm on a real `EXPORT_TIMEOUT` occurrence (most likely on the 234 outstanding F4.1 dates) that: the job retries instead of failing immediately, the total time before a final failure is noticeably under 10 minutes, and a `SUCCESS` on any retry attempt completes the job normally.
+
+## 24. AB-AUTH-06 + AB-AUTH-07 -- Open-Run List API And Multi-Run Table Executed (2026-08-24, Claude Code Opus 5)
+
+### 24.1 Scope
+
+Per design Section 5 (C1 + C2), the Product Owner chose these two together since the UI ticket cannot exist without the API. `C3` (render `runError`) was already delivered under `AB-AUTH-02`; `C4` (merge bulk reimport into one run) remains `AB-AUTH-08`, explicitly deferred, not touched here.
+
+### 24.2 AB-AUTH-06 -- `GET /api/import/auto-backfill/runs` (C1)
+
+`backend/src/services/autoBackfillQueueStore.js`
+
+- New `listRuns({ statuses, limit, offset })`: one query for the run rows (default `['RUNNING', 'PAUSING', 'PAUSED']`, i.e. every open run), one query for their jobs by `run_id IN (...)`, aggregated in memory into `jobCountsByState`, `indicators`, `lanes`, and `indicatorLanePairs` (exact `(indicator, sourceLane)` pairs, kept alongside the display arrays so the service layer can permission-filter without a second query).
+- `blockedLanes` is deliberately **not** the system-wide `BLOCKED_LANES_SUBQUERY` from `AB-AUTH-03` -- it is scoped to each run's own jobs. The question this API answers is "which run is responsible for blocking a lane", not "which lanes are blocked anywhere"; those are different questions and conflating them would have made a healthy run appear to be the one blocking the queue.
+
+`backend/src/services/autoBackfillQueueService.js`
+
+- New `listRuns({ status, limit, offset, roles, permissionField })`: applies the **same** per-`(indicator, lane)` permission check `getRun()` already uses (`registrations()[...].lanes[...].permissions[permissionField]`). A run is included only if at least one of its pairs is readable; the displayed `indicators`/`lanes`/`blockedLanes` are trimmed to the readable subset so a restricted role never sees a lane name it has no access to.
+
+`backend/src/controllers/autoBackfillQueueController.js` + `backend/src/routes/importRoutes.js`
+
+- `GET /api/import/auto-backfill/runs` (query: `status`, `limit`, `offset`), `requireAuth` only -- consistent with the existing read routes (`getRun`, `getEvents`, `getReport`), which are also `requireAuth`, not `adminOnly`. Response: `{ success: true, data: { runs: [...] } }`.
+- Registered before `/auto-backfill/runs/:runId` for readability only; Express does not confuse the two path shapes.
+
+### 24.3 AB-AUTH-07 -- Multi-Run Table (C2)
+
+`frontend/src/components/autoBackfillUiHelpers.js`
+
+- New `resolveOpenRunRowActions(entry)`: pulled the per-row decision logic (run state, `isBlocking`, `canResume`) out of JSX into a plain function, matching this file's existing pattern of every other UI decision being a testable helper rather than inline JSX logic. `canResume` is `true` only when `resolveEffectiveRunState(entry.run) === 'WAITING_AUTH'` -- a run merely queued behind a lane blocked by a *different* run is not itself stuck and must not show a Resume button that does nothing.
+
+`frontend/src/components/AutoBackfillOperatorPanel.jsx`
+
+- New "Tất cả tiến trình đang mở" table, placed above the run-creation/detail panel per design C2. Polls `GET /auto-backfill/runs` every 5s (`fetchOpenRuns`, mirroring the existing `fetchRunStatus` 4s pattern) and also refreshes immediately after every mutating action (`handleCreateRun`, `handlePauseRun`, `handleResumeRun`, `handleResetCircuit`) that already refreshed the single-run panel.
+- Each row shows: short run id, indicator/lane, state badge, job count, and -- only when `blockedLanes` is non-empty -- a red "Đang chặn nguồn X" flag with a "Mở đăng nhập X" button per blocked lane (reuses the existing, run-independent `handleOpenManualLogin(lane)`).
+- A "Tiếp tục Run" button appears only when `canResume` is true, and acts on that row's own run id directly via a new `handleResumeRunFromList(runId)` -- the Product Owner does not have to first select the run as "active" to unblock it, which is the exact friction point from the 22/08-24/08 incidents documented in Sections 21 and prior investigation reports.
+- Clicking a row (`handleSelectRunFromList`) switches the detail panel below to that run, reusing the existing `activeRunId`/`fetchRunStatus` machinery unchanged.
+
+### 24.4 Regression Tests -- Verified To Fail Without The Fix
+
+Backend, `test_autoBackfillQueueService.js` (28 -> 31): `listRuns returns every open run with per-run job counts and blocked lanes` (reuses the `AB-AUTH-03` `laneBlockedFixture()` -- a run with a blocked TCT job and a healthy HUE job must report `blockedLanes: ['TCT']` and both lanes counted), `listRuns excludes terminal runs by default and includes them when asked`, `listRuns applies the same per-lane permission filter as getRun` (a role with no readable lane must see `[]`, not a 403 -- listing silently omits, `getRun` on a single restricted run still throws).
+
+Backend, `test_autoBackfillQueueController.js` (7 -> 10): `listRuns forwards status/limit/offset and roles, and wraps the result under { runs }`, the empty-query default case, and the existing error-passthrough pattern reused for `listRuns`.
+
+Frontend, `AutoBackfillOperatorPanel.test.js` (14 -> 15, 5 sub-cases): a `WAITING_AUTH` entry offers Resume; **the incident reproduction** -- a healthy `RUNNING` run listed next to a blocked one must never offer Resume; a `PAUSED` run (a deliberate PO action, not `WAITING_AUTH`) must not offer Resume either; missing `blockedLanes` must not throw; a null/empty entry must not throw.
+
+Verified to fail without the fix (same method as AB-AUTH-01/03/04): the four backend source files were reverted to their pre-fix `git checkout` state -- all three new `listRuns` service tests failed with `fixture.service.listRuns is not a function`. Separately, `autoBackfillUiHelpers.js` was reverted alone -- the frontend suite failed to even load (`SyntaxError: ... does not provide an export named 'resolveOpenRunRowActions'`), i.e. every consumer of the file breaks loudly rather than silently keeping stale behaviour. Both were then restored from a scratch backup and re-verified passing.
+
+### 24.5 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified.
+- `test_autoBackfillQueueService.js`: 31/31 PASS. `test_autoBackfillQueueController.js`: 10/10 PASS. `test_autoBackfillCoverageController.js` (unaffected sibling controller, sanity check): PASS.
+- Frontend: `AutoBackfillOperatorPanel.test.js` 15/15 PASS; `npm run build` (vite) PASS, 689 modules.
+- `oxlint` on all 6 changed files: 0 new findings; the same single pre-existing `no-unused-vars` warning (`coverageError`) already present before this delta, unchanged.
+- No database touched, no login performed, no run created -- verified entirely via unit/fixture tests and a static build.
+
+### 24.6 Decisions Made Beyond The Design's Literal Text
+
+- **`blockedLanes` scope (per-run, not system-wide):** the design's C1 wording ("lane nào đang bị run này chặn") is ambiguous between "which lanes does this run block" and "which lanes are blocked, reusing the AB-AUTH-03 query". Chose per-run, because the table's purpose is identifying *which run* to act on -- a system-wide union would make every run in a blocked system look equally suspect.
+- **Resume button gated on `runState === 'WAITING_AUTH'`, not on `blockedLanes.length > 0`:** these differ for a run that is itself healthy but merely queued behind a lane a *different* run is blocking (post-`AB-AUTH-03`, this is now possible and expected). Showing Resume there would be a dead button -- resuming a run that was never `WAITING_AUTH` is a no-op in `resumeRun()`. This is the concrete design decision the `AB-AUTH-07` test suite (case 15.2) exists to lock in.
+- **Read permission is `requireAuth`, not `adminOnly`:** matched the existing precedent (`getRun`, `getEvents`, `getReport` are all `requireAuth`); only mutating routes are `adminOnly`. Not explicitly stated for `C1` in the design but consistent with its own "quyền: `requireAuth` cho đọc" line.
+
+### 24.7 Residual
+
+`AB-AUTH-05` (PENDING vs BLOCKED session semantics) remains next in the confirmed order, not started in this delta. `AB-AUTH-08`/`AB-AUTH-09` (merge bulk reimport, indicator filter) remain deferred per explicit Product Owner instruction.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- this adds a new, always-visible table to the Auto Backfill screen. The Product Owner should confirm: every open run appears (not just the one being tracked below), a run blocking a lane shows the red flag and its own "Mở đăng nhập"/"Tiếp tục Run" buttons work directly from the row, and clicking a row switches the detail panel to that run.

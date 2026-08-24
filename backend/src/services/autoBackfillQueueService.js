@@ -193,6 +193,41 @@ class AutoBackfillQueueService {
         };
     }
 
+    // AB-AUTH-06 (design Section 5, C1): list every open run, permission-filtered the same way
+    // getRun() is -- a run is included only if at least one of its (indicator, lane) pairs is
+    // readable by the caller's roles, and its displayed indicators/lanes are trimmed to the
+    // readable subset so a restricted role never sees a lane name it has no access to.
+    async listRuns({ status = null, limit = 50, offset = 0, roles, permissionField = 'coverageReadRoles' } = {}) {
+        const normalizedRoles = normalizeRoles(roles);
+        const registrations = this.registrations();
+        const statuses = status
+            ? (Array.isArray(status) ? status : String(status).split(',')).map((value) => value.trim().toUpperCase()).filter(Boolean)
+            : undefined;
+        const entries = await this.store.listRuns({ statuses, limit, offset });
+
+        const isPairReadable = (indicator, sourceLane) => {
+            const lane = registrations.find((entry) => entry.code === indicator)?.lanes?.[sourceLane];
+            const allowed = lane?.permissions?.[permissionField]?.map((role) => String(role).toLowerCase()) || [];
+            return normalizedRoles.some((role) => allowed.includes(role));
+        };
+
+        return entries
+            .map((entry) => {
+                const readablePairs = entry.indicatorLanePairs.filter((pair) => isPairReadable(pair.indicator, pair.sourceLane));
+                if (readablePairs.length === 0) return null;
+                const readableLaneSet = new Set(readablePairs.map((pair) => pair.sourceLane));
+                return {
+                    run: entry.run,
+                    jobTotal: entry.jobTotal,
+                    jobCountsByState: entry.jobCountsByState,
+                    blockedLanes: entry.blockedLanes.filter((lane) => readableLaneSet.has(lane)),
+                    indicators: Array.from(new Set(readablePairs.map((pair) => pair.indicator))),
+                    lanes: Array.from(readableLaneSet),
+                };
+            })
+            .filter(Boolean);
+    }
+
     async pauseRun(runId, { actor, roles }) {
         assertAdmin(roles);
         return this.store.pauseRun(runId, actor);

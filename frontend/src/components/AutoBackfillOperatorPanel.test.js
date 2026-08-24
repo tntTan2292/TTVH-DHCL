@@ -7,6 +7,7 @@ import {
   resolveEffectiveRunState,
   resolveIndicatorGridClass,
   resolveNoCodeStatus,
+  resolveOpenRunRowActions,
   resolveRunActionButtons,
   resolveWaitingAuthLanes
 } from './autoBackfillUiHelpers.js';
@@ -567,6 +568,51 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.ok(renamedButtonText.startsWith('Cập nhật dữ liệu - Loại bỏ phát sinh'));
 
   console.log('✔ 14. Bulk Reimport Sequence & Renamed Button Label tests PASSED!');
+}
+
+// ==========================================
+// 15. AB-AUTH-07: Open-Run Table Row Actions (design Section 5, C2)
+// ==========================================
+{
+  // Test case 15.1: a run genuinely WAITING_AUTH shows both the block flag and the resume button.
+  const waitingEntry = {
+    run: { id: 'run_301', status: 'RUNNING', safety_state: 'WAITING_AUTH' },
+    blockedLanes: ['TCT'],
+  };
+  const waitingActions = resolveOpenRunRowActions(waitingEntry);
+  assert.equal(waitingActions.runState, 'WAITING_AUTH');
+  assert.equal(waitingActions.isBlocking, true);
+  assert.deepEqual(waitingActions.blockedLanes, ['TCT']);
+  assert.equal(waitingActions.canResume, true, 'a WAITING_AUTH run must offer Resume');
+
+  // Test case 15.2: reproduces the real 22-23/08 incident -- a normally running HUE run must
+  // never show a resume button just because it's listed alongside a blocked TCT run.
+  const healthyRunNextToBlockedOne = {
+    run: { id: 'run_302', status: 'RUNNING', safety_state: null },
+    blockedLanes: [],
+  };
+  const healthyActions = resolveOpenRunRowActions(healthyRunNextToBlockedOne);
+  assert.equal(healthyActions.isBlocking, false);
+  assert.equal(healthyActions.canResume, false, 'a healthy RUNNING run must never offer Resume');
+
+  // Test case 15.3: a PAUSED run must not offer Resume through this table -- pausing is a
+  // deliberate PO action, distinct from WAITING_AUTH, and must not be conflated with it.
+  const pausedEntry = {
+    run: { id: 'run_303', status: 'PAUSED', safety_state: null },
+    blockedLanes: [],
+  };
+  assert.equal(resolveOpenRunRowActions(pausedEntry).canResume, false);
+
+  // Test case 15.4: missing/undefined blockedLanes must not throw and must resolve to "not blocking".
+  const noLaneInfoEntry = { run: { id: 'run_304', status: 'RUNNING', safety_state: null } };
+  assert.deepEqual(resolveOpenRunRowActions(noLaneInfoEntry).blockedLanes, []);
+  assert.equal(resolveOpenRunRowActions(noLaneInfoEntry).isBlocking, false);
+
+  // Test case 15.5: a null/undefined entry must not throw.
+  assert.deepEqual(resolveOpenRunRowActions(null), { runState: null, isBlocking: false, blockedLanes: [], canResume: false });
+  assert.deepEqual(resolveOpenRunRowActions({}), { runState: null, isBlocking: false, blockedLanes: [], canResume: false });
+
+  console.log('✔ 15. AB-AUTH-07 Open-Run Table Row Actions tests PASSED!');
 }
 
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');

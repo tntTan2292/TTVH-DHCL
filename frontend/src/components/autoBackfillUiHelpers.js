@@ -406,4 +406,23 @@ export function groupItemsByIndicatorAndMonth(items = []) {
   return groups;
 }
 
+// AB-AUTH-07 (design Section 5, C2): per-row decision logic for the "Tất cả tiến trình đang mở"
+// table -- pulled out of JSX so it is unit-testable the same way every other decision helper in
+// this file is, instead of only being exercisable by hand in the browser.
+export function resolveOpenRunRowActions(entry) {
+  if (!entry?.run) {
+    return { runState: null, isBlocking: false, blockedLanes: [], canResume: false };
+  }
+  const runState = resolveEffectiveRunState(entry.run);
+  const blockedLanes = Array.isArray(entry.blockedLanes) ? entry.blockedLanes : [];
+  return {
+    runState,
+    isBlocking: blockedLanes.length > 0,
+    blockedLanes,
+    // Only a genuinely WAITING_AUTH run can be resumed -- a run merely queued behind a blocked
+    // lane (P1-C/A1) is not itself stuck and must not show a resume button that does nothing.
+    canResume: runState === 'WAITING_AUTH',
+  };
+}
+
 

@@ -55,6 +55,21 @@ class AutoBackfillQueueController {
         }
     }
 
+    // AB-AUTH-06 (design Section 5, C1)
+    async listRuns(req, res) {
+        try {
+            const data = await this.getService().listRuns({
+                status: req.query?.status || null,
+                limit: req.query?.limit,
+                offset: req.query?.offset,
+                roles: requestRoles(req),
+            });
+            return res.status(200).json({ success: true, data: { runs: data } });
+        } catch (error) {
+            return sendError(res, error);
+        }
+    }
+
     async getRun(req, res) {
         try {
             const data = await this.getService().getRun(req.params.runId, { roles: requestRoles(req) });

@@ -275,6 +275,75 @@ class AutoBackfillQueueStore {
         });
     }
 
+    // AB-AUTH-06 (design Section 5, C1): list runs without loading every job/attempt/event, so
+    // the Product Owner can see every open run at once instead of only whichever one the UI
+    // happened to remember. `blockedLanes` is scoped to THIS run's own jobs (lanes this
+    // particular run is currently blocking), not the system-wide union used by
+    // BLOCKED_LANES_SUBQUERY in acquireNextJob() -- the question here is "which run is
+    // responsible for blocking a lane", not "which lanes are blocked".
+    async listRuns({ statuses = ['RUNNING', 'PAUSING', 'PAUSED'], limit = 50, offset = 0 } = {}) {
+        return this.withDb(async (db) => {
+            const statusList = Array.isArray(statuses) && statuses.length > 0 ? statuses : ['RUNNING', 'PAUSING', 'PAUSED'];
+            const placeholders = statusList.map(() => '?').join(',');
+            const runs = await all(
+                db,
+                `SELECT * FROM auto_backfill_run
+                 WHERE status IN (${placeholders})
+                 ORDER BY created_at DESC
+                 LIMIT ? OFFSET ?`,
+                [...statusList, Number(limit) || 50, Number(offset) || 0],
+            );
+            if (runs.length === 0) return [];
+
+            const runIds = runs.map((run) => run.id);
+            const runIdPlaceholders = runIds.map(() => '?').join(',');
+            const jobRows = await all(
+                db,
+                `SELECT run_id, indicator, source_lane, state, safety_state
+                 FROM auto_backfill_job WHERE run_id IN (${runIdPlaceholders})`,
+                runIds,
+            );
+
+            const jobsByRun = new Map();
+            for (const job of jobRows) {
+                if (!jobsByRun.has(job.run_id)) jobsByRun.set(job.run_id, []);
+                jobsByRun.get(job.run_id).push(job);
+            }
+
+            return runs.map((run) => {
+                const jobs = jobsByRun.get(run.id) || [];
+                const jobCountsByState = {};
+                const blockedLaneSet = new Set();
+                for (const job of jobs) {
+                    jobCountsByState[job.state] = (jobCountsByState[job.state] || 0) + 1;
+                    if (job.safety_state === 'WAITING_AUTH' || job.safety_state === 'BLOCKED_INTEGRITY') {
+                        if (job.source_lane) blockedLaneSet.add(job.source_lane);
+                    }
+                }
+                const pairKeys = new Set();
+                const indicatorLanePairs = [];
+                for (const job of jobs) {
+                    const key = `${job.indicator}|${job.source_lane}`;
+                    if (pairKeys.has(key)) continue;
+                    pairKeys.add(key);
+                    indicatorLanePairs.push({ indicator: job.indicator, sourceLane: job.source_lane });
+                }
+                return {
+                    run,
+                    jobTotal: jobs.length,
+                    jobCountsByState,
+                    blockedLanes: Array.from(blockedLaneSet),
+                    indicators: Array.from(new Set(jobs.map((job) => job.indicator))),
+                    lanes: Array.from(new Set(jobs.map((job) => job.source_lane).filter(Boolean))),
+                    // AB-AUTH-06: exact (indicator, sourceLane) pairs, kept alongside the display
+                    // arrays above so the service layer can apply the same per-lane permission
+                    // check getRun() already uses, without a second query.
+                    indicatorLanePairs,
+                };
+            });
+        });
+    }
+
     async acquireNextJob(workerId) {
         return this.transaction(async (db) => {
             const existingLease = await get(db, "SELECT * FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL'");

@@ -118,3 +118,37 @@ test('circuit reset forwards only authenticated Admin identity', async () => {
     assert.equal(res.statusCode, 200);
     assert.deepEqual(input, { runId: 'run-1', context: { actor: 'tester', roles: ['admin'] } });
 });
+
+// AB-AUTH-06 (design Section 5, C1)
+test('listRuns forwards status/limit/offset and roles, and wraps the result under { runs }', async () => {
+    let input;
+    const controller = new AutoBackfillQueueController({ queueService: {
+        async listRuns(value) { input = value; return [{ run: { id: 'run-1' } }, { run: { id: 'run-2' } }]; },
+    } });
+    const res = response();
+    await controller.listRuns(request({ role: 'viewer', query: { status: 'RUNNING,PAUSED', limit: '10', offset: '5' } }), res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(input, { status: 'RUNNING,PAUSED', limit: '10', offset: '5', roles: ['viewer'] });
+    assert.deepEqual(res.body, { success: true, data: { runs: [{ run: { id: 'run-1' } }, { run: { id: 'run-2' } }] } });
+});
+
+test('listRuns defaults status/limit/offset to null/undefined when the query is empty', async () => {
+    let input;
+    const controller = new AutoBackfillQueueController({ queueService: {
+        async listRuns(value) { input = value; return []; },
+    } });
+    const res = response();
+    await controller.listRuns(request({ query: {} }), res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(input, { status: null, limit: undefined, offset: undefined, roles: ['admin'] });
+});
+
+test('listRuns surfaces a service error the same way every other read does', async () => {
+    const controller = new AutoBackfillQueueController({ queueService: {
+        async listRuns() { const error = new Error('boom'); error.code = 'AUTO_BACKFILL_RUN_FORBIDDEN'; error.statusCode = 403; throw error; },
+    } });
+    const res = response();
+    await controller.listRuns(request(), res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.error.code, 'AUTO_BACKFILL_RUN_FORBIDDEN');
+});

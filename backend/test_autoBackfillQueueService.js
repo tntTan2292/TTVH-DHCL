@@ -874,3 +874,63 @@ test('AB-AUTH-03 nextPollDelay keeps polling for an open lane but still sleeps w
         null,
     );
 });
+
+// ---------------------------------------------------------------------------
+// AB-AUTH-06: GET /auto-backfill/runs (design Section 5, C1)
+// ---------------------------------------------------------------------------
+
+test('AB-AUTH-06 listRuns returns every open run with per-run job counts and blocked lanes', async () => {
+    const fixture = await laneBlockedFixture();
+    try {
+        await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        await assert.rejects(fixture.service.processNext(), (error) => error.code === 'AUTHENTICATION_REQUIRED');
+
+        const runs = await fixture.service.listRuns({ roles: ['admin'] });
+        assert.equal(runs.length, 1, 'the run must be visible in the open-runs list');
+        const [entry] = runs;
+        assert.equal(entry.run.status, 'RUNNING');
+        assert.deepEqual(entry.blockedLanes, ['TCT'], 'blockedLanes must reflect this run\'s own blocked lane');
+        assert.ok(entry.jobTotal >= 2, 'both TCT and HUE jobs must be counted');
+        assert.deepEqual(entry.lanes.sort(), ['HUE', 'TCT']);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('AB-AUTH-06 listRuns excludes terminal runs by default and includes them when asked', async () => {
+    const fixture = await createFixture();
+    try {
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        for (;;) {
+            const result = await fixture.service.processNext();
+            if (!result) break;
+        }
+        const persisted = await fixture.service.store.getRun(created.run.id);
+        assert.equal(persisted.run.status, 'COMPLETED');
+
+        const openRuns = await fixture.service.listRuns({ roles: ['admin'] });
+        assert.deepEqual(openRuns.filter((entry) => entry.run.id === created.run.id), []);
+
+        const completedRuns = await fixture.service.listRuns({ status: 'COMPLETED', roles: ['admin'] });
+        assert.ok(completedRuns.some((entry) => entry.run.id === created.run.id));
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('AB-AUTH-06 listRuns applies the same per-lane permission filter as getRun', async () => {
+    const fixture = await createFixture({
+        indicators: (statuses) => [
+            createIndicator({ code: 'F9.A', priority: 10, startDate: '2026-01-02', laneCodes: ['HUE'], statuses, readRoles: ['admin'] }),
+        ],
+    });
+    try {
+        await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        const adminRuns = await fixture.service.listRuns({ roles: ['admin'] });
+        assert.equal(adminRuns.length, 1);
+        const viewerRuns = await fixture.service.listRuns({ roles: ['viewer'] });
+        assert.deepEqual(viewerRuns, [], 'a role with no readable lane must not see the run at all');
+    } finally {
+        fixture.cleanup();
+    }
+});

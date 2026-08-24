@@ -30,6 +30,7 @@ import {
   resolveEffectiveRunState,
   resolveIndicatorGridClass,
   resolveNoCodeStatus,
+  resolveOpenRunRowActions,
   resolveRunActionButtons,
   resolveWaitingAuthLanes
 } from './autoBackfillUiHelpers';
@@ -78,6 +79,13 @@ export default function AutoBackfillOperatorPanel() {
   const [runData, setRunData] = useState(null);
   const [runActionLoading, setRunActionLoading] = useState(false);
   const [runError, setRunError] = useState(null);
+
+  // AB-AUTH-07 (design Section 5, C2): every open run, not just whichever one activeRunId
+  // happens to point at -- otherwise a run that blocks the whole queue can be invisible.
+  const [openRuns, setOpenRuns] = useState([]);
+  const [openRunsLoading, setOpenRunsLoading] = useState(false);
+  const [openRunsError, setOpenRunsError] = useState(null);
+  const [openRunActionLoadingId, setOpenRunActionLoadingId] = useState(null);
 
   // Manual DKCL Login (WAITING_AUTH remediation) -- reuses POST /import/dkcl/session/interactive-auth,
   // the same endpoint already proven working in DataImportCenter.jsx (handleInteractiveHueLogin/handleInteractiveTctLogin).
@@ -230,6 +238,30 @@ export default function AutoBackfillOperatorPanel() {
     }
   }, []);
 
+  // AB-AUTH-07: fetch every open run (RUNNING/PAUSING/PAUSED) so the Product Owner can see which
+  // one, if any, is currently blocking the queue -- not just the single run this panel happens
+  // to be tracking as "active".
+  const fetchOpenRuns = useCallback(async () => {
+    setOpenRunsLoading(true);
+    try {
+      const res = await api.get('/import/auto-backfill/runs');
+      if (res.data.success) {
+        setOpenRuns(res.data.data?.runs || []);
+        setOpenRunsError(null);
+      }
+    } catch (err) {
+      setOpenRunsError(getApiErrorMessage(err, 'Không thể tải danh sách tiến trình.'));
+    } finally {
+      setOpenRunsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOpenRuns();
+    const interval = setInterval(fetchOpenRuns, 5000);
+    return () => clearInterval(interval);
+  }, [fetchOpenRuns]);
+
   // Fetch Events
   const fetchEvents = useCallback(async (runId) => {
     if (!runId) return;
@@ -305,6 +337,7 @@ export default function AutoBackfillOperatorPanel() {
         setRunData(newRun);
         showToast(`Đã tạo tiến trình bù #${newRun.run.id} cho chỉ tiêu ${runTargetIndicator} (${runTargetMonth})`);
         fetchCoverage();
+        fetchOpenRuns();
       }
     } catch (err) {
       setRunError(getApiErrorMessage(err, 'Không thể khởi tạo tiến trình bù tự động.'));
@@ -321,6 +354,7 @@ export default function AutoBackfillOperatorPanel() {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/pause`);
       if (res.data.success) {
         fetchRunStatus(activeRunId);
+        fetchOpenRuns();
         showToast('Đã tạm dừng tiến trình bù.');
       }
     } catch (err) {
@@ -338,6 +372,7 @@ export default function AutoBackfillOperatorPanel() {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/resume`);
       if (res.data.success) {
         fetchRunStatus(activeRunId);
+        fetchOpenRuns();
         showToast('Đã tiếp tục tiến trình bù.');
       }
     } catch (err) {
@@ -355,6 +390,7 @@ export default function AutoBackfillOperatorPanel() {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/circuit/reset`);
       if (res.data.success) {
         fetchRunStatus(activeRunId);
+        fetchOpenRuns();
         showToast('Đã khôi phục mạch an toàn.');
       }
     } catch (err) {
@@ -362,6 +398,31 @@ export default function AutoBackfillOperatorPanel() {
     } finally {
       setRunActionLoading(false);
     }
+  };
+
+  // AB-AUTH-07: resume a specific run directly from the multi-run table, without requiring the
+  // Product Owner to first select it as the "active" run below. Uses its own loading/error state
+  // (openRunActionLoadingId) so acting on one row never disables the others.
+  const handleResumeRunFromList = async (runId) => {
+    setOpenRunActionLoadingId(runId);
+    try {
+      const res = await api.post(`/import/auto-backfill/runs/${runId}/resume`);
+      if (res.data.success) {
+        showToast('Đã tiếp tục tiến trình bù.');
+        fetchOpenRuns();
+        if (runId === activeRunId) fetchRunStatus(runId);
+      }
+    } catch (err) {
+      setOpenRunsError(getApiErrorMessage(err, 'Không thể tiếp tục tiến trình.'));
+    } finally {
+      setOpenRunActionLoadingId(null);
+    }
+  };
+
+  // AB-AUTH-07: switch the detail panel below to a run picked from the multi-run table.
+  const handleSelectRunFromList = (runId) => {
+    setActiveRunId(runId);
+    fetchRunStatus(runId);
   };
 
   const stopAuthLoginPolling = useCallback(() => {
@@ -772,6 +833,97 @@ export default function AutoBackfillOperatorPanel() {
               <span>Lịch sử Ngoại lệ PO</span>
             </button>
           </div>
+        </div>
+
+        {/* AB-AUTH-07 (design Section 5, C2): every open run at once, so a run blocking the
+            queue is never invisible just because it isn't the one this panel happens to be
+            tracking below. */}
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white">
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2.5">
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Tất cả tiến trình đang mở {openRuns.length > 0 && `(${openRuns.length})`}
+            </span>
+            <button
+              type="button"
+              onClick={fetchOpenRuns}
+              disabled={openRunsLoading}
+              className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3 w-3 ${openRunsLoading ? 'animate-spin' : ''}`} />
+              <span>Làm mới</span>
+            </button>
+          </div>
+
+          {openRunsError && (
+            <div className="px-4 py-2 text-xs font-semibold text-red-700 bg-red-50 border-b border-red-200">{openRunsError}</div>
+          )}
+
+          {openRuns.length === 0 ? (
+            <div className="px-4 py-4 text-xs text-slate-500">
+              {openRunsLoading ? 'Đang tải...' : 'Không có tiến trình nào đang mở.'}
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {openRuns.map((entry) => {
+                const { runState: rowRunState, isBlocking, blockedLanes, canResume } = resolveOpenRunRowActions(entry);
+                const isCurrentlyActive = entry.run.id === activeRunId;
+                return (
+                  <div
+                    key={entry.run.id}
+                    className={`flex flex-wrap items-center gap-3 px-4 py-2.5 text-xs cursor-pointer hover:bg-slate-50 ${isCurrentlyActive ? 'bg-blue-50/60' : ''}`}
+                    onClick={() => handleSelectRunFromList(entry.run.id)}
+                  >
+                    <span className="font-mono font-semibold text-slate-700">#{String(entry.run.id).slice(0, 8)}</span>
+                    <span className="font-semibold text-slate-800">
+                      {entry.run.requested_indicator || 'Nhiều chỉ tiêu'}
+                      {entry.run.requested_lane && entry.run.requested_lane !== 'ALL' ? ` · ${entry.run.requested_lane}` : ''}
+                    </span>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${
+                      rowRunState === 'WAITING_AUTH' ? 'bg-amber-100 text-amber-900' :
+                      rowRunState === 'PAUSED' ? 'bg-slate-100 text-slate-700' :
+                      rowRunState === 'CIRCUIT_OPEN' || rowRunState === 'BLOCKED_INTEGRITY' ? 'bg-red-100 text-red-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {rowRunState}
+                    </span>
+                    <span className="text-slate-500">{entry.jobTotal} job</span>
+
+                    {isBlocking && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-800">
+                        <ShieldAlert className="h-3 w-3" />
+                        Đang chặn nguồn {blockedLanes.join(' / ')}
+                      </span>
+                    )}
+
+                    <span className="ml-auto flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                      {isBlocking && blockedLanes.map((lane) => (
+                        <button
+                          key={lane}
+                          type="button"
+                          onClick={() => handleOpenManualLogin(lane)}
+                          disabled={authLoginLoading || authLoginPending}
+                          className="inline-flex items-center rounded-lg bg-vnpost-blue px-2.5 py-1 font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                        >
+                          Mở đăng nhập {lane}
+                        </button>
+                      ))}
+                      {canResume && (
+                        <button
+                          type="button"
+                          onClick={() => handleResumeRunFromList(entry.run.id)}
+                          disabled={openRunActionLoadingId === entry.run.id}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                        >
+                          <Play className="h-3 w-3 fill-current" />
+                          {openRunActionLoadingId === entry.run.id ? 'Đang xử lý...' : 'Tiếp tục Run'}
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* SAFE RUN CREATION CONTROLS */}
