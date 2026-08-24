@@ -212,6 +212,7 @@ class DkclHueF13SyncService {
             importedCount: null,
             finalFileLocation: null,
             safeErrorMessage: null,
+            errorCode: null,
             cleanupWarning: null
         };
         this.runs.set(run.runId, run);
@@ -418,7 +419,12 @@ class DkclHueF13SyncService {
                     ? STATUSES.MANUAL_REVIEW_REQUIRED
                     : (authCodes.has(error.code) ? STATUSES.AUTHENTICATION_REQUIRED : STATUSES.FAILED),
                 endTime: this.clock().toISOString(),
-                safeErrorMessage: safeErrorMessage(error)
+                safeErrorMessage: safeErrorMessage(error),
+                // AB-AUTH-04: the original error code (e.g. EXPORT_TIMEOUT) was previously
+                // dropped here -- only run.status ('FAILED') survived into awaitHueResult()'s
+                // rethrow, so the queue's error classifier saw an unmapped 'FAILED' code and
+                // defaulted every failure to SYSTEM/terminal regardless of the real cause.
+                errorCode: error.code || null
             });
             this.logger.error?.(`[DKCL_HUE_F13_SYNC] ${run.runId} ${run.status}: ${run.safeErrorMessage}`);
         } finally {

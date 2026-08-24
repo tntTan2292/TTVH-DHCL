@@ -114,14 +114,32 @@ class F13AutoBackfillExecutor {
         const status = run?.status || result?.status;
         if (status === 'AUTHENTICATION_REQUIRED') throw authenticationError('HUE', run);
         if (status === 'SUCCESS' || status === 'ALREADY_COMPLETED') return run;
-        throw executorError(status || 'F13_HUE_EXECUTION_FAILED', run?.safeErrorMessage || `Hue F1.3 execution ended with ${status || 'an unknown status'}.`);
+        // AB-AUTH-04: prefer the sync service's original error code (e.g. EXPORT_TIMEOUT) over
+        // the generic run.status ('FAILED'), which used to be the only thing that survived here
+        // and made the queue's error map default every such failure to SYSTEM/terminal.
+        throw executorError(run?.errorCode || status || 'F13_HUE_EXECUTION_FAILED', run?.safeErrorMessage || `Hue F1.3 execution ended with ${status || 'an unknown status'}.`);
     }
 }
+
+// AB-AUTH-04: the Product Owner set a hard ceiling of 10 minutes total wait per job (a healthy
+// DKCL portal produces the export in 1-2 minutes; past 10 minutes is treated as a real failure,
+// not something worth waiting longer for). With the lane's existing retryPolicy (maxAttempts: 3,
+// ~6s of exponential backoff between attempts -- negligible on this scale), 3 attempts x 3 minutes
+// = 9 minutes of export-wait plus backoff stays under the ceiling with margin:
+//   3 * HUE_BACKFILL_EXPORT_TIMEOUT_MS + backoff(~6s) = 9m06s < 10m.
+// This overrides DkclHueF13SyncService's own default (900000ms / 15 min, env
+// DKCL_HUE_GENERATION_TIMEOUT_MS) ONLY for this Auto Backfill executor's private service
+// instance -- the manual Import screen's own DkclHueF13SyncService instance
+// (dkclHueF13SyncController.js) is untouched and keeps its original timeout.
+const HUE_BACKFILL_EXPORT_TIMEOUT_MS = 180000; // 3 minutes
 
 function createF13AutoBackfillExecutors(options = {}) {
     const db = options.db;
     const sessionPreflightService = options.sessionPreflightService || new DkclSessionPreflightService();
-    const hueSyncService = options.hueSyncService || new DkclHueF13SyncService({ db });
+    const hueSyncService = options.hueSyncService || new DkclHueF13SyncService({
+        db,
+        config: { generationTimeoutMs: HUE_BACKFILL_EXPORT_TIMEOUT_MS },
+    });
     const tctBackfillService = options.tctBackfillService || new TctF13BackfillService({ db, sessionPreflightService });
     const hueAdapter = options.hueAdapter || new HueF13Adapter({ syncService: hueSyncService, sessionPreflightService });
     const tctAdapter = options.tctAdapter || new TctF13Adapter({

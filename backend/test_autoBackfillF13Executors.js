@@ -11,6 +11,7 @@ const { AutoBackfillCoverageService } = require('./src/services/autoBackfillCove
 const { AutoBackfillExecutorRegistry } = require('./src/services/autoBackfillExecutorRegistry');
 const {
     F13_EXECUTOR_IDENTITIES,
+    F13AutoBackfillExecutor,
     createF13AutoBackfillExecutors,
     registerF13AutoBackfillExecutors,
 } = require('./src/services/autoBackfillF13Executors');
@@ -19,13 +20,16 @@ const { buildRuntime } = require('./src/services/autoBackfillQueueRuntime');
 const { AutoBackfillQueueStore } = require('./src/services/autoBackfillQueueStore');
 const { AutoBackfillWorkerCoordinator } = require('./src/services/autoBackfillWorkerCoordinator');
 const { HueF13Adapter, TctF13Adapter } = require('./src/services/f13Adapters');
+const { DkclHueF13SyncService } = require('./src/services/dkclHueF13SyncService');
 const {
     DEFAULT_PERMISSIONS,
     DEFAULT_RETRY_POLICY,
+    DEFAULT_ERROR_MAP,
     INDICATORS,
     createFilenameDateRule,
 } = require('./src/services/importIndicatorRegistry');
 const { F41_EXECUTOR_IDENTITIES } = require('./src/services/autoBackfillF41Contract');
+const { AutoBackfillSafetyCoordinator } = require('./src/services/autoBackfillSafetyCoordinator');
 
 const CIRCUIT_SCOPE = Object.freeze({
     dimensions: ['adapter', 'source', 'resource'],
@@ -349,6 +353,113 @@ test('external SUCCESS before lease skips the F1.3 executor', async () => {
     } finally {
         fs.rmSync(dbPath, { force: true });
     }
+});
+
+// ---------------------------------------------------------------------------
+// AB-AUTH-04: EXPORT_TIMEOUT error code preservation and TRANSIENT classification
+// (design Section 7, plan E; retry ceiling per Product Owner: total wait per job <= 10 min)
+// ---------------------------------------------------------------------------
+
+function makeMinimalSessionPreflightService() {
+    return {
+        preflight: async () => ({ status: 'SESSION_VALID' }),
+        withSourceLock: (source, fn) => fn(),
+        getRegistryState: () => ({}),
+        getInteractiveClient: () => ({}),
+    };
+}
+
+test('AB-AUTH-04 awaitHueResult preserves run.errorCode instead of falling back to run.status', async () => {
+    // Reproduces the root cause exactly: dkclHueF13SyncService sets run.status='FAILED' on any
+    // non-auth failure, and previously only that generic status -- never the original error code
+    // -- reached the queue's error classifier.
+    const executor = new F13AutoBackfillExecutor({
+        identity: F13_EXECUTOR_IDENTITIES.HUE,
+        adapter: {
+            async runOneDate() {
+                return {
+                    run: {
+                        runId: 'r1',
+                        status: 'FAILED',
+                        errorCode: 'EXPORT_TIMEOUT',
+                        safeErrorMessage: 'Timed out waiting for generated DKCL F1.3 detail export.',
+                    },
+                };
+            },
+            getRun: (runId) => ({
+                runId,
+                status: 'FAILED',
+                errorCode: 'EXPORT_TIMEOUT',
+                safeErrorMessage: 'Timed out waiting for generated DKCL F1.3 detail export.',
+            }),
+        },
+        sessionPreflightService: makeMinimalSessionPreflightService(),
+    });
+
+    await assert.rejects(
+        executor.awaitHueResult({ run: { runId: 'r1', status: 'FAILED', errorCode: 'EXPORT_TIMEOUT' } }),
+        (error) => {
+            assert.equal(error.code, 'EXPORT_TIMEOUT', 'the original error code must survive, not run.status');
+            return true;
+        },
+    );
+});
+
+test('AB-AUTH-04 a run with no errorCode still falls back to run.status (backward compatible)', async () => {
+    const executor = new F13AutoBackfillExecutor({
+        identity: F13_EXECUTOR_IDENTITIES.HUE,
+        adapter: { async runOneDate() {}, getRun: () => null },
+        sessionPreflightService: makeMinimalSessionPreflightService(),
+    });
+    await assert.rejects(
+        executor.awaitHueResult({ run: { runId: 'r2', status: 'FAILED' } }),
+        (error) => {
+            assert.equal(error.code, 'FAILED');
+            return true;
+        },
+    );
+});
+
+test('AB-AUTH-04 EXPORT_TIMEOUT is mapped to TRANSIENT and retryable, not SYSTEM/terminal', () => {
+    assert.equal(DEFAULT_ERROR_MAP.EXPORT_TIMEOUT, 'TRANSIENT');
+    const coordinator = new AutoBackfillSafetyCoordinator();
+    const error = new Error('Timed out waiting for generated DKCL F1.3 detail export.');
+    error.code = 'EXPORT_TIMEOUT';
+    const failure = coordinator.classify(error, {
+        lane: { errorMap: DEFAULT_ERROR_MAP, retryPolicy: DEFAULT_RETRY_POLICY },
+        job: { executor_id: 'X', source_lane: 'HUE', resource_identity: 'R' },
+    });
+    assert.equal(failure.classification, 'TRANSIENT');
+    assert.equal(failure.retryable, true, 'EXPORT_TIMEOUT must be retryable, not a dead end');
+});
+
+test('AB-AUTH-04 the Auto Backfill HUE sync service instance uses a shortened export timeout so 3 attempts stay under the 10-minute ceiling', () => {
+    // This is the actual number this ticket exists to bound: worst case total wait for one job
+    // (3 attempts, per the lane's existing DEFAULT_RETRY_POLICY.maxAttempts) must stay under the
+    // Product Owner's 10-minute ceiling.
+    const executors = createF13AutoBackfillExecutors({ db: {} });
+    const configuredTimeoutMs = executors.HUE.adapter.syncService.config.generationTimeoutMs;
+    assert.ok(configuredTimeoutMs < 900000, 'must override the 15-minute default for the queue path');
+
+    const maxAttempts = DEFAULT_RETRY_POLICY.maxAttempts;
+    const coordinator = new AutoBackfillSafetyCoordinator();
+    let worstCaseBackoffMs = 0;
+    for (let attempt = 1; attempt < maxAttempts; attempt += 1) {
+        worstCaseBackoffMs += coordinator.retryDelayMs(DEFAULT_RETRY_POLICY, attempt);
+    }
+    const worstCaseTotalMs = (configuredTimeoutMs * maxAttempts) + worstCaseBackoffMs;
+    assert.ok(
+        worstCaseTotalMs <= 10 * 60 * 1000,
+        `worst-case total wait must not exceed 10 minutes; got ${worstCaseTotalMs}ms (${maxAttempts} attempts x ${configuredTimeoutMs}ms + ${worstCaseBackoffMs}ms backoff)`,
+    );
+});
+
+test('AB-AUTH-04 the manual Import screen keeps the original 15-minute export timeout (no cross-contamination)', () => {
+    // DkclHueF13SyncController.js constructs its own instance with the DEFAULT_CONFIG timeout;
+    // this test locks in that the AB-AUTH-04 override lives only in the Auto Backfill executor
+    // factory (createF13AutoBackfillExecutors), not in the shared class default.
+    const plainService = new DkclHueF13SyncService({ db: {} });
+    assert.equal(plainService.config.generationTimeoutMs, 900000);
 });
 
 test('F4.1 exposes independently verified HUE and TCT adapters', () => {

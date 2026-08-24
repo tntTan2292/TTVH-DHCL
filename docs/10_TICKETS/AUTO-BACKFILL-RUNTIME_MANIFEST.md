@@ -626,3 +626,71 @@ No further test of this ticket is to be proactively scheduled. If the Product Ow
 ### 22.5 State
 
 `AB-AUTH-03: DEPLOYED / LIVE VERIFICATION PENDING (deferred by Product Owner)`. This is distinct from both `READY FOR PO UI CHECK` (Section 21, superseded by this entry) and `PO PASS` -- it is not blocking any other ticket, and Section 21's technical validation (Gate 5 11/11, 28/28 queue-service suite, 15 related suites, oxlint clean) stands as the record of correctness in the absence of live confirmation. `AB-AUTH-10` status: `PROPOSED / DEFERRED INDEFINITELY`, not cancelled.
+
+## 23. AB-AUTH-04 -- Bounded Retry For EXPORT_TIMEOUT (Plan E, 10-Minute Ceiling) Executed (2026-08-24, Claude Code Opus 5)
+
+### 23.1 Root Cause, Confirmed Exactly As Previously Reported
+
+`dkclHueF13SyncService.js`'s `pollGeneratedFile()` path throws `createTimeoutError('Timed out waiting for generated DKCL F1.3 detail export.', 'EXPORT_TIMEOUT')` when the DKCL portal fails to produce the export in time. The catch block in `start()` then persisted only `status: STATUSES.FAILED` and `safeErrorMessage` onto the run object -- **the original `error.code` was never saved**. `F13AutoBackfillExecutor.awaitHueResult()` read `run.status` ('FAILED') as the only available signal and rethrew `executorError(status, ...)`, so the queue's error classifier (`importIndicatorRegistry.js` `DEFAULT_ERROR_MAP`) received the code `'FAILED'`, which has no entry, defaults to `SYSTEM`, and `SYSTEM` is not in `DEFAULT_RETRY_POLICY.retryableClasses` -- so the job went straight to `FAILED_TERMINAL` after exactly one attempt. This was a lost error code, not a deliberate no-retry decision, exactly as reported in the prior investigation.
+
+### 23.2 Product Owner's Revised Ceiling (Supersedes Design Section 7.2 For This Ticket Only)
+
+Per the delta instruction, the design's original proposal (3 attempts, 5min/15min backoff, ~65 minutes worst case) is replaced: **total wait for one job, including every retry, must not exceed 10 minutes** -- a healthy DKCL portal produces the export in 1-2 minutes, so anything past 10 minutes is treated as a confirmed real failure, not something worth waiting longer for.
+
+### 23.3 What Changed
+
+`backend/src/services/dkclHueF13SyncService.js`
+
+- `createRun()` initialises a new `errorCode: null` field on the run object.
+- The failure catch block in `start()` now also persists `errorCode: error.code || null` alongside the existing `safeErrorMessage` -- purely additive, `updateRun()` is a plain `Object.assign`, so nothing that reads the run object today is affected by the new field's presence.
+
+`backend/src/services/autoBackfillF13Executors.js`
+
+- `awaitHueResult()`: `throw executorError(run?.errorCode || status || 'F13_HUE_EXECUTION_FAILED', ...)` -- prefers the preserved original code over `run.status`, falling back to the old behaviour when no `errorCode` was captured (e.g. an older/mocked adapter), so nothing that previously relied on the `status`-as-code fallback breaks.
+- New module constant `HUE_BACKFILL_EXPORT_TIMEOUT_MS = 180000` (3 minutes), applied **only** to `createF13AutoBackfillExecutors()`'s own `DkclHueF13SyncService` instance via `config: { generationTimeoutMs: ... }`. This instance is private to the Auto Backfill queue path (confirmed by reading `f13Adapters.js`'s `HueF13Adapter`, which wraps exactly this `syncService`). The manual Import screen's controller (`dkclHueF13SyncController.js`) constructs its own separate `DkclHueF13SyncService` instance with no config override and therefore keeps the original 15-minute default (`DEFAULT_CONFIG.generationTimeoutMs`, env `DKCL_HUE_GENERATION_TIMEOUT_MS`) -- confirmed unchanged and covered by a dedicated regression test (Section 23.4).
+
+`backend/src/services/importIndicatorRegistry.js`
+
+- `DEFAULT_ERROR_MAP.EXPORT_TIMEOUT = 'TRANSIENT'` added. `DEFAULT_RETRY_POLICY.retryableClasses` (`['PORTAL_TRANSIENT', 'LOCAL_SYSTEM']`) already normalizes to the same `TRANSIENT` class via `CLASS_ALIASES`, so `EXPORT_TIMEOUT` is retryable under the existing lane retry policy with **no other retry-policy field changed** -- `maxAttempts` stays `3`, backoff stays `2000ms`/`30000ms` exponential.
+
+### 23.4 The 10-Minute Budget, Worked Out Explicitly
+
+With `maxAttempts` unchanged at `3` and `HUE_BACKFILL_EXPORT_TIMEOUT_MS = 180000`:
+
+```
+worst case = 3 x 180,000ms (export-wait per attempt)
+           + retryDelayMs(attempt 1) = 2,000ms
+           + retryDelayMs(attempt 2) = 4,000ms
+           = 540,000ms + 6,000ms = 546,000ms = 9 minutes 6 seconds
+```
+
+9m06s stays under the Product Owner's 10-minute ceiling with roughly 54 seconds of margin for scheduling/timer jitter. `maxAttempts` and the generic backoff were deliberately left untouched (they were already small enough not to need adjusting); the only lever pulled was the per-attempt export-wait timeout, scoped to the Auto Backfill executor's own service instance. This is locked in by an explicit regression test (Section 23.5, test 4) rather than left as a comment-only guarantee.
+
+On final exhaustion, the existing generic terminal message (`autoBackfillQueueStore.js`: `` `Automatic retry limit of ${maxAttempts} attempts was exhausted; Product Owner review is required.` ``) is unchanged and was not made `EXPORT_TIMEOUT`-specific -- that message is shared by every retryable-exhausted error code across every lane, and rewriting it was out of scope for the three items the delta instruction actually asked for (preserve the code, classify it `TRANSIENT`, bound the retry timing).
+
+### 23.5 Regression Tests -- Verified To Fail Without The Fix
+
+Five new tests in `backend/test_autoBackfillF13Executors.js` (12 -> 17):
+
+1. `awaitHueResult preserves run.errorCode instead of falling back to run.status` -- the exact bug: a run with `status: 'FAILED', errorCode: 'EXPORT_TIMEOUT'` must produce a thrown error with `code === 'EXPORT_TIMEOUT'`.
+2. `a run with no errorCode still falls back to run.status (backward compatible)` -- guards the fallback path explicitly.
+3. `EXPORT_TIMEOUT is mapped to TRANSIENT and retryable, not SYSTEM/terminal` -- calls `AutoBackfillSafetyCoordinator.classify()` directly with the real `DEFAULT_ERROR_MAP`/`DEFAULT_RETRY_POLICY` and asserts `classification === 'TRANSIENT'` and `retryable === true`.
+4. `the Auto Backfill HUE sync service instance uses a shortened export timeout so 3 attempts stay under the 10-minute ceiling` -- reads the actual configured `generationTimeoutMs` off `createF13AutoBackfillExecutors({ db: {} }).HUE.adapter.syncService.config`, computes the worst-case total using the real `AutoBackfillSafetyCoordinator.retryDelayMs()` and the real `DEFAULT_RETRY_POLICY.maxAttempts`, and asserts the total is `<= 10 * 60 * 1000`ms -- this test would fail on its own if a future change to `maxAttempts` or the backoff policy silently blew the Product Owner's ceiling.
+5. `the manual Import screen keeps the original 15-minute export timeout (no cross-contamination)` -- constructs a plain `new DkclHueF13SyncService({ db: {} })` (the same construction pattern the manual Import controller uses) and asserts `config.generationTimeoutMs === 900000`.
+
+Verified to fail without the fix (same method as AB-AUTH-01/03): all three changed source files were restored to their pre-fix `git checkout` state and the suite re-run. Tests 1, 3 and 4 failed exactly as expected -- test 1 with `actual: 'FAILED', expected: 'EXPORT_TIMEOUT'`; test 3 with `actual: undefined` (no `DEFAULT_ERROR_MAP.EXPORT_TIMEOUT` entry existed); test 4 with `must override the 15-minute default for the queue path` (the pre-fix executor factory has no config override at all, so both instances used the same 900000ms default -- a real illustration of why test 5 exists as a distinguishing guard). Tests 2 and 5 passed on both, confirming they guard behaviour that was already correct. The fix was then restored from a scratch backup and re-verified.
+
+### 23.6 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified (`git diff --stat` on that file is empty).
+- `test_autoBackfillF13Executors.js`: 17/17 PASS.
+- 11 related backend suites PASS: `autoBackfillQueueService` (28/28, unaffected by AB-AUTH-03's own additions), `autoBackfillQueueController`, `autoBackfillF41Executors`, `autoBackfillCoverageService`, `autoBackfillCoverageController`, `autoBackfillCoverageExceptionService`, `autoBackfillCoverageExceptionController`, `dkclHueF13SyncService` (the file that was directly changed -- confirms manual-Import-relevant behaviour is unaffected), `dkclHueF13BackfillService`, `dkclHueBrowserBroker`, `dkclSessionCoordinator`, `browserProfileLock`, and `dkclSessionPreflightService` (run from the repository root per its `process.chdir('backend')` requirement).
+- `oxlint` on all four changed files: 0 new findings; one pre-existing `unicorn(no-useless-fallback-in-spread)` warning on an untouched line of `dkclHueF13SyncService.js`, confirmed present identically on the pre-change file via `git stash`.
+- `npm run build` (frontend, unaffected by this backend-only ticket): PASS.
+- No database touched, no login performed, no run created -- this delta was verified entirely through unit tests against isolated service instances and temporary SQLite fixtures created by the existing test harnesses.
+
+### 23.7 Residual
+
+`AB-AUTH-05` (PENDING vs BLOCKED session semantics) is next in the confirmed order and depends on this ticket's backoff mechanism per design Section 9.1 -- not started here.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- this changes real Product Owner-visible behaviour (an F4.1/F1.3 HUE job that previously failed permanently after one `EXPORT_TIMEOUT` will now retry up to 3 times before giving up, and will visibly sit in `RETRY_WAIT` between attempts instead of `FAILED_TERMINAL` immediately). The Product Owner should confirm on a real `EXPORT_TIMEOUT` occurrence (most likely on the 234 outstanding F4.1 dates) that: the job retries instead of failing immediately, the total time before a final failure is noticeably under 10 minutes, and a `SUCCESS` on any retry attempt completes the job normally.

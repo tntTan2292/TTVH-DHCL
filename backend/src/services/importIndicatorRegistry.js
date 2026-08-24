@@ -29,6 +29,11 @@ const DEFAULT_RETRY_POLICY = Object.freeze({
 const DEFAULT_ERROR_MAP = Object.freeze({
     AUTHENTICATION_REQUIRED: 'AUTHENTICATION',
     DKCL_SOURCE_OPERATION_ACTIVE: 'TRANSIENT',
+    // AB-AUTH-04: the DKCL portal being slow to generate an export is a real, common condition
+    // (root-caused, not a design choice not to retry) -- the original EXPORT_TIMEOUT code was
+    // previously dropped en route from dkclHueF13SyncService.js through awaitHueResult(), so
+    // this entry was unreachable; both are fixed together.
+    EXPORT_TIMEOUT: 'TRANSIENT',
     PORTAL_TRANSIENT: 'TRANSIENT',
     LOCAL_SYSTEM: 'TRANSIENT',
     ETIMEDOUT: 'TRANSIENT',
