@@ -2,6 +2,7 @@
 
 const assert = require('assert/strict');
 const { BrowserProcessManager, extractUserDataDir } = require('./src/services/browserProcessManager');
+const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClient');
 
 function createProcessEnumerator(processes, shouldThrow = false) {
     return () => {
@@ -288,6 +289,73 @@ async function runTests() {
     assert.strictEqual(restored.success, true);
     assert.strictEqual(restoreCalls.length, 2);
     console.log('PASS');
+
+    console.log('--- TEST 11: AB-AUTH-01 a PROFILE_LOCKED client must NOT delete the live owner lock ---');
+    {
+        const removed = [];
+        const existingLocks = new Set(['D:\\Data DKCL\\BrowserProfiles\\HUE.lock']);
+        const fakeFs = {
+            mkdirSync: (target, options) => {
+                if (options && options.recursive) return undefined;
+                if (existingLocks.has(target)) {
+                    const err = new Error('EEXIST');
+                    err.code = 'EEXIST';
+                    throw err;
+                }
+                existingLocks.add(target);
+                return undefined;
+            },
+            existsSync: (target) => existingLocks.has(target),
+            rmSync: (target) => { removed.push(target); existingLocks.delete(target); }
+        };
+        const loser = new DkclHueF13PortalClient({ source: 'HUE', fs: fakeFs });
+        loser.profileDir = 'D:\\Data DKCL\\BrowserProfiles\\HUE';
+
+        assert.throws(() => loser.acquireProfileLock(), (err) => err.code === 'PROFILE_LOCKED');
+
+        // The harm this regression test exists to prevent: preflight() calls close() in a
+        // finally block, so a client that lost the lock race must leave the winner's lock alone.
+        await loser.close();
+        assert.deepStrictEqual(removed, [], 'close() must not remove a lock owned by another process');
+        assert(existingLocks.has('D:\\Data DKCL\\BrowserProfiles\\HUE.lock'), 'the live owner lock must survive');
+
+        // Supporting invariants behind that guarantee.
+        assert.strictEqual(loser.ownsLock, false, 'a client that lost the race must not claim ownership');
+        assert.strictEqual(loser.lockDir, null, 'lockDir must stay null when the lock was not created here');
+        console.log('PASS');
+    }
+
+    console.log('--- TEST 12: AB-AUTH-01 the lock owner still releases its own lock on close ---');
+    {
+        const removed = [];
+        const existingLocks = new Set();
+        const fakeFs = {
+            mkdirSync: (target, options) => {
+                if (options && options.recursive) return undefined;
+                if (existingLocks.has(target)) {
+                    const err = new Error('EEXIST');
+                    err.code = 'EEXIST';
+                    throw err;
+                }
+                existingLocks.add(target);
+                return undefined;
+            },
+            existsSync: (target) => existingLocks.has(target),
+            rmSync: (target) => { removed.push(target); existingLocks.delete(target); }
+        };
+        const owner = new DkclHueF13PortalClient({ source: 'TCT', fs: fakeFs });
+        owner.profileDir = 'D:\\Data DKCL\\BrowserProfiles\\TCT';
+
+        owner.acquireProfileLock();
+        assert.strictEqual(owner.ownsLock, true);
+        assert.strictEqual(owner.lockDir, 'D:\\Data DKCL\\BrowserProfiles\\TCT.lock');
+
+        await owner.close();
+        assert.deepStrictEqual(removed, ['D:\\Data DKCL\\BrowserProfiles\\TCT.lock'], 'owner must release its own lock');
+        assert.strictEqual(existingLocks.size, 0);
+        assert.strictEqual(owner.ownsLock, false, 'close() must be idempotent');
+        console.log('PASS');
+    }
 
     console.log('All tests passed.');
 }

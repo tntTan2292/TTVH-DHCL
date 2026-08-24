@@ -109,6 +109,9 @@ class DkclHueF13PortalClient {
         this.baseUrl = null;
         this.profileDir = null;
         this.lockDir = null;
+        // AB-AUTH-01: true only when THIS client's mkdirSync() actually created the lock
+        // directory. close() must never remove a lock owned by another live process.
+        this.ownsLock = false;
         this.loginAttempts = 0;
         this.source = options.source || 'HUE';
         this.onDisconnect = null;
@@ -165,18 +168,25 @@ class DkclHueF13PortalClient {
         }
     }
 
+    // AB-AUTH-01: `this.lockDir` is assigned only AFTER mkdirSync() has actually created the
+    // directory. Previously it was assigned first, so a client that failed with PROFILE_LOCKED
+    // (the lock belongs to another live process) still carried a lockDir into close(), which
+    // then deleted that other process's lock -- allowing a second Chromium to be launched
+    // against a profile directory already open, risking Cookies/Preferences corruption.
     acquireProfileLock() {
         const parentDir = this.path.dirname(this.profileDir);
         this.fs.mkdirSync(parentDir, { recursive: true });
-        this.lockDir = `${this.profileDir}.lock`;
+        const candidateLockDir = `${this.profileDir}.lock`;
         try {
-            this.fs.mkdirSync(this.lockDir);
+            this.fs.mkdirSync(candidateLockDir);
         } catch (error) {
             if (error.code === 'EEXIST') {
                 throw portalError(`${this.source} DKCL persistent browser profile is already in use.`, 'PROFILE_LOCKED');
             }
             throw error;
         }
+        this.lockDir = candidateLockDir;
+        this.ownsLock = true;
     }
 
     async close() {
@@ -187,9 +197,12 @@ class DkclHueF13PortalClient {
         if (this.profileDir) {
             processManager.clearHiddenHwnds?.(this.profileDir);
         }
-        if (this.lockDir && this.fs.existsSync(this.lockDir)) {
+        // AB-AUTH-01: only release a lock this client actually created (see acquireProfileLock).
+        if (this.ownsLock && this.lockDir && this.fs.existsSync(this.lockDir)) {
             this.fs.rmSync(this.lockDir, { recursive: true, force: true });
         }
+        this.ownsLock = false;
+        this.lockDir = null;
     }
 
     // AUTO-IMPORT-014 item 4: authentication-detection logic factored out of isAuthenticated()
