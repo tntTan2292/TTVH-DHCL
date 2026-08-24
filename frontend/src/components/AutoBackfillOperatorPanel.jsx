@@ -316,6 +316,7 @@ export default function AutoBackfillOperatorPanel() {
   const handlePauseRun = async () => {
     if (!activeRunId) return;
     setRunActionLoading(true);
+    setRunError(null);
     try {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/pause`);
       if (res.data.success) {
@@ -332,6 +333,7 @@ export default function AutoBackfillOperatorPanel() {
   const handleResumeRun = async () => {
     if (!activeRunId) return;
     setRunActionLoading(true);
+    setRunError(null);
     try {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/resume`);
       if (res.data.success) {
@@ -348,6 +350,7 @@ export default function AutoBackfillOperatorPanel() {
   const handleResetCircuit = async () => {
     if (!activeRunId) return;
     setRunActionLoading(true);
+    setRunError(null);
     try {
       const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/circuit/reset`);
       if (res.data.success) {
@@ -926,6 +929,25 @@ export default function AutoBackfillOperatorPanel() {
                 {authLoginError}
               </div>
             )}
+          </div>
+        )}
+
+        {/* AB-AUTH-02: run action errors (create / pause / resume / circuit reset).
+            Deliberately outside both the creation-controls block and the active-run block,
+            because handleCreateRun fails while activeRunId is still null -- rendering this
+            inside the active-run block would keep the most common failure invisible. */}
+        {runError && (
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+            <span className="flex-1">{runError}</span>
+            <button
+              type="button"
+              onClick={() => setRunError(null)}
+              className="shrink-0 rounded-lg px-2 py-0.5 text-xs font-bold text-red-700 hover:bg-red-100"
+              aria-label="Đóng thông báo lỗi"
+            >
+              ✕
+            </button>
           </div>
         )}
       </div>
