@@ -586,3 +586,61 @@ test('runtime registers both verified F4.1 executors before coordinator startup'
     assert.equal(INDICATORS['F4.1'].lanes.TCT.automationMode, 'AUTOMATED');
     assert.equal(INDICATORS['F4.1'].lanes.TCT.portalAdapter.id, F41_EXECUTOR_IDENTITIES.TCT.id);
 });
+
+// ---------------------------------------------------------------------------
+// AB-AUTH-05 follow-up: assertSummary() logs exactly which condition failed, with the real
+// values read from the portal page, instead of only the final error code + hash (as happened
+// for real run 208e49c4, F4.1/HUE 23/08, where the exact cause could not be determined after
+// the fact).
+// ---------------------------------------------------------------------------
+
+test('F4.1 HUE assertSummary logs every failed condition by name with its real value before throwing', () => {
+    const logs = [];
+    const service = new F41HueSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
+    // Only unitCount and exportIdentity are wrong here; totalVolume/passedVolume/rate are
+    // internally consistent (2 total, 1 passed, 50%) so they must NOT appear in the failure list.
+    const badSummary = { unitCount: 7, totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: 'WRONG_IDENTITY' };
+    assert.throws(() => service.assertSummary(badSummary), (error) => {
+        assert.equal(error.code, 'F41_HUE_OUTER_SUMMARY_INVALID');
+        assert.match(error.message, /unitCount/);
+        assert.match(error.message, /exportIdentity/);
+        assert.doesNotMatch(error.message, /totalVolume/);
+        assert.doesNotMatch(error.message, /passedVolume/);
+        return true;
+    });
+    assert.equal(logs.length, 1, 'exactly one diagnostic log line must be written before the throw');
+    assert.match(logs[0], /\[F41_HUE_SUMMARY\]/);
+    assert.match(logs[0], /unitCount/);
+    assert.match(logs[0], /"value":7/, 'the real observed value must be in the log, not just the field name');
+    assert.match(logs[0], /exportIdentity/);
+});
+
+test('F4.1 HUE assertSummary does not throw or log when every condition holds', () => {
+    const logs = [];
+    const service = new F41HueSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
+    assert.doesNotThrow(() => service.assertSummary({
+        unitCount: 9, totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+    }));
+    assert.equal(logs.length, 0);
+});
+
+test('F4.1 TCT assertSummary logs every failed condition by name with its real value before throwing', () => {
+    const logs = [];
+    const service = new F41TctSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
+    assert.throws(() => service.assertSummary({ outerRowCount: 40, exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity }), (error) => {
+        assert.equal(error.code, 'F41_TCT_OUTER_SUMMARY_INVALID');
+        assert.match(error.message, /outerRowCount/);
+        assert.doesNotMatch(error.message, /exportIdentity/);
+        return true;
+    });
+    assert.equal(logs.length, 1);
+    assert.match(logs[0], /\[F41_TCT_SUMMARY\]/);
+    assert.match(logs[0], /"value":40/);
+});
+
+test('F4.1 TCT assertSummary does not throw or log when every condition holds', () => {
+    const logs = [];
+    const service = new F41TctSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
+    assert.doesNotThrow(() => service.assertSummary({ outerRowCount: 47, exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity }));
+    assert.equal(logs.length, 0);
+});

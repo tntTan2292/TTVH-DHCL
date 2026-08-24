@@ -820,3 +820,37 @@ The priority-tie-break starvation risk identified in Section 25.6 (a same-date, 
 `AB-AUTH-08`/`AB-AUTH-09` remain deferred per explicit Product Owner instruction, not touched here.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- this changes the wording and color the Product Owner sees on the Auto Backfill panel whenever a manual login is in progress, and changes real backend retry behaviour (a job blocked only by an in-progress login retries indefinitely on a 15-second cycle instead of terminally failing after 3 quick attempts). The Product Owner should confirm on a real manual login: the panel shows the new blue "Đang chờ bạn hoàn tất đăng nhập..." line instead of "Đang khởi tạo...", the amber "Cần đăng nhập thủ công" banner does **not** appear while the login window is open, and the job actually resumes and completes automatically once login succeeds without any explicit Resume click.
+
+## 26. F4.1 `assertSummary()` Diagnostic Logging -- Not In Original Design, Added Per Product Owner Request (2026-08-24, Claude Code Opus 5)
+
+### 26.1 Why
+
+Real run `208e49c4` (F4.1/HUE, business date 23/08) failed with `F41_HUE_OUTER_SUMMARY_INVALID` in ~6.7 seconds -- too fast to be `EXPORT_TIMEOUT`, and unrelated to `AB-AUTH-04`. Investigation traced the failure to `assertSummary()`, which combines **six** OR-ed conditions (`unitCount`, `totalVolume`, `passedVolume`, `passedVolume`/`totalVolume` rate, `exportIdentity`) into a single throw with no logging beforehand, and the database only ever persisted the final error code plus a hash (`evidence_json: {"classification":"SYSTEM","signature":"F41_HUE_OUTER_SUMMARY_INVALID:5f2fc6e2a5765b9d"}`). It was impossible to determine after the fact which condition had actually failed, or with what real values -- the investigation report to the Product Owner had to say so explicitly. This delta closes that gap for both `F41HueSingleDateService` (6 conditions) and `F41TctSingleDateService` (`outerRowCount`, `exportIdentity` -- 2 conditions).
+
+### 26.2 What Changed
+
+`backend/src/services/f41HueSingleDateService.js` and `backend/src/services/f41TctSingleDateService.js`
+
+- Both constructors gained `this.logger = options.logger || console`, matching the existing pattern in `dkclHueF13SyncService.js`.
+- `assertSummary()` in both files now evaluates each condition individually into a `checks` object (`{ value, expected, ok }` per field -- HUE additionally tracks `normalized` for the rate check), computes `failedChecks` (the names of only the conditions that actually failed), and -- only when `failedChecks.length > 0` -- logs one line (`this.logger.warn(...)`, tagged `[F41_HUE_SUMMARY]` / `[F41_TCT_SUMMARY]`) containing every field's real observed value and expected value as JSON, **before** throwing. The thrown error's message now also names the failed conditions (e.g. `"...incomplete or inconsistent (failed: unitCount, exportIdentity)."`) and its `details` carries both the raw `summary` and the full `checks` object, alongside the existing error code (`F41_HUE_OUTER_SUMMARY_INVALID` / `F41_TCT_OUTER_SUMMARY_INVALID`, both unchanged).
+- No behavioural change to when the error is thrown, its code, or downstream classification (`DEFAULT_ERROR_MAP` has no entry for either code, so both remain `SYSTEM`/terminal, matching the real `208e49c4` outcome and the Product Owner's own framing that this specific failure needed diagnosis, not automatic retry).
+- Style deliberately not identical to F1.3's `[AUTO-IMPORT-013] diagnostics(...)` (which logs on every probe regardless of outcome) -- this logs only on the actual failure path, since that is the exact gap the Product Owner asked to close, not a general-purpose trace.
+
+### 26.3 Regression Tests -- Verified To Fail Without The Fix
+
+4 new tests in `backend/test_autoBackfillF41Executors.js` (10 -> 14): HUE and TCT each get one test asserting the failure-path log line exists, is tagged correctly, names only the conditions that actually failed (asserting the log/message do **not** mention conditions that held, e.g. `totalVolume`/`passedVolume` when only `unitCount`/`exportIdentity` were wrong), and carries the real observed value (`"value":7"`, `"value":40"`); and one test each asserting the success path throws and logs nothing.
+
+Verified to fail without the fix (same method as every prior ticket this session): both service files were reverted to their pre-fix `git checkout` state -- the two failure-path tests failed exactly as expected, with the thrown message reading only the old generic `"F4.1 HUE outer summary is incomplete or inconsistent."` / `"...TCT..."`, containing neither field name. Restored from a scratch backup and re-verified.
+
+### 26.4 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified, not touched by this change (F4.1-only).
+- `test_autoBackfillF41Executors.js`: 14/14 PASS.
+- `oxlint` on all 3 changed files: 0 findings.
+- No database touched, no login performed, no run created -- verified entirely via direct unit calls to `assertSummary()` with a fake logger.
+
+### 26.5 Residual
+
+This closes the diagnostic gap only; it does not determine which of the two hypotheses raised for run `208e49c4` (a genuine data anomaly on the portal that day vs. a scraping/timing mismatch) was actually true -- that requires observing the next real occurrence's log line. Not something this delta can retroactively answer for the 208e49c4 incident itself, since it already happened before this logging existed.
+
+State: implemented and technically verified; **not self-passed**, though this delta has no PO-visible UI surface -- it is backend logging only, verifiable the next time a real `F41_..._OUTER_SUMMARY_INVALID` occurs by reading `backend.log`/`backend_err.log` for the new `[F41_HUE_SUMMARY]`/`[F41_TCT_SUMMARY]` line.

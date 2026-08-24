@@ -51,6 +51,7 @@ class F41TctSingleDateService {
         this.fs = options.fs || fs;
         this.path = options.path || path;
         this.clock = options.clock || (() => new Date());
+        this.logger = options.logger || console;
         this.config = {
             rawDownloadDir: options.rawDownloadDir || path.resolve(process.cwd(), '../portal-downloads/dkcl/tct/f41/raw'),
             generationTimeoutMs: options.generationTimeoutMs || Number(process.env.DKCL_TCT_GENERATION_TIMEOUT_MS || 900000),
@@ -153,9 +154,18 @@ class F41TctSingleDateService {
         };
     }
 
+    // Same follow-up as F41HueSingleDateService.assertSummary(): log which condition actually
+    // failed, with the real values read from the portal page, before throwing -- so a future
+    // occurrence is diagnosable from the log alone.
     assertSummary(summary) {
-        if (summary?.outerRowCount !== 47 || summary.exportIdentity !== F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity) {
-            throw serviceError('F41_TCT_OUTER_SUMMARY_INVALID', 'F4.1 TCT outer summary is incomplete or inconsistent.', summary);
+        const checks = {
+            outerRowCount: { value: summary?.outerRowCount, expected: 47, ok: summary?.outerRowCount === 47 },
+            exportIdentity: { value: summary?.exportIdentity, expected: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity, ok: summary?.exportIdentity === F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity },
+        };
+        const failedChecks = Object.entries(checks).filter(([, check]) => !check.ok).map(([name]) => name);
+        if (failedChecks.length > 0) {
+            this.logger.warn?.(`[F41_TCT_SUMMARY] outer summary rejected -- failed: [${failedChecks.join(', ')}] -- details: ${JSON.stringify(checks)}`);
+            throw serviceError('F41_TCT_OUTER_SUMMARY_INVALID', `F4.1 TCT outer summary is incomplete or inconsistent (failed: ${failedChecks.join(', ')}).`, { summary, checks });
         }
     }
 

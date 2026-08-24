@@ -47,6 +47,7 @@ class F41HueSingleDateService {
         this.fs = options.fs || fs;
         this.path = options.path || path;
         this.clock = options.clock || (() => new Date());
+        this.logger = options.logger || console;
         this.config = {
             rawDownloadDir: options.rawDownloadDir || path.resolve(process.cwd(), '../portal-downloads/dkcl/hue/f41/raw'),
             generationTimeoutMs: options.generationTimeoutMs || Number(process.env.DKCL_HUE_GENERATION_TIMEOUT_MS || 900000),
@@ -144,14 +145,26 @@ class F41HueSingleDateService {
         };
     }
 
+    // Follow-up requested after run 208e49c4 (F4.1/HUE 23/08) failed with
+    // F41_HUE_OUTER_SUMMARY_INVALID and there was no record of which of the 6 OR-ed conditions
+    // actually fired -- the DB only ever stored the error code and a hash, not the values read
+    // from the portal page. This logs every condition and its real value BEFORE throwing, so the
+    // next occurrence is diagnosable from the log alone instead of requiring guesswork.
     assertSummary(summary) {
-        if (summary?.unitCount !== 9
-            || !Number.isInteger(summary.totalVolume)
-            || summary.totalVolume <= 0
-            || !Number.isInteger(summary.passedVolume)
-            || normalizeRate(summary.rate) !== Number(((summary.passedVolume / summary.totalVolume) * 100).toFixed(2))
-            || summary.exportIdentity !== F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity) {
-            throw serviceError('F41_HUE_OUTER_SUMMARY_INVALID', 'F4.1 HUE outer summary is incomplete or inconsistent.', summary);
+        const computedRate = Number.isInteger(summary?.totalVolume) && summary.totalVolume > 0
+            ? Number(((summary.passedVolume / summary.totalVolume) * 100).toFixed(2))
+            : null;
+        const checks = {
+            unitCount: { value: summary?.unitCount, expected: 9, ok: summary?.unitCount === 9 },
+            totalVolume: { value: summary?.totalVolume, expected: 'integer > 0', ok: Number.isInteger(summary?.totalVolume) && summary.totalVolume > 0 },
+            passedVolume: { value: summary?.passedVolume, expected: 'integer', ok: Number.isInteger(summary?.passedVolume) },
+            rate: { value: summary?.rate, normalized: normalizeRate(summary?.rate), expected: computedRate, ok: normalizeRate(summary?.rate) === computedRate },
+            exportIdentity: { value: summary?.exportIdentity, expected: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity, ok: summary?.exportIdentity === F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity },
+        };
+        const failedChecks = Object.entries(checks).filter(([, check]) => !check.ok).map(([name]) => name);
+        if (failedChecks.length > 0) {
+            this.logger.warn?.(`[F41_HUE_SUMMARY] outer summary rejected -- failed: [${failedChecks.join(', ')}] -- details: ${JSON.stringify(checks)}`);
+            throw serviceError('F41_HUE_OUTER_SUMMARY_INVALID', `F4.1 HUE outer summary is incomplete or inconsistent (failed: ${failedChecks.join(', ')}).`, { summary, checks });
         }
     }
 
