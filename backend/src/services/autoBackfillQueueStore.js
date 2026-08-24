@@ -6,6 +6,20 @@ const sqlite3 = require('sqlite3').verbose();
 const ACTIVE_JOB_STATES = ['QUEUED', 'RUNNING', 'RECOVERY_CHECK'];
 const TERMINAL_JOB_STATES = ['SUCCESS', 'SKIPPED_ALREADY_SUCCESS', 'FAILED_TERMINAL', 'CANCELLED'];
 
+// AB-AUTH-03: the set of source lanes that are currently unable to make progress because a
+// job on that lane is waiting for a manual login, or is integrity-blocked. Derived from the
+// JOB, not from auto_backfill_run.requested_lane, which is nullable for unfiltered runs and
+// therefore cannot identify a lane. `source_lane IS NOT NULL` is defensive: a NULL inside a
+// `NOT IN (...)` subquery would make the whole predicate never match and silently starve the
+// queue -- the exact failure mode called out as the main risk of this change.
+const BLOCKED_LANES_SUBQUERY = `
+    SELECT DISTINCT blocked_job.source_lane
+    FROM auto_backfill_job blocked_job
+    JOIN auto_backfill_run blocked_run ON blocked_run.id = blocked_job.run_id
+    WHERE blocked_run.status = 'RUNNING'
+      AND blocked_job.safety_state IN ('WAITING_AUTH', 'BLOCKED_INTEGRITY')
+      AND blocked_job.source_lane IS NOT NULL`;
+
 function queueError(code, message, statusCode = 400) {
     const error = new Error(message);
     error.code = code;
@@ -266,12 +280,12 @@ class AutoBackfillQueueStore {
             const existingLease = await get(db, "SELECT * FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL'");
             const runningJob = await get(db, "SELECT id FROM auto_backfill_job WHERE state = 'RUNNING'");
             if (existingLease || runningJob) return null;
-            const globalBlock = await get(
-                db,
-                "SELECT id FROM auto_backfill_run WHERE status = 'RUNNING' AND safety_state IN ('WAITING_AUTH', 'BLOCKED_INTEGRITY') LIMIT 1",
-            );
-            if (globalBlock) return null;
 
+            // AB-AUTH-03: the former global block -- "if ANY RUNNING run is WAITING_AUTH or
+            // BLOCKED_INTEGRITY, stop the whole queue" -- is replaced by a per-lane exclusion.
+            // Execution stays globally serial (the GLOBAL_DKCL lease and the one-RUNNING-job
+            // guard above are untouched, and no schema changed); only *blocking* became
+            // lane-scoped, so a TCT session waiting for login no longer freezes HUE.
             const job = await get(
                 db,
                 `SELECT j.* FROM auto_backfill_job j
@@ -279,6 +293,7 @@ class AutoBackfillQueueStore {
                   WHERE j.state = 'QUEUED' AND r.status = 'RUNNING'
                     AND (j.safety_state IS NULL OR (j.safety_state = 'RETRY_WAIT' AND j.next_attempt_at <= ?))
                     AND (r.safety_state IS NULL OR r.safety_state = 'CIRCUIT_OPEN')
+                    AND j.source_lane NOT IN (${BLOCKED_LANES_SUBQUERY})
                  ORDER BY j.business_date DESC, j.indicator_priority ASC,
                           j.lane_priority ASC, j.created_at ASC, j.id ASC
                  LIMIT 1`,
@@ -920,6 +935,23 @@ class AutoBackfillQueueStore {
                  JOIN auto_backfill_run r ON r.id = j.run_id`,
                 [this.nowIso()],
             );
+            // AB-AUTH-03: lane breakdown, added alongside the existing totals (which keep their
+            // original meaning so no existing caller changes behaviour). `openLaneEligibleJobCount`
+            // is the count the coordinator actually needs: work that a currently-unblocked lane
+            // could pick up right now.
+            const blockedLaneRows = await all(db, BLOCKED_LANES_SUBQUERY);
+            const openLaneCounts = await get(
+                db,
+                `SELECT
+                    SUM(CASE WHEN j.state = 'QUEUED' AND r.status = 'RUNNING'
+                        AND (j.safety_state IS NULL OR (j.safety_state = 'RETRY_WAIT' AND j.next_attempt_at <= ?))
+                        AND (r.safety_state IS NULL OR r.safety_state = 'CIRCUIT_OPEN') THEN 1 ELSE 0 END) AS n,
+                    MIN(CASE WHEN j.safety_state = 'RETRY_WAIT' THEN j.next_attempt_at END) AS retry_ready_at
+                 FROM auto_backfill_job j
+                 JOIN auto_backfill_run r ON r.id = j.run_id
+                 WHERE j.source_lane NOT IN (${BLOCKED_LANES_SUBQUERY})`,
+                [this.nowIso()],
+            );
             const lease = await get(
                 db,
                 "SELECT job_id, worker_id, expires_at FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL'",
@@ -934,6 +966,9 @@ class AutoBackfillQueueStore {
                 leaseJobId: lease?.job_id || null,
                 leaseWorkerId: lease?.worker_id || null,
                 leaseExpiresAt: lease?.expires_at || null,
+                blockedLanes: blockedLaneRows.map((row) => row.source_lane),
+                openLaneEligibleJobCount: Number(openLaneCounts?.n || 0),
+                openLaneRetryReadyAt: openLaneCounts?.retry_ready_at || null,
             };
         });
     }

@@ -676,3 +676,201 @@ test('coordinator stop clears a pending lease timer without handle leakage', asy
         timerCount: 1,
     });
 });
+
+
+// ---------------------------------------------------------------------------
+// AB-AUTH-03: lane-aware blocking (design Section A, plan A1)
+// ---------------------------------------------------------------------------
+
+function authenticationError() {
+    // This suite's createLane() intentionally carries no errorMap, so the classification must be
+    // declared on the error itself -- the same mechanism production adapters use via
+    // DEFAULT_ERROR_MAP.AUTHENTICATION_REQUIRED = 'AUTHENTICATION'.
+    const error = new Error('manual login required');
+    error.code = 'AUTHENTICATION_REQUIRED';
+    error.autoBackfill = { classification: 'AUTHENTICATION' };
+    return error;
+}
+
+function laneBlockedFixture() {
+    // TCT is listed first so its lane_priority (10) beats HUE's (20) and the blocking lane is
+    // always leased first -- otherwise the test could pass without exercising the block at all.
+    return createFixture({
+        indicators: (statuses) => [
+            createIndicator({ code: 'F9.A', priority: 10, startDate: '2026-01-02', laneCodes: ['TCT', 'HUE'], statuses }),
+        ],
+        execute: async (identity, statuses) => {
+            if (identity.sourceLane === 'TCT') throw authenticationError();
+            statuses.set(`${identity.indicator}|${identity.sourceLane}|${identity.businessDate}`, 'SUCCESS');
+        },
+    });
+}
+
+test('AB-AUTH-03 a WAITING_AUTH TCT run no longer blocks a separate HUE run', async () => {
+    // Reproduces the incident seen on 20/08, 21/08 and 22/08: run bad55114 (F1.3/TCT) sat in
+    // WAITING_AUTH and froze a separate, unrelated HUE run whose own session was valid.
+    // Two independent runs, one per lane -- exactly the production shape.
+    const fixture = await laneBlockedFixture();
+    try {
+        const tctRun = await fixture.service.createRun({ lane: 'TCT', actor: 'admin', roles: ['admin'] });
+        const hueRun = await fixture.service.createRun({ lane: 'HUE', actor: 'admin', roles: ['admin'] });
+
+        // Drain by hand so nothing depends on coordinator timing.
+        let callsWhenTctFirstBlocked = -1;
+        for (let pass = 0; pass < 40; pass += 1) {
+            let result;
+            try {
+                result = await fixture.service.processNext();
+            } catch (error) {
+                assert.equal(error.code, 'AUTHENTICATION_REQUIRED');
+                if (callsWhenTctFirstBlocked === -1) callsWhenTctFirstBlocked = fixture.calls.length;
+                continue;
+            }
+            if (!result) break;
+        }
+
+        assert.notEqual(callsWhenTctFirstBlocked, -1, 'the TCT lane must have hit AUTHENTICATION_REQUIRED');
+
+        // The regression guard: before AB-AUTH-03 the global block meant zero HUE executions
+        // could ever follow the TCT block.
+        const hueCallsAfterBlock = fixture.calls
+            .slice(callsWhenTctFirstBlocked)
+            .filter((entry) => entry.includes('|HUE|'));
+        assert.ok(
+            hueCallsAfterBlock.length > 0,
+            `HUE work must keep draining after the TCT lane blocked; calls=${JSON.stringify(fixture.calls)}`,
+        );
+
+        const persistedTct = await fixture.service.store.getRun(tctRun.run.id);
+        const persistedHue = await fixture.service.store.getRun(hueRun.run.id);
+
+        assert.ok(persistedTct.jobs.length > 0 && persistedHue.jobs.length > 0, 'both runs must have jobs');
+        assert.equal(persistedTct.run.safety_state, 'WAITING_AUTH', 'the TCT run must stay held for manual login');
+        assert.ok(
+            persistedTct.jobs.some((job) => job.safety_state === 'WAITING_AUTH'),
+            'the TCT job that hit the auth error must be held in WAITING_AUTH',
+        );
+        // The blocking attempt itself runs once; after that the lane is closed, so the executor
+        // must never be entered again for TCT no matter how many dates that run still holds.
+        assert.equal(
+            fixture.calls.filter((entry) => entry.includes('|TCT|')).length,
+            1,
+            `TCT must be attempted exactly once and then stay closed; calls=${JSON.stringify(fixture.calls)}`,
+        );
+        assert.deepEqual(
+            persistedTct.jobs.filter((job) => job.state !== 'QUEUED').map((job) => job.state),
+            [],
+            'no TCT job may reach a terminal state while its lane is blocked',
+        );
+        assert.deepEqual(
+            persistedHue.jobs.filter((job) => job.state !== 'SUCCESS').map((job) => job.business_date),
+            [],
+            'every HUE job must have completed despite the blocked TCT lane',
+        );
+        assert.equal(persistedHue.run.safety_state, null, 'the HUE run must never inherit the TCT safety state');
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('AB-AUTH-03 a blocked lane still blocks its own lane', async () => {
+    // The other half of the guarantee: lane-scoped must not mean "no longer blocking".
+    const fixture = await laneBlockedFixture();
+    try {
+        const tctRun = await fixture.service.createRun({ lane: 'TCT', actor: 'admin', roles: ['admin'] });
+        await assert.rejects(fixture.service.processNext(), (error) => error.code === 'AUTHENTICATION_REQUIRED');
+
+        const callsAfterBlock = fixture.calls.length;
+        assert.equal(await fixture.service.processNext(), null, 'no further TCT job may be leased');
+        assert.equal(fixture.calls.length, callsAfterBlock, 'no executor call may happen on the blocked lane');
+
+        const persisted = await fixture.service.store.getRun(tctRun.run.id);
+        assert.equal(persisted.run.safety_state, 'WAITING_AUTH');
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('AB-AUTH-03 getCoordinatorState reports the blocked lane and open-lane work separately', async () => {
+    const fixture = await laneBlockedFixture();
+    try {
+        await fixture.service.createRun({ lane: 'TCT', actor: 'admin', roles: ['admin'] });
+        await fixture.service.createRun({ lane: 'HUE', actor: 'admin', roles: ['admin'] });
+        await assert.rejects(fixture.service.processNext(), (error) => error.code === 'AUTHENTICATION_REQUIRED');
+
+        const state = await fixture.service.store.getCoordinatorState();
+        assert.deepEqual(state.blockedLanes, ['TCT'], 'only the TCT lane may be reported as blocked');
+        assert.ok(state.waitingAuthCount > 0, 'the whole-system total stays available for existing callers');
+        assert.ok(
+            state.openLaneEligibleJobCount > 0,
+            'the untouched HUE work must be visible as open-lane eligible work',
+        );
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('AB-AUTH-03 nextPollDelay keeps polling for an open lane but still sleeps when every lane is blocked', async () => {
+    const coordinator = new AutoBackfillWorkerCoordinator({
+        queueService: { processNext() {}, store: { getCoordinatorState() {} } },
+        minPollMs: 5,
+        maxPollMs: 25,
+    });
+    const baseState = {
+        waitingAuthCount: 1,
+        integrityBlockedCount: 0,
+        runningJobCount: 0,
+        retryReadyAt: null,
+        leaseExpiresAt: null,
+    };
+
+    // One lane blocked, another lane still has eligible work -> must keep polling.
+    assert.equal(
+        coordinator.nextPollDelay({
+            ...baseState,
+            eligibleJobCount: 1,
+            openLaneEligibleJobCount: 1,
+            openLaneRetryReadyAt: null,
+            blockedLanes: ['TCT'],
+        }),
+        5,
+    );
+
+    // Everything that remains is on the blocked lane -> dormant, exactly as before AB-AUTH-03.
+    assert.equal(
+        coordinator.nextPollDelay({
+            ...baseState,
+            eligibleJobCount: 0,
+            openLaneEligibleJobCount: 0,
+            openLaneRetryReadyAt: null,
+            blockedLanes: ['HUE'],
+        }),
+        null,
+    );
+
+    // A pending retry belonging to the blocked lane must not cause a busy-poll loop.
+    assert.equal(
+        coordinator.nextPollDelay({
+            ...baseState,
+            eligibleJobCount: 0,
+            openLaneEligibleJobCount: 0,
+            openLaneRetryReadyAt: null,
+            retryReadyAt: '2026-01-04T00:00:00.000Z',
+            blockedLanes: ['HUE'],
+        }),
+        null,
+    );
+
+    // Nothing blocked at all -> pre-existing behaviour is untouched.
+    assert.equal(
+        coordinator.nextPollDelay({
+            ...baseState,
+            waitingAuthCount: 0,
+            eligibleJobCount: 0,
+            openLaneEligibleJobCount: 0,
+            openLaneRetryReadyAt: null,
+            blockedLanes: [],
+        }),
+        null,
+    );
+});

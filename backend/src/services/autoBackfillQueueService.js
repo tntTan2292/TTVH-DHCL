@@ -378,6 +378,9 @@ class AutoBackfillQueueService {
                     haltError.code = result.state === 'WAITING_AUTH'
                         ? 'AUTHENTICATION_REQUIRED'
                         : 'AUTO_BACKFILL_INTEGRITY_BLOCKED';
+                    // AB-AUTH-03: carry the lane so the coordinator can block just this source
+                    // instead of halting every lane (see AutoBackfillWorkerCoordinator).
+                    haltError.sourceLane = job.source_lane;
                     haltError.safetyHandled = true;
                     throw haltError;
                 }

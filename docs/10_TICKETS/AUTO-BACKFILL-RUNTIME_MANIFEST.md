@@ -534,3 +534,68 @@ State: fix applied and technically verified; **not self-passed**. `READY FOR PO 
 ### 20.3 Handoff
 
 Both commits are on `codex/da-impl-006`, pushed to `origin`. `AB-AUTH-03` (lane-aware blocking, Plan A1) is next per the confirmed order; not started in this delta. The 10-minute `EXPORT_TIMEOUT` ceiling PO specified applies only to `AB-AUTH-04` and is recorded here for continuity, not acted on by this delta.
+
+## 21. AB-AUTH-03 -- Lane-Aware Blocking (Plan A1) Executed (2026-08-24, Claude Code Opus 5)
+
+### 21.1 Why This Was Prioritised
+
+Third consecutive real-world occurrence of the same blockage. On 20/08, 21/08 and again on 22/08-23/08, a single run in `WAITING_AUTH` froze the entire Auto Backfill queue system-wide:
+
+- 22/08 10:05Z: run `1505ace6` (F1.3/HUE) went `WAITING_AUTH` and blocked run `3e29bd2e` (F1.3/HUE 22/08).
+- 23/08 11:17Z: run `bad55114` (F1.3/**TCT**, business date 18/08) went `WAITING_AUTH` and blocked run `2d817c59` (F1.3/**HUE**, business date 22/08) for roughly 16 hours. The HUE session was valid and the HUE work was unrelated to TCT; the Product Owner was nonetheless required to log into TCT purely to release a HUE import.
+
+That last case is the clearest statement of the defect: the Product Owner had to authenticate a source they were not using in order to import a source they were.
+
+### 21.2 What Changed -- Plan A1, No Schema Change
+
+Implemented exactly per design document Section 3.3 (Plan A1) and Section 3.4. Serialised execution is untouched; only *blocking* became lane-scoped.
+
+`backend/src/services/autoBackfillQueueStore.js`
+
+- New module constant `BLOCKED_LANES_SUBQUERY`: the set of source lanes that cannot progress, derived from `auto_backfill_job.safety_state IN ('WAITING_AUTH','BLOCKED_INTEGRITY')` joined to a `RUNNING` run -- per Section 3.4, derived from the JOB, not from the nullable `auto_backfill_run.requested_lane`. Carries a defensive `source_lane IS NOT NULL` guard, because a NULL inside `NOT IN (...)` would make the predicate never match and silently starve the queue -- the exact risk the design flagged as A1's main hazard.
+- `acquireNextJob()`: the former global guard (`SELECT id FROM auto_backfill_run WHERE status='RUNNING' AND safety_state IN ('WAITING_AUTH','BLOCKED_INTEGRITY')` -> `return null`) is removed and replaced by `AND j.source_lane NOT IN (<BLOCKED_LANES_SUBQUERY>)` inside the job-selection statement. The `GLOBAL_DKCL` lease check and the one-`RUNNING`-job check above it are byte-for-byte unchanged.
+- `getCoordinatorState()`: three additive fields -- `blockedLanes`, `openLaneEligibleJobCount`, `openLaneRetryReadyAt`. Every pre-existing field keeps its original whole-system meaning so no existing caller changes behaviour, exactly as Section 3.3 item 2 required.
+
+`backend/src/services/autoBackfillWorkerCoordinator.js`
+
+- `authenticationBlocked` / `integrityBlocked` booleans became `authenticationBlockedLanes` / `integrityBlockedLanes` sets (Section 3.3 item 4). A blocking error that cannot name its lane is recorded under an `UNKNOWN_LANE` sentinel and still halts the drain outright, preserving the old conservative behaviour whenever lane-scoped reasoning is impossible.
+- `runDrainLoop()`: on `AUTHENTICATION_REQUIRED` / `AUTO_BACKFILL_INTEGRITY_BLOCKED` the loop now records the lane and `break`s instead of hard-`return`ing, so the scheduling decision falls through to `nextPollDelay()` reading persisted state.
+- `nextPollDelay()` (Section 3.3 item 3): `if (waitingAuthCount > 0 || integrityBlockedCount > 0) return null` became "return `null` only when nothing remains that a still-open lane could pick up". It consumes the open-lane variants, which also prevents a busy-poll loop that would otherwise arise from a `RETRY_WAIT` job sitting on a blocked lane.
+
+`backend/src/services/autoBackfillQueueService.js`
+
+- One additive line: `haltError.sourceLane = job.source_lane` so the coordinator can attribute the block to a lane instead of halting all of them.
+
+**No schema migration, no database change, no change to circuit-breaker behaviour, thresholds, completion policies or the integrity stop.** Both schema constraints the design identified (`uq_auto_backfill_one_running_job`, `auto_backfill_worker_lease.lease_name CHECK (= 'GLOBAL_DKCL')`) remain in force.
+
+### 21.3 Regression Tests -- Verified To Fail Without The Fix
+
+Four new tests in `backend/test_autoBackfillQueueService.js` (24 -> 28), modelled on the production shape of the incident: two *separate* runs, one per lane, because the pre-existing run-level `r.safety_state` filter legitimately still blocks sibling jobs inside the same run.
+
+1. `a WAITING_AUTH TCT run no longer blocks a separate HUE run` -- the incident itself. Asserts HUE executor calls continue after the TCT block, every HUE job reaches `SUCCESS`, and the HUE run never inherits the TCT safety state.
+2. `a blocked lane still blocks its own lane` -- the other half of the guarantee: TCT is attempted exactly once and then stays closed; no TCT job reaches a terminal state.
+3. `getCoordinatorState reports the blocked lane and open-lane work separately`.
+4. `nextPollDelay keeps polling for an open lane but still sleeps when every lane is blocked` -- including the blocked-lane retry case and the nothing-blocked case.
+
+Verification that the tests actually catch the bug (same method as AB-AUTH-01): the three source files were stashed to restore pre-fix code and the suite re-run. Test 1 failed with `calls=["F9.A|TCT|2026-01-03"]` -- precisely the production symptom, zero HUE executions after the TCT block -- and tests 3 and 4 also failed. Test 2 passed on both, confirming it guards behaviour that was already correct. The fix was then restored and re-verified.
+
+### 21.4 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, and `git diff --stat` on that file is empty -- the suite was **not modified**. Its two blocking-sensitive tests (`authentication loss ... stops drain`, `integrity fatal stops immediately ... and blocks later jobs`) both use the single-lane HUE fixture, so lane-scoped blocking still closes the only lane present and the assertions hold unchanged.
+- `test_autoBackfillQueueService.js`: 28/28 PASS.
+- 15 related backend suites PASS: the 8 `autoBackfill*` suites, `browserProfileLock`, `dkclHueF13SyncService`, `dkclHueF13BackfillService`, `dkclSessionCoordinator`, `dkclHueBrowserBroker`, `tctF13BackfillService`, and `dkclSessionPreflightService` (which must be run from the repository root -- it calls `process.chdir('backend')`).
+- `oxlint` on all four changed files: 0 findings.
+- Frontend unaffected and confirmed: `AutoBackfillOperatorPanel.test.js` 14/14 PASS, `vite build` PASS.
+- Read-only check against the production database confirmed the new `blockedLanes` query returns `[]` now that the Product Owner has cleared the backlog; no write was performed, no login, no run created.
+
+### 21.5 Production State Observed During This Delta (Read-Only)
+
+The Product Owner released the 23/08 TCT block during this work. Run `2d817c59` (F1.3/HUE, business date 22/08) reached `COMPLETED` at `2026-08-24T03:50:13Z`, and `fact_f13` for `2026-08-22` now holds **3,903 rows** (latest write `2026-08-24 03:50:07`). Run `3e29bd2e`, the earlier attempt at the same date, remains `COMPLETED_WITH_ERRORS` from the `EXPORT_TIMEOUT` failure that `AB-AUTH-04` will address.
+
+### 21.6 Residual And Handoff
+
+`AB-AUTH-04` (retry for `EXPORT_TIMEOUT`) is next in the confirmed order and is **not** touched here. The Product Owner's revised ceiling for it -- total wait for one job must not exceed **10 minutes**, not the 65 minutes the design proposed, because a healthy DKCL portal produces the export in 1-2 minutes -- supersedes design Section 7.2 for that ticket only and is recorded here for continuity. Design Section 12 question 2 is therefore answered.
+
+Plan A2 (true per-lane parallelism, requiring two schema migrations) remains explicitly out of scope and not recommended.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- per the design's own risk note this is the largest behavioural change in the programme, so the Product Owner must confirm on a real run that a `WAITING_AUTH` run on one source no longer stalls work on the other, and that a blocked source still refuses to execute until its own manual login and explicit Resume.
