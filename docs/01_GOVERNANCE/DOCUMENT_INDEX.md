@@ -332,3 +332,13 @@ Current state: `AUTO-BACKFILL-SAFETY IMPLEMENTED / READY FOR PO GATE 5`. F41 is 
 ## AUTO-BACKFILL-SAFETY Gate 5 Handoff - 2026-08-18
 
 Append-only update: Safety manifest Sections 9-11 and checkpoint Sections 4-6 record generic classification, three-attempt persisted backoff, supported-session auth wait/resume, exact-scope threshold-five circuit, immediate integrity stop, SUCCESS protection, append-only audit/immutable attempts, registry-governed events/report APIs, synthetic `F9.TEST` extensibility and isolated regression evidence. Current state is `AUTO-BACKFILL-SAFETY IMPLEMENTED / READY FOR PO GATE 5`; Gate 5 is not self-passed and UI/Runtime remain inactive.
+
+## AUTO-BACKFILL-AUTH-REDESIGN Design Registration - 2026-08-24
+
+Append-only update: a design-only document is registered for the Auto Backfill authentication/queue/error-handling redesign. It contains no code, no schema change and no ticket activation; it exists to be reviewed and decided on before any execution ticket is opened.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/AUTO-BACKFILL-AUTH-REDESIGN_DESIGN.md` | Design Document | Consolidated redesign of the Auto Backfill auth + queue + error-handling flow: lane-aware blocking (A), PENDING vs BLOCKED session semantics (B), multi-run UI (C), profile-lock ownership fix (D), bounded `EXPORT_TIMEOUT` retry (E), bulk indicator filter (F), risk table (G) and a nine-ticket split (H). | L2 | Proposed / Under Review | When scoping any Auto Backfill auth, queue or error-handling work. | Mandatory before opening AB-AUTH-01..09 |
+
+Current state: `READY FOR CTO/PO REVIEW`. No execution ticket is activated by this registration. `AUTO-BACKFILL-RUNTIME` remains the current ticket per `PROJECT_SNAPSHOT.md`; the redesign supersedes nothing until explicitly approved.
