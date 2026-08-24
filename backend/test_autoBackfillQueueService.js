@@ -934,3 +934,59 @@ test('AB-AUTH-06 listRuns applies the same per-lane permission filter as getRun'
         fixture.cleanup();
     }
 });
+
+// ---------------------------------------------------------------------------
+// AB-AUTH-05: PENDING session semantics propagated end-to-end through the queue
+// (design Section 4, plan B)
+// ---------------------------------------------------------------------------
+
+test('AB-AUTH-05 SESSION_PENDING_HUMAN_ACTION retries without exhausting attempts or setting WAITING_AUTH', async () => {
+    // A single business date per lane (now is pinned one day after startDate so the coverage
+    // scan resolves to exactly one eligible date) keeps the job set small and deterministic --
+    // AB-AUTH-03's cross-lane guarantee (a blocked lane never stops a different lane) is already
+    // covered by its own dedicated tests; this test's job is specifically "does PENDING avoid
+    // being treated as attempt exhaustion".
+    let hueCalls = 0;
+    const fixture = await createFixture({
+        now: '2026-01-03T01:00:00.000Z',
+        indicators: (statuses) => [
+            createIndicator({ code: 'F9.A', priority: 10, startDate: '2026-01-02', laneCodes: ['HUE'], statuses }),
+        ],
+        execute: async (identity, statuses) => {
+            hueCalls += 1;
+            if (hueCalls <= 5) {
+                const error = new Error('manual login in progress');
+                error.code = 'SESSION_PENDING_HUMAN_ACTION';
+                error.autoBackfill = { classification: 'TRANSIENT' };
+                throw error;
+            }
+            statuses.set(`${identity.indicator}|${identity.sourceLane}|${identity.businessDate}`, 'SUCCESS');
+        },
+    });
+    try {
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        assert.equal(created.jobs.length, 1, 'fixture must produce exactly one job for this assertion to be meaningful');
+
+        // The lane's DEFAULT_RETRY_POLICY.maxAttempts is 3 -- 5 consecutive failures would
+        // exhaust any ordinary TRANSIENT error into FAILED_TERMINAL. SESSION_PENDING_HUMAN_ACTION
+        // must not, because a human mid-login is not "attempt exhaustion".
+        for (let i = 0; i < 5; i += 1) {
+            const result = await fixture.service.processNext();
+            assert.equal(result.state, 'RETRY_WAIT');
+            const persisted = await fixture.service.store.getRun(created.run.id);
+            assert.equal(persisted.run.safety_state, null, 'a pending login must never set run.safety_state -- it must never block the lane, unlike a real AUTHENTICATION_REQUIRED');
+            assert.notEqual(persisted.jobs[0].state, 'FAILED_TERMINAL', `must not terminate on attempt ${i + 1}, well past maxAttempts=3`);
+            fixture.clockState.now = new Date(result.retryAt);
+        }
+
+        // Login finally completes -> the job succeeds normally on its next attempt.
+        const finalAttempt = await fixture.service.processNext();
+        assert.equal(finalAttempt.state, 'SUCCESS');
+        assert.equal(hueCalls, 6);
+
+        const finalRun = await fixture.service.store.getRun(created.run.id);
+        assert.equal(finalRun.run.status, 'COMPLETED');
+    } finally {
+        fixture.cleanup();
+    }
+});

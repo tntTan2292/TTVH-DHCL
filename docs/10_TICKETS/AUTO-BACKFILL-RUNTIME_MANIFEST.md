@@ -759,3 +759,64 @@ Verified to fail without the fix (same method as AB-AUTH-01/03/04): the four bac
 `AB-AUTH-05` (PENDING vs BLOCKED session semantics) remains next in the confirmed order, not started in this delta. `AB-AUTH-08`/`AB-AUTH-09` (merge bulk reimport, indicator filter) remain deferred per explicit Product Owner instruction.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- this adds a new, always-visible table to the Auto Backfill screen. The Product Owner should confirm: every open run appears (not just the one being tracked below), a run blocking a lane shows the red flag and its own "Mở đăng nhập"/"Tiếp tục Run" buttons work directly from the row, and clicking a row switches the detail panel to that run.
+
+## 25. AB-AUTH-05 -- PENDING vs BLOCKED Session Semantics, End To End Executed (2026-08-24, Claude Code Opus 5)
+
+### 25.1 Root Cause, Confirmed Exactly As Previously Reported
+
+`dkclSessionPreflightService.js` already reports five distinct preflight statuses (`SESSION_VALID`, `AUTHENTICATION_REQUIRED`, `SESSION_CHECK_FAILED`, `LOGIN_IN_PROGRESS`, `LOGIN_TIMEOUT`), but `F13AutoBackfillExecutor.validateSession()` collapsed all four non-`SESSION_VALID` statuses into one hard `AUTHENTICATION_REQUIRED` failure. A Product Owner who had just opened the manual-login window (`LOGIN_IN_PROGRESS`) was therefore indistinguishable, at every downstream layer, from a session that was genuinely broken -- producing the single biggest recurring complaint: "Đang khởi tạo..." never told the Product Owner which of three real situations they were in.
+
+### 25.2 What Changed, By Layer (Design Section 4.2, Items 1/2/4 -- Item 3 Is A Documented Deviation, See 25.6)
+
+**Executor** (`backend/src/services/autoBackfillF13Executors.js`)
+
+- `validateSession()` now branches three ways instead of two: `SESSION_VALID` returns normally; `LOGIN_IN_PROGRESS`/`LOGIN_TIMEOUT` (`PENDING_PREFLIGHT_STATUSES`) throw a new `sessionPendingError()` carrying `code: 'SESSION_PENDING_HUMAN_ACTION'` and `error.autoBackfill = { classification: 'TRANSIENT' }`; every other status (including no status at all) still throws the original `authenticationError()` (`AUTHENTICATION_REQUIRED`) -- the BLOCKED path is otherwise byte-for-byte unchanged.
+
+**Registry** (`backend/src/services/importIndicatorRegistry.js`)
+
+- `DEFAULT_ERROR_MAP.SESSION_PENDING_HUMAN_ACTION = 'TRANSIENT'`, one additive entry, matching design Section 4.2 item 2 exactly.
+
+**Queue store** (`backend/src/services/autoBackfillQueueStore.js`)
+
+- `recordLeasedFailure()` gained a new branch, checked first (before the `AUTHENTICATION` branch): `failure.code === 'SESSION_PENDING_HUMAN_ACTION'` sets `state: 'QUEUED'`, `safety_state: 'RETRY_WAIT'`, a fixed 15-second reschedule (`SESSION_PENDING_RETRY_DELAY_MS`), and -- critically -- is **not** gated by the `attempt_number < maxAttempts` check the generic `RETRY_WAIT` branch uses. See Section 25.6 for why this is a deliberate, documented departure from the design's literal wording, not an oversight.
+
+**Frontend** (`frontend/src/components/autoBackfillUiHelpers.js`, `AutoBackfillOperatorPanel.jsx`)
+
+- New `resolveRunIdleState(runData)`: classifies the panel's idle line into `EXECUTING` (a job is `RUNNING`/`LEASED`/`RECOVERY_CHECK`) > `SESSION_PENDING` (a job is `RETRY_WAIT` with `terminal_reason === 'SESSION_PENDING_HUMAN_ACTION'`) > `WAITING_AUTH` (the run itself is genuinely blocked) > `QUEUED_BEHIND_OTHER_WORK` (a job is plain `QUEUED`, including `RETRY_WAIT` for any *other* reason such as `EXPORT_TIMEOUT`) > `TERMINAL` / `INITIALIZING` fallback -- resolved in that priority order.
+- The idle line now reads distinctly for three of the Product Owner's cases: "Đang xử lý..." (a, unchanged), a new blue "Đang chờ bạn hoàn tất đăng nhập [LANE]..." (the fix's actual target -- PENDING), "Đang xếp hàng chờ tới lượt..." (b, new -- previously indistinguishable from PENDING), and the existing amber "Cần đăng nhập thủ công" banner is untouched (c, still driven by `resolveWaitingAuthLanes`, which only ever matches a genuine `WAITING_AUTH` job/run -- `RETRY_WAIT` jobs, including `SESSION_PENDING` ones, were never visible to it).
+
+### 25.3 Regression Tests -- Verified To Fail Without The Fix
+
+Backend, `test_autoBackfillF13Executors.js` (12 -> 19): `validateSession` returns normally on `SESSION_VALID`; both `LOGIN_IN_PROGRESS` and `LOGIN_TIMEOUT` throw `SESSION_PENDING_HUMAN_ACTION`/`TRANSIENT`; `AUTHENTICATION_REQUIRED`, `SESSION_CHECK_FAILED`, and `undefined` all still throw the real `AUTHENTICATION_REQUIRED`; `DEFAULT_ERROR_MAP.SESSION_PENDING_HUMAN_ACTION` is `TRANSIENT` and classifies as retryable via the real `AutoBackfillSafetyCoordinator`.
+
+Backend, `test_autoBackfillQueueService.js` (31 -> 32): `SESSION_PENDING_HUMAN_ACTION retries without exhausting attempts or setting WAITING_AUTH` -- 5 consecutive failures (past the lane's `maxAttempts: 3`) must each leave the job `RETRY_WAIT`, `run.safety_state === null`, never `FAILED_TERMINAL`; the 6th attempt succeeds and the run reaches `COMPLETED`. (A second, cross-lane test asserting "TCT pending never blocks HUE" was drafted and deliberately dropped -- see Section 25.6, second bullet, for why it would have been testing something the design does not actually guarantee.)
+
+Frontend, `AutoBackfillOperatorPanel.test.js` (15 -> 16, 7 sub-cases): an executing job wins priority; **the exact reproduction** -- a job `RETRY_WAIT` with `terminal_reason: 'SESSION_PENDING_HUMAN_ACTION'` resolves to `SESSION_PENDING`, not the old generic text; a `RETRY_WAIT` job for a *different* reason (`EXPORT_TIMEOUT`) must **not** be confused with a pending login; a genuinely `WAITING_AUTH` run still resolves distinctly; a plain `QUEUED` job resolves to `QUEUED_BEHIND_OTHER_WORK`; all three terminal states; no run data at all must not throw.
+
+Verified to fail without the fix (same method as AB-AUTH-01/03/04/06+07): the three backend source files were reverted to their pre-fix `git checkout` state -- 3 of the new `test_autoBackfillF13Executors.js` tests failed exactly as expected (`LOGIN_IN_PROGRESS`/`LOGIN_TIMEOUT` both threw the old hard `AUTHENTICATION_REQUIRED` instead of `SESSION_PENDING_HUMAN_ACTION`; the registry lookup returned `undefined`). Separately, `autoBackfillUiHelpers.js` was reverted alone -- the frontend suite failed to load at all (`SyntaxError: ... does not provide an export named 'resolveRunIdleState'`). Both were then restored from a scratch backup and re-verified passing.
+
+### 25.4 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified.
+- `test_autoBackfillF13Executors.js`: 19/19 PASS. `test_autoBackfillQueueService.js`: 32/32 PASS.
+- 12 related backend suites PASS: `autoBackfillQueueController`, `autoBackfillF41Executors`, the 4 coverage/exception suites, `dkclHueF13SyncService`, `dkclHueF13BackfillService`, `dkclHueBrowserBroker`, `dkclSessionCoordinator`, `browserProfileLock`, and `dkclSessionPreflightService` (run from the repository root).
+- Frontend: `AutoBackfillOperatorPanel.test.js` 16/16 PASS; `npm run build` (vite) PASS, 689 modules.
+- `oxlint` on all 5 changed files: **0 findings** (not even the pre-existing `coverageError` warning, which lives in an unrelated part of the JSX file untouched by this specific check).
+- No database touched, no login performed, no run created.
+
+### 25.5 Production Data Point Consistent With This Root Cause
+
+The two `AUTHENTICATION_REQUIRED` failures the original investigation timed at `12ms` and `42ms` -- far too fast to involve a real Playwright round trip -- are exactly explained by this fix: those responses came from `dkclSessionPreflightService.js`'s in-memory `LOGIN_IN_PROGRESS`/`LOGIN_TIMEOUT` branches (checked synchronously before any browser interaction), which is precisely the case `validateSession()` now separates out instead of hard-failing.
+
+### 25.6 Decisions Made Beyond The Design's Literal Text
+
+- **Item 3 (backoff) was not implemented as literally worded, and this is a deliberate, reasoned departure, not an omission.** Design Section 4.2 item 3 says PENDING needs "backoff dài (người đăng nhập mất vài phút)... dùng chung cơ chế backoff theo mã lỗi với EXPORT_TIMEOUT." Investigation found that AB-AUTH-04's actual "cơ chế" for `EXPORT_TIMEOUT` is *not* a longer retry backoff at all -- it is a shortened *per-attempt* wait bound (`generationTimeoutMs`), with the between-attempt backoff staying at the lane's tiny default (2s/4s). There is no generic "backoff per error code" facility anywhere in this codebase to reuse, and the lane-wide `retryPolicy`/`maxAttempts` cannot be raised for `SESSION_PENDING_HUMAN_ACTION` without also raising it for `EXPORT_TIMEOUT` on the same lane -- which would blow AB-AUTH-04's carefully audited 10-minute ceiling. Simply reusing the existing generic backoff unmodified (2s/4s/8s, `maxAttempts: 3`) was tried conceptually first and rejected: it would terminally fail a job after ~14 seconds while the Product Owner is still mid-login, defeating the entire point of this ticket. The implemented alternative -- a fixed 15-second reschedule that does not count toward `maxAttempts` -- is bounded correctly by an *existing* mechanism already in the codebase, not a new one: `dkclSessionPreflightService.js` already reports `LOGIN_TIMEOUT` exactly once and resets to `NOT_AUTHENTICATED` once the interactive-login wait window (`DKCL_INTERACTIVE_AUTH_WAIT_MS`, ~4 minutes) elapses, after which the *next* `preflight()` call returns a genuine `AUTHENTICATION_REQUIRED`, which this store already routes to `WAITING_AUTH` via the untouched `AUTHENTICATION` branch. So the job can never retry forever even though this branch never "exhausts" it on its own terms.
+- **The cross-lane fairness test was drafted, found to test something not actually guaranteed, and dropped rather than shipped as a false guarantee.** An attempt to write "TCT stuck pending a login must never block HUE" (mirroring AB-AUTH-03's own test shape) exposed that `acquireNextJob()`'s job ordering (`business_date DESC, indicator_priority ASC, lane_priority ASC, ...`) is a pure priority tie-break with no fairness/round-robin behavior: a same-date job on a higher-priority lane that keeps returning to `RETRY_WAIT` (whether via `SESSION_PENDING_HUMAN_ACTION` or any other short-backoff `TRANSIENT` code) can keep winning every scheduling decision, starving a lower-priority lane's job indefinitely. This is **pre-existing scheduler behaviour, unrelated to and not introduced by this ticket** -- `AB-AUTH-03`'s guarantee is specifically about hard-blocked (`WAITING_AUTH`/`BLOCKED_INTEGRITY`) states, which are fully excluded from selection; it was never a guarantee about `RETRY_WAIT` priority fairness. Flagging this as a residual (Section 25.7) rather than silently asserting a guarantee that does not hold.
+
+### 25.7 Residual
+
+The priority-tie-break starvation risk identified in Section 25.6 (a same-date, higher-priority lane's `RETRY_WAIT` job can indefinitely starve a lower-priority lane's job) is a pre-existing scheduler characteristic, not new to this ticket, and is **not fixed here** -- flagged for the Product Owner/CTO to decide whether it warrants its own ticket (e.g. round-robin or last-attempted-first tie-breaking) or is acceptable given real registry priorities (`HUE` lane priority `10` beats `TCT`'s `20` for both `F1.3` and `F4.1` today, so `TCT` is the lane actually exposed to it in production, not `HUE`).
+
+`AB-AUTH-08`/`AB-AUTH-09` remain deferred per explicit Product Owner instruction, not touched here.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- this changes the wording and color the Product Owner sees on the Auto Backfill panel whenever a manual login is in progress, and changes real backend retry behaviour (a job blocked only by an in-progress login retries indefinitely on a 15-second cycle instead of terminally failing after 3 quick attempts). The Product Owner should confirm on a real manual login: the panel shows the new blue "Đang chờ bạn hoàn tất đăng nhập..." line instead of "Đang khởi tạo...", the amber "Cần đăng nhập thủ công" banner does **not** appear while the login window is open, and the job actually resumes and completes automatically once login succeeds without any explicit Resume click.

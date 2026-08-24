@@ -31,6 +31,24 @@ function authenticationError(sourceLane, result = null) {
     );
 }
 
+// AB-AUTH-05 (design Section 4, plan B): a human is actively completing manual login
+// (LOGIN_IN_PROGRESS) or the bounded interactive-login wait window just elapsed
+// (LOGIN_TIMEOUT, reported once before the backend's own state resets and re-checks) --
+// neither means the session is actually broken. Carries error.autoBackfill.classification =
+// 'TRANSIENT' so the existing retry mechanism handles it, per the design's explicit
+// "tận dụng cơ chế retry sẵn có, không phát minh cơ chế mới".
+function sessionPendingError(sourceLane, result = null) {
+    const error = executorError(
+        'SESSION_PENDING_HUMAN_ACTION',
+        result?.message || `DKCL ${sourceLane} manual login is in progress; will recheck automatically.`,
+        result
+    );
+    error.autoBackfill = { classification: 'TRANSIENT' };
+    return error;
+}
+
+const PENDING_PREFLIGHT_STATUSES = new Set(['LOGIN_IN_PROGRESS', 'LOGIN_TIMEOUT']);
+
 function assertRequest(identity, request) {
     if (request?.indicator !== identity.indicator
         || request?.sourceLane !== identity.sourceLane
@@ -65,12 +83,17 @@ class F13AutoBackfillExecutor {
         );
     }
 
+    // AB-AUTH-05: three-way classification instead of the previous binary
+    // (SESSION_VALID vs "everything else is AUTHENTICATION_REQUIRED"). Only a status that means
+    // the session is genuinely unusable (AUTHENTICATION_REQUIRED, SESSION_CHECK_FAILED, or any
+    // future status not explicitly known as READY/PENDING) is treated as blocked.
     async validateSession() {
         const preflight = await this.sessionPreflightService.preflight(this.identity.sourceLane);
-        if (preflight?.status !== 'SESSION_VALID') {
-            throw authenticationError(this.identity.sourceLane, preflight);
+        if (preflight?.status === 'SESSION_VALID') return preflight;
+        if (PENDING_PREFLIGHT_STATUSES.has(preflight?.status)) {
+            throw sessionPendingError(this.identity.sourceLane, preflight);
         }
-        return preflight;
+        throw authenticationError(this.identity.sourceLane, preflight);
     }
 
     async executeWithSession(request) {

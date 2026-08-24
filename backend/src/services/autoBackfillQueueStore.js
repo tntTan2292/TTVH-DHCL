@@ -6,6 +6,19 @@ const sqlite3 = require('sqlite3').verbose();
 const ACTIVE_JOB_STATES = ['QUEUED', 'RUNNING', 'RECOVERY_CHECK'];
 const TERMINAL_JOB_STATES = ['SUCCESS', 'SKIPPED_ALREADY_SUCCESS', 'FAILED_TERMINAL', 'CANCELLED'];
 
+// AB-AUTH-05: a manual login already in progress is not "attempt exhaustion" -- a human takes
+// minutes, not the lane's normal 2s/4s/8s transient backoff, and the shared per-lane
+// maxAttempts (also budgeting EXPORT_TIMEOUT's carefully-tuned 10-minute ceiling from
+// AB-AUTH-04) must not be raised just to accommodate it. This reschedule is deliberately
+// short and does NOT count toward maxAttempts, so the job is rechecked again soon without ever
+// reaching FAILED_TERMINAL while a human is mid-login. This is bounded by the backend's own
+// existing interactive-login wait window (DKCL_INTERACTIVE_AUTH_WAIT_MS, ~4 minutes): once
+// that elapses, dkclSessionPreflightService.js reports LOGIN_TIMEOUT once, resets to
+// NOT_AUTHENTICATED, and the NEXT preflight() call returns a genuine AUTHENTICATION_REQUIRED,
+// which this store already routes to WAITING_AUTH via the AUTHENTICATION branch below -- so
+// this can never retry forever even though it is never counted as "exhausted".
+const SESSION_PENDING_RETRY_DELAY_MS = 15000;
+
 // AB-AUTH-03: the set of source lanes that are currently unable to make progress because a
 // job on that lane is waiting for a manual login, or is integrity-blocked. Derived from the
 // JOB, not from auto_backfill_run.requested_lane, which is nullable for unfiltered runs and
@@ -560,7 +573,14 @@ class AutoBackfillQueueStore {
             let eventType = 'JOB_TERMINAL_FAILURE';
             let haltCoordinator = false;
 
-            if (failure.classification === 'AUTHENTICATION') {
+            if (failure.code === 'SESSION_PENDING_HUMAN_ACTION') {
+                jobState = 'QUEUED';
+                safetyState = 'RETRY_WAIT';
+                nextAttemptAt = new Date(this.clock().getTime() + SESSION_PENDING_RETRY_DELAY_MS).toISOString();
+                outcome = 'RETRY_SCHEDULED';
+                actionRequired = 'Waiting for the Product Owner to finish the manual login already in progress; will recheck automatically.';
+                eventType = 'JOB_RETRY_SCHEDULED';
+            } else if (failure.classification === 'AUTHENTICATION') {
                 jobState = 'QUEUED';
                 safetyState = 'WAITING_AUTH';
                 outcome = 'WAITING_AUTH';

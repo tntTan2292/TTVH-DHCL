@@ -462,6 +462,65 @@ test('AB-AUTH-04 the manual Import screen keeps the original 15-minute export ti
     assert.equal(plainService.config.generationTimeoutMs, 900000);
 });
 
+// ---------------------------------------------------------------------------
+// AB-AUTH-05: PENDING (LOGIN_IN_PROGRESS/LOGIN_TIMEOUT) vs BLOCKED
+// (AUTHENTICATION_REQUIRED/SESSION_CHECK_FAILED) session semantics (design Section 4, plan B)
+// ---------------------------------------------------------------------------
+
+function makeExecutorWithPreflight(preflightImpl) {
+    return new F13AutoBackfillExecutor({
+        identity: F13_EXECUTOR_IDENTITIES.HUE,
+        adapter: {},
+        sessionPreflightService: {
+            preflight: preflightImpl,
+            withSourceLock: (source, fn) => fn(),
+            getRegistryState: () => ({}),
+            getInteractiveClient: () => ({}),
+        },
+    });
+}
+
+test('AB-AUTH-05 validateSession returns the preflight result on SESSION_VALID', async () => {
+    const executor = makeExecutorWithPreflight(async () => ({ status: 'SESSION_VALID' }));
+    const result = await executor.validateSession();
+    assert.equal(result.status, 'SESSION_VALID');
+});
+
+for (const pendingStatus of ['LOGIN_IN_PROGRESS', 'LOGIN_TIMEOUT']) {
+    test(`AB-AUTH-05 validateSession classifies ${pendingStatus} as PENDING (TRANSIENT, retryable), not a hard auth failure`, async () => {
+        const executor = makeExecutorWithPreflight(async () => ({ status: pendingStatus, message: 'still waiting' }));
+        await assert.rejects(executor.validateSession(), (error) => {
+            assert.equal(error.code, 'SESSION_PENDING_HUMAN_ACTION');
+            assert.equal(error.autoBackfill?.classification, 'TRANSIENT');
+            return true;
+        });
+    });
+}
+
+for (const blockedStatus of ['AUTHENTICATION_REQUIRED', 'SESSION_CHECK_FAILED', undefined]) {
+    test(`AB-AUTH-05 validateSession still classifies ${blockedStatus ?? '(no status)'} as a real BLOCKED auth failure`, async () => {
+        const executor = makeExecutorWithPreflight(async () => ({ status: blockedStatus }));
+        await assert.rejects(executor.validateSession(), (error) => {
+            assert.equal(error.code, 'AUTHENTICATION_REQUIRED');
+            return true;
+        });
+    });
+}
+
+test('AB-AUTH-05 SESSION_PENDING_HUMAN_ACTION is mapped to TRANSIENT and retryable in the registry', () => {
+    assert.equal(DEFAULT_ERROR_MAP.SESSION_PENDING_HUMAN_ACTION, 'TRANSIENT');
+    const coordinator = new AutoBackfillSafetyCoordinator();
+    const error = new Error('still waiting');
+    error.code = 'SESSION_PENDING_HUMAN_ACTION';
+    error.autoBackfill = { classification: 'TRANSIENT' };
+    const failure = coordinator.classify(error, {
+        lane: { errorMap: DEFAULT_ERROR_MAP, retryPolicy: DEFAULT_RETRY_POLICY },
+        job: { executor_id: 'X', source_lane: 'HUE', resource_identity: 'R' },
+    });
+    assert.equal(failure.classification, 'TRANSIENT');
+    assert.equal(failure.retryable, true);
+});
+
 test('F4.1 exposes independently verified HUE and TCT adapters', () => {
     assert.equal(INDICATORS['F4.1'].lanes.HUE.automationMode, 'AUTOMATED');
     assert.equal(INDICATORS['F4.1'].lanes.HUE.portalAdapter.id, F41_EXECUTOR_IDENTITIES.HUE.id);

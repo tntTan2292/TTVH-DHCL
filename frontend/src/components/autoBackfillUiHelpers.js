@@ -425,4 +425,47 @@ export function resolveOpenRunRowActions(entry) {
   };
 }
 
+// AB-AUTH-05 (design Section 4, plan B): the single biggest recurring Product Owner complaint --
+// "Đang khởi tạo..." never distinguished (a) a job genuinely executing, (b) a job merely queued
+// behind other work, (c) a login the Product Owner is actively completing (PENDING, not an
+// error), or (d) a session that is truly broken and needs manual login (BLOCKED). Backend-side,
+// (c) surfaces as a job in `RETRY_WAIT` whose `terminal_reason` is the AB-AUTH-05
+// `SESSION_PENDING_HUMAN_ACTION` code -- distinct from every other RETRY_WAIT reason (e.g.
+// AB-AUTH-04's EXPORT_TIMEOUT), which stays generic "Đang khởi tạo...".
+const TERMINAL_RUN_STATES = new Set(['COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED']);
+const EXECUTING_JOB_STATES = new Set(['RUNNING', 'LEASED', 'RECOVERY_CHECK']);
+
+export function resolveRunIdleState(runData) {
+  const run = runData?.run || null;
+  const jobs = Array.isArray(runData?.jobs) ? runData.jobs : [];
+  const effectiveState = resolveEffectiveRunState(run);
+
+  if (TERMINAL_RUN_STATES.has(effectiveState)) {
+    return { kind: 'TERMINAL', runState: effectiveState, job: null };
+  }
+
+  const executingJob = jobs.find((job) => EXECUTING_JOB_STATES.has(job.state || job.status || job.safety_state));
+  if (executingJob) {
+    return { kind: 'EXECUTING', runState: effectiveState, job: executingJob };
+  }
+
+  const sessionPendingJob = jobs.find(
+    (job) => job.safety_state === 'RETRY_WAIT' && job.terminal_reason === 'SESSION_PENDING_HUMAN_ACTION'
+  );
+  if (sessionPendingJob) {
+    return { kind: 'SESSION_PENDING', runState: effectiveState, job: sessionPendingJob };
+  }
+
+  if (effectiveState === 'WAITING_AUTH') {
+    return { kind: 'WAITING_AUTH', runState: effectiveState, job: null };
+  }
+
+  const queuedJob = jobs.find((job) => (job.state || job.safety_state) === 'QUEUED');
+  if (queuedJob) {
+    return { kind: 'QUEUED_BEHIND_OTHER_WORK', runState: effectiveState, job: queuedJob };
+  }
+
+  return { kind: 'INITIALIZING', runState: effectiveState, job: null };
+}
+
 

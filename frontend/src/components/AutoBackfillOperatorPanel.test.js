@@ -9,6 +9,7 @@ import {
   resolveNoCodeStatus,
   resolveOpenRunRowActions,
   resolveRunActionButtons,
+  resolveRunIdleState,
   resolveWaitingAuthLanes
 } from './autoBackfillUiHelpers.js';
 
@@ -613,6 +614,68 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.deepEqual(resolveOpenRunRowActions({}), { runState: null, isBlocking: false, blockedLanes: [], canResume: false });
 
   console.log('✔ 15. AB-AUTH-07 Open-Run Table Row Actions tests PASSED!');
+}
+
+// ==========================================
+// 16. AB-AUTH-05: Three-Way Idle-State Classification (design Section 4, plan B)
+// ==========================================
+{
+  // Test case 16.1: a job actually RUNNING takes priority over everything else.
+  const executingRun = {
+    run: { id: 'run_401', status: 'RUNNING', safety_state: null },
+    jobs: [{ id: 'j1', state: 'RUNNING', indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-24' }],
+  };
+  assert.equal(resolveRunIdleState(executingRun).kind, 'EXECUTING');
+  assert.equal(resolveRunIdleState(executingRun).job.id, 'j1');
+
+  // Test case 16.2: the exact PO complaint this ticket exists to fix -- a job whose
+  // safety_state is RETRY_WAIT with terminal_reason SESSION_PENDING_HUMAN_ACTION must read as
+  // "waiting on YOUR login", not the generic, alarm-free "Đang khởi tạo...".
+  const sessionPendingRun = {
+    run: { id: 'run_402', status: 'RUNNING', safety_state: null },
+    jobs: [{ id: 'j2', state: 'QUEUED', safety_state: 'RETRY_WAIT', terminal_reason: 'SESSION_PENDING_HUMAN_ACTION', source_lane: 'TCT' }],
+  };
+  const sessionPendingResult = resolveRunIdleState(sessionPendingRun);
+  assert.equal(sessionPendingResult.kind, 'SESSION_PENDING');
+  assert.equal(sessionPendingResult.job.source_lane, 'TCT');
+
+  // Test case 16.3: RETRY_WAIT for any OTHER reason (e.g. AB-AUTH-04's EXPORT_TIMEOUT) must NOT
+  // be confused with a pending login -- it falls through to the generic "queued" reading, since
+  // retrying a slow portal export is not something the Product Owner needs to act on.
+  const exportTimeoutRetryRun = {
+    run: { id: 'run_403', status: 'RUNNING', safety_state: null },
+    jobs: [{ id: 'j3', state: 'QUEUED', safety_state: 'RETRY_WAIT', terminal_reason: 'EXPORT_TIMEOUT', source_lane: 'HUE' }],
+  };
+  assert.equal(resolveRunIdleState(exportTimeoutRetryRun).kind, 'QUEUED_BEHIND_OTHER_WORK');
+
+  // Test case 16.4: a genuinely WAITING_AUTH run (no job caught by the SESSION_PENDING check)
+  // must still resolve distinctly from both PENDING and the generic fallback.
+  const waitingAuthRun = {
+    run: { id: 'run_404', status: 'RUNNING', safety_state: 'WAITING_AUTH' },
+    jobs: [{ id: 'j4', state: 'QUEUED', safety_state: 'WAITING_AUTH', source_lane: 'HUE' }],
+  };
+  assert.equal(resolveRunIdleState(waitingAuthRun).kind, 'WAITING_AUTH');
+
+  // Test case 16.5: a job merely QUEUED (no special safety_state) reads as "waiting your turn",
+  // distinct from both a real block and a login in progress.
+  const queuedRun = {
+    run: { id: 'run_405', status: 'RUNNING', safety_state: null },
+    jobs: [{ id: 'j5', state: 'QUEUED', safety_state: null, source_lane: 'HUE' }],
+  };
+  assert.equal(resolveRunIdleState(queuedRun).kind, 'QUEUED_BEHIND_OTHER_WORK');
+
+  // Test case 16.6: terminal run states are reported as such regardless of stale job rows.
+  for (const state of ['COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED']) {
+    const terminalRun = { run: { id: 'run_406', status: state, safety_state: null }, jobs: [] };
+    assert.equal(resolveRunIdleState(terminalRun).kind, 'TERMINAL');
+    assert.equal(resolveRunIdleState(terminalRun).runState, state);
+  }
+
+  // Test case 16.7: no run data at all must not throw.
+  assert.equal(resolveRunIdleState(null).kind, 'INITIALIZING');
+  assert.equal(resolveRunIdleState({}).kind, 'INITIALIZING');
+
+  console.log('✔ 16. AB-AUTH-05 Three-Way Idle-State Classification tests PASSED!');
 }
 
 console.log('ALL AUTO-BACKFILL-UI behavior and contract tests PASSED SUCCESSFULLY!');

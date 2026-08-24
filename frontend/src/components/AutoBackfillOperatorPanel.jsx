@@ -32,6 +32,7 @@ import {
   resolveNoCodeStatus,
   resolveOpenRunRowActions,
   resolveRunActionButtons,
+  resolveRunIdleState,
   resolveWaitingAuthLanes
 } from './autoBackfillUiHelpers';
 
@@ -785,6 +786,11 @@ export default function AutoBackfillOperatorPanel() {
     );
   }, [runData]);
 
+  // AB-AUTH-05: the three-way distinction PO asked for -- executing / genuinely waiting for a
+  // login vs merely queued behind other work / actually blocked -- replacing a single
+  // undifferentiated "Đang khởi tạo..." line.
+  const runIdleState = useMemo(() => resolveRunIdleState(runData), [runData]);
+
   return (
     <div className="flex flex-col gap-6 font-sans text-slate-800 relative pb-20">
       {/* Toast Notification */}
@@ -1036,16 +1042,23 @@ export default function AutoBackfillOperatorPanel() {
 
             {/* GRANULAR JOB STATUS & WAITING_AUTH WARNING */}
             <div className="flex flex-wrap items-center justify-between border-t border-slate-200 pt-3 text-xs">
-              {activeExecutingJob ? (
+              {runIdleState.kind === 'EXECUTING' ? (
                 <div className="flex items-center gap-2 font-medium text-slate-700">
                   <Activity className="h-4 w-4 text-blue-600 animate-pulse" />
                   <span>Đang xử lý: <strong className="text-slate-900">Chỉ tiêu {activeExecutingJob.indicator} × Nguồn {activeExecutingJob.source_lane} × Ngày {activeExecutingJob.business_date}</strong></span>
                 </div>
-              ) : effectiveRunState === 'COMPLETED' ? (
+              ) : runIdleState.kind === 'SESSION_PENDING' ? (
+                <div className="flex items-center gap-2 font-medium text-blue-700">
+                  <UserCheck className="h-4 w-4 text-blue-600 animate-pulse" />
+                  <span>Đang chờ bạn hoàn tất đăng nhập <strong className="text-blue-900">{runIdleState.job?.source_lane}</strong> — hệ thống sẽ tự kiểm tra lại, không cần thao tác thêm.</span>
+                </div>
+              ) : runIdleState.kind === 'QUEUED_BEHIND_OTHER_WORK' ? (
+                <span className="text-slate-500">Đang xếp hàng chờ tới lượt (một nguồn khác đang được xử lý)...</span>
+              ) : runIdleState.runState === 'COMPLETED' ? (
                 <span className="text-slate-500">Đã hoàn tất</span>
-              ) : effectiveRunState === 'COMPLETED_WITH_ERRORS' ? (
+              ) : runIdleState.runState === 'COMPLETED_WITH_ERRORS' ? (
                 <span className="text-slate-500">Hoàn tất có lỗi</span>
-              ) : effectiveRunState === 'CANCELLED' ? (
+              ) : runIdleState.runState === 'CANCELLED' ? (
                 <span className="text-slate-500">Đã huỷ</span>
               ) : (
                 <span className="text-slate-500">Đang khởi tạo các luồng bù dữ liệu...</span>
