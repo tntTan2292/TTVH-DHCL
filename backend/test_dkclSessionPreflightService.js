@@ -688,6 +688,81 @@ function makeCoordinatorFixture() {
     assert.strictEqual(hueFailureCalls.filter((call) => call[0] === 'close').length, 0, 'HUE source-page failure does not close the browser');
     assert.strictEqual(globalRegistry.get('TCT').client.marker, 'tct', 'HUE failure does not mutate TCT registry state');
 
+    console.log('\nTEST 6D: AB-AUTH-08 — HUE parked at WAITING_FOR_LOGIN after SOURCE_PAGE_REQUIRED (TEST 6C\'s exact scenario) re-probes and escapes once the F1.3 page becomes ready, instead of staying kẹt vĩnh viễn');
+    globalRegistry.clear();
+    {
+        const parkedCalls = [];
+        let waitAttempt = 0;
+        const parkedClient = {
+            async prepareInteractiveAuthentication() { parkedCalls.push(['prepare']); return true; },
+            async waitInteractiveAuthentication() {
+                waitAttempt += 1;
+                parkedCalls.push(['wait', waitAttempt]);
+                // Reproduces the real incident: the manual login itself succeeded, but the F1.3
+                // report page was not ready by the time the client's own wait/openF13Report
+                // sequence checked — exactly what throws SOURCE_PAGE_REQUIRED in
+                // dkclHueF13PortalClient.js's HUE-only branch.
+                const error = new Error('SOURCE_PAGE_REQUIRED: DKCL HUE F1.3 source page is not ready.');
+                error.code = 'SOURCE_PAGE_REQUIRED';
+                throw error;
+            },
+            async restoreWindow() { parkedCalls.push(['restore']); return true; },
+            async close() { parkedCalls.push(['close']); },
+            // The real, already-authenticated live browser: by the time preflight() re-probes it
+            // (some time after the PO actually finished logging in), the F1.3 report page has
+            // since finished rendering — this is the state a real PO-visible browser window would
+            // be in, distinct from what the client's own one-shot wait check saw a moment earlier.
+            async isAuthenticated() { parkedCalls.push(['authenticated']); return true; },
+            async isF13ReportReady() { parkedCalls.push(['ready']); return true; },
+            async hasLoginForm() { parkedCalls.push(['has-login-form']); return false; }
+        };
+        const parkedService = new DkclSessionPreflightService({
+            interactiveClientFactory: () => parkedClient,
+            reprobeRetryDelayMs: 5
+        });
+
+        await parkedService.interactiveAuthenticate('HUE');
+        await new Promise((r) => setTimeout(r, 50));
+        const parkedEntry = parkedService.getRegistryState('HUE');
+        assert.strictEqual(parkedEntry.state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'HUE is parked at WAITING_FOR_LOGIN after SOURCE_PAGE_REQUIRED, exactly like the real incident');
+        assert.strictEqual(parkedEntry.client, parkedClient, 'the real, already-authenticated client is retained, not discarded');
+        assert.strictEqual(parkedEntry.pendingSourcePageWait, true, 'the parked-after-SOURCE_PAGE_REQUIRED marker is set');
+
+        // Without the fix: this call (mirroring the real 15s AB-AUTH-05 retry poll) would hit the
+        // DKCL_IN_PROGRESS_STATES short-circuit and return LOGIN_IN_PROGRESS forever, without ever
+        // calling isAuthenticated()/isF13ReportReady() on parkedClient again — reproducing the
+        // Product Owner's real report exactly: the banner never clears despite a real completed
+        // login. With the fix, preflight() falls through to the real re-probe and escapes.
+        const rePolled = await parkedService.preflight('HUE');
+        assert.strictEqual(rePolled.status, PREFLIGHT_STATUSES.SESSION_VALID, 'HUE preflight escapes the WAITING_FOR_LOGIN dead end once the real client reports ready — no longer kẹt vĩnh viễn');
+        assert.strictEqual(rePolled.lifecycle_state, DKCL_LIFECYCLE_STATES.F13_READY, 'HUE transitions to F13_READY from the re-probe, not from a second login');
+        assert(parkedCalls.some((call) => call[0] === 'ready'), 'preflight actually re-probed isF13ReportReady on the retained client instead of trusting cached state');
+        assert.strictEqual(parkedCalls.filter((call) => call[0] === 'prepare').length, 1, 'no duplicate browser/login was opened to resolve the parked state');
+    }
+
+    console.log('\nTEST 6E: AB-AUTH-08 regression guard — a genuine fresh WAITING_FOR_LOGIN (human still on the login form, never hit SOURCE_PAGE_REQUIRED) is still never re-probed');
+    globalRegistry.clear();
+    {
+        const stillTypingClient = {
+            async prepareInteractiveAuthentication() { return true; },
+            async waitInteractiveAuthentication() { return new Promise(() => {}); }, // never resolves: PO is still typing
+            async restoreWindow() { return true; },
+            async close() {},
+            async isAuthenticated() { throw new Error('must not probe a live login-in-progress client'); },
+            async isF13ReportReady() { throw new Error('must not probe a live login-in-progress client'); },
+            async hasLoginForm() { throw new Error('must not probe a live login-in-progress client'); }
+        };
+        const stillTypingService = new DkclSessionPreflightService({
+            interactiveClientFactory: () => stillTypingClient
+        });
+        await stillTypingService.interactiveAuthenticate('HUE');
+        await new Promise((resolve) => setImmediate(resolve));
+        const stillTypingEntry = stillTypingService.getRegistryState('HUE');
+        assert.strictEqual(stillTypingEntry.state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'fresh interactive login is genuinely still waiting');
+        assert.strictEqual(stillTypingEntry.pendingSourcePageWait, false, 'a fresh WAITING_FOR_LOGIN never carries the parked-after-SOURCE_PAGE_REQUIRED marker');
+        const stillTypingPreflight = await stillTypingService.preflight('HUE');
+        assert.strictEqual(stillTypingPreflight.status, PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS, 'preflight still short-circuits without probing while a human is genuinely still on the login form');
+    }
 
     console.log('\nTEST 7: R4.1B interactive NONE classification (no cleanup, launch proceeds)');
     browserProcessManager.findBrowserProcessByProfile = async () => ({

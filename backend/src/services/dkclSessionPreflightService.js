@@ -122,6 +122,11 @@ function getOrCreateRegistryEntry(source) {
             hideAttempted: false,
             activeOperation: null,
             lastError: null,
+            // AB-AUTH-08: true only while parked at WAITING_FOR_LOGIN after a SOURCE_PAGE_REQUIRED
+            // recovery (see the catch branch in interactiveAuthenticate()'s background task) — lets
+            // preflight() distinguish that safe-to-reprobe sub-case from a human genuinely still
+            // filling in the login form.
+            pendingSourcePageWait: false,
             updatedAt: new Date().toISOString()
         });
     }
@@ -231,6 +236,8 @@ class DkclSessionPreflightService {
             windowHidden: false,
             hideAttempted: false,
             lastError: null,
+            // AB-AUTH-08: this is a fresh recovery, not the SOURCE_PAGE_REQUIRED parked case below.
+            pendingSourcePageWait: false,
             profileDir
         });
         return { record, recoveredState };
@@ -244,7 +251,9 @@ class DkclSessionPreflightService {
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
                 client: entry.client,
                 windowHidden: false,
-                hideAttempted: false
+                hideAttempted: false,
+                // AB-AUTH-08: reusing an existing window is a fresh wait, not the parked case below.
+                pendingSourcePageWait: false
             });
             return this.buildInteractiveInProgressResponse(sourceConfig, entry);
         }
@@ -429,7 +438,22 @@ class DkclSessionPreflightService {
         }
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
 
-        if (DKCL_IN_PROGRESS_STATES.has(entry.state)) {
+        // AB-AUTH-08: WAITING_FOR_LOGIN normally means a human is actively completing the manual
+        // login form, and this whole IN_PROGRESS short-circuit exists specifically so nothing ever
+        // probes/touches that live client while it's in that state (see the SourceOperationLock
+        // class comment above). But the SOURCE_PAGE_REQUIRED recovery branch in
+        // interactiveAuthenticate() parks the entry at WAITING_FOR_LOGIN with a real, already-
+        // authenticated client attached and no human interaction pending — entry.pendingSourcePageWait
+        // marks only that sub-case (set exclusively by that one branch, cleared by every other
+        // WAITING_FOR_LOGIN entry point), so this bypass can never fire while a login form is
+        // genuinely still in front of the user. When it does fire, execution falls through to the
+        // normal `if (entry.client)` branch below, which safely re-probes the real client via
+        // probeAndMaybeExpireClient() instead of reporting a stale LOGIN_IN_PROGRESS forever.
+        const stuckAfterSourcePageWait = entry.state === DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN
+            && entry.pendingSourcePageWait
+            && Boolean(entry.client);
+
+        if (DKCL_IN_PROGRESS_STATES.has(entry.state) && !stuckAfterSourcePageWait) {
             return {
                 source: sourceConfig.source,
                 status: PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
@@ -627,6 +651,9 @@ class DkclSessionPreflightService {
             const profileDir = resolveProfileDir(sourceConfig);
             transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
                 lastError: null,
+                // AB-AUTH-08: a brand-new login attempt is starting; clear any stale
+                // parked-after-SOURCE_PAGE_REQUIRED marker from a prior attempt.
+                pendingSourcePageWait: false,
                 profileDir
             });
             processManager.clearHiddenHwnds?.(profileDir);
@@ -791,6 +818,13 @@ class DkclSessionPreflightService {
                         // SOURCE_PAGE_REQUIRED: login succeeded but the F1.3 report page did not become
                         // ready. Keep the window visible/open — the session is authenticated, this is a
                         // different (portal-page-level) symptom, unchanged from prior behavior.
+                        //
+                        // AB-AUTH-08: this used to be a dead end — preflight() short-circuits on
+                        // WAITING_FOR_LOGIN before it ever reaches the entry.client probe, so nothing
+                        // ever re-checked this real, already-authenticated client again, and the PO's
+                        // "Đang chờ bạn đăng nhập..." banner stood forever even after the F1.3 page
+                        // finished rendering. pendingSourcePageWait marks this specific sub-case so
+                        // preflight() can safely bypass the short-circuit for it alone (see there).
                         const keepWindowVisible = err?.code === 'SOURCE_PAGE_REQUIRED';
                         if (keepWindowVisible) {
                             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
@@ -800,6 +834,7 @@ class DkclSessionPreflightService {
                                 backgroundReady: false,
                                 windowHidden: false,
                                 hideAttempted: false,
+                                pendingSourcePageWait: true,
                                 profileDir
                             });
                             await client.restoreWindow?.().catch(() => {});
