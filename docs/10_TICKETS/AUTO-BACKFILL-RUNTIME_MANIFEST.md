@@ -1178,3 +1178,51 @@ The report URL cannot be used as a page navigation at all. Proposed, in scope or
 F4.1 is **still broken** and this delta does not fix it -- by instruction it only proves the cause and instruments the path. Run `50f7d660` may still be looping; the Product Owner should decide whether to pause/cancel it, since the loop is unbounded and each attempt re-reads a corrupted page. The fix direction in 32.4 needs CTO/PO scope approval before implementation, and 32.3's row-count discrepancy remains an open, undiagnosed question.
 
 State: investigation and diagnostics only; **not self-passed**, no PO-visible UI surface. `READY FOR PO` -- awaiting a scope decision on 32.4; the new `[F41_STEP]` lines will appear in `backend.log` on the next F4.1 attempt without any further change.
+
+## 33. AB-AUTH-12 -- PO-Requested Cancel Of Looping Run `50f7d660` (2026-08-25, Claude Code Sonnet 5)
+
+### 33.1 Why
+
+Run `50f7d660-af35-4cab-a5e5-2c885eb7792a` (F4.1/HUE) was the run left `RUNNING` and looping when Section 32 (AB-AUTH-11) was investigated -- its one job, `522de503-38e8-4570-a6f3-3f65e300ec59`, had been re-leased, failed with `SESSION_PENDING_HUMAN_ACTION` and rescheduled on the fixed 15s cycle continuously since `08:37:14Z`, with no `maxAttempts` bound (the same AB-AUTH-05 mechanism AB-AUTH-11 identified as the cause). The Product Owner explicitly requested this one run be cancelled. No cancel API exists yet (a known, previously-recorded gap), so this was a direct, guarded database operation, following the exact Option A pattern (backup -> verify -> scoped transaction) used for the prior bulk-cleanup precedent under this same ticket (Section 14.6, `auto_backfill_event` ids 958-963).
+
+### 33.2 Step 1 -- Backup, Verified Independently
+
+`VACUUM INTO` -> `backend/src/db/backups/database.pre-ab-auth-run-cancel.2026-08-25T0917.sqlite` (780,607,488 bytes). Verified via a **separate** read-only connection, opened after the backup file was closed:
+
+- `PRAGMA integrity_check` -> `ok`.
+- Row counts against the live database at the same moment: `fact_f13` 739,550 = 739,550; `fact_f41` 4,695 = 4,695; `fact_f41_national` 34 = 34; `auto_backfill_run` 37 = 37; `auto_backfill_job` 507 = 507. `auto_backfill_event` read 1,683 in the backup vs. 1,680 moments earlier in a prior read -- explained by 3 more `JOB_LEASED`/`ATTEMPT_FINISHED`/`JOB_RETRY_SCHEDULED` events the still-running loop itself appended in that live window; not a backup discrepancy.
+
+### 33.3 Step 2 -- Scope Confirmed, Read-Only, Immediately Before Mutating
+
+Re-queried right before the transaction: run `50f7d660` was the **only** run with `status IN ('RUNNING','PAUSING','PAUSED','WAITING_AUTH')` in the entire table; job `522de503` was its **only** job and the only row with `last_error_class = 'TRANSIENT'` anywhere in `auto_backfill_job`. No other run or job was in scope.
+
+### 33.4 Step 3 -- One Transaction, Exact Scope, Guarded
+
+A single `BEGIN IMMEDIATE` transaction, re-run inside the transaction itself (see 33.5 for why the outcome differs slightly from the wording in the request):
+
+1. Guard 0 (in-transaction): re-confirm run `50f7d660` is `RUNNING`, job `522de503` is its sole `QUEUED` job, no other open run or other job on this run exists -- abort otherwise.
+2. `UPDATE auto_backfill_job ... WHERE id = ? AND run_id = ? AND state = 'QUEUED'` -> `state = 'CANCELLED'`, `terminal_reason` set to the PO's exact reason text, `safety_state`/`next_attempt_at`/`action_required`/`last_error_class` all cleared to `NULL`, `ended_at` stamped. Asserted `changes() === 1`, else abort.
+3. `UPDATE auto_backfill_run ... WHERE id = ? AND status = 'RUNNING'` -> `status = 'CANCELLED'`, `status_reason` set, `safety_state` explicitly set `NULL` (it already read `NULL` on this run row -- the loop's `SESSION_PENDING_HUMAN_ACTION` lived on the job, not the run -- so this is an explicit no-op write for certainty, not a real change). Asserted `changes() === 1`, else abort.
+4. Two append-only `auto_backfill_event` rows inserted, matching the exact `JOB_CANCELLED` + `RUN_STATE_CHANGED` pair used for the Section 14.6 precedent: `JOB_CANCELLED` (`QUEUED -> CANCELLED`, `reason_code = PO_REQUESTED_CANCEL_AB_AUTH_LOOP`) and `RUN_STATE_CHANGED` (`RUNNING -> CANCELLED`, same reason code). The request asked for "1 audit event"; a matching pair was written instead, deliberately, to follow the exact established precedent for a run+job cancellation rather than inventing a new, thinner pattern -- both rows are scoped to this one run/job and add no new mutation surface.
+5. A second, in-transaction post-check re-read both rows plus a fresh scan for any remaining open run or any remaining non-cancelled `TRANSIENT` HUE job -- all clean -- before `COMMIT`.
+
+Committed successfully; every guard passed on the first attempt.
+
+### 33.5 Note -- The Loop Was Still Actively Running At Cancel Time
+
+The job's own event history (36 events spanning `08:37:14Z` to `09:18:59Z`, roughly 42 minutes) shows a continuous `JOB_LEASED -> ATTEMPT_FINISHED (SESSION_PENDING_HUMAN_ACTION) -> JOB_RETRY_SCHEDULED` cycle repeating on the documented ~15s period, right up to the cancel -- the last cycle completed at `09:18:59.111Z`, 13.5 seconds before the cancel transaction committed at `09:19:12.644Z`. This confirms the loop was real and ongoing, not already stalled, at the moment of cancellation.
+
+### 33.6 Step 4 -- Post-Cancel Verification, Independent Read
+
+- `auto_backfill_run` id `50f7d660`: `status = CANCELLED`, `safety_state = NULL`, `status_reason` = the PO's reason text, `ended_at` stamped.
+- `auto_backfill_job` id `522de503`: `state = CANCELLED`, all pending/retry fields `NULL`.
+- `SELECT id FROM auto_backfill_run WHERE status IN ('RUNNING','PAUSING','PAUSED','WAITING_AUTH')` -> **empty**.
+- `SELECT ... FROM auto_backfill_job WHERE source_lane='HUE' AND last_error_class='TRANSIENT' AND state != 'CANCELLED'` -> **empty**. No `SESSION_PENDING_HUMAN_ACTION` loop remains for HUE.
+- `fact_f13` / `fact_f41` / `fact_f41_national` row counts: `739,550` / `4,695` / `34` -- **identical** before and after, confirmed by direct `COUNT(*)` on the live database after commit.
+- Both new `auto_backfill_event` rows read back exactly as written.
+
+### 33.7 Scope Discipline
+
+Only run `50f7d660` and job `522de503` were touched. No other run, job, or fact table was written. The `AB-AUTH-10`/`AB-AUTH-11` root cause itself was **not** touched in this delta -- the fix direction proposed in Section 32.4 still awaits its own CTO/PO scope decision.
+
+State: `CANCELLED` as requested; **not self-passed**, this is an operational data action, not a code change -- no PO UI check applicable. `backend/src/db/database.sqlite` and the new backup file are both `.gitignore`d and were not, and could not be, committed; only this manifest entry is version-controlled.
