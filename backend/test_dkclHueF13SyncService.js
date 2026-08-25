@@ -16,6 +16,7 @@
 'use strict';
 
 const path = require('path');
+const os = require('os');
 const { createSandbox, initSchema, destroySandbox } = require('./test/importTestSandbox');
 
 const sandbox = createSandbox('qis-hue-f13-sync-test-');
@@ -1170,6 +1171,100 @@ async function runTests() {
         assert('readF41TctOuterSummary throws F41_OUTER_SUMMARY_NOT_FOUND on an empty page', tctThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
         assert('readF41TctOuterSummary logs exactly one diagnostic line before throwing', tctLogs.length === 1, JSON.stringify(tctLogs));
         assert('readF41TctOuterSummary diagnostic line is tagged and names outerRowCount/exportAction', /\[F41_TCT_OUTER_SUMMARY\]/.test(tctLogs[0]) && /outerRowCount=0/.test(tctLogs[0]) && /exportAction=null/.test(tctLogs[0]), tctLogs[0]);
+    }
+
+    // DIAGNOSTIC-TEMP (AB-AUTH-09): captureF41Diagnostics() must fire, with the right lane/
+    // businessDate/reason, right before the F41_OUTER_SUMMARY_NOT_FOUND throw in both
+    // readF41HueOuterSummary() and readF41TctOuterSummary(). Not testing real screenshot/HTML
+    // content here (depends on the real portal) -- only that the hook is called at the right
+    // moment with the right arguments, and that installing it does not change the throw.
+    {
+        const emptyPageEvaluate = async (callback, value) => {
+            const previousDocument = global.document;
+            global.document = { querySelectorAll: () => [] };
+            try {
+                return callback(value);
+            } finally {
+                global.document = previousDocument;
+            }
+        };
+
+        const hueCaptureCalls = [];
+        const hueDiagClient = new DkclHueF13PortalClient({ logger: { warn: () => {} } });
+        hueDiagClient.page = { evaluate: emptyPageEvaluate };
+        hueDiagClient.lastBusinessDate = '2026-08-23';
+        hueDiagClient.captureF41Diagnostics = async (args) => { hueCaptureCalls.push(args); };
+        let hueDiagThrew = null;
+        try {
+            await hueDiagClient.readF41HueOuterSummary();
+        } catch (error) {
+            hueDiagThrew = error;
+        }
+        assert('readF41HueOuterSummary calls captureF41Diagnostics exactly once before throwing', hueCaptureCalls.length === 1, JSON.stringify(hueCaptureCalls));
+        assert('readF41HueOuterSummary passes businessDate/reason to captureF41Diagnostics', hueCaptureCalls[0]?.businessDate === '2026-08-23' && hueCaptureCalls[0]?.reason === 'OUTER_SUMMARY_NOT_FOUND', JSON.stringify(hueCaptureCalls[0]));
+        assert('readF41HueOuterSummary still throws F41_OUTER_SUMMARY_NOT_FOUND with the capture hook installed', hueDiagThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
+
+        const tctCaptureCalls = [];
+        const tctDiagClient = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {} } });
+        tctDiagClient.page = { evaluate: emptyPageEvaluate };
+        tctDiagClient.lastBusinessDate = '2026-08-24';
+        tctDiagClient.captureF41Diagnostics = async (args) => { tctCaptureCalls.push(args); };
+        let tctDiagThrew = null;
+        try {
+            await tctDiagClient.readF41TctOuterSummary();
+        } catch (error) {
+            tctDiagThrew = error;
+        }
+        assert('readF41TctOuterSummary calls captureF41Diagnostics exactly once before throwing', tctCaptureCalls.length === 1, JSON.stringify(tctCaptureCalls));
+        assert('readF41TctOuterSummary passes businessDate/reason to captureF41Diagnostics', tctCaptureCalls[0]?.businessDate === '2026-08-24' && tctCaptureCalls[0]?.reason === 'OUTER_SUMMARY_NOT_FOUND', JSON.stringify(tctCaptureCalls[0]));
+        assert('readF41TctOuterSummary still throws F41_OUTER_SUMMARY_NOT_FOUND with the capture hook installed', tctDiagThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
+    }
+
+    // DIAGNOSTIC-TEMP (AB-AUTH-09): captureF41Diagnostics() itself, using a fake page (never a
+    // real portal) so this suite never depends on network/portal availability. Verifies both
+    // files land in the configured diagnostics directory with a lane/reason/businessDate-bearing
+    // filename, the HTML file holds the real page.content() text, and both paths are logged.
+    {
+        const tmpDiagDir = fs.mkdtempSync(path.join(os.tmpdir(), 'f41-diag-'));
+        const capturedLogs = [];
+        const fakePage = {
+            screenshot: async ({ path: p }) => { fs.writeFileSync(p, 'fake-png'); },
+            content: async () => '<html>fake</html>',
+        };
+        const diagClient = new DkclHueF13PortalClient({
+            source: 'HUE',
+            diagnosticsDir: tmpDiagDir,
+            logger: { warn: () => {}, log: (...args) => capturedLogs.push(args.join(' ')) },
+        });
+        diagClient.page = fakePage;
+        const result = await diagClient.captureF41Diagnostics({ businessDate: '2026-08-23', reason: 'OUTER_SUMMARY_INVALID' });
+        assert('captureF41Diagnostics returns the saved screenshot path and the file exists', typeof result?.screenshotPath === 'string' && fs.existsSync(result.screenshotPath));
+        assert('captureF41Diagnostics returns the saved html path and the file exists', typeof result?.htmlPath === 'string' && fs.existsSync(result.htmlPath));
+        assert('captureF41Diagnostics filename includes lane/reason/businessDate', /f41-hue-outer-summary-invalid-2026-08-23-/.test(path.basename(result.screenshotPath)), result.screenshotPath);
+        assert('captureF41Diagnostics saved html file holds the real page.content() text', fs.readFileSync(result.htmlPath, 'utf8') === '<html>fake</html>');
+        assert('captureF41Diagnostics logs both saved paths', capturedLogs.some((line) => /\[F41_DIAGNOSTIC_CAPTURE\]/.test(line) && line.includes(result.screenshotPath) && line.includes(result.htmlPath)), JSON.stringify(capturedLogs));
+        fs.rmSync(tmpDiagDir, { recursive: true, force: true });
+    }
+
+    // DIAGNOSTIC-TEMP (AB-AUTH-09): capture failure must never throw or otherwise affect the
+    // caller -- this is best-effort diagnostic tooling layered on top of real business logic.
+    {
+        const tmpDiagDir = fs.mkdtempSync(path.join(os.tmpdir(), 'f41-diag-fail-'));
+        const failClient = new DkclHueF13PortalClient({ diagnosticsDir: tmpDiagDir, logger: { warn: () => {}, log: () => {} } });
+        failClient.page = {
+            screenshot: async () => { throw new Error('screenshot boom'); },
+            content: async () => { throw new Error('content boom'); },
+        };
+        let failThrew = null;
+        let failResult;
+        try {
+            failResult = await failClient.captureF41Diagnostics({ businessDate: '2026-08-23', reason: 'OUTER_SUMMARY_NOT_FOUND' });
+        } catch (error) {
+            failThrew = error;
+        }
+        assert('captureF41Diagnostics does not throw when screenshot/content both fail', failThrew === null);
+        assert('captureF41Diagnostics reports null paths when nothing was actually saved', failResult?.screenshotPath === null && failResult?.htmlPath === null, JSON.stringify(failResult));
+        fs.rmSync(tmpDiagDir, { recursive: true, force: true });
     }
 
     console.log(`\nRESULT: ${passed} passed, ${failed} failed`);

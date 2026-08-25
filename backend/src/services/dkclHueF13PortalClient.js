@@ -117,6 +117,13 @@ class DkclHueF13PortalClient {
         this.onDisconnect = null;
         this.interactiveAuthenticatedOnOpen = false;
         this.logger = options.logger || console;
+        // DIAGNOSTIC-TEMP (AB-AUTH-09): where captureF41Diagnostics() saves evidence. Overridable
+        // for tests; defaults to backend/diagnostics/ (this file lives in backend/src/services/).
+        this.diagnosticsDir = options.diagnosticsDir || this.path.resolve(__dirname, '../../diagnostics');
+        // Set by submitF41HueFilters()/submitF41TctFilters() so readF41*OuterSummary() and
+        // assertSummary() can name the business date in diagnostic captures without changing
+        // either method's public signature.
+        this.lastBusinessDate = null;
     }
 
     async authenticate({ baseUrl, username, password, hrmCode, profileDir, requireExistingSession = false }) {
@@ -497,6 +504,7 @@ class DkclHueF13PortalClient {
     }
 
     async submitF41HueFilters({ businessDate }) {
+        this.lastBusinessDate = businessDate;
         await this.selectF41Exact('TuyChonGR', 'BC');
         await this.selectF41Exact('stMaTinhPhat', '53');
         await this.selectF41Exact('stMaLoaiBCPhat', 'NULL');
@@ -527,6 +535,53 @@ class DkclHueF13PortalClient {
         }
         await submit.click();
         await this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+    }
+
+    // DIAGNOSTIC-TEMP (AB-AUTH-09): PO confirmed real data exists on the portal for the dates
+    // F4.1 keeps failing on (23-24/08), ruling out "no data yet" -- this is a real bug and needs
+    // real evidence of what the page actually rendered, not another guess from code. Best-effort,
+    // never throws, never changes the outcome of the caller: called right before every
+    // F41_OUTER_SUMMARY_NOT_FOUND / F41_..._OUTER_SUMMARY_INVALID throw (both readF41*OuterSummary()
+    // below and assertSummary() in f41HueSingleDateService.js/f41TctSingleDateService.js, via
+    // portalClient.captureF41Diagnostics()) to save a full-page screenshot + page.content() HTML
+    // snapshot to disk, named with lane/reason/businessDate/timestamp, and log both paths.
+    // Temporary diagnostic tooling -- remove once the root cause is found and fixed. See
+    // AUTO-BACKFILL-RUNTIME_MANIFEST.md Section 30.
+    async captureF41Diagnostics({ businessDate, reason } = {}) {
+        try {
+            if (!this.page) return null;
+            this.fs.mkdirSync(this.diagnosticsDir, { recursive: true });
+            const lane = String(this.source || 'UNKNOWN').toUpperCase();
+            const date = businessDate || this.lastBusinessDate || 'unknown-date';
+            const safeReason = String(reason || 'failure').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const base = `f41-${lane.toLowerCase()}-${safeReason}-${date}-${timestamp}`;
+            const screenshotPath = this.path.join(this.diagnosticsDir, `${base}.png`);
+            const htmlPath = this.path.join(this.diagnosticsDir, `${base}.html`);
+
+            let screenshotSaved = false;
+            if (typeof this.page.screenshot === 'function') {
+                await this.page.screenshot({ path: screenshotPath, fullPage: true })
+                    .then(() => { screenshotSaved = true; })
+                    .catch((error) => this.logger?.log?.(`[F41_DIAGNOSTIC_CAPTURE] screenshot failed: ${error.message}`));
+            }
+
+            let htmlSaved = false;
+            if (typeof this.page.content === 'function') {
+                await this.page.content()
+                    .then((html) => {
+                        this.fs.writeFileSync(htmlPath, html, 'utf8');
+                        htmlSaved = true;
+                    })
+                    .catch((error) => this.logger?.log?.(`[F41_DIAGNOSTIC_CAPTURE] page content capture failed: ${error.message}`));
+            }
+
+            this.logger?.log?.(`[F41_DIAGNOSTIC_CAPTURE] lane=${lane} reason=${reason || 'unknown'} businessDate=${date} screenshot=${screenshotSaved ? screenshotPath : 'NOT_SAVED'} html=${htmlSaved ? htmlPath : 'NOT_SAVED'}`);
+            return { screenshotPath: screenshotSaved ? screenshotPath : null, htmlPath: htmlSaved ? htmlPath : null };
+        } catch (error) {
+            this.logger?.log?.(`[F41_DIAGNOSTIC_CAPTURE] capture failed: ${error.message}`);
+            return null;
+        }
     }
 
     // AB-AUTH-05 follow-up (log): previously returned `null` on a missing table with no
@@ -573,6 +628,7 @@ class DkclHueF13PortalClient {
         }, F41_HUE_EXPORT_IDENTITY);
         if (!diagnostics?.found) {
             this.logger?.warn?.(`[F41_HUE_OUTER_SUMMARY] outer summary table not found -- tablesScanned=${diagnostics?.tablesScanned ?? 0} exportAction=${diagnostics?.exportAction ?? null} exportIdentity=${diagnostics?.exportIdentity ?? null}`);
+            await this.captureF41Diagnostics({ businessDate: this.lastBusinessDate, reason: 'OUTER_SUMMARY_NOT_FOUND' });
             throw portalError('F4.1 HUE outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
         }
         const { found: _found, tablesScanned: _tablesScanned, ...summary } = diagnostics;
@@ -589,6 +645,7 @@ class DkclHueF13PortalClient {
     }
 
     async submitF41TctFilters({ businessDate }) {
+        this.lastBusinessDate = businessDate;
         await this.selectF41Exact('TuyChonGR', 'TINH');
         await this.selectF41Exact('stMaTinhPhat', 'ALL');
         await this.selectF41Exact('stMaLoaiBCPhat', 'NULL');
@@ -646,6 +703,7 @@ class DkclHueF13PortalClient {
         }, F41_TCT_EXPORT_IDENTITY);
         if (!summary?.outerRowCount) {
             this.logger?.warn?.(`[F41_TCT_OUTER_SUMMARY] outer summary table not found or empty -- outerRowCount=${summary?.outerRowCount ?? 0} exportAction=${summary?.exportAction ?? null} exportIdentity=${summary?.exportIdentity ?? null}`);
+            await this.captureF41Diagnostics({ businessDate: this.lastBusinessDate, reason: 'OUTER_SUMMARY_NOT_FOUND' });
             throw portalError('F4.1 TCT outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
         }
         return summary;

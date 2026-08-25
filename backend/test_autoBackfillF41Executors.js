@@ -647,6 +647,59 @@ test('F4.1 TCT assertSummary does not throw or log when every condition holds', 
 });
 
 // ---------------------------------------------------------------------------
+// DIAGNOSTIC-TEMP (AB-AUTH-09): assertSummary()'s portalClient/businessDate params are optional
+// and additive -- must fire portalClient.captureF41Diagnostics() (reason OUTER_SUMMARY_INVALID)
+// when rejecting, but only when a portalClient exposing that method is actually passed, and
+// never when the summary is valid. assertSummary() must stay synchronous either way (existing
+// tests above call it with `assert.throws(() => service.assertSummary(summary))`, no portalClient,
+// no await -- confirmed still passing).
+// ---------------------------------------------------------------------------
+
+test('F4.1 HUE assertSummary fires captureF41Diagnostics with businessDate/reason when rejecting and a portalClient is passed', () => {
+    const captureCalls = [];
+    const portalClient = { captureF41Diagnostics: async (args) => { captureCalls.push(args); } };
+    const service = new F41HueSingleDateService({ logger: { warn: () => {} } });
+    assert.throws(() => service.assertSummary({ unitCount: 0 }, portalClient, '2026-08-23'), (error) => error.code === 'F41_HUE_OUTER_SUMMARY_INVALID');
+    assert.equal(captureCalls.length, 1, 'captureF41Diagnostics must be called exactly once');
+    assert.deepEqual(captureCalls[0], { businessDate: '2026-08-23', reason: 'OUTER_SUMMARY_INVALID' });
+});
+
+test('F4.1 HUE assertSummary stays synchronous (does not await the capture) and still throws even if the capture hook rejects', () => {
+    const service = new F41HueSingleDateService({ logger: { warn: () => {} } });
+    const portalClient = { captureF41Diagnostics: async () => { throw new Error('capture boom'); } };
+    assert.throws(() => service.assertSummary({ unitCount: 0 }, portalClient, '2026-08-23'), (error) => error.code === 'F41_HUE_OUTER_SUMMARY_INVALID');
+});
+
+test('F4.1 HUE assertSummary never calls captureF41Diagnostics when no portalClient is passed (backward compatible with existing 1-arg call sites)', () => {
+    const service = new F41HueSingleDateService({ logger: { warn: () => {} } });
+    assert.throws(() => service.assertSummary({ unitCount: 0 }), (error) => error.code === 'F41_HUE_OUTER_SUMMARY_INVALID');
+});
+
+test('F4.1 HUE assertSummary never calls captureF41Diagnostics when the summary is valid', () => {
+    let captureCalled = false;
+    const portalClient = { captureF41Diagnostics: async () => { captureCalled = true; } };
+    const service = new F41HueSingleDateService({ logger: { warn: () => {} } });
+    assert.doesNotThrow(() => service.assertSummary({
+        unitCount: 9, totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+    }, portalClient, '2026-08-23'));
+    assert.equal(captureCalled, false);
+});
+
+test('F4.1 TCT assertSummary fires captureF41Diagnostics with businessDate/reason when rejecting and a portalClient is passed', () => {
+    const captureCalls = [];
+    const portalClient = { captureF41Diagnostics: async (args) => { captureCalls.push(args); } };
+    const service = new F41TctSingleDateService({ logger: { warn: () => {} } });
+    assert.throws(() => service.assertSummary({ outerRowCount: 40 }, portalClient, '2026-08-24'), (error) => error.code === 'F41_TCT_OUTER_SUMMARY_INVALID');
+    assert.equal(captureCalls.length, 1, 'captureF41Diagnostics must be called exactly once');
+    assert.deepEqual(captureCalls[0], { businessDate: '2026-08-24', reason: 'OUTER_SUMMARY_INVALID' });
+});
+
+test('F4.1 TCT assertSummary never calls captureF41Diagnostics when no portalClient is passed (backward compatible with existing 1-arg call sites)', () => {
+    const service = new F41TctSingleDateService({ logger: { warn: () => {} } });
+    assert.throws(() => service.assertSummary({ outerRowCount: 40 }), (error) => error.code === 'F41_TCT_OUTER_SUMMARY_INVALID');
+});
+
+// ---------------------------------------------------------------------------
 // AB-AUTH-05 follow-up: F41AutoBackfillExecutor.validateSession() was missed when AB-AUTH-05
 // (commit d4193263) shipped for F13AutoBackfillExecutor -- this reproduces, for F4.1, the exact
 // symptom the Product Owner reported: "Mở đăng nhập HUE" flashing uselessly and "Tiếp tục Run"

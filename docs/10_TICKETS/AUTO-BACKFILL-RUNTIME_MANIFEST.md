@@ -989,3 +989,58 @@ Verified to fail without the fix (same method as every prior ticket this session
 This closes the specific `WAITING_FOR_LOGIN`-after-`SOURCE_PAGE_REQUIRED` dead end for both HUE and TCT (the fix is source-agnostic in `preflight()`, though the reported incident and the F1.3-page-slow-to-render trigger are more commonly observed on HUE). It does not touch or resolve the separate, previously-flagged Section 27.6 residual (`getInteractiveClient()` returning `null` right after a `SESSION_VALID` "cookie confirmed but no live browser handle" preflight response) -- a different architectural gap in the same file, already awaiting its own Product Owner/CTO direction decision.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- the Product Owner will restart the backend and test directly against a real HUE (and TCT, for parity) manual login on both F1.3 and F4.1, confirming the "Đang chờ bạn đăng nhập..." banner clears once the F1.3/F4.1 report page is actually ready, without a second login being required.
+
+## 30. AB-AUTH-09 -- F4.1 23-24/08 Real-Portal Diagnostic Capture Added (Investigation Recap + Tooling, 2026-08-25, Claude Code Sonnet 5)
+
+### 30.1 Recap -- The Real-Run Evidence That Motivated This (Read-Only Investigation, Prior Turn, Not Previously Recorded In This Manifest)
+
+After Section 29's fix, the Product Owner tried F4.1 on both HUE and TCT. A read-only investigation (backend log + `auto_backfill_run`/`auto_backfill_job` query, no code change) found and corrected one premise before answering: the run the Product Owner identified as TCT (`fb58df4b`) is actually **F4.1/HUE**, business date `2026-08-24`, its *second* attempt. Three real F4.1 runs exist in the same window, all `FAILED_TERMINAL`, all business date `2026-08-24`:
+
+| Run | Lane | Duration | `terminal_reason` |
+| --- | --- | --- | --- |
+| `97ac8d61` | HUE (1st) | ~4s | `F41_HUE_OUTER_SUMMARY_INVALID` |
+| `94e0eba8` | TCT | ~15s | `F41_OUTER_SUMMARY_NOT_FOUND` |
+| `fb58df4b` | HUE (2nd) | ~4s | `F41_HUE_OUTER_SUMMARY_INVALID` (identical `last_error_signature` to `97ac8d61`) |
+
+The "HUE job appeared then disappeared" symptom the Product Owner reported is explained by these being real, fast (~4s) terminal failures -- not a hang or a vanish, just gone from the "open runs" table by the time it was checked again, because the job already finished (with an error). TCT's `[F41_TCT_OUTER_SUMMARY]` log line (Section 28's logging) showed `outerRowCount=0 exportAction=null exportIdentity=null` -- the outer-summary table was not found on the page at all. HUE's `[F41_HUE_SUMMARY]` log line (Section 26's logging), identical on both attempts, showed `unitCount=0 (expected 9), totalVolume=0 (expected >0), rate=null, exportIdentity=null (expected sp_Phat_ChatLuong_PTC_BuuCuc_V2)` -- the page *did* return an outer-summary table, but every value was zero/null, so `assertSummary()` correctly rejected it. Neither failure mode was root-caused from code/logs alone -- the Product Owner separately confirmed directly on the DKCL portal that real data exists for `23/08`, ruling out "not yet available." This delta is the tooling requested to get real evidence of what the portal page actually contained at the moment of failure, not a fix to the read/validation logic itself.
+
+### 30.2 What Was Added -- Diagnostic Capture Only, No Business-Logic Change
+
+One new shared method, `captureF41Diagnostics({ businessDate, reason })`, added to `DkclHueF13PortalClient` (`backend/src/services/dkclHueF13PortalClient.js`) and called from all 4 places an F4.1 outer-summary check can fail:
+
+- `readF41HueOuterSummary()` / `readF41TctOuterSummary()` -- called (`await`ed, since both are already `async`) immediately before the existing `throw ... F41_OUTER_SUMMARY_NOT_FOUND`.
+- `F41HueSingleDateService.assertSummary()` / `F41TctSingleDateService.assertSummary()` -- called via `portalClient.captureF41Diagnostics(...)` immediately before the existing `throw ... F41_..._OUTER_SUMMARY_INVALID`. `assertSummary()` gained two new, fully optional trailing parameters (`portalClient`, `businessDate`) so every pre-existing call site that only ever passed `summary` -- including 4 existing tests using `assert.throws(() => service.assertSummary(summary))` -- keeps working byte-for-byte unchanged. The capture call is deliberately fire-and-forget (`.catch(() => {})`, never `await`ed) so `assertSummary()` stays fully synchronous; a capture failure can never mask, delay, or change the real validation error.
+
+`captureF41Diagnostics()` itself:
+- Resolves a diagnostics directory (`backend/diagnostics/` by default, overridable via constructor option `diagnosticsDir` for tests), `mkdirSync(..., { recursive: true })`.
+- Saves a full-page screenshot (`page.screenshot({ fullPage: true })`) and the live `page.content()` HTML to two files named `f41-<lane>-<reason>-<businessDate>-<timestamp>.png`/`.html` (lane from `this.source`, business date from the new `businessDate` parameter or the new `this.lastBusinessDate` field -- set by `submitF41HueFilters()`/`submitF41TctFilters()`, both of which already receive `{ businessDate }`, so no public method signature needed to change to thread it through).
+- Logs both saved paths (or `NOT_SAVED` per file if that step failed) via `this.logger.log(...)`, tagged `[F41_DIAGNOSTIC_CAPTURE]` -- deliberately `.log`, not `.warn`, so it never adds to any existing test's `.warn`-call-count assertion (verified: all pre-existing log-count assertions in both `test_dkclHueF13SyncService.js` and `test_autoBackfillF41Executors.js` still pass unchanged).
+- Is wrapped end-to-end in try/catch with every step individually guarded (`typeof this.page.screenshot === 'function'` etc.) -- never throws, never changes the outcome of the caller. A missing `this.page` (should not happen at these call sites, but defensive) or an entirely failed capture returns `{ screenshotPath: null, htmlPath: null }` (or `null`) rather than raising.
+
+`.gitignore` gained `backend/diagnostics/` (same pattern as the pre-existing `backend/incident_evidence/` rule) -- real DKCL portal screenshots/HTML are potentially sensitive business content and must never be committed.
+
+Explicitly **not changed**: any read/parse/validation logic, any error code, any throw condition, any DB write, any business-data path. This is diagnostic tooling only, as instructed -- marked `DIAGNOSTIC-TEMP` in code comments on every touched method, intended for removal once the F4.1 23-24/08 root cause is found and fixed.
+
+### 30.3 Regression Tests -- Verified To Fail Without The Fix
+
+18 new tests across 2 files (all confirming the capture hook fires **at the right moment with the right arguments**, not real screenshot/HTML content -- that depends on the real portal, per the explicit instruction not to test it here):
+
+- `backend/test_dkclHueF13SyncService.js` (141 -> 154): `readF41HueOuterSummary()`/`readF41TctOuterSummary()` call a spied `captureF41Diagnostics` exactly once, with the correct `businessDate`/`reason: 'OUTER_SUMMARY_NOT_FOUND'`, before the pre-existing throw is still confirmed unchanged; `captureF41Diagnostics()` itself, exercised against a fake (non-portal) page with recording `screenshot`/`content` stubs and a temp `diagnosticsDir`, confirmed to write both files with the right filename shape, log both paths, and hold the real `page.content()` text; a failure-injection test confirms a `screenshot`/`content` failure never throws and reports `null` paths instead of a partial/incorrect result.
+- `backend/test_autoBackfillF41Executors.js` (20 -> 26): both `assertSummary()`s fire `captureF41Diagnostics({ businessDate, reason: 'OUTER_SUMMARY_INVALID' })` exactly once when rejecting and a `portalClient` is passed; still throw synchronously even if the capture hook itself rejects; never call it when no `portalClient` is passed (the 4 pre-existing tests, confirmed still passing unchanged); never call it when the summary is valid.
+
+Verified to fail without the fix (same method as every prior ticket this session): `git stash` on the 3 changed source files (`dkclHueF13PortalClient.js`, `f41HueSingleDateService.js`, `f41TctSingleDateService.js`) alone, both test files re-run -- `test_dkclHueF13SyncService.js` failed exactly as expected (4 assertions failed, then a fatal `captureF41Diagnostics is not a function` on the standalone-method tests, since the method did not exist pre-fix); `test_autoBackfillF41Executors.js` dropped from 26/26 to 24/26 (the 2 "fires captureF41Diagnostics... when rejecting" tests failed, `portalClient.captureF41Diagnostics` never called). Restored via `git stash pop` and re-verified 154/154 and 26/26.
+
+### 30.4 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified.
+- `test_dkclHueF13SyncService.js`: 154/154 PASS (141 -> 154). `test_autoBackfillF41Executors.js`: 26/26 PASS (20 -> 26).
+- 4 related backend suites PASS, none touched: `test_autoBackfillF13Executors.js` (19/19), `test_autoBackfillQueueService.js` (32/32), `test_autoBackfillQueueController.js` (10/10), `test_dkclSessionPreflightService.js` (39/39, Section 29's suite).
+- `oxlint` on all 5 changed source/test files: 0 new findings (the one pre-existing `eslint/no-dupe-class-members` warning on `dkclHueF13PortalClient.js`, already noted in Sections 28/29's validation, confirmed still present at the exact same code on `HEAD`, only its line number shifted by this delta's insertions).
+- `vite build` (frontend, unaffected by this delta): succeeds.
+- No database touched, no real login performed, no real run created -- verified entirely via fake `page`/`portalClient` objects in the existing test-double pattern. The only real filesystem side effect is an empty `backend/diagnostics/` directory created by `mkdirSync` the first time any of these tests ran (harmless, now `.gitignore`d, and is exactly the directory this feature is meant to populate).
+
+### 30.5 Residual
+
+This is temporary diagnostic tooling, not a fix -- the real cause of TCT's missing outer-summary table and HUE's all-zero outer-summary values on `23-24/08` is still unknown and requires the Product Owner to trigger one more real F4.1 HUE/TCT run so the capture actually fires against the live portal. Once triggered, the saved `backend/diagnostics/f41-<lane>-<reason>-<date>-<timestamp>.png`/`.html` files (and the `[F41_DIAGNOSTIC_CAPTURE]` log lines naming their paths) are the next required evidence -- report the file paths back to the CTO for inspection before any further code change is attempted. Per the explicit instruction, this tooling should be removed once the root cause is found and fixed (grep `DIAGNOSTIC-TEMP` for every touched line).
+
+State: implemented and technically verified; **not self-passed**, no PO-visible UI surface -- backend diagnostic tooling only. `READY FOR PO` -- the Product Owner will trigger one more real F4.1 HUE/TCT run for `23/08` and report the resulting `backend/diagnostics/` file paths back to the CTO.

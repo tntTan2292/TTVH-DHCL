@@ -31,6 +31,11 @@ Data DKCL/BrowserProfiles/
 # Local incident evidence must not be committed
 backend/incident_evidence/
 
+# AB-AUTH-09: temporary F4.1 outer-summary diagnostic screenshots/HTML captured from the real
+# DKCL portal at the moment of a real failure -- potentially sensitive real page content, must
+# never be committed. Remove this rule if the diagnostic capture itself is removed.
+backend/diagnostics/
+
 # NETWORK-MANAGEMENT-001 Phase 4: archived original source files (raw
 # monthly BatchFile uploads) must never be committed — real operational
 # business data, potentially large.

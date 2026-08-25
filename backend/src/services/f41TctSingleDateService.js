@@ -74,7 +74,7 @@ class F41TctSingleDateService {
         await portalClient.openF41Report();
         await portalClient.submitF41TctFilters({ businessDate: date });
         const summary = await portalClient.readF41TctOuterSummary();
-        this.assertSummary(summary);
+        this.assertSummary(summary, portalClient, date);
 
         const requestedAt = this.clock();
         await portalClient.requestF41TctExport();
@@ -157,7 +157,12 @@ class F41TctSingleDateService {
     // Same follow-up as F41HueSingleDateService.assertSummary(): log which condition actually
     // failed, with the real values read from the portal page, before throwing -- so a future
     // occurrence is diagnosable from the log alone.
-    assertSummary(summary) {
+    //
+    // DIAGNOSTIC-TEMP (AB-AUTH-09): `portalClient`/`businessDate` are optional and additive --
+    // see the identical note on F41HueSingleDateService.assertSummary(). Deliberately not
+    // awaited (stays synchronous) and deliberately swallowed (a capture failure can never mask
+    // or delay the real validation error).
+    assertSummary(summary, portalClient = null, businessDate = null) {
         const checks = {
             outerRowCount: { value: summary?.outerRowCount, expected: 47, ok: summary?.outerRowCount === 47 },
             exportIdentity: { value: summary?.exportIdentity, expected: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity, ok: summary?.exportIdentity === F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity },
@@ -165,6 +170,9 @@ class F41TctSingleDateService {
         const failedChecks = Object.entries(checks).filter(([, check]) => !check.ok).map(([name]) => name);
         if (failedChecks.length > 0) {
             this.logger.warn?.(`[F41_TCT_SUMMARY] outer summary rejected -- failed: [${failedChecks.join(', ')}] -- details: ${JSON.stringify(checks)}`);
+            if (typeof portalClient?.captureF41Diagnostics === 'function') {
+                portalClient.captureF41Diagnostics({ businessDate, reason: 'OUTER_SUMMARY_INVALID' }).catch(() => {});
+            }
             throw serviceError('F41_TCT_OUTER_SUMMARY_INVALID', `F4.1 TCT outer summary is incomplete or inconsistent (failed: ${failedChecks.join(', ')}).`, { summary, checks });
         }
     }

@@ -70,7 +70,7 @@ class F41HueSingleDateService {
         await portalClient.openF41Report();
         await portalClient.submitF41HueFilters({ businessDate: date });
         const summary = await portalClient.readF41HueOuterSummary();
-        this.assertSummary(summary);
+        this.assertSummary(summary, portalClient, date);
 
         const requestedAt = this.clock();
         await portalClient.requestF41HueExport();
@@ -150,7 +150,15 @@ class F41HueSingleDateService {
     // actually fired -- the DB only ever stored the error code and a hash, not the values read
     // from the portal page. This logs every condition and its real value BEFORE throwing, so the
     // next occurrence is diagnosable from the log alone instead of requiring guesswork.
-    assertSummary(summary) {
+    //
+    // DIAGNOSTIC-TEMP (AB-AUTH-09): `portalClient`/`businessDate` are optional and additive --
+    // every existing call site that only ever passed `summary` keeps working unchanged. When
+    // provided and the summary is rejected, fires (but does not await) a best-effort real-page
+    // screenshot + HTML capture via portalClient.captureF41Diagnostics() before throwing --
+    // deliberately not awaited so this method stays synchronous (existing callers use
+    // `assert.throws(() => service.assertSummary(...))`), and deliberately swallowed so a capture
+    // failure can never mask or delay the real validation error.
+    assertSummary(summary, portalClient = null, businessDate = null) {
         const computedRate = Number.isInteger(summary?.totalVolume) && summary.totalVolume > 0
             ? Number(((summary.passedVolume / summary.totalVolume) * 100).toFixed(2))
             : null;
@@ -164,6 +172,9 @@ class F41HueSingleDateService {
         const failedChecks = Object.entries(checks).filter(([, check]) => !check.ok).map(([name]) => name);
         if (failedChecks.length > 0) {
             this.logger.warn?.(`[F41_HUE_SUMMARY] outer summary rejected -- failed: [${failedChecks.join(', ')}] -- details: ${JSON.stringify(checks)}`);
+            if (typeof portalClient?.captureF41Diagnostics === 'function') {
+                portalClient.captureF41Diagnostics({ businessDate, reason: 'OUTER_SUMMARY_INVALID' }).catch(() => {});
+            }
             throw serviceError('F41_HUE_OUTER_SUMMARY_INVALID', `F4.1 HUE outer summary is incomplete or inconsistent (failed: ${failedChecks.join(', ')}).`, { summary, checks });
         }
     }
