@@ -1129,6 +1129,49 @@ async function runTests() {
     removeIfExists(mismatchFixture);
     removeIfExists(corruptFixture);
 
+    // AB-AUTH-05 follow-up (log): readF41HueOuterSummary()/readF41TctOuterSummary() must log a
+    // diagnostic line (tablesScanned/outerRowCount, exportAction, exportIdentity) BEFORE throwing
+    // F41_OUTER_SUMMARY_NOT_FOUND, so a real occurrence (run 0abd7ac0, F4.1/TCT 23/08, and its
+    // earlier F4.1/HUE counterpart run 208e49c4-adjacent gap) leaves a record of what the page
+    // actually contained, instead of only the error code + hash.
+    {
+        const emptyPageEvaluate = async (callback, value) => {
+            const previousDocument = global.document;
+            global.document = { querySelectorAll: () => [] };
+            try {
+                return callback(value);
+            } finally {
+                global.document = previousDocument;
+            }
+        };
+
+        const hueLogs = [];
+        const hueClient = new DkclHueF13PortalClient({ logger: { warn: (...args) => hueLogs.push(args.join(' ')) } });
+        hueClient.page = { evaluate: emptyPageEvaluate };
+        let hueThrew = null;
+        try {
+            await hueClient.readF41HueOuterSummary();
+        } catch (error) {
+            hueThrew = error;
+        }
+        assert('readF41HueOuterSummary throws F41_OUTER_SUMMARY_NOT_FOUND on an empty page', hueThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
+        assert('readF41HueOuterSummary logs exactly one diagnostic line before throwing', hueLogs.length === 1, JSON.stringify(hueLogs));
+        assert('readF41HueOuterSummary diagnostic line is tagged and names tablesScanned/exportAction', /\[F41_HUE_OUTER_SUMMARY\]/.test(hueLogs[0]) && /tablesScanned=0/.test(hueLogs[0]) && /exportAction=null/.test(hueLogs[0]), hueLogs[0]);
+
+        const tctLogs = [];
+        const tctClient = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: (...args) => tctLogs.push(args.join(' ')) } });
+        tctClient.page = { evaluate: emptyPageEvaluate };
+        let tctThrew = null;
+        try {
+            await tctClient.readF41TctOuterSummary();
+        } catch (error) {
+            tctThrew = error;
+        }
+        assert('readF41TctOuterSummary throws F41_OUTER_SUMMARY_NOT_FOUND on an empty page', tctThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
+        assert('readF41TctOuterSummary logs exactly one diagnostic line before throwing', tctLogs.length === 1, JSON.stringify(tctLogs));
+        assert('readF41TctOuterSummary diagnostic line is tagged and names outerRowCount/exportAction', /\[F41_TCT_OUTER_SUMMARY\]/.test(tctLogs[0]) && /outerRowCount=0/.test(tctLogs[0]) && /exportAction=null/.test(tctLogs[0]), tctLogs[0]);
+    }
+
     console.log(`\nRESULT: ${passed} passed, ${failed} failed`);
     db.close();
     if (failed > 0) process.exit(1);

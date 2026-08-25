@@ -899,3 +899,38 @@ Verified to fail without the fix (same method as every prior ticket this session
 The `getInteractiveClient()`-returns-null-after-`SESSION_VALID` mechanism described in Section 27.3 is a real, evidence-supported architectural gap, not fixed here. It requires a Product Owner/CTO decision on direction (require the persistent interactive client vs. allow on-demand connection establishment) before any fix is attempted. Until resolved, a Product Owner who sees "Cần đăng nhập thủ công" reappear very shortly after a successful login (with clicking it resolving quickly, no real re-login needed) should suspect this mechanism specifically.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- this is a direct fix to Product Owner-visible behaviour on the F4.1 screen. The Product Owner should confirm: while a manual F4.1 HUE/TCT login is in progress, the panel shows the PENDING treatment (no false "Cần đăng nhập thủ công") the same way F1.3 already does.
+
+## 28. F4.1 Outer-Summary Page-Scrape Diagnostic Logging (2026-08-24, Claude Code Opus 5)
+
+### 28.1 Why
+
+Run `0abd7ac0` (F4.1/TCT, business date 23/08) failed with `F41_OUTER_SUMMARY_NOT_FOUND` -- a **different** error code from the one `AUTO-BACKFILL-RUNTIME_MANIFEST.md` Section 26 added logging for (`F41_..._OUTER_SUMMARY_INVALID`, thrown one layer deeper, inside `assertSummary()`). `F41_OUTER_SUMMARY_NOT_FOUND` is thrown by `readF41HueOuterSummary()`/`readF41TctOuterSummary()` in `dkclHueF13PortalClient.js` -- the page-scraping layer itself, reached *before* `assertSummary()` is ever called -- which had **no diagnostic logging of any kind**, unlike F1.3's `[AUTO-IMPORT-013] diagnostics(...)` pattern. Investigating this run confirmed Section 26's logging never fires for this failure mode, because the failure happens one layer earlier than where that logging lives.
+
+### 28.2 What Changed
+
+`backend/src/services/dkclHueF13PortalClient.js`
+
+- Constructor gains `this.logger = options.logger || console` (this class had no logger field at all before).
+- `readF41TctOuterSummary()`: `summary` (`outerRowCount`, `exportAction`, `exportIdentity`) is always a real object regardless of outcome, so this only needed one added line -- `this.logger.warn(...)`, tagged `[F41_TCT_OUTER_SUMMARY]` -- logging the real values immediately before the existing `throw`. No structural change.
+- `readF41HueOuterSummary()`: previously returned bare `null` when no matching table was found, with the `exportAction` computation only reachable when a table *was* found -- there was nothing to log in the failure case as originally structured. Restructured so `exportAction` is computed unconditionally (moved before the `if (!selected)` check) and the `page.evaluate()` callback always returns a `{ found, ... }` diagnostics object instead of `null`. On `found: false`, logs `tablesScanned`/`exportAction`/`exportIdentity`, tagged `[F41_HUE_OUTER_SUMMARY]`, before throwing. On `found: true`, `found` and the diagnostic-only `tablesScanned` field are stripped before returning, so the success return shape (`unitCount`, `totalVolume`, `passedVolume`, `rate`, `exportIdentity`, `exportAction`) is byte-for-byte unchanged from before -- `assertSummary()`'s contract is untouched.
+- Error codes, throw conditions, and downstream classification are all unchanged (`F41_OUTER_SUMMARY_NOT_FOUND` remains unmapped in `DEFAULT_ERROR_MAP`, so it stays `SYSTEM`/terminal, matching the real `0abd7ac0` outcome).
+
+### 28.3 Regression Tests -- Verified To Fail Without The Fix
+
+6 new assertions in `backend/test_dkclHueF13SyncService.js` (135 -> 141), using a minimal fake `page.evaluate` returning an empty DOM (`document.querySelectorAll` always `[]`) to exercise the genuine not-found path for both functions: each still throws `F41_OUTER_SUMMARY_NOT_FOUND`; each logs **exactly one** diagnostic line before throwing; each line is correctly tagged and names the real (zero) values (`tablesScanned=0`/`outerRowCount=0`, `exportAction=null`).
+
+Verified to fail without the fix (same method as every prior ticket this session): `dkclHueF13PortalClient.js` was reverted to its pre-fix `git checkout` state -- both "logs exactly one diagnostic line" and both "diagnostic line is tagged..." assertions failed exactly as expected (`hueLogs`/`tctLogs` were empty arrays; the class had no `logger` field to log to at all before this fix). The two "still throws" assertions correctly continued to pass on both sides, confirming they guard pre-existing, correct behaviour. Restored from a scratch backup and re-verified.
+
+### 28.4 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified, not touched by this change.
+- `test_dkclHueF13SyncService.js`: 141/141 PASS (135 -> 141).
+- 4 related backend suites PASS: `autoBackfillF41Executors`, `dkclSessionCoordinator`, `dkclHueBrowserBroker`, `browserProfileLock`, `tctF13BackfillService`.
+- `oxlint`: 0 new findings on either changed file; one pre-existing `unicorn`/`no-dupe-class-members` warning on an untouched line of `dkclHueF13PortalClient.js`, already noted in Section 20's validation, line number only shifted by this delta's insertions.
+- No database touched, no login performed, no run created -- verified entirely via a fake `page.evaluate` returning an empty DOM.
+
+### 28.5 Residual
+
+This closes the diagnostic gap for `F41_OUTER_SUMMARY_NOT_FOUND` specifically. Combined with Section 26 (`F41_..._OUTER_SUMMARY_INVALID`), every currently-known F4.1 outer-summary failure mode now logs its real observed values before throwing. It does not retroactively explain runs `208e49c4` or `0abd7ac0` themselves, both of which occurred before their respective logging existed; both remain unresolved as to genuine portal data anomaly vs. scraping/timing mismatch, resolvable only by observing the next real occurrence's log line.
+
+State: implemented and technically verified; **not self-passed**, no PO-visible UI surface -- backend logging only, verifiable the next time a real `F41_OUTER_SUMMARY_NOT_FOUND` occurs by reading `backend.log`/`backend_err.log` for the new `[F41_HUE_OUTER_SUMMARY]`/`[F41_TCT_OUTER_SUMMARY]` line.

@@ -116,6 +116,7 @@ class DkclHueF13PortalClient {
         this.source = options.source || 'HUE';
         this.onDisconnect = null;
         this.interactiveAuthenticatedOnOpen = false;
+        this.logger = options.logger || console;
     }
 
     async authenticate({ baseUrl, username, password, hrmCode, profileDir, requireExistingSession = false }) {
@@ -528,8 +529,13 @@ class DkclHueF13PortalClient {
         await this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
     }
 
+    // AB-AUTH-05 follow-up (log): previously returned `null` on a missing table with no
+    // diagnostic captured beforehand, so a real occurrence (run 0abd7ac0, F4.1/TCT 23/08, and
+    // its HUE counterpart) left no record of what the page actually contained -- `found`/
+    // `tablesScanned`/`exportAction` are now always computed and logged before throwing, instead
+    // of only returning `null`.
     async readF41HueOuterSummary() {
-        const summary = await this.page.evaluate((exportIdentity) => {
+        const diagnostics = await this.page.evaluate((exportIdentity) => {
             const directRows = (table) => Array.from(table.children).flatMap((child) => {
                 if (child.tagName === 'TR') return [child];
                 if (!['THEAD', 'TBODY', 'TFOOT'].includes(child.tagName)) return [];
@@ -538,21 +544,25 @@ class DkclHueF13PortalClient {
             const normalize = (value) => String(value || '').trim().replace(/\s+/g, ' ');
             const number = (value) => Number(normalize(value).replace(/[^0-9]/g, '')) || 0;
             const topLevelTables = Array.from(document.querySelectorAll('table')).filter((table) => !table.parentElement?.closest('table'));
+            const exportAction = Array.from(document.querySelectorAll('form[action]'))
+                .map((form) => new URL(form.getAttribute('action'), location.origin).pathname)
+                .find((action) => action === `/export/${exportIdentity}/all`) || null;
             const selected = topLevelTables.map((table) => ({ table, rows: directRows(table) })).find(({ rows }) => {
                 const text = rows.map((row) => normalize(row.textContent)).join(' ');
                 return /Sản lượng PTC\s*\/\s*Nộp tiền\s*\/\s*CH/i.test(text) && /quét TMS/i.test(text);
             });
-            if (!selected) return null;
+            if (!selected) {
+                return { found: false, tablesScanned: topLevelTables.length, exportAction, exportIdentity: exportAction ? exportIdentity : null };
+            }
             const dataRows = selected.rows.filter((row) => {
                 const cells = Array.from(row.children).filter((cell) => cell.tagName === 'TD');
                 return cells.length >= 38 && /^\d+$/.test(normalize(cells[0]?.textContent));
             });
             const overall = dataRows[0];
             const cells = overall ? Array.from(overall.children).map((cell) => normalize(cell.textContent)) : [];
-            const exportAction = Array.from(document.querySelectorAll('form[action]'))
-                .map((form) => new URL(form.getAttribute('action'), location.origin).pathname)
-                .find((action) => action === `/export/${exportIdentity}/all`) || null;
             return {
+                found: true,
+                tablesScanned: topLevelTables.length,
                 unitCount: dataRows.length,
                 totalVolume: number(cells[10]),
                 passedVolume: number(cells[27]),
@@ -561,7 +571,11 @@ class DkclHueF13PortalClient {
                 exportAction,
             };
         }, F41_HUE_EXPORT_IDENTITY);
-        if (!summary) throw portalError('F4.1 HUE outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
+        if (!diagnostics?.found) {
+            this.logger?.warn?.(`[F41_HUE_OUTER_SUMMARY] outer summary table not found -- tablesScanned=${diagnostics?.tablesScanned ?? 0} exportAction=${diagnostics?.exportAction ?? null} exportIdentity=${diagnostics?.exportIdentity ?? null}`);
+            throw portalError('F4.1 HUE outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
+        }
+        const { found: _found, tablesScanned: _tablesScanned, ...summary } = diagnostics;
         return summary;
     }
 
@@ -631,6 +645,7 @@ class DkclHueF13PortalClient {
             };
         }, F41_TCT_EXPORT_IDENTITY);
         if (!summary?.outerRowCount) {
+            this.logger?.warn?.(`[F41_TCT_OUTER_SUMMARY] outer summary table not found or empty -- outerRowCount=${summary?.outerRowCount ?? 0} exportAction=${summary?.exportAction ?? null} exportIdentity=${summary?.exportIdentity ?? null}`);
             throw portalError('F4.1 TCT outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
         }
         return summary;
