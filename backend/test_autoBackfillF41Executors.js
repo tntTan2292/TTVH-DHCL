@@ -24,6 +24,7 @@ const { AutoBackfillQueueService } = require('./src/services/autoBackfillQueueSe
 const { AutoBackfillQueueStore } = require('./src/services/autoBackfillQueueStore');
 const {
     F41_EXECUTOR_IDENTITIES,
+    F41AutoBackfillExecutor,
     createF41AutoBackfillExecutors,
     registerF41AutoBackfillExecutors,
 } = require('./src/services/autoBackfillF41Executors');
@@ -644,3 +645,50 @@ test('F4.1 TCT assertSummary does not throw or log when every condition holds', 
     assert.doesNotThrow(() => service.assertSummary({ outerRowCount: 47, exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity }));
     assert.equal(logs.length, 0);
 });
+
+// ---------------------------------------------------------------------------
+// AB-AUTH-05 follow-up: F41AutoBackfillExecutor.validateSession() was missed when AB-AUTH-05
+// (commit d4193263) shipped for F13AutoBackfillExecutor -- this reproduces, for F4.1, the exact
+// symptom the Product Owner reported: "Mở đăng nhập HUE" flashing uselessly and "Tiếp tục Run"
+// reporting "A valid manual HUE session is required" right after a successful login.
+// ---------------------------------------------------------------------------
+
+function makeF41ExecutorWithPreflight(preflightImpl) {
+    return new F41AutoBackfillExecutor({
+        identity: F41_EXECUTOR_IDENTITIES.HUE,
+        adapter: {},
+        sessionPreflightService: {
+            preflight: preflightImpl,
+            withSourceLock: (source, fn) => fn(),
+            getRegistryState: () => ({}),
+            getInteractiveClient: () => ({}),
+        },
+    });
+}
+
+test('AB-AUTH-05 follow-up: F41 validateSession returns the preflight result on SESSION_VALID', async () => {
+    const executor = makeF41ExecutorWithPreflight(async () => ({ status: 'SESSION_VALID' }));
+    const result = await executor.validateSession();
+    assert.equal(result.status, 'SESSION_VALID');
+});
+
+for (const pendingStatus of ['LOGIN_IN_PROGRESS', 'LOGIN_TIMEOUT']) {
+    test(`AB-AUTH-05 follow-up: F41 validateSession classifies ${pendingStatus} as PENDING (TRANSIENT, retryable), not a hard auth failure`, async () => {
+        const executor = makeF41ExecutorWithPreflight(async () => ({ status: pendingStatus, message: 'still waiting' }));
+        await assert.rejects(executor.validateSession(), (error) => {
+            assert.equal(error.code, 'SESSION_PENDING_HUMAN_ACTION');
+            assert.equal(error.autoBackfill?.classification, 'TRANSIENT');
+            return true;
+        });
+    });
+}
+
+for (const blockedStatus of ['AUTHENTICATION_REQUIRED', 'SESSION_CHECK_FAILED', undefined]) {
+    test(`AB-AUTH-05 follow-up: F41 validateSession still classifies ${blockedStatus ?? '(no status)'} as a real BLOCKED auth failure`, async () => {
+        const executor = makeF41ExecutorWithPreflight(async () => ({ status: blockedStatus }));
+        await assert.rejects(executor.validateSession(), (error) => {
+            assert.equal(error.code, 'AUTHENTICATION_REQUIRED');
+            return true;
+        });
+    });
+}

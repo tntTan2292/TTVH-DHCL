@@ -198,4 +198,9 @@ module.exports = {
     F13AutoBackfillExecutor,
     createF13AutoBackfillExecutors,
     registerF13AutoBackfillExecutors,
+    // AB-AUTH-05 follow-up: exported so autoBackfillF41Executors.js's validateSession() can reuse
+    // the exact same PENDING-vs-BLOCKED classification instead of re-implementing it -- the F4.1
+    // executor was missed when AB-AUTH-05 (commit d4193263) originally shipped.
+    sessionPendingError,
+    PENDING_PREFLIGHT_STATUSES,
 };

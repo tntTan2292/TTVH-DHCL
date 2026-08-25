@@ -6,6 +6,12 @@ const { F41HueSingleDateService } = require('./f41HueSingleDateService');
 const { F41TctAdapter } = require('./f41TctAdapter');
 const { F41TctSingleDateService } = require('./f41TctSingleDateService');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
+// AB-AUTH-05 follow-up: F41AutoBackfillExecutor.validateSession() was missed when AB-AUTH-05
+// (commit d4193263) shipped for F13AutoBackfillExecutor -- it kept the old binary
+// SESSION_VALID-vs-hard-AUTHENTICATION_REQUIRED logic, so a manual login in progress for F4.1
+// still produced a false "Cần đăng nhập thủ công" instead of the PENDING treatment F1.3 already
+// gets. Reusing the exact same classification, not a re-implementation.
+const { sessionPendingError, PENDING_PREFLIGHT_STATUSES } = require('./autoBackfillF13Executors');
 
 function executorError(code, message, details = null) {
     const error = new Error(message);
@@ -62,13 +68,17 @@ class F41AutoBackfillExecutor {
         });
     }
 
+    // AB-AUTH-05 follow-up: same three-way classification as F13AutoBackfillExecutor.
+    // validateSession() -- only a status that means the session is genuinely unusable is
+    // treated as blocked; LOGIN_IN_PROGRESS/LOGIN_TIMEOUT is PENDING, not a hard failure.
     async validateSession() {
         const source = this.identity.sourceLane;
         const preflight = await this.sessionPreflightService.preflight(source);
-        if (preflight?.status !== 'SESSION_VALID') {
-            throw executorError('AUTHENTICATION_REQUIRED', preflight?.error?.message || `A valid manual ${source} session is required.`, preflight);
+        if (preflight?.status === 'SESSION_VALID') return preflight;
+        if (PENDING_PREFLIGHT_STATUSES.has(preflight?.status)) {
+            throw sessionPendingError(source, preflight);
         }
-        return preflight;
+        throw executorError('AUTHENTICATION_REQUIRED', preflight?.error?.message || `A valid manual ${source} session is required.`, preflight);
     }
 }
 

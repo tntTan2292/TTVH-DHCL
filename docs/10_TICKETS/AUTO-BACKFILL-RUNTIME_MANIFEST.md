@@ -854,3 +854,48 @@ Verified to fail without the fix (same method as every prior ticket this session
 This closes the diagnostic gap only; it does not determine which of the two hypotheses raised for run `208e49c4` (a genuine data anomaly on the portal that day vs. a scraping/timing mismatch) was actually true -- that requires observing the next real occurrence's log line. Not something this delta can retroactively answer for the 208e49c4 incident itself, since it already happened before this logging existed.
 
 State: implemented and technically verified; **not self-passed**, though this delta has no PO-visible UI surface -- it is backend logging only, verifiable the next time a real `F41_..._OUTER_SUMMARY_INVALID` occurs by reading `backend.log`/`backend_err.log` for the new `[F41_HUE_SUMMARY]`/`[F41_TCT_SUMMARY]` line.
+
+## 27. AB-AUTH-05 Coverage Gap -- F4.1 Executor Was Never Updated (2026-08-24, Claude Code Opus 5)
+
+### 27.1 What Was Missed And How It Was Found
+
+`AB-AUTH-05` (commit `d4193263`) implemented the PENDING-vs-BLOCKED classification only in `F13AutoBackfillExecutor.validateSession()` (`autoBackfillF13Executors.js`). `F41AutoBackfillExecutor.validateSession()` (`autoBackfillF41Executors.js`, a structurally near-identical but separate class for the F4.1 indicator) still had the original binary logic -- every non-`SESSION_VALID` preflight status, including `LOGIN_IN_PROGRESS`/`LOGIN_TIMEOUT`, was thrown as a hard `AUTHENTICATION_REQUIRED`. This was flagged by the Product Owner after observing the exact symptom AB-AUTH-05 was built to eliminate -- "Mở đăng nhập HUE" flashing uselessly and "Tiếp tục Run" reporting `A valid manual HUE session is required` right after a successful login -- but on the F4.1 screen specifically.
+
+### 27.2 Fix -- Reuse, Not Reimplementation
+
+`autoBackfillF13Executors.js` now exports `sessionPendingError` and `PENDING_PREFLIGHT_STATUSES` (previously module-private). `autoBackfillF41Executors.js` imports both and `F41AutoBackfillExecutor.validateSession()` now branches identically to `F13AutoBackfillExecutor.validateSession()`: `SESSION_VALID` returns normally; `LOGIN_IN_PROGRESS`/`LOGIN_TIMEOUT` throw `sessionPendingError()` (`SESSION_PENDING_HUMAN_ACTION`, `TRANSIENT`); every other status still throws the original `AUTHENTICATION_REQUIRED` via F41's own local `executorError()` helper, byte-for-byte unchanged. No new logic was written -- exactly the classification F13 already has, reused.
+
+### 27.3 Investigation -- `getInteractiveClient()` Returning `null` Right After `validateSession()` Confirms `SESSION_VALID`
+
+Read in full: `dkclSessionPreflightService.js`'s `getInteractiveClient()` (`return entry.client || null`), `getRegistryState()` (`return getOrCreateRegistryEntry(...)`), and the entire `preflight()` method (lines ~425-590).
+
+**Root mechanism found, with strong code evidence:** `preflight()` can reach `SESSION_VALID` through two structurally different paths, only one of which populates `entry.client` (the field `getInteractiveClient()` reads):
+
+1. **`probeAndMaybeExpireClient(sourceConfig, entry)`** -- taken when `entry.client` is already truthy. Reuses the existing client; `entry.client` genuinely reflects a live browser handle here. Consistent.
+2. **The "fresh background probe" branch** -- taken only when `entry.client` is `null`. It constructs a **disposable** client via `this.portalClientFactory` (headless), calls `client.authenticate({ requireExistingSession: true })` to confirm the underlying DKCL cookie session is still valid, sets `entry.authenticated = true` via `transitionEntry(..., { authenticated: true, backgroundReady: false, profileDir })` -- **this patch never includes `client`**, so `entry.client` stays `null` -- and then the method's own `finally` block explicitly closes that disposable client (`if (client?.close) await client.close()`) regardless of outcome. The success response's own message literally says `"... Tác vụ nền có thể tiếp tục."` ("... background task can continue") -- this path was designed as a lightweight cookie-validity check, not as a way to obtain a usable interactive browser.
+
+**Consequence:** whenever branch 2 fires, `validateSession()` legitimately returns `SESSION_VALID` while `getInteractiveClient()` correctly returns `null` -- there genuinely is no live Playwright handle to return. This is **not a bug in `getInteractiveClient()`/`getRegistryState()`**; both behave correctly and consistently with `entry.client`'s true state. The inconsistency is architectural: `preflight()`'s `SESSION_VALID` contract does not distinguish "the DKCL cookie is confirmed valid via a disposable check" from "there is a live, ready-to-use interactive browser" -- but `F13AutoBackfillExecutor`/`F41AutoBackfillExecutor`'s `execute()` flow assumes the former implies the latter.
+
+**Most likely trigger for entering branch 2 right after a successful interactive login** (plausible, evidence-supported, but not confirmed against a live incident in this delta -- this investigation was code-reading only, no database/log evidence tied to one specific occurrence was reviewed): `probeAndMaybeExpireClient()`'s own destructive path (further up in the same method) expires and nulls `entry.client` whenever a bounded retry concludes `probe.hasLoginInput` is true -- if a transient/ambiguous page read (e.g. mid-navigation) is misread as "a real login form is present," a perfectly valid interactive session gets expired. The *next* `preflight()` call then finds `entry.client` null, takes branch 2, and reports `SESSION_VALID` (the DKCL cookie is genuinely still valid) forever after -- but `getInteractiveClient()` can never return a usable client again until the Product Owner manually re-opens login via "Mở đăng nhập", which re-establishes `entry.client` through `interactiveAuthenticate()`. This would explain both halves of the reported symptom: the queue job fails on the interactive-client check specifically (not on `validateSession()`, which keeps reporting healthy) with `AUTHENTICATION_REQUIRED: A valid manual [LANE] session is required`, routing to `WAITING_AUTH` and showing "Mở đăng nhập" again -- and clicking it resolves quickly (no real re-login needed, the cookie was never actually invalid), reading as "flashing uselessly."
+
+**Not fixed here, per the explicit instruction to report rather than guess-fix when not certain.** A fix would require a product/architecture decision: should the executor's `execute()` path require the specific persistent interactive client (current behaviour), or should it be able to establish its own on-demand connection when the underlying session is confirmed valid but no interactive client currently exists? Either direction changes real safety/behavioural semantics AB-AUTH-05 and prior tickets rely on, and is out of scope for a same-day follow-up fix. Flagged as a residual (Section 27.6) for a CTO/PO decision on whether and how to close it.
+
+### 27.4 Regression Tests -- Verified To Fail Without The Fix
+
+6 new tests in `backend/test_autoBackfillF41Executors.js` (14 -> 20), mirroring the F13 pattern exactly: `validateSession` returns normally on `SESSION_VALID`; both `LOGIN_IN_PROGRESS` and `LOGIN_TIMEOUT` throw `SESSION_PENDING_HUMAN_ACTION`/`TRANSIENT` -- **the exact reproduction the Product Owner asked for**; `AUTHENTICATION_REQUIRED`, `SESSION_CHECK_FAILED`, and `undefined` all still throw the real `AUTHENTICATION_REQUIRED`.
+
+Verified to fail without the fix (same method as every prior ticket this session): both `autoBackfillF13Executors.js` (the export) and `autoBackfillF41Executors.js` were reverted to their pre-fix `git checkout` state -- the two `LOGIN_IN_PROGRESS`/`LOGIN_TIMEOUT` tests failed exactly as expected (`error.code` was `AUTHENTICATION_REQUIRED`, not `SESSION_PENDING_HUMAN_ACTION`). Restored from a scratch backup and re-verified.
+
+### 27.5 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified.
+- `test_autoBackfillF41Executors.js`: 20/20 PASS (10 -> 20 across this and the prior delta's logging tests). `test_autoBackfillF13Executors.js`: 19/19 PASS (export addition only, no logic change).
+- 6 related backend suites PASS: `autoBackfillQueueService`, `autoBackfillQueueController`, `dkclHueF13SyncService`, `dkclSessionCoordinator`, `dkclHueBrowserBroker`, `browserProfileLock`, `tctF13BackfillService`, and `dkclSessionPreflightService` (run from the repository root).
+- `oxlint` on all 3 changed files: 0 findings.
+- No database touched, no login performed, no run created.
+
+### 27.6 Residual
+
+The `getInteractiveClient()`-returns-null-after-`SESSION_VALID` mechanism described in Section 27.3 is a real, evidence-supported architectural gap, not fixed here. It requires a Product Owner/CTO decision on direction (require the persistent interactive client vs. allow on-demand connection establishment) before any fix is attempted. Until resolved, a Product Owner who sees "Cần đăng nhập thủ công" reappear very shortly after a successful login (with clicking it resolving quickly, no real re-login needed) should suspect this mechanism specifically.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO UI CHECK` -- this is a direct fix to Product Owner-visible behaviour on the F4.1 screen. The Product Owner should confirm: while a manual F4.1 HUE/TCT login is in progress, the panel shows the PENDING treatment (no false "Cần đăng nhập thủ công") the same way F1.3 already does.
