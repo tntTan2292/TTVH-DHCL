@@ -49,6 +49,7 @@ const {
     buildPersistentLaunchOptions,
     waitForPortalCapablePage,
     formatPortalRequestDate,
+    buildF41ReportQuery,
     findVisibleDetailCandidateIndex,
     findExactFileRowIndexes,
     DETAIL_METRIC_HEADER
@@ -1130,94 +1131,270 @@ async function runTests() {
     removeIfExists(mismatchFixture);
     removeIfExists(corruptFixture);
 
-    // AB-AUTH-05 follow-up (log): readF41HueOuterSummary()/readF41TctOuterSummary() must log a
-    // diagnostic line (tablesScanned/outerRowCount, exportAction, exportIdentity) BEFORE throwing
-    // F41_OUTER_SUMMARY_NOT_FOUND, so a real occurrence (run 0abd7ac0, F4.1/TCT 23/08, and its
-    // earlier F4.1/HUE counterpart run 208e49c4-adjacent gap) leaves a record of what the page
-    // actually contained, instead of only the error code + hash.
-    {
-        const emptyPageEvaluate = async (callback, value) => {
-            const previousDocument = global.document;
-            global.document = { querySelectorAll: () => [] };
-            try {
-                return callback(value);
-            } finally {
-                global.document = previousDocument;
+    // AB-AUTH-10: the F4.1 outer summary is now read over XHR (page.request) against the exact
+    // filtered report URL, not scraped from the rendered page. These helpers build the fakes the
+    // new transport needs: a page.request.get() returning a chosen body, and a page.evaluate() that
+    // really executes the parse callback against a minimal DOMParser stub, so the row-selection
+    // predicate (>= 38 <td> cells, numeric first cell) and the cell indices are genuinely exercised
+    // rather than stubbed over.
+    function makeF41FakePage({ rowsBody, status = 200, exportAction = null, onRequest = null, onGoto = null }) {
+        const fakeDocument = (rows) => ({
+            querySelectorAll: (selector) => selector === 'tr'
+                ? rows.map((cells) => ({ children: cells.map((text) => ({ tagName: 'TD', textContent: text })) }))
+                : []
+        });
+        return {
+            url: () => 'https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc',
+            goto: async (url, options) => { if (onGoto) onGoto(url, options); },
+            locator: () => ({ count: async () => 0 }),
+            request: {
+                get: async (url, options) => {
+                    if (onRequest) onRequest(url, options);
+                    return { status: () => status, text: async () => rowsBody };
+                }
+            },
+            evaluate: async (callback, argument) => {
+                const previousDomParser = global.DOMParser;
+                const previousDocument = global.document;
+                const previousLocation = global.location;
+                // Row-parse callback: argument is the HTML fragment. The stub returns whatever the
+                // test declared via __rows on the fragment carrier, so the callback's own filtering
+                // and mapping still run for real.
+                global.DOMParser = class {
+                    parseFromString(html) {
+                        const carrier = String(html);
+                        const match = carrier.match(/__ROWS__(.*)__ENDROWS__/s);
+                        return fakeDocument(match ? JSON.parse(match[1]) : []);
+                    }
+                };
+                global.location = { origin: 'https://dkcl.example' };
+                global.document = {
+                    querySelectorAll: (selector) => selector === 'form[action]' && exportAction
+                        ? [{ getAttribute: () => exportAction }]
+                        : []
+                };
+                try {
+                    return await callback(argument);
+                } finally {
+                    global.DOMParser = previousDomParser;
+                    global.document = previousDocument;
+                    global.location = previousLocation;
+                }
             }
         };
-
-        const hueLogs = [];
-        const hueClient = new DkclHueF13PortalClient({ logger: { warn: (...args) => hueLogs.push(args.join(' ')) } });
-        hueClient.page = { evaluate: emptyPageEvaluate };
-        let hueThrew = null;
-        try {
-            await hueClient.readF41HueOuterSummary();
-        } catch (error) {
-            hueThrew = error;
-        }
-        assert('readF41HueOuterSummary throws F41_OUTER_SUMMARY_NOT_FOUND on an empty page', hueThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
-        assert('readF41HueOuterSummary logs exactly one diagnostic line before throwing', hueLogs.length === 1, JSON.stringify(hueLogs));
-        assert('readF41HueOuterSummary diagnostic line is tagged and names tablesScanned/exportAction', /\[F41_HUE_OUTER_SUMMARY\]/.test(hueLogs[0]) && /tablesScanned=0/.test(hueLogs[0]) && /exportAction=null/.test(hueLogs[0]), hueLogs[0]);
-
-        const tctLogs = [];
-        const tctClient = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: (...args) => tctLogs.push(args.join(' ')) } });
-        tctClient.page = { evaluate: emptyPageEvaluate };
-        let tctThrew = null;
-        try {
-            await tctClient.readF41TctOuterSummary();
-        } catch (error) {
-            tctThrew = error;
-        }
-        assert('readF41TctOuterSummary throws F41_OUTER_SUMMARY_NOT_FOUND on an empty page', tctThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
-        assert('readF41TctOuterSummary logs exactly one diagnostic line before throwing', tctLogs.length === 1, JSON.stringify(tctLogs));
-        assert('readF41TctOuterSummary diagnostic line is tagged and names outerRowCount/exportAction', /\[F41_TCT_OUTER_SUMMARY\]/.test(tctLogs[0]) && /outerRowCount=0/.test(tctLogs[0]) && /exportAction=null/.test(tctLogs[0]), tctLogs[0]);
     }
 
-    // DIAGNOSTIC-TEMP (AB-AUTH-09): captureF41Diagnostics() must fire, with the right lane/
-    // businessDate/reason, right before the F41_OUTER_SUMMARY_NOT_FOUND throw in both
-    // readF41HueOuterSummary() and readF41TctOuterSummary(). Not testing real screenshot/HTML
-    // content here (depends on the real portal) -- only that the hook is called at the right
-    // moment with the right arguments, and that installing it does not change the throw.
+    // A row is emitted as a 38-cell array so it satisfies the unchanged >= 38 predicate. Index 0 is
+    // the numeric STT, 10 total volume, 27 passed volume, 28 the published rate text.
+    function makeF41Row({ stt = '1', total = '0', passed = '0', rate = '0%' } = {}) {
+        const cells = Array.from({ length: 38 }, () => '');
+        cells[0] = stt;
+        cells[10] = total;
+        cells[27] = passed;
+        cells[28] = rate;
+        return cells;
+    }
+    const rowsPayload = (rows) => JSON.stringify({ data: `__ROWS__${JSON.stringify(rows)}__ENDROWS__` });
+
+    // AB-AUTH-10: the query string is the whole fix -- it must reproduce the PO-verified successful
+    // request (AUTO-BACKFILL-F41_CHECKPOINT_001.md Section 21) byte for byte, with this system's own
+    // filter values, never the internal extension's where the two differ.
     {
-        const emptyPageEvaluate = async (callback, value) => {
-            const previousDocument = global.document;
-            global.document = { querySelectorAll: () => [] };
-            try {
-                return callback(value);
-            } finally {
-                global.document = previousDocument;
-            }
+        const documentedTct = 'TuyChonGR=TINH&stMaHuyenPhat=&stMaTinhPhat=ALL&stMaLoaiBCPhat=NULL&stMaBuuCucPhat=NULL'
+            + '&stLoaiDichVu=ALL&stNhomLoaiKH=ALL&stPhamViTinh=NULL&stLoaiTuyenPhat=NULL&stLoaiPhuongXa=NULL'
+            + '&iFrom=08%2F01%2F2026&iTo=08%2F01%2F2026';
+        assert('buildF41ReportQuery TCT reproduces the PO-verified successful URL byte for byte', buildF41ReportQuery('TCT', '2026-08-01') === documentedTct, buildF41ReportQuery('TCT', '2026-08-01'));
+
+        const hueQuery = buildF41ReportQuery('HUE', '2026-08-23');
+        assert('buildF41ReportQuery HUE keeps TuyChonGR=BC and stMaTinhPhat=53', /(^|&)TuyChonGR=BC(&|$)/.test(hueQuery) && /(^|&)stMaTinhPhat=53(&|$)/.test(hueQuery), hueQuery);
+        assert('buildF41ReportQuery HUE keeps stMaBuuCucPhat=NULL (this system value, NOT the extension ALL)', /(^|&)stMaBuuCucPhat=NULL(&|$)/.test(hueQuery), hueQuery);
+        assert('buildF41ReportQuery sends stMaHuyenPhat empty, as the verified URL does', /(^|&)stMaHuyenPhat=(&|$)/.test(hueQuery), hueQuery);
+        assert('buildF41ReportQuery adds no pagination parameter the verified URL did not have', !/iPageSize|iPage=/.test(hueQuery), hueQuery);
+        assert('buildF41ReportQuery formats both dates as MM/DD/YYYY for the business date', /(^|&)iFrom=08%2F23%2F2026(&|$)/.test(hueQuery) && /(^|&)iTo=08%2F23%2F2026(&|$)/.test(hueQuery), hueQuery);
+
+        let rejectedLane = null;
+        try { buildF41ReportQuery('F13', '2026-08-23'); } catch (error) { rejectedLane = error; }
+        assert('buildF41ReportQuery refuses an unknown lane instead of guessing filters', rejectedLane?.code === 'F41_UNSUPPORTED_LANE');
+        let rejectedDate = null;
+        try { buildF41ReportQuery('HUE', '23/08/2026'); } catch (error) { rejectedDate = error; }
+        assert('buildF41ReportQuery refuses a non-ISO business date', rejectedDate?.code === 'F41_REPORT_QUERY_DATE_INVALID');
+    }
+
+    // AB-AUTH-10: applying filters must be a real navigation to the filtered URL -- never a Select2
+    // write -- because the export form the UI export step still submits is rendered by that request.
+    {
+        const gotoCalls = [];
+        const hueClient = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        hueClient.baseUrl = 'https://dkcl.example';
+        hueClient.page = makeF41FakePage({ rowsBody: rowsPayload([]), onGoto: (url) => gotoCalls.push(url) });
+        hueClient.stopForSecurityChallenge = async () => {};
+        hueClient.selectF41Exact = async () => { throw new Error('the Select2 UI path must no longer be used by F4.1'); };
+        await hueClient.submitF41HueFilters({ businessDate: '2026-08-23' });
+        assert('submitF41HueFilters navigates exactly once', gotoCalls.length === 1, JSON.stringify(gotoCalls));
+        assert('submitF41HueFilters navigates to the report path carrying the full filter query', gotoCalls[0] === `https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc?${buildF41ReportQuery('HUE', '2026-08-23')}`, gotoCalls[0]);
+        assert('submitF41HueFilters records the business date for later diagnostics', hueClient.lastBusinessDate === '2026-08-23');
+        assert('submitF41HueFilters records the applied lane and query for the summary read', hueClient.lastF41Lane === 'HUE' && hueClient.lastF41Query === buildF41ReportQuery('HUE', '2026-08-23'));
+
+        const tctGotoCalls = [];
+        const tctClient = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {}, log: () => {} } });
+        tctClient.baseUrl = 'https://dkcl.example';
+        tctClient.page = makeF41FakePage({ rowsBody: rowsPayload([]), onGoto: (url) => tctGotoCalls.push(url) });
+        tctClient.stopForSecurityChallenge = async () => {};
+        tctClient.selectF41Exact = async () => { throw new Error('the Select2 UI path must no longer be used by F4.1'); };
+        await tctClient.submitF41TctFilters({ businessDate: '2026-08-01' });
+        assert('submitF41TctFilters navigates to the TCT-filtered report URL', tctGotoCalls[0] === `https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc?${buildF41ReportQuery('TCT', '2026-08-01')}`, tctGotoCalls[0]);
+    }
+
+    // AB-AUTH-10: a login redirect during filter application must still surface as
+    // AUTHENTICATION_REQUIRED, exactly as openF41Report() has always done.
+    {
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: rowsPayload([]) });
+        client.page.url = () => 'https://dkcl.example/login';
+        client.stopForSecurityChallenge = async () => {};
+        let threw = null;
+        try { await client.submitF41HueFilters({ businessDate: '2026-08-23' }); } catch (error) { threw = error; }
+        assert('applyF41ReportFilters reports AUTHENTICATION_REQUIRED when redirected to login', threw?.code === 'AUTHENTICATION_REQUIRED');
+    }
+
+    // AB-AUTH-10: the summary read itself -- rows over XHR, against the same filtered URL.
+    {
+        const requestCalls = [];
+        const hueRows = [
+            makeF41Row({ stt: '1', total: '4,695', passed: '2,863', rate: '60.98%' }),
+            makeF41Row({ stt: '2' })
+        ];
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload(hueRows),
+            exportAction: '/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all',
+            onRequest: (url, options) => requestCalls.push({ url, options }),
+            onGoto: () => {}
+        });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41HueFilters({ businessDate: '2026-08-23' });
+        const summary = await client.readF41HueOuterSummary();
+
+        assert('readF41HueOuterSummary issues exactly one XHR for the outer rows', requestCalls.length === 1, JSON.stringify(requestCalls.map((c) => c.url)));
+        assert('readF41HueOuterSummary requests the same filtered URL the page was navigated to', requestCalls[0].url === `https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc?${buildF41ReportQuery('HUE', '2026-08-23')}`, requestCalls[0].url);
+        assert('readF41HueOuterSummary sends the XMLHttpRequest header the portal answers with row JSON', requestCalls[0].options?.headers?.['x-requested-with'] === 'XMLHttpRequest', JSON.stringify(requestCalls[0].options));
+        assert('readF41HueOuterSummary counts every qualifying row as a reporting unit', summary.unitCount === 2, String(summary.unitCount));
+        assert('readF41HueOuterSummary reads totalVolume from the unchanged cell index 10', summary.totalVolume === 4695, String(summary.totalVolume));
+        assert('readF41HueOuterSummary reads passedVolume from the unchanged cell index 27', summary.passedVolume === 2863, String(summary.passedVolume));
+        assert('readF41HueOuterSummary preserves the published rate TEXT from cell index 28', summary.rate === '60.98%', String(summary.rate));
+        assert('readF41HueOuterSummary still verifies the export target from the real page', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_BuuCuc_V2' && summary.exportAction === '/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all', JSON.stringify(summary));
+        assert('readF41HueOuterSummary returns exactly the prior summary shape, no extra keys', JSON.stringify(Object.keys(summary).sort()) === JSON.stringify(['exportAction', 'exportIdentity', 'passedVolume', 'rate', 'totalVolume', 'unitCount']), JSON.stringify(Object.keys(summary)));
+    }
+
+    {
+        const tctRows = Array.from({ length: 47 }, (unused, index) => makeF41Row({ stt: String(index + 1) }));
+        const client = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: rowsPayload(tctRows), exportAction: '/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all' });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41TctFilters({ businessDate: '2026-08-01' });
+        const summary = await client.readF41TctOuterSummary();
+        assert('readF41TctOuterSummary counts the 47 outer rows the frozen contract expects', summary.outerRowCount === 47, String(summary.outerRowCount));
+        assert('readF41TctOuterSummary still verifies the TCT export target', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_Tinh_V2', String(summary.exportIdentity));
+        assert('readF41TctOuterSummary returns exactly the prior summary shape', JSON.stringify(Object.keys(summary).sort()) === JSON.stringify(['exportAction', 'exportIdentity', 'outerRowCount']), JSON.stringify(Object.keys(summary)));
+    }
+
+    // AB-AUTH-10: rows that do not qualify (too few cells, non-numeric STT) must be ignored exactly
+    // as the previous DOM scrape ignored them -- the counts feeding assertSummary() must not drift.
+    {
+        const shortRow = Array.from({ length: 20 }, () => '');
+        shortRow[0] = '1';
+        const headerLikeRow = makeF41Row({ stt: 'Tổng' });
+        const client = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: rowsPayload([shortRow, headerLikeRow, makeF41Row({ stt: '1' })]), exportAction: '/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all' });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41TctFilters({ businessDate: '2026-08-01' });
+        const summary = await client.readF41TctOuterSummary();
+        assert('the row predicate still rejects short rows and non-numeric first cells', summary.outerRowCount === 1, String(summary.outerRowCount));
+    }
+
+    // AB-AUTH-10: a non-JSON body (portal answering with plain HTML) must still be parsed, not
+    // treated as a failure -- the fragment is used as-is.
+    {
+        const client = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: `__ROWS__${JSON.stringify([makeF41Row({ stt: '1' })])}__ENDROWS__`, exportAction: '/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all' });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41TctFilters({ businessDate: '2026-08-01' });
+        const summary = await client.readF41TctOuterSummary();
+        assert('a raw HTML fragment body (not JSON) is still parsed for outer rows', summary.outerRowCount === 1, String(summary.outerRowCount));
+    }
+
+    // AB-AUTH-10: a failed HTTP status must be its own explicit error, never a silent zero-row
+    // "no data" that assertSummary() would then report as an invalid summary.
+    {
+        const client = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: '', status: 500 });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41TctFilters({ businessDate: '2026-08-01' });
+        let threw = null;
+        try { await client.readF41TctOuterSummary(); } catch (error) { threw = error; }
+        assert('an HTTP failure on the outer-row request raises F41_REPORT_REQUEST_FAILED', threw?.code === 'F41_REPORT_REQUEST_FAILED', String(threw?.code));
+    }
+
+    // AB-AUTH-10 + Sections 26/28/30 preserved: an empty result still throws the SAME error code,
+    // still logs exactly one tagged diagnostic line, and still fires the screenshot/HTML capture.
+    {
+        const hueLogs = [];
+        const hueCaptures = [];
+        const hueClient = new DkclHueF13PortalClient({ logger: { warn: (...args) => hueLogs.push(args.join(' ')), log: () => {} } });
+        hueClient.baseUrl = 'https://dkcl.example';
+        hueClient.page = makeF41FakePage({ rowsBody: rowsPayload([]) });
+        hueClient.stopForSecurityChallenge = async () => {};
+        hueClient.captureF41Diagnostics = async (args) => { hueCaptures.push(args); };
+        await hueClient.submitF41HueFilters({ businessDate: '2026-08-23' });
+        let hueThrew = null;
+        try { await hueClient.readF41HueOuterSummary(); } catch (error) { hueThrew = error; }
+        assert('readF41HueOuterSummary still throws F41_OUTER_SUMMARY_NOT_FOUND when no rows come back', hueThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
+        assert('readF41HueOuterSummary still logs exactly one diagnostic line before throwing', hueLogs.length === 1, JSON.stringify(hueLogs));
+        assert('readF41HueOuterSummary diagnostic line is tagged and names rowsScanned/exportAction', /\[F41_HUE_OUTER_SUMMARY\]/.test(hueLogs[0]) && /rowsScanned=0/.test(hueLogs[0]) && /exportAction=null/.test(hueLogs[0]), hueLogs[0]);
+        assert('readF41HueOuterSummary still captures screenshot/HTML evidence with the real business date', hueCaptures.length === 1 && hueCaptures[0].businessDate === '2026-08-23' && hueCaptures[0].reason === 'OUTER_SUMMARY_NOT_FOUND', JSON.stringify(hueCaptures));
+
+        const tctLogs = [];
+        const tctCaptures = [];
+        const tctClient = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: (...args) => tctLogs.push(args.join(' ')), log: () => {} } });
+        tctClient.baseUrl = 'https://dkcl.example';
+        tctClient.page = makeF41FakePage({ rowsBody: rowsPayload([]) });
+        tctClient.stopForSecurityChallenge = async () => {};
+        tctClient.captureF41Diagnostics = async (args) => { tctCaptures.push(args); };
+        await tctClient.submitF41TctFilters({ businessDate: '2026-08-24' });
+        let tctThrew = null;
+        try { await tctClient.readF41TctOuterSummary(); } catch (error) { tctThrew = error; }
+        assert('readF41TctOuterSummary still throws F41_OUTER_SUMMARY_NOT_FOUND when no rows come back', tctThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
+        assert('readF41TctOuterSummary still logs exactly one diagnostic line before throwing', tctLogs.length === 1, JSON.stringify(tctLogs));
+        assert('readF41TctOuterSummary diagnostic line is tagged and names outerRowCount/exportAction', /\[F41_TCT_OUTER_SUMMARY\]/.test(tctLogs[0]) && /outerRowCount=0/.test(tctLogs[0]) && /exportAction=null/.test(tctLogs[0]), tctLogs[0]);
+        assert('readF41TctOuterSummary still captures screenshot/HTML evidence with the real business date', tctCaptures.length === 1 && tctCaptures[0].businessDate === '2026-08-24' && tctCaptures[0].reason === 'OUTER_SUMMARY_NOT_FOUND', JSON.stringify(tctCaptures));
+    }
+
+    // AB-AUTH-10: the export step is deliberately still UI-based (see manifest Section 31) and must
+    // keep submitting the export form the freshly-navigated, correctly-filtered page rendered.
+    {
+        const clicks = [];
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        client.page = {
+            locator: (selector) => {
+                clicks.push(['locator', selector]);
+                return {
+                    count: async () => 1,
+                    isVisible: async () => true,
+                    isEnabled: async () => true,
+                    click: async () => clicks.push(['click', selector])
+                };
+            },
+            waitForTimeout: async () => {}
         };
-
-        const hueCaptureCalls = [];
-        const hueDiagClient = new DkclHueF13PortalClient({ logger: { warn: () => {} } });
-        hueDiagClient.page = { evaluate: emptyPageEvaluate };
-        hueDiagClient.lastBusinessDate = '2026-08-23';
-        hueDiagClient.captureF41Diagnostics = async (args) => { hueCaptureCalls.push(args); };
-        let hueDiagThrew = null;
-        try {
-            await hueDiagClient.readF41HueOuterSummary();
-        } catch (error) {
-            hueDiagThrew = error;
-        }
-        assert('readF41HueOuterSummary calls captureF41Diagnostics exactly once before throwing', hueCaptureCalls.length === 1, JSON.stringify(hueCaptureCalls));
-        assert('readF41HueOuterSummary passes businessDate/reason to captureF41Diagnostics', hueCaptureCalls[0]?.businessDate === '2026-08-23' && hueCaptureCalls[0]?.reason === 'OUTER_SUMMARY_NOT_FOUND', JSON.stringify(hueCaptureCalls[0]));
-        assert('readF41HueOuterSummary still throws F41_OUTER_SUMMARY_NOT_FOUND with the capture hook installed', hueDiagThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
-
-        const tctCaptureCalls = [];
-        const tctDiagClient = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {} } });
-        tctDiagClient.page = { evaluate: emptyPageEvaluate };
-        tctDiagClient.lastBusinessDate = '2026-08-24';
-        tctDiagClient.captureF41Diagnostics = async (args) => { tctCaptureCalls.push(args); };
-        let tctDiagThrew = null;
-        try {
-            await tctDiagClient.readF41TctOuterSummary();
-        } catch (error) {
-            tctDiagThrew = error;
-        }
-        assert('readF41TctOuterSummary calls captureF41Diagnostics exactly once before throwing', tctCaptureCalls.length === 1, JSON.stringify(tctCaptureCalls));
-        assert('readF41TctOuterSummary passes businessDate/reason to captureF41Diagnostics', tctCaptureCalls[0]?.businessDate === '2026-08-24' && tctCaptureCalls[0]?.reason === 'OUTER_SUMMARY_NOT_FOUND', JSON.stringify(tctCaptureCalls[0]));
-        assert('readF41TctOuterSummary still throws F41_OUTER_SUMMARY_NOT_FOUND with the capture hook installed', tctDiagThrew?.code === 'F41_OUTER_SUMMARY_NOT_FOUND');
+        await client.requestF41HueExport();
+        assert('requestF41HueExport still submits the rendered export form through the UI', clicks.some(([kind]) => kind === 'click'));
+        assert('requestF41HueExport still targets the exact HUE export action', clicks[0][1].includes('/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all'), clicks[0][1]);
     }
 
     // DIAGNOSTIC-TEMP (AB-AUTH-09): captureF41Diagnostics() itself, using a fake page (never a

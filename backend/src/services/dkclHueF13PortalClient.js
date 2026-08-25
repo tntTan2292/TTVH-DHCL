@@ -12,6 +12,57 @@ const F41_HUE_EXPORT_ACTION = `/export/${F41_HUE_EXPORT_IDENTITY}/all`;
 const F41_TCT_EXPORT_IDENTITY = 'sp_Phat_ChatLuong_PTC_Tinh_V2';
 const F41_TCT_EXPORT_ACTION = `/export/${F41_TCT_EXPORT_IDENTITY}/all`;
 
+// AB-AUTH-10: F4.1 filter transport. The nine filter controls on the DKCL F4.1 report page are
+// Select2-backed widgets. Playwright's selectOption() sets the underlying native <select>.value but
+// does not necessarily sync Select2's own internal state -- and it is Select2's state, not the
+// native value, that the page's own JS reads when it builds the report request. Real runs 97ac8d61
+// and fb58df4b (HUE, all-zero summary) and 94e0eba8 (TCT, no summary table at all) failed exactly
+// that way while the PO-supplied screenshots still showed the dropdowns displaying their greyed
+// placeholder text: the page had built a request carrying the WRONG filters.
+//
+// The filters are therefore no longer written through the UI at all -- they travel in the report
+// URL's own query string, the transport an internal VNPost extension has been using successfully
+// against this same endpoint. The parameter names, values and order below reproduce byte for byte
+// the PO-verified successful request recorded in
+// docs/06_REVIEWS/Import/AUTO-BACKFILL-F41_CHECKPOINT_001.md Section 21, including the empty
+// `stMaHuyenPhat=` and the absence of any pagination parameter. Only the TRANSPORT changed: every
+// filter VALUE is the one this system already used, never the extension's where the two differ
+// (notably stMaBuuCucPhat stays NULL for HUE, where the extension sends ALL).
+const F41_LANE_QUERY_FILTERS = Object.freeze({
+    HUE: Object.freeze({ TuyChonGR: 'BC', stMaTinhPhat: '53' }),
+    TCT: Object.freeze({ TuyChonGR: 'TINH', stMaTinhPhat: 'ALL' })
+});
+
+const F41_XHR_HEADERS = Object.freeze({
+    accept: '*/*',
+    'x-requested-with': 'XMLHttpRequest'
+});
+
+function buildF41ReportQuery(lane, businessDate) {
+    const laneFilters = F41_LANE_QUERY_FILTERS[String(lane || '').toUpperCase()];
+    if (!laneFilters) {
+        throw portalError(`F4.1 report query has no filter profile for lane ${lane}.`, 'F41_UNSUPPORTED_LANE');
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(businessDate || ''))) {
+        throw portalError('F4.1 report query requires a YYYY-MM-DD business date.', 'F41_REPORT_QUERY_DATE_INVALID');
+    }
+    const requestDate = formatPortalRequestDate(businessDate);
+    return new URLSearchParams([
+        ['TuyChonGR', laneFilters.TuyChonGR],
+        ['stMaHuyenPhat', ''],
+        ['stMaTinhPhat', laneFilters.stMaTinhPhat],
+        ['stMaLoaiBCPhat', 'NULL'],
+        ['stMaBuuCucPhat', 'NULL'],
+        ['stLoaiDichVu', 'ALL'],
+        ['stNhomLoaiKH', 'ALL'],
+        ['stPhamViTinh', 'NULL'],
+        ['stLoaiTuyenPhat', 'NULL'],
+        ['stLoaiPhuongXa', 'NULL'],
+        ['iFrom', requestDate],
+        ['iTo', requestDate]
+    ]).toString();
+}
+
 const DEFAULT_CHROMIUM_LAUNCH_ARGS = Object.freeze([
     '--disable-session-crashed-bubble',
     '--hide-crash-restore-bubble',
@@ -124,6 +175,11 @@ class DkclHueF13PortalClient {
         // assertSummary() can name the business date in diagnostic captures without changing
         // either method's public signature.
         this.lastBusinessDate = null;
+        // AB-AUTH-10: lane + exact query string applied by applyF41ReportFilters(), reused by
+        // fetchF41OuterRows() so the summary is read from byte-for-byte the same filtered request
+        // the page itself was navigated to.
+        this.lastF41Lane = null;
+        this.lastF41Query = null;
     }
 
     async authenticate({ baseUrl, username, password, hrmCode, profileDir, requireExistingSession = false }) {
@@ -481,6 +537,9 @@ class DkclHueF13PortalClient {
         }
     }
 
+    // AB-AUTH-10: retained but no longer on the F4.1 path -- waitForF41Cascade()/selectF41Exact()
+    // drove the old Select2 UI transport that applyF41ReportFilters() replaced. Kept intact (not
+    // deleted) so reverting the transport is a one-line change if the real-portal check fails.
     async waitForF41Cascade(fieldName) {
         try {
             await this.page.waitForLoadState('networkidle', { timeout: 15000 });
@@ -503,38 +562,74 @@ class DkclHueF13PortalClient {
         await this.waitForF41Cascade(name);
     }
 
-    async submitF41HueFilters({ businessDate }) {
+    // AB-AUTH-10: replaces the nine selectF41Exact() Select2 writes, the date fill and the
+    // "Thống kê" click. The page is navigated straight to the report URL carrying every filter in
+    // its query string, so the server renders the correctly-filtered report -- and, with it, the
+    // correctly-scoped export form that requestF41HueExport()/requestF41TctExport() still submit
+    // through the UI. Applying the filters HERE, rather than only side-channelling the summary read,
+    // is deliberate: that export form is rendered by this very request, so a summary read that
+    // bypassed the page while the page itself stayed wrongly filtered would have silently exported
+    // the wrong workbook. See AUTO-BACKFILL-RUNTIME_MANIFEST.md Section 31.
+    async applyF41ReportFilters(lane, businessDate) {
+        const query = buildF41ReportQuery(lane, businessDate);
         this.lastBusinessDate = businessDate;
-        await this.selectF41Exact('TuyChonGR', 'BC');
-        await this.selectF41Exact('stMaTinhPhat', '53');
-        await this.selectF41Exact('stMaLoaiBCPhat', 'NULL');
-        await this.selectF41Exact('stMaBuuCucPhat', 'NULL');
-        await this.selectF41Exact('stLoaiDichVu', 'ALL');
-        await this.selectF41Exact('stNhomLoaiKH', 'ALL');
-        await this.selectF41Exact('stPhamViTinh', 'NULL');
-        await this.selectF41Exact('stLoaiTuyenPhat', 'NULL');
-        await this.selectF41Exact('stLoaiPhuongXa', 'NULL');
-
-        const district = this.page.locator('[name="stMaHuyenPhat"]').first();
-        if (await district.count() !== 1 || await district.inputValue() !== '') {
-            throw portalError('F4.1 stMaHuyenPhat must remain empty.', 'F41_FILTER_VALUE_MISMATCH');
+        this.lastF41Lane = String(lane).toUpperCase();
+        this.lastF41Query = query;
+        await this.page.goto(`${this.baseUrl}${F41_REPORT_PATH}?${query}`, {
+            waitUntil: 'domcontentloaded',
+            timeout: 60000
+        });
+        await this.stopForSecurityChallenge({ allowHrm: false });
+        if (this.page.url().includes('/login') || await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count() > 0) {
+            throw portalError('AUTHENTICATION_REQUIRED: login required', 'AUTHENTICATION_REQUIRED');
         }
-        const dates = {
-            visibleFromDate: formatPortalDate(businessDate),
-            visibleToDate: formatPortalDate(businessDate),
-            requestFromDate: formatPortalRequestDate(businessDate),
-            requestToDate: formatPortalRequestDate(businessDate)
-        };
-        await this.fillDateInputs(dates);
-        await this.verifyDateInputs(dates);
-        await this.waitForF41Cascade('date-filters');
+    }
 
-        const submit = this.page.getByRole('button', { name: 'Thống kê' });
-        if (await submit.count() !== 1 || !await submit.isVisible() || !await submit.isEnabled()) {
-            throw portalError('F4.1 Thống kê control is not uniquely ready.', 'REPORT_SUBMIT_NOT_READY');
+    // AB-AUTH-10: authoritative outer-row source. Requests byte-for-byte the same filtered report
+    // URL as an XHR -- page.request shares the page's own cookie jar, so there is no JS injection,
+    // no second login and no dependency on the page's Select2 state. The row-selection predicate
+    // (at least 38 <td> cells, numeric first cell) and every cell index used by the callers are
+    // unchanged from the previous DOM scrape, so unitCount/outerRowCount/totalVolume/passedVolume/
+    // rate keep their exact prior meaning and assertSummary() is untouched.
+    async fetchF41OuterRows(lane) {
+        const query = this.lastF41Query || buildF41ReportQuery(lane, this.lastBusinessDate);
+        const response = await this.page.request.get(`${this.baseUrl}${F41_REPORT_PATH}?${query}`, {
+            headers: { ...F41_XHR_HEADERS }
+        });
+        const status = typeof response?.status === 'function' ? response.status() : 0;
+        if (status < 200 || status >= 300) {
+            throw portalError(`F4.1 report request returned HTTP ${status}.`, 'F41_REPORT_REQUEST_FAILED');
         }
-        await submit.click();
-        await this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+        const body = await response.text();
+        let rowsHtml = body;
+        try {
+            const payload = JSON.parse(body);
+            if (typeof payload?.data === 'string') rowsHtml = payload.data;
+        } catch {
+            rowsHtml = body;
+        }
+        return this.page.evaluate((html) => {
+            const normalize = (value) => String(value || '').trim().replace(/\s+/g, ' ');
+            const parsed = new DOMParser().parseFromString(`<table><tbody>${html}</tbody></table>`, 'text/html');
+            return Array.from(parsed.querySelectorAll('tr'))
+                .map((row) => Array.from(row.children).filter((cell) => cell.tagName === 'TD').map((cell) => normalize(cell.textContent)))
+                .filter((cells) => cells.length >= 38 && /^\d+$/.test(cells[0] || ''));
+        }, rowsHtml);
+    }
+
+    // AB-AUTH-10: unchanged extraction of the export form's action from the rendered page. Kept as a
+    // real page read rather than inferred from the identity constant, so exportIdentity remains a
+    // genuine verification that the correctly-filtered page really does expose the expected export
+    // target -- exactly the check assertSummary() has always made.
+    async readF41ExportInfo(exportIdentity) {
+        const exportAction = await this.page.evaluate((identity) => Array.from(document.querySelectorAll('form[action]'))
+            .map((form) => new URL(form.getAttribute('action'), location.origin).pathname)
+            .find((action) => action === `/export/${identity}/all`) || null, exportIdentity);
+        return { exportAction, exportIdentity: exportAction ? exportIdentity : null };
+    }
+
+    async submitF41HueFilters({ businessDate }) {
+        await this.applyF41ReportFilters('HUE', businessDate);
     }
 
     // DIAGNOSTIC-TEMP (AB-AUTH-09): PO confirmed real data exists on the portal for the dates
@@ -584,55 +679,31 @@ class DkclHueF13PortalClient {
         }
     }
 
-    // AB-AUTH-05 follow-up (log): previously returned `null` on a missing table with no
-    // diagnostic captured beforehand, so a real occurrence (run 0abd7ac0, F4.1/TCT 23/08, and
-    // its HUE counterpart) left no record of what the page actually contained -- `found`/
-    // `tablesScanned`/`exportAction` are now always computed and logged before throwing, instead
-    // of only returning `null`.
+    // AB-AUTH-10: the outer summary is no longer scraped out of the rendered page. Rows now come
+    // from fetchF41OuterRows(), which re-requests the same filtered report URL as an XHR, so the
+    // numbers can no longer be silently wrong because the page's Select2 state disagreed with the
+    // filters we asked for. Everything downstream is unchanged: the same cell indices, the same
+    // return shape, the same F41_OUTER_SUMMARY_NOT_FOUND code, the same [F41_HUE_OUTER_SUMMARY]
+    // diagnostic line (Section 26/28) and the same AB-AUTH-09 screenshot/HTML capture before the
+    // throw. Only `tablesScanned=` became `rowsScanned=`, because the new transport counts rows,
+    // not top-level tables.
     async readF41HueOuterSummary() {
-        const diagnostics = await this.page.evaluate((exportIdentity) => {
-            const directRows = (table) => Array.from(table.children).flatMap((child) => {
-                if (child.tagName === 'TR') return [child];
-                if (!['THEAD', 'TBODY', 'TFOOT'].includes(child.tagName)) return [];
-                return Array.from(child.children).filter((row) => row.tagName === 'TR');
-            });
-            const normalize = (value) => String(value || '').trim().replace(/\s+/g, ' ');
-            const number = (value) => Number(normalize(value).replace(/[^0-9]/g, '')) || 0;
-            const topLevelTables = Array.from(document.querySelectorAll('table')).filter((table) => !table.parentElement?.closest('table'));
-            const exportAction = Array.from(document.querySelectorAll('form[action]'))
-                .map((form) => new URL(form.getAttribute('action'), location.origin).pathname)
-                .find((action) => action === `/export/${exportIdentity}/all`) || null;
-            const selected = topLevelTables.map((table) => ({ table, rows: directRows(table) })).find(({ rows }) => {
-                const text = rows.map((row) => normalize(row.textContent)).join(' ');
-                return /Sản lượng PTC\s*\/\s*Nộp tiền\s*\/\s*CH/i.test(text) && /quét TMS/i.test(text);
-            });
-            if (!selected) {
-                return { found: false, tablesScanned: topLevelTables.length, exportAction, exportIdentity: exportAction ? exportIdentity : null };
-            }
-            const dataRows = selected.rows.filter((row) => {
-                const cells = Array.from(row.children).filter((cell) => cell.tagName === 'TD');
-                return cells.length >= 38 && /^\d+$/.test(normalize(cells[0]?.textContent));
-            });
-            const overall = dataRows[0];
-            const cells = overall ? Array.from(overall.children).map((cell) => normalize(cell.textContent)) : [];
-            return {
-                found: true,
-                tablesScanned: topLevelTables.length,
-                unitCount: dataRows.length,
-                totalVolume: number(cells[10]),
-                passedVolume: number(cells[27]),
-                rate: cells[28] || null,
-                exportIdentity: exportAction ? exportIdentity : null,
-                exportAction,
-            };
-        }, F41_HUE_EXPORT_IDENTITY);
-        if (!diagnostics?.found) {
-            this.logger?.warn?.(`[F41_HUE_OUTER_SUMMARY] outer summary table not found -- tablesScanned=${diagnostics?.tablesScanned ?? 0} exportAction=${diagnostics?.exportAction ?? null} exportIdentity=${diagnostics?.exportIdentity ?? null}`);
+        const rows = await this.fetchF41OuterRows('HUE');
+        const { exportAction, exportIdentity } = await this.readF41ExportInfo(F41_HUE_EXPORT_IDENTITY);
+        if (!rows.length) {
+            this.logger?.warn?.(`[F41_HUE_OUTER_SUMMARY] outer summary rows not found -- rowsScanned=${rows.length} exportAction=${exportAction} exportIdentity=${exportIdentity}`);
             await this.captureF41Diagnostics({ businessDate: this.lastBusinessDate, reason: 'OUTER_SUMMARY_NOT_FOUND' });
             throw portalError('F4.1 HUE outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
         }
-        const { found: _found, tablesScanned: _tablesScanned, ...summary } = diagnostics;
-        return summary;
+        const cells = rows[0];
+        return {
+            unitCount: rows.length,
+            totalVolume: normalizeNumber(cells[10]),
+            passedVolume: normalizeNumber(cells[27]),
+            rate: cells[28] || null,
+            exportIdentity,
+            exportAction
+        };
     }
 
     async requestF41HueExport() {
@@ -645,68 +716,20 @@ class DkclHueF13PortalClient {
     }
 
     async submitF41TctFilters({ businessDate }) {
-        this.lastBusinessDate = businessDate;
-        await this.selectF41Exact('TuyChonGR', 'TINH');
-        await this.selectF41Exact('stMaTinhPhat', 'ALL');
-        await this.selectF41Exact('stMaLoaiBCPhat', 'NULL');
-        await this.selectF41Exact('stMaBuuCucPhat', 'NULL');
-        await this.selectF41Exact('stLoaiDichVu', 'ALL');
-        await this.selectF41Exact('stNhomLoaiKH', 'ALL');
-        await this.selectF41Exact('stPhamViTinh', 'NULL');
-        await this.selectF41Exact('stLoaiTuyenPhat', 'NULL');
-        await this.selectF41Exact('stLoaiPhuongXa', 'NULL');
-
-        const district = this.page.locator('[name="stMaHuyenPhat"]').first();
-        if (await district.count() !== 1 || await district.inputValue() !== '') {
-            throw portalError('F4.1 TCT stMaHuyenPhat must remain empty.', 'F41_FILTER_VALUE_MISMATCH');
-        }
-        const dates = {
-            visibleFromDate: formatPortalDate(businessDate),
-            visibleToDate: formatPortalDate(businessDate),
-            requestFromDate: formatPortalRequestDate(businessDate),
-            requestToDate: formatPortalRequestDate(businessDate)
-        };
-        await this.fillDateInputs(dates);
-        await this.verifyDateInputs(dates);
-        await this.waitForF41Cascade('date-filters');
-
-        const submit = this.page.getByRole('button', { name: 'Thống kê' });
-        if (await submit.count() !== 1 || !await submit.isVisible() || !await submit.isEnabled()) {
-            throw portalError('F4.1 TCT Thống kê control is not uniquely ready.', 'REPORT_SUBMIT_NOT_READY');
-        }
-        await submit.click();
-        await this.page.waitForLoadState('networkidle', { timeout: 60000 }).catch(() => {});
+        await this.applyF41ReportFilters('TCT', businessDate);
     }
 
+    // AB-AUTH-10: same transport change as readF41HueOuterSummary() above -- rows over XHR instead
+    // of a page scrape, everything else (shape, error code, diagnostic line, capture) unchanged.
     async readF41TctOuterSummary() {
-        const summary = await this.page.evaluate((exportIdentity) => {
-            const directRows = (table) => Array.from(table.children).flatMap((child) => {
-                if (child.tagName === 'TR') return [child];
-                if (!['THEAD', 'TBODY', 'TFOOT'].includes(child.tagName)) return [];
-                return Array.from(child.children).filter((row) => row.tagName === 'TR');
-            });
-            const topLevelTables = Array.from(document.querySelectorAll('table')).filter((table) => !table.parentElement?.closest('table'));
-            const outerRowCount = topLevelTables.reduce((maximum, table) => {
-                const count = directRows(table).filter((row) => (
-                    Array.from(row.children).filter((cell) => cell.tagName === 'TD').length >= 38
-                )).length;
-                return Math.max(maximum, count);
-            }, 0);
-            const exportAction = Array.from(document.querySelectorAll('form[action]'))
-                .map((form) => new URL(form.getAttribute('action'), location.origin).pathname)
-                .find((action) => action === `/export/${exportIdentity}/all`) || null;
-            return {
-                outerRowCount,
-                exportIdentity: exportAction ? exportIdentity : null,
-                exportAction,
-            };
-        }, F41_TCT_EXPORT_IDENTITY);
-        if (!summary?.outerRowCount) {
-            this.logger?.warn?.(`[F41_TCT_OUTER_SUMMARY] outer summary table not found or empty -- outerRowCount=${summary?.outerRowCount ?? 0} exportAction=${summary?.exportAction ?? null} exportIdentity=${summary?.exportIdentity ?? null}`);
+        const rows = await this.fetchF41OuterRows('TCT');
+        const { exportAction, exportIdentity } = await this.readF41ExportInfo(F41_TCT_EXPORT_IDENTITY);
+        if (!rows.length) {
+            this.logger?.warn?.(`[F41_TCT_OUTER_SUMMARY] outer summary table not found or empty -- outerRowCount=${rows.length} exportAction=${exportAction} exportIdentity=${exportIdentity}`);
             await this.captureF41Diagnostics({ businessDate: this.lastBusinessDate, reason: 'OUTER_SUMMARY_NOT_FOUND' });
             throw portalError('F4.1 TCT outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
         }
-        return summary;
+        return { outerRowCount: rows.length, exportIdentity, exportAction };
     }
 
     async requestF41TctExport() {
@@ -1256,6 +1279,8 @@ module.exports = {
     findExactFileRowIndexes,
     DETAIL_METRIC_HEADER,
     F41_REPORT_PATH,
+    F41_LANE_QUERY_FILTERS,
+    buildF41ReportQuery,
     F41_HUE_EXPORT_IDENTITY,
     F41_HUE_EXPORT_ACTION,
     F41_TCT_EXPORT_IDENTITY,
