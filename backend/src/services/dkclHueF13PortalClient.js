@@ -180,6 +180,11 @@ class DkclHueF13PortalClient {
         // the page itself was navigated to.
         this.lastF41Lane = null;
         this.lastF41Query = null;
+        // DIAGNOSTIC-TEMP (AB-AUTH-11): upper bound on every diagnostic page read, so a hung page
+        // can never delay the real F4.1 flow. Overridable for tests.
+        this.diagnosticStepTimeoutMs = Number.isFinite(options.diagnosticStepTimeoutMs)
+            ? options.diagnosticStepTimeoutMs
+            : 5000;
     }
 
     async authenticate({ baseUrl, username, password, hrmCode, profileDir, requireExistingSession = false }) {
@@ -562,6 +567,34 @@ class DkclHueF13PortalClient {
         await this.waitForF41Cascade(name);
     }
 
+    // DIAGNOSTIC-TEMP (AB-AUTH-11): AB-AUTH-09's capture only fires immediately before a throw, but
+    // the post-AB-AUTH-10 failure can strand a job at the session check BEFORE any F4.1 throw is
+    // reached, leaving no record at all. This logs one bounded line after every significant step of
+    // applyF41ReportFilters() -> fetchF41OuterRows() -> readF41ExportInfo(), naming the page's real
+    // URL and the first 300 characters of its content, which is enough to tell a rendered report
+    // page apart from a raw JSON body. Best effort in every respect: never throws, and every page
+    // read is raced against a short timeout so a hung page.content() (observed once for real, as a
+    // 30s page.screenshot timeout in backend_err.log) can never stall the actual flow. Temporary --
+    // remove with the rest of the F4.1 diagnostics once the root cause is fixed. See
+    // AUTO-BACKFILL-RUNTIME_MANIFEST.md Section 32.
+    async logF41Step(step, extra = {}) {
+        try {
+            const url = typeof this.page?.url === 'function' ? this.page.url() : null;
+            let contentHead = null;
+            if (typeof this.page?.content === 'function') {
+                const html = await Promise.race([
+                    this.page.content().catch(() => null),
+                    new Promise((resolve) => setTimeout(() => resolve(null), this.diagnosticStepTimeoutMs))
+                ]);
+                if (typeof html === 'string') contentHead = html.replace(/\s+/g, ' ').slice(0, 300);
+            }
+            const details = Object.entries(extra).map(([key, value]) => `${key}=${value}`).join(' ');
+            this.logger?.log?.(`[F41_STEP] lane=${this.lastF41Lane || this.source} step=${step}${details ? ' ' + details : ''} url=${url} contentHead=${JSON.stringify(contentHead)}`);
+        } catch (error) {
+            this.logger?.log?.(`[F41_STEP] step=${step} diagnostic capture failed: ${error.message}`);
+        }
+    }
+
     // AB-AUTH-10: replaces the nine selectF41Exact() Select2 writes, the date fill and the
     // "Thống kê" click. The page is navigated straight to the report URL carrying every filter in
     // its query string, so the server renders the correctly-filtered report -- and, with it, the
@@ -575,12 +608,16 @@ class DkclHueF13PortalClient {
         this.lastBusinessDate = businessDate;
         this.lastF41Lane = String(lane).toUpperCase();
         this.lastF41Query = query;
+        await this.logF41Step('before_goto', { businessDate });
         await this.page.goto(`${this.baseUrl}${F41_REPORT_PATH}?${query}`, {
             waitUntil: 'domcontentloaded',
             timeout: 60000
         });
+        await this.logF41Step('after_goto', { businessDate });
         await this.stopForSecurityChallenge({ allowHrm: false });
-        if (this.page.url().includes('/login') || await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count() > 0) {
+        const loginInputCount = await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count();
+        await this.logF41Step('after_login_check', { loginInputCount });
+        if (this.page.url().includes('/login') || loginInputCount > 0) {
             throw portalError('AUTHENTICATION_REQUIRED: login required', 'AUTHENTICATION_REQUIRED');
         }
     }
@@ -602,19 +639,28 @@ class DkclHueF13PortalClient {
         }
         const body = await response.text();
         let rowsHtml = body;
+        let bodyKind = 'HTML_OR_UNKNOWN';
         try {
             const payload = JSON.parse(body);
-            if (typeof payload?.data === 'string') rowsHtml = payload.data;
+            if (typeof payload?.data === 'string') {
+                rowsHtml = payload.data;
+                bodyKind = 'JSON_WITH_DATA';
+            } else {
+                bodyKind = 'JSON_WITHOUT_DATA';
+            }
         } catch {
             rowsHtml = body;
         }
-        return this.page.evaluate((html) => {
+        await this.logF41Step('xhr_response', { status, bodyKind, bodyLength: body.length, rowsHtmlLength: rowsHtml.length });
+        const rows = await this.page.evaluate((html) => {
             const normalize = (value) => String(value || '').trim().replace(/\s+/g, ' ');
             const parsed = new DOMParser().parseFromString(`<table><tbody>${html}</tbody></table>`, 'text/html');
             return Array.from(parsed.querySelectorAll('tr'))
                 .map((row) => Array.from(row.children).filter((cell) => cell.tagName === 'TD').map((cell) => normalize(cell.textContent)))
                 .filter((cells) => cells.length >= 38 && /^\d+$/.test(cells[0] || ''));
         }, rowsHtml);
+        await this.logF41Step('rows_parsed', { rowCount: rows.length });
+        return rows;
     }
 
     // AB-AUTH-10: unchanged extraction of the export form's action from the rendered page. Kept as a
@@ -622,9 +668,24 @@ class DkclHueF13PortalClient {
     // genuine verification that the correctly-filtered page really does expose the expected export
     // target -- exactly the check assertSummary() has always made.
     async readF41ExportInfo(exportIdentity) {
-        const exportAction = await this.page.evaluate((identity) => Array.from(document.querySelectorAll('form[action]'))
-            .map((form) => new URL(form.getAttribute('action'), location.origin).pathname)
-            .find((action) => action === `/export/${identity}/all`) || null, exportIdentity);
+        // DIAGNOSTIC-TEMP (AB-AUTH-11): formCount/actions are collected purely so the log can show
+        // WHY exportAction came back null (a page with zero forms reads very differently from a page
+        // whose forms simply do not match). The returned shape is unchanged.
+        const probe = await this.page.evaluate((identity) => {
+            const actions = Array.from(document.querySelectorAll('form[action]'))
+                .map((form) => new URL(form.getAttribute('action'), location.origin).pathname);
+            return {
+                formCount: actions.length,
+                sampleActions: actions.slice(0, 5),
+                exportAction: actions.find((action) => action === `/export/${identity}/all`) || null
+            };
+        }, exportIdentity);
+        await this.logF41Step('export_info', {
+            formCount: probe.formCount,
+            sampleActions: JSON.stringify(probe.sampleActions),
+            exportAction: probe.exportAction
+        });
+        const exportAction = probe.exportAction;
         return { exportAction, exportIdentity: exportAction ? exportIdentity : null };
     }
 

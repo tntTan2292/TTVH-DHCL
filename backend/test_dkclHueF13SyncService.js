@@ -1397,6 +1397,75 @@ async function runTests() {
         assert('requestF41HueExport still targets the exact HUE export action', clicks[0][1].includes('/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all'), clicks[0][1]);
     }
 
+    // DIAGNOSTIC-TEMP (AB-AUTH-11): the step log must fire at every stage of the F4.1 transport and
+    // must name the page's real URL and content head, because the post-AB-AUTH-10 failure can strand
+    // a job before any F4.1 throw is reached. Reproduces the REAL captured failure: page.goto()
+    // landing on Chrome's raw-JSON view (zero forms), which is why exportAction came back null.
+    {
+        const steps = [];
+        const jsonBody = '{"data":"__ROWS__' + JSON.stringify([makeF41Row({ stt: '1', total: '2,856', passed: '1,294', rate: '45.31%' })]).replace(/"/g, '\\"') + '__ENDROWS__"}';
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: (...args) => steps.push(args.join(' ')) } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: rowsPayload([makeF41Row({ stt: '1', total: '2,856', passed: '1,294', rate: '45.31%' })]) });
+        // The real page after page.goto(): Chrome's JSON viewer -- a <pre> body, no forms at all.
+        client.page.content = async () => '<html><head><meta name="color-scheme" content="light dark"></head><body><pre>' + jsonBody + '</pre></body></html>';
+        client.stopForSecurityChallenge = async () => {};
+
+        await client.submitF41HueFilters({ businessDate: '2026-08-23' });
+        const summary = await client.readF41HueOuterSummary();
+
+        const stepNames = steps.filter((line) => line.startsWith('[F41_STEP]')).map((line) => (line.match(/step=(\S+)/) || [])[1]);
+        assert('the F4.1 step log covers navigation, login check, XHR, parse and export lookup, in order',
+            JSON.stringify(stepNames) === JSON.stringify(['before_goto', 'after_goto', 'after_login_check', 'xhr_response', 'rows_parsed', 'export_info']), JSON.stringify(stepNames));
+
+        const afterGoto = steps.find((line) => line.includes('step=after_goto'));
+        assert('the after_goto step names the real page URL', /url=https:\/\/dkcl\.example\//.test(afterGoto), afterGoto);
+        assert('the after_goto step shows enough content to recognise a raw JSON body, not a report page', afterGoto.includes('contentHead=') && afterGoto.includes('color-scheme') && afterGoto.includes('data'), afterGoto);
+        assert('the after_goto step names the lane it is acting for', /lane=HUE/.test(afterGoto), afterGoto);
+
+        const xhrStep = steps.find((line) => line.includes('step=xhr_response'));
+        assert('the xhr_response step records status and how the body was interpreted', /status=200/.test(xhrStep) && /bodyKind=JSON_WITH_DATA/.test(xhrStep), xhrStep);
+
+        const exportStep = steps.find((line) => line.includes('step=export_info'));
+        assert('the export_info step records formCount=0, evidencing WHY exportAction is null', /formCount=0/.test(exportStep) && /exportAction=null/.test(exportStep), exportStep);
+
+        assert('the diagnostics do not change the summary shape or values', summary.unitCount === 1 && summary.totalVolume === 2856 && summary.passedVolume === 1294 && summary.rate === '45.31%', JSON.stringify(summary));
+        assert('the diagnostics do not invent an export identity the page never exposed', summary.exportIdentity === null && summary.exportAction === null, JSON.stringify(summary));
+    }
+
+    // DIAGNOSTIC-TEMP (AB-AUTH-11): a hung page.content() must never stall the real flow -- a real
+    // 30s page.screenshot timeout was already observed in backend_err.log, so every diagnostic page
+    // read is raced against diagnosticStepTimeoutMs.
+    {
+        const steps = [];
+        const client = new DkclHueF13PortalClient({
+            diagnosticStepTimeoutMs: 20,
+            logger: { warn: () => {}, log: (...args) => steps.push(args.join(' ')) }
+        });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: rowsPayload([]) });
+        client.page.content = () => new Promise(() => {});
+        client.stopForSecurityChallenge = async () => {};
+        const startedAt = Date.now();
+        await client.submitF41TctFilters({ businessDate: '2026-08-01' });
+        const elapsedMs = Date.now() - startedAt;
+        assert('a hung page.content() is bounded and never stalls filter application', elapsedMs < 2000, String(elapsedMs));
+        assert('a hung page.content() still produces step lines, with a null content head', steps.some((line) => line.includes('step=after_goto') && line.includes('contentHead=null')), JSON.stringify(steps));
+    }
+
+    // DIAGNOSTIC-TEMP (AB-AUTH-11): the step logger is best effort -- a page that throws on every
+    // read must not break the F4.1 flow.
+    {
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: rowsPayload([]) });
+        client.page.url = () => { throw new Error('url boom'); };
+        client.stopForSecurityChallenge = async () => {};
+        let threw = null;
+        try { await client.logF41Step('unit_check'); } catch (error) { threw = error; }
+        assert('logF41Step never throws even when every page read fails', threw === null, String(threw));
+    }
+
     // DIAGNOSTIC-TEMP (AB-AUTH-09): captureF41Diagnostics() itself, using a fake page (never a
     // real portal) so this suite never depends on network/portal availability. Verifies both
     // files land in the configured diagnostics directory with a lane/reason/businessDate-bearing

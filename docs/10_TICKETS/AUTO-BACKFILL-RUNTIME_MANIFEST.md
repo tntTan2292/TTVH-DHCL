@@ -1103,3 +1103,78 @@ The Select2-desync diagnosis is strongly evidenced (PO screenshots, two distinct
 Two items are explicitly out of scope and unchanged: the export step remains UI-based (31.2), and F1.1/F1.2 were not migrated -- per the instruction, that is considered only after F4.1 proves out.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- this changes how real data is acquired, so the Product Owner must run F4.1 for both HUE and TCT against a date confirmed to carry data on DKCL (e.g. `23/08`) and confirm the outer summary is read, the workbook exports, and the Import reconciles, before this is considered done.
+
+## 32. AB-AUTH-11 -- AB-AUTH-10 Root-Caused Against Real Runs; Step Diagnostics Added (2026-08-25, Claude Code Opus 5)
+
+### 32.1 Both Suspicions Confirmed, With Real Evidence
+
+The Product Owner ran F4.1 for both lanes after AB-AUTH-10 (`9ba70772`); both stalled on "Đang chờ bạn hoàn tất đăng nhập" long after a completed login. This delta is investigation plus diagnostics only -- **no logic was changed** -- and both of the Product Owner's suspicions are now confirmed from real artefacts, not reasoning.
+
+**Suspicion 1 -- CONFIRMED. The report URL returns raw JSON to a real navigation, so `applyF41ReportFilters()` never loads a report page.** The AB-AUTH-09 capture taken during the real failed runs is on disk and settles it. `backend/diagnostics/f41-hue-outer-summary-invalid-2026-08-23-2026-08-25T08-36-50-606Z.html` (and the TCT counterpart) begins:
+
+`<html><head><meta name="color-scheme" content="light dark"><meta charset="utf-8"></head><body><pre>{"data":"&lt;tr class=\"row_tong_quan\"...`
+
+That `<body><pre>` plus `color-scheme` wrapper is Chrome's raw-JSON viewer. `page.goto()` sends **no** `X-Requested-With` header, so the portal returns JSON regardless of that header -- exactly what the Product Owner saw pasting the URL into the address bar. Counted in those captures: **0 `<form>`, 0 `<select>`, 0 `<table>`.**
+
+This also **corrects the reading of `AUTO-BACKFILL-F41_CHECKPOINT_001.md` Section 21 that AB-AUTH-10 was built on.** That section records the PO-verified URL and states the response "proves ... export action `/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all`", which AB-AUTH-10 took to mean a full page render. The real capture shows a plain navigation to that URL yields JSON with no form at all. The two observations are irreconcilable as written; the live capture is the newer and directly-observed one and is treated as authoritative.
+
+The consequent chain is confirmed end to end, with one correction to the Product Owner's expected sequence:
+
+1. `readF41ExportInfo()` queries `form[action]` on a page with zero forms, returns `exportAction: null`, and **does not throw** -- silent, as suspected. Confirmed by the real log line `"exportIdentity":{"value":null,"expected":"sp_Phat_ChatLuong_PTC_BuuCuc_V2","ok":false}`.
+2. `assertSummary()` then rejects on `exportIdentity` and throws `F41_..._OUTER_SUMMARY_INVALID`. Confirmed in the database: job `a3f65227` (HUE) and `cfa0388b` (TCT), both `FAILED_TERMINAL` with exactly those reasons.
+3. **`requestF41HueExport()` is never reached, so `EXPORT_CONTROL_NOT_READY` never fires.** `assertSummary()` runs before the export step in both single-date services, so the chain terminates one step earlier than the Product Owner's hypothesis. No occurrence of `EXPORT_CONTROL_NOT_READY` exists in any log or job row.
+
+A significant positive also falls out of the same evidence: **the AB-AUTH-10 XHR row transport genuinely works.** The real logs show HUE `totalVolume 2856 / passedVolume 1294 / rate 45.31%` and TCT `outerRowCount 38` -- real, non-zero data where the old Select2 path produced all-zero or nothing. Only `exportIdentity` (and the row-count expectations, see 32.3) failed.
+
+**Suspicion 2 -- CONFIRMED, and it is the direct cause of the stall.** `F41AutoBackfillExecutor.execute()` obtains its portal client via `this.sessionPreflightService.getInteractiveClient(source)`, which returns `entry.client` -- the very same `DkclHueF13PortalClient` instance whose `this.page` every session check runs against (`isAuthenticated()` / `_checkPageAuthenticated()`, `isF13ReportReady()`, `hasLoginForm()`). There is exactly one page per lane, and F4.1 navigates it. Once that page holds raw JSON:
+
+- `isF13ReportReady()` counts `select[name="TuyChonGR"]` on a page with 0 selects -> `false`;
+- `_checkPageAuthenticated()` finds none of its markers in a JSON body -> `false`;
+- `hasLoginForm()` finds 0 login inputs -> `false`.
+
+`probeAndMaybeExpireClient()` therefore lands in its "inconclusive" branch (not ready, not authenticated, no login form), keeps the session and returns `LOGIN_IN_PROGRESS`. `validateSession()` classifies that as `SESSION_PENDING_HUMAN_ACTION` (`TRANSIENT`, AB-AUTH-05), which reschedules on a fixed 15s cycle **not bounded by `maxAttempts`** -- an unbounded loop showing the Product Owner "Đang chờ bạn hoàn tất đăng nhập" forever.
+
+This is not a reconstruction: it was caught live in the database. HUE run `1f5ae5be` ended `08:36:50` with `F41_HUE_OUTER_SUMMARY_INVALID`, leaving its page on the JSON document. HUE run `50f7d660`, created `08:37:14`, was still `RUNNING` with job `522de503` in `QUEUED` / `terminal_reason = SESSION_PENDING_HUMAN_ACTION` / `last_error_class = TRANSIENT` / `next_attempt_at = 08:59:35`, `updated_at = 08:59:20` -- still looping ~22 minutes later. The timestamps line up exactly with the mechanism above.
+
+Why the two lanes behaved slightly differently (TCT reached a terminal failure at 08:37 while HUE was already trapped in the loop) is **not fully established**. One plausible contributor is `isAuthenticated()`'s `findAuthenticatedPage()` rebinding `this.page` to another authenticated tab when one exists, which would let a lane recover if its browser has more than one tab open; this was not verified and is not asserted.
+
+### 32.2 What Was Added -- Step Diagnostics Only
+
+AB-AUTH-09's capture fires only immediately before a throw, but this failure mode can strand a job at the session check **before any F4.1 throw is reached** -- job `522de503` produced no F4.1 diagnostic at all. `backend/src/services/dkclHueF13PortalClient.js` only:
+
+- New `logF41Step(step, extra)`: one bounded log line tagged `[F41_STEP]`, naming the lane, the step, the page's real `url()` and the first 300 characters of `page.content()` -- enough to tell a rendered report page from a raw JSON body. Wrapped in try/catch (never throws) and every page read is raced against `diagnosticStepTimeoutMs` (default 5s, overridable), because a real 30s `page.screenshot` timeout is already on record in `backend_err.log`.
+- Called at six points: `before_goto`, `after_goto`, `after_login_check` (with the real login-input count), `xhr_response` (status, how the body was interpreted, body length), `rows_parsed` (row count), `export_info` (form count, up to 5 sample form actions, resolved export action).
+- `readF41ExportInfo()`'s `page.evaluate` now also returns `formCount`/`sampleActions` so the log can show **why** `exportAction` is null -- a page with zero forms reads very differently from one whose forms simply do not match. Its **returned shape is unchanged**.
+- Logging uses `logger.log`, never `logger.warn`, so no existing warn-count assertion is affected.
+
+Behaviour-neutral except for one unavoidable, verified-equivalent refactor: `applyF41ReportFilters()` now stores the login-input count in a local before testing it, instead of calling `.count()` inline, so the count can be logged. Same expression, same short-circuit outcome.
+
+Nothing else changed. No F1.3 code, no session-check code, no error code, no return shape, no `assertSummary()`, no export step -- verified by diff: **0 changed lines** touch `submitFilters`, `openF13Report`, `isF13ReportReady`, `getF13ExportReadiness`, `_checkPageAuthenticated`, `isAuthenticated` or `hasLoginForm`.
+
+### 32.3 Second, Independent Finding -- Row Counts Do Not Match The Frozen Expectations
+
+The real logs show HUE `unitCount 8` against an expected `9`, and TCT `outerRowCount 38` against an expected `47`. The captured JSON contains exactly 8 and 38 `row_tong_quan` rows respectively, so the parser is reading everything the server returned -- the server returned fewer rows than the frozen contract expects. Three candidate explanations exist and **none has been verified**: the omitted pagination parameter (the internal extension sends `iPageSize=50000`, the PO-verified URL sent none); a genuinely different data day (the 47-row observation was `2026-08-01`, these runs were `2026-08-23`); or a grand-total-row difference between the AJAX fragment and the full-page table. This is recorded as an open question, not diagnosed, and must not be "fixed" by relaxing the expectation before it is understood.
+
+### 32.4 Proposed Fix Direction -- For CTO/PO Approval, Not Implemented
+
+The report URL cannot be used as a page navigation at all. Proposed, in scope order:
+
+1. **Stop navigating the shared page to the report URL.** `applyF41ReportFilters()` should not call `page.goto()` on that URL; the row read already works through `page.request` and needs no page navigation. This alone removes the session-check corruption and the unbounded pending loop -- the highest-value, lowest-risk part.
+2. **Restore the page to a real portal page** (e.g. `openF41Report()`'s plain report path, no query string) so the session checks keep working, and consider making that restoration a `finally` so it happens even on failure.
+3. **The export still needs a correctly-filtered real page.** Options: return to `selectF41Exact()` but with stronger verification and a genuine Select2-event wait rather than the previous fire-and-forget; or discover the export request directly (method, headers, body) from a real session and call it through `page.request` like the row read. Neither can be chosen without evidence -- the export form's inputs have still never been observed.
+4. Only after 1-3, revisit 32.3's row counts.
+
+### 32.5 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified.
+- `test_dkclHueF13SyncService.js`: 192/192 PASS (181 -> 192). 11 new assertions, all against fakes -- no portal, no login, no run: the six steps are logged in the correct order; `after_goto` names the real URL and a content head recognisable as raw JSON (reproducing the actual captured failure); `xhr_response` records status and body interpretation; `export_info` records `formCount=0` alongside `exportAction=null`; the summary shape and values are unchanged and no export identity is invented; a hung `page.content()` is bounded and never stalls the flow; `logF41Step()` never throws even when every page read fails.
+- Verified to fail without the change: `git stash` on `dkclHueF13PortalClient.js` alone -- the step-order and URL assertions failed and the suite then aborted, the step log being entirely absent. Restored and re-verified 192/192.
+- 9 further backend suites PASS, none modified: `autoBackfillF41Executors` (26/26), `autoBackfillF13Executors` (19/19), `autoBackfillQueueService` (32/32), `autoBackfillQueueController` (10/10), `dkclSessionPreflightService`, `dkclSessionCoordinator`, `dkclHueBrowserBroker`, `browserProfileLock`, `tctF13BackfillService`.
+- `oxlint`: 0 new findings (the pre-existing `no-dupe-class-members` warning remains, line shifted). `vite build`: succeeds.
+- Read-only against the live database (`OPEN_READONLY`); no write, no login, no run created, no portal request issued.
+
+### 32.6 Residual
+
+F4.1 is **still broken** and this delta does not fix it -- by instruction it only proves the cause and instruments the path. Run `50f7d660` may still be looping; the Product Owner should decide whether to pause/cancel it, since the loop is unbounded and each attempt re-reads a corrupted page. The fix direction in 32.4 needs CTO/PO scope approval before implementation, and 32.3's row-count discrepancy remains an open, undiagnosed question.
+
+State: investigation and diagnostics only; **not self-passed**, no PO-visible UI surface. `READY FOR PO` -- awaiting a scope decision on 32.4; the new `[F41_STEP]` lines will appear in `backend.log` on the next F4.1 attempt without any further change.
