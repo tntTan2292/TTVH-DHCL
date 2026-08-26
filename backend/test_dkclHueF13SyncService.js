@@ -1137,12 +1137,51 @@ async function runTests() {
     // really executes the parse callback against a minimal DOMParser stub, so the row-selection
     // predicate (>= 38 <td> cells, numeric first cell) and the cell indices are genuinely exercised
     // rather than stubbed over.
-    function makeF41FakePage({ rowsBody, status = 200, exportAction = null, onRequest = null, onGoto = null }) {
-        const fakeDocument = (rows) => ({
+    function makeF41FakePage({
+        rowsBody,
+        status = 200,
+        exportAction = null,
+        exportMethod = 'GET',
+        exportParams = null,
+        exportStatus = 200,
+        exportContentType = 'text/html; charset=UTF-8',
+        onRequest = null,
+        onGoto = null,
+        onExportRequest = null
+    }) {
+        const fakeRowsDocument = (rows) => ({
             querySelectorAll: (selector) => selector === 'tr'
                 ? rows.map((cells) => ({ children: cells.map((text) => ({ tagName: 'TD', textContent: text })) }))
                 : []
         });
+        // AB-AUTH-15: the export form now arrives inside the report response's template_paginator,
+        // exactly as the real portal returns it -- not from the page's own document. When a test
+        // declares an exportAction, inject that form into the response body the same way.
+        const fakeFormDocument = (forms) => ({
+            querySelectorAll: (selector) => selector === 'form[action]'
+                ? forms.map((form) => ({
+                    getAttribute: (name) => (name === 'action' ? form.action : (name === 'method' ? form.method : null)),
+                    querySelectorAll: (inner) => inner === 'input[name]'
+                        ? Object.entries(form.params || {}).map(([key, value]) => ({
+                            getAttribute: (attr) => (attr === 'name' ? key : (attr === 'value' ? value : null))
+                        }))
+                        : []
+                }))
+                : []
+        });
+        if (exportAction) {
+            try {
+                const payload = JSON.parse(rowsBody);
+                payload.template_paginator = '__FORM__' + JSON.stringify([{
+                    action: exportAction,
+                    method: exportMethod,
+                    params: exportParams || { Total: '2', FilterSelected: '{"TuyChonGR":"BC","iFrom":"2026-08-23"}' }
+                }]) + '__ENDFORM__';
+                rowsBody = JSON.stringify(payload);
+            } catch {
+                // a deliberately non-JSON body stays exactly as the test wrote it
+            }
+        }
         return {
             url: () => 'https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc',
             goto: async (url, options) => { if (onGoto) onGoto(url, options); },
@@ -1155,8 +1194,19 @@ async function runTests() {
                 get: async (url, options) => {
                     if (onRequest) onRequest(url, options);
                     return { status: () => status, text: async () => rowsBody };
+                },
+                // AB-AUTH-15: the export is now an HTTP request through the same cookie-sharing
+                // transport, not a button click.
+                fetch: async (url, options) => {
+                    if (onExportRequest) onExportRequest(url, options);
+                    return {
+                        status: () => exportStatus,
+                        headers: () => ({ 'content-type': exportContentType }),
+                        text: async () => ''
+                    };
                 }
             },
+            waitForTimeout: async () => {},
             evaluate: async (callback, argument) => {
                 const previousDomParser = global.DOMParser;
                 const previousDocument = global.document;
@@ -1167,8 +1217,11 @@ async function runTests() {
                 global.DOMParser = class {
                     parseFromString(html) {
                         const carrier = String(html);
-                        const match = carrier.match(/__ROWS__(.*)__ENDROWS__/s);
-                        return fakeDocument(match ? JSON.parse(match[1]) : []);
+                        const formMatch = carrier.match(/__FORM__(.*)__ENDFORM__/s);
+                        if (formMatch) return fakeFormDocument(JSON.parse(formMatch[1]));
+                        const rowMatch = carrier.match(/__ROWS__(.*)__ENDROWS__/s);
+                        if (rowMatch) return fakeRowsDocument(JSON.parse(rowMatch[1]));
+                        return fakeFormDocument([]);
                     }
                 };
                 global.location = { origin: 'https://dkcl.example' };
@@ -1323,7 +1376,7 @@ async function runTests() {
         assert('readF41HueOuterSummary reads totalVolume from the unchanged cell index 10', summary.totalVolume === 4695, String(summary.totalVolume));
         assert('readF41HueOuterSummary reads passedVolume from the unchanged cell index 27', summary.passedVolume === 2863, String(summary.passedVolume));
         assert('readF41HueOuterSummary preserves the published rate TEXT from cell index 28', summary.rate === '60.98%', String(summary.rate));
-        assert('readF41HueOuterSummary still verifies the export target from the real page', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_BuuCuc_V2' && summary.exportAction === '/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all', JSON.stringify(summary));
+        assert('readF41HueOuterSummary still verifies the export target, now from the report response itself', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_BuuCuc_V2' && summary.exportAction === '/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all', JSON.stringify(summary));
         assert('readF41HueOuterSummary returns exactly the prior summary shape, no extra keys', JSON.stringify(Object.keys(summary).sort()) === JSON.stringify(['exportAction', 'exportIdentity', 'passedVolume', 'rate', 'totalVolume', 'unitCount']), JSON.stringify(Object.keys(summary)));
     }
 
@@ -1336,7 +1389,7 @@ async function runTests() {
         await client.submitF41TctFilters({ businessDate: '2026-08-01' });
         const summary = await client.readF41TctOuterSummary();
         assert('readF41TctOuterSummary counts the 47 outer rows the frozen contract expects', summary.outerRowCount === 47, String(summary.outerRowCount));
-        assert('readF41TctOuterSummary still verifies the TCT export target', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_Tinh_V2', String(summary.exportIdentity));
+        assert('readF41TctOuterSummary still verifies the TCT export target, now from the report response itself', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_Tinh_V2', String(summary.exportIdentity));
         assert('readF41TctOuterSummary returns exactly the prior summary shape', JSON.stringify(Object.keys(summary).sort()) === JSON.stringify(['exportAction', 'exportIdentity', 'outerRowCount']), JSON.stringify(Object.keys(summary)));
     }
 
@@ -1414,26 +1467,112 @@ async function runTests() {
         assert('readF41TctOuterSummary still captures screenshot/HTML evidence with the real business date', tctCaptures.length === 1 && tctCaptures[0].businessDate === '2026-08-24' && tctCaptures[0].reason === 'OUTER_SUMMARY_NOT_FOUND', JSON.stringify(tctCaptures));
     }
 
-    // AB-AUTH-10: the export step is deliberately still UI-based (see manifest Section 31) and must
-    // keep submitting the export form the freshly-navigated, correctly-filtered page rendered.
+    // AB-AUTH-15: the export is now issued as the export form's OWN request through page.request --
+    // URL, method and every parameter taken verbatim from the form the portal returned for these
+    // exact filters. Reproduces the real captured form (GET, Total + FilterSelected hidden inputs).
     {
-        const clicks = [];
+        const exportCalls = [];
+        const realFilterSelected = '{"TuyChonGR":"BC","stMaHuyenPhat":null,"stMaTinhPhat":"53","iFrom":"2026-08-23","iTo":"2026-08-23","Page":1,"PageSize":50}';
         const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
-        client.page = {
-            locator: (selector) => {
-                clicks.push(['locator', selector]);
-                return {
-                    count: async () => 1,
-                    isVisible: async () => true,
-                    isEnabled: async () => true,
-                    click: async () => clicks.push(['click', selector])
-                };
-            },
-            waitForTimeout: async () => {}
-        };
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload([makeF41Row({ stt: '1' })]),
+            exportAction: 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all',
+            exportParams: { Total: '8', FilterSelected: realFilterSelected },
+            onExportRequest: (url, options) => exportCalls.push({ url, options })
+        });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41HueFilters({ businessDate: '2026-08-23' });
+        await client.readF41HueOuterSummary();
         await client.requestF41HueExport();
-        assert('requestF41HueExport still submits the rendered export form through the UI', clicks.some(([kind]) => kind === 'click'));
-        assert('requestF41HueExport still targets the exact HUE export action', clicks[0][1].includes('/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all'), clicks[0][1]);
+
+        assert('requestF41HueExport issues exactly one export request', exportCalls.length === 1, JSON.stringify(exportCalls.map((c) => c.url)));
+        assert('requestF41HueExport targets the exact HUE export action the portal returned', exportCalls[0].url === 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all', exportCalls[0].url);
+        assert('requestF41HueExport uses the method the form declared', exportCalls[0].options?.method === 'GET', JSON.stringify(exportCalls[0].options));
+        assert('requestF41HueExport forwards the form Total verbatim', exportCalls[0].options?.params?.Total === '8', JSON.stringify(exportCalls[0].options?.params));
+        assert('requestF41HueExport forwards FilterSelected verbatim, never rebuilt', exportCalls[0].options?.params?.FilterSelected === realFilterSelected, JSON.stringify(exportCalls[0].options?.params));
+        assert('requestF41HueExport never touches the page UI to export', true);
+    }
+
+    // AB-AUTH-15: the exact defect this delta fixes -- a response WITHOUT the export form must still
+    // report exportIdentity null (so assertSummary rejects, unchanged), and the export step must
+    // then refuse with the pre-existing EXPORT_CONTROL_NOT_READY rather than firing a bad request.
+    {
+        const exportCalls = [];
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload([makeF41Row({ stt: '1' })]),
+            onExportRequest: (url, options) => exportCalls.push({ url, options })
+        });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41HueFilters({ businessDate: '2026-08-23' });
+        const summary = await client.readF41HueOuterSummary();
+        assert('a response without an export form still reports exportIdentity null', summary.exportIdentity === null && summary.exportAction === null, JSON.stringify(summary));
+        let threw = null;
+        try { await client.requestF41HueExport(); } catch (error) { threw = error; }
+        assert('the export refuses with the pre-existing EXPORT_CONTROL_NOT_READY code', threw?.code === 'EXPORT_CONTROL_NOT_READY', String(threw?.code));
+        assert('no export request is fired when the form was never observed', exportCalls.length === 0, JSON.stringify(exportCalls));
+    }
+
+    // AB-AUTH-15: a lane must never fire an export request derived from the other lane's identity.
+    {
+        const exportCalls = [];
+        const client = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload([makeF41Row({ stt: '1' })]),
+            exportAction: 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all',
+            onExportRequest: (url, options) => exportCalls.push({ url, options })
+        });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41TctFilters({ businessDate: '2026-08-23' });
+        await client.readF41TctOuterSummary();
+        let threw = null;
+        try { await client.requestF41HueExport(); } catch (error) { threw = error; }
+        assert('a TCT-derived export request is refused by the HUE export step', threw?.code === 'EXPORT_CONTROL_NOT_READY', String(threw?.code));
+        assert('no cross-lane export request is fired', exportCalls.length === 0, JSON.stringify(exportCalls));
+        await client.requestF41TctExport();
+        assert('the matching TCT export step does fire the request', exportCalls.length === 1 && exportCalls[0].url.includes('sp_Phat_ChatLuong_PTC_Tinh_V2'), JSON.stringify(exportCalls));
+    }
+
+    // AB-AUTH-15: a non-2xx export response must be a real, distinct failure -- never a silent
+    // success that leaves pollGeneratedFile() waiting 15 minutes for a file nobody asked for.
+    {
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload([makeF41Row({ stt: '1' })]),
+            exportAction: 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all',
+            exportStatus: 500
+        });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41HueFilters({ businessDate: '2026-08-23' });
+        await client.readF41HueOuterSummary();
+        let threw = null;
+        try { await client.requestF41HueExport(); } catch (error) { threw = error; }
+        assert('an HTTP failure on the export request raises EXPORT_REQUEST_FAILED', threw?.code === 'EXPORT_REQUEST_FAILED', String(threw?.code));
+    }
+
+    // AB-AUTH-15: the export response's content-type must be logged, so the next real run says
+    // plainly whether this endpoint triggers async generation or returns the workbook inline.
+    {
+        const steps = [];
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: (...args) => steps.push(args.join(' ')) } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload([makeF41Row({ stt: '1' })]),
+            exportAction: 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all',
+            exportContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41HueFilters({ businessDate: '2026-08-23' });
+        await client.readF41HueOuterSummary();
+        await client.requestF41HueExport();
+        const exportStep = steps.find((line) => line.includes('step=export_requested'));
+        assert('the export request logs its status and content-type for the next real run', /status=200/.test(exportStep) && /contentType=application\/vnd/.test(exportStep), exportStep);
+        const infoStep = steps.find((line) => line.includes('step=export_info'));
+        assert('the export_info step records it read the form from template_paginator', /source=template_paginator/.test(infoStep) && /paramNames=/.test(infoStep), infoStep);
     }
 
     // AB-AUTH-13: the step log now covers the fixed flow -- filters_prepared/after_restore (no

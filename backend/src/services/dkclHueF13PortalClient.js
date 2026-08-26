@@ -196,6 +196,10 @@ class DkclHueF13PortalClient {
         // the page itself was navigated to.
         this.lastF41Lane = null;
         this.lastF41Query = null;
+        // AB-AUTH-15: the report XHR's own `template_paginator` fragment, and the export request
+        // derived from the <form id="exportReport"> inside it. See readF41ExportInfo().
+        this.lastF41Paginator = null;
+        this.lastF41ExportRequest = null;
         // DIAGNOSTIC-TEMP (AB-AUTH-11): upper bound on every diagnostic page read, so a hung page
         // can never delay the real F4.1 flow. Overridable for tests.
         this.diagnosticStepTimeoutMs = Number.isFinite(options.diagnosticStepTimeoutMs)
@@ -657,6 +661,11 @@ class DkclHueF13PortalClient {
         const body = await response.text();
         let rowsHtml = body;
         let bodyKind = 'HTML_OR_UNKNOWN';
+        // AB-AUTH-15: the same response also carries `template_paginator`, which holds the real
+        // <form id="exportReport"> -- action, method and every hidden input. Captured here so
+        // readF41ExportInfo() can read the export target from the response that actually produced
+        // these rows, instead of from a page that no longer shows a filtered report at all.
+        this.lastF41Paginator = null;
         try {
             const payload = JSON.parse(body);
             if (typeof payload?.data === 'string') {
@@ -665,10 +674,19 @@ class DkclHueF13PortalClient {
             } else {
                 bodyKind = 'JSON_WITHOUT_DATA';
             }
+            if (typeof payload?.template_paginator === 'string') {
+                this.lastF41Paginator = payload.template_paginator;
+            }
         } catch {
             rowsHtml = body;
         }
-        await this.logF41Step('xhr_response', { status, bodyKind, bodyLength: body.length, rowsHtmlLength: rowsHtml.length });
+        await this.logF41Step('xhr_response', {
+            status,
+            bodyKind,
+            bodyLength: body.length,
+            rowsHtmlLength: rowsHtml.length,
+            paginatorLength: this.lastF41Paginator ? this.lastF41Paginator.length : 0
+        });
         const rows = await this.page.evaluate((html) => {
             const normalize = (value) => String(value || '').trim().replace(/\s+/g, ' ');
             const parsed = new DOMParser().parseFromString(`<table><tbody>${html}</tbody></table>`, 'text/html');
@@ -680,30 +698,96 @@ class DkclHueF13PortalClient {
         return rows;
     }
 
-    // AB-AUTH-10: unchanged extraction of the export form's action from the rendered page. Kept as a
-    // real page read rather than inferred from the identity constant, so exportIdentity remains a
-    // genuine verification that the correctly-filtered page really does expose the expected export
-    // target -- exactly the check assertSummary() has always made.
+    // AB-AUTH-15: the export target is now read from the report XHR's own `template_paginator`
+    // fragment rather than from `document`. AB-AUTH-13 left the shared page on the plain,
+    // UNFILTERED report page (deliberately -- navigating it to the filtered URL was the AB-AUTH-11
+    // root cause), and that page carries no export form at all: the real 26/08 run logged
+    // `formCount=2 sampleActions=["/logout","/"] exportAction=null`, which is why every F4.1 run
+    // still failed with exportIdentity null.
+    //
+    // The captured 23/08 responses show the portal returns the export form inside the very response
+    // that produced the rows, fully formed and correctly scoped to the filters that produced them:
+    //
+    //   <form id="exportReport" action="https://dkcl.vnpost.vn/export/<identity>/all" method="GET">
+    //     <input type="hidden" name="Total" value="38">
+    //     <input type="hidden" name="FilterSelected" value="{...,&quot;iFrom&quot;:&quot;2026-08-23&quot;,...}">
+    //
+    // Reading it from there restores a genuine verification (the export target is still observed,
+    // never inferred from the identity constant) AND yields a correctly-scoped export request
+    // without the page needing to be filtered at all. The returned shape is unchanged, so
+    // assertSummary() is untouched.
     async readF41ExportInfo(exportIdentity) {
-        // DIAGNOSTIC-TEMP (AB-AUTH-11): formCount/actions are collected purely so the log can show
-        // WHY exportAction came back null (a page with zero forms reads very differently from a page
-        // whose forms simply do not match). The returned shape is unchanged.
-        const probe = await this.page.evaluate((identity) => {
-            const actions = Array.from(document.querySelectorAll('form[action]'))
-                .map((form) => new URL(form.getAttribute('action'), location.origin).pathname);
-            return {
-                formCount: actions.length,
-                sampleActions: actions.slice(0, 5),
-                exportAction: actions.find((action) => action === `/export/${identity}/all`) || null
+        const probe = await this.page.evaluate(({ html, identity }) => {
+            const parsed = new DOMParser().parseFromString(`<div>${html || ''}</div>`, 'text/html');
+            const forms = Array.from(parsed.querySelectorAll('form[action]'));
+            const resolved = forms.map((form) => new URL(form.getAttribute('action'), location.origin));
+            const index = resolved.findIndex((url) => url.pathname === `/export/${identity}/all`);
+            const base = {
+                formCount: forms.length,
+                sampleActions: resolved.map((url) => url.pathname).slice(0, 5)
             };
-        }, exportIdentity);
+            if (index < 0) {
+                return { ...base, exportAction: null, exportUrl: null, method: null, params: null };
+            }
+            const params = {};
+            for (const input of Array.from(forms[index].querySelectorAll('input[name]'))) {
+                params[input.getAttribute('name')] = input.getAttribute('value') ?? '';
+            }
+            return {
+                ...base,
+                exportAction: resolved[index].pathname,
+                exportUrl: resolved[index].href,
+                method: String(forms[index].getAttribute('method') || 'GET').toUpperCase(),
+                params
+            };
+        }, { html: this.lastF41Paginator, identity: exportIdentity });
+
+        this.lastF41ExportRequest = probe.exportAction
+            ? { url: probe.exportUrl, method: probe.method, params: probe.params, exportIdentity }
+            : null;
+
         await this.logF41Step('export_info', {
+            source: 'template_paginator',
             formCount: probe.formCount,
             sampleActions: JSON.stringify(probe.sampleActions),
-            exportAction: probe.exportAction
+            exportAction: probe.exportAction,
+            method: probe.method,
+            paramNames: JSON.stringify(Object.keys(probe.params || {}))
         });
+
         const exportAction = probe.exportAction;
         return { exportAction, exportIdentity: exportAction ? exportIdentity : null };
+    }
+
+    // AB-AUTH-15: shared implementation behind requestF41HueExport()/requestF41TctExport(). Issues
+    // the export form's own request through page.request -- the same cookie-sharing, non-navigating
+    // transport fetchF41OuterRows() already uses -- instead of clicking a submit button that is no
+    // longer on the page. The URL, method and every parameter come verbatim from the form the
+    // portal itself returned for these exact filters; nothing is reconstructed or guessed, so the
+    // exported workbook is scoped to the same lane/date as the summary that was just verified.
+    //
+    // The response is logged (status, content-type, length) but deliberately NOT consumed as a
+    // file: the existing flow expects this call only to TRIGGER server-side generation, after which
+    // pollGeneratedFile() finds the workbook in the portal's own generated-file list. That contract
+    // is unchanged. If a real run shows this endpoint returning the workbook inline instead, the
+    // logged content-type will say so plainly -- see manifest Section 36.4.
+    async requestF41Export(expectedIdentity, laneLabel) {
+        const request = this.lastF41ExportRequest;
+        if (!request?.url || request.exportIdentity !== expectedIdentity) {
+            throw portalError(`F4.1 ${laneLabel} export control is not uniquely ready.`, 'EXPORT_CONTROL_NOT_READY');
+        }
+        const response = await this.page.request.fetch(request.url, {
+            method: request.method || 'GET',
+            params: request.params || {},
+            headers: { ...F41_XHR_HEADERS }
+        });
+        const status = typeof response?.status === 'function' ? response.status() : 0;
+        const contentType = typeof response?.headers === 'function' ? (response.headers()['content-type'] || null) : null;
+        await this.logF41Step('export_requested', { lane: laneLabel, status, contentType, url: request.url });
+        if (status < 200 || status >= 300) {
+            throw portalError(`F4.1 ${laneLabel} export request returned HTTP ${status}.`, 'EXPORT_REQUEST_FAILED');
+        }
+        await this.page.waitForTimeout(1000);
     }
 
     async submitF41HueFilters({ businessDate }) {
@@ -785,12 +869,7 @@ class DkclHueF13PortalClient {
     }
 
     async requestF41HueExport() {
-        const button = this.page.locator(`form[action$="${F41_HUE_EXPORT_ACTION}"] button[type="submit"]`);
-        if (await button.count() !== 1 || !await button.isVisible() || !await button.isEnabled()) {
-            throw portalError('F4.1 HUE export control is not uniquely ready.', 'EXPORT_CONTROL_NOT_READY');
-        }
-        await button.click();
-        await this.page.waitForTimeout(1000);
+        await this.requestF41Export(F41_HUE_EXPORT_IDENTITY, 'HUE');
     }
 
     async submitF41TctFilters({ businessDate }) {
@@ -811,12 +890,7 @@ class DkclHueF13PortalClient {
     }
 
     async requestF41TctExport() {
-        const button = this.page.locator(`form[action$="${F41_TCT_EXPORT_ACTION}"] button[type="submit"]`);
-        if (await button.count() !== 1 || !await button.isVisible() || !await button.isEnabled()) {
-            throw portalError('F4.1 TCT export control is not uniquely ready.', 'EXPORT_CONTROL_NOT_READY');
-        }
-        await button.click();
-        await this.page.waitForTimeout(1000);
+        await this.requestF41Export(F41_TCT_EXPORT_IDENTITY, 'TCT');
     }
 
     async submitFilters({ groupBy, provinceCode, fromDate, toDate }) {

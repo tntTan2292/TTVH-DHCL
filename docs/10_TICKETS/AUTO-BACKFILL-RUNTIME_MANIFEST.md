@@ -1322,3 +1322,68 @@ The question "how many reporting units should F4.1 expect on a given business da
 - `autoBackfillF41Executors` 26/26, `autoBackfillF13Executors` 19/19, `autoBackfillQueueService` 32/32 PASS, none modified. `oxlint`: 0 new findings. No database, login, run or real portal request.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- the Product Owner should note that this delta is **not** expected to close the 8/9 or 38/47 gap on 23/08 (35.1 proves it cannot); it protects future high-row-count dates. The row-count expectation itself awaits the decision in 35.4.
+
+## 36. AB-AUTH-15 -- F4.1 Export Fixed Via The Portal's Own Export Form (Section 32.4 Step 3, Hướng B) (2026-08-26, Claude Code Opus 5)
+
+### 36.1 The Blocker, And The Evidence That Removed It
+
+After AB-AUTH-13 the shared page correctly stays on the plain, **unfiltered** report page, and that page carries no export form at all -- the real 26/08 run logged `formCount=2 sampleActions=["/logout","/"] exportAction=null`. Every F4.1 run therefore still failed on `exportIdentity`, which was recorded as the open residual in Sections 32.4 (step 3) and 34.5. Section 32.4 explicitly could not choose between Hướng A and Hướng B because "the export form's inputs have still never been observed".
+
+**They have now been observed, in full.** Opening the AB-AUTH-09 captures of the real 23/08 responses revealed a second top-level key in the report XHR that nobody had inspected: `template_paginator`. It contains the complete export form, already correctly scoped to the filters that produced those very rows:
+
+```
+<form id="exportReport" action="https://dkcl.vnpost.vn/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all" method="GET">
+    <input type="hidden" name="Total" value="38">
+    <input type="hidden" name="FilterSelected" value="{"TuyChonGR":"TINH",...,"iFrom":"2026-08-23","iTo":"2026-08-23","Page":1,"PageSize":50}">
+    <button id="exportAllPages" type="submit" class="btn btn-outline-success">Xuất toàn bộ</button>
+</form>
+```
+
+(The HUE capture is identical in shape, with its own identity, `Total: 8` and `"TuyChonGR":"BC","stMaTinhPhat":"53"`.) Method, action and every input are now known facts, for both lanes.
+
+### 36.2 Direction Chosen -- Hướng B, And Why Not Hướng A
+
+**Hướng B (call the export endpoint directly) was chosen**, because the condition Section 32.4 set for it -- "chỉ làm nếu xác định được CHẮC CHẮN endpoint đó (qua bằng chứng cụ thể, không đoán)" -- is now met completely and from the portal's own output rather than by inference. Nothing is reconstructed or guessed: the URL, the method and every parameter are forwarded **verbatim** from the form the portal itself returned for the exact filters just verified. It needs no page navigation, no Select2, and no UI state, which means it cannot reintroduce the AB-AUTH-11 failure class.
+
+**Hướng A was rejected on the evidence, not on preference.** It would require re-entering the exact mechanism that caused every failure since AB-AUTH-10: driving nine Select2 widgets and then proving they are synchronised before submitting. That proof is the hard part, and there is still no direct evidence of how this page wires its `change` handlers -- the page's own JavaScript has never been read, and inferring a synchronisation signal would be precisely the guessing this ticket forbids. Hướng A is also strictly larger in blast radius: it puts the shared page back into a filtered UI state, which is what corrupted the session checks in the first place. Choosing a path that reuses an unproven mechanism, when a fully-evidenced one exists, would not be defensible.
+
+### 36.3 What Changed
+
+`backend/src/services/dkclHueF13PortalClient.js` only:
+
+- `fetchF41OuterRows()` additionally captures `payload.template_paginator` into `this.lastF41Paginator` (reset to `null` on every fetch, so a stale form can never leak into a later date/lane) and logs its length. The row parsing is untouched.
+- `readF41ExportInfo()` now parses the export form out of that captured fragment instead of out of `document`. It resolves the action, records `method` and every `input[name]` into `this.lastF41ExportRequest` (tagged with the identity it was derived for), and logs `source=template_paginator`, `formCount`, `method` and the parameter names. **Its return shape is unchanged**, so `assertSummary()` is untouched and `exportIdentity` remains a genuine observation rather than an inference from the identity constant.
+- New shared `requestF41Export(expectedIdentity, laneLabel)`; `requestF41HueExport()`/`requestF41TctExport()` are now one-line delegations to it. It refuses with the **pre-existing** `EXPORT_CONTROL_NOT_READY` when no form was observed *or* when the stored request belongs to the other lane, then issues the form's own request through `page.request.fetch` -- the same cookie-sharing, non-navigating transport `fetchF41OuterRows()` uses. A non-2xx response raises a new, distinct `EXPORT_REQUEST_FAILED` rather than silently succeeding and leaving `pollGeneratedFile()` to wait out its 15-minute window.
+
+Unchanged: the trigger-then-poll contract (this call only *triggers* generation; `pollGeneratedFile()` still finds the workbook in the portal's generated-file list), the 1s settle wait, every error code except the added one, both summary shapes, `assertSummary()`, and all F1.3 code (**0 changed lines** touch `submitFilters`, `openF13Report`, `isF13ReportReady`, `getF13ExportReadiness`, `_checkPageAuthenticated` or `hasLoginForm`).
+
+### 36.4 One Thing Deliberately Not Assumed
+
+Whether `GET /export/<identity>/all` triggers **asynchronous server-side generation** (the contract the existing flow assumes, evidenced by its 15-minute generation timeout and 30s polling) or returns the workbook **inline** has not been proven -- no real export request has ever been observed end to end. Rather than guess, the export response's `status` and `content-type` are logged as `[F41_STEP] step=export_requested`. The next real run will state plainly which it is: a `text/html` response means async generation as assumed; an `application/vnd.openxmlformats-...` response would mean the workbook came back inline and the download path needs its own follow-up. A regression test covers the logging of both.
+
+### 36.5 Regression Tests -- Verified To Fail Without The Fix
+
+`backend/test_dkclHueF13SyncService.js` (201 -> 214), all against fakes -- no portal, no login, no run, no database:
+
+- The fake page now serves the export form inside the response's `template_paginator`, exactly as the real portal does, and supports `request.fetch`.
+- The export test is rewritten from "clicks the rendered form" to: exactly one export request; the exact action the portal returned; the method the form declared; `Total` and `FilterSelected` forwarded **verbatim** (the real captured `FilterSelected` string is used, and asserted byte-identical, so nothing is silently rebuilt).
+- **New**: a response *without* an export form still reports `exportIdentity: null` (so `assertSummary()` rejects exactly as before) and the export step then refuses with `EXPORT_CONTROL_NOT_READY` without firing any request -- this is the precise defect being fixed, pinned in both directions.
+- **New**: cross-lane protection -- a TCT-derived export request is refused by the HUE export step and fires nothing, while the matching TCT step does fire.
+- **New**: a non-2xx export response raises `EXPORT_REQUEST_FAILED`.
+- **New**: the export response's status and content-type are logged, and `export_info` records `source=template_paginator` (36.4).
+
+Verified to fail without the fix, two ways: (1) `git stash` on `dkclHueF13PortalClient.js` -- the suite aborts on `F4.1 HUE export control is not uniquely ready`, which is exactly the real-world symptom (no clickable export form on the unfiltered page); (2) a targeted mutation disabling only the `template_paginator` capture -- both "verifies the export target ... from the report response itself" assertions failed and the export then refused, proving the tests are pinned to the new source specifically and not passing incidentally. Restored and re-verified 214/214 after each.
+
+### 36.6 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified.
+- `test_dkclHueF13SyncService.js`: 214/214 PASS (201 -> 214).
+- 9 further backend suites PASS, none modified: `autoBackfillF41Executors` (26/26), `autoBackfillF13Executors` (19/19), `autoBackfillQueueService` (32/32), `autoBackfillQueueController` (10/10), `dkclSessionPreflightService`, `dkclSessionCoordinator`, `dkclHueBrowserBroker`, `browserProfileLock`, `tctF13BackfillService`.
+- `oxlint`: 0 new findings (the pre-existing `no-dupe-class-members` warning remains, line shifted only). `vite build`: succeeds.
+- No database touched, no login performed, no run created, no real portal request issued.
+
+### 36.7 Residual
+
+The export path is now evidence-backed but **not yet proven end to end against the real portal** -- that is exactly what the PO check establishes, including the 36.4 question. Separately, Section 35.4's row-count expectation (`unitCount === 9`, `outerRowCount === 47`, and the parser's independent `EXPECTED_RAW_REPORTING_UNITS = 46`) is still open and will still reject 23/08, so a full end-to-end F4.1 success on that specific date should **not** be expected from this delta alone.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- the Product Owner should run F4.1 for both lanes and check: (a) whether `exportIdentity` is now populated and the export request fires (visible as `[F41_STEP] step=export_requested` with its status/content-type in `backend.log`), and (b) whether the workbook is generated and imports correctly. Note that on 23/08 the run is still expected to stop at the Section 35.4 row-count expectation before reaching the export; a date whose real row counts match the frozen contract is the cleaner test of this delta.
