@@ -1207,13 +1207,24 @@ async function runTests() {
         const documentedTct = 'TuyChonGR=TINH&stMaHuyenPhat=&stMaTinhPhat=ALL&stMaLoaiBCPhat=NULL&stMaBuuCucPhat=NULL'
             + '&stLoaiDichVu=ALL&stNhomLoaiKH=ALL&stPhamViTinh=NULL&stLoaiTuyenPhat=NULL&stLoaiPhuongXa=NULL'
             + '&iFrom=08%2F01%2F2026&iTo=08%2F01%2F2026';
-        assert('buildF41ReportQuery TCT reproduces the PO-verified successful URL byte for byte', buildF41ReportQuery('TCT', '2026-08-01') === documentedTct, buildF41ReportQuery('TCT', '2026-08-01'));
+        // AB-AUTH-14: the FILTER portion must still be byte-for-byte the PO-verified URL; the two
+        // pagination parameters are appended after it and are the only permitted addition.
+        assert('buildF41ReportQuery TCT still reproduces the PO-verified filter set byte for byte', buildF41ReportQuery('TCT', '2026-08-01') === documentedTct + '&iPageSize=50000&iPage=1', buildF41ReportQuery('TCT', '2026-08-01'));
+        assert('buildF41ReportQuery TCT changes nothing before the pagination suffix', buildF41ReportQuery('TCT', '2026-08-01').startsWith(documentedTct + '&'), buildF41ReportQuery('TCT', '2026-08-01'));
 
         const hueQuery = buildF41ReportQuery('HUE', '2026-08-23');
         assert('buildF41ReportQuery HUE keeps TuyChonGR=BC and stMaTinhPhat=53', /(^|&)TuyChonGR=BC(&|$)/.test(hueQuery) && /(^|&)stMaTinhPhat=53(&|$)/.test(hueQuery), hueQuery);
         assert('buildF41ReportQuery HUE keeps stMaBuuCucPhat=NULL (this system value, NOT the extension ALL)', /(^|&)stMaBuuCucPhat=NULL(&|$)/.test(hueQuery), hueQuery);
         assert('buildF41ReportQuery sends stMaHuyenPhat empty, as the verified URL does', /(^|&)stMaHuyenPhat=(&|$)/.test(hueQuery), hueQuery);
-        assert('buildF41ReportQuery adds no pagination parameter the verified URL did not have', !/iPageSize|iPage=/.test(hueQuery), hueQuery);
+        // AB-AUTH-14: the portal's own default PageSize is 50 (proved from the real captured
+        // template_paginator, which reads "Page":1,"PageSize":50). Without an explicit override any
+        // lane/date with more than 50 outer rows would be silently truncated to the first 50 -- a
+        // latent data-correctness hazard on historical TCT backfill dates in particular. These are
+        // the internal extension's proven values.
+        assert('buildF41ReportQuery overrides the portal default page size of 50', /(^|&)iPageSize=50000(&|$)/.test(hueQuery), hueQuery);
+        assert('buildF41ReportQuery always requests the first page', /(^|&)iPage=1(&|$)/.test(hueQuery), hueQuery);
+        assert('buildF41ReportQuery keeps pagination strictly after the filter set, never reordering filters', hueQuery.indexOf('iPageSize=') > hueQuery.indexOf('iTo='), hueQuery);
+        assert('buildF41ReportQuery adds pagination to BOTH lanes, not just HUE', /(^|&)iPageSize=50000(&|$)/.test(buildF41ReportQuery('TCT', '2026-08-23')), buildF41ReportQuery('TCT', '2026-08-23'));
         assert('buildF41ReportQuery formats both dates as MM/DD/YYYY for the business date', /(^|&)iFrom=08%2F23%2F2026(&|$)/.test(hueQuery) && /(^|&)iTo=08%2F23%2F2026(&|$)/.test(hueQuery), hueQuery);
 
         let rejectedLane = null;

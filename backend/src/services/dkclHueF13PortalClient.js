@@ -33,6 +33,16 @@ const F41_LANE_QUERY_FILTERS = Object.freeze({
     TCT: Object.freeze({ TuyChonGR: 'TINH', stMaTinhPhat: 'ALL' })
 });
 
+// AB-AUTH-14: the portal's own default page size is 50 -- proved directly, not assumed: the real
+// captured XHR responses for 2026-08-23 carry a `template_paginator` whose FilterSelected reads
+// `"Page":1,"PageSize":50`. Any lane/date whose result set exceeds 50 outer rows would therefore
+// have been silently truncated to the first 50, with no error anywhere. That has not bitten yet
+// (23/08 returned 8 HUE / 38 TCT rows), but historical TCT backfill dates can legitimately carry
+// more than 50 reporting provinces, so this is a real latent data-correctness hazard on exactly the
+// backfill this system exists to run. These are the internal extension's proven values, unchanged.
+const F41_REQUEST_PAGE_SIZE = '50000';
+const F41_REQUEST_PAGE = '1';
+
 const F41_XHR_HEADERS = Object.freeze({
     accept: '*/*',
     'x-requested-with': 'XMLHttpRequest'
@@ -59,7 +69,13 @@ function buildF41ReportQuery(lane, businessDate) {
         ['stLoaiTuyenPhat', 'NULL'],
         ['stLoaiPhuongXa', 'NULL'],
         ['iFrom', requestDate],
-        ['iTo', requestDate]
+        ['iTo', requestDate],
+        // AB-AUTH-14: appended AFTER the PO-verified filter set, which is itself unchanged and still
+        // byte-for-byte identical to the request recorded in AUTO-BACKFILL-F41_CHECKPOINT_001.md
+        // Section 21. These two are pagination, not filters -- they cannot change WHICH rows the
+        // report covers, only how many of them the server is willing to return in one response.
+        ['iPageSize', F41_REQUEST_PAGE_SIZE],
+        ['iPage', F41_REQUEST_PAGE]
     ]).toString();
 }
 

@@ -1276,3 +1276,49 @@ Verified to fail without the fix (same method as every prior ticket): `git stash
 **This delta does not fix F4.1 end to end.** The outer-summary read (the part that was actually looping/hanging) should no longer corrupt the shared page or produce an unbounded pending state. The export step is **expected to still be unreliable**: `requestF41Hue/TctExport()` submit whatever export form is on the page after the plain-report restore, which is not filtered for the specific lane/date being processed, so the exported workbook's scope is not currently guaranteed to match. No fix was attempted for this -- per instruction, it needs its own evidence (the export form's real inputs/request have never been observed) and its own CTO/PO scope decision before any change is made.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- the Product Owner will retry F4.1 for both HUE and TCT against `23/08` (already confirmed to carry real data) and check specifically whether the infinite "chờ đăng nhập" loop is gone. The outer-summary read is expected to complete; the final Excel export step may still fail -- that is the known, accepted residual from 34.2/34.5, not a new defect.
+
+## 35. AB-AUTH-14 -- Pagination Override Added; The 8/9 And 38/47 Gap Is NOT Pagination (2026-08-26, Claude Code Opus 5)
+
+### 35.1 The Hypothesis, And What The Real Evidence Says
+
+The CTO observed that `buildF41ReportQuery()` omits `iPageSize`/`iPage` while the internal extension's proven URL carries `&iPageSize=50000&iPage=1`, and asked whether that omission explains the Section 32.3 row-count gap (HUE 8 against an expected 9, TCT 38 against an expected 47).
+
+**It does not, and this is settled by direct evidence rather than reasoning.** The AB-AUTH-09 captures taken during the real 2026-08-23 failures preserve the portal's own XHR response, and that response has a second top-level key nobody had opened before: `template_paginator`. It states, in the portal's own words:
+
+- TCT: `<span>Tổng số: 38</span>` and `"Page":1,"PageSize":50`
+- HUE: `<span>Tổng số: 8</span>` and `"Page":1,"PageSize":50`
+
+`Tổng số` is the server's own **total**, not a page slice, and it equals exactly the row count this system parsed (38 and 8). Both totals are far below the default `PageSize` of 50, so no truncation occurred and no pagination parameter could have changed the outcome. **On 2026-08-23 the portal genuinely holds 8 HUE units and 38 TCT units.** The `9`/`47` expectations are simply not true for that date.
+
+Per the explicit instruction, the `9`/`47` expectations were **not relaxed** -- see 35.4.
+
+### 35.2 A Real Latent Hazard The Same Evidence Exposed -- Which Is Why The Parameters Were Still Added
+
+The same capture proves the portal's default page size is **50**. Any lane/date whose result set exceeds 50 outer rows would therefore have been silently truncated to the first 50, with no error, no warning, and a plausible-looking summary. That has not bitten yet, but historical TCT backfill dates can legitimately carry more than 50 reporting provinces -- and historical backfill is precisely what this system exists to run. TCT's own frozen expectation of 47 sits uncomfortably close to that ceiling.
+
+`iPageSize=50000` / `iPage=1` (the extension's proven values, not invented ones) were therefore added as a **latent-truncation guard**, correctly scoped and labelled as such -- not as the fix for 35.1.
+
+### 35.3 What Changed
+
+`backend/src/services/dkclHueF13PortalClient.js` only: two new constants (`F41_REQUEST_PAGE_SIZE = '50000'`, `F41_REQUEST_PAGE = '1'`) and two entries appended to `buildF41ReportQuery()`'s parameter list, strictly **after** the complete PO-verified filter set, which is unchanged. Pagination cannot change *which* rows a report covers, only how many the server will return at once, so the Section 31 guarantee ("every filter value is this system's own, byte-for-byte the PO-verified request") is preserved intact -- and is still asserted as such by an updated test.
+
+Nothing else changed. No F1.3 code, no error code, no return shape, no `assertSummary()`, no export step.
+
+### 35.4 Residual -- The Row-Count Gap Is A Product/SSOT Question, Not A Technical One
+
+The gap is now understood but deliberately **not** "fixed", because fixing it means changing a frozen business expectation and that is not a technical decision:
+
+- `F41HueSingleDateService.assertSummary()` requires `unitCount === 9`; the portal returned 8 for 23/08.
+- `F41TctSingleDateService.assertSummary()` requires `outerRowCount === 47`; the portal returned 38 for 23/08.
+- Relaxing either would not even be sufficient: `f41TctExcelParser.js` independently enforces `EXPECTED_RAW_REPORTING_UNITS = 46` on the downloaded workbook, so a 38-unit day would still fail at `F41_TCT_RECONCILIATION_FAILED` one step later.
+
+The question "how many reporting units should F4.1 expect on a given business date, and what should happen on a date where fewer units reported" is a Product Owner / SSOT decision about the frozen population contract. It is recorded here and left open. No expectation was loosened to make a run pass.
+
+### 35.5 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified.
+- `test_dkclHueF13SyncService.js`: 201/201 PASS (197 -> 201). The byte-for-byte filter test was tightened rather than weakened -- it now asserts the filter set is unchanged *and* that pagination is appended only after it. New assertions cover the page-size override, `iPage=1`, filter ordering, and that both lanes get it.
+- Verified to fail without the change: `git stash` on `dkclHueF13PortalClient.js` -- 6 assertions failed exactly as expected; restored and re-verified 201/201.
+- `autoBackfillF41Executors` 26/26, `autoBackfillF13Executors` 19/19, `autoBackfillQueueService` 32/32 PASS, none modified. `oxlint`: 0 new findings. No database, login, run or real portal request.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- the Product Owner should note that this delta is **not** expected to close the 8/9 or 38/47 gap on 23/08 (35.1 proves it cannot); it protects future high-row-count dates. The row-count expectation itself awaits the decision in 35.4.
