@@ -1146,6 +1146,10 @@ async function runTests() {
         return {
             url: () => 'https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc',
             goto: async (url, options) => { if (onGoto) onGoto(url, options); },
+            // AB-AUTH-13: openF41Report() (the plain-path restore) races two waitForSelector()
+            // calls -- always resolve immediately, the login/report-ready outcome is decided by
+            // the explicit url()/locator().count() checks that follow it, not by this race.
+            waitForSelector: async () => null,
             locator: () => ({ count: async () => 0 }),
             request: {
                 get: async (url, options) => {
@@ -1220,8 +1224,10 @@ async function runTests() {
         assert('buildF41ReportQuery refuses a non-ISO business date', rejectedDate?.code === 'F41_REPORT_QUERY_DATE_INVALID');
     }
 
-    // AB-AUTH-10: applying filters must be a real navigation to the filtered URL -- never a Select2
-    // write -- because the export form the UI export step still submits is rendered by that request.
+    // AB-AUTH-13: applying filters must NEVER navigate the shared page to the raw-JSON-returning
+    // query-string URL again (that was the AB-AUTH-11 root cause, manifest Section 32) -- and must
+    // never use the Select2 UI path either. lane/query/businessDate are still recorded, since
+    // fetchF41OuterRows() (over page.request, no navigation) still needs them.
     {
         const gotoCalls = [];
         const hueClient = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
@@ -1230,8 +1236,9 @@ async function runTests() {
         hueClient.stopForSecurityChallenge = async () => {};
         hueClient.selectF41Exact = async () => { throw new Error('the Select2 UI path must no longer be used by F4.1'); };
         await hueClient.submitF41HueFilters({ businessDate: '2026-08-23' });
-        assert('submitF41HueFilters navigates exactly once', gotoCalls.length === 1, JSON.stringify(gotoCalls));
-        assert('submitF41HueFilters navigates to the report path carrying the full filter query', gotoCalls[0] === `https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc?${buildF41ReportQuery('HUE', '2026-08-23')}`, gotoCalls[0]);
+        assert('submitF41HueFilters navigates exactly once (the restore, not the filtered fetch)', gotoCalls.length === 1, JSON.stringify(gotoCalls));
+        assert('submitF41HueFilters never navigates to the raw-JSON-returning query-string URL', !gotoCalls[0].includes('?'), gotoCalls[0]);
+        assert('submitF41HueFilters navigates only to the plain openF41Report() path', gotoCalls[0] === 'https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc', gotoCalls[0]);
         assert('submitF41HueFilters records the business date for later diagnostics', hueClient.lastBusinessDate === '2026-08-23');
         assert('submitF41HueFilters records the applied lane and query for the summary read', hueClient.lastF41Lane === 'HUE' && hueClient.lastF41Query === buildF41ReportQuery('HUE', '2026-08-23'));
 
@@ -1242,7 +1249,28 @@ async function runTests() {
         tctClient.stopForSecurityChallenge = async () => {};
         tctClient.selectF41Exact = async () => { throw new Error('the Select2 UI path must no longer be used by F4.1'); };
         await tctClient.submitF41TctFilters({ businessDate: '2026-08-01' });
-        assert('submitF41TctFilters navigates to the TCT-filtered report URL', tctGotoCalls[0] === `https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc?${buildF41ReportQuery('TCT', '2026-08-01')}`, tctGotoCalls[0]);
+        assert('submitF41TctFilters also never navigates to the raw-JSON-returning query-string URL', !tctGotoCalls[0].includes('?'), tctGotoCalls[0]);
+        assert('submitF41TctFilters navigates only to the plain openF41Report() path', tctGotoCalls[0] === 'https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc', tctGotoCalls[0]);
+    }
+
+    // AB-AUTH-13: the restore (openF41Report()) must still run in a finally even when preparing the
+    // filters itself throws, so the shared page is never left mid-operation -- and the original
+    // error must still surface to the caller (not swallowed by the restore).
+    {
+        const gotoCalls = [];
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({ rowsBody: rowsPayload([]), onGoto: (url) => gotoCalls.push(url) });
+        client.stopForSecurityChallenge = async () => {};
+        let threw = null;
+        try {
+            await client.applyF41ReportFilters('NOT_A_REAL_LANE', '2026-08-23');
+        } catch (error) {
+            threw = error;
+        }
+        assert('applyF41ReportFilters still surfaces the real preparation error', threw?.code === 'F41_UNSUPPORTED_LANE', String(threw?.code));
+        assert('the restore (openF41Report()) still ran even though preparing the query threw', gotoCalls.length === 1, JSON.stringify(gotoCalls));
+        assert('the restore navigated to the plain report path, not a query-string URL', gotoCalls[0] === 'https://dkcl.example/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc', gotoCalls[0]);
     }
 
     // AB-AUTH-10: a login redirect during filter application must still surface as
@@ -1397,40 +1425,44 @@ async function runTests() {
         assert('requestF41HueExport still targets the exact HUE export action', clicks[0][1].includes('/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all'), clicks[0][1]);
     }
 
-    // DIAGNOSTIC-TEMP (AB-AUTH-11): the step log must fire at every stage of the F4.1 transport and
-    // must name the page's real URL and content head, because the post-AB-AUTH-10 failure can strand
-    // a job before any F4.1 throw is reached. Reproduces the REAL captured failure: page.goto()
-    // landing on Chrome's raw-JSON view (zero forms), which is why exportAction came back null.
+    // AB-AUTH-13: the step log now covers the fixed flow -- filters_prepared/after_restore (no
+    // navigation to the query-string URL, the shared page restored to a real report page) followed
+    // by the unchanged XHR/parse/export steps. Positively demonstrates the AB-AUTH-11 incident no
+    // longer reproduces: the page's real content after restore is a real report page, not the raw
+    // JSON view (`<body><pre>{"data":...`) captured from the actual failed runs.
     {
         const steps = [];
-        const jsonBody = '{"data":"__ROWS__' + JSON.stringify([makeF41Row({ stt: '1', total: '2,856', passed: '1,294', rate: '45.31%' })]).replace(/"/g, '\\"') + '__ENDROWS__"}';
         const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: (...args) => steps.push(args.join(' ')) } });
         client.baseUrl = 'https://dkcl.example';
-        client.page = makeF41FakePage({ rowsBody: rowsPayload([makeF41Row({ stt: '1', total: '2,856', passed: '1,294', rate: '45.31%' })]) });
-        // The real page after page.goto(): Chrome's JSON viewer -- a <pre> body, no forms at all.
-        client.page.content = async () => '<html><head><meta name="color-scheme" content="light dark"></head><body><pre>' + jsonBody + '</pre></body></html>';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload([makeF41Row({ stt: '1', total: '2,856', passed: '1,294', rate: '45.31%' })]),
+            exportAction: '/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all'
+        });
+        // The real page after the restore: a genuine F4.1 report page with its filter form --
+        // never the `<body><pre>{"data":...` raw-JSON view the real incident captured.
+        client.page.content = async () => '<html><body><form action="/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all"><select name="TuyChonGR"></select></form></body></html>';
         client.stopForSecurityChallenge = async () => {};
 
         await client.submitF41HueFilters({ businessDate: '2026-08-23' });
         const summary = await client.readF41HueOuterSummary();
 
         const stepNames = steps.filter((line) => line.startsWith('[F41_STEP]')).map((line) => (line.match(/step=(\S+)/) || [])[1]);
-        assert('the F4.1 step log covers navigation, login check, XHR, parse and export lookup, in order',
-            JSON.stringify(stepNames) === JSON.stringify(['before_goto', 'after_goto', 'after_login_check', 'xhr_response', 'rows_parsed', 'export_info']), JSON.stringify(stepNames));
+        assert('the F4.1 step log covers filter preparation, restore, XHR, parse and export lookup, in order',
+            JSON.stringify(stepNames) === JSON.stringify(['filters_prepared', 'after_restore', 'xhr_response', 'rows_parsed', 'export_info']), JSON.stringify(stepNames));
 
-        const afterGoto = steps.find((line) => line.includes('step=after_goto'));
-        assert('the after_goto step names the real page URL', /url=https:\/\/dkcl\.example\//.test(afterGoto), afterGoto);
-        assert('the after_goto step shows enough content to recognise a raw JSON body, not a report page', afterGoto.includes('contentHead=') && afterGoto.includes('color-scheme') && afterGoto.includes('data'), afterGoto);
-        assert('the after_goto step names the lane it is acting for', /lane=HUE/.test(afterGoto), afterGoto);
+        const afterRestore = steps.find((line) => line.includes('step=after_restore'));
+        assert('the after_restore step names the real page URL', /url=https:\/\/dkcl\.example\//.test(afterRestore), afterRestore);
+        assert('the after_restore step shows a real report page, NOT the raw-JSON view the real incident captured', afterRestore.includes('contentHead=') && !afterRestore.includes('color-scheme') && afterRestore.includes('TuyChonGR'), afterRestore);
+        assert('the after_restore step names the lane it is acting for', /lane=HUE/.test(afterRestore), afterRestore);
 
         const xhrStep = steps.find((line) => line.includes('step=xhr_response'));
         assert('the xhr_response step records status and how the body was interpreted', /status=200/.test(xhrStep) && /bodyKind=JSON_WITH_DATA/.test(xhrStep), xhrStep);
 
         const exportStep = steps.find((line) => line.includes('step=export_info'));
-        assert('the export_info step records formCount=0, evidencing WHY exportAction is null', /formCount=0/.test(exportStep) && /exportAction=null/.test(exportStep), exportStep);
+        assert('the export_info step now finds a real form on the restored page', /formCount=1/.test(exportStep) && /exportAction=\/export\/sp_Phat_ChatLuong_PTC_BuuCuc_V2\/all/.test(exportStep), exportStep);
 
         assert('the diagnostics do not change the summary shape or values', summary.unitCount === 1 && summary.totalVolume === 2856 && summary.passedVolume === 1294 && summary.rate === '45.31%', JSON.stringify(summary));
-        assert('the diagnostics do not invent an export identity the page never exposed', summary.exportIdentity === null && summary.exportAction === null, JSON.stringify(summary));
+        assert('the export identity is read from the real restored page', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_BuuCuc_V2' && summary.exportAction === '/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all', JSON.stringify(summary));
     }
 
     // DIAGNOSTIC-TEMP (AB-AUTH-11): a hung page.content() must never stall the real flow -- a real
@@ -1450,7 +1482,7 @@ async function runTests() {
         await client.submitF41TctFilters({ businessDate: '2026-08-01' });
         const elapsedMs = Date.now() - startedAt;
         assert('a hung page.content() is bounded and never stalls filter application', elapsedMs < 2000, String(elapsedMs));
-        assert('a hung page.content() still produces step lines, with a null content head', steps.some((line) => line.includes('step=after_goto') && line.includes('contentHead=null')), JSON.stringify(steps));
+        assert('a hung page.content() still produces step lines, with a null content head', steps.some((line) => line.includes('step=after_restore') && line.includes('contentHead=null')), JSON.stringify(steps));
     }
 
     // DIAGNOSTIC-TEMP (AB-AUTH-11): the step logger is best effort -- a page that throws on every

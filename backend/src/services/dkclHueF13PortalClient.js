@@ -595,30 +595,31 @@ class DkclHueF13PortalClient {
         }
     }
 
-    // AB-AUTH-10: replaces the nine selectF41Exact() Select2 writes, the date fill and the
-    // "Thống kê" click. The page is navigated straight to the report URL carrying every filter in
-    // its query string, so the server renders the correctly-filtered report -- and, with it, the
-    // correctly-scoped export form that requestF41HueExport()/requestF41TctExport() still submit
-    // through the UI. Applying the filters HERE, rather than only side-channelling the summary read,
-    // is deliberate: that export form is rendered by this very request, so a summary read that
-    // bypassed the page while the page itself stayed wrongly filtered would have silently exported
-    // the wrong workbook. See AUTO-BACKFILL-RUNTIME_MANIFEST.md Section 31.
+    // AB-AUTH-13: AB-AUTH-11 (manifest Section 32) confirmed with real captures that this
+    // report URL returns raw JSON to a plain page.goto() -- with no X-Requested-With header at
+    // all -- so navigating the SHARED page here corrupted every session/login check that reads
+    // that same page (isF13ReportReady()/_checkPageAuthenticated()/hasLoginForm()), producing the
+    // real, observed unbounded WAITING_FOR_LOGIN-style loop on BOTH lanes. fetchF41OuterRows()
+    // already reads the outer rows over page.request -- a real browser-context XHR that shares
+    // the page's cookie jar without ever navigating the page -- so no page navigation is needed
+    // here at all to acquire the data.
+    //
+    // Approved scope (PO, Section 32.4 steps 1-2 only -- step 3, the export, is an explicit
+    // residual, see Section 33): this method no longer navigates the page to the filtered
+    // query-string URL. It only records the lane/query/business date fetchF41OuterRows() needs,
+    // then restores the shared page to a normal, real portal page via openF41Report() (the plain
+    // report path, no query string) in a finally, so the page can never end up parked on the raw
+    // JSON view again and a later login/session check always finds a real page -- even if
+    // preparing the query itself throws (e.g. an invalid lane/date).
     async applyF41ReportFilters(lane, businessDate) {
-        const query = buildF41ReportQuery(lane, businessDate);
-        this.lastBusinessDate = businessDate;
-        this.lastF41Lane = String(lane).toUpperCase();
-        this.lastF41Query = query;
-        await this.logF41Step('before_goto', { businessDate });
-        await this.page.goto(`${this.baseUrl}${F41_REPORT_PATH}?${query}`, {
-            waitUntil: 'domcontentloaded',
-            timeout: 60000
-        });
-        await this.logF41Step('after_goto', { businessDate });
-        await this.stopForSecurityChallenge({ allowHrm: false });
-        const loginInputCount = await this.page.locator('input[name="login"], input[id="login"], input[type="password"]').count();
-        await this.logF41Step('after_login_check', { loginInputCount });
-        if (this.page.url().includes('/login') || loginInputCount > 0) {
-            throw portalError('AUTHENTICATION_REQUIRED: login required', 'AUTHENTICATION_REQUIRED');
+        try {
+            this.lastBusinessDate = businessDate;
+            this.lastF41Lane = String(lane).toUpperCase();
+            this.lastF41Query = buildF41ReportQuery(lane, businessDate);
+            await this.logF41Step('filters_prepared', { businessDate });
+        } finally {
+            await this.openF41Report();
+            await this.logF41Step('after_restore', { businessDate });
         }
     }
 

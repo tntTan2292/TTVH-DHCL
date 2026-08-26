@@ -1226,3 +1226,53 @@ The job's own event history (36 events spanning `08:37:14Z` to `09:18:59Z`, roug
 Only run `50f7d660` and job `522de503` were touched. No other run, job, or fact table was written. The `AB-AUTH-10`/`AB-AUTH-11` root cause itself was **not** touched in this delta -- the fix direction proposed in Section 32.4 still awaits its own CTO/PO scope decision.
 
 State: `CANCELLED` as requested; **not self-passed**, this is an operational data action, not a code change -- no PO UI check applicable. `backend/src/db/database.sqlite` and the new backup file are both `.gitignore`d and were not, and could not be, committed; only this manifest entry is version-controlled.
+
+## 34. AB-AUTH-13 -- Section 32.4 Steps 1-2 Implemented (Shared Page No Longer Navigated To The Raw-JSON URL); Export (Step 3) Deliberately Left As An Open Residual (2026-08-25, Claude Code Sonnet 5)
+
+### 34.1 Approved Scope
+
+Following AB-AUTH-11's confirmed root cause (Section 32: `applyF41ReportFilters()`'s `page.goto()` to the filtered report URL returns raw JSON to a plain navigation -- no `X-Requested-With` needed -- which corrupts every session/login check reading that same shared page and produces the unbounded `SESSION_PENDING_HUMAN_ACTION` loop observed on both lanes), the Product Owner approved Section 32.4 steps **1 and 2 only**:
+
+1. Stop navigating the shared page to the filtered report URL -- `fetchF41OuterRows()` already reads the outer rows correctly over `page.request` (a real browser-context XHR sharing the page's cookie jar) and needs no page navigation at all.
+2. Restore the shared page to a real portal page (`openF41Report()`, the plain report path, no query string) once filter preparation is done, in a `finally` so the restore always runs even if something throws in between.
+
+Step 3 (finding a way to keep the export step correctly filtered) was **explicitly not approved** this round -- insufficient evidence exists (the export form's real inputs have still never been observed) and is left as an open residual, per instruction.
+
+### 34.2 What Changed
+
+`backend/src/services/dkclHueF13PortalClient.js` only -- `applyF41ReportFilters(lane, businessDate)` rewritten:
+
+- No longer calls `page.goto()` to `${F41_REPORT_PATH}?${query}` at all. It only computes and records `lastBusinessDate`/`lastF41Lane`/`lastF41Query` (still required by `fetchF41OuterRows()`, which is unchanged) and logs `filters_prepared`.
+- A `finally` block unconditionally calls `openF41Report()` (the existing plain-path method, already used once at the very start of each `runOneDate()`) and logs `after_restore` -- so by the time `fetchF41OuterRows()`/`readF41ExportInfo()` run, the shared page is sitting on a real report page, never the raw-JSON view. This finally runs even if computing the query throws (e.g. an invalid lane), and in that case the original error still propagates after the restore completes -- the restore is never silently swallowed, and an original preparation error is never masked unless the restore itself also fails, in which case the restore's own (more fundamental) failure legitimately takes precedence.
+- `openF41Report()`'s own `AUTHENTICATION_REQUIRED` check is unchanged and now runs against a real, freshly-loaded report page rather than a stale one -- a stricter check than before, not a weaker one.
+- `readF41ExportInfo()`, `fetchF41OuterRows()`, `readF41HueOuterSummary()`, `readF41TctOuterSummary()`, `submitF41HueFilters()`, `submitF41TctFilters()`, `logF41Step()`, `buildF41ReportQuery()`, `captureF41Diagnostics()` -- **all unchanged**. The row-selection predicate, cell indices, both summary return shapes, all `F41_OUTER_SUMMARY_*`/`F41_*_INVALID` error codes, and every Section 26/28/30 diagnostic log line and capture are untouched.
+
+`requestF41HueExport()`/`requestF41TctExport()` are **unchanged**, per the explicit instruction not to attempt Step 3. They still locate and click the export form on whatever page `this.page` currently holds -- now a real, but *unfiltered*, report page (the one `openF41Report()`'s restore leaves it on), so the exported workbook's scope is not currently guaranteed correct. **This is a known, accepted residual, not a new defect introduced here** -- the Product Owner explicitly accepted that the export step may still not work correctly after this delta, while the outer-summary read (the part that was actually looping) is fixed.
+
+Nothing in `dkclHueF13PortalClient.js` outside these two methods was touched; F1.3's `submitFilters()`, `isF13ReportReady()`, `getF13ExportReadiness()`, `_checkPageAuthenticated()`, `isAuthenticated()` and `hasLoginForm()` are byte-identical (confirmed by diff -- the only line matching those names in the diff is a comment mentioning them, not code).
+
+### 34.3 Regression Tests -- Updated And New, Verified To Fail Without The Fix
+
+`backend/test_dkclHueF13SyncService.js` (192 -> 197):
+
+- The fake-page helper (`makeF41FakePage`) gained `waitForSelector: async () => null`, needed now that `openF41Report()` genuinely runs inside these tests.
+- The AB-AUTH-10 "applying filters navigates to the filtered URL" test is **rewritten** (not deleted) to assert the opposite of its previous premise: exactly one navigation occurs, it is never the raw-JSON query-string URL, and it is always the plain `openF41Report()` path -- for both HUE and TCT. The pre-existing `selectF41Exact` throw-guard is kept unchanged.
+- **New**: a test that forces `applyF41ReportFilters()`'s preparation to throw (an invalid lane) and asserts the restore still ran exactly once, to the plain path, and the original `F41_UNSUPPORTED_LANE` error still surfaced to the caller.
+- The AB-AUTH-11 step-order reproduction test is **rewritten** (not deleted) to assert the new step sequence (`filters_prepared` -> `after_restore` -> `xhr_response` -> `rows_parsed` -> `export_info`) and, positively, that the page's real content at `after_restore` is a genuine report page (contains `TuyChonGR`, no `color-scheme` JSON-viewer marker) -- directly demonstrating the AB-AUTH-11 incident's captured evidence no longer reproduces.
+- The hung-`page.content()` timeout test's step-name reference was updated from `after_goto` to `after_restore` (mechanical rename, same assertion).
+
+Verified to fail without the fix (same method as every prior ticket): `git stash` on `dkclHueF13PortalClient.js` alone, full suite re-run -- 8 assertions failed exactly as expected (both lanes' navigation-target assertions, the restore-under-error assertions, the step-order assertion showing the old `before_goto/after_goto/...` sequence, and the restored-page-URL assertion), then a fatal error on the next test. Restored via `git stash pop` and re-verified 197/197.
+
+### 34.4 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not modified.
+- `test_dkclHueF13SyncService.js`: 197/197 PASS (192 -> 197).
+- 9 further backend suites PASS, none modified: `autoBackfillF41Executors` (26/26), `autoBackfillF13Executors` (19/19), `autoBackfillQueueService` (32/32), `autoBackfillQueueController` (10/10), `dkclSessionPreflightService`, `dkclSessionCoordinator`, `dkclHueBrowserBroker`, `browserProfileLock`, `tctF13BackfillService`.
+- `oxlint`: 0 new findings (the pre-existing `no-dupe-class-members` warning on `readDetailTableTotal` remains, line shifted only). `vite build`: succeeds.
+- No database touched, no login performed, no real run created, no real portal request issued.
+
+### 34.5 Residual -- Export (Section 32.4 Step 3) Remains Open
+
+**This delta does not fix F4.1 end to end.** The outer-summary read (the part that was actually looping/hanging) should no longer corrupt the shared page or produce an unbounded pending state. The export step is **expected to still be unreliable**: `requestF41Hue/TctExport()` submit whatever export form is on the page after the plain-report restore, which is not filtered for the specific lane/date being processed, so the exported workbook's scope is not currently guaranteed to match. No fix was attempted for this -- per instruction, it needs its own evidence (the export form's real inputs/request have never been observed) and its own CTO/PO scope decision before any change is made.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- the Product Owner will retry F4.1 for both HUE and TCT against `23/08` (already confirmed to carry real data) and check specifically whether the infinite "chờ đăng nhập" loop is gone. The outer-summary read is expected to complete; the final Excel export step may still fail -- that is the known, accepted residual from 34.2/34.5, not a new defect.
