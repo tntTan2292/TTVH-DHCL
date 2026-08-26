@@ -1387,3 +1387,80 @@ Verified to fail without the fix, two ways: (1) `git stash` on `dkclHueF13Portal
 The export path is now evidence-backed but **not yet proven end to end against the real portal** -- that is exactly what the PO check establishes, including the 36.4 question. Separately, Section 35.4's row-count expectation (`unitCount === 9`, `outerRowCount === 47`, and the parser's independent `EXPECTED_RAW_REPORTING_UNITS = 46`) is still open and will still reject 23/08, so a full end-to-end F4.1 success on that specific date should **not** be expected from this delta alone.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- the Product Owner should run F4.1 for both lanes and check: (a) whether `exportIdentity` is now populated and the export request fires (visible as `[F41_STEP] step=export_requested` with its status/content-type in `backend.log`), and (b) whether the workbook is generated and imports correctly. Note that on 23/08 the run is still expected to stop at the Section 35.4 row-count expectation before reaching the export; a date whose real row counts match the frozen contract is the cleaner test of this delta.
+
+## 37. AB-AUTH-16 -- F4.1 Completeness Rule Changed From Row Counts To Required-Set Presence (2026-08-26, Claude Code Opus 5)
+
+### 37.1 The Product Owner Decision
+
+Product Owner decision, 2026-08-26 (recorded here for the first time): F4.1 completeness is judged by **"the required set is all present"**, not by **"the total row count matches a frozen number"**. Units that are not part of the fixed population -- khách vãng lai, đơn vị không cố định, a province-total line, a retired code such as `531120` -- legitimately come and go from day to day. Their absence is normal data, not a data defect, and the old count rule turned every such day into a failed import.
+
+This directly supersedes the open question recorded in Section 35.4, which flagged exactly this as a product/SSOT decision that could not be taken technically.
+
+### 37.2 The Rule, And The Real Evidence That It Is Correct
+
+Both lanes now answer one question: **is every required unit present, identified by its code?**
+
+- **HUE**: all 6 canonical BCVH codes from `canonicalBcvhUnits.js` (`535790`, `536250`, `535470`, `537220`, `537015`, `533140`).
+- **TCT**: all 34 codes in `NATIONAL_RANKED_PROVINCE_CODES`.
+
+Extra units present but not required are ignored; missing required units still fail, and now name themselves.
+
+Verified against the real 2026-08-23 captures before writing any code, so this is not a rule adopted on assertion:
+
+| Lane | Real rows | Old rule | Required codes present | New rule |
+| --- | --- | --- | --- | --- |
+| HUE | 8 | FAIL (expected 9) | 6 of 6 | **PASS** |
+| TCT | 38 | FAIL (expected 47) | 34 of 34 | **PASS** |
+
+The TCT day decomposes exactly as 1 grand-total line + 34 ranked provinces + 3 non-ranked units (`01` EMS, `14` Từ Liêm, `49`) = 38. Only 3 of the 12 historically-excluded codes reported that day -- precisely the "không cố định" behaviour the Product Owner describes. The HUE day is 1 grand total + 1 province line + the 6 BCVH units = 8; the old expectation of 9 assumed a 7th BCVH (`531120`) that no longer reports.
+
+The unit-code cell indexes were likewise read off the real captures rather than assumed: **HUE cell 5**, **TCT cell 1**.
+
+### 37.3 What Changed -- One Rule, One Place
+
+New `backend/src/services/f41RequiredUnits.js` holds the rule once for all four checkpoints, rather than restating it four times: `REQUIRED_HUE_BCVH_CODES` (derived from `canonicalBcvhUnits.js`, so it can never drift from the list the dashboards already treat as authoritative), `REQUIRED_TCT_PROVINCE_CODES` (reusing the existing frozen `NATIONAL_RANKED_PROVINCE_CODES`), and `findMissingRequiredCodes()`. Codes are compared as identifiers, never numerically, so `'01'` can never silently become `1`.
+
+1. **`dkclHueF13PortalClient.js` `readF41HueOuterSummary()`** -- now returns `unitCodes` (cell 5, blanks dropped). `unitCount` is retained but is **diagnostics only**.
+2. **`dkclHueF13PortalClient.js` `readF41TctOuterSummary()`** -- now returns `provinceCodes` (cell 1, blanks dropped). `outerRowCount` retained as diagnostics only.
+3. **`f41HueSingleDateService.assertSummary()`** -- `unitCount === 9` replaced by a `requiredUnits` check over the 6 canonical BCVH codes. The failure value names the missing codes.
+4. **`f41TctSingleDateService.assertSummary()`** -- `outerRowCount === 47` replaced by a `requiredProvinces` check over the 34 ranked codes, same shape.
+5. **`f41TctSingleDateService` reconciliation** -- the four hard equalities (`rawReportingRows === 46`, `acceptedRows === 34`, `excludedRowsCount === 12`, exact `excludedCodes` list) replaced by "all 34 ranked provinces present in `parsedData`". `percentagesRemainText()` is **kept**. All four former figures are still reported in the error details for diagnostics.
+6. **`f41TctExcelParser.js`** -- `unitRows.length === 46`, `rawReportingRows === 46` and `parsedData.length === 34` all removed; replaced by a missing-required-province check that names the offenders. The minimum-rows guard was retied to the positional layout (`FIRST_REPORTING_ROW_INDEX + 1`) instead of doubling as a population count, plus an explicit "at least one reporting row" check.
+
+**Explicitly kept, and proven kept by test:** `assertGrandTotalReconciles()`, the header / sub-header / legend / grand-total-row identity assertions, `EXPECTED_COLUMN_COUNT = 38`, and every KPI/rate computation (HUE totals still come from the portal's own grand-total row, `rows[0]`, untouched). `EXPECTED_RAW_REPORTING_UNITS` and `EXPECTED_EXCLUDED_CODES` are retained and still exported as documented reference figures from the original sample day, but are no longer acceptance gates -- commented as such at their definitions.
+
+**Excluded areas, audited by diff: 0 changed code lines** touching `submitFilters`, `openF13Report`, `isF13ReportReady`, `getF13ExportReadiness`, `_checkPageAuthenticated`, `hasLoginForm`, `normalizeRate`, the header/legend cell expectations, `EXPECTED_COLUMN_COUNT`, or `assertGrandTotalReconciles`'s own logic. Gate 5's suite was not opened.
+
+### 37.4 Regression Tests -- LEVEL 2, Both Lanes, Both Directions
+
+The Product Owner asked for "missing an optional unit still PASSES" and "missing a required unit still FAILS" on both lanes; both are covered at summary level and, for TCT, at workbook-parser level too.
+
+`backend/test_autoBackfillF41Executors.js` (26 -> 32):
+- HUE **PASSES** when only non-required units are absent (6 rows, all canonical present); **PASSES** with extras present (`531120`, a blank, `999999`) alongside the six; **FAILS for each of the six** canonical codes individually, with `requiredUnits` reading `missing <code>`.
+- TCT **PASSES** on the real 23/08 shape (38 rows, `01`/`14`/`49` present, all 34 ranked); **FAILS** for a first / middle / last ranked province; accepts a numerically-typed code (`10`) as the same identifier while still catching a genuine absence.
+- The two end-to-end fake-export tests now use realistic shapes (8 rows HUE, 38 TCT) rather than the old frozen totals.
+
+`backend/test_f41TctExcelParser.js` (6 -> 10), driven off the **real** TCT source workbook via a new `removeUnitRow()` helper that also subtracts the removed unit's counts from the grand total -- so the still-enforced reconciliation stays honest instead of masking the population check:
+- a workbook missing one non-required unit still parses; missing four still parses;
+- a workbook missing any of `10`, `53`, `97` still **fails**, naming that province;
+- the kept structural checks still fire -- an un-adjusted grand total fails reconciliation, a corrupted header fails header identity, and a grand-total row carrying a province code fails its identity check.
+
+`backend/test_dkclHueF13SyncService.js` (214 -> 220): `unitCodes`/`provinceCodes` are read from cell 5 / cell 1 respectively; rows without a code (grand total, province line) drop out of the code list while still counting toward the diagnostic row total; leading-zero province codes survive as identifiers; HUE totals still come from the grand-total row unchanged. The two summary-shape assertions were updated to include the one deliberate new key each.
+
+Verified to fail without the fix: `git stash` on the four changed source files -- **13 of 32** executor tests and **4 of 10** parser tests failed, and a separate stash of `dkclHueF13PortalClient.js` alone failed the 3 code-extraction assertions. Restored and re-verified after each.
+
+### 37.5 Validation
+
+- **Gate 5 `test_autoBackfillSafety.js`: 11/11 PASS**, suite not opened or modified.
+- `test_autoBackfillF41Executors.js` 32/32 (26 -> 32); `test_f41TctExcelParser.js` 10/10 (6 -> 10); `test_dkclHueF13SyncService.js` 220/220 (214 -> 220).
+- Unmodified and passing: `test_f41HueExcelParser.js` 5/5, `test_f41ImportPipeline.js` 1/1, `test_autoBackfillF13Executors.js` 19/19, `test_autoBackfillQueueService.js` 32/32, `test_autoBackfillQueueController.js` 10/10, plus `dkclSessionPreflightService`, `tctF13BackfillService`, `dkclSessionCoordinator`, `dkclHueBrowserBroker`, `browserProfileLock`.
+- `oxlint` on all 8 changed/new files: 0 new findings (the pre-existing `no-dupe-class-members` warning remains, line shifted only). `vite build`: succeeds.
+- No database touched, no login performed, no run created, no real portal request issued.
+
+### 37.6 Residual
+
+Section 35.4's row-count question is now **closed by this decision**. What remains open is unchanged from Section 36.7: the export path (AB-AUTH-15) is evidence-backed but still unproven end to end against the real portal, including whether `GET /export/<identity>/all` triggers asynchronous generation or returns the workbook inline (Section 36.4).
+
+One consequence worth stating plainly: with the count gates removed, a day on which a *required* unit is genuinely missing is now the only population failure, and it fails with that unit named -- but a day on which a required unit reports *wrong numbers* is still caught only by `assertGrandTotalReconciles()` and the HUE workbook/summary reconciliation, exactly as before. No numeric protection was removed by this delta.
+
+State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- the Product Owner should re-run F4.1 for both lanes on `23/08` (real counts 8 HUE / 38 TCT, which this rule now accepts) and confirm the run proceeds past the summary check into the export step.

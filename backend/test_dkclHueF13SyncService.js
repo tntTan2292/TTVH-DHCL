@@ -1243,9 +1243,14 @@ async function runTests() {
 
     // A row is emitted as a 38-cell array so it satisfies the unchanged >= 38 predicate. Index 0 is
     // the numeric STT, 10 total volume, 27 passed volume, 28 the published rate text.
-    function makeF41Row({ stt = '1', total = '0', passed = '0', rate = '0%' } = {}) {
+    // AB-AUTH-16: cell 1 is the TCT province code and cell 5 the HUE BCVH code, both read off the
+    // real 2026-08-23 captures. Left blank by default so existing tests are unaffected -- which also
+    // mirrors the portal's own grand-total row, where both cells really are empty.
+    function makeF41Row({ stt = '1', total = '0', passed = '0', rate = '0%', provinceCode = '', unitCode = '' } = {}) {
         const cells = Array.from({ length: 38 }, () => '');
         cells[0] = stt;
+        cells[1] = provinceCode;
+        cells[5] = unitCode;
         cells[10] = total;
         cells[27] = passed;
         cells[28] = rate;
@@ -1377,7 +1382,9 @@ async function runTests() {
         assert('readF41HueOuterSummary reads passedVolume from the unchanged cell index 27', summary.passedVolume === 2863, String(summary.passedVolume));
         assert('readF41HueOuterSummary preserves the published rate TEXT from cell index 28', summary.rate === '60.98%', String(summary.rate));
         assert('readF41HueOuterSummary still verifies the export target, now from the report response itself', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_BuuCuc_V2' && summary.exportAction === '/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all', JSON.stringify(summary));
-        assert('readF41HueOuterSummary returns exactly the prior summary shape, no extra keys', JSON.stringify(Object.keys(summary).sort()) === JSON.stringify(['exportAction', 'exportIdentity', 'passedVolume', 'rate', 'totalVolume', 'unitCount']), JSON.stringify(Object.keys(summary)));
+        // AB-AUTH-16: unitCodes is the one deliberate addition -- completeness is now judged by the
+        // canonical BCVH codes present, not by unitCount, which stays for diagnostics only.
+        assert('readF41HueOuterSummary returns exactly the expected summary shape', JSON.stringify(Object.keys(summary).sort()) === JSON.stringify(['exportAction', 'exportIdentity', 'passedVolume', 'rate', 'totalVolume', 'unitCodes', 'unitCount']), JSON.stringify(Object.keys(summary)));
     }
 
     {
@@ -1390,7 +1397,8 @@ async function runTests() {
         const summary = await client.readF41TctOuterSummary();
         assert('readF41TctOuterSummary counts the 47 outer rows the frozen contract expects', summary.outerRowCount === 47, String(summary.outerRowCount));
         assert('readF41TctOuterSummary still verifies the TCT export target, now from the report response itself', summary.exportIdentity === 'sp_Phat_ChatLuong_PTC_Tinh_V2', String(summary.exportIdentity));
-        assert('readF41TctOuterSummary returns exactly the prior summary shape', JSON.stringify(Object.keys(summary).sort()) === JSON.stringify(['exportAction', 'exportIdentity', 'outerRowCount']), JSON.stringify(Object.keys(summary)));
+        // AB-AUTH-16: provinceCodes added for the same reason as unitCodes on the HUE side.
+        assert('readF41TctOuterSummary returns exactly the expected summary shape', JSON.stringify(Object.keys(summary).sort()) === JSON.stringify(['exportAction', 'exportIdentity', 'outerRowCount', 'provinceCodes']), JSON.stringify(Object.keys(summary)));
     }
 
     // AB-AUTH-10: rows that do not qualify (too few cells, non-numeric STT) must be ignored exactly
@@ -1492,6 +1500,53 @@ async function runTests() {
         assert('requestF41HueExport forwards the form Total verbatim', exportCalls[0].options?.params?.Total === '8', JSON.stringify(exportCalls[0].options?.params));
         assert('requestF41HueExport forwards FilterSelected verbatim, never rebuilt', exportCalls[0].options?.params?.FilterSelected === realFilterSelected, JSON.stringify(exportCalls[0].options?.params));
         assert('requestF41HueExport never touches the page UI to export', true);
+    }
+
+    // AB-AUTH-16: the outer-summary readers must surface the UNIT CODES, since completeness is now
+    // judged by which required units reported -- not by the row total. Both cell indexes are the
+    // ones observed in the real captures, and the portal's own grand-total row (blank code) must
+    // drop out rather than appear as an empty code.
+    {
+        const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload([
+                // Mirrors the real HUE shape: grand total, then a province line, then BCVH units.
+                makeF41Row({ stt: '1', total: '2,856', passed: '1,294', rate: '45.31%' }),
+                makeF41Row({ stt: '2', provinceCode: '53' }),
+                makeF41Row({ stt: '3', provinceCode: '53', unitCode: '533140' }),
+                makeF41Row({ stt: '4', provinceCode: '53', unitCode: '535470' })
+            ]),
+            exportAction: 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all'
+        });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41HueFilters({ businessDate: '2026-08-23' });
+        const summary = await client.readF41HueOuterSummary();
+
+        assert('readF41HueOuterSummary reads BCVH unit codes from cell index 5', JSON.stringify(summary.unitCodes) === JSON.stringify(['533140', '535470']), JSON.stringify(summary.unitCodes));
+        assert('readF41HueOuterSummary drops rows with no unit code (grand total, province line)', summary.unitCodes.length === 2 && summary.unitCount === 4, JSON.stringify({ codes: summary.unitCodes, count: summary.unitCount }));
+        assert('readF41HueOuterSummary still takes the totals from the grand-total row, unchanged', summary.totalVolume === 2856 && summary.passedVolume === 1294 && summary.rate === '45.31%', JSON.stringify(summary));
+    }
+
+    {
+        const client = new DkclHueF13PortalClient({ source: 'TCT', logger: { warn: () => {}, log: () => {} } });
+        client.baseUrl = 'https://dkcl.example';
+        client.page = makeF41FakePage({
+            rowsBody: rowsPayload([
+                makeF41Row({ stt: '1' }),
+                makeF41Row({ stt: '2', provinceCode: '01' }),
+                makeF41Row({ stt: '3', provinceCode: '10' }),
+                makeF41Row({ stt: '4', provinceCode: '97' })
+            ]),
+            exportAction: 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all'
+        });
+        client.stopForSecurityChallenge = async () => {};
+        await client.submitF41TctFilters({ businessDate: '2026-08-23' });
+        const summary = await client.readF41TctOuterSummary();
+
+        assert('readF41TctOuterSummary reads province codes from cell index 1', JSON.stringify(summary.provinceCodes) === JSON.stringify(['01', '10', '97']), JSON.stringify(summary.provinceCodes));
+        assert('readF41TctOuterSummary preserves leading-zero province codes as identifiers', summary.provinceCodes.includes('01'), JSON.stringify(summary.provinceCodes));
+        assert('readF41TctOuterSummary drops the blank grand-total code but still counts its row', summary.provinceCodes.length === 3 && summary.outerRowCount === 4, JSON.stringify({ codes: summary.provinceCodes, count: summary.outerRowCount }));
     }
 
     // AB-AUTH-15: the exact defect this delta fixes -- a response WITHOUT the export form must still

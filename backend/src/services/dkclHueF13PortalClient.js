@@ -40,6 +40,14 @@ const F41_LANE_QUERY_FILTERS = Object.freeze({
 // (23/08 returned 8 HUE / 38 TCT rows), but historical TCT backfill dates can legitimately carry
 // more than 50 reporting provinces, so this is a real latent data-correctness hazard on exactly the
 // backfill this system exists to run. These are the internal extension's proven values, unchanged.
+// AB-AUTH-16: which cell of an F4.1 outer row carries the unit code. Both indexes are read off
+// the real 2026-08-23 captures rather than assumed:
+//   HUE  row -> ["3","53","Bưu điện Tỉnh Thừa Thiên Huế","5375","BCVH Thuận Hóa","533140",...]
+//   TCT  row -> ["3","10","Bưu điện TP Hà Nội",...]
+// The grand-total row leaves these blank, so it drops out of the code list on its own.
+const F41_HUE_UNIT_CODE_CELL = 5;
+const F41_TCT_PROVINCE_CODE_CELL = 1;
+
 const F41_REQUEST_PAGE_SIZE = '50000';
 const F41_REQUEST_PAGE = '1';
 
@@ -859,7 +867,11 @@ class DkclHueF13PortalClient {
         }
         const cells = rows[0];
         return {
+            // AB-AUTH-16: unitCount is now reported for diagnostics only -- completeness is judged
+            // by unitCodes against the canonical BCVH set, never by the row total. The totals below
+            // still come from rows[0], the portal's own grand-total row: unchanged.
             unitCount: rows.length,
+            unitCodes: rows.map((row) => String(row[F41_HUE_UNIT_CODE_CELL] ?? '').trim()).filter(Boolean),
             totalVolume: normalizeNumber(cells[10]),
             passedVolume: normalizeNumber(cells[27]),
             rate: cells[28] || null,
@@ -886,7 +898,14 @@ class DkclHueF13PortalClient {
             await this.captureF41Diagnostics({ businessDate: this.lastBusinessDate, reason: 'OUTER_SUMMARY_NOT_FOUND' });
             throw portalError('F4.1 TCT outer summary table was not found.', 'F41_OUTER_SUMMARY_NOT_FOUND');
         }
-        return { outerRowCount: rows.length, exportIdentity, exportAction };
+        return {
+            // AB-AUTH-16: outerRowCount is diagnostics only now; completeness is judged by
+            // provinceCodes against the 34 nationally-ranked codes, never by the row total.
+            outerRowCount: rows.length,
+            provinceCodes: rows.map((row) => String(row[F41_TCT_PROVINCE_CODE_CELL] ?? '').trim()).filter(Boolean),
+            exportIdentity,
+            exportAction
+        };
     }
 
     async requestF41TctExport() {

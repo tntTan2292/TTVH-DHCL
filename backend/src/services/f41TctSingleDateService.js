@@ -7,9 +7,8 @@ const { getIndicatorConfig } = require('./importIndicatorRegistry');
 const {
     parseF41TctExcel,
     F41_TCT_RATE_COLUMNS,
-    EXPECTED_RAW_REPORTING_UNITS,
-    EXPECTED_ACCEPTED_REPORTING_UNITS,
 } = require('./f41TctExcelParser');
+const { REQUIRED_TCT_PROVINCE_CODES, findMissingRequiredCodes } = require('./f41RequiredUnits');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
 const { standardizedFilename } = require('./f41HueSingleDateService');
 
@@ -21,6 +20,9 @@ const REQUIRED_PORTAL_METHODS = Object.freeze([
     'pollGeneratedFile',
     'downloadXlsx',
 ]);
+// AB-AUTH-16: retained as a documented reference of the units observed on the original sample day
+// and still exported for callers that report on it, but NO LONGER an acceptance gate -- which
+// units fall outside the ranked population varies legitimately from day to day.
 const EXPECTED_EXCLUDED_CODES = Object.freeze(['01', '08', '11', '12', '14', '15', '34', '49', '71', '75', '77', '82']);
 
 function serviceError(code, message, details = null) {
@@ -94,12 +96,18 @@ class F41TctSingleDateService {
         const filename = standardizedFilename(date);
         const parsed = this.parser(this.fs.readFileSync(stablePath), filename);
         const excludedCodes = parsed.excludedRows.map((row) => row.ma_don_vi);
-        if (parsed.rawReportingRows !== EXPECTED_RAW_REPORTING_UNITS
-            || parsed.acceptedRows !== EXPECTED_ACCEPTED_REPORTING_UNITS
-            || parsed.excludedRowsCount !== EXPECTED_RAW_REPORTING_UNITS - EXPECTED_ACCEPTED_REPORTING_UNITS
-            || JSON.stringify(excludedCodes) !== JSON.stringify(EXPECTED_EXCLUDED_CODES)
-            || !percentagesRemainText(parsed.parsedData)) {
+        // AB-AUTH-16: the workbook must carry every nationally-ranked province, and percentages must
+        // still be preserved as TEXT. The raw/accepted/excluded totals and the exact excluded-code
+        // list are reported for diagnostics but no longer gate acceptance: which non-ranked units
+        // happen to report on a given day is not a property of workbook validity.
+        const missingProvinces = findMissingRequiredCodes(
+            REQUIRED_TCT_PROVINCE_CODES,
+            parsed.parsedData.map((row) => row.ma_don_vi)
+        );
+        if (missingProvinces.length > 0 || !percentagesRemainText(parsed.parsedData)) {
             throw serviceError('F41_TCT_RECONCILIATION_FAILED', 'F4.1 TCT workbook does not satisfy the frozen population contract.', {
+                missingProvinces,
+                percentagesRemainText: percentagesRemainText(parsed.parsedData),
                 rawReportingRows: parsed.rawReportingRows,
                 acceptedRows: parsed.acceptedRows,
                 excludedRowsCount: parsed.excludedRowsCount,
@@ -163,8 +171,17 @@ class F41TctSingleDateService {
     // awaited (stays synchronous) and deliberately swallowed (a capture failure can never mask
     // or delay the real validation error).
     assertSummary(summary, portalClient = null, businessDate = null) {
+        // AB-AUTH-16: completeness is "all 34 nationally-ranked provinces reported", not "exactly
+        // 47 rows". Non-ranked units (EMS, Từ Liêm, ...) and the grand-total line come and go
+        // legitimately -- see f41RequiredUnits.js.
+        const missingProvinces = findMissingRequiredCodes(REQUIRED_TCT_PROVINCE_CODES, summary?.provinceCodes);
         const checks = {
-            outerRowCount: { value: summary?.outerRowCount, expected: 47, ok: summary?.outerRowCount === 47 },
+            requiredProvinces: {
+                value: missingProvinces.length > 0 ? `missing ${missingProvinces.join(', ')}` : 'all present',
+                observedOuterRowCount: summary?.outerRowCount,
+                expected: `all ${REQUIRED_TCT_PROVINCE_CODES.length} nationally-ranked province codes present`,
+                ok: missingProvinces.length === 0
+            },
             exportIdentity: { value: summary?.exportIdentity, expected: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity, ok: summary?.exportIdentity === F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity },
         };
         const failedChecks = Object.entries(checks).filter(([, check]) => !check.ok).map(([name]) => name);

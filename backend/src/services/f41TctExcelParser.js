@@ -3,6 +3,7 @@
 const xlsx = require('xlsx');
 const { extractF41DateFromFilename } = require('./f41HueExcelParser');
 const { NATIONAL_RANKED_PROVINCE_CODES } = require('./nationalExcelParser');
+const { REQUIRED_TCT_PROVINCE_CODES, findMissingRequiredCodes } = require('./f41RequiredUnits');
 
 const F41_TCT_DB_COLUMNS = [
     'stt',
@@ -47,6 +48,10 @@ const F41_TCT_DB_COLUMNS = [
 
 const F41_TCT_RATE_COLUMNS = F41_TCT_DB_COLUMNS.filter((column) => column.startsWith('tl_'));
 const EXPECTED_COLUMN_COUNT = 38;
+// AB-AUTH-16: EXPECTED_RAW_REPORTING_UNITS is now a documented reference figure from the original
+// sample day, reported in the parse result and still exported for callers -- it is NO LONGER an
+// acceptance gate. EXPECTED_ACCEPTED_REPORTING_UNITS remains meaningful as the size of the required
+// population, which IS still enforced, by code presence rather than by count.
 const EXPECTED_RAW_REPORTING_UNITS = 46;
 const EXPECTED_ACCEPTED_REPORTING_UNITS = NATIONAL_RANKED_PROVINCE_CODES.length;
 const FIRST_REPORTING_ROW_INDEX = 4;
@@ -170,8 +175,11 @@ function assertGrandTotalReconciles(grandTotalRow, unitRows) {
 }
 
 function validateFrozenWorkbookIdentity(rawRows) {
-    if (!Array.isArray(rawRows) || rawRows.length < FIRST_REPORTING_ROW_INDEX + EXPECTED_RAW_REPORTING_UNITS) {
-        throw buildFormatError(`Expected at least ${FIRST_REPORTING_ROW_INDEX + EXPECTED_RAW_REPORTING_UNITS} rows for the frozen positional layout.`);
+    // AB-AUTH-16: this guard exists to prove the frozen POSITIONAL LAYOUT is present (header,
+    // sub-header, legend, grand-total, then reporting rows) -- it must not double as a population
+    // count, which is now judged by required-code presence instead.
+    if (!Array.isArray(rawRows) || rawRows.length < FIRST_REPORTING_ROW_INDEX + 1) {
+        throw buildFormatError(`Expected at least ${FIRST_REPORTING_ROW_INDEX + 1} rows for the frozen positional layout.`);
     }
 
     const headerRow = rawRows[0] || [];
@@ -192,9 +200,12 @@ function validateFrozenWorkbookIdentity(rawRows) {
     }
 
     const unitRows = rawRows.slice(FIRST_REPORTING_ROW_INDEX).filter((row) => rowHasAnyValue(row) && !isGrandTotalRow(row));
-    if (unitRows.length !== EXPECTED_RAW_REPORTING_UNITS) {
-        throw buildFormatError(`Expected ${EXPECTED_RAW_REPORTING_UNITS} raw reporting unit rows after row 4, got ${unitRows.length}.`);
+    if (unitRows.length === 0) {
+        throw buildFormatError('Expected at least one reporting unit row after row 4, got none.');
     }
+    // AB-AUTH-16: the exact raw row count is no longer asserted -- non-fixed units legitimately
+    // come and go. The grand total must still reconcile against whatever rows ARE present, which is
+    // the check that actually protects the numbers, and it is unchanged.
     assertGrandTotalReconciles(grandTotalRow, unitRows);
 }
 
@@ -238,11 +249,15 @@ function parseF41TctExcel(buffer, filename) {
         parsedData.push(item);
     }
 
-    if (rawReportingRows !== EXPECTED_RAW_REPORTING_UNITS) {
-        throw new Error(`Invalid F4.1 TCT Excel format. Expected ${EXPECTED_RAW_REPORTING_UNITS} raw reporting units after skipping headers/legend/grand total, got ${rawReportingRows}.`);
-    }
-    if (parsedData.length !== EXPECTED_ACCEPTED_REPORTING_UNITS) {
-        throw new Error(`Invalid F4.1 TCT Excel format. Expected ${EXPECTED_ACCEPTED_REPORTING_UNITS} accepted national province/city units, got ${parsedData.length}.`);
+    // AB-AUTH-16: completeness is "every nationally-ranked province is present", not "the totals
+    // match frozen numbers". A day where a non-ranked unit did not report is normal data; a day
+    // missing a ranked province is not, and still fails here -- now naming exactly which ones.
+    const missingProvinces = findMissingRequiredCodes(
+        REQUIRED_TCT_PROVINCE_CODES,
+        parsedData.map((item) => item.ma_don_vi)
+    );
+    if (missingProvinces.length > 0) {
+        throw new Error(`Invalid F4.1 TCT Excel format. Missing required national province/city units: ${missingProvinces.join(', ')}.`);
     }
 
     return {

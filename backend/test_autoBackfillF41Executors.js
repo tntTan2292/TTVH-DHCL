@@ -28,6 +28,7 @@ const {
     createF41AutoBackfillExecutors,
     registerF41AutoBackfillExecutors,
 } = require('./src/services/autoBackfillF41Executors');
+const { REQUIRED_HUE_BCVH_CODES, REQUIRED_TCT_PROVINCE_CODES } = require('./src/services/f41RequiredUnits');
 const { F41HueSingleDateService } = require('./src/services/f41HueSingleDateService');
 const { F41TctSingleDateService } = require('./src/services/f41TctSingleDateService');
 const { F41_HUE_COLUMN_MAPPING } = require('./src/services/f41HueExcelParser');
@@ -322,7 +323,9 @@ test('F4.1 HUE fake export uses verified identity, existing Import pipeline, and
         async submitF41HueFilters(options) { calls.push(['filters', options]); },
         async readF41HueOuterSummary() {
             calls.push('summary');
-            return { unitCount: 9, totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity };
+            // AB-AUTH-16: completeness is the canonical BCVH set, not a row total. The row count
+            // here is deliberately NOT 9 -- a real day frequently reports fewer rows.
+            return { unitCount: 8, unitCodes: [...REQUIRED_HUE_BCVH_CODES], totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity };
         },
         async requestF41HueExport() { calls.push('export'); },
         async pollGeneratedFile(options) {
@@ -393,7 +396,8 @@ test('F4.1 TCT fake export preserves 46/34 population, raw percentages, and exac
         async submitF41TctFilters(options) { calls.push(['filters', options]); },
         async readF41TctOuterSummary() {
             calls.push('summary');
-            return { outerRowCount: 47, exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity };
+            // AB-AUTH-16: as above -- 38 rows, all 34 ranked provinces present, which is what counts.
+            return { outerRowCount: 38, provinceCodes: [...REQUIRED_TCT_PROVINCE_CODES], exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity };
         },
         async requestF41TctExport() { calls.push('export'); },
         async pollGeneratedFile(options) {
@@ -598,12 +602,19 @@ test('runtime registers both verified F4.1 executors before coordinator startup'
 test('F4.1 HUE assertSummary logs every failed condition by name with its real value before throwing', () => {
     const logs = [];
     const service = new F41HueSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
-    // Only unitCount and exportIdentity are wrong here; totalVolume/passedVolume/rate are
+    // Only requiredUnits and exportIdentity are wrong here; totalVolume/passedVolume/rate are
     // internally consistent (2 total, 1 passed, 50%) so they must NOT appear in the failure list.
-    const badSummary = { unitCount: 7, totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: 'WRONG_IDENTITY' };
+    const badSummary = {
+        unitCount: 5,
+        unitCodes: REQUIRED_HUE_BCVH_CODES.slice(1),
+        totalVolume: 2,
+        passedVolume: 1,
+        rate: '50%',
+        exportIdentity: 'WRONG_IDENTITY'
+    };
     assert.throws(() => service.assertSummary(badSummary), (error) => {
         assert.equal(error.code, 'F41_HUE_OUTER_SUMMARY_INVALID');
-        assert.match(error.message, /unitCount/);
+        assert.match(error.message, /requiredUnits/);
         assert.match(error.message, /exportIdentity/);
         assert.doesNotMatch(error.message, /totalVolume/);
         assert.doesNotMatch(error.message, /passedVolume/);
@@ -611,8 +622,8 @@ test('F4.1 HUE assertSummary logs every failed condition by name with its real v
     });
     assert.equal(logs.length, 1, 'exactly one diagnostic log line must be written before the throw');
     assert.match(logs[0], /\[F41_HUE_SUMMARY\]/);
-    assert.match(logs[0], /unitCount/);
-    assert.match(logs[0], /"value":7/, 'the real observed value must be in the log, not just the field name');
+    assert.match(logs[0], /requiredUnits/);
+    assert.match(logs[0], new RegExp(REQUIRED_HUE_BCVH_CODES[0]), 'the log must name the missing code, not just the field');
     assert.match(logs[0], /exportIdentity/);
 });
 
@@ -620,30 +631,136 @@ test('F4.1 HUE assertSummary does not throw or log when every condition holds', 
     const logs = [];
     const service = new F41HueSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
     assert.doesNotThrow(() => service.assertSummary({
-        unitCount: 9, totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+        unitCount: 8,
+        unitCodes: [...REQUIRED_HUE_BCVH_CODES],
+        totalVolume: 2,
+        passedVolume: 1,
+        rate: '50%',
+        exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
     }));
     assert.equal(logs.length, 0);
+});
+
+// AB-AUTH-16 (PO rule change, LEVEL 2): a day where a NON-required unit is absent -- a province
+// total line, a retired code such as 531120, a khách vãng lai -- is normal data and must PASS,
+// even though the row total no longer matches the old frozen 9.
+test('F4.1 HUE assertSummary PASSES when only non-required units are absent', () => {
+    const logs = [];
+    const service = new F41HueSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
+    assert.doesNotThrow(() => service.assertSummary({
+        unitCount: 6,
+        unitCodes: [...REQUIRED_HUE_BCVH_CODES],
+        totalVolume: 2,
+        passedVolume: 1,
+        rate: '50%',
+        exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+    }));
+    assert.equal(logs.length, 0, 'a day missing only optional units must not even warn');
+});
+
+test('F4.1 HUE assertSummary PASSES when extra unrequired units are present alongside all six', () => {
+    const service = new F41HueSingleDateService({ logger: { warn: () => {} } });
+    assert.doesNotThrow(() => service.assertSummary({
+        unitCount: 12,
+        unitCodes: ['531120', '', ...REQUIRED_HUE_BCVH_CODES, '999999'],
+        totalVolume: 2,
+        passedVolume: 1,
+        rate: '50%',
+        exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+    }));
+});
+
+// AB-AUTH-16 (LEVEL 2): the rule must still bite. Missing ONE of the six canonical BCVH units is a
+// real defect and must FAIL, naming the missing code -- for every one of the six, not just the first.
+test('F4.1 HUE assertSummary FAILS when any single required BCVH unit is missing', () => {
+    for (const missing of REQUIRED_HUE_BCVH_CODES) {
+        const service = new F41HueSingleDateService({ logger: { warn: () => {} } });
+        const summary = {
+            unitCount: 20,
+            unitCodes: REQUIRED_HUE_BCVH_CODES.filter((code) => code !== missing),
+            totalVolume: 2,
+            passedVolume: 1,
+            rate: '50%',
+            exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+        };
+        assert.throws(() => service.assertSummary(summary), (error) => {
+            assert.equal(error.code, 'F41_HUE_OUTER_SUMMARY_INVALID');
+            assert.match(error.message, /requiredUnits/);
+            assert.equal(error.details.checks.requiredUnits.value, `missing ${missing}`);
+            return true;
+        }, `missing BCVH ${missing} must be rejected`);
+    }
 });
 
 test('F4.1 TCT assertSummary logs every failed condition by name with its real value before throwing', () => {
     const logs = [];
     const service = new F41TctSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
-    assert.throws(() => service.assertSummary({ outerRowCount: 40, exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity }), (error) => {
+    const summary = { outerRowCount: 40, provinceCodes: REQUIRED_TCT_PROVINCE_CODES.slice(1), exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity };
+    assert.throws(() => service.assertSummary(summary), (error) => {
         assert.equal(error.code, 'F41_TCT_OUTER_SUMMARY_INVALID');
-        assert.match(error.message, /outerRowCount/);
+        assert.match(error.message, /requiredProvinces/);
         assert.doesNotMatch(error.message, /exportIdentity/);
         return true;
     });
     assert.equal(logs.length, 1);
     assert.match(logs[0], /\[F41_TCT_SUMMARY\]/);
-    assert.match(logs[0], /"value":40/);
+    assert.match(logs[0], new RegExp(REQUIRED_TCT_PROVINCE_CODES[0]), 'the log must name the missing province code');
 });
 
 test('F4.1 TCT assertSummary does not throw or log when every condition holds', () => {
     const logs = [];
     const service = new F41TctSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
-    assert.doesNotThrow(() => service.assertSummary({ outerRowCount: 47, exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity }));
+    assert.doesNotThrow(() => service.assertSummary({ outerRowCount: 38, provinceCodes: [...REQUIRED_TCT_PROVINCE_CODES], exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity }));
     assert.equal(logs.length, 0);
+});
+
+// AB-AUTH-16 (LEVEL 2): the real 2026-08-23 shape -- 38 outer rows, all 34 ranked provinces plus a
+// blank grand-total cell and three non-ranked units (EMS 01, Từ Liêm 14, 49). Under the old count
+// rule this was rejected; it is valid data and must now PASS.
+test('F4.1 TCT assertSummary PASSES on the real 23/08 shape (38 rows, non-required units absent)', () => {
+    const logs = [];
+    const service = new F41TctSingleDateService({ logger: { warn: (...args) => logs.push(args.join(' ')) } });
+    assert.doesNotThrow(() => service.assertSummary({
+        outerRowCount: 38,
+        provinceCodes: ['01', '14', '49', ...REQUIRED_TCT_PROVINCE_CODES],
+        exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity,
+    }));
+    assert.equal(logs.length, 0);
+});
+
+test('F4.1 TCT assertSummary FAILS when any single required province is missing', () => {
+    for (const missing of [REQUIRED_TCT_PROVINCE_CODES[0], REQUIRED_TCT_PROVINCE_CODES[17], REQUIRED_TCT_PROVINCE_CODES.at(-1)]) {
+        const service = new F41TctSingleDateService({ logger: { warn: () => {} } });
+        const summary = {
+            outerRowCount: 100,
+            provinceCodes: REQUIRED_TCT_PROVINCE_CODES.filter((code) => code !== missing),
+            exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity,
+        };
+        assert.throws(() => service.assertSummary(summary), (error) => {
+            assert.equal(error.code, 'F41_TCT_OUTER_SUMMARY_INVALID');
+            assert.equal(error.details.checks.requiredProvinces.value, `missing ${missing}`);
+            return true;
+        }, `missing province ${missing} must be rejected`);
+    }
+});
+
+// AB-AUTH-16 (LEVEL 2): unit codes are identifiers, and the matching must be tolerant of the
+// portal handing a cell back as a number while still refusing a code that is genuinely absent.
+test('F4.1 TCT assertSummary accepts a numerically-typed province code but still catches a real absence', () => {
+    const service = new F41TctSingleDateService({ logger: { warn: () => {} } });
+    const withoutTen = REQUIRED_TCT_PROVINCE_CODES.filter((code) => code !== '10');
+    // 10 (number) is the same identifier as '10' -- must PASS.
+    assert.doesNotThrow(() => service.assertSummary({
+        outerRowCount: 38,
+        provinceCodes: [...withoutTen, 10],
+        exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity,
+    }));
+    // Genuinely absent -- must still FAIL, and name the code.
+    assert.throws(() => service.assertSummary({
+        outerRowCount: 38,
+        provinceCodes: withoutTen,
+        exportIdentity: F41_EXECUTOR_IDENTITIES.TCT.resourceIdentity,
+    }), (error) => error.code === 'F41_TCT_OUTER_SUMMARY_INVALID' && error.details.checks.requiredProvinces.value === 'missing 10');
 });
 
 // ---------------------------------------------------------------------------
@@ -680,7 +797,7 @@ test('F4.1 HUE assertSummary never calls captureF41Diagnostics when the summary 
     const portalClient = { captureF41Diagnostics: async () => { captureCalled = true; } };
     const service = new F41HueSingleDateService({ logger: { warn: () => {} } });
     assert.doesNotThrow(() => service.assertSummary({
-        unitCount: 9, totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+        unitCount: 8, unitCodes: [...REQUIRED_HUE_BCVH_CODES], totalVolume: 2, passedVolume: 1, rate: '50%', exportIdentity: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
     }, portalClient, '2026-08-23'));
     assert.equal(captureCalled, false);
 });

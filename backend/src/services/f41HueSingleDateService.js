@@ -6,6 +6,7 @@ const { executeImport } = require('./importPipeline');
 const { getIndicatorConfig } = require('./importIndicatorRegistry');
 const { parseF41HueExcel } = require('./f41HueExcelParser');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
+const { REQUIRED_HUE_BCVH_CODES, findMissingRequiredCodes } = require('./f41RequiredUnits');
 
 const REQUIRED_PORTAL_METHODS = Object.freeze([
     'openF41Report',
@@ -162,8 +163,17 @@ class F41HueSingleDateService {
         const computedRate = Number.isInteger(summary?.totalVolume) && summary.totalVolume > 0
             ? Number(((summary.passedVolume / summary.totalVolume) * 100).toFixed(2))
             : null;
+        // AB-AUTH-16: completeness is "all 6 canonical BCVH units reported", not "exactly 9 rows".
+        // A province-total line, a retired code such as 531120, or any non-fixed unit may appear or
+        // vanish day to day without that being a data defect -- see f41RequiredUnits.js.
+        const missingUnits = findMissingRequiredCodes(REQUIRED_HUE_BCVH_CODES, summary?.unitCodes);
         const checks = {
-            unitCount: { value: summary?.unitCount, expected: 9, ok: summary?.unitCount === 9 },
+            requiredUnits: {
+                value: missingUnits.length > 0 ? `missing ${missingUnits.join(', ')}` : 'all present',
+                observedUnitCount: summary?.unitCount,
+                expected: `all ${REQUIRED_HUE_BCVH_CODES.length} canonical BCVH codes present`,
+                ok: missingUnits.length === 0
+            },
             totalVolume: { value: summary?.totalVolume, expected: 'integer > 0', ok: Number.isInteger(summary?.totalVolume) && summary.totalVolume > 0 },
             passedVolume: { value: summary?.passedVolume, expected: 'integer', ok: Number.isInteger(summary?.passedVolume) },
             rate: { value: summary?.rate, normalized: normalizeRate(summary?.rate), expected: computedRate, ok: normalizeRate(summary?.rate) === computedRate },
