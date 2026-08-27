@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   AlertCircle,
+  CalendarDays,
   CheckCircle2,
   CheckSquare,
   ChevronDown,
@@ -23,6 +24,8 @@ import {
   X
 } from 'lucide-react';
 import api from '../api/client';
+import { useAuth } from '../auth/AuthContext';
+import { isAdminRole } from '../auth/roles';
 import {
   groupItemsByIndicatorAndMonth,
   paginateItems,
@@ -55,10 +58,20 @@ const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${
 const isActionableForExemption = (item) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status);
 
 export default function AutoBackfillOperatorPanel() {
+  // Auth context for role gating (Admin actions vs non-admin view-only)
+  let user = null;
+  try {
+    const authContext = useAuth();
+    user = authContext?.user;
+  } catch {
+    user = null;
+  }
+  const isAdmin = isAdminRole(user?.role);
+
   // State for coverage scan
   const [coverageData, setCoverageData] = useState(null);
   const [coverageLoading, setCoverageLoading] = useState(false);
-  const [coverageError, setCoverageError] = useState(null);
+  const [_coverageError, setCoverageError] = useState(null);
 
   // Filters & Pagination
   const [indicatorFilter, setIndicatorFilter] = useState('ALL');
@@ -104,6 +117,21 @@ export default function AutoBackfillOperatorPanel() {
   const [exceptionsList, setExceptionsList] = useState([]);
   const [exceptionsLoading, setExceptionsLoading] = useState(false);
 
+  // Holiday Calendar State (AB-CALENDAR-01)
+  const [showHolidayDrawer, setShowHolidayDrawer] = useState(false);
+  const [holidayList, setHolidayList] = useState([]);
+  const [holidayLoading, setHolidayLoading] = useState(false);
+
+  const [markHolidayModalItem, setMarkHolidayModalItem] = useState(null);
+  const [markHolidayReason, setMarkHolidayReason] = useState('');
+  const [markHolidayLoading, setMarkHolidayLoading] = useState(false);
+  const [markHolidayError, setMarkHolidayError] = useState(null);
+
+  const [revokeHolidayModalItem, setRevokeHolidayModalItem] = useState(null);
+  const [revokeHolidayReason, setRevokeHolidayReason] = useState('');
+  const [revokeHolidayLoading, setRevokeHolidayLoading] = useState(false);
+  const [revokeHolidayError, setRevokeHolidayError] = useState(null);
+
   // Per-Lane Missing Dates Detail Modal
   const [selectedLaneModal, setSelectedLaneModal] = useState(null);
 
@@ -141,6 +169,123 @@ export default function AutoBackfillOperatorPanel() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
+
+  // Fetch Holiday Calendar
+  const fetchHolidayCalendar = useCallback(async () => {
+    setHolidayLoading(true);
+    try {
+      const res = await api.get('/import/auto-backfill/holiday-calendar');
+      if (res.data?.success) {
+        setHolidayList(res.data.data.items || []);
+      }
+    } catch (err) {
+      console.error('[AutoBackfillOperatorPanel] fetchHolidayCalendar error:', err);
+    } finally {
+      setHolidayLoading(false);
+    }
+  }, []);
+
+  // Admin action: Mark Holiday
+  const handleConfirmMarkHoliday = async () => {
+    if (!markHolidayModalItem || !markHolidayReason.trim()) return;
+    const businessDate = typeof markHolidayModalItem === 'string' ? markHolidayModalItem : markHolidayModalItem.business_date;
+    setMarkHolidayLoading(true);
+    setMarkHolidayError(null);
+    try {
+      const payload = {
+        business_date: businessDate,
+        reason: markHolidayReason.trim()
+      };
+      const res = await api.post('/import/auto-backfill/holiday-calendar', payload);
+      if (res.data?.success) {
+        showToast(`Đã đánh dấu LỊCH NGHỈ ngày ${businessDate}`);
+        setMarkHolidayModalItem(null);
+        setMarkHolidayReason('');
+        fetchCoverage();
+        if (showHolidayDrawer) fetchHolidayCalendar();
+      }
+    } catch (err) {
+      setMarkHolidayError(getApiErrorMessage(err, 'Không thể đánh dấu LỊCH NGHỈ.'));
+    } finally {
+      setMarkHolidayLoading(false);
+    }
+  };
+
+  // Admin action: Revoke Holiday
+  const handleConfirmRevokeHoliday = async () => {
+    if (!revokeHolidayModalItem || !revokeHolidayReason.trim()) return;
+    const holidayId = revokeHolidayModalItem.id || revokeHolidayModalItem.holiday?.id;
+    if (!holidayId) {
+      setRevokeHolidayError('Không tìm thấy ID LỊCH NGHỈ để thu hồi.');
+      return;
+    }
+    setRevokeHolidayLoading(true);
+    setRevokeHolidayError(null);
+    try {
+      const res = await api.post(`/import/auto-backfill/holiday-calendar/${holidayId}/revoke`, {
+        reason: revokeHolidayReason.trim()
+      });
+      if (res.data?.success) {
+        showToast('Đã thu hồi LỊCH NGHỈ thành công');
+        setRevokeHolidayModalItem(null);
+        setRevokeHolidayReason('');
+        fetchCoverage();
+        if (showHolidayDrawer) fetchHolidayCalendar();
+      }
+    } catch (err) {
+      setRevokeHolidayError(getApiErrorMessage(err, 'Không thể thu hồi LỊCH NGHỈ.'));
+    } finally {
+      setRevokeHolidayLoading(false);
+    }
+  };
+
+  // AB-CALENDAR-01: Select all incomplete days across pages via GET /api/import/auto-backfill/coverage/selectable
+  const handleSelectAllUnfinished = useCallback(async (indicator, month) => {
+    try {
+      const params = {};
+      if (indicator && indicator !== 'ALL') params.indicator = indicator;
+      if (month && month !== 'ALL') params.month = month;
+      if (laneFilter !== 'ALL') params.lane = laneFilter;
+
+      const res = await api.get('/import/auto-backfill/coverage/selectable', { params });
+      if (res.data?.success) {
+        const selectableData = res.data.data;
+        const selectableItems = selectableData.items || [];
+        const keysToSelect = selectableItems.map((item) => getItemKey(item));
+
+        const allSelected = keysToSelect.length > 0 && keysToSelect.every((k) => selectedBulkKeys.has(k));
+
+        setSelectedBulkKeys((prev) => {
+          const next = new Set(prev);
+          if (allSelected) {
+            keysToSelect.forEach((k) => next.delete(k));
+          } else {
+            keysToSelect.forEach((k) => next.add(k));
+          }
+          return next;
+        });
+
+        if (!allSelected && keysToSelect.length > 0) {
+          const holidayCount = selectableData.excluded_holiday?.length || 0;
+          const exceptionCount = selectableData.excluded_exception?.length || 0;
+          const completeCount = selectableData.excluded_complete || 0;
+          let note = `Đã chọn ${keysToSelect.length} ngày chưa hoàn tất`;
+          if (month && month !== 'ALL') note += ` (Tháng ${month})`;
+          const excludedParts = [];
+          if (holidayCount > 0) excludedParts.push(`${holidayCount} ngày LỊCH NGHỈ`);
+          if (exceptionCount > 0) excludedParts.push(`${exceptionCount} ngày ngoại lệ`);
+          if (completeCount > 0) excludedParts.push(`${completeCount} ngày hoàn tất`);
+          if (excludedParts.length > 0) {
+            note += ` — đã tự bỏ qua ${excludedParts.join(', ')}`;
+          }
+          showToast(note);
+        }
+      }
+    } catch (err) {
+      console.error('[AutoBackfillOperatorPanel] selectable error:', err);
+      showToast(getApiErrorMessage(err, 'Không thể tải danh sách chọn.'), 'error');
+    }
+  }, [laneFilter, selectedBulkKeys]);
 
   // Toggle Bulk Select Item
   const toggleSelectBulkItem = (item) => {
@@ -830,6 +975,17 @@ export default function AutoBackfillOperatorPanel() {
 
             <button
               onClick={() => {
+                setShowHolidayDrawer(true);
+                fetchHolidayCalendar();
+              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              <CalendarDays className="h-4 w-4 text-indigo-600" />
+              <span>Quản lý LỊCH NGHỈ</span>
+            </button>
+
+            <button
+              onClick={() => {
                 setShowExceptionHistory(true);
                 fetchExceptionHistory();
               }}
@@ -1320,8 +1476,10 @@ export default function AutoBackfillOperatorPanel() {
                 key={`${group.indicator}::${group.yearMonth}`}
                 group={group}
                 selectedBulkKeys={selectedBulkKeys}
+                isAdmin={isAdmin}
                 onToggleSelectItem={toggleSelectBulkItem}
                 onToggleSelectAllItems={toggleSelectAllItems}
+                onSelectAllUnfinished={handleSelectAllUnfinished}
                 onConfirmClick={(item) => {
                   setConfirmModalItem(item);
                   setConfirmReason('');
@@ -1333,6 +1491,16 @@ export default function AutoBackfillOperatorPanel() {
                 onReimportClick={(item) => {
                   setReimportModalItem(item);
                   setReimportError(null);
+                }}
+                onMarkHolidayClick={(item) => {
+                  setMarkHolidayModalItem(item);
+                  setMarkHolidayReason('');
+                  setMarkHolidayError(null);
+                }}
+                onRevokeHolidayClick={(holidayItem) => {
+                  setRevokeHolidayModalItem(holidayItem);
+                  setRevokeHolidayReason('');
+                  setRevokeHolidayError(null);
                 }}
               />
             ))
@@ -1398,50 +1566,94 @@ export default function AutoBackfillOperatorPanel() {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${statusInfo.badgeClass}`}>
-                          <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                          {statusInfo.label}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${statusInfo.badgeClass}`}>
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                            {statusInfo.label}
+                          </span>
+                          {item.holiday && (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-[11px] font-semibold text-purple-800 border border-purple-200" title={item.holiday.reason}>
+                              <CalendarDays className="h-3 w-3 text-purple-600" />
+                              <span>LỊCH NGHỈ: {item.holiday.reason}</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {/* PER-ROW REIMPORT BUTTON */}
-                          <button
-                            onClick={() => {
-                              setReimportModalItem(item);
-                              setReimportError(null);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
-                            title="Yêu cầu nạp lại dữ liệu cho ngày này"
-                          >
-                            <RotateCw className="h-3.5 w-3.5" />
-                            <span>Nhập lại</span>
-                          </button>
+                          {isAdmin ? (
+                            <>
+                              {/* PER-ROW REIMPORT BUTTON */}
+                              <button
+                                onClick={() => {
+                                  setReimportModalItem(item);
+                                  setReimportError(null);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
+                                title="Yêu cầu nạp lại dữ liệu cho ngày này"
+                              >
+                                <RotateCw className="h-3.5 w-3.5" />
+                                <span>Nhập lại</span>
+                              </button>
 
-                          {isActionable && (
-                            <button
-                              onClick={() => {
-                                setConfirmModalItem(item);
-                                setConfirmReason('');
-                              }}
-                              className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
-                            >
-                              <UserCheck className="h-3.5 w-3.5" />
-                              <span>Xác nhận Không phát sinh</span>
-                            </button>
-                          )}
+                              {!item.holiday && isActionable && (
+                                <button
+                                  onClick={() => {
+                                    setMarkHolidayModalItem(item);
+                                    setMarkHolidayReason('');
+                                    setMarkHolidayError(null);
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-900 hover:bg-indigo-100 transition"
+                                  title="Đánh dấu LỊCH NGHỈ (tự động bỏ qua cho tất cả chỉ tiêu)"
+                                >
+                                  <CalendarDays className="h-3.5 w-3.5" />
+                                  <span>LỊCH NGHỈ</span>
+                                </button>
+                              )}
 
-                          {item.status === 'PO_EXEMPTED' && (
-                            <button
-                              onClick={() => {
-                                setRevokeModalItem(item);
-                                setRevokeReason('');
-                              }}
-                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
-                              <span>Hoàn tác</span>
-                            </button>
+                              {item.holiday && (
+                                <button
+                                  onClick={() => {
+                                    setRevokeHolidayModalItem(item.holiday);
+                                    setRevokeHolidayReason('');
+                                    setRevokeHolidayError(null);
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-900 hover:bg-purple-100 transition"
+                                  title="Thu hồi LỊCH NGHỈ"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  <span>Thu hồi LỊCH NGHỈ</span>
+                                </button>
+                              )}
+
+                              {isActionable && (
+                                <button
+                                  onClick={() => {
+                                    setConfirmModalItem(item);
+                                    setConfirmReason('');
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
+                                >
+                                  <UserCheck className="h-3.5 w-3.5" />
+                                  <span>Xác nhận Không phát sinh</span>
+                                </button>
+                              )}
+
+                              {item.status === 'PO_EXEMPTED' && (
+                                <button
+                                  onClick={() => {
+                                    setRevokeModalItem(item);
+                                    setRevokeReason('');
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                                  <span>Hoàn tác</span>
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-400 italic">Chỉ xem</span>
                           )}
                         </div>
                       </td>
@@ -2010,12 +2222,197 @@ export default function AutoBackfillOperatorPanel() {
           </div>
         </div>
       )}
+      {/* MARK HOLIDAY MODAL */}
+      {markHolidayModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-indigo-100 p-2 text-indigo-700">
+                  <CalendarDays className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Đánh dấu LỊCH NGHỈ</h3>
+              </div>
+              <button onClick={() => setMarkHolidayModalItem(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-1.5 font-medium">
+              <div>Ngày đánh dấu LỊCH NGHỈ: <strong className="text-slate-900">{typeof markHolidayModalItem === 'string' ? markHolidayModalItem : markHolidayModalItem.business_date}</strong></div>
+              <p className="text-slate-500 italic">
+                Ngày được đánh dấu LỊCH NGHỈ sẽ tự động bỏ qua khi chọn "Chọn tất cả chưa hoàn tất" cho MỌI chỉ tiêu.
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-slate-700">Lý do LỊCH NGHỈ (Bắt buộc):</label>
+              <textarea
+                value={markHolidayReason}
+                onChange={(e) => setMarkHolidayReason(e.target.value)}
+                placeholder="VD: Ngày nghỉ Lễ Quốc Khánh 02/09, Chủ nhật hoặc ngày nghỉ định kỳ..."
+                rows={3}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+
+            {markHolidayError && (
+              <div className="mt-3 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+                {markHolidayError}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setMarkHolidayModalItem(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleConfirmMarkHoliday}
+                disabled={markHolidayLoading || !markHolidayReason.trim()}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {markHolidayLoading ? 'Đang lưu...' : 'Xác nhận LỊCH NGHỈ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REVOKE HOLIDAY MODAL */}
+      {revokeHolidayModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-purple-100 p-2 text-purple-700">
+                  <RotateCcw className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Thu hồi LỊCH NGHỈ</h3>
+              </div>
+              <button onClick={() => setRevokeHolidayModalItem(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-1.5 font-medium">
+              <div>Ngày thu hồi LỊCH NGHỈ: <strong className="text-slate-900">{revokeHolidayModalItem.business_date || revokeHolidayModalItem.holiday?.business_date}</strong></div>
+              <div>Lý do ban đầu: <span className="italic text-slate-600">"{revokeHolidayModalItem.reason || revokeHolidayModalItem.holiday?.reason}"</span></div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-slate-700">Lý do thu hồi (Bắt buộc):</label>
+              <textarea
+                value={revokeHolidayReason}
+                onChange={(e) => setRevokeHolidayReason(e.target.value)}
+                placeholder="VD: Cần nạp bù lại do ngày này portal thực tế có phát sinh bưu gửi..."
+                rows={3}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-800 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-100"
+              />
+            </div>
+
+            {revokeHolidayError && (
+              <div className="mt-3 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+                {revokeHolidayError}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setRevokeHolidayModalItem(null)}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleConfirmRevokeHoliday}
+                disabled={revokeHolidayLoading || !revokeHolidayReason.trim()}
+                className="rounded-xl bg-purple-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-800 disabled:opacity-50"
+              >
+                {revokeHolidayLoading ? 'Đang xử lý...' : 'Xác nhận Thu hồi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SLIDE-OUT HOLIDAY CALENDAR DRAWER */}
+      {showHolidayDrawer && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-xs">
+          <div className="w-full max-w-xl bg-white p-6 shadow-2xl flex flex-col h-full border-l border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-lg font-bold text-slate-900">Danh sách LỊCH NGHỈ dùng chung</h3>
+              </div>
+              <button onClick={() => setShowHolidayDrawer(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex-1 overflow-y-auto space-y-3">
+              {holidayLoading ? (
+                <div className="py-12 text-center text-sm text-slate-500">Đang tải danh sách LỊCH NGHỈ...</div>
+              ) : holidayList.length === 0 ? (
+                <div className="py-12 text-center text-sm text-slate-500">Chưa có ngày nào được đánh dấu LỊCH NGHỈ.</div>
+              ) : (
+                holidayList.map((h) => (
+                  <div key={h.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700 space-y-2">
+                    <div className="flex items-center justify-between font-bold text-slate-900">
+                      <span>Ngày: {h.business_date}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        h.status === 'ACTIVE' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        {h.status === 'ACTIVE' ? 'LỊCH NGHỈ đang áp dụng' : 'Đã thu hồi'}
+                      </span>
+                    </div>
+                    <div className="bg-white p-2 rounded-lg border border-slate-200 italic">"{h.reason}"</div>
+                    <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                      <span>Tạo bởi: {h.created_by || 'Admin'}</span>
+                      <span>{h.created_at ? new Date(h.created_at).toLocaleString('vi-VN') : ''}</span>
+                    </div>
+
+                    {isAdmin && h.status === 'ACTIVE' && (
+                      <div className="pt-2 flex justify-end">
+                        <button
+                          onClick={() => {
+                            setRevokeHolidayModalItem(h);
+                            setRevokeHolidayReason('');
+                            setRevokeHolidayError(null);
+                          }}
+                          className="text-xs text-purple-700 font-semibold hover:underline"
+                        >
+                          [Thu hồi LỊCH NGHỈ ngày này]
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // SUBCOMPONENT: SMART MONTHLY ACCORDION GROUP
-function MonthlyAccordionGroup({ group, selectedBulkKeys, onToggleSelectItem, onToggleSelectAllItems, onConfirmClick, onRevokeClick, onReimportClick }) {
+function MonthlyAccordionGroup({
+  group,
+  selectedBulkKeys,
+  isAdmin,
+  onToggleSelectItem,
+  _onToggleSelectAllItems,
+  onSelectAllUnfinished,
+  onConfirmClick,
+  onRevokeClick,
+  onReimportClick,
+  onMarkHolidayClick,
+  onRevokeHolidayClick
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [accordionPage, setAccordionPage] = useState(1);
   const [accordionPageSize, setAccordionPageSize] = useState(10);
@@ -2079,16 +2476,17 @@ function MonthlyAccordionGroup({ group, selectedBulkKeys, onToggleSelectItem, on
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleSelectAllItems(paginatedGroup.pageItems);
+                onSelectAllUnfinished(group.indicator, group.yearMonth);
               }}
               className="flex items-center gap-2 text-slate-700 hover:text-blue-700 font-bold"
+              title="Tự động chọn đúng toàn bộ ngày chưa hoàn tất của tháng qua nhiều trang (bỏ LỊCH NGHỈ, ngoại lệ và ngày hoàn tất)"
             >
               {isAllGroupPageSelected ? (
                 <CheckSquare className="h-4 w-4 text-blue-600" />
               ) : (
                 <Square className="h-4 w-4 text-slate-400" />
               )}
-              <span>Chọn tất cả {paginatedGroup.pageItems.length} ngày trên trang này</span>
+              <span>Chọn tất cả chưa hoàn tất (Tháng {group.yearMonth})</span>
             </button>
             <span>Hiển thị {paginatedGroup.pageItems.length}/{group.items.length} bản ghi</span>
           </div>
@@ -2125,46 +2523,86 @@ function MonthlyAccordionGroup({ group, selectedBulkKeys, onToggleSelectItem, on
                       <span className="h-1.5 w-1.5 rounded-full bg-current" />
                       {statusInfo.label}
                     </span>
+                    {item.holiday && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-800 border border-purple-200" title={item.holiday.reason}>
+                        <CalendarDays className="h-3 w-3 text-purple-600" />
+                        <span>LỊCH NGHỈ: {item.holiday.reason}</span>
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* PER-ROW REIMPORT BUTTON */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onReimportClick(item);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
-                      title="Yêu cầu nạp lại dữ liệu cho ngày này"
-                    >
-                      <RotateCw className="h-3.5 w-3.5" />
-                      <span>Nhập lại</span>
-                    </button>
+                    {isAdmin ? (
+                      <>
+                        {/* PER-ROW REIMPORT BUTTON */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onReimportClick(item);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
+                          title="Yêu cầu nạp lại dữ liệu cho ngày này"
+                        >
+                          <RotateCw className="h-3.5 w-3.5" />
+                          <span>Nhập lại</span>
+                        </button>
 
-                    {isActionable && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onConfirmClick(item);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
-                      >
-                        <UserCheck className="h-3.5 w-3.5" />
-                        <span>Xác nhận Không phát sinh</span>
-                      </button>
-                    )}
+                        {!item.holiday && isActionable && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkHolidayClick(item);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-900 hover:bg-indigo-100 transition"
+                            title="Đánh dấu LỊCH NGHỈ (tự động bỏ qua cho tất cả chỉ tiêu)"
+                          >
+                            <CalendarDays className="h-3.5 w-3.5" />
+                            <span>LỊCH NGHỈ</span>
+                          </button>
+                        )}
 
-                    {item.status === 'PO_EXEMPTED' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRevokeClick(item);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
-                        <span>Hoàn tác</span>
-                      </button>
+                        {item.holiday && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRevokeHolidayClick(item.holiday);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-900 hover:bg-purple-100 transition"
+                            title="Thu hồi LỊCH NGHỈ"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            <span>Thu hồi LỊCH NGHỈ</span>
+                          </button>
+                        )}
+
+                        {isActionable && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onConfirmClick(item);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
+                          >
+                            <UserCheck className="h-3.5 w-3.5" />
+                            <span>Xác nhận Không phát sinh</span>
+                          </button>
+                        )}
+
+                        {item.status === 'PO_EXEMPTED' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRevokeClick(item);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                            <span>Hoàn tác</span>
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">Chỉ xem</span>
                     )}
                   </div>
                 </div>
@@ -2208,7 +2646,7 @@ function MonthlyAccordionGroup({ group, selectedBulkKeys, onToggleSelectItem, on
                   type="button"
                   onClick={() => setAccordionPage((p) => Math.min(paginatedGroup.totalPages, p + 1))}
                   disabled={!paginatedGroup.hasNext}
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-100 disabled:opacity-40"
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-100 disabled:opacity-40"
                 >
                   <span>Sau</span>
                   <ChevronRight className="h-3.5 w-3.5" />

@@ -1899,3 +1899,21 @@ No frontend change -- the operator panel wiring for "Chọn tất cả chưa ho�
 Antigravity and is not part of this ticket. No real Portal run, no import, no queue write, and no
 business-data write occurred. `PO UI Check Required = Yes` for the eventual frontend delta; this
 backend ticket claims no PO acceptance.
+
+## 40. AB-CALENDAR-01 Frontend Delta -- Shared LỊCH NGHỈ & Multi-Page Incomplete Month Selection (2026-08-27, Antigravity)
+
+### 40.1 Overview & Requirements
+Completed the frontend integration in `frontend/src/components/AutoBackfillOperatorPanel.jsx` on top of backend commit `839fa100e6f187a0be8ea1c9433c84ebf153eb91`:
+1. Connected "Chọn tất cả chưa hoàn tất" header button to `GET /api/import/auto-backfill/coverage/selectable?indicator=&lane=&month=` to select all incomplete items for a month across all pages.
+2. Automatically excluded days with LỊCH NGHỈ (HOLIDAY), completed days (`DATA_COMPLETE_WITH_EVIDENCE` / `SUCCESS`), and active exception days (`PO_EXEMPTED`).
+3. Added Admin actions to mark (`POST /api/import/auto-backfill/holiday-calendar`) and revoke (`POST /api/import/auto-backfill/holiday-calendar/:holidayId/revoke`) LỊCH NGHỈ, with a slide-out drawer (`GET /api/import/auto-backfill/holiday-calendar`) listing all active and historical holidays.
+4. Maintained current UI layout without introducing any new status code/badge. Displayed `LỊCH NGHỈ: <reason>` as an inline contextual tag under the status column when present.
+5. Enforced Role Access Control (`isAdminRole(user?.role)` via `AuthContext`): Non-admin users are strictly read-only; mutation actions are hidden/disabled for non-admins.
+6. Preserved no-touch scope: backend logic untouched, F1.3 untouched, tab "Nạp thủ công (Excel)" untouched, API/schema/KPI/SSOT and networkMap untouched.
+
+### 40.2 Verification & Results
+- **Frontend Unit Tests**: 16/16 PASSED in `frontend/src/components/AutoBackfillOperatorPanel.test.js`.
+- **Lint Check (`oxlint`)**: 0 errors, 30 warnings (pre-existing unused imports elsewhere in the project).
+- **Production Build (`vite build`)**: Succeeded cleanly (dist bundle produced in ~1.23s).
+- **Backend Tests**: 28/28 PASSED (`test_autoBackfillHolidayCalendar.js` 17/17 + Gate 5 `test_autoBackfillSafety.js` 11/11).
+
