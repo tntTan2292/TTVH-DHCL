@@ -2041,3 +2041,91 @@ backend process** so any request already served from an in-memory cache of the o
 (if any) reflects the migrated data -- the coverage scan itself is read-live and needs no restart,
 but this is flagged per the ticket's explicit instruction. No real Portal run, import, or business
 fact-table write occurred. No PO acceptance is claimed for this backend-only data remediation.
+---
+
+## 43. AB-CALENDAR-01 -- Migration Reuse Risk Neutralized (2026-08-27, Claude Code Sonnet 5)
+
+### 43.1 Residual From Commit `0fdecd58`
+
+Review found: `backend/scripts/migrate_ab_calendar_01_exceptions_to_holidays.js` as committed in
+`0fdecd58` migrated **every currently-ACTIVE exception** at run time, keyed only by "is it ACTIVE",
+not by which specific rows PO had actually reviewed. If the script were ever re-run after a new,
+unrelated PO exception existed, it would silently convert that exception to a shared holiday without
+PO approval -- the script itself carried no memory of what it was originally approved to touch.
+
+### 43.2 Fix -- Script Only, No Live-Database Write
+
+Per instruction, the migration was **not** run against the live database again; only the script was
+remediated, and only in ways provable against isolated fixtures.
+
+- **Default execution is read-only.** No flag is required to preview; a write now requires the
+  caller to pass `--confirm-write=AB-CALENDAR-01-APPROVED-8` -- an exact constant token, not a bare
+  boolean, so an accidental `--confirm-write` typo or copy-paste cannot trigger a write.
+- **Write eligibility is pinned to an immutable allowlist**, `APPROVED_MIGRATION`: the exact 8
+  exception ids / 6 `business_date`s / indicator / lane PO already reviewed and this script already
+  migrated on 2026-08-27 (Section 42.2), frozen with `Object.freeze` at module scope. `migrate()` can
+  now only ever be called with rows drawn from this list.
+- **Any ACTIVE exception not on the allowlist aborts the entire run**, in both read and write mode,
+  before any write -- `classify()` labels every currently-ACTIVE exception as `eligible` (on the
+  allowlist, fields match exactly), `unexpected` (not on the allowlist at all -- any future PO
+  exception falls here), or `mismatched` (on the allowlist by id, but its indicator/lane/date no
+  longer match what was approved -- structurally shouldn't happen since revoked rows are immutable,
+  kept as defense-in-depth). `plan()` refuses to proceed past `unexpected` or `mismatched` at all.
+- **A completed migration now stays inert.** Because the 8 approved rows are already `REVOKED`
+  (Section 42), a `--confirm-write` invocation today finds zero eligible rows and returns `NOOP`
+  without touching anything -- it can never "helpfully" pick up something else instead.
+- An existing holiday-conflict guard (an ACTIVE holiday already present for one of the eligible
+  dates from another source) is preserved from the prior version.
+
+### 43.3 Focused Tests Added
+
+New `backend/scripts/migrate_ab_calendar_01_exceptions_to_holidays.test.js`, 10 tests, entirely
+against isolated in-memory SQLite fixtures -- no live-database access:
+
+| Test | Proves |
+| --- | --- |
+| REM-01 | `isWriteConfirmed()` requires the exact token; a bare flag, empty value, or wrong value never confirms a write. |
+| REM-02 | With the approved 8 still ACTIVE, `plan()` reports `READY` but is read-only by construction -- no write happens on its own. |
+| REM-03 | An unexpected ACTIVE exception blocks the plan even with all 8 approved rows also present -- nothing is migrated, the unrelated exception is untouched. |
+| REM-04 | An unexpected ACTIVE exception alone (none of the approved 8 present) also aborts. |
+| REM-05 | `migrate()` only ever writes the exact `eligible` rows it is handed. |
+| REM-06 | **After a completed migration, `plan()` returns `NOOP`** and nothing further is written -- the exact steady state the live database is in today. |
+| REM-07 | **After a completed migration, a brand-new unrelated ACTIVE exception still blocks the script** -- it is never touched, never migrated, and no extra holiday is created. This is the exact reuse scenario the review flagged. |
+| REM-08 | An allowlisted id whose current row no longer matches the approved indicator/lane/date aborts as a mismatch. |
+| REM-09 | An ACTIVE holiday already present for an approved date aborts before any write; the batch aborts together, not partially. |
+| REM-10 | The allowlist is exactly 8 rows across 6 distinct dates, matching the 2026-08-27 PO-approved migration. |
+
+One implementation defect was found and fixed while writing these tests: the script's internal
+`run()`/`all()` helpers originally assumed the raw callback-style `sqlite3.Database` API
+(`db.run(sql, params, callback)`), which is inconsistent with this codebase's own convention
+(`src/config/db.js` and every `AutoBackfill*Service` inject an already-promisified `{ run, get, all
+}`, 2-argument, Promise-returning `db`). Against a promisified test fixture this silently hung
+(`Promise resolution is still pending but the event loop has already resolved`). `openDb()` now wraps
+the raw `sqlite3.Database` in that same promisified shape before use, matching the rest of the
+codebase and making the script directly testable against the same fixture pattern the other
+AB-CALENDAR-01 test files already use.
+
+An end-to-end CLI smoke test was also run by hand against a disposable temp-directory SQLite file
+(`os.tmpdir()`, never `backend/src/db/database.sqlite`): default invocation reported
+`DRY_RUN_PREFLIGHT` with no write; a wrong `--confirm-write` value also stayed read-only; the correct
+token migrated exactly the one seeded row; re-running with the correct token afterward returned
+`NOOP`.
+
+### 43.4 Validation
+
+Full backend regression, including the new suite: **189/189 tests, 0 failures.** Gate 5
+`test_autoBackfillSafety.js` **11/11 PASS**, not opened or modified. No schema, service, controller,
+route, frontend, F1.3, KPI/SSOT, or `networkMap` file was touched -- only the script and its new test
+file.
+
+**Live database confirmed untouched by this ticket.** A read-only query after all work here still
+shows exactly 6 `ACTIVE` holidays and 0 `ACTIVE` exceptions -- the identical state left by the
+2026-08-27 migration (Section 42.5); this ticket performed no write against
+`backend/src/db/database.sqlite`. The file's own MD5 did change during this session, but that
+reflects the backend process's normal ongoing operation (it was running throughout), not any action
+taken here -- confirmed by the holiday/exception counts above being exactly unchanged.
+
+### 43.5 Not Done / Residual
+
+The migration was intentionally not re-run against the live database, as instructed. No PO
+acceptance is claimed for this backend-only hardening.
