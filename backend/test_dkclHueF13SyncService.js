@@ -1258,6 +1258,33 @@ async function runTests() {
     }
     const rowsPayload = (rows) => JSON.stringify({ data: `__ROWS__${JSON.stringify(rows)}__ENDROWS__` });
 
+    // AB-AUTH-17: F4.1 HUE now exports from the DETAIL table's own form, so requestF41HueExport()
+    // opens that table first. Building the detail request parses the portal's REAL markup
+    // (tr.tongquan_params, td.ajax_cell, .chitiet_param) with a REAL DOM, which the DOMParser stub
+    // above deliberately cannot represent -- that step is covered end to end against the real
+    // captured 23/08 response in test_f41HueDetailExport.js, under headless Chromium. Here the
+    // detail step is stubbed to supply only its output (the detail paginator), so these tests keep
+    // covering exactly what they were written to cover: which form the export request is derived
+    // from, and how each failure surfaces.
+    const HUE_DETAIL_IDENTITY = 'sp_Phat_ChatLuong_PTC_ChiTiet_V2';
+    function stubHueDetailStep(client, {
+        detailIdentity = HUE_DETAIL_IDENTITY,
+        params = { Total: '2856', FilterSelected: '{"stMaTinhPhat":"53","iFrom":"2026-08-23"}' },
+        formPresent = true
+    } = {}) {
+        client.openF41HueDetailTable = async () => {
+            client.lastF41DetailPaginator = formPresent
+                ? `__FORM__${JSON.stringify([{
+                    action: `https://dkcl.example/export/${detailIdentity}/all`,
+                    method: 'GET',
+                    params
+                }])}__ENDFORM__`
+                : '<div></div>';
+            return { header: 'Sản lượng PTC/ Nộp tiền/ CH', value: 2856, cellIndex: 10, detailRowCount: 2856 };
+        };
+        return client;
+    }
+
     // AB-AUTH-10: the query string is the whole fix -- it must reproduce the PO-verified successful
     // request (AUTO-BACKFILL-F41_CHECKPOINT_001.md Section 21) byte for byte, with this system's own
     // filter values, never the internal extension's where the two differ.
@@ -1475,29 +1502,36 @@ async function runTests() {
         assert('readF41TctOuterSummary still captures screenshot/HTML evidence with the real business date', tctCaptures.length === 1 && tctCaptures[0].businessDate === '2026-08-24' && tctCaptures[0].reason === 'OUTER_SUMMARY_NOT_FOUND', JSON.stringify(tctCaptures));
     }
 
-    // AB-AUTH-15: the export is now issued as the export form's OWN request through page.request --
-    // URL, method and every parameter taken verbatim from the form the portal returned for these
-    // exact filters. Reproduces the real captured form (GET, Total + FilterSelected hidden inputs).
+    // AB-AUTH-15: the export is issued as the export form's OWN request through page.request -- URL,
+    // method and every parameter taken verbatim from the form the portal returned for these exact
+    // filters, never rebuilt.
+    // AB-AUTH-17: for HUE that form is now the DETAIL table's, not the outer report's. The outer
+    // form (sp_Phat_ChatLuong_PTC_BuuCuc_V2) produces a per-BCVH AGGREGATE workbook with no
+    // `Số hiệu bưu gửi` column, which f41HueExcelParser.js can never parse -- confirmed by hand by
+    // the Product Owner on 2026-08-26. Exporting it again would be the defect, so this test now
+    // asserts the opposite target.
     {
         const exportCalls = [];
-        const realFilterSelected = '{"TuyChonGR":"BC","stMaHuyenPhat":null,"stMaTinhPhat":"53","iFrom":"2026-08-23","iTo":"2026-08-23","Page":1,"PageSize":50}';
+        const realFilterSelected = '{"stMaTinhPhat":"53","iFrom":"2026-08-23","iTo":"2026-08-23"}';
         const client = new DkclHueF13PortalClient({ logger: { warn: () => {}, log: () => {} } });
         client.baseUrl = 'https://dkcl.example';
         client.page = makeF41FakePage({
             rowsBody: rowsPayload([makeF41Row({ stt: '1' })]),
             exportAction: 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all',
-            exportParams: { Total: '8', FilterSelected: realFilterSelected },
+            exportParams: { Total: '8', FilterSelected: '{"TuyChonGR":"BC","Page":1,"PageSize":50}' },
             onExportRequest: (url, options) => exportCalls.push({ url, options })
         });
         client.stopForSecurityChallenge = async () => {};
+        stubHueDetailStep(client, { params: { Total: '2856', FilterSelected: realFilterSelected } });
         await client.submitF41HueFilters({ businessDate: '2026-08-23' });
         await client.readF41HueOuterSummary();
         await client.requestF41HueExport();
 
         assert('requestF41HueExport issues exactly one export request', exportCalls.length === 1, JSON.stringify(exportCalls.map((c) => c.url)));
-        assert('requestF41HueExport targets the exact HUE export action the portal returned', exportCalls[0].url === 'https://dkcl.example/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all', exportCalls[0].url);
+        assert('requestF41HueExport targets the DETAIL export action, not the outer aggregate one', exportCalls[0].url === `https://dkcl.example/export/${HUE_DETAIL_IDENTITY}/all`, exportCalls[0].url);
+        assert('requestF41HueExport never exports the per-BCVH aggregate report again', !exportCalls[0].url.includes('sp_Phat_ChatLuong_PTC_BuuCuc_V2'), exportCalls[0].url);
         assert('requestF41HueExport uses the method the form declared', exportCalls[0].options?.method === 'GET', JSON.stringify(exportCalls[0].options));
-        assert('requestF41HueExport forwards the form Total verbatim', exportCalls[0].options?.params?.Total === '8', JSON.stringify(exportCalls[0].options?.params));
+        assert('requestF41HueExport forwards the detail form Total verbatim', exportCalls[0].options?.params?.Total === '2856', JSON.stringify(exportCalls[0].options?.params));
         assert('requestF41HueExport forwards FilterSelected verbatim, never rebuilt', exportCalls[0].options?.params?.FilterSelected === realFilterSelected, JSON.stringify(exportCalls[0].options?.params));
         assert('requestF41HueExport never touches the page UI to export', true);
     }
@@ -1561,12 +1595,15 @@ async function runTests() {
             onExportRequest: (url, options) => exportCalls.push({ url, options })
         });
         client.stopForSecurityChallenge = async () => {};
+        stubHueDetailStep(client, { formPresent: false });
         await client.submitF41HueFilters({ businessDate: '2026-08-23' });
         const summary = await client.readF41HueOuterSummary();
         assert('a response without an export form still reports exportIdentity null', summary.exportIdentity === null && summary.exportAction === null, JSON.stringify(summary));
         let threw = null;
         try { await client.requestF41HueExport(); } catch (error) { threw = error; }
-        assert('the export refuses with the pre-existing EXPORT_CONTROL_NOT_READY code', threw?.code === 'EXPORT_CONTROL_NOT_READY', String(threw?.code));
+        // AB-AUTH-17: the HUE export now depends on the DETAIL response's form, so a missing form
+        // surfaces as the detail-specific code rather than the outer EXPORT_CONTROL_NOT_READY.
+        assert('the export refuses when the detail export form was never observed', threw?.code === 'F41_DETAIL_EXPORT_FORM_NOT_FOUND', String(threw?.code));
         assert('no export request is fired when the form was never observed', exportCalls.length === 0, JSON.stringify(exportCalls));
     }
 
@@ -1581,12 +1618,20 @@ async function runTests() {
             onExportRequest: (url, options) => exportCalls.push({ url, options })
         });
         client.stopForSecurityChallenge = async () => {};
+        // AB-AUTH-17: a TCT response can only ever yield the TCT identity, so the HUE export step
+        // must find no form it accepts -- the cross-lane guard this test exists for, one level down.
+        stubHueDetailStep(client, { detailIdentity: 'sp_Phat_ChatLuong_PTC_Tinh_V2' });
         await client.submitF41TctFilters({ businessDate: '2026-08-23' });
         await client.readF41TctOuterSummary();
         let threw = null;
         try { await client.requestF41HueExport(); } catch (error) { threw = error; }
-        assert('a TCT-derived export request is refused by the HUE export step', threw?.code === 'EXPORT_CONTROL_NOT_READY', String(threw?.code));
+        assert('a TCT-derived export request is refused by the HUE export step', threw?.code === 'F41_DETAIL_EXPORT_FORM_NOT_FOUND', String(threw?.code));
         assert('no cross-lane export request is fired', exportCalls.length === 0, JSON.stringify(exportCalls));
+        // A rejected export read clears the pending export request rather than leaving a stale one
+        // behind, so the TCT lane re-reads its own summary before exporting -- assert that first,
+        // since a stale request surviving a rejection would be the more dangerous behaviour.
+        assert('a rejected export read leaves no stale export request behind', client.lastF41ExportRequest === null, JSON.stringify(client.lastF41ExportRequest));
+        await client.readF41TctOuterSummary();
         await client.requestF41TctExport();
         assert('the matching TCT export step does fire the request', exportCalls.length === 1 && exportCalls[0].url.includes('sp_Phat_ChatLuong_PTC_Tinh_V2'), JSON.stringify(exportCalls));
     }
@@ -1602,6 +1647,7 @@ async function runTests() {
             exportStatus: 500
         });
         client.stopForSecurityChallenge = async () => {};
+        stubHueDetailStep(client);
         await client.submitF41HueFilters({ businessDate: '2026-08-23' });
         await client.readF41HueOuterSummary();
         let threw = null;
@@ -1621,13 +1667,17 @@ async function runTests() {
             exportContentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
         client.stopForSecurityChallenge = async () => {};
+        stubHueDetailStep(client);
         await client.submitF41HueFilters({ businessDate: '2026-08-23' });
         await client.readF41HueOuterSummary();
         await client.requestF41HueExport();
         const exportStep = steps.find((line) => line.includes('step=export_requested'));
         assert('the export request logs its status and content-type for the next real run', /status=200/.test(exportStep) && /contentType=application\/vnd/.test(exportStep), exportStep);
-        const infoStep = steps.find((line) => line.includes('step=export_info'));
-        assert('the export_info step records it read the form from template_paginator', /source=template_paginator/.test(infoStep) && /paramNames=/.test(infoStep), infoStep);
+        assert('the export step names the HUE detail lane, so the log says which table was exported', /lane=HUE detail/.test(exportStep), exportStep);
+        const infoSteps = steps.filter((line) => line.includes('step=export_info'));
+        assert('the outer summary still records it read its form from template_paginator', infoSteps.some((line) => /source=template_paginator/.test(line) && /paramNames=/.test(line)), JSON.stringify(infoSteps));
+        // AB-AUTH-17: and the export itself must say plainly that it read the DETAIL table's form.
+        assert('the export records it read the form from detail_template_paginator', infoSteps.some((line) => /source=detail_template_paginator/.test(line)), JSON.stringify(infoSteps));
     }
 
     // AB-AUTH-13: the step log now covers the fixed flow -- filters_prepared/after_restore (no

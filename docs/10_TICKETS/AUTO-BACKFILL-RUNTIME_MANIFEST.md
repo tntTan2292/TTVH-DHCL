@@ -1464,3 +1464,84 @@ Section 35.4's row-count question is now **closed by this decision**. What remai
 One consequence worth stating plainly: with the count gates removed, a day on which a *required* unit is genuinely missing is now the only population failure, and it fails with that unit named -- but a day on which a required unit reports *wrong numbers* is still caught only by `assertGrandTotalReconciles()` and the HUE workbook/summary reconciliation, exactly as before. No numeric protection was removed by this delta.
 
 State: implemented and technically verified; **not self-passed**. `READY FOR PO` -- the Product Owner should re-run F4.1 for both lanes on `23/08` (real counts 8 HUE / 38 TCT, which this rule now accepts) and confirm the run proceeds past the summary check into the export step.
+
+## 38. AB-AUTH-17 -- F4.1 HUE Now Exports The DETAIL Table, Not The Per-BCVH Aggregate (2026-08-27, Claude Code Opus 5)
+
+### 38.1 The Defect, Confirmed By Hand
+
+The Product Owner checked the AB-AUTH-15 export path manually on 2026-08-26 and found that F4.1 HUE exports a **summary workbook aggregated by BCVH**, not the per-item detail the F4.1 HUE schema requires (42 columns including `Số hiệu bưu gửi` -- `docs/07_REFERENCE/Domains/domain_quality_management/f4.1_chat_luong_phat_thanh_cong_cua_buu_cuc/data_blueprint.md`).
+
+That is consistent with the code: `f41HueExcelParser.js` declares `EXPECTED_COLUMN_COUNT = 42` and `REQUIRED_COLUMN = 'Số hiệu bưu gửi'`, so the aggregate workbook could never have parsed. AB-AUTH-15 was correct about *how* to export (the portal's own form, forwarded verbatim) but wrong about *which* form.
+
+**TCT is not affected and was not touched**: per SSOT its lane genuinely is the per-province aggregate.
+
+### 38.2 The Real Evidence -- Nothing Below Is Inferred
+
+Every fact comes from portal output already captured in this repository, plus the portal's own JavaScript. The detail identity was **not** guessed from the F1.3 naming pattern.
+
+`backend/diagnostics/f41-hue-outer-summary-invalid-2026-08-23-2026-08-25T08-36-50-606Z.html` is the raw JSON body of the real F4.1 HUE report response for 23/08. Its `data` fragment ends with:
+
+```html
+<tr class="d-none tongquan_params"
+    data-store="sp_Phat_ChatLuong_PTC_ChiTiet_V2"
+    data-params="stMaTinhPhat=N'53'&stMaHuyenPhat=NULL&stMaBuuCucPhat=NULL&iFrom=20260823&iTo=20260823&..."
+    data-url="https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet"></tr>
+```
+
+1. **Detail identity: `sp_Phat_ChatLuong_PTC_ChiTiet_V2`** -- declared by the portal itself, inside the same response that produces the outer rows.
+2. **Detail endpoint: `/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet`** -- likewise declared, and identical to the `detailEndpoint` already recorded in `autoBackfillF41Contract.js`.
+3. **The clickable cell.** The same fragment carries `<td data-detail="1" class="ajax_cell">2856</td>` at TD index 10, and the rendered report-page capture (`...-2026-08-26T07-16-31-643Z.html`) shows outer `<th>` index 10 is `Sản lượng PTC/ Nộp tiền/ CH` -- the column the Product Owner named. Index 10 is also exactly the cell `readF41HueOuterSummary()` already reads `totalVolume` from, so both now derive from one constant (`F41_HUE_TOTAL_VOLUME_CELL`). That is what makes the `iTotal` sent to the detail endpoint identical to the verified summary total.
+4. **The detail table really is the schema needed.** The collapsed `tbody.detail_list_data` skeleton inside that same fragment carries the 42 headers, `Số hiệu bưu gửi` among them.
+
+The request contract is taken from the portal's own `https://dkcl.vnpost.vn/khl/js/ajax_call_report.js` (a static asset the F4.1 page loads; fetched read-only, no session):
+
+```js
+$(document).on("click", ".row_tong_quan>.ajax_cell:not(:empty)", function (e) {
+    ... url  = $(".tongquan_params").data("url")
+        data = handleDetailParams(rowParent, $(".tongquan_params").data("params"))
+               + { name_store, iDetailReport, iTotal }
+```
+
+`handleDetailParams()` and its `GiaTriCheck` list (which strips SQL `N'...'` quoting from named keys) are reproduced verbatim, including the first-occurrence-only string replacements and the `N'DROP OFF'` special case.
+
+### 38.3 What Changed
+
+`backend/src/services/dkclHueF13PortalClient.js`
+
+- New `openF41HueDetailTable()` -- the XHR equivalent of F1.3's `openDetailTable()`. F1.3 can click the real `td.ajax_cell` because its page genuinely shows the filtered report; F4.1's must not (AB-AUTH-13: navigating the shared page to the filtered F4.1 URL returns raw JSON and corrupts every session check reading that page). So this issues the identical request over the same cookie-sharing, non-navigating `page.request` transport AB-AUTH-15 already uses. It refuses -- never falls back -- on an unexpected store (`F41_DETAIL_IDENTITY_MISMATCH`), an unexpected endpoint (`F41_DETAIL_ENDPOINT_UNEXPECTED`), a missing anchor or non-clickable cell (`F41_DETAIL_TABLE_NOT_OPENED`), or a non-2xx response (`F41_DETAIL_REQUEST_FAILED`).
+- `requestF41HueExport()` now runs the F1.3 sequence: open the detail table, read the export form from **the detail response's own** `template_paginator`, then export. A detail response with no such form raises `F41_DETAIL_EXPORT_FORM_NOT_FOUND` and fires no request.
+- `readF41ExportInfo()` gained two optional arguments (paginator fragment, source label). The outer-summary path keeps its exact previous behaviour by default; the `[F41_STEP] step=export_info` line now names which fragment it read (`template_paginator` vs `detail_template_paginator`).
+- `fetchF41OuterRows()` keeps the outer fragment (`lastF41RowsHtml`) and clears it up front, so a failed fetch can never leave a previous date's fragment behind to build a request from.
+- `requestF41TctExport()`, `readF41TctOuterSummary()` and every F1.3 method: unchanged.
+
+`backend/src/services/autoBackfillF41Contract.js` -- HUE gains `detailResourceIdentity`, `detailExportAction` and `generatedFileMatch`. `resourceIdentity` still names the outer report, because that is what `readF41HueOuterSummary()` verifies it is reading.
+
+`backend/src/services/f41HueSingleDateService.js` -- `pollGeneratedFile({ match })` was passing `resourceIdentity`, a **stored-procedure name**, while `selectNewestGeneratedFile()` matches against the portal's generated **filename**. No stored-procedure name can appear in a filename, so this lane could never have found its workbook regardless of which form was exported. It now passes `generatedFileMatch`, matching how F1.3 and F4.1 TCT already poll.
+
+### 38.4 Tests
+
+`backend/test_f41HueDetailExport.js` (new, 29 assertions). The existing suite drives `page.evaluate()` through a hand-written `DOMParser` stub that only understands its own carriers; such a stub could pass while the real page fails. This suite therefore runs the same callbacks inside a **real headless Chromium** -- no persistent profile, no portal contact, every request intercepted and served offline -- against the **real captured 23/08 response**. It asserts the premise itself (the capture really does declare that store, that endpoint, that aggregate outer export form, and the `Số hiệu bưu gửi` detail header), then that the built request carries the portal's own store, `iDetailReport=1`, `iTotal=2856` equal to the verified summary total, `stMaTinhPhat` unquoted to `53` while unlisted keys keep `NULL`, and the XHR header -- and that the export targets the detail identity and never the aggregate one.
+
+**Verified to fail without the fix**: reverting `requestF41HueExport()` to its pre-AB-AUTH-17 body turns 29/29 into **24 passed, 5 failed**, failing precisely on the defect (`the export targets the DETAIL identity -- https://dkcl.vnpost.vn/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all`). Restored and re-verified.
+
+`backend/test_dkclHueF13SyncService.js` (220 -> 224) -- the HUE export assertions were inverted to the new target and the detail step stubbed (real-DOM coverage lives in the file above). One new assertion records that a rejected export read leaves no stale export request behind. `backend/test_autoBackfillF41Executors.js` (32/32) -- the HUE fixture filename now mirrors what the portal really produces, and the poll match is asserted to be a filename slug, never `sp_*`.
+
+### 38.5 Validation
+
+- `test_f41HueDetailExport.js` 29/29 (new) · `test_dkclHueF13SyncService.js` 224/224 (was 220) · `test_autoBackfillF41Executors.js` 32/32 · `test_f41HueExcelParser.js` 5/5 · `test_f41TctExcelParser.js` 10/10 · `test_f41ImportPipeline.js` 1/1.
+- No database touched, no Import run, no business-data write, no portal export requested by this delta.
+
+### 38.6 Residual -- Two Items, Both Requiring The HUE Browser Profile
+
+**Both remaining items need the HUE browser profile free, and it is not.** A live Playwright Chromium (PID `23532`) holds `Data DKCL\BrowserProfiles\HUE` with its lock directory present, so launching a second Chromium against it would risk `Cookies`/`Preferences` corruption -- the exact hazard AB-AUTH-01's lock exists to prevent. Per workspace discipline this was **not** bypassed, and the Product Owner's live DKCL session was not closed unilaterally.
+
+1. **The live read (ticket step 1) has not been run.** The detail identity, endpoint, metric cell and request contract are all established from real portal output (Section 38.2) rather than inference, but the DETAIL response's own export form has not yet been observed on the wire.
+2. **`generatedFileMatch = 'F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet'` is the one value not yet observed.** It is derived from the report slug plus the `_chi_tiet` suffix -- the same pairing F1.3 uses in production (`F1.3_chat_luong_phat_buu_giay_lien_tinh` summary / `..._chi_tiet` detail; `dkclHueF13SyncService.js:350` and `tctF13BackfillService.js:793`). It must be confirmed against a real generated file before this lane is trusted.
+
+`backend/probe_f41_hue_detail_export.js` (DIAGNOSTIC-TEMP, delete when this section closes) performs both, bounded: it reads the outer summary, opens the detail table, saves the raw detail response and prints the DETAIL export form; then requests that export and lists **every** generated file matching only `F4.1`, so the real filename slug is observed rather than assumed; then downloads the workbook and reports its column count, whether `Số hiệu bưu gửi` is present, and its data-row count against the summary total. It never writes to the database, never runs the Import pipeline, and never copies anything into an Incoming folder.
+
+```
+node probe_f41_hue_detail_export.js 2026-08-23
+```
+
+State: implemented and technically verified against real captured portal output; **not self-passed** and **not proven end to end**. `BLOCKED ON RUNTIME` -- the HUE browser profile must be released before the live read and the real-download test can run.

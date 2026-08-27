@@ -315,7 +315,11 @@ test('F4.1 HUE fake export uses verified identity, existing Import pipeline, and
     await applyF41Phase2Schema(process.env.QIS_TEST_DB_PATH);
     const calls = [];
     const generatedFile = {
-        filename: `${F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity}_20260801.xlsx`,
+        // AB-AUTH-17: the portal names generated files after the REPORT, not after the stored
+        // procedure, so the fixture filename now mirrors what the portal really produces -- and it
+        // must be the DETAIL report, since that is the only F4.1 HUE export carrying the 42-column
+        // per-item schema the parser requires.
+        filename: `fixture_${F41_EXECUTOR_IDENTITIES.HUE.generatedFileMatch}_20260801.xlsx`,
         href: '/files-xlsx/f41-hue-test',
     };
     const portalClient = {
@@ -362,8 +366,13 @@ test('F4.1 HUE fake export uses verified identity, existing Import pipeline, and
         ['filters', { businessDate: '2026-08-01' }],
         'summary',
         'export',
-        ['poll', F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity],
+        // AB-AUTH-17: was resourceIdentity ('sp_Phat_ChatLuong_PTC_BuuCuc_V2'), a stored-procedure
+        // name that can never appear in a generated filename -- so this lane's poll could never have
+        // matched its workbook.
+        ['poll', F41_EXECUTOR_IDENTITIES.HUE.generatedFileMatch],
     ]);
+    assert.equal(F41_EXECUTOR_IDENTITIES.HUE.generatedFileMatch.startsWith('sp_'), false);
+    assert.equal(F41_EXECUTOR_IDENTITIES.HUE.generatedFileMatch.endsWith('_chi_tiet'), true);
     assert.equal(calls.some((call) => Array.isArray(call) && call[0] === 'cleanup'), true);
     assert.equal((await get("SELECT COUNT(*) AS n FROM fact_f41 WHERE ngay_do_kiem = '2026-08-01'")).n, 2);
     assert.equal((await get("SELECT COUNT(*) AS n FROM import_log WHERE indicator = 'F4.1' AND source_lane = 'HUE' AND status = 'SUCCESS'")).n, 1);

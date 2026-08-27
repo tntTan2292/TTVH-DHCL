@@ -79,7 +79,10 @@ class F41HueSingleDateService {
             requestedAt,
             timeoutMs: this.config.generationTimeoutMs,
             intervalMs: this.config.generationPollingIntervalMs,
-            match: F41_EXECUTOR_IDENTITIES.HUE.resourceIdentity,
+            // AB-AUTH-17: was `resourceIdentity` (a stored-procedure name), which can never appear
+            // in a generated filename. Now the detail report's filename slug, matching how F1.3 and
+            // F4.1 TCT already poll.
+            match: F41_EXECUTOR_IDENTITIES.HUE.generatedFileMatch,
         });
         if (!generatedFile) {
             throw serviceError('EXPORT_TIMEOUT', 'Timed out waiting for the verified F4.1 HUE generated resource.');

@@ -12,6 +12,59 @@ const F41_HUE_EXPORT_ACTION = `/export/${F41_HUE_EXPORT_IDENTITY}/all`;
 const F41_TCT_EXPORT_IDENTITY = 'sp_Phat_ChatLuong_PTC_Tinh_V2';
 const F41_TCT_EXPORT_ACTION = `/export/${F41_TCT_EXPORT_IDENTITY}/all`;
 
+// AB-AUTH-17: F4.1 HUE needs the DETAIL table, not the outer summary. Every constant below is read
+// off real portal output, never inferred:
+//
+//   * the outer F4.1 response for HUE 23/08 (backend/diagnostics/f41-hue-outer-summary-invalid-
+//     2026-08-23-2026-08-25T08-36-50-606Z.html, the raw JSON body) ends with
+//       <tr class="d-none tongquan_params"
+//           data-store="sp_Phat_ChatLuong_PTC_ChiTiet_V2"
+//           data-params="stMaTinhPhat=N'53'&stMaHuyenPhat=NULL&...&iFrom=20260823&iTo=20260823&..."
+//           data-url="https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet">
+//     -- which is exactly where the portal's own click handler reads the detail store and URL from.
+//   * the same response's rendered report page (…-2026-08-26T07-16-31-643Z.html) shows outer <th>
+//     index 10 is `Sản lượng PTC/ Nộp tiền/ CH`, and the row carries
+//     `<td data-detail="1" class="ajax_cell">2856</td>` at that same index -- the clickable cell.
+//   * the collapsed detail table skeleton in that fragment carries the 42 headers the F4.1 HUE
+//     schema requires, `Số hiệu bưu gửi` among them, over an empty `tbody.detail_list_data` that
+//     the click handler fills over AJAX.
+//
+// The outer export form (sp_Phat_ChatLuong_PTC_BuuCuc_V2) produces a per-BCVH AGGREGATE workbook,
+// which f41HueExcelParser.js can never parse -- it requires the 42-column per-item detail. This is
+// the same two-step shape F1.3 already uses (openDetailTable() -> requestDetailExport(), whose
+// detail identity sp_TT_Phat_LienTinh_ChiTiet likewise differs from its summary identity).
+const F41_HUE_DETAIL_IDENTITY = 'sp_Phat_ChatLuong_PTC_ChiTiet_V2';
+const F41_HUE_DETAIL_EXPORT_ACTION = `/export/${F41_HUE_DETAIL_IDENTITY}/all`;
+const F41_HUE_DETAIL_PATH = '/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet';
+const F41_HUE_DETAIL_METRIC_HEADER = 'Sản lượng PTC/ Nộp tiền/ CH';
+
+// AB-AUTH-17: `GiaTriCheck` from the portal's own https://dkcl.vnpost.vn/khl/js/ajax_call_report.js
+// (the file the F4.1 report page loads). handleDetailParams() there strips the SQL `N'...'` quoting
+// from exactly these keys before sending the detail request; reproduced verbatim so the request we
+// issue is byte-identical to the one a real click produces.
+const F41_DETAIL_UNQUOTED_PARAM_KEYS = Object.freeze([
+    'stMaTinhChapNhan',
+    'stMaTinhPhat',
+    'stMaTinhPhatHoan',
+    'stMaTinhChuyenHoan',
+    'stMaBuuCucPhat',
+    'stMaBuuCucChapNhan',
+    'stMaBuuCucChuyenHoan',
+    'stMaBuuCucPhatHoan',
+    'stMaLoaiBCChapNhan',
+    'stMaLoaiBCPhat',
+    'stPhamVi',
+    'stKhoiLuong',
+    'stPhuongTien',
+    'stMaKHL',
+    'stNhomLoaiKH',
+    'stMaLoaiBuuGui',
+    'stLoaiDichVu',
+    'stNhomLoaiBuuGui',
+    'stMaDichVu',
+    'stLoaiThuGom'
+]);
+
 // AB-AUTH-10: F4.1 filter transport. The nine filter controls on the DKCL F4.1 report page are
 // Select2-backed widgets. Playwright's selectOption() sets the underlying native <select>.value but
 // does not necessarily sync Select2's own internal state -- and it is Select2's state, not the
@@ -47,6 +100,11 @@ const F41_LANE_QUERY_FILTERS = Object.freeze({
 // The grand-total row leaves these blank, so it drops out of the code list on its own.
 const F41_HUE_UNIT_CODE_CELL = 5;
 const F41_TCT_PROVINCE_CODE_CELL = 1;
+// AB-AUTH-17: the outer cell readF41HueOuterSummary() already reads `totalVolume` from. It is also
+// the cell whose detail table must be opened, so both now derive from this one constant -- that is
+// what makes `iTotal` sent to the detail endpoint identical to the verified summary total, and in
+// turn what makes the workbook reconcile in f41HueSingleDateService.runOneDate().
+const F41_HUE_TOTAL_VOLUME_CELL = 10;
 
 const F41_REQUEST_PAGE_SIZE = '50000';
 const F41_REQUEST_PAGE = '1';
@@ -208,6 +266,13 @@ class DkclHueF13PortalClient {
         // derived from the <form id="exportReport"> inside it. See readF41ExportInfo().
         this.lastF41Paginator = null;
         this.lastF41ExportRequest = null;
+        // AB-AUTH-17: the outer rows fragment itself, kept because the detail request is built
+        // entirely from markup the portal ships inside it (tr.tongquan_params + the clickable
+        // td.ajax_cell), and the detail response's own paginator, which carries the DETAIL export
+        // form. See openF41HueDetailTable().
+        this.lastF41RowsHtml = null;
+        this.lastF41DetailPaginator = null;
+        this.lastF41DetailRowCount = null;
         // DIAGNOSTIC-TEMP (AB-AUTH-11): upper bound on every diagnostic page read, so a hung page
         // can never delay the real F4.1 flow. Overridable for tests.
         this.diagnosticStepTimeoutMs = Number.isFinite(options.diagnosticStepTimeoutMs)
@@ -658,6 +723,11 @@ class DkclHueF13PortalClient {
     // unchanged from the previous DOM scrape, so unitCount/outerRowCount/totalVolume/passedVolume/
     // rate keep their exact prior meaning and assertSummary() is untouched.
     async fetchF41OuterRows(lane) {
+        // AB-AUTH-17: cleared up front so a failed fetch can never leave a previous date's fragment
+        // behind for openF41HueDetailTable() to build a request from.
+        this.lastF41RowsHtml = null;
+        this.lastF41DetailPaginator = null;
+        this.lastF41DetailRowCount = null;
         const query = this.lastF41Query || buildF41ReportQuery(lane, this.lastBusinessDate);
         const response = await this.page.request.get(`${this.baseUrl}${F41_REPORT_PATH}?${query}`, {
             headers: { ...F41_XHR_HEADERS }
@@ -702,6 +772,9 @@ class DkclHueF13PortalClient {
                 .map((row) => Array.from(row.children).filter((cell) => cell.tagName === 'TD').map((cell) => normalize(cell.textContent)))
                 .filter((cells) => cells.length >= 38 && /^\d+$/.test(cells[0] || ''));
         }, rowsHtml);
+        // AB-AUTH-17: kept for openF41HueDetailTable(), which reads the portal's own
+        // tr.tongquan_params / td.ajax_cell markup out of this same fragment.
+        this.lastF41RowsHtml = rowsHtml;
         await this.logF41Step('rows_parsed', { rowCount: rows.length });
         return rows;
     }
@@ -724,7 +797,14 @@ class DkclHueF13PortalClient {
     // never inferred from the identity constant) AND yields a correctly-scoped export request
     // without the page needing to be filtered at all. The returned shape is unchanged, so
     // assertSummary() is untouched.
-    async readF41ExportInfo(exportIdentity) {
+    //
+    // AB-AUTH-17: `paginatorHtml`/`source` are additive. The outer summary path keeps its exact
+    // previous behaviour by defaulting to the outer response's paginator; the F4.1 HUE detail path
+    // passes the DETAIL response's own paginator, so its export form is read from the response that
+    // produced the detail rows -- the same "observed, never inferred" rule, one level down.
+    async readF41ExportInfo(exportIdentity, paginatorHtml = undefined, source = undefined) {
+        const html = paginatorHtml === undefined ? this.lastF41Paginator : paginatorHtml;
+        const sourceLabel = source || (paginatorHtml === undefined ? 'template_paginator' : 'detail_template_paginator');
         const probe = await this.page.evaluate(({ html, identity }) => {
             const parsed = new DOMParser().parseFromString(`<div>${html || ''}</div>`, 'text/html');
             const forms = Array.from(parsed.querySelectorAll('form[action]'));
@@ -748,14 +828,14 @@ class DkclHueF13PortalClient {
                 method: String(forms[index].getAttribute('method') || 'GET').toUpperCase(),
                 params
             };
-        }, { html: this.lastF41Paginator, identity: exportIdentity });
+        }, { html, identity: exportIdentity });
 
         this.lastF41ExportRequest = probe.exportAction
             ? { url: probe.exportUrl, method: probe.method, params: probe.params, exportIdentity }
             : null;
 
         await this.logF41Step('export_info', {
-            source: 'template_paginator',
+            source: sourceLabel,
             formCount: probe.formCount,
             sampleActions: JSON.stringify(probe.sampleActions),
             exportAction: probe.exportAction,
@@ -872,7 +952,7 @@ class DkclHueF13PortalClient {
             // still come from rows[0], the portal's own grand-total row: unchanged.
             unitCount: rows.length,
             unitCodes: rows.map((row) => String(row[F41_HUE_UNIT_CODE_CELL] ?? '').trim()).filter(Boolean),
-            totalVolume: normalizeNumber(cells[10]),
+            totalVolume: normalizeNumber(cells[F41_HUE_TOTAL_VOLUME_CELL]),
             passedVolume: normalizeNumber(cells[27]),
             rate: cells[28] || null,
             exportIdentity,
@@ -880,8 +960,162 @@ class DkclHueF13PortalClient {
         };
     }
 
+    // AB-AUTH-17: the XHR equivalent of F1.3's openDetailTable(). F1.3 can click the real
+    // td.ajax_cell because its page is genuinely showing the filtered report; F4.1's is not and
+    // must not be (AB-AUTH-13 -- navigating the shared page to the filtered F4.1 URL returns raw
+    // JSON and corrupts every session check that reads that page). So this issues the exact request
+    // the portal's own click handler issues, built from the portal's own markup:
+    //
+    //   ajax_call_report.js, $(document).on("click", ".row_tong_quan>.ajax_cell:not(:empty)"):
+    //     url    = $(".tongquan_params").data("url")
+    //     data   = handleDetailParams(rowParent, $(".tongquan_params").data("params"))
+    //              + { name_store: data("store"), iDetailReport: cell.data("detail"),
+    //                  iTotal: cell.text() }
+    //
+    // handleDetailParams() is reproduced below verbatim, including the first-occurrence-only string
+    // replacements, the `N'DROP OFF'` special case, the F41_DETAIL_UNQUOTED_PARAM_KEYS unquoting and
+    // the per-row `.chitiet_param` overrides (empty on the grand-total row, which is the row we
+    // want: its detail set is the whole province, so its count matches the verified totalVolume).
+    //
+    // Returns the same shape openDetailTable() returns, so the two read alike at the call site.
+    async openF41HueDetailTable() {
+        const probe = await this.page.evaluate(({ html, cellIndex, unquoteKeys }) => {
+            const parsed = new DOMParser().parseFromString(`<table><tbody>${html || ''}</tbody></table>`, 'text/html');
+            const anchor = parsed.querySelector('tr.tongquan_params');
+            if (!anchor) return { ok: false, reason: 'DETAIL_PARAMS_ANCHOR_NOT_FOUND' };
+            const store = anchor.getAttribute('data-store') || '';
+            const url = anchor.getAttribute('data-url') || '';
+            const rawParams = anchor.getAttribute('data-params') || '';
+            if (!store || !url) return { ok: false, reason: 'DETAIL_PARAMS_ANCHOR_INCOMPLETE', store, url };
+
+            const row = parsed.querySelector('tr.row_tong_quan');
+            if (!row) return { ok: false, reason: 'DETAIL_OUTER_ROW_NOT_FOUND' };
+            const tds = Array.from(row.children).filter((cell) => cell.tagName === 'TD');
+            const cell = tds[cellIndex];
+            if (!cell) return { ok: false, reason: 'DETAIL_METRIC_CELL_NOT_FOUND', cellCount: tds.length };
+            const text = String(cell.textContent || '').trim();
+            if (!cell.classList.contains('ajax_cell') || !text) {
+                return {
+                    ok: false,
+                    reason: 'DETAIL_METRIC_CELL_NOT_CLICKABLE',
+                    cellClass: cell.getAttribute('class'),
+                    cellText: text
+                };
+            }
+
+            const normalized = rawParams
+                .replace('>30kg', 'gt_30kg')
+                .replace('Liên tỉnh', 'lien_tinh')
+                .replace('Nội tỉnh', 'noi_tinh');
+            const params = {};
+            for (const [key, value] of new URLSearchParams(normalized)) {
+                let resolved = value;
+                if (resolved === "N'DROP OFF'") resolved = 'DROP OFF';
+                if (unquoteKeys.includes(key)) resolved = resolved.replace(/^N'|'/g, '');
+                params[key] = resolved;
+            }
+            for (const override of Array.from(row.querySelectorAll('.chitiet_param'))) {
+                const key = override.getAttribute('data-param');
+                const value = String(override.innerHTML || '').trim();
+                if (key && value) params[key] = value;
+            }
+            params.name_store = store;
+            params.iDetailReport = cell.getAttribute('data-detail') || '';
+            params.iTotal = text;
+
+            return { ok: true, store, url, params, detailReport: params.iDetailReport, total: text };
+        }, {
+            html: this.lastF41RowsHtml,
+            cellIndex: F41_HUE_TOTAL_VOLUME_CELL,
+            unquoteKeys: [...F41_DETAIL_UNQUOTED_PARAM_KEYS]
+        });
+
+        if (!probe.ok) {
+            await this.logF41Step('detail_request_rejected', { reason: probe.reason });
+            throw portalError(
+                `F4.1 HUE detail table could not be opened (${probe.reason}).`,
+                'F41_DETAIL_TABLE_NOT_OPENED'
+            );
+        }
+        if (probe.store !== F41_HUE_DETAIL_IDENTITY) {
+            throw portalError(
+                `F4.1 HUE detail store is ${probe.store}, expected ${F41_HUE_DETAIL_IDENTITY}.`,
+                'F41_DETAIL_IDENTITY_MISMATCH'
+            );
+        }
+        if (!isDkclUrl(probe.url) || new URL(probe.url).pathname !== F41_HUE_DETAIL_PATH) {
+            throw portalError(
+                `F4.1 HUE detail endpoint ${probe.url} is not the expected portal detail path.`,
+                'F41_DETAIL_ENDPOINT_UNEXPECTED'
+            );
+        }
+
+        const response = await this.page.request.get(probe.url, {
+            params: probe.params,
+            headers: { ...F41_XHR_HEADERS }
+        });
+        const status = typeof response?.status === 'function' ? response.status() : 0;
+        if (status < 200 || status >= 300) {
+            throw portalError(`F4.1 HUE detail request returned HTTP ${status}.`, 'F41_DETAIL_REQUEST_FAILED');
+        }
+        const body = await response.text();
+        let detailHtml = body;
+        this.lastF41DetailPaginator = null;
+        try {
+            const payload = JSON.parse(body);
+            if (typeof payload?.data === 'string') detailHtml = payload.data;
+            if (typeof payload?.template_paginator === 'string') this.lastF41DetailPaginator = payload.template_paginator;
+        } catch {
+            detailHtml = body;
+        }
+        this.lastF41DetailRowCount = await this.page.evaluate((html) => {
+            const parsed = new DOMParser().parseFromString(`<table><tbody>${html || ''}</tbody></table>`, 'text/html');
+            return Array.from(parsed.querySelectorAll('tr'))
+                .filter((row) => Array.from(row.children).some((cell) => cell.tagName === 'TD'))
+                .length;
+        }, detailHtml);
+
+        await this.logF41Step('detail_opened', {
+            status,
+            detailReport: probe.detailReport,
+            iTotal: probe.total,
+            detailRowCount: this.lastF41DetailRowCount,
+            detailPaginatorLength: this.lastF41DetailPaginator ? this.lastF41DetailPaginator.length : 0
+        });
+
+        return {
+            header: F41_HUE_DETAIL_METRIC_HEADER,
+            value: normalizeNumber(probe.total),
+            cellIndex: F41_HUE_TOTAL_VOLUME_CELL,
+            detailReport: probe.detailReport,
+            detailRowCount: this.lastF41DetailRowCount,
+            selector: 'outer aggregate row td.ajax_cell (XHR equivalent)'
+        };
+    }
+
+    // AB-AUTH-17: F4.1 HUE now exports from the DETAIL table's own form, exactly as F1.3 does
+    // (openDetailTable() -> requestDetailExport()). Before this, it exported from the outer report's
+    // form, which produces the per-BCVH aggregate workbook -- a real defect the Product Owner
+    // confirmed by hand on 2026-08-26: that workbook has no `Số hiệu bưu gửi` column at all, so
+    // f41HueExcelParser.js (EXPECTED_COLUMN_COUNT = 42, REQUIRED_COLUMN = 'Số hiệu bưu gửi')
+    // could never have parsed it.
+    //
+    // TCT is deliberately untouched: per SSOT its lane genuinely is the per-province aggregate, so
+    // requestF41TctExport() still exports the outer form.
     async requestF41HueExport() {
-        await this.requestF41Export(F41_HUE_EXPORT_IDENTITY, 'HUE');
+        await this.openF41HueDetailTable();
+        const { exportIdentity } = await this.readF41ExportInfo(
+            F41_HUE_DETAIL_IDENTITY,
+            this.lastF41DetailPaginator,
+            'detail_template_paginator'
+        );
+        if (exportIdentity !== F41_HUE_DETAIL_IDENTITY) {
+            throw portalError(
+                `F4.1 HUE detail export form (${F41_HUE_DETAIL_EXPORT_ACTION}) was not found in the detail response.`,
+                'F41_DETAIL_EXPORT_FORM_NOT_FOUND'
+            );
+        }
+        await this.requestF41Export(F41_HUE_DETAIL_IDENTITY, 'HUE detail');
     }
 
     async submitF41TctFilters({ businessDate }) {
@@ -1455,5 +1689,10 @@ module.exports = {
     F41_HUE_EXPORT_IDENTITY,
     F41_HUE_EXPORT_ACTION,
     F41_TCT_EXPORT_IDENTITY,
-    F41_TCT_EXPORT_ACTION
+    F41_TCT_EXPORT_ACTION,
+    F41_HUE_DETAIL_IDENTITY,
+    F41_HUE_DETAIL_EXPORT_ACTION,
+    F41_HUE_DETAIL_PATH,
+    F41_HUE_DETAIL_METRIC_HEADER,
+    F41_HUE_TOTAL_VOLUME_CELL
 };
