@@ -187,7 +187,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Admin action: Mark Holiday
   const handleConfirmMarkHoliday = async () => {
-    if (!markHolidayModalItem || !markHolidayReason.trim()) return;
+    if (!isAdmin || !markHolidayModalItem || !markHolidayReason.trim()) return;
     const businessDate = typeof markHolidayModalItem === 'string' ? markHolidayModalItem : markHolidayModalItem.business_date;
     setMarkHolidayLoading(true);
     setMarkHolidayError(null);
@@ -213,7 +213,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Admin action: Revoke Holiday
   const handleConfirmRevokeHoliday = async () => {
-    if (!revokeHolidayModalItem || !revokeHolidayReason.trim()) return;
+    if (!isAdmin || !revokeHolidayModalItem || !revokeHolidayReason.trim()) return;
     const holidayId = revokeHolidayModalItem.id || revokeHolidayModalItem.holiday?.id;
     if (!holidayId) {
       setRevokeHolidayError('Không tìm thấy ID LỊCH NGHỈ để thu hồi.');
@@ -455,7 +455,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Handlers for Run Actions
   const handleCreateRun = async () => {
-    if (!runTargetIndicator || !runTargetMonth) return;
+    if (!isAdmin || !runTargetIndicator || !runTargetMonth) return;
     setRunActionLoading(true);
     setRunError(null);
     try {
@@ -493,7 +493,7 @@ export default function AutoBackfillOperatorPanel() {
   };
 
   const handlePauseRun = async () => {
-    if (!activeRunId) return;
+    if (!isAdmin || !activeRunId) return;
     setRunActionLoading(true);
     setRunError(null);
     try {
@@ -511,7 +511,7 @@ export default function AutoBackfillOperatorPanel() {
   };
 
   const handleResumeRun = async () => {
-    if (!activeRunId) return;
+    if (!isAdmin || !activeRunId) return;
     setRunActionLoading(true);
     setRunError(null);
     try {
@@ -529,7 +529,7 @@ export default function AutoBackfillOperatorPanel() {
   };
 
   const handleResetCircuit = async () => {
-    if (!activeRunId) return;
+    if (!isAdmin || !activeRunId) return;
     setRunActionLoading(true);
     setRunError(null);
     try {
@@ -550,6 +550,7 @@ export default function AutoBackfillOperatorPanel() {
   // Product Owner to first select it as the "active" run below. Uses its own loading/error state
   // (openRunActionLoadingId) so acting on one row never disables the others.
   const handleResumeRunFromList = async (runId) => {
+    if (!isAdmin) return;
     setOpenRunActionLoadingId(runId);
     try {
       const res = await api.post(`/import/auto-backfill/runs/${runId}/resume`);
@@ -633,6 +634,7 @@ export default function AutoBackfillOperatorPanel() {
   // DataImportCenter.jsx's handleInteractiveHueLogin/handleInteractiveTctLogin, trimmed down:
   // this panel doesn't track the full lifecycle_state, only enough to unblock the banner.
   const handleOpenManualLogin = async (lane) => {
+    if (!isAdmin) return;
     setAuthLoginError(null);
     setAuthLoginPending(false);
     setAuthLoginLoading(true);
@@ -661,7 +663,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Single-Date Reimport API Handler
   const handleConfirmReimport = async () => {
-    if (!reimportModalItem) return;
+    if (!isAdmin || !reimportModalItem) return;
     setReimportLoading(true);
     setReimportError(null);
     try {
@@ -691,7 +693,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Real Single PO Exception Confirmation API Call
   const handleConfirmExemption = async () => {
-    if (!confirmModalItem || !confirmReason.trim()) return;
+    if (!isAdmin || !confirmModalItem || !confirmReason.trim()) return;
     setConfirmLoading(true);
     setConfirmError(null);
     try {
@@ -718,7 +720,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Real PO Exception Revoke API Call
   const handleRevokeExemption = async () => {
-    if (!revokeModalItem || !revokeReason.trim()) return;
+    if (!isAdmin || !revokeModalItem || !revokeReason.trim()) return;
     const exceptionId = revokeModalItem.exception_id || revokeModalItem.exception?.id || revokeModalItem.id;
     if (!exceptionId) {
       setRevokeError('Không tìm thấy ID bản ghi ngoại lệ PO để hoàn tác. Vui lòng thử tải lại trang.');
@@ -746,7 +748,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Bulk Exception Confirmation Execution Handler
   const handleExecuteBulkConfirm = async () => {
-    if (!bulkReason.trim() || selectedBulkKeys.size === 0) return;
+    if (!isAdmin || !bulkReason.trim() || selectedBulkKeys.size === 0) return;
     setBulkLoading(true);
     setBulkResultReport(null);
 
@@ -793,7 +795,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Bulk Reimport Execution Handler (Point 1)
   const handleExecuteBulkReimport = async () => {
-    if (selectedBulkKeys.size === 0) return;
+    if (!isAdmin || selectedBulkKeys.size === 0) return;
     setBulkReimportLoading(true);
     setBulkReimportReport(null);
 
@@ -1057,30 +1059,32 @@ export default function AutoBackfillOperatorPanel() {
                       </span>
                     )}
 
-                    <span className="ml-auto flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
-                      {isBlocking && blockedLanes.map((lane) => (
-                        <button
-                          key={lane}
-                          type="button"
-                          onClick={() => handleOpenManualLogin(lane)}
-                          disabled={authLoginLoading || authLoginPending}
-                          className="inline-flex items-center rounded-lg bg-vnpost-blue px-2.5 py-1 font-bold text-white hover:bg-blue-800 disabled:opacity-50"
-                        >
-                          Mở đăng nhập {lane}
-                        </button>
-                      ))}
-                      {canResume && (
-                        <button
-                          type="button"
-                          onClick={() => handleResumeRunFromList(entry.run.id)}
-                          disabled={openRunActionLoadingId === entry.run.id}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                        >
-                          <Play className="h-3 w-3 fill-current" />
-                          {openRunActionLoadingId === entry.run.id ? 'Đang xử lý...' : 'Tiếp tục Run'}
-                        </button>
-                      )}
-                    </span>
+                    {isAdmin && (
+                      <span className="ml-auto flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                        {isBlocking && blockedLanes.map((lane) => (
+                          <button
+                            key={lane}
+                            type="button"
+                            onClick={() => handleOpenManualLogin(lane)}
+                            disabled={authLoginLoading || authLoginPending}
+                            className="inline-flex items-center rounded-lg bg-vnpost-blue px-2.5 py-1 font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                          >
+                            Mở đăng nhập {lane}
+                          </button>
+                        ))}
+                        {canResume && (
+                          <button
+                            type="button"
+                            onClick={() => handleResumeRunFromList(entry.run.id)}
+                            disabled={openRunActionLoadingId === entry.run.id}
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                          >
+                            <Play className="h-3 w-3 fill-current" />
+                            {openRunActionLoadingId === entry.run.id ? 'Đang xử lý...' : 'Tiếp tục Run'}
+                          </button>
+                        )}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -1089,7 +1093,7 @@ export default function AutoBackfillOperatorPanel() {
         </div>
 
         {/* SAFE RUN CREATION CONTROLS */}
-        {!activeRunId && (
+        {isAdmin && !activeRunId && (
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-slate-50 p-4 border border-slate-200">
             <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Tạo tiến trình bù an toàn:</span>
             
@@ -1150,7 +1154,7 @@ export default function AutoBackfillOperatorPanel() {
               </div>
 
               <div className="flex items-center gap-2">
-                {actionButtons.canPause && (
+                {isAdmin && actionButtons.canPause && (
                   <button
                     onClick={handlePauseRun}
                     disabled={runActionLoading}
@@ -1161,7 +1165,7 @@ export default function AutoBackfillOperatorPanel() {
                   </button>
                 )}
 
-                {actionButtons.canResume && (
+                {isAdmin && actionButtons.canResume && (
                   <button
                     onClick={handleResumeRun}
                     disabled={runActionLoading}
@@ -1172,7 +1176,7 @@ export default function AutoBackfillOperatorPanel() {
                   </button>
                 )}
 
-                {actionButtons.canResetCircuit && (
+                {isAdmin && actionButtons.canResetCircuit && (
                   <button
                     onClick={handleResetCircuit}
                     disabled={runActionLoading}
@@ -1224,7 +1228,7 @@ export default function AutoBackfillOperatorPanel() {
                 <div className="flex flex-wrap items-center gap-2 rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-900 border border-amber-300 animate-bounce">
                   <ShieldAlert className="h-4 w-4 text-amber-700 shrink-0" />
                   <span>Cần đăng nhập thủ công [{waitingLanes.join(' / ') || 'Portal'}]</span>
-                  {waitingLanes.map((lane) => (
+                  {isAdmin && waitingLanes.map((lane) => (
                     <button
                       key={lane}
                       type="button"
@@ -1515,19 +1519,21 @@ export default function AutoBackfillOperatorPanel() {
             <table className="w-full text-left text-sm text-slate-700">
               <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3.5 w-12 text-center">
-                    <button
-                      type="button"
-                      onClick={() => toggleSelectAllItems(paginatedCoverage.pageItems)}
-                      className="text-slate-500 hover:text-slate-800"
-                    >
-                      {isAllTableItemsSelected ? (
-                        <CheckSquare className="h-4 w-4 text-blue-600" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </button>
-                  </th>
+                  {isAdmin && (
+                    <th className="px-4 py-3.5 w-12 text-center">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelectAllItems(paginatedCoverage.pageItems)}
+                        className="text-slate-500 hover:text-slate-800"
+                      >
+                        {isAllTableItemsSelected ? (
+                          <CheckSquare className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
+                    </th>
+                  )}
                   <th className="px-5 py-3.5">Ngày Nghiệp vụ</th>
                   <th className="px-5 py-3.5">Chỉ tiêu</th>
                   <th className="px-5 py-3.5">Nguồn Lane</th>
@@ -1543,19 +1549,21 @@ export default function AutoBackfillOperatorPanel() {
 
                   return (
                     <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className={`hover:bg-slate-50/80 transition ${isSelected ? 'bg-blue-50/40' : ''}`}>
-                      <td className="px-4 py-3.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => toggleSelectBulkItem(item)}
-                          className="text-slate-400 hover:text-blue-600"
-                        >
-                          {isSelected ? (
-                            <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </button>
-                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectBulkItem(item)}
+                            className="text-slate-400 hover:text-blue-600"
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </button>
+                        </td>
+                      )}
                       <td className="px-5 py-3.5 font-bold text-slate-900">{item.business_date}</td>
                       <td className="px-5 py-3.5">
                         <span className="font-semibold text-slate-700">{item.indicator}</span>
@@ -1709,7 +1717,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* FLOATING BULK ACTION BAR */}
-      {selectedBulkKeys.size > 0 && (
+      {isAdmin && selectedBulkKeys.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-slate-900 px-6 py-3.5 text-white shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center gap-2 text-sm font-bold">
             <CheckSquare className="h-5 w-5 text-amber-400" />
@@ -1752,7 +1760,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* BULK REIMPORT CONFIRMATION MODAL (Point 1) */}
-      {showBulkReimportModal && (
+      {isAdmin && showBulkReimportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 max-h-[85vh] flex flex-col">
             <div className="flex items-start justify-between">
@@ -1820,7 +1828,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* SINGLE-DATE REIMPORT CONFIRMATION MODAL */}
-      {reimportModalItem && (
+      {isAdmin && reimportModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
             <div className="flex items-start justify-between">
@@ -1870,7 +1878,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* BULK CONFIRMATION MODAL (RENAMED BUTTON TITLE) */}
-      {showBulkConfirmModal && (
+      {isAdmin && showBulkConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 max-h-[85vh] flex flex-col">
             <div className="flex items-start justify-between">
@@ -1976,29 +1984,35 @@ export default function AutoBackfillOperatorPanel() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedLaneModal(null);
-                        setReimportModalItem(item);
-                        setReimportError(null);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition shadow-xs"
-                    >
-                      <RotateCw className="h-3.5 w-3.5" />
-                      <span>Nhập lại</span>
-                    </button>
+                    {isAdmin ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedLaneModal(null);
+                            setReimportModalItem(item);
+                            setReimportError(null);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition shadow-xs"
+                        >
+                          <RotateCw className="h-3.5 w-3.5" />
+                          <span>Nhập lại</span>
+                        </button>
 
-                    <button
-                      onClick={() => {
-                        setSelectedLaneModal(null);
-                        setConfirmModalItem(item);
-                        setConfirmReason('');
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs"
-                    >
-                      <UserCheck className="h-3.5 w-3.5 text-amber-700" />
-                      <span>Xác nhận Không phát sinh</span>
-                    </button>
+                        <button
+                          onClick={() => {
+                            setSelectedLaneModal(null);
+                            setConfirmModalItem(item);
+                            setConfirmReason('');
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs"
+                        >
+                          <UserCheck className="h-3.5 w-3.5 text-amber-700" />
+                          <span>Xác nhận Không phát sinh</span>
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">Chỉ xem</span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -2017,7 +2031,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* REAL PO EXEMPTION CONFIRMATION MODAL */}
-      {confirmModalItem && (
+      {isAdmin && confirmModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
             <div className="flex items-start justify-between">
@@ -2074,7 +2088,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* REAL EXCEPTION REVOKE MODAL */}
-      {revokeModalItem && (
+      {isAdmin && revokeModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
             <div className="flex items-start justify-between">
@@ -2167,7 +2181,7 @@ export default function AutoBackfillOperatorPanel() {
                       <span>{new Date(exc.created_at).toLocaleString('vi-VN')}</span>
                     </div>
 
-                    {exc.status === 'ACTIVE' && (
+                    {isAdmin && exc.status === 'ACTIVE' && (
                       <div className="pt-2 flex justify-end">
                         <button
                           onClick={() => {
@@ -2222,8 +2236,9 @@ export default function AutoBackfillOperatorPanel() {
           </div>
         </div>
       )}
+
       {/* MARK HOLIDAY MODAL */}
-      {markHolidayModalItem && (
+      {isAdmin && markHolidayModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
             <div className="flex items-start justify-between">
@@ -2282,7 +2297,7 @@ export default function AutoBackfillOperatorPanel() {
       )}
 
       {/* REVOKE HOLIDAY MODAL */}
-      {revokeHolidayModalItem && (
+      {isAdmin && revokeHolidayModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
             <div className="flex items-start justify-between">

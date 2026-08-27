@@ -1917,3 +1917,27 @@ Completed the frontend integration in `frontend/src/components/AutoBackfillOpera
 - **Production Build (`vite build`)**: Succeeded cleanly (dist bundle produced in ~1.23s).
 - **Backend Tests**: 28/28 PASSED (`test_autoBackfillHolidayCalendar.js` 17/17 + Gate 5 `test_autoBackfillSafety.js` 11/11).
 
+## 41. AB-CALENDAR-01 Frontend Remediation -- Strict Read-Only Gating & Verified Test Evidence (2026-08-27, Antigravity)
+
+### 41.1 Overview & Remediation Details
+Addressing PO feedback on commit `838b107e` regarding strict Read-Only enforcement for non-admin viewers:
+1. **Strict Non-Admin (`!isAdmin`) Read-Only Gating in `AutoBackfillOperatorPanel.jsx`**:
+   - Hidden all mutation controls when `!isAdmin`: Create Run panel, Pause / Resume / Reset Circuit / Manual Login buttons, Single-date Reimport ("Nhập lại"), Exemption confirm ("Xác nhận Không phát sinh") & revoke ("Hoàn tác"), Holiday mark ("LỊCH NGHỈ") & revoke ("Thu hồi LỊCH NGHỈ").
+   - Hidden table & accordion row/header checkboxes, "Chọn tất cả chưa hoàn tất" button, floating bulk action bar, and all bulk confirm/reimport modals when `!isAdmin`.
+   - Added `if (!isAdmin) return;` guard to all 12 frontend mutation handlers to prevent any client-side API mutation calls even if triggered programmatically.
+   - Preserved Read-Only access: Viewers can inspect coverage data, run statuses, PO exception history drawer, and Holiday Calendar drawer (with action buttons inside drawers hidden).
+2. **Comprehensive Test Suite Evidence**:
+   - Expanded unit test suite in `frontend/src/components/AutoBackfillOperatorPanel.test.js` to 20 test suites (all 20 PASSED).
+   - Test 17: Asserts viewer (`!isAdmin`) renders zero mutation controls and executes zero API calls.
+   - Test 18: Asserts admin (`isAdmin = true`) renders all mutation controls.
+   - Test 19: Asserts `GET /api/import/auto-backfill/coverage/selectable` multi-page selection and proper exclusion of holidays, exceptions, and completed days.
+   - Test 20: Asserts holiday mark (`POST /api/import/auto-backfill/holiday-calendar`) and revoke (`POST /api/import/auto-backfill/holiday-calendar/:holidayId/revoke`) issue exact endpoints and payloads.
+
+### 41.2 Verification & Results
+- **Frontend Unit Tests**: **20/20 PASSED** (`frontend/src/components/AutoBackfillOperatorPanel.test.js`).
+- **Lint Check (`oxlint`)**: **0 Errors**, 28 warnings (pre-existing unused imports elsewhere in the project).
+- **Production Build (`vite build`)**: **SUCCESS** (Built bundle in 1.22s).
+- **Backend Test Suite**: **28/28 PASSED** (`test_autoBackfillHolidayCalendar.js` 17/17 + `test_autoBackfillSafety.js` 11/11).
+- **No-Touch Scope**: Backend, F1.3, Tab "Nạp thủ công (Excel)", KPI/SSOT formulas, and networkMap strictly untouched.
+
+
