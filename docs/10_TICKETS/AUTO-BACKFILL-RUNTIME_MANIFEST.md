@@ -1545,3 +1545,169 @@ node probe_f41_hue_detail_export.js 2026-08-23
 ```
 
 State: implemented and technically verified against real captured portal output; **not self-passed** and **not proven end to end**. `BLOCKED ON RUNTIME` -- the HUE browser profile must be released before the live read and the real-download test can run.
+
+### 38.7 First Live Attempt (2026-08-27) -- Lock Was Stale, Not Held; Blocked One Level Deeper By A Real SSO Challenge
+
+**Process check (real, not assumed).** Before touching anything, every `node.exe` and `chrome.exe` on the machine was enumerated with `Get-Process`/`Get-CimInstance Win32_Process` and its command line inspected. None referenced this project's `backend`, the DKCL automation, or `BrowserProfiles`; the `node.exe` list was unrelated dev servers (`KHHH - Antigravity`) and this session's own tooling (`chrome-devtools-mcp`, the Playwright driver behind the Claude Browser pane). `Get-CimInstance Win32_Process -Filter "Name='chrome.exe'"` filtered to top-level (non `--type=`) processes showed exactly one browser (PID 14352) and it carried no `BrowserProfiles\HUE`/`TCT` path in its command line. **No PROFILE_LOCKED-owning process was found running.**
+
+**The lock itself, inspected before removal.** `Data DKCL\BrowserProfiles\HUE.lock` -- an empty directory (`Get-ChildItem` inside it: 0 entries), `CreationTime`/`LastWriteTime` both `2026-08-26 14:10:11`, ~19 hours stale at the time of removal. This is exactly `acquireProfileLock()`'s own marker (`${profileDir}.lock`, a bare directory it `mkdirSync()`s), sibling to -- and never inside -- the real profile directory `HUE\`, which was not touched and still holds its Cookies/Preferences/session data untouched. This matches a process that exited without reaching its own `close()` (crash or kill), not a live owner. Removed: only the `.lock` marker directory, nothing under `HUE\` itself. `HUE.lock` is git-ignored (`Data DKCL/` in `.gitignore`); no commit was made for this step -- it is not a code change.
+
+**Running the probe surfaced a second, real block one level deeper.** Verbatim output:
+
+```
+[1] Opening the HUE DKCL session for 2026-08-23 ...
+[AUTO-IMPORT-013][PortalClient HUE] diagnostics(wait_start): url=https://dkcl.vnpost.vn/sso/login title="Đăng nhập" pageCount=1 bodyTextLength=236 markers={"has_quan_ly_tep":false,"has_tra_cuu":true,"has_dang_xuat":false,"has_tantn_bdtth":false,"has_thong_ke_mojibake":false,"has_login_input":true}
+[AUTO-IMPORT-013][PortalClient HUE] diagnostics(wait_timed_out): url=https://dkcl.vnpost.vn/sso/login title="Đăng nhập" pageCount=1 bodyTextLength=236 markers={"has_quan_ly_tep":false,"has_tra_cuu":true,"has_dang_xuat":false,"has_tantn_bdtth":false,"has_thong_ke_mojibake":false,"has_login_input":true}
+
+PROBE FAILED: AUTHENTICATION_REQUIRED AUTHENTICATION_REQUIRED: DKCL requires an unrecognized security step or manual authentication.
+```
+
+Root cause, read from `dkclHueF13PortalClient.js` rather than guessed: `authenticate()` opened a real (non-headless) Chromium against the now-unlocked profile and landed on `https://dkcl.vnpost.vn/sso/login` -- the portal itself is asking for a fresh SSO login, i.e. the profile's stored session is no longer valid (consistent with its owning process having died uncleanly rather than closing normally). `stopForSecurityChallenge()` correctly detected this (its regex matches `sso` in the page) and, since `headless: false`, called `waitForManualAuthentication()`, which polled `isAuthenticated()` for the full `DKCL_HUE_MANUAL_AUTH_WAIT_MS` window (180000 ms, from `.env`) before giving up -- the diagnostic markers stayed identical between `wait_start` and `wait_timed_out` (`has_login_input:true`, `has_dang_xuat:false` both times), i.e. nobody completed the login in the visible window during that time. This is the intended behaviour, not a bug: the client refuses to guess at an SSO/CAPTCHA/OTP step rather than attempting to bypass it.
+
+**No code was changed for this attempt.** Only the stale lock directory was removed (not a tracked file) and the probe was run once, exactly as designed (bounded, read-only until the export step, no DB write, no Import run, no Incoming copy) -- it did not reach the export step this time.
+
+**Residual, updated:** the live read and the real-download test (Section 38.6, items 1-2) are still open. What changed is which layer blocks them: the profile lock is now confirmed released, and the remaining blocker is a live SSO login that only the Product Owner can complete (their own DKCL credentials/HRM/2FA step, on the visible browser window the probe opens with `headless: false`). Re-running `node probe_f41_hue_detail_export.js 2026-08-23` while watching the screen and completing whatever login step DKCL shows -- within `DKCL_HUE_MANUAL_AUTH_WAIT_MS` (currently 180s; raise it in `.env` first if more time is needed) -- is the next concrete step. This is a normal DKCL portal login, not a code defect, and is squarely PO/Antigravity territory (Windows-side interactive session), not something Claude Code can complete on its own per the "PO owns UI acceptance / Windows runtime" division of labor.
+
+### 38.8 Second Live Attempt (2026-08-27, PO Present) -- End-To-End Success, Real Workbook Downloaded And Verified TWICE
+
+With the Product Owner present, watching the visible Chromium window that `probe_f41_hue_detail_export.js` opens (`headless: false`):
+
+1. `node probe_f41_hue_detail_export.js 2026-08-23` (run 1) was started in the background so its early output could be watched without blocking on its full runtime. Five seconds in it showed the same `wait_start` marker as Section 38.7, and that was reported to the Product Owner in chat at that moment ("Cửa sổ đăng nhập đã hiện, mời PO đăng nhập trong vòng 180 giây."), per the sequencing this section's instructions required.
+2. The Product Owner completed the DKCL login on screen and confirmed in chat ("Đăng nhập rồi"). No authentication state was inferred from page markers before that message -- the run was not treated as logged in until the Product Owner said so in words.
+3. Per the instruction to run the exact same command again regardless of whether the first process had already exited, `node probe_f41_hue_detail_export.js 2026-08-23` (run 2) was started next, in the foreground this time.
+
+**Correction, stated plainly because it changes what actually happened on the portal:** run 1 had **not** timed out by the time run 2 was started -- checking its full log afterward shows it detected the Product Owner's login (`wait_detected_authenticated`) while still polling, well inside its 180s window, and then ran to completion **on its own**, including requesting the export and downloading the workbook, before run 2 was ever launched. Both runs therefore completed successfully end to end, each issuing its own real export request to the portal and downloading its own copy of the workbook. This is harmless -- the probe writes only to `backend/diagnostics/` and `portal-downloads/dkcl/hue/f41/probe/`, both outside version control and outside every path the Import pipeline reads from -- but it should be reported accurately rather than as the single confirmatory run originally assumed. Both verbatim outputs follow.
+
+**Run 1** (background; completed on its own after the Product Owner's login, before run 2 was started):
+
+```
+[1] Opening the HUE DKCL session for 2026-08-23 ...
+[AUTO-IMPORT-013][PortalClient HUE] diagnostics(wait_start): url=https://dkcl.vnpost.vn/sso/login title="Đăng nhập" pageCount=1 bodyTextLength=236 markers={"has_quan_ly_tep":false,"has_tra_cuu":true,"has_dang_xuat":false,"has_tantn_bdtth":false,"has_thong_ke_mojibake":false,"has_login_input":true}
+[AUTO-IMPORT-013][PortalClient HUE] diagnostics(wait_detected_authenticated): url=https://dkcl.vnpost.vn/ title="Quản trị nội dung" pageCount=1 bodyTextLength=236 markers={"has_quan_ly_tep":true,"has_tra_cuu":true,"has_dang_xuat":false,"has_tantn_bdtth":true,"has_thong_ke_mojibake":false,"has_login_input":false}
+
+[2] Reading the outer summary (read only) ...
+[F41_STEP] lane=HUE step=filters_prepared businessDate=2026-08-23 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=after_restore businessDate=2026-08-23 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=xhr_response status=200 bodyKind=JSON_WITH_DATA bodyLength=65203 rowsHtmlLength=53354 paginatorLength=1140 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=rows_parsed rowCount=8 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=export_info source=template_paginator formCount=1 sampleActions=["/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all"] exportAction=/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all method=GET paramNames=["Total","FilterSelected"] url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+  totalVolume=2856 passedVolume=1294 rate=45.31%
+  outer exportIdentity=sp_Phat_ChatLuong_PTC_BuuCuc_V2 (this is the AGGREGATE report)
+  unitCodes=["533140","535470","535790","536250","537015","537220"]
+  saved: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\diagnostics\probe-f41-hue-outer-2026-08-23-2026-08-27T02-28-50-725Z.txt
+
+[3] Opening the detail table over the portal's own AJAX contract ...
+[F41_STEP] lane=HUE step=detail_opened status=200 detailReport=1 iTotal=2856 detailRowCount=50 detailPaginatorLength=6154 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+  metric=Sản lượng PTC/ Nộp tiền/ CH iTotal=2856 detailRowsInFirstPage=50
+  saved: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\diagnostics\probe-f41-hue-detail-paginator-2026-08-23-2026-08-27T02-28-57-430Z.txt
+
+[4] The DETAIL export form the portal returned:
+[F41_STEP] lane=HUE step=export_info source=detail_template_paginator formCount=1 sampleActions=["/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all"] exportAction=/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all method=GET paramNames=["Total","FilterSelected"] url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+  exportAction=/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all
+  exportIdentity=sp_Phat_ChatLuong_PTC_ChiTiet_V2  (expected sp_Phat_ChatLuong_PTC_ChiTiet_V2)
+  request={
+  "url": "https://dkcl.vnpost.vn/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all",
+  "method": "GET",
+  "params": {
+    "Total": "2856",
+    "FilterSelected": "{\"stMaTinhPhat\":\"53\",\"stMaHuyenPhat\":\"NULL\",\"stMaBuuCucPhat\":\"NULL\",\"iFrom\":\"2026-08-23\",\"iTo\":\"2026-08-23\",\"stMaDichVu\":\"NULL\",\"stNhomLoaiBuuGui\":\"NULL\",\"stLoaiDichVu\":\"NULL\",\"stMaLoaiBuuGui\":\"NULL\",\"stNhomLoaiKH\":\"NULL\",\"stMaLoaiBCPhat\":\"NULL\",\"stMaKHL\":\"NULL\",\"stPhuongTien\":\"NULL\",\"stLoaiTuyenPhat\":\"NULL\",\"stKhoiLuong\":\"NULL\",\"stLoaiPhuongXa\":\"NULL\",\"stPhamViTinh\":\"NULL\",\"name_store\":\"sp_Phat_ChatLuong_PTC_ChiTiet_V2\",\"iDetailReport\":\"1\",\"iTotal\":\"2856\",\"Page\":1,\"PageSize\":50}"
+  },
+  "exportIdentity": "sp_Phat_ChatLuong_PTC_ChiTiet_V2"
+}
+
+[5] Requesting the detail export (the one outward action) ...
+[F41_STEP] lane=HUE step=detail_opened status=200 detailReport=1 iTotal=2856 detailRowCount=50 detailPaginatorLength=6154 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=export_info source=detail_template_paginator formCount=1 sampleActions=["/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all"] exportAction=/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all method=GET paramNames=["Total","FilterSelected"] url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=export_requested lane=HUE detail status=200 contentType=text/html; charset=UTF-8 url=https://dkcl.vnpost.vn/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+
+[6] Observing the REAL generated filename (matching only on "F4.1") ...
+  observed filename : 27-08-2026_09-29-09_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet(1).xlsx
+  configured match  : F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet
+  match is correct  : true
+
+[7] Downloading and inspecting the workbook (no import, no DB write) ...
+  file: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\portal-downloads\dkcl\hue\f41\probe\27-08-2026_09-29-09_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet(1).xlsx (445267 bytes)
+  sheets            : ["Worksheet"]
+  header row index  : 0
+  "Số hiệu bưu gửi" : PRESENT
+  column count      : 42 (F4.1 HUE schema expects 42)
+  data rows         : 2856
+  summary total     : 2856
+  reconciles        : true
+  saved: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\diagnostics\probe-f41-hue-workbook-header-2026-08-23-2026-08-27T02-29-21-526Z.txt
+```
+
+**Run 2** (foreground; started after the Product Owner's confirmation, per the instruction to re-run the identical command regardless):
+
+```
+[1] Opening the HUE DKCL session for 2026-08-23 ...
+
+[2] Reading the outer summary (read only) ...
+[F41_STEP] lane=HUE step=filters_prepared businessDate=2026-08-23 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=after_restore businessDate=2026-08-23 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=xhr_response status=200 bodyKind=JSON_WITH_DATA bodyLength=65203 rowsHtmlLength=53354 paginatorLength=1140 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=rows_parsed rowCount=8 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=export_info source=template_paginator formCount=1 sampleActions=["/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all"] exportAction=/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all method=GET paramNames=["Total","FilterSelected"] url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+  totalVolume=2856 passedVolume=1294 rate=45.31%
+  outer exportIdentity=sp_Phat_ChatLuong_PTC_BuuCuc_V2 (this is the AGGREGATE report)
+  unitCodes=["533140","535470","535790","536250","537015","537220"]
+  saved: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\diagnostics\probe-f41-hue-outer-2026-08-23-2026-08-27T02-32-53-394Z.txt
+
+[3] Opening the detail table over the portal's own AJAX contract ...
+[F41_STEP] lane=HUE step=detail_opened status=200 detailReport=1 iTotal=2856 detailRowCount=50 detailPaginatorLength=6154 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+  metric=Sản lượng PTC/ Nộp tiền/ CH iTotal=2856 detailRowsInFirstPage=50
+  saved: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\diagnostics\probe-f41-hue-detail-paginator-2026-08-23-2026-08-27T02-32-56-701Z.txt
+
+[4] The DETAIL export form the portal returned:
+[F41_STEP] lane=HUE step=export_info source=detail_template_paginator formCount=1 sampleActions=["/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all"] exportAction=/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all method=GET paramNames=["Total","FilterSelected"] url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+  exportAction=/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all
+  exportIdentity=sp_Phat_ChatLuong_PTC_ChiTiet_V2  (expected sp_Phat_ChatLuong_PTC_ChiTiet_V2)
+  request={
+  "url": "https://dkcl.vnpost.vn/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all",
+  "method": "GET",
+  "params": {
+    "Total": "2856",
+    "FilterSelected": "{\"stMaTinhPhat\":\"53\",\"stMaHuyenPhat\":\"NULL\",\"stMaBuuCucPhat\":\"NULL\",\"iFrom\":\"2026-08-23\",\"iTo\":\"2026-08-23\",\"stMaDichVu\":\"NULL\",\"stNhomLoaiBuuGui\":\"NULL\",\"stLoaiDichVu\":\"NULL\",\"stMaLoaiBuuGui\":\"NULL\",\"stNhomLoaiKH\":\"NULL\",\"stMaLoaiBCPhat\":\"NULL\",\"stMaKHL\":\"NULL\",\"stPhuongTien\":\"NULL\",\"stLoaiTuyenPhat\":\"NULL\",\"stKhoiLuong\":\"NULL\",\"stLoaiPhuongXa\":\"NULL\",\"stPhamViTinh\":\"NULL\",\"name_store\":\"sp_Phat_ChatLuong_PTC_ChiTiet_V2\",\"iDetailReport\":\"1\",\"iTotal\":\"2856\",\"Page\":1,\"PageSize\":50}"
+  },
+  "exportIdentity": "sp_Phat_ChatLuong_PTC_ChiTiet_V2"
+}
+
+[5] Requesting the detail export (the one outward action) ...
+[F41_STEP] lane=HUE step=detail_opened status=200 detailReport=1 iTotal=2856 detailRowCount=50 detailPaginatorLength=6154 url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=export_info source=detail_template_paginator formCount=1 sampleActions=["/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all"] exportAction=/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all method=GET paramNames=["Total","FilterSelected"] url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+[F41_STEP] lane=HUE step=export_requested lane=HUE detail status=200 contentType=text/html; charset=UTF-8 url=https://dkcl.vnpost.vn/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all url=https://dkcl.vnpost.vn/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc contentHead="<!DOCTYPE html><html lang=\"en\"><head> <meta charset=\"utf-8\"> <title>Chất lượng phát thành công của bưu cục</title> <meta name=\"author\" content=\"Vnpost-IT\"> <meta name=\"csrf-token\" content=\"45DYGXmB4yROtGz6bFJbeOHBnlVc4Cj6RDPZhyjo\"> <!-- App favicon --> <link rel=\"shortcut icon\" href=\"https://dkcl.vn"
+
+[6] Observing the REAL generated filename (matching only on "F4.1") ...
+  observed filename : 27-08-2026_09-33-05_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet(1).xlsx
+  configured match  : F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet
+  match is correct  : true
+
+[7] Downloading and inspecting the workbook (no import, no DB write) ...
+  file: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\portal-downloads\dkcl\hue\f41\probe\27-08-2026_09-33-05_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet(1).xlsx (445267 bytes)
+  sheets            : ["Worksheet"]
+  header row index  : 0
+  "Số hiệu bưu gửi" : PRESENT
+  column count      : 42 (F4.1 HUE schema expects 42)
+  data rows         : 2856
+  summary total     : 2856
+  reconciles        : true
+  saved: D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong\backend\diagnostics\probe-f41-hue-workbook-header-2026-08-27T02-33-19-888Z.txt
+```
+
+Both downloaded workbooks are byte-identical in size (445,267 bytes) and reconcile identically; two files exist side by side under `portal-downloads/dkcl/hue/f41/probe/` only because each run independently triggered a real export on the portal.
+
+**What this closes, item by item against Section 38.6's two open residuals:**
+
+1. **The live read.** The DETAIL export form was observed on the wire, twice, exactly as predicted from the 25/08 capture: `exportAction=/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all`, `exportIdentity=sp_Phat_ChatLuong_PTC_ChiTiet_V2` -- matching `F41_HUE_DETAIL_IDENTITY`/`F41_HUE_DETAIL_EXPORT_ACTION` with no mismatch flagged. The request carried `iDetailReport=1`, `iTotal=2856` (identical to the verified outer summary's `totalVolume=2856`), `stMaTinhPhat` unquoted to `53`, and the business date as `iFrom=iTo=2026-08-23` -- exactly the shape `openF41HueDetailTable()` builds and `test_f41HueDetailExport.js` asserts.
+2. **`generatedFileMatch`.** Both real generated filenames -- `...09-29-09_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet(1).xlsx` and `...09-33-05_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet(1).xlsx` -- reported `match is correct : true` against the configured `F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_chi_tiet`, confirmed against every real file whose name mentions `F4.1` (step 6 lists all such matches, not a filtered one), not just a plausible one.
+3. **The workbook itself is the right one, twice over.** Both downloads (445,267 bytes each), read directly with `xlsx`: 42 columns (matches `EXPECTED_COLUMN_COUNT`), `Số hiệu bưu gửi` present as a real header (matches `REQUIRED_COLUMN`), and 2,856 data rows -- exactly equal to the verified summary's `totalVolume`, both times. This is the reconciliation `f41HueSingleDateService.runOneDate()` performs before accepting a workbook, now proven twice against real files rather than a fixture.
+
+No database was touched, no Import pipeline ran, and no file was copied into an Incoming folder in either run -- both stopped after step 7's read-only inspection, exactly as designed. Both downloaded workbooks and all four saved fragments remain only under `backend/diagnostics/` and `portal-downloads/dkcl/hue/f41/probe/` (both outside version control and outside every path the Import pipeline reads from).
+
+### 38.9 Ticket Outcome
+
+AB-AUTH-17 is closed on the technical side: every constant and every request shape implemented in Section 38.3 is now confirmed against two independent real DKCL responses, not merely the 25/08 capture they were derived from. Both items in Section 38.6's residual are resolved. Read the way `AUTO-BACKFILL-RUNTIME` is governed (Section 4 of `CLAUDE.md`): Claude Code owns this technical verification and does not self-award PO PASS -- the state below reflects that.
+
+State: **implemented, technically verified, and now proven end to end against the real portal with the Product Owner present. READY FOR PO CHECK** -- pending the Product Owner's own review of this delta before it is folded into a real Auto Backfill run for F4.1 HUE.
+
+No code was changed to reach this result -- only the probe script (already committed in `6ace5ebb`) was run twice, with the Product Owner present for the login step. Nothing further to commit for this ticket.
