@@ -600,3 +600,38 @@ CREATE INDEX IF NOT EXISTS idx_auto_backfill_coverage_exception_event_exception 
 
 CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_coverage_exception_event_no_update BEFORE UPDATE ON auto_backfill_coverage_exception_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_coverage_exception_event is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_coverage_exception_event_no_delete BEFORE DELETE ON auto_backfill_coverage_exception_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_coverage_exception_event is append-only'); END;
+
+-- AB-CALENDAR-01: LICH NGHI (holiday calendar). Indicator-agnostic, revoke-not-delete,
+-- append-only event ledger. Deliberately separate from auto_backfill_coverage_exception:
+-- a holiday is a scheduling fact and must never satisfy a coverage-exception audit.
+CREATE TABLE IF NOT EXISTS auto_backfill_holiday_calendar (
+    id TEXT PRIMARY KEY,
+    business_date TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'REVOKED')) DEFAULT 'ACTIVE',
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    revoked_by TEXT,
+    revoked_at TEXT,
+    revoke_reason TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_holiday_calendar_active ON auto_backfill_holiday_calendar(business_date) WHERE status = 'ACTIVE';
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_holiday_calendar_scope ON auto_backfill_holiday_calendar(status, business_date);
+
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_holiday_calendar_no_delete BEFORE DELETE ON auto_backfill_holiday_calendar BEGIN SELECT RAISE(ABORT, 'auto_backfill_holiday_calendar cannot be deleted; revoke instead'); END;
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_holiday_calendar_revoked_immutable BEFORE UPDATE ON auto_backfill_holiday_calendar WHEN OLD.status = 'REVOKED' BEGIN SELECT RAISE(ABORT, 'revoked auto_backfill_holiday_calendar is immutable'); END;
+
+CREATE TABLE IF NOT EXISTS auto_backfill_holiday_calendar_event (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    holiday_id TEXT NOT NULL,
+    event_type TEXT NOT NULL CHECK (event_type IN ('CREATED', 'REVOKED')),
+    business_date TEXT NOT NULL,
+    reason TEXT,
+    actor TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(holiday_id) REFERENCES auto_backfill_holiday_calendar(id)
+);
+CREATE INDEX IF NOT EXISTS idx_auto_backfill_holiday_calendar_event_holiday ON auto_backfill_holiday_calendar_event(holiday_id, id);
+
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_holiday_calendar_event_no_update BEFORE UPDATE ON auto_backfill_holiday_calendar_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_holiday_calendar_event is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_holiday_calendar_event_no_delete BEFORE DELETE ON auto_backfill_holiday_calendar_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_holiday_calendar_event is append-only'); END;

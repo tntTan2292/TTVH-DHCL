@@ -7,6 +7,7 @@ const dkclHueF13SyncController = require('../controllers/dkclHueF13SyncControlle
 const dkclSharedOperationsController = require('../controllers/dkclSharedOperationsController');
 const autoBackfillCoverageController = require('../controllers/autoBackfillCoverageController');
 const autoBackfillCoverageExceptionController = require('../controllers/autoBackfillCoverageExceptionController');
+const autoBackfillHolidayCalendarController = require('../controllers/autoBackfillHolidayCalendarController');
 const autoBackfillQueueController = require('../controllers/autoBackfillQueueController');
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -19,6 +20,12 @@ router.get('/auto-backfill/coverage', requireAuth, autoBackfillCoverageControlle
 router.get('/auto-backfill/coverage/exceptions', requireAuth, autoBackfillCoverageExceptionController.list.bind(autoBackfillCoverageExceptionController));
 router.post('/auto-backfill/coverage/exceptions', ...adminOnly, autoBackfillCoverageExceptionController.create.bind(autoBackfillCoverageExceptionController));
 router.post('/auto-backfill/coverage/exceptions/:exceptionId/revoke', ...adminOnly, autoBackfillCoverageExceptionController.revoke.bind(autoBackfillCoverageExceptionController));
+// AB-CALENDAR-01: LICH NGHI. Read is open to any authenticated coverage reader;
+// writes are admin-only, matching the coverage-exception routes.
+router.get('/auto-backfill/coverage/selectable', requireAuth, autoBackfillCoverageController.getSelectable.bind(autoBackfillCoverageController));
+router.get('/auto-backfill/holiday-calendar', requireAuth, autoBackfillHolidayCalendarController.list.bind(autoBackfillHolidayCalendarController));
+router.post('/auto-backfill/holiday-calendar', ...adminOnly, autoBackfillHolidayCalendarController.create.bind(autoBackfillHolidayCalendarController));
+router.post('/auto-backfill/holiday-calendar/:holidayId/revoke', ...adminOnly, autoBackfillHolidayCalendarController.revoke.bind(autoBackfillHolidayCalendarController));
 router.post('/auto-backfill/runs', ...adminOnly, autoBackfillQueueController.createRun.bind(autoBackfillQueueController));
 // AB-AUTH-06: list every open run (design Section 5, C1) -- must be registered before the
 // '/:runId' route below only as a matter of readability; Express does not confuse the two since

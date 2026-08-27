@@ -20,6 +20,7 @@ const { applyF41Phase2Schema } = require('./migrate_f41_phase2_schema');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
 const { applyAutoBackfillCoverageExceptionSchema } = require('./migrate_auto_backfill_coverage_exception_schema');
+const { applyAutoBackfillHolidayCalendarSchema } = require('./migrate_auto_backfill_holiday_calendar_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -120,6 +121,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
     await applyAutoBackfillCoverageExceptionSchema(dbPath);
+    await applyAutoBackfillHolidayCalendarSchema(dbPath);
 }
 
 function startServer() {

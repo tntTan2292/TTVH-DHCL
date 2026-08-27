@@ -1785,3 +1785,117 @@ Neither Incoming nor Error holds anything for this date on either lane. Both fil
 Every number checked against the live database, live filesystem, and live log matches what Section 38.8's probe run predicted and what AB-AUTH-17's implementation was built to produce: 2,856 real per-item HUE rows with a valid, unique `Số hiệu bưu gửi` on every one; 34 real TCT province rows; both source files in `Processed/`, neither stuck in `Incoming/` nor diverted to `Error/`; zero hidden warnings in the log the import wrote to; Gate 5 untouched.
 
 **AB-AUTH-17 is CLOSED -- verified against a real completed Auto Backfill import, not just a probe.** No discrepancy was found in any of the four checks.
+---
+
+## 39. AB-CALENDAR-01 -- LỊCH NGHỈ (Shared Holiday Calendar) Implemented (2026-08-27, Claude Code Opus 5)
+
+New ticket, separate from AB-AUTH-17 (Section 38). Design of record:
+`docs/04_TECHNICAL_PLANNING/Feature/AB-CALENDAR-01_HOLIDAY_CALENDAR_DESIGN.md`, commit `15628be1`.
+Product Owner approved all four open decisions in that design before implementation began.
+
+### 39.1 Problem
+
+`auto_backfill_coverage_exception` excludes coverage per `(indicator, source_lane, business_date)`
+tuple, so a day with no operations had to be exempted once per lane per indicator, and PO confirmed
+an F1.3 exemption must not silently transfer to F4.1. PO asked instead for a day to be marked LỊCH
+NGHỈ **once**, indicator-agnostic, so that every indicator skips it under "Chọn tất cả chưa hoàn
+tất" -- while never hiding or blocking a day that really did produce data somewhere.
+
+### 39.2 PO Decisions Implemented
+
+| # | Decision | Implementation |
+| --- | --- | --- |
+| 1 | Revoke, not hard delete | Partial unique index on the ACTIVE row, `no_delete` / `revoked_immutable` triggers, append-only `auto_backfill_holiday_calendar_event` ledger -- the exact coverage-exception pattern. |
+| 2 | Do NOT block the automatic queue | `queue_eligible` and `queue_ineligible_reason` are byte-for-byte unchanged by a holiday; asserted by test AB-CAL-10. |
+| 3 | Only the "Bù dữ liệu tự động" tab | Overlay lives in `autoBackfillCoverageService.scan()` only. `DataImportCenter.jsx` and `/import/dkcl/{hue,tct}/f13/missing-dates` were not opened and not changed. |
+| 4 | No distinct badge for now | `status` stays `TRUE_MISSING`; only the additive `holiday` / `counts_as_missing` fields are emitted. |
+
+### 39.3 Changes Made
+
+**New files**
+
+- `backend/migrate_auto_backfill_holiday_calendar_schema.js` -- `auto_backfill_holiday_calendar` +
+  `auto_backfill_holiday_calendar_event`, revoke-not-delete, append-only, wired into `server.js`
+  startup migrations after `applyAutoBackfillCoverageExceptionSchema`.
+- `backend/src/services/autoBackfillHolidayCalendarService.js` -- create / revoke / getById / list /
+  `loadActiveHolidayMap()`. Deliberately a **separate service**, not an extension of
+  `AutoBackfillCoverageExceptionService`, so R3 is structural: the holiday code path cannot reach
+  `auto_backfill_coverage_exception` or `validateAdapterProof()` at all.
+- `backend/src/controllers/autoBackfillHolidayCalendarController.js`.
+- `backend/test_autoBackfillHolidayCalendar.js` (17 tests),
+  `backend/migrate_auto_backfill_holiday_calendar_schema.test.js` (4 tests).
+
+**Modified files**
+
+- `backend/src/services/autoBackfillCoverageService.js` -- one extra batched `loadActiveHolidayMap()`
+  load beside the existing exception load; `resolveHoliday()` applying the strict precedence chain
+  **SUCCESS > ACTIVE exception > LỊCH NGHỈ**, consulted only when `completion.status === MISSING`;
+  additive item fields `holiday` and `counts_as_missing`; additive `holiday_skipped_count` per lane
+  group and `holiday_skipped_total` at the top level; new `selectable()` method.
+- `backend/src/controllers/autoBackfillCoverageController.js` -- `getSelectable()`.
+- `backend/src/routes/importRoutes.js`, `backend/server.js`, `backend/src/db/schema.sql`.
+
+The frozen 6-state `COVERAGE_STATUSES` list (AUTO-BACKFILL-UI_PLAN.md Section 4), the `counts`
+object, `selectable`, and `queue_eligible` are all unchanged.
+
+### 39.4 API Added
+
+| Method | Path | Guard |
+| --- | --- | --- |
+| `GET` | `/api/import/auto-backfill/holiday-calendar` | `requireAuth` |
+| `POST` | `/api/import/auto-backfill/holiday-calendar` | admin |
+| `POST` | `/api/import/auto-backfill/holiday-calendar/:holidayId/revoke` | admin |
+| `GET` | `/api/import/auto-backfill/coverage/selectable?indicator=&lane=&month=` | `requireAuth` |
+
+`selectable` is a thin wrapper over `scan()` -- it duplicates no eligibility logic. It returns
+`items[].key` as `indicator|source_lane|business_date` (matching the operator panel's own item key)
+plus `excluded_holiday`, `excluded_exception` and `excluded_complete`, so the frontend can seed
+selection across every page of a month and still show the operator what was dropped.
+
+A holiday carries no indicator and no lane, so the per-lane registry role check used by the
+exception service has nothing to bind to: the route-level admin guard is the only write gate. This
+is a recorded, deliberate simplification. Write validation additionally rejects a future
+`business_date` (later than N-1 on the Asia/Ho_Chi_Minh business clock) and deliberately applies
+**no** `trackingStartDate` lower bound, because the calendar is indicator-agnostic.
+
+### 39.5 Validation (LEVEL 2)
+
+Command: `node --test <file>` per suite, from `backend/`.
+
+| Suite | Result |
+| --- | --- |
+| `test_autoBackfillSafety.js` (**Gate 5**) | **11/11 PASS**, file not opened or modified |
+| `test_autoBackfillHolidayCalendar.js` (new) | 17/17 PASS |
+| `migrate_auto_backfill_holiday_calendar_schema.test.js` (new) | 4/4 PASS |
+| `test_autoBackfillCoverageService.js` | 14/14 PASS, unmodified |
+| `test_autoBackfillCoverageExceptionService.js` | 24/24 PASS, unmodified |
+| `test_autoBackfillCoverageController.js` | 4/4 PASS |
+| `test_autoBackfillCoverageExceptionController.js` | 4/4 PASS |
+| `test_autoBackfillQueueService.js` | 32/32 PASS |
+| `test_autoBackfillQueueController.js` | 10/10 PASS |
+| `test_autoBackfillF13Executors.js` | 19/19 PASS |
+| `test_autoBackfillF41Executors.js` | 32/32 PASS |
+| `migrate_auto_backfill_{queue,safety,coverage_exception}_schema.test.js` | 2/2, 2/2, 4/4 PASS |
+
+Total 179 tests, 0 failures. The four PO decisions each have a dedicated assertion: AB-CAL-06
+(holiday + MISSING is excluded, status unchanged), AB-CAL-07 (holiday + real SUCCESS is ignored
+entirely), AB-CAL-08 (holiday never hides MANUAL_REVIEW_REQUIRED), AB-CAL-09 (an ACTIVE exception
+outranks a holiday), AB-CAL-10 (`queue_eligible` untouched), AB-CAL-11 (R3: nothing written to the
+exception tables, plus a source-level assertion that the service never names them).
+
+**One design deviation, deliberate.** The design's R7 promised the pre-existing coverage and
+exception suites would pass unmodified. On first run, six coverage tests and four exception tests
+failed because their fixtures build a real SQLite database that has no holiday table. Rather than
+edit those fixtures, `loadActiveHolidayMap()` now also degrades to an empty map on
+`no such table: auto_backfill_holiday_calendar` and rethrows every other database error (asserted by
+AB-CAL-12 and AB-CAL-13). This keeps LỊCH NGHỈ genuinely additive -- a database that has not run the
+migration scans normally with no holidays instead of breaking coverage entirely. The trade-off: a
+skipped migration would read as "no holidays" rather than failing loudly, mitigated by the startup
+migration in `server.js` and by the migration suite.
+
+### 39.6 Not Done
+
+No frontend change -- the operator panel wiring for "Chọn tất cả chưa hoàn tất" belongs to
+Antigravity and is not part of this ticket. No real Portal run, no import, no queue write, and no
+business-data write occurred. `PO UI Check Required = Yes` for the eventual frontend delta; this
+backend ticket claims no PO acceptance.

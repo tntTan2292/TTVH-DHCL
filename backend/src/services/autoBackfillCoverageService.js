@@ -17,6 +17,7 @@ const {
     enumerateDatesDescending,
 } = require('./autoBackfillBusinessCalendar');
 const { AutoBackfillCoverageExceptionService, COVERAGE_EXCEPTION_TYPES } = require('./autoBackfillCoverageExceptionService');
+const { AutoBackfillHolidayCalendarService } = require('./autoBackfillHolidayCalendarService');
 
 // The 6 canonical, registry-driven Coverage states locked by
 // AUTO-BACKFILL-UI_PLAN.md Section 4. `DATA_COMPLETE_WITH_EVIDENCE` and
@@ -88,6 +89,27 @@ function emptyCounts() {
     return Object.fromEntries(COVERAGE_STATUSES.map((status) => [status, 0]));
 }
 
+// AB-CALENDAR-01 -- LỊCH NGHỈ overlay.
+//
+// Precedence is strict and one-directional: real committed data (SUCCESS)
+// beats an ACTIVE coverage exception, which beats a holiday. A holiday is
+// therefore only ever consulted when the raw completion policy says MISSING
+// and no exception applies -- which is exactly what keeps a day that really
+// did produce data fully visible and fully importable ("không chặn nhập nếu
+// ngày đó thực ra có dữ liệu thật").
+//
+// The holiday NEVER changes `status`, `counts`, `selectable` or
+// `queue_eligible`: the 6-state coverage model is frozen by
+// AUTO-BACKFILL-UI_PLAN.md Section 4, and PO decision 2 keeps automation free
+// to fetch a holiday date if data ever appears there. Only the additive
+// `holiday` / `counts_as_missing` fields are emitted, and only they drive the
+// "chọn tất cả chưa hoàn tất" selection set.
+function resolveHoliday(completionStatus, exception, holidayMap, businessDate) {
+    if (completionStatus !== COMPLETION_STATUSES.MISSING) return null;
+    if (exception) return null;
+    return holidayMap.get(businessDate) || null;
+}
+
 class AutoBackfillCoverageService {
     constructor({
         db = null,
@@ -97,6 +119,7 @@ class AutoBackfillCoverageService {
         registryVersion = REGISTRY_VERSION,
         businessTimezone = BUSINESS_TIMEZONE,
         exceptionService = null,
+        holidayCalendarService = null,
     } = {}) {
         this.db = db || require('../config/db');
         this.fs = fsImpl;
@@ -110,6 +133,11 @@ class AutoBackfillCoverageService {
             clock: this.clock,
             registryProvider: this.registryProvider,
             registryVersion: this.registryVersion,
+            businessTimezone: this.businessTimezone,
+        });
+        this.holidayCalendarService = holidayCalendarService || new AutoBackfillHolidayCalendarService({
+            db: this.db,
+            clock: this.clock,
             businessTimezone: this.businessTimezone,
         });
     }
@@ -165,6 +193,15 @@ class AutoBackfillCoverageService {
             indicatorCodes: scopedIndicators.map((entry) => entry.code),
             laneCode: laneFilter,
         });
+        // AB-CALENDAR-01: one extra batched load, bounded by the widest
+        // tracking window in scope, alongside the exception map.
+        const holidayMap = await this.holidayCalendarService.loadActiveHolidayMap({
+            fromDate: scopedIndicators.reduce(
+                (earliest, entry) => (earliest === null || entry.trackingStartDate < earliest ? entry.trackingStartDate : earliest),
+                null,
+            ),
+            toDate,
+        });
 
         const items = [];
         for (const tuple of tuples) {
@@ -181,6 +218,7 @@ class AutoBackfillCoverageService {
             const exception = completion.status === COMPLETION_STATUSES.SUCCESS
                 ? null
                 : exceptionMap.get(tuple.indicator.code + '|' + tuple.lane.code + '|' + tuple.businessDate) || null;
+            const holiday = resolveHoliday(completion.status, exception, holidayMap, tuple.businessDate);
             const status = toCoverageStatus(completion.status, exception);
             const disposition = queueDisposition(tuple.indicator, tuple.lane, completion.status, exception);
             items.push({
@@ -195,6 +233,16 @@ class AutoBackfillCoverageService {
                 queue_eligible: disposition.queueEligible,
                 queue_ineligible_reason: disposition.reason,
                 evidence: completion.evidence,
+                // AB-CALENDAR-01 additive fields. `counts_as_missing` is the
+                // single flag "chọn tất cả chưa hoàn tất" must read.
+                holiday: holiday ? {
+                    id: holiday.id,
+                    business_date: holiday.business_date,
+                    reason: holiday.reason,
+                    created_by: holiday.created_by,
+                    created_at: holiday.created_at,
+                } : null,
+                counts_as_missing: completion.status !== COMPLETION_STATUSES.SUCCESS && !exception && !holiday,
                 exception: exception ? {
                     id: exception.id,
                     exception_type: exception.exception_type,
@@ -223,6 +271,9 @@ class AutoBackfillCoverageService {
                     portal_adapter_id: laneConfig.portalAdapter?.id || null,
                     completion_policy_id: laneConfig.completionPolicy.id,
                     counts: emptyCounts(),
+                    // AB-CALENDAR-01: additive, kept outside the frozen
+                    // 6-state `counts` object on purpose.
+                    holiday_skipped_count: 0,
                     items: [],
                 });
             }
@@ -230,6 +281,7 @@ class AutoBackfillCoverageService {
         for (const item of items) {
             const group = laneGroups.get(`${item.indicator} ${item.source_lane}`);
             group.counts[item.status] += 1;
+            if (item.holiday) group.holiday_skipped_count += 1;
             group.items.push(item);
         }
 
@@ -255,8 +307,72 @@ class AutoBackfillCoverageService {
             indicators: indicatorsMetadata,
             total_items: items.length,
             runnable_portal_jobs: items.filter((item) => item.queue_eligible).length,
+            holiday_skipped_total: items.filter((item) => item.holiday).length,
             lanes: [...laneGroups.values()],
             items,
+        };
+    }
+
+    /**
+     * AB-CALENDAR-01 -- backing API for "Chọn tất cả chưa hoàn tất".
+     *
+     * A thin wrapper over `scan()`: it duplicates no eligibility logic, it
+     * only narrows the scan result to one month and keeps the days whose
+     * `counts_as_missing` is true. The excluded days are returned explicitly
+     * so the operator can see what the calendar and the exception ledger
+     * removed instead of silently losing them.
+     *
+     * The keys are `indicator|source_lane|business_date`, matching the
+     * operator panel's own item key, so the frontend can seed its selection
+     * directly and cover every page of a month at once.
+     */
+    async selectable({ indicator = null, lane = null, month = null, roles = null } = {}) {
+        const monthFilter = month === null || month === undefined || month === '' || month === 'ALL'
+            ? null
+            : String(month).trim();
+        if (monthFilter !== null && !/^\d{4}-\d{2}$/.test(monthFilter)) {
+            throw createCoverageError('COVERAGE_MONTH_INVALID', 'month must use YYYY-MM.');
+        }
+
+        const coverage = await this.scan({ indicator, lane, roles });
+        const inMonth = (item) => monthFilter === null || item.business_date.startsWith(`${monthFilter}-`);
+        const scoped = coverage.items.filter(inMonth);
+
+        return {
+            registry_version: coverage.registry_version,
+            business_timezone: coverage.business_timezone,
+            as_of_business_date: coverage.as_of_business_date,
+            to_date: coverage.to_date,
+            indicator: indicator ? String(indicator).trim().toUpperCase() : 'ALL',
+            lane: lane ? String(lane).trim().toUpperCase() : 'ALL',
+            month: monthFilter || 'ALL',
+            total_candidates: scoped.length,
+            items: scoped
+                .filter((item) => item.counts_as_missing)
+                .map((item) => ({
+                    key: `${item.indicator}|${item.source_lane}|${item.business_date}`,
+                    indicator: item.indicator,
+                    source_lane: item.source_lane,
+                    business_date: item.business_date,
+                    status: item.status,
+                })),
+            excluded_holiday: scoped
+                .filter((item) => item.holiday)
+                .map((item) => ({
+                    indicator: item.indicator,
+                    source_lane: item.source_lane,
+                    business_date: item.business_date,
+                    reason: item.holiday.reason,
+                })),
+            excluded_exception: scoped
+                .filter((item) => item.exception)
+                .map((item) => ({
+                    indicator: item.indicator,
+                    source_lane: item.source_lane,
+                    business_date: item.business_date,
+                    exception_type: item.exception.exception_type,
+                })),
+            excluded_complete: scoped.filter((item) => item.completion_status === COMPLETION_STATUSES.SUCCESS).length,
         };
     }
 }

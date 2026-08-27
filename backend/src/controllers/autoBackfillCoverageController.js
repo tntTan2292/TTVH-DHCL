@@ -45,6 +45,31 @@ class AutoBackfillCoverageController {
             });
         }
     }
+
+    /**
+     * AB-CALENDAR-01. Backs "Chọn tất cả chưa hoàn tất" across every page of
+     * one indicator/lane/month, with LỊCH NGHỈ and coverage exceptions
+     * already removed from `items` and listed under `excluded_*`.
+     */
+    async getSelectable(req, res) {
+        try {
+            const data = await this.getService().selectable({
+                indicator: req.query?.indicator || null,
+                lane: req.query?.lane || null,
+                month: req.query?.month || null,
+                roles: [req.auth?.user?.role],
+            });
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return res.status(error.statusCode || 400).json({
+                success: false,
+                error: {
+                    code: error.code || 'AUTO_BACKFILL_COVERAGE_SELECTABLE_REJECTED',
+                    message: error.message || 'Invalid Auto Backfill selectable request.',
+                },
+            });
+        }
+    }
 }
 
 module.exports = new AutoBackfillCoverageController();
