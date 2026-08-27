@@ -1711,3 +1711,77 @@ AB-AUTH-17 is closed on the technical side: every constant and every request sha
 State: **implemented, technically verified, and now proven end to end against the real portal with the Product Owner present. READY FOR PO CHECK** -- pending the Product Owner's own review of this delta before it is folded into a real Auto Backfill run for F4.1 HUE.
 
 No code was changed to reach this result -- only the probe script (already committed in `6ace5ebb`) was run twice, with the Product Owner present for the login step. Nothing further to commit for this ticket.
+
+### 38.10 Real Import Closure (2026-08-27, PO Ran It Live) -- Database, Files, And Logs, All Checked Read-Only
+
+The Product Owner ran a real Auto Backfill import for F4.1, both lanes, for 2026-08-23, after AB-AUTH-17 landed. Everything below was read from the live `backend/src/db/database.sqlite`, the live `Data DKCL/F4.1/` folders, and the live `backend/backend.log`/`backend_err.log` -- no query, file, or log line was modified, and no import was re-run to produce this section.
+
+**1. Database, real query.** Table names confirmed from `PRAGMA table_info`, not assumed: HUE's F4.1 detail rows live in `fact_f41` (per `importIndicatorRegistry.js`'s `lanes.HUE.targetTable`), TCT's per-province aggregate in `fact_f41_national` (`lanes.TCT.targetTable`).
+
+```sql
+SELECT COUNT(*) FROM fact_f41 WHERE ngay_do_kiem = '2026-08-23';
+-- 2856
+```
+
+**Matches the 2,856 total verified live in Section 38.8, exactly.** `SELECT DISTINCT ngay_do_kiem FROM fact_f41` returns only `2026-08-01` and `2026-08-23` -- no other HUE date has ever been imported, so this is unambiguous.
+
+Column identity: `ma_bg` is `Số hiệu bưu gửi` per `F41_HUE_COLUMN_MAPPING` in `f41HueExcelParser.js`. `SELECT COUNT(*) FROM fact_f41 WHERE ngay_do_kiem='2026-08-23' AND (ma_bg IS NULL OR TRIM(ma_bg)='')` → **0**. `SELECT COUNT(DISTINCT ma_bg) ...` → **2856**, i.e. every one of the 2,856 rows carries a distinct, non-empty tracking number. Five real sample rows, first and last by `id`:
+
+| id | ma_bg | ma_bc_phat | ten_bc_phat | danh_gia_co_tms_ptc_8h |
+| --- | --- | --- | --- | --- |
+| 4696 | CC310389994VN | 535470 | BCVH Hương Trà | Không đạt |
+| 4697 | ER689224357VN | 535470 | BCVH Hương Trà | Không đạt |
+| 4698 | EH484470735VN | 535470 | BCVH Hương Trà | Đạt |
+| ... | ... | ... | ... | ... |
+| 7550 | EL534323644VN | 535790 | BCVH A Lưới | Đạt |
+| 7551 | EP422264671VN | 535790 | BCVH A Lưới | Đạt |
+
+`import_log_id = 1271` on the sampled rows, `created_at = '2026-08-27 03:11:25'` (SQLite `CURRENT_TIMESTAMP`, UTC by default -- local `10:11:25`, matching the `Processed/HUE` file mtime below).
+
+**TCT, same date, also run by the Product Owner.** `fact_f41_national` (per-province aggregate, no per-item tracking-number column -- schema has no `ma_bg`-equivalent by design, per `distinctColumn: 'ma_don_vi'`): `SELECT COUNT(*) WHERE ngay_do_kiem='2026-08-23'` → **34**, matching `REQUIRED_TCT_PROVINCE_CODES` and the AB-AUTH-16 completeness rule.
+
+`import_log` (both rows, real, unedited):
+
+| id | file_name | status | total_records | error_records | source_lane | trigger_source | created_at |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1270 | F4.1-2026.08.23.xlsx | SUCCESS | 34 | 0 | TCT | AUTO_BACKFILL_F41_TCT | 2026-08-27 03:10:38 |
+| 1271 | F4.1-2026.08.23.xlsx | SUCCESS | 2856 | 0 | HUE | AUTO_BACKFILL_F41_HUE | 2026-08-27 03:11:25 |
+
+Both real Auto Backfill runs (not manual reconciliation), both `error_records = 0`.
+
+**2. File placement, real filesystem.**
+
+```
+Data DKCL/F4.1/Incoming/HUE/   -- only .gitkeep
+Data DKCL/F4.1/Incoming/TCT/   -- only .gitkeep
+Data DKCL/F4.1/Error/HUE/      -- only .gitkeep
+Data DKCL/F4.1/Error/TCT/      -- only .gitkeep
+Data DKCL/F4.1/Processed/HUE/F4.1-2026.08.23.xlsx   -- 445,266 bytes, 2026-08-27 10:11
+Data DKCL/F4.1/Processed/TCT/F4.1-2026.08.23.xlsx   -- 14,733 bytes,  2026-08-27 10:10
+```
+
+Neither Incoming nor Error holds anything for this date on either lane. Both files reached `Processed/` and nowhere else.
+
+**3. Backend log, real, read around the import.** `backend.log` (92 lines total) carries the full `[F41_STEP]` trace for both lanes' 2026-08-23 runs, ending in:
+
+```
+[F41_STEP] lane=TCT step=export_requested lane=TCT status=200 contentType=text/html; charset=UTF-8 url=https://dkcl.vnpost.vn/export/sp_Phat_ChatLuong_PTC_Tinh_V2/all ...
+[importPipeline][AUTO_BACKFILL_F41_TCT] SUCCESS | F4.1-2026.08.23.xlsx | total=34, inserted=34, duplicates=0
+...
+[F41_STEP] lane=HUE step=detail_opened status=200 detailReport=1 iTotal=2856 detailRowCount=50 detailPaginatorLength=6154 ...
+[F41_STEP] lane=HUE step=export_info source=detail_template_paginator formCount=1 sampleActions=["/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all"] exportAction=/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all method=GET paramNames=["Total","FilterSelected"] ...
+[F41_STEP] lane=HUE step=export_requested lane=HUE detail status=200 contentType=text/html; charset=UTF-8 url=https://dkcl.vnpost.vn/export/sp_Phat_ChatLuong_PTC_ChiTiet_V2/all ...
+[importPipeline][AUTO_BACKFILL_F41_HUE] SUCCESS | F4.1-2026.08.23.xlsx | total=2856, inserted=2856, duplicates=0
+```
+
+`grep -inE "warn|error|fail|reject|exception" backend.log` over the whole file: **0 matches**. No hidden warning anywhere in the log the import actually wrote to.
+
+`backend_err.log` does carry 4 real lines -- two `[AutoBackfillQueue] coordinator drain failed: AUTHENTICATION_REQUIRED` and an F1.3 (not F4.1) `[DKCL_HUE_F13_SYNC] hue-f13-2de0b762c978 cleanup warning: locator.click: Timeout 30000ms exceeded` for an unrelated generated-file cleanup click. `backend.log` carries no per-line timestamps, so correlation uses file mtimes and the `import_log` table's own `created_at` (SQLite `CURRENT_TIMESTAMP`, UTC by default): the TCT and HUE imports were logged at `2026-08-27 03:10:38`/`03:11:25` UTC, i.e. local `10:10:38`/`10:11:25` (matching the `Processed/` file mtimes of `10:10`/`10:11` local). `backend_err.log`'s last-write mtime is `2026-08-27 09:49:52` local -- strictly before both import timestamps. Nothing was appended to `backend_err.log` during or after the F4.1 import; if anything had been, its mtime would read later than `09:49:52`. These four lines predate this ticket's import and are not hidden F4.1 failures.
+
+**4. Gate 5.** `node test_autoBackfillSafety.js`: **11/11 PASS**. Safety suite not opened or modified; the real import did not regress it.
+
+### 38.11 Ticket Closure
+
+Every number checked against the live database, live filesystem, and live log matches what Section 38.8's probe run predicted and what AB-AUTH-17's implementation was built to produce: 2,856 real per-item HUE rows with a valid, unique `Số hiệu bưu gửi` on every one; 34 real TCT province rows; both source files in `Processed/`, neither stuck in `Incoming/` nor diverted to `Error/`; zero hidden warnings in the log the import wrote to; Gate 5 untouched.
+
+**AB-AUTH-17 is CLOSED -- verified against a real completed Auto Backfill import, not just a probe.** No discrepancy was found in any of the four checks.
