@@ -1941,3 +1941,103 @@ Addressing PO feedback on commit `838b107e` regarding strict Read-Only enforceme
 - **No-Touch Scope**: Backend, F1.3, Tab "Nạp thủ công (Excel)", KPI/SSOT formulas, and networkMap strictly untouched.
 
 
+---
+
+## 42. AB-CALENDAR-01 -- Existing PO Exceptions Migrated To Shared LỊCH NGHỈ (2026-08-27, Claude Code Sonnet 5)
+
+### 42.1 Problem And PO Instruction
+
+At the time AB-CALENDAR-01 (Section 39) shipped, 8 pre-existing `auto_backfill_coverage_exception` rows
+(all `PO_EXEMPTED`, all `F1.3`) were still per-tuple, not yet on the shared calendar. Product Owner
+confirmed these existing exceptions are, in fact, holidays, and instructed a one-time, backend-only
+remediation: migrate them to `auto_backfill_holiday_calendar` and revoke the originals, no manual
+PO re-entry.
+
+### 42.2 Read-Only Audit (Before Any Write)
+
+Direct `OPEN_READONLY` query against `backend/src/db/database.sqlite` found **8 ACTIVE exceptions
+across 6 distinct `business_date`s**, all `F1.3`:
+
+| business_date | indicator/lane | reason | created_at |
+| --- | --- | --- | --- |
+| 2026-02-17 | F1.3/HUE, F1.3/TCT | `Test` | 2026-08-20 04:32:51 |
+| 2026-02-18 | F1.3/HUE, F1.3/TCT | `Test` | 2026-08-20 04:32:51 |
+| 2026-02-19 | F1.3/TCT | `Lễ tết` | 2026-08-24 07:05:58 |
+| 2026-02-20 | F1.3/TCT | `Lễ tết` | 2026-08-24 07:05:57 |
+| 2026-02-21 | F1.3/TCT | `Lễ tết` | 2026-08-24 07:05:57 |
+| 2026-02-22 | F1.3/TCT | `Lễ tết` | 2026-08-24 07:05:57 |
+
+The full append-only `auto_backfill_coverage_exception_event` ledger showed a discrepancy the audit
+step flagged before any write: the original 02-17/HUE exception (`490c2f04`) was created with
+`reason = "Nghỉ lễ tết"`, then REVOKED with `revoke_reason = "Test"`, and 4 replacement rows
+(02-17 HUE+TCT, 02-18 HUE+TCT) were created seconds apart, all literally `reason = "Test"` --
+consistent with leftover feature-test data rather than a genuine holiday decision. Per the ticket's
+explicit stop-before-write instruction, this was surfaced to the Product Owner instead of being
+silently resolved either way. **PO confirmed all 6 dates, including the two `"Test"`-reasoned ones,
+are real holidays.** All 8 exceptions across all 6 dates were migrated on that confirmation.
+
+### 42.3 Backup
+
+`backend/src/db/backups/database.pre-ab-calendar-migration.2026-08-27T0802.sqlite` -- byte-for-byte
+copy of the live database taken before any write. Verified independently: identical file size
+(840,323,072 bytes) and identical MD5 (`66fc97db0aab36c8acc3ad35bfec45cc`) to the live database at
+backup time; opens under `OPEN_READONLY` and reports the same 8 ACTIVE exceptions as the live query.
+
+### 42.4 Migration
+
+New one-off script `backend/scripts/migrate_ab_calendar_01_exceptions_to_holidays.js`:
+
+- Idempotent by construction: it only ever selects currently-`ACTIVE` exceptions, groups them by
+  `business_date`, and aborts before any write if a date already carries an ACTIVE holiday from
+  another source (conflict-first design, satisfying the ticket's "dừng trước write và báo CTO" rule).
+- A single `BEGIN TRANSACTION` / `COMMIT` wraps the entire batch (all 6 dates, all 8 revokes) --
+  raw SQL matching the schema's own INSERT/UPDATE shape rather than the two services' own
+  `withTransaction()` helpers, because each service opens its own transaction per call and cannot be
+  nested inside one outer transaction.
+- Each holiday's `reason` keeps the original exception ids and reason text traceable
+  (`"Migrated from PO exception(s) <ids>: <original reason(s)>"`); `created_by` /
+  `actor` on every write is the fixed, identifiable `ab-calendar-01-migration`, distinguishing this
+  batch from manually-created holidays in the audit trail.
+- Every migrated exception is `REVOKED`, never deleted, with `revoke_reason = "Migrated to shared
+  LỊCH NGHỈ (holiday <id>)"`, linking back to the holiday it produced.
+- Run first with `--dry-run` against the live database (no writes; live-DB MD5 confirmed unchanged
+  afterward via a Node `fs` stream hash, since the running backend process holds an OS-level lock
+  that blocked `certutil`), then run for real. Re-running afterward returned
+  `{"status":"NOOP","message":"No ACTIVE coverage exceptions found; nothing to migrate."}` -- confirms
+  idempotency.
+
+### 42.5 Independent Post-Migration Verification
+
+All read via a fresh, separate `OPEN_READONLY` connection, not the migration script:
+
+1. **One ACTIVE holiday per date.** 6 holiday rows, `new Set(dates).size === 6 === rows.length`.
+2. **Every migrated exception REVOKED, zero ACTIVE left.** `SELECT ... WHERE status='ACTIVE'` on
+   `auto_backfill_coverage_exception` returns 0 rows; all 8 original ids confirmed `REVOKED` with
+   `revoked_by = 'ab-calendar-01-migration'` and a `revoke_reason` naming the holiday it maps to.
+3. **Event ledger complete.** 6 `CREATED` holiday events, 8 `REVOKED` exception events by the
+   migration actor -- matches 6 holidays / 8 exceptions exactly.
+4. **F1.3 and F4.1 coverage both receive the holiday; a real SUCCESS is never touched.** A live
+   `AutoBackfillCoverageService.scan()` over the 6 migrated dates returned all 24 tuples
+   (2 indicators x 2 lanes x 6 dates): the 4 tuples that are genuinely `SUCCESS`
+   (F1.3/HUE on 02-19 through 02-22, which had real committed data and never had an exception) all
+   show `holiday: null` and `counts_as_missing: false` -- untouched, exactly as designed. The
+   remaining 20 `MISSING` tuples -- including every F4.1 tuple, which never had a per-tuple
+   exception before this migration -- all carry the migrated holiday, and `holiday_skipped_total`
+   for the scan equals exactly 20. This is the concrete proof that one shared calendar entry now
+   reaches every indicator, and that a day with real data is never hidden or blocked.
+
+### 42.6 Validation
+
+Full backend regression re-run after the migration: **179/179 tests, 0 failures**, including Gate 5
+`test_autoBackfillSafety.js` **11/11 PASS**. No test file, schema migration, `autoBackfillCoverageService.js`,
+KPI/F1.3 logic, frontend, or `networkMap` code was opened or modified by this ticket -- only the new,
+one-off migration script and this manifest section.
+
+### 42.7 Not Done / Residual
+
+The live `backend/src/db/database.sqlite` is intentionally not tracked in git (matches existing
+project convention); only the migration script is committed. **The Product Owner must restart the
+backend process** so any request already served from an in-memory cache of the old exception state
+(if any) reflects the migrated data -- the coverage scan itself is read-live and needs no restart,
+but this is flagged per the ticket's explicit instruction. No real Portal run, import, or business
+fact-table write occurred. No PO acceptance is claimed for this backend-only data remediation.
