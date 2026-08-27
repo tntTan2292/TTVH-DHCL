@@ -55,7 +55,7 @@ const AUTH_LOGIN_POLL_MAX_ATTEMPTS = 60; // 5 minutes, matching the backend's ~4
 
 const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
 
-const isActionableForExemption = (item) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status);
+const isActionableForExemption = (item) => !item?.holiday && ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item?.status);
 
 export default function AutoBackfillOperatorPanel() {
   // Auth context for role gating (Admin actions vs non-admin view-only)
@@ -287,8 +287,9 @@ export default function AutoBackfillOperatorPanel() {
     }
   }, [laneFilter, selectedBulkKeys]);
 
-  // Toggle Bulk Select Item
+  // Toggle Bulk Select Item (holiday items can never be selected)
   const toggleSelectBulkItem = (item) => {
+    if (item?.holiday) return;
     const key = getItemKey(item);
     setSelectedBulkKeys((prev) => {
       const next = new Set(prev);
@@ -301,9 +302,10 @@ export default function AutoBackfillOperatorPanel() {
     });
   };
 
-  // Select/Unselect All Items in a list
+  // Select/Unselect All Items in a list (excludes holiday items)
   const toggleSelectAllItems = (itemsList) => {
-    const itemKeys = itemsList.map(getItemKey);
+    const selectableItems = (itemsList || []).filter((item) => !item.holiday);
+    const itemKeys = selectableItems.map(getItemKey);
     const allSelected = itemKeys.length > 0 && itemKeys.every((k) => selectedBulkKeys.has(k));
 
     setSelectedBulkKeys((prev) => {
@@ -693,7 +695,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // Real Single PO Exception Confirmation API Call
   const handleConfirmExemption = async () => {
-    if (!isAdmin || !confirmModalItem || !confirmReason.trim()) return;
+    if (!isAdmin || !confirmModalItem || confirmModalItem.holiday || !confirmReason.trim()) return;
     setConfirmLoading(true);
     setConfirmError(null);
     try {
@@ -1551,17 +1553,19 @@ export default function AutoBackfillOperatorPanel() {
                     <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className={`hover:bg-slate-50/80 transition ${isSelected ? 'bg-blue-50/40' : ''}`}>
                       {isAdmin && (
                         <td className="px-4 py-3.5 text-center">
-                          <button
-                            type="button"
-                            onClick={() => toggleSelectBulkItem(item)}
-                            className="text-slate-400 hover:text-blue-600"
-                          >
-                            {isSelected ? (
-                              <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
-                            ) : (
-                              <Square className="h-4 w-4" />
-                            )}
-                          </button>
+                          {!item.holiday && (
+                            <button
+                              type="button"
+                              onClick={() => toggleSelectBulkItem(item)}
+                              className="text-slate-400 hover:text-blue-600"
+                            >
+                              {isSelected ? (
+                                <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
+                              ) : (
+                                <Square className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
                         </td>
                       )}
                       <td className="px-5 py-3.5 font-bold text-slate-900">{item.business_date}</td>
@@ -1998,17 +2002,19 @@ export default function AutoBackfillOperatorPanel() {
                           <span>Nhập lại</span>
                         </button>
 
-                        <button
-                          onClick={() => {
-                            setSelectedLaneModal(null);
-                            setConfirmModalItem(item);
-                            setConfirmReason('');
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs"
-                        >
-                          <UserCheck className="h-3.5 w-3.5 text-amber-700" />
-                          <span>Xác nhận Không phát sinh</span>
-                        </button>
+                        {!item.holiday && (
+                          <button
+                            onClick={() => {
+                              setSelectedLaneModal(null);
+                              setConfirmModalItem(item);
+                              setConfirmReason('');
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs"
+                          >
+                            <UserCheck className="h-3.5 w-3.5 text-amber-700" />
+                            <span>Xác nhận Không phát sinh</span>
+                          </button>
+                        )}
                       </>
                     ) : (
                       <span className="text-xs text-slate-400 italic">Chỉ xem</span>
@@ -2515,20 +2521,22 @@ function MonthlyAccordionGroup({
               return (
                 <div key={idx} className={`flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/80 transition text-sm ${isSelected ? 'bg-blue-50/40' : ''}`}>
                   <div className="flex items-center gap-4">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleSelectItem(item);
-                      }}
-                      className="text-slate-400 hover:text-blue-600"
-                    >
-                      {isSelected ? (
-                        <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </button>
+                    {isAdmin && !item.holiday && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleSelectItem(item);
+                        }}
+                        className="text-slate-400 hover:text-blue-600"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
+                    )}
 
                     <span className="font-bold text-slate-900 w-24">{item.business_date}</span>
                     <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">

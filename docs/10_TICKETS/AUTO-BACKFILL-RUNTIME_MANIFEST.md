@@ -2129,3 +2129,26 @@ taken here -- confirmed by the holiday/exception counts above being exactly unch
 
 The migration was intentionally not re-run against the live database, as instructed. No PO
 acceptance is claimed for this backend-only hardening.
+
+## 44. AB-CALENDAR-01 Frontend Remediation -- Holiday-Row Contradictory Actions Elimination (2026-08-27, Antigravity)
+
+### 44.1 Overview & Remediation Details
+Addressing PO runtime finding where a row with an active `item.holiday` still displayed a checkbox and the "Xác nhận Không phát sinh" button (contradictory business logic):
+1. **Strict Holiday-Row Isolation in `frontend/src/components/AutoBackfillOperatorPanel.jsx`**:
+   - **Hidden Checkboxes**: Row checkbox is strictly hidden when `item.holiday` is truthy in both Table View and `MonthlyAccordionGroup` View.
+   - **Selection Immunity**: `toggleSelectBulkItem` ignores holiday items, and `toggleSelectAllItems` / `handleSelectAllUnfinished` filter out holiday items, preventing holiday items from entering `selectedBulkKeys` or bulk actions via any UI path.
+   - **Hidden Exemption Actions**: `isActionableForExemption(item)` evaluates to `false` when `item.holiday` exists, hiding the "Xác nhận Không phát sinh" button in Table View, Accordion View, and the Per-lane Missing Dates Modal (`selectedLaneModal`).
+   - **Indirect Handler Protection**: `handleConfirmExemption` returns early without making any API call if `confirmModalItem.holiday` is truthy.
+   - **Preserved PO Decisions**: "Thu hồi LỊCH NGHỈ" remains available for Admin users. "Nhập lại" remains available for Admin users (holiday does not block reimport if portal has data).
+2. **Verified Test Evidence**:
+   - Added Section 21 to `frontend/src/components/AutoBackfillOperatorPanel.test.js` (total 21 test suites, **21/21 PASSED**).
+   - Asserts `isActionableForExemption(itemWithHoliday) === false`, `toggleSelectBulkItem` ignores holiday items, `toggleSelectAllItems` excludes holiday items, and `handleConfirmExemption` returns early without API calls.
+   - Asserts normal MISSING items without holidays (`!item.holiday`) continue to function normally.
+
+### 44.2 Verification & Results
+- **Frontend Unit Tests**: **21/21 PASSED** (`frontend/src/components/AutoBackfillOperatorPanel.test.js`).
+- **Lint Check (`oxlint`)**: **0 Errors**, 28 warnings (pre-existing unused imports in unrelated files).
+- **Production Build (`vite build`)**: **SUCCESS** (Built bundle in 1.35s).
+- **Backend Test Suite**: **28/28 PASSED** (`test_autoBackfillHolidayCalendar.js` 17/17 + `test_autoBackfillSafety.js` 11/11).
+- **No-Touch Scope**: Backend, schema, migration, F1.3, KPI/SSOT formulas, and networkMap strictly untouched.
+

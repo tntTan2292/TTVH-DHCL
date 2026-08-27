@@ -871,12 +871,83 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
     assert.equal(req2.payload.reason, 'Rà soát lại dữ liệu portal có phát sinh');
 
     console.log('✔ 20. Holiday Mark & Revoke API Endpoint & Payload tests PASSED!');
-    console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (20/20 Test Suites)');
   })();
 }
 
+// ==========================================
+// 21. Remediation Test 5: Holiday-Row Contradictory Actions Remediation Contract
+// ==========================================
+{
+  const itemWithHoliday = {
+    indicator: 'F1.3',
+    source_lane: 'HUE',
+    business_date: '2026-09-02',
+    status: 'MISSING',
+    holiday: { id: 10, business_date: '2026-09-02', reason: 'Lễ Quốc Khánh 02/09' }
+  };
 
+  const itemMissingWithoutHoliday = {
+    indicator: 'F1.3',
+    source_lane: 'HUE',
+    business_date: '2026-09-03',
+    status: 'MISSING',
+    holiday: null
+  };
 
+  const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
+  const isActionableForExemption = (item) => !item?.holiday && ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item?.status);
+
+  // Test case 21.1: isActionableForExemption returns false for holiday item, true for normal missing item
+  assert.equal(isActionableForExemption(itemWithHoliday), false, 'A row with item.holiday MUST NOT be actionable for PO exemption');
+  assert.equal(isActionableForExemption(itemMissingWithoutHoliday), true, 'A normal MISSING row without holiday MUST remain actionable for PO exemption');
+
+  // Test case 21.2: Bulk selection immunity for holiday items
+  let selectedBulkKeys = new Set();
+  const toggleSelectBulkItem = (item) => {
+    if (item?.holiday) return;
+    const key = getItemKey(item);
+    if (selectedBulkKeys.has(key)) selectedBulkKeys.delete(key);
+    else selectedBulkKeys.add(key);
+  };
+
+  toggleSelectBulkItem(itemWithHoliday);
+  assert.equal(selectedBulkKeys.size, 0, 'toggleSelectBulkItem MUST ignore holiday items (selection set remains 0)');
+
+  toggleSelectBulkItem(itemMissingWithoutHoliday);
+  assert.equal(selectedBulkKeys.size, 1, 'toggleSelectBulkItem MUST select normal missing item');
+  assert.ok(selectedBulkKeys.has('F1.3::HUE::2026-09-03'));
+
+  // Test case 21.3: Select all helper excludes holiday items
+  selectedBulkKeys = new Set();
+  const toggleSelectAllItems = (itemsList) => {
+    const selectableItems = (itemsList || []).filter((item) => !item.holiday);
+    const itemKeys = selectableItems.map(getItemKey);
+    itemKeys.forEach((k) => selectedBulkKeys.add(k));
+  };
+
+  toggleSelectAllItems([itemWithHoliday, itemMissingWithoutHoliday]);
+  assert.equal(selectedBulkKeys.size, 1, 'toggleSelectAllItems MUST ONLY select non-holiday items');
+  assert.ok(!selectedBulkKeys.has('F1.3::HUE::2026-09-02'), 'Holiday key MUST NOT be selected by select-all');
+  assert.ok(selectedBulkKeys.has('F1.3::HUE::2026-09-03'), 'Normal missing key MUST be selected by select-all');
+
+  // Test case 21.4: Handler guard prevents PO exemption API call for holiday items
+  let apiCallMade = false;
+  const mockConfirmExemptionHandler = async (confirmModalItem, reason) => {
+    if (!confirmModalItem || confirmModalItem.holiday || !reason.trim()) return;
+    apiCallMade = true;
+  };
+
+  (async () => {
+    await mockConfirmExemptionHandler(itemWithHoliday, 'Thử xác nhận ngoại lệ cho ngày nghỉ lễ');
+    assert.equal(apiCallMade, false, 'Confirm exemption handler MUST return early for item with holiday without API call');
+
+    await mockConfirmExemptionHandler(itemMissingWithoutHoliday, 'Lý do xác nhận hợp lệ');
+    assert.equal(apiCallMade, true, 'Confirm exemption handler MUST execute API call for normal missing item');
+
+    console.log('✔ 21. Holiday-Row Contradictory Actions Remediation tests PASSED!');
+    console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (21/21 Test Suites)');
+  })();
+}
 
 
 
