@@ -2152,3 +2152,92 @@ Addressing PO runtime finding where a row with an active `item.holiday` still di
 - **Backend Test Suite**: **28/28 PASSED** (`test_autoBackfillHolidayCalendar.js` 17/17 + `test_autoBackfillSafety.js` 11/11).
 - **No-Touch Scope**: Backend, schema, migration, F1.3, KPI/SSOT formulas, and networkMap strictly untouched.
 
+---
+
+## 45. AB-CALENDAR-01 -- PO Coverage Model Simplified To 4 Statuses + Operational-Completion Delta (2026-08-27, Claude Code Opus 5, DOCUMENTATION-ONLY)
+
+Design-only ticket. **No code, schema, database, migration, API or frontend change.** No Portal,
+queue, or business-data operation was performed.
+
+### 45.1 What The Product Owner Changed
+
+Two rulings, in sequence:
+
+1. The frozen 6-state technical coverage model is replaced by **exactly 4 PO-facing statuses** --
+   `COMPLETED` (Đã hoàn tất), `INCOMPLETE` (Chưa hoàn tất), `EXCLUDED` (Được loại trừ),
+   `DATA_ERROR` (Lỗi dữ liệu). An earlier 7-status proposal was cancelled by PO.
+2. **Delta:** `EXCLUDED` counts as operationally finished work -- processed =
+   `COMPLETED` + `EXCLUDED`, unprocessed = `INCOMPLETE` + `DATA_ERROR`. "Chọn tất cả chưa hoàn
+   tất" and every "chưa hoàn tất" total cover only the unprocessed pair; `COMPLETED` and
+   `EXCLUDED` can never be selected; `EXCLUDED` still displays its own count so PO can see which
+   days were excluded.
+
+### 45.2 Design Of Record
+
+New: `docs/04_TECHNICAL_PLANNING/Feature/AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md` -- mapping,
+queue and selection rules, migration/API compatibility, file scope, test plan, acceptance
+criteria and open decisions. `AB-CALENDAR-01_HOLIDAY_CALENDAR_DESIGN.md` was marked partially
+superseded: its **PO decision 2** (do not block the automatic queue) and **PO decision 4** (no
+distinct badge) no longer hold; decisions 1 and 3 remain in force.
+
+### 45.3 Mapping, Verified Against The Completion Policy
+
+`autoBackfillCompletionPolicies.js` already separates "imported but wrong" from "never
+imported", so PO's hardest rule -- `DATA_ERROR` must never contain a never-imported day -- is
+guaranteed **structurally**: the policy returns `MANUAL_REVIEW_REQUIRED` only when
+`rowCount > 0`, raw `INCOMPLETE` only when `logs.length > 0 || artifactPresent`, and an
+untouched day always falls through to `MISSING`.
+
+| Frozen 6-state | New PO status | Group |
+| --- | --- | --- |
+| `DATA_COMPLETE_WITH_EVIDENCE` | `COMPLETED` | Đã xử lý |
+| `TRUE_MISSING` | `INCOMPLETE` | Chưa xử lý xong |
+| `MANUAL_REVIEW_REQUIRED` | `DATA_ERROR` | Chưa xử lý xong |
+| `PO_EXEMPTED` / `VERIFIED_NO_DATA` / `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` | `EXCLUDED` | Đã xử lý |
+
+### 45.4 Measured Impact (Read-Only Scan Of The Live Database)
+
+952 tuples across 4 lanes: raw `SUCCESS` 490, raw `MISSING` 462 (20 carrying an ACTIVE holiday),
+raw `INCOMPLETE` **0**, raw `MANUAL_REVIEW_REQUIRED` **0**; ACTIVE coverage exceptions **0** (all
+8 migrated to holidays in Section 42). Projected: **`COMPLETED` 490 · `INCOMPLETE` 442 ·
+`EXCLUDED` 20 · `DATA_ERROR` 0** -- processed 510, unprocessed 442. The `DATA_ERROR` bucket is
+empty today and no exception rows exist, so the riskiest mapping decisions carry **zero
+immediate blast radius**. Read-only; nothing was written.
+
+### 45.5 Two Findings That Change The Implementation
+
+1. **`COMPLETED` days are currently selectable.** The row checkbox renders on the single
+   condition `!item.holiday` (`AutoBackfillOperatorPanel.jsx`, both table and accordion views),
+   so a `COMPLETED` day and an exception-based `EXCLUDED` day can both be bulk-selected today --
+   which this delta forbids. The fix is to replace the special case with one predicate,
+   `isSelectable(item) === ['INCOMPLETE','DATA_ERROR'].includes(item.status)`. This **strictly
+   strengthens** commit `5d196ff` rather than reverting it: a holiday becomes `EXCLUDED` and
+   stays unselectable exactly as before, while `COMPLETED` and exception-based `EXCLUDED` become
+   unselectable too.
+2. **`counts_as_missing` already implements the delta correctly** -- it computes
+   `completion.status !== SUCCESS && !exception && !holiday`, which equals exactly
+   `INCOMPLETE + DATA_ERROR`. Only its name is now misleading; a rename to
+   `counts_as_unprocessed` with a deprecated alias is recommended but optional. `GET
+   /coverage/selectable` therefore already satisfies the delta with no logic change.
+
+### 45.6 Migration And Compatibility
+
+**No database migration and no schema change** -- every status is derived at scan time and no
+column stores one. `status` changes its value set (6 -> 4); the only consumers are the operator
+panel and the test suites in this repository. No technical information is lost: the raw
+`completion_status`, `exception`, `holiday`, `queue_eligible` and `queue_ineligible_reason`
+fields are already emitted alongside it.
+
+### 45.7 Open Decisions Carried To The Implementing Session
+
+| # | Decision | Status |
+| --- | --- | --- |
+| D1 | `EXCLUDED` must not auto-queue while "Nhập lại" must keep working -- both go through `POST /runs` filtered by the same `queue_eligible`, so without an explicit opt-in ("Nhập lại" passing `include_excluded: true`) a reimport of an `EXCLUDED` day returns **409 `AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE`**. | **OPEN -- must be settled before implementation** |
+| D2 | `LEGACY_BASELINE` -> `EXCLUDED` (recommended) or `COMPLETED`? 0 records exist, so reversible at no cost. | **OPEN** |
+| D3 | Approve the frozen-document delta to `AUTO-BACKFILL-UI_PLAN.md` Section 4 (6 -> 4), keeping the original table below under a `SUPERSEDED` heading so history stays auditable. | **OPEN -- the frozen document was deliberately left untouched** |
+| D4 | Does `DATA_ERROR` keep its checkbox and exception-confirmation action? | **ANSWERED by this delta: yes** |
+
+### 45.8 Not Done
+
+`AUTO-BACKFILL-UI_PLAN.md` is untouched pending D3. No implementation was started; the 4-status
+model is not yet in the product. No PO acceptance is claimed.

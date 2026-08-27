@@ -1,6 +1,17 @@
 # AB-CALENDAR-01 — LỊCH NGHỈ (Holiday Calendar) — Design Proposal
 
-Status: **PROPOSAL / AWAITING PO APPROVAL — NO CODE WRITTEN**
+Status: **IMPLEMENTED (manifest Sections 39-44) — PO DECISIONS 2 & 4 SUPERSEDED (2026-08-27)**
+
+> [!IMPORTANT]
+> **Partially superseded.** The Product Owner has since replaced the coverage status model
+> with exactly 4 PO-facing statuses (`COMPLETED` / `INCOMPLETE` / `EXCLUDED` / `DATA_ERROR`)
+> and ruled that `EXCLUDED` counts as operationally finished work. That supersedes
+> **PO decision 2** (do not block the automatic queue — an excluded day is now never
+> auto-queued) and **PO decision 4** (no distinct badge — an excluded day now shows
+> **"Được loại trừ"**). PO decisions 1 and 3, and Sections 1-8 below, remain in force.
+>
+> Current design of record: `AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md`.
+
 Author: Claude Code (executor) → Claude/CTO → Product Owner
 Branch context: `codex/da-impl-006`
 Scope class: cross-indicator behavior change → not eligible for self-pass under `CODEX_PROMPT_STANDARD` §13.2.
