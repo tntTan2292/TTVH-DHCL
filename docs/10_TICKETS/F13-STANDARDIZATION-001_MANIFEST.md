@@ -708,3 +708,109 @@ With Phase 4 closed, the Evidence-consolidation delta this manifest has tracked 
 **Authoritative state after closure:** no phase of `F13-STANDARDIZATION-001` is currently Product-Owner-authorized for further work. `NO ACTIVE TICKET / AWAITING PO DIRECTION`. `F13-SHIPMENT-001` (`stash@{0}`) and `F13-SURFACE-CLEANUP-PLAN` remain unauthorized and are not self-activated by this closure.
 
 Governance state: `PHASE 4 CLOSED / PO RUNTIME PASS`. Claude Code does not self-activate any further phase or ticket.
+
+## 35. F13-BCVH-RANKING-OVERVIEW-01 — BCVH Ranking Overview Delta, Design of Record (2026-08-28)
+
+Append-only delta. Sections 1-34 are unchanged. This section activates a **new, separately scoped
+delta** on the F1.3 BCVH Ranking module. It does **not** reopen `F13-BCVH-RANKING-REDESIGN-IMPL`
+(`COMPLETED / PO PASS / CLOSED`, 2026-07-29), and it does **not** activate any phase of the original
+five-phase program in Section 6, which remains `PLANNED / NOT ACTIVE`.
+
+### Ticket
+
+- Ticket ID: `F13-BCVH-RANKING-OVERVIEW-01`
+- Ticket Name: BCVH Ranking Overview (T01 → hiện tại)
+- Phase: `F1.3 Operational Module` — additive overview delta
+- Current state: `DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION`
+- Activation authority: Product Owner approved the full recommendation package on `2026-08-28`
+- Owner: Claude Code (backend, integration, tests, documentation, Git per `DEC-020`);
+  Antigravity (frontend/UI/responsive and Windows runtime evidence)
+- PO UI Check Required: `Yes`
+- Branch: `codex/da-impl-006` · Baseline HEAD at authoring: `d1179155`
+
+### Design of record
+
+`docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-RANKING-OVERVIEW-01_DESIGN.md` is the single design of
+record for this delta: objective, the five blocks, time rules, the overview API contract, measured
+performance, file scope, the three-phase split, test plan, acceptance criteria and real-data risks.
+
+### Problem
+
+Operation Dashboard F1.3 forces the Product Owner to select one BCVH at a time before any history is
+visible, so no surface answers the operational question "from T01/2026 to now, which of the 6 BCVH
+are trending down". This delta adds four overview blocks above the existing daily ranking table,
+inside the BCVH Ranking module.
+
+### PO decisions approved (2026-08-28)
+
+1. Months with missing data are still displayed, with a day-coverage badge.
+2. Anchor date = `min(N-1, max_date having data)`.
+3. The route block is computed on MTD and labelled `Tuyến có phát sinh trong kỳ`.
+4. Route bands keep the existing `70/60/50` thresholds.
+5. Exactly the 6 canonical BCVH.
+6. Rate is the primary figure; volume is secondary.
+7. Fix the TỔNG CỘNG row, which can currently sum three non-canonical codes — before or with the
+   backend phase.
+8. `D-1`/`D-7` are comparisons only, never called alerts.
+9. The existing daily ranking table is kept unchanged.
+
+### Verification performed before design (read-only, real code and real database)
+
+- MTD fields already exist in `/f13/ranking/bcvh` (`F13DashboardService.js:881-891`); only
+  `month_to_date_rank` is missing.
+- `route_distribution` already aggregates over a **date range** with per-route de-duplication
+  (`getFactBetween` → `_buildRouteDistributionMap` → `_buildRouteDistributionSummary`), so an MTD
+  route period costs nothing in formula terms.
+- `D-1`/`D-7` carry no thresholds and no severity anywhere in backend or frontend — decision 8
+  confirms the current state and forbids regression.
+- No existing chart supports 6 series: `TrendChart.jsx` is hardcoded single-series and
+  `QualityDeliveryTrendlineAdapter.jsx` self-fetches and hardcodes `TARGET_RATE = 90`, while real
+  monthly rates run 61.26% (T01) → 50.47% (T08). A new component is required; `recharts ^3.9.0` is
+  already present, so no new library is.
+- `getFactBetween` for one month measured **96,305 rows / 3,679 ms / 431 MB heap** — the reason the
+  existing endpoint is not extended to a month range.
+- `/f13/dashboard/quality-timeline` already produces `monthlyYtd` but accepts one `ma_bcvh` per call
+  and always runs an extra 90-day daily query — the N+1 source that the new contract avoids.
+- Real database holds 9 `ma_bcvh` values: the 6 canonical plus `531600` (738 rows), `531110` (16),
+  `531120` (2). Frontend filters canonical in its mapper, so the 6 BCVH rows are correct and only the
+  TỔNG CỘNG row is wrong — decision 7.
+- February 2026 is missing days 17 and 18, and per-BCVH day coverage that month is uneven
+  (21-24 of 26 available days), while August 2026 is a complete 27/27 for all six — so a PO UI check
+  on the current month cannot detect the coverage defect. This is why decision 1's badge is a
+  correctness requirement, not decoration.
+
+### Contract
+
+New read-only endpoint `GET /api/f13/ranking/bcvh/overview?anchor_date=YYYY-MM-DD`, behind
+`allowViewerRead`, serving all four new blocks in one call via **exactly four fixed aggregate
+queries** (`monthly` 48 rows, `daily` 162, `mtd` 6, `routes` 119 — measured), independent of the
+number of BCVH. Canonical filtering happens in SQL; the denominator is `COUNT(ma_bg)` with
+`danh_gia_2026 = 'Đạt'`, matching the existing ranking definition; `getBcvhRanking()` is not modified
+beyond the decision-7 total-row fix; and no response key is named `alert`, `warning` or `risk`.
+
+Measured total: **~2.96 s, 5 MB heap** cold, against 3.7 s / 431 MB for a single month on the rejected
+path. `Q1` alone accounts for 2,250 ms because the existing covering index
+`(ngay_do_kiem, ma_bcvh, ket_qua_f13)` does not cover `danh_gia_2026` or `ma_bg`
+(`EXPLAIN QUERY PLAN` confirms a fallback to `idx_bcvh_ngay`). Closing that gap needs a new index,
+which is a schema change **outside this ticket** and recorded as `RISK-PERF-01`; substituting
+`ket_qua_f13` to exploit the existing index is forbidden because it changes the formula.
+
+### Phasing
+
+- `Phase B1` — Backend (Claude Code / Sonnet): decision-7 total-row fix, new route/handler,
+  `bcvhOverviewService.js`, four repository aggregates. No schema, no migration, no database write.
+- `Phase F1` — Frontend (Antigravity): one new chart component, four block components, one mapper,
+  and a single insertion into `BcvhRankingPage.jsx` above the existing table.
+- `Phase I1` — Integration (Claude Code / Sonnet): wiring, full regression against the known baselines
+  (backend 256/260, frontend 7 pre-existing failures), re-measured performance, documentation sync,
+  stopping at `READY FOR PO CHECK`.
+
+Per `CLAUDE.md` §2, the Opus session that authored the design does not also self-review the
+implementation.
+
+### Governance state
+
+`F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION`. This section is
+documentation-only: no code, database, schema or API changed by it. `Phase B1` is authorized by the
+Product Owner's approval of the recommendation package but is not executed here. Claude Code does not
+self-award PO PASS and does not activate any other ticket.
