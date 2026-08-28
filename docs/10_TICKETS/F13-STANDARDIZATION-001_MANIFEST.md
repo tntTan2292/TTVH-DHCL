@@ -1516,3 +1516,146 @@ Claude Code không tự trao PO PASS. Không dòng product code, database, schem
 đổi bởi việc duyệt thiết kế này. `F13-BCVH-RANKING-OVERVIEW-01` giữ nguyên
 `COMPLETED / PO PASS / CLOSED`, không bị mở lại. `AUTO-BACKFILL-RUNTIME` vẫn mở độc lập theo
 `PROJECT_SNAPSHOT.md`.
+
+
+---
+
+## 48. F13-ROUTE-RANKING-PERIOD-01 — Phase B1 Implementation (2026-08-28)
+
+Append-only delta. Sections 1-47 are unchanged. Section 47 recorded PO approval of the design of
+record (Revision R1) and authorized Phase B1 to start; this section records that Phase B1's
+completion. Phase F1 (frontend, Antigravity) and Phase I1 (integration) are not started by this
+section.
+
+### What was implemented
+
+Additive-only backend delta, exactly per file scope §9.1 of the design of record:
+
+- `backend/src/repositories/FactBuuGuiRepository.js`: three new methods —
+  `getRoutePeriodDailyFacts()` (Q2, per-day/per-route facts for the month-to-anchor window, same
+  Hue/postman scope as `getRouteRanking()`), `getRoutePeriodPreviousMonth()` (Q3, aggregates the
+  "cùng kỳ tháng trước" window using the exact `date()`/`strftime()` capping formula
+  `_getBcvhOverviewAggregate('mtd', ...)` already uses, LEFT-JOINed so `previous_start`/
+  `previous_end` resolve even with zero matching routes), `getRouteScopeReconciliation()` (Q4,
+  the four-group reconciliation for both periods in one scan, always using the postman-exclusion
+  scope regardless of the caller's own `route_type`). `getRouteRanking`, `getRouteRankingFacts`,
+  `getBcvhRanking`, `getEvidenceList*` are byte-for-byte unchanged.
+- `backend/src/services/routePeriodService.js` (new): orchestrates Q1 (anchor-date resolution,
+  issued directly via `config/db`'s `all()` promise wrapper rather than a fourth repository
+  method, keeping the repository file scope to exactly 3 additions) plus the three repository
+  calls; Node-side month roll-up from the Q2 daily facts (`C-02` — structurally cannot disagree
+  with the days shown, since there is no separate month query); `rate = null` iff `volume = 0`
+  throughout (`C-04`); RANK()-style ranking that assigns every route a rank including
+  `rate = null` ones, tied last (`AC-08`); `delta`/`rank_delta` null exactly when a route has no
+  real previous-window data. `repository` and `queryAnchor` are constructor-injectable, enabling
+  the service's full logic to be unit-tested against canned data with zero real-database
+  dependency.
+- `backend/src/controllers/DashboardController.js`: one new handler, `getRoutePeriods` —
+  `bcvh` required (`400 MISSING_PARAM`), `INVALID_DATE` from the service maps to `400`. Every
+  existing handler byte-for-byte unchanged.
+- `backend/src/routes/f13Routes.js`: one new route, `GET /ranking/route/periods`, same
+  `admin`+`viewer` role gate as the existing `/ranking/route`. The existing route line is
+  unmodified.
+
+### Test plan coverage
+
+- `backend/src/repositories/FactBuuGuiRepository.routePeriod.test.js` (new, 5 tests, real SQL
+  against an in-memory `node:sqlite` database — same harness `FactBuuGuiRepository.overview.test.js`
+  already uses): per-day/per-route aggregation and month-window scoping; the exact MTD-capping
+  formula reused verbatim, including the shorter-previous-month edge case (anchor `2026-03-31`
+  correctly caps to `2026-02-28`, not `2026-03-03`) and the zero-route case (`previousStart`/
+  `previousEnd` still resolve); the `AC-05` four-group identity on synthetic data covering
+  `ranked`/`pickup_at_office`/`non_hue`/`no_route`/different-BCVH isolation.
+- `backend/src/services/routePeriodService.test.js` (new, 12 tests, fake repository + fake
+  `queryAnchor`, zero real-database dependency): `T1`/`T2` empty-state with no fallback; `T13`
+  exactly 4 fixed DB touches (1 anchor + 3 repository calls) regardless of route count (asserted
+  with 40 synthetic routes); `T3`/`T-01`/`AC-07` a route absent on anchor day still appears with
+  `day.rate = null`, never `0`; `T4a`/`T4b`/`C-04`; `T5`/`C-02` exact roll-up; `T9`/`AC-08` every
+  route ranked, `rate = null` tied last, never omitted; `T10` `delta`/`rank_delta` null without a
+  previous window, while `rank_previous_month` is still a real tied-last number; `T11`/`M-01`
+  volume passthrough; `T12`/§4.3 anchor day 01 collapses both the current and the previous window
+  to a single day; `AC-05` reconciliation identity, including a deliberately broken-identity case
+  proving `identity_ok: false` surfaces rather than being silently swallowed.
+- `backend/src/controllers/DashboardController.routePeriods.test.js` (new, 4 tests): `MISSING_PARAM`
+  wiring, parameter passthrough and `200` response shape, `INVALID_DATE` to `400` / other error to
+  `500` mapping, and route registration (`/ranking/route/periods` registered, `/ranking/route`
+  confirmed still registered unmodified).
+
+### Regression (`R1`-`R4`, §10.2)
+
+All four required suites pass with **zero lines changed**:
+`FactBuuGuiRepository.routeRanking.test.js`, `F13DashboardService.routeRanking.test.js`,
+`FactBuuGuiRepository.evidenceListFacts.test.js` + `F13DashboardService.evidenceList.test.js`,
+`bcvhOverviewService.test.js` + `FactBuuGuiRepository.overview.test.js` — 35/35 plus 1/1
+(`node --test --experimental-sqlite`), confirming Evidence, BCVH Ranking, and the existing
+one-day Route Ranking contract are untouched.
+
+### Real-data read-only validation (LEVEL 2)
+
+A temporary, scratchpad-only script (not committed; not part of the file scope) loaded the real
+`FactBuuGuiRepository`/`RoutePeriodService` code bound via `require.cache` substitution to a
+`sqlite3.OPEN_READONLY` connection to the real operational `database.sqlite`, then called
+`RoutePeriodService.getRoutePeriods()` — the actual production code path, not ad-hoc SQL — against
+all 9 real BCVH codes for anchor `2026-08-27`:
+
+- **`AC-05` reconciliation identity**: `identity_ok: true` for both the day and month periods,
+  for all 9 BCVH. `bcvh_total` cross-checked directly against `getBcvhRanking()` and matched
+  exactly for every BCVH, e.g. `533140`: day `1,980 = 1,911 + 69 + 0 + 0`; month
+  `49,264 = 46,818 + 2,446 + 0 + 0` — identical to the figures the read-only audit and the
+  design of record already recorded.
+- **`AC-03`/`C-02`**: for route `533140129`, `month.volume` (668) equals the sum of its own
+  `daily_series.volume` values exactly.
+- **`T-01`/`AC-07`**: BCVH `533140` returns 35 routes (the month-union set) vs. 30 with data on
+  the anchor day — the same 35/30 split the audit measured. The 5 anchor-day-absent routes each
+  render `day = { volume: 0, passed: 0, failed: 0, rate: null }`, never `0%`.
+- **`AC-08`**: 0 routes without a `rank`, out of 35, for `533140`.
+- **§8 performance gate**: `533140` (the largest BCVH, 48 routes) — three consecutive
+  `getRoutePeriods()` calls measured `921ms`, `840ms`, `839ms`, all comfortably under the `< 1.5s`
+  target.
+- **§4.2.1**: `previous_month` for `533140`/anchor `2026-08-27` resolved to
+  `{ start: "2026-07-01", end: "2026-07-27", days_in_period: 27 }`, matching the design's
+  worked example exactly.
+- **§4.3**: anchor `2026-08-01` collapsed both `month_to_anchor` and `previous_month` to
+  single-day windows (`days_in_period: 1` for both), as the design requires.
+- **`route_type=all`**: the confirmed pickup route `53314018` is visible only under `all`, absent
+  under the default `postman` scope — matching `getRouteRanking()`'s existing behavior.
+
+Zero writes: every query used `sqlite3.OPEN_READONLY`; `fact_f13` row counts confirmed unchanged
+before/after via the identical `1,980`/`49,264` figures reproducing exactly across repeated runs.
+
+### File scope discipline
+
+`git diff --name-only` confirms only the four files above were modified/added under
+`backend/src`, plus their three test files. `BcvhRankingPage.jsx`, `BcvhRankingOverviewBlocks.jsx`,
+`bcvhOverviewService.js`, `bcvhOverviewData.js`, `bcvhOverviewFetcher.js`,
+`f13HeatmapBandCatalog.js`, `getEvidenceListFacts`, `f13RouteClassificationCatalog.js`,
+`RuleF13302`, schema, migrations — all confirmed untouched. No frontend file touched (Phase F1 is
+not this phase's scope). Pre-existing dirty files at session start
+(`backend/test_dkclSessionPreflightService.js`, `frontend/src/features/networkMap/*`, `.claude/`,
+`Data QLML/`, `export_*.js`) were not staged, not modified, not committed.
+
+### Validation summary
+
+- Targeted new suites: **21/21 pass** (5 repository + 12 service + 4 controller).
+- Regression `R1`-`R4`: **36/36 pass**, zero lines changed.
+- Full backend sweep: **454/468 pass** — the same 14 failures by name also present in the
+  447/431/16-failure baseline measured with this delta stashed away; the baseline's 2 additional
+  failures (`FactF41Repository.test.js`'s two F4.1 KPI tests) are pre-existing sweep-order
+  flakiness, confirmed by running that file in isolation 3 times consecutively (3/3 pass,
+  independent of whether this delta is present). Zero regressions attributable to this delta.
+- `oxlint`: 0 errors on every touched file; the 6 pre-existing warnings on
+  `FactBuuGuiRepository.js` (unused `safeSort`/`safeOrder` in `getBcvhRanking`, four unused
+  catch-parameter `e` in `getFactByDate`/`getFactBetween`) are confirmed identical before/after
+  this delta (same warning text, only shifted line numbers from the additive insertions above
+  them) via a direct baseline oxlint comparison with this delta stashed away.
+- `node -c` syntax check: clean on all four touched/new source files.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = PHASE B1 IMPLEMENTED / TECHNICAL PASS`. Phase B1 requires no
+Product Owner UI Check (design of record §12.2 — PO UI Check is required only at the end of
+Phase F1 and Phase I1); Claude Code confirms Phase B1's own technical validation, not a PO
+acceptance. Phase F1 (frontend, executor `Antigravity`) is next, per the design of record's file
+scope §9.2 — not started by this section. No database, schema, or migration changed; no frontend
+file changed; `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`, not reopened.
+`AUTO-BACKFILL-RUNTIME` remains separately open and untouched per `PROJECT_SNAPSHOT.md`.

@@ -456,6 +456,175 @@ class FactBuuGuiRepository {
         });
     }
 
+    // F13-ROUTE-RANKING-PERIOD-01 Phase B1 (additive-only, does not modify getRouteRanking or
+    // getRouteRankingFacts). Per-day, per-route facts for the current month-to-anchor window
+    // [monthStart, anchorDate], same Hue/postman route-scope filters as getRouteRanking(). This
+    // is Q2 of the design's four fixed queries. Feeds the period service's daily_series and its
+    // Node-side month roll-up (C-02) — no separate GROUP BY month query exists anywhere, so a
+    // month total can never disagree with the days shown. The distinct ma_tuyen values returned
+    // here ARE the route union rule T-01 requires (every route active anywhere in the month,
+    // not just on anchorDate) — no extra query is needed to compute that union.
+    getRoutePeriodDailyFacts(bcvh, monthStart, anchorDate, options = {}) {
+        return new Promise((resolve, reject) => {
+            const routeType = options.routeType === 'all' ? 'all' : 'postman';
+            const confirmedNonPostmanRouteCodes = Array.isArray(options.confirmedNonPostmanRouteCodes)
+                ? options.confirmedNonPostmanRouteCodes.map(String)
+                : [];
+            const nonPostmanPlaceholders = confirmedNonPostmanRouteCodes.map(() => '?').join(', ');
+            const filters = [
+                'ngay_do_kiem BETWEEN ? AND ?',
+                'ma_bcvh = ?',
+                'ma_tuyen IS NOT NULL',
+                "TRIM(ma_tuyen) != ''",
+                "ma_tuyen LIKE '53%'",
+            ];
+            const params = [monthStart, anchorDate, bcvh];
+
+            if (routeType === 'postman' && confirmedNonPostmanRouteCodes.length) {
+                filters.push(`ma_tuyen NOT IN (${nonPostmanPlaceholders})`);
+                params.push(...confirmedNonPostmanRouteCodes);
+            }
+
+            const whereClause = filters.join(' AND ');
+            const sql = `
+                SELECT
+                    ngay_do_kiem as date,
+                    ma_tuyen,
+                    MAX(ten_tuyen) as ten_tuyen,
+                    MAX(ten_bcvh) as ten_bcvh,
+                    MAX(loai_tuyen_phat) as loai_tuyen_phat,
+                    COUNT(ma_bg) as volume,
+                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed,
+                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as failed
+                FROM fact_f13
+                WHERE ${whereClause}
+                GROUP BY ngay_do_kiem, ma_tuyen
+                ORDER BY ma_tuyen ASC, ngay_do_kiem ASC
+            `;
+
+            db.all(sql, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+    }
+
+    // Q3 of the design's four fixed queries. Same route scope as getRoutePeriodDailyFacts(),
+    // aggregated over "cùng kỳ tháng trước" (same elapsed days as the current month-to-anchor
+    // window, capped at the previous month's last day) — computed via the exact date-capping
+    // formula BCVH Ranking's own MTD aggregate uses (_getBcvhOverviewAggregate('mtd', ...)),
+    // reused verbatim per the Product Owner's D-OPEN-01 decision (Design of Record R1 §4.2.1).
+    // The LEFT JOIN keeps the single-row `periods` CTE alive even when zero routes have data in
+    // that window, so previous_start/previous_end are always resolvable; callers must drop the
+    // resulting ma_tuyen === null placeholder row (see the `routes` filter below).
+    getRoutePeriodPreviousMonth(bcvh, anchorDate, options = {}) {
+        return new Promise((resolve, reject) => {
+            const routeType = options.routeType === 'all' ? 'all' : 'postman';
+            const confirmedNonPostmanRouteCodes = Array.isArray(options.confirmedNonPostmanRouteCodes)
+                ? options.confirmedNonPostmanRouteCodes.map(String)
+                : [];
+            const nonPostmanPlaceholders = confirmedNonPostmanRouteCodes.map(() => '?').join(', ');
+
+            let joinFilter = `
+                f.ngay_do_kiem BETWEEN periods.previous_start AND periods.previous_end
+                AND f.ma_bcvh = ?
+                AND f.ma_tuyen IS NOT NULL
+                AND TRIM(f.ma_tuyen) != ''
+                AND f.ma_tuyen LIKE '53%'
+            `;
+            const params = [anchorDate, anchorDate, anchorDate, anchorDate, bcvh];
+
+            if (routeType === 'postman' && confirmedNonPostmanRouteCodes.length) {
+                joinFilter += ` AND f.ma_tuyen NOT IN (${nonPostmanPlaceholders})`;
+                params.push(...confirmedNonPostmanRouteCodes);
+            }
+
+            const sql = `
+                WITH periods AS (
+                    SELECT
+                        date(substr(?, 1, 7) || '-01', '-1 month') AS previous_start,
+                        MIN(
+                            date(substr(?, 1, 7) || '-01', '-1 month',
+                                 '+' || (CAST(strftime('%d', ?) AS INTEGER) - 1) || ' days'),
+                            date(substr(?, 1, 7) || '-01', '-1 day')
+                        ) AS previous_end
+                )
+                SELECT
+                    periods.previous_start,
+                    periods.previous_end,
+                    f.ma_tuyen,
+                    COUNT(f.ma_bg) as volume,
+                    SUM(CASE WHEN f.danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as passed,
+                    SUM(CASE WHEN f.danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as failed,
+                    COUNT(DISTINCT f.ngay_do_kiem) as days_with_data
+                FROM periods
+                LEFT JOIN fact_f13 f ON ${joinFilter}
+                GROUP BY f.ma_tuyen
+            `;
+
+            db.all(sql, params, (err, rows) => {
+                if (err) return reject(err);
+                const safeRows = rows || [];
+                const previousStart = safeRows[0]?.previous_start ?? null;
+                const previousEnd = safeRows[0]?.previous_end ?? null;
+                const routes = safeRows.filter((row) => row.ma_tuyen !== null && row.ma_tuyen !== undefined);
+                resolve({ previousStart, previousEnd, routes });
+            });
+        });
+    }
+
+    // Q4 of the design's four fixed queries (§5.2/AC-05). Four mutually exclusive groups —
+    // ranked / pickup_at_office / non_hue / no_route — for BOTH the anchor day and the
+    // month-to-anchor window, computed in one scan with NO route-type filter: this always uses
+    // the same postman-scope "ranked" definition getRouteRanking() itself uses, independent of
+    // whichever route_type the caller's own `routes` array happens to be scoped to, because the
+    // reconciliation strip's purpose is to explain the BCVH total against the canonical ranking
+    // scope, not against a UI toggle. bcvh_total's predicate matches getBcvhRanking()'s own
+    // WHERE clause exactly (ngay_do_kiem in range AND ma_bcvh = ?), so it is directly comparable
+    // to that endpoint's figures.
+    getRouteScopeReconciliation(bcvh, dayDate, monthStart, monthEnd, confirmedNonPostmanRouteCodes = []) {
+        return new Promise((resolve, reject) => {
+            const codes = confirmedNonPostmanRouteCodes.map(String);
+            const placeholders = codes.map(() => '?').join(', ');
+            const rankedScopeSql = codes.length
+                ? `ma_tuyen LIKE '53%' AND ma_tuyen NOT IN (${placeholders})`
+                : `ma_tuyen LIKE '53%'`;
+            const pickupScopeSql = codes.length ? `ma_tuyen IN (${placeholders})` : '0';
+
+            const sql = `
+                SELECT
+                    SUM(CASE WHEN ngay_do_kiem = ? THEN 1 ELSE 0 END) as day_bcvh_total,
+                    SUM(CASE WHEN ngay_do_kiem = ? AND ${rankedScopeSql} THEN 1 ELSE 0 END) as day_ranked,
+                    SUM(CASE WHEN ngay_do_kiem = ? AND ${pickupScopeSql} THEN 1 ELSE 0 END) as day_pickup_at_office,
+                    SUM(CASE WHEN ngay_do_kiem = ? AND ma_tuyen IS NOT NULL AND TRIM(ma_tuyen) != '' AND ma_tuyen NOT LIKE '53%' THEN 1 ELSE 0 END) as day_non_hue,
+                    SUM(CASE WHEN ngay_do_kiem = ? AND (ma_tuyen IS NULL OR TRIM(ma_tuyen) = '') THEN 1 ELSE 0 END) as day_no_route,
+                    COUNT(*) as month_bcvh_total,
+                    SUM(CASE WHEN ${rankedScopeSql} THEN 1 ELSE 0 END) as month_ranked,
+                    SUM(CASE WHEN ${pickupScopeSql} THEN 1 ELSE 0 END) as month_pickup_at_office,
+                    SUM(CASE WHEN ma_tuyen IS NOT NULL AND TRIM(ma_tuyen) != '' AND ma_tuyen NOT LIKE '53%' THEN 1 ELSE 0 END) as month_non_hue,
+                    SUM(CASE WHEN ma_tuyen IS NULL OR TRIM(ma_tuyen) = '' THEN 1 ELSE 0 END) as month_no_route
+                FROM fact_f13
+                WHERE ma_bcvh = ? AND ngay_do_kiem BETWEEN ? AND ?
+            `;
+
+            const params = [
+                dayDate,
+                dayDate, ...codes,
+                dayDate, ...codes,
+                dayDate,
+                dayDate,
+                ...codes,
+                ...codes,
+                bcvh, monthStart, monthEnd,
+            ];
+
+            db.all(sql, params, (err, rows) => {
+                if (err) return reject(err);
+                resolve((rows && rows[0]) || null);
+            });
+        });
+    }
+
     getParetoData(date, bcvh) {
         return new Promise((resolve, reject) => {
             let sql = `

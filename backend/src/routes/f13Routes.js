@@ -21,6 +21,7 @@ router.get('/dashboard/meta', ...allowViewerRead, kpiController.getDashboardMeta
 router.get('/ranking/bcvh/overview', ...allowViewerRead, dashboardController.getBcvhOverview);
 router.get('/ranking/bcvh', ...allowViewerRead, dashboardController.getBcvh);
 router.get('/ranking/route', ...allowViewerRead, dashboardController.getRoute);
+router.get('/ranking/route/periods', ...allowViewerRead, dashboardController.getRoutePeriods);
 router.get('/recommendations', ...allowViewerRead, kpiController.getRecommendations);
 
 router.get('/rca/pareto', ...allowAdminOnly, dashboardController.getPareto);

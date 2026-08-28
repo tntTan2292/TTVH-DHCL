@@ -1,6 +1,7 @@
 const f13DashboardService = require('../services/F13DashboardService');
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 const { BcvhOverviewService } = require('../services/bcvhOverviewService');
+const { routePeriodService } = require('../services/routePeriodService');
 const timelineService = require('../services/timelineService');
 const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
 
@@ -124,6 +125,22 @@ class DashboardController {
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
+        }
+    }
+
+    // F13-ROUTE-RANKING-PERIOD-01 Phase B1: additive-only, new endpoint alongside getRoute()
+    // (unmodified). §6.2 of the Design of Record — `bcvh` required, `anchor_date` and
+    // `route_type` optional.
+    async getRoutePeriods(req, res) {
+        try {
+            const { bcvh, anchor_date, route_type } = req.query;
+            if (!bcvh) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu bcvh' }});
+
+            const result = await routePeriodService.getRoutePeriods(bcvh, anchor_date, { routeType: route_type });
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            const status = error?.code === 'INVALID_DATE' ? 400 : 500;
+            res.status(status).json({ success: false, error: { code: error?.code || 'SERVER_ERROR', message: error.message }});
         }
     }
 
