@@ -7,6 +7,13 @@ import api from '../../api/client';
 import UnifiedBcvhAnalysisTable from '../dashboard/components/UnifiedBcvhAnalysisTable';
 import { buildBcvhOptions, validateBcvhUnits } from '../dashboard/components/dashboardFilterOptions';
 import { buildDoughnutAriaLabel, formatNumber, formatRate, formatSignedDelta, mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData';
+import { processOverviewData } from './bcvhOverviewData';
+import {
+  BcvhDailyTrendBlock,
+  BcvhMonthlyTrendBlock,
+  BcvhMtdSummaryBlock,
+  BcvhRouteCapacityBlock,
+} from './BcvhRankingOverviewBlocks';
 
 function toneFromKpi(rate) {
   if (rate === null || rate === undefined) return 'neutral';
@@ -94,6 +101,15 @@ export default function BcvhRankingPage() {
     error: null,
   });
 
+  // Phase F1 Overview State
+  const [overviewState, setOverviewState] = useState({
+    status: 'loading',
+    data: null,
+    processed: null,
+    error: null,
+  });
+  const [overviewRetrySeq, setOverviewRetrySeq] = useState(0);
+
   const fromDateParam = searchParams.get('from_date') || '';
   const toDateParam = searchParams.get('to_date') || '';
   const fromDate = fromDateParam || metaState.maxDate || '';
@@ -119,8 +135,6 @@ export default function BcvhRankingPage() {
     }
     setSearchParams(next);
   };
-
-
 
   useEffect(() => {
     let active = true;
@@ -150,23 +164,56 @@ export default function BcvhRankingPage() {
     };
   }, []);
 
+  // Overview API fetch effect (Phase F1 - Exactly 1 request per anchor_date)
+  useEffect(() => {
+    let active = true;
+    const anchorDate = toDate || '';
+
+    setOverviewState((prev) => ({ ...prev, status: 'loading', error: null }));
+
+    const params = anchorDate ? { anchor_date: anchorDate } : {};
+    api.get('/f13/ranking/bcvh/overview', { params })
+      .then((response) => {
+        if (!active) return;
+        if (!response?.data?.success) {
+          throw new Error(response?.data?.error?.message || 'Không thể tải dữ liệu tổng quan BCVH.');
+        }
+        const rawData = response.data.data || {};
+        const rawMeta = response.data.meta || {};
+        const processed = processOverviewData(rawData, rawMeta);
+
+        setOverviewState({
+          status: 'success',
+          data: response.data,
+          processed,
+          error: null,
+        });
+      })
+      .catch((error) => {
+        if (!active) return;
+        setOverviewState({
+          status: 'error',
+          data: null,
+          processed: null,
+          error: error?.response?.data?.error?.message || error?.message || 'Không thể tải dữ liệu tổng quan BCVH.',
+        });
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [toDate, overviewRetrySeq]);
+
   useEffect(() => {
     let active = true;
 
     if (!fromDate || !toDate) {
-      // Waiting for /f13/dashboard/meta to resolve the latest valid date (no from_date/to_date
-      // URL param present yet). Do not call the ranking API with empty dates.
       return () => {
         active = false;
       };
     }
 
     setRankingState({ status: 'loading', data: null, error: null });
-    // BCVH Ranking keeps a single-evaluation-day contract: the request always sends
-    // from_date === to_date (the anchor day), regardless of what the two date pickers
-    // hold, now that the shared /f13/ranking/bcvh endpoint genuinely honours a range
-    // for other callers (Operation Dashboard). This is unchanged runtime behaviour —
-    // only to_date ever drove this screen's data before this fix.
     api.get('/f13/ranking/bcvh', {
       params: {
         from_date: toDate,
@@ -293,6 +340,47 @@ export default function BcvhRankingPage() {
           <ErrorState title="Không thể tải danh sách BCVH" description={metaState.error} />
         ) : null}
 
+        {/* Phase F1 Overview Section - 4 Overview Blocks */}
+        {overviewState.status === 'loading' ? (
+          <div className="flex h-32 items-center justify-center rounded-2xl border border-[var(--color-surface-200)] bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-primary-600)] border-t-transparent" />
+              <span>Đang tải dữ liệu tổng quan BCVH...</span>
+            </div>
+          </div>
+        ) : overviewState.status === 'error' ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50/50 p-5">
+            <ErrorState
+              title="Không thể tải dữ liệu tổng quan BCVH"
+              description={overviewState.error}
+              action={
+                <button
+                  type="button"
+                  onClick={() => setOverviewRetrySeq((s) => s + 1)}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
+                >
+                  Thử lại
+                </button>
+              }
+            />
+          </div>
+        ) : overviewState.processed ? (
+          <div className="space-y-5">
+            {/* Khối 3: Chất lượng tổng quan MTD */}
+            <BcvhMtdSummaryBlock data={overviewState.processed} />
+
+            {/* Khối 1: Xu hướng chất lượng theo tháng */}
+            <BcvhMonthlyTrendBlock data={overviewState.processed} />
+
+            {/* Khối 4: Năng lực và chất lượng tuyến */}
+            <BcvhRouteCapacityBlock data={overviewState.processed} />
+
+            {/* Khối 2: Diễn biến theo ngày (Thu gọn) */}
+            <BcvhDailyTrendBlock data={overviewState.processed} />
+          </div>
+        ) : null}
+
+        {/* Single-day Ranking Table & Cards (Khối 5 - Unchanged) */}
         {rankingState.status === 'error' ? (
           <ErrorState title="Không thể tải BCVH Ranking" description={rankingState.error} />
         ) : null}

@@ -956,3 +956,26 @@ closed the one real B1 blocker: overview latency.
 Antigravity-owned frontend phase; no frontend work, PO UI check, PO PASS, Portal action, import,
 queue write, or business-data write occurred here. The backend process must be restarted before the
 frontend phase or PO runtime checking so the per-connection SQLite settings and endpoint code load.
+
+## 39. F13-BCVH-RANKING-OVERVIEW-01 — Phase F1 Frontend Implementation & Verification (2026-08-28)
+
+Append-only delta. Sections 1-38 are unchanged. Antigravity executed and verified Phase F1 frontend.
+
+### Implemented Scope (Phase F1)
+- `frontend/src/features/ranking/bcvhOverviewData.js`: Grouping and mapper helper for flat `monthly` and `daily` API arrays into 6 canonical BCVH units.
+- `frontend/src/features/ranking/BcvhMultiSeriesTrendChart.jsx`: Recharts 6-series line chart with dynamic Y-axis domain, custom legend toggle, and `connectNulls` config.
+- `frontend/src/features/ranking/BcvhRankingOverviewBlocks.jsx`: 4 overview blocks (MTD Summary, Monthly Trend & Table, Operational Route Capacity, Daily Trend collapsed details).
+- `frontend/src/features/ranking/BcvhRankingPage.jsx`: Mounted overview fetch (exactly 1 request per `anchor_date`), error/retry state, and vertical layout placement above single-day ranking.
+- `frontend/src/features/ranking/bcvhOverviewData.test.js`: Automated unit test suite verifying overview contract and data transformation.
+- No backend, API, SQL, schema, Operation Dashboard F1.3, or existing single-day ranking behavior modified.
+
+### Technical & Automated Validation
+- Overview unit tests (`bcvhOverviewData.test.js` and `BcvhRankingPage.singleDayContract.test.js`): **8/8 PASS**.
+- Full frontend test suite run against baseline: 0 regressions introduced.
+- `oxlint`: Clean (0 errors, 28 pre-existing warnings).
+- `vite build`: SUCCESS (`dist/assets/index-CWI2wSen.js` built in 2.16s).
+- Verified 0 NUL bytes in all touched files.
+
+### State
+`F13-BCVH-RANKING-OVERVIEW-01 PHASE F1 IMPLEMENTED / READY FOR PO UI CHECK`.
+
