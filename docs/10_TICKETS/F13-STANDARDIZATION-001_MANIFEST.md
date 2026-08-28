@@ -994,3 +994,70 @@ Append-only delta. Sections 1-38 are unchanged. Antigravity executed and verifie
   - Lint passed (0 errors, 30 warnings)
   - Production Vite build passed (1.45s)
   - Unit tests passed (12/12 overview tests, asserting true component contract and deduplication).
+
+## 41. Phase F1 - Remediation R2 Verification Closure (2026-08-28)
+
+- Removed the three remaining trailing-whitespace characters reported by the diff check in
+  `bcvhOverviewFetcher.js:11`, `bcvhOverviewFetcher.test.js:105`, and
+  `bcvhOverviewFetcher.test.js:135`; no formatting or functional change was made.
+- The fetcher ignores stale responses and stale errors from older requests. This is response/error
+  staleness handling, not request deduplication.
+- The tests directly exercise the request-orchestration module and its stale-result behavior; they
+  do not claim to be component-render tests.
+- No files outside the two fetcher files and this manifest were touched. Existing out-of-scope data
+  remains in history and awaits a separate Product Owner decision; no history rewrite or force-push
+  was performed.
+
+## 42. Phase F1 PO UI Remediation R3 — Scope Cleanup (2026-08-28)
+
+Append-only delta. Sections 1-41 are unchanged.
+
+### What R3 fixed in the UI
+
+- Block order on `/f13/ranking/bcvh` is now: Daily trend → the existing KPI widgets/route-band
+  summary → the D-1/D-7 daily ranking table (Khối 5, unchanged) → MTD summary → Monthly trend →
+  Route capacity.
+- The Daily block (`BcvhDailyTrendBlock` in `BcvhRankingOverviewBlocks.jsx`) renders as
+  `<details open>` — expanded by default. Toggling it open/closed is a native `<details>`/`<summary>`
+  interaction; it triggers no additional network request. Data for all overview blocks, including
+  Daily, is still loaded by the single `createOverviewFetcher` request per `anchor_date`
+  (`bcvhOverviewFetcher.js`, unchanged from baseline — see below), consistent with the
+  `F13-BCVH-RANKING-OVERVIEW-01` design of record's one-request contract.
+- The MTD table header is standardized to `Sản lượng MTD / Đạt MTD / Không đạt MTD / Tỷ lệ MTD`.
+- The MTD, Monthly and Route tables received readability styling (row emphasis, right-aligned numeric
+  columns, bold rate column) — presentation only, no change to the underlying values or their source
+  fields.
+- No API contract or data formula changed by R3: `bcvhOverviewFetcher.js`'s request shape, the
+  `/f13/ranking/bcvh/overview` contract, and `bcvhOverviewData.js`'s field mapping are all unchanged
+  from the `F13-BCVH-RANKING-OVERVIEW-01` design of record.
+
+### What went wrong between R2 and this commit, and what this commit fixes
+
+- Intermediate commit `c36a283` (style remediation) pulled in files outside the R3 UI scope alongside
+  its legitimate `BcvhRankingOverviewBlocks.jsx` / `BcvhRankingPage.jsx` / `bcvhOverviewData.test.js`
+  changes.
+- The subsequent cleanup at commit `4437393` regressed two things while trying to correct that:
+  - It dropped Section 41 (the R2 verification closure record) from this manifest instead of
+    preserving it.
+  - It reintroduced the trailing whitespace in `bcvhOverviewFetcher.js` and
+    `bcvhOverviewFetcher.test.js` that Section 41 had already removed, so both files stopped being
+    byte-identical with the pre-R3 baseline commit `6d2c0808`.
+  - Net effect: the delta between baseline `6d2c0808` and `4437393` covered 6 files instead of the
+    4 legitimate R3 files.
+- This commit restores both fetcher files to be byte-identical with baseline `6d2c0808` again (no
+  functional or formatting change beyond removing the whitespace regression), restores this manifest
+  file to be byte-identical with `6d2c0808` for Sections 1-41, and appends only this Section 42. The
+  final delta against `6d2c0808` is exactly the 4 files this section's title names:
+  `F13-STANDARDIZATION-001_MANIFEST.md`, `BcvhRankingOverviewBlocks.jsx`, `BcvhRankingPage.jsx`, and
+  `bcvhOverviewData.test.js`.
+
+### Scope discipline
+
+No backend file touched. No `networkMap`, `Data QLML/`, `.claude/`, HTML/Excel, patch, or export
+script staged or committed by this round — any such files present in the working tree belong to
+unrelated in-progress work and were left untouched. No history rewrite, no force-push, no reset,
+rebase or amend was performed; this is a forward-only commit.
+
+Governance state: `PHASE F1 PO UI REMEDIATION R3 SCOPE CLEANUP COMPLETE / READY FOR PO UI CHECK`.
+Claude Code does not self-award PO PASS on this round; the Product Owner must restart the frontend
+dev server and perform a fresh UI check before any acceptance is recorded.
