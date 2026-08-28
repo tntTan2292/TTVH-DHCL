@@ -979,20 +979,18 @@ Append-only delta. Sections 1-38 are unchanged. Antigravity executed and verifie
 ### State
 `F13-BCVH-RANKING-OVERVIEW-01 PHASE F1 IMPLEMENTED / READY FOR PO UI CHECK`.
 
-
-## 40. Phase F1 - Remediation R1
+## 40. Phase F1 - Remediation R1 (2026-08-28)
 
 - **Date**: 2026-08-28
 - **Task**: F13-BCVH-RANKING-OVERVIEW-01 Frontend Remediation R1
 - **Action**: Fix data mapping logic (meta layer extraction) and API request guard on empty toDate.
 - **Changes**:
-  - Created rontend/src/features/ranking/bcvhOverviewFetcher.js to manage Overview API calls, preventing fetch on empty 	oDate and deduping responses.
-  - Created rontend/src/features/ranking/bcvhOverviewFetcher.test.js covering orchestration rules and race condition avoidance.
-  - Corrected meta extraction to map from esponse.data.data.meta rather than esponse.data.meta.
-  - Updated BcvhRankingPage.jsx to use createOverviewFetcher.
-  - Updated cvhOverviewData.test.js to assert the contract with the new fetcher.
-- **Verification**: 
+  - Created `frontend/src/features/ranking/bcvhOverviewFetcher.js` to manage Overview API calls, preventing fetch on empty `toDate` and deduping responses.
+  - Created `frontend/src/features/ranking/bcvhOverviewFetcher.test.js` covering orchestration rules and race condition avoidance.
+  - Corrected `meta` extraction to map from `response.data.data.meta` rather than `response.data.meta`.
+  - Updated `BcvhRankingPage.jsx` to use `createOverviewFetcher`.
+  - Updated `bcvhOverviewData.test.js` to assert the contract with the new fetcher.
+- **Verification**:
   - Lint passed (0 errors, 30 warnings)
   - Production Vite build passed (1.45s)
   - Unit tests passed (12/12 overview tests, asserting true component contract and deduplication).
-

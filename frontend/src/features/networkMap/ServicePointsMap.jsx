@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { MapContainer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { SmartTileLayer } from './SmartTileLayer';
 import {
   normalizeLoaiDiem,
   normalizeTrangThai,
@@ -129,7 +128,7 @@ export default function ServicePointsMap({ points }) {
       <div style={{ height: '72vh' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative">
         <MapContainer center={HUE_MAP_CENTER} zoom={HUE_MAP_DEFAULT_ZOOM} style={{ height: '100%', width: '100%' }}>
           <ZoomTracker onZoomChange={setCurrentZoom} />
-          <SmartTileLayer />
+          <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} maxZoom={20} />
           {filteredPoints.map((point) => {
             const normCat = normalizeLoaiDiem(point.loai_diem);
             const normStatus = normalizeTrangThai(point.trang_thai);

@@ -57,7 +57,7 @@ test('fetchOverview sends exact 1 request per anchor_date and properly extracts 
 
   const fetcher = createOverviewFetcher(mockApi, setOverviewState);
 
-  await fetcher('2026-08-27', 0);
+  await fetcher('2026-08-27');
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, '/f13/ranking/bcvh/overview');
@@ -101,10 +101,10 @@ test('fetchOverview prevents race conditions - old response does not overwrite n
   const fetcher = createOverviewFetcher(mockApi, setOverviewState);
 
   // Request 1: toDate = '2026-08-26'
-  const p1 = fetcher('2026-08-26', 0);
+  const p1 = fetcher('2026-08-26');
   
   // Request 2: toDate = '2026-08-27' starts before Request 1 finishes
-  const p2 = fetcher('2026-08-27', 0);
+  const p2 = fetcher('2026-08-27');
 
   assert.equal(lastState.status, 'loading');
   assert.equal(callCount, 2);
@@ -150,8 +150,8 @@ test('fetchOverview updates state to error properly and ignores old errors', asy
 
   const fetcher = createOverviewFetcher(mockApi, setOverviewState);
 
-  const p1 = fetcher('2026-08-26', 0);
-  const p2 = fetcher('2026-08-27', 0);
+  const p1 = fetcher('2026-08-26');
+  const p2 = fetcher('2026-08-27');
 
   await p2; // p2 resolves successfully
   assert.equal(lastState.status, 'success');

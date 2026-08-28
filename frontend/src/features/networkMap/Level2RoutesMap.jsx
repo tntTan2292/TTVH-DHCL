@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { MapContainer, Polyline, Marker, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { SmartTileLayer } from './SmartTileLayer';
 import {
   colorForRouteId,
   colorForJourneyDirection,
@@ -413,7 +412,7 @@ export default function Level2RoutesMap({ routes, selectedRouteId, onSelectRoute
       {/* Map view */}
       <div style={{ height: '72vh' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative">
         <MapContainer center={HUE_MAP_CENTER} zoom={HUE_MAP_DEFAULT_ZOOM} style={{ height: '100%', width: '100%' }}>
-          <SmartTileLayer />
+          <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} maxZoom={20} />
 
           {/* Render road-network geometry (or a distinctly-styled loading/fallback
               placeholder) for each route, split into one Polyline per routing

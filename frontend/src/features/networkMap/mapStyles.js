@@ -222,47 +222,6 @@ export const HUE_MAP_CENTER = [16.46, 107.59];
 export const HUE_MAP_DEFAULT_ZOOM = 10;
 export const ZOOM_LABEL_THRESHOLD_SERVICE = 13;
 export const ZOOM_LABEL_THRESHOLD_DELIVERY = 14;
-
-export const TILE_PROVIDERS = [
-  {
-    id: 'osm-france',
-    name: 'OpenStreetMap France (Mặc định)',
-    url: 'https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png',
-    attribution: '&copy; OpenStreetMap France | &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    subdomains: 'abc',
-    maxNativeZoom: 19,
-    maxZoom: 20,
-  },
-  {
-    id: 'osm-hot',
-    name: 'OpenStreetMap Humanitarian (HOT)',
-    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles &copy; <a href="https://www.hotosm.org/">HOT</a>',
-    subdomains: 'abc',
-    maxNativeZoom: 19,
-    maxZoom: 20,
-  },
-  {
-    id: 'esri-street',
-    name: 'Esri World Street Map',
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012',
-    subdomains: '',
-    maxNativeZoom: 19,
-    maxZoom: 20,
-  },
-  {
-    id: 'osm-standard',
-    name: 'OpenStreetMap Standard',
-    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    subdomains: 'abc',
-    maxNativeZoom: 19,
-    maxZoom: 20,
-  },
-];
-
-export const OSM_TILE_URL = TILE_PROVIDERS[0].url;
-export const OSM_ATTRIBUTION = TILE_PROVIDERS[0].attribution;
-
+export const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const OSM_ATTRIBUTION = '&copy; OpenStreetMap contributors';
 

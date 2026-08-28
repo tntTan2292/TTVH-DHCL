@@ -172,7 +172,7 @@ export default function BcvhRankingPage() {
 
   // Overview API fetch effect (Phase F1 - Exactly 1 request per anchor_date)
   useEffect(() => {
-    fetchOverviewRef.current(toDate, overviewRetrySeq);
+    fetchOverviewRef.current(toDate);
   }, [toDate, overviewRetrySeq]);
 
   useEffect(() => {

@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { MapContainer, Marker, Popup, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Tooltip, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { SmartTileLayer } from './SmartTileLayer';
 import {
   normalizeLoaiDiem,
   normalizeTrangThai,
@@ -529,7 +528,7 @@ export default function IntegratedMap({
       <div style={{ height: '72vh' }} className="rounded-xl overflow-hidden border border-gray-200 shadow-sm relative">
         <MapContainer center={HUE_MAP_CENTER} zoom={HUE_MAP_DEFAULT_ZOOM} style={{ height: '100%', width: '100%' }}>
           <ZoomTracker onZoomChange={setCurrentZoom} />
-          <SmartTileLayer />
+          <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} maxZoom={20} />
 
           {/* ---- Điểm phục vụ layer ---- */}
           {showServicePoints && filteredPoints.map((point) => {

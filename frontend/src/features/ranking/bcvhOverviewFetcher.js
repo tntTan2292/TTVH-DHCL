@@ -3,7 +3,7 @@ import { processOverviewData } from './bcvhOverviewData.js';
 export function createOverviewFetcher(apiClient, setOverviewState) {
   let currentRequestSeq = 0;
 
-  return async function fetchOverview(toDate, retrySeq) {
+  return async function fetchOverview(toDate) {
     // 1. Không gọi API nếu chưa có toDate
     if (!toDate) return;
 

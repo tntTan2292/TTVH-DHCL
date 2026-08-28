@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { MapContainer, Polyline, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { ChevronUp, ChevronDown, Info } from 'lucide-react';
-import { SmartTileLayer } from './SmartTileLayer';
 import {
   HUE_MAP_CENTER,
   HUE_MAP_DEFAULT_ZOOM,
@@ -129,7 +128,7 @@ export default function DeliveryRoutesMap({ points }) {
         style={{ height: '100%', width: '100%' }}
       >
         <ZoomTracker onZoomChange={setCurrentZoom} />
-        <SmartTileLayer />
+        <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} maxZoom={20} />
 
         {/* Render Road Network Segments or Fallback Polylines */}
         {routeResult.segments.length > 0 ? (
