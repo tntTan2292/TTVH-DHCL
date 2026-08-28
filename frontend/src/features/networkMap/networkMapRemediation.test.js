@@ -1,5 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   colorForServicePointType,
   colorForRouteId,
@@ -9,9 +11,25 @@ import {
   ZOOM_LABEL_THRESHOLD_DELIVERY,
   DELIVERY_LEGEND_ITEMS,
   DELIVERY_DISCLAIMER_TEXT,
+  TILE_PROVIDERS,
+  OSM_TILE_URL,
 } from './mapStyles.js';
 
 describe('NETWORK-MANAGEMENT-001 Phase 2 UI/UX Remediation System', () => {
+  it('configures multi-provider tile server failover architecture with OpenStreetMap France as default', () => {
+    assert.ok(Array.isArray(TILE_PROVIDERS));
+    assert.equal(TILE_PROVIDERS.length, 4);
+    assert.equal(TILE_PROVIDERS[0].id, 'osm-france');
+    assert.match(TILE_PROVIDERS[0].url, /openstreetmap\.fr\/osmfr/);
+    assert.equal(OSM_TILE_URL, TILE_PROVIDERS[0].url);
+
+    // Verify SmartTileLayer file content and failover logic presence
+    const smartTileLayerPath = path.resolve('src/features/networkMap/SmartTileLayer.jsx');
+    assert.ok(fs.existsSync(smartTileLayerPath), 'SmartTileLayer.jsx file must exist');
+    const source = fs.readFileSync(smartTileLayerPath, 'utf8');
+    assert.match(source, /export function SmartTileLayer/);
+    assert.match(source, /tileerror: handleTileError/);
+  });
   it('establishes a consistent 5-category color palette for Service Points', () => {
     assert.equal(colorForServicePointType('Giao dịch'), '#F59E0B');
     assert.equal(colorForServicePointType('Bưu cục vận hành'), '#2563EB');

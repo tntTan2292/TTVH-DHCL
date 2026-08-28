@@ -101,15 +101,16 @@ test('processOverviewData handles null rates without coercing to 0', () => {
 
 test('verifies frontend source code contract for Phase F1', () => {
   const pageSource = read('./BcvhRankingPage.jsx');
+  const fetcherSource = read('./bcvhOverviewFetcher.js');
   const blocksSource = read('./BcvhRankingOverviewBlocks.jsx');
   const chartSource = read('./BcvhMultiSeriesTrendChart.jsx');
 
   // Overview endpoint call
-  assert.match(pageSource, /api\.get\('\/f13\/ranking\/bcvh\/overview'/);
-  assert.match(pageSource, /anchor_date:\s*anchorDate/);
+  assert.match(fetcherSource, /apiClient\.get\('\/f13\/ranking\/bcvh\/overview'/);
+  assert.match(fetcherSource, /anchor_date:\s*toDate/);
 
   // Error & Retry
-  assert.match(pageSource, /Không thể tải dữ liệu tổng quan BCVH/);
+  assert.match(fetcherSource, /Không thể tải dữ liệu tổng quan BCVH/);
   assert.match(pageSource, /setOverviewRetrySeq/);
 
   // Order of blocks: MTD Summary -> Monthly Trend -> Route Capacity -> Daily Trend

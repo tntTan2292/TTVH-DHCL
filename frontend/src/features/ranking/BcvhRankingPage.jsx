@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Clock3, Donut } from 'lucide-react';
 import { EmptyState, ErrorState, KPICard, PageContainer, StatusBadge } from '../../components/shared/SharedComponents';
@@ -8,6 +8,7 @@ import UnifiedBcvhAnalysisTable from '../dashboard/components/UnifiedBcvhAnalysi
 import { buildBcvhOptions, validateBcvhUnits } from '../dashboard/components/dashboardFilterOptions';
 import { buildDoughnutAriaLabel, formatNumber, formatRate, formatSignedDelta, mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData';
 import { processOverviewData } from './bcvhOverviewData';
+import { createOverviewFetcher } from './bcvhOverviewFetcher';
 import {
   BcvhDailyTrendBlock,
   BcvhMonthlyTrendBlock,
@@ -164,44 +165,14 @@ export default function BcvhRankingPage() {
     };
   }, []);
 
+  const fetchOverviewRef = useRef(null);
+  if (!fetchOverviewRef.current) {
+    fetchOverviewRef.current = createOverviewFetcher(api, setOverviewState);
+  }
+
   // Overview API fetch effect (Phase F1 - Exactly 1 request per anchor_date)
   useEffect(() => {
-    let active = true;
-    const anchorDate = toDate || '';
-
-    setOverviewState((prev) => ({ ...prev, status: 'loading', error: null }));
-
-    const params = anchorDate ? { anchor_date: anchorDate } : {};
-    api.get('/f13/ranking/bcvh/overview', { params })
-      .then((response) => {
-        if (!active) return;
-        if (!response?.data?.success) {
-          throw new Error(response?.data?.error?.message || 'Không thể tải dữ liệu tổng quan BCVH.');
-        }
-        const rawData = response.data.data || {};
-        const rawMeta = response.data.meta || {};
-        const processed = processOverviewData(rawData, rawMeta);
-
-        setOverviewState({
-          status: 'success',
-          data: response.data,
-          processed,
-          error: null,
-        });
-      })
-      .catch((error) => {
-        if (!active) return;
-        setOverviewState({
-          status: 'error',
-          data: null,
-          processed: null,
-          error: error?.response?.data?.error?.message || error?.message || 'Không thể tải dữ liệu tổng quan BCVH.',
-        });
-      });
-
-    return () => {
-      active = false;
-    };
+    fetchOverviewRef.current(toDate, overviewRetrySeq);
   }, [toDate, overviewRetrySeq]);
 
   useEffect(() => {
