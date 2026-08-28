@@ -1151,3 +1151,170 @@ Governance state: `BCVH RANKING MONTHLY HEATMAP SSOT REUSE COMPLETE / READY FOR 
 Code does not self-award PO PASS on this round; the Product Owner must restart the frontend dev
 server and perform a fresh UI check on both `/f13/ranking/bcvh` and Operation Dashboard before any
 acceptance is recorded.
+
+## 44. F1.3 Heatmap Absolute Color SSOT - Single Catalog Across BCVH Ranking and Operation Dashboard (2026-08-28)
+
+Append-only delta. Sections 1-43 are unchanged. This supersedes Section 43's scope description
+in one respect: it was Operation Dashboard's weekday tab whose colors BCVH Ranking reused
+there; this round makes the absolute band the only color rule anywhere in F1.3 Heatmap
+surfaces, and moves the real threshold/color definitions into one new, neutral catalog module
+that both features import - no relative-to-average classification decides color anywhere any
+more.
+
+### Product Owner decision
+
+Every F1.3 Heatmap - BCVH Ranking's monthly heatmap and Operation Dashboard's Heatmap tab and
+weekday ("Theo thu") tab - classifies color from the rate itself, using one absolute band set
+(green >=70 / pink 60-70 / yellow 50-60 / red <50 / gray for no data). Color is never derived
+from a delta against a monthly (or any other) average. Average-comparison data may still be
+shown as numbers, arrows, tooltips, or secondary stats - it must never select color.
+
+### New shared catalog
+
+`frontend/src/components/f13/f13HeatmapBandCatalog.js` - a pure module (no React, no fetch, no
+`localStorage`) exporting:
+
+- `F13_HEATMAP_BANDS` - the 4 ordered bands, `min`/`max` exclusive-upper except the top band
+  (`max: Infinity`, so a rate of exactly 100 is provably green rather than relying on a
+  fallback).
+- `F13_HEATMAP_UNAVAILABLE_BAND` - `{ id: 'unavailable', label: 'Xam', tone: 'unavailable' }`.
+- `classifyF13HeatmapRate(rate, bands = F13_HEATMAP_BANDS)` - the classifier; accepts a `bands`
+  override so a future Admin screen can plug in a different set without this module or its
+  callers changing. No Admin UI, API, or persisted config is added by this ticket - the
+  parameter only prepares for one, and there is no `localStorage` anywhere in the module.
+- `F13_HEATMAP_TONE_CLASS` / `F13_HEATMAP_DOT_CLASS` - cell and legend-dot Tailwind classes,
+  keyed by tone.
+- `F13_HEATMAP_HEX_COLOR` - raw hex equivalents, for contexts that render raw SVG (a recharts
+  `<Line>` per-point dot `fill`) where a Tailwind `bg-*` utility class has no effect (`fill` is
+  a different CSS property than `background-color`).
+- `F13_HEATMAP_LEGEND` - the 5 legend entries (4 bands + unavailable) with the Product
+  Owner-approved Vietnamese wording.
+- Deprecated aliases `APPROVED_WEEKDAY_BANDS` / `getApprovedWeekdayBand(rate, backendColor)` -
+  kept only so existing imports keep resolving; both are built from the real
+  `F13_HEATMAP_BANDS`/`classifyF13HeatmapRate`, so there is exactly one real threshold/color
+  source, not two. New code must not pass `backendColor` - see the backend-trust decision
+  below.
+
+### `operatingPatternTabsData.js` - no longer a second real source
+
+Its own local `APPROVED_WEEKDAY_BANDS`, `HEATMAP_BAND_TONE_CLASS`, `HEATMAP_BAND_DOT_CLASS`,
+and `getApprovedWeekdayBand()` (added in Section 43) are removed; the file now imports from and
+re-exports the catalog's names (plus the legacy `HEATMAP_BAND_TONE_CLASS`/
+`HEATMAP_BAND_DOT_CLASS` aliases) so `OperatingPatternTabsCard.jsx` and BCVH Ranking's
+`BcvhRankingOverviewBlocks.jsx` (Section 43, untouched this round - its import path and
+16-test regression suite still pass because the re-exported names behave identically) keep
+working unmodified.
+
+- `mapWeeklyPattern()`: now calls `classifyF13HeatmapRate(rate)` instead of
+  `getApprovedWeekdayBand(rate, item?.color)` - a backend-supplied `color` is never trusted to
+  override the frontend classification (Section 5 of the ticket).
+- `mapHeatmapPattern()` (the day-level Heatmap tab data): `targetTone`/`bandLabel` now come
+  from `classifyF13HeatmapRate(rate)`, not `getHeatmapRelativeBand(deltaFromMonthAverage)`.
+  `deltaFromMonthAverage`, `monthAverage`, and `dod` are still computed and returned on every
+  day - nothing analytical was deleted, only its role in choosing color.
+  `HEATMAP_RELATIVE_BANDS`/`getHeatmapRelativeBand()` remain exported and fully functional as
+  standalone analytical helpers (still exercised directly by their own regression test); they
+  are simply no longer wired into cell color.
+
+### `OperatingPatternTabsCard.jsx`
+
+- Heatmap tab: day cells already read color from `day.targetTone` (unchanged JSX), which is
+  now absolute after the mapper change above - two days with the same rate render the same
+  color regardless of their month's average (regression-tested). Legend heading changed from
+  "So sanh voi KPI trung binh thang" to "Mau Heatmap theo nguong chat luong", and its body
+  changed from `HEATMAP_RELATIVE_BANDS` to the same absolute band list the weekday tab uses,
+  via a new shared `AbsoluteBandLegendBody` component with the Product Owner's exact wording
+  (Xanh: KPI tu 70% tro len, Hong: KPI tu 60% den duoi 70%, Vang: KPI tu 50% den duoi 60%, Do:
+  KPI duoi 50%, Xam: Chua co du lieu). Tooltip/detail text is untouched - it already showed
+  date, rate, delta-from-average, and rank (`buildHeatmapDayDetailText`).
+- "Theo thu" (weekday) tab: legend heading changed to "Mau diem KPI theo nguong chat luong"
+  (same `AbsoluteBandLegendBody`). The volume bar keeps its fixed blue fill unconditionally
+  (never recolored by KPI quality - verified by a regression test counting exactly one `<Bar>`
+  element). The rate line's stroke is now neutral slate (`#64748B`) instead of a fixed
+  emerald - it no longer defaults to reading as "good" - and each point's dot is a new
+  `KpiQualityDot` component whose `fill` comes from
+  `F13_HEATMAP_HEX_COLOR[classifyF13HeatmapRate(payload?.rate).tone]`, sized `r=6` (`r=9`
+  active) to be clearly visible. The month tab's line/dot are byte-for-byte unchanged (still
+  the fixed emerald stroke) - this delta is scoped to the weekday tab only. `ComboTooltip` now
+  shows an additional "Nhom mau/chat luong" line when the point carries a `bandLabel` (weekday
+  rows only; month rows never set it, so their tooltip is unaffected).
+- `HeatmapManagementSummary`'s `>TB`/`<TB` stat cards: recolored from `emerald-200/emerald-50`
+  and `amber-200/amber-50` (which read as band-green/band-yellow) to neutral slate, per the
+  Product Owner's explicit instruction not to let these counts imply a quality classification
+  they are not. `TB thang`/`Tot nhat`/`Thap nhat` stat cards are unchanged (not named in the
+  ticket's neutral-color requirement).
+
+### Section 5 audit - other F1.3 Heatmap components (read-only, no code changed)
+
+Traced from `App.jsx`'s actual routes, not assumption:
+
+- `frontend/src/features/dashboard/DashboardPage.jsx` (routed at `/f13/dashboard`, Operation
+  Dashboard) renders exactly one Heatmap-capable component: `OperatingPatternTabsCard.jsx`
+  (edited above). No other live component renders a Heatmap.
+- `frontend/src/pages/F13Dashboard.jsx` is not referenced anywhere in `App.jsx` or
+  `frontend/src/navigation/appNavigation.jsx` (`grep` confirms zero route/import references) -
+  it is retired/unreachable.
+- `frontend/src/features/dashboard/components/QualityTimelineAdapter.jsx` is imported by
+  nothing except its own test file - also unreachable from any route.
+- `frontend/src/components/f13/QualityTimelinePanel.jsx` is imported only by the two retired
+  files above - unreachable from any route. It does have the exact defect the ticket warns
+  about: its local `getStatusColor()` maps `pink` and `yellow` to the same color
+  (`DASHBOARD_SEMANTIC_COLORS.warning`) and trusts a backend `color`/`entry.color` field
+  directly for cell fill. Per the ticket's explicit instruction ("Neu component da
+  retired/khong duoc render: khong tu sua rong; ghi bang chung"), this file was not modified -
+  this paragraph is the evidence record. If `QualityTimelinePanel.jsx` is ever reactivated,
+  migrating it to `classifyF13HeatmapRate()`/`F13_HEATMAP_TONE_CLASS` is required before it
+  renders again.
+
+### Test plan
+
+- New `frontend/src/components/f13/f13HeatmapBandCatalog.test.js` (20 tests): the required
+  boundary cases including `100`->green and `0`->red, `null`/`undefined`/`NaN`->unavailable, a
+  numeric-string rate, pink/yellow never sharing a tone or color, every tone having a tone
+  class/dot class/hex color, the exact PO legend wording, a custom-`bands` override leaving the
+  default catalog untouched (Admin-readiness), a custom bands array that doesn't cover a rate
+  falling back to unavailable, frozen/non-persisted data (no `localStorage` in this module),
+  and the deprecated-alias/new-catalog consistency check.
+- `frontend/src/features/dashboard/components/operatingPatternTabsData.test.js`: 3 pre-existing
+  tests updated to match the PO-mandated behavior change (day-cell color now absolute, not
+  relative; both legend headings changed) plus 6 new tests - two days with the same rate get
+  the same Heatmap color despite different monthly averages; a backend `color` disagreeing with
+  a low rate is ignored (rate wins); the weekday tab's per-point classifier, neutral line
+  stroke, and single shared `<Bar>` (volume never recolored); the tooltip's quality-group line
+  appears for weekday rows only, never fabricated for month rows; and the `>TB`/`<TB` cards use
+  neutral slate, not a band color. Full file: 26/26 pass.
+- `frontend/src/features/ranking/BcvhRankingOverviewBlocks.heatmapBand.test.js` (Section 43's
+  suite): one assertion updated to check the real definition's new location
+  (`f13HeatmapBandCatalog.js`) instead of asserting it lives inline in
+  `operatingPatternTabsData.js`; all other 15 assertions unchanged. 16/16 pass - confirms BCVH
+  Ranking's monthly heatmap needed zero code changes this round, since it already consumed the
+  shared catalog through names that still resolve identically.
+
+### Validation
+
+- Catalog suite: 20/20 pass. Dashboard data/component suite: 26/26 pass. BCVH heatmap-band
+  suite: 16/16 pass. 12 BCVH Overview tests + single-day contract: 28/28 pass (all four
+  required regression files run together).
+- Full frontend sweep (395 tests): 383/395 pass - the same 12 pre-existing failures by name (3
+  dashboard/canonical-value tests, 8 Route Ranking/Route Performance tests, 1
+  `dataImportBackfillQueue.test.js`), zero new regressions; net +25 tests from this delta.
+- `oxlint`: 0 errors; no new warning in any file touched this round.
+- `vite build`: succeeds, 701 modules.
+- No backend, database, schema, or API file touched; no `networkMap`/`Data QLML/`/`.claude/`/
+  patch/export file staged or committed; the Product Owner's other unrelated dirty/untracked
+  files were left alone throughout.
+
+### Scope
+
+New: `frontend/src/components/f13/f13HeatmapBandCatalog.js`,
+`frontend/src/components/f13/f13HeatmapBandCatalog.test.js`. Modified:
+`frontend/src/features/dashboard/components/operatingPatternTabsData.js`,
+`frontend/src/features/dashboard/components/operatingPatternTabsData.test.js`,
+`frontend/src/features/dashboard/components/OperatingPatternTabsCard.jsx`,
+`frontend/src/features/ranking/BcvhRankingOverviewBlocks.heatmapBand.test.js`, and this
+manifest. `BcvhRankingOverviewBlocks.jsx` itself needed no change.
+
+Governance state: `F1.3 HEATMAP ABSOLUTE COLOR SSOT COMPLETE / READY FOR PO UI CHECK`. Claude
+Code does not self-award PO PASS on this round; the Product Owner must restart the frontend dev
+server and perform a fresh UI check on `/f13/ranking/bcvh` and Operation Dashboard's Heatmap and
+"Theo thu" tabs before any acceptance is recorded.

@@ -18,7 +18,8 @@ import {
   APPROVED_WEEKDAY_BANDS,
   HEATMAP_BAND_TONE_CLASS,
   HEATMAP_BAND_DOT_CLASS,
-  HEATMAP_RELATIVE_BANDS,
+  F13_HEATMAP_HEX_COLOR,
+  classifyF13HeatmapRate,
   HEATMAP_WEEKDAY_LABELS,
   OPERATING_PATTERN_TABS,
   buildHeatmapCellLines,
@@ -30,30 +31,22 @@ import {
 } from './operatingPatternTabsData';
 
 // band-green/band-pink/band-yellow/band-red/unavailable come from the shared
-// HEATMAP_BAND_TONE_CLASS / HEATMAP_BAND_DOT_CLASS catalog in operatingPatternTabsData.js
-// (also imported by BCVH Ranking's monthly heatmap) so the absolute classification and
-// its colors have one source of truth. on-target/below-target and the relative-* tones
-// are specific to this card's own weekday-target and day-heatmap views and stay local.
+// HEATMAP_BAND_TONE_CLASS / HEATMAP_BAND_DOT_CLASS catalog (also imported by BCVH Ranking's
+// monthly heatmap) so the absolute classification and its colors have one source of truth.
+// on-target/below-target are specific to this card's own weekday-target-rate summary.
+// The Heatmap tab's day cells and the weekday tab's per-point KPI dots both use these same
+// band-* tones now — color is never derived from a delta-against-average (SSOT decision,
+// 2026-08-28); delta-from-average data is still computed and shown, just not for color.
 const TONE_CLASS = {
   'on-target': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
   'below-target': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
   ...HEATMAP_BAND_TONE_CLASS,
-  'relative-high': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
-  'relative-above': 'border-green-300 bg-green-100 text-green-950 font-bold shadow-2xs hover:bg-green-200',
-  'relative-average': 'border-slate-300 bg-slate-100 text-slate-900 font-semibold shadow-2xs hover:bg-slate-200',
-  'relative-below': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
-  'relative-low': 'border-red-300 bg-red-100 text-red-950 font-bold shadow-2xs hover:bg-red-200',
 };
 
 const TONE_BAR = {
   'on-target': 'bg-emerald-600',
   'below-target': 'bg-amber-500',
   ...HEATMAP_BAND_DOT_CLASS,
-  'relative-high': 'bg-emerald-700',
-  'relative-above': 'bg-green-600',
-  'relative-average': 'bg-slate-500',
-  'relative-below': 'bg-amber-500',
-  'relative-low': 'bg-red-600',
 };
 
 const TAB_ICON = {
@@ -73,23 +66,31 @@ function LegendDot({ tone }) {
   return <span className={`h-2.5 w-2.5 rounded-full shadow-2xs ${TONE_BAR[tone] || TONE_BAR.unavailable}`} />;
 }
 
+// Shared absolute-band legend body for both the "Theo thứ" and "Heatmap" tabs — same
+// F1.3 Heatmap color SSOT, only the heading differs per tab (Section 3/4 of the SSOT ticket).
+function AbsoluteBandLegendBody() {
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      {APPROVED_WEEKDAY_BANDS.map((band) => (
+        <span key={band.id} className="inline-flex items-center gap-2">
+          <LegendDot tone={band.tone} />
+          {band.label}: {band.description}
+        </span>
+      ))}
+      <span className="inline-flex items-center gap-2">
+        <LegendDot tone="unavailable" />
+        Xám: Chưa có dữ liệu
+      </span>
+    </div>
+  );
+}
+
 function PatternLegend({ activeTab }) {
   if (activeTab === 'weekday') {
     return (
       <div className="space-y-2 text-xs text-slate-600 font-medium">
-        <div className="font-bold text-slate-900">Chú giải màu theo ngưỡng cảnh báo đã phê duyệt</div>
-        <div className="flex flex-wrap items-center gap-4">
-          {APPROVED_WEEKDAY_BANDS.map((band) => (
-            <span key={band.id} className="inline-flex items-center gap-2">
-              <LegendDot tone={band.tone} />
-              {band.label}: {band.description}
-            </span>
-          ))}
-          <span className="inline-flex items-center gap-2">
-            <LegendDot tone="unavailable" />
-            Chưa có dữ liệu
-          </span>
-        </div>
+        <div className="font-bold text-slate-900">Màu điểm KPI theo ngưỡng chất lượng</div>
+        <AbsoluteBandLegendBody />
       </div>
     );
   }
@@ -97,19 +98,8 @@ function PatternLegend({ activeTab }) {
   if (activeTab === 'heatmap') {
     return (
       <div className="space-y-2 text-xs text-slate-600 font-medium">
-        <div className="font-bold text-slate-900">So sánh với KPI trung bình tháng</div>
-        <div className="flex flex-wrap items-center gap-4">
-          {HEATMAP_RELATIVE_BANDS.map((band) => (
-            <span key={band.id} className="inline-flex items-center gap-2">
-              <LegendDot tone={band.tone} />
-              {band.label}
-            </span>
-          ))}
-          <span className="inline-flex items-center gap-2">
-            <LegendDot tone="unavailable" />
-            Chưa có dữ liệu
-          </span>
-        </div>
+        <div className="font-bold text-slate-900">Màu Heatmap theo ngưỡng chất lượng</div>
+        <AbsoluteBandLegendBody />
       </div>
     );
   }
@@ -137,13 +127,28 @@ function ComboTooltip({ active, payload, label }) {
       <div className="font-bold text-white mb-1">{label}</div>
       <div className="text-slate-300">Sản lượng: <span className="font-bold tabular-nums text-white">{formatNumber(point.totalVolume)}</span></div>
       <div className="text-slate-300">Tỷ lệ đạt: <span className="font-bold tabular-nums text-emerald-400">{formatRate(point.rate)}</span></div>
+      {point.bandLabel ? (
+        <div className="text-slate-300">Nhóm màu/chất lượng: <span className="font-bold text-white">{point.bandLabel}</span></div>
+      ) : null}
       {point.cumulativeLabel ? <div className="mt-1 text-slate-400 text-[11px] border-t border-slate-800 pt-1">{point.cumulativeLabel}</div> : null}
     </div>
   );
 }
 
+// "Theo thứ" tab per-point KPI dot (SSOT decision, 2026-08-28): each point's fill color is
+// classified from its own rate via classifyF13HeatmapRate(), not a single fixed "good" color.
+// Uses F13_HEATMAP_HEX_COLOR because these are raw SVG elements — a Tailwind `bg-*` utility
+// class has no effect on an SVG `fill`.
+function KpiQualityDot({ cx, cy, payload, r = 6 }) {
+  if (typeof cx !== 'number' || typeof cy !== 'number') return null;
+  const band = classifyF13HeatmapRate(payload?.rate);
+  const color = F13_HEATMAP_HEX_COLOR[band.tone] || F13_HEATMAP_HEX_COLOR.unavailable;
+  return <circle cx={cx} cy={cy} r={r} fill={color} stroke="#fff" strokeWidth={2} />;
+}
+
 function ComboChartPanel({ rows, mode }) {
   const volumeAxisMax = getVolumeAxisMax(rows.map((row) => ({ total_volume: row.totalVolume })));
+  const isWeekday = mode === 'weekday';
 
   return (
     <div className="w-full">
@@ -178,8 +183,25 @@ function ComboChartPanel({ rows, mode }) {
               width={70}
             />
             <Tooltip content={<ComboTooltip />} />
+            {/* Volume stays its own blue — never recolored by KPI quality, so the two
+                meanings (volume vs. quality) are never mixed. */}
             <Bar yAxisId="volume" dataKey="totalVolume" name="Sản lượng" fill="url(#patternVolumeGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
-            <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} />
+            {isWeekday ? (
+              <Line
+                yAxisId="rate"
+                type="linear"
+                dataKey="rate"
+                name="Tỷ lệ đạt"
+                stroke="#64748B"
+                strokeWidth={2}
+                dot={<KpiQualityDot />}
+                activeDot={<KpiQualityDot r={9} />}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+            ) : (
+              <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -239,12 +261,15 @@ function HeatmapManagementSummary({ month }) {
         <div className="mt-0.5 text-xs font-bold">{stats.worst.date}</div>
         <div className="text-[10px] font-bold tabular-nums">{stats.worst.rate.toFixed(2)}%</div>
       </div>
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50/90 p-2.5 text-emerald-950 shadow-2xs">
-        <div className="text-[10px] font-bold uppercase tracking-wider">&gt; TB</div>
+      {/* Neutral (slate), not a Heatmap band color: this count is a magnitude next to the
+          average, not a quality classification — using band-green/band-yellow here would
+          read as a color-coded quality signal it is not (SSOT decision, 2026-08-28). */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50/90 p-2.5 text-slate-900 shadow-2xs">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">&gt; TB</div>
         <div className="mt-0.5 text-sm font-bold tabular-nums">{stats.aboveAverageCount}</div>
       </div>
-      <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-2.5 text-amber-950 shadow-2xs">
-        <div className="text-[10px] font-bold uppercase tracking-wider">&lt; TB</div>
+      <div className="rounded-xl border border-slate-200 bg-slate-50/90 p-2.5 text-slate-900 shadow-2xs">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">&lt; TB</div>
         <div className="mt-0.5 text-sm font-bold tabular-nums">{stats.belowAverageCount}</div>
       </div>
     </div>

@@ -54,11 +54,19 @@ test('BCVH Ranking imports the exact same getApprovedWeekdayBand/HEATMAP_BAND_TO
   assert.match(dashboardSource, /HEATMAP_BAND_TONE_CLASS/);
   assert.match(dashboardSource, /HEATMAP_BAND_DOT_CLASS/);
 
-  // Both components' imports resolve to the one module that defines the catalog.
-  const catalogSource = read('../dashboard/components/operatingPatternTabsData.js');
+  // Both components' imports resolve to the one module that ultimately defines the catalog.
+  // As of the F1.3 Heatmap Absolute Color SSOT ticket (2026-08-28), the real threshold/color
+  // definitions live in components/f13/f13HeatmapBandCatalog.js; operatingPatternTabsData.js
+  // now re-exports getApprovedWeekdayBand/HEATMAP_BAND_TONE_CLASS/HEATMAP_BAND_DOT_CLASS as
+  // deprecated aliases of that one real source, not a second independent definition.
+  const mapperSource = read('../dashboard/components/operatingPatternTabsData.js');
+  assert.match(mapperSource, /getApprovedWeekdayBand,?\s*\n?\s*\}\s*from\s*'\.\.\/\.\.\/\.\.\/components\/f13\/f13HeatmapBandCatalog\.js'/);
+  assert.doesNotMatch(mapperSource, /export function getApprovedWeekdayBand/);
+
+  const catalogSource = read('../../components/f13/f13HeatmapBandCatalog.js');
   assert.match(catalogSource, /export function getApprovedWeekdayBand/);
-  assert.match(catalogSource, /export const HEATMAP_BAND_TONE_CLASS/);
-  assert.match(catalogSource, /export const HEATMAP_BAND_DOT_CLASS/);
+  assert.match(catalogSource, /export const F13_HEATMAP_TONE_CLASS/);
+  assert.match(catalogSource, /export const F13_HEATMAP_DOT_CLASS/);
 });
 
 test('HEATMAP_RELATIVE_BANDS does not appear anywhere in BCVH Ranking', () => {

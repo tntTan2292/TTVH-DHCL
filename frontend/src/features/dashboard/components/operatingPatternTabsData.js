@@ -1,4 +1,21 @@
 import { QUALITY_TARGET_RATE } from './comboTrendlineData.js';
+// Single Heatmap absolute-color SSOT (PO decision 2026-08-28): every F1.3 Heatmap classifies
+// color from the rate itself via classifyF13HeatmapRate(), never from a delta against any
+// average. This file re-exports the legacy APPROVED_WEEKDAY_BANDS/getApprovedWeekdayBand/
+// HEATMAP_BAND_TONE_CLASS/HEATMAP_BAND_DOT_CLASS names as aliases of that one catalog so
+// existing callers (this card's weekday tab, BCVH Ranking's monthly heatmap) keep working
+// without a second, independent threshold/color source.
+import {
+  F13_HEATMAP_BANDS,
+  F13_HEATMAP_UNAVAILABLE_BAND,
+  F13_HEATMAP_TONE_CLASS,
+  F13_HEATMAP_DOT_CLASS,
+  F13_HEATMAP_LEGEND,
+  F13_HEATMAP_HEX_COLOR,
+  classifyF13HeatmapRate,
+  APPROVED_WEEKDAY_BANDS,
+  getApprovedWeekdayBand,
+} from '../../../components/f13/f13HeatmapBandCatalog.js';
 
 export const OPERATING_PATTERN_TABS = [
   { id: 'month', label: 'Theo tháng' },
@@ -10,31 +27,21 @@ export const DEFAULT_OPERATING_PATTERN_TAB = 'month';
 
 export const HEATMAP_WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-export const APPROVED_WEEKDAY_BANDS = [
-  { id: 'green', label: 'Xanh', description: 'KPI từ 70% trở lên', min: 70, max: 100, tone: 'band-green' },
-  { id: 'pink', label: 'Hồng', description: 'KPI từ 60% đến dưới 70%', min: 60, max: 70, tone: 'band-pink' },
-  { id: 'yellow', label: 'Vàng', description: 'KPI từ 50% đến dưới 60%', min: 50, max: 60, tone: 'band-yellow' },
-  { id: 'red', label: 'Đỏ', description: 'KPI dưới 50%', min: 0, max: 50, tone: 'band-red' },
-];
-
-// Shared cell/dot color classes for the APPROVED_WEEKDAY_BANDS absolute classification
-// (green/pink/yellow/red/unavailable). This is the single source of truth for that
-// palette — Operation Dashboard's weekday tab and BCVH Ranking's monthly heatmap both
-// import it, so neither re-declares the >=70/>=60/>=50 thresholds or their colors.
-export const HEATMAP_BAND_TONE_CLASS = {
-  'band-green': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
-  'band-pink': 'border-pink-300 bg-pink-100 text-pink-950 font-bold shadow-2xs hover:bg-pink-200',
-  'band-yellow': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
-  'band-red': 'border-red-300 bg-red-100 text-red-950 font-bold shadow-2xs hover:bg-red-200',
-  unavailable: 'border-slate-200 bg-slate-50 text-slate-400 font-medium',
-};
-
-export const HEATMAP_BAND_DOT_CLASS = {
-  'band-green': 'bg-emerald-600',
-  'band-pink': 'bg-pink-500',
-  'band-yellow': 'bg-amber-500',
-  'band-red': 'bg-red-600',
-  unavailable: 'bg-slate-300',
+export {
+  F13_HEATMAP_BANDS,
+  F13_HEATMAP_UNAVAILABLE_BAND,
+  F13_HEATMAP_TONE_CLASS,
+  F13_HEATMAP_DOT_CLASS,
+  F13_HEATMAP_LEGEND,
+  F13_HEATMAP_HEX_COLOR,
+  classifyF13HeatmapRate,
+  APPROVED_WEEKDAY_BANDS,
+  getApprovedWeekdayBand,
+  // Legacy aliases — deprecated, kept only so existing imports keep resolving. Both names
+  // are literally the same object/function as their F13_HEATMAP_* counterpart above; there
+  // is exactly one real threshold/color source (f13HeatmapBandCatalog.js), not two.
+  F13_HEATMAP_TONE_CLASS as HEATMAP_BAND_TONE_CLASS,
+  F13_HEATMAP_DOT_CLASS as HEATMAP_BAND_DOT_CLASS,
 };
 
 export const HEATMAP_RELATIVE_BANDS = [
@@ -61,20 +68,6 @@ function getTargetTone(rate) {
   if (rate === null || rate === undefined) return 'unavailable';
   if (rate >= QUALITY_TARGET_RATE) return 'on-target';
   return 'below-target';
-}
-
-export function getApprovedWeekdayBand(rate, backendColor = null) {
-  if (rate === null || rate === undefined) return {
-    id: 'unavailable',
-    label: 'Chưa có dữ liệu',
-    tone: 'unavailable',
-  };
-
-  const colorBand = APPROVED_WEEKDAY_BANDS.find((band) => band.id === backendColor);
-  if (colorBand) return colorBand;
-
-  return APPROVED_WEEKDAY_BANDS.find((band) => rate >= band.min && rate < band.max)
-    || APPROVED_WEEKDAY_BANDS[0];
 }
 
 function getMonthKey(date) {
@@ -250,7 +243,9 @@ export function mapWeeklyPattern(weekly = []) {
   return weekly.map((item) => {
     const rate = normalizeRate(item?.pass_rate ?? item?.avg_kpi);
     const totalVolume = Number(item?.total_volume || 0);
-    const approvedBand = getApprovedWeekdayBand(rate, item?.color);
+    // Rate is the sole classification input (SSOT decision, 2026-08-28): a backend-supplied
+    // `color` is never trusted here, since it could disagree with the frontend catalog.
+    const approvedBand = classifyF13HeatmapRate(rate);
     return {
       id: item?.day || 'unknown-day',
       label: item?.day || 'Chưa xác định',
@@ -334,10 +329,15 @@ export function mapHeatmapPattern(heatmap = []) {
         const dod = normalizeRate(day.dod);
         const monthStats = buildHeatmapMonthStats(heatmap, getMonthKey(day.date));
         const monthAverage = monthStats?.average ?? null;
+        // Cell color (SSOT decision, 2026-08-28): classified from the rate itself only, via
+        // the same absolute catalog as the weekday tab and BCVH Ranking's monthly heatmap.
+        // deltaFromMonthAverage/monthAverage/getHeatmapRelativeBand() are still computed
+        // below — they remain available for the tooltip/detail text and the month summary
+        // stats — but they no longer choose targetTone/bandLabel.
         const deltaFromMonthAverage = rate !== null && monthAverage !== null
           ? Number((rate - monthAverage).toFixed(2))
           : null;
-        const relativeBand = getHeatmapRelativeBand(deltaFromMonthAverage);
+        const absoluteBand = classifyF13HeatmapRate(rate);
         return {
           id: day.date || `week-${weekIndex + 1}-day-${dayIndex + 1}`,
           date: day.date || null,
@@ -348,8 +348,8 @@ export function mapHeatmapPattern(heatmap = []) {
           dod,
           monthAverage,
           deltaFromMonthAverage,
-          targetTone: relativeBand.tone,
-          bandLabel: relativeBand.label,
+          targetTone: absoluteBand.tone,
+          bandLabel: absoluteBand.label,
           available: !unavailable && rate !== null,
           nationalRank: day.national_rank || null,
           nationalRankLabel: formatNationalRank(day.national_rank),

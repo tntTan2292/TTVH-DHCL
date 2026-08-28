@@ -234,7 +234,7 @@ test('weekday combo data preserves approved F1.3 warning bands and volume pass-r
   assert.deepEqual(model.weekday.map((row) => row.totalVolume), [10, 10, 10, 10]);
 });
 
-test('heatmap month average relative classification uses displayed authoritative daily KPI values', () => {
+test('heatmap month average is still computed for tooltips/stats, but day cell color uses the absolute classifier', () => {
   const heatmap = [[
     { date: '2026-07-01', kpi_rate: 80 },
     { date: '2026-07-02', kpi_rate: 74 },
@@ -243,6 +243,7 @@ test('heatmap month average relative classification uses displayed authoritative
     { date: '2026-07-05', kpi_rate: 60 },
   ]];
 
+  // Analytical average/delta data (PO decision 2026-08-28: kept, no longer decides color).
   const stats = buildHeatmapMonthStats(heatmap, '2026-07');
   assert.equal(stats.average, 70);
   assert.deepEqual(stats.best, { date: '2026-07-01', rate: 80, deltaFromMonthAverage: 10 });
@@ -251,18 +252,61 @@ test('heatmap month average relative classification uses displayed authoritative
   assert.equal(stats.belowAverageCount, 2);
 
   const model = mapOperatingPatternResponse({ heatmap }, { toDate: '2026-07-05' });
+
+  // Cell color: absolute F1.3 Heatmap SSOT (green >=70 / pink 60-70 / yellow 50-60 / red <50),
+  // classified from each day's own rate — 80/74/70 are all >=70 (green) even though 70 sits
+  // exactly at the monthly average; 66/60 are both in [60,70) (pink).
   assert.deepEqual(
     model.heatmap[0].days.map((day) => day.targetTone),
-    ['relative-high', 'relative-above', 'relative-average', 'relative-below', 'relative-low'],
+    ['band-green', 'band-green', 'band-green', 'band-pink', 'band-pink'],
   );
+  assert.deepEqual(
+    model.heatmap[0].days.map((day) => day.bandLabel),
+    ['Xanh', 'Xanh', 'Xanh', 'Hồng', 'Hồng'],
+  );
+
+  // deltaFromMonthAverage is still present on every day (for the tooltip), even though it no
+  // longer drives targetTone/bandLabel.
+  assert.deepEqual(
+    model.heatmap[0].days.map((day) => day.deltaFromMonthAverage),
+    [10, 4, 0, -4, -10],
+  );
+
+  // getHeatmapRelativeBand()/HEATMAP_RELATIVE_BANDS remain valid, standalone analytical
+  // helpers — they are simply no longer wired into day.targetTone/bandLabel above.
   assert.deepEqual(
     [10, 4, 0, -4, -10].map((delta) => getHeatmapRelativeBand(delta).id),
     ['significantly-above', 'above', 'near-average', 'below', 'significantly-below'],
   );
+
   assert.equal(model.heatmap[0].days[0].valueLabel, '80.00%');
   assert.equal(model.heatmap[0].days[0].dayLabel, '01/07');
   assert.equal(model.heatmapMonths[0].label, 'Tháng 07/2026');
   assert.equal(model.heatmapMonths[0].rangeLabel, 'Từ 01/07/2026 đến 05/07/2026');
+});
+
+test('two days with the same rate get the same Heatmap color even when their monthly averages differ', () => {
+  const lowAverageMonth = mapOperatingPatternResponse({
+    heatmap: [[
+      { date: '2026-02-01', kpi_rate: 65 },
+      { date: '2026-02-02', kpi_rate: 40 },
+    ]],
+  }, { toDate: '2026-02-02' });
+
+  const highAverageMonth = mapOperatingPatternResponse({
+    heatmap: [[
+      { date: '2026-03-01', kpi_rate: 65 },
+      { date: '2026-03-02', kpi_rate: 95 },
+    ]],
+  }, { toDate: '2026-03-02' });
+
+  const dayA = lowAverageMonth.heatmap[0].days[0]; // rate 65, month average 52.5
+  const dayB = highAverageMonth.heatmap[0].days[0]; // rate 65, month average 80
+  assert.equal(dayA.rate, 65);
+  assert.equal(dayB.rate, 65);
+  assert.notEqual(dayA.deltaFromMonthAverage, dayB.deltaFromMonthAverage);
+  assert.equal(dayA.targetTone, dayB.targetTone);
+  assert.equal(dayA.targetTone, 'band-pink');
 });
 
 test('heatmap groups complete previous month and current month through cutoff with unknown days preserved', () => {
@@ -368,9 +412,12 @@ test('component source supports one-mode rendering combo charts and filter propa
 test('component source exposes required legends labels and heatmap month separation', () => {
   const source = fs.readFileSync(new URL('./OperatingPatternTabsCard.jsx', import.meta.url), 'utf8');
 
-  assert.match(source, /Chú giải màu theo ngưỡng cảnh báo đã phê duyệt/);
-  assert.match(source, /So sánh với KPI trung bình tháng/);
-  assert.match(source, /KPI trung bình tháng/);
+  // Heatmap absolute color SSOT (2026-08-28): both the "Theo thứ" and "Heatmap" tabs use
+  // the same absolute band legend body, only the heading differs per tab.
+  assert.match(source, /Màu điểm KPI theo ngưỡng chất lượng/);
+  assert.match(source, /Màu Heatmap theo ngưỡng chất lượng/);
+  assert.doesNotMatch(source, /Chú giải màu theo ngưỡng cảnh báo đã phê duyệt/);
+  assert.doesNotMatch(source, /So sánh với KPI trung bình tháng/);
   assert.match(source, /Tốt nhất/);
   assert.match(source, /Thấp nhất/);
   assert.match(source, /Tháng hiện tại/);
@@ -408,14 +455,32 @@ test('operator-facing sources do not expose raw i18n or API keys', () => {
   assert.match(mapperSource, /Sản lượng và tỷ lệ đạt theo tháng/);
 });
 
-test('weekday cutoffs are approved while heatmap remains relative to monthly average', () => {
+test('the weekday AND heatmap tabs both use the single absolute F1.3 Heatmap threshold catalog, not a relative-to-monthly-average one', () => {
   const componentSource = fs.readFileSync(new URL('./OperatingPatternTabsCard.jsx', import.meta.url), 'utf8');
   const mapperSource = fs.readFileSync(new URL('./operatingPatternTabsData.js', import.meta.url), 'utf8');
+  const catalogSource = fs.readFileSync(
+    new URL('../../../components/f13/f13HeatmapBandCatalog.js', import.meta.url),
+    'utf8',
+  );
 
-  assert.match(mapperSource, /min: 70/);
-  assert.match(mapperSource, /min: 60/);
-  assert.match(mapperSource, /min: 50/);
-  assert.match(componentSource, /So sánh với KPI trung bình tháng/);
+  // The 70/60/50 thresholds live in exactly one place: the shared catalog module. Neither
+  // this mapper nor the card re-declares them.
+  assert.match(catalogSource, /min: 70/);
+  assert.match(catalogSource, /min: 60/);
+  assert.match(catalogSource, /min: 50/);
+  assert.doesNotMatch(mapperSource, /min:\s*70/);
+  assert.doesNotMatch(componentSource, /min:\s*70/);
+
+  // The old "relative to monthly average" heatmap legend heading is gone; both tabs now
+  // read from the same absolute band legend body (AbsoluteBandLegendBody).
+  assert.doesNotMatch(componentSource, /So sánh với KPI trung bình tháng/);
+  assert.match(componentSource, /function AbsoluteBandLegendBody/);
+  assert.match(componentSource, /<AbsoluteBandLegendBody \/>/);
+
+  // day.targetTone (Heatmap tab) is classified from the rate, not from deltaFromMonthAverage.
+  assert.match(mapperSource, /classifyF13HeatmapRate\(rate\)/);
+  assert.doesNotMatch(mapperSource, /targetTone:\s*relativeBand\.tone/);
+
   assert.doesNotMatch(componentSource, /TCT/);
 });
 
@@ -428,4 +493,60 @@ test('timeline service heatmap uses previous month through latest available date
   assert.match(serviceSource, /_buildHeatmapCalendar\(fullData, latestBusinessDate\)/);
   assert.match(serviceSource, /is_empty: Boolean\(d\.isEmpty\)/);
   assert.doesNotMatch(serviceSource, /const last30 = fullData\.slice\(-30\);\s*let currentWeek/s);
+});
+
+test('weekday backend color is never trusted for classification — only rate decides', () => {
+  // A backend `color: 'green'` deliberately disagreeing with a low rate must not win: the
+  // day still classifies red, because rate is the sole classification input (SSOT decision,
+  // 2026-08-28, Section 5: never trust a backend `color` that could disagree with the
+  // frontend catalog).
+  const model = mapOperatingPatternResponse({
+    weekly: [{ day: 'T2', avg_kpi: 30, pass_rate: 30, total_volume: 10, color: 'green' }],
+  });
+
+  assert.equal(model.weekday[0].targetTone, 'band-red');
+  assert.equal(model.weekday[0].bandLabel, 'Đỏ');
+});
+
+test('"Theo thứ" tab source uses the absolute classifier per KPI point, a neutral line stroke, and keeps the volume bar its own color', () => {
+  const source = fs.readFileSync(new URL('./OperatingPatternTabsCard.jsx', import.meta.url), 'utf8');
+
+  // Per-point KPI dot color comes from classifyF13HeatmapRate(), not a single fixed stroke.
+  assert.match(source, /function KpiQualityDot/);
+  assert.match(source, /classifyF13HeatmapRate\(payload\?\.rate\)/);
+  assert.match(source, /dot=\{<KpiQualityDot \/>\}/);
+  assert.match(source, /activeDot=\{<KpiQualityDot r=\{9\} \/>\}/);
+
+  // The weekday line itself is neutral (slate), not hardcoded emerald — it must not default
+  // to reading as "good" regardless of the data.
+  assert.match(source, /isWeekday[\s\S]{0,400}stroke="#64748B"/);
+
+  // Volume bar keeps its own blue fill in both modes — never recolored by KPI quality.
+  assert.match(source, /<Bar yAxisId="volume" dataKey="totalVolume" name="Sản lượng" fill="url\(#patternVolumeGradient\)"/);
+  const barMatches = source.match(/<Bar yAxisId="volume"/g) || [];
+  assert.equal(barMatches.length, 1, 'exactly one <Bar> element, shared by both modes, never re-colored per KPI band');
+
+  // Month tab's line is untouched — still the fixed emerald stroke/dot it always had.
+  assert.match(source, /stroke="#059669" strokeWidth=\{3\} dot=\{\{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' \}\}/);
+});
+
+test('ComboTooltip shows the KPI quality group only when the point provides one (weekday rows), never inventing it for month rows', () => {
+  const source = fs.readFileSync(new URL('./OperatingPatternTabsCard.jsx', import.meta.url), 'utf8');
+  assert.match(source, /Nhóm màu\/chất lượng/);
+  assert.match(source, /point\.bandLabel/);
+
+  const model = mapOperatingPatternResponse(sampleTimeline, { toDate: '2026-07-16' });
+  assert.equal(model.weekday[0].bandLabel, 'Xanh');
+  assert.equal(model.month[0].bandLabel, undefined);
+});
+
+test('the ">TB"/"<TB" heatmap management stats use a neutral color, not a Heatmap band color', () => {
+  const source = fs.readFileSync(new URL('./OperatingPatternTabsCard.jsx', import.meta.url), 'utf8');
+  const aboveBelowBlock = source.slice(
+    source.indexOf('&gt; TB') - 200,
+    source.indexOf('&lt; TB') + 200,
+  );
+  assert.doesNotMatch(aboveBelowBlock, /border-emerald-200|bg-emerald-50|text-emerald-950/);
+  assert.doesNotMatch(aboveBelowBlock, /border-amber-200|bg-amber-50|text-amber-950/);
+  assert.match(aboveBelowBlock, /border-slate-200/);
 });
