@@ -2306,3 +2306,60 @@ CTO/PO, and no document still maps `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` to `EX
 
 Implementation of the 4-status model has not started -- it remains a design. No Portal, queue,
 or business-data operation was performed. No PO acceptance is claimed.
+
+## 47. AB-CALENDAR-01 -- 4-Status Model Implementation And Frontend Compatibility-Layer Remediation (2026-08-28, Claude Code Sonnet 5)
+
+### 47.1 Scope
+
+Two rounds, both backend-untouched for this section's second round:
+
+1. Implementation commit `21d37be3` (Claude Code Sonnet 5): the 4-status model approved in
+   Sections 45-46 was implemented in code -- backend (`autoBackfillCoverageService.js`
+   `toPoStatus()`/`queueDisposition()`, `autoBackfillQueueService.js` `include_excluded`
+   opt-in) and frontend (`autoBackfillUiHelpers.js`, `AutoBackfillOperatorPanel.jsx`).
+2. This remediation round (frontend-only, no backend/database/API change): a Product Owner
+   review found the frontend compatibility layer for legacy 6-state statuses was
+   inconsistent across its three consumers, and a real defect in one of them.
+
+### 47.2 Defect Found And Fixed
+
+`groupItemsByIndicatorAndMonth()`'s legacy-status classification mapped
+`LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` into the `excluded` bucket, not `completed` -- a
+direct contradiction of the approved D2 decision (Section 46.2: "valid data present = Đã
+hoàn tất"). This was a **code** defect introduced by commit `21d37be3`, not a documentation
+one; Section 46.5's consistency check covered documents only. It never reached a real user:
+the live backend only ever emits the 4 current PO statuses (verified against
+`autoBackfillCoverageService.js`), so this bucket only misfired for a legacy-status payload,
+which the running backend cannot produce. Fixed by this round.
+
+### 47.3 Remediation
+
+A single shared `normalizePoStatus()` function (`autoBackfillUiHelpers.js`) now maps any of
+the 4 current PO statuses, or any of the 6 legacy statuses, onto exactly one of `COMPLETED` /
+`INCOMPLETE` / `EXCLUDED` / `DATA_ERROR`, per the exact table in
+`AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md` Section 2 ("Old 6-state -> new 4"). `isSelectable()`,
+`resolveNoCodeStatus()`, and `groupItemsByIndicatorAndMonth()` all normalize through this one
+function -- previously each reimplemented its own legacy-status list independently, which is
+exactly how the D2 defect above went unnoticed by `isSelectable()`'s narrower literal check.
+`resolveNoCodeStatus()` also now renders only the 4 canonical labels/badges; a legacy status no
+longer renders its own retired 6-state label (e.g. "PO đã xác nhận", "Thật sự còn thiếu") --
+it renders the canonical label of whichever PO status it normalizes to. `resolveDynamicIndicators()`
+was left untouched: its missing/success item lists do not split completed from excluded, so it
+carried no equivalent defect and was out of the requested scope.
+
+### 47.4 Validation
+
+`AutoBackfillOperatorPanel.test.js` 23/23 (was 22/22): Section 7 rewritten to lock every legacy
+status onto its canonical label with an explicit assertion that no retired 6-state label can be
+returned; new Section 23 locks `isSelectable()` and `groupItemsByIndicatorAndMonth()` against
+every legacy status, including a direct regression test for the 47.2 defect and an exhaustive
+`normalizePoStatus()` table-lock test. `oxlint` clean on both touched files; `vite build`
+succeeds; `git diff --check` clean (no whitespace/NUL issues); Gate 5
+`test_autoBackfillSafety.js` 11/11, file not opened. No F1.3, networkMap, or
+`ban_do_duong_giao_thong_bcvh_postman_06_2026.html` file touched (the last two are pre-existing,
+unrelated dirty working-tree state from other in-progress work, left untouched).
+
+### 47.5 Not Done
+
+No backend, database, schema, API, or business-logic change. No Portal, queue, or
+business-data operation. No PO acceptance is claimed for either round.

@@ -2,6 +2,35 @@
  * Helper utilities for Auto Backfill V2 Operator UI contracts & data aggregation.
  */
 
+// AB-CALENDAR-01 remediation: the single source of truth for collapsing any
+// status this panel may ever see -- the 4 current PO-facing statuses, or one
+// of the frozen 6-state statuses a mismatched/rollback backend could still
+// emit -- onto exactly one of COMPLETED / INCOMPLETE / EXCLUDED / DATA_ERROR
+// (AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md Section 2, "Old 6-state -> new 4").
+// `resolveNoCodeStatus()`, `groupItemsByIndicatorAndMonth()` and
+// `isSelectable()` all normalize through this one table, so a legacy status
+// can never disagree with itself across label, count bucket and selectability.
+const PO_STATUSES = Object.freeze(['COMPLETED', 'INCOMPLETE', 'EXCLUDED', 'DATA_ERROR']);
+
+const LEGACY_STATUS_TO_PO_STATUS = Object.freeze({
+  DATA_COMPLETE_WITH_EVIDENCE: 'COMPLETED',
+  LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE: 'COMPLETED',
+  SUCCESS: 'COMPLETED',
+  TRUE_MISSING: 'INCOMPLETE',
+  MISSING: 'INCOMPLETE',
+  MANUAL_ONLY_MISSING: 'INCOMPLETE',
+  VERIFIED_NO_DATA: 'EXCLUDED',
+  PO_EXEMPTED: 'EXCLUDED',
+  MANUAL_REVIEW_REQUIRED: 'DATA_ERROR',
+});
+
+// Returns exactly one of the 4 PO statuses, or null when `status` is neither
+// a current nor a legacy recognized value.
+export function normalizePoStatus(status) {
+  if (PO_STATUSES.includes(status)) return status;
+  return LEGACY_STATUS_TO_PO_STATUS[status] || null;
+}
+
 // AB-CALENDAR-01 (design Section 4.1): the single predicate that decides
 // whether a coverage item can ever be selected or offered a PO-exception
 // action. Replaces the old `!item.holiday && [...]` special-case: a holiday
@@ -9,7 +38,8 @@
 // alone is sufficient and correct -- COMPLETED and EXCLUDED can never be
 // selected, by any UI path.
 export function isSelectable(item) {
-  return ['INCOMPLETE', 'DATA_ERROR'].includes(item?.status);
+  const normalized = normalizePoStatus(item?.status);
+  return normalized === 'INCOMPLETE' || normalized === 'DATA_ERROR';
 }
 
 export function resolveEffectiveRunState(run) {
@@ -286,95 +316,42 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
   });
 }
 
-export function resolveNoCodeStatus(status) {
-  const STATUS_MAPPINGS = {
-    // AB-CALENDAR-01: the 4 PO-facing statuses that replace the frozen 6-state
-    // model. The 6 legacy keys below are kept as backward-compatible aliases
-    // (design Section 6) so a mismatched backend/frontend pair degrades
-    // gracefully instead of rendering a raw, untranslated status code.
-    COMPLETED: {
-      label: 'Đã hoàn tất',
-      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      isResolved: true,
-      iconType: 'success',
-    },
-    INCOMPLETE: {
-      label: 'Chưa hoàn tất',
-      badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
-      isResolved: false,
-      iconType: 'missing',
-    },
-    EXCLUDED: {
-      label: 'Được loại trừ',
-      badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
-      isResolved: true,
-      iconType: 'excluded',
-    },
-    DATA_ERROR: {
-      label: 'Lỗi dữ liệu',
-      badgeClass: 'bg-orange-50 text-orange-800 border-orange-200',
-      isResolved: false,
-      iconType: 'error',
-    },
-    // Legacy 6-state aliases (deprecated, kept for one release).
-    DATA_COMPLETE_WITH_EVIDENCE: {
-      label: 'Đã hoàn tất',
-      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      isResolved: true,
-      iconType: 'success',
-    },
-    LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE: {
-      label: 'Dữ liệu cũ đã có',
-      badgeClass: 'bg-slate-100 text-slate-800 border-slate-300',
-      isResolved: true,
-      iconType: 'legacy',
-    },
-    TRUE_MISSING: {
-      label: 'Thật sự còn thiếu',
-      badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
-      isResolved: false,
-      iconType: 'missing',
-    },
-    VERIFIED_NO_DATA: {
-      label: 'Không phát sinh dữ liệu',
-      badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
-      isResolved: true,
-      iconType: 'no_data',
-    },
-    PO_EXEMPTED: {
-      label: 'PO đã xác nhận',
-      badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold',
-      isResolved: true,
-      iconType: 'exempted',
-    },
-    MANUAL_REVIEW_REQUIRED: {
-      label: 'Cần PO kiểm tra',
-      badgeClass: 'bg-orange-50 text-orange-800 border-orange-200',
-      isResolved: false,
-      iconType: 'review',
-    },
-    // Backward-compatibility fallbacks
-    SUCCESS: {
-      label: 'Đã hoàn tất',
-      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      isResolved: true,
-      iconType: 'success',
-    },
-    MISSING: {
-      label: 'Thật sự còn thiếu',
-      badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
-      isResolved: false,
-      iconType: 'missing',
-    },
-    MANUAL_ONLY_MISSING: {
-      label: 'Thật sự còn thiếu',
-      badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
-      isResolved: false,
-      iconType: 'missing',
-    },
-  };
+// AB-CALENDAR-01: the exhaustive, canonical display info for exactly the 4
+// PO-facing statuses. Any legacy 6-state status is normalized onto one of
+// these 4 via `normalizePoStatus()` before lookup -- a legacy status can
+// never surface its own old label, badge, or icon again.
+const PO_STATUS_INFO = Object.freeze({
+  COMPLETED: {
+    label: 'Đã hoàn tất',
+    badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    isResolved: true,
+    iconType: 'success',
+  },
+  INCOMPLETE: {
+    label: 'Chưa hoàn tất',
+    badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
+    isResolved: false,
+    iconType: 'missing',
+  },
+  EXCLUDED: {
+    label: 'Được loại trừ',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
+    isResolved: true,
+    iconType: 'excluded',
+  },
+  DATA_ERROR: {
+    label: 'Lỗi dữ liệu',
+    badgeClass: 'bg-orange-50 text-orange-800 border-orange-200',
+    isResolved: false,
+    iconType: 'error',
+  },
+});
 
-  return STATUS_MAPPINGS[status] || {
+export function resolveNoCodeStatus(status) {
+  const normalized = normalizePoStatus(status);
+  if (normalized) return PO_STATUS_INFO[normalized];
+
+  return {
     label: status || 'Chưa xác định',
     badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
     isResolved: false,
@@ -419,18 +396,24 @@ export function groupItemsByIndicatorAndMonth(items = []) {
     group.items.push(item);
     group.counts.total += 1;
 
-    const st = item.status;
-    if (st === 'INCOMPLETE' || ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(st)) {
-      group.counts.incomplete += 1;
-      group.counts.missing += 1;
-    } else if (st === 'COMPLETED' || st === 'DATA_COMPLETE_WITH_EVIDENCE' || st === 'SUCCESS') {
-      group.counts.completed += 1;
-      group.counts.complete += 1;
-    } else if (st === 'EXCLUDED' || st === 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE' || st === 'VERIFIED_NO_DATA' || st === 'PO_EXEMPTED') {
-      group.counts.excluded += 1;
-    } else if (st === 'DATA_ERROR' || st === 'MANUAL_REVIEW_REQUIRED') {
-      group.counts.dataError += 1;
-      group.counts.reviewReq += 1;
+    switch (normalizePoStatus(item.status)) {
+      case 'INCOMPLETE':
+        group.counts.incomplete += 1;
+        group.counts.missing += 1;
+        break;
+      case 'COMPLETED':
+        group.counts.completed += 1;
+        group.counts.complete += 1;
+        break;
+      case 'EXCLUDED':
+        group.counts.excluded += 1;
+        break;
+      case 'DATA_ERROR':
+        group.counts.dataError += 1;
+        group.counts.reviewReq += 1;
+        break;
+      default:
+        break;
     }
     group.counts.processed = group.counts.completed + group.counts.excluded;
     group.counts.unprocessed = group.counts.incomplete + group.counts.dataError;

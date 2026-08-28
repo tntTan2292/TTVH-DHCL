@@ -3,6 +3,7 @@ import {
   aggregateReportTotals,
   groupItemsByIndicatorAndMonth,
   isSelectable,
+  normalizePoStatus,
   paginateItems,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
@@ -254,38 +255,57 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
 }
 
 // ==========================================
-// 7. Contract Test: AB-CALENDAR-01 4-Status No-Code Translations (+ legacy aliases)
+// 7. Contract Test: AB-CALENDAR-01 4-Status No-Code Translations
+//    Remediation: every legacy 6-state status normalizes onto exactly one of
+//    the 4 canonical PO labels -- no 6-state label may ever appear again.
 // ==========================================
 {
-  // Test case 7.1: COMPLETED -> "Đã hoàn tất"
-  const completedStatus = resolveNoCodeStatus('COMPLETED');
-  assert.equal(completedStatus.label, 'Đã hoàn tất', 'COMPLETED must translate to Đã hoàn tất');
-  assert.equal(completedStatus.isResolved, true);
+  const CANONICAL_LABELS = {
+    COMPLETED: 'Đã hoàn tất',
+    INCOMPLETE: 'Chưa hoàn tất',
+    EXCLUDED: 'Được loại trừ',
+    DATA_ERROR: 'Lỗi dữ liệu',
+  };
+  const RESOLVED_BY_STATUS = { COMPLETED: true, INCOMPLETE: false, EXCLUDED: true, DATA_ERROR: false };
+  // The exact old-6-state-label strings that must never be returned again.
+  const RETIRED_LEGACY_LABELS = [
+    'Dữ liệu cũ đã có', 'Thật sự còn thiếu', 'Không phát sinh dữ liệu', 'PO đã xác nhận', 'Cần PO kiểm tra',
+  ];
 
-  // Test case 7.2: INCOMPLETE -> "Chưa hoàn tất"
-  const incompleteStatus = resolveNoCodeStatus('INCOMPLETE');
-  assert.equal(incompleteStatus.label, 'Chưa hoàn tất', 'INCOMPLETE must translate to Chưa hoàn tất');
-  assert.equal(incompleteStatus.isResolved, false);
+  // Test cases 7.1-7.4: the 4 current PO statuses translate to their canonical label.
+  for (const [status, label] of Object.entries(CANONICAL_LABELS)) {
+    const info = resolveNoCodeStatus(status);
+    assert.equal(info.label, label, `${status} must translate to ${label}`);
+    assert.equal(info.isResolved, RESOLVED_BY_STATUS[status]);
+  }
 
-  // Test case 7.3: EXCLUDED -> "Được loại trừ"
-  const excludedStatus = resolveNoCodeStatus('EXCLUDED');
-  assert.equal(excludedStatus.label, 'Được loại trừ', 'EXCLUDED must translate to Được loại trừ');
-  assert.equal(excludedStatus.isResolved, true);
+  // Test cases 7.5-7.13: every legacy 6-state status normalizes onto its
+  // mapped PO status's canonical label -- never its own old label.
+  const LEGACY_TO_PO = {
+    DATA_COMPLETE_WITH_EVIDENCE: 'COMPLETED',
+    LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE: 'COMPLETED',
+    SUCCESS: 'COMPLETED',
+    TRUE_MISSING: 'INCOMPLETE',
+    MISSING: 'INCOMPLETE',
+    MANUAL_ONLY_MISSING: 'INCOMPLETE',
+    VERIFIED_NO_DATA: 'EXCLUDED',
+    PO_EXEMPTED: 'EXCLUDED',
+    MANUAL_REVIEW_REQUIRED: 'DATA_ERROR',
+  };
+  for (const [legacyStatus, expectedPoStatus] of Object.entries(LEGACY_TO_PO)) {
+    assert.equal(normalizePoStatus(legacyStatus), expectedPoStatus, `normalizePoStatus(${legacyStatus}) must be ${expectedPoStatus}`);
+    const info = resolveNoCodeStatus(legacyStatus);
+    assert.equal(info.label, CANONICAL_LABELS[expectedPoStatus], `${legacyStatus} must render the ${expectedPoStatus} label, not a legacy one`);
+    assert.equal(info.isResolved, RESOLVED_BY_STATUS[expectedPoStatus]);
+    assert.ok(!RETIRED_LEGACY_LABELS.includes(info.label), `${legacyStatus} must never render a retired 6-state label`);
+  }
 
-  // Test case 7.4: DATA_ERROR -> "Lỗi dữ liệu"
-  const dataErrorStatus = resolveNoCodeStatus('DATA_ERROR');
-  assert.equal(dataErrorStatus.label, 'Lỗi dữ liệu', 'DATA_ERROR must translate to Lỗi dữ liệu');
-  assert.equal(dataErrorStatus.isResolved, false);
-
-  // Test cases 7.5-7.10: the 6 legacy statuses stay translatable as
-  // backward-compatible aliases (design Section 6) even though the backend
-  // no longer emits them.
-  assert.equal(resolveNoCodeStatus('DATA_COMPLETE_WITH_EVIDENCE').label, 'Đã hoàn tất');
-  assert.equal(resolveNoCodeStatus('LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE').label, 'Dữ liệu cũ đã có');
-  assert.equal(resolveNoCodeStatus('TRUE_MISSING').label, 'Thật sự còn thiếu');
-  assert.equal(resolveNoCodeStatus('VERIFIED_NO_DATA').label, 'Không phát sinh dữ liệu');
-  assert.equal(resolveNoCodeStatus('PO_EXEMPTED').label, 'PO đã xác nhận');
-  assert.equal(resolveNoCodeStatus('MANUAL_REVIEW_REQUIRED').label, 'Cần PO kiểm tra');
+  // Test case 7.14: an unrecognized status falls back to the neutral badge,
+  // never a raw/garbled render.
+  const unknown = resolveNoCodeStatus('SOME_UNKNOWN_STATUS');
+  assert.equal(unknown.label, 'SOME_UNKNOWN_STATUS');
+  assert.equal(unknown.isResolved, false);
+  assert.equal(normalizePoStatus('SOME_UNKNOWN_STATUS'), null);
 
   console.log('✔ 7. AB-CALENDAR-01 4-Status No-Code Translations tests PASSED!');
 }
@@ -983,7 +1003,77 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.equal(buildReimportPayload(completedItem).include_excluded, undefined, 'Reimporting a COMPLETED day MUST NOT set include_excluded');
 
   console.log('✔ 22. AB-CALENDAR-01 include_excluded Reimport Payload Contract tests PASSED!');
-  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (22/22 Test Suites)');
+}
+
+// ==========================================
+// 23. AB-CALENDAR-01 Remediation: normalizePoStatus() Locks isSelectable() and
+//     groupItemsByIndicatorAndMonth() Against Every Legacy 6-State Status
+// ==========================================
+{
+  // Test case 23.1: isSelectable must agree with normalizePoStatus for every
+  // legacy status, not just the 4 current ones -- a legacy INCOMPLETE-like or
+  // DATA_ERROR-like status must remain selectable, and a legacy
+  // COMPLETED-like or EXCLUDED-like status must never become selectable.
+  const SELECTABLE_LEGACY = ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'];
+  const NOT_SELECTABLE_LEGACY = ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'SUCCESS', 'VERIFIED_NO_DATA', 'PO_EXEMPTED'];
+
+  for (const status of SELECTABLE_LEGACY) {
+    assert.equal(isSelectable({ status }), true, `isSelectable MUST be true for legacy status ${status}`);
+  }
+  for (const status of NOT_SELECTABLE_LEGACY) {
+    assert.equal(isSelectable({ status }), false, `isSelectable MUST be false for legacy status ${status}`);
+  }
+  assert.equal(isSelectable({ status: 'INCOMPLETE' }), true);
+  assert.equal(isSelectable({ status: 'DATA_ERROR' }), true);
+  assert.equal(isSelectable({ status: 'COMPLETED' }), false);
+  assert.equal(isSelectable({ status: 'EXCLUDED' }), false);
+  assert.equal(isSelectable(null), false, 'isSelectable must not throw on a null item');
+  assert.equal(isSelectable({}), false, 'isSelectable must not throw on an item with no status');
+
+  // Test case 23.2: regression lock for the exact defect this remediation
+  // fixes -- LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE must count as `completed`,
+  // never `excluded` (AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md D2: "valid data
+  // present = Đã hoàn tất").
+  const legacyCompletedItems = [
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-01', status: 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-02', status: 'DATA_COMPLETE_WITH_EVIDENCE' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-03', status: 'VERIFIED_NO_DATA' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-04', status: 'PO_EXEMPTED' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-05', status: 'TRUE_MISSING' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-06', status: 'MANUAL_REVIEW_REQUIRED' },
+  ];
+  const [group] = groupItemsByIndicatorAndMonth(legacyCompletedItems);
+  assert.equal(group.counts.total, 6);
+  assert.equal(group.counts.completed, 2, 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE + DATA_COMPLETE_WITH_EVIDENCE must both count as completed');
+  assert.equal(group.counts.excluded, 2, 'VERIFIED_NO_DATA + PO_EXEMPTED must count as excluded');
+  assert.equal(group.counts.incomplete, 1);
+  assert.equal(group.counts.dataError, 1);
+  assert.equal(group.counts.processed, 4, 'processed = completed(2) + excluded(2)');
+  assert.equal(group.counts.unprocessed, 2, 'unprocessed = incomplete(1) + dataError(1)');
+
+  // Test case 23.3: normalizePoStatus itself is exhaustively locked against
+  // the design's own "Old 6-state -> new 4" table (Section 2).
+  const FULL_MAPPING = {
+    COMPLETED: 'COMPLETED', INCOMPLETE: 'INCOMPLETE', EXCLUDED: 'EXCLUDED', DATA_ERROR: 'DATA_ERROR',
+    DATA_COMPLETE_WITH_EVIDENCE: 'COMPLETED',
+    LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE: 'COMPLETED',
+    SUCCESS: 'COMPLETED',
+    TRUE_MISSING: 'INCOMPLETE',
+    MISSING: 'INCOMPLETE',
+    MANUAL_ONLY_MISSING: 'INCOMPLETE',
+    VERIFIED_NO_DATA: 'EXCLUDED',
+    PO_EXEMPTED: 'EXCLUDED',
+    MANUAL_REVIEW_REQUIRED: 'DATA_ERROR',
+  };
+  for (const [input, expected] of Object.entries(FULL_MAPPING)) {
+    assert.equal(normalizePoStatus(input), expected, `normalizePoStatus(${input}) must be ${expected}`);
+  }
+  assert.equal(normalizePoStatus('GARBAGE'), null);
+  assert.equal(normalizePoStatus(undefined), null);
+  assert.equal(normalizePoStatus(null), null);
+
+  console.log('✔ 23. AB-CALENDAR-01 normalizePoStatus() Full-Mapping Lock tests PASSED!');
+  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (23/23 Test Suites)');
 }
 
 
