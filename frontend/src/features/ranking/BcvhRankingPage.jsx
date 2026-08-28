@@ -336,19 +336,7 @@ export default function BcvhRankingPage() {
             />
           </div>
         ) : overviewState.processed ? (
-          <div className="space-y-5">
-            {/* Khối 3: Chất lượng tổng quan MTD */}
-            <BcvhMtdSummaryBlock data={overviewState.processed} />
-
-            {/* Khối 1: Xu hướng chất lượng theo tháng */}
-            <BcvhMonthlyTrendBlock data={overviewState.processed} />
-
-            {/* Khối 4: Năng lực và chất lượng tuyến */}
-            <BcvhRouteCapacityBlock data={overviewState.processed} />
-
-            {/* Khối 2: Diễn biến theo ngày (Thu gọn) */}
-            <BcvhDailyTrendBlock data={overviewState.processed} />
-          </div>
+          <BcvhDailyTrendBlock data={overviewState.processed} />
         ) : null}
 
         {/* Single-day Ranking Table & Cards (Khối 5 - Unchanged) */}
@@ -436,6 +424,20 @@ export default function BcvhRankingPage() {
             </div>
           </div>
         )}
+
+        {/* Phase F1 - Khối Overview 4, 5, 6 */}
+        {overviewState.processed ? (
+          <>
+            {/* Khối 3: Chất lượng tổng quan MTD */}
+            <BcvhMtdSummaryBlock data={overviewState.processed} />
+
+            {/* Khối 1: Xu hướng chất lượng theo tháng */}
+            <BcvhMonthlyTrendBlock data={overviewState.processed} />
+
+            {/* Khối 4: Năng lực và chất lượng tuyến */}
+            <BcvhRouteCapacityBlock data={overviewState.processed} />
+          </>
+        ) : null}
       </div>
     </PageContainer>
   );
