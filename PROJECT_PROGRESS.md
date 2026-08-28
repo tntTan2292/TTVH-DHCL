@@ -1223,3 +1223,11 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - Frontend-only, no backend/database/API/schema change. `oxlint` clean, `vite build` succeeds, `git diff --check` clean, 0 NUL bytes. Gate 5 `test_autoBackfillSafety.js` 11/11, file not opened. No F1.3, networkMap, or `ban_do_duong_giao_thong_bcvh_postman_06_2026.html` file touched (confirmed pre-existing unrelated dirty state, untouched).
 - Manifest Section 47 appended (Sections 1-46 untouched, per the frozen append-only rule); `PROJECT_SNAPSHOT.md` corrected so Section 46 (decision approvals) is no longer conflated with implementation, now attributed to Section 47.
 - State: `AB-CALENDAR-01 4-STATUS MODEL — IMPLEMENTED + FRONTEND COMPATIBILITY REMEDIATED / TECHNICAL PASS / READY FOR PO CHECK`. PO must restart the backend before checking. No PO acceptance claimed.
+## AB-CALENDAR-01 Closed — PO UI CHECK PASS
+
+- Product Owner performed the PO UI check for the 4-status coverage model and explicitly granted `PO UI CHECK PASS` on 2026-08-28, covering implementation commit `21d37be3` and frontend remediation commit `c0f18e9e`.
+- Accepted: the 4 PO-facing statuses (COMPLETED/INCOMPLETE/EXCLUDED/DATA_ERROR) replacing the frozen 6-state model; đã xử lý = COMPLETED+EXCLUDED, chưa xử lý = INCOMPLETE+DATA_ERROR; "Chọn tất cả chưa hoàn tất" selecting only INCOMPLETE+DATA_ERROR; a LỊCH NGHỈ day displaying as EXCLUDED; and the frontend legacy-status compatibility layer (`normalizePoStatus()`).
+- Acceptance was a PO UI check only: no Portal session was opened, no download or Import was performed, and no real business data was written during this acceptance step.
+- `docs/10_TICKETS/AUTO-BACKFILL-RUNTIME_MANIFEST.md` Section 48 appended (Sections 1-47 untouched, per the append-only rule) recording the closure. `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated to reflect `Current Ticket = None`, `AWAITING PO DIRECTION`, and AB-CALENDAR-01's two design documents demoted from Current Required Reading to Archive/Conditional Reference.
+- Documentation-only closure: no code, database, schema, or API change. `AUTO-BACKFILL-RUNTIME` (Ticket 7) is unaffected and remains open on its own, separately tracked state.
+- State: `AB-CALENDAR-01 CLOSED / PO UI CHECK PASS (2026-08-28)`. No active ticket; `AWAITING PO DIRECTION`.

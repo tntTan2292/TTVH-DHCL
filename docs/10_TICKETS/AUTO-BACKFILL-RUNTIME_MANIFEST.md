@@ -2363,3 +2363,44 @@ unrelated dirty working-tree state from other in-progress work, left untouched).
 
 No backend, database, schema, API, or business-logic change. No Portal, queue, or
 business-data operation. No PO acceptance is claimed for either round.
+
+## 48. AB-CALENDAR-01 -- PO UI CHECK PASS, Ticket Closed (2026-08-28)
+
+### 48.1 Product Owner Decision
+
+Product Owner performed the PO UI check for the 4-status coverage model on `2026-08-28` and
+explicitly granted `PO UI CHECK PASS`, accepting the 4-status model as implemented across
+implementation commit `21d37be3` and remediation commit `c0f18e9e`.
+
+### 48.2 What Was Accepted
+
+- The 4 PO-facing statuses -- `COMPLETED`, `INCOMPLETE`, `EXCLUDED`, `DATA_ERROR` -- replace the
+  frozen 6-state model, exactly as specified in
+  `AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md` and applied in `AUTO-BACKFILL-UI_PLAN.md` Section 4.
+- The operational-completion delta: **đã xử lý = `COMPLETED` + `EXCLUDED`**; **chưa xử lý =
+  `INCOMPLETE` + `DATA_ERROR`**.
+- "Chọn tất cả chưa hoàn tất" (select-all) returns and selects **only** `INCOMPLETE` +
+  `DATA_ERROR` -- `COMPLETED` and `EXCLUDED` can never be selected, by any UI path.
+- A LỊCH NGHỈ (holiday) day now displays as `EXCLUDED`, never auto-queued, consistent with the
+  `include_excluded` single-tuple opt-in (D1) that still lets it be reimported on request.
+- The frontend legacy-status compatibility layer (`normalizePoStatus()`, remediation commit
+  `c0f18e9e`) that keeps every one of the 4 statuses and all 6 retired statuses consistent
+  across labels, selection, and counts.
+
+### 48.3 Acceptance Evidence
+
+Acceptance was a PO UI check against the running application -- no Portal session was opened,
+no download or Import was performed, and no real business data was written or modified during
+this acceptance step. This closure is documentation-only: no code, database, schema, or API
+change is made by this section.
+
+### 48.4 Closure
+
+`AB-CALENDAR-01` (4-status PO coverage model) is `CLOSED / PO PASS` as of `2026-08-28`.
+Sections 1-47 of this manifest are unchanged and remain the historical record of the ticket's
+design, approval, and implementation; nothing above this line is edited by this closure.
+
+### 48.5 Not Done
+
+No code, database, schema, or API change. No Portal, queue, or business-data operation was
+performed as part of this closure.
