@@ -911,7 +911,8 @@ class F13DashboardService {
                 rank: item.rank
             }));
 
-            const totalRow = mappedData.reduce((acc, item) => {
+            const canonicalMappedData = mappedData.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
+            const totalRow = canonicalMappedData.reduce((acc, item) => {
                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
                 acc.sl_ptc_nop_tien += item.sl_ptc_nop_tien || 0;
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
@@ -949,14 +950,20 @@ class F13DashboardService {
                 previous_month_to_date_dat_kpi_2026: 0
             });
 
-            const totalMonthToDate = monthToDateMetrics.reduce((acc, item) => {
+            const canonicalMonthToDateMetrics = monthToDateMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
+            const canonicalCurrentMetrics = currentMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
+            const canonicalPreviousMonthToDateMetrics = previousMonthToDateMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
+            const canonicalYesterdayMetrics = yesterdayMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
+            const canonicalSwcMetrics = swcMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
+
+            const totalMonthToDate = canonicalMonthToDateMetrics.reduce((acc, item) => {
                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
                 acc.khong_dat_kpi_2026 += item.khong_dat_kpi_2026 || 0;
                 return acc;
             }, { sl_bg_ptc: 0, dat_kpi_2026: 0, khong_dat_kpi_2026: 0 });
 
-            const totalCurrent = currentMetrics.reduce((acc, item) => {
+            const totalCurrent = canonicalCurrentMetrics.reduce((acc, item) => {
                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
                 acc.sl_ptc_nop_tien += item.sl_ptc_nop_tien || 0;
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
@@ -964,7 +971,7 @@ class F13DashboardService {
                 return acc;
             }, { sl_bg_ptc: 0, sl_ptc_nop_tien: 0, dat_kpi_2026: 0, khong_dat_kpi_2026: 0 });
 
-            const totalPreviousMonthToDate = previousMonthToDateMetrics.reduce((acc, item) => {
+            const totalPreviousMonthToDate = canonicalPreviousMonthToDateMetrics.reduce((acc, item) => {
                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
                 return acc;
@@ -990,22 +997,22 @@ class F13DashboardService {
                 ? this._calculateRate(totalPreviousMonthToDate.dat_kpi_2026, totalPreviousMonthToDate.sl_bg_ptc)
                 : null;
 
-            const totalYesterday = yesterdayMetrics.reduce((acc, item) => {
+            const totalYesterday = canonicalYesterdayMetrics.reduce((acc, item) => {
                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
                 return acc;
             }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
 
-            const totalSwc = swcMetrics.reduce((acc, item) => {
+            const totalSwc = canonicalSwcMetrics.reduce((acc, item) => {
                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
                 return acc;
             }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
 
-            const canonicalCurrentCount = currentMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || ''))).length;
+            const canonicalCurrentCount = canonicalCurrentMetrics.length;
             totalRow.comparisons = {
-                d1: this._buildTotalComparisonBlock(totalCurrent, yesterdayMetrics, canonicalCurrentCount),
-                d7: this._buildTotalComparisonBlock(totalCurrent, swcMetrics, canonicalCurrentCount),
+                d1: this._buildTotalComparisonBlock(totalCurrent, canonicalYesterdayMetrics, canonicalCurrentCount),
+                d7: this._buildTotalComparisonBlock(totalCurrent, canonicalSwcMetrics, canonicalCurrentCount),
             };
 
             totalRow.kpi_2026_dod = this._calculateNullableRateDelta(

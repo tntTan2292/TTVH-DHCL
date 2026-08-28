@@ -20,6 +20,12 @@ const dbPath = process.env.NODE_ENV === 'test'
     : operationalDbPath;
 const db = new sqlite3.Database(dbPath);
 
+// Per-connection read-performance settings only: no schema, index, or database-data mutation.
+// These run before repository work is queued on SQLite's serialized connection.
+db.exec('PRAGMA mmap_size = 268435456; PRAGMA threads = 4;', (err) => {
+    if (err) console.warn('SQLite read-performance PRAGMA unavailable:', err.message);
+});
+
 // Utility wrappers for async/await
 const run = (sql, params = []) => new Promise((resolve, reject) => {
     db.run(sql, params, function(err) {

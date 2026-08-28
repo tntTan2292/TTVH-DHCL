@@ -1,8 +1,11 @@
 const f13DashboardService = require('../services/F13DashboardService');
+const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
+const { BcvhOverviewService } = require('../services/bcvhOverviewService');
 const timelineService = require('../services/timelineService');
 const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
+const bcvhOverviewService = new BcvhOverviewService({ repository: factBuuGuiRepo });
 
 function normalizeDashboardBcvh(ma_bcvh) {
     if (ma_bcvh === undefined || ma_bcvh === null || ma_bcvh === '') return null;
@@ -91,6 +94,19 @@ class DashboardController {
         } catch (error) {
             const status = error?.code === 'INVALID_DATE' || error?.code === 'INVALID_RANGE' ? 400 : 500;
             res.status(status).json({ success: false, error: { code: error?.code || 'SERVER_ERROR', message: error.message }});
+        }
+    }
+
+    async getBcvhOverview(req, res) {
+        try {
+            const result = await bcvhOverviewService.getOverview(req.query.anchor_date);
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            const status = error?.code === 'INVALID_DATE' ? 400 : 500;
+            res.status(status).json({
+                success: false,
+                error: { code: error?.code || 'SERVER_ERROR', message: error.message },
+            });
         }
     }
 

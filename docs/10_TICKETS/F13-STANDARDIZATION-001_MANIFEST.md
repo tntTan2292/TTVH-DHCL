@@ -871,3 +871,88 @@ record now carries `Revision: R1 (2026-08-28)` and a §12 remediation log holdin
 records in full. Governance state is unchanged:
 `F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION`, `Phase B1` not
 executed, `PO UI Check Required = Yes`, and Claude Code does not self-award PO PASS.
+
+## 37. F13-BCVH-RANKING-OVERVIEW-01 — Phase B1 Backend Implementation Candidate (2026-08-28, Codex authorized by PO)
+
+Append-only delta. Sections 1-36 are unchanged. Product Owner explicitly authorized Codex to execute
+Phase B1 after Claude Code quota became constrained.
+
+### Implemented scope
+
+- Added read-only `GET /api/f13/ranking/bcvh/overview` behind the existing admin/viewer read gate.
+- Added exactly four aggregate repository calls for `monthly`, `daily`, `mtd`, and `routes`; every
+  SQL query filters the six canonical BCVH codes before aggregation and never returns raw fact rows.
+- Applied the R1 rules: `anchor_date = min(N-1, latest available data)`, monthly partial coverage
+  keeps a computed rate when `COUNT(ma_bg) > 0`, zero denominator returns `null`, Daily is returned in
+  the same response, MTD ranking uses rate then volume, and route bands retain `70/60/50`.
+- Corrected the existing Ranking `TỔNG CỘNG` calculations so current, MTD, previous MTD, D-1, D-7,
+  route distribution, and delayed-cash totals are derived only from canonical BCVH inputs. The
+  existing single-day request contract and returned detail rows are unchanged.
+- No frontend, schema, migration, formula, SSOT, import, Portal, queue, or business-data write.
+
+### Validation completed in Codex environment
+
+- New service and SQL tests: **7/7 PASS**; combined with the existing single-day contract:
+  **10/10 PASS**. The SQL itself ran against Node's isolated in-memory SQLite, covering canonical
+  filtering, four aggregates, partial coverage, zero denominator, route de-duplication, anchor rules,
+  rank ties, route thresholds, and forbidden response keys.
+- `node --check` clean on every touched backend source; `git diff --check` clean; zero NUL bytes in
+  touched files. The pre-existing dirty reference HTML remains untouched and excluded.
+- The repository carries a Windows `node_sqlite3.node` DLL. On this Linux Codex runner, Gate 5 and
+  `DashboardController.dateFilterRemediation.test.js` stop at `ERR_DLOPEN_FAILED / invalid ELF
+  header` before test collection; this is an environment incompatibility, not a test assertion.
+
+### Required Windows validation before Phase F1
+
+This commit is an **implementation candidate**, not final Phase B1 Technical PASS. On the canonical
+PO Windows workspace, run Gate 5 11/11 unchanged, the date-filter regression, the new overview tests,
+the full backend baseline comparison, and a read-only benchmark against a verified backup of the
+real database. Confirm the endpoint is `<= 3.2 s` and heap `<= 50 MB`. Phase F1 must not begin until
+that independent evidence passes. PO UI Check is not yet reachable and no PO PASS is claimed.
+
+## 38. F13-BCVH-RANKING-OVERVIEW-01 — Phase B1 Technical PASS / READY FOR F1 (2026-08-28)
+
+Append-only delta. Sections 1-37 are unchanged. The required canonical Windows validation has now
+closed the one real B1 blocker: overview latency.
+
+### Performance remediation and plan evidence
+
+- Q1 monthly previously scanned `fact_f13` once for the monthly aggregate and again for
+  `global_days`. It now materializes `day_bcvh` at `(ngay_do_kiem, ma_bcvh)` grain once, preserving
+  `COUNT(ma_bg)` and the `danh_gia_2026` formula, then reuses that CTE for both month totals and
+  `days_in_period` / `days_with_data` coverage. Q3 MTD uses the same bounded day-plus-BCVH approach
+  across current and comparable prior-month dates, so current and prior MTD no longer scan the fact
+  table separately.
+- `EXPLAIN QUERY PLAN` on the verified B1 backup shows one fact access for Q1's materialized
+  `day_bcvh`: `SEARCH fact_f13 USING INDEX idx_bcvh_ngay (ma_bcvh=? AND ngay_do_kiem>? AND
+  ngay_do_kiem<?)`. The remaining scans are the small materialized CTE, not a second fact-table scan.
+- The SQLite connection now applies `mmap_size = 268435456` and `threads = 4`. These are
+  per-connection read-performance settings only; no schema, index, migration, or database data is
+  changed.
+
+### Required validation evidence
+
+- Backup: `backend/src/db/backups/database.pre-bcvh-overview-B1.sqlite`, opened with
+  `sqlite3.OPEN_READONLY`; `PRAGMA integrity_check = ok`.
+- Three independent overview-service benchmark processes at `anchor_date=2026-08-27`:
+  **2102.09 ms / 0.42 MB**, **2088.17 ms / 0.42 MB**, and **2191.90 ms / 0.42 MB** heap delta.
+  Maximum is **2191.90 ms <= 3200 ms** and maximum heap delta is **0.42 MB <= 50 MB**.
+- Response shape is unchanged: `monthly=48` (8 months x 6), `daily=162` (27 days x 6), `mtd=6`,
+  `routes=6`. Every month, every day, MTD, and routes period has exactly six unique canonical
+  `ma_bcvh` values.
+- Overview SQL/service tests: **7/7 PASS** (run with Node's SQLite experimental flag required by
+  this Node 22 runtime). Existing single-day/date-filter regression:
+  `DashboardController.dateFilterRemediation.test.js` **9/9 PASS**. Gate 5:
+  `test_autoBackfillSafety.js` **11/11 PASS**, file not modified.
+- Full backend `node --experimental-sqlite --test`: **263/267 PASS**. The four failures match the
+  recorded unrelated baseline: two pre-existing localhost/IPv6 fetch failures in
+  `DashboardController.r6.integration.test.js`, the live-KPI recovery assertion in
+  `DashboardController.recovery.test.js`, and the monthly-rank source assertion in
+  `timelineService.recovery.test.js`. No new failure is introduced.
+
+### State
+
+`F13-BCVH-RANKING-OVERVIEW-01 PHASE B1 TECHNICAL PASS / READY FOR F1`. Phase F1 remains the
+Antigravity-owned frontend phase; no frontend work, PO UI check, PO PASS, Portal action, import,
+queue write, or business-data write occurred here. The backend process must be restarted before the
+frontend phase or PO runtime checking so the per-connection SQLite settings and endpoint code load.

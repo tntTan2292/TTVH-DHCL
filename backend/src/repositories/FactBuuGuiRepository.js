@@ -198,6 +198,169 @@ class FactBuuGuiRepository {
         });
     }
 
+    getBcvhOverviewMonthly(anchorCeiling, canonicalCodes = []) {
+        return this._getBcvhOverviewAggregate('monthly', anchorCeiling, canonicalCodes);
+    }
+
+    getBcvhOverviewDaily(anchorCeiling, canonicalCodes = []) {
+        return this._getBcvhOverviewAggregate('daily', anchorCeiling, canonicalCodes);
+    }
+
+    getBcvhOverviewMtd(anchorCeiling, canonicalCodes = []) {
+        return this._getBcvhOverviewAggregate('mtd', anchorCeiling, canonicalCodes);
+    }
+
+    getBcvhOverviewRoutes(anchorCeiling, canonicalCodes = []) {
+        return this._getBcvhOverviewAggregate('routes', anchorCeiling, canonicalCodes);
+    }
+
+    _getBcvhOverviewAggregate(kind, anchorCeiling, canonicalCodes = []) {
+        return new Promise((resolve, reject) => {
+            if (!canonicalCodes.length) return resolve([]);
+
+            const placeholders = canonicalCodes.map(() => '?').join(', ');
+            const bounds = `
+                WITH bounds AS (
+                    SELECT MAX(ngay_do_kiem) AS anchor_date
+                    FROM fact_f13
+                    WHERE date(ngay_do_kiem) <= date(?)
+                      AND ma_bcvh IN (${placeholders})
+                )
+            `;
+            const baseParams = [anchorCeiling, ...canonicalCodes];
+            let sql;
+            let params = baseParams;
+
+            if (kind === 'monthly') {
+                sql = `${bounds},
+                    day_bcvh AS MATERIALIZED (
+                        SELECT ngay_do_kiem,
+                               ma_bcvh,
+                               MAX(ten_bcvh) AS ten_bcvh,
+                               COUNT(ma_bg) AS volume,
+                               SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
+                               SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
+                        FROM fact_f13, bounds
+                        WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 4) || '-01-01' AND bounds.anchor_date
+                          AND ma_bcvh IN (${placeholders})
+                        GROUP BY ngay_do_kiem, ma_bcvh
+                    ),
+                    global_days AS (
+                        SELECT substr(ngay_do_kiem, 1, 7) AS month,
+                               COUNT(DISTINCT ngay_do_kiem) AS days_in_period
+                        FROM day_bcvh
+                        GROUP BY substr(ngay_do_kiem, 1, 7)
+                    ),
+                    agg AS (
+                        SELECT substr(ngay_do_kiem, 1, 7) AS month,
+                               ma_bcvh,
+                               MAX(ten_bcvh) AS ten_bcvh,
+                               SUM(volume) AS volume,
+                               SUM(passed) AS passed,
+                               SUM(failed) AS failed,
+                               COUNT(*) AS days_with_data
+                        FROM day_bcvh
+                        GROUP BY substr(ngay_do_kiem, 1, 7), ma_bcvh
+                    )
+                    SELECT agg.*, global_days.days_in_period, bounds.anchor_date
+                    FROM agg
+                    JOIN global_days ON global_days.month = agg.month
+                    CROSS JOIN bounds
+                    ORDER BY agg.month ASC, agg.ma_bcvh ASC
+                `;
+                params = [...baseParams, ...canonicalCodes];
+            } else if (kind === 'daily') {
+                sql = `${bounds}
+                    SELECT ngay_do_kiem AS date,
+                           ma_bcvh,
+                           MAX(ten_bcvh) AS ten_bcvh,
+                           COUNT(ma_bg) AS volume,
+                           SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
+                           SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed,
+                           bounds.anchor_date
+                    FROM fact_f13, bounds
+                    WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
+                      AND ma_bcvh IN (${placeholders})
+                    GROUP BY ngay_do_kiem, ma_bcvh
+                    ORDER BY ngay_do_kiem ASC, ma_bcvh ASC
+                `;
+                params = [...baseParams, ...canonicalCodes];
+            } else if (kind === 'mtd') {
+                sql = `${bounds},
+                    periods AS (
+                        SELECT anchor_date,
+                               substr(anchor_date, 1, 7) || '-01' AS current_start,
+                               date(substr(anchor_date, 1, 7) || '-01', '-1 month') AS previous_start,
+                               MIN(
+                                   date(substr(anchor_date, 1, 7) || '-01', '-1 month',
+                                        '+' || (CAST(strftime('%d', anchor_date) AS INTEGER) - 1) || ' days'),
+                                   date(substr(anchor_date, 1, 7) || '-01', '-1 day')
+                               ) AS previous_end
+                        FROM bounds
+                    ),
+                    day_bcvh AS MATERIALIZED (
+                        SELECT ngay_do_kiem,
+                               ma_bcvh,
+                               MAX(ten_bcvh) AS ten_bcvh,
+                               COUNT(ma_bg) AS volume,
+                               SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
+                               SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
+                        FROM fact_f13, periods
+                        WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
+                          AND ma_bcvh IN (${placeholders})
+                        GROUP BY ngay_do_kiem, ma_bcvh
+                    ),
+                    current_agg AS (
+                        SELECT ma_bcvh, MAX(ten_bcvh) AS ten_bcvh,
+                               SUM(volume) AS volume,
+                               SUM(passed) AS passed,
+                               SUM(failed) AS failed
+                        FROM day_bcvh, periods
+                        WHERE ngay_do_kiem BETWEEN periods.current_start AND periods.anchor_date
+                        GROUP BY ma_bcvh
+                    ),
+                    previous_agg AS (
+                        SELECT ma_bcvh,
+                               SUM(volume) AS previous_volume,
+                               SUM(passed) AS previous_passed
+                        FROM day_bcvh, periods
+                        WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.previous_end
+                        GROUP BY ma_bcvh
+                    )
+                    SELECT current_agg.*, previous_agg.previous_volume, previous_agg.previous_passed,
+                           periods.anchor_date
+                    FROM current_agg
+                    LEFT JOIN previous_agg USING (ma_bcvh)
+                    CROSS JOIN periods
+                    ORDER BY current_agg.ma_bcvh ASC
+                `;
+                params = [...baseParams, ...canonicalCodes];
+            } else if (kind === 'routes') {
+                sql = `${bounds}
+                    SELECT ma_bcvh, ma_tuyen,
+                           COUNT(ma_bg) AS total_bg,
+                           SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
+                           bounds.anchor_date
+                    FROM fact_f13, bounds
+                    WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
+                      AND ma_bcvh IN (${placeholders})
+                      AND ma_tuyen IS NOT NULL
+                      AND TRIM(ma_tuyen) != ''
+                    GROUP BY ma_bcvh, ma_tuyen
+                    ORDER BY ma_bcvh ASC, ma_tuyen ASC
+                `;
+                params = [...baseParams, ...canonicalCodes];
+            } else {
+                return reject(new Error(`Unsupported BCVH overview aggregate: ${kind}`));
+            }
+
+            db.all(sql, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+    }
+
     getRouteRanking(date, bcvh, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc', options = {}) {
         return new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;

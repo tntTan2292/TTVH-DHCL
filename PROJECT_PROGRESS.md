@@ -1247,3 +1247,16 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
 - R1-B: test `T4` required "month with missing days → `rate` null", contradicting PO decision 1. Binding rule now depends on the denominator only: partial data with denominator > 0 still computes the rate and returns `days_with_data`/`days_in_period` with a coverage badge; no records or denominator = 0 returns `rate = null` and the UI shows an em dash; the day-coverage fields are always returned. `T4` is split into `T4a` and `T4b`.
 - `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-RANKING-OVERVIEW-01_DESIGN.md` updated at §3, §3.1, §3.2, §4.4, §5.2, §6, §8.1, §8.3, §9.1, AC-12, AC-13, the header revision line, and a new §12 remediation log. `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 36 appended (Sections 1-35 untouched, per the append-only rule). `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated.
 - Documentation-only: no code, database, schema or API change. State unchanged: `F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION (R1, 2026-08-28)`.
+
+## F13-BCVH-RANKING-OVERVIEW-01 — Phase B1 Backend Implementation Candidate
+
+- Product Owner explicitly authorized Codex to execute Phase B1 after Claude Code quota became constrained.
+- Implemented the read-only overview endpoint with four canonical aggregate queries and corrected the existing daily Ranking total row to exclude non-canonical unit codes; no frontend/schema/formula/data-write change.
+- Codex-environment validation: new service/SQL tests plus single-day regression 10/10 PASS, syntax/diff/NUL checks clean. Windows-only sqlite3 regressions and the real-database performance gate remain mandatory because this Linux runner cannot load the repository's Windows DLL.
+- State: `PHASE B1 IMPLEMENTED CANDIDATE / AWAITING INDEPENDENT WINDOWS DATABASE + REGRESSION VALIDATION`; Phase F1 is not yet authorized to execute.
+
+## F13-BCVH-RANKING-OVERVIEW-01 — Phase B1 Technical PASS / READY FOR F1
+
+- Canonical Windows validation closed the only B1 blocker: Q1 now materializes a daily-plus-BCVH CTE once and reuses it for monthly totals and day coverage; MTD similarly avoids its former duplicate fact scan. No schema, index, migration, `COUNT(ma_bg)`, `danh_gia_2026`, response shape, or four-query contract changed. Per-connection SQLite read settings (`mmap_size`, `threads`) are runtime-only and do not write data.
+- Read-only verified backup benchmark (`database.pre-bcvh-overview-B1.sqlite`, integrity `ok`): 2102.09 ms, 2088.17 ms, 2191.90 ms; 0.42 MB heap each. Max 2191.90 ms <= 3200 ms and heap <= 50 MB. Returned grids remain `monthly=48`, `daily=162`, `mtd=6`, `routes=6`; every period has exactly 6 unique canonical `ma_bcvh`.
+- Validation: overview 7/7 PASS; single-day/date-filter 9/9 PASS; Gate 5 11/11 PASS unchanged; full backend 263/267 with the same 4 unrelated baseline failures. Phase B1 is `TECHNICAL PASS / READY FOR F1`; frontend remains Antigravity-owned and is not executed here. PO must restart the backend before F1/runtime checking. Manifest: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 38.

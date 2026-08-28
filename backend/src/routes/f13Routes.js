@@ -18,6 +18,7 @@ router.get('/dashboard/daily-trend', ...allowViewerRead, dashboardController.get
 router.get('/dashboard/quality-timeline', ...allowViewerRead, dashboardController.getQualityTimeline);
 router.get('/dashboard/top', ...allowViewerRead, kpiController.getDashboardTop);
 router.get('/dashboard/meta', ...allowViewerRead, kpiController.getDashboardMeta);
+router.get('/ranking/bcvh/overview', ...allowViewerRead, dashboardController.getBcvhOverview);
 router.get('/ranking/bcvh', ...allowViewerRead, dashboardController.getBcvh);
 router.get('/ranking/route', ...allowViewerRead, dashboardController.getRoute);
 router.get('/recommendations', ...allowViewerRead, kpiController.getRecommendations);
