@@ -1318,3 +1318,60 @@ Governance state: `F1.3 HEATMAP ABSOLUTE COLOR SSOT COMPLETE / READY FOR PO UI C
 Code does not self-award PO PASS on this round; the Product Owner must restart the frontend dev
 server and perform a fresh UI check on `/f13/ranking/bcvh` and Operation Dashboard's Heatmap and
 "Theo thu" tabs before any acceptance is recorded.
+
+## 45. F13-BCVH-RANKING-OVERVIEW-01 - Formal Closure, PO UI CHECK PASS (2026-08-28)
+
+Append-only delta. Sections 1-44 are unchanged. This section formally closes the ticket that
+Section 35 activated. It supersedes every earlier "READY FOR PO UI CHECK" / "READY FOR
+IMPLEMENTATION" / "TECHNICAL PASS" governance-state line recorded in Sections 35-44 for live
+onboarding purposes; those sections remain the historical record of how the ticket got here and
+are not edited or deleted.
+
+### Product Owner acceptance
+
+Product Owner performed the UI Check across the full ticket scope and explicitly granted
+`PO PASS` on 2026-08-28. Final technical commit accepted as the basis of this PASS:
+`f34e898c8fb7ec294d5fcd42dfe3b2777c11dc53` (`refactor(f13): unify absolute heatmap color SSOT`,
+Section 44).
+
+### What is closed
+
+- **BCVH Ranking Overview** (the ticket's original scope, Section 35): the four overview blocks
+  (monthly trend, daily detail, MTD summary, route capacity) on `/f13/ranking/bcvh` above the
+  unchanged existing daily ranking table, backed by the single-request
+  `/f13/ranking/bcvh/overview` contract, R1's one-request/absolute-null-on-zero-denominator
+  rules (Section 36), Phase B1/F1/I1 delivery (Sections 37-41), and the R2/R3 UI remediations
+  (Sections 41-42) — all PO-accepted as delivered.
+- **F1.3 Heatmap Absolute Color SSOT** (Sections 43-44, folded into this same ticket's closure
+  since it is the color rule for BCVH Ranking's own monthly heatmap): one shared catalog,
+  `frontend/src/components/f13/f13HeatmapBandCatalog.js`, is now the single source for the
+  absolute band classification used by both BCVH Ranking's monthly heatmap and Operation
+  Dashboard (Heatmap tab and "Theo thứ" tab):
+  - Xanh: `rate >= 70%`
+  - Hồng: `60% <= rate < 70%`
+  - Vàng: `50% <= rate < 60%`
+  - Đỏ: `rate < 50%`
+  - Xám: no data available
+  Operation Dashboard and BCVH Ranking consume this one catalog — there is exactly one real
+  threshold/color source, not two. Comparison against a monthly (or any other) average is
+  informational only (numbers, arrows, tooltips, secondary stats) and never selects color,
+  anywhere in F1.3 Heatmap surfaces.
+
+### Final state
+
+`F13-BCVH-RANKING-OVERVIEW-01 = COMPLETED / PO PASS / CLOSED` (2026-08-28).
+
+This ticket is not reopened by this closure. Any further BCVH Ranking Overview or F1.3 Heatmap
+change — including a future Admin-configurable band-threshold screen, which
+`classifyF13HeatmapRate(rate, bands)`'s override parameter was deliberately shaped to support
+but which this ticket does not implement — requires its own new delta or ticket with its own
+Product Owner authorization.
+
+### Next live item
+
+`F13 Route Ranking enhancement` is recorded as the next live item for a future session, not
+activated by this closure. It has not started. Per Product Owner instruction: it must begin
+with its own read-only audit of Route Ranking's real data, API, and current UI — the BCVH
+Ranking Overview UI/blocks/contract must not be copied over verbatim — and follow the same
+design-of-record → PO-approval → phased-implementation process this ticket used. See
+`PROJECT_SNAPSHOT.md` for the live-state pointer.

@@ -367,3 +367,18 @@ Append-only update: the design of record registered earlier the same day is revi
 | `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 36 (appended 2026-08-28) records the R1 remediation and its binding rules. Sections 1-35 unchanged, Section 35 included. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 
 Current state: `F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION (R1)`. PO decisions 1-9 stand as approved; no new PO approval was required. No code, database, schema or API changed by this remediation.
+
+## F13-BCVH-RANKING-OVERVIEW-01 Closure - 2026-08-28
+
+Append-only update: this supersedes the "Current state" lines of both sections above for live
+onboarding purposes only. Their tables and their own "Current state" lines are not edited or
+deleted — this is the entry that supersedes them going forward. No new document is created; the
+two rows below restate the current, final status of the same already-registered design of
+record and manifest.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-RANKING-OVERVIEW-01_DESIGN.md` | Design of Record | Now `IMPLEMENTED / PO PASS / CLOSED` (2026-08-28), Revision R1, with a new Section 13 closure note recording the Product Owner's PO PASS and the final accepted technical commit `f34e898c8fb7ec294d5fcd42dfe3b2777c11dc53`. All design history, PO decisions, and the Section 12 R1 remediation log remain unchanged. | L4 | Archive | Conditional reference for F13-BCVH-RANKING-OVERVIEW-01 history only. | Reference |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 45 (appended 2026-08-28) formally closes F13-BCVH-RANKING-OVERVIEW-01 as `COMPLETED / PO PASS / CLOSED` and records the F13 Route Ranking enhancement next-live-item pointer. Sections 1-44 unchanged; this manifest remains the active manifest for the broader F1.3 program and any future delta opened under it, so its own status stays `Current Required Reading` / `Mandatory` — only the ticket it hosted closes, not the manifest itself. | L2 | Current Required Reading | When scoping any future F1.3 delta under this manifest, or when F13-BCVH-RANKING-OVERVIEW-01 history is needed. | Mandatory |
+
+Current state: `F13-BCVH-RANKING-OVERVIEW-01 = COMPLETED / PO PASS / CLOSED`. Not reopened by this closure. Next live item, not activated: `F13 Route Ranking enhancement` — must begin with its own read-only audit of Route Ranking's real data, API, and current UI in a new chat; the BCVH Ranking Overview UI/blocks/contract must not be copied verbatim. See `PROJECT_SNAPSHOT.md` for the live-state pointer.

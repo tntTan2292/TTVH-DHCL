@@ -1,12 +1,12 @@
 # F13-BCVH-RANKING-OVERVIEW-01 — BCVH Ranking Overview (T01 → hiện tại) — Design of Record
 
-Status: **DESIGN OF RECORD — ALL PO DECISIONS APPROVED, READY FOR IMPLEMENTATION**
+Status: **IMPLEMENTED / PO PASS / CLOSED** (2026-08-28) — see the Closure note at the end of this document.
 Revision: **R1 (2026-08-28)** — two CTO-found internal contradictions resolved; see §12.
 (this document itself is documentation-only; no code, database, schema or API changed by it)
 Author: Claude Code (Opus, READ-ONLY architecture pass) → Claude/CTO → Product Owner
 Branch: `codex/da-impl-006` · Baseline HEAD at authoring: `d1179155` · R1 applied on `66f3b884`
 Ticket: `F13-BCVH-RANKING-OVERVIEW-01`
-Manifest of record: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Sections 35 + 36 (append-only)
+Manifest of record: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Sections 35 + 36 (append-only); closure recorded in Section 45
 
 ---
 
@@ -649,3 +649,24 @@ binding rule now is, so a later reader does not re-litigate them.
 Documentation-only. Không sửa code, database, schema hay API. Không quyết định sản phẩm nào mới:
 R1-A là chọn lại giữa hai câu đã có trong chính tài liệu, R1-B là khôi phục đúng PO decision 1 mà
 `T4` đã viết sai. Không cần PO duyệt lại; PO decisions 1-9 giữ nguyên.
+
+---
+
+## 13. Closure (2026-08-28)
+
+Product Owner performed the UI Check and explicitly granted **PO PASS** on 2026-08-28. Final
+technical commit accepted as the basis of this PASS: `f34e898c8fb7ec294d5fcd42dfe3b2777c11dc53`
+(`refactor(f13): unify absolute heatmap color SSOT`).
+
+This closure covers the design as delivered: the five blocks (§3), the time rules (§4), the
+`/f13/ranking/bcvh/overview` contract (§5), and the R1 remediation (§12) — plus the F1.3 Heatmap
+Absolute Color SSOT that the monthly heatmap in §3.1 ultimately shipped with
+(`frontend/src/components/f13/f13HeatmapBandCatalog.js`, one shared catalog also consumed by
+Operation Dashboard; documented in full in `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md`
+Sections 43-44).
+
+Status: `F13-BCVH-RANKING-OVERVIEW-01 = COMPLETED / PO PASS / CLOSED`. This document's design
+history, Revision R1, and every PO decision above remain unchanged — this section only records
+closure; it does not rewrite or retract anything. Full closure record:
+`docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 45 (append-only). Any further
+change to BCVH Ranking Overview or the F1.3 Heatmap SSOT requires its own new delta or ticket.
