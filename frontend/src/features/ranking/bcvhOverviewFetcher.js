@@ -8,7 +8,7 @@ export function createOverviewFetcher(apiClient, setOverviewState) {
     if (!toDate) return;
 
     const seq = ++currentRequestSeq;
-
+    
     // Set loading state
     setOverviewState((prev) => ({ ...prev, status: 'loading', error: null }));
 

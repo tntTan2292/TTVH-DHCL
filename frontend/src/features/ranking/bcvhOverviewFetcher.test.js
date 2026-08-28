@@ -102,7 +102,7 @@ test('fetchOverview prevents race conditions - old response does not overwrite n
 
   // Request 1: toDate = '2026-08-26'
   const p1 = fetcher('2026-08-26');
-
+  
   // Request 2: toDate = '2026-08-27' starts before Request 1 finishes
   const p2 = fetcher('2026-08-27');
 
@@ -132,7 +132,7 @@ test('fetchOverview prevents race conditions - old response does not overwrite n
 test('fetchOverview updates state to error properly and ignores old errors', async () => {
   let rejectFirst;
   const firstPromise = new Promise((resolve, reject) => { rejectFirst = reject; });
-
+  
   const mockApi = {
     get: async (url, config) => {
       if (config.params.anchor_date === '2026-08-26') {
