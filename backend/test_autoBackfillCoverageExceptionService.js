@@ -339,7 +339,7 @@ test('VERIFIED_NO_DATA is accepted with all 5 criteria proven and overlays cover
 
         const coverage = await coverageService.scan({ lane: 'HUE', roles: ['admin'] });
         const item = coverage.items.find((entry) => entry.business_date === '2026-01-03');
-        assert.equal(item.status, 'VERIFIED_NO_DATA');
+        assert.equal(item.status, 'EXCLUDED');
         assert.equal(item.queue_eligible, false);
         assert.equal(item.queue_ineligible_reason, 'VERIFIED_NO_DATA');
     } finally {
@@ -364,7 +364,7 @@ test('LEGACY_BASELINE is rejected when there is no committed data to reconcile',
     }
 });
 
-test('LEGACY_BASELINE is accepted when committed rows exist without complete import evidence', async () => {
+test('LEGACY_BASELINE is accepted when committed rows exist without complete import evidence, and PO policy D2 reads it as COMPLETED', async () => {
     const fixture = await createFixture();
     try {
         // PO policy: a single committed row with no log/artifact is now SUCCESS
@@ -382,10 +382,38 @@ test('LEGACY_BASELINE is accepted when committed rows exist without complete imp
         });
         assert.equal(record.exception_type, 'LEGACY_BASELINE');
 
+        // AB-CALENDAR-01 D2 (approved): valid data present = Đã hoàn tất -- a
+        // LEGACY_BASELINE day with committed rows reads COMPLETED, never EXCLUDED.
         const coverage = await coverageService.scan({ lane: 'HUE', roles: ['admin'] });
         const item = coverage.items.find((entry) => entry.business_date === '2026-01-03');
-        assert.equal(item.status, 'LEGACY_BASELINE');
+        assert.equal(item.status, 'COMPLETED');
         assert.equal(item.queue_eligible, false);
+    } finally {
+        await teardown(fixture);
+    }
+});
+
+test('AB-CALENDAR-01 D2 guard: a stale LEGACY_BASELINE (data since removed) falls through to INCOMPLETE, never COMPLETED', async () => {
+    const fixture = await createFixture();
+    try {
+        await fixture.db.run("INSERT INTO fact_f9_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-03', 'X-1')");
+        await fixture.db.run("INSERT INTO fact_f9_hue (ngay_do_kiem, entity_id) VALUES ('2026-01-03', 'X-2')");
+        const { exceptionService, coverageService } = createServices(fixture);
+        await exceptionService.create({
+            indicator: 'F9.TEST', lane: 'HUE', businessDate: '2026-01-03',
+            exceptionType: 'LEGACY_BASELINE', reason: 'Du lieu cu truoc khi co Import',
+            actor: 'admin-1',
+        });
+
+        // The rows this exception vouched for are gone, but the exception record
+        // (correctly) stays ACTIVE -- nothing revoked it. The mapping must not
+        // trust a stale record: it falls through to the normal raw-status mapping.
+        await fixture.db.run("DELETE FROM fact_f9_hue WHERE ngay_do_kiem = '2026-01-03'");
+
+        const coverage = await coverageService.scan({ lane: 'HUE', roles: ['admin'] });
+        const item = coverage.items.find((entry) => entry.business_date === '2026-01-03');
+        assert.equal(item.status, 'INCOMPLETE', 'stale LEGACY_BASELINE with no data present must never claim COMPLETED');
+        assert.equal(item.queue_eligible, false, 'the exception row is still ACTIVE, so queueDisposition still holds it back');
     } finally {
         await teardown(fixture);
     }
@@ -443,7 +471,7 @@ test('PO_EXEMPTED is accepted, audited, overlays coverage, and is reversible', a
 
         let coverage = await coverageService.scan({ lane: 'HUE', roles: ['admin'] });
         let item = coverage.items.find((entry) => entry.business_date === '2026-01-03');
-        assert.equal(item.status, 'PO_EXEMPTED');
+        assert.equal(item.status, 'EXCLUDED');
         assert.equal(item.queue_eligible, false);
         assert.equal(item.exception.reason, 'Ngay le, khong phat sinh nghiep vu');
 
@@ -455,7 +483,7 @@ test('PO_EXEMPTED is accepted, audited, overlays coverage, and is reversible', a
 
         coverage = await coverageService.scan({ lane: 'HUE', roles: ['admin'] });
         item = coverage.items.find((entry) => entry.business_date === '2026-01-03');
-        assert.equal(item.status, 'TRUE_MISSING');
+        assert.equal(item.status, 'INCOMPLETE');
         assert.equal(item.queue_eligible, true);
     } finally {
         await teardown(fixture);
@@ -521,13 +549,13 @@ test('coverage exception rows can never be hard-deleted at the DB layer', async 
     }
 });
 
-test('TRUE_MISSING items on an automated lane with no exception remain queue eligible', async () => {
+test('INCOMPLETE items on an automated lane with no exception remain queue eligible', async () => {
     const fixture = await createFixture();
     try {
         const { coverageService } = createServices(fixture);
         const coverage = await coverageService.scan({ lane: 'HUE', roles: ['admin'] });
         const item = coverage.items.find((entry) => entry.business_date === '2026-01-03');
-        assert.equal(item.status, 'TRUE_MISSING');
+        assert.equal(item.status, 'INCOMPLETE');
         assert.equal(item.queue_eligible, true);
     } finally {
         await teardown(fixture);

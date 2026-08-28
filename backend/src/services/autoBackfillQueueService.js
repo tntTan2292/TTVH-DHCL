@@ -97,14 +97,37 @@ class AutoBackfillQueueService {
         return { indicator, lane };
     }
 
-    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, actor, roles }) {
+    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, includeExcluded = false, actor, roles }) {
         assertAdmin(roles);
         const range = normalizeOptionalDateRange(fromDate, toDate);
+        // AB-CALENDAR-01 D1 (design Section 4.2): include_excluded is accepted only
+        // when the request resolves to exactly one indicator, one source lane and one
+        // business date. A broader request is rejected outright, not silently narrowed.
+        const isSingleTupleRequest = Boolean(indicator) && Boolean(lane)
+            && Boolean(range.fromDate) && Boolean(range.toDate) && range.fromDate === range.toDate;
+        if (includeExcluded && !isSingleTupleRequest) {
+            throw queueError(
+                'AUTO_BACKFILL_INCLUDE_EXCLUDED_REQUIRES_SINGLE_TUPLE',
+                'include_excluded requires exactly one indicator, one source lane and one business date (from_date === to_date).',
+                400,
+            );
+        }
         const coverage = await this.coverageService.scan({ indicator, lane, roles: ['admin'] });
+        const inRange = (item) => (!range.fromDate || item.business_date >= range.fromDate)
+            && (!range.toDate || item.business_date <= range.toDate);
+        const isReadmissibleExcluded = (item) => {
+            if (!includeExcluded || item.status !== 'EXCLUDED') return false;
+            // The flag re-admits an EXCLUDED day only if it would otherwise be fully
+            // runnable -- it never bypasses MANUAL_ONLY, an unverified executor, or an
+            // inactive indicator (design Section 4.2).
+            const { indicator: registeredIndicator, lane: registeredLane } = this.findRegistration(item.indicator, item.source_lane);
+            return registeredIndicator.status === 'ACTIVE'
+                && registeredLane.automationMode === 'AUTOMATED'
+                && item.completion_status === COMPLETION_STATUSES.MISSING;
+        };
         const eligible = coverage.items
-            .filter((item) => item.queue_eligible)
-            .filter((item) => !range.fromDate || item.business_date >= range.fromDate)
-            .filter((item) => !range.toDate || item.business_date <= range.toDate);
+            .filter(inRange)
+            .filter((item) => item.queue_eligible || isReadmissibleExcluded(item));
         if (eligible.length === 0) {
             throw queueError(
                 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE',

@@ -217,7 +217,7 @@ test('AB-EXT-03 reports one F9.TEST success and two manual-only gaps with zero r
     const service = new AutoBackfillCoverageService({ db: {}, registryProvider: () => [indicator] });
     const coverage = await service.scan({ asOf: '2026-01-04', roles: ['admin'] });
 
-    assert.deepEqual(coverage.items.map((item) => item.status), ['DATA_COMPLETE_WITH_EVIDENCE', 'TRUE_MISSING', 'TRUE_MISSING']);
+    assert.deepEqual(coverage.items.map((item) => item.status), ['COMPLETED', 'INCOMPLETE', 'INCOMPLETE']);
     assert.equal(coverage.runnable_portal_jobs, 0);
     assert.ok(coverage.items.every((item) => item.queue_eligible === false));
 });
@@ -243,10 +243,10 @@ test('AB-ISO-01 keeps same-date completion isolated across indicators and lanes'
             .scan({ asOf: '2026-01-03', roles: ['admin'] });
         const statusByKey = Object.fromEntries(coverage.items.map((item) => [`${item.indicator}|${item.source_lane}`, item.status]));
 
-        assert.equal(statusByKey['F1.3|HUE'], 'DATA_COMPLETE_WITH_EVIDENCE');
-        assert.equal(statusByKey['F1.3|TCT'], 'TRUE_MISSING');
-        assert.equal(statusByKey['F4.1|HUE'], 'TRUE_MISSING');
-        assert.equal(statusByKey['F4.1|TCT'], 'TRUE_MISSING');
+        assert.equal(statusByKey['F1.3|HUE'], 'COMPLETED');
+        assert.equal(statusByKey['F1.3|TCT'], 'INCOMPLETE');
+        assert.equal(statusByKey['F4.1|HUE'], 'INCOMPLETE');
+        assert.equal(statusByKey['F4.1|TCT'], 'INCOMPLETE');
     } finally {
         await fixture.db.close();
         fs.rmSync(fixture.root, { recursive: true, force: true });
@@ -262,8 +262,8 @@ test('AB-ISO-02 does not reuse HUE facts, log, or artifact for TCT', async () =>
         const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
             .scan({ asOf: '2026-01-03', roles: ['admin'] });
 
-        assert.equal(coverage.items.find((item) => item.source_lane === 'HUE').status, 'DATA_COMPLETE_WITH_EVIDENCE');
-        assert.equal(coverage.items.find((item) => item.source_lane === 'TCT').status, 'TRUE_MISSING');
+        assert.equal(coverage.items.find((item) => item.source_lane === 'HUE').status, 'COMPLETED');
+        assert.equal(coverage.items.find((item) => item.source_lane === 'TCT').status, 'INCOMPLETE');
     } finally {
         await fixture.db.close();
         fs.rmSync(fixture.root, { recursive: true, force: true });
@@ -278,7 +278,7 @@ test('PO policy: committed data with a FILE_MOVE_FAILED log is still SUCCESS -- 
         const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
             .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
 
-        assert.equal(coverage.items[0].status, 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(coverage.items[0].status, 'COMPLETED');
         assert.equal(coverage.items[0].completion_reason, 'COMPLETE_EVIDENCE');
         assert.equal(coverage.items[0].queue_eligible, false);
         assert.equal(coverage.items[0].queue_ineligible_reason, 'ALREADY_SUCCESS');
@@ -299,7 +299,7 @@ test('PO policy: committed data with a missing Processed artifact is still SUCCE
         const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
             .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
 
-        assert.equal(coverage.items[0].status, 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(coverage.items[0].status, 'COMPLETED');
         assert.equal(coverage.items[0].completion_reason, 'COMPLETE_EVIDENCE');
         assert.equal(coverage.items[0].queue_eligible, false);
         // Internal evidence is preserved even though it no longer gates the status.
@@ -317,7 +317,7 @@ test('PO policy: committed data with NEITHER an import_log row NOR a Processed a
         const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
             .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
 
-        assert.equal(coverage.items[0].status, 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(coverage.items[0].status, 'COMPLETED');
         assert.equal(coverage.items[0].completion_reason, 'COMPLETE_EVIDENCE');
         assert.equal(coverage.items[0].queue_eligible, false);
         assert.equal(coverage.items[0].evidence.import_log_count, 0);
@@ -343,7 +343,7 @@ test('duplicate committed rows (integrity invalid) still require manual review, 
         const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
             .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
 
-        assert.equal(coverage.items[0].status, 'MANUAL_REVIEW_REQUIRED');
+        assert.equal(coverage.items[0].status, 'DATA_ERROR');
         assert.equal(coverage.items[0].completion_reason, 'COMMITTED_DATA_INTEGRITY_MISMATCH');
         assert.equal(coverage.items[0].queue_eligible, false);
         assert.equal(coverage.items[0].evidence.row_count, 2);
@@ -380,7 +380,7 @@ test('an automated registration never makes an existing SUCCESS queue eligible',
     const coverage = await new AutoBackfillCoverageService({ db: {}, registryProvider: () => [indicator] })
         .scan({ asOf: '2026-01-02', roles: ['admin'] });
 
-    assert.equal(coverage.items[0].status, 'DATA_COMPLETE_WITH_EVIDENCE');
+    assert.equal(coverage.items[0].status, 'COMPLETED');
     assert.equal(coverage.items[0].queue_eligible, false);
     assert.equal(coverage.items[0].queue_ineligible_reason, 'ALREADY_SUCCESS');
     assert.equal(coverage.runnable_portal_jobs, 0);

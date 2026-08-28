@@ -19,19 +19,15 @@ const {
 const { AutoBackfillCoverageExceptionService, COVERAGE_EXCEPTION_TYPES } = require('./autoBackfillCoverageExceptionService');
 const { AutoBackfillHolidayCalendarService } = require('./autoBackfillHolidayCalendarService');
 
-// The 6 canonical, registry-driven Coverage states locked by
-// AUTO-BACKFILL-UI_PLAN.md Section 4. `DATA_COMPLETE_WITH_EVIDENCE` and
-// `TRUE_MISSING`/`MANUAL_REVIEW_REQUIRED` are derived straight from the raw
-// completion policy; `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE`, `VERIFIED_NO_DATA`
-// and `PO_EXEMPTED` are the 3 controlled, audited coverage-exception overlays.
-const COVERAGE_STATUSES = Object.freeze([
-    'DATA_COMPLETE_WITH_EVIDENCE',
-    'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE',
-    'TRUE_MISSING',
-    'VERIFIED_NO_DATA',
-    'PO_EXEMPTED',
-    'MANUAL_REVIEW_REQUIRED',
-]);
+// AB-CALENDAR-01: the 4 canonical, PO-facing coverage statuses that replace
+// the frozen 6-state model (AUTO-BACKFILL-UI_PLAN.md Section 4, amended under
+// approved decision D3 -- see AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md).
+// `COMPLETED` and `INCOMPLETE` are derived straight from the raw completion
+// policy; `EXCLUDED` covers an ACTIVE holiday, `PO_EXEMPTED` or
+// `VERIFIED_NO_DATA` (no data, and PO/calendar confirms none is expected);
+// `DATA_ERROR` covers `MANUAL_REVIEW_REQUIRED` or raw `INCOMPLETE` (import was
+// attempted but failed) -- never a day nobody has touched.
+const PO_STATUSES = Object.freeze(['COMPLETED', 'INCOMPLETE', 'EXCLUDED', 'DATA_ERROR']);
 
 function createCoverageError(code, message, statusCode = 400) {
     return createCalendarError(code, message, statusCode);
@@ -49,18 +45,32 @@ function laneCanBeRead(lane, roles) {
     return roles.some((role) => allowed.includes(role));
 }
 
-// Maps the raw 4-state completion policy result onto the 6 canonical
-// Coverage display states, applying the exception overlay (if any) when the
-// raw result is not already `SUCCESS`. Real, currently-committed complete
-// data always wins over a stale exception record.
-function toCoverageStatus(rawStatus, exception) {
-    if (rawStatus === COMPLETION_STATUSES.SUCCESS) return 'DATA_COMPLETE_WITH_EVIDENCE';
-    if (exception) return exception.exception_type;
-    if (rawStatus === COMPLETION_STATUSES.MISSING) return 'TRUE_MISSING';
-    return 'MANUAL_REVIEW_REQUIRED';
+// AB-CALENDAR-01 -- maps the raw 4-state completion policy result onto the 4
+// PO-facing statuses, applying the exception/holiday overlay when the raw
+// result is not already `SUCCESS`. Real, currently-committed complete data
+// always wins over a stale exception or holiday record.
+//
+// D2 (approved): `LEGACY_BASELINE` means PO has confirmed pre-Import data is
+// valid, so it maps to `COMPLETED` -- but only while that data is still
+// actually there (`evidence.row_count > 0`). If it were ever removed
+// afterwards, the exception no longer asserts anything true and the day
+// falls through to the normal mapping for its current raw status instead of
+// silently claiming completion.
+function toPoStatus(rawStatus, exception, holiday, evidence) {
+    if (rawStatus === COMPLETION_STATUSES.SUCCESS) return 'COMPLETED';
+    if (exception && exception.exception_type === 'LEGACY_BASELINE') {
+        if (Number(evidence?.row_count) > 0) return 'COMPLETED';
+        // Stale LEGACY_BASELINE: the data it vouched for is gone. Fall through
+        // to the normal raw-status mapping below.
+    } else if (exception) {
+        return 'EXCLUDED'; // PO_EXEMPTED, VERIFIED_NO_DATA
+    } else if (holiday) {
+        return 'EXCLUDED';
+    }
+    return rawStatus === COMPLETION_STATUSES.MISSING ? 'INCOMPLETE' : 'DATA_ERROR';
 }
 
-function queueDisposition(indicator, lane, completionStatus, exception) {
+function queueDisposition(indicator, lane, completionStatus, exception, holiday) {
     if (completionStatus === COMPLETION_STATUSES.SUCCESS) {
         return { queueEligible: false, reason: 'ALREADY_SUCCESS' };
     }
@@ -69,6 +79,12 @@ function queueDisposition(indicator, lane, completionStatus, exception) {
         // are valid, audited business outcomes: never queue, retry, or count
         // them toward a circuit -- they never reach the Queue/Safety layer at all.
         return { queueEligible: false, reason: exception.exception_type };
+    }
+    if (holiday) {
+        // AB-CALENDAR-01 D3 supersedes the prior holiday design's PO decision 2:
+        // EXCLUDED (holiday) is never auto-queued. "Nhập lại" still works for a
+        // single tuple via the narrow include_excluded opt-in (Section 4.2).
+        return { queueEligible: false, reason: 'HOLIDAY' };
     }
     if (indicator.status !== 'ACTIVE') {
         return { queueEligible: false, reason: 'INDICATOR_NOT_ACTIVE' };
@@ -86,7 +102,7 @@ function queueDisposition(indicator, lane, completionStatus, exception) {
 }
 
 function emptyCounts() {
-    return Object.fromEntries(COVERAGE_STATUSES.map((status) => [status, 0]));
+    return Object.fromEntries(PO_STATUSES.map((status) => [status, 0]));
 }
 
 // AB-CALENDAR-01 -- LỊCH NGHỈ overlay.
@@ -98,12 +114,11 @@ function emptyCounts() {
 // did produce data fully visible and fully importable ("không chặn nhập nếu
 // ngày đó thực ra có dữ liệu thật").
 //
-// The holiday NEVER changes `status`, `counts`, `selectable` or
-// `queue_eligible`: the 6-state coverage model is frozen by
-// AUTO-BACKFILL-UI_PLAN.md Section 4, and PO decision 2 keeps automation free
-// to fetch a holiday date if data ever appears there. Only the additive
-// `holiday` / `counts_as_missing` fields are emitted, and only they drive the
-// "chọn tất cả chưa hoàn tất" selection set.
+// Under the 4-status model (design D3, superseding the prior holiday design's
+// PO decision 2) a holiday now maps its day to the `EXCLUDED` PO status and
+// makes it `queue_eligible: false` -- see `toPoStatus()` and
+// `queueDisposition()`. The `holiday` field is still emitted so the specific
+// reason stays visible as a secondary chip.
 function resolveHoliday(completionStatus, exception, holidayMap, businessDate) {
     if (completionStatus !== COMPLETION_STATUSES.MISSING) return null;
     if (exception) return null;
@@ -219,8 +234,14 @@ class AutoBackfillCoverageService {
                 ? null
                 : exceptionMap.get(tuple.indicator.code + '|' + tuple.lane.code + '|' + tuple.businessDate) || null;
             const holiday = resolveHoliday(completion.status, exception, holidayMap, tuple.businessDate);
-            const status = toCoverageStatus(completion.status, exception);
-            const disposition = queueDisposition(tuple.indicator, tuple.lane, completion.status, exception);
+            const status = toPoStatus(completion.status, exception, holiday, completion.evidence);
+            const disposition = queueDisposition(tuple.indicator, tuple.lane, completion.status, exception, holiday);
+            // AB-CALENDAR-01: "chưa xử lý xong" is exactly INCOMPLETE + DATA_ERROR,
+            // derived from the final PO status rather than re-deriving raw
+            // completion/exception/holiday logic, so it stays correct even for the
+            // stale-LEGACY_BASELINE fallthrough in toPoStatus(). `counts_as_missing`
+            // is kept as a deprecated alias for one release.
+            const countsAsUnprocessed = status === 'INCOMPLETE' || status === 'DATA_ERROR';
             items.push({
                 indicator: tuple.indicator.code,
                 source_lane: tuple.lane.code,
@@ -233,8 +254,7 @@ class AutoBackfillCoverageService {
                 queue_eligible: disposition.queueEligible,
                 queue_ineligible_reason: disposition.reason,
                 evidence: completion.evidence,
-                // AB-CALENDAR-01 additive fields. `counts_as_missing` is the
-                // single flag "chọn tất cả chưa hoàn tất" must read.
+                // AB-CALENDAR-01 additive fields.
                 holiday: holiday ? {
                     id: holiday.id,
                     business_date: holiday.business_date,
@@ -242,7 +262,8 @@ class AutoBackfillCoverageService {
                     created_by: holiday.created_by,
                     created_at: holiday.created_at,
                 } : null,
-                counts_as_missing: completion.status !== COMPLETION_STATUSES.SUCCESS && !exception && !holiday,
+                counts_as_unprocessed: countsAsUnprocessed,
+                counts_as_missing: countsAsUnprocessed, // deprecated alias, kept for one release
                 exception: exception ? {
                     id: exception.id,
                     exception_type: exception.exception_type,
@@ -271,8 +292,9 @@ class AutoBackfillCoverageService {
                     portal_adapter_id: laneConfig.portalAdapter?.id || null,
                     completion_policy_id: laneConfig.completionPolicy.id,
                     counts: emptyCounts(),
-                    // AB-CALENDAR-01: additive, kept outside the frozen
-                    // 6-state `counts` object on purpose.
+                    // AB-CALENDAR-01: additive visibility field, kept outside
+                    // the 4-status `counts` object on purpose (a holiday day
+                    // is already counted under `EXCLUDED` in `counts`).
                     holiday_skipped_count: 0,
                     items: [],
                 });
@@ -303,7 +325,7 @@ class AutoBackfillCoverageService {
             as_of_business_date: asOfBusinessDate,
             to_date: toDate,
             ordering: ['business_date_desc', 'indicator_priority_asc', 'lane_priority_asc'],
-            coverage_statuses: COVERAGE_STATUSES,
+            coverage_statuses: PO_STATUSES,
             indicators: indicatorsMetadata,
             total_items: items.length,
             runnable_portal_jobs: items.filter((item) => item.queue_eligible).length,
@@ -318,7 +340,7 @@ class AutoBackfillCoverageService {
      *
      * A thin wrapper over `scan()`: it duplicates no eligibility logic, it
      * only narrows the scan result to one month and keeps the days whose
-     * `counts_as_missing` is true. The excluded days are returned explicitly
+     * `counts_as_unprocessed` is true (INCOMPLETE + DATA_ERROR). The excluded days are returned explicitly
      * so the operator can see what the calendar and the exception ledger
      * removed instead of silently losing them.
      *
@@ -348,7 +370,7 @@ class AutoBackfillCoverageService {
             month: monthFilter || 'ALL',
             total_candidates: scoped.length,
             items: scoped
-                .filter((item) => item.counts_as_missing)
+                .filter((item) => item.counts_as_unprocessed)
                 .map((item) => ({
                     key: `${item.indicator}|${item.source_lane}|${item.business_date}`,
                     indicator: item.indicator,
@@ -365,21 +387,21 @@ class AutoBackfillCoverageService {
                     reason: item.holiday.reason,
                 })),
             excluded_exception: scoped
-                .filter((item) => item.exception)
+                .filter((item) => item.exception && item.status === 'EXCLUDED')
                 .map((item) => ({
                     indicator: item.indicator,
                     source_lane: item.source_lane,
                     business_date: item.business_date,
                     exception_type: item.exception.exception_type,
                 })),
-            excluded_complete: scoped.filter((item) => item.completion_status === COMPLETION_STATUSES.SUCCESS).length,
+            excluded_complete: scoped.filter((item) => item.status === 'COMPLETED').length,
         };
     }
 }
 
 module.exports = {
     AutoBackfillCoverageService,
-    COVERAGE_STATUSES,
+    PO_STATUSES,
     COVERAGE_EXCEPTION_TYPES,
     normalizeBusinessDate,
     formatDateInTimezone,

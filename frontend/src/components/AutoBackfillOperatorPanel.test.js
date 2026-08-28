@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   aggregateReportTotals,
   groupItemsByIndicatorAndMonth,
+  isSelectable,
   paginateItems,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
@@ -253,40 +254,40 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
 }
 
 // ==========================================
-// 7. Contract Test: 6 Canonical No-Code Status Translations
+// 7. Contract Test: AB-CALENDAR-01 4-Status No-Code Translations (+ legacy aliases)
 // ==========================================
 {
-  // Test case 7.1: DATA_COMPLETE_WITH_EVIDENCE -> "Đã hoàn tất"
-  const completeStatus = resolveNoCodeStatus('DATA_COMPLETE_WITH_EVIDENCE');
-  assert.equal(completeStatus.label, 'Đã hoàn tất', 'DATA_COMPLETE_WITH_EVIDENCE must translate to Đã hoàn tất');
-  assert.equal(completeStatus.isResolved, true);
+  // Test case 7.1: COMPLETED -> "Đã hoàn tất"
+  const completedStatus = resolveNoCodeStatus('COMPLETED');
+  assert.equal(completedStatus.label, 'Đã hoàn tất', 'COMPLETED must translate to Đã hoàn tất');
+  assert.equal(completedStatus.isResolved, true);
 
-  // Test case 7.2: LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE -> "Dữ liệu cũ đã có"
-  const legacyStatus = resolveNoCodeStatus('LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE');
-  assert.equal(legacyStatus.label, 'Dữ liệu cũ đã có', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE must translate to Dữ liệu cũ đã có');
-  assert.equal(legacyStatus.isResolved, true);
+  // Test case 7.2: INCOMPLETE -> "Chưa hoàn tất"
+  const incompleteStatus = resolveNoCodeStatus('INCOMPLETE');
+  assert.equal(incompleteStatus.label, 'Chưa hoàn tất', 'INCOMPLETE must translate to Chưa hoàn tất');
+  assert.equal(incompleteStatus.isResolved, false);
 
-  // Test case 7.3: TRUE_MISSING -> "Thật sự còn thiếu"
-  const missingStatus = resolveNoCodeStatus('TRUE_MISSING');
-  assert.equal(missingStatus.label, 'Thật sự còn thiếu', 'TRUE_MISSING must translate to Thật sự còn thiếu');
-  assert.equal(missingStatus.isResolved, false);
+  // Test case 7.3: EXCLUDED -> "Được loại trừ"
+  const excludedStatus = resolveNoCodeStatus('EXCLUDED');
+  assert.equal(excludedStatus.label, 'Được loại trừ', 'EXCLUDED must translate to Được loại trừ');
+  assert.equal(excludedStatus.isResolved, true);
 
-  // Test case 7.4: VERIFIED_NO_DATA -> "Không phát sinh dữ liệu"
-  const noDataStatus = resolveNoCodeStatus('VERIFIED_NO_DATA');
-  assert.equal(noDataStatus.label, 'Không phát sinh dữ liệu', 'VERIFIED_NO_DATA must translate to Không phát sinh dữ liệu');
-  assert.equal(noDataStatus.isResolved, true);
+  // Test case 7.4: DATA_ERROR -> "Lỗi dữ liệu"
+  const dataErrorStatus = resolveNoCodeStatus('DATA_ERROR');
+  assert.equal(dataErrorStatus.label, 'Lỗi dữ liệu', 'DATA_ERROR must translate to Lỗi dữ liệu');
+  assert.equal(dataErrorStatus.isResolved, false);
 
-  // Test case 7.5: PO_EXEMPTED -> "PO đã xác nhận"
-  const exemptedStatus = resolveNoCodeStatus('PO_EXEMPTED');
-  assert.equal(exemptedStatus.label, 'PO đã xác nhận', 'PO_EXEMPTED must translate to PO đã xác nhận');
-  assert.equal(exemptedStatus.isResolved, true);
+  // Test cases 7.5-7.10: the 6 legacy statuses stay translatable as
+  // backward-compatible aliases (design Section 6) even though the backend
+  // no longer emits them.
+  assert.equal(resolveNoCodeStatus('DATA_COMPLETE_WITH_EVIDENCE').label, 'Đã hoàn tất');
+  assert.equal(resolveNoCodeStatus('LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE').label, 'Dữ liệu cũ đã có');
+  assert.equal(resolveNoCodeStatus('TRUE_MISSING').label, 'Thật sự còn thiếu');
+  assert.equal(resolveNoCodeStatus('VERIFIED_NO_DATA').label, 'Không phát sinh dữ liệu');
+  assert.equal(resolveNoCodeStatus('PO_EXEMPTED').label, 'PO đã xác nhận');
+  assert.equal(resolveNoCodeStatus('MANUAL_REVIEW_REQUIRED').label, 'Cần PO kiểm tra');
 
-  // Test case 7.6: MANUAL_REVIEW_REQUIRED -> "Cần PO kiểm tra"
-  const reviewStatus = resolveNoCodeStatus('MANUAL_REVIEW_REQUIRED');
-  assert.equal(reviewStatus.label, 'Cần PO kiểm tra', 'MANUAL_REVIEW_REQUIRED must translate to Cần PO kiểm tra');
-  assert.equal(reviewStatus.isResolved, false);
-
-  console.log('✔ 7. Canonical 6 No-Code Status Translations tests PASSED!');
+  console.log('✔ 7. AB-CALENDAR-01 4-Status No-Code Translations tests PASSED!');
 }
 
 // ==========================================
@@ -294,10 +295,10 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
 // ==========================================
 {
   const rawItems = [
-    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-21', status: 'TRUE_MISSING' },
-    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-20', status: 'DATA_COMPLETE_WITH_EVIDENCE' },
-    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-08-01', status: 'TRUE_MISSING' },
-    { indicator: 'F4.1', source_lane: 'TCT', business_date: '2026-07-15', status: 'VERIFIED_NO_DATA' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-21', status: 'INCOMPLETE' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-20', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-08-01', status: 'INCOMPLETE' },
+    { indicator: 'F4.1', source_lane: 'TCT', business_date: '2026-07-15', status: 'EXCLUDED' },
   ];
 
   const grouped = groupItemsByIndicatorAndMonth(rawItems);
@@ -306,13 +307,16 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   // Verify group 1: F1.3 - 2026-08 (newest month first for F1.3)
   assert.equal(grouped[0].indicator, 'F1.3');
   assert.equal(grouped[0].yearMonth, '2026-08');
-  assert.equal(grouped[0].counts.missing, 1);
+  assert.equal(grouped[0].counts.incomplete, 1);
+  assert.equal(grouped[0].counts.unprocessed, 1);
 
   // Verify group 2: F1.3 - 2026-07
   assert.equal(grouped[1].indicator, 'F1.3');
   assert.equal(grouped[1].yearMonth, '2026-07');
-  assert.equal(grouped[1].counts.missing, 1);
-  assert.equal(grouped[1].counts.complete, 1);
+  assert.equal(grouped[1].counts.incomplete, 1);
+  assert.equal(grouped[1].counts.completed, 1);
+  assert.equal(grouped[1].counts.processed, 1);
+  assert.equal(grouped[1].counts.unprocessed, 1);
 
   // Verify item sorting inside month: 2026-07-21 before 2026-07-20
   assert.equal(grouped[1].items[0].business_date, '2026-07-21');
@@ -330,10 +334,10 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
       { code: 'F1.3', display_name: 'F1.3 KPI', supported_lanes: ['HUE', 'TCT'] }
     ],
     items: [
-      { indicator: 'f1.3', source_lane: 'HUE', business_date: '2026-07-20', status: 'TRUE_MISSING' },
-      { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-21', status: 'TRUE_MISSING' },
-      { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-20', status: 'TRUE_MISSING' },
-      { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-21', status: 'DATA_COMPLETE_WITH_EVIDENCE' }
+      { indicator: 'f1.3', source_lane: 'HUE', business_date: '2026-07-20', status: 'INCOMPLETE' },
+      { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-21', status: 'INCOMPLETE' },
+      { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-20', status: 'INCOMPLETE' },
+      { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-21', status: 'COMPLETED' }
     ]
   };
 
@@ -366,7 +370,7 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
     indicator: 'F1.3',
     source_lane: 'HUE',
     business_date: `2026-07-${String(i + 1).padStart(2, '0')}`,
-    status: 'TRUE_MISSING'
+    status: 'INCOMPLETE'
   }));
 
   const page1 = paginateItems(largeMonthItems, 1, 10);
@@ -379,17 +383,18 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.equal(page3.pageItems.length, 5, 'Accordion page 3 must contain remaining 5 items');
   assert.equal(page3.hasNext, false);
 
-  // Test 10.2: Bulk selection key helper and actionable filter
+  // Test 10.2: Bulk selection key helper and actionable filter (AB-CALENDAR-01:
+  // isSelectable is the single predicate for both selection and PO-exception
+  // eligibility -- INCOMPLETE and DATA_ERROR only, per design Section 4.1).
   const actionableItems = [
-    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-01', status: 'TRUE_MISSING' },
-    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-02', status: 'DATA_COMPLETE_WITH_EVIDENCE' },
-    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-01', status: 'MANUAL_REVIEW_REQUIRED' }
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-01', status: 'INCOMPLETE' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-07-02', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-07-01', status: 'DATA_ERROR' }
   ];
 
   const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
-  const isActionable = (item) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item.status);
 
-  const filteredActionable = actionableItems.filter(isActionable);
+  const filteredActionable = actionableItems.filter(isSelectable);
   assert.equal(filteredActionable.length, 2, 'Must filter exactly 2 actionable items for bulk exemption');
   assert.equal(getItemKey(filteredActionable[0]), 'F1.3::HUE::2026-07-01');
   assert.equal(getItemKey(filteredActionable[1]), 'F1.3::TCT::2026-07-01');
@@ -405,7 +410,7 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
     indicator: 'F1.3',
     source_lane: 'HUE',
     business_date: '2026-08-15',
-    status: 'DATA_COMPLETE_WITH_EVIDENCE'
+    status: 'COMPLETED'
   };
 
   const buildReimportPayload = (item) => ({
@@ -454,15 +459,15 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
 }
 
 // ==========================================
-// 13. Contract Test: 62 MANUAL_REVIEW_REQUIRED Items Badge Resolution (PO Bugfix)
+// 13. Contract Test: 62 DATA_ERROR Items Badge Resolution (PO Bugfix)
 // ==========================================
 {
-  // Test case 13.1: 62 items with MANUAL_REVIEW_REQUIRED (missing = 0, complete = 0)
+  // Test case 13.1: 62 items with DATA_ERROR (incomplete = 0, completed = 0)
   const items62Review = Array.from({ length: 62 }, (_, i) => ({
     indicator: 'F1.3',
     source_lane: 'HUE',
     business_date: `2026-07-${String((i % 30) + 1).padStart(2, '0')}`,
-    status: 'MANUAL_REVIEW_REQUIRED'
+    status: 'DATA_ERROR'
   }));
 
   const groups = groupItemsByIndicatorAndMonth(items62Review);
@@ -470,18 +475,20 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   const group = groups[0];
 
   assert.equal(group.counts.total, 62, 'Total items must be 62');
-  assert.equal(group.counts.missing, 0, 'Missing items must be 0');
-  assert.equal(group.counts.reviewReq, 62, 'ReviewReq items must be 62');
-  assert.equal(group.counts.complete, 0, 'Complete items must be 0');
+  assert.equal(group.counts.incomplete, 0, 'Incomplete items must be 0');
+  assert.equal(group.counts.dataError, 62, 'DataError items must be 62');
+  assert.equal(group.counts.completed, 0, 'Completed items must be 0');
+  assert.equal(group.counts.unprocessed, 62, 'Unprocessed (incomplete+dataError) must be 62');
+  assert.equal(group.counts.processed, 0, 'Processed (completed+excluded) must be 0');
 
-  // CRITICAL ASSERTION: complete === total MUST be FALSE when reviewReq > 0
-  const isFullyComplete = group.counts.complete === group.counts.total;
-  assert.equal(isFullyComplete, false, 'Group with 62 reviewReq items must NOT be 100% complete');
+  // CRITICAL ASSERTION: processed === total MUST be FALSE when dataError > 0
+  const isFullyProcessed = group.counts.processed === group.counts.total;
+  assert.equal(isFullyProcessed, false, 'Group with 62 dataError items must NOT be 100% processed');
 
-  const hasUnresolved = group.counts.missing > 0 || group.counts.reviewReq > 0;
-  assert.equal(hasUnresolved, true, 'Group with 62 reviewReq items MUST be flagged as unresolved (hasUnresolved = true)');
+  const hasUnresolved = group.counts.unprocessed > 0;
+  assert.equal(hasUnresolved, true, 'Group with 62 dataError items MUST be flagged as unresolved');
 
-  // Test case 13.2: resolveDynamicIndicators per-lane breakdown for 62 reviewReq items
+  // Test case 13.2: resolveDynamicIndicators per-lane breakdown for 62 dataError items
   const fixtureData = {
     indicators: [{ code: 'F1.3', display_name: 'F1.3 KPI', supported_lanes: ['HUE', 'TCT'] }],
     items: items62Review
@@ -491,9 +498,9 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
 
   assert.equal(hueBreakdown.reviewReqCount, 62);
   assert.equal(hueBreakdown.unresolvedCount, 62);
-  assert.equal(hueBreakdown.isFullyComplete, false, 'Lane with 62 reviewReq items must NOT be isFullyComplete');
+  assert.equal(hueBreakdown.isFullyComplete, false, 'Lane with 62 dataError items must NOT be isFullyComplete');
 
-  console.log('✔ 13. 62 MANUAL_REVIEW_REQUIRED Items Badge Resolution tests PASSED!');
+  console.log('✔ 13. 62 DATA_ERROR Items Badge Resolution tests PASSED!');
 }
 
 // ==========================================
@@ -782,9 +789,9 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
     success: true,
     data: {
       items: [
-        { key: 'F1.3|HUE|2026-08-01', indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-01', status: 'MISSING' },
-        { key: 'F1.3|HUE|2026-08-05', indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-05', status: 'MISSING' },
-        { key: 'F1.3|TCT|2026-08-10', indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-08-10', status: 'MISSING' },
+        { key: 'F1.3|HUE|2026-08-01', indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-01', status: 'INCOMPLETE' },
+        { key: 'F1.3|HUE|2026-08-05', indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-05', status: 'INCOMPLETE' },
+        { key: 'F1.3|TCT|2026-08-10', indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-08-10', status: 'INCOMPLETE' },
       ],
       excluded_holiday: [
         { business_date: '2026-08-02', reason: 'Nghỉ lễ' }
@@ -875,78 +882,108 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
 }
 
 // ==========================================
-// 21. Remediation Test 5: Holiday-Row Contradictory Actions Remediation Contract
+// 21. AB-CALENDAR-01: Holiday-Row (now EXCLUDED) Contradictory Actions Remediation Contract
 // ==========================================
 {
-  const itemWithHoliday = {
+  // A holiday day is no longer a MISSING row with a `holiday` overlay -- it now
+  // maps its status straight to EXCLUDED (design Section 2), so the single
+  // `isSelectable` status predicate (design Section 4.1) is sufficient on its
+  // own, with no separate `!item.holiday` special-case needed.
+  const itemExcludedByHoliday = {
     indicator: 'F1.3',
     source_lane: 'HUE',
     business_date: '2026-09-02',
-    status: 'MISSING',
+    status: 'EXCLUDED',
     holiday: { id: 10, business_date: '2026-09-02', reason: 'Lễ Quốc Khánh 02/09' }
   };
 
-  const itemMissingWithoutHoliday = {
+  const itemIncompleteWithoutHoliday = {
     indicator: 'F1.3',
     source_lane: 'HUE',
     business_date: '2026-09-03',
-    status: 'MISSING',
+    status: 'INCOMPLETE',
     holiday: null
   };
 
   const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
-  const isActionableForExemption = (item) => !item?.holiday && ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item?.status);
 
-  // Test case 21.1: isActionableForExemption returns false for holiday item, true for normal missing item
-  assert.equal(isActionableForExemption(itemWithHoliday), false, 'A row with item.holiday MUST NOT be actionable for PO exemption');
-  assert.equal(isActionableForExemption(itemMissingWithoutHoliday), true, 'A normal MISSING row without holiday MUST remain actionable for PO exemption');
+  // Test case 21.1: isSelectable returns false for the EXCLUDED (holiday) item, true for INCOMPLETE
+  assert.equal(isSelectable(itemExcludedByHoliday), false, 'An EXCLUDED row (holiday) MUST NOT be actionable for PO exemption');
+  assert.equal(isSelectable(itemIncompleteWithoutHoliday), true, 'A normal INCOMPLETE row MUST remain actionable for PO exemption');
 
-  // Test case 21.2: Bulk selection immunity for holiday items
+  // Test case 21.2: Bulk selection immunity for EXCLUDED items
   let selectedBulkKeys = new Set();
   const toggleSelectBulkItem = (item) => {
-    if (item?.holiday) return;
+    if (!isSelectable(item)) return;
     const key = getItemKey(item);
     if (selectedBulkKeys.has(key)) selectedBulkKeys.delete(key);
     else selectedBulkKeys.add(key);
   };
 
-  toggleSelectBulkItem(itemWithHoliday);
-  assert.equal(selectedBulkKeys.size, 0, 'toggleSelectBulkItem MUST ignore holiday items (selection set remains 0)');
+  toggleSelectBulkItem(itemExcludedByHoliday);
+  assert.equal(selectedBulkKeys.size, 0, 'toggleSelectBulkItem MUST ignore EXCLUDED items (selection set remains 0)');
 
-  toggleSelectBulkItem(itemMissingWithoutHoliday);
-  assert.equal(selectedBulkKeys.size, 1, 'toggleSelectBulkItem MUST select normal missing item');
+  toggleSelectBulkItem(itemIncompleteWithoutHoliday);
+  assert.equal(selectedBulkKeys.size, 1, 'toggleSelectBulkItem MUST select a normal INCOMPLETE item');
   assert.ok(selectedBulkKeys.has('F1.3::HUE::2026-09-03'));
 
-  // Test case 21.3: Select all helper excludes holiday items
+  // Test case 21.3: Select all helper excludes EXCLUDED items
   selectedBulkKeys = new Set();
   const toggleSelectAllItems = (itemsList) => {
-    const selectableItems = (itemsList || []).filter((item) => !item.holiday);
-    const itemKeys = selectableItems.map(getItemKey);
+    const itemKeys = (itemsList || []).filter(isSelectable).map(getItemKey);
     itemKeys.forEach((k) => selectedBulkKeys.add(k));
   };
 
-  toggleSelectAllItems([itemWithHoliday, itemMissingWithoutHoliday]);
-  assert.equal(selectedBulkKeys.size, 1, 'toggleSelectAllItems MUST ONLY select non-holiday items');
-  assert.ok(!selectedBulkKeys.has('F1.3::HUE::2026-09-02'), 'Holiday key MUST NOT be selected by select-all');
-  assert.ok(selectedBulkKeys.has('F1.3::HUE::2026-09-03'), 'Normal missing key MUST be selected by select-all');
+  toggleSelectAllItems([itemExcludedByHoliday, itemIncompleteWithoutHoliday]);
+  assert.equal(selectedBulkKeys.size, 1, 'toggleSelectAllItems MUST ONLY select INCOMPLETE/DATA_ERROR items');
+  assert.ok(!selectedBulkKeys.has('F1.3::HUE::2026-09-02'), 'EXCLUDED key MUST NOT be selected by select-all');
+  assert.ok(selectedBulkKeys.has('F1.3::HUE::2026-09-03'), 'Normal incomplete key MUST be selected by select-all');
 
-  // Test case 21.4: Handler guard prevents PO exemption API call for holiday items
+  // Test case 21.4: Handler guard prevents PO exemption API call for EXCLUDED items
   let apiCallMade = false;
   const mockConfirmExemptionHandler = async (confirmModalItem, reason) => {
-    if (!confirmModalItem || confirmModalItem.holiday || !reason.trim()) return;
+    if (!confirmModalItem || !isSelectable(confirmModalItem) || !reason.trim()) return;
     apiCallMade = true;
   };
 
   (async () => {
-    await mockConfirmExemptionHandler(itemWithHoliday, 'Thử xác nhận ngoại lệ cho ngày nghỉ lễ');
-    assert.equal(apiCallMade, false, 'Confirm exemption handler MUST return early for item with holiday without API call');
+    await mockConfirmExemptionHandler(itemExcludedByHoliday, 'Thử xác nhận ngoại lệ cho ngày nghỉ lễ');
+    assert.equal(apiCallMade, false, 'Confirm exemption handler MUST return early for an EXCLUDED item without API call');
 
-    await mockConfirmExemptionHandler(itemMissingWithoutHoliday, 'Lý do xác nhận hợp lệ');
-    assert.equal(apiCallMade, true, 'Confirm exemption handler MUST execute API call for normal missing item');
+    await mockConfirmExemptionHandler(itemIncompleteWithoutHoliday, 'Lý do xác nhận hợp lệ');
+    assert.equal(apiCallMade, true, 'Confirm exemption handler MUST execute API call for a normal INCOMPLETE item');
 
-    console.log('✔ 21. Holiday-Row Contradictory Actions Remediation tests PASSED!');
-    console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (21/21 Test Suites)');
+    console.log('✔ 21. AB-CALENDAR-01 EXCLUDED-Row Contradictory Actions Remediation tests PASSED!');
   })();
+}
+
+// ==========================================
+// 22. AB-CALENDAR-01 D1: include_excluded Reimport Payload Contract (design Section 4.2)
+// ==========================================
+{
+  // Mirrors AutoBackfillOperatorPanel.jsx's handleConfirmReimport payload
+  // construction: include_excluded is added only for an EXCLUDED item, and the
+  // request is always exactly one indicator + one lane + one date already.
+  const buildReimportPayload = (item) => ({
+    indicator: item.indicator,
+    requested_lane: item.source_lane,
+    lane: item.source_lane,
+    month: item.business_date.slice(0, 7),
+    from_date: item.business_date,
+    to_date: item.business_date,
+    ...(item.status === 'EXCLUDED' ? { include_excluded: true } : {})
+  });
+
+  const excludedItem = { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-15', status: 'EXCLUDED' };
+  const incompleteItem = { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-16', status: 'INCOMPLETE' };
+  const completedItem = { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-08-17', status: 'COMPLETED' };
+
+  assert.equal(buildReimportPayload(excludedItem).include_excluded, true, 'Reimporting an EXCLUDED day MUST set include_excluded: true');
+  assert.equal(buildReimportPayload(incompleteItem).include_excluded, undefined, 'Reimporting an INCOMPLETE day MUST NOT set include_excluded');
+  assert.equal(buildReimportPayload(completedItem).include_excluded, undefined, 'Reimporting a COMPLETED day MUST NOT set include_excluded');
+
+  console.log('✔ 22. AB-CALENDAR-01 include_excluded Reimport Payload Contract tests PASSED!');
+  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (22/22 Test Suites)');
 }
 
 

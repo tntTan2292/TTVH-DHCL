@@ -44,7 +44,7 @@ test('queue controller forwards identity filters and authenticated Admin actor',
     const res = response();
     await controller.createRun(request({ body: { indicator: 'F9.TEST', lane: 'HUE' } }), res);
     assert.equal(res.statusCode, 201);
-    assert.deepEqual(input, { indicator: 'F9.TEST', lane: 'HUE', fromDate: null, toDate: null, actor: 'tester', roles: ['admin'] });
+    assert.deepEqual(input, { indicator: 'F9.TEST', lane: 'HUE', fromDate: null, toDate: null, includeExcluded: false, actor: 'tester', roles: ['admin'] });
 });
 
 test('queue controller forwards from_date/to_date when supplied, and null when omitted', async () => {
@@ -58,7 +58,24 @@ test('queue controller forwards from_date/to_date when supplied, and null when o
     const res = response();
     await controller.createRun(request({ body: { from_date: '2026-01-01', to_date: '2026-01-31' } }), res);
     assert.equal(res.statusCode, 201);
-    assert.deepEqual(input, { indicator: null, lane: null, fromDate: '2026-01-01', toDate: '2026-01-31', actor: 'tester', roles: ['admin'] });
+    assert.deepEqual(input, { indicator: null, lane: null, fromDate: '2026-01-01', toDate: '2026-01-31', includeExcluded: false, actor: 'tester', roles: ['admin'] });
+});
+
+// AB-CALENDAR-01 D1 (design Section 4.2)
+test('queue controller forwards include_excluded as a boolean', async () => {
+    let input;
+    const controller = new AutoBackfillQueueController({ queueService: {
+        async createRun(value) {
+            input = value;
+            return { run: { id: 'run-1' }, creation: { created: true } };
+        },
+    } });
+    const res = response();
+    await controller.createRun(request({ body: {
+        indicator: 'F9.TEST', lane: 'HUE', from_date: '2026-01-03', to_date: '2026-01-03', include_excluded: true,
+    } }), res);
+    assert.equal(res.statusCode, 201);
+    assert.equal(input.includeExcluded, true);
 });
 
 test('queue read delegates registry permission without causing a mutation', async () => {

@@ -230,7 +230,7 @@ async function scanWith(db, statuses, { asOf = '2026-01-05' } = {}) {
 
 const itemFor = (coverage, businessDate) => coverage.items.find((item) => item.business_date === businessDate);
 
-test('AB-CAL-06 a holiday on a MISSING day is excluded from "còn thiếu" without changing status', async () => {
+test('AB-CAL-06 a holiday on a MISSING day maps the day to EXCLUDED and drops it from "còn thiếu"', async () => {
     const db = await createFixture();
     try {
         await markHoliday(db, '2026-01-03', 'Nghỉ lễ');
@@ -240,15 +240,22 @@ test('AB-CAL-06 a holiday on a MISSING day is excluded from "còn thiếu" witho
 
         assert.equal(holidayItem.holiday.reason, 'Nghỉ lễ');
         assert.equal(holidayItem.counts_as_missing, false);
-        // The frozen 6-state model is untouched: the day still reports
-        // TRUE_MISSING and still counts in the lane's TRUE_MISSING bucket.
-        assert.equal(holidayItem.status, 'TRUE_MISSING');
-        assert.equal(coverage.lanes[0].counts.TRUE_MISSING, 4);
+        assert.equal(holidayItem.counts_as_unprocessed, false);
+        // AB-CALENDAR-01: under the 4-status model a holiday maps its day to
+        // EXCLUDED (D3 supersedes the old 6-state design's PO decision 2) and
+        // it is never auto-queued.
+        assert.equal(holidayItem.status, 'EXCLUDED');
+        assert.equal(holidayItem.queue_eligible, false);
+        assert.equal(holidayItem.queue_ineligible_reason, 'HOLIDAY');
+        assert.equal(coverage.lanes[0].counts.EXCLUDED, 1);
+        assert.equal(coverage.lanes[0].counts.INCOMPLETE, 3);
         assert.equal(coverage.lanes[0].holiday_skipped_count, 1);
         assert.equal(coverage.holiday_skipped_total, 1);
 
         assert.equal(normalItem.holiday, null);
+        assert.equal(normalItem.status, 'INCOMPLETE');
         assert.equal(normalItem.counts_as_missing, true);
+        assert.equal(normalItem.counts_as_unprocessed, true);
     } finally {
         await db.close();
     }
@@ -261,7 +268,7 @@ test('AB-CAL-07 a holiday on a day that really has data is ignored entirely', as
         const coverage = await scanWith(db, new Map([['F9.TEST|HUE|2026-01-03', 'SUCCESS']]));
         const item = itemFor(coverage, '2026-01-03');
 
-        assert.equal(item.status, 'DATA_COMPLETE_WITH_EVIDENCE');
+        assert.equal(item.status, 'COMPLETED');
         assert.equal(item.holiday, null, 'real committed data must win over LỊCH NGHỈ');
         assert.equal(item.counts_as_missing, false);
         assert.equal(coverage.holiday_skipped_total, 0);
@@ -277,7 +284,7 @@ test('AB-CAL-08 a holiday never hides a day that needs manual review', async () 
         const coverage = await scanWith(db, new Map([['F9.TEST|HUE|2026-01-03', 'MANUAL_REVIEW_REQUIRED']]));
         const item = itemFor(coverage, '2026-01-03');
 
-        assert.equal(item.status, 'MANUAL_REVIEW_REQUIRED');
+        assert.equal(item.status, 'DATA_ERROR');
         assert.equal(item.holiday, null);
         assert.equal(item.counts_as_missing, true);
     } finally {
@@ -297,7 +304,7 @@ test('AB-CAL-09 an ACTIVE coverage exception outranks a holiday on the same day'
         const coverage = await scanWith(db, new Map());
         const item = itemFor(coverage, '2026-01-03');
 
-        assert.equal(item.status, 'PO_EXEMPTED');
+        assert.equal(item.status, 'EXCLUDED');
         assert.equal(item.exception.exception_type, 'PO_EXEMPTED');
         assert.equal(item.holiday, null, 'the audited exception must win over the calendar');
         assert.equal(item.counts_as_missing, false);
@@ -306,16 +313,33 @@ test('AB-CAL-09 an ACTIVE coverage exception outranks a holiday on the same day'
     }
 });
 
-test('AB-CAL-10 a holiday does not change queue_eligible (PO decision 2, design R4)', async () => {
+test('AB-CAL-10 EXCLUDED via holiday is never queue-eligible (design D3 supersedes the old PO decision 2)', async () => {
+    // AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md explicitly supersedes PO decision 2
+    // of the prior holiday design (which kept automation free to fetch a holiday
+    // date). Under the 4-status model, EXCLUDED (holiday included) must never be
+    // auto-queued -- this needs an AUTOMATED lane to actually exercise the change,
+    // since this fixture's default MANUAL_ONLY lane was already ineligible either way.
     const db = await createFixture();
     try {
-        const before = await scanWith(db, new Map());
-        await markHoliday(db, '2026-01-03', 'Nghỉ lễ');
-        const after = await scanWith(db, new Map());
+        const automatedLane = createLane({ completionPolicy: createMapPolicy() });
+        automatedLane.automationMode = 'AUTOMATED';
+        automatedLane.manualOnlyReason = null;
+        automatedLane.portalAdapter = { id: 'TEST_ADAPTER', verified: true, reportIdentity: 'TEST_REPORT', resourceIdentity: 'TEST_RESOURCE' };
+        const indicator = createIndicator({ startDate: '2026-01-01', lanes: { HUE: automatedLane } });
+        const service = new AutoBackfillCoverageService({ db, registryProvider: () => [indicator] });
 
-        const dispositions = (coverage) => coverage.items.map((item) => `${item.business_date}:${item.queue_eligible}:${item.queue_ineligible_reason}`);
-        assert.deepEqual(dispositions(after), dispositions(before));
-        assert.equal(after.runnable_portal_jobs, before.runnable_portal_jobs);
+        const before = await service.scan({ asOf: '2026-01-05', roles: ['admin'] });
+        const beforeItem = itemFor(before, '2026-01-03');
+        assert.equal(beforeItem.queue_eligible, true, 'sanity: without a holiday this AUTOMATED MISSING day is queue-eligible');
+
+        await markHoliday(db, '2026-01-03', 'Nghỉ lễ');
+        const after = await service.scan({ asOf: '2026-01-05', roles: ['admin'] });
+        const afterItem = itemFor(after, '2026-01-03');
+
+        assert.equal(afterItem.status, 'EXCLUDED');
+        assert.equal(afterItem.queue_eligible, false);
+        assert.equal(afterItem.queue_ineligible_reason, 'HOLIDAY');
+        assert.equal(after.runnable_portal_jobs, before.runnable_portal_jobs - 1);
     } finally {
         await db.close();
     }

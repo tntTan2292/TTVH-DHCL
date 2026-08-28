@@ -56,7 +56,7 @@ function attachCoordinator(service, clockState, options = {}) {
     return coordinator;
 }
 
-function createLane({ indicator, code, priority, statuses, readRoles = ['admin'] }) {
+function createLane({ indicator, code, priority, statuses, readRoles = ['admin'], automationMode = 'AUTOMATED', manualOnlyReason = null }) {
     const adapterId = `TEST_${indicator.replace(/[^A-Z0-9]/gi, '_')}_${code}`;
     return {
         code,
@@ -71,14 +71,14 @@ function createLane({ indicator, code, priority, statuses, readRoles = ['admin']
                 return { status, reason: status === 'SUCCESS' ? 'COMPLETE_EVIDENCE' : 'NO_IMPORT_EVIDENCE', evidence: { key, status } };
             },
         },
-        automationMode: 'AUTOMATED',
-        manualOnlyReason: null,
-        portalAdapter: {
+        automationMode,
+        manualOnlyReason: automationMode === 'AUTOMATED' ? null : (manualOnlyReason || 'PORTAL_ADAPTER_NOT_REGISTERED'),
+        portalAdapter: automationMode === 'AUTOMATED' ? {
             id: adapterId,
             verified: true,
             reportIdentity: `REPORT_${indicator}_${code}`,
             resourceIdentity: `RESOURCE_${indicator}_${code}`,
-        },
+        } : null,
         permissions: { ...DEFAULT_PERMISSIONS, coverageReadRoles: readRoles },
         retryPolicy: DEFAULT_RETRY_POLICY,
         circuitScope: CIRCUIT_SCOPE,
@@ -302,6 +302,130 @@ test('createRun with a from_date/to_date window matching no eligible coverage re
     try {
         await assert.rejects(
             fixture.service.createRun({ fromDate: '2020-01-01', toDate: '2020-01-31', actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
+        );
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+// ---------------------------------------------------------------------------
+// AB-CALENDAR-01 D1: the narrow include_excluded single-tuple opt-in
+// (design Section 4.2)
+// ---------------------------------------------------------------------------
+
+function createHolidayCalendarStub(dates) {
+    const map = new Map(dates.map((businessDate) => [businessDate, {
+        id: 'holiday-1', business_date: businessDate, reason: 'test holiday', created_by: 'admin', created_at: '2026-01-01T00:00:00.000Z',
+    }]));
+    return { loadActiveHolidayMap: async () => map };
+}
+
+async function createExcludedDayFixture({ automationMode = 'AUTOMATED' } = {}) {
+    const dbPath = path.join(os.tmpdir(), `auto-backfill-queue-excl-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
+    await applyAutoBackfillQueueSchema(dbPath);
+    await applyAutoBackfillSafetySchema(dbPath);
+    const now = new Date('2026-01-04T01:00:00.000Z');
+    const registry = [createIndicator({
+        code: 'F9.TEST', priority: 10, startDate: '2026-01-03', laneCodes: ['HUE'], statuses: new Map(),
+    })];
+    registry[0].lanes.HUE.automationMode = automationMode;
+    if (automationMode !== 'AUTOMATED') {
+        registry[0].lanes.HUE.manualOnlyReason = 'PORTAL_ADAPTER_NOT_REGISTERED';
+        registry[0].lanes.HUE.portalAdapter = null;
+    }
+    const executorRegistry = new AutoBackfillExecutorRegistry({ allowTestExecutors: true });
+    const calls = [];
+    if (registry[0].lanes.HUE.portalAdapter) {
+        executorRegistry.register(registry[0].lanes.HUE.portalAdapter.id, {
+            async execute(identity) { calls.push(`${identity.indicator}|${identity.sourceLane}|${identity.businessDate}`); },
+        }, { verified: true, testOnly: true });
+    }
+    const coverageService = new AutoBackfillCoverageService({
+        db: {},
+        clock: () => now,
+        registryProvider: () => registry,
+        registryVersion: 'QUEUE-TEST-1',
+        holidayCalendarService: createHolidayCalendarStub(['2026-01-03']),
+    });
+    const service = new AutoBackfillQueueService({
+        store: new AutoBackfillQueueStore({ dbPath, clock: () => now, leaseMs: 1000 }),
+        coverageService,
+        executorRegistry,
+        registryProvider: () => registry,
+        registryVersion: 'QUEUE-TEST-1',
+        completionDb: {},
+        fsImpl: { existsSync: () => false },
+        workerId: 'worker-a',
+        heartbeatMs: 100000,
+    });
+    return { service, calls, cleanup() { fs.rmSync(dbPath, { force: true }); } };
+}
+
+test('AB-CALENDAR-01 an EXCLUDED (holiday) day is unreachable without include_excluded', async () => {
+    const fixture = await createExcludedDayFixture();
+    try {
+        await assert.rejects(
+            fixture.service.createRun({
+                indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', actor: 'admin', roles: ['admin'],
+            }),
+            (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
+        );
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('AB-CALENDAR-01 include_excluded re-admits exactly the single EXCLUDED tuple requested', async () => {
+    const fixture = await createExcludedDayFixture();
+    try {
+        const created = await fixture.service.createRun({
+            indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', includeExcluded: true, actor: 'admin', roles: ['admin'],
+        });
+        assert.equal(created.jobs.length, 1);
+        assert.equal(created.jobs[0].business_date, '2026-01-03');
+        assert.equal(created.jobs[0].indicator, 'F9.TEST');
+        assert.equal(created.jobs[0].source_lane, 'HUE');
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('AB-CALENDAR-01 include_excluded is rejected for anything broader than one indicator+lane+date', async () => {
+    const fixture = await createExcludedDayFixture();
+    try {
+        await assert.rejects(
+            fixture.service.createRun({ indicator: 'F9.TEST', lane: 'HUE', includeExcluded: true, actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_INCLUDE_EXCLUDED_REQUIRES_SINGLE_TUPLE' && error.statusCode === 400,
+            'missing from_date/to_date must be rejected',
+        );
+        await assert.rejects(
+            fixture.service.createRun({ lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', includeExcluded: true, actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_INCLUDE_EXCLUDED_REQUIRES_SINGLE_TUPLE',
+            'missing indicator must be rejected',
+        );
+        await assert.rejects(
+            fixture.service.createRun({ indicator: 'F9.TEST', fromDate: '2026-01-03', toDate: '2026-01-03', includeExcluded: true, actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_INCLUDE_EXCLUDED_REQUIRES_SINGLE_TUPLE',
+            'missing lane must be rejected',
+        );
+        await assert.rejects(
+            fixture.service.createRun({ indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-02', toDate: '2026-01-03', includeExcluded: true, actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_INCLUDE_EXCLUDED_REQUIRES_SINGLE_TUPLE',
+            'a multi-day range must be rejected',
+        );
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('AB-CALENDAR-01 include_excluded never bypasses a MANUAL_ONLY lane', async () => {
+    const fixture = await createExcludedDayFixture({ automationMode: 'MANUAL_ONLY' });
+    try {
+        await assert.rejects(
+            fixture.service.createRun({
+                indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', includeExcluded: true, actor: 'admin', roles: ['admin'],
+            }),
             (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
         );
     } finally {

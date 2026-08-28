@@ -46,6 +46,7 @@ class AutoBackfillQueueController {
                 lane: req.body?.lane || null,
                 fromDate: req.body?.from_date || null,
                 toDate: req.body?.to_date || null,
+                includeExcluded: Boolean(req.body?.include_excluded),
                 actor: requestActor(req),
                 roles: requestRoles(req),
             });

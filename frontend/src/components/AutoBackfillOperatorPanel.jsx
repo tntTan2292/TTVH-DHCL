@@ -28,6 +28,7 @@ import { useAuth } from '../auth/AuthContext';
 import { isAdminRole } from '../auth/roles';
 import {
   groupItemsByIndicatorAndMonth,
+  isSelectable,
   paginateItems,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
@@ -55,7 +56,10 @@ const AUTH_LOGIN_POLL_MAX_ATTEMPTS = 60; // 5 minutes, matching the backend's ~4
 
 const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
 
-const isActionableForExemption = (item) => !item?.holiday && ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(item?.status);
+// AB-CALENDAR-01 (design Section 4.1): identical to isSelectable -- the 4-status
+// table's "Xác nhận ngoại lệ" column matches its "Checkbox / bulk select" column
+// exactly (Yes for INCOMPLETE/DATA_ERROR, No for COMPLETED/EXCLUDED).
+const isActionableForExemption = (item) => isSelectable(item);
 
 export default function AutoBackfillOperatorPanel() {
   // Auth context for role gating (Admin actions vs non-admin view-only)
@@ -287,9 +291,9 @@ export default function AutoBackfillOperatorPanel() {
     }
   }, [laneFilter, selectedBulkKeys]);
 
-  // Toggle Bulk Select Item (holiday items can never be selected)
+  // Toggle Bulk Select Item (only INCOMPLETE/DATA_ERROR can ever be selected)
   const toggleSelectBulkItem = (item) => {
-    if (item?.holiday) return;
+    if (!isSelectable(item)) return;
     const key = getItemKey(item);
     setSelectedBulkKeys((prev) => {
       const next = new Set(prev);
@@ -302,9 +306,9 @@ export default function AutoBackfillOperatorPanel() {
     });
   };
 
-  // Select/Unselect All Items in a list (excludes holiday items)
+  // Select/Unselect All Items in a list (only INCOMPLETE/DATA_ERROR)
   const toggleSelectAllItems = (itemsList) => {
-    const selectableItems = (itemsList || []).filter((item) => !item.holiday);
+    const selectableItems = (itemsList || []).filter(isSelectable);
     const itemKeys = selectableItems.map(getItemKey);
     const allSelected = itemKeys.length > 0 && itemKeys.every((k) => selectedBulkKeys.has(k));
 
@@ -675,7 +679,11 @@ export default function AutoBackfillOperatorPanel() {
         lane: reimportModalItem.source_lane,
         month: reimportModalItem.business_date.slice(0, 7),
         from_date: reimportModalItem.business_date,
-        to_date: reimportModalItem.business_date
+        to_date: reimportModalItem.business_date,
+        // AB-CALENDAR-01 D1: an EXCLUDED day (holiday or exception) needs the
+        // narrow single-tuple opt-in to be re-admitted for "Nhập lại" -- this
+        // request is already exactly one indicator + one lane + one date.
+        ...(reimportModalItem.status === 'EXCLUDED' ? { include_excluded: true } : {})
       };
       const res = await api.post('/import/auto-backfill/runs', payload);
       if (res.data.success) {
@@ -876,14 +884,7 @@ export default function AutoBackfillOperatorPanel() {
       if (indicatorFilter !== 'ALL' && itemInd !== indicatorFilter.toUpperCase()) return false;
       if (laneFilter !== 'ALL' && itemLane !== laneFilter.toUpperCase()) return false;
       if (monthFilter !== 'ALL' && (!item.business_date || !item.business_date.startsWith(monthFilter))) return false;
-      if (statusFilter !== 'ALL') {
-        if (statusFilter === 'MISSING' && !['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(item.status)) return false;
-        if (statusFilter === 'COMPLETE' && !['DATA_COMPLETE_WITH_EVIDENCE', 'SUCCESS'].includes(item.status)) return false;
-        if (statusFilter === 'LEGACY' && item.status !== 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE') return false;
-        if (statusFilter === 'NO_DATA' && item.status !== 'VERIFIED_NO_DATA') return false;
-        if (statusFilter === 'PO_EXEMPTED' && item.status !== 'PO_EXEMPTED') return false;
-        if (statusFilter === 'REVIEW' && item.status !== 'MANUAL_REVIEW_REQUIRED') return false;
-      }
+      if (statusFilter !== 'ALL' && item.status !== statusFilter) return false;
       return true;
     });
   }, [rawCoverageItems, indicatorFilter, laneFilter, monthFilter, statusFilter]);
@@ -1431,13 +1432,11 @@ export default function AutoBackfillOperatorPanel() {
               }}
               className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="ALL">Tất cả Trạng thái (6 loại)</option>
-              <option value="MISSING">Thật sự còn thiếu</option>
-              <option value="COMPLETE">Đã hoàn tất</option>
-              <option value="LEGACY">Dữ liệu cũ đã có</option>
-              <option value="NO_DATA">Không phát sinh dữ liệu</option>
-              <option value="PO_EXEMPTED">PO đã xác nhận</option>
-              <option value="REVIEW">Cần PO kiểm tra</option>
+              <option value="ALL">Tất cả Trạng thái (4 loại)</option>
+              <option value="INCOMPLETE">Chưa hoàn tất</option>
+              <option value="COMPLETED">Đã hoàn tất</option>
+              <option value="EXCLUDED">Được loại trừ</option>
+              <option value="DATA_ERROR">Lỗi dữ liệu</option>
             </select>
           </div>
 
@@ -1553,7 +1552,7 @@ export default function AutoBackfillOperatorPanel() {
                     <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className={`hover:bg-slate-50/80 transition ${isSelected ? 'bg-blue-50/40' : ''}`}>
                       {isAdmin && (
                         <td className="px-4 py-3.5 text-center">
-                          {!item.holiday && (
+                          {isSelectable(item) && (
                             <button
                               type="button"
                               onClick={() => toggleSelectBulkItem(item)}
@@ -1608,7 +1607,7 @@ export default function AutoBackfillOperatorPanel() {
                                 <span>Nhập lại</span>
                               </button>
 
-                              {!item.holiday && isActionable && (
+                              {isActionable && (
                                 <button
                                   onClick={() => {
                                     setMarkHolidayModalItem(item);
@@ -1651,7 +1650,7 @@ export default function AutoBackfillOperatorPanel() {
                                 </button>
                               )}
 
-                              {item.status === 'PO_EXEMPTED' && (
+                              {item.status === 'EXCLUDED' && item.exception?.exception_type === 'PO_EXEMPTED' && (
                                 <button
                                   onClick={() => {
                                     setRevokeModalItem(item);
@@ -2002,7 +2001,7 @@ export default function AutoBackfillOperatorPanel() {
                           <span>Nhập lại</span>
                         </button>
 
-                        {!item.holiday && (
+                        {isSelectable(item) && (
                           <button
                             onClick={() => {
                               setSelectedLaneModal(null);
@@ -2463,27 +2462,27 @@ function MonthlyAccordionGroup({
               <span className="text-sm font-semibold text-slate-600">— Tháng {group.yearMonth}</span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tổng {group.counts.total} bản ghi • {group.counts.complete} xong • {group.counts.legacy} dữ liệu cũ • {group.counts.noData} không phát sinh
+              Tổng {group.counts.total} bản ghi • {group.counts.completed} đã hoàn tất • {group.counts.excluded} loại trừ • {group.counts.dataError} lỗi dữ liệu
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          {group.counts.complete === group.counts.total ? (
+          {group.counts.processed === group.counts.total ? (
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900 border border-emerald-300">
-              100% Hoàn tất
+              100% Đã xử lý
             </span>
-          ) : (group.counts.missing > 0 || group.counts.reviewReq > 0) ? (
+          ) : group.counts.unprocessed > 0 ? (
             <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 border border-amber-300">
-              {group.counts.missing > 0 && group.counts.reviewReq > 0
-                ? `Còn thiếu ${group.counts.missing} · Cần kiểm tra ${group.counts.reviewReq} bản ghi`
-                : group.counts.missing > 0
-                ? `Còn thiếu ${group.counts.missing} bản ghi`
-                : `Cần PO kiểm tra ${group.counts.reviewReq} bản ghi`}
+              {group.counts.incomplete > 0 && group.counts.dataError > 0
+                ? `Còn thiếu ${group.counts.incomplete} · Lỗi dữ liệu ${group.counts.dataError} bản ghi`
+                : group.counts.incomplete > 0
+                ? `Còn thiếu ${group.counts.incomplete} bản ghi`
+                : `Lỗi dữ liệu ${group.counts.dataError} bản ghi`}
             </span>
           ) : (
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 border border-slate-300">
-              Đã giải quyết {group.counts.total} bản ghi
+              Đã xử lý {group.counts.total} bản ghi
             </span>
           )}
         </div>
@@ -2521,7 +2520,7 @@ function MonthlyAccordionGroup({
               return (
                 <div key={idx} className={`flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/80 transition text-sm ${isSelected ? 'bg-blue-50/40' : ''}`}>
                   <div className="flex items-center gap-4">
-                    {isAdmin && !item.holiday && (
+                    {isAdmin && isSelectable(item) && (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -2570,7 +2569,7 @@ function MonthlyAccordionGroup({
                           <span>Nhập lại</span>
                         </button>
 
-                        {!item.holiday && isActionable && (
+                        {isActionable && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2611,7 +2610,7 @@ function MonthlyAccordionGroup({
                           </button>
                         )}
 
-                        {item.status === 'PO_EXEMPTED' && (
+                        {item.status === 'EXCLUDED' && item.exception?.exception_type === 'PO_EXEMPTED' && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

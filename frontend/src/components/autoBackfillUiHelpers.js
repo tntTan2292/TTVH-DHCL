@@ -2,6 +2,16 @@
  * Helper utilities for Auto Backfill V2 Operator UI contracts & data aggregation.
  */
 
+// AB-CALENDAR-01 (design Section 4.1): the single predicate that decides
+// whether a coverage item can ever be selected or offered a PO-exception
+// action. Replaces the old `!item.holiday && [...]` special-case: a holiday
+// or an exception now always maps its day to EXCLUDED, so checking `status`
+// alone is sufficient and correct -- COMPLETED and EXCLUDED can never be
+// selected, by any UI path.
+export function isSelectable(item) {
+  return ['INCOMPLETE', 'DATA_ERROR'].includes(item?.status);
+}
+
 export function resolveEffectiveRunState(run) {
   if (!run) return null;
   return run.safety_state || run.status || null;
@@ -152,25 +162,26 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
         (item) => (item.indicator || item.indicator_code || '').trim().toUpperCase() === indCodeNormalized
       );
 
-      const missingItems = indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
+      const missingItems = indicatorItems.filter((i) => ['INCOMPLETE', 'TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
       const uniqueMissingDates = new Set(missingItems.map((i) => i.business_date).filter(Boolean));
 
-      const successItems = indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
+      const successItems = indicatorItems.filter((i) => ['COMPLETED', 'EXCLUDED', 'DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
       const uniqueSuccessDates = new Set(successItems.map((i) => i.business_date).filter(Boolean));
 
       const supportedLanes = ind.supported_lanes || ['HUE', 'TCT'];
       const lanesBreakdown = {};
       supportedLanes.forEach((lane) => {
         const laneItems = indicatorItems.filter((i) => (i.source_lane || i.lane || '').trim().toUpperCase() === lane.toUpperCase());
-        const laneMissingItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
+        const laneMissingItems = laneItems.filter((i) => ['INCOMPLETE', 'TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
         const laneMissingDates = Array.from(new Set(laneMissingItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
 
-        const laneReviewItems = laneItems.filter((i) => i.status === 'MANUAL_REVIEW_REQUIRED');
+        const laneReviewItems = laneItems.filter((i) => i.status === 'DATA_ERROR' || i.status === 'MANUAL_REVIEW_REQUIRED');
         const laneReviewDates = Array.from(new Set(laneReviewItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
-        
-        const laneActionableItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(i.status));
 
-        const laneSuccessItems = laneItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'SUCCESS'].includes(i.status));
+        const laneActionableItems = laneItems.filter((i) => ['INCOMPLETE', 'DATA_ERROR', 'TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(i.status));
+
+        // AB-CALENDAR-01: "đã xử lý xong" = COMPLETED + EXCLUDED (processed).
+        const laneSuccessItems = laneItems.filter((i) => ['COMPLETED', 'EXCLUDED', 'DATA_COMPLETE_WITH_EVIDENCE', 'SUCCESS'].includes(i.status));
         const laneSuccessDates = Array.from(new Set(laneSuccessItems.map((i) => i.business_date).filter(Boolean)));
 
         lanesBreakdown[lane] = {
@@ -218,25 +229,25 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
     const theme = APPROVED_THEMES[themeKey] || NEUTRAL_FALLBACK;
     const indicatorItems = itemsGrouped[code] || [];
 
-    const missingItems = indicatorItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
+    const missingItems = indicatorItems.filter((i) => ['INCOMPLETE', 'TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
     const uniqueMissingDates = new Set(missingItems.map((i) => i.business_date).filter(Boolean));
 
-    const successItems = indicatorItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
+    const successItems = indicatorItems.filter((i) => ['COMPLETED', 'EXCLUDED', 'DATA_COMPLETE_WITH_EVIDENCE', 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE', 'PO_EXEMPTED', 'VERIFIED_NO_DATA', 'SUCCESS'].includes(i.status));
     const uniqueSuccessDates = new Set(successItems.map((i) => i.business_date).filter(Boolean));
 
     const supportedLanes = ['HUE', 'TCT'];
     const lanesBreakdown = {};
     supportedLanes.forEach((lane) => {
       const laneItems = indicatorItems.filter((i) => (i.source_lane || i.lane || '').trim().toUpperCase() === lane.toUpperCase());
-      const laneMissingItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
+      const laneMissingItems = laneItems.filter((i) => ['INCOMPLETE', 'TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(i.status));
       const laneMissingDates = Array.from(new Set(laneMissingItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
-      
-      const laneReviewItems = laneItems.filter((i) => i.status === 'MANUAL_REVIEW_REQUIRED');
+
+      const laneReviewItems = laneItems.filter((i) => i.status === 'DATA_ERROR' || i.status === 'MANUAL_REVIEW_REQUIRED');
       const laneReviewDates = Array.from(new Set(laneReviewItems.map((i) => i.business_date).filter(Boolean))).sort().reverse();
 
-      const laneActionableItems = laneItems.filter((i) => ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(i.status));
+      const laneActionableItems = laneItems.filter((i) => ['INCOMPLETE', 'DATA_ERROR', 'TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING', 'MANUAL_REVIEW_REQUIRED'].includes(i.status));
 
-      const laneSuccessItems = laneItems.filter((i) => ['DATA_COMPLETE_WITH_EVIDENCE', 'SUCCESS'].includes(i.status));
+      const laneSuccessItems = laneItems.filter((i) => ['COMPLETED', 'EXCLUDED', 'DATA_COMPLETE_WITH_EVIDENCE', 'SUCCESS'].includes(i.status));
       const laneSuccessDates = Array.from(new Set(laneSuccessItems.map((i) => i.business_date).filter(Boolean)));
 
       lanesBreakdown[lane] = {
@@ -277,6 +288,35 @@ export function resolveDynamicIndicators(coverageData, rawItems = []) {
 
 export function resolveNoCodeStatus(status) {
   const STATUS_MAPPINGS = {
+    // AB-CALENDAR-01: the 4 PO-facing statuses that replace the frozen 6-state
+    // model. The 6 legacy keys below are kept as backward-compatible aliases
+    // (design Section 6) so a mismatched backend/frontend pair degrades
+    // gracefully instead of rendering a raw, untranslated status code.
+    COMPLETED: {
+      label: 'Đã hoàn tất',
+      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      isResolved: true,
+      iconType: 'success',
+    },
+    INCOMPLETE: {
+      label: 'Chưa hoàn tất',
+      badgeClass: 'bg-amber-50 text-amber-900 border-amber-300',
+      isResolved: false,
+      iconType: 'missing',
+    },
+    EXCLUDED: {
+      label: 'Được loại trừ',
+      badgeClass: 'bg-slate-100 text-slate-700 border-slate-300',
+      isResolved: true,
+      iconType: 'excluded',
+    },
+    DATA_ERROR: {
+      label: 'Lỗi dữ liệu',
+      badgeClass: 'bg-orange-50 text-orange-800 border-orange-200',
+      isResolved: false,
+      iconType: 'error',
+    },
+    // Legacy 6-state aliases (deprecated, kept for one release).
     DATA_COMPLETE_WITH_EVIDENCE: {
       label: 'Đã hoàn tất',
       badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
@@ -356,13 +396,20 @@ export function groupItemsByIndicatorAndMonth(items = []) {
         indicator,
         yearMonth,
         items: [],
+        // AB-CALENDAR-01: the 4 PO-facing buckets, plus the processed
+        // (COMPLETED+EXCLUDED) / unprocessed (INCOMPLETE+DATA_ERROR) roll-up
+        // from the operational-completion delta (design Section 1.1).
         counts: {
           total: 0,
+          completed: 0,
+          incomplete: 0,
+          excluded: 0,
+          dataError: 0,
+          processed: 0,
+          unprocessed: 0,
+          // Deprecated aliases, kept for one release.
           missing: 0,
           complete: 0,
-          legacy: 0,
-          noData: 0,
-          exempted: 0,
           reviewReq: 0,
         },
       });
@@ -373,19 +420,20 @@ export function groupItemsByIndicatorAndMonth(items = []) {
     group.counts.total += 1;
 
     const st = item.status;
-    if (['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(st)) {
+    if (st === 'INCOMPLETE' || ['TRUE_MISSING', 'MISSING', 'MANUAL_ONLY_MISSING'].includes(st)) {
+      group.counts.incomplete += 1;
       group.counts.missing += 1;
-    } else if (st === 'DATA_COMPLETE_WITH_EVIDENCE' || st === 'SUCCESS') {
+    } else if (st === 'COMPLETED' || st === 'DATA_COMPLETE_WITH_EVIDENCE' || st === 'SUCCESS') {
+      group.counts.completed += 1;
       group.counts.complete += 1;
-    } else if (st === 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE') {
-      group.counts.legacy += 1;
-    } else if (st === 'VERIFIED_NO_DATA') {
-      group.counts.noData += 1;
-    } else if (st === 'PO_EXEMPTED') {
-      group.counts.exempted += 1;
-    } else if (st === 'MANUAL_REVIEW_REQUIRED') {
+    } else if (st === 'EXCLUDED' || st === 'LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE' || st === 'VERIFIED_NO_DATA' || st === 'PO_EXEMPTED') {
+      group.counts.excluded += 1;
+    } else if (st === 'DATA_ERROR' || st === 'MANUAL_REVIEW_REQUIRED') {
+      group.counts.dataError += 1;
       group.counts.reviewReq += 1;
     }
+    group.counts.processed = group.counts.completed + group.counts.excluded;
+    group.counts.unprocessed = group.counts.incomplete + group.counts.dataError;
   });
 
   const groups = Array.from(map.values());
