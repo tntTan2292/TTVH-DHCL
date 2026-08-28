@@ -86,9 +86,45 @@ To prevent false exemptions when a portal fails or returns empty pages due to ne
 
 ---
 
-## 4. Legacy Baseline Reconciliation & 6 Granular Coverage States
+## 4. PO-Facing Coverage Model — 4 Statuses
 
-To resolve the 920 "fake missing" items issue, coverage evaluation classifies items into 6 distinct states using registry-driven completion policies per `indicator × lane`:
+> [!NOTE]
+> **Amended 2026-08-27 (AB-CALENDAR-01, approved frozen-document delta D3).** The original
+> 6 granular coverage states were technical classifications shown directly to the Product
+> Owner. They are replaced by exactly **4 PO-facing statuses**. The 6 technical states still
+> exist internally as `completion_status`, the exception type, and the holiday overlay — they
+> are simply no longer surfaced as separate PO badges. The original table is preserved
+> verbatim in Section 4.2 for audit.
+
+To resolve the 920 "fake missing" items issue, coverage evaluation classifies every
+`indicator × lane × business_date` into exactly one of 4 PO-facing statuses, using
+registry-driven completion policies:
+
+| PO Status | No-Code Vietnamese Display | Technical Definition | Action & Routing Rule |
+| --- | --- | --- | --- |
+| `COMPLETED` | **Đã hoàn tất** | Import succeeded — valid data is present | Complete. No action required. Never auto-queued. |
+| `INCOMPLETE` | **Chưa hoàn tất** | Not imported yet: no data, no import log, no artifact | Queue eligible for auto-backfill when the indicator is `ACTIVE` and the lane is `AUTOMATED`. |
+| `EXCLUDED` | **Được loại trừ** | LỊCH NGHỈ / holiday, or a confirmed exception meaning no data is expected | Operationally finished. Never auto-queued, never selectable, never re-confirmed. |
+| `DATA_ERROR` | **Lỗi dữ liệu** | An import ran but the data is wrong or did not land | Requires PO inspection. Selectable: may be reimported or converted to `EXCLUDED`. |
+
+### 4.1 Processed vs unprocessed
+
+| Group | Statuses | Meaning |
+| --- | --- | --- |
+| **Đã xử lý** | `COMPLETED` + `EXCLUDED` | Nothing more to do |
+| **Chưa xử lý xong** | `INCOMPLETE` + `DATA_ERROR` | Still needs action |
+
+"Chọn tất cả chưa hoàn tất" and every "chưa hoàn tất" total cover **only** `INCOMPLETE` +
+`DATA_ERROR`. `COMPLETED` and `EXCLUDED` can never be selected by any UI path. `EXCLUDED`
+still shows its own count so the Product Owner can see which days were excluded.
+
+Real data always wins: a day with valid committed data is `COMPLETED` regardless of any
+holiday or exception recorded on it.
+
+### 4.2 SUPERSEDED (2026-08-27) — the original 6 granular coverage states
+
+Preserved verbatim for audit. These remain valid as **internal technical** classifications;
+they are no longer PO-facing badges. The final column records where each one now maps.
 
 | Coverage State Code | Technical Definition | No-Code Vietnamese Display | Action & Routing Rule |
 | --- | --- | --- | --- |
@@ -98,6 +134,19 @@ To resolve the 920 "fake missing" items issue, coverage evaluation classifies it
 | `VERIFIED_NO_DATA` | Adapter proved 5-point criteria for 0 rows | **Không phát sinh dữ liệu** | Skip. Valid business state. 0 retries. |
 | `PO_EXEMPTED` | PO manually confirmed exception with reason | **PO đã xác nhận** | Exempted by PO. Excluded from coverage gaps. |
 | `MANUAL_REVIEW_REQUIRED` | Missing evidence, integrity error, or unproven 0 rows | **Cần PO kiểm tra** | Requires PO inspection or manual upload. |
+
+| Superseded state | Now maps to |
+| --- | --- |
+| `DATA_COMPLETE_WITH_EVIDENCE` | `COMPLETED` |
+| `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` | `COMPLETED` — valid data is present (PO rule: valid data present = Đã hoàn tất) |
+| `TRUE_MISSING` | `INCOMPLETE` |
+| `VERIFIED_NO_DATA` | `EXCLUDED` |
+| `PO_EXEMPTED` | `EXCLUDED` |
+| `MANUAL_REVIEW_REQUIRED` | `DATA_ERROR` |
+
+LỊCH NGHỈ (the shared holiday calendar, added by AB-CALENDAR-01) also maps to `EXCLUDED`.
+
+Full design of record: `docs/04_TECHNICAL_PLANNING/Feature/AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md`.
 
 > [!IMPORTANT]
 > **Registry-Driven Completion Policy Rule**: Completion policies must be evaluated dynamically per `indicator × lane` from `importIndicatorRegistry.js`. Scanner logic must NEVER check only `rows > 0` and must NEVER hardcode indicator strings (e.g. `F1.3`/`F4.1`).

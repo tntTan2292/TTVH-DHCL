@@ -1,6 +1,7 @@
 # AB-CALENDAR-01 — 4-Status PO Coverage Model — Design of Record
 
-Status: **DESIGN OF RECORD / DOCUMENTATION-ONLY — NO CODE OR DATABASE CHANGED**
+Status: **DESIGN OF RECORD — ALL DECISIONS APPROVED, READY FOR IMPLEMENTATION**
+(this document itself is documentation-only; no code or database changed by it)
 Author: Claude Code (Opus) → Claude/CTO → Product Owner
 Branch: `codex/da-impl-006` · Baseline HEAD at authoring: `5d196ff0`
 Supersedes: the 7-status proposal (cancelled by PO) and PO decisions 2 & 4 of
@@ -18,7 +19,7 @@ finished.** This document is the single design of record for both.
 | --- | --- | --- | --- |
 | 1 | `COMPLETED` | **Đã hoàn tất** | Import succeeded |
 | 2 | `INCOMPLETE` | **Chưa hoàn tất** | Not imported yet |
-| 3 | `EXCLUDED` | **Được loại trừ** | LỊCH NGHỈ, holiday, or a confirmed special exception |
+| 3 | `EXCLUDED` | **Được loại trừ** | LỊCH NGHỈ / holiday, or a confirmed exception meaning no data is expected |
 | 4 | `DATA_ERROR` | **Lỗi dữ liệu** | Imported, but the data is wrong — PO must inspect |
 
 ### 1.1 The operational-completion delta (PO, this ticket)
@@ -51,7 +52,7 @@ convention:
 | --- | --- | --- |
 | `COMPLETED` | raw `SUCCESS` | rows exist, count matches, `distinct == count` |
 | `INCOMPLETE` | raw `MISSING`, no holiday/exception | **0 rows, 0 import_log, no artifact** — never imported |
-| `EXCLUDED` | any ACTIVE holiday **or** any ACTIVE coverage exception, on a day that is not already `COMPLETED` | LỊCH NGHỈ / `PO_EXEMPTED` / `VERIFIED_NO_DATA` / `LEGACY_BASELINE` |
+| `EXCLUDED` | an ACTIVE holiday, `PO_EXEMPTED` or `VERIFIED_NO_DATA`, on a day that is not already `COMPLETED` | no valid data, and PO has confirmed none is expected |
 | `DATA_ERROR` | raw `MANUAL_REVIEW_REQUIRED` **or** raw `INCOMPLETE` | `rowCount > 0` but integrity invalid; **or** import evidence exists (log/artifact) but 0 rows landed |
 
 **Why `DATA_ERROR` can never swallow a never-imported day:** the policy returns
@@ -68,12 +69,26 @@ Old 6-state → new 4:
 | `MANUAL_REVIEW_REQUIRED` | `DATA_ERROR` |
 | `PO_EXEMPTED` | `EXCLUDED` |
 | `VERIFIED_NO_DATA` | `EXCLUDED` |
-| `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` | `EXCLUDED` (open decision D2) |
+| `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` | `COMPLETED` (decision D2) |
 
-The `EXCLUDED` rule is deliberately one sentence with no sub-cases: **any ACTIVE holiday or
-exception → `EXCLUDED`.** The specific reason stays visible as a secondary chip
-(`LỊCH NGHỈ: <reason>`, `Dữ liệu cũ đã có`, …), so no information is lost — only badges are
-consolidated.
+### 2.1 The `EXCLUDED` rule, and the one exception to it (decision D2)
+
+The rule is: **an ACTIVE holiday, `PO_EXEMPTED`, or `VERIFIED_NO_DATA` → `EXCLUDED`.** All three
+mean the same operational thing — no data exists, and PO has confirmed none is expected.
+
+`LEGACY_BASELINE` is deliberately **not** in that list. It is only ever recorded when committed
+rows already exist (`rowCount > 0`), and it is PO's own confirmation that this legacy data is
+valid despite not passing the strict integrity gate. Per PO's rule — **valid data present = Đã
+hoàn tất** — such a day maps to `COMPLETED`, not `EXCLUDED`.
+
+**Implementation guard.** The mapping is conditional on data actually being there: apply
+`LEGACY_BASELINE → COMPLETED` only while `evidence.row_count > 0`. If the data were ever removed
+afterwards, the exception no longer asserts anything true, and the day must fall through to the
+normal mapping for its raw status (`INCOMPLETE` or `DATA_ERROR`) rather than silently claiming
+completion.
+
+The specific reason stays visible as a secondary chip (`LỊCH NGHỈ: <reason>`, `Dữ liệu cũ đã
+có`, …), so no information is lost — only badges are consolidated.
 
 ## 3. Measured impact on live data
 
@@ -108,7 +123,7 @@ have **zero immediate blast radius**. This is the cheapest possible moment to ch
 | --- | --- | --- | --- | --- | --- |
 | `COMPLETED` | No (`ALREADY_SUCCESS`) | **No** (change — see 4.1) | Yes (re-update) | No | No |
 | `INCOMPLETE` | **Yes**, if indicator `ACTIVE` and lane `AUTOMATED` | Yes | Yes | Yes | **Yes** |
-| `EXCLUDED` | **Never** | **No** | Yes (opt-in, decision D1) | **No** | No |
+| `EXCLUDED` | **Never** | **No** | Yes, via the narrow opt-in in 4.2 | **No** | No |
 | `DATA_ERROR` | No (needs PO) | **Yes** | Yes | Yes | **Yes** |
 
 ### 4.1 Selection guard must be generalized
@@ -130,14 +145,39 @@ exception-based `EXCLUDED` become unselectable too. All four behaviors locked by
 (no checkbox, immune to bulk-select, no repeat exception confirmation, keeps "Thu hồi LỊCH
 NGHỈ" and "Nhập lại") are preserved.
 
-### 4.2 Revoke returns the day to `INCOMPLETE` — already true, no code needed
+### 4.2 Reimporting an `EXCLUDED` day — the narrow opt-in (decision D1, APPROVED)
+
+`EXCLUDED` must never be picked up by the automatic sweep, yet "Nhập lại" must keep working on
+an excluded day. Both go through `POST /import/auto-backfill/runs`, filtered by the same
+`queue_eligible` ([autoBackfillQueueService.js:104](../../../backend/src/services/autoBackfillQueueService.js#L104)),
+so without an opt-in a reimport of an excluded day would return
+**409 `AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE`**.
+
+Approved rule:
+
+- The request body may carry `include_excluded: true`.
+- The backend accepts it **only** when the request resolves to **exactly one indicator, exactly
+  one source lane, and exactly one business date** — i.e. `indicator`, `lane`, `from_date` and
+  `to_date` are all present and `from_date === to_date`.
+- Any broader request carrying `include_excluded` — missing indicator, missing lane, a date
+  range spanning more than one day, or no date bounds at all — **must be rejected**, not
+  silently narrowed. Reject with a dedicated error code (e.g.
+  `AUTO_BACKFILL_INCLUDE_EXCLUDED_REQUIRES_SINGLE_TUPLE`), never a generic 409.
+- The automatic sweep ("Kích hoạt Bù") **never** sends the flag.
+- The flag re-admits an excluded day only if it is otherwise fully runnable; it never bypasses
+  a genuine block such as `MANUAL_ONLY`, an unverified executor, or an inactive indicator.
+
+This keeps the blast radius of the flag to a single tuple that an admin explicitly picked, which
+is precisely the "Nhập lại" gesture.
+
+### 4.3 Revoke returns the day to `INCOMPLETE` — already true, no code needed
 
 The holiday/exception overlay is derived inside `scan()` and never persisted per tuple.
 Revoking a holiday or exception makes the overlay resolve to `null` on the next scan, so a
 day with no data falls straight back to `INCOMPLETE` and becomes queue-eligible again. This
 needs a **test to lock it**, not an implementation.
 
-### 4.3 Internal technical detail stays internal
+### 4.4 Internal technical detail stays internal
 
 `INCOMPLETE` keeps its auto-vs-manual nuance in existing **internal** fields —
 `queue_eligible` and `queue_ineligible_reason` (`AUTOMATION_DISABLED`,
@@ -178,7 +218,8 @@ extended to report `EXCLUDED` and `COMPLETED` separately.
 **Backend** — `autoBackfillCoverageService.js` (replace `COVERAGE_STATUSES` with the 4;
 `toPoStatus()` replaces `toCoverageStatus()`; `EXCLUDED` branch in `queueDisposition`;
 `counts` derives 4 buckets automatically) · `autoBackfillQueueService.js` +
-`autoBackfillQueueController.js` (explicit reimport opt-in, decision D1) · tests:
+`autoBackfillQueueController.js` (the narrow `include_excluded` opt-in and its single-tuple
+validation, Section 4.2) · tests:
 `test_autoBackfillHolidayCalendar.js`, `test_autoBackfillCoverageService.js`,
 `test_autoBackfillCoverageExceptionService.js`, `test_autoBackfillQueueService.js`.
 
@@ -189,7 +230,7 @@ filters become `status === 'INCOMPLETE' || status === 'DATA_ERROR'`) ·
 reimport payload; `isActionableForExemption`; accordion "đã xử lý xong" condition becomes
 `completed + excluded === total`) · `AutoBackfillOperatorPanel.test.js`.
 
-**Docs** — `AUTO-BACKFILL-UI_PLAN.md` §4 (frozen delta, decision D3), this document, the
+**Docs** — `AUTO-BACKFILL-UI_PLAN.md` §4 (frozen delta, already applied — Section 8), this document, the
 manifest, `PROJECT_SNAPSHOT.md`, `PROJECT_PROGRESS.md`.
 
 **Not touched** — schema, migrations, completion policies, queue executor, Safety / Gate 5,
@@ -197,22 +238,29 @@ F1.3, KPI/SSOT, networkMap.
 
 ## 8. Replacing the frozen 6-state document
 
-`AUTO-BACKFILL-UI_PLAN.md` §4 is a frozen document, so it requires an explicit
-frozen-document delta approved by PO/CTO (decision D3). Proposed method: replace the 6-row
-table with the 4-row PO-facing table plus the processed/unprocessed grouping, and **keep the
-original 6-row table immediately below under a `SUPERSEDED (2026-08-27)` heading** with a
-column mapping each old state to its new group. History stays auditable instead of being
-deleted, and a later reader sees why it changed.
+`AUTO-BACKFILL-UI_PLAN.md` §4 is a frozen document. The frozen-document delta was **approved
+(decision D3) and has been applied**: §4 now carries the 4-row PO-facing table plus the
+processed/unprocessed grouping, and the original 6-row table is preserved immediately below
+under a `SUPERSEDED (2026-08-27)` heading with a column mapping each old state to its new PO
+status. History stays auditable instead of being deleted, and a later reader sees why it
+changed.
 
 ## 9. Test plan
 
 **Backend** — each raw branch maps to exactly one PO status (4 cases); holiday + `MISSING` →
 `EXCLUDED`; holiday + real `SUCCESS` → `COMPLETED` (holiday ignored); ACTIVE exception →
-`EXCLUDED`; **revoke → `INCOMPLETE` and queue-eligible again**; `queue_eligible === false` for
-`EXCLUDED` and `DATA_ERROR`; `POST /runs` without opt-in skips `EXCLUDED`, with opt-in accepts
-it; the 4 `counts` buckets sum to `total_items`; **processed (`COMPLETED`+`EXCLUDED`) +
-unprocessed (`INCOMPLETE`+`DATA_ERROR`) === `total_items`**; F1.3 and F4.1 behave identically;
-`selectable` returns only `INCOMPLETE` + `DATA_ERROR`.
+`EXCLUDED`; **`LEGACY_BASELINE` with rows present → `COMPLETED`**, and the same exception with
+`row_count === 0` falls through to `INCOMPLETE`/`DATA_ERROR` instead of claiming completion;
+**revoke → `INCOMPLETE` and queue-eligible again**; `queue_eligible === false` for `EXCLUDED`
+and `DATA_ERROR`; the 4 `counts` buckets sum to `total_items`; **processed
+(`COMPLETED`+`EXCLUDED`) + unprocessed (`INCOMPLETE`+`DATA_ERROR`) === `total_items`**; F1.3 and
+F4.1 behave identically; `selectable` returns only `INCOMPLETE` + `DATA_ERROR`.
+
+**`include_excluded` (Section 4.2)** — `POST /runs` without the flag skips `EXCLUDED`; with the
+flag and exactly one indicator + lane + business date it accepts the excluded day; and it is
+**rejected** for every broader shape: missing indicator, missing lane, `from_date !== to_date`,
+or no date bounds. Also assert the flag never bypasses `MANUAL_ONLY`, an unverified executor, or
+an inactive indicator.
 
 **Frontend** — the 4 badges render the correct Vietnamese labels; KPI, accordion and filter
 show only 4 statuses; **`COMPLETED` and `EXCLUDED` have no checkbox and cannot enter
@@ -229,6 +277,9 @@ holiday keeps "Thu hồi LỊCH NGHỈ" and "Nhập lại" and never shows "Xác
 1. UI, KPI counts, accordion, filters and reports show only the 4 statuses.
 2. The 4 counts sum to `total_items`; processed + unprocessed also sums to `total_items`.
 3. Live numbers match the Section 3 projection: 490 / 442 / 20 / 0.
+3b. A `LEGACY_BASELINE` day with data present reads `COMPLETED`, never `EXCLUDED`.
+3c. `include_excluded` is honoured for a single indicator+lane+date and rejected for anything
+    broader; the automatic sweep never sends it.
 4. "Chọn tất cả chưa hoàn tất" returns only `INCOMPLETE` + `DATA_ERROR`, across all pages.
 5. `COMPLETED` and `EXCLUDED` cannot be selected through any UI path.
 6. `EXCLUDED` is visible with its own count and contributes 0 to every "chưa hoàn tất" total.
@@ -239,20 +290,21 @@ holiday keeps "Thu hồi LỊCH NGHỈ" and "Nhập lại" and never shows "Xác
 10. `DATA_ERROR` contains only days that were actually imported; never a day never imported.
 11. Gate 5 intact; Safety behavior unchanged.
 
-## 11. Open decisions (NOT resolved by this delta)
+## 11. Approved decisions
 
-| # | Decision | Recommendation | Status |
+All four decisions are settled. Nothing in this design is awaiting CTO or PO input.
+
+| # | Decision | Resolution | Where specified |
 | --- | --- | --- | --- |
-| D1 | `EXCLUDED` must not auto-queue, but "Nhập lại" must still work — and both go through `POST /runs`, filtered by the same `queue_eligible` ([autoBackfillQueueService.js:104](../../../backend/src/services/autoBackfillQueueService.js#L104)). Without an explicit opt-in, "Nhập lại" on an `EXCLUDED` day returns **409 `AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE`**. | Add an explicit opt-in body field (`include_excluded: true`) passed **only** by the single-date "Nhập lại" handler, never by "Kích hoạt Bù". | **OPEN** |
-| D2 | `LEGACY_BASELINE` → `EXCLUDED` or `COMPLETED`? | `EXCLUDED` — it is a confirmed exception, and legacy data was not "import thành công". 0 records exist today, so the decision is reversible at no cost. | **OPEN** |
-| D3 | Approve the frozen-document delta to `AUTO-BACKFILL-UI_PLAN.md` §4 (6 → 4) using the method in Section 8. | Approve. | **OPEN** |
-| D4 | Does `DATA_ERROR` keep its checkbox and exception-confirmation action? | Yes. | **ANSWERED by this delta** — "DATA_ERROR vẫn được chọn để PO nhập lại hoặc xử lý ngoại lệ". |
-
-D1 in particular must be settled before implementation begins: it is the one item that can
-silently break a PO-visible action that a previous PO decision explicitly required to keep.
+| D1 | How to keep "Nhập lại" working on an `EXCLUDED` day while the automatic sweep never touches it | **APPROVED** — `include_excluded: true`, accepted **only** for exactly one indicator + one lane + one business date; broader requests are rejected outright; the automatic sweep never sends it | Section 4.2 |
+| D2 | `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` → which PO status? | **APPROVED** — `COMPLETED`, whenever valid data exists. PO rule: valid data present = Đã hoàn tất | Section 2.1 |
+| D3 | Amend the frozen `AUTO-BACKFILL-UI_PLAN.md` §4 from 6 to 4 PO-facing statuses | **APPROVED and applied** — old table preserved under `SUPERSEDED` for audit | Section 8 |
+| D4 | Does `DATA_ERROR` keep its checkbox and exception action? | **APPROVED** — remains selectable; may be reimported or converted to `EXCLUDED` | Section 4 |
 
 ## 12. Not done by this document
 
-No code, schema, database, migration, API or frontend change. `AUTO-BACKFILL-UI_PLAN.md`
-remains untouched pending decision D3. No Portal, queue, or business-data operation was
-performed. No PO acceptance is claimed.
+No code, schema, database, migration, API or frontend change was made by this document or by
+the ticket that approved these decisions. `AUTO-BACKFILL-UI_PLAN.md` §4 was amended as an
+approved frozen-document delta (documentation only). No Portal, queue, or business-data
+operation was performed. Implementation of the 4-status model has not started, and no PO
+acceptance is claimed.

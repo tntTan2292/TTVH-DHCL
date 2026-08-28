@@ -2193,7 +2193,8 @@ untouched day always falls through to `MISSING`.
 | `DATA_COMPLETE_WITH_EVIDENCE` | `COMPLETED` | Đã xử lý |
 | `TRUE_MISSING` | `INCOMPLETE` | Chưa xử lý xong |
 | `MANUAL_REVIEW_REQUIRED` | `DATA_ERROR` | Chưa xử lý xong |
-| `PO_EXEMPTED` / `VERIFIED_NO_DATA` / `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` | `EXCLUDED` | Đã xử lý |
+| `PO_EXEMPTED` / `VERIFIED_NO_DATA` | `EXCLUDED` | Đã xử lý |
+| `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` | `COMPLETED` (decision D2, Section 46) | Đã xử lý |
 
 ### 45.4 Measured Impact (Read-Only Scan Of The Live Database)
 
@@ -2228,16 +2229,80 @@ panel and the test suites in this repository. No technical information is lost: 
 `completion_status`, `exception`, `holiday`, `queue_eligible` and `queue_ineligible_reason`
 fields are already emitted alongside it.
 
-### 45.7 Open Decisions Carried To The Implementing Session
+### 45.7 Decisions Raised Here -- All Since Approved (see Section 46)
 
 | # | Decision | Status |
 | --- | --- | --- |
-| D1 | `EXCLUDED` must not auto-queue while "Nhập lại" must keep working -- both go through `POST /runs` filtered by the same `queue_eligible`, so without an explicit opt-in ("Nhập lại" passing `include_excluded: true`) a reimport of an `EXCLUDED` day returns **409 `AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE`**. | **OPEN -- must be settled before implementation** |
-| D2 | `LEGACY_BASELINE` -> `EXCLUDED` (recommended) or `COMPLETED`? 0 records exist, so reversible at no cost. | **OPEN** |
-| D3 | Approve the frozen-document delta to `AUTO-BACKFILL-UI_PLAN.md` Section 4 (6 -> 4), keeping the original table below under a `SUPERSEDED` heading so history stays auditable. | **OPEN -- the frozen document was deliberately left untouched** |
-| D4 | Does `DATA_ERROR` keep its checkbox and exception-confirmation action? | **ANSWERED by this delta: yes** |
+| D1 | `EXCLUDED` must not auto-queue while "Nhập lại" must keep working -- both go through `POST /runs` filtered by the same `queue_eligible`. | **APPROVED** (Section 46) |
+| D2 | `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` -> `EXCLUDED` or `COMPLETED`? | **APPROVED** (Section 46) -- `COMPLETED` |
+| D3 | Amend the frozen `AUTO-BACKFILL-UI_PLAN.md` Section 4 (6 -> 4), keeping the original table under a `SUPERSEDED` heading. | **APPROVED and applied** (Section 46) |
+| D4 | Does `DATA_ERROR` keep its checkbox and exception-confirmation action? | **APPROVED: yes** |
 
 ### 45.8 Not Done
 
-`AUTO-BACKFILL-UI_PLAN.md` is untouched pending D3. No implementation was started; the 4-status
-model is not yet in the product. No PO acceptance is claimed.
+At the time of Section 45 the frozen `AUTO-BACKFILL-UI_PLAN.md` was left untouched; it was
+amended in Section 46 once D3 was approved. No implementation was started; the 4-status model is
+not yet in the product. No PO acceptance is claimed.
+---
+
+## 46. AB-CALENDAR-01 -- Design Decisions D1-D4 Approved And Recorded (2026-08-27, Claude Code Opus 5, DOCUMENTATION-ONLY)
+
+Section 45 recorded D1-D3 as still open. They had in fact already been decided by PO/CTO, so the
+design of record and every live-state document were corrected. **Documentation-only: no code,
+database, schema or API change.**
+
+### 46.1 The Four Approved Decisions
+
+| # | Decision |
+| --- | --- |
+| **D1** | `include_excluded: true` permits a reimport of an `EXCLUDED` day, and the backend accepts it **only** when the request resolves to exactly **one indicator + one source lane + one business date** (`indicator`, `lane`, `from_date`, `to_date` all present and `from_date === to_date`). Any broader request carrying the flag -- missing indicator or lane, a multi-day range, or no date bounds -- **must be rejected outright**, not silently narrowed, with a dedicated error code rather than a generic 409. The automatic sweep never sends the flag, and the flag never bypasses a genuine block (`MANUAL_ONLY`, unverified executor, inactive indicator). |
+| **D2** | `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` maps to **`COMPLETED`**, not `EXCLUDED`, whenever valid data exists. PO rule: **valid data present = Đã hoàn tất**. |
+| **D3** | The frozen `AUTO-BACKFILL-UI_PLAN.md` Section 4 is amended from 6 PO-facing states to 4, with the original table preserved under a `SUPERSEDED` heading for audit. |
+| **D4** | `DATA_ERROR` remains selectable and may be reimported or converted to `EXCLUDED`. |
+
+Also reaffirmed: select-all-unfinished covers **`INCOMPLETE` + `DATA_ERROR` only**, and
+processed = **`COMPLETED` + `EXCLUDED`**.
+
+### 46.2 D2 Reverses The Prior Recommendation, And Adds A Guard
+
+Section 45 recommended `LEGACY_BASELINE -> EXCLUDED`; PO decided `COMPLETED`. The design of
+record was updated accordingly, and the `EXCLUDED` rule narrowed: **an ACTIVE holiday,
+`PO_EXEMPTED`, or `VERIFIED_NO_DATA` -> `EXCLUDED`**, while `LEGACY_BASELINE` -> `COMPLETED`.
+
+One edge case was made explicit rather than left to the implementer. PO's wording is conditional
+-- "whenever valid data exists" -- and `LEGACY_BASELINE` is only ever recorded when
+`rowCount > 0`. The design therefore requires the mapping to be guarded on
+`evidence.row_count > 0`: if the underlying data were ever removed, the exception no longer
+asserts anything true and the day must fall back to the normal mapping for its raw status
+(`INCOMPLETE` or `DATA_ERROR`) instead of silently reporting completion.
+
+No live record is affected: there are currently **0 ACTIVE coverage exceptions of any type**, so
+the Section 45.4 projection is unchanged at `COMPLETED` 490 / `INCOMPLETE` 442 / `EXCLUDED` 20 /
+`DATA_ERROR` 0.
+
+### 46.3 D3 Applied To The Frozen Document
+
+`docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md` Section 4 is now **"PO-Facing Coverage Model -- 4
+Statuses"**, carrying the 4-status table, a new Section 4.1 for the processed/unprocessed
+grouping and the selection rule, and Section 4.2 **`SUPERSEDED (2026-08-27)`** holding the
+original 6-row table **verbatim** plus a column mapping each superseded state to its new PO
+status. The registry-driven completion-policy rule at the end of the section is preserved
+unchanged. Nothing was deleted.
+
+### 46.4 Documents Updated
+
+`AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md` (new Section 4.2 for the D1 rule; Section 2.1 for D2
+and its guard; Sections 8, 11, 12 rewritten; tests and acceptance criteria extended for D1/D2) ·
+`AUTO-BACKFILL-UI_PLAN.md` Section 4 · this manifest (Section 45.7/45.8 corrected, Section 46
+appended) · `PROJECT_SNAPSHOT.md` · `DOCUMENT_INDEX.md` · `PROJECT_PROGRESS.md` (new appended
+entry; prior entries left untouched per the append-only rule).
+
+### 46.5 Consistency Check
+
+A repository-wide search confirms no document still describes D1, D2 or D3 as open or awaiting
+CTO/PO, and no document still maps `LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE` to `EXCLUDED`.
+
+### 46.6 Not Done
+
+Implementation of the 4-status model has not started -- it remains a design. No Portal, queue,
+or business-data operation was performed. No PO acceptance is claimed.
