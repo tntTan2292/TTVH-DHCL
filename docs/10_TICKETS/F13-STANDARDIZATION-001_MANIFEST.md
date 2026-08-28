@@ -1061,3 +1061,93 @@ rebase or amend was performed; this is a forward-only commit.
 Governance state: `PHASE F1 PO UI REMEDIATION R3 SCOPE CLEANUP COMPLETE / READY FOR PO UI CHECK`.
 Claude Code does not self-award PO PASS on this round; the Product Owner must restart the frontend
 dev server and perform a fresh UI check before any acceptance is recorded.
+
+## 43. BCVH Ranking Monthly Heatmap — Reuse Operation Dashboard's Absolute Band SSOT (2026-08-28)
+
+Append-only delta. Sections 1-42 are unchanged. This supersedes any earlier, cancelled proposal to
+classify the BCVH Ranking monthly heatmap by delta-from-monthly-average — the Product Owner
+explicitly cancelled that approach; it is not implemented anywhere in this delta.
+
+### What was verified before touching any file
+
+- Operation Dashboard's absolute classification lives in
+  `frontend/src/features/dashboard/components/operatingPatternTabsData.js`:
+  `APPROVED_WEEKDAY_BANDS` (green `>=70` / pink `60-70` / yellow `50-60` / red `<50`) and
+  `getApprovedWeekdayBand(rate)` (returns `{ id, label, tone }`, with `tone: 'unavailable'` for a
+  `null`/`undefined` rate). This is a separate classification from `HEATMAP_RELATIVE_BANDS`
+  (delta-from-monthly-average — used only by Operation Dashboard's day-level Heatmap tab and left
+  untouched by this delta).
+- The border/background/text CSS classes for `band-green`/`band-pink`/`band-yellow`/`band-red`/
+  `unavailable` were declared locally inside
+  `frontend/src/features/dashboard/components/OperatingPatternTabsCard.jsx`'s `TONE_CLASS`/
+  `TONE_BAR` objects (alongside unrelated `on-target`/`below-target`/`relative-*` tones used by that
+  card's other tabs), not exported anywhere reusable.
+- `timelineService.js` (backend) was read only to confirm the `/f13/dashboard/quality-timeline`
+  contract that feeds `APPROVED_WEEKDAY_BANDS`'s consumer; no backend file was modified.
+
+### What changed
+
+- `operatingPatternTabsData.js`: added two new exports, `HEATMAP_BAND_TONE_CLASS` and
+  `HEATMAP_BAND_DOT_CLASS`, holding exactly the five `band-green`/`band-pink`/`band-yellow`/
+  `band-red`/`unavailable` class strings that were previously inline in the card component. This
+  file is now the single source of truth for both the absolute band thresholds
+  (`APPROVED_WEEKDAY_BANDS`/`getApprovedWeekdayBand`) and their colors.
+- `OperatingPatternTabsCard.jsx`: its local `TONE_CLASS`/`TONE_BAR` objects now spread in
+  `HEATMAP_BAND_TONE_CLASS`/`HEATMAP_BAND_DOT_CLASS` instead of repeating the five key/value pairs
+  inline; the `on-target`/`below-target`/`relative-*` entries (unrelated to this SSOT) stay local.
+  Verified byte-for-byte before and after: for every one of the 12 tone keys in both objects, the
+  resulting string is identical to what rendered before this change — Operation Dashboard's UI is
+  provably unaffected.
+- `frontend/src/features/ranking/BcvhRankingOverviewBlocks.jsx` (`BcvhMonthlyTrendBlock`'s "Chi tiết
+  số liệu theo tháng" table): replaced the locally re-declared `if (m.rate >= 70) ... else if
+  (m.rate >= 60) ... else if (m.rate >= 50) ... else ...` threshold block and its own
+  `bg-emerald-50/60`/`bg-fuchsia-50/60`/`bg-amber-50/60`/`bg-rose-50/60` colors with
+  `getApprovedWeekdayBand(m.rate)` + a `HEATMAP_BAND_TONE_CLASS[band.tone]` lookup — the cell now
+  carries the exact same border/background/text classes Operation Dashboard uses for the same band.
+  The table's legend row (previously "Tỷ lệ tháng / Sản lượng / Độ phủ") is replaced with the 5
+  Product Owner-specified band descriptions (Xanh/Hồng/Vàng/Đỏ/Xám), using
+  `HEATMAP_BAND_DOT_CLASS` for the legend swatches.
+- Per cell, unchanged and still present: the month's rate, its volume, the day-coverage badge when
+  a month is only partially covered, and the "Lũy kế" label on the current month's column header.
+- Not touched by this delta: `rate` values, the daily ranking table's route/threshold classification,
+  the 6-BCVH trend-line color palette (`BCVH_COLORS` in `bcvhOverviewData.js`, a distinct concern
+  from heatmap band colors per the Product Owner's explicit instruction), any backend file, any API
+  contract, and Operation Dashboard's day-level Heatmap tab (still on `HEATMAP_RELATIVE_BANDS`).
+- New test file `frontend/src/features/ranking/BcvhRankingOverviewBlocks.heatmapBand.test.js` (16
+  tests): the required boundary cases (`70`→`band-green`, `69.99`→`band-pink`, `60`→`band-pink`,
+  `59.99`→`band-yellow`, `50`→`band-yellow`, `49.99`→`band-red`, `null`→`unavailable`), that both
+  components import the one shared helper/catalog, that `HEATMAP_RELATIVE_BANDS` never appears in
+  Ranking, that the old inline thresholds are gone, that a `null` rate still renders `—`, that the
+  legend text matches the Product Owner's exact wording, that rate/volume/coverage/"Lũy kế" survive
+  in each cell, that the BCVH trend-line palette is untouched, and that Operation Dashboard's
+  `TONE_CLASS`/`TONE_BAR` values are unchanged after the extraction.
+
+### Validation
+
+- New Heatmap SSOT suite: 16/16 pass.
+- The 12 pre-existing BCVH Overview tests (`bcvhOverviewData.test.js`,
+  `bcvhOverviewFetcher.test.js`, `BcvhRankingPage.singleDayContract.test.js`): 12/12 pass, unchanged.
+- Operation Dashboard-related suite (all `frontend/src/features/dashboard/**/*.test.js`, 112 tests):
+  109/112 pass — the same 3 pre-existing failures confirmed unchanged by name via `git stash` against
+  this delta's two dashboard-file changes (`only canonical values remain selectable...`,
+  `operation dashboard hides status filter...`, `dashboard page removes shell...`); zero regressions.
+- Full frontend sweep (370 tests): 358/370 pass — the same 12 pre-existing failures by name (the 3
+  above plus 8 pre-existing Route Ranking/Route Performance failures and 1 pre-existing
+  `dataImportBackfillQueue.test.js` failure), zero new regressions; net +16 tests from this delta.
+- `oxlint`: 0 errors (pre-existing warnings only, none newly introduced by the touched files).
+- `vite build`: succeeds, 700 modules.
+- No backend, database, schema, or API file touched; no networkMap/`Data QLML`/`.claude`/patch/export
+  file staged or committed; the Product Owner's other unrelated dirty/untracked files were left alone
+  throughout (verified via `git stash`/`git stash pop` producing no diff outside the touched files).
+
+### Scope
+
+`frontend/src/features/dashboard/components/operatingPatternTabsData.js`,
+`frontend/src/features/dashboard/components/OperatingPatternTabsCard.jsx`,
+`frontend/src/features/ranking/BcvhRankingOverviewBlocks.jsx`,
+`frontend/src/features/ranking/BcvhRankingOverviewBlocks.heatmapBand.test.js`, and this manifest.
+
+Governance state: `BCVH RANKING MONTHLY HEATMAP SSOT REUSE COMPLETE / READY FOR PO UI CHECK`. Claude
+Code does not self-award PO PASS on this round; the Product Owner must restart the frontend dev
+server and perform a fresh UI check on both `/f13/ranking/bcvh` and Operation Dashboard before any
+acceptance is recorded.

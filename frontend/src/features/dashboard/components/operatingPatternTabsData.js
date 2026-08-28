@@ -17,6 +17,26 @@ export const APPROVED_WEEKDAY_BANDS = [
   { id: 'red', label: 'Đỏ', description: 'KPI dưới 50%', min: 0, max: 50, tone: 'band-red' },
 ];
 
+// Shared cell/dot color classes for the APPROVED_WEEKDAY_BANDS absolute classification
+// (green/pink/yellow/red/unavailable). This is the single source of truth for that
+// palette — Operation Dashboard's weekday tab and BCVH Ranking's monthly heatmap both
+// import it, so neither re-declares the >=70/>=60/>=50 thresholds or their colors.
+export const HEATMAP_BAND_TONE_CLASS = {
+  'band-green': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
+  'band-pink': 'border-pink-300 bg-pink-100 text-pink-950 font-bold shadow-2xs hover:bg-pink-200',
+  'band-yellow': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
+  'band-red': 'border-red-300 bg-red-100 text-red-950 font-bold shadow-2xs hover:bg-red-200',
+  unavailable: 'border-slate-200 bg-slate-50 text-slate-400 font-medium',
+};
+
+export const HEATMAP_BAND_DOT_CLASS = {
+  'band-green': 'bg-emerald-600',
+  'band-pink': 'bg-pink-500',
+  'band-yellow': 'bg-amber-500',
+  'band-red': 'bg-red-600',
+  unavailable: 'bg-slate-300',
+};
+
 export const HEATMAP_RELATIVE_BANDS = [
   { id: 'significantly-above', label: 'Cao hơn trung bình tháng rõ rệt', minDelta: 5, tone: 'relative-high' },
   { id: 'above', label: 'Cao hơn trung bình tháng', minDelta: 1, tone: 'relative-above' },

@@ -6,6 +6,24 @@ import {
   formatOverviewNumber,
   formatOverviewRate,
 } from './bcvhOverviewData';
+// Shared Heatmap SSOT with Operation Dashboard: the same absolute band classification
+// (green >=70 / pink 60-70 / yellow 50-60 / red <50 / unavailable) and its colors, so the
+// monthly heatmap below never re-declares the >=70/>=60/>=50 thresholds locally.
+import {
+  getApprovedWeekdayBand,
+  HEATMAP_BAND_TONE_CLASS,
+  HEATMAP_BAND_DOT_CLASS,
+} from '../dashboard/components/operatingPatternTabsData';
+
+// Legend copy for the monthly heatmap below. Colors reuse the shared HEATMAP_BAND_DOT_CLASS
+// tones; the wording here is this table's own legend text, not the SSOT's threshold logic.
+const MONTHLY_HEATMAP_LEGEND = [
+  { tone: 'band-green', label: 'Xanh', description: 'Tỷ lệ từ 70% trở lên' },
+  { tone: 'band-pink', label: 'Hồng', description: 'Từ 60% đến dưới 70%' },
+  { tone: 'band-yellow', label: 'Vàng', description: 'Từ 50% đến dưới 60%' },
+  { tone: 'band-red', label: 'Đỏ', description: 'Dưới 50%' },
+  { tone: 'unavailable', label: 'Xám', description: 'Chưa có dữ liệu' },
+];
 
 function formatSignedDeltaStr(val, unit = '') {
   if (val === null || val === undefined || val === '') return DASH;
@@ -203,10 +221,13 @@ export function BcvhMonthlyTrendBlock({ data }) {
           <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
             Chi tiết số liệu theo tháng
           </h3>
-          <div className="flex gap-3 text-[10px] font-medium text-gray-500">
-            <span className="flex items-center gap-1"><div className="h-2 w-2 rounded-sm bg-gray-200"></div> Tỷ lệ tháng</span>
-            <span className="flex items-center gap-1"><div className="h-2 w-2 rounded-sm bg-gray-200"></div> Sản lượng</span>
-            <span className="flex items-center gap-1"><div className="h-2 w-2 rounded-sm bg-amber-100 border border-amber-200"></div> Độ phủ (nếu thiếu)</span>
+          <div className="flex flex-wrap gap-3 text-[10px] font-medium text-gray-500">
+            {MONTHLY_HEATMAP_LEGEND.map((entry) => (
+              <span key={entry.tone} className="flex items-center gap-1">
+                <div className={`h-2 w-2 rounded-full ${HEATMAP_BAND_DOT_CLASS[entry.tone] || HEATMAP_BAND_DOT_CLASS.unavailable}`}></div>
+                {entry.label}: {entry.description}
+              </span>
+            ))}
           </div>
         </div>
         <table className="w-full text-left text-xs">
@@ -240,20 +261,22 @@ export function BcvhMonthlyTrendBlock({ data }) {
                     m.days_with_data < m.days_in_period;
                   const isCurrent = data.latestMonth === m.month;
 
-                  let bgColor = 'bg-slate-50';
-                  if (m.rate !== null) {
-                    if (m.rate >= 70) bgColor = 'bg-emerald-50/60';
-                    else if (m.rate >= 60) bgColor = 'bg-fuchsia-50/60';
-                    else if (m.rate >= 50) bgColor = 'bg-amber-50/60';
-                    else bgColor = 'bg-rose-50/60';
-                  }
+                  // Same Heatmap SSOT as Operation Dashboard's weekday tab: getApprovedWeekdayBand()
+                  // classifies the rate (green >=70 / pink 60-70 / yellow 50-60 / red <50 /
+                  // unavailable for null), and HEATMAP_BAND_TONE_CLASS supplies the exact same
+                  // border/background/text classes — no threshold is re-declared here.
+                  const band = getApprovedWeekdayBand(m.rate);
+                  const bandClass = HEATMAP_BAND_TONE_CLASS[band.tone] || HEATMAP_BAND_TONE_CLASS.unavailable;
 
                   return (
-                    <td key={m.month} className={`px-3 py-2.5 text-center ${bgColor} ${isCurrent ? 'border-l border-r border-blue-100' : ''}`}>
-                      <div className={`font-extrabold ${m.rate === null ? 'text-gray-400' : 'text-[var(--color-text-main)]'}`}>
+                    <td
+                      key={m.month}
+                      className={`border px-3 py-2.5 text-center align-top ${bandClass} ${isCurrent ? 'ring-1 ring-inset ring-blue-400' : ''}`}
+                    >
+                      <div className="font-extrabold">
                         {m.rate !== null ? formatOverviewRate(m.rate) : '—'}
                       </div>
-                      <div className="text-[10px] text-gray-500 font-medium">
+                      <div className="text-[10px] font-medium opacity-75">
                         {m.volume ? `${formatOverviewNumber(m.volume)} BG` : ''}
                       </div>
                       {hasPartialCoverage && m.rate !== null ? (
