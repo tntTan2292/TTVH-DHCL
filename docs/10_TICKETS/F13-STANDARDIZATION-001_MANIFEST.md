@@ -1375,3 +1375,144 @@ with its own read-only audit of Route Ranking's real data, API, and current UI �
 Ranking Overview UI/blocks/contract must not be copied over verbatim — and follow the same
 design-of-record → PO-approval → phased-implementation process this ticket used. See
 `PROJECT_SNAPSHOT.md` for the live-state pointer.
+
+---
+
+## 46. F13-ROUTE-RANKING-PERIOD-01 — Route Ranking Period Delta, Design of Record (2026-08-28)
+
+Append-only delta. Sections 1-45 are unchanged. This section activates the ticket that Section 45
+recorded as the next live item (`F13 Route Ranking enhancement`), now formally scoped and named
+`F13-ROUTE-RANKING-PERIOD-01`. It does **not** reopen `F13-BCVH-RANKING-OVERVIEW-01`
+(`COMPLETED / PO PASS / CLOSED`, Section 45), does **not** reopen
+`F13-ROUTE-RANKING-REDESIGN-IMPL` (`CLOSED / PO PASS`), and does **not** activate Phases 1-4 of the
+original five-phase program (Section 6), which stay `PLANNED / NOT ACTIVE`.
+
+### Ticket header
+
+| Field | Value |
+| --- | --- |
+| Ticket | `F13-ROUTE-RANKING-PERIOD-01` |
+| Type | Delta on the running Tuyến Ranking module (`/f13/ranking/route`) |
+| Branch / baseline | `codex/da-impl-006` @ `35290ad105eb716ab8c1d7d65056992cd773ed2a` (local = remote, verified) |
+| Current state | `DESIGN OF RECORD WRITTEN / AWAITING PO APPROVAL` |
+| PO UI Check Required | `Yes` (end of Phase F1 and Phase I1) |
+| Executors | B1/I1 `Claude Code` / `Sonnet`; F1 `Antigravity` (per `DEC-020`) |
+
+### Design of record
+
+`docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-RANKING-PERIOD-01_DESIGN.md` is the single design of
+record. No implementation may start from this manifest section alone.
+
+### Origin
+
+A read-only audit of Route Ranking's real data, API and current UI was completed on 2026-08-28 as
+Section 45 required. The Product Owner then selected **Phương án B** (period panel built on top of a
+mandatory Phase 1 that fixes the two defects the audit found) and locked seven decisions:
+
+1. Rank valid delivery routes only; the out-of-scope remainder must be displayed separately so it
+   reconciles against the BCVH total.
+2. Rates use the measurement-instance count (`COUNT(ma_bg)`), consistent with BCVH Ranking.
+3. Support daily rate, month-to-anchor cumulative rate, previous-month rate, difference, and route
+   ranking. **The term "MTD" must not appear in the UI or in any PO-facing communication.**
+4. Per-route detail shows the daily rate movement within the month, the cumulative month rate and
+   the previous-period comparison — without copying BCVH Ranking's blocks/UI/contract.
+5. Reuse the existing F1.3 colour bands.
+6. Low-data routes stay visible and ranked, but must carry days-with-data and volume.
+7. The Đạt/Lỗi drill-down into Evidence stays on the roadmap but is split into its own
+   phase/ticket; Evidence stays single-day to avoid overload.
+
+### Two defects the design must close
+
+- `DEF-01` — the date-range filter silently collapses to the last day. `RoutePerformancePage.jsx`
+  computes `fromDate`/`toDate` and renders an `interval` badge (`Một ngày / Theo tuần / Lũy kế`),
+  but the single API call always passes one date (`analysisDate = to_date || from_date`). Resolution:
+  replace the pair with one explicit `Ngày phân tích` anchor input, delete the `interval` badge, keep
+  reading `from_date`/`to_date` for URL compatibility but disclose the resolved anchor date instead of
+  truncating silently. No free date-range engine is built — the PO's own metric list is an anchor-date
+  model.
+- `DEF-02` — route figures do not reconcile with BCVH. Route Ranking filters `ma_tuyen LIKE '53%'`
+  and excludes the 7 `CONFIRMED_NON_POSTMAN_ROUTES`; BCVH Ranking, `/f13/evidence-list` and the BCVH
+  overview route block filter neither. Measured on `2026-08-27 / 533140`: BCVH 1,980 BG / 716 failed
+  vs. route rows 1,911 BG / 714 failed; Evidence "Tất cả tuyến" returns 716. Full-year for 533140:
+  376,079 vs 360,476 (4.1%). Resolution per PO decision 1: keep both scopes, publish the difference
+  as a first-class reconciliation strip with a checkable identity
+  (`bcvh_total = ranked + pickup_at_office + non_hue + no_route`), verified true on real data for both
+  the anchor day (1,980 = 1,911 + 69 + 0 + 0) and the month (49,264 = 46,818 + 2,446 + 0 + 0).
+
+### Contract
+
+New endpoint `GET /f13/ranking/route/periods` (`admin` + `viewer`), one request serving the whole
+screen including per-route daily series, four fixed queries, no N+1. The month roll-up is computed
+in Node from the very daily array returned, making "month total disagrees with the days shown"
+structurally impossible rather than merely tested. `rate = null` if and only if `volume = 0`,
+inheriting `R1-B` from `F13-BCVH-RANKING-OVERVIEW-01` so the two screens do not diverge
+semantically. Existing endpoints — `/f13/ranking/route`, `/f13/ranking/bcvh`, `/f13/evidence-list`,
+`/f13/ranking/bcvh/overview` — are not modified.
+
+### Phasing
+
+`Phase B1` (backend, additive-only) → `Phase F1` (frontend, Antigravity) → `Phase I1` (integration
+and real-data reconciliation proof). Per `DEC-021` the same model must not both implement and
+self-approve the reconciliation identity — the highest-risk item in this ticket.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 DESIGN OF RECORD WRITTEN / AWAITING PO APPROVAL`. This section is
+documentation only. No product code, database, schema or API was changed. `AUTO-BACKFILL-RUNTIME`
+remains separately open and untouched per `PROJECT_SNAPSHOT.md`.
+
+---
+
+## 47. F13-ROUTE-RANKING-PERIOD-01 — Đóng `D-OPEN-01` / PO Approval (2026-08-28)
+
+Append-only delta. Sections 1-46 are unchanged. Section 46 stays the historical record of the
+ticket's activation and its design-of-record write-up at Revision R0; this section records what
+happened next, not a rewrite of it.
+
+### Quyết định PO bổ sung
+
+Product Owner chốt: **"Cùng kỳ tháng trước" phải tính giống BCVH Ranking** — nếu ngày phân tích là
+`20/8` thì so sánh `01–20/8` với `01–20/7` (cùng số ngày đã trôi trong tháng, không phải trọn tháng
+liền trước). Nhãn giao diện: **`Cùng kỳ tháng trước`**, ngắn gọn; thuật ngữ `MTD` bị cấm dưới mọi
+hình thức trên UI và trong trao đổi với PO — không đổi so với Section 46.
+
+Quyết định này đóng `D-OPEN-01`, câu hỏi duy nhất còn để ngỏ ở Revision R0 của design of record.
+Phương án được chọn trùng với phương án "cùng số ngày đã trôi" đã đo sẵn ở R0 (chênh `0.26` điểm
+phần trăm so với phương án trọn-tháng ở cấp BCVH), nhưng PO minh định thêm yêu cầu bắt buộc: công
+thức phải **tái dùng nguyên văn** cách BCVH Ranking đã tính, không phát minh công thức riêng cho
+Tuyến Ranking.
+
+### Xác minh kỹ thuật (read-only, trước khi duyệt R1)
+
+Công thức tái dùng là `_getBcvhOverviewAggregate('mtd', ...)` hiện có
+(`backend/src/repositories/FactBuuGuiRepository.js:283-313`):
+`previous_end = MIN(previous_start + (ngày_của_anchor − 1), ngày cuối tháng trước)`. Đã xác minh lại
+bằng truy vấn `sqlite3.OPEN_READONLY` trên CSDL thật, gồm cả trường hợp biên tháng trước ngắn hơn
+(anchor `2026-03-31` → `previous_end` bị giới hạn đúng về `2026-02-28`, không tràn sang
+`2026-03-03`) — chứng minh công thức giới hạn hoạt động đúng khi tái dùng cho phạm vi tuyến. Đo lại
+chi phí truy vấn với khoảng hẹp hơn (`01→27/07` thay vì `01→31/07`, BCVH lớn nhất): **93 ms**, thấp
+hơn mốc `272 ms` đã đo ở Section 46 cho khoảng trọn tháng — không phát sinh rủi ro hiệu năng mới.
+
+### Design of record — Revision R1
+
+`docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-RANKING-PERIOD-01_DESIGN.md` cập nhật lên
+**Revision R1**. Toàn bộ vị trí tham chiếu công thức tháng trước được đồng bộ trong cùng một lượt:
+§3.1 từ vựng bắt buộc, §3.3 công thức Chênh lệch, §4.2/§4.2.1 (thêm mới) định nghĩa kỳ và công thức
+tái dùng, §4.3 hệ quả khi ngày neo là ngày 01 (nay `Cùng kỳ tháng trước` cũng thu hẹp về đúng một
+ngày, nhất quán với việc dùng chung công thức — không còn là trường hợp đặc biệt), §6.3 payload mẫu
+(số liệu tuyến `533140129` đo lại thật: `previous_month` khoảng `07-01→07-27`, `volume 607`,
+`passed 237`, `rate 39.05`), §6.5 mô tả `Q3`, §7.3/§7.5 nhãn giao diện, §8 hiệu năng, §10.1 `T12`.
+§14 được viết lại thành nhật ký đóng `D-OPEN-01`, giữ nguyên bảng so sánh trọn-tháng-vs-cùng-số-ngày
+của R0 làm hồ sơ lịch sử. Trường JSON `previous_month` giữ nguyên tên, chỉ ngữ nghĩa khoảng ngày đổi
+— không có breaking rename không cần thiết.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = PO APPROVED / READY FOR IMPLEMENTATION` (Revision R1, 2026-08-28).
+`D-OPEN-01` = `RESOLVED`. Không còn quyết định PO nào để ngỏ trong ticket này. Phase B1 (backend,
+additive-only, Claude Code / Sonnet) được phép bắt đầu theo đúng file scope, test plan và tiêu chí
+nghiệm thu đã ghi trong design of record. PO UI Check vẫn bắt buộc ở cuối Phase F1 và Phase I1 —
+Claude Code không tự trao PO PASS. Không dòng product code, database, schema hay API nào bị thay
+đổi bởi việc duyệt thiết kế này. `F13-BCVH-RANKING-OVERVIEW-01` giữ nguyên
+`COMPLETED / PO PASS / CLOSED`, không bị mở lại. `AUTO-BACKFILL-RUNTIME` vẫn mở độc lập theo
+`PROJECT_SNAPSHOT.md`.
