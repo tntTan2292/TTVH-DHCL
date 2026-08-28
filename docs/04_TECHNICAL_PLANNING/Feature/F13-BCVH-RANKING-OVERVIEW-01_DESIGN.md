@@ -1,11 +1,12 @@
 # F13-BCVH-RANKING-OVERVIEW-01 — BCVH Ranking Overview (T01 → hiện tại) — Design of Record
 
 Status: **DESIGN OF RECORD — ALL PO DECISIONS APPROVED, READY FOR IMPLEMENTATION**
+Revision: **R1 (2026-08-28)** — two CTO-found internal contradictions resolved; see §12.
 (this document itself is documentation-only; no code, database, schema or API changed by it)
 Author: Claude Code (Opus, READ-ONLY architecture pass) → Claude/CTO → Product Owner
-Branch: `codex/da-impl-006` · Baseline HEAD at authoring: `d1179155`
+Branch: `codex/da-impl-006` · Baseline HEAD at authoring: `d1179155` · R1 applied on `66f3b884`
 Ticket: `F13-BCVH-RANKING-OVERVIEW-01`
-Manifest of record: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 35 (append-only)
+Manifest of record: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Sections 35 + 36 (append-only)
 
 ---
 
@@ -148,9 +149,17 @@ Ba mã ngoài canonical có thật trong database:
 ## 3. Năm khối
 
 Nguyên tắc bố cục: 4 khối mới **nằm phía trên** khối 5, mỗi khối là một component độc lập, có
-trạng thái loading / error / empty riêng, **không** gộp chung một state fetch — vì 5 khối không cùng
-chu kỳ dữ liệu (khối 1 theo tháng, khối 2/3/4 theo MTD, khối 5 theo ngày); gộp chung sẽ làm nháy
-toàn trang mỗi lần đổi date picker.
+trạng thái **render** loading / error / empty riêng.
+
+Phân biệt rõ hai thứ, vì đây là chỗ đã từng viết mâu thuẫn (xem §12):
+
+- **Tải dữ liệu:** 4 khối mới dùng **đúng một request** tới `/f13/ranking/bcvh/overview`, trả về cả
+  bốn mảng `monthly` + `daily` + `mtd` + `routes` cùng lúc (§5). Không có khối nào tự fetch riêng.
+- **Hiển thị:** mỗi khối tự quản trạng thái render của nó, nên một khối rỗng không làm hỏng ba khối
+  còn lại.
+
+Khối 5 giữ nguyên request `/f13/ranking/bcvh` riêng của nó — hai vòng tải này độc lập, nên đổi date
+picker không làm nháy toàn trang.
 
 Thứ tự dọc: **Khối 3 (MTD) → Khối 1 (tháng) → Khối 4 (tuyến) → Khối 2 (ngày, thu gọn) → Khối 5**.
 Lý do: PO cần con số chốt kỳ trước, rồi mới tới xu hướng, rồi mới tới chi tiết.
@@ -163,13 +172,15 @@ Lý do: PO cần con số chốt kỳ trước, rồi mới tới xu hướng, r
 - Legend bật/tắt từng BCVH.
 - Tháng hiện tại vẽ **nét đứt** + nhãn `lũy kế đến <anchor_date>`.
 - Bảng: 6 dòng × n cột tháng. Ô hiển thị **tỷ lệ là số chính**, sản lượng là dòng phụ nhỏ hơn.
-- Tháng thiếu dữ liệu: **vẫn hiển thị** (PO decision 1), kèm badge độ phủ `21/26 ngày`.
-- Ô hoàn toàn không có bản ghi: `—`, **không** hiển thị `0`.
+- Tháng thiếu dữ liệu: **vẫn hiển thị tỷ lệ** (PO decision 1), kèm badge độ phủ `21/26 ngày`.
+  Thiếu ngày **không** làm `rate` thành `null` — chừng nào mẫu số còn `> 0` thì vẫn tính tỷ lệ
+  trên phần dữ liệu có thật. Quy tắc đầy đủ ở §4.4.
+- Ô không có bản ghi, hoặc có bản ghi nhưng mẫu số `= 0`: `—`, **không** hiển thị `0`.
 
 ### 3.2 Khối 2 — Diễn biến ngày (01 → ngày neo), mặc định thu gọn
 
-- `<details>` đóng sẵn; **chỉ fetch khi mở lần đầu** (lazy) — đây là khối nhiều điểm nhất
-  (6 × ~27 điểm) và PO không mở nó thường xuyên.
+- `<details>` đóng sẵn. **Thu gọn là hành vi UI thuần** — dữ liệu `daily` đã nằm sẵn trong request
+  chung ở §5, nên **không** có lazy-fetch, và mở/đóng khối **không** phát thêm request nào.
 - Cùng component biểu đồ với khối 1, khác nguồn data.
 - Ngày không có dữ liệu để **đứt đoạn** (`connectNulls={false}`), **không nội suy**.
 - Nhãn ghi ngày cuối **thực tế**, không ghi chữ "N-1".
@@ -260,11 +271,20 @@ phải cảnh báo**.
 
 ### 4.4 Ba trạng thái thiếu dữ liệu — phân biệt, không trộn
 
-| Trạng thái | Điều kiện | Hiển thị |
-| --- | --- | --- |
-| (a) Không có bản ghi | không có dòng nào trong kỳ | `—` |
-| (b) Có bản ghi, mẫu số = 0 | `COUNT(ma_bg) = 0` | `—` (đã đúng theo `_calculateRate`) |
-| (c) Phủ một phần | có dữ liệu nhưng thiếu ngày | **số + badge độ phủ** `21/26 ngày` |
+Quy tắc quyết định **chỉ dựa trên mẫu số**, không dựa trên số ngày thiếu:
+
+| Trạng thái | Điều kiện | `rate` | `days_with_data` / `days_in_period` | Hiển thị |
+| --- | --- | --- | --- | --- |
+| (a) Không có bản ghi | không có dòng nào trong kỳ | **`null`** | `0 / D` | `—` |
+| (b) Có bản ghi, mẫu số = 0 | `COUNT(ma_bg) = 0` | **`null`** | trả về bình thường | `—` |
+| (c) Phủ một phần, mẫu số > 0 | có dữ liệu nhưng thiếu ngày | **vẫn tính bình thường** | `d / D`, `d < D` | **tỷ lệ + badge độ phủ** `21/26 ngày` |
+
+Nói cách khác: **thiếu ngày không bao giờ tự nó làm `rate` thành `null`.** `rate` chỉ `null` khi
+mẫu số `= 0` (trạng thái a hoặc b). Đây chính là PO decision 1 — tháng thiếu dữ liệu **vẫn hiển thị
+tỷ lệ**, và độ phủ được nói ra bằng badge chứ không bằng cách giấu con số đi.
+
+`days_with_data` và `days_in_period` **luôn** được trả về cho mọi trạng thái, kể cả khi `rate` là
+`null`, để frontend không phải suy đoán.
 
 Trạng thái (c) là có thật và là lý do PO decision 1 tồn tại — xem §9.1.
 
@@ -299,6 +319,7 @@ Response:
     "monthly": [ { "month": "2026-01", "label": "T1", "ma_bcvh": "533140",
                    "volume": 0, "passed": 0, "rate": 0.0,
                    "days_with_data": 31, "days_in_period": 31 } ],
+    // rate = null chỉ khi mẫu số = 0; days_* luôn có mặt kể cả khi rate = null (§4.4)
     "daily":   [ { "date": "2026-08-01", "ma_bcvh": "533140",
                    "volume": 0, "passed": 0, "rate": 0.0 } ],
     "mtd":     [ { "ma_bcvh": "533140", "ten_bcvh": "BCVH Thuận Hóa",
@@ -394,9 +415,11 @@ Khoảng cách giữa hai mốc **chỉ đóng được bằng một index mới
 **phải là quyết định riêng** — Ticket này documentation-only, và Phase Backend đã bị PO khoanh là
 không đổi schema. **Ghi nhận `RISK-PERF-01`** ở §9.4; không tự ý thêm index.
 
-Giảm nhẹ trong phạm vi cho phép: khối 2 lazy-load (§3.2) nên Q2 không chạy khi PO chưa mở khối; và
-`monthly` có thể cache theo `anchor_date` trong bộ nhớ tiến trình (dữ liệu quá khứ bất biến sau khi
-tháng đóng) — tùy chọn, không bắt buộc để nghiệm thu.
+**Cả bốn truy vấn luôn chạy trong mỗi request** — kể cả `Q2`, dù khối 2 mặc định thu gọn. Thu gọn là
+hành vi UI thuần (§3.2); không có nhánh nào bỏ qua `Q2`, và con số ~2,96 s ở bảng trên đã bao gồm nó.
+
+Giảm nhẹ duy nhất trong phạm vi cho phép: `monthly` có thể cache theo `anchor_date` trong bộ nhớ
+tiến trình (dữ liệu quá khứ bất biến sau khi tháng đóng) — tùy chọn, không bắt buộc để nghiệm thu.
 
 ---
 
@@ -461,7 +484,8 @@ phải là một phiên khác.
 | T1 | Database có 9 mã BCVH | Cả 4 mảng `monthly/daily/mtd/routes` trả **đúng 6** mã canonical |
 | T2 | Dòng TỔNG CỘNG sau fix decision 7 | `sl_bg_ptc` khớp tổng 6 dòng canonical, không cộng `531600/531110/531120` |
 | T3 | Một tuyến chạy nhiều ngày trong kỳ | Đếm **1 lần** (khử trùng theo `ma_tuyen`) |
-| T4 | Tháng thiếu ngày | `rate` trả **`null`**, không trả `0`; `days_with_data < days_in_period` |
+| T4a | Tháng thiếu ngày, mẫu số > 0 (vd T02/2026) | `rate` **vẫn được tính**, **không** `null`; `days_with_data < days_in_period` và cả hai đều có mặt |
+| T4b | Kỳ không có bản ghi, hoặc mẫu số = 0 | `rate` trả **`null`**, **không** trả `0`; `days_with_data` / `days_in_period` vẫn có mặt |
 | T5 | Tháng hiện tại | `to_date` cắt đúng tại `anchor_date`, không phải cuối tháng |
 | T6 | `max_date < today - 1` | `anchor_date = max_date`, `anchor_source = "max_date"` |
 | T7 | `max_date >= today - 1` | `anchor_date = today - 1`, `anchor_source = "yesterday"` |
@@ -482,9 +506,9 @@ Hai bộ này bảo vệ hợp đồng PO đã chấp nhận — phải còn xan
 | # | Ca kiểm | Kỳ vọng |
 | --- | --- | --- |
 | F1 | Biểu đồ | Render đúng 6 series; legend bật/tắt hoạt động |
-| F2 | Khối 2 | **Không** phát request khi `<details>` chưa mở |
-| F3 | Ô thiếu dữ liệu | Hiển thị `—`, không hiển thị `0` |
-| F4 | Badge độ phủ | Hiện `d/D ngày` khi `days_with_data < days_in_period` |
+| F2 | Tải dữ liệu | **Đúng một** request tới `/f13/ranking/bcvh/overview` nạp cả 4 mảng; mở/đóng khối 2 **không** phát thêm request nào |
+| F3 | Ô mẫu số = 0 hoặc không có bản ghi | Hiển thị `—`, không hiển thị `0` |
+| F4 | Badge độ phủ | Tháng thiếu ngày nhưng mẫu số > 0: **vẫn hiện tỷ lệ**, kèm `d/D ngày` khi `days_with_data < days_in_period` |
 | F5 | Trục Y | **Không** có `ReferenceLine` 90; domain co theo dữ liệu |
 | F6 | Nhãn tuyến | Đúng chuỗi `Tuyến có phát sinh trong kỳ` |
 | F7 | Nhãn so sánh | Không xuất hiện chữ "cảnh báo"/"alert"/"rủi ro" |
@@ -524,7 +548,7 @@ Nghĩa là **so sánh tỷ lệ tháng giữa các BCVH không phải lúc nào 
 điều kiện để phép so sánh của khối 1 đọc được đúng. Bỏ badge = tái tạo rủi ro.
 
 Đối chiếu: T08/2026 cả 6 BCVH đều đủ **27/27** ngày, nên **PO UI check ở tháng hiện tại sẽ KHÔNG
-phát hiện được lỗi này**. Test T4 và F4 là lớp bảo vệ duy nhất.
+phát hiện được lỗi này**. Test `T4a` và `F4` là lớp bảo vệ duy nhất.
 
 ### 9.2 `RISK-DATA-02` — Ba mã BCVH ngoài canonical
 
@@ -574,8 +598,8 @@ Bốn khối mới dùng chung dữ liệu với khối 5, nên rất dễ bị 
 | # | Tiêu chí |
 | --- | --- |
 | AC-11 | Khối 1 vẽ đủ 6 đường từ T01 đến tháng hiện tại; tháng hiện tại nét đứt + nhãn lũy kế |
-| AC-12 | Tháng T02/2026 **vẫn hiển thị** và có badge độ phủ ngày |
-| AC-13 | Khối 2 mặc định thu gọn, mở ra thấy diễn biến ngày 01 → ngày neo, ngày trống đứt đoạn |
+| AC-12 | Tháng T02/2026 **vẫn hiển thị tỷ lệ** (không phải `—`) và có badge độ phủ ngày |
+| AC-13 | Khối 2 mặc định thu gọn, mở ra thấy ngay diễn biến ngày 01 → ngày neo (không có vòng tải lại), ngày trống đứt đoạn |
 | AC-14 | Khối 3 hiển thị đủ sản lượng/đạt/không đạt/tỷ lệ/hạng cho 6 BCVH, **tỷ lệ là số nổi bật nhất** |
 | AC-15 | Khối 4 ghi rõ **"Tuyến có phát sinh trong kỳ"** và kỳ MTD |
 | AC-16 | Bảng xếp hạng ngày **không đổi gì** so với trước ticket |
@@ -593,3 +617,35 @@ Bốn khối mới dùng chung dữ liệu với khối 5, nên rất dễ bị 
 - Sửa `timelineService.js`, Operation Dashboard, Route Ranking, Evidence.
 - Đổi `/f13/dashboard/daily-trend` hoặc `/f13/dashboard/quality-timeline`.
 - Xử lý ba mã BCVH ngoài canonical như dữ liệu nghiệp vụ (chỉ loại trừ, không diễn giải).
+
+---
+
+## 12. Remediation log — 2026-08-28 (R1)
+
+Claude/CTO reviewed the design of record as first published (commit `66f3b884`) and found **two
+internal contradictions**. Both are resolved above; this section records what was wrong and what the
+binding rule now is, so a later reader does not re-litigate them.
+
+### R1-A — Một request, hay lazy-fetch?
+
+| | |
+| --- | --- |
+| Mâu thuẫn | §5 quy định **một** request trả cả `monthly` + `daily` + `mtd` + `routes`, nhưng §3.2 lại nói khối Daily **"chỉ fetch khi mở lần đầu (lazy)"**, §6 tính điều đó thành phần giảm nhẹ hiệu năng, và test `F2` yêu cầu **không** phát request khi khối chưa mở. Ba chỗ sau phủ định chỗ đầu. |
+| Quyết định | **Giữ đúng một request nạp cả 4 mảng.** Khối Daily **chỉ thu gọn về UI**; mở/đóng không phát thêm request nào. |
+| Đã sửa | §3 (nguyên tắc bố cục — tách rõ "tải dữ liệu" khỏi "hiển thị"); §3.2 (bỏ lazy-fetch); §6 (nói rõ **cả bốn** truy vấn luôn chạy, kể cả `Q2`, và ~2,96 s đã bao gồm nó); §8.3 `F2` (đảo lại: khẳng định đúng một request và mở/đóng không phát thêm request); AC-13 (mở khối thấy dữ liệu ngay, không có vòng tải lại). |
+| Hệ quả hiệu năng | Không có. Con số ~2,96 s ở §6 vốn đã đo với cả `Q2` chạy — bỏ lazy-fetch **không** làm chậm thêm; nó chỉ xóa một khoản giảm nhẹ chưa từng được tính vào mốc nghiệm thu `≤ 3,2 s`. |
+
+### R1-B — Tháng thiếu ngày thì `rate` có `null` không?
+
+| | |
+| --- | --- |
+| Mâu thuẫn | PO decision 1 và §3.1/§4.4(c) nói tháng thiếu dữ liệu **vẫn hiển thị tỷ lệ** kèm độ phủ, nhưng test `T4` lại yêu cầu **"tháng thiếu ngày → `rate` trả `null`"**. `T4` như vậy sẽ ép cài đặt vi phạm chính quyết định PO. |
+| Quy tắc đúng | Điều kiện `null` **chỉ dựa trên mẫu số**, không dựa trên số ngày thiếu: có một phần dữ liệu và mẫu số `> 0` → **vẫn tính `rate`**, trả `days_with_data`/`days_in_period`, hiện badge độ phủ. Không có bản ghi, hoặc mẫu số `= 0` → `rate = null`, UI hiện `—`. `days_with_data`/`days_in_period` **luôn** có mặt, kể cả khi `rate` là `null`. |
+| Đã sửa | §3.1 (nói rõ thiếu ngày không làm `rate` thành `null`); §4.4 (bảng ba trạng thái viết lại theo mẫu số, thêm cột `rate` và cột `days_*`); §5.2 (chú thích trong response mẫu); §8.1 `T4` tách thành **`T4a`** (mẫu số > 0 → vẫn tính) và **`T4b`** (mẫu số = 0 hoặc không có bản ghi → `null`); §8.3 `F4`; §9.1 (trỏ sang `T4a`); AC-12 (T02/2026 phải hiện **tỷ lệ**, không phải `—`). |
+| Vì sao dễ lọt | T08/2026 đủ 27/27 ngày cho cả 6 BCVH, nên PO UI check ở tháng hiện tại **không** chạm tới nhánh này. `T4a` là lớp bảo vệ duy nhất — xem `RISK-DATA-01` §9.1. |
+
+### Phạm vi vòng remediation này
+
+Documentation-only. Không sửa code, database, schema hay API. Không quyết định sản phẩm nào mới:
+R1-A là chọn lại giữa hai câu đã có trong chính tài liệu, R1-B là khôi phục đúng PO decision 1 mà
+`T4` đã viết sai. Không cần PO duyệt lại; PO decisions 1-9 giữ nguyên.

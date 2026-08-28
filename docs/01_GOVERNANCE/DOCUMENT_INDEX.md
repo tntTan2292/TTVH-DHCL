@@ -356,3 +356,14 @@ Append-only update: the design of record for the Product Owner-approved BCVH Ran
 | `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 35 (appended 2026-08-28) activates `F13-BCVH-RANKING-OVERVIEW-01` and records its ticket header, problem statement, the 9 PO decisions, verification performed, contract, phasing and governance state. Sections 1-34 unchanged; the Evidence-consolidation delta (Sections 20-34) stays closed and the original five-phase program (Section 6) stays `PLANNED / NOT ACTIVE`. | L2 | Active Onboarding | Current ticket only. | Mandatory |
 
 Current state: `F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION`. No code, database, schema or API changed by this registration. `F13-BCVH-RANKING-REDESIGN-IMPL` remains `COMPLETED / PO PASS / CLOSED` and is not reopened. `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.
+
+## F13-BCVH-RANKING-OVERVIEW-01 Design Remediation R1 - 2026-08-28
+
+Append-only update: the design of record registered earlier the same day is revised to `R1` after Claude/CTO found two internal contradictions in it. No new document is created and no document is retired; the two rows below restate the current status of the already-registered pair.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-RANKING-OVERVIEW-01_DESIGN.md` | Design of Record | Now at `Revision: R1 (2026-08-28)`. Two contradictions resolved: (R1-A) one request loads all four arrays and the Daily block's collapsed state is UI-only, replacing the lazy-fetch wording in §3.2/§6 and inverting test `F2`; (R1-B) the null-rate condition depends on the denominator only — partial data with denominator > 0 still computes the rate and returns day-coverage fields, while no records or denominator = 0 returns `rate = null`, with `T4` split into `T4a`/`T4b`. New §12 carries the full remediation log. | L2/L3 | Current Required Reading | Mandatory before executing any phase of `F13-BCVH-RANKING-OVERVIEW-01`; read §12 first if working from an earlier copy. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 36 (appended 2026-08-28) records the R1 remediation and its binding rules. Sections 1-35 unchanged, Section 35 included. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION (R1)`. PO decisions 1-9 stand as approved; no new PO approval was required. No code, database, schema or API changed by this remediation.

@@ -814,3 +814,60 @@ implementation.
 documentation-only: no code, database, schema or API changed by it. `Phase B1` is authorized by the
 Product Owner's approval of the recommendation package but is not executed here. Claude Code does not
 self-award PO PASS and does not activate any other ticket.
+
+## 36. F13-BCVH-RANKING-OVERVIEW-01 — Design-of-Record Remediation R1 (2026-08-28)
+
+Append-only delta. Sections 1-35 are unchanged, Section 35 included. This section records a
+documentation-only remediation of two internal contradictions Claude/CTO found in the design of
+record as first published at commit `66f3b884`. No product decision changed: PO decisions 1-9 from
+Section 35 stand exactly as approved, and no new PO approval was required.
+
+### R1-A — One request vs lazy-fetch
+
+The design specified in §5 that a single request to `/f13/ranking/bcvh/overview` returns all four
+arrays (`monthly`, `daily`, `mtd`, `routes`), but three other places contradicted it: §3.2 described
+the Daily block as lazy-fetching on first expand, §6 counted that as a performance mitigation, and
+frontend test `F2` asserted that no request is issued while the block is collapsed.
+
+**Binding rule after remediation:** one request loads all four arrays. The Daily block's collapsed
+state is **UI-only**; expanding or collapsing it issues no additional request. Every mention of
+lazy-fetch, and the test asserting no-fetch-while-closed, is removed.
+
+No performance consequence: the measured ~2.96 s in §6 was always taken with `Q2` running, so
+dropping lazy-fetch does not slow anything down — it removes a mitigation that was never counted
+toward the `<= 3.2 s` acceptance bar.
+
+Remediated in the design of record at: §3 (layout principle, now separating data loading from render
+state), §3.2, §6, §8.3 `F2` (inverted to assert the single request and that toggling issues none),
+and `AC-13`.
+
+### R1-B — Does a month with missing days return a null rate?
+
+PO decision 1 and §3.1/§4.4(c) required a month with missing data to still display its rate with a
+day-coverage badge, but test `T4` required "month with missing days -> `rate` returns `null`", which
+would have forced an implementation that violates the approved PO decision.
+
+**Binding rule after remediation** — the null condition depends on the **denominator only**, never on
+how many days are missing:
+
+- Partial data with denominator `> 0`: the rate **is still computed**; `days_with_data` and
+  `days_in_period` are returned and the coverage badge is shown.
+- No records at all, or denominator `= 0`: `rate = null` and the UI shows an em dash.
+- `days_with_data` / `days_in_period` are **always** returned, including when `rate` is `null`.
+
+Remediated in the design of record at: §3.1, §4.4 (the three-state table rewritten around the
+denominator, with explicit `rate` and `days_*` columns), §5.2 (response sample annotated), §8.1
+(`T4` split into `T4a` denominator > 0 still computes, and `T4b` denominator = 0 returns null),
+§8.3 `F4`, §9.1 (cross-reference retargeted to `T4a`), and `AC-12`.
+
+This contradiction was easy to miss because August 2026 has a complete 27/27 day coverage for all six
+BCVH, so a PO UI check on the current month never exercises the partial-coverage branch — `T4a` is
+the only guard, as already recorded under `RISK-DATA-01`.
+
+### Scope and state
+
+Documentation-only: no code, database, schema or API change in this remediation round. The design of
+record now carries `Revision: R1 (2026-08-28)` and a §12 remediation log holding the same two
+records in full. Governance state is unchanged:
+`F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION`, `Phase B1` not
+executed, `PO UI Check Required = Yes`, and Claude Code does not self-award PO PASS.
