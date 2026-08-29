@@ -6,7 +6,9 @@ import f13DashboardClient from '../../api/F13DashboardClient';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
 import { toNumber, formatRate, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, computeDelayedCashWidget, resolveDefaultRouteDate } from './routeRankingCalculations';
 import { buildViolationEvidenceLink } from './routeViolationEvidenceData';
-import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, AlertTriangle, ShieldCheck, Flame, Search, Filter } from 'lucide-react';
+import { processRoutePeriods, formatPeriodRate, formatPeriodDelta, formatPeriodVolume, DASH } from './routePeriodData';
+import { classifyF13HeatmapRate, F13_HEATMAP_TONE_CLASS } from '../../components/f13/f13HeatmapBandCatalog';
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, AlertTriangle, Flame, Search, Filter, CalendarDays, ShieldCheck } from 'lucide-react';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -30,11 +32,13 @@ function classificationBadgeClass(row) {
 }
 
 const SORTABLE_COLUMNS = [
-  { key: 'total_bg', label: 'Tổng BG' },
-  { key: 'passed', label: 'Đạt' },
-  { key: 'failed', label: 'Không đạt' },
-  { key: 'returned', label: 'Chuyển hoàn' },
-  { key: 'passed_rate', label: 'Tỷ lệ đạt' },
+  { key: 'rank', label: 'Hạng' },
+  { key: 'day_rate', label: 'Tỷ lệ ngày' },
+  { key: 'month_rate', label: 'Lũy kế tháng' },
+  { key: 'previous_month_rate', label: 'Cùng kỳ T.trước' },
+  { key: 'delta', label: 'Chênh lệch' },
+  { key: 'month_days_with_data', label: 'Ngày có DL' },
+  { key: 'month_volume', label: 'Sản lượng' },
 ];
 
 const DELAYED_CASH_COLUMNS = [
@@ -98,7 +102,7 @@ function RouteRankingTable({
               <th className="px-3.5 py-3" rowSpan={2}>Mã tuyến</th>
               <th className="px-4 py-3" rowSpan={2}>Tên tuyến bưu tá</th>
               <th className="border-l border-slate-200 px-3 py-2 text-center bg-slate-50 text-slate-700" colSpan={SORTABLE_COLUMNS.length}>
-                Kết quả ngày đánh giá
+                Kết quả ngày đánh giá & Xu hướng tháng
               </th>
               <th className="border-l border-slate-200 px-3 py-2 text-center bg-amber-50/70 text-amber-900 border-r border-slate-200" colSpan={DELAYED_CASH_COLUMNS.length}>
                 Vi phạm chậm nộp tiền
@@ -160,24 +164,36 @@ function RouteRankingTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-right font-mono text-xs text-slate-600">{toNumber(row.total_bg).toLocaleString('vi-VN')}</td>
-                  <td className="px-3 py-3 text-right font-mono text-xs font-semibold text-emerald-700">{toNumber(row.passed).toLocaleString('vi-VN')}</td>
-                  <td className="px-3 py-3 text-right font-mono text-xs font-bold text-rose-600">
-                    {failedCount > 0 ? (
-                      <span className="inline-flex items-center gap-1 font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
-                        {failedCount.toLocaleString('vi-VN')}
+                  <td className="px-3 py-3 text-right font-mono text-xs font-bold text-slate-700">
+                    {row.rank || DASH}
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className={`inline-block font-mono text-xs font-bold px-2 py-0.5 rounded ${row.day_rate !== null ? F13_HEATMAP_TONE_CLASS[classifyF13HeatmapRate(row.day_rate).tone] : F13_HEATMAP_TONE_CLASS.unavailable}`}>
+                      {formatPeriodRate(row.day_rate)}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right">
+                    <span className={`inline-block font-mono text-xs font-bold px-2 py-0.5 rounded ${row.month_rate !== null ? F13_HEATMAP_TONE_CLASS[classifyF13HeatmapRate(row.month_rate).tone] : F13_HEATMAP_TONE_CLASS.unavailable}`}>
+                      {formatPeriodRate(row.month_rate)}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono text-xs text-slate-600">
+                    {formatPeriodRate(row.previous_month_rate)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono text-xs">
+                    {row.delta !== null ? (
+                      <span className={Number(row.delta) > 0 ? 'text-emerald-600 font-bold' : Number(row.delta) < 0 ? 'text-rose-600 font-bold' : 'text-slate-500'}>
+                        {formatPeriodDelta(row.delta)}
                       </span>
                     ) : (
-                      '0'
+                      <span className="text-slate-400">{DASH}</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-right font-mono text-xs text-slate-500">{toNumber(row.returned).toLocaleString('vi-VN')}</td>
-                  <td className="px-3 py-3 text-right">
-                    <span className={`inline-block font-mono text-xs font-bold px-2 py-0.5 rounded ${
-                      isWarningRate ? 'bg-amber-100 text-amber-800' : 'text-emerald-700 bg-emerald-50'
-                    }`}>
-                      {formatRate(row.passed_rate)}
-                    </span>
+                  <td className="px-3 py-3 text-right font-mono text-xs text-slate-600">
+                    {row.month_days_with_data}/{row.month_days_in_period}
+                  </td>
+                  <td className="px-3 py-3 text-right font-mono text-xs text-slate-600">
+                    {formatPeriodVolume(row.month_volume)}
                   </td>
                   <td className="border-l border-slate-100 px-3 py-3 text-right font-mono text-xs">
                     {delayedCount > 0 ? (
@@ -266,7 +282,8 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
   const returned = toNumber(route.returned);
   const delayedCount = toNumber(route.delayed_cash_handover_count);
   const delayedEligible = toNumber(route.delayed_cash_handover_eligible_count);
-  const passedRateVal = toNumber(route.passed_rate);
+  const passedRateVal = toNumber(route.day_rate ?? route.passed_rate);
+  const monthRateVal = toNumber(route.month_rate);
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs sticky top-4">
@@ -282,15 +299,38 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
-        <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
-          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Sản lượng phát</p>
-          <p className="mt-1 text-lg font-bold text-slate-800 font-mono">{totalBg.toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-500">bưu gửi</span></p>
-        </div>
-        <div className={`rounded-lg p-3 border ${passedRateVal >= 90 ? 'bg-emerald-50/60 border-emerald-200/60' : 'bg-amber-50/60 border-amber-200/60'}`}>
-          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Tỷ lệ đạt F1.3</p>
-          <p className={`mt-1 text-lg font-bold font-mono ${passedRateVal >= 90 ? 'text-emerald-700' : 'text-amber-700'}`}>
-            {formatRate(route.passed_rate)}
+        <div className={`rounded-lg p-3 border ${route.day_rate !== null ? F13_HEATMAP_TONE_CLASS[classifyF13HeatmapRate(route.day_rate).tone] : F13_HEATMAP_TONE_CLASS.unavailable}`}>
+          <p className="text-[11px] uppercase tracking-wider font-semibold opacity-70">Tỷ lệ ngày</p>
+          <p className="mt-1 text-lg font-bold font-mono">
+            {formatPeriodRate(route.day_rate)}
           </p>
+        </div>
+        <div className={`rounded-lg p-3 border ${route.month_rate !== null ? F13_HEATMAP_TONE_CLASS[classifyF13HeatmapRate(route.month_rate).tone] : F13_HEATMAP_TONE_CLASS.unavailable}`}>
+          <p className="text-[11px] uppercase tracking-wider font-semibold opacity-70">Lũy kế tháng</p>
+          <p className="mt-1 text-lg font-bold font-mono">
+            {formatPeriodRate(route.month_rate)}
+          </p>
+        </div>
+        <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Cùng kỳ tháng trước</p>
+          <p className="mt-1 text-base font-bold text-slate-800 font-mono">{formatPeriodRate(route.previous_month_rate)}</p>
+        </div>
+        <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Chênh lệch</p>
+          <p className="mt-1 text-base font-bold text-slate-800 font-mono">
+             {route.delta !== null ? (
+               <span className={Number(route.delta) > 0 ? 'text-emerald-600' : Number(route.delta) < 0 ? 'text-rose-600' : 'text-slate-600'}>
+                 {formatPeriodDelta(route.delta)}
+               </span>
+             ) : DASH}
+          </p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-2.5">
+        <div className="rounded-lg bg-slate-50 p-2.5 border border-slate-100">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Sản lượng phát</p>
+          <p className="mt-0.5 text-base font-bold text-slate-800 font-mono">{totalBg.toLocaleString('vi-VN')}</p>
         </div>
         <div className="rounded-lg bg-emerald-50/40 p-2.5 border border-emerald-100">
           <p className="text-[11px] uppercase tracking-wider font-semibold text-emerald-800">Đạt chỉ tiêu</p>
@@ -369,11 +409,10 @@ export default function RoutePerformancePage() {
 
   const fromDateParam = searchParams.get('from_date') || '';
   const toDateParam = searchParams.get('to_date') || '';
-  const interval = searchParams.get('interval') || 'daily';
   const bcvhId = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || '533140';
   const bcvhName = searchParams.get('bcvh_name') || 'BCVH Thuận Hóa';
   const search = searchParams.get('search') || '';
-  const sort = searchParams.get('sort') || 'passed_rate';
+  const sort = searchParams.get('sort') || 'day_rate';
   const order = searchParams.get('order') || 'asc';
   const routeType = normalizeRouteTypeFilter(searchParams.get('route_type') || DEFAULT_ROUTE_TYPE_FILTER);
   const onlyFailed = searchParams.get('only_failed') === '1';
@@ -388,6 +427,11 @@ export default function RoutePerformancePage() {
       params.delete(key);
     } else {
       params.set(key, value);
+    }
+    // Update both from_date and to_date when picking a new analysis date
+    if (key === 'analysis_date') {
+      params.set('from_date', value);
+      params.set('to_date', value);
     }
     setSearchParams(params);
     setCurrentPage(1);
@@ -440,18 +484,19 @@ export default function RoutePerformancePage() {
       try {
         setStatus('loading');
         setError(null);
-        const result = await f13DashboardClient.getRouteRanking(analysisDate, bcvhId, 1, 1000, sort, order, routeType);
+        const result = await f13DashboardClient.getRoutePeriods(bcvhId, analysisDate, routeType);
         if (!mounted) return;
-        const routeRows = Array.isArray(result.data) ? result.data : [];
+        const processedData = processRoutePeriods(result.data);
+        const routeRows = processedData.routes || [];
         setRows(routeRows);
-        setMeta(result.meta || null);
+        setMeta(result.meta || { reconciliation: processedData.reconciliation });
         setCurrentPage(1);
         setSortState({ key: 'passed_rate', dir: 'asc' });
 
         if (routeRows.length > 0) {
           const sortedWorst = [...routeRows].sort((a, b) => {
-            const rateA = toNumber(a.passed_rate);
-            const rateB = toNumber(b.passed_rate);
+            const rateA = toNumber(a.day_rate ?? a.passed_rate);
+            const rateB = toNumber(b.day_rate ?? b.passed_rate);
             if (rateA !== rateB) return rateA - rateB;
             return toNumber(b.failed ?? b.total_failed) - toNumber(a.failed ?? a.total_failed);
           });
@@ -481,7 +526,7 @@ export default function RoutePerformancePage() {
     };
   }, [bcvhId, analysisDate, fromDateParam, toDateParam, order, routeType, sort, metaStatus, metaMaxDate]);
 
-  const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
+  const hasDateMismatch = fromDateParam && toDateParam && fromDateParam !== toDateParam;
 
   const handleSort = (key) => {
     setSortState((prev) => (prev.key === key ? { key, dir: prev.dir === 'desc' ? 'asc' : 'desc' } : { key, dir: 'asc' }));
@@ -534,6 +579,8 @@ export default function RoutePerformancePage() {
     },
   ];
 
+  const reconciliation = meta?.reconciliation || {};
+
   if (status === 'loading') {
     return (
       <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Đang tải dữ liệu xếp hạng tuyến và đối soát nghiệp vụ...">
@@ -556,56 +603,105 @@ export default function RoutePerformancePage() {
       subtitle="Bảng điều hành chất lượng tuyến: Nhận diện tuyến yếu, đối soát bưu gửi không đạt và chậm nộp tiền."
       action={
         <div className="flex flex-wrap items-center gap-2">
-          <StatusBadge label={intervalLabel} tone="neutral" />
-          <StatusBadge label={`Phân tích: ${analysisDate}`} tone="info" />
+          {hasDateMismatch && (
+            <StatusBadge label={`Đang phân tích ngày ${analysisDate}`} tone="warning" icon={AlertTriangle} />
+          )}
         </div>
       }
     >
       <div className="space-y-5">
-        <GlobalFilterBar
-          fromDate={fromDate}
-          toDate={toDate}
-          onFromDateChange={(value) => updateParam('from_date', value)}
-          onToDateChange={(value) => updateParam('to_date', value)}
-          bcvhValue={bcvhId}
-          onBcvhChange={(value) => updateBcvhParam(value)}
-          bcvhOptions={bcvhOptions}
-          searchValue={search}
-          onSearchChange={(value) => updateParam('search', value)}
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-slate-100 p-0.5">
-                {ROUTE_TYPE_FILTERS.map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() => updateParam('route_type', item.value === DEFAULT_ROUTE_TYPE_FILTER ? '' : item.value)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
-                      routeType === item.value
-                        ? 'bg-white text-slate-800 shadow-xs font-bold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => updateParam('only_failed', onlyFailed ? '' : '1')}
-                aria-pressed={onlyFailed}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
-                  onlyFailed
-                    ? 'border-rose-300 bg-rose-50 text-rose-700 shadow-xs'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <Flame size={14} className={onlyFailed ? 'text-rose-600' : 'text-slate-400'} />
-                <span>Chỉ hiện tuyến phát sinh lỗi</span>
-              </button>
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm hover:shadow-md transition-all duration-150 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+              <CalendarDays size={16} className="text-slate-400 shrink-0" />
+              <input
+                type="date"
+                value={analysisDate}
+                onChange={(e) => updateParam('analysis_date', e.target.value)}
+                className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0"
+                aria-label="Ngày phân tích"
+              />
             </div>
-          }
-        />
+            
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+              <Filter size={16} className="text-slate-400 shrink-0" />
+              <select
+                value={bcvhId}
+                onChange={(e) => updateBcvhParam(e.target.value)}
+                className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Bộ lọc BCVH"
+              >
+                {bcvhOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+              <Search size={16} className="text-slate-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm..."
+                value={search}
+                onChange={(e) => updateParam('search', e.target.value)}
+                className="w-full border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 placeholder:text-slate-400"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+              {ROUTE_TYPE_FILTERS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => updateParam('route_type', item.value === DEFAULT_ROUTE_TYPE_FILTER ? '' : item.value)}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                    routeType === item.value
+                      ? 'bg-white text-slate-800 shadow-xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => updateParam('only_failed', onlyFailed ? '' : '1')}
+              aria-pressed={onlyFailed}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
+                onlyFailed
+                  ? 'border-rose-300 bg-rose-50 text-rose-700 shadow-xs'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <Flame size={14} className={onlyFailed ? 'text-rose-600' : 'text-slate-400'} />
+              <span>Chỉ hiện tuyến phát sinh lỗi</span>
+            </button>
+          </div>
+        </div>
+
+        {reconciliation?.total_routes !== undefined && (
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-blue-600" />
+              <h3 className="text-sm font-bold text-slate-800">Đối soát dữ liệu</h3>
+            </div>
+            <div className="flex flex-wrap items-center gap-6 text-sm">
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Tổng BG Tuyến</span>
+                <span className="font-mono font-bold text-slate-800">{toNumber(reconciliation.sum_bg_routes).toLocaleString('vi-VN')}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Không thuộc Tuyến</span>
+                <span className="font-mono font-bold text-slate-800">{toNumber(reconciliation.sum_bg_unrouted).toLocaleString('vi-VN')}</span>
+              </div>
+              <div className="flex flex-col pl-6 border-l border-blue-200">
+                <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Tổng BCVH</span>
+                <span className="font-mono font-bold text-slate-800">{toNumber(reconciliation.total_bcvh_bg).toLocaleString('vi-VN')}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {executiveKpis.map((item) => (

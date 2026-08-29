@@ -74,6 +74,17 @@ class F13DashboardClient {
     }
 
     /**
+     * API Contract: GET /f13/ranking/route/periods
+     */
+    getRoutePeriods(bcvh, anchorDate, routeType = 'postman') {
+        return httpClient.get('/f13/ranking/route/periods', {
+            bcvh,
+            anchor_date: anchorDate,
+            route_type: routeType,
+        });
+    }
+
+    /**
      * API Contract: GET /f13/rca/pareto
      */
     getPareto(date, bcvh) {

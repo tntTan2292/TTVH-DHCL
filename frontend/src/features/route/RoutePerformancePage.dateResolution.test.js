@@ -11,8 +11,8 @@ const source = fs.readFileSync(new URL('./RoutePerformancePage.jsx', import.meta
 // the wrong date. `analysisDate` must resolve `to_date` first, matching those two screens.
 test('Route Ranking resolves its query date from to_date first, matching Dashboard/BCVH Ranking', () => {
   assert.match(source, /resolveDefaultRouteDate\(\{ param: toDateParam \|\| fromDateParam, metaMaxDate \}\)/);
-  assert.match(source, /getRouteRanking\(analysisDate, bcvhId/);
-  assert.doesNotMatch(source, /getRouteRanking\(fromDate, bcvhId/);
+  assert.match(source, /getRoutePeriods\(bcvhId, analysisDate/);
+  assert.doesNotMatch(source, /getRoutePeriods\(bcvhId, fromDate/);
 });
 
 test('Route Ranking exposes a violation drill-down link that preserves date, BCVH, and route context', () => {
