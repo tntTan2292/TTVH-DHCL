@@ -1659,3 +1659,123 @@ acceptance. Phase F1 (frontend, executor `Antigravity`) is next, per the design 
 scope §9.2 — not started by this section. No database, schema, or migration changed; no frontend
 file changed; `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`, not reopened.
 `AUTO-BACKFILL-RUNTIME` remains separately open and untouched per `PROJECT_SNAPSHOT.md`.
+
+
+---
+
+## 49. F13-ROUTE-RANKING-PERIOD-01 — Phase I1 Integration Validation — BLOCKED (2026-08-29)
+
+Append-only delta. Sections 1-48 are unchanged. Section 48 recorded Phase B1 (backend)
+IMPLEMENTED / TECHNICAL PASS. Between Section 48 and this section, Phase F1 (frontend) landed
+as a separate commit (`8d39a5f9`, author `tntTan2292`, executor role per `DEC-020` is
+`Antigravity`) with its own self-written checkpoint
+(`docs/06_REVIEWS/Shared/F13-ROUTE-RANKING-PERIOD-01-PHASE-F1_CHECKPOINT_001.md`, self-stating
+`COMPLETED / AWAITING PO CHECK`) — that commit registered no manifest section, no
+`DOCUMENT_INDEX.md` entry, and no `PROJECT_SNAPSHOT.md` update. This section is Phase I1
+(integration, executor `Claude Code`/`Sonnet` per the design of record's own phase assignment),
+run against baseline `8d39a5f97ef7eb60dcb2963e6b2b768ee62a8dc5` (local = remote, verified before
+starting).
+
+### What Phase I1 did
+
+Per §9.3 of the design of record ("Nối hai phase, chứng minh trên dữ liệu thật: đẳng thức §5.2
+đúng cho cả 9 BCVH; C-02 đúng; đo hiệu năng thực tế; sweep hồi quy đầy đủ") and no additional
+feature work: started the real backend (`node server.js`, real `database.sqlite`, zero writes —
+GET-only) and the already-running frontend dev server; logged in with the project's known admin
+fixture; drove the real Route Ranking screen end-to-end in a real browser (desktop and mobile
+viewports); cross-checked every on-screen field against the live `GET /f13/ranking/route/periods`
+JSON response and against the Design of Record's exact contract text; ran the full backend and
+frontend automated test sweeps; built a temporary `git worktree` at the Phase B1 baseline
+(`bfa1d515`) to distinguish genuinely new regressions from pre-existing test staleness, without
+disturbing the working tree.
+
+### Result: integration defects found — NOT a pass
+
+The backend contract itself is unchanged and correct (re-verified against all findings from
+Section 48: `AC-05` reconciliation identity true for BCVH `533140` on both periods, `C-02` month
+roll-up exact, performance `783-1086ms` measured through the real browser, comfortably under the
+`<1.5s` gate). The defects are entirely in Phase F1's frontend wiring, all traced to one root
+cause: `RoutePerformancePage.jsx` fully replaced its call to `getRouteRanking()` with a call to
+`getRoutePeriods()` instead of calling both and merging by `ma_tuyen`, as the design of record's
+§7.3 explicitly requires ("Giữ nguyên không đổi: ... toàn bộ nhóm 'Kết quả ngày đánh giá' còn lại
+(Tổng BG, Đạt, Không đạt, Chuyển hoàn), toàn bộ nhóm 'Vi phạm chậm nộp tiền', ... và nút
+drill-down"). The new endpoint was never designed to carry those fields, so every reference to
+them in the rewritten component now reads `undefined`.
+
+Confirmed live, with screenshots, network captures, and API cross-checks (full detail and file:line
+references in the checkpoint below):
+
+- The entire "Đối soát dữ liệu" (scope reconciliation) UI — the feature that closes `DEF-02`, the
+  core deliverable of this whole ticket — **never renders in any scenario tested**, because its
+  render condition checks a field name (`reconciliation.total_routes`) that does not exist
+  anywhere in the real contract (`reconciliation.day`/`reconciliation.month` only).
+- The "Tỷ lệ đạt toàn BCVH" and "Tổng BG không đạt" executive KPI cards show a fabricated `0.0%`
+  and `0` for every BCVH, because `computeRouteKpiStats()` reads `item.total_bg`/`item.passed`,
+  fields absent from the new route objects.
+- The "Chỉ hiện tuyến phát sinh lỗi" filter is completely non-functional — it always returns zero
+  rows, even against BCVH `533140` where real failing routes exist (e.g. route `533140137` has a
+  `0.0%` day rate), because it reads `item.failed ?? item.total_failed`, both absent.
+- Every route is mislabeled "Nhận tại bưu cục" regardless of its true classification, because
+  `row.is_postman_delivery_route` is absent from the new contract — confirmed across all 10
+  visible rows on the live page.
+- The `XH` column (row position) was kept alongside a new, real `Hạng` column — exactly the
+  anti-pattern the design of record's §7.3 explicitly named and forbade ("hai cột số cạnh nhau,
+  một thật một giả, là kết cục tệ hơn hiện trạng"). Confirmed on both desktop and mobile
+  screenshots.
+- The default sort key (`passed_rate`) no longer exists on route objects, so the PO-confirmed
+  "worst day-rate first" default silently degrades to API insertion order (`ma_tuyen` ascending) —
+  confirmed on first page load.
+- The `RouteSelectedPanel` shows `0` for "Sản lượng phát" for a route whose own table row
+  simultaneously shows the real, non-zero volume (`261`) — a direct, on-screen contradiction for
+  the same route at the same moment.
+- The term "MTD" appears in a code comment in `routePeriodData.js:26`, violating `AC-14`'s literal
+  zero-tolerance grep requirement.
+
+### Test evidence
+
+Backend: 454/468, identical 14 pre-existing failures by name to the Section 48 baseline — zero
+backend regression (expected; Phase F1 touched no backend file). Frontend: 383/395, 12 failures.
+Comparison against a `git worktree` at `bfa1d515` shows 9 of these 12 were **already failing
+before Phase F1**, but on different, unrelated stale-wording assertions that predate this ticket
+(e.g. baseline failed on `/được ghi nhận BLACK trong Đánh giá KPI 2026/`, a caption string that
+had already drifted). Checking the *specific* assertions the design of record's `R1`-`R4`/`F13`
+regression list actually cares about (`/Chuyển hoàn/`, `/label: 'Tổng BG'/`, etc.) confirms they
+are genuinely absent from the current source and genuinely present in the `bfa1d515` source —
+i.e. Phase F1 did not turn a passing test red, but it did break the underlying behavior those
+already-red tests were meant to guard, in a new and more severe way that the already-stale tests
+can no longer detect. `RoutePerformancePage.dateResolution.test.js` was directly modified by
+Phase F1 (not "pass không sửa" literally) — judged a defensible, disclosed consequence of the
+intentional endpoint swap, not an arbitrary edit. `routeViolationEvidenceData.test.js`, the fourth
+named regression file, passes 19/19 unmodified. `oxlint`: 0 errors, +5 new unused-var/import
+warnings versus the 4 pre-existing ones (incomplete cleanup). `vite build` succeeds (702 modules).
+
+### Acceptance criteria (§12.1) disposition
+
+`AC-01`/`AC-03`/`AC-04`/`AC-06`/`AC-08`/`AC-09b`/`AC-10`/`AC-13` confirmed met. `AC-05` met at the
+API layer only, not at the UI layer — not self-approved at the ticket level. `AC-09`, `AC-11`,
+`AC-14` not met. `AC-02`/`AC-12` partially met (see checkpoint §7 for the exact reasoning on each).
+`AC-07` (absent-on-anchor-day route renders "—") is correct by source-code inspection
+(`routePeriodData.js`'s null-mapping and `formatPeriodRate`'s null-guard are both correct) but was
+not positively confirmed by directly clicking one of the 5 known absent-on-anchor routes in the
+live browser this round — disclosed as the one item not fully verified, not assumed passing.
+
+### Full evidence
+
+`docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md` — every finding
+with exact file:line references, live screenshots described, network/API JSON captured, and the
+`bfa1d515` worktree comparison in full. Written for independent Opus review per `DEC-021` (the
+same model must not both implement and self-approve `AC-05` — Phase I1 explicitly does not
+self-approve it here).
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = PHASE I1 VALIDATION COMPLETE / INTEGRATION DEFECTS FOUND / BLOCKED
+— NOT READY FOR PO CHECK`. Claude Code does not self-award PO PASS and does not self-approve
+`AC-05` at the ticket level. Recommended next step (CTO/PO decision, not self-activated): Phase F1
+remediation — `RoutePerformancePage.jsx` must call both `getRouteRanking()` (existing fields) and
+`getRoutePeriods()` (new period fields) and merge by `ma_tuyen`, per §7.3's explicit "giữ nguyên
+không đổi" instruction, rather than replacing the data source outright. No product code was
+changed by this Phase I1 round — validation and evidence-gathering only, per the explicit scope
+given. No database, schema, Evidence, or business rule was touched. `F13-BCVH-RANKING-OVERVIEW-01`
+remains `COMPLETED / PO PASS / CLOSED`, not reopened. `AUTO-BACKFILL-RUNTIME` remains separately
+open per `PROJECT_SNAPSHOT.md`.
