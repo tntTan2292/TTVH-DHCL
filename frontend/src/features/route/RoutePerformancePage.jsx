@@ -391,6 +391,13 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
           <p className="mt-0.5 text-base font-bold text-rose-700 font-mono">{renderDayMetric(hasDayData ? failed : null)}</p>
         </div>
       </div>
+      {/* AC-09 (Design of Record §12.1, M-02): Sản lượng includes bưu gửi with no danh_gia_2026
+          verdict yet (chuyển hoàn/chưa xử lý), so Đạt + Không đạt can legitimately be less than
+          Sản lượng — a static caption (not a hover-only tooltip) so it reads the same on desktop
+          and mobile, matching the existing PTC-3h caption pattern below. */}
+      <p className="text-[11px] text-slate-400 italic -mt-1.5">
+        Sản lượng bao gồm cả bưu gửi chưa có kết quả đánh giá; vì vậy Đạt + Không đạt có thể không bằng Sản lượng.
+      </p>
 
       <div className="rounded-xl bg-gradient-to-br from-amber-50/90 to-orange-50/40 p-3.5 border border-amber-200/70">
         <div className="flex items-center justify-between">
@@ -772,6 +779,7 @@ export default function RoutePerformancePage() {
                   key={item.value}
                   type="button"
                   onClick={() => updateParam('route_type', item.value === DEFAULT_ROUTE_TYPE_FILTER ? '' : item.value)}
+                  aria-pressed={routeType === item.value}
                   className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
                     routeType === item.value
                       ? 'bg-white text-slate-800 shadow-xs font-bold'

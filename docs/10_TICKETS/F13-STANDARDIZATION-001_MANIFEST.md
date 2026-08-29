@@ -1875,3 +1875,49 @@ self-award PO PASS — the Product Owner must perform the UI Check per Design of
 backend, Evidence, schema, database, or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01`
 remains `COMPLETED / PO PASS / CLOSED`, not reopened. `AUTO-BACKFILL-RUNTIME` remains separately
 open and untouched per `PROJECT_SNAPSHOT.md`.
+
+---
+
+## 51. F13-ROUTE-RANKING-PERIOD-01 — AC-09 Remediation + Stale-Test Cleanup — READY FOR INDEPENDENT TECHNICAL REVIEW (2026-08-29)
+
+Append-only delta. Sections 1-50 unchanged. Section 50 disclosed two residual items instead of
+opening a new ticket for them: `AC-09`'s tooltip was not added, and 8 pre-existing stale assertions
+in 4 Route Ranking test files remained red. Design of Record §12.1 lists `AC-09` as a mandatory
+acceptance criterion, not out-of-scope — this section closes it, at baseline `7235edb3`.
+
+### What was done
+
+1. **`AC-09`**: added a static caption (not a hover-only tooltip, so desktop and mobile render it
+   identically) directly under the `Sản lượng phát`/`Đạt chỉ tiêu`/`Không đạt` 3-card grid in
+   `RouteSelectedPanel`: *"Sản lượng bao gồm cả bưu gửi chưa có kết quả đánh giá; vì vậy Đạt +
+   Không đạt có thể không bằng Sản lượng."* Styled identically to the pre-existing PTC-3h caption
+   one block below it. No formula or numeric value touched. New test file
+   `RoutePerformancePage.volumeReconciliationTooltip.test.js` (2 tests).
+2. **8 stale assertions** across `RoutePerformancePage.blackReturned/delayedCash/
+   delayedCashWidget.test.js` and `routeRankingFilters.test.js`: each re-diffed individually
+   against the current file (not assumed stale) and updated to the exact current, PO-approved
+   wording — never deleted, never loosened. Full before/after table in checkpoint §13. One
+   genuine, non-stale defect surfaced by this review (not a wording drift): the route-type filter
+   buttons were missing `aria-pressed`, present on the neighboring "only failed" button — restored
+   in `RoutePerformancePage.jsx` rather than removing the test's check.
+
+### Test evidence
+
+`RoutePerformancePage.volumeReconciliationTooltip.test.js` 2/2; the 4 previously-red files 13/13
+(was 5/13); full targeted Route Ranking sweep (13 files) 79/79; full frontend sweep 409/413, the 4
+remaining failures confirmed by name to be the same pre-existing, unrelated failures already on
+record. Zero regressions attributable to this round. `oxlint`: 0 errors/0 warnings on every file
+touched. `vite build`: succeeds, 702 modules. `git diff --name-only`: only
+`frontend/src/features/route/*` touched (5 edited, 1 new test file) — no backend, Evidence, BCVH,
+or Dashboard file appears. Full evidence: checkpoint §13.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = AC-09 REMEDIATED / READY FOR INDEPENDENT TECHNICAL REVIEW`. Per
+`DEC-021`, this round was implemented and technically validated by the same executor that
+implemented the underlying Phase I1 remediation, so it stops at independent technical review, not
+at `READY FOR PO CHECK` — no PO PASS is self-awarded, and the Product Owner's UI Check (§12.2) is
+not yet requested. No backend, Evidence, schema, database, or business rule was changed. The
+disclosed URL-parameter item (`analysis_date` written but never read back) remains untouched, out
+of this round's scope. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`;
+`AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.

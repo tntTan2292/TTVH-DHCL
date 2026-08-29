@@ -30,7 +30,7 @@ test('Route Performance page sends default postman filter and can switch to all 
   assert.match(pageSource, /function RouteRankingTable/);
   assert.match(pageSource, /data-testid="route-ranking-table"/);
   assert.match(pageSource, /rows=\{filteredRows\}/);
-  assert.match(pageSource, /Bảng Tuyến Ranking/);
+  assert.match(pageSource, /Bảng xếp hạng hiệu năng tuyến/);
   assert.match(pageSource, /Nhận tại bưu cục/);
   const brokenVietnamesePattern = new RegExp([
     'B\\?ng Tuy\\?n Ranking',
@@ -40,7 +40,8 @@ test('Route Performance page sends default postman filter and can switch to all 
   ].join('|'));
   assert.doesNotMatch(pageSource, brokenVietnamesePattern);
   assert.match(pageSource, /updateParam\('route_type', item\.value === DEFAULT_ROUTE_TYPE_FILTER \? '' : item\.value\)/);
-  assert.match(pageSource, /bcvhOptions=\{ROUTE_BCVH_OPTIONS\}/);
+  assert.match(pageSource, /useState\(ROUTE_BCVH_OPTIONS\)/);
+  assert.match(pageSource, /bcvhOptions\.map\(/);
   assert.match(pageSource, /aria-pressed=\{routeType === item\.value\}/);
   assert.match(clientSource, /route_type: routeType/);
   assert.match(clientSource, /\/f13\/ranking\/route/);

@@ -8,8 +8,8 @@ test('Route Ranking table exposes the "Chậm nộp tiền" column group with th
   const pageSource = read('./RoutePerformancePage.jsx');
 
   assert.match(pageSource, /Chậm nộp tiền/);
-  assert.match(pageSource, /label: 'Số BG chậm nộp tiền'/);
-  assert.match(pageSource, /label: 'Tỷ lệ chậm nộp tiền'/);
+  assert.match(pageSource, /label: 'BG Chậm nộp tiền'/);
+  assert.match(pageSource, /label: 'Tỷ lệ chậm nộp'/);
   // "Kết quả ngày đánh giá" group precedes "Chậm nộp tiền" in the header markup.
   const evalGroupIndex = pageSource.indexOf('Kết quả ngày đánh giá');
   const delayedGroupIndex = pageSource.indexOf('Chậm nộp tiền');
@@ -32,7 +32,7 @@ test('selected-route panel shows delayed-cash count, eligible sample size, rate,
   assert.match(pageSource, /route\.delayed_cash_handover_count/);
   assert.match(pageSource, /route\.delayed_cash_handover_eligible_count/);
   assert.match(pageSource, /formatDelayedCashRate\(route\.f13_303_rate\)/);
-  assert.match(pageSource, /Chậm khi thời gian nộp tiền sau thời gian PTC trên 3 giờ\./);
+  assert.match(pageSource, /Đánh giá chậm khi tiền được nộp sau thời điểm PTC trên 3\.0 giờ\./);
 });
 
 test('no new priority/severity/color-tier or recommendation logic was introduced for delayed-cash', () => {
@@ -48,8 +48,8 @@ test('PO-PASS scope is preserved alongside the new delayed-cash columns', () => 
   const pageSource = read('./RoutePerformancePage.jsx');
 
   assert.match(pageSource, /Chuyển hoàn/);
-  assert.match(pageSource, /key: 'passed_rate', dir: 'desc'/);
-  assert.match(pageSource, /Chỉ tuyến có bưu gửi không đạt/);
+  assert.match(pageSource, /key: 'passed_rate', dir: 'asc'/);
+  assert.match(pageSource, /Chỉ hiện tuyến phát sinh lỗi/);
   assert.match(pageSource, /data-testid="route-ranking-table"/);
   assert.doesNotMatch(pageSource, /Chưa đánh giá/);
 });

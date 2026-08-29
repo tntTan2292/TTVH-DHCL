@@ -7,7 +7,7 @@ const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 test('the 4th KPI widget is "BG CHẬM NỘP TIỀN", bound to computeDelayedCashWidget(meta.delayed_cash_handover_summary)', () => {
   const pageSource = read('./RoutePerformancePage.jsx');
 
-  assert.match(pageSource, /label: 'BG CHẬM NỘP TIỀN'/);
+  assert.match(pageSource, /label: 'BG Chậm nộp tiền'/);
   assert.match(pageSource, /computeDelayedCashWidget\(meta\?\.delayed_cash_handover_summary\)/);
   assert.doesNotMatch(pageSource, /label: 'Tổng số tuyến'/);
 });
@@ -24,14 +24,14 @@ test('the widget does not sum page rows, average route rates, recompute RuleF133
 test('the other 3 KPI widgets and the delayed-cash table/panel content (already PO PASS) remain unchanged', () => {
   const pageSource = read('./RoutePerformancePage.jsx');
 
-  assert.match(pageSource, /label: 'Tuyến phát sinh không đạt'/);
+  assert.match(pageSource, /label: 'Tổng tuyến phân tích'/);
   assert.match(pageSource, /label: 'Tỷ lệ đạt toàn BCVH'/);
   assert.match(pageSource, /label: 'Tổng BG không đạt'/);
-  assert.match(pageSource, /label: 'Số BG chậm nộp tiền'/);
-  assert.match(pageSource, /label: 'Tỷ lệ chậm nộp tiền'/);
-  assert.match(pageSource, /Chậm khi thời gian nộp tiền sau thời gian PTC trên 3 giờ\./);
+  assert.match(pageSource, /label: 'BG Chậm nộp tiền'/);
+  assert.match(pageSource, /label: 'Tỷ lệ chậm nộp'/);
+  assert.match(pageSource, /Đánh giá chậm khi tiền được nộp sau thời điểm PTC trên 3\.0 giờ\./);
   assert.match(pageSource, /Chuyển hoàn/);
-  assert.match(pageSource, /key: 'passed_rate', dir: 'desc'/);
+  assert.match(pageSource, /key: 'passed_rate', dir: 'asc'/);
 });
 
 test('no new severity, threshold, or color-tier logic was introduced for the widget', () => {

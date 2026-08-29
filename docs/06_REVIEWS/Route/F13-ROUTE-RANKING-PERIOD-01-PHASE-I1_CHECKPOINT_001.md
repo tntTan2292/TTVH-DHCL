@@ -340,3 +340,117 @@ self-award PO PASS — the Product Owner must perform the UI Check per Design of
 No backend, Evidence, schema, database, or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01`
 remains `COMPLETED / PO PASS / CLOSED`, not reopened. `AUTO-BACKFILL-RUNTIME` remains separately
 open per `PROJECT_SNAPSHOT.md`.
+
+---
+
+## 13. AC-09 tooltip remediation + stale-test cleanup (2026-08-29, baseline `7235edb3`)
+
+Closes disclosed residual items 1 and 2 from §12 ("Tồn đọng disclosed"). Per Design of Record
+§12.1, `AC-09` is a mandatory acceptance criterion, not out-of-ticket scope — this round finishes
+it rather than opening a new ticket.
+
+### AC-09 — tooltip/context caption
+
+`RoutePerformancePage.jsx`'s selected-route panel juxtaposes three day-scoped labels — `Sản lượng
+phát` (`total_bg`), `Đạt chỉ tiêu` (`passed`), `Không đạt` (`failed`) — in one 3-card grid. Because
+`total_bg` includes bưu gửi with no `danh_gia_2026` verdict yet (chuyển hoàn / chưa xử lý, `M-02`),
+`passed + failed` can legitimately be less than `total_bg`, and without an explanation a user reads
+this as a data error. Added a static caption directly under that grid (not a hover-only tooltip, so
+it reads identically on desktop and mobile with no extra interaction or component state):
+
+> "Sản lượng bao gồm cả bưu gửi chưa có kết quả đánh giá; vì vậy Đạt + Không đạt có thể không bằng
+> Sản lượng."
+
+Styled identically to the pre-existing PTC-3h caption one block below it in the same panel
+(`text-[11px] ... italic`), a pattern already confirmed to render correctly on both desktop and
+mobile in §12's real-browser verification — no new CSS pattern introduced. No formula, field
+binding, or numeric value changed; `renderDayMetric(hasDayData ? totalBg/passed/failed : null)`
+is unchanged. New test: `RoutePerformancePage.volumeReconciliationTooltip.test.js` (2 tests) —
+asserts the exact caption text, its position directly after the `Sản lượng phát` grid, and that the
+three underlying render call sites are untouched.
+
+### 8 stale assertions — reviewed individually, not deleted or loosened
+
+All 8 were re-diffed against the *current* file content (not assumed): each is confirmed to have
+been made stale by wording the Product Owner already approved in an earlier PO-PASS round (the
+pre-`F13-ROUTE-RANKING-PERIOD-01` Route Ranking screen), not by anything this ticket introduced.
+Every assertion was updated to the exact current string, never removed or weakened:
+
+| File | Old (stale) assertion | Updated to (current, approved UI) |
+| --- | --- | --- |
+| `blackReturned.test.js` | `/được ghi nhận BLACK trong Đánh giá KPI 2026/` | `Được ghi nhận phân loại BLACK theo quy chuẩn KPI 2026.` |
+| `blackReturned.test.js`, `delayedCash.test.js`, `delayedCashWidget.test.js` | `key: 'passed_rate', dir: 'desc'` | `key: 'passed_rate', dir: 'asc'` (PO-confirmed default-ascending sort, manifest §16) |
+| `delayedCash.test.js`, `delayedCashWidget.test.js` | `label: 'Số BG chậm nộp tiền'` | `label: 'BG Chậm nộp tiền'` |
+| `delayedCash.test.js`, `delayedCashWidget.test.js` | `label: 'Tỷ lệ chậm nộp tiền'` | `label: 'Tỷ lệ chậm nộp'` |
+| `delayedCash.test.js`, `delayedCashWidget.test.js` | `Chậm khi thời gian nộp tiền sau thời gian PTC trên 3 giờ.` | `Đánh giá chậm khi tiền được nộp sau thời điểm PTC trên 3.0 giờ.` |
+| `delayedCashWidget.test.js` | `label: 'BG CHẬM NỘP TIỀN'` | `label: 'BG Chậm nộp tiền'` |
+| `delayedCashWidget.test.js` | `label: 'Tuyến phát sinh không đạt'` | `label: 'Tổng tuyến phân tích'` |
+| `routeRankingFilters.test.js` | `Bảng Tuyến Ranking` | `Bảng xếp hạng hiệu năng tuyến` |
+| `blackReturned.test.js`, `delayedCash.test.js` | `Chỉ tuyến có bưu gửi không đạt` (cascaded — only reachable once its file's first stale assertion was fixed) | `Chỉ hiện tuyến phát sinh lỗi` |
+| `routeRankingFilters.test.js` | `bcvhOptions={ROUTE_BCVH_OPTIONS}` (cascaded) | `useState(ROUTE_BCVH_OPTIONS)` + `bcvhOptions.map(` — BCVH options are now local component state, not a passed prop |
+
+Each test file's assertions run sequentially and throw on the first failure, so fixing the
+documented first-failing line in `delayedCashWidget.test.js`'s third test and
+`routeRankingFilters.test.js`'s second test exposed further, previously-masked stale/cascaded
+assertions in the same test body (both tables' last two rows above). Each was likewise re-verified
+against the current file before updating — none were removed or loosened.
+
+**One genuine defect found and fixed, not just a stale assertion**: `routeRankingFilters.test.js`
+also asserted `aria-pressed={routeType === item.value}` on the route-type filter toggle buttons.
+Re-diffing against the current file showed this attribute was actually missing from the JSX (only
+the neighboring "Chỉ hiện tuyến phát sinh lỗi" button had `aria-pressed`) — a real, if minor,
+accessibility regression, not a wording drift. Per the instruction not to loosen tests to force a
+PASS, the attribute was restored to `RoutePerformancePage.jsx` (`aria-pressed={routeType ===
+item.value}`) instead of removing the check.
+
+### Test evidence
+
+- New `RoutePerformancePage.volumeReconciliationTooltip.test.js`: **2/2 pass**.
+- The 4 previously-red files: **13/13 pass**, up from 5/13 — 0 remaining stale assertions.
+- Full targeted Route Ranking sweep (`src/features/route/*.test.js`, 13 files after this round):
+  **79/79 pass** (79 = 77 pre-existing tests + 2 new AC-09 tests; the 77 pre-existing were
+  69 pass / 8 fail before this round's fixes).
+- Full frontend sweep (`node --test` over every `*.test.js`): **409/413 pass** (413 = the prior
+  398/411 baseline's 411 plus the 2 new AC-09 tests). The 4 remaining failures are the exact same
+  4 pre-existing, unrelated failures already recorded in §6.2/§12 (`only canonical values...`,
+  `operation dashboard hides status filter...`, `dashboard page removes shell...`,
+  `pages\dataImportBackfillQueue.test.js`) — confirmed by name, not just by count.
+  `networkMapRemediation.test.js` (27/27) now passes cleanly, not flaking as in §12's round.
+  **Zero regressions attributable to this round.**
+- Backend: not touched, not re-run (`git diff --name-only` confirms zero backend files touched).
+- `oxlint .`: 0 errors/0 warnings on every file touched this round
+  (`RoutePerformancePage.jsx`, `RoutePerformancePage.blackReturned.test.js`,
+  `RoutePerformancePage.delayedCash.test.js`, `RoutePerformancePage.delayedCashWidget.test.js`,
+  `routeRankingFilters.test.js`, `RoutePerformancePage.volumeReconciliationTooltip.test.js`);
+  pre-existing warnings in unrelated files (`F13Dashboard.jsx`, `networkMap/*`, etc.) untouched.
+- `vite build`: succeeds, 702 modules — unchanged from §12.
+- `git diff --name-only`: only `frontend/src/features/route/*` touched (5 files edited, 1 new
+  test file) — `RouteViolationEvidencePage.retired.test.js` untouched confirms no legacy-file
+  scope creep; no Evidence, BCVH, Dashboard, or backend file appears.
+
+### Acceptance criteria re-check (§7 / §12, Design of Record §12.1)
+
+| ID | Trạng thái sau §12 | Sau vòng này |
+| --- | --- | --- |
+| `AC-09` | Chưa bổ sung (tồn đọng disclosed #1) | **Đạt** — caption tĩnh bổ sung đúng vị trí, có test riêng, không đổi công thức/số liệu |
+| `AC-11` | 2/4 file fail vì lý do cũ đã xác nhận | **Đạt đầy đủ** — 0/4 file còn fail; scope vẫn giới hạn `frontend/src/features/route/*`, Evidence/BCVH/Dashboard không bị chạm |
+| `AC-12` | Đạt đầy đủ | **Đạt đầy đủ, không đổi** — 0 regression, `oxlint` sạch, build thành công |
+
+Mọi `AC` khác không đổi so với §12.
+
+### Không xử lý trong vòng này (đúng phạm vi được giao)
+
+Tham số URL rác `analysis_date` (tồn đọng disclosed #4 ở §12) — không đọc lại, không nằm trong
+phạm vi được giao lần này, vẫn để nguyên.
+
+### Governance state after this round
+
+`F13-ROUTE-RANKING-PERIOD-01 = AC-09 REMEDIATED / READY FOR INDEPENDENT TECHNICAL REVIEW`. Per
+`DEC-021`, the same model must not both implement and self-approve a change — this round was
+implemented and technically self-validated by the same executor (Claude Code / Sonnet) that
+implemented the underlying Phase I1 remediation, so it stops here, **not** at `READY FOR PO
+CHECK` and **not** self-awarded any PO PASS, pending an independent technical review before the
+Product Owner's own UI Check (Design of Record §12.2) is requested. No backend, Evidence, schema,
+database, or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO
+PASS / CLOSED`, not reopened. `AUTO-BACKFILL-RUNTIME` remains separately open per
+`PROJECT_SNAPSHOT.md`.
