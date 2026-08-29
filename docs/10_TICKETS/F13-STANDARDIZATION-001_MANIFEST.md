@@ -1779,3 +1779,99 @@ changed by this Phase I1 round — validation and evidence-gathering only, per t
 given. No database, schema, Evidence, or business rule was touched. `F13-BCVH-RANKING-OVERVIEW-01`
 remains `COMPLETED / PO PASS / CLOSED`, not reopened. `AUTO-BACKFILL-RUNTIME` remains separately
 open per `PROJECT_SNAPSHOT.md`.
+
+
+---
+
+## 50. F13-ROUTE-RANKING-PERIOD-01 — Phase I1 Remediation — READY FOR PO CHECK (2026-08-29)
+
+Append-only delta. Sections 1-49 are unchanged. Section 49 recorded Phase I1's initial finding
+(integration broken, BLOCKED). This section records the remediation of every defect that finding
+listed, and the re-validation confirming the fix, at baseline
+`e5e83bccc3d729f9ce5357bfbc7056598b089462` (local = remote, verified before starting).
+
+### Root cause and fix
+
+Confirmed root cause per Section 49: `RoutePerformancePage.jsx` fully replaced its call to
+`getRouteRanking()` with `getRoutePeriods()` instead of calling both and merging by `ma_tuyen`, per
+Design of Record §7.3. Fix: both endpoints are now called in parallel; a new pure function,
+`mergeRouteData(oldRows, periodsRoutes, routeType)` in `routePeriodData.js`, merges them. The route
+set is always the periods union (T-01); a route present there but absent from the old endpoint's
+day-scoped result gets `null` — never `0` — for every day-scoped field.
+
+### What was fixed (all 7 items from the remediation instruction)
+
+1. The three per-route reconciliation numbers (Sản lượng phát/Đạt chỉ tiêu/Không đạt) in
+   `RouteSelectedPanel` — now real merged values, "—" only when genuinely absent that day.
+2. Delayed-cash count/rate — now bound to the merged old-endpoint fields; "—" only when absent.
+3. The scope-reconciliation strip (`DEF-02`'s core deliverable) — new `ReconciliationStrip`
+   component reads the real `reconciliation.day`/`reconciliation.month` contract shape, with a
+   Ngày/Lũy kế tháng toggle and an `identity_ok: false` warning.
+4. The two BCVH-wide executive KPI cards — fixed automatically once real merged data flows into
+   the existing `computeRouteKpiStats()` formula (unchanged).
+5. The only-failed filter, route classification, and default sort — all fixed automatically once
+   real `failed`/`passed_rate` flow into the existing, unchanged filter/sort functions;
+   classification is deterministically "Tuyến bưu tá" under the default postman filter, the real
+   old-endpoint value under `all` when present, honestly `null` ("Chưa xác định") when a route had
+   zero activity that day under `all` and no source exists.
+6. The duplicate `XH` column — removed entirely; only the real `Hạng` column remains.
+7. The literal string "MTD" in a code comment — removed (`AC-14`); all 5 new `oxlint` warnings
+   from Phase F1 resolved by removing now-genuinely-unused imports/variables.
+
+### Test evidence
+
+- `routePeriodData.test.js` (new, 16 tests, positive/genuine-zero/absent-on-anchor/missing-old-
+  response/route-union/classification/alias/fallback/reconciliation/`AC-14` cases): **16/16 pass**.
+- `RoutePerformancePage.dateResolution.test.js`: **5/5 pass**, unmodified — the exact literal
+  `const failed = toNumber(route.failed ?? route.total_failed);` pattern this test guards was
+  deliberately preserved verbatim (the day-scope null check is applied only at the render call
+  site) to avoid a self-inflicted regression on an already-passing test.
+- The four files with pre-existing stale-wording assertions
+  (`RoutePerformancePage.blackReturned/delayedCash/delayedCashWidget.test.js`,
+  `routeRankingFilters.test.js`): 9 failing assertions → **8** — the one that newly passes
+  (`row.delayed_cash_handover_count`/`formatDelayedCashRate(row.f13_303_rate)` field bindings) was
+  a genuine functional check; the remaining 8 fail on the exact same stale, pre-this-ticket wording
+  identified in Section 49 (re-verified by reading each failure's specific assertion, not just the
+  pass/fail count).
+- Full frontend sweep: **398/411 pass** (395 baseline + 16 new). The 13 failures are the same 8
+  stale route assertions, the same 4 pre-existing unrelated failures from Section 49, and one
+  additional failure (`networkMapRemediation.test.js`) confirmed via `git stash` of only this
+  round's two touched files to be present identically regardless of this remediation — caused by
+  the pre-existing, already-dirty `networkMap` files in the working tree since before this
+  session, not touched. **Zero regressions attributable to this remediation.**
+- Backend sweep: unaffected (no backend file touched) — 454/468 with a live server running,
+  identical to Section 48.
+- `oxlint`: **0 errors, 0 warnings** on every touched file.
+- `vite build`: succeeds, 702 modules.
+
+### Real-data runtime verification (LEVEL 2, live browser + live API, zero writes)
+
+Ran the real backend and frontend, logged in, drove the real page: the reconciliation strip now
+renders real numbers matching the backend exactly (`533140`/`2026-08-27`:
+`1.980 = 1.911 + 69`; toggled to month: `49.264 = 46.818 + 2.446`); executive KPIs show real
+numbers (`62.6%`, `714`, `166`/`23.2%`/`714 BG thuộc mẫu`, previously all fabricated); the
+only-failed filter now correctly narrows 35→29 routes, matching the "29 tuyến phát sinh lỗi" KPI
+card; every route correctly labeled "Tuyến bưu tá"; no `XH` column on desktop or mobile; a specific
+absent-on-anchor-day route (`533140148`) renders "—" consistently across the table row and the
+detail panel for every day-scoped field, while its period-scoped fields (`Hạng`, `Lũy kế tháng`,
+etc.) show real data — resolving the previously-found table/panel contradiction. Cross-checked
+`AC-05` at the full-stack level (not just backend) against all 9 real BCVH: `identity_ok: true` for
+both periods on every BCVH; the old-endpoint-vs-periods route-count gap matches exactly what
+Phase B1/Section 49 measured for `533140` (30/35/5) and is internally consistent for the other 8.
+
+### Acceptance criteria re-check
+
+`AC-05` and `AC-07`: not met at the UI layer per Section 49 → **met**, confirmed live across all 9
+BCVH. `AC-11`: 2/4 named regression files still fail, but confirmed to fail for the same
+pre-existing stale reason identified in Section 49, not a new one. `AC-12`: **fully met** (0 lint
+errors/warnings, 0 regressions attributable to this round). `AC-14`: **met**. `AC-09` (a tooltip
+explaining `passed+failed≠volume`) was not added — outside the 7 items given for this round;
+disclosed, not blocking, since the `Chuyển hoàn` column itself now makes that gap visible.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = PHASE I1 REMEDIATED / READY FOR PO CHECK`. Claude Code does not
+self-award PO PASS — the Product Owner must perform the UI Check per Design of Record §12.2. No
+backend, Evidence, schema, database, or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01`
+remains `COMPLETED / PO PASS / CLOSED`, not reopened. `AUTO-BACKFILL-RUNTIME` remains separately
+open and untouched per `PROJECT_SNAPSHOT.md`.

@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { PageContainer, KPICard, SectionHeader, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
-import { GlobalFilterBar } from '../../components/shared/SharedLayout';
+import { PageContainer, KPICard, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
 import f13DashboardClient from '../../api/F13DashboardClient';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
-import { toNumber, formatRate, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, computeDelayedCashWidget, resolveDefaultRouteDate } from './routeRankingCalculations';
+import { toNumber, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, computeDelayedCashWidget, resolveDefaultRouteDate } from './routeRankingCalculations';
 import { buildViolationEvidenceLink } from './routeViolationEvidenceData';
-import { processRoutePeriods, formatPeriodRate, formatPeriodDelta, formatPeriodVolume, DASH } from './routePeriodData';
+import { processRoutePeriods, mergeRouteData, buildReconciliationView, formatPeriodRate, formatPeriodDelta, formatPeriodVolume, DASH } from './routePeriodData';
 import { classifyF13HeatmapRate, F13_HEATMAP_TONE_CLASS } from '../../components/f13/f13HeatmapBandCatalog';
 import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, AlertTriangle, Flame, Search, Filter, CalendarDays, ShieldCheck } from 'lucide-react';
 
@@ -21,19 +20,42 @@ const ROUTE_BCVH_OPTIONS = [
 
 const ITEMS_PER_PAGE = 10;
 
+// Three-state classification: `true`/`false` are real backend facts (from the old day-scoped
+// endpoint, or trivially true whenever the postman filter is applied — see mergeRouteData()'s
+// comment); `null` means genuinely unknown (an all-scope row with zero activity on the anchor
+// day, so the old endpoint never returned a classification for it) — rendered honestly, not
+// guessed either way.
 function classificationLabel(row) {
+  if (row.is_postman_delivery_route === null || row.is_postman_delivery_route === undefined) return 'Chưa xác định';
   return row.is_postman_delivery_route ? 'Tuyến bưu tá' : 'Nhận tại bưu cục';
 }
 
 function classificationBadgeClass(row) {
+  if (row.is_postman_delivery_route === null || row.is_postman_delivery_route === undefined) {
+    return 'bg-slate-50 text-slate-400 border border-slate-200 border-dashed';
+  }
   return row.is_postman_delivery_route
     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
     : 'bg-slate-100 text-slate-700 border border-slate-200';
 }
 
-const SORTABLE_COLUMNS = [
-  { key: 'rank', label: 'Hạng' },
+// §7.3 Design of Record: "Giữ nguyên không đổi ... Tổng BG, Đạt, Không đạt, Chuyển hoàn" — these
+// four plus "Tỷ lệ ngày" (the renamed "Tỷ lệ đạt") make up "Kết quả ngày đánh giá", day-scoped,
+// enriched from the old GET /f13/ranking/route endpoint via mergeRouteData(). `null` (route had
+// no activity that specific day) renders "—", never a fabricated 0.
+const DAY_EVAL_COLUMNS = [
+  { key: 'total_bg', label: 'Tổng BG' },
+  { key: 'passed', label: 'Đạt' },
+  { key: 'failed', label: 'Không đạt' },
+  { key: 'returned', label: 'Chuyển hoàn' },
   { key: 'day_rate', label: 'Tỷ lệ ngày' },
+];
+
+// §7.3: "Nhóm cột mới — 'Kết quả theo kỳ', đặt sau nhóm 'Kết quả ngày đánh giá'" — period-scoped,
+// sourced from GET /f13/ranking/route/periods. `Hạng` here is the real backend rank (never the
+// old row-position placeholder — that column is removed entirely, not kept alongside this one).
+const PERIOD_COLUMNS = [
+  { key: 'rank', label: 'Hạng' },
   { key: 'month_rate', label: 'Lũy kế tháng' },
   { key: 'previous_month_rate', label: 'Cùng kỳ T.trước' },
   { key: 'delta', label: 'Chênh lệch' },
@@ -41,10 +63,23 @@ const SORTABLE_COLUMNS = [
   { key: 'month_volume', label: 'Sản lượng' },
 ];
 
+// §7.3: "Giữ nguyên không đổi ... toàn bộ nhóm 'Vi phạm chậm nộp tiền'" — day-scoped, same
+// null-safety as DAY_EVAL_COLUMNS.
 const DELAYED_CASH_COLUMNS = [
   { key: 'delayed_cash_handover_count', label: 'BG Chậm nộp tiền' },
   { key: 'f13_303_rate', label: 'Tỷ lệ chậm nộp' },
 ];
+
+// A day-scoped numeric cell: `null` (route had no activity that day) renders "—", a real number
+// (including a genuine 0) renders as data — never coerced through toNumber(), which would turn
+// null into a fabricated 0.
+function DayScopedCell({ value }) {
+  return (
+    <td className="px-3 py-3 text-right font-mono text-xs text-slate-600">
+      {value === null || value === undefined ? <span className="text-slate-400">{DASH}</span> : Number(value).toLocaleString('vi-VN')}
+    </td>
+  );
+}
 
 function SortHeaderCell({ column, sortState, onSort, isSubHeader = false }) {
   const isActive = sortState.key === column.key;
@@ -67,7 +102,6 @@ function SortHeaderCell({ column, sortState, onSort, isSubHeader = false }) {
 }
 
 function RouteRankingTable({
-  rows,
   pageRows,
   totalRows,
   currentPage,
@@ -90,19 +124,19 @@ function RouteRankingTable({
     );
   }
 
-  const startRank = (currentPage - 1) * ITEMS_PER_PAGE;
-
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm" data-testid="route-ranking-table">
           <thead>
             <tr className="bg-slate-100/90 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-200">
-              <th className="px-3.5 py-3 w-12 text-center" rowSpan={2}>XH</th>
               <th className="px-3.5 py-3" rowSpan={2}>Mã tuyến</th>
               <th className="px-4 py-3" rowSpan={2}>Tên tuyến bưu tá</th>
-              <th className="border-l border-slate-200 px-3 py-2 text-center bg-slate-50 text-slate-700" colSpan={SORTABLE_COLUMNS.length}>
-                Kết quả ngày đánh giá & Xu hướng tháng
+              <th className="border-l border-slate-200 px-3 py-2 text-center bg-slate-50 text-slate-700" colSpan={DAY_EVAL_COLUMNS.length}>
+                Kết quả ngày đánh giá
+              </th>
+              <th className="border-l border-slate-200 px-3 py-2 text-center bg-blue-50/70 text-blue-900" colSpan={PERIOD_COLUMNS.length}>
+                Kết quả theo kỳ
               </th>
               <th className="border-l border-slate-200 px-3 py-2 text-center bg-amber-50/70 text-amber-900 border-r border-slate-200" colSpan={DELAYED_CASH_COLUMNS.length}>
                 Vi phạm chậm nộp tiền
@@ -110,7 +144,10 @@ function RouteRankingTable({
               <th className="px-3.5 py-3 text-center" rowSpan={2}>Phân loại</th>
             </tr>
             <tr className="border-b border-slate-200">
-              {SORTABLE_COLUMNS.map((column) => (
+              {DAY_EVAL_COLUMNS.map((column) => (
+                <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} isSubHeader />
+              ))}
+              {PERIOD_COLUMNS.map((column) => (
                 <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} isSubHeader />
               ))}
               {DELAYED_CASH_COLUMNS.map((column) => (
@@ -119,15 +156,15 @@ function RouteRankingTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-sans">
-            {pageRows.map((row, index) => {
+            {pageRows.map((row) => {
               const routeId = row.id || row.ma_tuyen;
               const selected = routeId === selectedRouteId;
               const failedCount = toNumber(row.failed ?? row.total_failed);
-              const delayedCount = toNumber(row.delayed_cash_handover_count);
-              const passedRateVal = toNumber(row.passed_rate);
+              const delayedCount = row.delayed_cash_handover_count === null || row.delayed_cash_handover_count === undefined
+                ? null
+                : toNumber(row.delayed_cash_handover_count);
 
-              const isHighRisk = failedCount > 0 || delayedCount > 0;
-              const isWarningRate = passedRateVal < 90;
+              const isHighRisk = failedCount > 0 || (delayedCount ?? 0) > 0;
 
               return (
                 <tr
@@ -141,7 +178,6 @@ function RouteRankingTable({
                         : 'hover:bg-slate-50'
                   }`}
                 >
-                  <td className="px-3.5 py-3 text-center font-semibold text-slate-500 text-xs">{startRank + index + 1}</td>
                   <td className="px-3.5 py-3 font-mono text-xs font-medium text-slate-600">{row.code || row.ma_tuyen}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -164,13 +200,19 @@ function RouteRankingTable({
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-right font-mono text-xs font-bold text-slate-700">
-                    {row.rank || DASH}
-                  </td>
+                  {/* Kết quả ngày đánh giá — day-scoped, old endpoint, null-safe */}
+                  <DayScopedCell value={row.total_bg} />
+                  <DayScopedCell value={row.passed} />
+                  <DayScopedCell value={row.failed} />
+                  <DayScopedCell value={row.returned} />
                   <td className="px-3 py-3 text-right">
                     <span className={`inline-block font-mono text-xs font-bold px-2 py-0.5 rounded ${row.day_rate !== null ? F13_HEATMAP_TONE_CLASS[classifyF13HeatmapRate(row.day_rate).tone] : F13_HEATMAP_TONE_CLASS.unavailable}`}>
                       {formatPeriodRate(row.day_rate)}
                     </span>
+                  </td>
+                  {/* Kết quả theo kỳ — period-scoped, new endpoint */}
+                  <td className="px-3 py-3 text-right font-mono text-xs font-bold text-slate-700">
+                    {row.rank ?? DASH}
                   </td>
                   <td className="px-3 py-3 text-right">
                     <span className={`inline-block font-mono text-xs font-bold px-2 py-0.5 rounded ${row.month_rate !== null ? F13_HEATMAP_TONE_CLASS[classifyF13HeatmapRate(row.month_rate).tone] : F13_HEATMAP_TONE_CLASS.unavailable}`}>
@@ -195,8 +237,11 @@ function RouteRankingTable({
                   <td className="px-3 py-3 text-right font-mono text-xs text-slate-600">
                     {formatPeriodVolume(row.month_volume)}
                   </td>
+                  {/* Vi phạm chậm nộp tiền — day-scoped, old endpoint, null-safe */}
                   <td className="border-l border-slate-100 px-3 py-3 text-right font-mono text-xs">
-                    {delayedCount > 0 ? (
+                    {delayedCount === null ? (
+                      <span className="text-slate-400">{DASH}</span>
+                    ) : delayedCount > 0 ? (
                       <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
                         {delayedCount.toLocaleString('vi-VN')}
                       </span>
@@ -222,7 +267,7 @@ function RouteRankingTable({
       {/* Pagination Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-3 text-xs">
         <div className="text-slate-600 font-medium">
-          Hiển thị <strong>{startRank + 1} - {Math.min(startRank + ITEMS_PER_PAGE, totalRows)}</strong> trong tổng số <strong>{totalRows}</strong> tuyến
+          Hiển thị <strong>{(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalRows)}</strong> trong tổng số <strong>{totalRows}</strong> tuyến
         </div>
         <div className="flex items-center gap-2">
           <span className="text-slate-500 mr-2 font-medium">
@@ -273,17 +318,22 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
     currentSearch,
   });
 
+  // Day-scoped fields (old endpoint): `null` means the route had no activity on the anchor
+  // day itself — rendered as "—", never a fabricated 0. A genuine 0 (real data) still renders
+  // as "0", the normal case for the vast majority of routes.
+  const hasDayData = route.total_bg !== null && route.total_bg !== undefined;
   const totalBg = toNumber(route.total_bg);
   const passed = toNumber(route.passed);
-  // F-2 fix (F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md Section 2): `row` does not
-  // exist in this scope — this threw a ReferenceError whenever `route.failed` was
-  // null/undefined, masked only because the backend mapper always populated `failed`.
   const failed = toNumber(route.failed ?? route.total_failed);
-  const returned = toNumber(route.returned);
-  const delayedCount = toNumber(route.delayed_cash_handover_count);
-  const delayedEligible = toNumber(route.delayed_cash_handover_eligible_count);
-  const passedRateVal = toNumber(route.day_rate ?? route.passed_rate);
-  const monthRateVal = toNumber(route.month_rate);
+  const returned = route.returned === null || route.returned === undefined ? null : toNumber(route.returned);
+  const delayedCount = route.delayed_cash_handover_count === null || route.delayed_cash_handover_count === undefined
+    ? null
+    : toNumber(route.delayed_cash_handover_count);
+  const delayedEligible = route.delayed_cash_handover_eligible_count === null || route.delayed_cash_handover_eligible_count === undefined
+    ? null
+    : toNumber(route.delayed_cash_handover_eligible_count);
+
+  const renderDayMetric = (value) => (value === null ? DASH : value.toLocaleString('vi-VN'));
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs sticky top-4">
@@ -326,19 +376,19 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
           </p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-3 gap-2.5">
         <div className="rounded-lg bg-slate-50 p-2.5 border border-slate-100">
           <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Sản lượng phát</p>
-          <p className="mt-0.5 text-base font-bold text-slate-800 font-mono">{totalBg.toLocaleString('vi-VN')}</p>
+          <p className="mt-0.5 text-base font-bold text-slate-800 font-mono">{renderDayMetric(hasDayData ? totalBg : null)}</p>
         </div>
         <div className="rounded-lg bg-emerald-50/40 p-2.5 border border-emerald-100">
           <p className="text-[11px] uppercase tracking-wider font-semibold text-emerald-800">Đạt chỉ tiêu</p>
-          <p className="mt-0.5 text-base font-bold text-emerald-700 font-mono">{passed.toLocaleString('vi-VN')}</p>
+          <p className="mt-0.5 text-base font-bold text-emerald-700 font-mono">{renderDayMetric(hasDayData ? passed : null)}</p>
         </div>
         <div className="rounded-lg bg-rose-50/50 p-2.5 border border-rose-100">
           <p className="text-[11px] uppercase tracking-wider font-semibold text-rose-800">Không đạt</p>
-          <p className="mt-0.5 text-base font-bold text-rose-700 font-mono">{failed.toLocaleString('vi-VN')}</p>
+          <p className="mt-0.5 text-base font-bold text-rose-700 font-mono">{renderDayMetric(hasDayData ? failed : null)}</p>
         </div>
       </div>
 
@@ -355,11 +405,11 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
         <div className="mt-2.5 grid grid-cols-2 gap-2 text-xs">
           <div className="bg-white/80 p-2 rounded border border-amber-200/50">
             <span className="text-[10px] text-slate-500 block">Số BG vi phạm:</span>
-            <span className="text-sm font-bold text-amber-900 font-mono">{delayedCount.toLocaleString('vi-VN')}</span>
+            <span className="text-sm font-bold text-amber-900 font-mono">{renderDayMetric(delayedCount)}</span>
           </div>
           <div className="bg-white/80 p-2 rounded border border-amber-200/50">
             <span className="text-[10px] text-slate-500 block">Mẫu kiểm tra:</span>
-            <span className="text-sm font-semibold text-slate-700 font-mono">{delayedEligible.toLocaleString('vi-VN')}</span>
+            <span className="text-sm font-semibold text-slate-700 font-mono">{renderDayMetric(delayedEligible)}</span>
           </div>
         </div>
         <p className="mt-2 text-[11px] text-amber-800/90 italic">
@@ -367,7 +417,7 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
         </p>
       </div>
 
-      {returned > 0 && (
+      {returned !== null && returned > 0 && (
         <div className="rounded-lg bg-slate-50 p-3 border border-slate-200/80 text-xs">
           <div className="flex items-center justify-between text-slate-700 font-medium">
             <span>Bưu gửi chuyển hoàn:</span>
@@ -395,12 +445,67 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
   );
 }
 
+// §5.3 Design of Record: "Đối soát phạm vi" strip, one horizontal band under the filter row, a
+// Ngày/Lũy kế tháng toggle to switch which period it explains, always shown (even when the
+// out-of-scope remainder is 0 — that is information, not an empty state). `identity_ok: false`
+// surfaces a visible warning rather than being silently swallowed (F9).
+function ReconciliationStrip({ reconciliation, anchorDate, periodLabel, onTogglePeriod }) {
+  if (!reconciliation) return null;
+  const { bcvhTotal, ranked, pickupAtOffice, nonHue, noRoute, outsideRanked, identityOk } = reconciliation;
+
+  return (
+    <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-blue-600" />
+          <div>
+            <h3 className="text-sm font-bold text-slate-800">Đối soát phạm vi</h3>
+            <p className="text-[11px] text-slate-500">{periodLabel === 'month' ? 'Kỳ lũy kế tháng' : `Ngày ${anchorDate || 'N/A'}`}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-6 text-sm">
+          <div className="flex flex-col">
+            <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Toàn BCVH</span>
+            <span className="font-mono font-bold text-slate-800">{bcvhTotal.toLocaleString('vi-VN')}</span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Trong xếp hạng</span>
+            <span className="font-mono font-bold text-slate-800">{ranked.toLocaleString('vi-VN')}</span>
+          </div>
+          <div className="flex flex-col pl-6 border-l border-blue-200">
+            <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Ngoài xếp hạng</span>
+            <span className="font-mono font-bold text-slate-800">{outsideRanked.toLocaleString('vi-VN')}</span>
+          </div>
+          <button
+            type="button"
+            onClick={onTogglePeriod}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-xs hover:bg-blue-50"
+          >
+            {periodLabel === 'month' ? 'Xem theo ngày' : 'Xem theo lũy kế tháng'}
+          </button>
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] text-slate-500">
+        Ngoài xếp hạng gồm: nhận tại quầy/bưu cục <strong className="text-slate-700">{pickupAtOffice.toLocaleString('vi-VN')}</strong> · mã tuyến ngoài Huế <strong className="text-slate-700">{nonHue.toLocaleString('vi-VN')}</strong> · không có mã tuyến <strong className="text-slate-700">{noRoute.toLocaleString('vi-VN')}</strong>
+      </p>
+      {!identityOk && (
+        <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-rose-700">
+          <AlertTriangle size={13} />
+          Cảnh báo: tổng đối soát không khớp toàn BCVH — cần kiểm tra lại dữ liệu.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function RoutePerformancePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState(null);
+  const [reconciliation, setReconciliation] = useState(null);
+  const [reconciliationPeriod, setReconciliationPeriod] = useState('day');
   const [selectedRouteId, setSelectedRouteId] = useState('');
   const [sortState, setSortState] = useState({ key: 'passed_rate', dir: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
@@ -417,8 +522,6 @@ export default function RoutePerformancePage() {
   const routeType = normalizeRouteTypeFilter(searchParams.get('route_type') || DEFAULT_ROUTE_TYPE_FILTER);
   const onlyFailed = searchParams.get('only_failed') === '1';
 
-  const fromDate = resolveDefaultRouteDate({ param: fromDateParam, metaMaxDate });
-  const toDate = resolveDefaultRouteDate({ param: toDateParam, metaMaxDate });
   const analysisDate = resolveDefaultRouteDate({ param: toDateParam || fromDateParam, metaMaxDate });
 
   const updateParam = (key, value) => {
@@ -484,17 +587,29 @@ export default function RoutePerformancePage() {
       try {
         setStatus('loading');
         setError(null);
-        const result = await f13DashboardClient.getRoutePeriods(bcvhId, analysisDate, routeType);
+        // Design of Record §7.3: the old day-scoped columns (Tổng BG/Đạt/Không đạt/Chuyển
+        // hoàn/delayed-cash/classification/BG-summary) must stay unchanged, sourced from
+        // GET /f13/ranking/route exactly as before; GET /f13/ranking/route/periods only adds
+        // the new period columns and the scope reconciliation. Both calls share the same
+        // bcvh/date/route_type scope, so they merge cleanly by ma_tuyen.
+        const [oldResult, periodsResult] = await Promise.all([
+          f13DashboardClient.getRouteRanking(analysisDate, bcvhId, 1, 1000, sort, order, routeType),
+          f13DashboardClient.getRoutePeriods(bcvhId, analysisDate, routeType),
+        ]);
         if (!mounted) return;
-        const processedData = processRoutePeriods(result.data);
-        const routeRows = processedData.routes || [];
-        setRows(routeRows);
-        setMeta(result.meta || { reconciliation: processedData.reconciliation });
+
+        const oldRows = Array.isArray(oldResult?.data) ? oldResult.data : [];
+        const processedPeriods = processRoutePeriods(periodsResult?.data);
+        const mergedRows = mergeRouteData(oldRows, processedPeriods.routes, routeType);
+
+        setRows(mergedRows);
+        setMeta(oldResult?.meta || null);
+        setReconciliation(processedPeriods.reconciliation || null);
         setCurrentPage(1);
         setSortState({ key: 'passed_rate', dir: 'asc' });
 
-        if (routeRows.length > 0) {
-          const sortedWorst = [...routeRows].sort((a, b) => {
+        if (mergedRows.length > 0) {
+          const sortedWorst = [...mergedRows].sort((a, b) => {
             const rateA = toNumber(a.day_rate ?? a.passed_rate);
             const rateB = toNumber(b.day_rate ?? b.passed_rate);
             if (rateA !== rateB) return rateA - rateB;
@@ -579,7 +694,10 @@ export default function RoutePerformancePage() {
     },
   ];
 
-  const reconciliation = meta?.reconciliation || {};
+  const reconciliationView = useMemo(
+    () => buildReconciliationView(reconciliation?.[reconciliationPeriod]),
+    [reconciliation, reconciliationPeriod]
+  );
 
   if (status === 'loading') {
     return (
@@ -622,7 +740,7 @@ export default function RoutePerformancePage() {
                 aria-label="Ngày phân tích"
               />
             </div>
-            
+
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
               <Filter size={16} className="text-slate-400 shrink-0" />
               <select
@@ -680,28 +798,12 @@ export default function RoutePerformancePage() {
           </div>
         </div>
 
-        {reconciliation?.total_routes !== undefined && (
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4 shadow-sm">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-blue-600" />
-              <h3 className="text-sm font-bold text-slate-800">Đối soát dữ liệu</h3>
-            </div>
-            <div className="flex flex-wrap items-center gap-6 text-sm">
-              <div className="flex flex-col">
-                <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Tổng BG Tuyến</span>
-                <span className="font-mono font-bold text-slate-800">{toNumber(reconciliation.sum_bg_routes).toLocaleString('vi-VN')}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Không thuộc Tuyến</span>
-                <span className="font-mono font-bold text-slate-800">{toNumber(reconciliation.sum_bg_unrouted).toLocaleString('vi-VN')}</span>
-              </div>
-              <div className="flex flex-col pl-6 border-l border-blue-200">
-                <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Tổng BCVH</span>
-                <span className="font-mono font-bold text-slate-800">{toNumber(reconciliation.total_bcvh_bg).toLocaleString('vi-VN')}</span>
-              </div>
-            </div>
-          </div>
-        )}
+        <ReconciliationStrip
+          reconciliation={reconciliationView}
+          anchorDate={analysisDate}
+          periodLabel={reconciliationPeriod}
+          onTogglePeriod={() => setReconciliationPeriod((prev) => (prev === 'day' ? 'month' : 'day'))}
+        />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {executiveKpis.map((item) => (
