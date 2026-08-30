@@ -1921,3 +1921,60 @@ not yet requested. No backend, Evidence, schema, database, or business rule was 
 disclosed URL-parameter item (`analysis_date` written but never read back) remains untouched, out
 of this round's scope. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`;
 `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.
+
+---
+
+## 52. F13-ROUTE-RANKING-PERIOD-01 — Independent Technical Review — **BLOCKED** (2026-08-30)
+
+Append-only delta. Sections 1-51 unchanged. Section 51 left the ticket at `AC-09 REMEDIATED / READY
+FOR INDEPENDENT TECHNICAL REVIEW`. This section records that review's outcome at baseline
+`d138242e`.
+
+Reviewer: `Claude Code` / **`Opus`**, per `DEC-021` and Design of Record §9.5, which names `Opus`
+for independent review of the `AC-05` identity — the ticket's highest-risk requirement. Not the
+executor of any implementation round. A partial deviation from §9.5 is disclosed in checkpoint
+§14 (different model, same session); every claim was re-derived from the real database and the
+shipped source rather than accepted from prior rounds. No product code was changed by this review.
+
+### Result
+
+**`AC-05` is confirmed correct.** The four-group identity `bcvh_total = ranked + pickup_at_office +
+non_hue + no_route` holds for **all 9 real BCVH across both periods**, with `identity_ok: true`
+everywhere, and `bcvh_total` matching both an independently written SQL query and `getBcvhRanking`'s
+own figure (design §5.2's actual requirement) on every BCVH and both periods. Non-degenerate buckets
+were exercised (`535790` month `non_hue = 1`; `531120` month `pickup = 1`), so this is not a
+zeros-everywhere pass. 136 contract checks plus 90 frontend-merge checks passed with 0 failures.
+
+Also independently confirmed: `AC-01`, `AC-02`/`C-01` (one request, 35 routes + 825 daily points,
+no N+1), `AC-03`/`C-02`, `AC-04`/`C-04`, `C-03`, `AC-06`, `AC-07`, `AC-08`, `AC-09b`, `AC-10`,
+`AC-11` (file scope clean; zero §9.4 forbidden files touched), `AC-12` (409/413 with the 4 failures
+proven baseline by construction, `oxlint` clean, build OK), `AC-13` (`fact_f13` 750,283 unchanged —
+zero writes), the §4.2.1 previous-month formula, §4.4 `T-01`, §3.3 rank/delta, and §7.3's
+"nguồn dữ liệu không đổi" (0 drifting routes). Performance: worst end-to-end HTTP **784 ms** against
+the §8 `< 1.5 s` target. Endpoint correctly returns 401 unauthenticated.
+
+**The ticket is nevertheless `BLOCKED` on three findings.** Full evidence in checkpoint §14.3.
+
+| ID | Finding |
+| --- | --- |
+| `ITR-BLOCK-01` | **`AC-14` not met.** The literal string `MTD` remains in two files this ticket authored: `backend/src/services/routePeriodService.js:11` (comment) and `backend/src/repositories/FactBuuGuiRepository.routePeriod.test.js:103` (test name). §3.1 bans it in comments and test names; `AC-14` requires grep = 0. The guard test added in Section 50 greps only the one frontend file, so §12/§13's "AC-14 met" was assessed on that file alone. Runtime impact none; the criterion is binary and unmet |
+| `ITR-BLOCK-02` | **Default sort ranks no-data routes as the worst routes.** `sortableValue()` coerces `null` to `0`, so post-`T-01` routes absent on the anchor day sort as if they scored 0%. Reproduced on real data: BCVH `535470` page 1 shows four all-`—` routes in positions 1-4, pushing the genuinely worst route (14.3%) to position 5; `537015` at position 1; `533140` at positions 2-5 — 5 of 9 BCVH. Contradicts §4.4, which the display honours but the ordering does not. Mis-orders the primary output of a screen whose purpose is "Nhận diện tuyến yếu". No test covers it |
+| `ITR-BLOCK-03` | **§7.5 detail panel missing four mandated deliverables**: the `daily_series` chart (the section's headline requirement), `Hạng`, `days_with_data`/`days_in_period`, and both-period `volume`. `daily_series` is fetched and carried through the merge — 825 objects per request, the very cost `C-01` was written to justify — and then never read |
+
+Non-blocking observations recorded in checkpoint §14.4: `AC-09` only partially met (the Section 51
+caption sits on the panel's day-scoped trio, while the table — the primary surface, and where
+`M-02`'s `volume` actually lives as the `Sản lượng` column — carries no explanation);
+Section 50's route-count evidence for `531600`/`531110`/`531120` is wrong (recorded `0/1/1`, measured
+`1/1/0`); `node --test` silently fails two backend test files without `--experimental-sqlite`
+(pre-existing convention, but it under-reports Phase B1 coverage); and a dead `sort=day_rate`
+parameter sent to an endpoint that does not accept it (harmless, server-side allow-list).
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = INDEPENDENT TECHNICAL REVIEW COMPLETE / BLOCKED — NOT READY FOR PO
+CHECK`. `INDEPENDENT TECHNICAL PASS` is **not** awarded; `READY FOR PO CHECK` is **not** set; no PO
+PASS is self-awarded. The verified `AC-05` result stands and does not need re-proving by a remediation
+round. Remedy scope and executor are a CTO/PO decision and are not self-activated here. No backend,
+frontend, Evidence, schema, database, or business rule was changed by this review.
+`F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME`
+remains separately open per `PROJECT_SNAPSHOT.md`.

@@ -454,3 +454,177 @@ Product Owner's own UI Check (Design of Record §12.2) is requested. No backend,
 database, or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO
 PASS / CLOSED`, not reopened. `AUTO-BACKFILL-RUNTIME` remains separately open per
 `PROJECT_SNAPSHOT.md`.
+
+---
+
+## 14. INDEPENDENT TECHNICAL REVIEW (2026-08-30, baseline `d138242e`) — **BLOCKED**
+
+Reviewer: `Claude Code` / **`Opus`**, per `DEC-021` and Design of Record §9.5 (the ticket's own
+model-discipline clause naming `Opus` for independent review of `AC-05`). Not the executor of
+Phase B1, Phase F1, the Phase I1 remediation, or the AC-09 round.
+
+**Disclosure of a partial deviation from §9.5:** §9.5 asks for a *separate session*. This review ran
+on a different model (`Opus`) but in the *same* session that performed the §13 round, so the reviewer
+carries that round's context rather than starting cold. To compensate, every claim below was
+re-derived from the real database and the shipped source — no prior-round assertion was accepted as
+evidence. Two prior-round claims were in fact found to be wrong (`ITR-OBS-01`, `ITR-OBS-02`). If the
+Product Owner requires strict §9.5 compliance, this review should be repeated in a clean session.
+
+No product code was modified by this review. Verification was read-only.
+
+### 14.1 Method
+
+- Real operational database `backend/src/db/database.sqlite` (750,283 `fact_f13` rows at review time).
+- The **real production service layer** (`routePeriodService`, `F13DashboardService`) and the
+  **real shipped frontend modules** (`routePeriodData.js`, `routeRankingCalculations.js`) driven
+  with the real payloads — not fixtures, not mocks.
+- The **real HTTP endpoint** on a running `node server.js`, authenticated, for wiring/auth/latency.
+- Every reconciliation figure additionally cross-checked against **independent SQL** written for
+  this review, and against **`getBcvhRanking`** itself (design §5.2's actual requirement).
+
+### 14.2 What passed — independently confirmed
+
+| Item | Evidence |
+| --- | --- |
+| `AC-05` **(highest-risk item)** | Identity `bcvh_total = ranked + pickup + non_hue + no_route` holds for **all 9 BCVH x both periods**; `identity_ok: true` everywhere; `bcvh_total` equals independent SQL **and** equals `getBcvhRanking`'s own figure on both periods for all 9 BCVH. Non-trivial buckets exercised: `535790`/month `non_hue = 1`, `531120`/month `pickup = 1` |
+| `AC-01` | Contract keys exactly §6.3 (`anchor_date, bcvh, periods, routes, reconciliation`; route keys `ma_tuyen`…`rank_delta`) |
+| `AC-02`/`C-01` | One request returns 35 routes + **825** `daily_series` points (matches §8's measured 825 exactly); no per-route fetch |
+| `AC-03`/`C-02` | `month` == exact roll-up of `daily_series` — **0 mismatches** over every route of all 9 BCVH |
+| `AC-04`/`C-04` | `rate = null` iff `volume = 0` — **0 violations**, all three periods *and* every `daily_series` element |
+| `C-03` | `day` == the `daily_series` element at `anchor_date`; absent ⇒ `volume 0`/`rate null` — 0 mismatches |
+| `AC-06` | `DEF-01` closed: single `Ngày phân tích` control, `interval` badge gone, `Đang phân tích ngày <anchor>` shown when `from_date != to_date` |
+| `AC-07` | Absent-on-anchor routes: **every** day-scoped field `null` (never `0`) through `mergeRouteData`, while period fields stay real. Verified per-route across all 9 BCVH |
+| `AC-08` | Every route ranked; `days_with_data`/`days_in_period`/`volume` present on every route |
+| `AC-09b` | `rank` sourced from API, independent of table sort |
+| `AC-10` | `f13HeatmapBandCatalog.js` not in the ticket diff — import-only |
+| `AC-11` | Ticket diff (`bfa1d515^..d138242e`) touches **only** the §9.1/§9.2 authorized files. **Zero** §9.4 forbidden files touched. The 4 remaining frontend failures are proven baseline (§14.5) |
+| `AC-12` | Frontend 409/413 (4 baseline); `oxlint` 0 errors/0 warnings on ticket scope; `vite build` 702 modules OK |
+| `AC-13` | `fact_f13` 750,283 before == 750,283 after; `MAX(ngay_do_kiem)` unchanged. **Zero writes** |
+| §4.2.1 | `previous_start`/`previous_end` match the capping formula on all 9 BCVH (incl. the three off-anchor BCVH: `531600`→`2026-07-28`, `531110`→`2026-06-08`, `531120`→`2026-08-24`, proving per-BCVH anchor resolution per §4.1) |
+| §4.4 `T-01` | Route set == month union, verified against independent SQL minus the non-postman catalog, all 9 BCVH |
+| §3.3 | Rank ordering (rate desc, tie volume desc, nulls last), dense from 1, and `delta` arithmetic — 0 violations |
+| §7.3 | `Tỷ lệ ngày` numerically identical to the old endpoint's `passed_rate` ("nguồn dữ liệu không đổi") — **0 drifting routes** across all 9 BCVH |
+| Merge fidelity | Every route present in both endpoints carries the old endpoint's `total_bg`/`passed`/`failed`/`returned`/delayed-cash values **exactly**; KPI `bcvhPassedRate`, `failedRouteCount`, and the only-failed filter all reconcile (`533140`: 62.6%, 29 failing routes, filter returns exactly 29) |
+| Performance | End-to-end **HTTP** worst case **784 ms** (`533140`) vs the §8 `< 1.5 s` target. Service layer worst 890 ms. All 9 BCVH within budget |
+| Auth | Unauthenticated `GET /f13/ranking/route/periods` → **401** |
+
+Totals: **136** contract/AC-05 checks and **90** frontend-merge checks passed with **0** failures.
+
+### 14.3 Findings that BLOCK
+
+#### `ITR-BLOCK-01` — `AC-14` is **not met** (literal, zero-tolerance criterion)
+
+`AC-14` requires `grep` for the string `MTD` over the ticket scope to return **0** results, and §3.1
+bans it "**ở bất kỳ đâu — kể cả tên biến, comment, hay tên test**". Two occurrences remain, both in
+files this ticket itself authored under §9.1:
+
+- `backend/src/services/routePeriodService.js:11` — comment: *"…reuses BCVH Ranking's own same-elapsed-days **MTD** formula"*
+- `backend/src/repositories/FactBuuGuiRepository.routePeriod.test.js:103` — **test name**: *"…reuses the exact BCVH Ranking **MTD** capping formula…"*
+
+Root cause of the miss: the `AC-14` guard test added in the §12 round
+(`routePeriodData.test.js:188-191`) greps **only** `routePeriodData.js`, so it gives false assurance
+while the entire Phase B1 backend scope is unguarded. §12 and §13 both recorded `AC-14` as met; that
+assessment was based on the one frontend file alone.
+
+Runtime impact: none. Acceptance impact: `AC-14` is binary and explicitly grep-verified — it is not met.
+
+#### `ITR-BLOCK-02` — Default sort ranks no-data routes as the worst routes
+
+`sortableValue()` (`routeRankingCalculations.js:17-20`) resolves through `toNumber()`, which maps
+`null` to `0`. The shipped default sort is `{ key: 'passed_rate', dir: 'asc' }` ("kém nhất lên trước").
+After `T-01` the table now contains routes with `passed_rate = null` (absent on the anchor day), so
+those routes sort **as if they scored 0%** and occupy the leading "worst" positions.
+
+Reproduced on real data (`route_type=postman`, anchor `2026-08-27`), page 1 exactly as rendered:
+
+```
+BCVH 535470            Tổng BG   Đạt  Không đạt  Tỷ lệ ngày
+  1  53547024              —     —      —          —      <- no data on anchor day
+  2  53547028              —     —      —          —      <- no data on anchor day
+  3  53547029              —     —      —          —      <- no data on anchor day
+  4  53547033              —     —      —          —      <- no data on anchor day
+  5  53547041             35     5     30       14.3%     <- the genuinely worst route
+```
+
+`537015` shows the same at position 1; `533140` at positions 2-5. Affects 5 of 9 BCVH.
+
+This contradicts §4.4's explicit rule — *"Một tuyến không chạy trong ngày neo **khác hoàn toàn** một
+tuyến chạy và đạt 0%"* — which the **display** honours (`—`, so `AC-07` passes) but the **ordering**
+does not. It is a consequence of this ticket: before `T-01` the table's route set was the anchor-day
+set, so `passed_rate` was never `null` and the pre-existing sort never met one. On the screen whose
+stated purpose is *"Nhận diện tuyến yếu"*, the worst-performer list is mis-ordered — a
+decision-support defect, not a cosmetic one. No test covers it. It would also very likely fail
+`PO-05` (*"Tuyến ít dữ liệu … không gây hiểu nhầm"*).
+
+Secondary, same root cause: `RoutePerformancePage.jsx:619-625` auto-selects the "worst" route using
+the same `null`→`0` coercion, so the detail panel can open on an all-`—` route by default.
+
+#### `ITR-BLOCK-03` — §7.5 detail panel is missing four mandated deliverables
+
+§7.5 is titled *"Panel chi tiết tuyến — **nơi đặt diễn biến ngày**"*. Absent from the panel
+(`RoutePerformancePage.jsx:302-455`, verified by grep — 0 occurrences of each):
+
+1. **The `daily_series` chart** — §7.5's headline requirement (*"biểu đồ đường/cột nhỏ từ
+   `daily_series`, trục ngày 01 → ngày neo. Ngày không có dữ liệu để trống, không nối liền, không nội
+   suy về 0"*). No chart, and no charting import in the page.
+2. **`Hạng`** — §7.5 requires the three period rates *"kèm `Chênh lệch` và `Hạng`"*. `Chênh lệch` is
+   present; `Hạng` is not.
+3. **`days_with_data` / `days_in_period`** — the §7.5 *"Ngữ cảnh độ tin cậy"*.
+4. **`volume` of both periods** — same clause. The panel's `Sản lượng phát` is the *day's* `total_bg`,
+   not the month `volume`.
+
+`daily_series` is fetched, carried through `mergeRouteData` (`routePeriodData.js:107`) and then never
+read — **825 objects per request of dead payload**, whose cost `C-01` was written to justify precisely
+so that the panel could render them. This will fail `PO-03`.
+
+### 14.4 Observations (not blocking)
+
+- `ITR-OBS-01` — **`AC-09` is only partially met.** The §13 caption sits solely in the detail panel,
+  attached to that panel's *day-scoped* trio. The **table** — the primary surface, showing 10 routes
+  at once — carries `Tổng BG`/`Đạt`/`Không đạt` (day) *and* `Sản lượng` (month `volume`) with **no
+  explanation anywhere**. `M-02`'s `volume` is literally the table's `Sản lượng` column, and the
+  day/month mix inside one row is a larger discrepancy than the one the caption explains. The caption
+  is correct where it sits; it is not where `M-02` actually points.
+- `ITR-OBS-02` — **§12's route-count evidence is wrong for three BCVH.** §12 records
+  `531600`/`531110`/`531120` as `0/1/1` (old/periods/absent). Measured: **`1/1/0`** for each — the old
+  endpoint returns 1 route and none are absent on the anchor day. The other six figures in that
+  sentence are correct.
+- `ITR-OBS-03` — `node --test` **silently fails** `FactBuuGuiRepository.routePeriod.test.js` and
+  `FactBuuGuiRepository.overview.test.js` on Node v22.12.0
+  (`ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite`). With `--experimental-sqlite` the ticket's file passes
+  **5/5**. Pre-existing project convention, not introduced here — but any sweep run without the flag
+  under-reports backend coverage, including Phase B1's own "21/21 new tests pass" claim.
+- `ITR-OBS-04` — `RoutePerformancePage.jsx:527` defaults the old endpoint's `sort` parameter to
+  `day_rate`, which is not in that endpoint's allow-list (`total_bg|total_passed|total_failed`), so it
+  silently falls back to `total_bg`. Harmless today only because the page fetches `page_size=1000` and
+  re-sorts client-side. No injection risk (server-side allow-list). Dead and misleading parameter.
+
+### 14.5 Baseline confirmation for the 4 remaining frontend failures
+
+Confirmed genuinely out-of-ticket, by construction rather than by re-run:
+`dashboardFilterOptions.test.js`, `dashboardLanguageSemantics.test.js` (3 tests) and
+`pages/dataImportBackfillQueue.test.js`. Neither those test files nor **any** source file they assert
+against (`DashboardPage.jsx`, `dashboardFilterOptions.js`, `dashboardSemantics.js`,
+`dashboardKpiCards.js`, `qualityTrendlineWindow.js`, `UnifiedCommandSummary.jsx`, the two trendline
+adapters, `BcvhOperationTable.jsx`, `QualityTimelinePanel.jsx`, `SharedLayout.jsx`,
+`DataImportCenter.jsx`, `api/client.js`) appears anywhere in the ticket diff. They therefore cannot be
+regressions of this ticket. `networkMapRemediation.test.js`, flagged as flaking in §12, now passes
+**27/27**.
+
+### 14.6 Verdict
+
+`F13-ROUTE-RANKING-PERIOD-01 = INDEPENDENT TECHNICAL REVIEW COMPLETE / BLOCKED — NOT READY FOR PO CHECK.`
+
+The backend, the contract, the reconciliation mathematics and the merge layer are **correct and
+independently verified on real data**. `AC-05` — the ticket's highest-risk requirement and the express
+reason §9.5 mandated this review — holds on all 9 BCVH across both periods against three independent
+sources. That result stands and does not need to be re-proved by a remediation round.
+
+What blocks is not the mathematics: one binary acceptance criterion is not met (`ITR-BLOCK-01`), one
+behavioural defect materially mis-orders the screen's primary output (`ITR-BLOCK-02`), and one
+mandated UI deliverable is absent while its data is fetched and discarded (`ITR-BLOCK-03`).
+
+`INDEPENDENT TECHNICAL PASS` is **not** awarded and `READY FOR PO CHECK` is **not** set. No PO PASS is
+self-awarded — that authority is the Product Owner's alone and is not reached at this state. Remedy
+scope and executor are a CTO/PO decision, not self-activated by this review. No backend, frontend,
+Evidence, schema, database, or business rule was changed by this review.
