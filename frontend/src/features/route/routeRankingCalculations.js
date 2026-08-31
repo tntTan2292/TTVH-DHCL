@@ -19,6 +19,21 @@ export function sortableValue(row, key) {
   return toNumber(row[key]);
 }
 
+// ITR-BLOCK-02 (F13-ROUTE-RANKING-PERIOD-01 Independent Technical Review): `day_rate`/
+// `passed_rate` are `null` exactly when a route had no activity on the anchor day at all
+// (Design of Record §4.4/T-01) — a route that never ran is "khác hoàn toàn" from one that ran
+// and scored a genuine 0%. `sortableValue()` coercing that `null` to `0` via `toNumber()` made
+// no-data routes sort as if they were the worst-performing routes, ahead of routes that
+// genuinely scored 0% or low-but-real rates. Restricted to the two fields this finding
+// reproduced against ("Tỷ lệ ngày") — other nullable fields (`month_rate`, `previous_month_rate`,
+// `delta`, day-scoped counts like `total_bg`/`passed`/`failed`) are unchanged, out of this
+// remediation's scope.
+const NULLABLE_RATE_SORT_KEYS = new Set(['day_rate', 'passed_rate']);
+
+function isMissingRate(row, key) {
+  return NULLABLE_RATE_SORT_KEYS.has(key) && (row[key] === null || row[key] === undefined);
+}
+
 export function applyRouteFilters(rows, { search = '', onlyFailed = false } = {}) {
   let list = [...rows];
   const query = search.trim().toLowerCase();
@@ -36,6 +51,12 @@ export function sortRouteRows(rows, sortState) {
   const factor = dir === 'asc' ? 1 : -1;
   const key = sortState?.key || 'passed_rate';
   return [...rows].sort((a, b) => {
+    // ITR-BLOCK-02: a route with no data on the anchor day is always last, in both sort
+    // directions — never coerced into competing with real rates via toNumber(null) === 0.
+    const missingA = isMissingRate(a, key);
+    const missingB = isMissingRate(b, key);
+    if (missingA !== missingB) return missingA ? 1 : -1;
+
     const valA = sortableValue(a, key);
     const valB = sortableValue(b, key);
     if (valA !== valB) {

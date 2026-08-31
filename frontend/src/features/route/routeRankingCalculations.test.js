@@ -37,6 +37,59 @@ test('sort by failed reads the total_failed alias when failed is absent', () => 
   assert.deepEqual(sorted.map((r) => r.ma_tuyen), ['Y', 'X']);
 });
 
+// ITR-BLOCK-02 (F13-ROUTE-RANKING-PERIOD-01 Independent Technical Review): a route absent on
+// the anchor day (day_rate/passed_rate: null) must never be sorted ahead of a route that
+// genuinely ran, including one that genuinely scored 0% — Design of Record §4.4 explicitly says
+// the two are "khác hoàn toàn" (completely different). Fixture mirrors the real BCVH 535470
+// reproduction: a genuine 0%, a genuine low-but-real 14.3%, and a no-data route.
+const NULL_RATE_ROWS = [
+  { ma_tuyen: 'NO_DATA', day_rate: null, passed_rate: null, failed: 0 },
+  { ma_tuyen: 'REAL_ZERO', day_rate: 0, passed_rate: 0, failed: 5 },
+  { ma_tuyen: 'REAL_14_3', day_rate: 14.3, passed_rate: 14.3, failed: 30 },
+];
+
+test('ITR-BLOCK-02: default "Tỷ lệ ngày" ASC sort — real 0% first, then real rates ascending, no-data route always last', () => {
+  const sorted = sortRouteRows(NULL_RATE_ROWS, { key: 'day_rate', dir: 'asc' });
+  assert.deepEqual(sorted.map((r) => r.ma_tuyen), ['REAL_ZERO', 'REAL_14_3', 'NO_DATA']);
+});
+
+test('ITR-BLOCK-02: "Tỷ lệ ngày" DESC sort — no-data route still last, never first', () => {
+  const sorted = sortRouteRows(NULL_RATE_ROWS, { key: 'day_rate', dir: 'desc' });
+  assert.deepEqual(sorted.map((r) => r.ma_tuyen), ['REAL_14_3', 'REAL_ZERO', 'NO_DATA']);
+});
+
+test('ITR-BLOCK-02: the same null-last rule applies to passed_rate (the shipped default sort key)', () => {
+  const asc = sortRouteRows(NULL_RATE_ROWS, { key: 'passed_rate', dir: 'asc' });
+  assert.deepEqual(asc.map((r) => r.ma_tuyen), ['REAL_ZERO', 'REAL_14_3', 'NO_DATA']);
+  const desc = sortRouteRows(NULL_RATE_ROWS, { key: 'passed_rate', dir: 'desc' });
+  assert.deepEqual(desc.map((r) => r.ma_tuyen), ['REAL_14_3', 'REAL_ZERO', 'NO_DATA']);
+});
+
+test('ITR-BLOCK-02: multiple no-data routes all sort after every real rate, in both directions', () => {
+  const rows = [
+    { ma_tuyen: 'NO_DATA_1', day_rate: null, failed: 0 },
+    { ma_tuyen: 'REAL_14_3', day_rate: 14.3, failed: 30 },
+    { ma_tuyen: 'NO_DATA_2', day_rate: null, failed: 0 },
+  ];
+  const asc = sortRouteRows(rows, { key: 'day_rate', dir: 'asc' });
+  assert.equal(asc[0].ma_tuyen, 'REAL_14_3');
+  assert.deepEqual(new Set(asc.slice(1).map((r) => r.ma_tuyen)), new Set(['NO_DATA_1', 'NO_DATA_2']));
+  const desc = sortRouteRows(rows, { key: 'day_rate', dir: 'desc' });
+  assert.equal(desc[0].ma_tuyen, 'REAL_14_3');
+  assert.deepEqual(new Set(desc.slice(1).map((r) => r.ma_tuyen)), new Set(['NO_DATA_1', 'NO_DATA_2']));
+});
+
+test('ITR-BLOCK-02: other nullable fields (month_rate) are unaffected — out of this remediation\'s scope', () => {
+  const rows = [
+    { ma_tuyen: 'A', month_rate: null, failed: 0 },
+    { ma_tuyen: 'B', month_rate: 50, failed: 0 },
+  ];
+  // month_rate is not in the null-safe allowlist — null still coerces via toNumber() to 0,
+  // unchanged pre-existing behavior, since this remediation is scoped to "Tỷ lệ ngày" only.
+  const sorted = sortRouteRows(rows, { key: 'month_rate', dir: 'asc' });
+  assert.deepEqual(sorted.map((r) => r.ma_tuyen), ['A', 'B']);
+});
+
 test('KPI formula: BCVH passed rate is Sum(passed) / Sum(total_bg), not an average of per-route rates', () => {
   const stats = computeRouteKpiStats(ROWS);
   // Sum passed = 90+20+1 = 111; Sum total_bg = 100+50+87 = 237

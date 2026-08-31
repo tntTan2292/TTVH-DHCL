@@ -1978,3 +1978,43 @@ round. Remedy scope and executor are a CTO/PO decision and are not self-activate
 frontend, Evidence, schema, database, or business rule was changed by this review.
 `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME`
 remains separately open per `PROJECT_SNAPSHOT.md`.
+
+---
+
+## 53. F13-ROUTE-RANKING-PERIOD-01 — `ITR-BLOCK-02` Remediation (2026-08-31)
+
+Append-only delta. Sections 1-52 unchanged. Section 52 recorded the Independent Technical Review's
+`BLOCKED` verdict on three findings. This section closes exactly one of them, `ITR-BLOCK-02`, at
+baseline `ce3c815f`, per explicit scoped instruction — `ITR-BLOCK-01` and `ITR-BLOCK-03` are
+untouched and remain open.
+
+### Root cause and fix
+
+`sortableValue()` (`routeRankingCalculations.js`) coerced `day_rate`/`passed_rate` through
+`toNumber()`, mapping `null` → `0`. After `T-01` introduced routes absent on the anchor day, the
+shipped default sort ranked those no-data routes as if they scored `0%`, ahead of routes that
+genuinely ran and scored low or `0%` — contradicting §4.4. Fix: `sortRouteRows()` now checks a
+missing-rate flag before applying sort direction, so a no-data route always sorts last regardless
+of ascending/descending; scoped to exactly `day_rate`/`passed_rate` (the two fields the finding
+reproduced against). `RoutePerformancePage.jsx`'s inline "auto-select worst route" logic had the
+same defect and was fixed by reusing the corrected `sortRouteRows()` instead of duplicating the
+rule.
+
+### Test evidence
+
+5 new tests in `routeRankingCalculations.test.js` (25/25 total). Full targeted Route Ranking
+sweep 84/84 (was 79). Full frontend sweep 414/418 — the 4 remaining failures are the exact same
+pre-existing, out-of-ticket failures confirmed by construction in checkpoint §14.5. `oxlint` clean
+on ticket scope; `vite build` succeeds. `git diff --stat`: 3 files touched, 78 lines. Real-data
+re-verification of the exact §14.3 reproduction: BCVH `535470`'s `53547041` (14.3%) now leads page 1
+ahead of its four former no-data leaders; all 6 of the 9 BCVH with any absent-on-anchor route
+verified correct in both sort directions (12 direction/BCVH combinations, 0 violations). Full
+evidence: checkpoint §15.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = ITR-BLOCK-02 REMEDIATED`. The ticket **remains `BLOCKED`** —
+`ITR-BLOCK-01` (`AC-14`) and `ITR-BLOCK-03` (§7.5 panel deliverables) from checkpoint §14.3 are
+still open. This is **not** `READY FOR PO CHECK`; no PO PASS is self-awarded. No backend, Evidence,
+schema, database, or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED
+/ PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.

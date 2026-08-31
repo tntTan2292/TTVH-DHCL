@@ -628,3 +628,85 @@ mandated UI deliverable is absent while its data is fetched and discarded (`ITR-
 self-awarded — that authority is the Product Owner's alone and is not reached at this state. Remedy
 scope and executor are a CTO/PO decision, not self-activated by this review. No backend, frontend,
 Evidence, schema, database, or business rule was changed by this review.
+
+---
+
+## 15. `ITR-BLOCK-02` remediation (2026-08-31, baseline `ce3c815f`)
+
+Scoped strictly to `ITR-BLOCK-02` (checkpoint §14.3) per explicit instruction. `ITR-BLOCK-01`
+(`AC-14` literal `MTD`) and `ITR-BLOCK-03` (§7.5 panel deliverables) are untouched, and the
+non-blocking observations (§14.4) are untouched — the ticket remains `BLOCKED` on those two.
+
+### Root cause and fix
+
+`sortableValue()` (`routeRankingCalculations.js`) resolved `day_rate`/`passed_rate` through
+`toNumber()`, which maps `null` → `0`. Since `T-01` introduced routes absent on the anchor day
+(`day_rate: null`, per §4.4), the shipped default sort (`{ key: 'passed_rate', dir: 'asc' }`,
+"kém nhất lên trước") ranked those no-data routes as if they had scored `0%`, ahead of routes that
+genuinely ran and scored low or `0%`.
+
+Fix, scoped to exactly the two fields the finding reproduced against ("Tỷ lệ ngày" —
+`day_rate`/`passed_rate`; `month_rate`, `previous_month_rate`, `delta`, and every day-scoped count
+column are untouched, confirmed by a dedicated test):
+
+- New `NULLABLE_RATE_SORT_KEYS = new Set(['day_rate', 'passed_rate'])` and `isMissingRate(row, key)`
+  in `routeRankingCalculations.js`.
+- `sortRouteRows()` now checks `isMissingRate` **before** applying the direction factor: if exactly
+  one of the compared rows is a missing-rate route, it always sorts last — independent of
+  ascending/descending. Real values (including a genuine `0%`) sort normally by direction as before.
+- `RoutePerformancePage.jsx`'s inline "auto-select the worst route for the detail panel" logic
+  (lines 619-625 pre-fix) had the exact same `toNumber(a.day_rate ?? a.passed_rate)` defect —
+  the same finding's "secondary, same root" symptom noted in §14.3. Replaced with a call to the
+  now-fixed `sortRouteRows(mergedRows, { key: 'day_rate', dir: 'asc' })`, reusing the single
+  corrected implementation rather than duplicating the null-handling rule a second time.
+
+No change to: `"—"` display (`AC-07`, `DayScopedCell`/`renderDayMetric` untouched), `Hạng` (API-sourced,
+`rank` column untouched), the route set (`T-01`/`mergeRouteData` untouched), pagination
+(`ITEMS_PER_PAGE`/`currentPage` logic untouched), or any other sortable column.
+
+### Test evidence
+
+- New tests in `routeRankingCalculations.test.js` (5): default ASC ("Tỷ lệ ngày") places a real
+  `0%` first, a real `14.3%` next, the no-data route last; DESC keeps the no-data route last (never
+  first); the same rule applies to `passed_rate` (the shipped default key) in both directions;
+  multiple no-data routes all sort after every real rate in both directions; `month_rate` (a
+  different nullable field) is explicitly confirmed **unaffected** — still coerces `null` to `0`,
+  proving the fix's scope boundary.
+- `routeRankingCalculations.test.js`: **25/25 pass** (was 20; 5 new).
+- Full targeted Route Ranking sweep (`src/features/route/*.test.js`, 13 files): **84/84 pass**
+  (was 79; 5 new), zero regressions in the other 79.
+- Full frontend sweep: **414/418 pass**. The 4 remaining failures are the exact same 4
+  pre-existing, unrelated failures confirmed out-of-ticket by construction in checkpoint §14.5
+  (`only canonical values…`, `operation dashboard hides status filter…`, `dashboard page removes
+  shell…`, `pages\dataImportBackfillQueue.test.js`). Zero regressions attributable to this round.
+- `oxlint` on ticket scope (`frontend/src/features/route/`): 0 errors/0 warnings.
+- `vite build`: succeeds, 702 modules.
+- `git diff --stat`: 3 files touched (`RoutePerformancePage.jsx` 10 lines, `routeRankingCalculations.js`
+  21 lines added, its test file 53 lines added) — no other file in the repository touched.
+
+### Real-data verification (LEVEL 1, real DB, read-only, zero writes)
+
+Re-ran the exact `ITR-BLOCK-02` reproduction from checkpoint §14.3 against the real database
+through the real production service layer and the real shipped frontend modules, post-fix:
+
+- **BCVH `535470`**, default sort, page 1: route `53547041` (**14.3%**, the genuinely worst route)
+  now leads at position 1; the four no-data routes (`53547024/28/29/33`) that previously occupied
+  positions 1-4 are no longer on page 1 at all.
+- **BCVH `537015`**: route `53701525` (18.8%) now leads; the one no-data route no longer heads the
+  list.
+- **BCVH `533140`**: route `533140137` (a genuine `0.0%`) now leads at position 1, correctly ahead
+  of routes with real non-zero rates and every no-data route.
+- **All 6 of the 9 BCVH that have any absent-on-anchor-day route** (`533140`, `536250`, `535470`,
+  `537220`, `537015`, `535790`) verified in **both** sort directions: every no-data route sorts
+  strictly after every real-data route, with no exception, across 12 direction/BCVH combinations.
+- `fact_f13` row count unchanged before/after this round (no backend touched; no database
+  interaction beyond the read-only queries already run for verification).
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = ITR-BLOCK-02 REMEDIATED`. The ticket **remains `BLOCKED`** — the
+Independent Technical Review's §14.6 verdict is only partially superseded: `ITR-BLOCK-01` (`AC-14`)
+and `ITR-BLOCK-03` (§7.5 panel deliverables) are still open and untouched by this round. This is
+**not** `READY FOR PO CHECK` and no PO PASS is self-awarded. No backend, Evidence, schema, database,
+or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`;
+`AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.

@@ -616,12 +616,10 @@ export default function RoutePerformancePage() {
         setSortState({ key: 'passed_rate', dir: 'asc' });
 
         if (mergedRows.length > 0) {
-          const sortedWorst = [...mergedRows].sort((a, b) => {
-            const rateA = toNumber(a.day_rate ?? a.passed_rate);
-            const rateB = toNumber(b.day_rate ?? b.passed_rate);
-            if (rateA !== rateB) return rateA - rateB;
-            return toNumber(b.failed ?? b.total_failed) - toNumber(a.failed ?? a.total_failed);
-          });
+          // ITR-BLOCK-02: reuses the same null-safe sortRouteRows() the table itself uses, so a
+          // route absent on the anchor day (day_rate: null) is never auto-selected as the
+          // "worst" route ahead of a route that genuinely ran and scored low or 0%.
+          const sortedWorst = sortRouteRows(mergedRows, { key: 'day_rate', dir: 'asc' });
           setSelectedRouteId((prev) => prev || sortedWorst[0]?.id || sortedWorst[0]?.ma_tuyen || '');
         }
         setStatus('success');
