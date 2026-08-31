@@ -190,6 +190,33 @@ test('AC-14: no reference to the banned term "MTD" anywhere in this module, incl
   assert.doesNotMatch(source, /MTD/);
 });
 
+// ITR-BLOCK-01 remediation: the above test alone was insufficient scope — the Independent
+// Technical Review found the banned term still present in two backend files this ticket
+// authored, which this one file's check could never have caught. Extends coverage to every
+// other frontend file this ticket created or modified (per Design of Record §9.1/§9.2 and
+// `git diff --name-only bfa1d515^..HEAD -- frontend/src`); the backend side has its own,
+// equivalent guard in routePeriodService.test.js.
+test('AC-14: banned term absent from every other frontend file this ticket created or modified, comments and test names included', () => {
+  const ticketFiles = [
+    '../../api/F13DashboardClient.js',
+    './RoutePerformancePage.jsx',
+    './routeRankingCalculations.js',
+    './RoutePerformancePage.blackReturned.test.js',
+    './RoutePerformancePage.dateResolution.test.js',
+    './RoutePerformancePage.delayedCash.test.js',
+    './RoutePerformancePage.delayedCashWidget.test.js',
+    './RoutePerformancePage.volumeReconciliationTooltip.test.js',
+    './routeRankingCalculations.test.js',
+    './routeRankingFilters.test.js',
+    // Not routePeriodData.test.js itself (this file) — its own name/regex above necessarily
+    // quotes the term being checked for.
+  ];
+  for (const relPath of ticketFiles) {
+    const source = fs.readFileSync(new URL(relPath, import.meta.url), 'utf8');
+    assert.doesNotMatch(source, /MTD/, `banned term found in ${relPath}`);
+  }
+});
+
 test('processRoutePeriods: still correctly derives day_rate/month_rate/previous_month_rate as null-safe (regression guard, Phase B1 contract unchanged)', () => {
   const processed = processRoutePeriods({
     anchor_date: '2026-08-27',

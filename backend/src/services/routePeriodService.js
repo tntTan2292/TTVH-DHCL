@@ -8,7 +8,7 @@
 //   - §3.2 M-03 / §6.4 C-04: rate = null if and only if volume = 0. Never render/derive 0.
 //   - §4.4 T-01: the route set is the union over the month-to-anchor window, not the anchor
 //     day's set — a route absent on anchor day still appears, with day.rate = null.
-//   - §4.2.1: "Cùng kỳ tháng trước" reuses BCVH Ranking's own same-elapsed-days MTD formula
+//   - §4.2.1: "Cùng kỳ tháng trước" reuses BCVH Ranking's own same-elapsed-days capping formula
 //     verbatim (implemented in the repository, not here — this file only consumes its output).
 //   - §6.4 C-02: month is a Node-side roll-up of the very daily facts returned by Q2, never a
 //     separate GROUP BY month query — so "month total disagrees with the days shown" is

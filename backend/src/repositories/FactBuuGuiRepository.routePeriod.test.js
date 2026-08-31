@@ -100,7 +100,7 @@ test('getRoutePeriodDailyFacts: per-day-per-route aggregation, Hue/postman scope
     database.close();
 });
 
-test('getRoutePeriodPreviousMonth: reuses the exact BCVH Ranking MTD capping formula and handles the shorter-previous-month edge case', async () => {
+test('getRoutePeriodPreviousMonth: reuses the exact BCVH Ranking same-elapsed-days capping formula and handles the shorter-previous-month edge case', async () => {
     const { database, repository } = loadRepositoryWithInMemoryDb();
     seedSchema(database);
     const insert = database.prepare(`

@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { RoutePeriodService } = require('./routePeriodService');
 
 // Builds a fake repository + queryAnchor pair so the service's roll-up/ranking/reconciliation
@@ -240,4 +242,28 @@ test('AC-05/§5.2: reconciliation identity computed and surfaced per period, inc
     });
     const broken = await brokenService.getRoutePeriods('533140', '2026-08-27', {});
     assert.equal(broken.reconciliation.day.identity_ok, false, 'a genuine mismatch must surface as identity_ok: false, not be silently swallowed');
+});
+
+// AC-14 (ITR-BLOCK-01 remediation): the prior guard scanned only the one frontend file
+// (routePeriodData.js), which is how two backend occurrences of the banned §3.1 acronym survived
+// past it. Scans every backend file this ticket created or modified (per Design of Record §9.1
+// and `git diff --name-only bfa1d515^..HEAD -- backend/src`) — deliberately case-sensitive, same
+// convention as the frontend guard: the pre-existing, frozen BCVH Ranking code's lowercase kind
+// discriminator (untouched, §9.4) is a different, unrelated identifier and must not trip this.
+test('AC-14: banned term absent from every backend file this ticket authored, comments and test names included', () => {
+    const backendRoot = path.join(__dirname, '..', '..');
+    const ticketFiles = [
+        'src/services/routePeriodService.js',
+        'src/repositories/FactBuuGuiRepository.js',
+        'src/repositories/FactBuuGuiRepository.routePeriod.test.js',
+        'src/controllers/DashboardController.js',
+        'src/controllers/DashboardController.routePeriods.test.js',
+        'src/routes/f13Routes.js',
+        // Not routePeriodService.test.js itself — this guard's own name/regex necessarily quotes
+        // the term, exactly like the frontend guard does for routePeriodData.test.js.
+    ];
+    for (const relPath of ticketFiles) {
+        const source = fs.readFileSync(path.join(backendRoot, relPath), 'utf8');
+        assert.doesNotMatch(source, /MTD/, `banned term found in ${relPath}`);
+    }
 });

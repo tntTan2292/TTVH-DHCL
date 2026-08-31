@@ -512,7 +512,7 @@ class FactBuuGuiRepository {
     // Q3 of the design's four fixed queries. Same route scope as getRoutePeriodDailyFacts(),
     // aggregated over "cùng kỳ tháng trước" (same elapsed days as the current month-to-anchor
     // window, capped at the previous month's last day) — computed via the exact date-capping
-    // formula BCVH Ranking's own MTD aggregate uses (_getBcvhOverviewAggregate('mtd', ...)),
+    // formula BCVH Ranking's own same-elapsed-days aggregate uses (_getBcvhOverviewAggregate('mtd', ...)),
     // reused verbatim per the Product Owner's D-OPEN-01 decision (Design of Record R1 §4.2.1).
     // The LEFT JOIN keeps the single-row `periods` CTE alive even when zero routes have data in
     // that window, so previous_start/previous_end are always resolvable; callers must drop the

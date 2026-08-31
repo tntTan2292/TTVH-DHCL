@@ -710,3 +710,104 @@ and `ITR-BLOCK-03` (§7.5 panel deliverables) are still open and untouched by th
 **not** `READY FOR PO CHECK` and no PO PASS is self-awarded. No backend, Evidence, schema, database,
 or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`;
 `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.
+
+---
+
+## 16. `ITR-BLOCK-01` remediation (2026-08-31, baseline `0a64bb34`)
+
+Scoped strictly to `ITR-BLOCK-01` (checkpoint §14.3) per explicit instruction. `ITR-BLOCK-03`
+(§7.5 panel deliverables) and the non-blocking observations (§14.4) are untouched — the ticket
+remains `BLOCKED` on `ITR-BLOCK-03` alone.
+
+### What was wrong, and a third occurrence the review's own list did not name
+
+§14.3 named two occurrences. Re-scanning the entire ticket-authored file set (backend and
+frontend, per the actual `git diff --name-only bfa1d515^..0a64bb34` file list — not a guess)
+found a **third**, previously unreported, literal `MTD` in ticket-authored code:
+
+| File | Line | Kind |
+| --- | --- | --- |
+| `backend/src/services/routePeriodService.js` | 11 | comment (named in §14.3) |
+| `backend/src/repositories/FactBuuGuiRepository.routePeriod.test.js` | 103 | test name (named in §14.3) |
+| `backend/src/repositories/FactBuuGuiRepository.js` | 515 | comment, **newly found** — inside `getRoutePeriodPreviousMonth()`, this ticket's own §9.1 addition (confirmed via `git diff bfa1d515^..0a64bb34 -- backend/src/repositories/FactBuuGuiRepository.js`, a single hunk starting at line 456; lines 209-210/288, the pre-existing frozen `getBcvhOverviewMtd()`/`kind === 'mtd'` code, are untouched and outside that hunk) |
+
+All three were prose describing that this ticket's §4.2.1 previous-month formula reuses BCVH
+Ranking's own same-elapsed-days capping formula — reworded to drop the banned acronym without
+changing the description's accuracy, logic, formula, or behavior:
+
+- `routePeriodService.js:11` — *"...reuses BCVH Ranking's own same-elapsed-days ~~MTD~~ formula"*
+  → *"...reuses BCVH Ranking's own same-elapsed-days capping formula"*.
+- `FactBuuGuiRepository.js:515` — *"...BCVH Ranking's own ~~MTD~~ aggregate uses"* → *"...BCVH
+  Ranking's own same-elapsed-days aggregate uses"*. The citation to the actual pre-existing
+  method call, `_getBcvhOverviewAggregate('mtd', ...)`, is kept verbatim for traceability — it is
+  quoting real, frozen, untouched code's actual lowercase parameter (§9.4), not new ticket
+  vocabulary, and does not match the case-sensitive `/MTD/` the guard checks for.
+- `FactBuuGuiRepository.routePeriod.test.js:103` — *"...reuses the exact BCVH Ranking ~~MTD~~
+  capping formula..."* → *"...reuses the exact BCVH Ranking same-elapsed-days capping
+  formula..."*.
+
+No SQL, date-window logic, contract field, or test assertion body changed — only prose.
+
+### Guard test expanded to the ticket's actual full scope
+
+The original `AC-14` guard (`routePeriodData.test.js`, added in Section 50) scanned only
+`routePeriodData.js` — a single frontend file — which is exactly how the review found two
+backend violations it could never have caught. Two new guard tests replace that single-file
+scope with the ticket's real footprint, each hardcoded against the actual file list from
+`git diff --name-only bfa1d515^..HEAD` (not inferred), so it cannot silently narrow again:
+
+- **Backend** (`routePeriodService.test.js`, new test): scans `routePeriodService.js`,
+  `FactBuuGuiRepository.js` (whole file — safe, since the pre-existing frozen `'mtd'` literal is
+  lowercase and the check is case-sensitive), `FactBuuGuiRepository.routePeriod.test.js`,
+  `DashboardController.js`, `DashboardController.routePeriods.test.js`, `f13Routes.js`.
+- **Frontend** (`routePeriodData.test.js`, new test): scans `F13DashboardClient.js`,
+  `RoutePerformancePage.jsx`, `routeRankingCalculations.js`, and every ticket-authored test file
+  (`RoutePerformancePage.blackReturned/dateResolution/delayedCash/delayedCashWidget/
+  volumeReconciliationTooltip.test.js`, `routeRankingCalculations.test.js`,
+  `routeRankingFilters.test.js`).
+
+Both guards deliberately keep the pre-existing convention's case sensitivity (`/MTD/`, uppercase
+only) — the design's §3.1 ban is the acronym in prose/identifiers, not the lowercase `'mtd'` kind
+string the frozen, out-of-scope BCVH Ranking code already used before this ticket existed.
+
+Each guard test excludes only its own file (the guard's own test name/regex necessarily quotes
+the banned term to say what it checks for — the same pre-existing exception the original
+`routePeriodData.test.js` guard already relied on). `rg MTD` over the full ticket-authored file
+list, excluding those two self-referential lines, returns **0** results.
+
+### Test evidence
+
+- `routePeriodData.test.js`: **17/17 pass** (was 15; 1 new guard test).
+- `routePeriodService.test.js`: **13/13 pass** (was 12; 1 new guard test).
+- `FactBuuGuiRepository.routePeriod.test.js` + `DashboardController.routePeriods.test.js` (need
+  `--experimental-sqlite`, pre-existing project convention — `ITR-OBS-03`): **9/9 pass**,
+  including the renamed test at its original assertion count.
+- Full targeted Route Ranking sweep (`frontend/src/features/route/*.test.js`, 13 files):
+  **85/85 pass** (was 84; 1 new).
+- Full frontend sweep: **415/419 pass**. The 4 remaining failures are the exact same
+  pre-existing, out-of-ticket failures already confirmed by construction in §14.5
+  (`only canonical values…`, `operation dashboard hides status filter…`, `dashboard page removes
+  shell…`, `pages\dataImportBackfillQueue.test.js`). Zero regressions.
+- Backend regression: `FactBuuGuiRepository.routeRanking.test.js` (unrelated to this ticket, must
+  not regress) + all four ticket-scope backend test files: **26/26 pass**. Live-server
+  integration test `DashboardController.routeDelayedCash.integration.test.js`: **3/3 pass**
+  against a real running backend.
+- Live HTTP spot-check: `GET /f13/ranking/route/periods?bcvh=533140` still returns `200`, 35
+  routes, `identity_ok: true` on both periods — contract and `AC-05` unaffected by this
+  comment-only remediation.
+- `oxlint` on ticket scope (`frontend/src/features/route/`, `F13DashboardClient.js`): 0
+  errors/0 warnings. `vite build`: succeeds, 702 modules.
+- `fact_f13`: 750,283 rows before and after — zero database writes. No backend lint tooling is
+  configured in this repository (unchanged from prior rounds).
+- `git diff --stat`: 5 files touched, 56 insertions / 3 deletions — 3 one-line comment/test-name
+  rewordings, 2 new guard tests. Nothing else in the repository touched.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = ITR-BLOCK-01 REMEDIATED`. The ticket **remains `BLOCKED`** on
+`ITR-BLOCK-03` alone (§7.5 detail panel missing four mandated deliverables) — untouched by this
+round, per explicit scope instruction. This is **not** `READY FOR PO CHECK` and no PO PASS is
+self-awarded. No API contract, UI, database, schema, or business rule was changed. The
+non-blocking observations from §14.4 remain unaddressed, as instructed.
+`F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME`
+remains separately open per `PROJECT_SNAPSHOT.md`.
