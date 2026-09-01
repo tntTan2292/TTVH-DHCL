@@ -884,3 +884,153 @@ round clears. The non-blocking observations from §14.4 remain unaddressed, out 
 product code, database, schema, or business rule was changed by this correction — it is a
 documentation-only governance fix. Full record: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md`
 Section 55.
+
+## 19. INDEPENDENT RE-REVIEW of the `ITR-BLOCK-03` remediation (2026-09-01, implementation commit `3ff278f0`) — **BLOCKED**
+
+Reviewer: `Claude Code` / **`Opus`**, per `DEC-021` and Design of Record §9.5. Fresh session, started
+from `README_AI.md`; no conclusion from the prior `Opus` session (§14) or from §17/§18 was accepted as
+evidence. Read-only: no product code, test, database, schema, or business rule was modified by this
+review. Remote baseline at review start `26650d35`; reviewed implementation commit `3ff278f0`.
+
+Scope: the four Design of Record §7.5 panel deliverables that `ITR-BLOCK-03` covers, plus the
+regression surface around them. `ITR-BLOCK-01` (§16) and `ITR-BLOCK-02` (§15) were not re-opened.
+
+### 19.1 Method
+
+- Real operational database `backend/src/db/database.sqlite` (`fact_f13` = 750,283 rows).
+- The **real production service** `routePeriodService.getRoutePeriods('533140')` driven directly
+  against that database — not fixtures, not mocks — to obtain the actual `daily_series` the panel
+  consumes.
+- The **real shipped frontend modules** `routePeriodData.js` (`processRoutePeriods`,
+  `mergeRouteData`) and the `RouteSelectedPanel` source at `3ff278f0`.
+- Real backend process started once (PID 22924) and stopped; `fact_f13` = 750,283 rows and
+  `MAX(ngay_do_kiem) = 2026-08-27` **before and after** — zero database writes.
+
+### 19.2 Blocking finding — `ITR2-BLOCK-01`: missing days do **not** create a gap; the line is drawn straight through them
+
+Design of Record §7.5 requires: *"biểu đồ đường/cột nhỏ từ `daily_series`, trục ngày `01 → ngày neo`.
+Ngày không có dữ liệu để **trống**, không nối liền, không nội suy về 0."* The first two clauses do not
+hold at `3ff278f0`, and the axis-range clause does not hold either.
+
+**The input data contains no gap markers at all.** `daily_series` is built at
+`backend/src/services/routePeriodService.js:247` from `entry.days`, which is populated only from rows
+that `Q2` actually returned (`routePeriodService.js:184`) — a day with no `fact_f13` row is **omitted
+from the array entirely**, never emitted as a `null`-rate point. Measured on the real payload for
+BCVH `533140`, anchor `2026-08-27`, `route_type=postman`:
+
+```
+routes 35 | days_in_period 27
+routes whose daily_series is shorter than days_in_period: 18 / 35
+daily_series points total: 825 | of which rate === null: 0
+```
+
+Sample real route `533140137` — `days_with_data 21 / days_in_period 27`, series dates:
+`02 03 04 05 06 07 08 11 12 13 14 16 18 19 20 22 23 24 25 26 27`
+(days `01, 09, 10, 15, 17, 21` are absent from the array).
+
+**The frontend does not restore the gaps.** `RoutePerformancePage.jsx:304-310` maps the series
+one-to-one and emits `rate: null` only when the backend already sent `rate === null`:
+
+```js
+return route.daily_series.map(d => ({
+  date: (d.date || '').split('-').pop(),
+  rate: d.rate !== null ? Number(d.rate) : null
+}));
+```
+
+Applying that exact transform to the real `533140137` series yields **21 points, 0 of them null**.
+
+**Consequences — the §7.5 clauses that fail:**
+
+1. `connectNulls={false}` on the `<Line>` is **unreachable** for this data — no `null` value ever
+   reaches it, so it cannot produce a gap. The reviewer was explicitly instructed not to accept the
+   presence of `connectNulls={false}` as evidence, and on the real input it is dead code.
+2. `<XAxis dataKey="date">` is a **categorical** axis over only the days present. The 21 present days
+   are spaced evenly, so the segment `08 → 11` is drawn identically to `02 → 03`: the line is
+   **nối liền** across the missing days and the missing days are invisible rather than **trống**.
+3. The axis runs from the first day that has data, not from `01`. For `533140137` it starts at `02`;
+   any route first appearing mid-month starts later still. §7.5's `trục ngày 01 → ngày neo` is not met.
+
+`không nội suy về 0` is the one sub-clause satisfied — nothing is coerced to 0.
+
+Impact: a route that stopped delivering for several days reads as an unbroken series, and the
+horizontal position of every point after a gap is wrong. This is a data-truthfulness defect on the
+exact deliverable `ITR-BLOCK-03` was raised for, not a cosmetic one.
+
+### 19.3 Blocking finding — `ITR2-BLOCK-02`: no automated test locks any of the four §7.5 deliverables
+
+Per instruction the reviewer did not add tests. Searched the whole ticket test surface for coverage of
+the panel deliverables:
+
+- `frontend/src/features/route/routePeriodData.test.js` (17 tests) covers only the data helpers —
+  `processRoutePeriods`, `mergeRouteData`, formatters, the `AC-14` grep guard. Its fixtures carry a
+  `daily_series` of exactly one element and one of `[]`; **no fixture exercises a gapped series**.
+- No test file references `RouteSelectedPanel`, the chart, `chartData`, `connectNulls`, `Hạng`,
+  `days_with_data` rendering, or `month_volume` / `previous_month.volume` rendering.
+- The four deliverables added at `3ff278f0` therefore have **zero** regression protection; the
+  commit added product code and no test.
+
+The two findings are consistent with each other: had a gapped-series fixture existed,
+`ITR2-BLOCK-01` would have been caught before the handoff.
+
+### 19.4 What independently PASSED
+
+| Deliverable / criterion | Evidence |
+| --- | --- |
+| `Hạng` (rank) displays `route.rank` | `route.rank` originates in `rankByField(routes,'month','rank')` (service), survives `processRoutePeriods` (`rank: r.rank ?? null`) and `mergeRouteData` (`rank: p.rank`), and the panel renders `Hạng {route.rank ?? DASH}` — the API value, not a table-position artifact. Real payload: 35 routes, all ranked; rank 1 = `533140131` at `88.0%` |
+| `days_with_data` / `days_in_period` | Panel renders `{route.month_days_with_data}/{route.month_days_in_period} ngày`; both are real API values carried through both frontend layers. Real payload cross-check: `533140131` = `26/27`, `533140137` = `21/27` — matches the service's `days_with_data: entry.days.length` and `days_in_period: monthDaysElapsed` |
+| Month volume against contract | `route.month_volume` = `r.month.volume`; `533140131` month `volume 200 / passed 176 / rate 88` — matches §6.3 |
+| Previous-month volume against contract | `route.previous_month?.volume` resolves: `mergeRouteData` carries the nested object through verbatim (`previous_month: p.previous_month`). Real payload `533140131` previous `volume 154 / passed 153 / rate 99.3506`, `days_in_period 27` — matches §6.3 and §4.2.1 |
+| Per-point chart values | Each rendered point's `rate` is the service's `nullableRate(passed, volume)` for that day, unmodified. The values are right; only their placement and the missing-day gaps are wrong (`ITR2-BLOCK-01`) |
+| Day metrics, delayed-cash, Evidence link, `AC-09` tooltip | No regression. `3ff278f0` touches only `RouteSelectedPanel`'s period cards and adds the chart; `buildViolationEvidenceLink`, the day-metric `null → "—"` path, and the delayed-cash block are unchanged. Targeted suite `src/features/route/*.test.js` **85/85 pass**, including `volumeReconciliationTooltip`, `delayedCash`, `delayedCashWidget`, `dateResolution`, `blackReturned` |
+| Hook ordering | `useMemo` is called before the `if (!route)` early return — no conditional-hook defect |
+| `recharts` dependency | `recharts ^3.9.0` is a real `frontend/package.json` dependency, not an unresolved import |
+
+### 19.5 Validation commands re-run by this review
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Targeted Route Ranking | `node --test src/features/route/*.test.js` | **85/85 pass** |
+| Frontend `routePeriodData` | `node --test src/features/route/routePeriodData.test.js` | **17/17 pass** |
+| Backend repository | `node --experimental-sqlite --test src/repositories/FactBuuGuiRepository.routePeriod.test.js` | **5/5 pass** |
+| Backend service | `node --experimental-sqlite --test src/services/routePeriodService.test.js` | **13/13 pass** |
+| Full frontend sweep | `node --test` over every `src/**/*.test.js` | **415 pass / 4 fail / 419** — the 4 are the known out-of-ticket baseline failures (`only canonical values remain selectable and preserved as ma_bcvh`, `operation dashboard hides status filter and shows metadata error controls`, `dashboard page removes shell and placeholder wording from visible surfaces`, `src/pages/dataImportBackfillQueue.test.js`). **Zero regression** |
+| Lint | `npx oxlint src/features/route/` | 0 errors / 0 warnings |
+| Build | `npm run build` | succeeds |
+| Database integrity | `SELECT COUNT(*), MAX(ngay_do_kiem) FROM fact_f13` before and after the runtime session | `750283` / `2026-08-27` both times — **zero writes** |
+
+### 19.6 Non-blocking observations
+
+- `ITR2-OBS-01` — §7.5's *"`days_with_data / days_in_period` và `volume` của cả hai kỳ"* is delivered
+  for the month period only; `previous_month.days_with_data` / `days_in_period` are in the payload but
+  not on screen. The clause is ambiguous about whether the days context applies to both periods, so
+  this is a PO/CTO reading rather than a technical defect. Not treated as blocking.
+- `ITR2-OBS-02` — `formatPeriodVolume(null | undefined)` returns `'0'`, not `DASH`. Harmless today
+  (`previous_month` is always present in the real payload) but it is the one formatter that can
+  fabricate a zero, against the ticket's own `null ≠ 0` discipline.
+- `ITR2-OBS-03` — the `days_with_data/days_in_period` label sits inside the `Chênh lệch` card rather
+  than next to the month rate it qualifies. Presentation only; PO scope.
+- The §14.4 observations from the original review remain unaddressed and out of scope.
+
+### 19.7 Not verified by this review
+
+The browser-rendered desktop/mobile appearance of the panel was **not** verified. The application
+requires an interactive login and this reviewer does not enter credentials; the runtime check was
+therefore performed against the real service layer and the real database instead. No structural
+layout regression is visible in the source — the panel remains one `xl:col-span-1` column with the
+same `grid-cols-2` card grid, and the chart is a `h-32 w-full` `ResponsiveContainer` — but that is a
+code reading, not a rendered-layout PASS, and Design §12.2 `PO-08` (Desktop + mobile) is Product Owner
+scope regardless.
+
+### 19.8 Verdict
+
+`F13-ROUTE-RANKING-PERIOD-01 = INDEPENDENT RE-REVIEW **BLOCKED**` at implementation commit
+`3ff278f0`. Two blocking findings: `ITR2-BLOCK-01` (the `daily_series` chart joins the line across
+missing days, hides them, and does not start the axis at day `01` — Design §7.5's core requirement for
+this deliverable is not met on real data) and `ITR2-BLOCK-02` (no automated test locks any of the four
+§7.5 deliverables). `ITR-BLOCK-03` is therefore **not** closed; the three deliverables it also covered
+(`Hạng`, `days_with_data/days_in_period`, both-period volume) are correct and are not re-opened.
+`ITR-BLOCK-01` and `ITR-BLOCK-02` remain closed and were not disturbed. This is not
+`READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI Check remains not reachable and no
+PO PASS is awarded. Remedy scope and executor are a CTO/PO decision — this review made no product
+change.

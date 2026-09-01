@@ -515,3 +515,19 @@ but none has been through an Independent Technical Review yet. This is **not**
 §12.2) remains not reachable. No product code, database, schema, or business rule was changed by
 this correction. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED` and is not
 reopened. `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.
+
+## F13-ROUTE-RANKING-PERIOD-01 Independent Re-Review of ITR-BLOCK-03 - 2026-09-01
+
+Supersedes the section above for onboarding purposes without deleting it: the Independent Technical
+Re-Review that section said the ticket was waiting for has now been performed, and it returned
+**BLOCKED**.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md` | Checkpoint | Section 19 (appended) is the Independent Re-Review of the `ITR-BLOCK-03` remediation at implementation commit `3ff278f0` (`Claude Code`/`Opus`, fresh session, read-only). Records the method, the two blocking findings — `ITR2-BLOCK-01` (the `daily_series` chart joins the line across missing days, hides them, and does not start the axis at `01`, proven on the real database: 18/35 routes with missing days, 825 series points, 0 with `rate = null`) and `ITR2-BLOCK-02` (no automated test locks any of the four Design §7.5 panel deliverables) — what independently passed (`Hạng`, `days_with_data`/`days_in_period`, both-period volume, no regression), the re-run validation commands, three non-blocking observations, and what the review did not verify. Sections 1-18 stand unchanged. | L2/L3 | Current Required Reading | Mandatory before any further work on this ticket, including any remediation of the two findings. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 56 (appended) records the Independent Re-Review and its `BLOCKED` outcome, re-opening `ITR-BLOCK-03` on `ITR2-BLOCK-01` and `ITR2-BLOCK-02` while leaving `ITR-BLOCK-01` (Section 54) and `ITR-BLOCK-02` (Section 53) closed. Sections 1-55 stand unchanged as historical record. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-RANKING-PERIOD-01 = INDEPENDENT RE-REVIEW BLOCKED` at implementation commit
+`3ff278f0`. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI Check
+remains not reachable and no PO PASS is awarded. Remedy scope and executor are a CTO/PO decision and
+are not self-activated.

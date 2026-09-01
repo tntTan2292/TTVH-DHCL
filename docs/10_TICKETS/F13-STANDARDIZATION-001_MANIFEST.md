@@ -2123,3 +2123,68 @@ non-blocking observations from checkpoint §14.4 remain unaddressed, out of scop
 UI, database, schema, or business rule was changed by this correction. `F13-BCVH-RANKING-OVERVIEW-01`
 remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME` remains separately open per
 `PROJECT_SNAPSHOT.md`.
+
+## 56. F13-ROUTE-RANKING-PERIOD-01 — Independent Re-Review of `ITR-BLOCK-03` — **BLOCKED** (2026-09-01)
+
+Append-only delta. Sections 1-55 unchanged. Read-only review — no product code, test, database,
+schema, or business rule was modified. Reviewer: `Claude Code` / `Opus`, fresh session started from
+`README_AI.md`, per `DEC-021` and Design of Record §9.5; no conclusion from the earlier `Opus` review
+(Section 52) or from the remediation's own record (Section 55 / checkpoint §17-§18) was accepted as
+evidence. Remote baseline at review start `26650d35`; reviewed implementation commit `3ff278f0`.
+
+### Outcome
+
+`ITR-BLOCK-03` is **not** closed. Two blocking findings; full evidence in checkpoint Section 19.
+
+- `ITR2-BLOCK-01` — **The `daily_series` chart does not leave missing days blank.** Design §7.5
+  requires the day axis to run `01 → ngày neo` with days that have no data left **trống**, not joined
+  and not interpolated to 0. On real data none of that holds. The backend omits a day with no
+  `fact_f13` row from `daily_series` entirely rather than emitting a `null`-rate point
+  (`routePeriodService.js:184` / `:247`), and the frontend maps the array one-to-one
+  (`RoutePerformancePage.jsx:304-310`). Measured against the real operational database, BCVH
+  `533140`, anchor `2026-08-27`: 18 of 35 routes have fewer series points than `days_in_period`, and
+  of all 825 points **zero** have `rate === null`. Route `533140137` carries 21 points for 27 days
+  (days `01, 09, 10, 15, 17, 21` simply absent). Consequences: `connectNulls={false}` is unreachable
+  dead code for this data; the categorical `XAxis` spaces the 21 present days evenly so the line is
+  drawn straight across every missing day and the gaps are invisible; and the axis starts at the
+  first day with data, not at `01`. A route that stopped delivering for several days reads as an
+  unbroken series and every point after a gap sits at the wrong horizontal position.
+- `ITR2-BLOCK-02` — **No automated test locks any of the four §7.5 deliverables.** Commit `3ff278f0`
+  added product code and no test. `routePeriodData.test.js` covers only the data helpers, and its
+  fixtures carry a one-element and an empty `daily_series` — no gapped series anywhere. No test file
+  references `RouteSelectedPanel`, the chart, `Hạng`, the `days_with_data` rendering, or the
+  period-volume rendering. Reported as a finding only; the reviewer added no tests, per instruction.
+
+### What the review independently confirmed as correct
+
+The other three `ITR-BLOCK-03` deliverables are right and are **not** re-opened: `Hạng` renders the
+API's own `route.rank` (traced service → `processRoutePeriods` → `mergeRouteData` → panel);
+`days_with_data`/`days_in_period` render real API values (`533140131` = `26/27`, `533140137` = `21/27`);
+and both periods' volume matches the §6.3 contract (`533140131` month `volume 200`, previous
+`volume 154 / rate 99.3506`, `days_in_period 27`, consistent with §4.2.1). The chart's per-point rate
+values are the service's own `nullableRate` output, unmodified — only their placement is wrong. No
+regression on the day metrics, delayed-cash block, Evidence drill-down, or the `AC-09` tooltip.
+
+Validation re-run by the review: targeted Route Ranking suite 85/85; `routePeriodData` 17/17; backend
+repository 5/5 and service 13/13 (both `--experimental-sqlite`); full frontend sweep 415/419 with the
+same four known out-of-ticket baseline failures and zero regression; `oxlint` 0 errors/0 warnings;
+`vite build` succeeds. Real backend started once and stopped — `fact_f13` 750,283 rows and
+`MAX(ngay_do_kiem) = 2026-08-27` before and after, **zero database writes**.
+
+Not verified: the browser-rendered desktop/mobile appearance of the panel. The application requires an
+interactive login and this reviewer does not enter credentials, so the runtime check ran against the
+real service layer and the real database instead. Design §12.2 `PO-08` remains Product Owner scope.
+
+Non-blocking observations recorded in checkpoint §19.6 (`ITR2-OBS-01` previous-month days context not
+displayed; `ITR2-OBS-02` `formatPeriodVolume` returns `'0'` for a null volume; `ITR2-OBS-03` label
+placement). The Section 52 §14.4 observations remain unaddressed, out of scope.
+
+### Governance state
+
+`F13-ROUTE-RANKING-PERIOD-01 = INDEPENDENT RE-REVIEW BLOCKED` at implementation commit `3ff278f0`.
+`ITR-BLOCK-01` (Section 54) and `ITR-BLOCK-02` (Section 53) remain closed and were not disturbed;
+`ITR-BLOCK-03` reverts to open with the two findings above. This is **not** `READY FOR PO CHECK`; the
+Design of Record §12.2 Product Owner UI Check remains not reachable and no PO PASS is awarded. Remedy
+scope and executor are a CTO/PO decision — not self-activated. `F13-BCVH-RANKING-OVERVIEW-01` remains
+`COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME` remains separately open per
+`PROJECT_SNAPSHOT.md`.
