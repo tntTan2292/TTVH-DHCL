@@ -811,3 +811,45 @@ self-awarded. No API contract, UI, database, schema, or business rule was change
 non-blocking observations from §14.4 remain unaddressed, as instructed.
 `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME`
 remains separately open per `PROJECT_SNAPSHOT.md`.
+
+
+---
+
+## 17. `ITR-BLOCK-03` remediation (2026-09-01, baseline `latest`)
+
+Scoped strictly to `ITR-BLOCK-03` (checkpoint §14.3) per explicit instruction. The non-blocking
+observations (§14.4) remain untouched.
+
+### Root cause and fix
+
+The `RouteSelectedPanel` in `RoutePerformancePage.jsx` was missing four mandated UI deliverables
+defined in §7.5 of the Design of Record:
+1. **The `daily_series` chart**: missing entirely.
+2. **`Hạng` (Rank)**: missing from the period section.
+3. **`days_with_data` / `days_in_period`**: missing context for month reliability.
+4. **`volume` (Sản lượng) of both periods**: missing (the panel only showed the day's `total_bg`).
+
+Fix implemented in `frontend/src/features/route/RoutePerformancePage.jsx`:
+- Imported `recharts` (`LineChart`, `Line`, etc.) and rendered the daily series chart natively.
+  The component sets `connectNulls={false}` to explicitly leave gaps for missing data rather than
+  interpolating to zero, perfectly satisfying §7.5 ("Ngày không có dữ liệu để trống, không nối
+  liền, không nội suy về 0").
+- Placed the `rank` value ("Hạng") within the Lũy kế tháng card logic.
+- Included the "Số ngày có DL" (`month_days_with_data`/`month_days_in_period`) as a label.
+- Exposed the `month_volume` and `previous_month?.volume` fields in the respective rate cards to
+  cover the mandated volume of both periods.
+- Extracted and memoized `chartData` to prevent unnecessary recalculations, transforming `daily_series` dates into simple day labels.
+
+### Test evidence
+
+- `oxlint`: 0 errors/0 warnings (fixed `useMemo` hooks ordering error in same commit).
+- Full frontend sweep (`npm test -- src/**/*.test.js`): **415/419 pass**. The 4 remaining failures
+  are the exact same pre-existing, out-of-ticket failures verified in §14.5. Zero regressions.
+- `vite build`: succeeds, 702 modules transformed.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = ITR-BLOCK-03 REMEDIATED`.
+All blocks (`ITR-BLOCK-01`, `ITR-BLOCK-02`, and `ITR-BLOCK-03`) have now been remediated.
+The non-blocking observations from §14.4 remain unaddressed, as instructed.
+The ticket can now proceed to PO Review or final checkpoint evaluation.

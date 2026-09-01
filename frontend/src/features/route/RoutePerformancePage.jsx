@@ -8,6 +8,7 @@ import { buildViolationEvidenceLink } from './routeViolationEvidenceData';
 import { processRoutePeriods, mergeRouteData, buildReconciliationView, formatPeriodRate, formatPeriodDelta, formatPeriodVolume, DASH } from './routePeriodData';
 import { classifyF13HeatmapRate, F13_HEATMAP_TONE_CLASS } from '../../components/f13/f13HeatmapBandCatalog';
 import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, AlertTriangle, Flame, Search, Filter, CalendarDays, ShieldCheck } from 'lucide-react';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -300,6 +301,14 @@ function RouteRankingTable({
 }
 
 function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }) {
+  const chartData = useMemo(() => {
+    if (!route?.daily_series) return [];
+    return route.daily_series.map(d => ({
+      date: (d.date || '').split('-').pop(),
+      rate: d.rate !== null ? Number(d.rate) : null
+    }));
+  }, [route?.daily_series]);
+
   if (!route) {
     return (
       <EmptyState
@@ -348,6 +357,27 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
         </span>
       </div>
 
+      {chartData.length > 0 && (
+        <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-3">Diễn biến tỷ lệ ngày</p>
+          <div className="h-32 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val}%`} domain={[0, 100]} />
+                <Tooltip 
+                  contentStyle={{ fontSize: '12px', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value) => [`${value}%`, 'Tỷ lệ ngày']}
+                  labelFormatter={(label) => `Ngày ${label}`}
+                />
+                <Line type="monotone" dataKey="rate" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 2, fill: '#0ea5e9', strokeWidth: 0 }} activeDot={{ r: 4 }} connectNulls={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-2.5">
         <div className={`rounded-lg p-3 border ${route.day_rate !== null ? F13_HEATMAP_TONE_CLASS[classifyF13HeatmapRate(route.day_rate).tone] : F13_HEATMAP_TONE_CLASS.unavailable}`}>
           <p className="text-[11px] uppercase tracking-wider font-semibold opacity-70">Tỷ lệ ngày</p>
@@ -356,18 +386,32 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }
           </p>
         </div>
         <div className={`rounded-lg p-3 border ${route.month_rate !== null ? F13_HEATMAP_TONE_CLASS[classifyF13HeatmapRate(route.month_rate).tone] : F13_HEATMAP_TONE_CLASS.unavailable}`}>
-          <p className="text-[11px] uppercase tracking-wider font-semibold opacity-70">Lũy kế tháng</p>
-          <p className="mt-1 text-lg font-bold font-mono">
-            {formatPeriodRate(route.month_rate)}
-          </p>
+          <div className="flex justify-between items-start">
+            <p className="text-[11px] uppercase tracking-wider font-semibold opacity-70">Lũy kế tháng</p>
+            <span className="text-[10px] font-bold bg-white/50 px-1.5 py-0.5 rounded opacity-90 border border-white/40 shadow-xs text-slate-800">Hạng {route.rank ?? DASH}</span>
+          </div>
+          <div className="flex justify-between items-end mt-1">
+            <p className="text-lg font-bold font-mono leading-none">
+              {formatPeriodRate(route.month_rate)}
+            </p>
+            <span className="text-[10px] font-semibold opacity-80 leading-none mb-0.5">
+              SL: {formatPeriodVolume(route.month_volume)}
+            </span>
+          </div>
         </div>
         <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
           <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Cùng kỳ tháng trước</p>
-          <p className="mt-1 text-base font-bold text-slate-800 font-mono">{formatPeriodRate(route.previous_month_rate)}</p>
+          <div className="flex justify-between items-end mt-1">
+            <p className="text-base font-bold text-slate-800 font-mono leading-none">{formatPeriodRate(route.previous_month_rate)}</p>
+            <span className="text-[10px] text-slate-500 font-semibold leading-none mb-0.5">SL: {formatPeriodVolume(route.previous_month?.volume)}</span>
+          </div>
         </div>
         <div className="rounded-lg bg-slate-50 p-3 border border-slate-100">
-          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Chênh lệch</p>
-          <p className="mt-1 text-base font-bold text-slate-800 font-mono">
+          <div className="flex justify-between items-start">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Chênh lệch</p>
+            <span className="text-[10px] font-semibold text-slate-400">{route.month_days_with_data}/{route.month_days_in_period} ngày</span>
+          </div>
+          <p className="mt-1 text-base font-bold text-slate-800 font-mono leading-none">
              {route.delta !== null ? (
                <span className={Number(route.delta) > 0 ? 'text-emerald-600' : Number(route.delta) < 0 ? 'text-rose-600' : 'text-slate-600'}>
                  {formatPeriodDelta(route.delta)}

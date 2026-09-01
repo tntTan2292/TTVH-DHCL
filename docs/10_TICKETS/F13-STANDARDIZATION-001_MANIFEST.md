@@ -2070,3 +2070,9 @@ explicit scope instruction. This is **not** `READY FOR PO CHECK`; no PO PASS is 
 API contract, UI, database, schema, or business rule was changed. `F13-BCVH-RANKING-OVERVIEW-01`
 remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME` remains separately open per
 `PROJECT_SNAPSHOT.md`.
+
+
+### 51. Phase I1 ITR-BLOCK-03 Remediation (2026-09-01)
+
+**Action**: Added mandated missing fields (chart, rank, period days context, period volume) to `RouteSelectedPanel` in `RoutePerformancePage.jsx` to satisfy checkpoint §14.3 requirements.
+**Validation**: Clean oxlint, full frontend regression pass (415/419, same pre-existing 4 failures), successful vite build.
