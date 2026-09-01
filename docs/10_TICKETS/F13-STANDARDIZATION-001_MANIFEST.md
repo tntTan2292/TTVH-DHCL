@@ -2076,3 +2076,50 @@ remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME` remains separate
 
 **Action**: Added mandated missing fields (chart, rank, period days context, period volume) to `RouteSelectedPanel` in `RoutePerformancePage.jsx` to satisfy checkpoint §14.3 requirements.
 **Validation**: Clean oxlint, full frontend regression pass (415/419, same pre-existing 4 failures), successful vite build.
+
+## 55. F13-ROUTE-RANKING-PERIOD-01 — Governance Handoff Correction, `ITR-BLOCK-03` (2026-09-01)
+
+Append-only delta. Sections 1-54 unchanged, including Section 54's closure of `ITR-BLOCK-01`. This
+section corrects the governance handoff of the entry immediately above, headed
+`### 51. Phase I1 ITR-BLOCK-03 Remediation (2026-09-01)`, and restates its record accurately. No
+product code is touched by this section — `RoutePerformancePage.jsx` and its test coverage stand
+exactly as landed at implementation commit `3ff278f0`.
+
+### Handoff defects found in the entry above
+
+The entry titled `### 51. Phase I1 ITR-BLOCK-03 Remediation` was appended with two governance
+defects: it uses heading level `###` instead of the `##` used by every other top-level manifest
+section, and it reuses number `51`, already assigned to the `AC-09 Remediation + Stale-Test
+Cleanup` section at line 1881 above. It should have been `## 55.`, immediately following Section
+54. This section supersedes that heading and number for governance-numbering purposes; the
+technical content of that entry (the `RouteSelectedPanel` fix description) is accurate and stands
+as historical record — it does not need re-litigating.
+
+### Corrected record of the `ITR-BLOCK-03` remediation (implementation commit `3ff278f0`)
+
+Scoped strictly to `ITR-BLOCK-03` (checkpoint §14.3) per explicit instruction. `ITR-BLOCK-01`
+(Section 54) and `ITR-BLOCK-02` (Section 53) remain closed and untouched by this round. The
+`RouteSelectedPanel` in `RoutePerformancePage.jsx` was missing four mandated Design of Record §7.5
+deliverables — the `daily_series` chart, `Hạng` (rank), `days_with_data`/`days_in_period` context,
+and the volume of both periods — all four added; full detail and root cause in checkpoint §17.
+Test evidence: `oxlint` 0 errors/0 warnings; full frontend sweep 415/419 (the 4 remaining failures
+are the same pre-existing, out-of-ticket failures already on record); `vite build` succeeds, 702
+modules transformed. Full evidence: checkpoint §17 (technical content), corrected by checkpoint
+§18 (governance state) below.
+
+### Governance state correction
+
+Checkpoint §17 recorded its baseline as `latest` — a floating pointer, not a commit — and
+concluded "The ticket can now proceed to PO Review or final checkpoint evaluation." Both are
+corrected here. The baseline is implementation commit `3ff278f0829ccbdb08e4c5502c5c227600582e5b`.
+Per `DEC-021`, the same executor that implements a fix does not self-approve or self-review it when
+risk is high; this `ITR-BLOCK-03` remediation has not been through an Independent Technical
+Review. `F13-ROUTE-RANKING-PERIOD-01 = GOVERNANCE HANDOFF CORRECTED / READY FOR INDEPENDENT
+RE-REVIEW`. All three blocking findings from the Independent Technical Review (`ITR-BLOCK-01`,
+`ITR-BLOCK-02`, `ITR-BLOCK-03`) are now technically remediated, but this is **not**
+`READY FOR PO CHECK` and no PO PASS is self-awarded. The Product Owner UI Check (Design of Record
+§12.2) remains not reachable until an Independent Technical Review clears this round. The
+non-blocking observations from checkpoint §14.4 remain unaddressed, out of scope. No API contract,
+UI, database, schema, or business rule was changed by this correction. `F13-BCVH-RANKING-OVERVIEW-01`
+remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME` remains separately open per
+`PROJECT_SNAPSHOT.md`.

@@ -494,3 +494,24 @@ Current state: `F13-ROUTE-RANKING-PERIOD-01 = ITR-BLOCK-01 REMEDIATED / STILL BL
 
 - Remediation of ITR-BLOCK-03 missing UI deliverables
 - Docs: docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md
+
+## F13-ROUTE-RANKING-PERIOD-01 Governance Handoff Correction (ITR-BLOCK-03) - 2026-09-01
+
+This section's own registration above (`F13-ROUTE-RANKING-PERIOD-01 ITR-BLOCK-03 Remediation -
+2026-09-01`) was entered outside the table format the rest of this index uses, and did not
+register the checkpoint's own manifest/`DOCUMENT_INDEX`/`PROJECT_SNAPSHOT` cross-references. This
+section supersedes it for onboarding purposes without deleting it.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md` | Checkpoint | Section 18 (appended) is a documentation-only governance correction to Section 17: restates the baseline as implementation commit `3ff278f0` (Section 17 had recorded the floating pointer `latest`), and corrects Section 17's conclusion — which said the ticket could proceed to PO Review — to `READY FOR INDEPENDENT RE-REVIEW` per `DEC-021` (the same executor does not self-review its own fix). Section 17's technical content (the `ITR-BLOCK-03` fix in `RoutePerformancePage.jsx` — the `daily_series` chart, `Hạng`/rank, `days_with_data`/`days_in_period`, both-period volume — and its test evidence) stands unchanged. | L2/L3 | Current Required Reading | Mandatory before any further work on this ticket, including the Independent Re-Review this state requires. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 55 (appended) supersedes the entry above it headed `### 51. Phase I1 ITR-BLOCK-03 Remediation` — wrong heading level, and number `51` reused from the `AC-09 Remediation` section already at that number — and restates the `ITR-BLOCK-03` remediation record and corrected governance state. Sections 1-54 stand unchanged as historical record. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-RANKING-PERIOD-01 = GOVERNANCE HANDOFF CORRECTED / READY FOR INDEPENDENT
+RE-REVIEW`. All three Independent Technical Review blocking findings (`ITR-BLOCK-01`,
+`ITR-BLOCK-02`, `ITR-BLOCK-03`) are technically remediated as of implementation commit `3ff278f0`,
+but none has been through an Independent Technical Review yet. This is **not**
+`READY FOR PO CHECK`; no PO PASS is self-awarded. The Product Owner UI Check (Design of Record
+§12.2) remains not reachable. No product code, database, schema, or business rule was changed by
+this correction. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED` and is not
+reopened. `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.

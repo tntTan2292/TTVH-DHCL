@@ -853,3 +853,34 @@ Fix implemented in `frontend/src/features/route/RoutePerformancePage.jsx`:
 All blocks (`ITR-BLOCK-01`, `ITR-BLOCK-02`, and `ITR-BLOCK-03`) have now been remediated.
 The non-blocking observations from §14.4 remain unaddressed, as instructed.
 The ticket can now proceed to PO Review or final checkpoint evaluation.
+
+## 18. Governance handoff correction — `ITR-BLOCK-03` re-stated (2026-09-01, baseline `3ff278f0`)
+
+Append-only correction. Section 17's technical content — the root cause, the fix in
+`RoutePerformancePage.jsx`, and the test evidence — stands unchanged and is not re-litigated here.
+This section corrects two governance defects in how Section 17 recorded its own conclusion.
+
+### What Section 17 got wrong
+
+1. **Baseline**: Section 17 recorded its baseline as `latest`, a floating pointer rather than a
+   commit. The actual implementation commit for this remediation is
+   `3ff278f0829ccbdb08e4c5502c5c227600582e5b`, confirmed as the tip of `codex/da-impl-006` at the
+   time of this correction.
+2. **Conclusion**: Section 17 closed with "The ticket can now proceed to PO Review or final
+   checkpoint evaluation." This skips a required step. Per `DEC-021`, the same executor that
+   implements a fix does not self-approve or self-review it when risk is high, and this
+   `ITR-BLOCK-03` remediation — like `ITR-BLOCK-01` (§16) and `ITR-BLOCK-02` (§15) before it — has
+   not been through an Independent Technical Review. §14 (2026-08-30) is the ticket's only
+   Independent Technical Review to date, and it predates all three remediations.
+
+### Corrected governance state
+
+`F13-ROUTE-RANKING-PERIOD-01 = GOVERNANCE HANDOFF CORRECTED / READY FOR INDEPENDENT RE-REVIEW` at
+implementation commit `3ff278f0`. All three of the Independent Technical Review's blocking
+findings (`ITR-BLOCK-01`, `ITR-BLOCK-02`, `ITR-BLOCK-03`) are technically remediated. This is
+**not** `READY FOR PO CHECK`; no PO PASS is self-awarded. The Product Owner UI Check (Design of
+Record §12.2) remains not reachable until an Independent Technical Review of this remediation
+round clears. The non-blocking observations from §14.4 remain unaddressed, out of scope. No
+product code, database, schema, or business rule was changed by this correction — it is a
+documentation-only governance fix. Full record: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md`
+Section 55.
