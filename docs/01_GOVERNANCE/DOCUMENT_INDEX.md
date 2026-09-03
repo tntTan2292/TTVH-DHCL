@@ -546,3 +546,19 @@ Current state: `F13-ROUTE-RANKING-PERIOD-01 = ITR2 BLOCKERS REMEDIATED / READY F
 RE-REVIEW`. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI
 Check remains not reachable and no PO PASS is awarded. Remedy scope and executor for the review
 are a CTO/PO decision and are not self-activated.
+
+## F13-ROUTE-RANKING-PERIOD-01 Final Independent Re-Review Registration - 2026-09-03
+
+Supersedes the `ITR2-BLOCK-01`/`ITR2-BLOCK-02` remediation registration above for onboarding
+purposes without deleting it: that remediation has now been independently re-reviewed and the
+review returned **BLOCKED** on a new finding, `ITR3-BLOCK-01`.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md` | Checkpoint | Section 21 (appended) records the Final Independent Re-Review at implementation commit `d7e400db`, by `Claude Code`/`Opus` per `DEC-021`. Closes `ITR2-BLOCK-02` (the four §7.5 deliverables are now test-locked) and confirms, re-derived on real data through the real service and the real shipped helper, that `buildDailySeriesChartData` is correct for BCVH `533140` — 31 points for `days_in_period 31`, the 6 real missing days as `rate: null`/`volume: null` at the right position, all 12 genuine `rate: 0` days preserved, no interpolation, full positional fidelity. Returns **BLOCKED** on `ITR3-BLOCK-01`: the chart is anchored on the requested analysis date (`meta.max_date`, system-wide) rather than the BCVH's resolved `anchor_date`, against Design §4.1 — measured blank charts for `531110` and `531600` (the latter losing 14 real July days the previous build did draw) and 31 rendered days against a `1/24 ngày` card for `531120`; 3 of 9 real BCVH affected. Also re-confirms `AC-05` on all 9 BCVH across both periods (18/18 `identity_ok`), `AC-14` clean, and zero test/lint/build/database regression. Sections 1-20 stand unchanged. | L2/L3 | Current Required Reading | Mandatory before any remediation of `ITR3-BLOCK-01` and before any PO Check is contemplated. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 58 (appended) records the Final Independent Re-Review verdict — `ITR2-BLOCK-02` closed, `ITR2-BLOCK-01` partially remediated, new blocking finding `ITR3-BLOCK-01` — and its `BLOCKED` state, leaving `ITR-BLOCK-01` (Section 54) and `ITR-BLOCK-02` (Section 53) closed and undisturbed. Sections 1-57 stand unchanged as historical record. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-RANKING-PERIOD-01 = FINAL INDEPENDENT RE-REVIEW BLOCKED` on
+`ITR3-BLOCK-01`. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI
+Check remains not reachable and no PO PASS is awarded. Remedy scope and executor are a CTO/PO
+decision and are not self-activated.

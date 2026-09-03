@@ -2237,3 +2237,68 @@ Product Owner UI Check (Design of Record §12.2) remains not reachable until an 
 Re-Review of this round clears. The non-blocking observations from checkpoint §19.6 remain
 unaddressed, out of scope. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`;
 `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.
+
+## 58. F13-ROUTE-RANKING-PERIOD-01 — Final Independent Re-Review of `ITR2-BLOCK-01`/`ITR2-BLOCK-02` — **BLOCKED** (2026-09-03)
+
+Append-only delta. Sections 1-57 unchanged. Reviewer `Claude Code`/`Opus`, per `DEC-021` and Design
+§9.5. Read-only — no product code, test, schema, database, or business rule changed by this review.
+Baseline: implementation commit `d7e400db` on `codex/da-impl-006`. Scope: only `ITR2-BLOCK-01` and
+`ITR2-BLOCK-02` plus their regression surface; the §19.6 non-blocking observations were not
+re-opened. Full evidence in checkpoint Section 21.
+
+### Result
+
+`ITR2-BLOCK-02` — **closed**. The four Design §7.5 panel deliverables now have automated regression
+protection: the chart (real gapped fixture, genuine-0 preservation, no-interpolation, §4.3 day-1
+edge case, empty series), `Hạng`, `days_with_data/days_in_period`, and both periods' volume, plus a
+`connectNulls={false}` guard.
+
+`ITR2-BLOCK-01` — **partially remediated, not closed**. Re-derived independently against the real
+database through the real production service and the real shipped `buildDailySeriesChartData`:
+route `533140137` yields exactly 31 points for `days_in_period 31`; the 6 real missing days
+(`01,09,10,15,17,21`) are `rate: null`/`volume: null` at their correct calendar position; all 12
+genuine `rate: 0` days are preserved as `0`; nothing is interpolated; per-point positional and value
+fidelity holds for all 31 points; across all 35 routes of `533140`, zero routes have a point count
+differing from `days_in_period` (139 real gap points total). Correct — for this BCVH.
+
+### New blocking finding — `ITR3-BLOCK-01`
+
+The chart is anchored on the **requested analysis date** (`fromDate` = `analysisDate` =
+`param || meta.max_date`, the system-wide max), not on the BCVH's resolved `anchor_date` that the
+`daily_series` was built around. Design §4.1 requires per-BCVH anchor resolution and explicitly warns
+that the global max date gives a small BCVH an empty anchor day; the API already returns the resolved
+`anchor_date` and `processRoutePeriods` already surfaces it, but the chart discards it.
+
+Measured on the real database in the default UI path: `531110` (real anchor `2026-06-08`) and
+`531600` (real anchor `2026-07-28`) both render **31 blank points and zero real data** — `531600`
+loses 14 real July days that the pre-`d7e400db` chart did draw, making this a regression on that
+input; `531120` (real anchor `2026-08-24`, `days_in_period 24`) renders 31 days, contradicting its
+own on-screen `1/24 ngày` card. 3 of the 9 real BCVH are affected today. §7.5's
+`trục ngày 01 → ngày neo` is therefore still not met. No test catches it — every chart fixture uses
+an anchor in the series' own month, and the source-pattern guard locks the wrong argument in.
+
+Remedy (technical, not a business decision): pass `processRoutePeriods(...).anchorDate` to
+`RouteSelectedPanel` for the chart instead of `fromDate`, and add a cross-month anchor test. Scope
+and executor assignment are a CTO/PO decision; this review made no product change.
+
+### Validation re-run by this review
+
+Targeted Route Ranking `node --test src/features/route/*.test.js` **97/97 pass**; backend
+route-period suites **18/18 pass**; full frontend sweep **427 pass / 4 fail / 431**, the 4 being the
+same known out-of-ticket baseline failures on record since Section 52 — zero regression;
+`npx oxlint src/features/route/` 0 errors/0 warnings; `npm run build` succeeds. `AC-05` scope
+reconciliation re-derived independently on all 9 BCVH across both periods: `identity_ok = true` in
+18/18 cases. `AC-14` literal-`MTD` scan across the route feature and the two backend files: 0 hits.
+`git diff --name-only 2afd0737 d7e400db -- frontend backend` confirms only the three named route
+files changed. `fact_f13` `762782` rows / `MAX(ngay_do_kiem) = 2026-08-31` before and after —
+**zero database writes**.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = FINAL INDEPENDENT RE-REVIEW BLOCKED` at `d7e400db`, on
+`ITR3-BLOCK-01`. `ITR2-BLOCK-02` closed. `ITR-BLOCK-01` (Section 54) and `ITR-BLOCK-02` (Section 53)
+remain closed and undisturbed; `ITR-BLOCK-03`'s three other deliverables remain correct and are now
+test-locked. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI Check
+remains not reachable and **no PO PASS is awarded**. The §19.6 non-blocking observations remain
+unaddressed, out of scope. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`;
+`AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.

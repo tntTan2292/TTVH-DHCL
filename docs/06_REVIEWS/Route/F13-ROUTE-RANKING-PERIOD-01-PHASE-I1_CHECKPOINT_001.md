@@ -1133,3 +1133,154 @@ this round has not been through an Independent Technical Review. This is **not**
 `READY FOR PO CHECK`; no PO PASS is self-awarded. The Product Owner UI Check (Design of Record
 §12.2) remains not reachable until an Independent Re-Review of this round clears. The non-blocking
 observations from §19.6 remain unaddressed, out of scope.
+
+## 21. FINAL INDEPENDENT RE-REVIEW of the `ITR2-BLOCK-01` / `ITR2-BLOCK-02` remediation (2026-09-03, implementation commit `d7e400db`) — **BLOCKED**
+
+Reviewer: `Claude Code` / **`Opus`**, per `DEC-021` and Design of Record §9.5. Read-only: no product
+code, test, schema, database, or business rule was modified by this review. Remote baseline
+`d7e400db` on `codex/da-impl-006`. Scope per instruction: **only** the two findings
+`ITR2-BLOCK-01` / `ITR2-BLOCK-02` and the regression surface around them. The §19.6 non-blocking
+observations were not re-opened and were not expanded upon.
+
+No conclusion from Section 20 was accepted as evidence. Every claim below was re-derived against the
+real operational database through the real production service and the real shipped frontend module.
+
+### 21.1 Method
+
+- Real operational database `backend/src/db/database.sqlite`: `fact_f13` = **762,782 rows**,
+  `MAX(ngay_do_kiem) = 2026-08-31`, identical at review start and review end — **zero database
+  writes**.
+- The **real production service** `routePeriodService.getRoutePeriods(<bcvh>, <date>, { routeType:
+  'postman' })` driven directly against that database, for **all 9 real BCVH**.
+- The **real shipped frontend module** `frontend/src/features/route/routePeriodData.js` imported
+  as-is (`buildDailySeriesChartData`) and fed the service's real output — not fixtures, not the
+  ticket's own test data.
+
+### 21.2 What independently PASSED
+
+Every checkable claim of Section 20 for BCVH `533140` (the BCVH whose per-BCVH anchor happens to equal
+the global `meta.max_date`) reproduces exactly:
+
+| Verified | Evidence (re-derived, real data) |
+| --- | --- |
+| One point per calendar day `01 → ngày neo` | Route `533140137`, `days_with_data 25 / days_in_period 31` → **31 points**, dates `01..31` contiguous. Across all 35 routes of `533140`: **0** routes whose point count differs from `days_in_period` |
+| Missing days are real gaps at the correct position | Gap days = `01,09,10,15,17,21` — exactly the 6 days absent from the backend array; all 6 have `rate: null` **and** `volume: null`. Day 01 point = `{"date":"01","rate":null,"volume":null}` |
+| Per-point positional/value fidelity | For every one of the 31 points, the rendered `rate`/`volume` equals the backend entry for that exact ISO date, and every point with no backend entry is `null` — **positional match = true**, no shifting |
+| A genuine `0%` is not turned into `null` | 12 real zero-rate days on `533140137` (`02,03,04,05,12,14,19,22,24,25,27,29`) all preserved as `rate: 0` with a real `volume > 0` — never `null`, never dropped |
+| No interpolation to 0 | No gap day carries `0`; `connectNulls={false}` is unchanged on the `<Line>` and now receives real `null` values, so the renderer breaks the line rather than joining it |
+| Gap volume across the BCVH | 139 real gap points across the 35 routes, all `rate: null`/`volume: null` |
+| Test coverage of the four §7.5 deliverables (`ITR2-BLOCK-02`) | `routePeriodData.test.js` now locks the chart (real gapped fixture, genuine-0, no-interpolation, §4.3 day-1 edge case, empty series), `Hạng {route.rank ?? DASH}`, `{month_days_with_data}/{month_days_in_period}`, and both periods' volume (`formatPeriodVolume(route.month_volume)` / `formatPeriodVolume(route.previous_month?.volume)`), plus a `connectNulls={false}` guard |
+| No regression of earlier rounds | `git diff --name-only 2afd0737 d7e400db -- frontend backend` = only `RoutePerformancePage.jsx`, `routePeriodData.js`, `routePeriodData.test.js`. No backend file, no API contract, no schema. `AC-14`: grep for the literal `MTD` across `frontend/src/features/route/`, `routePeriodService.js`, `FactBuuGuiRepository.js` returns **0 hits** (`ITR-BLOCK-01` intact). `ITR-BLOCK-02`'s null-safe `sortRouteRows` auto-select path is untouched. The delayed-cash block, `buildViolationEvidenceLink`, the day-metric `null` to `"—"` path and the `AC-09` tooltip are unchanged and their suites pass |
+| `AC-05` scope reconciliation | Re-derived independently on **all 9 BCVH across both periods**: `identity_ok = true` in **18/18** cases (e.g. `533140` month `55650 = 52831+2818+1+0`, day `1041 = 937+103+1+0`). Not disturbed by this round |
+
+### 21.3 Validation commands re-run by this review
+
+| Check | Command | Result |
+| --- | --- | --- |
+| Targeted Route Ranking | `node --test src/features/route/*.test.js` | **97/97 pass** |
+| Backend route-period suites | `node --experimental-sqlite --test src/repositories/FactBuuGuiRepository.routePeriod.test.js src/services/routePeriodService.test.js` | **18/18 pass** |
+| Full frontend sweep | `node --test` over every `src/**/*.test.js` | **427 pass / 4 fail / 431** — the 4 are the same known out-of-ticket baseline failures on record since §14.5 (`only canonical values remain selectable and preserved as ma_bcvh`, `operation dashboard hides status filter and shows metadata error controls`, `dashboard page removes shell and placeholder wording from visible surfaces`, `src/pages/dataImportBackfillQueue.test.js`). **Zero regression** |
+| Lint | `npx oxlint src/features/route/` | 0 errors / 0 warnings (exit 0) |
+| Build | `npm run build` | succeeds (`built in 1.56s`) |
+| Database integrity | `SELECT COUNT(*), MAX(ngay_do_kiem) FROM fact_f13` before and after | `762782` / `2026-08-31` both times — **zero writes** |
+
+Section 20's own reported numbers are therefore accurate. The remediation is correct **for the BCVH
+it was tested on**. The blocking finding below is a case Section 20 did not test.
+
+### 21.4 Blocking finding — `ITR3-BLOCK-01`: the chart is anchored on the **requested analysis date**, not on the BCVH's real `anchor_date` — it renders an entirely blank chart for 3 of the 9 real BCVH
+
+`buildDailySeriesChartData` derives its whole axis range from its `anchorDate` argument
+(`routePeriodData.js`: `monthPrefix = anchorDate.slice(0, 7)`, `anchorDay = Number(anchorDate.slice(8, 10))`).
+The call site passes the panel's `fromDate` prop:
+
+```js
+// RoutePerformancePage.jsx:311
+return buildDailySeriesChartData(route.daily_series, fromDate);
+// RoutePerformancePage.jsx:923 — fromDate={analysisDate}
+// RoutePerformancePage.jsx:578 — analysisDate = resolveDefaultRouteDate({ param, metaMaxDate })
+// routeRankingCalculations.js:85-87 — return param || metaMaxDate || ''
+```
+
+`metaMaxDate` is `getDashboardMeta().data.max_date`, the **system-wide** `MAX(ngay_do_kiem)`. But the
+`daily_series` the helper is expanding was built by the backend around a **per-BCVH** anchor:
+
+> **Design of Record §4.1** — *"Phân giải **theo từng BCVH**, không dùng ngày max toàn hệ thống. Lý do
+> đo thật: 9 BCVH có số ngày phủ khác nhau ... Dùng ngày max toàn cục sẽ cho BCVH nhỏ một ngày neo
+> rỗng."*
+
+`routePeriodService.js:152-160` implements exactly that: `anchor_date = MAX(ngay_do_kiem) WHERE ma_bcvh = ? AND ngay_do_kiem <= ceiling`,
+and `days_in_period = Number(anchorDate.slice(8, 10))`. The response carries the resolved
+`anchor_date`, and `processRoutePeriods` already surfaces it as `anchorDate` — **the chart does not
+use it.** When the two dates diverge, the helper expands the series against the wrong month entirely,
+so no real date can match and every real data point is discarded.
+
+Measured on the real database, default UI path (no URL date parameter, so `analysisDate = metaMaxDate = 2026-08-31`):
+
+```
+bcvh=531110  requested=2026-08-31  API anchor_date=2026-06-08  days_in_period=8
+             chart points=31  non-null=0     (real series has 1 real day)
+             with the API anchor instead: points=8   non-null=1
+bcvh=531600  requested=2026-08-31  API anchor_date=2026-07-28  days_in_period=28
+             chart points=31  non-null=0     (real series has 14 real days)
+             with the API anchor instead: points=28  non-null=14
+bcvh=531120  requested=2026-08-31  API anchor_date=2026-08-24  days_in_period=24
+             chart points=31  non-null=1     (24 expected, 7 fabricated trailing days)
+             with the API anchor instead: points=24  non-null=1
+```
+
+Per-BCVH `MAX(ngay_do_kiem)` on the real database: `531110 = 2026-06-08`, `531600 = 2026-07-28`,
+`531120 = 2026-08-24`, the other six `= 2026-08-31`. **3 of 9 BCVH are affected today.**
+
+This is reachable in the default UI, not an edge case. `mergeRouteData` builds its rows from the
+periods endpoint, not the day endpoint, so these BCVH do render a route table and do auto-select a
+route: `531600` shows a panel with real July figures (`month.rate 16`, `14/28 ngày`, real volume)
+sitting directly above a chart of **31 blank August days**. `chartData.length > 0` is satisfied by
+the 31 null points, so the "Diễn biến tỷ lệ ngày" card renders — as an empty box, not as the §7.6
+empty state.
+
+Three distinct failures against the deliverable `ITR2-BLOCK-01` was raised for:
+
+1. **§7.5 `trục ngày 01 → ngày neo` is still not met** — the axis runs `01` to `31 August` while the
+   ngày neo is `28 July`. This is the same clause the previous round failed, failing for a different
+   reason.
+2. **Real data is destroyed.** For `531600` the pre-`d7e400db` chart drew 14 real July points (wrongly
+   spaced, per `ITR2-BLOCK-01`); at `d7e400db` it draws nothing at all. On this input the remediation
+   is a **regression**, not a fix.
+3. **Fabricated days.** For `531120` the chart shows 31 days when `days_in_period = 24` — 7 days that
+   do not exist in the period are rendered as gaps, and the panel's own
+   `{month_days_with_data}/{month_days_in_period}` card says `1/24` on the same screen. A direct
+   on-screen contradiction, the same class of defect §1-11 originally raised.
+
+Neither test catches it: every chart fixture in `routePeriodData.test.js` uses an anchor in the same
+month as its series, and the source-pattern guard
+(`/buildDailySeriesChartData\(route\.daily_series, fromDate\)/`) **locks the wrong argument in**.
+
+The fix is small and is a technical choice, not a business one: pass the API's resolved
+`anchor_date` — already available from `processRoutePeriods(...).anchorDate` — down to
+`RouteSelectedPanel` for the chart, instead of `fromDate`. Scoping and executor assignment remain a
+CTO/PO decision; this review made no product change.
+
+### 21.5 `ITR2-BLOCK-02` — status
+
+**Closed.** The four §7.5 deliverables now have automated regression protection (§21.2). The
+coverage has one real hole, recorded as part of `ITR3-BLOCK-01` above rather than as a separate
+finding: no test exercises an `anchorDate` outside the series' own month, which is why
+`ITR3-BLOCK-01` shipped. Any remediation of `ITR3-BLOCK-01` must add that case.
+
+### 21.6 Not verified by this review
+
+The browser-rendered appearance of the panel was not verified — the application requires an
+interactive login and this reviewer does not enter credentials. The runtime evidence above was
+obtained against the real service layer and the real database instead. Design §12.2 `PO-08`
+(Desktop + mobile) is Product Owner scope regardless.
+
+### 21.7 Verdict
+
+`F13-ROUTE-RANKING-PERIOD-01 = FINAL INDEPENDENT RE-REVIEW **BLOCKED**` at implementation commit
+`d7e400db`. `ITR2-BLOCK-02` is **closed**. `ITR2-BLOCK-01` is **partially remediated**: correct for
+the 6 BCVH whose per-BCVH anchor equals the global `meta.max_date`, and newly broken for the 3 BCVH
+where it does not — raised as `ITR3-BLOCK-01`. `ITR-BLOCK-01` and `ITR-BLOCK-02` remain closed and
+undisturbed; `ITR-BLOCK-03`'s other three deliverables (`Hạng`, `days_with_data/days_in_period`,
+both-period volume) remain correct and are now test-locked. `AC-05` re-confirmed on all 9 BCVH.
+Zero test, lint, build, or database regression. This is **not** `READY FOR PO CHECK`; the Design of
+Record §12.2 Product Owner UI Check remains not reachable and **no PO PASS is awarded**.
