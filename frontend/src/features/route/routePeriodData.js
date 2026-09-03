@@ -17,6 +17,58 @@ export function formatPeriodVolume(volume) {
   return Number(volume).toLocaleString('vi-VN');
 }
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// Independent Re-Review ITR2-BLOCK-01 remediation (checkpoint §19 / manifest §56): the backend's
+// `daily_series` (Q2, routePeriodService.js) only ever contains an element for a day that has at
+// least one real `fact_f13` row — a day with zero activity is omitted from the array entirely,
+// never emitted as a `rate: null` placeholder. Rendering that array 1:1 therefore gave
+// `recharts`' `connectNulls={false}` nothing to break on: the chart drew every present day
+// evenly spaced and joined straight across whatever days were missing, exactly the "nối liền"
+// behaviour Design of Record §7.5 bans.
+//
+// This function is the fix: it re-expands `daily_series` into one point per calendar day from
+// `01` to the anchor day (§7.5 "trục ngày 01 → ngày neo"), using `anchorDate` — never
+// `daily_series.length` — to decide the range, so a route whose data starts mid-month still gets
+// its leading missing days represented. A day with a real backend entry keeps its real
+// `rate`/`volume` verbatim, including a genuine `rate: 0` (real record, 0% pass) which is data,
+// not absence. A day with no backend entry becomes `{ rate: null, volume: null }` — an actual
+// gap for `connectNulls={false}` to leave blank, never a fabricated 0 (§3.2 M-03 / §6.4 C-04's
+// null-means-absent discipline, extended to the per-day chart series).
+export function buildDailySeriesChartData(dailySeries, anchorDate) {
+  const series = dailySeries || [];
+  if (!ISO_DATE_RE.test(anchorDate || '')) {
+    // Defensive fallback only — the panel always has a resolved anchor date in practice.
+    return series.map((d) => ({
+      date: (d.date || '').split('-').pop(),
+      rate: d.rate !== null && d.rate !== undefined ? Number(d.rate) : null,
+      volume: d.volume ?? null,
+    }));
+  }
+
+  const byDate = new Map();
+  series.forEach((d) => {
+    if (d && d.date) byDate.set(d.date, d);
+  });
+
+  const monthPrefix = anchorDate.slice(0, 7);
+  const anchorDay = Number(anchorDate.slice(8, 10));
+
+  const points = [];
+  for (let day = 1; day <= anchorDay; day += 1) {
+    const dayLabel = String(day).padStart(2, '0');
+    const fullDate = `${monthPrefix}-${dayLabel}`;
+    const entry = byDate.get(fullDate);
+    const hasRate = entry && entry.rate !== null && entry.rate !== undefined;
+    points.push({
+      date: dayLabel,
+      rate: hasRate ? Number(entry.rate) : null,
+      volume: entry ? (entry.volume ?? null) : null,
+    });
+  }
+  return points;
+}
+
 export function processRoutePeriods(data) {
   if (!data || !data.routes) return { routes: [], periods: {}, reconciliation: {}, anchorDate: null, bcvh: null };
 

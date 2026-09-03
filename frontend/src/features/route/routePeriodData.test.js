@@ -9,6 +9,7 @@ import {
   processRoutePeriods,
   mergeRouteData,
   buildReconciliationView,
+  buildDailySeriesChartData,
 } from './routePeriodData.js';
 
 // F13-ROUTE-RANKING-PERIOD-01 Phase I1 remediation: RoutePerformancePage.jsx must call BOTH
@@ -228,4 +229,140 @@ test('processRoutePeriods: still correctly derives day_rate/month_rate/previous_
   assert.equal(processed.routes.length, 2);
   assert.equal(processed.routes[1].day_rate, null);
   assert.equal(processed.routes[0].month_rate, 60);
+});
+
+// Independent Re-Review ITR2-BLOCK-01 remediation (checkpoint §19 / manifest §56): the backend's
+// `daily_series` omits any day with zero activity entirely — it never carries a `rate: null`
+// placeholder for it — so the chart's `connectNulls={false}` had nothing to break on and the
+// line was drawn straight across missing days. `buildDailySeriesChartData` re-expands the array
+// to one point per calendar day from `01` through the anchor day, restoring real gaps. Real
+// fixture below is the actual `daily_series` `routePeriodService.getRoutePeriods('533140')`
+// returned for route `533140137` at anchor `2026-08-31` (days_with_data 25 / days_in_period 31),
+// captured read-only against the operational database — not a synthetic fixture.
+const REAL_GAPPED_DAILY_SERIES = [
+  { date: '2026-08-02', volume: 1, passed: 0, rate: 0 },
+  { date: '2026-08-03', volume: 3, passed: 0, rate: 0 },
+  { date: '2026-08-04', volume: 33, passed: 0, rate: 0 },
+  { date: '2026-08-05', volume: 25, passed: 0, rate: 0 },
+  { date: '2026-08-06', volume: 11, passed: 3, rate: 27.2727 },
+  { date: '2026-08-07', volume: 6, passed: 1, rate: 16.6667 },
+  { date: '2026-08-08', volume: 6, passed: 1, rate: 16.6667 },
+  { date: '2026-08-11', volume: 4, passed: 2, rate: 50 },
+  { date: '2026-08-12', volume: 5, passed: 1, rate: 20 },
+  { date: '2026-08-13', volume: 4, passed: 0, rate: 0 },
+  { date: '2026-08-14', volume: 3, passed: 1, rate: 33.3333 },
+  { date: '2026-08-16', volume: 2, passed: 1, rate: 50 },
+  { date: '2026-08-18', volume: 4, passed: 2, rate: 50 },
+  { date: '2026-08-19', volume: 3, passed: 1, rate: 33.3333 },
+  { date: '2026-08-20', volume: 5, passed: 2, rate: 40 },
+  { date: '2026-08-22', volume: 4, passed: 1, rate: 25 },
+  { date: '2026-08-23', volume: 3, passed: 1, rate: 33.3333 },
+  { date: '2026-08-24', volume: 4, passed: 2, rate: 50 },
+  { date: '2026-08-25', volume: 3, passed: 1, rate: 33.3333 },
+  { date: '2026-08-26', volume: 5, passed: 2, rate: 40 },
+  { date: '2026-08-27', volume: 4, passed: 1, rate: 25 },
+  { date: '2026-08-28', volume: 3, passed: 1, rate: 33.3333 },
+  { date: '2026-08-29', volume: 4, passed: 2, rate: 50 },
+  { date: '2026-08-30', volume: 5, passed: 2, rate: 40 },
+  { date: '2026-08-31', volume: 4, passed: 1, rate: 25 },
+];
+const REAL_GAPPED_MISSING_DAYS = ['01', '09', '10', '15', '17', '21'];
+
+test('buildDailySeriesChartData: a full month with data every day returns exactly one point per day, no gaps', () => {
+  const fullSeries = [
+    { date: '2026-08-01', volume: 10, passed: 5, rate: 50 },
+    { date: '2026-08-02', volume: 8, passed: 8, rate: 100 },
+    { date: '2026-08-03', volume: 4, passed: 0, rate: 0 },
+  ];
+  const points = buildDailySeriesChartData(fullSeries, '2026-08-03');
+  assert.equal(points.length, 3);
+  assert.deepEqual(points.map((p) => p.date), ['01', '02', '03']);
+  assert.deepEqual(points.map((p) => p.rate), [50, 100, 0]);
+  assert.equal(points.every((p) => p.rate !== null), true);
+});
+
+test('buildDailySeriesChartData: on the real gapped fixture (route 533140137, anchor 31), every missing day becomes a real null point at its correct calendar position, never dropped and never coerced to 0', () => {
+  const points = buildDailySeriesChartData(REAL_GAPPED_DAILY_SERIES, '2026-08-31');
+  // Design §7.5 "trục ngày 01 → ngày neo": one point for every calendar day in range, not one
+  // point per daily_series element (25 elements in, 31 points out).
+  assert.equal(points.length, 31);
+  assert.deepEqual(points.map((p) => p.date), Array.from({ length: 31 }, (_, i) => String(i + 1).padStart(2, '0')));
+
+  REAL_GAPPED_MISSING_DAYS.forEach((day) => {
+    const point = points.find((p) => p.date === day);
+    assert.equal(point.rate, null, `day ${day} should be a real gap (rate: null), not dropped or coerced to 0`);
+    assert.equal(point.volume, null, `day ${day} should have volume: null, never a fabricated 0`);
+  });
+
+  const presentDays = points.filter((p) => !REAL_GAPPED_MISSING_DAYS.includes(p.date));
+  assert.equal(presentDays.length, 25);
+  assert.equal(presentDays.every((p) => p.rate !== null), true);
+});
+
+test('buildDailySeriesChartData: a genuine 0% day (real record, zero passes) is preserved as rate 0, never confused with a missing day', () => {
+  const points = buildDailySeriesChartData(REAL_GAPPED_DAILY_SERIES, '2026-08-31');
+  // 2026-08-02..05 are real records with rate 0 in the fixture above (volume > 0, passed 0).
+  ['02', '03', '04', '05'].forEach((day) => {
+    const point = points.find((p) => p.date === day);
+    assert.equal(point.rate, 0);
+    assert.notEqual(point.rate, null);
+    assert.equal(point.volume > 0, true);
+  });
+});
+
+test('buildDailySeriesChartData: does not interpolate a missing day to 0 — a gap is null, not 0, so a line renderer with connectNulls={false} actually breaks there', () => {
+  const points = buildDailySeriesChartData(REAL_GAPPED_DAILY_SERIES, '2026-08-31');
+  const day01 = points.find((p) => p.date === '01');
+  assert.equal(day01.rate, null);
+  assert.notEqual(day01.rate, 0);
+});
+
+test('buildDailySeriesChartData: anchor on the 1st of the month yields exactly one point (§4.3 edge case), never a crash or a negative range', () => {
+  const points = buildDailySeriesChartData([], '2026-08-01');
+  assert.equal(points.length, 1);
+  assert.equal(points[0].date, '01');
+  assert.equal(points[0].rate, null);
+});
+
+test('buildDailySeriesChartData: an empty daily_series still produces one null point per day in range, never an empty chart array', () => {
+  const points = buildDailySeriesChartData([], '2026-08-05');
+  assert.equal(points.length, 5);
+  assert.equal(points.every((p) => p.rate === null && p.volume === null), true);
+});
+
+test('buildDailySeriesChartData: an invalid/missing anchor date falls back to a defensive 1:1 mapping rather than throwing', () => {
+  assert.doesNotThrow(() => buildDailySeriesChartData(REAL_GAPPED_DAILY_SERIES, null));
+  const points = buildDailySeriesChartData([{ date: '2026-08-05', volume: 3, passed: 1, rate: 33.33 }], undefined);
+  assert.equal(points.length, 1);
+  assert.equal(points[0].date, '05');
+  assert.equal(points[0].rate, 33.33);
+});
+
+// Source-pattern regression guards (this codebase's established convention for RoutePerformancePage.jsx,
+// see RoutePerformancePage.dateResolution.test.js — no React render harness is wired into this project).
+// Lock the ITR-BLOCK-03 panel deliverables (checkpoint §17/§19) so a future edit cannot silently
+// drop them, and lock that the chart now goes through the gap-restoring helper instead of the
+// naive 1:1 map the Independent Re-Review found broken.
+const routePerformancePageSource = fs.readFileSync(new URL('./RoutePerformancePage.jsx', import.meta.url), 'utf8');
+
+test('ITR2-BLOCK-01 regression guard: RouteSelectedPanel builds chart data via buildDailySeriesChartData(route.daily_series, fromDate), not a naive 1:1 map of daily_series', () => {
+  assert.match(routePerformancePageSource, /buildDailySeriesChartData\(route\.daily_series, fromDate\)/);
+  assert.doesNotMatch(routePerformancePageSource, /route\.daily_series\.map\(d => \(\{\s*date: \(d\.date \|\| ''\)\.split\('-'\)\.pop\(\)/);
+});
+
+test('regression guard: the chart still declares connectNulls={false} — required so the real gaps buildDailySeriesChartData now produces actually render as blanks', () => {
+  assert.match(routePerformancePageSource, /connectNulls=\{false\}/);
+});
+
+test('regression guard: RouteSelectedPanel still renders Hạng (rank) sourced from route.rank', () => {
+  assert.match(routePerformancePageSource, /Hạng \{route\.rank \?\? DASH\}/);
+});
+
+test('regression guard: RouteSelectedPanel still renders days_with_data / days_in_period context for the month period', () => {
+  assert.match(routePerformancePageSource, /route\.month_days_with_data\}\/\{route\.month_days_in_period\}/);
+});
+
+test('regression guard: RouteSelectedPanel still renders month_volume and previous_month volume via formatPeriodVolume', () => {
+  assert.match(routePerformancePageSource, /formatPeriodVolume\(route\.month_volume\)/);
+  assert.match(routePerformancePageSource, /formatPeriodVolume\(route\.previous_month\?\.volume\)/);
 });

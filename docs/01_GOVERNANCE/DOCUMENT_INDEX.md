@@ -531,3 +531,18 @@ Current state: `F13-ROUTE-RANKING-PERIOD-01 = INDEPENDENT RE-REVIEW BLOCKED` at 
 `3ff278f0`. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI Check
 remains not reachable and no PO PASS is awarded. Remedy scope and executor are a CTO/PO decision and
 are not self-activated.
+
+## F13-ROUTE-RANKING-PERIOD-01 ITR2-BLOCK-01/ITR2-BLOCK-02 Remediation - 2026-09-03
+
+Supersedes the Independent Re-Review section above for onboarding purposes without deleting it:
+the two blocking findings it recorded (`ITR2-BLOCK-01`, `ITR2-BLOCK-02`) are now remediated.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md` | Checkpoint | Section 20 (appended) records the `ITR2-BLOCK-01`/`ITR2-BLOCK-02` remediation: the new `buildDailySeriesChartData()` helper in `routePeriodData.js` that re-expands `daily_series` into one point per calendar day (real gaps for missing days, never joined or interpolated to 0), its wiring into `RouteSelectedPanel`, 12 new tests (including a real gapped fixture from route `533140137`), and full validation evidence. Section 19 (the Independent Re-Review that found the two findings) and Sections 1-18 stand unchanged. | L2/L3 | Current Required Reading | Mandatory before any further work on this ticket, including the Independent Re-Review this remediation now requires. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 57 (appended) records the `ITR2-BLOCK-01`/`ITR2-BLOCK-02` remediation and its `READY FOR INDEPENDENT RE-REVIEW` state, leaving `ITR-BLOCK-01` (Section 54) and `ITR-BLOCK-02` (Section 53) closed and undisturbed. Sections 1-56 stand unchanged as historical record. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-RANKING-PERIOD-01 = ITR2 BLOCKERS REMEDIATED / READY FOR INDEPENDENT
+RE-REVIEW`. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI
+Check remains not reachable and no PO PASS is awarded. Remedy scope and executor for the review
+are a CTO/PO decision and are not self-activated.

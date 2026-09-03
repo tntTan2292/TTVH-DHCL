@@ -1034,3 +1034,102 @@ this deliverable is not met on real data) and `ITR2-BLOCK-02` (no automated test
 `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI Check remains not reachable and no
 PO PASS is awarded. Remedy scope and executor are a CTO/PO decision — this review made no product
 change.
+
+## 20. `ITR2-BLOCK-01` / `ITR2-BLOCK-02` Remediation (2026-09-03, baseline `2afd0737`)
+
+Executor: `Claude Code` / `Sonnet` (implementation). Scoped strictly to the two blocking findings
+from Section 19 (`ITR2-BLOCK-01`, `ITR2-BLOCK-02`). `ITR-BLOCK-01` and `ITR-BLOCK-02` were not
+touched. The non-blocking observations (`ITR2-OBS-01/02/03`, §19.6) remain unaddressed, out of
+scope, per explicit instruction.
+
+### Root cause (unchanged from Section 19)
+
+`daily_series` (`routePeriodService.js:184`/`:247`) contains an element only for a day that has at
+least one real `fact_f13` row; a day with zero activity is omitted from the array, never emitted
+as a `rate: null` placeholder. The frontend rendered that array 1:1
+(`RoutePerformancePage.jsx:304-310` at `2afd0737`), so `connectNulls={false}` had no `null` to
+break on and the chart drew a straight line across every missing day, starting from the first day
+that had data rather than from `01`.
+
+### Fix
+
+New pure function `buildDailySeriesChartData(dailySeries, anchorDate)` added to
+`frontend/src/features/route/routePeriodData.js` (additive-only — no existing export changed).
+It re-expands `daily_series` into exactly one point per calendar day from `01` through the anchor
+day (`anchorDate.slice(0,7)-01` .. `anchorDate`, using `anchorDate` — never
+`daily_series.length` — as the range, per §7.5 "trục ngày 01 → ngày neo"). A day with a real
+backend entry keeps its real `rate`/`volume` verbatim, including a genuine `rate: 0` (real record,
+zero passes — data, not absence). A day absent from `daily_series` becomes
+`{ rate: null, volume: null }` — a real gap, never a fabricated 0.
+
+`RoutePerformancePage.jsx`'s `RouteSelectedPanel` now calls
+`buildDailySeriesChartData(route.daily_series, fromDate)` (`fromDate` is the panel's existing
+`analysisDate`/anchor prop) in place of the naive 1:1 map; `useMemo` deps updated to
+`[route?.daily_series, fromDate]`. `connectNulls={false}` on the `<Line>` is unchanged — it now
+has real `null` values to act on. No backend file, no API contract, no other frontend file
+touched.
+
+### Real-data verification
+
+Driven against the real production service (`routePeriodService.getRoutePeriods('533140')`) on
+the real operational database at review time (`fact_f13` = 762,782 rows,
+`MAX(ngay_do_kiem) = 2026-08-31` — the database is live and had grown since the Section 19 review
+from independent, real import activity outside this session; confirmed unchanged by this session's
+own actions, before/after both `762782`/`2026-08-31`). Route `533140137`
+(`days_with_data 25 / days_in_period 31`) fed through the shipped `buildDailySeriesChartData`:
+
+```
+anchor 2026-08-31 | points 31
+gap days (rate=null): 01,09,10,15,17,21
+non-gap days: 25
+day 01 point: {"date":"01","rate":null,"volume":null}
+```
+
+31 points for 31 days in period (not 25, the old element count); the 6 real missing days render
+as `rate: null`/`volume: null`; day `02` (a real record, `passed: 0`) keeps `rate: 0`, not null.
+
+### Test evidence
+
+New tests in `frontend/src/features/route/routePeriodData.test.js` (12 added, source-pattern
+guards included):
+
+- Full month with data every day → one point per day, zero nulls.
+- The real gapped fixture above (route `533140137`, anchor `2026-08-31`, captured read-only from
+  the operational database) → 31 points for `days_in_period=31`; all 6 real missing days
+  (`01,09,10,15,17,21`) are `rate: null`/`volume: null` at their correct calendar position; the 25
+  present days are all non-null.
+- A genuine `rate: 0` real record is preserved as `0`, never coerced to `null` or mistaken for a
+  gap.
+- A missing day is `null`, never interpolated to `0`.
+- `anchor_date` on the 1st of the month (§4.3 edge case) yields exactly one point, no crash.
+- An empty `daily_series` still yields one `null` point per day in range.
+- An invalid/missing `anchor_date` falls back to a defensive 1:1 map without throwing.
+- Source-pattern regression guards (this file's established convention — no React render harness
+  in this project): `RouteSelectedPanel` calls `buildDailySeriesChartData(route.daily_series,
+  fromDate)` and no longer contains the old naive map; `connectNulls={false}` still present;
+  `Hạng`, `days_with_data`/`days_in_period`, and both periods' volume (`month_volume`,
+  `previous_month?.volume`) are still rendered — locking the three already-correct `ITR-BLOCK-03`
+  deliverables the Section 19 review confirmed, so a future edit cannot silently drop them.
+
+Validation commands and results:
+
+| Check | Command | Result |
+| --- | --- | --- |
+| New/targeted `routePeriodData` | `node --test src/features/route/routePeriodData.test.js` | **29/29 pass** (17 baseline + 12 new) |
+| Targeted Route Ranking | `node --test src/features/route/*.test.js` | **97/97 pass** (85 baseline + 12 new) |
+| Full frontend sweep | `node --test` over every `src/**/*.test.js` | **427 pass / 4 fail / 431** — the 4 are the same known out-of-ticket baseline failures on record since Section 14.5; zero regression |
+| Lint | `npx oxlint src/features/route/` | 0 errors / 0 warnings |
+| Build | `npm run build` | succeeds |
+| Backend route-period suites (unaffected — confirmed) | `node --experimental-sqlite --test src/repositories/FactBuuGuiRepository.routePeriod.test.js src/services/routePeriodService.test.js` | **18/18 pass** |
+| Database integrity | `SELECT COUNT(*), MAX(ngay_do_kiem) FROM fact_f13` at session start and end | `762782` / `2026-08-31` both times — **zero writes** attributable to this session |
+| Scope | `git diff --name-only 2afd0737 -- frontend backend` | Only `frontend/src/features/route/RoutePerformancePage.jsx`, `routePeriodData.js`, `routePeriodData.test.js` changed by this remediation (other listed paths were pre-existing, unrelated working-tree changes present before this session and left untouched) |
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = ITR2-BLOCKERS REMEDIATED / READY FOR INDEPENDENT RE-REVIEW`.
+`ITR2-BLOCK-01` and `ITR2-BLOCK-02` are technically remediated; `ITR-BLOCK-01` and `ITR-BLOCK-02`
+remain closed and undisturbed. Per `DEC-021` the same executor does not self-review its own fix —
+this round has not been through an Independent Technical Review. This is **not**
+`READY FOR PO CHECK`; no PO PASS is self-awarded. The Product Owner UI Check (Design of Record
+§12.2) remains not reachable until an Independent Re-Review of this round clears. The non-blocking
+observations from §19.6 remain unaddressed, out of scope.

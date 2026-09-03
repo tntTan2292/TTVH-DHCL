@@ -5,7 +5,7 @@ import f13DashboardClient from '../../api/F13DashboardClient';
 import { DEFAULT_ROUTE_TYPE_FILTER, ROUTE_TYPE_FILTERS, normalizeRouteTypeFilter } from './routeRankingFilters';
 import { toNumber, formatDelayedCashRate, applyRouteFilters, sortRouteRows, computeRouteKpiStats, computeDelayedCashWidget, resolveDefaultRouteDate } from './routeRankingCalculations';
 import { buildViolationEvidenceLink } from './routeViolationEvidenceData';
-import { processRoutePeriods, mergeRouteData, buildReconciliationView, formatPeriodRate, formatPeriodDelta, formatPeriodVolume, DASH } from './routePeriodData';
+import { processRoutePeriods, mergeRouteData, buildReconciliationView, formatPeriodRate, formatPeriodDelta, formatPeriodVolume, buildDailySeriesChartData, DASH } from './routePeriodData';
 import { classifyF13HeatmapRate, F13_HEATMAP_TONE_CLASS } from '../../components/f13/f13HeatmapBandCatalog';
 import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, AlertTriangle, Flame, Search, Filter, CalendarDays, ShieldCheck } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -301,13 +301,15 @@ function RouteRankingTable({
 }
 
 function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }) {
+  // Independent Re-Review ITR2-BLOCK-01 remediation: `route.daily_series` only ever carries an
+  // element for a day with real activity — `buildDailySeriesChartData` re-expands it to one
+  // point per calendar day from `01` through the anchor day (`fromDate`), so a day with no
+  // backend entry becomes a real `rate: null` gap for `connectNulls={false}` to break on,
+  // instead of being silently absent from the array. See routePeriodData.js for full rationale.
   const chartData = useMemo(() => {
     if (!route?.daily_series) return [];
-    return route.daily_series.map(d => ({
-      date: (d.date || '').split('-').pop(),
-      rate: d.rate !== null ? Number(d.rate) : null
-    }));
-  }, [route?.daily_series]);
+    return buildDailySeriesChartData(route.daily_series, fromDate);
+  }, [route?.daily_series, fromDate]);
 
   if (!route) {
     return (

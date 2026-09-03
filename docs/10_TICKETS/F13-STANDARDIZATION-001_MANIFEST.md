@@ -2188,3 +2188,52 @@ Design of Record §12.2 Product Owner UI Check remains not reachable and no PO P
 scope and executor are a CTO/PO decision — not self-activated. `F13-BCVH-RANKING-OVERVIEW-01` remains
 `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME` remains separately open per
 `PROJECT_SNAPSHOT.md`.
+
+## 57. F13-ROUTE-RANKING-PERIOD-01 — `ITR2-BLOCK-01`/`ITR2-BLOCK-02` Remediation — READY FOR INDEPENDENT RE-REVIEW (2026-09-03)
+
+Append-only delta. Sections 1-56 unchanged. Executor `Claude Code`/`Sonnet`. Scoped strictly to
+the two blocking findings from Section 56 (`ITR2-BLOCK-01`, `ITR2-BLOCK-02`); `ITR-BLOCK-01` and
+`ITR-BLOCK-02` untouched. Full detail and root cause in checkpoint Section 20.
+
+### Fix
+
+`ITR2-BLOCK-01` (daily_series chart did not leave missing days blank): added
+`buildDailySeriesChartData(dailySeries, anchorDate)` to
+`frontend/src/features/route/routePeriodData.js` — a pure, additive helper that re-expands the
+backend's `daily_series` (which omits any day with zero activity entirely) into exactly one point
+per calendar day from `01` through the anchor day, per Design §7.5. A day with a real entry keeps
+its real `rate`/`volume`, including a genuine `rate: 0`; a day with no entry becomes
+`{ rate: null, volume: null }` — a real gap for `connectNulls={false}` to render as blank.
+`frontend/src/features/route/RoutePerformancePage.jsx`'s `RouteSelectedPanel` now calls this
+helper instead of mapping `daily_series` 1:1. No backend, API contract, or other frontend file
+touched.
+
+`ITR2-BLOCK-02` (no test coverage): 12 tests added to
+`frontend/src/features/route/routePeriodData.test.js`, including the real gapped `daily_series`
+`routePeriodService.getRoutePeriods('533140')` returned for route `533140137` at anchor
+`2026-08-31` (captured read-only from the operational database), a genuine-0%-preserved case, the
+§4.3 anchor-on-day-1 edge case, and source-pattern regression guards locking the already-correct
+`Hạng`/`days_with_data`/both-period-volume deliverables against future silent removal.
+
+### Validation
+
+`routePeriodData.test.js` 29/29 (17 baseline + 12 new); targeted Route Ranking suite 97/97 (85 + 12
+new); full frontend sweep 427/431 pass — the 4 failures are the same known out-of-ticket baseline
+failures already on record, zero regression; `oxlint` 0 errors/0 warnings; `vite build` succeeds;
+backend route-period suites unaffected, re-run and confirmed 18/18. Real-data spot check: route
+`533140137` now yields 31 chart points for `days_in_period 31`, with the 6 real missing days
+(`01,09,10,15,17,21`) rendering as `rate: null`/`volume: null` and day `02`'s genuine `rate: 0`
+preserved. `fact_f13` row count and `MAX(ngay_do_kiem)` unchanged across this session's own
+actions (database is live and grows independently from real import activity outside this ticket).
+`git diff --name-only` confirms only the three named route files changed by this remediation.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = ITR2 BLOCKERS REMEDIATED / READY FOR INDEPENDENT RE-REVIEW` at the
+implementation commit landing this section. `ITR-BLOCK-01` (Section 54) and `ITR-BLOCK-02`
+(Section 53) remain closed and undisturbed. Per `DEC-021` the same executor does not self-review
+its own fix — this round is **not** `READY FOR PO CHECK`, and no PO PASS is self-awarded. The
+Product Owner UI Check (Design of Record §12.2) remains not reachable until an Independent
+Re-Review of this round clears. The non-blocking observations from checkpoint §19.6 remain
+unaddressed, out of scope. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`;
+`AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.
