@@ -2475,3 +2475,150 @@ opened**, and no other ticket is self-activated by this closure. `F13-BCVH-RANKI
 remains `COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately
 open per `PROJECT_SNAPSHOT.md`. The §19.6 non-blocking observations remain on record as
 non-blocking; they did not gate this PASS.
+
+## 62. F13-ROUTE-EVIDENCE-STATUS-02 — Discovery / Read-Only Audit Activation (2026-09-07)
+
+Product Owner explicitly authorized opening `F13-ROUTE-EVIDENCE-STATUS-02` **for discovery/
+read-only audit only** — no product code, database, schema, API, SSOT, or business rule change
+authorized under this activation. Executor: `Claude Code`/`Sonnet`. Scope of the audit: the live
+`Tuyến Ranking → Evidence` flow — current Evidence data contract and status semantics, what
+Tuyến Ranking passes into Evidence, whether Evidence can represent all required shipment/result
+states, filters/counts/status labels/navigation context preservation, and relevant automated
+test coverage — against the frozen design intent already recorded in
+`docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-RANKING-PERIOD-01_DESIGN.md` §1.2 decision 7 and
+§13.2 (drill-down Bưu gửi Đạt/Lỗi, deliberately deferred to this ticket, not yet opened until
+now). Audit method: static read of source (frontend `frontend/src/features/route/`,
+`frontend/src/features/shipment/`, `frontend/src/App.jsx`; backend
+`backend/src/routes/f13Routes.js`, `backend/src/repositories/FactBuuGuiRepository.js`,
+`backend/src/engine/rules/RuleF13302.js`) plus governance/design cross-reference. No database
+query executed, no server restarted, no test run — read-only source audit only.
+
+### Confirmed current behavior
+
+1. **Evidence is a single merged screen**, not the old standalone violations page. The prior
+   `RouteViolationEvidencePage.jsx` is permanently retired (confirmed on disk:
+   `frontend/src/features/route/RouteViolationEvidencePage.retired.test.js` asserts the file no
+   longer exists and `App.jsx` no longer references it). The old bookmark path
+   `/f13/ranking/route/violations` still works via a translating redirect
+   (`LegacyRouteViolationsRedirect` in `App.jsx`, using
+   `translateLegacyViolationsSearch()`), landing on the canonical route
+   `/f13/evidence`, which renders `frontend/src/features/shipment/ShipmentPerformancePage.jsx`
+   (`App.jsx:114`).
+2. **Tuyến Ranking → Evidence link**: `RoutePerformancePage.jsx` builds exactly one link per
+   route row via `buildViolationEvidenceLink()`
+   (`frontend/src/features/route/routeViolationEvidenceData.js`), passing `analysisDate` as
+   **both** `from_date` and `to_date` (same value — Evidence has no `date`-only param and never
+   reads a range), `bcvh_id`/`bcvh_name`, `route_id`/`route_name`, a fixed default
+   `reason=delayed_cash`, and `return_to` (the current Route Ranking querystring, so "← Quay lại
+   Tuyến Ranking" round-trips filter state exactly). `isValidReturnTo()` rejects
+   protocol/absolute-URL-shaped values and requires at least one recognized Route Ranking query
+   key before the back-link is even shown — cannot be used to redirect off-app.
+3. **Backend Evidence data contract is hardcoded to violations only.**
+   `GET /f13/evidence-list` (`backend/src/routes/f13Routes.js:28`) →
+   `dashboardController.getEvidence` → `FactBuuGuiRepository.getEvidenceList()` /
+   `getEvidenceListFacts()`. Both SQL queries carry a literal
+   `AND danh_gia_2026 = 'Không đạt'` predicate
+   (`backend/src/repositories/FactBuuGuiRepository.js:655`, `:702`) — there is no status
+   parameter, no toggle, and no code path by which Evidence can query `'Đạt'` (passed) rows.
+   This is a structural property of the query, not a filter default.
+4. **`danh_gia_2026` has three real states codebase-wide**, not two: `'Đạt'`, `'Không đạt'`
+   (both used pervasively, e.g. `backend/src/controllers/kpiController.js`), and
+   NULL/blank — explicitly documented in `backend/src/engine/rules/RuleF13302.js:39` as
+   "Chuyển hoàn không đi qua luồng nộp tiền" (returned shipments never enter the evaluation
+   flow at all) and separately aggregated as `total_returned` in
+   `FactBuuGuiRepository.js:403`. Evidence has no view, label, or query path for this third
+   state.
+5. **Evidence's violation-reason tabs** (Chậm nộp tiền / Không đạt khác / Chưa xác định nguyên
+   nhân / Tất cả không đạt, `buildViolationGroupTabs()`) are themselves computed only over the
+   already-`'Không đạt'`-scoped result set — internally consistent with finding 3, not a
+   separate defect. Server-sourced counts (`violation_summary`) drive tab counts; reason-tab
+   switching is a pure client-side filter over an already-fully-fetched result
+   (`fetchAllEvidenceRows()`), a 2026-08-13 PO remediation that also made keyword search span
+   every reason group instead of only the active tab.
+6. **Evidence is architecturally single-day.** The backend query filters on one
+   `ngay_do_kiem = ?`; `buildViolationEvidenceLink()` always sets `from_date === to_date`.
+   `ShipmentPerformancePage.jsx` resolves one `analysisDate` via the same
+   `resolveDefaultRouteDate()` helper Route Ranking uses — there is no month/period Evidence
+   mode, even though Tuyến Ranking itself was upgraded to period-based ranking
+   (`F13-ROUTE-RANKING-PERIOD-01`, closed Section 61). This is a **deliberate, already-recorded**
+   scope cut, not an oversight: Design of Record §13.2 states it explicitly and gives a measured
+   technical reason — route `533140`, August 2026, already has **20,256** real `'Không đạt'`
+   rows against the frontend's own safety ceiling
+   `EVIDENCE_FETCH_MAX_PAGES(100) × EVIDENCE_FETCH_PAGE_SIZE(200) = 20,000`
+   (`frontend/src/features/shipment/shipmentPerformanceData.js`), and
+   `getEvidenceListFacts()` loads its entire unpaginated result into Node process RAM before any
+   JS-side classification — a naive date-range toggle would overflow both the frontend fetch
+   ceiling and the backend's in-memory classification step on real, already-observed data.
+7. **Empty-state and truncation UX are real, working safeguards**, not stand-ins for missing
+   scope: 3 distinct empty-result causes are separately messaged (keyword-no-match /
+   route-genuinely-clean / whole-context-clean), and `truncated: true` from
+   `fetchAllEvidenceRows()` surfaces a visible amber warning banner telling the manager to narrow
+   to one Tuyến — it never silently drops rows.
+8. **Automated test coverage** exists and is current for everything above:
+   `shipmentPerformanceData.test.js`,
+   `ShipmentPerformancePage.{contract,phase2,remediation,searchRemediation}.test.js`,
+   `routeViolationEvidenceData.test.js`, `App.role-routing.test.js` (legacy redirect),
+   `RouteViolationEvidencePage.retired.test.js` (confirms full retirement). No test in this set
+   exercises a non-`'Không đạt'` Evidence state — consistent with finding 3, since no such state
+   is queryable today.
+
+### Gaps — ranked
+
+**Blocker (against the recorded F1.3 "complete" roadmap intent in the Design of Record):**
+
+1. **No "Đạt" (passed) drill-down exists at all** — hardcoded SQL predicate, not a missing UI
+   toggle. This is exactly the item named and deliberately deferred in
+   `F13-ROUTE-RANKING-PERIOD-01_DESIGN.md` §1.2 decision 7 / §13.2 ("Drill-down Bưu gửi Đạt/Lỗi
+   … tách phase/ticket riêng"). Any use case needing to see which specific bưu gửi passed on a
+   given route/day/period has zero backend support today.
+2. **Evidence cannot follow Tuyến Ranking into period mode** — single-day only by construction
+   (finding 6), while Ranking itself is now period-based. A manager drilling from a
+   period-ranked route lands on only the resolved anchor day's violations, never the ranked
+   period's. Real overflow risk if implemented naively is already measured (533140/August:
+   20,256 rows vs a 20,000-row ceiling), so this is not a small patch — both the frontend fetch
+   loop and the backend's in-memory `getEvidenceListFacts()` classification need real design
+   work first.
+3. **No status view for "Chuyển hoàn" (returned) shipments** — a real, non-accidental third
+   state (RuleF13302.js) with a real backend aggregate (`total_returned`) but zero surface in
+   Evidence. Whether this belongs in F1.3 "complete" is a product-scope question the audit
+   cannot resolve on its own.
+
+**Non-blocker (confirmed working as designed, recorded only for completeness):**
+
+4. Reason-tab classification is internally consistent and correctly scoped to
+   `'Không đạt'` — restates finding 3/5, not a new defect.
+5. Truncation/empty-state UX is a correct stopgap for the current single-day mode and must not
+   be mistaken for period-mode support.
+
+### Recommended next action
+
+Discovery is sufficient to identify that **implementation requires Product Owner scope
+decisions first** — none of the 3 blocker gaps above can be designed or estimated without them:
+
+- **PO-A**: Does F1.3 "complete" require an `'Đạt'` (passed) drill-down in Evidence, or is
+  Evidence intentionally violation-only (an audit trail for failures), with passed volumes
+  shown only in aggregate as they already are today in Route/BCVH Ranking?
+- **PO-B**: Does F1.3 "complete" require Evidence to gain a period mode matching Tuyến Ranking's
+  period upgrade, or does Evidence deliberately stay single-day (Design of Record §1.2 decision
+  7, already locked) regardless?
+- **PO-C**: Is "Chuyển hoàn" (returned) shipment visibility in scope for Evidence/F1.3 at all,
+  or an explicitly separate reporting concern?
+
+### Whether implementation is required
+
+**Not yet, and not self-activated by this audit.** This ticket was authorized for
+discovery/read-only audit only; no PO-A/PO-B/PO-C decision has been made. No implementation,
+design document, schema, API, or UI change should start until the Product Owner answers the
+three questions above. If any answer is "yes," the resulting work needs its own Design of
+Record — the backend's hardcoded query predicate and single-day param contract, and the
+frontend's fixed fetch-ceiling architecture, both require real design, not a small patch,
+particularly for PO-B given the already-measured 20,256-row overflow case.
+
+### Governance state after this section
+
+`F13-ROUTE-EVIDENCE-STATUS-02 = DISCOVERY / READ-ONLY AUDIT COMPLETE — AWAITING PO DECISION
+(PO-A / PO-B / PO-C)`. No product code, database, schema, API, SSOT, or business rule was
+touched by this activation or audit — confirmed by the audit method being source-read only (no
+`git diff` needed since no file under `backend/src`, `frontend/src`, or any migration was
+edited). `F13-ROUTE-RANKING-PERIOD-01` remains `COMPLETED / PO PASS / CLOSED` (Section 61),
+unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.

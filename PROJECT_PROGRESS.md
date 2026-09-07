@@ -1411,3 +1411,32 @@ Product Owner performed the Design of Record section 12.2 UI Check against the m
 ## 2026-09-07 - AUTO-BACKFILL-RUNTIME: F41-AUTOBF-SQLITE-BUSY-01 INCIDENT CLOSED / PO-CONFIRMED
 
 Product Owner reported 11 F1.3/F4.1 Auto Backfill runs submitted in a burst showing `RUNNING` with 1 job each, and one run `COMPLETED_WITH_ERRORS`. Read-only investigation first (no Resume/Retry/cancel, no re-login, no database write before root cause): the many-`RUNNING` appearance is expected single-global-lease serialization (`auto_backfill_job`'s unique index permits only one `RUNNING` job system-wide), not a defect. The one real defect -- run `d4d8acb7`/job `468a5679` (F4.1/HUE/2026-09-06) terminalizing with `result_code=SQLITE_BUSY` -- was root-caused to `backend/src/config/db.js`'s shared connection having no `PRAGMA busy_timeout` (sqlite3 default 1000ms) while `autoBackfillQueueStore.js`'s own separate connection to the same file already sets `busy_timeout=5000`; a burst of 10 new run/job writes on that other connection raced the F4.1 completion write and won. Fixed by setting `PRAGMA busy_timeout=5000` on the `config/db.js` connection (commit `8f0a9d62`), with regression test `backend/test_dbBusyTimeoutConfig.js` reproducing the exact two-connection lock race on a real on-disk file, confirmed failing pre-fix and passing post-fix; six adjacent Import/Auto-Backfill test suites re-ran with zero regressions. Product Owner then used the per-row "Nhập lại" button for exactly F4.1/HUE/2026-09-06 -- no batch -- and Claude Code read-only-verified: new run `d6589085` `COMPLETED`, new job `f48ab8f0` `SUCCESS` on attempt 1, zero `SQLITE_BUSY` recurrence, `fact_f41` gained exactly `2613` rows for `2026-09-06` matching the completion evidence and `import_log.id=1331` exactly, original failed job `468a5679` left untouched, exactly one new run created. State: `F41-AUTOBF-SQLITE-BUSY-01 = CLOSED / PO-CONFIRMED`; `AUTO-BACKFILL-RUNTIME` (Ticket 7) remains open -- this closes the incident only, not a full PO Gate 7 runtime acceptance for the ticket. Evidence: `docs/10_TICKETS/AUTO-BACKFILL-RUNTIME_MANIFEST.md` Section 49; `docs/06_REVIEWS/Import/AUTO-BACKFILL-RUNTIME_CHECKPOINT_001.md` Section 8; `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated. Does not affect `F13-ROUTE-RANKING-PERIOD-01` (closed, unaffected).
+
+## 2026-09-07 - F13-ROUTE-EVIDENCE-STATUS-02 OPENED / DISCOVERY-ONLY AUDIT COMPLETE
+
+Product Owner explicitly authorized opening `F13-ROUTE-EVIDENCE-STATUS-02` for discovery/
+read-only audit only -- no product code, database, schema, API, SSOT, or business rule change
+authorized. Claude Code audited the live `Tuyen Ranking -> Evidence` flow by source read only
+(no query executed, no server restarted, no test run) against the roadmap intent already
+recorded in `F13-ROUTE-RANKING-PERIOD-01_DESIGN.md` SS1.2 decision 7 / SS13.2. Confirmed: Evidence
+is the merged `ShipmentPerformancePage.jsx` at `/f13/evidence` (old standalone page permanently
+retired, legacy URL redirected); Tuyen Ranking passes exactly one single-day, violation-only
+link per route row (`from_date === to_date`, default `reason=delayed_cash`, with a validated
+`return_to` round-trip back to Route Ranking's own filters); the backend `GET /f13/evidence-list`
+contract hardcodes `danh_gia_2026 = 'Khong dat'` in its SQL -- there is no code path for Evidence
+to ever show `'Dat'` (passed) rows, and a real third state (`'Chuyen hoan'`/NULL, returned
+shipments that never enter the evaluation flow) has zero Evidence surface either. Recorded 3
+ranked blocker gaps against the design's own stated F1.3 completeness intent -- (1) no
+Dat/passed drill-down exists at all (hardcoded, not a missing toggle); (2) Evidence cannot follow
+Tuyen Ranking's new period-based ranking into period mode, and a naive date-range toggle would
+overflow both the frontend's 20,000-row fetch ceiling and the backend's in-memory classification
+step on real data (533140/August already has 20,256 real violation rows against that ceiling);
+(3) no status view for Chuyen hoan shipments -- plus 2 non-blocker items confirming existing
+behavior (reason-tab scoping, truncation/empty-state UX) is correct as designed, not a gap.
+State: `F13-ROUTE-EVIDENCE-STATUS-02 = DISCOVERY / READ-ONLY AUDIT COMPLETE -- AWAITING PO
+DECISION` on 3 named questions (PO-A: Dat/passed drill-down in scope? PO-B: Evidence period mode
+in scope? PO-C: Chuyen hoan visibility in scope?) before any design or implementation work may
+start. `Current Ticket` changes from `None` to `F13-ROUTE-EVIDENCE-STATUS-02`. `F13-ROUTE-RANKING-
+PERIOD-01` remains `COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains
+separately open, unaffected. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md`
+Section 62; `PROJECT_SNAPSHOT.md` updated.
