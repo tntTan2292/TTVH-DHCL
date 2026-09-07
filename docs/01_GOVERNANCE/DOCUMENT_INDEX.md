@@ -577,3 +577,20 @@ Current state: `F13-ROUTE-RANKING-PERIOD-01 = ITR3-BLOCK-01 REMEDIATED / READY F
 RE-REVIEW`. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI
 Check remains not reachable and no PO PASS is awarded. Remedy scope and executor for the review
 are a CTO/PO decision and are not self-activated.
+
+## F13-ROUTE-RANKING-PERIOD-01 Independent Re-Review PASS Registration - 2026-09-07
+
+Supersedes the `ITR3-BLOCK-01` Remediation registration above for onboarding purposes without
+deleting it: that remediation has now passed an Independent Technical Re-Review and the ticket has
+moved to `READY FOR PO CHECK`.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md` | Checkpoint | Section 23 (appended) records the Independent Re-Review of `ITR3-BLOCK-01` and its **PASS**: the chart is anchored on the BCVH's own resolved `anchor_date`, re-derived independently through the real production service against the real database across all 9 BCVH and all 105 routes with zero point-count mismatches and full per-point fidelity; Section 59's day counts for `531110`/`531600`/`531120` reproduced exactly by capping the anchor ceiling at `2026-08-31`; `533140` bit-for-bit identical across all 35 routes; the new tests mutation-verified to actually fail on the regression; zero backend/API/database change and zero database writes. Section 22 (the remediation) and Sections 1-21 stand unchanged. | L2/L3 | Current Required Reading | Mandatory before any further work on this ticket, including the Product Owner UI Check. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 60 (appended) records the Independent Re-Review **PASS**, the `INDEPENDENT TECHNICAL PASS / READY FOR PO CHECK` state at `66200166`, and the PO UI Check hand-off checklist. `ITR-BLOCK-01`, `ITR-BLOCK-02`, `ITR-BLOCK-03`, `ITR2-BLOCK-01`, `ITR2-BLOCK-02`, and now `ITR3-BLOCK-01` are all closed — no blocking finding remains open. Sections 1-59 stand unchanged as historical record. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-RANKING-PERIOD-01 = INDEPENDENT TECHNICAL PASS / READY FOR PO CHECK` at
+implementation commit `66200166`. The Design of Record §12.2 Product Owner UI Check is now
+reachable and is the remaining gate. This is an independent **technical** PASS only — **no PO PASS
+is awarded**; `Claude Code` does not self-award Product Owner acceptance, and the ticket does not
+close until the Product Owner grants it.
