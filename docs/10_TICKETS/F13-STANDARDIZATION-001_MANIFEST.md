@@ -2447,3 +2447,31 @@ card on the same screen:
 4. `533140` — unchanged from the previously accepted behaviour: full-month axis with real gaps.
 5. Any BCVH — the `Ngày dữ liệu` label, the violation-Evidence link, and the day-scoped columns
    must still follow the date selector, unchanged.
+
+## 61. F13-ROUTE-RANKING-PERIOD-01 — Product Owner UI Check — **PO PASS / CLOSED** (2026-09-07)
+
+Append-only delta. Sections 1-60 unchanged. Governance-only entry recording the Product Owner's
+decision — no new technical claim is made here; the technical basis is the Independent Re-Review
+PASS at Section 60 / checkpoint Section 23, and the `ITR3-BLOCK-01` remediation at Section 59 /
+checkpoint Section 22, implementation commit `66200166`.
+
+### Result
+
+The Product Owner performed the Design of Record §12.2 UI Check against the Section 60 hand-off
+checklist and **explicitly granted PO PASS** on `2026-09-07` for `F13-ROUTE-RANKING-PERIOD-01` in
+full scope: the route ranking table, the new period columns and scope reconciliation delivered
+across Phases B1/F1/I1, and the daily-series chart's per-BCVH `01 → ngày neo` axis — the subject
+of every `ITR*` finding raised on this ticket, all now closed (`ITR-BLOCK-01` Section 54,
+`ITR-BLOCK-02` Section 53, `ITR-BLOCK-03` Section 55, `ITR2-BLOCK-01`/`ITR2-BLOCK-02` Section 57,
+`ITR3-BLOCK-01` Sections 59-60).
+
+Final technical commit this PO PASS is based on: `66200166`.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = COMPLETED / PO PASS / CLOSED`. Ticket state: `AWAITING PO DIRECTION`
+for its next scope — `F13-ROUTE-EVIDENCE-STATUS-02` remains recorded on the roadmap but **not
+opened**, and no other ticket is self-activated by this closure. `F13-BCVH-RANKING-OVERVIEW-01`
+remains `COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately
+open per `PROJECT_SNAPSHOT.md`. The §19.6 non-blocking observations remain on record as
+non-blocking; they did not gate this PASS.

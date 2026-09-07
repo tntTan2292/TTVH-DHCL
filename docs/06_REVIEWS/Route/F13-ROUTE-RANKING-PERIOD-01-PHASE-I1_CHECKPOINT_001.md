@@ -1554,3 +1554,33 @@ UI Check is now reachable and is the remaining gate. **This is an independent te
 No PO PASS is awarded — `Claude Code` does not self-award PO acceptance.**
 `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME`
 remains separately open and untouched.
+
+## 24. F13-ROUTE-RANKING-PERIOD-01 — Product Owner UI Check — **PASS / CLOSED** (2026-09-07)
+
+Append-only. Sections 1-23 unchanged. Governance-only entry recording the Product Owner's
+decision — this section makes no independent technical claim of its own; all technical evidence
+for the state being accepted is Section 23 (Independent Re-Review, PASS) and Section 22 (the
+`ITR3-BLOCK-01` remediation), at implementation commit `66200166`.
+
+### Product Owner decision
+
+The Product Owner performed the Design of Record §12.2 UI Check against the hand-off checklist in
+`F13-STANDARDIZATION-001_MANIFEST.md` Section 60 and **explicitly granted PO PASS** on `2026-09-07`
+for `F13-ROUTE-RANKING-PERIOD-01` in full: Tuyến Ranking theo kỳ, the period columns (`Hạng`,
+`Tỷ lệ ngày`, `Lũy kế tháng`, `Cùng kỳ tháng trước`, `Chênh lệch`, `Ngày có DL`, `Sản lượng`), the
+scope reconciliation, and the daily-series chart's `01 → ngày neo` per-BCVH axis (the subject of
+`ITR-BLOCK-01` through `ITR3-BLOCK-01`, all of which are closed per Sections 15-17, 20-21, and 23).
+
+Final technical commit this PO PASS is based on: `66200166` —
+`fix(f13): remediate ITR3-BLOCK-01, anchor chart on BCVH's own anchor_date`.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = COMPLETED / PO PASS / CLOSED`. Every `ITR*` finding raised against
+this ticket (`ITR-BLOCK-01`, `ITR-BLOCK-02`, `ITR-BLOCK-03`, `ITR2-BLOCK-01`, `ITR2-BLOCK-02`,
+`ITR3-BLOCK-01`) is closed, and the ticket itself is now closed with Product Owner acceptance. The
+§19.6 non-blocking observations remain on record as non-blocking and unaddressed — they did not
+block this PASS and are not reopened by it. `F13-BCVH-RANKING-OVERVIEW-01` remains
+`COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open.
+`F13-ROUTE-EVIDENCE-STATUS-02` remains on the roadmap, **not opened** — this closure does not
+self-activate it or any other ticket.

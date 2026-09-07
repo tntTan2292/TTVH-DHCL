@@ -594,3 +594,17 @@ implementation commit `66200166`. The Design of Record §12.2 Product Owner UI C
 reachable and is the remaining gate. This is an independent **technical** PASS only — **no PO PASS
 is awarded**; `Claude Code` does not self-award Product Owner acceptance, and the ticket does not
 close until the Product Owner grants it.
+
+## F13-ROUTE-RANKING-PERIOD-01 Closure Registration - 2026-09-07
+
+Supersedes the Independent Re-Review PASS registration above for onboarding purposes without
+deleting it: the ticket has now received Product Owner acceptance and is formally closed.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md` | Checkpoint | Section 24 (appended) records the Product Owner UI Check **PASS** and the ticket's formal closure, based on the Independent Re-Review PASS at Section 23 and the `ITR3-BLOCK-01` fix at Section 22, implementation commit `66200166`. Sections 1-23 stand unchanged as closed historical record. | L2/L3 | Historical Record | Read when onboarding the next ticket that touches Route Ranking, or to confirm this ticket's closed state. | Reference |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 61 (appended) records the Product Owner PO PASS and `COMPLETED / PO PASS / CLOSED` state for `F13-ROUTE-RANKING-PERIOD-01`. Every `ITR*` finding on this ticket (`ITR-BLOCK-01`, `ITR-BLOCK-02`, `ITR-BLOCK-03`, `ITR2-BLOCK-01`, `ITR2-BLOCK-02`, `ITR3-BLOCK-01`) is closed. Sections 1-60 stand unchanged as historical record. | L2 | Historical Record | Reference for the ticket's full lifecycle; not required reading for new work since no ticket is currently active on this scope. | Reference |
+
+Current state: `F13-ROUTE-RANKING-PERIOD-01 = COMPLETED / PO PASS / CLOSED` at implementation
+commit `66200166`. `Current Ticket = None`, `AWAITING PO DIRECTION`. `F13-ROUTE-EVIDENCE-STATUS-02`
+remains recorded on the roadmap but **not opened**, and is not self-activated by this closure.
