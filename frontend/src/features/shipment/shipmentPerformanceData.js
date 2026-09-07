@@ -95,6 +95,28 @@ export function groupRowsByRoute(rows = []) {
     .sort((a, b) => a.routeName.localeCompare(b.routeName, 'vi-VN') || String(a.routeId).localeCompare(String(b.routeId)));
 }
 
+// F13-ROUTE-EVIDENCE-STATUS-02 Phase I1 integration-defect fix (2026-09-07): the URL's
+// `reason` param must default to 'all', never to a specific violation-reason group. Extracted
+// as a pure function (rather than an inline `|| DEFAULT_REASON` fallback) so the "no reason
+// param present" case is directly unit-testable without a full component render.
+export function resolveReasonParam(rawReason) {
+  return rawReason || 'all';
+}
+
+// Real defect found during Phase I1 real-data integration validation: the previous
+// `handleStatusChange` only reset `reason` to 'all' when the PRIOR `reasonParam` was already
+// falsy/'all' — but a URL that had picked up `reason=delayed_cash` from any earlier point (the
+// Route Ranking drill-down link's own default, or a prior reason-tab click) left that value
+// untouched on every subsequent status-card click, so re-entering `status=failed` silently
+// narrowed to "Chậm nộp tiền" instead of the full "Không đạt" population — visibly
+// inconsistent with the status card's own displayed count. This function makes the outcome of
+// a status-card click deterministic, independent of whatever `reason` happened to be
+// beforehand: entering `failed` always shows every reason group; leaving it always clears the
+// (now-irrelevant) reason filter.
+export function resolveStatusChangeReasonPatch(nextStatus) {
+  return nextStatus === 'failed' ? 'all' : '';
+}
+
 // Status and Period options for F13-ROUTE-EVIDENCE-STATUS-02
 export const STATUS_FILTER_OPTIONS = [
   { value: 'all', label: 'Tất cả trạng thái' },
@@ -107,3 +129,19 @@ export const PERIOD_FILTER_OPTIONS = [
   { value: 'day', label: 'Ngày' },
   { value: 'month_to_anchor', label: 'Kỳ tháng đến ngày neo' },
 ];
+
+// I1 integration-defect fix (2026-09-07): the empty-state title for "this route has no rows"
+// used to hardcode "không có bưu gửi vi phạm" (violation-only wording, inherited unchanged
+// from before PO-A/PO-C added Đạt/Chuyển hoàn to Evidence). Confirmed live against real data:
+// selecting a route with 0 "Đạt" shipments and viewing status=Đạt still showed "không có bưu
+// gửi vi phạm" — misleading, since a 0-count Đạt result is not about violations at all. This
+// resolves the status-appropriate noun phrase so the title matches whichever status the
+// manager actually selected.
+export function resolveEmptyStateStatusLabel(status) {
+  switch (status) {
+    case 'passed': return 'bưu gửi Đạt';
+    case 'failed': return 'bưu gửi vi phạm';
+    case 'returned': return 'bưu gửi Chuyển hoàn';
+    default: return 'bưu gửi';
+  }
+}

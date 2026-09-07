@@ -11,10 +11,12 @@ import ShipmentEvidenceDetail from './ShipmentEvidenceDetail';
 import {
   formatSearchResultSummary,
   groupRowsByRoute,
+  resolveReasonParam,
+  resolveStatusChangeReasonPatch,
+  resolveEmptyStateStatusLabel,
 } from './shipmentPerformanceData';
 
 const ALL_ROUTES_OPTION = { value: '', label: 'Tất cả tuyến' };
-const DEFAULT_REASON = 'delayed_cash';
 const PAGE_SIZE = 50;
 
 function toNumber(value) {
@@ -80,7 +82,7 @@ export default function ShipmentPerformancePage() {
   const order = searchParams.get('order') || 'asc';
   const periodParam = searchParams.get('period') || 'day';
   const statusParam = searchParams.get('status') || 'all';
-  const reasonParam = searchParams.get('reason') || DEFAULT_REASON;
+  const reasonParam = resolveReasonParam(searchParams.get('reason'));
   const pageParam = parseInt(searchParams.get('page') || '1', 10);
   const currentPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
@@ -180,15 +182,12 @@ export default function ShipmentPerformancePage() {
     updateParams({ period: nextPeriod, page: '' });
   };
 
+  // I1 integration-defect fix: the reason patch is now a pure function of `nextStatus` alone
+  // (resolveStatusChangeReasonPatch), never conditional on the PRIOR reasonParam — entering
+  // 'failed' always resets to 'all' regardless of what reason happened to be lingering in the
+  // URL beforehand (see shipmentPerformanceData.js for the real defect this fixes).
   const handleStatusChange = (nextStatus) => {
-    // When leaving 'failed', reset reason. When entering 'failed', default reason to 'all'
-    const patch = { status: nextStatus, page: '' };
-    if (nextStatus !== 'failed') {
-      patch.reason = '';
-    } else if (!reasonParam || reasonParam === 'all') {
-      patch.reason = 'all';
-    }
-    updateParams(patch);
+    updateParams({ status: nextStatus, reason: resolveStatusChangeReasonPatch(nextStatus), page: '' });
   };
 
   const handleReasonChange = (slug) => {
@@ -355,7 +354,7 @@ export default function ShipmentPerformancePage() {
 
     if (routeIdParam) {
       return {
-        title: `Tuyến ${routeIdParam} - ${routeName} không có bưu gửi vi phạm`,
+        title: `Tuyến ${routeIdParam} - ${routeName} không có ${resolveEmptyStateStatusLabel(statusParam)}`,
         description: `Ngày ${analysisDate} · BCVH ${bcvhName}. Tuyến này không có bưu gửi nào khớp với bộ lọc đang chọn trong bối cảnh hiện tại.`,
         action: (
           <button
@@ -375,7 +374,7 @@ export default function ShipmentPerformancePage() {
       action: null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, routeIdParam, routeName, analysisDate, bcvhName, scopeGuard]);
+  }, [search, routeIdParam, routeName, analysisDate, bcvhName, scopeGuard, statusParam]);
 
   const routeSelector = (
     <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">

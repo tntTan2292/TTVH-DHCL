@@ -4,6 +4,9 @@ import fs from 'node:fs';
 import {
   STATUS_FILTER_OPTIONS,
   PERIOD_FILTER_OPTIONS,
+  resolveReasonParam,
+  resolveStatusChangeReasonPatch,
+  resolveEmptyStateStatusLabel,
 } from './shipmentPerformanceData.js';
 import { buildViolationEvidenceLink } from '../route/routeViolationEvidenceData.js';
 
@@ -38,7 +41,46 @@ test('T-F03: violation tabs are displayed ONLY when statusParam === failed', () 
 
 test('T-F03: switching away from failed clears reason; switching to failed defaults reason to all', () => {
   assert.match(source, /const handleStatusChange = \(nextStatus\) => \{/);
-  assert.match(source, /if \(nextStatus !== 'failed'\) \{\s*\n\s*patch\.reason = '';/);
+  assert.match(source, /updateParams\(\{ status: nextStatus, reason: resolveStatusChangeReasonPatch\(nextStatus\), page: '' \}\)/);
+});
+
+// I1 integration-defect regression (2026-09-07): real E2E testing against real data found that
+// switching status away from 'failed' and back (e.g. Chuyển hoàn -> Không đạt, or any status
+// card click after a `reason=delayed_cash` value had ever entered the URL — including the very
+// first landing from Route Ranking, whose link always seeds that value) silently narrowed the
+// "Không đạt" view to only "Chậm nộp tiền", inconsistent with the status card's own displayed
+// count. These tests exercise the actual pure functions the fix introduced — not source-text
+// regex — so a regression here fails on real behavior, not on incidental wording.
+test('T-F03 regression: resolveStatusChangeReasonPatch is deterministic per nextStatus, independent of any prior reason', () => {
+  assert.equal(resolveStatusChangeReasonPatch('failed'), 'all');
+  assert.equal(resolveStatusChangeReasonPatch('all'), '');
+  assert.equal(resolveStatusChangeReasonPatch('passed'), '');
+  assert.equal(resolveStatusChangeReasonPatch('returned'), '');
+});
+
+test('T-F03 regression: resolveReasonParam defaults to "all", never to a specific violation-reason group', () => {
+  assert.equal(resolveReasonParam(null), 'all');
+  assert.equal(resolveReasonParam(undefined), 'all');
+  assert.equal(resolveReasonParam(''), 'all');
+  // An explicit value (e.g. carried over from a reason-tab click, or a stale
+  // `reason=delayed_cash` seeded by the Route Ranking link) still passes through unchanged --
+  // resolveReasonParam only supplies the "nothing at all" default; the real fix is that
+  // handleStatusChange no longer conditions on this value when entering 'failed'.
+  assert.equal(resolveReasonParam('delayed_cash'), 'delayed_cash');
+});
+
+test('T-F03 regression: repeated status-card round-trips always land on reason=all when re-entering failed', () => {
+  // Reproduces the exact real-data sequence that surfaced the defect: Route Ranking seeds
+  // reason=delayed_cash in the URL (buildViolationEvidenceLink's own default) -> user clicks
+  // "Chuyển hoàn" -> user clicks "Không đạt". `updateParams` deletes the URL key entirely
+  // whenever the patch value is '' (an empty string), so the simulation below mirrors that:
+  // an empty-string patch means the next resolveReasonParam() call sees no param at all.
+  const afterReturned = resolveStatusChangeReasonPatch('returned');
+  assert.equal(afterReturned, '', 'leaving failed must clear reason from the URL');
+  assert.equal(resolveReasonParam(afterReturned || null), 'all', 'no reason param present must resolve to all, never a leftover group');
+
+  const afterFailedAgain = resolveStatusChangeReasonPatch('failed');
+  assert.equal(afterFailedAgain, 'all', 're-entering failed must always resolve to the full Không đạt population, not a narrowed reason group');
 });
 
 // T-F04: Route Ranking navigation maintains period and route
@@ -94,7 +136,7 @@ test('T-F06: Filter changes (BCVH, route, period, status, reason, search) reset 
   assert.match(source, /updateParams\(\{ bcvh_id: value, bcvh_name: option\?\.label \|\| '', route_id: '', route_name: '', page: '' \}\)/);
   assert.match(source, /updateParams\(\{ route_id: value, route_name: value \? \(option\?\.label \|\| ''\) : '', page: '' \}\)/);
   assert.match(source, /updateParams\(\{ period: nextPeriod, page: '' \}\)/);
-  assert.match(source, /const patch = \{ status: nextStatus, page: '' \};/);
+  assert.match(source, /updateParams\(\{ status: nextStatus, reason: resolveStatusChangeReasonPatch\(nextStatus\), page: '' \}\)/);
   assert.match(source, /updateParams\(\{ reason: slug, page: '' \}\)/);
 });
 
@@ -112,6 +154,23 @@ test('T-F07: ShipmentEvidenceDetail displays status and null-safe reason/delay f
 
 test('T-F07: Screen title is exact PO requirement "Chi tiết bưu gửi F1.3"', () => {
   assert.match(source, /title="Chi tiết bưu gửi F1\.3"/);
+});
+
+// I1 integration-defect regression (2026-09-07): real E2E testing found the per-route empty
+// state hardcoded "không có bưu gửi vi phạm" regardless of the selected status — misleading
+// when status=passed/returned, since an empty Đạt or Chuyển hoàn result is not about
+// violations. Reproduced live: route with 0 "Đạt" rows, status=passed selected, title still
+// read "...không có bưu gửi vi phạm".
+test('T-F07 regression: resolveEmptyStateStatusLabel returns a status-appropriate phrase, not always "vi phạm"', () => {
+  assert.equal(resolveEmptyStateStatusLabel('all'), 'bưu gửi');
+  assert.equal(resolveEmptyStateStatusLabel('passed'), 'bưu gửi Đạt');
+  assert.equal(resolveEmptyStateStatusLabel('failed'), 'bưu gửi vi phạm');
+  assert.equal(resolveEmptyStateStatusLabel('returned'), 'bưu gửi Chuyển hoàn');
+});
+
+test('T-F07 regression: the per-route empty-state title uses resolveEmptyStateStatusLabel(statusParam), not a hardcoded "vi phạm" string', () => {
+  assert.match(source, /không có \$\{resolveEmptyStateStatusLabel\(statusParam\)\}/);
+  assert.doesNotMatch(source, /không có bưu gửi vi phạm`/, 'the hardcoded violation-only wording must be gone');
 });
 
 // T-F08: Navigation roundtrip Tuyến Ranking → Chi tiết bưu gửi F1.3 → Quay lại Tuyến Ranking

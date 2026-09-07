@@ -664,3 +664,20 @@ Registers the Phase F1 implementation delivered by `Antigravity` against the PO-
 
 Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE F1 (FRONTEND) COMPLETE / READY FOR INTEGRATION VALIDATION`.
 
+
+## F13-ROUTE-EVIDENCE-STATUS-02 Phase I1 Integration Validation Registration - 2026-09-07
+
+Registers Phase I1 (Integration Validation), performed by `Claude Code`/`Sonnet` against real
+production data. Supersedes the Section 65 Phase F1 registration for onboarding purposes without
+deleting it.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frontend/src/features/shipment/shipmentPerformanceData.js` | Source (modified) | Adds three pure functions found necessary by real I1 defects: `resolveReasonParam` (defaults to `all`, never a violation-reason group), `resolveStatusChangeReasonPatch` (deterministic per status, fixes the silent reason-narrowing defect), `resolveEmptyStateStatusLabel` (status-aware empty-state wording, fixes the hardcoded "vi phạm" text). | L3 | Active | When touching Evidence's status/reason logic. | Mandatory |
+| `frontend/src/features/shipment/ShipmentPerformancePage.jsx` | Source (modified) | `handleStatusChange` and the per-route empty-state title now call the new pure functions instead of the removed `DEFAULT_REASON` constant and its conditional logic. | L3 | Active | When touching Evidence's status-card or empty-state behaviour. | Reference |
+| `frontend/src/features/shipment/ShipmentPerformancePage.evidenceStatus.test.js`, `frontend/src/features/shipment/ShipmentPerformancePage.remediation.test.js` | Tests (modified) | 5 new behavioral regression tests (exercising the real pure functions, not source-text regex) for both I1 defects; 2 stale assertions that had encoded the exact broken/wrong wording updated to match the intentional fix. | L3 | Active | Before modifying status/reason/empty-state logic. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 66 (appended) records the gate-by-gate I1 result (11/11 PASS), the stale-backend-process environment note, both real defects found and fixed with root cause, and full validation evidence including a live 3-BCVH reconciliation via the real authenticated HTTP API. Sections 1-65 stand unchanged. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE I1 INTEGRATION VALIDATION COMPLETE / READY
+FOR INDEPENDENT TECHNICAL REVIEW`. Per `DEC-021`, an Independent Technical Review by a different
+model is mandatory before any PO UI Check.

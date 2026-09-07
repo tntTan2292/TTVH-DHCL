@@ -1528,3 +1528,59 @@ mandatory before Phase F1 (Frontend, `Antigravity`) starts and before any PO UI 
 Section 64; `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated. `F13-ROUTE-RANKING-PERIOD-01`
 remains `COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately
 open, unaffected.
+
+## 2026-09-07 - F13-ROUTE-EVIDENCE-STATUS-02 PHASE I1 INTEGRATION VALIDATION COMPLETE
+
+Ran real end-to-end integration validation of the completed Phase B1 (`cfb57d4`) and Phase F1
+(`23c9970`) implementation against real production data, per the 11 gates requested: Tuyen
+Ranking to "Chi tiet buu gui F1.3" navigation; correct BCVH/route/period/anchor_date; default
+status=all; Dat/Khong dat/Chuyen hoan rendering; status-count reconciliation with Tuyen Ranking;
+server-side pagination; search+reason filter; a dataset over 20,000 rows; empty/error/scope_guard
+states; the return journey; and the legacy Evidence flow. Executor: `Claude Code`/`Sonnet`.
+
+All 11 gates PASS on real data. Method: real browser click-through (logged in as the project's
+own documented local-dev runtime account) plus direct authenticated HTTP calls against the real
+backend and `database.sqlite`. Highlights: status-count reconciliation matched exactly on 3 real
+BCVH both through the UI and through `GET /f13/ranking/route/periods` directly (`533140`
+7546/3659, `531600` 50/8, `531120` 1/1); the real `533140`/August-2026 scope (55,650 rows, 2.8x
+the retired 20,000 ceiling) loaded, searched, and reason-faceted correctly with
+`scope_guard: {scope_rows, limit:200000, exceeded:false}` and zero client-side materialization;
+three distinct real empty states and a real transient server error were each reproduced and
+correctly rendered.
+
+One environment issue was found and resolved, not a code defect: the live backend process had
+started before both the B1 and F1 commits (Node does not hot-reload `require()`d route files),
+so the first click-through 404'd on the new endpoint. Confirmed no `RUNNING` auto-backfill job,
+then restarted the process; the 404 did not reproduce afterward.
+
+Two real integration defects were found live and fixed in minimal scope, each with regression
+tests: (1) `handleStatusChange` only reset the `reason` URL param conditionally, so a leftover
+`DEFAULT_REASON='delayed_cash'` fallback (from the pre-redesign single-reason screen) meant
+clicking the "Khong dat" status card after visiting any other status card -- or straight from a
+Route Ranking landing, whose link always seeds `reason=delayed_cash` -- silently narrowed the
+view to only "Cham nop tien" instead of the full "Khong dat" population, visibly inconsistent
+with the status card's own displayed count; reproduced live on `533140`/September-2026 (card
+`3.481`, page showed `792`). Fixed with two deterministic pure functions
+(`resolveReasonParam`, `resolveStatusChangeReasonPatch`) replacing the removed constant and its
+conditional logic; re-verified live via HMR. (2) the per-route empty-state title hardcoded
+"khong co buu gui vi pham" regardless of the selected status, reproduced live on a real
+0-`Dat`-row route with `status=passed` selected; fixed with a new `resolveEmptyStateStatusLabel`
+function and re-verified live. 5 new regression tests exercise the real pure functions (not
+source-text regex, unlike a pre-existing assertion that had encoded the exact broken behavior
+without ever catching it); 2 stale assertions were updated to match the intentional fix.
+
+Validation after the fixes: frontend 181/181 in `features/shipment`+`features/route` (full sweep
+447/451, the same 4 known baseline failures on record since manifest Section 52, none in
+Evidence/Route); backend 77/77 unmodified; `oxlint` 0/0; `npm run build` succeeds. `fact_f13`
+read at the start of this section and after every script/browser/API check throughout: `777,081`
+rows, `MAX(ngay_do_kiem) = 2026-09-06`, identical every time -- zero database writes, as expected
+of a read-only screen. `git diff --stat`: 4 frontend files touched, 114 insertions / 15
+deletions, no backend file and no Cam cham file touched.
+
+State: `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE I1 INTEGRATION VALIDATION COMPLETE / READY FOR
+INDEPENDENT TECHNICAL REVIEW`. Per `DEC-021`, an Independent Technical Review by a different
+model remains mandatory before any PO UI Check -- this validation does not itself constitute
+that review. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 66;
+`PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated. `F13-ROUTE-RANKING-PERIOD-01` remains
+`COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open,
+unaffected.

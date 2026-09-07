@@ -17,7 +17,10 @@ test('Evidence page sends search to getEvidence, not a raw substring check', () 
 // selected, which the old code did not check).
 test('Evidence page empty state distinguishes a keyword-no-match reason from a route/context reason', () => {
   assert.match(source, /Không tìm thấy kết quả phù hợp với từ khóa/);
-  assert.match(source, /không có bưu gửi vi phạm/);
+  // F13-ROUTE-EVIDENCE-STATUS-02 I1 fix: the route-scoped empty-state title is now
+  // status-aware (resolveEmptyStateStatusLabel) rather than a hardcoded "vi phạm" string —
+  // see ShipmentPerformancePage.evidenceStatus.test.js for the dedicated regression coverage.
+  assert.match(source, /không có \$\{resolveEmptyStateStatusLabel\(statusParam\)\}/);
   assert.match(source, /Không có Evidence trong bối cảnh này/);
 });
 

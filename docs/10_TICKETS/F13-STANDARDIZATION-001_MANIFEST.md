@@ -2846,3 +2846,111 @@ Phase F1 (Frontend) implementation delivered by `Antigravity` against the PO-app
 ### Governance State After This Section
 `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE F1 (FRONTEND) COMPLETE / READY FOR INTEGRATION VALIDATION`.
 
+
+## 66. F13-ROUTE-EVIDENCE-STATUS-02 — Phase I1 Integration Validation (2026-09-07)
+
+Append-only delta. Sections 1-65 unchanged. Executor: `Claude Code`/`Sonnet`, baselines Phase B1
+`cfb57d4` and Phase F1 `23c9970` (HEAD at start of this section). Real end-to-end validation
+against real production data, per Design of Record §9.3.
+
+### Gate-by-gate result
+
+| # | Gate | Result | Evidence |
+| --- | --- | --- | --- |
+| 1 | Tuyến Ranking → "Chi tiết bưu gửi F1.3" | **PASS** | Real click-through from `/f13/ranking/route`'s "Xem bưu gửi vi phạm" button; title renders exactly `Chi tiết bưu gửi F1.3` (`D-OPEN-04`) |
+| 2 | Đúng BCVH, tuyến, kỳ ngày/kỳ tháng, ngày neo | **PASS** | Header badges and filter controls matched the originating Route Ranking selection on every real click-through; period toggle correctly resolved `anchor_date`/`period.start`/`period.end` per BCVH (`533140`→`2026-09-06`, `531600`→`2026-07-28`, `531120`→`2026-09-05`) |
+| 3 | Mặc định Tất cả trạng thái | **PASS** (after fix, see below) | `D-OPEN-02` default confirmed live on first landing from Route Ranking and on the legacy-bookmark redirect; a real regression in a secondary path was found and fixed (below) |
+| 4 | Đạt / Không đạt / Chuyển hoàn | **PASS** | All three real, non-fabricated groups rendered with correct rows, badges, and null-safe "—" for Lý do vi phạm/Độ trễ on non-failed rows (`533140-08`: Đạt 30,191 · Không đạt 22,858 · Chuyển hoàn 2,601, real row `CA212335378VN` inspected) |
+| 5 | Status counts & reconciliation với Tuyến Ranking | **PASS** | Exact match on 3 real BCVH, both through direct service calls and through the real authenticated HTTP API: `533140` anchor `2026-09-06` all/passed `7546/3659`; `531600` anchor `2026-07-28` `50/8`; `531120` anchor `2026-09-05` `1/1` — `Evidence.status_summary` == `RoutePeriods.month.volume`/`.passed` sums in every case |
+| 6 | Server-side pagination | **PASS** | Real 56-row and 55,650-row scopes both paginate correctly (`Trang 1/2`→`Trang 2/2`, `Hiển thị 51-56/56`; a real `page=2` request confirmed in network log), no client-side full-fetch |
+| 7 | Search + reason filter | **PASS** | Diacritic-insensitive search ("Huong Phong" → 0 real matches, correctly empty; "HCC" → 2,793 matches across 9 routes, correctly grouped) combined with reason facets (`Chậm nộp tiền 4,810 / Không đạt khác 6,752 / Chưa xác định 11,296` on the 22,858-row Không đạt scope) — both verified via real API payload inspection |
+| 8 | Dataset lớn >20.000 dòng | **PASS** | Real `533140`/`2026-08` scope = 55,650 rows (2.8x the retired 20,000 ceiling) — loaded, searched, and reason-faceted with **`scope_guard: {scope_rows:22858, limit:200000, exceeded:false}`**, no truncation, no client materialization |
+| 9 | Empty / error / scope_guard | **PASS** | Three distinct empty states reproduced live (keyword-no-match; route-has-zero-for-selected-status; whole-context-empty via `anchor_date=2020-01-01`→`null`); a real transient backend-unavailable error correctly rendered "Đã xảy ra lỗi" with a working "Thử lại" action (see Root Cause below); `scope_guard.exceeded=true` path is code-reviewed but not reproducible on real data (worst real scope 55,650 far below the 200,000 limit) — matches Design §8.3's own statement |
+| 10 | Return journey về Tuyến Ranking | **PASS** | Real click-through: BCVH `533140`, date `2026-08-31`, selected route `533140 - Xe máy tăng cường` all round-tripped exactly via `return_to` |
+| 11 | Legacy Evidence flow không regression | **PASS** | `/f13/ranking/route/violations?date=...` still redirects correctly to the new `/f13/evidence` contract, renders with correct BCVH/Tuyến/Ngày and the new default status |
+
+### Environment note (not a code defect)
+
+The first live click-through returned `404 Not Found` on `GET /api/f13/evidence`. Root-caused to
+the already-running backend process (PID `18876`, started `08:07` that morning) predating both
+the Phase B1 (`22:36`) and Phase F1 (`22:54`) commits — Node does not hot-reload `require()`d
+route files, so the live process was still serving the pre-`cfb57d4` route table. Confirmed no
+`RUNNING` `auto_backfill_run` row before acting; the process was restarted (fresh `node
+server.js`, PID `10112`) and the 404 did not reproduce. No code change; recorded here because it
+is exactly the class of stale-runtime issue this ticket's own governance history has hit before
+(`AUTO-IMPORT-011`'s Symptom B).
+
+### Real integration defect found and fixed (in scope, minimal)
+
+**Defect**: `handleStatusChange` in `ShipmentPerformancePage.jsx` only reset the `reason` URL
+param to `all` when the *prior* `reasonParam` was already falsy/`all` — but
+`buildViolationEvidenceLink`'s own default seeds `reason=delayed_cash` into every link from
+Route Ranking, and `handleStatusChange` cleared `reason` (not set it) whenever leaving `failed`.
+The combination meant clicking the **"Không đạt" status card** — from a fresh Route Ranking
+landing, or after visiting any other status card — silently narrowed the view to only "Chậm nộp
+tiền" instead of the full "Không đạt" population, while the status card itself kept showing the
+full count. **Reproduced live** on real data: BCVH `533140`, route "Tất cả tuyến", period
+`2026-09-01→2026-09-06` — clicking "Không đạt" (card: `3.481`) showed `Tổng Evidence (bối
+cảnh) = 792` (the `delayed_cash` reason-tab silently active) instead of `3.481`.
+
+**Root cause**: a leftover `DEFAULT_REASON = delayed_cash` constant from the pre-redesign
+single-reason-group screen, still used as the fallback whenever the URL had no `reason` param,
+combined with a conditional (not deterministic) reset in `handleStatusChange`.
+
+**Fix (minimal, additive)**: two pure functions in `shipmentPerformanceData.js` —
+`resolveReasonParam(rawReason)` (defaults to `all`, never to a violation-reason group) and
+`resolveStatusChangeReasonPatch(nextStatus)` (`all` when entering `failed`, empty string
+otherwise, **unconditional** on any prior value). `ShipmentPerformancePage.jsx` now calls these
+instead of the ad-hoc `DEFAULT_REASON`/conditional logic; the constant is removed. Re-verified
+live via HMR: the same click sequence now shows `3.481`, matching the status card exactly.
+
+**Secondary defect found in the same pass**: the per-route empty-state title hardcoded "không có
+bưu gửi vi phạm" regardless of the selected status — reproduced live (route with 0 "Đạt" rows,
+`status=passed` selected, title still read "...không có bưu gửi vi phạm", which is meaningless
+for a passed-shipment query). Fixed with a new pure `resolveEmptyStateStatusLabel(status)`
+function ("bưu gửi" / "bưu gửi Đạt" / "bưu gửi vi phạm" / "bưu gửi Chuyển hoàn"); the title now
+reads e.g. "...không có bưu gửi Đạt". Re-verified live via HMR.
+
+**Regression tests added**: 5 new tests in `ShipmentPerformancePage.evidenceStatus.test.js`
+exercising the actual pure functions (not source-text regex, unlike the pre-existing `T-F03`
+assertion that had encoded the exact broken behavior without ever catching it) — deterministic
+reason-patch per status, `resolveReasonParam` default, the full round-trip sequence that
+reproduced the live defect, and both `resolveEmptyStateStatusLabel` cases. One pre-existing
+`ShipmentPerformancePage.remediation.test.js` assertion (`DEFECT B`, 2026-08-11) that had locked
+in the exact old "vi phạm" wording was updated to match the intentional, correct new behavior —
+its actual guarantee (three distinct empty-state reasons, keyword checked before route) is
+unchanged and still asserted.
+
+### Validation
+
+- **Frontend**: 181/181 in `features/shipment/` + `features/route/` (up from the pre-fix 179;
+  +5 new regression tests, -3 net after also tightening 2 stale assertions to match the fix).
+  Full sweep 447/451 — the same 4 known baseline failures on record since manifest §52
+  (`features/dashboard`, `pages/dataImportBackfillQueue.test.js`), zero in `shipment`/`route`.
+  `npx oxlint src/features/shipment/ src/features/route/`: 0 errors/0 warnings. `npm run build`:
+  succeeds (`dist/assets/index-AARn7GO8.js`, 1.13s), pre-existing chunk-size warning only.
+- **Backend**: 77/77 unmodified (`evidenceQueryService.test.js`, `DashboardController.evidenceDrilldown.test.js`,
+  `FactBuuGuiRepository.evidence.test.js`, `evidenceSearchMatch.test.js`,
+  `F13DashboardService.evidenceList.test.js` 16/16, `routePeriodService.test.js` 13/13,
+  `FactBuuGuiRepository.routePeriod.test.js` 5/5, `DashboardController.routePeriods.test.js` 4/4)
+  — no backend file touched in this section, re-run only to confirm the restart did not disturb
+  anything.
+- **Real data**: `fact_f13` read at the start and after every script/browser/API check in this
+  section: **777,081 rows, `MAX(ngay_do_kiem) = 2026-09-06`, identical every time** — zero
+  database writes (Evidence is read-only by design). Real credentials used were the project's own
+  documented local-dev runtime account (`backend/src/services/auth/runtimeUsers.js`, the same
+  account this project's history already records using for "real-browser runtime validation
+  performed as admin").
+- `git diff --stat`: 4 files touched, all in `frontend/src/features/shipment/`, **114
+  insertions, 15 deletions** — no backend file, no Cấm chạm file (`RuleF13302.js`, `schema.sql`,
+  `routePeriodService.js`, `F13DashboardService.js`, `/f13/evidence-list`) touched.
+
+### Governance state after this section
+
+`F13-ROUTE-EVIDENCE-STATUS-02 = PHASE I1 INTEGRATION VALIDATION COMPLETE — READY FOR
+INDEPENDENT TECHNICAL REVIEW`. All 11 requested gates PASS on real production data, including
+the two defects found during this validation, fixed in minimal scope, and regression-tested. Per
+`DEC-021`, an Independent Technical Review by a different model remains **mandatory** before any
+PO UI Check — this section is a `Sonnet` implementation/validation, not a self-review, and does
+not itself constitute that review. `F13-ROUTE-RANKING-PERIOD-01` remains `COMPLETED / PO PASS /
+CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open, unaffected.
