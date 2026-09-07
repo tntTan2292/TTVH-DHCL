@@ -20,9 +20,15 @@ const dbPath = process.env.NODE_ENV === 'test'
     : operationalDbPath;
 const db = new sqlite3.Database(dbPath);
 
-// Per-connection read-performance settings only: no schema, index, or database-data mutation.
+// Per-connection settings only: no schema, index, or database-data mutation.
 // These run before repository work is queued on SQLite's serialized connection.
-db.exec('PRAGMA mmap_size = 268435456; PRAGMA threads = 4;', (err) => {
+// busy_timeout matches AutoBackfillQueueStore's own connection (autoBackfillQueueStore.js
+// PRAGMA busy_timeout=5000) so this shared connection waits out a brief writer lock from the
+// queue store's separate connection instead of throwing SQLITE_BUSY immediately -- root cause
+// of the F4.1 2026-09-06/HUE auto-backfill job going FAILED_TERMINAL when a burst of new
+// auto_backfill_run/job rows was being written on that other connection at the same moment this
+// connection tried to commit the executor's completion write.
+db.exec('PRAGMA mmap_size = 268435456; PRAGMA threads = 4; PRAGMA busy_timeout = 5000;', (err) => {
     if (err) console.warn('SQLite read-performance PRAGMA unavailable:', err.message);
 });
 
