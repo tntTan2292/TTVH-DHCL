@@ -608,3 +608,19 @@ deleting it: the ticket has now received Product Owner acceptance and is formall
 Current state: `F13-ROUTE-RANKING-PERIOD-01 = COMPLETED / PO PASS / CLOSED` at implementation
 commit `66200166`. `Current Ticket = None`, `AWAITING PO DIRECTION`. `F13-ROUTE-EVIDENCE-STATUS-02`
 remains recorded on the roadmap but **not opened**, and is not self-activated by this closure.
+
+## F13-ROUTE-EVIDENCE-STATUS-02 Design of Record Registration - 2026-09-07
+
+Registers the Design of Record created after the Product Owner answered `PO-A`/`PO-B`/`PO-C` = YES
+and authorized Design/Planning only. Supersedes the §62 discovery-audit registration for onboarding
+purposes without deleting it.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-EVIDENCE-STATUS-02_DESIGN.md` | Design of Record | **New.** Revision `R0`, baseline `17d6061b`. Designs Evidence by status (`Đạt`/`Không đạt`/`Chuyển hoàn`, `PO-A`+`PO-C`) and by analysis period synchronised with Tuyến Ranking (`PO-B`), on a "server-side everything, one page to the client" architecture that **deletes** both existing full-materialisation layers and the 20,000-row ceiling constants rather than raising them. Carries the real read-only measurements the design rests on (worst real period 55,650 rows; SQL-vs-SSOT classification equivalence proven over all 314,421 `Không đạt` rows with zero mismatches; search-predicate equivalence over 1,740,528 comparisons with zero divergences; 69-104ms per query on the existing `idx_bcvh_ngay` index, so no schema change), the two rejected alternatives with the numbers that rejected them, the API contract and its 7 binding constraints, the test plan, and five open PO decisions. | L3 | `DESIGN DRAFT / AWAITING PO APPROVAL` | Mandatory before any implementation work on this ticket. **Not** self-executing — implementation is not authorized until the Product Owner approves it and answers `D-OPEN-01`/`D-OPEN-02`/`D-OPEN-04`. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 63 (appended) records the three PO answers, the design activation, the root cause the design had to solve (two stacked full-materialisation layers, not the ceiling), the measured evidence, and the blocking dependencies on `D-OPEN-01`/`D-OPEN-02`/`D-OPEN-04`. Sections 1-62 stand unchanged. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = DESIGN DRAFT / AWAITING PO APPROVAL`.
+**Implementation is not authorized.** Per `DEC-021` an Independent Technical Review by a different
+model is mandatory for this ticket before any PO UI Check, because it touches an SSOT-derived
+classification and introduces a new API contract.

@@ -1440,3 +1440,39 @@ start. `Current Ticket` changes from `None` to `F13-ROUTE-EVIDENCE-STATUS-02`. `
 PERIOD-01` remains `COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains
 separately open, unaffected. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md`
 Section 62; `PROJECT_SNAPSHOT.md` updated.
+
+## 2026-09-07 - F13-ROUTE-EVIDENCE-STATUS-02 DESIGN OF RECORD / AWAITING PO APPROVAL
+
+Product Owner answered the three questions raised by the discovery audit -- `PO-A` = YES (Evidence
+must show `Dat` shipments), `PO-B` = YES (Evidence must support the analysis period, synchronised
+with Tuyen Ranking), `PO-C` = YES (Evidence must show the `Chuyen hoan` group) -- and authorized
+Design/Planning only, with the binding constraint that large-period data be handled safely, not by
+raising the 20,000-row limit and not by loading everything to the frontend. Executor: `Claude
+Code`/`Opus`. Design of Record created at
+`docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-EVIDENCE-STATUS-02_DESIGN.md` (Revision `R0`, baseline
+`17d6061b`). Root cause established: the 20,000 ceiling is a symptom, not the cause -- Evidence has
+two stacked full-materialisation layers (the backend service calls the unpaginated
+`getEvidenceListFacts` and paginates with `Array.slice`, leaving the repository's real
+`LIMIT/OFFSET` method as dead code; the frontend's `fetchAllEvidenceRows` then walks every page and
+concatenates), so raising the ceiling fixes neither. The design deletes both layers and deletes the
+ceiling constants rather than changing their values; the browser receives at most one page. Three
+load-bearing claims were proven by read-only measurement rather than asserted: a SQL derivation of
+`RULE_F13_302` matches the JS SSOT classifier on all 314,421 real `Khong dat` rows with zero
+mismatches (making real DB-side pagination possible, guarded by a shipped equivalence test so the
+two can never silently diverge); the existing search predicate collapses to a single folded
+comparison with zero divergences over 1,740,528 comparisons, preserving the PO-accepted
+diacritic-insensitive behaviour server-side; and the worst real period (`533140`/`2026-08` = 55,650
+rows, 2.8x the current ceiling) serves in 69-104ms per query on the index that already exists, so no
+new index and no schema change are needed. Two alternatives were rejected on measured evidence: a
+pure-SQL diacritic fold is provably correct but costs 3.6-4.9s per count, and a SQLite UDF -- the
+cleanest option -- is unavailable on `sqlite3@6.0.1`. A data finding was raised rather than decided:
+`danh_gia_2026 IS NULL` is not homogeneous, since 108 of its 32,157 rows carry a real `ket_qua_f13`
+verdict, so labelling them all `Chuyen hoan` is an inference belonging to the PO. State:
+`F13-ROUTE-EVIDENCE-STATUS-02 = DESIGN DRAFT / AWAITING PO APPROVAL`. **Implementation is not
+authorized**: Phase B1 is blocked by `D-OPEN-01`, Phase F1 by `D-OPEN-02`/`D-OPEN-04`, and per
+`DEC-021` an Independent Technical Review by a different model is mandatory before any PO UI Check.
+No product code, database, schema, API, SSOT, or business rule was changed; `fact_f13` read
+777,081 rows / `MAX(ngay_do_kiem) = 2026-09-06` before and after all measurement. Evidence:
+`docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 63; `PROJECT_SNAPSHOT.md` and
+`DOCUMENT_INDEX.md` updated. `F13-ROUTE-RANKING-PERIOD-01` remains `COMPLETED / PO PASS / CLOSED`,
+unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open, unaffected.

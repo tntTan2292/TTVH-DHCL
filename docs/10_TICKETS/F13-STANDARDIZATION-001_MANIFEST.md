@@ -2622,3 +2622,86 @@ touched by this activation or audit — confirmed by the audit method being sour
 `git diff` needed since no file under `backend/src`, `frontend/src`, or any migration was
 edited). `F13-ROUTE-RANKING-PERIOD-01` remains `COMPLETED / PO PASS / CLOSED` (Section 61),
 unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.
+
+## 63. F13-ROUTE-EVIDENCE-STATUS-02 — Design of Record — **AWAITING PO APPROVAL** (2026-09-07)
+
+Append-only delta. Sections 1-62 unchanged. Product Owner answered the three questions raised by
+the §62 discovery audit — **`PO-A` = YES** (Evidence must show `Đạt` shipments), **`PO-B` = YES**
+(Evidence must support the analysis period, synchronised with Tuyến Ranking), **`PO-C` = YES**
+(Evidence must show the `Chuyển hoàn` group) — and authorized Design/Planning only, with an
+explicit binding constraint: *"phải thiết kế phương án xử lý dữ liệu kỳ lớn an toàn, không được
+đơn giản tăng giới hạn 20.000 dòng hoặc tải toàn bộ dữ liệu lên frontend."* Executor:
+`Claude Code`/`Opus`. **No product code, database, schema, API, SSOT, or business rule was
+changed by this design work.**
+
+Design of Record created: `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-EVIDENCE-STATUS-02_DESIGN.md`
+(Revision `R0`, baseline `17d6061b`). Design state: `DESIGN DRAFT / AWAITING PO APPROVAL` — this
+is **not** `READY FOR IMPLEMENTATION`, and no phase is opened by this section.
+
+### Root cause the design had to solve
+
+The 20,000-row ceiling is a symptom, not the cause. Evidence has **two stacked full-materialisation
+layers**: (1) `F13DashboardService.getEvidenceList()` calls the unpaginated `getEvidenceListFacts()`
+and does classification, reason-filtering and "pagination" in Node with `Array.slice` — the database
+always returns the entire set, and the repository's own real `LIMIT/OFFSET` method
+(`FactBuuGuiRepository.js:652`) is dead code no layer calls; (2) the frontend's
+`fetchAllEvidenceRows()` then walks every backend page and concatenates. Raising the ceiling fixes
+neither layer. The design **deletes both**, and deletes the ceiling constants rather than changing
+their values.
+
+### Measured evidence gathered while designing (read-only, `sqlite3.OPEN_READONLY`)
+
+- Worst real period, BCVH × month, all states: **`533140` / `2026-08` = 55,650 rows** (Đạt 30,191 ·
+  Không đạt 22,858 · Chuyển hoàn 2,601) — **2.8× the current 20,000 ceiling**. The `20,256` figure
+  in `F13-ROUTE-RANKING-PERIOD-01_DESIGN.md` §13.2 was measured on `2026-08-28` when August was
+  incomplete; the two numbers do not contradict, the data grew.
+- **Feasibility proof #1 — SQL classification is SSOT-identical.** A SQL derivation of
+  `RULE_F13_302` was compared against the live JS classifier across **all 314,421 real "Không đạt"
+  rows: zero mismatches**, all three group tallies identical (161,345 / 95,848 / 57,228). This is
+  what makes real DB-side pagination possible at all. Governance control: the SQL is a *derivation*,
+  `RuleF13302.js` remains SSOT, and an equivalence test (`T-B01`) is a shipped blocking gate so the
+  two can never silently diverge.
+- **Feasibility proof #2 — the search predicate collapses safely.** The existing
+  `text.includes(q) OR fold(text).includes(fold(q))` is exactly equivalent to the folded comparison
+  alone (folding is a per-character map). Verified over **1,740,528 comparisons** on real data ×
+  16 keywords: **zero divergences**. This preserves the PO-accepted `DEFECT A` diacritic-insensitive
+  behaviour while allowing search to move server-side.
+- **Performance on the worst real period, using the index that already exists**
+  (`idx_bcvh_ngay`, confirmed by `EXPLAIN QUERY PLAN`): count + state facets **69ms**; reason facets
+  **98ms**; page 1 sorted by delay **94ms**; deep page at `OFFSET 50000` **104ms**. **No new index
+  and no schema change are required.**
+- Two alternatives were tested and **rejected on evidence, not opinion**: a pure-SQL diacritic fold
+  is provably correct (0 mismatches over 764,377+ distinct values, only 71 replacements needed) but
+  costs **3,617–4,931ms** per count; and a SQLite UDF (`db.function`) — the cleanest solution, since
+  it would reuse the JS function verbatim — **is not available on `sqlite3@6.0.1`**.
+- Data finding requiring a PO decision: `danh_gia_2026 IS NULL` (32,157 rows) is **not homogeneous**
+  — 108 of them carry a real `ket_qua_f13` verdict (`Không đạt` 70, `Đạt` 38) and a real
+  `thoi_gian_ptc`, contradicting a "Chuyển hoàn" label. Labelling all 32,157 as Chuyển hoàn is an
+  inference, so it is raised as `D-OPEN-01` rather than decided by the executor.
+- `fact_f13` read before and after all measurement: **777,081 rows, `MAX(ngay_do_kiem) = 2026-09-06`,
+  identical both times** — zero database writes. SQLite `3.52.0`.
+
+### Design summary
+
+New additive endpoint `GET /f13/evidence` (`/f13/evidence-list` left byte-unchanged, since the audit
+confirmed it has exactly one real consumer and the precedent set by `/f13/ranking/route/periods` is
+additive-only). Filtering, classification, faceting, sorting, searching and pagination all move into
+SQL; the browser receives **at most one page** (default 50, max 200). Period semantics are
+**reused verbatim** from `routePeriodService` (`day` / `month_to_anchor`, per-BCVH `anchor_date`) —
+no new period model, and `C-05` plus `T-B05` exist specifically so the `ITR3-BLOCK-01` defect class
+(system-wide instead of per-BCVH anchor) cannot be reintroduced in Evidence. The single permitted
+server-side materialisation is a 7-short-column projection used only when a keyword is active,
+hard-capped by `SEARCH_SCOPE_MAX_ROWS = 200,000` (~3.6× today's worst real scope) which reports
+`scope_guard.exceeded` explicitly instead of silently truncating. Measured cost of that path on the
+worst real period: ~520ms and ~6.6MB transient server-side, versus today's up-to-20,000 rows shipped
+to the browser on **every** request.
+
+### Governance state after this section
+
+`F13-ROUTE-EVIDENCE-STATUS-02 = DESIGN DRAFT / AWAITING PO APPROVAL`. **Implementation is not
+authorized.** Phase B1 is additionally blocked by `D-OPEN-01` (the `Chuyển hoàn` definition cannot
+be written into a SQL predicate before it is settled); Phase F1 is additionally blocked by
+`D-OPEN-02` (arrival defaults) and `D-OPEN-04` (screen title). Per `DEC-021`, this ticket touches an
+SSOT-derived classification and a new API contract, so an Independent Technical Review by a
+different model is **mandatory** before any PO UI Check. `F13-ROUTE-RANKING-PERIOD-01` remains
+`COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open.
