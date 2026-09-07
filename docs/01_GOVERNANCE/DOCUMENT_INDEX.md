@@ -624,3 +624,24 @@ Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = DESIGN DRAFT / AWAITING PO APPROV
 **Implementation is not authorized.** Per `DEC-021` an Independent Technical Review by a different
 model is mandatory for this ticket before any PO UI Check, because it touches an SSOT-derived
 classification and introduces a new API contract.
+
+## F13-ROUTE-EVIDENCE-STATUS-02 Phase B1 (Backend) Implementation Registration - 2026-09-07
+
+Registers the Phase B1 implementation delivered against the PO-approved Design of Record after
+`D-OPEN-01`/`D-OPEN-02`/`D-OPEN-04` were resolved. Supersedes the §63 design-activation
+registration for onboarding purposes without deleting it.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `backend/src/services/evidenceReasonSql.js` | Source (new) | Single SQL-side derivation of `RULE_F13_302`'s violation-reason classification, the `status_group` grouping, and `do_tre_gio` — a derivation, not a fork; SSOT remains `RuleF13302.js`, pinned by `FactBuuGuiRepository.evidence.test.js`'s `T-B01` equivalence test. | L3 | Active | When touching Evidence's classification/status logic. | Mandatory |
+| `backend/src/services/evidenceQueryService.js` | Source (new) | Orchestrates `GET /f13/evidence` — period/status/reason/search/pagination, entirely server-side; injectable-repository pattern identical to `RoutePeriodService`. | L3 | Active | When touching Evidence's query orchestration or its API contract. | Mandatory |
+| `backend/src/shared/evidenceSearchMatch.js` | Source (new) | Server-side copy of the PO-accepted diacritic-insensitive keyword matcher; cannot be a literal shared file with `frontend/` (no monorepo/workspace config exists) — Phase F1 must keep its own copy logically identical, checked by `T-F02`. | L3 | Active | Before Phase F1 touches search matching. | Mandatory |
+| `backend/src/repositories/FactBuuGuiRepository.js` | Source (modified, additive-only) | 6 new methods (`getEvidenceStatusSummary`, `getEvidenceReasonSummary`, `getEvidenceScopeCount`, `getEvidencePage`, `getEvidenceSearchProjection`, `getEvidenceRowsByIds`) appended after the untouched `getEvidenceListFacts()`. 0 deletions. | L3 | Active | When touching Evidence's data-access layer. | Reference |
+| `backend/src/controllers/DashboardController.js` / `backend/src/routes/f13Routes.js` | Source (modified, additive-only) | New `getEvidenceDrilldown` handler and `GET /f13/evidence` route, same `allowViewerRead` tier as the untouched `GET /f13/evidence-list`. | L3 | Active | When touching Evidence's HTTP surface. | Reference |
+| `backend/src/repositories/FactBuuGuiRepository.evidence.test.js`, `backend/src/services/evidenceQueryService.test.js`, `backend/src/controllers/DashboardController.evidenceDrilldown.test.js`, `backend/src/shared/evidenceSearchMatch.test.js` | Tests (new) | 39 tests total covering `T-B01`-`T-B12` and controller/route wiring — see manifest §64 for the full test-to-requirement mapping. | L3 | Active | Before modifying any Phase B1 file. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 64 (appended) records PO's design approval, the 3 resolved `D-OPEN` decisions, the implementation summary, the real NULL-handling defect found and fixed by the new tests, and full validation evidence including a 3-BCVH reconciliation against Tuyến Ranking. Sections 1-63 stand unchanged. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE B1 (BACKEND) COMPLETE / READY FOR
+INDEPENDENT TECHNICAL REVIEW`. Per `DEC-021`, an Independent Technical Review by a different
+model is mandatory before Phase F1 (Frontend, `Antigravity`) starts and before any PO UI Check.
+`frontend/src/` is untouched by this registration.

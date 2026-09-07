@@ -26,6 +26,7 @@ router.get('/recommendations', ...allowViewerRead, kpiController.getRecommendati
 
 router.get('/rca/pareto', ...allowAdminOnly, dashboardController.getPareto);
 router.get('/evidence-list', ...allowViewerRead, dashboardController.getEvidence);
+router.get('/evidence', ...allowViewerRead, dashboardController.getEvidenceDrilldown);
 router.get('/dashboard/message', ...allowAdminOnly, kpiController.getDashboardMessage);
 router.get('/messages', ...allowAdminOnly, recommendationController.getMsgs);
 

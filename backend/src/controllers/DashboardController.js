@@ -2,6 +2,7 @@ const f13DashboardService = require('../services/F13DashboardService');
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 const { BcvhOverviewService } = require('../services/bcvhOverviewService');
 const { routePeriodService } = require('../services/routePeriodService');
+const { evidenceQueryService } = require('../services/evidenceQueryService');
 const timelineService = require('../services/timelineService');
 const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
 
@@ -153,6 +154,19 @@ class DashboardController {
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
+        }
+    }
+
+    // F13-ROUTE-EVIDENCE-STATUS-02 Phase B1 (Design of Record R0 §6.2) — additive, new
+    // `GET /f13/evidence` handler. `getEvidence()` below (backing `GET /f13/evidence-list`) is
+    // untouched — this is a distinct endpoint, not a replacement.
+    async getEvidenceDrilldown(req, res) {
+        try {
+            const result = await evidenceQueryService.getEvidence(req.query);
+            res.status(200).json({ success: true, data: result.data, meta: result.meta });
+        } catch (error) {
+            const status = (error?.code === 'MISSING_PARAM' || error?.code === 'INVALID_DATE') ? 400 : 500;
+            res.status(status).json({ success: false, error: { code: error?.code || 'SERVER_ERROR', message: error.message } });
         }
     }
 

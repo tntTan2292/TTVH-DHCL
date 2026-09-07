@@ -1476,3 +1476,55 @@ No product code, database, schema, API, SSOT, or business rule was changed; `fac
 `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 63; `PROJECT_SNAPSHOT.md` and
 `DOCUMENT_INDEX.md` updated. `F13-ROUTE-RANKING-PERIOD-01` remains `COMPLETED / PO PASS / CLOSED`,
 unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open, unaffected.
+
+## 2026-09-07 - F13-ROUTE-EVIDENCE-STATUS-02 PHASE B1 (BACKEND) COMPLETE
+
+Product Owner approved the Design of Record (Revision R0) and resolved its three blocking open
+decisions: `D-OPEN-01` (danh_gia_2026 NULL/blank = Chuyen hoan, no special-case for the 108-row
+anomaly, matching the design's own recommendation); `D-OPEN-02` (Evidence opens at the correct
+period + route from Tuyen Ranking, with a default status of Tat ca -- explicitly overriding the
+design's own recommended default of Khong dat + Ngay); `D-OPEN-04` (screen title becomes "Chi
+tiet buu gui F1.3"). PO authorized Phase B1 (Backend) only. Executor: `Claude Code`/`Sonnet`.
+
+Implementation, entirely additive: three new files (`evidenceReasonSql.js` -- the single SQL
+derivation of `RULE_F13_302`'s classification, proven equivalent to the JS SSOT by a shipped
+test; `evidenceQueryService.js` -- the orchestrator, injectable-repository pattern identical to
+`RoutePeriodService`; `shared/evidenceSearchMatch.js` -- server-side copy of the PO-accepted
+diacritic-insensitive matcher), six new `FactBuuGuiRepository.js` methods appended after the
+untouched `getEvidenceListFacts()`, and a new `GET /f13/evidence` route + controller handler.
+`GET /f13/evidence-list`, `getEvidence()`, and `getEvidenceListFacts()` are byte-unchanged (`git
+diff --stat`: 215 insertions, 0 deletions across the 3 modified files). Filtering,
+classification, faceting, sorting, and pagination all run server-side in SQL; the default
+no-keyword path issues exactly 3 queries and never returns more than `page_size` (<=200) rows;
+the one keyword-search exception is bounded by a 200,000-row `scope_guard` reported explicitly,
+never silently truncated. The old `fetchAllEvidenceRows()`-style "walk every page and
+concatenate" model and the 20,000-row ceiling do not exist anywhere in the new code -- no
+ceiling was raised, per the Product Owner's binding instruction.
+
+Writing the tests against a real in-memory SQLite database (`node --experimental-sqlite`)
+surfaced and fixed a genuine defect before shipping: SQLite's `<>` operator is NULL-in-NULL-out,
+so the first draft of the reason-classification SQL silently mislabeled every Chuyen hoan row.
+Fixed via SQLite's NULL-safe `IS NOT` comparison and re-verified with zero mismatches across the
+entire real 777,081-row `fact_f13` table (both `status_group` and `violation_reason`, checked
+against `F13DashboardService._classifyViolationReason`). 39/39 new tests pass (12 repository, 20
+service, 4 controller/route-wiring, 3 shared-matcher); the mandatory regression suite --
+`F13DashboardService.evidenceList.test.js` 16/16, `routePeriodService.test.js` 13/13,
+`FactBuuGuiRepository.routePeriod.test.js` 5/5, `DashboardController.routePeriods.test.js` 4/4 --
+is unmodified and green. `oxlint` reports 0 errors/0 warnings on the new/changed code. A live
+read-only smoke test against the real operational database confirmed correct behaviour on real
+data (`533140`/month_to_anchor: `status_summary {all:7546, passed:3659, failed:3481,
+returned:406, identity_ok:true}`), and a reconciliation against `GET /f13/ranking/route/periods`
+on 3 real BCVH (`533140`, `531600`, `531120`) matched `anchor_date` and `status_summary.all`/
+`.passed` exactly against `RoutePeriodService`'s own period figures. `fact_f13` read before this
+work and after every test/smoke-test run: `777,081` rows, `MAX(ngay_do_kiem) = 2026-09-06`,
+identical every time -- zero database writes. `git diff` against the ticket's `Cấm chạm` list
+(`RuleF13302.js`, `schema.sql`, `routePeriodService.js`, `F13DashboardService.js`,
+`/f13/evidence-list`'s own implementation) returns empty.
+
+State: `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE B1 (BACKEND) COMPLETE / READY FOR INDEPENDENT
+TECHNICAL REVIEW`. Per `DEC-021`, an Independent Technical Review by a different model is
+mandatory before Phase F1 (Frontend, `Antigravity`) starts and before any PO UI Check --
+`frontend/src/` is untouched. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md`
+Section 64; `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated. `F13-ROUTE-RANKING-PERIOD-01`
+remains `COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately
+open, unaffected.

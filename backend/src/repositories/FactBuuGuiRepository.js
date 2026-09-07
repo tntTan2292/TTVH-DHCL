@@ -1,4 +1,11 @@
 const db = require('../config/db').db;
+const {
+    STATUS_PREDICATES,
+    VIOLATION_REASON_FILTER_SLUGS,
+    statusGroupCaseSql,
+    violationReasonCaseSql,
+    delayHoursSql,
+} = require('../services/evidenceReasonSql');
 
 class FactBuuGuiRepository {
     
@@ -711,6 +718,199 @@ class FactBuuGuiRepository {
                 });
 
                 resolve(mappedRows);
+            });
+        });
+    }
+
+    // ==========================================================================================
+    // F13-ROUTE-EVIDENCE-STATUS-02 Phase B1 (Design of Record §9.1) — additive-only. These six
+    // methods back the new `GET /f13/evidence` endpoint (evidenceQueryService.js). They do not
+    // touch `getEvidenceList`/`getEvidenceListFacts` above, which remain exactly as they were —
+    // `GET /f13/evidence-list` is unaffected byte-for-byte (§6.1/§9.4 Cấm chạm).
+    //
+    // Shared filter builder (§5.4/§6.5 C-06): `status` and `reason` follow the same rule
+    // everywhere they are applied — `reason` is only ever a real WHERE predicate when
+    // `status === 'failed'` (Design of Record §6.3/T-B12); with any other status it is silently
+    // ignored, never a defect, per the contract's own "reason bị bỏ qua nếu status <> failed".
+    // ==========================================================================================
+
+    _buildEvidenceFilterClause({ bcvh, route, fromDate, toDate, status, reason }) {
+        const clauses = ['ma_bcvh = ?', 'ngay_do_kiem BETWEEN ? AND ?'];
+        const params = [bcvh, fromDate, toDate];
+
+        if (route && route !== 'all') {
+            clauses.push('ma_tuyen = ?');
+            params.push(route);
+        }
+        if (status && status !== 'all' && STATUS_PREDICATES[status]) {
+            clauses.push(STATUS_PREDICATES[status]);
+        }
+        if (status === 'failed' && reason && reason !== 'all' && VIOLATION_REASON_FILTER_SLUGS[reason]) {
+            clauses.push(`${violationReasonCaseSql()} = ?`);
+            params.push(VIOLATION_REASON_FILTER_SLUGS[reason]);
+        }
+
+        return { clause: clauses.join(' AND '), params };
+    }
+
+    _evidenceSortExpr(sort) {
+        return {
+            delay_hours: delayHoursSql(),
+            ngay_do_kiem: 'ngay_do_kiem',
+            ma_bg: 'ma_bg',
+            ma_tuyen: 'ma_tuyen',
+        }[sort] || delayHoursSql();
+    }
+
+    // §6.4 C-01/C-07: one-pass aggregate over the bcvh+route+period scope only (never
+    // status/reason/search-filtered) — this is the "dải trạng thái" reference tally that stays
+    // constant regardless of which status the manager is currently viewing.
+    getEvidenceStatusSummary({ bcvh, route, fromDate, toDate }) {
+        return new Promise((resolve, reject) => {
+            const params = [bcvh, fromDate, toDate];
+            let sql = `
+                SELECT
+                    COUNT(*) AS all_count,
+                    SUM(CASE WHEN ${STATUS_PREDICATES.passed} THEN 1 ELSE 0 END) AS passed_count,
+                    SUM(CASE WHEN ${STATUS_PREDICATES.failed} THEN 1 ELSE 0 END) AS failed_count,
+                    SUM(CASE WHEN ${STATUS_PREDICATES.returned} THEN 1 ELSE 0 END) AS returned_count
+                FROM fact_f13
+                WHERE ma_bcvh = ? AND ngay_do_kiem BETWEEN ? AND ?
+            `;
+            if (route && route !== 'all') {
+                sql += ' AND ma_tuyen = ?';
+                params.push(route);
+            }
+            db.get(sql, params, (err, row) => {
+                if (err) return reject(err);
+                resolve({
+                    all: Number(row?.all_count || 0),
+                    passed: Number(row?.passed_count || 0),
+                    failed: Number(row?.failed_count || 0),
+                    returned: Number(row?.returned_count || 0),
+                });
+            });
+        });
+    }
+
+    // §3.4/§6.4 C-04: reason facets over the Không đạt subset of the same bcvh+route+period
+    // scope — independent of the currently selected `status`, same discipline as
+    // getEvidenceStatusSummary() above.
+    getEvidenceReasonSummary({ bcvh, route, fromDate, toDate }) {
+        return new Promise((resolve, reject) => {
+            const params = [bcvh, fromDate, toDate];
+            let sql = `
+                SELECT ${violationReasonCaseSql()} AS reason, COUNT(*) AS n
+                FROM fact_f13
+                WHERE ma_bcvh = ? AND ngay_do_kiem BETWEEN ? AND ? AND ${STATUS_PREDICATES.failed}
+            `;
+            if (route && route !== 'all') {
+                sql += ' AND ma_tuyen = ?';
+                params.push(route);
+            }
+            sql += ' GROUP BY reason';
+            db.all(sql, params, (err, rows) => {
+                if (err) return reject(err);
+                resolve(rows || []);
+            });
+        });
+    }
+
+    // §5.4 step 1 (search path only): a bare COUNT against the status/reason-filtered scope,
+    // used solely to decide whether SEARCH_SCOPE_MAX_ROWS would be exceeded — never
+    // materializes a single data row.
+    getEvidenceScopeCount(filters) {
+        return new Promise((resolve, reject) => {
+            const { clause, params } = this._buildEvidenceFilterClause(filters);
+            const sql = `SELECT COUNT(*) AS n FROM fact_f13 WHERE ${clause}`;
+            db.get(sql, params, (err, row) => {
+                if (err) return reject(err);
+                resolve(Number(row?.n || 0));
+            });
+        });
+    }
+
+    // §5.4 (no-keyword path), §6.4 payload: the one real `LIMIT/OFFSET` page — unlike the dead
+    // `getEvidenceList()` above, the database itself does the paging, never `Array.slice`. A
+    // secondary `ma_bg ASC` tiebreaker is added on every sort so ties never make `OFFSET`
+    // pagination non-deterministic — without it, rows sharing an identical sort key (e.g. two
+    // Đạt rows, both `do_tre_gio = null`) could appear on more than one page or on none,
+    // silently breaking C-02's "hợp của mọi trang == tập đã lọc; các trang rời nhau".
+    getEvidencePage({ bcvh, route, fromDate, toDate, status, reason, sort, order, limit, offset }) {
+        return new Promise((resolve, reject) => {
+            const { clause, params } = this._buildEvidenceFilterClause({ bcvh, route, fromDate, toDate, status, reason });
+            const sortExpr = this._evidenceSortExpr(sort);
+            const direction = order === 'asc' ? 'ASC' : 'DESC';
+            // do_tre_gio can be NULL (Đạt/Chuyển hoàn rows, or a Không đạt pair with an
+            // unparseable timestamp) — always push those to the bottom regardless of sort
+            // direction, never let a fabricated ordering position put them first.
+            const nullsClause = (!sort || sort === 'delay_hours') ? ' NULLS LAST' : '';
+            const sql = `
+                SELECT ma_bg, ngay_do_kiem, ma_bcvh, ten_bcvh, ma_tuyen, ten_tuyen, danh_gia_2026,
+                       thoi_gian_ptc, thoi_gian_nop_tien,
+                       ${statusGroupCaseSql()} AS status_group,
+                       ${violationReasonCaseSql()} AS violation_reason,
+                       ${delayHoursSql()} AS do_tre_gio
+                FROM fact_f13
+                WHERE ${clause}
+                ORDER BY ${sortExpr} ${direction}${nullsClause}, ma_bg ASC
+                LIMIT ? OFFSET ?
+            `;
+            db.all(sql, [...params, limit, offset], (err, rows) => {
+                if (err) return reject(err);
+                resolve(rows || []);
+            });
+        });
+    }
+
+    // §5.4 step 2 (search path only): a narrow projection — never `SELECT *` — used solely to
+    // run the JS keyword matcher (`evidenceSearchMatch.js`) over the whole filtered scope. Not
+    // literally 7 columns as the Design of Record's illustrative example counted, because
+    // `status_group`/`violation_reason`/`do_tre_gio` must already be computed here too (so the
+    // matched set can be faceted and sorted by delay in JS without a second round-trip) — the
+    // binding constraint is P-03 "hẹp, không SELECT *", not an exact column count.
+    getEvidenceSearchProjection(filters) {
+        return new Promise((resolve, reject) => {
+            const { clause, params } = this._buildEvidenceFilterClause(filters);
+            const sql = `
+                SELECT id, ma_bg, ma_tuyen, ten_tuyen, ma_bcvh, ten_bcvh, ngay_do_kiem, danh_gia_2026,
+                       ${statusGroupCaseSql()} AS status_group,
+                       ${violationReasonCaseSql()} AS violation_reason,
+                       ${delayHoursSql()} AS do_tre_gio
+                FROM fact_f13
+                WHERE ${clause}
+            `;
+            db.all(sql, params, (err, rows) => {
+                if (err) return reject(err);
+                resolve(rows || []);
+            });
+        });
+    }
+
+    // §5.4 step 5 (search path only): the final full-column fetch for exactly the ids of one
+    // page, after the JS keyword match + sort + slice already happened over the narrow
+    // projection. `ids.length` is always <= page_size (<= 200), so re-sorting this tiny set in
+    // SQL is cheap and keeps the returned row shape identical to getEvidencePage()'s.
+    getEvidenceRowsByIds({ ids, sort, order }) {
+        return new Promise((resolve, reject) => {
+            if (!Array.isArray(ids) || !ids.length) return resolve([]);
+            const placeholders = ids.map(() => '?').join(', ');
+            const sortExpr = this._evidenceSortExpr(sort);
+            const direction = order === 'asc' ? 'ASC' : 'DESC';
+            const nullsClause = (!sort || sort === 'delay_hours') ? ' NULLS LAST' : '';
+            const sql = `
+                SELECT ma_bg, ngay_do_kiem, ma_bcvh, ten_bcvh, ma_tuyen, ten_tuyen, danh_gia_2026,
+                       thoi_gian_ptc, thoi_gian_nop_tien,
+                       ${statusGroupCaseSql()} AS status_group,
+                       ${violationReasonCaseSql()} AS violation_reason,
+                       ${delayHoursSql()} AS do_tre_gio
+                FROM fact_f13
+                WHERE id IN (${placeholders})
+                ORDER BY ${sortExpr} ${direction}${nullsClause}, ma_bg ASC
+            `;
+            db.all(sql, ids, (err, rows) => {
+                if (err) return reject(err);
+                resolve(rows || []);
             });
         });
     }

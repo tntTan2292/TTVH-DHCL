@@ -2705,3 +2705,100 @@ be written into a SQL predicate before it is settled); Phase F1 is additionally 
 SSOT-derived classification and a new API contract, so an Independent Technical Review by a
 different model is **mandatory** before any PO UI Check. `F13-ROUTE-RANKING-PERIOD-01` remains
 `COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open.
+
+## 64. F13-ROUTE-EVIDENCE-STATUS-02 — PO Approves Design, Phase B1 Backend Implementation (2026-09-07)
+
+Append-only delta. Sections 1-63 unchanged. Product Owner **approved Design of Record R0** and
+resolved its three blocking open decisions:
+
+- **`D-OPEN-01`**: column `danh_gia_2026` (Đạt/Không đạt), NULL or blank = Chuyển hoàn. This is
+  exactly the Design of Record's own recommended default (§14) — no special carve-out for the
+  108 rows whose `ket_qua_f13` happens to carry a real verdict; the existing `total_returned`
+  convention is kept unchanged.
+- **`D-OPEN-02`**: Evidence opens at the correct period + the correct route (whatever Tuyến
+  Ranking was viewing), with a default status of **Tất cả** — this explicitly **overrides**
+  the Design of Record's own recommended default (`status = Không đạt`, `period = Ngày`); the PO
+  chose differently and that decision governs the shipped default.
+- **`D-OPEN-04`**: screen title becomes **"Chi tiết bưu gửi F1.3"** (Phase F1 scope; recorded
+  here for completeness, not implemented in this backend-only phase).
+
+PO authorized **Phase B1 (Backend) only**. Executor: `Claude Code`/`Sonnet`. No frontend file was
+touched in this section.
+
+### Implementation summary
+
+Three new files, additive-only: `backend/src/services/evidenceReasonSql.js` (single SQL
+derivation of `RULE_F13_302`'s classification + the status-group/delay-hours expressions),
+`backend/src/services/evidenceQueryService.js` (orchestrator, injectable-repository pattern
+identical to `RoutePeriodService`), `backend/src/shared/evidenceSearchMatch.js` (server-side
+copy of the PO-accepted diacritic-insensitive matcher). Six new methods appended to
+`FactBuuGuiRepository.js` after the untouched `getEvidenceListFacts()` — `getEvidenceStatusSummary`,
+`getEvidenceReasonSummary`, `getEvidenceScopeCount`, `getEvidencePage`,
+`getEvidenceSearchProjection`, `getEvidenceRowsByIds` — plus a shared filter-clause builder.
+New route `GET /f13/evidence` (`allowViewerRead`, same authorization tier as the existing
+endpoint) wired to a new `getEvidenceDrilldown` controller handler; `GET /f13/evidence-list`,
+`getEvidence()`, and `getEvidenceListFacts()` are byte-unchanged (`git diff --stat` on the 3
+modified files shows **215 insertions, 0 deletions** — every change is additive).
+
+Filtering, status/reason classification, faceting, sorting, and pagination all run in SQL; the
+default no-keyword path issues exactly 3 queries and never returns more than `page_size` (≤ 200)
+rows. The one keyword-search exception materializes a narrow projection only after a
+`SEARCH_SCOPE_MAX_ROWS = 200,000` guard passes, reported explicitly via `scope_guard.exceeded`
+rather than silently truncated — the old `fetchAllEvidenceRows()`-style "walk every page and
+concatenate" model does not exist anywhere in the new code, and no ceiling constant was raised.
+
+### A real defect found and fixed during test-writing (not present in the shipped code)
+
+Writing `T-B01`/`T-B03` against a real in-memory SQLite database surfaced a genuine bug in the
+first draft of `violationReasonCaseSql()`: SQLite's `<>` operator is NULL-in-NULL-out, so
+`danh_gia_2026 <> 'Không đạt'` silently evaluates to NULL (not TRUE) for a NULL `danh_gia_2026`
+row (Chuyển hoàn) — the CASE expression fell through to the timestamp-classification branches
+and mislabeled every Chuyển hoàn row `violation_reason = 'Chưa xác định nguyên nhân'` instead of
+`NULL`. Fixed by switching to SQLite's NULL-safe `IS NOT` comparison. Re-verified read-only
+against the **entire real `fact_f13` table (all 777,081 rows, every status, not just "Không
+đạt")** after the fix: `status_group` 0 mismatches, `violation_reason` 0 mismatches against
+`F13DashboardService._classifyViolationReason`. (`do_tre_gio` showed 2,101 rows differing by
+exactly `±0.01h` from an independent JS re-derivation — root-caused to `Number.prototype.toFixed`'s
+well-known floating-point rounding quirk on exact `.xx5` boundaries in the *verification script*
+itself, e.g. `(7.515).toFixed(2)` → `"7.51"` in Node; the shipped SQL `ROUND()` is not reproducing
+a JS quirk, it is an independent computation, and this has no bearing on classification
+correctness, which is the load-bearing claim.)
+
+### Validation
+
+- **39/39** new Phase B1 tests, all green: 12 repository tests (`FactBuuGuiRepository.evidence.test.js`,
+  real in-memory SQLite via `node --experimental-sqlite`) covering `T-B01`-`T-B03`, `T-B06`,
+  `T-B07`, `T-B10`, `T-B12`, plus date-range/search-composition coverage; 20 service tests
+  (`evidenceQueryService.test.js`, fake-repository pattern) covering `T-B04`, `T-B05`, `T-B08`,
+  `T-B09`, `T-B11`, defaults (incl. `D-OPEN-02`'s status=all), validation, and pagination; 4
+  controller/route-wiring tests; 6 shared-matcher tests.
+- **Mandatory regression, unmodified**: `F13DashboardService.evidenceList.test.js` 16/16 (proves
+  `/f13/evidence-list` untouched); `routePeriodService.test.js` 13/13;
+  `FactBuuGuiRepository.routePeriod.test.js` 5/5; `DashboardController.routePeriods.test.js` 4/4
+  — all run with `node --experimental-sqlite --test` per the known Node `v22.12.0` environment
+  note.
+- `npx oxlint` on all 6 new/modified backend files: 0 errors, 0 warnings in the new/changed code
+  (6 pre-existing warnings elsewhere in `FactBuuGuiRepository.js`, confirmed unrelated —
+  `git diff --stat` shows 0 deletions, so no pre-existing line was touched).
+- **Live read-only smoke test against the real operational database** (`evidenceQueryService`
+  wired to the real `FactBuuGuiRepository`, no mocking): `533140`/`month_to_anchor` returns
+  `status_summary {all:7546, passed:3659, failed:3481, returned:406, identity_ok:true}` with
+  `anchor_date=2026-09-06` correctly resolved per-BCVH; `status=returned` correctly surfaces real
+  Chuyển hoàn rows (`danh_gia_2026: null`); `search=HCC` finds `1,617` matches across `9` routes
+  server-side. **Reconciliation (§10.4) against `GET /f13/ranking/route/periods`** on 3 real
+  BCVH (`533140`, `531600`, `531120`): `anchor_date` and `status_summary.all`/`.passed` match
+  `RoutePeriodService`'s own `month.volume`/`month.passed` sums **exactly** on all 3. `fact_f13`
+  read before this section's work and after every test/smoke-test run: **777,081 rows,
+  `MAX(ngay_do_kiem) = 2026-09-06`, identical every time** — zero database writes.
+- `git diff --name-only` against §9.4's Cấm chạm list (`RuleF13302.js`, `schema.sql`,
+  `routePeriodService.js`, `F13DashboardService.js`, and the `/f13/evidence-list` implementation
+  itself) returns empty — none touched.
+
+### Governance state after this section
+
+`F13-ROUTE-EVIDENCE-STATUS-02 = PHASE B1 (BACKEND) COMPLETE / READY FOR INDEPENDENT TECHNICAL
+REVIEW`. Per `DEC-021`, an Independent Technical Review by a different model is **mandatory**
+before Phase F1 (frontend, `Antigravity`) starts and before any PO UI Check — this section is a
+`Sonnet` implementation, not a self-review. Phase F1 is **not started**; `frontend/src/` is
+untouched by this section. `F13-ROUTE-RANKING-PERIOD-01` remains `COMPLETED / PO PASS / CLOSED`,
+unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open.
