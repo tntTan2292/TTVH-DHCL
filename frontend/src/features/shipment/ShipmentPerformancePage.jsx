@@ -10,10 +10,12 @@ import ShipmentEvidenceSummary from './ShipmentEvidenceSummary';
 import ShipmentEvidenceDetail from './ShipmentEvidenceDetail';
 import {
   formatSearchResultSummary,
-  groupRowsByRoute,
   resolveReasonParam,
   resolveStatusChangeReasonPatch,
   resolveEmptyStateStatusLabel,
+  mapEvidenceApiRow,
+  buildSearchRouteGroups,
+  resolveContextTotal,
 } from './shipmentPerformanceData';
 
 const ALL_ROUTES_OPTION = { value: '', label: 'Tất cả tuyến' };
@@ -58,10 +60,21 @@ export default function ShipmentPerformancePage() {
   const [statusSummary, setStatusSummary] = useState({ all: 0, passed: 0, failed: 0, returned: 0, identity_ok: true });
   const [violationSummary, setViolationSummary] = useState({});
   const [pagination, setPagination] = useState({ page: 1, page_size: PAGE_SIZE, total_items: 0, total_pages: 0 });
-  const [searchMeta, setSearchMeta] = useState({ keyword: '', active: false, matched_items: null, matched_routes: null });
+  const [searchMeta, setSearchMeta] = useState({ keyword: '', active: false, matched_items: null, matched_routes: null, matched_route_list: null });
   const [scopeGuard, setScopeGuard] = useState({ scope_rows: 0, limit: 200000, exceeded: false });
   const [periodMeta, setPeriodMeta] = useState({ key: 'day', start: null, end: null, days_in_period: 1 });
-  const [collapsedRouteIds, setCollapsedRouteIds] = useState(() => new Set());
+  // ITR-EV-BLOCK-01 remediation (§7.6/D-OPEN-03): a group is expanded ONLY when its key is in
+  // this set — the opposite default from before this fix. Previously every group defaulted to
+  // expanded because all matched rows were already fully in memory; now the group list itself
+  // comes from the server's whole-scope `matched_route_list` (buildSearchRouteGroups) and a
+  // route not present on the already-fetched page has no rows loaded yet, so expanding it is a
+  // deliberate, explicit action that triggers exactly one request for that route
+  // (fetchRouteGroupRows below) — never an automatic fetch of every matched route on load.
+  const [expandedRouteKeys, setExpandedRouteKeys] = useState(() => new Set());
+  // Per-route lazy-loaded rows for the search-result grouped view, keyed by `ma_tuyen`:
+  // { [routeId]: { status: 'idle' | 'loading' | 'ready' | 'error', rows } }. Cleared whenever
+  // the underlying query context changes (see the main fetch effect below).
+  const [routeGroupData, setRouteGroupData] = useState({});
 
   const [metaStatus, setMetaStatus] = useState('loading');
   const [metaMaxDate, setMetaMaxDate] = useState(null);
@@ -202,6 +215,12 @@ export default function ShipmentPerformancePage() {
   useEffect(() => {
     let mounted = true;
 
+    // ITR-EV-BLOCK-01 remediation: any change to the query context invalidates every
+    // per-route cache entry and collapses every group back to its default state — a route's
+    // fetched rows from a prior search keyword/status/period must never leak into the next one.
+    setRouteGroupData({});
+    setExpandedRouteKeys(new Set());
+
     const fetchEvidence = async () => {
       try {
         setStatus('loading');
@@ -225,36 +244,13 @@ export default function ShipmentPerformancePage() {
         if (!mounted) return;
 
         const rows = Array.isArray(result?.data) ? result.data : [];
-        const mappedRows = rows.map((item) => {
-          const shipmentKey = item.ma_bg || item.id || item.shipment_id || 'N/A';
-          const statusLabel = item.danh_gia_2026 || (item.status_group === 'passed' ? 'Đạt' : item.status_group === 'returned' ? 'Chuyển hoàn' : 'Không đạt');
-          const delayHours = item.do_tre_gio ?? null;
-
-          return {
-            id: shipmentKey,
-            shipmentId: shipmentKey,
-            shipmentName: item.ten_bg || shipmentKey,
-            bcvhId: item.ma_bcvh || bcvhId,
-            bcvhName: item.ten_bcvh || bcvhName,
-            routeId: item.ma_tuyen || routeIdParam,
-            routeName: item.ten_tuyen || routeName,
-            status: statusLabel,
-            statusGroup: item.status_group || (statusLabel === 'Đạt' ? 'passed' : statusLabel === 'Chuyển hoàn' ? 'returned' : 'failed'),
-            violationReason: item.violation_reason || null,
-            pickupTime: item.thoi_gian_ptc || null,
-            handoverTime: item.thoi_gian_nop_tien || null,
-            delayHours,
-            delayLabel: delayHours === null || delayHours === undefined ? 'Chưa đủ dữ liệu' : `${Number(delayHours).toFixed(1)}h`,
-            analysisDate: item.ngay_do_kiem || analysisDate,
-            extendedData: item.extended_data || {},
-          };
-        });
+        const mappedRows = rows.map((item) => mapEvidenceApiRow(item, { bcvhId, bcvhName, routeIdParam, routeName, analysisDate }));
 
         setRuntimeRows(mappedRows);
         setStatusSummary(result?.meta?.status_summary || { all: 0, passed: 0, failed: 0, returned: 0, identity_ok: true });
         setViolationSummary(result?.meta?.violation_summary || {});
         setPagination(result?.meta?.pagination || { page: currentPage, page_size: PAGE_SIZE, total_items: mappedRows.length, total_pages: 1 });
-        setSearchMeta(result?.meta?.search || { keyword: search.trim(), active: Boolean(search.trim()), matched_items: null, matched_routes: null });
+        setSearchMeta(result?.meta?.search || { keyword: search.trim(), active: Boolean(search.trim()), matched_items: null, matched_routes: null, matched_route_list: null });
         setScopeGuard(result?.meta?.scope_guard || { scope_rows: 0, limit: 200000, exceeded: false });
         setPeriodMeta(result?.meta?.period || { key: periodParam, start: null, end: null, days_in_period: 1 });
         setStatus('success');
@@ -285,29 +281,103 @@ export default function ShipmentPerformancePage() {
   // Client-side sort fallback for current page rows if needed
   const sortedRows = useMemo(() => sortShipmentRows(runtimeRows, sort, order), [runtimeRows, order, sort]);
 
-  // AC-17/AC-18/AC-22: while a keyword is active, current page rows group by real route identity
-  const groupedRows = useMemo(() => (isSearchActive ? groupRowsByRoute(sortedRows) : []), [isSearchActive, sortedRows]);
+  const matchedRouteList = searchMeta.matched_route_list;
+  // ITR-EV-BLOCK-01 remediation: `true` whenever the server supplied the whole-scope matched
+  // route list — the real path, always true once search is active and the scope guard has not
+  // tripped. `false` only defensively (server omitted the field, or the scope guard blocked
+  // materialization), in which case grouping falls back to the current page only, same as
+  // before this fix — degraded, but never crashing.
+  const usingServerRouteList = isSearchActive && Array.isArray(matchedRouteList) && matchedRouteList.length > 0;
 
+  // AC-17/AC-18/AC-22 (ITR-EV-BLOCK-01 remediation): while a keyword is active, EVERY route the
+  // search matched anywhere in the filtered scope appears as its own group — sourced from the
+  // server's `matched_route_list`, never from only the rows on the current page. A route's
+  // `rows` come from `routeGroupData` once fetched (see fetchRouteGroupRows/handleToggleRouteGroup
+  // below); until then the group still exists, with `rows: []` and `status: 'idle'`.
+  const groupedRows = useMemo(() => {
+    if (!isSearchActive) return [];
+    return buildSearchRouteGroups({
+      matchedRouteList,
+      routeRowsByRoute: routeGroupData,
+      fallbackRows: sortedRows,
+    });
+  }, [isSearchActive, matchedRouteList, routeGroupData, sortedRows]);
+
+  // §7.6/D-OPEN-03: expanding a route is a deliberate, explicit action — the browser never
+  // auto-fetches every matched route on load, only the one(s) a manager actually opens.
   const expandedRouteIds = useMemo(
-    () => new Set(groupedRows.map((g) => g.routeId || g.routeName).filter((key) => !collapsedRouteIds.has(key))),
-    [groupedRows, collapsedRouteIds],
+    () => new Set(groupedRows.map((g) => g.routeId || g.routeName).filter((key) => expandedRouteKeys.has(key))),
+    [groupedRows, expandedRouteKeys],
   );
+
+  // §7.6/D-OPEN-03: "mở rộng một tuyến = một request cho riêng tuyến đó" — fetches exactly one
+  // bounded page (`LIMIT` `PAGE_SIZE`) scoped to this one route, under the same status/reason/
+  // search/sort/order the manager is already viewing. Never a second full-scope materialization.
+  const fetchRouteGroupRows = async (routeId) => {
+    if (!routeId) return;
+    setRouteGroupData((prev) => ({ ...prev, [routeId]: { status: 'loading', rows: prev[routeId]?.rows || [] } }));
+    try {
+      const apiReason = statusParam === 'failed' ? (reasonParam || 'all') : 'all';
+      const result = await f13DashboardClient.getEvidence({
+        bcvh: bcvhId,
+        anchor_date: analysisDate,
+        period: periodParam,
+        route: routeId,
+        status: statusParam,
+        reason: apiReason,
+        search: search.trim() || undefined,
+        sort,
+        order,
+        page: 1,
+        page_size: PAGE_SIZE,
+      });
+      const rows = Array.isArray(result?.data) ? result.data : [];
+      const mapped = rows.map((item) => mapEvidenceApiRow(item, { bcvhId, bcvhName, routeIdParam: routeId, routeName: '', analysisDate }));
+      setRouteGroupData((prev) => ({ ...prev, [routeId]: { status: 'ready', rows: mapped } }));
+    } catch {
+      setRouteGroupData((prev) => ({ ...prev, [routeId]: { status: 'error', rows: [] } }));
+    }
+  };
+
   const handleToggleRouteGroup = (key) => {
-    setCollapsedRouteIds((prev) => {
+    const isCurrentlyExpanded = expandedRouteKeys.has(key);
+    setExpandedRouteKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
+    if (!isCurrentlyExpanded && usingServerRouteList) {
+      const cacheEntry = routeGroupData[key];
+      if (!cacheEntry || cacheEntry.status === 'idle' || cacheEntry.status === 'error') {
+        fetchRouteGroupRows(key);
+      }
+    }
   };
 
-  // AC-15: selection exists ONLY when shipment_id is present in the URL AND still matches a visible row
+  // AC-15: selection exists ONLY when shipment_id is present in the URL AND still matches a
+  // visible row — extended (ITR-EV-BLOCK-01 remediation) to also match rows loaded into an
+  // expanded search-result route group, since those rows are now genuinely visible on screen
+  // even though they never appear in `sortedRows` (the single global page).
   const selectedShipment = useMemo(() => {
     if (!shipmentId) return null;
-    return sortedRows.find((item) => item.shipmentId === shipmentId) || null;
-  }, [shipmentId, sortedRows]);
+    const fromPage = sortedRows.find((item) => item.shipmentId === shipmentId);
+    if (fromPage) return fromPage;
+    if (!isSearchActive) return null;
+    for (const entry of Object.values(routeGroupData)) {
+      const match = (entry.rows || []).find((item) => item.shipmentId === shipmentId);
+      if (match) return match;
+    }
+    return null;
+  }, [shipmentId, sortedRows, isSearchActive, routeGroupData]);
 
-  // AC-19: three counts, always visibly distinct
-  const contextTotal = toNumber(pagination.total_items);
+  // AC-19 (ITR-EV-NB-02 remediation): three counts, always visibly distinct. `contextTotal`
+  // ("Tổng Evidence (bối cảnh)") must stay independent of the search keyword — it answers "how
+  // many match the current status/reason filter", not "how many also match the keyword" (that
+  // is `searchResultCount`). Before this fix both read `pagination.total_items`, which in the
+  // search branch of the API IS `matched_items` — collapsing the two cards to one number.
+  const contextTotal = toNumber(resolveContextTotal({
+    status: statusParam, reason: reasonParam, statusSummary, violationSummary,
+  }));
   const searchResultCount = isSearchActive ? (searchMeta.matched_items ?? pagination.total_items) : null;
 
   const handleSelectShipment = (nextShipmentId) => {

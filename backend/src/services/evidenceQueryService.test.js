@@ -317,3 +317,69 @@ test('search results paginate correctly across multiple pages', async () => {
     assert.equal(page2.data.length, 2);
     assert.notDeepEqual(page1.data.map((r) => r.ma_bg), page2.data.map((r) => r.ma_bg));
 });
+
+// ============================================================================================
+// ITR-EV-BLOCK-01 remediation (Independent Technical Review, 2026-09-07): `meta.search` must
+// carry the full matched-route breakdown (`matched_route_list`), not just a count, so a client
+// can render every route the search matched even when most of them fall on pages the browser
+// never requests. This is the direct regression test for the reproduced defect: a route whose
+// rows only exist beyond the current page must still appear in the list, with its true count.
+// ============================================================================================
+
+test('ITR-EV-BLOCK-01: matched_route_list carries every matched route with its full count, not just the routes on the requested page', async () => {
+    // Route A: 3 matched rows, all sorted after route B's single row (so with page_size=1,
+    // page 1 only contains a route-B row) — this is exactly the shape of the reproduced live
+    // defect (a route with a real matched count that never appears on the rendered page).
+    const projection = [
+        { id: 1, ma_bg: 'HCC-A1', ma_tuyen: '53001', ten_tuyen: 'Tuyến A', ten_bcvh: 'BCVH A', do_tre_gio: null },
+        { id: 2, ma_bg: 'HCC-A2', ma_tuyen: '53001', ten_tuyen: 'Tuyến A', ten_bcvh: 'BCVH A', do_tre_gio: null },
+        { id: 3, ma_bg: 'HCC-A3', ma_tuyen: '53001', ten_tuyen: 'Tuyến A', ten_bcvh: 'BCVH A', do_tre_gio: null },
+        { id: 4, ma_bg: 'HCC-B1', ma_tuyen: '53002', ten_tuyen: 'Tuyến B', ten_bcvh: 'BCVH A', do_tre_gio: null },
+    ];
+    const { service } = buildFixture({
+        anchorDate: '2026-08-31',
+        statusCounts: { all: 4, passed: 0, failed: 4, returned: 0 },
+        scopeCount: 4,
+        searchProjection: projection,
+        idRows: projection,
+    });
+
+    // page_size=1, ma_bg ASC → page 1 renders only "A1" (Tuyến A). Page 4 (the last page)
+    // renders only "B1" (Tuyến B) — either request must still report BOTH routes below.
+    const page1 = await service.getEvidence({
+        bcvh: '533140', search: 'hcc', page_size: 1, page: 1, sort: 'ma_bg', order: 'asc',
+    });
+
+    // The rendered page only contains a Tuyến A row ...
+    assert.equal(page1.data.length, 1);
+    assert.equal(page1.data[0].ma_tuyen, '53001');
+
+    // ... but matched_route_list must still report BOTH routes, with each route's TRUE count
+    // across the whole matched scope — not the count visible on this one page.
+    assert.equal(page1.meta.search.matched_routes, 2);
+    assert.equal(page1.meta.search.matched_route_list.length, 2);
+    const byRoute = Object.fromEntries(page1.meta.search.matched_route_list.map((r) => [r.ma_tuyen, r]));
+    assert.equal(byRoute['53001'].count, 3);
+    assert.equal(byRoute['53001'].ten_tuyen, 'Tuyến A');
+    assert.equal(byRoute['53002'].count, 1);
+    assert.equal(byRoute['53002'].ten_tuyen, 'Tuyến B');
+});
+
+test('matched_route_list is null when no search is active, and null when scope_guard.exceeded blocks materialization', async () => {
+    const { service: noSearchService } = buildFixture({
+        anchorDate: '2026-08-31',
+        statusCounts: { all: 2, passed: 2, failed: 0, returned: 0 },
+        page: [],
+    });
+    const noSearch = await noSearchService.getEvidence({ bcvh: '533140' });
+    assert.equal(noSearch.meta.search.matched_route_list, null);
+
+    const { service: exceededService } = buildFixture({
+        anchorDate: '2026-08-31',
+        statusCounts: { all: 999999, passed: 0, failed: 999999, returned: 0 },
+        scopeCount: SEARCH_SCOPE_MAX_ROWS + 1,
+    });
+    const exceeded = await exceededService.getEvidence({ bcvh: '533140', search: 'hcc' });
+    assert.equal(exceeded.meta.scope_guard.exceeded, true);
+    assert.equal(exceeded.meta.search.matched_route_list, null);
+});

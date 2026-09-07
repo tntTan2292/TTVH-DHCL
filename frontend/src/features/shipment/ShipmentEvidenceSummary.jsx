@@ -8,6 +8,14 @@ import { StandardTable, StatusBadge, EmptyState } from '../../components/shared/
 //                 violation group, in the order supplied by the caller.
 //   - 'grouped' — a keyword is active (AC-17/AC-18): every route the search matched
 //                 appears as its own expandable group, keyed by real ma_tuyen (AC-22).
+//                 ITR-EV-BLOCK-01 remediation (2026-09-07): `groups` is built by the caller
+//                 from the server's whole-scope `matched_route_list`
+//                 (`shipmentPerformanceData.js`'s `buildSearchRouteGroups`), NOT from only the
+//                 rows on the current page — a group can therefore exist with `rows: []` and
+//                 `group.status` of 'idle'/'loading'/'error' before its own rows have been
+//                 fetched (one request per expanded route, §7.6/D-OPEN-03). This component
+//                 does not know or care where `rows` came from; it only renders whatever the
+//                 caller has loaded for that group so far.
 // Neither mode ever selects a row on its own — selection only happens via an explicit
 // click (AC-15), handled entirely by the caller.
 function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment }) {
@@ -137,6 +145,13 @@ export default function ShipmentEvidenceSummary({
                   <StandardTable
                     columns={columns.filter((c) => c.key !== 'routeName')}
                     rows={group.rows}
+                    emptyMessage={
+                      group.status === 'loading'
+                        ? 'Đang tải bưu gửi của tuyến này...'
+                        : group.status === 'error'
+                          ? 'Không thể tải bưu gửi của tuyến này. Đóng và mở lại để thử lại.'
+                          : 'Không có dữ liệu'
+                    }
                     className="rounded-none border-none shadow-none"
                   />
                 </div>

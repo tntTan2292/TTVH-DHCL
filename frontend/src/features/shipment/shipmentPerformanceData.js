@@ -145,3 +145,95 @@ export function resolveEmptyStateStatusLabel(status) {
     default: return 'bưu gửi';
   }
 }
+
+// F13-ROUTE-EVIDENCE-STATUS-02 ITR-EV-BLOCK-01 remediation (Independent Technical Review,
+// 2026-09-07). Maps one `GET /f13/evidence` row into the shape the table/detail components
+// consume. Extracted as a standalone pure function so both the main page fetch AND a
+// per-route expand fetch (§7.6/D-OPEN-03) produce byte-identical row shapes from the same
+// API response shape, instead of two hand-maintained copies of the same mapping drifting
+// apart over time.
+export function mapEvidenceApiRow(item, { bcvhId, bcvhName, routeIdParam, routeName, analysisDate } = {}) {
+  const shipmentKey = item.ma_bg || item.id || item.shipment_id || 'N/A';
+  const statusLabel = item.danh_gia_2026
+    || (item.status_group === 'passed' ? 'Đạt' : item.status_group === 'returned' ? 'Chuyển hoàn' : 'Không đạt');
+  const delayHours = item.do_tre_gio ?? null;
+
+  return {
+    id: shipmentKey,
+    shipmentId: shipmentKey,
+    shipmentName: item.ten_bg || shipmentKey,
+    bcvhId: item.ma_bcvh || bcvhId,
+    bcvhName: item.ten_bcvh || bcvhName,
+    routeId: item.ma_tuyen || routeIdParam,
+    routeName: item.ten_tuyen || routeName,
+    status: statusLabel,
+    statusGroup: item.status_group || (statusLabel === 'Đạt' ? 'passed' : statusLabel === 'Chuyển hoàn' ? 'returned' : 'failed'),
+    violationReason: item.violation_reason || null,
+    pickupTime: item.thoi_gian_ptc || null,
+    handoverTime: item.thoi_gian_nop_tien || null,
+    delayHours,
+    delayLabel: delayHours === null || delayHours === undefined ? 'Chưa đủ dữ liệu' : `${Number(delayHours).toFixed(1)}h`,
+    analysisDate: item.ngay_do_kiem || analysisDate,
+    extendedData: item.extended_data || {},
+  };
+}
+
+// ITR-EV-BLOCK-01 remediation. Real defect (Independent Technical Review, 2026-09-07):
+// rendering search-result route groups from `groupRowsByRoute(sortedRows)` — the CURRENT
+// SERVER PAGE only — meant any route whose matching rows all fell on a page the browser
+// never requested was silently missing from the grouped view, even though the server's own
+// `search.matched_routes` count correctly included it (measured live: BCVH 533140, keyword
+// "HCC", 1,617 matched rows across 9 real routes rendered only 7 groups; keyword "Thuy", 1,000
+// rows across 4 routes rendered only 2). Design of Record §7.6 / PO decision `D-OPEN-03`
+// require the full matched-route list, computed server-side over the whole matched scope, to
+// drive which groups exist — a page fetch only ever fills in a group's `rows`, never decides
+// whether the group is shown.
+//
+// `matchedRouteList` is `meta.search.matched_route_list` from the API (every matched route,
+// server-computed, real counts). `routeRowsByRoute` supplies rows already fetched for a route
+// — from the initial page (whichever routes happen to be on it) or from an explicit per-route
+// expand fetch (§7.6's "mở rộng một tuyến = một request", `D-OPEN-03`) — keyed by `ma_tuyen`,
+// each entry `{ status: 'idle' | 'loading' | 'ready' | 'error', rows }`. A route with a real
+// match but no fetched rows yet still appears as its own group (`rows: []`, `status` carried
+// through so the caller can render a loading/error state without ever losing the group).
+//
+// `fallbackRows` is used only if the server omitted `matched_route_list` (should not happen
+// once §6.4 ships it, but keeps this defensive rather than crashing/rendering nothing).
+export function buildSearchRouteGroups({ matchedRouteList, routeRowsByRoute = {}, fallbackRows = [] }) {
+  if (!Array.isArray(matchedRouteList) || !matchedRouteList.length) {
+    return groupRowsByRoute(fallbackRows);
+  }
+  return matchedRouteList.map((route) => {
+    const cached = routeRowsByRoute[route.ma_tuyen];
+    return {
+      routeId: route.ma_tuyen,
+      routeName: route.ten_tuyen || route.ma_tuyen,
+      count: route.count,
+      rows: cached?.rows || [],
+      status: cached?.status || 'idle',
+    };
+  });
+}
+
+// ITR-EV-NB-02 remediation (Independent Technical Review, 2026-09-07): "Tổng Evidence (bối
+// cảnh)" must stay independent of the search keyword — it answers "how many shipments match
+// the current status/reason filter", not "how many match the keyword too". Before this fix,
+// `contextTotal` read `pagination.total_items`, which in the search branch of the API IS
+// `matched_items` — so the two KPI cards ("bối cảnh" and "Kết quả tìm kiếm") always displayed
+// the identical number whenever a keyword was active, collapsing AC-19's three-distinct-counts
+// requirement to two. This derives the context figure the same way the backend's own
+// `_resolveNonSearchTotalItems` does — from `status_summary`/`violation_summary`, which are
+// always computed over the keyword-independent scope, search active or not.
+export function resolveContextTotal({ status, reason, statusSummary = {}, violationSummary = {} }) {
+  if (status === 'failed') {
+    const reasonCount = {
+      delayed_cash: violationSummary.delayed_cash_count,
+      other: violationSummary.other_failed_count,
+      unknown: violationSummary.unknown_count,
+    }[reason];
+    return reasonCount !== undefined ? reasonCount : (statusSummary.failed || 0);
+  }
+  if (status === 'passed') return statusSummary.passed || 0;
+  if (status === 'returned') return statusSummary.returned || 0;
+  return statusSummary.all || 0;
+}

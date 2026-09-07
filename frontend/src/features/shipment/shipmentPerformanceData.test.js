@@ -7,6 +7,9 @@ import {
   matchesSearchQuery,
   formatSearchResultSummary,
   groupRowsByRoute,
+  mapEvidenceApiRow,
+  buildSearchRouteGroups,
+  resolveContextTotal,
 } from './shipmentPerformanceData.js';
 
 // P0-05: fact_f13 timestamps are 'dd/MM/yyyy HH:mm:ss' TEXT, which `new Date(string)`
@@ -137,4 +140,84 @@ test('groupRowsByRoute never drops a row: total across all groups equals the inp
   const total = groups.reduce((sum, g) => sum + g.count, 0);
   assert.equal(total, 12);
   assert.equal(groups.length, 4);
+});
+
+// --- mapEvidenceApiRow: single source of row-mapping truth for both the main page fetch and
+// a per-route expand fetch (ITR-EV-BLOCK-01 remediation, 2026-09-07) --------------------------
+
+test('mapEvidenceApiRow maps status_group and preserves null violation_reason/delay for non-failed rows', () => {
+  const row = mapEvidenceApiRow(
+    { ma_bg: 'BG1', ma_tuyen: '531001', ten_tuyen: 'Tuyến A', danh_gia_2026: 'Đạt', status_group: 'passed', do_tre_gio: null, violation_reason: null },
+    { bcvhId: '533140', bcvhName: 'BCVH X', routeIdParam: '', routeName: '', analysisDate: '2026-09-01' },
+  );
+  assert.equal(row.shipmentId, 'BG1');
+  assert.equal(row.routeId, '531001');
+  assert.equal(row.status, 'Đạt');
+  assert.equal(row.statusGroup, 'passed');
+  assert.equal(row.violationReason, null);
+  assert.equal(row.delayLabel, 'Chưa đủ dữ liệu');
+});
+
+test('mapEvidenceApiRow falls back to context bcvh/route when the API row omits them', () => {
+  const row = mapEvidenceApiRow(
+    { ma_bg: 'BG2', danh_gia_2026: 'Không đạt', status_group: 'failed', do_tre_gio: 5.25 },
+    { bcvhId: '533140', bcvhName: 'BCVH X', routeIdParam: '531002', routeName: 'Tuyến B', analysisDate: '2026-09-01' },
+  );
+  assert.equal(row.bcvhId, '533140');
+  assert.equal(row.routeId, '531002');
+  assert.equal(row.routeName, 'Tuyến B');
+  assert.equal(row.delayLabel, '5.3h');
+});
+
+// --- buildSearchRouteGroups: ITR-EV-BLOCK-01 remediation (Independent Technical Review,
+// 2026-09-07) — the direct fix for "search route grouping is page-limited" -------------------
+
+test('buildSearchRouteGroups includes every matched route from matched_route_list, not only routes with fetched rows', () => {
+  const matchedRouteList = [
+    { ma_tuyen: '531001', ten_tuyen: 'Tuyến A', count: 3 },
+    { ma_tuyen: '531002', ten_tuyen: 'Tuyến B', count: 1 },
+  ];
+  const routeRowsByRoute = { '531001': { status: 'ready', rows: [{ id: 1 }, { id: 2 }, { id: 3 }] } };
+  const groups = buildSearchRouteGroups({ matchedRouteList, routeRowsByRoute });
+
+  assert.equal(groups.length, 2);
+  const routeA = groups.find((g) => g.routeId === '531001');
+  const routeB = groups.find((g) => g.routeId === '531002');
+  assert.equal(routeA.rows.length, 3);
+  assert.equal(routeA.status, 'ready');
+  assert.equal(routeB.rows.length, 0, 'unfetched route must render with zero rows, never crash or vanish');
+  assert.equal(routeB.status, 'idle');
+  assert.equal(routeB.count, 1, 'the count is the server-computed real total, independent of whether rows were fetched');
+});
+
+test('buildSearchRouteGroups carries loading/error status through so the caller can render it', () => {
+  const matchedRouteList = [{ ma_tuyen: '531001', ten_tuyen: 'Tuyến A', count: 5 }];
+  const loading = buildSearchRouteGroups({ matchedRouteList, routeRowsByRoute: { '531001': { status: 'loading', rows: [] } } });
+  assert.equal(loading[0].status, 'loading');
+  const errored = buildSearchRouteGroups({ matchedRouteList, routeRowsByRoute: { '531001': { status: 'error', rows: [] } } });
+  assert.equal(errored[0].status, 'error');
+});
+
+test('buildSearchRouteGroups falls back to grouping the given rows when matched_route_list is missing/empty', () => {
+  const fallbackRows = [
+    { shipmentId: 'BG1', routeId: '531001', routeName: 'Tuyến A' },
+    { shipmentId: 'BG2', routeId: '531002', routeName: 'Tuyến B' },
+  ];
+  assert.equal(buildSearchRouteGroups({ matchedRouteList: null, fallbackRows }).length, 2);
+  assert.equal(buildSearchRouteGroups({ matchedRouteList: [], fallbackRows }).length, 2);
+});
+
+// --- resolveContextTotal: ITR-EV-NB-02 remediation (Independent Technical Review,
+// 2026-09-07) — "Tổng Evidence (bối cảnh)" must stay independent of the search keyword -------
+
+test('resolveContextTotal reflects the status/reason scope, never the search-narrowed matched count', () => {
+  const statusSummary = { all: 500, passed: 300, failed: 150, returned: 50 };
+  const violationSummary = { delayed_cash_count: 40, other_failed_count: 60, unknown_count: 50 };
+  assert.equal(resolveContextTotal({ status: 'all', reason: 'all', statusSummary, violationSummary }), 500);
+  assert.equal(resolveContextTotal({ status: 'passed', reason: 'all', statusSummary, violationSummary }), 300);
+  assert.equal(resolveContextTotal({ status: 'returned', reason: 'all', statusSummary, violationSummary }), 50);
+  assert.equal(resolveContextTotal({ status: 'failed', reason: 'all', statusSummary, violationSummary }), 150);
+  assert.equal(resolveContextTotal({ status: 'failed', reason: 'delayed_cash', statusSummary, violationSummary }), 40);
+  assert.equal(resolveContextTotal({ status: 'failed', reason: 'other', statusSummary, violationSummary }), 60);
+  assert.equal(resolveContextTotal({ status: 'failed', reason: 'unknown', statusSummary, violationSummary }), 50);
 });

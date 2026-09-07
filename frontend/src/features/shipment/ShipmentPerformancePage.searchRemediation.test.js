@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { buildSearchRouteGroups, resolveContextTotal } from './shipmentPerformanceData.js';
 
 const source = fs.readFileSync(new URL('./ShipmentPerformancePage.jsx', import.meta.url), 'utf8');
 const layoutSource = fs.readFileSync(new URL('../../components/shared/SharedLayout.jsx', import.meta.url), 'utf8');
@@ -27,16 +28,43 @@ test('C.1/C.7 — getEvidence passes bcvh, anchor_date, route, status, reason, s
   assert.match(source, /search: search\.trim\(\) \|\| undefined/);
 });
 
-// C.1: while searching, matching rows group by real route identity
-test('C.1 — while searching, rows are grouped by route via groupRowsByRoute', () => {
-  assert.match(source, /const groupedRows = useMemo\(\(\) => \(isSearchActive \? groupRowsByRoute\(sortedRows\) : \[\]\)/);
+// C.1 (ITR-EV-BLOCK-01 remediation, 2026-09-07): while searching, matching rows group by
+// real route identity — and, critically, EVERY matched route appears as its own group, not
+// only the routes present on the currently loaded page. This is a behavioral test of the real
+// function (buildSearchRouteGroups), not a source-text check: it reproduces the exact shape of
+// the live defect (a route whose rows never landed on the fetched page must still appear).
+test('C.1 — while searching, every matched route appears as its own group, even one with zero rows fetched yet', () => {
+  assert.match(source, /buildSearchRouteGroups\(\{/);
+
+  const matchedRouteList = [
+    { ma_tuyen: '531001', ten_tuyen: 'Tuyến A', count: 40 }, // on the current page
+    { ma_tuyen: '531002', ten_tuyen: 'Tuyến B', count: 5 },  // NOT on the current page — the defect case
+  ];
+  const routeRowsByRoute = {
+    '531001': { status: 'ready', rows: [{ id: 'r1' }, { id: 'r2' }] },
+    // '531002' intentionally absent — nothing fetched for it yet.
+  };
+  const groups = buildSearchRouteGroups({ matchedRouteList, routeRowsByRoute, fallbackRows: [{ id: 'r1' }, { id: 'r2' }] });
+
+  assert.equal(groups.length, 2, 'both matched routes must be present as groups, not just the one with loaded rows');
+  const routeB = groups.find((g) => g.routeId === '531002');
+  assert.ok(routeB, 'Tuyến B must still appear even though no rows have been fetched for it');
+  assert.equal(routeB.count, 5, 'the count must be the server-computed real total, not 0 just because rows are not loaded');
+  assert.equal(routeB.status, 'idle');
 });
 
-// C.2: two routes with similar/duplicate names but different ma_tuyen never merge —
-// delegated to groupRowsByRoute, already proven with a dedicated unit test in
-// shipmentPerformanceData.test.js ("groups by real ma_tuyen... never route-name text").
-test('C.2 — grouping is delegated to groupRowsByRoute (real ma_tuyen identity), not reimplemented here', () => {
-  assert.match(source, /groupRowsByRoute\(sortedRows\)/);
+// C.2: two routes with similar/duplicate names but different ma_tuyen never merge — groups are
+// keyed by the server's real `ma_tuyen`, never by route-name text alone.
+test('C.2 — grouping keys on real ma_tuyen identity, never on route-name text alone', () => {
+  assert.match(source, /buildSearchRouteGroups\(\{/);
+
+  const matchedRouteList = [
+    { ma_tuyen: '531001', ten_tuyen: 'Chuyến thư nhanh', count: 2 },
+    { ma_tuyen: '531099', ten_tuyen: 'Chuyến thư nhanh', count: 3 }, // same display name, different route
+  ];
+  const groups = buildSearchRouteGroups({ matchedRouteList, routeRowsByRoute: {} });
+  assert.equal(groups.length, 2, 'two different ma_tuyen with an identical display name must never merge into one group');
+  assert.deepEqual(new Set(groups.map((g) => g.routeId)), new Set(['531001', '531099']));
 });
 
 // C.3: server-side pagination — getEvidence requests page and page_size, not client-side fetch-all
@@ -76,9 +104,13 @@ test('C.9 — manual selection is the only path that sets shipment_id, and the d
 
 // C.6 (restated) / point 6 of this remediation: a selection that no longer matches the
 // current result set (e.g. after the reason-tab-scoped fetch changed) falls back to
-// "chưa chọn," never a substitute row.
+// "chưa chọn," never a substitute row. Extended by the ITR-EV-BLOCK-01 remediation to also
+// check a per-route expand fetch's rows (§7.6) — a stale id must resolve to null there too.
 test('point 6 — an invalid/stale shipment_id resolves to null, never a fallback selection', () => {
-  assert.match(source, /return sortedRows\.find\(\(item\) => item\.shipmentId === shipmentId\) \|\| null;/);
+  assert.match(source, /const fromPage = sortedRows\.find\(\(item\) => item\.shipmentId === shipmentId\);/);
+  assert.match(source, /if \(fromPage\) return fromPage;/);
+  assert.match(source, /if \(!isSearchActive\) return null;/);
+  assert.match(source, /return null;\s*\n\s*\}, \[shipmentId, sortedRows, isSearchActive, routeGroupData\]\);/);
 });
 
 // C.10/AC-20: the Tuyến dropdown remains independent of search — handleRouteChange only
@@ -121,8 +153,20 @@ test('C.13 — the grouped route header is never viewport-hidden (only secondary
   assert.match(summarySource, /className: 'hidden sm:table-cell'/);
 });
 
-// Server-side contextTotal (AC-19's pre-search figure) reflects pagination.total_items
-// from server metadata.
-test('contextTotal reflects the total_items from server pagination', () => {
-  assert.match(source, /const contextTotal = toNumber\(pagination\.total_items\);/);
+// ITR-EV-NB-02 remediation (Independent Technical Review, 2026-09-07): contextTotal (AC-19's
+// pre-search figure) must stay independent of any active search keyword — it previously read
+// `pagination.total_items`, which the search branch of the API sets equal to `matched_items`,
+// silently collapsing the "bối cảnh" and "Kết quả tìm kiếm" KPI cards to one number whenever a
+// keyword was active. Behavioral: resolveContextTotal must return the keyword-independent
+// status/reason total, not whatever a narrower keyword match happens to be.
+test('contextTotal stays independent of the search keyword (resolveContextTotal, not pagination.total_items)', () => {
+  assert.match(source, /const contextTotal = toNumber\(resolveContextTotal\(\{/);
+  assert.doesNotMatch(source, /const contextTotal = toNumber\(pagination\.total_items\);/);
+
+  const statusSummary = { all: 500, passed: 300, failed: 150, returned: 50, identity_ok: true };
+  const violationSummary = { total_failed: 150, delayed_cash_count: 40, other_failed_count: 60, unknown_count: 50 };
+  // A keyword narrows the visible/matched set to a handful of rows — contextTotal must not
+  // follow it down to that number.
+  assert.equal(resolveContextTotal({ status: 'all', reason: 'all', statusSummary, violationSummary }), 500);
+  assert.equal(resolveContextTotal({ status: 'failed', reason: 'delayed_cash', statusSummary, violationSummary }), 40);
 });

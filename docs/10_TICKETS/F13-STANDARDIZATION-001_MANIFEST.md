@@ -3053,3 +3053,121 @@ remediated and re-reviewed; `ITR-EV-NB-02` is cheap enough to fold into the same
 `ITR-EV-NB-01` needs a CTO/PO answer rather than code. `F13-ROUTE-RANKING-PERIOD-01` and
 `F13-BCVH-RANKING-OVERVIEW-01` remain `CLOSED / PO PASS`, unaffected; `AUTO-BACKFILL-RUNTIME` remains
 separately open, unaffected.
+
+## 68. F13-ROUTE-EVIDENCE-STATUS-02 — `ITR-EV-BLOCK-01` Remediation — READY FOR INDEPENDENT RE-REVIEW (2026-09-07)
+
+Append-only delta. Sections 1-67 unchanged. Executor: `Claude Code`/`Sonnet`, baseline `dbab2b7`
+(the Independent Technical Review that returned `BLOCKED`). Scope: the single blocker
+`ITR-EV-BLOCK-01` plus the one non-blocker (`ITR-EV-NB-02`) the reviewer named as cheap enough to
+fold into the same change. `ITR-EV-NB-01` (Ranking-scope comparison) and `ITR-EV-NB-03`..`05`
+(test-coverage/dead-code/defensive-`ELSE` observations, none requiring a code fix) were **not**
+touched, per the reviewer's own "không mở rộng sang các non-blocker khác trừ khi bắt buộc".
+
+### Root cause
+
+`meta.search` (the `GET /f13/evidence` search-path payload) carried only a **count**
+(`matched_routes`), never the list of matched routes. On the client, the search-result grouped
+view (`groupRowsByRoute(sortedRows)`) grouped whatever rows happened to be on the **current
+server page** — correct before server-side pagination existed (all matched rows were in memory
+at once), but after pagination shipped, a route whose matching rows all fell on a page the
+browser never requested was silently absent from the grouped view, even though the server's own
+summary line correctly counted it. Design of Record §7.6 and PO decision `D-OPEN-03` already
+specified the fix (a server-computed, whole-scope matched-route list, with per-route expansion
+costing one request) — it had not been implemented; the API contract in §6.4 never carried that
+list, so the implementation had nothing to consume.
+
+### Changes made
+
+**Backend** (`backend/src/services/evidenceQueryService.js`, additive): `_buildMatchedRouteList()`
+folds the already-materialized, keyword-narrowed `matched` array (bounded by
+`SEARCH_SCOPE_MAX_ROWS`, already computed under `P-03`) into `{ ma_tuyen, ten_tuyen, count }`
+entries — no new query, no new materialization, `P-01`..`P-04` untouched. `meta.search` now
+carries `matched_route_list` (`null` when search is inactive or the scope guard has tripped, same
+as `matched_items`/`matched_routes` in those cases). `matched_routes` is now derived from the same
+list rather than a separately-collected `Set`, so the two numbers can never drift.
+
+**Frontend** (`frontend/src/features/shipment/`, no backend file touched):
+- `shipmentPerformanceData.js` — three new pure functions: `mapEvidenceApiRow()` (extracted from
+  the inline mapper, now the single source of row-shape truth for both the main fetch and a
+  per-route expand fetch), `buildSearchRouteGroups()` (builds groups from
+  `matched_route_list`, not from the current page — the direct fix), `resolveContextTotal()`
+  (mirrors the backend's own `_resolveNonSearchTotalItems`, fixing `ITR-EV-NB-02`).
+- `ShipmentPerformancePage.jsx` — groups are now built via `buildSearchRouteGroups`; a per-route
+  cache (`routeGroupData`, keyed by `ma_tuyen`) holds `{ status, rows }`; expanding a group that
+  has no cached rows triggers exactly one `getEvidence` request scoped to that route (§7.6/
+  `D-OPEN-03`, "mở rộng một tuyến = một request"), under the same status/reason/search/sort/order
+  already active. Expansion is now default-**collapsed** (previously default-expanded, which was
+  only correct because all rows were already in memory) — a deliberate behavior change the PO
+  already accepted as the cost of real pagination (`D-OPEN-03`: "cái giá không tránh được").
+  `contextTotal` now reads `resolveContextTotal(statusSummary, violationSummary)` instead of
+  `pagination.total_items`, restoring the pre-ticket guarantee that "Tổng Evidence (bối cảnh)"
+  stays independent of any active search keyword. `selectedShipment` (AC-15) now also checks
+  rows loaded into an expanded group, not only the current global page.
+- `ShipmentEvidenceSummary.jsx` — renders a loading/error `emptyMessage` inside an expanding
+  group (`group.status`); stale header comment (asserting the old "current page" grouping
+  guarantee) corrected to describe the new server-list-driven contract.
+
+**Tests.** Per the reviewer's own `ITR-EV-NB-03` finding, the source-text-regex assertions that
+had encoded the defective line itself (`ShipmentPerformancePage.searchRemediation.test.js`'s old
+`C.1`/`C.2`/"contextTotal" checks, and `ShipmentPerformancePage.phase2.test.js`'s AC-19/AC-22
+checks) were rewritten as behavioral tests calling the real new functions with real-shaped
+fixtures — including a direct reproduction of the live defect (a route whose matched rows are
+absent from the loaded page must still appear as a group, with its true count). New pure-function
+tests added to `shipmentPerformanceData.test.js` for `mapEvidenceApiRow`, `buildSearchRouteGroups`
+(including the loading/error-status and empty-list-fallback cases), and `resolveContextTotal`. A
+new backend regression, `evidenceQueryService.test.js`'s `ITR-EV-BLOCK-01` test, reproduces the
+exact multi-page shape (a route's matched rows entirely on pages 2+ of a `page_size=1` request)
+and asserts `matched_route_list` still reports it with its true count; a companion test asserts
+`matched_route_list` is `null` in the no-search and scope-guard-exceeded paths.
+
+### Validation
+
+- **Backend**: `evidenceQueryService.test.js` `22/22` (was `20/20`; `+2` new). Full Evidence +
+  route-period regression `79/79` (`evidenceQueryService`, `DashboardController.evidenceDrilldown`,
+  `FactBuuGuiRepository.evidence`, `evidenceSearchMatch`, `F13DashboardService.evidenceList`
+  `16/16` unmodified, `routePeriodService.test.js` `13/13`,
+  `FactBuuGuiRepository.routePeriod.test.js` `5/5`, `DashboardController.routePeriods.test.js`
+  `4/4`). Full backend sweep: `196/200`, the same 4 pre-existing baseline failures unrelated to
+  Evidence (KPI-endpoint tests needing a live HTTP server, `monthly rank enrichment`), confirmed
+  identical on the pre-remediation baseline via `git stash`. `npx oxlint` on the changed backend
+  files: 0 errors/0 warnings.
+- **Frontend**: `features/shipment/` + `features/route/` `187/187` (was `181/181`; `+6` new
+  behavioral tests net of the rewritten regexes). Full sweep `453/457`, the same 3 known baseline
+  failures on record since manifest §52 (`features/dashboard`) plus
+  `pages/dataImportBackfillQueue.test.js`, none in `shipment`/`route`. `npx oxlint
+  src/features/shipment/ src/features/route/`: 0 errors/0 warnings. `npm run build`: succeeds in
+  `1.10s` (`dist/assets/index-FlLaqGqc.js`), same pre-existing chunk-size warning only.
+- **Real-data validation, the reviewer's own keywords** (`evidenceQueryService.getEvidence()`
+  called directly against the real, unmocked `FactBuuGuiRepository`/`database.sqlite`, read-only):
+  - `BCVH 533140`, `month_to_anchor` (`2026-09-01..2026-09-06`), `search=HCC`: `matched_items=1617`,
+    `matched_routes=9`; the returned page holds only 7 distinct routes, but `matched_route_list`
+    now correctly lists all **9** real routes (e.g. `53314061` / "533140 HCC Phường Đúc", count
+    `1`, absent from the page) with counts summing exactly to `1617`.
+  - Same scope, `search=Thuy`: `matched_items=1000`, `matched_routes=4`; the page holds only 2
+    distinct routes, `matched_route_list` correctly lists all **4** (`53314058`, `53314071`,
+    `533140129`, `533140133`) summing exactly to `1000`.
+  - `search=HCC`, `period=day`: `matched_items=235` across 7 routes, `matched_route_list` sums
+    exactly to `235`.
+  - Simulated the frontend's per-route expand fetch directly: `route=53314061` (the route absent
+    from the global `HCC` page above) + `search=HCC` returns exactly its `1` real row
+    (`EB516583546VN`), confirming the "one request per expanded route" mechanism works against
+    real data.
+  - `fact_f13` read before and after this entire validation session: **777,081 rows,
+    `MAX(ngay_do_kiem) = 2026-09-06`, identical** — zero writes (Evidence remains read-only).
+- **Scope discipline**: `git diff --name-only dbab2b7` touches only
+  `backend/src/services/evidenceQueryService.js` (+test),
+  `frontend/src/features/shipment/{ShipmentPerformancePage.jsx,ShipmentEvidenceSummary.jsx,
+  shipmentPerformanceData.js}` (+2 tests, +1 rewritten test file). No §9.4 Cấm chạm file
+  (`RuleF13302.js`, `schema.sql`, `routePeriodService.js`, `F13DashboardService.js`,
+  `/f13/evidence-list`) touched; `/f13/evidence-list` itself untouched (unaffected by this
+  section, already proven byte-unchanged in §64/§67).
+
+### Governance state after this section
+
+`F13-ROUTE-EVIDENCE-STATUS-02 = ITR-EV-BLOCK-01 REMEDIATION COMPLETE — READY FOR INDEPENDENT
+RE-REVIEW`. Per `DEC-021`, a model other than this section's executor must re-review before any
+PO UI Check; this section's own validation does not constitute that review, and does not itself
+authorize PO UI Check. `ITR-EV-NB-01` (a CTO/PO decision, not a code defect) remains open and
+unresolved by this section, unaffected. `F13-ROUTE-RANKING-PERIOD-01` and
+`F13-BCVH-RANKING-OVERVIEW-01` remain `CLOSED / PO PASS`, unaffected; `AUTO-BACKFILL-RUNTIME`
+remains separately open, unaffected.

@@ -73,7 +73,7 @@ class EvidenceQueryService {
                 pagination: { page: 1, page_size: pageSize, total_items: 0, total_pages: 0 },
                 status_summary: { all: 0, passed: 0, failed: 0, returned: 0, identity_ok: true },
                 violation_summary: { total_failed: 0, delayed_cash_count: 0, other_failed_count: 0, unknown_count: 0 },
-                search: { keyword: '', active: false, matched_items: null, matched_routes: null },
+                search: { keyword: '', active: false, matched_items: null, matched_routes: null, matched_route_list: null },
                 scope_guard: { scope_rows: 0, limit: SEARCH_SCOPE_MAX_ROWS, exceeded: false },
             },
         };
@@ -98,6 +98,35 @@ class EvidenceQueryService {
     _buildStatusSummary(counts) {
         const { all, passed, failed, returned } = counts;
         return { all, passed, failed, returned, identity_ok: all === passed + failed + returned };
+    }
+
+    // §7.6/D-OPEN-03 remediation (ITR-EV-BLOCK-01, Independent Technical Review 2026-09-07):
+    // the search path's route breakdown was previously reported only as a count
+    // (`matched_routes`), so a client rendering "every route the search matched" from the
+    // current server page alone could only ever show the routes present on that one page —
+    // reproducing the class of "search only sees one slice" defect the design's own §11 `R-01`
+    // names as its number-one risk. `matched` here is the full keyword-narrowed array already
+    // computed in the caller (bounded by `SEARCH_SCOPE_MAX_ROWS`, already materialized under
+    // `P-03`) — this is a fold over data that exists, not a new query or a new materialization.
+    // Rows with no route identity (`ma_tuyen` falsy) are excluded, same "should not occur for
+    // canonical data" discipline as `FactBuuGuiRepository`'s own route-scoped queries (verified:
+    // 0 such rows exist anywhere in `fact_f13` today).
+    _buildMatchedRouteList(matched) {
+        const byRoute = new Map();
+        for (const row of matched) {
+            if (!row.ma_tuyen) continue;
+            const existing = byRoute.get(row.ma_tuyen);
+            if (existing) {
+                existing.count += 1;
+                if (!existing.ten_tuyen && row.ten_tuyen) existing.ten_tuyen = row.ten_tuyen;
+            } else {
+                byRoute.set(row.ma_tuyen, { ma_tuyen: row.ma_tuyen, ten_tuyen: row.ten_tuyen || null, count: 1 });
+            }
+        }
+        return Array.from(byRoute.values()).sort((a, b) => (
+            String(a.ten_tuyen || a.ma_tuyen).localeCompare(String(b.ten_tuyen || b.ma_tuyen), 'vi')
+            || String(a.ma_tuyen).localeCompare(String(b.ma_tuyen))
+        ));
     }
 
     _buildViolationSummary(reasonRows) {
@@ -224,7 +253,7 @@ class EvidenceQueryService {
                     pagination: { page, page_size: pageSize, total_items: totalItems, total_pages: totalPages },
                     status_summary: statusSummary,
                     violation_summary: violationSummary,
-                    search: { keyword: '', active: false, matched_items: null, matched_routes: null },
+                    search: { keyword: '', active: false, matched_items: null, matched_routes: null, matched_route_list: null },
                     scope_guard: { scope_rows: totalItems, limit: SEARCH_SCOPE_MAX_ROWS, exceeded: false },
                 },
             };
@@ -243,7 +272,7 @@ class EvidenceQueryService {
                     pagination: { page, page_size: pageSize, total_items: 0, total_pages: 0 },
                     status_summary: statusSummary,
                     violation_summary: violationSummary,
-                    search: { keyword: search, active: true, matched_items: null, matched_routes: null },
+                    search: { keyword: search, active: true, matched_items: null, matched_routes: null, matched_route_list: null },
                     scope_guard: { scope_rows: scopeRows, limit: SEARCH_SCOPE_MAX_ROWS, exceeded: true },
                 },
             };
@@ -254,7 +283,7 @@ class EvidenceQueryService {
             [row.ma_bg, row.ma_tuyen, row.ten_tuyen, row.ten_bcvh],
             search,
         ));
-        const matchedRouteIds = new Set(matched.map((row) => row.ma_tuyen).filter(Boolean));
+        const matchedRouteList = this._buildMatchedRouteList(matched);
         const sortedMatched = this._sortProjectionRows(matched, sort, order);
         const totalItems = sortedMatched.length;
         const totalPages = Math.ceil(totalItems / pageSize);
@@ -271,7 +300,17 @@ class EvidenceQueryService {
                 pagination: { page, page_size: pageSize, total_items: totalItems, total_pages: totalPages },
                 status_summary: statusSummary,
                 violation_summary: violationSummary,
-                search: { keyword: search, active: true, matched_items: totalItems, matched_routes: matchedRouteIds.size },
+                // `matched_route_list` (ITR-EV-BLOCK-01 remediation): every route the keyword
+                // matched anywhere in the filtered scope, with its own total count — not just
+                // the routes present on this one page. `matched_routes` is kept, derived from
+                // the same list, so existing consumers of the count are unaffected.
+                search: {
+                    keyword: search,
+                    active: true,
+                    matched_items: totalItems,
+                    matched_routes: matchedRouteList.length,
+                    matched_route_list: matchedRouteList,
+                },
                 scope_guard: { scope_rows: scopeRows, limit: SEARCH_SCOPE_MAX_ROWS, exceeded: false },
             },
         };
