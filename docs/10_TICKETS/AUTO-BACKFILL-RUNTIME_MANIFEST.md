@@ -2404,3 +2404,99 @@ design, approval, and implementation; nothing above this line is edited by this 
 
 No code, database, schema, or API change. No Portal, queue, or business-data operation was
 performed as part of this closure.
+
+## 49. F41-AUTOBF-SQLITE-BUSY-01 -- SQLITE_BUSY Terminal Failure Found And Fixed; PO Confirmation Run PASSED (2026-09-07, Claude Code Sonnet 5)
+
+### 49.1 Trigger
+
+The Product Owner reported that a burst of 11 F1.3/F4.1 Auto Backfill runs submitted on
+2026-09-07 showed as `RUNNING` with 1 job each in the UI, and one run completed as
+`COMPLETED_WITH_ERRORS`. Investigation was ordered read-only first: no Resume/Retry/cancel, no
+re-login, no database write before root cause was identified.
+
+### 49.2 Investigation (Read-Only)
+
+Cross-referenced `auto_backfill_run`/`_job`/`_attempt`/`_event`/`_worker_lease` for the affected
+runs. Findings:
+
+- The "many runs RUNNING with 1 job each" observation is **not a defect**. `auto_backfill_job`
+  carries a global unique index (`uq_auto_backfill_one_running_job`) permitting exactly one
+  `RUNNING` job system-wide (one DKCL browser session); a burst of newly-submitted runs is
+  therefore drained serially by design. One job's real first-attempt `EXPORT_TIMEOUT`
+  (`TRANSIENT`, retried and succeeded on attempt 2) stretched that particular queue window; the
+  other jobs in the burst completed normally in roughly 45-90 seconds each.
+- One genuine defect was found: run `d4d8acb7-7b48-4ebf-b8ef-09d9559ffc7a` (F4.1/HUE), job
+  `468a5679-e72c-41e0-8229-7326c23b3f63` (business_date `2026-09-06`), failed on attempt 1 with
+  `result_code=SQLITE_BUSY` (`error_signature SQLITE_BUSY:7da82a0826280542`), classified `SYSTEM`
+  (non-retriable), terminalizing the job.
+- Root cause: `backend/src/config/db.js`'s shared connection -- used by `importPipeline.js` to
+  commit the F4.1 executor's completion write into `fact_f41` -- had no `PRAGMA busy_timeout` set
+  (sqlite3's own undocumented default is 1000ms). `backend/src/services/autoBackfillQueueStore.js`
+  opens its own, separate connection to the same database file per call and already sets
+  `busy_timeout=5000` around its `BEGIN IMMEDIATE` job/run writes. While that store's connection
+  was writing the burst's 10 new `auto_backfill_run`/`auto_backfill_job` rows within a ~4-second
+  window, the under-timed-out `config/db.js` connection tried to commit the F4.1/HUE/2026-09-06
+  completion write, hit the lock, and failed immediately instead of waiting it out.
+- No session-expiry, backend-restart/recovery, stale-lease, Portal contract/export-filename,
+  download-timeout, parser, or duplicate-request-backlog cause was found; these were all checked
+  and ruled out against the real event/attempt trail.
+
+### 49.3 Fix (Single, Narrowly Scoped)
+
+`backend/src/config/db.js`: added `PRAGMA busy_timeout = 5000` to the connection's existing
+startup PRAGMA call, matching `autoBackfillQueueStore.js`'s own connection. No schema,
+business-logic, safety-policy, or completion-policy change. Added regression test
+`backend/test_dbBusyTimeoutConfig.js`, reproducing the exact two-connection lock race against a
+real on-disk sandbox SQLite file (file-level locking does not occur with `:memory:`); confirmed
+failing against the pre-fix default (`1000 !== 5000`) and passing with the fix. Re-ran
+`test_importProcessor.js` (59/59), `test_e2e_import_engine.js` (65/65),
+`test_importPipelineRace.js` (41/41), `test_dkclHueF13SyncService.js` (224/224),
+`test_autoBackfillQueueService.js` (36/36), `test_autoBackfillF41Executors.js` (32/32) -- zero
+regressions. Implementation commit: `8f0a9d62`.
+
+The failed job (`468a5679`) was left untouched throughout -- not Resumed, retried, or deleted.
+
+### 49.4 PO Confirmation Run (Real Production Data)
+
+The Product Owner used the per-row **"Nhập lại"** button for exactly **F4.1 / HUE /
+2026-09-06** -- no other date, lane, or indicator -- confirming success on the UI, then
+authorized read-only verification and this governance closure. Verified against the live
+operational database:
+
+- New run `d6589085-38e3-41cd-be38-06fc6876e82e`: `status=COMPLETED`,
+  `status_reason=NO_REMAINING_ACTIVE_JOBS`.
+- New job `f48ab8f0-03f0-4caa-9c10-7523cce053ac`: `business_date=2026-09-06`, `state=SUCCESS`,
+  single attempt, no retry needed, `terminal_reason=COMPLETION_CONFIRMED_AFTER_EXECUTION`.
+- Zero `SQLITE_BUSY` occurrences (event or attempt) since the fix landed.
+- `completion_evidence_json`: `target_table=fact_f41`, `row_count=2613`, `distinct_count=2613`,
+  `processed_artifact_present=true`, `processed_artifact_filename=F4.1-2026.09.06.xlsx`.
+- `fact_f41 WHERE ngay_do_kiem='2026-09-06'` = exactly `2613` rows (`2613` distinct `ma_bg`),
+  matching the completion evidence exactly; sample rows carry real BCVH/mã bưu gửi content.
+- `import_log.id=1331`: `file_name=F4.1-2026.09.06.xlsx`, `status=SUCCESS`,
+  `total_records=2613`, `trigger_source=AUTO_BACKFILL_F41_HUE`.
+- Original failed job `468a5679` confirmed still `FAILED_TERMINAL` / `SQLITE_BUSY`, `updated_at`
+  unchanged -- not touched by this confirmation.
+- Exactly one new `auto_backfill_run` row created after the fix -- no batch, no other lane/date
+  triggered.
+
+The `WAITING_AUTH`/explicit-Resume path (checkpoint Section 7 item 3) was not exercised by this
+run since the HUE session was already valid; it remains to be observed whenever a HUE session
+next genuinely expires mid-queue. This does not block closing this incident.
+
+### 49.5 Closure
+
+`F41-AUTOBF-SQLITE-BUSY-01` is `CLOSED / PO-CONFIRMED` (2026-09-07). Checkpoint Section 7's
+required "exactly one date, one source" real-run test is satisfied for F4.1/HUE. This closes the
+incident only -- it does not itself constitute a formal PO Gate 7 runtime acceptance for the
+whole `AUTO-BACKFILL-RUNTIME` ticket (F1.3 lanes and the TCT lane were not separately
+re-confirmed by this incident, and no wider-scope/monthly expansion was requested or performed).
+That broader Gate 7 acceptance, and any expansion beyond one date/one source, remains a separate,
+explicit Product Owner decision. Full evidence: checkpoint
+`docs/06_REVIEWS/Import/AUTO-BACKFILL-RUNTIME_CHECKPOINT_001.md` Section 8.
+
+### 49.6 Not Done
+
+No batch run, no Resume/Retry/cancel of any job, no re-login performed by Claude Code, no
+database write by Claude Code outside the two committed source files (`backend/src/config/db.js`,
+`backend/test_dbBusyTimeoutConfig.js`). The real production run itself was PO-triggered via the
+existing UI, not by Claude Code.
