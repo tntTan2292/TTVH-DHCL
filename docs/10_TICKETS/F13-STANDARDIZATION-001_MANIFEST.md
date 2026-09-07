@@ -2302,3 +2302,68 @@ test-locked. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 P
 remains not reachable and **no PO PASS is awarded**. The §19.6 non-blocking observations remain
 unaddressed, out of scope. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`;
 `AUTO-BACKFILL-RUNTIME` remains separately open per `PROJECT_SNAPSHOT.md`.
+
+## 59. F13-ROUTE-RANKING-PERIOD-01 — `ITR3-BLOCK-01` Remediation — READY FOR INDEPENDENT RE-REVIEW (2026-09-07)
+
+Append-only delta. Sections 1-58 unchanged. Executor `Claude Code`/`Sonnet`. Scoped strictly to
+`ITR3-BLOCK-01` from Section 58; `ITR-BLOCK-01`, `ITR-BLOCK-02`, and `ITR2-BLOCK-02` untouched. No
+backend, API contract, database, or business rule changed. Full detail and root cause in
+checkpoint Section 22.
+
+### Fix
+
+`ITR3-BLOCK-01` (chart anchored on the requested analysis date instead of the BCVH's resolved
+`anchor_date`): `buildDailySeriesChartData` itself was already correct — the defect was that
+`RouteSelectedPanel` called it with `fromDate` (the requested/system-wide `analysisDate`) instead
+of the periods endpoint's own `anchor_date`. Added state `periodsAnchorDate` to
+`RoutePerformancePage`, set from `processRoutePeriods(...).anchorDate` in the existing fetch
+effect (a value already computed and previously discarded — no new network call); added a new
+`chartAnchorDate` prop to `RouteSelectedPanel`, wired to `periodsAnchorDate`; the chart's
+`useMemo` now calls `buildDailySeriesChartData(route.daily_series, chartAnchorDate)`. `fromDate`
+is unchanged everywhere else it is used (violation-evidence link, date label, day-scoped
+metrics) — out of scope. `routePeriodData.js` itself was not modified.
+
+### Real-data verification
+
+Simulated the exact page flow against the real production service on the real database
+(`fact_f13` = 777,081 rows, `MAX(ngay_do_kiem) = 2026-09-06`, unchanged before/after — zero
+writes):
+
+- `531110` (real anchor `2026-06-08`, `days_in_period 8`): was 31 blank points, now 8 points with
+  the 1 real day restored.
+- `531600` (real anchor `2026-07-28`, `days_in_period 28`): was 31 blank points, now 28 points
+  with all 14 real July days restored.
+- `531120` (real anchor `2026-08-24`, `days_in_period 24`): was 31 points with 7 fabricated
+  trailing days, now exactly 24 points matching the on-screen `1/24 ngày` card.
+- `533140` (validated in Sections 20-21): bit-for-bit unaffected — route `533140137` still 31
+  points, gaps at `01,09,10,15,17,21` — no regression on the already-correct case.
+
+### Test evidence
+
+`routePeriodData.test.js`: the existing source-pattern regression guard is re-pointed at the
+fixed call and strengthened into an `ITR3-BLOCK-01` guard (`periodsAnchorDate` state,
+`setPeriodsAnchorDate(processedPeriods.anchorDate || null)`, `chartAnchorDate={periodsAnchorDate}`
+wiring, and a negative assertion that the regressed `buildDailySeriesChartData(route.daily_series,
+fromDate)` pattern never reappears). 2 new functional tests reproduce real BCVH `531600`
+(cross-month anchor — wrong anchor yields an all-null chart, correct anchor yields 28 points with
+the 3 real July days positioned correctly) and real BCVH `531120` (same-month-earlier anchor —
+chart stops at 24 points, never fabricates trailing days). 3 new tests total.
+
+Validation: `routePeriodData.test.js` 32/32 (29 baseline + 3 new); targeted Route Ranking suite
+100/100 (97 + 3 new); full frontend sweep 430/434 pass — the 4 failures being the same known
+out-of-ticket baseline failures already on record, zero regression; `oxlint` 0 errors/0 warnings;
+`vite build` succeeds; backend `FactBuuGuiRepository.routePeriod.test.js`/`routePeriodService.
+test.js` re-run and confirmed unaffected, 18/18. `fact_f13` row count (`777,081`) and
+`MAX(ngay_do_kiem)` (`2026-09-06`) confirmed unchanged across this session's own actions — the
+database is live and grows independently from real import activity outside this ticket.
+`git diff --name-only f30a877b` confirms only `RoutePerformancePage.jsx` and
+`routePeriodData.test.js` changed by this remediation.
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = ITR3-BLOCK-01 REMEDIATED / READY FOR INDEPENDENT RE-REVIEW`. Per
+`DEC-021` the same executor does not self-review its own fix, so this is **not**
+`READY FOR PO CHECK`; no PO PASS is self-awarded. The Design of Record §12.2 Product Owner UI
+Check remains not reachable. `ITR-BLOCK-01`/`ITR-BLOCK-02`/`ITR2-BLOCK-02` remain closed;
+`F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED`; `AUTO-BACKFILL-RUNTIME`
+remains open and untouched.

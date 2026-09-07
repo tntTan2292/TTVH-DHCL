@@ -1284,3 +1284,104 @@ undisturbed; `ITR-BLOCK-03`'s other three deliverables (`Hạng`, `days_with_dat
 both-period volume) remain correct and are now test-locked. `AC-05` re-confirmed on all 9 BCVH.
 Zero test, lint, build, or database regression. This is **not** `READY FOR PO CHECK`; the Design of
 Record §12.2 Product Owner UI Check remains not reachable and **no PO PASS is awarded**.
+
+## 22. `ITR3-BLOCK-01` Remediation (2026-09-07, baseline `f30a877b`)
+
+Executor: `Claude Code` / `Sonnet` (implementation). Scoped strictly to `ITR3-BLOCK-01` from
+Section 21. `ITR-BLOCK-01`, `ITR-BLOCK-02`, `ITR2-BLOCK-01`'s already-correct expansion logic, and
+`ITR2-BLOCK-02` were not touched. No backend, API contract, database, or business rule was
+changed.
+
+### Root cause (unchanged from Section 21)
+
+`buildDailySeriesChartData` itself was correct: given the right anchor, it re-expands
+`daily_series` into one point per calendar day `01 → anchor day`, with real gaps for missing
+days. The defect was entirely in the caller: `RouteSelectedPanel` passed it `fromDate`
+(`RoutePerformancePage.jsx`'s `analysisDate` prop — the requested/system-wide date, defaulting to
+`meta.max_date`), never the BCVH-resolved `anchor_date` the periods endpoint actually built
+`daily_series` around. Design §4.1 mandates per-BCVH anchor resolution specifically because BCVH
+coverage diverges; whenever a BCVH's real `anchor_date` differed from the requested date, the
+chart expanded the wrong month (0 real data reachable) or ran past the route's real
+`days_in_period` (fabricated trailing days).
+
+### Fix
+
+`RoutePerformancePage.jsx`: added state `periodsAnchorDate`, set from
+`processRoutePeriods(periodsResult?.data).anchorDate` in the same effect that already sets
+`reconciliation` — no new network call, this value was already computed and discarded.
+`RouteSelectedPanel` gained a new prop `chartAnchorDate`, passed as `periodsAnchorDate` from the
+page; the chart's `useMemo` now calls `buildDailySeriesChartData(route.daily_series,
+chartAnchorDate)` with updated deps `[route?.daily_series, chartAnchorDate]`. `fromDate` is
+untouched everywhere else it is used (violation-evidence link, the "Ngày dữ liệu" label, the
+day-scoped metrics) — those are out of `ITR3-BLOCK-01`'s scope and Design does not require them to
+use the periods anchor. `routePeriodData.js` (the helper itself) is unchanged — it already took an
+`anchorDate` parameter and already had the correct null-safe fallback for a missing/invalid
+anchor, which now also covers the brief window before the periods response has loaded
+(`periodsAnchorDate` starts `null`).
+
+### Real-data verification
+
+Driven against the real production service (`routePeriodService.getRoutePeriods`) on the real
+operational database (`fact_f13` = 777,081 rows, `MAX(ngay_do_kiem) = 2026-09-06` — grown further
+since Section 21 from real import activity outside this session; confirmed unchanged by this
+session's own actions, before/after both `777081`/`2026-09-06`), simulating the exact page flow
+(`analysisDate = meta.max_date = 2026-08-31`, then `processRoutePeriods` → the fixed wiring):
+
+```
+BCVH 531110 | API anchor_date=2026-06-08 days_in_period=8
+  OLD (fromDate=2026-08-31): points=31 nonNull=0
+  NEW (chartAnchorDate):     points=8  nonNull=1
+BCVH 531600 | API anchor_date=2026-07-28 days_in_period=28
+  OLD (fromDate=2026-08-31): points=31 nonNull=0
+  NEW (chartAnchorDate):     points=28 nonNull=14
+BCVH 531120 | API anchor_date=2026-08-24 days_in_period=24
+  OLD (fromDate=2026-08-31): points=31 nonNull=1   (7 fabricated trailing days)
+  NEW (chartAnchorDate):     points=24 nonNull=1
+BCVH 533140 | API anchor_date=2026-08-31 days_in_period=31
+  OLD (fromDate=2026-08-31): points=31 nonNull=31
+  NEW (chartAnchorDate):     points=31 nonNull=31  (unaffected — its own anchor already equals fromDate)
+```
+
+`531110` and `531600` go from a completely blank chart to real data restored (1 and 14 real
+points respectively); `531120` stops fabricating 7 days beyond its own `days_in_period`, matching
+its on-screen `1/24 ngày` card. `533140` (the BCVH validated in Section 20/21) is bit-for-bit
+unaffected: route `533140137` still yields 31 points for `days_in_period 31` with gaps at
+`01,09,10,15,17,21` — no regression on the case that was already correct.
+
+### Test evidence
+
+`routePeriodData.test.js`: the existing source-pattern guard was re-pointed at the fixed call
+(`buildDailySeriesChartData(route.daily_series, chartAnchorDate)`, no longer `fromDate`) and
+strengthened into an `ITR3-BLOCK-01` regression guard asserting the `periodsAnchorDate` state, its
+`setPeriodsAnchorDate(processedPeriods.anchorDate || null)` assignment, the
+`chartAnchorDate={periodsAnchorDate}` prop wiring, and that `buildDailySeriesChartData(route.
+daily_series, fromDate)` (the exact regressed pattern) never reappears in the source. Two new
+functional tests were added per instruction: a cross-month case reproducing real BCVH `531600`
+(anchor `2026-07-28` against a `2026-08-31` daily_series shape — asserts the wrong anchor yields
+an all-null chart while the correct anchor yields 28 points with the 3 real July days at their
+right positions) and a same-month-but-earlier case reproducing real BCVH `531120` (anchor
+`2026-08-24`, asserting the chart stops at 24 points, never fabricating trailing days). 3 new
+tests total.
+
+Validation commands and results:
+
+| Check | Command | Result |
+| --- | --- | --- |
+| New/targeted `routePeriodData` | `node --test src/features/route/routePeriodData.test.js` | **32/32 pass** (29 baseline + 3 new) |
+| Targeted Route Ranking | `node --test src/features/route/*.test.js` | **100/100 pass** (97 baseline + 3 new) |
+| Full frontend sweep | `node --test` over every `src/**/*.test.js` | **430 pass / 4 fail / 434** — the 4 are the same known out-of-ticket baseline failures on record since Section 14.5; zero regression |
+| Lint | `npx oxlint src/features/route/` | 0 errors / 0 warnings |
+| Build | `npm run build` | succeeds |
+| Backend route-period suites (unaffected — confirmed) | `node --experimental-sqlite --test src/repositories/FactBuuGuiRepository.routePeriod.test.js src/services/routePeriodService.test.js` | **18/18 pass** |
+| Database integrity | `SELECT COUNT(*), MAX(ngay_do_kiem) FROM fact_f13` at session start and end | `777081` / `2026-09-06` both times — **zero writes** attributable to this session |
+| Scope | `git diff --name-only f30a877b -- frontend backend` | Only `frontend/src/features/route/RoutePerformancePage.jsx` and `routePeriodData.test.js` changed by this remediation (other listed paths were pre-existing, unrelated working-tree changes present before this session and left untouched) |
+
+### Governance state after this section
+
+`F13-ROUTE-RANKING-PERIOD-01 = ITR3-BLOCK-01 REMEDIATED / READY FOR INDEPENDENT RE-REVIEW`.
+`ITR3-BLOCK-01` is technically remediated; `ITR-BLOCK-01`, `ITR-BLOCK-02`, and `ITR2-BLOCK-02`
+remain closed and undisturbed. Per `DEC-021` the same executor does not self-review its own fix —
+this round has not been through an Independent Technical Review. This is **not**
+`READY FOR PO CHECK`; no PO PASS is self-awarded. The Product Owner UI Check (Design of Record
+§12.2) remains not reachable until an Independent Re-Review of this round clears. The §19.6
+non-blocking observations remain unaddressed, out of scope.

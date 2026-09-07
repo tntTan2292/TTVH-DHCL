@@ -562,3 +562,18 @@ Current state: `F13-ROUTE-RANKING-PERIOD-01 = FINAL INDEPENDENT RE-REVIEW BLOCKE
 `ITR3-BLOCK-01`. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI
 Check remains not reachable and no PO PASS is awarded. Remedy scope and executor are a CTO/PO
 decision and are not self-activated.
+
+## F13-ROUTE-RANKING-PERIOD-01 ITR3-BLOCK-01 Remediation Registration - 2026-09-07
+
+Supersedes the Final Independent Re-Review registration above for onboarding purposes without
+deleting it: the blocking finding it raised, `ITR3-BLOCK-01`, is now technically remediated.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-RANKING-PERIOD-01-PHASE-I1_CHECKPOINT_001.md` | Checkpoint | Section 22 (appended) records the `ITR3-BLOCK-01` remediation: `RoutePerformancePage` now stores `processRoutePeriods(...).anchorDate` and passes it to `RouteSelectedPanel` as a new `chartAnchorDate` prop, which the chart's `buildDailySeriesChartData` call now uses instead of `fromDate` (the requested/system-wide date). Real-data verification restores 8 and 28 real chart points for BCVH `531110`/`531600` (previously 31 blank points each) and stops `531120` fabricating 7 trailing days beyond its real `days_in_period`, with BCVH `533140` bit-for-bit unaffected. 3 new tests, full validation evidence. Section 21 (the review that raised the finding) and Sections 1-20 stand unchanged. | L2/L3 | Current Required Reading | Mandatory before any further work on this ticket, including the Independent Re-Review this remediation now requires. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 59 (appended) records the `ITR3-BLOCK-01` remediation and its `READY FOR INDEPENDENT RE-REVIEW` state, leaving `ITR-BLOCK-01` (Section 54), `ITR-BLOCK-02` (Section 53), and `ITR2-BLOCK-02` (closed at Section 58) closed and undisturbed. Sections 1-58 stand unchanged as historical record. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-RANKING-PERIOD-01 = ITR3-BLOCK-01 REMEDIATED / READY FOR INDEPENDENT
+RE-REVIEW`. This is **not** `READY FOR PO CHECK`; the Design of Record §12.2 Product Owner UI
+Check remains not reachable and no PO PASS is awarded. Remedy scope and executor for the review
+are a CTO/PO decision and are not self-activated.

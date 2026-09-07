@@ -300,16 +300,24 @@ function RouteRankingTable({
   );
 }
 
-function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, currentSearch }) {
+function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, chartAnchorDate, currentSearch }) {
   // Independent Re-Review ITR2-BLOCK-01 remediation: `route.daily_series` only ever carries an
   // element for a day with real activity — `buildDailySeriesChartData` re-expands it to one
-  // point per calendar day from `01` through the anchor day (`fromDate`), so a day with no
-  // backend entry becomes a real `rate: null` gap for `connectNulls={false}` to break on,
-  // instead of being silently absent from the array. See routePeriodData.js for full rationale.
+  // point per calendar day from `01` through the anchor day, so a day with no backend entry
+  // becomes a real `rate: null` gap for `connectNulls={false}` to break on, instead of being
+  // silently absent from the array. See routePeriodData.js for full rationale.
+  //
+  // ITR3-BLOCK-01 remediation (checkpoint §21): the anchor day for this expansion MUST be the
+  // BCVH's own resolved `anchor_date` (`chartAnchorDate`, from `processRoutePeriods(...).
+  // anchorDate` — the same value `daily_series` was built around), never `fromDate`
+  // (`analysisDate`, the requested date — defaults to the system-wide `meta.max_date`). A BCVH
+  // whose real coverage ends earlier than the system-wide max has `anchor_date < fromDate`;
+  // using `fromDate` there expands the chart into a month with zero real entries (every point
+  // a fabricated gap) or, worse, past the route's real `days_in_period` (Design §4.1).
   const chartData = useMemo(() => {
     if (!route?.daily_series) return [];
-    return buildDailySeriesChartData(route.daily_series, fromDate);
-  }, [route?.daily_series, fromDate]);
+    return buildDailySeriesChartData(route.daily_series, chartAnchorDate);
+  }, [route?.daily_series, chartAnchorDate]);
 
   if (!route) {
     return (
@@ -559,6 +567,12 @@ export default function RoutePerformancePage() {
   const [meta, setMeta] = useState(null);
   const [reconciliation, setReconciliation] = useState(null);
   const [reconciliationPeriod, setReconciliationPeriod] = useState('day');
+  // ITR3-BLOCK-01 remediation (checkpoint §21): the BCVH-resolved anchor_date the periods
+  // endpoint actually built daily_series around — distinct from `analysisDate`/`fromDate`,
+  // which is the requested date (defaults to the system-wide meta.max_date). A BCVH whose own
+  // coverage ends earlier has anchor_date < analysisDate; the chart must use anchor_date
+  // (Design §4.1), never the requested date, or it expands the wrong month entirely.
+  const [periodsAnchorDate, setPeriodsAnchorDate] = useState(null);
   const [selectedRouteId, setSelectedRouteId] = useState('');
   const [sortState, setSortState] = useState({ key: 'passed_rate', dir: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
@@ -658,6 +672,7 @@ export default function RoutePerformancePage() {
         setRows(mergedRows);
         setMeta(oldResult?.meta || null);
         setReconciliation(processedPeriods.reconciliation || null);
+        setPeriodsAnchorDate(processedPeriods.anchorDate || null);
         setCurrentPage(1);
         setSortState({ key: 'passed_rate', dir: 'asc' });
 
@@ -921,6 +936,7 @@ export default function RoutePerformancePage() {
               bcvhId={bcvhId}
               bcvhName={bcvhName}
               fromDate={analysisDate}
+              chartAnchorDate={periodsAnchorDate}
               currentSearch={searchParams.toString()}
             />
           </div>

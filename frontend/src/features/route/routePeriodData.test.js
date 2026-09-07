@@ -345,9 +345,58 @@ test('buildDailySeriesChartData: an invalid/missing anchor date falls back to a 
 // naive 1:1 map the Independent Re-Review found broken.
 const routePerformancePageSource = fs.readFileSync(new URL('./RoutePerformancePage.jsx', import.meta.url), 'utf8');
 
-test('ITR2-BLOCK-01 regression guard: RouteSelectedPanel builds chart data via buildDailySeriesChartData(route.daily_series, fromDate), not a naive 1:1 map of daily_series', () => {
-  assert.match(routePerformancePageSource, /buildDailySeriesChartData\(route\.daily_series, fromDate\)/);
+test('ITR2-BLOCK-01 regression guard: RouteSelectedPanel builds chart data via buildDailySeriesChartData(route.daily_series, ...), not a naive 1:1 map of daily_series', () => {
+  assert.match(routePerformancePageSource, /buildDailySeriesChartData\(route\.daily_series, chartAnchorDate\)/);
   assert.doesNotMatch(routePerformancePageSource, /route\.daily_series\.map\(d => \(\{\s*date: \(d\.date \|\| ''\)\.split\('-'\)\.pop\(\)/);
+});
+
+// ITR3-BLOCK-01 remediation (checkpoint §21): the chart was anchored on `fromDate`
+// (`analysisDate`, the requested date — defaults to the SYSTEM-WIDE meta.max_date), never the
+// BCVH's own resolved `anchor_date`. This guard locks the fix: the chart's anchor argument must
+// be `chartAnchorDate` (sourced from `processRoutePeriods(...).anchorDate`, i.e. the periods
+// endpoint's own `anchor_date` for this BCVH), and `fromDate` must never reappear as the chart's
+// anchor argument — that exact regression is what shipped `ITR3-BLOCK-01`.
+test('ITR3-BLOCK-01 regression guard: the chart anchor is chartAnchorDate (the BCVH-resolved anchor_date), never fromDate (the requested/system-wide date)', () => {
+  assert.match(routePerformancePageSource, /const \[periodsAnchorDate, setPeriodsAnchorDate\] = useState\(null\)/);
+  assert.match(routePerformancePageSource, /setPeriodsAnchorDate\(processedPeriods\.anchorDate \|\| null\)/);
+  assert.match(routePerformancePageSource, /chartAnchorDate=\{periodsAnchorDate\}/);
+  assert.doesNotMatch(routePerformancePageSource, /buildDailySeriesChartData\(route\.daily_series, fromDate\)/);
+});
+
+// ITR3-BLOCK-01 (checkpoint §21): real BCVH `531600` has anchor_date 2026-07-28 while a UI
+// session with no explicit date param defaults `fromDate`/`analysisDate` to the system-wide
+// `meta.max_date` 2026-08-31 — a different month entirely. Using `fromDate` for the chart
+// expanded August (0 real entries) instead of July (14 real entries) and, for a BCVH whose
+// anchor_date falls mid-month in the SAME month as fromDate (e.g. `531120`, anchor 2026-08-24,
+// days_in_period 24), it fabricated 7 trailing days beyond the route's real period. Both cases
+// are asserted directly against buildDailySeriesChartData with the two real anchors.
+test('buildDailySeriesChartData: a cross-month anchor_date (BCVH 531600, real anchor 2026-07-28) yields July points with real July data, never a blank August expansion', () => {
+  // Same shape as the real routePeriodService.getRoutePeriods('531600') daily_series: 14 real
+  // July days out of days_in_period 28.
+  const julySeries = [
+    { date: '2026-07-01', volume: 2, passed: 1, rate: 50 },
+    { date: '2026-07-05', volume: 3, passed: 3, rate: 100 },
+    { date: '2026-07-28', volume: 4, passed: 2, rate: 50 },
+  ];
+  const wrongAnchor = buildDailySeriesChartData(julySeries, '2026-08-31');
+  assert.equal(wrongAnchor.every((p) => p.rate === null), true, 'using the system-wide date (wrong month) must not silently produce real-looking points');
+
+  const correctAnchor = buildDailySeriesChartData(julySeries, '2026-07-28');
+  assert.equal(correctAnchor.length, 28);
+  assert.deepEqual(correctAnchor.map((p) => p.date).slice(0, 3), ['01', '02', '03']);
+  assert.equal(correctAnchor[correctAnchor.length - 1].date, '28');
+  assert.equal(correctAnchor.filter((p) => p.rate !== null).length, 3);
+  assert.equal(correctAnchor[0].rate, 50);
+  assert.equal(correctAnchor[4].rate, 100);
+  assert.equal(correctAnchor[27].rate, 50);
+});
+
+test('buildDailySeriesChartData: an anchor_date earlier in the same month (BCVH 531120, real anchor 2026-08-24, days_in_period 24) never fabricates days past the real period', () => {
+  const series = [{ date: '2026-08-24', volume: 1, passed: 0, rate: 0 }];
+  const points = buildDailySeriesChartData(series, '2026-08-24');
+  assert.equal(points.length, 24, 'must stop at days_in_period 24, not run to the end of August (31)');
+  assert.equal(points[points.length - 1].date, '24');
+  assert.equal(points[points.length - 1].rate, 0);
 });
 
 test('regression guard: the chart still declares connectNulls={false} — required so the real gaps buildDailySeriesChartData now produces actually render as blanks', () => {
