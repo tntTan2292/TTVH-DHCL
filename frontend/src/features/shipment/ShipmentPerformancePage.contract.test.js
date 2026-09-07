@@ -42,9 +42,10 @@ test('Evidence page keeps the single-day analysis contract shared with Route Ran
   assert.match(source, /resolveDefaultRouteDate\(\{ param: toDateParam \|\| fromDateParam, metaMaxDate \}\)/);
 });
 
-// Point 8: no silent 1000-row cap — must walk every backend page.
-test('Evidence page fetches the complete matching Evidence set via fetchAllEvidenceRows, not a single fixed page', () => {
-  assert.match(source, /fetchAllEvidenceRows/);
+// F13-ROUTE-EVIDENCE-STATUS-02: Server-side paginated query via GET /f13/evidence
+test('Evidence page fetches paginated evidence via getEvidence, not a legacy fixed 1000 cap or fetchAllEvidenceRows', () => {
+  assert.match(source, /getEvidence\(\{/);
+  assert.doesNotMatch(source, /fetchAllEvidenceRows/);
   assert.doesNotMatch(source, /getShipmentEvidenceList\(fromDate, bcvhId, routeId, 1, 1000\)/);
   assert.doesNotMatch(source, /getEvidenceList\([^)]*,\s*1000\s*\)/);
 });

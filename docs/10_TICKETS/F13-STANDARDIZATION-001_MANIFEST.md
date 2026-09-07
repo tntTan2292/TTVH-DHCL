@@ -2802,3 +2802,47 @@ before Phase F1 (frontend, `Antigravity`) starts and before any PO UI Check — 
 `Sonnet` implementation, not a self-review. Phase F1 is **not started**; `frontend/src/` is
 untouched by this section. `F13-ROUTE-RANKING-PERIOD-01` remains `COMPLETED / PO PASS / CLOSED`,
 unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open.
+
+## 65. F13-ROUTE-EVIDENCE-STATUS-02 — Phase F1 Frontend Implementation (2026-09-07)
+
+Phase F1 (Frontend) implementation delivered by `Antigravity` against the PO-approved Design of Record (Revision `R0`) and the Phase B1 backend baseline (`cfb57d4`).
+
+### Scope & PO Directives Implemented
+1. **API Integration**: Integrates `GET /f13/evidence` via `F13DashboardClient.getEvidence(params)`.
+2. **Elimination of Frontend Full Materialisation**: Deleted `fetchAllEvidenceRows` and the `20,000`-row ceiling (`EVIDENCE_FETCH_PAGE_SIZE`, `EVIDENCE_FETCH_MAX_PAGES`). Evidence now renders one page per query directly from server.
+3. **True Server-Side Pagination**: Implemented `paginationControls` showing current page, total pages, total items, and Previous/Next buttons bound to server pagination state. Changing any filter (`bcvh_id`, `route_id`, `period`, `status`, `reason`, `search`) cleanly resets the page to 1.
+4. **4 Status Cards (Dải trạng thái)**: Renders `Tất cả trạng thái` (`all`), `Đạt` (`passed`), `Không đạt` (`failed`), and `Chuyển hoàn` (`returned`) with badge tone indicators and live counts from `status_summary`. Default status is `all` per PO decision `D-OPEN-02`.
+5. **Conditional Reason Tabs**: Violation reason tabs (`delayed_cash`, `other`, `unknown`, `all`) render **only** when `status === 'failed'`. Selecting non-failed statuses hides the violation tabs and clears `reason`.
+6. **Period Synchronization**: Implemented `periodSelector` with `day` and `month_to_anchor`. Route Ranking's `RouteSelectedPanel` passes active `period` and `status='all'` to `buildViolationEvidenceLink`.
+7. **Roundtrip Navigation**: From `Route Ranking → Chi tiết bưu gửi F1.3 → Quay lại Tuyến Ranking`, `return_to` is strictly preserved, and back navigation reconstructs the exact Route Ranking query parameters without depending on browser history back.
+8. **Screen Title**: Set to exact PO requirement `"Chi tiết bưu gửi F1.3"`.
+9. **Display Enhancements**: Added `Trạng thái` column with status badges; non-failed shipments (`Đạt`, `Chuyển hoàn`) render safe `—` for violation reason and delay labels instead of misleading missing error text.
+
+### Frontend Files Modified / Created
+- Modified:
+  - `frontend/src/api/F13DashboardClient.js`
+  - `frontend/src/features/shipment/shipmentPerformanceData.js`
+  - `frontend/src/features/shipment/ShipmentPerformancePage.jsx`
+  - `frontend/src/features/shipment/ShipmentEvidenceSummary.jsx`
+  - `frontend/src/features/shipment/ShipmentEvidenceDetail.jsx`
+  - `frontend/src/features/route/RoutePerformancePage.jsx`
+  - `frontend/src/features/route/routeViolationEvidenceData.js`
+  - `frontend/src/features/shipment/ShipmentPerformancePage.contract.test.js`
+  - `frontend/src/features/shipment/ShipmentPerformancePage.phase2.test.js`
+  - `frontend/src/features/shipment/ShipmentPerformancePage.remediation.test.js`
+  - `frontend/src/features/shipment/ShipmentPerformancePage.searchRemediation.test.js`
+  - `frontend/src/features/shipment/shipmentPerformanceData.test.js`
+- Created (new test files):
+  - `frontend/src/features/shipment/ShipmentPerformancePage.evidenceStatus.test.js`
+  - `frontend/src/features/shipment/shipmentModel.retired.test.js`
+
+### Validation Evidence
+- **Frontend Unit Tests**: 175/175 tests pass (`node --test src/features/shipment/*.test.js src/features/route/*.test.js`).
+- **Backend Evidence Tests**: 39/39 tests pass (`node --experimental-sqlite --test src/services/evidenceQueryService.test.js src/controllers/DashboardController.evidenceDrilldown.test.js src/repositories/FactBuuGuiRepository.evidence.test.js src/shared/evidenceSearchMatch.test.js`).
+- **Linter (oxlint)**: 0 warnings, 0 errors across all 14 files (`npm run lint`).
+- **Production Build**: `npm run build` succeeds cleanly in 1.17s with 0 errors (`dist/assets/index-CBIWZF6L.js`, `dist/assets/index-M6AP6bjw.css`).
+- **Concurrent Session Isolation**: Unrelated concurrent changes (`backend/test_dkclSessionPreflightService.js`, `frontend/src/features/networkMap/*`, `Data QLML/`, etc.) excluded cleanly.
+
+### Governance State After This Section
+`F13-ROUTE-EVIDENCE-STATUS-02 = PHASE F1 (FRONTEND) COMPLETE / READY FOR INTEGRATION VALIDATION`.
+

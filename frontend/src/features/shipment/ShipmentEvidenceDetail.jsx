@@ -18,8 +18,9 @@ export default function ShipmentEvidenceDetail({ shipment = null }) {
     );
   }
 
-  const isDelayedCash = shipment.violationReason === 'Chậm nộp tiền';
-  const resultTone = shipment.status === 'Đạt' ? 'success' : 'danger';
+  const isFailed = shipment.status === 'Không đạt' || shipment.statusGroup === 'failed';
+  const isDelayedCash = isFailed && shipment.violationReason === 'Chậm nộp tiền';
+  const resultTone = shipment.status === 'Đạt' ? 'success' : shipment.status === 'Chuyển hoàn' ? 'neutral' : 'danger';
 
   return (
     <CardContainer
@@ -44,7 +45,7 @@ export default function ShipmentEvidenceDetail({ shipment = null }) {
 
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge label={`Kết quả: ${shipment.status || 'N/A'}`} tone={resultTone} />
-          {shipment.violationReason ? (
+          {isFailed && shipment.violationReason ? (
             <StatusBadge
               label={`Nhóm vi phạm: ${shipment.violationReason}`}
               tone={isDelayedCash ? 'warning' : 'danger'}
@@ -68,7 +69,7 @@ export default function ShipmentEvidenceDetail({ shipment = null }) {
             </div>
             <div className="flex items-center justify-between gap-4 border-t border-[var(--color-surface-200)] pt-1.5">
               <span className="text-[var(--color-text-muted)]">Độ trễ</span>
-              <span className="font-mono text-xs font-bold text-[var(--color-text-main)]">{shipment.delayLabel || 'N/A'}</span>
+              <span className="font-mono text-xs font-bold text-[var(--color-text-main)]">{isFailed ? (shipment.delayLabel || 'Chưa đủ dữ liệu') : '—'}</span>
             </div>
           </div>
           {isDelayedCash ? (

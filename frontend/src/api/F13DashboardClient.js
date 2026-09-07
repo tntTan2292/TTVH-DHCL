@@ -106,6 +106,14 @@ class F13DashboardClient {
     }
 
     /**
+     * API Contract: GET /f13/evidence (F13-ROUTE-EVIDENCE-STATUS-02)
+     * Server-side paginated evidence query with status, period, reason, search, sort.
+     */
+    getEvidence(params = {}) {
+        return httpClient.get('/f13/evidence', params);
+    }
+
+    /**
      * API Contract: GET /evidence-list
      * Shipment runtime reuses evidence-list as the shipment-level exception feed.
      */

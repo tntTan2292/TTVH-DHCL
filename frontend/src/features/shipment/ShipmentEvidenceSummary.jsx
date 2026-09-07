@@ -29,6 +29,15 @@ function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment })
         </button>
       ),
     },
+    {
+      key: 'status',
+      label: 'Trạng thái',
+      render: (row) => {
+        const status = row.status || (row.statusGroup === 'passed' ? 'Đạt' : row.statusGroup === 'returned' ? 'Chuyển hoàn' : 'Không đạt');
+        const tone = status === 'Đạt' ? 'success' : status === 'Chuyển hoàn' ? 'neutral' : 'danger';
+        return <StatusBadge label={status} tone={tone} />;
+      },
+    },
   ];
 
   if (showRouteColumn) {
@@ -46,6 +55,7 @@ function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment })
       key: 'violationReason',
       label: 'Lý do vi phạm',
       render: (row) => {
+        if (row.status !== 'Không đạt' && row.statusGroup !== 'failed') return '—';
         const reason = row.violationReason || 'N/A';
         const isDelayedCash = reason === 'Chậm nộp tiền';
         return (
@@ -71,6 +81,10 @@ function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment })
       key: 'delayLabel',
       label: 'Độ trễ',
       cellClassName: 'font-mono text-xs font-bold',
+      render: (row) => {
+        if (row.status !== 'Không đạt' && row.statusGroup !== 'failed') return '—';
+        return row.delayLabel || 'Chưa đủ dữ liệu';
+      },
     },
   );
 

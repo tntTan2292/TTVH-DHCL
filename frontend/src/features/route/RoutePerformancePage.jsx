@@ -300,7 +300,7 @@ function RouteRankingTable({
   );
 }
 
-function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, chartAnchorDate, currentSearch }) {
+function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, chartAnchorDate, currentSearch, period = 'day' }) {
   // Independent Re-Review ITR2-BLOCK-01 remediation: `route.daily_series` only ever carries an
   // element for a day with real activity — `buildDailySeriesChartData` re-expands it to one
   // point per calendar day from `01` through the anchor day, so a day with no backend entry
@@ -335,6 +335,8 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, chartAnchorDate
     routeId: route.id || route.ma_tuyen,
     routeName: route.name || route.ten_tuyen || route.ma_tuyen,
     currentSearch,
+    period,
+    status: 'all',
   });
 
   // Day-scoped fields (old endpoint): `null` means the route had no activity on the anchor
@@ -938,6 +940,7 @@ export default function RoutePerformancePage() {
               fromDate={analysisDate}
               chartAnchorDate={periodsAnchorDate}
               currentSearch={searchParams.toString()}
+              period={reconciliationPeriod === 'month' ? 'month_to_anchor' : 'day'}
             />
           </div>
         </div>

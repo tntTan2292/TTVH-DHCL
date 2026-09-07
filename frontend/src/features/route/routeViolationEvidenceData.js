@@ -22,7 +22,19 @@ export function formatDelayLabel(doTreGio) {
 // would silently fall back to the newest imported day instead of the exact row clicked.
 // `reason` defaults to `delayed_cash` so the manager lands on the same default group the
 // old screen opened on, per the locked contract.
-export function buildViolationEvidenceLink({ analysisDate, bcvhId, bcvhName, routeId, routeName, currentSearch, reason = 'delayed_cash' }) {
+// F13-ROUTE-EVIDENCE-STATUS-02: `status` defaults to `all` per PO decision; `period` passes
+// the active period (day or month_to_anchor) from Route Ranking to Evidence.
+export function buildViolationEvidenceLink({
+  analysisDate,
+  bcvhId,
+  bcvhName,
+  routeId,
+  routeName,
+  currentSearch,
+  reason = 'delayed_cash',
+  period,
+  status = 'all',
+}) {
   const params = new URLSearchParams();
   if (analysisDate) {
     params.set('from_date', analysisDate);
@@ -32,6 +44,8 @@ export function buildViolationEvidenceLink({ analysisDate, bcvhId, bcvhName, rou
   if (bcvhName) params.set('bcvh_name', bcvhName);
   if (routeId) params.set('route_id', routeId);
   if (routeName) params.set('route_name', routeName);
+  if (status) params.set('status', status);
+  if (period) params.set('period', period);
   if (reason) params.set('reason', reason);
   if (currentSearch) params.set('return_to', currentSearch);
   return `/f13/evidence?${params.toString()}`;

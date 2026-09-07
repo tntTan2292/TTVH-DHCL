@@ -4,11 +4,10 @@ import fs from 'node:fs';
 
 const source = fs.readFileSync(new URL('./ShipmentPerformancePage.jsx', import.meta.url), 'utf8');
 
-// Product Owner remediation (2026-08-11) — DEFECT A: Vietnamese diacritic-insensitive
-// search, routed through the shared matchesSearchQuery helper rather than a raw
-// .includes() check, so exact route-code search is never weakened.
-test('Evidence page filters rows through matchesSearchQuery, not a raw substring check', () => {
-  assert.match(source, /matchesSearchQuery/);
+// F13-ROUTE-EVIDENCE-STATUS-02: Server-side diacritic-insensitive search via getEvidence,
+// not a raw client-side .includes() check.
+test('Evidence page sends search to getEvidence, not a raw substring check', () => {
+  assert.match(source, /search:\s*search\.trim\(\)\s*\|\|\s*undefined/);
   assert.doesNotMatch(source, /\.some\(\(value\) => String\(value\)\.toLowerCase\(\)\.includes\(q\)\)/);
 });
 

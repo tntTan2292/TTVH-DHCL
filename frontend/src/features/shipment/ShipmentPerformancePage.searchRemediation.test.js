@@ -18,20 +18,18 @@ const layoutSource = fs.readFileSync(new URL('../../components/shared/SharedLayo
 //
 // Tests below are numbered against the PO's own C.1-13 required-test list.
 
-// C.1/C.7: search matches shipments across multiple routes — proven by the real-data
-// reproduction (see checkpoint) and by the source no longer scoping the fetch by reason.
-test('C.1/C.7 — the evidence fetch no longer scopes by reason; reason is never sent to the API', () => {
-  assert.doesNotMatch(source, /reasonParam === 'all' \? undefined : reasonParam,/);
-  assert.match(source, /undefined, \/\/ always fetch every reason group/);
-  assert.doesNotMatch(source, /\[analysisDate, bcvhId, routeIdParam, reasonParam, metaStatus\]/);
-  assert.match(source, /\[analysisDate, bcvhId, routeIdParam, metaStatus\]/);
+// C.1/C.7: search and filter parameters are passed directly to getEvidence API
+test('C.1/C.7 — getEvidence passes bcvh, anchor_date, route, status, reason, search to API', () => {
+  assert.match(source, /const result = await f13DashboardClient\.getEvidence\(\{/);
+  assert.match(source, /route: routeIdParam \|\| 'all'/);
+  assert.match(source, /status: statusParam/);
+  assert.match(source, /reason: apiReason/);
+  assert.match(source, /search: search\.trim\(\) \|\| undefined/);
 });
 
-// C.1: while searching, matching spans every reason group — filteredRows falls back to
-// the full runtimeRows (not the reason-tab-scoped subset) whenever a keyword is active.
-test('C.1 — search matching draws from the full runtimeRows, not the reason-tab-scoped subset', () => {
-  assert.match(source, /if \(!isSearchActive\) return reasonScopedRows;/);
-  assert.match(source, /return runtimeRows\.filter\(\(item\) => matchesSearchQuery\(/);
+// C.1: while searching, matching rows group by real route identity
+test('C.1 — while searching, rows are grouped by route via groupRowsByRoute', () => {
+  assert.match(source, /const groupedRows = useMemo\(\(\) => \(isSearchActive \? groupRowsByRoute\(sortedRows\) : \[\]\)/);
 });
 
 // C.2: two routes with similar/duplicate names but different ma_tuyen never merge —
@@ -41,10 +39,11 @@ test('C.2 — grouping is delegated to groupRowsByRoute (real ma_tuyen identity)
   assert.match(source, /groupRowsByRoute\(sortedRows\)/);
 });
 
-// C.3: no page-limited search — fetchAllEvidenceRows (unchanged, already tested) walks
-// every backend page before any client-side filtering ever runs.
-test('C.3 — the full set is fetched (fetchAllEvidenceRows) before search filtering, never a single page', () => {
-  assert.match(source, /const result = await fetchAllEvidenceRows\(fetchPage\);/);
+// C.3: server-side pagination — getEvidence requests page and page_size, not client-side fetch-all
+test('C.3 — the query uses server-side pagination with getEvidence, never fetchAllEvidenceRows', () => {
+  assert.match(source, /page: currentPage/);
+  assert.match(source, /page_size: PAGE_SIZE/);
+  assert.doesNotMatch(source, /fetchAllEvidenceRows/);
 });
 
 // C.4/C.5: 0 and exactly-1 result states are both handled by the same, unconditional
@@ -57,9 +56,9 @@ test('C.4/C.5 — 0 and 1 result render through the same generic empty-state/tab
 
 // C.6: n results in exactly one route (a route is selected) stays scoped to that one
 // route — the fetch itself is already route-scoped server-side (routeIdParam passed to
-// getEvidenceList), so search naturally cannot surface rows from other routes.
-test('C.6 — route-selected mode stays scoped to that route: routeIdParam is passed to the evidence fetch', () => {
-  assert.match(source, /routeIdParam \|\| undefined,\s*\n\s*page,/);
+// getEvidence as route: routeIdParam || 'all').
+test('C.6 — route-selected mode stays scoped to that route: routeIdParam is passed to getEvidence', () => {
+  assert.match(source, /route: routeIdParam \|\| 'all'/);
 });
 
 // C.8: no auto-selection (AC-15, restated) — unchanged by this remediation.
@@ -94,11 +93,10 @@ test('C.10 — the route dropdown handler never reads or writes search state', (
   assert.doesNotMatch(codeOnly, /updateParam\('search'/);
 });
 
-// C.11: clearing the keyword restores the full (reason-tab-scoped) Evidence context —
-// filteredRows falls back to reasonScopedRows exactly, not an empty or partial set.
-test('C.11 — clearing search (handleClearSearch) restores reasonScopedRows, the full tab-scoped context', () => {
-  assert.match(source, /const handleClearSearch = \(\) => updateParam\('search', ''\);/);
-  assert.match(source, /if \(!isSearchActive\) return reasonScopedRows;/);
+// C.11: clearing the keyword restores the full Evidence context —
+// handleClearSearch clears search param and resets page.
+test('C.11 — clearing search (handleClearSearch) resets search param and page', () => {
+  assert.match(source, /const handleClearSearch = \(\) => updateParams\(\{ search: '', page: '' \}\);/);
 });
 
 // C.12: Vietnamese/IME input handling is untouched by this remediation — the shared
@@ -123,9 +121,8 @@ test('C.13 — the grouped route header is never viewport-hidden (only secondary
   assert.match(summarySource, /className: 'hidden sm:table-cell'/);
 });
 
-// Reconciliation: contextTotal (AC-19's pre-search figure) reflects the active reason
-// tab, not the now-always-broad fetch total — otherwise the "before search" count would
-// silently include every reason group even when a specific tab is selected.
-test('contextTotal reflects the active reason tab (reasonScopedRows), not the full multi-reason fetch', () => {
-  assert.match(source, /const contextTotal = toNumber\(reasonScopedRows\.length\);/);
+// Server-side contextTotal (AC-19's pre-search figure) reflects pagination.total_items
+// from server metadata.
+test('contextTotal reflects the total_items from server pagination', () => {
+  assert.match(source, /const contextTotal = toNumber\(pagination\.total_items\);/);
 });

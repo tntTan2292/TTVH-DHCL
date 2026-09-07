@@ -36,8 +36,8 @@ test('every matching route group is passed through to the table widget, not just
 // AC-19: three distinct counts — pre-search context total, post-search result count, and
 // the selected shipment — must never be conflated into a single figure.
 test('three distinct counts are computed and rendered: context total, search result count, selected shipment', () => {
-  assert.match(source, /const contextTotal = toNumber\(reasonScopedRows\.length\);/);
-  assert.match(source, /const searchResultCount = isSearchActive \? filteredRows\.length : null;/);
+  assert.match(source, /const contextTotal = toNumber\(pagination\.total_items\);/);
+  assert.match(source, /const searchResultCount = isSearchActive \? \(searchMeta\.matched_items \?\? pagination\.total_items\) : null;/);
   assert.match(source, /Tổng Evidence \(bối cảnh\)/);
   assert.match(source, /Kết quả tìm kiếm/);
   assert.match(source, /Bưu gửi đang chọn/);
@@ -47,7 +47,7 @@ test('three distinct counts are computed and rendered: context total, search res
 // only ever touches route_id/route_name, never search, and vice versa.
 test('the route selector and the search box update independent URL params', () => {
   assert.match(source, /const handleRouteChange = \(value\) => \{/);
-  assert.match(source, /updateParams\(\{ route_id: value, route_name: value \? \(option\?\.label \|\| ''\) : '' \}\);/);
+  assert.match(source, /updateParams\(\{ route_id: value, route_name: value \? \(option\?\.label \|\| ''\) : '', page: '' \}\);/);
   assert.doesNotMatch(source, /handleRouteChange[\s\S]{0,200}updateParam\('search'/);
 });
 

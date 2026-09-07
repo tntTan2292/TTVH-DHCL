@@ -645,3 +645,22 @@ Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE B1 (BACKEND) COMPLETE / REA
 INDEPENDENT TECHNICAL REVIEW`. Per `DEC-021`, an Independent Technical Review by a different
 model is mandatory before Phase F1 (Frontend, `Antigravity`) starts and before any PO UI Check.
 `frontend/src/` is untouched by this registration.
+
+## F13-ROUTE-EVIDENCE-STATUS-02 Phase F1 (Frontend) Implementation Registration - 2026-09-07
+
+Registers the Phase F1 implementation delivered by `Antigravity` against the PO-approved Design of Record R0 and Phase B1 backend baseline `cfb57d4`.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `frontend/src/api/F13DashboardClient.js` | Source (modified) | Added `getEvidence(params)` calling `GET /f13/evidence`. | L3 | Active | When calling evidence API. | Mandatory |
+| `frontend/src/features/shipment/shipmentPerformanceData.js` | Source (modified) | Retired `fetchAllEvidenceRows` and 20k ceiling; added `STATUS_FILTER_OPTIONS` and `PERIOD_FILTER_OPTIONS`. | L3 | Active | When modifying shipment performance data helpers. | Mandatory |
+| `frontend/src/features/shipment/ShipmentPerformancePage.jsx` | Source (modified) | Server-side paginated evidence view; 4 status cards (`all`, `passed`, `failed`, `returned`); conditional violation tabs on `failed`; period selector; title "Chi tiết bưu gửi F1.3". | L3 | Active | When modifying Evidence screen. | Mandatory |
+| `frontend/src/features/shipment/ShipmentEvidenceSummary.jsx` | Source (modified) | Table summary with `Trạng thái` badge column and null-safe non-failed reasons/delays. | L3 | Active | When modifying evidence table columns. | Reference |
+| `frontend/src/features/shipment/ShipmentEvidenceDetail.jsx` | Source (modified) | Detail panel with status badge and null-safe attributes for non-failed shipments. | L3 | Active | When modifying evidence shipment detail panel. | Reference |
+| `frontend/src/features/route/RoutePerformancePage.jsx` / `routeViolationEvidenceData.js` | Source (modified) | Passes active `period` and `status='all'` from Route Ranking to Evidence; preserves `return_to`. | L3 | Active | When modifying route ranking drilldown link. | Mandatory |
+| `frontend/src/features/shipment/ShipmentPerformancePage.evidenceStatus.test.js` | Tests (new) | 14 tests covering T-F02-T-F08 (status filter, period selector, pagination, table rendering, roundtrip navigation). | L3 | Active | When testing Evidence screen. | Mandatory |
+| `frontend/src/features/shipment/shipmentModel.retired.test.js` | Tests (new) | 3 tests ensuring `fetchAllEvidenceRows` and 20k ceiling constants are permanently retired. | L3 | Active | When verifying model retirement. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 65 records Phase F1 frontend delivery, scope implemented, and full validation. | L2 | Active Onboarding | Current ticket. | Mandatory |
+
+Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE F1 (FRONTEND) COMPLETE / READY FOR INTEGRATION VALIDATION`.
+

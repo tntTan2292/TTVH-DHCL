@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { AlertTriangle, Filter } from 'lucide-react';
+import { AlertTriangle, Filter, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageContainer, KPICard, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import f13DashboardClient from '../../api/F13DashboardClient';
@@ -9,15 +9,13 @@ import { buildViolationGroupTabs, buildBackToRouteRankingLink, isValidReturnTo }
 import ShipmentEvidenceSummary from './ShipmentEvidenceSummary';
 import ShipmentEvidenceDetail from './ShipmentEvidenceDetail';
 import {
-  calculateDelayHours,
-  fetchAllEvidenceRows,
-  matchesSearchQuery,
   formatSearchResultSummary,
   groupRowsByRoute,
 } from './shipmentPerformanceData';
 
 const ALL_ROUTES_OPTION = { value: '', label: 'Tất cả tuyến' };
 const DEFAULT_REASON = 'delayed_cash';
+const PAGE_SIZE = 50;
 
 function toNumber(value) {
   const number = Number(value);
@@ -55,8 +53,12 @@ export default function ShipmentPerformancePage() {
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
   const [runtimeRows, setRuntimeRows] = useState([]);
+  const [statusSummary, setStatusSummary] = useState({ all: 0, passed: 0, failed: 0, returned: 0, identity_ok: true });
   const [violationSummary, setViolationSummary] = useState({});
-  const [truncated, setTruncated] = useState(false);
+  const [pagination, setPagination] = useState({ page: 1, page_size: PAGE_SIZE, total_items: 0, total_pages: 0 });
+  const [searchMeta, setSearchMeta] = useState({ keyword: '', active: false, matched_items: null, matched_routes: null });
+  const [scopeGuard, setScopeGuard] = useState({ scope_rows: 0, limit: 200000, exceeded: false });
+  const [periodMeta, setPeriodMeta] = useState({ key: 'day', start: null, end: null, days_in_period: 1 });
   const [collapsedRouteIds, setCollapsedRouteIds] = useState(() => new Set());
 
   const [metaStatus, setMetaStatus] = useState('loading');
@@ -68,41 +70,28 @@ export default function ShipmentPerformancePage() {
 
   const fromDateParam = searchParams.get('from_date') || '';
   const toDateParam = searchParams.get('to_date') || '';
-  const interval = searchParams.get('interval') || 'daily';
   const bcvhIdParam = searchParams.get('bcvh_id') || '';
   const bcvhNameParam = searchParams.get('bcvh_name') || '';
-  // Empty route_id means "Tất cả tuyến" — never a fabricated route ID.
   const routeIdParam = searchParams.get('route_id') || '';
   const routeNameParam = searchParams.get('route_name') || '';
   const shipmentId = searchParams.get('shipment_id') || '';
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || 'delay_hours';
   const order = searchParams.get('order') || 'asc';
-  // Violation group tab (AC-1..AC-9 reconciliation contract, unchanged): default is
-  // "Chậm nộp tiền", matching the pre-existing RouteViolationEvidencePage default —
-  // no new business decision, just the same accepted default carried into the merged
-  // screen.
+  const periodParam = searchParams.get('period') || 'day';
+  const statusParam = searchParams.get('status') || 'all';
   const reasonParam = searchParams.get('reason') || DEFAULT_REASON;
+  const pageParam = parseInt(searchParams.get('page') || '1', 10);
+  const currentPage = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
-  // Phase 3 return-journey remediation: the "← Quay lại Tuyến Ranking" action only exists
-  // when Evidence was actually opened from Tuyến Ranking (or an old bookmark that itself
-  // carried a valid return_to) — a directly opened Evidence screen shows no back action.
-  // `isValidReturnTo` also rejects any external/protocol-shaped value, and
-  // `buildBackToRouteRankingLink` always resolves to the fixed `/f13/ranking/route` path
-  // regardless, so this cannot be used to redirect off-app.
   const returnToParam = searchParams.get('return_to') || '';
   const hasValidReturnTo = isValidReturnTo(returnToParam);
   const backToRouteRankingLink = hasValidReturnTo ? buildBackToRouteRankingLink(returnToParam) : null;
 
-  // Same single-day analysis contract already established by Dashboard/BCVH Ranking/Tuyến
-  // Ranking: GlobalFilterBar exposes two date fields, but only one authoritative evaluation
-  // day (ngay_do_kiem) drives the query — resolved via the same shared helper Route Ranking
-  // already uses, never a from_date–to_date range filter.
   const fromDate = resolveDefaultRouteDate({ param: fromDateParam, metaMaxDate });
   const toDate = resolveDefaultRouteDate({ param: toDateParam, metaMaxDate });
   const analysisDate = resolveDefaultRouteDate({ param: toDateParam || fromDateParam, metaMaxDate });
 
-  // Real BCVH, sourced from bcvhOptions — never a hand-typed fallback code/name.
   const bcvhId = bcvhIdParam || bcvhOptions[0]?.value || '';
   const bcvhName = bcvhNameParam || bcvhOptions.find((opt) => opt.value === bcvhId)?.label || bcvhId;
   const routeName = routeIdParam ? (routeNameParam || routeOptions.find((opt) => opt.value === routeIdParam)?.label || routeIdParam) : ALL_ROUTES_OPTION.label;
@@ -121,8 +110,6 @@ export default function ShipmentPerformancePage() {
 
   const updateParam = (key, value) => updateParams({ [key]: value });
 
-  // Real BCVH list from the same /f13/dashboard/meta contract Route Ranking already uses —
-  // never a hand-typed BCVH list.
   useEffect(() => {
     let mounted = true;
     const fetchMeta = async () => {
@@ -147,9 +134,6 @@ export default function ShipmentPerformancePage() {
     return () => { mounted = false; };
   }, []);
 
-  // Real Tuyến list, dependent on the selected BCVH+date, from the same /f13/ranking/route
-  // contract Route Ranking already uses (route_type=all so every route is offered, not only
-  // the postman-classified default) — never a hand-typed route list.
   useEffect(() => {
     let mounted = true;
     const fetchRoutes = async () => {
@@ -172,8 +156,6 @@ export default function ShipmentPerformancePage() {
     return () => { mounted = false; };
   }, [analysisDate, bcvhId]);
 
-  // Changing BCVH can make the current route_id invalid for the new BCVH/date — reset to
-  // "Tất cả tuyến" rather than silently keep querying a route_id that no longer applies.
   useEffect(() => {
     if (routeStatus !== 'ready') return;
     if (!routeIdParam) return;
@@ -186,38 +168,38 @@ export default function ShipmentPerformancePage() {
 
   const handleBcvhChange = (value) => {
     const option = bcvhOptions.find((opt) => opt.value === value);
-    // Explicit BCVH re-selection always resets Tuyến to "Tất cả tuyến" — the previously
-    // selected route belongs to the old BCVH's route list.
-    updateParams({ bcvh_id: value, bcvh_name: option?.label || '', route_id: '', route_name: '' });
+    updateParams({ bcvh_id: value, bcvh_name: option?.label || '', route_id: '', route_name: '', page: '' });
   };
 
   const handleRouteChange = (value) => {
     const option = routeOptions.find((opt) => opt.value === value);
-    // AC-20: the Tuyến dropdown is a separate, independent filter from search — it is
-    // never implicitly changed by a keyword and never overridden by it.
-    updateParams({ route_id: value, route_name: value ? (option?.label || '') : '' });
+    updateParams({ route_id: value, route_name: value ? (option?.label || '') : '', page: '' });
+  };
+
+  const handlePeriodChange = (nextPeriod) => {
+    updateParams({ period: nextPeriod, page: '' });
+  };
+
+  const handleStatusChange = (nextStatus) => {
+    // When leaving 'failed', reset reason. When entering 'failed', default reason to 'all'
+    const patch = { status: nextStatus, page: '' };
+    if (nextStatus !== 'failed') {
+      patch.reason = '';
+    } else if (!reasonParam || reasonParam === 'all') {
+      patch.reason = 'all';
+    }
+    updateParams(patch);
   };
 
   const handleReasonChange = (slug) => {
-    updateParam('reason', slug === DEFAULT_REASON ? '' : slug);
+    updateParams({ reason: slug, page: '' });
   };
 
-  // Fetches the complete matching "Không đạt" Evidence set for the current date/BCVH/route
-  // — walks every backend page instead of a single fixed-size request, so search, sort,
-  // and counts below always reflect the full result, never a silently truncated slice.
-  //
-  // PO runtime remediation (2026-08-13): this now ALWAYS fetches every violation-reason
-  // group in one request (`reason` no longer participates in the query or the effect's
-  // dependency array), not just the currently active tab. Root cause of the reported
-  // defect, reproduced with a real React render against real data (not mocked): the
-  // previous per-tab fetch scoped the entire dataset to the active reason group (default
-  // "Chậm nộp tiền"), so a keyword search only ever saw that narrow slice — for a real
-  // BCVH/date context with 1,573 "Không đạt" rows across 8 routes matching "HCC", the
-  // default-tab-scoped fetch reduced this to exactly 1 row / 1 route, reproducing PO's
-  // exact "only shows one nearest route" symptom. Switching reason tabs is now a pure
-  // client-side filter (see reasonScopedRows below) — instant, and no longer triggers a
-  // network request. `meta.violation_summary` is unaffected either way: the backend
-  // already computes it over the whole "Không đạt" set before applying any reason filter.
+  const handlePageChange = (newPage) => {
+    updateParam('page', newPage > 1 ? String(newPage) : '');
+  };
+
+  // F13-ROUTE-EVIDENCE-STATUS-02: Server-side paginated query via GET /f13/evidence
   useEffect(() => {
     let mounted = true;
 
@@ -226,20 +208,28 @@ export default function ShipmentPerformancePage() {
         setStatus('loading');
         setError(null);
 
-        const fetchPage = (page, pageSize) => f13DashboardClient.getEvidenceList(
-          analysisDate,
-          bcvhId,
-          routeIdParam || undefined,
-          page,
-          pageSize,
-          undefined, // always fetch every reason group — see remediation note above
-        );
-        const result = await fetchAllEvidenceRows(fetchPage);
+        const apiReason = statusParam === 'failed' ? (reasonParam || 'all') : 'all';
+        const result = await f13DashboardClient.getEvidence({
+          bcvh: bcvhId,
+          anchor_date: analysisDate,
+          period: periodParam,
+          route: routeIdParam || 'all',
+          status: statusParam,
+          reason: apiReason,
+          search: search.trim() || undefined,
+          sort,
+          order,
+          page: currentPage,
+          page_size: PAGE_SIZE,
+        });
+
         if (!mounted) return;
 
-        const mappedRows = result.rows.map((item) => {
+        const rows = Array.isArray(result?.data) ? result.data : [];
+        const mappedRows = rows.map((item) => {
           const shipmentKey = item.ma_bg || item.id || item.shipment_id || 'N/A';
-          const delayHours = item.do_tre_gio ?? calculateDelayHours(item.thoi_gian_ptc, item.thoi_gian_nop_tien, item.extended_data);
+          const statusLabel = item.danh_gia_2026 || (item.status_group === 'passed' ? 'Đạt' : item.status_group === 'returned' ? 'Chuyển hoàn' : 'Không đạt');
+          const delayHours = item.do_tre_gio ?? null;
 
           return {
             id: shipmentKey,
@@ -249,20 +239,25 @@ export default function ShipmentPerformancePage() {
             bcvhName: item.ten_bcvh || bcvhName,
             routeId: item.ma_tuyen || routeIdParam,
             routeName: item.ten_tuyen || routeName,
-            status: item.danh_gia_2026 || 'Không đạt',
+            status: statusLabel,
+            statusGroup: item.status_group || (statusLabel === 'Đạt' ? 'passed' : statusLabel === 'Chuyển hoàn' ? 'returned' : 'failed'),
             violationReason: item.violation_reason || null,
             pickupTime: item.thoi_gian_ptc || null,
             handoverTime: item.thoi_gian_nop_tien || null,
             delayHours,
-            delayLabel: delayHours === null || delayHours === undefined ? 'N/A' : `${Number(delayHours).toFixed(1)}h`,
-            analysisDate,
+            delayLabel: delayHours === null || delayHours === undefined ? 'Chưa đủ dữ liệu' : `${Number(delayHours).toFixed(1)}h`,
+            analysisDate: item.ngay_do_kiem || analysisDate,
             extendedData: item.extended_data || {},
           };
         });
 
         setRuntimeRows(mappedRows);
-        setViolationSummary(result.meta?.violation_summary || {});
-        setTruncated(result.truncated);
+        setStatusSummary(result?.meta?.status_summary || { all: 0, passed: 0, failed: 0, returned: 0, identity_ok: true });
+        setViolationSummary(result?.meta?.violation_summary || {});
+        setPagination(result?.meta?.pagination || { page: currentPage, page_size: PAGE_SIZE, total_items: mappedRows.length, total_pages: 1 });
+        setSearchMeta(result?.meta?.search || { keyword: search.trim(), active: Boolean(search.trim()), matched_items: null, matched_routes: null });
+        setScopeGuard(result?.meta?.scope_guard || { scope_rows: 0, limit: 200000, exceeded: false });
+        setPeriodMeta(result?.meta?.period || { key: periodParam, start: null, end: null, days_in_period: 1 });
         setStatus('success');
       } catch (e) {
         if (!mounted) return;
@@ -282,57 +277,16 @@ export default function ShipmentPerformancePage() {
     }
 
     return () => { mounted = false; };
-    // bcvhName/routeName are display-only fallbacks used inside the mapper, not fetch
-    // inputs — including them would refetch on every label resolution instead of only
-    // when the actual query (date/BCVH/route) changes. `reason` deliberately does NOT
-    // appear here any more — see the remediation note above the fetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisDate, bcvhId, routeIdParam, metaStatus]);
-
-  const intervalLabel = interval === 'daily' ? 'Một ngày' : interval === 'weekly' ? 'Theo tuần' : 'Lũy kế';
-
-  const violationTabs = useMemo(() => buildViolationGroupTabs(violationSummary), [violationSummary]);
-
-  // Reason-tab scoping is now a pure client-side filter over the already-fully-fetched
-  // runtimeRows (see remediation note above the fetch effect) — switching tabs no longer
-  // re-fetches and no longer silently narrows what search can see.
-  const activeReasonLabel = useMemo(() => {
-    if (reasonParam === 'all') return null;
-    return violationTabs.find((tab) => tab.slug === reasonParam)?.label || null;
-  }, [reasonParam, violationTabs]);
-
-  const reasonScopedRows = useMemo(() => {
-    if (!activeReasonLabel) return runtimeRows;
-    return runtimeRows.filter((item) => item.violationReason === activeReasonLabel);
-  }, [runtimeRows, activeReasonLabel]);
+  }, [analysisDate, bcvhId, routeIdParam, periodParam, statusParam, reasonParam, search, sort, order, currentPage, metaStatus]);
 
   const isSearchActive = Boolean(search.trim());
+  const violationTabs = useMemo(() => buildViolationGroupTabs(violationSummary), [violationSummary]);
 
-  // PO runtime remediation (2026-08-13): while a keyword is active, matching intentionally
-  // spans every violation-reason group, not only the currently active tab — this is the
-  // direct fix for the reproduced defect (see the fetch effect's remediation note). AC-17/
-  // AC-18 require every route with a matching result to appear; scoping search to one tab
-  // was proven, with real data, to hide the large majority of matches. Each result row
-  // still carries its own Lý do vi phạm badge, so the reason is never hidden — it is
-  // simply not used to gate which rows search can find. Without an active keyword, the
-  // reason tab continues to scope the flat table exactly as before.
-  //
-  // DEFECT A remediation (unchanged): matchesSearchQuery matches route/BCVH names exactly
-  // first (this alone already covers real route codes, which are digits with no
-  // diacritics), and only then falls back to a diacritic-insensitive comparison — so a
-  // manager typing "Huong Phong" still finds "Hương Phong" without ever weakening exact
-  // code search.
-  const filteredRows = useMemo(() => {
-    if (!isSearchActive) return reasonScopedRows;
-    return runtimeRows.filter((item) => matchesSearchQuery(
-      [item.shipmentId, item.shipmentName, item.routeName, item.routeId, item.bcvhName],
-      search,
-    ));
-  }, [runtimeRows, reasonScopedRows, isSearchActive, search]);
+  // Client-side sort fallback for current page rows if needed
+  const sortedRows = useMemo(() => sortShipmentRows(runtimeRows, sort, order), [runtimeRows, order, sort]);
 
-  const sortedRows = useMemo(() => sortShipmentRows(filteredRows, sort, order), [filteredRows, order, sort]);
-
-  // AC-17/AC-18/AC-22: while a keyword is active, results group by real route identity.
+  // AC-17/AC-18/AC-22: while a keyword is active, current page rows group by real route identity
   const groupedRows = useMemo(() => (isSearchActive ? groupRowsByRoute(sortedRows) : []), [isSearchActive, sortedRows]);
 
   const expandedRouteIds = useMemo(
@@ -347,51 +301,42 @@ export default function ShipmentPerformancePage() {
     });
   };
 
-  // AC-15: a keyword only ever filters — it never selects a row on its own. Selection
-  // exists only when shipment_id is present in the URL AND still matches a visible row;
-  // there is no fallback to "the first row." A selection that no longer matches the
-  // current (possibly narrower) result set falls back to "chưa chọn," never to a
-  // different, unintended shipment (PO runtime remediation point 6).
+  // AC-15: selection exists ONLY when shipment_id is present in the URL AND still matches a visible row
   const selectedShipment = useMemo(() => {
     if (!shipmentId) return null;
     return sortedRows.find((item) => item.shipmentId === shipmentId) || null;
   }, [shipmentId, sortedRows]);
 
-  // AC-19: three counts, always visibly distinct — never conflated into one number.
-  // contextTotal is the pre-search total for the currently active reason tab (not the
-  // whole day's "Không đạt" set) — meta.pagination.total_items now reflects every reason
-  // group combined, since the fetch itself is no longer reason-scoped (see above), so the
-  // tab-scoped figure must be computed client-side from reasonScopedRows instead.
-  const contextTotal = toNumber(reasonScopedRows.length);
-  const searchResultCount = isSearchActive ? filteredRows.length : null;
+  // AC-19: three counts, always visibly distinct
+  const contextTotal = toNumber(pagination.total_items);
+  const searchResultCount = isSearchActive ? (searchMeta.matched_items ?? pagination.total_items) : null;
 
   const handleSelectShipment = (nextShipmentId) => {
     updateParam('shipment_id', nextShipmentId);
   };
 
-  const handleClearSearch = () => updateParam('search', '');
-  const handleViewAllRoutes = () => updateParams({ route_id: '', route_name: '' });
+  const handleClearSearch = () => updateParams({ search: '', page: '' });
+  const handleViewAllRoutes = () => updateParams({ route_id: '', route_name: '', page: '' });
 
-  // DEFECT B remediation (2026-08-11): distinguish the empty-result reasons that were
-  // previously collapsed into one generic "no evidence, try filters or Tất cả tuyến"
-  // message. sortedRows can only be empty two ways — filteredRows/search reduced a
-  // non-empty runtimeRows to zero, or runtimeRows itself is already zero — so exactly
-  // these cases are distinguished, never guessed:
-  //   1. A keyword is active and it matched nothing — the keyword is named as the
-  //      reason, regardless of whether a specific route is selected. Verified
-  //      root-cause finding: this is the only case where the previous unconditional
-  //      "chọn Tất cả tuyến" suggestion made no sense — the route/BCVH/date context
-  //      may be entirely correct and simply have no shipment matching that keyword.
-  //   2. No keyword, a specific Tuyến is selected, and the API returned zero rows for
-  //      it — this route genuinely has no vi phạm bưu gửi for this day/BCVH. Verified
-  //      directly against the operational database for the reported case (Tuyến
-  //      53579015 — "535790 - Hương Phong", BCVH A Lưới, 2026-08-10): exactly 2 real
-  //      shipments that day, both "Đạt", zero "Không đạt" — the filter is correct;
-  //      this was never a filter defect, only a missing empty-state distinction.
-  //   3. No keyword, "Tất cả tuyến" selected, and the API returned zero rows across
-  //      every route for this BCVH/date — nothing to suggest switching to (already
-  //      there), so no "chọn Tất cả tuyến" text is shown.
   const emptyStateContent = useMemo(() => {
+    if (scopeGuard.exceeded) {
+      return {
+        title: 'Phạm vi tìm kiếm vượt quá giới hạn an toàn',
+        description: `Phạm vi tìm kiếm (${scopeGuard.scope_rows.toLocaleString('vi-VN')} dòng) vượt quá giới hạn an toàn ${scopeGuard.limit.toLocaleString('vi-VN')} dòng. Vui lòng thu hẹp bộ lọc bằng cách chọn một Tuyến cụ thể hoặc chuyển về kỳ Ngày.`,
+        action: (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handlePeriodChange('day')}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Chuyển sang kỳ Ngày
+            </button>
+          </div>
+        ),
+      };
+    }
+
     if (search.trim()) {
       return {
         title: 'Không tìm thấy kết quả phù hợp',
@@ -411,7 +356,7 @@ export default function ShipmentPerformancePage() {
     if (routeIdParam) {
       return {
         title: `Tuyến ${routeIdParam} - ${routeName} không có bưu gửi vi phạm`,
-        description: `Ngày ${analysisDate} · BCVH ${bcvhName}. Đây là kết quả thật — tuyến này không có bưu gửi Không đạt trong bối cảnh hiện tại, không phải lỗi bộ lọc.`,
+        description: `Ngày ${analysisDate} · BCVH ${bcvhName}. Tuyến này không có bưu gửi nào khớp với bộ lọc đang chọn trong bối cảnh hiện tại.`,
         action: (
           <button
             type="button"
@@ -426,11 +371,11 @@ export default function ShipmentPerformancePage() {
 
     return {
       title: 'Không có Evidence trong bối cảnh này',
-      description: `Ngày ${analysisDate} · BCVH ${bcvhName}. Không có bưu gửi Không đạt nào ở bất kỳ tuyến nào trong bối cảnh hiện tại.`,
+      description: `Ngày ${analysisDate} · BCVH ${bcvhName}. Không có bưu gửi nào ở bất kỳ tuyến nào khớp với bộ lọc hiện tại.`,
       action: null,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, routeIdParam, routeName, analysisDate, bcvhName]);
+  }, [search, routeIdParam, routeName, analysisDate, bcvhName, scopeGuard]);
 
   const routeSelector = (
     <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
@@ -450,8 +395,76 @@ export default function ShipmentPerformancePage() {
     </div>
   );
 
-  // Violation group tabs — server-sourced counts only, never counted client-side.
-  const violationTabsBar = (
+  const periodSelector = (
+    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+      <Calendar size={16} className="text-slate-400 shrink-0" />
+      <select
+        value={periodParam}
+        onChange={(e) => handlePeriodChange(e.target.value)}
+        className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 cursor-pointer"
+        aria-label="Kỳ phân tích"
+      >
+        <option value="day">Kỳ ngày ({analysisDate})</option>
+        <option value="month_to_anchor">
+          Kỳ tháng {periodMeta.start && periodMeta.end ? `(${periodMeta.start} → ${periodMeta.end})` : 'lũy kế'}
+        </option>
+      </select>
+    </div>
+  );
+
+  // Status Strip (Dải trạng thái) — PO-approved §7.2: 4 cards
+  const statusStrip = (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { key: 'all', label: 'Tất cả trạng thái', count: statusSummary.all, color: 'border-slate-300 hover:border-slate-400', activeBg: 'bg-slate-800 text-white border-slate-800', badgeTone: 'neutral' },
+          { key: 'passed', label: 'Đạt', count: statusSummary.passed, color: 'border-emerald-300 hover:border-emerald-400', activeBg: 'bg-emerald-700 text-white border-emerald-700', badgeTone: 'success' },
+          { key: 'failed', label: 'Không đạt', count: statusSummary.failed, color: 'border-rose-300 hover:border-rose-400', activeBg: 'bg-rose-700 text-white border-rose-700', badgeTone: 'danger' },
+          { key: 'returned', label: 'Chuyển hoàn', count: statusSummary.returned, color: 'border-slate-300 hover:border-slate-400', activeBg: 'bg-slate-600 text-white border-slate-600', badgeTone: 'neutral' },
+        ].map((item) => {
+          const isActive = statusParam === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => handleStatusChange(item.key)}
+              className={`flex items-center justify-between rounded-xl border p-3.5 text-left transition-all duration-150 ${
+                isActive
+                  ? `${item.activeBg} shadow-sm ring-2 ring-offset-1 ring-blue-500`
+                  : `bg-white ${item.color} text-slate-800 shadow-xs hover:bg-slate-50`
+              }`}
+            >
+              <div>
+                <p className={`text-xs font-semibold ${isActive ? 'text-white/80' : 'text-slate-500'}`}>
+                  {item.label}
+                </p>
+                <p className="mt-0.5 text-xl font-black">
+                  {toNumber(item.count).toLocaleString('vi-VN')}
+                </p>
+              </div>
+              <span className={`rounded-lg px-2 py-0.5 text-xs font-bold ${
+                isActive
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-100 text-slate-700'
+              }`}>
+                {statusSummary.all > 0 ? `${((toNumber(item.count) / statusSummary.all) * 100).toFixed(1)}%` : '0%'}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {!statusSummary.identity_ok && (
+        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-medium text-rose-800">
+          <AlertTriangle size={15} className="shrink-0 text-rose-600" />
+          <span>Cảnh báo đối soát: Tổng số bưu gửi (all) không khớp tổng Đạt + Không đạt + Chuyển hoàn.</span>
+        </div>
+      )}
+    </div>
+  );
+
+  // Violation group tabs — §7.3 & T-F03: Rendered ONLY when status === 'failed'
+  const violationTabsBar = statusParam === 'failed' ? (
     <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-xs">
       <div className="flex flex-wrap gap-1.5">
         {violationTabs.map((tab) => {
@@ -488,13 +501,17 @@ export default function ShipmentPerformancePage() {
         })}
       </div>
     </div>
-  );
+  ) : null;
 
-  // AC-16: the exact required summary line, only rendered while a keyword is active.
+  // AC-16: search result summary
   const searchResultSummary = isSearchActive ? (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
       <p className="text-sm font-medium text-blue-900">
-        {formatSearchResultSummary({ count: filteredRows.length, routeCount: groupedRows.length, keyword: search.trim() })}
+        {formatSearchResultSummary({
+          count: searchMeta.matched_items ?? pagination.total_items,
+          routeCount: searchMeta.matched_routes ?? (groupedRows.length || 1),
+          keyword: search.trim(),
+        })}
       </p>
       <button
         type="button"
@@ -506,9 +523,40 @@ export default function ShipmentPerformancePage() {
     </div>
   ) : null;
 
-  // Rendered above the page title in every status branch, so refresh/loading/error/empty
-  // states never lose the return path (test scenario: "Refresh Evidence, then Quay lại
-  // still works").
+  // Server Pagination component
+  const paginationControls = (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs">
+      <div className="text-sm text-slate-600 font-medium">
+        Hiển thị <strong>{pagination.total_items > 0 ? (pagination.page - 1) * pagination.page_size + 1 : 0} - {Math.min(pagination.page * pagination.page_size, pagination.total_items)}</strong> trong tổng số <strong>{pagination.total_items.toLocaleString('vi-VN')}</strong> bưu gửi
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-slate-500 mr-2 font-medium">
+          Trang <strong>{pagination.page}</strong> / <strong>{pagination.total_pages || 1}</strong>
+        </span>
+        <button
+          type="button"
+          onClick={() => handlePageChange(pagination.page - 1)}
+          disabled={pagination.page <= 1}
+          aria-label="Trang trước"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+        >
+          <ChevronLeft size={15} />
+          <span>Trước</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => handlePageChange(pagination.page + 1)}
+          disabled={pagination.page >= pagination.total_pages}
+          aria-label="Trang sau"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+        >
+          <span>Sau</span>
+          <ChevronRight size={15} />
+        </button>
+      </div>
+    </div>
+  );
+
   const backLinkElement = hasValidReturnTo ? (
     <div className="px-6 pt-5 md:px-8 md:pt-6 -mb-2">
       <Link
@@ -525,7 +573,7 @@ export default function ShipmentPerformancePage() {
     return (
       <div className="flex h-full flex-col">
         {backLinkElement}
-        <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Đang tải dữ liệu Evidence.">
+        <PageContainer title="Chi tiết bưu gửi F1.3" subtitle="Đang tải dữ liệu Evidence.">
           <LoadingState label="Đang tải dữ liệu Evidence..." />
         </PageContainer>
       </div>
@@ -536,7 +584,7 @@ export default function ShipmentPerformancePage() {
     return (
       <div className="flex h-full flex-col">
         {backLinkElement}
-        <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Không thể tải dữ liệu Evidence.">
+        <PageContainer title="Chi tiết bưu gửi F1.3" subtitle="Không thể tải dữ liệu Evidence.">
           <ErrorState
             description={error?.message}
             action={
@@ -557,17 +605,17 @@ export default function ShipmentPerformancePage() {
     <GlobalFilterBar
       fromDate={fromDate}
       toDate={toDate}
-      onFromDateChange={(value) => updateParam('from_date', value)}
-      onToDateChange={(value) => updateParam('to_date', value)}
+      onFromDateChange={(value) => updateParams({ from_date: value, page: '' })}
+      onToDateChange={(value) => updateParams({ to_date: value, page: '' })}
       bcvhValue={bcvhId}
       onBcvhChange={handleBcvhChange}
       bcvhOptions={bcvhOptions}
       searchValue={search}
-      onSearchChange={(value) => updateParam('search', value)}
+      onSearchChange={(value) => updateParams({ search: value, page: '' })}
       actions={
         <div className="flex flex-wrap items-center gap-2">
+          {periodSelector}
           {routeSelector}
-          <StatusBadge label={intervalLabel} tone="neutral" />
         </div>
       }
     />
@@ -577,9 +625,10 @@ export default function ShipmentPerformancePage() {
     return (
       <div className="flex h-full flex-col">
         {backLinkElement}
-        <PageContainer title="Evidence — Chi tiết bưu gửi vi phạm" subtitle="Context/filter · nhóm vi phạm · bằng chứng chi tiết.">
+        <PageContainer title="Chi tiết bưu gửi F1.3" subtitle="Context/filter · trạng thái · bằng chứng chi tiết.">
           <div className="space-y-5">
             {filterBar}
+            {statusStrip}
             {violationTabsBar}
             <EmptyState
               title={emptyStateContent.title}
@@ -596,29 +645,28 @@ export default function ShipmentPerformancePage() {
     <div className="flex h-full flex-col">
       {backLinkElement}
       <PageContainer
-        title="Evidence — Chi tiết bưu gửi vi phạm"
-        subtitle="Context/filter · nhóm vi phạm · bằng chứng chi tiết."
+        title="Chi tiết bưu gửi F1.3"
+        subtitle="Context/filter · trạng thái · bằng chứng chi tiết."
         action={
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge label={`BCVH: ${bcvhName}`} tone="info" />
             <StatusBadge label={`Tuyến: ${routeName}`} tone="neutral" />
-            <StatusBadge label={`Ngày: ${analysisDate}`} tone="success" />
+            <StatusBadge
+              label={periodParam === 'month_to_anchor' ? `Kỳ tháng: ${periodMeta.start} → ${periodMeta.end}` : `Ngày: ${analysisDate}`}
+              tone="success"
+            />
           </div>
         }
       >
         <div className="space-y-5">
           {filterBar}
 
-          {truncated && (
-            <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              Tập kết quả vượt giới hạn an toàn khi tải — một số bản ghi có thể chưa được hiển thị. Hãy thu hẹp bộ lọc (chọn một Tuyến cụ thể) để xem đầy đủ.
-            </div>
-          )}
+          {statusStrip}
 
           {searchResultSummary}
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <KPICard label="Tổng Evidence (bối cảnh)" value={contextTotal.toLocaleString('vi-VN')} delta="Trước tìm kiếm" tone="primary" />
+            <KPICard label="Tổng Evidence (bối cảnh)" value={contextTotal.toLocaleString('vi-VN')} delta="Theo bộ lọc hiện tại" tone="primary" />
             <KPICard
               label="Kết quả tìm kiếm"
               value={searchResultCount === null ? '—' : searchResultCount.toLocaleString('vi-VN')}
@@ -631,7 +679,7 @@ export default function ShipmentPerformancePage() {
           {violationTabsBar}
 
           <div className="grid gap-5 xl:grid-cols-3">
-            <div className="xl:col-span-2">
+            <div className="space-y-4 xl:col-span-2">
               <ShipmentEvidenceSummary
                 mode={isSearchActive ? 'grouped' : 'flat'}
                 rows={sortedRows}
@@ -642,6 +690,7 @@ export default function ShipmentPerformancePage() {
                 expandedRouteIds={expandedRouteIds}
                 onToggleRouteGroup={handleToggleRouteGroup}
               />
+              {paginationControls}
             </div>
             <div>
               <ShipmentEvidenceDetail shipment={selectedShipment} />
