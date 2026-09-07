@@ -2954,3 +2954,102 @@ the two defects found during this validation, fixed in minimal scope, and regres
 PO UI Check — this section is a `Sonnet` implementation/validation, not a self-review, and does
 not itself constitute that review. `F13-ROUTE-RANKING-PERIOD-01` remains `COMPLETED / PO PASS /
 CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open, unaffected.
+
+## 67. F13-ROUTE-EVIDENCE-STATUS-02 — Independent Technical Review — **BLOCKED** (2026-09-07)
+
+Append-only delta. Sections 1-66 unchanged. Reviewer: `Claude Code`/`Opus` — a different model from
+the `Sonnet` executor of Phase B1/I1, per `DEC-021` and Design of Record §9.5. Baseline reviewed:
+`1818ba2`. Scope: Design of Record R0 + manifest §62-66 + the shipped implementation, read-only. No
+implementation was redone; the only commands run were the two existing test suites and read-only
+`SELECT` measurements against `database.sqlite` (`sqlite3.OPEN_READONLY`). `fact_f13` read before and
+after: **777,081 rows, `MAX(ngay_do_kiem) = 2026-09-06`, identical** — zero writes.
+
+### What was verified and passes
+
+| Area | Result |
+| --- | --- |
+| `D-OPEN-01` (Chuyển hoàn = `danh_gia_2026` NULL/blank, no carve-out) | **PASS** — `STATUS_PREDICATES.returned` implements exactly the PO decision; the NULL-safe `IS NOT` fix in `violationReasonCaseSql()` is correct SQLite semantics and is the right fix for the fall-through §64 describes |
+| `D-OPEN-02` (default `status = Tất cả`) | **PASS** — the service default is `all`; `buildViolationEvidenceLink` passes `status: 'all'`; the I1 `resolveStatusChangeReasonPatch`/`resolveReasonParam` fix makes the status-card click deterministic and is correctly unit-tested against the pure functions |
+| `D-OPEN-04` (title `Chi tiết bưu gửi F1.3`) | **PASS** — all four render paths (loading/error/empty/normal) carry the exact string |
+| Đạt / Không đạt / Chuyển hoàn + `status_summary` SSOT | **PASS** — classification is `danh_gia_2026`-only, `ket_qua_f13` appears nowhere in the new code; `C-04` holds (`violation_reason` NULL for non-failed rows); `C-07` `identity_ok` is computed, not assumed, and surfaced in the UI |
+| Kỳ ngày / lũy kế tháng đến ngày neo, ngày neo theo BCVH (`C-05`) | **PASS** — `queryAnchor` SQL and `_resolvePeriod` are equivalent to `routePeriodService.js`'s; Route Ranking and Evidence receive the identical `anchor_ceiling` (`analysisDate = to_date` falling back to `from_date`, on both screens), so `ITR3-BLOCK-01`'s defect class is not reintroduced |
+| Server-side pagination / search / reason filtering | **PASS** — `LIMIT/OFFSET` in SQL, `total_items` from aggregates (`C-01`/`C-02`), keyword matched over the whole filtered scope (`C-06`), `reason` a predicate only when `status = failed`, deterministic `ma_bg ASC` tiebreaker, debounced search input |
+| Full-materialisation / 20,000 ceiling retired | **PASS** — `fetchAllEvidenceRows`, `EVIDENCE_FETCH_PAGE_SIZE`, `EVIDENCE_FETCH_MAX_PAGES` absent from all of `frontend/src`; no ceiling raised; `scope_guard` reports rather than truncates |
+| Reconciliation §10.4 (per route) | **PASS, re-measured independently** — BCVH `533140`, `2026-09-01..2026-09-06`, top 5 routes by volume: Evidence `all`/`passed` equals Ranking `volume`/`passed` exactly on all 5 (`533140133` 461/223, `53314018` 441/5, `533140147` 401/195, `53314047` 375/161, `533140135` 353/134) |
+| No regression on legacy Evidence | **PASS** — `git diff --numstat 17d6061..1818ba2` on the 3 modified backend files is `14/0`, `200/0`, `1/0` — **zero deletions**, so `/f13/evidence-list`, `getEvidence()` and `getEvidenceListFacts()` are byte-unchanged; `F13DashboardService.evidenceList.test.js` 16/16 green unmodified; no §9.4 Cấm chạm file touched |
+| Security / data integrity | **PASS** — every user value is a bound parameter; `sort`/`order`/`status`/`reason` are whitelist-mapped, never interpolated; `page`/`page_size` numerically clamped; `allowViewerRead` is the same authorization tier as the endpoint it supplements; the whole feature is read-only |
+| Test suites re-run by this review | Backend `77/77`, frontend `181/181` — matching §66's reported figures exactly |
+
+### `ITR-EV-BLOCK-01` — search route grouping is page-limited (**BLOCKER**)
+
+**Statement.** With a keyword active, the screen renders only the route groups present on the
+**current page** (at most 50 rows), not every route the search matched. The AC-16 summary line above
+the table takes its route count from the server (`search.matched_routes`, computed over the whole
+scope), so the line and the table disagree on screen.
+
+**Root cause.** Design of Record §7.6 requires the matched-route list to be produced **server-side**
+("trả kèm danh sách tuyến khớp với số lượng mỗi tuyến ... hiển thị đầy đủ mọi tuyến khớp; mở rộng một
+tuyến = một request"), and `D-OPEN-03` is the Product Owner's acceptance of exactly that interaction.
+It was not built. The API contract (§6.4 `meta.search`) only ever carried the **count**
+`matched_routes`, never the list — the design's own §6.4 payload and §7.6 requirement are
+inconsistent with each other, and the implementation followed §6.4. On the client,
+`ShipmentPerformancePage.jsx` still calls `groupRowsByRoute(sortedRows)`, where `sortedRows` is now
+one server page instead of the previously fully-materialized set — the same call site that was
+correct before pagination, left unchanged after the model beneath it changed.
+`ShipmentEvidenceSummary.jsx`'s own header comment still asserts the old guarantee ("every route the
+search matched appears as its own expandable group").
+
+**Reproduced by measurement (read-only, real data).** BCVH `533140`, `period = month_to_anchor`
+(`2026-09-01..2026-09-06`), `status = all`, `order = asc` (the screen's own default), page size 50,
+using the shipped `matchesSearchQuery` and `evidenceReasonSql` expressions:
+
+| Keyword | Matched rows | Matched routes (summary line) | Route groups rendered on page 1 |
+| --- | --- | --- | --- |
+| `HCC` | 1,617 | **9** | **7** |
+| `Thuy` | 1,000 | **4** | **2** |
+
+On the August scope (`2026-08-01..2026-08-31`): `HCC` 13,556 rows / 9 routes renders **5** groups;
+`Thuy` 7,959 rows / 4 routes renders **3** groups.
+
+**Why this is a blocker, not a cosmetic gap.** It fails `AC-17`/`AC-18` (every route with a matching
+result must appear), which are Product Owner-accepted criteria arising from the `2026-08-13`
+PO-reported "search only sees one slice" defect — Design of Record §11 `R-01` names re-introducing
+that symptom as this ticket's number-one risk. It also fails the Design's own PO UI Check gate §12.2
+step 5 ("mọi tuyến khớp đều xuất hiện **dù kết quả trải nhiều trang**"), so the screen cannot pass
+the PO check as built. The underlying counts are correct — this is a display-completeness defect, not
+a data defect.
+
+**Remediation required (minimal, no scope expansion).**
+
+1. Backend: add the matched-route list to `meta.search` (for example `matched_route_list` of
+   `{ ma_tuyen, ten_tuyen, count }`). In `evidenceQueryService.getEvidence()`'s search branch this is
+   a fold over the already-computed `matched` array — no new query, no new materialization, no change
+   to `P-01`..`P-04`.
+2. Frontend: render one group per entry of that list (not per page row), and fetch a route's rows on
+   expand via the existing `route=` and `page=` parameters — precisely the one-request-per-expand
+   interaction the Product Owner already accepted under `D-OPEN-03`.
+3. Test: add a behavioral test asserting the rendered group count equals `search.matched_routes` when
+   matches span more than one page. Do not re-assert this with a source-text regex (see
+   `ITR-EV-NB-03`).
+4. Update `ShipmentEvidenceSummary.jsx`'s now-stale contract comment.
+
+### Non-blocking findings
+
+| # | Finding | Recommendation |
+| --- | --- | --- |
+| `ITR-EV-NB-01` | **"Tất cả tuyến" does not reconcile with Route Ranking's default filter.** Evidence counts every row of the BCVH in the period; Route Ranking's ranked scope excludes `ma_tuyen` NULL/blank, `ma_tuyen NOT LIKE '53%'`, and — under its **default** `Tuyến bưu tá` filter — the confirmed non-postman codes. Measured over `2026-09-01..2026-09-06`: `533140` Evidence 7,546 vs Ranking(postman) 7,105 (**+441**, which is exactly route `53314018`); `535470` 1,859 vs 1,714; `536250` 2,157 vs 2,009; `537220` 1,468 vs 1,319. Against Ranking's `Tất cả` filter the delta is **0** on all four — that is the comparison §66 recorded. Per-route comparison matches exactly either way, so Design §10.4 (scoped "+ route") is satisfied. | Not a correctness defect, but PO UI Check §12.2 step 7 compares totals: either surface the scope difference on screen, or agree with the Product Owner that the all-routes comparison is made against Ranking's `Tất cả` filter. A CTO/PO decision, not a technical one. |
+| `ITR-EV-NB-02` | **`AC-19`'s three counts collapse to two during search.** `contextTotal = pagination.total_items`, which in the search branch is `matched_items` — so the KPI cards "Tổng Evidence (bối cảnh)" and "Kết quả tìm kiếm" always display the same number whenever a keyword is active. Before this ticket, the context figure was keyword-independent. | Derive `contextTotal` from `status_summary`/`violation_summary` (the keyword-independent status+reason total, already in the payload) instead of `pagination.total_items`. One line; no API change. |
+| `ITR-EV-NB-03` | **Test coverage did not cover the blocker's failure mode.** `ShipmentPerformancePage.searchRemediation.test.js` was rewritten from behavioral assertions into source-text regexes; the original `C.1`/`C.7` guarantee (matching spans every route, never a page slice) is now asserted only as "the source contains `groupRowsByRoute(sortedRows)`" — which is precisely the defective line. This is the same weakness §66 itself identified in `T-F03`. `181/181` green is therefore not evidence on this point. | Convert the `C.1`/`C.7`/`C.11` assertions to behavioral tests over the real functions, as §66 did for the reason-patch fix. |
+| `ITR-EV-NB-04` | **Dead client-side sort.** `sortShipmentRows(runtimeRows, sort, order)` sorts on `delay_hours`/`ma_bg`, but the mapped rows expose `delayHours`/`shipmentId` — every comparison reads `undefined`, returns 0, and the server order survives only because `Array.sort` is stable. Harmless today, actively misleading to the next maintainer. Likewise `buildViolationEvidenceLink`'s `reason = 'delayed_cash'` default is now vestigial, neutralized only because `status = all` makes the page send `reason=all`. | Delete `sortShipmentRows` and drop the vestigial `reason` default in a later cleanup. Not required for the PO check. |
+| `ITR-EV-NB-05` | **`statusGroupCaseSql()` and `STATUS_PREDICATES.returned` disagree on a hypothetical fourth value.** The badge expression ends in a catch-all `ELSE 'returned'` while the filter predicate is `IS NULL OR TRIM = ''`. A future non-`Đạt`/`Không đạt`/NULL value would render as "Chuyển hoàn" yet be excluded from the `returned` filter and count. Verified today that no fourth value exists, and `identity_ok = false` would expose it. | Note only — the identity check is the correct guard. Consider making the `ELSE` branch explicit if the schema ever loosens. |
+
+### Verdict
+
+`F13-ROUTE-EVIDENCE-STATUS-02 = INDEPENDENT TECHNICAL REVIEW **BLOCKED** (2026-09-07)` on
+`ITR-EV-BLOCK-01`. No blocker was found in classification correctness, period/anchor semantics,
+pagination, search, security, data integrity, or performance, and no regression was found on the
+legacy Evidence path. The ticket must **not** proceed to PO UI Check until `ITR-EV-BLOCK-01` is
+remediated and re-reviewed; `ITR-EV-NB-02` is cheap enough to fold into the same remediation, and
+`ITR-EV-NB-01` needs a CTO/PO answer rather than code. `F13-ROUTE-RANKING-PERIOD-01` and
+`F13-BCVH-RANKING-OVERVIEW-01` remain `CLOSED / PO PASS`, unaffected; `AUTO-BACKFILL-RUNTIME` remains
+separately open, unaffected.
