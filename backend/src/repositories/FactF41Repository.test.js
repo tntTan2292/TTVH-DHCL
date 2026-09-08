@@ -37,6 +37,25 @@ test('repository computes F4.1 KPI using all rows as denominator', async () => {
     }
 });
 
+test('repository reports min/max ngay_do_kiem across imported F4.1 dates', async () => {
+    const dbPath = createTempDbPath();
+    let db;
+    try {
+        await applyF41Phase1Schema(dbPath);
+        db = new sqlite3.Database(dbPath);
+        const repository = new FactF41Repository(db);
+        await repository.overwriteImport('2026-08-01', [{ ma_bg: 'BG001', danh_gia_co_tms_ptc_8h: 'Đạt' }]);
+        await repository.overwriteImport('2026-08-03', [{ ma_bg: 'BG002', danh_gia_co_tms_ptc_8h: 'Không đạt' }]);
+
+        const meta = await repository.getMeta();
+        assert.equal(meta.min_date, '2026-08-01');
+        assert.equal(meta.max_date, '2026-08-03');
+    } finally {
+        if (db) db.close();
+        fs.rmSync(dbPath, { force: true });
+    }
+});
+
 test('repository overwrites only the requested F4.1 date', async () => {
     const dbPath = createTempDbPath();
     let db;

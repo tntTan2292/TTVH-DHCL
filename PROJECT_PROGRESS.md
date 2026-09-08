@@ -1675,3 +1675,29 @@ touches exactly 4 code paths, no SQL/business-rule change, no other tab's label 
 Cấm chạm file. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 75;
 `PROJECT_SNAPSHOT.md` updated.
 
+## 2026-09-08 - F41-PHASE-2 CLOSED / PO PASS -- F41-DASHBOARD-MINIMUM-01 ACTIVATED, PHASE B1 (BACKEND) IMPLEMENTED
+
+Product Owner decision received in chat, not yet recorded in the repository at receipt time:
+`"PO PASS / F41-PHASE-2 CLOSED — kích hoạt F4.1 Dashboard tối thiểu."` Recorded and actioned before
+any implementation: `F41-PHASE-2` (`F4.1 Multi-Indicator Import`), previously `PHASE 2 IMPLEMENTED
+/ READY FOR PO CHECK`, is now `CLOSED / PO PASS`; `F41-DASHBOARD-MINIMUM-01` is activated as the
+successor, scoped to Phase B1 (Backend) only. Discovery found `fact_f41`/`fact_f41_national`
+(F41-PHASE-1/2) and `FactF41Repository.getKpiMetrics` (total-rows denominator, already matching
+the locked `2.863/4.695 = 60,98%` contract) already existed and fully tested, but were never
+exposed through any route -- this ticket is an additive API layer, not a new metric derivation.
+Implemented: `backend/src/services/F41DashboardService.js`, `backend/src/controllers/
+F41DashboardController.js`, `backend/src/routes/f41Routes.js` (GET `dashboard/kpi`, `dashboard/
+meta`, `dashboard/bcvh-reconciliation`, `admin`+`viewer` read, no admin-only/write route), an
+additive `FactF41Repository.getMeta()` for multi-day range support, and a 2-line additive mount in
+`server.js` at `/api/f41` alongside the existing F1.3 routes (no F1.3 file touched). 17/17 new
+repository/service/controller/route tests pass; full backend sweep 296/300 (4 pre-existing,
+unrelated `fetch failed` integration-test failures needing a live server, none referencing F4.1);
+a real-database read-only script (`backend/test_f41DashboardMinimum.js`) reproduces `2.863/4.695 =
+60,98%` for `2026-08-01` end-to-end through the new `/api/f41/dashboard/kpi` endpoint, confirms a
+genuine multi-day range (`2026-07-01..2026-09-06`), and confirms `fact_f13`/`fact_f41` row counts
+unchanged (zero writes). `oxlint` 0/0 on the 5 touched files. Stopped at `READY FOR INDEPENDENT
+TECHNICAL REVIEW` per instruction -- no Product Owner PASS self-awarded, Phase F1 (Frontend) not
+started. Evidence: `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md`; `docs/06_REVIEWS/Shared/
+F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md`; `docs/10_TICKETS/F41-PHASE-2_MANIFEST.md` updated to
+`CLOSED / PO PASS`; `PROJECT_SNAPSHOT.md` updated.
+

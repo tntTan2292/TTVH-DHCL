@@ -742,3 +742,27 @@ Current state: `F13-OPERATING-PATTERN-WEEKLY-WINDOW-01 = CLOSED / TECHNICAL FIX 
 `Current Ticket = None` (unchanged by this fix). No PO UI Check gate applies -- this Dashboard
 card has no dedicated Design of Record §12.2-style gate of its own; the Product Owner may
 optionally spot-check the live label.
+
+
+## F41-PHASE-2 Closure + F41-DASHBOARD-MINIMUM-01 Activation Registration - 2026-09-08
+
+Product Owner decision received in chat, not previously recorded in the repository: `"PO PASS /
+F41-PHASE-2 CLOSED — kích hoạt F4.1 Dashboard tối thiểu."` This entry supersedes the F41-PHASE-2
+rows above for onboarding purposes without deleting them, and registers the new successor ticket's
+Phase B1 (Backend) implementation.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F41-PHASE-2_MANIFEST.md` | Ticket Manifest | Status line updated to `CLOSED / PO PASS (2026-09-08)`, recording the Product Owner decision verbatim. No new code evidence added -- the ticket was already `PHASE 2 IMPLEMENTED / READY FOR PO CHECK`. | L2 | Historical Record | Reference for the F4.1 Import lineage (`fact_f41`, `fact_f41_national`) this ticket reads. | Reference |
+| `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` | Ticket Manifest | New current manifest: ticket authority (the PO decision above), Phase B1 (Backend)-only scope, required reading, in/out-of-scope lock, validation results, completion state `PHASE B1 (BACKEND) IMPLEMENTED / READY FOR INDEPENDENT TECHNICAL REVIEW`. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` | Checkpoint | Activation and scope lock (Sections 1-2), discovery that `fact_f41`/`fact_f41_national` and the total-rows `getKpiMetrics` query already existed untouched from F41-PHASE-1/2 (Section 3), the new additive service/controller/route/repository-method implementation (Section 4), full validation evidence including the real-database read-only reproduction of `2.863/4.695 = 60,98%` (Section 5), and completion state (Section 6). | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `backend/src/services/F41DashboardService.js` | Source (new) | Thin service over `FactF41Repository`: `getDashboardKpi`, `getBcvhReconciliation`, `getDashboardMeta`. No SQL of its own. | L3 | Active | When touching the F4.1 Dashboard API contract. | Mandatory |
+| `backend/src/controllers/F41DashboardController.js` | Source (new) | `getKpi`/`getBcvhReconciliation`/`getMeta`; same `{success,data}`/`{success:false,error}` contract and `ma_bcvh` whitelist validation as the F1.3 `DashboardController`. | L3 | Active | When touching the F4.1 Dashboard API contract. | Mandatory |
+| `backend/src/routes/f41Routes.js` | Source (new) | `GET /dashboard/kpi`, `GET /dashboard/meta`, `GET /dashboard/bcvh-reconciliation`, all `admin`+`viewer` read-only; no admin-only/write route exists in this file. Mounted at `/api/f41` in `backend/server.js`. | L3 | Active | When touching the F4.1 Dashboard API contract. | Mandatory |
+| `backend/src/repositories/FactF41Repository.js` | Source (modified) | Added `getMeta()` (`MIN`/`MAX ngay_do_kiem` on `fact_f41`) only; `getKpiMetrics`/`getBcvhReconciliation`/`overwriteImport` unchanged. | L3 | Active | When touching F4.1 repository queries. | Mandatory |
+| `backend/server.js` | Source (modified) | Two additive lines mounting `f41Routes` at `/api/f41`, after the existing F1.3/Import/network-map mounts; no existing line changed. | L3 | Active | Route-mounting reference. | Reference |
+| `backend/test_f41DashboardMinimum.js` | Test (new, real-DB read-only) | Drives the new controller against the live operational database; reproduces `2.863/4.695 = 60,98%` for `2026-08-01`, confirms multi-day range support and zero writes. | L3 | Active | Re-run whenever the F4.1 Dashboard KPI contract changes. | Mandatory |
+
+Current state: `F41-PHASE-2 = CLOSED / PO PASS`; `F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) =
+IMPLEMENTED / READY FOR INDEPENDENT TECHNICAL REVIEW`. No Product Owner PASS is self-awarded.
+Phase F1 (Frontend) is not started and requires its own activation.

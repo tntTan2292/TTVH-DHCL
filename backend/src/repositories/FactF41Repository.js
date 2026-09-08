@@ -127,6 +127,20 @@ class FactF41Repository {
         });
     }
 
+    getMeta() {
+        return new Promise((resolve, reject) => {
+            const sql = `
+                SELECT MIN(ngay_do_kiem) AS min_date, MAX(ngay_do_kiem) AS max_date
+                FROM fact_f41
+                WHERE date(ngay_do_kiem) <= date('now', 'localtime')
+            `;
+            this.db.get(sql, [], (err, row) => {
+                if (err) reject(err);
+                else resolve(row || { min_date: null, max_date: null });
+            });
+        });
+    }
+
     getBcvhReconciliation(date) {
         return new Promise((resolve, reject) => {
             const sql = `
