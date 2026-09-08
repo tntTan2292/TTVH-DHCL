@@ -3420,3 +3420,59 @@ route), the global pagination bar no longer collapses grouped state because it i
 while grouped, and a per-route response can no longer poison the cache with a previous filter
 context's rows. `READY FOR INDEPENDENT RE-REVIEW` by a model other than `Sonnet`, per `DEC-021` —
 not self-declared `READY FOR PO UI CHECK`.
+
+## 71. F13-ROUTE-EVIDENCE-STATUS-02 — Independent Re-Review of `ITR2-BLOCK-01`/`ITR2-NB-01` — **PASS / READY FOR PO UI CHECK** (2026-09-08)
+
+Append-only delta. Sections 1-70 unchanged. Reviewer: `Claude Code`/`Opus` — a different model from
+the `Sonnet` executor of the §70 remediation, per `DEC-021`. Baseline reviewed: `e89c2d0`. Scope as
+instructed: `ITR2-BLOCK-01` and `ITR2-NB-01` only, not a re-review of the whole ticket. Read-only —
+no product code was changed by this review; only the test suites, `oxlint`, `vite build`, and
+read-only `SELECT` measurements were run. `fact_f13` read before and after: **777,081 rows,
+`MAX(ngay_do_kiem) = 2026-09-06`, identical** — zero writes.
+
+### Verification
+
+| # | Requirement | Result |
+| --- | --- | --- |
+| 1 | Every search route group over 50 rows has its own complete pagination | **PASS** — re-measured on the reviewer's own case `53314072` ("533140 HCC An Đông", `HCC`, `month_to_anchor`): the per-route response's `pagination` is `total_items 345 / total_pages 7 / page_size 50`, and `total_items` equals the group header's `matched_route_list` count exactly. `RouteGroupPagination` renders "Hiển thị X-Y / N" plus Trước/Sau bound to that meta |
+| 2 | Page 2 / last page really load different data | **PASS** — page 1 `CE217192115VN`…`CD468830625VN`; page 2 `CD570003767VN`…`CJ521569547VN`; page 7 returns the expected partial 45 rows (345 − 6×50). `page1 ∩ page2 = 0` — no repetition, no stalled page |
+| 3 | No silent truncation | **PASS** — walked **all 7 real pages** of `53314072`: the union is exactly **345 distinct `ma_bg`**, 0 duplicates, 0 gaps — every matched row is reachable. Same on `53314071` (242 rows / 5 pages, union 242) and `53314059` (37 rows / 1 page, union 37, where the control correctly renders **nothing** because `total_items <= page_size && total_pages <= 1`). The partial render is now explicit, satisfying Design §5.6 / `P-03` |
+| 4 | Global pagination does not interfere with grouped-search mode | **PASS** — `{!isSearchActive && paginationControls}` (`ShipmentPerformancePage.jsx:808`): the global bar renders only in flat mode, so it can no longer clear expanded groups for no visible benefit. Nothing is lost — it was never wired to grouped data |
+| 5 | A stale response cannot overwrite the current context | **PASS, and audited for holes** — `contextGenerationRef` is bumped (`:236`) inside the same effect that clears the cache (`:231`), `requestGeneration` is captured *before* the request starts (`:340`), and `runGuardedRouteGroupFetch` discards a mismatched response on **both** the success and the error path (so a stale failure cannot surface as a fresh error either). Audit: `:231` is the **only** cache-clearing site, and the effect's dependency list (`:290`) covers every context value the per-route call closes over (`analysisDate`, `bcvhId`, `routeIdParam`, `periodParam`, `statusParam`, `reasonParam`, `search`, `sort`, `order`, `currentPage`) — no context change can escape a bump, and no stray `loading` entry can survive, since the clear removes it |
+| 6 | The §68 `matched_route_list` remediation is still intact | **PASS** — re-measured at this baseline: `matched_route_list` still returns 9 routes / 1,617 matched items on the same real `HCC` case. Structurally guaranteed too: **no backend file is changed by this commit at all** |
+| 7 | No regression to server-side pagination / the performance contract | **PASS** — no backend change; no new query; no ceiling raised. Every per-route response observed was ≤ 50 rows (max 50), and `page_size` stays pinned to the `PAGE_SIZE` constant — a shipped test explicitly fails if a numeric literal is ever substituted. Walking 345 rows costs 7 bounded requests rather than one 345-row payload, so `P-01`/`P-02` hold |
+| 8 | Behavioral tests catch the real failure modes | **PASS, mutation-tested** — re-ran the new assertions against deliberately reverted implementations: the `ITR2-NB-01` stale-response test **fails** against an unguarded fetch (no generation check) and passes against the shipped guard; the `ITR2-BLOCK-01` no-silent-truncation test **fails** against a `buildSearchRouteGroups` that omits `page`/`pagination` and passes against the shipped one. These are real guards, not restatements of the shipped source |
+
+Suites re-run by this review at `e89c2d0`: frontend `features/shipment/` + `features/route/`
+**198/198** (187 + 11 new); full frontend sweep **464/468**, the same 4 pre-existing baseline
+failures on record since §52 (`features/dashboard`, `pages/dataImportBackfillQueue.test.js`), none
+in `shipment`/`route`; backend Evidence + route-period **79/79** unchanged. `npx oxlint
+src/features/shipment/ src/features/route/`: 0 errors/0 warnings. `npm run build`: succeeds
+(pre-existing chunk-size warning only). `git diff --name-only 1814011..e89c2d0` touches no backend
+file and no §9.4 Cấm chạm file.
+
+### Notes (no action required, recorded for completeness)
+
+- Two rapid page clicks on the **same** route within the **same** context both apply (the guard
+  intentionally only discards cross-context responses), so the last response to resolve wins rather
+  than the last clicked. It cannot show wrong data: the cached `page` and the response's own
+  `pagination` come from the same request, so the rendered rows and the "Trang N / M" label always
+  agree with each other.
+- In grouped mode the top-level page fetch still runs and its 50 rows are never rendered — they
+  serve only the "has any result" gate and the `AC-15` selection lookup. Pre-existing since §68,
+  harmless, no correctness impact.
+
+### Verdict
+
+`ITR2-BLOCK-01 CLOSED / ITR2-NB-01 CLOSED / TECHNICAL REVIEW PASS / READY FOR PO UI CHECK`.
+
+The grouped search view is now complete at both levels: every matched route appears (§68, re-verified
+at §69), and every matched row within each route is reachable through that route's own bounded
+pagination, with the partial render made explicit rather than silent. `ITR-EV-NB-01` from §67
+(Evidence "Tất cả tuyến" totals versus Tuyến Ranking's default `Tuyến bưu tá` scope) remains an open
+**CTO/PO** question — it is a scope-definition decision, not a code defect, and it does not gate the
+PO UI Check; the Product Owner should simply be aware when performing §12.2 step 7 that the
+all-routes comparison reconciles against Tuyến Ranking's `Tất cả` filter, while per-route comparison
+matches exactly under either filter. `Claude Code` does not self-award `PO PASS`.
+`F13-ROUTE-RANKING-PERIOD-01` and `F13-BCVH-RANKING-OVERVIEW-01` remain `CLOSED / PO PASS`;
+`AUTO-BACKFILL-RUNTIME` remains separately open, unaffected.
