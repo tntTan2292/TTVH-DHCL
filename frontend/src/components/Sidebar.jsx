@@ -1,45 +1,64 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown } from 'lucide-react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown, MapPin } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
   const [expandedGroups, setExpandedGroups] = useState({
+    'Quản lý chất lượng': true,
     'F1.3 Quality Management': true,
-    'System Administration': false
+    'Quản lý mạng lưới': false,
+    'System Administration': false,
   });
 
   const toggleGroup = (groupTitle) => {
-    setExpandedGroups(prev => ({
+    setExpandedGroups((prev) => ({
       ...prev,
-      [groupTitle]: !prev[groupTitle]
+      [groupTitle]: !prev[groupTitle],
     }));
   };
 
   const menuItems = [
-    { name: 'Dashboard Home', path: '/', icon: <LayoutDashboard size={20} /> },
     {
-      title: 'F1.3 Quality Management',
-      icon: <Target size={20} />,
+      title: 'Quản lý chất lượng',
+      icon: <Activity size={20} />,
       subItems: [
-        { name: 'Operation Dashboard', path: '/f13/dashboard',       icon: <Target size={18} /> },
-        { name: 'BCVH Ranking',        path: '/f13/ranking/bcvh',   icon: <BarChart2 size={18} /> },
-        { name: 'Tuyến Ranking',       path: '/f13/ranking/route',  icon: <BarChart2 size={18} /> },
-        { name: 'Evidence',            path: '/f13/evidence',       icon: <Database size={18} /> },
-      ]
+        { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={18} /> },
+        { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={18} /> },
+        {
+          title: 'F1.3 Quality Management',
+          name: 'F1.3 Quality Management',
+          icon: <Target size={18} />,
+          subItems: [
+            { name: 'Operation Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
+            { name: 'BCVH Ranking', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
+            { name: 'Tuyến Ranking', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
+            { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
+          ],
+        },
+        { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={18} /> },
+      ],
     },
-    { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={20} /> },
-    { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={20} /> },
-    { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={20} /> },
+    {
+      title: 'Quản lý mạng lưới',
+      icon: <MapPin size={20} />,
+      subItems: [
+        { name: 'Mạng điểm phục vụ', path: '/network-map/service-points', icon: <MapPin size={18} /> },
+        { name: 'Mạng đường thư cấp 2', path: '/network-map/level2-routes', icon: <MapPin size={18} /> },
+        { name: 'Sơ đồ tuyến phát', path: '/network-map/delivery-routes', icon: <MapPin size={18} /> },
+        { name: 'Bản đồ tích hợp', path: '/network-map/integrated', icon: <MapPin size={18} /> },
+      ],
+    },
     {
       title: 'System Administration',
       icon: <Settings size={20} />,
+      roles: ['admin'],
       subItems: [
-        { name: 'Data Import Center', path: '/import',      icon: <FileSpreadsheet size={18} /> },
-        { name: 'KPI Configuration',  path: '/kpi-config',  icon: <Settings size={18} /> },
+        { name: 'Data Import Center', path: '/import', icon: <FileSpreadsheet size={18} /> },
+        { name: 'KPI Configuration', path: '/kpi-config', icon: <Settings size={18} /> },
         { name: 'System Information', path: '/system-info', icon: <Info size={18} /> },
-      ]
-    }
+      ],
+    },
   ];
 
   return (
@@ -54,7 +73,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         
         {/* Brand Header */}
         <div className={`p-6 border-b border-white/10 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-4 relative min-h-[80px]`}>
-          <div className="flex items-center gap-3 overflow-hidden">
+          <Link to="/" className="flex items-center gap-3 overflow-hidden">
             {!isCollapsed && (
               <div className="flex flex-col">
                 <h1 className="font-black text-xl tracking-wide text-white drop-shadow-md">
@@ -68,7 +87,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             {isCollapsed && (
               <h1 className="font-extrabold text-xl text-vnpost-orange drop-shadow-md">DHCL</h1>
             )}
-          </div>
+          </Link>
           <button 
             onClick={onToggleCollapse}
             className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-vnpost-orange text-[#003E7E] rounded-full items-center justify-center shadow-lg hover:scale-110 transition-transform z-50"
@@ -84,7 +103,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
               // Flat item
               if (!item.subItems) {
                 return (
-                  <li key={idx}>
+                  <li key={item.path || idx}>
                     <NavLink
                       to={item.path}
                       className={({ isActive }) => 
@@ -100,11 +119,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
 
               // Tree item
               const isExpanded = expandedGroups[item.title];
-              // Check if any subitem is active
-              const isGroupActive = item.subItems.some(sub => location.pathname === sub.path);
+              const isGroupActive = item.subItems.some((sub) => {
+                if (sub.subItems) {
+                  return sub.subItems.some((nested) => location.pathname === nested.path);
+                }
+                return location.pathname === sub.path;
+              });
 
               return (
-                <li key={idx} className="pt-2">
+                <li key={item.title || idx} className="pt-2">
                   {!isCollapsed ? (
                     <button
                       onClick={() => toggleGroup(item.title)}
@@ -125,19 +148,59 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                   {/* Sub items */}
                   {(!isCollapsed && isExpanded) && (
                     <ul className="mt-1 space-y-1 bg-black/10 py-2">
-                      {item.subItems.map(sub => (
-                        <li key={sub.path}>
-                          <NavLink
-                            to={sub.path}
-                            className={({ isActive }) => 
-                              `flex items-center pl-14 pr-6 py-2.5 transition-all duration-200 relative ${isActive ? 'text-white font-bold bg-white/5 border-l-4 border-vnpost-orange' : 'text-blue-200/80 hover:text-white hover:bg-white/5 border-l-4 border-transparent'}`
-                            }
-                          >
-                            <div className="flex-shrink-0 opacity-70 scale-90">{sub.icon}</div>
-                            <span className="ml-3 whitespace-nowrap text-[14px]">{sub.name}</span>
-                          </NavLink>
-                        </li>
-                      ))}
+                      {item.subItems.map((sub) => {
+                        if (!sub.subItems) {
+                          return (
+                            <li key={sub.path || sub.name}>
+                              <NavLink
+                                to={sub.path}
+                                className={({ isActive }) =>
+                                  `flex items-center pl-14 pr-6 py-2.5 transition-all duration-200 relative ${isActive ? 'text-white font-bold bg-white/5 border-l-4 border-vnpost-orange' : 'text-blue-200/80 hover:text-white hover:bg-white/5 border-l-4 border-transparent'}`
+                                }
+                              >
+                                <div className="flex-shrink-0 opacity-70 scale-90">{sub.icon}</div>
+                                <span className="ml-3 whitespace-nowrap text-[14px]">{sub.name}</span>
+                              </NavLink>
+                            </li>
+                          );
+                        }
+
+                        const isSubExpanded = expandedGroups[sub.title || sub.name];
+                        const isSubActive = sub.subItems.some((nested) => location.pathname === nested.path);
+
+                        return (
+                          <li key={sub.title || sub.name} className="pt-1">
+                            <button
+                              onClick={() => toggleGroup(sub.title || sub.name)}
+                              className={`w-full flex items-center justify-between pl-12 pr-6 py-2 transition-all duration-200 group relative ${isSubActive ? 'text-white font-semibold' : 'text-blue-200/80 hover:text-white'}`}
+                            >
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 opacity-70 scale-90">{sub.icon}</div>
+                                <span className="ml-3 whitespace-nowrap text-[14px]">{sub.name || sub.title}</span>
+                              </div>
+                              <ChevronDown size={14} className={`transition-transform duration-200 ${isSubExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isSubExpanded && (
+                              <ul className="mt-1 space-y-1 bg-black/20 py-1.5">
+                                {sub.subItems.map((nested) => (
+                                  <li key={nested.path}>
+                                    <NavLink
+                                      to={nested.path}
+                                      className={({ isActive }) =>
+                                        `flex items-center pl-20 pr-6 py-2 transition-all duration-200 relative ${isActive ? 'text-white font-bold bg-white/5 border-l-4 border-vnpost-orange' : 'text-blue-200/70 hover:text-white hover:bg-white/5 border-l-4 border-transparent'}`
+                                      }
+                                    >
+                                      <div className="flex-shrink-0 opacity-70 scale-75">{nested.icon}</div>
+                                      <span className="ml-2.5 whitespace-nowrap text-[13px]">{nested.name}</span>
+                                    </NavLink>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </li>

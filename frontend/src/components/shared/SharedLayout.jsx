@@ -11,8 +11,13 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
   const location = useLocation();
   const { user } = useAuth();
   const [expandedGroups, setExpandedGroups] = useState({
+    'Quản lý chất lượng': true,
+    'QUẢN LÝ CHẤT LƯỢNG': true,
     'F1.3 Quality Management': true,
+    'Quản lý mạng lưới': false,
+    'QUẢN LÝ MẠNG LƯỚI': false,
     'System Administration': false,
+    'SYSTEM ADMINISTRATION': false,
   });
   const navGroups = getNavigationForRole(user?.role);
 
@@ -29,7 +34,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
         className={`fixed inset-y-0 left-0 z-50 flex w-[280px] transform flex-col bg-gradient-to-b from-vnpost-blue-dark to-[#002a54] text-white shadow-2xl transition-all duration-300 ease-in-out md:relative ${isCollapsed ? 'md:w-20' : 'md:w-[280px]'} ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         <div className={`relative flex min-h-[80px] items-center gap-4 border-b border-white/10 p-6 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-          <div className="flex items-center gap-3 overflow-hidden">
+          <Link to="/" className="flex items-center gap-3 overflow-hidden">
             {!isCollapsed ? (
               <div className="flex flex-col">
                 <h1 className="text-xl font-black tracking-wide text-white drop-shadow-md">
@@ -42,7 +47,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
             ) : (
               <h1 className="text-xl font-extrabold text-vnpost-orange drop-shadow-md">DHCL</h1>
             )}
-          </div>
+          </Link>
           <button
             onClick={onToggleCollapse}
             className="absolute -right-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-vnpost-orange text-[#003E7E] shadow-lg transition-transform hover:scale-110 md:flex"
@@ -56,7 +61,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
             {navGroups.map((item, idx) => {
               if (!item.subItems) {
                 return (
-                  <li key={idx}>
+                  <li key={item.path || idx}>
                     <NavLink
                       to={buildPreservedPath(item.path, location.search)}
                       className={({ isActive }) =>
@@ -71,10 +76,15 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
               }
 
               const isExpanded = expandedGroups[item.title];
-              const isGroupActive = item.subItems.some((sub) => location.pathname === sub.path);
+              const isGroupActive = item.subItems.some((sub) => {
+                if (sub.subItems) {
+                  return sub.subItems.some((nested) => location.pathname === nested.path);
+                }
+                return location.pathname === sub.path;
+              });
 
               return (
-                <li key={idx} className="pt-2">
+                <li key={item.title || idx} className="pt-2">
                   {!isCollapsed ? (
                     <button
                       onClick={() => toggleGroup(item.title)}
@@ -94,19 +104,59 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
 
                   {!isCollapsed && isExpanded && (
                     <ul className="mt-1 space-y-1 bg-black/10 py-2">
-                      {item.subItems.map((sub) => (
-                        <li key={sub.path}>
-                          <NavLink
-                            to={buildPreservedPath(sub.path, location.search)}
-                            className={({ isActive }) =>
-                              `relative flex items-center py-2.5 pl-14 pr-6 transition-all duration-200 ${isActive ? 'border-l-4 border-vnpost-orange bg-white/5 font-bold text-white' : 'border-l-4 border-transparent text-blue-200/80 hover:bg-white/5 hover:text-white'}`
-                            }
-                          >
-                            <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
-                            <span className="ml-3 whitespace-nowrap text-[14px]">{sub.name}</span>
-                          </NavLink>
-                        </li>
-                      ))}
+                      {item.subItems.map((sub) => {
+                        if (!sub.subItems) {
+                          return (
+                            <li key={sub.path || sub.name}>
+                              <NavLink
+                                to={buildPreservedPath(sub.path, location.search)}
+                                className={({ isActive }) =>
+                                  `relative flex items-center py-2.5 pl-14 pr-6 transition-all duration-200 ${isActive ? 'border-l-4 border-vnpost-orange bg-white/5 font-bold text-white' : 'border-l-4 border-transparent text-blue-200/80 hover:bg-white/5 hover:text-white'}`
+                                }
+                              >
+                                <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
+                                <span className="ml-3 whitespace-nowrap text-[14px]">{sub.name}</span>
+                              </NavLink>
+                            </li>
+                          );
+                        }
+
+                        const isSubExpanded = expandedGroups[sub.title || sub.name];
+                        const isSubActive = sub.subItems.some((nested) => location.pathname === nested.path);
+
+                        return (
+                          <li key={sub.title || sub.name} className="pt-1">
+                            <button
+                              onClick={() => toggleGroup(sub.title || sub.name)}
+                              className={`relative flex w-full items-center justify-between py-2 pl-12 pr-6 transition-all duration-200 ${isSubActive ? 'font-semibold text-white' : 'text-blue-200/80 hover:text-white'}`}
+                            >
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
+                                <span className="ml-3 whitespace-nowrap text-[14px]">{sub.name || sub.title}</span>
+                              </div>
+                              <ChevronDown size={14} className={`transition-transform duration-200 ${isSubExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {isSubExpanded && (
+                              <ul className="mt-1 space-y-1 bg-black/20 py-1.5">
+                                {sub.subItems.map((nested) => (
+                                  <li key={nested.path}>
+                                    <NavLink
+                                      to={buildPreservedPath(nested.path, location.search)}
+                                      className={({ isActive }) =>
+                                        `relative flex items-center py-2 pl-20 pr-6 transition-all duration-200 ${isActive ? 'border-l-4 border-vnpost-orange bg-white/5 font-bold text-white' : 'border-l-4 border-transparent text-blue-200/70 hover:bg-white/5 hover:text-white'}`
+                                      }
+                                    >
+                                      <div className="flex-shrink-0 scale-75 opacity-70">{nested.icon}</div>
+                                      <span className="ml-2.5 whitespace-nowrap text-[13px]">{nested.name}</span>
+                                    </NavLink>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </li>

@@ -3531,3 +3531,37 @@ Per Product Owner instruction:
 - Module code and router definitions (`<Route path="pareto" ... />`, `<Route path="message" ... />`) preserved unchanged in `App.jsx` (no code/module/route deletion).
 - Unaffected completed surfaces: Operation Dashboard (`/f13/dashboard`), BCVH Ranking (`/f13/ranking/bcvh`), Tuyến Ranking (`/f13/ranking/route`), and Evidence (`/f13/evidence`).
 - Verification: Regression tests added in `frontend/src/navigation/appNavigation.test.js` covering both `appNavigation.jsx` and `Sidebar.jsx`; all 5 navigation tests PASS; full frontend build succeeds cleanly; oxlint 0 warnings / 0 errors.
+
+## 74. Sidebar Navigation Restructure — Exactly 03 Modules & Role-based Access (`2026-09-08`)
+
+Append-only delta. Sections 1-73 unchanged. Restructuring of application sidebar into exactly 03 top-level modules starting from baseline `ac908cd`.
+
+Per Product Owner instruction:
+1. **Sidebar reorganized into exactly 03 modules**:
+   - **Module 1: QUẢN LÝ CHẤT LƯỢNG**: Strict order:
+     1. `F1.1 Quality Management` (`/f11`)
+     2. `F1.2 Quality Management` (`/f12`)
+     3. `F1.3 Quality Management` (sub-items: `Operation Dashboard`, `BCVH Ranking`, `Tuyến Ranking`, `Evidence`)
+     4. `F4.1 Quality Management` (`/f41`)
+   - **Module 2: QUẢN LÝ MẠNG LƯỚI**: Keeps existing 4 sub-menus intact (`/network-map/service-points`, `/network-map/level2-routes`, `/network-map/delivery-routes`, `/network-map/integrated`).
+   - **Module 3: SYSTEM ADMINISTRATION**: Keeps existing 3 functions intact (`/import`, `/kpi-config`, `/system-info`); visible exclusively to `ADMIN` role.
+2. **Role-Based Access Control (RBAC)**:
+   - Non-ADMIN / viewer user: Sees only Module 1 + Module 2 (Module 3 is completely hidden).
+   - ADMIN user: Sees all 3 modules (Module 1 + Module 2 + Module 3).
+   - Uses existing auth/role system (`ROLE_ADMIN`, `ROLE_VIEWER`, `normalizeRole`), no hardcoded usernames.
+   - All existing router definitions and backend auth are preserved intact; no route or module deleted.
+3. **Synchronization**:
+   - `frontend/src/navigation/appNavigation.jsx`, `frontend/src/components/Sidebar.jsx`, and `frontend/src/components/shared/SharedLayout.jsx` updated in sync.
+   - Added nested sub-item rendering support for F1.3 inside Module 1 in both `SharedLayout.jsx` and `Sidebar.jsx`.
+   - Brand header link added navigating to `/` (Home).
+4. **Verification**:
+   - `frontend/src/navigation/appNavigation.test.js` expanded with automated unit tests for:
+     - Strict 3-module top-level structure
+     - Exact menu sequence in Module 1: F1.1 -> F1.2 -> F1.3 -> F4.1
+     - Retention of Module 2 and Module 3 sub-menus
+     - Strict role visibility: ADMIN sees 3 modules, Viewer sees 2 modules (Module 3 absent)
+     - Sidebar.jsx synchronization
+   - All 11 navigation and role tests PASS.
+   - `oxlint` 0 errors on touched files.
+   - `npm run build` succeeds cleanly in 1.14s.
+

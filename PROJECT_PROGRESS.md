@@ -1639,3 +1639,14 @@ and `frontend/src/components/Sidebar.jsx`. Modules and routes preserved intact i
 surfaces (Operation Dashboard, BCVH Ranking, Tuyến Ranking, Evidence) unaffected; 5/5 navigation tests pass
 (`appNavigation.test.js`); `oxlint` 0 warnings / 0 errors; frontend build succeeds cleanly. Manifest
 Section 73 appended; `PROJECT_SNAPSHOT.md` updated.
+
+`Sidebar Navigation Restructure — Exactly 03 Modules` (`2026-09-08`): reorganized the application sidebar
+into exactly 03 top-level modules starting from baseline `ac908cd`: Module 1 QUẢN LÝ CHẤT LƯỢNG (strict order:
+F1.1 -> F1.2 -> F1.3 [Operation Dashboard, BCVH Ranking, Tuyến Ranking, Evidence] -> F4.1), Module 2 QUẢN LÝ
+MẠNG LƯỚI (retained 4 network map sub-menus), Module 3 SYSTEM ADMINISTRATION (retained 3 functions, visible
+only to ADMIN). Role-based visibility: non-ADMIN / viewer sees Module 1 + Module 2; ADMIN sees Module 1 +
+Module 2 + Module 3. Synchronized across `frontend/src/navigation/appNavigation.jsx`, `frontend/src/components/Sidebar.jsx`,
+and `frontend/src/components/shared/SharedLayout.jsx` with nested sub-item support and brand link to `/`.
+11/11 tests pass in `appNavigation.test.js` + `roles.test.js`; `oxlint` 0 warnings / 0 errors; `npm run build`
+succeeds cleanly. Manifest Section 74 appended; `PROJECT_SNAPSHOT.md` updated.
+

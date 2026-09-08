@@ -1,5 +1,28 @@
-import { Activity, BarChart2, FileSpreadsheet, Info, LayoutDashboard, MapPin, Settings, Target, Database } from 'lucide-react';
+import { Activity, BarChart2, Database, FileSpreadsheet, Info, MapPin, Settings, Target } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
+
+const F13_GROUP = {
+  title: 'F1.3 Quality Management',
+  name: 'F1.3 Quality Management',
+  icon: <Target size={18} />,
+  subItems: [
+    { name: 'Operation Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
+    { name: 'BCVH Ranking', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    { name: 'Tuyến Ranking', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
+    { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
+  ],
+};
+
+const QUALITY_MANAGEMENT_GROUP = {
+  title: 'Quản lý chất lượng',
+  icon: <Activity size={20} />,
+  subItems: [
+    { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
+    { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
+    F13_GROUP,
+    { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
+  ],
+};
 
 const NETWORK_MANAGEMENT_GROUP = {
   title: 'Quản lý mạng lưới',
@@ -9,17 +32,6 @@ const NETWORK_MANAGEMENT_GROUP = {
     { name: 'Mạng đường thư cấp 2', path: '/network-map/level2-routes', icon: <MapPin size={18} /> },
     { name: 'Sơ đồ tuyến phát', path: '/network-map/delivery-routes', icon: <MapPin size={18} /> },
     { name: 'Bản đồ tích hợp', path: '/network-map/integrated', icon: <MapPin size={18} /> },
-  ],
-};
-
-const F13_GROUP = {
-  title: 'F1.3 Quality Management',
-  icon: <Target size={20} />,
-  subItems: [
-    { name: 'Operation Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
-    { name: 'BCVH Ranking', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
-    { name: 'Tuyến Ranking', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
-    { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
   ],
 };
 
@@ -35,12 +47,8 @@ const ADMIN_ONLY_GROUP = {
 };
 
 const ROOT_ITEMS = [
-  { name: 'Dashboard Home', path: '/', icon: <LayoutDashboard size={20} />, roles: [ROLE_ADMIN] },
-  F13_GROUP,
+  QUALITY_MANAGEMENT_GROUP,
   NETWORK_MANAGEMENT_GROUP,
-  { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={20} />, roles: [ROLE_ADMIN] },
-  { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={20} />, roles: [ROLE_ADMIN] },
-  { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={20} />, roles: [ROLE_ADMIN] },
   ADMIN_ONLY_GROUP,
 ];
 
@@ -50,16 +58,20 @@ function isAllowed(item, role) {
   return item.roles.includes(currentRole);
 }
 
-export function getNavigationForRole(role) {
-  return ROOT_ITEMS
+function filterNavItems(items, role) {
+  return items
     .filter((item) => isAllowed(item, role))
     .map((item) => {
       if (!item.subItems) return item;
       return {
         ...item,
-        subItems: item.subItems.filter((subItem) => isAllowed(subItem, role)),
+        subItems: filterNavItems(item.subItems, role),
       };
     });
+}
+
+export function getNavigationForRole(role) {
+  return filterNavItems(ROOT_ITEMS, role);
 }
 
 export function getDashboardQuickLinks(role) {
