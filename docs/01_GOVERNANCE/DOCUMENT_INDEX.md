@@ -681,3 +681,22 @@ deleting it.
 Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = PHASE I1 INTEGRATION VALIDATION COMPLETE / READY
 FOR INDEPENDENT TECHNICAL REVIEW`. Per `DEC-021`, an Independent Technical Review by a different
 model is mandatory before any PO UI Check.
+
+
+## F13-ROUTE-EVIDENCE-STATUS-02 ITR2-BLOCK-01 + ITR2-NB-01 Remediation Registration - 2026-09-08
+
+Registers the remediation of the two findings from the Section 69 Independent Re-Review
+(`Claude Code`/`Opus`), performed by `Claude Code`/`Sonnet`. Supersedes the Section 66
+registration above for onboarding purposes without deleting it.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `frontend/src/features/shipment/shipmentPerformanceData.js` | Source (modified) | `buildSearchRouteGroups` now also carries `page`/`pagination` per route group; new `runGuardedRouteGroupFetch` is the pure request-generation-guard orchestration that closes `ITR2-NB-01`. | L3 | Active | When touching grouped-search pagination or the per-route fetch race guard. | Mandatory |
+| `frontend/src/features/shipment/ShipmentPerformancePage.jsx` | Source (modified) | `fetchRouteGroupRows` now accepts/uses a real `page` and stores the response's own `meta.pagination`, routed through the new guard via a `contextGenerationRef` bumped in the query-context effect; new `handleRouteGroupPageChange`; the global `paginationControls` bar is now gated `!isSearchActive`. | L3 | Active | When touching Evidence's grouped search view or its pagination. | Mandatory |
+| `frontend/src/features/shipment/ShipmentEvidenceSummary.jsx` | Source (modified) | New `RouteGroupPagination` renders the "Hiển thị X-Y/N" affordance plus Trước/Sau controls under each expanded group, sourced from `group.pagination`; early-returns when a route's result already fits on one page. | L3 | Active | When touching the grouped search result table. | Mandatory |
+| `frontend/src/features/shipment/ShipmentPerformancePage.groupPaginationRemediation.test.js` | Tests (new) | 11 tests: 3 required-behavior groups (page-2-reachable, no-silent-truncation, stale-context-discarded) plus 6 wiring checks, matching this suite's existing behavioral+source-text convention. | L3 | Active | Before modifying grouped-search pagination or the race guard. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 70 (appended) records root cause, the remediation, real-data validation (a real >50-row route paged end-to-end via curl and a live browser session), and full regression evidence. Sections 1-69 stand unchanged. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = ITR2-BLOCK-01 + ITR2-NB-01 REMEDIATED / READY FOR
+INDEPENDENT RE-REVIEW`. Per `DEC-021`, a model other than the remediating `Sonnet` session must
+re-review before any PO UI Check.

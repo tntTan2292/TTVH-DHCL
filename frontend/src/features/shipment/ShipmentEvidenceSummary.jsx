@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { StandardTable, StatusBadge, EmptyState } from '../../components/shared/SharedComponents';
 
 // Primary violation table — Phase 2 rebuild (F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md
@@ -99,6 +99,54 @@ function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment })
   return columns;
 }
 
+// ITR2-BLOCK-01 remediation (Independent Re-Review, 2026-09-08): each expanded route group
+// gets its own page control, driven by that route's own `pagination` meta (already scoped
+// server-side to exactly this route — see evidenceQueryService.js). `page_size` stays 50
+// (never widened); "Trang trước/sau" walks the route's own pages until every one of its rows
+// has been reachable, and "Hiển thị 50/N" makes the partial render explicit instead of a
+// silent truncation (Design §5.6 / P-03).
+function RouteGroupPagination({ pagination, onPageChange }) {
+  if (!pagination || !pagination.total_items) return null;
+  const { page, page_size: pageSize, total_items: totalItems, total_pages: totalPages } = pagination;
+  if (totalItems <= pageSize && totalPages <= 1) return null;
+
+  const rangeStart = totalItems > 0 ? (page - 1) * pageSize + 1 : 0;
+  const rangeEnd = Math.min(page * pageSize, totalItems);
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-surface-200)] bg-[var(--color-surface-50)] px-4 py-2">
+      <span className="text-xs font-medium text-slate-600">
+        Hiển thị <strong>{rangeStart}-{rangeEnd}</strong> / <strong>{totalItems.toLocaleString('vi-VN')}</strong> bưu gửi của tuyến này
+      </span>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-slate-500 mr-1 font-medium">
+          Trang <strong>{page}</strong> / <strong>{totalPages || 1}</strong>
+        </span>
+        <button
+          type="button"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+          aria-label="Trang trước của tuyến"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+        >
+          <ChevronLeft size={13} />
+          <span>Trước</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages}
+          aria-label="Trang sau của tuyến"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+        >
+          <span>Sau</span>
+          <ChevronRight size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ShipmentEvidenceSummary({
   mode = 'flat',
   rows = [],
@@ -108,6 +156,7 @@ export default function ShipmentEvidenceSummary({
   onSelectShipment = () => {},
   expandedRouteIds = new Set(),
   onToggleRouteGroup = () => {},
+  onRouteGroupPageChange = () => {},
 }) {
   const columns = buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment });
 
@@ -153,6 +202,10 @@ export default function ShipmentEvidenceSummary({
                           : 'Không có dữ liệu'
                     }
                     className="rounded-none border-none shadow-none"
+                  />
+                  <RouteGroupPagination
+                    pagination={group.pagination}
+                    onPageChange={(nextPage) => onRouteGroupPageChange(groupKey, nextPage)}
                   />
                 </div>
               ) : null}

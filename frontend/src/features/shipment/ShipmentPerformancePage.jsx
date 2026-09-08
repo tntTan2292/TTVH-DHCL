@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { AlertTriangle, Filter, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageContainer, KPICard, StatusBadge, LoadingState, ErrorState, EmptyState } from '../../components/shared/SharedComponents';
@@ -16,6 +16,7 @@ import {
   mapEvidenceApiRow,
   buildSearchRouteGroups,
   resolveContextTotal,
+  runGuardedRouteGroupFetch,
 } from './shipmentPerformanceData';
 
 const ALL_ROUTES_OPTION = { value: '', label: 'Tất cả tuyến' };
@@ -75,6 +76,15 @@ export default function ShipmentPerformancePage() {
   // { [routeId]: { status: 'idle' | 'loading' | 'ready' | 'error', rows } }. Cleared whenever
   // the underlying query context changes (see the main fetch effect below).
   const [routeGroupData, setRouteGroupData] = useState({});
+  // ITR2-NB-01 remediation (§Independent Re-Review, 2026-09-08): bumped once, synchronously,
+  // every time the query-context effect below runs — i.e. exactly when routeGroupData/
+  // expandedRouteKeys are cleared. Each per-route fetch captures the counter's current value
+  // when it starts; a response is applied only if the counter still matches on resolve (see
+  // runGuardedRouteGroupFetch in shipmentPerformanceData.js). This is the same "mounted" guard
+  // discipline the effect below already applies, generalized past a single boolean so a fetch
+  // started under a PRIOR context (not just before unmount) can never write into a cache that
+  // now belongs to a different keyword/status/reason/period/route.
+  const contextGenerationRef = useRef(0);
 
   const [metaStatus, setMetaStatus] = useState('loading');
   const [metaMaxDate, setMetaMaxDate] = useState(null);
@@ -220,6 +230,10 @@ export default function ShipmentPerformancePage() {
     // fetched rows from a prior search keyword/status/period must never leak into the next one.
     setRouteGroupData({});
     setExpandedRouteKeys(new Set());
+    // ITR2-NB-01 remediation: bump the generation BEFORE the cache clear settles, so a
+    // per-route fetch already in flight for the OLD context is guaranteed to see a mismatched
+    // generation when it resolves and discard itself instead of writing into the fresh cache.
+    contextGenerationRef.current += 1;
 
     const fetchEvidence = async () => {
       try {
@@ -313,12 +327,23 @@ export default function ShipmentPerformancePage() {
   // §7.6/D-OPEN-03: "mở rộng một tuyến = một request cho riêng tuyến đó" — fetches exactly one
   // bounded page (`LIMIT` `PAGE_SIZE`) scoped to this one route, under the same status/reason/
   // search/sort/order the manager is already viewing. Never a second full-scope materialization.
-  const fetchRouteGroupRows = async (routeId) => {
+  // ITR2-BLOCK-01 remediation: `page` now drives a per-route page control instead of always
+  // being fixed at 1, and the response's own `pagination` meta (already correctly scoped to
+  // just this route by evidenceQueryService.js — `total_items`/`total_pages` there equal the
+  // group header's true count) is stored alongside the rows so the caller can render "Trang
+  // trước/sau" and "Hiển thị 50/N" without ever needing every row loaded at once.
+  // ITR2-NB-01 remediation: wrapped in runGuardedRouteGroupFetch so a response whose context
+  // generation no longer matches (keyword/status/reason/period/route/page changed while this
+  // request was in flight) is discarded instead of overwriting the current cache.
+  const fetchRouteGroupRows = async (routeId, page = 1) => {
     if (!routeId) return;
-    setRouteGroupData((prev) => ({ ...prev, [routeId]: { status: 'loading', rows: prev[routeId]?.rows || [] } }));
-    try {
-      const apiReason = statusParam === 'failed' ? (reasonParam || 'all') : 'all';
-      const result = await f13DashboardClient.getEvidence({
+    const requestGeneration = contextGenerationRef.current;
+    setRouteGroupData((prev) => ({ ...prev, [routeId]: { ...(prev[routeId] || {}), status: 'loading', rows: prev[routeId]?.rows || [] } }));
+    const apiReason = statusParam === 'failed' ? (reasonParam || 'all') : 'all';
+    await runGuardedRouteGroupFetch({
+      generationRef: contextGenerationRef,
+      requestGeneration,
+      fetchFn: () => f13DashboardClient.getEvidence({
         bcvh: bcvhId,
         anchor_date: analysisDate,
         period: periodParam,
@@ -328,15 +353,19 @@ export default function ShipmentPerformancePage() {
         search: search.trim() || undefined,
         sort,
         order,
-        page: 1,
+        page,
         page_size: PAGE_SIZE,
-      });
-      const rows = Array.isArray(result?.data) ? result.data : [];
-      const mapped = rows.map((item) => mapEvidenceApiRow(item, { bcvhId, bcvhName, routeIdParam: routeId, routeName: '', analysisDate }));
-      setRouteGroupData((prev) => ({ ...prev, [routeId]: { status: 'ready', rows: mapped } }));
-    } catch {
-      setRouteGroupData((prev) => ({ ...prev, [routeId]: { status: 'error', rows: [] } }));
-    }
+      }),
+      onSuccess: (result) => {
+        const rows = Array.isArray(result?.data) ? result.data : [];
+        const mapped = rows.map((item) => mapEvidenceApiRow(item, { bcvhId, bcvhName, routeIdParam: routeId, routeName: '', analysisDate }));
+        const responsePagination = result?.meta?.pagination || { page, page_size: PAGE_SIZE, total_items: mapped.length, total_pages: 1 };
+        setRouteGroupData((prev) => ({ ...prev, [routeId]: { status: 'ready', rows: mapped, page, pagination: responsePagination } }));
+      },
+      onError: () => {
+        setRouteGroupData((prev) => ({ ...prev, [routeId]: { status: 'error', rows: [], page, pagination: null } }));
+      },
+    });
   };
 
   const handleToggleRouteGroup = (key) => {
@@ -349,9 +378,17 @@ export default function ShipmentPerformancePage() {
     if (!isCurrentlyExpanded && usingServerRouteList) {
       const cacheEntry = routeGroupData[key];
       if (!cacheEntry || cacheEntry.status === 'idle' || cacheEntry.status === 'error') {
-        fetchRouteGroupRows(key);
+        fetchRouteGroupRows(key, 1);
       }
     }
+  };
+
+  // ITR2-BLOCK-01 remediation: each expanded group's own page control — one bounded request
+  // per page, `page_size` unchanged at 50, scoped to exactly this route (never a second
+  // full-scope materialization, never a raised ceiling).
+  const handleRouteGroupPageChange = (routeId, newPage) => {
+    if (!routeId || newPage < 1) return;
+    fetchRouteGroupRows(routeId, newPage);
   };
 
   // AC-15: selection exists ONLY when shipment_id is present in the URL AND still matches a
@@ -758,8 +795,17 @@ export default function ShipmentPerformancePage() {
                 onSelectShipment={handleSelectShipment}
                 expandedRouteIds={expandedRouteIds}
                 onToggleRouteGroup={handleToggleRouteGroup}
+                onRouteGroupPageChange={handleRouteGroupPageChange}
               />
-              {paginationControls}
+              {/* ITR2-BLOCK-01 remediation, second facet: the global pagination bar paginates
+                  `sortedRows` (the single top-level page), which grouped mode never renders —
+                  it was previously left mounted anyway, so clicking it changed `page` in the
+                  URL, which is a dependency of the query-context effect above, which clears
+                  every expanded group and its fetched rows for no visible reason. Each group
+                  now has its own page control (rendered by ShipmentEvidenceSummary from
+                  `group.pagination`), so the global bar is simply hidden while grouped —
+                  nothing is lost, since it was never wired to grouped data in the first place. */}
+              {!isSearchActive && paginationControls}
             </div>
             <div>
               <ShipmentEvidenceDetail shipment={selectedShipment} />

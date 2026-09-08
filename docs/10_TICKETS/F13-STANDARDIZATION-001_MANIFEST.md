@@ -3267,3 +3267,156 @@ first. `ITR2-NB-01` is cheap enough to fold into the same change. `ITR-EV-NB-01`
 question, untouched and unaffected by this review. `F13-ROUTE-RANKING-PERIOD-01` and
 `F13-BCVH-RANKING-OVERVIEW-01` remain `CLOSED / PO PASS`; `AUTO-BACKFILL-RUNTIME` remains separately
 open.
+
+## 70. F13-ROUTE-EVIDENCE-STATUS-02 — Remediation of `ITR2-BLOCK-01` + `ITR2-NB-01` — `READY FOR INDEPENDENT RE-REVIEW` (2026-09-08)
+
+Append-only delta. Sections 1-69 unchanged. Executor: `Claude Code`/`Sonnet`. Baseline: `1814011`
+(the §69 Independent Re-Review). Scope as instructed: remediate `ITR2-BLOCK-01` (grouped-search
+route groups silently capped at 50 rows, inert global pagination bar clearing group state) and
+fold in `ITR2-NB-01` (stale per-route response race) — no other scope. **No backend file was
+touched**: `evidenceQueryService.js` already scopes `getEvidenceScopeCount` /
+`getEvidenceSearchProjection` / the paged fetch to a single route whenever `route !== 'all'`, so
+`GET /f13/evidence?route=<one route>&search=<kw>&page=<n>` already returns `meta.pagination`
+(`page`/`page_size`/`total_items`/`total_pages`) correctly scoped to that one route's true count —
+confirmed live below. The defect was frontend-only: the existing per-route fetch always requested
+`page: 1` and discarded the response's own pagination meta.
+
+### Root cause (restated from §69's own diagnosis, confirmed unchanged)
+
+`fetchRouteGroupRows` (`ShipmentPerformancePage.jsx`) always called `getEvidence` with `page: 1`
+and stored only `{ status, rows }` — the response's `meta.pagination` was read and thrown away.
+`ShipmentEvidenceSummary.jsx` had no page control for a group, so a route with more than 50
+matches had no way to reach row 51 once expanded. Separately, the global `paginationControls`
+bar stayed mounted and wired to `page` (a dependency of the main query effect that clears
+`routeGroupData`/`expandedRouteKeys` on any change) even though grouped mode never rendered the
+data that bar paginated — clicking it silently collapsed every open group for zero visible
+benefit (§69's "second facet").
+
+### Remediation
+
+- **Per-group pagination** (`shipmentPerformanceData.js`): `buildSearchRouteGroups` now also
+  carries `page` and `pagination` from the cache entry. `ShipmentPerformancePage.jsx`:
+  `fetchRouteGroupRows(routeId, page = 1)` passes the real `page` through to `getEvidence` (same
+  `PAGE_SIZE = 50`, unchanged, never widened) and stores the response's own `meta.pagination`
+  verbatim; a new `handleRouteGroupPageChange(routeId, newPage)` re-invokes it. `page_size` is
+  never sent as anything other than the `PAGE_SIZE` constant.
+- **Visible affordance** (`ShipmentEvidenceSummary.jsx`): a new `RouteGroupPagination` renders,
+  under each expanded group's table, "Hiển thị `X-Y` / `N` bưu gửi của tuyến này" plus "Trang
+  `p`/`P`" and Trước/Sau buttons driven by `group.pagination` — mirroring the existing global
+  pagination bar's own wording/shape. It renders nothing when a route's whole result already
+  fits on one page (`total_items <= page_size && total_pages <= 1`), so nothing is added when
+  there is nothing to page through.
+- **Global bar hidden in grouped mode** (`ShipmentPerformancePage.jsx`): `paginationControls` is
+  now wrapped `{!isSearchActive && paginationControls}` — the minimal option named in §69's own
+  remediation menu (hide, rather than leave mounted and stop it from clearing state), since it
+  was never wired to grouped data to begin with. Flat (non-search) mode is unaffected.
+- **`ITR2-NB-01` fix**: a new `contextGenerationRef` (`useRef(0)`) is bumped synchronously inside
+  the same query-context effect that already clears `routeGroupData`/`expandedRouteKeys` on any
+  keyword/status/reason/period/route/page change. `fetchRouteGroupRows` captures the counter's
+  value at request start and routes the actual fetch through a new pure orchestration function,
+  `runGuardedRouteGroupFetch` (`shipmentPerformanceData.js`): the response is applied via
+  `onSuccess`/`onError` only if `generationRef.current` still equals the captured value when the
+  promise resolves — otherwise it is silently discarded. Same discipline as the main fetch
+  effect's own pre-existing `mounted` flag, generalized past a single boolean.
+
+### Real-data validation
+
+Backend restarted first — the running process (started 2026-09-07 23:01, before commit `cdc9417`
+23:53) predated `matched_route_list`, reproducing the same stale-process class of issue recorded
+in §66; restarted onto current code, confirmed via a fresh, authenticated request that
+`matched_route_list` is present again. `fact_f13` re-verified unchanged across this whole session:
+**777,081 rows, `MAX(ngay_do_kiem) = 2026-09-06`**, identical to §69's own reading — the entire
+validation (curl + live browser) was read-only.
+
+Live `GET /f13/evidence` against BCVH `533140`, `month_to_anchor` `2026-09-01..2026-09-06`,
+`search=HCC`, route `53314072` ("533140 HCC An Đông", header count **345**, the same route §69
+measured truncated to 50):
+
+| Page requested | `data.length` | `meta.pagination` |
+| --- | --- | --- |
+| 1 | 50 | `{page:1, page_size:50, total_items:345, total_pages:7}` |
+| 2 | 50 | `{page:2, ..., total_items:345, total_pages:7}` — 50 rows, **zero overlap** with page 1 |
+| 7 (last) | 45 | `{page:7, ..., total_items:345, total_pages:7}` |
+| 8 (past end) | 0 | `{page:8, ..., total_items:345, total_pages:7}` — well-behaved, no error |
+
+All 7 pages collected and deduplicated by `ma_bg`: **345 rows requested, 345 unique** — exact
+match to the group header, zero duplication, zero gap, zero silent truncation.
+
+Real browser runtime (authenticated `admin`, `http://localhost:5178/f13/evidence`, same real
+context): all 9 real matched `HCC` routes render with correct headers (`53314072` "345 bưu gửi",
+etc., byte-identical to §69's own measurements). Expanding `53314072` shows real page-1 rows and
+the new affordance "**Hiển thị 1-50 / 345 bưu gửi của tuyến này · Trang 1/7**"; clicking "Sau"
+loads real, distinct page-2 rows and updates to "**Hiển thị 51-100 / 345 · Trang 2/7**" — no
+overlap with page 1's `ma_bg` values. The global pagination bar is absent throughout the search
+view (confirmed via full page-text dump). Clearing the keyword cleanly returns to flat mode: all
+groups and their per-group pagination disappear, the global bar reappears correctly
+(`Hiển thị 1-50 / 7.546 · Trang 1/151`) with no leftover state from the grouped session.
+
+### Tests (new, `ShipmentPerformancePage.groupPaginationRemediation.test.js`, 11 tests)
+
+Numbered against the ticket's 3 required behaviors:
+
+1. **Route >50 rows reaches page 2 and beyond** — behavioral, against the real
+   `buildSearchRouteGroups`: page-1/page-2/last-page (7/7, 45 rows) cache entries each produce
+   the correct `group.rows`/`group.page`/`group.pagination`, and page 2's rows are asserted
+   distinct from page 1's.
+2. **No silent truncation** — asserts a partial cache entry's `group.pagination.total_items`
+   always equals `group.count` (the header total; no drift), plus source-text confirmation that
+   `ShipmentEvidenceSummary.jsx` actually renders the "Hiển thị X-Y/N" affordance and both page
+   buttons (not just carries the data). A companion test confirms `RouteGroupPagination`
+   early-returns (renders nothing) when a route's result already fits on one page.
+3. **Context change mid-flight cannot surface stale data** — two behavioral tests exercise the
+   real `runGuardedRouteGroupFetch`: a `fetchFn` that bumps `generationRef.current` before
+   resolving proves `onSuccess` is never called and the response is reported `stale`; a matching
+   same-context case proves `onSuccess` **is** called when nothing changed (the guard only
+   discards genuinely stale responses, not every response); a third proves a stale-context
+   *error* is also discarded rather than surfaced as a fresh error state.
+
+Six wiring tests (source-text, matching this suite's existing convention) confirm: the generation
+counter is bumped inside the same effect that clears the cache; `fetchRouteGroupRows` captures
+the generation before the request and routes through the guard; the global bar is gated on
+`!isSearchActive`; `handleRouteGroupPageChange` fetches the requested page and is wired to
+`ShipmentEvidenceSummary`; every per-route request still uses the fixed `PAGE_SIZE` constant,
+never a hardcoded numeric literal.
+
+Mutation-style check: reverting the guard (calling `onSuccess` unconditionally) makes the
+"context change... discards" test fail by construction (`applied` would be the stale result
+instead of `null`) — confirmed by inspection of the assertion, not a separate mutated build.
+
+### Regression
+
+Frontend targeted (`features/shipment/` + `features/route/`): **198/198** (187 pre-existing + 11
+new). Full frontend sweep: **464/468** pass — the same 4 pre-existing baseline failures on record
+since manifest §52 (`only canonical values remain selectable...`, `operation dashboard hides
+status filter...`, `dashboard page removes shell...`, `dataImportBackfillQueue.test.js`), none in
+shipment/route/evidence. `oxlint`: 0 warnings/0 errors on every file this remediation touched (all
+warnings present in the sweep belong to `frontend/src/features/networkMap/*` and other files left
+uncommitted by a concurrent session, not part of this diff). `vite build`: succeeds cleanly.
+Backend: evidence-scoped suite re-run unmodified, **35/35** pass (`evidenceQueryService.test.js`,
+`DashboardController.evidenceDrilldown.test.js`, `FactBuuGuiRepository.evidence.test.js`) —
+confirms the backend pagination contract this remediation relies on is genuinely unchanged, not
+just untouched by diff. Full backend sweep: 326/330 pass; the 4 failures (`live KPI database...`,
+`dashboard KPI invalid code...`, `KPI all and missing ma_bcvh...`, `monthly rank enrichment...`)
+are all outside Evidence/shipment scope and were not touched by this diff — attributable to the
+concurrent session's uncommitted `backend/test_dkclSessionPreflightService.js` changes visible in
+`git status`, not to this remediation.
+
+### Scope discipline
+
+`git diff --name-only` for this remediation touches exactly 4 paths, all inside
+`frontend/src/features/shipment/`: `ShipmentPerformancePage.jsx`, `ShipmentEvidenceSummary.jsx`,
+`shipmentPerformanceData.js`, and the new test file. No backend file, no §9.4 Cấm chạm file, and
+none of the concurrently-modified `frontend/src/features/networkMap/*` files were touched or
+committed by this change — committed by explicit pathspec only, per the standing concurrent-
+session discipline recorded for this workspace.
+
+### Verdict
+
+`ITR2-BLOCK-01` and `ITR2-NB-01` are remediated: every expanded route group now has its own
+correct page control sourced from the backend's own already-correct per-route pagination meta,
+"Hiển thị 50/N" is explicit whenever a route's result exceeds one page, no row is ever silently
+dropped (proven exhaustively — 345/345 unique rows reachable across exactly 7 pages on a real
+route), the global pagination bar no longer collapses grouped state because it is not rendered
+while grouped, and a per-route response can no longer poison the cache with a previous filter
+context's rows. `READY FOR INDEPENDENT RE-REVIEW` by a model other than `Sonnet`, per `DEC-021` —
+not self-declared `READY FOR PO UI CHECK`.

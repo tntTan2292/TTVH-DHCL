@@ -1584,3 +1584,34 @@ that review. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Sec
 `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated. `F13-ROUTE-RANKING-PERIOD-01` remains
 `COMPLETED / PO PASS / CLOSED`, unaffected. `AUTO-BACKFILL-RUNTIME` remains separately open,
 unaffected.
+
+`F13-ROUTE-EVIDENCE-STATUS-02` -- `ITR2-BLOCK-01` + `ITR2-NB-01` remediation (`2026-09-08`,
+`Claude Code`/`Sonnet`, baseline `1814011`): the Section 69 Independent Re-Review (Claude
+Code/Opus) had closed `ITR-EV-BLOCK-01` but found the same remediation introduced a NEW blocker
+-- each expanded route group in the grouped search view silently capped at 50 rows against a
+header showing the true (often far larger) count, no per-group pagination, and an inert global
+pagination bar that still cleared every expanded group -- plus a non-blocking stale-response race
+(`ITR2-NB-01`). Fixed, frontend-only, no backend file touched (the backend's per-route pagination
+meta was already correct): `buildSearchRouteGroups`/`runGuardedRouteGroupFetch`
+(`shipmentPerformanceData.js`) plus `fetchRouteGroupRows`/`handleRouteGroupPageChange`/a new
+`contextGenerationRef` (`ShipmentPerformancePage.jsx`) give each expanded group its own page
+control (page_size fixed at 50) and discard any per-route response whose query context changed
+mid-flight; `RouteGroupPagination` (`ShipmentEvidenceSummary.jsx`) renders the explicit
+"Hiển thị `X-Y`/`N`" affordance; the global pagination bar is hidden while grouped search mode is
+active. Real-data proof: route `53314072` ("533140 HCC An Đông", 345 real rows) paged across all
+7 real pages via the authenticated HTTP API -- 345/345 unique `ma_bg`, zero duplication, zero
+gap -- and re-verified live in the browser (page 1 → page 2 loads genuinely different real rows,
+correct "Trang 2/7"; the global bar is absent while searching and correctly reappears after
+clearing the keyword). Backend process was found stale (started before commit `cdc9417`) and
+restarted onto current code before validation; `fact_f13` confirmed unchanged throughout,
+`777,081` rows / `MAX(ngay_do_kiem) = 2026-09-06`. 11 new behavioral/wiring tests
+(`ShipmentPerformancePage.groupPaginationRemediation.test.js`); frontend targeted
+`features/shipment/` + `features/route/` 198/198 (187 pre-existing + 11 new), full sweep 464/468
+(same 4 pre-existing baseline failures on record since §52, none in shipment/route); backend
+evidence-scoped suite unmodified 35/35; `oxlint` 0 warnings/0 errors on every file touched; `vite
+build` succeeds. `git diff --name-only` touches exactly 4 paths, all inside
+`frontend/src/features/shipment/`, no backend file, no §9.4 Cấm chạm file, and none of the
+concurrently-modified `frontend/src/features/networkMap/*` files (committed by explicit pathspec
+only). State: `READY FOR INDEPENDENT RE-REVIEW`, not self-declared `READY FOR PO UI CHECK` --
+per `DEC-021` a model other than `Sonnet` must re-review before any PO UI Check. Evidence:
+`docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 70; `PROJECT_SNAPSHOT.md` updated.

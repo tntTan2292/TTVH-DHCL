@@ -199,6 +199,16 @@ export function mapEvidenceApiRow(item, { bcvhId, bcvhName, routeIdParam, routeN
 //
 // `fallbackRows` is used only if the server omitted `matched_route_list` (should not happen
 // once §6.4 ships it, but keeps this defensive rather than crashing/rendering nothing).
+// ITR2-BLOCK-01 remediation (Independent Re-Review, 2026-09-08): each returned group now also
+// carries the per-route `pagination` meta and `page` the cached rows belong to, straight from
+// the per-route fetch's own API response (`fetchRouteGroupRows`'s `result.meta.pagination`,
+// already scoped to this one route/search/status/reason/period — see evidenceQueryService.js,
+// which runs its `scope`/`getEvidenceScopeCount`/`getEvidenceSearchProjection` route-scoped
+// whenever `route !== 'all'`). `group.count` (the route's TRUE total, from `matched_route_list`,
+// page-independent) and `group.pagination.total_items` (the same total, confirmed again by the
+// per-route fetch once it has run) must always agree — the caller never has to guess whether
+// `group.rows.length < group.count` means "not fetched yet" or "silently truncated": that
+// distinction now always renders via `group.pagination`.
 export function buildSearchRouteGroups({ matchedRouteList, routeRowsByRoute = {}, fallbackRows = [] }) {
   if (!Array.isArray(matchedRouteList) || !matchedRouteList.length) {
     return groupRowsByRoute(fallbackRows);
@@ -211,8 +221,46 @@ export function buildSearchRouteGroups({ matchedRouteList, routeRowsByRoute = {}
       count: route.count,
       rows: cached?.rows || [],
       status: cached?.status || 'idle',
+      page: cached?.page || 1,
+      pagination: cached?.pagination || null,
     };
   });
+}
+
+// ITR2-NB-01 remediation (Independent Re-Review, 2026-09-08): a per-route fetch
+// (`fetchRouteGroupRows`) can still be in flight when the manager changes keyword/status/
+// reason/period/route/page — the query-context effect in `ShipmentPerformancePage.jsx` clears
+// `routeGroupData`/`expandedRouteKeys` synchronously, but the in-flight promise has already
+// captured the OLD context in its closure and will resolve later regardless. Without a guard,
+// that stale response lands in the now-current (different-context) cache and silently poisons
+// it with rows/pagination from a previous filter.
+//
+// The fix is the same discipline the main fetch effect already applies with its `mounted` flag,
+// generalized to a per-request "generation" rather than a single mount/unmount boolean: the
+// caller bumps a shared `generationRef.current` counter every time the query context changes
+// (in the same effect that already clears the cache), and captures the counter's value at the
+// moment each per-route fetch starts (`requestGeneration`). If `generationRef.current` no
+// longer equals `requestGeneration` once the fetch resolves, the response belongs to a context
+// that no longer exists and must be discarded — `onSuccess`/`onError` are simply never called,
+// so nothing is ever written to state on behalf of a stale request. This function contains the
+// entire guard as one pure, directly testable async orchestration — no DOM/React needed to
+// prove the race is closed, only a `generationRef`-like plain object and a controllable
+// `fetchFn` promise.
+export async function runGuardedRouteGroupFetch({ generationRef, requestGeneration, fetchFn, onSuccess, onError }) {
+  try {
+    const result = await fetchFn();
+    if (generationRef.current !== requestGeneration) {
+      return { applied: false, stale: true };
+    }
+    onSuccess(result);
+    return { applied: true, stale: false };
+  } catch (err) {
+    if (generationRef.current !== requestGeneration) {
+      return { applied: false, stale: true };
+    }
+    onError(err);
+    return { applied: false, stale: false, error: true };
+  }
 }
 
 // ITR-EV-NB-02 remediation (Independent Technical Review, 2026-09-07): "Tổng Evidence (bối
