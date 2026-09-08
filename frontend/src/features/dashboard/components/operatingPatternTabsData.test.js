@@ -15,6 +15,7 @@ import {
   getHeatmapRelativeBand,
   hasUsableModeData,
   mapOperatingPatternResponse,
+  mapWeeklyWindow,
 } from './operatingPatternTabsData.js';
 
 const sampleTimeline = {
@@ -549,4 +550,84 @@ test('the ">TB"/"<TB" heatmap management stats use a neutral color, not a Heatma
   assert.doesNotMatch(aboveBelowBlock, /border-emerald-200|bg-emerald-50|text-emerald-950/);
   assert.doesNotMatch(aboveBelowBlock, /border-amber-200|bg-amber-50|text-amber-950/);
   assert.match(aboveBelowBlock, /border-slate-200/);
+});
+
+// "Theo thứ" window-metadata bug fix (2026-09-08). Root cause: the card displayed
+// "Bối cảnh bộ lọc: {fromDate} đến {toDate}" for every tab, but the weekday pattern's real API
+// call sends only `toDate` and the backend aggregates its own toDate-89..toDate window,
+// completely independent of the dashboard's from_date/to_date filter — so the badge line lied
+// about the "Theo thứ" query window whenever the two ranges differed (verified live:
+// toDate=2026-09-07 showed "2026-09-01 đến 2026-09-07" while the real backend window was
+// 2026-06-10 → 2026-09-07 / 90 days / 299,731 rows vs. the displayed 7-day / 18,910-row range).
+// Fix: the backend now reports its own real window as data (`weekly_window`); the frontend only
+// renders it (mapWeeklyWindow), never recomputes the "-89 days" rule itself.
+
+test('mapWeeklyWindow formats the backend-reported real window as dd/MM/yyyy, never recomputing it', () => {
+  const window = mapWeeklyWindow({ start: '2026-06-10', end: '2026-09-07', days: 90 });
+
+  assert.equal(window.start, '2026-06-10');
+  assert.equal(window.end, '2026-09-07');
+  assert.equal(window.days, 90);
+  assert.equal(window.startLabel, '10/06/2026');
+  assert.equal(window.endLabel, '07/09/2026');
+  assert.equal(window.label, 'Dữ liệu phân tích: 10/06/2026 – 07/09/2026 (90 ngày)');
+});
+
+test('mapWeeklyWindow returns null when the backend omits weekly_window (defensive, e.g. mode excludes weekly)', () => {
+  assert.equal(mapWeeklyWindow(undefined), null);
+  assert.equal(mapWeeklyWindow(null), null);
+  assert.equal(mapWeeklyWindow({}), null);
+  assert.equal(mapWeeklyWindow({ start: '2026-06-10' }), null, 'missing end must not produce a half-built window');
+});
+
+test('mapOperatingPatternResponse carries the real weekly_window through as model.weeklyWindow, using the exact live-measured case', () => {
+  // Real case from the live audit: toDate=2026-09-07, backend window 2026-06-10..2026-09-07.
+  const model = mapOperatingPatternResponse({
+    weekly: sampleTimeline.weekly,
+    weekly_window: { start: '2026-06-10', end: '2026-09-07', days: 90 },
+  }, { toDate: '2026-09-07' });
+
+  assert.ok(model.weeklyWindow, 'model.weeklyWindow must be populated from data.weekly_window');
+  assert.equal(model.weeklyWindow.label, 'Dữ liệu phân tích: 10/06/2026 – 07/09/2026 (90 ngày)');
+});
+
+test('mapOperatingPatternResponse.weeklyWindow is null (not a crash) when the backend response omits weekly_window', () => {
+  const model = mapOperatingPatternResponse({ weekly: sampleTimeline.weekly }, { toDate: '2026-09-07' });
+  assert.equal(model.weeklyWindow, null);
+});
+
+test('"Theo thứ" tab renders the real backend window instead of the misleading global filter-context line; every other tab is untouched', () => {
+  const source = fs.readFileSync(new URL('./OperatingPatternTabsCard.jsx', import.meta.url), 'utf8');
+
+  // The weekday-only branch: renders state.data.weeklyWindow.label when present.
+  assert.match(source, /activeTab === 'weekday' && state\.data\?\.weeklyWindow/);
+  assert.match(source, /<span>\{state\.data\.weeklyWindow\.label\}<\/span>/);
+
+  // The original "Bối cảnh bộ lọc" line still exists verbatim as the fallback/other-tabs branch
+  // — month and heatmap semantics/labels are untouched by this fix.
+  assert.match(source, /Bối cảnh bộ lọc: \{fromDate \|\| 'Chưa chọn'\} đến \{toDate \|\| 'Chưa chọn'\}/);
+
+  // Exactly one such badge/context line is rendered per render (ternary, not two stacked spans).
+  const contextBlock = source.match(/\{activeTab === 'weekday' && state\.data\?\.weeklyWindow[\s\S]{0,300}?\)\}/);
+  assert.ok(contextBlock, 'the weekday-window ternary block must exist');
+  assert.equal((contextBlock[0].match(/<span>/g) || []).length, 2, 'exactly one branch renders (if/else), both authored as <span>');
+});
+
+test('the frontend never duplicates the backend\'s "-89 days" weekly-window rule', () => {
+  const cardSource = fs.readFileSync(new URL('./OperatingPatternTabsCard.jsx', import.meta.url), 'utf8');
+  const dataSource = fs.readFileSync(new URL('./operatingPatternTabsData.js', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(cardSource, /setDate\([^)]*-\s*89\)/, 'the card must never hardcode the 90-day/-89-day rule itself');
+  assert.doesNotMatch(dataSource, /setDate\([^)]*-\s*89\)/, 'mapWeeklyWindow must only format backend-supplied dates, never recompute the window');
+});
+
+test('backend contract: timelineService.getQualityTimeline reports weekly_window as toDate-89..toDate, matching the shipped SQL window exactly', () => {
+  const source = fs.readFileSync(new URL('../../../../../backend/src/services/timelineService.js', import.meta.url), 'utf8');
+
+  assert.match(source, /weekly_window: includeWeekly \? \{ start: startStr, end: endStr, days: allDates\.length \} : null/);
+  // The exact same startStr/endStr the SQL WHERE clause is parameterized with — the window
+  // metadata can never drift from the real query range because it is literally the same
+  // variables, not a second computation.
+  assert.match(source, /WHERE ngay_do_kiem BETWEEN \? AND \? \$\{bcvhFilter\}/);
+  assert.match(source, /let params = \[startStr, endStr\]/);
 });

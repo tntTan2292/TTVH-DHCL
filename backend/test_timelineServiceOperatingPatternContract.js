@@ -40,6 +40,14 @@ const timelineService = require('./src/services/timelineService');
     assert.strictEqual(july.is_current_month, true, 'current month is anchored to the latest business date');
     assert.strictEqual(result.latest_business_date, '2026-07-20', 'timeline exposes the latest business date');
 
+    // "Theo thứ" window-metadata bug fix (2026-09-08): the weekday pattern is an aggregate over
+    // toDate-89..toDate -- the frontend must render this real window, never recompute or
+    // duplicate the "-89 days" rule. Asserts the exact contract shape/values, not just presence.
+    assert.ok(result.weekly_window, 'weekly_window must be present whenever weekly data is included');
+    assert.strictEqual(result.weekly_window.start, '2026-04-22', 'weekly_window.start must be toDate - 89 days');
+    assert.strictEqual(result.weekly_window.end, '2026-07-20', 'weekly_window.end must equal toDate');
+    assert.strictEqual(result.weekly_window.days, 90, 'weekly_window.days must be the full 90-day window size');
+
     console.log('PASS timelineService operating-pattern contract');
 })().finally(() => {
     if (originalDb) require.cache[dbPath] = originalDb;

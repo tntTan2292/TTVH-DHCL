@@ -721,3 +721,24 @@ Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = CLOSED / PO PASS` at final techni
 `Current Ticket = None`. No other F1.3 feature ticket is open or blocked. `AUTO-BACKFILL-RUNTIME`
 remains separately open (cross-module F1.3+F4.1 runtime-acceptance item, unaffected). The roadmap
 is clear to move to F4.1; opening the next ticket is a CTO/PO decision.
+
+
+## F13-OPERATING-PATTERN-WEEKLY-WINDOW-01 Registration - 2026-09-08
+
+One-bug/one-ticket label fix, `Claude Code`/`Sonnet`, `LEVEL 1` targeted scope. PO-directed
+remediation of a finding from a PO-requested read-only trace of Dashboard's `Quy luật vận hành >
+Theo thứ`.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `backend/src/services/timelineService.js` | Source (modified) | `getQualityTimeline` now also returns `weekly_window: { start, end, days }`, built from the exact `startStr`/`endStr` already parameterizing the base SQL `WHERE ngay_do_kiem BETWEEN ? AND ?` clause -- no new query, no SQL/semantics change, cannot drift from the real query range. | L3 | Active | When touching the weekday/monthly-pattern query window or its exposed contract. | Mandatory |
+| `backend/test_timelineServiceOperatingPatternContract.js` | Tests (modified) | Extended with an exact-value assertion of `weekly_window` (`start`/`end`/`days`) against a DB-mocked `getQualityTimeline('2026-07-20', 'all')` call. | L3 | Active | Before modifying `timelineService.js`'s weekday/monthly window logic. | Mandatory |
+| `frontend/src/features/dashboard/components/operatingPatternTabsData.js` | Source (modified) | New pure `mapWeeklyWindow()` formats `data.weekly_window` via the existing `formatDisplayDate` into `{ start, end, days, startLabel, endLabel, label }`; wired into `mapOperatingPatternResponse` as `model.weeklyWindow`. No date arithmetic performed here -- formatting only. | L3 | Active | When touching the Operating Pattern card's data mapping. | Mandatory |
+| `frontend/src/features/dashboard/components/OperatingPatternTabsCard.jsx` | Source (modified) | The context-line badge is now conditional: `activeTab === 'weekday' && state.data?.weeklyWindow` renders the real-window label; every other case (month, heatmap, or before the API responds) keeps the original, unchanged `Bối cảnh bộ lọc: {fromDate} đến {toDate}` line. | L3 | Active | When touching the Operating Pattern card's header/context line. | Mandatory |
+| `frontend/src/features/dashboard/components/operatingPatternTabsData.test.js` | Tests (modified, +8) | `mapWeeklyWindow` formatting + null-fallback; `mapOperatingPatternResponse.weeklyWindow` wiring (present/absent); source-text checks confirming the weekday-only conditional, the untouched fallback branch, and that neither file hardcodes/recomputes the "-89 days" rule; a cross-package test reading `timelineService.js` to confirm `weekly_window` shares the SQL's own `startStr`/`endStr` variables. | L3 | Active | Before modifying the Operating Pattern card's context line or window contract. | Mandatory |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 75 (appended) records root cause (measured live: 90-day/299,731-row real window vs. the displayed 7-day/18,910-row range), the remediation, real-data validation (live browser, all 3 tabs), and full regression evidence. Sections 1-74 stand unchanged. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F13-OPERATING-PATTERN-WEEKLY-WINDOW-01 = CLOSED / TECHNICAL FIX VALIDATED`.
+`Current Ticket = None` (unchanged by this fix). No PO UI Check gate applies -- this Dashboard
+card has no dedicated Design of Record §12.2-style gate of its own; the Product Owner may
+optionally spot-check the live label.

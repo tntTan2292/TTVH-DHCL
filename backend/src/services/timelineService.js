@@ -327,6 +327,14 @@ class TimelineService {
         return {
             daily: dailyTimeline,
             weekly: orderedWeekly,
+            // "Theo thứ" UI bug fix (2026-09-08): the weekday pattern is an aggregate over the
+            // real 90-day query window [startStr, endStr] computed above (toDate - 89 days ..
+            // toDate) — a window the frontend previously had no way to see, so it fell back to
+            // rendering the dashboard's unrelated global from_date/to_date filter as if it were
+            // this window, which was frequently a much shorter, wrong range. This exposes the
+            // real window as data, once, here — the frontend must render it, never recompute or
+            // duplicate the "-89 days" rule itself.
+            weekly_window: includeWeekly ? { start: startStr, end: endStr, days: allDates.length } : null,
             monthly: includeMonthly ? monthlyPattern : [],
             monthly_ytd: includeMonthly ? monthlyYtd : [],
             latest_business_date: latestBusinessDate,

@@ -397,8 +397,25 @@ export function groupHeatmapByMonth(heatmapWeeks = [], monthlyYtdRows = []) {
   });
 }
 
+// "Theo thứ" UI bug fix (2026-09-08): renders the backend's real weekday query window
+// (`data.weekly_window`, from timelineService.js's own `startStr`/`endStr` -- the literal SQL
+// range) as `dd/MM/yyyy`, never recomputed here. `days` is echoed straight from the backend so
+// the frontend never hardcodes "90" or duplicates the "-89 days" rule.
+export function mapWeeklyWindow(weeklyWindow) {
+  if (!weeklyWindow || !weeklyWindow.start || !weeklyWindow.end) return null;
+  return {
+    start: weeklyWindow.start,
+    end: weeklyWindow.end,
+    days: Number(weeklyWindow.days) || 0,
+    startLabel: formatDisplayDate(weeklyWindow.start),
+    endLabel: formatDisplayDate(weeklyWindow.end),
+    label: `Dữ liệu phân tích: ${formatDisplayDate(weeklyWindow.start)} – ${formatDisplayDate(weeklyWindow.end)} (${Number(weeklyWindow.days) || 0} ngày)`,
+  };
+}
+
 export function mapOperatingPatternResponse(data = {}, context = {}) {
   const weekly = mapWeeklyPattern(data.weekly || []);
+  const weeklyWindow = mapWeeklyWindow(data.weekly_window);
   const monthly = mapMonthlyPattern(data.monthly_ytd || []);
   const preferredMonth = getMonthKey(context.toDate);
   const heatmapMonthStats = buildHeatmapMonthStats(data.heatmap || [], preferredMonth);
@@ -409,6 +426,7 @@ export function mapOperatingPatternResponse(data = {}, context = {}) {
 
   return {
     weekday: weekly,
+    weeklyWindow,
     month: monthly,
     monthlySummary,
     heatmap,

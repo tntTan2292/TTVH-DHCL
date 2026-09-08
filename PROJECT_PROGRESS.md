@@ -1650,3 +1650,28 @@ and `frontend/src/components/shared/SharedLayout.jsx` with nested sub-item suppo
 11/11 tests pass in `appNavigation.test.js` + `roles.test.js`; `oxlint` 0 warnings / 0 errors; `npm run build`
 succeeds cleanly. Manifest Section 74 appended; `PROJECT_SNAPSHOT.md` updated.
 
+`F13-OPERATING-PATTERN-WEEKLY-WINDOW-01` -- `CLOSED / TECHNICAL FIX VALIDATED` (`2026-09-08`,
+one-bug/one-ticket, `LEVEL 1` targeted scope): Product Owner requested a read-only trace of F1.3
+Dashboard's `Quy luật vận hành > Theo thứ` (case `toDate=2026-09-07`), then authorized this
+remediation of the finding. Root cause: `OperatingPatternTabsCard.jsx` sent only `toDate` to
+`GET /f13/dashboard/quality-timeline`; the backend's `timelineService.getQualityTimeline`
+aggregates the weekday pattern over a fixed 90-day window ending at `toDate`
+(`toDate - 89 .. toDate`), entirely independent of the Dashboard's global `from_date`/`to_date`
+filter -- yet the card rendered `Bối cảnh bộ lọc: {fromDate} đến {toDate}` for every tab. Verified
+live: badge showed `2026-09-01 đến 2026-09-07` (7 days / 18,910 rows) while the real query window
+was `2026-06-10 → 2026-09-07` (90 days / 299,731 rows). Fix (semantics/SQL unchanged): backend now
+exposes `weekly_window: { start, end, days }` built from the exact `startStr`/`endStr` already
+parameterizing the SQL `WHERE` clause (`backend/src/services/timelineService.js`); frontend only
+formats and renders it, never recomputing the "-89 days" rule
+(`frontend/src/features/dashboard/components/operatingPatternTabsData.js`,
+`OperatingPatternTabsCard.jsx`) -- "Theo thứ" now shows `Dữ liệu phân tích: 10/06/2026 –
+07/09/2026 (90 ngày)`, confirmed live in the browser; "Theo tháng" and "Heatmap" keep the original
+`Bối cảnh bộ lọc` line, byte-for-byte unaffected, also confirmed live. 8 new frontend tests +
+1 extended backend contract script; frontend targeted `operatingPatternTabsData.test.js` 33/33,
+full sweep 476/480 (4 pre-existing baseline failures, none caused by this fix); backend contract
+script PASS, full backend sweep 326/330 (4 pre-existing baseline failures, none in
+`timelineService`); `oxlint` 0/0 on touched files; `vite build` succeeds. `git diff --name-only`
+touches exactly 4 code paths, no SQL/business-rule change, no other tab's label touched, no §9.4
+Cấm chạm file. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 75;
+`PROJECT_SNAPSHOT.md` updated.
+

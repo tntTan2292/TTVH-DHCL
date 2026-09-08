@@ -526,7 +526,18 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
         <StatusBadge label={OPERATING_PATTERN_TABS.find((tab) => tab.id === activeTab)?.label} tone="info" />
         <StatusBadge label={maBcvh === 'all' ? 'Toàn mạng' : `BCVH ${maBcvh}`} tone="neutral" />
-        <span>Bối cảnh bộ lọc: {fromDate || 'Chưa chọn'} đến {toDate || 'Chưa chọn'}</span>
+        {/* Bug fix (2026-09-08): "Theo thứ" ignores the dashboard's from_date/to_date filter
+            entirely server-side (the API call below sends only toDate; weeklyPattern always
+            aggregates the backend's own toDate-89..toDate window) -- so showing "Bối cảnh bộ
+            lọc: fromDate đến toDate" here was actively wrong for this tab, not just imprecise.
+            Render the backend-reported real window (state.data.weeklyWindow, from
+            meta.weekly_window) instead; every other tab keeps the original filter-context line
+            unchanged. */}
+        {activeTab === 'weekday' && state.data?.weeklyWindow ? (
+          <span>{state.data.weeklyWindow.label}</span>
+        ) : (
+          <span>Bối cảnh bộ lọc: {fromDate || 'Chưa chọn'} đến {toDate || 'Chưa chọn'}</span>
+        )}
       </div>
 
       {state.loading ? (

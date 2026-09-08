@@ -3565,3 +3565,108 @@ Per Product Owner instruction:
    - `oxlint` 0 errors on touched files.
    - `npm run build` succeeds cleanly in 1.14s.
 
+## 75. `F13-OPERATING-PATTERN-WEEKLY-WINDOW-01` — "Theo thứ" filter-context label bug — `CLOSED / TECHNICAL FIX VALIDATED` (2026-09-08)
+
+One-bug/one-ticket remediation, `Claude Code`/`Sonnet`, `LEVEL 1` targeted scope (no SSOT/schema/
+architecture change). Product Owner requested a read-only trace of F1.3 Dashboard's `Quy luật vận
+hành > Theo thứ` (case `toDate=2026-09-07`), then explicitly authorized this remediation of the
+finding.
+
+### Root cause
+
+`OperatingPatternTabsCard.jsx` sent only `toDate` (never `fromDate`) to
+`GET /f13/dashboard/quality-timeline`; `timelineService.getQualityTimeline` (backend) computes the
+weekday pattern by aggregating a fixed 90-day window ending at `toDate`
+(`toDate - 89 days .. toDate`) — entirely independent of the Dashboard's global `from_date`/
+`to_date` filter. The card nonetheless rendered `Bối cảnh bộ lọc: {fromDate} đến {toDate}` for
+every tab, including "Theo thứ" — a badge line that happened to be accurate for the two other tabs
+in the common case but was actively **wrong** for "Theo thứ" whenever the two ranges differed.
+Verified live at `toDate=2026-09-07`: badge showed `2026-09-01 đến 2026-09-07` (7 days /
+18,910 rows) while the real backend query window was `2026-06-10 → 2026-09-07` (90 days /
+299,731 rows) — a ~15.8x difference in the data actually feeding every T2..CN point, each of
+which is itself an aggregate of 12-13 real occurrences of that weekday inside the true window (not
+a single day). This was discovery-only in the prior turn; this section records the fix.
+
+### Remediation (semantics unchanged; the 90-day-ending-at-toDate rule is not touched)
+
+- **Backend** (`backend/src/services/timelineService.js`, `getQualityTimeline`): the return object
+  now also carries `weekly_window: includeWeekly ? { start: startStr, end: endStr, days:
+  allDates.length } : null` — `startStr`/`endStr` are the exact same variables already
+  parameterizing the SQL `WHERE ngay_do_kiem BETWEEN ? AND ?` clause, so the reported window can
+  never drift from the real query range. No SQL changed, no new query added, no other field
+  touched.
+- **Frontend contract mapping** (`frontend/src/features/dashboard/components/
+  operatingPatternTabsData.js`): new pure `mapWeeklyWindow(weeklyWindow)` formats
+  `data.weekly_window` via the existing `formatDisplayDate` (`dd/MM/yyyy`) into
+  `{ start, end, days, startLabel, endLabel, label }`, where `label` is exactly
+  `"Dữ liệu phân tích: {startLabel} – {endLabel} ({days} ngày)"` — the Product Owner's own example
+  format. Returns `null` defensively if the backend omits the field. Wired into
+  `mapOperatingPatternResponse` as `model.weeklyWindow`. The frontend performs **no date
+  arithmetic** of its own — it only formats backend-supplied ISO dates.
+- **UI** (`OperatingPatternTabsCard.jsx`): the context line is now conditional —
+  `activeTab === 'weekday' && state.data?.weeklyWindow` renders `state.data.weeklyWindow.label`;
+  every other branch (month, heatmap, or weekday before the API responds) renders the original,
+  unchanged `Bối cảnh bộ lọc: {fromDate} đến {toDate}` line. "Theo tháng" and "Heatmap" semantics/
+  labels are untouched — confirmed live (see below).
+
+### Real-data validation
+
+Backend restarted (stale process predated this fix, same "restart before validating" discipline
+recorded in prior sections). Live authenticated `GET /f13/dashboard/quality-timeline?
+toDate=2026-09-07&ma_bcvh=all&mode=weekday`:
+`weekly_window: {"start":"2026-06-10","end":"2026-09-07","days":90}` — matches the prior audit's
+independently-derived numbers exactly. Live browser (`admin`, `/f13/dashboard?
+from_date=2026-09-01&to_date=2026-09-07`): "Theo tháng" tab shows the original
+`Bối cảnh bộ lọc: 2026-09-01 đến 2026-09-07` (unchanged); switching to "Theo thứ" shows
+**`Dữ liệu phân tích: 10/06/2026 – 07/09/2026 (90 ngày)`** — the exact format the Product Owner
+requested; switching to "Heatmap" shows the original `Bối cảnh bộ lọc: 2026-09-01 đến 2026-09-07`
+line, confirming the other two tabs are byte-for-byte unaffected.
+
+### Tests (new)
+
+- `backend/test_timelineServiceOperatingPatternContract.js` (existing DB-mocked contract script,
+  extended): asserts `result.weekly_window` is `{ start: '2026-04-22', end: '2026-07-20', days:
+  90 }` for `toDate='2026-07-20'` — the exact `toDate - 89 days` value, independently computed.
+  `node test_timelineServiceOperatingPatternContract.js` → PASS.
+- `frontend/src/features/dashboard/components/operatingPatternTabsData.test.js` (extended, 8 new
+  tests): `mapWeeklyWindow` formatting (incl. the exact live-measured
+  `10/06/2026 – 07/09/2026 (90 ngày)` string) and its `null` fallback; `mapOperatingPatternResponse
+  .weeklyWindow` wiring (present and absent cases); a source-text test confirming the card's
+  weekday-only conditional and that the original "Bối cảnh bộ lọc" branch/wording is still present
+  verbatim as the fallback for every other tab; a test confirming neither the card nor the mapper
+  hardcodes/recomputes the `-89` rule; a cross-package backend-contract test reading
+  `timelineService.js` source to confirm `weekly_window` is built from the exact same
+  `startStr`/`endStr` the SQL `WHERE` clause uses (same precedent/path style as
+  `dashboardLoadPerformance.test.js`).
+
+### Regression
+
+Frontend targeted `features/dashboard/`: 33/33 new+existing pass in
+`operatingPatternTabsData.test.js`; full `features/dashboard/**` sweep 120/124 pass (3
+pre-existing baseline failures — `dashboardFilterOptions.test.js` x2,
+`dashboardLanguageSemantics.test.js` x1 — from the concurrent session's in-progress sidebar
+restructuring, unrelated to this fix, not caused by it). Full frontend sweep: 476/480 (the same 4
+baseline failures on record). `oxlint`: 0 warnings/0 errors on every touched file. `vite build`:
+succeeds cleanly. Backend: `test_timelineServiceOperatingPatternContract.js` PASS;
+`timelineService.recovery.test.js` 7/8 (the 1 failure is the pre-existing, unrelated
+`monthly rank enrichment...` source-text mismatch already on record). Full backend sweep: 326/330
+(the same 4 pre-existing baseline failures on record, none in `timelineService`).
+
+### Scope discipline
+
+`git diff --name-only` touches exactly 4 paths: `backend/src/services/timelineService.js`,
+`backend/test_timelineServiceOperatingPatternContract.js`,
+`frontend/src/features/dashboard/components/operatingPatternTabsData.js`,
+`frontend/src/features/dashboard/components/OperatingPatternTabsCard.jsx`, plus the extended
+`operatingPatternTabsData.test.js`. No SQL/business-rule change, no other tab's semantics/label
+touched, no §9.4 Cấm chạm file, no concurrently-modified `networkMap`/nav files touched (committed
+by explicit pathspec only).
+
+### Verdict
+
+Fix is technically complete and real-data-validated end-to-end (backend contract → frontend
+mapping → live browser render). This is a label/display-accuracy defect on an already-shipped
+Dashboard card with no dedicated Design of Record §12.2-style PO UI Check gate of its own;
+`CLOSED / TECHNICAL FIX VALIDATED`. The Product Owner may optionally spot-check the live label at
+their convenience — not a blocking gate for this ticket.
+
