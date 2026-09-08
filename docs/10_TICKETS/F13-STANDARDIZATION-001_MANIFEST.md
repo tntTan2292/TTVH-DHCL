@@ -3171,3 +3171,99 @@ authorize PO UI Check. `ITR-EV-NB-01` (a CTO/PO decision, not a code defect) rem
 unresolved by this section, unaffected. `F13-ROUTE-RANKING-PERIOD-01` and
 `F13-BCVH-RANKING-OVERVIEW-01` remain `CLOSED / PO PASS`, unaffected; `AUTO-BACKFILL-RUNTIME`
 remains separately open, unaffected.
+
+## 69. F13-ROUTE-EVIDENCE-STATUS-02 — Independent Re-Review of `ITR-EV-BLOCK-01` — `ITR-EV-BLOCK-01` **CLOSED**, new blocker `ITR2-BLOCK-01` (2026-09-08)
+
+Append-only delta. Sections 1-68 unchanged. Reviewer: `Claude Code`/`Opus` — a different model from
+the `Sonnet` executor of the §68 remediation, per `DEC-021`. Baseline reviewed: `cdc9417`. Scope as
+instructed: the `ITR-EV-BLOCK-01` remediation only, not a re-review of the whole ticket. Read-only —
+no product code was changed by this review; the only commands run were the two test suites and
+read-only `SELECT` measurements. `fact_f13` read before and after: **777,081 rows,
+`MAX(ngay_do_kiem) = 2026-09-06`, identical** — zero writes.
+
+### `ITR-EV-BLOCK-01` — **CLOSED**
+
+Every requested verification passes.
+
+| Verification | Result |
+| --- | --- |
+| `matched_route_list` represents the **whole** matched scope | **PASS** — re-derived ground truth independently of the service (raw `SELECT` over the full scope + the shipped `matchesSearchQuery`, grouped in the harness, not by the service) and compared: **exact match on all 4 real cases** — `533140` `month_to_anchor` `HCC` 9 routes/1,617 rows, `Thuy` 4 routes/1,000 rows; `day` `HCC` 7 routes/235 rows, `Thuy` 4 routes/139 rows. `sum(counts) == matched_items` and `matched_routes == list.length` in every case |
+| List is page-independent | **PASS** — `matched_route_list` byte-identical between page 1 and the last page (33, 20, 5, 3 respectively), so no page can ever narrow it |
+| Frontend no longer groups by the current page | **PASS** — `groupRowsByRoute(sortedRows)` is gone from the grouped path; `groupedRows` is built by `buildSearchRouteGroups()` from `meta.search.matched_route_list`, with page rows demoted to a defensive `fallbackRows` used only if the server omits the field |
+| Every matched route displays across multiple server pages | **PASS** — the defect's own numbers now resolve: `HCC` page 1 carries rows from only 7 routes (page 33: 8), `Thuy` page 1 only 2 (page 20: 4), yet the group list is 9 and 4 respectively on every page |
+| Per-route expand fetch carries the right context | **PASS** — exercised the exact call `fetchRouteGroupRows` issues, across 5 real contexts (`status` = `all`/`failed`/`passed`/`returned`, and `failed`+`reason=delayed_cash`): route, search, status, reason and period all propagate; the expand fetch's own `matched_items` equals the group header's count on **every** route in all 5 contexts (e.g. `failed`+`delayed_cash` → 3 routes, counts 1/7/1, each confirmed); returned rows never contain another route, another status, or another reason |
+| Context vs search counts no longer contradict | **PASS** — `resolveContextTotal()` is logically identical to the backend's own `_resolveNonSearchTotalItems` (same status/reason branches, same `reason='all'` fall-through), and reads `status_summary`/`violation_summary`, which are computed over the keyword-**independent** scope; "Tổng Evidence (bối cảnh)" can no longer collapse onto "Kết quả tìm kiếm" |
+| Server-side pagination / performance contract intact | **PASS** — `_buildMatchedRouteList()` is a fold over the `matched` array that already existed under `P-03`; **no new query**, no new materialization, no ceiling raised. `matched_routes` is now derived from the same list it reports, so count and list can never drift. `matched_route_list` is correctly `null` on both the no-search and `scope_guard.exceeded` paths. Every request still returns at most `page_size` (≤ 200) rows |
+| Behavioral tests genuinely catch the old failure mode | **PASS, mutation-tested** — re-ran the new assertions against a deliberately mutated pre-fix implementation: the backend `ITR-EV-BLOCK-01` test **fails** against a page-derived route list and passes against the shipped one; the frontend `C.1` grouping assertions **fail** against `groupRowsByRoute(pageRows)` and pass against `buildSearchRouteGroups`; the `contextTotal` assertion **fails** against `pagination.total_items` and passes against `resolveContextTotal`. These are real behavioral guards, not restatements of the shipped source |
+
+Suites re-run by this review at `cdc9417`: backend Evidence + route-period **79/79**, frontend
+`features/shipment/` + `features/route/` **187/187**. `git diff --name-only dbab2b7..cdc9417`
+touches no §9.4 Cấm chạm file.
+
+### `ITR2-BLOCK-01` — grouped search view silently truncates each route to 50 rows (**BLOCKER**, introduced by §68)
+
+**Statement.** With a keyword active, expanding a route group renders at most **50** rows while the
+group header displays that route's **true** matched count, and there is no per-group pagination, no
+"showing 50 of N" affordance, and no other path to the remaining rows inside the grouped view.
+
+**Measured live** (`533140`, `month_to_anchor` `2026-09-01..2026-09-06`, `search=HCC`, `status=all`):
+7 of the 9 matched routes exceed the cap — `53314072` header "345 bưu gửi" renders 50 rows;
+`53314071` 242 → 50; `53314057` 218 → 50; `53314062` 215 → 50; `53314058` 210 → 50; `53314060`
+184 → 50; `53314073` 165 → 50. Under `status=failed` and `status=passed` the same pattern holds
+(e.g. `53314072` 151 → 50, 194 → 50).
+
+**Why this is a blocker.** It is the same self-contradiction the original blocker was about — a
+server-computed count next to a visibly smaller rendering — moved down one level, from routes to
+rows. It also contradicts a **binding** design principle rather than a matter of taste: §5.6 retired
+the `truncated` flag and its banner specifically because *"Không còn khả năng cắt cụt âm thầm; thay
+bằng `scope_guard` tường minh"*, and `P-03` requires the system to fail loudly rather than quietly
+drop rows. The grouped view now drops rows quietly.
+
+**It is a regression, not a pre-existing gap.** Before §68 the grouped view was built from the
+current page, so a route's remaining rows were reachable by paging — the pagination control changed
+what the groups contained. §68 made the group list page-independent (correctly) but left the row
+source per group at exactly one page-1 fetch, so paging no longer reaches those rows at all. The
+remediation traded route-level incompleteness for row-level incompleteness plus the loss of the
+path that previously compensated.
+
+**Second facet — the pagination control is now inert in grouped mode and destroys user state.**
+`paginationControls` (`ShipmentPerformancePage.jsx:762`) still renders while searching, but
+`mode='grouped'` renders `groups`, never `rows`, so paging changes nothing visible. Worse, `page` is
+a dependency of the main fetch effect (`:276`), which begins by clearing `routeGroupData` and
+`expandedRouteKeys` — so clicking "Sau" silently collapses every group the manager had opened and
+otherwise appears to do nothing. PO UI Check §12.2 exercises search (step 5) and paging (step 6);
+both land here.
+
+**Remediation required (minimal).** Give each expanded group its own page control driven by the
+per-route fetch's own `pagination` meta (the response already carries `total_items`/`total_pages`
+for the route — verified above that it equals the group count), keeping `page_size` at 50 and one
+request per page; store that per-route page in `routeGroupData`. Then either hide the global
+pagination bar while `mode='grouped'`, or leave it but stop it from clearing per-route state. If a
+per-group control is judged too large, the minimum acceptable alternative is an explicit, visible
+"Hiển thị 50 / N — chọn tuyến này ở bộ lọc Tuyến để xem đầy đủ" affordance, so nothing is dropped
+silently.
+
+### `ITR2-NB-01` — stale per-route response can poison the cache with rows from a previous filter context (non-blocking)
+
+`fetchRouteGroupRows()` has no generation guard. Sequence: expand route `R` → request in flight →
+the manager changes keyword/status/period/page → the main effect clears `routeGroupData` → the
+in-flight response resolves and writes `{ [R]: { status: 'ready', rows: <previous context's rows> } }`
+into the now-cleared cache. If `R` also matches the new context, expanding it takes the
+`status === 'ready'` branch, issues **no** refetch, and renders rows belonging to the previous
+keyword/status/period. Narrow timing window (the route fetch measured well under a second, and the
+search box is debounced), and no data is written — but it is silent wrong evidence while it lasts.
+Fix: capture a request generation/context key when the fetch starts and discard the response if the
+context has changed since (the same discipline the main effect already applies with its `mounted`
+flag).
+
+### Verdict
+
+`ITR-EV-BLOCK-01` is **CLOSED** — the remediation is correct, well-scoped, verified against
+independently re-derived real data, and its regression tests genuinely catch the original defect.
+This review does **not** grant `READY FOR PO UI CHECK`: `ITR2-BLOCK-01`, introduced by that same
+remediation and sitting directly in PO UI Check §12.2 steps 5-6, must be remediated and re-reviewed
+first. `ITR2-NB-01` is cheap enough to fold into the same change. `ITR-EV-NB-01` from §67 (Evidence
+"Tất cả tuyến" totals versus Tuyến Ranking's default `Tuyến bưu tá` scope) remains an open CTO/PO
+question, untouched and unaffected by this review. `F13-ROUTE-RANKING-PERIOD-01` and
+`F13-BCVH-RANKING-OVERVIEW-01` remain `CLOSED / PO PASS`; `AUTO-BACKFILL-RUNTIME` remains separately
+open.
