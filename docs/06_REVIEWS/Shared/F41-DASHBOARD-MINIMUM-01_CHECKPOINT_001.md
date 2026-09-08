@@ -92,3 +92,66 @@ F1.3 regression: `backend/server.js`'s only F1.3-relevant change is additive (`f
 ## Section 6 — Completion State
 
 `F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) — IMPLEMENTED / READY FOR INDEPENDENT TECHNICAL REVIEW`. Per `CLAUDE.md` Section 4, Claude Code does not self-award a Product Owner PASS, and per this ticket's own instruction, work stops here — no frontend (Phase F1) was started. Next step is an Independent Technical Review (per `DEC-021`), not a Product Owner UI check, since this phase has no UI surface.
+
+## Section 7 — Independent Technical Review of Phase B1 (2026-09-08, Claude Code / Opus, DEC-021)
+
+Adversarial review of implementation commit `1664f15` (baseline `b075b96`, Governance-only successor `22e34c4`), performed by a different model than the implementer, per `DEC-021`. Validation `LEVEL 3` — this is the gate before Phase F1 activation. All database access was read-only; no business data was written, and this review modified no product code.
+
+**Verdict: `INDEPENDENT TECHNICAL REVIEW PASS`. 0 BLOCKER, 6 NON-BLOCKING findings.**
+
+### 7.1 Review items and evidence
+
+**1. KPI definition — F4.1 total-rows denominator (PASS).** `FactF41Repository.getKpiMetrics` is unchanged by this commit (`git show 1664f15 -- src/repositories/FactF41Repository.js` adds only `getMeta()`). Its denominator is `COUNT(*)` over the period with no `sl_bg_ptc` gating, matching the `F41-MODULE-PLAN` `DC-2` contract, and `F41DashboardService` adds no gating of its own. Table-wide, `danh_gia_co_tms_ptc_8h` takes exactly three states — `Đạt` 190,508 / `Không đạt` 93,240 / `NULL` 25,246 — so `total_passed + total_failed + total_blank` always partitions `total_rows`; verified equal on `2026-08-01`.
+
+**2. Locked figure `2.863/4.695 = 60,98%` at `2026-08-01` (PASS).** Reproduced independently through the real controller against the live operational database:
+
+```
+{"date_range":{"from_date":"2026-08-01","to_date":"2026-08-01"},"ma_bcvh":null,
+ "total_rows":4695,"total_passed":2863,"total_failed":1581,"total_blank":251,"rate_percent":60.98}
+```
+
+**3. Multi-day and the BCVH filter (PASS).** Multi-day is genuinely additive, not a widened single day: per-day totals for `2026-08-01..2026-08-05` sum to `20,979`, exactly equal to the single range call over the same window. The `ma_bcvh` filter was exercised against real data for all six canonical codes (previously covered only by mocked tests — see `ITR-F41-NB-05`): `535790` 346 rows / 77.46%, `536250` 509 / 68.17%, `535470` 736 / 52.99%, `537220` 580 / 10.69%, `537015` 339 / 88.79%, `533140` 2,184 / 68.41%. `ma_bcvh=all` and `ma_bcvh=''` both normalize to the unfiltered aggregate (4,695); a non-canonical or SQL-shaped code is rejected `400 INVALID_PARAM`.
+
+**4. Reconciliation does not distort the KPI module (PASS).** `GET /dashboard/bcvh-reconciliation?date=2026-08-01` returns 7 groups whose sums reconcile exactly to the KPI endpoint for the same date: `total_rows` 4,695, `total_passed` 2,863, `total_failed` 1,581, `total_blank` 251. It reuses the same SQL expressions as `getKpiMetrics` and shares no state with it.
+
+**5. Parameter validation and error contract (PASS with `ITR-F41-NB-03`).** Missing `from_date`/`to_date` → `400 MISSING_PARAM`; missing `date` → `400 MISSING_PARAM`; invalid `ma_bcvh` → `400 INVALID_PARAM`; service failure → `500 SERVER_ERROR`; the `{ success, data }` / `{ success: false, error: { code, message } }` envelope matches F1.3's `DashboardController`. Date *values* are not validated — see `ITR-F41-NB-03`. Injection was tested and is not possible: every date and BCVH value is bound as a SQL parameter, and `from_date="2026-08-01' OR 1=1 --"` returns 0 rows rather than the whole table.
+
+**6. Read authorization is `admin` + `viewer` only (PASS).** All three routes are gated `[requireAuth, requireRole(['admin', 'viewer'])]`. `requireAuth` rejects an absent or unknown session `401`; `requireRole` rejects any other role `403`. `backend/src/services/auth/runtimeUsers.js` defines exactly two roles in the system (`admin`, `viewer`), so the whitelist is complete and not over-broad.
+
+**7. The API is fully read-only (PASS).** `f41Routes.js` declares three `router.get` handlers and no `router.post`/`put`/`patch`/`delete`; the controller and service contain no `INSERT`/`UPDATE`/`DELETE`/`db.run`/transaction call; the only three repository methods reachable from the F4.1 Dashboard stack are `getKpiMetrics`, `getBcvhReconciliation` and `getMeta`, all pure `SELECT`. Confirmed empirically: `fact_f13` = 781,692 and `fact_f41` = 308,994 rows, unchanged across the full review run.
+
+**8. Route mount does not affect F1.3 (PASS).** `server.js` gains two additive lines; `app.use('/api/f41', f41Routes)` is appended after the existing mounts and shares no prefix with `/api/f13`. `git diff --name-only b075b96 22e34c4 -- src/routes/ src/controllers/DashboardController.js src/services/F13DashboardService.js src/db/schema.sql` returns only the two new `f41Routes` files — no F1.3 route, controller, service, or schema file was touched.
+
+**9. Tests check real behavior, not only wiring (PASS with `ITR-F41-NB-01`, `ITR-F41-NB-05`).** The repository tests run against a real temporary SQLite database through the real migration; the service tests exercise mapping, the zero-row/null-rate branch, and range forwarding against a fake repository; the controller tests exercise the real handlers and assert status codes, error codes and cache headers. `f41Routes.test.js` is source-text assertion only, but that is the established repository convention (`networkMapRoutes.test.js` is identical in style) and the RBAC middleware it asserts has its own behavioral tests — not counted as a defect.
+
+**10. Full-sweep evidence `296/300` and the four baseline failures (PASS with `ITR-F41-NB-01`, `ITR-F41-NB-02`).** Re-run four times. Three runs reproduce `296/300` with exactly the four claimed baseline failures; one run produced `295/300` because of `ITR-F41-NB-01`. The four baseline failures are confirmed pre-existing and unrelated to F4.1 — none references `f41`, `F41` or `fact_f41`: `DashboardController.r6.integration.test.js:18` and `:87` (`fetch failed`, need a live HTTP server), `DashboardController.recovery.test.js:11` (assertion `12 !== 3`), `timelineService.recovery.test.js:80` (source-regex mismatch against `timelineService.js`, which baseline commit `b075b96` edited). The 17/17 targeted suite and `oxlint` `0`/`0` both reproduce exactly as claimed.
+
+**11. Snapshot / manifest / checkpoint consistency (PASS).** `PROJECT_SNAPSHOT.md`, `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md`, this checkpoint, `DOCUMENT_INDEX.md`, `PROJECT_PROGRESS.md` and `docs/10_TICKETS/F41-PHASE-2_MANIFEST.md` (`CLOSED / PO PASS`) all agree on ticket, phase, branch, baseline, scope and completion state. `PO UI Check Required = No` is correct for a backend-only phase, and no Product Owner PASS was self-awarded.
+
+### 7.2 Findings
+
+| ID | Severity | Finding and remediation |
+| --- | --- | --- |
+| `ITR-F41-NB-01` | NON-BLOCKING | The new test `repository reports min/max ngay_do_kiem across imported F4.1 dates` (`backend/src/repositories/FactF41Repository.test.js:40`) is flaky on Windows: it calls `db.close()` without awaiting the callback, so `fs.rmSync(dbPath)` in the same `finally` can hit `EBUSY: resource busy or locked, unlink ...fact-f41-repository-*.sqlite`. Its assertions always pass; only teardown fails. Reproduced in 1 of 4 full sweeps — that run reported `295/300`, and the extra failure *does* reference F4.1, contradicting the recorded evidence. Remediation: `await new Promise((resolve) => db.close(resolve));` before `rmSync`, in all three tests in that file. |
+| `ITR-F41-NB-02` | NON-BLOCKING | Section 5 of this checkpoint states all four baseline failures fail "with `fetch failed` because they require a live HTTP server". Only two do. `DashboardController.recovery.test.js:11` fails on a real assertion (`12 !== 3`) and `timelineService.recovery.test.js:80` on a real source-regex mismatch — genuine pre-existing defects in F1.3 territory, not environment artifacts. They stay outside this ticket's scope, but the evidence must not describe them as environmental. Remediation: correct the characterization, and raise the two real F1.3 test failures as their own ticket. |
+| `ITR-F41-NB-03` | NON-BLOCKING | No validation of date *values* on any endpoint. `from_date=not-a-date`, `from_date=2026-13-45` and a reversed range `2026-08-05..2026-08-01` all return `HTTP 200` with `total_rows: 0, rate_percent: null` — bad input is indistinguishable from "no data for this period"; `bcvh-reconciliation?date=not-a-date` returns `200 []`. This mirrors F1.3's own `DashboardController.getKpi`, so it is a consistent inherited contract, not a regression — but F1.3's `getBcvh` already rejects a reversed range with `400 INVALID_RANGE`, and Phase F1 will put a date-range picker directly on this endpoint. Remediation before or with Phase F1: add an ISO-date shape check and a `from_date > to_date` guard returning `400 INVALID_DATE` / `400 INVALID_RANGE`. No security impact — all values are SQL-bound (verified). |
+| `ITR-F41-NB-04` | NON-BLOCKING | The shared `CANONICAL_BCVH_UNITS` whitelist (6 codes) does not cover every `ma_bc_phat` present in `fact_f41`: codes `531120` (354 rows), `531110` (279) and `531600` (36) also occur — 669 of 308,994 rows (0.22%), spanning `2026-07-01..2026-09-05`. Consequence: the six per-BCVH filtered totals do not partition the aggregate (on `2026-08-01`: 4,694 vs 4,695), and `bcvh-reconciliation` returns 7 groups where the filter offers 6. The aggregate KPI itself is correct, and the Product Owner-locked 4,695 already includes these rows. Remediation is a product decision, not a technical one: Phase F1 must not present the 6-unit filter as exhaustive, and the Product Owner should rule on whether these codes are in F4.1 scope. |
+| `ITR-F41-NB-05` | NON-BLOCKING | `backend/test_f41DashboardMinimum.js` — the only real-database evidence for this phase — exercises `kpi` (unfiltered) and `meta` only. The `ma_bcvh` filter path and the entire `bcvh-reconciliation` endpoint had no real-data evidence; both were covered only by tests using a fake repository, so the actual `AND ma_bc_phat = ?` and `GROUP BY` SQL was never proven against production-shaped data. This review closed that gap (items 3 and 4 above, both PASS). Remediation: fold those assertions into the script so the evidence is reproducible from the repository. |
+| `ITR-F41-NB-06` | NON-BLOCKING | `getMeta` sets `no-store`/`no-cache` headers but `getKpi` and `getBcvhReconciliation` do not, so a KPI response for a still-importing day could be served stale from an intermediate cache while the picker bounds are always fresh. Remediation: apply the same cache headers to all three read endpoints. |
+
+### 7.3 Commands run
+
+```
+node --experimental-sqlite --test src/repositories/FactF41Repository.test.js \
+  src/services/F41DashboardService.test.js src/controllers/F41DashboardController.test.js \
+  src/routes/f41Routes.test.js                         # tests 17, pass 17, fail 0
+node --experimental-sqlite --test "src/**/*.test.js"   # x4: 296/300, 296/300, 296/300, 295/300 (ITR-F41-NB-01)
+npx oxlint src/routes/f41Routes.js src/controllers/F41DashboardController.js \
+  src/services/F41DashboardService.js                  # exit 0, 0 warnings, 0 errors
+node test_f41DashboardMinimum.js                       # 14 passed, 0 failed
+node <independent read-only ITR script, run from backend/, deleted after the run>
+```
+
+### 7.4 Outcome
+
+Phase B1 is technically sound: the locked KPI is correct and independently reproduced, the API is genuinely read-only and correctly authorized, F1.3 is untouched, and the governance record is consistent. State advances to `INDEPENDENT TECHNICAL REVIEW PASS / READY FOR PHASE F1 ACTIVATION`. Phase F1 is **not** activated by this review — it requires its own Product Owner activation. `ITR-F41-NB-01`, `ITR-F41-NB-03` and `ITR-F41-NB-04` should be dispositioned before or as part of Phase F1.

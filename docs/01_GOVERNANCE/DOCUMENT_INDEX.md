@@ -766,3 +766,23 @@ Phase B1 (Backend) implementation.
 Current state: `F41-PHASE-2 = CLOSED / PO PASS`; `F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) =
 IMPLEMENTED / READY FOR INDEPENDENT TECHNICAL REVIEW`. No Product Owner PASS is self-awarded.
 Phase F1 (Frontend) is not started and requires its own activation.
+
+## F41-DASHBOARD-MINIMUM-01 Phase B1 Independent Technical Review Registration - 2026-09-08
+
+`DEC-021` Independent Technical Review of Phase B1 implementation commit `1664f15`, performed at
+`LEVEL 3` by Claude Code (Opus) — a different model than the implementer — as the review gate before
+Phase F1. Verdict `INDEPENDENT TECHNICAL REVIEW PASS / READY FOR PHASE F1 ACTIVATION`: 0 BLOCKER,
+6 NON-BLOCKING (`ITR-F41-NB-01`..`ITR-F41-NB-06`). Read-only review: no business data written and no
+product code changed, so no new source file is registered here. This entry supersedes the two
+`New Status` cells for the manifest and checkpoint rows in the section above without deleting them.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` | Ticket Manifest | Status line advanced to `PHASE B1 (BACKEND) INDEPENDENT TECHNICAL REVIEW PASS / READY FOR PHASE F1 ACTIVATION (2026-09-08)`; new Section 7 records the Independent Technical Review verdict, the eleven reviewed items, and the six non-blocking findings with their remediation. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` | Checkpoint | New Section 7 carries the full Independent Technical Review evidence: item-by-item verification (locked KPI reproduced, multi-day additivity, real-data BCVH filter, exact BCVH reconciliation, error contract and SQL binding, `admin`+`viewer` authorization, `GET`-only write-free API, no F1.3 impact, test-quality assessment, four re-runs of the full sweep, governance consistency), the findings table `ITR-F41-NB-01`..`ITR-F41-NB-06`, the commands run, and the outcome. | L2 | Active Onboarding | Current ticket only; read Section 7 before starting Phase F1. | Mandatory |
+
+Current state: `F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) = INDEPENDENT TECHNICAL REVIEW PASS /
+READY FOR PHASE F1 ACTIVATION`. Phase F1 (Frontend) is **not** activated by this review and requires
+its own explicit Product Owner activation. `ITR-F41-NB-01`, `ITR-F41-NB-03` and `ITR-F41-NB-04`
+should be dispositioned before or as part of Phase F1; `ITR-F41-NB-04` needs a Product Owner scope
+decision on BCVH codes `531120`/`531110`/`531600`.

@@ -1701,3 +1701,34 @@ started. Evidence: `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md`; `docs
 F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md`; `docs/10_TICKETS/F41-PHASE-2_MANIFEST.md` updated to
 `CLOSED / PO PASS`; `PROJECT_SNAPSHOT.md` updated.
 
+
+### 2026-09-08 — `F41-DASHBOARD-MINIMUM-01` Phase B1 Independent Technical Review (Claude Code / Opus, `DEC-021`) — `INDEPENDENT TECHNICAL REVIEW PASS / READY FOR PHASE F1 ACTIVATION`
+
+Adversarial `LEVEL 3` Independent Technical Review of Phase B1 implementation commit `1664f15` (baseline `b075b96`;
+`22e34c4` is Governance-only), performed by a different model than the implementer per `DEC-021`, as the review gate
+before Phase F1. Read-only throughout: no business data written and no product code changed by the review.
+**Verdict: PASS — 0 BLOCKER, 6 NON-BLOCKING (`ITR-F41-NB-01`..`ITR-F41-NB-06`).** All eleven required review items
+pass: the F4.1 total-rows denominator is intact and `getKpiMetrics` genuinely unchanged; `2.863/4.695 = 60,98%` for
+`2026-08-01` was reproduced independently end-to-end against the live database; multi-day is genuinely additive
+(per-day totals for `2026-08-01..2026-08-05` sum to `20,979`, exactly the range call); the `ma_bcvh` filter was
+exercised against real data for all six canonical codes; `bcvh-reconciliation` reconciles exactly to the KPI endpoint
+(`4,695`/`2,863`/`1,581`/`251`) and does not distort the KPI module; the error contract matches F1.3 and every
+parameter is SQL-bound (injection tested, not possible); read access is `admin`+`viewer`, which is every role the
+system defines; the API is `GET`-only with no write path and `fact_f13` (781,692) / `fact_f41` (308,994) row counts
+were unchanged across the review; the `/api/f41` mount is additive with no F1.3 file touched; the tests exercise real
+behaviour beyond wiring; and Snapshot / Manifest / Checkpoint / `DOCUMENT_INDEX.md` / `PROJECT_PROGRESS.md` are
+mutually consistent. Non-blocking findings: `NB-01` the new `getMeta` repository test is flaky on Windows
+(`db.close()` not awaited before `fs.rmSync` → `EBUSY`; 1 of 4 sweeps reported `295/300` with an F4.1-referencing
+failure); `NB-02` checkpoint Section 5 mischaracterises two of the four baseline failures as `fetch failed` when they
+are real pre-existing F1.3 test failures; `NB-03` no date-*value* validation (garbage, impossible and reversed ranges
+return `200` with `total_rows: 0` instead of `400`); `NB-04` the 6-code canonical BCVH whitelist misses 669 of 308,994
+real `fact_f41` rows (`531120`/`531110`/`531600`), so filtered totals do not partition the aggregate — a Product Owner
+scope decision; `NB-05` the real-database evidence script never exercised the `ma_bcvh` filter or
+`bcvh-reconciliation` (gap closed by this review); `NB-06` `no-store` cache headers are set on `meta` but not on
+`kpi`/`bcvh-reconciliation`. Validation: targeted suite `17/17`; full backend sweep re-run 4x (`296/300` three times
+with exactly the four claimed baseline failures, `295/300` once per `NB-01`); `oxlint` `0`/`0`;
+`backend/test_f41DashboardMinimum.js` `14/14`; plus an independent read-only verification script, removed after the
+run. Phase F1 (Frontend) is **not** activated by this review and requires its own explicit Product Owner activation;
+`NB-01`, `NB-03` and `NB-04` should be dispositioned before or as part of Phase F1. Evidence:
+`docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` Section 7;
+`docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` Section 7; `PROJECT_SNAPSHOT.md` updated.
