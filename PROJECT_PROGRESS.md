@@ -1615,3 +1615,20 @@ concurrently-modified `frontend/src/features/networkMap/*` files (committed by e
 only). State: `READY FOR INDEPENDENT RE-REVIEW`, not self-declared `READY FOR PO UI CHECK` --
 per `DEC-021` a model other than `Sonnet` must re-review before any PO UI Check. Evidence:
 `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 70; `PROJECT_SNAPSHOT.md` updated.
+
+`F13-ROUTE-EVIDENCE-STATUS-02` -- `CLOSED / PO PASS` (`2026-09-08`, documentation-only, no product
+code changed): the Independent Re-Review of the §70 remediation (manifest §71, `Claude Code`/
+`Opus`, baseline `e89c2d0`) closed both `ITR2-BLOCK-01` and `ITR2-NB-01` and returned `TECHNICAL
+REVIEW PASS / READY FOR PO UI CHECK`. The Product Owner then performed the Design of Record
+§12.2 UI Check of "Chi tiết bưu gửi F1.3" and explicitly confirmed: `PO UI PASS /
+F13-ROUTE-EVIDENCE-STATUS-02 CLOSED`. Final technical commit this PASS is based on: `26d0853`.
+`ITR-EV-NB-01` (§67, Evidence "Tất cả tuyến" totals vs. Tuyến Ranking's default "Tuyến bưu tá"
+filter) is recorded as a known, non-blocking note per explicit PO instruction and does not reopen
+the ticket -- an open CTO/PO scope question for a future ticket only. Confirmed no other F1.3
+feature ticket is open or blocked: `F13-ROUTE-RANKING-PERIOD-01` and `F13-BCVH-RANKING-OVERVIEW-01`
+remain `CLOSED / PO PASS`; the original 5-phase `F13-STANDARDIZATION-001` program's Phases 1-4
+remain `PLANNED / NOT ACTIVE` (dormant, not blocked); `AUTO-BACKFILL-RUNTIME` remains separately
+open (cross-module F1.3+F4.1 runtime-acceptance item, unaffected, not an F1.3 feature blocker).
+State: `Current Ticket = None`; the F1.3 roadmap is clear to move to F4.1; opening the next ticket
+is a CTO/PO decision. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 72;
+`PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated.

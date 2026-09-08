@@ -38,8 +38,8 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket (`2026-09-07`): `None`. `F13-ROUTE-RANKING-PERIOD-01` closed `CLOSED / PO PASS` (2026-09-07, manifest Section 61); `AB-CALENDAR-01` (4-status PO coverage model) is `CLOSED / PO UI CHECK PASS` (2026-08-28, manifest Section 48; implementation commit `21d37be3`, frontend remediation commit `c0f18e9e`). AWAITING PO DIRECTION for any next ticket. `AUTO-BACKFILL-RUNTIME` (Ticket 7) remains open and unaffected by these closures; within it, incident `F41-AUTOBF-SQLITE-BUSY-01` (SQLITE_BUSY terminal-failure defect found and fixed, commit `8f0a9d62`, PO-confirmed via a real F4.1/HUE/2026-09-06 "Nhập lại" run) is `CLOSED / PO-CONFIRMED` (2026-09-07, manifest Section 49); broader PO Gate 7 runtime acceptance for the ticket as a whole is still not awarded.
-- Last closed manifest: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` (F13-ROUTE-RANKING-PERIOD-01 closure, Section 61). Also see `docs/10_TICKETS/AUTO-BACKFILL-RUNTIME_MANIFEST.md` (AB-CALENDAR-01 closure Section 48; F41-AUTOBF-SQLITE-BUSY-01 incident closure Section 49; design Section 45, decision approvals Section 46, implementation Section 47).
+- Current ticket (`2026-09-08`): `None`. `F13-ROUTE-EVIDENCE-STATUS-02` closed `CLOSED / PO PASS` (2026-09-08, manifest Section 72, final technical commit `26d0853`); `F13-ROUTE-RANKING-PERIOD-01` closed `CLOSED / PO PASS` (2026-09-07, manifest Section 61); `AB-CALENDAR-01` (4-status PO coverage model) is `CLOSED / PO UI CHECK PASS` (2026-08-28, manifest Section 48; implementation commit `21d37be3`, frontend remediation commit `c0f18e9e`). No other F1.3 feature ticket is open or blocked — the roadmap is clear to move to F4.1; opening the next ticket is a CTO/PO decision. `AUTO-BACKFILL-RUNTIME` (Ticket 7) remains open and unaffected by these closures; within it, incident `F41-AUTOBF-SQLITE-BUSY-01` (SQLITE_BUSY terminal-failure defect found and fixed, commit `8f0a9d62`, PO-confirmed via a real F4.1/HUE/2026-09-06 "Nhập lại" run) is `CLOSED / PO-CONFIRMED` (2026-09-07, manifest Section 49); broader PO Gate 7 runtime acceptance for the ticket as a whole is still not awarded.
+- Last closed manifest: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` (F13-ROUTE-EVIDENCE-STATUS-02 closure, Section 72; F13-ROUTE-RANKING-PERIOD-01 closure, Section 61). Also see `docs/10_TICKETS/AUTO-BACKFILL-RUNTIME_MANIFEST.md` (AB-CALENDAR-01 closure Section 48; F41-AUTOBF-SQLITE-BUSY-01 incident closure Section 49; design Section 45, decision approvals Section 46, implementation Section 47).
 - Last closed design of record: `docs/04_TECHNICAL_PLANNING/Feature/AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md` (the holiday calendar design remains valid except its PO decisions 2 and 4, now superseded).
 - AUTO-BACKFILL-RUNTIME checkpoint (separate, still-open item): `docs/06_REVIEWS/Import/AUTO-BACKFILL-RUNTIME_CHECKPOINT_001.md` (Section 8 records the F41-AUTOBF-SQLITE-BUSY-01 incident and its PO-confirmed closure).
 - Next required action: none self-activated for AB-CALENDAR-01 or F13-ROUTE-RANKING-PERIOD-01 — awaiting Product Owner direction for any next ticket. For the separate AUTO-BACKFILL-RUNTIME item: the F41-AUTOBF-SQLITE-BUSY-01 incident is closed; a full PO Gate 7 runtime acceptance (all four lanes) and the `WAITING_AUTH`/explicit-Resume path are still unobserved and remain a Product Owner decision before any wider-scope expansion. See `PROJECT_SNAPSHOT.md` for live-state detail.
@@ -700,3 +700,24 @@ registration above for onboarding purposes without deleting it.
 Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = ITR2-BLOCK-01 + ITR2-NB-01 REMEDIATED / READY FOR
 INDEPENDENT RE-REVIEW`. Per `DEC-021`, a model other than the remediating `Sonnet` session must
 re-review before any PO UI Check.
+
+(Superseded below by the ticket's formal closure — the Independent Re-Review at manifest Section
+71 by `Claude Code`/`Opus` closed both `ITR2-BLOCK-01` and `ITR2-NB-01` and returned `TECHNICAL
+REVIEW PASS / READY FOR PO UI CHECK`, and the Product Owner has now performed that check.)
+
+
+## F13-ROUTE-EVIDENCE-STATUS-02 Closure Registration - 2026-09-08
+
+Supersedes every prior registration for this ticket above for onboarding purposes without
+deleting them: the ticket has now received Product Owner acceptance and is formally closed.
+Documentation-only closure — no product code was changed.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` | Ticket Manifest | Section 72 (appended) records the Product Owner's `PO UI PASS / F13-ROUTE-EVIDENCE-STATUS-02 CLOSED` and the ticket's full closure state, the `ITR-EV-NB-01` known-non-blocking disposition, and the F1.3-roadmap confirmation before moving to F4.1. Sections 1-71 stand unchanged as closed historical record. | L2 | Historical Record | Reference for the ticket's full lifecycle; not required reading for new work since no ticket is currently active on this scope. | Reference |
+
+Current state: `F13-ROUTE-EVIDENCE-STATUS-02 = CLOSED / PO PASS` at final technical commit
+`26d0853` (the last commit reviewed and passed before the Product Owner performed the check).
+`Current Ticket = None`. No other F1.3 feature ticket is open or blocked. `AUTO-BACKFILL-RUNTIME`
+remains separately open (cross-module F1.3+F4.1 runtime-acceptance item, unaffected). The roadmap
+is clear to move to F4.1; opening the next ticket is a CTO/PO decision.

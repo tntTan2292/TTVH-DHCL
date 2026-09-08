@@ -3476,3 +3476,46 @@ all-routes comparison reconciles against Tuyến Ranking's `Tất cả` filter, 
 matches exactly under either filter. `Claude Code` does not self-award `PO PASS`.
 `F13-ROUTE-RANKING-PERIOD-01` and `F13-BCVH-RANKING-OVERVIEW-01` remain `CLOSED / PO PASS`;
 `AUTO-BACKFILL-RUNTIME` remains separately open, unaffected.
+
+## 72. F13-ROUTE-EVIDENCE-STATUS-02 — Product Owner UI Check PASS — `CLOSED` (2026-09-08)
+
+Append-only delta. Sections 1-71 unchanged. Documentation-only closure — **no product code was
+changed**. Baseline: `26d0853` (the §71 Independent Re-Review PASS / READY FOR PO UI CHECK).
+
+The Product Owner performed the Design of Record §12.2 UI Check of "Chi tiết bưu gửi F1.3" and
+explicitly confirmed:
+
+> `PO UI PASS / F13-ROUTE-EVIDENCE-STATUS-02 CLOSED`
+
+This closes the ticket end-to-end: Phase B1 (backend, §64) → Phase F1 (frontend, §65) → Phase I1
+(integration validation, §66) → Independent Technical Review (§67, `BLOCKED` on
+`ITR-EV-BLOCK-01`) → remediation (§68) → Independent Re-Review (§69, `ITR-EV-BLOCK-01` `CLOSED`,
+new blocker `ITR2-BLOCK-01` + non-blocking `ITR2-NB-01`) → remediation (§70) → Independent
+Re-Review (§71, both `CLOSED`, `TECHNICAL REVIEW PASS`) → this Product Owner `PO UI PASS`. Final
+technical commit this `PO PASS` is based on: `26d0853` (the last commit reviewed and passed before
+the PO performed the check; no code commit followed it).
+
+**`ITR-EV-NB-01` disposition.** Per the Product Owner's own instruction for this closure,
+`ITR-EV-NB-01` (§67 — Evidence "Tất cả tuyến" totals reconcile against Tuyến Ranking's `Tất cả`
+filter, not its default `Tuyến bưu tá` filter; per-route comparison matches exactly under either)
+is recorded as a **known, non-blocking note** and does **not** reopen this ticket. It remains an
+open CTO/PO scope-definition question for a future ticket if the Product Owner later wants Evidence
+and Tuyến Ranking's "Tất cả tuyến" totals to reconcile under a single shared default filter — no
+code defect, no regression, no action required to close `F13-ROUTE-EVIDENCE-STATUS-02`.
+
+**F1.3 roadmap status check (Product Owner instruction for this closure).** With this closure,
+no other F1.3 feature ticket is open or blocked: `F13-ROUTE-RANKING-PERIOD-01` and
+`F13-BCVH-RANKING-OVERVIEW-01` are `CLOSED / PO PASS` (unaffected by this ticket throughout); the
+original 5-phase `F13-STANDARDIZATION-001` program's Phases 1-4 remain `PLANNED / NOT ACTIVE`
+(dormant, not blocked — no active work, no open defect); the Evidence-consolidation delta under
+that program is fully `CLOSED / PO PASS` across all its phases. `AUTO-BACKFILL-RUNTIME` remains
+**separately open** — it is a cross-module runtime-acceptance ticket (F1.3 lane already
+`AUTOMATED`, F4.1 lane `MANUAL_ONLY`) awaiting its own explicit Product Owner Gate 7 action; it was
+open before this ticket started, is unaffected by this closure, and is not an F1.3 feature blocker
+in the sense this check was scoped to. `F13-ROUTE-EVIDENCE-STATUS-02` was the last active F1.3
+feature ticket — the roadmap is clear to move to F4.1.
+
+### State
+
+`F13-ROUTE-EVIDENCE-STATUS-02 = CLOSED / PO PASS`. `Claude Code` recorded this Product Owner
+decision; it did not self-award it. No further technical work is pending on this ticket.
