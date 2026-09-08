@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 
 const { F41DashboardService } = require('./F41DashboardService');
 
-function makeFakeRepository({ kpiMetrics, reconciliation, meta } = {}) {
+function makeFakeRepository({ kpiMetrics, reconciliation, meta, hasNonCanonicalBcvhRows } = {}) {
     return {
         calls: [],
         async getKpiMetrics(fromDate, toDate, filters) {
@@ -19,6 +19,10 @@ function makeFakeRepository({ kpiMetrics, reconciliation, meta } = {}) {
         async getMeta() {
             this.calls.push({ method: 'getMeta' });
             return meta;
+        },
+        async hasNonCanonicalBcvhRows(canonicalCodes) {
+            this.calls.push({ method: 'hasNonCanonicalBcvhRows', canonicalCodes });
+            return hasNonCanonicalBcvhRows;
         }
     };
 }
@@ -84,7 +88,7 @@ test('getBcvhReconciliation maps repository rows to the ma_bcvh/ten_bcvh respons
 });
 
 test('getDashboardMeta reads min/max ngay_do_kiem from the repository and returns the canonical BCVH unit list', async () => {
-    const repository = makeFakeRepository({ meta: { min_date: '2026-08-01', max_date: '2026-08-03' } });
+    const repository = makeFakeRepository({ meta: { min_date: '2026-08-01', max_date: '2026-08-03' }, hasNonCanonicalBcvhRows: false });
     const service = new F41DashboardService(repository);
 
     const result = await service.getDashboardMeta();
@@ -93,4 +97,29 @@ test('getDashboardMeta reads min/max ngay_do_kiem from the repository and return
     assert.equal(result.max_date, '2026-08-03');
     assert.ok(Array.isArray(result.bcvh_units));
     assert.ok(result.bcvh_units.length > 0);
+});
+
+// ITR-F41-NB-04 (PO decision, Phương án A): meta must carry the fixed scope
+// note and a real signal of whether non-canonical BCVH rows exist.
+test('getDashboardMeta exposes kpi_scope_note and kpi_includes_non_canonical_bcvh from the repository', async () => {
+    const repository = makeFakeRepository({ meta: { min_date: '2026-08-01', max_date: '2026-08-01' }, hasNonCanonicalBcvhRows: true });
+    const service = new F41DashboardService(repository);
+
+    const result = await service.getDashboardMeta();
+
+    assert.equal(typeof result.kpi_scope_note, 'string');
+    assert.ok(result.kpi_scope_note.length > 0);
+    assert.equal(result.kpi_includes_non_canonical_bcvh, true);
+    const call = repository.calls.find((c) => c.method === 'hasNonCanonicalBcvhRows');
+    assert.ok(call, 'repository.hasNonCanonicalBcvhRows was called');
+    assert.ok(Array.isArray(call.canonicalCodes) && call.canonicalCodes.length === 6);
+});
+
+test('getDashboardMeta reports kpi_includes_non_canonical_bcvh === false when only canonical rows exist', async () => {
+    const repository = makeFakeRepository({ meta: { min_date: '2026-08-01', max_date: '2026-08-01' }, hasNonCanonicalBcvhRows: false });
+    const service = new F41DashboardService(repository);
+
+    const result = await service.getDashboardMeta();
+
+    assert.equal(result.kpi_includes_non_canonical_bcvh, false);
 });

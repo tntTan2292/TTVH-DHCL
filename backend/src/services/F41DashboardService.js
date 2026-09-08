@@ -7,7 +7,10 @@
 // PTC-gating logic is applied here.
 
 const { factF41Repository } = require('../repositories/FactF41Repository');
-const { buildDashboardMeta } = require('../config/canonicalBcvhUnits');
+const { buildDashboardMeta, CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+const { F41_KPI_SCOPE_NOTE } = require('../config/f41KpiScopeContract');
+
+const CANONICAL_BCVH_CODES = CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh);
 
 class F41DashboardService {
     constructor(repository = factF41Repository) {
@@ -46,7 +49,19 @@ class F41DashboardService {
 
     async getDashboardMeta() {
         const { min_date, max_date } = await this.repository.getMeta();
-        return buildDashboardMeta(max_date, min_date);
+        const base = buildDashboardMeta(max_date, min_date);
+        // ITR-F41-NB-04 (PO decision, Phương án A): tell the caller whether
+        // the KPI aggregate (which always covers the whole table) includes
+        // rows outside the 6-unit BCVH filter, plus the fixed scope note
+        // Phase F1 must render alongside the KPI total.
+        const includesNonCanonicalBcvh = typeof this.repository.hasNonCanonicalBcvhRows === 'function'
+            ? await this.repository.hasNonCanonicalBcvhRows(CANONICAL_BCVH_CODES)
+            : false;
+        return {
+            ...base,
+            kpi_scope_note: F41_KPI_SCOPE_NOTE,
+            kpi_includes_non_canonical_bcvh: includesNonCanonicalBcvh
+        };
     }
 }
 

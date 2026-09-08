@@ -25,6 +25,44 @@ test('getKpi requires from_date and to_date', async () => {
     assert.equal(res.body.error.code, 'MISSING_PARAM');
 });
 
+// ITR-F41-NB-03 remediation: date-value validation, not just presence.
+test('getKpi rejects a malformed from_date with HTTP 400 INVALID_DATE', async () => {
+    const req = { query: { from_date: 'not-a-date', to_date: '2026-08-01' } };
+    const res = buildRes();
+    await controller.getKpi(req, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.error.code, 'INVALID_DATE');
+});
+
+test('getKpi rejects an impossible calendar date (2026-13-45) with HTTP 400 INVALID_DATE', async () => {
+    const req = { query: { from_date: '2026-13-45', to_date: '2026-08-01' } };
+    const res = buildRes();
+    await controller.getKpi(req, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.error.code, 'INVALID_DATE');
+});
+
+test('getKpi rejects a reversed date range (from_date > to_date) with HTTP 400 INVALID_RANGE', async () => {
+    const req = { query: { from_date: '2026-08-05', to_date: '2026-08-01' } };
+    const res = buildRes();
+    await controller.getKpi(req, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.error.code, 'INVALID_RANGE');
+});
+
+test('getKpi accepts from_date === to_date (single day is not a reversed range)', async () => {
+    const original = service.getDashboardKpi;
+    service.getDashboardKpi = async (fromDate, toDate) => ({ date_range: { from_date: fromDate, to_date: toDate }, total_rows: 0, rate_percent: null });
+    try {
+        const req = { query: { from_date: '2026-08-01', to_date: '2026-08-01' } };
+        const res = buildRes();
+        await controller.getKpi(req, res);
+        assert.equal(res.statusCode, 200);
+    } finally {
+        service.getDashboardKpi = original;
+    }
+});
+
 test('getKpi rejects a ma_bcvh that is not one of the canonical F1.3/F4.1 BCVH codes', async () => {
     const req = { query: { from_date: '2026-08-01', to_date: '2026-08-01', ma_bcvh: 'NOT-A-CODE' } };
     const res = buildRes();
@@ -81,6 +119,42 @@ test('getBcvhReconciliation requires date', async () => {
     await controller.getBcvhReconciliation(req, res);
     assert.equal(res.statusCode, 400);
     assert.equal(res.body.error.code, 'MISSING_PARAM');
+});
+
+// ITR-F41-NB-03 remediation.
+test('getBcvhReconciliation rejects a malformed date with HTTP 400 INVALID_DATE', async () => {
+    const req = { query: { date: 'not-a-date' } };
+    const res = buildRes();
+    await controller.getBcvhReconciliation(req, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.error.code, 'INVALID_DATE');
+});
+
+// ITR-F41-NB-06 remediation: no-store must be consistent across all 3 endpoints.
+test('getKpi sets no-store cache headers on success', async () => {
+    const original = service.getDashboardKpi;
+    service.getDashboardKpi = async () => ({ total_rows: 0, rate_percent: null });
+    try {
+        const req = { query: { from_date: '2026-08-01', to_date: '2026-08-01' } };
+        const res = buildRes();
+        await controller.getKpi(req, res);
+        assert.equal(res.headers['Cache-Control'], 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    } finally {
+        service.getDashboardKpi = original;
+    }
+});
+
+test('getBcvhReconciliation sets no-store cache headers on success', async () => {
+    const original = service.getBcvhReconciliation;
+    service.getBcvhReconciliation = async () => [];
+    try {
+        const req = { query: { date: '2026-08-01' } };
+        const res = buildRes();
+        await controller.getBcvhReconciliation(req, res);
+        assert.equal(res.headers['Cache-Control'], 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    } finally {
+        service.getBcvhReconciliation = original;
+    }
 });
 
 test('getMeta returns the service result with no-cache headers', async () => {

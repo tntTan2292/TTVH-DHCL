@@ -141,6 +141,28 @@ class FactF41Repository {
         });
     }
 
+    // ITR-F41-NB-04 remediation (PO decision, Phương án A): the KPI aggregate
+    // (getKpiMetrics with no bcvhId) already sums the entire fact_f41 table
+    // unconditionally - this method only tells the caller *whether* rows
+    // outside the 6-code canonical BCVH filter exist, so Phase F1 can show
+    // an accurate scope caveat without guessing.
+    hasNonCanonicalBcvhRows(canonicalCodes) {
+        return new Promise((resolve, reject) => {
+            const placeholders = canonicalCodes.map(() => '?').join(', ');
+            const sql = `
+                SELECT EXISTS(
+                    SELECT 1 FROM fact_f41
+                    WHERE ma_bc_phat IS NULL OR ma_bc_phat NOT IN (${placeholders})
+                    LIMIT 1
+                ) AS has_non_canonical
+            `;
+            this.db.get(sql, canonicalCodes, (err, row) => {
+                if (err) reject(err);
+                else resolve(!!(row && row.has_non_canonical));
+            });
+        });
+    }
+
     getBcvhReconciliation(date) {
         return new Promise((resolve, reject) => {
             const sql = `

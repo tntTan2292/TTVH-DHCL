@@ -786,3 +786,30 @@ READY FOR PHASE F1 ACTIVATION`. Phase F1 (Frontend) is **not** activated by this
 its own explicit Product Owner activation. `ITR-F41-NB-01`, `ITR-F41-NB-03` and `ITR-F41-NB-04`
 should be dispositioned before or as part of Phase F1; `ITR-F41-NB-04` needs a Product Owner scope
 decision on BCVH codes `531120`/`531110`/`531600`.
+
+
+## F41-DASHBOARD-MINIMUM-01 Phase B1 ITR Remediation Registration - 2026-09-08
+
+Remediation of all 6 non-blocking findings from the Independent Technical Review above, by
+Claude Code (Sonnet), `LEVEL 2`, against baseline `9945375`. Includes the Product Owner decision
+on `ITR-F41-NB-04` (Phương án A). This entry supersedes the manifest/checkpoint `New Status` cells
+above without deleting them.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` | Ticket Manifest | Status line advanced to `PHASE B1 (BACKEND) ITR REMEDIATION COMPLETE / READY FOR INDEPENDENT RE-REVIEW (2026-09-08)`; new Section 8 records the PO Option A decision and each finding's fix (or, for `ITR-F41-NB-02`, its correct registration as a separate ticket). | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` | Checkpoint | New Section 8 carries the full remediation evidence: the PO decision text, per-finding fix detail (8.1-8.6), and validation commands/results (8.7). | L2 | Active Onboarding | Current ticket only; read Section 8 before the Independent Re-Review. | Mandatory |
+| `backend/src/config/f41KpiScopeContract.js` | Source (new) | Fixed `F41_KPI_SCOPE_NOTE` constant — the caveat text Phase F1 must render next to the F4.1 KPI total, per the PO Option A decision. | L3 | Active | When touching the F4.1 KPI scope contract or Phase F1's KPI caveat. | Mandatory |
+| `backend/src/repositories/FactF41Repository.js` | Source (modified) | Added `hasNonCanonicalBcvhRows(canonicalCodes)` — a lightweight real-data `EXISTS`/`NOT IN` check; `getKpiMetrics`/`getBcvhReconciliation`/`getMeta`/`overwriteImport` unchanged. | L3 | Active | When touching F4.1 repository queries. | Mandatory |
+| `backend/src/services/F41DashboardService.js` | Source (modified) | `getDashboardMeta()` now also returns `kpi_scope_note` and `kpi_includes_non_canonical_bcvh` (real, from the repository check). | L3 | Active | When touching the F4.1 Dashboard meta contract. | Mandatory |
+| `backend/src/controllers/F41DashboardController.js` | Source (modified) | Added `isValidIsoDate()` (shape + calendar validity) applied to every date-shaped parameter (`400 INVALID_DATE`), `from_date > to_date` guard (`400 INVALID_RANGE`), and a shared `setNoStore()` helper now applied to all 3 endpoints (was `meta`-only). | L3 | Active | When touching the F4.1 Dashboard API contract. | Mandatory |
+| `backend/src/repositories/FactF41Repository.test.js` | Tests (modified, +1) | All 4 tests now await `db.close()` before `fs.rmSync` via a shared `closeDb()` helper (fixes the Windows `EBUSY` flake); new test for `hasNonCanonicalBcvhRows`. | L3 | Active | Before modifying F4.1 repository tests — the async-close pattern must be preserved. | Mandatory |
+| `backend/src/services/F41DashboardService.test.js` | Tests (modified, +2) | New tests for `kpi_scope_note`/`kpi_includes_non_canonical_bcvh` wiring, both `true` and `false` cases. | L3 | Active | Reference for the meta scope-contract tests. | Reference |
+| `backend/src/controllers/F41DashboardController.test.js` | Tests (modified, +7) | New tests for `INVALID_DATE`/`INVALID_RANGE` on `getKpi`/`getBcvhReconciliation`, and no-store headers on `getKpi`/`getBcvhReconciliation`. | L3 | Active | Reference for the date-validation/caching tests. | Reference |
+| `backend/test_f41DashboardMinimum.js` | Test (modified, real-DB read-only) | Sections 4-8 added: real `ma_bcvh` filter for all 6 canonical codes, `bcvh-reconciliation` reconciling exactly to the KPI endpoint, `kpi_scope_note`/`kpi_includes_non_canonical_bcvh` against live data, date-validation 400s, and no-store headers on all 3 endpoints — closes `ITR-F41-NB-05`. | L3 | Active | Re-run whenever the F4.1 Dashboard contract changes. | Mandatory |
+| `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md` | Ticket Manifest (new) | Registers (does not fix) the 2 real, pre-existing F1.3 test failures found under `ITR-F41-NB-02`: `DashboardController.recovery.test.js:11` (`12 !== 3`) and `timelineService.recovery.test.js:80` (stale source-regex assertion). `DISCOVERED / NOT ACTIVATED`. | L2 | Reference | When prioritizing F1.3 test-suite defects. | Reference |
+
+Current state: `F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) = ITR REMEDIATION COMPLETE / READY FOR
+INDEPENDENT RE-REVIEW`. All 6 non-blocking findings are closed (5 fixed, `ITR-F41-NB-02`'s 2 real
+F1.3 defects correctly registered as their own ticket instead). Phase F1 (Frontend) remains **not**
+activated.

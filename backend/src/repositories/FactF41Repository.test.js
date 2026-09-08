@@ -12,6 +12,17 @@ function createTempDbPath() {
     return path.join(os.tmpdir(), `fact-f41-repository-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
 }
 
+// ITR-F41-NB-01 remediation: sqlite3's db.close() is async and callback-based.
+// Calling it without awaiting the callback let fs.rmSync race the OS file
+// handle release on Windows, producing an intermittent EBUSY on the temp
+// file. Always await the close before removing the file.
+function closeDb(db) {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve();
+        db.close((err) => (err ? reject(err) : resolve()));
+    });
+}
+
 test('repository computes F4.1 KPI using all rows as denominator', async () => {
     const dbPath = createTempDbPath();
     let db;
@@ -32,7 +43,7 @@ test('repository computes F4.1 KPI using all rows as denominator', async () => {
         assert.equal(metrics.total_blank, 1);
         assert.equal(metrics.rate_percent, 33.33);
     } finally {
-        if (db) db.close();
+        await closeDb(db);
         fs.rmSync(dbPath, { force: true });
     }
 });
@@ -51,7 +62,32 @@ test('repository reports min/max ngay_do_kiem across imported F4.1 dates', async
         assert.equal(meta.min_date, '2026-08-01');
         assert.equal(meta.max_date, '2026-08-03');
     } finally {
-        if (db) db.close();
+        await closeDb(db);
+        fs.rmSync(dbPath, { force: true });
+    }
+});
+
+test('repository reports whether non-canonical BCVH rows exist (ITR-F41-NB-04)', async () => {
+    const dbPath = createTempDbPath();
+    let db;
+    try {
+        await applyF41Phase1Schema(dbPath);
+        db = new sqlite3.Database(dbPath);
+        const repository = new FactF41Repository(db);
+        const canonicalCodes = ['535790', '536250', '535470', '537220', '537015', '533140'];
+
+        await repository.overwriteImport('2026-08-01', [
+            { ma_bg: 'BG001', ma_bc_phat: '533140', danh_gia_co_tms_ptc_8h: 'Đạt' }
+        ]);
+        assert.equal(await repository.hasNonCanonicalBcvhRows(canonicalCodes), false, 'only canonical codes are present');
+
+        await repository.overwriteImport('2026-08-01', [
+            { ma_bg: 'BG001', ma_bc_phat: '533140', danh_gia_co_tms_ptc_8h: 'Đạt' },
+            { ma_bg: 'BG002', ma_bc_phat: '531120', danh_gia_co_tms_ptc_8h: 'Không đạt' }
+        ]);
+        assert.equal(await repository.hasNonCanonicalBcvhRows(canonicalCodes), true, 'a non-canonical code (531120) is now present');
+    } finally {
+        await closeDb(db);
         fs.rmSync(dbPath, { force: true });
     }
 });
@@ -74,7 +110,7 @@ test('repository overwrites only the requested F4.1 date', async () => {
         assert.equal(day2.total_rows, 1);
         assert.equal(day2.total_failed, 1);
     } finally {
-        if (db) db.close();
+        await closeDb(db);
         fs.rmSync(dbPath, { force: true });
     }
 });

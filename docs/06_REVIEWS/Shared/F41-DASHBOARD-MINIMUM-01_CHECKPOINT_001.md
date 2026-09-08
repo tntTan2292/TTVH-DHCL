@@ -155,3 +155,76 @@ node <independent read-only ITR script, run from backend/, deleted after the run
 ### 7.4 Outcome
 
 Phase B1 is technically sound: the locked KPI is correct and independently reproduced, the API is genuinely read-only and correctly authorized, F1.3 is untouched, and the governance record is consistent. State advances to `INDEPENDENT TECHNICAL REVIEW PASS / READY FOR PHASE F1 ACTIVATION`. Phase F1 is **not** activated by this review — it requires its own Product Owner activation. `ITR-F41-NB-01`, `ITR-F41-NB-03` and `ITR-F41-NB-04` should be dispositioned before or as part of Phase F1.
+
+## Section 8 — ITR Remediation (2026-09-08, Claude Code / Sonnet)
+
+Remediates all 6 non-blocking findings from Section 7.2 against implementation baseline `9945375`. Scope held exactly to Phase B1: no frontend was implemented, no KPI/SSOT/schema/Import file was touched, and no F1.3 code was edited.
+
+### 8.1 PO decision on `ITR-F41-NB-04` (Phương án A)
+
+Product Owner decision received in chat and actioned here: **KPI tổng tính toàn bộ `fact_f41`; bộ lọc chỉ gồm 6 BCVH chính thức; các mã `531120`/`531110`/`531600` vẫn tính vào KPI tổng nhưng không xuất hiện trong bộ lọc; Phase F1 phải hiển thị chú thích rõ ràng rằng tổng KPI có thể bao gồm dữ liệu ngoài phạm vi 6 BCVH.**
+
+This confirms the Phase B1 implementation's existing behavior needed no SQL change: `FactF41Repository.getKpiMetrics` with no `bcvhId` filter was already, and remains, an unconditional aggregate over the entire `fact_f41` table (Section 7.1 item 1), and the `ma_bcvh` filter/whitelist was already, and remains, restricted to the 6 `CANONICAL_BCVH_UNITS` codes. The only work required is the contract/meta needed for Phase F1 to render the caveat correctly:
+
+- New `backend/src/config/f41KpiScopeContract.js` — a single fixed constant `F41_KPI_SCOPE_NOTE`, the exact caveat text Phase F1 must display next to the KPI total.
+- New `FactF41Repository.hasNonCanonicalBcvhRows(canonicalCodes)` — a lightweight `SELECT EXISTS(...NOT IN (?,...))` real-data check (parameterized, no full-table scan of business columns).
+- `F41DashboardService.getDashboardMeta()` now returns two additional fields: `kpi_scope_note` (the fixed text) and `kpi_includes_non_canonical_bcvh` (real boolean from the repository check — confirmed `true` against the live database).
+
+### 8.2 `ITR-F41-NB-01` — flaky Windows test teardown
+
+`backend/src/repositories/FactF41Repository.test.js`: added a shared `closeDb(db)` helper that awaits the `sqlite3` `db.close()` callback, and every one of the file's `finally` blocks (now 4, including the new `ITR-F41-NB-04` test) awaits it before `fs.rmSync(dbPath)`. Verified with 3 consecutive full-sweep runs — `306/310` every time, zero flakiness (see Section 8.6).
+
+### 8.3 `ITR-F41-NB-02` — baseline-failure mischaracterization + registration
+
+Section 5 above still describes all 4 baseline failures as `fetch failed`/environmental — that description was accurate for the `1664f15` evidence at the time but is corrected here: only 2 of the (now 4, unchanged) pre-existing failures are environmental (`DashboardController.r6.integration.test.js`, need a live HTTP server). The other 2 are real, pre-existing F1.3-territory defects, confirmed reproducible in isolation:
+
+- `DashboardController.recovery.test.js:11` — `AssertionError: 12 !== 3`.
+- `timelineService.recovery.test.js:80` — a source-text regex assertion no longer matches `timelineService.js` after baseline commit `b075b96`'s unrelated edit.
+
+Both are registered as `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md`, `DISCOVERED / NOT ACTIVATED` — neither file was opened for edit, per instruction ("không sửa F1.3").
+
+### 8.4 `ITR-F41-NB-03` — date-value validation
+
+`F41DashboardController.js`: added `isValidIsoDate()` (shape + real calendar-date check, catches `2026-13-45`) and applied it to `from_date`/`to_date` on `getKpi` and `date` on `getBcvhReconciliation`; malformed values now return `400 INVALID_DATE`. `getKpi` also now rejects `from_date > to_date` with `400 INVALID_RANGE`, matching F1.3's `DashboardController.getBcvh` contract exactly (same error codes, same comparison). `from_date === to_date` remains valid (single-day request). All values remain SQL-bound — no new injection surface.
+
+### 8.5 `ITR-F41-NB-05` — real-data BCVH filter + reconciliation evidence
+
+`backend/test_f41DashboardMinimum.js` gained 4 new sections, all against the live operational database:
+
+- Section 4: `ma_bcvh` filter exercised for all 6 canonical codes on `2026-08-01`, asserting the exact row counts/rates the Independent Technical Review found (`535790` 346/77.46%, `536250` 509/68.17%, `535470` 736/52.99%, `537220` 580/10.69%, `537015` 339/88.79%, `533140` 2,184/68.41%), plus the sum (`4,694`) is asserted to be exactly one less than the unfiltered aggregate (`4,695`) — the real, expected `ITR-F41-NB-04` gap under PO Option A.
+- Section 5: `bcvh-reconciliation` groups summed and asserted to reconcile exactly to the KPI endpoint (`4,695`/`2,863`/`1,581`/`251`), and to return more than 6 groups (proving the non-canonical codes are included, not silently dropped).
+- Section 6: `dashboard/meta` asserted to carry a non-empty `kpi_scope_note` and `kpi_includes_non_canonical_bcvh === true` against real data.
+- Section 7/8: real-server proof of the `ITR-F41-NB-03`/`ITR-F41-NB-06` fixes (below).
+
+Unit-level coverage was extended in parallel with fake repositories: `FactF41Repository.test.js` (`hasNonCanonicalBcvhRows`), `F41DashboardService.test.js` (`kpi_scope_note`/`kpi_includes_non_canonical_bcvh` wiring), `F41DashboardController.test.js` (date-validation and no-store status/header assertions).
+
+### 8.6 `ITR-F41-NB-06` — consistent no-store caching
+
+`F41DashboardController.js`: factored the existing `getMeta` cache-header logic into a shared `setNoStore(res)` helper and applied it to `getKpi` and `getBcvhReconciliation` as well, so all 3 read endpoints now set identical `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate` / `Pragma: no-cache` / `Expires: 0` headers.
+
+### 8.7 Validation (LEVEL 2)
+
+```
+node --experimental-sqlite --test src/repositories/FactF41Repository.test.js \
+  src/services/F41DashboardService.test.js \
+  src/controllers/F41DashboardController.test.js \
+  src/routes/f41Routes.test.js
+# tests 27, pass 27, fail 0
+
+node --experimental-sqlite --test "src/**/*.test.js"   # x3, all runs identical
+# tests 310, pass 306, fail 4 (2 environmental fetch-failed + the 2 now-registered
+# F13-DASHBOARD-RECOVERY-DEFECTS-01 findings — zero flakiness across 3 runs)
+
+node test_f41DashboardMinimum.js
+# === RESULT: 42 passed, 0 failed ===
+
+npx oxlint src/controllers/F41DashboardController.js src/services/F41DashboardService.js \
+  src/repositories/FactF41Repository.js src/config/f41KpiScopeContract.js \
+  test_f41DashboardMinimum.js                          # exit 0, 0 warnings, 0 errors
+```
+
+F1.3/SSOT/schema/Import regression: `git diff --name-only 9945375 -- backend/` touches only F4.1 files (`FactF41Repository.js`/`.test.js`, `F41DashboardService.js`/`.test.js`, `F41DashboardController.js`/`.test.js`, `f41KpiScopeContract.js`, `test_f41DashboardMinimum.js`) plus the unrelated concurrent-session file `test_dkclSessionPreflightService.js` (untouched by this session, excluded from this ticket's commit). No route, controller, service, repository, or schema file outside F4.1 was opened for edit.
+
+### 8.8 Completion State
+
+`F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) — ITR REMEDIATION COMPLETE / READY FOR INDEPENDENT RE-REVIEW`. All 6 non-blocking findings closed (5 fixed, 1 — `ITR-F41-NB-02`'s real F1.3 defects — correctly registered as its own ticket rather than fixed, per instruction). Phase F1 (Frontend) remains **not** activated.
