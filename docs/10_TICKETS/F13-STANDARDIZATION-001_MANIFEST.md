@@ -3519,3 +3519,15 @@ feature ticket — the roadmap is clear to move to F4.1.
 
 `F13-ROUTE-EVIDENCE-STATUS-02 = CLOSED / PO PASS`. `Claude Code` recorded this Product Owner
 decision; it did not self-award it. No further technical work is pending on this ticket.
+
+## 73. F1.3 Post-Closure UI Cleanup — Hide Incomplete Menus (`2026-09-08`)
+
+Append-only delta. Sections 1-72 unchanged. Minor UI cleanup following the closure of `F13-ROUTE-EVIDENCE-STATUS-02`. No functional ticket opened, no scope expansion.
+
+Per Product Owner instruction:
+- Hidden incomplete sidebar navigation items from UI:
+  - `Pareto / RCA` (`/f13/pareto`)
+  - `Message Center` (`/f13/message`)
+- Module code and router definitions (`<Route path="pareto" ... />`, `<Route path="message" ... />`) preserved unchanged in `App.jsx` (no code/module/route deletion).
+- Unaffected completed surfaces: Operation Dashboard (`/f13/dashboard`), BCVH Ranking (`/f13/ranking/bcvh`), Tuyến Ranking (`/f13/ranking/route`), and Evidence (`/f13/evidence`).
+- Verification: Regression tests added in `frontend/src/navigation/appNavigation.test.js` covering both `appNavigation.jsx` and `Sidebar.jsx`; all 5 navigation tests PASS; full frontend build succeeds cleanly; oxlint 0 warnings / 0 errors.

@@ -1,4 +1,4 @@
-import { Activity, BarChart2, FileSpreadsheet, Info, LayoutDashboard, MapPin, PieChart, Settings, Target, Database } from 'lucide-react';
+import { Activity, BarChart2, FileSpreadsheet, Info, LayoutDashboard, MapPin, Settings, Target, Database } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 const NETWORK_MANAGEMENT_GROUP = {
@@ -19,9 +19,7 @@ const F13_GROUP = {
     { name: 'Operation Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
     { name: 'BCVH Ranking', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
     { name: 'Tuyến Ranking', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
-    { name: 'Pareto / RCA', path: '/f13/pareto', icon: <PieChart size={18} />, roles: [ROLE_ADMIN] },
     { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
-    { name: 'Message Center', path: '/f13/message', icon: <Info size={18} />, roles: [ROLE_ADMIN] },
   ],
 };
 

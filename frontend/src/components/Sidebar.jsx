@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Target, Activity, Settings, Database, Info, FileSpreadsheet, Menu, ChevronLeft, ChevronRight, BarChart2, PieChart, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
@@ -25,9 +25,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         { name: 'Operation Dashboard', path: '/f13/dashboard',       icon: <Target size={18} /> },
         { name: 'BCVH Ranking',        path: '/f13/ranking/bcvh',   icon: <BarChart2 size={18} /> },
         { name: 'Tuyến Ranking',       path: '/f13/ranking/route',  icon: <BarChart2 size={18} /> },
-        { name: 'Pareto / RCA',        path: '/f13/pareto',         icon: <PieChart size={18} /> },
         { name: 'Evidence',            path: '/f13/evidence',       icon: <Database size={18} /> },
-        { name: 'Message Center',      path: '/f13/message',        icon: <Info size={18} /> },
       ]
     },
     { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={20} /> },

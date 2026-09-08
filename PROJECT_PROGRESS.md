@@ -1632,3 +1632,10 @@ open (cross-module F1.3+F4.1 runtime-acceptance item, unaffected, not an F1.3 fe
 State: `Current Ticket = None`; the F1.3 roadmap is clear to move to F4.1; opening the next ticket
 is a CTO/PO decision. Evidence: `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 72;
 `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated.
+
+`F1.3 Post-Closure UI Cleanup` (`2026-09-08`): hid incomplete menus (`Pareto / RCA` at `/f13/pareto`,
+`Message Center` at `/f13/message`) from sidebar navigation in `frontend/src/navigation/appNavigation.jsx`
+and `frontend/src/components/Sidebar.jsx`. Modules and routes preserved intact in `App.jsx`; completed
+surfaces (Operation Dashboard, BCVH Ranking, Tuyến Ranking, Evidence) unaffected; 5/5 navigation tests pass
+(`appNavigation.test.js`); `oxlint` 0 warnings / 0 errors; frontend build succeeds cleanly. Manifest
+Section 73 appended; `PROJECT_SNAPSHOT.md` updated.
