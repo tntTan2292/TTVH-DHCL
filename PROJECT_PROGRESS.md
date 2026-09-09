@@ -1776,3 +1776,26 @@ INDEPENDENT RE-REVIEW` per instruction — Phase F1 (Frontend) not activated. Ev
 `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` Section 8;
 `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` Section 8;
 `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md` (new); `PROJECT_SNAPSHOT.md` updated.
+
+## 2026-09-09 - F41-DASHBOARD-MINIMUM-01 NB-02 GOVERNANCE CORRECTION -- SPLIT INTO TWO ONE-BUG-PER-TICKET REGISTRATIONS
+
+Claude Code (Sonnet), `LEVEL 1`, baseline `eff161c`. `ITR-F41-NB-02`'s registration (2026-09-08)
+combined two independent, unrelated test failures — `DashboardController.recovery.test.js:11`
+and `timelineService.recovery.test.js:80` — into a single ticket,
+`F13-DASHBOARD-RECOVERY-DEFECTS-01`, violating `CLAUDE.md`'s One Bug → One Ticket → One Commit
+rule. Corrected, documentation-only, no code touched, no defect investigated or fixed, no Phase F1
+activation: `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md` narrowed to
+`DashboardController.recovery.test.js:11` only, still `DISCOVERED / NOT ACTIVATED`; new
+`docs/10_TICKETS/F13-TIMELINE-RECOVERY-DEFECT-01_MANIFEST.md` created for
+`timelineService.recovery.test.js:80` only, `DISCOVERED / NOT ACTIVATED`. Every reference across
+`docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` (new Section 9),
+`docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` (new Section 9), `PROJECT_SNAPSHOT.md`, and
+`DOCUMENT_INDEX.md` updated in the same commit to name both tickets. All Section 8 backend
+remediation and validation evidence from `eff161c` (targeted suite `27/27`; full sweep `306/310`
+stable across 3 runs; real-DB script `42/42`; `oxlint` `0`/`0`) is preserved unchanged. Validation
+`LEVEL 1`: repository-wide search (`grep -rn "F13-DASHBOARD-RECOVERY-DEFECTS-01"`) confirms no
+remaining statement describes the two defects as one ticket. Stops at `READY FOR INDEPENDENT
+RE-REVIEW`, unchanged by this correction — Phase F1 (Frontend) not activated. Evidence:
+`docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` Section 9;
+`docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` Section 9;
+`docs/10_TICKETS/F13-TIMELINE-RECOVERY-DEFECT-01_MANIFEST.md` (new); `PROJECT_SNAPSHOT.md` updated.

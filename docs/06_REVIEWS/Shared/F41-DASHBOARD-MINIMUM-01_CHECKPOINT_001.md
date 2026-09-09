@@ -181,7 +181,12 @@ Section 5 above still describes all 4 baseline failures as `fetch failed`/enviro
 - `DashboardController.recovery.test.js:11` — `AssertionError: 12 !== 3`.
 - `timelineService.recovery.test.js:80` — a source-text regex assertion no longer matches `timelineService.js` after baseline commit `b075b96`'s unrelated edit.
 
-Both are registered as `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md`, `DISCOVERED / NOT ACTIVATED` — neither file was opened for edit, per instruction ("không sửa F1.3").
+Each is registered as its own ticket, per `CLAUDE.md`'s One Bug → One Ticket rule (governance correction, 2026-09-09 — originally both were registered together under a single ticket, which violated that rule; split same-day, no code touched by the split):
+
+- `DashboardController.recovery.test.js:11` → `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md`, `DISCOVERED / NOT ACTIVATED`.
+- `timelineService.recovery.test.js:80` → `docs/10_TICKETS/F13-TIMELINE-RECOVERY-DEFECT-01_MANIFEST.md`, `DISCOVERED / NOT ACTIVATED`.
+
+Neither `DashboardController.js`/`DashboardController.recovery.test.js` nor `timelineService.js`/`timelineService.recovery.test.js` was opened for edit, per instruction ("không sửa F1.3").
 
 ### 8.4 `ITR-F41-NB-03` — date-value validation
 
@@ -213,7 +218,8 @@ node --experimental-sqlite --test src/repositories/FactF41Repository.test.js \
 
 node --experimental-sqlite --test "src/**/*.test.js"   # x3, all runs identical
 # tests 310, pass 306, fail 4 (2 environmental fetch-failed + the 2 now-registered
-# F13-DASHBOARD-RECOVERY-DEFECTS-01 findings — zero flakiness across 3 runs)
+# findings, one ticket each — F13-DASHBOARD-RECOVERY-DEFECTS-01 and
+# F13-TIMELINE-RECOVERY-DEFECT-01 — zero flakiness across 3 runs)
 
 node test_f41DashboardMinimum.js
 # === RESULT: 42 passed, 0 failed ===
@@ -227,4 +233,17 @@ F1.3/SSOT/schema/Import regression: `git diff --name-only 9945375 -- backend/` t
 
 ### 8.8 Completion State
 
-`F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) — ITR REMEDIATION COMPLETE / READY FOR INDEPENDENT RE-REVIEW`. All 6 non-blocking findings closed (5 fixed, 1 — `ITR-F41-NB-02`'s real F1.3 defects — correctly registered as its own ticket rather than fixed, per instruction). Phase F1 (Frontend) remains **not** activated.
+`F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) — ITR REMEDIATION COMPLETE / READY FOR INDEPENDENT RE-REVIEW`. All 6 non-blocking findings closed (5 fixed, 1 — `ITR-F41-NB-02`'s 2 real F1.3 defects — correctly registered as two separate one-bug-per-ticket tickets rather than fixed, per instruction). Phase F1 (Frontend) remains **not** activated.
+
+## Section 9 — Governance Correction: NB-02 registration split into two tickets (2026-09-09, Claude Code / Sonnet)
+
+`ITR-F41-NB-02`'s registration in Section 8.3 combined two independent, unrelated test failures — `DashboardController.recovery.test.js:11` and `timelineService.recovery.test.js:80` — into a single ticket, `F13-DASHBOARD-RECOVERY-DEFECTS-01`. This violated `CLAUDE.md`'s One Bug → One Ticket → One Commit rule.
+
+Documentation-only correction, no code touched, no defect investigated or fixed, no Phase F1 activation:
+
+- `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md` narrowed to the `DashboardController.recovery.test.js:11` finding only (`12 !== 3`), still `DISCOVERED / NOT ACTIVATED`.
+- New `docs/10_TICKETS/F13-TIMELINE-RECOVERY-DEFECT-01_MANIFEST.md` created for the `timelineService.recovery.test.js:80` finding only (stale source-regex assertion vs. baseline `b075b96`'s edit), `DISCOVERED / NOT ACTIVATED`.
+- Section 8.3 and 8.7 above updated to name both tickets. Every other reference across `PROJECT_SNAPSHOT.md`, `DOCUMENT_INDEX.md`, and `PROJECT_PROGRESS.md` updated in the same commit — see those files' own entries for this date.
+- All backend remediation and validation evidence from commit `eff161c` (Sections 8.1-8.7) is preserved unchanged; this correction is registration-only.
+
+Validation `LEVEL 1`: repository-wide search (`grep -rn "F13-DASHBOARD-RECOVERY-DEFECTS-01"`) confirms no remaining statement describes the two defects as a single ticket; `F41-DASHBOARD-MINIMUM-01` state remains `READY FOR INDEPENDENT RE-REVIEW`, unaffected by this correction.

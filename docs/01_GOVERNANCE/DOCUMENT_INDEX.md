@@ -807,9 +807,30 @@ above without deleting them.
 | `backend/src/services/F41DashboardService.test.js` | Tests (modified, +2) | New tests for `kpi_scope_note`/`kpi_includes_non_canonical_bcvh` wiring, both `true` and `false` cases. | L3 | Active | Reference for the meta scope-contract tests. | Reference |
 | `backend/src/controllers/F41DashboardController.test.js` | Tests (modified, +7) | New tests for `INVALID_DATE`/`INVALID_RANGE` on `getKpi`/`getBcvhReconciliation`, and no-store headers on `getKpi`/`getBcvhReconciliation`. | L3 | Active | Reference for the date-validation/caching tests. | Reference |
 | `backend/test_f41DashboardMinimum.js` | Test (modified, real-DB read-only) | Sections 4-8 added: real `ma_bcvh` filter for all 6 canonical codes, `bcvh-reconciliation` reconciling exactly to the KPI endpoint, `kpi_scope_note`/`kpi_includes_non_canonical_bcvh` against live data, date-validation 400s, and no-store headers on all 3 endpoints — closes `ITR-F41-NB-05`. | L3 | Active | Re-run whenever the F4.1 Dashboard contract changes. | Mandatory |
-| `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md` | Ticket Manifest (new) | Registers (does not fix) the 2 real, pre-existing F1.3 test failures found under `ITR-F41-NB-02`: `DashboardController.recovery.test.js:11` (`12 !== 3`) and `timelineService.recovery.test.js:80` (stale source-regex assertion). `DISCOVERED / NOT ACTIVATED`. | L2 | Reference | When prioritizing F1.3 test-suite defects. | Reference |
+| `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md` | Ticket Manifest (new, corrected 2026-09-09 — see registration below) | Registers (does not fix) the real, pre-existing F1.3 test failure found under `ITR-F41-NB-02`: `DashboardController.recovery.test.js:11` (`12 !== 3`). `DISCOVERED / NOT ACTIVATED`. | L2 | Reference | When prioritizing F1.3 test-suite defects. | Reference |
 
 Current state: `F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) = ITR REMEDIATION COMPLETE / READY FOR
 INDEPENDENT RE-REVIEW`. All 6 non-blocking findings are closed (5 fixed, `ITR-F41-NB-02`'s 2 real
-F1.3 defects correctly registered as their own ticket instead). Phase F1 (Frontend) remains **not**
-activated.
+F1.3 defects correctly registered as two separate one-bug-per-ticket tickets — see the correction
+registration immediately below). Phase F1 (Frontend) remains **not** activated.
+
+
+## F41-DASHBOARD-MINIMUM-01 NB-02 Governance Correction Registration - 2026-09-09
+
+`ITR-F41-NB-02`'s registration above combined two independent, unrelated test failures into a
+single ticket (`F13-DASHBOARD-RECOVERY-DEFECTS-01`), violating `CLAUDE.md`'s One Bug → One Ticket
+rule. Documentation-only correction by Claude Code (Sonnet), `LEVEL 1`, baseline `eff161c` — no
+code touched, no defect investigated or fixed, no Phase F1 activation.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F13-DASHBOARD-RECOVERY-DEFECTS-01_MANIFEST.md` | Ticket Manifest (narrowed) | Narrowed to `DashboardController.recovery.test.js:11` only (`12 !== 3`). Still `DISCOVERED / NOT ACTIVATED`. | L2 | Reference | When prioritizing F1.3 test-suite defects. | Reference |
+| `docs/10_TICKETS/F13-TIMELINE-RECOVERY-DEFECT-01_MANIFEST.md` | Ticket Manifest (new) | Registers (does not fix) `timelineService.recovery.test.js:80` — a stale source-regex assertion against `timelineService.js` after baseline `b075b96`'s unrelated edit. `DISCOVERED / NOT ACTIVATED`. | L2 | Reference | When prioritizing F1.3 test-suite defects. | Reference |
+| `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` | Checkpoint | New Section 9 records the correction: what was wrong, what changed, and that all Section 8 remediation/validation evidence is preserved unchanged. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` | Ticket Manifest | Status line and Section 8's `ITR-F41-NB-02` entry updated to name both tickets; new Section 9 records the correction. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+
+Current state: `F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) = ITR REMEDIATION COMPLETE / READY FOR
+INDEPENDENT RE-REVIEW`, unchanged by this correction. `F13-DASHBOARD-RECOVERY-DEFECTS-01`
+(`DashboardController.recovery.test.js:11`) and `F13-TIMELINE-RECOVERY-DEFECT-01`
+(`timelineService.recovery.test.js:80`) are each `DISCOVERED / NOT ACTIVATED`, one bug per ticket.
+Phase F1 (Frontend) remains **not** activated.
