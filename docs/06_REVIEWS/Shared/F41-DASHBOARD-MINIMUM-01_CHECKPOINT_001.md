@@ -247,3 +247,95 @@ Documentation-only correction, no code touched, no defect investigated or fixed,
 - All backend remediation and validation evidence from commit `eff161c` (Sections 8.1-8.7) is preserved unchanged; this correction is registration-only.
 
 Validation `LEVEL 1`: repository-wide search (`grep -rn "F13-DASHBOARD-RECOVERY-DEFECTS-01"`) confirms no remaining statement describes the two defects as a single ticket; `F41-DASHBOARD-MINIMUM-01` state remains `READY FOR INDEPENDENT RE-REVIEW`, unaffected by this correction.
+
+## Section 10 — Independent Re-Review of the ITR Remediation (2026-09-15, Claude Code / Opus, DEC-021)
+
+Adversarial re-review of the remediation commits `9945375..eff161c` (backend) and `eff161c..6e639d0` (governance correction), against remote HEAD `6e639d0`, by the same independent reviewer that raised `ITR-F41-NB-01`..`ITR-F41-NB-06` in Section 7 — and a different model than the remediator. Validation `LEVEL 3`. All database access was read-only; no business data was written, no product code was changed by this review, and Phase F1 was not implemented.
+
+**Verdict: `INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION`. All 6 original findings CLOSED. 0 BLOCKER, 3 new NON-BLOCKING (`ITR2-F41-NB-01`..`ITR2-F41-NB-03`).**
+
+### 10.1 Per-finding closure verification
+
+**`ITR-F41-NB-01` — CLOSED.** The fix is the right one: `closeDb(db)` awaits `sqlite3`'s `db.close()` callback and is awaited in all four `finally` blocks before `fs.rmSync`. Verified by **five** consecutive full sweeps (not the three claimed), every one `310 tests / 306 pass / 4 fail` with byte-identical failure lists. Zero `EBUSY`, and no F4.1-referencing failure in any run — the intermittent `295/300` behaviour is gone.
+
+**`ITR-F41-NB-02` — CLOSED.** The split is correct and complete. `F13-DASHBOARD-RECOVERY-DEFECTS-01` covers `DashboardController.recovery.test.js:11` only; `F13-TIMELINE-RECOVERY-DEFECT-01` covers `timelineService.recovery.test.js:80` only; both are `DISCOVERED / NOT ACTIVATED`, both cross-reference each other, and neither is self-activated. Both defects were independently re-confirmed **in isolation**, so neither is environmental:
+
+```
+node --experimental-sqlite --test src/controllers/DashboardController.recovery.test.js
+# not ok 1 - KPI all and missing ma_bcvh normalize to aggregate null and never pass all to SQL
+#   expected: 3   actual: 12                                   (tests 4, pass 3, fail 1)
+node --experimental-sqlite --test src/services/timelineService.recovery.test.js
+# not ok 7 - monthly rank enrichment uses full prior months and latest-data current month ...
+#   The input did not match the regular expression /.../        (tests 8, pass 7, fail 1)
+```
+
+`F13-DASHBOARD-RECOVERY-DEFECTS-01`'s root-cause description was checked against the real test: the failing line is `assert.equal(calls.length, 3)` counting `repo.getKpiMetrics` invocations, so "the aggregate SQL call count observed by the test is 12 instead of the expected 3" is accurate. No F1.3 file was opened for edit — confirmed by diff boundary (10.3).
+
+**`ITR-F41-NB-03` — CLOSED.** `isValidIsoDate()` is a genuine shape *and* calendar check, verified against 24 adversarial inputs driven through the real controller. Every one behaves correctly:
+
+| Input (`from_date`) | Result | | Input | Result |
+| --- | --- | --- | --- | --- |
+| `not-a-date` | `400 INVALID_DATE` | | `2026-13-45` | `400 INVALID_DATE` |
+| `2026-02-30` | `400 INVALID_DATE` | | `2026-00-10` | `400 INVALID_DATE` |
+| `2026-08-00` | `400 INVALID_DATE` | | `0000-00-00` | `400 INVALID_DATE` |
+| `2026-8-1` (short form) | `400 INVALID_DATE` | | `2026-08-01T00:00:00Z` | `400 INVALID_DATE` |
+| `' 2026-08-01'` / `'2026-08-01 '` | `400 INVALID_DATE` | | `"2026-08-01' OR 1=1 --"` | `400 INVALID_DATE` |
+| `['2026-08-01','2026-08-02']` (array param) | `400 INVALID_DATE` | | `2026-02-29` (2026 is not a leap year) | `400 INVALID_DATE` |
+| `2026-08-05` → `2026-08-01` | `400 INVALID_RANGE` | | `2026-09-06` → `2026-07-01` | `400 INVALID_RANGE` |
+| `2024-02-29` (real leap day) | `200` | | `2026-08-01` → `2026-08-01` | `200`, 4,695 rows |
+
+`bcvh-reconciliation` rejects `not-a-date`, `2026-13-45`, `2026-02-30` and `2026-8-1` with `400 INVALID_DATE` and still serves a valid date (7 groups). Error codes match F1.3's `DashboardController.getBcvh` contract exactly. Values remain SQL-bound — no new injection surface, and the reversed-range guard correctly treats `from_date === to_date` as valid.
+
+**`ITR-F41-NB-04` — CLOSED, and PO Phương án A is implemented exactly.** Confirmed *no* KPI or SQL change: `git diff 1664f15 HEAD -- backend/src/repositories/FactF41Repository.js` filtered for `getKpiMetrics`/`getBcvhReconciliation`/`COUNT(*)`/`danh_gia_co_tms_ptc_8h`/`BETWEEN`/`GROUP BY`/`rate_percent` returns only one added **comment** line; both queries are byte-identical to the originally-reviewed implementation. Behaviourally: the aggregate is still the whole table (4,695 on `2026-08-01`, unchanged), the filter still offers exactly the 6 canonical codes, the 6 filtered totals still sum to 4,694 — one short, as Phương án A intends — and `bcvh-reconciliation` still returns all 7 groups, so out-of-scope rows are surfaced rather than dropped. Meta now carries what Phase F1 needs: `kpi_scope_note` is byte-identical to the `F41_KPI_SCOPE_NOTE` constant, and `kpi_includes_non_canonical_bcvh` is a *real* signal, not a hardcoded flag — `hasNonCanonicalBcvhRows()` returned `true` and an independent count of non-canonical rows returned `669`, so the flag agrees with the data. See `ITR2-F41-NB-01` for the one soft spot.
+
+**`ITR-F41-NB-05` — CLOSED.** `backend/test_f41DashboardMinimum.js` re-run against the live database: `42 passed, 0 failed`. It now genuinely covers all 6 canonical BCVH filters with exact row counts and rates, the reconciliation sum against the KPI endpoint (4,695/2,863/1,581/251) plus the >6-group assertion, the scope-contract fields, the `ITR-F41-NB-03` 400s and the `ITR-F41-NB-06` headers. The gap this reviewer had to close by hand in Section 7 is now reproducible from the repository.
+
+**`ITR-F41-NB-06` — CLOSED.** All three endpoints return identical headers on success — `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate`, `Pragma: no-cache`, `Expires: 0` — via the shared `setNoStore()` helper, verified directly rather than by reading the source.
+
+### 10.2 Regression re-verification (unchanged by the remediation)
+
+- Locked KPI at `2026-08-01`: `total_rows 4695, total_passed 2863, total_failed 1581, total_blank 251, rate_percent 60.98` — `2.863/4.695 = 60,98%` intact.
+- Multi-day still additive: per-day totals for `2026-08-01..2026-08-05` sum to `20,979`, exactly the single range call.
+- Reconciliation still reconciles exactly to the KPI endpoint (7 groups, 4,695).
+- Read-only: `fact_f13` and `fact_f41` row counts unchanged across the whole review run; `fact_f41` = 308,994. (`fact_f13`'s absolute count has grown since Section 7 — 781,692 → 801,301 — from unrelated concurrent F1.3 import activity in another session, not from this ticket; within every run of this review it was invariant.)
+
+### 10.3 Diff boundary
+
+`git diff --name-only 9945375 HEAD` = 9 backend files, all F4.1 (`f41KpiScopeContract.js`, `F41DashboardController.js`/`.test.js`, `F41DashboardService.js`/`.test.js`, `FactF41Repository.js`/`.test.js`, `test_f41DashboardMinimum.js`) plus 6 governance documents. No F1.3 route/controller/service/repository/test, no `server.js`, no `f41Routes.js`, no schema, no Import, no frontend file was touched. `oxlint` on all six F4.1 source/test files: exit `0`, 0 warnings, 0 errors.
+
+### 10.4 Governance and evidence accuracy
+
+The `306/310` claim is accurate and reproducible (5/5 runs), and the composition — 2 environmental `fetch failed` plus the 2 now-registered findings, one ticket each — is correct. Manifest, checkpoint, `PROJECT_SNAPSHOT.md`, `DOCUMENT_INDEX.md` and `PROJECT_PROGRESS.md` agree on ticket, phase, state, the PO Phương án A decision, and the ticket split. `PROJECT_PROGRESS.md`'s pre-split `2026-09-08` entry is correctly left untouched per the append-only rule, with the `2026-09-09` correction appended after it. See `ITR2-F41-NB-02` and `ITR2-F41-NB-03` for two accuracy defects in the supporting evidence text.
+
+### 10.5 New findings
+
+| ID | Severity | Finding and remediation |
+| --- | --- | --- |
+| `ITR2-F41-NB-01` | NON-BLOCKING | `F41DashboardService.getDashboardMeta()` guards the new call with `typeof this.repository.hasNonCanonicalBcvhRows === 'function' ? await ... : false` — it **fails open**. Verified: a service constructed over a repository lacking the method returns `kpi_includes_non_canonical_bcvh: false`, i.e. it positively asserts "the KPI contains no out-of-scope BCVH data" when it in fact does not know. A Phase F1 that gates the caveat on this flag would then silently hide it, which is the exact condition `ITR-F41-NB-04` exists to prevent. The real `factF41Repository` always has the method, so nothing is wrong in production today. Remediation: drop the `typeof` guard and call the method directly (a missing method should surface as a `500`, not as a reassuring `false`), or default the fallback to `true`. |
+| `ITR2-F41-NB-02` | NON-BLOCKING | `docs/10_TICKETS/F13-TIMELINE-RECOVERY-DEFECT-01_MANIFEST.md` Section 5 presents a fenced console block under "Reproduced directly, isolated from the rest of the sweep" whose content does not match the real output: it shows `# not ok 11` where an isolated run produces `not ok 7`, and `AssertionError: source regex did not match current timelineService.js` where the real message is `The input did not match the regular expression /const includeMonthlyNationalRank = .../`. The defect identification itself (file, line 80, test name, root cause, `b075b96` as the cause) is correct and was independently confirmed; only the pasted evidence is a paraphrase presented as verbatim output. Remediation: replace the block with the actual run output. (`F13-DASHBOARD-RECOVERY-DEFECTS-01`'s equivalent block was checked and *is* accurate.) |
+| `ITR2-F41-NB-03` | NON-BLOCKING | Section 9 above, and the matching `PROJECT_PROGRESS.md` entry, state that a repository-wide `grep -rn "F13-DASHBOARD-RECOVERY-DEFECTS-01"` "confirms no remaining statement describes the two defects as a single ticket". That is not literally true: `PROJECT_PROGRESS.md` lines 1757/1769/1778 and `PROJECT_SNAPSHOT.md`'s `Previous update:` note still describe the combined registration. Those statements are *correct to leave in place* — `PROJECT_PROGRESS.md` is append-only by `CLAUDE.md` Section 6 and the snapshot note is explicitly historical — so this is a wording defect in the validation claim, not a governance error. Remediation: scope the claim to current-state statements, e.g. "no statement describing live state ...", and note that the historical entries are intentionally preserved. |
+
+### 10.6 Observations (no action required)
+
+The `400` error responses do not carry the `no-store` headers that the `200` responses do, because `setNoStore()` runs after validation. This is outside `ITR-F41-NB-06`'s scope and carries no practical risk — `400` is not a heuristically cacheable status — but applying the helper before the validation block would make the three endpoints uniform on every path. Separately, `test_f41DashboardMinimum.js`'s console sections jump from `2b` to `4`, with no section `3`.
+
+### 10.7 Commands run
+
+```
+node --experimental-sqlite --test src/repositories/FactF41Repository.test.js \
+  src/services/F41DashboardService.test.js src/controllers/F41DashboardController.test.js \
+  src/routes/f41Routes.test.js                          # tests 27, pass 27, fail 0
+node --experimental-sqlite --test "src/**/*.test.js"    # x5, identical: 310/306/4, zero flakiness
+node --experimental-sqlite --test src/controllers/DashboardController.recovery.test.js   # 4/3/1
+node --experimental-sqlite --test src/services/timelineService.recovery.test.js          # 8/7/1
+npx oxlint src/controllers/F41DashboardController.js src/services/F41DashboardService.js \
+  src/repositories/FactF41Repository.js src/config/f41KpiScopeContract.js \
+  src/routes/f41Routes.js test_f41DashboardMinimum.js   # exit 0, 0 warnings, 0 errors
+node test_f41DashboardMinimum.js                        # 42 passed, 0 failed
+git diff --name-only 9945375 HEAD ; git diff 1664f15 HEAD -- backend/src/repositories/FactF41Repository.js
+node <independent read-only re-review script, run from backend/, deleted after the run>
+```
+
+### 10.8 Outcome
+
+The remediation is sound and complete: all six original findings are genuinely closed — verified behaviourally against the live database and across five full sweeps, not accepted on the strength of the remediation report. The locked KPI, the read-only guarantee and F1.3 are all unaffected, and Phase B1 now carries the contract (`kpi_scope_note`, `kpi_includes_non_canonical_bcvh`) that Phase F1 needs to render PO Phương án A honestly. State advances to `INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION`. Phase F1 is **not** activated by this review — it requires its own explicit Product Owner activation. `ITR2-F41-NB-01` should be dispositioned before Phase F1 relies on `kpi_includes_non_canonical_bcvh`; `ITR2-F41-NB-02` and `ITR2-F41-NB-03` are documentation-only corrections that can travel with any later commit.

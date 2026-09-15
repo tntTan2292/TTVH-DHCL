@@ -834,3 +834,28 @@ INDEPENDENT RE-REVIEW`, unchanged by this correction. `F13-DASHBOARD-RECOVERY-DE
 (`DashboardController.recovery.test.js:11`) and `F13-TIMELINE-RECOVERY-DEFECT-01`
 (`timelineService.recovery.test.js:80`) are each `DISCOVERED / NOT ACTIVATED`, one bug per ticket.
 Phase F1 (Frontend) remains **not** activated.
+
+## F41-DASHBOARD-MINIMUM-01 Phase B1 Independent Re-Review Registration - 2026-09-15
+
+`DEC-021` Independent Re-Review of the ITR remediation — commits `9945375..eff161c` (backend) and
+`eff161c..6e639d0` (governance correction), at remote HEAD `6e639d0` — performed at `LEVEL 3` by
+Claude Code (Opus), the same independent reviewer that raised `ITR-F41-NB-01`..`ITR-F41-NB-06` and a
+different model than the remediator. Verdict `INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1
+ACTIVATION`: all six original findings CLOSED, 0 BLOCKER, 3 new NON-BLOCKING
+(`ITR2-F41-NB-01`..`ITR2-F41-NB-03`). Read-only review: no business data written and no product code
+changed, so no new source file is registered here. This entry supersedes the `New Status` cells for
+the manifest and checkpoint rows in the two sections above without deleting them.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` | Ticket Manifest | Status line advanced to `PHASE B1 (BACKEND) INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION (2026-09-15)`; new Section 10 records the re-review verdict, the per-finding closure evidence for all six original findings, and the three new non-blocking findings with their remediation. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` | Checkpoint | New Section 10 carries the full Independent Re-Review evidence: per-finding closure verification for `ITR-F41-NB-01`..`06` (five-run sweep stability, the two-ticket split with both F1.3 defects reproduced in isolation, a 24-case adversarial date-validation table, proof that PO Phương án A changed no KPI or SQL, the 42/42 real-database run, and directly verified cache headers), regression re-verification, the diff boundary, governance/evidence accuracy, the `ITR2-F41-NB-01`..`03` findings table, observations, commands run, and the outcome. | L2 | Active Onboarding | Current ticket only; read Section 10 before starting Phase F1. | Mandatory |
+
+Current state: `F41-DASHBOARD-MINIMUM-01 Phase B1 (Backend) = INDEPENDENT RE-REVIEW PASS / READY FOR
+PHASE F1 ACTIVATION`. No further technical review is required for Phase B1. Phase F1 (Frontend) is
+**not** activated by this review and requires its own explicit Product Owner activation.
+`ITR2-F41-NB-01` should be dispositioned before Phase F1 gates the PO Phương án A scope caveat on
+`kpi_includes_non_canonical_bcvh`; `ITR2-F41-NB-02` and `ITR2-F41-NB-03` are documentation-only
+corrections that can travel with any later commit. `F13-DASHBOARD-RECOVERY-DEFECTS-01` and
+`F13-TIMELINE-RECOVERY-DEFECT-01` each remain `DISCOVERED / NOT ACTIVATED`, one bug per ticket,
+re-confirmed reproducible in isolation by this review.

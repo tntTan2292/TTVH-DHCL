@@ -1,6 +1,6 @@
 # F41-DASHBOARD-MINIMUM-01 Manifest
 
-Status: `PHASE B1 (BACKEND) ITR REMEDIATION COMPLETE / READY FOR INDEPENDENT RE-REVIEW (2026-09-08, NB-02 registration corrected 2026-09-09)`. All 6 non-blocking findings from the Independent Technical Review (`ITR-F41-NB-01`..`ITR-F41-NB-06`) remediated by Claude Code (Sonnet) - see Section 8. `ITR-F41-NB-02`'s registration was split into two one-bug-per-ticket tickets on 2026-09-09 - see Section 9. Phase F1 is not activated.
+Status: `PHASE B1 (BACKEND) INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION (2026-09-15)`. The Independent Re-Review by Claude Code (Opus) per `DEC-021`, at remote HEAD `6e639d0`, closed all six `ITR-F41-NB-01`..`ITR-F41-NB-06` findings with 0 BLOCKER and 3 new NON-BLOCKING (`ITR2-F41-NB-01`..`ITR2-F41-NB-03`) - see Section 10. Phase F1 is not activated by that review. All 6 non-blocking findings from the Independent Technical Review (`ITR-F41-NB-01`..`ITR-F41-NB-06`) remediated by Claude Code (Sonnet) - see Section 8. `ITR-F41-NB-02`'s registration was split into two one-bug-per-ticket tickets on 2026-09-09 - see Section 9. Phase F1 is not activated.
 
 ## 1. Ticket Information
 
@@ -103,3 +103,28 @@ Final state (as of Section 8): `PHASE B1 (BACKEND) ITR REMEDIATION COMPLETE / RE
 Validation `LEVEL 1`: repository-wide search confirms no remaining statement describes the two defects as one ticket.
 
 Final state: `PHASE B1 (BACKEND) ITR REMEDIATION COMPLETE / READY FOR INDEPENDENT RE-REVIEW`, unchanged by this correction. Phase F1 (Frontend) is not activated.
+
+## 10. Independent Re-Review of the ITR Remediation (2026-09-15, Claude Code / Opus, DEC-021)
+
+Re-reviewed remediation commits `9945375..eff161c` (backend) and `eff161c..6e639d0` (governance correction) at remote HEAD `6e639d0`, by the same independent reviewer that raised `ITR-F41-NB-01`..`ITR-F41-NB-06` and a different model than the remediator. Validation `LEVEL 3`, read-only throughout — no business data written, no product code changed, Phase F1 not implemented. Full evidence: `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` Section 10.
+
+**Verdict: `INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION`. All 6 original findings CLOSED. 0 BLOCKER, 3 new NON-BLOCKING (`ITR2-F41-NB-01`..`ITR2-F41-NB-03`).**
+
+All six closures were verified behaviourally, not accepted from the remediation report:
+
+- `ITR-F41-NB-01` CLOSED — the awaited `closeDb()` teardown holds across **five** consecutive full sweeps (not the three claimed), every run `310/306/4` with byte-identical failure lists, zero `EBUSY`, zero F4.1-referencing failures.
+- `ITR-F41-NB-02` CLOSED — split into exactly two one-bug-per-ticket manifests, both `DISCOVERED / NOT ACTIVATED`, neither self-activated; both defects re-confirmed **in isolation** (so neither is environmental), and `F13-DASHBOARD-RECOVERY-DEFECTS-01`'s root-cause description was checked against the real failing assertion (`assert.equal(calls.length, 3)`, actual `12`) and is accurate.
+- `ITR-F41-NB-03` CLOSED — 24 adversarial inputs driven through the real controller all behave correctly, including `2026-02-30`, `2026-00-10`, `0000-00-00`, short-form `2026-8-1`, ISO-datetime, leading/trailing whitespace, array-valued query params, and leap-year logic (`2026-02-29` rejected, `2024-02-29` accepted); reversed ranges give `400 INVALID_RANGE`, `from_date === to_date` stays valid, error codes match F1.3's contract, values remain SQL-bound.
+- `ITR-F41-NB-04` CLOSED, PO Phương án A implemented exactly — **no KPI or SQL change**: the `getKpiMetrics`/`getBcvhReconciliation` queries are byte-identical to the originally reviewed implementation (the only diff hit on KPI SQL tokens since `1664f15` is a comment line). The aggregate is still the whole table (4,695), the filter still offers exactly 6 codes, the 6 filtered totals still sum to 4,694 as Phương án A intends, and reconciliation still returns all 7 groups. `dashboard/meta` now carries `kpi_scope_note` (byte-identical to the `F41_KPI_SCOPE_NOTE` constant) and a *real* `kpi_includes_non_canonical_bcvh` — `true`, agreeing with an independent count of 669 non-canonical rows.
+- `ITR-F41-NB-05` CLOSED — `test_f41DashboardMinimum.js` re-run live: `42 passed, 0 failed`, now genuinely covering all 6 BCVH filters with exact counts/rates, the reconciliation sum against the KPI endpoint, the scope contract, the date-validation `400`s and the cache headers.
+- `ITR-F41-NB-06` CLOSED — all three endpoints verified to return identical `no-store`/`Pragma`/`Expires` headers on success.
+
+Regressions re-verified unchanged: locked KPI `2.863/4.695 = 60,98%` at `2026-08-01`; multi-day additivity (per-day sum `20,979` equals the range call); reconciliation reconciles exactly; read-only holds with `fact_f13`/`fact_f41` counts invariant across the run. Diff boundary clean: 9 backend files, all F4.1, plus 6 governance documents — no F1.3 file, no `server.js`, no `f41Routes.js`, no schema, no Import, no frontend. `oxlint` exit `0`. The `306/310` evidence is accurate and reproducible 5/5, and its composition (2 environmental + the 2 registered findings) is correct.
+
+New non-blocking findings (details in checkpoint Section 10.5):
+
+- `ITR2-F41-NB-01` — `getDashboardMeta()`'s `typeof ... === 'function' ? ... : false` guard **fails open**: a repository lacking `hasNonCanonicalBcvhRows` yields `kpi_includes_non_canonical_bcvh: false`, positively asserting there is no out-of-scope data when it does not know. Harmless today (the real repository always has the method), but it is the exact condition `ITR-F41-NB-04` exists to prevent, so it should be dispositioned before Phase F1 gates the caveat on that flag.
+- `ITR2-F41-NB-02` — `F13-TIMELINE-RECOVERY-DEFECT-01_MANIFEST.md` Section 5's "reproduced directly" console block is a paraphrase presented as verbatim output (`not ok 11` vs the real `not ok 7`; an invented `AssertionError` line). The defect identification itself is correct and was independently confirmed.
+- `ITR2-F41-NB-03` — Section 9's validation claim that a repo-wide grep "confirms no remaining statement describes the two defects as a single ticket" is not literally true; the append-only `PROJECT_PROGRESS.md` `2026-09-08` entry and the snapshot's `Previous update:` note still do, correctly and intentionally. Wording defect in the claim, not a governance error.
+
+Phase F1 (Frontend) is **not** activated by this review and still requires its own explicit Product Owner activation.
