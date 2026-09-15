@@ -882,3 +882,12 @@ yet performed (next executor `Antigravity (Gemini)`). `F13-ROUTE-POSTMAN-IDENTIT
 NOT ACTIVATED`, independent. `F41-DASHBOARD-MINIMUM-01 = PAUSED BY PO PRIORITY`, its Phase B1
 technical state and `INDEPENDENT RE-REVIEW PASS` verdict preserved unchanged; Phase F1 remains not
 activated and resumption requires its own explicit, separate Product Owner authorization.
+
+
+## IMPORT-BULK-REIMPORT-ALL-01 Registration — 2026-09-15
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` | Ticket Manifest (new) | Preserve “Chọn tất cả chưa hoàn tất”; register a separate “Chọn tất cả” including successful imports for intentional bulk reimport. Mandatory future audit: selection scope, queue/dedup, reimport rules, safety, and confirmation warning. | L2 | `DISCOVERED / NOT ACTIVATED` | Only when explicitly prioritized by Product Owner/CTO. | Reference |
+
+Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01 = DISCOVERY / READ-ONLY AUDIT`; next executor remains `Antigravity (Gemini)`.

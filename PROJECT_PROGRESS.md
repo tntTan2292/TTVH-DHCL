@@ -1895,3 +1895,8 @@ populated for routes Tuyến phát Ranking already tracks, whether the route-to-
 explicitly directed the two tickets stay separate, not merged in scope. Full evidence:
 `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md` (new); `PROJECT_SNAPSHOT.md` and
 `DOCUMENT_INDEX.md` updated.
+
+
+## 2026-09-15 - IMPORT-BULK-REIMPORT-ALL-01 REGISTERED / NOT ACTIVATED
+
+Product Owner instructed registration of a separate Import ticket at baseline `425ed1c`. Preserve **“Chọn tất cả chưa hoàn tất”** and register an additional **“Chọn tất cả”** that may include successful imports for intentional bulk reimport. A separately authorized read-only audit must lock selection scope, queue/run creation and active-identity dedup, reimport/overwrite semantics, idempotency/concurrency, exact-count confirmation warning, Auto-Backfill safety/auth/calendar interactions, and failure/recovery behavior before implementation. No code, KPI, SSOT, schema, database, queue, or runtime action was authorized or performed. Active ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01`; `F41-DASHBOARD-MINIMUM-01` remains paused.
