@@ -34,8 +34,9 @@ At 2× font size, every existing column cannot be compressed into a phone viewpo
 
 - Explicit minimum column widths.
 - `white-space: nowrap` for headers and numeric cells where required.
-- Horizontal scrolling on narrow viewports.
-- A sticky first identifying column (for example, BCVH).
+- First reclaim unused width by reducing excessive gaps/padding and rebalancing column widths so the table remains fully visible without horizontal scrolling wherever reasonably possible.
+- Horizontal scrolling is a last-resort fallback only when measured width calculations prove the required content cannot fit without violating the ≥2× text-size and no-wrap/no-overlap requirements.
+- A sticky first identifying column (for example, BCVH) is required only when that exceptional horizontal-scroll fallback is used.
 - Sticky header where useful.
 - Clear grouping or controlled visibility of secondary columns.
 - No automatic font shrinking to force the full table into one screen.
@@ -64,7 +65,7 @@ The executor must provide:
 2. Exact source component/style responsible for each rendered value.
 3. A before/after target matrix, including minimum font sizes in px/rem after satisfying the 2× PO requirement.
 4. Width calculations showing why columns fit, scroll or require controlled grouping.
-5. Desktop and mobile wireframe/proposal with no wrapping or overlap.
+5. Desktop and mobile wireframe/proposal with no wrapping or overlap, prioritizing a no-horizontal-scroll layout through measured column-width and whitespace optimization.
 6. Impact on sticky columns, expandable rows, tooltips, badges, progress bars and totals.
 7. Accessibility checks for contrast, zoom and touch targets.
 8. Exact files and regression tests likely to change.
@@ -77,7 +78,7 @@ Implementation cannot be accepted unless:
 - Every audited critical table meets the measured ≥2× rendered font-size target.
 - No header, label or numerical value wraps, overlaps or clips at the locked test viewports.
 - Desktop remains readable without excessive empty space.
-- Mobile provides an obvious horizontal-scroll affordance and retains row identity through a sticky first column.
+- Desktop and mobile avoid horizontal scrolling wherever measured column rebalancing can fit the required content. If scrolling is proven unavoidable, the UI provides an obvious affordance and retains row identity through a sticky first column.
 - Totals, KPI colors, comparison arrows, badges and progress bars remain semantically correct.
 - Screenshot evidence is supplied for desktop and phone.
 - Existing data/API/KPI behavior is unchanged.

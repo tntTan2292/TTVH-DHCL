@@ -1915,3 +1915,8 @@ Product Owner confirmed the cross-ticket coordination plan. Created `docs/03_PLA
 ## 2026-09-15 - UI-DATA-TABLE-READABILITY-01 URGENT AUDIT AUTHORIZED
 
 Product Owner supplied desktop evidence showing that key operational figures in the BCVH MTD table and Operation Dashboard BCVH table are too small to read on both PC and phone; leadership is dissatisfied. Registered a separate urgent cross-cutting UI ticket. The later design must increase actual rendered table text to at least 2× the current computed size, rebalance rows/columns, prevent wrapping/overlap/clipping, and use minimum column widths plus horizontal scrolling/sticky identity columns where necessary rather than shrinking text. Antigravity may audit the evidenced F1.3 tables in the current round and inventory remaining data tables separately. No code, CSS, KPI, API, schema, database or SSOT changed; implementation and PO PASS remain unauthorized.
+
+
+## 2026-09-15 - UI-DATA-TABLE-READABILITY-01 PO CONSTRAINT CORRECTION
+
+Product Owner rejected horizontal scrolling as the default response to larger table text. The screenshots show substantial unused spacing that may be reclaimed. The design priority is now: measure actual content and viewport widths; reduce excessive column gaps and padding; rebalance widths; keep all required figures visible, one-line and non-overlapping; and preserve the ≥2× rendered-text requirement. Horizontal scrolling may be proposed only as an exceptional last resort where numeric width evidence proves the table cannot fit without violating readability or content-preservation gates. If that exception is used, it requires explicit Product Owner approval. Documentation-only correction; no UI code or CSS changed.
