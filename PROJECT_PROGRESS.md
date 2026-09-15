@@ -1900,3 +1900,8 @@ explicitly directed the two tickets stay separate, not merged in scope. Full evi
 ## 2026-09-15 - IMPORT-BULK-REIMPORT-ALL-01 REGISTERED / NOT ACTIVATED
 
 Product Owner instructed registration of a separate Import ticket at baseline `425ed1c`. Preserve **“Chọn tất cả chưa hoàn tất”** and register an additional **“Chọn tất cả”** that may include successful imports for intentional bulk reimport. A separately authorized read-only audit must lock selection scope, queue/run creation and active-identity dedup, reimport/overwrite semantics, idempotency/concurrency, exact-count confirmation warning, Auto-Backfill safety/auth/calendar interactions, and failure/recovery behavior before implementation. No code, KPI, SSOT, schema, database, queue, or runtime action was authorized or performed. Active ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01`; `F41-DASHBOARD-MINIMUM-01` remains paused.
+
+
+## 2026-09-15 - ADMIN-USER-MODULE-ACCESS-01 DISCOVERY AUDIT AUTHORIZED / QUEUED
+
+Product Owner added an administration requirement to the current coordination round: Admin can create users and assign which modules each user may see/access. Registered as a separate ticket to prevent scope contamination of `F13-BCVH-MONTHLY-CUMULATIVE-01`. Antigravity may produce a separate read-only discovery report after the F13 audit. Audit must trace the existing ADMIN/USER RBAC, account/session storage, Sidebar, route guards, API middleware, module inventory, schema impact, and security controls. Menu hiding alone is explicitly insufficient; authorization must cover Sidebar, direct URL, and backend API with default-deny behavior. No implementation, user/account change, schema/database write, or PO PASS authorized.

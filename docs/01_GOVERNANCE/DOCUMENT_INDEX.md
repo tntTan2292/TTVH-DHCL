@@ -891,3 +891,12 @@ activated and resumption requires its own explicit, separate Product Owner autho
 | `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` | Ticket Manifest (new) | Preserve “Chọn tất cả chưa hoàn tất”; register a separate “Chọn tất cả” including successful imports for intentional bulk reimport. Mandatory future audit: selection scope, queue/dedup, reimport rules, safety, and confirmation warning. | L2 | `DISCOVERED / NOT ACTIVATED` | Only when explicitly prioritized by Product Owner/CTO. | Reference |
 
 Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01 = DISCOVERY / READ-ONLY AUDIT`; next executor remains `Antigravity (Gemini)`.
+
+
+## ADMIN-USER-MODULE-ACCESS-01 Registration — 2026-09-15
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/ADMIN-USER-MODULE-ACCESS-01_MANIFEST.md` | Ticket Manifest (new) | Separate read-only audit for Admin user creation and per-user module visibility/access, with frontend route and backend API enforcement. | L2 | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / QUEUED` | Second independent audit report in the current Antigravity round, after the active F13 audit. | Required for this workstream |
+
+Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01`; this Admin scope must not be merged into its report or implementation.
