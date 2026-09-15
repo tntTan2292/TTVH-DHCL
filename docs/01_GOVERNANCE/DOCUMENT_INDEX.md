@@ -900,3 +900,12 @@ Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01 = DISCOVERY / READ-ONLY A
 | `docs/10_TICKETS/ADMIN-USER-MODULE-ACCESS-01_MANIFEST.md` | Ticket Manifest (new) | Separate read-only audit for Admin user creation and per-user module visibility/access, with frontend route and backend API enforcement. | L2 | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / QUEUED` | Second independent audit report in the current Antigravity round, after the active F13 audit. | Required for this workstream |
 
 Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01`; this Admin scope must not be merged into its report or implementation.
+
+
+## TTVH-DHCL Upgrade Roadmap 01 — 2026-09-15
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/03_PLANNING/TTVH-DHCL-UPGRADE-ROADMAP-01.md` | Cross-ticket Coordination Roadmap | Groups the F1.3 and Administration upgrades, records the intended four-ticket sequence, preserves scope boundaries, and prevents automatic activation or scope mixing across chats/executors. | L2 | `ACTIVE COORDINATION ROADMAP` | After PROJECT_SNAPSHOT and the Current Manifest/Checkpoint when continuing this upgrade program. | Mandatory |
+
+This roadmap supplements but never replaces each ticket's Manifest, Checkpoint, Design of Record, review or Product Owner gate.

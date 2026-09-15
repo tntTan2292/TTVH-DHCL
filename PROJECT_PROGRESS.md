@@ -1905,3 +1905,8 @@ Product Owner instructed registration of a separate Import ticket at baseline `4
 ## 2026-09-15 - ADMIN-USER-MODULE-ACCESS-01 DISCOVERY AUDIT AUTHORIZED / QUEUED
 
 Product Owner added an administration requirement to the current coordination round: Admin can create users and assign which modules each user may see/access. Registered as a separate ticket to prevent scope contamination of `F13-BCVH-MONTHLY-CUMULATIVE-01`. Antigravity may produce a separate read-only discovery report after the F13 audit. Audit must trace the existing ADMIN/USER RBAC, account/session storage, Sidebar, route guards, API middleware, module inventory, schema impact, and security controls. Menu hiding alone is explicitly insufficient; authorization must cover Sidebar, direct URL, and backend API with default-deny behavior. No implementation, user/account change, schema/database write, or PO PASS authorized.
+
+
+## 2026-09-15 - TTVH-DHCL UPGRADE ROADMAP APPROVED AND RECORDED
+
+Product Owner confirmed the cross-ticket coordination plan. Created `docs/03_PLANNING/TTVH-DHCL-UPGRADE-ROADMAP-01.md` covering two independent groups: F1.3 upgrades (`F13-BCVH-MONTHLY-CUMULATIVE-01`, then `F13-ROUTE-POSTMAN-IDENTITY-01`) and Administration upgrades (`IMPORT-BULK-REIMPORT-ALL-01`, then `ADMIN-USER-MODULE-ACCESS-01`). The sequence is planning guidance only and never self-activates a ticket. Every ticket retains separate audit, design, implementation, review and PO PASS gates. Import and User/RBAC must not share implementation scope or commits. `F41-DASHBOARD-MINIMUM-01` remains paused. Documentation-only update; no product code, KPI, SSOT, schema, database, queue, user or permission changed.
