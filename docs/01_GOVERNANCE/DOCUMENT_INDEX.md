@@ -909,3 +909,10 @@ Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01`; this Admin scope must n
 | `docs/03_PLANNING/TTVH-DHCL-UPGRADE-ROADMAP-01.md` | Cross-ticket Coordination Roadmap | Groups the F1.3 and Administration upgrades, records the intended four-ticket sequence, preserves scope boundaries, and prevents automatic activation or scope mixing across chats/executors. | L2 | `ACTIVE COORDINATION ROADMAP` | After PROJECT_SNAPSHOT and the Current Manifest/Checkpoint when continuing this upgrade program. | Mandatory |
 
 This roadmap supplements but never replaces each ticket's Manifest, Checkpoint, Design of Record, review or Product Owner gate.
+
+
+## UI-DATA-TABLE-READABILITY-01 — 2026-09-15
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/UI-DATA-TABLE-READABILITY-01_MANIFEST.md` | Cross-cutting UI Ticket Manifest | Urgent measured audit and later remediation standard for operational data-table readability on desktop and mobile: ≥2× current rendered text, no wrapping/overlap/clipping, responsive horizontal scrolling and sticky identity column. | L2 | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / URGENT` | Current Antigravity audit round and every later table UI implementation. | Mandatory |

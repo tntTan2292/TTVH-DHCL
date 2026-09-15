@@ -23,6 +23,7 @@ The tickets below must remain separate. Their listed order is the intended coord
 | Nâng cấp F1.3 | `F13-ROUTE-POSTMAN-IDENTITY-01` | Add postman code and name to Route Ranking based on BatchFile. | `DISCOVERED / NOT ACTIVATED` | 2 | Unassigned | Explicit activation; read-only BatchFile mapping and historical-data audit before implementation. |
 | Nâng cấp Quản trị — Import | `IMPORT-BULK-REIMPORT-ALL-01` | Preserve “Chọn tất cả chưa hoàn tất”; add a separate “Chọn tất cả” including successful imports for intentional bulk reimport. | `DISCOVERED / NOT ACTIVATED` | 3 | Unassigned | Explicit activation; audit selection scope, queue/dedup, reimport rules, confirmation warning, safety and recovery. |
 | Nâng cấp Quản trị — User/RBAC | `ADMIN-USER-MODULE-ACCESS-01` | Admin creates users and assigns which modules each user can see and access. | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / QUEUED` | 4 | Antigravity (Gemini), separate second audit report | Complete independent audit; PO locks data model, module matrix, backend enforcement and Admin UI before implementation. |
+| Cross-cutting UI | `UI-DATA-TABLE-READABILITY-01` | Increase operational-table text to at least 2× its current rendered size; redesign density/responsiveness to prevent wrapping, overlap and clipping on PC/phone. | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / URGENT` | Parallel audit standard; implementation separately gated | Antigravity audit | Measured current/target typography, responsive proposal, affected-table inventory and PO-approved design before implementation. |
 | Paused work | `F41-DASHBOARD-MINIMUM-01` | F4.1 minimum dashboard. | `PAUSED BY PO PRIORITY` | Unscheduled | Unassigned | Separate explicit PO resumption; no other ticket may reactivate it. |
 
 ## 4. Scope Boundaries
@@ -43,6 +44,7 @@ The tickets below must remain separate. Their listed order is the intended coord
 5. Missing, invalid or stale module permission data must default to deny, subject only to a PO-approved administrator recovery path.
 6. No executor may infer an unapproved business rule, change KPI/SSOT, or award PO PASS.
 7. `F41-DASHBOARD-MINIMUM-01` remains paused until separately resumed by the Product Owner.
+8. `UI-DATA-TABLE-READABILITY-01` is a cross-cutting presentation standard: it may be audited alongside an affected feature, but its implementation and validation remain a separate ticket and commit scope.
 
 ## 6. Current Execution Sequence
 
@@ -50,7 +52,8 @@ The tickets below must remain separate. Their listed order is the intended coord
 2. CTO reviews the report and presents open decisions to the Product Owner.
 3. No next implementation phase starts without explicit PO/CTO authorization.
 4. In the same audit round, Antigravity may then produce a **separate** read-only report for `ADMIN-USER-MODULE-ACCESS-01`.
-5. `F13-ROUTE-POSTMAN-IDENTITY-01` and `IMPORT-BULK-REIMPORT-ALL-01` remain not activated until separately prioritized.
+5. Antigravity also audits the two evidenced F1.3 tables under `UI-DATA-TABLE-READABILITY-01`, reporting measured typography and responsive constraints separately from F1.3 data logic.
+6. `F13-ROUTE-POSTMAN-IDENTITY-01` and `IMPORT-BULK-REIMPORT-ALL-01` remain not activated until separately prioritized.
 
 ## 7. New-Session Onboarding
 

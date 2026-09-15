@@ -1910,3 +1910,8 @@ Product Owner added an administration requirement to the current coordination ro
 ## 2026-09-15 - TTVH-DHCL UPGRADE ROADMAP APPROVED AND RECORDED
 
 Product Owner confirmed the cross-ticket coordination plan. Created `docs/03_PLANNING/TTVH-DHCL-UPGRADE-ROADMAP-01.md` covering two independent groups: F1.3 upgrades (`F13-BCVH-MONTHLY-CUMULATIVE-01`, then `F13-ROUTE-POSTMAN-IDENTITY-01`) and Administration upgrades (`IMPORT-BULK-REIMPORT-ALL-01`, then `ADMIN-USER-MODULE-ACCESS-01`). The sequence is planning guidance only and never self-activates a ticket. Every ticket retains separate audit, design, implementation, review and PO PASS gates. Import and User/RBAC must not share implementation scope or commits. `F41-DASHBOARD-MINIMUM-01` remains paused. Documentation-only update; no product code, KPI, SSOT, schema, database, queue, user or permission changed.
+
+
+## 2026-09-15 - UI-DATA-TABLE-READABILITY-01 URGENT AUDIT AUTHORIZED
+
+Product Owner supplied desktop evidence showing that key operational figures in the BCVH MTD table and Operation Dashboard BCVH table are too small to read on both PC and phone; leadership is dissatisfied. Registered a separate urgent cross-cutting UI ticket. The later design must increase actual rendered table text to at least 2× the current computed size, rebalance rows/columns, prevent wrapping/overlap/clipping, and use minimum column widths plus horizontal scrolling/sticky identity columns where necessary rather than shrinking text. Antigravity may audit the evidenced F1.3 tables in the current round and inventory remaining data tables separately. No code, CSS, KPI, API, schema, database or SSOT changed; implementation and PO PASS remain unauthorized.
