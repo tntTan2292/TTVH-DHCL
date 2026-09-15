@@ -859,3 +859,26 @@ PHASE F1 ACTIVATION`. No further technical review is required for Phase B1. Phas
 corrections that can travel with any later commit. `F13-DASHBOARD-RECOVERY-DEFECTS-01` and
 `F13-TIMELINE-RECOVERY-DEFECT-01` each remain `DISCOVERED / NOT ACTIVATED`, one bug per ticket,
 re-confirmed reproducible in isolation by this review.
+
+
+## PO Priority Transition: F41 Paused, F13-BCVH-MONTHLY-CUMULATIVE-01 Activated, F13-ROUTE-POSTMAN-IDENTITY-01 Registered - 2026-09-15
+
+Product Owner decision received in chat: "Tạm dừng F4.1 và chuyển ưu tiên khẩn sang nâng cấp F1.3."
+Governance transition by Claude Code (Sonnet), `LEVEL 1`, documentation-only — no product code,
+test, schema, or SSOT touched, baseline `19b0021`. This entry supersedes the `New Status` cells for
+the `F41-DASHBOARD-MINIMUM-01` manifest/checkpoint rows above without deleting them, and registers
+two new, independent tickets.
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` | Ticket Manifest | Status line set to `PAUSED BY PO PRIORITY (2026-09-15)`; new Section 11 records the pause, confirms the prior `INDEPENDENT RE-REVIEW PASS` verdict is preserved unchanged, and lists the two independent successor tickets. `ITR2-F41-NB-01`..`03` remain `OPEN / NON-BLOCKING`. | L2 | Historical / Paused | When F41 work resumes, or for reference to its preserved technical state. | Reference |
+| `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` | Checkpoint | New Section 11 records the pause in full: what is preserved (Section 10's verdict), what remains open (`ITR2-F41-NB-01`..`03`), the ticket state, the two successor tickets, and validation. | L2 | Historical / Paused | When F41 work resumes. | Reference |
+| `docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md` | Ticket Manifest (new) | Current ticket. Activates a read-only discovery audit for adding "Lũy kế tháng hiện tại" to Operation Dashboard and BCVH Ranking, all-BCVH aggregate, reconciled against the PO's operating Excel file, additive to existing features, no F1.3 KPI/SSOT change. State `DISCOVERY / READ-ONLY AUDIT`; next executor `Antigravity (Gemini)`. | L2 | Active Onboarding | Current ticket only. | Mandatory |
+| `docs/06_REVIEWS/Shared/F13-BCVH-MONTHLY-CUMULATIVE-01_CHECKPOINT_001.md` | Checkpoint (new) | Activation record: the PO decision verbatim, scope lock (in/out of scope for discovery), and required reading for the next executor (F1.3 SSOT package, `DashboardPage.jsx`, `BcvhRankingPage.jsx`, `F13DashboardService.js`, `bcvhOverviewService.js`, `canonicalBcvhUnits.js`). | L2 | Active Onboarding | Current ticket only — required reading for the next executor before the audit begins. | Mandatory |
+| `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md` | Ticket Manifest (new) | Registers (does not activate) adding Mã bưu tá + Tên bưu tá to Tuyến phát Ranking, sourced from a BatchFile. Explicitly requires a mapping/historical-data audit before any implementation. `DISCOVERED / NOT ACTIVATED`. Independent of `F13-BCVH-MONTHLY-CUMULATIVE-01` — not merged in scope. | L2 | Reference | When prioritizing the next F1.3 feature ticket. | Reference |
+
+Current state: `F13-BCVH-MONTHLY-CUMULATIVE-01 = DISCOVERY / READ-ONLY AUDIT`, activated, audit not
+yet performed (next executor `Antigravity (Gemini)`). `F13-ROUTE-POSTMAN-IDENTITY-01 = DISCOVERED /
+NOT ACTIVATED`, independent. `F41-DASHBOARD-MINIMUM-01 = PAUSED BY PO PRIORITY`, its Phase B1
+technical state and `INDEPENDENT RE-REVIEW PASS` verdict preserved unchanged; Phase F1 remains not
+activated and resumption requires its own explicit, separate Product Owner authorization.

@@ -339,3 +339,30 @@ node <independent read-only re-review script, run from backend/, deleted after t
 ### 10.8 Outcome
 
 The remediation is sound and complete: all six original findings are genuinely closed — verified behaviourally against the live database and across five full sweeps, not accepted on the strength of the remediation report. The locked KPI, the read-only guarantee and F1.3 are all unaffected, and Phase B1 now carries the contract (`kpi_scope_note`, `kpi_includes_non_canonical_bcvh`) that Phase F1 needs to render PO Phương án A honestly. State advances to `INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION`. Phase F1 is **not** activated by this review — it requires its own explicit Product Owner activation. `ITR2-F41-NB-01` should be dispositioned before Phase F1 relies on `kpi_includes_non_canonical_bcvh`; `ITR2-F41-NB-02` and `ITR2-F41-NB-03` are documentation-only corrections that can travel with any later commit.
+
+## Section 11 — Governance Transition: PAUSED BY PO PRIORITY (2026-09-15, Claude Code / Sonnet)
+
+Product Owner decision received in chat: **"Tạm dừng F4.1 và chuyển ưu tiên khẩn sang nâng cấp F1.3."** Documentation-only governance transition — no product code, test, SSOT, or schema touched, and neither F1.3 nor F4.1 runtime behavior changed by this section.
+
+### 11.1 What is preserved
+
+The Section 10 Independent Re-Review verdict stands as the ticket's final technical record: `INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION`, all 6 original findings (`ITR-F41-NB-01`..`ITR-F41-NB-06`) `CLOSED`, verified behaviourally at remote HEAD `6e639d0`. This pause does not reopen, re-litigate, or invalidate that verdict.
+
+### 11.2 What remains open
+
+`ITR2-F41-NB-01` (fails-open `hasNonCanonicalBcvhRows` guard), `ITR2-F41-NB-02` (paraphrased console block presented as verbatim in `F13-TIMELINE-RECOVERY-DEFECT-01_MANIFEST.md`), and `ITR2-F41-NB-03` (inaccurate "no remaining statement" claim in Section 9) remain `OPEN / NON-BLOCKING`. None is dispositioned by this transition. They must be addressed before or as part of any future Phase F1 activation, per the Section 10.8 outcome, whenever the Product Owner resumes this ticket.
+
+### 11.3 Ticket state
+
+`F41-DASHBOARD-MINIMUM-01` is set to `PAUSED BY PO PRIORITY`. Phase F1 (Frontend) remains not activated — it is deferred, not cancelled. No remediation work, no further review, and no Phase F1 implementation may proceed on this ticket until the Product Owner explicitly resumes it with its own authorization.
+
+### 11.4 Independent successor tickets (same PO decision, disjoint scope)
+
+Two tickets were activated/registered by the same Product Owner instruction. Neither is a continuation of `F41-DASHBOARD-MINIMUM-01`, neither reopens it, and neither is self-activated by its pause:
+
+- `F13-BCVH-MONTHLY-CUMULATIVE-01` — activated, `DISCOVERY / READ-ONLY AUDIT`, next executor `Antigravity (Gemini)`. Full record: `docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md`, `docs/06_REVIEWS/Shared/F13-BCVH-MONTHLY-CUMULATIVE-01_CHECKPOINT_001.md`.
+- `F13-ROUTE-POSTMAN-IDENTITY-01` — registered only, `DISCOVERED / NOT ACTIVATED`. Full record: `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md`.
+
+### 11.5 Validation
+
+`LEVEL 1` — documentation-only consistency check. `git status --short` confirms no product code, test, schema, or SSOT file changed by this section. `PROJECT_SNAPSHOT.md`'s `Current Ticket` now routes to `F13-BCVH-MONTHLY-CUMULATIVE-01`; `F41-DASHBOARD-MINIMUM-01` and `F13-ROUTE-POSTMAN-IDENTITY-01` are both reachable from the snapshot as, respectively, paused and registered-not-activated.

@@ -1,6 +1,6 @@
 # F41-DASHBOARD-MINIMUM-01 Manifest
 
-Status: `PHASE B1 (BACKEND) INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION (2026-09-15)`. The Independent Re-Review by Claude Code (Opus) per `DEC-021`, at remote HEAD `6e639d0`, closed all six `ITR-F41-NB-01`..`ITR-F41-NB-06` findings with 0 BLOCKER and 3 new NON-BLOCKING (`ITR2-F41-NB-01`..`ITR2-F41-NB-03`) - see Section 10. Phase F1 is not activated by that review. All 6 non-blocking findings from the Independent Technical Review (`ITR-F41-NB-01`..`ITR-F41-NB-06`) remediated by Claude Code (Sonnet) - see Section 8. `ITR-F41-NB-02`'s registration was split into two one-bug-per-ticket tickets on 2026-09-09 - see Section 9. Phase F1 is not activated.
+Status: `PAUSED BY PO PRIORITY (2026-09-15)`. Product Owner decision received in chat: tạm dừng F4.1, chuyển ưu tiên khẩn sang nâng cấp F1.3 (`F13-BCVH-MONTHLY-CUMULATIVE-01`). No remediation, no Phase F1 activation, no further technical work on this ticket until the Product Owner explicitly resumes it - see Section 11. Governance state immediately before the pause, preserved unchanged: `PHASE B1 (BACKEND) INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION (2026-09-15)`. The Independent Re-Review by Claude Code (Opus) per `DEC-021`, at remote HEAD `6e639d0`, closed all six `ITR-F41-NB-01`..`ITR-F41-NB-06` findings with 0 BLOCKER; 3 new NON-BLOCKING (`ITR2-F41-NB-01`..`ITR2-F41-NB-03`) remain OPEN, unresolved by the pause - see Section 10. All 6 non-blocking findings from the original Independent Technical Review (`ITR-F41-NB-01`..`ITR-F41-NB-06`) were remediated by Claude Code (Sonnet) - see Section 8. `ITR-F41-NB-02`'s registration was split into two one-bug-per-ticket tickets on 2026-09-09 - see Section 9.
 
 ## 1. Ticket Information
 
@@ -128,3 +128,15 @@ New non-blocking findings (details in checkpoint Section 10.5):
 - `ITR2-F41-NB-03` — Section 9's validation claim that a repo-wide grep "confirms no remaining statement describes the two defects as a single ticket" is not literally true; the append-only `PROJECT_PROGRESS.md` `2026-09-08` entry and the snapshot's `Previous update:` note still do, correctly and intentionally. Wording defect in the claim, not a governance error.
 
 Phase F1 (Frontend) is **not** activated by this review and still requires its own explicit Product Owner activation.
+
+## 11. Governance Transition: PAUSED BY PO PRIORITY (2026-09-15, Claude Code / Sonnet)
+
+Product Owner decision received in chat: "Tạm dừng F4.1 và chuyển ưu tiên khẩn sang nâng cấp F1.3." Documentation-only governance transition — no product code, test, SSOT, or schema touched; no F1.3 or F4.1 behavior changed.
+
+- The Section 10 Independent Re-Review verdict (`INDEPENDENT RE-REVIEW PASS`, 0 BLOCKER, all 6 original findings CLOSED) is recorded as final and unchanged by this pause.
+- `ITR2-F41-NB-01`, `ITR2-F41-NB-02`, `ITR2-F41-NB-03` remain `OPEN / NON-BLOCKING` — not dispositioned, not closed, not escalated by this transition. They carry forward unresolved to whenever the Product Owner resumes this ticket.
+- Ticket state set to `PAUSED BY PO PRIORITY`. Phase F1 (Frontend) is not activated and is not cancelled — it is deferred pending explicit Product Owner resumption.
+- Two independent successor tickets activated/registered by the same Product Owner decision, unrelated in scope to F4.1: `F13-BCVH-MONTHLY-CUMULATIVE-01` (activated, `DISCOVERY / READ-ONLY AUDIT`, executor `Antigravity (Gemini)`) and `F13-ROUTE-POSTMAN-IDENTITY-01` (registered, `DISCOVERED / NOT ACTIVATED`). Neither reopens or depends on this ticket.
+- Full evidence: `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` Section 11.
+
+Resumption of this ticket (Phase F1 activation or further ITR2 remediation) requires its own explicit, separate Product Owner authorization — not self-activated by any other ticket's closure.

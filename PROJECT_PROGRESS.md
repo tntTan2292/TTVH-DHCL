@@ -1845,3 +1845,53 @@ explicit Product Owner activation; `ITR2-F41-NB-01` should be dispositioned befo
 scope caveat on that flag. Evidence: `docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` Section 10;
 `docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` Section 10; `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md`
 updated.
+
+## 2026-09-15 - F41-DASHBOARD-MINIMUM-01 PAUSED BY PO PRIORITY
+
+Product Owner decision received in chat: "Tạm dừng F4.1 và chuyển ưu tiên khẩn sang nâng cấp F1.3."
+Claude Code (Sonnet), `LEVEL 1`, documentation-only, baseline `19b0021` — no product code, test,
+schema, or SSOT touched. `F41-DASHBOARD-MINIMUM-01` set to `PAUSED BY PO PRIORITY`. The prior
+`INDEPENDENT RE-REVIEW PASS / READY FOR PHASE F1 ACTIVATION` verdict (all 6 original
+`ITR-F41-NB-01`..`06` findings `CLOSED`, verified behaviourally) is preserved as the ticket's final
+technical record, not reopened or re-litigated by this pause. `ITR2-F41-NB-01`, `ITR2-F41-NB-02`,
+`ITR2-F41-NB-03` remain `OPEN / NON-BLOCKING` — not dispositioned by this transition, carried
+forward unresolved to whenever the Product Owner resumes the ticket. No remediation, no further
+review, and no Phase F1 implementation may proceed until then. Full evidence:
+`docs/06_REVIEWS/Shared/F41-DASHBOARD-MINIMUM-01_CHECKPOINT_001.md` Section 11;
+`docs/10_TICKETS/F41-DASHBOARD-MINIMUM-01_MANIFEST.md` Section 11; `PROJECT_SNAPSHOT.md` and
+`DOCUMENT_INDEX.md` updated.
+
+## 2026-09-15 - F13-BCVH-MONTHLY-CUMULATIVE-01 ACTIVATED / DISCOVERY / READ-ONLY AUDIT
+
+Same Product Owner decision, same commit. `Current Ticket` changes from `F41-DASHBOARD-MINIMUM-01`
+to `F13-BCVH-MONTHLY-CUMULATIVE-01`. Product Owner-directed scope: bổ sung "Lũy kế tháng hiện tại"
+(current-month cumulative) vào Operation Dashboard và BCVH Ranking; hiển thị tổng thể tất cả BCVH
+(không chỉ theo một đơn vị); đối chiếu với file Excel điều hành của Product Owner (chưa có trong
+workspace — phải yêu cầu, không được đoán cấu trúc); bổ sung trên chức năng hiện có, không xây lại
+Dashboard/BCVH Ranking; không đổi KPI/SSOT của F1.3 (`danh_gia_2026`). Activated at `DISCOVERY /
+READ-ONLY AUDIT` — no discovery, design, or code work performed yet; the actual read-only audit is
+explicitly assigned to the next executor, `Antigravity (Gemini)`. Required reading locked for that
+executor: the F1.3 SSOT package (`docs/07_REFERENCE/Domains/domain_quality_management/
+f1.3_chat_luong_phat_lien_tinh/`), `frontend/src/features/dashboard/DashboardPage.jsx`,
+`frontend/src/features/ranking/BcvhRankingPage.jsx`, `backend/src/controllers/DashboardController.js`,
+`backend/src/services/F13DashboardService.js`, `backend/src/services/bcvhOverviewService.js`,
+`backend/src/config/canonicalBcvhUnits.js`. Out of scope: any code/DB/schema/KPI/SSOT change, F4.1,
+and `F13-ROUTE-POSTMAN-IDENTITY-01` (separate ticket, not merged). Full evidence:
+`docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md` (new);
+`docs/06_REVIEWS/Shared/F13-BCVH-MONTHLY-CUMULATIVE-01_CHECKPOINT_001.md` (new); `PROJECT_SNAPSHOT.md`
+and `DOCUMENT_INDEX.md` updated.
+
+## 2026-09-15 - F13-ROUTE-POSTMAN-IDENTITY-01 REGISTERED / NOT ACTIVATED
+
+Same Product Owner decision, same commit. Registers, does not activate: bổ sung "Mã bưu tá" và
+"Tên bưu tá" vào Tuyến phát Ranking, căn cứ trên BatchFile nguồn — the same BatchFile family already
+audited for delivery-route data under `NETWORK-MANAGEMENT-001` Section 19
+(`backend/src/services/networkMapImport/parseDeliveryRoutesBatchFileExcel.js`), not assumed to be
+the same pipeline or the same file. Explicit precondition before any implementation: audit the
+BatchFile's actual mapping and historical data — whether the postman code/name fields exist and are
+populated for routes Tuyến phát Ranking already tracks, whether the route-to-postman mapping is
+1:1/stable/changes over time, and what the historical data shows for already-ranked routes. State:
+`DISCOVERED / NOT ACTIVATED`. Independent of `F13-BCVH-MONTHLY-CUMULATIVE-01` — the Product Owner
+explicitly directed the two tickets stay separate, not merged in scope. Full evidence:
+`docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md` (new); `PROJECT_SNAPSHOT.md` and
+`DOCUMENT_INDEX.md` updated.
