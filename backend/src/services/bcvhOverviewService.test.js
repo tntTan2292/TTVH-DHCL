@@ -242,3 +242,49 @@ test('CTO-F13-BLOCK-05 and PO-12.1: previous fact date across month boundary and
         daily: { rank: 15, total: 34 },
     });
 });
+
+test('PO Section 12.1: national rank queries use 01->anchor for MTD and anchor->anchor for Daily', async () => {
+    const codes = ['535790', '536250', '535470', '537220', '537015', '533140'];
+    const repository = {
+        getBcvhOverviewMonthly: async () => [],
+        getBcvhOverviewDaily: async () => codes.map((code) => ({
+            date: '2026-09-14', ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume: 100, passed: 80, failed: 20, anchor_date: '2026-09-14',
+        })),
+        getBcvhOverviewMtd: async () => codes.map((code) => ({
+            ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume: 100, passed: 80, failed: 20, previous_volume: 90, previous_passed: 70, anchor_date: '2026-09-14',
+        })),
+        getBcvhOverviewRoutes: async () => [],
+    };
+
+    const recordedCalls = [];
+    const mockDashboardService = {
+        getNationalRankSummary: async (startDate, endDate) => {
+            recordedCalls.push({ startDate, endDate });
+            return { available: true, rank: 25, total: 34 };
+        },
+    };
+
+    const service = new BcvhOverviewService({
+        repository,
+        dashboardService: mockDashboardService,
+        now: () => new Date('2026-09-15T08:00:00+07:00'),
+    });
+
+    const result = await service.getOverview('2026-09-14');
+
+    // Exactly 2 calls made
+    assert.equal(recordedCalls.length, 2, 'national rank summary called twice (MTD and Daily)');
+
+    // Call 1: MTD rank must span from day 01 of anchor month to anchor date
+    assert.equal(recordedCalls[0].startDate, '2026-09-01', 'MTD national rank starts on 01 of anchor month');
+    assert.equal(recordedCalls[0].endDate, '2026-09-14', 'MTD national rank ends on anchor date');
+
+    // Call 2: Daily rank must be on exact anchor date
+    assert.equal(recordedCalls[1].startDate, '2026-09-14', 'Daily national rank starts on anchor date');
+    assert.equal(recordedCalls[1].endDate, '2026-09-14', 'Daily national rank ends on anchor date');
+
+    assert.deepEqual(result.meta.national_rank, {
+        mtd: { rank: 25, total: 34 },
+        daily: { rank: 25, total: 34 },
+    });
+});

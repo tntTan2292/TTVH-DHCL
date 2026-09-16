@@ -32,7 +32,7 @@ export default function BcvhOperationTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tableModel, setTableModel] = useState(null);
-  const [fitMode, setFitMode] = useState(false);
+  const [fitMode, setFitMode] = useState(true);
   const containerRef = useRef(null);
   const tableRef = useRef(null);
   const [fitScale, setFitScale] = useState(1);

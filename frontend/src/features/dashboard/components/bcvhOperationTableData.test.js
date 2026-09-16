@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   DASH,
   formatDateVN,
@@ -280,4 +281,25 @@ test('CTO-F13-BLOCK-05: previous fact date across month boundary (2026-09-01 -> 
   // Delta rate: 90.0 - 80.0 = +10.0 điểm %
   assert.equal(row.daily_delta_rate, 10.0);
   assert.equal(formatDeltaRate(row.daily_delta_rate), '+10,0 điểm %');
+});
+
+test('CTO-BLOCK-01 & PO-12.2: all headers centered and mobile defaults to fit without default horizontal scroll', () => {
+  const tableSourcePath = new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url);
+  const tableSource = fs.readFileSync(tableSourcePath, 'utf8');
+
+  // 1. Grouped headers are centered
+  assert.match(tableSource, /colSpan=\{3\}[\s\S]*?text-center align-middle[\s\S]*?ĐƠN VỊ/);
+  assert.match(tableSource, /colSpan=\{3\}[\s\S]*?text-center align-middle[\s\S]*?LŨY KẾ THÁNG/);
+  assert.match(tableSource, /colSpan=\{3\}[\s\S]*?text-center align-middle[\s\S]*?ĐIỀU HÀNH NGÀY/);
+
+  // 2. Leaf headers are all centered (all 9 columns)
+  const leafHeaderMatches = tableSource.match(/text-center align-middle w-\[/g);
+  assert.ok(leafHeaderMatches, 'leaf headers have text-center align-middle');
+  assert.equal(leafHeaderMatches.length, 9, 'all 9 leaf headers with width classes are centered');
+
+  // 3. Mobile fit is default: useState(true) so mobile does NOT default to overflow-x-auto
+  assert.match(tableSource, /const \[fitMode, setFitMode\] = useState\(true\);/);
+
+  // 4. When fitMode is true, overflow-hidden is applied
+  assert.match(tableSource, /fitMode[\s\S]*?\? 'overflow-hidden transition-all'[\s\S]*?: 'overflow-x-auto lg:overflow-x-visible'/);
 });
