@@ -76,3 +76,17 @@ The displayed date must be derived from the table's shared latest available fact
 Implementation was submitted and pushed, but is not ready for PO UI Check. Six blockers require remediation: unauthorized/default horizontal scroll; unproven ≥2× typography; missing no-wrap enforcement; table incorrectly anchored to Dashboard filter instead of global latest fact date; previous-available-date lookup unable to cross the month boundary; and missing accessible desktop/mobile screenshot evidence. Full findings: Manifest Section 11.
 
 State: `IMPLEMENTATION SUBMITTED / CTO REVIEW BLOCKED`. No PO PASS.
+
+
+## Section 8 — PO Header Context and Daily-Rate Ordering Amendment (2026-09-16)
+
+While remediation is pending, the Product Owner extended the locked presentation contract without adding columns:
+
+- Keep the exact nine business columns.
+- In the `LŨY KẾ THÁNG` grouped header, show the evaluated month/year and Huế's MTD national rank on a centered red context line.
+- In the `ĐIỀU HÀNH NGÀY` grouped header, show the shared anchor date and Huế's national rank for that exact day on a centered red context line.
+- National rank must use the existing national F1.3 source/contract, format `rank/actual total`, and render `—` when unavailable; no stale-date or local-rank fallback.
+- Center every grouped and leaf-column header.
+- Keep `TỔNG CỘNG` first; sort the six BCVH rows by daily KPI rate descending, null last, then daily volume descending and BCVH code ascending; recompute STT after sorting.
+
+Full contract and test gates: Manifest Section 12. State remains `IMPLEMENTATION SUBMITTED / CTO REVIEW BLOCKED`; remediation must include the six CTO blockers and this PO amendment before CTO re-review. No PO PASS.

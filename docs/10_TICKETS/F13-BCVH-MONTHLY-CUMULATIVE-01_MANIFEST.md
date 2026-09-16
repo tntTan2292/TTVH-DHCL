@@ -187,3 +187,36 @@ Verdict: `BLOCKED / NOT READY FOR PO UI CHECK`.
 ### 11.2 Remediation gates
 
 The executor must fix all six blockers, add boundary tests (including prior-month previous date), provide measured computed typography evidence, and return actual desktop/phone screenshots. No Governance edits and no PO PASS. After remediation, CTO re-review is required before PO UI Check.
+
+
+## 12. Product Owner Table-Header and Ordering Amendment — 2026-09-16
+
+The Product Owner added the following requirements while the implementation remains blocked in CTO review. This amendment is part of the same authorized remediation scope; it does not create extra business-data columns and does not grant PO PASS.
+
+### 12.1 National rank and evaluation-period context in grouped headers
+
+The table remains the exact nine-column table locked in Section 9. No separate rank column is added. Instead, the two grouped headers above their three child columns must show dynamic operating context:
+
+- **LŨY KẾ THÁNG**: show a red, centered context line containing the evaluated month/year and Huế's current-month-to-anchor national rank, for example `THÁNG 09/2026 • VỊ THỨ TOÀN QUỐC: 12/34`.
+- **ĐIỀU HÀNH NGÀY**: show a red, centered context line containing the shared anchor date and Huế's national rank for that exact day, for example `NGÀY 14/09/2026 • VỊ THỨ TOÀN QUỐC: 15/34`.
+- These context lines sit inside the corresponding grouped header, above the three leaf-column titles, so leadership can identify the evaluated period and national standing directly from a captured image.
+- The month rank covers day 01 of the anchor month through the shared anchor date. The daily rank covers the exact shared anchor date. Both must use the same national F1.3 source and ranking contract already present in `fact_f13_national` / `F13DashboardService`; no local-BCVH rank may be substituted.
+- If national data for the exact period is unavailable, display `VỊ THỨ TOÀN QUỐC: —`; do not reuse a stale date, fabricate a rank, or silently fall back to local BCVH ranking.
+- Rank format is `rank/total ranked units` (normally `x/34`, but the denominator must come from the actual ranked population returned by the data contract rather than being hard-coded).
+
+### 12.2 Header alignment
+
+- Every grouped header and every leaf-column title is horizontally and vertically centered.
+- The red context lines, column titles and cell contents must remain legible and comply with the no-wrap/no-overlap/no-clipping and no-default-horizontal-scroll gates in Sections 9–11.
+
+### 12.3 Locked row ordering
+
+- `TỔNG CỘNG` remains pinned as the first row and is excluded from ranking/sorting.
+- The six BCVH rows are ordered by **Điều hành ngày → Tỷ lệ đạt KPI 2026**, descending.
+- Rows with a missing/null daily rate are placed after rows with a valid rate.
+- Deterministic tie-breaks: daily measured volume descending, then `Mã bưu cục` ascending.
+- STT is reassigned `1–6` after this ordering is applied.
+
+### 12.4 Additional remediation validation
+
+The executor must add regression tests proving: both national ranks use the correct MTD/day periods and actual denominators; missing national data renders `—`; all header titles are centered; Total remains first; daily-rate descending order, null-last behavior and deterministic ties are correct; and STT is recomputed after sorting. Desktop and phone screenshots must visibly include both red context lines and the sorted rows.
