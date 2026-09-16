@@ -63,3 +63,44 @@ Not applicable at this activation — no code changed. The discovery/audit phase
 ## 8. Next Step
 
 Discovery/read-only audit to be performed by `Antigravity (Gemini)`. Findings return to the Product Owner for a design/implementation authorization decision — not self-activated by this ticket's opening.
+
+
+## 9. Product Owner Locked Table Contract — 2026-09-16
+
+The Product Owner locked the Operation Dashboard BCVH table presentation and comparison semantics. This is a business/UI requirement record only; it does not activate Design or implementation. The ticket remains blocked on the PO operating Excel reconciliation.
+
+### 9.1 Exact column structure
+
+The table must contain exactly these business columns, using a two-level grouped header:
+
+| Order | Group | Column |
+| ---: | --- | --- |
+| 1 | Identity | STT |
+| 2 | Identity | Mã bưu cục |
+| 3 | Identity | Tên bưu cục |
+| 4 | Lũy kế tháng | Sản lượng đo kiểm |
+| 5 | Lũy kế tháng | Tỷ lệ đạt KPI 2026 |
+| 6 | Lũy kế tháng | Tăng/giảm so với tháng trước |
+| 7 | Điều hành ngày | Sản lượng đo kiểm |
+| 8 | Điều hành ngày | Tỷ lệ đạt KPI 2026 |
+| 9 | Điều hành ngày | Tăng/giảm so với ngày trước |
+
+The existing Status, raw Passed/Failed, “So với HQ” and “So với CK” columns are not part of this locked target table unless the Product Owner later explicitly changes the contract.
+
+### 9.2 Row and anchor rules
+
+- The `TỔNG CỘNG` row is placed first for immediate operational visibility; its STT is `—`.
+- The six canonical BCVH rows follow, numbered 1–6.
+- Every row uses the same system-wide latest available fact date as the anchor; units do not independently select different latest dates.
+- Current-month cumulative covers day 01 of the anchor month through the anchor date.
+
+### 9.3 Locked comparison semantics
+
+- **Month comparison:** current-month cumulative is compared with the **same elapsed period of the previous month**, for example 01–14/09 versus 01–14/08. If the previous month is shorter, cap at its last calendar day.
+- **Daily comparison:** the anchor date is compared with the **previous available fact date**, not necessarily calendar D-1.
+- Rate movements are displayed in **percentage points** (`điểm %`), not relative percent change.
+- Missing comparison data displays `—`; no fabricated zero or fallback rate.
+
+### 9.4 Readability dependency
+
+The table must also comply with `UI-DATA-TABLE-READABILITY-01`: enlarge actual rendered text to the PO-approved target, reclaim unused spacing and rebalance columns first, prevent wrapping/overlap/clipping, and use horizontal scrolling only as an evidence-proven, explicitly approved last resort.

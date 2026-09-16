@@ -43,3 +43,17 @@ Explicitly out of scope:
 ## Section 4 — Completion State
 
 `DISCOVERY / READ-ONLY AUDIT` — activated, not yet performed. Next step: `Antigravity (Gemini)` performs the read-only audit and returns findings to the Product Owner for a design/implementation authorization decision. Not self-activated by this checkpoint.
+
+
+## Section 5 — PO Requirement Lock After Audit R1 (2026-09-16)
+
+The Product Owner accepted the audit's separation of current-month cumulative and daily operations, then locked the target Operation Dashboard BCVH table:
+
+- Identity: STT, Mã bưu cục, Tên bưu cục.
+- Current-month cumulative: Sản lượng đo kiểm, Tỷ lệ đạt KPI 2026, rate movement versus the same elapsed period of the previous month.
+- Daily operations: Sản lượng đo kiểm, Tỷ lệ đạt KPI 2026, rate movement versus the previous available fact date.
+- `TỔNG CỘNG` appears first; six canonical BCVH rows follow.
+- One common latest available fact date anchors every row.
+- All rate movements use percentage points; missing comparison data is `—`.
+
+This locks requirements only. The ticket remains `DISCOVERY TECHNICAL AUDIT COMPLETE / NOT READY FOR DESIGN / BLOCKED ON PO EXCEL`. No implementation, Design activation, KPI/SSOT change or PO PASS is granted.
