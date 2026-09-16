@@ -1925,3 +1925,8 @@ Product Owner rejected horizontal scrolling as the default response to larger ta
 ## 2026-09-16 - F13-BCVH-MONTHLY-CUMULATIVE-01 PO TABLE CONTRACT LOCKED
 
 Following Antigravity audit R1, the Product Owner locked the Operation Dashboard BCVH table without activating Design or implementation. Exact target: STT, Mã bưu cục, Tên bưu cục; three current-month cumulative columns (volume, KPI 2026 rate, rate movement versus the same elapsed previous-month period); and three daily-operation columns (volume, KPI 2026 rate, rate movement versus the previous available fact date). `TỔNG CỘNG` is first, followed by six canonical BCVH rows; all rows share the system-wide latest available fact date. Rate changes use percentage points and missing comparisons display `—`. The table must follow the separate readability ticket's no-wrap/no-overlap and spacing-first constraints. State remains `DISCOVERY TECHNICAL AUDIT COMPLETE / NOT READY FOR DESIGN / BLOCKED ON PO EXCEL`; no code, API, KPI, SSOT, schema or database changed.
+
+
+## 2026-09-16 - F13-BCVH-MONTHLY-CUMULATIVE-01 IMPLEMENTATION AUTHORIZED
+
+Product Owner explicitly waived the operating-Excel reconciliation gate and directed implementation of the already locked nine-column Operation Dashboard BCVH table. Total scope is the six canonical BCVH. Added exact centered two-line capture title: `BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH` and `ĐẾN NGÀY DD/MM/YYYY (SỐ LIỆU GẦN NHẤT)`, with date sourced from the shared latest available fact date. State advances to `IMPLEMENTATION AUTHORIZED / READY FOR EXECUTOR`. Tests and desktop/phone screenshot evidence are required; PO UI PASS remains pending. This commit changes Governance only, not product code.

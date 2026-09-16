@@ -57,3 +57,15 @@ The Product Owner accepted the audit's separation of current-month cumulative an
 - All rate movements use percentage points; missing comparison data is `—`.
 
 This locks requirements only. The ticket remains `DISCOVERY TECHNICAL AUDIT COMPLETE / NOT READY FOR DESIGN / BLOCKED ON PO EXCEL`. No implementation, Design activation, KPI/SSOT change or PO PASS is granted.
+
+
+## Section 6 — PO Final Authorization (2026-09-16)
+
+The Product Owner waived the Excel reconciliation gate and authorized implementation of the Section 5/manifest Section 9 table contract. The six canonical BCVH are the locked table and Total scope.
+
+A centered, capture-ready title is mandatory above the table:
+
+- `BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH`
+- `ĐẾN NGÀY DD/MM/YYYY (SỐ LIỆU GẦN NHẤT)`
+
+The displayed date must be derived from the table's shared latest available fact date. State advances to `IMPLEMENTATION AUTHORIZED / READY FOR EXECUTOR`. Implementation, regression tests and screenshot evidence are authorized; PO UI PASS remains pending.

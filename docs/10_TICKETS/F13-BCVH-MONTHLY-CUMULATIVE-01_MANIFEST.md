@@ -1,6 +1,6 @@
 # F13-BCVH-MONTHLY-CUMULATIVE-01 Manifest
 
-Status: `DISCOVERY / READ-ONLY AUDIT (2026-09-15)`. Activated for discovery only — no design, no implementation, no product code, database, schema, or business-rule change authorized yet.
+Status: `IMPLEMENTATION AUTHORIZED / READY FOR EXECUTOR (2026-09-16)`. Product Owner waived Excel reconciliation and locked the complete Operation Dashboard BCVH table contract in Sections 9–10. Implementation and validation are authorized; PO UI PASS is not pre-granted.
 
 ## 1. Ticket Information
 
@@ -104,3 +104,53 @@ The existing Status, raw Passed/Failed, “So với HQ” and “So với CK” 
 ### 9.4 Readability dependency
 
 The table must also comply with `UI-DATA-TABLE-READABILITY-01`: enlarge actual rendered text to the PO-approved target, reclaim unused spacing and rebalance columns first, prevent wrapping/overlap/clipping, and use horizontal scrolling only as an evidence-proven, explicitly approved last resort.
+
+
+## 10. Product Owner Final Authorization — Excel Gate Waived / Implementation Authorized (2026-09-16)
+
+The Product Owner explicitly decided:
+
+- The table contract in Section 9 is final.
+- No operating Excel reconciliation is required for this ticket.
+- The total scope is the six canonical BCVH represented by the six table rows.
+- Proceed directly to implementation, tests and UI validation.
+- This authorization does not grant PO UI PASS; the Product Owner will inspect the completed UI.
+
+### 10.1 Locked centered capture title
+
+A centered two-line title must appear immediately above the table, inside the same capture-ready visual block:
+
+**Line 1**
+
+`BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH`
+
+**Line 2**
+
+`ĐẾN NGÀY DD/MM/YYYY (SỐ LIỆU GẦN NHẤT)`
+
+Requirements:
+
+- The date is dynamic and comes from the same system-wide latest available fact date anchoring the table.
+- It must never use browser today when that differs from the latest fact date.
+- Both lines are centered, prominent and readable in a screenshot.
+- The title, table and Total row must fit in one coherent capture-ready card without unrelated controls breaking the visual.
+- Vietnamese capitalization and wording above are exact; only `DD/MM/YYYY` is substituted at runtime.
+
+### 10.2 Implementation gates
+
+The executor must:
+
+1. Implement the exact nine-column contract in Section 9.
+2. Use the six canonical BCVH and a first-row `TỔNG CỘNG` calculated from those same six rows.
+3. Implement current MTD through the shared latest-data anchor.
+4. Compare MTD rate with the same elapsed period in the previous month.
+5. Compare daily rate with the previous available fact date.
+6. Display rate movement in percentage points and missing comparison as `—`.
+7. Apply the active readability constraints: enlarge measured text, reclaim spacing and rebalance columns first, no wrapping/overlap/clipping, and no default horizontal scrolling.
+8. Add/adjust backend only where existing contracts cannot supply the locked semantics; reuse current services wherever correct.
+9. Add regression tests for data mapping, comparisons, Total scope, title date source and UI rendering.
+10. Provide desktop and phone screenshot evidence for Product Owner UI Check.
+
+### 10.3 Next state
+
+`IMPLEMENTATION AUTHORIZED / READY FOR EXECUTOR`. Findings return through implementation report and technical validation, then Product Owner UI Check. No executor may self-award PO PASS.
