@@ -344,7 +344,7 @@ test('PO layout: delta indicators format arrows (↑, ↓, →, —) with correc
   assert.equal(nan.display, DASH);
 });
 
-test('PO layout: locked symmetrical table-fixed colgroup and wrapping delta headers', () => {
+test('PO layout: locked symmetrical table-fixed colgroup with 11.6667% cols 4-9 and 2-line headers', () => {
   const tableSourcePath = new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url);
   const tableSource = fs.readFileSync(tableSourcePath, 'utf8');
 
@@ -359,34 +359,69 @@ test('PO layout: locked symmetrical table-fixed colgroup and wrapping delta head
 
   // Exact column width percentages:
   // ĐƠN VỊ (30%): 5%, 8%, 17%
-  // LŨY KẾ THÁNG (35%): 10%, 10%, 15%
-  // ĐIỀU HÀNH NGÀY (35%): 10%, 10%, 15%
-  assert.deepEqual(cols, ['5%', '8%', '17%', '10%', '10%', '15%', '10%', '10%', '15%']);
+  // LŨY KẾ THÁNG (35%): 11.6667%, 11.6667%, 11.6667%
+  // ĐIỀU HÀNH NGÀY (35%): 11.6667%, 11.6667%, 11.6667%
+  assert.deepEqual(cols, [
+    '5%', '8%', '17%',
+    '11.6667%', '11.6667%', '11.6667%',
+    '11.6667%', '11.6667%', '11.6667%',
+  ]);
 
-  // Symmetry verification:
-  // Both blocks have identical total widths: 10 + 10 + 15 = 35%
-  const mtdTotalWidth = 10 + 10 + 15;
-  const dailyTotalWidth = 10 + 10 + 15;
-  assert.equal(mtdTotalWidth, dailyTotalWidth, 'Block LŨY KẾ THÁNG and ĐIỀU HÀNH NGÀY have equal width (35%)');
+  // Cột 4–9 có cùng độ rộng 11.6667%
+  const cols4to9 = cols.slice(3);
+  assert.equal(cols4to9.length, 6);
+  cols4to9.forEach((w, idx) => {
+    assert.equal(w, '11.6667%', `Col ${idx + 4} has width 11.6667%`);
+  });
 
-  // Volume: col 4 === col 7
-  assert.equal(cols[3], cols[6], 'Sản lượng tháng (col 4) === Sản lượng ngày (col 7)');
-  // Rate: col 5 === col 8
-  assert.equal(cols[4], cols[7], 'Tỷ lệ tháng (col 5) === Tỷ lệ ngày (col 8)');
-  // Delta: col 6 === col 9
-  assert.equal(cols[5], cols[8], 'Tăng/giảm tháng (col 6) === Tăng/giảm ngày (col 9)');
+  // Không còn width 15% riêng cho cột 6 và 9
+  assert.equal(cols.includes('15%'), false, 'no column has width 15%');
 
-  // 3. Header wrapping: Columns 6 and 9 leaf headers must allow line breaks (whitespace-normal leading-tight)
-  // and NOT have whitespace-nowrap that stretches column width
+  // 3. Header cột 6 và 9 có đúng hai dòng cố định bằng span.block
   assert.match(
     tableSource,
-    /<th[^>]*?w-\[15%\][^>]*?whitespace-normal leading-tight[^>]*?>[\s\S]*?Tăng\/giảm so với cùng kỳ tháng trước/,
-    'MTD delta header has whitespace-normal leading-tight'
+    /<th[^>]*?w-\[11\.6667%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">cùng kỳ tháng trước<\/span>[\s\S]*?<\/th>/,
+    'Col 6 header explicitly split into 2 block lines'
   );
   assert.match(
     tableSource,
-    /<th[^>]*?w-\[15%\][^>]*?whitespace-normal leading-tight[^>]*?>[\s\S]*?Tăng\/giảm so với ngày có dữ liệu gần nhất trước đó/,
-    'Daily delta header has whitespace-normal leading-tight'
+    /<th[^>]*?w-\[11\.6667%\][^>]*?>[\s\S]*?<span className="block">Tăng\/Giảm so với<\/span>[\s\S]*?<span className="block">ngày trước<\/span>[\s\S]*?<\/th>/,
+    'Col 9 header explicitly split into 2 block lines'
+  );
+});
+
+test('PO layout: font sizes locked at 16-18px for rate badges, headers, and data cells', () => {
+  const tableSourcePath = new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url);
+  const tableSource = fs.readFileSync(tableSourcePath, 'utf8');
+
+  // 1. renderRateBadge uses text-base sm:text-lg (16-18px)
+  assert.match(
+    tableSource,
+    /function renderRateBadge[\s\S]*?text-base sm:text-lg font-bold tabular-nums/,
+    'renderRateBadge has text-base sm:text-lg font size'
+  );
+
+  // 2. renderRateBadge does NOT use text-xs or text-sm
+  const renderRateBadgeDef = tableSource.match(/function renderRateBadge[\s\S]*?^}/m);
+  assert.ok(renderRateBadgeDef, 'renderRateBadge function found');
+  assert.equal(
+    /text-xs|text-sm/.test(renderRateBadgeDef[0]),
+    false,
+    'renderRateBadge does NOT use text-xs or text-sm'
+  );
+
+  // 3. Level 2 leaf headers use text-base sm:text-lg (16-18px)
+  assert.match(
+    tableSource,
+    /<tr className="[^"]*?text-base sm:text-lg font-extrabold[^"]*?">/,
+    'Level 2 header uses text-base sm:text-lg'
+  );
+
+  // 4. Data rows tbody uses text-base sm:text-lg (16-18px)
+  assert.match(
+    tableSource,
+    /<tbody className="[^"]*?text-base sm:text-lg[^"]*?">/,
+    'Tbody uses text-base sm:text-lg'
   );
 });
 

@@ -29,7 +29,7 @@ function renderRateBadge(rate) {
   const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
   return (
     <span
-      className={`inline-flex items-center justify-center min-w-[64px] px-2 py-0.5 rounded-md border text-xs sm:text-sm font-bold tabular-nums ${toneClass}`}
+      className={`inline-flex items-center justify-center min-w-[64px] px-2 py-0.5 rounded-md border text-base sm:text-lg font-bold tabular-nums ${toneClass}`}
       title={`${band.label}: ${formatRate(num)}`}
     >
       {formatRate(num)}
@@ -180,20 +180,20 @@ export default function BcvhOperationTable() {
           }
         >
           <table ref={tableRef} className="w-full text-left border-collapse table-fixed min-w-[860px] lg:min-w-full">
-          {/* Symmetrical locked colgroup: Đơn vị (30%), Lũy kế tháng (35%), Điều hành ngày (35%) */}
+          {/* Symmetrical locked colgroup: Đơn vị (30%), Lũy kế tháng (35% = 3 * 11.6667%), Điều hành ngày (35% = 3 * 11.6667%) */}
           <colgroup>
             {/* ĐƠN VỊ (30%) */}
             <col style={{ width: '5%' }} className="w-[5%]" />
             <col style={{ width: '8%' }} className="w-[8%]" />
             <col style={{ width: '17%' }} className="w-[17%]" />
             {/* LŨY KẾ THÁNG (35%) */}
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '15%' }} className="w-[15%]" />
+            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
+            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
+            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
             {/* ĐIỀU HÀNH NGÀY (35%) */}
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '15%' }} className="w-[15%]" />
+            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
+            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
+            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
           </colgroup>
 
           {/* Level 1: Grouped Headers */}
@@ -226,8 +226,8 @@ export default function BcvhOperationTable() {
               </th>
             </tr>
 
-            {/* Level 2: Exact Column Headers (All 9 horizontally and vertically centered, wrapped headers) */}
-            <tr className="border-b-2 border-slate-300 bg-slate-50/95 text-slate-800 text-[11px] sm:text-xs xl:text-[13px] font-extrabold">
+            {/* Level 2: Exact Column Headers (All 9 horizontally and vertically centered, 16-18px) */}
+            <tr className="border-b-2 border-slate-300 bg-slate-50/95 text-slate-800 text-base sm:text-lg font-extrabold">
               {/* Identity (30%) */}
               <th className="py-2 px-1 text-center align-middle w-[5%] border-r border-slate-200 whitespace-nowrap">
                 STT
@@ -239,26 +239,28 @@ export default function BcvhOperationTable() {
                 Tên bưu cục
               </th>
 
-              {/* Lũy kế tháng (35%) */}
-              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 whitespace-normal leading-tight">
+              {/* Lũy kế tháng (35% = 3 * 11.6667%) */}
+              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-200 leading-snug">
                 Sản lượng đo kiểm
               </th>
-              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 whitespace-normal leading-tight">
+              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-200 leading-snug">
                 Tỷ lệ đạt KPI 2026
               </th>
-              <th className="py-2 px-1.5 text-center align-middle w-[15%] border-r border-slate-300 whitespace-normal leading-tight">
-                Tăng/giảm so với cùng kỳ tháng trước
+              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-300 leading-snug">
+                <span className="block">Tăng/giảm so với</span>
+                <span className="block">cùng kỳ tháng trước</span>
               </th>
 
-              {/* Điều hành ngày (35%) */}
-              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 whitespace-normal leading-tight">
+              {/* Điều hành ngày (35% = 3 * 11.6667%) */}
+              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-200 leading-snug">
                 Sản lượng đo kiểm
               </th>
-              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 whitespace-normal leading-tight">
+              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-200 leading-snug">
                 Tỷ lệ đạt KPI 2026
               </th>
-              <th className="py-2 px-1.5 text-center align-middle w-[15%] whitespace-normal leading-tight">
-                Tăng/giảm so với ngày có dữ liệu gần nhất trước đó
+              <th className="py-2 px-1 text-center align-middle w-[11.6667%] leading-snug">
+                <span className="block">Tăng/Giảm so với</span>
+                <span className="block">ngày trước</span>
               </th>
             </tr>
           </thead>
