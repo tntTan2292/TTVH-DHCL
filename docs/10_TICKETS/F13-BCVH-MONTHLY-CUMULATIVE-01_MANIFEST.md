@@ -1,6 +1,6 @@
 # F13-BCVH-MONTHLY-CUMULATIVE-01 Manifest
 
-Status: `IMPLEMENTATION AUTHORIZED / READY FOR EXECUTOR (2026-09-16)`. Product Owner waived Excel reconciliation and locked the complete Operation Dashboard BCVH table contract in Sections 9–10. Implementation and validation are authorized; PO UI PASS is not pre-granted.
+Status: `IMPLEMENTATION SUBMITTED / CTO REVIEW BLOCKED (2026-09-16)`. Commit `0ed36eb` is pushed but is not ready for PO UI Check. Six blockers are recorded in Section 11; remediation and re-review are required.
 
 ## 1. Ticket Information
 
@@ -154,3 +154,36 @@ The executor must:
 ### 10.3 Next state
 
 `IMPLEMENTATION AUTHORIZED / READY FOR EXECUTOR`. Findings return through implementation report and technical validation, then Product Owner UI Check. No executor may self-award PO PASS.
+
+
+## 11. CTO Implementation Review — BLOCKED (2026-09-16)
+
+Reviewed implementation commit: `0ed36ebfe3018be8d9a26d85bed65503ccefe126`.
+
+Positive findings: the exact title text, grouped nine-column structure, Total-first ordering, six canonical rows, percentage-point formatting and core aggregate mapper/tests are present. The API route `/f13/ranking/bcvh/overview` is valid on this branch.
+
+Verdict: `BLOCKED / NOT READY FOR PO UI CHECK`.
+
+### 11.1 Blocking findings
+
+- **CTO-F13-BLOCK-01 — Horizontal scrolling implemented without the required proof/approval.**  
+  `BcvhOperationTable.jsx` wraps the table in `overflow-x-auto`; the execution report explicitly says mobile uses horizontal scrolling. PO required spacing/column rebalancing first and prohibited default scroll unless measured evidence proves it unavoidable and PO approves the exception. No such evidence or approval exists.
+
+- **CTO-F13-BLOCK-02 — The ≥2× rendered-font requirement is neither demonstrated nor met by contract.**  
+  The implementation uses Tailwind sizes including `text-xs`, `text-sm`, `text-base`, `sm:text-sm` and `sm:text-base` (approximately 12–16 px, title up to 20 px) but supplies no computed before/after measurements. The report's assertion “font chữ tăng gấp đôi” is unsupported.
+
+- **CTO-F13-BLOCK-03 — No-wrap requirement is not implemented.**  
+  Table headers and cells lack a locked no-wrap rule. Long headers are allowed to wrap; the report's own table representation shows multi-line header wrapping. This contradicts the PO requirement to rebalance widths without wrapping, overlap or clipping.
+
+- **CTO-F13-BLOCK-04 — The table anchor is still controlled by the Dashboard filter, not always the system-wide latest fact date.**  
+  `BcvhOperationTable.jsx` derives `anchorFromFilter = globalFilter?.dateRange?.[1]` and sends it as `anchor_date`. Selecting an older Dashboard period therefore changes the capture title and table anchor, contrary to the locked “SỐ LIỆU GẦN NHẤT” contract. A modified test explicitly preserves this incorrect filter coupling.
+
+- **CTO-F13-BLOCK-05 — Previous-available-date logic fails across a month boundary.**  
+  `processBcvhOperationTableData()` searches only the overview response's `daily` array. `BcvhOverviewService` builds that array from day 01 of the anchor month through the anchor. When the anchor is the first available day of a month, the previous available fact date may be in the prior month and is absent from the payload, producing `—` despite available data. The test covers only 13→14 within one month.
+
+- **CTO-F13-BLOCK-06 — Required screenshot evidence is missing.**  
+  The report asserts desktop/mobile results and mentions a browser recording, but no accessible screenshots or artifact paths were delivered for review. PO UI Check cannot begin without actual desktop and phone evidence showing the whole table and typography.
+
+### 11.2 Remediation gates
+
+The executor must fix all six blockers, add boundary tests (including prior-month previous date), provide measured computed typography evidence, and return actual desktop/phone screenshots. No Governance edits and no PO PASS. After remediation, CTO re-review is required before PO UI Check.

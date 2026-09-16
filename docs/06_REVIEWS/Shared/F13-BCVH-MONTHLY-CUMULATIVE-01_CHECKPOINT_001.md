@@ -69,3 +69,10 @@ A centered, capture-ready title is mandatory above the table:
 - `ĐẾN NGÀY DD/MM/YYYY (SỐ LIỆU GẦN NHẤT)`
 
 The displayed date must be derived from the table's shared latest available fact date. State advances to `IMPLEMENTATION AUTHORIZED / READY FOR EXECUTOR`. Implementation, regression tests and screenshot evidence are authorized; PO UI PASS remains pending.
+
+
+## Section 7 — CTO Review of Commit 0ed36eb: BLOCKED (2026-09-16)
+
+Implementation was submitted and pushed, but is not ready for PO UI Check. Six blockers require remediation: unauthorized/default horizontal scroll; unproven ≥2× typography; missing no-wrap enforcement; table incorrectly anchored to Dashboard filter instead of global latest fact date; previous-available-date lookup unable to cross the month boundary; and missing accessible desktop/mobile screenshot evidence. Full findings: Manifest Section 11.
+
+State: `IMPLEMENTATION SUBMITTED / CTO REVIEW BLOCKED`. No PO PASS.

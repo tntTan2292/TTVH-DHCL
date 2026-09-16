@@ -1930,3 +1930,8 @@ Following Antigravity audit R1, the Product Owner locked the Operation Dashboard
 ## 2026-09-16 - F13-BCVH-MONTHLY-CUMULATIVE-01 IMPLEMENTATION AUTHORIZED
 
 Product Owner explicitly waived the operating-Excel reconciliation gate and directed implementation of the already locked nine-column Operation Dashboard BCVH table. Total scope is the six canonical BCVH. Added exact centered two-line capture title: `BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH` and `ĐẾN NGÀY DD/MM/YYYY (SỐ LIỆU GẦN NHẤT)`, with date sourced from the shared latest available fact date. State advances to `IMPLEMENTATION AUTHORIZED / READY FOR EXECUTOR`. Tests and desktop/phone screenshot evidence are required; PO UI PASS remains pending. This commit changes Governance only, not product code.
+
+
+## 2026-09-16 - F13 BCVH TABLE IMPLEMENTATION 0ed36eb CTO REVIEW BLOCKED
+
+Antigravity submitted and pushed `0ed36eb`. Source review confirms the exact title, grouped nine columns, Total-first order, six canonical rows and percentage-point formatting, but the implementation is not ready for PO UI Check. Six blockers: default mobile horizontal scroll without measured necessity/PO approval; no evidence or enforceable contract for ≥2× rendered typography; missing no-wrap enforcement; table anchor incorrectly follows the Dashboard selected end date instead of the global latest fact date; previous-available-date discovery cannot cross the month boundary because it searches only current-month daily payload; and no accessible desktop/mobile screenshots were delivered. State `IMPLEMENTATION SUBMITTED / CTO REVIEW BLOCKED`; remediation and CTO re-review required. Governance only; no product code changed in this review.
