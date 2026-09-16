@@ -641,6 +641,10 @@ class F13DashboardService {
         return this._applyMonthlyRankMovements(normalizedPeriods, ranksByMonth);
     }
 
+    async getNationalRankSummary(startDate, endDate) {
+        return this._getNationalRankSummary(startDate, endDate);
+    }
+
     async _getNationalRankSummary(startDate, endDate) {
         const provinceCode = await this._getDefaultProvinceCode();
 

@@ -277,21 +277,31 @@ class FactBuuGuiRepository {
                 `;
                 params = [...baseParams, ...canonicalCodes];
             } else if (kind === 'daily') {
-                sql = `${bounds}
+                sql = `${bounds},
+                    prev_bounds AS (
+                        SELECT MAX(ngay_do_kiem) AS prev_anchor_date
+                        FROM fact_f13, bounds
+                        WHERE date(ngay_do_kiem) < date(bounds.anchor_date)
+                          AND ma_bcvh IN (${placeholders})
+                    )
                     SELECT ngay_do_kiem AS date,
                            ma_bcvh,
                            MAX(ten_bcvh) AS ten_bcvh,
                            COUNT(ma_bg) AS volume,
                            SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
                            SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed,
-                           bounds.anchor_date
-                    FROM fact_f13, bounds
-                    WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
+                           bounds.anchor_date,
+                           prev_bounds.prev_anchor_date
+                    FROM fact_f13, bounds, prev_bounds
+                    WHERE (
+                        ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
+                        OR ngay_do_kiem = prev_bounds.prev_anchor_date
+                    )
                       AND ma_bcvh IN (${placeholders})
                     GROUP BY ngay_do_kiem, ma_bcvh
                     ORDER BY ngay_do_kiem ASC, ma_bcvh ASC
                 `;
-                params = [...baseParams, ...canonicalCodes];
+                params = [...baseParams, ...canonicalCodes, ...canonicalCodes];
             } else if (kind === 'mtd') {
                 sql = `${bounds},
                     periods AS (

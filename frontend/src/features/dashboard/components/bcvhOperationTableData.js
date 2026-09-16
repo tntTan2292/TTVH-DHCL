@@ -100,20 +100,43 @@ export function processBcvhOperationTableData(data = {}) {
   const anchorDate = meta.anchor_date || null;
   const formattedAnchorDate = formatDateVN(anchorDate);
 
-  // Find previous available fact date: max date in daily strictly before anchorDate having fact records
-  const validDates = Array.from(
-    new Set(
-      rawDaily
-        .filter((item) => Number(item?.volume || 0) > 0 || Number(item?.passed || 0) > 0 || Number(item?.failed || 0) > 0)
-        .map((item) => item.date)
-        .filter(Boolean)
-    )
-  ).sort();
-
-  const prevFactDate = anchorDate ? validDates.filter((date) => date < anchorDate).pop() || null : null;
+  // Find previous available fact date:
+  // 1) From meta.previous_fact_date (backend-computed, crossing month boundaries)
+  // 2) Fallback to max date in rawDaily strictly before anchorDate having fact records
+  let prevFactDate = meta.previous_fact_date || null;
+  if (!prevFactDate && anchorDate) {
+    const validDates = Array.from(
+      new Set(
+        rawDaily
+          .filter((item) => Number(item?.volume || 0) > 0 || Number(item?.passed || 0) > 0 || Number(item?.failed || 0) > 0)
+          .map((item) => item.date)
+          .filter(Boolean)
+      )
+    ).sort();
+    prevFactDate = validDates.filter((date) => date < anchorDate).pop() || null;
+  }
   const formattedPrevFactDate = formatDateVN(prevFactDate);
 
-  // Build the 6 canonical rows strictly in CANONICAL_BCVH_UNITS order
+  // Grouped Header Context Lines (Section 12.1):
+  // LŨY KẾ THÁNG: THÁNG MM/YYYY • VỊ THỨ TOÀN QUỐC: x/tổng
+  const monthStr = anchorDate ? anchorDate.slice(5, 7) : null;
+  const yearStr = anchorDate ? anchorDate.slice(0, 4) : null;
+  const mtdPeriodLabel = (monthStr && yearStr) ? `THÁNG ${monthStr}/${yearStr}` : `THÁNG ${DASH}`;
+  const mtdRankObj = meta.national_rank?.mtd;
+  const mtdRankStr = (mtdRankObj && mtdRankObj.rank && mtdRankObj.total)
+    ? `${mtdRankObj.rank}/${mtdRankObj.total}`
+    : DASH;
+  const mtdHeaderContext = `${mtdPeriodLabel} • VỊ THỨ TOÀN QUỐC: ${mtdRankStr}`;
+
+  // ĐIỀU HÀNH NGÀY: NGÀY DD/MM/YYYY • VỊ THỨ TOÀN QUỐC: x/tổng
+  const dailyPeriodLabel = formattedAnchorDate !== DASH ? `NGÀY ${formattedAnchorDate}` : `NGÀY ${DASH}`;
+  const dailyRankObj = meta.national_rank?.daily;
+  const dailyRankStr = (dailyRankObj && dailyRankObj.rank && dailyRankObj.total)
+    ? `${dailyRankObj.rank}/${dailyRankObj.total}`
+    : DASH;
+  const dailyHeaderContext = `${dailyPeriodLabel} • VỊ THỨ TOÀN QUỐC: ${dailyRankStr}`;
+
+  // Build the 6 canonical rows
   let totalMtdVolume = 0;
   let totalMtdPassed = 0;
   let totalPrevMtdVolume = 0;
@@ -127,7 +150,7 @@ export function processBcvhOperationTableData(data = {}) {
   let hasValidDaily = false;
   let hasValidPrevDaily = false;
 
-  const rows = CANONICAL_BCVH_UNITS.map((unit, index) => {
+  const rawRows = CANONICAL_BCVH_UNITS.map((unit) => {
     const code = unit.ma_bcvh;
     const mtdItem = rawMtd.find((item) => String(item?.ma_bcvh) === code);
     const dailyItem = anchorDate ? rawDaily.find((d) => d.date === anchorDate && String(d.ma_bcvh) === code) : null;
@@ -179,7 +202,7 @@ export function processBcvhOperationTableData(data = {}) {
     }
 
     return {
-      stt: index + 1,
+      stt: null,
       ma_bcvh: code,
       ten_bcvh: unit.ten_bcvh,
       mtd_volume: mtdVolume,
@@ -190,6 +213,39 @@ export function processBcvhOperationTableData(data = {}) {
       daily_delta_rate: dailyDeltaRate,
     };
   });
+
+  // Sort the 6 BCVH rows per Section 12.3:
+  // 1. Daily rate descending
+  // 2. Null daily rate placed last
+  // 3. Daily volume descending
+  // 4. Mã bưu cục ascending
+  const sortedRows = [...rawRows].sort((a, b) => {
+    const hasRateA = a.daily_rate !== null && a.daily_rate !== undefined && Number.isFinite(Number(a.daily_rate));
+    const hasRateB = b.daily_rate !== null && b.daily_rate !== undefined && Number.isFinite(Number(b.daily_rate));
+    if (hasRateA && !hasRateB) return -1;
+    if (!hasRateA && hasRateB) return 1;
+    if (hasRateA && hasRateB) {
+      const rateA = Number(a.daily_rate);
+      const rateB = Number(b.daily_rate);
+      if (rateB !== rateA) {
+        return rateB - rateA;
+      }
+    }
+    // Tie-break 1: daily volume descending
+    const volA = Number(a.daily_volume || 0);
+    const volB = Number(b.daily_volume || 0);
+    if (volB !== volA) {
+      return volB - volA;
+    }
+    // Tie-break 2: ma_bcvh ascending
+    return String(a.ma_bcvh).localeCompare(String(b.ma_bcvh));
+  });
+
+  // Reassign STT 1..6 after sorting
+  const rows = sortedRows.map((row, index) => ({
+    ...row,
+    stt: index + 1,
+  }));
 
   // Calculate Total Row strictly across the 6 canonical rows
   const totalMtdRate = totalMtdVolume > 0 ? calculateRate(totalMtdPassed, totalMtdVolume) : null;
@@ -220,6 +276,8 @@ export function processBcvhOperationTableData(data = {}) {
     formattedPrevFactDate,
     titleLine1: 'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH',
     titleLine2: `ĐẾN NGÀY ${formattedAnchorDate} (SỐ LIỆU GẦN NHẤT)`,
+    mtdHeaderContext,
+    dailyHeaderContext,
     totalRow,
     rows,
     allRows: [totalRow, ...rows],

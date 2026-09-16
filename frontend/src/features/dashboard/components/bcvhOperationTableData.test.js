@@ -114,7 +114,7 @@ test('processBcvhOperationTableData: exact 9 columns structure and dynamic title
   // Delta Daily = 59.28 - 61.9469... = -2.6669... điểm %
   assert.equal(Number(totalRow.daily_delta_rate.toFixed(1)), -2.7);
 
-  // Verify 6 canonical rows have STT 1 to 6
+  // Verify 6 canonical rows have STT 1 to 6 in daily_rate DESC order
   processed.rows.forEach((row, idx) => {
     assert.equal(row.stt, idx + 1);
     assert.ok(row.ma_bcvh);
@@ -127,16 +127,18 @@ test('processBcvhOperationTableData: exact 9 columns structure and dynamic title
     assert.ok(row.daily_delta_rate !== undefined);
   });
 
-  // Check specific BCVH values (e.g. A Lưới)
-  const aLuoi = processed.rows.find((r) => r.ma_bcvh === '535790');
-  assert.equal(aLuoi.stt, 1);
-  assert.equal(aLuoi.ten_bcvh, 'BCVH A Lưới');
-  assert.equal(aLuoi.mtd_volume, 1000);
-  assert.equal(aLuoi.mtd_rate, 70.0);
-  assert.equal(aLuoi.mtd_delta_rate, 10.0); // 70.0 - 60.0
-  assert.equal(aLuoi.daily_volume, 110);
-  assert.equal(aLuoi.daily_rate, 70.0);
-  assert.equal(aLuoi.daily_delta_rate, -10.0); // 70.0 - 80.0
+  // Verify sort order: Thuận An (80.0%) -> A Lưới (70.0%) -> Hương Trà (65.0%) -> Thuận Hóa (60.0%) -> Hương Thủy (50.0%) -> Phú Lộc (40.0%)
+  assert.equal(processed.rows[0].ma_bcvh, '537015');
+  assert.equal(processed.rows[0].stt, 1);
+  assert.equal(processed.rows[0].daily_rate, 80.0);
+
+  assert.equal(processed.rows[1].ma_bcvh, '535790');
+  assert.equal(processed.rows[1].stt, 2);
+  assert.equal(processed.rows[1].daily_rate, 70.0);
+
+  assert.equal(processed.rows[5].ma_bcvh, '537220');
+  assert.equal(processed.rows[5].stt, 6);
+  assert.equal(processed.rows[5].daily_rate, 40.0);
 });
 
 test('processBcvhOperationTableData: handles missing comparison data and empty state with dashes', () => {
@@ -163,4 +165,119 @@ test('processBcvhOperationTableData: handles missing comparison data and empty s
   assert.equal(formatDeltaRate(processed.totalRow.mtd_delta_rate), DASH);
   assert.equal(formatRate(processed.totalRow.daily_rate), DASH);
   assert.equal(formatDeltaRate(processed.totalRow.daily_delta_rate), DASH);
+  assert.equal(processed.mtdHeaderContext, `THÁNG ${DASH} • VỊ THỨ TOÀN QUỐC: ${DASH}`);
+  assert.equal(processed.dailyHeaderContext, `NGÀY ${DASH} • VỊ THỨ TOÀN QUỐC: ${DASH}`);
+});
+
+test('PO Section 12.1: national rank context lines with actual denominators and fallback to dash', () => {
+  const withRankData = {
+    meta: {
+      anchor_date: '2026-09-14',
+      national_rank: {
+        mtd: { rank: 12, total: 34 },
+        daily: { rank: 15, total: 34 },
+      },
+    },
+    mtd: [],
+    daily: [],
+  };
+
+  const processed = processBcvhOperationTableData(withRankData);
+  assert.equal(processed.mtdHeaderContext, 'THÁNG 09/2026 • VỊ THỨ TOÀN QUỐC: 12/34');
+  assert.equal(processed.dailyHeaderContext, 'NGÀY 14/09/2026 • VỊ THỨ TOÀN QUỐC: 15/34');
+
+  // Dynamic non-34 denominator test (e.g. 63 provinces)
+  const with63Provinces = {
+    meta: {
+      anchor_date: '2026-08-05',
+      national_rank: {
+        mtd: { rank: 25, total: 63 },
+        daily: { rank: 30, total: 63 },
+      },
+    },
+    mtd: [],
+    daily: [],
+  };
+  const processed63 = processBcvhOperationTableData(with63Provinces);
+  assert.equal(processed63.mtdHeaderContext, 'THÁNG 08/2026 • VỊ THỨ TOÀN QUỐC: 25/63');
+  assert.equal(processed63.dailyHeaderContext, 'NGÀY 05/08/2026 • VỊ THỨ TOÀN QUỐC: 30/63');
+
+  // Missing/unavailable national rank test: renders '—'
+  const withMissingRank = {
+    meta: {
+      anchor_date: '2026-09-14',
+      national_rank: {
+        mtd: null,
+        daily: null,
+      },
+    },
+    mtd: [],
+    daily: [],
+  };
+  const processedMissing = processBcvhOperationTableData(withMissingRank);
+  assert.equal(processedMissing.mtdHeaderContext, 'THÁNG 09/2026 • VỊ THỨ TOÀN QUỐC: —');
+  assert.equal(processedMissing.dailyHeaderContext, 'NGÀY 14/09/2026 • VỊ THỨ TOÀN QUỐC: —');
+});
+
+test('PO Section 12.3: deterministic tie-breaks and nulls-last ordering', () => {
+  const tieData = {
+    meta: { anchor_date: '2026-09-14' },
+    mtd: [],
+    daily: [
+      // Two units with equal rate 75.0%: 536250 has volume 200, 535470 has volume 150 -> 536250 wins tie
+      { date: '2026-09-14', ma_bcvh: '536250', volume: 200, passed: 150, rate: 75.0 },
+      { date: '2026-09-14', ma_bcvh: '535470', volume: 150, passed: 112.5, rate: 75.0 },
+      // Highest rate 90.0%: 535790 -> rank 1
+      { date: '2026-09-14', ma_bcvh: '535790', volume: 100, passed: 90, rate: 90.0 },
+      // Null daily rate (volume 0): 537220 and 537015 -> nulls last, tied on volume 0 -> ma_bcvh ASC (537015 < 537220)
+      { date: '2026-09-14', ma_bcvh: '537220', volume: 0, passed: 0, rate: null },
+      { date: '2026-09-14', ma_bcvh: '537015', volume: 0, passed: 0, rate: null },
+      // Rate 60.0%: 533140 -> rank 4
+      { date: '2026-09-14', ma_bcvh: '533140', volume: 500, passed: 300, rate: 60.0 },
+    ],
+  };
+
+  const processed = processBcvhOperationTableData(tieData);
+  const orderedCodes = processed.rows.map((r) => r.ma_bcvh);
+  assert.deepEqual(orderedCodes, [
+    '535790', // 90%
+    '536250', // 75%, vol 200
+    '535470', // 75%, vol 150
+    '533140', // 60%
+    '537015', // null, ma_bcvh 537015
+    '537220', // null, ma_bcvh 537220
+  ]);
+
+  // Check that STT is recomputed 1..6 strictly
+  assert.deepEqual(processed.rows.map((r) => r.stt), [1, 2, 3, 4, 5, 6]);
+  // Total row STT is always '—'
+  assert.equal(processed.totalRow.stt, DASH);
+});
+
+test('CTO-F13-BLOCK-05: previous fact date across month boundary (2026-09-01 -> 2026-08-31)', () => {
+  const boundaryData = {
+    meta: {
+      anchor_date: '2026-09-01',
+      previous_fact_date: '2026-08-31',
+    },
+    mtd: [
+      { ma_bcvh: '535790', volume: 50, passed: 40, rate: 80.0, previous_month_to_date: { volume: 40, passed: 30, rate: 75.0 } },
+    ],
+    daily: [
+      { date: '2026-08-31', ma_bcvh: '535790', volume: 45, passed: 36, rate: 80.0 },
+      { date: '2026-09-01', ma_bcvh: '535790', volume: 50, passed: 45, rate: 90.0 },
+    ],
+  };
+
+  const processed = processBcvhOperationTableData(boundaryData);
+  assert.equal(processed.anchorDate, '2026-09-01');
+  assert.equal(processed.prevFactDate, '2026-08-31');
+  assert.equal(processed.formattedAnchorDate, '01/09/2026');
+  assert.equal(processed.formattedPrevFactDate, '31/08/2026');
+
+  const row = processed.rows.find((r) => r.ma_bcvh === '535790');
+  assert.equal(row.daily_rate, 90.0);
+  // Delta rate: 90.0 - 80.0 = +10.0 điểm %
+  assert.equal(row.daily_delta_rate, 10.0);
+  assert.equal(formatDeltaRate(row.daily_delta_rate), '+10,0 điểm %');
 });

@@ -65,7 +65,8 @@ test('operation dashboard uses one normalized date range for selected-period wid
   assert.match(trendWindowSource, /buildTrendlineRequestParams/);
   assert.match(trendWindowSource, /mode === '7-days'/);
   assert.match(trendWindowSource, /mode === 'by-bcvh'/);
-  assert.match(compactTableSource, /anchorFromFilter = globalFilter\?\.dateRange\?\.\[1\]/);
+  assert.doesNotMatch(compactTableSource, /anchorFromFilter = globalFilter/);
+  assert.match(compactTableSource, /api\.get\('\/f13\/ranking\/bcvh\/overview'\)/);
   assert.match(actionCenterSource, /params:\s*\{\s*fromDate,\s*toDate\s*\}/);
 });
 

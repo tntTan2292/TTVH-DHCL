@@ -55,9 +55,10 @@ function rankMtd(rows) {
 }
 
 class BcvhOverviewService {
-    constructor({ repository, now = () => new Date() } = {}) {
+    constructor({ repository, dashboardService = null, now = () => new Date() } = {}) {
         if (!repository) throw new Error('BcvhOverviewService requires a repository');
         this.repository = repository;
+        this.dashboardService = dashboardService;
         this.now = now;
         this.units = CANONICAL_BCVH_UNITS.map((unit) => ({ ...unit }));
         this.codes = this.units.map((unit) => unit.ma_bcvh);
@@ -124,8 +125,14 @@ class BcvhOverviewService {
             };
         }));
 
+        const prevAnchorDate = dailyRows.find((row) => row?.prev_anchor_date)?.prev_anchor_date || null;
+        const dailyDates = dateKeysThrough(anchorDate);
+        if (prevAnchorDate && !dailyDates.includes(prevAnchorDate)) {
+            dailyDates.unshift(prevAnchorDate);
+        }
+
         const dailyMap = new Map(dailyRows.map((row) => [`${row.date}|${row.ma_bcvh}`, row]));
-        const daily = dateKeysThrough(anchorDate).flatMap((date) => this.units.map((unit) => {
+        const daily = dailyDates.flatMap((date) => this.units.map((unit) => {
             const row = dailyMap.get(`${date}|${unit.ma_bcvh}`);
             const volume = Number(row?.volume || 0);
             const passed = Number(row?.passed || 0);
@@ -193,12 +200,26 @@ class BcvhOverviewService {
             };
         });
 
+        const mtdStart = `${anchorDate.slice(0, 7)}-01`;
+        let mtdNational = null;
+        let dailyNational = null;
+        if (this.dashboardService && typeof this.dashboardService.getNationalRankSummary === 'function') {
+            try {
+                [mtdNational, dailyNational] = await Promise.all([
+                    this.dashboardService.getNationalRankSummary(mtdStart, anchorDate),
+                    this.dashboardService.getNationalRankSummary(anchorDate, anchorDate),
+                ]);
+            } catch (err) {
+                // Keep national ranks null if query fails
+            }
+        }
+
         return {
             monthly,
             daily,
             mtd,
             routes,
-            meta: this._buildMeta(anchorDate, anchorCeiling),
+            meta: this._buildMeta(anchorDate, anchorCeiling, prevAnchorDate, { mtd: mtdNational, daily: dailyNational }),
         };
     }
 
@@ -216,26 +237,37 @@ class BcvhOverviewService {
                 anchor_date: null,
                 anchor_source: null,
                 max_date: null,
+                previous_fact_date: null,
                 requested_ceiling: anchorCeiling,
                 month_period: { from_date: null, to_date: null },
                 year_period: { from_date: null, to_date: null },
                 route_period: { from_date: null, to_date: null, basis: 'MTD' },
                 canonical_bcvh_count: this.units.length,
+                national_rank: { mtd: null, daily: null },
             },
         };
     }
 
-    _buildMeta(anchorDate, anchorCeiling) {
+    _buildMeta(anchorDate, anchorCeiling, prevAnchorDate = null, nationalRank = null) {
         const yesterday = this._yesterday();
         return {
             anchor_date: anchorDate,
             anchor_source: anchorDate === yesterday ? 'yesterday' : 'max_date',
             max_date: anchorDate,
+            previous_fact_date: prevAnchorDate,
             requested_ceiling: anchorCeiling,
             month_period: { from_date: `${anchorDate.slice(0, 7)}-01`, to_date: anchorDate },
             year_period: { from_date: `${anchorDate.slice(0, 4)}-01-01`, to_date: anchorDate },
             route_period: { from_date: `${anchorDate.slice(0, 7)}-01`, to_date: anchorDate, basis: 'MTD' },
             canonical_bcvh_count: this.units.length,
+            national_rank: {
+                mtd: (nationalRank?.mtd && nationalRank.mtd.available)
+                    ? { rank: nationalRank.mtd.rank, total: nationalRank.mtd.total }
+                    : null,
+                daily: (nationalRank?.daily && nationalRank.daily.available)
+                    ? { rank: nationalRank.daily.rank, total: nationalRank.daily.total }
+                    : null,
+            },
         };
     }
 }

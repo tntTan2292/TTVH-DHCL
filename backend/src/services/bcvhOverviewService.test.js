@@ -163,6 +163,10 @@ test('repository contract aggregates instead of returning fact rows and total-ro
     assert.match(repositorySource, /GROUP BY ma_bcvh, ma_tuyen/);
     assert.match(repositorySource, /ma_bcvh IN \(\$\{placeholders\}\)/);
     assert.match(dashboardSource, /const canonicalCurrentMetrics = currentMetrics\.filter/);
+    assert.match(repositorySource, /GROUP BY ngay_do_kiem, ma_bcvh/);
+    assert.match(repositorySource, /GROUP BY ma_bcvh, ma_tuyen/);
+    assert.match(repositorySource, /ma_bcvh IN \(\$\{placeholders\}\)/);
+    assert.match(dashboardSource, /const canonicalCurrentMetrics = currentMetrics\.filter/);
     assert.match(dashboardSource, /const totalCurrent = canonicalCurrentMetrics\.reduce/);
     assert.match(dashboardSource, /const totalRow = canonicalMappedData\.reduce/);
     assert.match(controllerSource, /async getBcvhOverview\(req, res\)/);
@@ -172,4 +176,69 @@ test('repository contract aggregates instead of returning fact rows and total-ro
 test('invalid anchor_date is rejected before repository access', async () => {
     const service = new BcvhOverviewService({ repository: buildRepository(fixtureRows()) });
     await assert.rejects(() => service.getOverview('28/08/2026'), { code: 'INVALID_DATE' });
+});
+
+test('CTO-F13-BLOCK-05 and PO-12.1: previous fact date across month boundary and national ranks in meta', async () => {
+    const codes = ['535790', '536250', '535470', '537220', '537015', '533140'];
+    const boundaryDailyRows = [
+        ...codes.map((code) => ({
+            date: '2026-08-31',
+            ma_bcvh: code,
+            ten_bcvh: `BCVH ${code}`,
+            volume: 100,
+            passed: 80,
+            failed: 20,
+            anchor_date: '2026-09-01',
+            prev_anchor_date: '2026-08-31',
+        })),
+        ...codes.map((code) => ({
+            date: '2026-09-01',
+            ma_bcvh: code,
+            ten_bcvh: `BCVH ${code}`,
+            volume: 120,
+            passed: 90,
+            failed: 30,
+            anchor_date: '2026-09-01',
+            prev_anchor_date: '2026-08-31',
+        })),
+    ];
+
+    const repository = {
+        getBcvhOverviewMonthly: async () => codes.map((code) => ({
+            month: '2026-09', ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume: 120, passed: 90, failed: 30, days_with_data: 1, days_in_period: 1, anchor_date: '2026-09-01',
+        })),
+        getBcvhOverviewDaily: async () => boundaryDailyRows,
+        getBcvhOverviewMtd: async () => codes.map((code) => ({
+            ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume: 120, passed: 90, failed: 30, previous_volume: 100, previous_passed: 75, anchor_date: '2026-09-01',
+        })),
+        getBcvhOverviewRoutes: async () => [],
+    };
+
+    let callCount = 0;
+    const mockDashboardService = {
+        getNationalRankSummary: async () => {
+            callCount += 1;
+            if (callCount === 1) {
+                return { available: true, rank: 12, total: 34 };
+            }
+            return { available: true, rank: 15, total: 34 };
+        },
+    };
+
+    const service = new BcvhOverviewService({
+        repository,
+        dashboardService: mockDashboardService,
+        now: () => new Date('2026-09-02T08:00:00+07:00'),
+    });
+
+    const result = await service.getOverview('2026-09-01');
+
+    assert.equal(result.meta.anchor_date, '2026-09-01');
+    assert.equal(result.meta.previous_fact_date, '2026-08-31');
+    assert.ok(result.daily.some((r) => r.date === '2026-08-31'), 'daily array includes prior month fact date');
+    assert.ok(result.daily.some((r) => r.date === '2026-09-01'), 'daily array includes anchor date');
+    assert.deepEqual(result.meta.national_rank, {
+        mtd: { rank: 12, total: 34 },
+        daily: { rank: 15, total: 34 },
+    });
 });
