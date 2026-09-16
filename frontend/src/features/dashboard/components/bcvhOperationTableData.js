@@ -77,6 +77,57 @@ export function formatDeltaRate(value) {
 }
 
 /**
+ * Format rate delta movement with arrow indicator and tone styling.
+ * Returns { arrow, text, display, toneClass } for UI rendering and testing.
+ * - num > 0: '↑', green class ('text-emerald-700 font-bold')
+ * - num < 0: '↓', red class ('text-rose-700 font-bold')
+ * - num === 0: '→', neutral class ('text-slate-600 font-semibold')
+ * - null/undefined/NaN: DASH ('—'), muted class ('text-slate-400 font-medium')
+ */
+export function formatDeltaIndicator(value) {
+  if (value === null || value === undefined || value === '') {
+    return {
+      arrow: '',
+      text: DASH,
+      display: DASH,
+      toneClass: 'text-slate-400 font-medium',
+    };
+  }
+  const num = Number(value);
+  if (!Number.isFinite(num)) {
+    return {
+      arrow: '',
+      text: DASH,
+      display: DASH,
+      toneClass: 'text-slate-400 font-medium',
+    };
+  }
+  const text = formatDeltaRate(num);
+  if (num > 0) {
+    return {
+      arrow: '↑',
+      text,
+      display: `↑ ${text}`,
+      toneClass: 'text-emerald-700 font-bold',
+    };
+  }
+  if (num < 0) {
+    return {
+      arrow: '↓',
+      text,
+      display: `↓ ${text}`,
+      toneClass: 'text-rose-700 font-bold',
+    };
+  }
+  return {
+    arrow: '→',
+    text,
+    display: `→ ${text}`,
+    toneClass: 'text-slate-600 font-semibold',
+  };
+}
+
+/**
  * Calculate rate safely avoiding division by zero.
  */
 function calculateRate(passed, volume) {

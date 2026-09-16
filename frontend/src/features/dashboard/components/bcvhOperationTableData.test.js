@@ -7,8 +7,13 @@ import {
   formatVolume,
   formatRate,
   formatDeltaRate,
+  formatDeltaIndicator,
   processBcvhOperationTableData,
 } from './bcvhOperationTableData.js';
+import {
+  classifyF13HeatmapRate,
+  F13_HEATMAP_TONE_CLASS,
+} from '../../../components/f13/f13HeatmapBandCatalog.js';
 
 test('formatDateVN formats YYYY-MM-DD to DD/MM/YYYY and falls back to dash', () => {
   assert.equal(formatDateVN('2026-09-14'), '14/09/2026');
@@ -303,3 +308,131 @@ test('CTO-BLOCK-01 & PO-12.2: all headers centered and mobile defaults to fit wi
   // 4. When fitMode is true, overflow-hidden is applied
   assert.match(tableSource, /fitMode[\s\S]*?\? 'overflow-hidden transition-all'[\s\S]*?: 'overflow-x-auto lg:overflow-x-visible'/);
 });
+
+test('PO layout: delta indicators format arrows (↑, ↓, →, —) with correct tone colors', () => {
+  // Positive: ↑ green
+  const pos = formatDeltaIndicator(1.234);
+  assert.equal(pos.arrow, '↑');
+  assert.equal(pos.display, '↑ +1,2 điểm %');
+  assert.equal(pos.toneClass, 'text-emerald-700 font-bold');
+
+  // Negative: ↓ red
+  const neg = formatDeltaIndicator(-2.456);
+  assert.equal(neg.arrow, '↓');
+  assert.equal(neg.display, '↓ -2,5 điểm %');
+  assert.equal(neg.toneClass, 'text-rose-700 font-bold');
+
+  // Zero: → neutral
+  const zero = formatDeltaIndicator(0);
+  assert.equal(zero.arrow, '→');
+  assert.equal(zero.display, '→ 0,0 điểm %');
+  assert.equal(zero.toneClass, 'text-slate-600 font-semibold');
+
+  // Missing / non-finite: — muted
+  const nil = formatDeltaIndicator(null);
+  assert.equal(nil.arrow, '');
+  assert.equal(nil.display, DASH);
+  assert.equal(nil.toneClass, 'text-slate-400 font-medium');
+
+  const undef = formatDeltaIndicator(undefined);
+  assert.equal(undef.display, DASH);
+
+  const empty = formatDeltaIndicator('');
+  assert.equal(empty.display, DASH);
+
+  const nan = formatDeltaIndicator('not-a-number');
+  assert.equal(nan.display, DASH);
+});
+
+test('PO layout: locked symmetrical table-fixed colgroup and wrapping delta headers', () => {
+  const tableSourcePath = new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url);
+  const tableSource = fs.readFileSync(tableSourcePath, 'utf8');
+
+  // 1. table-fixed class on <table>
+  assert.match(tableSource, /<table[^>]*?className="[^"]*?\btable-fixed\b[^"]*?"/);
+
+  // 2. colgroup contains exactly 9 columns
+  const colgroupBlock = tableSource.match(/<colgroup>([\s\S]*?)<\/colgroup>/);
+  assert.ok(colgroupBlock, '<colgroup> exists in table');
+  const cols = [...colgroupBlock[1].matchAll(/<col[^>]*?width:\s*'([^']+)'[^>]*?\/>/g)].map((m) => m[1]);
+  assert.equal(cols.length, 9, 'colgroup defines exactly 9 columns');
+
+  // Exact column width percentages:
+  // ĐƠN VỊ (30%): 5%, 8%, 17%
+  // LŨY KẾ THÁNG (35%): 10%, 10%, 15%
+  // ĐIỀU HÀNH NGÀY (35%): 10%, 10%, 15%
+  assert.deepEqual(cols, ['5%', '8%', '17%', '10%', '10%', '15%', '10%', '10%', '15%']);
+
+  // Symmetry verification:
+  // Both blocks have identical total widths: 10 + 10 + 15 = 35%
+  const mtdTotalWidth = 10 + 10 + 15;
+  const dailyTotalWidth = 10 + 10 + 15;
+  assert.equal(mtdTotalWidth, dailyTotalWidth, 'Block LŨY KẾ THÁNG and ĐIỀU HÀNH NGÀY have equal width (35%)');
+
+  // Volume: col 4 === col 7
+  assert.equal(cols[3], cols[6], 'Sản lượng tháng (col 4) === Sản lượng ngày (col 7)');
+  // Rate: col 5 === col 8
+  assert.equal(cols[4], cols[7], 'Tỷ lệ tháng (col 5) === Tỷ lệ ngày (col 8)');
+  // Delta: col 6 === col 9
+  assert.equal(cols[5], cols[8], 'Tăng/giảm tháng (col 6) === Tăng/giảm ngày (col 9)');
+
+  // 3. Header wrapping: Columns 6 and 9 leaf headers must allow line breaks (whitespace-normal leading-tight)
+  // and NOT have whitespace-nowrap that stretches column width
+  assert.match(
+    tableSource,
+    /<th[^>]*?w-\[15%\][^>]*?whitespace-normal leading-tight[^>]*?>[\s\S]*?Tăng\/giảm so với cùng kỳ tháng trước/,
+    'MTD delta header has whitespace-normal leading-tight'
+  );
+  assert.match(
+    tableSource,
+    /<th[^>]*?w-\[15%\][^>]*?whitespace-normal leading-tight[^>]*?>[\s\S]*?Tăng\/giảm so với ngày có dữ liệu gần nhất trước đó/,
+    'Daily delta header has whitespace-normal leading-tight'
+  );
+});
+
+test('PO layout: rate columns apply shared F1.3 Heatmap SSOT uniformly to totalRow and 6 BCVH', () => {
+  const tableSourcePath = new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url);
+  const tableSource = fs.readFileSync(tableSourcePath, 'utf8');
+
+  // 1. Imports shared F1.3 Heatmap SSOT catalog
+  assert.match(
+    tableSource,
+    /import\s*\{[^}]*classifyF13HeatmapRate[^}]*F13_HEATMAP_TONE_CLASS[^}]*\}\s*from\s*'\.\/f13HeatmapBandCatalog'/
+  );
+
+  // 2. SSOT rate classifications verified
+  const greenClass = classifyF13HeatmapRate(75.5);
+  assert.equal(greenClass.tone, 'band-green');
+  assert.ok(F13_HEATMAP_TONE_CLASS[greenClass.tone].includes('bg-emerald-100'));
+
+  const pinkClass = classifyF13HeatmapRate(65.0);
+  assert.equal(pinkClass.tone, 'band-pink');
+  assert.ok(F13_HEATMAP_TONE_CLASS[pinkClass.tone].includes('bg-pink-100'));
+
+  const yellowClass = classifyF13HeatmapRate(55.0);
+  assert.equal(yellowClass.tone, 'band-yellow');
+  assert.ok(F13_HEATMAP_TONE_CLASS[yellowClass.tone].includes('bg-amber-100'));
+
+  const redClass = classifyF13HeatmapRate(42.0);
+  assert.equal(redClass.tone, 'band-red');
+  assert.ok(F13_HEATMAP_TONE_CLASS[redClass.tone].includes('bg-red-100'));
+
+  const missingClass = classifyF13HeatmapRate(null);
+  assert.equal(missingClass.tone, 'unavailable');
+  assert.ok(F13_HEATMAP_TONE_CLASS[missingClass.tone].includes('bg-slate-50'));
+
+  // 3. renderRateBadge used for totalRow MTD & Daily rates
+  assert.match(tableSource, /\{renderRateBadge\(totalRow\.mtd_rate\)\}/);
+  assert.match(tableSource, /\{renderRateBadge\(totalRow\.daily_rate\)\}/);
+
+  // 4. renderRateBadge used for canonical rows MTD & Daily rates
+  assert.match(tableSource, /\{renderRateBadge\(row\.mtd_rate\)\}/);
+  assert.match(tableSource, /\{renderRateBadge\(row\.daily_rate\)\}/);
+
+  // 5. renderDeltaBadge used uniformly across totalRow and canonical rows
+  assert.match(tableSource, /\{renderDeltaBadge\(totalRow\.mtd_delta_rate\)\}/);
+  assert.match(tableSource, /\{renderDeltaBadge\(totalRow\.daily_delta_rate\)\}/);
+  assert.match(tableSource, /\{renderDeltaBadge\(row\.mtd_delta_rate\)\}/);
+  assert.match(tableSource, /\{renderDeltaBadge\(row\.daily_delta_rate\)\}/);
+});
+
