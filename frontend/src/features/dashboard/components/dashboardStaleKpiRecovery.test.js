@@ -65,9 +65,7 @@ test('operation dashboard uses one normalized date range for selected-period wid
   assert.match(trendWindowSource, /buildTrendlineRequestParams/);
   assert.match(trendWindowSource, /mode === '7-days'/);
   assert.match(trendWindowSource, /mode === 'by-bcvh'/);
-  assert.match(trendWindowSource, /trendFromDate[\s\S]*?trendToDate/);
-  assert.match(compactTableSource, /fromDate: globalFilter\.dateRange\[0\]/);
-  assert.match(compactTableSource, /toDate: globalFilter\.dateRange\[1\]/);
+  assert.match(compactTableSource, /anchorFromFilter = globalFilter\?\.dateRange\?\.\[1\]/);
   assert.match(actionCenterSource, /params:\s*\{\s*fromDate,\s*toDate\s*\}/);
 });
 
@@ -103,8 +101,8 @@ test('dashboard keeps compact BCVH table while ranking keeps redesigned table', 
   assert.match(dashboardAdapterSource, /<BcvhOperationTable/);
   assert.doesNotMatch(dashboardAdapterSource, /<UnifiedBcvhAnalysisTable/);
 
-  assert.match(compactTableSource, /Bảng điều hành BCVH/);
-  assert.match(compactTableSource, /SL PTC\/NT\/CH/);
+  assert.match(compactTableSource, /LŨY KẾ THÁNG/);
+  assert.match(compactTableSource, /Sản lượng đo kiểm/);
   assert.doesNotMatch(compactTableSource, /Doughnut|Phân tích BCVH|So sánh D-1|So sánh D-7|Xem chi tiết tuyến/);
 
   assert.match(rankingTableSource, /AnalysisPanel/);

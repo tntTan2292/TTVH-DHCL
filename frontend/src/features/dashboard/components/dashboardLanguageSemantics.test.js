@@ -38,8 +38,8 @@ test('dashboard page removes shell and placeholder wording from visible surfaces
 
   assert.match(dashboardSource, /Dashboard điều hành chất lượng F1\.3/);
   assert.match(commandSource, /Tổng quan điều hành/);
-  assert.match(dashboardSource, /BCVH nổi bật và cần cải thiện/);
-  assert.match(dashboardSource, /Chi tiết điều hành BCVH/);
+  assert.match(dashboardSource, /BcvhOperationTableAdapter/);
+  assert.match(dashboardSource, /IntegratedTrendRiskWorkspace/);
   assert.doesNotMatch(dashboardSource, /Dashboard Shell|Executive Header|Navigation Integration Table|Ranking Surface|Widget Placeholder|Executive first view|Recommendation surface|Message \/ integration surface/);
 });
 
@@ -53,8 +53,8 @@ test('chart and table surfaces use semantic target accent and Vietnamese vocabul
   assert.match(comparisonSource, /Tỷ lệ đạt - Kỳ so sánh/);
   assert.match(timelineSource, /Diễn biến và quy luật chất lượng/);
   assert.match(timelineSource, /Mục tiêu \/ tham chiếu/);
-  assert.match(tableSource, /Hiển thị tất cả/);
-  assert.match(tableSource, /DASHBOARD_STATUS\.highRisk/);
+  assert.match(tableSource, /LŨY KẾ THÁNG/);
+  assert.match(tableSource, /ĐIỀU HÀNH NGÀY/);
   assert.doesNotMatch(timelineSource, /Quality Timeline|Quality Pulse|Daily Timeline|Threshold|Critical|No Data/);
   assert.doesNotMatch(tableSource, /SHOW ALL|Operation Table|>Status<|XANH|VÀNG|HỒNG|ĐỎ/);
 });

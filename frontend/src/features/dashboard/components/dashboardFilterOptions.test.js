@@ -48,7 +48,7 @@ test('only canonical values remain selectable and preserved as ma_bcvh', () => {
     });
 
     assert.deepEqual(params, {
-      from_date: '2026-07-10',
+      from_date: '2026-06-16',
       to_date: '2026-07-15',
       ma_bcvh: unit.ma_bcvh,
     });
@@ -61,7 +61,7 @@ test('operation dashboard hides status filter and shows metadata error controls'
   const sharedLayoutSource = fs.readFileSync(new URL('../../../components/shared/SharedLayout.jsx', import.meta.url), 'utf8');
 
   assert.match(dashboardSource, /showKpiFilter=\{false\}/);
-  assert.match(sharedLayoutSource, /showKpiFilter = true/);
+  assert.match(sharedLayoutSource, /showKpiFilter = false/);
   assert.match(sharedLayoutSource, /disabled=\{bcvhDisabled\}/);
   assert.match(dashboardSource, /Không thể tải danh sách BCVH/);
   assert.match(dashboardSource, /Thử lại/);
