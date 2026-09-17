@@ -1,22 +1,24 @@
 # F13-ROUTE-POSTMAN-IDENTITY-01 Manifest
 
-Status: `DISCOVERED / NOT ACTIVATED (2026-09-15)`. Registration only — no discovery, audit, design, or code work is authorized yet.
+Status: `DISCOVERY / READ-ONLY AUDIT ACTIVE (2026-09-17)`. Product Owner authorized the next step after closing `F13-BCVH-MONTHLY-CUMULATIVE-01`. Audit only; no product-code, schema, database or KPI change is authorized.
 
 ## 1. Ticket Information
 
 - Ticket ID: `F13-ROUTE-POSTMAN-IDENTITY-01`
 - Ticket Name: `F1.3 — Bổ sung Mã bưu tá + Tên bưu tá vào Tuyến phát Ranking`
-- Owner: unassigned — pending Product Owner/CTO activation.
+- Owner: `Antigravity (Gemini)` — discovery/read-only audit executor.
+- Phase: `Discovery / Read-Only Audit`
 - Governance Version: `V2 Active`
-- Registration authority: Product Owner decision received in chat, 2026-09-15, as part of the same instruction that paused `F41-DASHBOARD-MINIMUM-01` and activated `F13-BCVH-MONTHLY-CUMULATIVE-01`. This ticket is registered only, at the Product Owner's explicit direction — not activated.
+- Registration authority: Product Owner decision received in chat, 2026-09-15, as part of the same instruction that paused `F41-DASHBOARD-MINIMUM-01` and activated `F13-BCVH-MONTHLY-CUMULATIVE-01`.
+- Activation authority: Product Owner decision received in chat, 2026-09-17: the predecessor is PO PASS and work proceeds to the next approved Roadmap step.
 - Branch registered on: `codex/da-impl-006`
-- Baseline commit: `19b0021`
+- Activation baseline commit: `03b925e8025f609c9d7fc92da4db57f81756f0a4`
 
 ## 2. Objective (for whoever activates this ticket)
 
 Bổ sung "Mã bưu tá" (postman/carrier code) và "Tên bưu tá" (postman name) vào Tuyến phát Ranking (Route Ranking), căn cứ trên các trường có trong BatchFile nguồn. Before any implementation: **audit the BatchFile's actual mapping and historical data** to confirm the postman code/name fields exist reliably, are stable per route, and reconcile against however Tuyến phát Ranking currently identifies a route — do not implement against an assumed mapping.
 
-## 3. Scope (not yet locked — activation ticket must lock this)
+## 3. Registered Scope (activation lock is in Section 5)
 
 Named by the Product Owner, to be confirmed/refined at activation:
 
@@ -33,4 +35,27 @@ Explicitly out of scope at registration:
 
 ## 4. Next Step
 
-Awaiting Product Owner/CTO decision to activate this ticket. Activation must first lock: the exact BatchFile source and its confirmed column mapping, the audit scope for historical-data reconciliation, and the Design of Record process this will follow (per `CODEX_PROMPT_STANDARD.md`) before any implementation begins. Not self-activated by this registration, and not self-activated by any other ticket's closure or pause.
+Antigravity performs the activated discovery/read-only audit and returns evidence to the Product Owner/CTO. No implementation begins from this activation.
+
+
+## 5. Product Owner Activation — 2026-09-17
+
+After granting PO UI PASS to `F13-BCVH-MONTHLY-CUMULATIVE-01`, the Product Owner directed: **“bước tiếp theo”**. The approved Roadmap order identifies this ticket as the next F1.3 upgrade. The ticket is therefore activated at `DISCOVERY / READ-ONLY AUDIT` only.
+
+### 5.1 Audit questions
+
+1. Identify the exact BatchFile source(s), sheet/header mapping and real fields for postman code and postman name.
+2. Trace the current Route Ranking data path from source/import through persisted data and API to `RouteRankingPage.jsx`.
+3. Measure real mapping coverage for ranked routes: populated, missing, duplicate and conflicting identities.
+4. Determine whether route-to-postman identity is 1:1, changes by date/period, or can contain multiple postmen; preserve historical truth and do not collapse ambiguous mappings.
+5. Determine the safest minimal data contract and UI placement for `Mã bưu tá` and `Tên bưu tá`, without changing F1.3 KPI calculations.
+6. Report schema/import/backfill implications, risks, open Product Owner decisions and a phased recommendation. Do not implement the recommendation.
+
+### 5.2 Scope and safety gates
+
+- Read-only inspection of source files, code and database is authorized.
+- No product code, schema, migration, import, backfill or business-data write.
+- No F1.3 KPI/SSOT change.
+- Do not merge with Import, RBAC, F4.1 or the closed BCVH monthly-cumulative ticket.
+- Do not use Browser/Web automation. Local source inspection, read-only database queries and local tests are allowed.
+- Return the audit report to PO/CTO; Design and implementation require separate authorization.

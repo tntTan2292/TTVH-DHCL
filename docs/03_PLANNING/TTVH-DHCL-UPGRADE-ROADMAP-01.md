@@ -1,6 +1,6 @@
 # TTVH-DHCL Upgrade Roadmap 01
 
-Status: `ACTIVE COORDINATION ROADMAP (2026-09-15)`
+Status: `ACTIVE COORDINATION ROADMAP (2026-09-17)`
 
 ## 1. Purpose
 
@@ -19,8 +19,8 @@ The tickets below must remain separate. Their listed order is the intended coord
 
 | Group | Ticket | Objective | Current Status | Intended Order | Executor / Owner | Gate Before Next Phase |
 | --- | --- | --- | --- | ---: | --- | --- |
-| Nâng cấp F1.3 | `F13-BCVH-MONTHLY-CUMULATIVE-01` | Add current-month cumulative to Operation Dashboard and BCVH Ranking, show all canonical BCVH, reconcile with the PO operating Excel. | `DISCOVERY / READ-ONLY AUDIT` — Current Ticket | 1 | Antigravity (Gemini) audit | Audit report plus Excel reconciliation; PO/CTO decision before design or implementation. |
-| Nâng cấp F1.3 | `F13-ROUTE-POSTMAN-IDENTITY-01` | Add postman code and name to Route Ranking based on BatchFile. | `DISCOVERED / NOT ACTIVATED` | 2 | Unassigned | Explicit activation; read-only BatchFile mapping and historical-data audit before implementation. |
+| Nâng cấp F1.3 | `F13-BCVH-MONTHLY-CUMULATIVE-01` | Add current-month cumulative to Operation Dashboard and BCVH Ranking, show all canonical BCVH, reconcile with the PO operating Excel. | `IMPLEMENTED / PO UI PASS / CLOSED (2026-09-17)` | 1 | Completed | Closed at accepted implementation commit `03b925e`; no further work inside this ticket. |
+| Nâng cấp F1.3 | `F13-ROUTE-POSTMAN-IDENTITY-01` | Add postman code and name to Route Ranking based on BatchFile. | `DISCOVERY / READ-ONLY AUDIT ACTIVE` — Current Ticket | 2 | Antigravity (Gemini) audit | Source-grounded BatchFile mapping and historical-data audit; PO/CTO decision before design or implementation. |
 | Nâng cấp Quản trị — Import | `IMPORT-BULK-REIMPORT-ALL-01` | Preserve “Chọn tất cả chưa hoàn tất”; add a separate “Chọn tất cả” including successful imports for intentional bulk reimport. | `DISCOVERED / NOT ACTIVATED` | 3 | Unassigned | Explicit activation; audit selection scope, queue/dedup, reimport rules, confirmation warning, safety and recovery. |
 | Nâng cấp Quản trị — User/RBAC | `ADMIN-USER-MODULE-ACCESS-01` | Admin creates users and assigns which modules each user can see and access. | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / QUEUED` | 4 | Antigravity (Gemini), separate second audit report | Complete independent audit; PO locks data model, module matrix, backend enforcement and Admin UI before implementation. |
 | Cross-cutting UI | `UI-DATA-TABLE-READABILITY-01` | Increase operational-table text to at least 2× its current rendered size; redesign density/responsiveness to prevent wrapping, overlap and clipping on PC/phone. | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / URGENT` | Parallel audit standard; implementation separately gated | Antigravity audit | Measured current/target typography, responsive proposal, affected-table inventory and PO-approved design before implementation. |
@@ -48,12 +48,12 @@ The tickets below must remain separate. Their listed order is the intended coord
 
 ## 6. Current Execution Sequence
 
-1. Antigravity completes `F13-BCVH-MONTHLY-CUMULATIVE-01` read-only audit.
-2. CTO reviews the report and presents open decisions to the Product Owner.
-3. No next implementation phase starts without explicit PO/CTO authorization.
-4. In the same audit round, Antigravity may then produce a **separate** read-only report for `ADMIN-USER-MODULE-ACCESS-01`.
-5. Antigravity also audits the two evidenced F1.3 tables under `UI-DATA-TABLE-READABILITY-01`, reporting measured typography and responsive constraints separately from F1.3 data logic.
-6. `F13-ROUTE-POSTMAN-IDENTITY-01` and `IMPORT-BULK-REIMPORT-ALL-01` remain not activated until separately prioritized.
+1. `F13-BCVH-MONTHLY-CUMULATIVE-01` is complete at `PO UI PASS / CLOSED`.
+2. Antigravity performs the separate `F13-ROUTE-POSTMAN-IDENTITY-01` discovery/read-only audit.
+3. CTO reviews the audit and presents mapping/history decisions to the Product Owner.
+4. No Design or implementation starts without explicit PO/CTO authorization.
+5. `IMPORT-BULK-REIMPORT-ALL-01` remains not activated until separately prioritized.
+6. `ADMIN-USER-MODULE-ACCESS-01`, `UI-DATA-TABLE-READABILITY-01` and paused `F41-DASHBOARD-MINIMUM-01` retain their separately recorded states and must not be merged into the current ticket.
 
 ## 7. New-Session Onboarding
 

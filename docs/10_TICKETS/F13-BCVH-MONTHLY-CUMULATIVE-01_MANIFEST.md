@@ -1,14 +1,14 @@
 # F13-BCVH-MONTHLY-CUMULATIVE-01 Manifest
 
-Status: `IMPLEMENTATION SUBMITTED / CTO REVIEW BLOCKED (2026-09-16)`. Commit `0ed36eb` is pushed but is not ready for PO UI Check. Six blockers are recorded in Section 11; remediation and re-review are required.
+Status: `CLOSED / PO PASS (2026-09-17)`. Product Owner accepted the final UI at implementation commit `03b925e8025f609c9d7fc92da4db57f81756f0a4`; all Section 11 blockers and Section 12 amendments are closed.
 
 ## 1. Ticket Information
 
 - Ticket ID: `F13-BCVH-MONTHLY-CUMULATIVE-01`
 - Ticket Name: `F1.3 — Lũy kế tháng hiện tại trên Operation Dashboard và BCVH Ranking`
-- Phase: `Discovery / Read-Only Audit`
-- Owner: `Claude Code (Sonnet)` — governance activation only.
-- Next Executor: `Antigravity (Gemini)` — performs the actual discovery/read-only audit.
+- Phase: `Closed / Product Owner Accepted`
+- Owner: `Product Owner / CTO workflow` — completed.
+- Next Executor: none; the ticket is closed.
 - Governance Version: `V2 Active`
 - Activation authority: Product Owner decision received in chat, 2026-09-15: "Tạm dừng F4.1 và chuyển ưu tiên khẩn sang nâng cấp F1.3", naming this ticket by its exact scope (below) and directing it be opened at `DISCOVERY / READ-ONLY AUDIT` with `Antigravity (Gemini)` as next executor.
 - Branch: `codex/da-impl-006`
@@ -220,3 +220,39 @@ The table remains the exact nine-column table locked in Section 9. No separate r
 ### 12.4 Additional remediation validation
 
 The executor must add regression tests proving: both national ranks use the correct MTD/day periods and actual denominators; missing national data renders `—`; all header titles are centered; Total remains first; daily-rate descending order, null-last behavior and deterministic ties are correct; and STT is recomputed after sorting. Desktop and phone screenshots must visibly include both red context lines and the sorted rows.
+
+
+## 13. Final Remediation, CTO Validation and Product Owner Closure — 2026-09-17
+
+### 13.1 Accepted implementation baseline
+
+The final accepted product implementation is commit `03b925e8025f609c9d7fc92da4db57f81756f0a4` on branch `codex/da-impl-006`.
+
+The remediation chain closed the Section 11 blockers and implemented the Section 12 amendment:
+
+- `41b7c88`: latest-data anchor decoupled from Dashboard filters, previous available fact date crosses month boundaries, national month/day rank context added, Total-first and daily-rate ordering implemented.
+- `0e64b5f`: mobile Fit mode made the default and missing rank-period/layout regressions added.
+- `ddc0020`: symmetric grouped layout, shared F1.3 Heatmap rate tones and delta arrows added.
+- `03b925e`: columns 4–9 locked to equal widths, delta headers split into the Product Owner-approved two-line wording, and header/data/rate typography locked at 16–18 px.
+
+No F1.3 KPI definition, frozen SSOT, database schema or business data was changed.
+
+### 13.2 CTO validation
+
+Independent source review at `03b925e` confirmed the final scope and independently re-ran:
+
+- `backend/src/services/bcvhOverviewService.test.js`: `8/8 PASS`.
+- `frontend/src/features/dashboard/components/bcvhOperationTableData.test.js`: `14/14 PASS`.
+- `frontend/src/features/dashboard/components/*.test.js`: `134/134 PASS`.
+
+The final source satisfies the locked nine-column contract, six-canonical-BCVH Total scope, latest shared anchor, previous-month/day comparisons, national-rank header context, daily-rate ordering, equal widths for columns 4–9, shared Heatmap SSOT, delta arrows and 16–18 px typography. Verdict before PO inspection: `TECH PASS / READY FOR PO UI CHECK`.
+
+### 13.3 Product Owner decision
+
+Product Owner decision received in chat on 2026-09-17: **“ok pass bước tiếp theo nhé”**.
+
+This is the explicit Product Owner UI acceptance for the completed table. Final state:
+
+`IMPLEMENTED / PO UI PASS / CLOSED`.
+
+No further work is authorized under this ticket. Any later change requires a new ticket or explicit reopening.

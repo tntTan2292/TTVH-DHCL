@@ -90,3 +90,29 @@ While remediation is pending, the Product Owner extended the locked presentation
 - Keep `TỔNG CỘNG` first; sort the six BCVH rows by daily KPI rate descending, null last, then daily volume descending and BCVH code ascending; recompute STT after sorting.
 
 Full contract and test gates: Manifest Section 12. State remains `IMPLEMENTATION SUBMITTED / CTO REVIEW BLOCKED`; remediation must include the six CTO blockers and this PO amendment before CTO re-review. No PO PASS.
+
+
+## Section 9 — Final Technical Validation and PO UI PASS (2026-09-17)
+
+Final implementation commit: `03b925e8025f609c9d7fc92da4db57f81756f0a4`.
+
+The complete remediation chain closed the six Section 7 blockers and implemented the Section 8 amendment. Final independent validation confirmed:
+
+- latest-data anchor independent of the Dashboard filter;
+- previous available fact date across month boundaries;
+- correct national-rank periods for current MTD and exact anchor day;
+- Total first, six canonical BCVH sorted by daily KPI rate, deterministic ties and reassigned STT;
+- equal widths for columns 4–9;
+- fixed two-line wording for columns 6 and 9;
+- shared F1.3 Heatmap SSOT for both rate columns;
+- delta arrows and 16–18 px header/data/rate typography.
+
+Independent test results at the final commit:
+
+- Backend overview service: `8/8 PASS`.
+- BCVH table regression suite: `14/14 PASS`.
+- Dashboard component suite: `134/134 PASS`.
+
+Product Owner inspected the UI and explicitly decided on 2026-09-17: **“ok pass bước tiếp theo nhé”**.
+
+Final state: `IMPLEMENTED / PO UI PASS / CLOSED`. No remaining blocker or authorized follow-up exists inside this ticket.

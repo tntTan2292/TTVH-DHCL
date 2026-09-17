@@ -916,3 +916,16 @@ This roadmap supplements but never replaces each ticket's Manifest, Checkpoint, 
 | Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/10_TICKETS/UI-DATA-TABLE-READABILITY-01_MANIFEST.md` | Cross-cutting UI Ticket Manifest | Urgent measured audit and later remediation standard for operational data-table readability on desktop and mobile: ≥2× current rendered text, no wrapping/overlap/clipping, responsive horizontal scrolling and sticky identity column. | L2 | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / URGENT` | Current Antigravity audit round and every later table UI implementation. | Mandatory |
+
+
+## F13 BCVH Monthly Cumulative Closure and Route-Postman Audit Activation — 2026-09-17
+
+Product Owner granted UI PASS to the completed BCVH table and directed the next Roadmap step. This is a Governance-only transition; no product code, schema, database, import, KPI or SSOT changed.
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md` | Closed Ticket Manifest | Section 13 records accepted implementation `03b925e`, independent test evidence and the Product Owner's explicit UI PASS. | L2 | `IMPLEMENTED / PO UI PASS / CLOSED` | Historical reference for the accepted Operation Dashboard BCVH table. | Reference |
+| `docs/06_REVIEWS/Shared/F13-BCVH-MONTHLY-CUMULATIVE-01_CHECKPOINT_001.md` | Closed Checkpoint | Section 9 records final technical validation and PO UI PASS. | L2 | `CLOSED` | Historical reference for final acceptance evidence. | Reference |
+| `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md` | Current Ticket Manifest | Section 5 activates a read-only audit of actual BatchFile postman identity mapping, coverage, conflicts and route-history semantics. | L2 | `DISCOVERY / READ-ONLY AUDIT ACTIVE` | Current executor onboarding. | Mandatory |
+| `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_CHECKPOINT_001.md` | Current Checkpoint (new) | Activation, scope lock, required reading and completion gate for the route-postman identity audit. | L2 | `ACTIVE` | Current executor onboarding. | Mandatory |
+| `docs/03_PLANNING/TTVH-DHCL-UPGRADE-ROADMAP-01.md` | Coordination Roadmap | Workboard and execution sequence updated: monthly cumulative closed; route-postman identity is now the Current Ticket. | L2 | `ACTIVE COORDINATION ROADMAP` | After Snapshot and Current Manifest/Checkpoint. | Mandatory |

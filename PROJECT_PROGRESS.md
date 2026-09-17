@@ -1940,3 +1940,13 @@ Antigravity submitted and pushed `0ed36eb`. Source review confirms the exact tit
 ## 2026-09-16 - F13 BCVH TABLE PO HEADER/RANK/ORDER AMENDMENT
 
 Product Owner added a presentation amendment to the blocked remediation. The table remains nine columns. The two grouped headers must show red, centered period context plus Huế national rank: current month through the shared anchor for `LŨY KẾ THÁNG`, and the exact shared anchor date for `ĐIỀU HÀNH NGÀY`. Rank reuses the existing national F1.3 contract, displays `rank/actual total`, and uses `—` when unavailable. All grouped and leaf headers are centered. `TỔNG CỘNG` remains first; six BCVH rows sort by daily KPI rate descending, null last, with daily volume descending and BCVH code ascending as deterministic tie-breaks; STT is recomputed after sorting. Manifest Section 12 and Checkpoint Section 8 are authoritative. Governance only; no product code, KPI, SSOT, schema or database changed; state remains CTO REVIEW BLOCKED.
+
+
+## 2026-09-17 - F13-BCVH-MONTHLY-CUMULATIVE-01 PO UI PASS / CLOSED
+
+Product Owner inspected the completed Operation Dashboard BCVH table and decided: **“ok pass bước tiếp theo nhé”**. Accepted product baseline: `03b925e8025f609c9d7fc92da4db57f81756f0a4`. The full remediation chain closed all six CTO blockers and implemented the later PO amendments: independent latest-data anchor, previous fact date across month boundaries, national MTD/day rank context, Total-first and daily-rate ordering, equal widths for columns 4–9, fixed two-line delta headers, shared F1.3 Heatmap tones, delta arrows and 16–18 px typography. Independent final tests: backend overview `8/8`, BCVH table `14/14`, dashboard components `134/134`, all PASS. Ticket state: `IMPLEMENTED / PO UI PASS / CLOSED`. Closure itself is documentation-only; no product code, KPI, SSOT, schema or business data changed.
+
+
+## 2026-09-17 - F13-ROUTE-POSTMAN-IDENTITY-01 DISCOVERY / READ-ONLY AUDIT ACTIVATED
+
+Following the closed ticket and the approved Roadmap order, Product Owner's “bước tiếp theo” direction activates `F13-ROUTE-POSTMAN-IDENTITY-01` as the Current Ticket. Objective: audit the actual BatchFile source and its `Mã bưu tá` / `Tên bưu tá` fields, trace the Route Ranking data path, quantify missing/duplicate/conflicting mappings, determine whether route identity changes over time, and propose the minimal truthful contract/UI placement. Executor: Antigravity (Gemini). This authorization is audit-only: no product code, Design, schema, migration, import, backfill, database write, KPI/SSOT change or Browser/Web automation. Findings return to PO/CTO for a separate decision.
