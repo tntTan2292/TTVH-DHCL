@@ -59,3 +59,74 @@ After granting PO UI PASS to `F13-BCVH-MONTHLY-CUMULATIVE-01`, the Product Owner
 - Do not merge with Import, RBAC, F4.1 or the closed BCVH monthly-cumulative ticket.
 - Do not use Browser/Web automation. Local source inspection, read-only database queries and local tests are allowed.
 - Return the audit report to PO/CTO; Design and implementation require separate authorization.
+
+## 6. DB Bưu Tá Discovery & Cross-Reconciliation Audit (2026-09-17)
+
+Product Owner supplied the official postman directory file: `2026.09.17 - DB Buu ta.xls` (27.5 KB, exported from system at `17/09/2026 11:01` for unit `53-BĐTP Huế`, active status).
+
+### 6.1. Source Structure & Mapping Lock
+- Header row (Row 8): `STT`, `Mã BĐT`, `Tên BĐT`, `Mã BĐH`, `Tên BĐH`, `Mã bưu cục`, `Tên bưu cục`, `Tên tài khoản`, `Họ tên người dùng`, `Chức danh`, `Loại hợp đồng`, `Số điện thoại`, `Mã HRM`, `Tình trạng hoạt động`.
+- **Locked Field Mapping**:
+  - `Tên tài khoản` = `Mã bưu tá` (`POSTMAN_CODE`).
+  - `Họ tên người dùng` = `Tên bưu tá`.
+  - `Mã bưu cục` = Mã BCVH (dùng để kiểm tra chéo / cross-check).
+- **Data Minimization & Security Lock**:
+  - Only necessary fields are admitted to system storage: `ma_buu_ta`, `ten_buu_ta`, `ma_bcvh`, `ten_bcvh`, `trang_thai_hoat_dong`.
+  - **Do NOT store**: `Số điện thoại`, `Mã HRM`, `Loại hợp đồng`.
+- Total data rows: 198 rows.
+- Distinct postman codes: 198 codes.
+- Duplicate postman codes in DB: **0** (all codes strictly unique).
+
+### 6.2. Cross-Reconciliation with BatchFiles (All 4 Months: May, June, July, August 2026)
+Across 678,328 delivery point records in all 4 monthly BatchFiles (`2026.06.01...`, `2026.07.01...`, `2026.08.01...`, `2026.09.01...`):
+- Total distinct postman codes appearing in BatchFiles: **277 codes**.
+- **1. Codes Matched (Có cả trong BatchFile và Danh bạ)**: **172 codes** (chiếm 81.93% tổng sản lượng bưu gửi phát: 555,765 / 678,328 điểm phát).
+- **2. BatchFile Codes Missing in DB Bưu tá (Mã BatchFile chưa có tên)**: **105 codes** (chiếm 18.07% sản lượng: 122,563 điểm phát).
+  - Phân bổ khối lượng:
+    - 29 mã có sản lượng rất thấp (<= 10 bưu gửi): phát sinh ngẫu nhiên / điều động tạm thời.
+    - 25 mã có sản lượng 11 - 100 bưu gửi.
+    - 51 mã có sản lượng > 100 bưu gửi (ví dụ `53A152` Thuận Hóa 15,617 BG; `53B246` 7,917 BG; `53B040` 7,572 BG; `53F069` 7,133 BG). Lý do chưa có trong file 17/09: hợp đồng khác chức danh bưu tá (lái xe, thuê ngoài) hoặc đã luân chuyển/nghỉ việc trước ngày xuất file.
+- **3. DB Bưu tá Codes Only in DB (Chưa phát sinh bưu gửi trong BatchFile)**: **26 codes** (nhân sự mới hoặc bưu tá chuyên trách/văn phòng).
+- **4. Xung đột / Bất nhất BCVH (Conflicts)**: **0** (toàn bộ 172 mã khớp đều có mã bưu cục trong Danh bạ trùng khớp hoàn toàn với bưu cục chính trong BatchFile).
+
+## 7. Khóa Luồng Ghép Dữ Liệu (Locked Stitching Pipeline)
+
+```
+[F1.3 theo ngày + mã tuyến]
+  fact_f13 (ngay_do_kiem, ma_tuyen, ten_tuyen, danh_gia_2026)
+       │
+       ▼ (Join theo ngay_phat = ngay_do_kiem AND route_po_code = ma_tuyen)
+[BatchFile cùng ngày + mã tuyến]
+  network_delivery_point (postman_code, ma_bcvh, ...)
+       │
+       ▼ (Join theo ma_buu_ta = postman_code)
+[Danh bạ Bưu tá]
+  dm_buu_ta (ma_buu_ta, ten_buu_ta, ma_bcvh)
+       │
+       ▼
+[Route Ranking Display — RoutePerformancePage.jsx]
+  Hiển thị: Mã tuyến | Tên tuyến | Mã bưu tá | Tên bưu tá | [Kết quả ngày] | [Kết quả kỳ]
+```
+
+- **Quy tắc bảo toàn đa bưu tá (Multi-postman preservation)**:
+  - Nếu trong cùng 1 ngày, tuyến có nhiều bưu tá cùng đi phát: giữ đầy đủ toàn bộ bưu tá (ví dụ: `53A819, 53A856` kèm tên tương ứng), không được gán ép hay cắt xén đại diện 1 người.
+- **Quy tắc an toàn khi thiếu dữ liệu**:
+  - Nếu mã bưu tá chưa có tên trong danh bạ: hiển thị `Mã bưu tá` kèm Tên bưu tá là `—` (không fabricated).
+  - Nếu ngày xem chưa có dữ liệu BatchFile: hiển thị `—` cho cả Mã và Tên bưu tá.
+
+## 8. Đề Xuất Design Cho Chức Năng “Rà Soát Danh Mục Bưu Tá”
+
+Chức năng phục vụ Product Owner / Quản trị viên chủ động quản lý danh bạ và bổ sung tên cho 105 mã mới phát hiện từ BatchFile:
+
+1. **Vị trí đề xuất**: Phân hệ Quản trị Mạng lưới / Cấu hình hệ thống (`/admin/postman-catalog` hoặc tab trong Network Management).
+2. **Cấu trúc 2 Tab trực quan**:
+   - **Tab 1: "Danh bạ bưu tá hiện hữu"**:
+     - Bảng tra cứu danh bạ (198 bưu tá hiện có): `STT`, `Mã bưu tá`, `Tên bưu tá`, `Mã BCVH`, `Tên BCVH`, `Trạng thái`.
+     - Cho phép tìm kiếm nhanh theo mã hoặc tên, lọc theo BCVH.
+     - Cho phép sửa nhanh Tên bưu tá hoặc trạng thái.
+   - **Tab 2: "Rà soát mã mới từ BatchFile (Chưa có tên)"**:
+     - Tự động thống kê các `POSTMAN_CODE` xuất hiện trong BatchFile nhưng vắng mặt trong Danh bạ (105 mã).
+     - Hiển thị thông tin hỗ trợ PO nhận diện: `Mã bưu tá`, `Bưu cục phát sinh`, `Số bưu gửi đã phát`, `Kỳ xuất hiện (tháng)`, `Tên tuyến thường phát`.
+     - Ô nhập nhanh **`Tên bưu tá`** inline ngay trên bảng kèm nút **`Lưu vào danh mục`** để PO gán tên tức thì mà không cần nạp lại file Excel.
+3. **Hiệu lực tức thời**: Ngay khi PO nhập và lưu tên bưu tá cho một mã mới, bảng Route Ranking tại `/f13/ranking/route` sẽ tự động hiển thị tên bưu tá tương ứng cho toàn bộ dữ liệu lịch sử của mã đó.
+
