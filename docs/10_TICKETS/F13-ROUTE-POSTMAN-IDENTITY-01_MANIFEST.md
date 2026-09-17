@@ -130,3 +130,15 @@ Chức năng phục vụ Product Owner / Quản trị viên chủ động quản
      - Ô nhập nhanh **`Tên bưu tá`** inline ngay trên bảng kèm nút **`Lưu vào danh mục`** để PO gán tên tức thì mà không cần nạp lại file Excel.
 3. **Hiệu lực tức thời**: Ngay khi PO nhập và lưu tên bưu tá cho một mã mới, bảng Route Ranking tại `/f13/ranking/route` sẽ tự động hiển thị tên bưu tá tương ứng cho toàn bộ dữ liệu lịch sử của mã đó.
 
+
+## 9. Independent Design Review 001 (2026-09-17)
+
+Reviewer: Claude Code (Opus 5), independent of the proposal author. Full record: `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_REVIEW_001.md`.
+
+- **Verdict: BLOCKED** — direction verified, proposal not approvable as written.
+- Verified: Section 7 stitching pipeline (parcel-level cross-check 11,378/11,378 same route + BCVH); name join by postman code only; multi-postman preservation (21.3%); 198 unique directory codes; data minimization.
+- Blocking: R1 `/admin/postman-catalog` → corrected to `/network-map/postman-catalog` reusing `requireRole(['admin','viewer'])` read / `['admin']` write (no new Admin/RBAC). R2 missing `(ngay_phat, route_po_code)` index (33.1 s one-month probe) → additive covering index.
+- Gaps: R3 audit/rollback (`dm_buu_ta_event`; `network_import_log` CHECK prevents reuse), R4 period contract, R5 re-import semantics, R6 current-month BatchFile lag, R7 BCVH mismatch flag, R8 live DB holds May/Jun/Aug only (185 codes / 136 matched / 49 unnamed / 63 DB-only).
+- This manifest's Sections 7-8 are superseded where they conflict with the review's Sections 4-7.
+- Open PO decisions: D1 import vs manual precedence; D2 period view; D3 codes absent from newer file; D4 accept current-month lag.
+- Next gate: PO answers D1-D4 and approves the corrected Design of Record. No implementation authorized.

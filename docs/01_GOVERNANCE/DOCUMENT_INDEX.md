@@ -931,3 +931,11 @@ Product Owner granted UI PASS to the completed BCVH table and directed the next 
 | `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_PROPOSAL.md` | Technical Design Proposal | Documents locked mapping, reconciliation metrics, stitching pipeline, and design of the postman catalog review feature. | L2 | `READY FOR PO APPROVAL` | Design review and PO alignment. | Mandatory |
 | `docs/03_PLANNING/TTVH-DHCL-UPGRADE-ROADMAP-01.md` | Coordination Roadmap | Workboard and execution sequence updated: monthly cumulative closed; route-postman identity is now the Current Ticket. | L2 | `ACTIVE COORDINATION ROADMAP` | After Snapshot and Current Manifest/Checkpoint. | Mandatory |
 
+
+## F13-ROUTE-POSTMAN-IDENTITY-01 Independent Design Review 001 — 2026-09-17
+
+Independent review of the route-postman design proposal. Governance-only; no product code, schema or data changed.
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_REVIEW_001.md` | Independent Design Review (new) | Verifies proposal claims against read-only DB/file evidence; findings R1-R8; corrected data contract, schema, API, UI, rollback levels; PO decisions D1-D4; phasing. Supersedes conflicting parts of the design proposal. | L2 | `BLOCKED PENDING PO D1-D4` | Before PO design approval and before any Phase 1 implementation. | Mandatory |
