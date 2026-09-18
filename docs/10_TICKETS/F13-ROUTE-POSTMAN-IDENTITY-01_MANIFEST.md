@@ -142,3 +142,12 @@ Reviewer: Claude Code (Opus 5), independent of the proposal author. Full record:
 - This manifest's Sections 7-8 are superseded where they conflict with the review's Sections 4-7.
 - Open PO decisions: D1 import vs manual precedence; D2 period view; D3 codes absent from newer file; D4 accept current-month lag.
 - Next gate: PO answers D1-D4 and approves the corrected Design of Record. No implementation authorized.
+
+## 10. Product Owner Decisions D1-D4 and Design of Record v2 (2026-09-18)
+
+- **D1** manual names are never auto-overwritten; differing names go to `dm_buu_ta_conflict` for PO resolution; records still owned by the file may be updated by a newer file; every change is logged in `dm_buu_ta_event` and reversible.
+- **D2** postman code/name are anchored to the selected evaluation date in both daily and period views; the anchor date is shown in the header; all postmen of that route on that date are displayed; no representative and no borrowing from another date.
+- **D3** codes absent from a newer directory file are retained and marked `Không có trong danh bạ mới nhất`; absence is never grounds to delete history.
+- **D4** the daily BF becomes the shared base source for F1.3 and Sơ đồ tuyến phát and will be imported automatically; the existing Sơ đồ tuyến phát import is redesigned into `Bổ sung thời gian phát từ BCCP định vị` (delivery-time enrichment only, no duplicate rows, no change to route/postman/coordinates/KPI, join on Mã bưu gửi plus ngày phát after a real-data audit, with matched/unmatched/unchanged/conflict reporting, re-import and rollback).
+- Design of Record: `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md` (v2). Sections 7-8 of this manifest and the v1 proposal are superseded where they conflict with it.
+- Status: Phases 1-3 ready for implementation (Claude Code for 1-2, Antigravity for 3); Phase 4 blocked on the BF source/retrieval method; Phase 5 blocked on a BCCP sample file. No implementation has started and no PO PASS is claimed.

@@ -66,3 +66,9 @@ Discovery audit is complete. Status advances to: `DISCOVERY AUDIT COMPLETE / REA
 ## Section 6 — Independent Design Review 001 (2026-09-17)
 
 Claude Code (Opus 5) review recorded in `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_REVIEW_001.md`. Result: **BLOCKED pending PO decisions D1-D4**. Direction PASS; R1 (placement/permission) and R2 (query performance) corrected in the review's contract; R3-R8 gaps addressed there. Review used read-only SQLite and read-only file parse only; no code, schema, migration, import or data write. Implementation and PO PASS remain blocked.
+
+## Section 7 — Product Owner Decisions D1-D4 and Design of Record v2 (2026-09-18)
+
+Product Owner approved the design direction and locked D1-D4 (conflict handling, anchor-date display, retention of codes absent from a newer file, daily BF as shared base source plus BCCP enrichment redesign). Claude Code published `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md` as DoR v2 and marked the v1 proposal superseded. R1-R8 from the Section 6 review are all dispositioned (DoR v2 Section 3): R1, R2, R3, R5, R7, R8 resolved; R4 resolved by D2; R6 superseded by D4 with an interim coverage-range requirement in Phase 3.
+
+Phase gates: Phases 1-3 (directory foundation, ranking contract, UI) are ready for implementation; Phase 4 (daily BF auto-import) is blocked until the PO supplies the source and retrieval method; Phase 5 (BCCP định vị enrichment) is blocked until the PO supplies a sample file. PO UI acceptance applies at the end of Phase 3 only and is never self-awarded. This checkpoint update is documentation only: no code, schema, migration, import or database write was performed.

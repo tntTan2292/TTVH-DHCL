@@ -10,6 +10,8 @@
 
 ---
 
+> **SUPERSEDED (2026-09-18):** this document is DoR v1. The approved Design of Record is `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md` (DoR v2), which carries Product Owner decisions D1-D4 and the resolution of R1-R8 from `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_REVIEW_001.md`. Where the two differ — catalog location `/admin/postman-catalog`, the "<50 ms" claim, period display, re-import semantics, audit/rollback — **v2 wins**. v1 is kept for its discovery evidence only.
+
 ## 1. Bối cảnh và Mục tiêu (Context & Objective)
 
 1. Tuyến phát Ranking (`Route Ranking` — `/f13/ranking/route`) hiện tại mới chỉ hiển thị định danh tuyến (`ma_tuyen` và `ten_tuyen`) lấy từ bảng `fact_f13` (báo cáo đo kiểm F1.3 hàng ngày). Trong `fact_f13`, trường bưu tá hoàn toàn không tồn tại (trả về `buu_ta: null`).

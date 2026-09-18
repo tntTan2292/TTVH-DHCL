@@ -939,3 +939,12 @@ Independent review of the route-postman design proposal. Governance-only; no pro
 | Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_REVIEW_001.md` | Independent Design Review (new) | Verifies proposal claims against read-only DB/file evidence; findings R1-R8; corrected data contract, schema, API, UI, rollback levels; PO decisions D1-D4; phasing. Supersedes conflicting parts of the design proposal. | L2 | `BLOCKED PENDING PO D1-D4` | Before PO design approval and before any Phase 1 implementation. | Mandatory |
+
+## F13-ROUTE-POSTMAN-IDENTITY-01 Design of Record v2 (PO D1-D4) — 2026-09-18
+
+Product Owner approved the design direction and locked D1-D4. Documentation only; no product code, schema or data changed.
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md` | Design of Record (new, v2) | PO decisions D1-D4; disposition of R1-R8; placement/permissions; data contract with anchor-date rule; schema (dm_buu_ta, dm_buu_ta_event, dm_buu_ta_conflict, ranking index); import/conflict/rollback semantics; API; UI; reconciliation; phase gates 1-5 with blocked inputs. | L2 | `PHASES 1-3 APPROVED / 4-5 BLOCKED` | Before any implementation on this ticket. | Mandatory |
+| `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_PROPOSAL.md` | Design Proposal (v1) | Superseded by DoR v2; retained for discovery evidence only. | L2 | `SUPERSEDED` | Historical reference. | Reference |
