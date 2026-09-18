@@ -84,3 +84,14 @@ PO authorized Phase 1-2 implementation and, contingent on backup/dry-run/rollbac
 - R2 performance gate: `EXPLAIN QUERY PLAN` uses the new covering index; measured 15 ms (102-route day query) / 13 ms (123-route period query) against the live DB's busiest real date.
 
 Not done: Phase 3 UI (Antigravity, not started), Phase 4/5 (still blocked on PO inputs). No PO UI PASS is claimed by this section — Phases 1-2 are Claude Code's own technical validation only.
+
+## Section 9 — Independent Backend Review 002 (2026-09-18, Claude Code / Opus 5)
+
+Read-only independent review of Phase 1-2 at `4f339b1` against baseline `b15d648`. Result: **BLOCKED** on one defect; every other Product Owner verification item PASS. Full record: `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_BACKEND_REVIEW_002.md`.
+
+- PASS: 198/198 directory rows match the source file; no phone/HRM/contract value is stored in any column or in any `dm_buu_ta_event` image; re-import yields 198 `unchanged` with no duplicates; D1 conflict queue and both resolutions behave as designed; D3 keeps and flags absent codes; rollback restores and is correctly refused when a later batch intervened; viewer gets 403 on all six write/history endpoints while admin is allowed; KPI matches raw `fact_f13` for 31/31 routes with only additive response fields; the new covering index gives ~102 ms -> ~15 ms with identical results; the pre-migration backup is `integrity_check = ok`, matches pre-change counts and contains no `dm_buu_ta`.
+- 4 failing tests confirmed pre-existing: reproduced on baseline `b15d648` under identical invocation; the files involved are byte-identical at both commits. Manifest Section 11 attributes 3 of them to `DashboardController.r6.integration.test.js`; it is 2 there plus 1 in `DashboardController.recovery.test.js`.
+- **B1 (blocking)**: `postmanRankingService.js` groups by the alias `ma_buu_ta`, which SQLite resolves to the joined `dm_buu_ta.ma_buu_ta` (NULL for codes without a name), so two or more unnamed postmen on the same route and day merge into one row — a code disappears and its volume is added to another. 232 of 9,269 (date, route) pairs affected, 501 code occurrences. Violates D2. Display-only; no stored data or KPI affected.
+- Minor: M2 file no longer refreshes BCVH/status for MANUAL records (diverges from DoR v2 §7); M3 rollback leaves OPEN conflicts and conflict events reuse the import batch id; M4 the migration fails if run standalone against an empty database; M5 manifest test attribution.
+
+Next gate: fix B1 with a regression test for two unnamed postmen on one route/day, then Phase 3 UI may start. No PO UI PASS is claimed or implied.
