@@ -34,6 +34,26 @@ async function freshDb() {
     return dbPath;
 }
 
+test('M4: standalone-safe on a genuinely empty database — no prior migration required from the caller', async () => {
+    const dbPath = createTempDbPath();
+    try {
+        const result = await applyF13RoutePostmanIdentity01Phase1Schema(dbPath);
+        assert.equal(result.tablesAlreadyPresent, 0);
+        const tables = await dbAll(
+            dbPath,
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('dm_buu_ta','dm_buu_ta_event','dm_buu_ta_conflict','network_delivery_point')",
+        );
+        assert.deepEqual(
+            tables.map((t) => t.name).sort(),
+            ['dm_buu_ta', 'dm_buu_ta_conflict', 'dm_buu_ta_event', 'network_delivery_point'],
+        );
+        const indexes = await dbAll(dbPath, "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_network_delivery_point_route_day'");
+        assert.equal(indexes.length, 1);
+    } finally {
+        fs.rmSync(dbPath, { force: true });
+    }
+});
+
 test('creates dm_buu_ta, dm_buu_ta_event, dm_buu_ta_conflict tables', async () => {
     const dbPath = await freshDb();
     try {

@@ -16,6 +16,16 @@
  * Safe to run against the live operational database: every statement is
  * idempotent (IF NOT EXISTS). No business data is written by this script.
  *
+ * Standalone-safe on a fresh/empty database too (M4, Independent Backend
+ * Review 002): the ranking index targets network_delivery_point columns
+ * (route_po_code, postman_code) that this script does not itself create —
+ * network_delivery_point starts in NETWORK-MANAGEMENT-001 Phase 1 and gains
+ * those columns in Phase 2. So before creating the index, this script first
+ * applies both of those, exactly matching the order server.js's startup
+ * chain already runs in. Both calls are themselves idempotent (IF NOT
+ * EXISTS / column-existence-guarded ALTER throughout), so they are a no-op
+ * on a database where they already ran.
+ *
  * Usage: node migrate_f13_route_postman_identity_phase1_schema.js [--db <path>]
  */
 
@@ -23,6 +33,8 @@
 
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const { applyNetworkManagement001Phase1Schema } = require('./migrate_network_management_001_phase1_schema');
+const { applyNetworkManagement001Phase2Schema } = require('./migrate_network_management_001_phase2_schema');
 
 function resolveDbPath(argv) {
     const flagIndex = argv.indexOf('--db');
@@ -110,7 +122,14 @@ async function ensureDmBuuTaTables(db) {
     return { tablesAlreadyPresent: before.length };
 }
 
-function applyF13RoutePostmanIdentity01Phase1Schema(dbPath) {
+async function applyF13RoutePostmanIdentity01Phase1Schema(dbPath) {
+    // M4: ensure network_delivery_point and its route_po_code/postman_code
+    // columns (NETWORK-MANAGEMENT-001 Phase 1 + Phase 2) exist BEFORE this
+    // script's own connection tries to index them — idempotent, so this is a
+    // no-op when the live chain already applied them.
+    await applyNetworkManagement001Phase1Schema(dbPath);
+    await applyNetworkManagement001Phase2Schema(dbPath);
+
     return new Promise((resolve, reject) => {
         const db = new sqlite3.Database(dbPath, async (openErr) => {
             if (openErr) {

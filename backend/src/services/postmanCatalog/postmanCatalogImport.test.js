@@ -99,6 +99,39 @@ test('D1: MANUAL record with the same name from a newer file -> unchanged, owner
     assert.equal(row.in_latest_import, 1);
 });
 
+test('M2: MANUAL record keeps its protected name but BCVH/status still refresh from a newer file', async () => {
+    await run(
+        "INSERT INTO dm_buu_ta (ma_buu_ta, ten_buu_ta, ma_bcvh, ten_bcvh, trang_thai_hoat_dong, nguon, in_latest_import) VALUES ('53A004B', 'MANUAL NAME', '530000', 'Hue Old', 'Tạm nghỉ', 'MANUAL', 1)",
+    );
+    const { classified } = await confirmImport([
+        { ma_buu_ta: '53A004B', ten_buu_ta: 'FILE NAME (must be ignored)', ma_bcvh: '531120', ten_bcvh: 'Khách hàng lớn', trang_thai_hoat_dong: 'Hoạt động' },
+    ]);
+    // A different name on a MANUAL record is a D1 conflict, not a plain update — the
+    // conflict queue is where the PO decides the name; BCVH/status refresh happens
+    // separately whenever the row is NOT in conflict (see the next test for that path).
+    assert.equal(classified.summary.conflict, 1);
+
+    const row = await get('SELECT * FROM dm_buu_ta WHERE ma_buu_ta = ?', ['53A004B']);
+    assert.equal(row.ten_buu_ta, 'MANUAL NAME', 'name must stay protected while the conflict is open');
+});
+
+test('M2: MANUAL record with the SAME name still gets BCVH/status refreshed from a newer file', async () => {
+    await run(
+        "INSERT INTO dm_buu_ta (ma_buu_ta, ten_buu_ta, ma_bcvh, ten_bcvh, trang_thai_hoat_dong, nguon, in_latest_import) VALUES ('53A004C', 'MANUAL NAME', '530000', 'Hue Old', 'Tạm nghỉ', 'MANUAL', 1)",
+    );
+    const { classified } = await confirmImport([
+        { ma_buu_ta: '53A004C', ten_buu_ta: 'MANUAL NAME', ma_bcvh: '531120', ten_bcvh: 'Khách hàng lớn', trang_thai_hoat_dong: 'Hoạt động' },
+    ]);
+    assert.equal(classified.summary.update, 1);
+
+    const row = await get('SELECT * FROM dm_buu_ta WHERE ma_buu_ta = ?', ['53A004C']);
+    assert.equal(row.ten_buu_ta, 'MANUAL NAME', 'name stays protected');
+    assert.equal(row.nguon, 'MANUAL', 'ownership stays MANUAL');
+    assert.equal(row.ma_bcvh, '531120', 'BCVH must refresh from the newer file');
+    assert.equal(row.ten_bcvh, 'Khách hàng lớn');
+    assert.equal(row.trang_thai_hoat_dong, 'Hoạt động', 'status must refresh from the newer file');
+});
+
 test('D1: MANUAL record with a DIFFERENT name from a newer file -> conflict, no write to dm_buu_ta', async () => {
     await run(
         "INSERT INTO dm_buu_ta (ma_buu_ta, ten_buu_ta, ma_bcvh, nguon, in_latest_import) VALUES ('53A005', 'MANUAL NAME', '530000', 'MANUAL', 1)",

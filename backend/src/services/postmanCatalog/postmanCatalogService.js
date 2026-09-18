@@ -1,5 +1,5 @@
 /**
- * postmanCatalogCatalogService — F13-ROUTE-POSTMAN-IDENTITY-01 Phase 1.
+ * postmanCatalogService — F13-ROUTE-POSTMAN-IDENTITY-01 Phase 1.
  *
  * Directory listing, manual edit, conflict resolution, and history/rollback.
  * Rollback is self-contained (dm_buu_ta_event), not the shared
@@ -8,6 +8,7 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const { all, get } = require('../../config/db');
 const { withTransaction } = require('../networkMapImport/transactionHelper');
 const { normalizeCode } = require('./postmanCatalogImport');
@@ -110,6 +111,15 @@ async function resolveConflict(conflictId, decision, performedBy) {
         throw err;
     }
 
+    // M3 (Backend Review 002): this decision gets its OWN batch id, never the
+    // original import's `conflict.batch_id`. Reusing the import's batch id mixed
+    // a later human decision into an earlier file import's history, so rolling
+    // back that earlier import would silently also undo this decision — the
+    // eligibility check in checkRollbackEligibility() only looks for a event with
+    // a DIFFERENT batch_id touching the same code, so a same-batch-id write was
+    // invisible to it and rollback would wrongly succeed.
+    const resolveBatchId = `resolve-conflict-${conflictId}-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+
     return withTransaction(async (runInTx) => {
         await runInTx(
             'UPDATE dm_buu_ta_conflict SET trang_thai = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -126,24 +136,24 @@ async function resolveConflict(conflictId, decision, performedBy) {
                 trang_thai_hoat_dong: conflict.trang_thai_file,
                 nguon: 'IMPORT',
                 in_latest_import: 1,
-                last_import_batch_id: conflict.batch_id,
+                last_import_batch_id: resolveBatchId,
             };
             await runInTx(
                 `UPDATE dm_buu_ta SET ten_buu_ta=?, ma_bcvh=?, ten_bcvh=?, trang_thai_hoat_dong=?, nguon='IMPORT', in_latest_import=1, last_import_batch_id=?, updated_by=?, updated_at=CURRENT_TIMESTAMP
                  WHERE ma_buu_ta=?`,
-                [after.ten_buu_ta, after.ma_bcvh, after.ten_bcvh, after.trang_thai_hoat_dong, conflict.batch_id, performedBy || null, conflict.ma_buu_ta],
+                [after.ten_buu_ta, after.ma_bcvh, after.ten_bcvh, after.trang_thai_hoat_dong, resolveBatchId, performedBy || null, conflict.ma_buu_ta],
             );
             await runInTx(
                 `INSERT INTO dm_buu_ta_event (batch_id, ma_buu_ta, operation, before_image, after_image, nguon, file_name, file_fingerprint, created_by)
                  VALUES (?, ?, 'RESOLVE_CONFLICT', ?, ?, 'IMPORT', ?, ?, ?)`,
-                [conflict.batch_id, conflict.ma_buu_ta, JSON.stringify(before), JSON.stringify(after), conflict.file_name, conflict.file_fingerprint, performedBy || null],
+                [resolveBatchId, conflict.ma_buu_ta, JSON.stringify(before), JSON.stringify(after), conflict.file_name, conflict.file_fingerprint, performedBy || null],
             );
         } else {
             const current = await get('SELECT * FROM dm_buu_ta WHERE ma_buu_ta = ?', [conflict.ma_buu_ta]);
             await runInTx(
                 `INSERT INTO dm_buu_ta_event (batch_id, ma_buu_ta, operation, before_image, after_image, nguon, file_name, file_fingerprint, created_by)
                  VALUES (?, ?, 'RESOLVE_CONFLICT', ?, ?, 'MANUAL', ?, ?, ?)`,
-                [conflict.batch_id, conflict.ma_buu_ta, JSON.stringify(current), JSON.stringify(current), conflict.file_name, conflict.file_fingerprint, performedBy || null],
+                [resolveBatchId, conflict.ma_buu_ta, JSON.stringify(current), JSON.stringify(current), conflict.file_name, conflict.file_fingerprint, performedBy || null],
             );
         }
 
@@ -159,9 +169,22 @@ async function resolveConflict(conflictId, decision, performedBy) {
  */
 async function checkRollbackEligibility(batchId) {
     const events = await all('SELECT DISTINCT ma_buu_ta, id FROM dm_buu_ta_event WHERE batch_id = ? ORDER BY id ASC', [batchId]);
-    if (events.length === 0) {
+    // A batch whose only outcome was raising a conflict (D1: "No write" — no
+    // dm_buu_ta_event) still legitimately "exists" for rollback purposes (M3):
+    // it needs to close its OPEN conflict(s), even though there is no dm_buu_ta
+    // row to restore. Checked here so such a batch is not wrongly reported as
+    // BATCH_NOT_FOUND.
+    const conflictRows = await all('SELECT id FROM dm_buu_ta_conflict WHERE batch_id = ?', [batchId]);
+    if (events.length === 0 && conflictRows.length === 0) {
         return { eligible: false, reason: 'BATCH_NOT_FOUND' };
     }
+    if (events.length === 0) {
+        // Nothing was ever written to dm_buu_ta by this batch, so no other
+        // batch's write can conflict with restoring it — there is nothing to
+        // restore, only a (possibly already-resolved) conflict to close.
+        return { eligible: true, codes: [] };
+    }
+
     const minEventId = Math.min(...events.map((e) => e.id));
     const codes = [...new Set(events.map((e) => e.ma_buu_ta))];
 
@@ -185,7 +208,7 @@ async function rollbackBatch(batchId, performedBy) {
     const events = await all('SELECT * FROM dm_buu_ta_event WHERE batch_id = ? ORDER BY id DESC', [batchId]);
     const rollbackBatchId = `rollback-${batchId}-${Date.now()}`;
 
-    const restoredCount = await withTransaction(async (runInTx) => {
+    const txResult = await withTransaction(async (runInTx) => {
         let count = 0;
         for (const event of events) {
             const before = event.before_image ? JSON.parse(event.before_image) : null;
@@ -216,11 +239,31 @@ async function rollbackBatch(batchId, performedBy) {
             );
             count += 1;
         }
-        return count;
+
+        // M3 (Backend Review 002): a conflict this batch raised is a proposal from
+        // the file that batch imported — rolling back that import withdraws the
+        // proposal. dm_buu_ta itself was never written for a conflicted code (D1:
+        // "No write"), so closing as KEPT_MANUAL is factually accurate, not a
+        // fabricated PO decision. Left OPEN, the review queue would keep showing a
+        // "pending" conflict against a batch that no longer exists.
+        const openConflicts = await all("SELECT id FROM dm_buu_ta_conflict WHERE batch_id = ? AND trang_thai = 'OPEN'", [batchId]);
+        for (const conflict of openConflicts) {
+            // eslint-disable-next-line no-await-in-loop
+            await runInTx(
+                "UPDATE dm_buu_ta_conflict SET trang_thai = 'KEPT_MANUAL', resolved_by = ?, resolved_at = CURRENT_TIMESTAMP WHERE id = ?",
+                [performedBy ? `${performedBy} (auto-closed by rollback)` : 'system (auto-closed by rollback)', conflict.id],
+            );
+        }
+
+        return { count, conflictsClosed: openConflicts.length };
     });
 
     return {
-        success: true, restoredCount, rollbackBatchId, originalBatchId: batchId,
+        success: true,
+        restoredCount: txResult.count,
+        conflictsClosed: txResult.conflictsClosed,
+        rollbackBatchId,
+        originalBatchId: batchId,
     };
 }
 

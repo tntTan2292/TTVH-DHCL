@@ -133,6 +133,53 @@ test('re-import after rollback does not create duplicate rows', async () => {
     assert.equal(rows.length, 1);
 });
 
+test('M3: rolling back an import batch closes the OPEN conflicts it raised (KEPT_MANUAL, resolved)', async () => {
+    await run("INSERT INTO dm_buu_ta (ma_buu_ta, ten_buu_ta, nguon, in_latest_import) VALUES ('53B010', 'MANUAL NAME', 'MANUAL', 1)");
+    const batchId = await confirmImport([{ ma_buu_ta: '53B010', ten_buu_ta: 'FILE NAME', ma_bcvh: '530000', ten_bcvh: 'Hue', trang_thai_hoat_dong: 'Hoạt động' }]);
+
+    const openBefore = await listOpenConflicts();
+    assert.equal(openBefore.filter((c) => c.ma_buu_ta === '53B010').length, 1, 'the import must have raised exactly one OPEN conflict');
+
+    const result = await rollbackBatch(batchId, 'po_user');
+    assert.equal(result.success, true);
+    assert.equal(result.conflictsClosed, 1);
+
+    const openAfter = await listOpenConflicts();
+    assert.equal(openAfter.filter((c) => c.ma_buu_ta === '53B010').length, 0, 'the queue must not show a conflict against a rolled-back batch');
+
+    const [closed] = await all("SELECT * FROM dm_buu_ta_conflict WHERE ma_buu_ta = ? ORDER BY id DESC LIMIT 1", ['53B010']);
+    assert.equal(closed.trang_thai, 'KEPT_MANUAL');
+    assert.ok(closed.resolved_at);
+
+    const row = await get('SELECT * FROM dm_buu_ta WHERE ma_buu_ta = ?', ['53B010']);
+    assert.equal(row.ten_buu_ta, 'MANUAL NAME', 'the manual name was never touched by the conflicted import, and stays after rollback');
+});
+
+test('M3: resolveConflict logs under its OWN batch id — rolling back the earlier import batch afterwards cannot undo that decision', async () => {
+    await run("INSERT INTO dm_buu_ta (ma_buu_ta, ten_buu_ta, nguon, in_latest_import) VALUES ('53B011', 'MANUAL NAME', 'MANUAL', 1)");
+    const importBatchId = await confirmImport([{ ma_buu_ta: '53B011', ten_buu_ta: 'FILE NAME', ma_bcvh: '530000', ten_bcvh: 'Hue', trang_thai_hoat_dong: 'Hoạt động' }]);
+
+    const [conflict] = await listOpenConflicts();
+    const resolved = await resolveConflict(conflict.id, 'APPLIED_FILE', 'po_user');
+    // The conflict ROW keeps remembering which import raised it (that is correct,
+    // unrelated metadata) — the bug was the EVENT it writes reusing that same id.
+    assert.equal(resolved.batch_id, importBatchId, 'sanity: the conflict row still remembers the import that raised it');
+
+    const resolveEvent = await get("SELECT batch_id FROM dm_buu_ta_event WHERE ma_buu_ta = ? AND operation = 'RESOLVE_CONFLICT' ORDER BY id DESC LIMIT 1", ['53B011']);
+    assert.notEqual(resolveEvent.batch_id, importBatchId, 'the RESOLVE_CONFLICT event must NOT reuse the original import batch id');
+
+    // The ORIGINAL import batch wrote no dm_buu_ta_event at all (D1: a conflicted
+    // code is "No write"), so rolling it back now is a harmless no-op — it must
+    // NOT reach into and undo the separately-batched APPLIED_FILE decision.
+    const rollbackResult = await rollbackBatch(importBatchId, 'po_user');
+    assert.equal(rollbackResult.success, true);
+    assert.equal(rollbackResult.restoredCount, 0);
+    assert.equal(rollbackResult.conflictsClosed, 0, 'the conflict was already resolved, not left OPEN, so there is nothing left to close');
+
+    const row = await get('SELECT * FROM dm_buu_ta WHERE ma_buu_ta = ?', ['53B011']);
+    assert.equal(row.ten_buu_ta, 'FILE NAME', 'the APPLIED_FILE decision must survive rollback of the earlier import');
+});
+
 test('listDirectory search and BCVH filter work', async () => {
     await manualUpsert('53B009', { ten_buu_ta: 'FIND ME', ma_bcvh: '530000' }, 'po_user');
     const bySearch = await listDirectory({ search: 'FIND ME' });

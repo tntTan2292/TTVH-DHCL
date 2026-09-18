@@ -60,8 +60,17 @@ async function classifyPostmanCatalogImport(fileRecords) {
             };
         }
 
+        // M2 (Backend Review 002): a manually-protected NAME is never overwritten by a
+        // newer file, but BCVH/status are not personal names and carry no manual-edit
+        // conflict — DoR v2 §7 says they always refresh. Only ten_buu_ta/nguon stay pinned.
         const desired = existing.nguon === 'MANUAL'
-            ? { ...existing, in_latest_import: 1 }
+            ? {
+                ...existing,
+                ma_bcvh: record.ma_bcvh,
+                ten_bcvh: record.ten_bcvh,
+                trang_thai_hoat_dong: record.trang_thai_hoat_dong,
+                in_latest_import: 1,
+            }
             : {
                 ma_buu_ta: code,
                 ten_buu_ta: record.ten_buu_ta,

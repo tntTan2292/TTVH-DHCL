@@ -95,3 +95,15 @@ Read-only independent review of Phase 1-2 at `4f339b1` against baseline `b15d648
 - Minor: M2 file no longer refreshes BCVH/status for MANUAL records (diverges from DoR v2 §7); M3 rollback leaves OPEN conflicts and conflict events reuse the import batch id; M4 the migration fails if run standalone against an empty database; M5 manifest test attribution.
 
 Next gate: fix B1 with a regression test for two unnamed postmen on one route/day, then Phase 3 UI may start. No PO UI PASS is claimed or implied.
+
+## Section 10 — Backend Remediation of Review 002 (2026-09-18, Claude Code / Sonnet 5)
+
+Fixed B1 and M2-M5 on baseline `55319f9`. Full technical detail: `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md` Section 13. Summary:
+
+- **B1 fixed**: `GROUP BY`/`ORDER BY` in `postmanRankingService.js` now use the raw `dp.route_po_code`/`dp.postman_code` expressions, never the SELECT aliases that collided with the joined `dm_buu_ta.ma_buu_ta` column. Live-reverified: route `533140131` / `2026-08-17` now returns `53A152 = 65` and `53B246 = 17` as two separate postmen. 4 new regression tests (two unnamed, one named + one unnamed, three named, total-preservation across all fixtures) — the exact fixture gap the review named.
+- **M2 fixed**: a MANUAL-protected name is never overwritten, but BCVH/status now refresh from a newer file per DoR v2 §7.
+- **M3 fixed**: `resolveConflict` logs under its own new batch id (no longer the original import's), so rolling back the earlier import cannot silently undo a later human decision; `rollbackBatch` now closes any OPEN conflicts the rolled-back batch raised.
+- **M4 fixed**: the migration script now applies its two prerequisite NETWORK-MANAGEMENT-001 migrations (idempotent) before indexing, so it is genuinely standalone-safe on a fresh/empty database — verified directly.
+- **M5 fixed**: manifest test-attribution corrected (2 in `DashboardController.r6.integration.test.js`, 1 in `DashboardController.recovery.test.js`).
+
+Validation under the same two invocation conditions Review 002 used: `node --test` 379/386; `node --experimental-sqlite --test` 394/398, the same 4 pre-existing/environmental failures Review 002 §3 already classified, byte-identical by name — no new regression. `oxlint` clean on every touched file. Operational DB row counts confirmed unchanged before/after: `dm_buu_ta` 198, `dm_buu_ta_event` 198, `dm_buu_ta_conflict` 0, `fact_f13` 817,115, `network_delivery_point` 440,091 — no reload of the 198 postmen, no F1.3/KPI change. No Browser/Playwright used. Phase 3 UI is now unblocked for Antigravity to start; Phase 4/5 remain blocked on PO inputs. No PO UI PASS is claimed.

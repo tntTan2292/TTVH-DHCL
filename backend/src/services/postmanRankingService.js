@@ -44,6 +44,13 @@ async function resolvePostmenForRoutes(anchorDate, routeCodes) {
         return { postmanAnchorDate: anchorDate, byRoute };
     }
 
+    // GROUP BY / ORDER BY use the raw expressions, never the `route_po_code`/
+    // `ma_buu_ta` SELECT aliases (Independent Backend Review 002, B1): when a
+    // result-column alias has the same name as a real column of a FROM-clause
+    // table, SQLite resolves GROUP BY to that real column — here `d.ma_buu_ta`
+    // from the LEFT JOIN, which is NULL for every code absent from the
+    // directory. Every unnamed postman on a route was collapsing into one
+    // NULL group, silently dropping codes and inflating another's item_count.
     const placeholders = uniqueCodes.map(() => '?').join(',');
     const rows = await all(
         `SELECT UPPER(TRIM(dp.route_po_code)) AS route_po_code,
@@ -55,8 +62,8 @@ async function resolvePostmenForRoutes(anchorDate, routeCodes) {
          FROM network_delivery_point dp
          LEFT JOIN dm_buu_ta d ON UPPER(TRIM(dp.postman_code)) = d.ma_buu_ta
          WHERE dp.ngay_phat = ? AND UPPER(TRIM(dp.route_po_code)) IN (${placeholders})
-         GROUP BY route_po_code, ma_buu_ta
-         ORDER BY item_count DESC, ma_buu_ta ASC`,
+         GROUP BY UPPER(TRIM(dp.route_po_code)), UPPER(TRIM(dp.postman_code))
+         ORDER BY item_count DESC, UPPER(TRIM(dp.postman_code)) ASC`,
         [anchorDate, ...uniqueCodes],
     );
 
