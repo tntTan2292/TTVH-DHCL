@@ -22,6 +22,7 @@
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 const { all: defaultAll } = require('../config/db');
 const { CONFIRMED_NON_POSTMAN_ROUTES } = require('../config/f13RouteClassificationCatalog');
+const { resolvePostmenForRoutes } = require('./postmanRankingService');
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const CONFIRMED_NON_POSTMAN_ROUTE_CODES = CONFIRMED_NON_POSTMAN_ROUTES.map((route) => route.ma_tuyen);
@@ -105,6 +106,7 @@ class RoutePeriodService {
     _emptyPayload(bcvh) {
         return {
             anchor_date: null,
+            postman_anchor_date: null,
             bcvh: { ma_bcvh: bcvh, ten_bcvh: null },
             periods: {
                 day: { start: null, end: null },
@@ -253,6 +255,18 @@ class RoutePeriodService {
             };
         });
 
+        // F13-ROUTE-POSTMAN-IDENTITY-01 Phase 2 (DoR v2 §5.3, D2): postmen are
+        // anchored to the SAME `anchorDate` this whole period view already resolved
+        // for its KPI columns — never aggregated across the period, never borrowed
+        // from a neighbouring date. One grouped query for every route in this response.
+        const { byRoute: postmanByRoute } = await resolvePostmenForRoutes(anchorDate, routes.map((r) => r.ma_tuyen));
+        routes.forEach((route) => {
+            const resolution = postmanByRoute.get(String(route.ma_tuyen).trim().toUpperCase()) || { status: 'ROUTE_NOT_IN_BF', postmen: [] };
+            route.postman_anchor_date = anchorDate;
+            route.postman_status = resolution.status;
+            route.postmen = resolution.postmen;
+        });
+
         // AC-08: every route gets a rank, including rate = null ones (tied last).
         rankByField(routes, 'month', 'rank');
         rankByField(routes, 'previous_month', 'rank_previous_month');
@@ -268,6 +282,7 @@ class RoutePeriodService {
 
         return {
             anchor_date: anchorDate,
+            postman_anchor_date: anchorDate,
             bcvh: { ma_bcvh: bcvh, ten_bcvh: tenBcvh },
             periods: {
                 day: { start: anchorDate, end: anchorDate },

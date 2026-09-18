@@ -308,6 +308,74 @@ CREATE INDEX IF NOT EXISTS idx_network_import_archive_log ON network_import_arch
 CREATE UNIQUE INDEX IF NOT EXISTS idx_network_import_archive_fingerprint ON network_import_archive(module, file_fingerprint);
 
 -- ============================================================
+-- F13-ROUTE-POSTMAN-IDENTITY-01 Phase 1 — Postman directory foundation
+-- (Design of Record v2, PO decisions D1/D3, 2026-09-18)
+-- ============================================================
+
+-- dm_buu_ta: postman directory. Only the five business fields below plus
+-- source/update metadata are ever stored — Số điện thoại, Mã HRM, Loại hợp
+-- đồng, Chức danh, Mã/Tên BĐT, Mã/Tên BĐH are never admitted to this table,
+-- to dm_buu_ta_event, to dm_buu_ta_conflict, or to any log/preview payload.
+CREATE TABLE IF NOT EXISTS dm_buu_ta (
+    ma_buu_ta TEXT PRIMARY KEY,
+    ten_buu_ta TEXT NOT NULL,
+    ma_bcvh TEXT,
+    ten_bcvh TEXT,
+    trang_thai_hoat_dong TEXT,
+    nguon TEXT NOT NULL CHECK (nguon IN ('IMPORT', 'MANUAL')),
+    in_latest_import INTEGER NOT NULL DEFAULT 0,
+    last_import_batch_id TEXT,
+    updated_by TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_dm_buu_ta_bcvh ON dm_buu_ta(ma_bcvh);
+
+-- dm_buu_ta_event: history + rollback. Deliberately NOT network_import_log/
+-- network_import_snapshot — their CHECK constraints exclude this module and
+-- would force a rebuild of a shared, already-populated table.
+CREATE TABLE IF NOT EXISTS dm_buu_ta_event (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_id TEXT NOT NULL,
+    ma_buu_ta TEXT NOT NULL,
+    operation TEXT NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'RESOLVE_CONFLICT', 'ROLLBACK')),
+    before_image TEXT,
+    after_image TEXT NOT NULL,
+    nguon TEXT NOT NULL CHECK (nguon IN ('IMPORT', 'MANUAL')),
+    file_name TEXT,
+    file_fingerprint TEXT,
+    created_by TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_dm_buu_ta_event_batch ON dm_buu_ta_event(batch_id);
+CREATE INDEX IF NOT EXISTS idx_dm_buu_ta_event_code ON dm_buu_ta_event(ma_buu_ta, created_at);
+
+-- dm_buu_ta_conflict: D1 — a manually-entered name never auto-overwritten by
+-- a newer directory file; the differing file name waits here for PO review.
+CREATE TABLE IF NOT EXISTS dm_buu_ta_conflict (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ma_buu_ta TEXT NOT NULL,
+    ten_hien_tai TEXT NOT NULL,
+    ten_tu_file TEXT NOT NULL,
+    ma_bcvh_file TEXT,
+    ten_bcvh_file TEXT,
+    trang_thai_file TEXT,
+    batch_id TEXT NOT NULL,
+    file_name TEXT,
+    file_fingerprint TEXT,
+    trang_thai TEXT NOT NULL CHECK (trang_thai IN ('OPEN', 'KEPT_MANUAL', 'APPLIED_FILE')) DEFAULT 'OPEN',
+    resolved_by TEXT,
+    resolved_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_dm_buu_ta_conflict_open ON dm_buu_ta_conflict(ma_buu_ta) WHERE trang_thai = 'OPEN';
+
+-- Ranking join covering index (Design Review R2) — pure additive, rollback
+-- is DROP INDEX. One grouped query per request, never one query per route.
+CREATE INDEX IF NOT EXISTS idx_network_delivery_point_route_day
+    ON network_delivery_point(ngay_phat, route_po_code, postman_code);
+
+-- ============================================================
 -- F41-PHASE-1 - HUE row-level data foundation
 -- Additive only. TCT aggregate lane is not part of this phase.
 -- ============================================================

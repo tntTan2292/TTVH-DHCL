@@ -7,6 +7,7 @@ const {
     classifyRoute,
 } = require('../config/f13RouteClassificationCatalog');
 const { all, get } = require('../config/db');
+const { resolvePostmenForRoutes } = require('./postmanRankingService');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
 
@@ -1094,8 +1095,14 @@ class F13DashboardService {
             const { summaryMap: delayedCashByRoute } = this._buildF13302SummaryMap(routeFacts, 'ma_tuyen');
             const delayedCashAggregate = this._buildF13302AggregateSummary(routeFacts);
 
+            // F13-ROUTE-POSTMAN-IDENTITY-01 Phase 2 (Design of Record v2 §5.3, D2):
+            // postmen are anchored to `date` (the daily view's own selected date) —
+            // never aggregated across a period, never borrowed from another date.
+            const { byRoute: postmanByRoute } = await resolvePostmenForRoutes(date, result.data.map((item) => item.ma_tuyen));
+
             const mappedData = result.data.map(item => {
                 const delayedCashCount = delayedCashByRoute[item.ma_tuyen]?.delayed_cash_handover_count ?? 0;
+                const postmanResolution = postmanByRoute.get(String(item.ma_tuyen).trim().toUpperCase()) || { status: 'ROUTE_NOT_IN_BF', postmen: [] };
                 return {
                 date: date,
                 ma_bcvh: bcvh,
@@ -1107,8 +1114,13 @@ class F13DashboardService {
                 name: item.ten_tuyen || item.ma_tuyen,
                 // No courier/postman field exists anywhere in fact_f13 (confirmed by database
                 // audit, F13-DATABASE-PRODUCT-OPPORTUNITY-AUDIT MD-02/OPP-16) — reported as an
-                // explicit unavailable value rather than fabricated.
+                // explicit unavailable value rather than fabricated. Additive fields below
+                // (postman_anchor_date/postman_status/postmen[]) are the real, DB-backed
+                // identity resolved from network_delivery_point + dm_buu_ta (DoR v2 §5.2).
                 buu_ta: null,
+                postman_anchor_date: date,
+                postman_status: postmanResolution.status,
+                postmen: postmanResolution.postmen,
                 total_bg: item.total_bg,
                 passed: item.total_passed,
                 passed_rate: this._calculateRate(item.total_passed, item.total_bg),
