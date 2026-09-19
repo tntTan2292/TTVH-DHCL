@@ -1990,3 +1990,13 @@ Antigravity implemented Phase 3 UI per PO approved plan with all required additi
 3. Quality gates & Validation: 52/52 frontend unit and integration tests pass (including 7 new in `RoutePerformancePage.postman.test.js`, 9 new in `postmanCatalog.test.js`, 8 in `appNavigation.test.js`, 27 in `NetworkMapClient.test.js`); `npm run build` succeeds (1.17s); `oxlint` 0 errors; operational database counts verified intact (`dm_buu_ta` 198, `dm_buu_ta_event` 198, `fact_f13` 817,115).
 Ticket status: `PHASE 3 UI IMPLEMENTED / READY FOR PO UI CHECK`. No Browser/Playwright used; no PO UI PASS self-awarded.
 
+
+## 2026-09-20 - F13-ROUTE-POSTMAN-IDENTITY-01 TUYẾN RANKING POSTMAN DISPLAY PAUSED PER PO DECISION
+
+Product Owner decided to temporarily pause displaying postman identity on Tuyến Ranking (`/f13/ranking/route`) pending finalization of delivery volume representation for multi-postman routes:
+1. Tuyến Ranking: Hidden columns "Mã bưu tá", "Tên bưu tá" and group header "BƯU TÁ NGÀY..."; restored pre-Phase 3 layout and column name "Tên tuyến bưu tá". Controlled via `SHOW_POSTMAN_COLUMNS = false` toggle in `RoutePerformancePage.jsx`, preserving all code and enabling immediate reactivation upon PO authorization.
+2. Preservation: All code, API endpoints (`/api/network-map/postman-catalog/*`), 198-postman directory in `dm_buu_ta`, and Postman Catalog management UI at `/network-map/postman-catalog` remain 100% active and intact. No data deleted, no backend reverted. Phase 4–5 remain un-expanded and blocked on PO inputs.
+3. Validation: 48/48 frontend tests pass (`RoutePerformancePage.postman.test.js`, `postmanCatalog.test.js`, `NetworkMapClient.test.js`, `appNavigation.test.js`, `App.role-routing.test.js`); `npm run build` succeeds (1.75s); `oxlint` clean; operational database counts verified intact (`dm_buu_ta` 198, `dm_buu_ta_event` 198, `fact_f13` 817,115).
+Governance status: Tuyến Ranking postman display PAUSED per PO decision; no PO UI PASS awarded for this part. Postman Catalog remains ready for PO manual check.
+
+

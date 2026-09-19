@@ -38,9 +38,9 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket (`2026-09-19`): `F13-ROUTE-POSTMAN-IDENTITY-01` (PHASE 3 UI IMPLEMENTED / READY FOR PO UI CHECK). Tuyến Ranking displays postman identity grouped under "BƯU TÁ NGÀY DD/MM/YYYY"; Postman Catalog management UI active at `/network-map/postman-catalog`. Manifest: `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md`; Design of Record: `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md`; Checkpoint: `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_CHECKPOINT_001.md`.
+- Current ticket (`2026-09-20`): `F13-ROUTE-POSTMAN-IDENTITY-01` (POSTMAN DISPLAY ON TUYẾN RANKING PAUSED PER PO DECISION; CATALOG MANAGEMENT ACTIVE AT `/network-map/postman-catalog`). Tuyến Ranking restored to pre-Phase 3 layout ("Tên tuyến bưu tá", postman columns hidden via toggle). Code, API, and 198-postman directory preserved. Manifest: `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md`; Design of Record: `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md`; Checkpoint: `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_CHECKPOINT_001.md`.
 - Predecessor ticket closed: `docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-17).
-- Next required action: Product Owner manual UI verification at `/f13/ranking/route` and `/network-map/postman-catalog`. Technical validation only -- no PO UI PASS self-awarded.
+- Next required action: Product Owner manual UI verification at `/network-map/postman-catalog`. Tuyến Ranking postman display is paused pending PO volume representation decision. Technical validation only -- no PO UI PASS self-awarded.
 
 
 

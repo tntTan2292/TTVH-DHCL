@@ -238,3 +238,19 @@ Baseline: `codex/da-impl-006` @ `536e8f2`. Implemented Phase 3 frontend accordin
 - Operational DB verified unchanged: `dm_buu_ta` 198, `dm_buu_ta_event` 198, `fact_f13` 817,115.
 - Technical validation only; ready for Product Owner manual UI acceptance. No PO UI PASS is self-awarded.
 
+## 16. Postman Display on Tuyến Ranking Paused per PO Decision (2026-09-20)
+
+- **PO Decision**: Product Owner decided to temporarily pause displaying postman identity on Tuyến Ranking (`/f13/ranking/route`) pending finalization of the presentation of delivery volume for multi-postman routes.
+- **UI State**:
+  - Hid columns "Mã bưu tá", "Tên bưu tá", and group header "BƯU TÁ NGÀY...".
+  - Restored exact table layout and column name `Tên tuyến bưu tá` of Tuyến Ranking prior to Phase 3.
+  - Implemented via toggle `SHOW_POSTMAN_COLUMNS = false` in `frontend/src/features/route/RoutePerformancePage.jsx`, preserving all underlying postman rendering, sorting, badge logic, and enabling instant reactivation when re-authorized.
+- **Preservation Contract**:
+  - Full code, API endpoints (`/api/network-map/postman-catalog/*`), the 198-postman directory in `dm_buu_ta`, and data flow through `mergeRouteData` remain 100% intact. Zero database revert, zero data deletion.
+  - The Postman Catalog management UI at `/network-map/postman-catalog` remains active and unaffected under Quản lý mạng lưới.
+  - Phase 4 and Phase 5 remain un-expanded and blocked on PO inputs.
+- **Governance & Acceptance**:
+  - Status: Postman display on Tuyến Ranking is `PAUSED PER PO DECISION`. No PO UI PASS is awarded for this part.
+  - Verification: 48/48 frontend tests PASS; production build clean (1.75s); operational database verified intact.
+
+

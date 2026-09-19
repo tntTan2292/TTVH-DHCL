@@ -102,6 +102,11 @@ function SortHeaderCell({ column, sortState, onSort, isSubHeader = false }) {
   );
 }
 
+// PO decision 2026-09-20: Tạm dừng hiển thị bưu tá trên Tuyến Ranking
+// do chưa chốt cách thể hiện sản lượng khi nhiều bưu tá cùng phát một tuyến.
+// Giữ nguyên toàn bộ code, API, dữ liệu và sẵn sàng bật lại khi có quyết định mới.
+export const SHOW_POSTMAN_COLUMNS = false;
+
 function formatAnchorDateDdMmYyyy(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return '';
   const parts = dateStr.split('-');
@@ -144,10 +149,12 @@ function RouteRankingTable({
           <thead>
             <tr className="bg-slate-100/90 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-200">
               <th className="px-3.5 py-3" rowSpan={2}>Mã tuyến</th>
-              <th className="px-4 py-3" rowSpan={2}>Tên tuyến</th>
-              <th className="border-l border-slate-200 px-3 py-2 text-center bg-indigo-50/70 text-indigo-900 font-bold" colSpan={2}>
-                BƯU TÁ NGÀY {formattedDate}
-              </th>
+              <th className="px-4 py-3" rowSpan={2}>{SHOW_POSTMAN_COLUMNS ? 'Tên tuyến' : 'Tên tuyến bưu tá'}</th>
+              {SHOW_POSTMAN_COLUMNS && (
+                <th className="border-l border-slate-200 px-3 py-2 text-center bg-indigo-50/70 text-indigo-900 font-bold" colSpan={2}>
+                  BƯU TÁ NGÀY {formattedDate}
+                </th>
+              )}
               <th className="border-l border-slate-200 px-3 py-2 text-center bg-slate-50 text-slate-700" colSpan={DAY_EVAL_COLUMNS.length}>
                 Kết quả ngày đánh giá
               </th>
@@ -160,8 +167,12 @@ function RouteRankingTable({
               <th className="px-3.5 py-3 text-center" rowSpan={2}>Phân loại</th>
             </tr>
             <tr className="border-b border-slate-200">
-              <th className="border-l border-slate-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 bg-indigo-50/40">Mã bưu tá</th>
-              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 bg-indigo-50/40">Tên bưu tá</th>
+              {SHOW_POSTMAN_COLUMNS && (
+                <>
+                  <th className="border-l border-slate-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 bg-indigo-50/40">Mã bưu tá</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 bg-indigo-50/40">Tên bưu tá</th>
+                </>
+              )}
               {DAY_EVAL_COLUMNS.map((column) => (
                 <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} isSubHeader />
               ))}
@@ -218,8 +229,8 @@ function RouteRankingTable({
                       )}
                     </div>
                   </td>
-                  {/* Mã bưu tá & Tên bưu tá — F13-ROUTE-POSTMAN-IDENTITY-01 Phase 3 */}
-                  {(() => {
+                  {/* Mã bưu tá & Tên bưu tá — F13-ROUTE-POSTMAN-IDENTITY-01 Phase 3 (PAUSED per PO decision) */}
+                  {SHOW_POSTMAN_COLUMNS && (() => {
                     const postmen = Array.isArray(row.postmen) ? row.postmen : [];
                     const isNoBf = row.postman_status === 'NO_BF_FOR_DATE' || row.postman_status === 'ROUTE_NOT_IN_BF' || postmen.length === 0;
 

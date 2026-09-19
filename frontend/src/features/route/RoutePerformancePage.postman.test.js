@@ -4,20 +4,22 @@ import fs from 'node:fs';
 
 const source = fs.readFileSync(new URL('./RoutePerformancePage.jsx', import.meta.url), 'utf8');
 
-test('Route Ranking header displays "Tên tuyến" instead of legacy "Tên tuyến bưu tá"', () => {
-  assert.match(source, /<th className="px-4 py-3" rowSpan=\{2\}>Tên tuyến<\/th>/);
-  assert.doesNotMatch(source, /<th className="px-4 py-3" rowSpan=\{2\}>Tên tuyến bưu tá<\/th>/);
+test('SHOW_POSTMAN_COLUMNS toggle is defined and set to false per PO decision', () => {
+  assert.match(source, /export const SHOW_POSTMAN_COLUMNS = false;/);
 });
 
-test('Route Ranking defines group header "BƯU TÁ NGÀY {formattedDate}" spanning 2 sub-columns', () => {
-  assert.match(source, /BƯU TÁ NGÀY\s*\{formattedDate\}/);
-  assert.match(source, /colSpan=\{2\}/);
-  assert.match(source, /Mã bưu tá/);
-  assert.match(source, /Tên bưu tá/);
+test('Route Ranking table header restores "Tên tuyến bưu tá" and hides postman columns when paused', () => {
+  // Verifies conditional header rendering based on SHOW_POSTMAN_COLUMNS
+  assert.match(source, /\{SHOW_POSTMAN_COLUMNS \? 'Tên tuyến' : 'Tên tuyến bưu tá'\}/);
+  assert.match(source, /\{SHOW_POSTMAN_COLUMNS && \(\s*<th className="border-l border-slate-200 px-3 py-2 text-center bg-indigo-50\/70 text-indigo-900 font-bold"/);
+  assert.match(source, /\{SHOW_POSTMAN_COLUMNS && \(\s*<>\s*<th className="border-l border-slate-200 px-3 py-2\.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 bg-indigo-50\/40">Mã bưu tá<\/th>/);
+});
+
+test('Route Ranking table body postman cells are guarded by SHOW_POSTMAN_COLUMNS', () => {
+  assert.match(source, /\{SHOW_POSTMAN_COLUMNS && \(\(\) => \{/);
 });
 
 test('formatAnchorDateDdMmYyyy formats ISO date YYYY-MM-DD into DD/MM/YYYY', () => {
-  // Test date formatting logic directly
   const formatMatch = source.match(/function formatAnchorDateDdMmYyyy\([\s\S]*?return dateStr;\s*\}/);
   assert.ok(formatMatch, 'formatAnchorDateDdMmYyyy must be defined');
 
@@ -28,23 +30,23 @@ test('formatAnchorDateDdMmYyyy formats ISO date YYYY-MM-DD into DD/MM/YYYY', () 
   assert.equal(fn(null), '');
 });
 
-test('Route Ranking table handles NO_BF_FOR_DATE and ROUTE_NOT_IN_BF by displaying DASH (—)', () => {
+test('Preserved postman logic: handles NO_BF_FOR_DATE and ROUTE_NOT_IN_BF with DASH (—)', () => {
   assert.match(source, /row\.postman_status === 'NO_BF_FOR_DATE'/);
   assert.match(source, /row\.postman_status === 'ROUTE_NOT_IN_BF'/);
   assert.match(source, /\{DASH\}/);
 });
 
-test('Route Ranking table renders "Chưa cập nhật" when postman has code but no name', () => {
+test('Preserved postman logic: renders "Chưa cập nhật" when postman has code but no name', () => {
   assert.match(source, /Chưa cập nhật/);
 });
 
-test('Route Ranking table preserves multi-postman, sorts deterministically by ma_buu_ta and displays item_count', () => {
+test('Preserved postman logic: preserves multi-postman, sorts deterministically and displays item_count', () => {
   assert.match(source, /sortedPostmen/);
   assert.match(source, /localeCompare/);
   assert.match(source, /item_count/);
 });
 
-test('Route Ranking table displays "Khác BC" indicator when bcvh_mismatch is true', () => {
+test('Preserved postman logic: displays "Khác BC" indicator when bcvh_mismatch is true', () => {
   assert.match(source, /bcvh_mismatch/);
   assert.match(source, /Khác BC/);
 });
