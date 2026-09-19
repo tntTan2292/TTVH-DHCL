@@ -102,6 +102,15 @@ function SortHeaderCell({ column, sortState, onSort, isSubHeader = false }) {
   );
 }
 
+function formatAnchorDateDdMmYyyy(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return '';
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return dateStr;
+}
+
 function RouteRankingTable({
   pageRows,
   totalRows,
@@ -111,7 +120,8 @@ function RouteRankingTable({
   selectedRouteId,
   onSelectRoute,
   sortState,
-  onSort
+  onSort,
+  anchorDate,
 }) {
   if (!totalRows) {
     return (
@@ -125,6 +135,8 @@ function RouteRankingTable({
     );
   }
 
+  const formattedDate = formatAnchorDateDdMmYyyy(anchorDate);
+
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
       <div className="overflow-x-auto">
@@ -132,7 +144,10 @@ function RouteRankingTable({
           <thead>
             <tr className="bg-slate-100/90 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 border-b border-slate-200">
               <th className="px-3.5 py-3" rowSpan={2}>Mã tuyến</th>
-              <th className="px-4 py-3" rowSpan={2}>Tên tuyến bưu tá</th>
+              <th className="px-4 py-3" rowSpan={2}>Tên tuyến</th>
+              <th className="border-l border-slate-200 px-3 py-2 text-center bg-indigo-50/70 text-indigo-900 font-bold" colSpan={2}>
+                BƯU TÁ NGÀY {formattedDate}
+              </th>
               <th className="border-l border-slate-200 px-3 py-2 text-center bg-slate-50 text-slate-700" colSpan={DAY_EVAL_COLUMNS.length}>
                 Kết quả ngày đánh giá
               </th>
@@ -145,6 +160,8 @@ function RouteRankingTable({
               <th className="px-3.5 py-3 text-center" rowSpan={2}>Phân loại</th>
             </tr>
             <tr className="border-b border-slate-200">
+              <th className="border-l border-slate-200 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 bg-indigo-50/40">Mã bưu tá</th>
+              <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 bg-indigo-50/40">Tên bưu tá</th>
               {DAY_EVAL_COLUMNS.map((column) => (
                 <SortHeaderCell key={column.key} column={column} sortState={sortState} onSort={onSort} isSubHeader />
               ))}
@@ -201,6 +218,72 @@ function RouteRankingTable({
                       )}
                     </div>
                   </td>
+                  {/* Mã bưu tá & Tên bưu tá — F13-ROUTE-POSTMAN-IDENTITY-01 Phase 3 */}
+                  {(() => {
+                    const postmen = Array.isArray(row.postmen) ? row.postmen : [];
+                    const isNoBf = row.postman_status === 'NO_BF_FOR_DATE' || row.postman_status === 'ROUTE_NOT_IN_BF' || postmen.length === 0;
+
+                    if (isNoBf) {
+                      return (
+                        <>
+                          <td className="border-l border-slate-200 px-3 py-3 font-mono text-xs text-slate-400">
+                            {DASH}
+                          </td>
+                          <td className="px-3 py-3 text-xs text-slate-400">
+                            {DASH}
+                          </td>
+                        </>
+                      );
+                    }
+
+                    const sortedPostmen = [...postmen].sort((a, b) => String(a.ma_buu_ta || '').localeCompare(String(b.ma_buu_ta || '')));
+
+                    return (
+                      <>
+                        <td className="border-l border-slate-200 px-3 py-2.5 align-top">
+                          <div className="flex flex-col gap-1.5">
+                            {sortedPostmen.map((p, idx) => (
+                              <div key={p.ma_buu_ta || idx} className="flex items-center gap-1.5 min-h-[22px]">
+                                <span className="font-mono text-xs font-medium text-slate-700">
+                                  {p.ma_buu_ta}
+                                </span>
+                                {p.item_count !== undefined && p.item_count !== null && (
+                                  <span className="text-[10px] text-slate-400 font-normal">
+                                    ({p.item_count.toLocaleString('vi-VN')})
+                                  </span>
+                                )}
+                                {p.bcvh_mismatch && (
+                                  <span
+                                    className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-semibold bg-amber-50 text-amber-700 border border-amber-200"
+                                    title="Khác bưu cục quản lý"
+                                  >
+                                    Khác BC
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 align-top">
+                          <div className="flex flex-col gap-1.5">
+                            {sortedPostmen.map((p, idx) => (
+                              <div key={p.ma_buu_ta || idx} className="flex items-center min-h-[22px]">
+                                {p.ten_buu_ta ? (
+                                  <span className="text-xs font-medium text-slate-800" title={p.ten_buu_ta}>
+                                    {p.ten_buu_ta}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs italic text-amber-600/90 font-medium">
+                                    Chưa cập nhật
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </>
+                    );
+                  })()}
                   {/* Kết quả ngày đánh giá — day-scoped, old endpoint, null-safe */}
                   <DayScopedCell value={row.total_bg} />
                   <DayScopedCell value={row.passed} />
@@ -925,6 +1008,7 @@ export default function RoutePerformancePage() {
               onSelectRoute={setSelectedRouteId}
               sortState={sortState}
               onSort={handleSort}
+              anchorDate={periodsAnchorDate || analysisDate}
             />
           </div>
 

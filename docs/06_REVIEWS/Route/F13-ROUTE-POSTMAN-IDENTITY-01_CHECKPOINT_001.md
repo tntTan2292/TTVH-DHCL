@@ -120,3 +120,37 @@ Read-only re-review of `72d58e0`, limited to the findings of Section 9 / Backend
 - Confirmations: live data untouched (`dm_buu_ta` 198, `dm_buu_ta_event` 198 in 1 batch, 0 conflicts, `fact_f13` 817,115, `network_delivery_point` 440,091); F1.3 KPI unchanged (31/31 routes match raw `fact_f13`; the two KPI files are byte-identical to `4f339b1`); sweep 394/398 with the same 4 pre-existing failures as baseline `b15d648`; 9 new tests all passing; no new defect.
 
 Next gate: Phase 3 UI (Antigravity) may start; PO UI acceptance applies at the end of Phase 3 only and is never self-awarded. Phase 4/5 remain blocked on PO inputs.
+
+## Section 11 — Phase 3 UI Implementation (2026-09-19, Antigravity)
+
+Status: `PHASE 3 UI IMPLEMENTED / READY FOR PO UI CHECK`.
+
+Antigravity completed the Phase 3 frontend implementation adhering strictly to Design of Record v2, PO decisions D1–D4, and the PO additions approved on 2026-09-19:
+
+1. **Tuyến Ranking (`frontend/src/features/route/RoutePerformancePage.jsx`)**:
+   - Renamed header from "Tên tuyến bưu tá" to "Tên tuyến".
+   - Added group header "BƯU TÁ NGÀY DD/MM/YYYY" spanning the two columns "Mã bưu tá" and "Tên bưu tá", with date dynamically formatted as `DD/MM/YYYY` from the active anchor date.
+   - Multi-postman rows align each code and name cleanly side-by-side using fixed line heights, sorted deterministically by postman code ascending. Secondary item counts are formatted cleanly without shrinking font sizes or cluttering the table.
+   - Missing data states handled honestly without fabrication: "Chưa cập nhật" for unnamed codes, "—" when BF data is absent for the anchor date or route. Subtle "Khác BC" badge for cross-unit BCVH deliveries.
+   - KPI metrics, rankings, heatmap classifications, and existing columns remain 100% untouched.
+
+2. **Rà soát danh mục bưu tá (`/network-map/postman-catalog`)**:
+   - Implemented `PostmanCatalogPage.jsx` mounted at `/network-map/postman-catalog` under group Quản lý mạng lưới with full responsive layout and rich design system aesthetics.
+   - All summary numbers (total directory, unnamed codes, open conflicts) are 100% dynamic, computed at request time from live API data — never hard-coded.
+   - Tab 1 (Danh mục bưu tá): full directory search, BCVH filter, source filter, D3 absent-from-latest-file indicator, admin edit modal.
+   - Tab 2 (Mã mới chưa có tên): live reconciliation of delivery points minus directory, inline name input with immediate manual save, immediate propagation to Route Ranking upon save.
+   - Tab 3 (Xung đột cần rà soát): D1 conflict queue with explicit dual-decision actions ("Giữ tên nhập tay" `KEPT_MANUAL` vs "Lấy theo file" `APPLIED_FILE`).
+   - Import Modal: 2-step flow (Preview -> Summary Classification -> Confirm) with session token.
+   - History Drawer: batch audit trail and rollback capabilities with collision checks.
+   - Explicit confirmation dialogs for all modifications (inline save, modal edit, conflict resolution, rollback).
+   - RBAC enforced: Viewer has read-only access across all tabs; Admin holds write and execution permissions.
+   - Strict Data Minimization (PII Guard): zero storage, processing, or display of phone numbers, HRM codes, or contract types.
+
+3. **Validation**:
+   - 52/52 frontend unit and integration tests PASS (`RoutePerformancePage.postman.test.js`, `postmanCatalog.test.js`, `NetworkMapClient.test.js`, `httpClient.test.js`, `appNavigation.test.js`, `App.role-routing.test.js`).
+   - 34/34 backend postman tests PASS (`postmanRankingService.test.js`, `postmanCatalogImport.test.js`, `postmanCatalogService.test.js`, `unnamedPostmenService.test.js`).
+   - Operational database verified unchanged: `dm_buu_ta` 198, `dm_buu_ta_event` 198, `fact_f13` 817,115.
+   - Frontend production build (`vite build`) compiles cleanly in 1.17s.
+   - No Browser/Playwright automation used; handed over for PO manual check.
+   - No PO UI PASS is self-awarded.
+

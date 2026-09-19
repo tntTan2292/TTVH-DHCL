@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Database, FileSpreadsheet, Info, MapPin, Settings, Target } from 'lucide-react';
+import { Activity, BarChart2, Database, FileSpreadsheet, Info, MapPin, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 const F13_GROUP = {
@@ -32,6 +32,7 @@ const NETWORK_MANAGEMENT_GROUP = {
     { name: 'Mạng đường thư cấp 2', path: '/network-map/level2-routes', icon: <MapPin size={18} /> },
     { name: 'Sơ đồ tuyến phát', path: '/network-map/delivery-routes', icon: <MapPin size={18} /> },
     { name: 'Bản đồ tích hợp', path: '/network-map/integrated', icon: <MapPin size={18} /> },
+    { name: 'Rà soát danh mục bưu tá', path: '/network-map/postman-catalog', icon: <Users size={18} /> },
   ],
 };
 

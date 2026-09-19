@@ -134,6 +134,23 @@ class HttpClient {
 
         return this.request(endpoint, options);
     }
+
+    put(endpoint, body = {}) {
+        const isFormData = body instanceof FormData;
+
+        const options = {
+            method: 'PUT',
+            body: isFormData ? body : JSON.stringify(body)
+        };
+
+        if (isFormData) {
+            options.headers = {
+                'Accept': 'application/json'
+            };
+        }
+
+        return this.request(endpoint, options);
+    }
 }
 
 export { SESSION_KEY, SESSION_VALIDATION_PATH, isOfficialSessionValidationEndpoint };

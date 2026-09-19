@@ -159,3 +159,73 @@ test('rollbackImport POSTs to /import/:id/rollback', async () => {
   };
   await networkMapClient.rollbackImport(42);
 });
+
+// ==================== Postman Catalog (F13-ROUTE-POSTMAN-IDENTITY-01) ====================
+
+test('getPostmanDirectory requests /api/network-map/postman-catalog with query params', async () => {
+  stubFetch('/api/network-map/postman-catalog', '?search=53A819&ma_bcvh=533140');
+  await networkMapClient.getPostmanDirectory({ search: '53A819', ma_bcvh: '533140' });
+});
+
+test('getPostmanUnnamed requests /api/network-map/postman-catalog/unnamed with filters', async () => {
+  stubFetch('/api/network-map/postman-catalog/unnamed', '?from_date=2026-08-01&to_date=2026-08-31&ma_bcvh=533140');
+  await networkMapClient.getPostmanUnnamed({ from_date: '2026-08-01', to_date: '2026-08-31', ma_bcvh: '533140' });
+});
+
+test('getPostmanConflicts requests /api/network-map/postman-catalog/conflicts', async () => {
+  stubFetch('/api/network-map/postman-catalog/conflicts');
+  await networkMapClient.getPostmanConflicts();
+});
+
+test('getPostmanHistory requests /api/network-map/postman-catalog/history with optional limit', async () => {
+  stubFetch('/api/network-map/postman-catalog/history', '?limit=20');
+  await networkMapClient.getPostmanHistory(20);
+});
+
+test('previewPostmanImport POSTs FormData file to /postman-catalog/import/preview', async () => {
+  let capturedBody;
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/postman-catalog/import/preview');
+    capturedBody = options.body;
+    return new Response(JSON.stringify({ success: true, data: { summary: {} } }), { status: 200 });
+  };
+  const fakeFile = new File(['mock content'], 'danh_ba.xlsx');
+  await networkMapClient.previewPostmanImport(fakeFile);
+  assert.ok(capturedBody instanceof FormData);
+});
+
+test('confirmPostmanImport POSTs session_token to /postman-catalog/import/confirm', async () => {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/postman-catalog/import/confirm');
+    assert.deepEqual(JSON.parse(options.body), { session_token: 'session-xyz' });
+    return new Response(JSON.stringify({ success: true, data: { batch_id: 'batch-1' } }), { status: 200 });
+  };
+  await networkMapClient.confirmPostmanImport('session-xyz');
+});
+
+test('updatePostmanManual PUTs data to /postman-catalog/:ma_buu_ta', async () => {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/postman-catalog/53A819');
+    assert.equal(options.method, 'PUT');
+    assert.deepEqual(JSON.parse(options.body), { ten_buu_ta: 'NGUYỄN VĂN A' });
+    return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
+  };
+  await networkMapClient.updatePostmanManual('53A819', { ten_buu_ta: 'NGUYỄN VĂN A' });
+});
+
+test('resolvePostmanConflict POSTs decision to /postman-catalog/conflicts/:id/resolve', async () => {
+  globalThis.fetch = async (url, options) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/postman-catalog/conflicts/12/resolve');
+    assert.deepEqual(JSON.parse(options.body), { decision: 'KEPT_MANUAL' });
+    return new Response(JSON.stringify({ success: true, data: {} }), { status: 200 });
+  };
+  await networkMapClient.resolvePostmanConflict(12, 'KEPT_MANUAL');
+});
+
+test('rollbackPostmanBatch POSTs to /postman-catalog/rollback/:batchId', async () => {
+  globalThis.fetch = async (url) => {
+    assert.equal(new URL(url).pathname, '/api/network-map/postman-catalog/rollback/batch-abc');
+    return new Response(JSON.stringify({ success: true, data: { success: true } }), { status: 200 });
+  };
+  await networkMapClient.rollbackPostmanBatch('batch-abc');
+});

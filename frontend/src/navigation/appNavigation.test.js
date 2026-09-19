@@ -56,17 +56,18 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in s
   assert.deepEqual(toPlain(f41.roles), ['admin']);
 });
 
-test('Module 2 (Quản lý mạng lưới) retains all 4 network map sub-menus', () => {
+test('Module 2 (Quản lý mạng lưới) retains all 5 network map sub-menus including postman catalog', () => {
   const { ROOT_ITEMS } = loadNavigationModule();
   const networkModule = ROOT_ITEMS[1];
 
-  assert.equal(networkModule.subItems.length, 4);
+  assert.equal(networkModule.subItems.length, 5);
   const paths = networkModule.subItems.map((item) => item.path);
   assert.deepEqual(toPlain(paths), [
     '/network-map/service-points',
     '/network-map/level2-routes',
     '/network-map/delivery-routes',
     '/network-map/integrated',
+    '/network-map/postman-catalog',
   ]);
   assert.equal(networkModule.roles, undefined, 'Network management must have no top-level role restriction');
 });

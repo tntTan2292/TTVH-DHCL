@@ -17,4 +17,5 @@ test('viewer routing keeps only the approved completed F1.3 surfaces and blocks 
   assert.match(source, /path="service-points" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><ServicePointsPage/);
   assert.match(source, /path="level2-routes" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><Level2RoutesPage/);
   assert.match(source, /path="delivery-routes" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><DeliveryRoutesPage/);
+  assert.match(source, /path="postman-catalog" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><PostmanCatalogPage/);
 });

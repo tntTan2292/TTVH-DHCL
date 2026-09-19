@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown, MapPin } from 'lucide-react';
+import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown, MapPin, Users } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
@@ -47,6 +47,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
         { name: 'Mạng đường thư cấp 2', path: '/network-map/level2-routes', icon: <MapPin size={18} /> },
         { name: 'Sơ đồ tuyến phát', path: '/network-map/delivery-routes', icon: <MapPin size={18} /> },
         { name: 'Bản đồ tích hợp', path: '/network-map/integrated', icon: <MapPin size={18} /> },
+        { name: 'Rà soát danh mục bưu tá', path: '/network-map/postman-catalog', icon: <Users size={18} /> },
       ],
     },
     {

@@ -105,6 +105,47 @@ class NetworkMapClient {
     rollbackImport(importLogId) {
         return httpClient.post(`/network-map/import/${importLogId}/rollback`, {});
     }
+
+    // ==================== Postman Catalog (F13-ROUTE-POSTMAN-IDENTITY-01) ====================
+
+    getPostmanDirectory(params = {}) {
+        return httpClient.get('/network-map/postman-catalog', params);
+    }
+
+    getPostmanUnnamed(params = {}) {
+        return httpClient.get('/network-map/postman-catalog/unnamed', params);
+    }
+
+    getPostmanConflicts() {
+        return httpClient.get('/network-map/postman-catalog/conflicts');
+    }
+
+    getPostmanHistory(limit) {
+        const params = limit ? { limit } : {};
+        return httpClient.get('/network-map/postman-catalog/history', params);
+    }
+
+    previewPostmanImport(file) {
+        const form = new FormData();
+        form.append('file', file);
+        return httpClient.post('/network-map/postman-catalog/import/preview', form);
+    }
+
+    confirmPostmanImport(sessionToken) {
+        return httpClient.post('/network-map/postman-catalog/import/confirm', { session_token: sessionToken });
+    }
+
+    updatePostmanManual(maBuuTa, data) {
+        return httpClient.put(`/network-map/postman-catalog/${encodeURIComponent(maBuuTa)}`, data);
+    }
+
+    resolvePostmanConflict(id, decision) {
+        return httpClient.post(`/network-map/postman-catalog/conflicts/${id}/resolve`, { decision });
+    }
+
+    rollbackPostmanBatch(batchId) {
+        return httpClient.post(`/network-map/postman-catalog/rollback/${encodeURIComponent(batchId)}`, {});
+    }
 }
 
 export default new NetworkMapClient();

@@ -173,6 +173,11 @@ export function mergeRouteData(oldRows = [], periodsRoutes = [], routeType) {
       delayed_cash_handover_eligible_count: old ? (old.delayed_cash_handover_eligible_count ?? null) : null,
       f13_303_rate: old ? (old.f13_303_rate ?? null) : null,
       is_postman_delivery_route: isPostmanKnown,
+
+      // F13-ROUTE-POSTMAN-IDENTITY-01 Phase 2 & 3: postmen anchored to evaluation date
+      postman_anchor_date: p.postman_anchor_date ?? (old ? (old.postman_anchor_date ?? null) : null),
+      postman_status: p.postman_status ?? (old ? (old.postman_status ?? null) : null),
+      postmen: Array.isArray(p.postmen) && p.postmen.length > 0 ? p.postmen : (old && Array.isArray(old.postmen) ? old.postmen : []),
     };
   });
 }
