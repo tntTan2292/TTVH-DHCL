@@ -107,3 +107,16 @@ Fixed B1 and M2-M5 on baseline `55319f9`. Full technical detail: `docs/10_TICKET
 - **M5 fixed**: manifest test-attribution corrected (2 in `DashboardController.r6.integration.test.js`, 1 in `DashboardController.recovery.test.js`).
 
 Validation under the same two invocation conditions Review 002 used: `node --test` 379/386; `node --experimental-sqlite --test` 394/398, the same 4 pre-existing/environmental failures Review 002 §3 already classified, byte-identical by name — no new regression. `oxlint` clean on every touched file. Operational DB row counts confirmed unchanged before/after: `dm_buu_ta` 198, `dm_buu_ta_event` 198, `dm_buu_ta_conflict` 0, `fact_f13` 817,115, `network_delivery_point` 440,091 — no reload of the 198 postmen, no F1.3/KPI change. No Browser/Playwright used. Phase 3 UI is now unblocked for Antigravity to start; Phase 4/5 remain blocked on PO inputs. No PO UI PASS is claimed.
+
+## Section 10 — Focused Re-Review 003 of the remediation (2026-09-19, Claude Code / Opus 5)
+
+Read-only re-review of `72d58e0`, limited to the findings of Section 9 / Backend Review 002. Result: **PASS**. Full record: `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_BACKEND_REREVIEW_003.md`.
+
+- **B1 CLOSED**: reconciliation across the whole BF dataset (92 dates, 9,269 (date,route) pairs, 12,445 postman rows) shows 0 missing codes, 0 wrong item_count, 0 extra codes, 0 route-total mismatches; the 232 formerly affected pairs (1,112 rows) are all correct; route `533140131` / `2026-08-17` returns `53A152 = 65` and `53B246 = 17` separately; daily ranking matches raw data for 31/31 routes; period view still anchored to one evaluation date; query still 20 ms on the covering index.
+- **M2 CLOSED**: a `MANUAL` record keeps its name and ownership while BCVH/status refresh from a newer file; a differing name still writes nothing and goes to the conflict queue.
+- **M3 CLOSED**: `resolveConflict` writes under its own `resolve-conflict-*` batch id, so rolling back the originating import no longer undoes the decision; `rollbackBatch` auto-closes conflicts raised by that batch (`KEPT_MANUAL`, attributed as auto-closed) without touching manual names.
+- **M4 CLOSED**: the migration now succeeds against a brand-new empty database and remains idempotent on a second run and inside the startup chain.
+- **M5 CLOSED**: manifest Section 11 test attribution corrected.
+- Confirmations: live data untouched (`dm_buu_ta` 198, `dm_buu_ta_event` 198 in 1 batch, 0 conflicts, `fact_f13` 817,115, `network_delivery_point` 440,091); F1.3 KPI unchanged (31/31 routes match raw `fact_f13`; the two KPI files are byte-identical to `4f339b1`); sweep 394/398 with the same 4 pre-existing failures as baseline `b15d648`; 9 new tests all passing; no new defect.
+
+Next gate: Phase 3 UI (Antigravity) may start; PO UI acceptance applies at the end of Phase 3 only and is never self-awarded. Phase 4/5 remain blocked on PO inputs.

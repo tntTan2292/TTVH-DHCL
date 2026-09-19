@@ -956,3 +956,11 @@ Read-only independent review of the Phase 1-2 implementation at 4f339b1. Documen
 | Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_BACKEND_REVIEW_002.md` | Independent Backend Review (new) | Verification of the real 198-row load and data minimization, re-import/conflict/history/rollback behaviour, viewer-vs-admin enforcement, ranking anchoring and multi-postman preservation, KPI non-regression, index speed and correctness, the 4 failing tests versus baseline b15d648, backup restorability, and how the directory is deployed to another database/machine. Records blocking defect B1 and minor findings M2-M5. | L2 | `BLOCKED ON B1` | Before fixing B1 and before Phase 3 UI starts. | Mandatory |
+
+## F13-ROUTE-POSTMAN-IDENTITY-01 Focused Re-Review 003 — 2026-09-19
+
+Read-only re-review of the remediation at 72d58e0, limited to Backend Review 002 findings. Documentation only; no product code, schema or data changed.
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_BACKEND_REREVIEW_003.md` | Focused Re-Review (new) | Closes defect B1 (full-population reconciliation, named example, route-total preservation) and minor findings M2-M5; confirms the 198 rows and business data are untouched, F1.3 KPI/ranking unchanged, the 4 failing tests are still pre-existing, and no new defect or performance regression appeared. Unblocks Phase 3 UI. | L2 | `PASS` | Before starting Phase 3 UI. | Mandatory |
