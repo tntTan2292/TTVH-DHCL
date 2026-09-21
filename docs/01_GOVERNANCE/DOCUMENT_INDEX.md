@@ -889,9 +889,17 @@ activated and resumption requires its own explicit, separate Product Owner autho
 
 | Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
-| `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` | Ticket Manifest (new) | Preserve “Chọn tất cả chưa hoàn tất”; register a separate “Chọn tất cả” including successful imports for intentional bulk reimport. Mandatory future audit: selection scope, queue/dedup, reimport rules, safety, and confirmation warning. | L2 | `DISCOVERED / NOT ACTIVATED` | Only when explicitly prioritized by Product Owner/CTO. | Reference |
+| `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` | Ticket Manifest (new) | Preserve “Chọn tất cả chưa hoàn tất”; register a separate “Chọn tất cả” including successful imports for intentional bulk reimport. Mandatory future audit: selection scope, queue/dedup, reimport rules, safety, and confirmation warning. | L2 | `DISCOVERY / READ-ONLY AUDIT COMPLETE` | Before any design/implementation activation. | Reference |
 
 Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01 = DISCOVERY / READ-ONLY AUDIT`; next executor remains `Antigravity (Gemini)`.
+
+## IMPORT-BULK-REIMPORT-ALL-01 Discovery / Read-Only Audit — 2026-09-21
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_CHECKPOINT_001.md` | Ticket Checkpoint (new) | Read-only audit findings: current selection/queue/dedup/reimport flow, LỊCH NGHỈ policy evidence, gaps/risks/blockers (no code path today can overwrite a `COMPLETED` date), and discovery-level contract observations for future PO decision. | L2 | `DISCOVERY / READ-ONLY AUDIT COMPLETE` | Required reading before any `IMPORT-BULK-REIMPORT-ALL-01` design/implementation activation. | Reference |
+
+Ticket remains `DISCOVERED / NOT ACTIVATED` for design or implementation; only the discovery audit step was performed, per explicit Product Owner/CTO chat instruction. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
 
 
 ## ADMIN-USER-MODULE-ACCESS-01 Registration — 2026-09-15
