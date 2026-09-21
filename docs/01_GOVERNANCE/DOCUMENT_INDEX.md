@@ -1017,3 +1017,11 @@ Read-only independent review of Part A at 0e16c99. Documentation only; no produc
 | `backend/src/services/dkclHueF13SyncService.js` | Backend service (modified) | `getImportLogWatermarkId()` added; `verifyImport()` gained a `sinceLogId` parameter (default 0, backward compatible) and its query is now scoped by `id > sinceLogId`. | L2 | `IMPLEMENTED` | Reference only. | Reference |
 
 Validation: `test_dkclHueF13SyncService.js` 228/228 (2 new), `test_importProcessor.js` 85/85 (14 new assertions), Auto-Backfill node:test suites 153/153, full default sweep 394/398 (same 4 pre-existing, unrelated failures). No Browser/Playwright used; no real/operational database write. No PO PASS claimed. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
+
+## IMPORT-BULK-REIMPORT-ALL-01 Part A Independent Review 002 — 2026-09-22
+
+Read-only review of the N1/N2 remediation at a725c1b. Documentation only; no product code, schema or data changed.
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_002.md` | Independent Review (new) | Verifies the N1 watermark fix (historical FAILED rows ignored, current-attempt failures still caught) and records the unfixed stale Error/HUE file case with a sandbox reproduction; checks each new N2 test against the real code; reproduces all validation figures; status of Review 001 findings; confirms Part A may move to Part B. | L2 | `NO BLOCKER / N1 OPEN (NON-BLOCKER)` | Before closing N1 and before the PO UI check. | Mandatory |

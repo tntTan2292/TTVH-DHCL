@@ -149,3 +149,12 @@ Migration idempotency and gate 6 were both independently verified by the reviewe
 ### 11.4 Stop condition
 
 Status: `PART A N1/N2 REMEDIATED / TECHNICAL PASS`. No new business rule was decided; N1 is a bug fix (a correct reimport must not be reported as failed), not a behavior change to what gets replaced or when. No PO PASS is claimed. Part B (frontend, Antigravity) may proceed per DoR v2 §3-§6; N3 (report wording), N4 (migration-on-empty-DB, already safe by design) and N5 (deployment note: restart to pick up the migration, verified backup, PO go-ahead before first real use) remain informational, not code changes.
+
+## 12. Part A Independent Review 002 — N1/N2 remediation (2026-09-22, Claude Code/Opus 5)
+
+Status after review: `PART A TECHNICAL PASS FOR PART B / N1 PARTIALLY OPEN (NON-BLOCKER)`. Full record: `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_002.md`.
+
+- No BLOCKER. N2 CLOSED. N3 CLOSED (manifest wording now states the default sweep does not run `test_*.js`).
+- N1 PARTIALLY FIXED: the `import_log` watermark in `dkclHueF13SyncService.verifyImport()` is correct and verified, but the `Error/HUE` file check is still unscoped. After a real failed attempt, which leaves both a FAILED row and the file in `Error/HUE`, a later correct F1.3/HUE reimport is still reported FAILED (sandbox reproduction; data correct). Must be closed before the PO UI check; extend TEST 2H to seed the error file.
+- Validation reproduced exactly: 228/228, 85/85, 153/153, 394/398 (same 4 pre-existing failures).
+- Part B (frontend, Antigravity) may proceed per DoR v2 §3-§6. No PO PASS claimed.

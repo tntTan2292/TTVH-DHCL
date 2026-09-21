@@ -219,3 +219,14 @@ Read-only review of `0e16c99` by a different model from the implementer. Result:
 - Observation for Part B copy: under AB-CALENDAR-01 precedence a holiday-marked day with real data is COMPLETED and can be reimported; only no-data holidays are LỊCH NGHỈ.
 
 Next gate: Part B (Antigravity) may start. No PO PASS is claimed or implied.
+
+## 15. Part A Independent Review 002 — N1/N2 remediation (2026-09-22, Claude Code/Opus 5)
+
+Read-only review of `a725c1b`. Result: **no BLOCKER; N2 CLOSED; N1 PARTIALLY FIXED, still OPEN (NON-BLOCKER)**. Full record: `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_002.md`.
+
+- N1 fixed half: `verifyImport()` scopes `import_log` to `id >` a watermark taken before `executeImport()`; historical FAILED rows no longer fail a correct attempt (TEST 2H), the current attempt's FAILED row still fails it (TEST 2I), and success now requires this attempt's own SUCCESS row.
+- N1 open half: `verifyImport()` still fails on any existing `Error/HUE/<standardized filename>`; `importPipeline` moves every failed file there under the same date-derived name, so after a real failure a later correct attempt is reported FAILED. Reproduced in sandbox: status FAILED, 2/2 rows written. Data is never wrong.
+- N2: new tests (gate 6, dedup, LỊCH NGHỈ at createRun, legacy rows with `import_log_id = NULL`, other-date isolation, rollback after DELETE+INSERT for the three remaining tables) match the real code and pass. Residual gaps: no migration-idempotency test and no national-table other-date assertion in the repo (covered by reviewer scenarios).
+- Validation reproduced: 228/228, 85/85, 153/153, default sweep 394/398 with the same 4 pre-existing failures (files byte-identical to `e1132b6`); reviewer scenarios 9/9 and 25/25.
+
+Next gate: Part A may move to Part B (Antigravity). Close the remaining N1 half (backend) and re-verify with the "FAILED row + Error file" scenario before the PO UI check. No PO PASS is claimed or implied.
