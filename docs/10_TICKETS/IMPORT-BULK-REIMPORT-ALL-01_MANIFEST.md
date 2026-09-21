@@ -1,6 +1,6 @@
 # IMPORT-BULK-REIMPORT-ALL-01 Manifest
 
-Status: `DISCOVERY / READ-ONLY AUDIT COMPLETE (2026-09-21)`; `DISCOVERED / NOT ACTIVATED` for design or implementation. Registered 2026-09-15. See Section 6 for the completed audit; no design, implementation, queue action, or data reimport is authorized.
+Status: `DESIGN LOCKED (2026-09-21)`; `NOT ACTIVATED` for implementation. Registered 2026-09-15. See Section 6-7 for the completed audit and Section 8 for the locked Design of Record; no implementation, queue action, or data reimport is authorized.
 
 ## 1. Ticket Information
 
@@ -61,3 +61,16 @@ New scope-relevant fact surfaced (recorded as Checkpoint Gap 7, not a business-r
 Also confirmed at the current commit: no run/job cancellation endpoint exists anywhere in the codebase (only a manual-DKCL-login `cancel-login` endpoint, unrelated) — consistent with the same finding already on record in `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`'s `AUTO-BACKFILL-RUNTIME` backlog-investigation entry (2026-08-20).
 
 Status: `DISCOVERY / READ-ONLY AUDIT COMPLETE (full pipeline trace closed)`. This ticket remains `DISCOVERED / NOT ACTIVATED` for design or implementation. No new business rule was decided; the Product Owner must still resolve the confirmation-warning design, the selection-state design, the `forceReimport` lane-scope question, and the shared-selection-state question (Checkpoint Section 6 gaps 1-3/5-6 and Section 10 gap 7) before any implementation activation.
+
+## 8. Design of Record Locked (2026-09-21, Claude Code/Sonnet 5)
+
+Product Owner decisions received in chat (2026-09-21), resolving the open questions left by Sections 6-7:
+
+1. Keep "Chọn tất cả chưa hoàn tất" unchanged.
+2. Rename the existing "Nhập lại" action to "Nhập mới" for `INCOMPLETE`/`DATA_ERROR` dates (label-only; no backend behavior change, since this action never overwrites existing data).
+3. Add a new "Chọn tất cả" button (separate selection state) whose scope includes `COMPLETED` in addition to `INCOMPLETE`/`DATA_ERROR`; `LỊCH NGHỈ` (`EXCLUDED`) always omitted.
+4. Add a new, real "Nhập lại" action for `COMPLETED` dates: the selected date's data is deleted and replaced, scoped to exactly that date (and, per the technical design below, exactly that indicator+source_lane), never affecting any other date.
+
+Design of Record written and locked: `docs/04_TECHNICAL_PLANNING/Feature/IMPORT-BULK-REIMPORT-ALL-01_DESIGN_OF_RECORD.md`. It specifies, based directly on Checkpoint Sections 3-6/9-11 and this manifest's Sections 6-7: two independent frontend selection states (existing `selectedBulkKeys` untouched; new `selectedReimportKeys`) so the pre-existing, PO-accepted bulk PO-exemption action is never exposed to `COMPLETED` selections; a new optional `include_completed` query parameter reusing the existing `coverage/selectable` endpoint (no new endpoint, `LỊCH NGHỈ` exclusion untouched); a new optional `confirm_replace_completed` request flag on `POST /import/auto-backfill/runs`, single-tuple-only like the existing `include_excluded`; a new additive `auto_backfill_job.force_reimport` column that is the **only** place the previously-unconditional `SKIPPED_ALREADY_SUCCESS` pre-execution guard (Checkpoint 9.2.B) becomes conditional; a query-level fix scoping the forced-delete in `importProcessor.js` through `import_log.source_lane` instead of date-only (closing Checkpoint Gap 7); and a new recovery-path rule (a `force_reimport` job interrupted mid-execution is always requeued, never auto-resolved via the generic completion check, because stale pre-existing data would otherwise be misread as "reimport already done"). All existing dedup, global concurrency, circuit breaker, retry, Resume, and audit-log mechanisms are reused unchanged; one new event reason code is added for audit distinction only.
+
+Status: `DESIGN LOCKED / NOT ACTIVATED FOR IMPLEMENTATION`. No code, schema, migration, or database change was made. No implementation may begin without a further, separate, explicit Product Owner/CTO activation and executor assignment per `CLAUDE.md` Section 2.

@@ -899,6 +899,14 @@ Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01 = DISCOVERY / READ-ONLY A
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_CHECKPOINT_001.md` | Ticket Checkpoint (new) | Read-only audit findings: current selection/queue/dedup/reimport flow, LỊCH NGHỈ policy evidence, gaps/risks/blockers (no code path today can overwrite a `COMPLETED` date), and discovery-level contract observations for future PO decision. | L2 | `DISCOVERY / READ-ONLY AUDIT COMPLETE` | Required reading before any `IMPORT-BULK-REIMPORT-ALL-01` design/implementation activation. | Reference |
 
+## IMPORT-BULK-REIMPORT-ALL-01 Design of Record — 2026-09-21
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/04_TECHNICAL_PLANNING/Feature/IMPORT-BULK-REIMPORT-ALL-01_DESIGN_OF_RECORD.md` | Design of Record (new) | Locks the technical contract for PO decisions 1-4 (2026-09-21): two selection states, "Nhập mới"/"Nhập lại" action split, `include_completed`/`confirm_replace_completed` contract points, `auto_backfill_job.force_reimport` and its safety-critical pre-execution-recheck change, lane-scoped forced-delete fix (Checkpoint Gap 7), and force-reimport-aware crash recovery. Design only — no code/schema/migration authorized. | L2 | `DESIGN LOCKED / NOT ACTIVATED FOR IMPLEMENTATION` | Required reading before any `IMPORT-BULK-REIMPORT-ALL-01` implementation activation. | Reference |
+
+Ticket remains `NOT ACTIVATED` for implementation; design-only, per explicit Product Owner/CTO chat instruction. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
+
 Ticket remains `DISCOVERED / NOT ACTIVATED` for design or implementation; only the discovery audit step was performed, per explicit Product Owner/CTO chat instruction. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
 
 
