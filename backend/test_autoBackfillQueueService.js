@@ -444,7 +444,7 @@ test('AB-CALENDAR-01 include_excluded never bypasses a MANUAL_ONLY lane', async 
 // instead of holiday-excluded.
 // --------------------------------------------------------------------------
 
-async function createCompletedDayFixture({ automationMode = 'AUTOMATED', indicatorStatus = 'ACTIVE' } = {}) {
+async function createCompletedDayFixture({ automationMode = 'AUTOMATED', indicatorStatus = 'ACTIVE', executeImpl = null } = {}) {
     const dbPath = path.join(os.tmpdir(), `auto-backfill-queue-completed-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
@@ -466,6 +466,7 @@ async function createCompletedDayFixture({ automationMode = 'AUTOMATED', indicat
         executorRegistry.register(registry[0].lanes.HUE.portalAdapter.id, {
             async execute(identity) {
                 calls.push(identity);
+                if (executeImpl) return executeImpl(identity, statuses);
                 // Simulate a real "Nhập lại": the reimport succeeds and the date
                 // still reads SUCCESS afterwards (fresh evidence, not stale).
                 statuses.set(`${identity.indicator}|${identity.sourceLane}|${identity.businessDate}`, 'SUCCESS');
@@ -616,6 +617,72 @@ test('IMPORT-BULK-REIMPORT-ALL-01 recoverInterruptedWork always requeues an inte
         const persisted = await fixture.service.getRun(created.run.id, { roles: ['admin'] });
         const job = persisted.jobs.find((row) => row.id === jobId);
         assert.equal(job.state, 'QUEUED');
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+// IMPORT-BULK-REIMPORT-ALL-01 Part A Independent Review 001 (N2) -- gate 6:
+// an executor error on a force_reimport job must never be resolved as
+// SKIPPED_ALREADY_SUCCESS just because the old (stale, pre-reimport) data
+// still reads SUCCESS. Independently verified by the reviewer (RV-1); added
+// to the repo here.
+test('IMPORT-BULK-REIMPORT-ALL-01 N2: a force_reimport job whose executor throws is never marked SKIPPED_ALREADY_SUCCESS, even though stale data still reads SUCCESS', async () => {
+    const fixture = await createCompletedDayFixture({
+        executeImpl: async () => {
+            // Deliberately never touches `statuses` -- the pre-reimport SUCCESS
+            // evidence is still there when processNext() rechecks completion
+            // after this throw, exactly the ambiguous case gate 6 exists for.
+            throw new Error('Simulated portal failure mid-reimport.');
+        },
+    });
+    try {
+        await fixture.service.createRun({
+            indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+        });
+        const result = await fixture.service.processNext();
+        assert.notEqual(result.state, 'SKIPPED_ALREADY_SUCCESS', 'must never be silently marked done from a same-attempt completion guess');
+        assert.equal(fixture.calls.length, 1, 'the executor was actually invoked once, with forceReimport:true');
+        assert.equal(fixture.calls[0].forceReimport, true);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+// N2: force-job dedup -- a second confirm_replace_completed request for the
+// exact same tuple while the first is still queued must not create a second
+// job (same active-identity dedup every other job already gets).
+test('IMPORT-BULK-REIMPORT-ALL-01 N2: a second confirm_replace_completed request for the same queued tuple does not create a duplicate job', async () => {
+    const fixture = await createCompletedDayFixture();
+    try {
+        const first = await fixture.service.createRun({
+            indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+        });
+        const second = await fixture.service.createRun({
+            indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+        });
+        assert.equal(second.creation.duplicate, true);
+        assert.equal(second.run.id, first.run.id);
+        const jobRows = await new AutoBackfillQueueStore({ dbPath: fixture.dbPath, clock: () => new Date('2026-01-04T01:00:00.000Z') })
+            .countRows('auto_backfill_job');
+        assert.equal(jobRows, 1, 'exactly one job must exist for the tuple, not two');
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+// N2: LỊCH NGHỈ + confirm_replace_completed at createRun -- a true holiday
+// (no data, PO status EXCLUDED) must stay unreachable even with the new flag.
+test('IMPORT-BULK-REIMPORT-ALL-01 N2: confirm_replace_completed never re-admits a LỊCH NGHỈ (holiday, no data) day', async () => {
+    const fixture = await createExcludedDayFixture();
+    try {
+        await assert.rejects(
+            fixture.service.createRun({
+                indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+            }),
+            (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
+            'a holiday day has no committed data, so it is never PO status COMPLETED and confirm_replace_completed cannot reach it',
+        );
     } finally {
         fixture.cleanup();
     }

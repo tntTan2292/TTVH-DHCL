@@ -17,8 +17,15 @@ process.env.QIS_TEST_DB_PATH = sandbox.dbPath;
 const xlsx = require('xlsx');
 const { run, all, get, db, dbPath, operationalDbPath } = require('./src/config/db');
 const { parseF13Excel, DB_COLUMNS }   = require('./src/services/excelParser');
-const { importParsedData, importNationalParsedData } = require('./src/services/importProcessor');
+const {
+    importParsedData,
+    importNationalParsedData,
+    importF41ParsedData,
+    importF41NationalParsedData,
+} = require('./src/services/importProcessor');
 const { NATIONAL_DB_COLUMNS }         = require('./src/services/nationalExcelParser');
+const { F41_HUE_DB_COLUMNS }          = require('./src/services/f41HueExcelParser');
+const { F41_TCT_DB_COLUMNS }          = require('./src/services/f41TctExcelParser');
 
 const TEST_DATE     = '2000-01-01';
 const TEST_FILENAME = 'F1.3-2000.01.01.xlsx';
@@ -479,6 +486,192 @@ async function runTests() {
         await run('DELETE FROM import_log WHERE ngay_do_kiem = ? AND source_lane = ?', [NATIONAL_TEST_DATE, 'TCT']);
     } catch (e) {
         console.error('  TEST 6 UNEXPECTED ERROR:', e.message);
+        failed++;
+    }
+
+    // =========================================================================
+    // TEST 7: IMPORT-BULK-REIMPORT-ALL-01 Part A Independent Review 001 (N2)
+    // Legacy rows without import_log_id ARE replaced by forceReimport, and a
+    // forced reimport of one date in one table never touches another date or
+    // another table. Independently verified by the reviewer's 4/4 + 8/8
+    // checks; added to the repo here.
+    // =========================================================================
+    console.log('\n📋 TEST 7: N2 — legacy (import_log_id NULL) rows replaced; other date/table untouched');
+    const LEGACY_DATE = '2000-03-03';
+    const OTHER_DATE = '2000-03-04';
+    try {
+        await run('DELETE FROM fact_f13 WHERE ngay_do_kiem IN (?, ?)', [LEGACY_DATE, OTHER_DATE]);
+        await run('DELETE FROM fact_f41 WHERE ngay_do_kiem IN (?, ?)', [LEGACY_DATE, OTHER_DATE]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem IN (?, ?)', [LEGACY_DATE, OTHER_DATE]);
+
+        // Legacy rows: committed data with NO import_log linkage at all --
+        // exactly the DoR v1 Blocker-1 scenario (LEGACY_BASELINE-backed data).
+        await run(
+            `INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh, ten_bcvh, danh_gia_2026, import_log_id)
+             VALUES (?, 'LEGACY_F13_01', 'BC_LEGACY', 'BCVH Legacy', 'Đạt', NULL)`,
+            [LEGACY_DATE]
+        );
+        await run(
+            `INSERT INTO fact_f41 (ngay_do_kiem, ma_bg, import_log_id) VALUES (?, 'LEGACY_F41_01', NULL)`,
+            [LEGACY_DATE]
+        );
+        // Control data that must survive untouched: a different date in the
+        // same tables, and this same date's row in a DIFFERENT table.
+        await run(
+            `INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh, ten_bcvh, danh_gia_2026)
+             VALUES (?, 'OTHER_DATE_F13', 'BC01', 'BCVH 01', 'Đạt')`,
+            [OTHER_DATE]
+        );
+        await run(
+            `INSERT INTO fact_f41 (ngay_do_kiem, ma_bg) VALUES (?, 'OTHER_DATE_F41')`,
+            [OTHER_DATE]
+        );
+
+        const f13Result = await importParsedData({
+            parsedData: [makeRow('NEW_F13_01', 'BC_NEW', 'BCVH New', 'Đạt')],
+            ngay_do_kiem: LEGACY_DATE,
+            filename: 'F1.3-2000.03.03.xlsx',
+            forceReimport: true,
+        });
+        assert('TEST 7: F1.3 forced reimport over a legacy row succeeds', f13Result.success === true);
+        const f13After = await all('SELECT ma_bg FROM fact_f13 WHERE ngay_do_kiem = ?', [LEGACY_DATE]);
+        assert('TEST 7: legacy fact_f13 row (import_log_id NULL) is gone', !f13After.some((r) => r.ma_bg === 'LEGACY_F13_01'), JSON.stringify(f13After));
+        assert('TEST 7: only the new fact_f13 row remains', f13After.length === 1 && f13After[0].ma_bg === 'NEW_F13_01', JSON.stringify(f13After));
+
+        function makeF41Row(ma_bg) {
+            const row = {};
+            for (const col of F41_HUE_DB_COLUMNS) row[col] = null;
+            row.ma_bg = ma_bg;
+            return row;
+        }
+        const f41Result = await importF41ParsedData({
+            parsedData: [makeF41Row('NEW_F41_01')],
+            ngay_do_kiem: LEGACY_DATE,
+            filename: 'F4.1-2000.03.03.xlsx',
+            forceReimport: true,
+        });
+        assert('TEST 7: F4.1 forced reimport over a legacy row succeeds', f41Result.success === true);
+        const f41After = await all('SELECT ma_bg FROM fact_f41 WHERE ngay_do_kiem = ?', [LEGACY_DATE]);
+        assert('TEST 7: legacy fact_f41 row (import_log_id NULL) is gone', !f41After.some((r) => r.ma_bg === 'LEGACY_F41_01'), JSON.stringify(f41After));
+        assert('TEST 7: only the new fact_f41 row remains', f41After.length === 1 && f41After[0].ma_bg === 'NEW_F41_01', JSON.stringify(f41After));
+
+        // Isolation: the other date (both tables) and this same date's other
+        // table are byte-identical to what was seeded, never touched.
+        const otherF13 = await all('SELECT ma_bg FROM fact_f13 WHERE ngay_do_kiem = ?', [OTHER_DATE]);
+        const otherF41 = await all('SELECT ma_bg FROM fact_f41 WHERE ngay_do_kiem = ?', [OTHER_DATE]);
+        assert('TEST 7: another date in fact_f13 is untouched', otherF13.length === 1 && otherF13[0].ma_bg === 'OTHER_DATE_F13', JSON.stringify(otherF13));
+        assert('TEST 7: another date in fact_f41 is untouched', otherF41.length === 1 && otherF41[0].ma_bg === 'OTHER_DATE_F41', JSON.stringify(otherF41));
+
+        await run('DELETE FROM fact_f13 WHERE ngay_do_kiem IN (?, ?)', [LEGACY_DATE, OTHER_DATE]);
+        await run('DELETE FROM fact_f41 WHERE ngay_do_kiem IN (?, ?)', [LEGACY_DATE, OTHER_DATE]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem IN (?, ?)', [LEGACY_DATE, OTHER_DATE]);
+    } catch (e) {
+        console.error('  TEST 7 UNEXPECTED ERROR:', e.message);
+        failed++;
+    }
+
+    // =========================================================================
+    // TEST 8: IMPORT-BULK-REIMPORT-ALL-01 Part A Independent Review 001 (N2)
+    // Mid-transaction failure (after DELETE + INSERT, before the import_log
+    // COMMIT) restores the exact prior rows for fact_f13_national, fact_f41
+    // and fact_f41_national -- the 3 write functions TEST 3A2 does not cover.
+    // Uses a TEMP trigger to abort the import_log UPDATE, the same technique
+    // the independent reviewer used, so no test-only hook is needed in
+    // production code.
+    // =========================================================================
+    console.log('\n📋 TEST 8: N2 — mid-transaction failure restores old data for fact_f13_national / fact_f41 / fact_f41_national');
+    const ABORT_MARKER_FILENAME = 'TRIGGER_ABORT_MARKER.xlsx';
+    async function withAbortTrigger(fn) {
+        await run(`
+            CREATE TEMP TRIGGER IF NOT EXISTS trg_test_abort_import_log_update
+            BEFORE UPDATE ON import_log
+            WHEN NEW.file_name = '${ABORT_MARKER_FILENAME}'
+            BEGIN
+                SELECT RAISE(ABORT, 'Simulated mid-transaction failure for test');
+            END;
+        `);
+        try {
+            return await fn();
+        } finally {
+            await run('DROP TRIGGER IF EXISTS trg_test_abort_import_log_update');
+        }
+    }
+    try {
+        // 8A: fact_f13_national (importNationalParsedData)
+        const natDate = '2000-04-01';
+        await run('DELETE FROM fact_f13_national WHERE ngay_do_kiem = ?', [natDate]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem = ?', [natDate]);
+        function makeNatRow(code) {
+            const row = {};
+            for (const col of NATIONAL_DB_COLUMNS) row[col] = null;
+            row.ma_tinh_phat = code;
+            return row;
+        }
+        await importNationalParsedData({
+            parsedData: [makeNatRow('10')], ngay_do_kiem: natDate, filename: 'F1.3-2000.04.01-TCT-seed.xlsx', forceReimport: false,
+        });
+        const natBefore = await all('SELECT ma_tinh_phat FROM fact_f13_national WHERE ngay_do_kiem = ?', [natDate]);
+        let natThrown = null;
+        try {
+            await withAbortTrigger(() => importNationalParsedData({
+                parsedData: [makeNatRow('16'), makeNatRow('18')], ngay_do_kiem: natDate, filename: ABORT_MARKER_FILENAME, forceReimport: true,
+            }));
+        } catch (e) { natThrown = e; }
+        assert('TEST 8A: fact_f13_national forced reimport throws on mid-transaction failure', natThrown !== null);
+        const natAfter = await all('SELECT ma_tinh_phat FROM fact_f13_national WHERE ngay_do_kiem = ?', [natDate]);
+        assert('TEST 8A: fact_f13_national old rows restored exactly', JSON.stringify(natAfter) === JSON.stringify(natBefore), `Before: ${JSON.stringify(natBefore)}, After: ${JSON.stringify(natAfter)}`);
+        await run('DELETE FROM fact_f13_national WHERE ngay_do_kiem = ?', [natDate]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem = ?', [natDate]);
+
+        // 8B: fact_f41 (importF41ParsedData)
+        const f41Date = '2000-04-02';
+        await run('DELETE FROM fact_f41 WHERE ngay_do_kiem = ?', [f41Date]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem = ?', [f41Date]);
+        function makeF41Row2(ma_bg) {
+            const row = {};
+            for (const col of F41_HUE_DB_COLUMNS) row[col] = null;
+            row.ma_bg = ma_bg;
+            return row;
+        }
+        await importF41ParsedData({ parsedData: [makeF41Row2('SEED_01')], ngay_do_kiem: f41Date, filename: 'F4.1-2000.04.02-seed.xlsx', forceReimport: false });
+        const f41Before = await all('SELECT ma_bg FROM fact_f41 WHERE ngay_do_kiem = ?', [f41Date]);
+        let f41Thrown = null;
+        try {
+            await withAbortTrigger(() => importF41ParsedData({
+                parsedData: [makeF41Row2('REPLACED_01')], ngay_do_kiem: f41Date, filename: ABORT_MARKER_FILENAME, forceReimport: true,
+            }));
+        } catch (e) { f41Thrown = e; }
+        assert('TEST 8B: fact_f41 forced reimport throws on mid-transaction failure', f41Thrown !== null);
+        const f41After = await all('SELECT ma_bg FROM fact_f41 WHERE ngay_do_kiem = ?', [f41Date]);
+        assert('TEST 8B: fact_f41 old rows restored exactly', JSON.stringify(f41After) === JSON.stringify(f41Before), `Before: ${JSON.stringify(f41Before)}, After: ${JSON.stringify(f41After)}`);
+        await run('DELETE FROM fact_f41 WHERE ngay_do_kiem = ?', [f41Date]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem = ?', [f41Date]);
+
+        // 8C: fact_f41_national (importF41NationalParsedData)
+        const f41NatDate = '2000-04-03';
+        await run('DELETE FROM fact_f41_national WHERE ngay_do_kiem = ?', [f41NatDate]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem = ?', [f41NatDate]);
+        function makeF41NatRow(code) {
+            const row = {};
+            for (const col of F41_TCT_DB_COLUMNS) row[col] = null;
+            row.ma_don_vi = code;
+            return row;
+        }
+        await importF41NationalParsedData({ parsedData: [makeF41NatRow('10')], ngay_do_kiem: f41NatDate, filename: 'F4.1-2000.04.03-TCT-seed.xlsx', forceReimport: false });
+        const f41NatBefore = await all('SELECT ma_don_vi FROM fact_f41_national WHERE ngay_do_kiem = ?', [f41NatDate]);
+        let f41NatThrown = null;
+        try {
+            await withAbortTrigger(() => importF41NationalParsedData({
+                parsedData: [makeF41NatRow('16')], ngay_do_kiem: f41NatDate, filename: ABORT_MARKER_FILENAME, forceReimport: true,
+            }));
+        } catch (e) { f41NatThrown = e; }
+        assert('TEST 8C: fact_f41_national forced reimport throws on mid-transaction failure', f41NatThrown !== null);
+        const f41NatAfter = await all('SELECT ma_don_vi FROM fact_f41_national WHERE ngay_do_kiem = ?', [f41NatDate]);
+        assert('TEST 8C: fact_f41_national old rows restored exactly', JSON.stringify(f41NatAfter) === JSON.stringify(f41NatBefore), `Before: ${JSON.stringify(f41NatBefore)}, After: ${JSON.stringify(f41NatAfter)}`);
+        await run('DELETE FROM fact_f41_national WHERE ngay_do_kiem = ?', [f41NatDate]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem = ?', [f41NatDate]);
+    } catch (e) {
+        console.error('  TEST 8 UNEXPECTED ERROR:', e.message);
         failed++;
     }
 

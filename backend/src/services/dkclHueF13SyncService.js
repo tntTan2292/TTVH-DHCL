@@ -380,6 +380,13 @@ class DkclHueF13SyncService {
             const incomingPath = this.handoffToIncoming(stablePath, run.standardizedFilename);
             this.updateRun(run, { status: STATUSES.WAITING_FOR_IMPORT });
 
+            // N1 (IMPORT-BULK-REIMPORT-ALL-01 Part A independent review 001):
+            // verifyImport() below must judge only THIS attempt's own import_log
+            // row, never a historical FAILED row from an earlier, unrelated
+            // attempt on the same date/filename -- captured as a watermark
+            // immediately before executeImport() writes its own row.
+            const importLogWatermarkId = await this.getImportLogWatermarkId();
+
             const importResult = await this.executeImport({
                 filePath: incomingPath,
                 forceReimport: Boolean(options?.forceReimport),
@@ -395,7 +402,7 @@ class DkclHueF13SyncService {
                 return;
             }
 
-            const final = await this.verifyImport(run.measurementDate, run.standardizedFilename, validation.rowCount);
+            const final = await this.verifyImport(run.measurementDate, run.standardizedFilename, validation.rowCount, importLogWatermarkId);
             await this.cleanupPortalExport(run, generatedFile, portalClient);
             this.updateRun(run, {
                 status: STATUSES.SUCCESS,
@@ -506,7 +513,16 @@ class DkclHueF13SyncService {
         throw error;
     }
 
-    async verifyImport(measurementDate, filename, expectedRows) {
+    // N1 (IMPORT-BULK-REIMPORT-ALL-01 Part A independent review 001): the
+    // watermark verifyImport() uses to ignore import_log history from before
+    // the current attempt. `COALESCE(MAX(id), 0)` so a date/filename with no
+    // prior log at all still yields a valid (0) watermark.
+    async getImportLogWatermarkId() {
+        const row = await this.db.get('SELECT COALESCE(MAX(id), 0) AS id FROM import_log');
+        return Number(row?.id || 0);
+    }
+
+    async verifyImport(measurementDate, filename, expectedRows, sinceLogId = 0) {
         const processedPath = this.path.join(BASE_PROCESSED, 'HUE', filename);
         const errorPath = this.path.join(BASE_ERROR, 'HUE', filename);
         const timeoutAt = Date.now() + this.config.importCompletionTimeoutMs;
@@ -518,12 +534,17 @@ class DkclHueF13SyncService {
                  WHERE ngay_do_kiem = ?`,
                 [measurementDate]
             );
+            // N1: scoped to id > sinceLogId -- this run's own import_log row(s)
+            // only. A FAILED row from an earlier, unrelated attempt on this same
+            // date/filename must never block a later attempt that actually
+            // wrote and verified the data correctly (Part A independent review
+            // 001, finding N1).
             const logs = await this.db.all(
                 `SELECT status, total_records, error_records, skipped_records
                  FROM import_log
-                 WHERE ngay_do_kiem = ? OR file_name = ?
+                 WHERE (ngay_do_kiem = ? OR file_name = ?) AND id > ?
                  ORDER BY id ASC`,
-                [measurementDate, filename]
+                [measurementDate, filename, sinceLogId]
             );
             const successLogs = logs.filter((log) => log.status === 'SUCCESS');
             const failedLogs = logs.filter((log) => log.status === 'FAILED');

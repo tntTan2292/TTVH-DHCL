@@ -335,8 +335,9 @@ async function runTests() {
     const sharedSessionDate = '2098-02-16';
     const expiredSharedSessionDate = '2098-02-17';
     const refreshCompletedDate = '2098-02-18';
+    const staleFailedLogDate = '2098-02-19';
 
-    for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, sharedSessionDate, expiredSharedSessionDate, refreshCompletedDate]) {
+    for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, sharedSessionDate, expiredSharedSessionDate, refreshCompletedDate, staleFailedLogDate]) {
         await cleanupDate(date);
     }
 
@@ -499,6 +500,57 @@ async function runTests() {
     assert('force re-import of completed date reaches SUCCESS', refreshCompletedRun.status === STATUSES.SUCCESS, refreshCompletedRun.safeErrorMessage);
     assert('force re-import replaces previous date rows without duplicates', refreshCompletedRows.c === 2 && refreshCompletedRows.d === 2 && oldRow.c === 0, JSON.stringify({ refreshCompletedRows, oldRow }));
     assert('force re-import does not return already completed', refreshCompletedStart.status !== STATUSES.ALREADY_COMPLETED);
+
+    console.log('\nTEST 2H: N1 (Part A Independent Review 001) — a historical FAILED import_log row for this date must not fail a later, actually-successful force re-import');
+    // Simulate a real prior incident: an earlier, unrelated attempt for this
+    // date failed at the import step and left a FAILED import_log row behind
+    // -- exactly what a failed forced reimport writes today. Before the N1
+    // fix, verifyImport() would see this old row (via "ngay_do_kiem = ? OR
+    // file_name = ?" with no run-scoping) and report the CURRENT, genuinely
+    // successful attempt as IMPORT_FAILED too.
+    await run(
+        `INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+         VALUES (?, ?, 'FAILED', 1, 1, 0)`,
+        [standardizedFilename(staleFailedLogDate), staleFailedLogDate]
+    );
+    const staleFailedLogClient = makePortalClient({ sourcePath: validFixture, total: 2 });
+    const staleFailedLogService = new DkclHueF13SyncService({
+        portalClient: staleFailedLogClient,
+        config: { enabled: true, rawDownloadDir: tmpDir, importCompletionTimeoutMs: 3000 }
+    });
+    const staleFailedLogStart = await staleFailedLogService.start(staleFailedLogDate);
+    const staleFailedLogRun = await waitForRun(staleFailedLogService, staleFailedLogStart.run.runId);
+    assert('a stale FAILED log from before this attempt does not fail it', staleFailedLogRun.status === STATUSES.SUCCESS, staleFailedLogRun.safeErrorMessage);
+    const staleFailedLogRows = await get('SELECT COUNT(*) AS c FROM fact_f13 WHERE ngay_do_kiem = ?', [staleFailedLogDate]);
+    assert('the actually-successful attempt still wrote its rows', staleFailedLogRows.c === 2, JSON.stringify(staleFailedLogRows));
+    const staleFailedLogHistory = await all('SELECT status FROM import_log WHERE ngay_do_kiem = ? ORDER BY id ASC', [staleFailedLogDate]);
+    assert('the old FAILED row is preserved, not deleted or hidden', staleFailedLogHistory.length === 2 && staleFailedLogHistory[0].status === 'FAILED' && staleFailedLogHistory[1].status === 'SUCCESS', JSON.stringify(staleFailedLogHistory));
+
+    console.log('\nTEST 2I: a FAILED log written by THIS SAME attempt must still fail it (N1 must not weaken real-failure detection)');
+    // A minimal fake importPipeline that inserts a FAILED import_log row (as
+    // the real one does on a genuine failure) and throws, simulating an
+    // actual failure of the current attempt itself -- this must still be
+    // reported as failed, proving the watermark scopes out only PRIOR
+    // history, never the current attempt's own outcome.
+    const realFailureDate = '2098-02-20';
+    await cleanupDate(realFailureDate);
+    const realFailureClient = makePortalClient({ sourcePath: validFixture, total: 2 });
+    const realFailureService = new DkclHueF13SyncService({
+        portalClient: realFailureClient,
+        config: { enabled: true, rawDownloadDir: tmpDir, importCompletionTimeoutMs: 3000 },
+        executeImport: async ({ filePath }) => {
+            await run(
+                `INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+                 VALUES (?, ?, 'FAILED', 2, 2, 0)`,
+                [path.basename(filePath), realFailureDate]
+            );
+            return { success: false, inserted: 0, errors: 2 };
+        }
+    });
+    const realFailureStart = await realFailureService.start(realFailureDate);
+    const realFailureRun = await waitForRun(realFailureService, realFailureStart.run.runId);
+    assert('a genuine failure in this same attempt is still reported as failed', realFailureRun.status === STATUSES.FAILED, realFailureRun.safeErrorMessage);
+    await cleanupDate(realFailureDate);
 
     console.log('\nTEST 3: existing completed date returns ALREADY_COMPLETED without portal access');
     const existingFile = pathIn(BASE_PROCESSED, standardizedFilename(existingDate));

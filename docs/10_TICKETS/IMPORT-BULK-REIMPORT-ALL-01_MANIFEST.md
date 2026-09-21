@@ -1,6 +1,6 @@
 # IMPORT-BULK-REIMPORT-ALL-01 Manifest
 
-Status: `PART A IMPLEMENTED / TECHNICAL PASS / READY FOR INDEPENDENT REVIEW (2026-09-21)`. Registered 2026-09-15. See Section 6-7 for the completed audit, Section 8 for the originally-locked Design of Record, Section 9 for the Opus-review blocker remediation (DoR v2), and Section 10 for the Part A backend implementation. No queue action or business-data reimport was run against real data; no PO PASS is claimed.
+Status: `PART A N1/N2 REMEDIATED / TECHNICAL PASS (2026-09-22)`. Registered 2026-09-15. See Section 6-7 for the completed audit, Section 8 for the originally-locked Design of Record, Section 9 for the Opus-review blocker remediation (DoR v2), Section 10 for the Part A backend implementation, and Section 11 for the N1 fix and N2 test additions following Independent Review 001. No queue action or business-data reimport was run against real data; no PO PASS is claimed.
 
 ## 1. Ticket Information
 
@@ -120,3 +120,32 @@ Status after review: `PART A TECHNICAL PASS (INDEPENDENTLY REVIEWED) / PART B MA
 - Test claim reconciled: 394/398 is accurate for the default sweep (same 4 pre-existing failures), but that sweep does not execute `test_*.js`; the per-suite Part A results reported in Section 10.2 were reproduced exactly.
 - N1 (recommended before PO UI check): `dkclHueF13SyncService.verifyImport()` fails a correct F1.3/HUE reimport whenever the date has any historical FAILED import_log row. N2 test gaps, N3 report wording, N4 migration standalone on empty DB, N5 restart + backup before first real use.
 - Part B (frontend, Antigravity) may start per DoR v2 §3-§6. No PO PASS claimed.
+
+## 11. N1 Fix and N2 Test Additions (2026-09-22, Claude Code/Sonnet 5)
+
+Product Owner instruction received in chat (2026-09-22) activated remediation of N1 and N2 from `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_001.md`, still backend/data/tests only, before Part B (UI) starts. No Browser/Playwright used; no queue action or reimport run against real/operational data; every mutation-capable test used an isolated temp SQLite sandbox.
+
+### 11.1 N1 fix — `dkclHueF13SyncService.js`
+
+Root cause confirmed exactly as the review stated: `verifyImport()` queried `import_log` by `WHERE ngay_do_kiem = ? OR file_name = ?` with no scoping to the current attempt, so any `FAILED` row left by an earlier, unrelated attempt on the same date/filename made every later attempt — including one that had already correctly deleted and replaced the data — report `IMPORT_FAILED`.
+
+**Fix:** a watermark, not a data change. `getImportLogWatermarkId()` reads `SELECT COALESCE(MAX(id), 0) AS id FROM import_log` immediately before `executeImport()` is called; `verifyImport()` gained a 4th parameter (`sinceLogId`, default `0` for backward compatibility) and its query became `WHERE (ngay_do_kiem = ? OR file_name = ?) AND id > ?`. This scopes the check to rows this specific attempt could itself have written, while leaving every historical row exactly as-is in `import_log` (nothing is deleted, hidden, or reinterpreted) — a genuine failure written by the *current* attempt is still caught (regression-tested, see 11.2).
+
+### 11.2 N2 — tests added, matching the reviewer's independently-verified scenarios
+
+- `test_dkclHueF13SyncService.js`: TEST 2H (a stale `FAILED` log from a prior, unrelated attempt no longer fails a later successful force reimport; the old row is preserved in history, not deleted) and TEST 2I (a `FAILED` log written by *this same* attempt still fails it — proves N1 did not weaken real-failure detection).
+- `test_autoBackfillQueueService.js`: gate 6 (an executor throw on a `force_reimport` job is never resolved as `SKIPPED_ALREADY_SUCCESS` from a same-attempt completion guess, even though the stale pre-reimport data still reads `SUCCESS`); force-job dedup (a second `confirm_replace_completed` request for the same queued tuple creates no second job); LỊCH NGHỈ + `confirm_replace_completed` at `createRun` (a true holiday day stays unreachable even with the new flag, since it is never PO status `COMPLETED`).
+- `test_importProcessor.js`: TEST 7 (legacy rows with `import_log_id IS NULL` are genuinely replaced by a forced reimport in both `fact_f13` and `fact_f41`; a different date and a different table are confirmed byte-for-byte untouched) and TEST 8 (mid-transaction failure — using a `TEMP TRIGGER` that aborts the `import_log` `UPDATE`, the same technique the independent reviewer used — restores the exact prior rows for `fact_f13_national`, `fact_f41`, and `fact_f41_national`, the 3 write functions the existing `TEST 3A2` rollback test did not cover).
+
+Migration idempotency and gate 6 were both independently verified by the reviewer already (Section 10.2/this section); the repo now carries its own regression coverage for all 5 items the Product Owner named.
+
+### 11.3 Validation
+
+- `node --experimental-sqlite test_dkclHueF13SyncService.js`: **228/228** (up from 226; 2 new tests).
+- `node --experimental-sqlite test_importProcessor.js`: **85/85** (up from 71; 14 new assertions across TEST 7-8).
+- `node --experimental-sqlite --test test_autoBackfillQueueService.js test_autoBackfillF41Executors.js test_autoBackfillF13Executors.js test_autoBackfillCoverageService.js test_autoBackfillHolidayCalendar.js test_autoBackfillQueueController.js test_autoBackfillSafety.js`: **153/153**.
+- Full default sweep `node --experimental-sqlite --test`: **394/398**, the same 4 pre-existing, environmental, unrelated failures already on record (this sweep does not execute `test_*.js`, per the reviewer's own N3 note — the per-suite results above are Part A/N1/N2's real evidence).
+
+### 11.4 Stop condition
+
+Status: `PART A N1/N2 REMEDIATED / TECHNICAL PASS`. No new business rule was decided; N1 is a bug fix (a correct reimport must not be reported as failed), not a behavior change to what gets replaced or when. No PO PASS is claimed. Part B (frontend, Antigravity) may proceed per DoR v2 §3-§6; N3 (report wording), N4 (migration-on-empty-DB, already safe by design) and N5 (deployment note: restart to pick up the migration, verified backup, PO go-ahead before first real use) remain informational, not code changes.

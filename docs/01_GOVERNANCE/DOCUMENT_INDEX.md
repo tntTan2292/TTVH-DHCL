@@ -1008,3 +1008,12 @@ Read-only independent review of Part A at 0e16c99. Documentation only; no produc
 | Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_001.md` | Independent Review (new) | Verifies the six force-reimport gates and recovery, per-table replacement of exactly the selected date and lane (including unlinked legacy rows), isolation of other dates/tables/lanes, restore-on-failure in all four fact tables, LỊCH NGHỈ exclusion, dedup, unchanged "Chọn tất cả chưa hoàn tất", migration, and the 394/398 test claim against baseline. Records N1 (recommended before PO UI check) and N2-N5. | L2 | `PASS (technical)` | Before Part B UI and before the PO UI check. | Mandatory |
+
+## IMPORT-BULK-REIMPORT-ALL-01 N1 Fix + N2 Test Additions — 2026-09-22
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` | Ticket Manifest (Section 11 appended) | N1 fix: `dkclHueF13SyncService.verifyImport()` now scopes its `import_log` history check to a watermark captured before the current attempt (`sinceLogId`), so a historical `FAILED` row from an earlier, unrelated attempt no longer fails a later, actually-successful force reimport. N2: added the reviewer's independently-verified regression tests to the repo (legacy unlinked-row replacement, mid-transaction rollback for the 3 remaining fact tables, gate 6, force-job dedup, LỊCH NGHỈ + confirm_replace_completed). | L2 | `PART A N1/N2 REMEDIATED / TECHNICAL PASS` | Required reading before Part B (UI) or any further review. | Reference |
+| `backend/src/services/dkclHueF13SyncService.js` | Backend service (modified) | `getImportLogWatermarkId()` added; `verifyImport()` gained a `sinceLogId` parameter (default 0, backward compatible) and its query is now scoped by `id > sinceLogId`. | L2 | `IMPLEMENTED` | Reference only. | Reference |
+
+Validation: `test_dkclHueF13SyncService.js` 228/228 (2 new), `test_importProcessor.js` 85/85 (14 new assertions), Auto-Backfill node:test suites 153/153, full default sweep 394/398 (same 4 pre-existing, unrelated failures). No Browser/Playwright used; no real/operational database write. No PO PASS claimed. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
