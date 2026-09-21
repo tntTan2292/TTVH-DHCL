@@ -206,3 +206,16 @@ Product Owner instruction received in chat: an independent pre-implementation re
 - No Browser, Playwright, or web automation was used.
 - No new business rule was inferred or decided; this is a factual correction to a prior gap's premise, evidenced directly from schema/registry code.
 - Files changed by this pass: this checkpoint (Sections 12-13 appended), `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` (Section 9 appended), `docs/04_TECHNICAL_PLANNING/Feature/IMPORT-BULK-REIMPORT-ALL-01_DESIGN_OF_RECORD.md` (revised to DoR v2).
+
+## 14. Part A Independent Review 001 (2026-09-22, Claude Code/Opus 5)
+
+Read-only review of `0e16c99` by a different model from the implementer. Result: **PASS (technical), no BLOCKER**. Full record: `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_001.md`.
+
+- Six gates (DoR v2 §7.4) and crash recovery (§7.5) verified in code; gate 6 additionally verified by an independent scenario the repo lacks.
+- Independent isolated-DB data checks (25/25): each of the four fact tables has its selected date fully replaced, including rows with `import_log_id = NULL`; all other (table, date) cells unchanged; `import_log` history kept; a failure injected after DELETE+INSERT and before COMMIT restores the old rows exactly in all four tables.
+- Independent queue scenarios (9/9): LỊCH NGHỈ without data cannot be enqueued or selected; one job per tuple under repeated requests; only the confirmed tuple executes with `forceReimport:true`; INCOMPLETE days never carry the flag; default "Chọn tất cả chưa hoàn tất" unchanged; migration idempotent.
+- Tests: default sweep 394/398 with the same 4 pre-existing failures (files byte-identical to `e1132b6`); the default sweep does not execute `test_*.js`, whose Part A suites all pass per file as reported.
+- Findings: N1 (recommended before PO UI check) F1.3/HUE `verifyImport` fails a correct reimport whenever the date has any historical FAILED import_log; N2 repository test gaps (covered by the reviewer's scenarios); N3 report wording; N4 migration not standalone on an empty DB (fails loudly); N5 restart + backup before first real use.
+- Observation for Part B copy: under AB-CALENDAR-01 precedence a holiday-marked day with real data is COMPLETED and can be reimported; only no-data holidays are LỊCH NGHỈ.
+
+Next gate: Part B (Antigravity) may start. No PO PASS is claimed or implied.

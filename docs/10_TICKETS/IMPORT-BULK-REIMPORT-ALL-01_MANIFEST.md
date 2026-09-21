@@ -111,3 +111,12 @@ Product Owner instruction received in chat (2026-09-21) explicitly activated Par
 ### 10.3 Stop condition
 
 `IMPORT-BULK-REIMPORT-ALL-01 PART A IMPLEMENTED / TECHNICAL PASS / READY FOR INDEPENDENT REVIEW`. Per `CLAUDE.md` §2 model discipline (the same model must not both implement and self-approve/self-review a change of this risk level), this stops here for an independent review by a different model (Opus) before any further activation. No PO PASS, technical or UI, is claimed or awarded by this section — PO UI acceptance is separately owned and requires Part B (frontend, Antigravity) first. Part B (the frontend UI split into "Nhập mới"/"Nhập lại", the new `selectedReimportKeys` state, and the confirmation warning UI, §3-§6 of the DoR) remains not implemented.
+
+## 11. Part A Independent Review 001 (2026-09-22, Claude Code/Opus 5)
+
+Status after review: `PART A TECHNICAL PASS (INDEPENDENTLY REVIEWED) / PART B MAY START`. Full record: `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_001.md`.
+
+- No BLOCKER. All six gates plus recovery verified; replacement is exact per indicator/lane/date in all four fact tables (including legacy unlinked rows); other dates, tables and lanes are untouched; old data is restored on mid-transaction failure; LỊCH NGHỈ, dedup and "Chọn tất cả chưa hoàn tất" behave as locked; migration idempotent.
+- Test claim reconciled: 394/398 is accurate for the default sweep (same 4 pre-existing failures), but that sweep does not execute `test_*.js`; the per-suite Part A results reported in Section 10.2 were reproduced exactly.
+- N1 (recommended before PO UI check): `dkclHueF13SyncService.verifyImport()` fails a correct F1.3/HUE reimport whenever the date has any historical FAILED import_log row. N2 test gaps, N3 report wording, N4 migration standalone on empty DB, N5 restart + backup before first real use.
+- Part B (frontend, Antigravity) may start per DoR v2 §3-§6. No PO PASS claimed.

@@ -1000,3 +1000,11 @@ Read-only re-review of the remediation at 72d58e0, limited to Backend Review 002
 | Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_BACKEND_REREVIEW_003.md` | Focused Re-Review (new) | Closes defect B1 (full-population reconciliation, named example, route-total preservation) and minor findings M2-M5; confirms the 198 rows and business data are untouched, F1.3 KPI/ranking unchanged, the 4 failing tests are still pre-existing, and no new defect or performance regression appeared. Unblocks Phase 3 UI. | L2 | `PASS` | Before starting Phase 3 UI. | Mandatory |
+
+## IMPORT-BULK-REIMPORT-ALL-01 Part A Independent Review 001 — 2026-09-22
+
+Read-only independent review of Part A at 0e16c99. Documentation only; no product code, schema or data changed.
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_001.md` | Independent Review (new) | Verifies the six force-reimport gates and recovery, per-table replacement of exactly the selected date and lane (including unlinked legacy rows), isolation of other dates/tables/lanes, restore-on-failure in all four fact tables, LỊCH NGHỈ exclusion, dedup, unchanged "Chọn tất cả chưa hoàn tất", migration, and the 394/398 test claim against baseline. Records N1 (recommended before PO UI check) and N2-N5. | L2 | `PASS (technical)` | Before Part B UI and before the PO UI check. | Mandatory |
