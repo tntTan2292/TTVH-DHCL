@@ -59,9 +59,12 @@ class F41HueSingleDateService {
 
     async runOneDate(businessDate, { portalClient, refreshRequested = false } = {}) {
         const date = normalizeBusinessDate(businessDate);
-        if (refreshRequested) {
-            throw serviceError('F41_HUE_FORCE_REIMPORT_FORBIDDEN', 'F4.1 HUE Auto Backfill never force-overwrites completed data.');
-        }
+        // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4 gate 5):
+        // this used to unconditionally forbid force-reimport. It now proceeds
+        // normally and threads refreshRequested into executeImport() below --
+        // reachable only through the queue layer's confirm_replace_completed
+        // admission path (autoBackfillQueueService.js), never from a normal
+        // "Chọn tất cả chưa hoàn tất" run.
         for (const method of REQUIRED_PORTAL_METHODS) {
             if (typeof portalClient?.[method] !== 'function') {
                 throw serviceError('F41_HUE_PORTAL_CLIENT_INCOMPLETE', `F4.1 HUE requires portalClient.${method}().`);
@@ -113,7 +116,7 @@ class F41HueSingleDateService {
 
         const importResult = await this.executeImport({
             filePath: incomingPath,
-            forceReimport: false,
+            forceReimport: Boolean(refreshRequested),
             source: 'AUTO_BACKFILL_F41_HUE',
             indicator: 'F4.1',
             lane: 'HUE',

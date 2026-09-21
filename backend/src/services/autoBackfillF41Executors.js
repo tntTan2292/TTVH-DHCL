@@ -59,7 +59,10 @@ class F41AutoBackfillExecutor {
             try {
                 return await this.adapter.runOneDate(request.businessDate, {
                     jobId: request.jobId,
-                    refreshRequested: false,
+                    // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2
+                    // §7.4 gate 3): the only place this literal can become true.
+                    // Shared by both F4.1 HUE and TCT executor instances.
+                    refreshRequested: Boolean(request.forceReimport),
                     portalClient,
                 });
             } finally {

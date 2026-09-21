@@ -438,6 +438,45 @@ test('AB-CAL-14 selectable returns every unfinished day of a month, minus holida
     }
 });
 
+test('IMPORT-BULK-REIMPORT-ALL-01 Part A: selectable(includeCompleted) adds COMPLETED to "Chọn tất cả" but LỊCH NGHỈ and PO exception stay excluded (Design of Record v2 §7.1)', async () => {
+    const db = await createFixture();
+    try {
+        await markHoliday(db, '2026-01-03', 'Nghỉ lễ');
+        await db.run(`INSERT INTO auto_backfill_coverage_exception
+            (id, indicator, source_lane, business_date, exception_type, status, reason, registry_version, created_by, created_at)
+            VALUES ('exc-2', 'F9.TEST', 'HUE', '2026-01-04', 'PO_EXEMPTED', 'ACTIVE', 'PO xác nhận', 'test', 'admin', ?)`,
+            [new Date().toISOString()]);
+
+        const result = await selectableWith(
+            db,
+            new Map([['F9.TEST|HUE|2026-01-05', 'SUCCESS']]),
+            { month: '2026-01', includeCompleted: true },
+        );
+
+        assert.equal(result.include_completed, true);
+        assert.equal(result.excluded_complete, 0, 'a COMPLETED day is no longer reported as excluded once it is included');
+        assert.deepEqual(result.excluded_holiday.map((row) => row.business_date), ['2026-01-03'], 'holiday exclusion is unaffected');
+        assert.deepEqual(result.excluded_exception.map((row) => row.business_date), ['2026-01-04'], 'PO exception exclusion is unaffected');
+
+        const dates = result.items.map((item) => item.business_date);
+        assert.equal(dates.length, 29, '28 unfinished + the 1 now-included COMPLETED day');
+        assert.ok(dates.includes('2026-01-05'), 'the COMPLETED day must now be selectable');
+        assert.ok(!dates.includes('2026-01-03'), 'holiday must never be selected, even with includeCompleted');
+        assert.ok(!dates.includes('2026-01-04'), 'exempted day must never be selected, even with includeCompleted');
+        const completedItem = result.items.find((item) => item.business_date === '2026-01-05');
+        assert.equal(completedItem.status, 'COMPLETED');
+
+        // Default (includeCompleted omitted) is byte-for-byte the original "Chọn
+        // tất cả chưa hoàn tất" behavior -- PO decision 1.
+        const unchanged = await selectableWith(db, new Map([['F9.TEST|HUE|2026-01-05', 'SUCCESS']]), { month: '2026-01' });
+        assert.equal(unchanged.include_completed, false);
+        assert.equal(unchanged.excluded_complete, 1);
+        assert.ok(!unchanged.items.map((item) => item.business_date).includes('2026-01-05'));
+    } finally {
+        await db.close();
+    }
+});
+
 test('AB-CAL-15 selectable scopes to one month and rejects a malformed month', async () => {
     const db = await createFixture();
     try {
@@ -521,6 +560,15 @@ test('AB-CAL-17 the coverage controller exposes selectable and surfaces its erro
         assert.equal(okRes.body.success, true);
         assert.equal(okRes.body.data.excluded_holiday.length, 1);
         assert.ok(!okRes.body.data.items.some((item) => item.business_date === '2026-01-03'));
+        assert.equal(okRes.body.data.include_completed, false, 'default request stays byte-for-byte "Chọn tất cả chưa hoàn tất"');
+
+        // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.1): the
+        // controller forwards include_completed=true through to the service.
+        const includeCompletedRes = createRes();
+        await controller.getSelectable({ auth, query: { month: '2026-01', include_completed: 'true' } }, includeCompletedRes);
+        assert.equal(includeCompletedRes.statusCode, 200);
+        assert.equal(includeCompletedRes.body.data.include_completed, true);
+        assert.equal(includeCompletedRes.body.data.excluded_holiday.length, 1, 'holiday exclusion still applies with include_completed');
 
         const badRes = createRes();
         await controller.getSelectable({ auth, query: { month: 'thang-1' } }, badRes);

@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
+const { applyImportBulkReimportAll01Schema } = require('./migrate_import_bulk_reimport_all_01_schema');
 const { AutoBackfillCoverageService } = require('./src/services/autoBackfillCoverageService');
 const { AutoBackfillExecutorRegistry } = require('./src/services/autoBackfillExecutorRegistry');
 const {
@@ -262,6 +263,7 @@ test('persisted F1.3 work is executable after restart and the global lease preve
     const dbPath = path.join(os.tmpdir(), `f13-executor-queue-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
+    await applyImportBulkReimportAll01Schema(dbPath);
     const statuses = new Map();
     const session = createSessionHarness();
     const started = deferred();
@@ -333,6 +335,7 @@ test('external SUCCESS before lease skips the F1.3 executor', async () => {
     const dbPath = path.join(os.tmpdir(), `f13-success-skip-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
+    await applyImportBulkReimportAll01Schema(dbPath);
     const statuses = new Map([['F1.3|TCT|2026-01-01', 'SUCCESS']]);
     let calls = 0;
     const session = createSessionHarness();

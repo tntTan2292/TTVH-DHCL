@@ -306,8 +306,35 @@ function validateIndicatorRegistration(indicator, registryKey = indicator?.code)
     return indicator;
 }
 
+// IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §8.2) — a forced
+// reimport's delete correctness relies on exactly one (indicator, lane) pair
+// ever writing to a given lane.targetTable (table selection alone provides
+// full lane isolation, so the delete itself can safely stay scoped by date
+// only). Checked once per registry validation, so any future registration
+// that violates this invariant fails at module load (this file already calls
+// validateIndicatorRegistry() with no arguments below) instead of silently
+// risking a cross-lane delete.
+function assertUniqueTargetTables(registry) {
+    const owners = new Map();
+    for (const [indicatorCode, indicator] of Object.entries(registry)) {
+        for (const [laneCode, lane] of Object.entries(indicator.lanes || {})) {
+            const table = lane.targetTable;
+            const owner = owners.get(table);
+            if (owner) {
+                throw new Error(
+                    `Registry invariant violated: targetTable '${table}' is declared by both ` +
+                    `${owner.indicatorCode}.${owner.laneCode} and ${indicatorCode}.${laneCode}. ` +
+                    `Each (indicator, lane) pair must write to its own dedicated table.`
+                );
+            }
+            owners.set(table, { indicatorCode, laneCode });
+        }
+    }
+}
+
 function validateIndicatorRegistry(registry = INDICATORS) {
     for (const [key, indicator] of Object.entries(registry)) validateIndicatorRegistration(indicator, key);
+    assertUniqueTargetTables(registry);
     return registry;
 }
 
@@ -419,6 +446,7 @@ module.exports = {
     createFilenameDateRule,
     validateIndicatorRegistration,
     validateIndicatorRegistry,
+    assertUniqueTargetTables,
     normalizeIndicator,
     normalizeLane,
     getIndicatorConfig,

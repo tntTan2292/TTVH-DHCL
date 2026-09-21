@@ -15,6 +15,7 @@ process.env.QIS_TEST_DATA_ROOT_F41 = path.join(sandbox, 'F4.1');
 
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
+const { applyImportBulkReimportAll01Schema } = require('./migrate_import_bulk_reimport_all_01_schema');
 const { applyF41Phase1Schema } = require('./migrate_f41_phase1_schema');
 const { applyF41Phase2Schema } = require('./migrate_f41_phase2_schema');
 const { all, db, get } = require('./src/config/db');
@@ -89,7 +90,7 @@ function assignCells(row, cells) {
     for (const [index, value] of cells) row[index] = value;
 }
 
-function writeTctWorkbook(filePath) {
+function writeTctWorkbook(filePath, { unit53Total = 4684 } = {}) {
     const header = Array(38).fill(null);
     assignCells(header, [
         [0, 'TT'], [1, 'Mã tỉnh'], [2, 'Tên tỉnh'], [3, 'Mã huyện'], [4, 'Tên huyện'],
@@ -135,7 +136,7 @@ function writeTctWorkbook(filePath) {
         for (const countIndex of TCT_COUNT_INDEXES) row[countIndex] = 0;
         for (const rateIndex of rateIndexes) row[rateIndex] = '0.00%';
         if (code === '53') {
-            row[10] = 4684;
+            row[10] = unit53Total;
             row[27] = 2863;
             row[28] = '61.12%';
         }
@@ -209,11 +210,11 @@ function makeF41QueueService({ dbPath, statuses, executorRegistry, workerId }) {
     });
 }
 
-function writeHueWorkbook(filePath) {
+function writeHueWorkbook(filePath, { idPrefix = 'F41-HUE' } = {}) {
     const headers = Object.keys(F41_HUE_COLUMN_MAPPING);
     const rows = [
-        { id: 'F41-HUE-001', assessment: 'Đạt' },
-        { id: 'F41-HUE-002', assessment: 'Không đạt' },
+        { id: `${idPrefix}-001`, assessment: 'Đạt' },
+        { id: `${idPrefix}-002`, assessment: 'Không đạt' },
     ].map((fixture, index) => headers.map((header) => {
         if (header === 'STT') return index + 1;
         if (header === 'Số hiệu bưu gửi') return fixture.id;
@@ -386,10 +387,27 @@ test('F4.1 HUE fake export uses verified identity, existing Import pipeline, and
     });
     assert.equal(completion.status, 'SUCCESS');
 
-    await assert.rejects(
-        service.runOneDate('2026-08-02', { portalClient, refreshRequested: true }),
-        (error) => error.code === 'F41_HUE_FORCE_REIMPORT_FORBIDDEN'
-    );
+    // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4 gate 5):
+    // refreshRequested:true is no longer unconditionally forbidden here. Proven
+    // as a real delete-then-insert replace, not a passive no-throw: reimporting
+    // the same 2026-08-01 date with a different fixture (different ma_bg
+    // values) must leave exactly 2 rows again, the new ones, not 4 (old +
+    // new merged) -- which is what would happen if the DELETE never ran.
+    const replacementPortalClient = {
+        ...portalClient,
+        async downloadXlsx({ file, targetDir }) {
+            calls.push(['download-replacement', file.filename]);
+            fs.mkdirSync(targetDir, { recursive: true });
+            const filePath = path.join(targetDir, file.filename);
+            writeHueWorkbook(filePath, { idPrefix: 'F41-HUE-REPLACED' });
+            return filePath;
+        },
+    };
+    const replaced = await service.runOneDate('2026-08-01', { portalClient: replacementPortalClient, refreshRequested: true });
+    assert.equal(replaced.status, 'SUCCESS');
+    assert.equal((await get("SELECT COUNT(*) AS n FROM fact_f41 WHERE ngay_do_kiem = '2026-08-01'")).n, 2);
+    assert.equal((await get("SELECT COUNT(*) AS n FROM fact_f41 WHERE ngay_do_kiem = '2026-08-01' AND ma_bg = 'F41-HUE-001'")).n, 0);
+    assert.equal((await get("SELECT COUNT(*) AS n FROM fact_f41 WHERE ngay_do_kiem = '2026-08-01' AND ma_bg = 'F41-HUE-REPLACED-001'")).n, 1);
 });
 
 test('F4.1 TCT fake export preserves 46/34 population, raw percentages, and exact completion evidence', async () => {
@@ -459,16 +477,35 @@ test('F4.1 TCT fake export preserves 46/34 population, raw percentages, and exac
     });
     assert.equal(completion.status, 'SUCCESS');
 
-    await assert.rejects(
-        service.runOneDate('2026-08-02', { portalClient, refreshRequested: true }),
-        (error) => error.code === 'F41_TCT_FORCE_REIMPORT_FORBIDDEN'
-    );
+    // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4 gate 5):
+    // refreshRequested:true is no longer unconditionally forbidden here. Proven
+    // as a real delete-then-insert replace, not a passive no-throw: unit '53'
+    // keeps the same ma_don_vi both times (so a missing DELETE would make the
+    // second INSERT OR IGNORE silently drop every row instead of updating the
+    // value), yet the final row reflects the second import's value and the
+    // total row count for the date stays 34, not 68.
+    const replacementPortalClient = {
+        ...portalClient,
+        async downloadXlsx({ file, targetDir }) {
+            calls.push(['download-replacement', file.filename]);
+            fs.mkdirSync(targetDir, { recursive: true });
+            const filePath = path.join(targetDir, file.filename);
+            writeTctWorkbook(filePath, { unit53Total: 9999 });
+            return filePath;
+        },
+    };
+    const replaced = await service.runOneDate('2026-08-01', { portalClient: replacementPortalClient, refreshRequested: true });
+    assert.equal(replaced.status, 'SUCCESS');
+    assert.equal((await get("SELECT COUNT(*) AS n FROM fact_f41_national WHERE ngay_do_kiem = '2026-08-01'")).n, 34);
+    const replacedUnit = await get("SELECT sl_ptc_nop_tien_ch AS total FROM fact_f41_national WHERE ngay_do_kiem = '2026-08-01' AND ma_don_vi = '53'");
+    assert.equal(replacedUnit.total, 9999);
 });
 
 test('F4.1 HUE queued work externally completed before lease skips executor', async () => {
     const queueDbPath = path.join(sandbox, 'queue-skip.sqlite');
     await applyAutoBackfillQueueSchema(queueDbPath);
     await applyAutoBackfillSafetySchema(queueDbPath);
+    await applyImportBulkReimportAll01Schema(queueDbPath);
     const statuses = new Map();
     let executions = 0;
     const filenameDateRule = createFilenameDateRule({ id: 'F41_HUE_TEST_DATE', prefix: 'F4.1', parse: () => '2026-01-01' });
@@ -520,6 +557,7 @@ test('F4.1 TCT queued work externally completed before lease skips executor', as
     const queueDbPath = path.join(sandbox, 'queue-tct-skip.sqlite');
     await applyAutoBackfillQueueSchema(queueDbPath);
     await applyAutoBackfillSafetySchema(queueDbPath);
+    await applyImportBulkReimportAll01Schema(queueDbPath);
     const statuses = new Map();
     let executions = 0;
     const executorRegistry = new AutoBackfillExecutorRegistry();
@@ -537,6 +575,7 @@ test('shared global lease prevents concurrent F4.1 HUE and TCT execution', async
     const queueDbPath = path.join(sandbox, 'queue-f41-global-lease.sqlite');
     await applyAutoBackfillQueueSchema(queueDbPath);
     await applyAutoBackfillSafetySchema(queueDbPath);
+    await applyImportBulkReimportAll01Schema(queueDbPath);
     const statuses = new Map();
     const started = deferred();
     const release = deferred();

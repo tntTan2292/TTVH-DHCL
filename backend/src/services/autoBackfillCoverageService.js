@@ -347,8 +347,16 @@ class AutoBackfillCoverageService {
      * The keys are `indicator|source_lane|business_date`, matching the
      * operator panel's own item key, so the frontend can seed its selection
      * directly and cover every page of a month at once.
+     *
+     * IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.1, PO decision
+     * 3): `includeCompleted` backs the new "Chọn tất cả" button, which must
+     * also be able to select `COMPLETED` days for "Nhập lại". It only widens
+     * the status filter from `{INCOMPLETE, DATA_ERROR}` to `{COMPLETED,
+     * INCOMPLETE, DATA_ERROR}` -- `EXCLUDED` (holiday and PO exception alike)
+     * is never included, unchanged from today, and `excluded_holiday`/
+     * `excluded_exception` are unaffected either way.
      */
-    async selectable({ indicator = null, lane = null, month = null, roles = null } = {}) {
+    async selectable({ indicator = null, lane = null, month = null, roles = null, includeCompleted = false } = {}) {
         const monthFilter = month === null || month === undefined || month === '' || month === 'ALL'
             ? null
             : String(month).trim();
@@ -359,6 +367,7 @@ class AutoBackfillCoverageService {
         const coverage = await this.scan({ indicator, lane, roles });
         const inMonth = (item) => monthFilter === null || item.business_date.startsWith(`${monthFilter}-`);
         const scoped = coverage.items.filter(inMonth);
+        const isCandidate = (item) => item.counts_as_unprocessed || (includeCompleted && item.status === 'COMPLETED');
 
         return {
             registry_version: coverage.registry_version,
@@ -368,9 +377,10 @@ class AutoBackfillCoverageService {
             indicator: indicator ? String(indicator).trim().toUpperCase() : 'ALL',
             lane: lane ? String(lane).trim().toUpperCase() : 'ALL',
             month: monthFilter || 'ALL',
+            include_completed: Boolean(includeCompleted),
             total_candidates: scoped.length,
             items: scoped
-                .filter((item) => item.counts_as_unprocessed)
+                .filter(isCandidate)
                 .map((item) => ({
                     key: `${item.indicator}|${item.source_lane}|${item.business_date}`,
                     indicator: item.indicator,
@@ -394,7 +404,9 @@ class AutoBackfillCoverageService {
                     business_date: item.business_date,
                     exception_type: item.exception.exception_type,
                 })),
-            excluded_complete: scoped.filter((item) => item.status === 'COMPLETED').length,
+            // Deliberately 0 once includeCompleted is true: those days are no
+            // longer excluded, they are now in `items` above.
+            excluded_complete: includeCompleted ? 0 : scoped.filter((item) => item.status === 'COMPLETED').length,
         };
     }
 }

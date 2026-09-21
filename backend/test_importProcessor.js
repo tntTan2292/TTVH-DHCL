@@ -17,7 +17,8 @@ process.env.QIS_TEST_DB_PATH = sandbox.dbPath;
 const xlsx = require('xlsx');
 const { run, all, get, db, dbPath, operationalDbPath } = require('./src/config/db');
 const { parseF13Excel, DB_COLUMNS }   = require('./src/services/excelParser');
-const { importParsedData }            = require('./src/services/importProcessor');
+const { importParsedData, importNationalParsedData } = require('./src/services/importProcessor');
+const { NATIONAL_DB_COLUMNS }         = require('./src/services/nationalExcelParser');
 
 const TEST_DATE     = '2000-01-01';
 const TEST_FILENAME = 'F1.3-2000.01.01.xlsx';
@@ -216,6 +217,45 @@ async function runTests() {
     }
 
     // =========================================================================
+    // TEST 3A2: IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §8.3)
+    // forceReimport failing mid-transaction (after the DELETE, before COMMIT)
+    // must restore the pre-reimport data exactly — "lỗi giữa chừng phải khôi
+    // phục dữ liệu cũ". Uses the existing failBeforeSuccessLogUpdate testing
+    // hook to fail deterministically after Step 3 (INSERT) but before COMMIT.
+    // =========================================================================
+    console.log('\n📋 TEST 3A2: forceReimport failure mid-transaction restores the old data (rollback)');
+    try {
+        const beforeRows = await all('SELECT ma_bg FROM fact_f13 WHERE ngay_do_kiem = ? ORDER BY ma_bg', [TEST_DATE]);
+        const beforeBgs = beforeRows.map((r) => r.ma_bg);
+        assert('Before: reimport-failure test has existing rows to protect', beforeBgs.length > 0, `Got: ${JSON.stringify(beforeBgs)}`);
+
+        let thrown = null;
+        try {
+            await importParsedData({
+                parsedData: [makeRow('BG_SHOULD_NOT_SURVIVE', 'BC_NEW', 'BCVH NEW', 'Đạt')],
+                ngay_do_kiem: TEST_DATE,
+                filename: TEST_FILENAME,
+                forceReimport: true,
+                failBeforeSuccessLogUpdate: true,
+            });
+        } catch (e) {
+            thrown = e;
+        }
+        assert('forceReimport + simulated failure throws', thrown && thrown.code === 'SIMULATED_IMPORT_TRANSACTION_FAILURE', thrown && thrown.message);
+
+        const afterRows = await all('SELECT ma_bg FROM fact_f13 WHERE ngay_do_kiem = ? ORDER BY ma_bg', [TEST_DATE]);
+        const afterBgs = afterRows.map((r) => r.ma_bg);
+        assert('After: the exact same old rows are back (DELETE was rolled back)', JSON.stringify(afterBgs) === JSON.stringify(beforeBgs), `Before: ${JSON.stringify(beforeBgs)}, After: ${JSON.stringify(afterBgs)}`);
+        assert('After: the new row never survived the rollback', !afterBgs.includes('BG_SHOULD_NOT_SURVIVE'));
+
+        const failLog = await getLatestLog();
+        assert('A FAILED import_log row was written outside the rolled-back transaction', failLog && failLog.status === 'FAILED', failLog && failLog.status);
+    } catch (e) {
+        console.error('  TEST 3A2 UNEXPECTED ERROR:', e.message);
+        failed++;
+    }
+
+    // =========================================================================
     // TEST 3B: Future import date rejected before fact_f13 write
     // =========================================================================
     console.log('\n📋 TEST 3B: Future import date rejected before fact_f13 write');
@@ -382,6 +422,63 @@ async function runTests() {
 
     } catch (e) {
         console.error('  TEST 5 UNEXPECTED ERROR:', e.message);
+        failed++;
+    }
+
+    // =========================================================================
+    // TEST 6: IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §8.2-§8.3)
+    // importNationalParsedData (fact_f13_national) has no import_log_id column
+    // at all -- the exact case that made DoR v1's proposed import_log_id-scoped
+    // delete unsound (Checkpoint §12). Verifies the corrected, date-scoped
+    // delete actually replaces (not merges with) old data on forceReimport, and
+    // that a second, non-forced additive import for a fresh date is unaffected.
+    // =========================================================================
+    console.log('\n📋 TEST 6: importNationalParsedData (fact_f13_national) forceReimport replace, no import_log_id needed');
+    function makeNationalRow(ma_tinh_phat, sl_bg_ptc) {
+        const row = {};
+        for (const col of NATIONAL_DB_COLUMNS) row[col] = null;
+        row.ma_tinh_phat = ma_tinh_phat;
+        row.ten_tinh_phat = `Tinh ${ma_tinh_phat}`;
+        row.sl_bg_ptc = sl_bg_ptc;
+        return row;
+    }
+    const NATIONAL_TEST_DATE = '2000-02-02';
+    const NATIONAL_TEST_FILENAME = 'F1.3-2000.02.02-TCT.xlsx';
+    try {
+        await run('DELETE FROM fact_f13_national WHERE ngay_do_kiem = ?', [NATIONAL_TEST_DATE]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem = ? AND source_lane = ?', [NATIONAL_TEST_DATE, 'TCT']);
+
+        const first = await importNationalParsedData({
+            parsedData: [makeNationalRow('10', 100), makeNationalRow('16', 200)],
+            ngay_do_kiem: NATIONAL_TEST_DATE,
+            filename: NATIONAL_TEST_FILENAME,
+            forceReimport: false,
+        });
+        assert('First national import: inserted = 2', first.inserted === 2, `Got: ${first.inserted}`);
+        const afterFirst = await get('SELECT COUNT(*) AS n FROM fact_f13_national WHERE ngay_do_kiem = ?', [NATIONAL_TEST_DATE]);
+        assert('DB: 2 rows after first national import', afterFirst.n === 2, `Got: ${afterFirst.n}`);
+
+        // forceReimport with a DIFFERENT set of province codes must leave
+        // exactly the new set, not the old rows plus the new ones -- proving
+        // the plain date-scoped DELETE (no import_log_id join) actually ran.
+        const replaced = await importNationalParsedData({
+            parsedData: [makeNationalRow('18', 300), makeNationalRow('20', 400), makeNationalRow('22', 500)],
+            ngay_do_kiem: NATIONAL_TEST_DATE,
+            filename: NATIONAL_TEST_FILENAME,
+            forceReimport: true,
+        });
+        assert('Reimport: inserted = 3', replaced.inserted === 3, `Got: ${replaced.inserted}`);
+        const afterReplace = await all('SELECT ma_tinh_phat FROM fact_f13_national WHERE ngay_do_kiem = ? ORDER BY ma_tinh_phat', [NATIONAL_TEST_DATE]);
+        const codes = afterReplace.map((r) => r.ma_tinh_phat);
+        assert('DB: exactly 3 rows after reimport (old 2 replaced, not merged)', codes.length === 3, `Got: ${JSON.stringify(codes)}`);
+        assert('Old province 10 is gone', !codes.includes('10'), `Got: ${JSON.stringify(codes)}`);
+        assert('Old province 16 is gone', !codes.includes('16'), `Got: ${JSON.stringify(codes)}`);
+        assert('New province 18 is present', codes.includes('18'), `Got: ${JSON.stringify(codes)}`);
+
+        await run('DELETE FROM fact_f13_national WHERE ngay_do_kiem = ?', [NATIONAL_TEST_DATE]);
+        await run('DELETE FROM import_log WHERE ngay_do_kiem = ? AND source_lane = ?', [NATIONAL_TEST_DATE, 'TCT']);
+    } catch (e) {
+        console.error('  TEST 6 UNEXPECTED ERROR:', e.message);
         failed++;
     }
 

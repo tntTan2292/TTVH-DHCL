@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
+const { applyImportBulkReimportAll01Schema } = require('./migrate_import_bulk_reimport_all_01_schema');
 const {
     DEFAULT_PERMISSIONS,
     DEFAULT_RETRY_POLICY,
@@ -107,6 +108,7 @@ async function fixture({ execute, sessionValid = () => true, startDate, lanes, n
     const dbPath = path.join(os.tmpdir(), `auto-backfill-safety-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
+    await applyImportBulkReimportAll01Schema(dbPath);
     const statuses = new Map();
     const clockState = { now: new Date(now) };
     const indicator = createIndicator({ statuses, startDate, lanes, retryPolicy });

@@ -64,9 +64,12 @@ class F41TctSingleDateService {
 
     async runOneDate(businessDate, { portalClient, refreshRequested = false } = {}) {
         const date = normalizeBusinessDate(businessDate);
-        if (refreshRequested) {
-            throw serviceError('F41_TCT_FORCE_REIMPORT_FORBIDDEN', 'F4.1 TCT Auto Backfill never force-overwrites completed data.');
-        }
+        // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4 gate 5):
+        // this used to unconditionally forbid force-reimport. It now proceeds
+        // normally and threads refreshRequested into executeImport() below --
+        // reachable only through the queue layer's confirm_replace_completed
+        // admission path (autoBackfillQueueService.js), never from a normal
+        // "Chọn tất cả chưa hoàn tất" run.
         for (const method of REQUIRED_PORTAL_METHODS) {
             if (typeof portalClient?.[method] !== 'function') {
                 throw serviceError('F41_TCT_PORTAL_CLIENT_INCOMPLETE', `F4.1 TCT requires portalClient.${method}().`);
@@ -126,7 +129,7 @@ class F41TctSingleDateService {
 
         const importResult = await this.executeImport({
             filePath: incomingPath,
-            forceReimport: false,
+            forceReimport: Boolean(refreshRequested),
             source: 'AUTO_BACKFILL_F41_TCT',
             indicator: 'F4.1',
             lane: 'TCT',

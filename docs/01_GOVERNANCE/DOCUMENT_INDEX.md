@@ -919,6 +919,15 @@ Ticket remains `DISCOVERED / NOT ACTIVATED` for design or implementation; only t
 
 Ticket remains `NOT ACTIVATED` for implementation; design-only remediation, per explicit Product Owner/CTO chat instruction. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
 
+## IMPORT-BULK-REIMPORT-ALL-01 Part A Implementation — Backend/Data/Tests — 2026-09-21
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` | Ticket Manifest (Section 10 appended) | Implements Design of Record v2 exactly: `includeCompleted` on `selectable()`, `confirm_replace_completed` on `createRun()`, new `auto_backfill_job.force_reimport` column and all 6 propagation gates, the corrected date-scoped delete plus post-delete/post-write verification in `importProcessor.js`, and the registry `targetTable` uniqueness assertion. Backend/data/tests only — no frontend change (Part B, not yet implemented). | L2 | `PART A IMPLEMENTED / TECHNICAL PASS / READY FOR INDEPENDENT REVIEW` | Required reading before any independent (Opus) review or further activation. | Reference |
+| `backend/migrate_import_bulk_reimport_all_01_schema.js` | Migration (new) | Additive, idempotent: adds `auto_backfill_job.force_reimport INTEGER NOT NULL DEFAULT 0`. Wired into `server.js`'s startup migrations. | L2 | `IMPLEMENTED` | Reference only. | Reference |
+
+Validation: full backend sweep `node --experimental-sqlite --test` 394/398 (the same 4 pre-existing, environmental HTTP-server-dependent failures already on record, unrelated to this ticket); `test_importProcessor.js` 71/71 including new forced-reimport-rollback and `fact_f13_national`-replace tests. No Browser/Playwright used; no real/operational database write. Stops at Technical Pass, awaiting an independent review by a different model (Opus) per `CLAUDE.md` §2 model discipline — no PO PASS claimed. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected by this change.
+
 
 ## ADMIN-USER-MODULE-ACCESS-01 Registration — 2026-09-15
 

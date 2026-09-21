@@ -97,7 +97,7 @@ class AutoBackfillQueueService {
         return { indicator, lane };
     }
 
-    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, includeExcluded = false, actor, roles }) {
+    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, includeExcluded = false, confirmReplaceCompleted = false, actor, roles }) {
         assertAdmin(roles);
         const range = normalizeOptionalDateRange(fromDate, toDate);
         // AB-CALENDAR-01 D1 (design Section 4.2): include_excluded is accepted only
@@ -109,6 +109,17 @@ class AutoBackfillQueueService {
             throw queueError(
                 'AUTO_BACKFILL_INCLUDE_EXCLUDED_REQUIRES_SINGLE_TUPLE',
                 'include_excluded requires exactly one indicator, one source lane and one business date (from_date === to_date).',
+                400,
+            );
+        }
+        // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.2/§7.3, PO
+        // decision 4): confirm_replace_completed is accepted only for the same
+        // single-tuple shape include_excluded already requires -- one indicator,
+        // one source lane, one business date.
+        if (confirmReplaceCompleted && !isSingleTupleRequest) {
+            throw queueError(
+                'AUTO_BACKFILL_CONFIRM_REPLACE_REQUIRES_SINGLE_TUPLE',
+                'confirm_replace_completed requires exactly one indicator, one source lane and one business date (from_date === to_date).',
                 400,
             );
         }
@@ -125,9 +136,20 @@ class AutoBackfillQueueService {
                 && registeredLane.automationMode === 'AUTOMATED'
                 && item.completion_status === COMPLETION_STATUSES.MISSING;
         };
+        // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.3): a
+        // COMPLETED day for a PAUSED indicator or a MANUAL_ONLY lane must not
+        // become reimportable through this flag, exactly as a holiday day
+        // can't today. No raw-completion-status precondition applies here
+        // (unlike isReadmissibleExcluded, which requires MISSING) -- the whole
+        // point of this admission path is that the raw status is SUCCESS.
+        const isReadmissibleCompleted = (item) => {
+            if (!confirmReplaceCompleted || item.status !== 'COMPLETED') return false;
+            const { indicator: registeredIndicator, lane: registeredLane } = this.findRegistration(item.indicator, item.source_lane);
+            return registeredIndicator.status === 'ACTIVE' && registeredLane.automationMode === 'AUTOMATED';
+        };
         const eligible = coverage.items
             .filter(inRange)
-            .filter((item) => item.queue_eligible || isReadmissibleExcluded(item));
+            .filter((item) => item.queue_eligible || isReadmissibleExcluded(item) || isReadmissibleCompleted(item));
         if (eligible.length === 0) {
             throw queueError(
                 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE',
@@ -162,6 +184,11 @@ class AutoBackfillQueueService {
                     sourceLane: item.source_lane,
                     resourceIdentity: adapter.resourceIdentity,
                 }),
+                // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4):
+                // the single source of truth for "this is a confirmed Nhập lại
+                // job" -- set only here, through isReadmissibleCompleted(), never
+                // re-derived downstream.
+                forceReimport: isReadmissibleCompleted(item),
             };
         });
         jobs.sort((left, right) =>
@@ -356,10 +383,17 @@ class AutoBackfillQueueService {
         const job = await this.store.acquireNextJob(this.workerId);
         if (!job) return null;
 
+        // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4 gate 1): the
+        // single source of truth for whether this attempt may overwrite a
+        // SUCCESS date. Read once so every gate below (this recheck, the
+        // executor call, and the error-path recheck) agrees on the same value
+        // for the whole attempt.
+        const forceReimport = Boolean(job.force_reimport);
+
         let heartbeat = null;
         try {
             const before = await this.evaluateCompletion(job);
-            if (before.status === COMPLETION_STATUSES.SUCCESS) {
+            if (before.status === COMPLETION_STATUSES.SUCCESS && !forceReimport) {
                 await this.store.completeLeasedJob(job.id, job.lease_token, {
                     state: 'SKIPPED_ALREADY_SUCCESS',
                     reasonCode: 'COMPLETION_CONFIRMED_BEFORE_EXECUTION',
@@ -367,7 +401,13 @@ class AutoBackfillQueueService {
                 });
                 return { jobId: job.id, state: 'SKIPPED_ALREADY_SUCCESS' };
             }
-            if (before.status !== COMPLETION_STATUSES.MISSING) {
+            // A force_reimport job is allowed to proceed on SUCCESS (that is the
+            // whole point of this attempt); every other job, and every status
+            // other than MISSING/SUCCESS-with-force_reimport, still requires
+            // manual review exactly as before.
+            const beforeIsExecutable = before.status === COMPLETION_STATUSES.MISSING
+                || (forceReimport && before.status === COMPLETION_STATUSES.SUCCESS);
+            if (!beforeIsExecutable) {
                 const completionError = new Error(`Completion state ${before.status} requires manual review.`);
                 completionError.code = `COMPLETION_${before.status}`;
                 completionError.autoBackfill = { classification: 'DATA' };
@@ -390,6 +430,10 @@ class AutoBackfillQueueService {
                 sourceLane: job.source_lane,
                 businessDate: job.business_date,
                 jobId: job.id,
+                // Design of Record v2 §7.4 gate 2/3: the only place the executor
+                // chain's forceReimport/refreshRequested literal can become
+                // true. Every other Auto-Backfill call path keeps this false.
+                forceReimport,
             });
             if (simulateCrashAfterExecutor) return { jobId: job.id, state: 'SIMULATED_CRASH' };
 
@@ -410,7 +454,15 @@ class AutoBackfillQueueService {
             return { jobId: job.id, state: 'SUCCESS' };
         } catch (error) {
             try {
-                const completion = await this.evaluateCompletion(job).catch(() => null);
+                // Design of Record v2 §7.4 gate 6 / §7.5: for a force_reimport
+                // job, a SUCCESS completion here is ambiguous -- it can mean the
+                // reimport actually finished, or that the old (stale) data is
+                // still sitting there untouched, since both read identically.
+                // Never resolve a force_reimport job as "already done" from this
+                // same-attempt guess; always fall through to normal failure/retry
+                // classification instead, mirroring recoverInterruptedWork()'s
+                // crash-recovery rule below.
+                const completion = forceReimport ? null : await this.evaluateCompletion(job).catch(() => null);
                 if (completion?.status === COMPLETION_STATUSES.SUCCESS) {
                     await this.store.completeLeasedJob(job.id, job.lease_token, {
                         state: 'SKIPPED_ALREADY_SUCCESS',
@@ -460,11 +512,21 @@ class AutoBackfillQueueService {
             if (!job) break;
             try {
                 const completion = await this.evaluateCompletion(job);
-                const completed = completion.status === COMPLETION_STATUSES.SUCCESS;
+                // Design of Record v2 §7.5: a force_reimport job is NEVER
+                // resolved as complete via this generic completion match --
+                // SUCCESS here is ambiguous (it can mean the reimport actually
+                // finished, or that the untouched pre-reimport data is still
+                // there). Always requeue instead; the next attempt's
+                // pre-execution recheck (processNext() gate 1) re-establishes
+                // correctness from a fresh, provably-clean start.
+                const completed = !job.force_reimport && completion.status === COMPLETION_STATUSES.SUCCESS;
+                const reasonCode = job.force_reimport
+                    ? 'RECOVERY_FORCE_REIMPORT_ALWAYS_REQUEUED'
+                    : (completed ? 'RECOVERY_COMPLETION_CONFIRMED' : 'RECOVERY_COMPLETION_MISSING');
                 const state = await this.store.resolveRecovery(job.id, {
                     completed,
                     evidence: completion.evidence,
-                    reasonCode: completed ? 'RECOVERY_COMPLETION_CONFIRMED' : 'RECOVERY_COMPLETION_MISSING',
+                    reasonCode,
                 });
                 recovered.push({ jobId: job.id, state });
             } catch (error) {

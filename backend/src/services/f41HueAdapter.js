@@ -9,7 +9,11 @@ class F41HueAdapter {
     runOneDate(businessDate, context = {}) {
         return this.service.runOneDate(businessDate, {
             portalClient: context.portalClient || null,
-            refreshRequested: false,
+            // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4 gate
+            // 4): this used to silently drop context.refreshRequested and
+            // always send false, which would have made the executor-level fix
+            // (autoBackfillF41Executors.js) a no-op for F4.1/HUE.
+            refreshRequested: Boolean(context.refreshRequested),
         });
     }
 }

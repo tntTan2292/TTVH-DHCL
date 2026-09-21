@@ -114,7 +114,12 @@ class F13AutoBackfillExecutor {
         try {
             const result = await this.adapter.runOneDate(request.businessDate, {
                 queueId: request.jobId,
-                refreshRequested: false,
+                // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4
+                // gate 2): the only place this literal can become true, and only
+                // when the queue layer's confirm_replace_completed admission
+                // path set it. Shared by both the HUE and TCT F1.3 executor
+                // instances (this one method body, injected adapter).
+                refreshRequested: Boolean(request.forceReimport),
                 portalClient,
             });
             return source === 'HUE' ? this.awaitHueResult(result) : result;

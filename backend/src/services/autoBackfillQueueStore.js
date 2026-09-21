@@ -205,13 +205,14 @@ class AutoBackfillQueueStore {
 
             for (const job of availableJobs) {
                 const jobId = crypto.randomUUID();
+                const forceReimport = Boolean(job.forceReimport);
                 await run(
                     db,
                     `INSERT INTO auto_backfill_job
                         (id, run_id, indicator, source_lane, business_date, state,
                          indicator_priority, lane_priority, completion_policy_id, executor_id,
-                         resource_identity, circuit_scope_key, registry_version, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                         resource_identity, circuit_scope_key, registry_version, force_reimport, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         jobId,
                         runId,
@@ -225,6 +226,7 @@ class AutoBackfillQueueStore {
                         job.resourceIdentity,
                         job.circuitScopeKey,
                         spec.registryVersion,
+                        forceReimport ? 1 : 0,
                         now,
                         now,
                     ],
@@ -234,7 +236,12 @@ class AutoBackfillQueueStore {
                     jobId,
                     eventType: 'JOB_CREATED',
                     toState: 'QUEUED',
-                    reasonCode: 'COVERAGE_ITEM_QUEUE_ELIGIBLE',
+                    // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §9):
+                    // a distinct reason code so the append-only event log can
+                    // tell an intentional data-replacing "Nhập lại" run apart
+                    // from a normal first-time-import run without inspecting
+                    // job internals.
+                    reasonCode: forceReimport ? 'REPLACE_COMPLETED_CONFIRMED' : 'COVERAGE_ITEM_QUEUE_ELIGIBLE',
                     createdAt: now,
                 });
             }

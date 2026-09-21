@@ -135,6 +135,71 @@ async function verifyHueImportTransaction({ ngay_do_kiem, importLogId, expectedC
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// IMPORT-BULK-REIMPORT-ALL-01 Part A — force-reimport delete/write verification
+// (Design of Record v2 §8.3). Both helpers run INSIDE the caller's still-open
+// transaction: a thrown error here is caught by the caller's existing
+// try/catch, which ROLLBACKs the transaction (restoring the pre-reimport data
+// exactly as it was, since the DELETE never committed) and writes a FAILED
+// import_log row on a separate, autonomous statement.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildForceReimportDeleteIncompleteError({ filename, factTable, remainingCount }) {
+    const error = new Error(
+        `Force-reimport delete did not fully clear ${factTable} for '${filename}': ${remainingCount} row(s) remain for this date.`
+    );
+    error.code = 'FORCE_REIMPORT_DELETE_INCOMPLETE';
+    error.factTable = factTable;
+    error.remainingCount = remainingCount;
+    return error;
+}
+
+// Step 1 of Design of Record v2 §8.3 — only ever called when forceReimport is
+// true, immediately after the DELETE and before any INSERT. `factTable` is
+// always one of the four hard-coded literal table names below, never derived
+// from request input, so string interpolation here carries no injection risk
+// (SQLite parameters cannot bind a table/column identifier).
+async function assertForceReimportDeleteComplete({ factTable, ngay_do_kiem, filename }) {
+    const row = await get(`SELECT COUNT(*) AS n FROM ${factTable} WHERE ngay_do_kiem = ?`, [ngay_do_kiem]);
+    const remaining = Number(row?.n || 0);
+    if (remaining > 0) {
+        throw buildForceReimportDeleteIncompleteError({ filename, factTable, remainingCount: remaining });
+    }
+}
+
+function buildPostWriteVerificationError({ filename, factTable, expectedCount, actualCount }) {
+    const error = new Error(
+        `Import commit verification failed for ${factTable} / '${filename}': expected ${expectedCount} rows, found ${actualCount}.`
+    );
+    error.code = 'IMPORT_COMMIT_VERIFICATION_FAILED';
+    error.factTable = factTable;
+    error.expectedCount = Number(expectedCount || 0);
+    error.actualCount = actualCount;
+    return error;
+}
+
+// Step 2 of Design of Record v2 §8.3, generalized from the F1.3/HUE-only
+// verifyHueImportTransaction() above to the other 3 write functions. When the
+// table carries import_log_id (fact_f41, fact_f41_national — always; fact_f13
+// keeps using verifyHueImportTransaction directly), the count is scoped to
+// this transaction's own new rows regardless of forceReimport. fact_f13_national
+// has no import_log_id column at all (Checkpoint §0/§9, DoR v2 §8.1) — for it,
+// a plain date-only count is sound ONLY when forceReimport is true, because
+// only then does step 1 above already guarantee the date was empty immediately
+// before this INSERT ran; the caller must not request this table without
+// import_log_id unless forceReimport is true.
+async function verifyPostWriteCount({ factTable, ngay_do_kiem, importLogId, hasImportLogId, expectedCount, filename }) {
+    if (Number(expectedCount || 0) === 0) return 0;
+    const row = hasImportLogId
+        ? await get(`SELECT COUNT(*) AS n FROM ${factTable} WHERE ngay_do_kiem = ? AND import_log_id = ?`, [ngay_do_kiem, importLogId])
+        : await get(`SELECT COUNT(*) AS n FROM ${factTable} WHERE ngay_do_kiem = ?`, [ngay_do_kiem]);
+    const actualCount = Number(row?.n || 0);
+    if (actualCount <= 0 || actualCount !== Number(expectedCount || 0)) {
+        throw buildPostWriteVerificationError({ filename, factTable, expectedCount, actualCount });
+    }
+    return actualCount;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Core Import Function
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -195,6 +260,8 @@ async function importParsedData({
         // SSOT data_blueprint.md § 4: "Xóa toàn bộ dữ liệu ngày đó → Import mới"
         if (forceReimport) {
             await run('DELETE FROM fact_f13 WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+            // Design of Record v2 §8.3 — must read 0 before any INSERT runs.
+            await assertForceReimportDeleteComplete({ factTable: 'fact_f13', ngay_do_kiem, filename });
         }
 
         // ── Step 2: Create import_log entry ───────────────────────────────────
@@ -318,6 +385,8 @@ async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, fo
     try {
         if (forceReimport) {
             await run('DELETE FROM fact_f13_national WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+            // Design of Record v2 §8.3 — must read 0 before any INSERT runs.
+            await assertForceReimportDeleteComplete({ factTable: 'fact_f13_national', ngay_do_kiem, filename });
         }
 
         import_log_id = await insertImportLog({
@@ -358,6 +427,24 @@ async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, fo
         const skippedRecords = 0;
         const errorRecords = totalParsed - totalInserted - skippedRecords;
 
+        // Design of Record v2 §8.3 — fact_f13_national has no import_log_id
+        // column (Checkpoint §0/§9), so a plain date-only post-write count is
+        // sound only when forceReimport is true (step 1 above already proved
+        // the date was empty immediately before this INSERT ran). The normal,
+        // non-forced additive path is intentionally left unverified here,
+        // unchanged from today, since committed data from a prior import for
+        // this same date is a legitimate, expected state this check cannot
+        // distinguish from a partial write without that column.
+        if (forceReimport) {
+            await verifyPostWriteCount({
+                factTable: 'fact_f13_national',
+                ngay_do_kiem,
+                hasImportLogId: false,
+                expectedCount: totalInserted,
+                filename,
+            });
+        }
+
         await run(
             `UPDATE import_log SET error_records = ?, skipped_records = ? WHERE id = ?`,
             [errorRecords, skippedRecords, import_log_id]
@@ -397,7 +484,11 @@ async function importF41ParsedData({ parsedData, ngay_do_kiem, filename, forceRe
     let import_log_id = null;
 
     try {
-        if (forceReimport) await run('DELETE FROM fact_f41 WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+        if (forceReimport) {
+            await run('DELETE FROM fact_f41 WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+            // Design of Record v2 §8.3 — must read 0 before any INSERT runs.
+            await assertForceReimportDeleteComplete({ factTable: 'fact_f41', ngay_do_kiem, filename });
+        }
         import_log_id = await insertImportLog({
             filename,
             ngay_do_kiem,
@@ -421,6 +512,18 @@ async function importF41ParsedData({ parsedData, ngay_do_kiem, filename, forceRe
             totalInserted += result.changes;
         }
 
+        // Design of Record v2 §8.3 — extends F1.3/HUE's verifyHueImportTransaction
+        // pattern to F4.1/HUE; fact_f41 carries import_log_id so this is sound
+        // both forced and non-forced.
+        await verifyPostWriteCount({
+            factTable: 'fact_f41',
+            ngay_do_kiem,
+            importLogId: import_log_id,
+            hasImportLogId: true,
+            expectedCount: totalInserted,
+            filename,
+        });
+
         const skippedRecords = totalParsed - totalInserted;
         await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);
         await run('COMMIT');
@@ -441,7 +544,11 @@ async function importF41NationalParsedData({ parsedData, ngay_do_kiem, filename,
     let import_log_id = null;
 
     try {
-        if (forceReimport) await run('DELETE FROM fact_f41_national WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+        if (forceReimport) {
+            await run('DELETE FROM fact_f41_national WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+            // Design of Record v2 §8.3 — must read 0 before any INSERT runs.
+            await assertForceReimportDeleteComplete({ factTable: 'fact_f41_national', ngay_do_kiem, filename });
+        }
         import_log_id = await insertImportLog({
             filename,
             ngay_do_kiem,
@@ -464,6 +571,18 @@ async function importF41NationalParsedData({ parsedData, ngay_do_kiem, filename,
             const result = await run(sql, values);
             totalInserted += result.changes;
         }
+
+        // Design of Record v2 §8.3 — extends F1.3/HUE's verifyHueImportTransaction
+        // pattern to F4.1/TCT; fact_f41_national carries import_log_id so this is
+        // sound both forced and non-forced.
+        await verifyPostWriteCount({
+            factTable: 'fact_f41_national',
+            ngay_do_kiem,
+            importLogId: import_log_id,
+            hasImportLogId: true,
+            expectedCount: totalInserted,
+            filename,
+        });
 
         const skippedRecords = totalParsed - totalInserted;
         await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);

@@ -50,6 +50,11 @@ class AutoBackfillCoverageController {
      * AB-CALENDAR-01. Backs "Chọn tất cả chưa hoàn tất" across every page of
      * one indicator/lane/month, with LỊCH NGHỈ and coverage exceptions
      * already removed from `items` and listed under `excluded_*`.
+     *
+     * IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.1): the same
+     * endpoint also backs the new "Chọn tất cả" button when `include_completed`
+     * is `true` -- `COMPLETED` days become selectable too; `EXCLUDED`
+     * (LỊCH NGHỈ and PO exception) stays permanently excluded either way.
      */
     async getSelectable(req, res) {
         try {
@@ -58,6 +63,7 @@ class AutoBackfillCoverageController {
                 lane: req.query?.lane || null,
                 month: req.query?.month || null,
                 roles: [req.auth?.user?.role],
+                includeCompleted: req.query?.include_completed === 'true',
             });
             return res.status(200).json({ success: true, data });
         } catch (error) {

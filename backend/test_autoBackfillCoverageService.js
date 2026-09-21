@@ -202,6 +202,37 @@ test('AB-EXT-01 registers F9.TEST in a fixture without shared-scanner branches',
     assert.doesNotMatch(scannerSource, /F1\.3|F4\.1|fact_f1|fact_f4/i);
 });
 
+test('IMPORT-BULK-REIMPORT-ALL-01 Part A: validateIndicatorRegistry rejects two lanes sharing a targetTable (Design of Record v2 §8.2)', () => {
+    const sharedTable = 'fact_f9_shared';
+    const registry = {
+        'F9.TEST': createIndicator({
+            code: 'F9.TEST',
+            lanes: {
+                HUE: createLane({ code: 'HUE', targetTable: sharedTable, completionPolicy: createMapPolicy() }),
+                TCT: createLane({ code: 'TCT', targetTable: sharedTable, completionPolicy: createMapPolicy() }),
+            },
+        }),
+    };
+    assert.throws(
+        () => validateIndicatorRegistry(registry),
+        (error) => error.message.includes(sharedTable) && error.message.includes('F9.TEST.HUE') && error.message.includes('F9.TEST.TCT'),
+    );
+});
+
+test('IMPORT-BULK-REIMPORT-ALL-01 Part A: validateIndicatorRegistry accepts distinct targetTables across indicators and lanes', () => {
+    const registry = {
+        'F9.A': createIndicator({
+            code: 'F9.A',
+            lanes: { HUE: createLane({ code: 'HUE', targetTable: 'fact_f9_a_hue', completionPolicy: createMapPolicy() }) },
+        }),
+        'F9.B': createIndicator({
+            code: 'F9.B',
+            lanes: { HUE: createLane({ code: 'HUE', targetTable: 'fact_f9_b_hue', completionPolicy: createMapPolicy() }) },
+        }),
+    };
+    assert.equal(validateIndicatorRegistry(registry), registry);
+});
+
 test('AB-EXT-02 adds F9.TEST/HUE to coverage from registration only', async () => {
     const indicator = createIndicator({ lanes: { HUE: createLane({ completionPolicy: createMapPolicy() }) } });
     const service = new AutoBackfillCoverageService({ db: {}, registryProvider: () => [indicator] });

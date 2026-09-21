@@ -540,6 +540,7 @@ CREATE TABLE IF NOT EXISTS auto_backfill_job (
     last_error_class TEXT,
     last_error_signature TEXT,
     action_required TEXT,
+    force_reimport INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     started_at TEXT,

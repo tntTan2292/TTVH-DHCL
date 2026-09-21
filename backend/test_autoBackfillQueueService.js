@@ -7,6 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
+const { applyImportBulkReimportAll01Schema } = require('./migrate_import_bulk_reimport_all_01_schema');
 const {
     DEFAULT_PERMISSIONS,
     DEFAULT_RETRY_POLICY,
@@ -118,6 +119,7 @@ async function createFixture({
     const dbPath = path.join(os.tmpdir(), `auto-backfill-queue-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
+    await applyImportBulkReimportAll01Schema(dbPath);
     const statuses = new Map();
     const clockState = { now: new Date(now) };
     const registry = indicators?.(statuses) || [
@@ -325,6 +327,7 @@ async function createExcludedDayFixture({ automationMode = 'AUTOMATED' } = {}) {
     const dbPath = path.join(os.tmpdir(), `auto-backfill-queue-excl-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
+    await applyImportBulkReimportAll01Schema(dbPath);
     const now = new Date('2026-01-04T01:00:00.000Z');
     const registry = [createIndicator({
         code: 'F9.TEST', priority: 10, startDate: '2026-01-03', laneCodes: ['HUE'], statuses: new Map(),
@@ -428,6 +431,191 @@ test('AB-CALENDAR-01 include_excluded never bypasses a MANUAL_ONLY lane', async 
             }),
             (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
         );
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+// --------------------------------------------------------------------------
+// IMPORT-BULK-REIMPORT-ALL-01 Part A -- "Nhập lại" for a COMPLETED date
+// (Design of Record v2 §7.2-§7.5). Mirrors the include_excluded tests above:
+// same single-tuple constraint, same MANUAL_ONLY/PAUSED guard, and the same
+// createExcludedDayFixture shape but with the tuple pre-seeded SUCCESS
+// instead of holiday-excluded.
+// --------------------------------------------------------------------------
+
+async function createCompletedDayFixture({ automationMode = 'AUTOMATED', indicatorStatus = 'ACTIVE' } = {}) {
+    const dbPath = path.join(os.tmpdir(), `auto-backfill-queue-completed-${Date.now()}-${Math.random().toString(16).slice(2)}.sqlite`);
+    await applyAutoBackfillQueueSchema(dbPath);
+    await applyAutoBackfillSafetySchema(dbPath);
+    await applyImportBulkReimportAll01Schema(dbPath);
+    const now = new Date('2026-01-04T01:00:00.000Z');
+    const statuses = new Map([['F9.TEST|HUE|2026-01-03', 'SUCCESS']]);
+    const registry = [createIndicator({
+        code: 'F9.TEST', priority: 10, startDate: '2026-01-03', laneCodes: ['HUE'], statuses,
+    })];
+    registry[0].status = indicatorStatus;
+    registry[0].lanes.HUE.automationMode = automationMode;
+    if (automationMode !== 'AUTOMATED') {
+        registry[0].lanes.HUE.manualOnlyReason = 'PORTAL_ADAPTER_NOT_REGISTERED';
+        registry[0].lanes.HUE.portalAdapter = null;
+    }
+    const executorRegistry = new AutoBackfillExecutorRegistry({ allowTestExecutors: true });
+    const calls = [];
+    if (registry[0].lanes.HUE.portalAdapter) {
+        executorRegistry.register(registry[0].lanes.HUE.portalAdapter.id, {
+            async execute(identity) {
+                calls.push(identity);
+                // Simulate a real "Nhập lại": the reimport succeeds and the date
+                // still reads SUCCESS afterwards (fresh evidence, not stale).
+                statuses.set(`${identity.indicator}|${identity.sourceLane}|${identity.businessDate}`, 'SUCCESS');
+            },
+        }, { verified: true, testOnly: true });
+    }
+    const coverageService = new AutoBackfillCoverageService({
+        db: {},
+        clock: () => now,
+        registryProvider: () => registry,
+        registryVersion: 'QUEUE-TEST-1',
+    });
+    function makeService(workerId) {
+        return new AutoBackfillQueueService({
+            store: new AutoBackfillQueueStore({ dbPath, clock: () => now, leaseMs: 1000 }),
+            coverageService,
+            executorRegistry,
+            registryProvider: () => registry,
+            registryVersion: 'QUEUE-TEST-1',
+            completionDb: {},
+            fsImpl: { existsSync: () => false },
+            workerId,
+            heartbeatMs: 100000,
+        });
+    }
+    return { dbPath, statuses, calls, service: makeService('worker-a'), makeService, cleanup() { fs.rmSync(dbPath, { force: true }); } };
+}
+
+test('IMPORT-BULK-REIMPORT-ALL-01 a COMPLETED day is unreachable without confirm_replace_completed', async () => {
+    const fixture = await createCompletedDayFixture();
+    try {
+        await assert.rejects(
+            fixture.service.createRun({
+                indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', actor: 'admin', roles: ['admin'],
+            }),
+            (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
+        );
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('IMPORT-BULK-REIMPORT-ALL-01 confirm_replace_completed admits exactly the single COMPLETED tuple and marks the job force_reimport', async () => {
+    const fixture = await createCompletedDayFixture();
+    try {
+        const created = await fixture.service.createRun({
+            indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+        });
+        assert.equal(created.jobs.length, 1);
+        assert.equal(created.jobs[0].business_date, '2026-01-03');
+        assert.equal(created.jobs[0].indicator, 'F9.TEST');
+        assert.equal(created.jobs[0].source_lane, 'HUE');
+        assert.equal(Number(created.jobs[0].force_reimport), 1);
+        const jobCreatedEvent = created.events.find((event) => event.event_type === 'JOB_CREATED');
+        assert.equal(jobCreatedEvent.reason_code, 'REPLACE_COMPLETED_CONFIRMED');
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('IMPORT-BULK-REIMPORT-ALL-01 confirm_replace_completed is rejected for anything broader than one indicator+lane+date', async () => {
+    const fixture = await createCompletedDayFixture();
+    try {
+        await assert.rejects(
+            fixture.service.createRun({ indicator: 'F9.TEST', lane: 'HUE', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_CONFIRM_REPLACE_REQUIRES_SINGLE_TUPLE' && error.statusCode === 400,
+            'missing from_date/to_date must be rejected',
+        );
+        await assert.rejects(
+            fixture.service.createRun({ lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_CONFIRM_REPLACE_REQUIRES_SINGLE_TUPLE',
+            'missing indicator must be rejected',
+        );
+        await assert.rejects(
+            fixture.service.createRun({ indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-02', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'] }),
+            (error) => error.code === 'AUTO_BACKFILL_CONFIRM_REPLACE_REQUIRES_SINGLE_TUPLE',
+            'a multi-day range must be rejected',
+        );
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('IMPORT-BULK-REIMPORT-ALL-01 confirm_replace_completed never bypasses a MANUAL_ONLY lane or a PAUSED indicator', async () => {
+    const manualFixture = await createCompletedDayFixture({ automationMode: 'MANUAL_ONLY' });
+    try {
+        await assert.rejects(
+            manualFixture.service.createRun({
+                indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+            }),
+            (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
+        );
+    } finally {
+        manualFixture.cleanup();
+    }
+
+    const pausedFixture = await createCompletedDayFixture({ indicatorStatus: 'PAUSED' });
+    try {
+        await assert.rejects(
+            pausedFixture.service.createRun({
+                indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+            }),
+            (error) => error.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE' && error.statusCode === 409,
+        );
+    } finally {
+        pausedFixture.cleanup();
+    }
+});
+
+test('IMPORT-BULK-REIMPORT-ALL-01 processNext executes a force_reimport job instead of skipping it as SKIPPED_ALREADY_SUCCESS, and the executor receives forceReimport:true', async () => {
+    const fixture = await createCompletedDayFixture();
+    try {
+        await fixture.service.createRun({
+            indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+        });
+        const result = await fixture.service.processNext();
+        assert.equal(result.state, 'SUCCESS', 'a force_reimport job must actually execute, not SKIPPED_ALREADY_SUCCESS');
+        assert.equal(fixture.calls.length, 1);
+        assert.equal(fixture.calls[0].forceReimport, true);
+        assert.equal(fixture.calls[0].businessDate, '2026-01-03');
+    } finally {
+        fixture.cleanup();
+    }
+});
+
+test('IMPORT-BULK-REIMPORT-ALL-01 recoverInterruptedWork always requeues an interrupted force_reimport job, never resolves it via the generic completion match', async () => {
+    const fixture = await createCompletedDayFixture();
+    try {
+        const created = await fixture.service.createRun({
+            indicator: 'F9.TEST', lane: 'HUE', fromDate: '2026-01-03', toDate: '2026-01-03', confirmReplaceCompleted: true, actor: 'admin', roles: ['admin'],
+        });
+        const jobId = created.jobs[0].id;
+
+        // Simulate a crash mid-attempt: lease the job (as acquireNextJob would),
+        // then let its lease expire without ever calling processNext() to
+        // completion. Completion still reads SUCCESS the whole time (the
+        // pre-reimport data was never actually touched) -- exactly the
+        // ambiguous case Design of Record v2 §7.5 exists to close.
+        const store = new AutoBackfillQueueStore({ dbPath: fixture.dbPath, clock: () => new Date('2026-01-04T01:00:00.000Z'), leaseMs: -1 });
+        const leased = await store.acquireNextJob('crashed-worker');
+        assert.equal(leased.id, jobId);
+        assert.equal(Number(leased.force_reimport), 1);
+
+        const recovered = await fixture.service.recoverInterruptedWork();
+        assert.equal(recovered.length, 1);
+        assert.equal(recovered[0].state, 'QUEUED', 'a force_reimport job must always be requeued, never SKIPPED_ALREADY_SUCCESS, on recovery');
+
+        const persisted = await fixture.service.getRun(created.run.id, { roles: ['admin'] });
+        const job = persisted.jobs.find((row) => row.id === jobId);
+        assert.equal(job.state, 'QUEUED');
     } finally {
         fixture.cleanup();
     }
