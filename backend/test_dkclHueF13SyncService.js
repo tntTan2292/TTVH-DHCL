@@ -336,8 +336,10 @@ async function runTests() {
     const expiredSharedSessionDate = '2098-02-17';
     const refreshCompletedDate = '2098-02-18';
     const staleFailedLogDate = '2098-02-19';
+    const staleErrorFileDate = '2098-02-21';
+    const staleWithRealFailureDate = '2098-02-22';
 
-    for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, sharedSessionDate, expiredSharedSessionDate, refreshCompletedDate, staleFailedLogDate]) {
+    for (const date of [successDate, existingDate, mismatchDate, corruptDate, manualDate, conflictDate, noDataDate, detailMismatchDate, summaryAuthoritativeDate, sharedSessionDate, expiredSharedSessionDate, refreshCompletedDate, staleFailedLogDate, staleErrorFileDate, staleWithRealFailureDate]) {
         await cleanupDate(date);
     }
 
@@ -551,6 +553,72 @@ async function runTests() {
     const realFailureRun = await waitForRun(realFailureService, realFailureStart.run.runId);
     assert('a genuine failure in this same attempt is still reported as failed', realFailureRun.status === STATUSES.FAILED, realFailureRun.safeErrorMessage);
     await cleanupDate(realFailureDate);
+
+    console.log('\nTEST 2J: N1 (Part A Independent Review 002) — a stale file in Error/HUE from an earlier failed attempt must not fail a later, actually-successful attempt');
+    // Reproduces the exact residual the reviewer found: importPipeline moves
+    // a failed attempt's file to Error/HUE/<standardized filename>, which
+    // depends only on the date -- so it sits there for every later attempt
+    // on that same date. Seed both twin traces of a real prior failure (the
+    // FAILED import_log row AND the Error/HUE file), then run a genuinely
+    // successful attempt and confirm it is reported SUCCESS, not FAILED.
+    await run(
+        `INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+         VALUES (?, ?, 'FAILED', 1, 1, 0)`,
+        [standardizedFilename(staleErrorFileDate), staleErrorFileDate]
+    );
+    const staleErrorFilePath = pathIn(BASE_ERROR, standardizedFilename(staleErrorFileDate));
+    ensureDir(path.dirname(staleErrorFilePath));
+    fs.writeFileSync(staleErrorFilePath, 'stale error artifact from an earlier failed attempt');
+    const staleErrorFileClient = makePortalClient({ sourcePath: validFixture, total: 2 });
+    const staleErrorFileService = new DkclHueF13SyncService({
+        portalClient: staleErrorFileClient,
+        config: { enabled: true, rawDownloadDir: tmpDir, importCompletionTimeoutMs: 3000 }
+    });
+    const staleErrorFileStart = await staleErrorFileService.start(staleErrorFileDate);
+    const staleErrorFileRun = await waitForRun(staleErrorFileService, staleErrorFileStart.run.runId);
+    assert('a stale Error/HUE file from before this attempt does not fail it', staleErrorFileRun.status === STATUSES.SUCCESS, staleErrorFileRun.safeErrorMessage);
+    const staleErrorFileRows = await get('SELECT COUNT(*) AS c FROM fact_f13 WHERE ngay_do_kiem = ?', [staleErrorFileDate]);
+    assert('the actually-successful attempt still wrote its rows', staleErrorFileRows.c === 2, JSON.stringify(staleErrorFileRows));
+    assert('the portal was asked to export exactly once -- no unnecessary reload/retry', staleErrorFileClient.calls.filter((c) => c[0] === 'requestDetailExport').length === 1, JSON.stringify(staleErrorFileClient.calls));
+    assert('the old error file is no longer at the exact errorPath (a fresh success never recreates it)', !fs.existsSync(staleErrorFilePath));
+    const errorDirEntries = fs.readdirSync(path.dirname(staleErrorFilePath));
+    assert('the old error file was archived aside, not deleted', errorDirEntries.some((name) => name.startsWith(path.parse(standardizedFilename(staleErrorFileDate)).name) && name.includes('.stale-')), JSON.stringify(errorDirEntries));
+
+    console.log('\nTEST 2K: N1 (Part A Independent Review 002) — stale FAILED log + stale Error/HUE file present, AND this same attempt genuinely fails, must still report FAILED');
+    await run(
+        `INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+         VALUES (?, ?, 'FAILED', 1, 1, 0)`,
+        [standardizedFilename(staleWithRealFailureDate), staleWithRealFailureDate]
+    );
+    const staleWithRealFailureErrorPath = pathIn(BASE_ERROR, standardizedFilename(staleWithRealFailureDate));
+    ensureDir(path.dirname(staleWithRealFailureErrorPath));
+    fs.writeFileSync(staleWithRealFailureErrorPath, 'stale error artifact from an earlier failed attempt');
+    const staleWithRealFailureClient = makePortalClient({ sourcePath: validFixture, total: 2 });
+    const staleWithRealFailureService = new DkclHueF13SyncService({
+        portalClient: staleWithRealFailureClient,
+        config: { enabled: true, rawDownloadDir: tmpDir, importCompletionTimeoutMs: 3000 },
+        // Simulates the real importPipeline's own failure footprint: a NEW
+        // FAILED import_log row plus a NEW file written at the real errorPath
+        // -- this attempt's own genuine failure, which archiveStaleErrorFile()
+        // must not have removed the ability to detect (it only archives what
+        // was already there BEFORE this attempt started).
+        executeImport: async ({ filePath }) => {
+            await run(
+                `INSERT INTO import_log (file_name, ngay_do_kiem, status, total_records, error_records, skipped_records)
+                 VALUES (?, ?, 'FAILED', 2, 2, 0)`,
+                [path.basename(filePath), staleWithRealFailureDate]
+            );
+            const thisAttemptErrorPath = pathIn(BASE_ERROR, standardizedFilename(staleWithRealFailureDate));
+            ensureDir(path.dirname(thisAttemptErrorPath));
+            fs.writeFileSync(thisAttemptErrorPath, 'this attempt genuinely failed');
+            return { success: false, inserted: 0, errors: 2 };
+        }
+    });
+    const staleWithRealFailureStart = await staleWithRealFailureService.start(staleWithRealFailureDate);
+    const staleWithRealFailureRun = await waitForRun(staleWithRealFailureService, staleWithRealFailureStart.run.runId);
+    assert('a genuine failure in this same attempt is still reported as failed, even with stale prior artifacts present', staleWithRealFailureRun.status === STATUSES.FAILED, staleWithRealFailureRun.safeErrorMessage);
+    await cleanupDate(staleErrorFileDate);
+    await cleanupDate(staleWithRealFailureDate);
 
     console.log('\nTEST 3: existing completed date returns ALREADY_COMPLETED without portal access');
     const existingFile = pathIn(BASE_PROCESSED, standardizedFilename(existingDate));

@@ -1,6 +1,6 @@
 # IMPORT-BULK-REIMPORT-ALL-01 Manifest
 
-Status: `PART A N1/N2 REMEDIATED / TECHNICAL PASS (2026-09-22)`. Registered 2026-09-15. See Section 6-7 for the completed audit, Section 8 for the originally-locked Design of Record, Section 9 for the Opus-review blocker remediation (DoR v2), Section 10 for the Part A backend implementation, and Section 11 for the N1 fix and N2 test additions following Independent Review 001. No queue action or business-data reimport was run against real data; no PO PASS is claimed.
+Status: `PART A N1 FULLY CLOSED / TECHNICAL PASS (2026-09-22)`. Registered 2026-09-15. See Section 6-7 for the completed audit, Section 8 for the originally-locked Design of Record, Section 9 for the Opus-review blocker remediation (DoR v2), Section 10 for the Part A backend implementation, Section 11 for the first N1 fix and N2 test additions following Independent Review 001, and Section 12 for closing N1's remaining `Error/HUE` half following Independent Review 002. No queue action or business-data reimport was run against real data; no PO PASS is claimed.
 
 ## 1. Ticket Information
 
@@ -158,3 +158,32 @@ Status after review: `PART A TECHNICAL PASS FOR PART B / N1 PARTIALLY OPEN (NON-
 - N1 PARTIALLY FIXED: the `import_log` watermark in `dkclHueF13SyncService.verifyImport()` is correct and verified, but the `Error/HUE` file check is still unscoped. After a real failed attempt, which leaves both a FAILED row and the file in `Error/HUE`, a later correct F1.3/HUE reimport is still reported FAILED (sandbox reproduction; data correct). Must be closed before the PO UI check; extend TEST 2H to seed the error file.
 - Validation reproduced exactly: 228/228, 85/85, 153/153, 394/398 (same 4 pre-existing failures).
 - Part B (frontend, Antigravity) may proceed per DoR v2 §3-§6. No PO PASS claimed.
+
+## 12. N1 Fully Closed — `Error/HUE` Stale File (2026-09-22, Claude Code/Sonnet 5)
+
+Product Owner instruction received in chat (2026-09-22), following Independent Review 002, activated closing N1's remaining half. Still backend/data/tests only; no Browser/Playwright; no queue action or reimport run against real/operational data.
+
+### 12.1 Root cause, confirmed exactly as reviewed
+
+`importPipeline.executeImport()` moves a failed attempt's file to `Error/HUE/<standardized filename>` on failure, alongside the `FAILED` `import_log` row. The standardized filename depends only on the business date, so that file persists at the same path across every later attempt for the same date. `verifyImport()`'s `fs.existsSync(errorPath)` check had no scoping to the current attempt — Section 11's watermark fix only scoped the `import_log` half of the twin failure footprint, not the file half.
+
+### 12.2 Fix — archive, not a check-side workaround
+
+`dkclHueF13SyncService.js` gained `archiveStaleErrorFile(filename)`, called once, immediately after `handoffToIncoming()` and before the `import_log` watermark is captured: if a file already exists at `Error/HUE/<filename>`, it is renamed aside (`<name>.stale-<timestamp><ext>`, same directory) — never deleted. This guarantees any file `verifyImport()` later finds at the exact `errorPath` was written by *this* attempt, mirroring the existing `quarantineStaleProcessedEvidence()` pattern `importPipeline.js` already uses for the analogous stale-`Processed`-file problem. No change to `verifyImport()`'s check logic itself was needed once the precondition (a clean `errorPath` at attempt start) is guaranteed upstream.
+
+### 12.3 Tests added — `test_dkclHueF13SyncService.js`
+
+- **TEST 2J**: seeds both twin traces of a real prior failure (a `FAILED` `import_log` row and a stale file at the real `Error/HUE/<filename>` path), then runs a genuinely successful attempt. Asserts: final status `SUCCESS`; the data was actually written (2/2 rows); the portal was asked to export **exactly once** (`requestDetailExport` called once — no unnecessary reload/retry); the exact `errorPath` no longer holds the old file; the old file was archived (a `.stale-`-suffixed sibling exists), not deleted.
+- **TEST 2K**: seeds the same two stale artifacts, but this attempt's own `executeImport` genuinely fails and writes its *own* new `FAILED` `import_log` row and its *own* new file at the same `errorPath` (simulating the real `importPipeline` failure footprint). Asserts the run is still reported `FAILED` — proving `archiveStaleErrorFile()` only clears pre-existing files, never masks a real current-attempt failure.
+
+### 12.4 Validation
+
+- `node --experimental-sqlite test_dkclHueF13SyncService.js`: **234/234** (228 + 6 new assertions across TEST 2J/2K).
+- `node --experimental-sqlite test_importProcessor.js`: **85/85** (unchanged — this file's code was not touched this round).
+- `node --experimental-sqlite --test` (7 Auto-Backfill suites): **153/153** (unchanged).
+- Full default sweep `node --experimental-sqlite --test`: **394/398**, same 4 pre-existing, environmental, unrelated failures (this sweep does not execute `test_*.js`).
+- Only product-code file changed: `backend/src/services/dkclHueF13SyncService.js`.
+
+### 12.5 Stop condition
+
+Status: `PART A N1 FULLY CLOSED / TECHNICAL PASS`. Both halves of N1 (the `import_log` watermark from Section 11 and the `Error/HUE` archive from this section) are now closed with regression coverage for both the false-failure case and the still-must-fail case. No new business rule was decided — this is a bug fix (a correct reimport must not be reported as failed) plus its matching test coverage, not a change to replacement scope or timing. No PO PASS is claimed. Part B (frontend, Antigravity) may proceed per DoR v2 §3-§6, and — per Review 002's Section 6 — N1 is now closed ahead of the PO UI check, as recommended.

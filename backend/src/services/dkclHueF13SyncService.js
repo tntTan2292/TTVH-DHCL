@@ -380,7 +380,19 @@ class DkclHueF13SyncService {
             const incomingPath = this.handoffToIncoming(stablePath, run.standardizedFilename);
             this.updateRun(run, { status: STATUSES.WAITING_FOR_IMPORT });
 
-            // N1 (IMPORT-BULK-REIMPORT-ALL-01 Part A independent review 001):
+            // N1 (IMPORT-BULK-REIMPORT-ALL-01 Part A independent review 002):
+            // a prior failed attempt leaves TWO traces -- a FAILED import_log
+            // row (scoped by watermark below) and the file itself moved to
+            // Error/HUE/<standardized filename>. verifyImport() below checks
+            // for that exact path; since the standardized filename depends
+            // only on the date, an old stale file there would make THIS
+            // attempt's own verifyImport() see "an error file exists" and
+            // report failure even after a genuinely successful reimport. Move
+            // any pre-existing stale error file out of the way before this
+            // attempt runs, so any file verifyImport() later finds at
+            // errorPath can only be one this attempt itself just wrote.
+            this.archiveStaleErrorFile(run.standardizedFilename);
+
             // verifyImport() below must judge only THIS attempt's own import_log
             // row, never a historical FAILED row from an earlier, unrelated
             // attempt on the same date/filename -- captured as a watermark
@@ -511,6 +523,28 @@ class DkclHueF13SyncService {
         const error = new Error('Downloaded XLSX file did not become stable before timeout.');
         error.code = 'DOWNLOAD_NOT_STABLE';
         throw error;
+    }
+
+    // N1 (IMPORT-BULK-REIMPORT-ALL-01 Part A independent review 002): the
+    // standardized filename depends only on the business date, so a prior
+    // failed attempt's file sitting in Error/HUE/<filename> would otherwise
+    // still be there for this attempt's verifyImport() to trip over, even
+    // though it is not this attempt's own evidence. Moves it aside (never
+    // deletes it) before this attempt starts, so a later `fs.existsSync
+    // (errorPath)` can only ever be true because of THIS attempt's own
+    // failure. Mirrors importPipeline.js's quarantineStaleProcessedEvidence()
+    // pattern for the Processed side of the same problem.
+    archiveStaleErrorFile(filename) {
+        const errorDir = this.path.join(BASE_ERROR, 'HUE');
+        const errorPath = this.path.join(errorDir, filename);
+        if (!this.fs.existsSync(errorPath)) return null;
+        const parsed = this.path.parse(filename);
+        const archivedPath = this.path.join(
+            errorDir,
+            `${parsed.name}.stale-${this.clock().toISOString().replace(/[^0-9]/g, '').slice(0, 14)}${parsed.ext}`
+        );
+        this.fs.renameSync(errorPath, archivedPath);
+        return archivedPath;
     }
 
     // N1 (IMPORT-BULK-REIMPORT-ALL-01 Part A independent review 001): the

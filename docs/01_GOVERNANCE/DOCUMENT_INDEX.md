@@ -1025,3 +1025,12 @@ Read-only review of the N1/N2 remediation at a725c1b. Documentation only; no pro
 | Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_PART_A_REVIEW_002.md` | Independent Review (new) | Verifies the N1 watermark fix (historical FAILED rows ignored, current-attempt failures still caught) and records the unfixed stale Error/HUE file case with a sandbox reproduction; checks each new N2 test against the real code; reproduces all validation figures; status of Review 001 findings; confirms Part A may move to Part B. | L2 | `NO BLOCKER / N1 OPEN (NON-BLOCKER)` | Before closing N1 and before the PO UI check. | Mandatory |
+
+## IMPORT-BULK-REIMPORT-ALL-01 N1 Fully Closed (Error/HUE stale file) — 2026-09-22
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` | Ticket Manifest (Section 12 appended) | Closes N1's remaining half: a failed attempt's file at `Error/HUE/<standardized filename>` persisted across later attempts for the same date, since the filename depends only on the date; `verifyImport()`'s existence check had no scoping. Fixed by archiving (never deleting) any pre-existing file at that exact path immediately before each attempt runs, mirroring `importPipeline.js`'s existing `quarantineStaleProcessedEvidence()` pattern. | L2 | `PART A N1 FULLY CLOSED / TECHNICAL PASS` | Required reading before the PO UI check or any further review. | Reference |
+| `backend/src/services/dkclHueF13SyncService.js` | Backend service (modified) | New `archiveStaleErrorFile()`, called before the import_log watermark is captured. | L2 | `IMPLEMENTED` | Reference only. | Reference |
+
+Validation: `test_dkclHueF13SyncService.js` 234/234 (+6, TEST 2J/2K); `test_importProcessor.js` 85/85 (unchanged); 7 Auto-Backfill node:test suites 153/153 (unchanged); full default sweep 394/398 (same 4 pre-existing, unrelated failures). Only product-code file changed this round: `dkclHueF13SyncService.js`. No Browser/Playwright used; no real/operational database write. No PO PASS claimed. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
