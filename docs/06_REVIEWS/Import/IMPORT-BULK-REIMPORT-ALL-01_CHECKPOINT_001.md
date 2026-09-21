@@ -186,3 +186,23 @@ Checkpoint Section 6, Gap 4 (`importProcessor.js` row-level overwrite behavior n
 - No Browser, Playwright, or web automation was used.
 - No new business rule was inferred or decided; Section 9.2.B's delete-scope observation is a direct code-evidence fact, not a proposed rule.
 - Files changed by this pass: this checkpoint (Sections 9-11 appended) and `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` (Section 7 appended).
+
+---
+
+## 12. Gap 7 Correction — Design of Record v2 Remediation (2026-09-21, Claude Code/Sonnet 5)
+
+Product Owner instruction received in chat: an independent pre-implementation review (Claude Opus) found the Design of Record's realization of Gap 7 (§10 above) was itself defective, and instructed a design-only remediation. Tracing this required re-reading `backend/src/db/schema.sql` and `backend/src/services/importIndicatorRegistry.js`, not read in the original passes above. Still read-only: no code/schema/database changed, no Browser/Playwright, no import/enqueue/reimport executed.
+
+**Gap 7's premise (§10, "a `forceReimport` delete... reimporting one lane's data for a date that also has committed data from a different lane would delete that other lane's rows too") is corrected, not retracted (append-only — §10 is left as originally written):** it assumed HUE and TCT could write to the same fact table for the same indicator. They cannot. `importIndicatorRegistry.js:140-155` (F1.3) and `:187-202` (F4.1) register each lane against its own dedicated `targetTable` — F1.3/HUE→`fact_f13`, F1.3/TCT→`fact_f13_national`, F4.1/HUE→`fact_f41`, F4.1/TCT→`fact_f41_national` — and `importPipeline.js:216-236` branches to the correct table purely by lane before any `DELETE`/`INSERT` runs. No two lanes ever share a table, so the cross-lane collision Gap 7 worried about is not structurally possible, and a plain `DELETE ... WHERE ngay_do_kiem=?` (today's actual, unmodified code) was never unsafe on that specific axis.
+
+**The real risk Gap 7 should have named**, found while designing the fix the Design of Record proposed for it (`import_log_id IN (SELECT ... source_lane=?)`, since retracted — see `docs/04_TECHNICAL_PLANNING/Feature/IMPORT-BULK-REIMPORT-ALL-01_DESIGN_OF_RECORD.md` §8.1): `fact_f13_national` (`backend/src/db/schema.sql:110-136`) has **no `import_log_id` column at all**, and `fact_f13`/`fact_f41` rows backing a `LEGACY_BASELINE` `COMPLETED` status (`autoBackfillCoverageService.js:59-71`; real, PO-confirmed pre-Import data per `AB-CALENDAR-01` D2) can have `import_log_id IS NULL`. A delete design that requires joining through `import_log_id`/`source_lane` — which is what a naive reading of Gap 7 would suggest — silently fails to remove exactly these rows, which is the actual defect the Product Owner should have been warned about instead.
+
+**Resolution:** the Design of Record's revised §8 (DoR v2) keeps the delete scoped by date only (matching today's unmodified code, now confirmed correct for lane isolation by table selection) and adds post-delete/post-write verification plus a registry-load uniqueness assertion for defense in depth. Full design: `docs/04_TECHNICAL_PLANNING/Feature/IMPORT-BULK-REIMPORT-ALL-01_DESIGN_OF_RECORD.md` §8, §0.
+
+## 13. Confirmations (Gap 7 correction pass)
+
+- No frontend/backend code, test, schema, or migration was changed.
+- No selection, enqueue, reimport, Resume, Retry, cancellation, or business-data write was performed.
+- No Browser, Playwright, or web automation was used.
+- No new business rule was inferred or decided; this is a factual correction to a prior gap's premise, evidenced directly from schema/registry code.
+- Files changed by this pass: this checkpoint (Sections 12-13 appended), `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` (Section 9 appended), `docs/04_TECHNICAL_PLANNING/Feature/IMPORT-BULK-REIMPORT-ALL-01_DESIGN_OF_RECORD.md` (revised to DoR v2).

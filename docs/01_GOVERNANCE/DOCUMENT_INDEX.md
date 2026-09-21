@@ -909,6 +909,16 @@ Ticket remains `NOT ACTIVATED` for implementation; design-only, per explicit Pro
 
 Ticket remains `DISCOVERED / NOT ACTIVATED` for design or implementation; only the discovery audit step was performed, per explicit Product Owner/CTO chat instruction. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
 
+## IMPORT-BULK-REIMPORT-ALL-01 Design of Record v2 — Blocker Remediation — 2026-09-21
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/04_TECHNICAL_PLANNING/Feature/IMPORT-BULK-REIMPORT-ALL-01_DESIGN_OF_RECORD.md` | Design of Record (revised in place, `DoR v2`) | Remediates 2 blockers an independent review (Claude Opus) raised against `DoR v1` before implementation: (1) the originally-proposed `import_log_id`-scoped delete silently fails on tables/rows without that linkage (`fact_f13_national` has no such column; `LEGACY_BASELINE` rows can have `import_log_id IS NULL`) — replaced with a design relying on each lane's already-dedicated fact table for isolation, plus new post-delete/post-write verification inside the existing transaction; (2) the `force_reimport` flag propagation design named only 2 of 6 real gates — 4 more are enumerated (2 F4.1 adapters silently drop the flag, 2 F4.1 single-date services explicitly forbid it, 1 queue-layer executor-error recheck has the same completion-ambiguity bug already fixed elsewhere for crash recovery). Design only — no code/schema/migration authorized. | L2 | `DESIGN LOCKED (v2) / NOT ACTIVATED FOR IMPLEMENTATION` | Required reading, superseding `DoR v1`'s §7.4/§7.5/§8, before any `IMPORT-BULK-REIMPORT-ALL-01` implementation activation. | Reference |
+| `docs/06_REVIEWS/Import/IMPORT-BULK-REIMPORT-ALL-01_CHECKPOINT_001.md` | Ticket Checkpoint (Sections 12-13 appended) | Corrects Section 10's Gap 7 premise (cross-lane data collision within one fact table is not structurally possible — each lane already writes to its own dedicated table) and records the real risk the Design of Record's fix needed to address instead (rows without `import_log_id` linkage). Append-only — Section 10's original text is left unedited. | L2 | `DISCOVERY / READ-ONLY AUDIT COMPLETE (Gap 7 corrected)` | Required reading alongside the revised Design of Record. | Reference |
+| `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` | Ticket Manifest (Section 9 appended) | Records the Product Owner instruction to remediate and a summary of both fixes. | L2 | `DESIGN LOCKED (v2) / NOT ACTIVATED` | Required reading. | Reference |
+
+Ticket remains `NOT ACTIVATED` for implementation; design-only remediation, per explicit Product Owner/CTO chat instruction. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
+
 
 ## ADMIN-USER-MODULE-ACCESS-01 Registration — 2026-09-15
 
