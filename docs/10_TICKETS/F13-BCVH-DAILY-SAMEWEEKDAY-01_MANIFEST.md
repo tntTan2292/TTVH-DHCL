@@ -1,5 +1,7 @@
 # F13-BCVH-DAILY-SAMEWEEKDAY-01 — Điều hành ngày: thêm cột "Tăng/giảm so với cùng kỳ (tuần trước)"
 
+`IMPLEMENTED / PO UI PASS / CLOSED` (2026-09-22). See Section 7 for closure record.
+
 ## 1. Summary
 
 Extend the locked 9-column Operation Dashboard BCVH table (`docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md`, closed `IMPLEMENTED / PO UI PASS / CLOSED`, 2026-09-17) with a 10th column in the **ĐIỀU HÀNH NGÀY** group: **"Tăng/giảm so với cùng kỳ (tuần trước)"**, comparing the anchor date's rate with the rate on the exact same calendar weekday 7 days earlier.
@@ -89,10 +91,10 @@ Implemented directly per the embedded Design of Record above (single additive co
 - `npx vite build` — clean, `1.22s`, no new warnings besides the pre-existing chunk-size notice.
 - No Browser/Playwright used. No schema, index, KPI, or SSOT change. No production data touched (code-only change).
 
-### 5.3 Residual / not done
+### 5.3 Residual / not done at implementation time
 
-- No desktop/phone screenshot evidence — Claude Code does not use Browser/Playwright per instruction; screenshot evidence for PO UI Check must come from Antigravity or the Product Owner's own inspection.
-- Next state: `IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK`. No PO PASS is self-awarded.
+- No desktop/phone screenshot evidence was produced by Claude Code (no Browser/Playwright per instruction); the Product Owner performed their own UI inspection directly — see Section 7 for the resulting PASS and closure.
+- State at the end of implementation: `IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK`, superseded by Section 7.
 
 ## 6. PO UI Check checklist
 
@@ -101,3 +103,19 @@ Implemented directly per the embedded Design of Record above (single additive co
 3. Confirm the value compares the anchor date (already N-1, e.g. "NGÀY 21/09/2026" if today is 22/09) against the same weekday 7 days earlier, with the same ↑/↓/→/— arrow-and-tone convention as every other delta column.
 4. Confirm column 9 ("Tăng/Giảm so với ngày trước") is unchanged in position and value.
 5. Confirm `TỔNG CỘNG` row's new column is consistent with the 6 unit rows (aggregate, not an average of rates).
+
+## 7. Product Owner UI Check — PASS / Closure (2026-09-22)
+
+Product Owner instruction received in chat: explicit confirmation that the Product Owner personally checked the Operation Dashboard BCVH table UI against the Section 6 checklist and it **PASSED** ("PO đã trực tiếp kiểm tra giao diện và xác nhận PASS cho ticket F13-BCVH-DAILY-SAMEWEEKDAY-01").
+
+- **Accepted implementation commit:** `f4a06ea` (Claude Code, Sonnet 5, branch `codex/da-impl-006`) — see Section 5.1 for the full file list.
+- **Technical validation basis for closure** (unchanged from Section 5.2, re-stated here as the closure record):
+  - `node --experimental-sqlite --test backend/src/services/bcvhOverviewService.test.js` — `11/11 PASS`.
+  - `node --experimental-sqlite --test backend/src/repositories/FactBuuGuiRepository.overview.test.js` — `1/1 PASS`.
+  - Full backend sweep `node --experimental-sqlite --test` — `397/401 PASS`, same 4 pre-existing/environmental failures as project baseline, none F1.3-related.
+  - `node --test frontend/src/features/dashboard/components/bcvhOperationTableData.test.js` — `17/17 PASS`; full dashboard component directory — `134/134 PASS`.
+  - `npx oxlint` — `0 errors` on all 7 touched files; `npx vite build` — clean.
+- **PO scope confirmed accepted:** the 10-column `ĐIỀU HÀNH NGÀY` layout (4 columns, no wrapping/clipping/overlap on desktop and mobile Fit mode), the new "Tăng/giảm so với cùng kỳ (tuần trước)" column comparing the anchor date against the same calendar weekday 7 days earlier, column 9 ("Tăng/Giảm so với ngày trước") unchanged, and the `TỔNG CỘNG` row consistent with the 6 unit rows.
+- Governance closure only — no product code changed in this closure step, no Browser/Playwright used.
+
+**Final state: `IMPLEMENTED / PO UI PASS / CLOSED`.** No further work is authorized under this ticket; any later change requires a new ticket or explicit reopening. Does not affect `F13-ROUTE-POSTMAN-IDENTITY-01` (Current Ticket, unaffected) or any other ticket.
