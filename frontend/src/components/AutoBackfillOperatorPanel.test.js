@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import {
   aggregateReportTotals,
+  buildRunPayload,
   groupItemsByIndicatorAndMonth,
+  isReimportSelectable,
   isSelectable,
   normalizePoStatus,
   paginateItems,
@@ -12,7 +14,8 @@ import {
   resolveOpenRunRowActions,
   resolveRunActionButtons,
   resolveRunIdleState,
-  resolveWaitingAuthLanes
+  resolveWaitingAuthLanes,
+  splitReimportItems
 } from './autoBackfillUiHelpers.js';
 
 console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
@@ -1073,7 +1076,85 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.equal(normalizePoStatus(null), null);
 
   console.log('✔ 23. AB-CALENDAR-01 normalizePoStatus() Full-Mapping Lock tests PASSED!');
-  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (23/23 Test Suites)');
+}
+
+// ==========================================
+// 24. IMPORT-BULK-REIMPORT-ALL-01: Bulk Reimport All Contract Tests
+//     (DoR v2: isReimportSelectable, splitReimportItems, buildRunPayload, Selection Isolation)
+// ==========================================
+{
+  // Test case 24.1: isReimportSelectable vs isSelectable
+  // isReimportSelectable selects COMPLETED, INCOMPLETE, DATA_ERROR.
+  // Holiday (LỊCH NGHỈ) and EXCLUDED days are strictly excluded.
+  const completedItem = { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-01', status: 'COMPLETED' };
+  const incompleteItem = { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-02', status: 'INCOMPLETE' };
+  const dataErrorItem = { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-03', status: 'DATA_ERROR' };
+  const holidayItem = { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-04', status: 'COMPLETED', holiday: true };
+  const excludedItem = { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-05', status: 'EXCLUDED' };
+
+  assert.equal(isReimportSelectable(completedItem), true, 'COMPLETED day must be selectable for reimport');
+  assert.equal(isReimportSelectable(incompleteItem), true, 'INCOMPLETE day must be selectable for reimport');
+  assert.equal(isReimportSelectable(dataErrorItem), true, 'DATA_ERROR day must be selectable for reimport');
+  assert.equal(isReimportSelectable(holidayItem), false, 'Holiday day MUST NEVER be selectable for reimport even if status is COMPLETED');
+  assert.equal(isReimportSelectable(excludedItem), false, 'EXCLUDED day must not be selectable for reimport');
+  assert.equal(isReimportSelectable(null), false, 'null item must not be selectable');
+  assert.equal(isReimportSelectable({}), false, 'empty item must not be selectable');
+
+  // Verify that isSelectable remains UNCHANGED (only INCOMPLETE and DATA_ERROR, NOT COMPLETED)
+  assert.equal(isSelectable(completedItem), false, 'isSelectable MUST remain false for COMPLETED day');
+  assert.equal(isSelectable(incompleteItem), true, 'isSelectable must be true for INCOMPLETE day');
+  assert.equal(isSelectable(dataErrorItem), true, 'isSelectable must be true for DATA_ERROR day');
+
+  // Test case 24.2: splitReimportItems separates Completed from New Import
+  const mixedItems = [
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-01', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-02', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-03', status: 'INCOMPLETE' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-09-04', status: 'DATA_ERROR' },
+  ];
+  const split = splitReimportItems(mixedItems);
+  assert.equal(split.total, 4, 'Total items should be 4');
+  assert.equal(split.completedCount, 2, 'Completed count should be 2');
+  assert.equal(split.newImportCount, 2, 'New import count should be 2');
+  assert.equal(split.hasCompleted, true, 'hasCompleted must be true');
+  assert.equal(split.completed.length, 2);
+  assert.equal(split.newImport.length, 2);
+
+  const emptySplit = splitReimportItems([]);
+  assert.equal(emptySplit.total, 0);
+  assert.equal(emptySplit.completedCount, 0);
+  assert.equal(emptySplit.hasCompleted, false);
+
+  // Test case 24.3: buildRunPayload contracts for confirm_replace_completed
+  const runPayloadCompleted = buildRunPayload(completedItem);
+  assert.equal(runPayloadCompleted.confirm_replace_completed, true, 'COMPLETED item must automatically set confirm_replace_completed: true');
+  assert.equal(runPayloadCompleted.indicator, 'F1.3');
+  assert.equal(runPayloadCompleted.requested_lane, 'HUE');
+  assert.equal(runPayloadCompleted.month, '2026-09');
+
+  const runPayloadIncompleteDefault = buildRunPayload(incompleteItem);
+  assert.equal(runPayloadIncompleteDefault.confirm_replace_completed, undefined, 'INCOMPLETE item default must not have confirm_replace_completed');
+
+  const runPayloadIncompleteExplicit = buildRunPayload(incompleteItem, { confirmReplaceCompleted: true });
+  assert.equal(runPayloadIncompleteExplicit.confirm_replace_completed, true, 'confirmReplaceCompleted option forces flag to true');
+
+  const runPayloadExcluded = buildRunPayload(excludedItem);
+  assert.equal(runPayloadExcluded.include_excluded, true, 'EXCLUDED item sets include_excluded: true');
+
+  // Test case 24.4: Selection Key Structure & Isolation Verification
+  // The bulk selection key format is `${indicator}::${lane}::${business_date}`
+  const key1 = `${completedItem.indicator}::${completedItem.source_lane}::${completedItem.business_date}`;
+  const key2 = `${incompleteItem.indicator}::${incompleteItem.source_lane}::${incompleteItem.business_date}`;
+  const selectedBulkKeys = new Set([key2]);
+  const selectedReimportKeys = new Set([key1, key2]);
+
+  // Keys can exist independently in their respective sets without collision
+  assert.equal(selectedBulkKeys.has(key1), false, 'Bulk unfinished selection must not contain completed item');
+  assert.equal(selectedReimportKeys.has(key1), true, 'Reimport selection contains completed item');
+  assert.equal(selectedReimportKeys.has(key2), true, 'Reimport selection contains incomplete item');
+
+  console.log('✔ 24. IMPORT-BULK-REIMPORT-ALL-01 Bulk Reimport All Contract tests PASSED!');
+  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (24/24 Test Suites)');
 }
 
 

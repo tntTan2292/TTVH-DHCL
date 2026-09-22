@@ -42,6 +42,58 @@ export function isSelectable(item) {
   return normalized === 'INCOMPLETE' || normalized === 'DATA_ERROR';
 }
 
+// IMPORT-BULK-REIMPORT-ALL-01 (DoR v2 Section 3): Gate for reimport selection.
+// Selectable scope is COMPLETED + INCOMPLETE + DATA_ERROR.
+// EXCLUDED days (holiday and PO exception alike) are always omitted.
+export function isReimportSelectable(item) {
+  if (!item || item.holiday) return false;
+  const normalized = normalizePoStatus(item.status);
+  return normalized === 'COMPLETED' || normalized === 'INCOMPLETE' || normalized === 'DATA_ERROR';
+}
+
+// IMPORT-BULK-REIMPORT-ALL-01 (DoR v2 Section 5): Split items for Reimport Modal
+// Tách rõ ngày Nhập mới và ngày Đã hoàn tất sẽ bị thay thế.
+export function splitReimportItems(items = []) {
+  const completed = [];
+  const newImport = [];
+  (items || []).forEach((item) => {
+    const normalized = normalizePoStatus(item?.status);
+    if (normalized === 'COMPLETED') {
+      completed.push(item);
+    } else {
+      newImport.push(item);
+    }
+  });
+  return {
+    completed,
+    newImport,
+    completedCount: completed.length,
+    newImportCount: newImport.length,
+    total: completed.length + newImport.length,
+    hasCompleted: completed.length > 0
+  };
+}
+
+// IMPORT-BULK-REIMPORT-ALL-01 (DoR v2 Section 7.2): Build run request payload
+export function buildRunPayload(item, { confirmReplaceCompleted = false } = {}) {
+  if (!item) return null;
+  const payload = {
+    indicator: item.indicator,
+    requested_lane: item.source_lane || item.lane,
+    lane: item.source_lane || item.lane,
+    month: (item.business_date || '').slice(0, 7),
+    from_date: item.business_date,
+    to_date: item.business_date,
+  };
+  if (item.status === 'EXCLUDED') {
+    payload.include_excluded = true;
+  }
+  if (confirmReplaceCompleted || item.status === 'COMPLETED') {
+    payload.confirm_replace_completed = true;
+  }
+  return payload;
+}
+
 export function resolveEffectiveRunState(run) {
   if (!run) return null;
   return run.safety_state || run.status || null;

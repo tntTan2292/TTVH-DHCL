@@ -1,6 +1,6 @@
 # IMPORT-BULK-REIMPORT-ALL-01 Manifest
 
-Status: `PART A N1 FULLY CLOSED / TECHNICAL PASS (2026-09-22)`. Registered 2026-09-15. See Section 6-7 for the completed audit, Section 8 for the originally-locked Design of Record, Section 9 for the Opus-review blocker remediation (DoR v2), Section 10 for the Part A backend implementation, Section 11 for the first N1 fix and N2 test additions following Independent Review 001, and Section 12 for closing N1's remaining `Error/HUE` half following Independent Review 002. No queue action or business-data reimport was run against real data; no PO PASS is claimed.
+Status: `PART B FRONTEND IMPLEMENTED / READY FOR PO CHECK (2026-09-22)`. Registered 2026-09-15. See Section 6-7 for the completed audit, Section 8 for the originally-locked Design of Record, Section 9 for the Opus-review blocker remediation (DoR v2), Section 10 for the Part A backend implementation, Section 11 for the first N1 fix and N2 test additions following Independent Review 001, Section 12 for closing N1's remaining `Error/HUE` half following Independent Review 002, and Section 13 for Part B frontend UI implementation. No Browser/Playwright used; no queue action or business-data reimport was run against real data; no PO PASS is claimed.
 
 ## 1. Ticket Information
 
@@ -187,3 +187,51 @@ Product Owner instruction received in chat (2026-09-22), following Independent R
 ### 12.5 Stop condition
 
 Status: `PART A N1 FULLY CLOSED / TECHNICAL PASS`. Both halves of N1 (the `import_log` watermark from Section 11 and the `Error/HUE` archive from this section) are now closed with regression coverage for both the false-failure case and the still-must-fail case. No new business rule was decided — this is a bug fix (a correct reimport must not be reported as failed) plus its matching test coverage, not a change to replacement scope or timing. No PO PASS is claimed. Part B (frontend, Antigravity) may proceed per DoR v2 §3-§6, and — per Review 002's Section 6 — N1 is now closed ahead of the PO UI check, as recommended.
+
+## 13. Part B Implementation — Frontend UI & Selection Separation (2026-09-22, Antigravity)
+
+Product Owner instruction received in chat (2026-09-22) activated Part B frontend UI implementation per DoR v2 (§3-§6). No Browser/Playwright automation was used; backend code was untouched; `DataImportCenter.jsx`, KPI calculations, and SSOT were untouched.
+
+### 13.1 Delivered Scope & UI Contract
+
+1. **"Chọn tất cả chưa hoàn tất" Preserved**:
+   - Backed by existing `selectedBulkKeys`.
+   - Continues to query `GET /import/auto-backfill/coverage/selectable` (without `include_completed`) to select only `INCOMPLETE` and `DATA_ERROR` records.
+   - Clears `selectedReimportKeys` to maintain strict selection state isolation.
+
+2. **Renamed "Nhập lại" to "Nhập mới" for Unfinished / Data Error**:
+   - Single-row buttons for `INCOMPLETE`, `DATA_ERROR`, and holiday-excluded rows now render as "Nhập mới" (`RotateCw` icon, blue theme).
+   - The bulk unfinished modal now explicitly states "Yêu cầu Nhập mới Dữ liệu Hàng loạt" and runs `handleExecuteBulkNewImport`.
+
+3. **Added "Chọn tất cả" for Bulk Reimport**:
+   - Rendered in monthly accordion headers (`MonthlyAccordionGroup`) next to "Chọn tất cả chưa hoàn tất".
+   - Calls `GET /import/auto-backfill/coverage/selectable?include_completed=true` to select `COMPLETED`, `INCOMPLETE`, and `DATA_ERROR` dates.
+   - Holiday (`LỊCH NGHỈ`) days are always excluded by `isReimportSelectable()` and backend exclusion filtering.
+   - Clears `selectedBulkKeys` to prevent action collision.
+
+4. **Separate Selection State (`selectedReimportKeys`)**:
+   - Dedicated `selectedReimportKeys` state (`Set`) for Reimport, completely separated from `selectedBulkKeys` (which backs PO Exception and Nhập mới).
+   - Distinct floating action bars:
+     - Blue bar for `selectedBulkKeys` with "Nhập mới" and "Loại bỏ phát sinh (PO Xác nhận)".
+     - Indigo bar for `selectedReimportKeys` with "Nhập lại" button only (never exposes bulk PO exemption).
+
+5. **Modal Separation & Item Breakdown**:
+   - `splitReimportItems()` partitions selected dates into "Nhập mới" (`INCOMPLETE`/`DATA_ERROR`) vs "Đã hoàn tất sẽ bị thay thế" (`COMPLETED`).
+   - Reimport modal displays high-level count badges and per-row status chips (`Đã hoàn tất (sẽ thay thế)` in red/amber vs `Chưa có dữ liệu (nhập mới)` in blue).
+   - If completed dates exist, a prominent amber/red warning banner informs the operator that previous data will be permanently overwritten.
+
+6. **Mandatory User Confirmation Checkbox**:
+   - When completed items are present, the reimport button in both single-row dialog and bulk modal is disabled until the operator checks the acknowledgment checkbox (`bulkReimportAck` / `reimportAck`).
+   - Calls backend `POST /import/auto-backfill/runs` with `confirm_replace_completed: true` using `buildRunPayload()`.
+
+### 13.2 Validation & Quality Gates
+
+- **Unit / Contract Tests**: `node frontend/src/components/AutoBackfillOperatorPanel.test.js` → **24/24 Test Suites PASSED** (added suite 24 covering `isReimportSelectable`, `splitReimportItems`, `buildRunPayload`, and selection state isolation).
+- **Backend Regression**: `node backend/test_dkclHueF13SyncService.js` → **234/234 PASSED**; backend code 100% untouched.
+- **Lint Check**: `npm.cmd run lint` (`oxlint`) → 0 errors, 0 warnings in modified files.
+- **Production Build**: `npm.cmd run build` (`vite build`) → Success in 10.53s.
+
+### 13.3 Stop Condition
+
+Status: `PART B FRONTEND IMPLEMENTED / READY FOR PO CHECK`. No PO PASS is claimed or self-awarded. Ready for PO review and UI verification.
+

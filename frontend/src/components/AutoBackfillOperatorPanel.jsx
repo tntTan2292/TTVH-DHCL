@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   AlertCircle,
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   CheckSquare,
@@ -27,7 +28,9 @@ import api from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { isAdminRole } from '../auth/roles';
 import {
+  buildRunPayload,
   groupItemsByIndicatorAndMonth,
+  isReimportSelectable,
   isSelectable,
   paginateItems,
   resolveDynamicIndicators,
@@ -37,7 +40,8 @@ import {
   resolveOpenRunRowActions,
   resolveRunActionButtons,
   resolveRunIdleState,
-  resolveWaitingAuthLanes
+  resolveWaitingAuthLanes,
+  splitReimportItems
 } from './autoBackfillUiHelpers';
 
 const getApiErrorMessage = (error, fallback = 'Đã xảy ra lỗi khi gọi API.') => (
@@ -150,22 +154,30 @@ export default function AutoBackfillOperatorPanel() {
   const [revokeLoading, setRevokeLoading] = useState(false);
   const [revokeError, setRevokeError] = useState(null);
 
-  // Single-Date Reimport Modal State
+  // Single-Date Import/Reimport Modal State (branches into Nhập mới vs Nhập lại)
   const [reimportModalItem, setReimportModalItem] = useState(null);
   const [reimportLoading, setReimportLoading] = useState(false);
   const [reimportError, setReimportError] = useState(null);
+  const [reimportAck, setReimportAck] = useState(false);
 
-  // Bulk Selection State
+  // Bulk Selection State (for Nhập mới & Loại bỏ phát sinh - INCOMPLETE/DATA_ERROR only)
   const [selectedBulkKeys, setSelectedBulkKeys] = useState(new Set());
   const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
   const [bulkReason, setBulkReason] = useState('');
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResultReport, setBulkResultReport] = useState(null);
 
-  // Bulk Reimport State (Point 1)
+  // Bulk Nhập mới State (renamed from old Bulk Reimport, wired to selectedBulkKeys)
+  const [showBulkNewImportModal, setShowBulkNewImportModal] = useState(false);
+  const [bulkNewImportLoading, setBulkNewImportLoading] = useState(false);
+  const [bulkNewImportReport, setBulkNewImportReport] = useState(null);
+
+  // Bulk Reimport State (new separate selection state for "Nhập lại" - includes COMPLETED)
+  const [selectedReimportKeys, setSelectedReimportKeys] = useState(new Set());
   const [showBulkReimportModal, setShowBulkReimportModal] = useState(false);
   const [bulkReimportLoading, setBulkReimportLoading] = useState(false);
   const [bulkReimportReport, setBulkReimportReport] = useState(null);
+  const [bulkReimportAck, setBulkReimportAck] = useState(false);
 
   // Notification Toast
   const [toast, setToast] = useState(null);
@@ -270,6 +282,7 @@ export default function AutoBackfillOperatorPanel() {
         });
 
         if (!allSelected && keysToSelect.length > 0) {
+          setSelectedReimportKeys(new Set());
           const holidayCount = selectableData.excluded_holiday?.length || 0;
           const exceptionCount = selectableData.excluded_exception?.length || 0;
           const completeCount = selectableData.excluded_complete || 0;
@@ -291,7 +304,54 @@ export default function AutoBackfillOperatorPanel() {
     }
   }, [laneFilter, selectedBulkKeys]);
 
-  // Toggle Bulk Select Item (only INCOMPLETE/DATA_ERROR can ever be selected)
+  // IMPORT-BULK-REIMPORT-ALL-01 (DoR v2 Section 3, 7.1): Select all days including COMPLETED via include_completed=true
+  const handleSelectAllReimport = useCallback(async (indicator, month) => {
+    try {
+      const params = { include_completed: true };
+      if (indicator && indicator !== 'ALL') params.indicator = indicator;
+      if (month && month !== 'ALL') params.month = month;
+      if (laneFilter !== 'ALL') params.lane = laneFilter;
+
+      const res = await api.get('/import/auto-backfill/coverage/selectable', { params });
+      if (res.data?.success) {
+        const selectableData = res.data.data;
+        const selectableItems = selectableData.items || [];
+        const keysToSelect = selectableItems.map((item) => getItemKey(item));
+
+        const allSelected = keysToSelect.length > 0 && keysToSelect.every((k) => selectedReimportKeys.has(k));
+
+        setSelectedReimportKeys((prev) => {
+          const next = new Set(prev);
+          if (allSelected) {
+            keysToSelect.forEach((k) => next.delete(k));
+          } else {
+            keysToSelect.forEach((k) => next.add(k));
+          }
+          return next;
+        });
+
+        if (!allSelected && keysToSelect.length > 0) {
+          setSelectedBulkKeys(new Set());
+          const holidayCount = selectableData.excluded_holiday?.length || 0;
+          const exceptionCount = selectableData.excluded_exception?.length || 0;
+          let note = `Đã chọn ${keysToSelect.length} ngày (bao gồm ngày đã hoàn tất)`;
+          if (month && month !== 'ALL') note += ` (Tháng ${month})`;
+          const excludedParts = [];
+          if (holidayCount > 0) excludedParts.push(`${holidayCount} ngày LỊCH NGHỈ`);
+          if (exceptionCount > 0) excludedParts.push(`${exceptionCount} ngày ngoại lệ`);
+          if (excludedParts.length > 0) {
+            note += ` — đã tự bỏ qua ${excludedParts.join(', ')}`;
+          }
+          showToast(note);
+        }
+      }
+    } catch (err) {
+      console.error('[AutoBackfillOperatorPanel] selectable (include_completed) error:', err);
+      showToast(getApiErrorMessage(err, 'Không thể tải danh sách chọn.'), 'error');
+    }
+  }, [laneFilter, selectedReimportKeys]);
+
+  // Toggle Bulk Select Item (only INCOMPLETE/DATA_ERROR can ever be selected for bulk exemption/nhập mới)
   const toggleSelectBulkItem = (item) => {
     if (!isSelectable(item)) return;
     const key = getItemKey(item);
@@ -306,8 +366,58 @@ export default function AutoBackfillOperatorPanel() {
     });
   };
 
-  // Select/Unselect All Items in a list (only INCOMPLETE/DATA_ERROR)
+  // Toggle Reimport Select Item (COMPLETED, INCOMPLETE, DATA_ERROR; EXCLUDED always omitted)
+  const toggleSelectReimportItem = (item) => {
+    if (!isReimportSelectable(item)) return;
+    const key = getItemKey(item);
+    setSelectedReimportKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  // Unified row toggle handler
+  const handleToggleRowSelection = (item) => {
+    const key = getItemKey(item);
+    if (selectedReimportKeys.size > 0) {
+      if (isReimportSelectable(item)) {
+        toggleSelectReimportItem(item);
+      }
+    } else if (item?.status === 'COMPLETED') {
+      if (isReimportSelectable(item)) {
+        setSelectedBulkKeys(new Set());
+        setSelectedReimportKeys(new Set([key]));
+      }
+    } else {
+      if (isSelectable(item)) {
+        toggleSelectBulkItem(item);
+      }
+    }
+  };
+
+  // Select/Unselect All Items in a list
   const toggleSelectAllItems = (itemsList) => {
+    if (selectedReimportKeys.size > 0) {
+      const reimportItems = (itemsList || []).filter(isReimportSelectable);
+      const itemKeys = reimportItems.map(getItemKey);
+      const allSelected = itemKeys.length > 0 && itemKeys.every((k) => selectedReimportKeys.has(k));
+      setSelectedReimportKeys((prev) => {
+        const next = new Set(prev);
+        if (allSelected) {
+          itemKeys.forEach((k) => next.delete(k));
+        } else {
+          itemKeys.forEach((k) => next.add(k));
+        }
+        return next;
+      });
+      return;
+    }
+
     const selectableItems = (itemsList || []).filter(isSelectable);
     const itemKeys = selectableItems.map(getItemKey);
     const allSelected = itemKeys.length > 0 && itemKeys.every((k) => selectedBulkKeys.has(k));
@@ -325,6 +435,10 @@ export default function AutoBackfillOperatorPanel() {
 
   const clearBulkSelection = () => {
     setSelectedBulkKeys(new Set());
+  };
+
+  const clearReimportSelection = () => {
+    setSelectedReimportKeys(new Set());
   };
 
   // Fetch Coverage with exception_id merging
@@ -667,35 +781,32 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Single-Date Reimport API Handler
+  // Single-Date Import/Reimport API Handler (branches into Nhập mới vs Nhập lại)
   const handleConfirmReimport = async () => {
     if (!isAdmin || !reimportModalItem) return;
+    const isCompleted = reimportModalItem.status === 'COMPLETED';
+    if (isCompleted && !reimportAck) return;
+
     setReimportLoading(true);
     setReimportError(null);
     try {
-      const payload = {
-        indicator: reimportModalItem.indicator,
-        requested_lane: reimportModalItem.source_lane,
-        lane: reimportModalItem.source_lane,
-        month: reimportModalItem.business_date.slice(0, 7),
-        from_date: reimportModalItem.business_date,
-        to_date: reimportModalItem.business_date,
-        // AB-CALENDAR-01 D1: an EXCLUDED day (holiday or exception) needs the
-        // narrow single-tuple opt-in to be re-admitted for "Nhập lại" -- this
-        // request is already exactly one indicator + one lane + one date.
-        ...(reimportModalItem.status === 'EXCLUDED' ? { include_excluded: true } : {})
-      };
+      const payload = buildRunPayload(reimportModalItem, { confirmReplaceCompleted: isCompleted });
       const res = await api.post('/import/auto-backfill/runs', payload);
-      if (res.data.success) {
+      if (res.data?.success) {
         const newRun = res.data.data;
         setActiveRunId(newRun.run.id);
         setRunData(newRun);
-        showToast(`Đã khởi tạo yêu cầu nhập lại cho ${reimportModalItem.indicator} (${reimportModalItem.source_lane}) ngày ${reimportModalItem.business_date}`);
+        const actionLabel = isCompleted ? 'nhập lại (thay thế)' : 'nhập mới';
+        showToast(`Đã khởi tạo yêu cầu ${actionLabel} cho ${reimportModalItem.indicator} (${reimportModalItem.source_lane}) ngày ${reimportModalItem.business_date}`);
         setReimportModalItem(null);
+        setReimportAck(false);
         fetchCoverage();
       }
     } catch (err) {
-      setReimportError(getApiErrorMessage(err, 'Không thể khởi tạo yêu cầu nhập lại cho ngày này.'));
+      const defaultErr = isCompleted
+        ? 'Không thể khởi tạo yêu cầu nhập lại cho ngày này.'
+        : 'Không thể khởi tạo yêu cầu nhập mới cho ngày này.';
+      setReimportError(getApiErrorMessage(err, defaultErr));
     } finally {
       setReimportLoading(false);
     }
@@ -803,11 +914,11 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Bulk Reimport Execution Handler (Point 1)
-  const handleExecuteBulkReimport = async () => {
+  // Bulk Nhập mới Execution Handler (renamed from old Bulk Reimport, for selectedBulkKeys)
+  const handleExecuteBulkNewImport = async () => {
     if (!isAdmin || selectedBulkKeys.size === 0) return;
-    setBulkReimportLoading(true);
-    setBulkReimportReport(null);
+    setBulkNewImportLoading(true);
+    setBulkNewImportReport(null);
 
     const selectedItems = rawCoverageItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
     const results = [];
@@ -816,21 +927,62 @@ export default function AutoBackfillOperatorPanel() {
 
     for (const item of selectedItems) {
       try {
-        const payload = {
-          indicator: item.indicator,
-          requested_lane: item.source_lane,
-          lane: item.source_lane,
-          month: item.business_date.slice(0, 7),
-          from_date: item.business_date,
-          to_date: item.business_date
-        };
+        const payload = buildRunPayload(item);
         const res = await api.post('/import/auto-backfill/runs', payload);
-        if (res.data.success) {
+        if (res.data?.success) {
           successCount++;
           results.push({ item, success: true, run_id: res.data.data?.run?.id });
         } else {
           failCount++;
-          results.push({ item, success: false, error: res.data.error?.message || 'Lỗi API' });
+          results.push({ item, success: false, error: res.data?.error?.message || 'Lỗi API' });
+        }
+      } catch (err) {
+        failCount++;
+        results.push({ item, success: false, error: getApiErrorMessage(err, 'Lỗi kết nối API') });
+      }
+    }
+
+    setBulkNewImportLoading(false);
+    setBulkNewImportReport({ successCount, failCount, total: selectedItems.length, results });
+
+    if (successCount > 0) {
+      const lastSuccessfulRun = results.find((r) => r.success)?.run_id;
+      if (lastSuccessfulRun) {
+        setActiveRunId(lastSuccessfulRun);
+      }
+      fetchCoverage();
+    }
+    if (failCount === 0) {
+      showToast(`Đã tạo thành công ${successCount}/${selectedItems.length} yêu cầu nhập mới`);
+      clearBulkSelection();
+      setShowBulkNewImportModal(false);
+    }
+  };
+
+  // Bulk Reimport Execution Handler (IMPORT-BULK-REIMPORT-ALL-01: for selectedReimportKeys, includes COMPLETED)
+  const handleExecuteBulkReimport = async () => {
+    if (!isAdmin || selectedReimportKeys.size === 0) return;
+    const selectedItems = rawCoverageItems.filter((item) => selectedReimportKeys.has(getItemKey(item)));
+    const hasCompleted = selectedItems.some((item) => item.status === 'COMPLETED');
+    if (hasCompleted && !bulkReimportAck) return;
+
+    setBulkReimportLoading(true);
+    setBulkReimportReport(null);
+
+    const results = [];
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of selectedItems) {
+      try {
+        const payload = buildRunPayload(item, { confirmReplaceCompleted: true });
+        const res = await api.post('/import/auto-backfill/runs', payload);
+        if (res.data?.success) {
+          successCount++;
+          results.push({ item, success: true, run_id: res.data.data?.run?.id });
+        } else {
+          failCount++;
+          results.push({ item, success: false, error: res.data?.error?.message || 'Lỗi API' });
         }
       } catch (err) {
         failCount++;
@@ -850,8 +1002,9 @@ export default function AutoBackfillOperatorPanel() {
     }
     if (failCount === 0) {
       showToast(`Đã tạo thành công ${successCount}/${selectedItems.length} yêu cầu nhập lại`);
-      clearBulkSelection();
+      clearReimportSelection();
       setShowBulkReimportModal(false);
+      setBulkReimportAck(false);
     }
   };
 
@@ -901,9 +1054,22 @@ export default function AutoBackfillOperatorPanel() {
 
   // Table View Select All helper
   const isAllTableItemsSelected = useMemo(() => {
-    const keys = paginatedCoverage.pageItems.map(getItemKey);
+    if (selectedReimportKeys.size > 0) {
+      const keys = paginatedCoverage.pageItems.filter(isReimportSelectable).map(getItemKey);
+      return keys.length > 0 && keys.every((k) => selectedReimportKeys.has(k));
+    }
+    const keys = paginatedCoverage.pageItems.filter(isSelectable).map(getItemKey);
     return keys.length > 0 && keys.every((k) => selectedBulkKeys.has(k));
-  }, [paginatedCoverage.pageItems, selectedBulkKeys]);
+  }, [paginatedCoverage.pageItems, selectedBulkKeys, selectedReimportKeys]);
+
+  // Selected Reimport items split (completed vs new import)
+  const selectedReimportItems = useMemo(() => {
+    return rawCoverageItems.filter((item) => selectedReimportKeys.has(getItemKey(item)));
+  }, [rawCoverageItems, selectedReimportKeys]);
+
+  const reimportSplit = useMemo(() => {
+    return splitReimportItems(selectedReimportItems);
+  }, [selectedReimportItems]);
 
   // Effective Run State & Active Job Granular Visibility
   const effectiveRunState = useMemo(() => {
@@ -1481,10 +1647,12 @@ export default function AutoBackfillOperatorPanel() {
                 key={`${group.indicator}::${group.yearMonth}`}
                 group={group}
                 selectedBulkKeys={selectedBulkKeys}
+                selectedReimportKeys={selectedReimportKeys}
                 isAdmin={isAdmin}
-                onToggleSelectItem={toggleSelectBulkItem}
+                onToggleSelectItem={handleToggleRowSelection}
                 onToggleSelectAllItems={toggleSelectAllItems}
                 onSelectAllUnfinished={handleSelectAllUnfinished}
+                onSelectAllReimport={handleSelectAllReimport}
                 onConfirmClick={(item) => {
                   setConfirmModalItem(item);
                   setConfirmReason('');
@@ -1495,6 +1663,7 @@ export default function AutoBackfillOperatorPanel() {
                 }}
                 onReimportClick={(item) => {
                   setReimportModalItem(item);
+                  setReimportAck(false);
                   setReimportError(null);
                 }}
                 onMarkHolidayClick={(item) => {
@@ -1528,7 +1697,7 @@ export default function AutoBackfillOperatorPanel() {
                         className="text-slate-500 hover:text-slate-800"
                       >
                         {isAllTableItemsSelected ? (
-                          <CheckSquare className="h-4 w-4 text-blue-600" />
+                          <CheckSquare className={`h-4 w-4 ${selectedReimportKeys.size > 0 ? 'text-indigo-600' : 'text-blue-600'}`} />
                         ) : (
                           <Square className="h-4 w-4" />
                         )}
@@ -1546,20 +1715,23 @@ export default function AutoBackfillOperatorPanel() {
                 {paginatedCoverage.pageItems.map((item, idx) => {
                   const statusInfo = resolveNoCodeStatus(item.status);
                   const isActionable = isActionableForExemption(item);
-                  const isSelected = selectedBulkKeys.has(getItemKey(item));
+                  const key = getItemKey(item);
+                  const isReimportMode = selectedReimportKeys.size > 0;
+                  const isSelected = isReimportMode ? selectedReimportKeys.has(key) : selectedBulkKeys.has(key);
+                  const canSelectRow = isReimportMode ? isReimportSelectable(item) : (isSelectable(item) || item.status === 'COMPLETED');
 
                   return (
-                    <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className={`hover:bg-slate-50/80 transition ${isSelected ? 'bg-blue-50/40' : ''}`}>
+                    <tr key={`${item.indicator}-${item.source_lane}-${item.business_date}-${idx}`} className={`hover:bg-slate-50/80 transition ${isSelected ? (isReimportMode ? 'bg-indigo-50/40' : 'bg-blue-50/40') : ''}`}>
                       {isAdmin && (
                         <td className="px-4 py-3.5 text-center">
-                          {isSelectable(item) && (
+                          {canSelectRow && (
                             <button
                               type="button"
-                              onClick={() => toggleSelectBulkItem(item)}
+                              onClick={() => handleToggleRowSelection(item)}
                               className="text-slate-400 hover:text-blue-600"
                             >
                               {isSelected ? (
-                                <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
+                                <CheckSquare className={`h-4 w-4 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`} />
                               ) : (
                                 <Square className="h-4 w-4" />
                               )}
@@ -1594,18 +1766,34 @@ export default function AutoBackfillOperatorPanel() {
                         <div className="flex items-center justify-end gap-2">
                           {isAdmin ? (
                             <>
-                              {/* PER-ROW REIMPORT BUTTON */}
-                              <button
-                                onClick={() => {
-                                  setReimportModalItem(item);
-                                  setReimportError(null);
-                                }}
-                                className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
-                                title="Yêu cầu nạp lại dữ liệu cho ngày này"
-                              >
-                                <RotateCw className="h-3.5 w-3.5" />
-                                <span>Nhập lại</span>
-                              </button>
+                              {/* PER-ROW REIMPORT / NHẬP MỚI BUTTON */}
+                              {item.status === 'COMPLETED' ? (
+                                <button
+                                  onClick={() => {
+                                    setReimportModalItem(item);
+                                    setReimportAck(false);
+                                    setReimportError(null);
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                                  title="Tái nạp và thay thế dữ liệu ngày này"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  <span>Nhập lại</span>
+                                </button>
+                              ) : (item.status === 'INCOMPLETE' || item.status === 'DATA_ERROR' || (item.status === 'EXCLUDED' && item.holiday)) ? (
+                                <button
+                                  onClick={() => {
+                                    setReimportModalItem(item);
+                                    setReimportAck(false);
+                                    setReimportError(null);
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
+                                  title="Yêu cầu nạp mới dữ liệu cho ngày này"
+                                >
+                                  <RotateCw className="h-3.5 w-3.5" />
+                                  <span>Nhập mới</span>
+                                </button>
+                              ) : null}
 
                               {isActionable && (
                                 <button
@@ -1719,7 +1907,7 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
-      {/* FLOATING BULK ACTION BAR */}
+      {/* FLOATING BULK ACTION BAR (for selectedBulkKeys: INCOMPLETE/DATA_ERROR) */}
       {isAdmin && selectedBulkKeys.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-slate-900 px-6 py-3.5 text-white shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center gap-2 text-sm font-bold">
@@ -1728,19 +1916,19 @@ export default function AutoBackfillOperatorPanel() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* BULK REIMPORT BUTTON (Point 1) */}
+            {/* BULK NHẬP MỚI BUTTON (Renamed from "Nhập lại") */}
             <button
               onClick={() => {
-                setShowBulkReimportModal(true);
-                setBulkReimportReport(null);
+                setShowBulkNewImportModal(true);
+                setBulkNewImportReport(null);
               }}
               className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-500 transition shadow-sm flex items-center gap-1.5"
             >
               <RotateCw className="h-3.5 w-3.5" />
-              <span>Nhập lại {selectedBulkKeys.size} ngày đã chọn</span>
+              <span>Nhập mới {selectedBulkKeys.size} ngày đã chọn</span>
             </button>
 
-            {/* RENAMED BULK EXEMPTION BUTTON (Point 2) */}
+            {/* BULK EXEMPTION BUTTON */}
             <button
               onClick={() => {
                 setShowBulkConfirmModal(true);
@@ -1762,8 +1950,40 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
-      {/* BULK REIMPORT CONFIRMATION MODAL (Point 1) */}
-      {isAdmin && showBulkReimportModal && (
+      {/* FLOATING REIMPORT ACTION BAR (for selectedReimportKeys: includes COMPLETED) */}
+      {isAdmin && selectedReimportKeys.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-slate-900 px-6 py-3.5 text-white shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2 text-sm font-bold">
+            <CheckSquare className="h-5 w-5 text-indigo-400" />
+            <span>Đã chọn {selectedReimportKeys.size} ngày (Tái nhập)</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* BULK REIMPORT BUTTON */}
+            <button
+              onClick={() => {
+                setShowBulkReimportModal(true);
+                setBulkReimportReport(null);
+                setBulkReimportAck(false);
+              }}
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500 transition shadow-sm flex items-center gap-1.5"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Nhập lại {selectedReimportKeys.size} ngày đã chọn</span>
+            </button>
+
+            <button
+              onClick={clearReimportSelection}
+              className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+            >
+              Hủy chọn
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* BULK NHẬP MỚI CONFIRMATION MODAL (for selectedBulkKeys) */}
+      {isAdmin && showBulkNewImportModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 max-h-[85vh] flex flex-col">
             <div className="flex items-start justify-between">
@@ -1772,19 +1992,19 @@ export default function AutoBackfillOperatorPanel() {
                   <RotateCw className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Xác nhận Nhập lại Dữ liệu Hàng loạt</h3>
+                  <h3 className="text-lg font-bold text-slate-900">Xác nhận Nhập mới Dữ liệu Hàng loạt</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Tạo các yêu cầu nạp lại dữ liệu riêng cho <strong>{selectedBulkKeys.size} ngày</strong> đã chọn.
+                    Tạo các yêu cầu nạp mới dữ liệu riêng cho <strong>{selectedBulkKeys.size} ngày</strong> chưa hoàn tất đã chọn.
                   </p>
                 </div>
               </div>
-              <button onClick={() => setShowBulkReimportModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+              <button onClick={() => setShowBulkNewImportModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             <div className="mt-4 flex-1 overflow-y-auto max-h-48 rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs text-slate-700 space-y-1">
-              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày sẽ nhập lại ({selectedBulkKeys.size}):</span>
+              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày sẽ nhập mới ({selectedBulkKeys.size}):</span>
               {Array.from(selectedBulkKeys).map((key) => {
                 const [ind, lane, date] = key.split('::');
                 return (
@@ -1795,6 +2015,131 @@ export default function AutoBackfillOperatorPanel() {
                 );
               })}
             </div>
+
+            {bulkNewImportReport && (
+              <div className="mt-3 text-xs rounded-xl p-3 border bg-slate-50 space-y-1">
+                <div className="font-bold text-slate-900">
+                  Kết quả tạo yêu cầu: {bulkNewImportReport.successCount}/{bulkNewImportReport.total} thành công
+                  {bulkNewImportReport.failCount > 0 && <span className="text-red-600 ml-2">({bulkNewImportReport.failCount} thất bại)</span>}
+                </div>
+                {bulkNewImportReport.results.filter(r => !r.success).map((r, i) => (
+                  <div key={i} className="text-red-600">
+                    • {r.item.indicator} × {r.item.source_lane} × {r.item.business_date}: {r.error}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowBulkNewImportModal(false)}
+                disabled={bulkNewImportLoading}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleExecuteBulkNewImport}
+                disabled={bulkNewImportLoading}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+              >
+                {bulkNewImportLoading ? `Đang gửi ${selectedBulkKeys.size} yêu cầu...` : `Xác nhận Nhập mới ${selectedBulkKeys.size} ngày`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK REIMPORT CONFIRMATION MODAL (IMPORT-BULK-REIMPORT-ALL-01: for selectedReimportKeys) */}
+      {isAdmin && showBulkReimportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 max-h-[85vh] flex flex-col">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-indigo-100 p-2 text-indigo-700">
+                  <RotateCcw className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Xác nhận Nhập lại Dữ liệu Hàng loạt</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Tạo các yêu cầu nạp lại dữ liệu cho <strong>{selectedReimportKeys.size} ngày</strong> đã chọn.
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setShowBulkReimportModal(false)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* STATUS BREAKDOWN CHIPS */}
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-xl bg-amber-50 p-2.5 border border-amber-200">
+                <span className="text-slate-600 block">Đã hoàn tất (sẽ xóa & thay thế):</span>
+                <span className="text-base font-extrabold text-amber-900">{reimportSplit.completedCount} ngày</span>
+              </div>
+              <div className="rounded-xl bg-blue-50 p-2.5 border border-blue-200">
+                <span className="text-slate-600 block">Chưa hoàn tất (nhập mới):</span>
+                <span className="text-base font-extrabold text-blue-900">{reimportSplit.newImportCount} ngày</span>
+              </div>
+            </div>
+
+            {/* REPLACE WARNING IF COMPLETED DATES ARE PRESENT */}
+            {reimportSplit.hasCompleted && (
+              <div className="mt-3 rounded-xl bg-amber-50/90 p-3 border border-amber-300 text-xs text-amber-900 space-y-1">
+                <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <span>CẢNH BÁO THAY THẾ DỮ LIỆU ĐÃ HOÀN TẤT</span>
+                </div>
+                <p>
+                  Có <strong>{reimportSplit.completedCount} ngày</strong> đã có dữ liệu hoàn tất sẽ bị <strong>XÓA VÀ THAY THẾ</strong> hoàn toàn bằng dữ liệu mới từ Portal.
+                  Thao tác này chỉ tác động đúng chỉ tiêu, nguồn lane và ngày tương ứng, không ảnh hưởng đến ngày khác.
+                </p>
+              </div>
+            )}
+
+            {/* PER-ITEM LIST WITH STATUS BADGES */}
+            <div className="mt-3 flex-1 overflow-y-auto max-h-44 rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs text-slate-700 space-y-1.5">
+              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày tái nhập ({selectedReimportKeys.size}):</span>
+              {selectedReimportItems.map((item) => {
+                const isCompleted = item.status === 'COMPLETED';
+                const key = getItemKey(item);
+                return (
+                  <div key={key} className="flex items-center justify-between py-1 border-b border-slate-100 last:border-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-slate-900">{item.business_date}</span>
+                      <span className="text-slate-500">{item.indicator} — Nguồn {item.source_lane}</span>
+                      {isCompleted && item.evidence?.row_count !== undefined && (
+                        <span className="text-[11px] text-slate-400">({item.evidence.row_count} dòng)</span>
+                      )}
+                    </div>
+                    {isCompleted ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900 border border-amber-300">
+                        Đã hoàn tất — Sẽ thay thế
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200">
+                        Nhập mới
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* MANDATORY CONFIRMATION CHECKBOX */}
+            {reimportSplit.hasCompleted && (
+              <label className="flex items-start gap-2.5 mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-xl cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={bulkReimportAck}
+                  onChange={(e) => setBulkReimportAck(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                />
+                <span className="text-xs font-semibold text-amber-950 leading-tight">
+                  Tôi hiểu và xác nhận dữ liệu của {reimportSplit.completedCount} ngày ĐÃ HOÀN TẤT sẽ bị xóa và thay thế bằng dữ liệu mới.
+                </span>
+              </label>
+            )}
 
             {bulkReimportReport && (
               <div className="mt-3 text-xs rounded-xl p-3 border bg-slate-50 space-y-1">
@@ -1810,7 +2155,7 @@ export default function AutoBackfillOperatorPanel() {
               </div>
             )}
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 onClick={() => setShowBulkReimportModal(false)}
                 disabled={bulkReimportLoading}
@@ -1820,62 +2165,140 @@ export default function AutoBackfillOperatorPanel() {
               </button>
               <button
                 onClick={handleExecuteBulkReimport}
-                disabled={bulkReimportLoading}
-                className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+                disabled={bulkReimportLoading || (reimportSplit.hasCompleted && !bulkReimportAck)}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
               >
-                {bulkReimportLoading ? `Đang gửi ${selectedBulkKeys.size} yêu cầu...` : `Xác nhận Nhập lại ${selectedBulkKeys.size} ngày`}
+                {bulkReimportLoading ? `Đang gửi ${selectedReimportKeys.size} yêu cầu...` : `Xác nhận Nhập lại ${selectedReimportKeys.size} ngày`}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* SINGLE-DATE REIMPORT CONFIRMATION MODAL */}
+      {/* SINGLE-DATE MODAL (BRANCHES INTO NHẬP MỚI VS NHẬP LẠI) */}
       {isAdmin && reimportModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <div className="rounded-full bg-blue-100 p-2 text-blue-700">
-                  <RotateCw className="h-5 w-5" />
+            {reimportModalItem.status === 'COMPLETED' ? (
+              /* SINGLE-DATE NHẬP LẠI (REPLACE COMPLETED) */
+              <>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+                      <RotateCcw className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">Xác nhận Nhập lại Dữ liệu</h3>
+                      <span className="text-xs font-semibold text-amber-700">Ghi đè và thay thế dữ liệu đã hoàn tất</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setReimportModalItem(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900">Xác nhận Yêu cầu Nhập lại Dữ liệu</h3>
-              </div>
-              <button onClick={() => setReimportModalItem(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-1.5 font-medium">
-              <div>Khóa nghiệp vụ: <strong className="text-slate-900">{reimportModalItem.indicator} × Nguồn {reimportModalItem.source_lane} × Ngày {reimportModalItem.business_date}</strong></div>
-              <div>Trạng thái hiện tại: <span className="font-semibold text-blue-800">{reimportModalItem.status}</span></div>
-              <p className="mt-2 text-slate-500 italic">
-                Hệ thống sẽ tạo 1 tiến trình bù tự động giới hạn chính xác cho ngày <strong>{reimportModalItem.business_date}</strong> để tải lại dữ liệu từ Portal.
-              </p>
-            </div>
+                <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-1.5 font-medium">
+                  <div>Khóa nghiệp vụ: <strong className="text-slate-900">{reimportModalItem.indicator} × Nguồn {reimportModalItem.source_lane} × Ngày {reimportModalItem.business_date}</strong></div>
+                  <div>Trạng thái hiện tại: <span className="font-semibold text-emerald-700">Đã hoàn tất</span></div>
+                  {reimportModalItem.evidence?.row_count !== undefined && (
+                    <div>Quy mô dữ liệu hiện tại: <strong className="text-slate-900">{reimportModalItem.evidence.row_count} bản ghi</strong></div>
+                  )}
+                </div>
 
-            {reimportError && (
-              <div className="mt-3 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
-                {reimportError}
-              </div>
+                <div className="mt-3 rounded-xl bg-amber-50 p-3.5 border border-amber-300 text-xs text-amber-900 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span>CẢNH BÁO THAY THẾ DỮ LIỆU</span>
+                  </div>
+                  <p>
+                    Dữ liệu hiện tại của ngày <strong>{reimportModalItem.business_date}</strong> sẽ bị <strong>XÓA VÀ THAY THẾ</strong> bằng dữ liệu mới từ Portal.
+                    Thao tác này chỉ tác động đúng chỉ tiêu {reimportModalItem.indicator} và nguồn {reimportModalItem.source_lane}, không ảnh hưởng đến ngày khác.
+                  </p>
+                </div>
+
+                {/* MANDATORY CONFIRMATION CHECKBOX */}
+                <label className="flex items-start gap-2.5 mt-3 p-3 bg-amber-50/70 border border-amber-200 rounded-xl cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={reimportAck}
+                    onChange={(e) => setReimportAck(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-semibold text-amber-950 leading-tight">
+                    Tôi hiểu và xác nhận dữ liệu của ngày này ({reimportModalItem.business_date}) sẽ bị xóa và thay thế bằng dữ liệu mới.
+                  </span>
+                </label>
+
+                {reimportError && (
+                  <div className="mt-3 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+                    {reimportError}
+                  </div>
+                )}
+
+                <div className="mt-6 flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => setReimportModalItem(null)}
+                    disabled={reimportLoading}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    onClick={handleConfirmReimport}
+                    disabled={reimportLoading || !reimportAck}
+                    className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {reimportLoading ? 'Đang gửi yêu cầu...' : 'Xác nhận Nhập lại'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* SINGLE-DATE NHẬP MỚI (INCOMPLETE / DATA_ERROR / EXCLUDED) */
+              <>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-full bg-blue-100 p-2 text-blue-700">
+                      <RotateCw className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Xác nhận Yêu cầu Nhập mới Dữ liệu</h3>
+                  </div>
+                  <button onClick={() => setReimportModalItem(null)} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-1.5 font-medium">
+                  <div>Khóa nghiệp vụ: <strong className="text-slate-900">{reimportModalItem.indicator} × Nguồn {reimportModalItem.source_lane} × Ngày {reimportModalItem.business_date}</strong></div>
+                  <div>Trạng thái hiện tại: <span className="font-semibold text-blue-800">{reimportModalItem.status}</span></div>
+                  <p className="mt-2 text-slate-500 italic">
+                    Hệ thống sẽ tạo 1 tiến trình bù tự động giới hạn chính xác cho ngày <strong>{reimportModalItem.business_date}</strong> để tải dữ liệu từ Portal.
+                  </p>
+                </div>
+
+                {reimportError && (
+                  <div className="mt-3 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100">
+                    {reimportError}
+                  </div>
+                )}
+
+                <div className="mt-6 flex items-center justify-end gap-3">
+                  <button
+                    onClick={() => setReimportModalItem(null)}
+                    disabled={reimportLoading}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button
+                    onClick={handleConfirmReimport}
+                    disabled={reimportLoading}
+                    className="rounded-xl bg-[var(--color-vnpost-blue)] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[var(--color-vnpost-blue-dark)] disabled:opacity-50"
+                  >
+                    {reimportLoading ? 'Đang gửi yêu cầu...' : 'Xác nhận Nhập mới'}
+                  </button>
+                </div>
+              </>
             )}
-
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setReimportModalItem(null)}
-                disabled={reimportLoading}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-              >
-                Hủy bỏ
-              </button>
-              <button
-                onClick={handleConfirmReimport}
-                disabled={reimportLoading}
-                className="rounded-xl bg-[var(--color-vnpost-blue)] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[var(--color-vnpost-blue-dark)] disabled:opacity-50"
-              >
-                {reimportLoading ? 'Đang gửi yêu cầu...' : 'Xác nhận Nhập lại'}
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -2423,10 +2846,12 @@ export default function AutoBackfillOperatorPanel() {
 function MonthlyAccordionGroup({
   group,
   selectedBulkKeys,
+  selectedReimportKeys = new Set(),
   isAdmin,
   onToggleSelectItem,
   _onToggleSelectAllItems,
   onSelectAllUnfinished,
+  onSelectAllReimport,
   onConfirmClick,
   onRevokeClick,
   onReimportClick,
@@ -2441,10 +2866,15 @@ function MonthlyAccordionGroup({
     return paginateItems(group.items, accordionPage, accordionPageSize);
   }, [group.items, accordionPage, accordionPageSize]);
 
-  const isAllGroupPageSelected = useMemo(() => {
-    const keys = paginatedGroup.pageItems.map(getItemKey);
-    return keys.length > 0 && keys.every((k) => selectedBulkKeys.has(k));
+  const isAllUnfinishedSelected = useMemo(() => {
+    const selectable = paginatedGroup.pageItems.filter(isSelectable).map(getItemKey);
+    return selectable.length > 0 && selectable.every((k) => selectedBulkKeys.has(k));
   }, [paginatedGroup.pageItems, selectedBulkKeys]);
+
+  const isAllReimportSelected = useMemo(() => {
+    const reimportSelectable = paginatedGroup.pageItems.filter(isReimportSelectable).map(getItemKey);
+    return reimportSelectable.length > 0 && reimportSelectable.every((k) => selectedReimportKeys.has(k));
+  }, [paginatedGroup.pageItems, selectedReimportKeys]);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -2491,23 +2921,47 @@ function MonthlyAccordionGroup({
       {isOpen && (
         <div className="flex flex-col">
           {/* Group Header Checkbox Bar */}
-          <div className="bg-slate-100/60 px-6 py-2 border-b border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-600">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectAllUnfinished(group.indicator, group.yearMonth);
-              }}
-              className="flex items-center gap-2 text-slate-700 hover:text-blue-700 font-bold"
-              title="Tự động chọn đúng toàn bộ ngày chưa hoàn tất của tháng qua nhiều trang (bỏ LỊCH NGHỈ, ngoại lệ và ngày hoàn tất)"
-            >
-              {isAllGroupPageSelected ? (
-                <CheckSquare className="h-4 w-4 text-blue-600" />
-              ) : (
-                <Square className="h-4 w-4 text-slate-400" />
+          <div className="bg-slate-100/60 px-6 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold text-slate-600">
+            <div className="flex items-center gap-5">
+              {/* BUTTON 1: CHỌN TẤT CẢ CHƯA HOÀN TẤT (GIỮ NGUYÊN) */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectAllUnfinished(group.indicator, group.yearMonth);
+                }}
+                className="flex items-center gap-1.5 text-slate-700 hover:text-blue-700 font-bold transition"
+                title="Tự động chọn đúng toàn bộ ngày chưa hoàn tất của tháng qua nhiều trang (bỏ LỊCH NGHỈ, ngoại lệ và ngày hoàn tất)"
+              >
+                {isAllUnfinishedSelected ? (
+                  <CheckSquare className="h-4 w-4 text-blue-600" />
+                ) : (
+                  <Square className="h-4 w-4 text-slate-400" />
+                )}
+                <span>Chọn tất cả chưa hoàn tất (Tháng {group.yearMonth})</span>
+              </button>
+
+              {/* BUTTON 2: CHỌN TẤT CẢ (BỔ SUNG CHO TÁI NHẬP HÀNG LOẠT, GỒM CẢ NGÀY HOÀN TẤT, BỎ LỊCH NGHỈ) */}
+              {onSelectAllReimport && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectAllReimport(group.indicator, group.yearMonth);
+                  }}
+                  className="flex items-center gap-1.5 text-slate-700 hover:text-indigo-700 font-bold transition"
+                  title="Chọn tất cả ngày gồm cả ngày đã hoàn tất để tái nhập hàng loạt (ngày LỊCH NGHỈ luôn bị bỏ qua)"
+                >
+                  {isAllReimportSelected ? (
+                    <CheckSquare className="h-4 w-4 text-indigo-600" />
+                  ) : (
+                    <Square className="h-4 w-4 text-slate-400" />
+                  )}
+                  <span>Chọn tất cả (Tháng {group.yearMonth})</span>
+                </button>
               )}
-              <span>Chọn tất cả chưa hoàn tất (Tháng {group.yearMonth})</span>
-            </button>
+            </div>
+
             <span>Hiển thị {paginatedGroup.pageItems.length}/{group.items.length} bản ghi</span>
           </div>
 
@@ -2515,12 +2969,15 @@ function MonthlyAccordionGroup({
             {paginatedGroup.pageItems.map((item, idx) => {
               const statusInfo = resolveNoCodeStatus(item.status);
               const isActionable = isActionableForExemption(item);
-              const isSelected = selectedBulkKeys.has(getItemKey(item));
+              const key = getItemKey(item);
+              const isReimportMode = selectedReimportKeys.size > 0;
+              const isSelected = isReimportMode ? selectedReimportKeys.has(key) : selectedBulkKeys.has(key);
+              const canSelect = isReimportMode ? isReimportSelectable(item) : (isSelectable(item) || item.status === 'COMPLETED');
 
               return (
-                <div key={idx} className={`flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/80 transition text-sm ${isSelected ? 'bg-blue-50/40' : ''}`}>
+                <div key={idx} className={`flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/80 transition text-sm ${isSelected ? (isReimportMode ? 'bg-indigo-50/40' : 'bg-blue-50/40') : ''}`}>
                   <div className="flex items-center gap-4">
-                    {isAdmin && isSelectable(item) && (
+                    {isAdmin && canSelect && (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -2530,7 +2987,7 @@ function MonthlyAccordionGroup({
                         className="text-slate-400 hover:text-blue-600"
                       >
                         {isSelected ? (
-                          <CheckSquare className="h-4 w-4 text-blue-600 fill-blue-50" />
+                          <CheckSquare className={`h-4 w-4 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`} />
                         ) : (
                           <Square className="h-4 w-4" />
                         )}
@@ -2556,18 +3013,32 @@ function MonthlyAccordionGroup({
                   <div className="flex items-center gap-2">
                     {isAdmin ? (
                       <>
-                        {/* PER-ROW REIMPORT BUTTON */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onReimportClick(item);
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
-                          title="Yêu cầu nạp lại dữ liệu cho ngày này"
-                        >
-                          <RotateCw className="h-3.5 w-3.5" />
-                          <span>Nhập lại</span>
-                        </button>
+                        {/* PER-ROW REIMPORT / NHẬP MỚI BUTTON */}
+                        {item.status === 'COMPLETED' ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onReimportClick(item);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
+                            title="Tái nạp và thay thế dữ liệu ngày này"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" />
+                            <span>Nhập lại</span>
+                          </button>
+                        ) : (item.status === 'INCOMPLETE' || item.status === 'DATA_ERROR' || (item.status === 'EXCLUDED' && item.holiday)) ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onReimportClick(item);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
+                            title="Yêu cầu nạp mới dữ liệu cho ngày này"
+                          >
+                            <RotateCw className="h-3.5 w-3.5" />
+                            <span>Nhập mới</span>
+                          </button>
+                        ) : null}
 
                         {isActionable && (
                           <button
