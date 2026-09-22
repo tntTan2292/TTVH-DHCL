@@ -158,7 +158,7 @@ export default function BcvhOperationTable() {
         </div>
       </div>
 
-      {/* 9-Column Table with 2-Level Header */}
+      {/* 10-Column Table with 2-Level Header */}
       <div
         ref={containerRef}
         className={`w-full ${
@@ -179,21 +179,22 @@ export default function BcvhOperationTable() {
               : undefined
           }
         >
-          <table ref={tableRef} className="w-full text-left border-collapse table-fixed min-w-[860px] lg:min-w-full">
-          {/* Symmetrical locked colgroup: Đơn vị (30%), Lũy kế tháng (35% = 3 * 11.6667%), Điều hành ngày (35% = 3 * 11.6667%) */}
+          <table ref={tableRef} className="w-full text-left border-collapse table-fixed min-w-[960px] lg:min-w-full">
+          {/* 10-column locked colgroup (PO amendment 2026-09-22): Đơn vị (30%), Lũy kế tháng (30% = 3 * 10%), Điều hành ngày (40% = 4 * 10%) */}
           <colgroup>
             {/* ĐƠN VỊ (30%) */}
             <col style={{ width: '5%' }} className="w-[5%]" />
             <col style={{ width: '8%' }} className="w-[8%]" />
             <col style={{ width: '17%' }} className="w-[17%]" />
-            {/* LŨY KẾ THÁNG (35%) */}
-            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
-            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
-            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
-            {/* ĐIỀU HÀNH NGÀY (35%) */}
-            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
-            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
-            <col style={{ width: '11.6667%' }} className="w-[11.6667%]" />
+            {/* LŨY KẾ THÁNG (30%) */}
+            <col style={{ width: '10%' }} className="w-[10%]" />
+            <col style={{ width: '10%' }} className="w-[10%]" />
+            <col style={{ width: '10%' }} className="w-[10%]" />
+            {/* ĐIỀU HÀNH NGÀY (40%) */}
+            <col style={{ width: '10%' }} className="w-[10%]" />
+            <col style={{ width: '10%' }} className="w-[10%]" />
+            <col style={{ width: '10%' }} className="w-[10%]" />
+            <col style={{ width: '10%' }} className="w-[10%]" />
           </colgroup>
 
           {/* Level 1: Grouped Headers */}
@@ -216,7 +217,7 @@ export default function BcvhOperationTable() {
                 </div>
               </th>
               <th
-                colSpan={3}
+                colSpan={4}
                 className="bg-emerald-100/90 text-emerald-950 font-black uppercase tracking-wider text-center align-middle py-2.5 px-2 text-sm md:text-base whitespace-nowrap"
               >
                 <div>ĐIỀU HÀNH NGÀY</div>
@@ -226,7 +227,7 @@ export default function BcvhOperationTable() {
               </th>
             </tr>
 
-            {/* Level 2: Exact Column Headers (All 9 horizontally and vertically centered, 16-18px) */}
+            {/* Level 2: Exact Column Headers (All 10 horizontally and vertically centered, 16-18px) */}
             <tr className="border-b-2 border-slate-300 bg-slate-50/95 text-slate-800 text-base sm:text-lg font-extrabold">
               {/* Identity (30%) */}
               <th className="py-2 px-1 text-center align-middle w-[5%] border-r border-slate-200 whitespace-nowrap">
@@ -239,28 +240,32 @@ export default function BcvhOperationTable() {
                 Tên bưu cục
               </th>
 
-              {/* Lũy kế tháng (35% = 3 * 11.6667%) */}
-              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-200 leading-snug">
+              {/* Lũy kế tháng (30% = 3 * 10%) */}
+              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
                 Sản lượng đo kiểm
               </th>
-              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-200 leading-snug">
+              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
                 Tỷ lệ đạt KPI 2026
               </th>
-              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-300 leading-snug">
+              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-300 leading-snug">
                 <span className="block">Tăng/giảm so với</span>
                 <span className="block">cùng kỳ tháng trước</span>
               </th>
 
-              {/* Điều hành ngày (35% = 3 * 11.6667%) */}
-              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-200 leading-snug">
+              {/* Điều hành ngày (40% = 4 * 10%) */}
+              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
                 Sản lượng đo kiểm
               </th>
-              <th className="py-2 px-1 text-center align-middle w-[11.6667%] border-r border-slate-200 leading-snug">
+              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
                 Tỷ lệ đạt KPI 2026
               </th>
-              <th className="py-2 px-1 text-center align-middle w-[11.6667%] leading-snug">
+              <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
                 <span className="block">Tăng/Giảm so với</span>
                 <span className="block">ngày trước</span>
+              </th>
+              <th className="py-2 px-1 text-center align-middle w-[10%] leading-snug">
+                <span className="block">Tăng/giảm so với</span>
+                <span className="block">cùng kỳ (tuần trước)</span>
               </th>
             </tr>
           </thead>
@@ -278,7 +283,7 @@ export default function BcvhOperationTable() {
                 {totalRow.ten_bcvh}
               </td>
 
-              {/* Lũy kế tháng (35%) */}
+              {/* Lũy kế tháng (30%) */}
               <td className="py-2.5 px-2 text-right font-black tabular-nums border-r border-blue-200 whitespace-nowrap">
                 {formatVolume(totalRow.mtd_volume)}
               </td>
@@ -289,15 +294,18 @@ export default function BcvhOperationTable() {
                 {renderDeltaBadge(totalRow.mtd_delta_rate)}
               </td>
 
-              {/* Điều hành ngày (35%) */}
+              {/* Điều hành ngày (40%) */}
               <td className="py-2.5 px-2 text-right font-black tabular-nums border-r border-emerald-200 whitespace-nowrap">
                 {formatVolume(totalRow.daily_volume)}
               </td>
               <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-emerald-200 whitespace-nowrap">
                 {renderRateBadge(totalRow.daily_rate)}
               </td>
-              <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+              <td className="py-2.5 px-2 text-right tabular-nums border-r border-emerald-200 whitespace-nowrap">
                 {renderDeltaBadge(totalRow.daily_delta_rate)}
+              </td>
+              <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+                {renderDeltaBadge(totalRow.daily_week_delta_rate)}
               </td>
             </tr>
 
@@ -314,7 +322,7 @@ export default function BcvhOperationTable() {
                   {row.ten_bcvh}
                 </td>
 
-                {/* Lũy kế tháng (35%) */}
+                {/* Lũy kế tháng (30%) */}
                 <td className="py-2.5 px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap">
                   {formatVolume(row.mtd_volume)}
                 </td>
@@ -325,15 +333,18 @@ export default function BcvhOperationTable() {
                   {renderDeltaBadge(row.mtd_delta_rate)}
                 </td>
 
-                {/* Điều hành ngày (35%) */}
+                {/* Điều hành ngày (40%) */}
                 <td className="py-2.5 px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap">
                   {formatVolume(row.daily_volume)}
                 </td>
                 <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap">
                   {renderRateBadge(row.daily_rate)}
                 </td>
-                <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+                <td className="py-2.5 px-2 text-right tabular-nums border-r border-slate-200 whitespace-nowrap">
                   {renderDeltaBadge(row.daily_delta_rate)}
+                </td>
+                <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+                  {renderDeltaBadge(row.daily_week_delta_rate)}
                 </td>
               </tr>
             ))}

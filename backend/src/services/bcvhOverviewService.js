@@ -126,9 +126,14 @@ class BcvhOverviewService {
         }));
 
         const prevAnchorDate = dailyRows.find((row) => row?.prev_anchor_date)?.prev_anchor_date || null;
+        const weekAgoDate = dailyRows.find((row) => row?.week_ago_date)?.week_ago_date
+            || (anchorDate ? shiftIsoDate(anchorDate, -7) : null);
         const dailyDates = dateKeysThrough(anchorDate);
         if (prevAnchorDate && !dailyDates.includes(prevAnchorDate)) {
             dailyDates.unshift(prevAnchorDate);
+        }
+        if (weekAgoDate && !dailyDates.includes(weekAgoDate)) {
+            dailyDates.unshift(weekAgoDate);
         }
 
         const dailyMap = new Map(dailyRows.map((row) => [`${row.date}|${row.ma_bcvh}`, row]));
@@ -219,7 +224,7 @@ class BcvhOverviewService {
             daily,
             mtd,
             routes,
-            meta: this._buildMeta(anchorDate, anchorCeiling, prevAnchorDate, { mtd: mtdNational, daily: dailyNational }),
+            meta: this._buildMeta(anchorDate, anchorCeiling, prevAnchorDate, { mtd: mtdNational, daily: dailyNational }, weekAgoDate),
         };
     }
 
@@ -238,6 +243,7 @@ class BcvhOverviewService {
                 anchor_source: null,
                 max_date: null,
                 previous_fact_date: null,
+                week_ago_date: null,
                 requested_ceiling: anchorCeiling,
                 month_period: { from_date: null, to_date: null },
                 year_period: { from_date: null, to_date: null },
@@ -248,13 +254,14 @@ class BcvhOverviewService {
         };
     }
 
-    _buildMeta(anchorDate, anchorCeiling, prevAnchorDate = null, nationalRank = null) {
+    _buildMeta(anchorDate, anchorCeiling, prevAnchorDate = null, nationalRank = null, weekAgoDate = null) {
         const yesterday = this._yesterday();
         return {
             anchor_date: anchorDate,
             anchor_source: anchorDate === yesterday ? 'yesterday' : 'max_date',
             max_date: anchorDate,
             previous_fact_date: prevAnchorDate,
+            week_ago_date: weekAgoDate,
             requested_ceiling: anchorCeiling,
             month_period: { from_date: `${anchorDate.slice(0, 7)}-01`, to_date: anchorDate },
             year_period: { from_date: `${anchorDate.slice(0, 4)}-01-01`, to_date: anchorDate },

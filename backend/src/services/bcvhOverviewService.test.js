@@ -133,7 +133,10 @@ test('T8/T9: first-day period and rank tie behavior match RANK semantics', async
     });
     const result = await service.getOverview('2026-08-01');
     assert.equal(result.meta.month_period.from_date, '2026-08-01');
-    assert.equal(result.daily.length, 6);
+    // 6 canonical BCVH x anchor date (2026-08-01) + 6 zero-filled rows for the
+    // synthesized week_ago_date (2026-07-25, date-math fallback -- no repository row supplied it).
+    assert.equal(result.daily.length, 12);
+    assert.equal(result.meta.week_ago_date, '2026-07-25');
     assert.equal(result.mtd[0].rank, 1);
     assert.equal(result.mtd[1].rank, 1);
     assert.ok(result.mtd.slice(2).every((row) => row.rank >= 3));
@@ -156,6 +159,8 @@ test('repository contract aggregates instead of returning fact rows and total-ro
     const dashboardSource = fs.readFileSync(path.join(__dirname, 'F13DashboardService.js'), 'utf8');
     const controllerSource = fs.readFileSync(path.join(__dirname, '../controllers/DashboardController.js'), 'utf8');
     const routesSource = fs.readFileSync(path.join(__dirname, '../routes/f13Routes.js'), 'utf8');
+    assert.match(repositorySource, /week_bounds AS \(/);
+    assert.match(repositorySource, /date\(bounds\.anchor_date, '-7 days'\) AS week_ago_date/);
     assert.match(repositorySource, /day_bcvh AS MATERIALIZED/);
     assert.match(repositorySource, /GROUP BY ngay_do_kiem, ma_bcvh/);
     assert.match(repositorySource, /FROM day_bcvh/);
@@ -241,6 +246,99 @@ test('CTO-F13-BLOCK-05 and PO-12.1: previous fact date across month boundary and
         mtd: { rank: 12, total: 34 },
         daily: { rank: 15, total: 34 },
     });
+});
+
+test('week_ago_date: meta and daily rows carry the anchor_date - 7 same-weekday comparison date', async () => {
+    const codes = ['535790', '536250', '535470', '537220', '537015', '533140'];
+    const weekAgoDailyRows = [
+        ...codes.map((code) => ({
+            date: '2026-09-07',
+            ma_bcvh: code,
+            ten_bcvh: `BCVH ${code}`,
+            volume: 90,
+            passed: 60,
+            failed: 30,
+            anchor_date: '2026-09-14',
+            prev_anchor_date: '2026-09-13',
+            week_ago_date: '2026-09-07',
+        })),
+        ...codes.map((code) => ({
+            date: '2026-09-13',
+            ma_bcvh: code,
+            ten_bcvh: `BCVH ${code}`,
+            volume: 95,
+            passed: 70,
+            failed: 25,
+            anchor_date: '2026-09-14',
+            prev_anchor_date: '2026-09-13',
+            week_ago_date: '2026-09-07',
+        })),
+        ...codes.map((code) => ({
+            date: '2026-09-14',
+            ma_bcvh: code,
+            ten_bcvh: `BCVH ${code}`,
+            volume: 100,
+            passed: 80,
+            failed: 20,
+            anchor_date: '2026-09-14',
+            prev_anchor_date: '2026-09-13',
+            week_ago_date: '2026-09-07',
+        })),
+    ];
+
+    const repository = {
+        getBcvhOverviewMonthly: async () => codes.map((code) => ({
+            month: '2026-09', ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume: 100, passed: 80, failed: 20, days_with_data: 1, days_in_period: 1, anchor_date: '2026-09-14',
+        })),
+        getBcvhOverviewDaily: async () => weekAgoDailyRows,
+        getBcvhOverviewMtd: async () => codes.map((code) => ({
+            ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume: 100, passed: 80, failed: 20, previous_volume: 90, previous_passed: 70, anchor_date: '2026-09-14',
+        })),
+        getBcvhOverviewRoutes: async () => [],
+    };
+
+    const service = new BcvhOverviewService({
+        repository,
+        now: () => new Date('2026-09-15T08:00:00+07:00'),
+    });
+
+    const result = await service.getOverview('2026-09-14');
+
+    assert.equal(result.meta.anchor_date, '2026-09-14');
+    assert.equal(result.meta.week_ago_date, '2026-09-07');
+    assert.ok(result.daily.some((r) => r.date === '2026-09-07'), 'daily array includes the week-ago fact date');
+});
+
+test('week_ago_date: falls back to anchor_date - 7 (date-math) when the repository returns no week_ago_date column', async () => {
+    const codes = ['535790', '536250', '535470', '537220', '537015', '533140'];
+    const repository = {
+        getBcvhOverviewMonthly: async () => [],
+        getBcvhOverviewDaily: async () => codes.map((code) => ({
+            date: '2026-09-14', ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume: 100, passed: 80, failed: 20, anchor_date: '2026-09-14',
+        })),
+        getBcvhOverviewMtd: async () => codes.map((code) => ({
+            ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume: 100, passed: 80, failed: 20, previous_volume: 90, previous_passed: 70, anchor_date: '2026-09-14',
+        })),
+        getBcvhOverviewRoutes: async () => [],
+    };
+
+    const service = new BcvhOverviewService({
+        repository,
+        now: () => new Date('2026-09-15T08:00:00+07:00'),
+    });
+
+    const result = await service.getOverview('2026-09-14');
+    assert.equal(result.meta.week_ago_date, '2026-09-07');
+});
+
+test('T4b extension: no database rows returns week_ago_date null alongside previous_fact_date null', async () => {
+    const repository = buildRepository({ monthly: [], daily: [], mtd: [], routes: [] });
+    const service = new BcvhOverviewService({
+        repository,
+        now: () => new Date('2026-08-28T08:00:00+07:00'),
+    });
+    const result = await service.getOverview();
+    assert.equal(result.meta.week_ago_date, null);
 });
 
 test('PO Section 12.1: national rank queries use 01->anchor for MTD and anchor->anchor for Daily', async () => {

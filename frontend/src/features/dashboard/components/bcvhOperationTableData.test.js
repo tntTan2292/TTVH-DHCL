@@ -9,6 +9,7 @@ import {
   formatDeltaRate,
   formatDeltaIndicator,
   processBcvhOperationTableData,
+  shiftIsoDate,
 } from './bcvhOperationTableData.js';
 import {
   classifyF13HeatmapRate,
@@ -22,6 +23,15 @@ test('formatDateVN formats YYYY-MM-DD to DD/MM/YYYY and falls back to dash', () 
   assert.equal(formatDateVN(undefined), DASH);
   assert.equal(formatDateVN(''), DASH);
   assert.equal(formatDateVN('invalid-date'), DASH);
+});
+
+test('shiftIsoDate shifts an ISO date by N calendar days, crossing month/year boundaries', () => {
+  assert.equal(shiftIsoDate('2026-09-15', -7), '2026-09-08');
+  assert.equal(shiftIsoDate('2026-09-03', -7), '2026-08-27');
+  assert.equal(shiftIsoDate('2026-01-03', -7), '2025-12-27');
+  assert.equal(shiftIsoDate(null, -7), null);
+  assert.equal(shiftIsoDate(undefined, -7), null);
+  assert.equal(shiftIsoDate('invalid', -7), null);
 });
 
 test('formatVolume formats integers with thousand separator and handles missing values', () => {
@@ -49,7 +59,7 @@ test('formatDeltaRate formats signed rate movement in percentage points (điểm
   assert.equal(formatDeltaRate(undefined), DASH);
 });
 
-test('processBcvhOperationTableData: exact 9 columns structure and dynamic title', () => {
+test('processBcvhOperationTableData: exact 10-column structure and dynamic title', () => {
   const mockData = {
     meta: {
       anchor_date: '2026-09-14',
@@ -63,6 +73,12 @@ test('processBcvhOperationTableData: exact 9 columns structure and dynamic title
       { ma_bcvh: '533140', volume: 5000, passed: 3000, rate: 60.0, previous_month_to_date: { volume: 5000, passed: 2500, rate: 50.0 } },
     ],
     daily: [
+      { date: '2026-09-07', ma_bcvh: '535790', volume: 90, passed: 63, rate: 70.0 },
+      { date: '2026-09-07', ma_bcvh: '536250', volume: 210, passed: 147, rate: 70.0 },
+      { date: '2026-09-07', ma_bcvh: '535470', volume: 140, passed: 84, rate: 60.0 },
+      { date: '2026-09-07', ma_bcvh: '537220', volume: 110, passed: 66, rate: 60.0 },
+      { date: '2026-09-07', ma_bcvh: '537015', volume: 70, passed: 63, rate: 90.0 },
+      { date: '2026-09-07', ma_bcvh: '533140', volume: 480, passed: 288, rate: 60.0 },
       { date: '2026-09-13', ma_bcvh: '535790', volume: 100, passed: 80, rate: 80.0 },
       { date: '2026-09-13', ma_bcvh: '536250', volume: 200, passed: 120, rate: 60.0 },
       { date: '2026-09-13', ma_bcvh: '535470', volume: 150, passed: 90, rate: 60.0 },
@@ -120,6 +136,16 @@ test('processBcvhOperationTableData: exact 9 columns structure and dynamic title
   // Delta Daily = 59.28 - 61.9469... = -2.6669... điểm %
   assert.equal(Number(totalRow.daily_delta_rate.toFixed(1)), -2.7);
 
+  // Cùng kỳ (tuần trước): anchorDate 2026-09-14 - 7 ngày = 2026-09-07 (đúng cùng Thứ Hai)
+  assert.equal(processed.weekAgoDate, '2026-09-07');
+  assert.equal(processed.formattedWeekAgoDate, '07/09/2026');
+
+  // Total Week-Ago Volume = 90 + 210 + 140 + 110 + 70 + 480 = 1100
+  // Total Week-Ago Passed = 63 + 147 + 84 + 66 + 63 + 288 = 711
+  // Total Week-Ago Rate = (711 / 1100) * 100 = 64.6363...%
+  // Delta Week = 59.28 - 64.6363... = -5.3563... điểm %
+  assert.equal(Number(totalRow.daily_week_delta_rate.toFixed(1)), -5.4);
+
   // Verify 6 canonical rows have STT 1 to 6 in daily_rate DESC order
   processed.rows.forEach((row, idx) => {
     assert.equal(row.stt, idx + 1);
@@ -131,7 +157,16 @@ test('processBcvhOperationTableData: exact 9 columns structure and dynamic title
     assert.ok(row.daily_volume !== undefined);
     assert.ok(row.daily_rate !== undefined);
     assert.ok(row.daily_delta_rate !== undefined);
+    assert.ok(row.daily_week_delta_rate !== undefined);
   });
+
+  // 537015 (Thuận An): daily_rate 80.0% vs week-ago rate 90.0% -> -10.0 điểm %
+  const thuanAn = processed.rows.find((r) => r.ma_bcvh === '537015');
+  assert.equal(thuanAn.daily_week_delta_rate, -10.0);
+
+  // 535790 (A Lưới): daily_rate 70.0% vs week-ago rate 70.0% -> 0.0 điểm %
+  const aLuoi = processed.rows.find((r) => r.ma_bcvh === '535790');
+  assert.equal(aLuoi.daily_week_delta_rate, 0.0);
 
   // Verify sort order: Thuận An (80.0%) -> A Lưới (70.0%) -> Hương Trà (65.0%) -> Thuận Hóa (60.0%) -> Hương Thủy (50.0%) -> Phú Lộc (40.0%)
   assert.equal(processed.rows[0].ma_bcvh, '537015');
@@ -166,11 +201,14 @@ test('processBcvhOperationTableData: handles missing comparison data and empty s
   assert.equal(processed.totalRow.daily_volume, 0);
   assert.equal(processed.totalRow.daily_rate, null);
   assert.equal(processed.totalRow.daily_delta_rate, null);
+  assert.equal(processed.totalRow.daily_week_delta_rate, null);
+  assert.equal(processed.weekAgoDate, null);
 
   assert.equal(formatRate(processed.totalRow.mtd_rate), DASH);
   assert.equal(formatDeltaRate(processed.totalRow.mtd_delta_rate), DASH);
   assert.equal(formatRate(processed.totalRow.daily_rate), DASH);
   assert.equal(formatDeltaRate(processed.totalRow.daily_delta_rate), DASH);
+  assert.equal(formatDeltaRate(processed.totalRow.daily_week_delta_rate), DASH);
   assert.equal(processed.mtdHeaderContext, `THÁNG ${DASH} • VỊ THỨ TOÀN QUỐC: ${DASH}`);
   assert.equal(processed.dailyHeaderContext, `NGÀY ${DASH} • VỊ THỨ TOÀN QUỐC: ${DASH}`);
 });
@@ -288,6 +326,44 @@ test('CTO-F13-BLOCK-05: previous fact date across month boundary (2026-09-01 -> 
   assert.equal(formatDeltaRate(row.daily_delta_rate), '+10,0 điểm %');
 });
 
+test('week-ago same-period comparison: missing fact data 7 days prior displays dash, not fabricated zero', () => {
+  const gapData = {
+    meta: {
+      anchor_date: '2026-09-14',
+      week_ago_date: '2026-09-07',
+    },
+    mtd: [
+      { ma_bcvh: '535790', volume: 50, passed: 40, rate: 80.0, previous_month_to_date: { volume: 40, passed: 30, rate: 75.0 } },
+    ],
+    daily: [
+      // No 2026-09-07 rows at all -- week-ago fact date has no data.
+      { date: '2026-09-14', ma_bcvh: '535790', volume: 50, passed: 40, rate: 80.0 },
+    ],
+  };
+
+  const processed = processBcvhOperationTableData(gapData);
+  assert.equal(processed.weekAgoDate, '2026-09-07');
+  const row = processed.rows.find((r) => r.ma_bcvh === '535790');
+  assert.equal(row.daily_week_delta_rate, null);
+  assert.equal(formatDeltaRate(row.daily_week_delta_rate), DASH);
+  assert.equal(processed.totalRow.daily_week_delta_rate, null);
+});
+
+test('week-ago same-period comparison: falls back to anchorDate - 7 when meta.week_ago_date is absent', () => {
+  const noMetaData = {
+    meta: { anchor_date: '2026-09-14' },
+    mtd: [],
+    daily: [
+      { date: '2026-09-07', ma_bcvh: '535790', volume: 40, passed: 20, rate: 50.0 },
+      { date: '2026-09-14', ma_bcvh: '535790', volume: 50, passed: 40, rate: 80.0 },
+    ],
+  };
+  const processed = processBcvhOperationTableData(noMetaData);
+  assert.equal(processed.weekAgoDate, '2026-09-07');
+  const row = processed.rows.find((r) => r.ma_bcvh === '535790');
+  assert.equal(row.daily_week_delta_rate, 30.0);
+});
+
 test('CTO-BLOCK-01 & PO-12.2: all headers centered and mobile defaults to fit without default horizontal scroll', () => {
   const tableSourcePath = new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url);
   const tableSource = fs.readFileSync(tableSourcePath, 'utf8');
@@ -297,10 +373,10 @@ test('CTO-BLOCK-01 & PO-12.2: all headers centered and mobile defaults to fit wi
   assert.match(tableSource, /colSpan=\{3\}[\s\S]*?text-center align-middle[\s\S]*?LŨY KẾ THÁNG/);
   assert.match(tableSource, /colSpan=\{3\}[\s\S]*?text-center align-middle[\s\S]*?ĐIỀU HÀNH NGÀY/);
 
-  // 2. Leaf headers are all centered (all 9 columns)
+  // 2. Leaf headers are all centered (all 10 columns)
   const leafHeaderMatches = tableSource.match(/text-center align-middle w-\[/g);
   assert.ok(leafHeaderMatches, 'leaf headers have text-center align-middle');
-  assert.equal(leafHeaderMatches.length, 9, 'all 9 leaf headers with width classes are centered');
+  assert.equal(leafHeaderMatches.length, 10, 'all 10 leaf headers with width classes are centered');
 
   // 3. Mobile fit is default: useState(true) so mobile does NOT default to overflow-x-auto
   assert.match(tableSource, /const \[fitMode, setFitMode\] = useState\(true\);/);
@@ -344,49 +420,51 @@ test('PO layout: delta indicators format arrows (↑, ↓, →, —) with correc
   assert.equal(nan.display, DASH);
 });
 
-test('PO layout: locked symmetrical table-fixed colgroup with 11.6667% cols 4-9 and 2-line headers', () => {
+test('PO layout: 10-column table-fixed colgroup with 10% cols 4-10 and 2-line headers (PO amendment 2026-09-22)', () => {
   const tableSourcePath = new URL('../../../components/f13/BcvhOperationTable.jsx', import.meta.url);
   const tableSource = fs.readFileSync(tableSourcePath, 'utf8');
 
   // 1. table-fixed class on <table>
   assert.match(tableSource, /<table[^>]*?className="[^"]*?\btable-fixed\b[^"]*?"/);
 
-  // 2. colgroup contains exactly 9 columns
+  // 2. colgroup contains exactly 10 columns
   const colgroupBlock = tableSource.match(/<colgroup>([\s\S]*?)<\/colgroup>/);
   assert.ok(colgroupBlock, '<colgroup> exists in table');
   const cols = [...colgroupBlock[1].matchAll(/<col[^>]*?width:\s*'([^']+)'[^>]*?\/>/g)].map((m) => m[1]);
-  assert.equal(cols.length, 9, 'colgroup defines exactly 9 columns');
+  assert.equal(cols.length, 10, 'colgroup defines exactly 10 columns');
 
   // Exact column width percentages:
   // ĐƠN VỊ (30%): 5%, 8%, 17%
-  // LŨY KẾ THÁNG (35%): 11.6667%, 11.6667%, 11.6667%
-  // ĐIỀU HÀNH NGÀY (35%): 11.6667%, 11.6667%, 11.6667%
+  // LŨY KẾ THÁNG (30%): 10%, 10%, 10%
+  // ĐIỀU HÀNH NGÀY (40%): 10%, 10%, 10%, 10%
   assert.deepEqual(cols, [
     '5%', '8%', '17%',
-    '11.6667%', '11.6667%', '11.6667%',
-    '11.6667%', '11.6667%', '11.6667%',
+    '10%', '10%', '10%',
+    '10%', '10%', '10%', '10%',
   ]);
 
-  // Cột 4–9 có cùng độ rộng 11.6667%
-  const cols4to9 = cols.slice(3);
-  assert.equal(cols4to9.length, 6);
-  cols4to9.forEach((w, idx) => {
-    assert.equal(w, '11.6667%', `Col ${idx + 4} has width 11.6667%`);
+  // Cột 4–10 có cùng độ rộng 10%
+  const cols4to10 = cols.slice(3);
+  assert.equal(cols4to10.length, 7);
+  cols4to10.forEach((w, idx) => {
+    assert.equal(w, '10%', `Col ${idx + 4} has width 10%`);
   });
 
-  // Không còn width 15% riêng cho cột 6 và 9
-  assert.equal(cols.includes('15%'), false, 'no column has width 15%');
-
-  // 3. Header cột 6 và 9 có đúng hai dòng cố định bằng span.block
+  // 3. Header cột 6, 9 và 10 có đúng hai dòng cố định bằng span.block
   assert.match(
     tableSource,
-    /<th[^>]*?w-\[11\.6667%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">cùng kỳ tháng trước<\/span>[\s\S]*?<\/th>/,
+    /<th[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">cùng kỳ tháng trước<\/span>[\s\S]*?<\/th>/,
     'Col 6 header explicitly split into 2 block lines'
   );
   assert.match(
     tableSource,
-    /<th[^>]*?w-\[11\.6667%\][^>]*?>[\s\S]*?<span className="block">Tăng\/Giảm so với<\/span>[\s\S]*?<span className="block">ngày trước<\/span>[\s\S]*?<\/th>/,
+    /<th[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/Giảm so với<\/span>[\s\S]*?<span className="block">ngày trước<\/span>[\s\S]*?<\/th>/,
     'Col 9 header explicitly split into 2 block lines'
+  );
+  assert.match(
+    tableSource,
+    /<th[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">cùng kỳ \(tuần trước\)<\/span>[\s\S]*?<\/th>/,
+    'Col 10 header explicitly split into 2 block lines'
   );
 });
 

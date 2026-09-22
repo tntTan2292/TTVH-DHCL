@@ -69,6 +69,8 @@ test('four BCVH overview SQL aggregates execute on SQLite and preserve the appro
     assert.equal(routes.find((row) => row.ma_bcvh === '535790' && row.ma_tuyen === '53579001').total_bg, 2);
     assert.ok(monthly.every((row) => row.anchor_date === '2026-08-02'));
     assert.ok(daily.every((row) => row.anchor_date === '2026-08-02'));
+    // week_ago_date: anchor_date (2026-08-02) - 7 calendar days = 2026-07-26 (same weekday), on every daily row.
+    assert.ok(daily.every((row) => row.week_ago_date === '2026-07-26'));
 
     database.close();
 });

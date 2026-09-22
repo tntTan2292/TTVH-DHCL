@@ -23,6 +23,20 @@ export const CANONICAL_NAMES = Object.freeze({
 });
 
 /**
+ * Shift an ISO 'YYYY-MM-DD' date by a number of calendar days (UTC-safe).
+ * Returns null if isoDate is invalid or missing.
+ */
+export function shiftIsoDate(isoDate, days) {
+  if (!isoDate || typeof isoDate !== 'string') return null;
+  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
  * Format ISO date 'YYYY-MM-DD' to Vietnamese 'DD/MM/YYYY'.
  * Falls back to DASH if invalid or missing.
  */
@@ -168,6 +182,11 @@ export function processBcvhOperationTableData(data = {}) {
   }
   const formattedPrevFactDate = formatDateVN(prevFactDate);
 
+  // Cùng kỳ (tuần trước): anchorDate - 7 ngày lịch (đúng cùng thứ), theo nguyên tắc N-1 đã áp dụng cho anchorDate.
+  // Không dùng "ngày có dữ liệu gần nhất" như prevFactDate -- đây là ngày lịch cố định.
+  const weekAgoDate = meta.week_ago_date || (anchorDate ? shiftIsoDate(anchorDate, -7) : null);
+  const formattedWeekAgoDate = formatDateVN(weekAgoDate);
+
   // Grouped Header Context Lines (Section 12.1):
   // LŨY KẾ THÁNG: THÁNG MM/YYYY • VỊ THỨ TOÀN QUỐC: x/tổng
   const monthStr = anchorDate ? anchorDate.slice(5, 7) : null;
@@ -201,11 +220,16 @@ export function processBcvhOperationTableData(data = {}) {
   let hasValidDaily = false;
   let hasValidPrevDaily = false;
 
+  let totalWeekAgoVolume = 0;
+  let totalWeekAgoPassed = 0;
+  let hasValidWeekAgo = false;
+
   const rawRows = CANONICAL_BCVH_UNITS.map((unit) => {
     const code = unit.ma_bcvh;
     const mtdItem = rawMtd.find((item) => String(item?.ma_bcvh) === code);
     const dailyItem = anchorDate ? rawDaily.find((d) => d.date === anchorDate && String(d.ma_bcvh) === code) : null;
     const prevDailyItem = prevFactDate ? rawDaily.find((d) => d.date === prevFactDate && String(d.ma_bcvh) === code) : null;
+    const weekAgoItem = weekAgoDate ? rawDaily.find((d) => d.date === weekAgoDate && String(d.ma_bcvh) === code) : null;
 
     // MTD Metrics
     const mtdVolume = mtdItem?.volume !== undefined && mtdItem?.volume !== null ? Number(mtdItem.volume) : 0;
@@ -252,6 +276,19 @@ export function processBcvhOperationTableData(data = {}) {
       hasValidPrevDaily = true;
     }
 
+    // Cùng kỳ (tuần trước): anchorDate - 7 ngày lịch, cùng thứ trong tuần.
+    const weekAgoVolume = weekAgoItem?.volume !== undefined && weekAgoItem?.volume !== null ? Number(weekAgoItem.volume) : null;
+    const weekAgoPassed = weekAgoItem?.passed !== undefined && weekAgoItem?.passed !== null ? Number(weekAgoItem.passed) : null;
+    const weekAgoRate = weekAgoItem?.rate !== undefined && weekAgoItem?.rate !== null ? Number(weekAgoItem.rate) : calculateRate(weekAgoPassed, weekAgoVolume);
+
+    const dailyWeekDeltaRate = (dailyRate !== null && weekAgoRate !== null) ? (dailyRate - weekAgoRate) : null;
+
+    if (weekAgoItem) {
+      totalWeekAgoVolume += Number(weekAgoVolume || 0);
+      totalWeekAgoPassed += Number(weekAgoPassed || 0);
+      hasValidWeekAgo = true;
+    }
+
     return {
       stt: null,
       ma_bcvh: code,
@@ -262,6 +299,7 @@ export function processBcvhOperationTableData(data = {}) {
       daily_volume: dailyVolume,
       daily_rate: dailyRate,
       daily_delta_rate: dailyDeltaRate,
+      daily_week_delta_rate: dailyWeekDeltaRate,
     };
   });
 
@@ -307,6 +345,9 @@ export function processBcvhOperationTableData(data = {}) {
   const totalPrevDailyRate = (hasValidPrevDaily && totalPrevDailyVolume > 0) ? calculateRate(totalPrevDailyPassed, totalPrevDailyVolume) : null;
   const totalDailyDeltaRate = (totalDailyRate !== null && totalPrevDailyRate !== null) ? (totalDailyRate - totalPrevDailyRate) : null;
 
+  const totalWeekAgoRate = (hasValidWeekAgo && totalWeekAgoVolume > 0) ? calculateRate(totalWeekAgoPassed, totalWeekAgoVolume) : null;
+  const totalDailyWeekDeltaRate = (totalDailyRate !== null && totalWeekAgoRate !== null) ? (totalDailyRate - totalWeekAgoRate) : null;
+
   const totalRow = {
     stt: DASH,
     ma_bcvh: DASH,
@@ -317,6 +358,7 @@ export function processBcvhOperationTableData(data = {}) {
     daily_volume: hasValidDaily ? totalDailyVolume : 0,
     daily_rate: totalDailyRate,
     daily_delta_rate: totalDailyDeltaRate,
+    daily_week_delta_rate: totalDailyWeekDeltaRate,
     is_total: true,
   };
 
@@ -325,6 +367,8 @@ export function processBcvhOperationTableData(data = {}) {
     formattedAnchorDate,
     prevFactDate,
     formattedPrevFactDate,
+    weekAgoDate,
+    formattedWeekAgoDate,
     titleLine1: 'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH',
     titleLine2: `ĐẾN NGÀY ${formattedAnchorDate} (SỐ LIỆU GẦN NHẤT)`,
     mtdHeaderContext,
