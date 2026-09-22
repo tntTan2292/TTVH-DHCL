@@ -1,6 +1,6 @@
 # IMPORT-BULK-REIMPORT-ALL-01 Checkpoint 001 — DISCOVERY / READ-ONLY AUDIT
 
-Status: `DISCOVERY / READ-ONLY AUDIT COMPLETE`. No design, implementation, or business rule is authorized by this document. `IMPORT-BULK-REIMPORT-ALL-01` remains `DISCOVERED / NOT ACTIVATED` for design/implementation per `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` Section 5.
+Status: `DISCOVERY / READ-ONLY AUDIT COMPLETE`; ticket subsequently designed, implemented (Part A + Part B), independently reviewed, and closed — see Section 16. This document remains the read-only audit trail (Sections 1-13) plus the two independent Part A reviews (Sections 14-15); final closure record is `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` Section 14.
 
 ## 1. Scope And Authority
 
@@ -230,3 +230,9 @@ Read-only review of `a725c1b`. Result: **no BLOCKER; N2 CLOSED; N1 PARTIALLY FIX
 - Validation reproduced: 228/228, 85/85, 153/153, default sweep 394/398 with the same 4 pre-existing failures (files byte-identical to `e1132b6`); reviewer scenarios 9/9 and 25/25.
 
 Next gate: Part A may move to Part B (Antigravity). Close the remaining N1 half (backend) and re-verify with the "FAILED row + Error file" scenario before the PO UI check. No PO PASS is claimed or implied.
+
+## 16. Ticket Closure — Product Owner UI PASS (2026-09-22)
+
+N1's remaining `Error/HUE` half (Section 15) was closed at commit `5387101` (`archiveStaleErrorFile()`, regression-tested by TEST 2J/2K — see `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` Section 12). Part B (frontend UI, Antigravity) was then implemented at commit `9c9e09b` per the locked DoR v2 (Manifest Section 13). The Product Owner performed the UI check and confirmed PASS in chat (2026-09-22): "PO đã kiểm tra giao diện và xác nhận PASS Part B của IMPORT-BULK-REIMPORT-ALL-01".
+
+This closes `IMPORT-BULK-REIMPORT-ALL-01` as `IMPLEMENTED / PO UI PASS / CLOSED`. Full closure record: `docs/10_TICKETS/IMPORT-BULK-REIMPORT-ALL-01_MANIFEST.md` Section 14. This checkpoint remains the read-only audit trail (Sections 1-13) plus the two independent Part A reviews (Sections 14-15); no further audit or design content is expected under this ticket without a new ticket or explicit reopening.

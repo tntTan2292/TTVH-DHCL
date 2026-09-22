@@ -1,6 +1,6 @@
 # IMPORT-BULK-REIMPORT-ALL-01 Manifest
 
-Status: `PART B FRONTEND IMPLEMENTED / READY FOR PO CHECK (2026-09-22)`. Registered 2026-09-15. See Section 6-7 for the completed audit, Section 8 for the originally-locked Design of Record, Section 9 for the Opus-review blocker remediation (DoR v2), Section 10 for the Part A backend implementation, Section 11 for the first N1 fix and N2 test additions following Independent Review 001, Section 12 for closing N1's remaining `Error/HUE` half following Independent Review 002, and Section 13 for Part B frontend UI implementation. No Browser/Playwright used; no queue action or business-data reimport was run against real data; no PO PASS is claimed.
+Status: `IMPLEMENTED / PO UI PASS / CLOSED (2026-09-22)`. Registered 2026-09-15. See Section 6-7 for the completed audit, Section 8 for the originally-locked Design of Record, Section 9 for the Opus-review blocker remediation (DoR v2), Section 10 for the Part A backend implementation, Section 11 for the first N1 fix and N2 test additions following Independent Review 001, Section 12 for closing N1's remaining `Error/HUE` half following Independent Review 002, Section 13 for Part B frontend UI implementation, and Section 14 for the Product Owner UI PASS and closure. No further work is authorized under this ticket; any later change requires a new ticket or explicit reopening.
 
 ## 1. Ticket Information
 
@@ -234,4 +234,38 @@ Product Owner instruction received in chat (2026-09-22) activated Part B fronten
 ### 13.3 Stop Condition
 
 Status: `PART B FRONTEND IMPLEMENTED / READY FOR PO CHECK`. No PO PASS is claimed or self-awarded. Ready for PO review and UI verification.
+
+## 14. Product Owner UI PASS and Closure (2026-09-22, Claude Code/Sonnet 5)
+
+### 14.1 Accepted implementation baseline
+
+Part A (backend/data/tests, Claude Code) and Part B (frontend UI, Antigravity) are both accepted as implemented on branch `codex/da-impl-006`:
+
+**Part A — backend/data/tests:**
+- `0e16c99`: `feat(import-bulk-reimport-all-01): implement Part A backend for confirmed COMPLETED-date reimport` — the six force-reimport gates, `confirm_replace_completed`, `auto_backfill_job.force_reimport`, and the post-delete/post-write verification in `importProcessor.js` (Section 10).
+- `72a09fd`: independent review 001 of Part A (Claude Opus 5) — `PASS (technical), no BLOCKER`, N1/N2 recorded (Section 11 / Checkpoint Section 14).
+- `a725c1b`: N1 fix (`import_log` watermark) and N2 reviewer-verified regression tests added to the repo (Section 11).
+- `57da33a`: independent review 002 of the N1/N2 remediation (Claude Opus 5) — N2 `CLOSED`, N1 found only half-fixed (`Error/HUE` stale file still open) (Section 12 / Checkpoint Section 15).
+- `5387101`: N1 fully closed — `archiveStaleErrorFile()` in `dkclHueF13SyncService.js` (Section 12).
+
+**Part B — frontend UI:**
+- `9c9e09b`: `feat(import-bulk-reimport-all-01): implement Part B UI for bulk reimport and selection split` — "Chọn tất cả chưa hoàn tất" preserved unchanged, existing "Nhập lại" renamed to "Nhập mới" for `INCOMPLETE`/`DATA_ERROR`, new "Chọn tất cả" (including `COMPLETED`) with LỊCH NGHỈ always excluded, a separate `selectedReimportKeys` selection state so bulk PO-exemption is never exposed to `COMPLETED` selections, and a mandatory acknowledgment checkbox before any reimport of completed dates is enabled (Section 13).
+
+Design authority: `docs/04_TECHNICAL_PLANNING/Feature/IMPORT-BULK-REIMPORT-ALL-01_DESIGN_OF_RECORD.md` (DoR v2). No F1.3/F4.1 KPI definition, frozen SSOT, or unrelated ticket was touched by either part.
+
+### 14.2 Technical validation (already on record, restated for closure)
+
+- Part A: `test_dkclHueF13SyncService.js` 234/234, `test_importProcessor.js` 85/85, 7 Auto-Backfill `node:test` suites 153/153, full default sweep 394/398 (4 pre-existing, environmental, unrelated failures).
+- Part B: `frontend AutoBackfillOperatorPanel.test.js` 24/24 test suites, `npm run lint` (oxlint) 0 errors/warnings on modified files, `npm run build` succeeds.
+- No Browser/Playwright was used at any point across Part A or Part B. No real/operational business data was reimported; no queue action was run against real data.
+
+### 14.3 Product Owner decision
+
+Product Owner instruction received in chat (2026-09-22): explicit confirmation that the Product Owner personally checked the Part B UI and it **PASSED** ("PO đã kiểm tra giao diện và xác nhận PASS Part B của IMPORT-BULK-REIMPORT-ALL-01").
+
+This is the explicit Product Owner UI acceptance for Part B, completing the ticket's full accepted scope (Part A backend + Part B frontend, both per the locked DoR v2). Final state:
+
+`IMPLEMENTED / PO UI PASS / CLOSED`.
+
+No further work is authorized under this ticket. Any later change — including the discovery-level items DoR v2 left open (`PO_EXEMPTED`/`VERIFIED_NO_DATA` `EXCLUDED` days remaining out of scope, exact UI copy, technical field naming) — requires a new ticket or explicit reopening.
 
