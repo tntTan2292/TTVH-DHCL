@@ -19,6 +19,8 @@ router.get('/dashboard/quality-timeline', ...allowViewerRead, dashboardControlle
 router.get('/dashboard/top', ...allowViewerRead, kpiController.getDashboardTop);
 router.get('/dashboard/meta', ...allowViewerRead, kpiController.getDashboardMeta);
 router.get('/ranking/bcvh/overview', ...allowViewerRead, dashboardController.getBcvhOverview);
+router.get('/ranking/bcvh/weeks', ...allowViewerRead, dashboardController.getBcvhWeeks);
+router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, dashboardController.getBcvhWeeklyComparison);
 router.get('/ranking/bcvh', ...allowViewerRead, dashboardController.getBcvh);
 router.get('/ranking/route', ...allowViewerRead, dashboardController.getRoute);
 router.get('/ranking/route/periods', ...allowViewerRead, dashboardController.getRoutePeriods);

@@ -1,6 +1,7 @@
 const f13DashboardService = require('../services/F13DashboardService');
 const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
 const { BcvhOverviewService } = require('../services/bcvhOverviewService');
+const { BcvhWeeklyComparisonService } = require('../services/bcvhWeeklyComparisonService');
 const { routePeriodService } = require('../services/routePeriodService');
 const { evidenceQueryService } = require('../services/evidenceQueryService');
 const timelineService = require('../services/timelineService');
@@ -8,6 +9,7 @@ const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
 const bcvhOverviewService = new BcvhOverviewService({ repository: factBuuGuiRepo, dashboardService: f13DashboardService });
+const bcvhWeeklyComparisonService = new BcvhWeeklyComparisonService({ repository: factBuuGuiRepo });
 
 function normalizeDashboardBcvh(ma_bcvh) {
     if (ma_bcvh === undefined || ma_bcvh === null || ma_bcvh === '') return null;
@@ -105,6 +107,32 @@ class DashboardController {
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             const status = error?.code === 'INVALID_DATE' ? 400 : 500;
+            res.status(status).json({
+                success: false,
+                error: { code: error?.code || 'SERVER_ERROR', message: error.message },
+            });
+        }
+    }
+
+    async getBcvhWeeks(req, res) {
+        try {
+            const result = await bcvhWeeklyComparisonService.listWeeks();
+            res.status(200).json({ success: true, data: { weeks: result } });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: { code: error?.code || 'SERVER_ERROR', message: error.message },
+            });
+        }
+    }
+
+    async getBcvhWeeklyComparison(req, res) {
+        try {
+            const { week, compare_week: compareWeek } = req.query;
+            const result = await bcvhWeeklyComparisonService.compareWeeks(week, compareWeek);
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            const status = ['MISSING_PARAM', 'INVALID_WEEK_ID', 'WEEK_NOT_FOUND'].includes(error?.code) ? 400 : 500;
             res.status(status).json({
                 success: false,
                 error: { code: error?.code || 'SERVER_ERROR', message: error.message },

@@ -15,6 +15,7 @@ import {
   BcvhMtdSummaryBlock,
   BcvhRouteCapacityBlock,
 } from './BcvhRankingOverviewBlocks';
+import BcvhWeeklyComparisonBlock from './BcvhWeeklyComparisonBlock';
 
 function toneFromKpi(rate) {
   if (rate === null || rate === undefined) return 'neutral';
@@ -438,6 +439,9 @@ export default function BcvhRankingPage() {
             <BcvhRouteCapacityBlock data={overviewState.processed} />
           </>
         ) : null}
+
+        {/* So sánh chất lượng theo tuần -- luồng tải riêng, độc lập với /overview và khối 5 */}
+        <BcvhWeeklyComparisonBlock />
       </div>
     </PageContainer>
   );

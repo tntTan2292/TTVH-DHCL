@@ -384,6 +384,73 @@ class FactBuuGuiRepository {
         });
     }
 
+    // Custom week = Thursday..Wednesday (PO decision, F13-BCVH-WEEKLY-COMPARISON-01), NOT the
+    // ISO 8601 Monday..Sunday calendar week. week_start below is computed per-row in SQL as the
+    // Thursday on/before ngay_do_kiem: offset = (dow(Sun=0..Sat=6) - 4 + 7) % 7 days back.
+    // One row per week that has >=1 canonical-BCVH fact row; first_date/last_date/days_with_data
+    // let the service compute the real (not assumed) end-of-week coverage per §4.4 of the
+    // F13-BCVH-RANKING-OVERVIEW-01 Design of Record, reapplied here to week granularity.
+    getBcvhWeeksList(canonicalCodes = []) {
+        return new Promise((resolve, reject) => {
+            if (!canonicalCodes.length) return resolve([]);
+            const placeholders = canonicalCodes.map(() => '?').join(', ');
+            const sql = `
+                SELECT
+                    date(ngay_do_kiem, '-' || ((CAST(strftime('%w', ngay_do_kiem) AS INTEGER) - 4 + 7) % 7) || ' days') AS week_start,
+                    MIN(ngay_do_kiem) AS first_date,
+                    MAX(ngay_do_kiem) AS last_date,
+                    COUNT(DISTINCT ngay_do_kiem) AS days_with_data
+                FROM fact_f13
+                WHERE ma_bcvh IN (${placeholders})
+                GROUP BY week_start
+                ORDER BY week_start ASC
+            `;
+            db.all(sql, canonicalCodes, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+    }
+
+    // Two arbitrary (not necessarily adjacent) custom weeks, aggregated per BCVH in one query.
+    // volume/passed follow the same denominator definition as every other BCVH overview query:
+    // COUNT(ma_bg) and danh_gia_2026 = 'Đạt' (Design of Record §2.7/§5.3), expressed here as
+    // SUM(CASE ... ma_bg IS NOT NULL ...) so both weeks can be counted in a single GROUP BY pass.
+    // weekABounds/weekBBounds: { from, to } inclusive ISO dates, already resolved by the service
+    // (to = min(planned Wednesday, real last data date) -- never a date with no data behind it).
+    getBcvhWeeklyComparisonAggregate(weekABounds, weekBBounds, canonicalCodes = []) {
+        return new Promise((resolve, reject) => {
+            if (!canonicalCodes.length) return resolve([]);
+            const placeholders = canonicalCodes.map(() => '?').join(', ');
+            const sql = `
+                SELECT
+                    ma_bcvh,
+                    MAX(ten_bcvh) AS ten_bcvh,
+                    SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ma_bg IS NOT NULL THEN 1 ELSE 0 END) AS volume_a,
+                    SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ma_bg IS NOT NULL AND danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed_a,
+                    SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ma_bg IS NOT NULL THEN 1 ELSE 0 END) AS volume_b,
+                    SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ma_bg IS NOT NULL AND danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed_b
+                FROM fact_f13
+                WHERE ma_bcvh IN (${placeholders})
+                  AND (ngay_do_kiem BETWEEN ? AND ? OR ngay_do_kiem BETWEEN ? AND ?)
+                GROUP BY ma_bcvh
+            `;
+            const params = [
+                weekABounds.from, weekABounds.to,
+                weekABounds.from, weekABounds.to,
+                weekBBounds.from, weekBBounds.to,
+                weekBBounds.from, weekBBounds.to,
+                ...canonicalCodes,
+                weekABounds.from, weekABounds.to,
+                weekBBounds.from, weekBBounds.to,
+            ];
+            db.all(sql, params, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+    }
+
     getRouteRanking(date, bcvh, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc', options = {}) {
         return new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;
