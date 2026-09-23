@@ -7,7 +7,6 @@ import api from '../../api/client';
 import UnifiedBcvhAnalysisTable from '../dashboard/components/UnifiedBcvhAnalysisTable';
 import { buildBcvhOptions, validateBcvhUnits } from '../dashboard/components/dashboardFilterOptions';
 import { buildDoughnutAriaLabel, formatNumber, formatRate, formatSignedDelta, mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData';
-import { processOverviewData } from './bcvhOverviewData';
 import { createOverviewFetcher } from './bcvhOverviewFetcher';
 import {
   BcvhDailyTrendBlock,

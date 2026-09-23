@@ -1,7 +1,7 @@
 # F13-BCVH-WEEKLY-COMPARISON-01 — So sánh chất lượng theo tuần (BCVH Ranking) — Design of Record
 
-Status: **IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK**
-Author: Claude Code (Sonnet 5), based on a prior read-only audit report (see `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` for the chat-authorized scope)
+Status: **IMPLEMENTED / TECH PASS / READY FOR INDEPENDENT RE-REVIEW**
+Author: Claude Code (Sonnet 5) + Antigravity (Gemini), incorporating Independent Review remediation (Blockers B1–B4)
 Branch: `codex/da-impl-006`
 Ticket: `F13-BCVH-WEEKLY-COMPARISON-01`
 Manifest of record: `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md`
@@ -15,7 +15,7 @@ Bổ sung một **bảng điều hành so sánh chất lượng hàng tuần** t
 danh sách đầy đủ các tuần đã có dữ liệu, và xem chênh lệch sản lượng/tỷ lệ đạt KPI F1.3 giữa hai
 tuần đó cho 6 BCVH đang hiển thị.
 
-Ràng buộc PO đã chốt trước khi code (xem Manifest §2):
+Ràng buộc PO đã chốt trước khi code:
 
 - Tuần bắt đầu **Thứ Năm**, kết thúc **Thứ Tư** — không phải tuần ISO 8601 Thứ Hai→Chủ Nhật.
 - Số tuần dùng đúng chuẩn ISO 8601 (Tuần 36/37/38 khớp ví dụ PO cho).
@@ -85,9 +85,7 @@ trong danh sách** — vì danh sách được liệt kê trực tiếp từ cá
 
 ## 3. Kiến trúc — luồng riêng, không đụng `/overview`
 
-Hai endpoint mới, tách biệt hoàn toàn khỏi `GET /f13/ranking/bcvh/overview` (đúng lý do đã ghi ở
-§5.1 của Design of Record ticket Overview: gộp vào sẽ phá vỡ ràng buộc "4 truy vấn cố định" đã được
-PO chấp nhận cho endpoint đó):
+Hai endpoint mới, tách biệt hoàn toàn khỏi `GET /f13/ranking/bcvh/overview`:
 
 ```
 GET /api/f13/ranking/bcvh/weeks
@@ -111,15 +109,7 @@ GROUP BY week_start
 ORDER BY week_start ASC
 ```
 
-Đo thật trên `database.sqlite` (750k+ dòng, 38 tuần có dữ liệu): **~690 ms**. Không có index mới —
-`idx_bcvh_ngay(ma_bcvh, ngay_do_kiem)` đã có phủ phần lớn; chấp nhận được vì đây là truy vấn nạp
-danh sách chọn tuần, gọi khi mở bảng, không nằm trên đường tải chính của trang.
-
 ### 3.2 `getBcvhWeeklyComparisonAggregate` — 1 truy vấn cho 2 tuần bất kỳ
-
-Không giả định hai tuần liền kề. Dùng `CASE`/`SUM` gộp cả hai khoảng ngày trong một lượt quét thay
-vì 2 truy vấn riêng, cùng định nghĩa mẫu số `COUNT(ma_bg)` / `danh_gia_2026 = 'Đạt'` đã dùng xuyên
-suốt module (Design of Record Overview §2.7/§5.3):
 
 ```sql
 SELECT ma_bcvh, MAX(ten_bcvh) AS ten_bcvh,
@@ -133,57 +123,48 @@ WHERE ma_bcvh IN (6 mã canonical)
 GROUP BY ma_bcvh
 ```
 
-`?A_from/to` và `?B_from/to` là `display_start_date`/`display_end_date` đã được resolve ở tầng
-service (chưa bao giờ vượt quá `last_data_date` thật — không "giả định" dữ liệu). Phạm vi quét tối
-đa 14 ngày dữ liệu bất kể hai tuần cách nhau bao xa trong năm. Đo thật trên database.sqlite (tuần 1
-so với tuần 38, cách nhau ~9 tháng): **~1.0 s** — bao gồm cả bước `listWeeks()` nội bộ để resolve
-week id → bounds trước khi query.
-
 ### 3.3 Service (`bcvhWeeklyComparisonService.js`)
 
 - `listWeeks()` — gọi repository, tính `week_id`/nhãn/khoảng hiển thị/badge cho từng dòng theo §2.
-- `compareWeeks(weekIdA, weekIdB)` — validate 2 week id (400 `INVALID_WEEK_ID` nếu sai định dạng,
-  400 `WEEK_NOT_FOUND` nếu tuần không có trong danh sách, 400 `MISSING_PARAM` nếu thiếu tham số),
-  resolve về khoảng ngày thật, gọi truy vấn §3.2, tính `rate` (`nullableRate`, giống hệt công thức
-  đã dùng trong `bcvhOverviewService.js`), tính `rate_delta = rateA - rateB` (điểm % tuyệt đối, PO
-  yêu cầu), và dòng `TỔNG CỘNG` bằng cách **cộng sản lượng/số đạt trước, tính tỷ lệ sau** — không
-  lấy trung bình 6 tỷ lệ (kiểm chứng bằng test số liệu cố ý lệch để hai cách tính phải cho kết quả
-  khác nhau).
-- Không có trường `alert`/`warning`/`risk` trong response (giữ nguyên quy ước PO decision 8 của
-  ticket Overview).
+- `compareWeeks(weekIdA, weekIdB)` — validate 2 week id, resolve về khoảng ngày thật, gọi truy vấn §3.2, tính `rate`, tính `rate_delta = rateA - rateB` (điểm % tuyệt đối), và dòng `TỔNG CỘNG` bằng cách cộng sản lượng/số đạt trước, tính tỷ lệ sau.
 
 ## 4. Frontend
 
-- `frontend/src/features/ranking/bcvhWeeklyComparisonFetcher.js` — 2 hàm fetch độc lập
-  (`createWeeksListFetcher`, `createWeeklyComparisonFetcher`), cùng khuôn mẫu chống race-condition
-  (`currentRequestSeq`) đã dùng ở `bcvhOverviewFetcher.js`, nhưng **không dùng lại cùng state hay
-  cùng effect** — đúng yêu cầu "tạo luồng riêng".
-- `frontend/src/features/ranking/bcvhWeeklyComparisonData.js` — mapper thuần (label tuần, format
-  delta điểm % có dấu, format delta sản lượng có dấu).
-- `frontend/src/features/ranking/BcvhWeeklyComparisonBlock.jsx` — component tự quản trạng thái
-  (danh sách tuần tải 1 lần khi mount; mặc định chọn tuần mới nhất làm "kỳ này" và tuần liền trước
-  làm "so sánh", người dùng đổi được sang bất kỳ 2 tuần nào khác), bảng 6 dòng BCVH + `TỔNG CỘNG`,
-  badge "Dữ liệu đến ngày …" / "d/D ngày" khi tuần được chọn chưa đủ dữ liệu.
-- `frontend/src/features/ranking/BcvhRankingPage.jsx` — chèn `<BcvhWeeklyComparisonBlock />` sau 4
-  khối Overview hiện có. **Không** đụng `useEffect` gọi `/f13/ranking/bcvh/overview`, không đụng
-  khối 5 (bảng xếp hạng ngày), không đụng 4 `KPICard`/`DoughnutSummary` — khối mới hoàn toàn độc
-  lập, tự fetch, tự render trạng thái loading/error/empty của chính nó.
+- `frontend/src/features/ranking/bcvhWeeklyComparisonFetcher.js` — 2 hàm fetch độc lập (`createWeeksListFetcher`, `createWeeklyComparisonFetcher`).
+- `frontend/src/features/ranking/bcvhWeeklyComparisonData.js` — pure mapper/formatter helpers (`snapToThursday`, `resolveWeekFromAnchorDate`, `resolveWeeksListWithAnchor`, `buildWeekOptions`, `checkWeeksDaysMismatch`, `formatWeekDataNote`).
+- `frontend/src/features/ranking/BcvhWeeklyComparisonBlock.jsx` — bảng điều hành mới độc lập theo chuẩn Operation Dashboard (tiêu đề 2 dòng, header nhóm 2 tầng, dòng TỔNG CỘNG đầu bảng, 06 dòng BCVH, bộ lọc tuần riêng, fitMode, cảnh báo khác số ngày dữ liệu, và điều chỉnh mốc tuần tự động căn về Thứ Năm).
+- `frontend/src/features/ranking/BcvhRankingPage.jsx` — chèn `<BcvhWeeklyComparisonBlock />` độc lập, không nhét vào `UnifiedBcvhAnalysisTable`.
 
-## 5. Ngoài phạm vi
+## 5. Remediation Record — Xử lý Blockers B1–B4 (Review Opus)
+
+1. **B1 – Căn Thứ Năm (`snapToThursday`)**:
+   - Khi người dùng nhập/chọn bất kỳ ngày nào (ví dụ: `14/09/2026` Thứ Hai), hệ thống tự động căn về Thứ Năm mở đầu tuần đó (`10/09/2026` = Tuần 37).
+   - Tuyệt đối không hiển thị `14/09–20/09`. Nhãn UI, tuần gửi API và khoảng ngày dữ liệu thống nhất 100%.
+
+2. **B2 – Không sinh tuần giả / Không hard-code**:
+   - Bỏ toàn bộ fallback hard-code `2026-09-17`.
+   - Không tự sinh tuần tương lai (W39, W40), không tự gán `days_with_data=7`.
+   - Nếu API trả rỗng hoặc lỗi, UI hiển thị rõ: `Chưa có dữ liệu tuần`.
+   - Nếu người dùng chọn mốc tương lai (`01/10/2026`), hệ thống tự căn về tuần có dữ liệu gần nhất (Tuần 38) kèm thông báo rõ ràng.
+
+3. **B3 – Không làm mất tuần có dữ liệu**:
+   - Khi đổi mốc về `10/09/2026`, W38 vẫn tồn tại đầy đủ trong danh sách lựa chọn (được sắp xếp tuần mới nhất lên đầu).
+   - Không dùng cơ chế lùi cố định 12 tuần gây mất tuần thực tế.
+   - Không sinh thêm tuần 2025 giả lập. Chỉ hiển thị tuần thực tế từ API.
+
+4. **B4 – Tuần 38 hiển thị thực tế đến ngày 21/09**:
+   - Tuần 38 có biên đầy đủ `17/09–23/09/2026`, nhưng vì dữ liệu thực tế chỉ đến ngày 21/09/2026, UI hiển thị:
+     `17/09–21/09/2026`
+   - Kèm theo ghi chú:
+     `Dữ liệu đến ngày 21/09/2026`
+   - Không bao giờ chỉ hiển thị `17/09–23/09/2026` đối với tuần đang diễn ra.
+
+5. **Responsiveness & Typography**:
+   - Đã gỡ bỏ các class `whitespace-nowrap` trên các dòng tiêu đề tổng hợp dài, tránh nguy cơ đè chữ/tràn cột ở các độ phân giải 1280px, 1440px và mobile.
+
+## 6. Ngoài phạm vi
 
 - Đổi công thức F1.3/SSOT, ngưỡng, hoặc `getBcvhRanking()`.
 - Đổi schema, thêm index, migration.
-- Mở lại `F13-BCVH-RANKING-OVERVIEW-01` (`CLOSED / PO PASS`) hay bất kỳ ticket đã đóng nào khác.
-- Gộp vào `/f13/ranking/bcvh/overview`.
-
-## 6. Rủi ro/giới hạn còn lại
-
-- **`RISK-PERF-02`** — `getBcvhWeeksList()` quét toàn bộ `fact_f13` theo `ma_bcvh` (không giới hạn
-  theo năm); đo thật hiện tại ~690 ms với 38 tuần/750k dòng là chấp nhận được, nhưng sẽ chậm dần
-  tuyến tính theo số năm dữ liệu tích lũy. Nếu PO thấy chậm khi nghiệm thu nhiều năm sau, lối ra là
-  một index `(ma_bcvh, ngay_do_kiem)` phủ rộng hơn hoặc cache theo tuần đã đóng — **không** tự thêm
-  trong ticket này (đúng ràng buộc PO: không thêm schema nếu chưa đo và chứng minh cần thiết).
-- **`RISK-SCOPE-02`** — quy tắc "tuần Thứ Năm→Thứ Tư" chỉ áp dụng cho tính năng này; không lan sang
-  bất kỳ khối/báo cáo nào khác đang dùng khái niệm "tuần" theo nghĩa khác (D-7 so sánh 1 ngày ở
-  Operation Dashboard, hay tuần ISO chuẩn nếu xuất hiện sau này) — không có shared constant nào bị
-  đổi để tránh nhầm lẫn giữa hai định nghĩa tuần khác nhau trong cùng hệ thống.
+- Mở lại các ticket đã đóng.
+- Tự cấp PO PASS.

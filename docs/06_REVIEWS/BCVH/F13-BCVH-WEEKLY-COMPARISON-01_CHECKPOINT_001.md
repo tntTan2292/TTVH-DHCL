@@ -6,28 +6,25 @@ Product Owner requested a new business requirement in chat, 2026-09-22: a weekly
 table inside BCVH Ranking, letting the user pick a "current" week and a "compare" week from every
 week that has data, and see the delta between them for the 6 canonical BCVH.
 
-Claude Code (Sonnet 5) first performed a read-only audit of the module (`/f13/ranking/bcvh`,
-`bcvhOverviewService.js`, `FactBuuGuiRepository.js`, `BcvhRankingPage.jsx`) and found that the PO's
-own worked examples (Tuần 36 = `03/09–09/09/2026`, etc.) did not match the ISO 8601 Monday-Sunday
-week — the boundaries were shifted 3 days, landing on Thursday-start. This was flagged back to the
-Product Owner as a business-rule question rather than assumed.
+Claude Code (Sonnet 5) performed initial audit and implementation at commit `2298a6f`.
+Subsequent Independent Review by Opus identified four blockers (B1–B4) requiring frontend remediation:
+- B1: Non-Thursday anchor date must snap to Thursday of that week (e.g. 14/09/2026 -> 10/09/2026), never showing 14/09–20/09.
+- B2: No fake/future weeks, no fake `days_with_data=7`, remove hardcoded `2026-09-17` fallbacks, show `Chưa có dữ liệu tuần` when empty.
+- B3: Changing anchor must not drop valid weeks (W38 must remain when shifting to 10/09/2026).
+- B4: In-progress Tuần 38 must display real data range `17/09–21/09/2026` + note `Dữ liệu đến ngày 21/09/2026`.
 
-Second chat message, same date: the Product Owner confirmed the week convention explicitly —
-Thứ Năm→Thứ Tư boundaries, ISO-standard week numbering, truncated display + "Dữ liệu đến ngày …"
-note for an in-progress week, `TỔNG CỘNG` by summed volume (not averaged rate), absolute
-percentage-point delta, free choice of any two weeks, a separate request flow (not merged into
-`/overview`), and no schema/index change without measurement.
-
-Baseline at activation: branch `codex/da-impl-006`, same commit range as the open
-`F13-ROUTE-POSTMAN-IDENTITY-01` Current Ticket. Working tree carried unrelated, untouched
-concurrent-session changes (`frontend/src/features/networkMap/*`, `backend/test_dkclSessionPreflightService.js`,
-`.claude/`, `Data QLML/`, root-level CSV/patch scratch files) — none touched by this ticket.
+Remediation was implemented by Antigravity (Gemini) strictly in frontend/UI without changing backend, schema, or SSOT.
 
 ## Section 2 — Scope Lock
 
-In scope: two new read-only endpoints (`GET /f13/ranking/bcvh/weeks`, `GET /f13/ranking/bcvh/weekly-comparison`),
-the Thursday-start/ISO-numbered week math, and a self-contained frontend block inserted into
-`BcvhRankingPage.jsx`.
+In scope:
+- Two read-only endpoints (`GET /f13/ranking/bcvh/weeks`, `GET /f13/ranking/bcvh/weekly-comparison`).
+- Independent weekly operation table in `BcvhRankingPage.jsx` following Operation Dashboard pattern.
+- Independent week filter toolbar.
+- Snapping non-Thursday dates to Thursday (`snapToThursday`).
+- Real display range for partial data weeks (e.g. W38: `17/09–21/09/2026` + `Dữ liệu đến ngày 21/09/2026`).
+- Visual mismatch warning when two weeks have different days with data.
+- Removal of fake week generation and hardcoded date fallbacks.
 
 Explicitly out of scope: any change to the F1.3 KPI/SSOT, `getBcvhRanking()`, the existing
 `/f13/ranking/bcvh/overview` endpoint or its 4 blocks, any schema/index/migration, and reopening
@@ -36,32 +33,26 @@ Explicitly out of scope: any change to the F1.3 KPI/SSOT, `getBcvhRanking()`, th
 ## Section 3 — Required Reading
 
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-- `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-WEEKLY-COMPARISON-01_DESIGN.md` — week-boundary math and endpoint contracts
+- `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-WEEKLY-COMPARISON-01_DESIGN.md` — week-boundary math, endpoint contracts, and remediation notes
 - `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-RANKING-OVERVIEW-01_DESIGN.md` — the conventions this ticket reuses
-- `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` — full implementation and validation record
+- `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` — full implementation, validation, and remediation record
 
-## Section 4 — Implementation Record
+## Section 4 — Implementation & Remediation Record
 
-Implemented directly (Claude Code, Sonnet 5) per the Design of Record in Section 3. Full file list,
-test counts, live-database performance measurements, and PO UI checklist are in
-`docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` Sections 5–6 (not duplicated here to
-avoid a second source of truth).
+1. **Remediation for Opus Review Blockers B1–B4**:
+   - **B1**: Implemented `snapToThursday(dateString)` in `bcvhWeeklyComparisonData.js`. When user picks `14/09/2026` (Monday), it snaps to Thursday `10/09/2026` (Tuần 37, `10/09–16/09/2026`), unifying UI label, API parameters, and date range.
+   - **B2**: Removed all fallback hard-code `'2026-09-17'`. No fake weeks (W39, W40) generated. Empty state cleanly displays `Chưa có dữ liệu tuần`. Future dates clamp to latest real week with clear UI notice.
+   - **B3**: When changing anchor (e.g. to `10/09/2026`), W38 is preserved in the options dropdown (newest first). No fake 2025 weeks generated.
+   - **B4**: Tuần 38 displays real data range `17/09–21/09/2026` and note `Dữ liệu đến ngày 21/09/2026`.
+   - **Header Layout**: Removed `whitespace-nowrap` on multi-line text to prevent column collision at 1280px / 1440px / mobile.
 
-Key results:
-
-- Week math verified against every PO-given example (Tuần 36/37/38) and round-tripped across year
-  boundaries (2024–2027) with zero mismatches.
-- Live database confirms the PO's exact partial-week scenario: `2026-W38` currently resolves to
-  `display_end_date: '2026-09-21'`, `is_in_progress: true`, note `Dữ liệu đến ngày 21/09/2026`.
-- 15 new backend tests (13 service + 2 real-SQLite repository), 13 new frontend tests — all pass.
-- Mandatory regression suites from the closed Overview ticket's Design of Record (§8.2) still green.
-- Full backend sweep 360/364 (4 pre-existing/environmental failures, byte-identical to baseline);
-  full frontend sweep 534/536 (2 pre-existing failures in unrelated, already-dirty `networkMap`/
-  `dataImportBackfillQueue` files, not touched by this ticket).
-- `oxlint` 0 errors, `vite build` clean.
+2. **Test Validation**:
+   - `node --test frontend/src/features/ranking/*.test.js`: **56/56 PASS** (100%).
+   - Dedicated behavioral tests for B1–B4 in `bcvhWeeklyComparisonData.test.js` and `bcvhWeeklyComparisonBlock.test.js`.
+   - Linter (`oxlint`): **0 errors**.
+   - Build (`vite build`): **Clean**, built successfully.
 
 ## Section 5 — Current State
 
-`IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK`. Claude Code does not self-award PO PASS — see
-Manifest Section 6 for the PO UI checklist. Does not affect `F13-ROUTE-POSTMAN-IDENTITY-01`
-(Current Ticket) or any closed ticket.
+`IMPLEMENTED / TECH PASS / READY FOR INDEPENDENT RE-REVIEW`.
+Does not self-award PO PASS.
