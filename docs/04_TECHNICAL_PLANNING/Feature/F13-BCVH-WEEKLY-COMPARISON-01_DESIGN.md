@@ -162,9 +162,17 @@ GROUP BY ma_bcvh
 5. **Responsiveness & Typography**:
    - Đã gỡ bỏ các class `whitespace-nowrap` trên các dòng tiêu đề tổng hợp dài, tránh nguy cơ đè chữ/tràn cột ở các độ phân giải 1280px, 1440px và mobile.
 
-## 6. Ngoài phạm vi
+6. **PO UI Layout & Multi-Column Sorting Adjustments (2026-09-28)**:
+   - **Vị trí bộ lọc phía trên cùng**: Bộ lọc độc lập được dời lên trên cùng trước tiêu đề báo cáo, gom Tiêu đề (2 dòng) và Bảng dữ liệu thành một khối `.bcvh-weekly-report-capture-area` liền kề, tối ưu cho việc chụp ảnh bảng biểu làm báo cáo.
+   - **Nhãn nhóm cột SO SÁNH**: Đổi tên nhóm cột từ `CHÊNH LỆCH` sang `SO SÁNH`.
+   - **Gỡ bỏ lưu ý trong thead**: Bỏ badge cảnh báo lệch số ngày khỏi ô `<th>`, chỉ hiển thị cảnh báo tập trung tại khối bộ lọc phía trên.
+   - **Mặc định sắp xếp**: Tự động sắp xếp các BCVH theo Tỷ lệ đạt KPI 2026 của Tuần kỳ này giảm dần (`current_rate` desc), tie-break bằng sản lượng đo kiểm.
+   - **Sort toggle toàn bộ các cột**: Hàm tiện ích `sortBcvhWeeklyRows` và component helper `renderSortableTh` cho phép người dùng click vào bất kỳ cột nào ở tầng 2 để đảo chiều sắp xếp (cột số mặc định desc, cột text mặc định asc), có icon định hướng `ArrowDown`/`ArrowUp`/`ArrowUpDown`.
+
+## 7. Ngoài phạm vi
 
 - Đổi công thức F1.3/SSOT, ngưỡng, hoặc `getBcvhRanking()`.
 - Đổi schema, thêm index, migration.
 - Mở lại các ticket đã đóng.
 - Tự cấp PO PASS.
+

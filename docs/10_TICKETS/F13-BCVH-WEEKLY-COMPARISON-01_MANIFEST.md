@@ -22,33 +22,40 @@
   - **B3 – Không làm mất tuần có dữ liệu**: Changing anchor (e.g. to `10/09/2026`) preserves W38 in dropdown list (newest first). Only real weeks from `/weeks` are displayed.
   - **B4 – Tuần 38**: In-progress Tuần 38 displays real data range `17/09–21/09/2026` and note `Dữ liệu đến ngày 21/09/2026`.
   - **Header Responsiveness**: Typography updated, removed `whitespace-nowrap` on multi-line text to prevent column collision at 1280px / 1440px / mobile.
+- PO UI Adjustments (2026-09-28):
+  - **Vị trí bộ lọc**: Chuyển khối bộ lọc độc lập lên trên cùng trước tiêu đề báo cáo, tạo khối `.bcvh-weekly-report-capture-area` liền mạch giữa tiêu đề 2 dòng và bảng dữ liệu 11 cột phục vụ chụp ảnh báo cáo.
+  - **Tên nhóm cột**: Đổi `CHÊNH LỆCH` thành `SO SÁNH`.
+  - **Bỏ lưu ý trong header bảng**: Gỡ badge cảnh báo lệch số ngày khỏi `<th>`, chỉ hiển thị cảnh báo tập trung tại khối bộ lọc phía trên.
+  - **Sắp xếp mặc định**: Các BCVH tự động được sắp xếp theo Tỷ lệ đạt KPI 2026 của Tuần kỳ này giảm dần (`current_rate` desc), tie-break bằng sản lượng đo kiểm.
+  - **Hỗ trợ đảo chiều sắp xếp (Sort toggle) toàn diện**: Tích hợp hàm `sortBcvhWeeklyRows` và `renderSortableTh` cho phép người dùng click vào bất kỳ tiêu đề cột nào (mã, tên, sản lượng đo kiểm, số đạt, tỷ lệ đạt KPI, chênh lệch) để đảo chiều tăng dần/giảm dần, có icon định hướng `ArrowDown`/`ArrowUp`/`ArrowUpDown`.
 
 ## 3. Required Reading
 
 - `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`
-- `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-WEEKLY-COMPARISON-01_DESIGN.md` (Design of Record, updated with Remediation Section 5)
+- `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-WEEKLY-COMPARISON-01_DESIGN.md` (Design of Record, updated with Remediation Section 5 & 5.6)
 - `docs/06_REVIEWS/BCVH/F13-BCVH-WEEKLY-COMPARISON-01_CHECKPOINT_001.md` (Checkpoint 001)
 
 ## 4. Implementation & Remediation Record
 
-### 4.1 Files Changed in Remediation
+### 4.1 Files Changed in Remediation & UI Adjustments
 
-- `frontend/src/features/ranking/bcvhWeeklyComparisonData.js` — helper functions for `snapToThursday`, `resolveWeekFromAnchorDate`, `resolveWeeksListWithAnchor`, `buildWeekOptions`, `checkWeeksDaysMismatch`, `formatWeekDataNote`.
-- `frontend/src/features/ranking/BcvhWeeklyComparisonBlock.jsx` — new independent weekly operation table complying with Operation Dashboard pattern, responsive headers, no hardcoded fallbacks, anchor date snapping, in-progress real date display.
-- `frontend/src/features/ranking/bcvhWeeklyComparisonData.test.js` — 11 behavioral tests covering B1–B4, empty states, and date snapping.
-- `frontend/src/features/ranking/bcvhWeeklyComparisonBlock.test.js` — 8 integration tests covering component decoupling, independent filters, anchor adjustment, header non-overflow, and lack of hardcoded fallbacks.
-- `frontend/src/features/ranking/BcvhRankingPage.jsx` — cleaned up unused import, independent block placement confirmed.
-- Governance docs: `DESIGN.md`, `CHECKPOINT_001.md`, `MANIFEST.md`.
+- `frontend/src/features/ranking/bcvhWeeklyComparisonData.js` — helper functions for `snapToThursday`, `resolveWeekFromAnchorDate`, `resolveWeeksListWithAnchor`, `buildWeekOptions`, `checkWeeksDaysMismatch`, `formatWeekDataNote`, và hàm sắp xếp đa cột `sortBcvhWeeklyRows`.
+- `frontend/src/features/ranking/BcvhWeeklyComparisonBlock.jsx` — bảng điều hành mới độc lập theo chuẩn Operation Dashboard (bộ lọc đặt trên cùng, khối tiêu đề 2 dòng liền với bảng, nhóm cột `SO SÁNH` sạch sẽ không chứa badge lưu ý, hỗ trợ click sort toggle trên toàn bộ các cột, mặc định xếp theo `current_rate` giảm dần).
+- `frontend/src/features/ranking/bcvhWeeklyComparisonData.test.js` — 14 behavioral tests covering B1–B4, empty states, date snapping, and multi-column sorting (rate, volume, name, delta).
+- `frontend/src/features/ranking/bcvhWeeklyComparisonBlock.test.js` — 10 integration tests covering component decoupling, independent filters, filter placement above title, SO SÁNH header, header non-overflow, and interactive multi-column sorting.
+- `frontend/src/features/ranking/BcvhRankingPage.jsx` — độc lập, không ảnh hưởng khối khác.
+- Governance docs: `DESIGN.md`, `CHECKPOINT_001.md`, `MANIFEST.md`, `PROJECT_SNAPSHOT.md`.
 
 ### 4.2 Validation Results
 
-- `node --test frontend/src/features/ranking/*.test.js`: **56/56 PASS** (100%).
+- `node --test frontend/src/features/ranking/*.test.js`: **62/62 PASS** (100%).
 - `node --experimental-sqlite --test backend/src/services/bcvhWeeklyComparisonService.test.js backend/src/repositories/FactBuuGuiRepository.weeklyComparison.test.js`: **15/15 PASS**.
 - `oxlint`: **0 errors**.
-- `vite build`: **Clean**, built successfully.
+- `vite build`: **Clean**, built successfully (1.46s).
 - No Browser/Playwright used per instruction. No schema, index, or backend contract changes.
 
 ## 5. Status
 
-`IMPLEMENTED / TECH PASS / READY FOR INDEPENDENT RE-REVIEW`.
+`IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK`.
 Claude Code and Antigravity do not self-award PO PASS.
+

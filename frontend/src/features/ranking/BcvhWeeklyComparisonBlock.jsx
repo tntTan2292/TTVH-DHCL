@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CalendarRange,
   CheckCircle2,
   Info,
@@ -29,6 +32,7 @@ import {
   formatWeekDataNote,
   formatWeekDateRange,
   resolveWeeksListWithAnchor,
+  sortBcvhWeeklyRows,
 } from './bcvhWeeklyComparisonData';
 
 function renderDeltaBadge(deltaValue) {
@@ -223,8 +227,55 @@ export default function BcvhWeeklyComparisonBlock() {
   // PO Requirement 5: Check if the two selected weeks have different days with data
   const daysMismatch = useMemo(() => checkWeeksDaysMismatch(currentWeek, compareWeek), [currentWeek, compareWeek]);
 
-  const rows = comparisonState.data?.rows || [];
+  // Sorting: Default order BCVH by current week KPI rate (tỉ lệ đạt KPI 2026 của Tuần kỳ này) descending
+  const [sortConfig, setSortConfig] = useState({ field: 'current_rate', direction: 'desc' });
+
   const totalRow = comparisonState.data?.total_row || null;
+
+  // Order BCVH rows according to current week KPI rate (default descending)
+  const rows = useMemo(() => {
+    return sortBcvhWeeklyRows(comparisonState.data?.rows, {
+      sortField: sortConfig.field,
+      direction: sortConfig.direction,
+    });
+  }, [comparisonState.data?.rows, sortConfig]);
+
+  const handleSort = (field) => {
+    setSortConfig((prev) => {
+      if (prev.field === field) {
+        return { field, direction: prev.direction === 'desc' ? 'asc' : 'desc' };
+      }
+      const isText = field === 'ma_bcvh' || field === 'ten_bcvh';
+      return { field, direction: isText ? 'asc' : 'desc' };
+    });
+  };
+
+  const handleToggleCurrentRateSort = () => handleSort('current_rate');
+
+  const renderSortableTh = (field, label, { widthClass, borderClass = 'border-r border-slate-200', hoverClass = 'hover:bg-slate-200/80', nowrap = false } = {}) => {
+    const isActive = sortConfig.field === field;
+    return (
+      <th
+        key={field}
+        onClick={field === 'current_rate' ? handleToggleCurrentRateSort : () => handleSort(field)}
+        className={`py-2 px-1 text-center align-middle ${widthClass} ${borderClass} leading-snug cursor-pointer select-none transition-colors ${hoverClass} ${nowrap ? 'whitespace-nowrap' : ''} ${isActive ? 'bg-blue-100/90 font-black text-blue-950 shadow-2xs' : ''}`}
+        title={`Sắp xếp theo ${label} (nhấp để đảo chiều)`}
+      >
+        <div className="inline-flex items-center justify-center gap-1">
+          <span>{label}</span>
+          {isActive ? (
+            sortConfig.direction === 'desc' ? (
+              <ArrowDown className="h-3 w-3 text-blue-900 shrink-0" />
+            ) : (
+              <ArrowUp className="h-3 w-3 text-blue-900 shrink-0" />
+            )
+          ) : (
+            <ArrowUpDown className="h-2.5 w-2.5 opacity-30 hover:opacity-80 shrink-0" />
+          )}
+        </div>
+      </th>
+    );
+  };
 
   // PO B4: Use real display dates for in-progress weeks (e.g. 17/09–21/09/2026 for W38)
   const currentWeekRange = currentWeek ? formatWeekDateRange(currentWeek.display_start_date, currentWeek.display_end_date) : '';
@@ -235,26 +286,7 @@ export default function BcvhWeeklyComparisonBlock() {
 
   return (
     <section className="bcvh-weekly-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
-      {/* Title Header (2 Lines) + Fit Mode Switch */}
-      <div className="mb-4 border-b border-slate-200 pb-3 text-center relative">
-        <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug">
-          {titleLine1}
-        </h2>
-        <p className="mt-1 text-xs sm:text-base font-black uppercase tracking-wide text-blue-900">
-          {titleLine2}
-        </p>
-        <div className="mt-2 flex justify-center items-center gap-2 lg:hidden">
-          <button
-            type="button"
-            onClick={() => setFitMode(!fitMode)}
-            className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200 transition-colors shadow-2xs"
-          >
-            {fitMode ? '🔍 Chế độ cuộn chi tiết' : '📱 Xem trọn bảng (Fit màn hình)'}
-          </button>
-        </div>
-      </div>
-
-      {/* PO Requirement 2: Dedicated, Independent Filter Toolbar */}
+      {/* PO Requirement 2: Dedicated, Independent Filter Toolbar (đưa lên trên cùng để không cản trở chụp ảnh bảng dữ liệu) */}
       <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <div className="flex items-center gap-2">
@@ -357,7 +389,7 @@ export default function BcvhWeeklyComparisonBlock() {
           <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs font-bold text-amber-900 shadow-2xs">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
             <div className="flex flex-wrap items-center gap-2">
-              <span>{daysMismatch.message}</span>
+              <span>{daysMismatch.message || 'Lưu ý: Hai tuần có số ngày dữ liệu khác nhau'}</span>
               <span className="rounded bg-amber-200/80 px-2 py-0.5 font-semibold text-amber-950">
                 {currentWeek?.label || 'Kỳ này'}: {daysMismatch.daysA} ngày · {compareWeek?.label || 'So sánh'}: {daysMismatch.daysB} ngày
               </span>
@@ -376,128 +408,142 @@ export default function BcvhWeeklyComparisonBlock() {
         </div>
       ) : null}
 
-      {comparisonState.status === 'error' ? (
-        <ErrorState title="Không thể so sánh hai tuần đã chọn" description={comparisonState.error} />
-      ) : null}
-
-      {comparisonState.status === 'loading' ? (
-        <div className="flex h-32 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-6 text-slate-500">
-          <div className="flex items-center gap-3 text-sm font-bold">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-            <span>Đang tải số liệu bảng so sánh tuần...</span>
+      {/* Khối Báo cáo (Tiêu đề 2 dòng + Bảng số liệu) liền kề nhau để tối ưu chụp hình */}
+      <div className="bcvh-weekly-report-capture-area pt-1">
+        {/* Title Header (2 Lines) + Fit Mode Switch */}
+        <div className="mb-4 border-b border-slate-200 pb-3 text-center relative">
+          <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug">
+            {titleLine1}
+          </h2>
+          <p className="mt-1 text-xs sm:text-base font-black uppercase tracking-wide text-blue-900">
+            {titleLine2}
+          </p>
+          <div className="mt-2 flex justify-center items-center gap-2 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setFitMode(!fitMode)}
+              className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200 transition-colors shadow-2xs"
+            >
+              {fitMode ? '🔍 Chế độ cuộn chi tiết' : '📱 Xem trọn bảng (Fit màn hình)'}
+            </button>
           </div>
         </div>
-      ) : null}
 
-      {/* PO Requirement 1: Table styled similarly to Operation Dashboard daily table */}
-      {comparisonState.status === 'success' && comparisonState.data ? (
-        <div
-          ref={containerRef}
-          className={`w-full ${
-            fitMode
-              ? 'overflow-hidden transition-all'
-              : 'overflow-x-auto lg:overflow-x-visible'
-          }`}
-          style={fitMode && scaledHeight ? { height: `${scaledHeight}px` } : undefined}
-        >
+        {comparisonState.status === 'error' ? (
+          <ErrorState title="Không thể so sánh hai tuần đã chọn" description={comparisonState.error} />
+        ) : null}
+
+        {comparisonState.status === 'loading' ? (
+          <div className="flex h-32 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-6 text-slate-500">
+            <div className="flex items-center gap-3 text-sm font-bold">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+              <span>Đang tải số liệu bảng so sánh tuần...</span>
+            </div>
+          </div>
+        ) : null}
+
+        {/* PO Requirement 1: Table styled similarly to Operation Dashboard daily table */}
+        {comparisonState.status === 'success' && comparisonState.data ? (
           <div
-            style={
+            ref={containerRef}
+            className={`w-full ${
               fitMode
-                ? {
-                    transform: `scale(${fitScale})`,
-                    transformOrigin: 'top left',
-                    width: `${(100 / fitScale).toFixed(2)}%`,
-                  }
-                : undefined
-            }
+                ? 'overflow-hidden transition-all'
+                : 'overflow-x-auto lg:overflow-x-visible'
+            }`}
+            style={fitMode && scaledHeight ? { height: `${scaledHeight}px` } : undefined}
           >
-            <table ref={tableRef} className="w-full text-left border-collapse table-fixed min-w-[1020px] lg:min-w-full">
-              {/* Locked 11-column proportions */}
-              <colgroup>
-                {/* ĐƠN VỊ (28%) */}
-                <col style={{ width: '5%' }} className="w-[5%]" />
-                <col style={{ width: '8%' }} className="w-[8%]" />
-                <col style={{ width: '15%' }} className="w-[15%]" />
-                {/* TUẦN KỲ NÀY (28%) */}
-                <col style={{ width: '9%' }} className="w-[9%]" />
-                <col style={{ width: '8%' }} className="w-[8%]" />
-                <col style={{ width: '11%' }} className="w-[11%]" />
-                {/* TUẦN SO SÁNH (28%) */}
-                <col style={{ width: '9%' }} className="w-[9%]" />
-                <col style={{ width: '8%' }} className="w-[8%]" />
-                <col style={{ width: '11%' }} className="w-[11%]" />
-                {/* CHÊNH LỆCH (16%) */}
-                <col style={{ width: '9%' }} className="w-[9%]" />
-                <col style={{ width: '7%' }} className="w-[7%]" />
-              </colgroup>
+            <div
+              style={
+                fitMode
+                  ? {
+                      transform: `scale(${fitScale})`,
+                      transformOrigin: 'top left',
+                      width: `${(100 / fitScale).toFixed(2)}%`,
+                    }
+                  : undefined
+              }
+            >
+              <table ref={tableRef} className="w-full text-left border-collapse table-fixed min-w-[1020px] lg:min-w-full">
+                {/* Locked 11-column proportions */}
+                <colgroup>
+                  {/* ĐƠN VỊ (28%) */}
+                  <col style={{ width: '5%' }} className="w-[5%]" />
+                  <col style={{ width: '8%' }} className="w-[8%]" />
+                  <col style={{ width: '15%' }} className="w-[15%]" />
+                  {/* TUẦN KỲ NÀY (28%) */}
+                  <col style={{ width: '9%' }} className="w-[9%]" />
+                  <col style={{ width: '8%' }} className="w-[8%]" />
+                  <col style={{ width: '11%' }} className="w-[11%]" />
+                  {/* TUẦN SO SÁNH (28%) */}
+                  <col style={{ width: '9%' }} className="w-[9%]" />
+                  <col style={{ width: '8%' }} className="w-[8%]" />
+                  <col style={{ width: '11%' }} className="w-[11%]" />
+                  {/* SO SÁNH (16%) */}
+                  <col style={{ width: '9%' }} className="w-[9%]" />
+                  <col style={{ width: '7%' }} className="w-[7%]" />
+                </colgroup>
 
-              {/* Level 1: Grouped Headers with clean, non-overflowing typography */}
-              <thead>
-                <tr className="border-b border-slate-300">
-                  <th
-                    colSpan={3}
-                    className="bg-slate-100/90 text-slate-800 font-black uppercase tracking-wider text-center align-middle py-2.5 px-2 border-r border-slate-300 text-xs sm:text-sm md:text-base"
-                  >
-                    <div>ĐƠN VỊ</div>
-                    <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-normal mt-0.5">
-                      06 BƯU CỤC VẬN HÀNH
-                    </div>
-                  </th>
-
-                  {/* Tuần kỳ này group header */}
-                  <th
-                    colSpan={3}
-                    className="bg-blue-100/90 text-blue-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-blue-300 text-xs sm:text-sm md:text-base"
-                  >
-                    <div className="leading-snug">TUẦN KỲ NÀY ({currentWeek?.label || 'KỲ NÀY'})</div>
-                    <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
-                      {currentWeekRange} (Năm {currentWeek?.iso_year || ''})
-                    </div>
-                    {currentWeek?.is_in_progress && currentWeek?.last_data_date ? (
-                      <div className="mt-1">
-                        <span className="inline-block rounded bg-blue-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-blue-950 tracking-normal">
-                          Dữ liệu đến ngày {formatDateVN(currentWeek.last_data_date)}
-                        </span>
+                {/* Level 1: Grouped Headers with clean, non-overflowing typography */}
+                <thead>
+                  <tr className="border-b border-slate-300">
+                    <th
+                      colSpan={3}
+                      className="bg-slate-100/90 text-slate-800 font-black uppercase tracking-wider text-center align-middle py-2.5 px-2 border-r border-slate-300 text-xs sm:text-sm md:text-base"
+                    >
+                      <div>ĐƠN VỊ</div>
+                      <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-normal mt-0.5">
+                        06 BƯU CỤC VẬN HÀNH
                       </div>
-                    ) : null}
-                  </th>
+                    </th>
 
-                  {/* Tuần so sánh group header */}
-                  <th
-                    colSpan={3}
-                    className="bg-emerald-100/90 text-emerald-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-emerald-300 text-xs sm:text-sm md:text-base"
-                  >
-                    <div className="leading-snug">TUẦN SO SÁNH ({compareWeek?.label || 'SO SÁNH'})</div>
-                    <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
-                      {compareWeekRange} (Năm {compareWeek?.iso_year || ''})
-                    </div>
-                    {compareWeek?.is_in_progress && compareWeek?.last_data_date ? (
-                      <div className="mt-1">
-                        <span className="inline-block rounded bg-emerald-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-emerald-950 tracking-normal">
-                          Dữ liệu đến ngày {formatDateVN(compareWeek.last_data_date)}
-                        </span>
+                    {/* Tuần kỳ này group header */}
+                    <th
+                      colSpan={3}
+                      className="bg-blue-100/90 text-blue-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-blue-300 text-xs sm:text-sm md:text-base"
+                    >
+                      <div className="leading-snug">TUẦN KỲ NÀY ({currentWeek?.label || 'KỲ NÀY'})</div>
+                      <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
+                        {currentWeekRange} (Năm {currentWeek?.iso_year || ''})
                       </div>
-                    ) : null}
-                  </th>
+                      {currentWeek?.is_in_progress && currentWeek?.last_data_date ? (
+                        <div className="mt-1">
+                          <span className="inline-block rounded bg-blue-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-blue-950 tracking-normal">
+                            Dữ liệu đến ngày {formatDateVN(currentWeek.last_data_date)}
+                          </span>
+                        </div>
+                      ) : null}
+                    </th>
 
-                  {/* Chênh lệch group header */}
-                  <th
-                    colSpan={2}
-                    className="bg-amber-100/90 text-amber-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 text-xs sm:text-sm md:text-base"
-                  >
-                    <div className="leading-snug">CHÊNH LỆCH</div>
-                    {daysMismatch.isMismatch ? (
-                      <div className="mt-1 inline-flex items-center gap-1 rounded bg-amber-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-950 normal-case tracking-normal leading-tight text-center">
-                        <AlertTriangle className="h-3 w-3 shrink-0 text-amber-700" />
-                        <span>Lưu ý: Hai tuần có số ngày dữ liệu khác nhau</span>
+                    {/* Tuần so sánh group header */}
+                    <th
+                      colSpan={3}
+                      className="bg-emerald-100/90 text-emerald-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-emerald-300 text-xs sm:text-sm md:text-base"
+                    >
+                      <div className="leading-snug">TUẦN SO SÁNH ({compareWeek?.label || 'SO SÁNH'})</div>
+                      <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
+                        {compareWeekRange} (Năm {compareWeek?.iso_year || ''})
                       </div>
-                    ) : (
+                      {compareWeek?.is_in_progress && compareWeek?.last_data_date ? (
+                        <div className="mt-1">
+                          <span className="inline-block rounded bg-emerald-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-emerald-950 tracking-normal">
+                            Dữ liệu đến ngày {formatDateVN(compareWeek.last_data_date)}
+                          </span>
+                        </div>
+                      ) : null}
+                    </th>
+
+                    {/* So sánh group header */}
+                    <th
+                      colSpan={2}
+                      className="bg-amber-100/90 text-amber-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 text-xs sm:text-sm md:text-base"
+                    >
+                      <div className="leading-snug">SO SÁNH</div>
                       <div className="text-[11px] sm:text-xs font-semibold text-slate-600 tracking-normal mt-0.5 leading-snug">
                         Kỳ này so với tuần so sánh
                       </div>
-                    )}
-                  </th>
-                </tr>
+                    </th>
+                  </tr>
 
                 {/* Level 2: Exact Column Headers without text overflow */}
                 <tr className="border-b-2 border-slate-300 bg-slate-50/95 text-slate-800 text-[11px] sm:text-xs md:text-sm font-extrabold">
@@ -505,42 +551,22 @@ export default function BcvhWeeklyComparisonBlock() {
                   <th className="py-2 px-1 text-center align-middle w-[5%] border-r border-slate-200 whitespace-nowrap">
                     STT
                   </th>
-                  <th className="py-2 px-1 text-center align-middle w-[8%] border-r border-slate-200 whitespace-nowrap">
-                    Mã bưu cục
-                  </th>
-                  <th className="py-2 px-2 text-center align-middle w-[15%] border-r border-slate-300 whitespace-nowrap">
-                    Tên bưu cục
-                  </th>
+                  {renderSortableTh('ma_bcvh', 'Mã bưu cục', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
+                  {renderSortableTh('ten_bcvh', 'Tên bưu cục', { widthClass: 'w-[15%]', borderClass: 'border-r border-slate-300', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
 
                   {/* Tuần kỳ này (28%) */}
-                  <th className="py-2 px-1 text-center align-middle w-[9%] border-r border-slate-200 leading-snug">
-                    Sản lượng đo kiểm
-                  </th>
-                  <th className="py-2 px-1 text-center align-middle w-[8%] border-r border-slate-200 leading-snug">
-                    Đạt
-                  </th>
-                  <th className="py-2 px-1 text-center align-middle w-[11%] border-r border-blue-300 leading-snug">
-                    Tỷ lệ đạt KPI 2026
-                  </th>
+                  {renderSortableTh('current_volume', 'Sản lượng đo kiểm', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
+                  {renderSortableTh('current_passed', 'Đạt', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
+                  {renderSortableTh('current_rate', 'Tỷ lệ đạt KPI 2026', { widthClass: 'w-[11%]', borderClass: 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' })}
 
                   {/* Tuần so sánh (28%) */}
-                  <th className="py-2 px-1 text-center align-middle w-[9%] border-r border-slate-200 leading-snug">
-                    Sản lượng đo kiểm
-                  </th>
-                  <th className="py-2 px-1 text-center align-middle w-[8%] border-r border-slate-200 leading-snug">
-                    Đạt
-                  </th>
-                  <th className="py-2 px-1 text-center align-middle w-[11%] border-r border-emerald-300 leading-snug">
-                    Tỷ lệ đạt KPI 2026
-                  </th>
+                  {renderSortableTh('compare_volume', 'Sản lượng đo kiểm', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {renderSortableTh('compare_passed', 'Đạt', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {renderSortableTh('compare_rate', 'Tỷ lệ đạt KPI 2026', { widthClass: 'w-[11%]', borderClass: 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' })}
 
-                  {/* Chênh lệch (16%) */}
-                  <th className="py-2 px-1 text-center align-middle w-[9%] border-r border-slate-200 leading-snug">
-                    Tăng/giảm tỷ lệ
-                  </th>
-                  <th className="py-2 px-1 text-center align-middle w-[7%] leading-snug">
-                    Chênh lệch SL
-                  </th>
+                  {/* So sánh (16%) */}
+                  {renderSortableTh('rate_delta', 'Tăng/giảm tỷ lệ', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-amber-100/90' })}
+                  {renderSortableTh('volume_delta', 'Chênh lệch SL', { widthClass: 'w-[7%]', borderClass: '', hoverClass: 'hover:bg-amber-100/90' })}
                 </tr>
               </thead>
 
@@ -645,6 +671,7 @@ export default function BcvhWeeklyComparisonBlock() {
           </div>
         </div>
       ) : null}
+      </div>
     </section>
   );
 }

@@ -46,13 +46,21 @@ Explicitly out of scope: any change to the F1.3 KPI/SSOT, `getBcvhRanking()`, th
    - **B4**: Tuần 38 displays real data range `17/09–21/09/2026` and note `Dữ liệu đến ngày 21/09/2026`.
    - **Header Layout**: Removed `whitespace-nowrap` on multi-line text to prevent column collision at 1280px / 1440px / mobile.
 
-2. **Test Validation**:
-   - `node --test frontend/src/features/ranking/*.test.js`: **56/56 PASS** (100%).
-   - Dedicated behavioral tests for B1–B4 in `bcvhWeeklyComparisonData.test.js` and `bcvhWeeklyComparisonBlock.test.js`.
+4. **PO UI Layout & Multi-Column Sorting Adjustments (2026-09-28)**:
+   - **Vị trí bộ lọc phía trên cùng**: Bộ lọc dời lên trên cùng trước tiêu đề báo cáo, gom Tiêu đề (2 dòng) và Bảng dữ liệu thành một khối `.bcvh-weekly-report-capture-area` liền kề, tối ưu cho việc chụp ảnh bảng biểu làm báo cáo.
+   - **Nhãn nhóm cột SO SÁNH**: Đổi tên nhóm cột từ `CHÊNH LỆCH` sang `SO SÁNH`.
+   - **Gỡ bỏ lưu ý trong thead**: Bỏ badge cảnh báo lệch số ngày khỏi ô `<th>`, chỉ hiển thị cảnh báo tập trung tại khối bộ lọc phía trên.
+   - **Mặc định sắp xếp**: Tự động sắp xếp các BCVH theo Tỷ lệ đạt KPI 2026 của Tuần kỳ này giảm dần (`current_rate` desc), tie-break bằng sản lượng đo kiểm.
+   - **Sort toggle toàn bộ các cột**: Hàm tiện ích `sortBcvhWeeklyRows` và helper `renderSortableTh` cho phép người dùng click vào bất kỳ cột nào ở tầng 2 để đảo chiều sắp xếp, có icon định hướng `ArrowDown`/`ArrowUp`/`ArrowUpDown`.
+
+5. **Test Validation**:
+   - `node --test frontend/src/features/ranking/*.test.js`: **62/62 PASS** (100%).
+   - Dedicated behavioral tests for B1–B4 and multi-column sorting in `bcvhWeeklyComparisonData.test.js` and `bcvhWeeklyComparisonBlock.test.js`.
    - Linter (`oxlint`): **0 errors**.
-   - Build (`vite build`): **Clean**, built successfully.
+   - Build (`vite build`): **Clean**, built successfully (1.46s).
 
 ## Section 5 — Current State
 
-`IMPLEMENTED / TECH PASS / READY FOR INDEPENDENT RE-REVIEW`.
+`IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK`.
 Does not self-award PO PASS.
+

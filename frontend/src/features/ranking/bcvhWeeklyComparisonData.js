@@ -309,3 +309,80 @@ export function formatSignedVolumeDelta(value) {
   const sign = num > 0 ? '+' : '';
   return `${sign}${num.toLocaleString('vi-VN')}`;
 }
+
+/**
+ * Sorts BCVH weekly comparison rows by any specified column.
+ * Default: sortField = 'current_rate', direction = 'desc' (highest current week KPI rate first).
+ * - Null or undefined values are placed at the bottom.
+ * - When numeric values are equal, breaks tie by higher current volume (current.volume).
+ * - Deterministic tie-breaker by ma_bcvh.
+ */
+export function sortBcvhWeeklyRows(rows, { sortField = 'current_rate', direction = 'desc' } = {}) {
+  if (!Array.isArray(rows) || !rows.length) return [];
+  const list = [...rows];
+
+  return list.sort((a, b) => {
+    switch (sortField) {
+      case 'ma_bcvh': {
+        const valA = a.ma_bcvh || '';
+        const valB = b.ma_bcvh || '';
+        return direction === 'desc' ? valB.localeCompare(valA) : valA.localeCompare(valB);
+      }
+
+      case 'ten_bcvh': {
+        const valA = a.ten_bcvh || '';
+        const valB = b.ten_bcvh || '';
+        return direction === 'desc'
+          ? valB.localeCompare(valA, 'vi-VN')
+          : valA.localeCompare(valB, 'vi-VN');
+      }
+
+      default: {
+        let valA = null;
+        let valB = null;
+
+        if (sortField === 'current_volume') {
+          valA = a.current?.volume !== undefined && a.current?.volume !== null ? Number(a.current.volume) : null;
+          valB = b.current?.volume !== undefined && b.current?.volume !== null ? Number(b.current.volume) : null;
+        } else if (sortField === 'current_passed') {
+          valA = a.current?.passed !== undefined && a.current?.passed !== null ? Number(a.current.passed) : null;
+          valB = b.current?.passed !== undefined && b.current?.passed !== null ? Number(b.current.passed) : null;
+        } else if (sortField === 'current_rate') {
+          valA = a.current?.rate !== undefined && a.current?.rate !== null ? Number(a.current.rate) : null;
+          valB = b.current?.rate !== undefined && b.current?.rate !== null ? Number(b.current.rate) : null;
+        } else if (sortField === 'compare_volume') {
+          valA = a.compare?.volume !== undefined && a.compare?.volume !== null ? Number(a.compare.volume) : null;
+          valB = b.compare?.volume !== undefined && b.compare?.volume !== null ? Number(b.compare.volume) : null;
+        } else if (sortField === 'compare_passed') {
+          valA = a.compare?.passed !== undefined && a.compare?.passed !== null ? Number(a.compare.passed) : null;
+          valB = b.compare?.passed !== undefined && b.compare?.passed !== null ? Number(b.compare.passed) : null;
+        } else if (sortField === 'compare_rate') {
+          valA = a.compare?.rate !== undefined && a.compare?.rate !== null ? Number(a.compare.rate) : null;
+          valB = b.compare?.rate !== undefined && b.compare?.rate !== null ? Number(b.compare.rate) : null;
+        } else if (sortField === 'rate_delta') {
+          valA = a.rate_delta !== undefined && a.rate_delta !== null ? Number(a.rate_delta) : null;
+          valB = b.rate_delta !== undefined && b.rate_delta !== null ? Number(b.rate_delta) : null;
+        } else if (sortField === 'volume_delta') {
+          valA = a.volume_delta !== undefined && a.volume_delta !== null ? Number(a.volume_delta) : null;
+          valB = b.volume_delta !== undefined && b.volume_delta !== null ? Number(b.volume_delta) : null;
+        }
+
+        if (valA === null && valB === null) return 0;
+        if (valA === null) return 1;
+        if (valB === null) return -1;
+
+        if (valA !== valB) {
+          return direction === 'asc' ? valA - valB : valB - valA;
+        }
+
+        // Tie-breaker: higher current volume first
+        const volA = Number(a.current?.volume || 0);
+        const volB = Number(b.current?.volume || 0);
+        if (volA !== volB) return volB - volA;
+
+        return (a.ma_bcvh || '').localeCompare(b.ma_bcvh || '');
+      }
+    }
+  });
+}
+

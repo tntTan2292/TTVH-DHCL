@@ -14,6 +14,7 @@ import {
   resolveWeeksListWithAnchor,
   shiftIsoDate,
   snapToThursday,
+  sortBcvhWeeklyRows,
 } from './bcvhWeeklyComparisonData.js';
 
 const mockBackendWeeks = [
@@ -192,4 +193,72 @@ test('formatSignedRateDelta and formatSignedVolumeDelta: formatting helpers', ()
   assert.equal(formatSignedVolumeDelta(-50), '-50');
   assert.equal(formatSignedVolumeDelta(0), '0');
   assert.equal(formatSignedVolumeDelta(null), null);
+});
+
+test('sortBcvhWeeklyRows: orders BCVHs by current week KPI rate (current.rate) descending by default', () => {
+  const rows = [
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới', current: { volume: 393, rate: 0.702 } },
+    { ma_bcvh: '536250', ten_bcvh: 'BCVH Hương Thủy', current: { volume: 1859, rate: 0.484 } },
+    { ma_bcvh: '535470', ten_bcvh: 'BCVH Hương Trà', current: { volume: 2003, rate: 0.597 } },
+    { ma_bcvh: '536390', ten_bcvh: 'BCVH Nam Đông', current: { volume: 500, rate: 0.851 } },
+    { ma_bcvh: '535170', ten_bcvh: 'BCVH Phong Điền', current: { volume: 1200, rate: null } },
+  ];
+
+  const sortedDesc = sortBcvhWeeklyRows(rows, { direction: 'desc' });
+  assert.equal(sortedDesc[0].ma_bcvh, '536390', '#1 is highest rate (85.1%)');
+  assert.equal(sortedDesc[1].ma_bcvh, '535790', '#2 is second highest (70.2%)');
+  assert.equal(sortedDesc[2].ma_bcvh, '535470', '#3 is third highest (59.7%)');
+  assert.equal(sortedDesc[3].ma_bcvh, '536250', '#4 is fourth (48.4%)');
+  assert.equal(sortedDesc[4].ma_bcvh, '535170', 'null rate goes to the bottom');
+});
+
+test('sortBcvhWeeklyRows: supports ascending direction when toggled', () => {
+  const rows = [
+    { ma_bcvh: '535790', current: { volume: 393, rate: 0.702 } },
+    { ma_bcvh: '536250', current: { volume: 1859, rate: 0.484 } },
+    { ma_bcvh: '535470', current: { volume: 2003, rate: 0.597 } },
+    { ma_bcvh: '535170', current: { volume: 100, rate: null } },
+  ];
+
+  const sortedAsc = sortBcvhWeeklyRows(rows, { direction: 'asc' });
+  assert.equal(sortedAsc[0].ma_bcvh, '536250', 'lowest rate first (48.4%)');
+  assert.equal(sortedAsc[1].ma_bcvh, '535470', 'second lowest (59.7%)');
+  assert.equal(sortedAsc[2].ma_bcvh, '535790', 'highest rate (70.2%)');
+  assert.equal(sortedAsc[3].ma_bcvh, '535170', 'null rate remains at the bottom');
+});
+
+test('sortBcvhWeeklyRows: breaks ties by higher volume', () => {
+  const rows = [
+    { ma_bcvh: 'BCVH_A', current: { volume: 500, rate: 0.6 } },
+    { ma_bcvh: 'BCVH_B', current: { volume: 1500, rate: 0.6 } },
+  ];
+
+  const sorted = sortBcvhWeeklyRows(rows, { direction: 'desc' });
+  assert.equal(sorted[0].ma_bcvh, 'BCVH_B', 'higher volume breaks tie');
+  assert.equal(sorted[1].ma_bcvh, 'BCVH_A');
+});
+
+test('sortBcvhWeeklyRows: handles empty or non-array rows safely', () => {
+  assert.deepEqual(sortBcvhWeeklyRows([]), []);
+  assert.deepEqual(sortBcvhWeeklyRows(null), []);
+  assert.deepEqual(sortBcvhWeeklyRows(undefined), []);
+});
+
+test('sortBcvhWeeklyRows: supports sorting by ten_bcvh, volume, and rate_delta', () => {
+  const rows = [
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới', current: { volume: 393 }, rate_delta: 0.057 },
+    { ma_bcvh: '536250', ten_bcvh: 'BCVH Hương Thủy', current: { volume: 1859 }, rate_delta: 0.108 },
+    { ma_bcvh: '535470', ten_bcvh: 'BCVH Hương Trà', current: { volume: 2003 }, rate_delta: 0.071 },
+  ];
+
+  const sortedByName = sortBcvhWeeklyRows(rows, { sortField: 'ten_bcvh', direction: 'asc' });
+  assert.equal(sortedByName[0].ten_bcvh, 'BCVH A Lưới');
+  assert.equal(sortedByName[1].ten_bcvh, 'BCVH Hương Thủy');
+  assert.equal(sortedByName[2].ten_bcvh, 'BCVH Hương Trà');
+
+  const sortedByVolume = sortBcvhWeeklyRows(rows, { sortField: 'current_volume', direction: 'desc' });
+  assert.equal(sortedByVolume[0].ten_bcvh, 'BCVH Hương Trà', '2003 is highest volume');
+
+  const sortedByDelta = sortBcvhWeeklyRows(rows, { sortField: 'rate_delta', direction: 'desc' });
+  assert.equal(sortedByDelta[0].ten_bcvh, 'BCVH Hương Thủy', '+10.8% is highest delta');
 });

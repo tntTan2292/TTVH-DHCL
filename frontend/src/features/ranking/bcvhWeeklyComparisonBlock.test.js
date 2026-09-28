@@ -25,8 +25,15 @@ test('Bảng mới độc lập: BcvhWeeklyComparisonBlock is completely decoupl
   assert.match(blockSource, /06 BƯU CỤC VẬN HÀNH/);
   assert.match(blockSource, /TUẦN KỲ NÀY/);
   assert.match(blockSource, /TUẦN SO SÁNH/);
-  assert.match(blockSource, /CHÊNH LỆCH/);
+  assert.match(blockSource, /SO SÁNH/);
   assert.match(blockSource, /totalRow\.ten_bcvh/);
+
+  // 4. Filter toolbar is placed above table title to optimize for report screenshot capture
+  const posFilter = blockSource.indexOf('Bộ lọc so sánh tuần độc lập');
+  const posTitleInJsx = blockSource.indexOf('{titleLine1}');
+  assert.ok(posFilter > 0, 'Filter toolbar exists');
+  assert.ok(posTitleInJsx > 0, 'Table title exists in JSX');
+  assert.ok(posFilter < posTitleInJsx, 'Filter toolbar is placed above the table title for clean report screenshots');
 });
 
 test('Bộ lọc tuần riêng: independent from BcvhRankingPage GlobalFilterBar and URL params', () => {
@@ -61,13 +68,22 @@ test('Hiển thị ghi chú dữ liệu chưa đủ: shows clear note e.g. "Dữ
   assert.match(blockSource, /Dữ liệu đến ngày/);
 });
 
-test('Cảnh báo khác số ngày dữ liệu: renders visual warning "Lưu ý: Hai tuần có số ngày dữ liệu khác nhau"', () => {
+test('Cảnh báo khác số ngày dữ liệu: renders visual warning only in filter toolbar, not inside table header', () => {
   const blockSource = read('./BcvhWeeklyComparisonBlock.jsx');
 
-  // Mismatch logic checked
+  // Mismatch logic checked in filter section
   assert.match(blockSource, /checkWeeksDaysMismatch/);
   assert.match(blockSource, /daysMismatch\.isMismatch/);
   assert.match(blockSource, /Lưu ý: Hai tuần có số ngày dữ liệu khác nhau/);
+
+  // Group header is "SO SÁNH"
+  assert.match(blockSource, /<div className="leading-snug">SO SÁNH<\/div>/);
+
+  // Table header thead must NOT contain daysMismatch or warning badge
+  const theadMatch = blockSource.match(/<thead>[\s\S]*?<\/thead>/);
+  assert.ok(theadMatch, 'thead exists');
+  assert.doesNotMatch(theadMatch[0], /Lưu ý: Hai tuần có số ngày dữ liệu khác nhau/);
+  assert.doesNotMatch(theadMatch[0], /daysMismatch/);
 });
 
 test('Nhãn tuần có năm và khoảng ngày: week options comply with PO requirements', () => {
@@ -99,3 +115,23 @@ test('Item 6: Headers avoid whitespace-nowrap overflow on long text', () => {
   assert.doesNotMatch(blockSource, /whitespace-nowrap">\s*\{currentWeekRange\}/);
   assert.doesNotMatch(blockSource, /whitespace-nowrap">\s*\{compareWeekRange\}/);
 });
+
+test('Order các BCVH theo cột tỉ lệ đạt KPI 2026 của Tuần kỳ này: integrated sorting with toggle', () => {
+  const blockSource = read('./BcvhWeeklyComparisonBlock.jsx');
+
+  // Integrates sortBcvhWeeklyRows with sortConfig
+  assert.match(blockSource, /sortBcvhWeeklyRows/);
+  assert.match(blockSource, /field:\s*'current_rate',\s*direction:\s*'desc'/);
+  assert.match(blockSource, /handleToggleCurrentRateSort/);
+
+  // Column header has click handler and sort indicator
+  assert.match(blockSource, /handleToggleCurrentRateSort/);
+  assert.match(blockSource, /sortConfig\.direction === 'desc'/);
+
+  // All other column headers are sortable via renderSortableTh
+  assert.match(blockSource, /renderSortableTh\('ma_bcvh'/);
+  assert.match(blockSource, /renderSortableTh\('ten_bcvh'/);
+  assert.match(blockSource, /renderSortableTh\('compare_rate'/);
+  assert.match(blockSource, /renderSortableTh\('rate_delta'/);
+});
+
