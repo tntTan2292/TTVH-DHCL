@@ -2054,3 +2054,19 @@ Remediation addressing Independent Review (Opus) blockers B1–B4 implemented by
 5. Header responsiveness: removed whitespace-nowrap on composite headers to eliminate overflow risk on 1280px / 1440px / mobile.
 Validation: `node --test frontend/src/features/ranking/*.test.js` 56/56 PASS (including 11 behavioral tests in `bcvhWeeklyComparisonData.test.js` and 8 integration tests in `bcvhWeeklyComparisonBlock.test.js`); `node --experimental-sqlite --test backend/src/services/bcvhWeeklyComparisonService.test.js backend/src/repositories/FactBuuGuiRepository.weeklyComparison.test.js` 15/15 PASS; `oxlint` 0 errors; `vite build` clean. Manifest, Checkpoint, and Design of Record updated. Status: `IMPLEMENTED / TECH PASS / READY FOR INDEPENDENT RE-REVIEW`. No PO PASS self-awarded.
 
+## 2026-09-28 - F13-BCVH-WEEKLY-COMPARISON-01 UI ADJUSTMENTS & MULTI-COLUMN SORTING
+
+Antigravity (Gemini) implemented UI adjustments and interactive sorting per Product Owner directives on branch `codex/da-impl-006`:
+1. Filter toolbar moved to the very top above the table title, grouping the 2-line title and data table inside `.bcvh-weekly-report-capture-area` for clean screenshot-ready reporting without filter UI interference.
+2. Renamed column group from `CHÊNH LỆCH` to `SO SÁNH`.
+3. Removed days-mismatch warning badge from table header `<th>`, cleanly concentrating notice in the filter toolbar above.
+4. Default ordering of BCVH rows set to current week KPI rate (`current.rate`) descending with measurement volume tie-break.
+5. Implemented interactive sort toggle across all Level 2 columns (`ma_bcvh`, `ten_bcvh`, volumes, passed, rates, deltas) via `sortBcvhWeeklyRows` and helper `renderSortableTh` with visual direction indicators (`ArrowDown`/`ArrowUp`/`ArrowUpDown`).
+Validation: `node --test frontend/src/features/ranking/*.test.js` 62/62 PASS (100%); `vite build` clean (1.46s); `oxlint` 0 errors. Commit `70a58d4`.
+
+## 2026-09-28 - F13-BCVH-WEEKLY-COMPARISON-01 IMPLEMENTED / PO UI PASS / CLOSED
+
+Product Owner instruction received in chat: explicit confirmation that the Product Owner personally checked the BCVH Ranking weekly comparison table UI, verified the remediation of blockers B1–B4 from the Opus review (snap to Thursday, no fake/future weeks, week preservation, real data range display) and all latest UI adjustments (top filter toolbar, SO SÁNH header, remove thead warning, default order by KPI rate, multi-column sort toggle), and officially confirmed PASS ("PO đã check và OK đồng ý PO PASS").
+This closes ticket `F13-BCVH-WEEKLY-COMPARISON-01` in its entirety. Final state: `IMPLEMENTED / PO UI PASS / CLOSED`. Full closure recorded in `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md`, `docs/06_REVIEWS/BCVH/F13-BCVH-WEEKLY-COMPARISON-01_CHECKPOINT_001.md`, `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-WEEKLY-COMPARISON-01_DESIGN.md`, `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`, and `docs/01_GOVERNANCE/DOCUMENT_INDEX.md`.
+
+

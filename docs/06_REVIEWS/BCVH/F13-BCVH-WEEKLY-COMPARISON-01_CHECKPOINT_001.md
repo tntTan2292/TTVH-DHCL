@@ -59,8 +59,12 @@ Explicitly out of scope: any change to the F1.3 KPI/SSOT, `getBcvhRanking()`, th
    - Linter (`oxlint`): **0 errors**.
    - Build (`vite build`): **Clean**, built successfully (1.46s).
 
-## Section 5 — Current State
+## Section 5 — Current State & Closure
 
-`IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK`.
-Does not self-award PO PASS.
+`IMPLEMENTED / PO UI PASS / CLOSED` (2026-09-28).
+
+Product Owner đã trực tiếp kiểm tra giao diện, xác nhận hoàn thành xử lý các blocker B1–B4 (tự động căn Thứ Năm, không sinh tuần tương lai/dữ liệu giả, giữ tuần khi đổi mốc neo, hiển thị đúng biên dữ liệu thực tế và ghi chú mốc dữ liệu) cùng các yêu cầu điều chỉnh UI (vị trí bộ lọc phía trên cùng, tiêu đề nhóm cột SO SÁNH, bỏ cảnh báo thead, mặc định sắp xếp theo tỷ lệ đạt KPI và tương tác đảo chiều sắp xếp toàn bộ các cột).
+
+Product Owner chính thức xác nhận **PO UI PASS / CLOSED** cho ticket `F13-BCVH-WEEKLY-COMPARISON-01`.
+
 

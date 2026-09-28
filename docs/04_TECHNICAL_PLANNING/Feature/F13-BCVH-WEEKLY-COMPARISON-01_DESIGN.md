@@ -1,6 +1,6 @@
 # F13-BCVH-WEEKLY-COMPARISON-01 — So sánh chất lượng theo tuần (BCVH Ranking) — Design of Record
 
-Status: **IMPLEMENTED / TECH PASS / READY FOR INDEPENDENT RE-REVIEW**
+Status: **IMPLEMENTED / PO UI PASS / CLOSED** (2026-09-28)
 Author: Claude Code (Sonnet 5) + Antigravity (Gemini), incorporating Independent Review remediation (Blockers B1–B4)
 Branch: `codex/da-impl-006`
 Ticket: `F13-BCVH-WEEKLY-COMPARISON-01`
@@ -174,5 +174,5 @@ GROUP BY ma_bcvh
 - Đổi công thức F1.3/SSOT, ngưỡng, hoặc `getBcvhRanking()`.
 - Đổi schema, thêm index, migration.
 - Mở lại các ticket đã đóng.
-- Tự cấp PO PASS.
+- Tự cấp PO PASS (PO đã trực tiếp kiểm tra và xác nhận PO UI PASS / CLOSED ngày 2026-09-28).
 

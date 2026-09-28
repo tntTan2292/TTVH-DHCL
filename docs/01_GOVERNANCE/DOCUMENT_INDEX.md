@@ -39,7 +39,10 @@ Fresh onboarding must contain at most these `5` steps:
 Current active ticket:
 
 - Current ticket (`2026-09-20`): `F13-ROUTE-POSTMAN-IDENTITY-01` (POSTMAN DISPLAY ON TUYẾN RANKING PAUSED PER PO DECISION; CATALOG MANAGEMENT ACTIVE AT `/network-map/postman-catalog`). Tuyến Ranking restored to pre-Phase 3 layout ("Tên tuyến bưu tá", postman columns hidden via toggle). Code, API, and 198-postman directory preserved. Manifest: `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md`; Design of Record: `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md`; Checkpoint: `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_CHECKPOINT_001.md`.
-- Predecessor ticket closed: `docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-17).
+- Closed predecessor tickets:
+  - `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-28).
+  - `docs/10_TICKETS/F13-BCVH-DAILY-SAMEWEEKDAY-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-22).
+  - `docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-17).
 - Next required action: Product Owner manual UI verification at `/network-map/postman-catalog`. Tuyến Ranking postman display is paused pending PO volume representation decision. Technical validation only -- no PO UI PASS self-awarded.
 
 
@@ -50,6 +53,9 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 
 | Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` | Ticket Manifest | Closed ticket F13-BCVH-WEEKLY-COMPARISON-01: BCVH Ranking weekly quality-comparison table, independent filters, B1-B4 blocker remediation, multi-column sorting. `CLOSED / PO UI PASS` (2026-09-28). | L2 | Historical / Last Closed Ticket | When F13-BCVH-WEEKLY-COMPARISON-01 closure record is needed. | High |
+| `docs/06_REVIEWS/BCVH/F13-BCVH-WEEKLY-COMPARISON-01_CHECKPOINT_001.md` | Checkpoint | Checkpoint for F13-BCVH-WEEKLY-COMPARISON-01: activation, scope, Opus review B1-B4 remediation, UI layout and sort toggle adjustments, PO UI PASS closure. | L2 | Historical / Last Closed Checkpoint | When F13-BCVH-WEEKLY-COMPARISON-01 evidence is needed. | High |
+| `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-WEEKLY-COMPARISON-01_DESIGN.md` | Feature Design | Design of Record for F13-BCVH-WEEKLY-COMPARISON-01: custom Thu-Wed week boundary math, ISO 8601 numbering, partial-week real date display, B1-B4 remediation rules, and multi-column sort design. | L2/L3 | Conditional Reference | When F13-BCVH-WEEKLY-COMPARISON-01 design is needed. | High |
 | `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md` | Ticket Manifest | Current ticket F13-ROUTE-POSTMAN-IDENTITY-01 (Phase 3 UI Implemented / Ready for PO UI Check): authority, scope lock, Phase 1 directory schema, Phase 2 ranking contract, Phase 3 UI implementation & validation evidence. | L2 | Current Required Reading | When F13-ROUTE-POSTMAN-IDENTITY-01 is the active ticket. | Mandatory |
 | `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_CHECKPOINT_001.md` | Checkpoint | Checkpoint for F13-ROUTE-POSTMAN-IDENTITY-01: discovery, design review, PO decisions D1-D4, backend reviews 002 & 003, and Section 11 Phase 3 UI implementation evidence. | L2 | Current Required Reading | When F13-ROUTE-POSTMAN-IDENTITY-01 is the active ticket. | Mandatory |
 | `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md` | Feature Design | Approved Design of Record v2 for F13-ROUTE-POSTMAN-IDENTITY-01: 5-phase delivery model, D1-D4 decision table, ranking display contract, Postman Catalog IA, conflict queue, and security/PII minimization rules. | L2/L3 | Current Required Reading | When designing or verifying F13-ROUTE-POSTMAN-IDENTITY-01 features. | Mandatory |
