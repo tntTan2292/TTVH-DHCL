@@ -2070,3 +2070,7 @@ Product Owner instruction received in chat: explicit confirmation that the Produ
 This closes ticket `F13-BCVH-WEEKLY-COMPARISON-01` in its entirety. Final state: `IMPLEMENTED / PO UI PASS / CLOSED`. Full closure recorded in `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md`, `docs/06_REVIEWS/BCVH/F13-BCVH-WEEKLY-COMPARISON-01_CHECKPOINT_001.md`, `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-WEEKLY-COMPARISON-01_DESIGN.md`, `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`, and `docs/01_GOVERNANCE/DOCUMENT_INDEX.md`.
 
 
+
+## 2026-10-02 - AUTO-IMPORT-015 OPENED (DKCL daily session-expiry hardening)
+
+Product Owner approved opening this ticket in chat after two incidents: 2026-10-01 (`ORPHAN_PROCESS_RECOVERY_FAILED` from `terminateProcessTree`, lifecycle stuck in `OPENING_BROWSER`) and 2026-10-02 09:41 (HUE job leased `GLOBAL_DKCL`, landed on `/sso/login`, silently waited 240 s inside a hidden browser while the UI showed `RUNNING`). Common root: SSO session expires overnight while backend PID 8132 and the persistent HUE/TCT browsers keep running. Discovery only; no code changed. Manifest `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md`; executor prompt `docs/10_TICKETS/AUTO-IMPORT-015_ANTIGRAVITY_PROMPT.md`. The 2026-10-01 DKCL slowness (30 s result-table timeout) is recorded as a separate out-of-scope follow-up.
