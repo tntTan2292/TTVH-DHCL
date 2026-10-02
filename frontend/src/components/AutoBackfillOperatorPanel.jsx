@@ -775,7 +775,9 @@ export default function AutoBackfillOperatorPanel() {
         startAuthLoginPolling(lane);
       }
     } catch (err) {
-      setAuthLoginError(err.response?.data?.error?.message || err.response?.data?.data?.error?.message || `Không thể hoàn tất đăng nhập ${lane} DKCL.`);
+      const errObj = err.response?.data?.error || err.response?.data?.data?.error;
+      const codePrefix = errObj?.code ? `[${errObj.code}] ` : '';
+      setAuthLoginError(`${codePrefix}${errObj?.message || err.message || `Không thể hoàn tất đăng nhập ${lane} DKCL.`}`);
     } finally {
       setAuthLoginLoading(false);
     }
@@ -1413,8 +1415,9 @@ export default function AutoBackfillOperatorPanel() {
             </div>
 
             {authLoginPending && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
-                Đang chờ bạn đăng nhập trong cửa sổ vừa mở… Banner này sẽ tự tắt khi đăng nhập xong.
+              <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800">
+                <span className="inline-block h-2 w-2 rounded-full bg-blue-600 animate-ping shrink-0" />
+                <span>Trình duyệt đã được mở và hiển thị lên màn hình. Vui lòng thao tác đăng nhập DKCL trong cửa sổ trình duyệt. Hệ thống sẽ tự động nhận diện và tiếp tục chạy.</span>
               </div>
             )}
 

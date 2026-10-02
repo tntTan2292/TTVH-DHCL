@@ -160,6 +160,10 @@ class DkclSessionPreflightService {
         this.reprobeRetryDelayMs = Number.isFinite(options.reprobeRetryDelayMs)
             ? options.reprobeRetryDelayMs
             : Number(process.env.DKCL_REPROBE_RETRY_MS || 750);
+        // AUTO-IMPORT-015: day-rollover & idle active revalidation threshold
+        this.idleRevalidateMs = Number.isFinite(options.idleRevalidateMs)
+            ? options.idleRevalidateMs
+            : Number(process.env.DKCL_IDLE_REVALIDATE_MS || 30 * 60 * 1000);
     }
 
     /**
@@ -286,7 +290,14 @@ class DkclSessionPreflightService {
         }
 
         for (const pid of rootPids) {
-            await processManager.terminateProcessTree(pid);
+            try {
+                await processManager.terminateProcessTree(pid);
+            } catch (err) {
+                if (typeof processManager.isProcessDead === 'function' && processManager.isProcessDead(pid)) {
+                    continue;
+                }
+                throw err;
+            }
         }
         processManager.cleanupStaleLocks(profileDir);
     }
@@ -343,6 +354,48 @@ class DkclSessionPreflightService {
             return this.buildInteractiveInProgressResponse(sourceConfig, entry);
         }
 
+        const today = new Date().toLocaleDateString('sv');
+        const isDayRollover = Boolean(entry.lastValidatedDate && entry.lastValidatedDate !== today);
+        const isIdleOverdue = Boolean(entry.lastValidatedAt && (Date.now() - entry.lastValidatedAt > this.idleRevalidateMs));
+        const requiresActiveRevalidation = (isDayRollover || isIdleOverdue) && !entry.activeOperation && typeof client.revalidateSession === 'function';
+
+        if (requiresActiveRevalidation) {
+            const isValid = await client.revalidateSession().catch(() => false);
+            if (!isValid) {
+                return this.withSourceLock(sourceConfig.source, async () => {
+                    if (entry.client !== client) {
+                        return this.buildInteractiveInProgressResponse(sourceConfig, entry);
+                    }
+                    await client.restoreWindow?.().catch(() => {});
+                    this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+                        client: null,
+                        authenticated: false,
+                        backgroundReady: false,
+                        windowHidden: false,
+                        hideAttempted: false,
+                        lastError: isDayRollover
+                            ? `Phiên đăng nhập DKCL ${sourceConfig.displayName} đã hết hạn qua ngày mới. Vui lòng đăng nhập lại.`
+                            : `Phiên đăng nhập DKCL ${sourceConfig.displayName} đã hết hạn do không hoạt động. Vui lòng đăng nhập lại.`
+                    });
+                    await client.close().catch(() => {});
+                    return {
+                        source: sourceConfig.source,
+                        status: PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED,
+                        ...lifecyclePayload(entry),
+                        error: {
+                            code: 'AUTHENTICATION_REQUIRED',
+                            message: isDayRollover
+                                ? `Phiên đăng nhập DKCL ${sourceConfig.displayName} đã hết hạn qua ngày mới. Vui lòng đăng nhập lại.`
+                                : `Phiên đăng nhập DKCL ${sourceConfig.displayName} đã hết hạn do không hoạt động. Vui lòng đăng nhập lại.`
+                        }
+                    };
+                });
+            } else {
+                entry.lastValidatedDate = today;
+                entry.lastValidatedAt = Date.now();
+            }
+        }
+
         const check = async () => {
             // AUTO-IMPORT-014 item 4: isAuthenticated() itself now rebinds to another open,
             // authenticated page in the same context if the tracked page was closed/invalidated —
@@ -361,10 +414,14 @@ class DkclSessionPreflightService {
         if (!probe.ready && probe.authenticated) {
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, { authenticated: true, backgroundReady: false });
             await client.openF13Report?.().catch(() => {});
+            entry.lastValidatedDate = today;
+            entry.lastValidatedAt = Date.now();
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
             return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
         }
         if (probe.ready) {
+            entry.lastValidatedDate = today;
+            entry.lastValidatedAt = Date.now();
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
             return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
         }
@@ -378,10 +435,14 @@ class DkclSessionPreflightService {
         if (!probe.ready && probe.authenticated) {
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, { authenticated: true, backgroundReady: false });
             await client.openF13Report?.().catch(() => {});
+            entry.lastValidatedDate = today;
+            entry.lastValidatedAt = Date.now();
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
             return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
         }
         if (probe.ready) {
+            entry.lastValidatedDate = today;
+            entry.lastValidatedAt = Date.now();
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
             return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
         }
@@ -649,90 +710,99 @@ class DkclSessionPreflightService {
         // multi-minute manual-login window, only for the short reconciliation/launch phase.
         entry.openingPromise = this.withSourceLock(sourceConfig.source, async () => {
             const profileDir = resolveProfileDir(sourceConfig);
-            transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
-                lastError: null,
-                // AB-AUTH-08: a brand-new login attempt is starting; clear any stale
-                // parked-after-SOURCE_PAGE_REQUIRED marker from a prior attempt.
-                pendingSourcePageWait: false,
-                profileDir
-            });
-            processManager.clearHiddenHwnds?.(profileDir);
+            let client = null;
+            try {
+                transitionLifecycle(entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
+                    lastError: null,
+                    // AB-AUTH-08: a brand-new login attempt is starting; clear any stale
+                    // parked-after-SOURCE_PAGE_REQUIRED marker from a prior attempt.
+                    pendingSourcePageWait: false,
+                    profileDir
+                });
+                processManager.clearHiddenHwnds?.(profileDir);
 
-            // R4.1A Automatic Reconciliation
-            const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
-            const recovered = this.recoverFromCoordinator(sourceConfig, entry, profileDir, classification.inspection);
-            if (recovered) {
-                await processManager.showBrowserWindowsByProfile?.(profileDir).catch(() => {});
-                if (recovered.recoveredState === DKCL_LIFECYCLE_STATES.F13_READY) {
-                    return {
-                        source: sourceConfig.source,
-                        status: PREFLIGHT_STATUSES.SESSION_VALID,
-                        interactive: true,
-                        source_page_ready: true,
-                        ...lifecyclePayload(entry)
-                    };
+                // R4.1A Automatic Reconciliation
+                const classification = await this._classifyLockState(sourceConfig, entry, profileDir);
+                const recovered = this.recoverFromCoordinator(sourceConfig, entry, profileDir, classification.inspection);
+                if (recovered) {
+                    await processManager.showBrowserWindowsByProfile?.(profileDir).catch(() => {});
+                    if (recovered.recoveredState === DKCL_LIFECYCLE_STATES.F13_READY) {
+                        return {
+                            source: sourceConfig.source,
+                            status: PREFLIGHT_STATUSES.SESSION_VALID,
+                            interactive: true,
+                            source_page_ready: true,
+                            ...lifecyclePayload(entry)
+                        };
+                    }
+                    return this.buildInteractiveInProgressResponse(sourceConfig, entry);
                 }
-                return this.buildInteractiveInProgressResponse(sourceConfig, entry);
-            }
-            if (this.coordinatorEnabled) {
-                this.coordinator.beginOpening(sourceConfig.source, profileDir);
-            }
+                if (this.coordinatorEnabled) {
+                    this.coordinator.beginOpening(sourceConfig.source, profileDir);
+                }
 
-            if (classification.lockState === 'UNKNOWN' || classification.lockState === 'LIVE_UNVERIFIED') {
-                if (!this.coordinatorEnabled && classification.lockState === 'LIVE_UNVERIFIED' && !entry.client) {
-                    await this.reclaimOrphanedProfile(classification, profileDir);
-                } else {
-                    const errCode = classification.lockState === 'UNKNOWN' ? 'PROCESS_INSPECTION_UNAVAILABLE' : 'PROFILE_OWNERSHIP_UNVERIFIED';
-                    const recErr = new Error(errCode);
-                    recErr.code = errCode;
+                if (classification.lockState === 'UNKNOWN' || classification.lockState === 'LIVE_UNVERIFIED') {
+                    if (!this.coordinatorEnabled && classification.lockState === 'LIVE_UNVERIFIED' && !entry.client) {
+                        await this.reclaimOrphanedProfile(classification, profileDir);
+                    } else {
+                        const errCode = classification.lockState === 'UNKNOWN' ? 'PROCESS_INSPECTION_UNAVAILABLE' : 'PROFILE_OWNERSHIP_UNVERIFIED';
+                        const recErr = new Error(errCode);
+                        recErr.code = errCode;
+                        throw recErr;
+                    }
+                }
+
+                if (classification.lockState === 'LIVE_OWNED') {
+                    const recErr = new Error('PROFILE_IN_USE_OWNED');
+                    recErr.code = 'PROFILE_IN_USE_OWNED';
                     throw recErr;
                 }
-            }
 
-            if (classification.lockState === 'LIVE_OWNED') {
-                const recErr = new Error('PROFILE_IN_USE_OWNED');
-                recErr.code = 'PROFILE_IN_USE_OWNED';
-                throw recErr;
-            }
+                if (classification.lockState === 'STALE_CONFIRMED') {
+                    processManager.cleanupStaleLocks(profileDir);
+                }
 
-            if (classification.lockState === 'STALE_CONFIRMED') {
-                processManager.cleanupStaleLocks(profileDir);
-            }
-
-            const client = this.interactiveClientFactory(sourceConfig);
-            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
-                client,
-                authenticated: false,
-                backgroundReady: false,
-                windowHidden: false,
-                hideAttempted: false,
-                profileDir
-            });
-
-            client.onDisconnect = () => {
-                this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
-                    client: null,
+                client = this.interactiveClientFactory(sourceConfig);
+                if (client) {
+                    client.interactiveMode = true;
+                }
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, {
+                    client,
                     authenticated: false,
                     backgroundReady: false,
                     windowHidden: false,
                     hideAttempted: false,
                     profileDir
                 });
-                if (this.coordinatorEnabled) {
-                    this.coordinator.markStale(sourceConfig.source, profileDir, 'Browser disconnected');
-                }
-                client.close().catch(() => {});
-            };
 
-            try {
-                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.OPENING_BROWSER, { profileDir });
+                client.onDisconnect = () => {
+                    this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+                        client: null,
+                        authenticated: false,
+                        backgroundReady: false,
+                        windowHidden: false,
+                        hideAttempted: false,
+                        profileDir
+                    });
+                    if (this.coordinatorEnabled) {
+                        this.coordinator.markStale(sourceConfig.source, profileDir, 'Browser disconnected');
+                    }
+                    client.close().catch(() => {});
+                };
 
                 await client.prepareInteractiveAuthentication({
                     baseUrl: this.portalBaseUrl,
                     profileDir
                 });
 
-                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, { profileDir });
+                // AUTO-IMPORT-015: Ensure browser window is restored and visible
+                await processManager.showBrowserWindowsByProfile?.(profileDir).catch(() => {});
+                await client.restoreWindow?.().catch(() => {});
+
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+                    profileDir,
+                    windowHidden: false
+                });
 
                 // Spawn background task to wait for login
                 (async () => {
@@ -761,6 +831,9 @@ class DkclSessionPreflightService {
                                 await new Promise((resolve) => setTimeout(resolve, delayMs));
                             }
                         }
+
+                        entry.lastValidatedDate = new Date().toLocaleDateString('sv');
+                        entry.lastValidatedAt = Date.now();
 
                         this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
                             authenticated: true,
@@ -840,8 +913,9 @@ class DkclSessionPreflightService {
                             await client.restoreWindow?.().catch(() => {});
                             return;
                         }
-                        this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.ERROR, {
+                        this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
                             lastError: err.message,
+                            errorCode: err.code || 'INTERACTIVE_AUTH_FAILED',
                             client: null,
                             authenticated: false,
                             backgroundReady: false,
@@ -858,8 +932,9 @@ class DkclSessionPreflightService {
 
                 return this.buildInteractiveInProgressResponse(sourceConfig, entry);
             } catch (error) {
-                this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.ERROR, {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
                     lastError: error.message,
+                    errorCode: error.code || 'INTERACTIVE_AUTH_FAILED',
                     client: null,
                     authenticated: false,
                     backgroundReady: false,
@@ -870,7 +945,9 @@ class DkclSessionPreflightService {
                 if (this.coordinatorEnabled) {
                     this.coordinator.markFailed(sourceConfig.source, profileDir, error);
                 }
-                await client.close().catch(() => {});
+                if (client) {
+                    await client.close().catch(() => {});
+                }
                 throw error;
             } finally {
                 entry.openingPromise = null;

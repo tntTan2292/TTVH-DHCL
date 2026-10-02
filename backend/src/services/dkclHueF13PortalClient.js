@@ -247,6 +247,8 @@ class DkclHueF13PortalClient {
         this.ownsLock = false;
         this.loginAttempts = 0;
         this.source = options.source || 'HUE';
+        this.interactiveMode = Boolean(options.interactiveMode || options.interactive);
+        this.windowHidden = Boolean(options.windowHidden);
         this.onDisconnect = null;
         this.interactiveAuthenticatedOnOpen = false;
         this.logger = options.logger || console;
@@ -443,6 +445,7 @@ class DkclHueF13PortalClient {
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
         this.loginUrl = `${this.baseUrl}/login`;
         this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), `../Data DKCL/BrowserProfiles/${this.source}`));
+        this.interactiveMode = true;
         processManager.clearHiddenHwnds?.(this.profileDir);
         this.acquireProfileLock();
         const { chromium } = this.playwright || loadPlaywright();
@@ -528,6 +531,8 @@ class DkclHueF13PortalClient {
         const result = await processManager.hideBrowserWindowsByProfile(this.profileDir);
         if (!result.success) {
             console.warn(`[PortalClient ${this.source}] hideWindow failed: ${result.errorCode || 'NO_MATCHING_WINDOW'}`);
+        } else {
+            this.windowHidden = true;
         }
         return Boolean(result.success);
     }
@@ -540,12 +545,32 @@ class DkclHueF13PortalClient {
         let success = true;
         if (this.profileDir) {
             const res = await processManager.showBrowserWindowsByProfile(this.profileDir).catch(() => null);
-            if (!res || (!res.success && res.matchedWindowCount === 0)) {
+            if (!res || !res.success) {
                 success = false;
             }
         }
         await this.setWindowState('normal');
+        if (success) {
+            this.windowHidden = false;
+        }
         return success;
+    }
+
+    /**
+     * AUTO-IMPORT-015: Active session revalidation against DKCL server (day-rollover / idle check).
+     * Reloads or opens the report page; if redirected to /sso/login or unauthenticated, returns false immediately.
+     */
+    async revalidateSession() {
+        if (!this.page || this.page.isClosed?.()) return false;
+        try {
+            await this.openF13Report();
+            return await this.isF13ReportReady();
+        } catch (err) {
+            if (err?.code === 'AUTHENTICATION_REQUIRED' || this.page.url().includes('/login') || this.page.url().includes('/sso')) {
+                return false;
+            }
+            throw err;
+        }
     }
 
     async performOneLoginAttempt({ username, password, hrmCode }) {
@@ -1652,7 +1677,11 @@ class DkclHueF13PortalClient {
         const bodyText = await this.page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
         const hasHrm = /HRM|ma nhan vien|employee|nhan vien/i.test(bodyText);
         if (/captcha|otp|ma xac thuc|sso/i.test(bodyText) || (hasHrm && !allowHrm)) {
-            if (!this.headless && await this.waitForManualAuthentication()) return;
+            // AUTO-IMPORT-015: NEVER wait inside a hidden window or during automated background jobs.
+            // waitForManualAuthentication is ONLY permitted if explicitly in interactive mode AND the window is not hidden.
+            if (this.interactiveMode && !this.headless && !this.windowHidden && await this.waitForManualAuthentication()) {
+                return;
+            }
             throw portalError('AUTHENTICATION_REQUIRED: DKCL requires an unrecognized security step or manual authentication.', 'AUTHENTICATION_REQUIRED');
         }
     }

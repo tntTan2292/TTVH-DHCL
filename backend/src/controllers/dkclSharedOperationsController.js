@@ -13,9 +13,15 @@ const sessionStatusCode = (status) => status === 'SESSION_VALID'
         : (status === 'AUTHENTICATION_REQUIRED' ? 401 : 503));
 
 class DkclSharedOperationsController {
+    constructor(options = {}) {
+        this.sessionPreflightService = options.sessionPreflightService || sessionPreflightService;
+        this.tctBackfillService = options.tctBackfillService || tctBackfillService;
+    }
+
     async preflight(req, res) {
         try {
-            const result = await sessionPreflightService.preflight(req.body?.source || req.query?.source);
+            const svc = this?.sessionPreflightService || sessionPreflightService;
+            const result = await svc.preflight(req.body?.source || req.query?.source);
             const statusCode = sessionStatusCode(result.status);
             return res.status(statusCode).json({
                 success: result.status === 'SESSION_VALID' || result.status === 'LOGIN_IN_PROGRESS',
@@ -23,12 +29,13 @@ class DkclSharedOperationsController {
             });
         } catch (error) {
             console.error('[preflight] Error details:', error);
-            const isKnown = error.code && error.code !== 'Error';
+            const errorCode = error.code || (error.name && error.name !== 'Error' ? error.name : 'SESSION_PREFLIGHT_REJECTED');
+            const errorMessage = error.message || 'Kiểm tra phiên đăng nhập thất bại. Vui lòng kiểm tra lại cấu hình và nhật ký hệ thống.';
             return res.status(400).json({
                 success: false,
                 error: {
-                    code: error.code || 'SESSION_PREFLIGHT_REJECTED',
-                    message: isKnown ? error.message : 'Kiểm tra phiên đăng nhập thất bại. Vui lòng kiểm tra lại cấu hình và nhật ký hệ thống.'
+                    code: errorCode,
+                    message: errorMessage
                 }
             });
         }
@@ -36,7 +43,8 @@ class DkclSharedOperationsController {
  
     async interactiveAuthenticate(req, res) {
         try {
-            const result = await sessionPreflightService.interactiveAuthenticate(req.body?.source || req.query?.source);
+            const svc = this?.sessionPreflightService || sessionPreflightService;
+            const result = await svc.interactiveAuthenticate(req.body?.source || req.query?.source);
             const statusCode = sessionStatusCode(result.status);
             return res.status(statusCode).json({
                 success: result.status === 'SESSION_VALID' || result.status === 'LOGIN_IN_PROGRESS',
@@ -44,12 +52,13 @@ class DkclSharedOperationsController {
             });
         } catch (error) {
             console.error('[interactiveAuthenticate] Error details:', error);
-            const isKnown = error.code && error.code !== 'Error';
+            const errorCode = error.code || (error.name && error.name !== 'Error' ? error.name : 'INTERACTIVE_AUTH_REJECTED');
+            const errorMessage = error.message || 'Yêu cầu đăng nhập tương tác thất bại. Vui lòng kiểm tra lại trình duyệt và nhật ký hệ thống.';
             return res.status(400).json({
                 success: false,
                 error: {
-                    code: error.code || 'INTERACTIVE_AUTH_REJECTED',
-                    message: isKnown ? error.message : 'Yêu cầu đăng nhập tương tác thất bại. Vui lòng kiểm tra lại trình duyệt và nhật ký hệ thống.'
+                    code: errorCode,
+                    message: errorMessage
                 }
             });
         }
@@ -201,4 +210,6 @@ class DkclSharedOperationsController {
     }
 }
 
-module.exports = new DkclSharedOperationsController();
+const defaultController = new DkclSharedOperationsController();
+defaultController.DkclSharedOperationsController = DkclSharedOperationsController;
+module.exports = defaultController;

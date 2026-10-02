@@ -535,6 +535,17 @@ class BrowserProcessManager {
         this.hiddenHwndsByProfile.delete(normalizedProfileDir);
     }
 
+    isProcessDead(pid) {
+        const numPid = Number(pid);
+        if (!Number.isFinite(numPid) || numPid <= 0) return true;
+        try {
+            process.kill(numPid, 0);
+            return false;
+        } catch (err) {
+            return err?.code === 'ESRCH';
+        }
+    }
+
     async terminateProcessTree(pid) {
         try {
             if (process.platform === 'win32') {
@@ -544,7 +555,21 @@ class BrowserProcessManager {
             }
             await new Promise(res => setTimeout(res, 2000));
         } catch (err) {
-            throw new Error('ORPHAN_PROCESS_RECOVERY_FAILED');
+            const isDead = this.isProcessDead(pid);
+            const isNotFoundError = err?.code === 128
+                || /not found/i.test(String(err?.stderr || ''))
+                || /no such process/i.test(String(err?.stderr || ''));
+
+            if (isDead || isNotFoundError) {
+                // Process is already dead or exited before/during taskkill -> Success
+                return;
+            }
+
+            const message = err?.stderr?.trim() || err?.message || 'Failed to terminate process tree';
+            const error = new Error(`ORPHAN_PROCESS_RECOVERY_FAILED: ${message}`);
+            error.code = 'ORPHAN_PROCESS_RECOVERY_FAILED';
+            error.originalError = err;
+            throw error;
         }
     }
 
@@ -581,5 +606,6 @@ module.exports = {
     cleanupStaleLocks: defaultInstance.cleanupStaleLocks.bind(defaultInstance),
     hideBrowserWindowsByProfile: defaultInstance.hideBrowserWindowsByProfile.bind(defaultInstance),
     showBrowserWindowsByProfile: defaultInstance.showBrowserWindowsByProfile.bind(defaultInstance),
-    clearHiddenHwnds: defaultInstance.clearHiddenHwnds.bind(defaultInstance)
+    clearHiddenHwnds: defaultInstance.clearHiddenHwnds.bind(defaultInstance),
+    isProcessDead: defaultInstance.isProcessDead.bind(defaultInstance)
 };

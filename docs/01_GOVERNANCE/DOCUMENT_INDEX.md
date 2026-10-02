@@ -38,12 +38,12 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket (`2026-09-20`): `F13-ROUTE-POSTMAN-IDENTITY-01` (POSTMAN DISPLAY ON TUYẾN RANKING PAUSED PER PO DECISION; CATALOG MANAGEMENT ACTIVE AT `/network-map/postman-catalog`). Tuyến Ranking restored to pre-Phase 3 layout ("Tên tuyến bưu tá", postman columns hidden via toggle). Code, API, and 198-postman directory preserved. Manifest: `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md`; Design of Record: `docs/04_TECHNICAL_PLANNING/Feature/F13-ROUTE-POSTMAN-IDENTITY-01_DESIGN_OF_RECORD.md`; Checkpoint: `docs/06_REVIEWS/Route/F13-ROUTE-POSTMAN-IDENTITY-01_CHECKPOINT_001.md`.
+- Current ticket (`2026-10-02`): `AUTO-IMPORT-015` (DKCL daily session-expiry hardening: visible re-login, orphan-process recovery, state reset, real error codes). Manifest: `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md`; Checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-015_CHECKPOINT_001.md`. Paused underneath: `F13-ROUTE-POSTMAN-IDENTITY-01` (POSTMAN DISPLAY ON TUYẾN RANKING PAUSED PER PO DECISION; CATALOG MANAGEMENT ACTIVE AT `/network-map/postman-catalog`).
 - Closed predecessor tickets:
   - `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-28).
   - `docs/10_TICKETS/F13-BCVH-DAILY-SAMEWEEKDAY-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-22).
   - `docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-17).
-- Next required action: Product Owner manual UI verification at `/network-map/postman-catalog`. Tuyến Ranking postman display is paused pending PO volume representation decision. Technical validation only -- no PO UI PASS self-awarded.
+- Next required action: AUTO-IMPORT-015 Phase B implementation and verification. Technical validation only -- no PO UI PASS self-awarded.
 
 
 
@@ -53,6 +53,8 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 
 | Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` | Ticket Manifest | Current ticket AUTO-IMPORT-015: DKCL daily session-expiry hardening (HUE/TCT) -- visible re-login, orphan-process recovery, state reset, real error codes. | L2 | Current Required Reading | When AUTO-IMPORT-015 is the active ticket. | Mandatory |
+| `docs/06_REVIEWS/Import/AUTO-IMPORT-015_CHECKPOINT_001.md` | Checkpoint | Checkpoint for AUTO-IMPORT-015: Phase A Windows runtime evidence (PID/HWND/profile exact match, taskkill failure reproduction exit code 128 / process not found), Phase B implementation & validation ledger. | L2 | Current Required Reading | When AUTO-IMPORT-015 is the active ticket. | Mandatory |
 | `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` | Ticket Manifest | Closed ticket F13-BCVH-WEEKLY-COMPARISON-01: BCVH Ranking weekly quality-comparison table, independent filters, B1-B4 blocker remediation, multi-column sorting. `CLOSED / PO UI PASS` (2026-09-28). | L2 | Historical / Last Closed Ticket | When F13-BCVH-WEEKLY-COMPARISON-01 closure record is needed. | High |
 | `docs/06_REVIEWS/BCVH/F13-BCVH-WEEKLY-COMPARISON-01_CHECKPOINT_001.md` | Checkpoint | Checkpoint for F13-BCVH-WEEKLY-COMPARISON-01: activation, scope, Opus review B1-B4 remediation, UI layout and sort toggle adjustments, PO UI PASS closure. | L2 | Historical / Last Closed Checkpoint | When F13-BCVH-WEEKLY-COMPARISON-01 evidence is needed. | High |
 | `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-WEEKLY-COMPARISON-01_DESIGN.md` | Feature Design | Design of Record for F13-BCVH-WEEKLY-COMPARISON-01: custom Thu-Wed week boundary math, ISO 8601 numbering, partial-week real date display, B1-B4 remediation rules, and multi-column sort design. | L2/L3 | Conditional Reference | When F13-BCVH-WEEKLY-COMPARISON-01 design is needed. | High |

@@ -261,10 +261,12 @@ export default function DataImportCenter() {
         setHueSessionError(null);
       }
     } catch (err) {
-      const status = err.response?.data?.data?.status || err.response?.data?.error?.code || 'AUTHENTICATION_REQUIRED';
+      const errObj = err.response?.data?.error || err.response?.data?.data?.error;
+      const status = err.response?.data?.data?.status || errObj?.code || 'AUTHENTICATION_REQUIRED';
       setHueSessionStatus(status);
       setHueLifecycleState(err.response?.data?.data?.lifecycle_state || null);
-      setHueSessionError(err.response?.data?.error?.message || err.response?.data?.data?.error?.message || 'Không thể hoàn tất đăng nhập Huế DKCL.');
+      const codePrefix = errObj?.code ? `[${errObj.code}] ` : '';
+      setHueSessionError(`${codePrefix}${errObj?.message || err.message || 'Không thể hoàn tất đăng nhập Huế DKCL.'}`);
     } finally {
       setHueSessionLoading(false);
     }
@@ -614,7 +616,8 @@ export default function DataImportCenter() {
   // Submit is disabled if: no session, no dates selected, submitting, or queue active.
   // Checkbox selection is INDEPENDENT of session readiness per contract.
   const updateDisabled = isSubmitDisabled(hueSessionReady, selectedDates.length, queueSubmitting, queueIsActive);
-  const hueSessionChecking = hueSessionStatus === 'CHECKING' || hueSessionStatus === null || hueSessionStatus === 'LOGIN_IN_PROGRESS';
+  const hueSessionChecking = hueSessionStatus === 'CHECKING' || hueSessionStatus === null;
+  const hueLoginInProgress = hueSessionLoading || hueSessionStatus === 'LOGIN_IN_PROGRESS';
   const hueLoginRequired = ['AUTHENTICATION_REQUIRED', 'SESSION_EXPIRED'].includes(hueSessionStatus);
 
   const handleStartBackfillQueue = async () => {
@@ -726,9 +729,11 @@ export default function DataImportCenter() {
         await handleScanTctMissingDates({ sessionReadyOverride: true });
       }
     } catch (err) {
-      const status = err.response?.data?.data?.status || err.response?.data?.error?.code || 'AUTHENTICATION_REQUIRED';
+      const errObj = err.response?.data?.error || err.response?.data?.data?.error;
+      const status = err.response?.data?.data?.status || errObj?.code || 'AUTHENTICATION_REQUIRED';
       setTctSessionStatus(status);
-      setTctSessionError(err.response?.data?.error?.message || err.response?.data?.data?.error?.message || 'Không thể hoàn tất đăng nhập TCT DKCL.');
+      const codePrefix = errObj?.code ? `[${errObj.code}] ` : '';
+      setTctSessionError(`${codePrefix}${errObj?.message || err.message || 'Không thể hoàn tất đăng nhập TCT DKCL.'}`);
     } finally {
       setTctSessionLoading(false);
     }
@@ -944,7 +949,14 @@ export default function DataImportCenter() {
             </div>
           )}
 
-          {!tctSessionReady && !tctLoginStuck && (
+          {tctLoginInProgress && !tctLoginStuck && (
+            <div className="mt-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800" data-testid="tct-login-in-progress">
+              <span className="inline-block h-2 w-2 rounded-full bg-blue-600 animate-ping shrink-0" />
+              <span>Trình duyệt đã được mở và hiển thị lên màn hình. Vui lòng thao tác đăng nhập DKCL TCT trong cửa sổ trình duyệt. Hệ thống sẽ tự động nhận diện và tiếp tục khi bạn đăng nhập thành công.</span>
+            </div>
+          )}
+
+          {!tctSessionReady && !tctLoginStuck && !tctLoginInProgress && (
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800" data-testid="tct-not-ready">
               <span>Chưa sẵn sàng: số liệu bên dưới chỉ là local evidence đã nhập, không phải kết quả quét mới từ TCT.</span>
               <button
@@ -1399,6 +1411,13 @@ export default function DataImportCenter() {
           {hueSessionChecking && (
             <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800" data-testid="hue-session-checking">
               <span>Đang kiểm tra phiên Huế DKCL...</span>
+            </div>
+          )}
+
+          {hueLoginInProgress && (
+            <div className="mt-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-800" data-testid="hue-login-in-progress">
+              <span className="inline-block h-2 w-2 rounded-full bg-blue-600 animate-ping shrink-0" />
+              <span>Trình duyệt đã được mở và hiển thị lên màn hình. Vui lòng thao tác đăng nhập DKCL Huế trong cửa sổ trình duyệt. Hệ thống sẽ tự động nhận diện và tiếp tục khi bạn đăng nhập thành công.</span>
             </div>
           )}
 

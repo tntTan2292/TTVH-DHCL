@@ -30,7 +30,7 @@ When the DKCL SSO session expires (typically overnight) while the backend and it
 
 ## 3. Current Status
 
-`OPENED -- READY FOR EXECUTOR`. No code changed yet. PO UI Check Required: Yes (login window actually appears; clear WAITING_AUTH message).
+`IMPLEMENTED -- READY FOR PO CHECK`. Phase A runtime evidence documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-015_CHECKPOINT_001.md`. Phase B implemented (items 1–5); all 7 new unit tests pass in `backend/src/services/autoImport015.test.js`; all existing regression suites green. PO UI Check Required: Yes (login window actually appears; clear WAITING_AUTH message). Requires independent review (Opus/Claude) before closure.
 
 ## 4. Required Reading
 
