@@ -194,7 +194,7 @@ function TrendChartPlot({ rows, mode }) {
           />
           <Bar yAxisId="volume" dataKey="total_volume" name={DASHBOARD_LABELS.volume} fill="url(#volumeBarGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={renderVolumeBarLabel({ visible: volumeLabelIndexes })} />
           {mode === '7-days' ? (
-            <Bar yAxisId="volume" dataKey="previous_total_volume" name="Sản lượng kỳ so sánh" fill="url(#prevVolumeBarGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={renderVolumeBarLabel({ visible: previousVolumeLabelIndexes, textColor: '#FFFFFF', fontSize: LABEL_STYLE.compareFontSize + 1, className: 'hidden sm:inline' })} />
+            <Bar yAxisId="volume" dataKey="previous_total_volume" name="Sản lượng kỳ so sánh" fill="url(#prevVolumeBarGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={renderVolumeBarLabel({ visible: previousVolumeLabelIndexes, textColor: '#0F172A', fontSize: LABEL_STYLE.compareFontSize + 1, className: 'hidden sm:inline' })} />
           ) : null}
           <Line yAxisId="rate" type="linear" dataKey="quality_rate" name={DASHBOARD_LABELS.passRate} stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} label={renderRateLabel({ visible: rateLabelIndexes, rows, placement: getQualityRatePlacement, getFill: (row) => (row?.below_target ? '#C2410C' : '#047857') })} />
           {mode === '7-days' ? (

@@ -75,3 +75,5 @@ Status: `IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK (2026-10-03)`. Frontend
   3. Theo BCVH và Quy luật vận hành (Theo thứ, Theo tháng).
   4. Ranking: biểu đồ nhiều đường BCVH (nhãn xếp chồng cuối đường).
   5. Giao diện điện thoại di động.
+
+- 2026-10-03 follow-up (Claude Code review): comparison-period bar labels changed from white to dark slate (`#0F172A`). The grey bar is semi-transparent (about #A2ACB9 at its base), so white text measured about 2.3:1 contrast; dark text is about 7:1. Current-period blue bars keep white labels.
