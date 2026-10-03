@@ -1066,3 +1066,9 @@ Product Owner requested a new business requirement in chat (weekly quality-compa
 | `docs/06_REVIEWS/BCVH/F13-BCVH-WEEKLY-COMPARISON-01_CHECKPOINT_001.md` | Checkpoint (new) | Activation record (the audit that surfaced the ISO-week mismatch, and the PO's confirmed convention) plus a pointer to the Manifest's implementation record. | L2 | `READY FOR PO UI CHECK` | Onboarding for this ticket's history. | Reference |
 
 Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repository) all pass; 13 new frontend tests (8 mapper + 5 fetcher) all pass; the closed `F13-BCVH-RANKING-OVERVIEW-01` ticket's mandatory regression pair plus `BcvhRankingPage.singleDayContract.test.js`/`BcvhRankingPage.defaultDate.test.js`/`bcvhOverviewData.test.js` all still green; full backend sweep 360/364 and full frontend sweep 534/536, both with only pre-existing/unrelated failures (byte-identical backend baseline; frontend failures confined to already-dirty `networkMap`/`dataImportBackfillQueue` files untouched by this ticket); live-database check reproduces the PO's exact partial-week example; `oxlint` 0 errors; `vite build` clean. No Browser/Playwright used. No F1.3 KPI/SSOT, schema, or existing-endpoint change. `F13-BCVH-RANKING-OVERVIEW-01` remains `COMPLETED / PO PASS / CLOSED` and is not reopened. Current Ticket (`F13-ROUTE-POSTMAN-IDENTITY-01`) is unaffected.
+
+## UI-CHART-DATA-LABELS-01 — 2026-10-03
+
+| Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/UI-CHART-DATA-LABELS-01_MANIFEST.md` | UI Ticket Manifest | Data labels and 30-day wheel zoom for the dashboard, operating-pattern, BCVH ranking, quality-timeline and route charts; chart inventory, design, validation and Antigravity tuning hand-off. | L1 | `IMPLEMENTED / TECH PASS / READY FOR VISUAL TUNING + PO UI CHECK` | Any later chart label or zoom change. | Mandatory |

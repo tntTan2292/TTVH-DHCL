@@ -9,6 +9,8 @@ import { processRoutePeriods, mergeRouteData, buildReconciliationView, formatPer
 import { classifyF13HeatmapRate, F13_HEATMAP_TONE_CLASS } from '../../components/f13/f13HeatmapBandCatalog';
 import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, AlertTriangle, Flame, Search, Filter, CalendarDays, ShieldCheck } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
+import { renderRateLabel } from '../dashboard/components/ChartLabelRenderers';
+import { selectLabelIndexes } from '../dashboard/components/chartDataLabels';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -468,7 +470,7 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, chartAnchorDate
           <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-3">Diễn biến tỷ lệ ngày</p>
           <div className="h-32 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+              <LineChart data={chartData} margin={{ top: 16, right: 18, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(val) => `${val}%`} domain={[0, 100]} />
@@ -477,7 +479,7 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, chartAnchorDate
                   formatter={(value) => [`${value}%`, 'Tỷ lệ ngày']}
                   labelFormatter={(label) => `Ngày ${label}`}
                 />
-                <Line type="monotone" dataKey="rate" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 2, fill: '#0ea5e9', strokeWidth: 0 }} activeDot={{ r: 4 }} connectNulls={false} />
+                <Line type="monotone" dataKey="rate" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 2, fill: '#0ea5e9', strokeWidth: 0 }} activeDot={{ r: 4 }} connectNulls={false} label={renderRateLabel({ visible: selectLabelIndexes(chartData, 'rate'), rows: chartData, fill: '#0369a1', fontSize: 10, digits: 1 })} />
               </LineChart>
             </ResponsiveContainer>
           </div>

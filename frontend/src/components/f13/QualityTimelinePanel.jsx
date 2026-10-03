@@ -18,6 +18,9 @@ import {
 import { Calendar, Activity, TrendingUp, BarChart2 } from 'lucide-react';
 import api from '../../api/client';
 import { DASHBOARD_SEMANTIC_COLORS, DASHBOARD_STATUS } from '../../features/dashboard/components/dashboardSemantics';
+import { renderRateLabel } from '../../features/dashboard/components/ChartLabelRenderers';
+import ChartZoomFrame from '../../features/dashboard/components/ChartZoomFrame';
+import { selectLabelIndexes, sliceWindow } from '../../features/dashboard/components/chartDataLabels';
 
 function TimelineStateCard({ title, description, tone = 'neutral' }) {
   const toneClass = {
@@ -103,29 +106,43 @@ export default function QualityTimelinePanel({ globalFilter }) {
 
   const renderDaily = (daily = []) => (
     <TimelineSurfaceShell title="Xu hướng 30 ngày" icon={<Activity size={16} />}>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={daily} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(val) => val.slice(5)} />
-            <YAxis domain={[80, 100]} tick={{ fontSize: 10 }} />
-            <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-            <ReferenceLine
-              y={95}
-              stroke={DASHBOARD_SEMANTIC_COLORS.warning}
-              strokeDasharray="3 3"
-              label={{ position: 'insideTopLeft', value: 'Ngưỡng theo dõi 95%', fill: DASHBOARD_SEMANTIC_COLORS.warning, fontSize: 10 }}
-            />
-            <ReferenceLine
-              y={90}
-              stroke={DASHBOARD_SEMANTIC_COLORS.target}
-              strokeDasharray="3 3"
-              label={{ position: 'insideBottomLeft', value: 'Mục tiêu 90%', fill: DASHBOARD_SEMANTIC_COLORS.target, fontSize: 10 }}
-            />
-            <Line type="monotone" dataKey="kpi_rate" name="Tỷ lệ đạt" stroke={DASHBOARD_SEMANTIC_COLORS.passed} strokeWidth={3} dot={{ r: 2 }} activeDot={{ r: 6 }} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+      <ChartZoomFrame total={daily.length} className="h-64">
+        {({ window }) => {
+          const view = sliceWindow(daily, window);
+          return (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={view} margin={{ top: 18, right: 20, bottom: 5, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(val) => val.slice(5)} />
+                <YAxis domain={[80, 100]} tick={{ fontSize: 10 }} />
+                <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
+                <ReferenceLine
+                  y={95}
+                  stroke={DASHBOARD_SEMANTIC_COLORS.warning}
+                  strokeDasharray="3 3"
+                  label={{ position: 'insideTopLeft', value: 'Ngưỡng theo dõi 95%', fill: DASHBOARD_SEMANTIC_COLORS.warning, fontSize: 10 }}
+                />
+                <ReferenceLine
+                  y={90}
+                  stroke={DASHBOARD_SEMANTIC_COLORS.target}
+                  strokeDasharray="3 3"
+                  label={{ position: 'insideBottomLeft', value: 'Mục tiêu 90%', fill: DASHBOARD_SEMANTIC_COLORS.target, fontSize: 10 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="kpi_rate"
+                  name="Tỷ lệ đạt"
+                  stroke={DASHBOARD_SEMANTIC_COLORS.passed}
+                  strokeWidth={3}
+                  dot={{ r: 2 }}
+                  activeDot={{ r: 6 }}
+                  label={renderRateLabel({ visible: selectLabelIndexes(view, 'kpi_rate'), rows: view, fill: '#047857', fontSize: 10 })}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          );
+        }}
+      </ChartZoomFrame>
     </TimelineSurfaceShell>
   );
 
@@ -190,23 +207,36 @@ export default function QualityTimelinePanel({ globalFilter }) {
 
   const renderMonthly = (monthly = []) => (
     <TimelineSurfaceShell title="Quy luật theo tháng" icon={<TrendingUp size={16} />}>
-      <div className="h-48">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={monthly} margin={{ top: 10, right: 20, bottom: 0, left: -20 }}>
-            <defs>
-              <linearGradient id="colorKpi" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={DASHBOARD_SEMANTIC_COLORS.passed} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={DASHBOARD_SEMANTIC_COLORS.passed} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-            <XAxis dataKey="day" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={20} />
-            <YAxis domain={[80, 100]} tick={{ fontSize: 10 }} />
-            <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
-            <Area type="monotone" dataKey="avg_kpi" name="KPI trung bình" stroke={DASHBOARD_SEMANTIC_COLORS.passed} fillOpacity={1} fill="url(#colorKpi)" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+      <ChartZoomFrame total={monthly.length} className="h-48">
+        {({ window }) => {
+          const view = sliceWindow(monthly, window);
+          return (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={view} margin={{ top: 18, right: 20, bottom: 0, left: -20 }}>
+                <defs>
+                  <linearGradient id="colorKpi" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={DASHBOARD_SEMANTIC_COLORS.passed} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={DASHBOARD_SEMANTIC_COLORS.passed} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={20} />
+                <YAxis domain={[80, 100]} tick={{ fontSize: 10 }} />
+                <Tooltip contentStyle={{ borderRadius: '8px', fontSize: '12px' }} />
+                <Area
+                  type="monotone"
+                  dataKey="avg_kpi"
+                  name="KPI trung bình"
+                  stroke={DASHBOARD_SEMANTIC_COLORS.passed}
+                  fillOpacity={1}
+                  fill="url(#colorKpi)"
+                  label={renderRateLabel({ visible: selectLabelIndexes(view, 'avg_kpi'), rows: view, fill: '#047857', fontSize: 10 })}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          );
+        }}
+      </ChartZoomFrame>
     </TimelineSurfaceShell>
   );
 

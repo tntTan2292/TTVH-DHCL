@@ -13,6 +13,9 @@ import {
 import api from '../../../api/client';
 import { CardContainer, EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
 import { formatNumber, formatRate, getVolumeAxisMax } from './comboTrendlineData';
+import { renderRateLabel, renderVolumeBarLabel } from './ChartLabelRenderers';
+import ChartZoomFrame from './ChartZoomFrame';
+import { selectLabelIndexes, sliceWindow } from './chartDataLabels';
 import {
   DEFAULT_OPERATING_PATTERN_TAB,
   APPROVED_WEEKDAY_BANDS,
@@ -146,15 +149,33 @@ function KpiQualityDot({ cx, cy, payload, r = 6 }) {
   return <circle cx={cx} cy={cy} r={r} fill={color} stroke="#fff" strokeWidth={2} />;
 }
 
-function ComboChartPanel({ rows, mode }) {
-  const volumeAxisMax = getVolumeAxisMax(rows.map((row) => ({ total_volume: row.totalVolume })));
+// "Theo tháng" has up to ~31 points: fixed frame + wheel zoom so labels become readable.
+function ComboChartPanel({ rows: allRows, mode }) {
   const isWeekday = mode === 'weekday';
 
   return (
     <div className="w-full">
-      <div className="h-[260px] lg:h-[280px] w-full">
+      <ChartZoomFrame total={allRows.length} enabled={mode === 'month'} className="h-[260px] lg:h-[280px] w-full">
+        {({ window }) => <ComboChartPlot rows={sliceWindow(allRows, window)} isWeekday={isWeekday} />}
+      </ChartZoomFrame>
+      {mode === 'month' ? (
+        <div className="mt-2 text-[11px] text-slate-500 font-medium italic text-right">
+          * Lũy kế tháng hiện tại theo ngày mới nhất trong tháng
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ComboChartPlot({ rows, isWeekday }) {
+  const volumeAxisMax = getVolumeAxisMax(rows.map((row) => ({ total_volume: row.totalVolume })));
+  const rateLabel = renderRateLabel({ visible: selectLabelIndexes(rows, 'rate'), rows, fill: '#047857' });
+  const volumeLabel = renderVolumeBarLabel({ visible: selectLabelIndexes(rows, 'totalVolume') });
+
+  return (
+    <div className="h-full w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={rows} margin={{ top: 16, right: 18, bottom: 8, left: 0 }} barCategoryGap="32%">
+          <ComposedChart data={rows} margin={{ top: 24, right: 18, bottom: 8, left: 0 }} barCategoryGap="24%">
             <defs>
               <linearGradient id="patternVolumeGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
@@ -185,7 +206,7 @@ function ComboChartPanel({ rows, mode }) {
             <Tooltip content={<ComboTooltip />} />
             {/* Volume stays its own blue — never recolored by KPI quality, so the two
                 meanings (volume vs. quality) are never mixed. */}
-            <Bar yAxisId="volume" dataKey="totalVolume" name="Sản lượng" fill="url(#patternVolumeGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
+            <Bar yAxisId="volume" dataKey="totalVolume" name="Sản lượng" fill="url(#patternVolumeGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={volumeLabel} />
             {isWeekday ? (
               <Line
                 yAxisId="rate"
@@ -198,18 +219,13 @@ function ComboChartPanel({ rows, mode }) {
                 activeDot={<KpiQualityDot r={9} />}
                 connectNulls={false}
                 isAnimationActive={false}
+                label={rateLabel}
               />
             ) : (
-              <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} />
+              <Line yAxisId="rate" type="linear" dataKey="rate" name="Tỷ lệ đạt" stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} label={rateLabel} />
             )}
           </ComposedChart>
         </ResponsiveContainer>
-      </div>
-      {mode === 'month' ? (
-        <div className="mt-2 text-[11px] text-slate-500 font-medium italic text-right">
-          * Lũy kế tháng hiện tại theo ngày mới nhất trong tháng
-        </div>
-      ) : null}
     </div>
   );
 }

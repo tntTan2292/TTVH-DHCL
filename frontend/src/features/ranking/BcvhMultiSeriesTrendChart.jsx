@@ -11,6 +11,9 @@ import {
 } from 'recharts';
 import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
 import { BCVH_COLORS, CANONICAL_NAMES, DASH, formatOverviewRate } from './bcvhOverviewData.js';
+import { renderRateLabel } from '../dashboard/components/ChartLabelRenderers.jsx';
+import ChartZoomFrame from '../dashboard/components/ChartZoomFrame.jsx';
+import { LABEL_ALL_MAX_POINTS, selectLabelIndexes, selectLastIndex, sliceWindow, stackEndLabelOffsets } from '../dashboard/components/chartDataLabels.js';
 
 function CustomTooltip({ active, payload, label, nameMap, isMonthly, anchorDate }) {
   if (!active || !payload || !payload.length) return null;
@@ -105,52 +108,73 @@ export default function BcvhMultiSeriesTrendChart({
         })}
       </div>
 
-      <div style={{ width: '100%', height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
-              tickLine={false}
-              axisLine={{ stroke: '#e2e8f0' }}
-            />
-            <YAxis
-              domain={['auto', 'auto']}
-              unit="%"
-              tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
-              tickLine={false}
-              axisLine={{ stroke: '#e2e8f0' }}
-              tickFormatter={(v) => `${v}%`}
-            />
-            <Tooltip
-              content={
-                <CustomTooltip nameMap={nameMap} isMonthly={isMonthly} anchorDate={anchorDate} />
-              }
-            />
-            <Legend content={() => null} />
-            {CANONICAL_BCVH_CODES.map((code) => {
-              if (disabledCodes[code]) return null;
-              const color = BCVH_COLORS[code];
-              const name = nameMap[code] || CANONICAL_NAMES[code] || code;
+      <ChartZoomFrame total={data.length} enabled={data.length > LABEL_ALL_MAX_POINTS}>
+        {({ window }) => {
+          const view = sliceWindow(data, window);
+          const activeCodes = CANONICAL_BCVH_CODES.filter((code) => !disabledCodes[code]);
+          // Every point is labelled only when the view is small and few series are shown;
+          // otherwise just the end of each line, so many lines never turn into a wall of text.
+          const labelEveryPoint = activeCodes.length <= 2 && view.length <= LABEL_ALL_MAX_POINTS;
+          const endOffsets = stackEndLabelOffsets(view, activeCodes);
 
-              return (
-                <Line
-                  key={code}
-                  type="monotone"
-                  dataKey={code}
-                  name={name}
-                  stroke={color}
-                  strokeWidth={2.5}
-                  dot={{ r: 3, fill: color, strokeWidth: 1, stroke: '#fff' }}
-                  activeDot={{ r: 5, fill: color }}
-                  connectNulls={connectNulls}
-                />
-              );
-            })}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+          return (
+            <div style={{ width: '100%', height }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={view} margin={{ top: 18, right: 36, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                  />
+                  <YAxis
+                    domain={['auto', 'auto']}
+                    unit="%"
+                    tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <Tooltip
+                    content={
+                      <CustomTooltip nameMap={nameMap} isMonthly={isMonthly} anchorDate={anchorDate} />
+                    }
+                  />
+                  <Legend content={() => null} />
+                  {activeCodes.map((code) => {
+                    const color = BCVH_COLORS[code];
+                    const name = nameMap[code] || CANONICAL_NAMES[code] || code;
+                    const visible = labelEveryPoint ? selectLabelIndexes(view, code) : selectLastIndex(view, code);
+
+                    return (
+                      <Line
+                        key={code}
+                        type="monotone"
+                        dataKey={code}
+                        name={name}
+                        stroke={color}
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: color, strokeWidth: 1, stroke: '#fff' }}
+                        activeDot={{ r: 5, fill: color }}
+                        connectNulls={connectNulls}
+                        label={renderRateLabel({
+                          visible,
+                          rows: view,
+                          fill: color,
+                          fontSize: 10,
+                          offsetY: labelEveryPoint ? 0 : endOffsets[code] || 0,
+                          text: (value) => formatOverviewRate(value),
+                        })}
+                      />
+                    );
+                  })}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          );
+        }}
+      </ChartZoomFrame>
     </div>
   );
 }
