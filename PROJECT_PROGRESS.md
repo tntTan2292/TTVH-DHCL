@@ -2083,3 +2083,8 @@ Phase A runtime evidence collected & documented in `docs/06_REVIEWS/Import/AUTO-
 ## 2026-10-03 - UI-CHART-DATA-LABELS-01 IMPLEMENTED (chart data labels + 30-day wheel zoom) / READY FOR VISUAL TUNING + PO UI CHECK
 
 Product Owner asked that dashboard charts carry readable data labels so a screenshot can be sent to leadership without hovering. Claude Code audited every chart, then added shared label logic (`chartDataLabels.js`, 13 tests), renderers and a wheel-zoom frame, and wired them into the Xu hướng điều hành, Quy luật vận hành, BCVH multi-series, Quality Timeline and route sparkline charts. Label placement is delegated to Antigravity (single switch `LABEL_STYLE`). Frontend 357/357 tests, build and lint clean; no visual PASS claimed. Manifest: `docs/10_TICKETS/UI-CHART-DATA-LABELS-01_MANIFEST.md`.
+
+## 2026-10-03 - AUTO-IMPORT-015 CLOSED / PROVISIONAL (DKCL daily session-expiry hardening)
+
+Product Owner reported imports ran normally with no abnormality seen, and instructed closing the ticket with notes so it can be reopened if a similar incident recurs. No formal PO UI PASS recorded. Accepted commits `cdc8687` (implementation, Antigravity) and `35a3d49` (regression-test alignment after review found TEST 5D3/6C red, Claude Code). Residuals recorded: R1 no real-runtime proof of the overnight-expiry path (and a job still briefly takes the `GLOBAL_DKCL` lease before failing fast); R2 day-rollover/idle re-validation relies on `lastValidatedDate/At`, set only on some paths. Reopen conditions and first debugging steps: `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` Section 12.
+

@@ -38,12 +38,13 @@ Fresh onboarding must contain at most these `5` steps:
 
 Current active ticket:
 
-- Current ticket (`2026-10-02`): `AUTO-IMPORT-015` (DKCL daily session-expiry hardening: visible re-login, orphan-process recovery, state reset, real error codes). Manifest: `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md`; Checkpoint: `docs/06_REVIEWS/Import/AUTO-IMPORT-015_CHECKPOINT_001.md`. Paused underneath: `F13-ROUTE-POSTMAN-IDENTITY-01` (POSTMAN DISPLAY ON TUYẾN RANKING PAUSED PER PO DECISION; CATALOG MANAGEMENT ACTIVE AT `/network-map/postman-catalog`).
+- Active (paused per PO decision): `F13-ROUTE-POSTMAN-IDENTITY-01`; manifest `docs/10_TICKETS/F13-ROUTE-POSTMAN-IDENTITY-01_MANIFEST.md`. Always confirm via `PROJECT_SNAPSHOT.md`.
 - Closed predecessor tickets:
+  - `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` (`CLOSED / PROVISIONAL`, 2026-10-03; no PO UI PASS; reopen conditions in its Section 12).
   - `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-28).
   - `docs/10_TICKETS/F13-BCVH-DAILY-SAMEWEEKDAY-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-22).
   - `docs/10_TICKETS/F13-BCVH-MONTHLY-CUMULATIVE-01_MANIFEST.md` (`CLOSED / PO UI PASS`, 2026-09-17).
-- Next required action: AUTO-IMPORT-015 Phase B implementation and verification. Technical validation only -- no PO UI PASS self-awarded.
+- Next required action: none for AUTO-IMPORT-015 (closed provisional; reopen per Manifest Section 12.2).
 
 
 
@@ -53,7 +54,7 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 
 | Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
-| `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` | Ticket Manifest | Current ticket AUTO-IMPORT-015: DKCL daily session-expiry hardening (HUE/TCT) -- visible re-login, orphan-process recovery, state reset, real error codes. | L2 | Current Required Reading | When AUTO-IMPORT-015 is the active ticket. | Mandatory |
+| `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` | Ticket Manifest | Closed (provisional) 2026-10-03. DKCL daily session-expiry hardening; evidence, scope, residuals R1/R2 and reopen conditions (Section 12). No PO UI PASS. | L2 | Conditional Reference | When AUTO-IMPORT-015 is the active ticket. | Mandatory |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-015_CHECKPOINT_001.md` | Checkpoint | Checkpoint for AUTO-IMPORT-015: Phase A Windows runtime evidence (PID/HWND/profile exact match, taskkill failure reproduction exit code 128 / process not found), Phase B implementation & validation ledger. | L2 | Current Required Reading | When AUTO-IMPORT-015 is the active ticket. | Mandatory |
 | `docs/10_TICKETS/F13-BCVH-WEEKLY-COMPARISON-01_MANIFEST.md` | Ticket Manifest | Closed ticket F13-BCVH-WEEKLY-COMPARISON-01: BCVH Ranking weekly quality-comparison table, independent filters, B1-B4 blocker remediation, multi-column sorting. `CLOSED / PO UI PASS` (2026-09-28). | L2 | Historical / Last Closed Ticket | When F13-BCVH-WEEKLY-COMPARISON-01 closure record is needed. | High |
 | `docs/06_REVIEWS/BCVH/F13-BCVH-WEEKLY-COMPARISON-01_CHECKPOINT_001.md` | Checkpoint | Checkpoint for F13-BCVH-WEEKLY-COMPARISON-01: activation, scope, Opus review B1-B4 remediation, UI layout and sort toggle adjustments, PO UI PASS closure. | L2 | Historical / Last Closed Checkpoint | When F13-BCVH-WEEKLY-COMPARISON-01 evidence is needed. | High |
@@ -100,7 +101,7 @@ Inventory count before cleanup and after metadata cleanup must match unless a fu
 | `docs/10_TICKETS/AUTO-IMPORT-011_MANIFEST.md` | Ticket Manifest | Closed. Emergency remediation, 2026-08-05: Symptom A fixed and tested; Symptom B recovered via server restart, no technical root cause, no code fix. COMPLETED / PO RUNTIME PASS. | L2 | Conditional Reference | When Import emergency history, the 2098 fix, or the Symptom B closure disposition is needed. | High |
 | `docs/10_TICKETS/AUTO-IMPORT-012_MANIFEST.md` | Ticket Manifest | Closed. Emergency follow-up, 2026-08-05: fixed the confirmed Import test-suite production-isolation defect. COMPLETED / TECHNICAL PASS. | L2 | Conditional Reference | When test-isolation history or the fix's evidence is needed. | High |
 | `docs/10_TICKETS/AUTO-IMPORT-010_MANIFEST.md` | Ticket Manifest | Closed HUE browser launch recovery ticket; PO RUNTIME PASS with Dashboard/HUE/TCT acceptance and a recorded non-blocking residual. | L2 | Conditional Reference | When Import authentication history, the HUE first-click residual, or closure evidence is needed. | High |
-| `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` | Ticket Manifest | Opened 2026-10-02. DKCL daily session-expiry hardening; evidence, root causes, scope. READY FOR EXECUTOR. | L2 | Conditional Reference | When working on DKCL session expiry, hidden-browser login, or orphan-process recovery. | High |
+| `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` | Ticket Manifest | Closed (provisional) 2026-10-03. DKCL daily session-expiry hardening; evidence, scope, residuals R1/R2 and reopen conditions (Section 12). No PO UI PASS. | L2 | Conditional Reference | When working on DKCL session expiry, hidden-browser login, or orphan-process recovery. | High |
 | `docs/10_TICKETS/AUTO-IMPORT-015_ANTIGRAVITY_PROMPT.md` | Executor Prompt | Prompt for Antigravity to execute AUTO-IMPORT-015 (Phase A runtime evidence, Phase B implementation). | L2 | Conditional Reference | When working on DKCL session expiry, hidden-browser login, or orphan-process recovery. | High |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_001.md` | Import Checkpoint | Historical handoff after stale-state remediation and direct Playwright proof, including Product Owner runtime fail and next discovery boundary. | L2 | Conditional Reference | Import authentication history lookup only. | Medium |
 | `docs/06_REVIEWS/Import/AUTO-IMPORT-010_CHECKPOINT_002.md` | Import Checkpoint | Historical management checkpoint confirming discovery completion, rejected options, selected one-time setup direction, and the C1 implementation plan. | L2 | Conditional Reference | Import authentication history lookup only. | Medium |

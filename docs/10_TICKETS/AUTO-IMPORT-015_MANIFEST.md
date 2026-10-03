@@ -13,6 +13,7 @@
 - [9. Validation](#9-validation)
 - [10. PO Acceptance Checklist](#10-po-acceptance-checklist)
 - [11. Authority Escalation](#11-authority-escalation)
+- [12. Closure, Residuals And Reopen Conditions](#12-closure-residuals-and-reopen-conditions)
 
 ## 1. Ticket Information
 
@@ -30,7 +31,7 @@ When the DKCL SSO session expires (typically overnight) while the backend and it
 
 ## 3. Current Status
 
-`IMPLEMENTED -- READY FOR PO CHECK`. Phase A runtime evidence documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-015_CHECKPOINT_001.md`. Phase B implemented (items 1–5); all 7 new unit tests pass in `backend/src/services/autoImport015.test.js`; all existing regression suites green. PO UI Check Required: Yes (login window actually appears; clear WAITING_AUTH message). Requires independent review (Opus/Claude) before closure.
+`CLOSED -- PROVISIONAL (2026-10-03). No PO UI PASS was awarded; see Section 12.` Previously: `IMPLEMENTED -- READY FOR PO CHECK`. Phase A runtime evidence documented in `docs/06_REVIEWS/Import/AUTO-IMPORT-015_CHECKPOINT_001.md`. Phase B implemented (items 1–5); all 7 new unit tests pass in `backend/src/services/autoImport015.test.js`; all existing regression suites green. PO UI Check Required: Yes (login window actually appears; clear WAITING_AUTH message). Requires independent review (Opus/Claude) before closure.
 
 ## 4. Required Reading
 
@@ -96,3 +97,31 @@ Two incidents, both after the backend (PID 8132) ran across a day boundary with 
 ## 11. Authority Escalation
 
 Stop and report to Claude/CTO if: a change would touch SSOT/frozen docs, requires killing a browser not matched by exact `--user-data-dir`, or the pre-flight needs credentials. Executor must not self-award PO PASS; stop at `READY FOR PO CHECK`.
+
+## 12. Closure, Residuals And Reopen Conditions
+
+**Closure (2026-10-03, on Product Owner instruction in chat).** Product Owner reported that imports ran normally on the morning of 2026-10-02/03 and no abnormality was observed, and asked to close the ticket with notes so it can be reopened if a similar incident recurs. This is a **provisional closure**: no formal PO UI PASS was recorded and the overnight-expiry scenario was not exercised end-to-end on a real expired session. Accepted commits: `cdc8687` (implementation, Antigravity), `35a3d49` (regression-test alignment, Claude Code). Review was performed in chat by Claude Code (Sonnet 5.5) on 2026-10-02/03 (not an independent Opus review); it found and fixed one regression (TEST 5D3 / TEST 6C), see Section 12.3.
+
+### 12.1 Residuals (known, accepted at closure)
+
+- **R1 -- No real-runtime proof of the overnight-expiry path.** Manifest Section 9 required Windows proof (expired session -> job `WAITING_AUTH` within seconds -> login window visible/foreground -> operator login -> "Tiep tuc Run" completes -> lifecycle back to `F13_READY`). Delivered evidence is 7 unit tests plus Phase A observation of the old defect; the fix was not run against a really expired DKCL session. The Antigravity report's "no residual" statement is therefore overstated. Mechanism note: a job still takes the `GLOBAL_DKCL` lease and then fails fast (`stopForSecurityChallenge` throws instead of waiting) rather than being blocked before leasing; the user-visible result is the same but the lease is briefly held.
+- **R2 -- Day-rollover re-validation depends on `entry.lastValidatedDate` / `lastValidatedAt`.** These fields are set only on a few paths in `dkclSessionPreflightService.js` (probe ready, interactive login success). A session established another way (for example `recoverFromCoordinator`, or a registry entry created by a queue job) never gets the field, so neither the day-rollover nor the idle check triggers for it; protection then relies solely on the fail-fast in `stopForSecurityChallenge`.
+
+### 12.2 Reopen conditions
+
+Reopen `AUTO-IMPORT-015` (do not open a duplicate) if any of these recur:
+1. A job sits at `RUNNING` instead of going to `WAITING_AUTH` after the DKCL session expired (especially the first import of a new day).
+2. "Mo dang nhap HUE/TCT" runs but no browser window appears.
+3. `ORPHAN_PROCESS_RECOVERY_FAILED`, a lifecycle stuck at `OPENING_BROWSER`, or "Dang mo dang nhap DKCL ..." persisting until a backend restart.
+4. Any sign of R2: backend/browser left running across midnight and a stale-session job did not re-validate.
+
+First steps on reopen: capture `backend/backend.log` and `backend/backend_err.log`, the `auto_backfill_job` / `auto_backfill_attempt` rows for the incident, and Windows PID/HWND of the HUE/TCT Chromium (Antigravity). Likely fix directions: set `lastValidatedDate/At` on every path that makes an entry authenticated (R2); run the active re-validation before the job takes the `GLOBAL_DKCL` lease (R1 mechanism).
+
+### 12.3 Review notes
+
+- Committed `backend/test_dkclSessionPreflightService.js` failed after `cdc8687` (TEST 5D3 expected `ERROR`, now `SESSION_EXPIRED`; TEST 6C expected 1 `restoreWindow` call, now 2). Fixed in `35a3d49`; that suite and `autoImport015.test.js` (7/7) are green.
+- Not part of this ticket and left untouched: uncommitted WIP in the same test file (a TEST 7-10 block with a duplicate `cleanupCalled` declaration) remains in the working tree.
+
+### 12.4 Out-of-scope follow-ups (unchanged)
+
+- DKCL slowness: raise the 30 s F1.3 result-table wait, classify DKCL timeouts as retryable, and capture failure diagnostics (screenshot/body text). Not opened; PO chose to wait for DKCL to stabilise.
