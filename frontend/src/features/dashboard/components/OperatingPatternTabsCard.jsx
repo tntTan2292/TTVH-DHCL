@@ -175,7 +175,7 @@ function ComboChartPlot({ rows, isWeekday }) {
   return (
     <div className="h-full w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={rows} margin={{ top: 24, right: 18, bottom: 8, left: 0 }} barCategoryGap="24%">
+          <ComposedChart data={rows} margin={{ top: 28, right: 24, bottom: 8, left: 4 }} barCategoryGap="24%">
             <defs>
               <linearGradient id="patternVolumeGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />

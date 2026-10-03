@@ -80,17 +80,17 @@ export default function ChartZoomFrame({ total, enabled = true, className = '', 
     >
       {children({ window: visibleWindow, isZoomed: zoomed })}
       {canZoom ? (
-        <div className="pointer-events-none absolute right-1 top-0 flex items-center gap-2 text-[10px] font-medium text-slate-400" data-chart-zoom-control>
+        <div className="pointer-events-none absolute right-2 top-0.5 z-10 flex items-center gap-2 text-[10px] font-medium text-slate-400" data-chart-zoom-control>
           {zoomed ? (
             <button
               type="button"
               onClick={() => setWindow(null)}
-              className="pointer-events-auto rounded-md border border-slate-200 bg-white/90 px-2 py-0.5 font-semibold text-slate-600 shadow-2xs hover:bg-slate-50"
+              className="pointer-events-auto rounded-md border border-slate-200 bg-white/95 px-2 py-0.5 font-semibold text-slate-600 shadow-2xs backdrop-blur-xs hover:bg-slate-50"
             >
               Đặt lại zoom ({visibleWindow.end - visibleWindow.start + 1}/{total})
             </button>
           ) : (
-            <span>Lăn chuột để phóng to</span>
+            <span className="rounded bg-white/80 px-1.5 py-0.5 backdrop-blur-xs">Lăn chuột để phóng to</span>
           )}
         </div>
       ) : null}

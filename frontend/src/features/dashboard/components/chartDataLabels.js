@@ -10,8 +10,8 @@ export const LABEL_STYLE = {
   volumeFontSize: 11,
   rateFontSize: 11,
   compareFontSize: 10,
-  minBarWidthForHorizontal: 30,
-  minBarHeightForInside: 22,
+  minBarWidthForHorizontal: 28,
+  minBarHeightForInside: 20,
   haloColor: '#FFFFFF',
 };
 

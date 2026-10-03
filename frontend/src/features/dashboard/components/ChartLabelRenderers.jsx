@@ -3,7 +3,7 @@ import { formatRateLabel, formatVolumeLabel, LABEL_STYLE } from './chartDataLabe
 // Recharts `label` renderers. Every renderer takes the Set of point indexes chosen by
 // selectLabelIndexes()/selectLastIndex() so density is decided once, in tested logic.
 
-export function HaloText({ x, y, children, fill, fontSize = 11, fontWeight = 700, textAnchor = 'middle', rotate = null }) {
+export function HaloText({ x, y, children, fill, fontSize = 11, fontWeight = 700, textAnchor = 'middle', rotate = null, className = '' }) {
   return (
     <text
       x={x}
@@ -17,6 +17,7 @@ export function HaloText({ x, y, children, fill, fontSize = 11, fontWeight = 700
       strokeWidth={3}
       strokeLinejoin="round"
       paintOrder="stroke"
+      className={className}
       style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}
     >
       {children}
@@ -26,20 +27,25 @@ export function HaloText({ x, y, children, fill, fontSize = 11, fontWeight = 700
 
 /**
  * Label for a rate/percentage point on a Line or Area.
- * placement: 'above' (default) or 'below'; getFill(row, value) can recolour per point.
+ * placement: 'above' (default) or 'below' or function (row, value, index) => 'above' | 'below';
+ * getFill(row, value) can recolour per point.
  */
-export function renderRateLabel({ visible, rows = [], placement = 'above', fill = '#047857', getFill = null, fontSize = LABEL_STYLE.rateFontSize, digits = 2, text = null, offsetY = 0 }) {
+export function renderRateLabel({ visible, rows = [], placement = 'above', fill = '#047857', getFill = null, fontSize = LABEL_STYLE.rateFontSize, digits = 2, text = null, offsetY = 0, className = '' }) {
   return function RateLabel(props) {
     const { x, y, value, index } = props;
     if (!visible?.has(index) || typeof x !== 'number' || typeof y !== 'number') return null;
     const label = text ? text(value, rows[index]) : formatRateLabel(value, digits);
     if (!label) return null;
+    const row = rows[index];
+    const actualPlacement = typeof placement === 'function' ? placement(row, value, index) : placement;
+    const yPos = (actualPlacement === 'below' ? y + fontSize + 7 : y - 10) + offsetY;
     return (
       <HaloText
         x={x}
-        y={(placement === 'below' ? y + fontSize + 7 : y - 10) + offsetY}
-        fill={getFill ? getFill(rows[index], value) : fill}
+        y={yPos}
+        fill={getFill ? getFill(row, value) : fill}
         fontSize={fontSize}
+        className={className}
       >
         {label}
       </HaloText>
@@ -48,7 +54,7 @@ export function renderRateLabel({ visible, rows = [], placement = 'above', fill 
 }
 
 /** Label for a volume bar; position/size rules come from LABEL_STYLE. */
-export function renderVolumeBarLabel({ visible, textColor = '#FFFFFF', fontSize = LABEL_STYLE.volumeFontSize }) {
+export function renderVolumeBarLabel({ visible, textColor = '#FFFFFF', fontSize = LABEL_STYLE.volumeFontSize, className = '' }) {
   return function VolumeBarLabel(props) {
     const { x, y, width, height, value, index } = props;
     if (!visible?.has(index) || typeof x !== 'number' || typeof y !== 'number') return null;
@@ -56,16 +62,29 @@ export function renderVolumeBarLabel({ visible, textColor = '#FFFFFF', fontSize 
     if (!label) return null;
 
     const centerX = x + width / 2;
-    const fitsInside = height >= LABEL_STYLE.minBarHeightForInside;
+    const isNarrow = width < LABEL_STYLE.minBarWidthForHorizontal;
+    const minHeightNeeded = isNarrow
+      ? Math.max(LABEL_STYLE.minBarHeightForInside, 40)
+      : LABEL_STYLE.minBarHeightForInside;
+    const fitsInside = height >= minHeightNeeded;
     const inside = LABEL_STYLE.volumePosition === 'insideBottom' && fitsInside;
 
     if (!inside) {
       // Above the bar, in a dark colour with a halo so it is legible on the page background.
-      return <HaloText x={centerX} y={y - 5} fill="#1E293B" fontSize={fontSize}>{label}</HaloText>;
+      return <HaloText x={centerX} y={y - 5} fill="#1E293B" fontSize={fontSize} className={className}>{label}</HaloText>;
     }
-    if (width >= LABEL_STYLE.minBarWidthForHorizontal) {
+    if (!isNarrow) {
       return (
-        <text x={centerX} y={y + height - 7} fill={textColor} fontSize={fontSize} fontWeight={700} textAnchor="middle" style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}>
+        <text
+          x={centerX}
+          y={y + height - 7}
+          fill={textColor}
+          fontSize={fontSize}
+          fontWeight={700}
+          textAnchor="middle"
+          className={className}
+          style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}
+        >
           {label}
         </text>
       );
@@ -80,10 +99,29 @@ export function renderVolumeBarLabel({ visible, textColor = '#FFFFFF', fontSize 
         fontWeight={700}
         textAnchor="start"
         transform={`rotate(-90, ${centerX + fontSize / 3}, ${y + height - 6})`}
+        className={className}
         style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}
       >
         {label}
       </text>
     );
   };
+}
+
+/** Non-overlapping, halo-protected label for horizontal target lines (e.g. Mục tiêu 90%). */
+export function ReferenceTargetLabel({ viewBox, value = 'Mục tiêu 90%' }) {
+  if (!viewBox) return null;
+  const { x, y } = viewBox;
+  return (
+    <HaloText
+      x={x + 10}
+      y={y - 7}
+      fill="#DC2626"
+      fontSize={11}
+      fontWeight={700}
+      textAnchor="start"
+    >
+      {value}
+    </HaloText>
+  );
 }

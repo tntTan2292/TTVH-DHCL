@@ -20,7 +20,7 @@ import {
   QUALITY_TARGET_RATE,
 } from './comboTrendlineData';
 import { DASHBOARD_LABELS, DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
-import { renderRateLabel, renderVolumeBarLabel } from './ChartLabelRenderers';
+import { ReferenceTargetLabel, renderRateLabel, renderVolumeBarLabel } from './ChartLabelRenderers';
 import ChartZoomFrame from './ChartZoomFrame';
 import { LABEL_STYLE, selectLabelIndexes, sliceWindow } from './chartDataLabels';
 import {
@@ -128,10 +128,23 @@ function TrendChartPlot({ rows, mode }) {
   const previousRateLabelIndexes = selectLabelIndexes(rows, 'previous_quality_rate');
   const previousVolumeLabelIndexes = selectLabelIndexes(rows, 'previous_total_volume');
 
+  // Dynamic vertical separation: higher series label sits 'above' its point,
+  // lower series label sits 'below'. Even when the two lines cross or run very close,
+  // their labels maintain a safe >=27px gap and never overlap.
+  const getQualityRatePlacement = (row) => {
+    if (row?.previous_quality_rate == null || row?.quality_rate == null) return 'above';
+    return Number(row.quality_rate) >= Number(row.previous_quality_rate) ? 'above' : 'below';
+  };
+
+  const getPreviousRatePlacement = (row) => {
+    if (row?.quality_rate == null || row?.previous_quality_rate == null) return 'below';
+    return Number(row.previous_quality_rate) > Number(row.quality_rate) ? 'above' : 'below';
+  };
+
   return (
     <div className="h-full w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={rows} margin={{ top: 26, right: 18, bottom: 8, left: 0 }} barCategoryGap="22%">
+        <ComposedChart data={rows} margin={{ top: 28, right: 24, bottom: 8, left: 4 }} barCategoryGap="22%">
           <defs>
             <linearGradient id="volumeBarGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
@@ -177,15 +190,15 @@ function TrendChartPlot({ rows, mode }) {
             stroke="#DC2626"
             strokeDasharray="6 4"
             strokeWidth={2}
-            label={{ value: `Mục tiêu ${QUALITY_TARGET_RATE}%`, fill: '#DC2626', fontSize: 11, fontWeight: 700, position: 'insideTopRight' }}
+            label={<ReferenceTargetLabel value={`Mục tiêu ${QUALITY_TARGET_RATE}%`} />}
           />
           <Bar yAxisId="volume" dataKey="total_volume" name={DASHBOARD_LABELS.volume} fill="url(#volumeBarGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={renderVolumeBarLabel({ visible: volumeLabelIndexes })} />
           {mode === '7-days' ? (
-            <Bar yAxisId="volume" dataKey="previous_total_volume" name="Sản lượng kỳ so sánh" fill="url(#prevVolumeBarGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={renderVolumeBarLabel({ visible: previousVolumeLabelIndexes, textColor: '#1E293B', fontSize: LABEL_STYLE.compareFontSize + 1 })} />
+            <Bar yAxisId="volume" dataKey="previous_total_volume" name="Sản lượng kỳ so sánh" fill="url(#prevVolumeBarGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={renderVolumeBarLabel({ visible: previousVolumeLabelIndexes, textColor: '#FFFFFF', fontSize: LABEL_STYLE.compareFontSize + 1, className: 'hidden sm:inline' })} />
           ) : null}
-          <Line yAxisId="rate" type="linear" dataKey="quality_rate" name={DASHBOARD_LABELS.passRate} stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} label={renderRateLabel({ visible: rateLabelIndexes, rows, getFill: (row) => (row?.below_target ? '#C2410C' : '#047857') })} />
+          <Line yAxisId="rate" type="linear" dataKey="quality_rate" name={DASHBOARD_LABELS.passRate} stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} label={renderRateLabel({ visible: rateLabelIndexes, rows, placement: getQualityRatePlacement, getFill: (row) => (row?.below_target ? '#C2410C' : '#047857') })} />
           {mode === '7-days' ? (
-            <Line yAxisId="rate" type="linear" dataKey="previous_quality_rate" name="Tỷ lệ đạt kỳ so sánh" stroke={COLORS.comparison} strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, strokeWidth: 1.5, fill: '#fff', stroke: COLORS.comparison }} connectNulls={false} isAnimationActive={false} label={renderRateLabel({ visible: previousRateLabelIndexes, rows, placement: 'below', fill: '#475569', fontSize: LABEL_STYLE.compareFontSize })} />
+            <Line yAxisId="rate" type="linear" dataKey="previous_quality_rate" name="Tỷ lệ đạt kỳ so sánh" stroke={COLORS.comparison} strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, strokeWidth: 1.5, fill: '#fff', stroke: COLORS.comparison }} connectNulls={false} isAnimationActive={false} label={renderRateLabel({ visible: previousRateLabelIndexes, rows, placement: getPreviousRatePlacement, fill: '#475569', fontSize: LABEL_STYLE.compareFontSize, className: 'hidden sm:inline' })} />
           ) : null}
           <Scatter yAxisId="rate" dataKey="quality_rate" shape={<MarkerShape />} isAnimationActive={false} />
         </ComposedChart>

@@ -120,7 +120,7 @@ export default function BcvhMultiSeriesTrendChart({
           return (
             <div style={{ width: '100%', height }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={view} margin={{ top: 18, right: 36, left: 0, bottom: 5 }}>
+                <LineChart data={view} margin={{ top: 18, right: 44, left: 4, bottom: 6 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis
                     dataKey="label"

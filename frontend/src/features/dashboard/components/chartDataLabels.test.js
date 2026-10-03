@@ -7,6 +7,7 @@ import {
   fullWindow,
   isFullWindow,
   LABEL_ALL_MAX_POINTS,
+  LABEL_STYLE,
   MIN_ZOOM_SPAN,
   panWindow,
   selectLabelIndexes,
@@ -115,4 +116,11 @@ test('stackEndLabelOffsets separates series that end close together and ignores 
   assert.equal(offsets.c, 12, 'c is within the gap of b');
   assert.equal(offsets.d, 0, 'd is far below c');
   assert.equal('e' in offsets, false);
+});
+
+test('LABEL_STYLE defines insideBottom volume positioning and tuned width/height thresholds', () => {
+  assert.equal(LABEL_STYLE.volumePosition, 'insideBottom');
+  assert.equal(LABEL_STYLE.minBarWidthForHorizontal, 28);
+  assert.equal(LABEL_STYLE.minBarHeightForInside, 20);
+  assert.equal(LABEL_STYLE.haloColor, '#FFFFFF');
 });
