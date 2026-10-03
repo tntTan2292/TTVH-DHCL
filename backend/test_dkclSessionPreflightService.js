@@ -536,7 +536,7 @@ function makeCoordinatorFixture() {
         staleHueErrorService.interactiveAuthenticate('HUE'),
         (error) => error?.code === 'LAUNCH_FAILED'
     );
-    assert.strictEqual(staleHueErrorService.getRegistryState('HUE').state, 'ERROR', 'failed stale HUE recovery returns the real launch error and does not leave WAITING_FOR_LOGIN behind');
+    assert.strictEqual(staleHueErrorService.getRegistryState('HUE').state, 'SESSION_EXPIRED', 'failed stale HUE recovery returns the real launch error and does not leave WAITING_FOR_LOGIN behind (AUTO-IMPORT-015: reset to SESSION_EXPIRED, not left in-progress)');
     assert.strictEqual(staleHueErrorService.getRegistryState('HUE').client, null, 'failed stale HUE recovery clears stale client references');
 
     console.log('\nTEST 5E: HUE queue-owned session remains valid without probing live browser state');
@@ -684,7 +684,7 @@ function makeCoordinatorFixture() {
     assert.strictEqual(hueFailureService.getRegistryState('HUE').state, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, 'HUE stays waiting when source-page confirmation fails');
     assert.strictEqual(hueFailureService.getRegistryState('HUE').backgroundReady, false, 'HUE does not become background-ready on source-page failure');
     assert.strictEqual(hueFailureService.getRegistryState('HUE').windowHidden, false, 'HUE window stays visible on source-page failure');
-    assert.strictEqual(hueFailureCalls.filter((call) => call[0] === 'restore').length, 1, 'HUE source-page failure restores the visible window instead of closing it');
+    assert.strictEqual(hueFailureCalls.filter((call) => call[0] === 'restore').length, 2, 'HUE source-page failure restores the visible window instead of closing it (AUTO-IMPORT-015: one explicit restore after prepare + one on source-page failure)');
     assert.strictEqual(hueFailureCalls.filter((call) => call[0] === 'close').length, 0, 'HUE source-page failure does not close the browser');
     assert.strictEqual(globalRegistry.get('TCT').client.marker, 'tct', 'HUE failure does not mutate TCT registry state');
 
