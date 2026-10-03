@@ -1,6 +1,6 @@
 # UI-CHART-DATA-LABELS-01 Manifest
 
-Status: `IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK (2026-10-03)`. Frontend-only; no backend, API, SSOT or KPI change.
+Status: `IMPLEMENTED / PO UI PASS / CLOSED (2026-10-03)`. Frontend-only; no backend, API, SSOT or KPI change.
 
 ## 1. Ticket Information
 
@@ -9,7 +9,7 @@ Status: `IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK (2026-10-03)`. Frontend
 - Requested by: Product Owner, chat 2026-10-03 (the 7-day "Xu hướng điều hành" chart shows values only in the hover tooltip, so a screenshot carries no numbers).
 - Executors: Claude Code (logic, wiring, tests) -> Antigravity (label placement decisions, visual tuning, collision resolution, mobile adaptability) -> PO UI check.
 - Branch: `codex/da-impl-006`. Runs in parallel with `AUTO-IMPORT-015` (awaiting PO check); touches no shared files.
-- PO UI Check Required: `Yes`.
+- PO UI Check Required: `Yes` — done: PO personally checked the UI and confirmed PASS on 2026-10-03.
 
 ## 2. PO Decisions (2026-10-03)
 
@@ -77,3 +77,10 @@ Status: `IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK (2026-10-03)`. Frontend
   5. Giao diện điện thoại di động.
 
 - 2026-10-03 follow-up (Claude Code review): comparison-period bar labels changed from white to dark slate (`#0F172A`). The grey bar is semi-transparent (about #A2ACB9 at its base), so white text measured about 2.3:1 contrast; dark text is about 7:1. Current-period blue bars keep white labels.
+
+## 7. Follow-up Changes After Review and Closure Record
+
+- Month tab ("Quy luật vận hành > Theo tháng"): the rank-card strip (T1…T10) is now a grid of one equal column per month, inset by the chart's plot margins (`PLOT_INSET_LEFT` 82px, `PLOT_INSET_RIGHT` 94px), so each card sits above its column on lg+ screens; months without a rank keep an empty cell; below lg the strip scrolls horizontally as before. Keep the insets in sync with `ComboChartPlot` margin/YAxis widths.
+- Same tab: wheel zoom turned off (the tab is at most 12 monthly points and zoom would misalign the strip); every point labelled up to `MONTH_LABEL_ALL_MAX_POINTS` = 12. Zoom stays on the 30-day views.
+- Validation after the changes: frontend dashboard/ranking/components/route test files 358/358, `vite build` clean, `oxlint` 0 errors.
+- Closure: Product Owner directly checked the UI and confirmed **PO UI PASS** on 2026-10-03. Final state: `IMPLEMENTED / PO UI PASS / CLOSED`. A later change needs a new ticket or explicit reopening.

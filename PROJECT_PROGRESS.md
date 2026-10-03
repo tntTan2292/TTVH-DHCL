@@ -2088,3 +2088,7 @@ Product Owner asked that dashboard charts carry readable data labels so a screen
 
 Product Owner reported imports ran normally with no abnormality seen, and instructed closing the ticket with notes so it can be reopened if a similar incident recurs. No formal PO UI PASS recorded. Accepted commits `cdc8687` (implementation, Antigravity) and `35a3d49` (regression-test alignment after review found TEST 5D3/6C red, Claude Code). Residuals recorded: R1 no real-runtime proof of the overnight-expiry path (and a job still briefly takes the `GLOBAL_DKCL` lease before failing fast); R2 day-rollover/idle re-validation relies on `lastValidatedDate/At`, set only on some paths. Reopen conditions and first debugging steps: `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` Section 12.
 
+
+## 2026-10-03 - UI-CHART-DATA-LABELS-01 CLOSED / PO UI PASS
+
+Product Owner personally checked the chart data-label UI and confirmed PASS. Final scope: data labels and 30-day wheel zoom across the dashboard, ranking, quality-timeline and route charts; Antigravity label-placement tuning; dark labels on grey comparison bars; month-tab rank strip aligned to chart columns (zoom off there). Frontend 358/358 tests, build and lint clean. Manifest: `docs/10_TICKETS/UI-CHART-DATA-LABELS-01_MANIFEST.md`.

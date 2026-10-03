@@ -14,8 +14,7 @@ import api from '../../../api/client';
 import { CardContainer, EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
 import { formatNumber, formatRate, getVolumeAxisMax } from './comboTrendlineData';
 import { renderRateLabel, renderVolumeBarLabel } from './ChartLabelRenderers';
-import ChartZoomFrame from './ChartZoomFrame';
-import { selectLabelIndexes, sliceWindow } from './chartDataLabels';
+import { selectLabelIndexes } from './chartDataLabels';
 import {
   DEFAULT_OPERATING_PATTERN_TAB,
   APPROVED_WEEKDAY_BANDS,
@@ -149,15 +148,23 @@ function KpiQualityDot({ cx, cy, payload, r = 6 }) {
   return <circle cx={cx} cy={cy} r={r} fill={color} stroke="#fff" strokeWidth={2} />;
 }
 
-// "Theo tháng" has up to ~31 points: fixed frame + wheel zoom so labels become readable.
-function ComboChartPanel({ rows: allRows, mode }) {
+// Horizontal space the chart reserves around its plot area: left = margin 4 + YAxis 78,
+// right = margin 24 + YAxis 70. MonthlyRankStrip uses the same insets so each rank card sits
+// directly above its column. Keep these in sync with ComboChartPlot's margin/YAxis widths.
+const PLOT_INSET_LEFT = 82;
+const PLOT_INSET_RIGHT = 94;
+// "Theo tháng" is at most one year of points, so every point is labelled and zoom is off
+// (zoom would also push the plot out of line with the rank strip above it).
+const MONTH_LABEL_ALL_MAX_POINTS = 12;
+
+function ComboChartPanel({ rows, mode }) {
   const isWeekday = mode === 'weekday';
 
   return (
     <div className="w-full">
-      <ChartZoomFrame total={allRows.length} enabled={mode === 'month'} className="h-[260px] lg:h-[280px] w-full">
-        {({ window }) => <ComboChartPlot rows={sliceWindow(allRows, window)} isWeekday={isWeekday} />}
-      </ChartZoomFrame>
+      <div className="h-[260px] lg:h-[280px] w-full">
+        <ComboChartPlot rows={rows} isWeekday={isWeekday} allMaxPoints={isWeekday ? undefined : MONTH_LABEL_ALL_MAX_POINTS} />
+      </div>
       {mode === 'month' ? (
         <div className="mt-2 text-[11px] text-slate-500 font-medium italic text-right">
           * Lũy kế tháng hiện tại theo ngày mới nhất trong tháng
@@ -167,10 +174,10 @@ function ComboChartPanel({ rows: allRows, mode }) {
   );
 }
 
-function ComboChartPlot({ rows, isWeekday }) {
+function ComboChartPlot({ rows, isWeekday, allMaxPoints }) {
   const volumeAxisMax = getVolumeAxisMax(rows.map((row) => ({ total_volume: row.totalVolume })));
-  const rateLabel = renderRateLabel({ visible: selectLabelIndexes(rows, 'rate'), rows, fill: '#047857' });
-  const volumeLabel = renderVolumeBarLabel({ visible: selectLabelIndexes(rows, 'totalVolume') });
+  const rateLabel = renderRateLabel({ visible: selectLabelIndexes(rows, 'rate', { allMaxPoints }), rows, fill: '#047857' });
+  const volumeLabel = renderVolumeBarLabel({ visible: selectLabelIndexes(rows, 'totalVolume', { allMaxPoints }) });
 
   return (
     <div className="h-full w-full">
@@ -386,24 +393,33 @@ function HeatmapMonthSection({ month }) {
 }
 
 function MonthlyRankStrip({ rows }) {
-  const rankedRows = rows.filter((row) => row.nationalRank);
-  if (!rankedRows.length) return null;
+  if (!rows.some((row) => row.nationalRank)) return null;
 
+  // lg+: one equal column per chart point, inset like the plot area, so every card is centred
+  // above its column (rows without a rank keep an empty cell so the others stay aligned).
+  // Below lg the columns would be too narrow, so the strip scrolls horizontally instead.
   return (
-    <div className="mb-2.5 overflow-x-auto border-y border-slate-200/80 py-1.5">
-      <div className="flex min-w-max items-center gap-2">
-        {rankedRows.map((row) => (
-          <div
-            key={`${row.id}-national-rank`}
-            className="flex min-w-[90px] flex-col rounded-md border border-slate-200/80 bg-slate-50/80 px-2 py-1 text-xs font-semibold text-slate-900 shadow-2xs"
-            title={row.monthlyRankDetail || undefined}
-            aria-label={row.monthlyRankDetail || undefined}
-            tabIndex={0}
-          >
-            <span className="font-bold text-slate-900 text-[11px]">{row.label}</span>
-            <span className="font-bold text-emerald-700 text-xs">{row.nationalRankLabel}</span>
-            <span className="text-[10px] font-medium text-slate-500">{row.rankMovementLabel || 'Chưa có so sánh'}</span>
-          </div>
+    <div className="mb-2.5 overflow-x-auto border-y border-slate-200/80 py-1.5 lg:overflow-visible">
+      <div
+        className="flex min-w-max items-center gap-2 lg:grid lg:min-w-0 lg:items-stretch lg:gap-1.5 lg:grid-cols-[repeat(var(--rank-cols),minmax(0,1fr))] lg:pl-[var(--rank-pl)] lg:pr-[var(--rank-pr)]"
+        style={{ '--rank-cols': rows.length, '--rank-pl': `${PLOT_INSET_LEFT}px`, '--rank-pr': `${PLOT_INSET_RIGHT}px` }}
+      >
+        {rows.map((row) => (
+          row.nationalRank ? (
+            <div
+              key={`${row.id}-national-rank`}
+              className="flex min-w-[90px] flex-col rounded-md border border-slate-200/80 bg-slate-50/80 px-2 py-1 text-xs font-semibold text-slate-900 shadow-2xs lg:min-w-0 lg:items-center lg:px-1 lg:text-center"
+              title={row.monthlyRankDetail || undefined}
+              aria-label={row.monthlyRankDetail || undefined}
+              tabIndex={0}
+            >
+              <span className="font-bold text-slate-900 text-[11px]">{row.label}</span>
+              <span className="whitespace-nowrap font-bold text-emerald-700 text-xs">{row.nationalRankLabel}</span>
+              <span className="whitespace-nowrap text-[10px] font-medium text-slate-500">{row.rankMovementLabel || 'Chưa có so sánh'}</span>
+            </div>
+          ) : (
+            <div key={`${row.id}-national-rank`} className="hidden lg:block" aria-hidden="true" />
+          )
         ))}
       </div>
     </div>
