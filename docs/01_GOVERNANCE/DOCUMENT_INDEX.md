@@ -1072,3 +1072,4 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 | Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/10_TICKETS/UI-CHART-DATA-LABELS-01_MANIFEST.md` | UI Ticket Manifest | Data labels and 30-day wheel zoom for the dashboard, operating-pattern, BCVH ranking, quality-timeline and route charts; chart inventory, design, validation and Antigravity tuning hand-off. | L1 | `IMPLEMENTED / TECH PASS / READY FOR VISUAL TUNING + PO UI CHECK` | Any later chart label or zoom change. | Mandatory |
+| `docs/10_TICKETS/UI-CHART-DATA-LABELS-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | Antigravity prompt for visual tuning of chart data labels (no browser; PO checks directly). | L1 | `ISSUED 2026-10-03` | Antigravity round for UI-CHART-DATA-LABELS-01. | Mandatory |
