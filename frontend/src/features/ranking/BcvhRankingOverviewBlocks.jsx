@@ -1,11 +1,19 @@
+import { useState } from 'react';
 import { Route, BarChart3, Clock, ArrowUp, ArrowDown } from 'lucide-react';
-import BcvhMultiSeriesTrendChart from './BcvhMultiSeriesTrendChart';
+import BcvhMonthlyComboTrendChart from './BcvhMonthlyComboTrendChart';
+import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
 import {
   DASH,
   BCVH_COLORS,
+  CANONICAL_NAMES,
   formatOverviewNumber,
   formatOverviewRate,
 } from './bcvhOverviewData';
+
+const ALL_UNITS = 'all';
+const MONTHLY_TREND_TOTAL_KEY = 'total';
+const MONTHLY_TREND_NAMES = { ...CANONICAL_NAMES, [MONTHLY_TREND_TOTAL_KEY]: 'Tổng cộng 6 BCVH' };
+const MONTHLY_TREND_COLORS = { ...BCVH_COLORS, [MONTHLY_TREND_TOTAL_KEY]: '#0f172a' };
 // Shared Heatmap SSOT with Operation Dashboard: the same absolute band classification
 // (green >=70 / pink 60-70 / yellow 50-60 / red <50 / unavailable) and its colors, so the
 // monthly heatmap below never re-declares the >=70/>=60/>=50 thresholds locally.
@@ -178,13 +186,15 @@ export function BcvhMtdSummaryBlock({ data }) {
 
 // 2. Monthly Trend Block (Khối 1)
 export function BcvhMonthlyTrendBlock({ data }) {
+  const [unit, setUnit] = useState(MONTHLY_TREND_TOTAL_KEY);
   if (!data) return null;
   const { months, monthlyChartData, monthlyTableRows, nameMap, meta } = data;
   const anchorDate = meta?.anchor_date || null;
+  const unitNames = { ...MONTHLY_TREND_NAMES, ...nameMap };
 
   return (
     <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-surface-200)] pb-3">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-[var(--color-surface-200)] pb-3">
         <div>
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-[var(--color-primary-600)]" />
@@ -193,26 +203,69 @@ export function BcvhMonthlyTrendBlock({ data }) {
             </h2>
           </div>
           <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-            So sánh xu hướng 6 BCVH chuẩn. Trục Y co theo dữ liệu thực tế.
+            Sản lượng đo kiểm (cột) và Tỷ lệ đạt KPI 2026 (đường) theo tháng.
           </p>
         </div>
-        {anchorDate ? (
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 border border-amber-200/60">
-            <Clock className="h-3.5 w-3.5" />
-            <span>Tháng hiện tại lũy kế đến {anchorDate}</span>
-          </div>
-        ) : null}
+
+        <div className="flex flex-wrap items-center gap-3">
+          {anchorDate ? (
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 border border-amber-200/60">
+              <Clock className="h-3.5 w-3.5" />
+              <span>Tháng hiện tại lũy kế đến {anchorDate}</span>
+            </div>
+          ) : null}
+
+          <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+            <span>Xem theo đơn vị:</span>
+            <select
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs hover:border-blue-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              aria-label="Xem theo đơn vị"
+            >
+              <option value={MONTHLY_TREND_TOTAL_KEY}>{MONTHLY_TREND_NAMES[MONTHLY_TREND_TOTAL_KEY]}</option>
+              <option value={ALL_UNITS}>Tất cả 6 BCVH</option>
+              {CANONICAL_BCVH_CODES.map((code) => (
+                <option key={code} value={code}>{unitNames[code] || code}</option>
+              ))}
+            </select>
+          </label>
+        </div>
       </div>
 
-      <div className="mb-6">
-        <BcvhMultiSeriesTrendChart
-          data={monthlyChartData}
-          nameMap={nameMap}
-          connectNulls={true}
-          isMonthly={true}
+      <div className="mb-4">
+        <BcvhMonthlyComboTrendChart
+          chartData={monthlyChartData}
+          unit={unit}
+          unitNames={unitNames}
+          unitColors={MONTHLY_TREND_COLORS}
           anchorDate={anchorDate}
-          height={300}
+          height={320}
         />
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-2.5 text-xs text-slate-600">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <span className="h-2.5 w-3.5 rounded-xs bg-[#2563eb] shadow-2xs" />
+              Sản lượng (bưu gửi), trục trái
+            </span>
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <span className="h-2.5 w-3.5 rounded-xs bg-[#38bdf8] border border-[#0284c7] shadow-2xs" />
+              Cột tháng lũy kế
+            </span>
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />
+              Tỷ lệ đạt KPI 2026 (%), trục phải
+            </span>
+            <span className="inline-flex items-center gap-2 font-semibold">
+              <span className="h-2 w-5 border-t-2 border-dashed border-[#dc2626]" />
+              Mục tiêu 90%
+            </span>
+          </div>
+          <div className="text-[11px] text-slate-500 font-medium">
+            Chấm trên đường tỷ lệ tô màu theo dải KPI F1.3
+          </div>
+        </div>
       </div>
 
       {/* Monthly Data Table */}

@@ -7,6 +7,7 @@ import {
   DASH,
   formatOverviewNumber,
   formatOverviewRate,
+  getMonthlyTrendSeriesData,
   processOverviewData,
 } from './bcvhOverviewData.js';
 
@@ -113,22 +114,23 @@ test('verifies frontend source code contract for Phase F1', () => {
   assert.match(fetcherSource, /Không thể tải dữ liệu tổng quan BCVH/);
   assert.match(pageSource, /setOverviewRetrySeq/);
 
-  // Order of blocks: Widget -> Table -> MTD -> Monthly -> Route Capacity.
-  // F13-BCVH-WEEKLY-TREND-01: the old "Diễn biến theo ngày" block was removed (replaced by the weekly
-  // trend chart under the weekly comparison table).
+  // Order of blocks: Weekly Comparison & Trend -> Monthly Trend -> Widget -> Table -> MTD -> Route Capacity.
+  // F13-BCVH-WEEKLY-TREND-01 (Việc 2): Biểu đồ xu hướng tháng được đưa lên nằm ngay dưới biểu đồ tuần.
+  const posWeekly = pageSource.indexOf('<BcvhWeeklyComparisonBlock />');
+  const posMonthly = pageSource.indexOf('<BcvhMonthlyTrendBlock');
   const posWidget = pageSource.indexOf('<KPICard {...summaryCards[0]} />');
   const posTable = pageSource.indexOf('<UnifiedBcvhAnalysisTable');
   const posMtd = pageSource.indexOf('<BcvhMtdSummaryBlock');
-  const posMonthly = pageSource.indexOf('<BcvhMonthlyTrendBlock');
   const posRoute = pageSource.indexOf('<BcvhRouteCapacityBlock');
 
   assert.doesNotMatch(pageSource, /BcvhDailyTrendBlock/);
   assert.doesNotMatch(blocksSource, /Diễn biến theo ngày/);
-  assert.ok(posWidget > 0, 'Widget exists');
+  assert.ok(posWeekly > 0, 'Weekly comparison block exists');
+  assert.ok(posMonthly > posWeekly, 'Monthly trend block directly follows weekly block');
+  assert.ok(posWidget > posMonthly, 'Widget follows Monthly trend block');
   assert.ok(posTable > posWidget, 'Table follows Widget');
   assert.ok(posMtd > posTable, 'MTD block follows Table');
-  assert.ok(posMonthly > posMtd, 'Monthly block follows MTD block');
-  assert.ok(posRoute > posMonthly, 'Route block follows Monthly block');
+  assert.ok(posRoute > posMtd, 'Route block follows MTD block');
 
   // Headers MTD
   assert.match(blocksSource, /Hạng MTD/);
@@ -148,4 +150,56 @@ test('verifies frontend source code contract for Phase F1', () => {
   assert.match(chartSource, /LineChart/);
   assert.match(chartSource, /connectNulls=\{connectNulls\}/);
   assert.doesNotMatch(chartSource, /ReferenceLine/);
+});
+
+test('processOverviewData calculates monthly total as summed passed / summed volume and preserves units', () => {
+  const rawData = {
+    monthly: [
+      { month: '2026-01', ma_bcvh: '533140', volume: 1000, passed: 600, rate: 60.0, days_with_data: 31, days_in_period: 31 },
+      { month: '2026-01', ma_bcvh: '535470', volume: 800, passed: 560, rate: 70.0, days_with_data: 31, days_in_period: 31 },
+      // Month 2026-02 only has unit 533140
+      { month: '2026-02', ma_bcvh: '533140', volume: 1200, passed: 744, rate: 62.0, days_with_data: 24, days_in_period: 26 },
+      // Month 2026-03 has no volume (empty month)
+      { month: '2026-03', ma_bcvh: '533140', volume: 0, passed: 0, rate: null, days_with_data: 0, days_in_period: 31 },
+    ],
+    daily: [],
+    mtd: [],
+    routes: [],
+  };
+
+  const processed = processOverviewData(rawData);
+  const m1 = processed.monthlyChartData.find((r) => r.month === '2026-01');
+  const m2 = processed.monthlyChartData.find((r) => r.month === '2026-02');
+  const m3 = processed.monthlyChartData.find((r) => r.month === '2026-03');
+
+  // Month 1: Total volume = 1000 + 800 = 1800. Passed = 600 + 560 = 1160. Rate = (1160/1800)*100 = 64.44%
+  assert.equal(m1.total.total_volume, 1800);
+  assert.equal(m1.total.passed, 1160);
+  assert.equal(m1.total.failed, 640);
+  assert.equal(m1.total.quality_rate, 64.44);
+  assert.equal(m1.total.target_variance, -25.56);
+
+  // Month 2: Total volume = 1200, Passed = 744, Rate = 62.0
+  assert.equal(m2.total.total_volume, 1200);
+  assert.equal(m2.total.passed, 744);
+  assert.equal(m2.total.quality_rate, 62.0);
+
+  // Month 3: Empty month -> null values, no fake 0
+  assert.equal(m3.total.total_volume, null);
+  assert.equal(m3.total.quality_rate, null);
+
+  // getMonthlyTrendSeriesData for total
+  const totalSeries = getMonthlyTrendSeriesData(processed.monthlyChartData, 'total');
+  assert.equal(totalSeries.length, 3);
+  assert.equal(totalSeries[0].total_volume, 1800);
+  assert.equal(totalSeries[0].quality_rate, 64.44);
+  assert.equal(totalSeries[2].total_volume, null);
+  assert.equal(totalSeries[2].quality_rate, null);
+
+  // getMonthlyTrendSeriesData for unit 533140
+  const unitSeries = getMonthlyTrendSeriesData(processed.monthlyChartData, '533140');
+  assert.equal(unitSeries[0].total_volume, 1000);
+  assert.equal(unitSeries[0].quality_rate, 60.0);
+  assert.equal(unitSeries[1].total_volume, 1200);
+  assert.equal(unitSeries[1].quality_rate, 62.0);
 });

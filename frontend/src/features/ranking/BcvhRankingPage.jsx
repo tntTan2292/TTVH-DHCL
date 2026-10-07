@@ -290,6 +290,11 @@ export default function BcvhRankingPage() {
             độc lập với bộ lọc chung bên dưới, /overview và khối 5. */}
         <BcvhWeeklyComparisonBlock />
 
+        {/* Khối 1: Xu hướng chất lượng theo tháng (đặt ngay dưới biểu đồ Diễn biến chất lượng theo tuần) */}
+        {overviewState.processed ? (
+          <BcvhMonthlyTrendBlock data={overviewState.processed} />
+        ) : null}
+
         <GlobalFilterBar
           fromDate={fromDate}
           toDate={toDate}
@@ -426,14 +431,11 @@ export default function BcvhRankingPage() {
           </div>
         )}
 
-        {/* Phase F1 - Khối Overview 4, 5, 6 */}
+        {/* Phase F1 - Khối Overview 4, 6 */}
         {overviewState.processed ? (
           <>
             {/* Khối 3: Chất lượng tổng quan MTD */}
             <BcvhMtdSummaryBlock data={overviewState.processed} />
-
-            {/* Khối 1: Xu hướng chất lượng theo tháng */}
-            <BcvhMonthlyTrendBlock data={overviewState.processed} />
 
             {/* Khối 4: Năng lực và chất lượng tuyến */}
             <BcvhRouteCapacityBlock data={overviewState.processed} />

@@ -147,3 +147,31 @@ test('weekly trend block contract: under the weekly table, anchor-week driven, c
   // old daily block is gone from the page
   assert.doesNotMatch(page, /BcvhDailyTrendBlock/);
 });
+
+test('monthly trend block contract: combo bar/line chart with unit filter, small multiples, and MTD note', () => {
+  const read = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
+  const blocks = read('./BcvhRankingOverviewBlocks.jsx');
+  const monthlyChart = read('./BcvhMonthlyComboTrendChart.jsx');
+
+  // Uses BcvhMonthlyComboTrendChart
+  assert.match(blocks, /<BcvhMonthlyComboTrendChart/);
+
+  // Unit filter with default total
+  assert.match(blocks, /Xem theo đơn vị/);
+  assert.match(blocks, /useState\(MONTHLY_TREND_TOTAL_KEY\)/);
+  assert.match(blocks, /Tổng cộng 6 BCVH/);
+  assert.match(blocks, /Tất cả 6 BCVH/);
+
+  // MTD anchor note
+  assert.match(blocks, /Tháng hiện tại lũy kế đến/);
+
+  // Monthly combo chart features
+  assert.match(monthlyChart, /ComposedChart/);
+  assert.match(monthlyChart, /QUALITY_TARGET_RATE/);
+  assert.match(monthlyChart, /renderVolumeBarLabel/);
+  assert.match(monthlyChart, /renderRateLabel/);
+  assert.match(monthlyChart, /SmallMultiplesMonthlyGrid/);
+  assert.match(monthlyChart, /classifyF13HeatmapRate/);
+  assert.match(monthlyChart, /isCurrentMonth/);
+});
+

@@ -60,15 +60,79 @@ export function processOverviewData(data = {}, meta = {}) {
 
   const monthlyChartData = months.map((month) => {
     const label = month.endsWith('-01') ? 'T1' : `T${parseInt(month.slice(5), 10)}`;
+    const isCurrent = month === latestMonth;
     const row = {
       month,
       label,
-      isCurrentMonth: month === latestMonth,
+      isCurrentMonth: isCurrent,
     };
+
+    let monthTotalVolume = 0;
+    let monthTotalPassed = 0;
+    let monthTotalFailed = 0;
+    let hasMonthData = false;
+    const units = {};
+
     CANONICAL_BCVH_CODES.forEach((code) => {
       const match = monthly.find((m) => m.month === month && String(m.ma_bcvh) === code);
-      row[code] = match && match.rate !== null && match.rate !== undefined ? Number(match.rate) : null;
+      const rateVal = match && match.rate !== null && match.rate !== undefined ? Number(match.rate) : null;
+      row[code] = rateVal;
+
+      const hasUnitData = Boolean(match && (match.volume > 0 || (match.rate !== null && match.rate !== undefined)));
+      if (hasUnitData) {
+        hasMonthData = true;
+        const vol = Number(match.volume || 0);
+        const passed = Number(match.passed || 0);
+        const failed = match.failed !== undefined ? Number(match.failed) : Math.max(0, vol - passed);
+        monthTotalVolume += vol;
+        monthTotalPassed += passed;
+        monthTotalFailed += failed;
+
+        const calculatedRate = rateVal !== null ? rateVal : (vol > 0 ? Number(((passed / vol) * 100).toFixed(2)) : null);
+
+        units[code] = {
+          total_volume: vol,
+          passed,
+          failed,
+          quality_rate: calculatedRate,
+          target_rate: 90,
+          target_variance: calculatedRate !== null ? Number((calculatedRate - 90).toFixed(2)) : null,
+          days_with_data: match?.days_with_data ?? 0,
+          days_in_period: match?.days_in_period ?? 0,
+        };
+      } else {
+        units[code] = {
+          total_volume: null,
+          passed: null,
+          failed: null,
+          quality_rate: null,
+          target_rate: 90,
+          target_variance: null,
+          days_with_data: 0,
+          days_in_period: 0,
+        };
+      }
     });
+
+    const totalRate = monthTotalVolume > 0 ? Number(((monthTotalPassed / monthTotalVolume) * 100).toFixed(2)) : null;
+
+    row.total = hasMonthData ? {
+      total_volume: monthTotalVolume,
+      passed: monthTotalPassed,
+      failed: monthTotalFailed,
+      quality_rate: totalRate,
+      target_rate: 90,
+      target_variance: totalRate !== null ? Number((totalRate - 90).toFixed(2)) : null,
+    } : {
+      total_volume: null,
+      passed: null,
+      failed: null,
+      quality_rate: null,
+      target_rate: 90,
+      target_variance: null,
+    };
+
+    row.units = units;
     return row;
   });
 
@@ -217,3 +281,31 @@ export function processOverviewData(data = {}, meta = {}) {
     meta,
   };
 }
+
+/**
+ * Extracts a flattened series data array for a given unit from monthlyChartData.
+ * Format is completely aligned with getWeeklyTrendSeriesData.
+ */
+export function getMonthlyTrendSeriesData(chartData = [], unitKey = 'total') {
+  return chartData.map((row) => {
+    const entry = unitKey === 'total' || unitKey === 'WEEKLY_TREND_TOTAL_KEY'
+      ? row.total
+      : row.units?.[unitKey];
+
+    return {
+      period_id: row.month,
+      month: row.month,
+      label: row.label,
+      isCurrentMonth: row.isCurrentMonth,
+      total_volume: entry?.total_volume ?? null,
+      passed: entry?.passed ?? null,
+      failed: entry?.failed ?? null,
+      quality_rate: entry?.quality_rate ?? null,
+      target_rate: entry?.target_rate ?? 90,
+      target_variance: entry?.target_variance ?? null,
+      days_with_data: entry?.days_with_data ?? 0,
+      days_in_period: entry?.days_in_period ?? 0,
+    };
+  });
+}
+
