@@ -2117,3 +2117,7 @@ Antigravity replaced the first line chart with a volume-column + rate-line combo
 ## 2026-10-07 - F13-BCVH-WEEKLY-TREND-01 REOPENED
 
 PO instruction: reopen to finish remaining chart rework under the same ticket -- zoom/navigation for the Operation Dashboard day chart and a volume-column + rate-line combo chart for the BCVH Ranking monthly trend block (Antigravity UI, no backend change). Manifest Section 8.
+
+## 2026-10-07 - F13-BCVH-WEEKLY-TREND-01 RE-CLOSED / PO OK
+
+Reopened scope done and PO-checked: shared ChartRangeNavigator zoom/navigation for the Operation Dashboard day chart; BCVH Ranking monthly trend converted to a volume-column + rate-line chart (monthly block moved under the weekly chart). Frontend 228/228, build clean. Manifest: `docs/10_TICKETS/F13-BCVH-WEEKLY-TREND-01_MANIFEST.md` Section 8.1-9.

@@ -1,6 +1,6 @@
 # F13-BCVH-WEEKLY-TREND-01 — MANIFEST
 
-**Status:** REOPENED (2026-10-07, PO instruction) -- previously IMPLEMENTED / PO UI PASS / CLOSED (2026-10-07). Scope extended in Section 8; closes again only on a new PO UI PASS.
+**Status:** IMPLEMENTED / PO UI PASS / CLOSED (2026-10-07; reopened and re-closed the same day with extended scope, Section 8-9).
 **Executor:** Claude Code (Sonnet 5.5). Follows the closed F13-BCVH-MONTHLY-COMPARISON-01 and F13-BCVH-WEEKLY-COMPARISON-01 (neither reopened).
 
 ## 1. Product Owner request (chat, 2026-10-07)
@@ -54,3 +54,11 @@ Not done yet. PO checks the UI himself (no screenshots required from the executo
 ### 8.1 Item 1 done — Operation Dashboard day chart zoom/navigation (Antigravity, PO checked OK 2026-10-07)
 
 Delivered under the working name UI-DASH-DAILY-ZOOM-01 (same scope as item 1 above): shared `ChartRangeNavigator.jsx` + pure logic `chartRangeNav.js` (+ `ChartRangeNavigator.test.js`) in `frontend/src/features/dashboard/components/`; `IntegratedTrendRiskWorkspace.jsx` now wraps the day chart with the navigator (anchored wheel zoom via `plotMargins {left: 82, right: 94}`, range slider, 7 / 14 days / all presets, "Về ngày mới nhất (N-1)" button; no slider in the 7-day and by-BCVH modes); `BcvhWeeklyComboTrendChart.jsx` imports the shared navigator instead of its local copy (weekly chart behaviour unchanged). `ChartZoomFrame.jsx` untouched in this step. Claude Code re-ran validation: frontend ranking + dashboard component suites 226/226, vite build clean, oxlint 0 errors on touched files. Item 2 (BCVH Ranking monthly column chart) still pending; the ticket stays open.
+
+### 8.2 Item 2 done — BCVH Ranking monthly trend as column chart (Antigravity, PO checked OK 2026-10-07)
+
+`BcvhMonthlyTrendBlock` now renders the new `frontend/src/features/ranking/BcvhMonthlyComboTrendChart.jsx` (volume columns + rate line, default "Tổng cộng 6 BCVH", unit filter, current month marked as cumulative, no zoom needed for <=12 months) instead of 6 overlapping lines; the "Chi tiết số liệu theo tháng" table and heatmap legend are unchanged. `bcvhOverviewData.js`: `monthlyChartData` rows additionally carry per-BCVH volume/passed/failed/rate (`units`) and a `total` (summed passed / summed volume, never an average of rates; months without data stay null) plus `getMonthlyTrendSeriesData()`. Unrequested but accepted by PO: `BcvhRankingPage.jsx` moves the monthly block up, directly under the weekly block (above the global filter bar). `BcvhMultiSeriesTrendChart.jsx` is no longer used by any page after this change and is kept (its tests/props remain).
+
+## 9. Closure (2026-10-07, final)
+
+Both added items (day chart zoom, monthly column chart) were checked by the Product Owner and confirmed OK. Claude Code re-ran validation: frontend ranking + dashboard component suites 228/228, vite build clean, oxlint 0 errors on touched files. Accepted commits for the whole ticket: backend `585204c`; UI `24f0000`, `2d0eb40` and the monthly-chart commit; docs `7856f6d`, `5926a55`, `55f5fe7` and the closing commit. Final state: IMPLEMENTED / PO UI PASS / CLOSED. No further work is authorized under this ticket; any later change needs a new ticket or explicit reopening.
