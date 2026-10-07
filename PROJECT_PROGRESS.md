@@ -2105,3 +2105,11 @@ PO requested the cùng kỳ / cả tháng trước choice and optional previous-
 ## 2026-10-07 - F13-BCVH-MONTHLY-COMPARISON-01 CLOSED / PO UI PASS
 
 Product Owner personally checked the UI on BCVH Ranking (month comparison, cùng kỳ, block at top) and the Operation Dashboard BCVH table (cùng kỳ / cả tháng trước toggle, optional previous-month columns, controls outside the report card) and confirmed PASS. Accepted commits 7a5cebc, abc1df3, 37d0404, 2ee2b74. Manifest: `docs/10_TICKETS/F13-BCVH-MONTHLY-COMPARISON-01_MANIFEST.md`.
+
+## 2026-10-07 - F13-BCVH-WEEKLY-TREND-01 IMPLEMENTED / READY FOR PO UI CHECK
+
+PO asked to remove the BCVH Ranking daily trend block and replace it with a zoomable weekly trend chart under the weekly comparison table, driven only by the anchor-week filter plus its own unit filter. New GET /f13/ranking/bcvh/weekly-trend, BcvhWeeklyTrendBlock, shared chart extended. Backend 22/22, frontend 222/222, build clean. No PO UI PASS yet. Manifest: `docs/10_TICKETS/F13-BCVH-WEEKLY-TREND-01_MANIFEST.md`.
+
+## 2026-10-07 - F13-BCVH-WEEKLY-TREND-01 CLOSED / PO UI PASS
+
+Antigravity replaced the first line chart with a volume-column + rate-line combo chart (PO request); Product Owner personally checked the UI and confirmed PASS. Shared ChartZoomFrame zoom anchoring was also changed (Manifest Section 5). Frontend 223/223, backend 22/22, build clean. Manifest: `docs/10_TICKETS/F13-BCVH-WEEKLY-TREND-01_MANIFEST.md`.
