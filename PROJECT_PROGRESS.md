@@ -2092,3 +2092,12 @@ Product Owner reported imports ran normally with no abnormality seen, and instru
 ## 2026-10-03 - UI-CHART-DATA-LABELS-01 CLOSED / PO UI PASS
 
 Product Owner personally checked the chart data-label UI and confirmed PASS. Final scope: data labels and 30-day wheel zoom across the dashboard, ranking, quality-timeline and route charts; Antigravity label-placement tuning; dark labels on grey comparison bars; month-tab rank strip aligned to chart columns (zoom off there). Frontend 358/358 tests, build and lint clean. Manifest: `docs/10_TICKETS/UI-CHART-DATA-LABELS-01_MANIFEST.md`.
+
+
+## 2026-10-05 - F13-BCVH-MONTHLY-COMPARISON-01 IMPLEMENTED / READY FOR PO UI CHECK
+
+PO asked to add month comparison to the BCVH weekly comparison table: Tuần|Tháng switch in the same filter panel, calendar months, optional "cùng kỳ" tick with warning + suggestion, and the block moved to the top of BCVH Ranking. Backend months/monthly-comparison endpoints, frontend month mode, tests green (backend 21/21, frontend ranking 66/66, build clean). No PO UI PASS yet. Manifest: `docs/10_TICKETS/F13-BCVH-MONTHLY-COMPARISON-01_MANIFEST.md`.
+
+## 2026-10-07 - F13-BCVH-MONTHLY-COMPARISON-01 amended: Operation Dashboard BCVH table
+
+PO requested the cùng kỳ / cả tháng trước choice and optional previous-month figures on the Operation Dashboard BCVH table (10 -> optional 12 columns, PO-authorized). Additive backend field previous_full_month; tests green (frontend 219/219, backend 12/12). Awaiting PO UI check. See manifest Section 5.
