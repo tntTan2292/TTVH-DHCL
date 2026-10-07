@@ -439,3 +439,101 @@ export function previousMonthId(monthId) {
   const month = Number(match[2]);
   return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, '0')}`;
 }
+
+export const WEEKLY_TREND_TOTAL_KEY = 'TOTAL';
+export const QUALITY_TARGET_RATE = 90;
+
+/**
+ * Weekly trend chart rows (oldest first). One row per real week up to the anchor week:
+ * { week_id, label: 'Tuần 38' (adds '/27' when the ISO year differs from the anchor's), rangeLabel,
+ *   dataThroughNote, [ma_bcvh]: rate | null, TOTAL: rate | null, units: { [code]: { volume, passed, rate, failed } }, total: { volume, passed, rate, failed } }.
+ * Rates are the backend's percentages; a week without data stays null (gap), never a fake 0.
+ */
+export function buildWeeklyTrendChartData(weeks) {
+  if (!Array.isArray(weeks) || !weeks.length) return [];
+  const anchorYear = weeks[weeks.length - 1]?.iso_year;
+  return weeks.map((week) => {
+    const yearSuffix = week.iso_year && anchorYear && week.iso_year !== anchorYear
+      ? `/${String(week.iso_year).slice(-2)}`
+      : '';
+    const row = {
+      week_id: week.week_id,
+      iso_year: week.iso_year,
+      iso_week: week.iso_week,
+      week_start: week.week_start,
+      week_end: week.week_end,
+      display_start_date: week.display_start_date,
+      display_end_date: week.display_end_date,
+      is_in_progress: Boolean(week.is_in_progress),
+      last_data_date: week.last_data_date,
+      label: `Tuần ${week.iso_week}${yearSuffix}`,
+      rangeLabel: formatWeekDateRange(week.display_start_date, week.display_end_date),
+      dataThroughNote: week.is_in_progress && week.last_data_date
+        ? `Dữ liệu đến ngày ${formatDateVN(week.last_data_date)}`
+        : null,
+      units: {},
+      total: null,
+    };
+
+    Object.entries(week.units || {}).forEach(([code, unit]) => {
+      const vol = unit?.volume !== null && unit?.volume !== undefined ? Number(unit.volume) : null;
+      const pass = unit?.passed !== null && unit?.passed !== undefined ? Number(unit.passed) : null;
+      const rate = unit?.rate !== null && unit?.rate !== undefined ? Number(unit.rate) : null;
+      row[code] = rate;
+      row.units[code] = {
+        volume: vol,
+        passed: pass,
+        rate,
+        failed: vol !== null && pass !== null ? Math.max(0, vol - pass) : null,
+      };
+    });
+
+    const totalVol = week.total?.volume !== null && week.total?.volume !== undefined ? Number(week.total.volume) : null;
+    const totalPass = week.total?.passed !== null && week.total?.passed !== undefined ? Number(week.total.passed) : null;
+    const totalRate = week.total?.rate !== null && week.total?.rate !== undefined ? Number(week.total.rate) : null;
+    row[WEEKLY_TREND_TOTAL_KEY] = totalRate;
+    row.total = {
+      volume: totalVol,
+      passed: totalPass,
+      rate: totalRate,
+      failed: totalVol !== null && totalPass !== null ? Math.max(0, totalVol - totalPass) : null,
+    };
+
+    return row;
+  });
+}
+
+/**
+ * Extracts a normalized single-series dataset for either TOTAL or a specific BCVH unit code.
+ * Shape matches combo trendline expectations:
+ * { week_id, label, rangeLabel, dataThroughNote, is_in_progress, last_data_date,
+ *   total_volume, passed, failed, quality_rate, target_rate: 90, target_variance }.
+ */
+export function getWeeklyTrendSeriesData(chartRows = [], unitKey = WEEKLY_TREND_TOTAL_KEY) {
+  if (!Array.isArray(chartRows) || !chartRows.length) return [];
+  const isTotal = unitKey === WEEKLY_TREND_TOTAL_KEY;
+
+  return chartRows.map((row) => {
+    const item = isTotal ? row.total : row.units?.[unitKey];
+    const vol = item?.volume !== null && item?.volume !== undefined ? Number(item.volume) : null;
+    const pass = item?.passed !== null && item?.passed !== undefined ? Number(item.passed) : null;
+    const rate = item?.rate !== null && item?.rate !== undefined ? Number(item.rate) : null;
+    const failed = item?.failed !== null && item?.failed !== undefined ? Number(item.failed) : null;
+    const targetVariance = rate !== null ? Number((rate - QUALITY_TARGET_RATE).toFixed(2)) : null;
+
+    return {
+      week_id: row.week_id,
+      label: row.label,
+      rangeLabel: row.rangeLabel,
+      dataThroughNote: row.dataThroughNote,
+      is_in_progress: row.is_in_progress,
+      last_data_date: row.last_data_date,
+      total_volume: vol,
+      passed: pass,
+      failed,
+      quality_rate: rate,
+      target_rate: QUALITY_TARGET_RATE,
+      target_variance: targetVariance,
+    };
+  });
+}

@@ -15,7 +15,7 @@ import { renderRateLabel } from '../dashboard/components/ChartLabelRenderers.jsx
 import ChartZoomFrame from '../dashboard/components/ChartZoomFrame.jsx';
 import { LABEL_ALL_MAX_POINTS, selectLabelIndexes, selectLastIndex, sliceWindow, stackEndLabelOffsets } from '../dashboard/components/chartDataLabels.js';
 
-function CustomTooltip({ active, payload, label, nameMap, isMonthly, anchorDate }) {
+function CustomTooltip({ active, payload, label, nameMap, isMonthly, anchorDate, periodKind, codes, colorMap }) {
   if (!active || !payload || !payload.length) return null;
 
   const row = payload[0]?.payload || {};
@@ -24,7 +24,15 @@ function CustomTooltip({ active, payload, label, nameMap, isMonthly, anchorDate 
   return (
     <div className="rounded-xl border border-[var(--color-surface-200)] bg-white/95 p-3 text-xs shadow-lg backdrop-blur-sm">
       <div className="mb-2 font-semibold text-[var(--color-text-main)]">
-        {isMonthly ? `Tháng ${label}` : `Ngày ${label}`}
+        {periodKind === 'week' ? label : isMonthly ? `Tháng ${label}` : `Ngày ${label}`}
+        {periodKind === 'week' && row.rangeLabel ? (
+          <span className="ml-2 font-normal text-[var(--color-text-muted)]">{row.rangeLabel}</span>
+        ) : null}
+        {periodKind === 'week' && row.dataThroughNote ? (
+          <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+            {row.dataThroughNote}
+          </span>
+        ) : null}
         {isCurrent && anchorDate ? (
           <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
             Lũy kế đến {anchorDate}
@@ -32,9 +40,9 @@ function CustomTooltip({ active, payload, label, nameMap, isMonthly, anchorDate 
         ) : null}
       </div>
       <div className="space-y-1">
-        {CANONICAL_BCVH_CODES.map((code) => {
+        {codes.map((code) => {
           const val = row[code];
-          const color = BCVH_COLORS[code];
+          const color = colorMap[code];
           const name = nameMap[code] || CANONICAL_NAMES[code] || code;
 
           return (
@@ -61,6 +69,11 @@ export default function BcvhMultiSeriesTrendChart({
   isMonthly = false,
   anchorDate = null,
   height = 320,
+  // Series to draw (default: the 6 canonical BCVH). `periodKind` 'week' switches tooltip wording.
+  codes = CANONICAL_BCVH_CODES,
+  colorMap = BCVH_COLORS,
+  periodKind = null,
+  showLegendChips = true,
 }) {
   const [disabledCodes, setDisabledCodes] = useState({});
 
@@ -81,11 +94,11 @@ export default function BcvhMultiSeriesTrendChart({
 
   return (
     <div className="w-full">
-      <div className="mb-3 flex flex-wrap items-center justify-end gap-2 text-xs">
-        {CANONICAL_BCVH_CODES.map((code) => {
+      <div className={`mb-3 flex flex-wrap items-center justify-end gap-2 text-xs ${showLegendChips ? '' : 'hidden'}`}>
+        {codes.map((code) => {
           const disabled = disabledCodes[code];
-          const color = BCVH_COLORS[code];
-          const name = CANONICAL_NAMES[code] || code;
+          const color = colorMap[code];
+          const name = nameMap[code] || CANONICAL_NAMES[code] || code;
 
           return (
             <button
@@ -111,7 +124,7 @@ export default function BcvhMultiSeriesTrendChart({
       <ChartZoomFrame total={data.length} enabled={data.length > LABEL_ALL_MAX_POINTS}>
         {({ window }) => {
           const view = sliceWindow(data, window);
-          const activeCodes = CANONICAL_BCVH_CODES.filter((code) => !disabledCodes[code]);
+          const activeCodes = codes.filter((code) => !disabledCodes[code]);
           // Every point is labelled only when the view is small and few series are shown;
           // otherwise just the end of each line, so many lines never turn into a wall of text.
           const labelEveryPoint = activeCodes.length <= 2 && view.length <= LABEL_ALL_MAX_POINTS;
@@ -138,12 +151,19 @@ export default function BcvhMultiSeriesTrendChart({
                   />
                   <Tooltip
                     content={
-                      <CustomTooltip nameMap={nameMap} isMonthly={isMonthly} anchorDate={anchorDate} />
+                      <CustomTooltip
+                        nameMap={nameMap}
+                        isMonthly={isMonthly}
+                        anchorDate={anchorDate}
+                        periodKind={periodKind}
+                        codes={codes}
+                        colorMap={colorMap}
+                      />
                     }
                   />
                   <Legend content={() => null} />
                   {activeCodes.map((code) => {
-                    const color = BCVH_COLORS[code];
+                    const color = colorMap[code];
                     const name = nameMap[code] || CANONICAL_NAMES[code] || code;
                     const visible = labelEveryPoint ? selectLabelIndexes(view, code) : selectLastIndex(view, code);
 

@@ -113,25 +113,22 @@ test('verifies frontend source code contract for Phase F1', () => {
   assert.match(fetcherSource, /Không thể tải dữ liệu tổng quan BCVH/);
   assert.match(pageSource, /setOverviewRetrySeq/);
 
-  // Order of blocks: Daily -> Widget -> Table -> MTD -> Monthly -> Route Capacity
-  const posDaily = pageSource.indexOf('<BcvhDailyTrendBlock');
+  // Order of blocks: Widget -> Table -> MTD -> Monthly -> Route Capacity.
+  // F13-BCVH-WEEKLY-TREND-01: the old "Diễn biến theo ngày" block was removed (replaced by the weekly
+  // trend chart under the weekly comparison table).
   const posWidget = pageSource.indexOf('<KPICard {...summaryCards[0]} />');
   const posTable = pageSource.indexOf('<UnifiedBcvhAnalysisTable');
   const posMtd = pageSource.indexOf('<BcvhMtdSummaryBlock');
   const posMonthly = pageSource.indexOf('<BcvhMonthlyTrendBlock');
   const posRoute = pageSource.indexOf('<BcvhRouteCapacityBlock');
 
-  assert.ok(posDaily > 0, 'BcvhDailyTrendBlock exists');
-  assert.ok(posWidget > posDaily, 'Widget follows Daily block');
+  assert.doesNotMatch(pageSource, /BcvhDailyTrendBlock/);
+  assert.doesNotMatch(blocksSource, /Diễn biến theo ngày/);
+  assert.ok(posWidget > 0, 'Widget exists');
   assert.ok(posTable > posWidget, 'Table follows Widget');
   assert.ok(posMtd > posTable, 'MTD block follows Table');
   assert.ok(posMonthly > posMtd, 'Monthly block follows MTD block');
   assert.ok(posRoute > posMonthly, 'Route block follows Monthly block');
-
-  // Daily collapsed details (UI state only, no fetch)
-  assert.match(blocksSource, /<details open className="group/);
-  assert.match(blocksSource, /Dữ liệu đến N-1/);
-  assert.doesNotMatch(blocksSource, /Mặc định thu gọn/);
 
   // Headers MTD
   assert.match(blocksSource, /Hạng MTD/);

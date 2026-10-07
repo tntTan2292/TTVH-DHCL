@@ -1,4 +1,4 @@
-import { ChevronDown, Calendar, Route, BarChart3, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { Route, BarChart3, Clock, ArrowUp, ArrowDown } from 'lucide-react';
 import BcvhMultiSeriesTrendChart from './BcvhMultiSeriesTrendChart';
 import {
   DASH,
@@ -411,55 +411,5 @@ export function BcvhRouteCapacityBlock({ data }) {
         </table>
       </div>
     </div>
-  );
-}
-
-// 4. Daily Trend Block (Khối 2, Collapsed details default, UI toggle only)
-export function BcvhDailyTrendBlock({ data }) {
-  if (!data) return null;
-  const { dailyChartData, nameMap, meta } = data;
-  const anchorDate = meta?.anchor_date || null;
-  const periodLabel = meta?.month_period
-    ? `Ngày 01 đến ${anchorDate || meta.month_period.to_date}`
-    : 'Tháng hiện tại';
-
-  return (
-    <details open className="group rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm [&_summary::-webkit-details-marker]:hidden">
-      <summary className="flex cursor-pointer items-center justify-between p-5 transition-colors hover:bg-gray-50/80">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
-            <Calendar className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-[var(--color-text-main)]">
-                Diễn biến theo ngày ({periodLabel})
-              </h2>
-              <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-                Dữ liệu đến N-1
-              </span>
-            </div>
-            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-              Biểu đồ chi tiết theo từng ngày trong tháng hiện tại. Nhấp để xem/thu gọn.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-          <span className="hidden sm:inline">Chi tiết ngày</span>
-          <ChevronDown className="h-5 w-5 transition-transform duration-200 group-open:rotate-180 text-gray-400" />
-        </div>
-      </summary>
-
-      <div className="border-t border-gray-100 p-5">
-        <BcvhMultiSeriesTrendChart
-          data={dailyChartData}
-          nameMap={nameMap}
-          connectNulls={false}
-          isMonthly={false}
-          anchorDate={anchorDate}
-          height={280}
-        />
-      </div>
-    </details>
   );
 }

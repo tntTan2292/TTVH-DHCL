@@ -138,3 +138,39 @@ export function createMonthlyComparisonFetcher(apiClient, setComparisonState) {
     }
   };
 }
+
+// Weekly trend chart (F13-BCVH-WEEKLY-TREND-01): reloads only when the anchor ("tuần kỳ này") changes.
+export function createWeeklyTrendFetcher(apiClient, setTrendState) {
+  let currentRequestSeq = 0;
+
+  return async function fetchWeeklyTrend(anchorWeekId) {
+    if (!anchorWeekId) return;
+
+    const seq = ++currentRequestSeq;
+    setTrendState((prev) => ({ ...prev, status: 'loading', error: null }));
+
+    try {
+      const response = await apiClient.get('/f13/ranking/bcvh/weekly-trend', {
+        params: { week: anchorWeekId },
+      });
+      if (seq !== currentRequestSeq) return;
+
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.error?.message || 'Không thể tải biểu đồ theo tuần.');
+      }
+
+      setTrendState({
+        status: 'success',
+        weeks: response.data.data?.weeks || [],
+        error: null,
+      });
+    } catch (error) {
+      if (seq !== currentRequestSeq) return;
+      setTrendState({
+        status: 'error',
+        weeks: [],
+        error: error?.response?.data?.error?.message || error?.message || 'Không thể tải biểu đồ theo tuần.',
+      });
+    }
+  };
+}

@@ -23,6 +23,7 @@ import {
   formatRate,
   formatVolume,
 } from '../dashboard/components/bcvhOperationTableData';
+import BcvhWeeklyTrendBlock from './BcvhWeeklyTrendBlock';
 import {
   createMonthlyComparisonFetcher,
   createMonthsListFetcher,
@@ -397,6 +398,7 @@ export default function BcvhWeeklyComparisonBlock() {
   const headCompare = headerPeriod('compare');
 
   return (
+    <div className="w-full space-y-5">
     <section className="bcvh-weekly-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
       {/* PO Requirement 2: Dedicated, Independent Filter Toolbar (đưa lên trên cùng để không cản trở chụp ảnh bảng dữ liệu) */}
       <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 sm:p-4">
@@ -883,5 +885,9 @@ export default function BcvhWeeklyComparisonBlock() {
       ) : null}
       </div>
     </section>
+
+    {/* Biểu đồ diễn biến theo tuần: chỉ phụ thuộc mốc tuần hiện tại (selection.current) + bộ lọc đơn vị riêng */}
+    <BcvhWeeklyTrendBlock anchorWeekId={selection.current} anchorWeek={currentWeek} />
+    </div>
   );
 }

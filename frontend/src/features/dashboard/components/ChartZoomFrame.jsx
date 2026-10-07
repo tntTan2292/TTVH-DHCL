@@ -8,7 +8,7 @@ import { MIN_ZOOM_SPAN, fullWindow, isFullWindow, panWindow, zoomWindow } from '
  *
  * Page scroll is only captured while zooming in; scrolling down at full view still scrolls the page.
  */
-export default function ChartZoomFrame({ total, enabled = true, className = '', children }) {
+export default function ChartZoomFrame({ total, enabled = true, className = '', plotMargins = null, children }) {
   const canZoom = enabled && total > MIN_ZOOM_SPAN;
   const [state, setState] = useState({ total, window: null });
   const frameRef = useRef(null);
@@ -36,13 +36,22 @@ export default function ChartZoomFrame({ total, enabled = true, className = '', 
       if (!zoomIn && (!current || isFullWindow(current, total))) return; // let the page scroll
       event.preventDefault();
       const rect = node.getBoundingClientRect();
-      const anchorRatio = rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0.5;
+      const leftPad = plotMargins?.left || 0;
+      const rightPad = plotMargins?.right || 0;
+      const plotWidth = Math.max(1, rect.width - leftPad - rightPad);
+      const mouseX = event.clientX - rect.left - leftPad;
+      let anchorRatio = rect.width > 0 ? mouseX / plotWidth : 0.5;
+      anchorRatio = Math.max(0, Math.min(1, anchorRatio));
+      // Smart edge anchoring: if cursor is near the right edge (last weeks), keep pinned to end
+      if (anchorRatio >= 0.88) anchorRatio = 1;
+      else if (anchorRatio <= 0.12) anchorRatio = 0;
+
       setWindow(zoomWindow(current, total, { anchorRatio, zoomIn }));
     };
 
     node.addEventListener('wheel', onWheel, { passive: false });
     return () => node.removeEventListener('wheel', onWheel);
-  }, [canZoom, total, setWindow]);
+  }, [canZoom, total, setWindow, plotMargins?.left, plotMargins?.right]);
 
   const onPointerDown = (event) => {
     if (!zoomed || event.button !== 0) return;
@@ -78,7 +87,7 @@ export default function ChartZoomFrame({ total, enabled = true, className = '', 
       onPointerCancel={endDrag}
       onDoubleClick={() => canZoom && setWindow(null)}
     >
-      {children({ window: visibleWindow, isZoomed: zoomed })}
+      {children({ window: visibleWindow, isZoomed: zoomed, setWindow })}
       {canZoom ? (
         <div className="pointer-events-none absolute right-2 top-0.5 z-10 flex items-center gap-2 text-[10px] font-medium text-slate-400" data-chart-zoom-control>
           {zoomed ? (

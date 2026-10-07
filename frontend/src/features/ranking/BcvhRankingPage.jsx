@@ -9,7 +9,6 @@ import { buildBcvhOptions, validateBcvhUnits } from '../dashboard/components/das
 import { buildDoughnutAriaLabel, formatNumber, formatRate, formatSignedDelta, mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData';
 import { createOverviewFetcher } from './bcvhOverviewFetcher';
 import {
-  BcvhDailyTrendBlock,
   BcvhMonthlyTrendBlock,
   BcvhMtdSummaryBlock,
   BcvhRouteCapacityBlock,
@@ -339,8 +338,6 @@ export default function BcvhRankingPage() {
               }
             />
           </div>
-        ) : overviewState.processed ? (
-          <BcvhDailyTrendBlock data={overviewState.processed} />
         ) : null}
 
         {/* Single-day Ranking Table & Cards (Khối 5 - Unchanged) */}
