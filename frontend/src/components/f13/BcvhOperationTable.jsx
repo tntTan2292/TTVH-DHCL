@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../api/client';
 import {
   DASH,
@@ -40,7 +40,15 @@ function renderRateBadge(rate) {
 export default function BcvhOperationTable() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [tableModel, setTableModel] = useState(null);
+  const [rawData, setRawData] = useState(null);
+  // "Cùng kỳ" vs "cả tháng trước" (same choice as the BCVH Ranking month comparison) and whether to
+  // show the previous-month figures themselves as two extra columns.
+  const [prevMonthMode, setPrevMonthMode] = useState('same_period');
+  const [showPrevMonth, setShowPrevMonth] = useState(false);
+  const tableModel = useMemo(
+    () => (rawData ? processBcvhOperationTableData(rawData, { prevMonthMode }) : null),
+    [rawData, prevMonthMode],
+  );
   const [fitMode, setFitMode] = useState(true);
   const containerRef = useRef(null);
   const tableRef = useRef(null);
@@ -66,7 +74,7 @@ export default function BcvhOperationTable() {
     updateScale();
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
-  }, [fitMode, tableModel]);
+  }, [fitMode, tableModel, showPrevMonth]);
 
   useEffect(() => {
     let active = true;
@@ -79,8 +87,7 @@ export default function BcvhOperationTable() {
         if (!active) return;
 
         if (response.data && response.data.success) {
-          const model = processBcvhOperationTableData(response.data.data);
-          setTableModel(model);
+          setRawData(response.data.data);
         } else {
           throw new Error(response.data?.error?.message || 'Không thể tải dữ liệu bảng BCVH.');
         }
@@ -132,13 +139,49 @@ export default function BcvhOperationTable() {
     titleLine1,
     titleLine2,
     mtdHeaderContext,
+    prevMonthLabel,
     dailyHeaderContext,
     totalRow,
     rows,
   } = tableModel || processBcvhOperationTableData({});
+  const isFullPrevMonth = prevMonthMode === 'full_month';
+  const prevMonthShortLabel = isFullPrevMonth ? 'cả tháng trước' : 'cùng kỳ tháng trước';
 
   return (
-    <section className="bcvh-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
+    <div className="w-full space-y-3">
+      {/* Điều khiển nằm NGOÀI khối chụp ảnh điều hành (PO 2026-10-07): bảng bên dưới không chứa nút chức năng. */}
+      {/* So sánh tháng trước: cùng kỳ (N ngày đầu tháng) hoặc cả tháng trước; tùy chọn hiện số tháng trước */}
+      <div className="bcvh-operation-controls flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5">
+        <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Tùy chọn so sánh tháng trước</span>
+        <div className="flex flex-wrap items-center gap-3">
+        <div role="group" aria-label="Kiểu so sánh với tháng trước" className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5 shadow-xs">
+          {[['same_period', 'So sánh cùng kỳ'], ['full_month', 'So sánh cả tháng trước']].map(([mode, text]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setPrevMonthMode(mode)}
+              aria-pressed={prevMonthMode === mode}
+              className={`rounded-md px-3 py-1 text-xs font-bold transition-colors ${
+                prevMonthMode === mode ? 'bg-blue-700 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+        <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-bold text-slate-700">
+          <input
+            type="checkbox"
+            checked={showPrevMonth}
+            onChange={(e) => setShowPrevMonth(e.target.checked)}
+            className="h-4 w-4 cursor-pointer accent-blue-700"
+          />
+          Hiện số tháng trước
+        </label>
+        </div>
+      </div>
+
+      <section className="bcvh-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
       {/* Centered Capture-Ready Title (2 Lines) + Mobile View Controls */}
       <div className="mb-4 text-center border-b border-slate-200 pb-3 relative">
         <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug whitespace-normal sm:whitespace-nowrap">
@@ -182,19 +225,33 @@ export default function BcvhOperationTable() {
           <table ref={tableRef} className="w-full text-left border-collapse table-fixed min-w-[960px] lg:min-w-full">
           {/* 10-column locked colgroup (PO amendment 2026-09-22): Đơn vị (30%), Lũy kế tháng (30% = 3 * 10%), Điều hành ngày (40% = 4 * 10%) */}
           <colgroup>
-            {/* ĐƠN VỊ (30%) */}
-            <col style={{ width: '5%' }} className="w-[5%]" />
-            <col style={{ width: '8%' }} className="w-[8%]" />
-            <col style={{ width: '17%' }} className="w-[17%]" />
-            {/* LŨY KẾ THÁNG (30%) */}
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            {/* ĐIỀU HÀNH NGÀY (40%) */}
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '10%' }} className="w-[10%]" />
-            <col style={{ width: '10%' }} className="w-[10%]" />
+            {showPrevMonth ? (
+              <>
+                {/* 12 columns when previous-month figures are shown: 28% identity + 9 * 8% */}
+                <col style={{ width: '5%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '15%' }} />
+                {Array.from({ length: 9 }, (_, i) => (
+                  <col key={i} style={{ width: '8%' }} />
+                ))}
+              </>
+            ) : (
+              <>
+                {/* ĐƠN VỊ (30%) */}
+                <col style={{ width: '5%' }} className="w-[5%]" />
+                <col style={{ width: '8%' }} className="w-[8%]" />
+                <col style={{ width: '17%' }} className="w-[17%]" />
+                {/* LŨY KẾ THÁNG (30%) */}
+                <col style={{ width: '10%' }} className="w-[10%]" />
+                <col style={{ width: '10%' }} className="w-[10%]" />
+                <col style={{ width: '10%' }} className="w-[10%]" />
+                {/* ĐIỀU HÀNH NGÀY (40%) */}
+                <col style={{ width: '10%' }} className="w-[10%]" />
+                <col style={{ width: '10%' }} className="w-[10%]" />
+                <col style={{ width: '10%' }} className="w-[10%]" />
+                <col style={{ width: '10%' }} className="w-[10%]" />
+              </>
+            )}
           </colgroup>
 
           {/* Level 1: Grouped Headers */}
@@ -208,7 +265,7 @@ export default function BcvhOperationTable() {
                 <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-normal mt-0.5">6 BƯU CỤC VẬN HÀNH</div>
               </th>
               <th
-                colSpan={3}
+                colSpan={showPrevMonth ? 5 : 3}
                 className="bg-blue-100/90 text-blue-950 font-black uppercase tracking-wider text-center align-middle py-2.5 px-2 border-r border-blue-300 text-sm md:text-base whitespace-nowrap"
               >
                 <div>LŨY KẾ THÁNG</div>
@@ -247,9 +304,21 @@ export default function BcvhOperationTable() {
               <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
                 Tỷ lệ đạt KPI 2026
               </th>
+              {showPrevMonth ? (
+                <>
+                  <th className="py-2 px-1 text-center align-middle border-r border-slate-200 leading-snug">
+                    <span className="block">Sản lượng</span>
+                    <span className="block">{prevMonthLabel.toLowerCase().replace('tháng', 'T')} ({isFullPrevMonth ? 'cả tháng' : 'cùng kỳ'})</span>
+                  </th>
+                  <th className="py-2 px-1 text-center align-middle border-r border-slate-200 leading-snug">
+                    <span className="block">Tỷ lệ đạt</span>
+                    <span className="block">{prevMonthLabel.toLowerCase().replace('tháng', 'T')} ({isFullPrevMonth ? 'cả tháng' : 'cùng kỳ'})</span>
+                  </th>
+                </>
+              ) : null}
               <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-300 leading-snug">
                 <span className="block">Tăng/giảm so với</span>
-                <span className="block">cùng kỳ tháng trước</span>
+                <span className="block">{prevMonthShortLabel}</span>
               </th>
 
               {/* Điều hành ngày (40% = 4 * 10%) */}
@@ -290,6 +359,16 @@ export default function BcvhOperationTable() {
               <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap">
                 {renderRateBadge(totalRow.mtd_rate)}
               </td>
+              {showPrevMonth ? (
+                <>
+                  <td className="py-2.5 px-2 text-right font-black tabular-nums border-r border-blue-200 whitespace-nowrap">
+                    {totalRow.prev_month_volume === null ? DASH : formatVolume(totalRow.prev_month_volume)}
+                  </td>
+                  <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap">
+                    {renderRateBadge(totalRow.prev_month_rate)}
+                  </td>
+                </>
+              ) : null}
               <td className="py-2.5 px-2 text-right tabular-nums border-r border-slate-300 whitespace-nowrap">
                 {renderDeltaBadge(totalRow.mtd_delta_rate)}
               </td>
@@ -329,6 +408,16 @@ export default function BcvhOperationTable() {
                 <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap">
                   {renderRateBadge(row.mtd_rate)}
                 </td>
+                {showPrevMonth ? (
+                  <>
+                    <td className="py-2.5 px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap">
+                      {row.prev_month_volume === null ? DASH : formatVolume(row.prev_month_volume)}
+                    </td>
+                    <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap">
+                      {renderRateBadge(row.prev_month_rate)}
+                    </td>
+                  </>
+                ) : null}
                 <td className="py-2.5 px-2 text-right tabular-nums border-r border-slate-300 whitespace-nowrap">
                   {renderDeltaBadge(row.mtd_delta_rate)}
                 </td>
@@ -352,6 +441,7 @@ export default function BcvhOperationTable() {
         </table>
         </div>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

@@ -157,7 +157,10 @@ function calculateRate(passed, volume) {
  * @param {Object} data - Raw data payload from /f13/bcvh/overview
  * @returns {Object} Processed table model with title, header, totalRow, and canonical rows.
  */
-export function processBcvhOperationTableData(data = {}) {
+// prevMonthMode: 'same_period' (default, existing behaviour) compares the month-to-date with the same
+// first-N days of the previous month; 'full_month' compares with the whole previous calendar month.
+export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same_period' } = {}) {
+  const useFullPrevMonth = prevMonthMode === 'full_month';
   const meta = data?.meta || {};
   const rawMtd = Array.isArray(data?.mtd) ? data.mtd : [];
   const rawDaily = Array.isArray(data?.daily) ? data.daily : [];
@@ -196,6 +199,10 @@ export function processBcvhOperationTableData(data = {}) {
   const mtdRankStr = (mtdRankObj && mtdRankObj.rank && mtdRankObj.total)
     ? `${mtdRankObj.rank}/${mtdRankObj.total}`
     : DASH;
+  const prevMonthNumber = monthStr ? Number(monthStr) : null;
+  const prevMonthLabel = (prevMonthNumber && yearStr)
+    ? `THÁNG ${String(prevMonthNumber === 1 ? 12 : prevMonthNumber - 1).padStart(2, '0')}/${prevMonthNumber === 1 ? Number(yearStr) - 1 : yearStr}`
+    : `THÁNG ${DASH}`;
   const mtdHeaderContext = `${mtdPeriodLabel} • VỊ THỨ TOÀN QUỐC: ${mtdRankStr}`;
 
   // ĐIỀU HÀNH NGÀY: NGÀY DD/MM/YYYY • VỊ THỨ TOÀN QUỐC: x/tổng
@@ -236,7 +243,7 @@ export function processBcvhOperationTableData(data = {}) {
     const mtdPassed = mtdItem?.passed !== undefined && mtdItem?.passed !== null ? Number(mtdItem.passed) : 0;
     const mtdRate = mtdItem?.rate !== undefined && mtdItem?.rate !== null ? Number(mtdItem.rate) : calculateRate(mtdPassed, mtdVolume);
 
-    const prevMtd = mtdItem?.previous_month_to_date;
+    const prevMtd = useFullPrevMonth ? mtdItem?.previous_full_month : mtdItem?.previous_month_to_date;
     const prevMtdVolume = prevMtd?.volume !== undefined && prevMtd?.volume !== null ? Number(prevMtd.volume) : null;
     const prevMtdPassed = prevMtd?.passed !== undefined && prevMtd?.passed !== null ? Number(prevMtd.passed) : null;
     const prevMtdRate = prevMtd?.rate !== undefined && prevMtd?.rate !== null ? Number(prevMtd.rate) : calculateRate(prevMtdPassed, prevMtdVolume);
@@ -296,6 +303,8 @@ export function processBcvhOperationTableData(data = {}) {
       mtd_volume: mtdVolume,
       mtd_rate: mtdRate,
       mtd_delta_rate: mtdDeltaRate,
+      prev_month_volume: prevMtdVolume,
+      prev_month_rate: prevMtdRate,
       daily_volume: dailyVolume,
       daily_rate: dailyRate,
       daily_delta_rate: dailyDeltaRate,
@@ -355,6 +364,8 @@ export function processBcvhOperationTableData(data = {}) {
     mtd_volume: totalMtdVolume,
     mtd_rate: totalMtdRate,
     mtd_delta_rate: totalMtdDeltaRate,
+    prev_month_volume: hasValidPrevMtd ? totalPrevMtdVolume : null,
+    prev_month_rate: totalPrevMtdRate,
     daily_volume: hasValidDaily ? totalDailyVolume : 0,
     daily_rate: totalDailyRate,
     daily_delta_rate: totalDailyDeltaRate,
@@ -372,6 +383,8 @@ export function processBcvhOperationTableData(data = {}) {
     titleLine1: 'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH',
     titleLine2: `ĐẾN NGÀY ${formattedAnchorDate} (SỐ LIỆU GẦN NHẤT)`,
     mtdHeaderContext,
+    prevMonthMode: useFullPrevMonth ? 'full_month' : 'same_period',
+    prevMonthLabel,
     dailyHeaderContext,
     totalRow,
     rows,

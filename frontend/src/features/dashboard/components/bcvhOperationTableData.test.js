@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {
+  CANONICAL_BCVH_UNITS,
   DASH,
   formatDateVN,
   formatVolume,
@@ -430,8 +431,12 @@ test('PO layout: 10-column table-fixed colgroup with 10% cols 4-10 and 2-line he
   // 2. colgroup contains exactly 10 columns
   const colgroupBlock = tableSource.match(/<colgroup>([\s\S]*?)<\/colgroup>/);
   assert.ok(colgroupBlock, '<colgroup> exists in table');
-  const cols = [...colgroupBlock[1].matchAll(/<col[^>]*?width:\s*'([^']+)'[^>]*?\/>/g)].map((m) => m[1]);
-  assert.equal(cols.length, 10, 'colgroup defines exactly 10 columns');
+  // PO amendment 2026-10-07: an optional 12-column variant ("Hiện số tháng trước") exists; the default
+  // (previous-month figures hidden) branch must stay the locked 10-column layout asserted here.
+  const defaultColgroup = colgroupBlock[1].split(') : (')[1];
+  assert.ok(defaultColgroup, 'default (10-column) colgroup branch exists');
+  const cols = [...defaultColgroup.matchAll(/<col[^>]*?width:\s*'([^']+)'[^>]*?\/>/g)].map((m) => m[1]);
+  assert.equal(cols.length, 10, 'default colgroup defines exactly 10 columns');
 
   // Exact column width percentages:
   // ĐƠN VỊ (30%): 5%, 8%, 17%
@@ -453,7 +458,7 @@ test('PO layout: 10-column table-fixed colgroup with 10% cols 4-10 and 2-line he
   // 3. Header cột 6, 9 và 10 có đúng hai dòng cố định bằng span.block
   assert.match(
     tableSource,
-    /<th[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">cùng kỳ tháng trước<\/span>[\s\S]*?<\/th>/,
+    /<th[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">\{prevMonthShortLabel\}<\/span>[\s\S]*?<\/th>/,
     'Col 6 header explicitly split into 2 block lines'
   );
   assert.match(
@@ -549,3 +554,32 @@ test('PO layout: rate columns apply shared F1.3 Heatmap SSOT uniformly to totalR
   assert.match(tableSource, /\{renderDeltaBadge\(row\.daily_delta_rate\)\}/);
 });
 
+
+test('PO 2026-10-07: cùng kỳ vs cả tháng trước toggles the month-to-date delta; prev-month figures exposed', () => {
+  const data = {
+    mtd: CANONICAL_BCVH_UNITS.map((unit) => ({
+      ma_bcvh: unit.ma_bcvh, volume: 100, passed: 60, rate: 60,
+      previous_month_to_date: { volume: 100, passed: 70, rate: 70 },
+      previous_full_month: { volume: 1000, passed: 800, rate: 80 },
+    })),
+    daily: [],
+    meta: { anchor_date: '2026-10-06' },
+  };
+  const same = processBcvhOperationTableData(data);
+  assert.equal(same.prevMonthMode, 'same_period');
+  assert.equal(same.rows[0].mtd_delta_rate, -10);
+  assert.equal(same.rows[0].prev_month_rate, 70);
+  assert.equal(same.totalRow.prev_month_volume, 100 * CANONICAL_BCVH_UNITS.length);
+
+  const full = processBcvhOperationTableData(data, { prevMonthMode: 'full_month' });
+  assert.equal(full.prevMonthMode, 'full_month');
+  assert.equal(full.rows[0].mtd_delta_rate, -20);
+  assert.equal(full.rows[0].prev_month_rate, 80);
+  assert.equal(full.totalRow.prev_month_rate, 80);
+  assert.equal(full.prevMonthLabel, 'THÁNG 09/2026');
+
+  // Backend without previous_full_month -> dash, never a fabricated zero
+  const legacy = processBcvhOperationTableData({ ...data, mtd: data.mtd.map(({ previous_full_month: _omit, ...rest }) => rest) }, { prevMonthMode: 'full_month' });
+  assert.equal(legacy.rows[0].mtd_delta_rate, null);
+  assert.equal(legacy.totalRow.prev_month_volume, null);
+});
