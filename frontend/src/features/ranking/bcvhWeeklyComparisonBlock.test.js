@@ -14,11 +14,14 @@ test('Bảng mới độc lập: BcvhWeeklyComparisonBlock is completely decoupl
   assert.doesNotMatch(tableSource, /Tuần kỳ này/);
   assert.doesNotMatch(tableSource, /Tuần so sánh/);
 
-  // 2. BcvhWeeklyComparisonBlock is placed independently after overview blocks in BcvhRankingPage
+  // 2. PO 2026-10-05: the comparison block is the focal operations table, placed at the very top of
+  //    BcvhRankingPage (above the global filter bar and UnifiedBcvhAnalysisTable), still standalone.
   const posUnifiedTable = pageSource.indexOf('<UnifiedBcvhAnalysisTable');
   const posWeeklyBlock = pageSource.indexOf('<BcvhWeeklyComparisonBlock />');
+  const posGlobalFilter = pageSource.indexOf('<GlobalFilterBar');
   assert.ok(posUnifiedTable > 0, 'UnifiedBcvhAnalysisTable exists');
-  assert.ok(posWeeklyBlock > posUnifiedTable, 'BcvhWeeklyComparisonBlock is outside and after UnifiedBcvhAnalysisTable');
+  assert.ok(posWeeklyBlock > 0 && posWeeklyBlock < posGlobalFilter, 'BcvhWeeklyComparisonBlock is above GlobalFilterBar');
+  assert.ok(posWeeklyBlock < posUnifiedTable, 'BcvhWeeklyComparisonBlock is above UnifiedBcvhAnalysisTable');
 
   // 3. Has capture-ready title, grouped headers, 06 canonical rows, and TỔNG CỘNG row
   assert.match(blockSource, /BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1\.3 THEO TUẦN TẠI CÁC BCVH/);
@@ -29,7 +32,7 @@ test('Bảng mới độc lập: BcvhWeeklyComparisonBlock is completely decoupl
   assert.match(blockSource, /totalRow\.ten_bcvh/);
 
   // 4. Filter toolbar is placed above table title to optimize for report screenshot capture
-  const posFilter = blockSource.indexOf('Bộ lọc so sánh tuần độc lập');
+  const posFilter = blockSource.indexOf('Bộ lọc so sánh tuần/tháng độc lập');
   const posTitleInJsx = blockSource.indexOf('{titleLine1}');
   assert.ok(posFilter > 0, 'Filter toolbar exists');
   assert.ok(posTitleInJsx > 0, 'Table title exists in JSX');
@@ -44,7 +47,7 @@ test('Bộ lọc tuần riêng: independent from BcvhRankingPage GlobalFilterBar
   assert.doesNotMatch(blockSource, /GlobalFilterBar/);
 
   // Dedicated filter toolbar section
-  assert.match(blockSource, /Bộ lọc so sánh tuần độc lập/);
+  assert.match(blockSource, /Bộ lọc so sánh tuần\/tháng độc lập/);
   assert.match(blockSource, /label="Tuần kỳ này"/);
   assert.match(blockSource, /label="Tuần so sánh"/);
 });
@@ -135,3 +138,22 @@ test('Order các BCVH theo cột tỉ lệ đạt KPI 2026 của Tuần kỳ nà
   assert.match(blockSource, /renderSortableTh\('rate_delta'/);
 });
 
+
+test('Chế độ Tháng: công tắc Tuần/Tháng, tháng dương lịch, tick cùng kỳ, cảnh báo + đề xuất', () => {
+  const blockSource = read('./BcvhWeeklyComparisonBlock.jsx');
+
+  assert.match(blockSource, /\[\['week', 'Tuần'\], \['month', 'Tháng'\]\]/);
+  assert.match(blockSource, /label="Tháng kỳ này"/);
+  assert.match(blockSource, /label="Tháng so sánh"/);
+  assert.match(blockSource, /So sánh cùng kỳ/);
+  assert.match(blockSource, /type="checkbox"/);
+  assert.match(blockSource, /So sánh cùng kỳ tháng trước/);
+  assert.match(blockSource, /handleSamePrevMonthPreset/);
+  assert.match(blockSource, /checkMonthsDaysMismatch/);
+  assert.match(blockSource, /daysMismatch\.suggestion/);
+  assert.match(blockSource, /THEO THÁNG TẠI CÁC BCVH/);
+  assert.match(blockSource, /THÁNG KỲ NÀY/);
+  assert.match(blockSource, /THÁNG SO SÁNH/);
+  // Month mode stays independent of URL params / the global filter
+  assert.doesNotMatch(blockSource, /useSearchParams/);
+});

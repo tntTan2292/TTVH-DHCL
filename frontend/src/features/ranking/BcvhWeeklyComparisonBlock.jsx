@@ -23,10 +23,19 @@ import {
   formatRate,
   formatVolume,
 } from '../dashboard/components/bcvhOperationTableData';
-import { createWeeksListFetcher, createWeeklyComparisonFetcher } from './bcvhWeeklyComparisonFetcher';
 import {
+  createMonthlyComparisonFetcher,
+  createMonthsListFetcher,
+  createWeeksListFetcher,
+  createWeeklyComparisonFetcher,
+} from './bcvhWeeklyComparisonFetcher';
+import {
+  buildMonthOptions,
   buildWeekOptions,
+  checkMonthsDaysMismatch,
   checkWeeksDaysMismatch,
+  formatMonthLabel,
+  previousMonthId,
   formatDateVN,
   formatSignedVolumeDelta,
   formatWeekDataNote,
@@ -60,7 +69,7 @@ function renderRateBadge(rate) {
   );
 }
 
-function WeekSelect({ label, value, options, onChange, disabled }) {
+function WeekSelect({ label, value, options, onChange, disabled, emptyText = 'Chưa có dữ liệu tuần' }) {
   return (
     <label className="flex flex-col gap-1 text-xs font-bold text-slate-700">
       <span>{label}</span>
@@ -72,7 +81,7 @@ function WeekSelect({ label, value, options, onChange, disabled }) {
           disabled={disabled || !options.length}
           className="w-full cursor-pointer border-none bg-transparent text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {!options.length ? <option value="">Chưa có dữ liệu tuần</option> : null}
+          {!options.length ? <option value="">{emptyText}</option> : null}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -101,7 +110,16 @@ export default function BcvhWeeklyComparisonBlock() {
   const [defaultAnchorDate, setDefaultAnchorDate] = useState('');
   const [anchorNotice, setAnchorNotice] = useState(null);
   const [selection, setSelection] = useState({ current: '', compare: '' });
-  const [comparisonState, setComparisonState] = useState({ status: 'idle', data: null, error: null });
+  const [weekComparisonState, setComparisonState] = useState({ status: 'idle', data: null, error: null });
+
+  // Monthly mode (PO 2026-10-05): calendar months, optional "cùng kỳ" (same first-N-days) comparison.
+  const [periodMode, setPeriodMode] = useState('week');
+  const isMonth = periodMode === 'month';
+  const [monthsState, setMonthsState] = useState({ status: 'idle', months: [], error: null });
+  const [monthSelection, setMonthSelection] = useState({ current: '', compare: '' });
+  const [samePeriod, setSamePeriod] = useState(false);
+  const [monthComparisonState, setMonthComparisonState] = useState({ status: 'idle', data: null, error: null });
+  const comparisonState = isMonth ? monthComparisonState : weekComparisonState;
   const [fitMode, setFitMode] = useState(true);
 
   const containerRef = useRef(null);
@@ -221,11 +239,66 @@ export default function BcvhWeeklyComparisonBlock() {
     }
   }, [selection]);
 
+  // Monthly mode: months list loads lazily, the first time the user switches to "Tháng".
+  const fetchMonthsRef = useRef(null);
+  if (!fetchMonthsRef.current) fetchMonthsRef.current = createMonthsListFetcher(api, setMonthsState);
+  useEffect(() => {
+    if (isMonth && monthsState.status === 'idle') fetchMonthsRef.current();
+  }, [isMonth, monthsState.status]);
+
+  const monthOptions = useMemo(() => buildMonthOptions(monthsState.months), [monthsState.months]);
+
+  // Default: latest month vs the month before it.
+  useEffect(() => {
+    if (!monthOptions.length) return;
+    setMonthSelection((prev) => {
+      const validCurrent = monthOptions.some((o) => o.value === prev.current);
+      const validCompare = monthOptions.some((o) => o.value === prev.compare);
+      if (validCurrent && validCompare) return prev;
+      const latest = monthOptions[0];
+      const previous = monthOptions.length > 1 ? monthOptions[1] : latest;
+      return {
+        current: validCurrent ? prev.current : latest.value,
+        compare: validCompare ? prev.compare : previous.value,
+      };
+    });
+  }, [monthOptions]);
+
+  const fetchMonthComparisonRef = useRef(null);
+  if (!fetchMonthComparisonRef.current) fetchMonthComparisonRef.current = createMonthlyComparisonFetcher(api, setMonthComparisonState);
+  useEffect(() => {
+    if (isMonth && monthSelection.current && monthSelection.compare) {
+      fetchMonthComparisonRef.current(monthSelection.current, monthSelection.compare, samePeriod);
+    }
+  }, [isMonth, monthSelection, samePeriod]);
+
   const currentWeek = weekOptions.find((o) => o.value === selection.current)?.week || null;
   const compareWeek = weekOptions.find((o) => o.value === selection.compare)?.week || null;
+  const currentMonth = monthOptions.find((o) => o.value === monthSelection.current)?.month || null;
+  const compareMonth = monthOptions.find((o) => o.value === monthSelection.compare)?.month || null;
 
   // PO Requirement 5: Check if the two selected weeks have different days with data
-  const daysMismatch = useMemo(() => checkWeeksDaysMismatch(currentWeek, compareWeek), [currentWeek, compareWeek]);
+  const weekDaysMismatch = useMemo(() => checkWeeksDaysMismatch(currentWeek, compareWeek), [currentWeek, compareWeek]);
+  const monthDaysMismatch = useMemo(
+    () => checkMonthsDaysMismatch(currentMonth, compareMonth, samePeriod),
+    [currentMonth, compareMonth, samePeriod],
+  );
+  const daysMismatch = isMonth ? monthDaysMismatch : weekDaysMismatch;
+  // One-click preset (like the Operation Dashboard "so với cùng kỳ tháng trước" column): compare the
+  // selected month with the calendar month right before it, over the same first-N days.
+  const prevMonthOfCurrent = previousMonthId(monthSelection.current);
+  const prevMonthAvailable = monthOptions.some((o) => o.value === prevMonthOfCurrent);
+  const samePrevMonthActive = samePeriod && prevMonthAvailable && monthSelection.compare === prevMonthOfCurrent;
+  const handleSamePrevMonthPreset = () => {
+    if (samePrevMonthActive) {
+      setSamePeriod(false);
+      return;
+    }
+    if (!prevMonthAvailable) return;
+    setMonthSelection((prev) => ({ ...prev, compare: prevMonthOfCurrent }));
+    setSamePeriod(true);
+  };
+  const samePeriodMeta = isMonth ? comparisonState.data?.meta?.same_period : null;
 
   // Sorting: Default order BCVH by current week KPI rate (tỉ lệ đạt KPI 2026 của Tuần kỳ này) descending
   const [sortConfig, setSortConfig] = useState({ field: 'current_rate', direction: 'desc' });
@@ -281,8 +354,47 @@ export default function BcvhWeeklyComparisonBlock() {
   const currentWeekRange = currentWeek ? formatWeekDateRange(currentWeek.display_start_date, currentWeek.display_end_date) : '';
   const compareWeekRange = compareWeek ? formatWeekDateRange(compareWeek.display_start_date, compareWeek.display_end_date) : '';
 
-  const titleLine1 = 'BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO TUẦN TẠI CÁC BCVH';
-  const titleLine2 = `KỲ NÀY: ${currentWeek?.label || 'TUẦN HIỆN TẠI'} (${currentWeekRange || DASH}) • SO VỚI: ${compareWeek?.label || 'TUẦN SO SÁNH'} (${compareWeekRange || DASH})`;
+  // Month mode: when "cùng kỳ" is on, the table really covers the first N days of each month,
+  // so headers show those cut ranges (from backend meta), never the full-month range.
+  const monthRange = (month, cut) => {
+    if (cut) return formatWeekDateRange(cut.from, cut.to);
+    return month ? formatWeekDateRange(month.display_start_date, month.display_end_date) : '';
+  };
+  const currentMonthRange = monthRange(currentMonth, samePeriodMeta?.enabled ? samePeriodMeta.current_range : null);
+  const compareMonthRange = monthRange(compareMonth, samePeriodMeta?.enabled ? samePeriodMeta.compare_range : null);
+  const currentMonthName = currentMonth ? formatMonthLabel(currentMonth) : '';
+  const compareMonthName = compareMonth ? formatMonthLabel(compareMonth) : '';
+
+  const titleLine1 = isMonth
+    ? `BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO THÁNG TẠI CÁC BCVH${samePeriodMeta?.enabled ? ' (CÙNG KỲ)' : ''}`
+    : 'BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO TUẦN TẠI CÁC BCVH';
+  const titleLine2 = isMonth
+    ? `KỲ NÀY: ${currentMonthName || 'THÁNG HIỆN TẠI'} (${currentMonthRange || DASH}) • SO VỚI: ${compareMonthName || 'THÁNG SO SÁNH'} (${compareMonthRange || DASH})`
+    : `KỲ NÀY: ${currentWeek?.label || 'TUẦN HIỆN TẠI'} (${currentWeekRange || DASH}) • SO VỚI: ${compareWeek?.label || 'TUẦN SO SÁNH'} (${compareWeekRange || DASH})`;
+
+  // One descriptor per side so the shared table headers do not branch on week/month everywhere.
+  const headerPeriod = (side) => {
+    const week = side === 'current' ? currentWeek : compareWeek;
+    const month = side === 'current' ? currentMonth : compareMonth;
+    if (isMonth) {
+      const cut = side === 'current' ? samePeriodMeta?.current_range : samePeriodMeta?.compare_range;
+      const sameOn = Boolean(samePeriodMeta?.enabled && cut);
+      return {
+        name: side === 'current' ? currentMonthName : compareMonthName,
+        range: side === 'current' ? currentMonthRange : compareMonthRange,
+        yearText: '',
+        dataThrough: !sameOn && month?.is_in_progress ? month.last_data_date : null,
+      };
+    }
+    return {
+      name: week?.label,
+      range: side === 'current' ? currentWeekRange : compareWeekRange,
+      yearText: ` (Năm ${week?.iso_year || ''})`,
+      dataThrough: week?.is_in_progress && week?.last_data_date ? week.last_data_date : null,
+    };
+  };
+  const headCurrent = headerPeriod('current');
+  const headCompare = headerPeriod('compare');
 
   return (
     <section className="bcvh-weekly-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
@@ -292,15 +404,90 @@ export default function BcvhWeeklyComparisonBlock() {
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-blue-700" />
             <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">
-              Bộ lọc so sánh tuần độc lập
+              Bộ lọc so sánh tuần/tháng độc lập
             </span>
           </div>
-          <span className="text-[11px] font-medium text-slate-500">
-            Chu kỳ tuần 7 ngày (Thứ Năm → Thứ Tư)
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <div role="group" aria-label="Chọn kiểu kỳ so sánh" className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5 shadow-2xs">
+              {[['week', 'Tuần'], ['month', 'Tháng']].map(([mode, text]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setPeriodMode(mode)}
+                  aria-pressed={periodMode === mode}
+                  className={`rounded-md px-3 py-1 text-xs font-bold transition-colors ${
+                    periodMode === mode ? 'bg-blue-700 text-white shadow-2xs' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  {text}
+                </button>
+              ))}
+            </div>
+            <span className="text-[11px] font-medium text-slate-500">
+              {isMonth ? 'Tháng dương lịch (từ ngày 1 đến hết tháng)' : 'Chu kỳ tuần 7 ngày (Thứ Năm → Thứ Tư)'}
+            </span>
+          </div>
         </div>
 
-        <div className="mt-3.5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+        {isMonth ? (
+          <div className="mt-3.5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <WeekSelect
+                label="Tháng kỳ này"
+                value={monthSelection.current}
+                options={monthOptions}
+                emptyText="Chưa có dữ liệu tháng"
+                disabled={monthsState.status !== 'success'}
+                onChange={(value) => setMonthSelection((prev) => ({ ...prev, current: value }))}
+              />
+              <WeekNoteBadge week={currentMonth} />
+            </div>
+            <div>
+              <WeekSelect
+                label="Tháng so sánh"
+                value={monthSelection.compare}
+                options={monthOptions}
+                emptyText="Chưa có dữ liệu tháng"
+                disabled={monthsState.status !== 'success'}
+                onChange={(value) => setMonthSelection((prev) => ({ ...prev, compare: value }))}
+              />
+              <WeekNoteBadge week={compareMonth} />
+            </div>
+            <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={handleSamePrevMonthPreset}
+              disabled={!samePrevMonthActive && !prevMonthAvailable}
+              aria-pressed={samePrevMonthActive}
+              title="So sánh tháng đang chọn với tháng liền trước, cùng số ngày đầu tháng"
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold shadow-2xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                samePrevMonthActive
+                  ? 'border-blue-700 bg-blue-700 text-white'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              <CalendarRange className="h-3.5 w-3.5" />
+              So sánh cùng kỳ tháng trước
+            </button>
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:border-blue-400">
+              <input
+                type="checkbox"
+                checked={samePeriod}
+                onChange={(e) => setSamePeriod(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-blue-700"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span>So sánh cùng kỳ</span>
+                <span className="text-[11px] font-normal text-slate-500">
+                  Chỉ so sánh những ngày đầu tháng có dữ liệu ở cả hai tháng (ví dụ 01–05 của cả hai tháng).
+                </span>
+              </span>
+            </label>
+            </div>
+          </div>
+        ) : null}
+
+        <div className={`mt-3.5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3 ${isMonth ? 'hidden' : ''}`}>
           {/* Select Tuần kỳ này */}
           <div>
             <WeekSelect
@@ -391,18 +578,41 @@ export default function BcvhWeeklyComparisonBlock() {
             <div className="flex flex-wrap items-center gap-2">
               <span>{daysMismatch.message || 'Lưu ý: Hai tuần có số ngày dữ liệu khác nhau'}</span>
               <span className="rounded bg-amber-200/80 px-2 py-0.5 font-semibold text-amber-950">
-                {currentWeek?.label || 'Kỳ này'}: {daysMismatch.daysA} ngày · {compareWeek?.label || 'So sánh'}: {daysMismatch.daysB} ngày
+                {(isMonth ? currentMonthName : currentWeek?.label) || 'Kỳ này'}: {daysMismatch.daysA} ngày · {(isMonth ? compareMonthName : compareWeek?.label) || 'So sánh'}: {daysMismatch.daysB} ngày
               </span>
+              {daysMismatch.suggestion ? (
+                <span className="font-semibold text-amber-900">{daysMismatch.suggestion}</span>
+              ) : null}
             </div>
+          </div>
+        ) : null}
+
+        {/* "Cùng kỳ" đang bật: nói rõ khoảng ngày thực tế được so sánh */}
+        {isMonth && samePeriodMeta?.enabled ? (
+          <div className="mt-3.5 flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs font-bold text-emerald-900 shadow-2xs">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span>
+              Đang so sánh cùng kỳ {samePeriodMeta.day_count} ngày đầu tháng: {currentMonthName} ({currentMonthRange}) và {compareMonthName} ({compareMonthRange}).
+            </span>
           </div>
         ) : null}
       </div>
 
-      {weeksState.status === 'error' ? (
+      {isMonth && monthsState.status === 'error' ? (
+        <ErrorState title="Không thể tải danh sách tháng" description={monthsState.error} />
+      ) : null}
+
+      {isMonth && monthsState.status === 'success' && !monthsState.months.length ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500 font-medium">
+          Chưa có dữ liệu tháng.
+        </div>
+      ) : null}
+
+      {!isMonth && weeksState.status === 'error' ? (
         <ErrorState title="Không thể tải danh sách tuần" description={weeksState.error} />
       ) : null}
 
-      {weeksState.status === 'success' && !weeksState.weeks.length ? (
+      {!isMonth && weeksState.status === 'success' && !weeksState.weeks.length ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500 font-medium">
           Chưa có dữ liệu tuần.
         </div>
@@ -430,14 +640,14 @@ export default function BcvhWeeklyComparisonBlock() {
         </div>
 
         {comparisonState.status === 'error' ? (
-          <ErrorState title="Không thể so sánh hai tuần đã chọn" description={comparisonState.error} />
+          <ErrorState title={isMonth ? 'Không thể so sánh hai tháng đã chọn' : 'Không thể so sánh hai tuần đã chọn'} description={comparisonState.error} />
         ) : null}
 
         {comparisonState.status === 'loading' ? (
           <div className="flex h-32 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-6 text-slate-500">
             <div className="flex items-center gap-3 text-sm font-bold">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-              <span>Đang tải số liệu bảng so sánh tuần...</span>
+              <span>{isMonth ? 'Đang tải số liệu bảng so sánh tháng...' : 'Đang tải số liệu bảng so sánh tuần...'}</span>
             </div>
           </div>
         ) : null}
@@ -502,14 +712,14 @@ export default function BcvhWeeklyComparisonBlock() {
                       colSpan={3}
                       className="bg-blue-100/90 text-blue-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-blue-300 text-xs sm:text-sm md:text-base"
                     >
-                      <div className="leading-snug">TUẦN KỲ NÀY ({currentWeek?.label || 'KỲ NÀY'})</div>
+                      <div className="leading-snug">{isMonth ? 'THÁNG KỲ NÀY' : 'TUẦN KỲ NÀY'} ({headCurrent.name || 'KỲ NÀY'})</div>
                       <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
-                        {currentWeekRange} (Năm {currentWeek?.iso_year || ''})
+                        {headCurrent.range}{headCurrent.yearText}
                       </div>
-                      {currentWeek?.is_in_progress && currentWeek?.last_data_date ? (
+                      {headCurrent.dataThrough ? (
                         <div className="mt-1">
                           <span className="inline-block rounded bg-blue-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-blue-950 tracking-normal">
-                            Dữ liệu đến ngày {formatDateVN(currentWeek.last_data_date)}
+                            Dữ liệu đến ngày {formatDateVN(headCurrent.dataThrough)}
                           </span>
                         </div>
                       ) : null}
@@ -520,14 +730,14 @@ export default function BcvhWeeklyComparisonBlock() {
                       colSpan={3}
                       className="bg-emerald-100/90 text-emerald-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-emerald-300 text-xs sm:text-sm md:text-base"
                     >
-                      <div className="leading-snug">TUẦN SO SÁNH ({compareWeek?.label || 'SO SÁNH'})</div>
+                      <div className="leading-snug">{isMonth ? 'THÁNG SO SÁNH' : 'TUẦN SO SÁNH'} ({headCompare.name || 'SO SÁNH'})</div>
                       <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
-                        {compareWeekRange} (Năm {compareWeek?.iso_year || ''})
+                        {headCompare.range}{headCompare.yearText}
                       </div>
-                      {compareWeek?.is_in_progress && compareWeek?.last_data_date ? (
+                      {headCompare.dataThrough ? (
                         <div className="mt-1">
                           <span className="inline-block rounded bg-emerald-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-emerald-950 tracking-normal">
-                            Dữ liệu đến ngày {formatDateVN(compareWeek.last_data_date)}
+                            Dữ liệu đến ngày {formatDateVN(headCompare.dataThrough)}
                           </span>
                         </div>
                       ) : null}
@@ -540,7 +750,7 @@ export default function BcvhWeeklyComparisonBlock() {
                     >
                       <div className="leading-snug">SO SÁNH</div>
                       <div className="text-[11px] sm:text-xs font-semibold text-slate-600 tracking-normal mt-0.5 leading-snug">
-                        Kỳ này so với tuần so sánh
+                        {isMonth ? 'Kỳ này so với tháng so sánh' : 'Kỳ này so với tuần so sánh'}
                       </div>
                     </th>
                   </tr>

@@ -287,6 +287,10 @@ export default function BcvhRankingPage() {
       )}
     >
       <div className="space-y-5">
+        {/* Bảng trọng tâm điều hành (PO 2026-10-05): so sánh tuần/tháng, đặt trên cùng. Luồng tải riêng,
+            độc lập với bộ lọc chung bên dưới, /overview và khối 5. */}
+        <BcvhWeeklyComparisonBlock />
+
         <GlobalFilterBar
           fromDate={fromDate}
           toDate={toDate}
@@ -439,8 +443,6 @@ export default function BcvhRankingPage() {
           </>
         ) : null}
 
-        {/* So sánh chất lượng theo tuần -- luồng tải riêng, độc lập với /overview và khối 5 */}
-        <BcvhWeeklyComparisonBlock />
       </div>
     </PageContainer>
   );

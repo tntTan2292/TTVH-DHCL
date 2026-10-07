@@ -386,3 +386,56 @@ export function sortBcvhWeeklyRows(rows, { sortField = 'current_rate', direction
   });
 }
 
+
+/**
+ * Monthly comparison helpers (PO 2026-10-05): calendar months (dương lịch).
+ */
+export function formatMonthLabel(month) {
+  if (!month) return '';
+  return `Tháng ${month.month}/${month.year}`;
+}
+
+export function formatMonthRangeLabel(month) {
+  if (!month) return '';
+  const range = formatWeekDateRange(month.display_start_date, month.display_end_date);
+  return range ? `${formatMonthLabel(month)}: ${range}` : formatMonthLabel(month);
+}
+
+// Newest month first, label carries the real data range (in-progress months are cut to last data date).
+export function buildMonthOptions(months) {
+  if (!Array.isArray(months) || !months.length) return [];
+  return [...months]
+    .sort((a, b) => (b.month_start || '').localeCompare(a.month_start || ''))
+    .map((month) => ({
+      value: month.month_id,
+      label: formatMonthRangeLabel(month),
+      month,
+    }));
+}
+
+// Same rule as the weekly table (differing days_with_data), with a "cùng kỳ" suggestion.
+// Once the "cùng kỳ" tick is on both months are cut to the same N days, so no mismatch remains.
+export function checkMonthsDaysMismatch(monthA, monthB, samePeriod = false) {
+  if (samePeriod || !monthA || !monthB) return { isMismatch: false, message: '' };
+  const daysA = monthA.days_with_data !== undefined ? Number(monthA.days_with_data) : null;
+  const daysB = monthB.days_with_data !== undefined ? Number(monthB.days_with_data) : null;
+  if (daysA !== null && daysB !== null && daysA !== daysB) {
+    return {
+      isMismatch: true,
+      message: 'Lưu ý: Hai tháng có số ngày dữ liệu khác nhau',
+      suggestion: 'Đề xuất: tích "So sánh cùng kỳ" để so sánh cùng số ngày đầu tháng.',
+      daysA,
+      daysB,
+    };
+  }
+  return { isMismatch: false, message: '' };
+}
+
+// "YYYY-MM" of the calendar month before `monthId`; '' when the id is malformed.
+export function previousMonthId(monthId) {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(String(monthId || ''));
+  if (!match) return '';
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, '0')}`;
+}
