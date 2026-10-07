@@ -22,7 +22,8 @@ import {
 import { DASHBOARD_LABELS, DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
 import { ReferenceTargetLabel, renderRateLabel, renderVolumeBarLabel } from './ChartLabelRenderers';
 import ChartZoomFrame from './ChartZoomFrame';
-import { LABEL_STYLE, selectLabelIndexes, sliceWindow } from './chartDataLabels';
+import ChartRangeNavigator from './ChartRangeNavigator';
+import { LABEL_STYLE, MIN_ZOOM_SPAN, selectLabelIndexes, sliceWindow } from './chartDataLabels';
 import {
   buildIntegratedTrendRows,
   buildLeadershipComparisonWidgets,
@@ -38,6 +39,18 @@ const COLORS = {
   warning: DASHBOARD_SEMANTIC_COLORS.warning,
   unknown: DASHBOARD_SEMANTIC_COLORS.unknown,
 };
+
+function formatDayPointLabel(row, idx) {
+  if (!row) return `Ngày ${idx + 1}`;
+  if (row.dayLabel && row.current_date) return `${row.dayLabel} (${row.current_date})`;
+  if (row.current_date) return row.current_date;
+  if (row.date) {
+    const parts = row.date.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+    return row.date;
+  }
+  return `Ngày ${idx + 1}`;
+}
 
 function IntegratedTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -112,11 +125,49 @@ function MarkerShape({ cx, cy, payload }) {
 
 // Fixed frame; only the 30-day mode zooms (wheel / drag / double-click to reset) so the
 // per-point labels become readable without changing the card size.
+// Enhanced: smart cursor zoom anchoring (plotMargins { left: 82, right: 94 }),
+// horizontal pan slider, presets (14 days, 7 days, all), jump to latest (N-1) button.
 function TrendChart({ rows, mode }) {
+  const canZoom = mode === '30-days' && rows.length > MIN_ZOOM_SPAN;
+  const plotMargins = { left: 82, right: 94 };
+
   return (
-    <ChartZoomFrame total={rows.length} enabled={mode === '30-days'} className="h-[280px] lg:h-[300px] w-full">
-      {({ window }) => <TrendChartPlot rows={sliceWindow(rows, window)} mode={mode} />}
-    </ChartZoomFrame>
+    <div className="w-full">
+      <ChartZoomFrame
+        total={rows.length}
+        enabled={canZoom}
+        plotMargins={plotMargins}
+        className="w-full"
+      >
+        {({ window, isZoomed: _isZoomed, setWindow }) => {
+          const visibleRows = sliceWindow(rows, window);
+
+          return (
+            <div>
+              <div className="h-[280px] lg:h-[300px] w-full">
+                <TrendChartPlot rows={visibleRows} mode={mode} />
+              </div>
+              {canZoom ? (
+                <ChartRangeNavigator
+                  window={window}
+                  total={rows.length}
+                  rows={rows}
+                  unitNoun="ngày"
+                  presets={[
+                    { count: 14, label: '14 ngày gần nhất' },
+                    { count: 7, label: '7 ngày gần nhất' },
+                  ]}
+                  jumpLatestLabel="Về ngày mới nhất (N-1)"
+                  getPointLabel={formatDayPointLabel}
+                  onRangeChange={(nextWin) => setWindow?.(nextWin)}
+                  onReset={() => setWindow?.(null)}
+                />
+              ) : null}
+            </div>
+          );
+        }}
+      </ChartZoomFrame>
+    </div>
   );
 }
 

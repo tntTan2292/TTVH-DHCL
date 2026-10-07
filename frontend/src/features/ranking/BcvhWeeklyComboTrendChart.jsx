@@ -10,7 +10,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ChevronLeft, ChevronRight, FastForward, RotateCcw } from 'lucide-react';
 import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
 import { BCVH_COLORS, CANONICAL_NAMES, DASH } from './bcvhOverviewData.js';
 import {
@@ -23,8 +22,6 @@ import {
 import {
   LABEL_ALL_MAX_POINTS,
   MIN_ZOOM_SPAN,
-  isFullWindow,
-  panWindow,
   selectLabelIndexes,
   selectLastIndex,
   sliceWindow,
@@ -35,6 +32,7 @@ import {
   ReferenceTargetLabel,
 } from '../dashboard/components/ChartLabelRenderers.jsx';
 import ChartZoomFrame from '../dashboard/components/ChartZoomFrame.jsx';
+import ChartRangeNavigator from '../dashboard/components/ChartRangeNavigator.jsx';
 import {
   classifyF13HeatmapRate,
   F13_HEATMAP_HEX_COLOR,
@@ -154,162 +152,6 @@ function WeeklyComboTooltip({ active, payload, label, unitName, compact = false 
   );
 }
 
-/**
- * Interactive Horizontal Scroll & Range Navigator.
- * Solves user feedback:
- * 1. Quick presets to instantly view the latest weeks (Tuần 40) or all weeks.
- * 2. Horizontal scrollbar slider allowing smooth panning across history.
- * 3. One-click "Về tuần mới nhất" button to never lose Tuần 40 after zooming.
- */
-function ChartRangeNavigator({
-  window,
-  total,
-  rows = [],
-  onRangeChange,
-  onReset,
-}) {
-  const span = window.end - window.start + 1;
-  const isFull = isFullWindow(window, total);
-  const maxStart = Math.max(0, total - span);
-
-  const applyPreset = (count) => {
-    if (count >= total) {
-      onReset();
-      return;
-    }
-    // Always pin to the latest week (ending at total - 1)
-    onRangeChange({ start: total - count, end: total - 1 });
-  };
-
-  const panStep = (delta) => {
-    onRangeChange(panWindow(window, total, delta));
-  };
-
-  const jumpToLatest = () => {
-    onRangeChange({ start: Math.max(0, total - span), end: total - 1 });
-  };
-
-  const startLabel = rows[window.start]?.label || `Tuần ${window.start + 1}`;
-  const endLabel = rows[window.end]?.label || `Tuần ${window.end + 1}`;
-  const isAtLatest = window.end >= total - 1;
-
-  return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 p-2.5 text-xs shadow-2xs">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-bold text-slate-700">Khoảng xem nhanh:</span>
-          <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => onReset()}
-              className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                isFull ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              Tất cả ({total} tuần)
-            </button>
-            {total > 12 ? (
-              <button
-                type="button"
-                onClick={() => applyPreset(12)}
-                className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                  !isFull && span === 12 && isAtLatest
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                12 tuần gần nhất
-              </button>
-            ) : null}
-            {total > 6 ? (
-              <button
-                type="button"
-                onClick={() => applyPreset(6)}
-                className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                  !isFull && span === 6 && isAtLatest
-                    ? 'bg-blue-600 text-white shadow-2xs'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                6 tuần gần nhất
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-[11px]">
-          <span className="font-semibold text-slate-600">
-            Đang hiển thị: <span className="font-bold text-blue-700">{startLabel}</span> → <span className="font-bold text-blue-700">{endLabel}</span> ({span}/{total} tuần)
-          </span>
-          {!isAtLatest ? (
-            <button
-              type="button"
-              onClick={jumpToLatest}
-              className="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-blue-100/80 px-2 py-0.5 text-[11px] font-bold text-blue-800 shadow-2xs hover:bg-blue-200 transition-colors"
-              title="Nhảy ngay đến tuần mốc mới nhất"
-            >
-              <span>Về tuần mới nhất</span>
-              <FastForward size={12} />
-            </button>
-          ) : null}
-          {!isFull ? (
-            <button
-              type="button"
-              onClick={onReset}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 shadow-2xs hover:bg-slate-100"
-              title="Đặt lại xem toàn bộ tuần"
-            >
-              <RotateCcw size={11} />
-              <span>Đặt lại</span>
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Horizontal Pan & Slider Scrollbar */}
-      <div className="mt-2 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => panStep(-Math.max(1, Math.floor(span / 2)))}
-          disabled={window.start <= 0}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white font-bold text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white"
-          title="Cuộn sang các tuần cũ hơn"
-          aria-label="Cuộn sang tuần cũ hơn"
-        >
-          <ChevronLeft size={14} />
-        </button>
-
-        <div className="relative flex-1 py-1">
-          <input
-            type="range"
-            min={0}
-            max={maxStart}
-            value={window.start}
-            disabled={isFull}
-            onChange={(e) => {
-              const nextStart = Number(e.target.value);
-              onRangeChange({ start: nextStart, end: nextStart + span - 1 });
-            }}
-            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-40"
-            title="Kéo thanh cuộn để dịch chuyển khoảng tuần"
-            aria-label="Thanh cuộn ngang tuần"
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={() => panStep(Math.max(1, Math.floor(span / 2)))}
-          disabled={window.end >= total - 1}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white font-bold text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white"
-          title="Cuộn sang các tuần mới hơn"
-          aria-label="Cuộn sang tuần mới hơn"
-        >
-          <ChevronRight size={14} />
-        </button>
-      </div>
-    </div>
-  );
-}
 
 /**
  * Single-unit combo chart (Sản lượng cột + Tỷ lệ đường).
