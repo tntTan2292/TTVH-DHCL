@@ -2101,3 +2101,7 @@ PO asked to add month comparison to the BCVH weekly comparison table: Tuần|Th�
 ## 2026-10-07 - F13-BCVH-MONTHLY-COMPARISON-01 amended: Operation Dashboard BCVH table
 
 PO requested the cùng kỳ / cả tháng trước choice and optional previous-month figures on the Operation Dashboard BCVH table (10 -> optional 12 columns, PO-authorized). Additive backend field previous_full_month; tests green (frontend 219/219, backend 12/12). Awaiting PO UI check. See manifest Section 5.
+
+## 2026-10-07 - F13-BCVH-MONTHLY-COMPARISON-01 CLOSED / PO UI PASS
+
+Product Owner personally checked the UI on BCVH Ranking (month comparison, cùng kỳ, block at top) and the Operation Dashboard BCVH table (cùng kỳ / cả tháng trước toggle, optional previous-month columns, controls outside the report card) and confirmed PASS. Accepted commits 7a5cebc, abc1df3, 37d0404, 2ee2b74. Manifest: `docs/10_TICKETS/F13-BCVH-MONTHLY-COMPARISON-01_MANIFEST.md`.

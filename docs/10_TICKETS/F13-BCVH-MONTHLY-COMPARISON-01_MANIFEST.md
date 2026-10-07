@@ -1,6 +1,6 @@
 # F13-BCVH-MONTHLY-COMPARISON-01 — MANIFEST
 
-**Status:** IMPLEMENTED / TECH PASS / READY FOR PO UI CHECK (2026-10-05, amended 2026-10-07). No PO UI PASS claimed.
+**Status:** IMPLEMENTED / PO UI PASS / CLOSED (2026-10-07).
 **Scope:** two screens -- (A) BCVH Ranking comparison block (Section 1-4), (B) Operation Dashboard BCVH table (Sections 5-6).
 **Executor:** Claude Code (Sonnet 5.5). Extends the closed F13-BCVH-WEEKLY-COMPARISON-01; does not reopen it.
 
@@ -52,3 +52,7 @@ PO asked for the same cùng kỳ choice on the Operation Dashboard BCVH table (`
 | Operation Dashboard | `frontend/src/components/f13/BcvhOperationTable.jsx`, `frontend/src/features/dashboard/components/bcvhOperationTableData.js` (+ `.test.js`) | toggle, optional 12-column layout, controls panel outside the report card |
 
 Final validation (2026-10-07): frontend dashboard + ranking suites green (dashboard 152/152, ranking 67/67), backend `bcvhWeeklyComparisonService` / `bcvhOverviewService` / overview repository tests green, vite build clean, oxlint 0 errors on touched files. PO UI check still pending on both screens.
+
+## 8. Closure (2026-10-07)
+
+Product Owner personally checked the UI on both screens (BCVH Ranking month comparison; Operation Dashboard BCVH table with cùng kỳ / cả tháng trước toggle and controls outside the report card) and confirmed PO UI PASS. Final state: IMPLEMENTED / PO UI PASS / CLOSED. Accepted commits: `7a5cebc` (backend), `abc1df3` (BCVH Ranking UI), `37d0404` (Operation Dashboard UI), `2ee2b74` (docs). No further work is authorized under this ticket; any later change needs a new ticket or explicit reopening.
