@@ -140,6 +140,34 @@ class DashboardController {
         }
     }
 
+    async getBcvhMonths(req, res) {
+        try {
+            const result = await bcvhWeeklyComparisonService.listMonths();
+            res.status(200).json({ success: true, data: { months: result } });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: { code: error?.code || 'SERVER_ERROR', message: error.message },
+            });
+        }
+    }
+
+    async getBcvhMonthlyComparison(req, res) {
+        try {
+            const { month, compare_month: compareMonth, same_period: samePeriod } = req.query;
+            const result = await bcvhWeeklyComparisonService.compareMonths(month, compareMonth, {
+                samePeriod: samePeriod === '1' || samePeriod === 'true',
+            });
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            const status = ['MISSING_PARAM', 'INVALID_MONTH_ID', 'MONTH_NOT_FOUND'].includes(error?.code) ? 400 : 500;
+            res.status(status).json({
+                success: false,
+                error: { code: error?.code || 'SERVER_ERROR', message: error.message },
+            });
+        }
+    }
+
     async getRoute(req, res) {
         try {
             const { date, bcvh, sort, order, route_type } = req.query;

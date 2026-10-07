@@ -200,3 +200,91 @@ test('response schema never contains alert/warning/risk keys (PO decision 8, reu
         assert.equal(json.toLowerCase().includes(forbidden), false, `response must not contain "${forbidden}"`);
     });
 });
+
+function buildMonthRepository({ monthsRows, comparisonRows = [], onAggregate }) {
+    return {
+        getBcvhMonthsList: async () => monthsRows,
+        getBcvhWeeklyComparisonAggregate: async (boundsA, boundsB) => {
+            if (onAggregate) onAggregate(boundsA, boundsB);
+            return comparisonRows;
+        },
+    };
+}
+
+const MONTHS_ROWS = [
+    { month_start: '2026-09-01', first_date: '2026-09-01', last_date: '2026-09-30', days_with_data: 30 },
+    { month_start: '2026-10-01', first_date: '2026-10-01', last_date: '2026-10-05', days_with_data: 5 },
+];
+
+test('listMonths: calendar months, in-progress month is cut to the last real data date', async () => {
+    const service = new BcvhWeeklyComparisonService({ repository: buildMonthRepository({ monthsRows: MONTHS_ROWS }) });
+    const [sep, oct] = await service.listMonths();
+    assert.equal(sep.month_id, '2026-09');
+    assert.equal(sep.label, 'Tháng 9');
+    assert.equal(sep.month_end, '2026-09-30');
+    assert.equal(sep.is_in_progress, false);
+    assert.equal(sep.days_in_period, 30);
+    assert.equal(oct.month_end, '2026-10-31');
+    assert.equal(oct.display_end_date, '2026-10-05');
+    assert.equal(oct.is_in_progress, true);
+    assert.equal(oct.data_through_note, '2026-10-05');
+    assert.equal(oct.days_in_period, 5);
+});
+
+test('listMonths: December ends on 31/12 and February on its real last day', async () => {
+    const service = new BcvhWeeklyComparisonService({
+        repository: buildMonthRepository({
+            monthsRows: [
+                { month_start: '2027-02-01', first_date: '2027-02-01', last_date: '2027-02-28', days_with_data: 28 },
+                { month_start: '2026-12-01', first_date: '2026-12-01', last_date: '2026-12-31', days_with_data: 31 },
+            ],
+        }),
+    });
+    const [dec, feb] = await service.listMonths();
+    assert.equal(dec.month_end, '2026-12-31');
+    assert.equal(feb.month_end, '2027-02-28');
+    assert.equal(feb.is_in_progress, false);
+});
+
+test('compareMonths: without same_period compares the full real ranges', async () => {
+    let seen;
+    const service = new BcvhWeeklyComparisonService({
+        repository: buildMonthRepository({ monthsRows: MONTHS_ROWS, onAggregate: (a, b) => { seen = { a, b }; } }),
+    });
+    const result = await service.compareMonths('2026-10', '2026-09');
+    assert.deepEqual(seen.a, { from: '2026-10-01', to: '2026-10-05' });
+    assert.deepEqual(seen.b, { from: '2026-09-01', to: '2026-09-30' });
+    assert.equal(result.meta.same_period.enabled, false);
+    assert.equal(result.meta.current_month.month_id, '2026-10');
+});
+
+test('compareMonths: same_period cuts both months to the first N days (N = shorter data span)', async () => {
+    let seen;
+    const service = new BcvhWeeklyComparisonService({
+        repository: buildMonthRepository({ monthsRows: MONTHS_ROWS, onAggregate: (a, b) => { seen = { a, b }; } }),
+    });
+    const result = await service.compareMonths('2026-10', '2026-09', { samePeriod: true });
+    assert.deepEqual(seen.a, { from: '2026-10-01', to: '2026-10-05' });
+    assert.deepEqual(seen.b, { from: '2026-09-01', to: '2026-09-05' });
+    assert.equal(result.meta.same_period.enabled, true);
+    assert.equal(result.meta.same_period.day_count, 5);
+    assert.deepEqual(result.meta.same_period.compare_range, { from: '2026-09-01', to: '2026-09-05' });
+});
+
+test('compareMonths: TOTAL sums volume/passed; delta is absolute points', async () => {
+    const comparisonRows = CODES.map((code) => ({
+        ma_bcvh: code, ten_bcvh: `BCVH ${code}`, volume_a: 100, passed_a: 80, volume_b: 100, passed_b: 65,
+    }));
+    const service = new BcvhWeeklyComparisonService({ repository: buildMonthRepository({ monthsRows: MONTHS_ROWS, comparisonRows }) });
+    const result = await service.compareMonths('2026-10', '2026-09');
+    assert.equal(result.total_row.current.volume, 100 * CODES.length);
+    assert.equal(result.total_row.rate_delta, 15);
+    assert.equal(JSON.stringify(result).toLowerCase().includes('warning'), false);
+});
+
+test('compareMonths: validates ids', async () => {
+    const service = new BcvhWeeklyComparisonService({ repository: buildMonthRepository({ monthsRows: MONTHS_ROWS }) });
+    await assert.rejects(() => service.compareMonths('2026-10', undefined), { code: 'MISSING_PARAM' });
+    await assert.rejects(() => service.compareMonths('2026-13', '2026-09'), { code: 'INVALID_MONTH_ID' });
+    await assert.rejects(() => service.compareMonths('2026-10', '2099-01'), { code: 'MONTH_NOT_FOUND' });
+});

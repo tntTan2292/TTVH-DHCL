@@ -2,6 +2,7 @@ const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
 
 const WEEK_ID_RE = /^(\d{4})-W(\d{2})$/;
 const MS_PER_DAY = 86400000;
+const MONTH_ID_RE = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
 function shiftIsoDate(dateString, days) {
     const date = new Date(`${dateString}T00:00:00Z`);
@@ -152,8 +153,117 @@ class BcvhWeeklyComparisonService {
         const weekA = resolveOrThrow(weekIdA);
         const weekB = resolveOrThrow(weekIdB);
 
-        const boundsA = { from: weekA.display_start_date, to: weekA.display_end_date };
-        const boundsB = { from: weekB.display_start_date, to: weekB.display_end_date };
+        const comparison = await this._buildComparison(
+            { from: weekA.display_start_date, to: weekA.display_end_date },
+            { from: weekB.display_start_date, to: weekB.display_end_date },
+        );
+        return {
+            ...comparison,
+            meta: {
+                current_week: weekA,
+                compare_week: weekB,
+                canonical_bcvh_count: this.units.length,
+            },
+        };
+    }
+
+    // PO decision (2026-10-05): month = calendar month (dương lịch), 1st..last day.
+    // Same data-driven rule as weeks: a month whose last real fact date is short of its last
+    // calendar day is "in progress" and displays only the range that really has data.
+    _describeMonth(row) {
+        const monthStart = row.month_start;
+        const [yearStr, monthStr] = monthStart.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        const nextMonthStart = month === 12
+            ? `${year + 1}-01-01`
+            : `${yearStr}-${String(month + 1).padStart(2, '0')}-01`;
+        const monthEnd = shiftIsoDate(nextMonthStart, -1);
+        const lastDataDate = row.last_date;
+        const isInProgress = lastDataDate < monthEnd;
+        const displayEndDate = isInProgress ? lastDataDate : monthEnd;
+        return {
+            month_id: `${yearStr}-${monthStr}`,
+            year,
+            month,
+            label: `Tháng ${month}`,
+            month_start: monthStart,
+            month_end: monthEnd,
+            display_start_date: monthStart,
+            display_end_date: displayEndDate,
+            first_data_date: row.first_date,
+            last_data_date: lastDataDate,
+            days_with_data: Number(row.days_with_data || 0),
+            days_in_period: daysBetween(monthStart, displayEndDate) + 1,
+            is_in_progress: isInProgress,
+            data_through_note: isInProgress ? lastDataDate : null,
+        };
+    }
+
+    async listMonths() {
+        const rows = await this.repository.getBcvhMonthsList(this.codes);
+        return rows
+            .map((row) => this._describeMonth(row))
+            .sort((a, b) => (a.month_start < b.month_start ? -1 : a.month_start > b.month_start ? 1 : 0));
+    }
+
+    // samePeriod = "cùng kỳ": both months are cut to their first N days, N = the shorter of the two
+    // real data spans, so e.g. 1-5 Oct is compared with 1-5 Sep instead of the whole of September.
+    async compareMonths(monthIdA, monthIdB, { samePeriod = false } = {}) {
+        if (!monthIdA || !monthIdB) {
+            const error = new Error('month and compare_month are both required');
+            error.code = 'MISSING_PARAM';
+            throw error;
+        }
+        const months = await this.listMonths();
+        const monthMap = new Map(months.map((month) => [month.month_id, month]));
+
+        const resolveOrThrow = (monthId) => {
+            if (!MONTH_ID_RE.test(String(monthId))) {
+                const error = new Error('month id must be in YYYY-MM format');
+                error.code = 'INVALID_MONTH_ID';
+                throw error;
+            }
+            const described = monthMap.get(monthId);
+            if (!described) {
+                const error = new Error(`Tháng ${monthId} chưa có dữ liệu`);
+                error.code = 'MONTH_NOT_FOUND';
+                throw error;
+            }
+            return described;
+        };
+
+        const monthA = resolveOrThrow(monthIdA);
+        const monthB = resolveOrThrow(monthIdB);
+
+        let boundsA = { from: monthA.display_start_date, to: monthA.display_end_date };
+        let boundsB = { from: monthB.display_start_date, to: monthB.display_end_date };
+        let samePeriodMeta = { enabled: false };
+        if (samePeriod) {
+            const dayCount = Math.min(monthA.days_in_period, monthB.days_in_period);
+            boundsA = { from: monthA.month_start, to: shiftIsoDate(monthA.month_start, dayCount - 1) };
+            boundsB = { from: monthB.month_start, to: shiftIsoDate(monthB.month_start, dayCount - 1) };
+            samePeriodMeta = {
+                enabled: true,
+                day_count: dayCount,
+                current_range: { from: boundsA.from, to: boundsA.to },
+                compare_range: { from: boundsB.from, to: boundsB.to },
+            };
+        }
+
+        const comparison = await this._buildComparison(boundsA, boundsB);
+        return {
+            ...comparison,
+            meta: {
+                current_month: monthA,
+                compare_month: monthB,
+                same_period: samePeriodMeta,
+                canonical_bcvh_count: this.units.length,
+            },
+        };
+    }
+
+    async _buildComparison(boundsA, boundsB) {
         const rows = await this.repository.getBcvhWeeklyComparisonAggregate(boundsA, boundsB, this.codes);
         const rowByBcvh = new Map(rows.map((row) => [row.ma_bcvh, row]));
 
@@ -192,11 +302,6 @@ class BcvhWeeklyComparisonService {
                 compare: { volume: totalVolumeB, passed: totalPassedB, failed: totalVolumeB - totalPassedB, rate: totalRateB },
                 rate_delta: (totalRateA !== null && totalRateB !== null) ? Number((totalRateA - totalRateB).toFixed(4)) : null,
                 volume_delta: totalVolumeA - totalVolumeB,
-            },
-            meta: {
-                current_week: weekA,
-                compare_week: weekB,
-                canonical_bcvh_count: this.units.length,
             },
         };
     }

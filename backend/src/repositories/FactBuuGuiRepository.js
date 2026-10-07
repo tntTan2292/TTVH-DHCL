@@ -349,11 +349,21 @@ class FactBuuGuiRepository {
                         FROM day_bcvh, periods
                         WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.previous_end
                         GROUP BY ma_bcvh
+                    ),
+                    previous_full_agg AS (
+                        SELECT ma_bcvh,
+                               SUM(volume) AS previous_full_volume,
+                               SUM(passed) AS previous_full_passed
+                        FROM day_bcvh, periods
+                        WHERE ngay_do_kiem BETWEEN periods.previous_start AND date(periods.current_start, '-1 day')
+                        GROUP BY ma_bcvh
                     )
                     SELECT current_agg.*, previous_agg.previous_volume, previous_agg.previous_passed,
+                           previous_full_agg.previous_full_volume, previous_full_agg.previous_full_passed,
                            periods.anchor_date
                     FROM current_agg
                     LEFT JOIN previous_agg USING (ma_bcvh)
+                    LEFT JOIN previous_full_agg USING (ma_bcvh)
                     CROSS JOIN periods
                     ORDER BY current_agg.ma_bcvh ASC
                 `;
@@ -404,6 +414,29 @@ class FactBuuGuiRepository {
                 WHERE ma_bcvh IN (${placeholders})
                 GROUP BY week_start
                 ORDER BY week_start ASC
+            `;
+            db.all(sql, canonicalCodes, (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+    }
+
+    // Calendar month (dương lịch) list, same shape as getBcvhWeeksList but grouped by month_start.
+    getBcvhMonthsList(canonicalCodes = []) {
+        return new Promise((resolve, reject) => {
+            if (!canonicalCodes.length) return resolve([]);
+            const placeholders = canonicalCodes.map(() => '?').join(', ');
+            const sql = `
+                SELECT
+                    strftime('%Y-%m-01', ngay_do_kiem) AS month_start,
+                    MIN(ngay_do_kiem) AS first_date,
+                    MAX(ngay_do_kiem) AS last_date,
+                    COUNT(DISTINCT ngay_do_kiem) AS days_with_data
+                FROM fact_f13
+                WHERE ma_bcvh IN (${placeholders})
+                GROUP BY month_start
+                ORDER BY month_start ASC
             `;
             db.all(sql, canonicalCodes, (err, rows) => {
                 if (err) reject(err);

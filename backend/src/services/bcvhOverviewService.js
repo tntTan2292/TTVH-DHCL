@@ -159,6 +159,8 @@ class BcvhOverviewService {
             const passed = Number(row?.passed || 0);
             const previousVolume = Number(row?.previous_volume || 0);
             const previousPassed = Number(row?.previous_passed || 0);
+            const previousFullVolume = Number(row?.previous_full_volume || 0);
+            const previousFullPassed = Number(row?.previous_full_passed || 0);
             return {
                 ma_bcvh: unit.ma_bcvh,
                 ten_bcvh: unit.ten_bcvh,
@@ -171,6 +173,13 @@ class BcvhOverviewService {
                     volume: previousVolume,
                     passed: previousPassed,
                     rate: nullableRate(previousPassed, previousVolume),
+                },
+                // Whole previous calendar month (not cut to the same N days) -- lets the UI offer
+                // "cùng kỳ" vs "cả tháng trước" like the BCVH Ranking month comparison.
+                previous_full_month: {
+                    volume: previousFullVolume,
+                    passed: previousFullPassed,
+                    rate: nullableRate(previousFullPassed, previousFullVolume),
                 },
             };
         }));
