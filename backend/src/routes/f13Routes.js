@@ -21,6 +21,7 @@ router.get('/dashboard/meta', ...allowViewerRead, kpiController.getDashboardMeta
 router.get('/ranking/bcvh/overview', ...allowViewerRead, dashboardController.getBcvhOverview);
 router.get('/ranking/bcvh/weeks', ...allowViewerRead, dashboardController.getBcvhWeeks);
 router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, dashboardController.getBcvhWeeklyComparison);
+router.get('/ranking/bcvh/weekly-trend', ...allowViewerRead, dashboardController.getBcvhWeeklyTrend);
 router.get('/ranking/bcvh/months', ...allowViewerRead, dashboardController.getBcvhMonths);
 router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, dashboardController.getBcvhMonthlyComparison);
 router.get('/ranking/bcvh', ...allowViewerRead, dashboardController.getBcvh);

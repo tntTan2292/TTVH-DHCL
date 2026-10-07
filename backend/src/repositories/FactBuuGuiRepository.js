@@ -445,6 +445,31 @@ class FactBuuGuiRepository {
         });
     }
 
+    // Per custom week (Thu..Wed) x BCVH volume/passed over an inclusive date range, one GROUP BY pass.
+    // Same COUNT(ma_bg) / danh_gia_2026 = 'Đạt' definition as the weekly comparison.
+    getBcvhWeeklyTrendAggregate(fromDate, toDate, canonicalCodes = []) {
+        return new Promise((resolve, reject) => {
+            if (!canonicalCodes.length) return resolve([]);
+            const placeholders = canonicalCodes.map(() => '?').join(', ');
+            const sql = `
+                SELECT
+                    date(ngay_do_kiem, '-' || ((CAST(strftime('%w', ngay_do_kiem) AS INTEGER) - 4 + 7) % 7) || ' days') AS week_start,
+                    ma_bcvh,
+                    SUM(CASE WHEN ma_bg IS NOT NULL THEN 1 ELSE 0 END) AS volume,
+                    SUM(CASE WHEN ma_bg IS NOT NULL AND danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed
+                FROM fact_f13
+                WHERE ma_bcvh IN (${placeholders})
+                  AND ngay_do_kiem BETWEEN ? AND ?
+                GROUP BY week_start, ma_bcvh
+                ORDER BY week_start ASC, ma_bcvh ASC
+            `;
+            db.all(sql, [...canonicalCodes, fromDate, toDate], (err, rows) => {
+                if (err) reject(err);
+                else resolve(rows || []);
+            });
+        });
+    }
+
     // Two arbitrary (not necessarily adjacent) custom weeks, aggregated per BCVH in one query.
     // volume/passed follow the same denominator definition as every other BCVH overview query:
     // COUNT(ma_bg) and danh_gia_2026 = 'Đạt' (Design of Record §2.7/§5.3), expressed here as

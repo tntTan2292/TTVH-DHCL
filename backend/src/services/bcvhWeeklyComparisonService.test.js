@@ -288,3 +288,57 @@ test('compareMonths: validates ids', async () => {
     await assert.rejects(() => service.compareMonths('2026-13', '2026-09'), { code: 'INVALID_MONTH_ID' });
     await assert.rejects(() => service.compareMonths('2026-10', '2099-01'), { code: 'MONTH_NOT_FOUND' });
 });
+
+function buildTrendRepository({ weeksRows, trendRows, onTrend }) {
+    return {
+        getBcvhWeeksList: async () => weeksRows,
+        getBcvhWeeklyTrendAggregate: async (from, to) => {
+            if (onTrend) onTrend(from, to);
+            return trendRows;
+        },
+    };
+}
+
+const TREND_WEEKS = [
+    { week_start: '2026-09-03', first_date: '2026-09-03', last_date: '2026-09-09', days_with_data: 7 },
+    { week_start: '2026-09-10', first_date: '2026-09-10', last_date: '2026-09-16', days_with_data: 7 },
+    { week_start: '2026-09-17', first_date: '2026-09-17', last_date: '2026-09-21', days_with_data: 5 },
+];
+
+test('trendWeeks: weeks up to and including the anchor week, oldest first, per-BCVH rates + summed total', async () => {
+    let range;
+    const trendRows = [];
+    ['2026-09-03', '2026-09-10'].forEach((weekStart) => CODES.forEach((code, index) => {
+        trendRows.push({ week_start: weekStart, ma_bcvh: code, volume: index === 0 ? 1000 : 10, passed: index === 0 ? 900 : 5 });
+    }));
+    const service = new BcvhWeeklyComparisonService({
+        repository: buildTrendRepository({ weeksRows: TREND_WEEKS, trendRows, onTrend: (from, to) => { range = { from, to }; } }),
+    });
+    const result = await service.trendWeeks('2026-W37');
+    assert.deepEqual(result.weeks.map((w) => w.week_id), ['2026-W36', '2026-W37'], 'W38 is after the anchor and must be excluded');
+    assert.deepEqual(range, { from: '2026-09-03', to: '2026-09-16' });
+    assert.equal(result.weeks[0].units[CODES[0]].rate, 90);
+    assert.equal(result.weeks[0].units[CODES[1]].rate, 50);
+    assert.equal(result.weeks[0].total.volume, 1000 + 10 * 5);
+    assert.equal(result.weeks[0].total.rate, Number(((925 / 1050) * 100).toFixed(4)));
+    assert.equal(result.meta.anchor_week_id, '2026-W37');
+});
+
+test('trendWeeks: in-progress anchor week is cut to its real last data date; limit keeps the newest weeks', async () => {
+    let range;
+    const service = new BcvhWeeklyComparisonService({
+        repository: buildTrendRepository({ weeksRows: TREND_WEEKS, trendRows: [], onTrend: (from, to) => { range = { from, to }; } }),
+    });
+    const result = await service.trendWeeks('2026-W38', { limit: 2 });
+    assert.deepEqual(result.weeks.map((w) => w.week_id), ['2026-W37', '2026-W38']);
+    assert.equal(range.to, '2026-09-21');
+    assert.equal(result.weeks[1].is_in_progress, true);
+    assert.equal(result.weeks[1].units[CODES[0]].rate, null, 'no data -> null, never a fabricated 0');
+});
+
+test('trendWeeks: validates the anchor week', async () => {
+    const service = new BcvhWeeklyComparisonService({ repository: buildTrendRepository({ weeksRows: TREND_WEEKS, trendRows: [] }) });
+    await assert.rejects(() => service.trendWeeks(undefined), { code: 'MISSING_PARAM' });
+    await assert.rejects(() => service.trendWeeks('bad'), { code: 'INVALID_WEEK_ID' });
+    await assert.rejects(() => service.trendWeeks('2099-W01'), { code: 'WEEK_NOT_FOUND' });
+});

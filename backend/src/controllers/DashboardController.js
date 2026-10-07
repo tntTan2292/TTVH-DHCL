@@ -140,6 +140,20 @@ class DashboardController {
         }
     }
 
+    async getBcvhWeeklyTrend(req, res) {
+        try {
+            const { week, limit } = req.query;
+            const result = await bcvhWeeklyComparisonService.trendWeeks(week, { limit });
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            const status = ['MISSING_PARAM', 'INVALID_WEEK_ID', 'WEEK_NOT_FOUND'].includes(error?.code) ? 400 : 500;
+            res.status(status).json({
+                success: false,
+                error: { code: error?.code || 'SERVER_ERROR', message: error.message },
+            });
+        }
+    }
+
     async getBcvhMonths(req, res) {
         try {
             const result = await bcvhWeeklyComparisonService.listMonths();

@@ -167,6 +167,59 @@ class BcvhWeeklyComparisonService {
         };
     }
 
+    // Weekly trend (F13-BCVH-WEEKLY-TREND-01): per-BCVH rate for every real week up to and including
+    // the anchor week (newest `limit` weeks), oldest first. Driven only by the anchor week.
+    async trendWeeks(anchorWeekId, { limit = 52 } = {}) {
+        if (!anchorWeekId) {
+            const error = new Error('week is required');
+            error.code = 'MISSING_PARAM';
+            throw error;
+        }
+        const { weekId: normalizedId } = weekBoundsForWeekId(anchorWeekId); // throws INVALID_WEEK_ID
+        const weeks = await this.listWeeks();
+        const anchorIndex = weeks.findIndex((week) => week.week_id === normalizedId);
+        if (anchorIndex < 0) {
+            const error = new Error(`Tuần ${anchorWeekId} chưa có dữ liệu`);
+            error.code = 'WEEK_NOT_FOUND';
+            throw error;
+        }
+        const safeLimit = Math.max(1, Math.min(Number(limit) || 52, 104));
+        const selected = weeks.slice(Math.max(0, anchorIndex + 1 - safeLimit), anchorIndex + 1);
+        const rows = await this.repository.getBcvhWeeklyTrendAggregate(
+            selected[0].display_start_date,
+            selected[selected.length - 1].display_end_date,
+            this.codes,
+        );
+        const byWeekAndUnit = new Map(rows.map((row) => [`${row.week_start}|${row.ma_bcvh}`, row]));
+
+        const points = selected.map((week) => {
+            let totalVolume = 0;
+            let totalPassed = 0;
+            const units = {};
+            this.units.forEach((unit) => {
+                const row = byWeekAndUnit.get(`${week.week_start}|${unit.ma_bcvh}`);
+                const volume = Number(row?.volume || 0);
+                const passed = Number(row?.passed || 0);
+                totalVolume += volume;
+                totalPassed += passed;
+                units[unit.ma_bcvh] = { volume, passed, rate: nullableRate(passed, volume) };
+            });
+            return {
+                ...week,
+                units,
+                total: { volume: totalVolume, passed: totalPassed, rate: nullableRate(totalPassed, totalVolume) },
+            };
+        });
+        return {
+            weeks: points,
+            meta: {
+                anchor_week_id: normalizedId,
+                week_count: points.length,
+                canonical_bcvh_count: this.units.length,
+            },
+        };
+    }
+
     // PO decision (2026-10-05): month = calendar month (dương lịch), 1st..last day.
     // Same data-driven rule as weeks: a month whose last real fact date is short of its last
     // calendar day is "in progress" and displays only the range that really has data.
