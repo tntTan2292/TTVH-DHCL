@@ -1,6 +1,6 @@
 # F13-BCVH-WEEKLY-TREND-01 — MANIFEST
 
-**Status:** IMPLEMENTED / PO UI PASS / CLOSED (2026-10-07).
+**Status:** REOPENED (2026-10-07, PO instruction) -- previously IMPLEMENTED / PO UI PASS / CLOSED (2026-10-07). Scope extended in Section 8; closes again only on a new PO UI PASS.
 **Executor:** Claude Code (Sonnet 5.5). Follows the closed F13-BCVH-MONTHLY-COMPARISON-01 and F13-BCVH-WEEKLY-COMPARISON-01 (neither reopened).
 
 ## 1. Product Owner request (chat, 2026-10-07)
@@ -41,3 +41,12 @@ Shared-component impact to remember: `frontend/src/features/dashboard/components
 ## 7. Closure (2026-10-07)
 
 Final validation by Claude Code after Antigravity's change: frontend ranking + dashboard component suites 223/223, backend `bcvhWeeklyComparisonService.test.js` 22/22, vite build clean, oxlint 0 errors on touched files. Product Owner personally checked the UI and confirmed PO UI PASS. Final state: IMPLEMENTED / PO UI PASS / CLOSED. No further work is authorized under this ticket; any later change needs a new ticket or explicit reopening.
+
+## 8. Reopened (2026-10-07) — extended scope, "finish all chart rework under this ticket"
+
+PO instruction in chat: reopen this ticket and finish the remaining chart changes under it, then close again (instead of opening separate tickets). Added scope, executor Antigravity (UI/UX), no backend/API change:
+
+1. Operation Dashboard day-in-month chart (`dashboard/components/IntegratedTrendRiskWorkspace.jsx`, `QualityVolumeComboTrendlineAdapter.jsx`): add the same zoom/navigation as the BCVH Ranking weekly chart (anchored wheel zoom, horizontal range slider, quick ranges, "back to latest" button), reusing/extracting the `ChartRangeNavigator`; shared `ChartZoomFrame` must stay backward compatible.
+2. BCVH Ranking "Xu hướng chất lượng theo tháng (T01 đến tháng hiện tại)" block (`BcvhMonthlyTrendBlock` in `ranking/BcvhRankingOverviewBlocks.jsx`, currently 6 overlapping rate lines via `BcvhMultiSeriesTrendChart`): convert to a volume-column + rate-line combo chart like the weekly one (default Tổng cộng, unit filter), keeping the "Tháng hiện tại lũy kế đến …" note and real-data Y axis behaviour. Overview data already carries monthly volume/passed per BCVH.
+
+Not done yet. PO checks the UI himself (no screenshots required from the executor).

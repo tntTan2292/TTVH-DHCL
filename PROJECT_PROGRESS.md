@@ -2113,3 +2113,7 @@ PO asked to remove the BCVH Ranking daily trend block and replace it with a zoom
 ## 2026-10-07 - F13-BCVH-WEEKLY-TREND-01 CLOSED / PO UI PASS
 
 Antigravity replaced the first line chart with a volume-column + rate-line combo chart (PO request); Product Owner personally checked the UI and confirmed PASS. Shared ChartZoomFrame zoom anchoring was also changed (Manifest Section 5). Frontend 223/223, backend 22/22, build clean. Manifest: `docs/10_TICKETS/F13-BCVH-WEEKLY-TREND-01_MANIFEST.md`.
+
+## 2026-10-07 - F13-BCVH-WEEKLY-TREND-01 REOPENED
+
+PO instruction: reopen to finish remaining chart rework under the same ticket -- zoom/navigation for the Operation Dashboard day chart and a volume-column + rate-line combo chart for the BCVH Ranking monthly trend block (Antigravity UI, no backend change). Manifest Section 8.
