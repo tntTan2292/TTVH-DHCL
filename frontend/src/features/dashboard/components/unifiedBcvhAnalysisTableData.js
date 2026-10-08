@@ -207,6 +207,7 @@ export function mapBcvhRankingResponse(responseData = {}, context = {}) {
       ma_bcvh: context.maBcvh || 'all',
       search: context.search || '',
       evaluation_label: context.toDate ? `${buildContextDateLabel(context.toDate)}` : UNAVAILABLE_TEXT,
+      national_rank: responseData?.meta?.national_rank || null,
       pagination: responseData?.meta?.pagination || null,
     },
   };

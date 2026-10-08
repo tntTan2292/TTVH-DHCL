@@ -104,10 +104,16 @@ test('Heatmap renders backend national rank inline and keeps shared tooltip deta
   assert.doesNotMatch(heatmapSectionSource, /#\{day\.nationalRank|nationalRankLabel\}<\/span>/);
 });
 
-test('nationwide rank is not added to BCVH row ranking surfaces', () => {
+test('nationwide rank is not added to BCVH row ranking surfaces (only the table-level Huế rank in the header)', () => {
   const bcvhTableSource = read('./UnifiedBcvhAnalysisTable.jsx');
   const bcvhDataSource = read('./unifiedBcvhAnalysisTableData.js');
 
-  assert.doesNotMatch(bcvhTableSource, /national_rank|nationalRank|Xếp hạng toàn quốc Huế/);
-  assert.doesNotMatch(bcvhDataSource, /national_rank|nationalRank|Xếp hạng toàn quốc Huế/);
+  // PO 2026-10-08: the table header strip shows Huế's national rank for the selected range
+  // (meta.national_rank, like the Operation Dashboard "VỊ THỨ TOÀN QUỐC"). It is still never a per-BCVH
+  // row field: national rank only exists for Huế as a whole.
+  assert.doesNotMatch(bcvhTableSource, /row\??\.national_rank|nationalRank|Xếp hạng toàn quốc Huế/);
+  assert.doesNotMatch(bcvhDataSource, /nationalRank|Xếp hạng toàn quốc Huế/);
+  assert.match(bcvhTableSource, /meta\?\.national_rank/);
+  const rowMapperSource = bcvhDataSource.slice(0, bcvhDataSource.indexOf('export function mapBcvhRankingResponse'));
+  assert.doesNotMatch(rowMapperSource, /national_rank/);
 });

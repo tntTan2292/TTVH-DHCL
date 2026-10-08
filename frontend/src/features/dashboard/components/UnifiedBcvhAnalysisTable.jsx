@@ -560,6 +560,11 @@ export default function UnifiedBcvhAnalysisTable({
           <p className="text-xs text-[var(--color-text-muted)]">
             {TEXT.source} · {state.data?.meta?.evaluation_label || UNAVAILABLE_TEXT}
           </p>
+          <p className="mt-0.5 text-xs font-black text-rose-600">
+            {state.data?.meta?.national_rank
+              ? `VỊ THỨ TOÀN QUỐC: ${state.data.meta.national_rank.rank}/${state.data.meta.national_rank.total}`
+              : 'VỊ THỨ TOÀN QUỐC: —'}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge label="KPI 2026" tone="neutral" />
