@@ -37,7 +37,7 @@ Out: Tuyến Ranking and all route blocks (no route data), Action Center / Rule 
 | T5 | `/f41/ranking/bcvh` page | Antigravity | PO UI check (G3) | NOT STARTED (after T2, T3) |
 | T6 | Menu group, redirect, roles, navigation tests | Claude Code (Sonnet) | tests | NOT STARTED (after T4) |
 | T7 | Import 07/09–07/10 | **PO** | Claude Code row-count check | PO in progress |
-| T8 | Independent review of T1–T3 | Claude Code (Opus) | — | **DONE 2026-10-08 — FAIL (1 BLOCKER T8-F41-B1, frontend indicator state; backend PASS with NB)**: `docs/06_REVIEWS/Shared/F41-DASHBOARD-RANKING-01_REVIEW_001.md` |
+| T8 | Independent review of T1–T3 | Claude Code (Opus) | — | Round 1 FAIL (B1). **Round 2 2026-10-08: B1 CLOSED, F1.3 unchanged, NB3/NB4/NB5 closed, NB7 partly; new T8-F41-B2 (F4.1 monthly heatmap cells on F1.3 bands, `BcvhRankingOverviewBlocks.jsx:185`) blocks G3 only — T4/T5 may start.** `docs/06_REVIEWS/Shared/F41-DASHBOARD-RANKING-01_REVIEW_001.md` |
 
 PO gates: G0 plan approval (passed 2026-10-08); G1 backend reconciliation report (after T2); G2 Operation Dashboard UI; G3 BCVH Ranking UI.
 

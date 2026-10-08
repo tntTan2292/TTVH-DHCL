@@ -57,3 +57,31 @@ T4/T5 pages (not written), browser runtime, the authenticated live HTTP API, and
 ## Gate
 
 T4/T5 must not mount `IndicatorProvider` until B1 is fixed (Claude Code, a small foundation change). NB1/NB2 are already in the T4/T5 leak-sweep scope and must be clear before G2/G3. Backend T1/T2 needs no change for T4/T5.
+
+## Round 2 (2026-10-08, Claude Code / Opus 5.5)
+
+**Scope:** commits `2a8a574`, `4acec97`, `f264608`, `9ac813e` (after `0dd5a65`). Review only. No product-code edits, the live database was not opened, and the running backend was not touched.
+
+### Verdict: B1 CLOSED — round 2 FAIL (narrow) on one new F4.1-only BLOCKER, T8-F41-B2; T4/T5 may start
+
+| ID | Result | Evidence |
+| --- | --- | --- |
+| T8-F41-B1 | **CLOSED** | `activeIndicator.js` is deleted. `grep getActiveIndicator\|setActiveIndicator\|resolveIndicator` finds nothing outside unrelated `AutoBackfill*` code, and the indicator modules have no `let`/`var`. `IndicatorProvider` only returns `Context.Provider`. `api/client.js` is byte-identical to `53667e9` (diff 0 lines), so the global interceptor is gone. `useIndicatorApi()` returns the shared client itself for F1.3; for F4.1 it returns a frozen wrapper, cached per indicator id, which stores no request state. My probe (`renderToString`, axios adapter stubbed, no network) ran in order: (1) a discarded F4.1 provider render → `/f41/...`; (2) a provider-less F1.3 page right after → `f13:base`, `/f13/...`; (3) StrictMode F4.1 → wrapped `/f41`; (4) StrictMode F1.3 → base `/f13`; (5) F1.3 provider nested inside F4.1 → `f13:base`; (6) F1.3 again → `/f13`. After all renders, `classifyF13HeatmapRate(75)` = `band-green` (F1.3). F4.1 → F1.3 → F4.1 is therefore order-independent: there is nothing left to clear. The recharts dots and tooltip are rendered as elements and read `useIndicator()` themselves. |
+| F1.3 unchanged | **PASS** | Frontend `node --test $(find src -name "*.test.js")` → 594 tests, 593 pass. The only failure is `src/pages/dataImportBackfillQueue.test.js`, which already failed before this ticket. `vite build` succeeds; `oxlint` exits 0. In `53667e9..9ac813e`, the only frontend `*.test.js` files are the two this ticket added (`indicatorConfig.test.js`, `f41ContractParity.test.js`); no pre-existing test was edited. Every `classifyF13HeatmapRate` call without `bands` is in F1.3-only code (route page, operating pattern), which defaults to the F1.3 bands. |
+| T8-F41-NB3 | **CLOSED** | `rankRows` now sorts by the exact ratio. The round-1 repro now gives `533140 (68.44) #1, 537220 (68.36) #2`, and a new regression test covers it. |
+| T8-F41-NB4 | **CLOSED** | `summary` wraps the national rank and falls back to `null`. The round-1 repro now prints `summary OK`, and a new test covers it. |
+| T8-F41-NB5 | **CLOSED** | Daily-trend and overview-monthly/MTD `failed` are now asserted. The parity fixture uses 690 / 1832. Mutation re-run (in-memory monkey-patch): strict-failed now fails 3 tests (was 2, and the daily-trend test now catches it); the other 4 mutations are still caught. |
+| T8-F41-NB7 | **PARTLY CLOSED** | The manifest status line and the repository comment are corrected. Still stale: the manifest T1 row ("live-DB reconciliation pending PO go-ahead") and Section 7 "Not yet done …". Docs only, non-blocking. |
+| NB1 / NB2 / NB6 | Unchanged by design | NB1 ("KPI 2026" wording) and NB2 (analysis text) stay in the T4/T5 leak sweep. NB6 is pre-existing. |
+| **T8-F41-B2 (new)** | **BLOCKER for G3 (F4.1 only, no F1.3 effect)** | `frontend/src/features/ranking/BcvhRankingOverviewBlocks.jsx:185`: the monthly heatmap cells call `getApprovedWeekdayBand(m.rate)`, which wraps `classifyF13HeatmapRate(rate)` (`f13HeatmapBandCatalog.js:137`) with no `bands` argument, so F4.1 cells are always coloured on the F1.3 bands 70/60/50. The legend of the same block (`:142`) does use the F4.1 80/70/60 thresholds. In round 1 these cells followed the F4.1 bands through the module state, so removing that state lost this one caller. Repro: `getApprovedWeekdayBand(75)` → `band-green`, while `classifyF13HeatmapRate(75, F41_INDICATOR.heatmapBands)` → `band-pink` and the F4.1 legend reads "Tỷ lệ từ 80% trở lên". A 75% month is therefore shown green under a legend saying green ≥ 80%. Fix: pass `indicator.heatmapBands` through to this classification. It is a one-line, shared-code fix with no F1.3 effect. |
+
+### Commands (real results)
+
+- `node --experimental-sqlite --test` on the six F4.1 backend test files → 45/45. The round-2 backend diff touches only `FactF41Repository.js` (one comment line), `F41RankingService.js` and its test, so no F1.3 backend file changed.
+- Round-1 scratch repros: re-run, results quoted above. Mutation runner: 5/5 mutations caught.
+- Frontend: full suite 594/593/1, `vite build` succeeded, `oxlint` exit 0.
+- Probe for B1: discarded render, StrictMode, F1.3 ↔ F4.1, nested providers; results quoted above.
+
+### Gate
+
+T4/T5 may start. B2 must be fixed and NB1/NB2 cleared before the PO checks G2/G3. Routing note for T4/T6: `BcvhRankingPage` keeps its overview fetcher in a `useRef` and several effects have `[]` dependencies. Mount the F4.1 pages as their own route elements, as the T4/T5 prompt does, and do not switch the indicator on a mounted page instance. If one shared element is ever reused for both indicators, add `key={indicator.id}`.
