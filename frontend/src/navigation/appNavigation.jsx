@@ -13,6 +13,16 @@ const F13_GROUP = {
   ],
 };
 
+const F41_GROUP = {
+  title: 'F4.1 Quality Management',
+  name: 'F4.1 Quality Management',
+  icon: <Activity size={18} />,
+  subItems: [
+    { name: 'Operation Dashboard', path: '/f41/dashboard', icon: <Target size={18} /> },
+    { name: 'BCVH Ranking', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
+  ],
+};
+
 const QUALITY_MANAGEMENT_GROUP = {
   title: 'Quản lý chất lượng',
   icon: <Activity size={20} />,
@@ -20,7 +30,7 @@ const QUALITY_MANAGEMENT_GROUP = {
     { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
     { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
     F13_GROUP,
-    { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
+    F41_GROUP,
   ],
 };
 

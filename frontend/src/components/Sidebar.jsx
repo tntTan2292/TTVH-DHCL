@@ -36,7 +36,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
           ],
         },
-        { name: 'F4.1 Quality Management', path: '/f41', icon: <Activity size={18} /> },
+        {
+          title: 'F4.1 Quality Management',
+          name: 'F4.1 Quality Management',
+          icon: <Activity size={18} />,
+          subItems: [
+            { name: 'Operation Dashboard', path: '/f41/dashboard', icon: <Target size={18} /> },
+            { name: 'BCVH Ranking', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
+          ],
+        },
       ],
     },
     {

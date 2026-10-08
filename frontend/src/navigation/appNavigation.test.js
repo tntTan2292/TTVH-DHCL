@@ -51,9 +51,13 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in s
   assert.equal(f13.title, 'F1.3 Quality Management');
   assert.equal(Array.isArray(f13.subItems), true);
 
-  assert.equal(f41.name, 'F4.1 Quality Management');
-  assert.equal(f41.path, '/f41');
-  assert.deepEqual(toPlain(f41.roles), ['admin']);
+  assert.equal(f41.title, 'F4.1 Quality Management');
+  assert.deepEqual(toPlain(f41.subItems.map((item) => [item.name, item.path])), [
+    ['Operation Dashboard', '/f41/dashboard'],
+    ['BCVH Ranking', '/f41/ranking/bcvh'],
+  ]);
+  // F4.1 has no Tuyến Ranking / Evidence yet, and (PO-10) admin and viewer may both read it.
+  assert.equal(f41.roles, undefined);
 });
 
 test('Module 2 (Quản lý mạng lưới) retains all 5 network map sub-menus including postman catalog', () => {
@@ -100,16 +104,17 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
   assert.equal(adminNav[0].subItems[0].name, 'F1.1 Quality Management');
   assert.equal(adminNav[0].subItems[1].name, 'F1.2 Quality Management');
   assert.equal(adminNav[0].subItems[2].title, 'F1.3 Quality Management');
-  assert.equal(adminNav[0].subItems[3].name, 'F4.1 Quality Management');
+  assert.equal(adminNav[0].subItems[3].title, 'F4.1 Quality Management');
 
   const viewerNav = getNavigationForRole('viewer');
   assert.equal(viewerNav.length, 2, 'User thường (viewer) must only see Module 1 + Module 2');
   assert.match(viewerNav[0].title, /quản lý chất lượng/i);
   assert.match(viewerNav[1].title, /quản lý mạng lưới/i);
 
-  // In Module 1, viewer only sees completed F1.3
-  assert.equal(viewerNav[0].subItems.length, 1);
+  // In Module 1, viewer sees the two read-only report modules: F1.3 and F4.1 (PO-10)
+  assert.equal(viewerNav[0].subItems.length, 2);
   assert.equal(viewerNav[0].subItems[0].title, 'F1.3 Quality Management');
+  assert.equal(viewerNav[0].subItems[1].title, 'F4.1 Quality Management');
 
   // Module 3 is not present for viewer
   assert.equal(viewerNav.find((m) => /system administration/i.test(m.title)), undefined);
@@ -179,8 +184,8 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
     '/f13/evidence',
   ]);
 
-  assert.equal(qualityItems[3].name, 'F4.1 Quality Management');
-  assert.equal(qualityItems[3].path, '/f41');
+  assert.equal(qualityItems[3].title, 'F4.1 Quality Management');
+  assert.deepEqual(toPlain(qualityItems[3].subItems.map((item) => item.path)), ['/f41/dashboard', '/f41/ranking/bcvh']);
 
   // Verify Pareto and Message Center remain excluded
   const subItemsText = JSON.stringify(qualityItems);

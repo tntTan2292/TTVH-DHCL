@@ -11,7 +11,6 @@ import { ROLE_ADMIN, ROLE_VIEWER, getDefaultRouteForRole } from './auth/roles';
 
 import F11Quality from './pages/F11Quality';
 import F12Quality from './pages/F12Quality';
-import F41Quality from './pages/F41Quality';
 import DataImportCenter from './pages/DataImportCenter';
 import KpiConfiguration from './pages/KpiConfiguration';
 import SystemInformation from './pages/SystemInformation';
@@ -101,7 +100,7 @@ function App() {
 
             <Route path="f11" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F11Quality /></ProtectedRoute>} />
             <Route path="f12" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F12Quality /></ProtectedRoute>} />
-            <Route path="f41" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F41Quality /></ProtectedRoute>} />
+            <Route path="f41" element={<Navigate to="/f41/dashboard" replace />} />
             <Route path="f41/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41DashboardPage /></ProtectedRoute>} />
             <Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41BcvhRankingPage /></ProtectedRoute>} />
             <Route path="import" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><DataImportCenter /></ProtectedRoute>} />

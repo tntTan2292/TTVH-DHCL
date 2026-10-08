@@ -14,6 +14,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
     'Quản lý chất lượng': true,
     'QUẢN LÝ CHẤT LƯỢNG': true,
     'F1.3 Quality Management': true,
+    'F4.1 Quality Management': true,
     'Quản lý mạng lưới': false,
     'QUẢN LÝ MẠNG LƯỚI': false,
     'System Administration': false,
