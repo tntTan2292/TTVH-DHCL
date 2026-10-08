@@ -2121,3 +2121,19 @@ PO instruction: reopen to finish remaining chart rework under the same ticket --
 ## 2026-10-07 - F13-BCVH-WEEKLY-TREND-01 RE-CLOSED / PO OK
 
 Reopened scope done and PO-checked: shared ChartRangeNavigator zoom/navigation for the Operation Dashboard day chart; BCVH Ranking monthly trend converted to a volume-column + rate-line chart (monthly block moved under the weekly chart). Frontend 228/228, build clean. Manifest: `docs/10_TICKETS/F13-BCVH-WEEKLY-TREND-01_MANIFEST.md` Section 8.1-9.
+
+## 2026-10-07 - UI-BCVH-RANKING-DECLUTTER-01 IMPLEMENTED / READY FOR PO UI CHECK
+
+PO asked to remove redundant blocks on BCVH Ranking after the table/chart standardisation: the "Chất lượng tổng quan MTD" block removed (fully covered by the comparison table and the Operation Dashboard), the monthly heatmap kept but collapsed by default. Frontend only; 228/228 tests, build clean. No PO UI PASS yet. Manifest: `docs/10_TICKETS/UI-BCVH-RANKING-DECLUTTER-01_MANIFEST.md`.
+
+## 2026-10-08 - UI-BCVH-RANKING-DECLUTTER-01 scope extended: national rank on the new BCVH Ranking tables/charts
+
+PO asked to add the national rank (VỊ THỨ TOÀN QUỐC x/34, same rule as the Operation Dashboard) to the weekly/monthly comparison table header cards and to the weekly/monthly charts (Tổng cộng view) before closing the ticket. Additive backend meta.national_rank; frontend headers/tooltips; backend 37/37, frontend 230/230, build clean. Awaiting PO UI check. Manifest Section 5.
+
+## 2026-10-08 - UI-BCVH-RANKING-DECLUTTER-01: national rank audit of both modules
+
+Audited every table/chart of Operation Dashboard and BCVH Ranking; Operation Dashboard already complete, BCVH Ranking gained rank on the heatmap (bottom row), route capacity block, single-day ranking table header and the quality KPI card (plus the weekly/monthly table and charts added earlier). Additive meta.national_rank on /f13/ranking/bcvh; guard test narrowed to still forbid per-BCVH rank. Frontend 230/230, backend green, build clean. Manifest Section 5.1.
+
+## 2026-10-08 - UI-BCVH-RANKING-DECLUTTER-01 CLOSED / PO UI PASS
+
+PO checked and confirmed OK: MTD block removed, monthly heatmap collapsed, national rank added across the BCVH Ranking tables/charts (Operation Dashboard audited, already complete). Frontend 230/230, backend 69/69, build clean. Manifest: `docs/10_TICKETS/UI-BCVH-RANKING-DECLUTTER-01_MANIFEST.md` Section 6.
