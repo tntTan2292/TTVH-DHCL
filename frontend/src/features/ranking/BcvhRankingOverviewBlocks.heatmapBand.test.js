@@ -111,7 +111,7 @@ test('BCVH Ranking monthly heatmap still keeps rate, volume, coverage badge, and
 
 test('the 6-BCVH trend-line color palette (BCVH_COLORS) is untouched by the heatmap SSOT change', () => {
   const rankingSource = read('./BcvhRankingOverviewBlocks.jsx');
-  assert.match(rankingSource, /BCVH_COLORS\[row\.ma_bcvh\]/);
+  assert.match(rankingSource, /\.\.\.BCVH_COLORS/);
   const dataSource = read('./bcvhOverviewData.js');
   assert.match(dataSource, /export const BCVH_COLORS = Object\.freeze\(\{/);
 });

@@ -80,6 +80,11 @@ function MonthlyComboTooltip({ active, payload, label, unitName, anchorDate = nu
           <span>{point.month ? `Tháng ${parseInt(point.month.slice(5), 10)}/${point.month.slice(0, 4)}` : label}</span>
           {unitName ? <span className="text-[11px] font-semibold text-slate-500">{unitName}</span> : null}
         </div>
+        {point.national_rank ? (
+          <div className="mt-0.5 text-[11px] font-bold text-rose-600">
+            Vị thứ toàn quốc: {point.national_rank.rank}/{point.national_rank.total}
+          </div>
+        ) : null}
         {isCurrent ? (
           <div className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
             <span>Tháng hiện tại lũy kế{anchorDate ? ` đến ${anchorDate}` : ''}</span>

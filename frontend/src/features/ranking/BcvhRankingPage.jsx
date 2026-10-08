@@ -6,11 +6,11 @@ import { GlobalFilterBar } from '../../components/shared/SharedLayout';
 import api from '../../api/client';
 import UnifiedBcvhAnalysisTable from '../dashboard/components/UnifiedBcvhAnalysisTable';
 import { buildBcvhOptions, validateBcvhUnits } from '../dashboard/components/dashboardFilterOptions';
+import { formatNationalRank } from './bcvhWeeklyComparisonData';
 import { buildDoughnutAriaLabel, formatNumber, formatRate, formatSignedDelta, mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData';
 import { createOverviewFetcher } from './bcvhOverviewFetcher';
 import {
   BcvhMonthlyTrendBlock,
-  BcvhMtdSummaryBlock,
   BcvhRouteCapacityBlock,
 } from './BcvhRankingOverviewBlocks';
 import BcvhWeeklyComparisonBlock from './BcvhWeeklyComparisonBlock';
@@ -253,7 +253,10 @@ export default function BcvhRankingPage() {
       label: 'Chất lượng F1.3',
       value: formatRate(summaryRow?.current_day.rate),
       delta: `D-1 ${formatSignedDelta(summaryRow?.comparisons?.d1?.rate_delta, 'điểm %')} · D-7 ${formatSignedDelta(summaryRow?.comparisons?.d7?.rate_delta, 'điểm %')}`,
-      trend: summaryRow?.current_day?.signal?.label || undefined,
+      trend: [
+        summaryRow?.current_day?.signal?.label,
+        formatNationalRank(rankingState.data?.meta?.national_rank) ? `Vị thứ toàn quốc ${formatNationalRank(rankingState.data.meta.national_rank)}` : null,
+      ].filter(Boolean).join(' • ') || undefined,
       tone: toneFromKpi(summaryRow?.current_day.rate),
     },
     {
@@ -434,9 +437,6 @@ export default function BcvhRankingPage() {
         {/* Phase F1 - Khối Overview 4, 6 */}
         {overviewState.processed ? (
           <>
-            {/* Khối 3: Chất lượng tổng quan MTD */}
-            <BcvhMtdSummaryBlock data={overviewState.processed} />
-
             {/* Khối 4: Năng lực và chất lượng tuyến */}
             <BcvhRouteCapacityBlock data={overviewState.processed} />
           </>

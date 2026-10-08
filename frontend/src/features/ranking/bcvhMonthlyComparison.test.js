@@ -175,3 +175,40 @@ test('monthly trend block contract: combo bar/line chart with unit filter, small
   assert.match(monthlyChart, /isCurrentMonth/);
 });
 
+
+test('national rank (x/34): formatting, weekly + monthly chart rows carry it for the TOTAL series only', async () => {
+  const { formatNationalRank, formatNationalRankLabel, getWeeklyTrendSeriesData } = await import('./bcvhWeeklyComparisonData.js');
+  const { processOverviewData, getMonthlyTrendSeriesData } = await import('./bcvhOverviewData.js');
+
+  assert.equal(formatNationalRank({ rank: 21, total: 34 }), '21/34');
+  assert.equal(formatNationalRank(null), null);
+  assert.equal(formatNationalRankLabel({ rank: 21, total: 34 }), 'VỊ THỨ TOÀN QUỐC: 21/34');
+  assert.equal(formatNationalRankLabel(null), 'VỊ THỨ TOÀN QUỐC: —');
+
+  const weekRows = buildWeeklyTrendChartData([
+    { ...TREND_WEEKS[0], national_rank: { rank: 30, total: 34 }, units: { 533140: { volume: 10, passed: 6, rate: 60 } }, total: { volume: 10, passed: 6, rate: 60 } },
+  ]);
+  assert.deepEqual(weekRows[0].national_rank, { rank: 30, total: 34 });
+  assert.deepEqual(getWeeklyTrendSeriesData(weekRows, WEEKLY_TREND_TOTAL_KEY)[0].national_rank, { rank: 30, total: 34 });
+  assert.equal(getWeeklyTrendSeriesData(weekRows, '533140')[0].national_rank, null, 'a single BCVH has no national rank');
+
+  const processed = processOverviewData(
+    { monthly: [{ month: '2026-10', ma_bcvh: '533140', volume: 10, passed: 6, rate: 60, days_with_data: 6, days_in_period: 6 }], daily: [], mtd: [], routes: [] },
+    { anchor_date: '2026-10-06', national_rank: { monthly: { '2026-10': { rank: 21, total: 34 } } } },
+  );
+  assert.deepEqual(processed.monthlyChartData[0].national_rank, { rank: 21, total: 34 });
+  assert.deepEqual(getMonthlyTrendSeriesData(processed.monthlyChartData, 'total')[0].national_rank, { rank: 21, total: 34 });
+  assert.equal(getMonthlyTrendSeriesData(processed.monthlyChartData, '533140')[0].national_rank, null);
+});
+
+test('national rank (x/34) contract: comparison table headers + chart headers/tooltips show VỊ THỨ TOÀN QUỐC', () => {
+  const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
+  const table = read('./BcvhWeeklyComparisonBlock.jsx');
+  assert.match(table, /formatNationalRankLabel\(headCurrent\.nationalRank\)/);
+  assert.match(table, /formatNationalRankLabel\(headCompare\.nationalRank\)/);
+  assert.match(table, /meta\?\.national_rank\?\.\[side\]/);
+  assert.match(read('./BcvhWeeklyTrendBlock.jsx'), /VỊ THỨ TOÀN QUỐC: \{anchorRankText\}/);
+  assert.match(read('./BcvhRankingOverviewBlocks.jsx'), /VỊ THỨ TOÀN QUỐC: \{currentMonthRankText\}/);
+  assert.match(read('./BcvhWeeklyComboTrendChart.jsx'), /Vị thứ toàn quốc:/);
+  assert.match(read('./BcvhMonthlyComboTrendChart.jsx'), /Vị thứ toàn quốc:/);
+});

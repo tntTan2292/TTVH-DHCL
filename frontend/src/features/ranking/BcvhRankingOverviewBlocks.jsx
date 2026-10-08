@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Route, BarChart3, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { Route, BarChart3, Clock, ChevronDown } from 'lucide-react';
 import BcvhMonthlyComboTrendChart from './BcvhMonthlyComboTrendChart';
 import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
 import {
-  DASH,
   BCVH_COLORS,
   CANONICAL_NAMES,
   formatOverviewNumber,
   formatOverviewRate,
 } from './bcvhOverviewData';
+import { formatNationalRank } from './bcvhWeeklyComparisonData';
 
 const ALL_UNITS = 'all';
 const MONTHLY_TREND_TOTAL_KEY = 'total';
@@ -33,162 +33,12 @@ const MONTHLY_HEATMAP_LEGEND = [
   { tone: 'unavailable', label: 'Xám', description: 'Chưa có dữ liệu' },
 ];
 
-function formatSignedDeltaStr(val, unit = '') {
-  if (val === null || val === undefined || val === '') return DASH;
-  const num = Number(val);
-  if (!Number.isFinite(num)) return DASH;
-  const sign = num > 0 ? '+' : '';
-  return `${sign}${num.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}${unit ? ` ${unit}` : ''}`;
-}
-
-function formatSignedVolumeStr(val) {
-  if (val === null || val === undefined || val === '') return DASH;
-  const num = Number(val);
-  if (!Number.isFinite(num)) return DASH;
-  const sign = num > 0 ? '+' : '';
-  return `${sign}${num.toLocaleString('vi-VN')}`;
-}
-
-// 1. MTD Summary Block (Khối 3)
-export function BcvhMtdSummaryBlock({ data }) {
-  if (!data) return null;
-  const { mtdRows, mtdTotalRow, meta } = data;
-  const periodLabel = meta?.month_period ? `${meta.month_period.from_date} đến ${meta.month_period.to_date}` : '';
-
-  return (
-    <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-surface-200)] pb-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-[var(--color-text-main)]">Chất lượng tổng quan MTD</h2>
-            <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
-              Lũy kế tháng hiện tại
-            </span>
-          </div>
-          <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-            Kỳ lũy kế: {periodLabel || 'Tháng hiện tại'}
-          </p>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50/70 text-[var(--color-text-muted)]">
-              <th className="px-3 py-2.5 font-semibold">Hạng MTD</th>
-              <th className="px-3 py-2.5 font-semibold">Đơn vị BCVH</th>
-              <th className="px-3 py-2.5 text-right font-semibold">Sản lượng MTD</th>
-              <th className="px-3 py-2.5 text-right font-semibold">Đạt MTD</th>
-              <th className="px-3 py-2.5 text-right font-semibold">Không đạt MTD</th>
-              <th className="px-3 py-2.5 text-right font-bold text-gray-800 w-32">Tỷ lệ MTD</th>
-              <th className="px-3 py-2.5 text-right font-semibold">So cùng kỳ tháng trước</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {mtdRows.map((row) => {
-              const rateDelta = row.prev_rate !== null && row.rate !== null ? row.rate - row.prev_rate : null;
-              const volumeDelta = row.prev_volume !== null && row.volume !== null ? row.volume - row.prev_volume : null;
-              const color = BCVH_COLORS[row.ma_bcvh] || '#cbd5e1';
-
-              let rankBadge = <span className="text-gray-500 font-semibold">{row.rank ? `#${row.rank}` : DASH}</span>;
-              if (row.rank === 1) rankBadge = <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800 border border-yellow-300 shadow-xs">#1</span>;
-              else if (row.rank === 2) rankBadge = <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 border border-slate-300 shadow-xs">#2</span>;
-              else if (row.rank === 3) rankBadge = <span className="rounded bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-800 border border-orange-300 shadow-xs">#3</span>;
-
-              return (
-                <tr key={row.ma_bcvh} className="hover:bg-blue-50/30 transition-colors">
-                  <td className="px-3 py-3">
-                    {rankBadge}
-                  </td>
-                  <td className="px-3 py-3 font-bold text-[var(--color-text-main)]">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-1 rounded-full" style={{ backgroundColor: color }} />
-                      {row.ten_bcvh}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-right font-medium text-gray-600">
-                    {formatOverviewNumber(row.volume)}
-                  </td>
-                  <td className="px-3 py-3 text-right font-medium text-emerald-600">
-                    {formatOverviewNumber(row.passed)}
-                  </td>
-                  <td className="px-3 py-3 text-right font-medium text-rose-500">
-                    {formatOverviewNumber(row.failed)}
-                  </td>
-                  <td className="px-3 py-3 text-right">
-                    <div className="flex flex-col gap-1 items-end w-full">
-                      <span className="text-sm font-extrabold text-[var(--color-text-main)]">
-                        {formatOverviewRate(row.rate)}
-                      </span>
-                      {row.rate !== null && (
-                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min(100, Math.max(0, row.rate))}%`, backgroundColor: color }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-right text-xs">
-                    {rateDelta !== null ? (
-                      <div className={`font-semibold flex items-center justify-end gap-1 ${rateDelta > 0 ? 'text-emerald-600' : rateDelta < 0 ? 'text-rose-600' : 'text-gray-500'}`}>
-                        {rateDelta > 0 ? <ArrowUp className="h-3.5 w-3.5" /> : rateDelta < 0 ? <ArrowDown className="h-3.5 w-3.5" /> : null}
-                        {formatSignedDeltaStr(rateDelta, ' điểm %')}
-                        <span className="ml-1 font-normal text-gray-400">
-                          ({formatSignedVolumeStr(volumeDelta)} BG)
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">{DASH}</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="border-t-2 border-[var(--color-primary-300)] bg-blue-50/50 font-bold text-gray-900 shadow-inner">
-              <td className="px-3 py-3">{DASH}</td>
-              <td className="px-3 py-3 text-sm font-bold text-[var(--color-primary-800)]">{mtdTotalRow.ten_bcvh}</td>
-              <td className="px-3 py-3 text-right font-semibold text-gray-800">
-                {formatOverviewNumber(mtdTotalRow.volume)}
-              </td>
-              <td className="px-3 py-3 text-right font-semibold text-emerald-700">
-                {formatOverviewNumber(mtdTotalRow.passed)}
-              </td>
-              <td className="px-3 py-3 text-right font-semibold text-rose-600">
-                {formatOverviewNumber(mtdTotalRow.failed)}
-              </td>
-              <td className="px-3 py-3 text-right text-sm font-black text-[var(--color-primary-700)]">
-                {formatOverviewRate(mtdTotalRow.rate)}
-              </td>
-              <td className="px-3 py-3 text-right text-xs font-semibold text-gray-700">
-                {mtdTotalRow.prev_rate !== null && mtdTotalRow.rate !== null ? (
-                  <div className={`flex items-center justify-end gap-1 ${mtdTotalRow.rate - mtdTotalRow.prev_rate > 0 ? 'text-emerald-700' : mtdTotalRow.rate - mtdTotalRow.prev_rate < 0 ? 'text-rose-700' : 'text-gray-600'}`}>
-                    {mtdTotalRow.rate - mtdTotalRow.prev_rate > 0 ? <ArrowUp className="h-4 w-4" /> : mtdTotalRow.rate - mtdTotalRow.prev_rate < 0 ? <ArrowDown className="h-4 w-4" /> : null}
-                    {formatSignedDeltaStr(mtdTotalRow.rate - mtdTotalRow.prev_rate, ' điểm %')}
-                    <span className="ml-1 font-normal text-gray-500">
-                      ({formatSignedVolumeStr(mtdTotalRow.volume - mtdTotalRow.prev_volume)} BG)
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-gray-400">{DASH}</span>
-                )}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 // 2. Monthly Trend Block (Khối 1)
 export function BcvhMonthlyTrendBlock({ data }) {
   const [unit, setUnit] = useState(MONTHLY_TREND_TOTAL_KEY);
   if (!data) return null;
   const { months, monthlyChartData, monthlyTableRows, nameMap, meta } = data;
+  const currentMonthRankText = formatNationalRank(monthlyChartData?.[monthlyChartData.length - 1]?.national_rank);
   const anchorDate = meta?.anchor_date || null;
   const unitNames = { ...MONTHLY_TREND_NAMES, ...nameMap };
 
@@ -212,6 +62,11 @@ export function BcvhMonthlyTrendBlock({ data }) {
             <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 border border-amber-200/60">
               <Clock className="h-3.5 w-3.5" />
               <span>Tháng hiện tại lũy kế đến {anchorDate}</span>
+            </div>
+          ) : null}
+          {unit === MONTHLY_TREND_TOTAL_KEY && currentMonthRankText ? (
+            <div className="inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-black text-rose-700 border border-rose-200/70">
+              VỊ THỨ TOÀN QUỐC: {currentMonthRankText}
             </div>
           ) : null}
 
@@ -268,8 +123,13 @@ export function BcvhMonthlyTrendBlock({ data }) {
         </div>
       </div>
 
-      {/* Monthly Data Table */}
-      <div className="overflow-x-auto border-t border-gray-100 pt-4">
+      {/* Heatmap 6 BCVH x tháng: thu gọn mặc định (PO 2026-10-07), mở khi cần soát ma trận / độ đầy đủ dữ liệu */}
+      <details className="group border-t border-gray-100 pt-3 [&_summary::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-1 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] hover:bg-gray-50">
+          <span>Xem ma trận 6 BCVH × tháng (heatmap)</span>
+          <ChevronDown className="h-4 w-4 text-gray-400 transition-transform duration-200 group-open:rotate-180" />
+        </summary>
+      <div className="mt-3 overflow-x-auto">
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
             Chi tiết số liệu theo tháng
@@ -342,9 +202,21 @@ export function BcvhMonthlyTrendBlock({ data }) {
                 })}
               </tr>
             ))}
+            {/* Huế toàn quốc: hạng từng tháng trong bảng 34 tỉnh (tháng hiện tại = lũy kế) */}
+            <tr className="bg-rose-50/60">
+              <td className="sticky left-0 bg-rose-50/95 px-3 py-2.5 text-[11px] font-black uppercase text-rose-700 shadow-[1px_0_0_0_#f3f4f6] backdrop-blur-sm z-10">
+                Vị thứ toàn quốc
+              </td>
+              {months.map((month, index) => (
+                <td key={month} className="px-3 py-2.5 text-center text-sm font-black text-rose-700 tabular-nums">
+                  {formatNationalRank(monthlyChartData?.[index]?.national_rank) || '—'}
+                </td>
+              ))}
+            </tr>
           </tbody>
         </table>
       </div>
+      </details>
     </div>
   );
 }
@@ -365,6 +237,9 @@ export function BcvhRouteCapacityBlock({ data }) {
               Năng lực và chất lượng tuyến
             </h2>
           </div>
+          <p className="mt-0.5 text-xs font-black text-rose-600">
+            VỊ THỨ TOÀN QUỐC (MTD): {formatNationalRank(meta?.national_rank?.mtd) || '—'}
+          </p>
           <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
             Kỳ: {periodBasis} · Phân loại tuyến phát theo chất lượng thực hiện.
           </p>

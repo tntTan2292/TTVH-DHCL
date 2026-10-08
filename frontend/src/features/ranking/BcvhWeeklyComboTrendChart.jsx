@@ -36,7 +36,6 @@ import ChartRangeNavigator from '../dashboard/components/ChartRangeNavigator.jsx
 import {
   classifyF13HeatmapRate,
   F13_HEATMAP_HEX_COLOR,
-  F13_HEATMAP_TONE_CLASS,
 } from '../../components/f13/f13HeatmapBandCatalog.js';
 import {
   WEEKLY_TREND_TOTAL_KEY,
@@ -93,6 +92,11 @@ function WeeklyComboTooltip({ active, payload, label, unitName, compact = false 
         </div>
         {point.rangeLabel ? (
           <div className="mt-0.5 text-[11px] font-medium text-slate-500">{point.rangeLabel}</div>
+        ) : null}
+        {point.national_rank ? (
+          <div className="mt-0.5 text-[11px] font-bold text-rose-600">
+            Vị thứ toàn quốc: {point.national_rank.rank}/{point.national_rank.total}
+          </div>
         ) : null}
         {point.dataThroughNote ? (
           <div className="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">
@@ -309,7 +313,8 @@ function SmallMultiplesGrid({
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {CANONICAL_BCVH_CODES.map((code) => {
           const unitData = getWeeklyTrendSeriesData(view, code);
-          const unitName = unitNames[code] || CANONICAL_NAMES[code] || code;
+          const rawUnitName = unitNames[code] || CANONICAL_NAMES[code] || code;
+          const unitName = rawUnitName.startsWith('BCVH') ? rawUnitName : `BCVH ${rawUnitName}`;
           const unitColor = unitColors[code] || BCVH_COLORS[code] || '#2563eb';
           const volumeAxisMax = getVolumeAxisMax(unitData);
 
@@ -338,25 +343,26 @@ function SmallMultiplesGrid({
               <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span
-                    className="h-3 w-3 shrink-0 rounded-full"
+                    className="h-3 w-3 shrink-0 rounded-full shadow-2xs"
                     style={{ backgroundColor: unitColor }}
                   />
                   <h4 className="text-xs font-bold text-slate-800 truncate" title={unitName}>
                     {unitName}
                   </h4>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] font-semibold text-slate-600">
-                    {latestPoint?.total_volume !== null && latestPoint?.total_volume !== undefined
-                      ? `${Number(latestPoint.total_volume).toLocaleString('vi-VN')} bg`
-                      : DASH}
-                  </span>
-                  <span
-                    className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold ${F13_HEATMAP_TONE_CLASS[band.tone] || ''}`}
-                  >
-                    {latestRate !== null && latestRate !== undefined ? `${Number(latestRate).toFixed(1)}%` : DASH}
-                  </span>
-                </div>
+                {latestRate !== null && latestRate !== undefined ? (
+                  <div className="flex items-center gap-1.5 text-[11px] shrink-0">
+                    <span className="text-slate-400 font-medium">Tuần gần nhất:</span>
+                    <span
+                      className="rounded px-1.5 py-0.5 font-bold text-white shadow-2xs"
+                      style={{ backgroundColor: F13_HEATMAP_HEX_COLOR[band.tone] || '#047857' }}
+                    >
+                      {formatRate(latestRate)}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-slate-400 font-medium">{DASH}</span>
+                )}
               </div>
 
               <div className="h-[190px] w-full">

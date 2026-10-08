@@ -65,6 +65,7 @@ export function processOverviewData(data = {}, meta = {}) {
       month,
       label,
       isCurrentMonth: isCurrent,
+      national_rank: meta?.national_rank?.monthly?.[month] || null,
     };
 
     let monthTotalVolume = 0;
@@ -177,57 +178,6 @@ export function processOverviewData(data = {}, meta = {}) {
     return row;
   });
 
-  // 3. MTD processing
-  const mtdRows = CANONICAL_BCVH_CODES.map((code) => {
-    const match = mtd.find((item) => String(item.ma_bcvh) === code);
-    return {
-      ma_bcvh: code,
-      ten_bcvh: match?.ten_bcvh || nameMap[code] || `BCVH ${code}`,
-      volume: match?.volume ?? 0,
-      passed: match?.passed ?? 0,
-      failed: match?.failed ?? 0,
-      rate: match?.rate !== null && match?.rate !== undefined ? Number(match.rate) : null,
-      rank: match?.rank ?? null,
-      prev_volume: match?.previous_month_to_date?.volume ?? null,
-      prev_passed: match?.previous_month_to_date?.passed ?? null,
-      prev_rate: match?.previous_month_to_date?.rate !== null && match?.previous_month_to_date?.rate !== undefined ? Number(match.previous_month_to_date.rate) : null,
-    };
-  }).sort((a, b) => {
-    if (a.rank !== null && b.rank !== null && a.rank !== b.rank) return a.rank - b.rank;
-    if (a.rate !== null && b.rate !== null && a.rate !== b.rate) return b.rate - a.rate;
-    return b.volume - a.volume;
-  });
-
-  let mtdTotalVolume = 0;
-  let mtdTotalPassed = 0;
-  let mtdTotalFailed = 0;
-  let mtdPrevTotalVolume = 0;
-  let mtdPrevTotalPassed = 0;
-
-  mtdRows.forEach((r) => {
-    mtdTotalVolume += r.volume;
-    mtdTotalPassed += r.passed;
-    mtdTotalFailed += r.failed;
-    if (r.prev_volume !== null) mtdPrevTotalVolume += r.prev_volume;
-    if (r.prev_passed !== null) mtdPrevTotalPassed += r.prev_passed;
-  });
-
-  const mtdTotalRate = mtdTotalVolume > 0 ? (mtdTotalPassed / mtdTotalVolume) * 100 : null;
-  const mtdPrevTotalRate = mtdPrevTotalVolume > 0 ? (mtdPrevTotalPassed / mtdPrevTotalVolume) * 100 : null;
-
-  const mtdTotalRow = {
-    ma_bcvh: 'total',
-    ten_bcvh: 'Tổng cộng',
-    volume: mtdTotalVolume,
-    passed: mtdTotalPassed,
-    failed: mtdTotalFailed,
-    rate: mtdTotalRate,
-    rank: null,
-    prev_volume: mtdPrevTotalVolume,
-    prev_passed: mtdPrevTotalPassed,
-    prev_rate: mtdPrevTotalRate,
-  };
-
   // 4. Routes processing
   const routeRows = CANONICAL_BCVH_CODES.map((code) => {
     const match = routes.find((item) => String(item.ma_bcvh) === code);
@@ -274,8 +224,6 @@ export function processOverviewData(data = {}, meta = {}) {
     monthlyTableRows,
     dates,
     dailyChartData,
-    mtdRows,
-    mtdTotalRow,
     routeRows,
     routeTotalRow,
     meta,
@@ -297,6 +245,8 @@ export function getMonthlyTrendSeriesData(chartData = [], unitKey = 'total') {
       month: row.month,
       label: row.label,
       isCurrentMonth: row.isCurrentMonth,
+      // National rank only describes Huế as a whole -> TOTAL series only.
+      national_rank: (unitKey === 'total' || unitKey === 'WEEKLY_TREND_TOTAL_KEY') ? (row.national_rank || null) : null,
       total_volume: entry?.total_volume ?? null,
       passed: entry?.passed ?? null,
       failed: entry?.failed ?? null,

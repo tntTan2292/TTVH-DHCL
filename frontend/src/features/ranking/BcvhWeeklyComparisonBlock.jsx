@@ -36,6 +36,7 @@ import {
   checkMonthsDaysMismatch,
   checkWeeksDaysMismatch,
   formatMonthLabel,
+  formatNationalRankLabel,
   previousMonthId,
   formatDateVN,
   formatSignedVolumeDelta,
@@ -385,6 +386,7 @@ export default function BcvhWeeklyComparisonBlock() {
         range: side === 'current' ? currentMonthRange : compareMonthRange,
         yearText: '',
         dataThrough: !sameOn && month?.is_in_progress ? month.last_data_date : null,
+        nationalRank: comparisonState.data?.meta?.national_rank?.[side] || null,
       };
     }
     return {
@@ -392,6 +394,7 @@ export default function BcvhWeeklyComparisonBlock() {
       range: side === 'current' ? currentWeekRange : compareWeekRange,
       yearText: ` (Năm ${week?.iso_year || ''})`,
       dataThrough: week?.is_in_progress && week?.last_data_date ? week.last_data_date : null,
+      nationalRank: comparisonState.data?.meta?.national_rank?.[side] || null,
     };
   };
   const headCurrent = headerPeriod('current');
@@ -718,6 +721,9 @@ export default function BcvhWeeklyComparisonBlock() {
                       <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
                         {headCurrent.range}{headCurrent.yearText}
                       </div>
+                      <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
+                        {formatNationalRankLabel(headCurrent.nationalRank)}
+                      </div>
                       {headCurrent.dataThrough ? (
                         <div className="mt-1">
                           <span className="inline-block rounded bg-blue-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-blue-950 tracking-normal">
@@ -735,6 +741,9 @@ export default function BcvhWeeklyComparisonBlock() {
                       <div className="leading-snug">{isMonth ? 'THÁNG SO SÁNH' : 'TUẦN SO SÁNH'} ({headCompare.name || 'SO SÁNH'})</div>
                       <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
                         {headCompare.range}{headCompare.yearText}
+                      </div>
+                      <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
+                        {formatNationalRankLabel(headCompare.nationalRank)}
                       </div>
                       {headCompare.dataThrough ? (
                         <div className="mt-1">

@@ -6,11 +6,21 @@ import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOpt
 import BcvhWeeklyComboTrendChart from './BcvhWeeklyComboTrendChart';
 import { BCVH_COLORS, CANONICAL_NAMES } from './bcvhOverviewData.js';
 import { createWeeklyTrendFetcher } from './bcvhWeeklyComparisonFetcher';
-import { WEEKLY_TREND_TOTAL_KEY, buildWeeklyTrendChartData, formatWeekDateRange } from './bcvhWeeklyComparisonData';
+import {
+  WEEKLY_TREND_TOTAL_KEY,
+  buildWeeklyTrendChartData,
+  formatNationalRank,
+  formatWeekDateRange,
+} from './bcvhWeeklyComparisonData';
 
 const ALL_UNITS = 'all';
 const TREND_COLORS = { ...BCVH_COLORS, [WEEKLY_TREND_TOTAL_KEY]: '#0f172a' };
-const TREND_NAMES = { ...CANONICAL_NAMES, [WEEKLY_TREND_TOTAL_KEY]: 'Tổng cộng 6 BCVH' };
+const TREND_NAMES = {
+  ...Object.fromEntries(
+    CANONICAL_BCVH_CODES.map((c) => [c, CANONICAL_NAMES[c] ? `BCVH ${CANONICAL_NAMES[c]}` : `BCVH ${c}`])
+  ),
+  [WEEKLY_TREND_TOTAL_KEY]: 'Tổng cộng 6 BCVH',
+};
 
 // Replaces the old "Diễn biến theo ngày" block. Driven ONLY by the anchor week ("tuần kỳ này", set by
 // "Điều chỉnh mốc tuần hiện tại" / the week select of the table above) plus its own unit filter.
@@ -25,6 +35,10 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
   }, [anchorWeekId, fetchTrend]);
 
   const chartData = useMemo(() => buildWeeklyTrendChartData(trendState.weeks), [trendState.weeks]);
+  // National rank of the anchor week: only meaningful for the TOTAL view (Huế as a whole), like the
+  // Operation Dashboard "VỊ THỨ TOÀN QUỐC" header.
+  const anchorRank = unit === WEEKLY_TREND_TOTAL_KEY ? chartData[chartData.length - 1]?.national_rank : null;
+  const anchorRankText = formatNationalRank(anchorRank);
   const anchorRange = anchorWeek ? formatWeekDateRange(anchorWeek.display_start_date, anchorWeek.display_end_date) : '';
 
   return (
@@ -39,6 +53,11 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
               Diễn biến chất lượng theo tuần
               {anchorWeek ? ` (đến ${anchorWeek.label}${anchorRange ? `: ${anchorRange}` : ''})` : ''}
             </h2>
+            {anchorRankText ? (
+              <p className="mt-0.5 text-xs font-black text-rose-600">
+                {anchorWeek?.label || 'Tuần mốc'} • VỊ THỨ TOÀN QUỐC: {anchorRankText}
+              </p>
+            ) : null}
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
               Sản lượng đo kiểm (cột) và Tỷ lệ đạt KPI 2026 (đường) theo tuần (Thứ Năm → Thứ Tư). Lăn chuột để phóng to, kéo để di chuyển, nhấp đúp để đặt lại.
             </p>
@@ -55,7 +74,7 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
             <option value={WEEKLY_TREND_TOTAL_KEY}>{TREND_NAMES[WEEKLY_TREND_TOTAL_KEY]}</option>
             <option value={ALL_UNITS}>Tất cả 6 BCVH</option>
             {CANONICAL_BCVH_CODES.map((code) => (
-              <option key={code} value={code}>{CANONICAL_NAMES[code] || code}</option>
+              <option key={code} value={code}>{TREND_NAMES[code] || code}</option>
             ))}
           </select>
         </label>

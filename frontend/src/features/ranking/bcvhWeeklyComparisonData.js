@@ -473,6 +473,7 @@ export function buildWeeklyTrendChartData(weeks) {
         : null,
       units: {},
       total: null,
+      national_rank: week.national_rank || null,
     };
 
     Object.entries(week.units || {}).forEach(([code, unit]) => {
@@ -528,6 +529,8 @@ export function getWeeklyTrendSeriesData(chartRows = [], unitKey = WEEKLY_TREND_
       dataThroughNote: row.dataThroughNote,
       is_in_progress: row.is_in_progress,
       last_data_date: row.last_data_date,
+      // National rank only describes Huế as a whole, so it is exposed for the TOTAL series only.
+      national_rank: isTotal ? (row.national_rank || null) : null,
       total_volume: vol,
       passed: pass,
       failed,
@@ -536,4 +539,17 @@ export function getWeeklyTrendSeriesData(chartRows = [], unitKey = WEEKLY_TREND_
       target_variance: targetVariance,
     };
   });
+}
+
+/**
+ * National rank of Huế (x/34) as shown in the Operation Dashboard "VỊ THỨ TOÀN QUỐC" header.
+ * `rank` is { rank, total } from the backend or null when national data is unavailable.
+ */
+export function formatNationalRank(rank) {
+  if (!rank || !rank.rank || !rank.total) return null;
+  return `${rank.rank}/${rank.total}`;
+}
+
+export function formatNationalRankLabel(rank) {
+  return `VỊ THỨ TOÀN QUỐC: ${formatNationalRank(rank) || '—'}`;
 }

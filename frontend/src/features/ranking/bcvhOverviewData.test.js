@@ -66,11 +66,9 @@ test('processOverviewData pivots monthly & daily data for 6 canonical BCVHs', ()
   assert.equal(febStat.days_in_period, 26);
   assert.equal(febStat.rate, 62.0);
 
-  // Check MTD total row
-  assert.equal(processed.mtdTotalRow.volume, 1800);
-  assert.equal(processed.mtdTotalRow.passed, 1180);
-  assert.equal(processed.mtdTotalRow.failed, 620);
-  assert.equal(Math.round(processed.mtdTotalRow.rate * 10) / 10, 65.6);
+  // The standalone MTD summary was removed (PO 2026-10-07): its figures live in the weekly/monthly comparison table
+  assert.equal(processed.mtdRows, undefined);
+  assert.equal(processed.mtdTotalRow, undefined);
 
   // Check Routes total row
   assert.equal(processed.routeTotalRow.participating_route_count, 18);
@@ -96,8 +94,6 @@ test('processOverviewData handles null rates without coercing to 0', () => {
   const chartRow = processed.monthlyChartData[0];
   assert.equal(chartRow['533140'], null);
   assert.equal(formatOverviewRate(chartRow['533140']), DASH);
-  assert.equal(processed.mtdRows[0].rate, null);
-  assert.equal(formatOverviewRate(processed.mtdRows[0].rate), DASH);
 });
 
 test('verifies frontend source code contract for Phase F1', () => {
@@ -120,7 +116,6 @@ test('verifies frontend source code contract for Phase F1', () => {
   const posMonthly = pageSource.indexOf('<BcvhMonthlyTrendBlock');
   const posWidget = pageSource.indexOf('<KPICard {...summaryCards[0]} />');
   const posTable = pageSource.indexOf('<UnifiedBcvhAnalysisTable');
-  const posMtd = pageSource.indexOf('<BcvhMtdSummaryBlock');
   const posRoute = pageSource.indexOf('<BcvhRouteCapacityBlock');
 
   assert.doesNotMatch(pageSource, /BcvhDailyTrendBlock/);
@@ -129,15 +124,13 @@ test('verifies frontend source code contract for Phase F1', () => {
   assert.ok(posMonthly > posWeekly, 'Monthly trend block directly follows weekly block');
   assert.ok(posWidget > posMonthly, 'Widget follows Monthly trend block');
   assert.ok(posTable > posWidget, 'Table follows Widget');
-  assert.ok(posMtd > posTable, 'MTD block follows Table');
-  assert.ok(posRoute > posMtd, 'Route block follows MTD block');
+  assert.ok(posRoute > posTable, 'Route block follows Table');
+  assert.doesNotMatch(pageSource, /BcvhMtdSummaryBlock/);
+  assert.doesNotMatch(blocksSource, /Chất lượng tổng quan MTD/);
 
-  // Headers MTD
-  assert.match(blocksSource, /Hạng MTD/);
-  assert.match(blocksSource, /Sản lượng MTD/);
-  assert.match(blocksSource, /Đạt MTD/);
-  assert.match(blocksSource, /Không đạt MTD/);
-  assert.match(blocksSource, /Tỷ lệ MTD/);
+  // Monthly heatmap is kept but collapsed by default (<details> without the open attribute)
+  assert.match(blocksSource, /<details className="group border-t border-gray-100 pt-3/);
+  assert.match(blocksSource, /Xem ma trận 6 BCVH × tháng/);
   assert.doesNotMatch(blocksSource, />Đạt KPI</);
 
   // Route capacity label
