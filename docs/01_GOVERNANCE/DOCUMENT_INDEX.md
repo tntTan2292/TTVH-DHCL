@@ -1077,3 +1077,11 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/10_TICKETS/UI-CHART-DATA-LABELS-01_MANIFEST.md` | UI Ticket Manifest | Data labels and 30-day wheel zoom for the dashboard, operating-pattern, BCVH ranking, quality-timeline and route charts; chart inventory, design, validation and Antigravity tuning hand-off. | L1 | `IMPLEMENTED / PO UI PASS / CLOSED` | Any later chart label or zoom change. | Mandatory |
 | `docs/10_TICKETS/UI-CHART-DATA-LABELS-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | Antigravity prompt for visual tuning of chart data labels (no browser; PO checks directly). | L1 | `ISSUED 2026-10-03 / EXECUTED` | Antigravity round for UI-CHART-DATA-LABELS-01. | Mandatory |
+
+## F41-DASHBOARD-RANKING-01 Activation - 2026-10-08
+
+| Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
+| --- | --- | --- | --- | --- | --- | --- |
+| `docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md` | Ticket Manifest | F4.1 Operation Dashboard + BCVH Ranking program ticket: PO decisions, scope, T0-T8 breakdown and owners, T0 record. | L2 | Active Onboarding | Current ticket. | Mandatory |
+| `docs/04_TECHNICAL_PLANNING/Feature/F41-DASHBOARD-RANKING-01_DESIGN_OF_RECORD.md` | Design of Record | Block map F1.3 -> F4.1, additive endpoints, repository contract, national rank rule, indicator config, acceptance criteria. | L2 | Active Onboarding | Before T1-T6. | Mandatory |
+| `docs/04_TECHNICAL_PLANNING/Feature/F41-DASHBOARD-RANKING-01_PROPOSAL.md` | Proposal | PO-approved Phương án A, decisions and developer assignments. | L2 | Conditional Reference | When the approval basis is needed. | High |

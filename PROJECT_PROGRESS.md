@@ -2137,3 +2137,7 @@ Audited every table/chart of Operation Dashboard and BCVH Ranking; Operation Das
 ## 2026-10-08 - UI-BCVH-RANKING-DECLUTTER-01 CLOSED / PO UI PASS
 
 PO checked and confirmed OK: MTD block removed, monthly heatmap collapsed, national rank added across the BCVH Ranking tables/charts (Operation Dashboard audited, already complete). Frontend 230/230, backend 69/69, build clean. Manifest: `docs/10_TICKETS/UI-BCVH-RANKING-DECLUTTER-01_MANIFEST.md` Section 6.
+
+## 2026-10-08 - F41-DASHBOARD-RANKING-01 ACTIVATED / T0 DONE
+
+PO approved Phương án A (shared, parameterised) and a 90% chart target to build the F4.1 Operation Dashboard and BCVH Ranking like F1.3 (bands 80/70/60); `F41-DASHBOARD-MINIMUM-01` resumed. T0 done: Design of Record, manifest, governance sync, `ITR2-F41-NB-01` fixed (24/24 targeted tests, oxlint clean). Next: T1 (backend) and T3 (frontend foundation) in parallel; the PO imports 07/09-07/10 data meanwhile. Manifest: `docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md`.

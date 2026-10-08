@@ -54,9 +54,12 @@ class F41DashboardService {
         // the KPI aggregate (which always covers the whole table) includes
         // rows outside the 6-unit BCVH filter, plus the fixed scope note
         // Phase F1 must render alongside the KPI total.
+        // ITR2-F41-NB-01: fail closed. A repository that cannot answer yields
+        // `null` (unknown), never `false`, so the caller is not told there is
+        // no out-of-scope data when that is not actually known.
         const includesNonCanonicalBcvh = typeof this.repository.hasNonCanonicalBcvhRows === 'function'
             ? await this.repository.hasNonCanonicalBcvhRows(CANONICAL_BCVH_CODES)
-            : false;
+            : null;
         return {
             ...base,
             kpi_scope_note: F41_KPI_SCOPE_NOTE,

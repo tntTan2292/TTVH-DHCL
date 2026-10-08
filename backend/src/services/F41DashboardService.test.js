@@ -115,6 +115,18 @@ test('getDashboardMeta exposes kpi_scope_note and kpi_includes_non_canonical_bcv
     assert.ok(Array.isArray(call.canonicalCodes) && call.canonicalCodes.length === 6);
 });
 
+// ITR2-F41-NB-01: a repository that cannot answer must yield null (unknown),
+// never a positive "no out-of-scope data" claim.
+test('getDashboardMeta reports kpi_includes_non_canonical_bcvh === null when the repository cannot answer', async () => {
+    const repository = makeFakeRepository({ meta: { min_date: '2026-08-01', max_date: '2026-08-01' } });
+    delete repository.hasNonCanonicalBcvhRows;
+    const service = new F41DashboardService(repository);
+
+    const result = await service.getDashboardMeta();
+
+    assert.equal(result.kpi_includes_non_canonical_bcvh, null);
+});
+
 test('getDashboardMeta reports kpi_includes_non_canonical_bcvh === false when only canonical rows exist', async () => {
     const repository = makeFakeRepository({ meta: { min_date: '2026-08-01', max_date: '2026-08-01' }, hasNonCanonicalBcvhRows: false });
     const service = new F41DashboardService(repository);
