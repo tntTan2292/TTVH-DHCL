@@ -30,9 +30,9 @@ Out: Tuyến Ranking and all route blocks (no route data), Action Center / Rule 
 | Ticket | Work | Owner | Review | State |
 | --- | --- | --- | --- | --- |
 | T0 | Activation record, Design of Record, governance sync, `ITR2-F41-NB-01` | Claude Code (Sonnet 5.5) | PO | **DONE 2026-10-08** |
-| T1 | Backend base: F4.1 repository methods, `summary`, `daily-trend`, `ranking/bcvh/overview`, `ranking/bcvh`, F4.1 national rank | Claude Code (Sonnet) | tests + real-DB reconciliation | **IMPLEMENTED 2026-10-08** (live-DB reconciliation pending PO go-ahead) |
+| T1 | Backend base: F4.1 repository methods, `summary`, `daily-trend`, `ranking/bcvh/overview`, `ranking/bcvh`, F4.1 national rank | Claude Code (Sonnet) | tests + real-DB reconciliation | **IMPLEMENTED 2026-10-08**, G1 live-DB reconciliation PASSED (Section 9) |
 | T2 | Backend weekly/monthly: `weeks`, `weekly-comparison`, `weekly-trend`, `months`, `monthly-comparison` | Claude Code (Sonnet) | tests + reconciliation | **IMPLEMENTED 2026-10-08** with T1 (the F1.3 services are reused unchanged) |
-| T3 | Frontend foundation: indicator config, fetchers/mappers/bands/labels parameterised, F1.3 default unchanged | Claude Code (Sonnet) | Claude Code (Opus) T8 | **IMPLEMENTED 2026-10-08**, awaiting T8 review |
+| T3 | Frontend foundation: indicator config, fetchers/mappers/bands/labels parameterised, F1.3 default unchanged | Claude Code (Sonnet) | Claude Code (Opus) T8 | **IMPLEMENTED 2026-10-08**; T8 round 2: B1 closed, B2 fixed in round 3 (Section 10) |
 | T4 | `/f41/dashboard` page | Antigravity | PO UI check (G2) | NOT STARTED (after T1, T3) |
 | T5 | `/f41/ranking/bcvh` page | Antigravity | PO UI check (G3) | NOT STARTED (after T2, T3) |
 | T6 | Menu group, redirect, roles, navigation tests | Claude Code (Sonnet) | tests | NOT STARTED (after T4) |
@@ -73,7 +73,7 @@ Frontend foundation (Design of Record Section 11): indicator config (F1.3 defaul
 
 Validation (LEVEL 3): full frontend suite **592/593**; the single failure `src/pages/dataImportBackfillQueue.test.js` is pre-existing (same failure before this ticket, in a file this ticket does not touch) and is the only one. Zero existing tests were edited. 9 new tests (`features/indicator/indicatorConfig.test.js`, `f41ContractParity.test.js`): F1.3 defaults, F4.1 bands 80/70/60 (boundary values), KPI status floors, URL rewrite for every shared endpoint, labels and legend, feature flags, provider activation/cleanup, and that the F1.3 ranking/overview mappers accept the real F4.1 payload shapes. `vite build` clean; `oxlint` 0 errors on touched directories. No browser check by the executor (no live F4.1 API yet).
 
-Review focus for T8 (Opus): the active-indicator module is deliberate module-level state (recharts callbacks cannot take props or hooks); it is set while rendering and cleared on unmount only when still its own. Confirm no F1.3 code path reads it without a provider.
+Review focus for T8 (Opus): *superseded* — the module-level active-indicator state described in the first version of this record was removed after T8 round 1 (Section 10, Design of Record Section 12); the indicator now travels by React context.
 
 ## 9. PO decisions of 2026-10-08 on the two display points, and G1 evidence
 
@@ -99,3 +99,5 @@ Backend restart: the backend was restarted at the PO's request (old PID 32256 st
 Round 1 (Claude Code / Opus): **FAIL, 1 blocker + 7 non-blocking**, backend T1/T2 PASS with non-blocking findings; see `docs/06_REVIEWS/Shared/F41-DASHBOARD-RANKING-01_REVIEW_001.md`.
 
 Round 2 (Claude Code / Sonnet 5.5): **B1 fixed** by removing the module-level indicator state altogether (Design of Record Section 12); NB3, NB4, NB5, NB7 fixed; NB1/NB2 remain in the T4/T5 leak sweep; NB6 pre-existing. Validation: backend F4.1 test files 45/45 (two new regression tests); frontend full suite **593/594** (only the pre-existing `dataImportBackfillQueue.test.js` failure), 10 tests in `features/indicator/` including the discarded-render regression; `vite build` and `oxlint` clean; no existing test edited. The running backend (started earlier from the Claude Code session) predates the NB3/NB4 backend change and needs one more restart to load it. T4/T5 stay blocked until the reviewer re-checks B1.
+
+Round 3 (Claude Code / Sonnet 5.5): the reviewer's round-2 report found **T8-F41-B2** — the monthly heatmap cells (`BcvhRankingOverviewBlocks.jsx`) still classified with the F1.3 bands under the F4.1 legend. Fixed: `getApprovedWeekdayBand(rate, backendColor, bands)` takes the bands and the cell passes `indicator.heatmapBands`; new test `monthly heatmap cell colour follows the page indicator`. One existing assertion was adjusted because it pinned the old call text (`BcvhRankingOverviewBlocks.heatmapBand.test.js`: the regex now expects `getApprovedWeekdayBand(m.rate, null, indicator.heatmapBands)`); no other existing test changed. Frontend full suite 594/595 (only the pre-existing `dataImportBackfillQueue.test.js`), build and lint clean. NB7 stale wording ("reconciliation pending", "awaiting review") corrected in the T1, T3 rows and Section 7. Reviewer note for T4/T6: `BcvhRankingPage` keeps its overview fetcher in a `useRef` and an effect with `[]`, so each F4.1 page must be its own route element (as the T4/T5 prompt says); sharing one element between indicators would need `key={indicator.id}`.
