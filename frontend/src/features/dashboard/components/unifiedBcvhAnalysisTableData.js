@@ -1,4 +1,5 @@
 import { CANONICAL_BCVH_CODES } from './dashboardFilterOptions.js';
+import { F13_INDICATOR } from '../../indicator/indicatorConfig.js';
 
 export const UNAVAILABLE_TEXT = 'Chưa có dữ liệu';
 
@@ -89,12 +90,13 @@ function buildComparisonPeriod(source = {}) {
 }
 
 function buildRouteDistribution(routeDistribution = {}) {
-  const participating = toNumber(routeDistribution.participating_postman_route_count);
+  const raw = routeDistribution || {};
+  const participating = toNumber(raw.participating_postman_route_count);
   const counts = {
-    green: toNumber(routeDistribution.green_route_count),
-    pink: toNumber(routeDistribution.pink_route_count),
-    yellow: toNumber(routeDistribution.yellow_route_count),
-    red: toNumber(routeDistribution.red_route_count),
+    green: toNumber(raw.green_route_count),
+    pink: toNumber(raw.pink_route_count),
+    yellow: toNumber(raw.yellow_route_count),
+    red: toNumber(raw.red_route_count),
   };
 
   return {
@@ -110,14 +112,21 @@ function buildRouteDistribution(routeDistribution = {}) {
   };
 }
 
-function buildAnalysisText(row) {
+function buildAnalysisText(row, context = {}) {
+  const indicator = context.indicator || F13_INDICATOR;
   const parts = [
-    `KPI ngày ${formatRate(row.current_day.rate, row.is_total)}`,
+    `${indicator.id === 'f13' ? 'KPI ngày' : `Tỷ lệ ${indicator.moduleLabel} ngày`} ${formatRate(row.current_day.rate, row.is_total)}`,
     `D-1 ${formatSignedDelta(row.comparisons.d1.rate_delta ?? row.current_day.d1_rate_delta, 'điểm %', row.is_total)}`,
     `D-7 ${formatSignedDelta(row.comparisons.d7.rate_delta ?? row.current_day.d7_rate_delta, 'điểm %', row.is_total)}`,
-    `Chậm nộp tiền ${formatNumber(row.late_cash.count, row.is_total)} BG (${formatRate(row.late_cash.rate, row.is_total)})`,
-    `Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count, row.is_total)}: tốt ${formatNumber(row.route_distribution.counts.green, row.is_total)}, khá ${formatNumber(row.route_distribution.counts.pink, row.is_total)}, trung bình ${formatNumber(row.route_distribution.counts.yellow, row.is_total)}, kém ${formatNumber(row.route_distribution.counts.red, row.is_total)}`,
   ];
+
+  if (indicator.features?.lateCash) {
+    parts.push(`Chậm nộp tiền ${formatNumber(row.late_cash.count, row.is_total)} BG (${formatRate(row.late_cash.rate, row.is_total)})`);
+  }
+
+  if (indicator.features?.routes) {
+    parts.push(`Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count, row.is_total)}: tốt ${formatNumber(row.route_distribution.counts.green, row.is_total)}, khá ${formatNumber(row.route_distribution.counts.pink, row.is_total)}, trung bình ${formatNumber(row.route_distribution.counts.yellow, row.is_total)}, kém ${formatNumber(row.route_distribution.counts.red, row.is_total)}`);
+  }
 
   const d1Movement = row.comparisons.d1.rank_movement.signal.label;
   const d7Movement = row.comparisons.d7.rank_movement.signal.label;
@@ -128,6 +137,8 @@ function buildAnalysisText(row) {
 
 function buildAction(row, context = {}) {
   if (row.is_total) return null;
+  const indicator = context.indicator || F13_INDICATOR;
+  if (!indicator.features?.routes) return null;
   return {
     route: '/f13/ranking/route',
     params: {
@@ -178,7 +189,7 @@ export function mapBcvhRankingRow(row = {}, context = {}) {
   };
 
   mapped.action = buildAction(mapped, context);
-  mapped.analysis = isTotal ? null : buildAnalysisText(mapped);
+  mapped.analysis = isTotal ? null : buildAnalysisText(mapped, context);
   return mapped;
 }
 

@@ -80,7 +80,8 @@ function HeatmapRateActiveDot(props) {
 }
 
 function WeeklyComboTooltip({ active, payload, label, unitName, compact = false }) {
-  const { heatmapBands } = useIndicator();
+  const indicator = useIndicator();
+  const { heatmapBands } = indicator;
   if (!active || !payload || !payload.length) return null;
 
   const point = payload.find((item) => item?.payload)?.payload || {};
@@ -134,7 +135,7 @@ function WeeklyComboTooltip({ active, payload, label, unitName, compact = false 
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-1.5">
-            <span className="text-slate-500">Tỷ lệ đạt KPI:</span>
+            <span className="text-slate-500">{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI:' : `Tỷ lệ đạt ${indicator.moduleLabel}:`}</span>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: F13_HEATMAP_HEX_COLOR[band.tone] }} />
               <span className="font-black tabular-nums text-slate-900">
@@ -143,7 +144,7 @@ function WeeklyComboTooltip({ active, payload, label, unitName, compact = false 
             </div>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-500">Mục tiêu KPI 2026:</span>
+            <span className="text-slate-500">{indicator.id === 'f13' ? 'Mục tiêu KPI 2026:' : `Mục tiêu ${indicator.moduleLabel}:`}</span>
             <span className="font-semibold tabular-nums text-purple-700">
               {QUALITY_TARGET_RATE}%
             </span>

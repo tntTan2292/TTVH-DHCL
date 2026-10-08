@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, BarChart3 } from 'lucide-react';
+import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { ErrorState } from '../../components/shared/SharedComponents';
 import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
@@ -26,6 +27,7 @@ const TREND_NAMES = {
 // "Điều chỉnh mốc tuần hiện tại" / the week select of the table above) plus its own unit filter.
 // Default view: "Tổng cộng 6 BCVH" (combo bar + line).
 export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
+  const indicator = useIndicator();
   const api = useIndicatorApi();
   const [trendState, setTrendState] = useState({ status: 'idle', weeks: [], error: null });
   const [unit, setUnit] = useState(WEEKLY_TREND_TOTAL_KEY);
@@ -60,7 +62,7 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
               </p>
             ) : null}
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-              Sản lượng đo kiểm (cột) và Tỷ lệ đạt KPI 2026 (đường) theo tuần (Thứ Năm → Thứ Tư). Lăn chuột để phóng to, kéo để di chuyển, nhấp đúp để đặt lại.
+              Sản lượng đo kiểm (cột) và {indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`} (đường) theo tuần (Thứ Năm → Thứ Tư). Lăn chuột để phóng to, kéo để di chuyển, nhấp đúp để đặt lại.
             </p>
           </div>
         </div>
@@ -110,7 +112,7 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
               </span>
               <span className="inline-flex items-center gap-2 font-semibold">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />
-                Tỷ lệ đạt KPI 2026 (%), trục phải
+                {indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`} (%), trục phải
               </span>
               <span className="inline-flex items-center gap-2 font-semibold">
                 <span className="h-2 w-5 border-t-2 border-dashed border-[#dc2626]" />

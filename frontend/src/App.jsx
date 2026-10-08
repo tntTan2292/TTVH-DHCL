@@ -17,6 +17,8 @@ import KpiConfiguration from './pages/KpiConfiguration';
 import SystemInformation from './pages/SystemInformation';
 
 import DashboardPage from './features/dashboard/DashboardPage';
+import F41DashboardPage from './features/f41/F41DashboardPage';
+import F41BcvhRankingPage from './features/f41/F41BcvhRankingPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
 import { translateLegacyViolationsSearch } from './features/route/routeViolationEvidenceData';
@@ -100,6 +102,8 @@ function App() {
             <Route path="f11" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F11Quality /></ProtectedRoute>} />
             <Route path="f12" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F12Quality /></ProtectedRoute>} />
             <Route path="f41" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F41Quality /></ProtectedRoute>} />
+            <Route path="f41/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41DashboardPage /></ProtectedRoute>} />
+            <Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41BcvhRankingPage /></ProtectedRoute>} />
             <Route path="import" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><DataImportCenter /></ProtectedRoute>} />
             <Route path="kpi-config" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><KpiConfiguration /></ProtectedRoute>} />
             <Route path="system-info" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><SystemInformation /></ProtectedRoute>} />

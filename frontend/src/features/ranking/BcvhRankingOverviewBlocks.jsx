@@ -57,7 +57,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
             </h2>
           </div>
           <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-            Sản lượng đo kiểm (cột) và Tỷ lệ đạt KPI 2026 (đường) theo tháng.
+            Sản lượng đo kiểm (cột) và {indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`} (đường) theo tháng.
           </p>
         </div>
 
@@ -114,7 +114,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
             </span>
             <span className="inline-flex items-center gap-2 font-semibold">
               <span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />
-              Tỷ lệ đạt KPI 2026 (%), trục phải
+              {indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`} (%), trục phải
             </span>
             <span className="inline-flex items-center gap-2 font-semibold">
               <span className="h-2 w-5 border-t-2 border-dashed border-[#dc2626]" />

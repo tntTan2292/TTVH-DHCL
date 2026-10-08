@@ -308,7 +308,7 @@ export default function BcvhOperationTable() {
                 Sản lượng đo kiểm
               </th>
               <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
-                Tỷ lệ đạt KPI 2026
+                {indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}
               </th>
               {showPrevMonth ? (
                 <>
@@ -332,7 +332,7 @@ export default function BcvhOperationTable() {
                 Sản lượng đo kiểm
               </th>
               <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
-                Tỷ lệ đạt KPI 2026
+                {indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}
               </th>
               <th className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
                 <span className="block">Tăng/Giảm so với</span>

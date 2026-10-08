@@ -782,12 +782,12 @@ export default function BcvhWeeklyComparisonBlock() {
                   {/* Tuần kỳ này (28%) */}
                   {renderSortableTh('current_volume', 'Sản lượng đo kiểm', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
                   {renderSortableTh('current_passed', 'Đạt', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
-                  {renderSortableTh('current_rate', 'Tỷ lệ đạt KPI 2026', { widthClass: 'w-[11%]', borderClass: 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' })}
+                  {renderSortableTh('current_rate', indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`, { widthClass: 'w-[11%]', borderClass: 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' })}
 
                   {/* Tuần so sánh (28%) */}
                   {renderSortableTh('compare_volume', 'Sản lượng đo kiểm', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
                   {renderSortableTh('compare_passed', 'Đạt', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
-                  {renderSortableTh('compare_rate', 'Tỷ lệ đạt KPI 2026', { widthClass: 'w-[11%]', borderClass: 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {renderSortableTh('compare_rate', indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`, { widthClass: 'w-[11%]', borderClass: 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' })}
 
                   {/* So sánh (16%) */}
                   {renderSortableTh('rate_delta', 'Tăng/giảm tỷ lệ', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-amber-100/90' })}

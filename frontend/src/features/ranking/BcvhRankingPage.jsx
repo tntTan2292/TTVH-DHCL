@@ -320,7 +320,7 @@ export default function BcvhRankingPage() {
           actions={(
             <div className="flex flex-wrap items-center gap-2">
               <StatusBadge label="So sánh kỳ trước" tone="warning" />
-              <StatusBadge label="Xem chi tiết tuyến" tone="info" />
+              {features.routes ? <StatusBadge label="Xem chi tiết tuyến" tone="info" /> : null}
             </div>
           )}
         />

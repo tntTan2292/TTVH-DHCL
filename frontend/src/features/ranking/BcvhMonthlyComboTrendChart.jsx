@@ -69,7 +69,8 @@ function HeatmapRateActiveDot(props) {
 }
 
 function MonthlyComboTooltip({ active, payload, label, unitName, anchorDate = null, compact = false }) {
-  const { heatmapBands } = useIndicator();
+  const indicator = useIndicator();
+  const { heatmapBands } = indicator;
   if (!active || !payload || !payload.length) return null;
 
   const point = payload.find((item) => item?.payload)?.payload || {};
@@ -127,7 +128,7 @@ function MonthlyComboTooltip({ active, payload, label, unitName, anchorDate = nu
             </span>
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-slate-100 pt-1.5">
-            <span className="text-slate-500">Tỷ lệ đạt KPI:</span>
+            <span className="text-slate-500">{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI:' : `Tỷ lệ đạt ${indicator.moduleLabel}:`}</span>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: F13_HEATMAP_HEX_COLOR[band.tone] }} />
               <span className="font-black tabular-nums text-slate-900">
@@ -136,7 +137,7 @@ function MonthlyComboTooltip({ active, payload, label, unitName, anchorDate = nu
             </div>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-slate-500">Mục tiêu KPI 2026:</span>
+            <span className="text-slate-500">{indicator.id === 'f13' ? 'Mục tiêu KPI 2026:' : `Mục tiêu ${indicator.moduleLabel}:`}</span>
             <span className="font-semibold tabular-nums text-purple-700">
               {QUALITY_TARGET_RATE}%
             </span>
@@ -162,7 +163,8 @@ function SingleMonthlyComboTrendChart({
   anchorDate = null,
   height = 320,
 }) {
-  const { heatmapBands } = useIndicator();
+  const indicator = useIndicator();
+  const { heatmapBands } = indicator;
   const gradId = useId().replace(/:/g, '_');
   const volumeAxisMax = getVolumeAxisMax(seriesData);
 
@@ -258,7 +260,7 @@ function SingleMonthlyComboTrendChart({
             yAxisId="rate"
             type="linear"
             dataKey="quality_rate"
-            name="Tỷ lệ đạt KPI 2026"
+            name={indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}
             stroke="#059669"
             strokeWidth={3}
             dot={<HeatmapRateDot />}
