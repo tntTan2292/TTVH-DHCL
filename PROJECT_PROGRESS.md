@@ -2149,3 +2149,7 @@ Backend (nine read-only /api/f41 endpoints reusing the F1.3 overview/weekly serv
 ## 2026-10-08 - F41-DASHBOARD-RANKING-01 G1 PASSED (backend reconciliation)
 
 PO decisions: one-decimal rates as F1.3; blank evaluations count as Không đạt in the F4.1 views (Evidence will split "Chưa có đánh giá"); metric = Excel column AN. Live-database read-only reconciliation 9/9 (60,98% / 60,97%, per-unit baseline, additivity 20.979, Excel parity, weekly/monthly sums, national rank 15/34 on 2026-08-01, counts unchanged). Backend restarted at the PO's request. Next: T8 Opus review, T4/T5 pages. Manifest Section 9.
+
+## 2026-10-08 - F41-DASHBOARD-RANKING-01 T8 round 1 FAIL, round 2 fixed
+
+Independent review (Opus) found one blocker (module-level indicator state could leak to F1.3 pages) plus non-blocking items. Fixed: indicator now travels by React context, no global state; NB3/NB4/NB5/NB7 fixed. Frontend 593/594 (one pre-existing failure), backend F4.1 45/45. Re-check by the reviewer pending; T4/T5 wait. Manifest Section 10.
