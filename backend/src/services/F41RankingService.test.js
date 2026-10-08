@@ -116,7 +116,7 @@ test('overview daily/monthly/mtd use all-rows denominator and only the 6 canonic
         const hue = aug11.find((row) => row.ma_bcvh === '533140');
         assert.equal(hue.volume, 10);
         assert.equal(hue.passed, 7);
-        assert.equal(hue.failed, 2);
+        assert.equal(hue.failed, 3); // blank evaluation counts as Không đạt (PO 2026-10-08)
         assert.equal(hue.rate, 70);
         // 531120 (non-canonical) is never exposed
         assert.equal(overview.daily.some((row) => row.ma_bcvh === '531120'), false);
@@ -183,8 +183,9 @@ test('summary is the module KPI over ALL rows (incl. 531120) and carries the F1.
         // 10 + 4 + 1 rows: Đạt 7+0+1 = 8 -> 53.33%
         assert.equal(summary.total_bg, 15);
         assert.equal(summary.total_passed, 8);
-        assert.equal(summary.total_failed, 5);
-        assert.equal(summary.total_unknown, 2);
+        assert.equal(summary.total_failed, 7); // 5 strict Không đạt + 2 blank evaluations
+        assert.equal(summary.total_unknown, 0);
+        assert.equal(summary.total_blank, 2);
         assert.equal(summary.passed_rate, 53.33);
         assert.equal(summary.national_rank.available, true);
         assert.equal(summary.national_rank.rank, 2);
@@ -207,6 +208,7 @@ test('single-day ranking: six-unit total differs from module KPI exactly by non-
         assert.equal(ranking.data[0].rank, 1);
         assert.equal(ranking.data[0].sl_bg_ptc, 10);
         assert.equal(ranking.data[0].dat_kpi_2026, 7);
+        assert.equal(ranking.data[0].khong_dat_kpi_2026, 3); // 2 Không đạt + 1 blank
         assert.equal(ranking.meta.total_row.sl_bg_ptc, 14); // 15 module rows minus the 531120 row
         assert.equal(ranking.meta.total_row.dat_kpi_2026, 7);
         assert.deepEqual(ranking.meta.national_rank, { rank: 2, total: 3 });

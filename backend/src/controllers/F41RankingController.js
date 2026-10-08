@@ -105,7 +105,7 @@ function createController(service = f41RankingService) {
                 }
                 const page = parseInt(req.query.page, 10) || 1;
                 const pageSize = parseInt(req.query.page_size, 10) || 20;
-                const result = await service.getBcvhRanking(from_date, to_date, page, pageSize, req.query.sort, req.query.order);
+                const result = await service.getBcvhRanking(from_date, to_date, page, pageSize);
                 ok(res, { data: result.data, meta: result.meta });
             } catch (error) { fail(res, error); }
         },

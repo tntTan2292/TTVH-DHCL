@@ -201,6 +201,12 @@ class FactF41Repository {
     // aliases (fact_f41 has no real column called ma_bcvh).
     // ---------------------------------------------------------------------
 
+    // PO decision 2026-10-08: in these dashboard/ranking views a row with a blank evaluation is in the
+    // denominator and counts as NOT passed, so every `failed` / `khong_dat_kpi_2026` below is
+    // COUNT(*) - passed (displayed as "Không đạt"). The later Evidence module will split out
+    // "Chưa có đánh giá". getKpiMetrics / getBcvhReconciliation (F41-DASHBOARD-MINIMUM-01) keep the
+    // strict Không đạt / blank split and are not changed.
+
     _all(sql, params = []) {
         return new Promise((resolve, reject) => {
             this.db.all(sql, params, (err, rows) => {
@@ -251,7 +257,7 @@ class FactF41Repository {
                            MAX(ten_bc_phat) AS ten_bcvh,
                            COUNT(*) AS volume,
                            SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Không đạt' THEN 1 ELSE 0 END) AS failed
+                           SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS failed
                     FROM fact_f41, bounds
                     WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 4) || '-01-01' AND bounds.anchor_date
                       AND ma_bc_phat IN (${placeholders})
@@ -298,7 +304,7 @@ class FactF41Repository {
                        MAX(ten_bc_phat) AS ten_bcvh,
                        COUNT(*) AS volume,
                        SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                       SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Không đạt' THEN 1 ELSE 0 END) AS failed,
+                       SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS failed,
                        bounds.anchor_date,
                        prev_bounds.prev_anchor_date,
                        week_bounds.week_ago_date
@@ -332,7 +338,7 @@ class FactF41Repository {
                            MAX(ten_bc_phat) AS ten_bcvh,
                            COUNT(*) AS volume,
                            SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Không đạt' THEN 1 ELSE 0 END) AS failed
+                           SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS failed
                     FROM fact_f41, periods
                     WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
                       AND ma_bc_phat IN (${placeholders})
@@ -470,7 +476,7 @@ class FactF41Repository {
                 MAX(ten_bc_phat) AS ten_bcvh,
                 COUNT(*) AS sl_bg_ptc,
                 SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
-                SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Không đạt' THEN 1 ELSE 0 END) AS khong_dat_kpi_2026
+                SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS khong_dat_kpi_2026
             FROM fact_f41
             WHERE ngay_do_kiem BETWEEN ? AND ?
               AND ma_bc_phat IN (${placeholders})
@@ -496,7 +502,7 @@ class FactF41Repository {
                     ngay_do_kiem AS date_value,
                     COUNT(*) AS total_volume,
                     SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                    SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Không đạt' THEN 1 ELSE 0 END) AS failed
+                    SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS failed
                 FROM fact_f41
                 WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                 ${bcvhClause}

@@ -103,6 +103,6 @@ test('weekly/monthly/ranking parameters reach the service', async () => {
     assert.deepEqual(byName.compareWeeks, ['2026-W32', '2026-W31']);
     assert.deepEqual(byName.trendWeeks, ['2026-W32', { limit: '10' }]);
     assert.deepEqual(byName.compareMonths, ['2026-08', '2026-07', { samePeriod: true }]);
-    assert.deepEqual(byName.getBcvhRanking, ['2026-08-01', '2026-08-01', 2, 5, 'total_bg', 'asc']);
+    assert.deepEqual(byName.getBcvhRanking, ['2026-08-01', '2026-08-01', 2, 5]);
     assert.deepEqual(byName.getOverview, ['2026-08-11']);
 });

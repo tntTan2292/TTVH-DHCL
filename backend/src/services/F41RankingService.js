@@ -210,12 +210,15 @@ class F41RankingService {
 
         const total = Number(metrics?.total_rows || 0);
         const passed = Number(metrics?.total_passed || 0);
-        const failed = Number(metrics?.total_failed || 0);
+        // PO 2026-10-08: rows without an evaluation are in the denominator and count as Không đạt;
+        // the blank count stays available as total_blank for the later Evidence module.
+        const failed = total - passed;
         return {
             total_bg: total,
             total_passed: passed,
             total_failed: failed,
-            total_unknown: Math.max(0, total - passed - failed),
+            total_unknown: 0,
+            total_blank: Number(metrics?.total_blank || 0),
             passed_rate: rate2(passed, total),
             failed_rate: rate2(failed, total),
             national_rank: nationalRank,
@@ -279,7 +282,9 @@ class F41RankingService {
     }
 
     // ---- single-day / range BCVH ranking -------------------------------------
-    async getBcvhRanking(fromDate, toDate, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc') {
+    // Rows always come back in rank order (best first), exactly like the F1.3 endpoint, which accepts
+    // sort/order but orders by rank; the UI sorts the page client-side.
+    async getBcvhRanking(fromDate, toDate, page = 1, pageSize = 20) {
         this._validateRange(fromDate, toDate);
         const monthStart = monthStartOf(toDate);
         const previousMonth = previousMonthComparablePeriod(toDate);
@@ -303,10 +308,6 @@ class F41RankingService {
         const ranks = rankRows(current);
         const yesterdayRanks = rankRows(yesterdayRows);
         const weekAgoRanks = rankRows(weekAgoRows);
-
-        const allowedSorts = { total_bg: 'sl_bg_ptc', total_passed: 'dat_kpi_2026', total_failed: 'khong_dat_kpi_2026' };
-        const sortKey = allowedSorts[sort] || 'sl_bg_ptc';
-        const direction = String(order || 'desc').toLowerCase() === 'asc' ? 1 : -1;
 
         const data = current.map((row) => {
             const volume = Number(row.sl_bg_ptc || 0);
@@ -348,11 +349,7 @@ class F41RankingService {
             };
         });
 
-        // Table order: by rank (best first) like F1.3; `sort`/`order` only reorders when asked.
         data.sort((a, b) => (a.rank - b.rank) || (b.sl_bg_ptc - a.sl_bg_ptc));
-        if (sort && allowedSorts[sort]) {
-            data.sort((a, b) => direction * ((a[sortKey] ?? 0) - (b[sortKey] ?? 0)));
-        }
 
         const totalCurrent = sumRows(current);
         const totalMtd = sumRows(mtdRows);
