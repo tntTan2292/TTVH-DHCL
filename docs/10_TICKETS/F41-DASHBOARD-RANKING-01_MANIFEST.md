@@ -1,6 +1,6 @@
 # F41-DASHBOARD-RANKING-01 — MANIFEST
 
-**Status:** ACTIVE — T0, T1, T2, T3 IMPLEMENTED (2026-10-08); G1 reconciliation on the live database and T4/T5 next. Not closed; no PO UI PASS yet.
+**Status:** ACTIVE — T0, T1, T2 and T3 IMPLEMENTED, G1 PASSED (2026-10-08); T8 review round 1 = FAIL (B1), fixed in round 2; T4/T5 wait for the T8 re-check. Not closed; no PO UI PASS yet.
 **Program ticket** covering the F4.1 Operation Dashboard and BCVH Ranking screens. It is the resumption of `F41-DASHBOARD-MINIMUM-01` Phase F1 (that ticket's Section 12 records the resumption).
 **Branch:** `codex/da-impl-006`. **Governance:** V2 Active.
 
@@ -65,7 +65,7 @@ Not done by design: no endpoint, no schema, no frontend. `ITR2-F41-NB-02` and `-
 
 Backend, read-only, additive (Design of Record Section 11): nine new `/api/f41/*` endpoints (`dashboard/summary`, `dashboard/daily-trend`, `ranking/bcvh`, `ranking/bcvh/overview|weeks|weekly-comparison|weekly-trend|months|monthly-comparison`), F4.1 repository queries, `F41NationalRankService`, `F41RankingService`, `F41RankingController`. The F1.3 `BcvhOverviewService` / `BcvhWeeklyComparisonService` are reused through constructor injection; no F1.3 backend file changed; no schema, index, Import or data write.
 
-Validation (LEVEL 2): `node --experimental-sqlite --test` over the six F4.1 backend test files = **43/43**, on temporary SQLite databases only (never the operational database): all-rows denominator, canonical-6 exclusion of 531120, Thursday-Wednesday weeks, TỔNG CỘNG sums volume, national rank (range, tie-break, missing province/date), daily-trend gaps, summary comparisons, controller status mapping, route list. `oxlint` clean on all touched backend files. Not yet done: the G1 reconciliation against the live database (2026-08-01 = 2.863/4.695 = 60,98%; six units 2.862/4.694 = 60,97%; weekly sums; Hue national rank) because it reads the operational database while the PO is importing; and the live API needs a backend restart. Both wait for the PO go-ahead.
+Validation (LEVEL 2): `node --experimental-sqlite --test` over the six F4.1 backend test files = **43/43**, on temporary SQLite databases only (never the operational database): all-rows denominator, canonical-6 exclusion of 531120, Thursday-Wednesday weeks, TỔNG CỘNG sums volume, national rank (range, tie-break, missing province/date), daily-trend gaps, summary comparisons, controller status mapping, route list. `oxlint` clean on all touched backend files. The G1 reconciliation against the live database was run afterwards with the PO's go-ahead: see Section 9.
 
 ## 8. T3 record (2026-10-08, Claude Code / Sonnet 5.5)
 
@@ -93,3 +93,9 @@ G1 (backend reconciliation against the live database, read-only, PO had paused t
 - Found and fixed by the run: the ranking endpoint re-sorted rows by volume when called without `sort` (F1.3 always returns rank order and ignores `sort/order`); now rank order always.
 
 Backend restart: the backend was restarted at the PO's request (old PID 32256 stopped, new `node server.js` started from the Claude Code session); the nine routes answer `401` without a session (mounted behind auth) and an unknown path answers `404`. Authenticated HTTP checks are for the T4/T5 UI check.
+
+## 10. T8 independent review and round 2 (2026-10-08)
+
+Round 1 (Claude Code / Opus): **FAIL, 1 blocker + 7 non-blocking**, backend T1/T2 PASS with non-blocking findings; see `docs/06_REVIEWS/Shared/F41-DASHBOARD-RANKING-01_REVIEW_001.md`.
+
+Round 2 (Claude Code / Sonnet 5.5): **B1 fixed** by removing the module-level indicator state altogether (Design of Record Section 12); NB3, NB4, NB5, NB7 fixed; NB1/NB2 remain in the T4/T5 leak sweep; NB6 pre-existing. Validation: backend F4.1 test files 45/45 (two new regression tests); frontend full suite **593/594** (only the pre-existing `dataImportBackfillQueue.test.js` failure), 10 tests in `features/indicator/` including the discarded-render regression; `vite build` and `oxlint` clean; no existing test edited. The running backend (started earlier from the Claude Code session) predates the NB3/NB4 backend change and needs one more restart to load it. T4/T5 stay blocked until the reviewer re-checks B1.
