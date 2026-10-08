@@ -121,7 +121,11 @@ test('overview daily/monthly/mtd use all-rows denominator and only the 6 canonic
         // 531120 (non-canonical) is never exposed
         assert.equal(overview.daily.some((row) => row.ma_bcvh === '531120'), false);
 
+        const monthlyHue = overview.monthly.find((row) => row.ma_bcvh === '533140' && row.month === '2026-08');
+        assert.equal(monthlyHue.volume, 10 + 8 + 6 + 10);
+        assert.equal(monthlyHue.failed, monthlyHue.volume - monthlyHue.passed); // blank counts as Không đạt
         const mtdHue = overview.mtd.find((row) => row.ma_bcvh === '533140');
+        assert.equal(mtdHue.failed, mtdHue.volume - mtdHue.passed);
         assert.equal(mtdHue.volume, 10 + 8 + 6 + 10);
         assert.equal(mtdHue.passed, 6 + 4 + 3 + 7);
         // previous month window (July 1..July 11): only 2026-07-30 is outside it; same-period is empty
@@ -231,6 +235,9 @@ test('daily trend covers every date in range, flags gaps, ranks only dates with 
         assert.equal(trend.items[0].national_rank, null);
         assert.equal(trend.items[2].total_volume, 15);
         assert.equal(trend.items[2].quality_rate, 53.3333);
+        // Không đạt = not Đạt, blank evaluations included (PO 2026-10-08): 15 rows - 8 Đạt
+        assert.equal(trend.items[2].failed, 7);
+        assert.equal(trend.items[1].failed, 11 - 4); // 2026-08-10: 11 rows, 4 Đạt
         assert.deepEqual([trend.items[1].national_rank.rank, trend.items[1].national_rank.total], [2, 3]);
         assert.equal(trend.meta.latest_import, '2026-08-11');
 
@@ -285,5 +292,29 @@ test('repository exposes no route dimension and only canonical codes reach ranki
         assert.equal(CANONICAL_CODES.includes('531120'), false);
         const metrics = await repository.getBcvhOperationMetricsBetween('2026-08-03', '2026-08-03', CANONICAL_CODES);
         assert.deepEqual(metrics.map((row) => row.ma_bcvh).sort(), ['533140', '537220']);
+    });
+});
+
+test('ranking compares the exact ratio, not a 1-decimal rounding (T8-F41-NB3)', async () => {
+    await withStack(async ({ db, repository, nationalRankService }) => {
+        const mk = (code, name, total, passed, prefix) => rows(code, name, { total, passed }, prefix);
+        await repository.overwriteImport('2026-08-12', [
+            ...mk('533140', 'BCVH Thuận Hóa', 10000, 6844, 'A'), // 68.44 %
+            ...mk('537220', 'BCVH Phú Lộc', 20000, 13672, 'B'), // 68.36 %, but 68.4 once rounded
+        ]);
+        const service = new F41RankingService({ repository, nationalRankService, now: NOW });
+        const ranking = await service.getBcvhRanking('2026-08-12', '2026-08-12');
+        assert.deepEqual(ranking.data.map((row) => [row.ma_bcvh, row.rank]), [['533140', 1], ['537220', 2]]);
+        assert.ok(db);
+    });
+});
+
+test('summary degrades to a null national rank when the rank query fails (T8-F41-NB4)', async () => {
+    await withStack(async ({ repository }) => {
+        const failingRank = { getNationalRankSummary: async () => { throw new Error('boom'); }, getNationalRanksForDates: async () => ({}), unavailableForDate: () => null };
+        const service = new F41RankingService({ repository, nationalRankService: failingRank, now: NOW });
+        const summary = await service.getSummary('2026-08-11', '2026-08-11');
+        assert.equal(summary.total_bg, 15);
+        assert.equal(summary.national_rank, null);
     });
 });

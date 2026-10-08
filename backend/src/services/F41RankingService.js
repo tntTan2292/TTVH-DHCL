@@ -84,7 +84,7 @@ function indexByBcvh(rows = []) {
 // Competition ranking (equal rate+volume share a rank), matching F1.3's SQL RANK().
 function rankRows(rows) {
     const sorted = [...rows].sort((a, b) => {
-        const delta = rate1(b.dat_kpi_2026, b.sl_bg_ptc) - rate1(a.dat_kpi_2026, a.sl_bg_ptc);
+        const delta = (b.dat_kpi_2026 / b.sl_bg_ptc) - (a.dat_kpi_2026 / a.sl_bg_ptc);
         if (delta !== 0) return delta;
         return b.sl_bg_ptc - a.sl_bg_ptc;
     });
@@ -200,12 +200,19 @@ class F41RankingService {
 
         const previousDay = shiftDate(toDate, -1);
         const previousWeek = shiftDate(toDate, -7);
+        const nationalRankOrNull = async () => {
+            try {
+                return await this.nationalRankService.getNationalRankSummary(fromDate, toDate);
+            } catch {
+                return null;
+            }
+        };
         const [metrics, current, d1, d7, nationalRank] = await Promise.all([
             this.repository.getKpiMetrics(fromDate, toDate, { bcvhId }),
             this.repository.getKpiMetrics(toDate, toDate, { bcvhId }),
             this.repository.getKpiMetrics(previousDay, previousDay, { bcvhId }),
             this.repository.getKpiMetrics(previousWeek, previousWeek, { bcvhId }),
-            bcvhId ? Promise.resolve(null) : this.nationalRankService.getNationalRankSummary(fromDate, toDate),
+            bcvhId ? Promise.resolve(null) : nationalRankOrNull(),
         ]);
 
         const total = Number(metrics?.total_rows || 0);

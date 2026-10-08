@@ -195,7 +195,7 @@ class FactF41Repository {
     // FactBuuGuiRepository twin so the F1.3 BcvhOverviewService and
     // BcvhWeeklyComparisonService can be reused unchanged (Design of Record
     // Section 4.2). F4.1 semantics (DC-6): volume = COUNT(*) of all rows,
-    // passed = danh_gia_co_tms_ptc_8h = 'Đạt', failed = 'Không đạt'; blank
+    // passed = danh_gia_co_tms_ptc_8h = 'Đạt', failed = NOT passed (see below); blank
     // evaluations stay in the denominator. GROUP BY always names the real
     // column ma_bc_phat; the ma_bcvh / ten_bcvh names exist only as output
     // aliases (fact_f41 has no real column called ma_bcvh).
