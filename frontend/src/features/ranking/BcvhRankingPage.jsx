@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { Clock3, Donut } from 'lucide-react';
 import { EmptyState, ErrorState, KPICard, PageContainer, StatusBadge } from '../../components/shared/SharedComponents';
 import { GlobalFilterBar } from '../../components/shared/SharedLayout';
-import api from '../../api/client';
 import UnifiedBcvhAnalysisTable from '../dashboard/components/UnifiedBcvhAnalysisTable';
 import { buildBcvhOptions, validateBcvhUnits } from '../dashboard/components/dashboardFilterOptions';
 import { formatNationalRank } from './bcvhWeeklyComparisonData';
@@ -14,13 +13,14 @@ import {
   BcvhRouteCapacityBlock,
 } from './BcvhRankingOverviewBlocks';
 import BcvhWeeklyComparisonBlock from './BcvhWeeklyComparisonBlock';
-import { indicatorLabel, resolveIndicator } from '../indicator/indicatorConfig.js';
+import { indicatorLabel } from '../indicator/indicatorConfig.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
+import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 
-function toneFromKpi(rate) {
+function toneFromKpi(rate, heatmapFloors) {
   if (rate === null || rate === undefined) return 'neutral';
-  // Floors follow the indicator on display (F1.3 70/60/50, F4.1 80/70/60).
-  const [greenFloor, pinkFloor, yellowFloor] = resolveIndicator().heatmapFloors;
+  // Floors follow the page's indicator (F1.3 70/60/50, F4.1 80/70/60).
+  const [greenFloor, pinkFloor, yellowFloor] = heatmapFloors;
   if (rate >= greenFloor) return 'success';
   if (rate >= pinkFloor) return 'info';
   if (rate >= yellowFloor) return 'warning';
@@ -92,7 +92,9 @@ function DoughnutSummary({ routeDistribution }) {
 }
 
 export default function BcvhRankingPage() {
-  const { features } = useIndicator();
+  const indicator = useIndicator();
+  const { features } = indicator;
+  const api = useIndicatorApi();
   const [searchParams, setSearchParams] = useSearchParams();
   const [metaState, setMetaState] = useState({
     status: 'loading',
@@ -206,7 +208,7 @@ export default function BcvhRankingPage() {
         }
         setRankingState({
           status: 'success',
-          data: mapBcvhRankingResponse(response.data, { fromDate, toDate, interval, maBcvh, search }),
+          data: mapBcvhRankingResponse(response.data, { fromDate, toDate, interval, maBcvh, search, indicator }),
           error: null,
         });
       })
@@ -255,14 +257,14 @@ export default function BcvhRankingPage() {
       tone: 'primary',
     },
     {
-      label: indicatorLabel('Chất lượng F1.3'),
+      label: indicatorLabel('Chất lượng F1.3', indicator),
       value: formatRate(summaryRow?.current_day.rate),
       delta: `D-1 ${formatSignedDelta(summaryRow?.comparisons?.d1?.rate_delta, 'điểm %')} · D-7 ${formatSignedDelta(summaryRow?.comparisons?.d7?.rate_delta, 'điểm %')}`,
       trend: [
         summaryRow?.current_day?.signal?.label,
         formatNationalRank(rankingState.data?.meta?.national_rank) ? `Vị thứ toàn quốc ${formatNationalRank(rankingState.data.meta.national_rank)}` : null,
       ].filter(Boolean).join(' • ') || undefined,
-      tone: toneFromKpi(summaryRow?.current_day.rate),
+      tone: toneFromKpi(summaryRow?.current_day.rate, indicator.heatmapFloors),
     },
     {
       label: 'Chậm nộp tiền',

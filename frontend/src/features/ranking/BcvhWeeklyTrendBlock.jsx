@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, BarChart3 } from 'lucide-react';
-import api from '../../api/client';
+import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { ErrorState } from '../../components/shared/SharedComponents';
 import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
 import BcvhWeeklyComboTrendChart from './BcvhWeeklyComboTrendChart';
@@ -26,6 +26,7 @@ const TREND_NAMES = {
 // "Điều chỉnh mốc tuần hiện tại" / the week select of the table above) plus its own unit filter.
 // Default view: "Tổng cộng 6 BCVH" (combo bar + line).
 export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
+  const api = useIndicatorApi();
   const [trendState, setTrendState] = useState({ status: 'idle', weeks: [], error: null });
   const [unit, setUnit] = useState(WEEKLY_TREND_TOTAL_KEY);
 

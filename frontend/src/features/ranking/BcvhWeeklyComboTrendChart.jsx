@@ -37,15 +37,17 @@ import {
   classifyF13HeatmapRate,
   F13_HEATMAP_HEX_COLOR,
 } from '../../components/f13/f13HeatmapBandCatalog.js';
+import { useIndicator } from '../indicator/IndicatorContext.js';
 import {
   WEEKLY_TREND_TOTAL_KEY,
   getWeeklyTrendSeriesData,
 } from './bcvhWeeklyComparisonData.js';
 
 function HeatmapRateDot(props) {
+  const { heatmapBands } = useIndicator();
   const { cx, cy, value } = props;
   if (value === null || value === undefined || typeof cx !== 'number' || typeof cy !== 'number') return null;
-  const band = classifyF13HeatmapRate(value);
+  const band = classifyF13HeatmapRate(value, heatmapBands);
   const color = F13_HEATMAP_HEX_COLOR[band.tone] || '#059669';
   return (
     <circle
@@ -60,9 +62,10 @@ function HeatmapRateDot(props) {
 }
 
 function HeatmapRateActiveDot(props) {
+  const { heatmapBands } = useIndicator();
   const { cx, cy, value } = props;
   if (value === null || value === undefined || typeof cx !== 'number' || typeof cy !== 'number') return null;
-  const band = classifyF13HeatmapRate(value);
+  const band = classifyF13HeatmapRate(value, heatmapBands);
   const color = F13_HEATMAP_HEX_COLOR[band.tone] || '#059669';
   return (
     <circle
@@ -77,11 +80,12 @@ function HeatmapRateActiveDot(props) {
 }
 
 function WeeklyComboTooltip({ active, payload, label, unitName, compact = false }) {
+  const { heatmapBands } = useIndicator();
   if (!active || !payload || !payload.length) return null;
 
   const point = payload.find((item) => item?.payload)?.payload || {};
   const hasData = point.total_volume !== null && point.total_volume !== undefined;
-  const band = classifyF13HeatmapRate(point.quality_rate);
+  const band = classifyF13HeatmapRate(point.quality_rate, heatmapBands);
 
   return (
     <div className={`rounded-xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur-xs ${compact ? 'p-2.5 text-xs max-w-[240px]' : 'p-3.5 text-xs sm:text-sm max-w-[300px]'}`}>
@@ -167,6 +171,7 @@ function SingleComboTrendChart({
   height = 340,
   isZoomed = false,
 }) {
+  const { heatmapBands } = useIndicator();
   const gradId = useId().replace(/:/g, '_');
   const volumeAxisMax = getVolumeAxisMax(seriesData);
 
@@ -275,7 +280,7 @@ function SingleComboTrendChart({
               rows: seriesData,
               fontSize: 10,
               getFill: (_row, value) => {
-                const band = classifyF13HeatmapRate(value);
+                const band = classifyF13HeatmapRate(value, heatmapBands);
                 return F13_HEATMAP_HEX_COLOR[band.tone] || '#047857';
               },
             })}
@@ -296,6 +301,7 @@ function SmallMultiplesGrid({
   unitColors = {},
   isZoomed = false,
 }) {
+  const { heatmapBands } = useIndicator();
   return (
     <div className="w-full">
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-2.5 text-xs pr-40 sm:pr-48">
@@ -321,7 +327,7 @@ function SmallMultiplesGrid({
           // Latest week summary point
           const latestPoint = unitData[unitData.length - 1];
           const latestRate = latestPoint?.quality_rate;
-          const band = classifyF13HeatmapRate(latestRate);
+          const band = classifyF13HeatmapRate(latestRate, heatmapBands);
 
           const volumeLabelIndexes = !isZoomed
             ? selectLastIndex(unitData, 'total_volume')
@@ -431,7 +437,7 @@ function SmallMultiplesGrid({
                         rows: unitData,
                         fontSize: 9,
                         getFill: (_row, value) => {
-                          const pointBand = classifyF13HeatmapRate(value);
+                          const pointBand = classifyF13HeatmapRate(value, heatmapBands);
                           return F13_HEATMAP_HEX_COLOR[pointBand.tone] || '#047857';
                         },
                       })}

@@ -160,7 +160,7 @@ function calculateRate(passed, volume) {
  */
 // prevMonthMode: 'same_period' (default, existing behaviour) compares the month-to-date with the same
 // first-N days of the previous month; 'full_month' compares with the whole previous calendar month.
-export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same_period' } = {}) {
+export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same_period', indicator } = {}) {
   const useFullPrevMonth = prevMonthMode === 'full_month';
   const meta = data?.meta || {};
   const rawMtd = Array.isArray(data?.mtd) ? data.mtd : [];
@@ -381,7 +381,7 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
     formattedPrevFactDate,
     weekAgoDate,
     formattedWeekAgoDate,
-    titleLine1: indicatorLabel('BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH'),
+    titleLine1: indicatorLabel('BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH', indicator),
     titleLine2: `ĐẾN NGÀY ${formattedAnchorDate} (SỐ LIỆU GẦN NHẤT)`,
     mtdHeaderContext,
     prevMonthMode: useFullPrevMonth ? 'full_month' : 'same_period',

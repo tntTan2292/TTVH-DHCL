@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { TrendingUp } from 'lucide-react';
-import api from '../../../api/client';
+import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
 import { CardContainer, EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
 import { buildTrendlineRequestParams } from './qualityTrendlineWindow';
 
@@ -49,6 +49,7 @@ function QualityTrendTooltip({ active, payload, label }) {
 }
 
 export default function QualityDeliveryTrendlineAdapter({ reportingToDate, latestDate, maBcvh }) {
+  const api = useIndicatorApi();
   const [state, setState] = useState({ loading: true, error: null, data: [] });
 
   useEffect(() => {

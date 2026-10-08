@@ -1,11 +1,8 @@
 import assert from 'node:assert/strict';
-import test, { afterEach } from 'node:test';
+import test from 'node:test';
 import { mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData.js';
 import { processOverviewData } from '../ranking/bcvhOverviewData.js';
-import { setActiveIndicator } from './activeIndicator.js';
 import { F41_INDICATOR } from './indicatorConfig.js';
-
-afterEach(() => setActiveIndicator(null));
 
 // Shapes below are exactly what backend F41RankingService.getBcvhRanking / getOverview return:
 // no route_distribution, no late-cash fields, routes: [] (F4.1 has no route dimension).
@@ -14,16 +11,16 @@ const rankingRow = {
   ten_bcvh: 'BCVH Thuận Hóa',
   total_bg: 2184,
   passed_rate: 68.4,
-  total_failed: 539,
+  total_failed: 690, // 2184 - 1494: Không đạt includes rows without an evaluation (PO 2026-10-08)
   sl_bg_ptc: 2184,
   dat_kpi_2026: 1494,
-  khong_dat_kpi_2026: 539,
+  khong_dat_kpi_2026: 690,
   kpi_2026: 68.4,
   kpi_2026_dod: 1.2,
   kpi_2026_swc: -0.5,
   month_to_date_sl_bg_ptc: 2184,
   month_to_date_dat_kpi_2026: 1494,
-  month_to_date_khong_dat_kpi_2026: 539,
+  month_to_date_khong_dat_kpi_2026: 690,
   month_to_date_kpi_2026: 68.4,
   previous_month_to_date_sl_bg_ptc: null,
   previous_month_to_date_dat_kpi_2026: null,
@@ -39,7 +36,7 @@ const totalRow = {
   ten_bcvh: 'TỔNG CỘNG',
   sl_bg_ptc: 4694,
   dat_kpi_2026: 2862,
-  khong_dat_kpi_2026: 1581,
+  khong_dat_kpi_2026: 1832,
   kpi_2026: 61,
   kpi_2026_dod: null,
   kpi_2026_swc: null,
@@ -50,16 +47,15 @@ const totalRow = {
 };
 
 test('the F1.3 ranking mapper accepts the F4.1 ranking payload (no route / late-cash fields)', () => {
-  setActiveIndicator(F41_INDICATOR);
   const mapped = mapBcvhRankingResponse(
     { data: [rankingRow], meta: { total_row: totalRow, national_rank: { rank: 22, total: 34 } } },
-    { fromDate: '2026-08-01', toDate: '2026-08-01' },
+    { fromDate: '2026-08-01', toDate: '2026-08-01', indicator: F41_INDICATOR },
   );
   assert.equal(mapped.rows.length, 1);
   const [row] = mapped.rows;
   assert.equal(row.current_day.volume, 2184);
   assert.equal(row.current_day.pass_count, 1494);
-  assert.equal(row.current_day.fail_count, 539);
+  assert.equal(row.current_day.fail_count, 690);
   assert.equal(row.current_day.rate, 68.4);
   assert.equal(row.current_day.signal.id, 'yellow'); // 68.4 is in the F4.1 yellow band (60-70)
   assert.equal(row.comparisons.d1.rate_delta, 1.2);

@@ -22,7 +22,8 @@ import {
   HEATMAP_BAND_TONE_CLASS,
   HEATMAP_BAND_DOT_CLASS,
 } from '../dashboard/components/operatingPatternTabsData';
-import { buildMonthlyHeatmapLegend, indicatorLabel, resolveIndicator } from '../indicator/indicatorConfig.js';
+import { buildMonthlyHeatmapLegend, indicatorLabel } from '../indicator/indicatorConfig.js';
+import { useIndicator } from '../indicator/IndicatorContext.js';
 
 // Legend copy for the monthly heatmap below. Colors reuse the shared HEATMAP_BAND_DOT_CLASS
 // tones; the wording here is this table's own legend text, not the SSOT's threshold logic.
@@ -37,6 +38,7 @@ const MONTHLY_HEATMAP_LEGEND = [
 
 // 2. Monthly Trend Block (Khối 1)
 export function BcvhMonthlyTrendBlock({ data }) {
+  const indicator = useIndicator();
   const [unit, setUnit] = useState(MONTHLY_TREND_TOTAL_KEY);
   if (!data) return null;
   const { months, monthlyChartData, monthlyTableRows, nameMap, meta } = data;
@@ -120,7 +122,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
             </span>
           </div>
           <div className="text-[11px] text-slate-500 font-medium">
-            {indicatorLabel('Chấm trên đường tỷ lệ tô màu theo dải KPI F1.3')}
+            {indicatorLabel('Chấm trên đường tỷ lệ tô màu theo dải KPI F1.3', indicator)}
           </div>
         </div>
       </div>
@@ -137,7 +139,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
             Chi tiết số liệu theo tháng
           </h3>
           <div className="flex flex-wrap gap-3 text-[10px] font-medium text-gray-500">
-            {(resolveIndicator().id === 'f13' ? MONTHLY_HEATMAP_LEGEND : buildMonthlyHeatmapLegend()).map((entry) => (
+            {(indicator.id === 'f13' ? MONTHLY_HEATMAP_LEGEND : buildMonthlyHeatmapLegend(indicator)).map((entry) => (
               <span key={entry.tone} className="flex items-center gap-1">
                 <div className={`h-2 w-2 rounded-full ${HEATMAP_BAND_DOT_CLASS[entry.tone] || HEATMAP_BAND_DOT_CLASS.unavailable}`}></div>
                 {entry.label}: {entry.description}

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import api from '../../api/client';
 import {
   PageContainer,
   StatusBadge,
@@ -21,10 +20,12 @@ import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
 import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboardDateRange';
 import { useIndicator } from '../indicator/IndicatorContext.js';
+import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { indicatorLabel } from '../indicator/indicatorConfig.js';
 
 export default function DashboardPage() {
   const indicator = useIndicator();
+  const api = useIndicatorApi();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
@@ -276,7 +277,7 @@ export default function DashboardPage() {
 
   return (
     <PageContainer
-      title={indicatorLabel('Dashboard điều hành chất lượng F1.3')}
+      title={indicatorLabel('Dashboard điều hành chất lượng F1.3', indicator)}
       subtitle="Theo dõi chất lượng phát theo kỳ đã chọn và phạm vi BCVH hiện hành."
       action={(
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-1.5 shadow-2xs">

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, ChevronDown, RefreshCw, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
-import api from '../../../api/client';
 import { EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
 import {
   buildDoughnutAriaLabel,
@@ -14,8 +13,9 @@ import {
   mapBcvhRankingResponse,
   UNAVAILABLE_TEXT,
 } from './unifiedBcvhAnalysisTableData';
-import { indicatorLabel, resolveIndicator } from '../../indicator/indicatorConfig.js';
+import { indicatorLabel } from '../../indicator/indicatorConfig.js';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
+import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
 
 const STORAGE_KEY = 'qis.bcvhRankingWave2.columns.v2';
 
@@ -300,7 +300,8 @@ function UnifiedHeader({ columns }) {
 }
 
 function AnalysisPanel({ row, onOpenDetail }) {
-  const { features } = useIndicator();
+  const indicator = useIndicator();
+  const { features } = indicator;
   const segments = row.route_distribution.segments;
   return (
     <div className="rounded-2xl border border-[var(--color-surface-200)] bg-[var(--color-surface-50)] p-5">
@@ -326,7 +327,7 @@ function AnalysisPanel({ row, onOpenDetail }) {
                 <div>Sản lượng: <span className="font-semibold">{formatNumber(row.current_day.volume)}</span></div>
                 <div>Đạt: <span className="font-semibold">{formatNumber(row.current_day.pass_count)}</span></div>
                 <div>Không đạt: <span className="font-semibold">{formatNumber(row.current_day.fail_count)}</span></div>
-                <div className="flex items-center gap-2">{indicatorLabel('Tỷ lệ F1.3:')} <span className="font-semibold">{formatRate(row.current_day.rate)}</span><StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} /></div>
+                <div className="flex items-center gap-2">{indicatorLabel('Tỷ lệ F1.3:', indicator)} <span className="font-semibold">{formatRate(row.current_day.rate)}</span><StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} /></div>
               </div>
             </div>
             <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -472,6 +473,8 @@ export default function UnifiedBcvhAnalysisTable({
   search = '',
   prefetchedData = null,
 }) {
+  const indicator = useIndicator();
+  const api = useIndicatorApi();
   const navigate = useNavigate();
   const requestSeqRef = useRef(0);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
@@ -508,7 +511,7 @@ export default function UnifiedBcvhAnalysisTable({
       if (requestSeqRef.current !== seq) return;
       setState({
         status: 'success',
-        data: mapBcvhRankingResponse(response.data, requestContext),
+        data: mapBcvhRankingResponse(response.data, { ...requestContext, indicator }),
         error: null,
       });
     } catch (error) {
@@ -592,8 +595,8 @@ export default function UnifiedBcvhAnalysisTable({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {resolveIndicator().features.routes ? <StatusBadge label="KPI 2026" tone="neutral" /> : null}
-          {resolveIndicator().features.routes ? <StatusBadge label="Tuyến chất lượng" tone="neutral" /> : null}
+          {indicator.features.routes ? <StatusBadge label="KPI 2026" tone="neutral" /> : null}
+          {indicator.features.routes ? <StatusBadge label="Tuyến chất lượng" tone="neutral" /> : null}
           <ColumnOptions columns={columns} setColumns={setColumns} />
         </div>
       </div>

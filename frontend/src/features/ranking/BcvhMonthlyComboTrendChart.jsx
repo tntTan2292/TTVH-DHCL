@@ -30,11 +30,13 @@ import {
   classifyF13HeatmapRate,
   F13_HEATMAP_HEX_COLOR,
 } from '../../components/f13/f13HeatmapBandCatalog.js';
+import { useIndicator } from '../indicator/IndicatorContext.js';
 
 function HeatmapRateDot(props) {
+  const { heatmapBands } = useIndicator();
   const { cx, cy, value } = props;
   if (value === null || value === undefined || typeof cx !== 'number' || typeof cy !== 'number') return null;
-  const band = classifyF13HeatmapRate(value);
+  const band = classifyF13HeatmapRate(value, heatmapBands);
   const color = F13_HEATMAP_HEX_COLOR[band.tone] || '#059669';
   return (
     <circle
@@ -49,9 +51,10 @@ function HeatmapRateDot(props) {
 }
 
 function HeatmapRateActiveDot(props) {
+  const { heatmapBands } = useIndicator();
   const { cx, cy, value } = props;
   if (value === null || value === undefined || typeof cx !== 'number' || typeof cy !== 'number') return null;
-  const band = classifyF13HeatmapRate(value);
+  const band = classifyF13HeatmapRate(value, heatmapBands);
   const color = F13_HEATMAP_HEX_COLOR[band.tone] || '#059669';
   return (
     <circle
@@ -66,11 +69,12 @@ function HeatmapRateActiveDot(props) {
 }
 
 function MonthlyComboTooltip({ active, payload, label, unitName, anchorDate = null, compact = false }) {
+  const { heatmapBands } = useIndicator();
   if (!active || !payload || !payload.length) return null;
 
   const point = payload.find((item) => item?.payload)?.payload || {};
   const hasData = point.total_volume !== null && point.total_volume !== undefined;
-  const band = classifyF13HeatmapRate(point.quality_rate);
+  const band = classifyF13HeatmapRate(point.quality_rate, heatmapBands);
   const isCurrent = point.isCurrentMonth;
 
   return (
@@ -158,6 +162,7 @@ function SingleMonthlyComboTrendChart({
   anchorDate = null,
   height = 320,
 }) {
+  const { heatmapBands } = useIndicator();
   const gradId = useId().replace(/:/g, '_');
   const volumeAxisMax = getVolumeAxisMax(seriesData);
 
@@ -265,7 +270,7 @@ function SingleMonthlyComboTrendChart({
               rows: seriesData,
               fontSize: 10,
               getFill: (_row, value) => {
-                const band = classifyF13HeatmapRate(value);
+                const band = classifyF13HeatmapRate(value, heatmapBands);
                 return F13_HEATMAP_HEX_COLOR[band.tone] || '#047857';
               },
             })}
@@ -285,6 +290,7 @@ function SmallMultiplesMonthlyGrid({
   unitColors = {},
   anchorDate = null,
 }) {
+  const { heatmapBands } = useIndicator();
   return (
     <div className="w-full">
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-2.5 text-xs">
@@ -308,7 +314,7 @@ function SmallMultiplesMonthlyGrid({
 
           const latestPoint = unitData[unitData.length - 1];
           const latestRate = latestPoint?.quality_rate;
-          const band = classifyF13HeatmapRate(latestRate);
+          const band = classifyF13HeatmapRate(latestRate, heatmapBands);
 
           const volumeLabelIndexes = selectLabelIndexes(unitData, 'total_volume', { allMaxPoints: 12 });
           const rateLabelIndexes = selectLabelIndexes(unitData, 'quality_rate', { allMaxPoints: 12 });
@@ -433,7 +439,7 @@ function SmallMultiplesMonthlyGrid({
                         rows: unitData,
                         fontSize: 9,
                         getFill: (_row, value) => {
-                          const pointBand = classifyF13HeatmapRate(value);
+                          const pointBand = classifyF13HeatmapRate(value, heatmapBands);
                           return F13_HEATMAP_HEX_COLOR[pointBand.tone] || '#047857';
                         },
                       })}

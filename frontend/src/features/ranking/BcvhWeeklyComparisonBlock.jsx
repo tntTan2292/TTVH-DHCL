@@ -10,7 +10,6 @@ import {
   RotateCcw,
   SlidersHorizontal,
 } from 'lucide-react';
-import api from '../../api/client';
 import { ErrorState } from '../../components/shared/SharedComponents';
 import { BCVH_COLORS } from './bcvhOverviewData';
 import {
@@ -46,13 +45,15 @@ import {
   sortBcvhWeeklyRows,
 } from './bcvhWeeklyComparisonData';
 import { indicatorLabel } from '../indicator/indicatorConfig.js';
+import { useIndicator } from '../indicator/IndicatorContext.js';
+import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 
 function renderDeltaBadge(deltaValue) {
   const { display, toneClass } = formatDeltaIndicator(deltaValue);
   return <span className={toneClass}>{display}</span>;
 }
 
-function renderRateBadge(rate) {
+function renderRateBadge(rate, bands) {
   if (rate === null || rate === undefined || rate === '') {
     return <span className="text-slate-400 font-medium">{DASH}</span>;
   }
@@ -60,7 +61,7 @@ function renderRateBadge(rate) {
   if (!Number.isFinite(num)) {
     return <span className="text-slate-400 font-medium">{DASH}</span>;
   }
-  const band = classifyF13HeatmapRate(num);
+  const band = classifyF13HeatmapRate(num, bands);
   const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
   return (
     <span
@@ -108,6 +109,8 @@ function WeekNoteBadge({ week }) {
 }
 
 export default function BcvhWeeklyComparisonBlock() {
+  const indicator = useIndicator();
+  const api = useIndicatorApi();
   const [weeksState, setWeeksState] = useState({ status: 'loading', weeks: [], error: null });
   const [anchorDate, setAnchorDate] = useState('');
   const [defaultAnchorDate, setDefaultAnchorDate] = useState('');
@@ -369,8 +372,8 @@ export default function BcvhWeeklyComparisonBlock() {
   const compareMonthName = compareMonth ? formatMonthLabel(compareMonth) : '';
 
   const titleLine1 = isMonth
-    ? `${indicatorLabel('BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO THÁNG TẠI CÁC BCVH')}${samePeriodMeta?.enabled ? ' (CÙNG KỲ)' : ''}`
-    : indicatorLabel('BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO TUẦN TẠI CÁC BCVH');
+    ? `${indicatorLabel('BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO THÁNG TẠI CÁC BCVH', indicator)}${samePeriodMeta?.enabled ? ' (CÙNG KỲ)' : ''}`
+    : indicatorLabel('BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO TUẦN TẠI CÁC BCVH', indicator);
   const titleLine2 = isMonth
     ? `KỲ NÀY: ${currentMonthName || 'THÁNG HIỆN TẠI'} (${currentMonthRange || DASH}) • SO VỚI: ${compareMonthName || 'THÁNG SO SÁNH'} (${compareMonthRange || DASH})`
     : `KỲ NÀY: ${currentWeek?.label || 'TUẦN HIỆN TẠI'} (${currentWeekRange || DASH}) • SO VỚI: ${compareWeek?.label || 'TUẦN SO SÁNH'} (${compareWeekRange || DASH})`;
@@ -814,7 +817,7 @@ export default function BcvhWeeklyComparisonBlock() {
                       {formatVolume(totalRow.current.passed)}
                     </td>
                     <td className="py-2 px-1 text-center tabular-nums border-r border-blue-300 whitespace-nowrap">
-                      {renderRateBadge(totalRow.current.rate)}
+                      {renderRateBadge(totalRow.current.rate, indicator.heatmapBands)}
                     </td>
 
                     {/* Tuần so sánh */}
@@ -825,7 +828,7 @@ export default function BcvhWeeklyComparisonBlock() {
                       {formatVolume(totalRow.compare.passed)}
                     </td>
                     <td className="py-2 px-1 text-center tabular-nums border-r border-emerald-300 whitespace-nowrap">
-                      {renderRateBadge(totalRow.compare.rate)}
+                      {renderRateBadge(totalRow.compare.rate, indicator.heatmapBands)}
                     </td>
 
                     {/* Chênh lệch */}
@@ -864,7 +867,7 @@ export default function BcvhWeeklyComparisonBlock() {
                         {formatVolume(row.current.passed)}
                       </td>
                       <td className="py-2 px-1 text-center tabular-nums border-r border-blue-300 whitespace-nowrap">
-                        {renderRateBadge(row.current.rate)}
+                        {renderRateBadge(row.current.rate, indicator.heatmapBands)}
                       </td>
 
                       {/* Tuần so sánh */}
@@ -875,7 +878,7 @@ export default function BcvhWeeklyComparisonBlock() {
                         {formatVolume(row.compare.passed)}
                       </td>
                       <td className="py-2 px-1 text-center tabular-nums border-r border-emerald-300 whitespace-nowrap">
-                        {renderRateBadge(row.compare.rate)}
+                        {renderRateBadge(row.compare.rate, indicator.heatmapBands)}
                       </td>
 
                       {/* Chênh lệch */}

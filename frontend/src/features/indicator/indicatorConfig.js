@@ -1,14 +1,17 @@
 // F41-DASHBOARD-RANKING-01 (T3) - indicator configuration for the shared Operation
 // Dashboard / BCVH Ranking blocks. The default is F1.3, so F1.3 behaves exactly as before;
 // F4.1 swaps the API prefix, KPI endpoint, colour thresholds, labels and hides the blocks
-// that need data F4.1 does not have (routes, rules, operating pattern).
+// that need data F4.1 does not have (routes, late-cash, rules, operating pattern).
+//
+// Pure module: no state. A page learns its indicator from `IndicatorProvider` (React context,
+// default F1.3) and hands it explicitly to whatever needs it (API wrapper, band lookups,
+// labels). There is deliberately no module-level "current indicator" (review T8-F41-B1).
 //
 // PO decisions (2026-10-08): F4.1 colour bands are the F1.3 colours with every threshold
 // +10 points (green >= 80, pink 70-80, yellow 60-70, red < 60); the chart target line stays
 // 90% for both indicators, so it is not parameterised.
 
 import { buildHeatmapBands } from '../../components/f13/f13HeatmapBandCatalog.js';
-import { getActiveIndicator } from './activeIndicator.js';
 
 const COMMON_ENDPOINTS = Object.freeze({
   meta: '/dashboard/meta',
@@ -23,7 +26,7 @@ const COMMON_ENDPOINTS = Object.freeze({
   monthlyComparison: '/ranking/bcvh/monthly-comparison',
 });
 
-// KPI status labels of the BCVH analysis table, keyed by the same floors as the heatmap.
+// KPI status labels of the BCVH table, keyed by the same floors as the heatmap.
 function buildKpiStatusBands(floors) {
   return Object.freeze([
     Object.freeze({ min: floors[0], id: 'green', label: 'Tốt', tone: 'success' }),
@@ -62,28 +65,23 @@ export const F41_INDICATOR = Object.freeze({
 
 export const INDICATORS = Object.freeze({ f13: F13_INDICATOR, f41: F41_INDICATOR });
 
-// The indicator of the screen on display, or F1.3 when no provider is mounted.
-export function resolveIndicator() {
-  return getActiveIndicator() || F13_INDICATOR;
-}
-
-// Full API path for a named endpoint of the active (or given) indicator.
-export function indicatorEndpoint(key, indicator = resolveIndicator()) {
+// Full API path for a named endpoint of an indicator.
+export function indicatorEndpoint(key, indicator = F13_INDICATOR) {
   const path = indicator.endpoints[key];
   if (!path) throw new Error(`Unknown indicator endpoint: ${key}`);
   return `${indicator.apiBase}${path}`;
 }
 
-// Replaces the F1.3 module name inside a UI string with the indicator on display; the source
-// strings stay F1.3 wording, so F1.3 output (and its contract tests) is unchanged.
-export function indicatorLabel(text, indicator = resolveIndicator()) {
+// Replaces the F1.3 module name inside a UI string with the indicator's; the source strings
+// stay F1.3 wording, so F1.3 output (and its contract tests) is unchanged.
+export function indicatorLabel(text, indicator = F13_INDICATOR) {
   return String(text).replaceAll('F1.3', indicator.moduleLabel);
 }
 
 // Rewrites a shared report URL written for F1.3 ('/f13/ranking/bcvh/overview?...') to the
-// indicator on display. Done once in the HTTP client so the report blocks keep their F1.3
-// call sites; URLs that are not part of the shared report set (or any F1.3 screen) pass through.
-export function rewriteIndicatorUrl(url, indicator = getActiveIndicator()) {
+// given indicator. Used by the indicator-scoped API wrapper so the report blocks keep their
+// F1.3 call sites. URLs outside the shared report set pass through unchanged.
+export function rewriteIndicatorUrl(url, indicator = F13_INDICATOR) {
   if (!indicator || indicator.id === F13_INDICATOR.id || typeof url !== 'string') return url;
   const queryAt = url.indexOf('?');
   const path = queryAt === -1 ? url : url.slice(0, queryAt);
@@ -94,7 +92,7 @@ export function rewriteIndicatorUrl(url, indicator = getActiveIndicator()) {
 }
 
 // Percent-threshold legend lines for the monthly heatmap ("Tỷ lệ từ 70% trở lên", ...).
-export function buildMonthlyHeatmapLegend(indicator = resolveIndicator()) {
+export function buildMonthlyHeatmapLegend(indicator = F13_INDICATOR) {
   const [green, pink, yellow] = indicator.heatmapFloors;
   return [
     { tone: 'band-green', label: 'Xanh', description: `Tỷ lệ từ ${green}% trở lên` },

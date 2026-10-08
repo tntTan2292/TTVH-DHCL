@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import api from '../../api/client';
 import {
   DASH,
   formatDeltaIndicator,
@@ -12,13 +11,15 @@ import {
   F13_HEATMAP_TONE_CLASS,
 } from './f13HeatmapBandCatalog';
 import { indicatorLabel } from '../../features/indicator/indicatorConfig.js';
+import { useIndicator } from '../../features/indicator/IndicatorContext.js';
+import { useIndicatorApi } from '../../features/indicator/useIndicatorApi.js';
 
 function renderDeltaBadge(deltaValue) {
   const { display, toneClass } = formatDeltaIndicator(deltaValue);
   return <span className={toneClass}>{display}</span>;
 }
 
-function renderRateBadge(rate) {
+function renderRateBadgeWithBands(rate, bands) {
   if (rate === null || rate === undefined || rate === '') {
     return <span className="text-slate-400 font-medium">{DASH}</span>;
   }
@@ -26,7 +27,7 @@ function renderRateBadge(rate) {
   if (!Number.isFinite(num)) {
     return <span className="text-slate-400 font-medium">{DASH}</span>;
   }
-  const band = classifyF13HeatmapRate(num);
+  const band = classifyF13HeatmapRate(num, bands);
   const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
   return (
     <span
@@ -39,6 +40,10 @@ function renderRateBadge(rate) {
 }
 
 export default function BcvhOperationTable() {
+  const indicator = useIndicator();
+  const api = useIndicatorApi();
+  // Same call sites as always, but the colour bands follow the page's indicator (F4.1: 80/70/60).
+  const renderRateBadge = (rate) => renderRateBadgeWithBands(rate, indicator.heatmapBands);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [rawData, setRawData] = useState(null);
@@ -47,8 +52,8 @@ export default function BcvhOperationTable() {
   const [prevMonthMode, setPrevMonthMode] = useState('same_period');
   const [showPrevMonth, setShowPrevMonth] = useState(false);
   const tableModel = useMemo(
-    () => (rawData ? processBcvhOperationTableData(rawData, { prevMonthMode }) : null),
-    [rawData, prevMonthMode],
+    () => (rawData ? processBcvhOperationTableData(rawData, { prevMonthMode, indicator }) : null),
+    [rawData, prevMonthMode, indicator],
   );
   const [fitMode, setFitMode] = useState(true);
   const containerRef = useRef(null);
@@ -112,7 +117,7 @@ export default function BcvhOperationTable() {
       <div className="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex flex-col items-center justify-center gap-3 text-slate-500">
           <div className="h-8 w-8 animate-spin rounded-full border-3 border-blue-600 border-t-transparent" />
-          <span className="text-base font-bold">{indicatorLabel('Đang tải bảng tổng hợp số liệu chỉ số F1.3 tại các BCVH...')}</span>
+          <span className="text-base font-bold">{indicatorLabel('Đang tải bảng tổng hợp số liệu chỉ số F1.3 tại các BCVH...', indicator)}</span>
         </div>
       </div>
     );

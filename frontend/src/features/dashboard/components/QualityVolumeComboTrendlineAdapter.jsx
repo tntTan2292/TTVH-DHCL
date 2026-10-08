@@ -11,7 +11,7 @@ import {
   YAxis,
 } from 'recharts';
 import { Activity } from 'lucide-react';
-import api from '../../../api/client';
+import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
 import { CardContainer, EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
 import { buildTrendlineRequestParams } from './qualityTrendlineWindow';
 import {
@@ -160,6 +160,7 @@ export default function QualityVolumeComboTrendlineAdapter({
   loading: externalLoading,
   error: externalError,
 }) {
+  const api = useIndicatorApi();
   const [state, setState] = useState({ loading: true, error: null, data: [] });
   const hasExternalData = Array.isArray(externalData);
 

@@ -1,5 +1,4 @@
 import { CANONICAL_BCVH_CODES } from './dashboardFilterOptions.js';
-import { getActiveIndicator } from '../../indicator/activeIndicator.js';
 
 export const UNAVAILABLE_TEXT = 'Chưa có dữ liệu';
 
@@ -37,11 +36,9 @@ function buildContextDateLabel(dateStr) {
   return `${day}/${month}`;
 }
 
-function buildSignal(value) {
+function buildSignal(value, bands = KPI_STATUS_META) {
   const numeric = toNumberOrNull(value);
   if (numeric === null) return { id: 'unavailable', label: DASH, tone: 'neutral' };
-  // Floors follow the indicator on display (F1.3 70/60/50, F4.1 80/70/60).
-  const bands = getActiveIndicator()?.kpiStatusBands || KPI_STATUS_META;
   return bands.find((item) => numeric >= item.min) || bands.at(-1);
 }
 
@@ -162,7 +159,7 @@ export function mapBcvhRankingRow(row = {}, context = {}) {
       pass_count: toNumberOrNull(row.dat_kpi_2026),
       fail_count: toNumberOrNull(row.khong_dat_kpi_2026 ?? row.total_failed),
       rate: currentRate,
-      signal: buildSignal(currentRate),
+      signal: buildSignal(currentRate, context.indicator?.kpiStatusBands),
       d1_rate_delta: toNumberOrNull(row.kpi_2026_dod),
       d7_rate_delta: toNumberOrNull(row.kpi_2026_swc),
     },
