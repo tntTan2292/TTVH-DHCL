@@ -1,3 +1,4 @@
+import { indicatorLabel } from '../../indicator/indicatorConfig.js';
 export const DASH = '\u2014';
 
 export const CANONICAL_BCVH_UNITS = Object.freeze([
@@ -380,7 +381,7 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
     formattedPrevFactDate,
     weekAgoDate,
     formattedWeekAgoDate,
-    titleLine1: 'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH',
+    titleLine1: indicatorLabel('BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH'),
     titleLine2: `ĐẾN NGÀY ${formattedAnchorDate} (SỐ LIỆU GẦN NHẤT)`,
     mtdHeaderContext,
     prevMonthMode: useFullPrevMonth ? 'full_month' : 'same_period',

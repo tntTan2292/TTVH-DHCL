@@ -14,12 +14,16 @@ import {
   BcvhRouteCapacityBlock,
 } from './BcvhRankingOverviewBlocks';
 import BcvhWeeklyComparisonBlock from './BcvhWeeklyComparisonBlock';
+import { indicatorLabel, resolveIndicator } from '../indicator/indicatorConfig.js';
+import { useIndicator } from '../indicator/IndicatorContext.js';
 
 function toneFromKpi(rate) {
   if (rate === null || rate === undefined) return 'neutral';
-  if (rate >= 70) return 'success';
-  if (rate >= 60) return 'info';
-  if (rate >= 50) return 'warning';
+  // Floors follow the indicator on display (F1.3 70/60/50, F4.1 80/70/60).
+  const [greenFloor, pinkFloor, yellowFloor] = resolveIndicator().heatmapFloors;
+  if (rate >= greenFloor) return 'success';
+  if (rate >= pinkFloor) return 'info';
+  if (rate >= yellowFloor) return 'warning';
   return 'danger';
 }
 
@@ -88,6 +92,7 @@ function DoughnutSummary({ routeDistribution }) {
 }
 
 export default function BcvhRankingPage() {
+  const { features } = useIndicator();
   const [searchParams, setSearchParams] = useSearchParams();
   const [metaState, setMetaState] = useState({
     status: 'loading',
@@ -250,7 +255,7 @@ export default function BcvhRankingPage() {
       tone: 'primary',
     },
     {
-      label: 'Chất lượng F1.3',
+      label: indicatorLabel('Chất lượng F1.3'),
       value: formatRate(summaryRow?.current_day.rate),
       delta: `D-1 ${formatSignedDelta(summaryRow?.comparisons?.d1?.rate_delta, 'điểm %')} · D-7 ${formatSignedDelta(summaryRow?.comparisons?.d7?.rate_delta, 'điểm %')}`,
       trend: [
@@ -354,10 +359,11 @@ export default function BcvhRankingPage() {
         ) : null}
 
         {!showNoData ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className={`grid gap-4 md:grid-cols-2 ${features.routes ? 'xl:grid-cols-4' : 'xl:grid-cols-2'}`}>
             <KPICard {...summaryCards[0]} />
             <KPICard {...summaryCards[1]} />
-            <KPICard {...summaryCards[2]} />
+            {features.lateCash ? <KPICard {...summaryCards[2]} /> : null}
+            {features.routes ? (
             <div className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -373,6 +379,7 @@ export default function BcvhRankingPage() {
                 <DoughnutSummary routeDistribution={routeDistribution} />
               </div>
             </div>
+            ) : null}
           </div>
         ) : (
           <EmptyState
@@ -435,7 +442,7 @@ export default function BcvhRankingPage() {
         )}
 
         {/* Phase F1 - Khối Overview 4, 6 */}
-        {overviewState.processed ? (
+        {overviewState.processed && features.routes ? (
           <>
             {/* Khối 4: Năng lực và chất lượng tuyến */}
             <BcvhRouteCapacityBlock data={overviewState.processed} />

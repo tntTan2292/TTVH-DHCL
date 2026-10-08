@@ -12,6 +12,8 @@
 // in a different set without this module or its callers changing — no admin UI, API, or
 // persisted config is added by this ticket; the override parameter only prepares for one.
 
+import { getActiveIndicator } from '../../features/indicator/activeIndicator.js';
+
 export const F13_HEATMAP_UNAVAILABLE_BAND = Object.freeze({
   id: 'unavailable',
   label: 'Xám',
@@ -21,6 +23,17 @@ export const F13_HEATMAP_UNAVAILABLE_BAND = Object.freeze({
 // Ordered list, most-preferred (highest quality) band first. `max` is exclusive except for
 // the top band, which is unbounded (`Infinity`) so a rate of exactly 100 — or any value at
 // or above the 70 floor — always classifies as green.
+// Builds the 4-band set from the three floors [green, pink, yellow]; the colours/tones are the
+// same for every indicator, only the thresholds differ (F1.3 70/60/50, F4.1 80/70/60).
+export function buildHeatmapBands([greenFloor, pinkFloor, yellowFloor]) {
+  return Object.freeze([
+    Object.freeze({ id: 'green', label: 'Xanh', min: greenFloor, max: Infinity, tone: 'band-green' }),
+    Object.freeze({ id: 'pink', label: 'Hồng', min: pinkFloor, max: greenFloor, tone: 'band-pink' }),
+    Object.freeze({ id: 'yellow', label: 'Vàng', min: yellowFloor, max: pinkFloor, tone: 'band-yellow' }),
+    Object.freeze({ id: 'red', label: 'Đỏ', min: -Infinity, max: yellowFloor, tone: 'band-red' }),
+  ]);
+}
+
 export const F13_HEATMAP_BANDS = Object.freeze([
   Object.freeze({ id: 'green', label: 'Xanh', min: 70, max: Infinity, tone: 'band-green' }),
   Object.freeze({ id: 'pink', label: 'Hồng', min: 60, max: 70, tone: 'band-pink' }),
@@ -29,18 +42,20 @@ export const F13_HEATMAP_BANDS = Object.freeze([
 ]);
 
 /**
- * Classify a rate (0-100 percentage) into one of `bands` (defaults to F13_HEATMAP_BANDS),
+ * Classify a rate (0-100 percentage) into one of `bands` (defaults to the active indicator's bands, else F13_HEATMAP_BANDS),
  * or F13_HEATMAP_UNAVAILABLE_BAND when the rate is null/undefined/NaN/non-finite.
  *
  * @param {number|null|undefined} rate
  * @param {Array<{id:string,label:string,min:number,max:number,tone:string}>} [bands]
  * @returns {{id:string,label:string,tone:string,min?:number,max?:number}}
  */
-export function classifyF13HeatmapRate(rate, bands = F13_HEATMAP_BANDS) {
+export function classifyF13HeatmapRate(rate, bands) {
+  // Default band set: the indicator on display (F4.1 shifts every threshold +10), else F1.3's.
+  const effectiveBands = bands || getActiveIndicator()?.heatmapBands || F13_HEATMAP_BANDS;
   if (rate === null || rate === undefined) return F13_HEATMAP_UNAVAILABLE_BAND;
   const numeric = Number(rate);
   if (!Number.isFinite(numeric)) return F13_HEATMAP_UNAVAILABLE_BAND;
-  return bands.find((band) => numeric >= band.min && numeric < band.max) || F13_HEATMAP_UNAVAILABLE_BAND;
+  return effectiveBands.find((band) => numeric >= band.min && numeric < band.max) || F13_HEATMAP_UNAVAILABLE_BAND;
 }
 
 // Cell border/background/text classes, keyed by `tone`. Used for BCVH Ranking's monthly

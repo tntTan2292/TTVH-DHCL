@@ -20,8 +20,11 @@ import {
 import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
 import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboardDateRange';
+import { useIndicator } from '../indicator/IndicatorContext.js';
+import { indicatorLabel } from '../indicator/indicatorConfig.js';
 
 export default function DashboardPage() {
+  const indicator = useIndicator();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [latestDate, setLatestDate] = useState(null);
@@ -273,12 +276,12 @@ export default function DashboardPage() {
 
   return (
     <PageContainer
-      title="Dashboard điều hành chất lượng F1.3"
+      title={indicatorLabel('Dashboard điều hành chất lượng F1.3')}
       subtitle="Theo dõi chất lượng phát theo kỳ đã chọn và phạm vi BCVH hiện hành."
       action={(
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-1.5 shadow-2xs">
           <button
-            onClick={() => navigate(buildPreservedPath('/f13/ranking/bcvh', searchParams))}
+            onClick={() => navigate(buildPreservedPath(indicator.routes.ranking, searchParams))}
             className="rounded-lg bg-[#003E7E] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-900 transition-all duration-150"
           >
             Mở xếp hạng BCVH
@@ -347,12 +350,15 @@ export default function DashboardPage() {
           onModeChange={setTrendMode}
         />
 
-        <OperatingPatternTabsCard
-          fromDate={fromDate}
-          toDate={toDate}
-          maBcvh={maBcvh}
-        />
+        {indicator.features.operatingPattern ? (
+          <OperatingPatternTabsCard
+            fromDate={fromDate}
+            toDate={toDate}
+            maBcvh={maBcvh}
+          />
+        ) : null}
 
+            {indicator.features.actionCenter ? (
             <UnifiedActionCenter
               fromDate={fromDate}
               toDate={toDate}
@@ -362,6 +368,7 @@ export default function DashboardPage() {
               kpiLoading={kpiState.loading}
               kpiError={kpiState.error}
             />
+            ) : null}
           </>
         ) : null}
       </div>

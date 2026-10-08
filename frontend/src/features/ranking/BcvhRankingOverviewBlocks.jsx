@@ -22,9 +22,11 @@ import {
   HEATMAP_BAND_TONE_CLASS,
   HEATMAP_BAND_DOT_CLASS,
 } from '../dashboard/components/operatingPatternTabsData';
+import { buildMonthlyHeatmapLegend, indicatorLabel, resolveIndicator } from '../indicator/indicatorConfig.js';
 
 // Legend copy for the monthly heatmap below. Colors reuse the shared HEATMAP_BAND_DOT_CLASS
 // tones; the wording here is this table's own legend text, not the SSOT's threshold logic.
+// F1.3 keeps this fixed copy; any other indicator derives it from its own thresholds.
 const MONTHLY_HEATMAP_LEGEND = [
   { tone: 'band-green', label: 'Xanh', description: 'Tỷ lệ từ 70% trở lên' },
   { tone: 'band-pink', label: 'Hồng', description: 'Từ 60% đến dưới 70%' },
@@ -118,7 +120,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
             </span>
           </div>
           <div className="text-[11px] text-slate-500 font-medium">
-            Chấm trên đường tỷ lệ tô màu theo dải KPI F1.3
+            {indicatorLabel('Chấm trên đường tỷ lệ tô màu theo dải KPI F1.3')}
           </div>
         </div>
       </div>
@@ -135,7 +137,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
             Chi tiết số liệu theo tháng
           </h3>
           <div className="flex flex-wrap gap-3 text-[10px] font-medium text-gray-500">
-            {MONTHLY_HEATMAP_LEGEND.map((entry) => (
+            {(resolveIndicator().id === 'f13' ? MONTHLY_HEATMAP_LEGEND : buildMonthlyHeatmapLegend()).map((entry) => (
               <span key={entry.tone} className="flex items-center gap-1">
                 <div className={`h-2 w-2 rounded-full ${HEATMAP_BAND_DOT_CLASS[entry.tone] || HEATMAP_BAND_DOT_CLASS.unavailable}`}></div>
                 {entry.label}: {entry.description}

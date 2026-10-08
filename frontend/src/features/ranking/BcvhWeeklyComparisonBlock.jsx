@@ -45,6 +45,7 @@ import {
   resolveWeeksListWithAnchor,
   sortBcvhWeeklyRows,
 } from './bcvhWeeklyComparisonData';
+import { indicatorLabel } from '../indicator/indicatorConfig.js';
 
 function renderDeltaBadge(deltaValue) {
   const { display, toneClass } = formatDeltaIndicator(deltaValue);
@@ -368,8 +369,8 @@ export default function BcvhWeeklyComparisonBlock() {
   const compareMonthName = compareMonth ? formatMonthLabel(compareMonth) : '';
 
   const titleLine1 = isMonth
-    ? `BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO THÁNG TẠI CÁC BCVH${samePeriodMeta?.enabled ? ' (CÙNG KỲ)' : ''}`
-    : 'BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO TUẦN TẠI CÁC BCVH';
+    ? `${indicatorLabel('BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO THÁNG TẠI CÁC BCVH')}${samePeriodMeta?.enabled ? ' (CÙNG KỲ)' : ''}`
+    : indicatorLabel('BẢNG TỔNG HỢP SO SÁNH CHẤT LƯỢNG F1.3 THEO TUẦN TẠI CÁC BCVH');
   const titleLine2 = isMonth
     ? `KỲ NÀY: ${currentMonthName || 'THÁNG HIỆN TẠI'} (${currentMonthRange || DASH}) • SO VỚI: ${compareMonthName || 'THÁNG SO SÁNH'} (${compareMonthRange || DASH})`
     : `KỲ NÀY: ${currentWeek?.label || 'TUẦN HIỆN TẠI'} (${currentWeekRange || DASH}) • SO VỚI: ${compareWeek?.label || 'TUẦN SO SÁNH'} (${compareWeekRange || DASH})`;

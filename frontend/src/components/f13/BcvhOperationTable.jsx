@@ -11,6 +11,7 @@ import {
   classifyF13HeatmapRate,
   F13_HEATMAP_TONE_CLASS,
 } from './f13HeatmapBandCatalog';
+import { indicatorLabel } from '../../features/indicator/indicatorConfig.js';
 
 function renderDeltaBadge(deltaValue) {
   const { display, toneClass } = formatDeltaIndicator(deltaValue);
@@ -111,7 +112,7 @@ export default function BcvhOperationTable() {
       <div className="w-full rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
         <div className="flex flex-col items-center justify-center gap-3 text-slate-500">
           <div className="h-8 w-8 animate-spin rounded-full border-3 border-blue-600 border-t-transparent" />
-          <span className="text-base font-bold">Đang tải bảng tổng hợp số liệu chỉ số F1.3 tại các BCVH...</span>
+          <span className="text-base font-bold">{indicatorLabel('Đang tải bảng tổng hợp số liệu chỉ số F1.3 tại các BCVH...')}</span>
         </div>
       </div>
     );
