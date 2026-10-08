@@ -242,10 +242,9 @@ test('CTO-F13-BLOCK-05 and PO-12.1: previous fact date across month boundary and
     assert.equal(result.meta.previous_fact_date, '2026-08-31');
     assert.ok(result.daily.some((r) => r.date === '2026-08-31'), 'daily array includes prior month fact date');
     assert.ok(result.daily.some((r) => r.date === '2026-09-01'), 'daily array includes anchor date');
-    assert.deepEqual(result.meta.national_rank, {
-        mtd: { rank: 12, total: 34 },
-        daily: { rank: 15, total: 34 },
-    });
+    assert.deepEqual(result.meta.national_rank.mtd, { rank: 12, total: 34 });
+    assert.deepEqual(result.meta.national_rank.daily, { rank: 15, total: 34 });
+    assert.equal(typeof result.meta.national_rank.monthly, 'object', 'per-month national ranks are exposed for the monthly chart');
 });
 
 test('week_ago_date: meta and daily rows carry the anchor_date - 7 same-weekday comparison date', async () => {
@@ -370,8 +369,8 @@ test('PO Section 12.1: national rank queries use 01->anchor for MTD and anchor->
 
     const result = await service.getOverview('2026-09-14');
 
-    // Exactly 2 calls made
-    assert.equal(recordedCalls.length, 2, 'national rank summary called twice (MTD and Daily)');
+    // MTD + Daily first, then one call per month Jan..Sep for the BCVH Ranking monthly chart (PO 2026-10-08)
+    assert.equal(recordedCalls.length, 2 + 9, 'MTD, Daily and one call per month through the anchor month');
 
     // Call 1: MTD rank must span from day 01 of anchor month to anchor date
     assert.equal(recordedCalls[0].startDate, '2026-09-01', 'MTD national rank starts on 01 of anchor month');
@@ -381,8 +380,16 @@ test('PO Section 12.1: national rank queries use 01->anchor for MTD and anchor->
     assert.equal(recordedCalls[1].startDate, '2026-09-14', 'Daily national rank starts on anchor date');
     assert.equal(recordedCalls[1].endDate, '2026-09-14', 'Daily national rank ends on anchor date');
 
-    assert.deepEqual(result.meta.national_rank, {
-        mtd: { rank: 25, total: 34 },
-        daily: { rank: 25, total: 34 },
-    });
+    assert.deepEqual(result.meta.national_rank.mtd, { rank: 25, total: 34 });
+    assert.deepEqual(result.meta.national_rank.daily, { rank: 25, total: 34 });
+
+    // Monthly ranks: full months use the whole calendar month, the anchor month is month-to-date
+    const monthlyCalls = recordedCalls.slice(2);
+    assert.deepEqual(monthlyCalls[0], { startDate: '2026-01-01', endDate: '2026-01-31' });
+    assert.deepEqual(monthlyCalls[1], { startDate: '2026-02-01', endDate: '2026-02-28' });
+    assert.deepEqual(monthlyCalls[8], { startDate: '2026-09-01', endDate: '2026-09-14' });
+    assert.deepEqual(Object.keys(result.meta.national_rank.monthly), [
+        '2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09',
+    ]);
+    assert.deepEqual(result.meta.national_rank.monthly['2026-09'], { rank: 25, total: 34 });
 });

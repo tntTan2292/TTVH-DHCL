@@ -9,7 +9,7 @@ const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
 const bcvhOverviewService = new BcvhOverviewService({ repository: factBuuGuiRepo, dashboardService: f13DashboardService });
-const bcvhWeeklyComparisonService = new BcvhWeeklyComparisonService({ repository: factBuuGuiRepo });
+const bcvhWeeklyComparisonService = new BcvhWeeklyComparisonService({ repository: factBuuGuiRepo, dashboardService: f13DashboardService });
 
 function normalizeDashboardBcvh(ma_bcvh) {
     if (ma_bcvh === undefined || ma_bcvh === null || ma_bcvh === '') return null;

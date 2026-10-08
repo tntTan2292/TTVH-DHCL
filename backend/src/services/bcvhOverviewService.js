@@ -25,6 +25,13 @@ function monthKeysThrough(anchorDate) {
     return Array.from({ length: lastMonth }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}`);
 }
 
+// First day of the month `offset` months after `monthStart` (YYYY-MM-01), UTC-safe.
+function shiftMonthStart(monthStart, offset) {
+    const date = new Date(`${monthStart}T00:00:00Z`);
+    date.setUTCMonth(date.getUTCMonth() + offset);
+    return date.toISOString().slice(0, 10);
+}
+
 function dateKeysThrough(anchorDate) {
     if (!anchorDate) return [];
     const start = `${anchorDate.slice(0, 7)}-01`;
@@ -217,6 +224,7 @@ class BcvhOverviewService {
         const mtdStart = `${anchorDate.slice(0, 7)}-01`;
         let mtdNational = null;
         let dailyNational = null;
+        const monthlyNational = {};
         if (this.dashboardService && typeof this.dashboardService.getNationalRankSummary === 'function') {
             try {
                 [mtdNational, dailyNational] = await Promise.all([
@@ -226,6 +234,26 @@ class BcvhOverviewService {
             } catch (err) {
                 // Keep national ranks null if query fails
             }
+            // Per-month national rank for the BCVH Ranking monthly chart: full months use the whole calendar
+            // month, the anchor month is month-to-date (same range as the MTD rank above).
+            const monthKeys = monthKeysThrough(anchorDate);
+            const monthlyResults = await Promise.all(monthKeys.map(async (month) => {
+                const start = `${month}-01`;
+                const end = month === anchorDate.slice(0, 7)
+                    ? anchorDate
+                    : shiftIsoDate(shiftMonthStart(start, 1), -1);
+                try {
+                    return await this.dashboardService.getNationalRankSummary(start, end);
+                } catch (err) {
+                    return null;
+                }
+            }));
+            monthKeys.forEach((month, index) => {
+                const summary = monthlyResults[index];
+                monthlyNational[month] = (summary && summary.available)
+                    ? { rank: summary.rank, total: summary.total }
+                    : null;
+            });
         }
 
         return {
@@ -233,7 +261,7 @@ class BcvhOverviewService {
             daily,
             mtd,
             routes,
-            meta: this._buildMeta(anchorDate, anchorCeiling, prevAnchorDate, { mtd: mtdNational, daily: dailyNational }, weekAgoDate),
+            meta: this._buildMeta(anchorDate, anchorCeiling, prevAnchorDate, { mtd: mtdNational, daily: dailyNational, monthly: monthlyNational }, weekAgoDate),
         };
     }
 
@@ -258,7 +286,7 @@ class BcvhOverviewService {
                 year_period: { from_date: null, to_date: null },
                 route_period: { from_date: null, to_date: null, basis: 'MTD' },
                 canonical_bcvh_count: this.units.length,
-                national_rank: { mtd: null, daily: null },
+                national_rank: { mtd: null, daily: null, monthly: {} },
             },
         };
     }
@@ -283,6 +311,7 @@ class BcvhOverviewService {
                 daily: (nationalRank?.daily && nationalRank.daily.available)
                     ? { rank: nationalRank.daily.rank, total: nationalRank.daily.total }
                     : null,
+                monthly: nationalRank?.monthly || {},
             },
         };
     }

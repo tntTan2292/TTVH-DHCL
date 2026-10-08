@@ -342,3 +342,66 @@ test('trendWeeks: validates the anchor week', async () => {
     await assert.rejects(() => service.trendWeeks('bad'), { code: 'INVALID_WEEK_ID' });
     await assert.rejects(() => service.trendWeeks('2099-W01'), { code: 'WEEK_NOT_FOUND' });
 });
+
+function rankStub(table) {
+    const calls = [];
+    return {
+        calls,
+        getNationalRankSummary: async (from, to) => {
+            calls.push([from, to]);
+            const hit = table[`${from}..${to}`];
+            return hit ? { available: true, rank: hit[0], total: hit[1] } : { available: false };
+        },
+    };
+}
+
+test('national rank: weekly comparison meta carries x/34 per period, null when unavailable', async () => {
+    const dashboardService = rankStub({ '2026-09-03..2026-09-09': [21, 34] });
+    const service = new BcvhWeeklyComparisonService({
+        repository: buildRepository({
+            weeksRows: [
+                { week_start: '2026-09-03', first_date: '2026-09-03', last_date: '2026-09-09', days_with_data: 7 },
+                { week_start: '2026-09-17', first_date: '2026-09-17', last_date: '2026-09-23', days_with_data: 7 },
+            ],
+            comparisonRows: [],
+        }),
+        dashboardService,
+    });
+    const result = await service.compareWeeks('2026-W36', '2026-W38');
+    assert.deepEqual(result.meta.national_rank.current, { rank: 21, total: 34 });
+    assert.equal(result.meta.national_rank.compare, null, 'unavailable national data -> null, never a fake rank');
+});
+
+test('national rank: monthly comparison uses the cut (cung ky) ranges; a failing national query never breaks the table', async () => {
+    const dashboardService = rankStub({
+        '2026-10-01..2026-10-05': [27, 34],
+        '2026-09-01..2026-09-05': [20, 34],
+    });
+    const service = new BcvhWeeklyComparisonService({
+        repository: buildMonthRepository({ monthsRows: MONTHS_ROWS }),
+        dashboardService,
+    });
+    const result = await service.compareMonths('2026-10', '2026-09', { samePeriod: true });
+    assert.deepEqual(result.meta.national_rank.current, { rank: 27, total: 34 });
+    assert.deepEqual(result.meta.national_rank.compare, { rank: 20, total: 34 });
+
+    const broken = new BcvhWeeklyComparisonService({
+        repository: buildMonthRepository({ monthsRows: MONTHS_ROWS }),
+        dashboardService: { getNationalRankSummary: async () => { throw new Error('boom'); } },
+    });
+    const safe = await broken.compareMonths('2026-10', '2026-09');
+    assert.equal(safe.meta.national_rank.current, null);
+});
+
+test('national rank: weekly trend carries a rank per week (display range of that week)', async () => {
+    const dashboardService = rankStub({
+        '2026-09-03..2026-09-09': [30, 34],
+        '2026-09-10..2026-09-16': [25, 34],
+    });
+    const service = new BcvhWeeklyComparisonService({
+        repository: buildTrendRepository({ weeksRows: TREND_WEEKS, trendRows: [] }),
+        dashboardService,
+    });
+    const result = await service.trendWeeks('2026-W37');
+    assert.deepEqual(result.weeks.map((w) => w.national_rank), [{ rank: 30, total: 34 }, { rank: 25, total: 34 }]);
+});

@@ -85,9 +85,10 @@ function nullableRate(passed, volume) {
 }
 
 class BcvhWeeklyComparisonService {
-    constructor({ repository } = {}) {
+    constructor({ repository, dashboardService = null } = {}) {
         if (!repository) throw new Error('BcvhWeeklyComparisonService requires a repository');
         this.repository = repository;
+        this.dashboardService = dashboardService;
         this.units = CANONICAL_BCVH_UNITS.map((unit) => ({ ...unit }));
         this.codes = this.units.map((unit) => unit.ma_bcvh);
     }
@@ -123,6 +124,22 @@ class BcvhWeeklyComparisonService {
         };
     }
 
+    // National rank of Huế (x/34) over an inclusive date range, the same source and rule as the Operation
+    // Dashboard "VỊ THỨ TOÀN QUỐC" header (F13DashboardService.getNationalRankSummary). Never throws:
+    // no service / no national data / query failure -> null, and the UI shows a dash.
+    async _nationalRank(from, to) {
+        if (!this.dashboardService || typeof this.dashboardService.getNationalRankSummary !== 'function') return null;
+        try {
+            const summary = await this.dashboardService.getNationalRankSummary(from, to);
+            if (summary && summary.available && summary.rank && summary.total) {
+                return { rank: summary.rank, total: summary.total };
+            }
+        } catch (error) {
+            // keep the rank null if the national query fails
+        }
+        return null;
+    }
+
     async listWeeks() {
         const rows = await this.repository.getBcvhWeeksList(this.codes);
         return rows
@@ -153,15 +170,19 @@ class BcvhWeeklyComparisonService {
         const weekA = resolveOrThrow(weekIdA);
         const weekB = resolveOrThrow(weekIdB);
 
-        const comparison = await this._buildComparison(
-            { from: weekA.display_start_date, to: weekA.display_end_date },
-            { from: weekB.display_start_date, to: weekB.display_end_date },
-        );
+        const boundsA = { from: weekA.display_start_date, to: weekA.display_end_date };
+        const boundsB = { from: weekB.display_start_date, to: weekB.display_end_date };
+        const [comparison, rankA, rankB] = await Promise.all([
+            this._buildComparison(boundsA, boundsB),
+            this._nationalRank(boundsA.from, boundsA.to),
+            this._nationalRank(boundsB.from, boundsB.to),
+        ]);
         return {
             ...comparison,
             meta: {
                 current_week: weekA,
                 compare_week: weekB,
+                national_rank: { current: rankA, compare: rankB },
                 canonical_bcvh_count: this.units.length,
             },
         };
@@ -192,7 +213,10 @@ class BcvhWeeklyComparisonService {
         );
         const byWeekAndUnit = new Map(rows.map((row) => [`${row.week_start}|${row.ma_bcvh}`, row]));
 
-        const points = selected.map((week) => {
+        const weekRanks = await Promise.all(
+            selected.map((week) => this._nationalRank(week.display_start_date, week.display_end_date)),
+        );
+        const points = selected.map((week, weekIndex) => {
             let totalVolume = 0;
             let totalPassed = 0;
             const units = {};
@@ -208,6 +232,7 @@ class BcvhWeeklyComparisonService {
                 ...week,
                 units,
                 total: { volume: totalVolume, passed: totalPassed, rate: nullableRate(totalPassed, totalVolume) },
+                national_rank: weekRanks[weekIndex],
             };
         });
         return {
@@ -304,12 +329,17 @@ class BcvhWeeklyComparisonService {
             };
         }
 
-        const comparison = await this._buildComparison(boundsA, boundsB);
+        const [comparison, rankA, rankB] = await Promise.all([
+            this._buildComparison(boundsA, boundsB),
+            this._nationalRank(boundsA.from, boundsA.to),
+            this._nationalRank(boundsB.from, boundsB.to),
+        ]);
         return {
             ...comparison,
             meta: {
                 current_month: monthA,
                 compare_month: monthB,
+                national_rank: { current: rankA, compare: rankB },
                 same_period: samePeriodMeta,
                 canonical_bcvh_count: this.units.length,
             },
