@@ -74,7 +74,21 @@ Validation (LEVEL 3): full frontend suite **592/593**; the single failure `src/p
 
 Review focus for T8 (Opus): the active-indicator module is deliberate module-level state (recharts callbacks cannot take props or hooks); it is set while rendering and cleared on unmount only when still its own. Confirm no F1.3 code path reads it without a provider.
 
-## 9. Open points for the PO (business display decisions, not blocking T4/T5 start)
+## 9. PO decisions of 2026-10-08 on the two display points, and G1 evidence
 
-1. **Rate precision.** The shared tables format rates with one decimal, so the locked `60,98%` would display as `61,0%`. Keep one decimal as in F1.3, or show two decimals for F4.1?
-2. **"Không đạt" in the weekly/monthly comparison.** The reused service computes it as volume − Đạt, so for F4.1 it includes rows whose evaluation is blank (2026-08-01: 1.581 + 251 = 1.832). Keep and relabel as "Chưa đạt (gồm chưa có đánh giá)", or show Không đạt and blank separately?
+PO decisions (chat, 2026-10-08):
+
+1. **Rate precision:** same as F1.3, one decimal (so the locked 60,98% displays as 61,0%).
+2. **"Không đạt":** a row without an evaluation is in the denominator and counts as not passed, so the F4.1 dashboard and ranking views label `volume - Đạt` as **Không đạt** (2026-08-01: 1.581 + 251 = 1.832). The later Evidence module will carry the group **Chưa có đánh giá**. Implemented in the F4.1 repository queries (`failed` / `khong_dat_kpi_2026` = rows not `Đạt`) and in `summary` (`total_failed = total - passed`, `total_unknown = 0`, extra `total_blank`). The earlier `/dashboard/kpi` and `/dashboard/bcvh-reconciliation` endpoints keep the strict Không đạt / blank split (not changed).
+3. **Metric column:** the evaluation column is **column AN** of the source Excel, `Đánh giá (thời gian Có TMS PTC 8 giờ)` (`danh_gia_co_tms_ptc_8h`). Verified against the real files: AN1 carries that header (neighbours AK..AP are the other four evaluation columns), and the Đạt / Không đạt counts of column AN equal the database on 2026-07-01 (3.898 / 1.198), 2026-08-01 (2.863 / 1.581) and 2026-09-05 (2.533 / 990).
+
+G1 (backend reconciliation against the live database, read-only, PO had paused the import): `node backend/test_f41RankingReconciliation.js` = **9 passed, 0 failed**.
+
+- 2026-08-01 summary 2.863 / 4.695 = 60,98%, Không đạt 1.832, blank 251; ranking six units equal the locked baseline per unit, total 2.862 / 4.694, ranks 1..6; national rank x/34 (Huế 15/34, national-report rate 61,1% from 2.863 / 4.684, independently re-derived).
+- 2026-08-01..05: sum of daily-trend = range summary = 20.979.
+- Overview anchored 2026-10-06 (data imported meanwhile): month-to-date equals an independent SQL count (27.742 rows); weekly comparison Tuần 40 (01..06/10) TỔNG CỘNG = sum of the six units = independent count, rate 64,2347%, Thursday-start weeks; monthly comparison volume equals an independent count.
+- Timings: summary 36 ms, ranking 152 ms, daily-trend 33 ms, overview 2,5 s, weeks 0,4 s, weekly-comparison 0,6 s, weekly-trend 1,1 s, months 0,4 s, monthly-comparison 0,9 s.
+- `fact_f41`, `fact_f13`, `fact_f41_national` row counts identical before and after; the script opens the database `OPEN_READONLY`.
+- Found and fixed by the run: the ranking endpoint re-sorted rows by volume when called without `sort` (F1.3 always returns rank order and ignores `sort/order`); now rank order always.
+
+Backend restart: the backend was restarted at the PO's request (old PID 32256 stopped, new `node server.js` started from the Claude Code session); the nine routes answer `401` without a session (mounted behind auth) and an unknown path answers `404`. Authenticated HTTP checks are for the T4/T5 UI check.

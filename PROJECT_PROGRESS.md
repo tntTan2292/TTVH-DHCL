@@ -2145,3 +2145,7 @@ PO approved Phương án A (shared, parameterised) and a 90% chart target to bui
 ## 2026-10-08 - F41-DASHBOARD-RANKING-01 T1/T2/T3 IMPLEMENTED
 
 Backend (nine read-only /api/f41 endpoints reusing the F1.3 overview/weekly services; 43/43 tests on temporary databases) and frontend foundation (indicator config, URL rewrite, F4.1 bands 80/70/60, feature flags; frontend 592/593 with one pre-existing unrelated failure, build clean) implemented. Live-database reconciliation and backend restart wait for the PO go-ahead (import in progress). Next: T8 review, T4/T5 pages. Manifest: `docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md` Sections 7-9.
+
+## 2026-10-08 - F41-DASHBOARD-RANKING-01 G1 PASSED (backend reconciliation)
+
+PO decisions: one-decimal rates as F1.3; blank evaluations count as Không đạt in the F4.1 views (Evidence will split "Chưa có đánh giá"); metric = Excel column AN. Live-database read-only reconciliation 9/9 (60,98% / 60,97%, per-unit baseline, additivity 20.979, Excel parity, weekly/monthly sums, national rank 15/34 on 2026-08-01, counts unchanged). Backend restarted at the PO's request. Next: T8 Opus review, T4/T5 pages. Manifest Section 9.
