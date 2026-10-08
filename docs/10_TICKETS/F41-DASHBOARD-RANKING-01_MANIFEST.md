@@ -56,6 +56,7 @@ Not done by design: no endpoint, no schema, no frontend. `ITR2-F41-NB-02` and `-
 ## 6. Constraints that apply to every ticket
 
 - One ticket, one commit; commit by explicit file list (another session shares this working tree; pre-existing network-map edits and stray root files are not touched).
+- Antigravity does not open a browser, take screenshots, run the dev server or log in for T4/T5 (PO instruction 2026-10-08, to save quota): it works from code reading plus tests/build/lint; the PO checks the UI directly. This replaces the "Windows runtime evidence" wording of the Proposal for these two tickets.
 - Claude Code never self-awards PO UI PASS; UI tickets stop at `READY FOR PO CHECK`.
 - Before any backend restart or heavy script on the live database, tell the PO and wait (Proposal Section 6).
 - Backend tests: `node --experimental-sqlite --test`; root `test_*.js` suites are run per file and reported separately.
