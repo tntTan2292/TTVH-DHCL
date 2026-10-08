@@ -2141,3 +2141,7 @@ PO checked and confirmed OK: MTD block removed, monthly heatmap collapsed, natio
 ## 2026-10-08 - F41-DASHBOARD-RANKING-01 ACTIVATED / T0 DONE
 
 PO approved Phương án A (shared, parameterised) and a 90% chart target to build the F4.1 Operation Dashboard and BCVH Ranking like F1.3 (bands 80/70/60); `F41-DASHBOARD-MINIMUM-01` resumed. T0 done: Design of Record, manifest, governance sync, `ITR2-F41-NB-01` fixed (24/24 targeted tests, oxlint clean). Next: T1 (backend) and T3 (frontend foundation) in parallel; the PO imports 07/09-07/10 data meanwhile. Manifest: `docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md`.
+
+## 2026-10-08 - F41-DASHBOARD-RANKING-01 T1/T2/T3 IMPLEMENTED
+
+Backend (nine read-only /api/f41 endpoints reusing the F1.3 overview/weekly services; 43/43 tests on temporary databases) and frontend foundation (indicator config, URL rewrite, F4.1 bands 80/70/60, feature flags; frontend 592/593 with one pre-existing unrelated failure, build clean) implemented. Live-database reconciliation and backend restart wait for the PO go-ahead (import in progress). Next: T8 review, T4/T5 pages. Manifest: `docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md` Sections 7-9.

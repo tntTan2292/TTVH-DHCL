@@ -169,3 +169,23 @@ Against the live database, read-only, 2026-08-01:
 ## 10. Ticket order and owners
 
 T0 (Claude Code Sonnet) → T1 ∥ T3 (Claude Code Sonnet) → T2 → T8 (Claude Code Opus review of T1–T3) → T4 → T5 (Antigravity) → T6 (Claude Code Sonnet). T7 data import: PO.
+
+## 11. As built — T1/T2 backend and T3 frontend (v1.1, 2026-10-08, Claude Code / Sonnet 5.5)
+
+Where the build differs from the plan above, this section is the record.
+
+**Backend (T1 and T2 were delivered together because the F1.3 week/month/overview services are reused unchanged):**
+
+- `FactF41Repository.js` (extended, existing methods untouched): `getBcvhOverviewMonthly/Daily/Mtd`, `getBcvhOverviewRoutes` (returns `[]`), `getBcvhWeeksList`, `getBcvhMonthsList`, `getBcvhWeeklyTrendAggregate`, `getBcvhWeeklyComparisonAggregate`, `getBcvhOperationMetricsBetween`, `getDailyTrendData`, `getLatestImportMeta`. Same row shape as the F1.3 twins; volume = `COUNT(*)`; GROUP BY always names the real column `ma_bc_phat`.
+- `F41NationalRankService.js`: rank of Hue (`system_config.default_province_code`, default `53`) among `fact_f41_national` by `SUM(sl_ptc_8h_co_tms) / SUM(sl_ptc_nop_tien_ch)`, ties by volume then unit code; `getNationalRankSummary(from, to)` (with previous date / movement) and `getNationalRanksForDates(dates)`.
+- `F41RankingService.js`: constructs the F1.3 `BcvhOverviewService` and `BcvhWeeklyComparisonService` with the F4.1 repository + rank service; implements `getSummary`, `getDailyTrend`, `getBcvhRanking` with the F1.3 field names (`sl_bg_ptc`, `dat_kpi_2026`, `kpi_2026`, `kpi_2026_dod/swc`, `month_to_date_*`, `comparisons.d1/d7`, `meta.total_row`, `meta.national_rank`, `meta.pagination`).
+- `F41RankingController.js` + `f41Routes.js`: the nine endpoints of Section 4.3 (`/dashboard/summary` and `/dashboard/daily-trend` use `ma_bcvh`/`bcvh_id`/`bcvh`; `'all'` means no filter). Errors `MISSING_PARAM`, `INVALID_DATE`, `INVALID_RANGE`, `INVALID_BCVH`, `INVALID_WEEK_ID`, `WEEK_NOT_FOUND`, `INVALID_MONTH_ID`, `MONTH_NOT_FOUND` answer 400; everything else 500; all responses no-store.
+- Known semantics to carry into the UI: weekly/monthly comparison "failed" is `volume - passed` (F1.3 service behaviour), so for F4.1 it also contains the rows with a blank evaluation (e.g. 2026-08-01: 1.581 Không đạt + 251 blank = 1.832). The summary/ranking `total_failed` is the strict Không đạt count. See the manifest "Open points for PO".
+
+**Frontend (T3), differs from Section 6 in three ways:**
+
+1. **No fetcher parameterisation.** Report blocks keep their `/f13/...` call sites; the shared axios client rewrites those URLs to the indicator on display (`rewriteIndicatorUrl`, F1.3 default = no-op, KPI maps to `/f41/dashboard/summary`). This leaves every F1.3 source-contract test untouched.
+2. **Chart target stays a constant 90** (PO kept 90% for F4.1), so `targetRate` is not in the config.
+3. **Labels** keep their F1.3 wording in source and go through `indicatorLabel()`, which swaps "F1.3" for the indicator's module label.
+
+Files: `features/indicator/{activeIndicator.js, indicatorConfig.js, IndicatorContext.js}` (new), `api/client.js` (one interceptor line), `components/f13/f13HeatmapBandCatalog.js` (`buildHeatmapBands`, default bands follow the active indicator; the F1.3 literal bands are unchanged), `DashboardPage.jsx` (ranking link, operating-pattern and action-center blocks by feature flag, title), `BcvhRankingPage.jsx` (route/late-cash KPI cards and route capacity block by flag, tone floors), `UnifiedBcvhAnalysisTable.jsx` (late-cash and route column groups by flag), `unifiedBcvhAnalysisTableData.js` (KPI status floors), `BcvhRankingOverviewBlocks.jsx` (legend), `BcvhWeeklyComparisonBlock.jsx`, `BcvhOperationTable.jsx`, `bcvhOperationTableData.js` (labels). The F4.1 pages (T4/T5) are `<IndicatorProvider indicator={F41_INDICATOR}>` around `DashboardPage` / `BcvhRankingPage`; their visual pass belongs to Antigravity.
