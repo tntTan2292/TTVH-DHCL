@@ -1033,10 +1033,23 @@ class F13DashboardService {
                 totalSwc.sl_bg_ptc
             );
 
+            // National rank of Huế for exactly the requested range (same rule as the Operation Dashboard
+            // "VỊ THỨ TOÀN QUỐC"); null when national data is unavailable so the UI shows a dash.
+            let nationalRankMeta = null;
+            try {
+                const nationalSummary = await this._getNationalRankSummary(fromDate, toDate);
+                if (nationalSummary && nationalSummary.available && nationalSummary.rank && nationalSummary.total) {
+                    nationalRankMeta = { rank: nationalSummary.rank, total: nationalSummary.total };
+                }
+            } catch (nationalError) {
+                nationalRankMeta = null;
+            }
+
             return {
                 data: mappedData,
                 meta: {
                     total_row: totalRow,
+                    national_rank: nationalRankMeta,
                     date_range: {
                         from_date: fromDate,
                         to_date: toDate,
