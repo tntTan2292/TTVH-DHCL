@@ -1,6 +1,6 @@
 # F41-DASHBOARD-RANKING-01 — MANIFEST
 
-**Status:** ACTIVE — T0, T1, T2 and T3 IMPLEMENTED, G1 PASSED (2026-10-08); T8 review round 1 = FAIL (B1), fixed in round 2; T4/T5 wait for the T8 re-check. Not closed; no PO UI PASS yet.
+**Status:** ACTIVE — T0-T6 IMPLEMENTED, G1 PASSED, T8 closed after round 3 (2026-10-08); `READY FOR PO UI CHECK` (G2 `/f41/dashboard`, G3 `/f41/ranking/bcvh`). Not closed; no PO UI PASS yet.
 **Program ticket** covering the F4.1 Operation Dashboard and BCVH Ranking screens. It is the resumption of `F41-DASHBOARD-MINIMUM-01` Phase F1 (that ticket's Section 12 records the resumption).
 **Branch:** `codex/da-impl-006`. **Governance:** V2 Active.
 
@@ -35,7 +35,7 @@ Out: Tuyến Ranking and all route blocks (no route data), Action Center / Rule 
 | T3 | Frontend foundation: indicator config, fetchers/mappers/bands/labels parameterised, F1.3 default unchanged | Claude Code (Sonnet) | Claude Code (Opus) T8 | **IMPLEMENTED 2026-10-08**; T8 round 2: B1 closed, B2 fixed in round 3 (Section 10) |
 | T4 | `/f41/dashboard` page | Antigravity | PO UI check (G2) | **IMPLEMENTED 2026-10-08 (READY FOR PO UI CHECK)** |
 | T5 | `/f41/ranking/bcvh` page | Antigravity | PO UI check (G3) | **IMPLEMENTED 2026-10-08 (READY FOR PO UI CHECK)** |
-| T6 | Menu group, redirect, roles, navigation tests | Claude Code (Sonnet) | tests | NOT STARTED (after T4) |
+| T6 | Menu group, redirect, roles, navigation tests | Claude Code (Sonnet) | tests | **IMPLEMENTED 2026-10-08**: sidebar group F4.1 (Operation Dashboard, BCVH Ranking) for admin + viewer in `appNavigation.jsx`, `Sidebar.jsx`, `SharedLayout.jsx`; `/f41` redirects to `/f41/dashboard`; navigation tests updated (viewer now sees F1.3 + F4.1). Frontend 600/601 (one pre-existing failure), build and lint clean |
 | T7 | Import 07/09–07/10 | **PO** | Claude Code row-count check | PO in progress |
 | T8 | Independent review of T1–T3 | Claude Code (Opus) | — | Round 1 FAIL (B1). **Round 2 2026-10-08: B1 CLOSED, F1.3 unchanged, NB3/NB4/NB5 closed, NB7 partly; new T8-F41-B2 (F4.1 monthly heatmap cells on F1.3 bands, `BcvhRankingOverviewBlocks.jsx:185`) blocks G3 only — T4/T5 may start.** `docs/06_REVIEWS/Shared/F41-DASHBOARD-RANKING-01_REVIEW_001.md` |
 

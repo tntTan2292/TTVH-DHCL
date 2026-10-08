@@ -2153,3 +2153,7 @@ PO decisions: one-decimal rates as F1.3; blank evaluations count as Không đạ
 ## 2026-10-08 - F41-DASHBOARD-RANKING-01 T8 round 1 FAIL, round 2 fixed
 
 Independent review (Opus) found one blocker (module-level indicator state could leak to F1.3 pages) plus non-blocking items. Fixed: indicator now travels by React context, no global state; NB3/NB4/NB5/NB7 fixed. Frontend 593/594 (one pre-existing failure), backend F4.1 45/45. Re-check by the reviewer pending; T4/T5 wait. Manifest Section 10.
+
+## 2026-10-08 - F41-DASHBOARD-RANKING-01 READY FOR PO UI CHECK
+
+T4/T5 pages (Antigravity, re-verified 600/601, build/lint clean), T6 menu group and /f41 redirect (Claude Code) implemented; T8 closed after B1/B2 fixes. PO checks /f41/dashboard (G2) and /f41/ranking/bcvh (G3). Manifest Sections 4, 10, 11.
