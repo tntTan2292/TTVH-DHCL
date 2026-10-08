@@ -18,6 +18,20 @@ test('f41Routes wires viewer-readable GET endpoints only (no admin-only Import i
     assert.doesNotMatch(source, /router\.post/);
 });
 
+test('f41Routes exposes the Operation Dashboard / BCVH Ranking reads, all viewer-readable GET (F41-DASHBOARD-RANKING-01)', () => {
+    const source = fs.readFileSync(path.join(__dirname, 'f41Routes.js'), 'utf8');
+    for (const route of [
+        '/dashboard/summary', '/dashboard/daily-trend', '/ranking/bcvh/overview', '/ranking/bcvh/weeks',
+        '/ranking/bcvh/weekly-comparison', '/ranking/bcvh/weekly-trend', '/ranking/bcvh/months',
+        '/ranking/bcvh/monthly-comparison', '/ranking/bcvh',
+    ]) {
+        assert.ok(source.includes(`router.get('${route}', ...allowViewerRead`), route);
+    }
+    // Tuyến Ranking has no data in F4.1 (D-13): no route endpoint may exist.
+    assert.doesNotMatch(source, /ranking\/route/);
+    assert.doesNotMatch(source, /router\.(post|put|patch|delete)/);
+});
+
 test('server.js mounts f41Routes under /api/f41', () => {
     const source = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
 
