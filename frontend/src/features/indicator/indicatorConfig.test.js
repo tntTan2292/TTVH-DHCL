@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import baseApi from '../../api/client.js';
-import { classifyF13HeatmapRate, F13_HEATMAP_BANDS } from '../../components/f13/f13HeatmapBandCatalog.js';
+import { classifyF13HeatmapRate, F13_HEATMAP_BANDS, getApprovedWeekdayBand } from '../../components/f13/f13HeatmapBandCatalog.js';
 import { mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData.js';
 import { IndicatorProvider, useIndicator } from './IndicatorContext.js';
 import {
@@ -43,6 +43,14 @@ test('F4.1 colour bands are the F1.3 colours with every threshold +10 points (PO
   assert.equal(bands[0].tone, 'band-green');
   // the same rate under the default bands keeps its F1.3 colour
   assert.equal(classifyF13HeatmapRate(75).id, 'green');
+});
+
+test('monthly heatmap cell colour follows the page indicator (T8-F41-B2)', () => {
+  assert.equal(getApprovedWeekdayBand(75).tone, 'band-green');
+  assert.equal(getApprovedWeekdayBand(75, null, F13_INDICATOR.heatmapBands).tone, 'band-green');
+  assert.equal(getApprovedWeekdayBand(75, null, F41_INDICATOR.heatmapBands).tone, 'band-pink');
+  assert.equal(getApprovedWeekdayBand(80, null, F41_INDICATOR.heatmapBands).tone, 'band-green');
+  assert.equal(getApprovedWeekdayBand(null, null, F41_INDICATOR.heatmapBands).tone, 'unavailable');
 });
 
 test('KPI status signal of the BCVH table follows the indicator passed in the mapper context', () => {

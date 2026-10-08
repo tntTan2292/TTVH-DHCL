@@ -126,7 +126,7 @@ export const APPROVED_WEEKDAY_BANDS = Object.freeze(
  * code must not pass it, since Section 5 of the SSOT ticket forbids trusting backend `color`
  * over the rate itself.
  */
-export function getApprovedWeekdayBand(rate, backendColor = null) {
+export function getApprovedWeekdayBand(rate, backendColor = null, bands = undefined) {
   if (rate === null || rate === undefined) {
     return { id: 'unavailable', label: 'Chưa có dữ liệu', tone: 'unavailable' };
   }
@@ -134,7 +134,7 @@ export function getApprovedWeekdayBand(rate, backendColor = null) {
     const colorBand = APPROVED_WEEKDAY_BANDS.find((band) => band.id === backendColor);
     if (colorBand) return colorBand;
   }
-  const classified = classifyF13HeatmapRate(rate);
+  const classified = classifyF13HeatmapRate(rate, bands);
   if (classified.tone === 'unavailable') {
     return { id: 'unavailable', label: 'Chưa có dữ liệu', tone: 'unavailable' };
   }

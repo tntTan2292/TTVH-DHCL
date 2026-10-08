@@ -160,6 +160,6 @@ test('Operation Dashboard TONE_CLASS/TONE_BAR render the exact same class string
 
 test('BCVH Ranking monthly heatmap cell applies the shared HEATMAP_BAND_TONE_CLASS lookup, not a hand-written color map', () => {
   const rankingSource = read('./BcvhRankingOverviewBlocks.jsx');
-  assert.match(rankingSource, /const band = getApprovedWeekdayBand\(m\.rate\);/);
+  assert.match(rankingSource, /const band = getApprovedWeekdayBand\(m\.rate, null, indicator\.heatmapBands\);/);
   assert.match(rankingSource, /HEATMAP_BAND_TONE_CLASS\[band\.tone\] \|\| HEATMAP_BAND_TONE_CLASS\.unavailable/);
 });

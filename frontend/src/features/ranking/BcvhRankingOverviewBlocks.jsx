@@ -179,10 +179,10 @@ export function BcvhMonthlyTrendBlock({ data }) {
                   const isCurrent = data.latestMonth === m.month;
 
                   // Same Heatmap SSOT as Operation Dashboard's weekday tab: getApprovedWeekdayBand()
-                  // classifies the rate (green >=70 / pink 60-70 / yellow 50-60 / red <50 /
-                  // unavailable for null), and HEATMAP_BAND_TONE_CLASS supplies the exact same
+                  // classifies the rate with the page's indicator bands (F1.3: green >=70 / pink 60-70 /
+                  // yellow 50-60 / red <50; F4.1: 80/70/60; unavailable for null), and HEATMAP_BAND_TONE_CLASS supplies the exact same
                   // border/background/text classes — no threshold is re-declared here.
-                  const band = getApprovedWeekdayBand(m.rate);
+                  const band = getApprovedWeekdayBand(m.rate, null, indicator.heatmapBands);
                   const bandClass = HEATMAP_BAND_TONE_CLASS[band.tone] || HEATMAP_BAND_TONE_CLASS.unavailable;
 
                   return (
