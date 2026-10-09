@@ -425,8 +425,8 @@ Business/product decisions only. Each has a recommendation based on evidence; th
 | Q-2 | **CLOSED by PD-9:** blank `Đánh giá 2026` stays in the denominator as 0 Đạt (as F4.1) and is flagged separately for later reason analysis (DC-13). | — | none |
 | Q-3 | **CLOSED by PD-10:** same as F1.3 (date from the file name, daily notice N-1). | — | none |
 | Q-4 | **(a) CLOSED by PD-11** (6 canonical BCVH by delivery unit; 531110 and 531120 counted in the total, hidden from ranking). (b) Still open: do you also want an accepting-side view (which accepting office/BCVH drags quality down), and where does the "accepting office → managing BCVH" mapping come from? | (a) Yes, F4.1 rule. (b) Matrix X1 first; accepting-side ranking later, mapping to be supplied. | Phase 0, Dashboard |
-| Q-5 | (a) Tuyến Ranking for F1.1 (the detail has route + ward)? (b) Colour bands and chart target line for F1.1 (F1.3 = 70/60/50 + 90 %, F4.1 = 80/70/60 + 90 %). | (a) Not in the first ticket; decide after Dashboard. (b) PO to give the bands; current monthly level is ~89 %, so F1.3's bands would be all green. | Dashboard |
-| Q-6 | Weeks Thursday–Wednesday, ISO number of the Thursday, as F1.3/F4.1? | Yes. | Dashboard |
+| Q-5 | (a) Tuyến Ranking for F1.1 (the detail has route + ward)? **(b) CLOSED by PD-14: F1.3 colour bands (70/60/50) and target.** | (a) Not in the first ticket; decide after Dashboard. | Dashboard (a only) |
+| Q-6 | **CLOSED by PD-14:** weeks Thursday–Wednesday, ISO number of the Thursday, as F1.3. | — | none |
 | Q-7 | TCT: provide one real F1.1 TCT file (and the exact DKCL report name); do you want "Vị thứ toàn quốc x/34" on F1.1? | Provide the file; rank yes. | Phase 4 |
 | Q-8 | Roles: `admin` + `viewer` read, Import admin-only (as F4.1)? (F1.1 is currently hidden from viewers.) | Yes, from the Dashboard ticket on. | Dashboard |
 | Q-9 | Retired office codes in historical files (e.g. 533130 Huế Bắc → 533140): confirm the `DB` sheet mapping is the official one, and whether history before the reorganisation is needed at all. | Provide the official mapping; history only from the date the PO needs. | Backfill |
