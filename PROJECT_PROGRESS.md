@@ -2165,3 +2165,7 @@ PO checked the F4.1 Operation Dashboard (/f41/dashboard) and BCVH Ranking (/f41/
 ## 2026-10-09 - TEST-API-BASE-URL-STALE-01 CLOSED
 
 The only red frontend test (`dataImportBackfillQueue.test.js`, stale source-text assertion on the API base URL) now checks `resolveApiBaseUrl()` behaviour; frontend sweep fully green. Test-only. Manifest: `docs/10_TICKETS/TEST-API-BASE-URL-STALE-01_MANIFEST.md`.
+
+## 2026-10-09 - IMPORT-TCT-TIMEOUT-01 IMPLEMENTED (pending runtime verification)
+
+F4.1 TCT auto-backfill failures (16 jobs, all ~31 s, uncoded Playwright timeout classified SYSTEM, never retried) fixed in backend: explicit 120 s timeout on the three F4.1 portal requests, coded TRANSIENT `F41_PORTAL_REQUEST_TIMEOUT`, and a redacted failure message now stored on the attempt/event. Tests 5/5 plus regressions green; real-portal re-run of a failing date still required after a backend restart. Manifest: `docs/10_TICKETS/IMPORT-TCT-TIMEOUT-01_MANIFEST.md`.
