@@ -1,0 +1,23 @@
+id: "F1.1"
+name: "Chất lượng toàn trình bưu gửi nội tỉnh"
+alias: "Toàn trình nội tỉnh (Nhận tin/Thu gom hoặc Chấp nhận → PTC hoặc Nộp tiền)"
+domain: "Quality Management"
+owner_business: "Product Owner"
+owner_technical: "Architect"
+version: "1.0.0"
+status: "Planned"
+effective_date: "2026-10-09"
+expiration_date: ""
+review_cycle: "TODO - Waiting Product Owner"
+data_sources:
+  - "F1.1_bao_cao_chat_luong_toan_trinh_buu_giay_noi_tinh_chi_tiet — file chi tiết cấp bưu gửi (HUE), do DKCL cung cấp"
+  - "F1.1_bao_cao_chat_luong_toan_trinh_buu_giay_noi_tinh — file tổng hợp theo cặp tỉnh chấp nhận × tỉnh phát (TCT), do DKCL cung cấp"
+dependencies:
+  - "docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md"
+tags:
+  - "toan trinh"
+  - "noi tinh"
+  - "chap nhan"
+  - "phat thanh cong"
+  - "KPI 2026 chi tieu phuong xa"
+priority: "High"

@@ -18,6 +18,7 @@ const { applyNetworkManagement001Phase3Schema } = require('./migrate_network_man
 const { applyNetworkManagement001Phase4Schema } = require('./migrate_network_management_001_phase4_schema');
 const { applyF41Phase1Schema } = require('./migrate_f41_phase1_schema');
 const { applyF41Phase2Schema } = require('./migrate_f41_phase2_schema');
+const { applyF11Phase1Schema } = require('./migrate_f11_phase1_schema');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
 const { applyAutoBackfillCoverageExceptionSchema } = require('./migrate_auto_backfill_coverage_exception_schema');
@@ -122,6 +123,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyNetworkManagement001Phase4Schema(dbPath);
     await applyF41Phase1Schema(dbPath);
     await applyF41Phase2Schema(dbPath);
+    await applyF11Phase1Schema(dbPath);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
     await applyAutoBackfillCoverageExceptionSchema(dbPath);
