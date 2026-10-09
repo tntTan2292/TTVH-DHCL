@@ -62,7 +62,7 @@ In: additive table `fact_f11` with 4 indexes, header-name file reader, file-name
 
 ## 8. Residual / Notes
 
-- Opus independent review of the data design has not been run yet (planned before Phase 2).
+- Opus independent review done 2026-10-09: **PASS**, no blocker; baseline independently recomputed and equal. Phase-2 gates N-1 (duplicate header) and N-2 (value trim/NFC + `danh_gia_2026` domain check); PO question Q-R1 (week/month = row-days or distinct parcels). Record: `docs/06_REVIEWS/Shared/F11-PHASE-1_REVIEW_001.md`.
 - **Q-15 closed (checkpoint Section 25.7):** the first TCT file was a two-day file sent by mistake; the single-day TCT file for 07/10 equals the Huế detail exactly on every reproducible column, so the 07/10 Huế detail is complete and the baseline is confirmed by two independent sources.
 
 ## 9. Next Ticket
