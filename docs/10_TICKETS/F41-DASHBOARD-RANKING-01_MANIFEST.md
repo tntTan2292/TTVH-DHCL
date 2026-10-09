@@ -1,6 +1,6 @@
 # F41-DASHBOARD-RANKING-01 — MANIFEST
 
-**Status:** ACTIVE — T0-T6 IMPLEMENTED, G1 PASSED, T8 closed after round 3 (2026-10-08); `READY FOR PO UI CHECK` (G2 `/f41/dashboard`, G3 `/f41/ranking/bcvh`). Not closed; no PO UI PASS yet.
+**Status:** `IMPLEMENTED / PO UI PASS / CLOSED` (2026-10-09). All of T0-T6 and T8 done; G1 passed 2026-10-08; G2 (`/f41/dashboard`) and G3 (`/f41/ranking/bcvh`) confirmed by the PO on 2026-10-09.
 **Program ticket** covering the F4.1 Operation Dashboard and BCVH Ranking screens. It is the resumption of `F41-DASHBOARD-MINIMUM-01` Phase F1 (that ticket's Section 12 records the resumption).
 **Branch:** `codex/da-impl-006`. **Governance:** V2 Active.
 
@@ -33,8 +33,8 @@ Out: Tuyến Ranking and all route blocks (no route data), Action Center / Rule 
 | T1 | Backend base: F4.1 repository methods, `summary`, `daily-trend`, `ranking/bcvh/overview`, `ranking/bcvh`, F4.1 national rank | Claude Code (Sonnet) | tests + real-DB reconciliation | **IMPLEMENTED 2026-10-08**, G1 live-DB reconciliation PASSED (Section 9) |
 | T2 | Backend weekly/monthly: `weeks`, `weekly-comparison`, `weekly-trend`, `months`, `monthly-comparison` | Claude Code (Sonnet) | tests + reconciliation | **IMPLEMENTED 2026-10-08** with T1 (the F1.3 services are reused unchanged) |
 | T3 | Frontend foundation: indicator config, fetchers/mappers/bands/labels parameterised, F1.3 default unchanged | Claude Code (Sonnet) | Claude Code (Opus) T8 | **IMPLEMENTED 2026-10-08**; T8 round 2: B1 closed, B2 fixed in round 3 (Section 10) |
-| T4 | `/f41/dashboard` page | Antigravity | PO UI check (G2) | **IMPLEMENTED 2026-10-08 (READY FOR PO UI CHECK)** |
-| T5 | `/f41/ranking/bcvh` page | Antigravity | PO UI check (G3) | **IMPLEMENTED 2026-10-08 (READY FOR PO UI CHECK)** |
+| T4 | `/f41/dashboard` page | Antigravity | PO UI check (G2) | **IMPLEMENTED 2026-10-08 (PO UI PASS 2026-10-09)** |
+| T5 | `/f41/ranking/bcvh` page | Antigravity | PO UI check (G3) | **IMPLEMENTED 2026-10-08 (PO UI PASS 2026-10-09)** |
 | T6 | Menu group, redirect, roles, navigation tests | Claude Code (Sonnet) | tests | **IMPLEMENTED 2026-10-08**: sidebar group F4.1 (Operation Dashboard, BCVH Ranking) for admin + viewer in `appNavigation.jsx`, `Sidebar.jsx`, `SharedLayout.jsx`; `/f41` redirects to `/f41/dashboard`; navigation tests updated (viewer now sees F1.3 + F4.1). Frontend 600/601 (one pre-existing failure), build and lint clean |
 | T7 | Import 07/09–07/10 | **PO** | Claude Code row-count check | PO in progress |
 | T8 | Independent review of T1–T3 | Claude Code (Opus) | — | Round 1 FAIL (B1). **Round 2 2026-10-08: B1 CLOSED, F1.3 unchanged, NB3/NB4/NB5 closed, NB7 partly; new T8-F41-B2 (F4.1 monthly heatmap cells on F1.3 bands, `BcvhRankingOverviewBlocks.jsx:185`) blocks G3 only — T4/T5 may start.** `docs/06_REVIEWS/Shared/F41-DASHBOARD-RANKING-01_REVIEW_001.md` |
@@ -114,3 +114,13 @@ Decisions (bands 80/70/60, 90% target line, one-decimal rates, blank = Không đ
 - Validation LEVEL 2, from `frontend/`: `node --test $(find src -name "*.test.js")` (baseline 594/595, the one failure is the pre-existing `dataImportBackfillQueue.test.js`), `npx vite build`, `npx oxlint src`. (`node --test <directory>` does not work on this machine.)
 - No browser, screenshots, dev server or login: the PO checks the UI. Stop at `READY FOR PO UI CHECK`.
 - Update only the T4/T5 rows of Section 4 in this manifest; the coordinator syncs Snapshot/Progress.
+
+## 12. Closure (2026-10-09, Claude Code / Sonnet 5.5)
+
+Product Owner decision received in chat: the F4.1 Operation Dashboard and BCVH Ranking UI were checked directly and are OK. This is the PO UI PASS for gates G2 and G3; no further work is authorised under this ticket, and later changes need a new ticket or an explicit reopening.
+
+Delivered: backend (T1/T2), frontend foundation (T3), pages (T4/T5, Antigravity), menu and `/f41` redirect (T6), independent review T8 (round 1 FAIL → B1/B2 fixed → closed), G1 live-database reconciliation 9/9.
+
+Final validation (Claude Code, re-run before closure): frontend full suite 600/601 (only the pre-existing `dataImportBackfillQueue.test.js`), `vite build` and `oxlint` clean; backend F4.1 test files 45/45; reconciliation `node backend/test_f41RankingReconciliation.js` 9/9 (2026-10-08).
+
+Residuals (none blocks the PO acceptance): (1) the backend running at the time of the PO check was started before the NB3/NB4 fix, which only matters for near-tied units or a failing national-rank query; the next restart loads it. (2) Pre-existing F1.3 `colSpan` base 18 vs 20 fixed cells in the expanded ranking row (T8-F41-NB6). (3) `ITR2-F41-NB-02` and `-03` (wording defects in earlier paused-ticket records) remain recorded and untouched. (4) Out of scope by PO decision and still open as future work: F4.1 Evidence (with the "Chưa có đánh giá" group), Tuyến Ranking (no route data), operating-pattern tabs, rule-based Action Center.
