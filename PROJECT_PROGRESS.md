@@ -2169,3 +2169,7 @@ The only red frontend test (`dataImportBackfillQueue.test.js`, stale source-text
 ## 2026-10-09 - IMPORT-TCT-TIMEOUT-01 IMPLEMENTED (pending runtime verification)
 
 F4.1 TCT auto-backfill failures (16 jobs, all ~31 s, uncoded Playwright timeout classified SYSTEM, never retried) fixed in backend: explicit 120 s timeout on the three F4.1 portal requests, coded TRANSIENT `F41_PORTAL_REQUEST_TIMEOUT`, and a redacted failure message now stored on the attempt/event. Tests 5/5 plus regressions green; real-portal re-run of a failing date still required after a backend restart. Manifest: `docs/10_TICKETS/IMPORT-TCT-TIMEOUT-01_MANIFEST.md`.
+
+## 2026-10-09 - F11-MODULE-PLAN PLAN COMPLETE (awaiting PO decisions)
+
+PO asked for a new F1.1 indicator (Chất lượng toàn trình bưu gửi nội tỉnh) to be audited and planned: Huế detail source audit, Import for Huế and TCT, Dashboard and BCVH like F1.3, plus Evidence. Read-only audit of the real Huế file (2.621 rows x 55 columns, no duplicates, portal schema drift 52 -> 55) and of the summary report; baseline from the file: Đánh giá 2026 = 2.348 / 2.588 = 90,73% (six BCVH 90,69%), not adopted until the PO answers Q-1..Q-4. Plan: 8 tickets (SSOT, data foundation, Import Huế, portal discovery/auto-backfill, TCT, Dashboard+BCVH, Evidence, acceptance), 12 open questions, TCT sample and a raw same-date summary export needed. No code or data changed. Manifest: `docs/10_TICKETS/F11-MODULE-PLAN_MANIFEST.md`; checkpoint: `docs/06_REVIEWS/Shared/F11-MODULE-PLAN_CHECKPOINT_001.md`.
