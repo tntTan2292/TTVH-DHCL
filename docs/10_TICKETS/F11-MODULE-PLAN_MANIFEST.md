@@ -41,7 +41,7 @@ Produce an evidence-backed audit of the real F1.1 Huế detail source and a comp
 
 - Current state: `PLAN COMPLETE / AWAITING PO DECISIONS`
 - PO UI Check Required: `No` — planning ticket only. Gates G2, G5, G6, G7 of the phase plan each require Yes.
-- PO Product Status: `Plan submitted 2026-10-09; audit round 2 the same evening (checkpoint Section 24). PO decisions PD-6..PD-8: metric = Đánh giá 2026 (Q-1 closed); F1.1 is toàn trình (clock from Nhận tin/Thu gom or Chấp nhận to PTC or Nộp tiền); two views — BCVH operation table (6 BCVH, delivery stage) and the pair table Chấp nhận → BCVH phát. No phase authorized. Q-2, Q-3, Q-4a must be answered to open F11-PHASE-0 / F11-PHASE-1; Q-5..Q-14 can follow.`
+- PO Product Status: `Plan submitted 2026-10-09; audit round 2 the same evening (checkpoint Section 24). PO decisions PD-6..PD-8: metric = Đánh giá 2026 (Q-1 closed); F1.1 is toàn trình (clock from Nhận tin/Thu gom or Chấp nhận to PTC or Nộp tiền); two views — BCVH operation table (6 BCVH, delivery stage) and the pair table Chấp nhận → BCVH phát. Round 3 (same day): PD-9 blank evaluation = 0 Đạt in the denominator (as F4.1) and flagged separately; PD-10 date rule as F1.3; PD-11 six BCVH ranked, 531110/531120 counted but hidden; PD-12 detail file is the source, no summary reconciliation; PD-13 pair table for day/week/month, all offices, UI by Antigravity. Baseline under PD-9: 2.348 / 2.621 = 89,58% (six BCVH 2.338 / 2.611 = 89,54%). Q-1..Q-4a, Q-13, Q-14 answered; F11-PHASE-0 / F11-PHASE-1 need only PO authorization; no phase authorized yet.`
 
 ## 4. Required Reading
 
@@ -62,7 +62,7 @@ Findings of the read-only audit (details: checkpoint Sections 6-9):
 
 - The real Huế detail file `Data DKCL/F1.1-2026.10.07.xlsx` is a clean flat table: 2 621 rows × 55 columns, one row per `Số hiệu bưu gửi`, zero duplicates, no merged cells or total row.
 - **Portal schema drift is already visible**: older exports have 52 columns, the new one 55 (three appended Kỹ thuật tỉnh columns, one pair in a different ISO timestamp format). The parser must key on header names.
-- Two evaluation columns exist and are exactly reproducible from elapsed time: `Đánh giá 2025` (≤ 24 h) and `Đánh giá 2026` (ward target 12/15/24/27 h). Hypothesis H-1/H-2 (checkpoint Section 10) proposes `Đánh giá 2026` over the evaluated rows: `2.348 / 2.588 = 90,73 %` (six canonical BCVH `2.338 / 2.578 = 90,69 %`). Not adopted until the PO confirms.
+- Two evaluation columns exist and are exactly reproducible from elapsed time: `Đánh giá 2025` (≤ 24 h) and `Đánh giá 2026` (ward target 12/15/24/27 h). The PO confirmed `Đánh giá 2026` (PD-6) and that blank evaluations stay in the denominator as 0 Đạt (PD-9): `2.348 / 2.621 = 89,58 %` (six canonical BCVH `2.338 / 2.611 = 89,54 %`). The portal-style evaluated-rows figure `2.348 / 2.588 = 90,73 %` is kept only for comparison.
 - 33 rows are not yet evaluable (13 PTC the next day, 1 without ward target, 19 without PTC); 4 undelivered rows are already `Không đạt`.
 - The source has no violation-reason field (`Nội dung lý do` empty), so Evidence reasons must be derived from stage timestamps after PO training.
 - The raw summary report is internally consistent but is a unit-pair aggregate with the grand-total row first. The Product Owner's pasted Excel sheets are **not** reliable reconciliation sources (`F1.1 Ngay` total row disagrees with its own body rows).
@@ -116,7 +116,7 @@ None open. This ticket was activated by a Product Owner request, not by a findin
 
 Not applicable — `PO UI Check Required = No`. What the Product Owner is asked to do:
 
-- Answer Q-1, Q-2, Q-3 and Q-4a (checkpoint Section 22) so F11-PHASE-0 and F11-PHASE-1 can open.
+- Q-1, Q-2, Q-3, Q-4a, Q-13 and Q-14 are answered (PD-6, PD-9..PD-13). Authorize F11-PHASE-0 and F11-PHASE-1 to open; Q-4b and Q-5..Q-12 can follow (none blocks them).
 - Approve, amend or reject the data contract `DC-1..DC-12` (checkpoint Section 12) and the eight-ticket phase plan (Section 13).
 - Provide the raw summary export for 07/10/2026 and, when available, a real TCT F1.1 file (Section 23).
 
@@ -124,7 +124,7 @@ Not applicable — `PO UI Check Required = No`. What the Product Owner is asked 
 
 Escalated rather than guessed:
 
-1. The headline metric and its denominator (Q-1, Q-2) — two evaluation columns exist and F4.1 and F1.1 plausibly differ on blank rows.
+1. ~~The headline metric and its denominator (Q-1, Q-2)~~ — resolved by the PO (PD-6, PD-9).
 2. The colour bands and chart target (Q-5b) — F1.3 and F4.1 use different bands and the F1.1 level (~89-91 %) would be uniformly green under F1.3's.
 3. The TCT report shape and name — no sample exists; nothing is inferred from F4.1.
 4. The portal date-filter semantics and the report's stored-procedure/endpoint identities — to be observed in a read-only probe (Phase 3), never assumed.

@@ -60,6 +60,16 @@ Round 2 (2026-10-09, later the same day), after the PO placed the two audited fi
 | PD-7 | F1.1 is a **toàn trình nội tỉnh** indicator: elapsed time is measured from **Nhận tin/Thu gom, or Chấp nhận**, to **Phát thành công, or Nộp tiền** (for parcels that have a payment time). It therefore differs from F1.3 and F4.1, which measure only the delivery leg. |
 | PD-8 | F1.1 reporting has **two views**: (1) an operation table by *delivery stage*, same layout as F1.3/F4.1, with the **6 BCVH** and the F1.1 rate = `Đánh giá 2026`; (2) a **pair table** "Chấp nhận tại Bưu cục nào → phát tại BCVH nào", as the PO runs today in sheet `Bảng-LK` of `Đánh giá CLP F1.1.xlsx`. |
 
+Round 3 (2026-10-09, after the audit of Section 24) — PO answers:
+
+| ID | Direction |
+| --- | --- |
+| PD-9 | **Blank `Đánh giá 2026` follows F4.1** (closes Q-2): such rows stay in the denominator and count as **0 Đạt**. They are also **flagged separately** so the PO can later analyse the detailed reason (derived flag, Section 12 DC-13). Rate = `COUNT(Đánh giá 2026 = 'Đạt') / COUNT(*)`. |
+| PD-10 | **Business date rule = F1.3** (closes Q-3): `ngay_do_kiem` from the file name; the daily notice follows the N-1 rule. |
+| PD-11 | **Ranking units** (closes Q-4a): the 6 canonical BCVH by delivery unit; 531110 and 531120 are counted in the module total and hidden from the ranking (as F4.1). |
+| PD-12 | **Reconciliation source** (closes Q-13): `Đánh giá CLP F1.1.xlsx` is only the PO's working file built from the *summary* download. The system's source is the **detail** file (like `F1.1-2026.10.07.xlsx`); no summary pairing is required. |
+| PD-13 | **Pair table scope** (answers Q-14): day, **week and month**; all accepting offices shown; the interface is delegated to Antigravity, who must make it smart/usable. |
+
 Nothing else is treated as decided. Every other point is either derived from verified evidence (and labelled so) or listed as an open question in Section 22.
 
 ## 4. Scope Lock
@@ -155,6 +165,23 @@ Rate = `Đánh giá 2026 = 'Đạt'` / rows with a non-blank `Đánh giá 2026` 
 
 Two totals (module 90,73 % vs six-unit 90,69 %) differ for the same structural reason as F4.1's 60,98 % / 60,97 %: 531110/531120 are in the file but are not among the six ranked units. How to treat them is Q-4.
 
+**Superseded by PD-9 (Round 3).** The table above is the "evaluated rows only" view the portal summary publishes. The adopted rule counts every row (blank = 0 Đạt) and gives:
+
+| `Mã BC phát` | Unit | Rows | Đạt | Không đạt | Blank | Rate (PD-9) | Blank split: PTC next day / no ward target / no PTC |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| 533140 | BCVH Thuận Hóa | 1 801 | 1 713 | 73 | 15 | **95,11 %** | 9 / 1 / 5 |
+| 535470 | BCVH Hương Trà | 273 | 205 | 53 | 15 | **75,09 %** | 4 / 0 / 11 |
+| 536250 | BCVH Hương Thủy | 248 | 183 | 64 | 1 | **73,79 %** | 0 / 0 / 1 |
+| 535790 | BCVH A Lưới | 84 | 74 | 10 | 0 | **88,10 %** | — |
+| 537220 | BCVH Phú Lộc | 132 | 96 | 35 | 1 | **72,73 %** | 0 / 0 / 1 |
+| 537015 | BCVH Thuận An | 73 | 67 | 5 | 1 | **91,78 %** | 0 / 0 / 1 |
+| **6 canonical (ranking)** | | **2 611** | **2 338** | 240 | 33 | **89,54 %** | 13 / 1 / 19 |
+| 531110 | TT Hành chính công | 9 | 9 | 0 | 0 | 100 % | — |
+| 531120 | Khách hàng lớn | 1 | 1 | 0 | 0 | 100 % | — |
+| **Module total** | | **2 621** | **2 348** | 240 | 33 | **89,58 %** | 13 / 1 / 19 |
+
+The system figure (89,58 %) therefore differs from the portal-style figure (90,73 %) by exactly the 33 blank rows; this is a defined, labelled difference, not an error (R-3).
+
 ## 7. Audit B — Other detail exports (schema drift, partial exports)
 
 | ID | Finding |
@@ -205,9 +232,9 @@ Per the project rule *do not infer business rules*, nothing below is adopted unt
 | ID | Hypothesis | Evidence | Needs |
 | --- | --- | --- | --- |
 | H-1 | **CONFIRMED by PD-6 (2026-10-09).** The F1.1 headline metric is `Đánh giá 2026` (KPI theo chỉ tiêu phường xã), not `Đánh giá 2025` (≤ 24 h). | Column named 2026; ward-target hours per row (A-10); newer PO workbooks total on the ward-target rate (D-1); summary report publishes it as a labelled block (C-3). | closed |
-| H-2 | Rate = `COUNT(Đánh giá 2026 = 'Đạt') / COUNT(Đánh giá 2026 IS NOT NULL)`; blank-evaluation rows are *not yet evaluable* and are excluded from the denominator but reported as a separate count. | The summary's own denominator (col 17) is "SL … theo chỉ tiêu"; 4 overdue-undelivered rows are `Không đạt` (A-15); the blank rows are PTC-after-the-day or no-PTC (A-14). **Differs from F4.1**, where the PO chose "blank = Không đạt". | Q-2 |
-| H-3 | `ngay_do_kiem` = date in the file name `F1.1-YYYY.MM.DD.xlsx` (the PO already uses this name). | A-16; identical rule to F1.3/F4.1. | Q-3 (confirm which date: PTC day / N-1) |
-| H-4 | Ranking unit = delivery unit (`Mã BC phát`), the 6 canonical BCVH; 531110/531120 counted in the module total but hidden from ranking. | A-4, D-5; F4.1 PO-6 precedent. | Q-4 |
+| H-2 | ~~Blank rows excluded from the denominator.~~ **REPLACED by PD-9 (2026-10-09):** rate = `COUNT(Đánh giá 2026 = 'Đạt') / COUNT(*)`; blank rows count as 0 Đạt and are flagged separately. (The excluded-denominator view is what the portal summary publishes; kept in Section 6.6 for comparison only.) | PO decision, same as F4.1. | closed |
+| H-3 | **CONFIRMED by PD-10.** `ngay_do_kiem` = date in the file name `F1.1-YYYY.MM.DD.xlsx`; daily notice N-1 as F1.3. | A-16. | closed |
+| H-4 | **CONFIRMED by PD-11.** Ranking unit = delivery unit (`Mã BC phát`), the 6 canonical BCVH; 531110/531120 counted in the module total but hidden from ranking. | A-4, D-5; F4.1 PO-6 precedent. | closed (Q-4b, accept-side ranking, still open) |
 | H-5 | Weeks run Thursday–Wednesday, ISO 8601 number of the week's Thursday, as F1.3/F4.1. | F13-BCVH-WEEKLY-COMPARISON-01 convention; PO's sheets use "Tuần 38/39/40" with dated columns. | Q-6 |
 
 ## 11. Delta Survey — What F4.1 / F1.3 Already Give Us
@@ -242,8 +269,9 @@ Requires PO approval before any implementation. Items marked ▲ depend on a PO 
 | DC-4 | Parser keys on **header names**: the 52 baseline headers are required (hard error if any is missing); the 3 newer headers are optional and stored `NULL` when absent. Row identity column `Số hiệu bưu gửi` is the required-column guard. |
 | DC-5 | `ngay_do_kiem` comes **only** from the file name `F1.1-YYYY.MM.DD.xlsx`, never from cell content (A-16). |
 | DC-6 | Timestamps stay TEXT as received (`dd/MM/yyyy HH:mm:ss`); the two new KTTỉnh columns stay TEXT in their ISO form; a shared reader normalises both when a query needs to compare. `Thời gian thực tế` stays raw TEXT `H:MM`; `Thời gian chỉ tiêu 2026` is stored as INTEGER hours. |
-| DC-7 ▲ | Metric: `danh_gia_2026` is the headline; `danh_gia_2025` is stored and available as a secondary series. Rate and denominator per H-1/H-2. |
-| DC-8 ▲ | Module total counts every stored row that passes the denominator rule; the Ranking lists only the 6 canonical units (reuse `canonicalBcvhUnits.js`, no code literal), with the two totals **labelled distinctly** on any screen where both can appear (lesson R-3 of F4.1). |
+| DC-7 | Metric (PD-6, PD-9): `danh_gia_2026` is the headline; **rate = `COUNT(= 'Đạt') / COUNT(*)` over all stored rows**, blank = 0 Đạt (as F4.1 DC-6). `danh_gia_2025` is stored and available as a secondary series. Volume everywhere = `COUNT(*)`, passed = `= 'Đạt'`. |
+| DC-8 | Module total counts every stored row; the Ranking lists only the 6 canonical units (PD-11; reuse `canonicalBcvhUnits.js`, no code literal), with the two totals (89,58 % / 89,54 % on the baseline) **labelled distinctly** on any screen where both can appear (lesson R-3 of F4.1). |
+| DC-13 | **Blank-evaluation flag (PD-9).** A blank `danh_gia_2026` is shown as "Chưa có đánh giá" and split by a *derived* reason, computed at read time from stored columns, never written back: `PTC sau ngày đo kiểm` (PTC date later than `ngay_do_kiem`), `Thiếu chỉ tiêu phường` (`thoi_gian_chi_tieu_2026` null), `Chưa PTC` (no PTC time). Baseline: 13 / 1 / 19. The split is an Evidence facet, so the PO can analyse the detailed reason later; the rate itself never depends on it. |
 | DC-9 | Indices designed from the access paths (not copied): `(ngay_do_kiem)`, `(ngay_do_kiem, ma_bc_phat, danh_gia_2026)`, `(ma_bc_phat, ngay_do_kiem)`, plus `(ngay_do_kiem, ma_bc_chap_nhan, ma_bc_phat)` if the matrix block is approved. EXPLAIN QUERY PLAN is recorded in Phase 1 against the live table size; no index is added without measurement. |
 | DC-10 | Violation `lý do`/stage classification is **not part of the data contract**: the source has no reason field (A-7). It lives in a derived, versioned classification service defined in the Evidence phase after PO training (Section 17). |
 | DC-11 | National lane (`fact_f11_national`) shape is **not designed** until a real TCT sample exists (Section 15). |
@@ -255,8 +283,8 @@ Each phase is its own ticket needing explicit PO authorization; none is self-act
 
 | Phase / ticket | Content | Owner | Size | Gate |
 | --- | --- | --- | --- | --- |
-| **F11-PHASE-0** SSOT package (docs) | `docs/07_REFERENCE/Domains/domain_quality_management/f1.1_chat_luong_toan_trinh_noi_tinh/` from `_template_indicator`: `metadata.yml`, `data_blueprint.md` (55-column map, Section 6), `measurement.md` (formula after Q-1/Q-2, baseline), `business_rules.md`, `testing_scenarios.md`, `changelog.md`. Zero code. **Starts only after Q-1..Q-4 are answered**, so no unconfirmed rule becomes SSOT. | Claude Code (Sonnet) | S | G0 (this plan approved) |
-| **F11-PHASE-1** Data foundation | Migration `fact_f11` (+indices measured), `f11HueExcelParser.js`, filename extractor, real-file test on S-1 asserting 2 621 / 2 588 / 2 348 / 240 / 33 and the Section 6.6 table, `fact_f13`/`fact_f41` counts unchanged. No watcher/UI. | Claude Code (Sonnet) + Opus review of DC-1..DC-9 | M | G1 |
+| **F11-PHASE-0** SSOT package (docs) | `docs/07_REFERENCE/Domains/domain_quality_management/f1.1_chat_luong_toan_trinh_noi_tinh/` from `_template_indicator`: `metadata.yml`, `data_blueprint.md` (55-column map, Section 6), `measurement.md` (PD-6/PD-9 formula, baseline), `business_rules.md`, `testing_scenarios.md`, `changelog.md`. Zero code. Q-1..Q-4a are **answered** (PD-6, PD-9..PD-11), so it can open on PO authorization; no unconfirmed rule becomes SSOT. | Claude Code (Sonnet) | S | G0 (this plan approved) |
+| **F11-PHASE-1** Data foundation | Migration `fact_f11` (+indices measured), `f11HueExcelParser.js`, filename extractor, real-file test on S-1 asserting 2 621 rows / 2 348 Đạt / 240 Không đạt / 33 blank (13+1+19) / 89,58 % and the PD-9 table of Section 6.6, plus the pair grid (accepting office × delivering BCVH) summing to the module totals, `fact_f13`/`fact_f41` counts unchanged. No watcher/UI. | Claude Code (Sonnet) + Opus review of DC-1..DC-9 | M | G1 |
 | **F11-PHASE-2** Import Huế (manual lane) | Register `INDICATORS['F1.1']` (HUE lane `MANUAL_ONLY` with reason until Phase 3), pipeline/watcher over the registry, Data Import Center selector, per-indicator test sandbox, first **deliberate observed** import of S-1 from `Incoming/HUE`, row counts against Section 6.6. F1.3/F4.1 byte-identical (their suites unchanged). | Claude Code (Sonnet); Antigravity for the selector UI | M | G2 |
 | **F11-PHASE-3** Portal discovery + HUE auto-backfill | Read-only probe in the AB-AUTH-17 style (needs the PO's logged-in HUE session, profile free): observe stored-procedure identity, detail endpoint, export action, **real generated-file slug** (candidates from the real downloads: `F1.1_bao_cao_chat_luong_toan_trinh_buu_giay_noi_tinh_chi_tiet` detail, `…_noi_tinh` summary), the date-filter semantics (B-4), header drift. Then `autoBackfillF11Contract.js`, single-date service, executors, completion policy, flip lane to `AUTOMATED` only when verified. Windows runtime evidence by Antigravity. | Claude Code + Antigravity (runtime) | L | G3 |
 | **F11-PHASE-4** Import TCT | Blocked until the PO supplies a real TCT F1.1 sample (Section 15). | Claude Code | M | G4 |
@@ -302,7 +330,7 @@ Principles inherited from `F41-DASHBOARD-RANKING-01`: additive only; no F1.3/F4.
 | Colour bands | `F11_INDICATOR.heatmapFloors` | value → Q-5b (F1.3 = 70/60/50, F4.1 = 80/70/60) |
 | Route capacity / Tuyến Ranking | **Decision** | the detail has `Mã/Tên/Loại tuyến phát` (unlike F4.1) → Q-5a |
 | Operating pattern, Action Center, Rule Recommendation, Message | Out of scope for the first ticket | as F4.1 |
-| **F11-X1 Accept × Delivery matrix** (PO's `TH-LK`/`TH-Day`: rows = accepting office, columns = 6 BCVH, cells = `SL đo kiểm` + `Tỷ lệ`, day and month) | **New, F1.1-only — PO-requested (PD-8)** | the PO's `Bảng-LK`; computed from `fact_f11` detail rows (Section 24, E-6); needs the pair index of DC-9 |
+| **F11-X1 Accept × Delivery matrix** (PO's `TH-LK`/`TH-Day`: rows = accepting office, columns = 6 BCVH, cells = `SL đo kiểm` + `Tỷ lệ`, day and month) | **New, F1.1-only — PO-requested (PD-8)** | the PO's `Bảng-LK`; computed from `fact_f11` detail rows (Section 24, E-8) for **day, week and month** (PD-13), all accepting offices derived from data; needs the pair index of DC-9; interface by Antigravity, who must make it smart and usable |
 | **F11-X2 Accept-side view** (which accepting office/BCVH pulls quality down) | **New, proposal** | requires the office → managing-BCVH mapping (Q-4b) |
 | **F11-X3 Elapsed-time bands** (≤ 24, 24–36, 36–48, 48–60, > 60 h) | **New, proposal** | derivable from `Thời gian thực tế`; exists in the summary report |
 | **F11-X4 Nhóm SPDV split** (Truyền thống / TMĐT / HCC / KT1) | **New, proposal** | optional |
@@ -340,7 +368,7 @@ The PO's analysis workbook `Chi tiết BG nội tỉnh tồn tại các BCVH.xls
 ## 18. Reconciliation Plan
 
 1. **After Phase 1**: reproduce S-1's Section 6.6 table (every row, both totals, the 33 = 13 + 1 + 19 blank split and the 4 no-PTC `Không đạt` rows) from `fact_f11`, with `fact_f13`/`fact_f41` counts unchanged.
-2. **Pair gate**: lock the module baseline only with a **raw portal summary + detail for the same business date** (Section 23). Compare: summary total row vs detail aggregates, and the (accepting office × delivery unit) cell-by-cell grid (the check that failed for the PO's pasted sheet, D-2, must pass 100 % for a raw pair).
+2. **Baseline gate (PD-12, replaces the former "pair gate")**: the system's source is the detail file, and no same-date summary will be supplied. The baseline is locked by **independent recomputation from the detail file** (a separate read-only script over the workbook, not the system's own code): Section 6.6 PD-9 table, the 13 / 1 / 19 blank split, and the accepting-office × delivering-BCVH grid of the file whose rows and columns must sum to the module figures. The PO's pasted summary sheets are not used (they differ in denominator by design, E-6/E-7). If a raw portal summary of a date is ever available it may be added as an extra cross-check on the *evaluated-rows* view only.
 3. **After the Dashboard ticket**: `/api/f11` responses equal the Phase 1 baseline per unit; six-unit sum vs module total as in DC-8; weekly/monthly sums additive.
 4. **After Evidence**: violation row count per unit equals the `Không đạt` column; classified + unclassified = violations.
 5. Every phase boundary: `Data DKCL`/`Data QLML` file checksums unchanged unless the phase deliberately imports.
@@ -348,8 +376,8 @@ The PO's analysis workbook `Chi tiết BG nội tỉnh tồn tại các BCVH.xls
 ## 19. Test Plan
 
 - Parser unit tests: 52-required/3-optional headers (both a 52-column and a 55-column fixture), missing required header → hard error naming the header, filename extractor accepts `F1.1-YYYY.MM.DD.xlsx` and rejects `F1.3-…`/`F4.1-…`/malformed, TEXT timestamp passthrough incl. the ISO KTTỉnh format, `H:MM` passthrough (`1169:33`), numeric codes → TEXT.
-- Real-file test on S-1 (copy into a test sandbox, never the live tree): 2 621 rows, 2 588 evaluated, 2 348 Đạt, 240 Không đạt, 33 blank, per-unit table.
-- Repository/service tests: H-2 denominator asserted explicitly (90,73 % not 89,6 % = 2 348/2 621), canonical-six exclusion, matrix totals = module totals, week math shared with F1.3.
+- Real-file test on S-1 (copy into a test sandbox, never the live tree): 2 621 rows, 2 348 Đạt, 240 Không đạt, 33 blank with the 13 / 1 / 19 derived split (DC-13), per-unit table of Section 6.6 (PD-9).
+- Repository/service tests: PD-9 denominator asserted explicitly (89,58 % = 2 348/2 621, **not** 90,73 % = 2 348/2 588), six-unit 89,54 %, canonical-six exclusion, pair grid totals = module totals for day, week and month, week math shared with F1.3.
 - Import regression: F1.3 and F4.1 import suites pass unchanged; an `F1.1-*.xlsx` never lands in `fact_f13`/`fact_f41` and vice versa; registry validator tests for the new entry (`MANUAL_ONLY` requires `manualOnlyReason`).
 - Sweeps per phase: backend `node --experimental-sqlite --test` and root `test_*.js` run per file (memory: the sweep skips them), frontend suite, `oxlint`, `vite build`; pre-existing failures named and compared, not counted.
 
@@ -359,9 +387,9 @@ The PO's analysis workbook `Chi tiết BG nội tỉnh tồn tại các BCVH.xls
 | --- | --- | --- |
 | R-1 | Watcher imports anything dropped into a registered `Incoming` immediately. | Register F1.1 only after table/parser exist; first import is deliberate and observed (Section 14). |
 | R-2 | Portal schema drift already happened (52 → 55 columns) and will recur. | Header-keyed parser, optional extras, drift logged, required-set test (DC-4). |
-| R-3 | Denominator choice (H-2) silently changes the headline: 90,73 % vs 89,6 % if blanks count as failures. | Q-2 answered in writing before Phase 1; a test asserts the chosen figure. |
+| R-3 | The system rate (PD-9, blanks = 0 Đạt: 89,58 %) legitimately differs from any portal-style figure that excludes unevaluable rows (90,73 %) and from the PO's pasted summary sheets. | PD-9 recorded; a test asserts 89,58 %; screens label the blank count ("Chưa có đánh giá") next to the rate; the PO's Excel is not a reconciliation source (PD-12). |
 | R-4 | Two metrics (`Đánh giá 2025` vs `2026`) live in one file and in the PO's own sheets. | Q-1 before Phase 0; both stored; the non-headline one is clearly labelled secondary. |
-| R-5 | Module total vs six-unit total differ (90,73 % / 90,69 %). | DC-8 labelled distinctly; reconciliation asserts both. |
+| R-5 | Module total vs six-unit total differ (89,58 % / 89,54 %). | DC-8 labelled distinctly; reconciliation asserts both. |
 | R-6 | Portal date filter ≠ PTC date (A-16/B-4); wrong assumption would mis-date or double-count rows. | Phase 3 probe observes it; `ngay_do_kiem` from the file name only; re-appearing parcels allowed by `UNIQUE(ngay_do_kiem, ma_bg)`. |
 | R-7 | No complete historical daily files exist (B-2) → history, week/month comparison and rank cannot be validated. | Multi-day support built regardless; comparison acceptance waits for ≥ 2 real days; backfill via Phase 3 or PO files. |
 | R-8 | The PO's pasted workbooks contain stale body rows (D-2); using them as truth would "reconcile" wrongly. | Only raw portal exports are accepted as baseline sources. |
@@ -375,7 +403,7 @@ The PO's analysis workbook `Chi tiết BG nội tỉnh tồn tại các BCVH.xls
 
 | Gate | Point | PO confirms |
 | --- | --- | --- |
-| G0 | End of this ticket | This plan, the Section 12 contract, the Section 13 phasing, answers to Section 22 (at least Q-1..Q-4 to open Phase 0/1) |
+| G0 | End of this ticket | This plan, the Section 12 contract, the Section 13 phasing, answers to Section 22 (Q-1..Q-4a, Q-13, Q-14 answered in rounds 2-3; Q-4b..Q-12 open, none blocking Phase 0/1) |
 | G1 | End of Phase 1 | Section 6.6 baseline reproduced from `fact_f11`; other facts unchanged |
 | G2 | End of Phase 2 | S-1 imported through the Import Center; F1.3/F4.1 no regression |
 | G3 | End of Phase 3 | HUE auto-backfill verified against the real portal (Windows evidence) |
@@ -393,9 +421,9 @@ Business/product decisions only. Each has a recommendation based on evidence; th
 | ID | Question | Recommendation | Blocks |
 | --- | --- | --- | --- |
 | Q-1 | **CLOSED by PD-6 (2026-10-09): `Đánh giá 2026`.** Still open as a sub-question: should `Đánh giá 2025` (≤ 24 h) be stored/shown as a secondary series? | Store it (DC-3 already does); show only if the PO asks. | none |
-| Q-2 | Rows with a blank `Đánh giá 2026` (33 in S-1): excluded from the denominator and shown as "Chưa đủ điều kiện đánh giá", or counted as `Không đạt` as the PO chose for F4.1? | Exclude (matches the source summary's own denominator and the 27/09 export where every row was evaluated); report the count separately. | Phase 1 |
-| Q-3 | Confirm the business date: file `F1.1-2026.10.07.xlsx` = the measurement day 07/10 (PTC day) and the daily notice follows the N-1 rule already used for F1.3. | Confirm. | Phase 1 |
-| Q-4 | Ranking units: the 6 canonical BCVH by delivery unit (`Mã BC phát`); 531110 (HCC, 9 rows) and 531120 (KHL, 1 row) counted in the module total but hidden from ranking, as F4.1 PO-6? (b) Do you also want an accepting-side view (which accepting office/BCVH drags quality down), and where does the "accepting office → managing BCVH" mapping come from? | (a) Yes, F4.1 rule. (b) Matrix X1 first; accepting-side ranking later, mapping to be supplied. | Phase 0, Dashboard |
+| Q-2 | **CLOSED by PD-9:** blank `Đánh giá 2026` stays in the denominator as 0 Đạt (as F4.1) and is flagged separately for later reason analysis (DC-13). | — | none |
+| Q-3 | **CLOSED by PD-10:** same as F1.3 (date from the file name, daily notice N-1). | — | none |
+| Q-4 | **(a) CLOSED by PD-11** (6 canonical BCVH by delivery unit; 531110 and 531120 counted in the total, hidden from ranking). (b) Still open: do you also want an accepting-side view (which accepting office/BCVH drags quality down), and where does the "accepting office → managing BCVH" mapping come from? | (a) Yes, F4.1 rule. (b) Matrix X1 first; accepting-side ranking later, mapping to be supplied. | Phase 0, Dashboard |
 | Q-5 | (a) Tuyến Ranking for F1.1 (the detail has route + ward)? (b) Colour bands and chart target line for F1.1 (F1.3 = 70/60/50 + 90 %, F4.1 = 80/70/60 + 90 %). | (a) Not in the first ticket; decide after Dashboard. (b) PO to give the bands; current monthly level is ~89 %, so F1.3's bands would be all green. | Dashboard |
 | Q-6 | Weeks Thursday–Wednesday, ISO number of the Thursday, as F1.3/F4.1? | Yes. | Dashboard |
 | Q-7 | TCT: provide one real F1.1 TCT file (and the exact DKCL report name); do you want "Vị thứ toàn quốc x/34" on F1.1? | Provide the file; rank yes. | Phase 4 |
@@ -407,8 +435,8 @@ Business/product decisions only. Each has a recommendation based on evidence; th
 
 ## 23. What The Product Owner Needs To Provide
 
-1. Answers to **Q-2, Q-3, Q-4a** (Q-1 is closed by PD-6) to open F11-PHASE-0 and F11-PHASE-1 (the rest can follow).
-2. For the reconciliation pair, **either** the raw portal summary export for 07/10/2026 **or** the detail file for the day that sheet `F1.1 Ngay` actually holds (Section 24, E-5: it is not 07/10; most likely 08/10 — the PO to confirm the date).
+1. ~~Answers to Q-1, Q-2, Q-3, Q-4a~~ — **all answered** (PD-6, PD-9, PD-10, PD-11). Only authorization to activate F11-PHASE-0 and F11-PHASE-1 remains.
+2. ~~Reconciliation pair~~ — **not required** (PD-12): the baseline is locked by independent recomputation from the detail file (Section 18). Optional but useful for history/week/month checks and for the Phase 1 test set: a second and third complete daily detail file (any two other dates), downloaded the same way as `F1.1-2026.10.07.xlsx`.
 3. One real **TCT F1.1 file** and its official report name (Phase 4; may come later).
 4. Confirmation that the Huế session may be used for the Phase 3 read-only portal probe (browser profile must be free; the backend/DKCL window is stopped for that run).
 5. Approval to activate F11-PHASE-0 / F11-PHASE-1 as the next tickets.
@@ -456,5 +484,5 @@ These are **candidate** stage labels for the training session (Section 17), not 
 
 | ID | Question | Recommendation | Blocks |
 | --- | --- | --- | --- |
-| Q-13 | Which business date is sheet `F1.1 Ngay` in `Đánh giá CLP F1.1.xlsx` (and up to which date is `F1.1 Thang`)? Can the PO supply the detail file for that day, or the raw summary for 07/10? | Provide the detail for that day (it completes a pair with the summary already in the sheet). | reconciliation gate |
-| Q-14 | Pair table scope: day and month-to-date as today; also week? All accepting offices (derived from data) or a priority list; is a minimum cell volume wanted for colouring? | Day + month first, all offices from data, the PO's priority list as a saved filter; week later. | Dashboard |
+| Q-13 | **CLOSED by PD-12:** `F1.1 Ngay/Thang` are only the PO's working inputs from the summary download; they are not reconciled against. | — | none |
+| Q-14 | **ANSWERED by PD-13:** pair table for day, week and month; all accepting offices; interface delegated to Antigravity ("smart"). Remaining detail for Antigravity's brief only: colouring thresholds (Q-5b) and optional minimum-volume handling. | — | none |
