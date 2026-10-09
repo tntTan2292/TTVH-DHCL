@@ -24,7 +24,7 @@ The tickets below must remain separate. Their listed order is the intended coord
 | Nâng cấp Quản trị — Import | `IMPORT-BULK-REIMPORT-ALL-01` | Preserve “Chọn tất cả chưa hoàn tất”; add a separate “Chọn tất cả” including successful imports for intentional bulk reimport. | `DISCOVERED / NOT ACTIVATED` | 3 | Unassigned | Explicit activation; audit selection scope, queue/dedup, reimport rules, confirmation warning, safety and recovery. |
 | Nâng cấp Quản trị — User/RBAC | `ADMIN-USER-MODULE-ACCESS-01` | Admin creates users and assigns which modules each user can see and access. | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / QUEUED` | 4 | Antigravity (Gemini), separate second audit report | Complete independent audit; PO locks data model, module matrix, backend enforcement and Admin UI before implementation. |
 | Cross-cutting UI | `UI-DATA-TABLE-READABILITY-01` | Increase operational-table text to at least 2× its current rendered size; redesign density/responsiveness to prevent wrapping, overlap and clipping on PC/phone. | `DISCOVERY / READ-ONLY AUDIT AUTHORIZED / URGENT` | Parallel audit standard; implementation separately gated | Antigravity audit | Measured current/target typography, responsive proposal, affected-table inventory and PO-approved design before implementation. |
-| Paused work | `F41-DASHBOARD-MINIMUM-01` | F4.1 minimum dashboard. | `PAUSED BY PO PRIORITY` | Unscheduled | Unassigned | Separate explicit PO resumption; no other ticket may reactivate it. |
+| Delivered | `F41-DASHBOARD-MINIMUM-01` / `F41-DASHBOARD-RANKING-01` | F4.1 Operation Dashboard + BCVH Ranking. | `CLOSED / PO UI PASS` (2026-10-09) | Done | Claude Code + Antigravity | Evidence, Tuyến, operating pattern remain future work. |
 
 ## 4. Scope Boundaries
 
@@ -43,7 +43,7 @@ The tickets below must remain separate. Their listed order is the intended coord
 4. User/RBAC enforcement must cover all three layers: Sidebar visibility, frontend route/direct URL, and backend API authorization.
 5. Missing, invalid or stale module permission data must default to deny, subject only to a PO-approved administrator recovery path.
 6. No executor may infer an unapproved business rule, change KPI/SSOT, or award PO PASS.
-7. `F41-DASHBOARD-MINIMUM-01` remains paused until separately resumed by the Product Owner.
+7. `F41-DASHBOARD-MINIMUM-01` was resumed by the Product Owner on 2026-10-08 and its Phase F1 closed under `F41-DASHBOARD-RANKING-01` (PO UI PASS 2026-10-09).
 8. `UI-DATA-TABLE-READABILITY-01` is a cross-cutting presentation standard: it may be audited alongside an affected feature, but its implementation and validation remain a separate ticket and commit scope.
 
 ## 6. Current Execution Sequence
@@ -53,7 +53,7 @@ The tickets below must remain separate. Their listed order is the intended coord
 3. CTO reviews the audit and presents mapping/history decisions to the Product Owner.
 4. No Design or implementation starts without explicit PO/CTO authorization.
 5. `IMPORT-BULK-REIMPORT-ALL-01` remains not activated until separately prioritized.
-6. `ADMIN-USER-MODULE-ACCESS-01`, `UI-DATA-TABLE-READABILITY-01` and paused `F41-DASHBOARD-MINIMUM-01` retain their separately recorded states and must not be merged into the current ticket.
+6. `ADMIN-USER-MODULE-ACCESS-01`, `UI-DATA-TABLE-READABILITY-01` and `F41-DASHBOARD-MINIMUM-01` (Phase F1 delivered) retain their separately recorded states and must not be merged into the current ticket.
 
 ## 7. New-Session Onboarding
 
