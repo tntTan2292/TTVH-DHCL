@@ -69,6 +69,7 @@ Round 3 (2026-10-09, after the audit of Section 24) — PO answers:
 | PD-11 | **Ranking units** (closes Q-4a): the 6 canonical BCVH by delivery unit; 531110 and 531120 are counted in the module total and hidden from the ranking (as F4.1). |
 | PD-12 | **Reconciliation source** (closes Q-13): `Đánh giá CLP F1.1.xlsx` is only the PO's working file built from the *summary* download. The system's source is the **detail** file (like `F1.1-2026.10.07.xlsx`); no summary pairing is required. |
 | PD-13 | **Pair table scope** (answers Q-14): day, **week and month**; all accepting offices shown; the interface is delegated to Antigravity, who must make it smart/usable. |
+| PD-14 | **Colour rules and weekday/week rule = F1.3** (closes Q-5b and Q-6): F1.3 colour bands (70/60/50) and chart target as F1.3; weeks Thursday–Wednesday with the ISO number of the Thursday. Note for the PO's awareness: at the current F1.1 level (≈ 72–95 % per BCVH) all six BCVH fall in the green band under the F1.3 bands; the config keeps the bands in one place so they can be tightened later without rework. |
 
 Nothing else is treated as decided. Every other point is either derived from verified evidence (and labelled so) or listed as an open question in Section 22.
 
