@@ -2161,3 +2161,7 @@ T4/T5 pages (Antigravity, re-verified 600/601, build/lint clean), T6 menu group 
 ## 2026-10-09 - F41-DASHBOARD-RANKING-01 CLOSED / PO UI PASS
 
 PO checked the F4.1 Operation Dashboard (/f41/dashboard) and BCVH Ranking (/f41/ranking/bcvh) and confirmed OK. Delivered: nine read-only /api/f41 endpoints, F4.1 national rank, indicator config reusing the F1.3 blocks, pages, sidebar group, /f41 redirect; independent review fixed (B1, B2); live-DB reconciliation 9/9; frontend 600/601 (one pre-existing failure). Record: docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md Section 12.
+
+## 2026-10-09 - TEST-API-BASE-URL-STALE-01 CLOSED
+
+The only red frontend test (`dataImportBackfillQueue.test.js`, stale source-text assertion on the API base URL) now checks `resolveApiBaseUrl()` behaviour; frontend sweep fully green. Test-only. Manifest: `docs/10_TICKETS/TEST-API-BASE-URL-STALE-01_MANIFEST.md`.
