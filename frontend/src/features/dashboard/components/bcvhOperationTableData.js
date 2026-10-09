@@ -75,8 +75,8 @@ export function formatRate(value) {
 }
 
 /**
- * Format rate movement in percentage points ('điểm %').
- * Includes sign: '+1,2 điểm %', '-0,5 điểm %', '0,0 điểm %'.
+ * Format rate movement in percentage points ('%').
+ * Includes sign: '+1,2%', '-0,5%', '0,0%'.
  * Null/undefined returns DASH ('—').
  */
 export function formatDeltaRate(value) {
@@ -88,7 +88,7 @@ export function formatDeltaRate(value) {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   });
-  return `${sign}${formatted} điểm %`;
+  return `${sign}${formatted}%`;
 }
 
 /**

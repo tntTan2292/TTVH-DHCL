@@ -42,6 +42,6 @@ test('same-period comparison computes deltas only when both periods are availabl
 });
 
 test('quality delta is rendered in percentage points with two decimals', () => {
-  assert.equal(formatComparisonDelta(1.2345, ' điểm %'), '+1.23 điểm %');
-  assert.equal(formatComparisonDelta(-2.3456, ' điểm %'), '-2.35 điểm %');
+  assert.equal(formatComparisonDelta(1.2345, '%'), '+1.23%');
+  assert.equal(formatComparisonDelta(-2.3456, '%'), '-2.35%');
 });

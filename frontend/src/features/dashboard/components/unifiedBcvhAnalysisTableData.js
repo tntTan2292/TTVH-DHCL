@@ -116,8 +116,8 @@ function buildAnalysisText(row, context = {}) {
   const indicator = context.indicator || F13_INDICATOR;
   const parts = [
     `${indicator.id === 'f13' ? 'KPI ngày' : `Tỷ lệ ${indicator.moduleLabel} ngày`} ${formatRate(row.current_day.rate, row.is_total)}`,
-    `D-1 ${formatSignedDelta(row.comparisons.d1.rate_delta ?? row.current_day.d1_rate_delta, 'điểm %', row.is_total)}`,
-    `D-7 ${formatSignedDelta(row.comparisons.d7.rate_delta ?? row.current_day.d7_rate_delta, 'điểm %', row.is_total)}`,
+    `D-1 ${formatSignedDelta(row.comparisons.d1.rate_delta ?? row.current_day.d1_rate_delta, '%', row.is_total)}`,
+    `D-7 ${formatSignedDelta(row.comparisons.d7.rate_delta ?? row.current_day.d7_rate_delta, '%', row.is_total)}`,
   ];
 
   if (indicator.features?.lateCash) {
@@ -240,7 +240,7 @@ export function formatSignedDelta(value, unit = '', nonApplicable = false) {
   const numeric = toNumberOrNull(value);
   if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
   const sign = numeric > 0 ? '+' : '';
-  return `${sign}${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`;
+  return `${sign}${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unit === '%' ? '%' : unit ? ` ${unit}` : ''}`;
 }
 
 export function formatVolumeDelta(value, nonApplicable = false) {

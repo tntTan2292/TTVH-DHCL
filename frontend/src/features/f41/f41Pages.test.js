@@ -90,8 +90,8 @@ test('T8-F41-NB2: Expanded-row analysis text for F4.1 strips late-cash and route
   const f41Row = f41Mapped.rows[0];
   assert.ok(f41Row.analysis, 'analysis text exists');
   assert.match(f41Row.analysis, /Tỷ lệ F4\.1 ngày 85,0%/);
-  assert.match(f41Row.analysis, /D-1 \+1,50 điểm %/);
-  assert.match(f41Row.analysis, /D-7 -0,50 điểm %/);
+  assert.match(f41Row.analysis, /D-1 \+1,50%/);
+  assert.match(f41Row.analysis, /D-7 -0,50%/);
   // Must NOT leak late-cash or route text:
   assert.doesNotMatch(f41Row.analysis, /Chậm nộp tiền/);
   assert.doesNotMatch(f41Row.analysis, /Tuyến tham gia/);

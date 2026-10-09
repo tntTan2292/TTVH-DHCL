@@ -52,10 +52,10 @@ test('formatRate formats percentage with 1 decimal place and handles missing val
   assert.equal(formatRate(undefined), DASH);
 });
 
-test('formatDeltaRate formats signed rate movement in percentage points (điểm %)', () => {
-  assert.equal(formatDeltaRate(1.234), '+1,2 điểm %');
-  assert.equal(formatDeltaRate(-1.4376), '-1,4 điểm %');
-  assert.equal(formatDeltaRate(0), '0,0 điểm %');
+test('formatDeltaRate formats signed rate movement in percentage points (shown as +x,x%)', () => {
+  assert.equal(formatDeltaRate(1.234), '+1,2%');
+  assert.equal(formatDeltaRate(-1.4376), '-1,4%');
+  assert.equal(formatDeltaRate(0), '0,0%');
   assert.equal(formatDeltaRate(null), DASH);
   assert.equal(formatDeltaRate(undefined), DASH);
 });
@@ -122,7 +122,7 @@ test('processBcvhOperationTableData: exact 10-column structure and dynamic title
   // Total Prev MTD Volume = 800 + 2000 + 1500 + 1000 + 800 + 5000 = 11100
   // Total Prev MTD Passed = 480 + 1200 + 900 + 500 + 560 + 2500 = 6140
   // Total Prev MTD Rate = (6140 / 11100) * 100 = 55.3153...%
-  // Delta MTD = 58.4070... - 55.3153... = +3.0917... điểm %
+  // Delta MTD = 58.4070... - 55.3153... = +3.0917...%
   assert.equal(Number(totalRow.mtd_delta_rate.toFixed(1)), 3.1);
 
   // Total Daily Volume = 110 + 220 + 160 + 120 + 90 + 550 = 1250
@@ -134,7 +134,7 @@ test('processBcvhOperationTableData: exact 10-column structure and dynamic title
   // Total Prev Daily Volume = 100 + 200 + 150 + 100 + 80 + 500 = 1130
   // Total Prev Daily Passed = 80 + 120 + 90 + 50 + 60 + 300 = 700
   // Total Prev Daily Rate = (700 / 1130) * 100 = 61.9469...%
-  // Delta Daily = 59.28 - 61.9469... = -2.6669... điểm %
+  // Delta Daily = 59.28 - 61.9469... = -2.6669...%
   assert.equal(Number(totalRow.daily_delta_rate.toFixed(1)), -2.7);
 
   // Cùng kỳ (tuần trước): anchorDate 2026-09-14 - 7 ngày = 2026-09-07 (đúng cùng Thứ Hai)
@@ -144,7 +144,7 @@ test('processBcvhOperationTableData: exact 10-column structure and dynamic title
   // Total Week-Ago Volume = 90 + 210 + 140 + 110 + 70 + 480 = 1100
   // Total Week-Ago Passed = 63 + 147 + 84 + 66 + 63 + 288 = 711
   // Total Week-Ago Rate = (711 / 1100) * 100 = 64.6363...%
-  // Delta Week = 59.28 - 64.6363... = -5.3563... điểm %
+  // Delta Week = 59.28 - 64.6363... = -5.3563...%
   assert.equal(Number(totalRow.daily_week_delta_rate.toFixed(1)), -5.4);
 
   // Verify 6 canonical rows have STT 1 to 6 in daily_rate DESC order
@@ -161,11 +161,11 @@ test('processBcvhOperationTableData: exact 10-column structure and dynamic title
     assert.ok(row.daily_week_delta_rate !== undefined);
   });
 
-  // 537015 (Thuận An): daily_rate 80.0% vs week-ago rate 90.0% -> -10.0 điểm %
+  // 537015 (Thuận An): daily_rate 80.0% vs week-ago rate 90.0% -> -10.0%
   const thuanAn = processed.rows.find((r) => r.ma_bcvh === '537015');
   assert.equal(thuanAn.daily_week_delta_rate, -10.0);
 
-  // 535790 (A Lưới): daily_rate 70.0% vs week-ago rate 70.0% -> 0.0 điểm %
+  // 535790 (A Lưới): daily_rate 70.0% vs week-ago rate 70.0% -> 0.0%
   const aLuoi = processed.rows.find((r) => r.ma_bcvh === '535790');
   assert.equal(aLuoi.daily_week_delta_rate, 0.0);
 
@@ -322,9 +322,9 @@ test('CTO-F13-BLOCK-05: previous fact date across month boundary (2026-09-01 -> 
 
   const row = processed.rows.find((r) => r.ma_bcvh === '535790');
   assert.equal(row.daily_rate, 90.0);
-  // Delta rate: 90.0 - 80.0 = +10.0 điểm %
+  // Delta rate: 90.0 - 80.0 = +10.0%
   assert.equal(row.daily_delta_rate, 10.0);
-  assert.equal(formatDeltaRate(row.daily_delta_rate), '+10,0 điểm %');
+  assert.equal(formatDeltaRate(row.daily_delta_rate), '+10,0%');
 });
 
 test('week-ago same-period comparison: missing fact data 7 days prior displays dash, not fabricated zero', () => {
@@ -390,19 +390,19 @@ test('PO layout: delta indicators format arrows (↑, ↓, →, —) with correc
   // Positive: ↑ green
   const pos = formatDeltaIndicator(1.234);
   assert.equal(pos.arrow, '↑');
-  assert.equal(pos.display, '↑ +1,2 điểm %');
+  assert.equal(pos.display, '↑ +1,2%');
   assert.equal(pos.toneClass, 'text-emerald-700 font-bold');
 
   // Negative: ↓ red
   const neg = formatDeltaIndicator(-2.456);
   assert.equal(neg.arrow, '↓');
-  assert.equal(neg.display, '↓ -2,5 điểm %');
+  assert.equal(neg.display, '↓ -2,5%');
   assert.equal(neg.toneClass, 'text-rose-700 font-bold');
 
   // Zero: → neutral
   const zero = formatDeltaIndicator(0);
   assert.equal(zero.arrow, '→');
-  assert.equal(zero.display, '→ 0,0 điểm %');
+  assert.equal(zero.display, '→ 0,0%');
   assert.equal(zero.toneClass, 'text-slate-600 font-semibold');
 
   // Missing / non-finite: — muted

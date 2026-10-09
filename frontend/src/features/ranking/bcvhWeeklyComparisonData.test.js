@@ -184,9 +184,9 @@ test('shiftIsoDate, formatDateVN, formatShortDate: utility helpers', () => {
 });
 
 test('formatSignedRateDelta and formatSignedVolumeDelta: formatting helpers', () => {
-  assert.equal(formatSignedRateDelta(1.234), '+1,2 điểm %');
-  assert.equal(formatSignedRateDelta(-0.5), '-0,5 điểm %');
-  assert.equal(formatSignedRateDelta(0), '0,0 điểm %');
+  assert.equal(formatSignedRateDelta(1.234), '+1,2%');
+  assert.equal(formatSignedRateDelta(-0.5), '-0,5%');
+  assert.equal(formatSignedRateDelta(0), '0,0%');
   assert.equal(formatSignedRateDelta(null), null);
 
   assert.equal(formatSignedVolumeDelta(1234), '+1.234');

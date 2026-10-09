@@ -66,7 +66,7 @@ function SamePeriodTooltip({ active, payload }) {
         </div>
         <div className="flex items-center justify-between gap-4">
           <span className="text-[var(--color-text-muted)]">Chênh lệch tỷ lệ đạt</span>
-          <span className="font-semibold text-[var(--color-text-main)]">{formatComparisonDelta(point.current_quality_delta, ' điểm %')}</span>
+          <span className="font-semibold text-[var(--color-text-main)]">{formatComparisonDelta(point.current_quality_delta, '%')}</span>
         </div>
         <div className="flex items-center justify-between gap-4">
           <span className="text-[var(--color-text-muted)]">Mục tiêu</span>

@@ -336,7 +336,7 @@ function AnalysisPanel({ row, onOpenDetail }) {
                 <div>Sản lượng: <span className="font-semibold">{formatNumber(row.comparisons.d1.volume)}</span></div>
                 <div>Tỷ lệ: <span className="font-semibold">{formatRate(row.comparisons.d1.rate)}</span></div>
                 <div>SS SL: <span className="font-semibold">{formatVolumeDelta(row.comparisons.d1.volume_delta)}</span></div>
-                <div>SS Tỷ lệ: <span className="font-semibold">{formatSignedDelta(row.comparisons.d1.rate_delta, 'điểm %')}</span></div>
+                <div>SS Tỷ lệ: <span className="font-semibold">{formatSignedDelta(row.comparisons.d1.rate_delta, '%')}</span></div>
               </div>
             </div>
             <div className="rounded-xl bg-white p-4 shadow-sm">
@@ -345,7 +345,7 @@ function AnalysisPanel({ row, onOpenDetail }) {
                 <div>Sản lượng: <span className="font-semibold">{formatNumber(row.comparisons.d7.volume)}</span></div>
                 <div>Tỷ lệ: <span className="font-semibold">{formatRate(row.comparisons.d7.rate)}</span></div>
                 <div>SS SL: <span className="font-semibold">{formatVolumeDelta(row.comparisons.d7.volume_delta)}</span></div>
-                <div>SS Tỷ lệ: <span className="font-semibold">{formatSignedDelta(row.comparisons.d7.rate_delta, 'điểm %')}</span></div>
+                <div>SS Tỷ lệ: <span className="font-semibold">{formatSignedDelta(row.comparisons.d7.rate_delta, '%')}</span></div>
               </div>
             </div>
           </div>
@@ -418,12 +418,12 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
         {columns.d1Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d1.volume, isTotal)}</td> : null}
         {columns.d1Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d1.rate, isTotal)}</td> : null}
         <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d1.volume_delta, isTotal)}</td>
-        <td className="border-r border-emerald-200 px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d1.rate_delta, 'điểm %', isTotal)}</td>
+        <td className="border-r border-emerald-200 px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d1.rate_delta, '%', isTotal)}</td>
 
         {columns.d7Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d7.volume, isTotal)}</td> : null}
         {columns.d7Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d7.rate, isTotal)}</td> : null}
         <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d7.volume_delta, isTotal)}</td>
-        <td className="border-r border-violet-200 px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d7.rate_delta, 'điểm %', isTotal)}</td>
+        <td className="border-r border-violet-200 px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d7.rate_delta, '%', isTotal)}</td>
 
         {features.routes ? (
           <>

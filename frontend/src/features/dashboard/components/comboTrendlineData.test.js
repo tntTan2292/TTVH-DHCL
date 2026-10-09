@@ -75,8 +75,8 @@ test('combo trendline normalization preserves backend-provided nationwide rank m
 test('combo trendline formatting exposes Vietnamese tooltip values with two decimals', () => {
   assert.equal(formatRate(67.2015), '67.20%');
   assert.equal(formatRate(null), 'Không có dữ liệu');
-  assert.equal(formatVariance(-22.7985), '-22.80 điểm %');
-  assert.equal(formatVariance(1.2345), '+1.23 điểm %');
+  assert.equal(formatVariance(-22.7985), '-22.80%');
+  assert.equal(formatVariance(1.2345), '+1.23%');
   assert.equal(formatVariance(null), 'Không có dữ liệu');
 });
 

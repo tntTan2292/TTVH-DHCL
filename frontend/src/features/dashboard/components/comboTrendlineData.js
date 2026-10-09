@@ -37,7 +37,7 @@ export function formatRate(value) {
 export function formatVariance(value) {
   if (value === null || value === undefined) return 'Không có dữ liệu';
   const sign = Number(value) > 0 ? '+' : '';
-  return `${sign}${Number(value).toFixed(2)} điểm %`;
+  return `${sign}${Number(value).toFixed(2)}%`;
 }
 
 export function getVolumeAxisMax(data = []) {

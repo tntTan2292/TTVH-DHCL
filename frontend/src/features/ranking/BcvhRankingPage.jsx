@@ -259,7 +259,7 @@ export default function BcvhRankingPage() {
     {
       label: indicatorLabel('Chất lượng F1.3', indicator),
       value: formatRate(summaryRow?.current_day.rate),
-      delta: `D-1 ${formatSignedDelta(summaryRow?.comparisons?.d1?.rate_delta, 'điểm %')} · D-7 ${formatSignedDelta(summaryRow?.comparisons?.d7?.rate_delta, 'điểm %')}`,
+      delta: `D-1 ${formatSignedDelta(summaryRow?.comparisons?.d1?.rate_delta, '%')} · D-7 ${formatSignedDelta(summaryRow?.comparisons?.d7?.rate_delta, '%')}`,
       trend: [
         summaryRow?.current_day?.signal?.label,
         formatNationalRank(rankingState.data?.meta?.national_rank) ? `Vị thứ toàn quốc ${formatNationalRank(rankingState.data.meta.national_rank)}` : null,

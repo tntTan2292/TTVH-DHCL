@@ -298,7 +298,7 @@ export function formatSignedRateDelta(value) {
   const num = Number(value);
   if (!Number.isFinite(num)) return null;
   const sign = num > 0 ? '+' : '';
-  return `${sign}${num.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} điểm %`;
+  return `${sign}${num.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
 // Format integer volume delta with sign

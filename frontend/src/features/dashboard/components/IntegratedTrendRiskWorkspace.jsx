@@ -296,7 +296,7 @@ function LeadershipComparisonCard({ comparison }) {
       label: 'Tỷ lệ đạt',
       value: formatRate(comparison.pass_rate.current),
       comparisonValue: formatRate(comparison.pass_rate.previous),
-      delta: formatDeltaValue(comparison.pass_rate.delta, (delta) => `${Number(delta).toFixed(2)} điểm %`),
+      delta: formatDeltaValue(comparison.pass_rate.delta, (delta) => `${Number(delta).toFixed(2)}%`),
       tone: getDeltaTone(comparison.pass_rate.delta, 'rate'),
       rawDelta: comparison.pass_rate.delta,
     },
@@ -395,7 +395,7 @@ function SevenDayComparisonEvidenceTable({ rows }) {
                 <div className="flex justify-between gap-1">
                   <span className="text-slate-500">Tỷ lệ đạt</span>
                   <span className={`font-bold tabular-nums ${row.pass_rate_delta > 0 ? 'text-emerald-700' : row.pass_rate_delta < 0 ? 'text-red-600' : 'text-slate-900'}`}>
-                    {formatDeltaValue(row.pass_rate_delta, (delta) => `${Number(delta).toFixed(2)} điểm %`)}
+                    {formatDeltaValue(row.pass_rate_delta, (delta) => `${Number(delta).toFixed(2)}%`)}
                   </span>
                 </div>
                 <div className="flex justify-between gap-1">

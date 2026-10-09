@@ -155,11 +155,11 @@ test('renders unsupported total-row fields as dash and unavailable row fields as
 
   assert.equal(formatNumber(null), UNAVAILABLE_TEXT);
   assert.equal(formatRate(null), UNAVAILABLE_TEXT);
-  assert.equal(formatSignedDelta(null, 'điểm %'), UNAVAILABLE_TEXT);
+  assert.equal(formatSignedDelta(null, '%'), UNAVAILABLE_TEXT);
   assert.equal(formatVolumeDelta(null), UNAVAILABLE_TEXT);
   assert.equal(formatNumber(null, true), DASH);
   assert.equal(formatRate(null, true), DASH);
-  assert.equal(formatSignedDelta(null, 'điểm %', true), DASH);
+  assert.equal(formatSignedDelta(null, '%', true), DASH);
   assert.equal(formatVolumeDelta(null, true), DASH);
   assert.equal(row.comparisons.d1.rank_movement.signal.label, DASH);
   assert.match(row.analysis, /Chưa có dữ liệu/);
@@ -215,11 +215,11 @@ test('component sources preserve four-column comparison order and dashboard isol
   assert.match(componentSource, /Sản lượng: <span className="font-semibold">\{formatNumber\(row\.comparisons\.d1\.volume\)\}<\/span>/);
   assert.match(componentSource, /Tỷ lệ: <span className="font-semibold">\{formatRate\(row\.comparisons\.d1\.rate\)\}<\/span>/);
   assert.match(componentSource, /SS SL: <span className="font-semibold">\{formatVolumeDelta\(row\.comparisons\.d1\.volume_delta\)\}<\/span>/);
-  assert.match(componentSource, /SS Tỷ lệ: <span className="font-semibold">\{formatSignedDelta\(row\.comparisons\.d1\.rate_delta, 'điểm %'\)\}<\/span>/);
+  assert.match(componentSource, /SS Tỷ lệ: <span className="font-semibold">\{formatSignedDelta\(row\.comparisons\.d1\.rate_delta, '%'\)\}<\/span>/);
   assert.match(componentSource, /Sản lượng: <span className="font-semibold">\{formatNumber\(row\.comparisons\.d7\.volume\)\}<\/span>/);
   assert.match(componentSource, /Tỷ lệ: <span className="font-semibold">\{formatRate\(row\.comparisons\.d7\.rate\)\}<\/span>/);
   assert.match(componentSource, /SS SL: <span className="font-semibold">\{formatVolumeDelta\(row\.comparisons\.d7\.volume_delta\)\}<\/span>/);
-  assert.match(componentSource, /SS Tỷ lệ: <span className="font-semibold">\{formatSignedDelta\(row\.comparisons\.d7\.rate_delta, 'điểm %'\)\}<\/span>/);
+  assert.match(componentSource, /SS Tỷ lệ: <span className="font-semibold">\{formatSignedDelta\(row\.comparisons\.d7\.rate_delta, '%'\)\}<\/span>/);
   assert.match(componentSource, /const d1Span = 2 \+/);
   assert.match(componentSource, /const d7Span = 2 \+/);
   assert.match(componentSource, /const colSpan = 18 \+/);
