@@ -114,6 +114,28 @@ const F41_XHR_HEADERS = Object.freeze({
     'x-requested-with': 'XMLHttpRequest'
 });
 
+// IMPORT-TCT-TIMEOUT-01: Playwright's page.request.* default to a 30 s timeout. The TCT report /
+// export request for some dates takes longer than that on the portal, and the resulting
+// TimeoutError carried no `.code`, so the queue classified it SYSTEM and never retried. Every F4.1
+// page.request call now has an explicit, env-tunable timeout and maps a timeout to a coded
+// TRANSIENT error (F41_PORTAL_REQUEST_TIMEOUT, see importIndicatorRegistry DEFAULT_ERROR_MAP).
+const F41_REQUEST_TIMEOUT_MS = Number(process.env.DKCL_F41_REQUEST_TIMEOUT_MS) > 0
+    ? Number(process.env.DKCL_F41_REQUEST_TIMEOUT_MS)
+    : 120000;
+
+function isPlaywrightTimeout(error) {
+    return error?.name === 'TimeoutError' || /Timeout \d+ms exceeded/i.test(String(error?.message || ''));
+}
+
+async function withF41RequestTimeout(label, timeoutMs, run) {
+    try {
+        return await run();
+    } catch (error) {
+        if (error?.code || !isPlaywrightTimeout(error)) throw error;
+        throw portalError(`F4.1 ${label} request timed out after ${timeoutMs} ms.`, 'F41_PORTAL_REQUEST_TIMEOUT');
+    }
+}
+
 function buildF41ReportQuery(lane, businessDate) {
     const laneFilters = F41_LANE_QUERY_FILTERS[String(lane || '').toUpperCase()];
     if (!laneFilters) {
@@ -754,9 +776,10 @@ class DkclHueF13PortalClient {
         this.lastF41DetailPaginator = null;
         this.lastF41DetailRowCount = null;
         const query = this.lastF41Query || buildF41ReportQuery(lane, this.lastBusinessDate);
-        const response = await this.page.request.get(`${this.baseUrl}${F41_REPORT_PATH}?${query}`, {
-            headers: { ...F41_XHR_HEADERS }
-        });
+        const response = await withF41RequestTimeout('report', F41_REQUEST_TIMEOUT_MS, () => this.page.request.get(`${this.baseUrl}${F41_REPORT_PATH}?${query}`, {
+            headers: { ...F41_XHR_HEADERS },
+            timeout: F41_REQUEST_TIMEOUT_MS
+        }));
         const status = typeof response?.status === 'function' ? response.status() : 0;
         if (status < 200 || status >= 300) {
             throw portalError(`F4.1 report request returned HTTP ${status}.`, 'F41_REPORT_REQUEST_FAILED');
@@ -889,11 +912,12 @@ class DkclHueF13PortalClient {
         if (!request?.url || request.exportIdentity !== expectedIdentity) {
             throw portalError(`F4.1 ${laneLabel} export control is not uniquely ready.`, 'EXPORT_CONTROL_NOT_READY');
         }
-        const response = await this.page.request.fetch(request.url, {
+        const response = await withF41RequestTimeout('export', F41_REQUEST_TIMEOUT_MS, () => this.page.request.fetch(request.url, {
             method: request.method || 'GET',
             params: request.params || {},
-            headers: { ...F41_XHR_HEADERS }
-        });
+            headers: { ...F41_XHR_HEADERS },
+            timeout: F41_REQUEST_TIMEOUT_MS
+        }));
         const status = typeof response?.status === 'function' ? response.status() : 0;
         const contentType = typeof response?.headers === 'function' ? (response.headers()['content-type'] || null) : null;
         await this.logF41Step('export_requested', { lane: laneLabel, status, contentType, url: request.url });
@@ -1075,10 +1099,11 @@ class DkclHueF13PortalClient {
             );
         }
 
-        const response = await this.page.request.get(probe.url, {
+        const response = await withF41RequestTimeout('detail', F41_REQUEST_TIMEOUT_MS, () => this.page.request.get(probe.url, {
             params: probe.params,
-            headers: { ...F41_XHR_HEADERS }
-        });
+            headers: { ...F41_XHR_HEADERS },
+            timeout: F41_REQUEST_TIMEOUT_MS
+        }));
         const status = typeof response?.status === 'function' ? response.status() : 0;
         if (status < 200 || status >= 300) {
             throw portalError(`F4.1 HUE detail request returned HTTP ${status}.`, 'F41_DETAIL_REQUEST_FAILED');

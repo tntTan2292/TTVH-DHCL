@@ -44,6 +44,18 @@ function normalizedMessage(value) {
         .slice(0, 240);
 }
 
+// IMPORT-TCT-TIMEOUT-01: the signature is a one-way hash, so a failure used to leave no readable
+// trace of what actually went wrong. Keep a bounded, redacted copy of the message (original case)
+// next to it so the next occurrence is diagnosable from the attempt/event rows alone.
+function diagnosticMessage(value) {
+    return String(value || '')
+        .replace(/https?:\/\/\S+/gi, '[url]')
+        .replace(/(token|cookie|password|authorization|credential)\s*[:=]\s*\S+/gi, '$1=[redacted]')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 300);
+}
+
 function errorSignature(classification, code, message) {
     const digest = crypto.createHash('sha256')
         .update(`${classification}|${code}|${normalizedMessage(message)}`)
@@ -89,6 +101,7 @@ class AutoBackfillSafetyCoordinator {
             systemic,
             integrityFatal: classification === ERROR_CLASSES.INTEGRITY_FATAL,
             signature: errorSignature(classification, code, error?.message),
+            message: diagnosticMessage(error?.message),
             scope: this.scopeFor(lane, job),
         };
     }

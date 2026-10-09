@@ -655,7 +655,7 @@ class AutoBackfillQueueStore {
                     nextAttemptAt,
                     actionRequired,
                     outcome,
-                    serializeJson({ classification: failure.classification, signature: failure.signature }),
+                    serializeJson({ classification: failure.classification, signature: failure.signature, message: failure.message || null }),
                     attempt.id,
                 ],
             );
@@ -671,6 +671,7 @@ class AutoBackfillQueueStore {
                 payload: {
                     classification: failure.classification,
                     signature: failure.signature,
+                    message: failure.message || null,
                     attempt_number: attempt.attempt_number,
                     action_required: actionRequired,
                 },
