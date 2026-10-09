@@ -1082,7 +1082,7 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 
 | Path / Pattern | Type | Purpose Summary | Authority | New Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
-| `docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md` | Ticket Manifest | F4.1 Operation Dashboard + BCVH Ranking program ticket: PO decisions, scope, T0-T8 breakdown and owners, T0 record. | L2 | Active Onboarding | Current ticket. | Mandatory |
+| `docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md` | Ticket Manifest | F4.1 Operation Dashboard + BCVH Ranking: PO decisions, scope, T0-T8 breakdown, records and closure. `CLOSED / PO UI PASS` (2026-10-09). | L2 | Historical / Last Closed Ticket | When F4.1 dashboard/ranking scope or evidence is needed. | High |
 | `docs/04_TECHNICAL_PLANNING/Feature/F41-DASHBOARD-RANKING-01_DESIGN_OF_RECORD.md` | Design of Record | Block map F1.3 -> F4.1, additive endpoints, repository contract, national rank rule, indicator config, acceptance criteria. | L2 | Active Onboarding | Before T1-T6. | Mandatory |
 | `docs/04_TECHNICAL_PLANNING/Feature/F41-DASHBOARD-RANKING-01_PROPOSAL.md` | Proposal | PO-approved Phương án A, decisions and developer assignments. | L2 | Conditional Reference | When the approval basis is needed. | High |
 | `docs/10_TICKETS/F41-DASHBOARD-RANKING-01_T8_OPUS_REVIEW_PROMPT.md` | Executor Prompt | Prompt for the independent Claude Code (Opus) review of F41-DASHBOARD-RANKING-01 T1-T3 (scope, constraints, 16 checks, deliverable). | L2 | Conditional Reference | When running or auditing T8. | High |
