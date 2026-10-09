@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { resolveApiBaseUrl } from '../api/apiBaseUrl.js';
 
 const pageSource = fs.readFileSync(new URL('./DataImportCenter.jsx', import.meta.url), 'utf8');
 const apiClientSource = fs.readFileSync(new URL('../api/client.js', import.meta.url), 'utf8');
@@ -24,10 +25,27 @@ assert.match(
   /api\.get\('\/import\/dkcl\/hue\/f13\/coverage-summary'/,
   'Data Import Center must load Hue F1.3 coverage summary without requiring import-history inspection'
 );
+// The client resolves its base URL through resolveApiBaseUrl() (apiBaseUrl.js), which supports both the
+// normal (VITE_API_BASE_URL) and the isolated (VITE_API_URL) runtime variables and defaults to port 5050.
 assert.match(
   apiClientSource,
-  /VITE_API_BASE_URL \|\| import\.meta\.env\.VITE_API_URL \|\| 'http:\/\/localhost:5050\/api'/,
-  'Data Import Center API client must support both normal and isolated runtime API base variables'
+  /baseURL:\s*resolveApiBaseUrl\(\)/,
+  'Data Import Center API client must take its base URL from resolveApiBaseUrl()'
+);
+assert.equal(
+  resolveApiBaseUrl({ hostname: 'localhost', protocol: 'http:' }, { VITE_API_BASE_URL: 'http://a.test/api' }),
+  'http://a.test/api',
+  'normal runtime API base variable must be honoured'
+);
+assert.equal(
+  resolveApiBaseUrl({ hostname: 'localhost', protocol: 'http:' }, { VITE_API_URL: 'http://b.test/api/' }),
+  'http://b.test/api',
+  'isolated runtime API base variable must be honoured'
+);
+assert.equal(
+  resolveApiBaseUrl({ hostname: 'localhost', protocol: 'http:' }, {}),
+  'http://localhost:5050/api',
+  'default must stay backend port 5050'
 );
 assert.match(
   pageSource,
