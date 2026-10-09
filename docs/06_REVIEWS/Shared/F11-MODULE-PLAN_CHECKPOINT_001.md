@@ -26,6 +26,7 @@
 - [22. Open Questions For The Product Owner](#22-open-questions-for-the-product-owner)
 - [23. What The Product Owner Needs To Provide](#23-what-the-product-owner-needs-to-provide)
 - [24. Audit Round 2 — Toàn trình definition, `Đánh giá CLP F1.1.xlsx`, pair table](#24-audit-round-2--toàn-trình-definition-đánh-giá-clp-f11xlsx-pair-table)
+- [25. Audit Round 4 — TCT national file and the consolidated plan table](#25-audit-round-4--tct-national-file-and-the-consolidated-plan-table)
 
 ## 1. Ticket State
 
@@ -69,6 +70,7 @@ Round 3 (2026-10-09, after the audit of Section 24) — PO answers:
 | PD-11 | **Ranking units** (closes Q-4a): the 6 canonical BCVH by delivery unit; 531110 and 531120 are counted in the module total and hidden from the ranking (as F4.1). |
 | PD-12 | **Reconciliation source** (closes Q-13): `Đánh giá CLP F1.1.xlsx` is only the PO's working file built from the *summary* download. The system's source is the **detail** file (like `F1.1-2026.10.07.xlsx`); no summary pairing is required. |
 | PD-13 | **Pair table scope** (answers Q-14): day, **week and month**; all accepting offices shown; the interface is delegated to Antigravity, who must make it smart/usable. |
+| PD-15 | **No ranking by accepting office** (closes Q-4b); the PO supplied the TCT F1.1 file (`Downloads/09-10-2026_21-33-14_F1.1_..._noi_tinh(1).xlsx`, described by the PO as the TCT file for 07/10) and asked for its audit and the plan table; further business design will be given by the PO after the build. |
 | PD-14 | **Colour rules and weekday/week rule = F1.3** (closes Q-5b and Q-6): F1.3 colour bands (70/60/50) and chart target as F1.3; weeks Thursday–Wednesday with the ISO number of the Thursday. Note for the PO's awareness: at the current F1.1 level (≈ 72–95 % per BCVH) all six BCVH fall in the green band under the F1.3 bands; the config keeps the bands in one place so they can be tightened later without rework. |
 
 Nothing else is treated as decided. Every other point is either derived from verified evidence (and labelled so) or listed as an open question in Section 22.
@@ -275,7 +277,7 @@ Requires PO approval before any implementation. Items marked ▲ depend on a PO 
 | DC-13 | **Blank-evaluation flag (PD-9).** A blank `danh_gia_2026` is shown as "Chưa có đánh giá" and split by a *derived* reason, computed at read time from stored columns, never written back: `PTC sau ngày đo kiểm` (PTC date later than `ngay_do_kiem`), `Thiếu chỉ tiêu phường` (`thoi_gian_chi_tieu_2026` null), `Chưa PTC` (no PTC time). Baseline: 13 / 1 / 19. The split is an Evidence facet, so the PO can analyse the detailed reason later; the rate itself never depends on it. |
 | DC-9 | Indices designed from the access paths (not copied): `(ngay_do_kiem)`, `(ngay_do_kiem, ma_bc_phat, danh_gia_2026)`, `(ma_bc_phat, ngay_do_kiem)`, plus `(ngay_do_kiem, ma_bc_chap_nhan, ma_bc_phat)` if the matrix block is approved. EXPLAIN QUERY PLAN is recorded in Phase 1 against the live table size; no index is added without measurement. |
 | DC-10 | Violation `lý do`/stage classification is **not part of the data contract**: the source has no reason field (A-7). It lives in a derived, versioned classification service defined in the Evidence phase after PO training (Section 17). |
-| DC-11 | National lane (`fact_f11_national`) shape is **not designed** until a real TCT sample exists (Section 15). |
+| DC-11 | National lane `fact_f11_national`: **designed in Section 25** from the real TCT file (grain tỉnh chấp nhận × tỉnh phát, total row skipped, required-set completeness rule over the 34 frozen province codes). |
 | DC-12 | Retired office codes (D-4): a mapping table (old → new) is applied at read time, never by rewriting stored source values. ▲ Q-9. |
 
 ## 13. Phase Plan
@@ -288,7 +290,7 @@ Each phase is its own ticket needing explicit PO authorization; none is self-act
 | **F11-PHASE-1** Data foundation | Migration `fact_f11` (+indices measured), `f11HueExcelParser.js`, filename extractor, real-file test on S-1 asserting 2 621 rows / 2 348 Đạt / 240 Không đạt / 33 blank (13+1+19) / 89,58 % and the PD-9 table of Section 6.6, plus the pair grid (accepting office × delivering BCVH) summing to the module totals, `fact_f13`/`fact_f41` counts unchanged. No watcher/UI. | Claude Code (Sonnet) + Opus review of DC-1..DC-9 | M | G1 |
 | **F11-PHASE-2** Import Huế (manual lane) | Register `INDICATORS['F1.1']` (HUE lane `MANUAL_ONLY` with reason until Phase 3), pipeline/watcher over the registry, Data Import Center selector, per-indicator test sandbox, first **deliberate observed** import of S-1 from `Incoming/HUE`, row counts against Section 6.6. F1.3/F4.1 byte-identical (their suites unchanged). | Claude Code (Sonnet); Antigravity for the selector UI | M | G2 |
 | **F11-PHASE-3** Portal discovery + HUE auto-backfill | Read-only probe in the AB-AUTH-17 style (needs the PO's logged-in HUE session, profile free): observe stored-procedure identity, detail endpoint, export action, **real generated-file slug** (candidates from the real downloads: `F1.1_bao_cao_chat_luong_toan_trinh_buu_giay_noi_tinh_chi_tiet` detail, `…_noi_tinh` summary), the date-filter semantics (B-4), header drift. Then `autoBackfillF11Contract.js`, single-date service, executors, completion policy, flip lane to `AUTOMATED` only when verified. Windows runtime evidence by Antigravity. | Claude Code + Antigravity (runtime) | L | G3 |
-| **F11-PHASE-4** Import TCT | Blocked until the PO supplies a real TCT F1.1 sample (Section 15). | Claude Code | M | G4 |
+| **F11-PHASE-4** Import TCT | Designed in Section 25 (sample audited). Only open item: the date window of the TCT download (Q-15). | Claude Code | M | G4 |
 | **F11-DASHBOARD-RANKING-01** Dashboard + BCVH Ranking | Section 16. Backend `/api/f11` twins (constructor-injected services), `F11_INDICATOR` config, pages, sidebar group, `/f11` redirect, role widening. Independent Opus review (the F4.1 T8 pattern) before UI check. | Claude Code (backend/config), Antigravity (pages/visual), Opus (review), PO (UI check) | L | G5 (Dashboard), G6 (Ranking) |
 | **F11-EVIDENCE-01** Evidence | Section 17. Starts only after G6 and the PO training session(s). | Claude Code + Antigravity + PO training | L | G7 |
 | **F11-ACCEPTANCE** | Full reconciliation, regression sweep (F1.3, F4.1, Network Management), PO acceptance, daily-notice template (like `TIN_MAU_F13_HANG_NGAY.md`) if requested. | Claude Code | S | G8 |
@@ -307,7 +309,9 @@ Parallelism: Phase 1 needs only the Q-1/Q-2/Q-3 answers; Phase 3 (portal discove
 
 ## 15. Import Plan — TCT lane
 
-Facts: no F1.1 TCT sample exists in the repository (`Incoming/TCT/test.xlsx` is 16 bytes of text). The F1.1 summary report we do have (S-5) is a Huế view (province 53 only, C-1). By analogy to F4.1, a TCT report would be an **aggregate by reporting unit (province)** — but that is an analogy, not evidence.
+**Update (Round 4): a real TCT F1.1 file now exists and has been audited — see Section 25, which supersedes the analogy below.** The text of this section is kept as the original plan; the concrete TCT design is Section 25.4.
+
+Facts at the time of writing: no F1.1 TCT sample existed in the repository (`Incoming/TCT/test.xlsx` is 16 bytes of text). The F1.1 summary report we had (S-5) is a Huế view (province 53 only, C-1). By analogy to F4.1, a TCT report would be an **aggregate by reporting unit (province)** — which Section 25 confirms.
 
 Plan, gated on the PO supplying one real TCT F1.1 file (and its official DKCL report name):
 1. **Read-only audit** of the TCT file in the same format as Section 6/8 (sheets, merged headers, grain, total row, dates, integrity, cross-lane reconciliation against the Huế row).
@@ -373,6 +377,7 @@ The PO's analysis workbook `Chi tiết BG nội tỉnh tồn tại các BCVH.xls
 3. **After the Dashboard ticket**: `/api/f11` responses equal the Phase 1 baseline per unit; six-unit sum vs module total as in DC-8; weekly/monthly sums additive.
 4. **After Evidence**: violation row count per unit equals the `Không đạt` column; classified + unclassified = violations.
 5. Every phase boundary: `Data DKCL`/`Data QLML` file checksums unchanged unless the phase deliberately imports.
+6. **Cross-lane check (Section 25.3):** for every date loaded in both lanes, the Huế row (53 → 53) of `fact_f11_national` must equal the Huế detail aggregated on the evaluated-rows view (có thông tin phát, PTC/NT/CH, ≤ 24 h, theo chỉ tiêu denominator / đúng / quá, elapsed bands). The national figure and the Huế dashboard figure (PD-9) are labelled apart and never substituted.
 
 ## 19. Test Plan
 
@@ -394,7 +399,7 @@ The PO's analysis workbook `Chi tiết BG nội tỉnh tồn tại các BCVH.xls
 | R-6 | Portal date filter ≠ PTC date (A-16/B-4); wrong assumption would mis-date or double-count rows. | Phase 3 probe observes it; `ngay_do_kiem` from the file name only; re-appearing parcels allowed by `UNIQUE(ngay_do_kiem, ma_bg)`. |
 | R-7 | No complete historical daily files exist (B-2) → history, week/month comparison and rank cannot be validated. | Multi-day support built regardless; comparison acceptance waits for ≥ 2 real days; backfill via Phase 3 or PO files. |
 | R-8 | The PO's pasted workbooks contain stale body rows (D-2); using them as truth would "reconcile" wrongly. | Only raw portal exports are accepted as baseline sources. |
-| R-9 | TCT lane has no sample; designing it blind would repeat the F4.1 mis-assumptions. | Section 15 gate; nothing built before the audit. |
+| R-9 | ~~TCT lane has no sample.~~ Sample audited (Section 25). New risk: the TCT file spans **two business days** (G-5), so importing it under one date would double the national figures. | Q-15 answered before Phase 4; the parser refuses a file whose window is not confirmed as one date; one file per single day, like Huế. |
 | R-10 | Retired office codes in historical files (D-4). | Mapping applied at read time (DC-12). |
 | R-11 | Scope creep from the PO's rich manual sheets (X2–X4, notes capture). | Only X1 recommended in the first ticket; the rest require explicit selection. |
 | R-12 | Generalising Import touches code F1.3/F4.1 depend on, both PO-passed. | They must remain byte-identical in behaviour — proven by their existing suites passing unchanged. |
@@ -424,10 +429,10 @@ Business/product decisions only. Each has a recommendation based on evidence; th
 | Q-1 | **CLOSED by PD-6 (2026-10-09): `Đánh giá 2026`.** Still open as a sub-question: should `Đánh giá 2025` (≤ 24 h) be stored/shown as a secondary series? | Store it (DC-3 already does); show only if the PO asks. | none |
 | Q-2 | **CLOSED by PD-9:** blank `Đánh giá 2026` stays in the denominator as 0 Đạt (as F4.1) and is flagged separately for later reason analysis (DC-13). | — | none |
 | Q-3 | **CLOSED by PD-10:** same as F1.3 (date from the file name, daily notice N-1). | — | none |
-| Q-4 | **(a) CLOSED by PD-11** (6 canonical BCVH by delivery unit; 531110 and 531120 counted in the total, hidden from ranking). (b) Still open: do you also want an accepting-side view (which accepting office/BCVH drags quality down), and where does the "accepting office → managing BCVH" mapping come from? | (a) Yes, F4.1 rule. (b) Matrix X1 first; accepting-side ranking later, mapping to be supplied. | Phase 0, Dashboard |
+| Q-4 | **(a) CLOSED by PD-11** (6 canonical BCVH by delivery unit; 531110 and 531120 counted in the total, hidden from ranking). **(b) CLOSED by PD-15:** no ranking by accepting office; the pair table (PD-8/PD-13) is the only accept-side view, so no office → BCVH mapping is needed. | — | none |
 | Q-5 | (a) Tuyến Ranking for F1.1 (the detail has route + ward)? **(b) CLOSED by PD-14: F1.3 colour bands (70/60/50) and target.** | (a) Not in the first ticket; decide after Dashboard. | Dashboard (a only) |
 | Q-6 | **CLOSED by PD-14:** weeks Thursday–Wednesday, ISO number of the Thursday, as F1.3. | — | none |
-| Q-7 | TCT: provide one real F1.1 TCT file (and the exact DKCL report name); do you want "Vị thứ toàn quốc x/34" on F1.1? | Provide the file; rank yes. | Phase 4 |
+| Q-7 | **File supplied (PD-15, audited in Section 25).** Still to confirm: "Vị thứ toàn quốc x/34" on F1.1 — yes? (the file supports it: Huế is 7th of 34 on the two-day window). | Yes, same rule as F1.3/F4.1. | Phase 4 |
 | Q-8 | Roles: `admin` + `viewer` read, Import admin-only (as F4.1)? (F1.1 is currently hidden from viewers.) | Yes, from the Dashboard ticket on. | Dashboard |
 | Q-9 | Retired office codes in historical files (e.g. 533130 Huế Bắc → 533140): confirm the `DB` sheet mapping is the official one, and whether history before the reorganisation is needed at all. | Provide the official mapping; history only from the date the PO needs. | Backfill |
 | Q-10 | Backfill depth: from `2026-01-01` (registry tracking start) or only from a later date? Will you supply daily detail files meanwhile? | From 2026-01-01 via the portal in Phase 3; interim only the days you supply. | Phase 3 |
@@ -438,7 +443,7 @@ Business/product decisions only. Each has a recommendation based on evidence; th
 
 1. ~~Answers to Q-1, Q-2, Q-3, Q-4a~~ — **all answered** (PD-6, PD-9, PD-10, PD-11). Only authorization to activate F11-PHASE-0 and F11-PHASE-1 remains.
 2. ~~Reconciliation pair~~ — **not required** (PD-12): the baseline is locked by independent recomputation from the detail file (Section 18). Optional but useful for history/week/month checks and for the Phase 1 test set: a second and third complete daily detail file (any two other dates), downloaded the same way as `F1.1-2026.10.07.xlsx`.
-3. One real **TCT F1.1 file** and its official report name (Phase 4; may come later).
+3. ~~One real TCT F1.1 file~~ — supplied and audited (Section 25). Needed now: the answer to **Q-15** (which dates were selected when the TCT file was downloaded), or a fresh single-day TCT download for 07/10.
 4. Confirmation that the Huế session may be used for the Phase 3 read-only portal probe (browser profile must be free; the backend/DKCL window is stopped for that run).
 5. Approval to activate F11-PHASE-0 / F11-PHASE-1 as the next tickets.
 
@@ -487,3 +492,64 @@ These are **candidate** stage labels for the training session (Section 17), not 
 | --- | --- | --- | --- |
 | Q-13 | **CLOSED by PD-12:** `F1.1 Ngay/Thang` are only the PO's working inputs from the summary download; they are not reconciled against. | — | none |
 | Q-14 | **ANSWERED by PD-13:** pair table for day, week and month; all accepting offices; interface delegated to Antigravity ("smart"). Remaining detail for Antigravity's brief only: colouring thresholds (Q-5b) and optional minimum-volume handling. | — | none |
+
+## 25. Audit Round 4 — TCT national file and the consolidated plan table
+
+Round date 2026-10-09 (night). Read-only. Subject: `Downloads/09-10-2026_21-33-14_F1.1_bao_cao_chat_luong_toan_trinh_buu_giay_noi_tinh(1).xlsx` (SHA-256 `88b47ac1…e1499d0`, 17 732 B, 1 sheet), described by the PO as the TCT F1.1 file for 07/10. It was not copied into `Data DKCL/` and nothing was imported.
+
+### 25.1 Structure
+
+| ID | Finding |
+| --- | --- |
+| G-1 | The same report as the Huế summary (`…_noi_tinh`, no `_chi_tiet`), seen at national scope: 93 rows × 29 columns, 3 header rows with 50 merged ranges, a column-number legend row, the **grand-total row first**, then **89 body rows**. Identity columns: tỉnh chấp nhận (code + name), BC chấp nhận, tỉnh phát (code + name), BC phát, `Mã KHL`, `Tên KHL`; then the same 18 measures as the Huế summary (có thông tin phát, PTC/NT/CH, ≤ 24 h, KPI 2026 theo chỉ tiêu, five elapsed-time bands, chưa đủ thông tin, loại trừ). |
+| G-2 | **Grain = (tỉnh chấp nhận × tỉnh phát).** The BC chấp nhận, BC phát and KHL columns are empty in every row — aggregation stops at province. No parcel-level data exists at TCT scope, so **Evidence stays Huế-only** (as F4.1). |
+| G-3 | Grand-total row = sum of the 89 body rows on all 16 count columns tested (0 mismatches). It must be skipped on ingest or every national figure doubles (same rule as F4.1's TCT file). Codes are text (`"01"`, `"53"`) — never numbers. |
+| G-4 | **Population.** 47 rows have accepting province = delivering province ("nội tỉnh" rows); 42 are cross-province rows (accepted at a corporate unit such as 01 Tổng công ty EMS, 02, 03, 08, or at a Hà Nội / Hồ Chí Minh centre and delivered elsewhere). All **34 nationally ranked province codes** (the frozen list `NATIONAL_RANKED_PROVINCE_CODES` already used by F1.3/F4.1) are present as same-province rows; none is missing. The other 13 same-province rows are Hà Nội centres (6, volume 0) and Hồ Chí Minh centres / Bình Dương (7, small) — outside the ranked list. |
+
+### 25.2 The Huế row ties exactly to the Huế data
+
+| ID | Finding |
+| --- | --- |
+| G-5 | The Huế row (53 → 53) is **not a single day.** It equals `F1.1-2026.10.07.xlsx` **plus** the day held in the PO's `F1.1 Ngay` sheet, column by column: có thông tin phát 4 603 = 2 621 + 1 982; PTC/NT/CH 4 539 = 2 589 + 1 950; có thời gian thực tế 4 504 = 2 571 + 1 933; ≤ 24 h 4 101 = 2 400 + 1 701; > 24 h 403 = 171 + 232; theo chỉ tiêu: mẫu số 4 538 = 2 588 + 1 950, đúng chỉ tiêu 4 013 = 2 348 + 1 665, quá chỉ tiêu 525 = 240 + 285; elapsed bands 4 101 / 141 / 150 / 42 / 69 = (2 400 / 72 / 72 / 5 / 22) + (1 701 / 69 / 78 / 37 / 47). **All 13 columns that the 07/10 detail can reproduce were recomputed independently from the detail file** (rows, bands, evaluations) and match the TCT figure minus the other day exactly. |
+| G-6 | Consequence 1: the TCT download covers **07/10 and one other day** — the day of the PO's `F1.1 Ngay` sheet (most likely 08/10, not provable from the files). The portal's date filter at TCT scope therefore spans two days (or the range chosen was two days). Importing this file under a single `ngay_do_kiem` would give a national figure for two days → **Q-15**. |
+| G-7 | Consequence 2 (good news): TCT and Huế are the **same data under the same definition** — the F4.1 problem (`4.684` TCT vs `4.695` Huế, F4.1 Q-6) does not occur here. The only difference between the two lanes is the blank-evaluation rule: the TCT rate excludes unevaluable rows (portal definition), the Huế dashboard counts them as 0 Đạt (PD-9). The national rank therefore uses the **published national rate** and is labelled as such, exactly the F4.1 R-8 rule; it never replaces the Huế figure. |
+| G-8 | Huế on this two-day window: 4 013 / 4 538 = **88,43 %** (≤ 24 h view: 90,35 %). Rank among the 34 by the KPI 2026 rate: **7th of 34**; top five Lạng Sơn 92,62 %, Cao Bằng 92,30 %, Quảng Trị 91,92 %, TP Hồ Chí Minh 90,08 %, Hà Nội 89,05 %; bottom three Tuyên Quang 72,99 %, Lâm Đồng 70,06 %, Lai Châu 66,92 %. The same 7th place results from the ≤ 24 h rate. Indicative only until Q-15. |
+| G-9 | No date appears anywhere in the file; `ngay_do_kiem` must come from the file name (rule DC-5). The file in Downloads has the portal's download name (`09-10-2026_21-33-14_…`), not the target name `F1.1-YYYY.MM.DD.xlsx`. |
+
+### 25.3 What this means for the earlier decisions
+
+1. Q-4b closed (PD-15): no accept-side ranking, pair table only.
+2. The Huế row of the TCT report cross-checks the Huế lane for free: for any date for which both lanes are loaded, TCT's Huế row must equal the Huế detail aggregated on the **evaluated-rows view** (G-5). This becomes the standing cross-lane reconciliation (Section 18, step 6).
+3. The "Ngay" sheet is now identified as a real portal day (the second day inside this TCT window), which retroactively explains why it is consistent with the month sheet (E-6/E-7); it is still not used as a source (PD-12).
+
+### 25.4 TCT lane design (replaces the placeholder of Section 15)
+
+| Item | Design |
+| --- | --- |
+| Table | `fact_f11_national`, additive: `id`, `ngay_do_kiem`, `import_log_id`, `created_at`, `ma_tinh_chap_nhan`, `ten_tinh_chap_nhan`, `ma_tinh_phat`, `ten_tinh_phat`, the 18 count measures as INTEGER (the text percentage columns are stored raw but never used). `UNIQUE(ngay_do_kiem, ma_tinh_chap_nhan, ma_tinh_phat)`. Indices on `(ngay_do_kiem)` and `(ma_tinh_phat, ngay_do_kiem)`. |
+| Parser | `f11TctExcelParser.js`: positional (3 header rows + legend row), grand-total row skipped, codes as text, date from the file name only, every data row stored (including cross-province rows) so no later question needs a re-import. |
+| Completeness rule | As F4.1 AB-AUTH-16: **all 34 frozen province codes must be present as same-province rows**; row count is not checked (89 here; varies by day). A day missing a required code is rejected with the code list. |
+| Registry lane | `INDICATORS['F1.1'].lanes.TCT`: `targetTable fact_f11_national`, `distinctColumn ma_tinh_phat`, no fixed `expectedRowCount`, `MANUAL_ONLY` with reason until Phase 3 verifies a portal adapter. Report slug for the portal match: `F1.1_bao_cao_chat_luong_toan_trinh_buu_giay_noi_tinh` (observed from this download name; stored-procedure identity still to be observed). |
+| National rank | `F11NationalRankService` (twin of `F41NationalRankService`): for a date range, for each of the 34 codes take the same-province row, `rate = SUM(đúng chỉ tiêu) / SUM(SL theo chỉ tiêu)`, order descending, ties by volume, not merged; result shape identical to F1.3/F4.1 so the shared overview/weekly services consume it unchanged. Label: "Tỷ lệ KPI 2026 theo báo cáo toàn quốc". Rank is for Huế as a whole, never for a single BCVH. |
+| Not in TCT lane | Evidence, BCVH-level data, route, pair table (all Huế-only, from the detail file). |
+
+### 25.5 Consolidated plan table (what is done next, by whom)
+
+| # | Ticket | What it delivers (plain words) | Who | Needs from the PO | Gate |
+| --- | --- | --- | --- | --- | --- |
+| 1 | **F11-PHASE-0** | Rulebook for F1.1: definition, formulas, sample numbers, test scenarios — frozen so nobody guesses later | Claude Code | authorization | G0 |
+| 2 | **F11-PHASE-1** | A place in the database for the Huế detail rows + the file reader; file 07/10 loaded and numbers checked (89,58 %; 89,54 % for six BCVH; 13 / 1 / 19 blanks; pair grid sums to the total) | Claude Code; Opus reviews the data design | authorization | G1 |
+| 3 | **F11-PHASE-2** | Huế file goes in through the Import Center, with a deliberate first load | Claude Code (+ Antigravity for the selector button) | go-ahead for the first real load | G2 |
+| 4 | **F11-PHASE-3** | Read-only probe of the DKCL portal, then automatic download + backfill for Huế (and TCT) | Claude Code + Antigravity (Windows evidence) | session free (backend stopped) | G3 |
+| 5 | **F11-PHASE-4** | National file import + "Vị thứ toàn quốc x/34" (design in 25.4) | Claude Code | **Q-15 answer** | G4 |
+| 6 | **F11-DASHBOARD-RANKING-01** | Operation Dashboard + BCVH Ranking (day / week / month, F1.3 colours and weeks) + the accept → deliver pair table (day / week / month) | Claude Code (data), Antigravity (screens), Opus (independent review) | UI check | G5, G6 |
+| 7 | **F11-EVIDENCE-01** | Violation list per unit, stage timeline, blank-reason split; classification after the PO's training | Claude Code + Antigravity + PO training | training sessions | G7 |
+| 8 | **F11-ACCEPTANCE** | Full recheck, regression of F1.3 / F4.1, acceptance, daily-notice template | Claude Code | acceptance | G8 |
+
+Order: 1 → 2 → (3 and 4 in parallel) → 5 → 6 → 7 → 8. Tickets 1-2 need no other answer.
+
+### 25.6 Question added
+
+| ID | Question | Recommendation | Blocks |
+| --- | --- | --- | --- |
+| Q-15 | When the TCT file was downloaded, which dates were selected? The figures equal 07/10 plus the day of your `F1.1 Ngay` sheet (08/10?). Please confirm the range, or download TCT again for the single day 07/10 only. | One TCT file per single day, same as Huế. | F11-PHASE-4 |
