@@ -89,6 +89,7 @@ export default function UploadWidget({ onUploadSuccess }) {
                     >
                         <option value="F1.3">F1.3</option>
                         <option value="F4.1">F4.1</option>
+                        <option value="F1.1">F1.1</option>
                     </select>
                 </label>
                 <label className="text-xs font-semibold text-gray-600">

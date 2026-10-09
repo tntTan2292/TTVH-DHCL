@@ -2181,3 +2181,7 @@ F1.1 reference package (8 files) and the backend foundation delivered: table fac
 ## 2026-10-09 - F11-MODULE-PLAN Q-15 CLOSED (TCT single-day file ties to Huế detail)
 
 The PO supplied the single-day TCT F1.1 file for 07/10 (the earlier file was a two-day file sent by mistake). Its Huế row equals the Huế detail exactly on every reproducible column; all 34 ranked provinces are present; Huế is 4th of 34 by the published rate (90,73%). The Huế 07/10 detail is therefore complete and the baseline (2.348 / 2.621 = 89,58%) is confirmed by two independent sources. Phase 2 (Import Huế) and Phase 4 (TCT) are no longer blocked by data questions. Checkpoint Section 25.7.
+
+## 2026-10-09 - F11-PHASE-2 IMPLEMENTED (first live load done)
+
+F1.1 Huế detail files now import through the shared pipeline (registry entry, import function, upload option, 6 sandbox tests, backend sweep 475/479 with the 4 known pre-existing failures). First live load of F1.1-2026.10.07.xlsx done and verified: 2.621 rows, Đạt 2.348, Không đạt 240, blank 33, 89,58%; other fact tables unchanged. Opus gates N-1/N-2/N-7/N-8 fixed earlier; PD-18 (a parcel is measured once) recorded. Backend restart needed for the running server to pick up F1.1. Manifest: docs/10_TICKETS/F11-PHASE-2_MANIFEST.md.

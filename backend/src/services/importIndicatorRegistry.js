@@ -5,6 +5,7 @@ const { extractDateFromFilename, parseF13Excel } = require('./excelParser');
 const { parseF13NationalExcel } = require('./nationalExcelParser');
 const { extractF41DateFromFilename, parseF41HueExcel } = require('./f41HueExcelParser');
 const { parseF41TctExcel } = require('./f41TctExcelParser');
+const { extractF11DateFromFilename, parseF11HueExcel } = require('./f11HueExcelParser');
 const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./autoBackfillCompletionPolicies');
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
@@ -121,6 +122,12 @@ const F41_FILENAME_DATE_RULE = createFilenameDateRule({
     parse: extractF41DateFromFilename,
 });
 
+const F11_FILENAME_DATE_RULE = createFilenameDateRule({
+    id: 'F11_DOTTED_ISO_DATE',
+    prefix: 'F1.1',
+    parse: extractF11DateFromFilename,
+});
+
 const INDICATORS = {
     'F1.3': {
         code: 'F1.3',
@@ -211,6 +218,42 @@ const INDICATORS = {
                 },
             }),
         },
+    },
+};
+
+// F11-PHASE-2: F1.1 (toan trinh noi tinh). HUE lane only for now -- the TCT lane (fact_f11_national)
+// is added in F11-PHASE-4. Status PLANNED keeps F1.1 out of the auto-backfill coverage and queue
+// (they only consider ACTIVE/PAUSED indicators) until F11-PHASE-3 verifies a Portal adapter; manual
+// Import works because the pipeline resolves lanes from the registry regardless of status.
+INDICATORS['F1.1'] = {
+    code: 'F1.1',
+    key: 'F1.1',
+    name: 'F1.1 - Chat luong toan trinh buu gui noi tinh',
+    status: 'PLANNED',
+    priority: 30,
+    badgeTheme: 'violet',
+    trackingStartDate: TRACKING_START_DATE,
+    businessTimezone: BUSINESS_TIMEZONE,
+    folder: 'F1.1',
+    filenamePattern: /^F1\.1-\d{4}\.\d{2}\.\d{2}\.xlsx$/i,
+    filenameDateRule: F11_FILENAME_DATE_RULE,
+    extractDate: F11_FILENAME_DATE_RULE.parse,
+    formatFilename: F11_FILENAME_DATE_RULE.format,
+    testDataRoot: {
+        env: 'QIS_TEST_DATA_ROOT_F11',
+        fallbackEnv: 'QIS_TEST_DATA_ROOT',
+        fallbackSibling: 'F1.1',
+    },
+    lanes: {
+        HUE: createLane({
+            code: 'HUE',
+            priority: 10,
+            parser: (buffer, filename) => parseF11HueExcel(buffer, filename),
+            targetTable: 'fact_f11',
+            distinctColumn: 'ma_bg',
+            automationMode: 'MANUAL_ONLY',
+            manualOnlyReason: 'No verified DKCL Portal adapter for F1.1 yet (F11-PHASE-3).',
+        }),
     },
 };
 

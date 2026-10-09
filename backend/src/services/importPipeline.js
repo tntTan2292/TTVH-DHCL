@@ -14,6 +14,7 @@ const {
     importNationalParsedData,
     importF41ParsedData,
     importF41NationalParsedData,
+    importF11ParsedData,
 } = require('./importProcessor');
 
 const dataRoot = getIndicatorConfig('F1.3').root;
@@ -231,7 +232,9 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO',
             totalParsed = parsed.totalParsed;
 
             importStarted = true;
-            result = laneConfig.indicator === 'F4.1'
+            result = laneConfig.indicator === 'F1.1'
+                ? await importF11ParsedData({ parsedData, ngay_do_kiem, filename, forceReimport, triggerSource: source })
+                : laneConfig.indicator === 'F4.1'
                 ? await importF41ParsedData({ parsedData, ngay_do_kiem, filename, forceReimport, triggerSource: source })
                 : await importParsedData({ parsedData, ngay_do_kiem, filename, forceReimport, indicator: 'F1.3', sourceLane: 'HUE', triggerSource: source });
         }

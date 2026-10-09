@@ -25,6 +25,7 @@ const { extractDateFromFilename, parseF13Excel, DB_COLUMNS } = require('./excelP
 const { NATIONAL_DB_COLUMNS } = require('./nationalExcelParser');
 const { F41_HUE_DB_COLUMNS } = require('./f41HueExcelParser');
 const { F41_TCT_DB_COLUMNS } = require('./f41TctExcelParser');
+const { F11_DB_COLUMNS } = require('./f11HueExcelParser');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -537,6 +538,64 @@ async function importF41ParsedData({ parsedData, ngay_do_kiem, filename, forceRe
     }
 }
 
+// F11-PHASE-2: F1.1 / HUE row-level import, same transaction contract as importF41ParsedData
+// (delete-by-date only when forced and verified empty, scoped post-write count, FAILED log on error).
+async function importF11ParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
+    const totalParsed = parsedData.length;
+    const spec = buildInsertSpec(F11_DB_COLUMNS);
+    await run('BEGIN TRANSACTION');
+    let import_log_id = null;
+
+    try {
+        if (forceReimport) {
+            await run('DELETE FROM fact_f11 WHERE ngay_do_kiem = ?', [ngay_do_kiem]);
+            await assertForceReimportDeleteComplete({ factTable: 'fact_f11', ngay_do_kiem, filename });
+        }
+        import_log_id = await insertImportLog({
+            filename,
+            ngay_do_kiem,
+            status: 'SUCCESS',
+            totalRecords: totalParsed,
+            indicator: 'F1.1',
+            sourceLane: 'HUE',
+            triggerSource,
+        });
+
+        let totalInserted = 0;
+        for (let i = 0; i < totalParsed; i += spec.batchSize) {
+            const batch = parsedData.slice(i, i + spec.batchSize);
+            const values = [];
+            for (const row of batch) {
+                for (const column of F11_DB_COLUMNS) values.push(row[column] !== undefined ? row[column] : null);
+                values.push(ngay_do_kiem, import_log_id);
+            }
+            const sql = `INSERT OR IGNORE INTO fact_f11 (${spec.columnList}) VALUES ${batch.map(() => spec.rowPlaceholder).join(', ')}`;
+            const result = await run(sql, values);
+            totalInserted += result.changes;
+        }
+
+        await verifyPostWriteCount({
+            factTable: 'fact_f11',
+            ngay_do_kiem,
+            importLogId: import_log_id,
+            hasImportLogId: true,
+            expectedCount: totalInserted,
+            filename,
+        });
+
+        const skippedRecords = totalParsed - totalInserted;
+        await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);
+        await run('COMMIT');
+        return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
+    } catch (error) {
+        try { await run('ROLLBACK'); } catch (e) {}
+        try {
+            await insertImportLog({ filename, ngay_do_kiem, status: 'FAILED', totalRecords: totalParsed, errorRecords: totalParsed, indicator: 'F1.1', sourceLane: 'HUE', triggerSource });
+        } catch (e) {}
+        throw error;
+    }
+}
+
 async function importF41NationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
     const totalParsed = parsedData.length;
     const spec = buildInsertSpec(F41_TCT_DB_COLUMNS);
@@ -589,10 +648,10 @@ async function importF41NationalParsedData({ parsedData, ngay_do_kiem, filename,
         await run('COMMIT');
         return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
     } catch (error) {
-        try { await run('ROLLBACK'); } catch (e) {}
+        try { await run('ROLLBACK'); } catch { /* rollback failure must not mask the import error */ }
         try {
             await insertImportLog({ filename, ngay_do_kiem, status: 'FAILED', totalRecords: totalParsed, errorRecords: totalParsed, indicator: 'F4.1', sourceLane: 'TCT', triggerSource });
-        } catch (e) {}
+        } catch { /* the FAILED log is best effort */ }
         throw error;
     }
 }
@@ -603,4 +662,5 @@ module.exports = {
     importNationalParsedData,
     importF41ParsedData,
     importF41NationalParsedData,
+    importF11ParsedData,
 };

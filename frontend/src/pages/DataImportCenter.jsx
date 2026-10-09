@@ -895,7 +895,7 @@ export default function DataImportCenter() {
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Nạp Dữ liệu Thủ công qua File Excel</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Tải lên file Excel kết quả kiểm thử F1.3/F4.1 từ máy cục bộ.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Tải lên file Excel kết quả kiểm thử F1.3/F4.1/F1.1 từ máy cục bộ.</p>
             </div>
           </div>
           <UploadWidget onUploadSuccess={handleUploadSuccess} />
