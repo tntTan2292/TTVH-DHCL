@@ -97,6 +97,25 @@ Per lane (standard §7): transport proven; direct outer rows reconcile (Huế 2.
 | Backend restart interrupts a running import/backfill | PO chooses the moment; probe runs only with backend stopped |
 | Session/account mismatch | PO confirms the account; no credentials handled |
 
+## 12. Live Evidence Collected 2026-10-09 (Claude in Chrome, PO's own logged-in Chrome)
+
+Method: the PO's Chrome is connected to the session; the PO had already signed in. Claude opened a **new tab in its own tab group** (the PO's existing tab is not reachable), set the filters through the page controls, pressed **Thống kê** (read-only report requests) and read the network log (authentication values are redacted by the tool). No credential, cookie, token or profile was read; no file was exported or downloaded; no Import, no database write. Displayed account in this Chrome profile: `thanhtp.bdqn` (it sees all provinces; it is **not** the `tantn.bdtth` account used for F4.1 — the account to be used by the automated profile is still to be confirmed by the PO).
+
+| Item | Observed value |
+| --- | --- |
+| Menu entry | `Báo cáo KPI` → **`F1.1_Toàn trình bưu gửi nội tỉnh`** (do not confuse with `F1.4_Toàn trình bưu gửi nội tỉnh_nội huyện/TX/TP_Final`, route `…/chat-luong-toan-tinh-buu-gui-noi-tinh-noi-huyen-xa-thanh-pho`) |
+| Report route | `https://dkcl.vnpost.vn/kpi/chat-luong-toan-trinh-buu-gui-noi-tinh` (note `buu-gui`, not `buu-giay`; the file-name slug uses `buu_giay`) |
+| Filters on the page | Tùy chọn GR (`Tỉnh` / `BC` / `KHL`), Tỉnh chấp nhận*, Bưu cục chấp nhận, Tỉnh phát*, BCKT chấp nhận, BCKT phát, Kiểu bưu cục khai thác, Bưu cục phát, Dịch vụ, Nhóm SPDV, Sản phẩm DV, Loại dịch vụ, Nhóm loại KH, Mã KHL, Khối lượng, Từ ngày*, Đến ngày* |
+| **HUE request** (GR = `BC`, Tỉnh chấp nhận = 53, Tỉnh phát = 53, other filters untouched), HTTP 200 | `GET /kpi/chat-luong-toan-trinh-buu-gui-noi-tinh?TuyChonGR=BC&stMaTinhChapNhan=53&stMaBuuCucNhan=NULL&stMaTinhPhat=53&stMaBCKTTinhChapNhan=NULL&stMaBCKTTinhPhat=NULL&stMaLoaiBCKT=NULL&stMaBuuCucPhat=NULL&stLoaiDichVu=ALL&stNhomLoaiKH=ALL&iFrom=10%2F07%2F2026&iTo=10%2F07%2F2026` |
+| Date encoding | screen `dd/mm/yyyy`, report request `MM/DD/YYYY` (`10/07/2026` = 7 October), detail request `YYYYMMDD` (`20261007`). **Both From and To are inclusive**: with To = 08/10 the same request returned the two-day numbers (Huế 4.603 / 4.539 / 4.504 / 4.101) — this is exactly how the earlier two-day TCT file was produced. |
+| HUE result row (1st row, 07/10) | **2.621 / 2.589 / 2.571 / 2.400 / 92.7 % / 171** — equal to the Huế detail file and to the TCT Huế row. Then rows per accepting office × delivering BC (e.g. Huế → 533140: 38 / 38 / 38 / 38). |
+| **HUE detail request** (click the 2.621 total), HTTP 200 | `GET /kpi/chat-luong-toan-trinh-buu-gui-noi-tinh-chi-tiet?stMaTinhPhat=53&stMaBuuCucPhat=NULL&stMaTinhChapNhan=53&stMaBuuCucNhan=NULL&stMaBCKTTinhPhat=NULL&stMaLoaiBCKT=NULL&stMaBCKTTinhChapNhan=NULL&iFrom=20261007&iTo=20261007&stMaDichVu=NULL&stNhomLoaiBuuGui=NULL&stLoaiDichVu=NULL&stMaLoaiBuuGui=NULL&stNhomLoaiKH=NULL&stMaKHL=NULL&stPhuongTien=NULL&stKhoiLuong=NULL&name_store=sp_TT_NoiTinh_ChiTiet&iDetailReport=1&iTotal=2621` — detail store identity **`sp_TT_NoiTinh_ChiTiet`**; its first row is parcel `CB533608058VN` (accepted at Trần Hưng Đạo 531600, delivered by BCVH Phú Lộc 537220) = the first row of `F1.1-2026.10.07.xlsx`. |
+| **TCT request** (GR = `Tỉnh`, Tỉnh chấp nhận = ALL, Tỉnh phát = ALL), HTTP 200 | `GET /kpi/chat-luong-toan-trinh-buu-gui-noi-tinh?TuyChonGR=TINH&stMaTinhChapNhan=ALL&stMaBuuCucNhan=NULL&stMaTinhPhat=ALL&stMaBCKTTinhChapNhan=NULL&stMaBCKTTinhPhat=NULL&stMaLoaiBCKT=NULL&stMaBuuCucPhat=NULL&stLoaiDichVu=ALL&stNhomLoaiKH=ALL&iFrom=10%2F07%2F2026&iTo=10%2F07%2F2026` |
+| TCT result total row | **187.593 / 182.036 / 180.858 / 153.110 / 84.11 % / 27.748 / …** — equal to the total row of the PO's single-day TCT file. |
+| Export | A hidden form with a **`Xuất toàn bộ`** submit button exists on the page (hidden values are redacted by the tool); the portal reports each export in its notification list ("Export file thành công", with time). The export route and generated file name are **not yet observed** — one export click per lane needs the PO's permission. |
+
+Remaining to observe: the export request for the Huế detail and the TCT summary and the generated file names (one controlled export each, Chrome download), the account the automated profile must use, and the final verification of the downloaded workbooks against the loaded data.
+
 ## 11. Next Step
 
 PO sends the evidence pack (Section 8). Then the contract draft and, if needed, one controlled live run. Dashboard and BCVH Ranking work (`F11-DASHBOARD-RANKING-01`) can start in parallel on the days already loaded, but the PO asked for data completeness first.
