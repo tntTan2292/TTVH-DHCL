@@ -134,6 +134,47 @@ test('blank-evaluation reasons follow the fixed order', () => {
     assert.equal(classifyBlankEvaluation({ ...base, danh_gia_2026: '  ' }), BLANK_REASONS.CHUA_PTC);
 });
 
+// Review F11-PHASE-1 (Opus) gates N-1 / N-2 / N-7 / N-8.
+test('N-1: a duplicated mapped header is a hard error naming it', () => {
+    const headers = [...REQUIRED_HEADERS, 'Đánh giá 2026'];
+    const row = makeRow(headers, { 'Số hiệu bưu gửi': 'A1' });
+    assert.throws(
+        () => parseF11HueExcel(workbookBuffer(headers, [row]), 'F1.1-2026.10.07.xlsx'),
+        (error) => /Duplicated column/.test(error.message) && error.message.includes('Đánh giá 2026'),
+    );
+});
+
+test('N-2: trailing spaces and decomposed Unicode in values and headers are normalised', () => {
+    const headers = REQUIRED_HEADERS.map((h) => (h === 'Đánh giá 2026' ? 'Đánh giá 2026 '.normalize('NFD') : h));
+    const evalHeader = headers.find((h) => h.normalize('NFC').trim() === 'Đánh giá 2026');
+    assert.notEqual(evalHeader, 'Đánh giá 2026', 'the fixture header really is decomposed with a trailing space');
+    const rows = [makeRow(headers, { 'Số hiệu bưu gửi': ' A1 ', [evalHeader]: 'Đạt '.normalize('NFD') })];
+    const result = parseF11HueExcel(workbookBuffer(headers, rows), 'F1.1-2026.10.07.xlsx');
+    assert.equal(result.parsedData[0].ma_bg, 'A1');
+    assert.equal(result.parsedData[0].danh_gia_2026, 'Đạt');
+});
+
+test('N-2: an evaluation outside {Đạt, Không đạt, empty} is refused with column and parcel', () => {
+    const row = makeRow(REQUIRED_HEADERS, { 'Số hiệu bưu gửi': 'A1', 'Đánh giá 2026': 'Dat' });
+    assert.throws(
+        () => parseF11HueExcel(workbookBuffer(REQUIRED_HEADERS, [row]), 'F1.1-2026.10.07.xlsx'),
+        (error) => error.message.includes('Đánh giá 2026') && error.message.includes('A1') && error.message.includes('"Dat"'),
+    );
+});
+
+test('N-7: unreadable timestamp, elapsed time or ward target is refused', () => {
+    for (const bad of [{ 'Thời gian PTC': '2026/10/07 09:00' }, { 'Thời gian thực tế': 'abc' }, { 'Thời gian chỉ tiêu 2026': 12.5 }]) {
+        const row = makeRow(REQUIRED_HEADERS, { 'Số hiệu bưu gửi': 'A1', ...bad });
+        assert.throws(() => parseF11HueExcel(workbookBuffer(REQUIRED_HEADERS, [row]), 'F1.1-2026.10.07.xlsx'), /unexpected value/, JSON.stringify(bad));
+    }
+});
+
+test('N-8: a path is accepted, only the base name is judged', () => {
+    assert.equal(extractF11DateFromFilename('D:\\Data DKCL\\F1.1\\Incoming\\HUE\\F1.1-2026.10.07.xlsx'), '2026-10-07');
+    assert.equal(extractF11DateFromFilename('/data/F1.1-2026.10.07.xlsx'), '2026-10-07');
+    assert.throws(() => extractF11DateFromFilename('D:\\Data\\F1.3-2026.10.07.xlsx'), /F1\.1/);
+});
+
 // ---------------------------------------------------------------------------------------------
 // Real-file baseline (PO file, git-ignored under Data DKCL): skipped when the file is absent.
 // Parses the unmodified workbook, loads it into a TEMPORARY database and reproduces

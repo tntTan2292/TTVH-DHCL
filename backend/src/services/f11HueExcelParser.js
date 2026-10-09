@@ -8,6 +8,7 @@
 // when absent. Unknown extra headers are accepted and reported (drift visibility), never dropped
 // silently. The business date comes ONLY from the file name, never from cell content.
 
+const path = require('path');
 const xlsx = require('xlsx');
 
 // source header -> [fact_f11 column, type]
@@ -78,10 +79,24 @@ const METRIC_COLUMN = 'Đánh giá 2026';
 const MAX_HEADER_SCAN_ROWS = 20;
 const F11_DB_COLUMNS = Object.freeze(Object.values(F11_ALL_COLUMNS).map(([column]) => column));
 
+// NFC + collapsed whitespace + trim: a header that differs only by Unicode form or spacing still maps.
 function normalizeHeader(header) {
     if (header === null || header === undefined) return '';
-    return String(header).replace(/\s+/g, ' ').trim();
+    return String(header).normalize('NFC').replace(/\s+/g, ' ').trim();
 }
+
+const EVALUATION_COLUMNS = Object.freeze(['Đánh giá 2025', 'Đánh giá 2026']);
+const EVALUATION_VALUES = new Set(['Đạt', 'Không đạt']);
+const TIMESTAMP_COLUMNS = Object.freeze([
+    'Thời gian BD8 Đóng Đi tại BC Chấp nhận', 'Thời gian BD8 XNĐ tại BCKTT', 'Thời gian BD10 XNĐ tại BCKT phát',
+    'Thời gian phát đến BCP', 'Thời gian nhận tin thu gom', 'Thời gian chấp nhận', 'Thời gian PTC',
+    'Thời gian nộp tiền COD', 'Thời gian BD10 Đóng đi tại KTTỉnh', 'Thời gian BD10 Quét Lên TMS tại KTTỉnh',
+]);
+const TIMESTAMP_PATTERNS = [
+    /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$/, // dd/MM/yyyy HH:mm:ss (portal text)
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,3})?$/, // ISO (Ky thuat tinh columns, Date cells)
+];
+const ELAPSED_PATTERN = /^\d+:\d{1,2}$/; // 'Thoi gian thuc te', hours unbounded
 
 function formatDate(value) {
     if (Number.isNaN(value.getTime())) return null;
@@ -93,19 +108,21 @@ function coerce(value, type) {
     if (value === null || value === undefined) return null;
     if (value instanceof Date) return formatDate(value);
     if (typeof value === 'string') {
-        if (value.trim() === '') return null;
+        const text = value.normalize('NFC').trim(); // N-2: "Đạt " or an NFD value must not silently stop matching 'Đạt'
+        if (text === '') return null;
         if (type === 'INTEGER' || type === 'REAL') {
-            const n = Number(value);
-            return Number.isFinite(n) ? n : value;
+            const n = Number(text);
+            return Number.isFinite(n) ? n : text;
         }
-        return value;
+        return text;
     }
     if (type === 'TEXT') return String(value);
     return value;
 }
 
 function extractF11DateFromFilename(filename) {
-    const match = String(filename).match(/^F1\.1-(\d{4})\.(\d{2})\.(\d{2})\.xlsx$/i);
+    const base = path.basename(String(filename)); // N-8: accept a path, judge the base name only
+    const match = base.match(/^F1\.1-(\d{4})\.(\d{2})\.(\d{2})\.xlsx$/i);
     if (!match) {
         throw new Error(`Invalid F1.1 filename format. Expected 'F1.1-YYYY.MM.DD.xlsx', got: '${filename}'.`);
     }
@@ -115,6 +132,34 @@ function extractF11DateFromFilename(filename) {
         throw new Error(`Invalid F1.1 filename date '${match[1]}.${match[2]}.${match[3]}' in '${filename}'.`);
     }
     return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+// N-2 / N-7: refuse values that would silently change a rate or a blank-reason, naming column and parcel.
+function validateParsedValues(rows) {
+    const problems = [];
+    const note = (header, row, value, expected) => {
+        if (problems.length < 5) problems.push(`'${header}' = "${value}" (parcel ${row.ma_bg}), expected ${expected}`);
+    };
+    let count = 0;
+    for (const row of rows) {
+        for (const header of EVALUATION_COLUMNS) {
+            const value = row[F11_ALL_COLUMNS[header][0]];
+            if (value !== null && !EVALUATION_VALUES.has(value)) { count++; note(header, row, value, 'Đạt | Không đạt | empty'); }
+        }
+        for (const header of TIMESTAMP_COLUMNS) {
+            const value = row[F11_ALL_COLUMNS[header][0]];
+            if (value !== null && !TIMESTAMP_PATTERNS.some((pattern) => pattern.test(String(value)))) {
+                count++; note(header, row, value, 'dd/MM/yyyy HH:mm:ss or yyyy-MM-dd HH:mm:ss');
+            }
+        }
+        const elapsed = row.thoi_gian_thuc_te;
+        if (elapsed !== null && !ELAPSED_PATTERN.test(String(elapsed))) { count++; note('Thời gian thực tế', row, elapsed, 'H:MM'); }
+        const target = row.thoi_gian_chi_tieu_2026;
+        if (target !== null && !Number.isInteger(target)) { count++; note('Thời gian chỉ tiêu 2026', row, target, 'a whole number of hours'); }
+    }
+    if (count) {
+        throw new Error(`Invalid F1.1 HUE Excel data. ${count} unexpected value(s), e.g. ${problems.join('; ')}.`);
+    }
 }
 
 function parseF11HueExcel(buffer, filename) {
@@ -142,6 +187,16 @@ function parseF11HueExcel(buffer, filename) {
         throw new Error(`Invalid F1.1 HUE Excel format. Missing expected column(s): ${missingHeaders.join(', ')}.`);
     }
 
+    // N-1: a duplicated mapped header would silently let the last column win -- refuse the file.
+    const seenHeaders = new Map();
+    for (const header of headers) {
+        if (header && F11_ALL_COLUMNS[header]) seenHeaders.set(header, (seenHeaders.get(header) || 0) + 1);
+    }
+    const duplicated = [...seenHeaders.entries()].filter(([, count]) => count > 1).map(([header]) => header);
+    if (duplicated.length) {
+        throw new Error(`Invalid F1.1 HUE Excel format. Duplicated column(s): ${duplicated.join(', ')}.`);
+    }
+
     const unmappedHeaders = headers.filter((header) => header && !F11_ALL_COLUMNS[header]);
     const presentOptionalHeaders = Object.keys(F11_OPTIONAL_COLUMNS).filter((header) => headers.includes(header));
     const maBgIdx = headers.indexOf(REQUIRED_COLUMN);
@@ -157,6 +212,8 @@ function parseF11HueExcel(buffer, filename) {
         for (const { idx, spec } of colIndexMap) item[spec[0]] = coerce(row[idx], spec[1]);
         parsedData.push(item);
     }
+
+    validateParsedValues(parsedData);
 
     return {
         parsedData,

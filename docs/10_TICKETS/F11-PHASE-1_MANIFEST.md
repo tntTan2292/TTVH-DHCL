@@ -50,7 +50,7 @@ In: additive table `fact_f11` with 4 indexes, header-name file reader, file-name
 | `backend/src/services/f11EvaluationFlags.js` | derived reason for a blank `Đánh giá 2026` (PD-9): `CHUA_PTC`, `PTC_SAU_NGAY_DO_KIEM`, `THIEU_CHI_TIEU_PHUONG`, `KHAC`; read-time only |
 | `backend/server.js` | registers the migration in the startup list (table appears at the next backend restart) |
 | `backend/src/db/schema.sql` | mirrors the table for fresh databases |
-| tests | `migrate_f11_phase1_schema.test.js` (6), `src/services/f11HueExcelParser.test.js` (10 incl. the real-file baseline) |
+| tests | `migrate_f11_phase1_schema.test.js` (6), `src/services/f11HueExcelParser.test.js` (15 incl. the real-file baseline; 21 tests in total with the migration file after the review fixes) |
 
 ## 7. Validation
 
@@ -63,6 +63,8 @@ In: additive table `fact_f11` with 4 indexes, header-name file reader, file-name
 ## 8. Residual / Notes
 
 - Opus independent review done 2026-10-09: **PASS**, no blocker; baseline independently recomputed and equal. Phase-2 gates N-1 (duplicate header) and N-2 (value trim/NFC + `danh_gia_2026` domain check); PO question Q-R1 (week/month = row-days or distinct parcels). Record: `docs/06_REVIEWS/Shared/F11-PHASE-1_REVIEW_001.md`.
+- **Review gates fixed 2026-10-09 (Claude Code/Sonnet, before Phase 2):** N-1 duplicated mapped header → hard error naming it; N-2 headers and text values NFC-normalised and trimmed, `Đánh giá 2025/2026` outside {`Đạt`, `Không đạt`, empty} → hard error naming column and parcel; N-7 unreadable timestamp / `H:MM` elapsed / non-integer ward target → hard error; N-8 a path is accepted, only the base name is judged. Tests now **21/21** (11 parser tests added/updated; real-file test still passes, so the real file is clean on every new check); `oxlint` 0; real file SHA unchanged. Not changed (non-blocking, to be decided with the real queries): N-3 redundant `idx_f11_date`, N-4 `idx_f11_bcvh_date` not covering, N-5 week key as date range (dashboard design), N-6 index on `ma_bg` only if Q-R1 = distinct parcels. A final re-check by the same Opus reviewer is recommended but not required by the review for these small fixes.
+- **Q-R1 open (PO):** week and month figures = sum of daily rows (row-days, as F1.3/F4.1) or distinct parcels? Needed before the Dashboard ticket, not before Phase 2.
 - **Q-15 closed (checkpoint Section 25.7):** the first TCT file was a two-day file sent by mistake; the single-day TCT file for 07/10 equals the Huế detail exactly on every reproducible column, so the 07/10 Huế detail is complete and the baseline is confirmed by two independent sources.
 
 ## 9. Next Ticket
