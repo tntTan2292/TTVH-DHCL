@@ -2189,3 +2189,7 @@ F1.1 Huế detail files now import through the shared pipeline (registry entry, 
 ## 2026-10-09 - F11-PHASE-4 IMPLEMENTED (TCT lane + national rank, first live load done)
 
 F1.1 TCT national lane: file reader (header-drift check, grand total verified against the rows, 34 ranked provinces required as delivering province), fact_f11_national, manual Import, and the national rank service by delivering province with rows added before the rate (PD-17). Real single-day file loaded live: 84 rows, the Huế row equals the Huế detail, Huế 4th of 34 at 90,7%, Hà Nội 12th, TP Hồ Chí Minh 18th. 50/50 F1.1 tests with the real files, backend sweep 496/500 (4 known pre-existing), lint clean, other fact tables unchanged. Backend restart needed. Manifest: docs/10_TICKETS/F11-PHASE-4_MANIFEST.md.
+
+## 2026-10-09 - F11-PHASE-3 ACTIVATED (portal discovery plan, waiting for PO evidence pack)
+
+PO asked for portal discovery and automatic download before the Dashboard so the data is complete. Plan written from the F4.1 lessons (backend owns the browser, Chrome evidence first, ALL/NULL/empty differ, direct outer rows only, file name is a slug of the report). Nothing run against the portal. Next: the PO sends the evidence pack (report address, filters, result request, export request, file name, account) for Huế then TCT. Manifest: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.
