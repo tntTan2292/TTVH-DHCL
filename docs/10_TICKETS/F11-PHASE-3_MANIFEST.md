@@ -120,6 +120,27 @@ Method: the PO's Chrome is connected to the session; the PO had already signed i
 
 Remaining: the account the automated profile signs in with (PO: keep this account for now; when it runs, the **HUE and TCT sessions stay separate, signed in by hand as in F4.1, the PO then using `tantn.bdtth`**), implementation of the clients/services, a controlled run of the automated adapter on 07/10 compared with the same files, and the backfill.
 
+## 13. Implementation (2026-10-10, written and tested with fakes; NOT yet run against the portal)
+
+Status: `IMPLEMENTED / TESTED WITH FAKES / WAITING FOR THE SUPERVISED LIVE RUN`. The lanes stay `MANUAL_ONLY` and the indicator `PLANNED` in the registry; the executors are **not** registered in `autoBackfillExecutors.js`. Nothing can start a portal download by itself.
+
+| File | Role |
+| --- | --- |
+| `backend/src/services/f11PortalClientMethods.js` | F1.1 portal operations mixed into `DkclHueF13PortalClient` (one `Object.assign` at the end of that file; the F1.3/F4.1 methods are untouched): report route, the two observed filter profiles, date encodings (`MM/DD/YYYY` for the report, `YYYYMMDD` for the detail), XHR transport over `page.request` (no navigation of the shared page), table-depth-aware HTML helpers (nested detail tables never count as outer rows), grand-total row reader, detail request (observed parameter set, `iTotal` = the summary total, store checked against `sp_TT_NoiTinh_ChiTiet`), export form read **from the portal response** and refused when its `Total` differs from the verified summary |
+| `backend/src/services/autoBackfillF11Contract.js` | executor identities `DKCL_F11_HUE_SINGLE_DATE_V1` / `DKCL_F11_TCT_SINGLE_DATE_V1` with the observed stores, export actions and generated-file matches. The TCT match keeps the `(1)` after the slug so it can never select a detail file (the TCT slug is a prefix of the detail slug); a test proves both directions |
+| `backend/src/services/f11SingleDateServices.js` | `F11HueSingleDateService` / `F11TctSingleDateService` (+ adapters): one indicator × lane × date; open → verified summary → export → poll → download → parse with the frozen parser → **reconcile** (HUE: total 2.621, evaluated 2.588, đạt 2.348, không đạt 240 against the summary; TCT: summed totals against the summary total row; the parser already verifies the workbook grand total and the 34 provinces) → standardized `F1.1-YYYY.MM.DD.xlsx` copy into Incoming → shared Import (`F1.1` / lane, `refreshRequested` only on a confirmed replace) → cleanup of the portal file. `importEnabled:false` = DRY mode for the probe |
+| `backend/src/services/autoBackfillF11Executors.js` | executors (session classification, per-source lock, active-operation marker), registration function — **not called yet** |
+| `backend/src/services/importIndicatorRegistry.js` | one line: `F11_PORTAL_REQUEST_TIMEOUT` is TRANSIENT (retryable), as F4.1 |
+| `backend/probe_f11_single_date.js` | supervised live check, DRY: `node probe_f11_single_date.js HUE 2026-10-07` / `TCT 2026-10-07`; separate profile per lane; PO signs in by hand; compares the downloaded workbook cell by cell with the PO reference file; copies nothing, imports nothing, deletes nothing |
+| `backend/test_f11PortalAdapter.js` | 22 tests: requests equal the observed ones byte for byte, HTML helpers, client flow over a fake page (mismatch/identity/HTTP-error/timeout refusals), services over a fake client with the **real 2026-10-07 files as the known answer**, executors |
+
+Validation: `test_f11PortalAdapter.js` 22/22; F1.1 import/parsers 50/50 unchanged; F4.1 executors 32/32, F1.3 executors 19/19, queue service 45/45; full backend sweep 496/500 (the 4 known pre-existing failures); `oxlint` 0.
+
+**Not yet proven (to be observed in the supervised run, never assumed):** the exact markup of the live responses (`template_paginator` carrying the export form for both lanes, rows with ≥ 29 cells and a numeric first cell, grand-total row first), how the portal reports a generated file in `/files` for this report, and that the downloaded workbooks equal the PO files. The probe prints each of these and stops at the first difference.
+
+**Date rule to settle at enablement:** the 07/10 Huế file contains parcels completed on 08/10 and parcels not yet completed (33 blank rows), so a day is fetched on the next day (N-1), as the daily notice does; the queue's coverage rule decides the eligible dates.
+
+**Enablement step (after the live run passes, separate commit):** register `registerF11AutoBackfillExecutors` in `autoBackfillExecutors.js`; set F1.1 `ACTIVE` and both lanes `AUTOMATED` with `portalAdapter: {...F11_EXECUTOR_IDENTITIES.X, verified: true}` and the completion policy; add the registration-before-coordinator test; Opus review (a model other than the implementer); then the backfill from 2026-01-01.
 ## 11. Next Step
 
 PO sends the evidence pack (Section 8). Then the contract draft and, if needed, one controlled live run. Dashboard and BCVH Ranking work (`F11-DASHBOARD-RANKING-01`) can start in parallel on the days already loaded, but the PO asked for data completeness first.

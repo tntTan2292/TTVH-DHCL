@@ -38,6 +38,8 @@ const DEFAULT_ERROR_MAP = Object.freeze({
     EXPORT_TIMEOUT: 'TRANSIENT',
     // IMPORT-TCT-TIMEOUT-01: a slow F4.1 portal report/export/detail request (Playwright timeout).
     F41_PORTAL_REQUEST_TIMEOUT: 'TRANSIENT',
+    // F11-PHASE-3: same condition for the F1.1 portal requests.
+    F11_PORTAL_REQUEST_TIMEOUT: 'TRANSIENT',
     // AB-AUTH-05: a manual login already in progress (or its wait window having just elapsed)
     // is not a real authentication failure -- see autoBackfillF13Executors.js's sessionPendingError().
     SESSION_PENDING_HUMAN_ACTION: 'TRANSIENT',

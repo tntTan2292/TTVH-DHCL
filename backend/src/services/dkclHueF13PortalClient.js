@@ -1726,6 +1726,10 @@ class DkclHueF13PortalClient {
     }
 }
 
+// F11-PHASE-3: F1.1 portal operations live in their own module (evidence-derived, see its header)
+// and are mixed in here so the existing F1.3 / F4.1 methods are not touched.
+Object.assign(DkclHueF13PortalClient.prototype, require('./f11PortalClientMethods').methods);
+
 module.exports = {
     DkclHueF13PortalClient,
     DEFAULT_CHROMIUM_LAUNCH_ARGS,

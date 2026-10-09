@@ -2193,3 +2193,7 @@ F1.1 TCT national lane: file reader (header-drift check, grand total verified ag
 ## 2026-10-09 - F11-PHASE-3 ACTIVATED (portal discovery plan, waiting for PO evidence pack)
 
 PO asked for portal discovery and automatic download before the Dashboard so the data is complete. Plan written from the F4.1 lessons (backend owns the browser, Chrome evidence first, ALL/NULL/empty differ, direct outer rows only, file name is a slug of the report). Nothing run against the portal. Next: the PO sends the evidence pack (report address, filters, result request, export request, file name, account) for Huế then TCT. Manifest: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.
+
+## 2026-10-10 - F11-PHASE-3 IMPLEMENTED WITH FAKES (supervised live run pending)
+
+F1.1 automatic download written from the evidence collected through the PO's Chrome: portal operations (report, detail, export form read from the portal), one-date services with figure-by-figure reconciliation, executors and a DRY supervised probe. 22 new tests (the PO's real 07/10 files as the known answer), backend sweep 496/500 (4 known pre-existing), lint clean. Registry unchanged (MANUAL_ONLY/PLANNED), executors not registered: nothing can download by itself yet. Next: supervised live run per lane (backend stopped, PO signs in by hand), then enablement and backfill. Manifest Section 13: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.
