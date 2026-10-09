@@ -38,10 +38,11 @@ Rows and columns of the pair table sum to the module/BCVH figures by constructio
 ## 4. F11_004: National published rate (reference, never a substitute for F11_001)
 
 ```
-F11_004(province) = SUM(đúng chỉ tiêu) / SUM(SL theo chỉ tiêu)   -- same-province rows of fact_f11_national, as published
+F11_004(province) = SUM(đúng chỉ tiêu) / SUM(SL theo chỉ tiêu)
+                    over ALL rows of fact_f11_national whose ma_tinh_phat = province   -- whatever the accepting province
 ```
 
-Rank among the 34 frozen province codes, descending, ties by volume, not merged. It excludes unevaluable rows (portal definition) and therefore legitimately differs from F11_001 by those rows.
+PD-17: rows are grouped by the **delivering province**; a province with several rows has its numerators and denominators added first, and only then the rate is computed and ranked. Rank among the 34 frozen province codes (other delivery codes are not ranked), descending, ties by volume, not merged. It excludes unevaluable rows (portal definition) and therefore legitimately differs from F11_001 by those rows.
 
 ## 5. Blank-evaluation flag (PD-9, derived at read time, never stored)
 
@@ -75,4 +76,4 @@ For comparison only (the portal's evaluated-rows view, **not** the system figure
 
 ## 7. Cross-lane check
 
-For a date loaded in both lanes, the Huế row (53 → 53) of `fact_f11_national` equals the Huế detail aggregated on the **evaluated-rows view**. The single-day reference TCT file (2026-10-07) has the Huế row `2.588` evaluated / `2.348` đúng chỉ tiêu (`90,73 %`; the ≤ 24 h view is `92,70 % = 2.400 / 2.589`), equal to the Huế detail on every reproducible count column (Checkpoint Section 25.7). Huế ranks **4th of 34** on that day by the published rate (Cao Bằng 94,40 %, Quảng Trị 92,78 %, Lạng Sơn 92,44 %, Huế 90,73 %, Điện Biên 90,07 %). The Huế dashboard rate of the same day is `89,58 %` (F11_001): labelled apart, never substituted.
+For a date loaded in both lanes, the Huế row (53 → 53) of `fact_f11_national` equals the Huế detail aggregated on the **evaluated-rows view**. The single-day reference TCT file (2026-10-07) has the Huế row `2.588` evaluated / `2.348` đúng chỉ tiêu (`90,73 %`; the ≤ 24 h view is `92,70 % = 2.400 / 2.589`), equal to the Huế detail on every reproducible count column (Checkpoint Section 25.7). Huế ranks **4th of 34** on that day by the published rate grouped by delivering province (Cao Bằng 94,40 %, Quảng Trị 92,78 %, Lạng Sơn 92,44 %, Huế 90,73 %, Điện Biên 90,07 %; Hà Nội 85,85 % = 12th, TP Hồ Chí Minh 82,76 % = 18th after adding their several rows). The Huế dashboard rate of the same day is `89,58 %` (F11_001): labelled apart, never substituted.

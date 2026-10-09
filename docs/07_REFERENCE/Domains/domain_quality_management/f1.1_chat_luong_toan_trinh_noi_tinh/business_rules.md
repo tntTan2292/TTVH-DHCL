@@ -47,7 +47,7 @@ Colour bands and chart target as F1.3. Weeks run Thursday–Wednesday, numbered 
 
 ## 10. National rank (PD-16)
 
-"Vị thứ toàn quốc x/34" is shown as in F1.3. The rank uses the **published** national rate and is labelled as such; it never replaces the Huế figure.
+"Vị thứ toàn quốc x/34" is shown as in F1.3, ranked **by delivering province**: all rows of a province are added (numerator and denominator) before the rate is computed and ranked (PD-17). The rank uses the **published** national rate and is labelled as such; it never replaces the Huế figure.
 
 ## 11. Evidence (PD-5)
 
