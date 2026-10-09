@@ -2157,3 +2157,7 @@ Independent review (Opus) found one blocker (module-level indicator state could 
 ## 2026-10-08 - F41-DASHBOARD-RANKING-01 READY FOR PO UI CHECK
 
 T4/T5 pages (Antigravity, re-verified 600/601, build/lint clean), T6 menu group and /f41 redirect (Claude Code) implemented; T8 closed after B1/B2 fixes. PO checks /f41/dashboard (G2) and /f41/ranking/bcvh (G3). Manifest Sections 4, 10, 11.
+
+## 2026-10-09 - F41-DASHBOARD-RANKING-01 CLOSED / PO UI PASS
+
+PO checked the F4.1 Operation Dashboard (/f41/dashboard) and BCVH Ranking (/f41/ranking/bcvh) and confirmed OK. Delivered: nine read-only /api/f41 endpoints, F4.1 national rank, indicator config reusing the F1.3 blocks, pages, sidebar group, /f41 redirect; independent review fixed (B1, B2); live-DB reconciliation 9/9; frontend 600/601 (one pre-existing failure). Record: docs/10_TICKETS/F41-DASHBOARD-RANKING-01_MANIFEST.md Section 12.
