@@ -568,6 +568,54 @@ CREATE INDEX IF NOT EXISTS idx_f11_date_bcvh_eval ON fact_f11(ngay_do_kiem, ma_b
 CREATE INDEX IF NOT EXISTS idx_f11_bcvh_date ON fact_f11(ma_bc_phat, ngay_do_kiem);
 CREATE INDEX IF NOT EXISTS idx_f11_date_pair_eval ON fact_f11(ngay_do_kiem, ma_bc_chap_nhan, ma_bc_phat, danh_gia_2026);
 
+-- ============================================================
+-- F11-PHASE-4 - F1.1 TCT national aggregate (accepting x delivering province)
+-- Additive only. Mirrors migrate_f11_phase4_schema.js (the migration is the source of truth).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS fact_f11_national (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ngay_do_kiem TEXT NOT NULL,
+    import_log_id INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    stt INTEGER,
+    ma_tinh_chap_nhan TEXT NOT NULL,
+    ten_tinh_chap_nhan TEXT,
+    ma_bc_chap_nhan TEXT,
+    ten_bc_chap_nhan TEXT,
+    ma_tinh_phat TEXT NOT NULL,
+    ten_tinh_phat TEXT,
+    ma_bc_phat TEXT,
+    ten_bc_phat TEXT,
+    ma_khl TEXT,
+    ten_khl TEXT,
+    sl_co_thong_tin_phat INTEGER DEFAULT 0,
+    sl_ptc_nop_tien_ch INTEGER DEFAULT 0,
+    sl_ptc_nop_tien INTEGER DEFAULT 0,
+    sl_dung_qd_24h INTEGER DEFAULT 0,
+    tl_dung_qd_24h TEXT,
+    sl_qua_qd_24h INTEGER DEFAULT 0,
+    sl_chua_du_thong_tin INTEGER DEFAULT 0,
+    sl_theo_chi_tieu INTEGER DEFAULT 0,
+    sl_dung_chi_tieu INTEGER DEFAULT 0,
+    tl_dung_chi_tieu TEXT,
+    sl_qua_chi_tieu INTEGER DEFAULT 0,
+    tl_qua_chi_tieu TEXT,
+    sl_tg_le_24h INTEGER DEFAULT 0,
+    sl_tg_24_36h INTEGER DEFAULT 0,
+    sl_tg_36_48h INTEGER DEFAULT 0,
+    sl_tg_48_60h INTEGER DEFAULT 0,
+    sl_tg_tren_60h INTEGER DEFAULT 0,
+    sl_loai_tru INTEGER DEFAULT 0,
+
+    UNIQUE(ngay_do_kiem, ma_tinh_chap_nhan, ma_tinh_phat),
+    FOREIGN KEY(import_log_id) REFERENCES import_log(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_f11_nat_ngay ON fact_f11_national(ngay_do_kiem);
+CREATE INDEX IF NOT EXISTS idx_f11_nat_phat_ngay ON fact_f11_national(ma_tinh_phat, ngay_do_kiem);
+
+
 
 -- ============================================================
 -- AUTO-BACKFILL-QUEUE - durable planning and global worker lease

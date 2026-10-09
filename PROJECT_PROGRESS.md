@@ -2185,3 +2185,7 @@ The PO supplied the single-day TCT F1.1 file for 07/10 (the earlier file was a t
 ## 2026-10-09 - F11-PHASE-2 IMPLEMENTED (first live load done)
 
 F1.1 Huế detail files now import through the shared pipeline (registry entry, import function, upload option, 6 sandbox tests, backend sweep 475/479 with the 4 known pre-existing failures). First live load of F1.1-2026.10.07.xlsx done and verified: 2.621 rows, Đạt 2.348, Không đạt 240, blank 33, 89,58%; other fact tables unchanged. Opus gates N-1/N-2/N-7/N-8 fixed earlier; PD-18 (a parcel is measured once) recorded. Backend restart needed for the running server to pick up F1.1. Manifest: docs/10_TICKETS/F11-PHASE-2_MANIFEST.md.
+
+## 2026-10-09 - F11-PHASE-4 IMPLEMENTED (TCT lane + national rank, first live load done)
+
+F1.1 TCT national lane: file reader (header-drift check, grand total verified against the rows, 34 ranked provinces required as delivering province), fact_f11_national, manual Import, and the national rank service by delivering province with rows added before the rate (PD-17). Real single-day file loaded live: 84 rows, the Huế row equals the Huế detail, Huế 4th of 34 at 90,7%, Hà Nội 12th, TP Hồ Chí Minh 18th. 50/50 F1.1 tests with the real files, backend sweep 496/500 (4 known pre-existing), lint clean, other fact tables unchanged. Backend restart needed. Manifest: docs/10_TICKETS/F11-PHASE-4_MANIFEST.md.

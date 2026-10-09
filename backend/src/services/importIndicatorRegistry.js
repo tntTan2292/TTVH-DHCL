@@ -6,6 +6,7 @@ const { parseF13NationalExcel } = require('./nationalExcelParser');
 const { extractF41DateFromFilename, parseF41HueExcel } = require('./f41HueExcelParser');
 const { parseF41TctExcel } = require('./f41TctExcelParser');
 const { extractF11DateFromFilename, parseF11HueExcel } = require('./f11HueExcelParser');
+const { parseF11TctExcel } = require('./f11TctExcelParser');
 const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./autoBackfillCompletionPolicies');
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
@@ -221,8 +222,8 @@ const INDICATORS = {
     },
 };
 
-// F11-PHASE-2: F1.1 (toan trinh noi tinh). HUE lane only for now -- the TCT lane (fact_f11_national)
-// is added in F11-PHASE-4. Status PLANNED keeps F1.1 out of the auto-backfill coverage and queue
+// F11-PHASE-2/4: F1.1 (toan trinh noi tinh). HUE lane (fact_f11) and TCT lane (fact_f11_national), both
+// manual for now. Status PLANNED keeps F1.1 out of the auto-backfill coverage and queue
 // (they only consider ACTIVE/PAUSED indicators) until F11-PHASE-3 verifies a Portal adapter; manual
 // Import works because the pipeline resolves lanes from the registry regardless of status.
 INDICATORS['F1.1'] = {
@@ -251,6 +252,15 @@ INDICATORS['F1.1'] = {
             parser: (buffer, filename) => parseF11HueExcel(buffer, filename),
             targetTable: 'fact_f11',
             distinctColumn: 'ma_bg',
+            automationMode: 'MANUAL_ONLY',
+            manualOnlyReason: 'No verified DKCL Portal adapter for F1.1 yet (F11-PHASE-3).',
+        }),
+        TCT: createLane({
+            code: 'TCT',
+            priority: 20,
+            parser: (buffer, filename) => parseF11TctExcel(buffer, filename),
+            targetTable: 'fact_f11_national',
+            distinctColumn: 'ma_tinh_phat',
             automationMode: 'MANUAL_ONLY',
             manualOnlyReason: 'No verified DKCL Portal adapter for F1.1 yet (F11-PHASE-3).',
         }),
