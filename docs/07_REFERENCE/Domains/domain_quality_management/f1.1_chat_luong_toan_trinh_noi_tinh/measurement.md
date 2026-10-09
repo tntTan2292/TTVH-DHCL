@@ -75,4 +75,4 @@ For comparison only (the portal's evaluated-rows view, **not** the system figure
 
 ## 7. Cross-lane check
 
-For a date loaded in both lanes, the Huế row (53 → 53) of `fact_f11_national` equals the Huế detail aggregated on the **evaluated-rows view**. The reference TCT file's Huế row is `4.538` evaluated / `4.013` đúng chỉ tiêu (88,43 %); it equals the 2026-10-07 detail (`2.588` / `2.348`) **plus** a second block of `1.950` / `1.665` on 13 recomputed columns — see Checkpoint Section 25 (G-5/G-6) and the open question Q-15.
+For a date loaded in both lanes, the Huế row (53 → 53) of `fact_f11_national` equals the Huế detail aggregated on the **evaluated-rows view**. The single-day reference TCT file (2026-10-07) has the Huế row `2.588` evaluated / `2.348` đúng chỉ tiêu (`90,73 %`; the ≤ 24 h view is `92,70 % = 2.400 / 2.589`), equal to the Huế detail on every reproducible count column (Checkpoint Section 25.7). Huế ranks **4th of 34** on that day by the published rate (Cao Bằng 94,40 %, Quảng Trị 92,78 %, Lạng Sơn 92,44 %, Huế 90,73 %, Điện Biên 90,07 %). The Huế dashboard rate of the same day is `89,58 %` (F11_001): labelled apart, never substituted.

@@ -63,11 +63,11 @@ In: additive table `fact_f11` with 4 indexes, header-name file reader, file-name
 ## 8. Residual / Notes
 
 - Opus independent review of the data design has not been run yet (planned before Phase 2).
-- **Q-15 stays open**: the TCT reference file's Huế row equals the 07/10 detail plus a second block of 1.982 / 1.950 / 1.665 parcels. Either the TCT download spans two days or the Huế detail download covers only part of 07/10 (checkpoint Section 25). It does not affect this phase (the baseline is "the file as given") but it must be settled before Phase 2/3 rely on the Huế detail being the whole day.
+- **Q-15 closed (checkpoint Section 25.7):** the first TCT file was a two-day file sent by mistake; the single-day TCT file for 07/10 equals the Huế detail exactly on every reproducible column, so the 07/10 Huế detail is complete and the baseline is confirmed by two independent sources.
 
 ## 9. Next Ticket
 
-`F11-PHASE-2` (Import Huế through the Import Center, with a deliberate first load) and `F11-PHASE-3` (read-only portal probe, then automatic download). Both need explicit Product Owner authorization; Phase 2 should wait for the Q-15 answer.
+`F11-PHASE-2` (Import Huế through the Import Center, with a deliberate first load) and `F11-PHASE-3` (read-only portal probe, then automatic download). Both need explicit Product Owner authorization; Q-15 no longer blocks Phase 2.
 
 ## 10. PO Acceptance Checklist
 

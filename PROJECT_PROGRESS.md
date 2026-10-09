@@ -2177,3 +2177,7 @@ PO asked for a new F1.1 indicator (Chất lượng toàn trình bưu gửi nội
 ## 2026-10-09 - F11-PHASE-0 / F11-PHASE-1 IMPLEMENTED (ready for PO review)
 
 F1.1 reference package (8 files) and the backend foundation delivered: table fact_f11, header-name file reader (52 required + 3 optional columns), blank-evaluation reason helper, startup registration. Real-file test on F1.1-2026.10.07.xlsx reproduces 2.348 / 2.621 = 89,58% (six BCVH 89,54%) in a temporary database; 16/16 new tests, backend sweep 470/474 (4 known pre-existing), lint clean, live database untouched. Open: Q-15 (the TCT file Huế row = 07/10 detail plus another 1.982 parcels: TCT spans two days or the Huế detail is partial). Manifests: docs/10_TICKETS/F11-PHASE-0_MANIFEST.md, F11-PHASE-1_MANIFEST.md.
+
+## 2026-10-09 - F11-MODULE-PLAN Q-15 CLOSED (TCT single-day file ties to Huế detail)
+
+The PO supplied the single-day TCT F1.1 file for 07/10 (the earlier file was a two-day file sent by mistake). Its Huế row equals the Huế detail exactly on every reproducible column; all 34 ranked provinces are present; Huế is 4th of 34 by the published rate (90,73%). The Huế 07/10 detail is therefore complete and the baseline (2.348 / 2.621 = 89,58%) is confirmed by two independent sources. Phase 2 (Import Huế) and Phase 4 (TCT) are no longer blocked by data questions. Checkpoint Section 25.7.

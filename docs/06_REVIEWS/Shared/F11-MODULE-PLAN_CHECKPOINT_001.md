@@ -400,7 +400,7 @@ The PO's analysis workbook `Chi tiết BG nội tỉnh tồn tại các BCVH.xls
 | R-6 | Portal date filter ≠ PTC date (A-16/B-4); wrong assumption would mis-date or double-count rows. | Phase 3 probe observes it; `ngay_do_kiem` from the file name only; re-appearing parcels allowed by `UNIQUE(ngay_do_kiem, ma_bg)`. |
 | R-7 | No complete historical daily files exist (B-2) → history, week/month comparison and rank cannot be validated. | Multi-day support built regardless; comparison acceptance waits for ≥ 2 real days; backfill via Phase 3 or PO files. |
 | R-8 | The PO's pasted workbooks contain stale body rows (D-2); using them as truth would "reconcile" wrongly. | Only raw portal exports are accepted as baseline sources. |
-| R-9 | ~~TCT lane has no sample.~~ Sample audited (Section 25). New risk: the TCT file spans **two business days** (G-5), so importing it under one date would double the national figures. | Q-15 answered before Phase 4; the parser refuses a file whose window is not confirmed as one date; one file per single day, like Huế. |
+| R-9 | ~~TCT lane has no sample.~~ Sample audited (Section 25). ~~The TCT file spans two days.~~ **Resolved (Section 25.7):** that was a mistaken two-day file; the single-day file ties to the Huế detail exactly. Remaining risk: a wrong date range at download time silently doubles national figures. | Cross-lane check (Section 18 step 6) on every date loaded in both lanes; the importer compares the TCT Huế row with `fact_f11` when both exist and flags a mismatch; one file per single day. |
 | R-10 | Retired office codes in historical files (D-4). | Mapping applied at read time (DC-12). |
 | R-11 | Scope creep from the PO's rich manual sheets (X2–X4, notes capture). | Only X1 recommended in the first ticket; the rest require explicit selection. |
 | R-12 | Generalising Import touches code F1.3/F4.1 depend on, both PO-passed. | They must remain byte-identical in behaviour — proven by their existing suites passing unchanged. |
@@ -549,8 +549,21 @@ Round date 2026-10-09 (night). Read-only. Subject: `Downloads/09-10-2026_21-33-1
 
 Order: 1 → 2 → (3 and 4 in parallel) → 5 → 6 → 7 → 8. Tickets 1-2 need no other answer.
 
+### 25.7 Round 5 — the single-day TCT file (Q-15 closed)
+
+The PO confirmed the first file (SHA-256 `88b47ac1…`) was sent by mistake and supplied `Downloads/09-10-2026_21-52-27_F1.1_…_noi_tinh(1).xlsx` (SHA-256 `2bab3064616b276fa3fad0ec909b801c6e13ebeb2dcb16e40e88e6992d03cb9a`, 17 117 B) as the TCT file for 07/10.
+
+| ID | Finding |
+| --- | --- |
+| G-10 | Same layout as G-1..G-3: 88 rows × 29 columns, 50 merged ranges, grand-total row first (total = sum of the 84 body rows, 0 mismatches). 44 same-province rows; **all 34 frozen ranked codes present**, none missing. |
+| G-11 | **The Huế row (53 → 53) equals `F1.1-2026.10.07.xlsx` exactly** on every count column the detail can reproduce: có thông tin phát 2 621; PTC/NT/CH 2 589; có thời gian thực tế 2 571; ≤ 24 h 2 400; quá QĐ 171; chưa đủ thông tin 10; theo chỉ tiêu 2 588 / đúng 2 348 / quá 240; elapsed bands 2 400 / 72 / 72 / 5 / 22. Only `Sản lượng loại trừ` (20) is not derivable from the detail (excluded parcels are not in the file). |
+| G-12 | Therefore **(A) is the explanation**: the first file covered two days; the Huế detail download for 07/10 is complete (hypothesis (B) is rejected), and TCT and Huế are the same data under the same definition for a single day. |
+| G-13 | **Huế is 4th of 34** on 07/10 by the published KPI 2026 rate (`2.348 / 2.588 = 90,73 %`; ≤ 24 h view 5th). Top: Cao Bằng 94,40 %, Quảng Trị 92,78 %, Lạng Sơn 92,44 %, **Huế 90,73 %**, Điện Biên 90,07 %, TP Hồ Chí Minh 89,47 %. Lowest: Lai Châu 52,56 % (352 evaluated), Lâm Đồng 69,16 %, Tuyên Quang 71,92 %. |
+| G-14 | The published Huế rate (90,73 %) is the evaluated-rows figure; the Huế dashboard figure under PD-9 is 89,58 %. Both are correct and labelled apart (R-3, R-8 rule). |
+| G-15 | **Reconciliation baseline now locked from two independent sources:** the Huế detail (recomputed by script) and the TCT Huế row agree exactly. Phase 4 can be specified without open points; the standing cross-lane check (Section 18 step 6) has its first passing instance. |
+
 ### 25.6 Question added
 
 | ID | Question | Recommendation | Blocks |
 | --- | --- | --- | --- |
-| Q-15 | **Re-opened after the PO stated that the TCT file is the single day 07/10 and that the download method is the same as F1.3.** The data says the Huế row of the TCT file (4.603 / 4.538 / 4.013) equals the 07/10 Huế detail (2.621 / 2.588 / 2.348) **plus** 1.982 / 1.950 / 1.665 more parcels, on 13 independently recomputed columns. Two explanations fit and the files cannot tell them apart: **(A)** the TCT download covers two days; **(B)** the Huế detail download covers only part (57 %) of 07/10, the rest being the block that equals the PO's `F1.1 Ngay` sheet. | One check settles it: download the TCT report again for 07/10 only (From = To = 07/10) and read the Huế row. If it shows 2.621 / 2.588 → (A). If it again shows 4.603 / 4.538 → (B), and the Huế detail export must be re-checked. Alternative check: the Huế-level summary for 07/10 — 2.588 → (A), 4.538 → (B). | F11-PHASE-2 (first real load), F11-PHASE-4 |
+| Q-15 | **CLOSED 2026-10-09 (Section 25.7): explanation (A) confirmed — the first TCT file was a two-day file sent by mistake; the single-day TCT file for 07/10 equals the Huế detail exactly.** *(History:)* Re-opened after the PO stated that the TCT file is the single day 07/10 and that the download method is the same as F1.3.** The data says the Huế row of the TCT file (4.603 / 4.538 / 4.013) equals the 07/10 Huế detail (2.621 / 2.588 / 2.348) **plus** 1.982 / 1.950 / 1.665 more parcels, on 13 independently recomputed columns. Two explanations fit and the files cannot tell them apart: **(A)** the TCT download covers two days; **(B)** the Huế detail download covers only part (57 %) of 07/10, the rest being the block that equals the PO's `F1.1 Ngay` sheet. | One check settles it: download the TCT report again for 07/10 only (From = To = 07/10) and read the Huế row. If it shows 2.621 / 2.588 → (A). If it again shows 4.603 / 4.538 → (B), and the Huế detail export must be re-checked. Alternative check: the Huế-level summary for 07/10 — 2.588 → (A), 4.538 → (B). | F11-PHASE-2 (first real load), F11-PHASE-4 |

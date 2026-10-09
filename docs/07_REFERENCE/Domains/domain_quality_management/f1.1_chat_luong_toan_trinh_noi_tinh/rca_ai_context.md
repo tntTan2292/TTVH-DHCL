@@ -32,8 +32,8 @@ Two labelled totals (`89,58 %` / `89,54 %`), never one unlabelled figure.
 ## 7. TCT and Huế are the same data; the national value is a published reference
 The national rate excludes unevaluable rows; the Huế dashboard counts them as 0 Đạt. Both are right; never substitute one for the other.
 
-## 8. The TCT reference file is not a single day — or the Huế detail file is incomplete
-The Huế row of the reference TCT file equals the 2026-10-07 detail **plus** 1.982 / 1.950 / 1.665 more parcels (13 columns recomputed). Until the Product Owner settles Q-15, no TCT figure is imported, and no claim is made about which of the two explanations is true.
+## 8. A TCT file must be one business day — check the Huế row
+A two-day TCT download was once sent by mistake: its Huế row equalled the 2026-10-07 detail **plus** another 1.982 / 1.950 / 1.665 parcels. The single-day file equals the detail exactly. Before trusting any TCT file, compare its Huế row with the Huế detail of the same date; a surplus means a wrong date range, not a partial Huế export.
 
 ## 9. Do not invent violation stages
 The labels in the PO's hidden sheets (chậm thu gom/chấp nhận, đóng chuyển, đóng lạc hướng, giao bưu tá, cập nhật TTP, nộp tiền, khách quan) are candidates for training sessions, not rules.

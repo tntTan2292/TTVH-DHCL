@@ -97,9 +97,9 @@ One sheet `Worksheet`, header on row 1, no merged cells, no title or total row. 
 
 ## 2. TCT national — layout and table (Phase 4)
 
-Audited in Checkpoint Section 25 (file `…_noi_tinh(1).xlsx`, SHA-256 `88b47ac16baeaad2ba9c8bc08f2d9396a16c4747b8cd7baddf2d8e600e1499d0`). 93 rows × 29 columns: 3 header rows (50 merged ranges), a column-number legend row, the **grand-total row first** (skipped on ingest), then 89 body rows. Grain = (`Mã tỉnh chấp nhận` × `Mã tỉnh phát`); the BC and KHL columns are empty. Codes are text (`"01"`, `"53"`).
+Audited in Checkpoint Section 25 (single-day reference file `09-10-2026_21-52-27_F1.1_…_noi_tinh(1).xlsx`, SHA-256 `2bab3064616b276fa3fad0ec909b801c6e13ebeb2dcb16e40e88e6992d03cb9a`, business date 2026-10-07; an earlier two-day file sent by mistake is not a reference). 88 rows × 29 columns: 3 header rows (50 merged ranges), a column-number legend row, the **grand-total row first** (skipped on ingest), then 84 body rows. Grain = (`Mã tỉnh chấp nhận` × `Mã tỉnh phát`); the BC and KHL columns are empty. Codes are text (`"01"`, `"53"`).
 
-Target `fact_f11_national`: system fields as §0 plus `ma_tinh_chap_nhan`, `ten_tinh_chap_nhan`, `ma_tinh_phat`, `ten_tinh_phat` and the 18 count measures as INTEGER; `UNIQUE(ngay_do_kiem, ma_tinh_chap_nhan, ma_tinh_phat)`. Completeness rule (as F4.1): the **34 frozen ranked province codes** (`NATIONAL_RANKED_PROVINCE_CODES`) must all be present as same-province rows; row count is not checked. Percentage text columns are stored raw and never used. The date window of the reference file is unconfirmed (Q-15) — it is not imported until confirmed.
+Target `fact_f11_national`: system fields as §0 plus `ma_tinh_chap_nhan`, `ten_tinh_chap_nhan`, `ma_tinh_phat`, `ten_tinh_phat` and the 18 count measures as INTEGER; `UNIQUE(ngay_do_kiem, ma_tinh_chap_nhan, ma_tinh_phat)`. Completeness rule (as F4.1): the **34 frozen ranked province codes** (`NATIONAL_RANKED_PROVINCE_CODES`) must all be present as same-province rows; row count is not checked. Percentage text columns are stored raw and never used. The reference file is one business day (07/10) and its Huế row equals the Huế detail exactly (Checkpoint Section 25.7).
 
 ## 3. Analysis date
 
