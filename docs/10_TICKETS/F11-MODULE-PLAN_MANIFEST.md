@@ -41,7 +41,7 @@ Produce an evidence-backed audit of the real F1.1 Huế detail source and a comp
 
 - Current state: `PLAN COMPLETE / AWAITING PO DECISIONS`
 - PO UI Check Required: `No` — planning ticket only. Gates G2, G5, G6, G7 of the phase plan each require Yes.
-- PO Product Status: `Plan submitted 2026-10-09. No phase authorized. Q-1..Q-4a must be answered to open F11-PHASE-0 / F11-PHASE-1; Q-5..Q-12 can follow.`
+- PO Product Status: `Plan submitted 2026-10-09; audit round 2 the same evening (checkpoint Section 24). PO decisions PD-6..PD-8: metric = Đánh giá 2026 (Q-1 closed); F1.1 is toàn trình (clock from Nhận tin/Thu gom or Chấp nhận to PTC or Nộp tiền); two views — BCVH operation table (6 BCVH, delivery stage) and the pair table Chấp nhận → BCVH phát. No phase authorized. Q-2, Q-3, Q-4a must be answered to open F11-PHASE-0 / F11-PHASE-1; Q-5..Q-14 can follow.`
 
 ## 4. Required Reading
 
@@ -67,6 +67,7 @@ Findings of the read-only audit (details: checkpoint Sections 6-9):
 - The source has no violation-reason field (`Nội dung lý do` empty), so Evidence reasons must be derived from stage timestamps after PO training.
 - The raw summary report is internally consistent but is a unit-pair aggregate with the grand-total row first. The Product Owner's pasted Excel sheets are **not** reliable reconciliation sources (`F1.1 Ngay` total row disagrees with its own body rows).
 - No complete historical daily file and no TCT sample exist yet; the TCT lane cannot be designed until one is supplied.
+- Round 2 (checkpoint Section 24): the toàn trình clock rule is confirmed by the data (start = nhận tin thu gom else chấp nhận; end = PTC/nộp tiền; a 10 h night deduction is observed on rows crossing midnight and is never recomputed by the system). The PO's `Đánh giá CLP F1.1.xlsx` runs on two raw pasted summary sheets (internally consistent, but a different day from 07/10) and a hand-maintained SUMIFS pair table (`Bảng-LK`) that leaks 6 offices; the pair table equals the `Đánh giá 2026` rate cut by (accepting office, delivering BCVH) and is computed from `fact_f11` detail rows, so no summary import is needed. The PO's hidden notes give the candidate violation vocabulary for the Evidence training.
 - F4.1 already proved the multi-indicator pattern (registry, header-keyed parser, additive tables, constructor-injected overview/weekly services, indicator config), so F1.1 is largely configuration plus a new repository twin; F1.1-specific work is the accept × delivery matrix, the two-sided unit model, and Evidence.
 
 ## 7. Runtime Context

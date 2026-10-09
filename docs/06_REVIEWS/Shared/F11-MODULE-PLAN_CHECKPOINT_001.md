@@ -25,6 +25,7 @@
 - [21. PO Gates](#21-po-gates)
 - [22. Open Questions For The Product Owner](#22-open-questions-for-the-product-owner)
 - [23. What The Product Owner Needs To Provide](#23-what-the-product-owner-needs-to-provide)
+- [24. Audit Round 2 — Toàn trình definition, `Đánh giá CLP F1.1.xlsx`, pair table](#24-audit-round-2--toàn-trình-definition-đánh-giá-clp-f11xlsx-pair-table)
 
 ## 1. Ticket State
 
@@ -50,6 +51,14 @@ Given in chat on 2026-10-09 (verbatim intent, not extended):
 | PD-3 | Then plan the Import function for F1.1 for both sources, Huế and TCT. |
 | PD-4 | Then plan the Dashboards and BCVH reports, like F1.3 (and F4.1). |
 | PD-5 | Evidence for F1.1 is built in the same programme, because violations must be analysed. After Dashboard and BCVH are standing, the Product Owner will train Claude on the violations at the later stages. |
+
+Round 2 (2026-10-09, later the same day), after the PO placed the two audited files under `Data DKCL\` and replied:
+
+| ID | Direction |
+| --- | --- |
+| PD-6 | **`Đánh giá 2026` is the F1.1 metric** (confirms H-1; closes Q-1). |
+| PD-7 | F1.1 is a **toàn trình nội tỉnh** indicator: elapsed time is measured from **Nhận tin/Thu gom, or Chấp nhận**, to **Phát thành công, or Nộp tiền** (for parcels that have a payment time). It therefore differs from F1.3 and F4.1, which measure only the delivery leg. |
+| PD-8 | F1.1 reporting has **two views**: (1) an operation table by *delivery stage*, same layout as F1.3/F4.1, with the **6 BCVH** and the F1.1 rate = `Đánh giá 2026`; (2) a **pair table** "Chấp nhận tại Bưu cục nào → phát tại BCVH nào", as the PO runs today in sheet `Bảng-LK` of `Đánh giá CLP F1.1.xlsx`. |
 
 Nothing else is treated as decided. Every other point is either derived from verified evidence (and labelled so) or listed as an open question in Section 22.
 
@@ -195,7 +204,7 @@ Per the project rule *do not infer business rules*, nothing below is adopted unt
 
 | ID | Hypothesis | Evidence | Needs |
 | --- | --- | --- | --- |
-| H-1 | The F1.1 headline metric is `Đánh giá 2026` (KPI theo chỉ tiêu phường xã), not `Đánh giá 2025` (≤ 24 h). | Column named 2026; ward-target hours per row (A-10); newer PO workbooks total on the ward-target rate (D-1); summary report publishes it as a labelled block (C-3). | Q-1 |
+| H-1 | **CONFIRMED by PD-6 (2026-10-09).** The F1.1 headline metric is `Đánh giá 2026` (KPI theo chỉ tiêu phường xã), not `Đánh giá 2025` (≤ 24 h). | Column named 2026; ward-target hours per row (A-10); newer PO workbooks total on the ward-target rate (D-1); summary report publishes it as a labelled block (C-3). | closed |
 | H-2 | Rate = `COUNT(Đánh giá 2026 = 'Đạt') / COUNT(Đánh giá 2026 IS NOT NULL)`; blank-evaluation rows are *not yet evaluable* and are excluded from the denominator but reported as a separate count. | The summary's own denominator (col 17) is "SL … theo chỉ tiêu"; 4 overdue-undelivered rows are `Không đạt` (A-15); the blank rows are PTC-after-the-day or no-PTC (A-14). **Differs from F4.1**, where the PO chose "blank = Không đạt". | Q-2 |
 | H-3 | `ngay_do_kiem` = date in the file name `F1.1-YYYY.MM.DD.xlsx` (the PO already uses this name). | A-16; identical rule to F1.3/F4.1. | Q-3 (confirm which date: PTC day / N-1) |
 | H-4 | Ranking unit = delivery unit (`Mã BC phát`), the 6 canonical BCVH; 531110/531120 counted in the module total but hidden from ranking. | A-4, D-5; F4.1 PO-6 precedent. | Q-4 |
@@ -293,7 +302,7 @@ Principles inherited from `F41-DASHBOARD-RANKING-01`: additive only; no F1.3/F4.
 | Colour bands | `F11_INDICATOR.heatmapFloors` | value → Q-5b (F1.3 = 70/60/50, F4.1 = 80/70/60) |
 | Route capacity / Tuyến Ranking | **Decision** | the detail has `Mã/Tên/Loại tuyến phát` (unlike F4.1) → Q-5a |
 | Operating pattern, Action Center, Rule Recommendation, Message | Out of scope for the first ticket | as F4.1 |
-| **F11-X1 Accept × Delivery matrix** (PO's `TH-LK`/`TH-Day`: rows = accepting office, columns = 6 BCVH, cells = `SL đo kiểm` + `Tỷ lệ`, day and month) | **New, F1.1-only** | needs `idx` of DC-9; the single most-used sheet of the PO's manual process |
+| **F11-X1 Accept × Delivery matrix** (PO's `TH-LK`/`TH-Day`: rows = accepting office, columns = 6 BCVH, cells = `SL đo kiểm` + `Tỷ lệ`, day and month) | **New, F1.1-only — PO-requested (PD-8)** | the PO's `Bảng-LK`; computed from `fact_f11` detail rows (Section 24, E-6); needs the pair index of DC-9 |
 | **F11-X2 Accept-side view** (which accepting office/BCVH pulls quality down) | **New, proposal** | requires the office → managing-BCVH mapping (Q-4b) |
 | **F11-X3 Elapsed-time bands** (≤ 24, 24–36, 36–48, 48–60, > 60 h) | **New, proposal** | derivable from `Thời gian thực tế`; exists in the summary report |
 | **F11-X4 Nhóm SPDV split** (Truyền thống / TMĐT / HCC / KT1) | **New, proposal** | optional |
@@ -383,7 +392,7 @@ Business/product decisions only. Each has a recommendation based on evidence; th
 
 | ID | Question | Recommendation | Blocks |
 | --- | --- | --- | --- |
-| Q-1 | Is the F1.1 headline `Đánh giá 2026` (KPI theo chỉ tiêu phường xã) — not the ≤ 24 h `Đánh giá 2025`? Should `Đánh giá 2025` still be shown as a secondary series? | Yes to 2026 (H-1); show 2025 as secondary only if the PO wants a comparison. | Phase 0, 1 |
+| Q-1 | **CLOSED by PD-6 (2026-10-09): `Đánh giá 2026`.** Still open as a sub-question: should `Đánh giá 2025` (≤ 24 h) be stored/shown as a secondary series? | Store it (DC-3 already does); show only if the PO asks. | none |
 | Q-2 | Rows with a blank `Đánh giá 2026` (33 in S-1): excluded from the denominator and shown as "Chưa đủ điều kiện đánh giá", or counted as `Không đạt` as the PO chose for F4.1? | Exclude (matches the source summary's own denominator and the 27/09 export where every row was evaluated); report the count separately. | Phase 1 |
 | Q-3 | Confirm the business date: file `F1.1-2026.10.07.xlsx` = the measurement day 07/10 (PTC day) and the daily notice follows the N-1 rule already used for F1.3. | Confirm. | Phase 1 |
 | Q-4 | Ranking units: the 6 canonical BCVH by delivery unit (`Mã BC phát`); 531110 (HCC, 9 rows) and 531120 (KHL, 1 row) counted in the module total but hidden from ranking, as F4.1 PO-6? (b) Do you also want an accepting-side view (which accepting office/BCVH drags quality down), and where does the "accepting office → managing BCVH" mapping come from? | (a) Yes, F4.1 rule. (b) Matrix X1 first; accepting-side ranking later, mapping to be supplied. | Phase 0, Dashboard |
@@ -398,8 +407,54 @@ Business/product decisions only. Each has a recommendation based on evidence; th
 
 ## 23. What The Product Owner Needs To Provide
 
-1. Answers to **Q-1, Q-2, Q-3, Q-4a** to open F11-PHASE-0 and F11-PHASE-1 (the rest can follow).
-2. For the reconciliation pair: the **raw, untouched portal summary export** (`…_noi_tinh(1).xlsx`) for the *same* business date as `F1.1-2026.10.07.xlsx` (07/10/2026), saved without editing.
+1. Answers to **Q-2, Q-3, Q-4a** (Q-1 is closed by PD-6) to open F11-PHASE-0 and F11-PHASE-1 (the rest can follow).
+2. For the reconciliation pair, **either** the raw portal summary export for 07/10/2026 **or** the detail file for the day that sheet `F1.1 Ngay` actually holds (Section 24, E-5: it is not 07/10; most likely 08/10 — the PO to confirm the date).
 3. One real **TCT F1.1 file** and its official report name (Phase 4; may come later).
 4. Confirmation that the Huế session may be used for the Phase 3 read-only portal probe (browser profile must be free; the backend/DKCL window is stopped for that run).
 5. Approval to activate F11-PHASE-0 / F11-PHASE-1 as the next tickets.
+
+## 24. Audit Round 2 — Toàn trình definition, `Đánh giá CLP F1.1.xlsx`, pair table
+
+Round date 2026-10-09 (evening). Both files are unchanged since Section 5 (SHA-256 identical; `Đánh giá CLP F1.1.xlsx` was open in Excel during the audit and was not saved). Read-only.
+
+### 24.1 The toàn trình rule (PD-7) against the data
+
+| ID | Finding |
+| --- | --- |
+| E-1 | **Start of the clock = `Thời gian nhận tin thu gom` when present, otherwise `Thời gian chấp nhận`.** `Nhận tin` is filled on 2 101 rows (80,2 %) and is earlier than `Chấp nhận` in every compared row. Using `Chấp nhận` alone reproduces `Thời gian thực tế` on far fewer rows (268 vs 1 056 exact), so the PO's wording "Nhận tin/Thu gom hoặc Chấp nhận" is the rule the portal applies. |
+| E-2 | **End of the clock = `Thời gian PTC`, or `Thời gian nộp tiền COD` for COD parcels.** In the 07/10 file the 84 COD rows have `nộp tiền` within one second of `PTC`, so the data cannot tell which of the two the portal picks; both reproduce the elapsed time identically. The PO's rule is adopted as stated. |
+| E-3 | **Night deduction (observed, not adopted as a rule).** `Thời gian thực tế` = end − start minus: **0 h on all 1 056 rows that start and end on the same calendar day; 10 h on 1 488 rows that cross midnight** — a single 10 h whether the span is 1 day (1 329 rows), 2 days (132) or 3+ days (27). 27 rows (1,0 %) deviate with partial patterns (9 h ×7 when the start is at or after 17:00, 22–23 h ×8 when the start is before 07:00, 12 h ×2, 19 h, 52 h ×3). It looks like a night window clipped to the interval, but that is a guess; the deduction rule belongs to DKCL (Q-11). Consequence for design: **the system stores and displays the source `Thời gian thực tế` and the source evaluation, and never recomputes them.** Stage hop durations (Evidence) are shown as raw timestamp differences, labelled as such. |
+| E-4 | Because the clock covers accepting office, transport/exploitation and delivery, a `Không đạt` can arise at any stage; the delivery BCVH is not necessarily the cause. This is why F1.1 needs the pair view (PD-8) and a stage-aware Evidence. |
+
+### 24.2 `Đánh giá CLP F1.1.xlsx` — how the PO operates today
+
+| ID | Finding |
+| --- | --- |
+| E-5 | 9 sheets, **6 are hidden** (`DB`, `F1.1TH`, `TH-Tuan`, `DashBoard-Điều hành`, `DashBoard-Data`, `TH-Day` — the 2025-origin template, D-3). The live surface is only three visible sheets: **`F1.1 Ngay`** (pasted portal summary, one day), **`F1.1 Thang`** (pasted portal summary, month to date) and **`Bảng-LK`** (the pair table). |
+| E-6 | `F1.1 Ngay` and `F1.1 Thang` contain **no formulas** — they are raw pasted summary exports (147 and 318 accepting-office × delivery-unit rows), and unlike the stale sheet of D-2 they are **internally consistent** (total row = sum of rows on every count column). Day: 1 950 evaluated, 1 665 đúng chỉ tiêu = **85,38 %**; month to date: 11 457 evaluated, 10 154 = **88,63 %**. |
+| E-7 | **Neither sheet is the 07/10 day.** Day denominator is 1 950 against 2 588 evaluated in `F1.1-2026.10.07.xlsx`; only 11 of 147 pair cells coincide. `F1.1 Thang` is nonetheless consistent with both: in **every** pair cell Thang ≥ Ngay + 07/10 detail (0 violations), i.e. they are two different days inside the same month window (residual 11 457 − 1 950 − 2 588 = 6 919 for the other days). Most likely `Ngay` is 08/10 (the N-1 of 09/10), but the files do not prove it → Q-13. **The (detail + raw summary) pair of one date therefore still does not exist.** |
+| E-8 | **`Bảng-LK` is a SUMIFS pivot over the pasted sheets.** Rows = accepting office (`Mã BC chấp nhận`, column D of the paste), columns = the 6 BCVH (`Mã BC phát`, column H), per BCVH four numbers: `SL ngày`, `Tỷ lệ ngày`, `SL tháng`, `Tỷ lệ tháng`, then a `Tổng cộng` block. **Pair rate = Σ(đúng chỉ tiêu) / Σ(SL PTC/NT/CH theo chỉ tiêu)** — exactly the `Đánh giá 2026` definition (column T / column S of the paste), so the pair table is the headline metric cut by (accepting office, delivering BCVH), and each row/column total equals the BCVH table figure by construction. |
+| E-9 | The office list is **hand-maintained**: a main block of 96 offices (rows 5–100) with SUMIFS, then a second block from row 103 of VLOOKUP copies (a priority watch list). **Six offices that appear in the month paste are missing from the list** — 534811 Quảng Thành, 535340 Hương Phong, 535511 Hương Chữ, 536161 Thủy Châu, 536190 Thủy Vân, 536720 Phú An (51 evaluated parcels, 0,45 % of the month). A manual list silently leaks volume; the system must derive the pair set from the data. |
+| E-10 | Accepting-office codes include the delivering BCVH codes themselves (533140, 535470, 536250, 537015): the diagonal "accepted and delivered in the same BCVH" is part of the table. |
+| E-11 | What the pair table already shows (month to date, from the paste): the largest pair is **531120 Khách hàng lớn → Thuận Hóa, 4 238 parcels at 97,9 %**; the weakest sizeable pairs are Phú Vang (536700) → Hương Thủy 156 @ 59,6 %, Thủy Phương (536210) → Hương Thủy 95 @ 60,0 %, Phú Lộc (537100) → Phú Lộc 272 @ 68,8 %, Hương Thủy (536100) → Hương Thủy 255 @ 73,7 %. Quality problems are therefore concentrated in specific pairs, which is exactly what the BCVH-only table hides. |
+
+### 24.3 The PO's own violation vocabulary (hidden `F1.1TH` notes)
+
+124 free-text cells (34 "Nguyên nhân", 33 "Công tác điều hành") record, per BCVH and day, a breakdown such as *"39 BG quá quy định, trong đó: Chậm cập nhật TTP 10; Chậm giao bưu tá 01; Chậm nộp tiền 12; Chậm thu gom/Chấp nhận 2; BC KTT chậm đóng chuyển 6; Khách quan 8"*, followed by a *"Yêu cầu"* addressed to a named unit head, with the detailed parcel list sent by Viber. Phrases found (occurrences across the notes): `Khách quan` 28; `Chậm cập nhật TTP` 35; `chậm đóng chuyển` 24 (BC chấp nhận / BC KTT variants); `Chậm giao bưu tá (BT)` 37; `Chậm nộp tiền` 18; `Chậm nhập TTP` 7; `Chậm thu gom / Chấp nhận` 10; `đóng lạc hướng` (BC chấp nhận, BC KTT); `Chậm phát (lại)`.
+
+These are **candidate** stage labels for the training session (Section 17), not rules: they map to units in a plausible way (thu gom/chấp nhận/đóng chuyển/lạc hướng → accepting office or BCKTT; giao bưu tá, cập nhật TTP, nộp tiền → delivering BCVH; khách quan → excluded from blame), but the stage boundaries and the owner of each stage are the PO's to define. They also fix an Evidence requirement: **per-unit violation lists that can be exported/pasted into Viber**, plus the daily "Nguyên nhân / Công tác điều hành" note (Q-12).
+
+### 24.4 Effect on the plan
+
+1. **F1.1 has two deliverable views from the same table `fact_f11`** — the BCVH operation table (delivery BCVH, 6 units) and the pair table (accepting office × delivering BCVH, day and month to date, all accepting offices derived from data). No second import is needed: both come from the detail rows, so the portal *summary* report is not imported; it is kept only as the reconciliation baseline (pair gate, Section 18). The F1.1-X1 block is therefore a first-ticket requirement (PD-8), not an option.
+2. The pair table gets its own index in DC-9 `(ngay_do_kiem, ma_bc_chap_nhan, ma_bc_phat, danh_gia_2026)`; EXPLAIN is recorded in Phase 1.
+3. DC-6 gains: `Thời gian thực tế`, `Thời gian chỉ tiêu 2026`, and the two evaluations are source values, never recomputed (E-3).
+4. The "accepting office → managing BCVH" mapping (Q-4b) is needed only for an accept-side *ranking*; the pair table itself needs no mapping.
+5. Phase 0 can open as soon as Q-2, Q-3 and Q-4a are answered.
+
+### 24.5 Questions added
+
+| ID | Question | Recommendation | Blocks |
+| --- | --- | --- | --- |
+| Q-13 | Which business date is sheet `F1.1 Ngay` in `Đánh giá CLP F1.1.xlsx` (and up to which date is `F1.1 Thang`)? Can the PO supply the detail file for that day, or the raw summary for 07/10? | Provide the detail for that day (it completes a pair with the summary already in the sheet). | reconciliation gate |
+| Q-14 | Pair table scope: day and month-to-date as today; also week? All accepting offices (derived from data) or a priority list; is a minimum cell volume wanted for colouring? | Day + month first, all offices from data, the PO's priority list as a saved filter; week later. | Dashboard |
