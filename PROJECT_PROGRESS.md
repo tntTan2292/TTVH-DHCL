@@ -2201,3 +2201,7 @@ F1.1 automatic download written from the evidence collected through the PO's Chr
 ## 2026-10-10 - F11-DASHBOARD-RANKING-01 BACKEND IMPLEMENTED (screens pending)
 
 F1.1 read APIs under /api/f11 (summary, daily trend, six-BCVH ranking, overview, weeks/months comparison) reusing the F4.1 service over a new FactF11Repository and the F1.1 national rank, plus the new pair table (accepting office x delivering BCVH + "Khac", day/week/month). 9 new tests incl. the PO real 07/10 file (2.621 / 2.348 / 89,58 %, rank 4/34); F4.1 and F1.1 national tests unchanged. Backend restart needed to expose the routes. Next: screens (Antigravity), Opus review, PO UI check. Manifest: docs/10_TICKETS/F11-DASHBOARD-RANKING-01_MANIFEST.md.
+
+## 2026-10-10 - F11-PHASE-3 SUPERVISED LIVE RUN PASSED (both lanes, DRY)
+
+F1.1 portal adapter run against the real portal for 2026-10-07: HUE detail 2.619 rows and TCT summary 84 pairs downloaded and reconciled with the portal summary figure by figure; differences from the PO files (exported 3 days earlier) are portal revisions of a past day (2 HUE parcels no longer listed, small TCT count changes), no evaluation column differs on common HUE rows. Probe fixed for TCT manual sign-in. Nothing imported, lanes still MANUAL_ONLY. Next: Opus review of the adapter, then enablement and backfill from 2026-01-01. Manifest Section 14: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.

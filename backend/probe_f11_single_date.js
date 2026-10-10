@@ -55,13 +55,25 @@ async function main() {
     });
     try {
         console.log(`\n[1] Opening the ${lane} DKCL session (sign in by hand if the portal asks) ...`);
-        await client.authenticate({
+        const authOptions = {
             baseUrl: process.env.PORTAL_BASE_URL,
             username: process.env[`PORTAL_${lane}_USERNAME`],
             password: process.env[`PORTAL_${lane}_PASSWORD`],
             hrmCode: process.env[`PORTAL_${lane}_HRM_CODE`],
             profileDir: profileEnv ? path.resolve(__dirname, '..', profileEnv) : undefined,
-        });
+        };
+        if (lane === 'TCT') {
+            // TCT keeps no stored credentials (as F4.1): reuse the profile's session, else the PO signs in by hand.
+            try {
+                await client.authenticate({ ...authOptions, requireExistingSession: true });
+            } catch (error) {
+                if (error?.code !== 'AUTHENTICATION_REQUIRED') throw error;
+                console.log('  No session in the TCT profile: sign in by hand in the open window ...');
+                if (!(await client.waitForManualAuthentication())) throw error;
+            }
+        } else {
+            await client.authenticate(authOptions);
+        }
 
         console.log(`\n[2] DRY run of the real one-date service for ${lane} ${businessDate} (no Incoming copy, no Import, no DB write) ...`);
         const Service = lane === 'HUE' ? F11HueSingleDateService : F11TctSingleDateService;

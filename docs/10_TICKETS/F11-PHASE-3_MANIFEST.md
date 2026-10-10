@@ -141,6 +141,22 @@ Validation: `test_f11PortalAdapter.js` 22/22; F1.1 import/parsers 50/50 unchange
 **Date rule to settle at enablement:** the 07/10 Huế file contains parcels completed on 08/10 and parcels not yet completed (33 blank rows), so a day is fetched on the next day (N-1), as the daily notice does; the queue's coverage rule decides the eligible dates.
 
 **Enablement step (after the live run passes, separate commit):** register `registerF11AutoBackfillExecutors` in `autoBackfillExecutors.js`; set F1.1 `ACTIVE` and both lanes `AUTOMATED` with `portalAdapter: {...F11_EXECUTOR_IDENTITIES.X, verified: true}` and the completion policy; add the registration-before-coordinator test; Opus review (a model other than the implementer); then the backfill from 2026-01-01.
+## 14. Supervised Live Run (2026-10-10, DRY, date 2026-10-07, both lanes)
+
+Status: `LIVE RUN PASSED / WAITING FOR OPUS REVIEW BEFORE ENABLEMENT`. Run by `Claude Code` through `backend/probe_f11_single_date.js` (no Incoming copy, no Import, no database write, portal file left in `portal-downloads/…/probe`). Huế used the stored session; TCT keeps no stored credentials, so the probe now reuses the profile session or waits for the PO to sign in by hand (probe fix in this commit; the adapter itself needed no change).
+
+| Lane | Portal result | Reconciliation by the service |
+| --- | --- | --- |
+| HUE | report opened, outer summary read, detail table opened, export form read from the portal response, file generated and downloaded (`…_F1.1_bao_cao_chat_luong_toan_trinh_buu_giay_noi_tinh_chi_tiet(1).xlsx`) | workbook 2.619 rows = summary 2.619; evaluated 2.587, passed 2.348, failed 239: all equal |
+| TCT | report opened, 85-row export form read from the portal, file generated and downloaded (`…_noi_tinh(1).xlsx`) | 84 province-pair rows; grand total row = sum of rows; totals 187.150 / evaluated 181.426 / passed 149.626 equal the summary |
+
+**Comparison with the PO files (fetched three days after the PO exported them).** The cell-by-cell check printed `DIFFERENT`, and the explanation is the portal revising a past day, not an adapter defect:
+
+- HUE, matched by parcel code: 2.619 common rows, 2 parcels only in the PO file (`CE373192494VN` Không đạt, `RB538233652VN` blank evaluation: the portal no longer lists them under 07/10). No difference in any evaluation or time column on the 2.619 common rows; differences only in customer name (77 rows), BD8 reference (2 rows) and row numbers.
+- TCT: same structure and 84 rows; differences are small count changes (total 187.593 → 187.150, passed 149.629 → 149.626, excluded volume) in 48 of 85 rows; Huế as delivering province keeps passed 2.348.
+- Consequence for acceptance: the criterion for enablement is "workbook = portal summary" (done by the service on every fetch) plus identical structure, not byte equality with an older export. This also confirms the N-1 rule (fetch a day only after it has settled) and that a later re-fetch may legitimately replace the stored day (`refreshRequested`).
+
+Not yet done: Opus review of the adapter (a model other than the implementer), then the enablement step of Section 13.
 ## 11. Next Step
 
 PO sends the evidence pack (Section 8). Then the contract draft and, if needed, one controlled live run. Dashboard and BCVH Ranking work (`F11-DASHBOARD-RANKING-01`) can start in parallel on the days already loaded, but the PO asked for data completeness first.
