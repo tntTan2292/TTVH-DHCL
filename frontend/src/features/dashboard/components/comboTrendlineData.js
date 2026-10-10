@@ -1,7 +1,7 @@
 export const QUALITY_TARGET_RATE = 90;
 export const VOLUME_AXIS_HEADROOM_RATE = 0.12;
 
-export function normalizeComboTrendlineItems(items = []) {
+export function normalizeComboTrendlineItems(items = [], targetRate = QUALITY_TARGET_RATE) {
   return items
     .map((item) => {
       const dataAvailable = Boolean(item.data_available);
@@ -16,9 +16,9 @@ export function normalizeComboTrendlineItems(items = []) {
         passed: dataAvailable ? Number(item.passed || 0) : null,
         failed: dataAvailable ? Number(item.failed || 0) : null,
         quality_rate: dataAvailable ? qualityRate : null,
-        target_rate: QUALITY_TARGET_RATE,
+        target_rate: targetRate,
         target_variance: dataAvailable && qualityRate !== null
-          ? Number((qualityRate - QUALITY_TARGET_RATE).toFixed(4))
+          ? Number((qualityRate - targetRate).toFixed(4))
           : null,
         national_rank: dataAvailable ? item.national_rank || null : null,
       };

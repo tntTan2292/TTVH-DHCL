@@ -9,7 +9,8 @@
 //
 // PO decisions (2026-10-08): F4.1 colour bands are the F1.3 colours with every threshold
 // +10 points (green >= 80, pink 70-80, yellow 60-70, red < 60); the chart target line stays
-// 90% for both indicators, so it is not parameterised.
+// 90% for both indicators. PO decision 2026-10-10: F1.1 targets 95%, so the target is now a setting of the
+// indicator (targetRate): F1.3 and F4.1 stay at 90, F1.1 uses 95.
 
 import { buildHeatmapBands } from '../../components/f13/f13HeatmapBandCatalog.js';
 
@@ -36,12 +37,15 @@ function buildKpiStatusBands(floors) {
   ]);
 }
 
+export const DEFAULT_TARGET_RATE = 90;
+
 export const F13_INDICATOR = Object.freeze({
   id: 'f13',
   moduleLabel: 'F1.3',
   apiBase: '/f13',
   routes: Object.freeze({ dashboard: '/f13/dashboard', ranking: '/f13/ranking/bcvh' }),
   endpoints: COMMON_ENDPOINTS,
+  targetRate: 90,
   heatmapFloors: Object.freeze([70, 60, 50]),
   heatmapBands: buildHeatmapBands([70, 60, 50]),
   kpiStatusBands: buildKpiStatusBands([70, 60, 50]),
@@ -54,6 +58,7 @@ export const F41_INDICATOR = Object.freeze({
   apiBase: '/f41',
   routes: Object.freeze({ dashboard: '/f41/dashboard', ranking: '/f41/ranking/bcvh' }),
   endpoints: Object.freeze({ ...COMMON_ENDPOINTS, kpi: '/dashboard/summary' }),
+  targetRate: 90,
   heatmapFloors: Object.freeze([80, 70, 60]),
   heatmapBands: buildHeatmapBands([80, 70, 60]),
   kpiStatusBands: buildKpiStatusBands([80, 70, 60]),
@@ -74,6 +79,7 @@ export const F11_INDICATOR = Object.freeze({
     nationalRanking: '/dashboard/national-ranking',
     pairTable: '/dashboard/pair-table',
   }),
+  targetRate: 95,
   heatmapFloors: Object.freeze([70, 60, 50]),
   heatmapBands: buildHeatmapBands([70, 60, 50]),
   kpiStatusBands: buildKpiStatusBands([70, 60, 50]),
@@ -87,6 +93,11 @@ export const F11_INDICATOR = Object.freeze({
 });
 
 export const INDICATORS = Object.freeze({ f11: F11_INDICATOR, f13: F13_INDICATOR, f41: F41_INDICATOR });
+
+// Target line of the quality charts, in percent (F1.3 / F4.1: 90, F1.1: 95).
+export function indicatorTargetRate(indicator = F13_INDICATOR) {
+  return Number.isFinite(indicator?.targetRate) ? indicator.targetRate : DEFAULT_TARGET_RATE;
+}
 
 // Full API path for a named endpoint of an indicator.
 export function indicatorEndpoint(key, indicator = F13_INDICATOR) {

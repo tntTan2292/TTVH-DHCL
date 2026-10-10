@@ -121,3 +121,9 @@ test('preview window offers right-click copy, save and close; it is excluded fro
   assert.match(source, /data-no-capture="true"/);
   assert.match(source, /URL\.revokeObjectURL/);
 });
+
+test('regression: the weekly/monthly comparison block passes defined variables to the camera button (a ReferenceError there would break the ranking page)', () => {
+  const source = fs.readFileSync(new URL('../../features/ranking/BcvhWeeklyComparisonBlock.jsx', import.meta.url), 'utf8');
+  assert.match(source, /dateOrPeriod=\{isMonth \? monthSelection\.current : selection\.current\}/);
+  assert.doesNotMatch(source, /\bselectedMonth\b|\bselectedWeek\b/);
+});

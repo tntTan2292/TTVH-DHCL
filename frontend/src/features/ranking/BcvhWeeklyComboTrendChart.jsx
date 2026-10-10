@@ -17,7 +17,6 @@ import {
   formatRate,
   formatVariance,
   getVolumeAxisMax,
-  QUALITY_TARGET_RATE,
 } from '../dashboard/components/comboTrendlineData.js';
 import {
   LABEL_ALL_MAX_POINTS,
@@ -38,6 +37,7 @@ import {
   F13_HEATMAP_HEX_COLOR,
 } from '../../components/f13/f13HeatmapBandCatalog.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
+import { indicatorTargetRate } from '../indicator/indicatorConfig.js';
 import {
   WEEKLY_TREND_TOTAL_KEY,
   getWeeklyTrendSeriesData,
@@ -82,6 +82,7 @@ function HeatmapRateActiveDot(props) {
 function WeeklyComboTooltip({ active, payload, label, unitName, compact = false }) {
   const indicator = useIndicator();
   const { heatmapBands } = indicator;
+  const targetRate = indicatorTargetRate(indicator);
   if (!active || !payload || !payload.length) return null;
 
   const point = payload.find((item) => item?.payload)?.payload || {};
@@ -146,7 +147,7 @@ function WeeklyComboTooltip({ active, payload, label, unitName, compact = false 
           <div className="flex items-center justify-between gap-3">
             <span className="text-slate-500">{indicator.id === 'f13' ? 'Mục tiêu KPI 2026:' : `Mục tiêu ${indicator.moduleLabel}:`}</span>
             <span className="font-semibold tabular-nums text-purple-700">
-              {QUALITY_TARGET_RATE}%
+              {targetRate}%
             </span>
           </div>
           <div className="flex items-center justify-between gap-3">
@@ -172,7 +173,9 @@ function SingleComboTrendChart({
   height = 340,
   isZoomed = false,
 }) {
-  const { heatmapBands } = useIndicator();
+  const indicator = useIndicator();
+  const { heatmapBands } = indicator;
+  const targetRate = indicatorTargetRate(indicator);
   const gradId = useId().replace(/:/g, '_');
   const volumeAxisMax = getVolumeAxisMax(seriesData);
 
@@ -250,11 +253,11 @@ function SingleComboTrendChart({
           <Tooltip content={<WeeklyComboTooltip unitName={unitName} />} />
           <ReferenceLine
             yAxisId="rate"
-            y={QUALITY_TARGET_RATE}
+            y={targetRate}
             stroke="#DC2626"
             strokeDasharray="6 4"
             strokeWidth={2}
-            label={<ReferenceTargetLabel value={`Mục tiêu ${QUALITY_TARGET_RATE}%`} />}
+            label={<ReferenceTargetLabel value={`Mục tiêu ${targetRate}%`} />}
           />
           <Bar
             yAxisId="volume"
@@ -302,7 +305,9 @@ function SmallMultiplesGrid({
   unitColors = {},
   isZoomed = false,
 }) {
-  const { heatmapBands } = useIndicator();
+  const indicator = useIndicator();
+  const { heatmapBands } = indicator;
+  const targetRate = indicatorTargetRate(indicator);
   return (
     <div className="w-full">
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-2.5 text-xs pr-40 sm:pr-48">
@@ -319,7 +324,7 @@ function SmallMultiplesGrid({
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {CANONICAL_BCVH_CODES.map((code) => {
-          const unitData = getWeeklyTrendSeriesData(view, code);
+          const unitData = getWeeklyTrendSeriesData(view, code, targetRate);
           const rawUnitName = unitNames[code] || CANONICAL_NAMES[code] || code;
           const unitName = rawUnitName.startsWith('BCVH') ? rawUnitName : `BCVH ${rawUnitName}`;
           const unitColor = unitColors[code] || BCVH_COLORS[code] || '#2563eb';
@@ -409,7 +414,7 @@ function SmallMultiplesGrid({
                     <Tooltip content={<WeeklyComboTooltip unitName={unitName} compact />} />
                     <ReferenceLine
                       yAxisId="rate"
-                      y={QUALITY_TARGET_RATE}
+                      y={targetRate}
                       stroke="#DC2626"
                       strokeDasharray="4 4"
                       strokeWidth={1.5}
@@ -469,6 +474,7 @@ export default function BcvhWeeklyComboTrendChart({
   unitColors = {},
   height = 340,
 }) {
+  const targetRate = indicatorTargetRate(useIndicator());
   if (!data || data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm font-semibold text-slate-400">
@@ -502,7 +508,7 @@ export default function BcvhWeeklyComboTrendChart({
                 />
               ) : (
                 <SingleComboTrendChart
-                  seriesData={getWeeklyTrendSeriesData(view, unit)}
+                  seriesData={getWeeklyTrendSeriesData(view, unit, targetRate)}
                   unitName={unitLabel}
                   height={height}
                   isZoomed={isZoomed}

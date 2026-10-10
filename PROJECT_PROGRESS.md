@@ -2249,3 +2249,7 @@ Antigravity round 2 (commit 5ff1d60): indicator matrix plus aligned day table. O
 ## 2026-10-10 - UI-IMPORT-DAYVIEW-01 CLOSED / PO UI PASS
 
 Product Owner checked the redesigned Data Import Center (Bù dữ liệu tự động) and confirmed PO UI PASS. Presentation only, no function change; commits 0f2bf21, 5ff1d60 (Antigravity), db0df1f, 85749f8 (Claude Code fixes after Opus reviews). Frontend 622/622, build and lint clean. Residual: unused MonthlyAccordionGroup can be removed in a clean-up. Closure record: docs/10_TICKETS/UI-IMPORT-DAYVIEW-01_MANIFEST.md Section 11.
+
+## 2026-10-10 - F1.1 CHART TARGET 95 % (+ run-time defect fixed)
+
+Chart target line is now a setting of the indicator: F1.1 95 %, F1.3/F4.1 90 % (PO decision). All live charts, legends, below-target markers and risk text read it; helpers default to 90 so F1.3/F4.1 are unchanged. A static undefined-identifier check also found that the camera button of the weekly/monthly comparison block referenced undefined variables (would have broken the BCVH Ranking page of every indicator): fixed with a regression test. Frontend 627/627, build ok. Reported, not touched: getApiErrorDetail (DataImportCenter) and setLoadingMeta (PostmanCatalogPage). Manifest Section 11: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.

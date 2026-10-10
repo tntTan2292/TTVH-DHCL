@@ -13,7 +13,7 @@ export function getFailedRate(point) {
   return Number(((Number(point.failed || 0) / Number(point.total_volume)) * 100).toFixed(2));
 }
 
-export function withTrendSemantics(point = {}) {
+export function withTrendSemantics(point = {}, targetRate = QUALITY_TARGET_RATE) {
   const failedRate = getFailedRate(point);
   const qualityRate = point.quality_rate === null || point.quality_rate === undefined
     ? null
@@ -22,27 +22,27 @@ export function withTrendSemantics(point = {}) {
   return {
     ...point,
     failed_rate: failedRate,
-    target_rate: QUALITY_TARGET_RATE,
-    below_target: Boolean(point.data_available && qualityRate !== null && qualityRate < QUALITY_TARGET_RATE),
+    target_rate: targetRate,
+    below_target: Boolean(point.data_available && qualityRate !== null && qualityRate < targetRate),
     abnormal_day: false,
   };
 }
 
-export function buildThirtyDayTrendRows(items = []) {
-  return items.map(withTrendSemantics);
+export function buildThirtyDayTrendRows(items = [], targetRate = QUALITY_TARGET_RATE) {
+  return items.map((item) => withTrendSemantics(item, targetRate));
 }
 
-export function buildSevenDayComparisonRows(items = [], toDate) {
+export function buildSevenDayComparisonRows(items = [], toDate, targetRate = QUALITY_TARGET_RATE) {
   return buildSamePeriodComparisonRows(items, toDate).map((row) => {
-    const current = row.current_point ? withTrendSemantics(row.current_point) : null;
-    const previous = row.previous_point ? withTrendSemantics(row.previous_point) : null;
+    const current = row.current_point ? withTrendSemantics(row.current_point, targetRate) : null;
+    const previous = row.previous_point ? withTrendSemantics(row.previous_point, targetRate) : null;
 
     return {
       ...row,
       total_volume: row.current_volume,
       quality_rate: row.current_quality,
       failed_rate: current?.failed_rate ?? null,
-      target_rate: QUALITY_TARGET_RATE,
+      target_rate: targetRate,
       previous_quality_rate: row.previous_quality,
       previous_total_volume: row.previous_volume,
       below_target: Boolean(current?.below_target),
@@ -213,14 +213,14 @@ export function buildSevenDayVisibleComparisonEvidence(items = [], toDate) {
   });
 }
 
-export function buildIntegratedTrendRows({ mode, items = [], toDate } = {}) {
-  if (mode === '7-days') return buildSevenDayComparisonRows(items, toDate);
+export function buildIntegratedTrendRows({ mode, items = [], toDate, targetRate = QUALITY_TARGET_RATE } = {}) {
+  if (mode === '7-days') return buildSevenDayComparisonRows(items, toDate, targetRate);
   if (mode === 'by-bcvh') return buildBcvhModeRows(items);
-  return buildThirtyDayTrendRows(items);
+  return buildThirtyDayTrendRows(items, targetRate);
 }
 
-export function summarizeRiskEvidence(items = [], kpiData = null, pulse = null) {
-  const rows = buildThirtyDayTrendRows(items);
+export function summarizeRiskEvidence(items = [], kpiData = null, pulse = null, targetRate = QUALITY_TARGET_RATE) {
+  const rows = buildThirtyDayTrendRows(items, targetRate);
   const availableRows = rows.filter((item) => item.data_available);
   const belowTargetRows = availableRows.filter((item) => item.below_target);
   const latest = [...availableRows].reverse()[0] || null;
@@ -248,7 +248,7 @@ export function summarizeRiskEvidence(items = [], kpiData = null, pulse = null) 
       tone: 'warning',
       title: 'Ngày dưới mức mục tiêu',
       unit: 'Chuỗi xu hướng 30 ngày',
-      evidence: `${belowTargetRows.length} ngày dưới mục tiêu ${QUALITY_TARGET_RATE}%; gần nhất ${belowTargetRows.at(-1)?.date}.`,
+      evidence: `${belowTargetRows.length} ngày dưới mục tiêu ${targetRate}%; gần nhất ${belowTargetRows.at(-1)?.date}.`,
       note: 'Chờ xác nhận nguyên nhân vận hành.',
     });
   }

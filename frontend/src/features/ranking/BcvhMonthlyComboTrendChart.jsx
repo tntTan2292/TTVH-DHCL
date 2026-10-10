@@ -18,7 +18,6 @@ import {
   formatRate,
   formatVariance,
   getVolumeAxisMax,
-  QUALITY_TARGET_RATE,
 } from '../dashboard/components/comboTrendlineData.js';
 import { selectLabelIndexes } from '../dashboard/components/chartDataLabels.js';
 import {
@@ -31,6 +30,7 @@ import {
   F13_HEATMAP_HEX_COLOR,
 } from '../../components/f13/f13HeatmapBandCatalog.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
+import { indicatorTargetRate } from '../indicator/indicatorConfig.js';
 
 function HeatmapRateDot(props) {
   const { heatmapBands } = useIndicator();
@@ -71,6 +71,7 @@ function HeatmapRateActiveDot(props) {
 function MonthlyComboTooltip({ active, payload, label, unitName, anchorDate = null, compact = false }) {
   const indicator = useIndicator();
   const { heatmapBands } = indicator;
+  const targetRate = indicatorTargetRate(indicator);
   if (!active || !payload || !payload.length) return null;
 
   const point = payload.find((item) => item?.payload)?.payload || {};
@@ -139,7 +140,7 @@ function MonthlyComboTooltip({ active, payload, label, unitName, anchorDate = nu
           <div className="flex items-center justify-between gap-3">
             <span className="text-slate-500">{indicator.id === 'f13' ? 'Mục tiêu KPI 2026:' : `Mục tiêu ${indicator.moduleLabel}:`}</span>
             <span className="font-semibold tabular-nums text-purple-700">
-              {QUALITY_TARGET_RATE}%
+              {targetRate}%
             </span>
           </div>
           <div className="flex items-center justify-between gap-3">
@@ -165,6 +166,7 @@ function SingleMonthlyComboTrendChart({
 }) {
   const indicator = useIndicator();
   const { heatmapBands } = indicator;
+  const targetRate = indicatorTargetRate(indicator);
   const gradId = useId().replace(/:/g, '_');
   const volumeAxisMax = getVolumeAxisMax(seriesData);
 
@@ -227,11 +229,11 @@ function SingleMonthlyComboTrendChart({
 
           <ReferenceLine
             yAxisId="rate"
-            y={QUALITY_TARGET_RATE}
+            y={targetRate}
             stroke="#DC2626"
             strokeDasharray="6 4"
             strokeWidth={1.5}
-            label={<ReferenceTargetLabel value={`Mục tiêu ${QUALITY_TARGET_RATE}%`} />}
+            label={<ReferenceTargetLabel value={`Mục tiêu ${targetRate}%`} />}
           />
 
           <Bar
@@ -292,7 +294,9 @@ function SmallMultiplesMonthlyGrid({
   unitColors = {},
   anchorDate = null,
 }) {
-  const { heatmapBands } = useIndicator();
+  const indicator = useIndicator();
+  const { heatmapBands } = indicator;
+  const targetRate = indicatorTargetRate(indicator);
   return (
     <div className="w-full">
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3.5 py-2.5 text-xs">
@@ -309,7 +313,7 @@ function SmallMultiplesMonthlyGrid({
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
         {CANONICAL_BCVH_CODES.map((code) => {
-          const unitData = getMonthlyTrendSeriesData(chartData, code);
+          const unitData = getMonthlyTrendSeriesData(chartData, code, targetRate);
           const unitName = unitNames[code] || CANONICAL_NAMES[code] || code;
           const unitColor = unitColors[code] || BCVH_COLORS[code] || '#2563eb';
           const volumeAxisMax = getVolumeAxisMax(unitData);
@@ -400,7 +404,7 @@ function SmallMultiplesMonthlyGrid({
 
                     <ReferenceLine
                       yAxisId="rate"
-                      y={QUALITY_TARGET_RATE}
+                      y={targetRate}
                       stroke="#DC2626"
                       strokeDasharray="4 3"
                       strokeWidth={1}
@@ -472,6 +476,7 @@ export default function BcvhMonthlyComboTrendChart({
   anchorDate = null,
   height = 320,
 }) {
+  const targetRate = indicatorTargetRate(useIndicator());
   if (!chartData || chartData.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm font-semibold text-slate-400">
@@ -494,7 +499,7 @@ export default function BcvhMonthlyComboTrendChart({
         />
       ) : (
         <SingleMonthlyComboTrendChart
-          seriesData={getMonthlyTrendSeriesData(chartData, unit)}
+          seriesData={getMonthlyTrendSeriesData(chartData, unit, targetRate)}
           unitName={unitLabel}
           anchorDate={anchorDate}
           height={height}

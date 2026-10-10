@@ -637,7 +637,7 @@ export default function BcvhWeeklyComparisonBlock() {
             <BlockCaptureButton
               targetRef={captureRef}
               blockTitle={isMonth ? 'So sánh chất lượng BCVH theo tháng' : 'So sánh chất lượng BCVH theo tuần'}
-              dateOrPeriod={isMonth ? selectedMonth : selectedWeek}
+              dateOrPeriod={isMonth ? monthSelection.current : selection.current}
             />
           </div>
           <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug">

@@ -234,7 +234,7 @@ export function processOverviewData(data = {}, meta = {}) {
  * Extracts a flattened series data array for a given unit from monthlyChartData.
  * Format is completely aligned with getWeeklyTrendSeriesData.
  */
-export function getMonthlyTrendSeriesData(chartData = [], unitKey = 'total') {
+export function getMonthlyTrendSeriesData(chartData = [], unitKey = 'total', targetRate = 90) {
   return chartData.map((row) => {
     const entry = unitKey === 'total' || unitKey === 'WEEKLY_TREND_TOTAL_KEY'
       ? row.total
@@ -251,8 +251,11 @@ export function getMonthlyTrendSeriesData(chartData = [], unitKey = 'total') {
       passed: entry?.passed ?? null,
       failed: entry?.failed ?? null,
       quality_rate: entry?.quality_rate ?? null,
-      target_rate: entry?.target_rate ?? 90,
-      target_variance: entry?.target_variance ?? null,
+      // the monthly rows carry the default 90 line; the series is re-targeted to the indicator's target
+      target_rate: targetRate,
+      target_variance: entry?.quality_rate === null || entry?.quality_rate === undefined
+        ? null
+        : Number((Number(entry.quality_rate) - targetRate).toFixed(2)),
       days_with_data: entry?.days_with_data ?? 0,
       days_in_period: entry?.days_in_period ?? 0,
     };

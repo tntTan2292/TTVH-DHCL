@@ -22,7 +22,7 @@ import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboar
 import F11PairTableBlock from '../f11/components/F11PairTableBlock.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
-import { indicatorLabel } from '../indicator/indicatorConfig.js';
+import { indicatorLabel, indicatorTargetRate } from '../indicator/indicatorConfig.js';
 
 export default function DashboardPage() {
   const indicator = useIndicator();
@@ -203,7 +203,7 @@ export default function DashboardPage() {
           setTrendState({
             loading: false,
             error: null,
-            data: normalizeComboTrendlineItems(response.data?.data?.items || []),
+            data: normalizeComboTrendlineItems(response.data?.data?.items || [], indicatorTargetRate(indicator)),
           });
         }
       } catch (error) {

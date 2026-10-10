@@ -139,7 +139,7 @@ test('weekly trend block contract: under the weekly table, anchor-week driven, c
   // combo chart structure: volume bar + quality rate line + 90% target + ChartZoomFrame
   assert.match(comboChart, /ChartZoomFrame/);
   assert.match(comboChart, /ComposedChart/);
-  assert.match(comboChart, /QUALITY_TARGET_RATE/);
+  assert.match(comboChart, /indicatorTargetRate/); // the target line comes from the indicator (F1.3/F4.1 90, F1.1 95)
   assert.match(comboChart, /renderVolumeBarLabel/);
   assert.match(comboChart, /renderRateLabel/);
   assert.match(comboChart, /SmallMultiplesGrid/);
@@ -167,7 +167,7 @@ test('monthly trend block contract: combo bar/line chart with unit filter, small
 
   // Monthly combo chart features
   assert.match(monthlyChart, /ComposedChart/);
-  assert.match(monthlyChart, /QUALITY_TARGET_RATE/);
+  assert.match(monthlyChart, /indicatorTargetRate/);
   assert.match(monthlyChart, /renderVolumeBarLabel/);
   assert.match(monthlyChart, /renderRateLabel/);
   assert.match(monthlyChart, /SmallMultiplesMonthlyGrid/);

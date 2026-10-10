@@ -9,6 +9,10 @@ version: 1.0.0
 
 # Changelog
 
+## v1.0.5 - 2026-10-10
+
+- Chart target line of F1.1 is 95 % (PO); F1.3 and F4.1 keep 90 %. The target is a setting of the indicator on the screens.
+
 ## v1.0.4 - 2026-10-10
 
 - First Auto Backfill (01-08/10) exposed two source quirks, now handled: negative `Thời gian thực tế` on weekend-spanning parcels (accepted as given) and a 1-2 parcel gap between the portal summary and the detail in evaluated/failed counts (accepted up to 2 % of the day's total, total and passed exact; PO decision). See `business_rules.md` §13.

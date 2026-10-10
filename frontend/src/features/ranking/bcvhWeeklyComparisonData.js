@@ -510,7 +510,7 @@ export function buildWeeklyTrendChartData(weeks) {
  * { week_id, label, rangeLabel, dataThroughNote, is_in_progress, last_data_date,
  *   total_volume, passed, failed, quality_rate, target_rate: 90, target_variance }.
  */
-export function getWeeklyTrendSeriesData(chartRows = [], unitKey = WEEKLY_TREND_TOTAL_KEY) {
+export function getWeeklyTrendSeriesData(chartRows = [], unitKey = WEEKLY_TREND_TOTAL_KEY, targetRate = QUALITY_TARGET_RATE) {
   if (!Array.isArray(chartRows) || !chartRows.length) return [];
   const isTotal = unitKey === WEEKLY_TREND_TOTAL_KEY;
 
@@ -520,7 +520,7 @@ export function getWeeklyTrendSeriesData(chartRows = [], unitKey = WEEKLY_TREND_
     const pass = item?.passed !== null && item?.passed !== undefined ? Number(item.passed) : null;
     const rate = item?.rate !== null && item?.rate !== undefined ? Number(item.rate) : null;
     const failed = item?.failed !== null && item?.failed !== undefined ? Number(item.failed) : null;
-    const targetVariance = rate !== null ? Number((rate - QUALITY_TARGET_RATE).toFixed(2)) : null;
+    const targetVariance = rate !== null ? Number((rate - targetRate).toFixed(2)) : null;
 
     return {
       week_id: row.week_id,
@@ -535,7 +535,7 @@ export function getWeeklyTrendSeriesData(chartRows = [], unitKey = WEEKLY_TREND_
       passed: pass,
       failed,
       quality_rate: rate,
-      target_rate: QUALITY_TARGET_RATE,
+      target_rate: targetRate,
       target_variance: targetVariance,
     };
   });

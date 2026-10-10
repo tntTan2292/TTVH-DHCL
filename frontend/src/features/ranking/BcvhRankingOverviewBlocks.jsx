@@ -25,6 +25,7 @@ import {
 } from '../dashboard/components/operatingPatternTabsData';
 import { buildMonthlyHeatmapLegend, indicatorLabel } from '../indicator/indicatorConfig.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
+import { indicatorTargetRate } from '../indicator/indicatorConfig.js';
 
 // Legend copy for the monthly heatmap below. Colors reuse the shared HEATMAP_BAND_DOT_CLASS
 // tones; the wording here is this table's own legend text, not the SSOT's threshold logic.
@@ -126,7 +127,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
             </span>
             <span className="inline-flex items-center gap-2 font-semibold">
               <span className="h-2 w-5 border-t-2 border-dashed border-[#dc2626]" />
-              Mục tiêu 90%
+              Mục tiêu {indicatorTargetRate(indicator)}%
             </span>
           </div>
           <div className="text-[11px] text-slate-500 font-medium">

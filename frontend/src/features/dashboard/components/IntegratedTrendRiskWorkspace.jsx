@@ -18,8 +18,9 @@ import {
   formatNumber,
   formatRate,
   getVolumeAxisMax,
-  QUALITY_TARGET_RATE,
 } from './comboTrendlineData';
+import { useIndicator } from '../../indicator/IndicatorContext.js';
+import { indicatorTargetRate } from '../../indicator/indicatorConfig.js';
 import { DASHBOARD_LABELS, DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
 import { ReferenceTargetLabel, renderRateLabel, renderVolumeBarLabel } from './ChartLabelRenderers';
 import ChartZoomFrame from './ChartZoomFrame';
@@ -173,6 +174,7 @@ function TrendChart({ rows, mode }) {
 }
 
 function TrendChartPlot({ rows, mode }) {
+  const targetRate = indicatorTargetRate(useIndicator());
   const volumeAxisMax = getVolumeAxisMax(rows);
   const xKey = mode === '7-days' ? 'dayLabel' : mode === 'by-bcvh' ? 'date_label' : 'date';
   const rateLabelIndexes = selectLabelIndexes(rows, 'quality_rate');
@@ -238,11 +240,11 @@ function TrendChartPlot({ rows, mode }) {
           <Tooltip content={<IntegratedTooltip />} />
           <ReferenceLine
             yAxisId="rate"
-            y={QUALITY_TARGET_RATE}
+            y={targetRate}
             stroke="#DC2626"
             strokeDasharray="6 4"
             strokeWidth={2}
-            label={<ReferenceTargetLabel value={`Mục tiêu ${QUALITY_TARGET_RATE}%`} />}
+            label={<ReferenceTargetLabel value={`Mục tiêu ${targetRate}%`} />}
           />
           <Bar yAxisId="volume" dataKey="total_volume" name={DASHBOARD_LABELS.volume} fill="url(#volumeBarGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={renderVolumeBarLabel({ visible: volumeLabelIndexes })} />
           {mode === '7-days' ? (
@@ -427,7 +429,8 @@ export default function IntegratedTrendRiskWorkspace({
   mode = '30-days',
   onModeChange,
 }) {
-  const rows = useMemo(() => buildIntegratedTrendRows({ mode, items: data, toDate }), [data, mode, toDate]);
+  const targetRate = indicatorTargetRate(useIndicator());
+  const rows = useMemo(() => buildIntegratedTrendRows({ mode, items: data, toDate, targetRate }), [data, mode, toDate, targetRate]);
   const leadershipComparisons = useMemo(
     () => buildLeadershipComparisonWidgets({ items: data, fromDate, toDate, comparisonContract: kpiData?.comparisons }),
     [data, fromDate, toDate, kpiData?.comparisons],
@@ -498,7 +501,7 @@ export default function IntegratedTrendRiskWorkspace({
               {mode === '7-days' ? <LegendItem color="#64748B" label="Sản lượng kỳ so sánh" shape="bar" /> : null}
               <LegendItem color="#059669" label="Tỷ lệ đạt, trục phải" />
               {mode === '7-days' ? <LegendItem color={COLORS.comparison} label="Tỷ lệ đạt kỳ so sánh" dashed /> : null}
-              <LegendItem color="#DC2626" label={`Mục tiêu ${QUALITY_TARGET_RATE}%`} dashed />
+              <LegendItem color="#DC2626" label={`Mục tiêu ${targetRate}%`} dashed />
               <LegendItem color={COLORS.warning} label="Marker dưới mục tiêu" />
             </div>
           </div>
