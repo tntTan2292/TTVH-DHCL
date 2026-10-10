@@ -9,6 +9,10 @@ version: 1.0.0
 
 # Changelog
 
+## v1.0.3 - 2026-10-10
+
+- Status `Active`: screens delivered (`F11-DASHBOARD-UI-01`) — Operation Dashboard and BCVH Ranking in the F4.1 pattern with F1.3 colours and Thursday–Wednesday weeks, "Vị thứ toàn quốc x/34" in the KPI card and the day / week / month headers, and the accepting-office × delivering-BCVH table (day / week / month, column "Khác", no rank numbers for accepting offices). Unevaluated parcels count as "Không đạt" everywhere, without a separate note (PO). The 34-province table is not on the F1.1 screens (PO: it goes to the Home page later; the server endpoint is kept). The operations table now follows the Dashboard date filter for F1.3, F4.1 and F1.1, and every report block has a camera button (one click copies the picture; HTTPS on the LAN, `QIS-HTTPS-LAN-01`).
+
 ## v1.0.2 - 2026-10-10
 
 - F11-PHASE-3: automatic download verified against the real portal for 2026-10-07 (both lanes, DRY) and enabled in code (`ACTIVE`, lanes `AUTOMATED`). The portal revises past days (07/10: 2 Huế parcels dropped, TCT counts moved after 3 days), so Auto Backfill also re-imports the last 3 completed days on each unscoped run (`refreshWindowDays: 3`). TCT completion policy keyed on (accepting province, delivering province) with all 34 ranked provinces required.

@@ -1,6 +1,6 @@
 # F11-DASHBOARD-UI-01 Manifest
 
-Status: `READY FOR ANTIGRAVITY (2026-10-10)`. Screens for F1.1 (toàn trình nội tỉnh): Operation Dashboard and BCVH Ranking, plus two blocks leaders need to see at a glance: the **province/city table** and the **accepting-office × delivering-BCVH table**. Backend is done (`F11-DASHBOARD-RANKING-01`); this ticket is frontend only.
+Status: `DELIVERED / REVIEWED / READY FOR PO CHECK (2026-10-10)`; see Sections 9-10 for the PO delta and the review. Screens for F1.1 (toàn trình nội tỉnh): Operation Dashboard and BCVH Ranking plus the accepting-office × delivering-BCVH table; operations table follows the date filter for all three indicators; camera button on the report blocks. The province/city table of Section 4.2 was removed by PO decision (it will go to the Home page later). Frontend only.
 
 ## Table of Contents
 

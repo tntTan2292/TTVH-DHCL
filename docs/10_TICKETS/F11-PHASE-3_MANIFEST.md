@@ -1,6 +1,6 @@
 # F11-PHASE-3 Manifest
 
-Status: `ACTIVATED / DISCOVERY PLAN READY / WAITING FOR PO EVIDENCE PACK (2026-10-09)`. Portal discovery and automatic download for F1.1 (Huế and TCT). Nothing has been run against the portal, no export, no Import, no database write.
+Status: `IMPLEMENTED / LIVE RUN PASSED / REVIEWED (Opus) / ENABLED IN CODE (2026-10-10)`. Portal discovery and automatic download for F1.1 (Huế and TCT): see Sections 12-16 (live evidence, implementation, supervised run, Opus review and the completion-policy fix, enablement and the 3-day refresh window). Waiting for the PO to run the first Auto Backfill for F1.1 (backend restarted, DKCL sessions signed in).
 
 ## Table of Contents
 

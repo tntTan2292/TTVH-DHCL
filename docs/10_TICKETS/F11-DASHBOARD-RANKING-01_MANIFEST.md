@@ -1,6 +1,6 @@
 # F11-DASHBOARD-RANKING-01 Manifest
 
-Status: `BACKEND IMPLEMENTED / TECH PASS (2026-10-10)`; screens (Antigravity), independent review and PO UI check still to do. Read APIs for the F1.1 Operation Dashboard, BCVH Ranking and the accepting-office × delivering-BCVH pair table. No screen yet, no Evidence, no portal.
+Status: `BACKEND DONE / SCREENS DELIVERED (F11-DASHBOARD-UI-01) / WAITING FOR THE PO UI CHECK WITH REAL DATA (2026-10-10)`. Read APIs for the F1.1 Operation Dashboard, BCVH Ranking, the accepting-office × delivering-BCVH pair table, dashboard meta and the 34-province national ranking (the last one is kept for the future Home page; the F1.1 screens do not show it). No Evidence, no portal.
 
 ## Table of Contents
 
