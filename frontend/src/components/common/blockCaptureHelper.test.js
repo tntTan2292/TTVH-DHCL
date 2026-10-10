@@ -7,6 +7,8 @@ import {
   buildCaptureFileName,
   buildCaptureCaption,
   copyBlobToClipboard,
+  copyBlobViaSelection,
+  canUseAsyncImageClipboard,
 } from './blockCaptureHelper.js';
 
 test('slugifyText correctly converts Vietnamese accents and punctuation to ASCII slug', () => {
@@ -81,4 +83,32 @@ test('Report blocks across Dashboard and BCVH Ranking expose BlockCaptureButton'
       `Block ${relativePath} must import and expose BlockCaptureButton`,
     );
   }
+});
+
+test('copy helpers refuse cleanly outside a browser: no secure clipboard, no selection copy', async () => {
+  assert.equal(canUseAsyncImageClipboard(), false);
+  assert.equal(await copyBlobViaSelection({}), false);
+  assert.equal(await copyBlobToClipboard(Promise.resolve({})), false);
+});
+
+test('camera button: one click copies the image, a second small button saves the file', () => {
+  const source = fs.readFileSync(new URL('./BlockCaptureButton.jsx', import.meta.url), 'utf8');
+  assert.match(source, /onClick=\{\(\) => handleCapture\('copy'\)\}/);
+  assert.match(source, /onClick=\{\(\) => handleCapture\('save'\)\}/);
+  assert.doesNotMatch(source, /isOpen/);
+});
+
+test('copy is requested inside the click, before any await (clipboard needs the user action)', () => {
+  const source = fs.readFileSync(new URL('./blockCaptureHelper.js', import.meta.url), 'utf8');
+  const body = source.slice(source.indexOf('export async function executeBlockCapture'))
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('//'))
+    .join('\n');
+  const firstAwait = body.indexOf('await ');
+  const startRender = body.indexOf('const blobPromise = captureElementToBlob');
+  assert.ok(startRender > 0 && startRender < firstAwait, 'rendering starts before the first await');
+  assert.match(body, /copyBlobToClipboard\(blobPromise\)/);
+  assert.match(body, /copyBlobViaSelection\(blob\)/);
+  // the file is saved only after both kinds of copy failed
+  assert.ok(body.indexOf("copyBlobViaSelection(blob)") < body.indexOf("'save_fallback'"));
 });

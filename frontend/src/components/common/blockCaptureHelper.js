@@ -59,21 +59,78 @@ export function buildCaptureCaption({ indicator = 'F1.3', blockTitle = '', dateO
 }
 
 /**
- * Attempt to copy image Blob to clipboard.
- * Returns true on success, false if unsupported or failed.
+ * True when the async Clipboard API can write an image: only on https or localhost (a "secure context").
+ * The system is also opened through plain-http network addresses, where the browser hides this API.
  */
-export async function copyBlobToClipboard(blob) {
-  if (typeof navigator === 'undefined' || !navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
-    return false;
-  }
+export function canUseAsyncImageClipboard() {
+  return typeof window !== 'undefined'
+    && window.isSecureContext === true
+    && typeof navigator !== 'undefined'
+    && Boolean(navigator.clipboard?.write)
+    && typeof ClipboardItem !== 'undefined';
+}
+
+/**
+ * Copy an image with the async Clipboard API. Accepts a Blob or a Promise<Blob>: a promise lets the call
+ * be made inside the click handler (while the browser still treats it as a user action) before the image
+ * has finished rendering. Returns true on success, false if unsupported or refused.
+ */
+export async function copyBlobToClipboard(blobOrPromise) {
+  if (!blobOrPromise || !canUseAsyncImageClipboard()) return false;
   try {
     await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': blob }),
+      new ClipboardItem({ 'image/png': blobOrPromise }),
     ]);
     return true;
   } catch (err) {
     console.warn('[BlockCapture] navigator.clipboard.write failed:', err);
     return false;
+  }
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error || new Error('Không đọc được dữ liệu ảnh'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Copy an image on pages opened through plain http, where the async Clipboard API does not exist: the image
+ * is placed in an invisible editable element, selected, and copied with the classic copy command (the same
+ * thing as selecting a picture on a page and pressing Ctrl+C). Returns true when the browser accepted it.
+ */
+export async function copyBlobViaSelection(blob) {
+  if (!blob || typeof document === 'undefined' || typeof document.execCommand !== 'function') return false;
+  let host = null;
+  try {
+    const dataUrl = await blobToDataUrl(blob);
+    host = document.createElement('div');
+    host.setAttribute('contenteditable', 'true');
+    host.setAttribute('data-no-capture', 'true');
+    host.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;';
+    const image = document.createElement('img');
+    image.alt = '';
+    host.appendChild(image);
+    document.body.appendChild(host);
+    image.src = dataUrl;
+    if (typeof image.decode === 'function') await image.decode();
+
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNode(image);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    const copied = document.execCommand('copy');
+    selection.removeAllRanges();
+    return Boolean(copied);
+  } catch (err) {
+    console.warn('[BlockCapture] selection copy failed:', err);
+    return false;
+  } finally {
+    if (host && host.parentNode) host.parentNode.removeChild(host);
   }
 }
 
@@ -190,30 +247,33 @@ export async function executeBlockCapture({
 }) {
   const captionInfo = buildCaptureCaption({ indicator, blockTitle, dateOrPeriod });
   const filename = buildCaptureFileName({ indicator, blockTitle, dateOrPeriod });
-  const blob = await captureElementToBlob(element, { captionInfo });
-
-  if (!blob) {
-    throw new Error('Không thể tạo dữ liệu ảnh PNG');
-  }
+  // Start rendering right away (no await before this line): the clipboard call below must still happen
+  // inside the click that started the capture, or the browser refuses it.
+  const blobPromise = captureElementToBlob(element, { captionInfo });
 
   if (action === 'copy') {
-    const copied = await copyBlobToClipboard(blob);
-    if (!copied) {
-      // Fallback to download if clipboard write fails (e.g. HTTP)
-      downloadBlob(blob, filename);
-      return {
-        success: true,
-        action: 'save_fallback',
-        message: 'Đã tự động tải tệp PNG do trình duyệt chặn clipboard.',
-        filename,
-      };
+    const clipboardCopied = canUseAsyncImageClipboard() ? await copyBlobToClipboard(blobPromise) : false;
+    if (clipboardCopied) {
+      return { success: true, action: 'copy', message: 'Đã sao chép ảnh. Bấm Ctrl+V để dán vào Zalo/Viber/email.', filename };
     }
+    const blob = await blobPromise;
+    if (!blob) throw new Error('Không thể tạo dữ liệu ảnh PNG');
+    if (await copyBlobViaSelection(blob)) {
+      return { success: true, action: 'copy', message: 'Đã sao chép ảnh. Bấm Ctrl+V để dán vào Zalo/Viber/email.', filename };
+    }
+    // Last resort only: the browser refused every kind of copy.
+    downloadBlob(blob, filename);
     return {
       success: true,
-      action: 'copy',
-      message: 'Đã sao chép ảnh vào bộ nhớ tạm (Clipboard)!',
+      action: 'save_fallback',
+      message: 'Trình duyệt không cho sao chép ảnh nên đã lưu tệp PNG thay thế.',
       filename,
     };
+  }
+
+  const blob = await blobPromise;
+  if (!blob) {
+    throw new Error('Không thể tạo dữ liệu ảnh PNG');
   }
 
   // action === 'save'
