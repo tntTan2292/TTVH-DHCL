@@ -11,3 +11,19 @@ Dự án QIS V2, workspace `D:\Antigravity - Project\TTVH - He thong dieu hanh c
 **Cấm:** mở browser, Playwright, chụp màn hình, chạy dev server, đăng nhập. Không tự tuyên bố PO UI PASS; dừng ở `READY FOR PO UI CHECK`. Commit theo pathspec, không `git add -A`; không đụng file ngoài ticket (có file của phiên khác đang sửa dở).
 
 Hoàn tất: build + lint + test, cập nhật manifest/handoff theo chuẩn, báo cáo ngắn cho Claude/CTO.
+
+---
+
+# Vòng 2 — thiết kế lại hoàn toàn (PO yêu cầu 2026-10-10)
+
+Ticket `UI-IMPORT-DAYVIEW-01` mở lại. Bản trước (commit `0f2bf21`, `db0df1f`) PO chê: dòng lệch nhau, mỗi chỉ tiêu × tháng một khối nên muốn tới F4.1 phải kéo rất dài, chưa thông minh.
+
+Đọc: `docs/10_TICKETS/UI-IMPORT-DAYVIEW-01_MANIFEST.md` **Mục 4 và Mục 9** (Mục 3 không còn ràng buộc).
+
+**Mục tiêu:** thiết kế lại toàn bộ khu "Bù dữ liệu tự động" cho thông minh và đẹp. PO cho bạn **toàn quyền sáng tạo** về bố cục, điều hướng, nhóm, thẻ chỉ tiêu, thanh lọc, màu, mật độ; được thêm file component mới. Kết quả phải đạt 5 điều ở Mục 9: thấy cả F1.1/F1.3/F4.1 mà không kéo dài, cột thẳng hàng, ít bước nhất cho việc thường làm, dùng tốt từ 1280px trở xuống, không thao tác nào bị mất hay khó tìm hơn.
+
+**Bắt buộc duy nhất:** không đụng chức năng — Mục 4 manifest (API, payload, khóa chọn, trạng thái chọn, modal, handler, backend). Test cũ chạy nguyên không sửa. Logic mới đặt trong helper thuần có test. Giữ một bảng phẳng từng nguồn làm đường lui.
+
+**Cấm:** mở browser, Playwright, chụp màn hình, chạy dev server, đăng nhập. Không tự tuyên bố PO UI PASS; dừng ở `READY FOR PO UI CHECK`. Commit theo pathspec, không `git add -A`; không đụng file ngoài ticket.
+
+Hoàn tất: build + lint + test, cập nhật manifest Mục 7 theo vòng 2, báo cáo ngắn cho Claude/CTO.

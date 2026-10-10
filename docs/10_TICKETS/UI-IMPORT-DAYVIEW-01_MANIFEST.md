@@ -79,3 +79,22 @@ Non-blocking findings and what was done (Claude Code/Sonnet, same day):
 - F4 (tick icon of "Chọn tất cả chưa hoàn tất" judged on the 10 visible days; two `⋯` menus of different months can be open together) — display-only, left as is.
 
 Status: `READY FOR PO UI CHECK`.
+
+## 9. Reopened: full redesign with creative freedom (PO, 2026-10-10)
+
+PO verdict on the delivered version: "giao diện còn xấu, dòng lệch nhau; F1.1 cứ 1 tháng 1 dòng, kéo xuống F4.1 mất thời gian; chưa smart, cần thiết kế lại hoàn toàn thông minh hơn — giao Antigravity tự do sáng tạo, chỉ cần không đụng chức năng."
+
+**What is wrong (from the PO, verified in code):** (a) rows are not on fixed columns, so date, source chips and buttons do not line up from row to row; (b) every indicator × month is its own accordion, so reaching F4.1 means scrolling past every F1.1 and F1.3 month; (c) still not smart.
+
+**Authority for Antigravity:** Section 3 is no longer binding. Redesign the whole "Bù dữ liệu tự động" working area as you see fit — layout, navigation, grouping, indicator cards, filter bar, placement of the run-creation controls, bulk bars, colours, density. New component files under `frontend/src/components/` are allowed (the panel is 3,000+ lines). The only fixed part is the **hard guard of Section 4** (functions, API, keys, selection state, modals, handlers, backend untouched; existing tests pass unedited — tests written for this ticket's own helpers may change). Keep a flat per-source table view as the power-user fallback (today's "Bảng Chi tiết").
+
+**Outcomes to reach (what, not how):**
+1. All three indicators (F1.1, F1.3, F4.1) reachable and comparable **without long vertical scrolling** — the operator sees where data is missing across indicators and sources at a glance.
+2. **Strictly aligned** layout: fixed columns, consistent status colours/wording, nothing jumping between rows or groups.
+3. Fewest clicks to the common jobs: find missing days, select them (per indicator, per month, or across indicators where the existing handlers allow it), start Nhập mới / Nhập lại, mark LỊCH NGHỈ, confirm no-data, undo.
+4. Readable and usable from desktop 1280px down to a narrow window; no horizontal page scroll.
+5. Nothing the operator can do today may become impossible or harder to find.
+
+Ideas are yours (matrix/heatmap of days × indicator×source, month calendar, indicator tabs with sticky summary, side detail panel, ...). The PO judges the result by eye.
+
+**Validation:** as Section 6 (no browser/screenshot/dev server/login for the executor). Logic that decides anything stays in tested pure helpers. After delivery: new independent Opus review (same prompt, new commit range), then PO UI check. PO checklist: all three indicators visible without long scrolling; aligned columns; every previous action still reachable and working (Nhập mới, Nhập lại, bulk select, LỊCH NGHỈ, Xác nhận Không phát sinh, Hoàn tác, flat table).

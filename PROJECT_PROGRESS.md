@@ -2237,3 +2237,7 @@ First run 01-08/10: TCT 8/8, HUE 3/8. Causes: negative "Thoi gian thuc te" on we
 ## 2026-10-10 - UI-IMPORT-DAYVIEW-01 DELIVERED, REVIEWED, READY FOR PO UI CHECK
 
 Antigravity delivered the day-row view (commit 0f2bf21). Independent Opus review: PASS, no blocking defect. Claude Code fixed the review findings: month label now "đã xử lý" (was a misleading "đủ cả 2 nguồn"), month folder no longer re-opens/closes itself on data reload, single getItemKey copy, extra tests. Frontend 622/622, build and lint clean. Pending: PO UI check. Manifest Sections 7-8: docs/10_TICKETS/UI-IMPORT-DAYVIEW-01_MANIFEST.md.
+
+## 2026-10-10 - UI-IMPORT-DAYVIEW-01 REOPENED FOR FULL REDESIGN
+
+PO rejected the delivered day-row view (rows not aligned, F1.1/F1.3/F4.1 each one block per month so reaching F4.1 means long scrolling, not smart enough) and gave Antigravity free design of the whole Bù dữ liệu tự động area; only constraint: no function change (hard guard unchanged). Round 2 prompt and manifest Section 9 written; next Antigravity, new Opus review, PO UI check. Manifest: docs/10_TICKETS/UI-IMPORT-DAYVIEW-01_MANIFEST.md.
