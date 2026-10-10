@@ -1,6 +1,6 @@
 # UI-IMPORT-DAYVIEW-01 Manifest
 
-Status: `READY FOR OPUS REVIEW & PO UI CHECK (2026-10-10) — Built by Antigravity; all tests, build, and lints pass. Awaiting Opus review and PO UI check`. PO approved Option A with the three defaults of the proposal (day checkbox selects only unfinished lanes; "Bảng Chi tiết" unchanged; indicator cards and run-creation controls out of scope). Frontend presentation only; no behaviour, API or data change. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict, read this manifest directly.
+Status: `IMPLEMENTED / PO UI PASS / CLOSED (2026-10-10)`. See Section 11 for the closure. History: round 1 delivered and rejected on sight by the PO; round 2 full redesign reviewed by Opus (one blocker, fixed) and accepted by the PO. Frontend presentation only; no behaviour, API or data change. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict.
 
 ## 1. Ticket Information
 
@@ -119,4 +119,11 @@ Remediation (Claude Code/Sonnet, same day):
 - N4 left: the round-1 "auto-open newest month" no longer applies to the table design; the old `MonthlyAccordionGroup` stays as unused code (`eslint-disable`) and can be deleted in a clean-up ticket.
 
 Validation: day-view helper tests 12/12, `AutoBackfillOperatorPanel.test.js` 24/24 unedited, frontend 622/622, build and lint clean. Status: `READY FOR PO UI CHECK`; a short re-review of the fix commit by Opus is optional (logic in tested helpers, no handler touched).
+
+## 11. Closure (2026-10-10)
+
+- PO checked the redesigned "Bù dữ liệu tự động" screen (indicator matrix, aligned day table, per-source cells, "Bảng Chi tiết" fallback) and confirmed **PO UI PASS**. Ticket closed.
+- Delivered by Antigravity: `0f2bf21` (round 1), `5ff1d60` (round 2); Claude Code fixes after independent Opus reviews: `db0df1f`, `85749f8`. Presentation only: no API, payload, key, selection-state, handler or backend change.
+- Final validation: frontend 622/622, day-view helper tests 12/12, `AutoBackfillOperatorPanel.test.js` 24/24 unedited, build and lint clean.
+- Residual (non-blocking, no ticket opened): unused `MonthlyAccordionGroup` (~400 lines, `eslint-disable`) can be deleted in a clean-up; the round-1 "auto-open newest month" no longer exists in the table design. Later changes need a new ticket or an explicit reopening.
 
