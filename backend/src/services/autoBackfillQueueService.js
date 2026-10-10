@@ -24,6 +24,12 @@ function assertAdmin(roles) {
     }
 }
 
+function addDays(isoDate, delta) {
+    const date = new Date(`${isoDate}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + delta);
+    return date.toISOString().slice(0, 10);
+}
+
 function stableRequestKey(value) {
     return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
 }
@@ -147,9 +153,26 @@ class AutoBackfillQueueService {
             const { indicator: registeredIndicator, lane: registeredLane } = this.findRegistration(item.indicator, item.source_lane);
             return registeredIndicator.status === 'ACTIVE' && registeredLane.automationMode === 'AUTOMATED';
         };
+        // Refresh window (PO decision 2026-10-10): the portal revises a day's figures after it was first
+        // fetched, so an unscoped run (no date range, no single-tuple flag) also re-imports the last N
+        // already-completed days before the newest day (N = indicator.refreshWindowDays, 0 = off): with
+        // N = 3 and newest day 09, days 06, 07, 08. Each tuple is refreshed once per planning day, only
+        // for ACTIVE indicators and AUTOMATED lanes with a verified adapter, only when the day really
+        // holds data (raw completion SUCCESS).
+        const refreshEnabled = !range.fromDate && !range.toDate && !includeExcluded && !confirmReplaceCompleted;
+        const alreadyRefreshed = refreshEnabled ? await this.store.listRefreshedTuples(coverage.as_of_business_date) : new Set();
+        const isRefreshCandidate = (item) => {
+            if (!refreshEnabled || item.status !== 'COMPLETED' || item.completion_status !== COMPLETION_STATUSES.SUCCESS) return false;
+            const { indicator: registeredIndicator, lane: registeredLane } = this.findRegistration(item.indicator, item.source_lane);
+            const windowDays = Number(registeredIndicator.refreshWindowDays || 0);
+            if (windowDays <= 0 || registeredIndicator.status !== 'ACTIVE') return false;
+            if (registeredLane.automationMode !== 'AUTOMATED' || !registeredLane.portalAdapter?.verified) return false;
+            if (item.business_date > addDays(coverage.to_date, -1) || item.business_date < addDays(coverage.to_date, -windowDays)) return false;
+            return !alreadyRefreshed.has(`${item.indicator}|${item.source_lane}|${item.business_date}`);
+        };
         const eligible = coverage.items
             .filter(inRange)
-            .filter((item) => item.queue_eligible || isReadmissibleExcluded(item) || isReadmissibleCompleted(item));
+            .filter((item) => item.queue_eligible || isReadmissibleExcluded(item) || isReadmissibleCompleted(item) || isRefreshCandidate(item));
         if (eligible.length === 0) {
             throw queueError(
                 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE',
@@ -188,7 +211,7 @@ class AutoBackfillQueueService {
                 // the single source of truth for "this is a confirmed Nhập lại
                 // job" -- set only here, through isReadmissibleCompleted(), never
                 // re-derived downstream.
-                forceReimport: isReadmissibleCompleted(item),
+                forceReimport: isReadmissibleCompleted(item) || isRefreshCandidate(item),
             };
         });
         jobs.sort((left, right) =>
@@ -449,7 +472,10 @@ class AutoBackfillQueueService {
             await this.store.completeLeasedJob(job.id, job.lease_token, {
                 state: 'SUCCESS',
                 reasonCode: 'COMPLETION_CONFIRMED_AFTER_EXECUTION',
-                evidence: after.evidence,
+                // A replaced day records how many rows it held before, so a revision by the portal is visible.
+                evidence: forceReimport
+                    ? { ...after.evidence, replaced_row_count: before.evidence?.row_count ?? null }
+                    : after.evidence,
             });
             return { jobId: job.id, state: 'SUCCESS' };
         } catch (error) {

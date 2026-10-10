@@ -57,19 +57,23 @@ function buildSmallFile(filePath, { evaluation = ['Đạt', 'Đạt', 'Không đ
     writeWorkbook(filePath, HEADERS, rows);
 }
 
-test('registry: F1.1 is a valid PLANNED indicator with a manual HUE lane and its own table', () => {
+test('registry: F1.1 is a valid ACTIVE indicator with automated HUE/TCT lanes, its own tables and a 3-day refresh window', () => {
     validateIndicatorRegistry();
-    assert.equal(INDICATORS['F1.1'].status, 'PLANNED');
+    assert.equal(INDICATORS['F1.1'].status, 'ACTIVE');
+    assert.equal(INDICATORS['F1.1'].refreshWindowDays, 3);
+    assert.equal(INDICATORS['F1.3'].refreshWindowDays, undefined);
+    assert.equal(INDICATORS['F4.1'].refreshWindowDays, undefined);
     const lane = getLaneConfig('F1.1', 'HUE');
     assert.equal(lane.targetTable, 'fact_f11');
-    assert.equal(lane.automationMode, 'MANUAL_ONLY');
+    assert.equal(lane.automationMode, 'AUTOMATED');
+    assert.equal(lane.portalAdapter.verified, true);
     assert.equal(INDICATORS['F1.1'].filenamePattern.test('F1.1-2026.10.07.xlsx'), true);
     assert.equal(INDICATORS['F1.1'].filenamePattern.test('F1.3-2026.10.07.xlsx'), false);
     assert.equal(INDICATORS['F1.1'].formatFilename('2026-10-07'), 'F1.1-2026.10.07.xlsx');
     assert.ok(getIndicatorConfig('F1.1').incomingDir.startsWith(process.env.QIS_TEST_DATA_ROOT_F11));
     const tct = getLaneConfig('F1.1', 'TCT');
     assert.equal(tct.targetTable, 'fact_f11_national');
-    assert.equal(tct.automationMode, 'MANUAL_ONLY');
+    assert.equal(tct.automationMode, 'AUTOMATED');
 });
 
 test('F1.1 pipeline imports HUE in isolation, asks confirmation on retry, replaces on force, leaves F1.3/F4.1 alone', async () => {

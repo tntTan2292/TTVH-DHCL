@@ -10,6 +10,7 @@ const { parseF11TctExcel } = require('./f11TctExcelParser');
 const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./autoBackfillCompletionPolicies');
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
+const { F11_EXECUTOR_IDENTITIES } = require('./autoBackfillF11Contract');
 
 const REGISTRY_VERSION = 'AUTO-BACKFILL-SAFETY-1';
 const BUSINESS_TIMEZONE = 'Asia/Ho_Chi_Minh';
@@ -234,9 +235,12 @@ INDICATORS['F1.1'] = {
     code: 'F1.1',
     key: 'F1.1',
     name: 'F1.1 - Chat luong toan trinh buu gui noi tinh',
-    status: 'PLANNED',
+    status: 'ACTIVE',
     priority: 30,
     badgeTheme: 'violet',
+    // The portal revises a day's figures after the first fetch (07/10: 2 Hue parcels dropped, TCT counts moved
+    // after 3 days), so each unscoped Auto Backfill run also re-imports the 3 days before the newest day.
+    refreshWindowDays: 3,
     trackingStartDate: TRACKING_START_DATE,
     businessTimezone: BUSINESS_TIMEZONE,
     folder: 'F1.1',
@@ -256,8 +260,11 @@ INDICATORS['F1.1'] = {
             parser: (buffer, filename) => parseF11HueExcel(buffer, filename),
             targetTable: 'fact_f11',
             distinctColumn: 'ma_bg',
-            automationMode: 'MANUAL_ONLY',
-            manualOnlyReason: 'No verified DKCL Portal adapter for F1.1 yet (F11-PHASE-3).',
+            automationMode: 'AUTOMATED',
+            portalAdapter: {
+                ...F11_EXECUTOR_IDENTITIES.HUE,
+                verified: true,
+            },
         }),
         TCT: createLane({
             code: 'TCT',
@@ -268,8 +275,11 @@ INDICATORS['F1.1'] = {
             // complete only when all 34 ranked delivering provinces are present (Opus review 2026-10-10).
             distinctColumn: ['ma_tinh_chap_nhan', 'ma_tinh_phat'],
             requiredValues: { column: 'ma_tinh_phat', values: NATIONAL_RANKED_PROVINCE_CODES },
-            automationMode: 'MANUAL_ONLY',
-            manualOnlyReason: 'No verified DKCL Portal adapter for F1.1 yet (F11-PHASE-3).',
+            automationMode: 'AUTOMATED',
+            portalAdapter: {
+                ...F11_EXECUTOR_IDENTITIES.TCT,
+                verified: true,
+            },
         }),
     },
 };
@@ -319,6 +329,10 @@ function validateIndicatorRegistration(indicator, registryKey = indicator?.code)
     }
     if (!indicator.lanes || Object.keys(indicator.lanes).length === 0) {
         throw new Error(`${indicator.code}.lanes must not be empty.`);
+    }
+    if (indicator.refreshWindowDays !== undefined
+        && (!Number.isInteger(indicator.refreshWindowDays) || indicator.refreshWindowDays < 0 || indicator.refreshWindowDays > 14)) {
+        throw new Error(`${indicator.code}.refreshWindowDays must be an integer between 0 and 14.`);
     }
 
     for (const [laneKey, lane] of Object.entries(indicator.lanes)) {

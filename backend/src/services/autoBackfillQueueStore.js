@@ -301,6 +301,24 @@ class AutoBackfillQueueStore {
     // particular run is currently blocking), not the system-wide union used by
     // BLOCKED_LANES_SUBQUERY in acquireNextJob() -- the question here is "which run is
     // responsible for blocking a lane", not "which lanes are blocked".
+    // Refresh window: the tuples ("indicator|lane|date") that already have a re-import job (queued, running
+    // or done) in a run planned for this business day, so the same day is not refreshed twice.
+    async listRefreshedTuples(asOfBusinessDate) {
+        return this.withDb(async (db) => {
+            const rows = await all(
+                db,
+                `SELECT j.indicator, j.source_lane, j.business_date
+                 FROM auto_backfill_job j
+                 JOIN auto_backfill_run r ON r.id = j.run_id
+                 WHERE j.force_reimport = 1
+                   AND r.as_of_business_date = ?
+                   AND j.state IN ('QUEUED', 'RUNNING', 'RECOVERY_CHECK', 'SUCCESS')`,
+                [asOfBusinessDate],
+            );
+            return new Set(rows.map((row) => `${row.indicator}|${row.source_lane}|${row.business_date}`));
+        });
+    }
+
     async listRuns({ statuses = ['RUNNING', 'PAUSING', 'PAUSED'], limit = 50, offset = 0 } = {}) {
         return this.withDb(async (db) => {
             const statusList = Array.isArray(statuses) && statuses.length > 0 ? statuses : ['RUNNING', 'PAUSING', 'PAUSED'];

@@ -2209,3 +2209,7 @@ F1.1 portal adapter run against the real portal for 2026-10-07: HUE detail 2.619
 ## 2026-10-10 - F11-PHASE-3 OPUS REVIEW: ENABLEMENT BLOCKER FIXED
 
 Independent Opus review of the F1.1 portal adapter: requests, reconciliation, file match, locks/cleanup and N-1 PASS; enablement FAIL because the TCT completion policy keyed on the delivering province only (84 rows, 45 distinct) would have halted the whole auto-backfill coordinator after the first import. Fixed: composite key (accepting, delivering province) plus a 34-province completeness check; 6 new policy tests incl. the real 07/10 files; sweep 505/509 (4 known pre-existing). Lanes still MANUAL_ONLY. Open PO decision: how to treat days the portal revises after N-1. Manifest Section 15: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.
+
+## 2026-10-10 - F11-PHASE-3 ENABLED IN CODE + 3-DAY REFRESH WINDOW
+
+F1.1 set ACTIVE with both lanes AUTOMATED (verified adapters registered before the coordinator). New shared refresh window: an unscoped Auto Backfill run also re-imports the last N completed days before the newest day for indicators declaring refreshWindowDays (F1.1 = 3 per PO decision; F1.3/F4.1 off, one-line switch), once per planning day, replace-in-one-transaction, replaced_row_count recorded. 6 new tests; auto-backfill suites unchanged; sweep 505/509 (4 known). Next: PO restarts the backend and runs the first supervised Auto Backfill for F1.1 (short range first), then backfill from 2026-01-01. Manifest Section 16: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.

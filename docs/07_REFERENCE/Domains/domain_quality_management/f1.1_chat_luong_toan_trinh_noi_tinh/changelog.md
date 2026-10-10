@@ -9,6 +9,10 @@ version: 1.0.0
 
 # Changelog
 
+## v1.0.2 - 2026-10-10
+
+- F11-PHASE-3: automatic download verified against the real portal for 2026-10-07 (both lanes, DRY) and enabled in code (`ACTIVE`, lanes `AUTOMATED`). The portal revises past days (07/10: 2 Huế parcels dropped, TCT counts moved after 3 days), so Auto Backfill also re-imports the last 3 completed days on each unscoped run (`refreshWindowDays: 3`). TCT completion policy keyed on (accepting province, delivering province) with all 34 ranked provinces required.
+
 ## v1.0.1 - 2026-10-09
 
 - F11-PHASE-1/2/4 implemented: `fact_f11` and `fact_f11_national` exist; Huế and TCT reference files of 2026-10-07 loaded (2.621 rows / 89,58 %; 84 rows, Huế 4th of 34 at 90,7 %). National rank by delivering province (PD-17) is implemented; the reference TCT file is the single-day export kept at `Data DKCL/F1.1/Processed/TCT/F1.1-2026.10.07.xlsx`.
