@@ -23,7 +23,7 @@ console.log('Running UI-IMPORT-DAYVIEW-01 day-view helpers test suite...');
   assert.equal(emptySummary.totalDays, 0);
   assert.equal(emptySummary.completeDays, 0);
   assert.equal(emptySummary.missingDays, 0);
-  assert.equal(emptySummary.label, '0 ngày • 0 đủ cả 2 nguồn • 0 còn thiếu');
+  assert.equal(emptySummary.label, '0 ngày • 0 đã xử lý • 0 còn thiếu');
 
   const emptyMonthKey = findNewestUnfinishedMonthKey([]);
   assert.equal(emptyMonthKey, null);
@@ -63,7 +63,7 @@ console.log('Running UI-IMPORT-DAYVIEW-01 day-view helpers test suite...');
   assert.equal(summary.missingDays, 1);
   assert.equal(summary.missingByLane.HUE, 1);
   assert.equal(summary.missingByLane.TCT, 1);
-  assert.equal(summary.label, '2 ngày • 1 đủ cả 2 nguồn • 1 còn thiếu (HUE 1, TCT 1)');
+  assert.equal(summary.label, '2 ngày • 1 đã xử lý • 1 còn thiếu (HUE 1, TCT 1)');
 
   console.log('✔ 2. Two lanes per day tests PASSED!');
 }
@@ -89,7 +89,7 @@ console.log('Running UI-IMPORT-DAYVIEW-01 day-view helpers test suite...');
   assert.equal(summary.missingDays, 1);
   assert.equal(summary.missingByLane.HUE, 1);
   assert.equal(summary.missingByLane.TCT, undefined);
-  assert.equal(summary.label, '2 ngày • 1 đủ nguồn • 1 còn thiếu (HUE 1)');
+  assert.equal(summary.label, '2 ngày • 1 đã xử lý • 1 còn thiếu (HUE 1)');
 
   console.log('✔ 3. One lane / lane-filtered tests PASSED!');
 }
@@ -191,7 +191,7 @@ console.log('Running UI-IMPORT-DAYVIEW-01 day-view helpers test suite...');
   const summary = summarizeMonthDays([day]);
   assert.equal(summary.missingDays, 1);
   assert.equal(summary.missingByLane.HUE, 1);
-  assert.equal(summary.label, '1 ngày • 0 đủ cả 2 nguồn • 1 còn thiếu (HUE 1, TCT 0)');
+  assert.equal(summary.label, '1 ngày • 0 đã xử lý • 1 còn thiếu (HUE 1, TCT 0)');
 
   console.log('✔ 6. DATA_ERROR lane tests PASSED!');
 }
@@ -246,6 +246,26 @@ console.log('Running UI-IMPORT-DAYVIEW-01 day-view helpers test suite...');
   assert.equal(reimportLabel, 'Đã chọn 2 ngày (3 nguồn) (Tái nhập)');
 
   console.log('✔ 8. Selection count label tests PASSED!');
+}
+
+// ==========================================
+// 9. Review fixes: "đã xử lý" wording and key format (Opus review F1, F3, F5)
+// ==========================================
+{
+  // Key format is the one the coverage rows have always used: INDICATOR::LANE::DATE.
+  assert.equal(getItemKey({ indicator: ' f1.3 ', source_lane: 'hue', business_date: '2026-10-01' }), 'F1.3::HUE::2026-10-01');
+
+  // A day with an EXCLUDED source and a COMPLETED source, and a single-source day, are "đã xử lý",
+  // never "đủ cả 2 nguồn".
+  const summary = summarizeMonthDays([
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-10-02', status: 'EXCLUDED' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-10-02', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-10-01', status: 'COMPLETED' },
+  ]);
+  assert.equal(summary.label, '2 ngày • 2 đã xử lý • 0 còn thiếu');
+  assert.ok(!summary.label.includes('đủ cả 2 nguồn'));
+
+  console.log('✔ 9. Review-fix wording and key format tests PASSED!');
 }
 
 console.log('ALL UI-IMPORT-DAYVIEW-01 day-view helpers tests PASSED SUCCESSFULLY!');

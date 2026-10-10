@@ -23,7 +23,7 @@ One row per `(indicator, date)`:
 - **Secondary per-lane actions** (Xác nhận Không phát sinh, Hoàn tác) move into a per-cell `⋯` menu; they keep their existing visibility conditions and handlers.
 - **LỊCH NGHỈ / Thu hồi LỊCH NGHỈ** are date-wide today: show once per day row (not once per lane), same conditions and handlers (use the first actionable item of the day as the argument the handler already expects).
 - **Day checkbox (smart default):** ticks every lane of that day that is selectable in the current mode — unfinished lanes only (INCOMPLETE/DATA_ERROR) in normal mode, reimport-selectable lanes in reimport mode. Mixed day (one lane COMPLETED, one missing) selects only the missing lane; the operator can still tick a single lane through its source cell. Implemented by calling the **existing** `onToggleSelectItem` per lane item, so `selectedBulkKeys` / `selectedReimportKeys` keep exactly the same keys.
-- **Month header:** counts days instead of rows: "N ngày • X đủ cả 2 nguồn • Y còn thiếu (HUE a, TCT b)"; the existing right-hand badge logic (100% Đã xử lý / Còn thiếu) stays, computed from the same lane items.
+- **Month header:** counts days instead of rows: "N ngày • X đã xử lý • Y còn thiếu (HUE a, TCT b)"; the existing right-hand badge logic (100% Đã xử lý / Còn thiếu) stays, computed from the same lane items.
 - **Auto-open:** the newest month group that has unfinished items opens by default (others stay collapsed).
 - **Floating bars and bulk modals:** wording only — "Đã chọn N ngày (M nguồn)" using distinct dates and the key count; payloads, key lists and confirmation flows unchanged.
 - **"Bảng Chi tiết" view stays exactly as it is** (flat, one row per lane) as the power-user fallback.
@@ -67,3 +67,15 @@ API calls and payloads (`buildRunPayload`, `/coverage`, `/coverage/selectable`, 
   - `AutoBackfillOperatorPanel.test.js`: 24/24 suites PASS (unedited)
   - `autoBackfillDayViewHelpers.test.js`: 8/8 suites PASS (new)
 
+## 8. Independent review (Opus, 2026-10-10) and remediation
+
+Review of `8e03add..0f2bf21`: **PASS, no blocking defect** — nothing in Section 4 changed, day checkbox calls the existing `handleToggleRowSelection` per source (same keys), all old buttons keep their conditions/arguments, no import or variable lost. Frontend 622/622, build and lint clean.
+
+Non-blocking findings and what was done (Claude Code/Sonnet, same day):
+
+- F1 month label said "đủ cả 2 nguồn" for days with an EXCLUDED or single source — **fixed**: now "X đã xử lý" (no unfinished source), same vocabulary as the month badge; tests updated, one added.
+- F2 month folder re-opened/closed by itself on every data reload — **fixed**: `defaultOpen` only sets the initial state; the operator's open/close is no longer overwritten.
+- F3 two `getItemKey` copies — **fixed**: the panel imports the helper's single copy (same output for every real coverage row); key-format test added (F5).
+- F4 (tick icon of "Chọn tất cả chưa hoàn tất" judged on the 10 visible days; two `⋯` menus of different months can be open together) — display-only, left as is.
+
+Status: `READY FOR PO UI CHECK`.

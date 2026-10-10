@@ -42,6 +42,7 @@ import {
   resolveDynamicIndicators,
   resolveEffectiveRunState,
   resolveIndicatorGridClass,
+  getItemKey,
   resolveNoCodeStatus,
   resolveOpenRunRowActions,
   resolveRunActionButtons,
@@ -65,7 +66,6 @@ const AUTH_LOGIN_ERROR_STATUSES = new Set(['SESSION_CHECK_FAILED', 'LOGIN_TIMEOU
 const AUTH_LOGIN_POLL_INTERVAL_MS = 5000;
 const AUTH_LOGIN_POLL_MAX_ATTEMPTS = 60; // 5 minutes, matching the backend's ~4-minute manualAuthWaitMs plus buffer
 
-const getItemKey = (item) => `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || '').trim().toUpperCase()}::${item.business_date}`;
 
 // AB-CALENDAR-01 (design Section 4.1): identical to isSelectable -- the 4-status
 // table's "Xác nhận ngoại lệ" column matches its "Checkbox / bulk select" column
@@ -2886,10 +2886,6 @@ function MonthlyAccordionGroup({
   const [accordionPage, setAccordionPage] = useState(1);
   const [accordionPageSize, setAccordionPageSize] = useState(10);
   const [activeMenuKey, setActiveMenuKey] = useState(null);
-
-  useEffect(() => {
-    setIsOpen(defaultOpen);
-  }, [defaultOpen]);
 
   useEffect(() => {
     const handleOutsideClick = () => setActiveMenuKey(null);

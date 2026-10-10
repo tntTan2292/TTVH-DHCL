@@ -645,7 +645,9 @@ export function summarizeMonthDays(items = []) {
     .map((l) => `${l} ${missingByLane[l] || 0}`)
     .join(', ');
 
-  const completeLabel = seenLanes.size === 1 ? `${completeDays} đủ nguồn` : `${completeDays} đủ cả 2 nguồn`;
+  // A day with no unfinished source is "đã xử lý" (each source COMPLETED or EXCLUDED) -- the same
+  // vocabulary as the month badge; it does not claim that both sources hold data.
+  const completeLabel = `${completeDays} đã xử lý`;
   const missingLabel = missingDays > 0
     ? `${missingDays} còn thiếu${laneDetails ? ` (${laneDetails})` : ''}`
     : '0 còn thiếu';

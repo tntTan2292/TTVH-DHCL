@@ -2233,3 +2233,7 @@ PO approved the redesign of the Data Import Center "Nhóm theo Tháng" view: one
 ## 2026-10-10 - F11-PHASE-3 FIRST AUTO BACKFILL: TWO SOURCE QUIRKS FIXED
 
 First run 01-08/10: TCT 8/8, HUE 3/8. Causes: negative "Thoi gian thuc te" on weekend-spanning parcels (03, 04/10) and a 1-2 parcel gap between the portal summary and the detail in evaluated/failed counts (02, 03, 05, 06/10). Fixed: reader accepts negative values as given; reconciliation exact on total and passed, 2 % (min 5) tolerance on evaluated/failed with the numbers reported (PO: "chenh lech 1-2 % ok"). Checked on the 7 raw workbooks of the run (all pass); 9 new tests; sweep 508/512 (4 known). Next: restart the backend and run Auto Backfill for F1.1 over 02-06/10 and 09/10. Manifest Section 17: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.
+
+## 2026-10-10 - UI-IMPORT-DAYVIEW-01 DELIVERED, REVIEWED, READY FOR PO UI CHECK
+
+Antigravity delivered the day-row view (commit 0f2bf21). Independent Opus review: PASS, no blocking defect. Claude Code fixed the review findings: month label now "đã xử lý" (was a misleading "đủ cả 2 nguồn"), month folder no longer re-opens/closes itself on data reload, single getItemKey copy, extra tests. Frontend 622/622, build and lint clean. Pending: PO UI check. Manifest Sections 7-8: docs/10_TICKETS/UI-IMPORT-DAYVIEW-01_MANIFEST.md.
