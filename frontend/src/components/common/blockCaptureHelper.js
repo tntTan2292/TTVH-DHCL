@@ -88,52 +88,6 @@ export async function copyBlobToClipboard(blobOrPromise) {
   }
 }
 
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error || new Error('Không đọc được dữ liệu ảnh'));
-    reader.readAsDataURL(blob);
-  });
-}
-
-/**
- * Copy an image on pages opened through plain http, where the async Clipboard API does not exist: the image
- * is placed in an invisible editable element, selected, and copied with the classic copy command (the same
- * thing as selecting a picture on a page and pressing Ctrl+C). Returns true when the browser accepted it.
- */
-export async function copyBlobViaSelection(blob) {
-  if (!blob || typeof document === 'undefined' || typeof document.execCommand !== 'function') return false;
-  let host = null;
-  try {
-    const dataUrl = await blobToDataUrl(blob);
-    host = document.createElement('div');
-    host.setAttribute('contenteditable', 'true');
-    host.setAttribute('data-no-capture', 'true');
-    host.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none;';
-    const image = document.createElement('img');
-    image.alt = '';
-    host.appendChild(image);
-    document.body.appendChild(host);
-    image.src = dataUrl;
-    if (typeof image.decode === 'function') await image.decode();
-
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNode(image);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    const copied = document.execCommand('copy');
-    selection.removeAllRanges();
-    return Boolean(copied);
-  } catch (err) {
-    console.warn('[BlockCapture] selection copy failed:', err);
-    return false;
-  } finally {
-    if (host && host.parentNode) host.parentNode.removeChild(host);
-  }
-}
-
 /**
  * Trigger browser download for a Blob with a specific filename.
  */
@@ -243,7 +197,7 @@ export async function executeBlockCapture({
   blockTitle = '',
   indicator = 'F1.3',
   dateOrPeriod = '',
-  action = 'copy', // 'copy' | 'save'
+  action = 'copy', // 'copy' (clipboard, or a preview to copy by hand) | 'save'
 }) {
   const captionInfo = buildCaptureCaption({ indicator, blockTitle, dateOrPeriod });
   const filename = buildCaptureFileName({ indicator, blockTitle, dateOrPeriod });
@@ -256,18 +210,16 @@ export async function executeBlockCapture({
     if (clipboardCopied) {
       return { success: true, action: 'copy', message: 'Đã sao chép ảnh. Bấm Ctrl+V để dán vào Zalo/Viber/email.', filename };
     }
+    // Plain-http addresses (and refused permissions) cannot write an image to the clipboard from a page.
+    // The browser's own "Copy image" command can, from any address, so show the picture for that.
     const blob = await blobPromise;
     if (!blob) throw new Error('Không thể tạo dữ liệu ảnh PNG');
-    if (await copyBlobViaSelection(blob)) {
-      return { success: true, action: 'copy', message: 'Đã sao chép ảnh. Bấm Ctrl+V để dán vào Zalo/Viber/email.', filename };
-    }
-    // Last resort only: the browser refused every kind of copy.
-    downloadBlob(blob, filename);
     return {
       success: true,
-      action: 'save_fallback',
-      message: 'Trình duyệt không cho sao chép ảnh nên đã lưu tệp PNG thay thế.',
+      action: 'preview',
+      message: 'Ảnh đã sẵn sàng: bấm chuột phải vào ảnh, chọn "Sao chép hình ảnh".',
       filename,
+      blob,
     };
   }
 

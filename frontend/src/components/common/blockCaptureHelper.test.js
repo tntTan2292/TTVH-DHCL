@@ -7,7 +7,6 @@ import {
   buildCaptureFileName,
   buildCaptureCaption,
   copyBlobToClipboard,
-  copyBlobViaSelection,
   canUseAsyncImageClipboard,
 } from './blockCaptureHelper.js';
 
@@ -85,9 +84,8 @@ test('Report blocks across Dashboard and BCVH Ranking expose BlockCaptureButton'
   }
 });
 
-test('copy helpers refuse cleanly outside a browser: no secure clipboard, no selection copy', async () => {
+test('copy helper refuses cleanly outside a browser: no secure clipboard', async () => {
   assert.equal(canUseAsyncImageClipboard(), false);
-  assert.equal(await copyBlobViaSelection({}), false);
   assert.equal(await copyBlobToClipboard(Promise.resolve({})), false);
 });
 
@@ -108,7 +106,18 @@ test('copy is requested inside the click, before any await (clipboard needs the 
   const startRender = body.indexOf('const blobPromise = captureElementToBlob');
   assert.ok(startRender > 0 && startRender < firstAwait, 'rendering starts before the first await');
   assert.match(body, /copyBlobToClipboard\(blobPromise\)/);
-  assert.match(body, /copyBlobViaSelection\(blob\)/);
-  // the file is saved only after both kinds of copy failed
-  assert.ok(body.indexOf("copyBlobViaSelection(blob)") < body.indexOf("'save_fallback'"));
+  // where the page may not write to the clipboard a preview is returned (right click > Copy image);
+  // a copy request never saves a file by itself
+  assert.match(body, /action: 'preview'/);
+  const copyBranch = body.slice(body.indexOf("if (action === 'copy')"), body.indexOf('const blob = await blobPromise;\n  if (!blob) {'));
+  assert.doesNotMatch(copyBranch, /downloadBlob/);
+});
+
+test('preview window offers right-click copy, save and close; it is excluded from the captured image', () => {
+  const source = fs.readFileSync(new URL('./BlockCaptureButton.jsx', import.meta.url), 'utf8');
+  assert.match(source, /Sao chép hình ảnh/);
+  assert.match(source, /createPortal/);
+  assert.match(source, /role="dialog"/);
+  assert.match(source, /data-no-capture="true"/);
+  assert.match(source, /URL\.revokeObjectURL/);
 });
