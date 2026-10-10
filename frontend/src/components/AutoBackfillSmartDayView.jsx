@@ -48,6 +48,7 @@ export default function AutoBackfillSmartDayView({
   selectedReimportKeys = new Set(),
   isAdmin = false,
   onToggleSelectItem,
+  onToggleSelectAllItems,
   onSelectAllUnfinished,
   onSelectAllReimport,
   onConfirmClick,
@@ -300,14 +301,8 @@ export default function AutoBackfillSmartDayView({
                       <button
                         type="button"
                         onClick={() => {
-                          const allItems = paginatedDays.pageItems.flatMap((d) => d.items);
-                          if (isReimportMode) {
-                            const selectable = allItems.filter(isReimportSelectable);
-                            selectable.forEach(onToggleSelectItem);
-                          } else {
-                            const selectable = allItems.filter(isSelectable);
-                            selectable.forEach(onToggleSelectItem);
-                          }
+                          // Existing select-all/none handler of the panel (same as "Bảng Chi tiết").
+                          onToggleSelectAllItems(paginatedDays.pageItems.flatMap((d) => d.items));
                         }}
                         className="text-slate-500 hover:text-slate-800 focus:outline-none"
                         title={isAllPageItemsSelected ? 'Bỏ chọn trang này' : 'Chọn trang này'}
@@ -475,7 +470,7 @@ export default function AutoBackfillSmartDayView({
                             setActiveMenuKey={setActiveMenuKey}
                           />
                         ) : (
-                          <span className="text-xs text-slate-400 italic">Không hỗ trợ nguồn</span>
+                          <span className="text-xs text-slate-400" title="Không có dữ liệu nguồn này (hoặc đang bị bộ lọc ẩn)">—</span>
                         )}
                       </td>
 
@@ -497,7 +492,7 @@ export default function AutoBackfillSmartDayView({
                             setActiveMenuKey={setActiveMenuKey}
                           />
                         ) : (
-                          <span className="text-xs text-slate-400 italic">Không hỗ trợ nguồn</span>
+                          <span className="text-xs text-slate-400" title="Không có dữ liệu nguồn này (hoặc đang bị bộ lọc ẩn)">—</span>
                         )}
                       </td>
 

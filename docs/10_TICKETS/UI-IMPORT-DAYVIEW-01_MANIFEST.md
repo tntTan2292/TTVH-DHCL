@@ -104,3 +104,19 @@ PO verdict on the delivered version: "giao diện còn xấu, dòng lệch nhau;
 Ideas are yours (matrix/heatmap of days × indicator×source, month calendar, indicator tabs with sticky summary, side detail panel, ...). The PO judges the result by eye.
 
 **Validation:** as Section 6 (no browser/screenshot/dev server/login for the executor). Logic that decides anything stays in tested pure helpers. After delivery: new independent Opus review (same prompt, new commit range), then PO UI check. PO checklist: all three indicators visible without long scrolling; aligned columns; every previous action still reachable and working (Nhập mới, Nhập lại, bulk select, LỊCH NGHỈ, Xác nhận Không phát sinh, Hoàn tác, flat table).
+
+## 10. Round 2 independent review (Opus, 2026-10-10): FAIL on one blocker, fixed
+
+Review of `db0df1f..5ff1d60`: Section 4 not violated (no state, effect, handler or modal lost; all old actions still reachable; hidden selected keys are still counted by the floating bar and modals). **Blocker B1:** in the default "Tất cả chỉ tiêu" view `groupItemsByDay` grouped by date only, so one date of several indicators became one row and the sources overwrote each other (F1.1 missing sources hidden; "Nhập lại" opened the modal of another indicator).
+
+Remediation (Claude Code/Sonnet, same day):
+
+- B1 **fixed**: grouping is per `(indicator, date)`; newest date first, indicators alphabetical; test with F1.1/F1.3/F4.1 on one date added.
+- N1 **fixed**: header checkbox uses the panel's existing `toggleSelectAllItems` (select all / none of the page) instead of toggling each source.
+- N2 **fixed**: matrix button "Chọn ngày thiếu" now passes the month filter, no misleading count, tooltip says it toggles and follows month/source filters.
+- N3 **fixed**: empty source cell shows "—" with a tooltip (was a misspelt, misleading "Không hỗ trợ nguồn").
+- N5 **fixed**: "Bảng Chi tiết" page resets whenever indicator/month/source/status filter changes.
+- N4 left: the round-1 "auto-open newest month" no longer applies to the table design; the old `MonthlyAccordionGroup` stays as unused code (`eslint-disable`) and can be deleted in a clean-up ticket.
+
+Validation: day-view helper tests 12/12, `AutoBackfillOperatorPanel.test.js` 24/24 unedited, frontend 622/622, build and lint clean. Status: `READY FOR PO UI CHECK`; a short re-review of the fix commit by Opus is optional (logic in tested helpers, no handler touched).
+

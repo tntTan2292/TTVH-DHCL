@@ -229,10 +229,10 @@ export default function AutoBackfillIndicatorMatrix({
                           type="button"
                           onClick={() => onSelectAllUnfinished(ind.code)}
                           className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-bold text-slate-950 hover:bg-amber-400 transition shadow-xs"
-                          title={`Tự động chọn tất cả ngày còn thiếu của ${ind.code}`}
+                          title={`Chọn tất cả ngày còn thiếu của ${ind.code} (theo tháng và nguồn đang lọc); bấm lần nữa để bỏ chọn`}
                         >
                           <Zap className="h-3.5 w-3.5 text-slate-950" />
-                          <span>Chọn {ind.totalMissing} ngày thiếu</span>
+                          <span>Chọn ngày thiếu</span>
                         </button>
                       )}
 

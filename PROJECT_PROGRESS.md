@@ -2241,3 +2241,7 @@ Antigravity delivered the day-row view (commit 0f2bf21). Independent Opus review
 ## 2026-10-10 - UI-IMPORT-DAYVIEW-01 REOPENED FOR FULL REDESIGN
 
 PO rejected the delivered day-row view (rows not aligned, F1.1/F1.3/F4.1 each one block per month so reaching F4.1 means long scrolling, not smart enough) and gave Antigravity free design of the whole Bù dữ liệu tự động area; only constraint: no function change (hard guard unchanged). Round 2 prompt and manifest Section 9 written; next Antigravity, new Opus review, PO UI check. Manifest: docs/10_TICKETS/UI-IMPORT-DAYVIEW-01_MANIFEST.md.
+
+## 2026-10-10 - UI-IMPORT-DAYVIEW-01 ROUND 2 REVIEWED, BLOCKER FIXED, READY FOR PO UI CHECK
+
+Antigravity round 2 (commit 5ff1d60): indicator matrix plus aligned day table. Opus review: Section 4 intact, one blocker -- the default all-indicators view merged the sources of different indicators on the same date into one row. Fixed by Claude Code (grouping per indicator and date) together with select-page, matrix button scope, empty cell text and paging reset; new tests; frontend 622/622, build and lint clean. Pending: PO UI check. Manifest Section 10.

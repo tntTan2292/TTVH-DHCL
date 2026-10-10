@@ -566,8 +566,11 @@ export function groupItemsByDay(items = []) {
 
   for (const item of items) {
     const date = item.business_date || '';
-    if (!map.has(date)) {
-      map.set(date, {
+    // One row per (indicator, date): with several indicators in the list a date must never
+    // merge their sources into one row (Opus review B1).
+    const dayKey = `${(item.indicator || '').trim().toUpperCase()}::${date}`;
+    if (!map.has(dayKey)) {
+      map.set(dayKey, {
         date,
         indicator: item.indicator || '',
         lanes: {},
@@ -576,7 +579,7 @@ export function groupItemsByDay(items = []) {
         holiday: null,
       });
     }
-    const day = map.get(date);
+    const day = map.get(dayKey);
     const lane = (item.source_lane || item.lane || '').trim().toUpperCase();
     if (lane) {
       day.lanes[lane] = item;
@@ -591,7 +594,7 @@ export function groupItemsByDay(items = []) {
   }
 
   const result = Array.from(map.values());
-  result.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  result.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (a.indicator || '').localeCompare(b.indicator || ''));
 
   for (const day of result) {
     const standardLanes = ['HUE', 'TCT'];

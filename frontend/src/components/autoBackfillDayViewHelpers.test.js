@@ -385,4 +385,40 @@ console.log('Running UI-IMPORT-DAYVIEW-01 day-view helpers test suite...');
   console.log('✔ 11. resolveCrossIndicatorSummary tests PASSED!');
 }
 
+// ==========================================
+// 12. Several indicators on the same date never merge (Opus round-2 review B1)
+// ==========================================
+{
+  const items = [
+    { indicator: 'F1.1', source_lane: 'HUE', business_date: '2026-10-07', status: 'INCOMPLETE' },
+    { indicator: 'F1.1', source_lane: 'TCT', business_date: '2026-10-07', status: 'INCOMPLETE' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-10-07', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-10-07', status: 'COMPLETED' },
+    { indicator: 'F4.1', source_lane: 'HUE', business_date: '2026-10-07', status: 'COMPLETED' },
+    { indicator: 'F4.1', source_lane: 'TCT', business_date: '2026-10-07', status: 'COMPLETED' },
+  ];
+  const days = groupItemsByDay(items);
+  assert.equal(days.length, 3, 'one row per (indicator, date)');
+  assert.deepEqual(days.map((d) => d.indicator), ['F1.1', 'F1.3', 'F4.1']);
+  const f11 = days[0];
+  assert.equal(f11.lanes.HUE.indicator, 'F1.1');
+  assert.equal(f11.lanes.TCT.indicator, 'F1.1');
+  assert.equal(f11.lanes.HUE.status, 'INCOMPLETE', 'F1.1 sources must stay visible as INCOMPLETE');
+  assert.equal(f11.items.length, 2);
+  assert.ok(days.every((d) => d.items.every((i) => i.indicator === d.indicator)));
+
+  // Missing-only filter keeps F1.1 and drops the finished indicators of the same date.
+  assert.deepEqual(filterDaysByMissingOnly(days).map((d) => d.indicator), ['F1.1']);
+
+  // Newer dates first, indicators alphabetical inside a date.
+  const mixed = groupItemsByDay([
+    { indicator: 'F4.1', source_lane: 'HUE', business_date: '2026-10-06', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-10-07', status: 'COMPLETED' },
+    { indicator: 'F1.1', source_lane: 'HUE', business_date: '2026-10-07', status: 'COMPLETED' },
+  ]);
+  assert.deepEqual(mixed.map((d) => `${d.date}|${d.indicator}`), ['2026-10-07|F1.1', '2026-10-07|F1.3', '2026-10-06|F4.1']);
+
+  console.log('✔ 12. Multi-indicator same-date grouping tests PASSED!');
+}
+
 console.log('ALL UI-IMPORT-DAYVIEW-01 day-view helpers tests PASSED SUCCESSFULLY!');

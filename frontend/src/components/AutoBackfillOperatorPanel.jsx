@@ -1070,6 +1070,11 @@ export default function AutoBackfillOperatorPanel() {
   }, [selectedReimportKeys]);
 
   // Pagination for Table View
+  // "Bảng Chi tiết" paging restarts whenever a filter (also set from the day view) changes.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [indicatorFilter, monthFilter, laneFilter, statusFilter]);
+
   const paginatedCoverage = useMemo(() => {
     return paginateItems(filteredCoverageItems, currentPage, pageSize);
   }, [filteredCoverageItems, currentPage, pageSize]);
@@ -1477,7 +1482,7 @@ export default function AutoBackfillOperatorPanel() {
           setIndicatorFilter(ind);
           setCurrentPage(1);
         }}
-        onSelectAllUnfinished={handleSelectAllUnfinished}
+        onSelectAllUnfinished={(code) => handleSelectAllUnfinished(code, monthFilter)}
         onOpenLaneModal={setSelectedLaneModal}
         isAdmin={isAdmin}
       />
@@ -1599,6 +1604,7 @@ export default function AutoBackfillOperatorPanel() {
           selectedReimportKeys={selectedReimportKeys}
           isAdmin={isAdmin}
           onToggleSelectItem={handleToggleRowSelection}
+          onToggleSelectAllItems={toggleSelectAllItems}
           onSelectAllUnfinished={handleSelectAllUnfinished}
           onSelectAllReimport={handleSelectAllReimport}
           onConfirmClick={(item) => {
