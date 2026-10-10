@@ -2205,3 +2205,7 @@ F1.1 read APIs under /api/f11 (summary, daily trend, six-BCVH ranking, overview,
 ## 2026-10-10 - F11-PHASE-3 SUPERVISED LIVE RUN PASSED (both lanes, DRY)
 
 F1.1 portal adapter run against the real portal for 2026-10-07: HUE detail 2.619 rows and TCT summary 84 pairs downloaded and reconciled with the portal summary figure by figure; differences from the PO files (exported 3 days earlier) are portal revisions of a past day (2 HUE parcels no longer listed, small TCT count changes), no evaluation column differs on common HUE rows. Probe fixed for TCT manual sign-in. Nothing imported, lanes still MANUAL_ONLY. Next: Opus review of the adapter, then enablement and backfill from 2026-01-01. Manifest Section 14: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.
+
+## 2026-10-10 - F11-PHASE-3 OPUS REVIEW: ENABLEMENT BLOCKER FIXED
+
+Independent Opus review of the F1.1 portal adapter: requests, reconciliation, file match, locks/cleanup and N-1 PASS; enablement FAIL because the TCT completion policy keyed on the delivering province only (84 rows, 45 distinct) would have halted the whole auto-backfill coordinator after the first import. Fixed: composite key (accepting, delivering province) plus a 34-province completeness check; 6 new policy tests incl. the real 07/10 files; sweep 505/509 (4 known pre-existing). Lanes still MANUAL_ONLY. Open PO decision: how to treat days the portal revises after N-1. Manifest Section 15: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.

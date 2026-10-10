@@ -2,7 +2,7 @@
 
 const path = require('path');
 const { extractDateFromFilename, parseF13Excel } = require('./excelParser');
-const { parseF13NationalExcel } = require('./nationalExcelParser');
+const { parseF13NationalExcel, NATIONAL_RANKED_PROVINCE_CODES } = require('./nationalExcelParser');
 const { extractF41DateFromFilename, parseF41HueExcel } = require('./f41HueExcelParser');
 const { parseF41TctExcel } = require('./f41TctExcelParser');
 const { extractF11DateFromFilename, parseF11HueExcel } = require('./f11HueExcelParser');
@@ -88,6 +88,7 @@ function createLane({
     automationMode = 'MANUAL_ONLY',
     manualOnlyReason,
     portalAdapter = null,
+    requiredValues = null,
 }) {
     return {
         code,
@@ -98,6 +99,7 @@ function createLane({
             id: `${targetTable.toUpperCase()}_IMPORT_ARTIFACT_V1`,
             distinctColumn,
             expectedRowCount,
+            requiredValues,
         }),
         automationMode,
         manualOnlyReason,
@@ -262,7 +264,10 @@ INDICATORS['F1.1'] = {
             priority: 20,
             parser: (buffer, filename) => parseF11TctExcel(buffer, filename),
             targetTable: 'fact_f11_national',
-            distinctColumn: 'ma_tinh_phat',
+            // One row per accepting province x delivering province (the table's unique key); the day is
+            // complete only when all 34 ranked delivering provinces are present (Opus review 2026-10-10).
+            distinctColumn: ['ma_tinh_chap_nhan', 'ma_tinh_phat'],
+            requiredValues: { column: 'ma_tinh_phat', values: NATIONAL_RANKED_PROVINCE_CODES },
             automationMode: 'MANUAL_ONLY',
             manualOnlyReason: 'No verified DKCL Portal adapter for F1.1 yet (F11-PHASE-3).',
         }),

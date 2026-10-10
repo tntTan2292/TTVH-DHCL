@@ -157,6 +157,17 @@ Status: `LIVE RUN PASSED / WAITING FOR OPUS REVIEW BEFORE ENABLEMENT`. Run by `C
 - Consequence for acceptance: the criterion for enablement is "workbook = portal summary" (done by the service on every fetch) plus identical structure, not byte equality with an older export. This also confirms the N-1 rule (fetch a day only after it has settled) and that a later re-fetch may legitimately replace the stored day (`refreshRequested`).
 
 Not yet done: Opus review of the adapter (a model other than the implementer), then the enablement step of Section 13.
+## 15. Independent Review (Opus, 2026-10-10) and the blocker fixed
+
+Reviewer: `Opus` (read-only). Items 1-4 and 6(N-1) `PASS`; item 5 (enablement conditions) `FAIL`, one blocker, now fixed.
+
+- **Blocker:** the F1.1 TCT lane used the completion policy `distinctColumn: ma_tinh_phat`, which demands one row per delivering province. The table holds one row per accepting × delivering province (07/10: 84 rows, 45 distinct delivering codes). After enabling, the first successful import would have been judged `MANUAL_REVIEW_REQUIRED` → `EXECUTION_DID_NOT_SATISFY_COMPLETION_POLICY` → `BLOCKED_INTEGRITY` and would have halted the whole coordinator (F1.3 and F4.1 included).
+- **Fix (this commit):** `createSqliteImportCompletionPolicy` accepts several key columns and an optional `requiredValues` completeness check (single-column behaviour unchanged). The F1.1 TCT lane now uses the key `(ma_tinh_chap_nhan, ma_tinh_phat)` and requires all 34 ranked delivering provinces. `backend/test_f11CompletionPolicy.js` (6 tests): complete file with extra accepting-province rows = SUCCESS; a missing ranked province = `MANUAL_REVIEW_REQUIRED`; duplicate pair = mismatch; empty day = MISSING; the real 07/10 files (HUE 2.621/2.621, TCT 84/84, 34 provinces) = SUCCESS, through the real Import pipeline.
+- Validation: new 6/6; coverage 16/16, coverage-exception 25/25, F1.1 import 9/9, F1.1 portal adapter 22/22; backend sweep 505/509 (the 4 known pre-existing failures); lint clean.
+- Minor, accepted: TCT does not compare the export form Total (85) with the row count (the sum check already fails a different file); on a failed reconciliation/import the portal file and raw local file stay behind (same as F4.1).
+- **Open PO decision (item 6):** N-1 is enforced once in `autoBackfillCoverageService` (as of date − 1), and a day that already has data is never fetched again automatically. The 07/10 evidence shows the portal revising a day after 3 days. Options: (A) keep N-1 and let the PO re-import a day by hand when needed; (B) fetch later (N-3); (C) automatically re-fetch the last K days. Recommended: A for the first backfill, then decide C after seeing real revision sizes.
+
+Remaining enablement (Section 13, separate commit after the PO decision): register the executors, F1.1 `ACTIVE`, lanes `AUTOMATED` with `portalAdapter`, registration-before-coordinator test, then the backfill from 2026-01-01.
 ## 11. Next Step
 
 PO sends the evidence pack (Section 8). Then the contract draft and, if needed, one controlled live run. Dashboard and BCVH Ranking work (`F11-DASHBOARD-RANKING-01`) can start in parallel on the days already loaded, but the PO asked for data completeness first.

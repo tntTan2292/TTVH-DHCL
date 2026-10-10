@@ -24,10 +24,26 @@ function createSqliteImportCompletionPolicy({
     distinctColumn,
     expectedRowCount = null,
     requireProcessedArtifact = true,
+    requiredValues = null,
 }) {
     if (!id || typeof id !== 'string') throw new Error('Completion policy id is required.');
     assertSqlIdentifier(dateColumn, 'completionPolicy.dateColumn');
-    assertSqlIdentifier(distinctColumn, 'completionPolicy.distinctColumn');
+    // A single column, or several columns that together form the table's unique key (F1.1 TCT:
+    // accepting province x delivering province). A single column keeps the original SQL.
+    const distinctColumns = Array.isArray(distinctColumn) ? distinctColumn : [distinctColumn];
+    if (distinctColumns.length === 0) throw new Error('completionPolicy.distinctColumn must not be empty.');
+    distinctColumns.forEach((column) => assertSqlIdentifier(column, 'completionPolicy.distinctColumn'));
+    const distinctExpression = distinctColumns.length === 1
+        ? distinctColumns[0]
+        : distinctColumns.map((column) => `COALESCE(${column}, '')`).join(" || '|' || ");
+    // Optional completeness check: every listed value must appear in the column on that date
+    // (F1.1 TCT: the 34 ranked delivering provinces).
+    if (requiredValues !== null) {
+        assertSqlIdentifier(requiredValues.column, 'completionPolicy.requiredValues.column');
+        if (!Array.isArray(requiredValues.values) || requiredValues.values.length === 0) {
+            throw new Error('completionPolicy.requiredValues.values must be a non-empty array.');
+        }
+    }
     if (expectedRowCount !== null && (!Number.isInteger(expectedRowCount) || expectedRowCount <= 0)) {
         throw new Error('completionPolicy.expectedRowCount must be a positive integer or null.');
     }
@@ -39,11 +55,22 @@ function createSqliteImportCompletionPolicy({
             const artifactFilename = indicator.filenameDateRule.format(businessDate);
             const artifactPath = path.join(indicator.processedDir, lane.code, artifactFilename);
             const row = await db.get(
-                `SELECT COUNT(*) AS row_count, COUNT(DISTINCT ${distinctColumn}) AS distinct_count
+                `SELECT COUNT(*) AS row_count, COUNT(DISTINCT ${distinctExpression}) AS distinct_count
                  FROM ${targetTable}
                  WHERE ${dateColumn} = ?`,
                 [businessDate],
             );
+            let requiredPresentCount = null;
+            if (requiredValues !== null) {
+                const present = await db.get(
+                    `SELECT COUNT(DISTINCT ${requiredValues.column}) AS present_count
+                     FROM ${targetTable}
+                     WHERE ${dateColumn} = ?
+                       AND ${requiredValues.column} IN (${requiredValues.values.map(() => '?').join(', ')})`,
+                    [businessDate, ...requiredValues.values],
+                );
+                requiredPresentCount = Number(present?.present_count || 0);
+            }
             const logs = await db.all(
                 `SELECT id, status, total_records, error_records, skipped_records
                  FROM import_log
@@ -64,12 +91,15 @@ function createSqliteImportCompletionPolicy({
             const rowCountValid = expectedRowCount === null
                 ? rowCount > 0
                 : rowCount === expectedRowCount;
-            const integrityValid = rowCountValid && distinctCount === rowCount;
+            const requiredValuesComplete = requiredValues === null || requiredPresentCount === requiredValues.values.length;
+            const integrityValid = rowCountValid && distinctCount === rowCount && requiredValuesComplete;
             const evidence = {
                 policy_id: id,
                 target_table: targetTable,
                 row_count: rowCount,
                 distinct_count: distinctCount,
+                required_values_expected: requiredValues === null ? null : requiredValues.values.length,
+                required_values_present: requiredPresentCount,
                 expected_row_count: expectedRowCount,
                 success_log_count: successLogCount,
                 file_move_failed_log_count: fileMoveFailedLogCount,
