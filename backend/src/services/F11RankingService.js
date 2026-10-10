@@ -12,7 +12,8 @@
 const { F41RankingService, CANONICAL_CODES } = require('./F41RankingService');
 const { factF11Repository } = require('../repositories/FactF11Repository');
 const { f11NationalRankService } = require('./F11NationalRankService');
-const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+const { CANONICAL_BCVH_UNITS, buildDashboardMeta } = require('../config/canonicalBcvhUnits');
+const { F11_KPI_SCOPE_NOTE } = require('../config/f11KpiScopeContract');
 
 const OTHER_COLUMN = Object.freeze({ ma_bcvh: 'OTHER', ten_bcvh: 'Khác' });
 const UNKNOWN_OFFICE = Object.freeze({ ma_chap_nhan: '', ten_chap_nhan: '(Không rõ bưu cục chấp nhận)' });
@@ -81,6 +82,22 @@ function resolvePeriod({ period, anchorDate, fromDate, toDate }) {
 class F11RankingService extends F41RankingService {
     constructor({ repository = factF11Repository, nationalRankService = f11NationalRankService, now } = {}) {
         super({ repository, nationalRankService, ...(now ? { now } : {}) });
+    }
+
+    // Dashboard bootstrap: first/last day with data, the 6 official BCVH, the KPI scope note.
+    async getDashboardMeta() {
+        const { min_date, max_date } = await this.repository.getMeta();
+        return {
+            ...buildDashboardMeta(max_date, min_date),
+            kpi_scope_note: F11_KPI_SCOPE_NOTE,
+            kpi_includes_non_canonical_bcvh: await this.repository.hasNonCanonicalBcvhRows(CANONICAL_CODES),
+        };
+    }
+
+    // The 34 provinces/cities ranked nationally for the Dashboard province table.
+    async getNationalRanking(fromDate, toDate) {
+        this._validateRange(fromDate, toDate);
+        return this.nationalRankService.getNationalRanking(fromDate, toDate);
     }
 
     // Accepting office (rows) x delivering BCVH (columns): the six canonical BCVH plus "Khác" for every

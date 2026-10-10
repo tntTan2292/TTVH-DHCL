@@ -2213,3 +2213,7 @@ Independent Opus review of the F1.1 portal adapter: requests, reconciliation, fi
 ## 2026-10-10 - F11-PHASE-3 ENABLED IN CODE + 3-DAY REFRESH WINDOW
 
 F1.1 set ACTIVE with both lanes AUTOMATED (verified adapters registered before the coordinator). New shared refresh window: an unscoped Auto Backfill run also re-imports the last N completed days before the newest day for indicators declaring refreshWindowDays (F1.1 = 3 per PO decision; F1.3/F4.1 off, one-line switch), once per planning day, replace-in-one-transaction, replaced_row_count recorded. 6 new tests; auto-backfill suites unchanged; sweep 505/509 (4 known). Next: PO restarts the backend and runs the first supervised Auto Backfill for F1.1 (short range first), then backfill from 2026-01-01. Manifest Section 16: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.
+
+## 2026-10-10 - F11-DASHBOARD-UI-01 READY FOR ANTIGRAVITY
+
+Backend completed for the screens (/api/f11 dashboard meta and the 34-province national ranking with Huế flagged and movement; 2 tests, real-DB smoke Huế 4th at 90,7 %). UI manifest written (F1.1 Dashboard and BCVH Ranking following F4.1 with F1.3 colours, plus province/city block and accepting-office x BCVH block, day/week/month). Next: Antigravity builds the screens, Opus review, PO UI check. Manifest: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.

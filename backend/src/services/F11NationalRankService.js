@@ -152,6 +152,56 @@ class F11NationalRankService {
         };
     }
 
+    // Full ranking of the 34 provinces/cities for the Dashboard province table (PD-17 rule: rows added per
+    // delivering province, then the rate). Each row carries the previous available day's rank so the screen
+    // can show the movement. Huế is flagged. Never throws for missing data: { available: false, items: [] }.
+    async getNationalRanking(startDate, endDate) {
+        const empty = (message) => ({ available: false, message, requested_period_start: startDate, requested_period_end: endDate, total: 0, items: [] });
+        if (!isIsoDate(startDate) || !isIsoDate(endDate) || startDate > endDate) return empty('Khoảng ngày không hợp lệ');
+        const rows = await this._rankedRange(startDate, endDate);
+        if (!rows.length) return empty('Chưa có dữ liệu xếp hạng toàn quốc');
+
+        const provinceCode = await this._provinceCode();
+        const previousRow = await this._get(
+            'SELECT MAX(ngay_do_kiem) AS period FROM fact_f11_national WHERE ngay_do_kiem < ?',
+            [startDate]
+        );
+        const previousRanks = new Map();
+        if (previousRow?.period) {
+            (await this._rankedRange(previousRow.period, previousRow.period))
+                .forEach((row, index) => previousRanks.set(String(row.ma_don_vi), index + 1));
+        }
+        const items = rows.map((row, index) => {
+            const volume = Number(row.volume || 0);
+            const passed = Number(row.passed || 0);
+            const previousRank = previousRanks.get(String(row.ma_don_vi)) || null;
+            return {
+                rank: index + 1,
+                ma_tinh: row.ma_don_vi,
+                ten_tinh: row.ten_don_vi,
+                volume,
+                passed,
+                failed: volume - passed,
+                rate: rate(passed, volume),
+                previous_rank: previousRank,
+                movement: previousRank ? previousRank - (index + 1) : null,
+                is_hue: String(row.ma_don_vi) === String(provinceCode),
+            };
+        });
+        return {
+            available: true,
+            period_start: startDate,
+            period_end: endDate,
+            period_type: startDate === endDate ? 'single_date' : 'selected_range',
+            previous_period: previousRow?.period || null,
+            metric: METRIC,
+            metric_label: METRIC_LABEL,
+            tie_behavior: TIE_BEHAVIOR,
+            total: items.length,
+            items,
+        };
+    }
+
     // One query for many single dates (daily-trend). Same result shape per date.
     async getNationalRanksForDates(dates = []) {
         const uniqueDates = [...new Set((dates || []).filter(isIsoDate))].sort();

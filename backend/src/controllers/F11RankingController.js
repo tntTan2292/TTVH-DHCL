@@ -59,6 +59,18 @@ function createController(service = f11RankingService) {
             } catch (error) { fail(res, error); }
         },
 
+        async getMeta(req, res) {
+            try { ok(res, { data: await service.getDashboardMeta() }); } catch (error) { fail(res, error); }
+        },
+
+        async getNationalRanking(req, res) {
+            try {
+                const { from_date, to_date } = req.query;
+                if (!from_date || !to_date) return missingRange(res);
+                ok(res, { data: await service.getNationalRanking(from_date, to_date) });
+            } catch (error) { fail(res, error); }
+        },
+
         async getOverview(req, res) {
             try { ok(res, { data: await service.getOverview(req.query.anchor_date) }); } catch (error) { fail(res, error); }
         },

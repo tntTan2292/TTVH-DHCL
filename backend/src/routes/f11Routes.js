@@ -14,6 +14,8 @@ const allowViewerRead = [requireAuth, requireRole(['admin', 'viewer'])];
 router.get('/dashboard/summary', ...allowViewerRead, f11RankingController.getSummary);
 router.get('/dashboard/daily-trend', ...allowViewerRead, f11RankingController.getDailyTrend);
 router.get('/dashboard/pair-table', ...allowViewerRead, f11RankingController.getPairTable);
+router.get('/dashboard/meta', ...allowViewerRead, f11RankingController.getMeta);
+router.get('/dashboard/national-ranking', ...allowViewerRead, f11RankingController.getNationalRanking);
 router.get('/ranking/bcvh/overview', ...allowViewerRead, f11RankingController.getOverview);
 router.get('/ranking/bcvh/weeks', ...allowViewerRead, f11RankingController.getWeeks);
 router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, f11RankingController.getWeeklyComparison);

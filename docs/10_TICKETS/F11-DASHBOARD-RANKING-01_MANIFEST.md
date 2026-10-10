@@ -45,6 +45,11 @@ Give F1.1 the same reading surface as F1.3/F4.1 — KPI cards with national rank
 | `backend/src/services/F11RankingService.test.js` | 8 temp-DB tests (pair table day/week/month/empty/invalid, reconciliation with the module total, blank-as-not-passed, six-unit vs module total, controller) |
 | `backend/src/services/F11RankingRealBaseline.test.js` | the PO's real 07/10 file loaded into a temp DB: 2.621 / 2.348 / 273 (240 + 33 blank) / 89,58 %, pair-grid sums |
 
+### 4.1 Added for the screens (2026-10-10)
+
+- `GET /api/f11/dashboard/meta`: first/last day with data, the 6 official BCVH, KPI scope note (`config/f11KpiScopeContract.js`).
+- `GET /api/f11/dashboard/national-ranking`: the 34 provinces/cities ranked by the published national rate (rows of a delivering province added before the rate, PD-17), with volume, failed, previous-day rank and movement, Huế flagged (`F11NationalRankService.getNationalRanking`). Unavailable data returns `available:false`, never an error.
+- Tests: 2 more in `F11RankingService.test.js` (rank order, Huế flag, movement, range sums; unavailable/invalid range; meta). Real-database smoke: 34 rows, Huế 4th at 90,7 %.
 ## 5. Validation
 
 - New tests 9/9; the F4.1 ranking and F1.1 national-rank suites are unchanged and pass (27/27 together with the new ones); routes load; lint clean.

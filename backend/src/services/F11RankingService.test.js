@@ -213,3 +213,54 @@ test('controller: pair-table parameters, 400 on bad input and no-store header', 
     await controller.getBcvhRanking({ query: {} }, missing);
     assert.equal(missing.statusCode, 400);
 });
+
+const { NATIONAL_RANKED_PROVINCE_CODES } = require('./nationalExcelParser');
+
+async function seedNational(db, date, overrides = {}) {
+    for (const code of NATIONAL_RANKED_PROVINCE_CODES) {
+        const spec = { den: 1000, ok: 600, ...overrides[code] };
+        await run(db,
+            `INSERT INTO fact_f11_national (ngay_do_kiem, ma_tinh_chap_nhan, ten_tinh_chap_nhan, ma_tinh_phat, ten_tinh_phat, sl_theo_chi_tieu, sl_dung_chi_tieu)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [date, code, `Tinh ${code}`, code, `Tinh ${code}`, spec.den, spec.ok]);
+    }
+}
+
+test('national ranking: 34 provinces in rank order, Hue flagged, movement against the previous available day', async () => {
+    await withStack(async ({ db, service }) => {
+        await seedNational(db, '2026-10-06', { 53: { ok: 500 } });
+        await seedNational(db, '2026-10-07', { 53: { ok: 900 }, 10: { ok: 800 } });
+        const ranking = await service.getNationalRanking('2026-10-07', '2026-10-07');
+        assert.equal(ranking.available, true);
+        assert.equal(ranking.total, 34);
+        assert.equal(ranking.items.length, 34);
+        assert.deepEqual(ranking.items.slice(0, 2).map((i) => [i.ma_tinh, i.rank, i.rate]), [['53', 1, 90], ['10', 2, 80]]);
+        const hue = ranking.items.find((i) => i.is_hue);
+        assert.equal(hue.ma_tinh, '53');
+        assert.equal(ranking.items.filter((i) => i.is_hue).length, 1);
+        assert.deepEqual({ v: hue.volume, p: hue.passed, f: hue.failed }, { v: 1000, p: 900, f: 100 });
+        assert.equal(ranking.previous_period, '2026-10-06');
+        assert.equal(hue.previous_rank > 1, true);
+        assert.equal(hue.movement, hue.previous_rank - 1);
+        // a range adds numerators and denominators before the rate
+        const range = await service.getNationalRanking('2026-10-06', '2026-10-07');
+        const hueRange = range.items.find((i) => i.is_hue);
+        assert.deepEqual({ v: hueRange.volume, p: hueRange.passed, r: hueRange.rate }, { v: 2000, p: 1400, r: 70 });
+    });
+});
+
+test('national ranking: no data or an invalid range is "unavailable", never an error; meta reports the data window and scope', async () => {
+    await withStack(async ({ service }) => {
+        const none = await service.getNationalRanking('2026-10-07', '2026-10-07');
+        assert.equal(none.available, false);
+        assert.deepEqual(none.items, []);
+        await assert.rejects(() => service.getNationalRanking('2026-10-08', '2026-10-07'), { code: 'INVALID_RANGE' });
+
+        const meta = await service.getDashboardMeta();
+        assert.equal(meta.min_date, '2026-10-06');
+        assert.equal(meta.max_date, '2026-10-08');
+        assert.equal(meta.bcvh_units.length, 6);
+        assert.equal(meta.kpi_includes_non_canonical_bcvh, true); // the 531120 parcel
+        assert.match(meta.kpi_scope_note, /F1\.1/);
+    });
+});
