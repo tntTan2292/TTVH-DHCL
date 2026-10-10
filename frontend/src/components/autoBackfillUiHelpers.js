@@ -551,4 +551,176 @@ export function resolveRunIdleState(runData) {
   return { kind: 'INITIALIZING', runState: effectiveState, job: null };
 }
 
+// ==========================================
+// UI-IMPORT-DAYVIEW-01: Smart Day-Row View Helpers
+// ==========================================
+
+export function getItemKey(item) {
+  if (!item) return '';
+  return `${(item.indicator || '').trim().toUpperCase()}::${(item.source_lane || item.lane || '').trim().toUpperCase()}::${item.business_date || ''}`;
+}
+
+export function groupItemsByDay(items = []) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const map = new Map();
+
+  for (const item of items) {
+    const date = item.business_date || '';
+    if (!map.has(date)) {
+      map.set(date, {
+        date,
+        indicator: item.indicator || '',
+        lanes: {},
+        laneOrder: [],
+        items: [],
+        holiday: null,
+      });
+    }
+    const day = map.get(date);
+    const lane = (item.source_lane || item.lane || '').trim().toUpperCase();
+    if (lane) {
+      day.lanes[lane] = item;
+    }
+    day.items.push(item);
+    if (!day.holiday && item.holiday) {
+      day.holiday = item.holiday;
+    }
+    if (!day.indicator && item.indicator) {
+      day.indicator = item.indicator;
+    }
+  }
+
+  const result = Array.from(map.values());
+  result.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  for (const day of result) {
+    const standardLanes = ['HUE', 'TCT'];
+    const presentStandard = standardLanes.filter((l) => Boolean(day.lanes[l]));
+    const otherLanes = Object.keys(day.lanes).filter((l) => !standardLanes.includes(l));
+    day.laneOrder = [...presentStandard, ...otherLanes];
+  }
+
+  return result;
+}
+
+export function summarizeMonthDays(items = []) {
+  const dayGroups = Array.isArray(items) && items.length > 0 && items[0]?.lanes
+    ? items
+    : groupItemsByDay(items);
+
+  const totalDays = dayGroups.length;
+  let completeDays = 0;
+  let missingDays = 0;
+  const missingByLane = {};
+  const seenLanes = new Set();
+
+  dayGroups.forEach((day) => {
+    const lanes = Object.keys(day.lanes || {});
+    lanes.forEach((l) => seenLanes.add(l));
+
+    let hasMissing = false;
+    lanes.forEach((l) => {
+      const item = day.lanes[l];
+      const normalized = normalizePoStatus(item?.status);
+      const isUnfinished = normalized === 'INCOMPLETE' || normalized === 'DATA_ERROR';
+      if (isUnfinished) {
+        hasMissing = true;
+        missingByLane[l] = (missingByLane[l] || 0) + 1;
+      }
+    });
+
+    if (hasMissing) {
+      missingDays += 1;
+    } else {
+      completeDays += 1;
+    }
+  });
+
+  const standardLanes = ['HUE', 'TCT'];
+  const presentStandard = standardLanes.filter((l) => seenLanes.has(l));
+  const otherLanes = Array.from(seenLanes).filter((l) => !standardLanes.includes(l)).sort();
+  const orderedLanes = [...presentStandard, ...otherLanes];
+
+  const laneDetails = orderedLanes
+    .map((l) => `${l} ${missingByLane[l] || 0}`)
+    .join(', ');
+
+  const completeLabel = seenLanes.size === 1 ? `${completeDays} đủ nguồn` : `${completeDays} đủ cả 2 nguồn`;
+  const missingLabel = missingDays > 0
+    ? `${missingDays} còn thiếu${laneDetails ? ` (${laneDetails})` : ''}`
+    : '0 còn thiếu';
+
+  const label = `${totalDays} ngày • ${completeLabel} • ${missingLabel}`;
+
+  return {
+    totalDays,
+    completeDays,
+    missingDays,
+    missingByLane,
+    label,
+  };
+}
+
+export function countDistinctDates(keys) {
+  const dates = new Set();
+  const iterable = keys instanceof Set ? keys : (Array.isArray(keys) ? keys : []);
+  for (const k of iterable) {
+    if (typeof k === 'string') {
+      const parts = k.split('::');
+      if (parts.length >= 3) {
+        dates.add(parts[2]);
+      }
+    }
+  }
+  return dates.size;
+}
+
+export function formatSelectionCountLabel(keys, { suffix = '' } = {}) {
+  const count = keys instanceof Set ? keys.size : (Array.isArray(keys) ? keys.length : 0);
+  const dateCount = countDistinctDates(keys);
+  const base = `Đã chọn ${dateCount} ngày (${count} nguồn)`;
+  return suffix ? `${base} ${suffix}` : base;
+}
+
+export function resolveDaySelectionState(day, selectedKeys = new Set(), { isReimportMode = false } = {}) {
+  const selectableItems = (day?.items || []).filter((item) =>
+    isReimportMode ? isReimportSelectable(item) : isSelectable(item)
+  );
+
+  if (selectableItems.length === 0) {
+    return {
+      canSelect: false,
+      isSelected: false,
+      isPartial: false,
+      selectedCount: 0,
+      selectableItems: [],
+    };
+  }
+
+  const selectedCount = selectableItems.filter((item) => selectedKeys.has(getItemKey(item))).length;
+  const isSelected = selectedCount === selectableItems.length;
+  const isPartial = selectedCount > 0 && selectedCount < selectableItems.length;
+
+  return {
+    canSelect: true,
+    isSelected,
+    isPartial,
+    selectedCount,
+    selectableItems,
+  };
+}
+
+export function findNewestUnfinishedMonthKey(groups = []) {
+  if (!Array.isArray(groups) || groups.length === 0) return null;
+  const unfinished = groups.filter((g) => (g.counts?.unprocessed || 0) > 0);
+  if (unfinished.length === 0) return null;
+  const sorted = [...unfinished].sort((a, b) => {
+    const cmp = (b.yearMonth || '').localeCompare(a.yearMonth || '');
+    if (cmp !== 0) return cmp;
+    return (a.indicator || '').localeCompare(b.indicator || '');
+  });
+  return `${sorted[0].indicator}::${sorted[0].yearMonth}`;
+}
+
+
 

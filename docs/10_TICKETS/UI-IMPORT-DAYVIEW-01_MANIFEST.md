@@ -1,6 +1,6 @@
 # UI-IMPORT-DAYVIEW-01 Manifest
 
-Status: `APPROVED BY PO AND ASSIGNED TO ANTIGRAVITY (2026-10-10) — Antigravity build in progress; next Opus review, then PO UI check`. PO approved Option A with the three defaults of the proposal (day checkbox selects only unfinished lanes; "Bảng Chi tiết" unchanged; indicator cards and run-creation controls out of scope). Frontend presentation only; no behaviour, API or data change. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict, read this manifest directly.
+Status: `READY FOR OPUS REVIEW & PO UI CHECK (2026-10-10) — Built by Antigravity; all tests, build, and lints pass. Awaiting Opus review and PO UI check`. PO approved Option A with the three defaults of the proposal (day checkbox selects only unfinished lanes; "Bảng Chi tiết" unchanged; indicator cards and run-creation controls out of scope). Frontend presentation only; no behaviour, API or data change. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict, read this manifest directly.
 
 ## 1. Ticket Information
 
@@ -34,13 +34,36 @@ API calls and payloads (`buildRunPayload`, `/coverage`, `/coverage/selectable`, 
 
 ## 5. Implementation notes
 
-- Add a pure, additive helper `groupItemsByDay(items)` in `autoBackfillUiHelpers.js` → `[{ date, lanes: { HUE?: item, TCT?: item }, laneOrder }]` (items already filtered by the panel), plus a pure `summarizeDayGroup`/selection-keys helper for the checkbox and header counts. All logic that decides anything lives in helpers with unit tests (the repo tests helpers with `node --test`, not rendering).
-- Do not modify `groupItemsByIndicatorAndMonth`; `MonthlyAccordionGroup` receives the same `group` and derives day rows from `group.items`.
-- Keep `data-testid`s and Vietnamese wording used by existing tests.
-- Responsive: on narrow width the two source cells stack under the date; buttons never overflow.
+- Pure helpers added in `autoBackfillUiHelpers.js`:
+  - `groupItemsByDay(items)` → `[{ date, indicator, lanes: { HUE?: item, TCT?: item }, laneOrder, items, holiday }]`
+  - `summarizeMonthDays(items)` → `{ totalDays, completeDays, missingDays, missingByLane, label }`
+  - `resolveDaySelectionState(day, selectedKeys, { isReimportMode })` → `{ canSelect, isSelected, isPartial, selectedCount, selectableItems }`
+  - `findNewestUnfinishedMonthKey(groups)` → key of newest month group with unprocessed items
+  - `countDistinctDates(keys)` & `formatSelectionCountLabel(keys)`
+- `MonthlyAccordionGroup` renders one row per date with HUE and TCT cells side by side, per-cell `⋯` popovers, date-level LỊCH NGHỈ button, and smart day checkbox.
+- `AutoBackfillOperatorPanel.jsx` passes `defaultOpen` computed from `findNewestUnfinishedMonthKey` and updates floating bar and bulk modals labels to `"Đã chọn N ngày (M nguồn)"`.
+- Existing tests unmodified (`AutoBackfillOperatorPanel.test.js` passes 24/24).
+- Dedicated unit tests added in `autoBackfillDayViewHelpers.test.js` covering all scenarios (8/8 pass).
 
 ## 6. Validation and PO check
 
 - Technical: new helper tests (two lanes, one lane, mixed COMPLETED/INCOMPLETE day, holiday day, lane-filtered input, DATA_ERROR, empty); frontend suite unchanged apart from known pre-existing `dataImportBackfillQueue.test.js` failure; build and lint clean.
 - Executor must not open a browser, screenshot, start a dev server or log in. Stop at `READY FOR PO UI CHECK`.
-- PO checklist: one row per day with HUE and TCT side by side; tick a day with both missing → both queued (bulk bar says "N ngày (2N nguồn)"); mixed day selects only the missing lane; "Nhập lại" on a completed lane works; LỊCH NGHỈ appears once per day; "Bảng Chi tiết" unchanged; newest month with missing days opens by itself.
+- PO checklist:
+  - one row per day with HUE and TCT side by side
+  - tick a day with both missing → both queued (bulk bar says "N ngày (2N nguồn)")
+  - mixed day selects only the missing lane
+  - "Nhập lại" on a completed lane works
+  - LỊCH NGHỈ appears once per day
+  - "Bảng Chi tiết" unchanged
+  - newest month with missing days opens by itself
+
+## 7. Delivery Status
+
+- **Status:** `READY FOR PO UI CHECK`
+- **Build:** `vite build` PASS (0 errors)
+- **Lint:** `oxlint` PASS (0 errors, 0 warnings on modified files)
+- **Tests:**
+  - `AutoBackfillOperatorPanel.test.js`: 24/24 suites PASS (unedited)
+  - `autoBackfillDayViewHelpers.test.js`: 8/8 suites PASS (new)
+

@@ -14,6 +14,8 @@ import {
   Grid,
   History,
   List,
+  MinusSquare,
+  MoreHorizontal,
   Pause,
   Play,
   RefreshCw,
@@ -29,10 +31,14 @@ import { useAuth } from '../auth/AuthContext';
 import { isAdminRole } from '../auth/roles';
 import {
   buildRunPayload,
+  countDistinctDates,
+  findNewestUnfinishedMonthKey,
+  groupItemsByDay,
   groupItemsByIndicatorAndMonth,
   isReimportSelectable,
   isSelectable,
   paginateItems,
+  resolveDaySelectionState,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
   resolveIndicatorGridClass,
@@ -41,7 +47,8 @@ import {
   resolveRunActionButtons,
   resolveRunIdleState,
   resolveWaitingAuthLanes,
-  splitReimportItems
+  splitReimportItems,
+  summarizeMonthDays
 } from './autoBackfillUiHelpers';
 
 const getApiErrorMessage = (error, fallback = 'Đã xảy ra lỗi khi gọi API.') => (
@@ -1049,6 +1056,18 @@ export default function AutoBackfillOperatorPanel() {
     return groupItemsByIndicatorAndMonth(filteredCoverageItems);
   }, [filteredCoverageItems]);
 
+  const autoOpenMonthKey = useMemo(() => {
+    return findNewestUnfinishedMonthKey(monthlyGroups);
+  }, [monthlyGroups]);
+
+  const distinctBulkDates = useMemo(() => {
+    return countDistinctDates(selectedBulkKeys);
+  }, [selectedBulkKeys]);
+
+  const distinctReimportDates = useMemo(() => {
+    return countDistinctDates(selectedReimportKeys);
+  }, [selectedReimportKeys]);
+
   // Pagination for Table View
   const paginatedCoverage = useMemo(() => {
     return paginateItems(filteredCoverageItems, currentPage, pageSize);
@@ -1649,6 +1668,7 @@ export default function AutoBackfillOperatorPanel() {
               <MonthlyAccordionGroup
                 key={`${group.indicator}::${group.yearMonth}`}
                 group={group}
+                defaultOpen={autoOpenMonthKey === `${group.indicator}::${group.yearMonth}`}
                 selectedBulkKeys={selectedBulkKeys}
                 selectedReimportKeys={selectedReimportKeys}
                 isAdmin={isAdmin}
@@ -1915,7 +1935,7 @@ export default function AutoBackfillOperatorPanel() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-slate-900 px-6 py-3.5 text-white shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center gap-2 text-sm font-bold">
             <CheckSquare className="h-5 w-5 text-amber-400" />
-            <span>Đã chọn {selectedBulkKeys.size} ngày</span>
+            <span>Đã chọn {distinctBulkDates} ngày ({selectedBulkKeys.size} nguồn)</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1928,7 +1948,7 @@ export default function AutoBackfillOperatorPanel() {
               className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-500 transition shadow-sm flex items-center gap-1.5"
             >
               <RotateCw className="h-3.5 w-3.5" />
-              <span>Nhập mới {selectedBulkKeys.size} ngày đã chọn</span>
+              <span>Nhập mới {distinctBulkDates} ngày ({selectedBulkKeys.size} nguồn) đã chọn</span>
             </button>
 
             {/* BULK EXEMPTION BUTTON */}
@@ -1940,7 +1960,7 @@ export default function AutoBackfillOperatorPanel() {
               }}
               className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm"
             >
-              Cập nhật dữ liệu - Loại bỏ phát sinh cho {selectedBulkKeys.size} ngày
+              Cập nhật dữ liệu - Loại bỏ phát sinh cho {distinctBulkDates} ngày ({selectedBulkKeys.size} nguồn)
             </button>
 
             <button
@@ -1958,7 +1978,7 @@ export default function AutoBackfillOperatorPanel() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 rounded-2xl bg-slate-900 px-6 py-3.5 text-white shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center gap-2 text-sm font-bold">
             <CheckSquare className="h-5 w-5 text-indigo-400" />
-            <span>Đã chọn {selectedReimportKeys.size} ngày (Tái nhập)</span>
+            <span>Đã chọn {distinctReimportDates} ngày ({selectedReimportKeys.size} nguồn) (Tái nhập)</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1972,7 +1992,7 @@ export default function AutoBackfillOperatorPanel() {
               className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500 transition shadow-sm flex items-center gap-1.5"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              <span>Nhập lại {selectedReimportKeys.size} ngày đã chọn</span>
+              <span>Nhập lại {distinctReimportDates} ngày ({selectedReimportKeys.size} nguồn) đã chọn</span>
             </button>
 
             <button
@@ -1997,7 +2017,7 @@ export default function AutoBackfillOperatorPanel() {
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Xác nhận Nhập mới Dữ liệu Hàng loạt</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Tạo các yêu cầu nạp mới dữ liệu riêng cho <strong>{selectedBulkKeys.size} ngày</strong> chưa hoàn tất đã chọn.
+                    Tạo các yêu cầu nạp mới dữ liệu riêng cho <strong>{distinctBulkDates} ngày ({selectedBulkKeys.size} nguồn)</strong> chưa hoàn tất đã chọn.
                   </p>
                 </div>
               </div>
@@ -2007,7 +2027,7 @@ export default function AutoBackfillOperatorPanel() {
             </div>
 
             <div className="mt-4 flex-1 overflow-y-auto max-h-48 rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs text-slate-700 space-y-1">
-              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày sẽ nhập mới ({selectedBulkKeys.size}):</span>
+              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày sẽ nhập mới ({distinctBulkDates} ngày • {selectedBulkKeys.size} nguồn):</span>
               {Array.from(selectedBulkKeys).map((key) => {
                 const [ind, lane, date] = key.split('::');
                 return (
@@ -2046,7 +2066,7 @@ export default function AutoBackfillOperatorPanel() {
                 disabled={bulkNewImportLoading}
                 className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
               >
-                {bulkNewImportLoading ? `Đang gửi ${selectedBulkKeys.size} yêu cầu...` : `Xác nhận Nhập mới ${selectedBulkKeys.size} ngày`}
+                {bulkNewImportLoading ? `Đang gửi ${selectedBulkKeys.size} yêu cầu...` : `Xác nhận Nhập mới ${distinctBulkDates} ngày (${selectedBulkKeys.size} nguồn)`}
               </button>
             </div>
           </div>
@@ -2065,7 +2085,7 @@ export default function AutoBackfillOperatorPanel() {
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Xác nhận Nhập lại Dữ liệu Hàng loạt</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Tạo các yêu cầu nạp lại dữ liệu cho <strong>{selectedReimportKeys.size} ngày</strong> đã chọn.
+                    Tạo các yêu cầu nạp lại dữ liệu cho <strong>{distinctReimportDates} ngày ({selectedReimportKeys.size} nguồn)</strong> đã chọn.
                   </p>
                 </div>
               </div>
@@ -2102,7 +2122,7 @@ export default function AutoBackfillOperatorPanel() {
 
             {/* PER-ITEM LIST WITH STATUS BADGES */}
             <div className="mt-3 flex-1 overflow-y-auto max-h-44 rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs text-slate-700 space-y-1.5">
-              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày tái nhập ({selectedReimportKeys.size}):</span>
+              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày tái nhập ({distinctReimportDates} ngày • {selectedReimportKeys.size} nguồn):</span>
               {selectedReimportItems.map((item) => {
                 const isCompleted = item.status === 'COMPLETED';
                 const key = getItemKey(item);
@@ -2171,7 +2191,7 @@ export default function AutoBackfillOperatorPanel() {
                 disabled={bulkReimportLoading || (reimportSplit.hasCompleted && !bulkReimportAck)}
                 className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
               >
-                {bulkReimportLoading ? `Đang gửi ${selectedReimportKeys.size} yêu cầu...` : `Xác nhận Nhập lại ${selectedReimportKeys.size} ngày`}
+                {bulkReimportLoading ? `Đang gửi ${selectedReimportKeys.size} yêu cầu...` : `Xác nhận Nhập lại ${distinctReimportDates} ngày (${selectedReimportKeys.size} nguồn)`}
               </button>
             </div>
           </div>
@@ -2318,7 +2338,7 @@ export default function AutoBackfillOperatorPanel() {
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Cập nhật dữ liệu - Loại bỏ phát sinh Hàng loạt</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Áp dụng 1 lý do ngoại lệ cho <strong>{selectedBulkKeys.size} ngày</strong> đã chọn.
+                    Áp dụng 1 lý do ngoại lệ cho <strong>{distinctBulkDates} ngày ({selectedBulkKeys.size} nguồn)</strong> đã chọn.
                   </p>
                 </div>
               </div>
@@ -2328,7 +2348,7 @@ export default function AutoBackfillOperatorPanel() {
             </div>
 
             <div className="mt-4 flex-1 overflow-y-auto max-h-40 rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs text-slate-700 space-y-1">
-              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày được chọn ({selectedBulkKeys.size}):</span>
+              <span className="font-bold text-slate-800 block mb-1">Danh sách ngày được chọn ({distinctBulkDates} ngày • {selectedBulkKeys.size} nguồn):</span>
               {Array.from(selectedBulkKeys).map((key) => {
                 const [ind, lane, date] = key.split('::');
                 return (
@@ -2378,7 +2398,7 @@ export default function AutoBackfillOperatorPanel() {
                 disabled={bulkLoading || !bulkReason.trim()}
                 className="rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 disabled:opacity-50"
               >
-                {bulkLoading ? `Đang xử lý ${selectedBulkKeys.size} ngày...` : `Loại bỏ phát sinh ${selectedBulkKeys.size} ngày`}
+                {bulkLoading ? `Đang xử lý ${selectedBulkKeys.size} ngày...` : `Loại bỏ phát sinh ${distinctBulkDates} ngày (${selectedBulkKeys.size} nguồn)`}
               </button>
             </div>
           </div>
@@ -2848,6 +2868,7 @@ export default function AutoBackfillOperatorPanel() {
 // SUBCOMPONENT: SMART MONTHLY ACCORDION GROUP
 function MonthlyAccordionGroup({
   group,
+  defaultOpen = false,
   selectedBulkKeys,
   selectedReimportKeys = new Set(),
   isAdmin,
@@ -2861,23 +2882,44 @@ function MonthlyAccordionGroup({
   onMarkHolidayClick,
   onRevokeHolidayClick
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [accordionPage, setAccordionPage] = useState(1);
   const [accordionPageSize, setAccordionPageSize] = useState(10);
+  const [activeMenuKey, setActiveMenuKey] = useState(null);
 
-  const paginatedGroup = useMemo(() => {
-    return paginateItems(group.items, accordionPage, accordionPageSize);
-  }, [group.items, accordionPage, accordionPageSize]);
+  useEffect(() => {
+    setIsOpen(defaultOpen);
+  }, [defaultOpen]);
+
+  useEffect(() => {
+    const handleOutsideClick = () => setActiveMenuKey(null);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
+
+  const dayGroups = useMemo(() => {
+    return groupItemsByDay(group.items);
+  }, [group.items]);
+
+  const monthSummary = useMemo(() => {
+    return summarizeMonthDays(dayGroups);
+  }, [dayGroups]);
+
+  const paginatedDays = useMemo(() => {
+    return paginateItems(dayGroups, accordionPage, accordionPageSize);
+  }, [dayGroups, accordionPage, accordionPageSize]);
 
   const isAllUnfinishedSelected = useMemo(() => {
-    const selectable = paginatedGroup.pageItems.filter(isSelectable).map(getItemKey);
+    const allPageItems = paginatedDays.pageItems.flatMap((d) => d.items);
+    const selectable = allPageItems.filter(isSelectable).map(getItemKey);
     return selectable.length > 0 && selectable.every((k) => selectedBulkKeys.has(k));
-  }, [paginatedGroup.pageItems, selectedBulkKeys]);
+  }, [paginatedDays.pageItems, selectedBulkKeys]);
 
   const isAllReimportSelected = useMemo(() => {
-    const reimportSelectable = paginatedGroup.pageItems.filter(isReimportSelectable).map(getItemKey);
+    const allPageItems = paginatedDays.pageItems.flatMap((d) => d.items);
+    const reimportSelectable = allPageItems.filter(isReimportSelectable).map(getItemKey);
     return reimportSelectable.length > 0 && reimportSelectable.every((k) => selectedReimportKeys.has(k));
-  }, [paginatedGroup.pageItems, selectedReimportKeys]);
+  }, [paginatedDays.pageItems, selectedReimportKeys]);
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -2895,7 +2937,7 @@ function MonthlyAccordionGroup({
               <span className="text-sm font-semibold text-slate-600">— Tháng {group.yearMonth}</span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tổng {group.counts.total} bản ghi • {group.counts.completed} đã hoàn tất • {group.counts.excluded} loại trừ • {group.counts.dataError} lỗi dữ liệu
+              {monthSummary.label}
             </p>
           </div>
         </div>
@@ -2926,7 +2968,7 @@ function MonthlyAccordionGroup({
           {/* Group Header Checkbox Bar */}
           <div className="bg-slate-100/60 px-6 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs font-semibold text-slate-600">
             <div className="flex items-center gap-5">
-              {/* BUTTON 1: CHỌN TẤT CẢ CHƯA HOÀN TẤT (GIỮ NGUYÊN) */}
+              {/* BUTTON 1: CHỌN TẤT CẢ CHƯA HOÀN TẤT */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -2944,7 +2986,7 @@ function MonthlyAccordionGroup({
                 <span>Chọn tất cả chưa hoàn tất (Tháng {group.yearMonth})</span>
               </button>
 
-              {/* BUTTON 2: CHỌN TẤT CẢ (BỔ SUNG CHO TÁI NHẬP HÀNG LOẠT, GỒM CẢ NGÀY HOÀN TẤT, BỎ LỊCH NGHỈ) */}
+              {/* BUTTON 2: CHỌN TẤT CẢ TÁI NHẬP */}
               {onSelectAllReimport && (
                 <button
                   type="button"
@@ -2965,89 +3007,244 @@ function MonthlyAccordionGroup({
               )}
             </div>
 
-            <span>Hiển thị {paginatedGroup.pageItems.length}/{group.items.length} bản ghi</span>
+            <span>Hiển thị {paginatedDays.pageItems.length}/{dayGroups.length} ngày</span>
           </div>
 
           <div className="divide-y divide-slate-100">
-            {paginatedGroup.pageItems.map((item, idx) => {
-              const statusInfo = resolveNoCodeStatus(item.status);
-              const isActionable = isActionableForExemption(item);
-              const key = getItemKey(item);
+            {paginatedDays.pageItems.map((day) => {
               const isReimportMode = selectedReimportKeys.size > 0;
-              const isSelected = isReimportMode ? selectedReimportKeys.has(key) : selectedBulkKeys.has(key);
-              const canSelect = isReimportMode ? isReimportSelectable(item) : (isSelectable(item) || item.status === 'COMPLETED');
+              const daySelection = resolveDaySelectionState(
+                day,
+                isReimportMode ? selectedReimportKeys : selectedBulkKeys,
+                { isReimportMode }
+              );
+              const firstActionableItem = day.items.find(isSelectable);
+              const holidayItem = day.items.find((i) => Boolean(i.holiday));
+              const holiday = day.holiday || holidayItem?.holiday;
+              const isAnyLaneSelected = day.items.some((i) => {
+                const k = getItemKey(i);
+                return isReimportMode ? selectedReimportKeys.has(k) : selectedBulkKeys.has(k);
+              });
+
+              const handleToggleDay = (e) => {
+                e.stopPropagation();
+                if (!daySelection.canSelect) return;
+                if (daySelection.isSelected) {
+                  // Deselect currently selected selectable items of this day
+                  daySelection.selectableItems.forEach((item) => {
+                    const k = getItemKey(item);
+                    const isSelected = isReimportMode ? selectedReimportKeys.has(k) : selectedBulkKeys.has(k);
+                    if (isSelected) {
+                      onToggleSelectItem(item);
+                    }
+                  });
+                } else {
+                  // Select unselected selectable items of this day
+                  daySelection.selectableItems.forEach((item) => {
+                    const k = getItemKey(item);
+                    const isSelected = isReimportMode ? selectedReimportKeys.has(k) : selectedBulkKeys.has(k);
+                    if (!isSelected) {
+                      onToggleSelectItem(item);
+                    }
+                  });
+                }
+              };
 
               return (
-                <div key={idx} className={`flex items-center justify-between px-6 py-3.5 hover:bg-slate-50/80 transition text-sm ${isSelected ? (isReimportMode ? 'bg-indigo-50/40' : 'bg-blue-50/40') : ''}`}>
-                  <div className="flex items-center gap-4">
-                    {isAdmin && canSelect && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleSelectItem(item);
-                        }}
-                        className="text-slate-400 hover:text-blue-600"
-                      >
-                        {isSelected ? (
-                          <CheckSquare className={`h-4 w-4 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`} />
+                <div
+                  key={day.date}
+                  className={`flex flex-col lg:flex-row lg:items-center justify-between px-6 py-3 hover:bg-slate-50/80 transition text-sm gap-3 ${
+                    isAnyLaneSelected ? (isReimportMode ? 'bg-indigo-50/40' : 'bg-blue-50/40') : ''
+                  }`}
+                >
+                  {/* Left Section: Day Checkbox, Date, Holiday Badge, Source Cells (HUE + TCT) */}
+                  <div className="flex flex-wrap items-center gap-3 md:gap-4">
+                    {/* Day Checkbox (Smart Default) */}
+                    {isAdmin && (
+                      <div className="w-5 flex items-center justify-center">
+                        {daySelection.canSelect ? (
+                          <button
+                            type="button"
+                            onClick={handleToggleDay}
+                            className="text-slate-400 hover:text-blue-600 focus:outline-none"
+                            title={daySelection.isSelected ? 'Bỏ chọn ngày này' : 'Chọn ngày này'}
+                          >
+                            {daySelection.isSelected ? (
+                              <CheckSquare className={`h-4 w-4 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`} />
+                            ) : daySelection.isPartial ? (
+                              <MinusSquare className={`h-4 w-4 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`} />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </button>
                         ) : (
-                          <Square className="h-4 w-4" />
+                          <span className="w-4 h-4 inline-block" />
                         )}
-                      </button>
+                      </div>
                     )}
 
-                    <span className="font-bold text-slate-900 w-24">{item.business_date}</span>
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-                      Nguồn {item.source_lane}
-                    </span>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-medium border ${statusInfo.badgeClass}`}>
-                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
-                      {statusInfo.label}
-                    </span>
-                    {item.holiday && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-800 border border-purple-200" title={item.holiday.reason}>
+                    {/* Date */}
+                    <span className="font-bold text-slate-900 w-24 shrink-0">{day.date}</span>
+
+                    {/* Holiday Badge */}
+                    {holiday && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-800 border border-purple-200"
+                        title={holiday.reason}
+                      >
                         <CalendarDays className="h-3 w-3 text-purple-600" />
-                        <span>LỊCH NGHỈ: {item.holiday.reason}</span>
+                        <span>LỊCH NGHỈ: {holiday.reason}</span>
                       </span>
                     )}
+
+                    {/* Source Cells (HUE and TCT side by side) */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      {day.laneOrder.map((lane) => {
+                        const item = day.lanes[lane];
+                        if (!item) return null;
+                        const statusInfo = resolveNoCodeStatus(item.status);
+                        const key = getItemKey(item);
+                        const isLaneSelected = isReimportMode ? selectedReimportKeys.has(key) : selectedBulkKeys.has(key);
+                        const canSelectLane = isReimportMode ? isReimportSelectable(item) : (isSelectable(item) || item.status === 'COMPLETED');
+                        const canConfirm = isAdmin && isSelectable(item);
+                        const canRevoke = isAdmin && item.status === 'EXCLUDED' && item.exception?.exception_type === 'PO_EXEMPTED';
+                        const hasSecondaryActions = canConfirm || canRevoke;
+                        const menuKey = `${key}::menu`;
+                        const isMenuOpen = activeMenuKey === menuKey;
+
+                        return (
+                          <div
+                            key={lane}
+                            className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 transition ${
+                              isLaneSelected
+                                ? (isReimportMode ? 'border-indigo-300 bg-indigo-50/50' : 'border-blue-300 bg-blue-50/50')
+                                : 'border-slate-200 bg-slate-50/60'
+                            }`}
+                          >
+                            {/* Per-lane Checkbox */}
+                            {isAdmin && canSelectLane && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onToggleSelectItem(item);
+                                }}
+                                className="text-slate-400 hover:text-blue-600 focus:outline-none"
+                                title={`Chọn riêng nguồn ${lane}`}
+                              >
+                                {isLaneSelected ? (
+                                  <CheckSquare className={`h-3.5 w-3.5 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`} />
+                                ) : (
+                                  <Square className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                            )}
+
+                            {/* Lane Tag */}
+                            <span className="rounded-md bg-slate-200/80 px-2 py-0.5 text-xs font-bold text-slate-700">
+                              {lane}
+                            </span>
+
+                            {/* Status Chip */}
+                            <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${statusInfo.badgeClass}`}>
+                              <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                              {statusInfo.label}
+                            </span>
+
+                            {/* Primary Action Button */}
+                            {isAdmin ? (
+                              item.status === 'COMPLETED' ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onReimportClick(item);
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs"
+                                  title="Tái nạp và thay thế dữ liệu ngày này"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  <span>Nhập lại</span>
+                                </button>
+                              ) : (item.status === 'INCOMPLETE' || item.status === 'DATA_ERROR' || (item.status === 'EXCLUDED' && item.holiday)) ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onReimportClick(item);
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition shadow-2xs"
+                                  title="Yêu cầu nạp mới dữ liệu cho ngày này"
+                                >
+                                  <RotateCw className="h-3.5 w-3.5" />
+                                  <span>Nhập mới</span>
+                                </button>
+                              ) : null
+                            ) : null}
+
+                            {/* Secondary Actions ⋯ Popover Menu */}
+                            {hasSecondaryActions && (
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveMenuKey(isMenuOpen ? null : menuKey);
+                                  }}
+                                  className="flex items-center justify-center rounded-lg p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition"
+                                  title="Thao tác khác"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </button>
+
+                                {isMenuOpen && (
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="absolute right-0 top-full z-30 mt-1 min-w-[200px] rounded-xl border border-slate-200 bg-white py-1 shadow-lg animate-in fade-in zoom-in-95 duration-100"
+                                  >
+                                    {canConfirm && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setActiveMenuKey(null);
+                                          onConfirmClick(item);
+                                        }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-amber-900 hover:bg-amber-50 transition"
+                                      >
+                                        <UserCheck className="h-3.5 w-3.5 text-amber-600" />
+                                        <span>Xác nhận Không phát sinh</span>
+                                      </button>
+                                    )}
+                                    {canRevoke && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setActiveMenuKey(null);
+                                          onRevokeClick(item);
+                                        }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                                      >
+                                        <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                                        <span>Hoàn tác</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  {/* Right Section: Day-level Actions (LỊCH NGHỈ / Thu hồi LỊCH NGHỈ) */}
+                  <div className="flex items-center gap-2 self-end lg:self-center">
                     {isAdmin ? (
                       <>
-                        {/* PER-ROW REIMPORT / NHẬP MỚI BUTTON */}
-                        {item.status === 'COMPLETED' ? (
+                        {firstActionableItem && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onReimportClick(item);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
-                            title="Tái nạp và thay thế dữ liệu ngày này"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" />
-                            <span>Nhập lại</span>
-                          </button>
-                        ) : (item.status === 'INCOMPLETE' || item.status === 'DATA_ERROR' || (item.status === 'EXCLUDED' && item.holiday)) ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onReimportClick(item);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition"
-                            title="Yêu cầu nạp mới dữ liệu cho ngày này"
-                          >
-                            <RotateCw className="h-3.5 w-3.5" />
-                            <span>Nhập mới</span>
-                          </button>
-                        ) : null}
-
-                        {isActionable && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onMarkHolidayClick(item);
+                              onMarkHolidayClick(firstActionableItem);
                             }}
                             className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-900 hover:bg-indigo-100 transition"
                             title="Đánh dấu LỊCH NGHỈ (tự động bỏ qua cho tất cả chỉ tiêu)"
@@ -3057,43 +3254,17 @@ function MonthlyAccordionGroup({
                           </button>
                         )}
 
-                        {item.holiday && (
+                        {holiday && holidayItem && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onRevokeHolidayClick(item.holiday);
+                              onRevokeHolidayClick(holidayItem.holiday);
                             }}
                             className="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-900 hover:bg-purple-100 transition"
                             title="Thu hồi LỊCH NGHỈ"
                           >
                             <RotateCcw className="h-3.5 w-3.5" />
                             <span>Thu hồi LỊCH NGHỈ</span>
-                          </button>
-                        )}
-
-                        {isActionable && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onConfirmClick(item);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition"
-                          >
-                            <UserCheck className="h-3.5 w-3.5" />
-                            <span>Xác nhận Không phát sinh</span>
-                          </button>
-                        )}
-
-                        {item.status === 'EXCLUDED' && item.exception?.exception_type === 'PO_EXEMPTED' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onRevokeClick(item);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
-                            <span>Hoàn tác</span>
                           </button>
                         )}
                       </>
@@ -3107,7 +3278,7 @@ function MonthlyAccordionGroup({
           </div>
 
           {/* Internal Accordion Pagination Bar */}
-          {paginatedGroup.totalPages > 1 && (
+          {paginatedDays.totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-2.5 text-xs font-medium text-slate-600">
               <div className="flex items-center gap-2">
                 <span>Số dòng:</span>
@@ -3119,9 +3290,9 @@ function MonthlyAccordionGroup({
                   }}
                   className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700"
                 >
-                  <option value={10}>10 dòng/trang</option>
-                  <option value={20}>20 dòng/trang</option>
-                  <option value={50}>50 dòng/trang</option>
+                  <option value={10}>10 ngày/trang</option>
+                  <option value={20}>20 ngày/trang</option>
+                  <option value={50}>50 ngày/trang</option>
                 </select>
               </div>
 
@@ -3129,19 +3300,19 @@ function MonthlyAccordionGroup({
                 <button
                   type="button"
                   onClick={() => setAccordionPage((p) => Math.max(1, p - 1))}
-                  disabled={!paginatedGroup.hasPrev}
+                  disabled={!paginatedDays.hasPrev}
                   className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-100 disabled:opacity-40"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                   <span>Trước</span>
                 </button>
                 <span className="font-bold text-slate-800">
-                  Trang {paginatedGroup.currentPage} / {paginatedGroup.totalPages}
+                  Trang {paginatedDays.currentPage} / {paginatedDays.totalPages}
                 </span>
                 <button
                   type="button"
-                  onClick={() => setAccordionPage((p) => Math.min(paginatedGroup.totalPages, p + 1))}
-                  disabled={!paginatedGroup.hasNext}
+                  onClick={() => setAccordionPage((p) => Math.min(paginatedDays.totalPages, p + 1))}
+                  disabled={!paginatedDays.hasNext}
                   className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-100 disabled:opacity-40"
                 >
                   <span>Sau</span>
