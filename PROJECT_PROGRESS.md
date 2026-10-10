@@ -2221,3 +2221,7 @@ Backend completed for the screens (/api/f11 dashboard meta and the 34-province n
 ## 2026-10-10 - F11-DASHBOARD-UI-01 DELIVERED, REVIEWED, READY FOR PO CHECK
 
 Antigravity delivered the F1.1 Dashboard and BCVH Ranking screens, the accepting-office x BCVH table, the date-filtered operations table (all three indicators), the camera capture button and removed the 34-province table from F1.1. Independent review by Claude Code found and fixed one blocking regression (deleted import of buildTrendlineRequestParams would have broken the trend chart of every indicator). Frontend 615/615, build ok. Pending: PO UI check; follow-up on wide-table capture. Manifest Section 10: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.
+
+## 2026-10-10 - QIS-HTTPS-LAN-01 IMPLEMENTED (waiting for the frontend restart)
+
+LAN frontend can be served over HTTPS on port 5178: certificate script (frontend/scripts/make-dev-cert.mjs), Vite HTTPS when the certificate exists (HTTP otherwise), /api same-origin over HTTPS (no mixed content), Control Center opens https, certificate and key git-ignored. Checked on a separate test port: secure context, clipboard API available, login page and API through the proxy work on localhost and the LAN address. Frontend 621/621. The running 5178 server was not touched: PO restarts the frontend to switch, accepts the one-time certificate warning, then checks one-click copy into Viber. Manifest: docs/10_TICKETS/QIS-HTTPS-LAN-01_MANIFEST.md.

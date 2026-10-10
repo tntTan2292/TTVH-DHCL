@@ -10,10 +10,16 @@ export function resolveApiBaseUrl(runtimeLocation = globalThis.location, runtime
     return trimTrailingSlash(configured);
   }
 
-  const hostname = runtimeLocation?.hostname || 'localhost';
-  const protocol = runtimeLocation?.protocol === 'https:' ? 'https:' : 'http:';
+  // QIS-HTTPS-LAN-01: a page opened over https must not call the plain-http backend on port 5050 directly
+  // (the browser blocks it as mixed content). It calls /api on its own address; the frontend server forwards
+  // that to the backend (see vite.config.js).
+  if (runtimeLocation?.protocol === 'https:') {
+    return '/api';
+  }
 
-  return `${protocol}//${hostname}:${DEFAULT_BACKEND_PORT}/api`;
+  const hostname = runtimeLocation?.hostname || 'localhost';
+
+  return `http://${hostname}:${DEFAULT_BACKEND_PORT}/api`;
 }
 
 export { DEFAULT_BACKEND_PORT };

@@ -22,3 +22,15 @@ test('api base url preserves localhost engineering access', () => {
     'http://localhost:5050/api',
   );
 });
+
+test('api base url over https uses the page address (/api), never the plain-http backend port', () => {
+  assert.equal(resolveApiBaseUrl({ hostname: '10.47.33.24', protocol: 'https:' }, {}), '/api');
+  assert.equal(resolveApiBaseUrl({ hostname: 'localhost', protocol: 'https:' }, {}), '/api');
+});
+
+test('the configured override still wins over the https default', () => {
+  assert.equal(
+    resolveApiBaseUrl({ hostname: '10.47.33.24', protocol: 'https:' }, { VITE_API_BASE_URL: 'https://api.example.test/api/' }),
+    'https://api.example.test/api',
+  );
+});

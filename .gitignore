@@ -108,3 +108,6 @@ frontend/capture_groups.cjs
 frontend/debug_dom.cjs
 frontend/test_login.cjs
 TTVH_ControlCenter_Temp.ps1
+
+# QIS-HTTPS-LAN-01: local HTTPS certificate and private key (create with frontend/scripts/make-dev-cert.mjs)
+frontend/certs/

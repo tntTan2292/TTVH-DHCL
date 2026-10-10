@@ -124,6 +124,10 @@ Expected listening contract:
 
 If port `5178` is already occupied, Vite must fail with `Port 5178 is already in use`.
 
+### HTTPS (QIS-HTTPS-LAN-01, 2026-10-10)
+
+The frontend can be served over HTTPS on the same port `5178` (needed for one-click picture copy from the dashboards). Create the certificate once with `node scripts/make-dev-cert.mjs` in `frontend` (self-signed; names localhost, the computer name and its IPv4 addresses); when `frontend/certs/dev-cert.pem` and `dev-key.pem` exist, `vite` and `vite preview` start in HTTPS, otherwise in plain HTTP. Over HTTPS the page calls `/api` on its own address and the frontend server proxies it to the backend on `127.0.0.1:5050`. LAN URL becomes `https://<SERVER_IPV4>:5178`; each browser shows a one-time certificate warning until `dev-cert.pem` is trusted on that computer. Details and rollback: `docs/10_TICKETS/QIS-HTTPS-LAN-01_MANIFEST.md`.
+
 If port `5050` is already occupied, the backend must fail with `PORT 5050 IS OCCUPIED` and instruct the operator to run the port check script.
 
 ## Firewall Rules

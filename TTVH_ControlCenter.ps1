@@ -96,7 +96,9 @@ function Check-Health {
 
 function Open-Dashboard {
     if (Check-Port $FrontendPort) {
-        Start-Process "http://localhost:$FrontendPort"
+        # QIS-HTTPS-LAN-01: the frontend is served over https once frontend\certs\dev-cert.pem exists
+        $Scheme = if (Test-Path "$RootPath\frontend\certs\dev-cert.pem") { "https" } else { "http" }
+        Start-Process "${Scheme}://localhost:$FrontendPort"
     } else {
         Write-Host "Frontend is not running. Please start the system first." -ForegroundColor Red
         Start-Sleep -Seconds 2
