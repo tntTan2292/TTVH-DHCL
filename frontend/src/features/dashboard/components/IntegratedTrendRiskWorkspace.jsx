@@ -20,7 +20,7 @@ import {
   getVolumeAxisMax,
 } from './comboTrendlineData';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
-import { indicatorTargetRate } from '../../indicator/indicatorConfig.js';
+import { indicatorTargetRate, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { DASHBOARD_LABELS, DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
 import { ReferenceTargetLabel, renderRateLabel, renderVolumeBarLabel } from './ChartLabelRenderers';
 import ChartZoomFrame from './ChartZoomFrame';
@@ -174,7 +174,9 @@ function TrendChart({ rows, mode }) {
 }
 
 function TrendChartPlot({ rows, mode }) {
-  const targetRate = indicatorTargetRate(useIndicator());
+  const indicator = useIndicator();
+  const targetRate = indicatorTargetRate(indicator);
+  const theme = indicatorTheme(indicator);
   const volumeAxisMax = getVolumeAxisMax(rows);
   const xKey = mode === '7-days' ? 'dayLabel' : mode === 'by-bcvh' ? 'date_label' : 'date';
   const rateLabelIndexes = selectLabelIndexes(rows, 'quality_rate');
@@ -201,8 +203,8 @@ function TrendChartPlot({ rows, mode }) {
         <ComposedChart data={rows} margin={{ top: 28, right: 24, bottom: 8, left: 4 }} barCategoryGap="22%">
           <defs>
             <linearGradient id="volumeBarGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#003E7E" stopOpacity={0.8} />
+              <stop offset="0%" stopColor={theme.primary} stopOpacity={0.95} />
+              <stop offset="100%" stopColor={theme.primary} stopOpacity={0.6} />
             </linearGradient>
             <linearGradient id="prevVolumeBarGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#94A3B8" stopOpacity={0.7} />
@@ -250,7 +252,7 @@ function TrendChartPlot({ rows, mode }) {
           {mode === '7-days' ? (
             <Bar yAxisId="volume" dataKey="previous_total_volume" name="Sản lượng kỳ so sánh" fill="url(#prevVolumeBarGradient)" radius={[6, 6, 0, 0]} isAnimationActive={false} label={renderVolumeBarLabel({ visible: previousVolumeLabelIndexes, textColor: '#0F172A', fontSize: LABEL_STYLE.compareFontSize + 1, className: 'hidden sm:inline' })} />
           ) : null}
-          <Line yAxisId="rate" type="linear" dataKey="quality_rate" name={DASHBOARD_LABELS.passRate} stroke="#059669" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: '#059669' }} connectNulls={false} isAnimationActive={false} label={renderRateLabel({ visible: rateLabelIndexes, rows, placement: getQualityRatePlacement, getFill: (row) => (row?.below_target ? '#C2410C' : '#047857') })} />
+          <Line yAxisId="rate" type="linear" dataKey="quality_rate" name={DASHBOARD_LABELS.passRate} stroke={theme.line} strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: theme.line }} connectNulls={false} isAnimationActive={false} label={renderRateLabel({ visible: rateLabelIndexes, rows, placement: getQualityRatePlacement, getFill: (row) => (row?.below_target ? '#C2410C' : '#047857') })} />
           {mode === '7-days' ? (
             <Line yAxisId="rate" type="linear" dataKey="previous_quality_rate" name="Tỷ lệ đạt kỳ so sánh" stroke={COLORS.comparison} strokeWidth={2} strokeDasharray="6 4" dot={{ r: 3, strokeWidth: 1.5, fill: '#fff', stroke: COLORS.comparison }} connectNulls={false} isAnimationActive={false} label={renderRateLabel({ visible: previousRateLabelIndexes, rows, placement: getPreviousRatePlacement, fill: '#475569', fontSize: LABEL_STYLE.compareFontSize, className: 'hidden sm:inline' })} />
           ) : null}
@@ -293,6 +295,7 @@ function getDirectionLabel(value) {
 }
 
 function LeadershipComparisonCard({ comparison }) {
+  const theme = indicatorTheme(useIndicator());
   const metrics = comparison?.available ? [
     {
       id: 'pass-rate',
@@ -335,7 +338,7 @@ function LeadershipComparisonCard({ comparison }) {
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{metric.label}</div>
               <div className="mt-1 flex flex-col gap-1">
                 <div>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#003E7E]">Hôm nay</span>
+                  <span className={`text-[9px] font-bold uppercase tracking-wider ${theme.text}`}>Hôm nay</span>
                   <div className={metric.id === 'pass-rate' ? 'text-xl xl:text-2xl font-black tabular-nums text-slate-900 leading-none mt-0.5' : 'text-base xl:text-lg font-black tabular-nums text-slate-900 leading-none mt-0.5'}>
                     {metric.value}
                   </div>
@@ -429,7 +432,9 @@ export default function IntegratedTrendRiskWorkspace({
   mode = '30-days',
   onModeChange,
 }) {
-  const targetRate = indicatorTargetRate(useIndicator());
+  const indicator = useIndicator();
+  const targetRate = indicatorTargetRate(indicator);
+  const theme = indicatorTheme(indicator);
   const rows = useMemo(() => buildIntegratedTrendRows({ mode, items: data, toDate, targetRate }), [data, mode, toDate, targetRate]);
   const leadershipComparisons = useMemo(
     () => buildLeadershipComparisonWidgets({ items: data, fromDate, toDate, comparisonContract: kpiData?.comparisons }),
@@ -455,7 +460,7 @@ export default function IntegratedTrendRiskWorkspace({
             onClick={() => onModeChange?.(item.id)}
             className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 motion-reduce:transition-none ${
               mode === item.id
-                ? 'bg-[#003E7E] text-white font-bold shadow-2xs'
+                ? `${theme.button} font-bold shadow-2xs`
                 : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
             }`}
           >
@@ -497,9 +502,9 @@ export default function IntegratedTrendRiskWorkspace({
             <TrendChart rows={rows} mode={mode} />
             {mode === '7-days' ? <SevenDayComparisonEvidenceTable rows={sevenDayEvidence} /> : null}
             <div className="pt-1 flex flex-wrap items-center gap-3.5 text-xs text-slate-600 font-medium border-t border-slate-100">
-              <LegendItem color="#2563EB" label="Sản lượng, trục trái" shape="bar" />
+              <LegendItem color={theme.primary} label="Sản lượng, trục trái" shape="bar" />
               {mode === '7-days' ? <LegendItem color="#64748B" label="Sản lượng kỳ so sánh" shape="bar" /> : null}
-              <LegendItem color="#059669" label="Tỷ lệ đạt, trục phải" />
+              <LegendItem color={theme.line} label="Tỷ lệ đạt, trục phải" />
               {mode === '7-days' ? <LegendItem color={COLORS.comparison} label="Tỷ lệ đạt kỳ so sánh" dashed /> : null}
               <LegendItem color="#DC2626" label={`Mục tiêu ${targetRate}%`} dashed />
               <LegendItem color={COLORS.warning} label="Marker dưới mục tiêu" />

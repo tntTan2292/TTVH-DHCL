@@ -25,7 +25,9 @@ import {
 } from '../dashboard/components/operatingPatternTabsData';
 import { buildMonthlyHeatmapLegend, indicatorLabel } from '../indicator/indicatorConfig.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
-import { indicatorTargetRate } from '../indicator/indicatorConfig.js';
+import { indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
+import SortableTh from '../../components/common/SortableTh';
+import { nextSortState, sortRowsBy } from '../../components/common/tableSort';
 
 // Legend copy for the monthly heatmap below. Colors reuse the shared HEATMAP_BAND_DOT_CLASS
 // tones; the wording here is this table's own legend text, not the SSOT's threshold logic.
@@ -43,8 +45,17 @@ export function BcvhMonthlyTrendBlock({ data }) {
   const indicator = useIndicator();
   const cardRef = useRef(null);
   const [unit, setUnit] = useState(MONTHLY_TREND_TOTAL_KEY);
+  // Click-to-order (PO 2026-10-10) of the 6 BCVH rows of the heatmap by the unit name or by a month's rate.
+  const [heatmapSort, setHeatmapSort] = useState(null);
+  const handleHeatmapSort = (field) => setHeatmapSort((current) => nextSortState(current, field, { textFields: ['ten_bcvh'] }));
   if (!data) return null;
   const { months, monthlyChartData, monthlyTableRows, nameMap, meta } = data;
+  const theme = indicatorTheme(indicator);
+  const orderedHeatmapRows = heatmapSort
+    ? sortRowsBy(monthlyTableRows, heatmapSort.field, heatmapSort.direction, (row, field) => (
+      field === 'ten_bcvh' ? row.ten_bcvh : row.months.find((m) => m.month === field)?.rate
+    ))
+    : monthlyTableRows;
   const currentMonthRankText = formatNationalRank(monthlyChartData?.[monthlyChartData.length - 1]?.national_rank);
   const anchorDate = meta?.anchor_date || null;
   const unitNames = { ...MONTHLY_TREND_NAMES, ...nameMap };
@@ -114,15 +125,15 @@ export function BcvhMonthlyTrendBlock({ data }) {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-2.5 text-xs text-slate-600">
           <div className="flex flex-wrap items-center gap-4">
             <span className="inline-flex items-center gap-2 font-semibold">
-              <span className="h-2.5 w-3.5 rounded-xs bg-[#2563eb] shadow-2xs" />
+              <span className="h-2.5 w-3.5 rounded-xs shadow-2xs" style={{ backgroundColor: indicatorTheme(indicator).primary }} />
               Sản lượng (bưu gửi), trục trái
             </span>
             <span className="inline-flex items-center gap-2 font-semibold">
-              <span className="h-2.5 w-3.5 rounded-xs bg-[#38bdf8] border border-[#0284c7] shadow-2xs" />
+              <span className="h-2.5 w-3.5 rounded-xs border shadow-2xs" style={{ backgroundColor: indicatorTheme(indicator).primaryLight, borderColor: indicatorTheme(indicator).primary }} />
               Cột tháng lũy kế
             </span>
             <span className="inline-flex items-center gap-2 font-semibold">
-              <span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />
+              <span className="h-2.5 w-2.5 rounded-full shadow-2xs" style={{ backgroundColor: indicatorTheme(indicator).line }} />
               {indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`} (%), trục phải
             </span>
             <span className="inline-flex items-center gap-2 font-semibold">
@@ -159,23 +170,31 @@ export function BcvhMonthlyTrendBlock({ data }) {
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/70 text-[var(--color-text-muted)]">
-              <th className="sticky left-0 bg-gray-50/90 px-3 py-2.5 font-semibold">Đơn vị BCVH</th>
+              <SortableTh field="ten_bcvh" sort={heatmapSort} onSort={handleHeatmapSort} activeClassName={theme.sortActive} className="sticky left-0 bg-gray-50/90 px-3 py-2.5 font-semibold">Đơn vị BCVH</SortableTh>
               {months.map((m) => {
                 const label = m.endsWith('-01') ? 'T1' : `T${parseInt(m.slice(5), 10)}`;
                 const isCurrent = data.latestMonth === m;
                 return (
-                  <th key={m} className={`px-3 py-2.5 text-center font-semibold ${isCurrent ? 'border-l border-r border-blue-200 bg-blue-50/30' : ''}`}>
+                  <SortableTh
+                    key={m}
+                    field={m}
+                    sort={heatmapSort}
+                    onSort={handleHeatmapSort}
+                    activeClassName={theme.sortActive}
+                    title={`Sắp xếp 6 BCVH theo tỷ lệ ${label} (bấm lại để đảo chiều)`}
+                    className={`px-3 py-2.5 text-center font-semibold ${isCurrent ? `border-l border-r ${theme.headerBorder} ${theme.soft}` : ''}`}
+                  >
                     <div>{label}</div>
                     {isCurrent ? (
-                      <div className="text-[10px] font-bold text-blue-700">Lũy kế</div>
+                      <div className={`text-[10px] font-bold ${theme.text}`}>Lũy kế</div>
                     ) : null}
-                  </th>
+                  </SortableTh>
                 );
               })}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {monthlyTableRows.map((row) => (
+            {orderedHeatmapRows.map((row) => (
               <tr key={row.ma_bcvh} className="hover:bg-gray-50/50 transition-colors">
                 <td className="sticky left-0 bg-white/95 px-3 py-2.5 font-bold text-[var(--color-text-main)] shadow-[1px_0_0_0_#f3f4f6] backdrop-blur-sm z-10">
                   {row.ten_bcvh}
@@ -197,7 +216,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
                   return (
                     <td
                       key={m.month}
-                      className={`border px-3 py-2.5 text-center align-top ${bandClass} ${isCurrent ? 'ring-1 ring-inset ring-blue-400' : ''}`}
+                      className={`border px-3 py-2.5 text-center align-top ${bandClass} ${isCurrent ? `ring-1 ring-inset ${theme.ring}` : ''}`}
                     >
                       <div className="font-extrabold">
                         {m.rate !== null ? formatOverviewRate(m.rate) : '—'}

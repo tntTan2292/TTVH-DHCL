@@ -2257,3 +2257,7 @@ Chart target line is now a setting of the indicator: F1.1 95 %, F1.3/F4.1 90 % (
 ## 2026-10-10 - IMPORT CENTER: MISSING ERROR-DETAIL HELPER DEFINED
 
 The coverage/scan error handlers of the Data Import Center called getApiErrorDetail, which was never defined (since Wave 3), so a failing coverage or scan call threw a ReferenceError instead of showing its message. Defined (appends the server message when there is one, empty otherwise) with a regression check; frontend 628/628, build ok. Left for its owner: setLoadingMeta in networkMap/postmanCatalog/PostmanCatalogPage.jsx (other session).
+
+## 2026-10-10 - REPORT BLOCK STANDARD: CLICK-TO-ORDER, COLOUR FAMILIES, STANDING STANDARD
+
+PO decisions: column titles of report tables are order buttons in every indicator; F1.1 orders accepting offices and delivering units by volume or rate; F1.3 blue / F4.1 orange / F1.1 green light colour families (no purple, no dark); 12-month view as F1.3 (exists; F4.1 data starts in April, F1.1 in October, so earlier months wait for the backfill); everything becomes a standing standard. Delivered: SortableTh + tableSort on the operations table, BCVH ranking table, BCVH x month heatmap and the F1.1 table (rows and columns); INDICATOR_THEMES applied to charts, legends, header bands, buttons and a page accent bar/chip; docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md, a CLAUDE.md pointer and reportBlockStandard.test.js. Frontend tests, build and lint green. Pending: PO UI check. Manifest Section 12: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.

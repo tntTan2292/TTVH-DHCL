@@ -37,7 +37,7 @@ import {
   F13_HEATMAP_HEX_COLOR,
 } from '../../components/f13/f13HeatmapBandCatalog.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
-import { indicatorTargetRate } from '../indicator/indicatorConfig.js';
+import { indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
 import {
   WEEKLY_TREND_TOTAL_KEY,
   getWeeklyTrendSeriesData,
@@ -176,6 +176,7 @@ function SingleComboTrendChart({
   const indicator = useIndicator();
   const { heatmapBands } = indicator;
   const targetRate = indicatorTargetRate(indicator);
+  const theme = indicatorTheme(indicator);
   const gradId = useId().replace(/:/g, '_');
   const volumeAxisMax = getVolumeAxisMax(seriesData);
 
@@ -203,8 +204,8 @@ function SingleComboTrendChart({
         >
           <defs>
             <linearGradient id={`volumeBarGrad_${gradId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#003E7E" stopOpacity={0.8} />
+              <stop offset="0%" stopColor={theme.primary} stopOpacity={0.95} />
+              <stop offset="100%" stopColor={theme.primary} stopOpacity={0.6} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -273,7 +274,7 @@ function SingleComboTrendChart({
             type="linear"
             dataKey="quality_rate"
             name="Tỷ lệ đạt KPI"
-            stroke="#059669"
+            stroke={theme.line}
             strokeWidth={3}
             dot={<HeatmapRateDot />}
             activeDot={<HeatmapRateActiveDot />}

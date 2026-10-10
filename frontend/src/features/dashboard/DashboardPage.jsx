@@ -22,7 +22,7 @@ import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboar
 import F11PairTableBlock from '../f11/components/F11PairTableBlock.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
-import { indicatorLabel, indicatorTargetRate } from '../indicator/indicatorConfig.js';
+import { indicatorLabel, indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
 
 export default function DashboardPage() {
   const indicator = useIndicator();
@@ -278,13 +278,15 @@ export default function DashboardPage() {
 
   return (
     <PageContainer
+      accentClassName={indicatorTheme(indicator).accentBar}
+      badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${indicatorTheme(indicator).chip}`}>{indicator.moduleLabel}</span>}
       title={indicatorLabel('Dashboard điều hành chất lượng F1.3', indicator)}
       subtitle="Theo dõi chất lượng phát theo kỳ đã chọn và phạm vi BCVH hiện hành."
       action={(
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-1.5 shadow-2xs">
           <button
             onClick={() => navigate(buildPreservedPath(indicator.routes.ranking, searchParams))}
-            className="rounded-lg bg-[#003E7E] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-900 transition-all duration-150"
+            className={`rounded-lg ${indicatorTheme(indicator).button} px-3.5 py-1.5 text-xs font-bold shadow-2xs hover:opacity-90 transition-all duration-150`}
           >
             Mở xếp hạng BCVH
           </button>

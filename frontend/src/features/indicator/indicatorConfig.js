@@ -39,8 +39,80 @@ function buildKpiStatusBands(floors) {
 
 export const DEFAULT_TARGET_RATE = 90;
 
+// Colour theme per indicator (PO 2026-10-10): the three report families must be told apart at a glance without
+// reading the menu, so each has its own light accent: F1.3 blue, F4.1 orange, F1.1 green. The theme colours the
+// accents only (chart bars and lines, header bands, active buttons, the page accent bar). Status colours of the
+// rates (green / pink / yellow / red bands) keep their meaning in every family. Class names are written out in
+// full so Tailwind generates them; change a family's tone here, nowhere else.
+export const INDICATOR_THEMES = Object.freeze({
+  blue: Object.freeze({
+    id: 'blue',
+    label: 'Xanh dương',
+    primary: '#2563EB', // volume bars, accents
+    primaryLight: '#93C5FD', // previous-period bars
+    line: '#059669', // rate line (contrasts with the bars)
+    accentBar: 'bg-blue-500',
+    chip: 'bg-blue-100 text-blue-900 border-blue-300',
+    soft: 'bg-blue-50',
+    headerBg: 'bg-blue-100/90',
+    headerText: 'text-blue-950',
+    headerBorder: 'border-blue-300',
+    header2Bg: 'bg-emerald-100/90',
+    header2Text: 'text-emerald-950',
+    sortActive: 'bg-blue-100/90 text-blue-950',
+    button: 'bg-blue-700 text-white',
+    buttonHover: 'hover:bg-blue-50',
+    ring: 'ring-blue-400',
+    text: 'text-blue-800',
+    legendBar: 'bg-blue-500',
+  }),
+  orange: Object.freeze({
+    id: 'orange',
+    label: 'Cam',
+    primary: '#F97316',
+    primaryLight: '#FDBA74',
+    line: '#2563EB',
+    accentBar: 'bg-orange-400',
+    chip: 'bg-orange-100 text-orange-900 border-orange-300',
+    soft: 'bg-orange-50',
+    headerBg: 'bg-orange-100/90',
+    headerText: 'text-orange-950',
+    headerBorder: 'border-orange-300',
+    header2Bg: 'bg-yellow-100/90',
+    header2Text: 'text-yellow-950',
+    sortActive: 'bg-orange-100/90 text-orange-950',
+    button: 'bg-orange-500 text-white',
+    buttonHover: 'hover:bg-orange-50',
+    ring: 'ring-orange-400',
+    text: 'text-orange-800',
+    legendBar: 'bg-orange-500',
+  }),
+  green: Object.freeze({
+    id: 'green',
+    label: 'Xanh lá',
+    primary: '#22C55E',
+    primaryLight: '#86EFAC',
+    line: '#0EA5E9',
+    accentBar: 'bg-green-400',
+    chip: 'bg-green-100 text-green-900 border-green-300',
+    soft: 'bg-green-50',
+    headerBg: 'bg-green-100/90',
+    headerText: 'text-green-950',
+    headerBorder: 'border-green-300',
+    header2Bg: 'bg-sky-100/90',
+    header2Text: 'text-sky-950',
+    sortActive: 'bg-green-100/90 text-green-950',
+    button: 'bg-green-600 text-white',
+    buttonHover: 'hover:bg-green-50',
+    ring: 'ring-green-400',
+    text: 'text-green-800',
+    legendBar: 'bg-green-500',
+  }),
+});
+
 export const F13_INDICATOR = Object.freeze({
   id: 'f13',
+  theme: INDICATOR_THEMES.blue,
   moduleLabel: 'F1.3',
   apiBase: '/f13',
   routes: Object.freeze({ dashboard: '/f13/dashboard', ranking: '/f13/ranking/bcvh' }),
@@ -54,6 +126,7 @@ export const F13_INDICATOR = Object.freeze({
 
 export const F41_INDICATOR = Object.freeze({
   id: 'f41',
+  theme: INDICATOR_THEMES.orange,
   moduleLabel: 'F4.1',
   apiBase: '/f41',
   routes: Object.freeze({ dashboard: '/f41/dashboard', ranking: '/f41/ranking/bcvh' }),
@@ -70,6 +143,7 @@ export const F41_INDICATOR = Object.freeze({
 
 export const F11_INDICATOR = Object.freeze({
   id: 'f11',
+  theme: INDICATOR_THEMES.green,
   moduleLabel: 'F1.1',
   apiBase: '/f11',
   routes: Object.freeze({ dashboard: '/f11/dashboard', ranking: '/f11/ranking/bcvh' }),
@@ -93,6 +167,11 @@ export const F11_INDICATOR = Object.freeze({
 });
 
 export const INDICATORS = Object.freeze({ f11: F11_INDICATOR, f13: F13_INDICATOR, f41: F41_INDICATOR });
+
+// Colour theme of an indicator's report family (unknown indicator: the F1.3 blue).
+export function indicatorTheme(indicator = F13_INDICATOR) {
+  return indicator?.theme || INDICATOR_THEMES.blue;
+}
 
 // Target line of the quality charts, in percent (F1.3 / F4.1: 90, F1.1: 95).
 export function indicatorTargetRate(indicator = F13_INDICATOR) {

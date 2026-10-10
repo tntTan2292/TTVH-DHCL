@@ -13,7 +13,7 @@ import {
   BcvhRouteCapacityBlock,
 } from './BcvhRankingOverviewBlocks';
 import BcvhWeeklyComparisonBlock from './BcvhWeeklyComparisonBlock';
-import { indicatorLabel } from '../indicator/indicatorConfig.js';
+import { indicatorLabel, indicatorTheme } from '../indicator/indicatorConfig.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 
@@ -287,6 +287,8 @@ export default function BcvhRankingPage() {
 
   return (
     <PageContainer
+      accentClassName={indicatorTheme(indicator).accentBar}
+      badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${indicatorTheme(indicator).chip}`}>{indicator.moduleLabel}</span>}
       title="Bảng xếp hạng chất lượng BCVH"
       subtitle="Theo ngày đánh giá."
       action={(

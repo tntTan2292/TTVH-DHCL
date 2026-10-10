@@ -1,5 +1,7 @@
 import { useRef } from 'react';
 import { AlertTriangle, Award, Package, Target } from 'lucide-react';
+import { useIndicator } from '../../indicator/IndicatorContext.js';
+import { indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { buildExecutiveInsight, buildUnifiedCommandCards } from './dashboardKpiCards';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton';
 
@@ -71,6 +73,7 @@ export default function UnifiedCommandSummary({
   toDate,
   bcvhLabel,
 }) {
+  const theme = indicatorTheme(useIndicator());
   const summaryContext = { fromDate, toDate, bcvhLabel };
   const cards = buildUnifiedCommandCards(kpiData || {}, summaryContext);
   const insight = buildExecutiveInsight(kpiData || {}, summaryContext);
@@ -119,9 +122,9 @@ export default function UnifiedCommandSummary({
               ))}
             </div>
             <div className="mt-3">
-              <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 p-3.5 shadow-2xs text-slate-900 transition-all duration-150 motion-reduce:transition-none">
-                <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#003E7E]">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#003E7E] text-white">
+              <div className={`rounded-xl border ${theme.headerBorder} ${theme.soft} p-3.5 shadow-2xs text-slate-900 transition-all duration-150 motion-reduce:transition-none`}>
+                <div className={`mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${theme.text}`}>
+                  <span className={`flex h-5 w-5 items-center justify-center rounded-full ${theme.button}`}>
                     <Target size={12} />
                   </span>
                   Bản tin chỉ đạo điều hành

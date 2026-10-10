@@ -17,6 +17,9 @@ import { indicatorLabel } from '../../indicator/indicatorConfig.js';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton';
+import SortableTh from '../../../components/common/SortableTh';
+import { nextSortState, sortRowsBy } from '../../../components/common/tableSort';
+import { indicatorTheme } from '../../indicator/indicatorConfig.js';
 
 const STORAGE_KEY = 'qis.bcvhRankingWave2.columns.v2';
 
@@ -240,8 +243,15 @@ function HeaderGroup({ label, colSpan, className = '' }) {
   return <th colSpan={colSpan} className={`px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide ${className}`}>{label}</th>;
 }
 
-function UnifiedHeader({ columns }) {
-  const { features } = useIndicator();
+// Column value for click-to-order: 'a.b.c' reads row.a.b.c; the identity columns are plain fields.
+function sortValue(row, field) {
+  return field.split('.').reduce((value, key) => (value === null || value === undefined ? value : value[key]), row);
+}
+
+function UnifiedHeader({ columns, sort, onSort }) {
+  const indicator = useIndicator();
+  const { features } = indicator;
+  const theme = indicatorTheme(indicator);
   const d1Span = 2 + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0);
   const d7Span = 2 + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0);
 
@@ -257,31 +267,31 @@ function UnifiedHeader({ columns }) {
         {features.routes ? <HeaderGroup label={TEXT.action} colSpan={1} className={GROUP_STYLES.action.header} /> : null}
       </tr>
       <tr className="border-b border-[var(--color-surface-200)]">
-        <th className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-right`}>{TEXT.rank}</th>
-        <th className={`${STICKY_CODE} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-left`}>{TEXT.code}</th>
-        <th className={`${STICKY_NAME} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} px-3 py-3 text-left`}>{TEXT.name}</th>
+        <SortableTh field="rank" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-right`}>{TEXT.rank}</SortableTh>
+        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_CODE} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-left`}>{TEXT.code}</SortableTh>
+        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_NAME} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} px-3 py-3 text-left`}>{TEXT.name}</SortableTh>
 
-        <th className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.volume}</th>
-        <th className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.pass}</th>
-        <th className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.fail}</th>
-        <th className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>{TEXT.rate}</th>
+        <SortableTh field="current_day.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh>
+        <SortableTh field="current_day.pass_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.pass}</SortableTh>
+        <SortableTh field="current_day.fail_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.fail}</SortableTh>
+        <SortableTh field="current_day.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>{TEXT.rate}</SortableTh>
 
         {features.lateCash ? (
           <>
-            <th className={`${GROUP_STYLES.lateCash.cell} px-3 py-3 text-right`}>{TEXT.lateCashCount}</th>
-            <th className={`${GROUP_STYLES.lateCash.cell} ${GROUP_STYLES.d1.divider} px-3 py-3 text-center`}>{TEXT.lateCashRate}</th>
+            <SortableTh field="late_cash.count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.lateCash.cell} px-3 py-3 text-right`}>{TEXT.lateCashCount}</SortableTh>
+            <SortableTh field="late_cash.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.lateCash.cell} ${GROUP_STYLES.d1.divider} px-3 py-3 text-center`}>{TEXT.lateCashRate}</SortableTh>
           </>
         ) : null}
 
-        {columns.d1Volume ? <th className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-right`}>{TEXT.volume}</th> : null}
-        {columns.d1Rate ? <th className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-center`}>{TEXT.rate}</th> : null}
-        <th className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-right`}>{TEXT.volumeDelta}</th>
-        <th className={`${GROUP_STYLES.d1.cell} ${GROUP_STYLES.d1.divider} px-3 py-3 text-center`}>{TEXT.rateDelta}</th>
+        {columns.d1Volume ? <SortableTh field="comparisons.d1.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh> : null}
+        {columns.d1Rate ? <SortableTh field="comparisons.d1.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-center`}>{TEXT.rate}</SortableTh> : null}
+        <SortableTh field="comparisons.d1.volume_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-right`}>{TEXT.volumeDelta}</SortableTh>
+        <SortableTh field="comparisons.d1.rate_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} ${GROUP_STYLES.d1.divider} px-3 py-3 text-center`}>{TEXT.rateDelta}</SortableTh>
 
-        {columns.d7Volume ? <th className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-right`}>{TEXT.volume}</th> : null}
-        {columns.d7Rate ? <th className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-center`}>{TEXT.rate}</th> : null}
-        <th className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-right`}>{TEXT.volumeDelta}</th>
-        <th className={`${GROUP_STYLES.d7.cell} ${GROUP_STYLES.d7.divider} px-3 py-3 text-center`}>{TEXT.rateDelta}</th>
+        {columns.d7Volume ? <SortableTh field="comparisons.d7.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh> : null}
+        {columns.d7Rate ? <SortableTh field="comparisons.d7.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-center`}>{TEXT.rate}</SortableTh> : null}
+        <SortableTh field="comparisons.d7.volume_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-right`}>{TEXT.volumeDelta}</SortableTh>
+        <SortableTh field="comparisons.d7.rate_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} ${GROUP_STYLES.d7.divider} px-3 py-3 text-center`}>{TEXT.rateDelta}</SortableTh>
 
         {features.routes ? (
           <>
@@ -548,6 +558,15 @@ export default function UnifiedBcvhAnalysisTable({
     });
   }, [maBcvh, search, state.data?.rows]);
 
+  // Click-to-order (PO 2026-10-10): null = the server's rank order, as before. The total row stays on top.
+  const [sort, setSort] = useState(null);
+  const handleSort = (field) => setSort((current) => nextSortState(current || { field: 'rank', direction: 'asc' }, field, { textFields: ['ma_bcvh', 'ten_bcvh'] }));
+  const headerSort = sort || { field: 'rank', direction: 'asc' };
+  const orderedRows = useMemo(
+    () => (sort ? sortRowsBy(filteredRows, sort.field, sort.direction, sortValue) : filteredRows),
+    [filteredRows, sort],
+  );
+
   const handleOpenDetail = (row) => {
     navigate(buildDetailUrl(row.action));
   };
@@ -609,7 +628,7 @@ export default function UnifiedBcvhAnalysisTable({
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-[2200px] table-auto text-xs">
-          <UnifiedHeader columns={columns} />
+          <UnifiedHeader columns={columns} sort={headerSort} onSort={handleSort} />
           <tbody>
             {state.data?.total_row ? (
               <Row
@@ -620,7 +639,7 @@ export default function UnifiedBcvhAnalysisTable({
                 onOpenDetail={handleOpenDetail}
               />
             ) : null}
-            {filteredRows.map((row) => (
+            {orderedRows.map((row) => (
               <Row
                 key={row.id}
                 row={row}

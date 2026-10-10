@@ -39,6 +39,7 @@ That is normally 2-3 reads, not the full `README_AI.md` → `CODEX_PROMPT_STANDA
 - Local defects default to `LEVEL 1` validation (targeted checks only); escalate only with a one-sentence justification.
 - One Bug → One Ticket → One Commit. Commit only after documentation sync is done.
 - You own technical validation (build/lint, tests, API/DB/contract checks). You do not own PO UI acceptance — never self-award PO PASS. When `PO UI Check Required = Yes`, stop at `READY FOR PO CHECK` and hand a concise PO checklist back.
+- **Report screens (PO decision 2026-10-10):** every ticket that adds or changes a report block (card, table, chart) must deliver, without being asked again, the functions of `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md`: camera button, click-to-order column titles (and ordering of units side by side by volume or rate), the per-indicator target line (F1.1 95 %, F1.3/F4.1 90 %) and colour family (F1.3 blue, F4.1 orange, F1.1 green; light, no purple/dark), follow-the-date-filter, and the undefined-identifier check before handover. Put the file in the Required Reading of such manifests and prompts.
 - Workspace: only `D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong`. Do not create sibling clone/worktree folders to bypass a dirty or wrong-branch workspace — stop and report instead.
 - Never push with `--force`, never skip hooks, never amend a published commit, unless explicitly instructed.
 

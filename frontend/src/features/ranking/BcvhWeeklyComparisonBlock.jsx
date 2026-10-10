@@ -45,7 +45,7 @@ import {
   resolveWeeksListWithAnchor,
   sortBcvhWeeklyRows,
 } from './bcvhWeeklyComparisonData';
-import { indicatorLabel } from '../indicator/indicatorConfig.js';
+import { indicatorLabel, indicatorTheme } from '../indicator/indicatorConfig.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 
@@ -111,6 +111,7 @@ function WeekNoteBadge({ week }) {
 
 export default function BcvhWeeklyComparisonBlock() {
   const indicator = useIndicator();
+  const theme = indicatorTheme(indicator);
   const api = useIndicatorApi();
   const [weeksState, setWeeksState] = useState({ status: 'loading', weeks: [], error: null });
   const [anchorDate, setAnchorDate] = useState('');
@@ -339,7 +340,7 @@ export default function BcvhWeeklyComparisonBlock() {
       <th
         key={field}
         onClick={field === 'current_rate' ? handleToggleCurrentRateSort : () => handleSort(field)}
-        className={`py-2 px-1 text-center align-middle ${widthClass} ${borderClass} leading-snug cursor-pointer select-none transition-colors ${hoverClass} ${nowrap ? 'whitespace-nowrap' : ''} ${isActive ? 'bg-blue-100/90 font-black text-blue-950 shadow-2xs' : ''}`}
+        className={`py-2 px-1 text-center align-middle ${widthClass} ${borderClass} leading-snug cursor-pointer select-none transition-colors ${hoverClass} ${nowrap ? 'whitespace-nowrap' : ''} ${isActive ? `${theme.sortActive} font-black shadow-2xs` : ''}`}
         title={`Sắp xếp theo ${label} (nhấp để đảo chiều)`}
       >
         <div className="inline-flex items-center justify-center gap-1">
@@ -427,7 +428,7 @@ export default function BcvhWeeklyComparisonBlock() {
                   onClick={() => setPeriodMode(mode)}
                   aria-pressed={periodMode === mode}
                   className={`rounded-md px-3 py-1 text-xs font-bold transition-colors ${
-                    periodMode === mode ? 'bg-blue-700 text-white shadow-2xs' : 'text-slate-700 hover:bg-slate-100'
+                    periodMode === mode ? `${theme.button} shadow-2xs` : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   {text}
@@ -473,7 +474,7 @@ export default function BcvhWeeklyComparisonBlock() {
               title="So sánh tháng đang chọn với tháng liền trước, cùng số ngày đầu tháng"
               className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold shadow-2xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 samePrevMonthActive
-                  ? 'border-blue-700 bg-blue-700 text-white'
+                  ? `border-transparent ${theme.button}`
                   : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
               }`}
             >
@@ -643,7 +644,7 @@ export default function BcvhWeeklyComparisonBlock() {
           <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug">
             {titleLine1}
           </h2>
-          <p className="mt-1 text-xs sm:text-base font-black uppercase tracking-wide text-blue-900">
+          <p className={`mt-1 text-xs sm:text-base font-black uppercase tracking-wide ${theme.text}`}>
             {titleLine2}
           </p>
           <div className="mt-2 flex justify-center items-center gap-2 lg:hidden">
@@ -728,7 +729,7 @@ export default function BcvhWeeklyComparisonBlock() {
                     {/* Tuần kỳ này group header */}
                     <th
                       colSpan={3}
-                      className="bg-blue-100/90 text-blue-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-blue-300 text-xs sm:text-sm md:text-base"
+                      className={`${theme.headerBg} ${theme.headerText} font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r ${theme.headerBorder} text-xs sm:text-sm md:text-base`}
                     >
                       <div className="leading-snug">{isMonth ? 'THÁNG KỲ NÀY' : 'TUẦN KỲ NÀY'} ({headCurrent.name || 'KỲ NÀY'})</div>
                       <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
@@ -739,7 +740,7 @@ export default function BcvhWeeklyComparisonBlock() {
                       </div>
                       {headCurrent.dataThrough ? (
                         <div className="mt-1">
-                          <span className="inline-block rounded bg-blue-200/90 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-blue-950 tracking-normal">
+                          <span className={`inline-block rounded ${theme.headerBg} px-2 py-0.5 text-[10px] sm:text-[11px] font-bold ${theme.headerText} tracking-normal`}>
                             Dữ liệu đến ngày {formatDateVN(headCurrent.dataThrough)}
                           </span>
                         </div>
@@ -749,7 +750,7 @@ export default function BcvhWeeklyComparisonBlock() {
                     {/* Tuần so sánh group header */}
                     <th
                       colSpan={3}
-                      className="bg-emerald-100/90 text-emerald-950 font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-emerald-300 text-xs sm:text-sm md:text-base"
+                      className={`${theme.header2Bg} ${theme.header2Text} font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-slate-300 text-xs sm:text-sm md:text-base`}
                     >
                       <div className="leading-snug">{isMonth ? 'THÁNG SO SÁNH' : 'TUẦN SO SÁNH'} ({headCompare.name || 'SO SÁNH'})</div>
                       <div className="text-[11px] sm:text-xs font-black text-rose-600 tracking-normal mt-0.5 leading-snug">
@@ -807,7 +808,7 @@ export default function BcvhWeeklyComparisonBlock() {
               <tbody className="divide-y divide-slate-200 text-xs sm:text-sm md:text-base">
                 {/* Row 1: TỔNG CỘNG (First Row, matching Operation Dashboard pattern) */}
                 {totalRow ? (
-                  <tr className="bg-blue-50/90 text-slate-950 font-black border-b-2 border-blue-300 hover:bg-blue-100/70 transition-colors">
+                  <tr className={`${theme.soft} text-slate-950 font-black border-b-2 ${theme.headerBorder} hover:bg-slate-100/70 transition-colors`}>
                     <td className="py-2 px-1 text-center text-slate-500 font-extrabold border-r border-blue-200 whitespace-nowrap">
                       {DASH}
                     </td>

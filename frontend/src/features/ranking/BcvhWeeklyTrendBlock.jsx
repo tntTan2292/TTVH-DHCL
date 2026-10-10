@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Activity, BarChart3 } from 'lucide-react';
 import { useIndicator } from '../indicator/IndicatorContext.js';
-import { indicatorTargetRate } from '../indicator/indicatorConfig.js';
+import { indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { ErrorState } from '../../components/shared/SharedComponents';
 import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
@@ -112,7 +112,7 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
                 Sản lượng (bưu gửi), trục trái
               </span>
               <span className="inline-flex items-center gap-2 font-semibold">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#059669] shadow-2xs" />
+                <span className="h-2.5 w-2.5 rounded-full shadow-2xs" style={{ backgroundColor: indicatorTheme(indicator).line }} />
                 {indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`} (%), trục phải
               </span>
               <span className="inline-flex items-center gap-2 font-semibold">

@@ -2,12 +2,18 @@ import React from 'react';
 
 const baseCard = 'rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm';
 
-export function PageContainer({ title, subtitle, action, children, className = '' }) {
+// `accentClassName` (a background class) draws a thin bar across the top and `badge` is shown next to the title:
+// the report pages use them to show their family colour (F1.3 blue, F4.1 orange, F1.1 green) at a glance.
+export function PageContainer({ title, subtitle, action, children, className = '', accentClassName = '', badge = null }) {
   return (
     <div className={`flex h-full flex-col gap-6 p-6 md:p-8 ${className}`}>
+      {accentClassName ? <div aria-hidden="true" className={`-mb-3 h-1.5 w-full rounded-full ${accentClassName}`} /> : null}
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-main)]">{title}</h1>
+          <h1 className="flex flex-wrap items-center gap-3 text-2xl font-bold text-[var(--color-text-main)]">
+            <span>{title}</span>
+            {badge}
+          </h1>
           {subtitle ? <p className="mt-1 text-sm text-[var(--color-text-muted)]">{subtitle}</p> : null}
         </div>
         {action ? <div className="flex items-center gap-2">{action}</div> : null}

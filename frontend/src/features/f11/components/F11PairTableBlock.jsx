@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpDown, Grid, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Grid, Search } from 'lucide-react';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
 import {
@@ -7,17 +7,43 @@ import {
   F13_HEATMAP_TONE_CLASS,
   F13_HEATMAP_DOT_CLASS,
 } from '../../../components/f13/f13HeatmapBandCatalog.js';
-import { buildMonthlyHeatmapLegend } from '../../indicator/indicatorConfig.js';
+import { buildMonthlyHeatmapLegend, indicatorTheme } from '../../indicator/indicatorConfig.js';
+import { nextSortState, sortRowsBy } from '../../../components/common/tableSort.js';
+import { describePairSort, orderPairColumns, pairRowValue } from './f11PairTableSort.js';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
+import SortableTh from '../../../components/common/SortableTh.jsx';
+
+function MiniSort({ field, label, sort, onSort, activeClassName }) {
+  const active = sort?.field === field;
+  return (
+    <button
+      type="button"
+      onClick={(event) => { event.stopPropagation(); onSort(field); }}
+      title={`Sắp xếp các bưu cục theo ${label === 'SL' ? 'sản lượng' : 'tỷ lệ đạt'} cột này (bấm lại để đảo chiều)`}
+      className={`inline-flex items-center gap-0.5 rounded px-1 py-0.5 text-[10px] font-bold normal-case tracking-normal transition-colors cursor-pointer ${active ? activeClassName : 'text-slate-500 hover:bg-slate-200/80'}`}
+    >
+      {label}
+      {active ? (sort.direction === 'asc' ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />) : <ArrowUpDown className="h-2 w-2 opacity-40" />}
+    </button>
+  );
+}
 
 export default function F11PairTableBlock({ anchorDate, toDate }) {
   const indicator = useIndicator();
+  const theme = indicatorTheme(indicator);
   const api = useIndicatorApi();
   const effectiveAnchor = anchorDate || toDate;
 
   const [period, setPeriod] = useState('day');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortMode, setSortMode] = useState('volume_desc');
+  const [sort, setSort] = useState({ field: 'total:volume', direction: 'desc' });
+  const [colOrder, setColOrder] = useState(null); // null = the server's column order
+  const handleSort = (field) => setSort((current) => nextSortState(current, field, { textFields: ['name'] }));
+  const handleColOrder = (metric) => setColOrder((current) => (
+    current && current.metric === metric
+      ? { metric, direction: current.direction === 'desc' ? 'asc' : 'desc' }
+      : { metric, direction: 'desc' }
+  ));
   const [highlightedCol, setHighlightedCol] = useState(null);
 
   const [state, setState] = useState({
@@ -70,7 +96,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   }, [api, effectiveAnchor, period]);
 
   const rows = state.data?.rows;
-  const columns = state.data?.columns || [];
+  const columns = useMemo(() => state.data?.columns || [], [state.data]);
   const totalRow = state.data?.total_row || null;
   const meta = state.data?.meta || {};
   const totalRowCount = rows ? rows.length : 0;
@@ -88,30 +114,12 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
       });
     }
 
-    result.sort((a, b) => {
-      if (sortMode === 'volume_desc') {
-        return (Number(b.total?.volume) || 0) - (Number(a.total?.volume) || 0);
-      }
-      if (sortMode === 'rate_asc') {
-        const ra = a.total?.rate !== null && a.total?.rate !== undefined ? Number(a.total.rate) : 9999;
-        const rb = b.total?.rate !== null && b.total?.rate !== undefined ? Number(b.total.rate) : 9999;
-        if (ra !== rb) return ra - rb;
-        return (Number(b.total?.volume) || 0) - (Number(a.total?.volume) || 0);
-      }
-      if (sortMode === 'rate_desc') {
-        const ra = a.total?.rate !== null && a.total?.rate !== undefined ? Number(a.total.rate) : -1;
-        const rb = b.total?.rate !== null && b.total?.rate !== undefined ? Number(b.total.rate) : -1;
-        if (ra !== rb) return rb - ra;
-        return (Number(b.total?.volume) || 0) - (Number(a.total?.volume) || 0);
-      }
-      if (sortMode === 'name_asc') {
-        return String(a.ten_chap_nhan || '').localeCompare(String(b.ten_chap_nhan || ''));
-      }
-      return 0;
-    });
+    result = sortRowsBy(result, sort.field, sort.direction, pairRowValue);
 
     return result;
-  }, [rows, searchTerm, sortMode]);
+  }, [rows, searchTerm, sort]);
+
+  const orderedColumns = useMemo(() => orderPairColumns(columns, totalRow, colOrder), [columns, totalRow, colOrder]);
 
   const toggleColumnHighlight = (colCode) => {
     setHighlightedCol((prev) => (prev === colCode ? null : colCode));
@@ -129,7 +137,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
     <section ref={sectionRef} className="rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-all duration-150">
       <div className="flex flex-col gap-3 border-b border-slate-200/80 bg-slate-50/80 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#003E7E] text-white shadow-2xs">
+          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${theme.button} shadow-2xs`}>
             <Grid size={18} />
           </div>
           <div>
@@ -155,7 +163,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               onClick={() => setPeriod('day')}
               className={`rounded-lg px-3 py-1 text-xs font-bold transition-all duration-150 cursor-pointer ${
                 period === 'day'
-                  ? 'bg-[#003E7E] text-white shadow-2xs'
+                  ? `${theme.button} shadow-2xs`
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -166,7 +174,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               onClick={() => setPeriod('week')}
               className={`rounded-lg px-3 py-1 text-xs font-bold transition-all duration-150 cursor-pointer ${
                 period === 'week'
-                  ? 'bg-[#003E7E] text-white shadow-2xs'
+                  ? `${theme.button} shadow-2xs`
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -177,7 +185,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               onClick={() => setPeriod('month')}
               className={`rounded-lg px-3 py-1 text-xs font-bold transition-all duration-150 cursor-pointer ${
                 period === 'month'
-                  ? 'bg-[#003E7E] text-white shadow-2xs'
+                  ? `${theme.button} shadow-2xs`
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
@@ -204,25 +212,43 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                 placeholder="Tìm bưu cục chấp nhận (tên hoặc mã)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-slate-50/50 pl-8 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#003E7E] focus:bg-white focus:outline-none"
+                className="w-full rounded-lg border border-slate-300 bg-slate-50/50 pl-8 pr-3 py-1.5 text-xs text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:bg-white focus:outline-none"
               />
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <ArrowUpDown size={14} className="text-slate-500" />
-              <span className="font-medium text-slate-600">Sắp xếp:</span>
-              <select
-                value={sortMode}
-                onChange={(e) => setSortMode(e.target.value)}
-                className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs focus:border-[#003E7E] focus:outline-none cursor-pointer"
+              <span className="font-medium text-slate-600">Hàng đang sắp theo:</span>
+              <span className={`rounded-md px-2 py-0.5 font-semibold ${theme.headerBg} ${theme.headerText}`}>{describePairSort(sort, columns)}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Sắp xếp cột bưu cục phát">
+              <span className="font-medium text-slate-600">Cột bưu cục phát:</span>
+              <button
+                type="button"
+                onClick={() => setColOrder(null)}
+                aria-pressed={!colOrder}
+                className={`rounded-md border px-2 py-0.5 font-semibold cursor-pointer ${!colOrder ? `border-transparent ${theme.button}` : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'}`}
               >
-                <option value="volume_desc">Sản lượng cao nhất</option>
-                <option value="rate_asc">Tỷ lệ thấp nhất (bưu cục yếu)</option>
-                <option value="rate_desc">Tỷ lệ cao nhất</option>
-                <option value="name_asc">Tên bưu cục (A-Z)</option>
-              </select>
+                Mặc định
+              </button>
+              {[['volume', 'Sản lượng'], ['rate', 'Tỷ lệ đạt']].map(([metric, text]) => {
+                const active = colOrder?.metric === metric;
+                return (
+                  <button
+                    key={metric}
+                    type="button"
+                    onClick={() => handleColOrder(metric)}
+                    aria-pressed={active}
+                    title={`Sắp các cột BCVH phát theo ${text.toLowerCase()} (bấm lại để đảo chiều)`}
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-semibold cursor-pointer ${active ? `border-transparent ${theme.button}` : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'}`}
+                  >
+                    {text}
+                    {active ? (colOrder.direction === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : null}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -248,7 +274,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
         {state.status === 'loading' ? (
           <div className="flex h-40 items-center justify-center">
             <div className="flex items-center gap-2.5 text-xs font-medium text-slate-500">
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#003E7E] border-t-transparent" />
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
               <span>Đang tải ma trận bưu cục chấp nhận × BCVH...</span>
             </div>
           </div>
@@ -266,13 +292,16 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               <table className="w-full border-collapse text-left text-xs text-slate-700">
                 <thead className="sticky top-0 z-20 bg-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-700 shadow-2xs">
                   <tr>
-                    <th
-                      scope="col"
-                      className="sticky left-0 z-30 bg-slate-100 px-3.5 py-3 border-r border-b border-slate-200 min-w-[200px]"
+                    <SortableTh
+                      field="name"
+                      sort={sort}
+                      onSort={handleSort}
+                      activeClassName={theme.sortActive}
+                      className="sticky left-0 z-30 bg-slate-100 px-3.5 py-3 border-r border-b border-slate-200 min-w-[200px] text-left"
                     >
                       Bưu cục chấp nhận
-                    </th>
-                    {columns.map((col) => {
+                    </SortableTh>
+                    {orderedColumns.map((col) => {
                       const isHighlighted = highlightedCol === col.ma_bcvh;
                       return (
                         <th
@@ -282,7 +311,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                           title="Bấm để làm nổi bật cột này"
                           className={`cursor-pointer px-3 py-2.5 text-center border-b border-r border-slate-200 min-w-[110px] transition-colors select-none ${
                             isHighlighted
-                              ? 'bg-blue-100 text-[#003E7E] font-black ring-2 ring-inset ring-[#003E7E]'
+                              ? `${theme.sortActive} font-black ring-2 ring-inset ${theme.ring}`
                               : 'hover:bg-slate-200/70'
                           }`}
                         >
@@ -290,6 +319,10 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                           {col.ma_bcvh !== 'OTHER' ? (
                             <div className="text-[10px] font-normal opacity-75">{col.ma_bcvh}</div>
                           ) : null}
+                          <div className="mt-1 flex items-center justify-center gap-1">
+                            <MiniSort field={`${col.ma_bcvh}:volume`} label="SL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
+                            <MiniSort field={`${col.ma_bcvh}:rate`} label="TL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
+                          </div>
                         </th>
                       );
                     })}
@@ -297,7 +330,11 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       scope="col"
                       className="px-3.5 py-3 text-center border-b border-slate-200 min-w-[110px] bg-slate-200/80 font-black text-slate-900"
                     >
-                      Tổng cộng
+                      <div>Tổng cộng</div>
+                      <div className="mt-1 flex items-center justify-center gap-1">
+                        <MiniSort field="total:volume" label="SL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
+                        <MiniSort field="total:rate" label="TL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
+                      </div>
                     </th>
                   </tr>
                 </thead>
@@ -314,7 +351,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                         ) : null}
                       </td>
 
-                      {columns.map((col) => {
+                      {orderedColumns.map((col) => {
                         const cellData = row.cells?.[col.ma_bcvh];
                         const isHighlighted = highlightedCol === col.ma_bcvh;
                         const hasVolume = cellData && cellData.volume > 0;
@@ -325,7 +362,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                           <td
                             key={col.ma_bcvh}
                             className={`px-2.5 py-2 text-center border-r border-slate-200/80 whitespace-nowrap ${
-                              isHighlighted ? 'bg-blue-50/40' : ''
+                              isHighlighted ? theme.soft : ''
                             }`}
                           >
                             {hasVolume ? (
@@ -380,7 +417,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                         {totalRow.ten_chap_nhan || 'TỔNG CỘNG'}
                       </td>
 
-                      {columns.map((col) => {
+                      {orderedColumns.map((col) => {
                         const cellData = totalRow.cells?.[col.ma_bcvh];
                         const isHighlighted = highlightedCol === col.ma_bcvh;
                         const hasVolume = cellData && cellData.volume > 0;
@@ -391,7 +428,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                           <td
                             key={col.ma_bcvh}
                             className={`px-2.5 py-2.5 text-center border-r border-slate-300 whitespace-nowrap ${
-                              isHighlighted ? 'bg-blue-100/70' : 'bg-slate-100'
+                              isHighlighted ? theme.headerBg : 'bg-slate-100'
                             }`}
                           >
                             {hasVolume ? (

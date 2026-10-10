@@ -462,17 +462,17 @@ test('PO layout: 10-column table-fixed colgroup with 10% cols 4-10 and 2-line he
   // 3. Header cột 6, 9 và 10 có đúng hai dòng cố định bằng span.block
   assert.match(
     tableSource,
-    /<th[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">\{prevMonthShortLabel\}<\/span>[\s\S]*?<\/th>/,
+    /<(?:th|SortableTh)[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">\{prevMonthShortLabel\}<\/span>[\s\S]*?<\/(?:th|SortableTh)>/,
     'Col 6 header explicitly split into 2 block lines'
   );
   assert.match(
     tableSource,
-    /<th[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/Giảm so với<\/span>[\s\S]*?<span className="block">ngày trước<\/span>[\s\S]*?<\/th>/,
+    /<(?:th|SortableTh)[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/Giảm so với<\/span>[\s\S]*?<span className="block">ngày trước<\/span>[\s\S]*?<\/(?:th|SortableTh)>/,
     'Col 9 header explicitly split into 2 block lines'
   );
   assert.match(
     tableSource,
-    /<th[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">cùng kỳ \(tuần trước\)<\/span>[\s\S]*?<\/th>/,
+    /<(?:th|SortableTh)[^>]*?w-\[10%\][^>]*?>[\s\S]*?<span className="block">Tăng\/giảm so với<\/span>[\s\S]*?<span className="block">cùng kỳ \(tuần trước\)<\/span>[\s\S]*?<\/(?:th|SortableTh)>/,
     'Col 10 header explicitly split into 2 block lines'
   );
 });

@@ -30,7 +30,7 @@ import {
   F13_HEATMAP_HEX_COLOR,
 } from '../../components/f13/f13HeatmapBandCatalog.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
-import { indicatorTargetRate } from '../indicator/indicatorConfig.js';
+import { indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
 
 function HeatmapRateDot(props) {
   const { heatmapBands } = useIndicator();
@@ -167,6 +167,7 @@ function SingleMonthlyComboTrendChart({
   const indicator = useIndicator();
   const { heatmapBands } = indicator;
   const targetRate = indicatorTargetRate(indicator);
+  const theme = indicatorTheme(indicator);
   const gradId = useId().replace(/:/g, '_');
   const volumeAxisMax = getVolumeAxisMax(seriesData);
 
@@ -184,12 +185,12 @@ function SingleMonthlyComboTrendChart({
         >
           <defs>
             <linearGradient id={`monthlyVolGrad_${gradId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#003E7E" stopOpacity={0.8} />
+              <stop offset="0%" stopColor={theme.primary} stopOpacity={0.95} />
+              <stop offset="100%" stopColor={theme.primary} stopOpacity={0.6} />
             </linearGradient>
             <linearGradient id={`monthlyVolGradCurrent_${gradId}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#0284C7" stopOpacity={0.8} />
+              <stop offset="0%" stopColor={theme.primaryLight} stopOpacity={0.95} />
+              <stop offset="100%" stopColor={theme.primaryLight} stopOpacity={0.7} />
             </linearGradient>
           </defs>
 
@@ -252,7 +253,7 @@ function SingleMonthlyComboTrendChart({
               <Cell
                 key={`cell-${entry.period_id || idx}`}
                 fill={entry.isCurrentMonth ? `url(#monthlyVolGradCurrent_${gradId})` : `url(#monthlyVolGrad_${gradId})`}
-                stroke={entry.isCurrentMonth ? '#0284C7' : undefined}
+                stroke={entry.isCurrentMonth ? theme.primary : undefined}
                 strokeWidth={entry.isCurrentMonth ? 1.5 : 0}
               />
             ))}
@@ -263,7 +264,7 @@ function SingleMonthlyComboTrendChart({
             type="linear"
             dataKey="quality_rate"
             name={indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}
-            stroke="#059669"
+            stroke={theme.line}
             strokeWidth={3}
             dot={<HeatmapRateDot />}
             activeDot={<HeatmapRateActiveDot />}

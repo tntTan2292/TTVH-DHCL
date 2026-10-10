@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Camera, Check, Copy, Download, Loader2, X } from 'lucide-react';
 import { useIndicator } from '../../features/indicator/IndicatorContext.js';
+import { indicatorTheme } from '../../features/indicator/indicatorConfig.js';
 import {
   canUseAsyncImageClipboard,
   copyBlobToClipboard,
@@ -24,6 +25,7 @@ export default function BlockCaptureButton({
 }) {
   const indicator = useIndicator();
   const indicatorLabel = indicator?.moduleLabel || 'F1.3';
+  const theme = indicatorTheme(indicator);
   const [busyState, setBusyState] = useState(null); // 'copy' | 'save' | null
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'info' | 'error', message: string }
   const [preview, setPreview] = useState(null); // { url, blob, filename }
@@ -103,11 +105,11 @@ export default function BlockCaptureButton({
         className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 focus:outline-none transition-all duration-150 cursor-pointer disabled:opacity-60"
       >
         {busyState ? (
-          <Loader2 size={14} className="animate-spin text-[#003E7E]" />
+          <Loader2 size={14} className={`animate-spin ${theme.text}`} />
         ) : feedback?.type === 'success' ? (
           <Check size={14} className="text-emerald-600" />
         ) : (
-          <Camera size={14} className="text-slate-600 hover:text-[#003E7E]" />
+          <Camera size={14} className={theme.text} />
         )}
         <span className="hidden sm:inline text-[11px]">Chụp ảnh</span>
       </button>
@@ -191,7 +193,7 @@ export default function BlockCaptureButton({
               <button
                 type="button"
                 onClick={closePreview}
-                className="inline-flex items-center rounded-lg bg-[#003E7E] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#002f60] cursor-pointer"
+                className={`inline-flex items-center rounded-lg ${theme.button} px-3 py-1.5 text-xs font-semibold hover:opacity-90 cursor-pointer`}
               >
                 Đóng
               </button>
