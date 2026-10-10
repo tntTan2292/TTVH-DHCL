@@ -2197,3 +2197,7 @@ PO asked for portal discovery and automatic download before the Dashboard so the
 ## 2026-10-10 - F11-PHASE-3 IMPLEMENTED WITH FAKES (supervised live run pending)
 
 F1.1 automatic download written from the evidence collected through the PO's Chrome: portal operations (report, detail, export form read from the portal), one-date services with figure-by-figure reconciliation, executors and a DRY supervised probe. 22 new tests (the PO's real 07/10 files as the known answer), backend sweep 496/500 (4 known pre-existing), lint clean. Registry unchanged (MANUAL_ONLY/PLANNED), executors not registered: nothing can download by itself yet. Next: supervised live run per lane (backend stopped, PO signs in by hand), then enablement and backfill. Manifest Section 13: docs/10_TICKETS/F11-PHASE-3_MANIFEST.md.
+
+## 2026-10-10 - F11-DASHBOARD-RANKING-01 BACKEND IMPLEMENTED (screens pending)
+
+F1.1 read APIs under /api/f11 (summary, daily trend, six-BCVH ranking, overview, weeks/months comparison) reusing the F4.1 service over a new FactF11Repository and the F1.1 national rank, plus the new pair table (accepting office x delivering BCVH + "Khac", day/week/month). 9 new tests incl. the PO real 07/10 file (2.621 / 2.348 / 89,58 %, rank 4/34); F4.1 and F1.1 national tests unchanged. Backend restart needed to expose the routes. Next: screens (Antigravity), Opus review, PO UI check. Manifest: docs/10_TICKETS/F11-DASHBOARD-RANKING-01_MANIFEST.md.

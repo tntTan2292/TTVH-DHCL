@@ -10,6 +10,7 @@ const importRoutes = require('./src/routes/importRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const networkMapRoutes = require('./src/routes/networkMapRoutes');
 const f41Routes = require('./src/routes/f41Routes');
+const f11Routes = require('./src/routes/f11Routes');
 const { startWatcher } = require('./src/services/importWatcher');
 const { dbPath: activeDbPath } = require('./src/config/db');
 const { applyNetworkManagement001Phase1Schema } = require('./migrate_network_management_001_phase1_schema');
@@ -113,6 +114,7 @@ app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
 app.use('/api/network-map', networkMapRoutes);
 app.use('/api/f41', f41Routes);
+app.use('/api/f11', f11Routes);
 
 // Additive, idempotent schema migrations applied on every startup so any
 // environment running this codebase self-heals instead of depending on
