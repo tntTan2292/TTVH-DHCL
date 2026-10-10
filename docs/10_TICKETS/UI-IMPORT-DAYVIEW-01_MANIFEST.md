@@ -60,12 +60,18 @@ API calls and payloads (`buildRunPayload`, `/coverage`, `/coverage/selectable`, 
 
 ## 7. Delivery Status
 
-- **Status:** `READY FOR PO UI CHECK`
-- **Build:** `vite build` PASS (0 errors)
-- **Lint:** `oxlint` PASS (0 errors, 0 warnings on modified files)
+- **Status:** `READY FOR PO UI CHECK` (Vòng 2 — Full redesign delivered on 2026-10-10)
+- **Build:** `vite build` PASS (0 errors, 1.31s)
+- **Lint:** `oxlint` PASS (0 errors on modified files)
 - **Tests:**
   - `AutoBackfillOperatorPanel.test.js`: 24/24 suites PASS (unedited)
-  - `autoBackfillDayViewHelpers.test.js`: 8/8 suites PASS (new)
+  - `autoBackfillDayViewHelpers.test.js`: 11/11 suites PASS (including `filterDaysByMissingOnly` and `resolveCrossIndicatorSummary`)
+- **Key Deliverables (Vòng 2 Redesign):**
+  1. `AutoBackfillIndicatorMatrix.jsx`: Cross-Indicator Command Center showing F1.1, F1.3, F4.1 side-by-side with HUE/TCT lane health, missing counts, 1-click select missing days (`onSelectAllUnfinished(ind.code)`), and 1-click indicator filter.
+  2. `AutoBackfillSmartDayView.jsx`: Strictly aligned day table with dedicated fixed-width columns (`w-12` Checkbox, `w-28` Date, `w-20` Indicator, `w-40` Dedicated Holiday column, `min-w-[310px]` HUE cell, `min-w-[310px]` TCT cell, `w-36` Actions), Indicator tabs navigation, Month pills navigation, 1-click "Chỉ ngày còn thiếu" toggle, and internal pagination.
+  3. `autoBackfillUiHelpers.js`: Added pure helpers `filterDaysByMissingOnly` and `resolveCrossIndicatorSummary` with 100% test coverage.
+  4. Preserved `viewMode === 'TABLE'` ("Bảng Chi tiết") untouched as power-user fallback.
+  5. Hard guard strictly respected: APIs, payloads, selection state shape (`selectedBulkKeys`, `selectedReimportKeys`), `getItemKey`, modals' logic, handlers, and backend remain 100% untouched.
 
 ## 8. Independent review (Opus, 2026-10-10) and remediation
 

@@ -41,7 +41,6 @@ import {
   resolveDaySelectionState,
   resolveDynamicIndicators,
   resolveEffectiveRunState,
-  resolveIndicatorGridClass,
   getItemKey,
   resolveNoCodeStatus,
   resolveOpenRunRowActions,
@@ -51,6 +50,8 @@ import {
   splitReimportItems,
   summarizeMonthDays
 } from './autoBackfillUiHelpers';
+import AutoBackfillIndicatorMatrix from './AutoBackfillIndicatorMatrix';
+import AutoBackfillSmartDayView from './AutoBackfillSmartDayView';
 
 const getApiErrorMessage = (error, fallback = 'Đã xảy ra lỗi khi gọi API.') => (
   error?.response?.data?.error?.message ||
@@ -1468,91 +1469,18 @@ export default function AutoBackfillOperatorPanel() {
         )}
       </div>
 
-      {/* DYNAMIC INDICATOR HEALTH CARDS GRID */}
-      <div className={resolveIndicatorGridClass(indicatorsList.length)}>
-        {indicatorsList.map((ind) => (
-          <div
-            key={ind.code}
-            onClick={() => setIndicatorFilter(indicatorFilter === ind.code ? 'ALL' : ind.code)}
-            className={`cursor-pointer rounded-2xl border p-5 transition shadow-sm ${
-              indicatorFilter === ind.code
-                ? 'border-[var(--color-vnpost-blue)] bg-blue-50/50 ring-2 ring-[var(--color-vnpost-blue)]/20'
-                : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className={`rounded-lg px-2 py-1 text-xs font-bold border ${ind.badgeClass}`}>
-                {ind.code}
-              </span>
-              <span className="text-xs font-medium text-slate-500">Tổng: {ind.missingCount} ngày lịch thiếu</span>
-            </div>
-            
-            <h3 className="mt-2 text-base font-bold text-slate-900 line-clamp-1">{ind.displayName}</h3>
-
-            {/* PER-LANE BREAKDOWN */}
-            <div className="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3">
-              {ind.supportedLanes.map((lane) => {
-                const laneData = ind.lanesBreakdown?.[lane] || {
-                  missingCount: 0,
-                  reviewReqCount: 0,
-                  unresolvedCount: 0,
-                  successCount: 0,
-                  missingItems: [],
-                  actionableItems: [],
-                  isFullyComplete: false
-                };
-                const hasUnresolved = (laneData.unresolvedCount || 0) > 0 || (laneData.missingCount || 0) > 0 || (laneData.reviewReqCount || 0) > 0;
-                const itemsToShowInModal = laneData.actionableItems && laneData.actionableItems.length > 0 ? laneData.actionableItems : laneData.missingItems || [];
-
-                return (
-                  <div
-                    key={lane}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (hasUnresolved && itemsToShowInModal.length > 0) {
-                        setSelectedLaneModal({
-                          indicator: ind.code,
-                          displayName: ind.displayName,
-                          lane,
-                          missingCount: itemsToShowInModal.length,
-                          missingItems: itemsToShowInModal
-                        });
-                      }
-                    }}
-                    className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 hover:bg-blue-50/80 transition border border-slate-200 group"
-                  >
-                    <span className="text-xs font-bold text-slate-800">
-                      Nguồn {lane === 'HUE' ? 'Huế' : lane}:
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-xs font-extrabold px-2 py-0.5 rounded-full border ${
-                        hasUnresolved ? 'bg-amber-100 text-amber-900 border-amber-300' :
-                        laneData.isFullyComplete ? 'bg-emerald-100 text-emerald-900 border-emerald-200' :
-                        'bg-slate-100 text-slate-700 border-slate-200'
-                      }`}>
-                        {hasUnresolved
-                          ? (laneData.missingCount > 0 && laneData.reviewReqCount > 0
-                              ? `Thiếu ${laneData.missingCount} · Kiểm tra ${laneData.reviewReqCount}`
-                              : laneData.missingCount > 0
-                              ? `Thiếu ${laneData.missingCount} ngày`
-                              : `Cần kiểm tra ${laneData.reviewReqCount} ngày`)
-                          : laneData.isFullyComplete
-                          ? '100% Hoàn tất'
-                          : 'Đã giải quyết'}
-                      </span>
-                      {hasUnresolved && itemsToShowInModal.length > 0 && (
-                        <span className="text-[11px] text-blue-700 font-bold group-hover:underline">
-                          [Xem ngày]
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* CROSS-INDICATOR COMMAND MATRIX (ROUND 2: UNIFIED 3-INDICATOR COMMAND CENTER) */}
+      <AutoBackfillIndicatorMatrix
+        indicatorsList={indicatorsList}
+        activeIndicator={indicatorFilter}
+        onSelectIndicator={(ind) => {
+          setIndicatorFilter(ind);
+          setCurrentPage(1);
+        }}
+        onSelectAllUnfinished={handleSelectAllUnfinished}
+        onOpenLaneModal={setSelectedLaneModal}
+        isAdmin={isAdmin}
+      />
 
       {/* CONTROL & FILTER BAR */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -1654,55 +1582,49 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       </div>
 
-      {/* VIEW MODE 1: SMART MONTHLY GROUPING ACCORDION VIEW */}
+      {/* VIEW MODE 1: SMART DAY VIEW (ROUND 2: STRICTLY ALIGNED COLUMNS & SMART NAVIGATION) */}
       {viewMode === 'GROUPED_MONTH' && (
-        <div className="flex flex-col gap-4">
-          {monthlyGroups.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
-              <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
-              <h3 className="mt-3 text-lg font-bold text-slate-900">Không có dữ liệu phù hợp bộ lọc</h3>
-              <p className="mt-1 text-sm text-slate-500">Tất cả các ngày trong phạm vi lựa chọn đã được xử lý hoàn tất hoặc ngoại lệ.</p>
-            </div>
-          ) : (
-            monthlyGroups.map((group) => (
-              <MonthlyAccordionGroup
-                key={`${group.indicator}::${group.yearMonth}`}
-                group={group}
-                defaultOpen={autoOpenMonthKey === `${group.indicator}::${group.yearMonth}`}
-                selectedBulkKeys={selectedBulkKeys}
-                selectedReimportKeys={selectedReimportKeys}
-                isAdmin={isAdmin}
-                onToggleSelectItem={handleToggleRowSelection}
-                onToggleSelectAllItems={toggleSelectAllItems}
-                onSelectAllUnfinished={handleSelectAllUnfinished}
-                onSelectAllReimport={handleSelectAllReimport}
-                onConfirmClick={(item) => {
-                  setConfirmModalItem(item);
-                  setConfirmReason('');
-                }}
-                onRevokeClick={(item) => {
-                  setRevokeModalItem(item);
-                  setRevokeReason('');
-                }}
-                onReimportClick={(item) => {
-                  setReimportModalItem(item);
-                  setReimportAck(false);
-                  setReimportError(null);
-                }}
-                onMarkHolidayClick={(item) => {
-                  setMarkHolidayModalItem(item);
-                  setMarkHolidayReason('');
-                  setMarkHolidayError(null);
-                }}
-                onRevokeHolidayClick={(holidayItem) => {
-                  setRevokeHolidayModalItem(holidayItem);
-                  setRevokeHolidayReason('');
-                  setRevokeHolidayError(null);
-                }}
-              />
-            ))
-          )}
-        </div>
+        <AutoBackfillSmartDayView
+          filteredCoverageItems={filteredCoverageItems}
+          indicatorsList={indicatorsList}
+          indicatorFilter={indicatorFilter}
+          setIndicatorFilter={setIndicatorFilter}
+          monthFilter={monthFilter}
+          setMonthFilter={setMonthFilter}
+          defaultMonthKey={autoOpenMonthKey}
+          monthOptions={monthOptions}
+          laneFilter={laneFilter}
+          setLaneFilter={setLaneFilter}
+          selectedBulkKeys={selectedBulkKeys}
+          selectedReimportKeys={selectedReimportKeys}
+          isAdmin={isAdmin}
+          onToggleSelectItem={handleToggleRowSelection}
+          onSelectAllUnfinished={handleSelectAllUnfinished}
+          onSelectAllReimport={handleSelectAllReimport}
+          onConfirmClick={(item) => {
+            setConfirmModalItem(item);
+            setConfirmReason('');
+          }}
+          onRevokeClick={(item) => {
+            setRevokeModalItem(item);
+            setRevokeReason('');
+          }}
+          onReimportClick={(item) => {
+            setReimportModalItem(item);
+            setReimportAck(false);
+            setReimportError(null);
+          }}
+          onMarkHolidayClick={(item) => {
+            setMarkHolidayModalItem(item);
+            setMarkHolidayReason('');
+            setMarkHolidayError(null);
+          }}
+          onRevokeHolidayClick={(holidayItem) => {
+            setRevokeHolidayModalItem(holidayItem);
+            setRevokeHolidayReason('');
+            setRevokeHolidayError(null);
+          }}
+        />
       )}
 
       {/* VIEW MODE 2: TABLE VIEW WITH BULK CHECKBOXES & PER-ROW REIMPORT */}
@@ -2865,7 +2787,8 @@ export default function AutoBackfillOperatorPanel() {
   );
 }
 
-// SUBCOMPONENT: SMART MONTHLY ACCORDION GROUP
+// SUBCOMPONENT: SMART MONTHLY ACCORDION GROUP (LEGACY ROUND 1)
+// eslint-disable-next-line no-unused-vars
 function MonthlyAccordionGroup({
   group,
   defaultOpen = false,

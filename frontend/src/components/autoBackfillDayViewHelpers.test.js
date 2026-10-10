@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import {
   countDistinctDates,
+  filterDaysByMissingOnly,
   findNewestUnfinishedMonthKey,
   formatSelectionCountLabel,
   getItemKey,
   groupItemsByDay,
   groupItemsByIndicatorAndMonth,
+  resolveCrossIndicatorSummary,
   resolveDaySelectionState,
   summarizeMonthDays
 } from './autoBackfillUiHelpers.js';
@@ -266,6 +268,121 @@ console.log('Running UI-IMPORT-DAYVIEW-01 day-view helpers test suite...');
   assert.ok(!summary.label.includes('đủ cả 2 nguồn'));
 
   console.log('✔ 9. Review-fix wording and key format tests PASSED!');
+}
+
+// ==========================================
+// 10. filterDaysByMissingOnly helper tests
+// ==========================================
+{
+  const days = [
+    {
+      date: '2026-10-01',
+      lanes: {
+        HUE: { status: 'COMPLETED' },
+        TCT: { status: 'COMPLETED' }
+      }
+    },
+    {
+      date: '2026-10-02',
+      lanes: {
+        HUE: { status: 'INCOMPLETE' },
+        TCT: { status: 'COMPLETED' }
+      }
+    },
+    {
+      date: '2026-10-03',
+      lanes: {
+        HUE: { status: 'EXCLUDED' },
+        TCT: { status: 'EXCLUDED' }
+      }
+    },
+    {
+      date: '2026-10-04',
+      lanes: {
+        HUE: { status: 'DATA_ERROR' }
+      }
+    }
+  ];
+
+  const missingOnly = filterDaysByMissingOnly(days);
+  assert.equal(missingOnly.length, 2, 'Should keep only days with INCOMPLETE or DATA_ERROR');
+  assert.equal(missingOnly[0].date, '2026-10-02');
+  assert.equal(missingOnly[1].date, '2026-10-04');
+
+  // Empty or invalid input
+  assert.deepEqual(filterDaysByMissingOnly([]), []);
+  assert.deepEqual(filterDaysByMissingOnly(null), []);
+
+  console.log('✔ 10. filterDaysByMissingOnly tests PASSED!');
+}
+
+// ==========================================
+// 11. resolveCrossIndicatorSummary helper tests
+// ==========================================
+{
+  const mockIndicators = [
+    {
+      code: 'F1.1',
+      displayName: 'Sản lượng F1.1',
+      badgeClass: 'badge-f11',
+      supportedLanes: ['HUE', 'TCT'],
+      missingCount: 3,
+      lanesBreakdown: {
+        HUE: { missingCount: 1, reviewReqCount: 0, unresolvedCount: 1, isFullyComplete: false },
+        TCT: { missingCount: 2, reviewReqCount: 0, unresolvedCount: 2, isFullyComplete: false }
+      }
+    },
+    {
+      code: 'F1.3',
+      displayName: 'Chất lượng F1.3',
+      badgeClass: 'badge-f13',
+      supportedLanes: ['HUE', 'TCT'],
+      missingCount: 0,
+      lanesBreakdown: {
+        HUE: { missingCount: 0, reviewReqCount: 0, unresolvedCount: 0, isFullyComplete: true },
+        TCT: { missingCount: 0, reviewReqCount: 0, unresolvedCount: 0, isFullyComplete: true }
+      }
+    },
+    {
+      code: 'F4.1',
+      displayName: 'Thời gian chuyển phát F4.1',
+      badgeClass: 'badge-f41',
+      supportedLanes: ['TCT'],
+      missingCount: 5,
+      lanesBreakdown: {
+        TCT: { missingCount: 5, reviewReqCount: 1, unresolvedCount: 6, isFullyComplete: false }
+      }
+    }
+  ];
+
+  const summary = resolveCrossIndicatorSummary(mockIndicators);
+  assert.equal(summary.length, 3);
+
+  // F1.1 checks
+  assert.equal(summary[0].code, 'F1.1');
+  assert.equal(summary[0].totalMissing, 3);
+  assert.equal(summary[0].hasUnresolved, true);
+  assert.equal(summary[0].hue.missingCount, 1);
+  assert.equal(summary[0].tct.missingCount, 2);
+
+  // F1.3 checks (100% complete)
+  assert.equal(summary[1].code, 'F1.3');
+  assert.equal(summary[1].totalMissing, 0);
+  assert.equal(summary[1].hasUnresolved, false);
+  assert.equal(summary[1].hue.isFullyComplete, true);
+  assert.equal(summary[1].tct.isFullyComplete, true);
+
+  // F4.1 checks (Single TCT lane)
+  assert.equal(summary[2].code, 'F4.1');
+  assert.equal(summary[2].supportedLanes.length, 1);
+  assert.equal(summary[2].tct.missingCount, 5);
+  assert.equal(summary[2].tct.reviewReqCount, 1);
+
+  // Empty input
+  assert.deepEqual(resolveCrossIndicatorSummary([]), []);
+  assert.deepEqual(resolveCrossIndicatorSummary(null), []);
+
+  console.log('✔ 11. resolveCrossIndicatorSummary tests PASSED!');
 }
 
 console.log('ALL UI-IMPORT-DAYVIEW-01 day-view helpers tests PASSED SUCCESSFULLY!');

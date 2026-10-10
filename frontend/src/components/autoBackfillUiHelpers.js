@@ -724,5 +724,50 @@ export function findNewestUnfinishedMonthKey(groups = []) {
   return `${sorted[0].indicator}::${sorted[0].yearMonth}`;
 }
 
+export function filterDaysByMissingOnly(dayGroups = []) {
+  if (!Array.isArray(dayGroups)) return [];
+  return dayGroups.filter((day) => {
+    const lanes = Object.keys(day.lanes || {});
+    return lanes.some((l) => {
+      const item = day.lanes[l];
+      const norm = normalizePoStatus(item?.status);
+      return norm === 'INCOMPLETE' || norm === 'DATA_ERROR';
+    });
+  });
+}
+
+export function resolveCrossIndicatorSummary(indicatorsList = []) {
+  if (!Array.isArray(indicatorsList)) return [];
+  return indicatorsList.map((ind) => {
+    const supportedLanes = ind.supportedLanes || ['HUE', 'TCT'];
+    const hueBreakdown = ind.lanesBreakdown?.HUE || { missingCount: 0, reviewReqCount: 0, unresolvedCount: 0, isFullyComplete: false };
+    const tctBreakdown = ind.lanesBreakdown?.TCT || { missingCount: 0, reviewReqCount: 0, unresolvedCount: 0, isFullyComplete: false };
+    const totalMissing = ind.missingCount || 0;
+    const hasUnresolved = (hueBreakdown.unresolvedCount || 0) > 0 || (tctBreakdown.unresolvedCount || 0) > 0 || totalMissing > 0;
+
+    return {
+      code: ind.code,
+      displayName: ind.displayName || ind.code,
+      badgeClass: ind.badgeClass || '',
+      supportedLanes,
+      totalMissing,
+      hasUnresolved,
+      hue: {
+        missingCount: hueBreakdown.missingCount || 0,
+        reviewReqCount: hueBreakdown.reviewReqCount || 0,
+        unresolvedCount: hueBreakdown.unresolvedCount || 0,
+        isFullyComplete: Boolean(hueBreakdown.isFullyComplete),
+      },
+      tct: {
+        missingCount: tctBreakdown.missingCount || 0,
+        reviewReqCount: tctBreakdown.reviewReqCount || 0,
+        unresolvedCount: tctBreakdown.unresolvedCount || 0,
+        isFullyComplete: Boolean(tctBreakdown.isFullyComplete),
+      },
+    };
+  });
+}
+
+
 
 
