@@ -58,3 +58,16 @@ test('the block wires the headers, the column-order buttons and the indicator th
   assert.doesNotMatch(source, /#003E7E/); // no fixed dark blue: the colour comes from the indicator theme
   assert.match(source, /indicatorTheme/);
 });
+
+test('the picture of the table takes only the top N rows in the chosen order, without the controls (PO 2026-10-10)', () => {
+  const source = fs.readFileSync(new URL('./components/F11PairTableBlock.jsx', import.meta.url), 'utf8');
+  assert.match(source, /captureTop/);
+  assert.match(source, /filteredAndSortedRows\.slice\(0, captureTop\)/);
+  assert.match(source, /\{visibleRows\.map\(\(row\)/);
+  assert.match(source, /beforeCapture=\{async \(\) => \{ setCapturing\(true\); await waitForNextPaint\(\); \}\}/);
+  assert.match(source, /afterCapture=\{\(\) => setCapturing\(false\)\}/);
+  assert.match(source, /Ảnh chụp: top \$\{visibleRows\.length\} \/ \$\{filteredAndSortedRows\.length\}/);
+  // controls, period buttons, the SL/TL mini buttons and the hint stay out of the picture
+  assert.ok((source.match(/data-no-capture="true"/g) || []).length >= 6);
+  assert.match(source, /\[15, 20, 25, 30\]/);
+});

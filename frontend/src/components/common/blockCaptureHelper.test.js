@@ -102,9 +102,15 @@ test('copy is requested inside the click, before any await (clipboard needs the 
     .split('\n')
     .filter((line) => !line.trim().startsWith('//'))
     .join('\n');
-  const firstAwait = body.indexOf('await ');
-  const startRender = body.indexOf('const blobPromise = captureElementToBlob');
-  assert.ok(startRender > 0 && startRender < firstAwait, 'rendering starts before the first await');
+  // rendering is started by an async function called right away (it may wait for the block to shrink itself
+  // first), and nothing is awaited between that call and the clipboard request, so the click is still "fresh"
+  const startRender = body.indexOf('const blobPromise = (async () => {');
+  const endRender = body.indexOf('})();', startRender);
+  const clipboardCall = body.indexOf('? await copyBlobToClipboard(blobPromise)');
+  assert.ok(startRender > 0 && endRender > startRender && clipboardCall > endRender, 'render starts, then the clipboard is asked');
+  assert.doesNotMatch(body.slice(endRender, clipboardCall), /await /, 'no await between starting the render and the clipboard request');
+  assert.match(body, /beforeCapture/);
+  assert.match(body, /afterCapture/);
   assert.match(body, /copyBlobToClipboard\(blobPromise\)/);
   // where the page may not write to the clipboard a preview is returned (right click > Copy image);
   // a copy request never saves a file by itself

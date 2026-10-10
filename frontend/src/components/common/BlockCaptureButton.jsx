@@ -22,6 +22,8 @@ export default function BlockCaptureButton({
   blockTitle = '',
   dateOrPeriod = '',
   className = '',
+  beforeCapture = null,
+  afterCapture = null,
 }) {
   const indicator = useIndicator();
   const indicatorLabel = indicator?.moduleLabel || 'F1.3';
@@ -65,6 +67,8 @@ export default function BlockCaptureButton({
         indicator: indicatorLabel,
         dateOrPeriod,
         action,
+        beforeCapture,
+        afterCapture,
       });
 
       if (result.action === 'preview') {

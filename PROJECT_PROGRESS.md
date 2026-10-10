@@ -2261,3 +2261,7 @@ The coverage/scan error handlers of the Data Import Center called getApiErrorDet
 ## 2026-10-10 - REPORT BLOCK STANDARD: CLICK-TO-ORDER, COLOUR FAMILIES, STANDING STANDARD
 
 PO decisions: column titles of report tables are order buttons in every indicator; F1.1 orders accepting offices and delivering units by volume or rate; F1.3 blue / F4.1 orange / F1.1 green light colour families (no purple, no dark); 12-month view as F1.3 (exists; F4.1 data starts in April, F1.1 in October, so earlier months wait for the backfill); everything becomes a standing standard. Delivered: SortableTh + tableSort on the operations table, BCVH ranking table, BCVH x month heatmap and the F1.1 table (rows and columns); INDICATOR_THEMES applied to charts, legends, header bands, buttons and a page accent bar/chip; docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md, a CLAUDE.md pointer and reportBlockStandard.test.js. Frontend tests, build and lint green. Pending: PO UI check. Manifest Section 12: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.
+
+## 2026-10-11 - F1.1 PAIR TABLE PICTURE: TOP N ROWS
+
+PO: the picture of the long accepting-office table was too tall and tiny. The camera now takes the top N rows (15/20/25/30/all, default 25) in the order chosen, without the controls, with a "top N / total" caption; screen restored after. Checked with 67 offices in a real browser: readable 1368x1760 picture. Standard updated (long tables). Frontend 646/646. Manifest Section 13: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.

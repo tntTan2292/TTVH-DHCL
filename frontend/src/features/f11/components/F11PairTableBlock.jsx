@@ -11,6 +11,7 @@ import { buildMonthlyHeatmapLegend, indicatorTheme } from '../../indicator/indic
 import { nextSortState, sortRowsBy } from '../../../components/common/tableSort.js';
 import { describePairSort, orderPairColumns, pairRowValue } from './f11PairTableSort.js';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
+import { waitForNextPaint } from '../../../components/common/blockCaptureHelper.js';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 
 function MiniSort({ field, label, sort, onSort, activeClassName }) {
@@ -45,6 +46,10 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
       : { metric, direction: 'desc' }
   ));
   const [highlightedCol, setHighlightedCol] = useState(null);
+  // The picture of this table (PO 2026-10-10): 60+ offices make a tall, tiny image, so the camera takes only the
+  // top N rows in the order the user chose (default 25), without the controls, plus the total row.
+  const [captureTop, setCaptureTop] = useState(25); // number | 'all'
+  const [capturing, setCapturing] = useState(false);
 
   const [state, setState] = useState({
     status: 'loading',
@@ -119,6 +124,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
     return result;
   }, [rows, searchTerm, sort]);
 
+  const visibleRows = capturing && captureTop !== 'all' ? filteredAndSortedRows.slice(0, captureTop) : filteredAndSortedRows;
   const orderedColumns = useMemo(() => orderPairColumns(columns, totalRow, colOrder), [columns, totalRow, colOrder]);
 
   const toggleColumnHighlight = (colCode) => {
@@ -157,7 +163,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Period switcher */}
-          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-300 bg-white p-1 shadow-2xs">
+          <div data-no-capture="true" className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-300 bg-white p-1 shadow-2xs">
             <button
               type="button"
               onClick={() => setPeriod('day')}
@@ -193,17 +199,35 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
             </button>
           </div>
 
-          <BlockCaptureButton
-            targetRef={sectionRef}
-            blockTitle="Bưu cục chấp nhận × BCVH phát"
-            dateOrPeriod={effectiveAnchor}
-          />
+          <div data-no-capture="true" className="flex items-center gap-1.5">
+            <label className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
+              <span>Ảnh chụp lấy</span>
+              <select
+                value={captureTop}
+                onChange={(event) => setCaptureTop(event.target.value === 'all' ? 'all' : Number(event.target.value))}
+                title="Số bưu cục chấp nhận đầu bảng (theo thứ tự đang sắp) đưa vào ảnh chụp"
+                className="rounded-lg border border-slate-300 bg-white px-1.5 py-1 text-[11px] font-semibold text-slate-700 shadow-2xs focus:border-slate-500 focus:outline-none cursor-pointer"
+              >
+                {[15, 20, 25, 30].map((count) => (
+                  <option key={count} value={count}>Top {count}</option>
+                ))}
+                <option value="all">Tất cả</option>
+              </select>
+            </label>
+            <BlockCaptureButton
+              targetRef={sectionRef}
+              blockTitle="Bưu cục chấp nhận × BCVH phát"
+              dateOrPeriod={effectiveAnchor}
+              beforeCapture={async () => { setCapturing(true); await waitForNextPaint(); }}
+              afterCapture={() => setCapturing(false)}
+            />
+          </div>
         </div>
       </div>
 
       {/* Controls Bar */}
       <div className="border-b border-slate-200/70 bg-white px-4 py-2.5">
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div data-no-capture="true" className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 items-center gap-2 max-w-md">
             <div className="relative flex-1">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -266,7 +290,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
             <span className="text-slate-400 font-bold">—</span>
             <span>Không có sản lượng</span>
           </div>
-          <span className="text-slate-400 italic ml-auto">Bấm tiêu đề BCVH để làm nổi bật cột</span>
+          <span data-no-capture="true" className="text-slate-400 italic ml-auto">Bấm tiêu đề BCVH để làm nổi bật cột</span>
         </div>
       </div>
 
@@ -319,7 +343,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                           {col.ma_bcvh !== 'OTHER' ? (
                             <div className="text-[10px] font-normal opacity-75">{col.ma_bcvh}</div>
                           ) : null}
-                          <div className="mt-1 flex items-center justify-center gap-1">
+                          <div data-no-capture="true" className="mt-1 flex items-center justify-center gap-1">
                             <MiniSort field={`${col.ma_bcvh}:volume`} label="SL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
                             <MiniSort field={`${col.ma_bcvh}:rate`} label="TL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
                           </div>
@@ -331,7 +355,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       className="px-3.5 py-3 text-center border-b border-slate-200 min-w-[110px] bg-slate-200/80 font-black text-slate-900"
                     >
                       <div>Tổng cộng</div>
-                      <div className="mt-1 flex items-center justify-center gap-1">
+                      <div data-no-capture="true" className="mt-1 flex items-center justify-center gap-1">
                         <MiniSort field="total:volume" label="SL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
                         <MiniSort field="total:rate" label="TL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
                       </div>
@@ -339,7 +363,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200/80 bg-white">
-                  {filteredAndSortedRows.map((row) => (
+                  {visibleRows.map((row) => (
                     <tr
                       key={row.ma_chap_nhan || row.ten_chap_nhan}
                       className="hover:bg-slate-50/80 transition-colors"
@@ -479,7 +503,9 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
 
             <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-3.5 py-2 text-[11px] text-slate-500 border-t border-slate-200">
               <span>
-                Hiển thị {filteredAndSortedRows.length} / {totalRowCount} bưu cục chấp nhận có dữ liệu phát sinh.
+                {capturing && captureTop !== 'all' && filteredAndSortedRows.length > visibleRows.length
+                  ? `Ảnh chụp: top ${visibleRows.length} / ${filteredAndSortedRows.length} bưu cục chấp nhận, sắp theo ${describePairSort(sort, columns)}.`
+                  : `Hiển thị ${filteredAndSortedRows.length} / ${totalRowCount} bưu cục chấp nhận có dữ liệu phát sinh.`}
               </span>
               <span>
                 Cột &quot;Khác&quot; bao gồm các mã bưu cục phát ngoài 6 BCVH chính để khớp 100% với sản lượng toàn trình nội tỉnh.

@@ -192,18 +192,38 @@ export async function captureElementToBlob(element, { captionInfo } = {}) {
 /**
  * High-level capture function for UI triggers.
  */
+// Resolves after the browser has painted the next frame (so a state change made just before a capture is on
+// screen), with a short timeout for hidden tabs where animation frames pause.
+export function waitForNextPaint(timeoutMs = 250) {
+  return new Promise((resolve) => {
+    const done = () => resolve();
+    const timer = setTimeout(done, timeoutMs);
+    if (typeof requestAnimationFrame !== 'function') return;
+    requestAnimationFrame(() => requestAnimationFrame(() => { clearTimeout(timer); done(); }));
+  });
+}
+
 export async function executeBlockCapture({
   element,
   blockTitle = '',
   indicator = 'F1.3',
   dateOrPeriod = '',
   action = 'copy', // 'copy' (clipboard, or a preview to copy by hand) | 'save'
+  beforeCapture = null, // async: lets a block shrink itself for the picture (e.g. only the top rows of a long table)
+  afterCapture = null, // restores the block, always called
 }) {
   const captionInfo = buildCaptureCaption({ indicator, blockTitle, dateOrPeriod });
   const filename = buildCaptureFileName({ indicator, blockTitle, dateOrPeriod });
   // Start rendering right away (no await before this line): the clipboard call below must still happen
   // inside the click that started the capture, or the browser refuses it.
-  const blobPromise = captureElementToBlob(element, { captionInfo });
+  const blobPromise = (async () => {
+    try {
+      if (beforeCapture) await beforeCapture();
+      return await captureElementToBlob(element, { captionInfo });
+    } finally {
+      if (afterCapture) afterCapture();
+    }
+  })();
 
   if (action === 'copy') {
     const clipboardCopied = canUseAsyncImageClipboard() ? await copyBlobToClipboard(blobPromise) : false;
