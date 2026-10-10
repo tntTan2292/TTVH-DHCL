@@ -30,3 +30,8 @@ assert.match(
 );
 
 console.log('ALL Wave 3 UI checks PASSED!');
+
+// getApiErrorDetail was called by the coverage/scan error handlers but never defined, so a failing call threw
+// instead of showing its message.
+assert.match(pageSource, /const getApiErrorDetail = \(error\) =>/, 'getApiErrorDetail must be defined');
+assert.ok((pageSource.match(/getApiErrorDetail\(/g) || []).length >= 4, 'its four uses in the error handlers');

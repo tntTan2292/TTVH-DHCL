@@ -70,6 +70,12 @@ const getApiErrorCode = (error, fallback = 'API_ERROR') => (
   (error?.response?.status ? `HTTP_${error.response.status}` : fallback)
 );
 
+// Optional readable detail appended to a coded error message (empty when the server sent none).
+const getApiErrorDetail = (error) => {
+  const message = error?.response?.data?.error?.message;
+  return message ? `. Chi tiết: ${message}` : '';
+};
+
 const renderLifecycleTimeline = (status, lifecycleState) => {
   if (!lifecycleState) return null;
   const steps = [

@@ -2253,3 +2253,7 @@ Product Owner checked the redesigned Data Import Center (Bù dữ liệu tự đ
 ## 2026-10-10 - F1.1 CHART TARGET 95 % (+ run-time defect fixed)
 
 Chart target line is now a setting of the indicator: F1.1 95 %, F1.3/F4.1 90 % (PO decision). All live charts, legends, below-target markers and risk text read it; helpers default to 90 so F1.3/F4.1 are unchanged. A static undefined-identifier check also found that the camera button of the weekly/monthly comparison block referenced undefined variables (would have broken the BCVH Ranking page of every indicator): fixed with a regression test. Frontend 627/627, build ok. Reported, not touched: getApiErrorDetail (DataImportCenter) and setLoadingMeta (PostmanCatalogPage). Manifest Section 11: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.
+
+## 2026-10-10 - IMPORT CENTER: MISSING ERROR-DETAIL HELPER DEFINED
+
+The coverage/scan error handlers of the Data Import Center called getApiErrorDetail, which was never defined (since Wave 3), so a failing coverage or scan call threw a ReferenceError instead of showing its message. Defined (appends the server message when there is one, empty otherwise) with a regression check; frontend 628/628, build ok. Left for its owner: setLoadingMeta in networkMap/postmanCatalog/PostmanCatalogPage.jsx (other session).
