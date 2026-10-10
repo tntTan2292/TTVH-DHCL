@@ -12,6 +12,7 @@ Status: `READY FOR ANTIGRAVITY (2026-10-10)`. Screens for F1.1 (toàn trình n�
 - [6. API Contract](#6-api-contract)
 - [7. Exclusions](#7-exclusions)
 - [8. Validation and PO Check](#8-validation-and-po-check)
+- [9. Delta of 2026-10-10 (PO decisions after the first review)](#9-delta-of-2026-10-10-po-decisions-after-the-first-review)
 
 ## 1. Ticket Information
 
@@ -40,7 +41,7 @@ Leaders must see the F1.1 picture in one screen: Huế overall, each of the 6 BC
 - KPI cards incl. **"Vị thứ toàn quốc x/34"** and the day-over-day / week-over-week comparisons; daily trend; BCVH ranking table; weekly (Thursday–Wednesday) and monthly comparison and trend charts; day/week/month selection exactly as the shared Dashboard does.
 - Wording: module name F1.1; no F1.3-specific text (KPI 2026 wording of F1.3, late cash, route text). A row without an evaluation is counted as "Không đạt" in every figure; where space allows show a small note with the number of "chưa có đánh giá" (`total_blank` of the summary).
 
-### 4.2 New block A — "Tỉnh/thành phố" (shown only for F1.1, behind a new feature flag, e.g. `features.provinceRanking`)
+### 4.2 ~~New block A — "Tỉnh/thành phố"~~ — SUPERSEDED by Section 9, item C (block removed from F1.1)
 
 - Data: `GET /f11/dashboard/national-ranking` for the selected range. 34 rows: rank, province name (strip the "Bưu điện Tỉnh/Thành phố" prefix for display), rate (coloured with the F1.3 bands), volume, "Không đạt" count, rank movement against the previous day with data (arrow + number; none when `movement` is null).
 - **Huế (`is_hue`) is always visible and highlighted** (pinned/sticky or clearly marked even when scrolled), because leaders look for it first. Default view: Top 5, Huế and its two neighbours, Bottom 5; one control expands to all 34. Sortable by rank/rate/volume. Caption must state the rule: the rate is the published national KPI-2026 rate by delivering province (field `metric_label`); it never replaces the Huế figure in the cards.
@@ -82,3 +83,25 @@ No backend, schema or import change; no Evidence/violation-stage view; no route 
 - Technical: frontend lint, build and tests green; add tests for `F11_INDICATOR` (colour floors, endpoints, features), the two wrappers, navigation, and the two new blocks' data mapping (empty / null cell / Huế flag / unavailable message). F1.3 and F4.1 suites unchanged.
 - No browser, screenshot, dev server or login by the executor; the PO checks the screens.
 - Stop at `READY FOR PO CHECK` with a short PO checklist: Huế in the province table, BCVH colours, pair-table day/week/month, empty cells, narrow screen.
+
+## 9. Delta of 2026-10-10 (PO decisions after the first review)
+
+Authority: PO in chat 2026-10-10. Items A-E are corrections/extensions of the delivered screens; item F is a new shared feature. Applies to **F1.3, F1.1 and F4.1** unless stated.
+
+**A. Unevaluated parcels are simply "Không đạt".** Remove the "chưa có đánh giá" note added to the "Bưu gửi cần xử lý" card (revert the `total_blank` change in `dashboardKpiCards.js` and its test). No separate note about unevaluated parcels anywhere on the dashboards.
+
+**B. The daily operations table follows the date filter (all three indicators).** `components/f13/BcvhOperationTable.jsx` currently calls `/f13/ranking/bcvh/overview` with no parameters, so it always shows the latest day ("SỐ LIỆU GẦN NHẤT") and ignores the Dashboard date filter. Send the filter's end date as `anchor_date` (the API already accepts it for F1.3, F4.1 and F1.1; the server uses the latest day with data on or before it, never later than yesterday; no backend change) and refetch when it changes. The title line must say which day the table shows ("ĐẾN NGÀY dd/mm/yyyy"); drop the fixed words "SỐ LIỆU GẦN NHẤT" and, when the chosen day has no data and an earlier day is shown, say so in the title. National rank in the day / month-to-date / month headers follows the same anchor (it is already part of the same response). With the default filter (latest day) the table must look exactly as before. The BCVH Ranking page already follows its date and is not part of this item.
+
+**C. Remove the 34-province table from F1.1.** Delete `F11ProvinceRankingBlock`, its data helper, the `provinceRanking` feature flag, the mount in `DashboardPage.jsx` and their tests. Keep the server endpoint `/api/f11/dashboard/national-ranking` (it will feed the Home page later; the PO said it is a good table and will be **placed on the Home page later**, not now). "Vị thứ toàn quốc x/34" stays exactly where F1.3/F4.1 have it: KPI card and the day / week / month headers.
+
+**D. Pair-table corrections.** Use the shared colour catalogue (`f13HeatmapBandCatalog`: `classifyF13HeatmapRate(rate, indicator.heatmapBands)`, `F13_HEATMAP_TONE_CLASS`, legend from `buildMonthlyHeatmapLegend(indicator)`) instead of the hand-written thresholds and colour classes in `f11PairTableData.js` and the block legend. Remove the unused imports and the unstable `useMemo` dependency warnings in the F1.1 files, and the unused `F11Quality` import in `App.jsx`.
+
+**E. Camera button — capture a whole block as an image (all three indicators, Dashboard and BCVH Ranking pages).**
+- A small reusable component (e.g. `components/common/BlockCaptureButton.jsx` + a capture helper) with a camera icon in the header corner of every report block: KPI summary, operations table, trend and combo charts, weekly/monthly comparison and trend blocks, BCVH ranking tables, the pair table. One click captures the **entire** block, including parts hidden by scrolling (tables with a maximum height or horizontal scroll, sticky headers, the table "fit" scaling), on a white background at 2× resolution.
+- The image carries a caption line: block title, indicator (F1.1/F1.3/F4.1), the date or period shown, and the generation time. The camera button itself and other controls are not in the image.
+- Two actions behind one click or a tiny menu: **copy to clipboard** (to paste straight into Zalo/Viber/mail) and **save as PNG** with a readable file name (e.g. `F1.1_Bang-dieu-hanh_2026-10-07.png`). If the browser blocks image clipboard (plain-http addresses), fall back to saving the PNG and say so in a short message. Visible busy state while capturing and a clear error message if it fails.
+- Everything happens in the browser: no upload, no server call, no new API.
+- New dependency approved by the PO on 2026-10-10: `html-to-image` (MIT). Add it to `frontend/package.json` and the lock file with an exact version; no other new package.
+- Tests: the capture helper (file name, caption, fallback decision) and that each block exposes the button; F1.3/F4.1 existing suites stay green.
+
+Validation, exclusions and PO check as in Section 8 (no browser/screenshot/dev server/login by the executor; stop at `READY FOR PO CHECK`; PO checklist must include: date filter changes the operations table, no 34-province table in F1.1, camera on a long table and on a chart, clipboard paste and PNG save).
