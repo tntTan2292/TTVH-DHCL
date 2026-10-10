@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
+import BlockCaptureButton from '../../../components/common/BlockCaptureButton';
 import {
   Bar,
   CartesianGrid,
@@ -437,34 +438,44 @@ export default function IntegratedTrendRiskWorkspace({
   );
   const selectedRangeRankLabel = maBcvh === 'all' ? formatSelectedRangeRank(kpiData?.national_rank) : null;
 
+  const cardRef = useRef(null);
+
   const action = (
-    <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/80" role="tablist" aria-label="Chọn chế độ xu hướng">
-      {TREND_MODES.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          role="tab"
-          aria-selected={mode === item.id}
-          onClick={() => onModeChange?.(item.id)}
-          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 motion-reduce:transition-none ${
-            mode === item.id
-              ? 'bg-[#003E7E] text-white font-bold shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
-          }`}
-        >
-          {item.label}
-        </button>
-      ))}
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/80" role="tablist" aria-label="Chọn chế độ xu hướng">
+        {TREND_MODES.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={mode === item.id}
+            onClick={() => onModeChange?.(item.id)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 motion-reduce:transition-none ${
+              mode === item.id
+                ? 'bg-[#003E7E] text-white font-bold shadow-2xs'
+                : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <BlockCaptureButton
+        targetRef={cardRef}
+        blockTitle="Xu hướng điều hành tổng hợp"
+        dateOrPeriod={fromDate === toDate ? toDate : `${fromDate} đến ${toDate}`}
+      />
     </div>
   );
 
   return (
-    <CardContainer
-      title="Xu hướng điều hành tổng hợp"
-      subtitle="Một vùng xu hướng chính cho sản lượng, tỷ lệ đạt, mục tiêu và ngoại lệ hiện tại."
-      action={action}
-      className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none"
-    >
+    <div ref={cardRef}>
+      <CardContainer
+        title="Xu hướng điều hành tổng hợp"
+        subtitle="Một vùng xu hướng chính cho sản lượng, tỷ lệ đạt, mục tiêu và ngoại lệ hiện tại."
+        action={action}
+        className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none"
+      >
       {loading ? (
         <LoadingState label="Đang tải dữ liệu xu hướng điều hành..." className="min-h-[360px]" />
       ) : error ? (
@@ -493,5 +504,6 @@ export default function IntegratedTrendRiskWorkspace({
           </div>
       )}
     </CardContainer>
+    </div>
   );
 }

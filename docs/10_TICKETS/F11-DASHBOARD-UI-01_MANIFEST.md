@@ -105,3 +105,11 @@ Authority: PO in chat 2026-10-10. Items A-E are corrections/extensions of the de
 - Tests: the capture helper (file name, caption, fallback decision) and that each block exposes the button; F1.3/F4.1 existing suites stay green.
 
 Validation, exclusions and PO check as in Section 8 (no browser/screenshot/dev server/login by the executor; stop at `READY FOR PO CHECK`; PO checklist must include: date filter changes the operations table, no 34-province table in F1.1, camera on a long table and on a chart, clipboard paste and PNG save).
+
+## 10. Delivery and review (2026-10-10)
+
+Status: `READY FOR PO CHECK` (Antigravity delivered; reviewed by Claude Code, a different executor). Delivered: F1.1 Dashboard and BCVH Ranking pages, pair table (shared colour catalogue), operations table following the date filter for F1.3/F1.1/F4.1, province table removed from F1.1, blank note removed, camera button (`BlockCaptureButton` + `blockCaptureHelper`, `html-to-image` 1.11.13) on the dashboard and ranking blocks.
+
+Review findings fixed by the reviewer: (1) **blocking** — the dashboard trend request used `buildTrendlineRequestParams` but its import had been deleted, which would have broken the trend chart of every indicator at run time (the build and lint do not catch it); import restored. (2) the legacy test that pinned the operations table to the latest day was updated to the PO's new rule. (3) a deleted code comment restored. Frontend 615/615, build and lint clean for the new code.
+
+Open points for the PO check / a short follow-up: the capture helper sizes the image from the visible width of the block, so a very wide table on a narrow window may lose its right edge (needs a look in the browser); the caption is built with `innerHTML` from app-generated text (low risk, to be switched to text nodes).

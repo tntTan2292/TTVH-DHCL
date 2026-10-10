@@ -2217,3 +2217,7 @@ F1.1 set ACTIVE with both lanes AUTOMATED (verified adapters registered before t
 ## 2026-10-10 - F11-DASHBOARD-UI-01 READY FOR ANTIGRAVITY
 
 Backend completed for the screens (/api/f11 dashboard meta and the 34-province national ranking with Huế flagged and movement; 2 tests, real-DB smoke Huế 4th at 90,7 %). UI manifest written (F1.1 Dashboard and BCVH Ranking following F4.1 with F1.3 colours, plus province/city block and accepting-office x BCVH block, day/week/month). Next: Antigravity builds the screens, Opus review, PO UI check. Manifest: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.
+
+## 2026-10-10 - F11-DASHBOARD-UI-01 DELIVERED, REVIEWED, READY FOR PO CHECK
+
+Antigravity delivered the F1.1 Dashboard and BCVH Ranking screens, the accepting-office x BCVH table, the date-filtered operations table (all three indicators), the camera capture button and removed the 34-province table from F1.1. Independent review by Claude Code found and fixed one blocking regression (deleted import of buildTrendlineRequestParams would have broken the trend chart of every indicator). Frontend 615/615, build ok. Pending: PO UI check; follow-up on wide-table capture. Manifest Section 10: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.

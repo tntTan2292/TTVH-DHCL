@@ -16,6 +16,7 @@ import {
 import { indicatorLabel } from '../../indicator/indicatorConfig.js';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
+import BlockCaptureButton from '../../../components/common/BlockCaptureButton';
 
 const STORAGE_KEY = 'qis.bcvhRankingWave2.columns.v2';
 
@@ -477,6 +478,7 @@ export default function UnifiedBcvhAnalysisTable({
   const api = useIndicatorApi();
   const navigate = useNavigate();
   const requestSeqRef = useRef(0);
+  const tableCardRef = useRef(null);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [state, setState] = useState({ status: 'loading', data: null, error: null });
@@ -582,7 +584,7 @@ export default function UnifiedBcvhAnalysisTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
+    <div ref={tableCardRef} className="overflow-hidden rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
       <div className="flex flex-col gap-3 border-b border-[var(--color-surface-200)] bg-[var(--color-surface-50)] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs text-[var(--color-text-muted)]">
@@ -598,6 +600,11 @@ export default function UnifiedBcvhAnalysisTable({
           {indicator.features.routes ? <StatusBadge label="KPI 2026" tone="neutral" /> : null}
           {indicator.features.routes ? <StatusBadge label="Tuyến chất lượng" tone="neutral" /> : null}
           <ColumnOptions columns={columns} setColumns={setColumns} />
+          <BlockCaptureButton
+            targetRef={tableCardRef}
+            blockTitle="Bảng xếp hạng BCVH"
+            dateOrPeriod={toDate}
+          />
         </div>
       </div>
       <div className="overflow-x-auto">

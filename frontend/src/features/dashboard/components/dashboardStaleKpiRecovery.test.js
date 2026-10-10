@@ -65,8 +65,11 @@ test('operation dashboard uses one normalized date range for selected-period wid
   assert.match(trendWindowSource, /buildTrendlineRequestParams/);
   assert.match(trendWindowSource, /mode === '7-days'/);
   assert.match(trendWindowSource, /mode === 'by-bcvh'/);
-  assert.doesNotMatch(compactTableSource, /anchorFromFilter = globalFilter/);
-  assert.match(compactTableSource, /api\.get\('\/f13\/ranking\/bcvh\/overview'\)/);
+  // PO decision 2026-10-10: the operations table follows the dashboard date filter (it used to be pinned
+  // to the latest day): the filter's end date is sent as anchor_date and the table refetches on change.
+  assert.match(compactTableSource, /anchorDate \|\| globalFilter\?\.dateRange\?\.\[1\]/);
+  assert.match(compactTableSource, /api\.get\('\/f13\/ranking\/bcvh\/overview',\s*\{\s*params\s*\}\)/);
+  assert.match(compactTableSource, /\[api, effectiveAnchor\]/);
   assert.match(actionCenterSource, /params:\s*\{\s*fromDate,\s*toDate\s*\}/);
 });
 

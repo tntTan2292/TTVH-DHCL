@@ -1,6 +1,16 @@
 import { Activity, BarChart2, Database, FileSpreadsheet, Info, MapPin, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
+const F11_GROUP = {
+  title: 'F1.1 Quality Management',
+  name: 'F1.1 Quality Management',
+  icon: <Activity size={18} />,
+  subItems: [
+    { name: 'Operation Dashboard', path: '/f11/dashboard', icon: <Target size={18} /> },
+    { name: 'BCVH Ranking', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
+  ],
+};
+
 const F13_GROUP = {
   title: 'F1.3 Quality Management',
   name: 'F1.3 Quality Management',
@@ -27,7 +37,7 @@ const QUALITY_MANAGEMENT_GROUP = {
   title: 'Quản lý chất lượng',
   icon: <Activity size={20} />,
   subItems: [
-    { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
+    F11_GROUP,
     { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
     F13_GROUP,
     F41_GROUP,

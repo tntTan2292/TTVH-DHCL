@@ -40,9 +40,12 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in s
 
   const [f11, f12, f13, f41] = qualityModule.subItems;
 
-  assert.equal(f11.name, 'F1.1 Quality Management');
-  assert.equal(f11.path, '/f11');
-  assert.deepEqual(toPlain(f11.roles), ['admin']);
+  assert.equal(f11.title, 'F1.1 Quality Management');
+  assert.deepEqual(toPlain(f11.subItems.map((item) => [item.name, item.path])), [
+    ['Operation Dashboard', '/f11/dashboard'],
+    ['BCVH Ranking', '/f11/ranking/bcvh'],
+  ]);
+  assert.equal(f11.roles, undefined);
 
   assert.equal(f12.name, 'F1.2 Quality Management');
   assert.equal(f12.path, '/f12');
@@ -101,7 +104,7 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
 
   // In Module 1, ADMIN sees all 4 items
   assert.equal(adminNav[0].subItems.length, 4);
-  assert.equal(adminNav[0].subItems[0].name, 'F1.1 Quality Management');
+  assert.equal(adminNav[0].subItems[0].title, 'F1.1 Quality Management');
   assert.equal(adminNav[0].subItems[1].name, 'F1.2 Quality Management');
   assert.equal(adminNav[0].subItems[2].title, 'F1.3 Quality Management');
   assert.equal(adminNav[0].subItems[3].title, 'F4.1 Quality Management');
@@ -111,10 +114,11 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
   assert.match(viewerNav[0].title, /quản lý chất lượng/i);
   assert.match(viewerNav[1].title, /quản lý mạng lưới/i);
 
-  // In Module 1, viewer sees the two read-only report modules: F1.3 and F4.1 (PO-10)
-  assert.equal(viewerNav[0].subItems.length, 2);
-  assert.equal(viewerNav[0].subItems[0].title, 'F1.3 Quality Management');
-  assert.equal(viewerNav[0].subItems[1].title, 'F4.1 Quality Management');
+  // In Module 1, viewer sees the three read-only report modules: F1.1, F1.3 and F4.1
+  assert.equal(viewerNav[0].subItems.length, 3);
+  assert.equal(viewerNav[0].subItems[0].title, 'F1.1 Quality Management');
+  assert.equal(viewerNav[0].subItems[1].title, 'F1.3 Quality Management');
+  assert.equal(viewerNav[0].subItems[2].title, 'F4.1 Quality Management');
 
   // Module 3 is not present for viewer
   assert.equal(viewerNav.find((m) => /system administration/i.test(m.title)), undefined);
@@ -169,8 +173,8 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
   const qualityItems = menuItems[0].subItems;
   assert.equal(qualityItems.length, 4, 'Quản lý chất lượng in Sidebar.jsx must have 4 items');
 
-  assert.equal(qualityItems[0].name, 'F1.1 Quality Management');
-  assert.equal(qualityItems[0].path, '/f11');
+  assert.equal(qualityItems[0].title, 'F1.1 Quality Management');
+  assert.deepEqual(toPlain(qualityItems[0].subItems.map((item) => item.path)), ['/f11/dashboard', '/f11/ranking/bcvh']);
 
   assert.equal(qualityItems[1].name, 'F1.2 Quality Management');
   assert.equal(qualityItems[1].path, '/f12');

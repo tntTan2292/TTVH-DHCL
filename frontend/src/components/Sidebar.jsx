@@ -6,6 +6,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const location = useLocation();
   const [expandedGroups, setExpandedGroups] = useState({
     'Quản lý chất lượng': true,
+    'F1.1 Quality Management': true,
     'F1.3 Quality Management': true,
     'Quản lý mạng lưới': false,
     'System Administration': false,
@@ -23,7 +24,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       title: 'Quản lý chất lượng',
       icon: <Activity size={20} />,
       subItems: [
-        { name: 'F1.1 Quality Management', path: '/f11', icon: <Activity size={18} /> },
+        {
+          title: 'F1.1 Quality Management',
+          name: 'F1.1 Quality Management',
+          icon: <Activity size={18} />,
+          subItems: [
+            { name: 'Operation Dashboard', path: '/f11/dashboard', icon: <Target size={18} /> },
+            { name: 'BCVH Ranking', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
+          ],
+        },
         { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={18} /> },
         {
           title: 'F1.3 Quality Management',

@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { ErrorState } from '../../components/shared/SharedComponents';
+import BlockCaptureButton from '../../components/common/BlockCaptureButton';
 import { BCVH_COLORS } from './bcvhOverviewData';
 import {
   classifyF13HeatmapRate,
@@ -130,6 +131,7 @@ export default function BcvhWeeklyComparisonBlock() {
 
   const containerRef = useRef(null);
   const tableRef = useRef(null);
+  const captureRef = useRef(null);
   const [fitScale, setFitScale] = useState(1);
   const [scaledHeight, setScaledHeight] = useState(null);
 
@@ -628,9 +630,16 @@ export default function BcvhWeeklyComparisonBlock() {
       ) : null}
 
       {/* Khối Báo cáo (Tiêu đề 2 dòng + Bảng số liệu) liền kề nhau để tối ưu chụp hình */}
-      <div className="bcvh-weekly-report-capture-area pt-1">
+      <div ref={captureRef} className="bcvh-weekly-report-capture-area pt-1">
         {/* Title Header (2 Lines) + Fit Mode Switch */}
         <div className="mb-4 border-b border-slate-200 pb-3 text-center relative">
+          <div className="absolute right-0 top-0">
+            <BlockCaptureButton
+              targetRef={captureRef}
+              blockTitle={isMonth ? 'So sánh chất lượng BCVH theo tháng' : 'So sánh chất lượng BCVH theo tuần'}
+              dateOrPeriod={isMonth ? selectedMonth : selectedWeek}
+            />
+          </div>
           <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug">
             {titleLine1}
           </h2>

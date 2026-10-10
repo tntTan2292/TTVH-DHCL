@@ -13,6 +13,7 @@ import {
 import { indicatorLabel } from '../../features/indicator/indicatorConfig.js';
 import { useIndicator } from '../../features/indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../../features/indicator/useIndicatorApi.js';
+import BlockCaptureButton from '../common/BlockCaptureButton';
 
 function renderDeltaBadge(deltaValue) {
   const { display, toneClass } = formatDeltaIndicator(deltaValue);
@@ -39,9 +40,10 @@ function renderRateBadgeWithBands(rate, bands) {
   );
 }
 
-export default function BcvhOperationTable() {
+export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
   const indicator = useIndicator();
   const api = useIndicatorApi();
+  const effectiveAnchor = anchorDate || globalFilter?.dateRange?.[1] || globalFilter?.anchorDate || null;
   // Same call sites as always, but the colour bands follow the page's indicator (F4.1: 80/70/60).
   const renderRateBadge = (rate) => renderRateBadgeWithBands(rate, indicator.heatmapBands);
   const [loading, setLoading] = useState(true);
@@ -52,12 +54,17 @@ export default function BcvhOperationTable() {
   const [prevMonthMode, setPrevMonthMode] = useState('same_period');
   const [showPrevMonth, setShowPrevMonth] = useState(false);
   const tableModel = useMemo(
-    () => (rawData ? processBcvhOperationTableData(rawData, { prevMonthMode, indicator }) : null),
-    [rawData, prevMonthMode, indicator],
+    () => (rawData ? processBcvhOperationTableData(rawData, {
+      prevMonthMode,
+      indicator,
+      requestedAnchorDate: effectiveAnchor,
+    }) : null),
+    [rawData, prevMonthMode, indicator, effectiveAnchor],
   );
   const [fitMode, setFitMode] = useState(true);
   const containerRef = useRef(null);
   const tableRef = useRef(null);
+  const cardRef = useRef(null);
   const [fitScale, setFitScale] = useState(1);
   const [scaledHeight, setScaledHeight] = useState(null);
 
@@ -88,8 +95,8 @@ export default function BcvhOperationTable() {
       try {
         setLoading(true);
         setError(null);
-        // Table anchor is always the latest system-wide fact date ("SỐ LIỆU GẦN NHẤT")
-        const response = await api.get('/f13/ranking/bcvh/overview');
+        const params = effectiveAnchor ? { anchor_date: effectiveAnchor } : {};
+        const response = await api.get('/f13/ranking/bcvh/overview', { params });
         if (!active) return;
 
         if (response.data && response.data.success) {
@@ -110,7 +117,7 @@ export default function BcvhOperationTable() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [api, effectiveAnchor]);
 
   if (loading) {
     return (
@@ -187,9 +194,16 @@ export default function BcvhOperationTable() {
         </div>
       </div>
 
-      <section className="bcvh-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
+      <section ref={cardRef} className="bcvh-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
       {/* Centered Capture-Ready Title (2 Lines) + Mobile View Controls */}
       <div className="mb-4 text-center border-b border-slate-200 pb-3 relative">
+        <div className="absolute right-0 top-0">
+          <BlockCaptureButton
+            targetRef={cardRef}
+            blockTitle="Bảng điều hành BCVH"
+            dateOrPeriod={tableModel?.formattedAnchorDate}
+          />
+        </div>
         <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug whitespace-normal sm:whitespace-nowrap">
           {titleLine1}
         </h2>

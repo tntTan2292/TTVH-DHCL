@@ -63,7 +63,30 @@ export const F41_INDICATOR = Object.freeze({
   features: Object.freeze({ routes: false, lateCash: false, operatingPattern: false, actionCenter: false }),
 });
 
-export const INDICATORS = Object.freeze({ f13: F13_INDICATOR, f41: F41_INDICATOR });
+export const F11_INDICATOR = Object.freeze({
+  id: 'f11',
+  moduleLabel: 'F1.1',
+  apiBase: '/f11',
+  routes: Object.freeze({ dashboard: '/f11/dashboard', ranking: '/f11/ranking/bcvh' }),
+  endpoints: Object.freeze({
+    ...COMMON_ENDPOINTS,
+    kpi: '/dashboard/summary',
+    nationalRanking: '/dashboard/national-ranking',
+    pairTable: '/dashboard/pair-table',
+  }),
+  heatmapFloors: Object.freeze([70, 60, 50]),
+  heatmapBands: buildHeatmapBands([70, 60, 50]),
+  kpiStatusBands: buildKpiStatusBands([70, 60, 50]),
+  features: Object.freeze({
+    routes: false,
+    lateCash: false,
+    operatingPattern: false,
+    actionCenter: false,
+    pairTable: true,
+  }),
+});
+
+export const INDICATORS = Object.freeze({ f11: F11_INDICATOR, f13: F13_INDICATOR, f41: F41_INDICATOR });
 
 // Full API path for a named endpoint of an indicator.
 export function indicatorEndpoint(key, indicator = F13_INDICATOR) {

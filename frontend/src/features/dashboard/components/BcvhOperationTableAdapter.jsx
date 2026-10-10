@@ -10,7 +10,7 @@ export default function BcvhOperationTableAdapter({ fromDate, toDate, interval, 
 
   return (
     <div className="bcvh-operation-table-adapter-wrapper w-full">
-      <BcvhOperationTable globalFilter={globalFilter} />
+      <BcvhOperationTable globalFilter={globalFilter} anchorDate={toDate} />
     </div>
   );
 }

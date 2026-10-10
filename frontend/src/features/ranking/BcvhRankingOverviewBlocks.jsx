@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Route, BarChart3, Clock, ChevronDown } from 'lucide-react';
+import BlockCaptureButton from '../../components/common/BlockCaptureButton';
 import BcvhMonthlyComboTrendChart from './BcvhMonthlyComboTrendChart';
 import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
 import {
@@ -39,6 +40,7 @@ const MONTHLY_HEATMAP_LEGEND = [
 // 2. Monthly Trend Block (Khối 1)
 export function BcvhMonthlyTrendBlock({ data }) {
   const indicator = useIndicator();
+  const cardRef = useRef(null);
   const [unit, setUnit] = useState(MONTHLY_TREND_TOTAL_KEY);
   if (!data) return null;
   const { months, monthlyChartData, monthlyTableRows, nameMap, meta } = data;
@@ -47,7 +49,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
   const unitNames = { ...MONTHLY_TREND_NAMES, ...nameMap };
 
   return (
-    <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
+    <div ref={cardRef} className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b border-[var(--color-surface-200)] pb-3">
         <div>
           <div className="flex items-center gap-2">
@@ -89,6 +91,12 @@ export function BcvhMonthlyTrendBlock({ data }) {
               ))}
             </select>
           </label>
+
+          <BlockCaptureButton
+            targetRef={cardRef}
+            blockTitle="Xu hướng chất lượng theo tháng"
+            dateOrPeriod={anchorDate || 'T01 đến tháng hiện tại'}
+          />
         </div>
       </div>
 

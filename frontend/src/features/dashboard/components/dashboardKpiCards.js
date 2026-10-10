@@ -114,7 +114,9 @@ export function buildUnifiedCommandCards(kpiData = {}, context = {}) {
       question: 'Cần xử lý',
       label: 'Bưu gửi cần xử lý',
       value: model.total && model.failedCount !== null ? formatCount(model.failedCount) : '--',
-      support: model.returned > 0 ? `Kèm ${formatCount(model.returned)} chuyển hoàn` : 'Số bưu gửi không đạt cần xử lý',
+      support: model.returned > 0
+        ? `Kèm ${formatCount(model.returned)} chuyển hoàn`
+        : 'Số bưu gửi không đạt cần xử lý',
       tone: 'danger',
     },
   ];

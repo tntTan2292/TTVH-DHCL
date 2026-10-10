@@ -19,6 +19,7 @@ import {
 import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
 import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboardDateRange';
+import F11PairTableBlock from '../f11/components/F11PairTableBlock.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { indicatorLabel } from '../indicator/indicatorConfig.js';
@@ -369,6 +370,13 @@ export default function DashboardPage() {
               kpiLoading={kpiState.loading}
               kpiError={kpiState.error}
             />
+            ) : null}
+
+            {indicator.features.pairTable ? (
+              <F11PairTableBlock
+                anchorDate={toDate}
+                toDate={toDate}
+              />
             ) : null}
           </>
         ) : null}

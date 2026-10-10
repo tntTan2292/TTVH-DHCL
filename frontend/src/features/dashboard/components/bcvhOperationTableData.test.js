@@ -99,9 +99,13 @@ test('processBcvhOperationTableData: exact 10-column structure and dynamic title
 
   // Title verification
   assert.equal(processed.titleLine1, 'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH');
-  assert.equal(processed.titleLine2, 'ĐẾN NGÀY 14/09/2026 (SỐ LIỆU GẦN NHẤT)');
+  assert.equal(processed.titleLine2, 'ĐẾN NGÀY 14/09/2026');
   assert.equal(processed.formattedAnchorDate, '14/09/2026');
   assert.equal(processed.prevFactDate, '2026-09-13');
+
+  // Title verification with requested anchor date that has no data yet
+  const withLaterRequested = processBcvhOperationTableData(mockData, { requestedAnchorDate: '2026-09-16' });
+  assert.equal(withLaterRequested.titleLine2, 'ĐẾN NGÀY 14/09/2026 (ngày 16/09/2026 chưa có số liệu)');
 
   // Row counts: 1 total row + 6 canonical rows = 7 rows
   assert.equal(processed.allRows.length, 7);
@@ -194,7 +198,7 @@ test('processBcvhOperationTableData: handles missing comparison data and empty s
 
   const processed = processBcvhOperationTableData(emptyData);
   assert.equal(processed.formattedAnchorDate, DASH);
-  assert.equal(processed.titleLine2, `ĐẾN NGÀY ${DASH} (SỐ LIỆU GẦN NHẤT)`);
+  assert.equal(processed.titleLine2, `ĐẾN NGÀY ${DASH}`);
   assert.equal(processed.totalRow.stt, DASH);
   assert.equal(processed.totalRow.mtd_volume, 0);
   assert.equal(processed.totalRow.mtd_rate, null);

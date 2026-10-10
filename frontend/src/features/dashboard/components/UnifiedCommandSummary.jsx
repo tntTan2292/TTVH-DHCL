@@ -1,5 +1,7 @@
+import { useRef } from 'react';
 import { AlertTriangle, Award, Package, Target } from 'lucide-react';
 import { buildExecutiveInsight, buildUnifiedCommandCards } from './dashboardKpiCards';
+import BlockCaptureButton from '../../../components/common/BlockCaptureButton';
 
 const toneClass = {
   success: 'border-emerald-200/90 bg-gradient-to-br from-emerald-50/90 via-white to-emerald-50/30 text-emerald-950 hover:border-emerald-300 shadow-xs hover:shadow-md',
@@ -77,9 +79,10 @@ export default function UnifiedCommandSummary({
     ? `${nationalRank.period_start} đến ${nationalRank.period_end}`
     : nationalRank?.period_end || nationalRank?.period;
   const returnedCount = Number(kpiData?.total_returned ?? kpiData?.total_unknown ?? 0);
+  const sectionRef = useRef(null);
 
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
+    <section ref={sectionRef} className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
       <div className="flex flex-col gap-2 border-b border-slate-200/80 bg-slate-50/80 px-3.5 py-2.5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-base font-bold text-slate-900">Tổng quan điều hành</h2>
@@ -87,11 +90,18 @@ export default function UnifiedCommandSummary({
             {fromDate === toDate ? `Ngày ${toDate}` : `Từ ${fromDate} đến ${toDate}`} · {bcvhLabel}
           </p>
         </div>
-        {nationalRank?.available ? (
-          <span className="rounded-full bg-slate-100 border border-slate-200/80 px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
-            Xếp hạng theo kỳ toàn quốc {nationalRankPeriod}
-          </span>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {nationalRank?.available ? (
+            <span className="rounded-full bg-slate-100 border border-slate-200/80 px-3 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+              Xếp hạng theo kỳ toàn quốc {nationalRankPeriod}
+            </span>
+          ) : null}
+          <BlockCaptureButton
+            targetRef={sectionRef}
+            blockTitle="Tổng quan điều hành"
+            dateOrPeriod={fromDate === toDate ? toDate : `${fromDate} đến ${toDate}`}
+          />
+        </div>
       </div>
 
       <div className="p-3.5">
