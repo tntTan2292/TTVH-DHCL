@@ -96,7 +96,10 @@ const TIMESTAMP_PATTERNS = [
     /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$/, // dd/MM/yyyy HH:mm:ss (portal text)
     /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,3})?$/, // ISO (Ky thuat tinh columns, Date cells)
 ];
-const ELAPSED_PATTERN = /^\d+:\d{1,2}$/; // 'Thoi gian thuc te', hours unbounded
+// 'Thoi gian thuc te', hours unbounded. The portal subtracts off-duty time (weekends...) from the elapsed time, so
+// a parcel accepted before a weekend and delivered after it can carry a NEGATIVE value such as '-4:-14' (seen on
+// 2026-10-03/04, all evaluated 'Dat'). The value is kept exactly as the source gives it, never recomputed.
+const ELAPSED_PATTERN = /^-?\d+:-?\d{1,2}$/;
 
 function formatDate(value) {
     if (Number.isNaN(value.getTime())) return null;
@@ -153,7 +156,7 @@ function validateParsedValues(rows) {
             }
         }
         const elapsed = row.thoi_gian_thuc_te;
-        if (elapsed !== null && !ELAPSED_PATTERN.test(String(elapsed))) { count++; note('Thời gian thực tế', row, elapsed, 'H:MM'); }
+        if (elapsed !== null && !ELAPSED_PATTERN.test(String(elapsed))) { count++; note('Thời gian thực tế', row, elapsed, 'H:MM (may be negative)'); }
         const target = row.thoi_gian_chi_tieu_2026;
         if (target !== null && !Number.isInteger(target)) { count++; note('Thời gian chỉ tiêu 2026', row, target, 'a whole number of hours'); }
     }

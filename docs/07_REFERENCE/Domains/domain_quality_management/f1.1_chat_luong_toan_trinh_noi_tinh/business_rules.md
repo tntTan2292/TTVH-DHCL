@@ -56,3 +56,8 @@ Built after the Dashboard. Violation stages and owners are defined by the PO in 
 ## 12. Open items (not decided)
 
 Tuyến Ranking for F1.1; whether `Đánh giá 2025` is shown as a secondary series; the date window of the TCT download (Q-15); the retired-office mapping for history (Q-9); backfill depth (Q-10); the elapsed-time night-deduction rule (Q-11); daily "Nguyên nhân / Công tác điều hành" notes (Q-12).
+
+## 13. Source quirks seen in real data (2026-10-10)
+
+- `Thời gian thực tế` can be **negative** (`-4:-14`): the portal subtracts off-duty time (weekends) from the elapsed time; such parcels were evaluated "Đạt". The value is stored as given, never recomputed; the evaluation is the source's.
+- The portal's summary counts 1-2 parcels per day more as evaluated/failed than the detail workbook (blank `Đánh giá 2026`, no 2026 ward target). Download reconciliation therefore requires the total and the passed count to match exactly and accepts a gap of up to 2 % of the day's total (at least 5 parcels) in evaluated/failed, reporting it. PO decision 2026-10-10. The dashboard rate is unaffected.

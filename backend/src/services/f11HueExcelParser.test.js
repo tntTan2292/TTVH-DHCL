@@ -272,3 +272,15 @@ test('real file F1.1-2026.10.07.xlsx reproduces the measurement.md baseline', { 
         fs.rmSync(dbPath, { force: true });
     }
 });
+
+test('a negative elapsed time (portal subtracts off-duty time over a weekend) is accepted as given; other malformed values are still refused', () => {
+  const ok = ['-4:-14', '-27:-7', '-0:-5', '16:4', '1169:33'];
+  const row = (value) => makeRow(REQUIRED_HEADERS, { 'Số hiệu bưu gửi': 'A1', 'Thời gian thực tế': value, 'Đánh giá 2026': 'Đạt' });
+  for (const value of ok) {
+    const result = parseF11HueExcel(workbookBuffer(REQUIRED_HEADERS, [row(value)]), 'F1.1-2026.10.04.xlsx');
+    assert.equal(result.parsedData[0].thoi_gian_thuc_te, value, `kept as the source gives it: ${value}`);
+  }
+  for (const bad of ['abc', '4-14', '4:14:00', '--4:5', '4:', ':14', '-4']) {
+    assert.throws(() => parseF11HueExcel(workbookBuffer(REQUIRED_HEADERS, [row(bad)]), 'F1.1-2026.10.04.xlsx'), /unexpected value/, bad);
+  }
+});

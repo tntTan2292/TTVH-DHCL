@@ -9,6 +9,10 @@ version: 1.0.0
 
 # Changelog
 
+## v1.0.4 - 2026-10-10
+
+- First Auto Backfill (01-08/10) exposed two source quirks, now handled: negative `Thời gian thực tế` on weekend-spanning parcels (accepted as given) and a 1-2 parcel gap between the portal summary and the detail in evaluated/failed counts (accepted up to 2 % of the day's total, total and passed exact; PO decision). See `business_rules.md` §13.
+
 ## v1.0.3 - 2026-10-10
 
 - Status `Active`: screens delivered (`F11-DASHBOARD-UI-01`) — Operation Dashboard and BCVH Ranking in the F4.1 pattern with F1.3 colours and Thursday–Wednesday weeks, "Vị thứ toàn quốc x/34" in the KPI card and the day / week / month headers, and the accepting-office × delivering-BCVH table (day / week / month, column "Khác", no rank numbers for accepting offices). Unevaluated parcels count as "Không đạt" everywhere, without a separate note (PO). The 34-province table is not on the F1.1 screens (PO: it goes to the Home page later; the server endpoint is kept). The operations table now follows the Dashboard date filter for F1.3, F4.1 and F1.1, and every report block has a camera button (one click copies the picture; HTTPS on the LAN, `QIS-HTTPS-LAN-01`).

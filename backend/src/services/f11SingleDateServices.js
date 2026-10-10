@@ -37,6 +37,31 @@ function serviceError(code, message, details = null) {
     return error;
 }
 
+// Reconciliation of a workbook against the portal's outer summary (PO decision 2026-10-10): the total and the
+// passed count must match exactly (they carry the dashboard rate); the evaluated / failed counts may differ by up
+// to 2 % of the day's total (at least 5 parcels) because the portal counts a few parcels without a 2026 target
+// time as evaluated while the detail leaves their evaluation blank (1-2 parcels on ~1,800 observed). Any such
+// difference is reported, never silent.
+const RECONCILIATION_TOLERANCE_RATE = 0.02;
+const RECONCILIATION_TOLERANCE_MIN = 5;
+
+function evaluateReconciliation(workbook, portal, keys) {
+    const tolerance = Math.max(RECONCILIATION_TOLERANCE_MIN, Math.ceil((portal.total || 0) * RECONCILIATION_TOLERANCE_RATE));
+    const differences = {};
+    let blocking = false;
+    for (const key of keys) {
+        const delta = Number(workbook[key]) - Number(portal[key]);
+        if (delta === 0) continue;
+        differences[key] = delta;
+        if (key === 'total' || key === 'passed' || Math.abs(delta) > tolerance) blocking = true;
+    }
+    return { ok: !blocking, differences, tolerance, exact: Object.keys(differences).length === 0 };
+}
+
+function describeReconciliation(workbook, portal, outcome) {
+    return `workbook ${JSON.stringify(workbook)} vs portal summary ${JSON.stringify(portal)}, differences ${JSON.stringify(outcome.differences)}, tolerance ${outcome.tolerance}`;
+}
+
 function standardizedFilename(businessDate) {
     return `F1.1-${businessDate.replace(/-/g, '.')}.xlsx`;
 }
@@ -182,10 +207,25 @@ class F11SingleDateService {
             const failed = rows.filter((row) => row.danh_gia_2026 === 'Không đạt').length;
             const workbook = { total: parsed.totalParsed, evaluated, passed, failed };
             const portal = { total: summary.totalVolume, evaluated: summary.evaluatedVolume, passed: summary.passedVolume, failed: summary.failedVolume };
-            if (JSON.stringify(workbook) !== JSON.stringify(portal)) {
-                throw serviceError('F11_HUE_RECONCILIATION_FAILED', 'F1.1 HUE workbook does not reconcile with the verified outer summary.', { workbook, portal });
+            const outcome = evaluateReconciliation(workbook, portal, ['total', 'evaluated', 'passed', 'failed']);
+            if (!outcome.ok) {
+                throw serviceError(
+                    'F11_HUE_RECONCILIATION_FAILED',
+                    `F1.1 HUE workbook does not reconcile with the verified outer summary: ${describeReconciliation(workbook, portal, outcome)}.`,
+                    { workbook, portal, differences: outcome.differences, tolerance: outcome.tolerance },
+                );
             }
-            return { total: parsed.totalParsed, evaluated, passed, failed, rate: parsed.totalParsed ? Number(((passed / parsed.totalParsed) * 100).toFixed(2)) : null };
+            if (!outcome.exact) {
+                this.logger.warn?.(`[F11_HUE_RECONCILIATION] accepted within tolerance: ${describeReconciliation(workbook, portal, outcome)}`);
+            }
+            return {
+                total: parsed.totalParsed,
+                evaluated,
+                passed,
+                failed,
+                rate: parsed.totalParsed ? Number(((passed / parsed.totalParsed) * 100).toFixed(2)) : null,
+                reconciliation: { exact: outcome.exact, differences: outcome.differences, tolerance: outcome.tolerance },
+            };
         }
         const workbook = {
             total: sum(rows, 'sl_co_thong_tin_phat'),
@@ -193,11 +233,24 @@ class F11SingleDateService {
             passed: sum(rows, 'sl_dung_chi_tieu'),
         };
         const portal = { total: summary.totalVolume, evaluated: summary.evaluatedVolume, passed: summary.passedVolume };
-        if (JSON.stringify(workbook) !== JSON.stringify(portal)) {
-            throw serviceError('F11_TCT_RECONCILIATION_FAILED', 'F1.1 TCT workbook does not reconcile with the verified outer summary.', { workbook, portal });
+        const outcome = evaluateReconciliation(workbook, portal, ['total', 'evaluated', 'passed']);
+        if (!outcome.ok) {
+            throw serviceError(
+                'F11_TCT_RECONCILIATION_FAILED',
+                `F1.1 TCT workbook does not reconcile with the verified outer summary: ${describeReconciliation(workbook, portal, outcome)}.`,
+                { workbook, portal, differences: outcome.differences, tolerance: outcome.tolerance },
+            );
+        }
+        if (!outcome.exact) {
+            this.logger.warn?.(`[F11_TCT_RECONCILIATION] accepted within tolerance: ${describeReconciliation(workbook, portal, outcome)}`);
         }
         // `Total` of the export form was 85 = 84 province rows + the grand-total row on the observed day.
-        return { rows: parsed.totalParsed, exportTotal: summary.exportTotal ?? null, ...workbook };
+        return {
+            rows: parsed.totalParsed,
+            exportTotal: summary.exportTotal ?? null,
+            ...workbook,
+            reconciliation: { exact: outcome.exact, differences: outcome.differences, tolerance: outcome.tolerance },
+        };
     }
 
     async waitForStableFile(filePath) {
