@@ -2225,3 +2225,7 @@ Antigravity delivered the F1.1 Dashboard and BCVH Ranking screens, the accepting
 ## 2026-10-10 - QIS-HTTPS-LAN-01 IMPLEMENTED (waiting for the frontend restart)
 
 LAN frontend can be served over HTTPS on port 5178: certificate script (frontend/scripts/make-dev-cert.mjs), Vite HTTPS when the certificate exists (HTTP otherwise), /api same-origin over HTTPS (no mixed content), Control Center opens https, certificate and key git-ignored. Checked on a separate test port: secure context, clipboard API available, login page and API through the proxy work on localhost and the LAN address. Frontend 621/621. The running 5178 server was not touched: PO restarts the frontend to switch, accepts the one-time certificate warning, then checks one-click copy into Viber. Manifest: docs/10_TICKETS/QIS-HTTPS-LAN-01_MANIFEST.md.
+
+## 2026-10-10 - UI-IMPORT-DAYVIEW-01 APPROVED, ASSIGNED TO ANTIGRAVITY
+
+PO approved the redesign of the Data Import Center "Nhóm theo Tháng" view: one row per day with HUE and TCT side by side, per-source status and button, day checkbox selecting only unfinished sources, month header counted in days, newest month with missing days opens by itself. Presentation only (no API, payload, key, selection-state or backend change); "Bảng Chi tiết" unchanged. Antigravity is building; next Opus review, then PO UI check. Manifest: docs/10_TICKETS/UI-IMPORT-DAYVIEW-01_MANIFEST.md.
