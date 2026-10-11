@@ -1106,6 +1106,8 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 | `docs/10_TICKETS/UI-IMPORT-DAYVIEW-01_OPUS_REVIEW_PROMPT.md` | Executor Prompt | UI-IMPORT-DAYVIEW-01: independent review prompt for Claude Code (Opus) |
 | `docs/10_TICKETS/UI-GLASS-THEME-01_MANIFEST.md` | Ticket Manifest | UI-GLASS-THEME-01: Phase A of the system-wide light Glass theme (tokens, shell menu/topbar, shared buttons and controls, login); presentation only, assigned to Antigravity, report blocks stay solid |
 | `docs/10_TICKETS/UI-GLASS-THEME-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | UI-GLASS-THEME-01: lean prompt for Antigravity (Gemini) |
+| `docs/10_TICKETS/UI-GLASS-THEME-02_MANIFEST.md` | Ticket Manifest | UI-GLASS-THEME-02: Phase B of the light Glass theme (page content: shared components, pages, tables, filters, popups, Import Center styling); presentation only, assigned to Antigravity, report blocks stay solid, maps excluded |
+| `docs/10_TICKETS/UI-GLASS-THEME-02_ANTIGRAVITY_PROMPT.md` | Executor Prompt | UI-GLASS-THEME-02: lean prompt for Antigravity (Gemini) |
 | `docs/10_TICKETS/UI-VN-LABELS-01_MANIFEST.md` | Ticket Manifest | UI-VN-LABELS-01: module, screen and breadcrumb names shown in Vietnamese postal wording (F1.1 toàn trình nội tỉnh, F1.2 thu gom liên tỉnh, Phân tích BCVH / tuyến phát, Bảng điều hành); display text only |
 | `docs/10_TICKETS/UI-GLASS-THEME-01_OPUS_REVIEW_PROMPT.md` | Executor Prompt | UI-GLASS-THEME-01: independent review prompt for Claude Code (Opus) |
 | `docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md` | Ticket Manifest | F11-DASHBOARD-UI-01: F1.1 Operation Dashboard / BCVH Ranking screens for Antigravity, incl. the province/city table and the accepting-office x delivering-BCVH table; frontend only |
