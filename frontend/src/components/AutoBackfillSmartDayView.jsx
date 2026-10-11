@@ -112,7 +112,7 @@ export default function AutoBackfillSmartDayView({
   return (
     <div className="flex flex-col gap-4">
       {/* 1. INDICATOR NAVIGATION TABS (One-click jump across F1.1, F1.3, F4.1) */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-3 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
@@ -122,10 +122,10 @@ export default function AutoBackfillSmartDayView({
             <button
               type="button"
               onClick={() => setIndicatorFilter('ALL')}
-              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+              className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
                 indicatorFilter === 'ALL'
                   ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900'
               }`}
             >
               Tất cả Chỉ tiêu
@@ -138,10 +138,10 @@ export default function AutoBackfillSmartDayView({
                   key={ind.code}
                   type="button"
                   onClick={() => setIndicatorFilter(ind.code)}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
                     isActive
-                      ? 'bg-[var(--color-vnpost-blue)] text-white shadow-sm ring-2 ring-blue-200'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-[var(--color-vnpost-blue)] text-white shadow-sm ring-2 ring-blue-300/60'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900'
                   }`}
                 >
                   <span>{ind.code}</span>
@@ -168,11 +168,11 @@ export default function AutoBackfillSmartDayView({
           </div>
 
           {/* Quick Toggle: All Days vs Only Missing Days */}
-          <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200">
+          <div className="flex items-center rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 shadow-2xs">
             <button
               type="button"
               onClick={() => setOnlyMissingDays(false)}
-              className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
                 !onlyMissingDays
                   ? 'bg-white text-slate-900 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -183,7 +183,7 @@ export default function AutoBackfillSmartDayView({
             <button
               type="button"
               onClick={() => setOnlyMissingDays(true)}
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40 ${
                 onlyMissingDays
                   ? 'bg-amber-500 text-slate-950 shadow-xs'
                   : 'text-amber-900 hover:bg-amber-50'
@@ -204,10 +204,10 @@ export default function AutoBackfillSmartDayView({
           <button
             type="button"
             onClick={() => setMonthFilter('ALL')}
-            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-[color,background-color,border-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
               monthFilter === 'ALL'
-                ? 'bg-blue-100 text-blue-900 font-bold border border-blue-200'
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-blue-100 text-blue-900 font-bold border border-blue-200 shadow-2xs'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
             Tất cả tháng
@@ -219,10 +219,10 @@ export default function AutoBackfillSmartDayView({
                 key={m}
                 type="button"
                 onClick={() => setMonthFilter(m)}
-                className={`rounded-lg px-2.5 py-1 text-xs transition ${
+                className={`rounded-lg px-2.5 py-1 text-xs transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
                   isActive
                     ? 'bg-[var(--color-vnpost-blue)] text-white font-bold shadow-xs'
-                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
                 }`}
               >
                 Tháng {m}
@@ -233,7 +233,7 @@ export default function AutoBackfillSmartDayView({
       </div>
 
       {/* 3. TOOLBAR & BULK ACTIONS BAR */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white/95 px-5 py-3 shadow-xs">
         <div className="flex items-center gap-3">
           <p className="text-xs font-medium text-slate-700">
             {monthSummary.label}
@@ -251,7 +251,7 @@ export default function AutoBackfillSmartDayView({
             <button
               type="button"
               onClick={() => onSelectAllUnfinished(indicatorFilter, monthFilter)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition shadow-2xs"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition-[color,background-color,transform,box-shadow] duration-150 shadow-2xs cursor-pointer"
               title="Tự động chọn toàn bộ ngày chưa hoàn tất của phạm vi hiện tại"
             >
               <CheckSquare className="h-3.5 w-3.5 text-blue-600" />

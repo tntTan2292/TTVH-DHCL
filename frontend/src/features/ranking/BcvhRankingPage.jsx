@@ -340,7 +340,7 @@ export default function BcvhRankingPage() {
             </div>
           </div>
         ) : overviewState.status === 'error' ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50/50 p-5">
+          <div className="rounded-2xl border border-red-200/90 bg-red-50/70 p-5 shadow-2xs">
             <ErrorState
               title="Không thể tải dữ liệu tổng quan BCVH"
               description={overviewState.error}
@@ -348,7 +348,7 @@ export default function BcvhRankingPage() {
                 <button
                   type="button"
                   onClick={() => setOverviewRetrySeq((s) => s + 1)}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700"
+                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-red-700 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-[background-color,transform] duration-150 cursor-pointer"
                 >
                   Thử lại
                 </button>
@@ -368,13 +368,13 @@ export default function BcvhRankingPage() {
             <KPICard {...summaryCards[1]} />
             {features.lateCash ? <KPICard {...summaryCards[2]} /> : null}
             {features.routes ? (
-            <div className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-red-200/80 bg-gradient-to-br from-red-50/80 via-white to-red-50/30 p-5 shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{summaryCards[3].label}</p>
                   <p className="mt-2 text-3xl font-black text-[var(--color-text-main)]">{summaryCards[3].value}</p>
                 </div>
-                <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--color-text-main)] shadow-sm">
+                <div className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[var(--color-text-main)] shadow-2xs border border-slate-200/70">
                   <Donut className="h-4 w-4" />
                 </div>
               </div>
@@ -400,7 +400,7 @@ export default function BcvhRankingPage() {
                   updateParam('from_date', nearestAvailableDate);
                   updateParam('to_date', nearestAvailableDate);
                 }}
-                className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)]"
+                className="rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white shadow-2xs hover:bg-[var(--color-primary-700)] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[background-color,transform,box-shadow] duration-150 cursor-pointer"
               >
                 Xem ngày gần nhất
               </button>
@@ -409,10 +409,10 @@ export default function BcvhRankingPage() {
         )}
 
         {!showNoData ? (
-          <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-surface-200)] px-5 py-4">
+          <div className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50/50 px-5 py-4">
               <div>
-                <p className="text-xs text-[var(--color-text-muted)]">So sánh kỳ trước theo D-1 và D-7.</p>
+                <p className="text-xs text-[var(--color-text-muted)] font-medium">So sánh kỳ trước theo D-1 và D-7.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge label={`BCVH: ${metaState.options.find((option) => option.value === maBcvh)?.label || 'Tất cả BCVH'}`} tone="neutral" />
@@ -432,7 +432,7 @@ export default function BcvhRankingPage() {
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
                 <Clock3 size={18} />

@@ -94,12 +94,12 @@ export default function ChartZoomFrame({ total, enabled = true, className = '', 
             <button
               type="button"
               onClick={() => setWindow(null)}
-              className="pointer-events-auto rounded-md border border-slate-200 bg-white/95 px-2 py-0.5 font-semibold text-slate-600 shadow-2xs backdrop-blur-xs hover:bg-slate-50"
+              className="pointer-events-auto rounded-md border border-slate-200/90 bg-white px-2 py-0.5 font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer"
             >
               Đặt lại zoom ({visibleWindow.end - visibleWindow.start + 1}/{total})
             </button>
           ) : (
-            <span className="rounded bg-white/80 px-1.5 py-0.5 backdrop-blur-xs">Lăn chuột để phóng to</span>
+            <span className="rounded bg-white px-1.5 py-0.5 border border-slate-200/80 shadow-2xs">Lăn chuột để phóng to</span>
           )}
         </div>
       ) : null}

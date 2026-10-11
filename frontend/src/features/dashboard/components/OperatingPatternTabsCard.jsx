@@ -125,7 +125,7 @@ function ComboTooltip({ active, payload, label }) {
   const point = payload.find((item) => item?.payload)?.payload || {};
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900/95 px-3.5 py-2.5 text-xs font-medium text-white shadow-xl backdrop-blur-xs">
+    <div className="rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2.5 text-xs font-medium text-white shadow-xl">
       <div className="font-bold text-white mb-1">{label}</div>
       <div className="text-slate-300">Sản lượng: <span className="font-bold tabular-nums text-white">{formatNumber(point.totalVolume)}</span></div>
       <div className="text-slate-300">Tỷ lệ đạt: <span className="font-bold tabular-nums text-emerald-400">{formatRate(point.rate)}</span></div>
@@ -378,7 +378,7 @@ function HeatmapMonthSection({ month }) {
           id={`heatmap-rank-detail-${activeDetail.id}`}
           role="tooltip"
           data-testid="heatmap-rank-detail-layer"
-          className="pointer-events-none fixed max-w-[280px] -translate-x-1/2 -translate-y-full rounded-xl border border-slate-700 bg-slate-900/95 px-3 py-2 text-left text-xs font-semibold leading-5 text-white shadow-xl backdrop-blur-xs z-50"
+          className="pointer-events-none fixed max-w-[280px] -translate-x-1/2 -translate-y-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-left text-xs font-semibold leading-5 text-white shadow-xl z-50"
           style={{
             left: activeDetail.left,
             top: activeDetail.top,
@@ -524,7 +524,7 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
   );
 
   const action = (
-    <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/80" role="tablist" aria-label="Chọn quy luật vận hành">
+    <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 shadow-2xs" role="tablist" aria-label="Chọn quy luật vận hành">
       {OPERATING_PATTERN_TABS.map((tab) => {
         const Icon = TAB_ICON[tab.id];
         return (
@@ -534,10 +534,10 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
             role="tab"
             aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 motion-reduce:transition-none ${
+            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
               activeTab === tab.id
-                ? 'bg-[#003E7E] text-white font-bold shadow-2xs'
-                : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
+                ? 'bg-[#003E7E] text-white font-bold shadow-xs'
+                : 'text-slate-600 hover:bg-white/80 hover:text-slate-900'
             }`}
           >
             <Icon size={14} />
@@ -553,7 +553,7 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
       title="Quy luật vận hành"
       subtitle="Một thẻ quy luật theo thứ, theo tháng hoặc heatmap, dùng dữ liệu hệ thống hiện có."
       action={action}
-      className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none"
+      className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none"
     >
       <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
         <StatusBadge label={OPERATING_PATTERN_TABS.find((tab) => tab.id === activeTab)?.label} tone="info" />

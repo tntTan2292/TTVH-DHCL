@@ -71,12 +71,12 @@ export default function ChartRangeNavigator({
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-bold text-slate-700">Khoảng xem nhanh:</span>
-          <div className="inline-flex flex-wrap rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
+          <div className="inline-flex flex-wrap rounded-lg border border-slate-200/90 bg-white p-0.5 shadow-2xs">
             <button
               type="button"
               onClick={() => onReset?.()}
-              className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-                isFull ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'
+              className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
+                isFull ? 'bg-blue-600 text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
               Tất cả ({total} {unitNoun})
@@ -87,10 +87,10 @@ export default function ChartRangeNavigator({
                   key={preset.count}
                   type="button"
                   onClick={() => applyPreset(preset.count)}
-                  className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                  className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
                     !isFull && span === preset.count && isAtLatest
                       ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   {preset.label}
@@ -108,7 +108,7 @@ export default function ChartRangeNavigator({
             <button
               type="button"
               onClick={jumpToLatest}
-              className="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-blue-100/80 px-2 py-0.5 text-[11px] font-bold text-blue-800 shadow-2xs hover:bg-blue-200 transition-colors"
+              className="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-blue-100/90 px-2 py-0.5 text-[11px] font-bold text-blue-800 shadow-2xs hover:bg-blue-200 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 transition-[background-color,transform] duration-150 cursor-pointer"
               title={`Nhảy ngay đến ${unitNoun} mốc mới nhất`}
             >
               <span>{resolvedJumpLatestLabel}</span>
@@ -119,7 +119,7 @@ export default function ChartRangeNavigator({
             <button
               type="button"
               onClick={() => onReset?.()}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 shadow-2xs hover:bg-slate-100"
+              className="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer"
               title={`Đặt lại xem toàn bộ ${unitNoun}`}
             >
               <RotateCcw size={11} />
@@ -135,7 +135,7 @@ export default function ChartRangeNavigator({
           type="button"
           onClick={() => panStep(-Math.max(1, Math.floor(span / 2)))}
           disabled={window.start <= 0}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white font-bold text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-400 active:scale-[0.96] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:bg-white"
           title={`Cuộn sang các ${unitNoun} cũ hơn`}
           aria-label={`Cuộn sang ${unitNoun} cũ hơn`}
         >
@@ -153,7 +153,7 @@ export default function ChartRangeNavigator({
               const nextStart = Number(e.target.value);
               onRangeChange?.({ start: nextStart, end: nextStart + span - 1 });
             }}
-            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-40"
+            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-40 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/30"
             title={`Kéo thanh cuộn để dịch chuyển khoảng ${unitNoun}`}
             aria-label={`Thanh cuộn ngang ${unitNoun}`}
           />
@@ -163,7 +163,7 @@ export default function ChartRangeNavigator({
           type="button"
           onClick={() => panStep(Math.max(1, Math.floor(span / 2)))}
           disabled={window.end >= total - 1}
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white font-bold text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white"
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-400 active:scale-[0.96] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:bg-white"
           title={`Cuộn sang các ${unitNoun} mới hơn`}
           aria-label={`Cuộn sang ${unitNoun} mới hơn`}
         >

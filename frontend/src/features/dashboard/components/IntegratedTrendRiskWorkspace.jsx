@@ -59,7 +59,7 @@ function IntegratedTooltip({ active, payload, label }) {
   const point = payload.find((item) => item?.payload)?.payload || {};
 
   return (
-    <div className="z-50 rounded-xl border border-slate-700 bg-slate-900/95 px-3.5 py-2.5 shadow-xl backdrop-blur-xs text-white">
+    <div className="z-50 rounded-xl border border-slate-700 bg-slate-900 px-3.5 py-2.5 shadow-xl text-white">
       <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
         {point.current_date ? `${point.dayLabel} · ${point.current_date}` : label}
       </div>
@@ -450,7 +450,7 @@ export default function IntegratedTrendRiskWorkspace({
 
   const action = (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/80" role="tablist" aria-label="Chọn chế độ xu hướng">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 shadow-2xs" role="tablist" aria-label="Chọn chế độ xu hướng">
         {TREND_MODES.map((item) => (
           <button
             key={item.id}
@@ -458,10 +458,10 @@ export default function IntegratedTrendRiskWorkspace({
             role="tab"
             aria-selected={mode === item.id}
             onClick={() => onModeChange?.(item.id)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 motion-reduce:transition-none ${
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-[color,background-color,box-shadow] duration-150 motion-reduce:transition-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
               mode === item.id
-                ? `${theme.button} font-bold shadow-2xs`
-                : 'text-slate-600 hover:bg-slate-200/60 hover:text-slate-900'
+                ? `${theme.button} font-bold shadow-xs`
+                : 'text-slate-600 hover:bg-white/80 hover:text-slate-900'
             }`}
           >
             {item.label}
@@ -482,7 +482,7 @@ export default function IntegratedTrendRiskWorkspace({
         title="Xu hướng điều hành tổng hợp"
         subtitle="Một vùng xu hướng chính cho sản lượng, tỷ lệ đạt, mục tiêu và ngoại lệ hiện tại."
         action={action}
-        className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none"
+        className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none"
       >
       {loading ? (
         <LoadingState label="Đang tải dữ liệu xu hướng điều hành..." className="min-h-[360px]" />

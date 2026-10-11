@@ -78,7 +78,7 @@ function WeekSelect({ label, value, options, onChange, disabled, emptyText = 'Ch
   return (
     <label className="flex flex-col gap-1 text-xs font-bold text-slate-700">
       <span>{label}</span>
-      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-2xs transition-all duration-150 hover:border-blue-400 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+      <div className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-3 py-2 shadow-2xs transition-[border-color,box-shadow] duration-150 hover:border-blue-400 focus-within:border-[var(--color-vnpost-blue)] focus-within:ring-2 focus-within:ring-[var(--color-vnpost-blue)]/20">
         <CalendarRange size={16} className="shrink-0 text-slate-400" />
         <select
           value={value}
@@ -340,7 +340,7 @@ export default function BcvhWeeklyComparisonBlock() {
       <th
         key={field}
         onClick={field === 'current_rate' ? handleToggleCurrentRateSort : () => handleSort(field)}
-        className={`py-2 px-1 text-center align-middle ${widthClass} ${borderClass} leading-snug cursor-pointer select-none transition-colors ${hoverClass} ${nowrap ? 'whitespace-nowrap' : ''} ${isActive ? `${theme.sortActive} font-black shadow-2xs` : ''}`}
+        className={`py-2 px-1 text-center align-middle ${widthClass} ${borderClass} leading-snug cursor-pointer select-none transition-[color,background-color,box-shadow] duration-150 ${hoverClass} ${nowrap ? 'whitespace-nowrap' : ''} ${isActive ? `${theme.sortActive} font-black shadow-2xs` : ''}`}
         title={`Sắp xếp theo ${label} (nhấp để đảo chiều)`}
       >
         <div className="inline-flex items-center justify-center gap-1">
@@ -409,10 +409,10 @@ export default function BcvhWeeklyComparisonBlock() {
 
   return (
     <div className="w-full space-y-5">
-    <section className="bcvh-weekly-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
+    <section className="bcvh-weekly-operation-card w-full rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-5 shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
       {/* PO Requirement 2: Dedicated, Independent Filter Toolbar (đưa lên trên cùng để không cản trở chụp ảnh bảng dữ liệu) */}
-      <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 sm:p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+      <div className="mb-5 rounded-xl border border-slate-200/90 bg-slate-50/80 p-3.5 sm:p-4 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-blue-700" />
             <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">
@@ -420,15 +420,15 @@ export default function BcvhWeeklyComparisonBlock() {
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <div role="group" aria-label="Chọn kiểu kỳ so sánh" className="inline-flex rounded-lg border border-slate-300 bg-white p-0.5 shadow-2xs">
+            <div role="group" aria-label="Chọn kiểu kỳ so sánh" className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
               {[['week', 'Tuần'], ['month', 'Tháng']].map(([mode, text]) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setPeriodMode(mode)}
                   aria-pressed={periodMode === mode}
-                  className={`rounded-md px-3 py-1 text-xs font-bold transition-colors ${
-                    periodMode === mode ? `${theme.button} shadow-2xs` : 'text-slate-700 hover:bg-slate-100'
+                  className={`rounded-md px-3 py-1 text-xs font-bold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
+                    periodMode === mode ? `${theme.button} shadow-xs` : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   {text}
@@ -472,16 +472,16 @@ export default function BcvhWeeklyComparisonBlock() {
               disabled={!samePrevMonthActive && !prevMonthAvailable}
               aria-pressed={samePrevMonthActive}
               title="So sánh tháng đang chọn với tháng liền trước, cùng số ngày đầu tháng"
-              className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold shadow-2xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold shadow-2xs transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 disabled:cursor-not-allowed disabled:active:scale-100 disabled:opacity-50 ${
                 samePrevMonthActive
                   ? `border-transparent ${theme.button}`
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400'
               }`}
             >
               <CalendarRange className="h-3.5 w-3.5" />
               So sánh cùng kỳ tháng trước
             </button>
-            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:border-blue-400">
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:border-blue-400 transition-[border-color] duration-150">
               <input
                 type="checkbox"
                 checked={samePeriod}
@@ -538,14 +538,14 @@ export default function BcvhWeeklyComparisonBlock() {
                 value={anchorDate}
                 disabled={weeksState.status !== 'success' || !weeksState.weeks.length}
                 onChange={(e) => handleAnchorDateChange(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs hover:border-blue-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                className="w-full rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs hover:border-blue-400 focus:border-[var(--color-vnpost-blue)] focus:outline-none focus:ring-2 focus:ring-[var(--color-vnpost-blue)]/20 disabled:bg-slate-100 disabled:cursor-not-allowed transition-[border-color,box-shadow] duration-150"
                 title="Chọn ngày để tự động căn về Thứ Năm của tuần đó và chọn tuần tương ứng"
               />
               {anchorDate && defaultAnchorDate && anchorDate !== defaultAnchorDate ? (
                 <button
                   type="button"
                   onClick={handleResetAnchor}
-                  className="inline-flex items-center gap-1 shrink-0 rounded-xl border border-slate-300 bg-white px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs"
+                  className="inline-flex items-center gap-1 shrink-0 rounded-xl border border-slate-200/90 bg-white px-2.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 shadow-2xs cursor-pointer"
                   title="Đặt lại về mốc tuần mới nhất của hệ thống"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
@@ -651,7 +651,7 @@ export default function BcvhWeeklyComparisonBlock() {
             <button
               type="button"
               onClick={() => setFitMode(!fitMode)}
-              className="rounded-lg border border-slate-300 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200 transition-colors shadow-2xs"
+              className="rounded-lg border border-slate-200/90 bg-slate-100/90 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200/80 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[background-color,transform] duration-150 shadow-2xs cursor-pointer"
             >
               {fitMode ? '🔍 Chế độ cuộn chi tiết' : '📱 Xem trọn bảng (Fit màn hình)'}
             </button>
@@ -677,7 +677,7 @@ export default function BcvhWeeklyComparisonBlock() {
             ref={containerRef}
             className={`w-full ${
               fitMode
-                ? 'overflow-hidden transition-all'
+                ? 'overflow-hidden transition-[height] duration-200'
                 : 'overflow-x-auto lg:overflow-x-visible'
             }`}
             style={fitMode && scaledHeight ? { height: `${scaledHeight}px` } : undefined}

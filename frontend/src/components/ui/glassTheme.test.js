@@ -142,3 +142,36 @@ test('UI-GLASS-THEME-02 review fixes: Modal uses a portal, locks scroll and mana
   assert.match(source, /useId\(\)/, 'Modal ids must be unique per instance');
   assert.match(source, /opener\.focus\(\)/, 'Modal must return focus to the opener');
 });
+
+test('UI-GLASS-THEME-03: report blocks and captured subtrees carry no backdrop-blur and no fixed-position descendant sits under a filtered ancestor', () => {
+  const reportBlockFiles = [
+    '../../features/dashboard/components/OperatingPatternTabsCard.jsx',
+    '../../features/dashboard/components/IntegratedTrendRiskWorkspace.jsx',
+    '../../features/dashboard/components/UnifiedBcvhAnalysisTable.jsx',
+    '../../features/dashboard/components/UnifiedCommandSummary.jsx',
+    '../../features/dashboard/components/UnifiedActionCenter.jsx',
+    '../../features/dashboard/components/ChartZoomFrame.jsx',
+    '../../features/ranking/BcvhWeeklyComparisonBlock.jsx',
+    '../f13/BcvhOperationTable.jsx',
+  ];
+
+  for (const file of reportBlockFiles) {
+    const source = fs.readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.ok(!/backdrop-blur/.test(source), `${file} must not use backdrop-blur`);
+    assert.ok(!/backdrop-filter/.test(source), `${file} must not use backdrop-filter`);
+  }
+
+  // OperatingPatternTabsCard has fixed heatmap tooltip (heatmap-rank-detail) inside CardContainer.
+  // CardContainer and all ancestors must not have backdrop-filter or transform that break fixed positioning.
+  const patternSource = fs.readFileSync(new URL('../../features/dashboard/components/OperatingPatternTabsCard.jsx', import.meta.url), 'utf8');
+  assert.ok(!/backdrop-blur|backdrop-filter/.test(patternSource), 'OperatingPatternTabsCard must not introduce backdrop filter');
+
+  // ChartZoomFrame holds charts for zoom interactions; must remain completely solid
+  const zoomSource = fs.readFileSync(new URL('../../features/dashboard/components/ChartZoomFrame.jsx', import.meta.url), 'utf8');
+  assert.ok(!/backdrop-blur|backdrop-filter/.test(zoomSource), 'ChartZoomFrame must not have backdrop-blur');
+
+  // RoutePerformancePage tables and panels must have solid backgrounds
+  const routeSource = fs.readFileSync(new URL('../../features/route/RoutePerformancePage.jsx', import.meta.url), 'utf8');
+  assert.match(routeSource, /data-testid="route-ranking-table"/, 'RoutePerformancePage must contain route ranking table');
+  assert.match(routeSource, /bg-white shadow-sm hover:shadow-md/, 'Route ranking table container must be solid bg-white');
+});

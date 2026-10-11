@@ -209,14 +209,14 @@ function ColumnOptions({ columns, setColumns }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex items-center gap-2 rounded-lg border border-[var(--color-surface-200)] bg-white px-3 py-2 text-xs font-semibold text-[var(--color-text-main)] shadow-sm hover:bg-[var(--color-surface-50)]"
+        className="inline-flex items-center gap-2 rounded-lg border border-slate-200/90 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer"
       >
         <Settings2 size={14} />
         {TEXT.columnOptions}
       </button>
       {open ? (
-        <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-[var(--color-surface-200)] bg-white p-3 text-xs shadow-lg">
-          <div className="mb-2 text-[11px] text-[var(--color-text-muted)]">{TEXT.hideableColumns}</div>
+        <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-slate-200/90 bg-white p-3 text-xs shadow-lg">
+          <div className="mb-2 text-[11px] text-[var(--color-text-muted)] font-medium">{TEXT.hideableColumns}</div>
           <div className="space-y-2">
             {[
               ['d1Volume', 'D-1 / Sản lượng'],
@@ -224,13 +224,13 @@ function ColumnOptions({ columns, setColumns }) {
               ['d7Volume', 'D-7 / Sản lượng'],
               ['d7Rate', 'D-7 / Tỷ lệ'],
             ].map(([key, label]) => (
-              <label key={key} className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-[var(--color-surface-50)]">
-                <input type="checkbox" checked={columns[key]} onChange={() => toggle(key)} />
+              <label key={key} className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-50 transition-colors duration-150 cursor-pointer text-slate-700">
+                <input type="checkbox" checked={columns[key]} onChange={() => toggle(key)} className="rounded cursor-pointer text-blue-600 focus:ring-blue-500" />
                 <span>{label}</span>
               </label>
             ))}
           </div>
-          <button type="button" onClick={reset} className="mt-3 w-full rounded-md bg-[var(--color-surface-100)] px-3 py-2 font-semibold hover:bg-[var(--color-surface-200)]">
+          <button type="button" onClick={reset} className="mt-3 w-full rounded-md bg-slate-100 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-200/80 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[background-color,transform] duration-150 cursor-pointer">
             {TEXT.reset}
           </button>
         </div>
@@ -380,7 +380,7 @@ function AnalysisPanel({ row, onOpenDetail }) {
           <button
             type="button"
             onClick={() => onOpenDetail(row)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)]"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white shadow-2xs hover:bg-[var(--color-primary-700)] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[background-color,transform,box-shadow] duration-150 cursor-pointer"
           >
             {TEXT.detailManagement}
             <ArrowRight size={14} />
@@ -402,7 +402,7 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
   return (
     <>
       <tr
-        className={`border-b ${isTotal ? 'border-[var(--color-primary-200)] bg-[var(--color-primary-50)] font-semibold' : 'border-[var(--color-surface-100)] cursor-pointer hover:bg-[var(--color-surface-50)]'}`}
+        className={`border-b ${isTotal ? 'border-[var(--color-primary-200)] bg-[var(--color-primary-50)] font-semibold' : 'border-slate-100 cursor-pointer hover:bg-slate-50/80 transition-colors duration-150'}`}
         onClick={isTotal ? undefined : () => onToggleAnalysis(row.id)}
       >
         <td className={`${STICKY_RANK} ${stickyBg} border-r border-slate-200 px-3 py-3 text-right ${isTotal ? 'text-[12px] font-bold text-[var(--color-primary-800)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.rank ?? DASH}</td>
@@ -453,7 +453,7 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
                 event.stopPropagation();
                 onToggleAnalysis(row.id);
               }}
-              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-surface-200)] bg-white px-2 py-1 text-[11px] font-semibold text-[var(--color-primary-700)] shadow-sm hover:bg-[var(--color-primary-50)]"
+              className="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white px-2 py-1 text-[11px] font-semibold text-[var(--color-primary-700)] shadow-2xs hover:bg-[var(--color-primary-50)] hover:border-blue-300 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer"
             >
               {TEXT.analysisAction}
               <ChevronDown size={12} className={isExpanded ? 'rotate-180 transition-transform' : 'transition-transform'} />
@@ -588,7 +588,7 @@ export default function UnifiedBcvhAnalysisTable({
           <button
             type="button"
             onClick={loadRows}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--color-primary-700)]"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2 text-sm font-semibold text-white shadow-2xs hover:bg-[var(--color-primary-700)] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[background-color,transform,box-shadow] duration-150 cursor-pointer"
           >
             <RefreshCw size={15} />
             {TEXT.retry}
@@ -603,8 +603,8 @@ export default function UnifiedBcvhAnalysisTable({
   }
 
   return (
-    <div ref={tableCardRef} className="overflow-hidden rounded-2xl border border-[var(--color-surface-200)] bg-white shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-[var(--color-surface-200)] bg-[var(--color-surface-50)] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+    <div ref={tableCardRef} className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
+      <div className="flex flex-col gap-3 border-b border-slate-200/80 bg-slate-50/80 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs text-[var(--color-text-muted)]">
             {TEXT.source} · {state.data?.meta?.evaluation_label || UNAVAILABLE_TEXT}

@@ -801,7 +801,7 @@ export default function DataImportCenter() {
             <button
               type="button"
               onClick={handleRefresh}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 shadow-sm transition-all active:scale-95"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200/90 shadow-2xs hover:border-slate-300 transition-[color,background-color,border-color,box-shadow,transform] duration-150 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 cursor-pointer"
             >
               <RefreshCw size={14} />
               Làm mới Hệ thống
@@ -810,15 +810,15 @@ export default function DataImportCenter() {
         </div>
 
         {/* Neutral 3-Tab Architecture */}
-        <div className="mt-6 pt-5 border-t border-slate-800 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 mr-2">Chế độ vận hành:</span>
+        <div className="mt-6 pt-5 border-t border-slate-200/80 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 mr-2">Chế độ vận hành:</span>
           <button
             type="button"
             onClick={() => setImportMode('PLATFORM')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.98] shadow-2xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
               importMode === 'PLATFORM'
                 ? 'bg-gradient-to-r from-vnpost-blue to-blue-600 text-white ring-2 ring-blue-400/40 shadow-blue-500/20'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
+                : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 border border-slate-200/80'
             }`}
           >
             <Zap size={15} className={importMode === 'PLATFORM' ? 'text-yellow-300' : 'text-slate-400'} />
@@ -827,10 +827,10 @@ export default function DataImportCenter() {
           <button
             type="button"
             onClick={() => setImportMode('REPORTS')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.98] shadow-2xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-purple-400/40 ${
               importMode === 'REPORTS'
                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white ring-2 ring-purple-400/40 shadow-purple-500/20'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
+                : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 border border-slate-200/80'
             }`}
           >
             <FileSpreadsheet size={15} className={importMode === 'REPORTS' ? 'text-purple-200' : 'text-slate-400'} />
@@ -839,10 +839,10 @@ export default function DataImportCenter() {
           <button
             type="button"
             onClick={() => setImportMode('MANUAL')}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all duration-200 active:scale-95 shadow-sm ${
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.98] shadow-2xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-teal-400/40 ${
               importMode === 'MANUAL' || importMode === 'HUE' || importMode === 'TCT'
                 ? 'bg-gradient-to-r from-teal-600 to-emerald-600 text-white ring-2 ring-teal-400/40 shadow-teal-500/20'
-                : 'bg-slate-800/80 text-slate-300 hover:bg-slate-800 border border-slate-700/60'
+                : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 border border-slate-200/80'
             }`}
           >
             <FileSpreadsheet size={15} className={importMode === 'MANUAL' ? 'text-teal-200' : 'text-slate-400'} />

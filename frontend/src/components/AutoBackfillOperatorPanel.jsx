@@ -1488,7 +1488,7 @@ export default function AutoBackfillOperatorPanel() {
       />
 
       {/* CONTROL & FILTER BAR */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-5 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
@@ -1503,7 +1503,7 @@ export default function AutoBackfillOperatorPanel() {
                 setIndicatorFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-2xs hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-vnpost-blue)]/20 cursor-pointer transition-[border-color,box-shadow] duration-150"
             >
               <option value="ALL">Tất cả Chỉ tiêu</option>
               {indicatorsList.map((ind) => (
@@ -1520,7 +1520,7 @@ export default function AutoBackfillOperatorPanel() {
                 setLaneFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-2xs hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-vnpost-blue)]/20 cursor-pointer transition-[border-color,box-shadow] duration-150"
             >
               <option value="ALL">Tất cả Nguồn (HUE/TCT)</option>
               <option value="HUE">Nguồn Huế (F1.3 HUE)</option>
@@ -1534,7 +1534,7 @@ export default function AutoBackfillOperatorPanel() {
                 setMonthFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-2xs hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-vnpost-blue)]/20 cursor-pointer transition-[border-color,box-shadow] duration-150"
             >
               <option value="ALL">Tất cả Tháng</option>
               {monthOptions.map((m) => (
@@ -1551,7 +1551,7 @@ export default function AutoBackfillOperatorPanel() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-2xs hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-[var(--color-vnpost-blue)]/20 cursor-pointer transition-[border-color,box-shadow] duration-150"
             >
               <option value="ALL">Tất cả Trạng thái (4 loại)</option>
               <option value="INCOMPLETE">Chưa hoàn tất</option>
@@ -1563,11 +1563,11 @@ export default function AutoBackfillOperatorPanel() {
 
           <div className="flex items-center gap-3">
             {/* View Mode Switcher */}
-            <div className="flex rounded-xl border border-slate-200 bg-slate-100 p-1">
+            <div className="flex rounded-xl border border-slate-200/80 bg-slate-100/90 p-1 shadow-2xs">
               <button
                 onClick={() => setViewMode('GROUPED_MONTH')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                  viewMode === 'GROUPED_MONTH' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
+                  viewMode === 'GROUPED_MONTH' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <Grid className="h-3.5 w-3.5" />
@@ -1575,8 +1575,8 @@ export default function AutoBackfillOperatorPanel() {
               </button>
               <button
                 onClick={() => setViewMode('TABLE')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition ${
-                  viewMode === 'TABLE' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
+                  viewMode === 'TABLE' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <List className="h-3.5 w-3.5" />

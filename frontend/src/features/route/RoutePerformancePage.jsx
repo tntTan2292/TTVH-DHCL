@@ -145,7 +145,7 @@ function RouteRankingTable({
   const formattedDate = formatAnchorDateDdMmYyyy(anchorDate);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+    <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm" data-testid="route-ranking-table">
           <thead>
@@ -201,12 +201,12 @@ function RouteRankingTable({
                 <tr
                   key={routeId}
                   onClick={() => onSelectRoute(routeId)}
-                  className={`cursor-pointer transition-colors ${
+                  className={`cursor-pointer transition-colors duration-150 ${
                     selected
-                      ? 'bg-blue-50/90 ring-1 ring-inset ring-blue-300'
+                      ? 'bg-blue-50/90 ring-1 ring-inset ring-blue-300 font-semibold'
                       : isHighRisk
-                        ? 'hover:bg-amber-50/40'
-                        : 'hover:bg-slate-50'
+                        ? 'hover:bg-amber-50/50'
+                        : 'hover:bg-slate-50/80'
                   }`}
                 >
                   <td className="px-3.5 py-3 font-mono text-xs font-medium text-slate-600">{row.code || row.ma_tuyen}</td>
@@ -375,7 +375,7 @@ function RouteRankingTable({
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
             aria-label="Trang trước"
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200/90 bg-white px-2.5 py-1.5 font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:bg-white"
           >
             <ChevronLeft size={14} />
             <span>Trước</span>
@@ -385,7 +385,7 @@ function RouteRankingTable({
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
             aria-label="Trang sau"
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200/90 bg-white px-2.5 py-1.5 font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:bg-white"
           >
             <span>Sau</span>
             <ChevronRight size={14} />
@@ -590,7 +590,7 @@ function RouteSelectedPanel({ route, bcvhId, bcvhName, fromDate, chartAnchorDate
 
       <Link
         to={violationLink}
-        className="inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--color-primary-600)] px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition-all hover:bg-[var(--color-primary-700)] hover:shadow-md active:scale-[0.99]"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-600)] px-4 py-2.5 text-sm font-semibold text-white shadow-2xs transition-[background-color,transform,box-shadow] duration-150 hover:bg-[var(--color-primary-700)] hover:shadow-md active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 cursor-pointer"
       >
         <span>Xem bưu gửi vi phạm</span>
         <ChevronRight size={16} />
@@ -638,7 +638,7 @@ function ReconciliationStrip({ reconciliation, anchorDate, periodLabel, onToggle
           <button
             type="button"
             onClick={onTogglePeriod}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-xs hover:bg-blue-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-2xs hover:bg-blue-50 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-blue-400 transition-[background-color,transform,border-color] duration-150 cursor-pointer"
           >
             {periodLabel === 'month' ? 'Xem theo ngày' : 'Xem theo lũy kế tháng'}
           </button>
@@ -892,25 +892,25 @@ export default function RoutePerformancePage() {
       }
     >
       <div className="space-y-5">
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm hover:shadow-md transition-all duration-150 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white/90 backdrop-blur-xs p-4 shadow-2xs hover:shadow-md transition-[box-shadow,border-color] duration-150 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-1 flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/95 px-3 py-2 shadow-2xs transition-[border-color,box-shadow] duration-150 hover:border-blue-400 focus-within:border-[var(--color-vnpost-blue)] focus-within:ring-2 focus-within:ring-[var(--color-vnpost-blue)]/20">
               <CalendarDays size={16} className="text-slate-400 shrink-0" />
               <input
                 type="date"
                 value={analysisDate}
                 onChange={(e) => updateParam('analysis_date', e.target.value)}
-                className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0"
+                className="border-none bg-transparent text-sm font-semibold text-slate-800 focus:outline-none focus:ring-0 cursor-pointer"
                 aria-label="Ngày phân tích"
               />
             </div>
 
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/95 px-3 py-2 shadow-2xs transition-[border-color,box-shadow] duration-150 hover:border-blue-400 focus-within:border-[var(--color-vnpost-blue)] focus-within:ring-2 focus-within:ring-[var(--color-vnpost-blue)]/20">
               <Filter size={16} className="text-slate-400 shrink-0" />
               <select
                 value={bcvhId}
                 onChange={(e) => updateBcvhParam(e.target.value)}
-                className="border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                className="border-none bg-transparent text-sm font-semibold text-slate-800 focus:outline-none focus:ring-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Bộ lọc BCVH"
               >
                 {bcvhOptions.map((option) => (
@@ -918,26 +918,26 @@ export default function RoutePerformancePage() {
                 ))}
               </select>
             </div>
-            <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+            <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/95 px-3 py-2 shadow-2xs transition-[border-color,box-shadow] duration-150 hover:border-blue-400 focus-within:border-[var(--color-vnpost-blue)] focus-within:ring-2 focus-within:ring-[var(--color-vnpost-blue)]/20">
               <Search size={16} className="text-slate-400 shrink-0" />
               <input
                 type="text"
                 placeholder="Tìm kiếm..."
                 value={search}
                 onChange={(e) => updateParam('search', e.target.value)}
-                className="w-full border-none bg-transparent text-sm font-medium text-slate-800 focus:outline-none focus:ring-0 placeholder:text-slate-400"
+                className="w-full border-none bg-transparent text-sm font-semibold text-slate-800 focus:outline-none focus:ring-0 placeholder:text-slate-400"
               />
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+            <div className="inline-flex overflow-hidden rounded-xl border border-slate-200/80 bg-slate-100/90 p-1 shadow-2xs">
               {ROUTE_TYPE_FILTERS.map((item) => (
                 <button
                   key={item.value}
                   type="button"
                   onClick={() => updateParam('route_type', item.value === DEFAULT_ROUTE_TYPE_FILTER ? '' : item.value)}
                   aria-pressed={routeType === item.value}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
                     routeType === item.value
                       ? 'bg-white text-slate-800 shadow-xs font-bold'
                       : 'text-slate-600 hover:text-slate-900'
@@ -951,10 +951,10 @@ export default function RoutePerformancePage() {
               type="button"
               onClick={() => updateParam('only_failed', onlyFailed ? '' : '1')}
               aria-pressed={onlyFailed}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold border transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
                 onlyFailed
                   ? 'border-rose-300 bg-rose-50 text-rose-700 shadow-xs'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  : 'border-slate-200/80 bg-white text-slate-600 hover:bg-slate-50 shadow-2xs'
               }`}
             >
               <Flame size={14} className={onlyFailed ? 'text-rose-600' : 'text-slate-400'} />
@@ -993,7 +993,7 @@ export default function RoutePerformancePage() {
             </div>
             <button
               onClick={() => updateParam('only_failed', '1')}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors shadow-xs shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 active:scale-[0.98] transition-[background-color,transform] duration-150 shadow-2xs shrink-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
             >
               <Filter size={13} />
               Lọc danh sách tuyến lỗi

@@ -1,6 +1,6 @@
 # UI-GLASS-THEME-03 Manifest
 
-Status: `READY FOR ANTIGRAVITY (2026-10-11)`. Phase C of the light Glass theme: the pages that `UI-GLASS-THEME-02` left in the old look. Frontend presentation only. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict.
+Status: `READY FOR PO UI CHECK (2026-10-11)`. Phase C of the light Glass theme: the pages that `UI-GLASS-THEME-02` left in the old look. Frontend presentation only. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict.
 
 ## 1. Ticket Information
 
@@ -48,4 +48,34 @@ Restyle controls and surrounding chrome: buttons, inputs, selects, date fields, 
 
 ## 7. Delivery Status
 
-Not started.
+Status: `READY FOR PO UI CHECK (2026-10-11)`
+
+### Summary of Changes:
+- **Scope executed:** Applied the light glass theme cleanly across all remaining content pages:
+  1. `features/dashboard/*`: `DashboardPage.jsx`, `OperatingPatternTabsCard.jsx`, `IntegratedTrendRiskWorkspace.jsx`, `UnifiedBcvhAnalysisTable.jsx`, `UnifiedCommandSummary.jsx`, `UnifiedActionCenter.jsx`, `ChartZoomFrame.jsx`, `ChartRangeNavigator.jsx`.
+  2. `features/ranking/*`: `BcvhRankingPage.jsx`, `BcvhWeeklyComparisonBlock.jsx`.
+  3. `features/route/*`: `RoutePerformancePage.jsx`.
+  4. Data Import Center: `pages/DataImportCenter.jsx`, `components/AutoBackfillSmartDayView.jsx`, `components/AutoBackfillOperatorPanel.jsx`, `components/UploadWidget.jsx`.
+  5. Layout filter chrome: `components/shared/SharedLayout.jsx` (`GlobalFilterBar`).
+- **Tactile Micro-Interactions:** Modern glass borders, subtle shadows, clean focus rings (`focus-visible:ring-2`), active press feedback (`active:scale-[0.98]`), and loading states across buttons, filters, selectors, tabs, pagination, and tables.
+- **Strict Guards Maintained:**
+  - Zero functional, logic, prop, handler, route, permission, or backend changes.
+  - Verbatim Vietnamese display strings preserved (no text added or changed).
+  - All report blocks, KPI cards, charts, and captured subtrees remain strictly opaque (`bg-white` / `bg-slate-50`) with zero `backdrop-filter` / `backdrop-blur-*`.
+  - Ancestors of fixed-position tooltips (such as heatmap `heatmap-rank-detail` inside `OperatingPatternTabsCard`) have no filter, transform, or blur.
+  - No `transition: all` used; targeted transitions applied.
+  - `src/features/networkMap/*` untouched.
+  - Guard lock test added in `frontend/src/components/ui/glassTheme.test.js` validating solid backgrounds and absence of `backdrop-blur` on report blocks.
+
+### Blur Budget Audit (Target ≤ ~6 layers per viewport):
+- **Bảng điều hành (Dashboard):** 4 layers (Topbar + Sidebar + GlobalFilterBar + Date Control Bar).
+- **Phân tích BCVH (Ranking):** 3 layers (Topbar + Sidebar + GlobalFilterBar).
+- **Phân tích tuyến phát (Route Performance):** 3 layers (Topbar + Sidebar + Route Toolbar).
+- **Trung tâm nạp dữ liệu (Import Center):** 2 layers (Topbar + Sidebar).
+All viewports comply with the ≤ ~6 blurred layers budget. Fallbacks covered by `@supports not (backdrop-filter)` and `[class*="backdrop-blur"]` rules in `index.css`.
+
+### Validation Results:
+- `oxlint`: 0 errors (31 pre-existing warnings in unrelated files).
+- `vite build`: Clean production bundle (dist/index.html, dist/assets/index-*.css, dist/assets/index-*.js) in 1.35s.
+- `node --test`: All 78 project frontend test files passed cleanly (including 7/7 tests in `glassTheme.test.js` and `reportBlockStandard.test.js`). 1 test in `networkMap` is out-of-scope uncommitted work from another session.
+

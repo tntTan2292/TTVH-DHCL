@@ -196,7 +196,7 @@ function UnifiedActionCenterContent({
             <button
               type="button"
               onClick={loadActionSources}
-              className="rounded-lg bg-[#003E7E] px-3.5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-blue-900 transition-all duration-150"
+              className="rounded-lg bg-[#003E7E] px-3.5 py-2 text-xs font-bold text-white shadow-2xs hover:bg-[#002d5c] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/50 transition-[background-color,transform,box-shadow] duration-150 cursor-pointer"
             >
               Thử lại
             </button>
@@ -211,7 +211,7 @@ function UnifiedActionCenterContent({
       title="Trung tâm hành động"
       subtitle="Mỗi vấn đề điều hành chỉ hiển thị một lần, theo dữ liệu hiện có."
       action={<StatusBadge label={model.meta.bcvh_label} tone="info" />}
-      className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none"
+      className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none"
     >
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -238,7 +238,7 @@ function UnifiedActionCenterContent({
           </div>
         </div>
 
-        <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 p-3.5 shadow-2xs text-slate-900 transition-all duration-150 motion-reduce:transition-none">
+        <div className="rounded-xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/30 to-blue-50/50 p-3.5 shadow-2xs text-slate-900 transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
           <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#003E7E]">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#003E7E] text-white">
               <Target size={12} />
@@ -272,7 +272,7 @@ function UnifiedActionCenterContent({
                   : 'border-l-4 border-l-blue-600';
 
               return (
-                <div key={item.id} className={`rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs hover:shadow-md transition-all duration-150 motion-reduce:transition-none ${borderAccentClass}`}>
+                <div key={item.id} className={`rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs hover:shadow-md transition-[box-shadow,border-color,transform] duration-150 motion-reduce:transition-none hover:-translate-y-0.5 ${borderAccentClass}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -284,7 +284,7 @@ function UnifiedActionCenterContent({
                     </div>
                     <Link
                       to={item.follow_up.href}
-                      className="inline-flex items-center rounded-lg bg-[#003E7E] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-900 focus-visible:ring-2 focus-visible:ring-blue-600 transition-all duration-150"
+                      className="inline-flex items-center rounded-lg bg-[#003E7E] px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-[#002d5c] active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/50 transition-[background-color,transform,box-shadow] duration-150 cursor-pointer"
                     >
                       {item.follow_up.label}
                     </Link>
@@ -307,7 +307,7 @@ function UnifiedActionCenterContent({
           <button
             type="button"
             onClick={loadActionSources}
-            className="ml-auto inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-blue-400 transition-all duration-150"
+            className="ml-auto inline-flex items-center gap-1 rounded-lg border border-slate-200/90 bg-white px-2.5 py-1 font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,border-color,box-shadow,transform] duration-150 cursor-pointer"
           >
             <RefreshCw size={12} />
             Tải lại

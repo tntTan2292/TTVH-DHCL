@@ -283,10 +283,10 @@ export default function DashboardPage() {
       title={indicatorLabel('Bảng điều hành chất lượng F1.3', indicator)}
       subtitle="Theo dõi chất lượng phát theo kỳ đã chọn và phạm vi BCVH hiện hành."
       action={(
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-1.5 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 backdrop-blur-xs p-1.5 shadow-2xs">
           <button
             onClick={() => navigate(buildPreservedPath(indicator.routes.ranking, searchParams))}
-            className={`rounded-lg ${indicatorTheme(indicator).button} px-3.5 py-1.5 text-xs font-bold shadow-2xs hover:opacity-90 transition-all duration-150`}
+            className={`rounded-lg ${indicatorTheme(indicator).button} px-3.5 py-1.5 text-xs font-bold shadow-2xs hover:opacity-95 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,box-shadow,transform,opacity] duration-150 cursor-pointer`}
           >
             Mở xếp hạng BCVH
           </button>
@@ -316,13 +316,13 @@ export default function DashboardPage() {
         />
 
         {metadataState.status === 'error' ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          <div className="rounded-2xl border border-red-200/90 bg-red-50/90 px-4 py-3 text-sm text-red-800 shadow-2xs">
             <div className="font-semibold">Không thể tải danh sách BCVH.</div>
             <p className="mt-1">{metadataState.error}</p>
             <button
               type="button"
               onClick={loadDashboardMeta}
-              className="mt-3 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-800"
+              className="mt-3 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-red-800 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-[background-color,transform] duration-150 cursor-pointer"
             >
               Thử lại
             </button>
