@@ -71,3 +71,26 @@ test('UI-GLASS-THEME-01: Shell components use glass theme classes', () => {
   assert.ok(loginPage.includes('glass-card'), 'LoginPage must showcase glass-card');
   assert.ok(loginPage.includes('bg-glass-canvas'), 'LoginPage must use bg-glass-canvas');
 });
+
+test('UI-GLASS-THEME-01 review fixes: reduced-motion never touches transform; component classes sit in a layer below Tailwind utilities', () => {
+  const css = fs.readFileSync(new URL('../../index.css', import.meta.url), 'utf8');
+
+  // B1: Leaflet tiles/markers and Recharts SVG groups are positioned with transform.
+  const motionBlock = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+  const motionRule = motionBlock.slice(0, motionBlock.indexOf('\n}\n') + 3);
+  assert.ok(!/transform\s*:/.test(motionRule), 'reduced-motion rule must not set transform on every element');
+
+  // S1: unlayered classes beat Tailwind utilities (pl-10, py-3, rounded-*), so they must be in @layer components.
+  const layerStart = css.indexOf('@layer components {');
+  assert.ok(layerStart > 0, 'glass component classes must be wrapped in @layer components');
+  const layerBody = css.slice(layerStart, css.indexOf('FALLBACKS FOR NO BACKDROP-FILTER'));
+  for (const cls of ['.glass-panel', '.btn-glass', '.input-glass', '.badge-glass', '.glass-sidebar']) {
+    assert.ok(layerBody.includes(`${cls} {`) || layerBody.includes(`${cls},`), `${cls} must be inside @layer components`);
+  }
+
+  // Fallbacks cover every blurred surface.
+  const supports = css.slice(css.indexOf('@supports not (backdrop-filter'), css.indexOf('@media (prefers-reduced-transparency'));
+  for (const cls of ['.glass-strong', '.glass-subtle', '.input-glass']) {
+    assert.ok(supports.includes(cls), `${cls} needs the no-backdrop-filter fallback`);
+  }
+});
