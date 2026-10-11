@@ -1,6 +1,6 @@
 import React from 'react';
 
-const baseCard = 'rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm backdrop-blur-xs hover:shadow-md transition-all duration-200';
+const baseCard = 'rounded-2xl border border-slate-200/80 bg-white shadow-sm hover:shadow-md transition-[box-shadow,transform,border-color] duration-200';
 
 // `accentClassName` (a background class) draws a thin bar across the top and `badge` is shown next to the title:
 // the report pages use them to show their family colour (F1.3 blue, F4.1 orange, F1.1 green) at a glance.
@@ -62,21 +62,21 @@ export function KPICard({
   className = '',
 }) {
   const toneClass = {
-    primary: 'from-blue-50/80 via-white/90 to-white/95 border-blue-100/80 hover:border-blue-200',
-    success: 'from-emerald-50/80 via-white/90 to-white/95 border-emerald-100/80 hover:border-emerald-200',
-    warning: 'from-amber-50/80 via-white/90 to-white/95 border-amber-100/80 hover:border-amber-200',
-    danger: 'from-rose-50/80 via-white/90 to-white/95 border-rose-100/80 hover:border-rose-200',
-  }[tone] || 'from-blue-50/80 via-white/90 to-white/95 border-blue-100/80 hover:border-blue-200';
+    primary: 'from-blue-50/80 via-white to-white border-blue-100/80 hover:border-blue-200',
+    success: 'from-emerald-50/80 via-white to-white border-emerald-100/80 hover:border-emerald-200',
+    warning: 'from-amber-50/80 via-white to-white border-amber-100/80 hover:border-amber-200',
+    danger: 'from-rose-50/80 via-white to-white border-rose-100/80 hover:border-rose-200',
+  }[tone] || 'from-blue-50/80 via-white to-white border-blue-100/80 hover:border-blue-200';
 
   return (
-    <div className={`rounded-2xl border bg-gradient-to-br ${toneClass} p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 backdrop-blur-xs ${className}`}>
+    <div className={`rounded-2xl border bg-gradient-to-br ${toneClass} p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-[box-shadow,transform,border-color] duration-200 ${className}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">{label}</p>
           <p className="mt-2 text-3xl font-black tracking-tight text-[var(--color-text-main)]">{value}</p>
         </div>
         {trend ? (
-          <div className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-[var(--color-text-main)] shadow-2xs border border-slate-100/80 backdrop-blur-xs">
+          <div className="rounded-full bg-white px-3 py-1 text-xs font-bold text-[var(--color-text-main)] shadow-2xs border border-slate-100/80">
             {trend}
           </div>
         ) : null}
@@ -95,7 +95,7 @@ export function ExecutiveSummaryCard({ title, headline, items = [], className = 
         {items.length > 0 ? (
           <div className="grid gap-3 md:grid-cols-2">
             {items.map((item) => (
-              <div key={item.label} className="rounded-xl bg-slate-50/80 border border-slate-100/80 p-4 transition-colors hover:bg-slate-100/70">
+              <div key={item.label} className="rounded-xl bg-slate-50 border border-slate-100/80 p-4 transition-colors hover:bg-slate-100/70">
                 <p className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
                   {item.label}
                 </p>
@@ -152,9 +152,9 @@ export function SeverityBadge({ label, severity = 'Medium', className = '' }) {
 
 export function StandardTable({ columns = [], rows = [], emptyMessage = 'Không có dữ liệu', className = '' }) {
   return (
-    <div className={`overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-sm backdrop-blur-xs ${className}`}>
+    <div className={`overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ${className}`}>
       <table className="min-w-full divide-y divide-slate-100">
-        <thead className="bg-slate-50/90 backdrop-blur-xs">
+        <thead className="bg-slate-50">
           <tr>
             {columns.map((column) => (
               <th
@@ -192,7 +192,7 @@ export function StandardTable({ columns = [], rows = [], emptyMessage = 'Không 
 
 export function EmptyState({ title = 'Không có dữ liệu', description, action, className = '' }) {
   return (
-    <div className={`flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/90 bg-white/80 backdrop-blur-xs px-6 py-12 text-center shadow-2xs ${className}`}>
+    <div className={`flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/90 bg-white px-6 py-12 text-center shadow-2xs ${className}`}>
       <div className="text-4xl select-none opacity-40">◻</div>
       <p className="mt-3 text-base font-bold text-[var(--color-text-main)]">{title}</p>
       {description ? <p className="mt-2 max-w-md text-sm text-[var(--color-text-muted)]">{description}</p> : null}
@@ -203,7 +203,7 @@ export function EmptyState({ title = 'Không có dữ liệu', description, acti
 
 export function LoadingState({ label = 'Đang tải dữ liệu...', className = '' }) {
   return (
-    <div className={`flex items-center justify-center rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-xs px-6 py-10 shadow-2xs ${className}`}>
+    <div className={`flex items-center justify-center rounded-2xl border border-slate-200/80 bg-white px-6 py-10 shadow-2xs ${className}`}>
       <div className="flex items-center gap-3 text-[var(--color-text-muted)]">
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-primary-100)] border-t-[var(--color-primary-600)]" />
         <span className="text-sm font-semibold">{label}</span>
@@ -214,7 +214,7 @@ export function LoadingState({ label = 'Đang tải dữ liệu...', className =
 
 export function ErrorState({ title = 'Đã xảy ra lỗi', description, action, className = '' }) {
   return (
-    <div className={`flex flex-col items-center justify-center rounded-2xl border border-red-200/80 bg-white/90 backdrop-blur-xs px-6 py-10 text-center shadow-2xs ${className}`}>
+    <div className={`flex flex-col items-center justify-center rounded-2xl border border-red-200/80 bg-white px-6 py-10 text-center shadow-2xs ${className}`}>
       <p className="text-base font-bold text-red-600">{title}</p>
       {description ? <p className="mt-2 max-w-md text-sm text-[var(--color-text-muted)]">{description}</p> : null}
       {action ? <div className="mt-4">{action}</div> : null}

@@ -9,12 +9,11 @@ export default function KpiConfiguration() {
         <p className="text-slate-500 mt-1 text-sm font-medium">Cấu hình chỉ tiêu KPI</p>
       </div>
 
-      <div className="p-12 bg-white/90 backdrop-blur-xs rounded-2xl border border-dashed border-slate-300/80 text-center shadow-sm flex flex-col items-center justify-center">
+      <div className="p-12 bg-white/90 rounded-2xl border border-dashed border-slate-300/80 text-center shadow-sm flex flex-col items-center justify-center">
         <div className="w-14 h-14 rounded-2xl bg-blue-50/80 border border-blue-100 flex items-center justify-center text-[var(--color-vnpost-blue)] mb-4 shadow-2xs">
           <Sliders className="w-7 h-7" />
         </div>
         <h3 className="text-lg font-bold text-slate-800 mb-1">Chức năng đang hoàn thiện</h3>
-        <p className="text-sm text-slate-500 max-w-md">Khu vực cấu hình ngưỡng cảnh báo và tham số chỉ tiêu chất lượng vận hành sẽ sẵn sàng trong bản cập nhật kế tiếp.</p>
         <span className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-[var(--color-vnpost-blue)] border border-blue-200/80">
           <Sparkles className="w-3.5 h-3.5" /> Coming Soon
         </span>

@@ -9,12 +9,11 @@ export default function F41Quality() {
         <p className="text-slate-500 mt-1 text-sm font-medium">Quản lý chất lượng F4.1</p>
       </div>
 
-      <div className="p-12 bg-white/90 backdrop-blur-xs rounded-2xl border border-dashed border-orange-200 text-center shadow-sm flex flex-col items-center justify-center">
+      <div className="p-12 bg-white/90 rounded-2xl border border-dashed border-orange-200 text-center shadow-sm flex flex-col items-center justify-center">
         <div className="w-14 h-14 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-[#F97316] mb-4 shadow-2xs">
           <CheckCircle className="w-7 h-7" />
         </div>
         <h3 className="text-lg font-bold text-slate-800 mb-1">Chức năng đang hoàn thiện</h3>
-        <p className="text-sm text-slate-500 max-w-md">Chỉ tiêu phát thành công bưu cục F4.1 theo dõi ngưỡng mục tiêu 90% sẽ được hiển thị tại đây.</p>
         <span className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-[#F97316] border border-orange-200">
           <Sparkles className="w-3.5 h-3.5" /> Coming Soon
         </span>

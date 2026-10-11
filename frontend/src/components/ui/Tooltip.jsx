@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 
 /**
- * Modern Glass Tooltip Component (UI-GLASS-THEME-02)
- * Lightweight accessible tooltip with frosted dark surface and smooth fade.
+ * Modern Tooltip Component (UI-GLASS-THEME-02)
+ * Lightweight accessible tooltip: shown on hover and keyboard focus, linked to the trigger by aria-describedby,
+ * pending timer is cleared on hide and on unmount.
  */
 export default function Tooltip({
   content,
@@ -12,17 +13,23 @@ export default function Tooltip({
   delay = 150,
 }) {
   const [isVisible, setIsVisible] = useState(false);
-  const [timeoutId, setTimeoutId] = useState(null);
+  const timerRef = useRef(null);
+  const tooltipId = useId();
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
 
   if (!content) return children;
 
   const showTooltip = () => {
-    const id = setTimeout(() => setIsVisible(true), delay);
-    setTimeoutId(id);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setIsVisible(true), delay);
   };
 
   const hideTooltip = () => {
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
     setIsVisible(false);
   };
 
@@ -36,6 +43,7 @@ export default function Tooltip({
   return (
     <div
       className="relative inline-flex"
+      aria-describedby={isVisible ? tooltipId : undefined}
       onMouseEnter={showTooltip}
       onMouseLeave={hideTooltip}
       onFocus={showTooltip}
@@ -44,8 +52,9 @@ export default function Tooltip({
       {children}
       {isVisible && (
         <div
+          id={tooltipId}
           role="tooltip"
-          className={`absolute z-50 pointer-events-none whitespace-nowrap rounded-lg bg-slate-900/90 text-white text-xs font-medium py-1.5 px-3 shadow-xl backdrop-blur-md border border-white/10 transition-opacity duration-150 ${positionClasses} ${className}`}
+          className={`absolute z-50 pointer-events-none whitespace-nowrap rounded-lg bg-slate-900/95 text-white text-xs font-medium py-1.5 px-3 shadow-xl border border-white/10 transition-opacity duration-150 ${positionClasses} ${className}`}
         >
           {content}
         </div>

@@ -2,7 +2,15 @@ import React from 'react';
 import { Filter } from 'lucide-react';
 
 /**
- * GlobalFilter — TD § 3.1 Component: TimeFilter + BcvhFilter (UI-GLASS-THEME-02)
+ * GlobalFilter — TD § 3.1 Component: TimeFilter + BcvhFilter
+ *
+ * business_rules.md § 3:
+ *   Bộ lọc BCVH: "Tất cả" hoặc "Theo BCVH" (chọn từ danh sách BCVH).
+ *   BCVH list được tải động từ API.
+ *
+ * business_rules.md § 4:
+ *   Màu cảnh báo không hardcode — lấy từ Settings Configuration.
+ *   (NOT handled here — belongs to BcvhTable/LegendColor).
  */
 export default function GlobalFilter({ filters, onChange, bcvhList = [], maxDate }) {
     const handleChange = (e) => {

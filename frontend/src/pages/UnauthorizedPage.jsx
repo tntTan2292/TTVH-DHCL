@@ -10,7 +10,7 @@ export default function UnauthorizedPage() {
                     <ShieldAlert className="h-8 w-8" />
                 </div>
                 <div className="inline-block px-3 py-1 rounded-full text-xs font-black tracking-wider text-rose-700 bg-rose-100/70 border border-rose-200/60 mb-3">
-                    LỖI 403
+                    403
                 </div>
                 <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Không có quyền truy cập</h1>
                 <p className="text-sm text-slate-500 mt-2 leading-relaxed max-w-sm mx-auto">

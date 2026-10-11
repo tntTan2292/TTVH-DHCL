@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts';
 import { Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Download, ArrowRight, ChevronRight as Chevron } from 'lucide-react';
 
@@ -68,33 +68,33 @@ const MOCK_ROUTES_BY_BCVH = {
 // ─── Rate Badge ───────────────────────────────────────────────────────────────
 function RateBadge({ rate }) {
   if (rate >= 70) return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
-      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />{rate.toFixed(1)}%
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+      <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />{rate.toFixed(1)}%
     </span>
   );
   if (rate >= 60) return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-pink-50 text-pink-700 border border-pink-200/80 shadow-2xs">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-pink-50 text-pink-700 border border-pink-200">
       <span className="w-1.5 h-1.5 rounded-full bg-pink-400 inline-block" />{rate.toFixed(1)}%
     </span>
   );
   if (rate >= 50) return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80 shadow-2xs">
-      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />{rate.toFixed(1)}%
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200">
+      <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />{rate.toFixed(1)}%
     </span>
   );
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-2xs">
-      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block" />{rate.toFixed(1)}%
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+      <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />{rate.toFixed(1)}%
     </span>
   );
 }
 
 // ─── Sort Icon ────────────────────────────────────────────────────────────────
 function SortIcon({ col, sortCol, sortDir }) {
-  if (sortCol !== col) return <ArrowUpDown className="w-3.5 h-3.5 opacity-30" />;
+  if (sortCol !== col) return <ArrowUpDown className="w-3.5 h-3.5 opacity-40" />;
   return sortDir === 'asc'
-    ? <ArrowUp className="w-3.5 h-3.5 text-[var(--color-vnpost-blue)]" />
-    : <ArrowDown className="w-3.5 h-3.5 text-[var(--color-vnpost-blue)]" />;
+    ? <ArrowUp className="w-3.5 h-3.5 text-[var(--color-primary-600)]" />
+    : <ArrowDown className="w-3.5 h-3.5 text-[var(--color-primary-600)]" />;
 }
 
 const PAGE_SIZE = 8;
@@ -103,42 +103,50 @@ export default function RouteRankingPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Params từ URL (được truyền từ BCVH ranking drill-down)
-  const bcvhId   = searchParams.get('bcvh_id')   || 'BC_HUE01';
-  const bcvhName = searchParams.get('bcvh_name') || 'Bưu cục cấp 1 TP Huế';
-  const fromDate = searchParams.get('from_date') || '';
-  const toDate   = searchParams.get('to_date')   || '';
-  const interval = searchParams.get('interval')  || 'daily';
+  // URL Query State — inherited from BCVH Ranking
+  const fromDate  = searchParams.get('from_date')  || '';
+  const toDate    = searchParams.get('to_date')    || '';
+  const interval  = searchParams.get('interval')   || 'daily';
+  const bcvhId    = searchParams.get('bcvh_id')    || '';
+  const bcvhName  = searchParams.get('bcvh_name')  || 'Toàn mạng';
 
   // Local state
-  const [data, setData]       = useState([]);
-  const [status, setStatus]   = useState('loading'); // 'loading' | 'success' | 'error'
-  const [error]               = useState(null);
-  const [search, setSearch]   = useState('');
+  const [status,  setStatus]  = useState('loading');
+  const [data,    setData]    = useState([]);
+  const [error,   setError]   = useState(null);
+  const [search,  setSearch]  = useState('');
   const [sortCol, setSortCol] = useState('passed_rate');
-  const [sortDir, setSortDir] = useState('asc'); // Tỷ lệ thấp lên đầu theo yêu cầu nghiệp vụ
-  const [page, setPage]       = useState(1);
+  const [sortDir, setSortDir] = useState('asc');
+  const [page,    setPage]    = useState(1);
 
-  // Load data mock dựa trên bcvhId
+  // Mock fetch keyed by bcvh_id
   useEffect(() => {
     setStatus('loading');
-    const timer = setTimeout(() => {
-      const routes = MOCK_ROUTES_BY_BCVH[bcvhId] || MOCK_ROUTES_BY_BCVH.DEFAULT;
-      setData(routes);
-      setStatus('success');
-    }, 300);
-    return () => clearTimeout(timer);
+    setPage(1);
+    const t = setTimeout(() => {
+      try {
+        const rows = MOCK_ROUTES_BY_BCVH[bcvhId] || MOCK_ROUTES_BY_BCVH.DEFAULT;
+        // Normalise any data anomaly (negative failed from copy-paste)
+        const clean = rows.map(r => ({
+          ...r,
+          failed: Math.max(0, r.failed),
+          passed_rate: Math.min(100, Math.max(0, r.passed_rate)),
+        }));
+        setData(clean);
+        setStatus('success');
+      } catch (e) {
+        setError({ message: e.message });
+        setStatus('error');
+      }
+    }, 500);
+    return () => clearTimeout(t);
   }, [bcvhId, fromDate, toDate, interval]);
 
-  // Sort handler
+  // Sort
   const handleSort = (col) => {
     if (status === 'loading') return;
-    if (sortCol === col) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortCol(col);
-      setSortDir('asc');
-    }
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortCol(col); setSortDir('asc'); }
     setPage(1);
   };
 
@@ -196,52 +204,51 @@ export default function RouteRankingPage() {
   ];
 
   return (
-    <div className="flex flex-col h-full space-y-5 p-6 md:p-8">
+    <div className="flex flex-col h-full space-y-4">
       {/* ── Header + Breadcrumb context ── */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <div>
           {/* Inline context breadcrumb */}
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 mb-1.5">
+          <div className="flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] mb-1">
             <button
               onClick={() => navigate(`/f13/ranking/bcvh?from_date=${fromDate}&to_date=${toDate}&interval=${interval}`)}
-              className="hover:text-[var(--color-vnpost-blue)] transition-colors cursor-pointer"
+              className="hover:text-[var(--color-primary-600)] transition-colors"
             >
               Phân tích BCVH
             </button>
-            <Chevron className="w-3.5 h-3.5 text-slate-400" />
-            <span className="font-bold text-slate-800">{bcvhName || 'Toàn mạng'}</span>
+            <Chevron className="w-3.5 h-3.5" />
+            <span className="font-medium text-[var(--color-text-main)]">{bcvhName || 'Toàn mạng'}</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--color-vnpost-blue-dark)]">Phân tích tuyến phát</h1>
-          <p className="text-sm text-slate-500 mt-1 font-medium">
+          <h1 className="text-2xl font-bold text-[var(--color-text-main)]">Phân tích tuyến phát</h1>
+          <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
             Bảng xếp hạng tuyến phát — {bcvhName}
           </p>
         </div>
         {/* Inherited filter badges */}
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 flex-shrink-0">
-          {fromDate && <span className="px-2.5 py-1 bg-white/80 border border-slate-200/80 rounded-lg shadow-2xs">{fromDate}</span>}
-          {fromDate && toDate && <span className="text-slate-400">→</span>}
-          {toDate   && <span className="px-2.5 py-1 bg-white/80 border border-slate-200/80 rounded-lg shadow-2xs">{toDate}</span>}
-          {interval && <span className="px-2.5 py-1 bg-blue-50 border border-blue-200/80 text-[var(--color-vnpost-blue)] rounded-lg capitalize font-bold shadow-2xs">{interval}</span>}
+        <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-shrink-0">
+          {fromDate && <span className="px-2 py-1 bg-[var(--color-surface-100)] rounded">{fromDate}</span>}
+          {fromDate && toDate && <span>→</span>}
+          {toDate   && <span className="px-2 py-1 bg-[var(--color-surface-100)] rounded">{toDate}</span>}
+          {interval && <span className="px-2 py-1 bg-[var(--color-primary-50)] text-[var(--color-primary-700)] rounded capitalize">{interval}</span>}
         </div>
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="bg-white/90 backdrop-blur-xs rounded-2xl border border-slate-200/80 shadow-sm p-4 flex items-center justify-between gap-4">
+      <div className="bg-white rounded-lg border border-[var(--color-surface-200)] shadow-sm p-4 flex items-center justify-between gap-4">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
           <input
             type="text"
             placeholder="Tìm tuyến phát..."
             value={search}
             onChange={handleSearch}
             disabled={status === 'loading'}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200/80 rounded-xl bg-white/90 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs transition-all"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-[var(--color-surface-200)] rounded-md bg-[var(--color-surface-50)] text-[var(--color-text-main)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
         <button
-          type="button"
           disabled={status !== 'success'}
-          className="btn-glass btn-glass-secondary px-4 py-2 text-xs font-bold rounded-xl shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center gap-2 px-3 py-2 text-sm border border-[var(--color-surface-200)] rounded-md text-[var(--color-text-main)] hover:bg-[var(--color-surface-50)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           title="Xuất Excel"
         >
           <Download className="w-4 h-4" />
@@ -250,7 +257,7 @@ export default function RouteRankingPage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 bg-white/95 backdrop-blur-xs rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white rounded-lg border border-[var(--color-surface-200)] shadow-sm overflow-hidden flex flex-col">
 
         {status === 'loading' && (
           <div className="flex-1 flex items-center justify-center min-h-64">
@@ -287,14 +294,14 @@ export default function RouteRankingPage() {
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50/90 border-b border-slate-200/80">
+                  <tr className="bg-[var(--color-surface-50)] border-b border-[var(--color-surface-200)]">
                     {COLS.map(col => (
                       <th
                         key={col.key}
                         onClick={() => col.sortable && handleSort(col.key)}
-                        className={`px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-slate-500 select-none whitespace-nowrap
-                          ${col.sortable ? 'cursor-pointer hover:text-slate-900 hover:bg-slate-100/70 transition-colors' : ''}
-                          ${sortCol === col.key ? 'text-[var(--color-vnpost-blue)] font-black' : ''}
+                        className={`px-4 py-3 text-left font-semibold text-[var(--color-text-muted)] select-none whitespace-nowrap
+                          ${col.sortable ? 'cursor-pointer hover:text-[var(--color-text-main)] hover:bg-[var(--color-surface-100)] transition-colors' : ''}
+                          ${sortCol === col.key ? 'text-[var(--color-primary-700)]' : ''}
                         `}
                       >
                         <span className="flex items-center gap-1.5">
@@ -305,51 +312,50 @@ export default function RouteRankingPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {paginated.map((row, i) => {
                     const rank = (page - 1) * PAGE_SIZE + i + 1;
                     return (
                       <tr
                         key={row.id}
-                        className="hover:bg-blue-50/40 transition-colors"
+                        className="border-b border-[var(--color-surface-100)] hover:bg-[var(--color-surface-50)] transition-colors"
                       >
                         {/* XH */}
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-xl text-xs font-bold
-                            ${rank === 1 ? 'bg-rose-100 text-rose-700 border border-rose-200/60' :
-                              rank === 2 ? 'bg-amber-100 text-amber-700 border border-amber-200/60' :
-                              rank <= 5  ? 'bg-amber-50 text-amber-700 border border-amber-200/40' :
-                              'bg-slate-100 text-slate-600'}`}
+                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
+                            ${rank === 1 ? 'bg-red-100 text-red-700' :
+                              rank === 2 ? 'bg-orange-100 text-orange-700' :
+                              rank <= 5  ? 'bg-yellow-50 text-yellow-700' :
+                              'bg-[var(--color-surface-100)] text-[var(--color-text-muted)]'}`}
                           >
                             {rank}
                           </span>
                         </td>
                         {/* Mã tuyến */}
                         <td className="px-4 py-3">
-                          <span className="font-mono text-xs px-2 py-0.5 bg-slate-100/80 border border-slate-200/60 rounded-md text-slate-700 font-semibold">
+                          <span className="font-mono text-xs px-2 py-0.5 bg-[var(--color-surface-100)] rounded text-[var(--color-text-muted)]">
                             {row.code}
                           </span>
                         </td>
                         {/* Tên tuyến — drill-down */}
                         <td className="px-4 py-3">
                           <button
-                            type="button"
                             onClick={() => handleDrillDown(row)}
-                            className="font-bold text-[var(--color-vnpost-blue)] hover:text-blue-700 hover:underline text-left transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)] rounded"
+                            className="font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] hover:underline text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-500)] rounded"
                           >
                             {row.name}
                           </button>
                         </td>
                         {/* Tổng BG */}
-                        <td className="px-4 py-3 text-right font-mono text-slate-900 font-semibold">
+                        <td className="px-4 py-3 text-right font-mono text-[var(--color-text-main)]">
                           {row.total_bg.toLocaleString('vi-VN')}
                         </td>
                         {/* Đạt */}
-                        <td className="px-4 py-3 text-right font-mono text-emerald-700 font-bold">
+                        <td className="px-4 py-3 text-right font-mono text-green-700">
                           {row.passed.toLocaleString('vi-VN')}
                         </td>
                         {/* Không đạt */}
-                        <td className="px-4 py-3 text-right font-mono text-rose-600 font-bold">
+                        <td className="px-4 py-3 text-right font-mono text-red-600">
                           {row.failed.toLocaleString('vi-VN')}
                         </td>
                         {/* Tỷ lệ Đạt */}
@@ -358,16 +364,15 @@ export default function RouteRankingPage() {
                         </td>
                         {/* F13_303 */}
                         <td className="px-4 py-3">
-                          <span className="text-sm font-bold text-slate-800">
+                          <span className="text-sm font-semibold text-[var(--color-text-main)]">
                             {row.f13_303_rate.toFixed(1)}%
                           </span>
                         </td>
                         {/* Action */}
                         <td className="px-4 py-3">
                           <button
-                            type="button"
                             onClick={() => handleDrillDown(row)}
-                            className="inline-flex items-center gap-1 text-xs text-[var(--color-vnpost-blue)] hover:text-blue-700 font-bold px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
+                            className="flex items-center gap-1 text-xs text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] font-medium px-2 py-1 rounded hover:bg-[var(--color-primary-50)] transition-colors"
                             title={`Phân tích RCA tuyến ${row.name}`}
                           >
                             RCA <ArrowRight className="w-3 h-3" />
@@ -381,18 +386,17 @@ export default function RouteRankingPage() {
             </div>
 
             {/* Pagination */}
-            <div className="px-6 py-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/70">
-              <p className="text-xs text-slate-500 font-medium">
-                Hiển thị <span className="font-bold text-slate-800">{(page - 1) * PAGE_SIZE + 1}</span>–
-                <span className="font-bold text-slate-800">{Math.min(page * PAGE_SIZE, processed.length)}</span> /
-                <span className="font-bold text-slate-800"> {processed.length}</span> tuyến phát
+            <div className="px-4 py-3 border-t border-[var(--color-surface-200)] flex items-center justify-between bg-[var(--color-surface-50)]">
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Hiển thị <span className="font-semibold">{(page - 1) * PAGE_SIZE + 1}</span>–
+                <span className="font-semibold">{Math.min(page * PAGE_SIZE, processed.length)}</span> /
+                <span className="font-semibold"> {processed.length}</span> tuyến phát
               </p>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <button
-                  type="button"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white/90 border border-slate-200/80 bg-white/60 shadow-2xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className="p-1.5 rounded hover:bg-[var(--color-surface-200)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   aria-label="Trang trước"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -400,22 +404,20 @@ export default function RouteRankingPage() {
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                   <button
                     key={p}
-                    type="button"
                     onClick={() => setPage(p)}
-                    className={`h-8 min-w-[2rem] px-2 text-xs rounded-lg font-bold transition-all cursor-pointer ${
-                      p === page
-                        ? 'bg-[var(--color-vnpost-blue)] text-white shadow-xs'
-                        : 'bg-white/70 hover:bg-white text-slate-700 border border-slate-200/80 shadow-2xs'
-                    }`}
+                    className={`w-8 h-8 text-xs rounded font-medium transition-colors
+                      ${p === page
+                        ? 'bg-[var(--color-primary-600)] text-white'
+                        : 'hover:bg-[var(--color-surface-200)] text-[var(--color-text-main)]'
+                      }`}
                   >
                     {p}
                   </button>
                 ))}
                 <button
-                  type="button"
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="inline-flex items-center justify-center h-8 w-8 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-white/90 border border-slate-200/80 bg-white/60 shadow-2xs transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  className="p-1.5 rounded hover:bg-[var(--color-surface-200)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   aria-label="Trang sau"
                 >
                   <ChevronRight className="w-4 h-4" />

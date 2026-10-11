@@ -9,12 +9,11 @@ export default function F11Quality() {
         <p className="text-slate-500 mt-1 text-sm font-medium">Quản lý chất lượng F1.1</p>
       </div>
 
-      <div className="p-12 bg-white/90 backdrop-blur-xs rounded-2xl border border-dashed border-emerald-200 text-center shadow-sm flex flex-col items-center justify-center">
+      <div className="p-12 bg-white/90 rounded-2xl border border-dashed border-emerald-200 text-center shadow-sm flex flex-col items-center justify-center">
         <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-4 shadow-2xs">
           <Activity className="w-7 h-7" />
         </div>
         <h3 className="text-lg font-bold text-slate-800 mb-1">Chức năng đang hoàn thiện</h3>
-        <p className="text-sm text-slate-500 max-w-md">Chỉ tiêu chất lượng toàn trình nội tỉnh F1.1 theo dõi mục tiêu 95% sẽ được hiển thị tại đây.</p>
         <span className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
           <Sparkles className="w-3.5 h-3.5" /> Coming Soon
         </span>

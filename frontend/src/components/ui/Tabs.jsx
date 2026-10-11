@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 /**
  * Modern Glass Tabs Component (UI-GLASS-THEME-02)
@@ -12,7 +12,29 @@ export default function Tabs({
   size = 'md',
   className = '',
   ariaLabel = 'Danh sách tab',
+  idPrefix,
 }) {
+  const generatedId = useId();
+  const baseId = idPrefix || generatedId;
+
+  // Arrow keys / Home / End move between enabled tabs (WAI-ARIA tabs pattern).
+  const handleKeyDown = (e) => {
+    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+    if (!keys.includes(e.key)) return;
+    const enabled = tabs.filter((t) => !t.disabled);
+    if (enabled.length === 0) return;
+    const currentIndex = enabled.findIndex((t) => (t.id ?? t.value) === activeTab);
+    let nextIndex = currentIndex < 0 ? 0 : currentIndex;
+    if (e.key === 'ArrowRight') nextIndex = (nextIndex + 1) % enabled.length;
+    if (e.key === 'ArrowLeft') nextIndex = (nextIndex - 1 + enabled.length) % enabled.length;
+    if (e.key === 'Home') nextIndex = 0;
+    if (e.key === 'End') nextIndex = enabled.length - 1;
+    e.preventDefault();
+    const nextId = enabled[nextIndex].id ?? enabled[nextIndex].value;
+    onChange?.(nextId);
+    const buttons = Array.from(e.currentTarget.querySelectorAll('[role="tab"]'));
+    buttons.find((b) => b.dataset.tabId === String(nextId))?.focus();
+  };
   const sizeClasses = {
     sm: 'text-xs px-3 py-1.5 gap-1.5',
     md: 'text-sm px-4 py-2 gap-2',
@@ -24,6 +46,7 @@ export default function Tabs({
       <div
         role="tablist"
         aria-label={ariaLabel}
+        onKeyDown={handleKeyDown}
         className={`flex items-center gap-2 border-b border-slate-200/80 ${className}`}
       >
         {tabs.map((tab) => {
@@ -36,12 +59,14 @@ export default function Tabs({
               key={tabId}
               role="tab"
               type="button"
-              id={`tab-${tabId}`}
+              id={`${baseId}-tab-${tabId}`}
+              data-tab-id={tabId}
+              tabIndex={isActive ? 0 : -1}
               aria-selected={isActive}
-              aria-controls={`tabpanel-${tabId}`}
+              aria-controls={`${baseId}-tabpanel-${tabId}`}
               disabled={tab.disabled}
               onClick={() => !tab.disabled && onChange?.(tabId)}
-              className={`relative inline-flex items-center font-semibold transition-all duration-200 select-none cursor-pointer outline-none pb-3 pt-2 px-3 border-b-2 -mb-px disabled:opacity-40 disabled:cursor-not-allowed ${
+              className={`relative inline-flex items-center font-semibold transition-colors duration-200 select-none cursor-pointer outline-none pb-3 pt-2 px-3 border-b-2 -mb-px disabled:opacity-40 disabled:cursor-not-allowed ${
                 isActive
                   ? 'border-[var(--color-vnpost-blue)] text-[var(--color-vnpost-blue)] font-bold'
                   : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
@@ -72,7 +97,8 @@ export default function Tabs({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={`inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100/70 border border-slate-200/60 backdrop-blur-xs shadow-2xs ${className}`}
+      onKeyDown={handleKeyDown}
+      className={`inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100/70 border border-slate-200/60 shadow-2xs ${className}`}
     >
       {tabs.map((tab) => {
         const tabId = tab.id ?? tab.value;
@@ -84,12 +110,14 @@ export default function Tabs({
             key={tabId}
             role="tab"
             type="button"
-            id={`tab-${tabId}`}
+            id={`${baseId}-tab-${tabId}`}
+              data-tab-id={tabId}
+              tabIndex={isActive ? 0 : -1}
             aria-selected={isActive}
-            aria-controls={`tabpanel-${tabId}`}
+            aria-controls={`${baseId}-tabpanel-${tabId}`}
             disabled={tab.disabled}
             onClick={() => !tab.disabled && onChange?.(tabId)}
-            className={`relative inline-flex items-center rounded-lg font-semibold transition-all duration-200 select-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`relative inline-flex items-center rounded-lg font-semibold transition-colors duration-200 select-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 disabled:opacity-40 disabled:cursor-not-allowed ${
               isActive
                 ? 'bg-white text-[var(--color-vnpost-blue)] shadow-sm font-bold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'

@@ -13,7 +13,7 @@ function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment })
         <button
           type="button"
           onClick={() => onSelectShipment?.(row.shipmentId)}
-          className={`font-mono text-xs font-bold rounded-lg border px-2.5 py-1 transition-all cursor-pointer ${
+          className={`font-mono text-xs font-bold rounded-lg border px-2.5 py-1 transition-[color,background-color,border-color,box-shadow,transform] cursor-pointer ${
             selectedShipmentId === row.shipmentId
               ? 'border-blue-400 bg-blue-50 text-[var(--color-vnpost-blue)] shadow-xs'
               : 'border-slate-200/80 bg-white/80 text-slate-800 hover:bg-slate-100 hover:border-slate-300'

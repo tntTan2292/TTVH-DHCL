@@ -12,7 +12,7 @@ export const LoadingLayout = () => {
 
 export const ErrorLayout = ({ error, onRetry }) => {
   return (
-    <div className="flex flex-col items-center justify-center h-full space-y-4 p-8 text-center bg-white/95 backdrop-blur-md rounded-2xl border border-rose-200/80 shadow-md max-w-lg mx-auto my-auto">
+    <div className="flex flex-col items-center justify-center h-full space-y-4 p-8 text-center bg-white rounded-2xl border border-rose-200/80 shadow-md max-w-lg mx-auto my-auto">
       <div className="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mb-1 border border-rose-100 shadow-2xs">
         <AlertTriangle className="w-7 h-7" />
       </div>
@@ -24,7 +24,7 @@ export const ErrorLayout = ({ error, onRetry }) => {
         <button 
           type="button"
           onClick={onRetry}
-          className="mt-3 px-4 py-2 bg-white/90 border border-slate-200/90 rounded-xl shadow-xs text-sm font-semibold text-slate-800 hover:text-[var(--color-vnpost-blue)] hover:bg-white hover:border-blue-300 flex items-center transition-all cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)] active:scale-95"
+          className="mt-3 px-4 py-2 bg-white border border-slate-200/90 rounded-xl shadow-xs text-sm font-semibold text-slate-800 hover:text-[var(--color-vnpost-blue)] hover:bg-white hover:border-blue-300 flex items-center transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)] active:scale-95"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
           Thử lại
@@ -36,7 +36,7 @@ export const ErrorLayout = ({ error, onRetry }) => {
 
 export const EmptyLayout = ({ message = "Không có dữ liệu", subMessage = "Không tìm thấy bản ghi nào phù hợp với bộ lọc hiện tại." }) => {
   return (
-    <div className="flex flex-col items-center justify-center h-full space-y-4 p-8 text-center bg-white/90 backdrop-blur-md rounded-2xl border border-slate-200/80 shadow-sm max-w-lg mx-auto my-auto">
+    <div className="flex flex-col items-center justify-center h-full space-y-4 p-8 text-center bg-white rounded-2xl border border-slate-200/80 shadow-sm max-w-lg mx-auto my-auto">
       <div className="w-14 h-14 bg-slate-100/80 rounded-2xl flex items-center justify-center text-slate-500 mb-1 border border-slate-200/60 shadow-2xs">
         <FileQuestion className="w-7 h-7" />
       </div>

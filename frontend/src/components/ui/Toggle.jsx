@@ -39,13 +39,13 @@ export default function Toggle({
           checked={checked}
           disabled={disabled}
           onChange={(e) => !disabled && onChange?.(e.target.checked)}
-          className="sr-only"
+          className="peer sr-only"
         />
         <div
-          className={`${trackSize} rounded-full transition-colors duration-200 border ${
+          className={`${trackSize} rounded-full transition-colors duration-200 border peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-[var(--color-vnpost-blue)] ${
             checked
               ? 'bg-[var(--color-vnpost-blue)] border-[var(--color-vnpost-blue)] shadow-xs'
-              : 'bg-slate-200/90 border-slate-300/80 backdrop-blur-xs'
+              : 'bg-slate-200/90 border-slate-300/80'
           } flex items-center`}
         >
           <div

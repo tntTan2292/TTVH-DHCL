@@ -81,7 +81,7 @@ export default function RuleRecommendationPanel({ globalFilter }) {
           const Icon = rec.icon === 'AlertTriangle' ? AlertTriangle : (rec.icon === 'AlertCircle' ? AlertCircle : Info);
 
           return (
-            <div key={rec.id} className={`flex items-start gap-3 rounded-xl border p-3.5 transition-all ${bgMap[rec.color] || bgMap.gray}`}>
+            <div key={rec.id} className={`flex items-start gap-3 rounded-xl border p-3.5 transition-[color,background-color,border-color,box-shadow,transform] ${bgMap[rec.color] || bgMap.gray}`}>
               <div className={`mt-0.5 ${textMap[rec.color] || textMap.gray}`}>
                 <Icon size={16} />
               </div>

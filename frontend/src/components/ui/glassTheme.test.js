@@ -114,3 +114,31 @@ test('UI-GLASS-THEME-01 review fixes: reduced-motion never touches transform; co
     assert.ok(supports.includes(cls), `${cls} needs the no-backdrop-filter fallback`);
   }
 });
+
+test('UI-GLASS-THEME-02 review fixes: components that live inside captured report blocks carry no backdrop-filter', () => {
+  const files = [
+    '../shared/SharedComponents.jsx',
+    '../common/Containers.jsx',
+    '../common/StateLayouts.jsx',
+    '../common/SortableTh.jsx',
+  ];
+  for (const file of files) {
+    const source = fs.readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.ok(!/backdrop-blur/.test(source), `${file} must not use backdrop-blur (heatmap tooltip is position:fixed; camera captures this subtree)`);
+    assert.ok(!/backdrop-filter/.test(source), `${file} must not use backdrop-filter`);
+  }
+  const css = fs.readFileSync(new URL('../../index.css', import.meta.url), 'utf8');
+  const tableRule = css.slice(css.indexOf('.table-glass thead th'), css.indexOf('.table-glass tbody tr {'));
+  assert.ok(!/backdrop-filter/.test(tableRule), '.table-glass header must be solid');
+  assert.ok(css.includes('.badge-glass-danger'), 'Badge variant danger needs its colours');
+  const supports = css.slice(css.indexOf('@supports not (backdrop-filter'), css.indexOf('@media (prefers-reduced-transparency'));
+  assert.ok(supports.includes('[class*="backdrop-blur"]'), 'Tailwind backdrop-blur-* utilities need the fallback too');
+});
+
+test('UI-GLASS-THEME-02 review fixes: Modal uses a portal, locks scroll and manages focus', () => {
+  const source = fs.readFileSync(new URL('./Modal.jsx', import.meta.url), 'utf8');
+  assert.match(source, /createPortal\(/, 'Modal must render in a portal so fixed positioning is never trapped');
+  assert.match(source, /document\.body\.style\.overflow = 'hidden'/, 'Modal must lock page scroll');
+  assert.match(source, /useId\(\)/, 'Modal ids must be unique per instance');
+  assert.match(source, /opener\.focus\(\)/, 'Modal must return focus to the opener');
+});

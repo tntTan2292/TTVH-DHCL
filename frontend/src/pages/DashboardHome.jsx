@@ -80,7 +80,7 @@ export default function DashboardHome() {
 
                         {/* F1.3 Today */}
                         <div
-                            className="bg-gradient-to-br from-[var(--color-vnpost-blue)] via-blue-700 to-blue-800 rounded-2xl p-6 text-white shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer border border-white/20 select-none"
+                            className="bg-gradient-to-br from-[var(--color-vnpost-blue)] via-blue-700 to-blue-800 rounded-2xl p-6 text-white shadow-md hover:shadow-lg transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 cursor-pointer border border-white/20 select-none"
                             onClick={() => navigate('/f13/dashboard')}
                         >
                             <div className="flex items-center justify-between mb-3">
@@ -97,7 +97,7 @@ export default function DashboardHome() {
                         </div>
 
                         {/* Import Success Count */}
-                        <div className="bg-white/90 backdrop-blur-xs rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                        <div className="bg-white/90 backdrop-blur-xs rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md hover:-translate-y-0.5 transition-[color,background-color,border-color,box-shadow,transform] duration-200">
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Lần Import Thành Công</p>
                                 <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
@@ -109,7 +109,7 @@ export default function DashboardHome() {
                         </div>
 
                         {/* Last Import */}
-                        <div className="bg-white/90 backdrop-blur-xs rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                        <div className="bg-white/90 backdrop-blur-xs rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md hover:-translate-y-0.5 transition-[color,background-color,border-color,box-shadow,transform] duration-200">
                             <div className="flex items-center justify-between mb-3">
                                 <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Import Gần Nhất</p>
                                 <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
@@ -176,7 +176,7 @@ export default function DashboardHome() {
                             <button
                                 key={item.path}
                                 onClick={() => navigate(item.path)}
-                                className="bg-white/90 backdrop-blur-xs rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md hover:border-blue-200/80 transition-all duration-200 hover:-translate-y-0.5 text-left group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]"
+                                className="bg-white/90 backdrop-blur-xs rounded-2xl p-6 shadow-sm border border-slate-200/80 hover:shadow-md hover:border-blue-200/80 transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 text-left group cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]"
                             >
                                 <div className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center mb-4 shadow-2xs`}>
                                     <ArrowRight size={18} className="text-white group-hover:translate-x-1 transition-transform" />
