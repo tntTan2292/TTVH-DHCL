@@ -35,24 +35,26 @@ function MiniSort({ field, label, sort, onSort, activeClassName }) {
 export const PAIR_CAPTURE_CSS = `
 .pair-capturing { width: fit-content !important; max-width: none !important; }
 .pair-capturing .pair-table { table-layout: fixed; width: auto; border-collapse: collapse; }
-.pair-capturing .pair-table th, .pair-capturing .pair-table td { padding: 12px 6px; }
-.pair-capturing .pair-table thead th { width: 132px; min-width: 0; }
-.pair-capturing .pair-table thead th.pair-th-first { width: 310px; text-align: left; padding-left: 16px; font-size: 18px; }
-.pair-capturing .pair-table td:first-child { padding-left: 16px; }
-.pair-capturing .pair-th-name { font-size: 17px; line-height: 1.15; white-space: nowrap; }
-.pair-capturing .pair-th-code { font-size: 14px; }
-.pair-capturing .pair-th-total { font-size: 17px; white-space: nowrap; }
+.pair-capturing .pair-table th, .pair-capturing .pair-table td { padding: 7px 6px; }
+.pair-capturing .pair-table thead th { width: 150px; min-width: 0; padding-top: 10px; padding-bottom: 10px; }
+.pair-capturing .pair-table thead th.pair-th-first { width: 410px; text-align: left; padding-left: 16px; font-size: 18px; }
+.pair-capturing .pair-table td:first-child { padding-left: 16px; white-space: nowrap; }
+.pair-capturing .pair-th-name { font-size: 18px; line-height: 1.15; white-space: nowrap; }
+.pair-capturing .pair-th-code { font-size: 13px; }
+.pair-capturing .pair-th-total { font-size: 18px; white-space: nowrap; }
 .pair-capturing thead svg { display: none; }
-.pair-capturing tfoot td:first-child { font-size: 20px; }
-.pair-capturing .pair-name { font-size: 22px; line-height: 1.2; font-weight: 700; white-space: nowrap; }
-.pair-capturing .pair-code { font-size: 14px; margin-top: 2px; }
-.pair-capturing .pair-rate { font-size: 22px; line-height: 1.2; padding: 3px 10px; border-radius: 8px; }
-.pair-capturing .pair-vol { font-size: 16px; margin-top: 5px; }
+.pair-capturing tfoot td:first-child { font-size: 21px; }
+/* office name and code on one line, rate and volume of a cell on one line: low rows, wide columns */
+.pair-capturing .pair-name { display: inline-block; font-size: 21px; line-height: 1.2; font-weight: 700; white-space: nowrap; }
+.pair-capturing .pair-code { display: inline-block; font-size: 13px; margin: 0 0 0 10px; }
+.pair-capturing .pair-cell { flex-direction: row; align-items: center; justify-content: center; gap: 9px; white-space: nowrap; }
+.pair-capturing .pair-rate { font-size: 21px; line-height: 1.2; padding: 2px 9px; border-radius: 8px; }
+.pair-capturing .pair-vol { font-size: 15px; margin-top: 0; }
 .pair-capturing .pair-title { font-size: 28px; }
 .pair-capturing .pair-subtitle { font-size: 16px; }
 .pair-capturing .pair-chip { font-size: 15px; }
 .pair-capturing .pair-legend { font-size: 15px; margin-top: 0; padding-top: 0; border-top: 0; }
-.pair-capturing .pair-controls { padding-top: 6px; padding-bottom: 12px; }
+.pair-capturing .pair-controls { padding-top: 6px; padding-bottom: 10px; }
 /* the controls are not in the picture, so they must not take room while the frame is measured either */
 .pair-capturing [data-no-capture="true"] { display: none !important; }
 .pair-capturing .pair-foot { font-size: 14px; gap: 8px; }
@@ -430,7 +432,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                             {hasVolume ? (
                               <div
                                 title={`Đạt ${cellData.passed}/${cellData.volume} (${cellData.rate}%)${cellData.blank ? ` · Trống: ${cellData.blank}` : ''}`}
-                                className="flex flex-col items-center"
+                                className="pair-cell flex flex-col items-center"
                               >
                                 <span className={`pair-rate inline-block rounded border px-1.5 py-0.5 text-xs font-bold tabular-nums ${toneClass}`}>
                                   {cellData.rate !== null ? `${Number(cellData.rate).toFixed(1)}%` : '—'}
@@ -453,7 +455,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                             const totalBand = classifyF13HeatmapRate(row.total.rate, indicator.heatmapBands);
                             const totalToneClass = F13_HEATMAP_TONE_CLASS[totalBand.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
                             return (
-                              <div className="flex flex-col items-center">
+                              <div className="pair-cell flex flex-col items-center">
                                 <span className={`pair-rate inline-block rounded border px-1.5 py-0.5 text-xs font-black tabular-nums ${totalToneClass}`}>
                                   {row.total.rate !== null ? `${Number(row.total.rate).toFixed(1)}%` : '—'}
                                 </span>
@@ -496,7 +498,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                             {hasVolume ? (
                               <div
                                 title={`Tổng cột: Đạt ${cellData.passed}/${cellData.volume} (${cellData.rate}%)`}
-                                className="flex flex-col items-center"
+                                className="pair-cell flex flex-col items-center"
                               >
                                 <span className={`pair-rate inline-block rounded border px-2 py-0.5 text-xs font-black tabular-nums ${toneClass}`}>
                                   {cellData.rate !== null ? `${Number(cellData.rate).toFixed(1)}%` : '—'}
@@ -519,7 +521,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                             const grandBand = classifyF13HeatmapRate(totalRow.total.rate, indicator.heatmapBands);
                             const grandToneClass = F13_HEATMAP_TONE_CLASS[grandBand.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
                             return (
-                              <div className="flex flex-col items-center">
+                              <div className="pair-cell flex flex-col items-center">
                                 <span className={`pair-rate inline-block rounded border px-2 py-0.5 text-xs font-black tabular-nums ${grandToneClass}`}>
                                   {totalRow.total.rate !== null ? `${Number(totalRow.total.rate).toFixed(1)}%` : '—'}
                                 </span>

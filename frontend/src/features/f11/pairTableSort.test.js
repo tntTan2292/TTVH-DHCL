@@ -76,9 +76,11 @@ test('while the picture is taken the table is laid out for reading: big text, ev
   const source = fs.readFileSync(new URL('./components/F11PairTableBlock.jsx', import.meta.url), 'utf8');
   const css = source.slice(source.indexOf('export const PAIR_CAPTURE_CSS'), source.indexOf('export default function F11PairTableBlock'));
   assert.match(css, /\.pair-capturing \{ width: fit-content/);
-  assert.match(css, /\.pair-name \{ font-size: 22px/); // about twice the 11-12 px of the screen layout
-  assert.match(css, /\.pair-rate \{ font-size: 22px/);
-  assert.match(css, /thead th \{ width: 132px/); // one even width for every delivering-unit column
+  assert.match(css, /\.pair-name \{ display: inline-block; font-size: 21px/); // about twice the 11-12 px of the screen layout
+  assert.match(css, /\.pair-rate \{ font-size: 21px/);
+  assert.match(css, /thead th \{ width: 150px/); // one even width for every delivering-unit column
+  assert.match(css, /\.pair-cell \{ flex-direction: row/); // rate and volume of a cell on one line: low rows, wide columns (near-square picture)
+  assert.match(css, /\.pair-code \{ display: inline-block/); // office name and code on one line
   assert.match(css, /\[data-no-capture="true"\] \{ display: none !important; \}/); // controls take no room while the frame is measured
   assert.match(css, /\.pair-legend, \.pair-capturing \.pair-foot \{ width: 0; min-width: 100%; \}/); // long one-line texts do not widen the frame
   assert.match(source, /useState\(20\); \/\/ number \| 'all'/); // default top 20

@@ -2269,3 +2269,7 @@ PO: the picture of the long accepting-office table was too tall and tiny. The ca
 ## 2026-10-11 - F1.1 PAIR TABLE PICTURE: READING LAYOUT
 
 PO: the top-25 picture still looked tiny. While capturing, the table now uses a reading layout (text ~2x, even column widths, narrow frame, no controls, empty columns left out, default top 20). Checked in a real browser; frontend 647/647. Manifest Section 13: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.
+
+## 2026-10-11 - F1.1 PAIR TABLE PICTURE: NEAR-SQUARE
+
+PO: the picture was still tall and thin. In the capture layout the cell shows rate and volume on one line and the office name with its code on one line (low rows, wide columns): 1549x1291 px for the top 20 of 67, text about twice the screen size. Checked in a real browser; frontend 647/647. Manifest Section 13.
