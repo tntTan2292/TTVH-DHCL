@@ -1,6 +1,6 @@
 # UI-GLASS-THEME-01 Manifest
 
-Status: `READY FOR ANTIGRAVITY (2026-10-11)`. Frontend presentation only; no behaviour, API, route, permission or data change. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict.
+Status: `PHASE A IMPLEMENTED / OPUS REVIEWED, BLOCKER FIXED / ACCEPTED BY PO FOR NOW (2026-10-11); PHASE B NOT STARTED`. Frontend presentation only; no behaviour, API, route, permission or data change. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict.
 
 ## 1. Ticket Information
 
@@ -66,3 +66,17 @@ Status: `READY FOR ANTIGRAVITY (2026-10-11)`. Frontend presentation only; no beh
   7. `frontend/src/pages/LoginPage.jsx`: Showcase screen for the light Glass theme with ambient refraction orbs, frosted glass card, and clean typography while preserving 100% of functional requirements.
   8. Hard guards strictly preserved: 0 logic changes, `appNavigation.jsx` untouched, `src/features/networkMap/*` untouched, report blocks keep solid background for camera snapshot compatibility.
 
+
+## 8. Independent review (Opus, 2026-10-11) and remediation
+
+Review of `4f79e20..8206eea`: **FAIL, one blocker, one should-fix**; scope and logic guards held, camera and Report Block UI Standard unaffected.
+
+- **B1 (blocker):** `@media (prefers-reduced-motion)` set `transform: none !important` on `*`, which would have displaced Leaflet tiles/markers and Recharts SVG groups on machines reporting reduced motion (Windows animation effects off, RDP). Fixed: rule only shortens animation/transition now.
+- **S1:** `.input-glass` / `.btn-glass` were unlayered and beat Tailwind utilities (`pl-10`, `py-3`), so login text ran over the icons. Fixed: component classes wrapped in `@layer components`.
+- Also fixed (Claude Code/Sonnet 5.5): no-backdrop-filter and reduced-transparency fallbacks now cover `.glass-strong`, `.glass-subtle`, `.badge-glass`, secondary button and input; missing `shake` keyframes added; `transition: all` replaced by explicit properties; placeholder, danger-hover and login footer contrast raised; login `required` attributes and the default error text restored to the previous behaviour (the show/hide-password toggle is kept: presentation state only).
+- New regression test in `glassTheme.test.js` asserts the reduced-motion rule never sets `transform`, the component classes sit in `@layer components`, and the fallbacks cover every blurred surface. Frontend 651/651, build and lint clean. No re-review by Opus (the fixes were verified by tests and the built CSS only).
+- Not changed, for the PO: global radius tokens grew (`xl` 0.75 -> 1 rem, `2xl` 1 -> 1.25 rem), so existing report blocks and camera pictures are slightly rounder; about 10 blurred layers per page (none full-screen); `layouts/Breadcrumb.jsx` and `components/ui/*` are not used yet (Phase B infrastructure).
+
+## 9. PO status
+
+2026-10-11: the PO looked at the result and accepted it for now ("giao diện tạm được"); more ideas will come later. This is a working acceptance, not a formal PO UI PASS of Phase B scope. Phase B (screen-by-screen, charts, maps) is not opened.
