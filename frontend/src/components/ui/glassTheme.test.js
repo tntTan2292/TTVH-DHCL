@@ -57,6 +57,26 @@ test('UI-GLASS-THEME-01: Shared UI components exist and define interactive state
   const cardSource = fs.readFileSync(new URL('./Card.jsx', import.meta.url), 'utf8');
   assert.ok(cardSource.includes('export default function Card'), 'Card must be default exported');
   assert.ok(cardSource.includes('glass-panel') || cardSource.includes('glass-card'), 'Card must support glass variants');
+
+  // UI-GLASS-THEME-02 Extended Controls
+  const tabsSource = fs.readFileSync(new URL('./Tabs.jsx', import.meta.url), 'utf8');
+  assert.ok(tabsSource.includes('export default function Tabs'), 'Tabs must be default exported');
+  assert.ok(tabsSource.includes('role="tablist"'), 'Tabs must have role tablist');
+
+  const modalSource = fs.readFileSync(new URL('./Modal.jsx', import.meta.url), 'utf8');
+  assert.ok(modalSource.includes('export default function Modal'), 'Modal must be default exported');
+  assert.ok(modalSource.includes('role="dialog"'), 'Modal must have role dialog');
+
+  const tooltipSource = fs.readFileSync(new URL('./Tooltip.jsx', import.meta.url), 'utf8');
+  assert.ok(tooltipSource.includes('export default function Tooltip'), 'Tooltip must be default exported');
+  assert.ok(tooltipSource.includes('role="tooltip"'), 'Tooltip must have role tooltip');
+
+  const toggleSource = fs.readFileSync(new URL('./Toggle.jsx', import.meta.url), 'utf8');
+  assert.ok(toggleSource.includes('export default function Toggle'), 'Toggle must be default exported');
+  assert.ok(toggleSource.includes('role="switch"'), 'Toggle must have role switch');
+
+  const paginationSource = fs.readFileSync(new URL('./Pagination.jsx', import.meta.url), 'utf8');
+  assert.ok(paginationSource.includes('export default function Pagination'), 'Pagination must be default exported');
 });
 
 test('UI-GLASS-THEME-01: Shell components use glass theme classes', () => {

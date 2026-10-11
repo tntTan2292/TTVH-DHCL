@@ -1,3 +1,4 @@
+import React from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 /**
@@ -11,7 +12,7 @@ export default function SortableTh({
   onSort,
   children,
   className = '',
-  activeClassName = 'bg-blue-100/90 text-blue-950',
+  activeClassName = 'bg-blue-100/80 text-[var(--color-vnpost-blue)] font-bold',
   title,
   colSpan,
   rowSpan,
@@ -25,14 +26,14 @@ export default function SortableTh({
       aria-sort={ariaSort}
       onClick={() => onSort(field)}
       title={title || 'Bấm để sắp xếp theo cột này (bấm lại để đảo chiều)'}
-      className={`cursor-pointer select-none transition-colors hover:bg-slate-200/70 ${className} ${active ? activeClassName : ''}`}
+      className={`cursor-pointer select-none transition-colors duration-150 hover:bg-blue-50/60 ${className} ${active ? activeClassName : ''}`}
     >
-      <span className="inline-flex items-center justify-center gap-1">
+      <span className="inline-flex items-center justify-center gap-1.5">
         <span>{children}</span>
         {active ? (
-          sort.direction === 'asc' ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />
+          sort.direction === 'asc' ? <ArrowUp className="h-3 w-3 shrink-0 text-current" /> : <ArrowDown className="h-3 w-3 shrink-0 text-current" />
         ) : (
-          <ArrowUpDown className="h-2.5 w-2.5 shrink-0 opacity-30" />
+          <ArrowUpDown className="h-2.5 w-2.5 shrink-0 opacity-40 hover:opacity-75 transition-opacity" />
         )}
       </span>
     </th>

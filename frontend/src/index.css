@@ -343,10 +343,35 @@
     border-color: rgba(254, 240, 138, 0.8);
   }
 
-  .badge-glass-danger {
-    background: rgba(254, 242, 242, 0.85);
-    color: #b91c1c;
-    border-color: rgba(254, 202, 202, 0.8);
+  /* Table Glass Helpers */
+  .table-glass {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .table-glass thead th {
+    background: rgba(248, 250, 252, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+    color: #475569;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  .table-glass tbody tr {
+    transition: background-color 0.15s ease;
+  }
+
+  .table-glass tbody tr:hover {
+    background-color: rgba(239, 246, 255, 0.45);
+  }
+
+  .table-glass tbody tr.selected {
+    background-color: rgba(219, 234, 254, 0.65);
   }
 }
 
@@ -363,7 +388,8 @@
   .glass-subtle,
   .glass-header,
   .btn-glass-secondary,
-  .input-glass {
+  .input-glass,
+  .table-glass thead th {
     background-color: #ffffff !important;
     border-color: #e2e8f0 !important;
     box-shadow: 0 4px 16px 0 rgba(15, 23, 42, 0.06) !important;
@@ -384,7 +410,8 @@
   .glass-header,
   .badge-glass,
   .btn-glass-secondary,
-  .input-glass {
+  .input-glass,
+  .table-glass thead th {
     background-color: #ffffff !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;

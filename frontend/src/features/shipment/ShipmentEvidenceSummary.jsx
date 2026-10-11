@@ -1,23 +1,9 @@
+import React from 'react';
 import { ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { StandardTable, StatusBadge, EmptyState } from '../../components/shared/SharedComponents';
 
 // Primary violation table — Phase 2 rebuild (F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_001.md
 // Section 5): KEEP + REDESIGN of the widget that used to hold the shipment candidate list.
-// Two render modes:
-//   - 'flat'    — no active search keyword: a single table of every row in the selected
-//                 violation group, in the order supplied by the caller.
-//   - 'grouped' — a keyword is active (AC-17/AC-18): every route the search matched
-//                 appears as its own expandable group, keyed by real ma_tuyen (AC-22).
-//                 ITR-EV-BLOCK-01 remediation (2026-09-07): `groups` is built by the caller
-//                 from the server's whole-scope `matched_route_list`
-//                 (`shipmentPerformanceData.js`'s `buildSearchRouteGroups`), NOT from only the
-//                 rows on the current page — a group can therefore exist with `rows: []` and
-//                 `group.status` of 'idle'/'loading'/'error' before its own rows have been
-//                 fetched (one request per expanded route, §7.6/D-OPEN-03). This component
-//                 does not know or care where `rows` came from; it only renders whatever the
-//                 caller has loaded for that group so far.
-// Neither mode ever selects a row on its own — selection only happens via an explicit
-// click (AC-15), handled entirely by the caller.
 function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment }) {
   const columns = [
     {
@@ -27,10 +13,10 @@ function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment })
         <button
           type="button"
           onClick={() => onSelectShipment?.(row.shipmentId)}
-          className={`font-mono text-xs font-bold rounded border px-2 py-0.5 transition-colors ${
+          className={`font-mono text-xs font-bold rounded-lg border px-2.5 py-1 transition-all cursor-pointer ${
             selectedShipmentId === row.shipmentId
-              ? 'border-[var(--color-primary-300)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
-              : 'border-slate-200 bg-slate-100 text-slate-800 hover:bg-slate-200'
+              ? 'border-blue-400 bg-blue-50 text-[var(--color-vnpost-blue)] shadow-xs'
+              : 'border-slate-200/80 bg-white/80 text-slate-800 hover:bg-slate-100 hover:border-slate-300'
           }`}
         >
           {row.shipmentId}
@@ -99,12 +85,6 @@ function buildColumns({ showRouteColumn, selectedShipmentId, onSelectShipment })
   return columns;
 }
 
-// ITR2-BLOCK-01 remediation (Independent Re-Review, 2026-09-08): each expanded route group
-// gets its own page control, driven by that route's own `pagination` meta (already scoped
-// server-side to exactly this route — see evidenceQueryService.js). `page_size` stays 50
-// (never widened); "Trang trước/sau" walks the route's own pages until every one of its rows
-// has been reachable, and "Hiển thị 50/N" makes the partial render explicit instead of a
-// silent truncation (Design §5.6 / P-03).
 function RouteGroupPagination({ pagination, onPageChange }) {
   if (!pagination || !pagination.total_items) return null;
   const { page, page_size: pageSize, total_items: totalItems, total_pages: totalPages } = pagination;
@@ -114,7 +94,7 @@ function RouteGroupPagination({ pagination, onPageChange }) {
   const rangeEnd = Math.min(page * pageSize, totalItems);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-surface-200)] bg-[var(--color-surface-50)] px-4 py-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-4 py-2.5">
       <span className="text-xs font-medium text-slate-600">
         Hiển thị <strong>{rangeStart}-{rangeEnd}</strong> / <strong>{totalItems.toLocaleString('vi-VN')}</strong> bưu gửi của tuyến này
       </span>
@@ -127,7 +107,7 @@ function RouteGroupPagination({ pagination, onPageChange }) {
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           aria-label="Trang trước của tuyến"
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white cursor-pointer"
         >
           <ChevronLeft size={13} />
           <span>Trước</span>
@@ -137,7 +117,7 @@ function RouteGroupPagination({ pagination, onPageChange }) {
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           aria-label="Trang sau của tuyến"
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white cursor-pointer"
         >
           <span>Sau</span>
           <ChevronRight size={13} />
@@ -176,21 +156,21 @@ export default function ShipmentEvidenceSummary({
           const groupKey = group.routeId || group.routeName;
           const isExpanded = expandedRouteIds.has(groupKey);
           return (
-            <div key={groupKey} className="overflow-hidden rounded-xl border border-[var(--color-surface-200)] bg-white">
+            <div key={groupKey} className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-xs shadow-2xs">
               <button
                 type="button"
                 onClick={() => onToggleRouteGroup(groupKey)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[var(--color-surface-50)]"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50/80 transition-colors cursor-pointer"
                 aria-expanded={isExpanded}
               >
-                <span className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-main)]">
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                <span className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                  {isExpanded ? <ChevronDown size={16} className="text-slate-500" /> : <ChevronRight size={16} className="text-slate-500" />}
                   {group.routeId ? `${group.routeId} - ${group.routeName}` : group.routeName}
                 </span>
                 <StatusBadge label={`${group.count} bưu gửi`} tone="info" />
               </button>
               {isExpanded ? (
-                <div className="overflow-x-auto border-t border-[var(--color-surface-200)]">
+                <div className="overflow-x-auto border-t border-slate-100">
                   <StandardTable
                     columns={columns.filter((c) => c.key !== 'routeName')}
                     rows={group.rows}

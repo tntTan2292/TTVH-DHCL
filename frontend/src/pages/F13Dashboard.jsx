@@ -100,12 +100,12 @@ export default function F13Dashboard() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">F1.3 – Bảng điều hành</h1>
-                    <p className="text-gray-500 mt-1">Chất lượng phát liên tỉnh PTC/Nộp tiền ≤14 giờ</p>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[var(--color-vnpost-blue-dark)]">F1.3 – Bảng điều hành</h1>
+                    <p className="text-slate-500 mt-1 text-sm font-medium">Chất lượng phát liên tỉnh PTC/Nộp tiền ≤14 giờ</p>
                 </div>
                 {maxDate && (
-                    <div className="bg-blue-50 border border-blue-100 px-4 py-2 rounded-lg inline-flex items-center">
-                        <span className="text-sm font-semibold text-vnpost-blue">
+                    <div className="bg-white/90 border border-blue-200/80 px-4 py-2 rounded-xl inline-flex items-center shadow-2xs backdrop-blur-xs">
+                        <span className="text-sm font-bold text-[var(--color-vnpost-blue)]">
                             Dữ liệu cập nhật đến: {new Date(maxDate).toLocaleDateString('vi-VN')}
                         </span>
                     </div>
@@ -117,15 +117,15 @@ export default function F13Dashboard() {
 
             {/* Loading State */}
             {loading && (
-                <div className="text-center py-8 text-vnpost-blue">
-                    <div className="inline-block w-6 h-6 border-2 border-vnpost-blue border-t-transparent rounded-full animate-spin mr-2" />
+                <div className="text-center py-10 text-[var(--color-vnpost-blue)] font-semibold flex items-center justify-center gap-2">
+                    <div className="inline-block w-5 h-5 border-2 border-[var(--color-vnpost-blue)] border-t-transparent rounded-full animate-spin" />
                     Đang tải dữ liệu...
                 </div>
             )}
 
             {/* Error State */}
             {!loading && error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 text-sm mb-6">
+                <div className="bg-rose-50/90 border border-rose-200 rounded-2xl p-4 text-rose-700 text-sm mb-6 shadow-2xs backdrop-blur-xs">
                     {error}
                 </div>
             )}
@@ -133,14 +133,14 @@ export default function F13Dashboard() {
             {/* TD § 3.1: KpiCards + TrendChart + TopListCard */}
             {!loading && !error && filters && (
                 kpiData && kpiData.tong_buu_gui === 0 ? (
-                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-8 text-center mt-6">
-                        <div className="w-16 h-16 bg-orange-100 text-vnpost-orange rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-8 text-center mt-6 shadow-2xs backdrop-blur-xs">
+                        <div className="w-16 h-16 bg-amber-100 text-[var(--color-vnpost-orange)] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-200">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
                         </div>
-                        <h3 className="text-lg font-bold text-orange-800 mb-2">Ngày được chọn chưa có dữ liệu</h3>
-                        <p className="text-orange-600 text-sm">Vui lòng chọn ngày khác nằm trong khoảng dữ liệu đã được import (Đến {maxDate ? new Date(maxDate).toLocaleDateString('vi-VN') : ''}).</p>
+                        <h3 className="text-lg font-bold text-amber-900 mb-2">Ngày được chọn chưa có dữ liệu</h3>
+                        <p className="text-amber-700 text-sm font-medium">Vui lòng chọn ngày khác nằm trong khoảng dữ liệu đã được import (Đến {maxDate ? new Date(maxDate).toLocaleDateString('vi-VN') : ''}).</p>
                     </div>
                 ) : (
                     <>
