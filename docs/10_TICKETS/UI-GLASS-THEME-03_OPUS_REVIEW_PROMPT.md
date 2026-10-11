@@ -1,0 +1,18 @@
+# UI-GLASS-THEME-03 — Prompt cho Claude Code (Opus), review độc lập
+
+Dự án QIS V2, workspace `D:\Antigravity - Project\TTVH - He thong dieu hanh chat luong`, nhánh `codex/da-impl-006`. Bạn là reviewer độc lập (Claude Code / Opus). Ticket song song `UI-GLASS-THEME-03` — không trùng Current Ticket trong `PROJECT_SNAPSHOT.md` là bình thường.
+
+Đọc: `docs/10_TICKETS/UI-GLASS-THEME-03_MANIFEST.md` (Mục 3, 4, 6) và Mục 8-9 của `UI-GLASS-THEME-02_MANIFEST.md` (lỗi bạn đã tìm ở vòng trước). Review commit `2f7e630` so với `c54c386`: `components/AutoBackfill{OperatorPanel,SmartDayView}.jsx`, `UploadWidget.jsx`, `components/shared/SharedLayout.jsx`, `features/dashboard/**` (DashboardPage, ChartRangeNavigator, ChartZoomFrame, IntegratedTrendRiskWorkspace, OperatingPatternTabsCard, UnifiedActionCenter, UnifiedBcvhAnalysisTable, UnifiedCommandSummary), `features/ranking/{BcvhRankingPage,BcvhWeeklyComparisonBlock}.jsx`, `features/route/RoutePerformancePage.jsx`, `pages/DataImportCenter.jsx`, `components/ui/glassTheme.test.js`. Các file chưa commit khác (`backend/*`, `networkMap/*`) là của phiên khác.
+
+**Không đánh giá đẹp/xấu** (PO tự xem). **Câu hỏi:** chỉ là trình bày, và có phá thứ gì đang chạy không? Kiểm tra bằng diff, không tin báo cáo executor:
+
+1. **Không đổi logic và chữ hiển thị:** handler, state, effect, props, điều kiện hiển thị/disabled, API, payload, route, phân quyền; không thêm/đổi chữ. Đặc biệt `AutoBackfillOperatorPanel`/`AutoBackfillSmartDayView`/`DataImportCenter`/`UploadWidget` (ràng buộc Mục 4 của `UI-IMPORT-DAYVIEW-01`: `getItemKey`, khóa chọn, modal, handler, bố cục ma trận chỉ tiêu và bảng ngày); import hoặc biến bị xóa nhầm (`oxlint -D no-undef` trên file đã sửa, bỏ qua cảnh báo global của môi trường).
+2. **Blur và khối chụp camera:** `backdrop-blur-*`/`backdrop-filter`/nền trắng trong suốt nằm trong khối báo cáo, thẻ KPI, bảng, biểu đồ, hay trên tổ tiên của phần tử `position: fixed` (tooltip heatmap trong `OperatingPatternTabsCard`, các popup/drawer, `ChartZoomFrame`). Kiểm tra từng chỗ `+` có `backdrop` trong diff.
+3. **Số lớp blur thật mỗi trang** (manifest cho tối đa khoảng 6, tính cả sidebar, topbar, breadcrumb, thanh lọc, nền popup). Báo cáo của executor nói thanh lọc chung chỉ 1 lớp, nhưng diff `SharedLayout.jsx` có thanh lọc `backdrop-blur-md` **và** 5 ô con mỗi ô `backdrop-blur-xs` (blur lồng nhau). Đếm số lớp thực tế cho từng trang Bảng điều hành, Phân tích BCVH, Phân tích tuyến phát, Trung tâm nạp dữ liệu, kể cả nền popup hiện có (`backdrop-blur-sm` ở modal Bù dữ liệu tự động); kết luận có vượt ngân sách không và blur lồng nhau có đáng bỏ không. Kiểm tra fallback `@supports not` và `prefers-reduced-transparency` bao phủ chúng.
+4. **Chuẩn Report Block UI:** nút camera, tiêu đề cột bấm để sắp xếp (`SortableTh`, bảng BCVH, so sánh tuần/tháng), màu họ chỉ số, đường mục tiêu, dải màu trạng thái, heatmap; `blockCaptureHelper.js` không đổi.
+5. **Bài học các vòng trước:** không `transform` toàn cục, không `transition: all`, `focus-visible` rõ trên mọi control, tương phản chữ ≥ 4,5:1 (kể cả trạng thái disabled/hover), `active:scale-*` không đặt trên phần tử chứa phần tử `fixed` hay trong khối chụp.
+6. **Test mới** trong `glassTheme.test.js` có khóa được ràng buộc thật (không chỉ khẳng định chuỗi dựng sẵn); test cũ không bị sửa; `package.json`, `networkMap/*`, `blockCaptureHelper.js` không đổi.
+
+Chạy: toàn bộ frontend (kỳ vọng 654, 0 fail), `reportBlockStandard.test.js`, `appNavigation.test.js`, build, lint. Không mở browser, Playwright, dev server hay đăng nhập.
+
+Không sửa code, không commit. Báo cáo Technical Execution Report ngắn cho Claude/CTO: PASS/FAIL, từng phát hiện kèm file:dòng và kịch bản lỗi cụ thể, chặn/không chặn. Không tự tuyên bố PO UI PASS.
