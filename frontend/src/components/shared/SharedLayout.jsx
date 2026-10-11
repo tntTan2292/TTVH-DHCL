@@ -30,35 +30,45 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity md:hidden" onClick={onClose} />
+        <div 
+          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-xs transition-opacity md:hidden" 
+          onClick={onClose} 
+        />
       )}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] transform flex-col bg-gradient-to-b from-vnpost-blue-dark to-[#002a54] text-white shadow-2xl transition-all duration-300 ease-in-out md:relative ${isCollapsed ? 'md:w-20' : 'md:w-[280px]'} ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] transform flex-col glass-sidebar text-white shadow-2xl transition-all duration-300 ease-in-out md:relative ${isCollapsed ? 'md:w-20' : 'md:w-[280px]'} ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
-        <div className={`relative flex min-h-[80px] items-center gap-4 border-b border-white/10 p-6 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
-          <Link to="/" className="flex items-center gap-3 overflow-hidden">
+        {/* Brand Header */}
+        <div className={`relative flex min-h-[72px] items-center gap-3 border-b border-white/10 px-5 py-4 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+          <Link to="/" className="flex items-center gap-3 overflow-hidden group">
             {!isCollapsed ? (
               <div className="flex flex-col">
-                <h1 className="text-xl font-black tracking-wide text-white drop-shadow-md">
-                  TTVH-<span className="text-vnpost-orange">DHCL</span>
+                <h1 className="text-xl font-black tracking-wide text-white drop-shadow-sm flex items-center gap-1.5">
+                  <span>TTVH</span>
+                  <span className="text-white/40">-</span>
+                  <span className="text-[var(--color-vnpost-orange)] font-extrabold group-hover:brightness-110 transition-all">DHCL</span>
                 </h1>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.15em] text-blue-200 drop-shadow-sm">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/90 drop-shadow-xs">
                   Bưu điện TP Huế
                 </p>
               </div>
             ) : (
-              <h1 className="text-xl font-extrabold text-vnpost-orange drop-shadow-md">DHCL</h1>
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 border border-white/20 text-[var(--color-vnpost-orange)] font-black text-sm shadow-inner">
+                DHCL
+              </div>
             )}
           </Link>
           <button
             onClick={onToggleCollapse}
-            className="absolute -right-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-vnpost-orange text-[#003E7E] shadow-lg transition-transform hover:scale-110 md:flex"
+            className="absolute -right-3 top-1/2 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-gradient-to-r from-vnpost-orange to-amber-500 text-[#003E7E] shadow-md border border-white/30 transition-transform hover:scale-110 active:scale-95 md:flex cursor-pointer"
+            aria-label={isCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
           >
             {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6">
+        {/* Navigation Groups */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4">
           <ul className="space-y-1">
             {navGroups.map((item, idx) => {
               if (!item.subItems) {
@@ -67,11 +77,15 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                     <NavLink
                       to={buildPreservedPath(item.path, location.search)}
                       className={({ isActive }) =>
-                        `relative flex items-center py-3 transition-all duration-200 group ${isCollapsed ? 'mx-2 justify-center px-0' : 'px-6'} ${isActive ? 'border-l-4 border-white bg-gradient-to-r from-vnpost-orange/90 to-orange-500/90 font-bold text-white' : 'border-l-4 border-transparent text-blue-100 hover:bg-white/5 hover:text-white'}`
+                        `relative flex items-center py-2.5 mx-3 rounded-xl transition-all duration-200 group ${isCollapsed ? 'justify-center px-0' : 'px-4'} ${
+                          isActive
+                            ? 'bg-white/15 text-white font-bold backdrop-blur-md border border-white/20 shadow-xs before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r before:bg-vnpost-orange'
+                            : 'text-blue-100/90 hover:bg-white/10 hover:text-white border border-transparent'
+                        }`
                       }
                     >
-                      <div className="flex-shrink-0 opacity-80 group-hover:opacity-100">{item.icon}</div>
-                      {!isCollapsed && <span className="ml-4 whitespace-nowrap text-[15px]">{item.name}</span>}
+                      <div className="flex-shrink-0 opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-transform">{item.icon}</div>
+                      {!isCollapsed && <span className="ml-3 whitespace-nowrap text-sm font-semibold">{item.name}</span>}
                     </NavLink>
                   </li>
                 );
@@ -90,13 +104,15 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                   {!isCollapsed ? (
                     <button
                       onClick={() => toggleGroup(item.title)}
-                      className={`relative flex w-full items-center justify-between px-6 py-3 transition-all duration-200 ${isGroupActive ? 'font-bold text-white' : 'text-blue-200 hover:text-white'}`}
+                      className={`relative flex w-full items-center justify-between px-5 py-2.5 transition-all duration-200 text-xs font-bold uppercase tracking-wider ${
+                        isGroupActive ? 'text-white' : 'text-blue-200/80 hover:text-white'
+                      }`}
                     >
                       <div className="flex items-center">
                         <div className="flex-shrink-0 opacity-80 group-hover:opacity-100">{item.icon}</div>
-                        <span className="ml-4 whitespace-nowrap text-[15px] font-bold uppercase tracking-wide">{item.title}</span>
+                        <span className="ml-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide">{item.title}</span>
                       </div>
-                      <ChevronDown size={16} className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                      <ChevronDown size={14} className={`transition-transform duration-200 text-white/60 ${isExpanded ? 'rotate-180 text-white' : ''}`} />
                     </button>
                   ) : (
                     <div className="group relative flex items-center justify-center py-3 text-blue-200">
@@ -105,7 +121,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                   )}
 
                   {!isCollapsed && isExpanded && (
-                    <ul className="mt-1 space-y-1 bg-black/10 py-2">
+                    <ul className="mt-1 space-y-1 bg-black/15 py-2 rounded-xl mx-2 border border-white/5">
                       {item.subItems.map((sub) => {
                         if (!sub.subItems) {
                           return (
@@ -113,11 +129,15 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                               <NavLink
                                 to={buildPreservedPath(sub.path, location.search)}
                                 className={({ isActive }) =>
-                                  `relative flex items-center py-2.5 pl-14 pr-6 transition-all duration-200 ${isActive ? 'border-l-4 border-vnpost-orange bg-white/5 font-bold text-white' : 'border-l-4 border-transparent text-blue-200/80 hover:bg-white/5 hover:text-white'}`
+                                  `relative flex items-center py-2 pl-10 pr-4 mx-1.5 rounded-lg transition-all duration-200 text-xs font-medium ${
+                                    isActive
+                                      ? 'bg-white/15 text-white font-bold backdrop-blur-xs border border-white/15 shadow-2xs before:absolute before:left-5 before:top-2 before:bottom-2 before:w-1 before:rounded-r before:bg-vnpost-orange'
+                                      : 'text-blue-200/80 hover:bg-white/10 hover:text-white'
+                                  }`
                                 }
                               >
                                 <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
-                                <span className="ml-3 whitespace-nowrap text-[14px]">{sub.name}</span>
+                                <span className="ml-2.5 whitespace-nowrap text-xs">{sub.name}</span>
                               </NavLink>
                             </li>
                           );
@@ -127,30 +147,36 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                         const isSubActive = sub.subItems.some((nested) => location.pathname === nested.path);
 
                         return (
-                          <li key={sub.title || sub.name} className="pt-1">
+                          <li key={sub.title || sub.name} className="pt-0.5">
                             <button
                               onClick={() => toggleGroup(sub.title || sub.name)}
-                              className={`relative flex w-full items-center justify-between py-2 pl-12 pr-6 transition-all duration-200 ${isSubActive ? 'font-semibold text-white' : 'text-blue-200/80 hover:text-white'}`}
+                              className={`relative flex w-full items-center justify-between py-2 pl-8 pr-4 mx-1.5 rounded-lg transition-all duration-200 text-xs ${
+                                isSubActive ? 'font-bold text-white' : 'text-blue-200/80 hover:text-white hover:bg-white/5'
+                              }`}
                             >
                               <div className="flex items-center">
                                 <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
-                                <span className="ml-3 whitespace-nowrap text-[14px]">{sub.name || sub.title}</span>
+                                <span className="ml-2.5 whitespace-nowrap text-xs font-semibold">{sub.name || sub.title}</span>
                               </div>
-                              <ChevronDown size={14} className={`transition-transform duration-200 ${isSubExpanded ? 'rotate-180' : ''}`} />
+                              <ChevronDown size={12} className={`transition-transform duration-200 text-white/50 ${isSubExpanded ? 'rotate-180 text-white' : ''}`} />
                             </button>
 
                             {isSubExpanded && (
-                              <ul className="mt-1 space-y-1 bg-black/20 py-1.5">
+                              <ul className="mt-1 space-y-0.5 bg-black/20 py-1.5 rounded-lg mx-1.5 border-l-2 border-white/10 pl-2">
                                 {sub.subItems.map((nested) => (
                                   <li key={nested.path}>
                                     <NavLink
                                       to={buildPreservedPath(nested.path, location.search)}
                                       className={({ isActive }) =>
-                                        `relative flex items-center py-2 pl-20 pr-6 transition-all duration-200 ${isActive ? 'border-l-4 border-vnpost-orange bg-white/5 font-bold text-white' : 'border-l-4 border-transparent text-blue-200/70 hover:bg-white/5 hover:text-white'}`
+                                        `relative flex items-center py-1.5 pl-6 pr-3 rounded-md transition-all duration-200 text-xs ${
+                                          isActive
+                                            ? 'bg-white/15 text-white font-bold backdrop-blur-xs border border-white/15 shadow-2xs before:absolute before:left-2 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-vnpost-orange'
+                                            : 'text-blue-200/70 hover:bg-white/10 hover:text-white'
+                                        }`
                                       }
                                     >
                                       <div className="flex-shrink-0 scale-75 opacity-70">{nested.icon}</div>
-                                      <span className="ml-2.5 whitespace-nowrap text-[13px]">{nested.name}</span>
+                                      <span className="ml-2 whitespace-nowrap text-[12px]">{nested.name}</span>
                                     </NavLink>
                                   </li>
                                 ))}
@@ -178,10 +204,10 @@ export function Breadcrumb() {
   if (pathnames.length === 0) return null;
 
   return (
-    <nav className="mb-4 flex items-center text-sm text-[var(--color-text-muted)]" aria-label="Breadcrumb">
-      <ol className="flex items-center space-x-2">
-        <li>
-          <Link to="/" className="transition-colors hover:text-[var(--color-primary-600)]">
+    <nav className="mb-4 flex items-center text-xs md:text-sm text-slate-500 select-none" aria-label="Breadcrumb">
+      <ol className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/60 backdrop-blur-md border border-white/80 shadow-xs">
+        <li className="inline-flex items-center">
+          <Link to="/" className="inline-flex items-center gap-1.5 font-medium text-slate-600 hover:text-[var(--color-vnpost-blue)] transition-colors rounded-lg p-1 hover:bg-white/80">
             Home
           </Link>
         </li>
@@ -191,14 +217,14 @@ export function Breadcrumb() {
           const title = value.charAt(0).toUpperCase() + value.slice(1);
 
           return (
-            <li key={to} className="flex items-center">
-              <ChevronRight className="mx-1 h-4 w-4" />
+            <li key={to} className="inline-flex items-center gap-1.5">
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               {isLast ? (
-                <span className="font-semibold text-[var(--color-text-main)]" aria-current="page">
+                <span className="font-semibold text-slate-900 px-1 py-0.5" aria-current="page">
                   {title}
                 </span>
               ) : (
-                <Link to={to} className="transition-colors hover:text-[var(--color-primary-600)]">
+                <Link to={to} className="font-medium text-slate-600 hover:text-[var(--color-vnpost-blue)] transition-colors px-1 py-0.5 rounded-md hover:bg-white/80">
                   {title}
                 </Link>
               )}
@@ -210,11 +236,7 @@ export function Breadcrumb() {
   );
 }
 
-// Composition-safe, debounced search input (DEFECT A remediation, 2026-08-11): see
-// searchCommitController.js for the root cause and full contract. The DOM input stays
-// locally controlled while typing/composing (never resets mid-composition, never loses
-// focus) and only pushes a committed value up to the caller (which drives the URL/search
-// state) via the controller — never on every keystroke, never mid-IME-composition.
+// Composition-safe, debounced search input (DEFECT A remediation, 2026-08-11)
 function GlobalFilterBarSearchInput({ searchValue, onSearchChange }) {
   const [localValue, setLocalValue] = useState(searchValue ?? '');
   const controllerRef = useRef(null);
@@ -226,9 +248,6 @@ function GlobalFilterBarSearchInput({ searchValue, onSearchChange }) {
 
   useEffect(() => () => controllerRef.current?.dispose(), []);
 
-  // Sync from an external change to searchValue (e.g. a "Xóa từ khóa" action
-  // elsewhere on the page) — but never while the user is actively composing, which
-  // would stomp on an in-progress IME sequence.
   useEffect(() => {
     if (composingRef.current) return;
     setLocalValue(searchValue ?? '');
@@ -282,9 +301,9 @@ export function GlobalFilterBar({
   actions,
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm hover:shadow-md transition-all duration-150 motion-reduce:transition-none xl:flex-row xl:items-center xl:justify-between">
+    <div className="flex flex-col gap-3 rounded-2xl border border-white/80 bg-white/80 p-4 shadow-sm backdrop-blur-md hover:shadow-md transition-all duration-150 motion-reduce:transition-none xl:flex-row xl:items-center xl:justify-between">
       <div className="flex flex-1 flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 shadow-2xs backdrop-blur-xs transition-all duration-150 hover:border-blue-400 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/30">
           <CalendarDays size={16} className="text-slate-400 shrink-0" />
           <input
             type="date"
@@ -295,7 +314,7 @@ export function GlobalFilterBar({
           />
         </div>
         <span className="text-slate-400 font-semibold">-</span>
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 shadow-2xs backdrop-blur-xs transition-all duration-150 hover:border-blue-400 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/30">
           <CalendarDays size={16} className="text-slate-400 shrink-0" />
           <input
             type="date"
@@ -306,7 +325,7 @@ export function GlobalFilterBar({
           />
         </div>
         {showKpiFilter ? (
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 shadow-2xs backdrop-blur-xs transition-all duration-150 hover:border-blue-400 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/30">
             <Filter size={16} className="text-slate-400 shrink-0" />
             <select
               value={kpiValue}
@@ -320,7 +339,7 @@ export function GlobalFilterBar({
             </select>
           </div>
         ) : null}
-        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 shadow-2xs backdrop-blur-xs transition-all duration-150 hover:border-blue-400 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/30">
           <Filter size={16} className="text-slate-400 shrink-0" />
           <select
             value={bcvhValue}
@@ -334,7 +353,7 @@ export function GlobalFilterBar({
             ))}
           </select>
         </div>
-        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-xs transition-all duration-150 hover:border-blue-400 hover:bg-slate-50/50 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600">
+        <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2 shadow-2xs backdrop-blur-xs transition-all duration-150 hover:border-blue-400 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-600/30">
           <Search size={16} className="text-slate-400 shrink-0" />
           <GlobalFilterBarSearchInput searchValue={searchValue} onSearchChange={onSearchChange} />
         </div>
@@ -352,10 +371,10 @@ export function PageToolbar({ children }) {
 
 export function GlobalLoadingOverlay({ label = 'Đang tải...' }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/70 backdrop-blur-sm">
-      <div className="flex items-center gap-3 rounded-2xl border border-[var(--color-surface-200)] bg-white px-5 py-4 shadow-lg">
-        <LoaderCircle className="h-5 w-5 animate-spin text-[var(--color-primary-600)]" />
-        <span className="text-sm font-medium text-[var(--color-text-main)]">{label}</span>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/25 backdrop-blur-md">
+      <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/95 px-6 py-4 shadow-2xl backdrop-blur-xl">
+        <LoaderCircle className="h-5 w-5 animate-spin text-[var(--color-vnpost-blue)]" />
+        <span className="text-sm font-semibold text-slate-800">{label}</span>
       </div>
     </div>
   );
@@ -363,13 +382,13 @@ export function GlobalLoadingOverlay({ label = 'Đang tải...' }) {
 
 export function GlobalErrorOverlay({ title = 'Đã xảy ra lỗi', description }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/70 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-md rounded-2xl border border-red-100 bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/25 backdrop-blur-md">
+      <div className="mx-4 w-full max-w-md rounded-2xl border border-red-200 bg-white/95 p-6 shadow-2xl backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <AlertTriangle className="h-6 w-6 text-red-500" />
-          <h3 className="text-lg font-semibold text-[var(--color-text-main)]">{title}</h3>
+          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
         </div>
-        {description ? <p className="mt-3 text-sm text-[var(--color-text-muted)]">{description}</p> : null}
+        {description ? <p className="mt-3 text-sm text-slate-600">{description}</p> : null}
       </div>
     </div>
   );
@@ -388,7 +407,7 @@ export function SharedLayout({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-vnpost-bg font-sans">
+    <div className="flex h-screen overflow-hidden bg-glass-canvas font-sans">
       <SidebarNavigation
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -402,7 +421,7 @@ export function SharedLayout({
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           <div className="mx-auto flex h-full max-w-[1600px] flex-col gap-6 p-4 md:p-6">
             {showBreadcrumb ? <Breadcrumb /> : null}
-            {title ? <h1 className="text-2xl font-bold text-[var(--color-text-main)]">{title}</h1> : null}
+            {title ? <h1 className="text-2xl font-bold text-slate-900">{title}</h1> : null}
             {toolbar ? <PageToolbar>{toolbar}</PageToolbar> : null}
             {globalFilters ? <div>{globalFilters}</div> : null}
             <div className="min-h-0 flex-1">{children}</div>
