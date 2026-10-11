@@ -2265,3 +2265,7 @@ PO decisions: column titles of report tables are order buttons in every indicato
 ## 2026-10-11 - F1.1 PAIR TABLE PICTURE: TOP N ROWS
 
 PO: the picture of the long accepting-office table was too tall and tiny. The camera now takes the top N rows (15/20/25/30/all, default 25) in the order chosen, without the controls, with a "top N / total" caption; screen restored after. Checked with 67 offices in a real browser: readable 1368x1760 picture. Standard updated (long tables). Frontend 646/646. Manifest Section 13: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.
+
+## 2026-10-11 - F1.1 PAIR TABLE PICTURE: READING LAYOUT
+
+PO: the top-25 picture still looked tiny. While capturing, the table now uses a reading layout (text ~2x, even column widths, narrow frame, no controls, empty columns left out, default top 20). Checked in a real browser; frontend 647/647. Manifest Section 13: docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md.

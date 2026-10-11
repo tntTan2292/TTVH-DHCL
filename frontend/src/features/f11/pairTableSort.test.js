@@ -71,3 +71,18 @@ test('the picture of the table takes only the top N rows in the chosen order, wi
   assert.ok((source.match(/data-no-capture="true"/g) || []).length >= 6);
   assert.match(source, /\[15, 20, 25, 30\]/);
 });
+
+test('while the picture is taken the table is laid out for reading: big text, even columns, narrow frame, no controls (PO 2026-10-11)', async () => {
+  const source = fs.readFileSync(new URL('./components/F11PairTableBlock.jsx', import.meta.url), 'utf8');
+  const css = source.slice(source.indexOf('export const PAIR_CAPTURE_CSS'), source.indexOf('export default function F11PairTableBlock'));
+  assert.match(css, /\.pair-capturing \{ width: fit-content/);
+  assert.match(css, /\.pair-name \{ font-size: 22px/); // about twice the 11-12 px of the screen layout
+  assert.match(css, /\.pair-rate \{ font-size: 22px/);
+  assert.match(css, /thead th \{ width: 132px/); // one even width for every delivering-unit column
+  assert.match(css, /\[data-no-capture="true"\] \{ display: none !important; \}/); // controls take no room while the frame is measured
+  assert.match(css, /\.pair-legend, \.pair-capturing \.pair-foot \{ width: 0; min-width: 100%; \}/); // long one-line texts do not widen the frame
+  assert.match(source, /useState\(20\); \/\/ number \| 'all'/); // default top 20
+  assert.match(source, /captionFontSize=\{17\}/);
+  // a delivering-unit column with no parcel at all is left out of the picture
+  assert.match(source, /capturing\s*\?\s*sortedColumns\.filter/);
+});

@@ -8,7 +8,7 @@ import {
   F13_HEATMAP_DOT_CLASS,
 } from '../../../components/f13/f13HeatmapBandCatalog.js';
 import { buildMonthlyHeatmapLegend, indicatorTheme } from '../../indicator/indicatorConfig.js';
-import { nextSortState, sortRowsBy } from '../../../components/common/tableSort.js';
+import { cellFieldValue, nextSortState, sortRowsBy } from '../../../components/common/tableSort.js';
 import { describePairSort, orderPairColumns, pairRowValue } from './f11PairTableSort.js';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { waitForNextPaint } from '../../../components/common/blockCaptureHelper.js';
@@ -29,6 +29,37 @@ function MiniSort({ field, label, sort, onSort, activeClassName }) {
   );
 }
 
+// While the picture is taken the block is laid out for reading in a chat window (PO 2026-10-10): text about twice
+// as large, columns of one even width that fit their content, rows only as high as needed, the frame as narrow as
+// the table. Selectors use the pair-* markers below; the screen layout is untouched the rest of the time.
+export const PAIR_CAPTURE_CSS = `
+.pair-capturing { width: fit-content !important; max-width: none !important; }
+.pair-capturing .pair-table { table-layout: fixed; width: auto; border-collapse: collapse; }
+.pair-capturing .pair-table th, .pair-capturing .pair-table td { padding: 12px 6px; }
+.pair-capturing .pair-table thead th { width: 132px; min-width: 0; }
+.pair-capturing .pair-table thead th.pair-th-first { width: 310px; text-align: left; padding-left: 16px; font-size: 18px; }
+.pair-capturing .pair-table td:first-child { padding-left: 16px; }
+.pair-capturing .pair-th-name { font-size: 17px; line-height: 1.15; white-space: nowrap; }
+.pair-capturing .pair-th-code { font-size: 14px; }
+.pair-capturing .pair-th-total { font-size: 17px; white-space: nowrap; }
+.pair-capturing thead svg { display: none; }
+.pair-capturing tfoot td:first-child { font-size: 20px; }
+.pair-capturing .pair-name { font-size: 22px; line-height: 1.2; font-weight: 700; white-space: nowrap; }
+.pair-capturing .pair-code { font-size: 14px; margin-top: 2px; }
+.pair-capturing .pair-rate { font-size: 22px; line-height: 1.2; padding: 3px 10px; border-radius: 8px; }
+.pair-capturing .pair-vol { font-size: 16px; margin-top: 5px; }
+.pair-capturing .pair-title { font-size: 28px; }
+.pair-capturing .pair-subtitle { font-size: 16px; }
+.pair-capturing .pair-chip { font-size: 15px; }
+.pair-capturing .pair-legend { font-size: 15px; margin-top: 0; padding-top: 0; border-top: 0; }
+.pair-capturing .pair-controls { padding-top: 6px; padding-bottom: 12px; }
+/* the controls are not in the picture, so they must not take room while the frame is measured either */
+.pair-capturing [data-no-capture="true"] { display: none !important; }
+.pair-capturing .pair-foot { font-size: 14px; gap: 8px; }
+/* long one-line texts must not widen the frame: they wrap inside the width of the table */
+.pair-capturing .pair-legend, .pair-capturing .pair-foot { width: 0; min-width: 100%; }
+`;
+
 export default function F11PairTableBlock({ anchorDate, toDate }) {
   const indicator = useIndicator();
   const theme = indicatorTheme(indicator);
@@ -48,7 +79,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   const [highlightedCol, setHighlightedCol] = useState(null);
   // The picture of this table (PO 2026-10-10): 60+ offices make a tall, tiny image, so the camera takes only the
   // top N rows in the order the user chose (default 25), without the controls, plus the total row.
-  const [captureTop, setCaptureTop] = useState(25); // number | 'all'
+  const [captureTop, setCaptureTop] = useState(20); // number | 'all'
   const [capturing, setCapturing] = useState(false);
 
   const [state, setState] = useState({
@@ -125,7 +156,12 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   }, [rows, searchTerm, sort]);
 
   const visibleRows = capturing && captureTop !== 'all' ? filteredAndSortedRows.slice(0, captureTop) : filteredAndSortedRows;
-  const orderedColumns = useMemo(() => orderPairColumns(columns, totalRow, colOrder), [columns, totalRow, colOrder]);
+  const sortedColumns = useMemo(() => orderPairColumns(columns, totalRow, colOrder), [columns, totalRow, colOrder]);
+  // in the picture a delivering-unit column with no parcel at all is left out (it would only be an empty strip)
+  const orderedColumns = capturing
+    ? sortedColumns.filter((col) => cellFieldValue(totalRow?.cells?.[col.ma_bcvh], 'volume') !== null
+      || visibleRows.some((row) => cellFieldValue(row.cells?.[col.ma_bcvh], 'volume') !== null))
+    : sortedColumns;
 
   const toggleColumnHighlight = (colCode) => {
     setHighlightedCol((prev) => (prev === colCode ? null : colCode));
@@ -140,7 +176,8 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   const sectionRef = useRef(null);
 
   return (
-    <section ref={sectionRef} className="rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-all duration-150">
+    <section ref={sectionRef} className={`rounded-2xl border border-slate-200/90 bg-white shadow-sm transition-all duration-150 ${capturing ? 'pair-capturing' : ''}`}>
+      {capturing ? <style>{PAIR_CAPTURE_CSS}</style> : null}
       <div className="flex flex-col gap-3 border-b border-slate-200/80 bg-slate-50/80 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-2.5">
           <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${theme.button} shadow-2xs`}>
@@ -148,14 +185,14 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-slate-900">Bưu cục chấp nhận × BCVH phát</h2>
+              <h2 className="pair-title text-base font-bold text-slate-900">Bưu cục chấp nhận × BCVH phát</h2>
               {meta.office_count ? (
-                <span className="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                <span className="pair-chip inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
                   {meta.office_count} bưu cục chấp nhận
                 </span>
               ) : null}
             </div>
-            <p className="mt-0.5 text-xs font-medium text-slate-500">
+            <p className="pair-subtitle mt-0.5 text-xs font-medium text-slate-500">
               Ma trận chất lượng phát nội tỉnh theo từng cặp tuyến chấp nhận và phát trả ({periodLabel})
             </p>
           </div>
@@ -220,13 +257,14 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               dateOrPeriod={effectiveAnchor}
               beforeCapture={async () => { setCapturing(true); await waitForNextPaint(); }}
               afterCapture={() => setCapturing(false)}
+              captionFontSize={17}
             />
           </div>
         </div>
       </div>
 
       {/* Controls Bar */}
-      <div className="border-b border-slate-200/70 bg-white px-4 py-2.5">
+      <div className="pair-controls border-b border-slate-200/70 bg-white px-4 py-2.5">
         <div data-no-capture="true" className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 items-center gap-2 max-w-md">
             <div className="relative flex-1">
@@ -278,7 +316,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
         </div>
 
         {/* Legend */}
-        <div className="mt-2.5 flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
+        <div className="pair-legend mt-2.5 flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 text-[11px] text-slate-600">
           <span className="font-bold text-slate-700">Quy tắc màu:</span>
           {buildMonthlyHeatmapLegend(indicator).map((entry) => (
             <div key={entry.tone} className="flex items-center gap-1">
@@ -313,7 +351,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
         ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200 shadow-2xs">
             <div className="max-h-[560px] overflow-x-auto overflow-y-auto">
-              <table className="w-full border-collapse text-left text-xs text-slate-700">
+              <table className="pair-table w-full border-collapse text-left text-xs text-slate-700">
                 <thead className="sticky top-0 z-20 bg-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-700 shadow-2xs">
                   <tr>
                     <SortableTh
@@ -321,7 +359,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       sort={sort}
                       onSort={handleSort}
                       activeClassName={theme.sortActive}
-                      className="sticky left-0 z-30 bg-slate-100 px-3.5 py-3 border-r border-b border-slate-200 min-w-[200px] text-left"
+                      className="pair-th-first sticky left-0 z-30 bg-slate-100 px-3.5 py-3 border-r border-b border-slate-200 min-w-[200px] text-left"
                     >
                       Bưu cục chấp nhận
                     </SortableTh>
@@ -339,9 +377,9 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                               : 'hover:bg-slate-200/70'
                           }`}
                         >
-                          <div className="text-[11px] leading-tight font-bold">{col.ten_bcvh}</div>
+                          <div className="pair-th-name text-[11px] leading-tight font-bold">{capturing ? String(col.ten_bcvh).replace(/^BCVH\s+/i, '') : col.ten_bcvh}</div>
                           {col.ma_bcvh !== 'OTHER' ? (
-                            <div className="text-[10px] font-normal opacity-75">{col.ma_bcvh}</div>
+                            <div className="pair-th-code text-[10px] font-normal opacity-75">{col.ma_bcvh}</div>
                           ) : null}
                           <div data-no-capture="true" className="mt-1 flex items-center justify-center gap-1">
                             <MiniSort field={`${col.ma_bcvh}:volume`} label="SL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
@@ -354,7 +392,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       scope="col"
                       className="px-3.5 py-3 text-center border-b border-slate-200 min-w-[110px] bg-slate-200/80 font-black text-slate-900"
                     >
-                      <div>Tổng cộng</div>
+                      <div className="pair-th-total">Tổng cộng</div>
                       <div data-no-capture="true" className="mt-1 flex items-center justify-center gap-1">
                         <MiniSort field="total:volume" label="SL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
                         <MiniSort field="total:rate" label="TL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
@@ -369,9 +407,9 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       className="hover:bg-slate-50/80 transition-colors"
                     >
                       <td className="sticky left-0 z-10 bg-white px-3.5 py-2.5 font-medium border-r border-slate-200 whitespace-nowrap shadow-xs">
-                        <div className="text-slate-900 font-semibold">{row.ten_chap_nhan}</div>
+                        <div className="pair-name text-slate-900 font-semibold">{row.ten_chap_nhan}</div>
                         {row.ma_chap_nhan ? (
-                          <div className="text-[10px] text-slate-400">{row.ma_chap_nhan}</div>
+                          <div className="pair-code text-[10px] text-slate-400">{row.ma_chap_nhan}</div>
                         ) : null}
                       </td>
 
@@ -394,10 +432,10 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                                 title={`Đạt ${cellData.passed}/${cellData.volume} (${cellData.rate}%)${cellData.blank ? ` · Trống: ${cellData.blank}` : ''}`}
                                 className="flex flex-col items-center"
                               >
-                                <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-bold tabular-nums ${toneClass}`}>
+                                <span className={`pair-rate inline-block rounded border px-1.5 py-0.5 text-xs font-bold tabular-nums ${toneClass}`}>
                                   {cellData.rate !== null ? `${Number(cellData.rate).toFixed(1)}%` : '—'}
                                 </span>
-                                <span className="mt-0.5 text-[10px] font-medium text-slate-500 tabular-nums">
+                                <span className="pair-vol mt-0.5 text-[10px] font-medium text-slate-500 tabular-nums">
                                   {Number(cellData.volume).toLocaleString('vi-VN')} BG
                                 </span>
                               </div>
@@ -416,10 +454,10 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                             const totalToneClass = F13_HEATMAP_TONE_CLASS[totalBand.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
                             return (
                               <div className="flex flex-col items-center">
-                                <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-black tabular-nums ${totalToneClass}`}>
+                                <span className={`pair-rate inline-block rounded border px-1.5 py-0.5 text-xs font-black tabular-nums ${totalToneClass}`}>
                                   {row.total.rate !== null ? `${Number(row.total.rate).toFixed(1)}%` : '—'}
                                 </span>
-                                <span className="mt-0.5 text-[10px] font-bold text-slate-700 tabular-nums">
+                                <span className="pair-vol mt-0.5 text-[10px] font-bold text-slate-700 tabular-nums">
                                   {Number(row.total.volume).toLocaleString('vi-VN')} BG
                                 </span>
                               </div>
@@ -460,10 +498,10 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                                 title={`Tổng cột: Đạt ${cellData.passed}/${cellData.volume} (${cellData.rate}%)`}
                                 className="flex flex-col items-center"
                               >
-                                <span className={`inline-block rounded border px-2 py-0.5 text-xs font-black tabular-nums ${toneClass}`}>
+                                <span className={`pair-rate inline-block rounded border px-2 py-0.5 text-xs font-black tabular-nums ${toneClass}`}>
                                   {cellData.rate !== null ? `${Number(cellData.rate).toFixed(1)}%` : '—'}
                                 </span>
-                                <span className="mt-0.5 text-[10px] font-black text-slate-800 tabular-nums">
+                                <span className="pair-vol mt-0.5 text-[10px] font-black text-slate-800 tabular-nums">
                                   {Number(cellData.volume).toLocaleString('vi-VN')} BG
                                 </span>
                               </div>
@@ -482,10 +520,10 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                             const grandToneClass = F13_HEATMAP_TONE_CLASS[grandBand.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
                             return (
                               <div className="flex flex-col items-center">
-                                <span className={`inline-block rounded border px-2 py-0.5 text-xs font-black tabular-nums ${grandToneClass}`}>
+                                <span className={`pair-rate inline-block rounded border px-2 py-0.5 text-xs font-black tabular-nums ${grandToneClass}`}>
                                   {totalRow.total.rate !== null ? `${Number(totalRow.total.rate).toFixed(1)}%` : '—'}
                                 </span>
-                                <span className="mt-0.5 text-[10px] font-black text-slate-900 tabular-nums">
+                                <span className="pair-vol mt-0.5 text-[10px] font-black text-slate-900 tabular-nums">
                                   {Number(totalRow.total.volume).toLocaleString('vi-VN')} BG
                                 </span>
                               </div>
@@ -501,7 +539,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               </table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-3.5 py-2 text-[11px] text-slate-500 border-t border-slate-200">
+            <div className="pair-foot flex flex-wrap items-center justify-between gap-2 bg-slate-50 px-3.5 py-2 text-[11px] text-slate-500 border-t border-slate-200">
               <span>
                 {capturing && captureTop !== 'all' && filteredAndSortedRows.length > visibleRows.length
                   ? `Ảnh chụp: top ${visibleRows.length} / ${filteredAndSortedRows.length} bưu cục chấp nhận, sắp theo ${describePairSort(sort, columns)}.`

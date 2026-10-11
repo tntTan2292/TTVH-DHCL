@@ -107,7 +107,7 @@ export function downloadBlob(blob, filename) {
  * Capture an HTMLElement to PNG Blob with caption and 2x resolution,
  * expanding scrollable containers temporarily.
  */
-export async function captureElementToBlob(element, { captionInfo } = {}) {
+export async function captureElementToBlob(element, { captionInfo, captionFontSize = 12 } = {}) {
   if (!element) throw new Error('Target element for capture not found');
 
   // Filter out any elements marked with data-no-capture or no-capture class
@@ -156,12 +156,12 @@ export async function captureElementToBlob(element, { captionInfo } = {}) {
     captionElement.style.display = 'flex';
     captionElement.style.justifyContent = 'space-between';
     captionElement.style.alignItems = 'center';
-    captionElement.style.fontSize = '12px';
+    captionElement.style.fontSize = `${captionFontSize}px`;
     captionElement.style.fontWeight = '600';
     captionElement.style.color = '#334155';
     captionElement.innerHTML = `
       <span><strong style="color: #003E7E;">${captionInfo.indicator}</strong> • ${captionInfo.blockTitle}${captionInfo.dateOrPeriod ? ` (${captionInfo.dateOrPeriod})` : ''}</span>
-      <span style="font-size: 11px; color: #64748b; font-weight: normal;">Xuất lúc: ${captionInfo.formattedTime}</span>
+      <span style="font-size: ${Math.round(captionFontSize * 0.92)}px; color: #64748b; font-weight: normal;">Xuất lúc: ${captionInfo.formattedTime}</span>
     `;
     element.appendChild(captionElement);
   }
@@ -211,6 +211,7 @@ export async function executeBlockCapture({
   action = 'copy', // 'copy' (clipboard, or a preview to copy by hand) | 'save'
   beforeCapture = null, // async: lets a block shrink itself for the picture (e.g. only the top rows of a long table)
   afterCapture = null, // restores the block, always called
+  captionFontSize = 12, // px of the caption line under the picture (a block shot at a larger scale passes a larger size)
 }) {
   const captionInfo = buildCaptureCaption({ indicator, blockTitle, dateOrPeriod });
   const filename = buildCaptureFileName({ indicator, blockTitle, dateOrPeriod });
@@ -219,7 +220,7 @@ export async function executeBlockCapture({
   const blobPromise = (async () => {
     try {
       if (beforeCapture) await beforeCapture();
-      return await captureElementToBlob(element, { captionInfo });
+      return await captureElementToBlob(element, { captionInfo, captionFontSize });
     } finally {
       if (afterCapture) afterCapture();
     }

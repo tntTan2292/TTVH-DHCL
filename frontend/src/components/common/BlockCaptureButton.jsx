@@ -24,6 +24,7 @@ export default function BlockCaptureButton({
   className = '',
   beforeCapture = null,
   afterCapture = null,
+  captionFontSize = 12,
 }) {
   const indicator = useIndicator();
   const indicatorLabel = indicator?.moduleLabel || 'F1.3';
@@ -69,6 +70,7 @@ export default function BlockCaptureButton({
         action,
         beforeCapture,
         afterCapture,
+        captionFontSize,
       });
 
       if (result.action === 'preview') {
