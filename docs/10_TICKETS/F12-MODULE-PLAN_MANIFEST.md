@@ -17,7 +17,7 @@ Evidence-backed audit of the two real F1.2 exports (Huế detail, national) and 
 
 ## 3. Current Status
 
-- State: `AUDIT COMPLETE / AWAITING PO DECISIONS` (Q-F12-1..7).
+- State: `AUDIT COMPLETE / PO DECISIONS RECORDED` (2026-10-11: PO accepted every recommendation, PD-F12-5..11 in the checkpoint Section 2; only the F1.2 target rate remains open). F12-PHASE-0..2 and 4 are unblocked but not yet activated.
 - PO UI Check Required: `No` (planning only).
 
 ## 4. Required Reading

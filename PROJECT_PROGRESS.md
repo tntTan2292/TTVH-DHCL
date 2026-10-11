@@ -2277,3 +2277,7 @@ PO: the picture was still tall and thin. In the capture layout the cell shows ra
 ## 2026-10-11 - F1.2 SOURCE AUDIT AND PLAN
 
 PO asked to prepare F1.2 (thu gom liên tỉnh) like F1.1, accepting side only. Audited the real Huế detail and national exports of 10/10: 1 758 parcels, 1 620 Đạt (92,15 %), rating = elapsed <= 10 h on every row, national Huế row equals the detail, Huế 8th / 34. Data contract, phase plan (Phase 0-4, Dashboard) and questions Q-F12-1..7 for the PO. Planning only. Manifest: docs/10_TICKETS/F12-MODULE-PLAN_MANIFEST.md.
+
+## 2026-10-11 - F1.2 PLAN: PO DECISIONS
+
+PO accepted every recommendation of the F1.2 audit (portal rate definition, BĐ10 date and file renaming, rank over 34 accepting provinces, two-level unit -> office ranking with Khách hàng lớn shown apart, teal colour family, rolling 12 months, 3-day refresh). Only the F1.2 target rate is still open. Recorded as PD-F12-5..11 in docs/06_REVIEWS/Shared/F12-MODULE-PLAN_CHECKPOINT_001.md.

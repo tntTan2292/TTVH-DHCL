@@ -19,7 +19,7 @@
 ## 1. Ticket State
 
 - Ticket: `F12-MODULE-PLAN` — F1.2 (Chất lượng thu gom bưu gửi liên tỉnh) source audit and overall plan.
-- State: `AUDIT COMPLETE / AWAITING PO DECISIONS` — 2026-10-11.
+- State: `AUDIT COMPLETE / PO DECISIONS RECORDED (PD-F12-5..11)` — 2026-10-11. Only the F1.2 target rate (Q-F12-5) is still open.
 - Nature: planning and documentation only. No product code, schema, database, Import, portal call or file under `Data DKCL/` was touched. The two workbooks were copied to the session scratchpad and opened read-only; analysis scripts stayed in the scratchpad.
 - Executor: Claude Code. As for F1.1 (DEC-021), the data contract (Section 9) should be challenged by a different model before Phase 1 is marked PASS.
 
@@ -31,6 +31,13 @@
 | PD-F12-2 | F1.2 has **only the accepting side** (Bưu cục chấp nhận). There is no delivery stage, so no delivering BCVH and no accepting × delivering pair table. |
 | PD-F12-3 | Report views: **Ngày, Tuần, Tháng and Lũy kế 12** (12-month cumulative). |
 | PD-F12-4 | Import reuses the F1.1 approach (shared Import pipeline, header-keyed reader, Huế detail lane + TCT national lane, later automatic download). |
+| PD-F12-5 | (closes Q-F12-1) Portal definition: rate = Đạt / parcels with BĐ10 (1 620 / 1 758 = 92,15 %); the "chưa đủ thông tin" count is outside the denominator and shown beside the rate from the national row. |
+| PD-F12-6 | (closes Q-F12-2) Business date = BĐ10 date, N-1 of the export; manual files renamed `F1.2-YYYY.MM.DD.xlsx`; automatic lane uses the request date. |
+| PD-F12-7 | (closes Q-F12-3) National rank by accepting province over the 34 frozen codes; EMS, Hà Nội/HCM centres and Bình Dương ignored. |
+| PD-F12-8 | (closes Q-F12-4) Huế ranking in two levels: 37 units (`Tên Huyện`) with drill-down to the 73 accepting offices; `531120 Khách hàng lớn` counted in the total, shown apart, not ranked (as F1.1 PD-11). |
+| PD-F12-9 | (Q-F12-5, colour part) Light teal/cyan colour family. **Target rate still to be set by the PO.** |
+| PD-F12-10 | (closes Q-F12-6) Lũy kế 12 = rolling 12 months ending at the selected month. |
+| PD-F12-11 | (closes Q-F12-7) Refresh window: last 3 days re-imported on each Auto Backfill, as F1.1. |
 
 ## 3. Source File Inventory (read-only)
 
