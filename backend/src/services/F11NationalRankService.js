@@ -21,6 +21,18 @@ const TIE_BEHAVIOR = 'Thứ tự theo tỷ lệ giảm dần, sau đó theo sả
 const DEFAULT_PROVINCE_CODE = '53';
 const RANKED_PLACEHOLDERS = NATIONAL_RANKED_PROVINCE_CODES.map(() => '?').join(', ');
 
+// Where the national rows live and which columns rank them. F1.1 is the default; F1.2 passes its own
+// source (F12NationalRankService) and reuses every method unchanged.
+const F11_RANK_SOURCE = Object.freeze({
+    table: 'fact_f11_national',
+    unitColumn: 'ma_tinh_phat',
+    nameColumn: 'ten_tinh_phat',
+    volumeColumn: 'sl_theo_chi_tieu',
+    passedColumn: 'sl_dung_chi_tieu',
+    metric: METRIC,
+    metricLabel: METRIC_LABEL,
+});
+
 function isIsoDate(value) {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
     const date = new Date(`${value}T00:00:00Z`);
@@ -33,8 +45,9 @@ function rate(passed, volume) {
 }
 
 class F11NationalRankService {
-    constructor(db = defaultDb) {
+    constructor(db = defaultDb, source = F11_RANK_SOURCE) {
         this.db = db;
+        this.source = source;
     }
 
     _all(sql, params = []) {
@@ -74,20 +87,21 @@ class F11NationalRankService {
 
     // Ranked provinces for an inclusive range: one row per delivering province, rows summed first.
     async _rankedRange(startDate, endDate) {
+        const { table, unitColumn, nameColumn, volumeColumn, passedColumn } = this.source;
         return this._all(`
             SELECT
-                ma_tinh_phat AS ma_don_vi,
-                MAX(ten_tinh_phat) AS ten_don_vi,
-                SUM(sl_theo_chi_tieu) AS volume,
-                SUM(sl_dung_chi_tieu) AS passed
-            FROM fact_f11_national
+                ${unitColumn} AS ma_don_vi,
+                MAX(${nameColumn}) AS ten_don_vi,
+                SUM(${volumeColumn}) AS volume,
+                SUM(${passedColumn}) AS passed
+            FROM ${table}
             WHERE ngay_do_kiem BETWEEN ? AND ?
-              AND ma_tinh_phat IN (${RANKED_PLACEHOLDERS})
-            GROUP BY ma_tinh_phat
-            HAVING SUM(sl_theo_chi_tieu) > 0
-            ORDER BY (SUM(sl_dung_chi_tieu) * 1.0 / SUM(sl_theo_chi_tieu)) DESC,
-                     SUM(sl_theo_chi_tieu) DESC,
-                     ma_tinh_phat ASC
+              AND ${unitColumn} IN (${RANKED_PLACEHOLDERS})
+            GROUP BY ${unitColumn}
+            HAVING SUM(${volumeColumn}) > 0
+            ORDER BY (SUM(${passedColumn}) * 1.0 / SUM(${volumeColumn})) DESC,
+                     SUM(${volumeColumn}) DESC,
+                     ${unitColumn} ASC
         `, [startDate, endDate, ...NATIONAL_RANKED_PROVINCE_CODES]);
     }
 
@@ -108,8 +122,8 @@ class F11NationalRankService {
             period_type: startDate === endDate ? 'single_date' : 'selected_range',
             province_code: province.ma_don_vi,
             province_name: province.ten_don_vi,
-            metric: METRIC,
-            metric_label: METRIC_LABEL,
+            metric: this.source.metric,
+            metric_label: this.source.metricLabel,
             metric_value: rate(passed, volume),
             volume,
             passed,
@@ -134,7 +148,7 @@ class F11NationalRankService {
         if (!current) return unavailable;
 
         const previousRow = await this._get(
-            'SELECT MAX(ngay_do_kiem) AS period FROM fact_f11_national WHERE ngay_do_kiem < ?',
+            `SELECT MAX(ngay_do_kiem) AS period FROM ${this.source.table} WHERE ngay_do_kiem < ?`,
             [startDate]
         );
         const previous = previousRow?.period
@@ -163,7 +177,7 @@ class F11NationalRankService {
 
         const provinceCode = await this._provinceCode();
         const previousRow = await this._get(
-            'SELECT MAX(ngay_do_kiem) AS period FROM fact_f11_national WHERE ngay_do_kiem < ?',
+            `SELECT MAX(ngay_do_kiem) AS period FROM ${this.source.table} WHERE ngay_do_kiem < ?`,
             [startDate]
         );
         const previousRanks = new Map();
@@ -194,8 +208,8 @@ class F11NationalRankService {
             period_end: endDate,
             period_type: startDate === endDate ? 'single_date' : 'selected_range',
             previous_period: previousRow?.period || null,
-            metric: METRIC,
-            metric_label: METRIC_LABEL,
+            metric: this.source.metric,
+            metric_label: this.source.metricLabel,
             tie_behavior: TIE_BEHAVIOR,
             total: items.length,
             items,
@@ -208,18 +222,19 @@ class F11NationalRankService {
         if (!uniqueDates.length) return {};
         const provinceCode = await this._provinceCode();
         const datePlaceholders = uniqueDates.map(() => '?').join(', ');
+        const { table, unitColumn, nameColumn, volumeColumn, passedColumn } = this.source;
         const rows = await this._all(`
-            SELECT ngay_do_kiem, ma_tinh_phat AS ma_don_vi, MAX(ten_tinh_phat) AS ten_don_vi,
-                   SUM(sl_theo_chi_tieu) AS volume, SUM(sl_dung_chi_tieu) AS passed
-            FROM fact_f11_national
+            SELECT ngay_do_kiem, ${unitColumn} AS ma_don_vi, MAX(${nameColumn}) AS ten_don_vi,
+                   SUM(${volumeColumn}) AS volume, SUM(${passedColumn}) AS passed
+            FROM ${table}
             WHERE ngay_do_kiem IN (${datePlaceholders})
-              AND ma_tinh_phat IN (${RANKED_PLACEHOLDERS})
-            GROUP BY ngay_do_kiem, ma_tinh_phat
-            HAVING SUM(sl_theo_chi_tieu) > 0
+              AND ${unitColumn} IN (${RANKED_PLACEHOLDERS})
+            GROUP BY ngay_do_kiem, ${unitColumn}
+            HAVING SUM(${volumeColumn}) > 0
             ORDER BY ngay_do_kiem ASC,
-                     (SUM(sl_dung_chi_tieu) * 1.0 / SUM(sl_theo_chi_tieu)) DESC,
-                     SUM(sl_theo_chi_tieu) DESC,
-                     ma_tinh_phat ASC
+                     (SUM(${passedColumn}) * 1.0 / SUM(${volumeColumn})) DESC,
+                     SUM(${volumeColumn}) DESC,
+                     ${unitColumn} ASC
         `, [...uniqueDates, ...NATIONAL_RANKED_PROVINCE_CODES]);
 
         const byDate = rows.reduce((acc, row) => {
@@ -247,6 +262,7 @@ class F11NationalRankService {
 module.exports = {
     F11NationalRankService,
     f11NationalRankService: new F11NationalRankService(),
+    F11_RANK_SOURCE,
     NATIONAL_RANK_METRIC: METRIC,
     NATIONAL_RANK_METRIC_LABEL: METRIC_LABEL,
 };

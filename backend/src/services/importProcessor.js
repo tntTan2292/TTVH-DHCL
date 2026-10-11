@@ -27,6 +27,8 @@ const { F41_HUE_DB_COLUMNS } = require('./f41HueExcelParser');
 const { F41_TCT_DB_COLUMNS } = require('./f41TctExcelParser');
 const { F11_DB_COLUMNS } = require('./f11HueExcelParser');
 const { F11_TCT_DB_COLUMNS } = require('./f11TctExcelParser');
+const { F12_DB_COLUMNS } = require('./f12HueExcelParser');
+const { F12_TCT_DB_COLUMNS } = require('./f12TctExcelParser');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -654,6 +656,74 @@ async function importF11NationalParsedData({ parsedData, ngay_do_kiem, filename,
     }
 }
 
+// F12-PHASE-2/4: F1.2 row import into one dedicated fact table, same transaction contract as the F1.1 imports
+// (delete-by-date only when forced and verified empty, scoped post-write count, FAILED log on error).
+async function importF12RowsIntoTable({ table, columns, sourceLane, parsedData, ngay_do_kiem, filename, forceReimport, triggerSource }) {
+    const totalParsed = parsedData.length;
+    const spec = buildInsertSpec(columns);
+    await run('BEGIN TRANSACTION');
+    let import_log_id = null;
+
+    try {
+        if (forceReimport) {
+            await run(`DELETE FROM ${table} WHERE ngay_do_kiem = ?`, [ngay_do_kiem]);
+            await assertForceReimportDeleteComplete({ factTable: table, ngay_do_kiem, filename });
+        }
+        import_log_id = await insertImportLog({
+            filename,
+            ngay_do_kiem,
+            status: 'SUCCESS',
+            totalRecords: totalParsed,
+            indicator: 'F1.2',
+            sourceLane,
+            triggerSource,
+        });
+
+        let totalInserted = 0;
+        for (let i = 0; i < totalParsed; i += spec.batchSize) {
+            const batch = parsedData.slice(i, i + spec.batchSize);
+            const values = [];
+            for (const row of batch) {
+                for (const column of columns) values.push(row[column] !== undefined ? row[column] : null);
+                values.push(ngay_do_kiem, import_log_id);
+            }
+            const sql = `INSERT OR IGNORE INTO ${table} (${spec.columnList}) VALUES ${batch.map(() => spec.rowPlaceholder).join(', ')}`;
+            const result = await run(sql, values);
+            totalInserted += result.changes;
+        }
+
+        await verifyPostWriteCount({
+            factTable: table,
+            ngay_do_kiem,
+            importLogId: import_log_id,
+            hasImportLogId: true,
+            expectedCount: totalInserted,
+            filename,
+        });
+
+        const skippedRecords = totalParsed - totalInserted;
+        await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);
+        await run('COMMIT');
+        return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
+    } catch (error) {
+        try { await run('ROLLBACK'); } catch { /* rollback failure must not mask the import error */ }
+        try {
+            await insertImportLog({ filename, ngay_do_kiem, status: 'FAILED', totalRecords: totalParsed, errorRecords: totalParsed, indicator: 'F1.2', sourceLane, triggerSource });
+        } catch { /* the FAILED log is best effort */ }
+        throw error;
+    }
+}
+
+// F12-PHASE-2: F1.2 / HUE detail rows (one row per parcel).
+function importF12ParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
+    return importF12RowsIntoTable({ table: 'fact_f12', columns: F12_DB_COLUMNS, sourceLane: 'HUE', parsedData, ngay_do_kiem, filename, forceReimport, triggerSource });
+}
+
+// F12-PHASE-4: F1.2 / TCT national aggregate (one row per accepting province).
+function importF12NationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
+    return importF12RowsIntoTable({ table: 'fact_f12_national', columns: F12_TCT_DB_COLUMNS, sourceLane: 'TCT', parsedData, ngay_do_kiem, filename, forceReimport, triggerSource });
+}
+
 async function importF41NationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
     const totalParsed = parsedData.length;
     const spec = buildInsertSpec(F41_TCT_DB_COLUMNS);
@@ -722,4 +792,6 @@ module.exports = {
     importF41NationalParsedData,
     importF11ParsedData,
     importF11NationalParsedData,
+    importF12ParsedData,
+    importF12NationalParsedData,
 };

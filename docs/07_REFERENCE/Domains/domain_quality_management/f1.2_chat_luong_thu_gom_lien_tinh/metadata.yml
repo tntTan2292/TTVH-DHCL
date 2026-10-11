@@ -1,0 +1,25 @@
+id: "F1.2"
+name: "Chất lượng thu gom bưu gửi liên tỉnh"
+alias: "Thu gom liên tỉnh (Chấp nhận → BĐ10 quét TMS lên xe tại khai thác tỉnh chấp nhận)"
+domain: "Quality Management"
+owner_business: "Product Owner"
+owner_technical: "Architect"
+version: "1.0.0"
+status: "Planned"
+effective_date: "2026-10-11"
+expiration_date: ""
+review_cycle: "TODO - Waiting Product Owner"
+target_rate: 95
+data_sources:
+  - "F1.2_CL_thu_gom_buu_giay_lien_tinh_chi_tiet — file chi tiết cấp bưu gửi (HUE), do DKCL cung cấp"
+  - "F1.2_CL_thu_gom_buu_giay_lien_tinh — file tổng hợp theo tỉnh chấp nhận (TCT), do DKCL cung cấp"
+dependencies:
+  - "docs/06_REVIEWS/Shared/F12-MODULE-PLAN_CHECKPOINT_001.md"
+  - "docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md"
+tags:
+  - "thu gom"
+  - "lien tinh"
+  - "chap nhan"
+  - "BD10"
+  - "10 gio"
+priority: "High"

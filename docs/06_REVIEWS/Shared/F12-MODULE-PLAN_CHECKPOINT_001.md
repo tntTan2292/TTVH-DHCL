@@ -19,7 +19,7 @@
 ## 1. Ticket State
 
 - Ticket: `F12-MODULE-PLAN` — F1.2 (Chất lượng thu gom bưu gửi liên tỉnh) source audit and overall plan.
-- State: `AUDIT COMPLETE / PO DECISIONS RECORDED (PD-F12-5..11)` — 2026-10-11. Only the F1.2 target rate (Q-F12-5) is still open.
+- State: `AUDIT COMPLETE / ALL PO DECISIONS RECORDED (PD-F12-5..12)` — 2026-10-11. Implementation of Phases 0, 1, 2 and 4: `docs/10_TICKETS/F12-PHASE-0-4_MANIFEST.md`.
 - Nature: planning and documentation only. No product code, schema, database, Import, portal call or file under `Data DKCL/` was touched. The two workbooks were copied to the session scratchpad and opened read-only; analysis scripts stayed in the scratchpad.
 - Executor: Claude Code. As for F1.1 (DEC-021), the data contract (Section 9) should be challenged by a different model before Phase 1 is marked PASS.
 
@@ -35,7 +35,8 @@
 | PD-F12-6 | (closes Q-F12-2) Business date = BĐ10 date, N-1 of the export; manual files renamed `F1.2-YYYY.MM.DD.xlsx`; automatic lane uses the request date. |
 | PD-F12-7 | (closes Q-F12-3) National rank by accepting province over the 34 frozen codes; EMS, Hà Nội/HCM centres and Bình Dương ignored. |
 | PD-F12-8 | (closes Q-F12-4) Huế ranking in two levels: 37 units (`Tên Huyện`) with drill-down to the 73 accepting offices; `531120 Khách hàng lớn` counted in the total, shown apart, not ranked (as F1.1 PD-11). |
-| PD-F12-9 | (Q-F12-5, colour part) Light teal/cyan colour family. **Target rate still to be set by the PO.** |
+| PD-F12-9 | (Q-F12-5, colour part) Light teal/cyan colour family. |
+| PD-F12-12 | (closes Q-F12-5) **F1.2 target rate 95 %** (PO chat, 2026-10-11); PO authorized Phases 0, 1, 2 and 4 the same message. |
 | PD-F12-10 | (closes Q-F12-6) Lũy kế 12 = rolling 12 months ending at the selected month. |
 | PD-F12-11 | (closes Q-F12-7) Refresh window: last 3 days re-imported on each Auto Backfill, as F1.1. |
 
@@ -44,7 +45,7 @@
 | File (Downloads) | SHA-256 | Shape |
 | --- | --- | --- |
 | `11-10-2026_21-29-33_F1.2_CL_thu_gom_buu_giay_lien_tinh_chi_tiet(1).xlsx` (detail, Huế) | `26914e1f…ae28d3` | 1 sheet `Worksheet`, 1 header row + 1 758 rows × 35 columns, no merged cells, no total row |
-| `11-10-2026_21-29-58_F1.2_CL_thu_gom_buu_giay_lien_tinh(1).xlsx` (national) | `d12a62e6…ad1ef7` | 1 sheet `Worksheet`, 2 merged header rows + 1 column-number row + 1 grand-total row + 56 unit rows × 20 columns |
+| `11-10-2026_21-29-58_F1.2_CL_thu_gom_buu_giay_lien_tinh(1).xlsx` (national) | `d12a62e6…ad1ef7` | 1 sheet `Worksheet`, 2 merged header rows + 1 column-number row + 1 grand-total row + 53 unit rows × 20 columns |
 
 The file names carry the **export time** (11/10/2026 21:29), not the data date. The data date is 10/10/2026 (Section 4.3) — the N-1 pattern of F1.3/F1.1.
 
@@ -86,9 +87,9 @@ The file names carry the **export time** (11/10/2026 21:29), not the data date. 
 
 | # | Finding |
 | --- | --- |
-| B-1 | Two merged header rows (`Thời gian thực hiện` spans 6 bucket columns), then a column-number row (`1, 2, 3, 4, 5, None, None, 6 … 19`), then the grand-total row (`TT = 1`, no code), then 56 unit rows. The reader must key on the two header rows and skip the number row. |
+| B-1 | Two merged header rows (`Thời gian thực hiện` spans 6 bucket columns), then a column-number row (`1, 2, 3, 4, 5, None, None, 6 … 19`), then the grand-total row (`TT = 1`, no code), then 53 unit rows (corrected 2026-10-11: TT runs 1..54 and TT 1 is the total). The reader must key on the two header rows and skip the number row. |
 | B-2 | Columns: `Mã/Tên tỉnh chấp nhận`, `Mã/Tên BC nhận tin/chấp nhận` (empty at this grouping), `Mã/Tên KHL` (empty), `SL bưu gửi có BĐ10 đóng đi tại khai thác tỉnh chấp nhận` (col 6), `SL … quét TMS lên …` (col 7), `SL đúng thời gian quy định <= 10 giờ` (col 8), `Tỷ lệ` (`9=8/6`, **text** `'92.16%'`), `SL quá quy định (> 10 giờ)`, `Sản lượng chưa đủ thông tin`, buckets `<=10 / <=12 / >12–24 / >24–36 / >36–48 / >48 giờ`, `SL Loại trừ`. |
-| B-3 | Grand total = sum of the 56 rows on every numeric column (260 522; 264 219; 240 092; 24 127; 14 171; 675) — rows are additive, no double counting. |
+| B-3 | Grand total = sum of the 53 rows on every numeric column (260 522; 264 219; 240 092; 24 127; 14 171; 675) — rows are additive, no double counting. |
 | B-4 | Units are accepting provinces **plus** EMS (`'01'`, text), 8 Hà Nội centres (11, 12, 14, 15, 21, 34, 37, 49), 9 HCM centres (71–79) and Bình Dương (82). All 34 frozen ranked codes (`NATIONAL_RANKED_PROVINCE_CODES`) are present. |
 | B-5 | Centres show rates above 100 % (Chợ Lớn 153,64 %, Long Biên 134,79 %) because the numerator follows col 7 (TMS) while the published rate divides by col 6. For all 34 ranked provinces col 6 = col 7, so their published rate is sound. |
 | B-6 | `<=12 giờ` is cumulative (includes `<=10`); the other buckets are disjoint. |

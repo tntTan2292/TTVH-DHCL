@@ -2281,3 +2281,7 @@ PO asked to prepare F1.2 (thu gom liên tỉnh) like F1.1, accepting side only. 
 ## 2026-10-11 - F1.2 PLAN: PO DECISIONS
 
 PO accepted every recommendation of the F1.2 audit (portal rate definition, BĐ10 date and file renaming, rank over 34 accepting provinces, two-level unit -> office ranking with Khách hàng lớn shown apart, teal colour family, rolling 12 months, 3-day refresh). Only the F1.2 target rate is still open. Recorded as PD-F12-5..11 in docs/06_REVIEWS/Shared/F12-MODULE-PLAN_CHECKPOINT_001.md.
+
+## 2026-10-11 - F1.2 DATA FOUNDATION AND IMPORT (PHASES 0, 1, 2, 4)
+
+PO: F1.2 target 95 %, start. Reference package, fact_f12 and fact_f12_national, Huế detail and TCT national readers, manual Import through the shared pipeline and the national rank by accepting province, built the F1.1 way. First live load 10/10/2026: 1 758 parcels, 1 620 Đạt (92,15 %), national row 53 identical, Huế 8th of 34; F1.1/F1.3/F4.1 tables unchanged. Backend restart needed. Next: portal download (needs the PO evidence pack) and the Dashboard. Manifest: docs/10_TICKETS/F12-PHASE-0-4_MANIFEST.md.

@@ -17,7 +17,7 @@ Evidence-backed audit of the two real F1.2 exports (Huế detail, national) and 
 
 ## 3. Current Status
 
-- State: `AUDIT COMPLETE / PO DECISIONS RECORDED` (2026-10-11: PO accepted every recommendation, PD-F12-5..11 in the checkpoint Section 2; only the F1.2 target rate remains open). F12-PHASE-0..2 and 4 are unblocked but not yet activated.
+- State: `AUDIT COMPLETE / PO DECISIONS RECORDED` (2026-10-11: PO accepted every recommendation, PD-F12-5..11 in the checkpoint Section 2; target rate 95 % set as PD-F12-12). F12-PHASE-0, 1, 2 and 4 activated and implemented: `docs/10_TICKETS/F12-PHASE-0-4_MANIFEST.md`.
 - PO UI Check Required: `No` (planning only).
 
 ## 4. Required Reading
@@ -30,7 +30,7 @@ Evidence-backed audit of the two real F1.2 exports (Huế detail, national) and 
 
 - Detail: 1 758 parcels × 35 columns, one row per parcel, all accepting province 53, rating never blank, `Đạt ⇔ elapsed ≤ 10 h` (1 758 / 1 758). Elapsed is portal-computed (accept → BĐ10 scan, night window excluded), may be negative; stored, never recomputed.
 - Data day is the BĐ10 date (10/10/2026); the export file name carries only the export time.
-- National: 56 additive unit rows + grand total first, two-row merged header + number row, rate as text. Huế row = detail file on every column (1 758 / 1 620 / 138, buckets) except the 133 "chưa đủ thông tin" outside the denominator. Huế 8th / 34 at 92,15 %.
+- National: 53 additive unit rows + grand total first, two-row merged header + number row, rate as text. Huế row = detail file on every column (1 758 / 1 620 / 138, buckets) except the 133 "chưa đủ thông tin" outside the denominator. Huế 8th / 34 at 92,15 %.
 - Accepting side: 73 offices, each in exactly one of 37 units (`Tên Huyện`); `Khách hàng lớn` = 31 % of volume.
 
 ## 6. Scope

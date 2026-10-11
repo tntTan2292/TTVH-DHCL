@@ -7,6 +7,8 @@ const { extractF41DateFromFilename, parseF41HueExcel } = require('./f41HueExcelP
 const { parseF41TctExcel } = require('./f41TctExcelParser');
 const { extractF11DateFromFilename, parseF11HueExcel } = require('./f11HueExcelParser');
 const { parseF11TctExcel } = require('./f11TctExcelParser');
+const { extractF12DateFromFilename, parseF12HueExcel } = require('./f12HueExcelParser');
+const { parseF12TctExcel } = require('./f12TctExcelParser');
 const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./autoBackfillCompletionPolicies');
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
@@ -132,6 +134,12 @@ const F11_FILENAME_DATE_RULE = createFilenameDateRule({
     id: 'F11_DOTTED_ISO_DATE',
     prefix: 'F1.1',
     parse: extractF11DateFromFilename,
+});
+
+const F12_FILENAME_DATE_RULE = createFilenameDateRule({
+    id: 'F12_DOTTED_ISO_DATE',
+    prefix: 'F1.2',
+    parse: extractF12DateFromFilename,
 });
 
 const INDICATORS = {
@@ -280,6 +288,54 @@ INDICATORS['F1.1'] = {
                 ...F11_EXECUTOR_IDENTITIES.TCT,
                 verified: true,
             },
+        }),
+    },
+};
+
+// F12-PHASE-2/4: F1.2 (thu gom buu gui lien tinh), accepting side only. HUE lane (fact_f12, detail) and TCT lane
+// (fact_f12_national, one row per accepting province), both manual until F12-PHASE-3 verifies a Portal adapter.
+// Status PLANNED keeps F1.2 out of the auto-backfill coverage and queue; the 3-day refresh window decided by
+// the PO (PD-F12-11) is switched on together with the automatic lanes.
+INDICATORS['F1.2'] = {
+    code: 'F1.2',
+    key: 'F1.2',
+    name: 'F1.2 - Chat luong thu gom buu gui lien tinh',
+    status: 'PLANNED',
+    priority: 40,
+    badgeTheme: 'emerald',
+    trackingStartDate: TRACKING_START_DATE,
+    businessTimezone: BUSINESS_TIMEZONE,
+    folder: 'F1.2',
+    filenamePattern: /^F1\.2-\d{4}\.\d{2}\.\d{2}\.xlsx$/i,
+    filenameDateRule: F12_FILENAME_DATE_RULE,
+    extractDate: F12_FILENAME_DATE_RULE.parse,
+    formatFilename: F12_FILENAME_DATE_RULE.format,
+    testDataRoot: {
+        env: 'QIS_TEST_DATA_ROOT_F12',
+        fallbackEnv: 'QIS_TEST_DATA_ROOT',
+        fallbackSibling: 'F1.2',
+    },
+    lanes: {
+        HUE: createLane({
+            code: 'HUE',
+            priority: 10,
+            parser: (buffer, filename) => parseF12HueExcel(buffer, filename),
+            targetTable: 'fact_f12',
+            distinctColumn: 'ma_bg',
+            automationMode: 'MANUAL_ONLY',
+            manualOnlyReason: 'No verified DKCL Portal adapter for F1.2 yet (F12-PHASE-3).',
+        }),
+        TCT: createLane({
+            code: 'TCT',
+            priority: 20,
+            parser: (buffer, filename) => parseF12TctExcel(buffer, filename),
+            targetTable: 'fact_f12_national',
+            // One row per accepting province (the table's unique key); complete only when all 34 ranked
+            // provinces are present as accepting provinces.
+            distinctColumn: 'ma_tinh_chap_nhan',
+            requiredValues: { column: 'ma_tinh_chap_nhan', values: NATIONAL_RANKED_PROVINCE_CODES },
+            automationMode: 'MANUAL_ONLY',
+            manualOnlyReason: 'No verified DKCL Portal adapter for F1.2 yet (F12-PHASE-3).',
         }),
     },
 };
