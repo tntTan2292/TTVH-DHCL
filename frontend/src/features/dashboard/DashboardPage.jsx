@@ -280,7 +280,7 @@ export default function DashboardPage() {
     <PageContainer
       accentClassName={indicatorTheme(indicator).accentBar}
       badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${indicatorTheme(indicator).chip}`}>{indicator.moduleLabel}</span>}
-      title={indicatorLabel('Dashboard điều hành chất lượng F1.3', indicator)}
+      title={indicatorLabel('Bảng điều hành chất lượng F1.3', indicator)}
       subtitle="Theo dõi chất lượng phát theo kỳ đã chọn và phạm vi BCVH hiện hành."
       action={(
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-surface-200)] bg-white p-1.5 shadow-2xs">

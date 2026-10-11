@@ -36,7 +36,7 @@ test('dashboard page removes shell and placeholder wording from visible surfaces
   const dashboardSource = read('../DashboardPage.jsx');
   const commandSource = read('./UnifiedCommandSummary.jsx');
 
-  assert.match(dashboardSource, /Dashboard điều hành chất lượng F1\.3/);
+  assert.match(dashboardSource, /Bảng điều hành chất lượng F1\.3/);
   assert.match(commandSource, /Tổng quan điều hành/);
   assert.match(dashboardSource, /BcvhOperationTableAdapter/);
   assert.match(dashboardSource, /IntegratedTrendRiskWorkspace/);

@@ -100,7 +100,7 @@ export default function F13Dashboard() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">F1.3 Dashboard</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">F1.3 – Bảng điều hành</h1>
                     <p className="text-gray-500 mt-1">Chất lượng phát liên tỉnh PTC/Nộp tiền ≤14 giờ</p>
                 </div>
                 {maxDate && (

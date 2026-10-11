@@ -214,12 +214,12 @@ export default function RouteRankingPage() {
               onClick={() => navigate(`/f13/ranking/bcvh?from_date=${fromDate}&to_date=${toDate}&interval=${interval}`)}
               className="hover:text-[var(--color-primary-600)] transition-colors"
             >
-              BCVH Ranking
+              Phân tích BCVH
             </button>
             <Chevron className="w-3.5 h-3.5" />
             <span className="font-medium text-[var(--color-text-main)]">{bcvhName || 'Toàn mạng'}</span>
           </div>
-          <h1 className="text-2xl font-bold text-[var(--color-text-main)]">Route Ranking</h1>
+          <h1 className="text-2xl font-bold text-[var(--color-text-main)]">Phân tích tuyến phát</h1>
           <p className="text-sm text-[var(--color-text-muted)] mt-0.5">
             Bảng xếp hạng tuyến phát — {bcvhName}
           </p>

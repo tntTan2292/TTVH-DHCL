@@ -30,7 +30,7 @@ test('ROOT_ITEMS defines exactly 03 top-level modules in strict order', () => {
   assert.equal(ROOT_ITEMS.length, 3, 'Sidebar must have exactly 3 modules');
   assert.match(ROOT_ITEMS[0].title, /quản lý chất lượng/i, 'Module 1 must be QUẢN LÝ CHẤT LƯỢNG');
   assert.match(ROOT_ITEMS[1].title, /quản lý mạng lưới/i, 'Module 2 must be QUẢN LÝ MẠNG LƯỚI');
-  assert.match(ROOT_ITEMS[2].title, /system administration/i, 'Module 3 must be SYSTEM ADMINISTRATION');
+  assert.match(ROOT_ITEMS[2].title, /quản trị hệ thống/i, 'Module 3 must be SYSTEM ADMINISTRATION');
 });
 
 test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in strict required order', () => {
@@ -40,24 +40,24 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in s
 
   const [f11, f12, f13, f41] = qualityModule.subItems;
 
-  assert.equal(f11.title, 'F1.1 Quality Management');
+  assert.equal(f11.title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(f11.subItems.map((item) => [item.name, item.path])), [
-    ['Operation Dashboard', '/f11/dashboard'],
-    ['BCVH Ranking', '/f11/ranking/bcvh'],
+    ['Bảng điều hành', '/f11/dashboard'],
+    ['Phân tích BCVH', '/f11/ranking/bcvh'],
   ]);
   assert.equal(f11.roles, undefined);
 
-  assert.equal(f12.name, 'F1.2 Quality Management');
+  assert.equal(f12.name, 'F1.2 – Thu gom liên tỉnh');
   assert.equal(f12.path, '/f12');
   assert.deepEqual(toPlain(f12.roles), ['admin']);
 
-  assert.equal(f13.title, 'F1.3 Quality Management');
+  assert.equal(f13.title, 'F1.3 – Chất lượng phát liên tỉnh');
   assert.equal(Array.isArray(f13.subItems), true);
 
-  assert.equal(f41.title, 'F4.1 Quality Management');
+  assert.equal(f41.title, 'F4.1 – Chất lượng phát thành công bưu cục');
   assert.deepEqual(toPlain(f41.subItems.map((item) => [item.name, item.path])), [
-    ['Operation Dashboard', '/f41/dashboard'],
-    ['BCVH Ranking', '/f41/ranking/bcvh'],
+    ['Bảng điều hành', '/f41/dashboard'],
+    ['Phân tích BCVH', '/f41/ranking/bcvh'],
   ]);
   // F4.1 has no Tuyến Ranking / Evidence yet, and (PO-10) admin and viewer may both read it.
   assert.equal(f41.roles, undefined);
@@ -100,14 +100,14 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
   assert.equal(adminNav.length, 3, 'ADMIN must see Module 1 + Module 2 + Module 3');
   assert.match(adminNav[0].title, /quản lý chất lượng/i);
   assert.match(adminNav[1].title, /quản lý mạng lưới/i);
-  assert.match(adminNav[2].title, /system administration/i);
+  assert.match(adminNav[2].title, /quản trị hệ thống/i);
 
   // In Module 1, ADMIN sees all 4 items
   assert.equal(adminNav[0].subItems.length, 4);
-  assert.equal(adminNav[0].subItems[0].title, 'F1.1 Quality Management');
-  assert.equal(adminNav[0].subItems[1].name, 'F1.2 Quality Management');
-  assert.equal(adminNav[0].subItems[2].title, 'F1.3 Quality Management');
-  assert.equal(adminNav[0].subItems[3].title, 'F4.1 Quality Management');
+  assert.equal(adminNav[0].subItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
+  assert.equal(adminNav[0].subItems[1].name, 'F1.2 – Thu gom liên tỉnh');
+  assert.equal(adminNav[0].subItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
+  assert.equal(adminNav[0].subItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
 
   const viewerNav = getNavigationForRole('viewer');
   assert.equal(viewerNav.length, 2, 'User thường (viewer) must only see Module 1 + Module 2');
@@ -116,12 +116,12 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
 
   // In Module 1, viewer sees the three read-only report modules: F1.1, F1.3 and F4.1
   assert.equal(viewerNav[0].subItems.length, 3);
-  assert.equal(viewerNav[0].subItems[0].title, 'F1.1 Quality Management');
-  assert.equal(viewerNav[0].subItems[1].title, 'F1.3 Quality Management');
-  assert.equal(viewerNav[0].subItems[2].title, 'F4.1 Quality Management');
+  assert.equal(viewerNav[0].subItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
+  assert.equal(viewerNav[0].subItems[1].title, 'F1.3 – Chất lượng phát liên tỉnh');
+  assert.equal(viewerNav[0].subItems[2].title, 'F4.1 – Chất lượng phát thành công bưu cục');
 
   // Module 3 is not present for viewer
-  assert.equal(viewerNav.find((m) => /system administration/i.test(m.title)), undefined);
+  assert.equal(viewerNav.find((m) => /quản trị hệ thống/i.test(m.title)), undefined);
 });
 
 test('dashboard quick links preserve import access for admin only', () => {
@@ -137,14 +137,14 @@ test('dashboard quick links preserve import access for admin only', () => {
 test('F1.3 navigation only displays complete surfaces (Operation Dashboard, BCVH Ranking, Tuyến Ranking, Evidence) and hides incomplete Pareto / RCA and Message Center', () => {
   const source = fs.readFileSync(new URL('./appNavigation.jsx', import.meta.url), 'utf8');
 
-  const f13GroupMatch = source.match(/const F13_GROUP = \{[\s\S]*?title:\s*'F1.3 Quality Management'[\s\S]*?subItems:\s*\[([\s\S]*?)\]/);
+  const f13GroupMatch = source.match(/const F13_GROUP = \{[\s\S]*?title:\s*'F1.3 – Chất lượng phát liên tỉnh'[\s\S]*?subItems:\s*\[([\s\S]*?)\]/);
   assert.ok(f13GroupMatch, 'F13_GROUP must be defined with subItems');
   const f13SubItemsText = f13GroupMatch[1];
 
-  assert.match(f13SubItemsText, /name: 'Operation Dashboard',\s*path: '\/f13\/dashboard'/);
-  assert.match(f13SubItemsText, /name: 'BCVH Ranking',\s*path: '\/f13\/ranking\/bcvh'/);
-  assert.match(f13SubItemsText, /name: 'Tuyến Ranking',\s*path: '\/f13\/ranking\/route'/);
-  assert.match(f13SubItemsText, /name: 'Evidence',\s*path: '\/f13\/evidence'/);
+  assert.match(f13SubItemsText, /name: 'Bảng điều hành',\s*path: '\/f13\/dashboard'/);
+  assert.match(f13SubItemsText, /name: 'Phân tích BCVH',\s*path: '\/f13\/ranking\/bcvh'/);
+  assert.match(f13SubItemsText, /name: 'Phân tích tuyến phát',\s*path: '\/f13\/ranking\/route'/);
+  assert.match(f13SubItemsText, /name: 'Dữ liệu minh chứng',\s*path: '\/f13\/evidence'/);
 
   assert.equal(f13SubItemsText.includes('/f13/pareto'), false, 'Pareto / RCA must be hidden from F1.3 navigation');
   assert.equal(f13SubItemsText.includes('/f13/message'), false, 'Message Center must be hidden from F1.3 navigation');
@@ -167,19 +167,19 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
   assert.equal(menuItems.length, 3, 'Sidebar.jsx must contain exactly 3 modules');
   assert.match(menuItems[0].title, /quản lý chất lượng/i);
   assert.match(menuItems[1].title, /quản lý mạng lưới/i);
-  assert.match(menuItems[2].title, /system administration/i);
+  assert.match(menuItems[2].title, /quản trị hệ thống/i);
 
   // Verify Quality Management ordering in Sidebar.jsx
   const qualityItems = menuItems[0].subItems;
   assert.equal(qualityItems.length, 4, 'Quản lý chất lượng in Sidebar.jsx must have 4 items');
 
-  assert.equal(qualityItems[0].title, 'F1.1 Quality Management');
+  assert.equal(qualityItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(qualityItems[0].subItems.map((item) => item.path)), ['/f11/dashboard', '/f11/ranking/bcvh']);
 
-  assert.equal(qualityItems[1].name, 'F1.2 Quality Management');
+  assert.equal(qualityItems[1].name, 'F1.2 – Thu gom liên tỉnh');
   assert.equal(qualityItems[1].path, '/f12');
 
-  assert.equal(qualityItems[2].title, 'F1.3 Quality Management');
+  assert.equal(qualityItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
   const f13Paths = qualityItems[2].subItems.map((item) => item.path);
   assert.deepEqual(toPlain(f13Paths), [
     '/f13/dashboard',
@@ -188,7 +188,7 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
     '/f13/evidence',
   ]);
 
-  assert.equal(qualityItems[3].title, 'F4.1 Quality Management');
+  assert.equal(qualityItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
   assert.deepEqual(toPlain(qualityItems[3].subItems.map((item) => item.path)), ['/f41/dashboard', '/f41/ranking/bcvh']);
 
   // Verify Pareto and Message Center remain excluded

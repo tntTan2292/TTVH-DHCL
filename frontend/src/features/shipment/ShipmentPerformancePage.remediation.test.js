@@ -21,7 +21,7 @@ test('Evidence page empty state distinguishes a keyword-no-match reason from a r
   // status-aware (resolveEmptyStateStatusLabel) rather than a hardcoded "vi phạm" string —
   // see ShipmentPerformancePage.evidenceStatus.test.js for the dedicated regression coverage.
   assert.match(source, /không có \$\{resolveEmptyStateStatusLabel\(statusParam\)\}/);
-  assert.match(source, /Không có Evidence trong bối cảnh này/);
+  assert.match(source, /Không có minh chứng trong bối cảnh này/);
 });
 
 test('Evidence page empty state no longer shows the old unconditional "Tất cả tuyến" suggestion regardless of context', () => {

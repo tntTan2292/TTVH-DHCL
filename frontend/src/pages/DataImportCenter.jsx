@@ -792,8 +792,8 @@ export default function DataImportCenter() {
                 <Database size={24} />
               </span>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Trung tâm Import Dữ liệu Quality Control</h1>
-                <p className="text-xs text-slate-500 mt-0.5 font-medium">Hệ thống Điều hành Chất lượng Vận hành V2 (TTVH DHCL)</p>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Trung tâm nạp dữ liệu chất lượng</h1>
+                <p className="text-xs text-slate-500 mt-0.5 font-medium">Trung Tâm Vận hành · Hệ thống Điều hành chất lượng</p>
               </div>
             </div>
           </div>
@@ -1810,7 +1810,7 @@ export default function DataImportCenter() {
                     <th className="px-6 py-4 font-bold text-right text-amber-600">Bỏ qua</th>
                     <th className="px-6 py-4 font-bold text-right text-red-600">Lỗi</th>
                     <th className="px-6 py-4 font-bold text-center">Trạng thái</th>
-                    <th className="px-6 py-4 font-bold">Evidence</th>
+                    <th className="px-6 py-4 font-bold">Minh chứng</th>
                     <th className="px-6 py-4 font-bold text-center">Đối chiếu</th>
                   </tr>
                 </thead>

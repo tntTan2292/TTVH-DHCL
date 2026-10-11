@@ -204,7 +204,7 @@ export default function BcvhRankingPage() {
       .then((response) => {
         if (!active) return;
         if (!response?.data?.success) {
-          throw new Error(response?.data?.error?.message || 'Không thể tải BCVH Ranking.');
+          throw new Error(response?.data?.error?.message || 'Không thể tải dữ liệu phân tích BCVH.');
         }
         setRankingState({
           status: 'success',
@@ -217,7 +217,7 @@ export default function BcvhRankingPage() {
         setRankingState({
           status: 'error',
           data: null,
-          error: error?.response?.data?.error?.message || error?.message || 'Không thể tải BCVH Ranking.',
+          error: error?.response?.data?.error?.message || error?.message || 'Không thể tải dữ liệu phân tích BCVH.',
         });
       });
     return () => {
@@ -289,7 +289,7 @@ export default function BcvhRankingPage() {
     <PageContainer
       accentClassName={indicatorTheme(indicator).accentBar}
       badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${indicatorTheme(indicator).chip}`}>{indicator.moduleLabel}</span>}
-      title="Bảng xếp hạng chất lượng BCVH"
+      title="Phân tích chất lượng BCVH"
       subtitle="Theo ngày đánh giá."
       action={(
         <div className="flex flex-wrap items-center gap-2">
@@ -359,7 +359,7 @@ export default function BcvhRankingPage() {
 
         {/* Single-day Ranking Table & Cards (Khối 5 - Unchanged) */}
         {rankingState.status === 'error' ? (
-          <ErrorState title="Không thể tải BCVH Ranking" description={rankingState.error} />
+          <ErrorState title="Không thể tải dữ liệu phân tích BCVH" description={rankingState.error} />
         ) : null}
 
         {!showNoData ? (

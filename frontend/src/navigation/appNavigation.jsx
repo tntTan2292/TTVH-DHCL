@@ -2,34 +2,34 @@ import { Activity, BarChart2, Database, FileSpreadsheet, Info, MapPin, Settings,
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 const F11_GROUP = {
-  title: 'F1.1 Quality Management',
-  name: 'F1.1 Quality Management',
+  title: 'F1.1 – Chất lượng toàn trình nội tỉnh',
+  name: 'F1.1 – Chất lượng toàn trình nội tỉnh',
   icon: <Activity size={18} />,
   subItems: [
-    { name: 'Operation Dashboard', path: '/f11/dashboard', icon: <Target size={18} /> },
-    { name: 'BCVH Ranking', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    { name: 'Bảng điều hành', path: '/f11/dashboard', icon: <Target size={18} /> },
+    { name: 'Phân tích BCVH', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
   ],
 };
 
 const F13_GROUP = {
-  title: 'F1.3 Quality Management',
-  name: 'F1.3 Quality Management',
+  title: 'F1.3 – Chất lượng phát liên tỉnh',
+  name: 'F1.3 – Chất lượng phát liên tỉnh',
   icon: <Target size={18} />,
   subItems: [
-    { name: 'Operation Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
-    { name: 'BCVH Ranking', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
-    { name: 'Tuyến Ranking', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
-    { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
+    { name: 'Bảng điều hành', path: '/f13/dashboard', icon: <Target size={18} /> },
+    { name: 'Phân tích BCVH', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    { name: 'Phân tích tuyến phát', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
+    { name: 'Dữ liệu minh chứng', path: '/f13/evidence', icon: <Database size={18} /> },
   ],
 };
 
 const F41_GROUP = {
-  title: 'F4.1 Quality Management',
-  name: 'F4.1 Quality Management',
+  title: 'F4.1 – Chất lượng phát thành công bưu cục',
+  name: 'F4.1 – Chất lượng phát thành công bưu cục',
   icon: <Activity size={18} />,
   subItems: [
-    { name: 'Operation Dashboard', path: '/f41/dashboard', icon: <Target size={18} /> },
-    { name: 'BCVH Ranking', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    { name: 'Bảng điều hành', path: '/f41/dashboard', icon: <Target size={18} /> },
+    { name: 'Phân tích BCVH', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
   ],
 };
 
@@ -38,7 +38,7 @@ const QUALITY_MANAGEMENT_GROUP = {
   icon: <Activity size={20} />,
   subItems: [
     F11_GROUP,
-    { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
+    { name: 'F1.2 – Thu gom liên tỉnh', path: '/f12', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
     F13_GROUP,
     F41_GROUP,
   ],
@@ -57,13 +57,13 @@ const NETWORK_MANAGEMENT_GROUP = {
 };
 
 const ADMIN_ONLY_GROUP = {
-  title: 'System Administration',
+  title: 'Quản trị hệ thống',
   icon: <Settings size={20} />,
   roles: [ROLE_ADMIN],
   subItems: [
-    { name: 'Data Import Center', path: '/import', icon: <FileSpreadsheet size={18} /> },
-    { name: 'KPI Configuration', path: '/kpi-config', icon: <Settings size={18} /> },
-    { name: 'System Information', path: '/system-info', icon: <Info size={18} /> },
+    { name: 'Trung tâm nạp dữ liệu', path: '/import', icon: <FileSpreadsheet size={18} /> },
+    { name: 'Cấu hình chỉ tiêu', path: '/kpi-config', icon: <Settings size={18} /> },
+    { name: 'Thông tin hệ thống', path: '/system-info', icon: <Info size={18} /> },
   ],
 };
 
@@ -97,8 +97,8 @@ export function getNavigationForRole(role) {
 
 export function getDashboardQuickLinks(role) {
   return [
-    { label: 'F1.3 Dashboard', path: '/f13/dashboard', color: 'bg-vnpost-blue', description: 'KPI chất lượng phát liên tỉnh' },
-    { label: 'Xếp hạng BCVH', path: '/f13/ranking/bcvh', color: 'bg-green-600', description: 'So sánh hiệu quả theo bưu cục' },
-    { label: 'Data Import Center', path: '/import', color: 'bg-vnpost-orange', description: 'Nạp & quản lý dữ liệu Excel', roles: [ROLE_ADMIN] },
+    { label: 'F1.3 – Bảng điều hành', path: '/f13/dashboard', color: 'bg-vnpost-blue', description: 'KPI chất lượng phát liên tỉnh' },
+    { label: 'Phân tích BCVH', path: '/f13/ranking/bcvh', color: 'bg-green-600', description: 'So sánh hiệu quả theo bưu cục' },
+    { label: 'Trung tâm nạp dữ liệu', path: '/import', color: 'bg-vnpost-orange', description: 'Nạp & quản lý dữ liệu Excel', roles: [ROLE_ADMIN] },
   ].filter((item) => isAllowed(item, role));
 }

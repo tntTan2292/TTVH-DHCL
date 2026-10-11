@@ -240,7 +240,7 @@ test('component sources preserve four-column comparison order and dashboard isol
   assert.match(componentSource, /sticky left-\[176px\]/);
   assert.match(componentSource, /font-black uppercase tracking-wide/);
 
-  assert.match(pageSource, /Bảng xếp hạng chất lượng BCVH/);
+  assert.match(pageSource, /Phân tích chất lượng BCVH/);
   assert.match(pageSource, /So sánh kỳ trước/);
   assert.match(pageSource, /Xem chi tiết tuyến/);
   assert.doesNotMatch(pageSource, /Ngày đánh giá · Ngày đánh giá/);

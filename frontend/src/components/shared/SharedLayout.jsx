@@ -13,13 +13,13 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
   const [expandedGroups, setExpandedGroups] = useState({
     'Quản lý chất lượng': true,
     'QUẢN LÝ CHẤT LƯỢNG': true,
-    'F1.1 Quality Management': true,
-    'F1.3 Quality Management': true,
-    'F4.1 Quality Management': true,
+    'F1.1 – Chất lượng toàn trình nội tỉnh': true,
+    'F1.3 – Chất lượng phát liên tỉnh': true,
+    'F4.1 – Chất lượng phát thành công bưu cục': true,
     'Quản lý mạng lưới': false,
     'QUẢN LÝ MẠNG LƯỚI': false,
-    'System Administration': false,
-    'SYSTEM ADMINISTRATION': false,
+    'Quản trị hệ thống': false,
+    'QUẢN TRỊ HỆ THỐNG': false,
   });
   const navGroups = getNavigationForRole(user?.role);
 
@@ -43,18 +43,19 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
           <Link to="/" className="flex items-center gap-3 overflow-hidden group">
             {!isCollapsed ? (
               <div className="flex flex-col">
-                <h1 className="text-xl font-black tracking-wide text-white drop-shadow-sm flex items-center gap-1.5">
-                  <span>TTVH</span>
-                  <span className="text-white/40">-</span>
-                  <span className="text-[var(--color-vnpost-orange)] font-extrabold group-hover:brightness-110 transition-all">DHCL</span>
+                <p className="mb-0.5 text-[10px] font-bold uppercase leading-none tracking-[0.14em] text-[var(--color-vnpost-orange)]">
+                  Bưu điện thành phố Huế
+                </p>
+                <h1 className="text-base font-black leading-tight tracking-wide text-white drop-shadow-sm">
+                  Trung Tâm Vận hành
                 </h1>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-200/90 drop-shadow-xs">
-                  Bưu điện TP Huế
+                <p className="mt-0.5 text-[11px] font-semibold leading-snug text-blue-200/90 drop-shadow-xs">
+                  Hệ thống Điều hành chất lượng
                 </p>
               </div>
             ) : (
               <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 border border-white/20 text-[var(--color-vnpost-orange)] font-black text-sm shadow-inner">
-                DHCL
+                TT
               </div>
             )}
           </Link>
@@ -154,9 +155,9 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                                 isSubActive ? 'font-bold text-white' : 'text-blue-200/80 hover:text-white hover:bg-white/5'
                               }`}
                             >
-                              <div className="flex items-center">
+                              <div className="flex min-w-0 items-center">
                                 <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
-                                <span className="ml-2.5 whitespace-nowrap text-xs font-semibold">{sub.name || sub.title}</span>
+                                <span className="ml-2.5 text-left text-xs font-semibold leading-snug">{sub.name || sub.title}</span>
                               </div>
                               <ChevronDown size={12} className={`transition-transform duration-200 text-white/50 ${isSubExpanded ? 'rotate-180 text-white' : ''}`} />
                             </button>
@@ -192,10 +193,40 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
             })}
           </ul>
         </nav>
+
+        {/* Sidebar footer */}
+        {!isCollapsed && (
+          <div className="border-t border-white/10 px-5 py-3 text-center text-[11px] font-medium tracking-wide text-blue-200/70">
+            Design by TNT
+          </div>
+        )}
       </aside>
     </>
   );
 }
+
+// Display names for URL segments (the path stays as is; only the label shown to the user is Vietnamese).
+const BREADCRUMB_LABELS = {
+  f11: 'F1.1 – Chất lượng toàn trình nội tỉnh',
+  f12: 'F1.2 – Thu gom liên tỉnh',
+  f13: 'F1.3 – Chất lượng phát liên tỉnh',
+  f41: 'F4.1 – Chất lượng phát thành công bưu cục',
+  dashboard: 'Bảng điều hành',
+  ranking: 'Phân tích',
+  bcvh: 'BCVH',
+  route: 'Tuyến phát',
+  evidence: 'Dữ liệu minh chứng',
+  shipment: 'Chi tiết bưu gửi',
+  import: 'Trung tâm nạp dữ liệu',
+  'kpi-config': 'Cấu hình chỉ tiêu',
+  'system-info': 'Thông tin hệ thống',
+  'network-map': 'Quản lý mạng lưới',
+  'service-points': 'Mạng điểm phục vụ',
+  'level2-routes': 'Mạng đường thư cấp 2',
+  'delivery-routes': 'Sơ đồ tuyến phát',
+  integrated: 'Bản đồ tích hợp',
+  'postman-catalog': 'Rà soát danh mục bưu tá',
+};
 
 export function Breadcrumb() {
   const location = useLocation();
@@ -208,13 +239,13 @@ export function Breadcrumb() {
       <ol className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/60 backdrop-blur-md border border-white/80 shadow-xs">
         <li className="inline-flex items-center">
           <Link to="/" className="inline-flex items-center gap-1.5 font-medium text-slate-600 hover:text-[var(--color-vnpost-blue)] transition-colors rounded-lg p-1 hover:bg-white/80">
-            Home
+            Trang chủ
           </Link>
         </li>
         {pathnames.map((value, index) => {
           const to = `/${pathnames.slice(0, index + 1).join('/')}`;
           const isLast = index === pathnames.length - 1;
-          const title = value.charAt(0).toUpperCase() + value.slice(1);
+          const title = BREADCRUMB_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);
 
           return (
             <li key={to} className="inline-flex items-center gap-1.5">

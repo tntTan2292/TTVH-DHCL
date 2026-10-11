@@ -62,8 +62,8 @@ export default function DashboardHome() {
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-8">
-                <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">Dashboard Tổng Quan</h1>
-                <p className="text-gray-500 mt-1">Hệ thống điều hành chất lượng TTVH-DHCL · VNPost Huế</p>
+                <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">Tổng quan điều hành</h1>
+                <p className="text-gray-500 mt-1">Bưu điện thành phố Huế · Trung Tâm Vận hành · Hệ thống Điều hành chất lượng</p>
             </div>
 
             {loading && (

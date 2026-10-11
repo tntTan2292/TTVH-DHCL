@@ -64,7 +64,7 @@ test('Evidence page reads return_to and gates the back action on isValidReturnTo
   assert.match(source, /searchParams\.get\('return_to'\)/);
   assert.match(source, /isValidReturnTo\(returnToParam\)/);
   assert.match(source, /buildBackToRouteRankingLink\(returnToParam\)/);
-  assert.match(source, /Quay lại Tuyến Ranking/);
+  assert.match(source, /Quay lại Phân tích tuyến phát/);
 });
 
 // The back link must be built via the shared, validated helper — not navigate(-1) or a

@@ -58,7 +58,7 @@ export default function F13BcvhRanking() {
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">F1.3 BCVH Ranking</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-vnpost-blue-dark">F1.3 – Phân tích BCVH</h1>
                     <p className="text-gray-500 mt-1">Xếp hạng chất lượng F1.3 theo Bưu cục Vận hành</p>
                 </div>
             </div>

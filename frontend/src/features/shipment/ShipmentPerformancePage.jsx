@@ -408,7 +408,7 @@ export default function ShipmentPerformancePage() {
   }, [shipmentId, sortedRows, isSearchActive, routeGroupData]);
 
   // AC-19 (ITR-EV-NB-02 remediation): three counts, always visibly distinct. `contextTotal`
-  // ("Tổng Evidence (bối cảnh)") must stay independent of the search keyword — it answers "how
+  // ("Tổng minh chứng (bối cảnh)") must stay independent of the search keyword — it answers "how
   // many match the current status/reason filter", not "how many also match the keyword" (that
   // is `searchResultCount`). Before this fix both read `pagination.total_items`, which in the
   // search branch of the API IS `matched_items` — collapsing the two cards to one number.
@@ -476,7 +476,7 @@ export default function ShipmentPerformancePage() {
     }
 
     return {
-      title: 'Không có Evidence trong bối cảnh này',
+      title: 'Không có minh chứng trong bối cảnh này',
       description: `Ngày ${analysisDate} · BCVH ${bcvhName}. Không có bưu gửi nào ở bất kỳ tuyến nào khớp với bộ lọc hiện tại.`,
       action: null,
     };
@@ -670,7 +670,7 @@ export default function ShipmentPerformancePage() {
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 transition-colors hover:text-[var(--color-primary-700)]"
       >
         <span aria-hidden="true">←</span>
-        <span>Quay lại Tuyến Ranking</span>
+        <span>Quay lại Phân tích tuyến phát</span>
       </Link>
     </div>
   ) : null;
@@ -679,8 +679,8 @@ export default function ShipmentPerformancePage() {
     return (
       <div className="flex h-full flex-col">
         {backLinkElement}
-        <PageContainer title="Chi tiết bưu gửi F1.3" subtitle="Đang tải dữ liệu Evidence.">
-          <LoadingState label="Đang tải dữ liệu Evidence..." />
+        <PageContainer title="Chi tiết bưu gửi F1.3" subtitle="Đang tải dữ liệu minh chứng.">
+          <LoadingState label="Đang tải dữ liệu minh chứng..." />
         </PageContainer>
       </div>
     );
@@ -690,7 +690,7 @@ export default function ShipmentPerformancePage() {
     return (
       <div className="flex h-full flex-col">
         {backLinkElement}
-        <PageContainer title="Chi tiết bưu gửi F1.3" subtitle="Không thể tải dữ liệu Evidence.">
+        <PageContainer title="Chi tiết bưu gửi F1.3" subtitle="Không thể tải dữ liệu minh chứng.">
           <ErrorState
             description={error?.message}
             action={
@@ -772,7 +772,7 @@ export default function ShipmentPerformancePage() {
           {searchResultSummary}
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <KPICard label="Tổng Evidence (bối cảnh)" value={contextTotal.toLocaleString('vi-VN')} delta="Theo bộ lọc hiện tại" tone="primary" />
+            <KPICard label="Tổng minh chứng (bối cảnh)" value={contextTotal.toLocaleString('vi-VN')} delta="Theo bộ lọc hiện tại" tone="primary" />
             <KPICard
               label="Kết quả tìm kiếm"
               value={searchResultCount === null ? '—' : searchResultCount.toLocaleString('vi-VN')}

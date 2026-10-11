@@ -27,7 +27,7 @@ export default function LoginPage() {
             await login(username, password);
             navigate(from, { replace: true });
         } catch (err) {
-            setError(err?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại tài khoản.');
+            setError(err?.message || 'Đăng nhập thất bại');
         } finally {
             setLoading(false);
         }
@@ -50,10 +50,13 @@ export default function LoginPage() {
                     
                     <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-1.5">
                         <span>Đăng nhập</span>
-                        <span className="text-[var(--color-vnpost-blue)]">QIS V2</span>
+                        <span className="text-[var(--color-vnpost-blue)]">hệ thống</span>
                     </h1>
                     <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
-                        Hệ thống Điều hành Chất lượng — VNPost Huế
+                        Bưu điện thành phố Huế · Trung Tâm Vận hành
+                    </p>
+                    <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                        Hệ thống Điều hành chất lượng
                     </p>
                     <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50/80 border border-blue-200/60 text-[11px] font-semibold text-blue-700">
                         <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-vnpost-blue)] animate-pulse" />
@@ -78,7 +81,6 @@ export default function LoginPage() {
                                 onChange={(e) => setUsername(e.target.value)}
                                 placeholder="Nhập tên đăng nhập..."
                                 autoComplete="username"
-                                required
                                 className="w-full input-glass pl-10 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20"
                             />
                         </div>
@@ -99,7 +101,6 @@ export default function LoginPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Nhập mật khẩu..."
                                 autoComplete="current-password"
-                                required
                                 className="w-full input-glass pl-10 pr-10 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20"
                             />
                             <button
@@ -140,8 +141,8 @@ export default function LoginPage() {
 
                 {/* Footer note */}
                 <div className="mt-8 pt-5 border-t border-slate-100/80 text-center">
-                    <p className="text-[11px] text-slate-400 font-medium">
-                        Trung tâm Vận hành & Điều hành Chất lượng • Phiên bản 2.0
+                    <p className="text-[11px] text-slate-600 font-medium">
+                        Design by TNT
                     </p>
                 </div>
             </div>

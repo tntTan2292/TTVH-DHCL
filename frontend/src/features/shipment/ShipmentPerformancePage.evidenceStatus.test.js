@@ -205,7 +205,7 @@ test('T-F08: Navigation roundtrip preserves period, route, and returns to exact 
   assert.equal(backLink, `/f13/ranking/route?${routeRankingSearch}`);
 
   // Verify Evidence page JSX contains back link element with "Quay lại Tuyến Ranking"
-  assert.match(source, /<span>Quay lại Tuyến Ranking<\/span>/);
+  assert.match(source, /<span>Quay lại Phân tích tuyến phát<\/span>/);
   assert.match(source, /const backToRouteRankingLink = hasValidReturnTo \? buildBackToRouteRankingLink\(returnToParam\) : null;/);
 });
 

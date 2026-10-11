@@ -43,7 +43,7 @@ test('every matching route group is passed through to the table widget, not just
 test('three distinct counts are computed and rendered: context total, search result count, selected shipment', () => {
   assert.match(source, /const contextTotal = toNumber\(resolveContextTotal\(\{/);
   assert.match(source, /const searchResultCount = isSearchActive \? \(searchMeta\.matched_items \?\? pagination\.total_items\) : null;/);
-  assert.match(source, /Tổng Evidence \(bối cảnh\)/);
+  assert.match(source, /Tổng minh chứng \(bối cảnh\)/);
   assert.match(source, /Kết quả tìm kiếm/);
   assert.match(source, /Bưu gửi đang chọn/);
 

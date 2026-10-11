@@ -865,15 +865,15 @@ export default function RoutePerformancePage() {
 
   if (status === 'loading') {
     return (
-      <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Đang tải dữ liệu xếp hạng tuyến và đối soát nghiệp vụ...">
-        <LoadingState label="Đang tải dữ liệu Tuyến Ranking..." />
+      <PageContainer title="Phân tích tuyến phát" subtitle="Đang tải dữ liệu xếp hạng tuyến và đối soát nghiệp vụ...">
+        <LoadingState label="Đang tải dữ liệu tuyến phát..." />
       </PageContainer>
     );
   }
 
   if (status === 'error') {
     return (
-      <PageContainer title="Bảng xếp hạng Tuyến Bưu tá" subtitle="Không thể kết nối hoặc tải dữ liệu tuyến.">
+      <PageContainer title="Phân tích tuyến phát" subtitle="Không thể kết nối hoặc tải dữ liệu tuyến.">
         <ErrorState description={error?.message} />
       </PageContainer>
     );
@@ -881,7 +881,7 @@ export default function RoutePerformancePage() {
 
   return (
     <PageContainer
-      title="Bảng xếp hạng Tuyến Bưu tá"
+      title="Phân tích tuyến phát"
       subtitle="Bảng điều hành chất lượng tuyến: Nhận diện tuyến yếu, đối soát bưu gửi không đạt và chậm nộp tiền."
       action={
         <div className="flex flex-wrap items-center gap-2">

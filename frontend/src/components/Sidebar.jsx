@@ -6,10 +6,10 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const location = useLocation();
   const [expandedGroups, setExpandedGroups] = useState({
     'Quản lý chất lượng': true,
-    'F1.1 Quality Management': true,
-    'F1.3 Quality Management': true,
+    'F1.1 – Chất lượng toàn trình nội tỉnh': true,
+    'F1.3 – Chất lượng phát liên tỉnh': true,
     'Quản lý mạng lưới': false,
-    'System Administration': false,
+    'Quản trị hệ thống': false,
   });
 
   const toggleGroup = (groupTitle) => {
@@ -25,33 +25,33 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       icon: <Activity size={20} />,
       subItems: [
         {
-          title: 'F1.1 Quality Management',
-          name: 'F1.1 Quality Management',
+          title: 'F1.1 – Chất lượng toàn trình nội tỉnh',
+          name: 'F1.1 – Chất lượng toàn trình nội tỉnh',
           icon: <Activity size={18} />,
           subItems: [
-            { name: 'Operation Dashboard', path: '/f11/dashboard', icon: <Target size={18} /> },
-            { name: 'BCVH Ranking', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
+            { name: 'Bảng điều hành', path: '/f11/dashboard', icon: <Target size={18} /> },
+            { name: 'Phân tích BCVH', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
           ],
         },
-        { name: 'F1.2 Quality Management', path: '/f12', icon: <Activity size={18} /> },
+        { name: 'F1.2 – Thu gom liên tỉnh', path: '/f12', icon: <Activity size={18} /> },
         {
-          title: 'F1.3 Quality Management',
-          name: 'F1.3 Quality Management',
+          title: 'F1.3 – Chất lượng phát liên tỉnh',
+          name: 'F1.3 – Chất lượng phát liên tỉnh',
           icon: <Target size={18} />,
           subItems: [
-            { name: 'Operation Dashboard', path: '/f13/dashboard', icon: <Target size={18} /> },
-            { name: 'BCVH Ranking', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
-            { name: 'Tuyến Ranking', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
-            { name: 'Evidence', path: '/f13/evidence', icon: <Database size={18} /> },
+            { name: 'Bảng điều hành', path: '/f13/dashboard', icon: <Target size={18} /> },
+            { name: 'Phân tích BCVH', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
+            { name: 'Phân tích tuyến phát', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
+            { name: 'Dữ liệu minh chứng', path: '/f13/evidence', icon: <Database size={18} /> },
           ],
         },
         {
-          title: 'F4.1 Quality Management',
-          name: 'F4.1 Quality Management',
+          title: 'F4.1 – Chất lượng phát thành công bưu cục',
+          name: 'F4.1 – Chất lượng phát thành công bưu cục',
           icon: <Activity size={18} />,
           subItems: [
-            { name: 'Operation Dashboard', path: '/f41/dashboard', icon: <Target size={18} /> },
-            { name: 'BCVH Ranking', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
+            { name: 'Bảng điều hành', path: '/f41/dashboard', icon: <Target size={18} /> },
+            { name: 'Phân tích BCVH', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
           ],
         },
       ],
@@ -68,13 +68,13 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       ],
     },
     {
-      title: 'System Administration',
+      title: 'Quản trị hệ thống',
       icon: <Settings size={20} />,
       roles: ['admin'],
       subItems: [
-        { name: 'Data Import Center', path: '/import', icon: <FileSpreadsheet size={18} /> },
-        { name: 'KPI Configuration', path: '/kpi-config', icon: <Settings size={18} /> },
-        { name: 'System Information', path: '/system-info', icon: <Info size={18} /> },
+        { name: 'Trung tâm nạp dữ liệu', path: '/import', icon: <FileSpreadsheet size={18} /> },
+        { name: 'Cấu hình chỉ tiêu', path: '/kpi-config', icon: <Settings size={18} /> },
+        { name: 'Thông tin hệ thống', path: '/system-info', icon: <Info size={18} /> },
       ],
     },
   ];
