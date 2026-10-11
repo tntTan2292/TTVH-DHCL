@@ -2285,3 +2285,7 @@ PO accepted every recommendation of the F1.2 audit (portal rate definition, BĐ1
 ## 2026-10-11 - F1.2 DATA FOUNDATION AND IMPORT (PHASES 0, 1, 2, 4)
 
 PO: F1.2 target 95 %, start. Reference package, fact_f12 and fact_f12_national, Huế detail and TCT national readers, manual Import through the shared pipeline and the national rank by accepting province, built the F1.1 way. First live load 10/10/2026: 1 758 parcels, 1 620 Đạt (92,15 %), national row 53 identical, Huế 8th of 34; F1.1/F1.3/F4.1 tables unchanged. Backend restart needed. Next: portal download (needs the PO evidence pack) and the Dashboard. Manifest: docs/10_TICKETS/F12-PHASE-0-4_MANIFEST.md.
+
+## 2026-10-11 - F1.2 PORTAL EVIDENCE (PHASE 3)
+
+Through the PO's signed-in Chrome: F1.2 report route, HUE (GR=BC, province 53) and TCT (GR=Tinh, ALL) requests, detail store sp_TT_ThuGom_LienTinh_ChiTiet (province sent as N'53'), export stores, MM/DD/YYYY and YYYYMMDD dates. One PO-authorised TCT export; both exports equal the PO's files cell by cell (0 differences). The portal fills 'chua du thong tin' after N-1 (09/10: 0, 10/10: 133). Implementation not started. Manifest: docs/10_TICKETS/F12-PHASE-3_MANIFEST.md.
