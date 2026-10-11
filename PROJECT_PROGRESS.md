@@ -2273,3 +2273,7 @@ PO: the top-25 picture still looked tiny. While capturing, the table now uses a 
 ## 2026-10-11 - F1.1 PAIR TABLE PICTURE: NEAR-SQUARE
 
 PO: the picture was still tall and thin. In the capture layout the cell shows rate and volume on one line and the office name with its code on one line (low rows, wide columns): 1549x1291 px for the top 20 of 67, text about twice the screen size. Checked in a real browser; frontend 647/647. Manifest Section 13.
+
+## 2026-10-11 - F1.2 SOURCE AUDIT AND PLAN
+
+PO asked to prepare F1.2 (thu gom liên tỉnh) like F1.1, accepting side only. Audited the real Huế detail and national exports of 10/10: 1 758 parcels, 1 620 Đạt (92,15 %), rating = elapsed <= 10 h on every row, national Huế row equals the detail, Huế 8th / 34. Data contract, phase plan (Phase 0-4, Dashboard) and questions Q-F12-1..7 for the PO. Planning only. Manifest: docs/10_TICKETS/F12-MODULE-PLAN_MANIFEST.md.
