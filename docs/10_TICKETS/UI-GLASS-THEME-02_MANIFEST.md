@@ -1,6 +1,6 @@
 # UI-GLASS-THEME-02 Manifest
 
-Status: `READY FOR ANTIGRAVITY (2026-10-11)`. Phase B of `UI-GLASS-THEME-01`. Frontend presentation only. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict.
+Status: `PARTIALLY IMPLEMENTED / OPUS REVIEWED, BLOCKERS FIXED (2026-10-11); REMAINING PAGES NOT YET THEMED`. Phase B of `UI-GLASS-THEME-01`. Frontend presentation only. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket; do not treat that as a conflict.
 
 ## 1. Ticket Information
 
@@ -61,3 +61,15 @@ Status: `READY FOR PO UI CHECK (2026-10-11)`.
   8. Blur layer count per viewport ≤ 4 (within ≤ 6 limit).
 - Build & Lint: `vite build` succeeded with exit code 0; `oxlint` (via `npm run lint`) reported 0 errors.
 
+## 8. Independent review (Opus, 2026-10-11) and remediation
+
+Review of `1262d13`: **FAIL, two blockers, three must-fix**; Report Block UI Standard (colour families, target lines, click-to-order titles), file scope, tests, build and lint were fine.
+
+- **B1 (blocker):** `baseCard` in `SharedComponents.jsx` gave every `CardContainer`/`KPICard` a `backdrop-filter`; the heatmap tooltip in `OperatingPatternTabsCard` is `position: fixed` and sits inside a `CardContainer`, so it would have been placed relative to the card (offset by the card position). The new Modal also had no portal. **B2 (blocker):** `backdrop-filter` inside the subtree the camera button captures (`IntegratedTrendRiskWorkspace` card root, empty/error/loading states). Fix (Claude Code/Sonnet 5.5): all blur and translucent white removed from `SharedComponents.jsx`, `Containers.jsx`, `StateLayouts.jsx` (solid `bg-white`/`bg-slate-50`); the `.table-glass` header is solid; Modal now renders in a portal.
+- **M1:** `features/ranking/RouteRankingPage.jsx` had logic changes (default BCVH, removed normalisation of negative `failed`, removed `setPage(1)` and the error handling). The file is not routed (the live page is `features/route/RoutePerformancePage`); restored to its pre-ticket version. **M2:** invented descriptive sentences on the F1.1/F1.2/F1.3-Pareto/RCA/F4.1/KPI/System-info placeholder pages removed; "LỖI 403" back to "403"; F1.2 no longer uses the F1.3 blue (neutral grey until the PO picks a colour). **M3:** blur count: the shared card blur was the main source (about 7 cards on the dashboard); now removed; the `@supports not` and `prefers-reduced-transparency` fallbacks also cover Tailwind `backdrop-blur-*` utilities (`[class*="backdrop-blur"]`).
+- Small items fixed: `.badge-glass-danger` restored; `transition-all` replaced in the touched files; business-rule comment of `GlobalFilter.jsx` restored. New UI components: Modal (portal, scroll lock, focus in/trap/return, unique ids), Tooltip (timer cleared on unmount, `aria-describedby`), Toggle (visible keyboard focus ring), Tabs (arrow/Home/End keys, roving tabindex, unique ids via `useId` or `idPrefix`). Pagination was fine.
+- New tests in `glassTheme.test.js` (no backdrop-blur in the shared report-block components, solid table header, danger badge, utility fallback, Modal portal/scroll/focus). Frontend 653/653, build and lint clean. Not re-reviewed by Opus.
+
+## 9. Not done (still the old look)
+
+Bảng điều hành page content (`features/dashboard`, changes only through the shared cards), Phân tích BCVH (`features/ranking`), Phân tích tuyến phát (`features/route/RoutePerformancePage`, the routed page), Data Import Center and `AutoBackfill*`, the filter bar inside `SharedLayout`. The new Modal, Tabs, Tooltip, Toggle, Pagination and `.table-glass` are not used by any page yet. A follow-up ticket (`UI-GLASS-THEME-03`) is needed if the PO wants them.
