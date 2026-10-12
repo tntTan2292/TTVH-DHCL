@@ -2293,3 +2293,7 @@ Through the PO's signed-in Chrome: F1.2 report route, HUE (GR=BC, province 53) a
 ## 2026-10-12 - PICTURE CONTENT FROZEN (TEMPORARY)
 
 PO: the picture of the F1.1 pair table is acceptable for now. Everything is committed and pushed; the accepted picture content (what is in and out of each block's picture, the top-N rule and the near-square reading layout with its measurements) is written in docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md Section 4a and must not change without a PO decision. Frontend 654/654 at the current head.
+
+## 2026-10-12 - F12-PHASE-3 ADAPTER IMPLEMENTED
+
+PO took the F1.2 portal adapter back from Antigravity (no code existed) and asked Claude Code to build it. Six files written as the F1.1 mirror (client methods, contract, one-date services with exact reconciliation, executors not registered, DRY probe, 24 tests); no F1.1 file edited; registry still PLANNED / MANUAL_ONLY. Tests 24/24, sweep unchanged 530/535. Next: PO supervised DRY run for HUE and TCT 10/10, then enablement and backfill. docs/10_TICKETS/F12-PHASE-3_MANIFEST.md Section 8.

@@ -1730,6 +1730,9 @@ class DkclHueF13PortalClient {
 // and are mixed in here so the existing F1.3 / F4.1 methods are not touched.
 Object.assign(DkclHueF13PortalClient.prototype, require('./f11PortalClientMethods').methods);
 
+// F12-PHASE-3: same for F1.2 (thu gom lien tinh), kept in its own module and its own lastF12* state.
+Object.assign(DkclHueF13PortalClient.prototype, require('./f12PortalClientMethods').methods);
+
 module.exports = {
     DkclHueF13PortalClient,
     DEFAULT_CHROMIUM_LAUNCH_ARGS,

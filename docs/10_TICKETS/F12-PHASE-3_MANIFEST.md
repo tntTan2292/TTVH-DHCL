@@ -1,6 +1,6 @@
 # F12-PHASE-3 Manifest
 
-Status: `EVIDENCE COMPLETE / ASSIGNED TO ANTIGRAVITY` (2026-10-11). Portal discovery for the automatic download of F1.2 (HUE detail, TCT summary), done the F1.1 way (`docs/10_TICKETS/F11-PHASE-3_MANIFEST.md` Section 12). Nothing implemented yet; nothing exported, downloaded or imported.
+Status: `IMPLEMENTED (CODE) / TECH PASS / AWAITING PO SUPERVISED DRY RUN` (2026-10-12; evidence 2026-10-11). Portal discovery for the automatic download of F1.2 (HUE detail, TCT summary), done the F1.1 way (`docs/10_TICKETS/F11-PHASE-3_MANIFEST.md` Section 12). Nothing implemented yet; nothing exported, downloaded or imported.
 
 ## 1. Ticket Information
 
@@ -70,3 +70,27 @@ Mirror F1.1 Phase 3 (`docs/10_TICKETS/F11-PHASE-3_MANIFEST.md` Sections 13-16) f
 Guards: registry stays `PLANNED` / `MANUAL_ONLY` until the PO's supervised DRY run passes; do not edit any F1.1 file (another session has uncommitted F1.1 changes); no browser, no portal access, no dev server for Antigravity — the supervised run is done by the PO; one commit, pathspec only.
 
 Done when: `test_f12PortalAdapter.js` green, F1.2 tests (26) and F1.1/F4.1/F1.3 executor tests unchanged, backend sweep no new failure; then Claude Code review, PO supervised run (HUE, TCT, 10/10), enablement (`ACTIVE`, `AUTOMATED`, `refreshWindowDays: 3`), backfill from 2026-01-01.
+
+## 8. Implementation (2026-10-12, Claude Code/Sonnet 5.5; PO: "cứ làm phase 3 đi, khỏi quan tâm KQ của Antigravity")
+
+PO took the build back from Antigravity (no Antigravity code existed in the repository, branches, worktrees or stashes). The six files of Section 7 were written as the F1.1 mirror; no F1.1 file was edited.
+
+| File | Note |
+| --- | --- |
+| `backend/src/services/f12PortalClientMethods.js` | Requests equal Sections 3-4 byte for byte; 21 screen cells; BD10 count = iTotal; generic HTML helpers imported from `f11PortalClientMethods.js` (not edited). State fields `lastF12*`. |
+| `backend/src/services/autoBackfillF12Contract.js` | HUE match `F1.2_CL_thu_gom_buu_giay_lien_tinh_chi_tiet`, TCT match `…lien_tinh(1)` (cannot select a detail file). |
+| `backend/src/services/f12SingleDateServices.js` | Exact reconciliation, no tolerance: HUE rows / Đạt / Không đạt = BD10 count / Đạt / Quá quy định of the summary total row; TCT total / quét TMS / Đạt / Quá QĐ of the workbook sum = summary total row; `chưa đủ thông tin` reported. File saved as `F1.2-YYYY.MM.DD.xlsx`. |
+| `backend/src/services/autoBackfillF12Executors.js` | Created, **not registered** in `autoBackfillExecutors.js`. |
+| `backend/probe_f12_single_date.js` | DRY; references `Data DKCL/F1.2-2026.10.10.xlsx`, `F1.2-TCT-2026.10.10.xlsx`. |
+| `backend/test_f12PortalAdapter.js` | 24 tests incl. the two real files as the known answer. |
+
+Two one-line edits outside the table, both additive: `dkclHueF13PortalClient.js` mixes in the F1.2 methods (as F1.1 does), `importIndicatorRegistry.js` maps `F12_PORTAL_REQUEST_TIMEOUT` to `TRANSIENT`. Registry unchanged (`PLANNED` / `MANUAL_ONLY`).
+
+Validation: `test_f12PortalAdapter.js` 24/24; `test_f12ImportPipeline.js` 6/6; F1.3/F4.1 executor suites 19/19 and 32/32, refresh window 6/6, queue 45/45; backend sweep 530/535 with the same 5 failures as before (3 live KPI, 1 monthly rank, 1 F1.1 real TCT, caused by another session's uncommitted `f11TctExcelParser.js`). `test_f11PortalAdapter.js` has the same single F1.1 real-TCT failure, not related to this ticket.
+
+Not verified (needs the live portal): the 21-cell screen layout was read from the evidence figures (Section 3-4 total rows), the detail-total cell position (`BD10 đóng đi`, index 7) and that the grand-total row has no number; the supervised run will confirm or refuse them (the service stops on any mismatch).
+
+Residuals: (1) polling interval default 3 s, same as the other session's working-copy value of F1.1 (HEAD has 30 s). (2) The F1.1 poll-interval and KXD changes remain uncommitted by the other session.
+
+Next: PO supervised DRY run — stop the backend, close the DKCL window of the lane, then `node probe_f12_single_date.js HUE 2026-10-10` and `node probe_f12_single_date.js TCT 2026-10-10`. After PASS: register the executors, set `ACTIVE` / `AUTOMATED` and `refreshWindowDays: 3`, backfill from 2026-01-01.
+
