@@ -75,6 +75,18 @@ function createController(service = f12RankingService) {
             try { ok(res, { data: await service.getOverview(req.query.anchor_date) }); } catch (error) { fail(res, error); }
         },
 
+        async getOfficeRanking(req, res) {
+            try {
+                const from_date = req.query.from_date || req.query.fromDate;
+                const to_date = req.query.to_date || req.query.toDate;
+                if (!from_date || !to_date) return missingRange(res);
+                const page = parseInt(req.query.page, 10) || 1;
+                const pageSize = parseInt(req.query.page_size, 10) || 100;
+                const result = await service.getOfficeRanking(from_date, to_date, page, pageSize);
+                ok(res, { data: result.data, meta: result.meta });
+            } catch (error) { fail(res, error); }
+        },
+
         async getOfficeOverview(req, res) {
             try { ok(res, { data: await service.getOfficeOverview(req.query.anchor_date) }); } catch (error) { fail(res, error); }
         },

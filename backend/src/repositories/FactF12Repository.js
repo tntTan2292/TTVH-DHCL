@@ -290,12 +290,31 @@ class FactF12Repository {
     // Every office with a code, large-customer office included, so the table total equals the module total.
     getOfficeList() {
         return this._all(`
-            SELECT ma_bc_chap_nhan AS ma_bcvh, MAX(ten_bc_chap_nhan) AS ten_bcvh
+            SELECT ma_bc_chap_nhan AS ma_bcvh, MAX(ten_bc_chap_nhan) AS ten_bcvh, MAX(ma_huyen) AS ma_huyen
             FROM fact_f12
             WHERE ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
             GROUP BY ma_bc_chap_nhan
             ORDER BY MAX(ten_bc_chap_nhan) ASC, ma_bc_chap_nhan ASC
         `);
+    }
+
+    // One row per accepting office for an inclusive date range (same shape as getBcvhOperationMetricsBetween):
+    // the office-level ranking of the Analysis page. `officeCodes` limits the offices (the ranked ones).
+    getOfficeOperationMetricsBetween(startDate, endDate, officeCodes = []) {
+        if (!officeCodes.length) return Promise.resolve([]);
+        const placeholders = officeCodes.map(() => '?').join(', ');
+        return this._all(`
+            SELECT
+                ma_bc_chap_nhan AS ma_bcvh,
+                MAX(ten_bc_chap_nhan) AS ten_bcvh,
+                COUNT(*) AS sl_bg_ptc,
+                SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
+                SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS khong_dat_kpi_2026
+            FROM fact_f12
+            WHERE ngay_do_kiem BETWEEN ? AND ?
+              AND ma_bc_chap_nhan IN (${placeholders})
+            GROUP BY ma_bc_chap_nhan
+        `, [startDate, endDate, ...officeCodes]);
     }
 
     // Same row shapes as _getBcvhOverviewAggregate('mtd' | 'daily') with the accepting office as the unit.

@@ -206,7 +206,14 @@ export const F12_INDICATOR = Object.freeze({
     cumulative12: '/dashboard/cumulative-12',
     // The Dashboard operations table lists every accepting office, not the accepting units.
     operationOverview: '/ranking/offices/overview',
+    // Ranking table of the Analysis page: the accepting offices.
+    officeRanking: '/ranking/offices',
     nationalRanking: '/dashboard/national-ranking',
+  }),
+  // Ranking table of the Analysis page (PO 2026-10-12): rows are the accepting offices, headers as the source file.
+  rankingTable: Object.freeze({
+    codeHeader: 'Mã bưu cục nhận tin/chấp nhận',
+    nameHeader: 'Tên bưu cục nhận tin/chấp nhận',
   }),
   // Operations table of the Dashboard (PO 2026-10-12): rows are the accepting offices; long, so it scrolls
   // vertically and its picture takes the top N rows in the order the user chose (as the F1.1 office table).

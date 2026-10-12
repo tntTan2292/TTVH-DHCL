@@ -790,8 +790,8 @@ export default function BcvhWeeklyComparisonBlock() {
                   <th className="py-2 px-1 text-center align-middle w-[5%] border-r border-slate-200 whitespace-nowrap">
                     STT
                   </th>
-                  {renderSortableTh('ma_bcvh', 'Mã bưu cục', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
-                  {renderSortableTh('ten_bcvh', 'Tên bưu cục', { widthClass: 'w-[15%]', borderClass: 'border-r border-slate-300', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
+                  {renderSortableTh('ma_bcvh', unitsInfo.dynamic ? 'Mã đơn vị' : 'Mã bưu cục', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
+                  {renderSortableTh('ten_bcvh', unitsInfo.dynamic ? 'Tên đơn vị' : 'Tên bưu cục', { widthClass: 'w-[15%]', borderClass: 'border-r border-slate-300', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
 
                   {/* Tuần kỳ này (28%) */}
                   {renderSortableTh('current_volume', 'Sản lượng đo kiểm', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}

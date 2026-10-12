@@ -252,6 +252,7 @@ function UnifiedHeader({ columns, sort, onSort }) {
   const indicator = useIndicator();
   const { features } = indicator;
   const theme = indicatorTheme(indicator);
+  const rankingTable = indicator.rankingTable || null;
   const d1Span = 2 + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0);
   const d7Span = 2 + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0);
 
@@ -268,8 +269,8 @@ function UnifiedHeader({ columns, sort, onSort }) {
       </tr>
       <tr className="border-b border-[var(--color-surface-200)]">
         <SortableTh field="rank" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-right`}>{TEXT.rank}</SortableTh>
-        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_CODE} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-left`}>{TEXT.code}</SortableTh>
-        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_NAME} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} px-3 py-3 text-left`}>{TEXT.name}</SortableTh>
+        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_CODE} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-left`}>{rankingTable ? rankingTable.codeHeader : TEXT.code}</SortableTh>
+        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_NAME} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} px-3 py-3 text-left`}>{rankingTable ? rankingTable.nameHeader : TEXT.name}</SortableTh>
 
         <SortableTh field="current_day.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh>
         <SortableTh field="current_day.pass_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.pass}</SortableTh>
@@ -505,16 +506,17 @@ export default function UnifiedBcvhAnalysisTable({
 
     try {
       setState({ status: 'loading', data: null, error: null });
-      const response = await api.get('/f13/ranking/bcvh', {
-        params: {
-          from_date: fromDate,
-          to_date: toDate,
-          page: 1,
-          page_size: 1000,
-          sort: 'rank',
-          order: 'asc',
-        },
-      });
+      const rankingParams = {
+        from_date: fromDate,
+        to_date: toDate,
+        page: 1,
+        page_size: 1000,
+        sort: 'rank',
+        order: 'asc',
+      };
+      const response = indicator.rankingTable && indicator.endpoints?.officeRanking
+        ? await api.get(`${indicator.apiBase}${indicator.endpoints.officeRanking}`, { params: rankingParams })
+        : await api.get('/f13/ranking/bcvh', { params: rankingParams });
 
       if (!response?.data?.success) {
         throw new Error(response?.data?.error?.message || TEXT.loadErrorMessage);
@@ -551,7 +553,7 @@ export default function UnifiedBcvhAnalysisTable({
   const filteredRows = useMemo(() => {
     const rows = state.data?.rows || [];
     return rows.filter((row) => {
-      const matchesBcvh = maBcvh === 'all' || row.ma_bcvh === maBcvh;
+      const matchesBcvh = maBcvh === 'all' || row.ma_bcvh === maBcvh || row.unit_code === maBcvh;
       const q = search.trim().toLowerCase();
       const matchesSearch = !q || row.ten_bcvh.toLowerCase().includes(q) || row.ma_bcvh.toLowerCase().includes(q);
       return matchesBcvh && matchesSearch;

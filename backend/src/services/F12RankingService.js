@@ -127,6 +127,14 @@ class F12RankingService extends F41RankingService {
             getBcvhOverviewDaily: (anchorCeiling) => repository.getOfficeOverviewAggregate('daily', anchorCeiling),
             getBcvhOverviewMtd: (anchorCeiling) => repository.getOfficeOverviewAggregate('mtd', anchorCeiling),
         };
+        // Office-level ranking (Analysis page): the F4.1 ranking over an adapter whose "unit" is the accepting office.
+        this.officeRankingService = new F41RankingService({
+            repository: {
+                getBcvhOperationMetricsBetween: (startDate, endDate, codes) => repository.getOfficeOperationMetricsBetween(startDate, endDate, codes),
+            },
+            nationalRankService,
+            ...(now ? { now } : {}),
+        });
         this.officeOverviewService = new BcvhOverviewService({
             repository: officeAdapter,
             dashboardService: nationalRankService,
@@ -190,6 +198,22 @@ class F12RankingService extends F41RankingService {
         service.unitByCode = new Map(offices.map((office) => [office.ma_bcvh, office]));
         const overview = await service.getOverview(anchorDate);
         return { ...overview, monthly: [], routes: [] };
+    }
+
+    // Ranking of the accepting OFFICES for a day or a range (PO 2026-10-12: "Mã và tên bưu cục nhận tin/chấp nhận").
+    // Same payload as getBcvhRanking (rank, rates, D-1 / D-7, month to date, total row, national rank). The
+    // large-customer office is not ranked (PD-F12-8); it stays in the module total of the dashboards.
+    async getOfficeRanking(fromDate, toDate, page = 1, pageSize = 100) {
+        const list = (await this.repository.getOfficeList())
+            .filter((office) => String(office.ma_bcvh) !== LARGE_CUSTOMER_OFFICE);
+        const offices = list.map((office) => String(office.ma_bcvh));
+        const unitOf = new Map(list.map((office) => [String(office.ma_bcvh), office.ma_huyen || null]));
+        const service = this.officeRankingService;
+        service.canonicalCodes = offices;
+        service.canonicalSet = new Set(offices);
+        const result = await service.getBcvhRanking(fromDate, toDate, page, pageSize);
+        // the accepting unit of each office, so a screen can filter the offices of one unit
+        return { ...result, data: result.data.map((row) => ({ ...row, ma_huyen: unitOf.get(String(row.ma_bcvh)) || null })) };
     }
 
     // The 34 provinces/cities ranked nationally by the accepting province.

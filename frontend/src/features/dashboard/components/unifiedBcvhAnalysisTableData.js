@@ -162,6 +162,8 @@ export function mapBcvhRankingRow(row = {}, context = {}) {
   const mapped = {
     id: isTotal ? 'total-row' : (row.ma_bcvh || row.ten_bcvh || `bcvh-${row.rank ?? 'unknown'}`),
     ma_bcvh: isTotal ? '' : (row.ma_bcvh || ''),
+    // F1.2: the accepting unit (4-digit) of an office row, so the unit filter can select its offices.
+    unit_code: isTotal ? null : (row.ma_huyen || null),
     ten_bcvh: isTotal ? 'Tổng cộng' : (row.ten_bcvh || UNAVAILABLE_TEXT),
     rank: isTotal ? null : toNumberOrNull(row.rank),
     is_total: isTotal,

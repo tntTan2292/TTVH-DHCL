@@ -114,20 +114,24 @@ test('DashboardPage mounts F12OfficeTableBlock and F12Cumulative12Block based on
   assert.match(source, /indicator\.features\.cumulative12 \? \(\s*<F12Cumulative12Block/);
 });
 
-test('Block A: F12OfficeTableBlock exposes camera button, SortableTh, and follows date filter', () => {
+test('Block A: F12OfficeTableBlock is the whole-BĐTP day table: camera, date filter, vs previous day and same weekday', () => {
   const source = fs.readFileSync(new URL('./components/F12OfficeTableBlock.jsx', import.meta.url), 'utf8');
   assert.match(source, /BlockCaptureButton/);
-  assert.match(source, /SortableTh/);
   assert.match(source, /indicatorTheme\(indicator\)/);
   assert.match(source, /classifyF13HeatmapRate/);
-  assert.match(source, /Khách hàng lớn \(không xếp hạng\)/);
+  assert.match(source, /indicatorEndpoint\('kpi', indicator\)/);
+  assert.match(source, /from_date: anchorDate, to_date: anchorDate/);
+  assert.match(source, /TOÀN BĐTP/);
+  assert.match(source, /cùng kỳ \(tuần trước\)/);
+  // no period switch, no unit / office rows
+  assert.doesNotMatch(source, /office-table|officeTable|SortableTh|setPeriod/);
   assert.doesNotMatch(source, /#003E7E/i);
 });
 
-test('Block B: F12Cumulative12Block exposes camera button, SortableTh, 95% target line, and monthly rank', () => {
+test('Block B: F12Cumulative12Block is city level only: camera, 95% target line, monthly rank, no unit table', () => {
   const source = fs.readFileSync(new URL('./components/F12Cumulative12Block.jsx', import.meta.url), 'utf8');
   assert.match(source, /BlockCaptureButton/);
-  assert.match(source, /SortableTh/);
+  assert.doesNotMatch(source, /SortableTh|rawUnits|data\?\.units/);
   assert.match(source, /ComposedChart/);
   assert.match(source, /ReferenceLine/);
   assert.match(source, /Mục tiêu/);

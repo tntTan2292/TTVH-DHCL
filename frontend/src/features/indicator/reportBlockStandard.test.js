@@ -22,8 +22,6 @@ const TABLES = [
   '../dashboard/components/UnifiedBcvhAnalysisTable.jsx',
   '../ranking/BcvhRankingOverviewBlocks.jsx',
   '../f11/components/F11PairTableBlock.jsx',
-  '../f12/components/F12OfficeTableBlock.jsx',
-  '../f12/components/F12Cumulative12Block.jsx',
 ];
 const THEMED = [...REPORT_BLOCKS, '../ranking/BcvhMonthlyComboTrendChart.jsx', '../ranking/BcvhWeeklyComboTrendChart.jsx', '../ranking/BcvhWeeklyTrendBlock.jsx', '../dashboard/DashboardPage.jsx', '../ranking/BcvhRankingPage.jsx'];
 

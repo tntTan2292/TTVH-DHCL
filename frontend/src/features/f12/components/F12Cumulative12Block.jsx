@@ -15,12 +15,10 @@ import {
   Award,
   Calendar,
   Layers,
-  Search,
   Sparkles,
   TrendingUp,
 } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
-import SortableTh from '../../../components/common/SortableTh.jsx';
 import {
   classifyF13HeatmapRate,
   F13_HEATMAP_HEX_COLOR,
@@ -31,12 +29,7 @@ import { DASH } from '../../dashboard/components/bcvhOperationTableData.js';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTargetRate, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
-import {
-  filterCumulativeUnits,
-  formatMonthShort,
-  nextSortState,
-  sortCumulativeUnits,
-} from './f12Cumulative12Sort.js';
+import { formatMonthShort } from './f12Cumulative12Sort.js';
 
 function RateBadge({ rate, bands, targetRate = 95 }) {
   if (rate === null || rate === undefined || rate === '') {
@@ -132,8 +125,6 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
-  const [search, setSearch] = useState('');
-  const [sort, setSort] = useState(null);
 
   // Sync selectedMonth when anchorDate changes
   useEffect(() => {
@@ -175,11 +166,8 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
     fetchData();
   }, [fetchData]);
 
-  const meta = data?.meta || {};
   const rawMonths = data?.months;
   const cumulative = data?.cumulative || {};
-  const rawUnits = data?.units;
-  const monthsList = meta.months || (rawMonths || []).map((m) => m.month);
 
   // Chart series mapping
   const chartSeries = useMemo(() => {
@@ -199,19 +187,6 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
     const max = Math.max(0, ...vols);
     return max > 0 ? Math.ceil(max * 1.15) : 100;
   }, [chartSeries]);
-
-  // Filter & sort units
-  const filteredUnits = useMemo(() => {
-    return filterCumulativeUnits(rawUnits || [], search);
-  }, [rawUnits, search]);
-
-  const sortedUnits = useMemo(() => {
-    return sortCumulativeUnits(filteredUnits, sort?.field, sort?.direction);
-  }, [filteredUnits, sort]);
-
-  const handleSort = (field) => {
-    setSort((current) => nextSortState(current, field));
-  };
 
   const periodLabel = `Lũy kế 12 tháng đến ${selectedMonth}`;
 
@@ -233,7 +208,7 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
             </span>
           </div>
           <p className="text-xs text-slate-500 font-medium">
-            Diễn biến sản lượng, tỷ lệ đạt, vị thứ toàn quốc và bảng chi tiết các đơn vị chấp nhận 12 tháng gần nhất.
+            Diễn biến sản lượng, tỷ lệ đạt và vị thứ toàn quốc của toàn BĐTP trong 12 tháng gần nhất.
           </p>
         </div>
 
@@ -285,7 +260,7 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
         ) : (
           <>
             {/* Cumulative Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wide">
                   <span>Tổng sản lượng 12T</span>
@@ -327,19 +302,6 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
                 </div>
                 <div className="mt-1 text-[11px] text-slate-500 font-medium">
                   Xếp hạng theo tỉnh chấp nhận
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5">
-                <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wide">
-                  <span>Số đơn vị theo dõi</span>
-                  <Sparkles size={14} className="text-teal-600" />
-                </div>
-                <div className="mt-2 text-2xl font-black text-slate-900 tabular-nums">
-                  {meta.unit_count || rawUnits.length}
-                </div>
-                <div className="mt-1 text-[11px] text-slate-500 font-medium">
-                  Đơn vị chấp nhận toàn tỉnh
                 </div>
               </div>
             </div>
@@ -495,108 +457,6 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Unit 12-Month Table */}
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Bảng chi tiết các đơn vị chấp nhận qua 12 tháng
-                </div>
-
-                {/* Search */}
-                <div data-no-capture="true" className="relative">
-                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Tìm đơn vị..."
-                    className="rounded-lg border border-slate-300 bg-white pl-8 pr-3 py-1 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
-                  />
-                </div>
-              </div>
-
-              <div className="w-full overflow-x-auto rounded-xl border border-slate-200">
-                <table className="w-full min-w-[960px] text-left border-collapse table-fixed">
-                  <thead>
-                    <tr className={`border-b-2 ${theme.headerBorder} ${theme.headerBg} ${theme.headerText} text-xs font-extrabold uppercase tracking-wide`}>
-                      <SortableTh field="rank" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2.5 px-1.5 text-center align-middle w-[50px] border-r border-slate-200">
-                        Hạng
-                      </SortableTh>
-                      <SortableTh field="ma_bcvh" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2.5 px-2 text-center align-middle w-[75px] border-r border-slate-200">
-                        Mã ĐV
-                      </SortableTh>
-                      <SortableTh field="ten_bcvh" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2.5 px-3 text-left align-middle w-[190px] border-r border-slate-200">
-                        Đơn vị chấp nhận
-                      </SortableTh>
-                      <SortableTh field="volume" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2.5 px-2 text-right align-middle w-[80px] border-r border-slate-200">
-                        SL 12T
-                      </SortableTh>
-                      <SortableTh field="rate" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2.5 px-2 text-center align-middle w-[80px] border-r border-slate-300">
-                        Tỷ lệ 12T
-                      </SortableTh>
-
-                      {/* 12 Months Columns */}
-                      {monthsList.map((monthKey) => (
-                        <SortableTh
-                          key={monthKey}
-                          field={`month_${monthKey}`}
-                          sort={sort}
-                          onSort={handleSort}
-                          activeClassName={theme.sortActive}
-                          className="py-2.5 px-1 text-center align-middle min-w-[62px] border-r border-slate-200 text-[11px]"
-                        >
-                          {formatMonthShort(monthKey)}
-                        </SortableTh>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 text-xs font-semibold text-slate-800">
-                    {sortedUnits.length === 0 ? (
-                      <tr>
-                        <td colSpan={5 + monthsList.length} className="py-6 text-center text-slate-400 italic">
-                          Không có đơn vị nào khớp với tìm kiếm.
-                        </td>
-                      </tr>
-                    ) : (
-                      sortedUnits.map((unit) => (
-                        <tr key={unit.ma_bcvh} className="hover:bg-teal-50/30 transition-colors">
-                          <td className="py-2 px-1.5 text-center font-black text-slate-700 border-r border-slate-200 tabular-nums">
-                            {unit.rank ?? DASH}
-                          </td>
-                          <td className="py-2 px-2 text-center font-mono text-slate-500 border-r border-slate-200">
-                            {unit.ma_bcvh}
-                          </td>
-                          <td className="py-2 px-3 text-left font-bold text-slate-900 border-r border-slate-200 truncate" title={unit.ten_bcvh}>
-                            {unit.ten_bcvh}
-                          </td>
-                          <td className="py-2 px-2 text-right tabular-nums font-bold border-r border-slate-200">
-                            {formatNumber(unit.volume)}
-                          </td>
-                          <td className="py-2 px-2 text-center tabular-nums border-r border-slate-300">
-                            <RateBadge rate={unit.rate} bands={indicator.heatmapBands} targetRate={targetRate} />
-                          </td>
-
-                          {/* Month cells */}
-                          {monthsList.map((monthKey) => {
-                            const monthData = unit.months?.[monthKey];
-                            return (
-                              <td key={monthKey} className="py-2 px-1 text-center tabular-nums border-r border-slate-200">
-                                <RateBadge
-                                  rate={monthData?.rate ?? null}
-                                  bands={indicator.heatmapBands}
-                                  targetRate={targetRate}
-                                />
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
               </div>
             </div>
           </>

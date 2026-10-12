@@ -285,3 +285,20 @@ test('office overview: every accepting office (large customer included) as a row
     assert.ok(overview.daily.some((row) => row.date === '2026-10-06' && row.ma_bcvh === '531120' && row.volume === 3));
   });
 });
+
+test('office ranking: accepting offices ranked by rate, large customer not ranked, totals add up', async () => {
+  await withStack(async ({ service }) => {
+    const result = await service.getOfficeRanking('2026-10-06', '2026-10-06');
+    // 06/10: 100001 4 parcels / 3 Đạt, 100002 2 / 1, 200001 2 / 2; 531120 (3 / 3) is not ranked
+    assert.deepEqual(
+      result.data.map((row) => [row.ma_bcvh, row.ten_bcvh, row.sl_bg_ptc, row.dat_kpi_2026, row.rank]),
+      [['200001', 'BĐ Phú Xuân 1', 2, 2, 1], ['100001', 'BĐ Thuận Hóa 1', 4, 3, 2], ['100002', 'BĐ Thuận Hóa 2', 2, 1, 3]],
+    );
+    assert.deepEqual(result.data.map((row) => row.ma_huyen), ['5340', '5304', '5304']);
+    assert.equal(result.meta.total_row.sl_bg_ptc, 8);
+    assert.equal(result.meta.total_row.dat_kpi_2026, 6);
+    // the unit ranking of the same day is unaffected (offices are a different service state)
+    const units = await service.getBcvhRanking('2026-10-06', '2026-10-06');
+    assert.deepEqual(units.data.map((row) => row.ma_bcvh), ['5340', '5304']);
+  });
+});

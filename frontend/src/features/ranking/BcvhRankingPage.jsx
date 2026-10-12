@@ -194,16 +194,18 @@ export default function BcvhRankingPage() {
     }
 
     setRankingState({ status: 'loading', data: null, error: null });
-    api.get('/f13/ranking/bcvh', {
-      params: {
-        from_date: toDate,
-        to_date: toDate,
-        page: 1,
-        page_size: 1000,
-        sort: 'rank',
-        order: 'asc',
-      },
-    })
+    const rankingParams = {
+      from_date: toDate,
+      to_date: toDate,
+      page: 1,
+      page_size: 1000,
+      sort: 'rank',
+      order: 'asc',
+    };
+    // F1.2: the ranking table lists the accepting offices (the unit comparison tables below stay per unit).
+    (indicator.rankingTable && indicator.endpoints?.officeRanking
+      ? api.get(`${indicator.apiBase}${indicator.endpoints.officeRanking}`, { params: rankingParams })
+      : api.get('/f13/ranking/bcvh', { params: rankingParams }))
       .then((response) => {
         if (!active) return;
         if (!response?.data?.success) {
@@ -231,7 +233,7 @@ export default function BcvhRankingPage() {
   const filteredRows = useMemo(() => {
     const rows = rankingState.data?.rows || [];
     return rows.filter((row) => {
-      const matchesBcvh = maBcvh === 'all' || row.ma_bcvh === maBcvh;
+      const matchesBcvh = maBcvh === 'all' || row.ma_bcvh === maBcvh || row.unit_code === maBcvh;
       const q = search.trim().toLowerCase();
       const matchesSearch = !q || row.ten_bcvh.toLowerCase().includes(q) || row.ma_bcvh.toLowerCase().includes(q);
       return matchesBcvh && matchesSearch;

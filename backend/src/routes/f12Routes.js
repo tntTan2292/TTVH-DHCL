@@ -19,6 +19,7 @@ router.get('/dashboard/meta', ...allowViewerRead, f12RankingController.getMeta);
 router.get('/dashboard/national-ranking', ...allowViewerRead, f12RankingController.getNationalRanking);
 router.get('/ranking/bcvh/overview', ...allowViewerRead, f12RankingController.getOverview);
 router.get('/ranking/offices/overview', ...allowViewerRead, f12RankingController.getOfficeOverview);
+router.get('/ranking/offices', ...allowViewerRead, f12RankingController.getOfficeRanking);
 router.get('/ranking/bcvh/weeks', ...allowViewerRead, f12RankingController.getWeeks);
 router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, f12RankingController.getWeeklyComparison);
 router.get('/ranking/bcvh/weekly-trend', ...allowViewerRead, f12RankingController.getWeeklyTrend);
