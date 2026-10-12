@@ -50,13 +50,14 @@ function buildSmallFile(filePath, { ratings = ['Đạt', 'Đạt', 'Không đạ
     xlsx.writeFile(wb, filePath);
 }
 
-test('registry: F1.2 is a valid PLANNED indicator with manual HUE and TCT lanes and its own tables', () => {
+test('registry: F1.2 is a valid ACTIVE indicator with automatic HUE and TCT lanes, a 3-day refresh window and its own tables', () => {
     validateIndicatorRegistry();
-    assert.equal(INDICATORS['F1.2'].status, 'PLANNED');
+    assert.equal(INDICATORS['F1.2'].status, 'ACTIVE');
+    assert.equal(INDICATORS['F1.2'].refreshWindowDays, 3);
     assert.equal(getLaneConfig('F1.2', 'HUE').targetTable, 'fact_f12');
     assert.equal(getLaneConfig('F1.2', 'TCT').targetTable, 'fact_f12_national');
-    assert.equal(getLaneConfig('F1.2', 'HUE').automationMode, 'MANUAL_ONLY');
-    assert.equal(getLaneConfig('F1.2', 'TCT').automationMode, 'MANUAL_ONLY');
+    assert.equal(getLaneConfig('F1.2', 'HUE').automationMode, 'AUTOMATED');
+    assert.equal(getLaneConfig('F1.2', 'TCT').automationMode, 'AUTOMATED');
     assert.equal(INDICATORS['F1.2'].filenamePattern.test('F1.2-2026.10.10.xlsx'), true);
     assert.equal(INDICATORS['F1.2'].filenamePattern.test('F1.1-2026.10.10.xlsx'), false);
     assert.equal(INDICATORS['F1.2'].formatFilename('2026-10-10'), 'F1.2-2026.10.10.xlsx');

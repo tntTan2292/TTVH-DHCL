@@ -13,6 +13,7 @@ const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./a
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
 const { F11_EXECUTOR_IDENTITIES } = require('./autoBackfillF11Contract');
+const { F12_EXECUTOR_IDENTITIES } = require('./autoBackfillF12Contract');
 
 const REGISTRY_VERSION = 'AUTO-BACKFILL-SAFETY-1';
 const BUSINESS_TIMEZONE = 'Asia/Ho_Chi_Minh';
@@ -294,17 +295,18 @@ INDICATORS['F1.1'] = {
     },
 };
 
-// F12-PHASE-2/4: F1.2 (thu gom buu gui lien tinh), accepting side only. HUE lane (fact_f12, detail) and TCT lane
-// (fact_f12_national, one row per accepting province), both manual until F12-PHASE-3 verifies a Portal adapter.
-// Status PLANNED keeps F1.2 out of the auto-backfill coverage and queue; the 3-day refresh window decided by
-// the PO (PD-F12-11) is switched on together with the automatic lanes.
+// F12-PHASE-2/4/3: F1.2 (thu gom buu gui lien tinh), accepting side only. HUE lane (fact_f12, detail) and TCT lane
+// (fact_f12_national, one row per accepting province). ACTIVE with both lanes AUTOMATED since the PO accepted the
+// supervised DRY run of 2026-10-10 (HUE and TCT reconciled exactly with the portal summary). The portal revises a
+// day after N-1 (10/10: 26 Hue parcels dropped, 'chua du thong tin' 133 -> 17), hence the 3-day refresh window (PD-F12-11).
 INDICATORS['F1.2'] = {
     code: 'F1.2',
     key: 'F1.2',
     name: 'F1.2 - Chat luong thu gom buu gui lien tinh',
-    status: 'PLANNED',
+    status: 'ACTIVE',
     priority: 40,
     badgeTheme: 'emerald',
+    refreshWindowDays: 3,
     trackingStartDate: TRACKING_START_DATE,
     businessTimezone: BUSINESS_TIMEZONE,
     folder: 'F1.2',
@@ -324,8 +326,11 @@ INDICATORS['F1.2'] = {
             parser: (buffer, filename) => parseF12HueExcel(buffer, filename),
             targetTable: 'fact_f12',
             distinctColumn: 'ma_bg',
-            automationMode: 'MANUAL_ONLY',
-            manualOnlyReason: 'No verified DKCL Portal adapter for F1.2 yet (F12-PHASE-3).',
+            automationMode: 'AUTOMATED',
+            portalAdapter: {
+                ...F12_EXECUTOR_IDENTITIES.HUE,
+                verified: true,
+            },
         }),
         TCT: createLane({
             code: 'TCT',
@@ -336,8 +341,11 @@ INDICATORS['F1.2'] = {
             // provinces are present as accepting provinces.
             distinctColumn: 'ma_tinh_chap_nhan',
             requiredValues: { column: 'ma_tinh_chap_nhan', values: NATIONAL_RANKED_PROVINCE_CODES },
-            automationMode: 'MANUAL_ONLY',
-            manualOnlyReason: 'No verified DKCL Portal adapter for F1.2 yet (F12-PHASE-3).',
+            automationMode: 'AUTOMATED',
+            portalAdapter: {
+                ...F12_EXECUTOR_IDENTITIES.TCT,
+                verified: true,
+            },
         }),
     },
 };

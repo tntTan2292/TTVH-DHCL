@@ -500,7 +500,7 @@ test('executor: authentication required, pending manual login and an already-act
     await assert.rejects(make(harness).execute({ indicator: 'F1.2', sourceLane: 'TCT', businessDate: '2026-10-10' }), (error) => error.code === 'DKCL_SOURCE_OPERATION_ACTIVE');
 });
 
-test('executors are created for both lanes with the identities; the registry stays PLANNED / MANUAL_ONLY', () => {
+test('executors are created for both lanes with the identities; the registry is ACTIVE / AUTOMATED with the verified adapter identities', () => {
     const executors = createF12AutoBackfillExecutors({ sessionPreflightService: sessionHarness().service });
     assert.equal(executors.HUE.identity.id, 'DKCL_F12_HUE_SINGLE_DATE_V1');
     assert.equal(executors.TCT.identity.id, 'DKCL_F12_TCT_SINGLE_DATE_V1');
@@ -509,7 +509,11 @@ test('executors are created for both lanes with the identities; the registry sta
 
     const { getIndicatorConfig } = require('./src/services/importIndicatorRegistry');
     const f12 = getIndicatorConfig('F1.2');
-    assert.equal(f12.status, 'PLANNED');
-    assert.equal(f12.lanes.HUE.automationMode, 'MANUAL_ONLY');
-    assert.equal(f12.lanes.TCT.automationMode, 'MANUAL_ONLY');
+    assert.equal(f12.status, 'ACTIVE');
+    assert.equal(f12.refreshWindowDays, 3);
+    for (const lane of ['HUE', 'TCT']) {
+        assert.equal(f12.lanes[lane].automationMode, 'AUTOMATED');
+        assert.equal(f12.lanes[lane].portalAdapter.id, F12_EXECUTOR_IDENTITIES[lane].id);
+        assert.equal(f12.lanes[lane].portalAdapter.verified, true);
+    }
 });

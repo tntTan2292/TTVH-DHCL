@@ -1,6 +1,6 @@
 # F12-PHASE-3 Manifest
 
-Status: `IMPLEMENTED (CODE) / TECH PASS / AWAITING PO SUPERVISED DRY RUN` (2026-10-12; evidence 2026-10-11). Portal discovery for the automatic download of F1.2 (HUE detail, TCT summary), done the F1.1 way (`docs/10_TICKETS/F11-PHASE-3_MANIFEST.md` Section 12). Nothing implemented yet; nothing exported, downloaded or imported.
+Status: `IMPLEMENTED / SUPERVISED DRY RUN PASSED (PO accepted) / ENABLED, BACKEND RESTART AND FIRST AUTO BACKFILL PENDING` (2026-10-12; evidence 2026-10-11). Portal discovery for the automatic download of F1.2 (HUE detail, TCT summary), done the F1.1 way (`docs/10_TICKETS/F11-PHASE-3_MANIFEST.md` Section 12). Nothing implemented yet; nothing exported, downloaded or imported.
 
 ## 1. Ticket Information
 
@@ -93,4 +93,21 @@ Not verified (needs the live portal): the 21-cell screen layout was read from th
 Residuals: (1) polling interval default 3 s, same as the other session's working-copy value of F1.1 (HEAD has 30 s). (2) The F1.1 poll-interval and KXD changes remain uncommitted by the other session.
 
 Next: PO supervised DRY run — stop the backend, close the DKCL window of the lane, then `node probe_f12_single_date.js HUE 2026-10-10` and `node probe_f12_single_date.js TCT 2026-10-10`. After PASS: register the executors, set `ACTIVE` / `AUTOMATED` and `refreshWindowDays: 3`, backfill from 2026-01-01.
+
+## 9. Supervised DRY Run and Enablement (2026-10-12)
+
+PO ran `probe_f12_single_date.js` for HUE and TCT, 2026-10-10, from `backend`, DRY mode.
+
+| Lane | Portal summary | Workbook | Reconciliation |
+| --- | --- | --- | --- |
+| HUE | 1.732 / 1.597 Đạt / 135 Không đạt, 92,21 %, chưa đủ 17 | 1.732 rows, 1.597 / 135 | exact |
+| TCT | 265.028 / TMS 265.330 / 240.057 Đạt / 25.273 quá QĐ, chưa đủ 7.439, export Total 54 | 53 rows, same sums | exact |
+
+The comparison with the PO's 11/10 files said DIFFERENT, which is the portal's own revision of 10/10 over the two days, not an adapter fault: HUE 26 parcels dropped and none added, 1 rating changed, STT renumbered, `Mã/Tên tỉnh phát` filled on 355 rows, `chưa đủ thông tin` 133 -> 17; the probe compares by row position, so 26 missing rows shift every later row (17.118 cell differences). Headers identical. The screen layout assumptions of Section 8 (21 cells, BD10 count at index 7, unnumbered total row) held on the live portal.
+
+PO decision: PASS (chat 2026-10-12 "Đồng ý pass").
+
+Enablement (same commit): `importIndicatorRegistry.js` F1.2 `ACTIVE`, lanes `AUTOMATED` with `portalAdapter` = `F12_EXECUTOR_IDENTITIES` (`verified: true`), `refreshWindowDays: 3` (PD-F12-11); `autoBackfillExecutors.js` registers `registerF12AutoBackfillExecutors`. Tests 24/24 and 6/6 (registry assertions updated), F1.3 19, F4.1 32, refresh window 6, queue 45, coverage 16, safety 11, controllers 4 + 12. Backend sweep 527/535: the earlier 5 plus 3 route-ranking tests that call the live API at 127.0.0.1:5050 and fail only because the backend is stopped for the probe.
+
+Next: PO restarts the backend (loads the F1.2 registry, executors and F1.2 tables), runs one supervised F1.2 Auto Backfill over a few days, then the backfill from 2026-01-01. Then `F12-DASHBOARD-RANKING-01` and `F12-DASHBOARD-UI-01`.
 

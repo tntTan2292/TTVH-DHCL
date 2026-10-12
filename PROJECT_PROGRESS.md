@@ -2297,3 +2297,7 @@ PO: the picture of the F1.1 pair table is acceptable for now. Everything is comm
 ## 2026-10-12 - F12-PHASE-3 ADAPTER IMPLEMENTED
 
 PO took the F1.2 portal adapter back from Antigravity (no code existed) and asked Claude Code to build it. Six files written as the F1.1 mirror (client methods, contract, one-date services with exact reconciliation, executors not registered, DRY probe, 24 tests); no F1.1 file edited; registry still PLANNED / MANUAL_ONLY. Tests 24/24, sweep unchanged 530/535. Next: PO supervised DRY run for HUE and TCT 10/10, then enablement and backfill. docs/10_TICKETS/F12-PHASE-3_MANIFEST.md Section 8.
+
+## 2026-10-12 - F12-PHASE-3 DRY RUN PASSED, F1.2 ENABLED
+
+PO ran the supervised DRY probe for HUE and TCT (10/10): both reconcile exactly with the portal summary; differences to the earlier PO files are the portal's own revision. PO accepted PASS. F1.2 registry set ACTIVE / AUTOMATED with a 3-day refresh window and executors registered. Next: backend restart, first supervised Auto Backfill, backfill from 2026-01-01. docs/10_TICKETS/F12-PHASE-3_MANIFEST.md Section 9.
