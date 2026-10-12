@@ -2289,3 +2289,7 @@ PO: F1.2 target 95 %, start. Reference package, fact_f12 and fact_f12_national, 
 ## 2026-10-11 - F1.2 PORTAL EVIDENCE (PHASE 3)
 
 Through the PO's signed-in Chrome: F1.2 report route, HUE (GR=BC, province 53) and TCT (GR=Tinh, ALL) requests, detail store sp_TT_ThuGom_LienTinh_ChiTiet (province sent as N'53'), export stores, MM/DD/YYYY and YYYYMMDD dates. One PO-authorised TCT export; both exports equal the PO's files cell by cell (0 differences). The portal fills 'chua du thong tin' after N-1 (09/10: 0, 10/10: 133). Implementation not started. Manifest: docs/10_TICKETS/F12-PHASE-3_MANIFEST.md.
+
+## 2026-10-12 - PICTURE CONTENT FROZEN (TEMPORARY)
+
+PO: the picture of the F1.1 pair table is acceptable for now. Everything is committed and pushed; the accepted picture content (what is in and out of each block's picture, the top-N rule and the near-square reading layout with its measurements) is written in docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md Section 4a and must not change without a PO decision. Frontend 654/654 at the current head.

@@ -51,6 +51,18 @@ To change a tone or a target, change it in `indicatorConfig.js` only.
 4. Tests for new pure helpers (ordering, targets), and a source check that every block exposes the camera button and reads the theme (`features/indicator/reportBlockStandard.test.js`).
 5. No browser/screenshot/dev server/login by Antigravity; the PO checks the screens. Never self-award PO PASS.
 
+## 4a. Picture content — temporarily frozen (PO 2026-10-12: "ảnh tạm ổn")
+
+What the camera produces today is accepted by the PO for now and must not change without his decision. Checked in a real browser (Chromium over HTTPS) with realistic data.
+
+| Block | Picture content |
+| --- | --- |
+| Any report block | The whole block (scrolled-away parts included) at 2×, white background, without the camera buttons, controls and other `data-no-capture` elements; a caption line under it: indicator (F1.1/F1.3/F4.1), block title, period, time of export. One click copies to the clipboard; the small download button saves a PNG (`<F>_<title>_<period>.png`). On plain http a preview window opens (right click → Copy image). |
+| F1.1 "Bưu cục chấp nhận × BCVH phát" | **Top N accepting offices in the order the user chose** (select "Ảnh chụp lấy": Top 15 / 20 / 25, 30; default **20**, or all), plus the TỔNG CỘNG row; the header with the title, the office count and the period; the colour legend; the table; a line "Ảnh chụp: top N / total, sắp theo …" and the note about the "Khác" column. Left out: period buttons, search, order buttons, the SL/TL mini buttons, the click hint, sort arrows, and any delivering-unit column with no parcel in the picture. |
+| F1.1 table, reading layout | Near-square picture (top 20 of 67: about 1549×1291 px at 1×, ratio 1.2). Text about twice the screen size (names and rates 21 px, headers 18 px, volumes 15 px); **rate and volume of a cell on one line, office name and code on one line** (rows about 45 px); delivering-unit columns 150 px wide and equal, name column 410 px; "BCVH " dropped from the column names; frame as narrow as the table; caption 17 px. The screen layout is untouched and restored after the shot. Source: `PAIR_CAPTURE_CSS` in `features/f11/components/F11PairTableBlock.jsx` (guarded by `features/f11/pairTableSort.test.js`). |
+
+Open for later (not decided): the same top-N / reading layout for other long tables, a "top N" choice for the BCVH tables (only 6 rows, not needed), the position of the legend.
+
 ## 5. Changing the standard
 
 Only the Product Owner changes it (chat decision), recorded here with the date and in `PROJECT_PROGRESS.md`. A new mandatory function is added to Section 1 and, if it can be checked by code, to `reportBlockStandard.test.js`.
