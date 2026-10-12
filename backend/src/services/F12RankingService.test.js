@@ -123,7 +123,7 @@ test('overview, weeks and months run over the data-driven units', async () => {
 test('office table (day): unit -> offices, rank, large customer shown apart, total row = module total', async () => {
     await withStack(async ({ service }) => {
         const table = await service.getOfficeTable({ period: 'day', anchorDate: '2026-10-06' });
-        assert.deepEqual(table.meta, { period: 'day', from_date: '2026-10-06', to_date: '2026-10-06', days_with_data: 1, has_data: true, unit_count: 2, office_count: 4, target_rate: 95 });
+        assert.deepEqual(table.meta, { period: 'day', from_date: '2026-10-06', to_date: '2026-10-06', period_end: '2026-10-06', days_with_data: 1, has_data: true, unit_count: 2, office_count: 4, target_rate: 95 });
         assert.deepEqual(table.rows.map((r) => [r.ma_huyen, r.volume, r.passed, r.rank]), [['5340', 2, 2, 1], ['5304', 6, 4, 2]]);
         const th = table.rows.find((r) => r.ma_huyen === '5304');
         assert.deepEqual(th.offices.map((o) => [o.ma_chap_nhan, o.volume, o.passed, o.rate]), [['100001', 4, 3, 75], ['100002', 2, 1, 50]]);
@@ -141,9 +141,13 @@ test('office table week/month and invalid or empty periods', async () => {
         const week = await service.getOfficeTable({ period: 'week', anchorDate: '2026-10-07' });
         assert.deepEqual([week.meta.from_date, week.meta.to_date, week.meta.days_with_data], ['2026-10-01', '2026-10-07', 2]);
         assert.equal(week.total_row.volume, 11 + 6);
+        // week / month are "to date": never past the selected day (review N2)
         const month = await service.getOfficeTable({ period: 'month', anchorDate: '2026-10-20' });
-        assert.deepEqual([month.meta.from_date, month.meta.to_date], ['2026-10-01', '2026-10-31']);
+        assert.deepEqual([month.meta.from_date, month.meta.to_date, month.meta.period_end], ['2026-10-01', '2026-10-20', '2026-10-31']);
         assert.equal(month.total_row.volume, 11 + 6 + 1);
+        const midWeek = await service.getOfficeTable({ period: 'week', anchorDate: '2026-10-06' });
+        assert.deepEqual([midWeek.meta.from_date, midWeek.meta.to_date, midWeek.meta.period_end], ['2026-10-01', '2026-10-06', '2026-10-07']);
+        assert.equal(midWeek.total_row.volume, 11); // 07/10 (6 parcels) is after the selected day
         const empty = await service.getOfficeTable({ period: 'day', anchorDate: '2026-09-01' });
         assert.equal(empty.meta.has_data, false);
         assert.deepEqual(empty.rows, []);
@@ -240,4 +244,18 @@ test('real 10/10/2026 file: 1.758 / 1.620 / 92,15 %; large customer 550 parcels 
         assert.equal(ranking.data.length, table.rows.length);
         assert.equal(ranking.meta.total_row.sl_bg_ptc, 1758 - 550);
     });
+});
+
+test('a unit filter never includes the large-customer office, even when the unit holds it (review N3)', async () => {
+  await withStack(async ({ db, service }) => {
+    // a unit that holds both a normal office and the large-customer office
+    await seed(db, '2026-10-09', ['300001', 'BĐ Hỗn hợp'], ['5399', 'Đơn vị hỗn hợp'], ['Đạt', 'Không đạt']);
+    await seed(db, '2026-10-09', ['531120', 'Khách hàng lớn'], ['5399', 'Đơn vị hỗn hợp'], ['Đạt', 'Đạt', 'Đạt']);
+    const unit = await service.getSummary('2026-10-09', '2026-10-09', { bcvhId: '5399' });
+    assert.equal(unit.total_bg, 2);
+    const trend = await service.getDailyTrend('2026-10-09', '2026-10-09', { bcvhId: '5399' });
+    assert.equal(trend.items[0].total_volume, 2);
+    const module = await service.getSummary('2026-10-09', '2026-10-09');
+    assert.equal(module.total_bg, 5);
+  });
 });

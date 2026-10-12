@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
+import { useBcvhUnits } from '../indicator/BcvhUnitsContext.js';
 import { BCVH_COLORS, CANONICAL_NAMES, DASH, getMonthlyTrendSeriesData } from './bcvhOverviewData.js';
 import {
   formatNumber,
@@ -296,6 +296,7 @@ function SmallMultiplesMonthlyGrid({
   anchorDate = null,
 }) {
   const indicator = useIndicator();
+  const unitCodes = useBcvhUnits().codes;
   const { heatmapBands } = indicator;
   const targetRate = indicatorTargetRate(indicator);
   return (
@@ -313,7 +314,7 @@ function SmallMultiplesMonthlyGrid({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
-        {CANONICAL_BCVH_CODES.map((code) => {
+        {unitCodes.map((code) => {
           const unitData = getMonthlyTrendSeriesData(chartData, code, targetRate);
           const unitName = unitNames[code] || CANONICAL_NAMES[code] || code;
           const unitColor = unitColors[code] || BCVH_COLORS[code] || '#2563eb';

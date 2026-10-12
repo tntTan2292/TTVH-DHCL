@@ -52,6 +52,7 @@ export default function F12OfficeTableBlock({ anchorDate = null }) {
   const targetRate = indicatorTargetRate(indicator);
   const api = useIndicatorApi();
   const cardRef = useRef(null);
+  const requestSeqRef = useRef(0);
 
   const [period, setPeriod] = useState('day');
   const [loading, setLoading] = useState(true);
@@ -65,6 +66,8 @@ export default function F12OfficeTableBlock({ anchorDate = null }) {
   const endpoint = indicator.endpoints?.officeTable || '/dashboard/office-table';
 
   const fetchData = useCallback(() => {
+    // A slower, older response must never overwrite the answer of the period chosen last.
+    const seq = ++requestSeqRef.current;
     setLoading(true);
     setError(null);
     api.get(endpoint, {
@@ -75,15 +78,16 @@ export default function F12OfficeTableBlock({ anchorDate = null }) {
       },
     })
       .then((res) => {
+        if (seq !== requestSeqRef.current) return;
         if (!res.data?.success) {
           throw new Error(res.data?.error?.message || 'Không thể tải bảng đơn vị/bưu cục chấp nhận.');
         }
         setData(res.data.data);
+        setLoading(false);
       })
       .catch((err) => {
+        if (seq !== requestSeqRef.current) return;
         setError(err.response?.data?.error?.message || err.message || 'Lỗi kết nối khi tải bảng đơn vị/bưu cục chấp nhận.');
-      })
-      .finally(() => {
         setLoading(false);
       });
   }, [api, endpoint, period, anchorDate]);
@@ -124,7 +128,7 @@ export default function F12OfficeTableBlock({ anchorDate = null }) {
       setExpandedKeys(new Set());
       setUserExpandedAll(false);
     } else {
-      const allKeys = new Set([...rawRows.map((r) => r.ma_huyen), ...rawUnranked.map((r) => r.ma_huyen)]);
+      const allKeys = new Set([...(rawRows || []).map((r) => r.ma_huyen), ...(rawUnranked || []).map((r) => r.ma_huyen)]);
       setExpandedKeys(allKeys);
       setUserExpandedAll(true);
     }
@@ -134,7 +138,7 @@ export default function F12OfficeTableBlock({ anchorDate = null }) {
     if (search.trim()) {
       return autoExpandedKeys.has(unitCode) || expandedKeys.has(unitCode);
     }
-    return userExpandedAll || expandedKeys.has(unitCode);
+    return expandedKeys.has(unitCode);
   };
 
   const periodLabel = period === 'day' ? 'Ngày' : period === 'week' ? 'Tuần' : 'Tháng';
@@ -150,7 +154,7 @@ export default function F12OfficeTableBlock({ anchorDate = null }) {
       className="w-full rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none"
     >
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-5 py-4 bg-slate-50/60 rounded-t-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-5 py-4 bg-slate-50 rounded-t-2xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className={`inline-block h-3 w-1.5 rounded-full ${theme.accentBar}`} />
@@ -163,6 +167,13 @@ export default function F12OfficeTableBlock({ anchorDate = null }) {
           </div>
           <p className="text-xs text-slate-500 font-medium">
             Đơn vị chấp nhận kèm bưu cục trực thuộc. Phân loại theo dải ngưỡng chất lượng, không xếp hạng bưu cục.
+          </p>
+          <p className="text-xs font-bold text-slate-700">
+            {meta.from_date && meta.to_date
+              ? (meta.from_date === meta.to_date
+                ? `${periodLabel} ${meta.from_date.split('-').reverse().join('/')}`
+                : `${periodLabel} ${meta.from_date.split('-').reverse().join('/')} – ${meta.to_date.split('-').reverse().join('/')}`)
+              : ''}
           </p>
         </div>
 
@@ -445,7 +456,7 @@ function UnitRowGroup({ unit, expanded, officeCount, onToggle, heatmapBands, tar
 function UnrankedUnitRowGroup({ unit, expanded, officeCount, onToggle, heatmapBands, targetRate }) {
   return (
     <>
-      <tr className="bg-amber-50/60 hover:bg-amber-100/60 transition-colors font-bold text-amber-950 border-t border-amber-200/80">
+      <tr className="bg-amber-50 hover:bg-amber-100 transition-colors font-bold text-amber-950 border-t border-amber-200/80">
         <td className="py-2.5 px-2 text-center font-bold text-amber-700 border-r border-slate-200 tabular-nums">
           <span className="text-xs text-amber-600 font-medium">KHL</span>
         </td>
@@ -490,7 +501,7 @@ function UnrankedUnitRowGroup({ unit, expanded, officeCount, onToggle, heatmapBa
       {expanded && (unit.offices || []).map((office) => (
         <tr
           key={office.ma_chap_nhan}
-          className="bg-amber-50/30 hover:bg-amber-50/60 transition-colors text-amber-900 text-xs"
+          className="bg-amber-50 hover:bg-amber-100 transition-colors text-amber-900 text-xs"
         >
           <td className="py-2 px-2 text-center text-slate-400 border-r border-slate-200 font-medium">
             –

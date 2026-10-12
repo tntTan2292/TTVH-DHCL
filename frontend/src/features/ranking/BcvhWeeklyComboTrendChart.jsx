@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
+import { useBcvhUnits } from '../indicator/BcvhUnitsContext.js';
 import { BCVH_COLORS, CANONICAL_NAMES, DASH } from './bcvhOverviewData.js';
 import {
   formatNumber,
@@ -307,6 +307,7 @@ function SmallMultiplesGrid({
   isZoomed = false,
 }) {
   const indicator = useIndicator();
+  const unitCodes = useBcvhUnits().codes;
   const { heatmapBands } = indicator;
   const targetRate = indicatorTargetRate(indicator);
   return (
@@ -324,7 +325,7 @@ function SmallMultiplesGrid({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
-        {CANONICAL_BCVH_CODES.map((code) => {
+        {unitCodes.map((code) => {
           const unitData = getWeeklyTrendSeriesData(view, code, targetRate);
           const rawUnitName = unitNames[code] || CANONICAL_NAMES[code] || code;
           const unitName = rawUnitName.startsWith('BCVH') ? rawUnitName : `BCVH ${rawUnitName}`;

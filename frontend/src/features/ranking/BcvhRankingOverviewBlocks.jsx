@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Route, BarChart3, Clock, ChevronDown } from 'lucide-react';
 import BlockCaptureButton from '../../components/common/BlockCaptureButton';
 import BcvhMonthlyComboTrendChart from './BcvhMonthlyComboTrendChart';
-import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
+import { useBcvhUnits } from '../indicator/BcvhUnitsContext.js';
 import {
   BCVH_COLORS,
   CANONICAL_NAMES,
@@ -44,6 +44,7 @@ const MONTHLY_HEATMAP_LEGEND = [
 export function BcvhMonthlyTrendBlock({ data }) {
   const indicator = useIndicator();
   const cardRef = useRef(null);
+  const units = useBcvhUnits();
   const [unit, setUnit] = useState(MONTHLY_TREND_TOTAL_KEY);
   // Click-to-order (PO 2026-10-10) of the 6 BCVH rows of the heatmap by the unit name or by a month's rate.
   const [heatmapSort, setHeatmapSort] = useState(null);
@@ -58,7 +59,10 @@ export function BcvhMonthlyTrendBlock({ data }) {
     : monthlyTableRows;
   const currentMonthRankText = formatNationalRank(monthlyChartData?.[monthlyChartData.length - 1]?.national_rank);
   const anchorDate = meta?.anchor_date || null;
-  const unitNames = { ...MONTHLY_TREND_NAMES, ...nameMap };
+  // Six canonical BCVH unless the indicator supplies its own units (F1.2): then names, colours, the total
+  // label and the "all units" option come from its metadata.
+  const unitNames = { ...MONTHLY_TREND_NAMES, [MONTHLY_TREND_TOTAL_KEY]: units.totalLabel, ...(units.names || {}), ...nameMap };
+  const unitColors = { ...MONTHLY_TREND_COLORS, ...(units.colors || {}) };
 
   return (
     <div ref={cardRef} className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
@@ -97,8 +101,8 @@ export function BcvhMonthlyTrendBlock({ data }) {
               aria-label="Xem theo đơn vị"
             >
               <option value={MONTHLY_TREND_TOTAL_KEY}>{MONTHLY_TREND_NAMES[MONTHLY_TREND_TOTAL_KEY]}</option>
-              <option value={ALL_UNITS}>Tất cả 6 BCVH</option>
-              {CANONICAL_BCVH_CODES.map((code) => (
+              {units.allowSmallMultiples ? <option value={ALL_UNITS}>{units.dynamic ? units.allLabel : 'Tất cả 6 BCVH'}</option> : null}
+              {units.codes.map((code) => (
                 <option key={code} value={code}>{unitNames[code] || code}</option>
               ))}
             </select>
@@ -117,7 +121,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
           chartData={monthlyChartData}
           unit={unit}
           unitNames={unitNames}
-          unitColors={MONTHLY_TREND_COLORS}
+          unitColors={unitColors}
           anchorDate={anchorDate}
           height={320}
         />
@@ -150,7 +154,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
       {/* Heatmap 6 BCVH x tháng: thu gọn mặc định (PO 2026-10-07), mở khi cần soát ma trận / độ đầy đủ dữ liệu */}
       <details className="group border-t border-gray-100 pt-3 [&_summary::-webkit-details-marker]:hidden">
         <summary className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-1 py-1.5 text-xs font-bold uppercase tracking-wider text-[var(--color-text-muted)] hover:bg-gray-50">
-          <span>Xem ma trận 6 BCVH × tháng (heatmap)</span>
+          <span>{units.dynamic ? 'Xem ma trận đơn vị × tháng (heatmap)' : 'Xem ma trận 6 BCVH × tháng (heatmap)'}</span>
           <ChevronDown className="h-4 w-4 text-gray-400 transition-transform duration-200 group-open:rotate-180" />
         </summary>
       <div className="mt-3 overflow-x-auto">
@@ -181,7 +185,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
                     sort={heatmapSort}
                     onSort={handleHeatmapSort}
                     activeClassName={theme.sortActive}
-                    title={`Sắp xếp 6 BCVH theo tỷ lệ ${label} (bấm lại để đảo chiều)`}
+                    title={`${units.dynamic ? 'Sắp xếp các đơn vị' : 'Sắp xếp 6 BCVH'} theo tỷ lệ ${label} (bấm lại để đảo chiều)`}
                     className={`px-3 py-2.5 text-center font-semibold ${isCurrent ? `border-l border-r ${theme.headerBorder} ${theme.soft}` : ''}`}
                   >
                     <div>{label}</div>

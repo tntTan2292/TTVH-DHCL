@@ -50,10 +50,27 @@ Status: `BACKEND DONE / TECH PASS / WAITING FOR THE SCREENS (F12-DASHBOARD-UI-01
 
 ## 6. Open Items
 
-- 11/10 was a partial day in the database at the time of the smoke; the screens must not read it as a weak day (the shared dashboards already use the latest complete day through `anchor_date`).
+- Ngày 11/10 (664 bưu gửi, 84,0 %) không phải ngày dở: 11/10 là Chủ nhật và các Chủ nhật khác cũng thấp (04/10: 796). Không cần cổng "đủ dữ liệu" (Opus N1 không phải lỗi); câu cũ trong manifest về `anchor_date` đã bỏ.
 - Evidence (violation stages) and route ranking stay out of scope.
 
 ## 7. Next
 
 1. `F12-DASHBOARD-UI-01` (Antigravity): `docs/10_TICKETS/F12-DASHBOARD-UI-01_MANIFEST.md`, prompt `docs/10_TICKETS/F12-DASHBOARD-UI-01_ANTIGRAVITY_PROMPT.md`.
 2. Opus review, PO UI check.
+
+## 8. Independent review (Opus, 2026-10-12) and fixes
+
+Result of the review: backend PASS with three "nên sửa", UI FAIL with two blockers (C1, C2). Fixed the same day, tests below.
+
+| Finding | Fix |
+| --- | --- |
+| N1 no "complete day" gate | Not a defect: 11/10 is a Sunday and Sundays are low (04/10: 796). Documented in Section 6. |
+| N2 week/month included days after the selected day | Week and month are "to date": the period never reaches past `anchor_date`; `meta.to_date` is the clamped end, `meta.period_end` the natural end. |
+| N3 unit filter did not exclude the large-customer office | `getKpiMetrics` / `getDailyTrendData` with a unit filter carry `RANKED_OFFICES`; test with a unit that holds office 531120. |
+| days_with_data per month was a max over units | `getDaysByMonth` counts distinct days at module level. |
+| C1 `/f12` dashboard showed no widget (six-BCVH metadata check) | `indicator.dynamicUnits`: `validateBcvhUnits(units, { anyUnits })`; the page keeps the metadata units and mounts `BcvhUnitsProvider`. |
+| C2 ranking page drew only the six canonical BCVH | Operations table, ranking mapping, overview processing and the trend/heatmap blocks take the unit list from the data/metadata for F1.2 (`BcvhUnitsContext`, default = six BCVH, so F1.1/F1.3/F4.1 are unchanged); "all units" small multiples only up to six units; fallback colour palette. |
+| B3 UI details | expand-all guard and per-unit collapse; "Không đạt", target and national total from data instead of fixed text; stale responses ignored; period shown on the unit block; no blur or translucent fill in captured blocks; `indicatorLabel` keeps the case (upper-case titles, lower-case mid sentence). |
+
+Validation: backend `F12RankingService.test.js` 10/10, F1.1/F4.1 ranking suites unchanged, sweep 540/545 (the 5 known failures); frontend 673/673 (6 new tests in `f12DynamicUnits.test.js`: validation, units value, operations table, ranking mapping, overview with 37 units; six-BCVH behaviour of F1.1/F1.3/F4.1 asserted), build and `no-undef` clean. Not re-run by Opus.
+

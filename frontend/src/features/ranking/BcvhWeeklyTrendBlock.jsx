@@ -4,7 +4,7 @@ import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { ErrorState } from '../../components/shared/SharedComponents';
-import { CANONICAL_BCVH_CODES } from '../dashboard/components/dashboardFilterOptions.js';
+import { useBcvhUnits } from '../indicator/BcvhUnitsContext.js';
 import BcvhWeeklyComboTrendChart from './BcvhWeeklyComboTrendChart';
 import { BCVH_COLORS, CANONICAL_NAMES } from './bcvhOverviewData.js';
 import { createWeeklyTrendFetcher } from './bcvhWeeklyComparisonFetcher';
@@ -16,13 +16,7 @@ import {
 } from './bcvhWeeklyComparisonData';
 
 const ALL_UNITS = 'all';
-const TREND_COLORS = { ...BCVH_COLORS, [WEEKLY_TREND_TOTAL_KEY]: '#0f172a' };
-const TREND_NAMES = {
-  ...Object.fromEntries(
-    CANONICAL_BCVH_CODES.map((c) => [c, CANONICAL_NAMES[c] ? `BCVH ${CANONICAL_NAMES[c]}` : `BCVH ${c}`])
-  ),
-  [WEEKLY_TREND_TOTAL_KEY]: 'Tổng cộng 6 BCVH',
-};
+const BASE_TREND_COLORS = { ...BCVH_COLORS, [WEEKLY_TREND_TOTAL_KEY]: '#0f172a' };
 
 // Replaces the old "Diễn biến theo ngày" block. Driven ONLY by the anchor week ("tuần kỳ này", set by
 // "Điều chỉnh mốc tuần hiện tại" / the week select of the table above) plus its own unit filter.
@@ -30,6 +24,16 @@ const TREND_NAMES = {
 export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
   const indicator = useIndicator();
   const api = useIndicatorApi();
+  const units = useBcvhUnits();
+  // Six canonical BCVH unless the indicator supplies its own units (F1.2).
+  const TREND_NAMES = {
+    ...Object.fromEntries(units.codes.map((c) => [
+      c,
+      units.names ? units.names[c] : (CANONICAL_NAMES[c] ? `BCVH ${CANONICAL_NAMES[c]}` : `BCVH ${c}`),
+    ])),
+    [WEEKLY_TREND_TOTAL_KEY]: units.totalLabel,
+  };
+  const TREND_COLORS = { ...BASE_TREND_COLORS, ...(units.colors || {}) };
   const [trendState, setTrendState] = useState({ status: 'idle', weeks: [], error: null });
   const [unit, setUnit] = useState(WEEKLY_TREND_TOTAL_KEY);
 
@@ -76,8 +80,8 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs hover:border-blue-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
             <option value={WEEKLY_TREND_TOTAL_KEY}>{TREND_NAMES[WEEKLY_TREND_TOTAL_KEY]}</option>
-            <option value={ALL_UNITS}>Tất cả 6 BCVH</option>
-            {CANONICAL_BCVH_CODES.map((code) => (
+            {units.allowSmallMultiples ? <option value={ALL_UNITS}>{units.dynamic ? units.allLabel : 'Tất cả 6 BCVH'}</option> : null}
+            {units.codes.map((code) => (
               <option key={code} value={code}>{TREND_NAMES[code] || code}</option>
             ))}
           </select>

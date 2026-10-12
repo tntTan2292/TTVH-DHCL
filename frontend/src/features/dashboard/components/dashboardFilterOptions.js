@@ -11,9 +11,20 @@ export const CANONICAL_BCVH_CODES = Object.freeze([
 
 const CANONICAL_CODE_SET = new Set(CANONICAL_BCVH_CODES);
 
-export function validateBcvhUnits(units = []) {
+// `anyUnits` (indicator.dynamicUnits, F1.2): the ranked units come from the indicator's own metadata, so any
+// non-empty list of unique coded, named units is valid; otherwise exactly the six canonical BCVH.
+export function validateBcvhUnits(units = [], { anyUnits = false } = {}) {
   if (!Array.isArray(units)) {
     return { ok: false, error: 'Metadata BCVH không hợp lệ.' };
+  }
+
+  if (anyUnits) {
+    if (units.length === 0) return { ok: false, error: 'Metadata chưa có đơn vị nào.' };
+    const anyCodes = units.map((unit) => String(unit?.ma_bcvh || ''));
+    if (anyCodes.some((code) => code === '')) return { ok: false, error: 'Metadata đơn vị thiếu mã.' };
+    if (new Set(anyCodes).size !== anyCodes.length) return { ok: false, error: 'Metadata đơn vị có mã bị trùng.' };
+    if (units.some((unit) => !unit?.ten_bcvh)) return { ok: false, error: 'Metadata đơn vị thiếu tên hiển thị.' };
+    return { ok: true, error: null };
   }
 
   if (units.length !== CANONICAL_BCVH_CODES.length) {
@@ -39,8 +50,8 @@ export function validateBcvhUnits(units = []) {
   return { ok: true, error: null };
 }
 
-export function buildBcvhOptions(units = []) {
-  const validation = validateBcvhUnits(units);
+export function buildBcvhOptions(units = [], options = {}) {
+  const validation = validateBcvhUnits(units, options);
   if (!validation.ok) {
     return [];
   }

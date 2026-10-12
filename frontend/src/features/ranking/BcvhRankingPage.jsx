@@ -8,6 +8,7 @@ import { buildBcvhOptions, validateBcvhUnits } from '../dashboard/components/das
 import { formatNationalRank } from './bcvhWeeklyComparisonData';
 import { buildDoughnutAriaLabel, formatNumber, formatRate, formatSignedDelta, mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData';
 import { createOverviewFetcher } from './bcvhOverviewFetcher';
+import { BcvhUnitsProvider } from '../indicator/BcvhUnitsContext.js';
 import {
   BcvhMonthlyTrendBlock,
   BcvhRouteCapacityBlock,
@@ -99,6 +100,7 @@ export default function BcvhRankingPage() {
   const [metaState, setMetaState] = useState({
     status: 'loading',
     options: [],
+    units: null,
     error: null,
     maxDate: null,
   });
@@ -150,14 +152,15 @@ export default function BcvhRankingPage() {
       .then((res) => {
         if (!active) return;
         const units = res.data?.data?.bcvh_units || [];
-        const validation = validateBcvhUnits(units);
+        const validation = validateBcvhUnits(units, { anyUnits: Boolean(indicator.dynamicUnits) });
         if (!validation.ok) {
           setMetaState({ status: 'error', options: [], error: validation.error, maxDate: null });
           return;
         }
         setMetaState({
           status: 'success',
-          options: buildBcvhOptions(units),
+          options: buildBcvhOptions(units, { anyUnits: Boolean(indicator.dynamicUnits) }),
+          units: indicator.dynamicUnits ? units : null,
           error: null,
           maxDate: res.data?.data?.max_date || null,
         });
@@ -173,7 +176,7 @@ export default function BcvhRankingPage() {
 
   const fetchOverviewRef = useRef(null);
   if (!fetchOverviewRef.current) {
-    fetchOverviewRef.current = createOverviewFetcher(api, setOverviewState);
+    fetchOverviewRef.current = createOverviewFetcher(api, setOverviewState, { dynamicUnits: Boolean(indicator.dynamicUnits) });
   }
 
   // Overview API fetch effect (Phase F1 - Exactly 1 request per anchor_date)
@@ -286,6 +289,7 @@ export default function BcvhRankingPage() {
   const nearestAvailableDate = metaState.maxDate && metaState.maxDate !== toDate ? metaState.maxDate : null;
 
   return (
+    <BcvhUnitsProvider units={metaState.units}>
     <PageContainer
       accentClassName={indicatorTheme(indicator).accentBar}
       badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${indicatorTheme(indicator).chip}`}>{indicator.moduleLabel}</span>}
@@ -455,5 +459,6 @@ export default function BcvhRankingPage() {
 
       </div>
     </PageContainer>
+    </BcvhUnitsProvider>
   );
 }

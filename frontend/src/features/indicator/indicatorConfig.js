@@ -195,6 +195,8 @@ export const F12_INDICATOR = Object.freeze({
   theme: INDICATOR_THEMES.teal,
   moduleLabel: 'F1.2',
   unitLabel: 'Đơn vị chấp nhận',
+  // The ranked units come from /dashboard/meta (about 36 accepting units), not the six canonical BCVH.
+  dynamicUnits: true,
   apiBase: '/f12',
   routes: Object.freeze({ dashboard: '/f12/dashboard', ranking: '/f12/ranking/bcvh' }),
   endpoints: Object.freeze({
@@ -247,7 +249,15 @@ export function indicatorEndpoint(key, indicator = F13_INDICATOR) {
 export function indicatorLabel(text, indicator = F13_INDICATOR) {
   let result = String(text).replaceAll('F1.3', indicator?.moduleLabel || 'F1.3');
   if (indicator?.unitLabel && indicator.unitLabel !== 'BCVH') {
-    result = result.replaceAll('BCVH', indicator.unitLabel);
+    const unitLabel = indicator.unitLabel;
+    const allCaps = result === result.toUpperCase();
+    // Keep the wording natural: upper case inside an all-caps title, lower case after a lower-case word.
+    result = result.replace(/BCVH/g, (match, offset, whole) => {
+      if (allCaps) return unitLabel.toUpperCase();
+      const previous = whole.slice(0, offset).trimEnd().slice(-1);
+      const afterLowerCaseWord = previous !== '' && previous === previous.toLowerCase() && previous !== previous.toUpperCase();
+      return afterLowerCaseWord ? unitLabel.charAt(0).toLowerCase() + unitLabel.slice(1) : unitLabel;
+    });
   }
   return result;
 }

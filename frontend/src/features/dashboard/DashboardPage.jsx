@@ -24,6 +24,7 @@ import F12OfficeTableBlock from '../f12/components/F12OfficeTableBlock.jsx';
 import F12Cumulative12Block from '../f12/components/F12Cumulative12Block.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
+import { BcvhUnitsProvider } from '../indicator/BcvhUnitsContext.js';
 import { indicatorLabel, indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
 
 export default function DashboardPage() {
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const [metadataState, setMetadataState] = useState({
     status: 'loading',
     bcvhOptions: [],
+    units: null,
     error: null,
   });
   const kpiRequestSeqRef = useRef(0);
@@ -62,7 +64,7 @@ export default function DashboardPage() {
           setEarliestDate(data.min_date || data.max_date);
         }
 
-        const validation = validateBcvhUnits(data.bcvh_units);
+        const validation = validateBcvhUnits(data.bcvh_units, { anyUnits: Boolean(indicator.dynamicUnits) });
         if (!res.data?.success || !validation.ok) {
           setMetadataState({
             status: 'error',
@@ -74,7 +76,8 @@ export default function DashboardPage() {
 
         setMetadataState({
           status: 'success',
-          bcvhOptions: buildBcvhOptions(data.bcvh_units),
+          bcvhOptions: buildBcvhOptions(data.bcvh_units, { anyUnits: Boolean(indicator.dynamicUnits) }),
+          units: indicator.dynamicUnits ? data.bcvh_units : null,
           error: null,
         });
       })
@@ -279,6 +282,7 @@ export default function DashboardPage() {
   const showWidgets = dashboardReady;
 
   return (
+    <BcvhUnitsProvider units={metadataState.units}>
     <PageContainer
       accentClassName={indicatorTheme(indicator).accentBar}
       badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${indicatorTheme(indicator).chip}`}>{indicator.moduleLabel}</span>}
@@ -398,5 +402,6 @@ export default function DashboardPage() {
         ) : null}
       </div>
     </PageContainer>
+    </BcvhUnitsProvider>
   );
 }

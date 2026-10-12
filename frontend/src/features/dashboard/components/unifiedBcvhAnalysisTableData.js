@@ -197,7 +197,7 @@ export function mapBcvhRankingResponse(responseData = {}, context = {}) {
   const canonicalSet = new Set(CANONICAL_BCVH_CODES);
   const rawRows = Array.isArray(responseData?.data) ? responseData.data : [];
   const rows = rawRows
-    .filter((row) => canonicalSet.has(String(row.ma_bcvh)))
+    .filter((row) => context.indicator?.dynamicUnits || canonicalSet.has(String(row.ma_bcvh)))
     .map((row) => mapBcvhRankingRow(row, context))
     .sort((a, b) => {
       if (a.rank !== null && b.rank !== null && a.rank !== b.rank) return a.rank - b.rank;

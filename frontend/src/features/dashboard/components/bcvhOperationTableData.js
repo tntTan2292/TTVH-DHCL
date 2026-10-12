@@ -233,7 +233,13 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
   let totalWeekAgoPassed = 0;
   let hasValidWeekAgo = false;
 
-  const rawRows = CANONICAL_BCVH_UNITS.map((unit) => {
+  // Dynamic-unit indicators (F1.2) list the units the API returned; the others keep the six canonical BCVH.
+  const tableUnits = indicator?.dynamicUnits
+    ? rawMtd
+      .filter((item) => item?.ma_bcvh)
+      .map((item) => ({ ma_bcvh: String(item.ma_bcvh), ten_bcvh: item.ten_bcvh || String(item.ma_bcvh) }))
+    : CANONICAL_BCVH_UNITS;
+  const rawRows = tableUnits.map((unit) => {
     const code = unit.ma_bcvh;
     const mtdItem = rawMtd.find((item) => String(item?.ma_bcvh) === code);
     const dailyItem = anchorDate ? rawDaily.find((d) => d.date === anchorDate && String(d.ma_bcvh) === code) : null;

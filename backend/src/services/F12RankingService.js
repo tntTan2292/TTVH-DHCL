@@ -73,6 +73,13 @@ function resolvePeriod({ period, anchorDate, fromDate, toDate }) {
     return { period, from, to: shiftDate(next.toISOString().slice(0, 10), -1) };
 }
 
+// Week and month are "to date": a period never reaches past the selected day (review N2), so choosing 10/10
+// shows the week/month up to 10/10 and never includes later days. `period_end` keeps the natural end.
+function clampToAnchor(range, anchorDate) {
+    if (!range.period || range.period === 'day' || range.period === 'range' || !anchorDate) return range;
+    return range.to > anchorDate ? { ...range, to: anchorDate, period_end: range.to } : range;
+}
+
 function monthEnd(monthKey) {
     const next = new Date(Date.UTC(Number(monthKey.slice(0, 4)), Number(monthKey.slice(5, 7)), 1));
     return shiftDate(next.toISOString().slice(0, 10), -1);
@@ -166,7 +173,7 @@ class F12RankingService extends F41RankingService {
     // carry a rank (rate desc, then volume desc); the large-customer office sits in `unranked`, and the total
     // row covers both, so it equals the module total of the same period. Rates come from summed counts.
     async getOfficeTable({ period, anchorDate, fromDate, toDate } = {}) {
-        const range = resolvePeriod({ period, anchorDate, fromDate, toDate });
+        const range = clampToAnchor(resolvePeriod({ period, anchorDate, fromDate, toDate }), anchorDate);
         const [grid, daysWithData] = await Promise.all([
             this.repository.getOfficeGrid(range.from, range.to),
             this.repository.getDaysWithData(range.from, range.to),
@@ -234,6 +241,7 @@ class F12RankingService extends F41RankingService {
                 period: range.period,
                 from_date: range.from,
                 to_date: range.to,
+                period_end: range.period_end || range.to,
                 days_with_data: daysWithData,
                 has_data: grid.length > 0,
                 unit_count: rows.length,
@@ -255,11 +263,13 @@ class F12RankingService extends F41RankingService {
         const keys = rollingMonths(month);
         const from = `${keys[0]}-01`;
         const to = monthEnd(month);
-        const [grid, units, maxMeta] = await Promise.all([
+        const [grid, units, maxMeta, dayCounts] = await Promise.all([
             this.repository.getMonthlyUnitGrid(from, to),
             this._syncUnits(),
             this.repository.getMeta(),
+            this.repository.getDaysByMonth(from, to),
         ]);
+        const daysByMonth = new Map(dayCounts.map((row) => [row.month, Number(row.days_with_data || 0)]));
         const latest = maxMeta?.max_date || null;
 
         const monthly = new Map(keys.map((key) => [key, { volume: 0, passed: 0, days: 0 }]));
@@ -271,7 +281,7 @@ class F12RankingService extends F41RankingService {
             if (!bucket) continue;
             bucket.volume += volume;
             bucket.passed += passed;
-            bucket.days = Math.max(bucket.days, Number(row.days_with_data || 0));
+            bucket.days = daysByMonth.get(row.month) || 0;
             if (Number(row.large_customer) === 1) continue;
             const unit = perUnit.get(String(row.ma_bcvh));
             if (!unit) continue;

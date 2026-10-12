@@ -34,15 +34,26 @@ export function formatOverviewNumber(value) {
   return num.toLocaleString('vi-VN');
 }
 
-export function processOverviewData(data = {}, meta = {}) {
+export function processOverviewData(data = {}, meta = {}, { dynamicUnits = false } = {}) {
   const monthly = Array.isArray(data.monthly) ? data.monthly : [];
   const daily = Array.isArray(data.daily) ? data.daily : [];
   const mtd = Array.isArray(data.mtd) ? data.mtd : [];
   const routes = Array.isArray(data.routes) ? data.routes : [];
 
+  // Dynamic-unit indicators (F1.2) use the units the API returned, in name order; the others the six BCVH.
+  const unitCodes = dynamicUnits
+    ? Array.from(new Set(
+      [...mtd, ...monthly, ...routes].map((item) => String(item?.ma_bcvh || '')).filter(Boolean)
+    )).sort((a, b) => {
+      const nameOf = (code) => (mtd.find((item) => String(item?.ma_bcvh) === code)?.ten_bcvh || code);
+      return nameOf(a).localeCompare(nameOf(b), 'vi');
+    })
+    : CANONICAL_BCVH_CODES;
   const nameMap = {};
-  CANONICAL_BCVH_CODES.forEach((code) => {
-    nameMap[code] = CANONICAL_NAMES[code] ? `BCVH ${CANONICAL_NAMES[code]}` : `BCVH ${code}`;
+  unitCodes.forEach((code) => {
+    nameMap[code] = dynamicUnits
+      ? code
+      : (CANONICAL_NAMES[code] ? `BCVH ${CANONICAL_NAMES[code]}` : `BCVH ${code}`);
   });
   mtd.forEach((item) => {
     if (item.ma_bcvh && item.ten_bcvh) {
@@ -74,7 +85,7 @@ export function processOverviewData(data = {}, meta = {}) {
     let hasMonthData = false;
     const units = {};
 
-    CANONICAL_BCVH_CODES.forEach((code) => {
+    unitCodes.forEach((code) => {
       const match = monthly.find((m) => m.month === month && String(m.ma_bcvh) === code);
       const rateVal = match && match.rate !== null && match.rate !== undefined ? Number(match.rate) : null;
       row[code] = rateVal;
@@ -137,7 +148,7 @@ export function processOverviewData(data = {}, meta = {}) {
     return row;
   });
 
-  const monthlyTableRows = CANONICAL_BCVH_CODES.map((code) => {
+  const monthlyTableRows = unitCodes.map((code) => {
     const bcvhMonths = months.map((month) => {
       const match = monthly.find((m) => m.month === month && String(m.ma_bcvh) === code);
       return {
@@ -171,7 +182,7 @@ export function processOverviewData(data = {}, meta = {}) {
       date,
       label,
     };
-    CANONICAL_BCVH_CODES.forEach((code) => {
+    unitCodes.forEach((code) => {
       const match = daily.find((dItem) => dItem.date === date && String(dItem.ma_bcvh) === code);
       row[code] = match && match.rate !== null && match.rate !== undefined ? Number(match.rate) : null;
     });
@@ -179,7 +190,7 @@ export function processOverviewData(data = {}, meta = {}) {
   });
 
   // 4. Routes processing
-  const routeRows = CANONICAL_BCVH_CODES.map((code) => {
+  const routeRows = unitCodes.map((code) => {
     const match = routes.find((item) => String(item.ma_bcvh) === code);
     return {
       ma_bcvh: code,
@@ -218,6 +229,7 @@ export function processOverviewData(data = {}, meta = {}) {
 
   return {
     nameMap,
+    unitCodes,
     months,
     latestMonth,
     monthlyChartData,

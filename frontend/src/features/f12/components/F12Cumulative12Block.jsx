@@ -68,7 +68,7 @@ function CumulativeTooltip({ active, payload, label, targetRate, heatmapBands })
   const band = classifyF13HeatmapRate(point.rate, heatmapBands);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white/95 p-3.5 text-xs shadow-xl backdrop-blur-xs max-w-[280px]">
+    <div className="rounded-xl border border-slate-200 bg-white p-3.5 text-xs shadow-xl max-w-[280px]">
       <div className="border-b border-slate-100 pb-2">
         <div className="font-bold text-slate-800 text-sm">
           Tháng {point.month ? `${point.month.slice(5)}/${point.month.slice(0, 4)}` : label}
@@ -105,7 +105,7 @@ function CumulativeTooltip({ active, payload, label, targetRate, heatmapBands })
           </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-slate-500">Mục tiêu:</span>
-            <span className="font-semibold tabular-nums text-purple-700">{targetRate}%</span>
+            <span className="font-semibold tabular-nums text-teal-700">{targetRate}%</span>
           </div>
           <div className="flex items-center justify-between gap-3">
             <span className="text-slate-500">Chênh lệch:</span>
@@ -143,8 +143,11 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
   }, [anchorDate]);
 
   const endpoint = indicator.endpoints?.cumulative12 || '/dashboard/cumulative-12';
+  const requestSeqRef = useRef(0);
 
   const fetchData = useCallback(() => {
+    // A slower, older response must never overwrite the answer of the month chosen last.
+    const seq = ++requestSeqRef.current;
     setLoading(true);
     setError(null);
     api.get(endpoint, {
@@ -154,15 +157,16 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
       },
     })
       .then((res) => {
+        if (seq !== requestSeqRef.current) return;
         if (!res.data?.success) {
           throw new Error(res.data?.error?.message || 'Không thể tải số liệu lũy kế 12 tháng.');
         }
         setData(res.data.data);
+        setLoading(false);
       })
       .catch((err) => {
+        if (seq !== requestSeqRef.current) return;
         setError(err.response?.data?.error?.message || err.message || 'Lỗi khi tải số liệu lũy kế 12 tháng.');
-      })
-      .finally(() => {
         setLoading(false);
       });
   }, [api, endpoint, selectedMonth]);
@@ -217,7 +221,7 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
       className="w-full rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none"
     >
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-5 py-4 bg-slate-50/60 rounded-t-2xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-5 py-4 bg-slate-50 rounded-t-2xl">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className={`inline-block h-3 w-1.5 rounded-full ${theme.accentBar}`} />
@@ -291,7 +295,7 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
                   {formatNumber(cumulative.volume)}
                 </div>
                 <div className="mt-1 text-[11px] text-slate-500 font-medium">
-                  Đạt: <span className="font-bold text-emerald-700">{formatNumber(cumulative.passed)}</span> · Hỏng: <span className="font-bold text-red-600">{formatNumber(cumulative.failed)}</span>
+                  Đạt: <span className="font-bold text-emerald-700">{formatNumber(cumulative.passed)}</span> · Không đạt: <span className="font-bold text-red-600">{formatNumber(cumulative.failed)}</span>
                 </div>
               </div>
 
@@ -307,7 +311,7 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
                   <RateBadge rate={cumulative.rate} bands={indicator.heatmapBands} targetRate={targetRate} />
                 </div>
                 <div className="mt-1 text-[11px] text-slate-500 font-medium">
-                  Chênh mục tiêu 95%: <span className={`font-bold ${cumulative.rate >= targetRate ? 'text-emerald-700' : 'text-red-600'}`}>
+                  Chênh mục tiêu {targetRate}%: <span className={`font-bold ${cumulative.rate >= targetRate ? 'text-emerald-700' : 'text-red-600'}`}>
                     {formatVariance(cumulative.rate !== null ? cumulative.rate - targetRate : null)}
                   </span>
                 </div>
@@ -486,7 +490,7 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
                     <div key={`rank_${s.month}`} className="flex flex-col items-center">
                       <span className="font-medium text-slate-400 text-[10px]">{s.label}</span>
                       <span className="font-bold text-rose-600 mt-0.5">
-                        {s.national_rank?.rank ? `VT ${s.national_rank.rank}/34` : DASH}
+                        {s.national_rank?.rank ? `VT ${s.national_rank.rank}/${s.national_rank.total || 34}` : DASH}
                       </span>
                     </div>
                   ))}

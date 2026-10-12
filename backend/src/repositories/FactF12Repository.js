@@ -29,7 +29,8 @@ class FactF12Repository {
     getKpiMetrics(startDate, endDate, filters = {}) {
         return new Promise((resolve, reject) => {
             const params = [startDate, endDate];
-            const bcvhClause = filters.bcvhId ? ' AND ma_huyen = ?' : '';
+            // a unit filter is a ranked-unit view: the large-customer office never belongs to it (PD-F12-8)
+            const bcvhClause = filters.bcvhId ? ` AND ma_huyen = ?${RANKED_OFFICES}` : '';
             if (filters.bcvhId) params.push(filters.bcvhId);
             const sql = `
                 SELECT
@@ -385,7 +386,7 @@ class FactF12Repository {
 
     // Module-level daily series (all rows, PO-2 total-rows denominator) or one BCVH.
     getDailyTrendData(fromDate, toDate, filters = {}) {
-        const bcvhClause = filters.bcvhId ? ' AND ma_huyen = ?' : '';
+        const bcvhClause = filters.bcvhId ? ` AND ma_huyen = ?${RANKED_OFFICES}` : '';
         const params = [fromDate, toDate, fromDate, toDate];
         if (filters.bcvhId) params.push(filters.bcvhId);
         return this._all(`
@@ -465,6 +466,16 @@ class FactF12Repository {
             FROM fact_f12
             WHERE ngay_do_kiem BETWEEN ? AND ?
             GROUP BY substr(ngay_do_kiem, 1, 7), ma_huyen, large_customer
+        `, [startDate, endDate]);
+    }
+
+    // Distinct days with data per month (module level), for the rolling 12-month block.
+    getDaysByMonth(startDate, endDate) {
+        return this._all(`
+            SELECT substr(ngay_do_kiem, 1, 7) AS month, COUNT(DISTINCT ngay_do_kiem) AS days_with_data
+            FROM fact_f12
+            WHERE ngay_do_kiem BETWEEN ? AND ?
+            GROUP BY substr(ngay_do_kiem, 1, 7)
         `, [startDate, endDate]);
     }
 

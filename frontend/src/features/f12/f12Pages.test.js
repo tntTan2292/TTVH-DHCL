@@ -59,15 +59,15 @@ test('F12_INDICATOR has correct configuration, target 95%, teal theme, and colou
 test('indicatorLabel with F12_INDICATOR replaces F1.3 and uses "Đơn vị chấp nhận" instead of BCVH', () => {
   assert.equal(
     indicatorLabel('BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH', F12_INDICATOR),
-    'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.2 TẠI CÁC Đơn vị chấp nhận',
+    'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.2 TẠI CÁC ĐƠN VỊ CHẤP NHẬN',
   );
   assert.equal(
     indicatorLabel('Mở xếp hạng BCVH', F12_INDICATOR),
-    'Mở xếp hạng Đơn vị chấp nhận',
+    'Mở xếp hạng đơn vị chấp nhận',
   );
   assert.equal(
     indicatorLabel('Phân tích chất lượng BCVH', F12_INDICATOR),
-    'Phân tích chất lượng Đơn vị chấp nhận',
+    'Phân tích chất lượng đơn vị chấp nhận',
   );
 
   // Unaffected for F1.3 and F4.1
