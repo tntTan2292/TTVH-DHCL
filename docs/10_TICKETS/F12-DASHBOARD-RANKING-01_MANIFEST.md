@@ -39,6 +39,7 @@ Status: `BACKEND DONE / TECH PASS / WAITING FOR THE SCREENS (F12-DASHBOARD-UI-01
 | `GET /dashboard/daily-trend`, `/ranking/bcvh`, `/ranking/bcvh/{overview,weeks,weekly-comparison,weekly-trend,months,monthly-comparison}` | identical shapes to `/api/f41`; `ma_bcvh` / `ten_bcvh` hold the accepting unit; no routes block |
 | `GET /dashboard/office-table?period=day\|week\|month&anchor_date` or `from_date&to_date` | `{ meta{period, from_date, to_date, days_with_data, has_data, unit_count, office_count, target_rate}, rows[{ma_huyen, ten_huyen, volume, passed, failed, rate, rank, offices[{ma_chap_nhan, ten_chap_nhan, large_customer, volume, passed, failed, rate}]}], unranked[{same shape, the large-customer office}], total_row{ten_huyen, volume, passed, failed, rate} }`; `total_row` equals the module total of the period |
 | `GET /dashboard/cumulative-12?month=YYYY-MM` | `{ meta{month, from_date, to_date, months[12], target_rate, has_data, unit_count}, months[{month, volume, passed, failed, rate, days_with_data, data_available, national_rank{rank,total} or null}], cumulative{volume, passed, failed, rate, national_rank}, units[{ma_bcvh, ten_bcvh, volume, passed, failed, rate, rank, months{YYYY-MM: {volume, passed, rate} or null}}] }` |
+| `GET /ranking/offices/overview?anchor_date` | same shape as `/ranking/bcvh/overview` (`mtd`, `daily`, `meta`; `monthly` and `routes` empty) with the **accepting office** as the unit: every office with a code (73 on 10/10), the large-customer office included, so the sum equals the module total (PO 2026-10-12, Dashboard operations table) |
 | `GET /dashboard/national-ranking?from_date&to_date` | the 34 provinces ranked by the accepting province, Huế flagged (kept for the Home page) |
 
 ## 5. Validation
@@ -74,3 +75,6 @@ Result of the review: backend PASS with three "nên sửa", UI FAIL with two blo
 
 Validation: backend `F12RankingService.test.js` 10/10, F1.1/F4.1 ranking suites unchanged, sweep 540/545 (the 5 known failures); frontend 673/673 (6 new tests in `f12DynamicUnits.test.js`: validation, units value, operations table, ranking mapping, overview with 37 units; six-BCVH behaviour of F1.1/F1.3/F4.1 asserted), build and `no-undef` clean. Not re-run by Opus.
 
+## 9. Office-level overview (PO 2026-10-12)
+
+`getOfficeOverview(anchorDate)`: the shared `BcvhOverviewService` over an adapter that serves `getOfficeOverviewAggregate('mtd' | 'daily')` (units = every accepting office from `getOfficeList()`); monthly series and routes are dropped. Test: office overview rows = offices, month-to-date and day sums equal the module total, previous day present (`F12RankingService.test.js` 11/11).

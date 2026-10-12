@@ -17,7 +17,7 @@ const F12_GROUP = {
   icon: <Activity size={18} />,
   subItems: [
     { name: 'Bảng điều hành', path: '/f12/dashboard', icon: <Target size={18} /> },
-    { name: 'Phân tích BCVH', path: '/f12/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    { name: 'Phân tích đơn vị chấp nhận', path: '/f12/ranking/bcvh', icon: <BarChart2 size={18} /> },
   ],
 };
 

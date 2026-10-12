@@ -75,6 +75,10 @@ function createController(service = f12RankingService) {
             try { ok(res, { data: await service.getOverview(req.query.anchor_date) }); } catch (error) { fail(res, error); }
         },
 
+        async getOfficeOverview(req, res) {
+            try { ok(res, { data: await service.getOfficeOverview(req.query.anchor_date) }); } catch (error) { fail(res, error); }
+        },
+
         async getWeeks(req, res) {
             try { ok(res, { data: { weeks: await service.listWeeks() } }); } catch (error) { fail(res, error); }
         },

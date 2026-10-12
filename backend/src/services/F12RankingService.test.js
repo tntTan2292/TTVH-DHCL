@@ -259,3 +259,29 @@ test('a unit filter never includes the large-customer office, even when the unit
     assert.equal(module.total_bg, 5);
   });
 });
+
+test('office overview: every accepting office (large customer included) as a row, totals equal the module total', async () => {
+  await withStack(async ({ service }) => {
+    const overview = await service.getOfficeOverview('2026-10-07');
+    assert.equal(overview.meta.anchor_date, '2026-10-07');
+    assert.equal(overview.meta.canonical_bcvh_count, 4); // 100001, 100002, 200001, 531120
+    assert.deepEqual(overview.monthly, []);
+    assert.deepEqual(overview.routes, []);
+
+    const byCode = Object.fromEntries(overview.mtd.map((row) => [row.ma_bcvh, row]));
+    assert.deepEqual(Object.keys(byCode).sort(), ['100001', '100002', '200001', '531120']);
+    assert.equal(byCode['100001'].ten_bcvh, 'BĐ Thuận Hóa 1');
+    // month to date 07/10: 100001 = 4 + 3 = 7 (5 Đạt), 531120 = 3 + 1 = 4 (all Đạt)
+    assert.deepEqual([byCode['100001'].volume, byCode['100001'].passed], [7, 5]);
+    assert.deepEqual([byCode['531120'].volume, byCode['531120'].passed], [4, 4]);
+    const mtdTotal = overview.mtd.reduce((sum, row) => sum + row.volume, 0);
+    const summary = await service.getSummary('2026-10-01', '2026-10-07');
+    assert.equal(mtdTotal, summary.total_bg);
+
+    // the anchor day and the previous day with data are present for the daily columns
+    const day = overview.daily.filter((row) => row.date === '2026-10-07');
+    assert.equal(day.reduce((sum, row) => sum + row.volume, 0), 6);
+    assert.equal(overview.meta.previous_fact_date, '2026-10-06');
+    assert.ok(overview.daily.some((row) => row.date === '2026-10-06' && row.ma_bcvh === '531120' && row.volume === 3));
+  });
+});

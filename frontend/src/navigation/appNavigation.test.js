@@ -50,7 +50,7 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in s
   assert.equal(f12.title, 'F1.2 – Thu gom liên tỉnh');
   assert.deepEqual(toPlain(f12.subItems.map((item) => [item.name, item.path])), [
     ['Bảng điều hành', '/f12/dashboard'],
-    ['Phân tích BCVH', '/f12/ranking/bcvh'],
+    ['Phân tích đơn vị chấp nhận', '/f12/ranking/bcvh'],
   ]);
   assert.equal(f12.roles, undefined);
 

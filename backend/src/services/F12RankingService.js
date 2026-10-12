@@ -17,6 +17,7 @@
 // New here: getOfficeTable() (unit -> offices for a day / week / month) and getCumulative12().
 
 const { F41RankingService } = require('./F41RankingService');
+const { BcvhOverviewService } = require('./bcvhOverviewService');
 const { factF12Repository, LARGE_CUSTOMER_OFFICE } = require('../repositories/FactF12Repository');
 const { f12NationalRankService } = require('./F12NationalRankService');
 const { F12_KPI_SCOPE_NOTE, F12_TARGET_RATE } = require('../config/f12KpiScopeContract');
@@ -118,6 +119,19 @@ function rankByRate(rows) {
 class F12RankingService extends F41RankingService {
     constructor({ repository = factF12Repository, nationalRankService = f12NationalRankService, now } = {}) {
         super({ repository, nationalRankService, ...(now ? { now } : {}) });
+        // Office-level overview (every accepting office) for the Dashboard operations table: the same shared
+        // overview service over an adapter that serves the office queries; monthly / route blocks stay empty.
+        const officeAdapter = {
+            getBcvhOverviewMonthly: async () => [],
+            getBcvhOverviewRoutes: async () => [],
+            getBcvhOverviewDaily: (anchorCeiling) => repository.getOfficeOverviewAggregate('daily', anchorCeiling),
+            getBcvhOverviewMtd: (anchorCeiling) => repository.getOfficeOverviewAggregate('mtd', anchorCeiling),
+        };
+        this.officeOverviewService = new BcvhOverviewService({
+            repository: officeAdapter,
+            dashboardService: nationalRankService,
+            ...(now ? { now } : {}),
+        });
     }
 
     // Replaces the ranked unit list of this service and of the two reused services by the units in the data.
@@ -161,6 +175,21 @@ class F12RankingService extends F41RankingService {
             kpi_includes_large_customer: hasLargeCustomer,
             large_customer_office: LARGE_CUSTOMER_OFFICE,
         };
+    }
+
+    // Month-to-date and day figures of EVERY accepting office (73 on 10/10), same shape as the unit overview,
+    // for the Dashboard operations table. The large-customer office is a row like the others, so the table
+    // total equals the module total. Only the anchor-day figures, the previous day / week-ago day and the month
+    // are returned (no monthly series, no routes).
+    async getOfficeOverview(anchorDate) {
+        const offices = (await this.repository.getOfficeList())
+            .map((office) => ({ ma_bcvh: String(office.ma_bcvh), ten_bcvh: office.ten_bcvh || String(office.ma_bcvh) }));
+        const service = this.officeOverviewService;
+        service.units = offices;
+        service.codes = offices.map((office) => office.ma_bcvh);
+        service.unitByCode = new Map(offices.map((office) => [office.ma_bcvh, office]));
+        const overview = await service.getOverview(anchorDate);
+        return { ...overview, monthly: [], routes: [] };
     }
 
     // The 34 provinces/cities ranked nationally by the accepting province.

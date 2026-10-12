@@ -55,9 +55,12 @@ export function buildBcvhOptions(units = [], options = {}) {
   if (!validation.ok) {
     return [];
   }
+  const allOption = options.anyUnits && options.unitLabel
+    ? { value: ALL_BCVH_OPTION.value, label: `Tất cả ${String(options.unitLabel).toLowerCase()}` }
+    : ALL_BCVH_OPTION;
 
   return [
-    ALL_BCVH_OPTION,
+    allOption,
     ...units.map((unit) => ({
       value: String(unit.ma_bcvh),
       label: String(unit.ten_bcvh),
@@ -65,6 +68,10 @@ export function buildBcvhOptions(units = [], options = {}) {
   ];
 }
 
-export function isCanonicalBcvhCode(value) {
+// `extraCodes`: for an indicator with dynamic units, the codes of its own metadata options replace the six BCVH.
+export function isCanonicalBcvhCode(value, extraCodes = null) {
+  if (Array.isArray(extraCodes)) {
+    return value === ALL_BCVH_OPTION.value || extraCodes.includes(String(value));
+  }
   return value === ALL_BCVH_OPTION.value || CANONICAL_CODE_SET.has(String(value));
 }

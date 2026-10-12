@@ -286,6 +286,119 @@ class FactF12Repository {
         return this._all(sql, params);
     }
 
+    // ---- accepting OFFICE level (PO 2026-10-12: the Dashboard operations table lists every accepting office) ----
+    // Every office with a code, large-customer office included, so the table total equals the module total.
+    getOfficeList() {
+        return this._all(`
+            SELECT ma_bc_chap_nhan AS ma_bcvh, MAX(ten_bc_chap_nhan) AS ten_bcvh
+            FROM fact_f12
+            WHERE ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
+            GROUP BY ma_bc_chap_nhan
+            ORDER BY MAX(ten_bc_chap_nhan) ASC, ma_bc_chap_nhan ASC
+        `);
+    }
+
+    // Same row shapes as _getBcvhOverviewAggregate('mtd' | 'daily') with the accepting office as the unit.
+    getOfficeOverviewAggregate(kind, anchorCeiling) {
+        const bounds = `
+            WITH bounds AS (
+                SELECT MAX(ngay_do_kiem) AS anchor_date
+                FROM fact_f12
+                WHERE date(ngay_do_kiem) <= date(?)
+                  AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
+            )
+        `;
+        let sql;
+        if (kind === 'daily') {
+            sql = `${bounds},
+                prev_bounds AS (
+                    SELECT MAX(ngay_do_kiem) AS prev_anchor_date
+                    FROM fact_f12, bounds
+                    WHERE date(ngay_do_kiem) < date(bounds.anchor_date)
+                      AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
+                ),
+                week_bounds AS (
+                    SELECT date(bounds.anchor_date, '-7 days') AS week_ago_date
+                    FROM bounds
+                )
+                SELECT ngay_do_kiem AS date,
+                       ma_bc_chap_nhan AS ma_bcvh,
+                       MAX(ten_bc_chap_nhan) AS ten_bcvh,
+                       COUNT(*) AS volume,
+                       SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed,
+                       SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS failed,
+                       bounds.anchor_date,
+                       prev_bounds.prev_anchor_date,
+                       week_bounds.week_ago_date
+                FROM fact_f12, bounds, prev_bounds, week_bounds
+                WHERE (
+                    ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
+                    OR ngay_do_kiem = prev_bounds.prev_anchor_date
+                    OR ngay_do_kiem = week_bounds.week_ago_date
+                )
+                  AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
+                GROUP BY ngay_do_kiem, ma_bc_chap_nhan
+                ORDER BY ngay_do_kiem ASC, ma_bc_chap_nhan ASC
+            `;
+        } else if (kind === 'mtd') {
+            sql = `${bounds},
+                periods AS (
+                    SELECT anchor_date,
+                           substr(anchor_date, 1, 7) || '-01' AS current_start,
+                           date(substr(anchor_date, 1, 7) || '-01', '-1 month') AS previous_start,
+                           MIN(
+                               date(substr(anchor_date, 1, 7) || '-01', '-1 month',
+                                    '+' || (CAST(strftime('%d', anchor_date) AS INTEGER) - 1) || ' days'),
+                               date(substr(anchor_date, 1, 7) || '-01', '-1 day')
+                           ) AS previous_end
+                    FROM bounds
+                ),
+                day_unit AS MATERIALIZED (
+                    SELECT ngay_do_kiem,
+                           ma_bc_chap_nhan AS ma_bcvh,
+                           MAX(ten_bc_chap_nhan) AS ten_bcvh,
+                           COUNT(*) AS volume,
+                           SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed,
+                           SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS failed
+                    FROM fact_f12, periods
+                    WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
+                      AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
+                    GROUP BY ngay_do_kiem, ma_bc_chap_nhan
+                ),
+                current_agg AS (
+                    SELECT ma_bcvh, MAX(ten_bcvh) AS ten_bcvh,
+                           SUM(volume) AS volume, SUM(passed) AS passed, SUM(failed) AS failed
+                    FROM day_unit, periods
+                    WHERE ngay_do_kiem BETWEEN periods.current_start AND periods.anchor_date
+                    GROUP BY ma_bcvh
+                ),
+                previous_agg AS (
+                    SELECT ma_bcvh, SUM(volume) AS previous_volume, SUM(passed) AS previous_passed
+                    FROM day_unit, periods
+                    WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.previous_end
+                    GROUP BY ma_bcvh
+                ),
+                previous_full_agg AS (
+                    SELECT ma_bcvh, SUM(volume) AS previous_full_volume, SUM(passed) AS previous_full_passed
+                    FROM day_unit, periods
+                    WHERE ngay_do_kiem BETWEEN periods.previous_start AND date(periods.current_start, '-1 day')
+                    GROUP BY ma_bcvh
+                )
+                SELECT current_agg.*, previous_agg.previous_volume, previous_agg.previous_passed,
+                       previous_full_agg.previous_full_volume, previous_full_agg.previous_full_passed,
+                       periods.anchor_date
+                FROM current_agg
+                LEFT JOIN previous_agg USING (ma_bcvh)
+                LEFT JOIN previous_full_agg USING (ma_bcvh)
+                CROSS JOIN periods
+                ORDER BY current_agg.ma_bcvh ASC
+            `;
+        } else {
+            return Promise.reject(new Error(`Unsupported office overview aggregate: ${kind}`));
+        }
+        return this._all(sql, [anchorCeiling]);
+    }
+
     // Custom week = Thursday..Wednesday (same rule as F1.3, PO decision on
     // F13-BCVH-WEEKLY-COMPARISON-01): week_start is the Thursday on/before the date.
     getBcvhWeeksList(canonicalCodes = []) {

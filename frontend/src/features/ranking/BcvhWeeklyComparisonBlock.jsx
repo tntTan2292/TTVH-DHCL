@@ -13,6 +13,7 @@ import {
 import { ErrorState } from '../../components/shared/SharedComponents';
 import BlockCaptureButton from '../../components/common/BlockCaptureButton';
 import { BCVH_COLORS } from './bcvhOverviewData';
+import { useBcvhUnits } from '../indicator/BcvhUnitsContext.js';
 import {
   classifyF13HeatmapRate,
   F13_HEATMAP_TONE_CLASS,
@@ -111,6 +112,7 @@ function WeekNoteBadge({ week }) {
 
 export default function BcvhWeeklyComparisonBlock() {
   const indicator = useIndicator();
+  const unitsInfo = useBcvhUnits();
   const theme = indicatorTheme(indicator);
   const api = useIndicatorApi();
   const [weeksState, setWeeksState] = useState({ status: 'loading', weeks: [], error: null });
@@ -720,10 +722,12 @@ export default function BcvhWeeklyComparisonBlock() {
                       colSpan={3}
                       className="bg-slate-100/90 text-slate-800 font-black uppercase tracking-wider text-center align-middle py-2.5 px-2 border-r border-slate-300 text-xs sm:text-sm md:text-base"
                     >
-                      <div>ĐƠN VỊ</div>
-                      <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-normal mt-0.5">
-                        06 BƯU CỤC VẬN HÀNH
-                      </div>
+                      <div>{unitsInfo.dynamic ? 'ĐƠN VỊ CHẤP NHẬN' : 'ĐƠN VỊ'}</div>
+                      {unitsInfo.dynamic ? null : (
+                        <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-normal mt-0.5">
+                          06 BƯU CỤC VẬN HÀNH
+                        </div>
+                      )}
                     </th>
 
                     {/* Tuần kỳ này group header */}
@@ -853,7 +857,7 @@ export default function BcvhWeeklyComparisonBlock() {
 
                 {/* Rows 2..7: The 06 Canonical BCVH */}
                 {rows.map((row, index) => {
-                  const color = BCVH_COLORS[row.ma_bcvh] || '#64748b';
+                  const color = BCVH_COLORS[row.ma_bcvh] || unitsInfo.colors?.[row.ma_bcvh] || '#64748b';
                   return (
                     <tr key={row.ma_bcvh} className="hover:bg-slate-50/90 transition-colors font-bold text-slate-800">
                       <td className="py-2 px-1 text-center font-extrabold text-slate-600 border-r border-slate-200 whitespace-nowrap">

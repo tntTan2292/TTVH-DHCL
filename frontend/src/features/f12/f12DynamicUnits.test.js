@@ -6,6 +6,8 @@ import { processBcvhOperationTableData } from '../dashboard/components/bcvhOpera
 import { mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData.js';
 import { processOverviewData } from '../ranking/bcvhOverviewData.js';
 import { buildBcvhUnitsValue, SMALL_MULTIPLES_MAX_UNITS } from '../indicator/BcvhUnitsContext.js';
+import { isCanonicalBcvhCode } from '../dashboard/components/dashboardFilterOptions.js';
+import { indicatorEndpoint } from '../indicator/indicatorConfig.js';
 import { F11_INDICATOR, F12_INDICATOR, F13_INDICATOR, F41_INDICATOR } from '../indicator/indicatorConfig.js';
 
 // F12-DASHBOARD-UI-01 review fix (Opus C1/C2): the shared BCVH screens must work with the ~36 accepting
@@ -79,4 +81,32 @@ test('overview processing uses the units of the data for F1.2 and the six BCVH b
   const canonical = processOverviewData(raw, {});
   assert.equal(canonical.unitCodes.length, 6);
   assert.equal(canonical.monthlyTableRows.length, 6);
+});
+
+test('F1.2 operations table is office level: every accepting office, own headers, top-N picture choices', () => {
+  const table = F12_INDICATOR.operationTable;
+  assert.equal(table.groupTitle, 'BƯU CỤC CHẤP NHẬN');
+  assert.equal(table.codeHeader, 'Mã bưu cục chấp nhận');
+  assert.equal(table.nameHeader, 'Tên bưu cục chấp nhận');
+  assert.deepEqual([...table.captureTops], [15, 20, 25, 30]);
+  assert.equal(table.captureTopDefault, 20);
+  assert.equal(indicatorEndpoint('operationOverview', F12_INDICATOR), '/f12/ranking/offices/overview');
+  for (const indicator of [F11_INDICATOR, F13_INDICATOR, F41_INDICATOR]) {
+    assert.equal(indicator.operationTable, undefined);
+  }
+  const offices = Array.from({ length: 73 }, (_, index) => ({ ma_bcvh: String(530000 + index), ten_bcvh: `Bưu cục ${index}`, volume: 10 + index, passed: 9, rate: 90 }));
+  const model = processBcvhOperationTableData({ meta: { anchor_date: '2026-10-10' }, mtd: offices, daily: [] }, { indicator: F12_INDICATOR });
+  assert.equal(model.rows.length, 73); // every office, not 6, not a top N
+  assert.equal(model.titleLine1, 'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.2 TẠI CÁC BƯU CỤC CHẤP NHẬN');
+  assert.ok(!/6 BCVH|BCVH/.test(model.titleLine1));
+  const f11 = processBcvhOperationTableData({ meta: { anchor_date: '2026-10-10' }, mtd: [], daily: [] }, { indicator: F11_INDICATOR });
+  assert.equal(f11.titleLine1, 'BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.1 TẠI CÁC BCVH');
+});
+
+test('unit filter codes and the "all" option follow the indicator metadata', () => {
+  assert.equal(isCanonicalBcvhCode('5304', ['5304', '5340']), true);
+  assert.equal(isCanonicalBcvhCode('all', ['5304']), true);
+  assert.equal(isCanonicalBcvhCode('5375', ['5304']), false);
+  assert.equal(isCanonicalBcvhCode('5304'), false); // default: the six canonical BCVH
+  assert.equal(buildBcvhOptions(UNITS, { anyUnits: true, unitLabel: 'Đơn vị chấp nhận' })[0].label, 'Tất cả đơn vị chấp nhận');
 });

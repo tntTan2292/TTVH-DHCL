@@ -204,7 +204,18 @@ export const F12_INDICATOR = Object.freeze({
     kpi: '/dashboard/summary',
     officeTable: '/dashboard/office-table',
     cumulative12: '/dashboard/cumulative-12',
+    // The Dashboard operations table lists every accepting office, not the accepting units.
+    operationOverview: '/ranking/offices/overview',
     nationalRanking: '/dashboard/national-ranking',
+  }),
+  // Operations table of the Dashboard (PO 2026-10-12): rows are the accepting offices; long, so it scrolls
+  // vertically and its picture takes the top N rows in the order the user chose (as the F1.1 office table).
+  operationTable: Object.freeze({
+    groupTitle: 'BƯU CỤC CHẤP NHẬN',
+    codeHeader: 'Mã bưu cục chấp nhận',
+    nameHeader: 'Tên bưu cục chấp nhận',
+    captureTops: Object.freeze([15, 20, 25, 30]),
+    captureTopDefault: 20,
   }),
   targetRate: 95,
   heatmapFloors: Object.freeze([70, 60, 50]),

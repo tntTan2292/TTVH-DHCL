@@ -14,6 +14,7 @@ import { indicatorLabel, indicatorTheme } from '../../features/indicator/indicat
 import { useIndicator } from '../../features/indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../../features/indicator/useIndicatorApi.js';
 import BlockCaptureButton from '../common/BlockCaptureButton';
+import { waitForNextPaint } from '../common/blockCaptureHelper.js';
 import SortableTh from '../common/SortableTh';
 import { nextSortState, sortRowsBy } from '../common/tableSort';
 
@@ -42,8 +43,24 @@ function renderRateBadgeWithBands(rate, bands) {
   );
 }
 
+const SORT_LABELS = {
+  daily_rate: 'tỷ lệ đạt ngày',
+  daily_volume: 'sản lượng ngày',
+  mtd_rate: 'tỷ lệ đạt lũy kế tháng',
+  mtd_volume: 'sản lượng lũy kế tháng',
+  daily_delta_rate: 'tăng/giảm so với ngày trước',
+  daily_week_delta_rate: 'tăng/giảm so với tuần trước',
+  mtd_delta_rate: 'tăng/giảm so với tháng trước',
+  ten_bcvh: 'tên bưu cục',
+  ma_bcvh: 'mã bưu cục',
+};
+
 export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
   const indicator = useIndicator();
+  const officeLevel = indicator.operationTable || null;
+  // Picture of a long table (F1.2 offices): the top N rows in the order the user chose, plus the total row.
+  const [captureTop, setCaptureTop] = useState(officeLevel?.captureTopDefault || 20);
+  const [capturing, setCapturing] = useState(false);
   const api = useIndicatorApi();
   const effectiveAnchor = anchorDate || globalFilter?.dateRange?.[1] || globalFilter?.anchorDate || null;
   // Same call sites as always, but the colour bands follow the page's indicator (F4.1: 80/70/60).
@@ -103,7 +120,9 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
         setLoading(true);
         setError(null);
         const params = effectiveAnchor ? { anchor_date: effectiveAnchor } : {};
-        const response = await api.get('/f13/ranking/bcvh/overview', { params });
+        const response = officeLevel && indicator.endpoints?.operationOverview
+          ? await api.get(`${indicator.apiBase}${indicator.endpoints.operationOverview}`, { params })
+          : await api.get('/f13/ranking/bcvh/overview', { params });
         if (!active) return;
 
         if (response.data && response.data.success) {
@@ -124,7 +143,7 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
     return () => {
       active = false;
     };
-  }, [api, effectiveAnchor]);
+  }, [api, effectiveAnchor]); // the indicator (and its office-level setting) is fixed for the page's lifetime
 
   if (loading) {
     return (
@@ -164,9 +183,11 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
     totalRow,
     rows,
   } = tableModel || processBcvhOperationTableData({});
-  const displayRows = sort
+  const orderedRows = sort
     ? sortRowsBy(rows, sort.field, sort.direction).map((row, index) => ({ ...row, stt: index + 1 }))
     : rows;
+  const captureTruncated = Boolean(officeLevel && capturing && captureTop !== 'all' && orderedRows.length > captureTop);
+  const displayRows = captureTruncated ? orderedRows.slice(0, captureTop) : orderedRows;
   const isFullPrevMonth = prevMonthMode === 'full_month';
   const prevMonthShortLabel = isFullPrevMonth ? 'cả tháng trước' : 'cùng kỳ tháng trước';
 
@@ -207,11 +228,31 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
       <section ref={cardRef} className="bcvh-operation-card w-full rounded-2xl border border-slate-300 bg-white p-3 sm:p-5 shadow-sm">
       {/* Centered Capture-Ready Title (2 Lines) + Mobile View Controls */}
       <div className="mb-4 text-center border-b border-slate-200 pb-3 relative">
-        <div className="absolute right-0 top-0">
+        <div className="absolute right-0 top-0 flex items-center gap-1.5">
+          {officeLevel ? (
+            <label data-no-capture="true" className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
+              <span>Ảnh chụp lấy</span>
+              <select
+                value={captureTop}
+                onChange={(event) => setCaptureTop(event.target.value === 'all' ? 'all' : Number(event.target.value))}
+                title="Số bưu cục đầu bảng (theo thứ tự đang sắp) đưa vào ảnh chụp"
+                className="rounded-lg border border-slate-300 bg-white px-1.5 py-1 text-[11px] font-semibold text-slate-700 shadow-2xs focus:border-slate-500 focus:outline-none cursor-pointer"
+              >
+                {officeLevel.captureTops.map((count) => (
+                  <option key={count} value={count}>Top {count}</option>
+                ))}
+                <option value="all">Tất cả</option>
+              </select>
+            </label>
+          ) : null}
           <BlockCaptureButton
             targetRef={cardRef}
-            blockTitle="Bảng điều hành BCVH"
+            blockTitle={officeLevel ? 'Bảng điều hành bưu cục chấp nhận' : 'Bảng điều hành BCVH'}
             dateOrPeriod={tableModel?.formattedAnchorDate}
+            {...(officeLevel ? {
+              beforeCapture: async () => { setCapturing(true); await waitForNextPaint(); },
+              afterCapture: () => setCapturing(false),
+            } : {})}
           />
         </div>
         <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug whitespace-normal sm:whitespace-nowrap">
@@ -235,15 +276,17 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
       <div
         ref={containerRef}
         className={`w-full ${
-          fitMode
-            ? 'overflow-hidden transition-all'
-            : 'overflow-x-auto lg:overflow-x-visible'
+          officeLevel
+            ? (capturing ? 'overflow-visible' : 'max-h-[min(72vh,760px)] overflow-auto')
+            : (fitMode
+              ? 'overflow-hidden transition-all'
+              : 'overflow-x-auto lg:overflow-x-visible')
         }`}
-        style={fitMode && scaledHeight ? { height: `${scaledHeight}px` } : undefined}
+        style={!officeLevel && fitMode && scaledHeight ? { height: `${scaledHeight}px` } : undefined}
       >
         <div
           style={
-            fitMode
+            fitMode && !officeLevel
               ? {
                   transform: `scale(${fitScale})`,
                   transformOrigin: 'top left',
@@ -285,14 +328,20 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
           </colgroup>
 
           {/* Level 1: Grouped Headers */}
-          <thead>
+          <thead className={officeLevel ? 'sticky top-0 z-20 bg-white shadow-2xs' : undefined}>
             <tr className="border-b border-slate-300">
               <th
                 colSpan={3}
                 className="bg-slate-100/90 text-slate-800 font-black uppercase tracking-wider text-center align-middle py-2 px-1.5 border-r border-slate-300 text-xs sm:text-sm md:text-base whitespace-nowrap"
               >
-                <div>ĐƠN VỊ</div>
-                <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-normal mt-0.5">6 BƯU CỤC VẬN HÀNH</div>
+                {officeLevel ? (
+                  <div>{officeLevel.groupTitle}</div>
+                ) : (
+                  <>
+                    <div>ĐƠN VỊ</div>
+                    <div className="text-[11px] sm:text-xs font-bold text-slate-500 tracking-normal mt-0.5">6 BƯU CỤC VẬN HÀNH</div>
+                  </>
+                )}
               </th>
               <th
                 colSpan={showPrevMonth ? 5 : 3}
@@ -320,8 +369,8 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
               <th className="py-2 px-1 text-center align-middle w-[5%] border-r border-slate-200 whitespace-nowrap">
                 STT
               </th>
-              <SortableTh field="ma_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[8%] border-r border-slate-200 whitespace-nowrap">Mã bưu cục</SortableTh>
-              <SortableTh field="ten_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-2 text-center align-middle w-[17%] border-r border-slate-300 whitespace-nowrap">Tên bưu cục</SortableTh>
+              <SortableTh field="ma_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[8%] border-r border-slate-200 whitespace-nowrap">{officeLevel ? officeLevel.codeHeader : 'Mã bưu cục'}</SortableTh>
+              <SortableTh field="ten_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-2 text-center align-middle w-[17%] border-r border-slate-300 whitespace-nowrap">{officeLevel ? officeLevel.nameHeader : 'Tên bưu cục'}</SortableTh>
 
               {/* Lũy kế tháng (30% = 3 * 10%) */}
               <SortableTh field="mtd_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">Sản lượng đo kiểm</SortableTh>
@@ -459,6 +508,11 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
         </table>
         </div>
       </div>
+      {captureTruncated ? (
+        <p className="mt-2 text-xs font-semibold text-slate-600">
+          {`Ảnh chụp: top ${displayRows.length} / ${orderedRows.length} bưu cục chấp nhận, sắp theo ${SORT_LABELS[headerSort.field] || 'thứ tự đang chọn'}.`}
+        </p>
+      ) : null}
       </section>
     </div>
   );

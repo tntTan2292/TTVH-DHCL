@@ -100,7 +100,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
               className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs hover:border-blue-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
               aria-label="Xem theo đơn vị"
             >
-              <option value={MONTHLY_TREND_TOTAL_KEY}>{MONTHLY_TREND_NAMES[MONTHLY_TREND_TOTAL_KEY]}</option>
+              <option value={MONTHLY_TREND_TOTAL_KEY}>{unitNames[MONTHLY_TREND_TOTAL_KEY]}</option>
               {units.allowSmallMultiples ? <option value={ALL_UNITS}>{units.dynamic ? units.allLabel : 'Tất cả 6 BCVH'}</option> : null}
               {units.codes.map((code) => (
                 <option key={code} value={code}>{unitNames[code] || code}</option>

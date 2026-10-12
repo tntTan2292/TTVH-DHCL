@@ -388,7 +388,9 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
     formattedPrevFactDate,
     weekAgoDate,
     formattedWeekAgoDate,
-    titleLine1: indicatorLabel('BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH', indicator),
+    titleLine1: indicator?.operationTable
+      ? `BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ ${indicator.moduleLabel} TẠI CÁC ${indicator.operationTable.groupTitle}`
+      : indicatorLabel('BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH', indicator),
     titleLine2: requestedAnchorDate && anchorDate && requestedAnchorDate > anchorDate
       ? `ĐẾN NGÀY ${formattedAnchorDate} (ngày ${formatDateVN(requestedAnchorDate)} chưa có số liệu)`
       : `ĐẾN NGÀY ${formattedAnchorDate}`,

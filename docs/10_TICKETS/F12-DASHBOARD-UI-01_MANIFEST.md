@@ -61,3 +61,13 @@ Technical: frontend lint, build, tests green; tests for `F12_INDICATOR` (bands, 
   - Lint: `npx oxlint` passed with 0 errors/0 warnings; undefined identifier check clean.
   - Build: `npx vite build` succeeded with 0 errors.
 - **Next Stage**: Independent review by `Opus`, followed by PO UI verification.
+
+## 7. Delivery Summary (2026-10-12, Antigravity)
+
+See the commit `cc8fa0e`; blocks A (office table) and B (rolling 12 months), `F12_INDICATOR`, pages, routes, menu.
+
+## 8. Review fixes and PO delta of 2026-10-12
+
+- Opus round 1 (C1, C2 and details) and round 2 (S1-S4): the shared screens take the unit list from the indicator metadata (`indicator.dynamicUnits`, `BcvhUnitsContext`); see `docs/10_TICKETS/F12-DASHBOARD-RANKING-01_MANIFEST.md` Section 8. S1 (total label of the monthly trend), S2 (comparison table header "06 BƯU CỤC VẬN HÀNH" and series colours), S3 (unit filter `isCanonicalBcvhCode(value, codes)`, no extra `ma_bcvh=all` redirect) and S4 (wording "đơn vị chấp nhận" through `indicatorLabel`, menu "Phân tích đơn vị chấp nhận") fixed.
+- **PO delta (screenshot of the Dashboard operations table):** the table lists every **accepting office** (not the 37 units, not "6 BCVH"): columns "Mã bưu cục chấp nhận" and "Tên bưu cục chấp nhận" (source columns `Mã BC nhận tin/chấp nhận`, `Tên BC nhận tin/chấp nhận`); the group header is "BƯU CỤC CHẤP NHẬN" without the "6 BCVH" note; title "…TẠI CÁC BƯU CỤC CHẤP NHẬN"; the table has a vertical scroll with a sticky header; the camera takes the top N rows in the order the user chose ("Ảnh chụp lấy": Top 15 / 20 / 25 / 30 / Tất cả, default 20) plus the total row, with the line "Ảnh chụp: top N / total bưu cục chấp nhận, sắp theo …", as the F1.1 office table. Data: `GET /api/f12/ranking/offices/overview` (all accepting offices, large-customer office included so the total equals the module total).
+- Open (PO to decide): the naming "đơn vị chấp nhận" for the 37-unit ranking pages and menu (S4); the unit-level blocks A and B keep the unit names from the data.

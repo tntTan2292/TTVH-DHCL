@@ -76,7 +76,7 @@ export default function DashboardPage() {
 
         setMetadataState({
           status: 'success',
-          bcvhOptions: buildBcvhOptions(data.bcvh_units, { anyUnits: Boolean(indicator.dynamicUnits) }),
+          bcvhOptions: buildBcvhOptions(data.bcvh_units, { anyUnits: Boolean(indicator.dynamicUnits), unitLabel: indicator.unitLabel }),
           units: indicator.dynamicUnits ? data.bcvh_units : null,
           error: null,
         });
@@ -245,7 +245,8 @@ export default function DashboardPage() {
       changed = true;
     }
 
-    if (!isCanonicalBcvhCode(maBcvh)) {
+    const dynamicUnitCodes = indicator.dynamicUnits ? metadataState.bcvhOptions.map((option) => option.value) : null;
+    if (!isCanonicalBcvhCode(maBcvh, dynamicUnitCodes)) {
       params.set('ma_bcvh', 'all');
       changed = true;
     }
@@ -253,7 +254,7 @@ export default function DashboardPage() {
     if (changed) {
       setSearchParams(params, { replace: true });
     }
-  }, [maBcvh, metadataState.status, range.fromDate, range.normalized, range.ready, range.toDate, searchParams, setSearchParams]);
+  }, [indicator.dynamicUnits, maBcvh, metadataState.bcvhOptions, metadataState.status, range.fromDate, range.normalized, range.ready, range.toDate, searchParams, setSearchParams]);
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);

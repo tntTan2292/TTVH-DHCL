@@ -159,7 +159,7 @@ export default function BcvhRankingPage() {
         }
         setMetaState({
           status: 'success',
-          options: buildBcvhOptions(units, { anyUnits: Boolean(indicator.dynamicUnits) }),
+          options: buildBcvhOptions(units, { anyUnits: Boolean(indicator.dynamicUnits), unitLabel: indicator.unitLabel }),
           units: indicator.dynamicUnits ? units : null,
           error: null,
           maxDate: res.data?.data?.max_date || null,
@@ -256,7 +256,7 @@ export default function BcvhRankingPage() {
       label: 'Sản lượng ngày đánh giá',
       value: formatNumber(summaryRow?.current_day.volume),
       delta: `${formatNumber(summaryRow?.current_day.pass_count)} đạt · ${formatNumber(summaryRow?.current_day.fail_count)} không đạt`,
-      trend: totalBcvh ? `${formatNumber(bcvhWithData)}/${formatNumber(totalBcvh)} BCVH có dữ liệu` : undefined,
+      trend: totalBcvh ? `${formatNumber(bcvhWithData)}/${formatNumber(totalBcvh)} ${indicatorLabel('BCVH', indicator)} có dữ liệu` : undefined,
       tone: 'primary',
     },
     {
@@ -273,7 +273,7 @@ export default function BcvhRankingPage() {
       label: 'Chậm nộp tiền',
       value: formatNumber(summaryRow?.late_cash.count),
       delta: `Tỷ lệ ${formatRate(summaryRow?.late_cash.rate)}`,
-      trend: bcvhWithData ? `${formatNumber(affectedLateCashCount)}/${formatNumber(bcvhWithData)} BCVH bị ảnh hưởng` : undefined,
+      trend: bcvhWithData ? `${formatNumber(affectedLateCashCount)}/${formatNumber(bcvhWithData)} ${indicatorLabel('BCVH', indicator)} bị ảnh hưởng` : undefined,
       tone: 'neutral',
     },
     {
@@ -332,7 +332,7 @@ export default function BcvhRankingPage() {
         />
 
         {metaState.status === 'error' ? (
-          <ErrorState title="Không thể tải danh sách BCVH" description={metaState.error} />
+          <ErrorState title={indicatorLabel('Không thể tải danh sách BCVH', indicator)} description={metaState.error} />
         ) : null}
 
         {/* Phase F1 Overview Section - 4 Overview Blocks */}
@@ -340,13 +340,13 @@ export default function BcvhRankingPage() {
           <div className="flex h-32 items-center justify-center rounded-2xl border border-[var(--color-surface-200)] bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-primary-600)] border-t-transparent" />
-              <span>Đang tải dữ liệu tổng quan BCVH...</span>
+              <span>{indicatorLabel('Đang tải dữ liệu tổng quan BCVH...', indicator)}</span>
             </div>
           </div>
         ) : overviewState.status === 'error' ? (
           <div className="rounded-2xl border border-red-200/90 bg-red-50/70 p-5 shadow-2xs">
             <ErrorState
-              title="Không thể tải dữ liệu tổng quan BCVH"
+              title={indicatorLabel('Không thể tải dữ liệu tổng quan BCVH', indicator)}
               description={overviewState.error}
               action={
                 <button
@@ -363,7 +363,7 @@ export default function BcvhRankingPage() {
 
         {/* Single-day Ranking Table & Cards (Khối 5 - Unchanged) */}
         {rankingState.status === 'error' ? (
-          <ErrorState title="Không thể tải dữ liệu phân tích BCVH" description={rankingState.error} />
+          <ErrorState title={indicatorLabel('Không thể tải dữ liệu phân tích BCVH', indicator)} description={rankingState.error} />
         ) : null}
 
         {!showNoData ? (
@@ -391,7 +391,7 @@ export default function BcvhRankingPage() {
           </div>
         ) : (
           <EmptyState
-            title={`Không có dữ liệu BCVH cho ngày ${toDate}`}
+            title={`${indicatorLabel('Không có dữ liệu BCVH', indicator)} cho ngày ${toDate}`}
             description={
               nearestAvailableDate
                 ? `Ngày gần nhất đang được metadata hỗ trợ là ${nearestAvailableDate}. Không có phép tính fallback nào được tạo thêm cho ngày đã chọn.`
@@ -419,7 +419,7 @@ export default function BcvhRankingPage() {
                 <p className="text-xs text-[var(--color-text-muted)] font-medium">So sánh kỳ trước theo D-1 và D-7.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge label={`BCVH: ${metaState.options.find((option) => option.value === maBcvh)?.label || 'Tất cả BCVH'}`} tone="neutral" />
+                <StatusBadge label={`${indicatorLabel('BCVH', indicator)}: ${metaState.options.find((option) => option.value === maBcvh)?.label || indicatorLabel('Tất cả BCVH', indicator)}`} tone="neutral" />
                 <StatusBadge label={`Tìm kiếm: ${search || 'Không'}`} tone="info" />
                 {nearestAvailableDate ? <StatusBadge label={`Ngày gần nhất: ${nearestAvailableDate}`} tone="warning" /> : null}
               </div>

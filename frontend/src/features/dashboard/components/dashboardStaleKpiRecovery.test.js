@@ -81,7 +81,7 @@ test('operation dashboard atomically normalizes stale URL state before widget fe
   assert.match(dashboardSource, /'Cache-Control': 'no-cache'/);
   assert.match(dashboardSource, /if \(range\.ready && range\.normalized\) \{[\s\S]*?params\.set\('from_date', range\.fromDate\);[\s\S]*?params\.set\('to_date', range\.toDate\);/);
   assert.match(dashboardSource, /if \(params\.has\('kpi'\)\) \{[\s\S]*?params\.delete\('kpi'\);/);
-  assert.match(dashboardSource, /if \(!isCanonicalBcvhCode\(maBcvh\)\) \{[\s\S]*?params\.set\('ma_bcvh', 'all'\);/);
+  assert.match(dashboardSource, /if \(!isCanonicalBcvhCode\(maBcvh(?:, dynamicUnitCodes)?\)\) \{[\s\S]*?params\.set\('ma_bcvh', 'all'\);/);
   assert.equal((dashboardSource.match(/setSearchParams\(params, \{ replace: true \}\);/g) || []).length, 1);
   assert.match(dashboardSource, /if \(!dashboardReady\) \{[\s\S]*?trendRequestSeqRef\.current \+= 1;/);
   assert.match(dashboardSource, /api\.get\('\/f13\/dashboard\/daily-trend', \{ params, signal: controller\.signal \}\)/);
