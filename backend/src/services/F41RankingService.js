@@ -158,6 +158,9 @@ class F41RankingService {
     constructor({ repository = factF41Repository, nationalRankService = f41NationalRankService, now } = {}) {
         this.repository = repository;
         this.nationalRankService = nationalRankService;
+        // The ranked units default to the six canonical BCVH; a subclass (F1.2) may replace them per request.
+        this.canonicalCodes = CANONICAL_CODES;
+        this.canonicalSet = CANONICAL_SET;
         this.overviewService = new BcvhOverviewService({ repository, dashboardService: nationalRankService, ...(now ? { now } : {}) });
         this.weeklyService = new BcvhWeeklyComparisonService({ repository, dashboardService: nationalRankService });
     }
@@ -196,7 +199,7 @@ class F41RankingService {
     async getSummary(fromDate, toDate, filters = {}) {
         this._validateRange(fromDate, toDate);
         const bcvhId = filters.bcvhId || null;
-        if (bcvhId && !CANONICAL_SET.has(bcvhId)) throw codedError('INVALID_BCVH', 'Mã BCVH không hợp lệ.');
+        if (bcvhId && !this.canonicalSet.has(bcvhId)) throw codedError('INVALID_BCVH', 'Mã BCVH không hợp lệ.');
 
         const previousDay = shiftDate(toDate, -1);
         const previousWeek = shiftDate(toDate, -7);
@@ -241,7 +244,7 @@ class F41RankingService {
     async getDailyTrend(fromDate, toDate, filters = {}) {
         this._validateRange(fromDate, toDate);
         const bcvhId = filters.bcvhId && filters.bcvhId !== 'all' ? filters.bcvhId : null;
-        if (bcvhId && !CANONICAL_SET.has(bcvhId)) throw codedError('INVALID_BCVH', 'Mã BCVH không hợp lệ.');
+        if (bcvhId && !this.canonicalSet.has(bcvhId)) throw codedError('INVALID_BCVH', 'Mã BCVH không hợp lệ.');
 
         const [latestImport, rows] = await Promise.all([
             this.repository.getLatestImportMeta(),
@@ -299,13 +302,13 @@ class F41RankingService {
         const weekAgo = shiftDate(toDate, -7);
 
         const repo = this.repository;
-        const current = await repo.getBcvhOperationMetricsBetween(fromDate, toDate, CANONICAL_CODES);
+        const current = await repo.getBcvhOperationMetricsBetween(fromDate, toDate, this.canonicalCodes);
         const hasData = current.length > 0;
         const [yesterdayRows, weekAgoRows, mtdRows, previousMtdRows] = await Promise.all([
-            repo.getBcvhOperationMetricsBetween(yesterday, yesterday, CANONICAL_CODES),
-            repo.getBcvhOperationMetricsBetween(weekAgo, weekAgo, CANONICAL_CODES),
-            hasData ? repo.getBcvhOperationMetricsBetween(monthStart, toDate, CANONICAL_CODES) : Promise.resolve([]),
-            hasData ? repo.getBcvhOperationMetricsBetween(previousMonth.start, previousMonth.end, CANONICAL_CODES) : Promise.resolve([]),
+            repo.getBcvhOperationMetricsBetween(yesterday, yesterday, this.canonicalCodes),
+            repo.getBcvhOperationMetricsBetween(weekAgo, weekAgo, this.canonicalCodes),
+            hasData ? repo.getBcvhOperationMetricsBetween(monthStart, toDate, this.canonicalCodes) : Promise.resolve([]),
+            hasData ? repo.getBcvhOperationMetricsBetween(previousMonth.start, previousMonth.end, this.canonicalCodes) : Promise.resolve([]),
         ]);
 
         const yesterdayMap = indexByBcvh(yesterdayRows);

@@ -2301,3 +2301,7 @@ PO took the F1.2 portal adapter back from Antigravity (no code existed) and aske
 ## 2026-10-12 - F12-PHASE-3 DRY RUN PASSED, F1.2 ENABLED
 
 PO ran the supervised DRY probe for HUE and TCT (10/10): both reconcile exactly with the portal summary; differences to the earlier PO files are the portal's own revision. PO accepted PASS. F1.2 registry set ACTIVE / AUTOMATED with a 3-day refresh window and executors registered. Next: backend restart, first supervised Auto Backfill, backfill from 2026-01-01. docs/10_TICKETS/F12-PHASE-3_MANIFEST.md Section 9.
+
+## 2026-10-12 - F12-DASHBOARD-RANKING-01 BACKEND IMPLEMENTED
+
+/api/f12 delivered (summary, trend, unit ranking, overview, weekly/monthly, office table, rolling 12 months, national rank); large customer 531120 counted in the total and shown apart; shared F4.1 service made unit-list aware without changing F1.1/F4.1. Tests 9/9 incl. the real 10/10 file. Backend restart needed. UI manifest and Antigravity prompt written (F12-DASHBOARD-UI-01). docs/10_TICKETS/F12-DASHBOARD-RANKING-01_MANIFEST.md.
