@@ -11,6 +11,16 @@ const F11_GROUP = {
   ],
 };
 
+const F12_GROUP = {
+  title: 'F1.2 – Thu gom liên tỉnh',
+  name: 'F1.2 – Thu gom liên tỉnh',
+  icon: <Activity size={18} />,
+  subItems: [
+    { name: 'Bảng điều hành', path: '/f12/dashboard', icon: <Target size={18} /> },
+    { name: 'Phân tích BCVH', path: '/f12/ranking/bcvh', icon: <BarChart2 size={18} /> },
+  ],
+};
+
 const F13_GROUP = {
   title: 'F1.3 – Chất lượng phát liên tỉnh',
   name: 'F1.3 – Chất lượng phát liên tỉnh',
@@ -38,7 +48,7 @@ const QUALITY_MANAGEMENT_GROUP = {
   icon: <Activity size={20} />,
   subItems: [
     F11_GROUP,
-    { name: 'F1.2 – Thu gom liên tỉnh', path: '/f12', icon: <Activity size={18} />, roles: [ROLE_ADMIN] },
+    F12_GROUP,
     F13_GROUP,
     F41_GROUP,
   ],

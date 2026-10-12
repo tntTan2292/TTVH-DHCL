@@ -1,6 +1,6 @@
 # F12-DASHBOARD-UI-01 Manifest
 
-Status: `READY FOR ANTIGRAVITY` (2026-10-12). Screens for F1.2 (thu gom liên tỉnh): Operation Dashboard and Ranking by accepting unit with drill-down to accepting offices, day / week / month / Lũy kế 12. Frontend only.
+Status: `READY FOR PO CHECK` (2026-10-12). Screens for F1.2 (thu gom liên tỉnh): Operation Dashboard and Ranking by accepting unit with drill-down to accepting offices, day / week / month / Lũy kế 12. Frontend only.
 
 ## 1. Ticket Information
 
@@ -34,3 +34,30 @@ No backend, schema or import change; no Evidence or route view; no new colour ru
 ## 6. Validation and PO Check
 
 Technical: frontend lint, build, tests green; tests for `F12_INDICATOR` (bands, target 95, endpoints, features), the two wrappers, navigation, and the data mapping of blocks A and B (empty period, null month, unranked row, total = module total); the static undefined-identifier check of the standard. Stop at `READY FOR PO CHECK` with a short PO checklist: unit table day / week / month with offices expanded, large customer apart, 95 % line, Lũy kế 12 with national rank, camera on a long table and on the chart, narrow screen.
+
+## 7. Delivery Summary (2026-10-12)
+
+- **Configuration & Themes**:
+  - Registered `INDICATOR_THEMES.teal` (`#0f766e`, `#14b8a6`, `#0d9488`, `#f0fdfa`, `#ccfbf1`) in `frontend/src/features/indicator/indicatorConfig.js`.
+  - Configured `F12_INDICATOR` with `target_rate: 95.0`, floors `70/60/50`, `unitLabel: 'Đơn vị chấp nhận'`, features `{ officeTable: true, cumulative12: true, ... }`.
+  - Updated `indicatorLabel` helper to substitute `"BCVH"` with `indicator.unitLabel` dynamically.
+- **Pages & Routing**:
+  - `frontend/src/features/f12/F12DashboardPage.jsx`: thin wrapper providing `F12_INDICATOR`.
+  - `frontend/src/features/f12/F12BcvhRankingPage.jsx`: thin wrapper providing `F12_INDICATOR`.
+  - `frontend/src/App.jsx`: `/f12` redirect to `/f12/dashboard`, `/f12/dashboard` & `/f12/ranking/bcvh` with `[ROLE_ADMIN, ROLE_VIEWER]`.
+  - `frontend/src/navigation/appNavigation.jsx` & `frontend/src/components/Sidebar.jsx`: Added sidebar group `F12_GROUP` ("F1.2 – Thu gom liên tỉnh").
+- **Block A: Đơn vị / Bưu cục chấp nhận (`F12OfficeTableBlock.jsx`)**:
+  - Endpoints: `GET /f12/dashboard/office-table?period&anchor_date`.
+  - Features: Day / Week / Month toggles, drill-down expand/collapse per unit to show underlying offices (unranked), separate "Khách hàng lớn (không xếp hạng)" row from `unranked`, sticky footer `TỔNG CỘNG` from `total_row`, camera button (`BlockCaptureButton`), click-to-sort headers (`SortableTh`), text search, friendly empty state.
+- **Block B: Lũy kế 12 tháng (`F12Cumulative12Block.jsx`)**:
+  - Endpoints: `GET /f12/dashboard/cumulative-12?month=YYYY-MM`.
+  - Features: Month picker, 4 summary metric cards, ComposedChart (volume bar + rate line + 95% target ReferenceLine + `Vị thứ x/34` beneath each month label), unit 12-month summary & monthly rate matrix table with F1.3 threshold badges (`null` as "–"), camera button, click-to-sort headers, search.
+- **Shared Integration**:
+  - Conditionally integrated in `DashboardPage.jsx` when `indicator.features.officeTable` and `cumulative12` are enabled.
+  - Ranking button label and page titles generalized via `indicatorLabel`.
+- **Validation**:
+  - Frontend test suite: **667/667 passing** (`node --test "src/**/*.test.js"`).
+  - Backend test suite: **9/9 passing** (`F12RankingService.test.js`).
+  - Lint: `npx oxlint` passed with 0 errors/0 warnings; undefined identifier check clean.
+  - Build: `npx vite build` succeeded with 0 errors.
+- **Next Stage**: Independent review by `Opus`, followed by PO UI verification.

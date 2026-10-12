@@ -9,7 +9,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { ROLE_ADMIN, ROLE_VIEWER, getDefaultRouteForRole } from './auth/roles';
 
-import F12Quality from './pages/F12Quality';
 import DataImportCenter from './pages/DataImportCenter';
 import KpiConfiguration from './pages/KpiConfiguration';
 import SystemInformation from './pages/SystemInformation';
@@ -17,6 +16,8 @@ import SystemInformation from './pages/SystemInformation';
 import DashboardPage from './features/dashboard/DashboardPage';
 import F11DashboardPage from './features/f11/F11DashboardPage';
 import F11BcvhRankingPage from './features/f11/F11BcvhRankingPage';
+import F12DashboardPage from './features/f12/F12DashboardPage';
+import F12BcvhRankingPage from './features/f12/F12BcvhRankingPage';
 import F41DashboardPage from './features/f41/F41DashboardPage';
 import F41BcvhRankingPage from './features/f41/F41BcvhRankingPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
@@ -102,7 +103,9 @@ function App() {
             <Route path="f11" element={<Navigate to="/f11/dashboard" replace />} />
             <Route path="f11/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F11DashboardPage /></ProtectedRoute>} />
             <Route path="f11/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F11BcvhRankingPage /></ProtectedRoute>} />
-            <Route path="f12" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F12Quality /></ProtectedRoute>} />
+            <Route path="f12" element={<Navigate to="/f12/dashboard" replace />} />
+            <Route path="f12/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F12DashboardPage /></ProtectedRoute>} />
+            <Route path="f12/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F12BcvhRankingPage /></ProtectedRoute>} />
             <Route path="f41" element={<Navigate to="/f41/dashboard" replace />} />
             <Route path="f41/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41DashboardPage /></ProtectedRoute>} />
             <Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41BcvhRankingPage /></ProtectedRoute>} />

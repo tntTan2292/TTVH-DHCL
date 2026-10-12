@@ -20,6 +20,8 @@ import { normalizeComboTrendlineItems } from './components/comboTrendlineData';
 import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow';
 import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboardDateRange';
 import F11PairTableBlock from '../f11/components/F11PairTableBlock.jsx';
+import F12OfficeTableBlock from '../f12/components/F12OfficeTableBlock.jsx';
+import F12Cumulative12Block from '../f12/components/F12Cumulative12Block.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { indicatorLabel, indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
@@ -288,7 +290,7 @@ export default function DashboardPage() {
             onClick={() => navigate(buildPreservedPath(indicator.routes.ranking, searchParams))}
             className={`rounded-lg ${indicatorTheme(indicator).button} px-3.5 py-1.5 text-xs font-bold shadow-2xs hover:opacity-95 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 transition-[color,background-color,box-shadow,transform,opacity] duration-150 cursor-pointer`}
           >
-            Mở xếp hạng BCVH
+            {indicatorLabel('Mở xếp hạng BCVH', indicator)}
           </button>
         </div>
       )}
@@ -378,6 +380,18 @@ export default function DashboardPage() {
               <F11PairTableBlock
                 anchorDate={toDate}
                 toDate={toDate}
+              />
+            ) : null}
+
+            {indicator.features.officeTable ? (
+              <F12OfficeTableBlock
+                anchorDate={toDate}
+              />
+            ) : null}
+
+            {indicator.features.cumulative12 ? (
+              <F12Cumulative12Block
+                anchorDate={toDate}
               />
             ) : null}
           </>

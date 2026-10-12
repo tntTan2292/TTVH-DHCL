@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {
   DEFAULT_TARGET_RATE,
   F11_INDICATOR,
+  F12_INDICATOR,
   F13_INDICATOR,
   F41_INDICATOR,
   indicatorTargetRate,
@@ -18,14 +19,16 @@ import {
 import { getMonthlyTrendSeriesData } from '../ranking/bcvhOverviewData.js';
 import { getWeeklyTrendSeriesData } from '../ranking/bcvhWeeklyComparisonData.js';
 
-// PO decision 2026-10-10: the chart target line is 95 % for F1.1; F1.3 and F4.1 keep 90 %.
-test('target rate per indicator: F1.3 and F4.1 90, F1.1 95; unknown indicators fall back to 90', () => {
+// PO decision 2026-10-10: the chart target line is 95 % for F1.1 and F1.2; F1.3 and F4.1 keep 90 %.
+test('target rate per indicator: F1.3 and F4.1 90, F1.1 and F1.2 95; unknown indicators fall back to 90', () => {
   assert.equal(DEFAULT_TARGET_RATE, 90);
   assert.equal(QUALITY_TARGET_RATE, 90);
   assert.equal(F13_INDICATOR.targetRate, 90);
   assert.equal(F41_INDICATOR.targetRate, 90);
   assert.equal(F11_INDICATOR.targetRate, 95);
+  assert.equal(F12_INDICATOR.targetRate, 95);
   assert.equal(indicatorTargetRate(F11_INDICATOR), 95);
+  assert.equal(indicatorTargetRate(F12_INDICATOR), 95);
   assert.equal(indicatorTargetRate(F13_INDICATOR), 90);
   assert.equal(indicatorTargetRate(F41_INDICATOR), 90);
   assert.equal(indicatorTargetRate(), 90);

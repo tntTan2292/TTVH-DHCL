@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { F11_INDICATOR, F13_INDICATOR, F41_INDICATOR, INDICATOR_THEMES, indicatorTheme } from './indicatorConfig.js';
+import { F11_INDICATOR, F12_INDICATOR, F13_INDICATOR, F41_INDICATOR, INDICATOR_THEMES, indicatorTheme } from './indicatorConfig.js';
 
 // docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md: the functions every report block must have.
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
@@ -14,12 +14,16 @@ const REPORT_BLOCKS = [
   '../ranking/BcvhRankingOverviewBlocks.jsx',
   '../ranking/BcvhWeeklyComparisonBlock.jsx',
   '../f11/components/F11PairTableBlock.jsx',
+  '../f12/components/F12OfficeTableBlock.jsx',
+  '../f12/components/F12Cumulative12Block.jsx',
 ];
 const TABLES = [
   '../../components/f13/BcvhOperationTable.jsx',
   '../dashboard/components/UnifiedBcvhAnalysisTable.jsx',
   '../ranking/BcvhRankingOverviewBlocks.jsx',
   '../f11/components/F11PairTableBlock.jsx',
+  '../f12/components/F12OfficeTableBlock.jsx',
+  '../f12/components/F12Cumulative12Block.jsx',
 ];
 const THEMED = [...REPORT_BLOCKS, '../ranking/BcvhMonthlyComboTrendChart.jsx', '../ranking/BcvhWeeklyComboTrendChart.jsx', '../ranking/BcvhWeeklyTrendBlock.jsx', '../dashboard/DashboardPage.jsx', '../ranking/BcvhRankingPage.jsx'];
 
@@ -45,7 +49,8 @@ test('standard 5: three light families, none purple or dark; the page shows its 
   assert.equal(F13_INDICATOR.theme, INDICATOR_THEMES.blue);
   assert.equal(F41_INDICATOR.theme, INDICATOR_THEMES.orange);
   assert.equal(F11_INDICATOR.theme, INDICATOR_THEMES.green);
-  assert.equal(new Set([F13_INDICATOR.theme.primary, F41_INDICATOR.theme.primary, F11_INDICATOR.theme.primary]).size, 3);
+  assert.equal(F12_INDICATOR.theme, INDICATOR_THEMES.teal);
+  assert.equal(new Set([F13_INDICATOR.theme.primary, F41_INDICATOR.theme.primary, F11_INDICATOR.theme.primary, F12_INDICATOR.theme.primary]).size, 4);
   for (const theme of Object.values(INDICATOR_THEMES)) {
     assert.doesNotMatch(JSON.stringify(theme), /purple|violet|indigo|fuchsia|slate-900|gray-900|zinc-900|black/i);
     for (const key of ['accentBar', 'chip', 'soft', 'headerBg', 'headerText', 'headerBorder', 'header2Bg', 'header2Text', 'sortActive', 'button', 'ring', 'text']) {

@@ -289,7 +289,7 @@ export default function BcvhRankingPage() {
     <PageContainer
       accentClassName={indicatorTheme(indicator).accentBar}
       badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${indicatorTheme(indicator).chip}`}>{indicator.moduleLabel}</span>}
-      title="Phân tích chất lượng BCVH"
+      title={indicatorLabel('Phân tích chất lượng BCVH', indicator)}
       subtitle="Theo ngày đánh giá."
       action={(
         <div className="flex flex-wrap items-center gap-2">

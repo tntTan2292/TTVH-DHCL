@@ -47,9 +47,12 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in s
   ]);
   assert.equal(f11.roles, undefined);
 
-  assert.equal(f12.name, 'F1.2 – Thu gom liên tỉnh');
-  assert.equal(f12.path, '/f12');
-  assert.deepEqual(toPlain(f12.roles), ['admin']);
+  assert.equal(f12.title, 'F1.2 – Thu gom liên tỉnh');
+  assert.deepEqual(toPlain(f12.subItems.map((item) => [item.name, item.path])), [
+    ['Bảng điều hành', '/f12/dashboard'],
+    ['Phân tích BCVH', '/f12/ranking/bcvh'],
+  ]);
+  assert.equal(f12.roles, undefined);
 
   assert.equal(f13.title, 'F1.3 – Chất lượng phát liên tỉnh');
   assert.equal(Array.isArray(f13.subItems), true);
@@ -105,7 +108,7 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
   // In Module 1, ADMIN sees all 4 items
   assert.equal(adminNav[0].subItems.length, 4);
   assert.equal(adminNav[0].subItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
-  assert.equal(adminNav[0].subItems[1].name, 'F1.2 – Thu gom liên tỉnh');
+  assert.equal(adminNav[0].subItems[1].title, 'F1.2 – Thu gom liên tỉnh');
   assert.equal(adminNav[0].subItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
   assert.equal(adminNav[0].subItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
 
@@ -114,11 +117,12 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
   assert.match(viewerNav[0].title, /quản lý chất lượng/i);
   assert.match(viewerNav[1].title, /quản lý mạng lưới/i);
 
-  // In Module 1, viewer sees the three read-only report modules: F1.1, F1.3 and F4.1
-  assert.equal(viewerNav[0].subItems.length, 3);
+  // In Module 1, viewer sees the four read-only report modules: F1.1, F1.2, F1.3 and F4.1
+  assert.equal(viewerNav[0].subItems.length, 4);
   assert.equal(viewerNav[0].subItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
-  assert.equal(viewerNav[0].subItems[1].title, 'F1.3 – Chất lượng phát liên tỉnh');
-  assert.equal(viewerNav[0].subItems[2].title, 'F4.1 – Chất lượng phát thành công bưu cục');
+  assert.equal(viewerNav[0].subItems[1].title, 'F1.2 – Thu gom liên tỉnh');
+  assert.equal(viewerNav[0].subItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
+  assert.equal(viewerNav[0].subItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
 
   // Module 3 is not present for viewer
   assert.equal(viewerNav.find((m) => /quản trị hệ thống/i.test(m.title)), undefined);
@@ -176,8 +180,8 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
   assert.equal(qualityItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(qualityItems[0].subItems.map((item) => item.path)), ['/f11/dashboard', '/f11/ranking/bcvh']);
 
-  assert.equal(qualityItems[1].name, 'F1.2 – Thu gom liên tỉnh');
-  assert.equal(qualityItems[1].path, '/f12');
+  assert.equal(qualityItems[1].title, 'F1.2 – Thu gom liên tỉnh');
+  assert.deepEqual(toPlain(qualityItems[1].subItems.map((item) => item.path)), ['/f12/dashboard', '/f12/ranking/bcvh']);
 
   assert.equal(qualityItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
   const f13Paths = qualityItems[2].subItems.map((item) => item.path);

@@ -108,12 +108,34 @@ export const INDICATOR_THEMES = Object.freeze({
     text: 'text-green-800',
     legendBar: 'bg-green-500',
   }),
+  teal: Object.freeze({
+    id: 'teal',
+    label: 'Xanh ngọc',
+    primary: '#0D9488', // teal-600
+    primaryLight: '#5EEAD4', // teal-300
+    line: '#0284C7', // sky-600
+    accentBar: 'bg-teal-400',
+    chip: 'bg-teal-100 text-teal-900 border-teal-300',
+    soft: 'bg-teal-50',
+    headerBg: 'bg-teal-100/90',
+    headerText: 'text-teal-950',
+    headerBorder: 'border-teal-300',
+    header2Bg: 'bg-cyan-100/90',
+    header2Text: 'text-cyan-950',
+    sortActive: 'bg-teal-100/90 text-teal-950',
+    button: 'bg-teal-600 text-white',
+    buttonHover: 'hover:bg-teal-50',
+    ring: 'ring-teal-400',
+    text: 'text-teal-800',
+    legendBar: 'bg-teal-500',
+  }),
 });
 
 export const F13_INDICATOR = Object.freeze({
   id: 'f13',
   theme: INDICATOR_THEMES.blue,
   moduleLabel: 'F1.3',
+  unitLabel: 'BCVH',
   apiBase: '/f13',
   routes: Object.freeze({ dashboard: '/f13/dashboard', ranking: '/f13/ranking/bcvh' }),
   endpoints: COMMON_ENDPOINTS,
@@ -128,6 +150,7 @@ export const F41_INDICATOR = Object.freeze({
   id: 'f41',
   theme: INDICATOR_THEMES.orange,
   moduleLabel: 'F4.1',
+  unitLabel: 'BCVH',
   apiBase: '/f41',
   routes: Object.freeze({ dashboard: '/f41/dashboard', ranking: '/f41/ranking/bcvh' }),
   endpoints: Object.freeze({ ...COMMON_ENDPOINTS, kpi: '/dashboard/summary' }),
@@ -145,6 +168,7 @@ export const F11_INDICATOR = Object.freeze({
   id: 'f11',
   theme: INDICATOR_THEMES.green,
   moduleLabel: 'F1.1',
+  unitLabel: 'BCVH',
   apiBase: '/f11',
   routes: Object.freeze({ dashboard: '/f11/dashboard', ranking: '/f11/ranking/bcvh' }),
   endpoints: Object.freeze({
@@ -166,7 +190,40 @@ export const F11_INDICATOR = Object.freeze({
   }),
 });
 
-export const INDICATORS = Object.freeze({ f11: F11_INDICATOR, f13: F13_INDICATOR, f41: F41_INDICATOR });
+export const F12_INDICATOR = Object.freeze({
+  id: 'f12',
+  theme: INDICATOR_THEMES.teal,
+  moduleLabel: 'F1.2',
+  unitLabel: 'Đơn vị chấp nhận',
+  apiBase: '/f12',
+  routes: Object.freeze({ dashboard: '/f12/dashboard', ranking: '/f12/ranking/bcvh' }),
+  endpoints: Object.freeze({
+    ...COMMON_ENDPOINTS,
+    kpi: '/dashboard/summary',
+    officeTable: '/dashboard/office-table',
+    cumulative12: '/dashboard/cumulative-12',
+    nationalRanking: '/dashboard/national-ranking',
+  }),
+  targetRate: 95,
+  heatmapFloors: Object.freeze([70, 60, 50]),
+  heatmapBands: buildHeatmapBands([70, 60, 50]),
+  kpiStatusBands: buildKpiStatusBands([70, 60, 50]),
+  features: Object.freeze({
+    routes: false,
+    lateCash: false,
+    operatingPattern: false,
+    actionCenter: false,
+    officeTable: true,
+    cumulative12: true,
+  }),
+});
+
+export const INDICATORS = Object.freeze({
+  f11: F11_INDICATOR,
+  f12: F12_INDICATOR,
+  f13: F13_INDICATOR,
+  f41: F41_INDICATOR,
+});
 
 // Colour theme of an indicator's report family (unknown indicator: the F1.3 blue).
 export function indicatorTheme(indicator = F13_INDICATOR) {
@@ -188,7 +245,11 @@ export function indicatorEndpoint(key, indicator = F13_INDICATOR) {
 // Replaces the F1.3 module name inside a UI string with the indicator's; the source strings
 // stay F1.3 wording, so F1.3 output (and its contract tests) is unchanged.
 export function indicatorLabel(text, indicator = F13_INDICATOR) {
-  return String(text).replaceAll('F1.3', indicator.moduleLabel);
+  let result = String(text).replaceAll('F1.3', indicator?.moduleLabel || 'F1.3');
+  if (indicator?.unitLabel && indicator.unitLabel !== 'BCVH') {
+    result = result.replaceAll('BCVH', indicator.unitLabel);
+  }
+  return result;
 }
 
 // Rewrites a shared report URL written for F1.3 ('/f13/ranking/bcvh/overview?...') to the

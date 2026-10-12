@@ -7,6 +7,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
   const [expandedGroups, setExpandedGroups] = useState({
     'Quản lý chất lượng': true,
     'F1.1 – Chất lượng toàn trình nội tỉnh': true,
+    'F1.2 – Thu gom liên tỉnh': true,
     'F1.3 – Chất lượng phát liên tỉnh': true,
     'Quản lý mạng lưới': false,
     'Quản trị hệ thống': false,
@@ -33,7 +34,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             { name: 'Phân tích BCVH', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
           ],
         },
-        { name: 'F1.2 – Thu gom liên tỉnh', path: '/f12', icon: <Activity size={18} /> },
+        {
+          title: 'F1.2 – Thu gom liên tỉnh',
+          name: 'F1.2 – Thu gom liên tỉnh',
+          icon: <Activity size={18} />,
+          subItems: [
+            { name: 'Bảng điều hành', path: '/f12/dashboard', icon: <Target size={18} /> },
+            { name: 'Phân tích BCVH', path: '/f12/ranking/bcvh', icon: <BarChart2 size={18} /> },
+          ],
+        },
         {
           title: 'F1.3 – Chất lượng phát liên tỉnh',
           name: 'F1.3 – Chất lượng phát liên tỉnh',
