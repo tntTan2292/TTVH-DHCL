@@ -64,7 +64,7 @@ async function withStack(fn) {
     }
 }
 
-test('pair table (day): offices x six BCVH + Khác; blank counts as not passed; totals reconcile with the module total', async () => {
+test('pair table (day): offices x six BCVH + Khác; blank is outside the denominator; totals reconcile with the module total', async () => {
     await withStack(async ({ service }) => {
         const table = await service.getPairTable({ period: 'day', anchorDate: '2026-10-07' });
         assert.deepEqual(table.meta, { period: 'day', from_date: '2026-10-07', to_date: '2026-10-07', days_with_data: 1, has_data: true, office_count: 2 });
@@ -82,7 +82,7 @@ test('pair table (day): offices x six BCVH + Khác; blank counts as not passed; 
         assert.deepEqual({ v: alpha.total.volume, p: alpha.total.passed }, { v: 4, p: 3 });
 
         const beta = table.rows.find((r) => r.ma_chap_nhan === '100002');
-        assert.deepEqual({ v: beta.cells['537220'].volume, p: beta.cells['537220'].passed, b: beta.cells['537220'].blank, r: beta.cells['537220'].rate }, { v: 2, p: 0, b: 2, r: 0 });
+        assert.equal(beta.cells['537220'], null); // two blank evaluations only: nothing evaluated, so no cell
 
         // grand total = module total of the same day
         const summary = await service.getSummary('2026-10-07', '2026-10-07');
@@ -104,7 +104,7 @@ test('pair table week/month cover the Thursday-Wednesday week and the calendar m
         assert.equal(week.meta.from_date, '2026-10-01');
         assert.equal(week.meta.to_date, '2026-10-07');
         assert.equal(week.meta.days_with_data, 2);
-        assert.equal(week.total_row.total.volume, 4 + 2 + 2 + 3 + 1 + 2); // 10-06 + 10-07 only
+        assert.equal(week.total_row.total.volume, 3 + 2 + 2 + 3 + 1 + 0); // 10-06 + 10-07 only, evaluated rows
         assert.equal(week.total_row.total.passed, 3 + 2 + 1 + 2 + 1 + 0);
 
         const nextWeek = await service.getPairTable({ period: 'week', anchorDate: '2026-10-08' });
@@ -131,7 +131,7 @@ test('pair table: empty period, explicit range override and invalid input', asyn
 
         const range = await service.getPairTable({ fromDate: '2026-10-06', toDate: '2026-10-06' });
         assert.equal(range.meta.period, 'range');
-        assert.equal(range.total_row.total.volume, 8);
+        assert.equal(range.total_row.total.volume, 7);
 
         await assert.rejects(() => service.getPairTable({}), { code: 'MISSING_PARAM' });
         await assert.rejects(() => service.getPairTable({ period: 'year', anchorDate: '2026-10-07' }), { code: 'MISSING_PARAM' });
@@ -151,10 +151,10 @@ test('resolvePeriod: week boundaries, month ends and leap handling', () => {
 test('summary is the module KPI over ALL rows (incl. the non-canonical unit); blank is not passed and reported apart', async () => {
     await withStack(async ({ service }) => {
         const summary = await service.getSummary('2026-10-06', '2026-10-07');
-        assert.equal(summary.total_bg, 8 + 6);
+        assert.equal(summary.total_bg, 7 + 4); // evaluated rows only
         assert.equal(summary.total_passed, 6 + 3);
         assert.equal(summary.total_blank, 3); // 1 on 10-06 + 2 on 10-07
-        assert.equal(summary.total_failed, summary.total_bg - summary.total_passed);
+        assert.equal(summary.total_failed, 2); // 'Không đạt' only; blanks are outside the denominator
         assert.equal(summary.passed_rate, Number(((summary.total_passed / summary.total_bg) * 100).toFixed(2)));
     });
 });
@@ -167,7 +167,7 @@ test('single-day ranking covers the six canonical BCVH only; the six-unit total 
         assert.equal(data[0].rank, 1);
         assert.equal(data[0].sl_bg_ptc, 3);
         assert.equal(data[0].dat_kpi_2026, 2);
-        assert.equal(meta.total_row.sl_bg_ptc, 5);
+        assert.equal(meta.total_row.sl_bg_ptc, 3); // PL has only blank evaluations: outside the denominator
         const summary = await service.getSummary('2026-10-07', '2026-10-07');
         assert.equal(summary.total_bg - meta.total_row.sl_bg_ptc, 1); // exactly the 531120 parcel
     });

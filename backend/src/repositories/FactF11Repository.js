@@ -4,9 +4,9 @@
 // Dashboard, BCVH Ranking and pair table, over fact_f11.
 //
 // Generated from the F4.1 repository's read queries with the metric column swapped to
-// danh_gia_2026 (PO PD-6) and the same semantics (PD-9): volume = COUNT(*) of all rows, passed =
-// danh_gia_2026 = 'Đạt', every row without 'Đạt' (blank included) counts as NOT passed in the
-// dashboard/ranking views, the blank count stays available as its own figure. Ranking / overview /
+// danh_gia_2026 (PO PD-6). Volume = rows with an evaluation ('Đạt' or 'Không đạt'), passed =
+// danh_gia_2026 = 'Đạt', failed = 'Không đạt'; blank evaluations are outside the denominator and
+// stay available as their own figure (see EVALUATED above). Ranking / overview /
 // weekly cover the 6 canonical BCVH (PD-11); the module total covers every row. Every method returns
 // the same row shape as its FactBuuGuiRepository / FactF41Repository twin so the shared
 // BcvhOverviewService and BcvhWeeklyComparisonService work unchanged.
@@ -14,6 +14,16 @@
 // New in F1.1: getPairGrid() -- accepting office x delivering unit (PD-8, PD-13).
 
 const defaultDb = require('../config/db').db;
+
+// PO decision 2026-10-12 (F11-DENOMINATOR-FIX): the F1.1 denominator is the portal's KPI-2026 volume, i.e. the
+// parcels that carry an evaluation ('Đạt' + 'Không đạt'). Blank evaluations (not yet delivered, delivered after the
+// measurement day, ...) are NOT in the denominator; they stay available as their own `blank` figure. This replaces
+// the 2026-10-08 / PD-9 rule (blank = 0 Đạt) because the HUE detail export lists every parcel with delivery
+// information (portal column 10), not the KPI-2026 volume (portal column 17).
+const EVALUATED = "danh_gia_2026 IN ('Đạt', 'Không đạt')";
+const EVALUATED_COUNT = `SUM(CASE WHEN ${EVALUATED} THEN 1 ELSE 0 END)`;
+// NB: `total_rows` returned by getKpiMetrics / getBcvhReconciliation is the evaluated count (the shared F4.1 ranking
+// service reads it as the denominator); the raw row count is `total_all_rows`.
 
 class FactF11Repository {
     constructor(db = defaultDb) {
@@ -27,13 +37,14 @@ class FactF11Repository {
             if (filters.bcvhId) params.push(filters.bcvhId);
             const sql = `
                 SELECT
-                    COUNT(*) AS total_rows,
+                    ${EVALUATED_COUNT} AS total_rows,
+                    COUNT(*) AS total_all_rows,
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS total_passed,
                     SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS total_failed,
                     SUM(CASE WHEN danh_gia_2026 IS NULL OR TRIM(danh_gia_2026) = '' THEN 1 ELSE 0 END) AS total_blank,
                     CASE
-                        WHEN COUNT(*) = 0 THEN NULL
-                        ELSE ROUND((SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) * 100.0) / COUNT(*), 2)
+                        WHEN ${EVALUATED_COUNT} = 0 THEN NULL
+                        ELSE ROUND((SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) * 100.0) / ${EVALUATED_COUNT}, 2)
                     END AS rate_percent
                 FROM fact_f11
                 WHERE ngay_do_kiem BETWEEN ? AND ?${bcvhClause}
@@ -87,13 +98,14 @@ class FactF11Repository {
                 SELECT
                     ma_bc_phat,
                     MAX(ten_bc_phat) AS ten_bc_phat,
-                    COUNT(*) AS total_rows,
+                    ${EVALUATED_COUNT} AS total_rows,
+                    COUNT(*) AS total_all_rows,
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS total_passed,
                     SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS total_failed,
                     SUM(CASE WHEN danh_gia_2026 IS NULL OR TRIM(danh_gia_2026) = '' THEN 1 ELSE 0 END) AS total_blank,
                     CASE
-                        WHEN COUNT(*) = 0 THEN NULL
-                        ELSE ROUND((SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) * 100.0) / COUNT(*), 2)
+                        WHEN ${EVALUATED_COUNT} = 0 THEN NULL
+                        ELSE ROUND((SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) * 100.0) / ${EVALUATED_COUNT}, 2)
                     END AS rate_percent
                 FROM fact_f11
                 WHERE ngay_do_kiem = ?
@@ -112,18 +124,14 @@ class FactF11Repository {
     // daily-trend read queries. Every method returns the same row shape as its
     // FactBuuGuiRepository twin so the F1.3 BcvhOverviewService and
     // BcvhWeeklyComparisonService can be reused unchanged (Design of Record
-    // Section 4.2). F1.1 semantics (DC-6): volume = COUNT(*) of all rows,
-    // passed = danh_gia_2026 = 'Đạt', failed = NOT passed (see below); blank
-    // evaluations stay in the denominator. GROUP BY always names the real
+    // Section 4.2). F1.1 semantics: volume = evaluated rows, passed =
+    // danh_gia_2026 = 'Đạt', failed = 'Không đạt'; blank evaluations are
+    // outside the denominator. GROUP BY always names the real
     // column ma_bc_phat; the ma_bcvh / ten_bcvh names exist only as output
     // aliases (fact_f11 has no real column called ma_bcvh).
     // ---------------------------------------------------------------------
 
-    // PO decision 2026-10-08: in these dashboard/ranking views a row with a blank evaluation is in the
-    // denominator and counts as NOT passed, so every `failed` / `khong_dat_kpi_2026` below is
-    // COUNT(*) - passed (displayed as "Không đạt"). The later Evidence module will split out
-    // "Chưa có đánh giá". getKpiMetrics / getBcvhReconciliation (F11 minimum dashboard) keep the
-    // strict Không đạt / blank split and are not changed.
+    // Every `volume` / `failed` / `khong_dat_kpi_2026` below counts evaluated rows only (EVALUATED).
 
     _all(sql, params = []) {
         return new Promise((resolve, reject) => {
@@ -173,9 +181,9 @@ class FactF11Repository {
                     SELECT ngay_do_kiem,
                            ma_bc_phat AS ma_bcvh,
                            MAX(ten_bc_phat) AS ten_bcvh,
-                           COUNT(*) AS volume,
+                           ${EVALUATED_COUNT} AS volume,
                            SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 0 ELSE 1 END) AS failed
+                           SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
                     FROM fact_f11, bounds
                     WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 4) || '-01-01' AND bounds.anchor_date
                       AND ma_bc_phat IN (${placeholders})
@@ -220,9 +228,9 @@ class FactF11Repository {
                 SELECT ngay_do_kiem AS date,
                        ma_bc_phat AS ma_bcvh,
                        MAX(ten_bc_phat) AS ten_bcvh,
-                       COUNT(*) AS volume,
+                       ${EVALUATED_COUNT} AS volume,
                        SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                       SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 0 ELSE 1 END) AS failed,
+                       SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed,
                        bounds.anchor_date,
                        prev_bounds.prev_anchor_date,
                        week_bounds.week_ago_date
@@ -254,9 +262,9 @@ class FactF11Repository {
                     SELECT ngay_do_kiem,
                            ma_bc_phat AS ma_bcvh,
                            MAX(ten_bc_phat) AS ten_bcvh,
-                           COUNT(*) AS volume,
+                           ${EVALUATED_COUNT} AS volume,
                            SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 0 ELSE 1 END) AS failed
+                           SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
                     FROM fact_f11, periods
                     WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
                       AND ma_bc_phat IN (${placeholders})
@@ -345,7 +353,7 @@ class FactF11Repository {
             SELECT
                 date(ngay_do_kiem, '-' || ((CAST(strftime('%w', ngay_do_kiem) AS INTEGER) - 4 + 7) % 7) || ' days') AS week_start,
                 ma_bc_phat AS ma_bcvh,
-                COUNT(*) AS volume,
+                ${EVALUATED_COUNT} AS volume,
                 SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed
             FROM fact_f11
             WHERE ma_bc_phat IN (${placeholders})
@@ -363,9 +371,9 @@ class FactF11Repository {
             SELECT
                 ma_bc_phat AS ma_bcvh,
                 MAX(ten_bc_phat) AS ten_bcvh,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? THEN 1 ELSE 0 END) AS volume_a,
+                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ${EVALUATED} THEN 1 ELSE 0 END) AS volume_a,
                 SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed_a,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? THEN 1 ELSE 0 END) AS volume_b,
+                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ${EVALUATED} THEN 1 ELSE 0 END) AS volume_b,
                 SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed_b
             FROM fact_f11
             WHERE ma_bc_phat IN (${placeholders})
@@ -384,7 +392,7 @@ class FactF11Repository {
 
     // One row per canonical BCVH for an inclusive date range (same shape idea as
     // FactBuuGuiRepository.getBcvhOperationMetricsBetween, F1.1 naming kept
-    // F1.3-compatible: sl_bg_ptc = all rows, dat_kpi_2026 = passed).
+    // F1.3-compatible: sl_bg_ptc = evaluated rows, dat_kpi_2026 = passed).
     getBcvhOperationMetricsBetween(startDate, endDate, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
@@ -392,9 +400,9 @@ class FactF11Repository {
             SELECT
                 ma_bc_phat AS ma_bcvh,
                 MAX(ten_bc_phat) AS ten_bcvh,
-                COUNT(*) AS sl_bg_ptc,
+                ${EVALUATED_COUNT} AS sl_bg_ptc,
                 SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
-                SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 0 ELSE 1 END) AS khong_dat_kpi_2026
+                SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS khong_dat_kpi_2026
             FROM fact_f11
             WHERE ngay_do_kiem BETWEEN ? AND ?
               AND ma_bc_phat IN (${placeholders})
@@ -402,7 +410,7 @@ class FactF11Repository {
         `, [startDate, endDate, ...canonicalCodes]);
     }
 
-    // Module-level daily series (all rows, PO-2 total-rows denominator) or one BCVH.
+    // Module-level daily series (evaluated rows) or one BCVH.
     getDailyTrendData(fromDate, toDate, filters = {}) {
         const bcvhClause = filters.bcvhId ? ' AND ma_bc_phat = ?' : '';
         const params = [fromDate, toDate, fromDate, toDate];
@@ -418,9 +426,9 @@ class FactF11Repository {
             agg AS (
                 SELECT
                     ngay_do_kiem AS date_value,
-                    COUNT(*) AS total_volume,
+                    ${EVALUATED_COUNT} AS total_volume,
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 0 ELSE 1 END) AS failed
+                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
                 FROM fact_f11
                 WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                 ${bcvhClause}
@@ -453,14 +461,14 @@ class FactF11Repository {
     }
 
     // Pair grid (PD-8): one row per (accepting office, delivering unit) for an inclusive date range.
-    // Same definitions as everywhere else: volume = all rows, passed = 'Đạt', blank counted apart.
+    // Same definitions as everywhere else: volume = evaluated rows, passed = 'Đạt', blank counted apart.
     getPairGrid(startDate, endDate) {
         return this._all(`
             SELECT
                 COALESCE(ma_bc_chap_nhan, '') AS ma_chap_nhan,
                 MAX(ten_bc_chap_nhan) AS ten_chap_nhan,
                 COALESCE(ma_bc_phat, '') AS ma_bcvh,
-                COUNT(*) AS volume,
+                ${EVALUATED_COUNT} AS volume,
                 SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
                 SUM(CASE WHEN danh_gia_2026 IS NULL OR TRIM(danh_gia_2026) = '' THEN 1 ELSE 0 END) AS blank
             FROM fact_f11

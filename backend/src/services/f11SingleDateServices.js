@@ -223,7 +223,7 @@ class F11SingleDateService {
                 evaluated,
                 passed,
                 failed,
-                rate: parsed.totalParsed ? Number(((passed / parsed.totalParsed) * 100).toFixed(2)) : null,
+                rate: evaluated ? Number(((passed / evaluated) * 100).toFixed(2)) : null,
                 reconciliation: { exact: outcome.exact, differences: outcome.differences, tolerance: outcome.tolerance },
             };
         }

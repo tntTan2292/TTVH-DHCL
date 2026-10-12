@@ -40,24 +40,24 @@ test('real 2026-10-07 Hue file: module KPI, six-unit total and pair grid reconci
         const service = new F11RankingService({ repository: new FactF11Repository(db), nationalRankService: new F11NationalRankService(db) });
 
         const summary = await service.getSummary('2026-10-07', '2026-10-07');
-        assert.equal(summary.total_bg, 2621);
+        assert.equal(summary.total_bg, 2588); // 2621 parcels - 33 without an evaluation
         assert.equal(summary.total_passed, 2348);
-        assert.equal(summary.total_failed, 273); // 240 Không đạt + 33 not yet evaluated, shown as Không đạt (PD-9)
+        assert.equal(summary.total_failed, 240);
         assert.equal(summary.total_blank, 33);
-        assert.equal(summary.passed_rate, 89.58);
+        assert.equal(summary.passed_rate, 90.73);
 
         const ranking = await service.getBcvhRanking('2026-10-07', '2026-10-07', 1, 20);
         assert.equal(ranking.data.length, 6);
-        assert.equal(ranking.meta.total_row.sl_bg_ptc + (summary.total_bg - ranking.meta.total_row.sl_bg_ptc), 2621);
+        assert.equal(ranking.meta.total_row.sl_bg_ptc + (summary.total_bg - ranking.meta.total_row.sl_bg_ptc), 2588);
 
         const pair = await service.getPairTable({ period: 'day', anchorDate: '2026-10-07' });
-        assert.equal(pair.total_row.total.volume, 2621);
+        assert.equal(pair.total_row.total.volume, 2588);
         assert.equal(pair.total_row.total.passed, 2348);
-        assert.equal(pair.total_row.total.rate, 89.58);
+        assert.equal(pair.total_row.total.rate, 90.73);
         // every parcel sits in exactly one cell: the rows add up to the grand total
-        assert.equal(pair.rows.reduce((s, r) => s + r.total.volume, 0), 2621);
+        assert.equal(pair.rows.reduce((s, r) => s + r.total.volume, 0), 2588);
         const cellVolume = pair.rows.reduce((s, r) => s + Object.values(r.cells).reduce((a, c) => a + (c ? c.volume : 0), 0), 0);
-        assert.equal(cellVolume, 2621);
+        assert.equal(cellVolume, 2588);
         // the delivering-BCVH column totals equal the ranking volumes of the same six units
         for (const unit of ranking.data) {
             assert.equal(pair.total_row.cells[unit.ma_bcvh].volume, unit.sl_bg_ptc, unit.ma_bcvh);

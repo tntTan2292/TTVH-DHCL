@@ -5,9 +5,9 @@
 //
 // The overview / weekly / monthly / summary / daily-trend / single-day ranking logic is the F4.1
 // service run over the F1.1 repository and national-rank service (both constructor-injected): the
-// metric semantics are identical (PD-9: volume = every row, passed = 'Đạt', blank evaluation = 0 Đạt
-// and stays in the denominator; module total over every row, ranking/overview/weekly over the 6
-// canonical BCVH). Only the pair table is new.
+// metric semantics are identical (PO 2026-10-12: volume = rows with an evaluation, passed = 'Đạt',
+// blank evaluation is outside the denominator and reported apart; module total over every row,
+// ranking/overview/weekly over the 6 canonical BCVH). Only the pair table is new.
 
 const { F41RankingService, CANONICAL_CODES } = require('./F41RankingService');
 const { factF11Repository } = require('../repositories/FactF11Repository');

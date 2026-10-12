@@ -12,12 +12,12 @@ version: 1.0.0
 ## 1. F11_001: Module KPI (HUE lane)
 
 ```
-F11_001 = COUNT(danh_gia_2026 = 'Đạt') / COUNT(*)
+F11_001 = COUNT(danh_gia_2026 = 'Đạt') / COUNT(danh_gia_2026 IN ('Đạt', 'Không đạt'))
 ```
 
-over every row of `fact_f11` for the selected period. **The denominator is total rows**; blank evaluations count as 0 Đạt (PD-9). Volume = `COUNT(*)`, passed = `= 'Đạt'`.
+over the rows of `fact_f11` for the selected period **that carry an evaluation**. PO decision 2026-10-12 (F11-DENOMINATOR-FIX) replaces PD-9: the Huế detail export lists every parcel with delivery information (portal column 10), while the KPI-2026 volume (portal column 17) counts only evaluated parcels; blank evaluations (not yet delivered, delivered after the measurement day) are outside the denominator and reported apart. Volume = evaluated rows, passed = `= 'Đạt'`, failed = `= 'Không đạt'`. Audit over 275 days: mean difference to the portal rate 0,15 percentage points (was 4,5).
 
-For 2026-10-07: `2.348 / 2.621 = 89,58 %`.
+For 2026-10-07: `2.348 / 2.588 = 90,73 %` (2.621 rows, 33 blank).
 
 ## 2. F11_002: BCVH Ranking subtotal (six canonical BCVH only)
 

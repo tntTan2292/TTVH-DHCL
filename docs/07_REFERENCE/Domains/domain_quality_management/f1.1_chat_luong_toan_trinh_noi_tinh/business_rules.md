@@ -21,7 +21,7 @@ Measured from `Nhận tin/Thu gom`, or `Chấp nhận`, to `Phát thành công`,
 
 ## 3. Rate and denominator (PD-9)
 
-`rate = COUNT(danh_gia_2026 = 'Đạt') / COUNT(*)`. A row with a blank `Đánh giá 2026` stays in the denominator and counts as **0 Đạt**, as F4.1. Blank rows are **flagged separately** ("Chưa có đánh giá") with a derived reason (`measurement.md` §5) so the PO can analyse them later; the rate never depends on that reason.
+`rate = COUNT(danh_gia_2026 = 'Đạt') / COUNT(danh_gia_2026 IN ('Đạt', 'Không đạt'))`. **Amended by PO decision 2026-10-12:** a row with a blank `Đánh giá 2026` is **outside** the denominator (portal KPI-2026 volume); the original PD-9 rule (blank = 0 Đạt, denominator all rows) no longer applies. Blank rows are **flagged separately** ("Chưa có đánh giá") with a derived reason (`measurement.md` §5) so the PO can analyse them later; the rate never depends on that reason.
 
 ## 4. Analysis date (PD-10)
 
