@@ -1,6 +1,6 @@
 # F12-PHASE-3 Manifest
 
-Status: `EVIDENCE COMPLETE / IMPLEMENTATION NOT STARTED` (2026-10-11). Portal discovery for the automatic download of F1.2 (HUE detail, TCT summary), done the F1.1 way (`docs/10_TICKETS/F11-PHASE-3_MANIFEST.md` Section 12). Nothing implemented yet; nothing exported, downloaded or imported.
+Status: `EVIDENCE COMPLETE / ASSIGNED TO ANTIGRAVITY` (2026-10-11). Portal discovery for the automatic download of F1.2 (HUE detail, TCT summary), done the F1.1 way (`docs/10_TICKETS/F11-PHASE-3_MANIFEST.md` Section 12). Nothing implemented yet; nothing exported, downloaded or imported.
 
 ## 1. Ticket Information
 
@@ -54,5 +54,19 @@ Claude in Chrome, the PO's own signed-in Chrome; a new tab in Claude's own tab g
 - Both downloaded from **Quản lý tệp** by the file-name link (`/files/<id>`; the `xlsx` button is `/files-xlsx/<id>`). The page's notification panel can cover the right-hand buttons.
 - **Cell by cell against the PO's 21:29 files:** detail — headers equal, 1.758 / 1.758 parcels, 0 parcels on one side only, 0 rows with any cell difference; national — 57 / 57 rows, 1.140 cells compared, **0 differences**. So the portal requests above produce exactly the PO's files.
 
-## 7. Still Needed
-3. Then: portal client methods, single-date services with reconciliation (HUE total = detail rows; HUE detail = TCT row 53), executors, DRY supervised run, enablement (`AUTOMATED`, refresh window 3 days), backfill from 2026-01-01.
+## 7. Implementation Handoff (PO decision 2026-10-12: Antigravity implements, Claude Code reviews)
+
+Mirror F1.1 Phase 3 (`docs/10_TICKETS/F11-PHASE-3_MANIFEST.md` Sections 13-16) file by file; change only what Sections 3-6 above say is different for F1.2.
+
+| New file | Mirror of | F1.2 differences |
+| --- | --- | --- |
+| `backend/src/services/f12PortalClientMethods.js` | `f11PortalClientMethods.js` | route `/kpi/chat-luong-thu-gom-buu-lien-tinh` (+ `-chi-tiet`); HUE `TuyChonGR=BC&stMaTinhNhan=53`, TCT `TuyChonGR=TINH&stMaTinhNhan=ALL` (no Tỉnh phát); detail sends `stMaTinhNhan=N'53'`, `iDetailReport=6`, `iTotal` = the BĐ10 total; stores `sp_TT_ThuGom_LienTinh_ChiTiet` / `sp_TT_ThuGom_LienTinh_Tinh`; summary rows have 21 cells on screen (one more than the export: `Tỷ lệ quá quy định`); TCT screen is paged (50 rows), use the export total |
+| `backend/src/services/autoBackfillF12Contract.js` | `autoBackfillF11Contract.js` | file match `…_F1.2_CL_thu_gom_buu_giay_lien_tinh_chi_tiet(1).xlsx` vs `…lien_tinh(1).xlsx`, anchored at the end |
+| `backend/src/services/f12SingleDateServices.js` | `f11SingleDateServices.js` | reconcile HUE: rows / Đạt / Không đạt of the workbook = the summary total row exactly; TCT: the parser already checks the grand total and the 34 provinces; save as `F1.2-YYYY.MM.DD.xlsx`; parsers `parseF12HueExcel` / `parseF12TctExcel` |
+| `backend/src/services/autoBackfillF12Executors.js` | `autoBackfillF11Executors.js` | not registered until the supervised run passes |
+| `backend/probe_f12_single_date.js` | `probe_f11_single_date.js` | DRY; reference files `Data DKCL/F1.2-2026.10.10.xlsx` and `Data DKCL/F1.2-TCT-2026.10.10.xlsx` |
+| `backend/test_f12PortalAdapter.js` | `test_f11PortalAdapter.js` | requests equal Sections 3-4 byte for byte; the two real files as the known answer |
+
+Guards: registry stays `PLANNED` / `MANUAL_ONLY` until the PO's supervised DRY run passes; do not edit any F1.1 file (another session has uncommitted F1.1 changes); no browser, no portal access, no dev server for Antigravity — the supervised run is done by the PO; one commit, pathspec only.
+
+Done when: `test_f12PortalAdapter.js` green, F1.2 tests (26) and F1.1/F4.1/F1.3 executor tests unchanged, backend sweep no new failure; then Claude Code review, PO supervised run (HUE, TCT, 10/10), enablement (`ACTIVE`, `AUTOMATED`, `refreshWindowDays: 3`), backfill from 2026-01-01.
