@@ -18,16 +18,19 @@
  *
  * options:
  *   countNotNullColumn  when the volume is COUNT(<col>) (F1.3: ma_bg) the aggregate keeps it in n_bg
- *   failedMode          'notPassed' (default; F4.1/F1.1/F1.2) | 'strict' (F1.3)
+ *   failedMode          'notPassed' (default; F4.1/F1.2) | 'strict' (F1.3, F1.1)
+ *   volumeMode          'rows' (default) | 'evaluated' (F1.1: only Đạt + Không đạt rows are the volume)
  *
  * NB: an ungrouped SUM over zero rows is NULL on both sides, a COUNT is 0 on both sides (hence COALESCE).
  */
 
-function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countNotNullColumn = null, failedMode = 'notPassed' }) {
+function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countNotNullColumn = null, failedMode = 'notPassed', volumeMode = 'rows' }) {
     const passedCond = `${evaluationColumn} = 'Đạt'`;
     const strictCond = `${evaluationColumn} = 'Không đạt'`;
     const notNull = countNotNullColumn ? `${countNotNullColumn} IS NOT NULL` : null;
     const volumeColumn = countNotNullColumn ? 'n_bg' : 'n_rows';
+    const evaluated = volumeMode === 'evaluated';
+    const evaluatedCond = `${evaluationColumn} IN ('Đạt', 'Không đạt')`;
 
     const andAll = (...parts) => parts.filter(Boolean).join(' AND ');
 
@@ -35,6 +38,7 @@ function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countN
         kind: 'fact',
         table: factTable,
         count: (cond) => {
+            if (evaluated) return `SUM(CASE WHEN ${andAll(cond, evaluatedCond)} THEN 1 ELSE 0 END)`;
             if (!cond) return countNotNullColumn ? `COUNT(${countNotNullColumn})` : 'COUNT(*)';
             return `SUM(CASE WHEN ${andAll(cond, notNull)} THEN 1 ELSE 0 END)`;
         },
@@ -52,7 +56,13 @@ function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countN
     const agg = {
         kind: 'agg',
         table: aggTable,
-        count: (cond) => (cond ? `SUM(CASE WHEN ${cond} THEN ${volumeColumn} ELSE 0 END)` : `COALESCE(SUM(${volumeColumn}), 0)`),
+        count: (cond) => {
+            if (evaluated) {
+                // evaluated volume = Đạt + Không đạt; an ungrouped SUM over no rows is NULL, like the detail form
+                return cond ? `SUM(CASE WHEN ${cond} THEN n_dat + n_khong_dat ELSE 0 END)` : 'SUM(n_dat + n_khong_dat)';
+            }
+            return cond ? `SUM(CASE WHEN ${cond} THEN ${volumeColumn} ELSE 0 END)` : `COALESCE(SUM(${volumeColumn}), 0)`;
+        },
         rows: () => 'COALESCE(SUM(n_rows), 0)',
         // With a NOT NULL column (ma_bg) every detail row satisfies `col IS NOT NULL`, so n_dat is exact.
         passed: (cond) => (cond ? `SUM(CASE WHEN ${cond} THEN n_dat ELSE 0 END)` : 'SUM(n_dat)'),

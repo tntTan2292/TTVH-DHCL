@@ -269,3 +269,14 @@ Khác biệt so với thiết kế ban đầu (đã chủ động, ghi để Opu
 - `test_aggReadF13.js` 5/5 trên dữ liệu tổng hợp khó: tuyến `53xxx`/`54xxx`/NULL/rỗng, đánh giá NULL và khoảng trắng, thời gian nộp tiền có/trống/NULL, ngày thiếu, đơn vị thiếu theo ngày, đổi tên, nhập bổ sung; ma trận > 600 lời gọi, dấu hiệu "đang đọc bảng tổng hợp", cầu chì lệch tổng, cầu chì thiếu bảng, shadow.
 - Hồi quy: bộ test repository/service/controller F1.3 cho kết quả **giống hệt** ở `off` và ở mã nguồn trước thay đổi (đối chiếu baseline `git show HEAD`): các test đang hỏng từ trước (`F13DashboardService.routeRanking/routeDelayedCash/recovery`, `DashboardController.r6/recovery/routePeriods/evidenceDrilldown`, `test_bcvhMonthToDateContract`, `test_dashboardNationalRankRange`) hỏng đúng như cũ, không có lỗi mới ở `off`.
 - Ở `QIS_AGG_READ=on` có hai test đổi kết quả (`FactBuuGuiRepository.r4`, một ca của `DashboardController.dateFilterRemediation`): chúng thay `db.get` bằng bản giả và đếm số lần gọi; cầu chì thêm một lần `db.get` nên số đếm lệch. Đây là giả định của test, không phải khác biệt dữ liệu; mặc định `off` không bị ảnh hưởng.
+
+## 15. Ghi nhận triển khai P2.3 - F1.1 (2026-10-13)
+
+**Nguồn F1.1** (`aggSqlSource`, `volumeMode: 'evaluated'`, `failedMode: 'strict'`): khối lượng = **số dòng đã đánh giá** = `n_dat + n_khong_dat` (mẫu số DEC F11-DENOMINATOR-FIX); `passed` = `n_dat`; `failed` = `n_khong_dat`; dòng trống ở `n_blank`; số dòng thô `total_all_rows` ở `n_rows`. Tổng không điều kiện giữ ngữ nghĩa NULL khi không có dòng (như bản chi tiết), nên `ROUND(x / NULL)` vẫn là NULL ở cả hai phía. Các giá trị đánh giá lạ (ngoài Đạt/Không đạt/trống) chỉ nằm trong `n_rows`, không nằm trong khối lượng, đúng như `EVALUATED` hiện tại.
+
+**Đã chuyển (FactF11Repository):** `getKpiMetrics`, `getMeta`, `hasNonCanonicalBcvhRows`, `getBcvhOverview{Monthly,Daily,Mtd}`, `getBcvhWeeksList`, `getBcvhMonthsList`, `getBcvhWeeklyTrendAggregate`, `getBcvhWeeklyComparisonAggregate`, `getBcvhOperationMetricsBetween`, `getDailyTrendData`, `getPairGrid`, `getDaysWithData`. **Giữ trên bảng chi tiết:** `getBcvhReconciliation` (một ngày), `getLatestImportMeta`.
+
+### 15.1 Bằng chứng
+- `scripts/agg_compare.js --indicator F1.1` trên DB thật: **297 lời gọi, 0 sai khác** (gồm lưới cặp chấp nhận-phát), cộng dồn 26,7 s so với 1,3 s.
+- `test_aggReadF11.js` 6/6 trên dữ liệu có cặp bưu cục nhận × đơn vị phát, đánh giá NULL / khoảng trắng / giá trị lạ, ngày và đơn vị thiếu, đổi tên, nhập bổ sung; ma trận > 500 lời gọi, dấu hiệu "đang đọc bảng tổng hợp", cầu chì lệch tổng và thiếu bảng, shadow.
+- Hồi quy: `F11RankingService` 10/10, `F11NationalRankService` 7/7; `F11RankingRealBaseline` (DB thật, service đầy đủ) 1/1 ở `off` và ở `QIS_AGG_READ_F11=on`.

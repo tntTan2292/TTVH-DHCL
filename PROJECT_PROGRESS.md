@@ -2321,3 +2321,7 @@ F4.1 reads switchable to the day aggregate (off default, shadow, on; row-count f
 ## 2026-10-13 - PERF-LOAD-01 PHASE 2 STEP P2.2 DELIVERED (F1.3)
 
 F1.3 aggregate reads switchable to the day aggregate (QIS_AGG_READ_F13 off|shadow|on, row-count fuse); real-DB comparison 317 calls / 0 differences, 59.3 s -> 1.1 s; tests 5/5; route/evidence stay on detail. Next P2.3 F1.1. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 9; design Section 14.
+
+## 2026-10-13 - PERF-LOAD-01 PHASE 2 STEP P2.3 DELIVERED (F1.1)
+
+F1.1 aggregate reads switchable (QIS_AGG_READ_F11 off|shadow|on, fuse); evaluated-rows volume preserved; real-DB comparison 297 calls / 0 differences, 26.7 s -> 1.3 s; tests 6/6. Next P2.4 F1.2. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 10; design Section 15.

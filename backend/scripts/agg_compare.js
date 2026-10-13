@@ -92,6 +92,17 @@ async function compareIndicator(repo, indicator, data, opts = {}) {
         add('getBcvhRanking empty window', () => repo.getBcvhRanking('1999-01-01', '1999-01-31', 1, 20, 'total_bg', 'desc'));
         add('getLatestBcvhDataDateInRange empty window', () => repo.getLatestBcvhDataDateInRange('1999-01-01', '1999-01-31'));
     }
+    // F1.1 only: the accepting x delivering pair grid and the days-with-data counter.
+    if (typeof repo.getPairGrid === 'function') {
+        for (const anchor of lightAnchors) {
+            const from = addDays(anchor, -12);
+            add(`getPairGrid ${from}..${anchor}`, () => repo.getPairGrid(from, anchor));
+            add(`getDaysWithData ${from}..${anchor}`, () => repo.getDaysWithData(from, anchor));
+        }
+        add('getPairGrid full range', () => repo.getPairGrid(min, max));
+        add('getPairGrid empty window', () => repo.getPairGrid('1999-01-01', '1999-01-31'));
+        add('getDaysWithData full range', () => repo.getDaysWithData(min, max));
+    }
     add('getBcvhOverviewMonthly beyond max', () => repo.getBcvhOverviewMonthly(addDays(max, 40), data.codes));
     add('getBcvhOverviewMonthly before min', () => repo.getBcvhOverviewMonthly(addDays(min, -40), data.codes));
     add('getBcvhOperationMetricsBetween empty window', () => repo.getBcvhOperationMetricsBetween('1999-01-01', '1999-01-31', data.codes));
@@ -158,6 +169,10 @@ async function main() {
         'F4.1': {
             table: 'fact_f41', unit: 'ma_bc_phat',
             load: () => require('../src/repositories/FactF41Repository').factF41Repository,
+        },
+        'F1.1': {
+            table: 'fact_f11', unit: 'ma_bc_phat',
+            load: () => require('../src/repositories/FactF11Repository').factF11Repository,
         },
         'F1.3': {
             table: 'fact_f13', unit: 'ma_bcvh',

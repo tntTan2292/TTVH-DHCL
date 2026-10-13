@@ -52,3 +52,7 @@ F4.1 aggregate reads go through `aggReadPolicy` (`off` default | `shadow` | `on`
 ## 9. Phase 2 step P2.2 delivered - F1.3 read path (2026-10-13)
 
 Same switch as F4.1, env `QIS_AGG_READ_F13` (`off` default | `shadow` | `on`), row-count fuse; 11 aggregate methods of `FactBuuGuiRepository` converted (route/evidence/rule-engine facts stay on the detail table, Q3). Evidence: real-DB comparison 317 calls / 0 differences (59.3 s -> 1.1 s); `test_aggReadF13.js` 5/5; F4.1 suite still 6/6; no new failures in the existing F1.3 suites (pre-existing failures reproduce identically on HEAD). Enabling: `QIS_AGG_READ_F13=shadow` then `on`, restart to apply. Details: design Section 14. Next: P2.3 (F1.1).
+
+## 10. Phase 2 step P2.3 delivered - F1.1 read path (2026-10-13)
+
+Same switch (`QIS_AGG_READ_F11`, `off` default | `shadow` | `on`, row-count fuse). F1.1 volume = evaluated rows (n_dat + n_khong_dat). 13 aggregate methods of `FactF11Repository` converted incl. the pair grid; reconciliation of one day and latest-import meta stay on the detail table. Evidence: real-DB comparison 297 calls / 0 differences (26.7 s -> 1.3 s); `test_aggReadF11.js` 6/6; F1.1 ranking suites and the real-DB baseline identical in `off` and `on`. Details: design Section 15. Next: P2.4 (F1.2).
