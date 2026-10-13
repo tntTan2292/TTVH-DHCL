@@ -1,6 +1,6 @@
 # HOME-BI-01 Manifest
 
-Status: `OPEN - awaiting backend phase B1` (2026-10-13). Executive Home page (Trang chủ điều hành) for the leadership of Bưu điện tỉnh: current quality rate and national rank of the four indicators F1.1, F1.2, F1.3, F4.1.
+Status: `B1 DONE (backend); U1 OPEN for Antigravity` (2026-10-13). Executive Home page (Trang chủ điều hành) for the leadership of Bưu điện tỉnh: current quality rate and national rank of the four indicators F1.1, F1.2, F1.3, F4.1.
 
 ## 1. Ticket Information
 
@@ -46,4 +46,39 @@ No change to F1.1 / F1.2 / F1.3 / F4.1 behaviour or tests; no schema or import c
 
 ## 7. Backend contract and delivery
 
-To be filled when B1 is done.
+### 7.1 Delivery (B1, 2026-10-13, Claude Code)
+
+Read-only, admin + viewer, cached by `cachedRead()` (invalidated by the data fingerprint on every import). Code: `backend/src/services/HomeExecutiveService.js`, `controllers/HomeExecutiveController.js`, `routes/homeRoutes.js` (mounted at `/api/home` in `server.js`), tests `HomeExecutiveService.test.js` (9/9). Nothing is recomputed: every figure comes from the same service as the indicator's own dashboard (summary, daily trend, BCVH ranking, national rank). The only new query is the 34-province table for F1.3 and F4.1 (same generic service with the column map of `fact_f13_national` / `fact_f41_national`; both hold exactly the 34 ranked provinces, so ranks are unchanged).
+
+### 7.2 `GET /api/home/executive?anchor_date=YYYY-MM-DD` (optional)
+
+`{ success, data: { anchor_date, indicators: [...] } }`, one entry per `f11`, `f12`, `f13`, `f41` in that order. `anchor_date` absent = each indicator's own latest day with loaded detail data; present = the latest loaded day not after it. Fields per indicator:
+
+| Field | Meaning |
+| --- | --- |
+| `id`, `label`, `target_rate` | indicator id, 'F1.1'..'F4.1', target 95 / 95 / 90 / 90 |
+| `available`, `message` | false = show "chưa có dữ liệu" with `message` (never 0 %); every figure is then null |
+| `data_date` | the day the figures are for (may differ between indicators) |
+| `rate`, `gap_to_target` | Huế rate (same number as the indicator dashboard KPI, 1 decimal); rate minus target in points |
+| `previous_date`, `previous_rate`, `rate_change` | the day before `data_date`; null when that day has no data |
+| `rank`, `total`, `previous_rank`, `previous_rank_date`, `rank_movement` | national rank x/34; movement > 0 = moved up (against the previous day with national data) |
+| `rank_basis_rate` | Huế rate in the national report, the value the rank is computed from |
+| `volume`, `passed`, `failed` | counts of the day (for tooltips, not for the card) |
+| `trend[]` | last 30 days up to `data_date`: `{date, rate, rank, volume}`; `rate`/`rank` null on days without data |
+| `monthly_rank[]` | T1 to the month of `data_date`: `{month, rank, total, rate}`; nulls for months not loaded |
+| `lowest_units[]` | the 5 lowest-rate BCVH (accepting units for F1.2): `{ma_bcvh, ten_bcvh, rate, gap_to_target, failed, volume}`; link to that indicator's ranking page |
+
+### 7.3 `GET /api/home/national-ranking?indicator=f11|f12|f13|f41&period=day|week|month&anchor_date=` (or `from_date` + `to_date`)
+
+`indicator` required; `period` default `day`; week = Thursday–Wednesday; a running week/month is read up to the anchor; no `anchor_date` = the indicator's latest national day. Returns `{ indicator, label, target_rate, available, message, period, period_start, period_end, previous_period, total, national_rate, hue, items[] }`:
+
+- `items` = the 34 provinces `{rank, ma_tinh, ten_tinh, rate, volume, failed, previous_rank, movement, gap_to_target, is_hue}`.
+- `hue` = `{rank, rate, gap_to_target, gap_to_national_rate, above:{rank, ten_tinh, rate, gap}}`; `above.gap` = points needed to reach the province ranked just above, `above` null at rank 1.
+- `national_rate` = summed passed / summed volume of the 34 provinces.
+- Errors: 400 `INVALID_DATE` / `INVALID_INDICATOR`.
+
+### 7.4 Notes for the UI
+
+- **Two Huế rates can differ by a few tenths** (e.g. F1.1 on 2026-10-11: dashboard 68.7 vs national report 68.3) because the detail export and the portal national report are separate sources. Card = dashboard `rate` (what leaders see on the F1.x dashboards). The Huế row of the 34-province table = the national-report rate the rank is computed from; label the table "theo báo cáo toàn quốc" (or show `rank_basis_rate`) and do not mix the two in one comparison.
+- Indicators have different latest days (F4.1 detail was 2026-10-10 while its national report held 10-11). Show each card's `data_date`.
+- Cold `executive` response about 1 s, the table a few ms; both are cached.
