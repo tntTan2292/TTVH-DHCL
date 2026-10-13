@@ -2,7 +2,7 @@
 
 // HOME-BI-01 (B1) - read model of the executive Home page: for each of F1.1 / F1.2 / F1.3 / F4.1 the current
 // rate of Hue, its national rank among the 34 provinces, the gap to the indicator's own target, the change
-// against the previous day, a 30-day trend, Hue's rank history, the lowest units and the 34-province table.
+// against the previous day, a 30-day trend, Hue's rank history, the units to act on and the 34-province table.
 //
 // Nothing is recomputed here: every figure comes from the same service the indicator's own dashboard uses
 // (summary / daily trend / BCVH ranking), so the Home page can never disagree with those dashboards. The
@@ -18,7 +18,17 @@ const TARGETS = Object.freeze({ f11: 95, f12: 95, f13: 90, f41: 90 }); // = fron
 const LABELS = Object.freeze({ f11: 'F1.1', f12: 'F1.2', f13: 'F1.3', f41: 'F4.1' });
 const ORDER = Object.freeze(['f11', 'f12', 'f13', 'f41']);
 const TREND_DAYS = 30;
-const LOWEST_UNITS = 5;
+const FOCUS_UNITS = 5;
+// PO 2026-10-13: what the "units to act on" block lists for each indicator.
+//   f11 - the accepting-office x delivering-BCVH pairs with the largest volume whose rate is below 85 %
+//   f12 - the accepting offices with the largest volume whose rate is below 90 %
+//   f13 / f41 - every BCVH (the six canonical ones), lowest rate first
+const FOCUS = Object.freeze({
+    f11: { kind: 'pairs', threshold: 85 },
+    f12: { kind: 'offices', threshold: 90 },
+    f13: { kind: 'bcvh', threshold: null },
+    f41: { kind: 'bcvh', threshold: null },
+});
 
 const F13_RANK_SOURCE = Object.freeze({
     table: 'fact_f13_national',
@@ -90,6 +100,7 @@ function buildDefaultAdapters(db = defaultDb) {
             trend: (from, to) => f11RankingService.getDailyTrend(from, to, {}),
             ranking: (from, to) => f11RankingService.getBcvhRanking(from, to, 1, 200),
             rank: f11NationalRankService,
+            pairs: (date) => f11RankingService.getPairTable({ period: 'day', anchorDate: date }),
             localTable: 'fact_f11',
         },
         f12: {
@@ -97,6 +108,7 @@ function buildDefaultAdapters(db = defaultDb) {
             trend: (from, to) => f12RankingService.getDailyTrend(from, to, {}),
             ranking: (from, to) => f12RankingService.getBcvhRanking(from, to, 1, 200),
             rank: f12NationalRankService,
+            offices: (date) => f12RankingService.getOfficeRanking(date, date, 1, 200),
             localTable: 'fact_f12',
         },
         f13: {
@@ -167,7 +179,7 @@ class HomeExecutiveService {
             failed: null,
             trend: [],
             monthly_rank: [],
-            lowest_units: [],
+            focus_units: { ...FOCUS[id], items: [] },
             ...extra,
         };
     }
@@ -201,19 +213,7 @@ class HomeExecutiveService {
         const nationalRank = summary.national_rank?.available ? summary.national_rank : null;
         const previousRate = previousItem ? previousItem.rate : null;
 
-        const rows = ranking?.data || [];
-        const lowest = rows
-            .filter((row) => Number(row.total_bg ?? row.sl_bg_ptc ?? 0) > 0)
-            .sort((a, b) => Number(a.passed_rate) - Number(b.passed_rate))
-            .slice(0, LOWEST_UNITS)
-            .map((row) => ({
-                ma_bcvh: row.ma_bcvh,
-                ten_bcvh: row.ten_bcvh,
-                rate: round1(row.passed_rate),
-                gap_to_target: round1(row.passed_rate - target),
-                failed: Number(row.total_failed ?? row.khong_dat_kpi_2026 ?? 0),
-                volume: Number(row.total_bg ?? row.sl_bg_ptc ?? 0),
-            }));
+        const focusUnits = await this._focusUnits(id, adapter, dataDate, ranking, target);
 
         return {
             id,
@@ -239,8 +239,73 @@ class HomeExecutiveService {
             failed: Number(summary.total_failed || 0),
             trend: items,
             monthly_rank: await this._monthlyRank(adapter, dataDate),
-            lowest_units: lowest,
+            focus_units: focusUnits,
         };
+    }
+
+    // The "units to act on" of one indicator (see FOCUS). A failure here must not hide the card: the list is
+    // simply empty and the block says there is nothing to show.
+    async _focusUnits(id, adapter, dataDate, ranking, target) {
+        const { kind, threshold } = FOCUS[id];
+        const gap = (rate) => round1(rate - target);
+        const biggestBelow = (items) => items
+            .filter((item) => item.rate < threshold)
+            .sort((a, b) => (b.volume - a.volume) || (a.rate - b.rate))
+            .slice(0, FOCUS_UNITS);
+        try {
+            if (kind === 'pairs' && adapter.pairs) {
+                const table = await adapter.pairs(dataDate);
+                const items = [];
+                for (const row of table?.rows || []) {
+                    for (const column of table.columns || []) {
+                        if (column.ma_bcvh === 'OTHER') continue; // "Khác" lumps many delivery offices: not a single pair
+                        const cell = row.cells?.[column.ma_bcvh];
+                        if (!cell || !(cell.volume > 0) || cell.rate === null || cell.rate === undefined) continue;
+                        items.push({
+                            key: `${row.ma_chap_nhan}|${column.ma_bcvh}`,
+                            ma_bcvh: row.ma_chap_nhan,
+                            ten_bcvh: row.ten_chap_nhan,
+                            ten_phat: column.ten_bcvh,
+                            rate: round1(cell.rate),
+                            gap_to_target: gap(cell.rate),
+                            failed: Number(cell.failed || 0),
+                            volume: Number(cell.volume),
+                        });
+                    }
+                }
+                return { kind, threshold, items: biggestBelow(items) };
+            }
+            if (kind === 'offices' && adapter.offices) {
+                const result = await adapter.offices(dataDate);
+                const items = (result?.data || [])
+                    .filter((row) => Number(row.total_bg || 0) > 0 && row.passed_rate !== null && row.passed_rate !== undefined)
+                    .map((row) => ({
+                        key: String(row.ma_bcvh),
+                        ma_bcvh: row.ma_bcvh,
+                        ten_bcvh: row.ten_bcvh,
+                        rate: round1(row.passed_rate),
+                        gap_to_target: gap(row.passed_rate),
+                        failed: Number(row.total_failed || 0),
+                        volume: Number(row.total_bg),
+                    }));
+                return { kind, threshold, items: biggestBelow(items) };
+            }
+            const items = (ranking?.data || [])
+                .filter((row) => Number(row.total_bg ?? row.sl_bg_ptc ?? 0) > 0)
+                .sort((a, b) => Number(a.passed_rate) - Number(b.passed_rate))
+                .map((row) => ({
+                    key: String(row.ma_bcvh),
+                    ma_bcvh: row.ma_bcvh,
+                    ten_bcvh: row.ten_bcvh,
+                    rate: round1(row.passed_rate),
+                    gap_to_target: gap(row.passed_rate),
+                    failed: Number(row.total_failed ?? row.khong_dat_kpi_2026 ?? 0),
+                    volume: Number(row.total_bg ?? row.sl_bg_ptc ?? 0),
+                }));
+            return { kind, threshold, items };
+        } catch {
+            return { kind, threshold, items: [] };
+        }
     }
 
     // Hue's rank and rate per month from January of the data year to the month of the data date.

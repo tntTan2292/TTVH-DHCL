@@ -101,12 +101,68 @@ test('previous day missing in the trend: change is null, not zero', async () => 
     assert.equal(out.indicators[0].rate_change, null);
 });
 
-test('lowest units are the 5 lowest rates with gap to target and failed count', async () => {
-    const rows = [99, 50, 80, 91, 70, 60, 85].map((r, i) => ({ ma_bcvh: `U${i}`, ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_failed: 10 - Math.round(r / 10) }));
+test('F1.3 / F4.1 list every BCVH, lowest rate first, with gap to target and failed count', async () => {
+    const rows = [99, 50, 80, 91, 70, 60].map((r, i) => ({ ma_bcvh: `U${i}`, ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_failed: 10 - Math.round(r / 10) }));
     const out = await service(all4(adapter({ rows }))).getExecutive();
-    const lowest = out.indicators[2].lowest_units;
-    assert.deepEqual(lowest.map((u) => u.rate), [50, 60, 70, 80, 85]);
-    assert.equal(lowest[0].gap_to_target, -40);
+    for (const index of [2, 3]) {
+        const focus = out.indicators[index].focus_units;
+        assert.equal(focus.kind, 'bcvh');
+        assert.deepEqual(focus.items.map((u) => u.rate), [50, 60, 70, 80, 91, 99]);
+        assert.equal(focus.items[0].gap_to_target, -40);
+    }
+});
+
+test('F1.1 lists the 5 accepting-office x delivering-BCVH pairs with the largest volume below 85 %', async () => {
+    const cell = (volume, rate) => ({ volume, passed: Math.round(volume * rate / 100), failed: volume - Math.round(volume * rate / 100), blank: 0, rate });
+    const a = adapter();
+    a.pairs = async () => ({
+        columns: [{ ma_bcvh: 'B1', ten_bcvh: 'BCVH Một' }, { ma_bcvh: 'B2', ten_bcvh: 'BCVH Hai' }, { ma_bcvh: 'OTHER', ten_bcvh: 'Khác' }],
+        rows: [
+            { ma_chap_nhan: 'O1', ten_chap_nhan: 'Office 1', cells: { B1: cell(50, 40), B2: cell(30, 90), OTHER: cell(99, 10) } },
+            { ma_chap_nhan: 'O2', ten_chap_nhan: 'Office 2', cells: { B1: cell(20, 84), B2: cell(10, 60) } },
+            { ma_chap_nhan: 'O3', ten_chap_nhan: 'Office 3', cells: { B1: cell(40, 85), B2: cell(5, 20) } },
+            { ma_chap_nhan: 'O4', ten_chap_nhan: 'Office 4', cells: { B1: cell(8, 50), B2: cell(7, 0) } },
+            { ma_chap_nhan: 'O5', ten_chap_nhan: 'Office 5', cells: { B1: cell(6, 10), B2: null } },
+        ],
+    });
+    const out = await service({ f11: a, f12: adapter(), f13: adapter(), f41: adapter() }).getExecutive();
+    const focus = out.indicators[0].focus_units;
+    assert.equal(focus.kind, 'pairs');
+    assert.equal(focus.threshold, 85);
+    // "Khác" column and pairs at/above 85 % are left out; the rest are ordered by volume
+    assert.deepEqual(focus.items.map((u) => `${u.ma_bcvh}>${u.ten_phat}`), ['O1>BCVH Một', 'O2>BCVH Một', 'O2>BCVH Hai', 'O4>BCVH Một', 'O4>BCVH Hai']);
+    assert.equal(focus.items[0].ten_bcvh, 'Office 1');
+    assert.equal(focus.items[0].volume, 50);
+    assert.equal(focus.items[0].failed, 30);
+    assert.equal(focus.items[0].gap_to_target, -55);
+});
+
+test('F1.2 lists the 5 accepting offices with the largest volume below 90 %', async () => {
+    const a = adapter();
+    a.offices = async () => ({ data: [
+        { ma_bcvh: 'A', ten_bcvh: 'A', total_bg: 10, passed_rate: 50, total_failed: 5 },
+        { ma_bcvh: 'B', ten_bcvh: 'B', total_bg: 90, passed_rate: 95, total_failed: 4 },
+        { ma_bcvh: 'C', ten_bcvh: 'C', total_bg: 30, passed_rate: 89.9, total_failed: 3 },
+        { ma_bcvh: 'D', ten_bcvh: 'D', total_bg: 20, passed_rate: 90, total_failed: 2 },
+        { ma_bcvh: 'E', ten_bcvh: 'E', total_bg: 25, passed_rate: 70, total_failed: 8 },
+        { ma_bcvh: 'F', ten_bcvh: 'F', total_bg: 12, passed_rate: 10, total_failed: 11 },
+        { ma_bcvh: 'G', ten_bcvh: 'G', total_bg: 11, passed_rate: 20, total_failed: 9 },
+        { ma_bcvh: 'H', ten_bcvh: 'H', total_bg: 0, passed_rate: null, total_failed: 0 },
+    ] });
+    const out = await service({ f11: adapter(), f12: a, f13: adapter(), f41: adapter() }).getExecutive();
+    const focus = out.indicators[1].focus_units;
+    assert.equal(focus.kind, 'offices');
+    assert.equal(focus.threshold, 90);
+    assert.deepEqual(focus.items.map((u) => u.ma_bcvh), ['C', 'E', 'F', 'G', 'A']);
+    assert.equal(focus.items[0].gap_to_target, -5.1);
+});
+
+test('a failing pair / office source leaves an empty list, not a broken card', async () => {
+    const a = adapter();
+    a.pairs = async () => { throw new Error('boom'); };
+    const out = await service({ f11: a, f12: adapter(), f13: adapter(), f41: adapter() }).getExecutive();
+    assert.equal(out.indicators[0].available, true);
+    assert.deepEqual(out.indicators[0].focus_units.items, []);
 });
 
 test('an indicator that throws does not break the others', async () => {

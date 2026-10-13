@@ -4,7 +4,7 @@ import { compareSortValues, nextSortState } from '../../components/common/tableS
 export { nextSortState };
 
 export const RANKING_TEXT_FIELDS = Object.freeze(['ma_tinh', 'ten_tinh']);
-export const LOWEST_UNITS_TEXT_FIELDS = Object.freeze(['ma_bcvh', 'ten_bcvh']);
+export const LOWEST_UNITS_TEXT_FIELDS = Object.freeze(['ma_bcvh', 'ten_bcvh', 'ten_phat']);
 
 export const INDICATOR_FULL_NAMES = Object.freeze({
   f11: 'Toàn trình nội tỉnh',

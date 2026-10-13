@@ -16,7 +16,7 @@ test('HOME-BI-01: DashboardHome mounts executive and national-ranking endpoints'
   assert.match(homeSrc, /ExecutiveIndicatorCard/);
   assert.match(homeSrc, /NationalRankingBlock/);
   assert.match(homeSrc, /MonthlyRankProgressionBlock/);
-  assert.match(homeSrc, /LowestUnitsBlock/);
+  assert.match(homeSrc, /ActionUnitsBlock/);
   // TV layout: the 30-day line of each indicator lives inside its own card, no separate trend block
   assert.doesNotMatch(homeSrc, /IndicatorTrendsGrid/);
   assert.match(homeSrc, /xl:grid-cols-4/);
@@ -80,10 +80,13 @@ test('Review Also items: province above not truncated, monthly progression label
   assert.match(monthlySrc, /hạng lũy kế tháng/i);
 });
 
-test('HOME-BI-01: LowestUnitsBlock displays lowest-rate units and links to indicator ranking page', () => {
-  const lowestSrc = readSource('./components/LowestUnitsBlock.jsx');
+test('HOME-BI-01: ActionUnitsBlock shows the per-indicator action list (all BCVH / pairs / offices) and links to the ranking page', () => {
+  const lowestSrc = readSource('./components/ActionUnitsBlock.jsx');
   assert.match(lowestSrc, /SortableTh/);
   assert.match(lowestSrc, /BlockCaptureButton/);
   assert.match(lowestSrc, /ranking/);
   assert.match(lowestSrc, /gap_to_target/);
+  assert.match(lowestSrc, /focus_units/);
+  assert.match(lowestSrc, /CHẤT LƯỢNG CÁC BCVH/);
+  assert.doesNotMatch(lowestSrc, /ĐƠN VỊ CẦN HÀNH ĐỘNG/);
 });

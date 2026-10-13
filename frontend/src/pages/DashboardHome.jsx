@@ -3,7 +3,7 @@ import api from '../api/client';
 import ExecutiveDateBar from '../features/home/components/ExecutiveDateBar.jsx';
 import ExecutiveIndicatorCard from '../features/home/components/ExecutiveIndicatorCard.jsx';
 import NationalRankingBlock from '../features/home/components/NationalRankingBlock.jsx';
-import LowestUnitsBlock from '../features/home/components/LowestUnitsBlock.jsx';
+import ActionUnitsBlock from '../features/home/components/ActionUnitsBlock.jsx';
 import MonthlyRankProgressionBlock from '../features/home/components/MonthlyRankProgressionBlock.jsx';
 
 /**
@@ -188,7 +188,7 @@ export default function DashboardHome() {
             indicatorData={activeIndicatorData}
             selectedIndicator={selectedIndicator}
           />
-          <LowestUnitsBlock
+          <ActionUnitsBlock
             indicatorData={activeIndicatorData}
             selectedIndicator={selectedIndicator}
           />
