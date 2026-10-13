@@ -111,3 +111,5 @@ TTVH_ControlCenter_Temp.ps1
 
 # QIS-HTTPS-LAN-01: local HTTPS certificate and private key (create with frontend/scripts/make-dev-cert.mjs)
 frontend/certs/
+*.sqlite-wal
+*.sqlite-shm

@@ -1,6 +1,7 @@
 'use strict';
 
 const defaultDb = require('../config/db').db;
+const { rebuildAggForDate } = require('../services/aggMaintenance');
 
 const INSERT_COLUMNS = [
     'ngay_do_kiem',
@@ -90,10 +91,19 @@ class FactF41Repository {
                                 hasError = true;
                                 this.db.run('ROLLBACK;', () => reject(finalizeErr));
                             } else if (!hasError) {
-                                this.db.run('COMMIT;', (commitErr) => {
-                                    if (commitErr) reject(commitErr);
-                                    else resolve({ inserted: rows.length, ngay_do_kiem: date });
+                                // PERF-LOAD-01 Phase 2: refresh the day's pre-aggregated rows in the same transaction.
+                                const runOnDb = (sql, params = []) => new Promise((res, rej) => {
+                                    this.db.run(sql, params, function onRun(err) { return err ? rej(err) : res(this); });
                                 });
+                                const getOnDb = (sql, params = []) => new Promise((res, rej) => {
+                                    this.db.get(sql, params, (err, row) => (err ? rej(err) : res(row)));
+                                });
+                                rebuildAggForDate(runOnDb, getOnDb, 'F4.1', date)
+                                    .then(() => this.db.run('COMMIT;', (commitErr) => {
+                                        if (commitErr) reject(commitErr);
+                                        else resolve({ inserted: rows.length, ngay_do_kiem: date });
+                                    }))
+                                    .catch((aggErr) => this.db.run('ROLLBACK;', () => reject(aggErr)));
                             }
                         });
                     });

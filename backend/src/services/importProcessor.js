@@ -21,6 +21,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const { run, get }                                       = require('../config/db');
+const { rebuildAggForDate }                              = require('./aggMaintenance');
 const { extractDateFromFilename, parseF13Excel, DB_COLUMNS } = require('./excelParser');
 const { NATIONAL_DB_COLUMNS } = require('./nationalExcelParser');
 const { F41_HUE_DB_COLUMNS } = require('./f41HueExcelParser');
@@ -335,6 +336,9 @@ async function importParsedData({
             [skippedRecords, errorRecords, import_log_id]
         );
 
+        // PERF-LOAD-01 Phase 2: refresh this day's pre-aggregated rows inside the same transaction.
+        await rebuildAggForDate(run, get, 'F1.3', ngay_do_kiem);
+
         // ── Step 5: Commit ─────────────────────────────────────────────────────
         await run('COMMIT');
 
@@ -530,6 +534,8 @@ async function importF41ParsedData({ parsedData, ngay_do_kiem, filename, forceRe
 
         const skippedRecords = totalParsed - totalInserted;
         await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);
+        // PERF-LOAD-01 Phase 2: refresh this day's pre-aggregated rows inside the same transaction.
+        await rebuildAggForDate(run, get, 'F4.1', ngay_do_kiem);
         await run('COMMIT');
         return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
     } catch (error) {
@@ -588,6 +594,8 @@ async function importF11ParsedData({ parsedData, ngay_do_kiem, filename, forceRe
 
         const skippedRecords = totalParsed - totalInserted;
         await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);
+        // PERF-LOAD-01 Phase 2: refresh this day's pre-aggregated rows inside the same transaction.
+        await rebuildAggForDate(run, get, 'F1.1', ngay_do_kiem);
         await run('COMMIT');
         return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
     } catch (error) {
@@ -703,6 +711,8 @@ async function importF12RowsIntoTable({ table, columns, sourceLane, parsedData, 
 
         const skippedRecords = totalParsed - totalInserted;
         await run('UPDATE import_log SET skipped_records = ?, error_records = 0 WHERE id = ?', [skippedRecords, import_log_id]);
+        // PERF-LOAD-01 Phase 2: only the Hue detail table has a day aggregate (the national table is small).
+        if (table === 'fact_f12') await rebuildAggForDate(run, get, 'F1.2', ngay_do_kiem);
         await run('COMMIT');
         return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
     } catch (error) {

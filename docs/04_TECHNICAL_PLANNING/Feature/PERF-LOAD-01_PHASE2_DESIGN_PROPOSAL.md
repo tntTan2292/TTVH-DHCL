@@ -222,3 +222,19 @@ Mỗi bước một commit (quy tắc "một việc, một commit"), không tr�
 4. Cầu chì: không thể phục vụ agg khi lệch; chế độ `shadow` không đổi kết quả trả về.
 5. Quan hệ với cache Phase 1 (vân tay), với WAL và với `autoBackfillQueueStore` (kết nối riêng).
 6. Test V1 thật sự gọi hai cài đặt khác nhau (không so một hàm với chính nó).
+
+## 12. Ghi nhận triển khai P2.0 (2026-10-13)
+
+Khác biệt so với thiết kế ban đầu (đã chủ động, ghi để Opus xét):
+
+1. **Khóa duy nhất** dùng `IFNULL(col, char(1))` thay vì `COALESCE(col, '')`, để khóa NULL và khóa chuỗi rỗng là hai nhóm riêng (cả hai có thể xuất hiện trong bảng chi tiết; `GROUP BY` coi chúng khác nhau).
+2. **`FactBuuGuiRepository.overwriteImport` không được nối**: là mã chết (chèn vào cột `session_id`, `ket_qua_f13` không còn trong schema, không có nơi gọi). `FactF41Repository.overwriteImport` vẫn chạy được nên đã nối.
+3. **Bảng agg chưa tồn tại thì bỏ qua** (`rebuildAggForDate` trả `skipped`) thay vì làm import lỗi, để DB chưa migrate vẫn nhập được; phía đọc (bước sau) có cầu chì nên không bao giờ dùng bảng thiếu/lệch.
+4. `verify` dùng đúng SELECT dựng bảng (một nguồn sự thật), nên nó chứng minh **nhất quán nội bộ**, không chứng minh công thức đúng. Tính đúng so với truy vấn hiện có được kiểm riêng (xem 12.1) và là nội dung V1 của P2.1–P2.4.
+
+### 12.1 Bằng chứng P2.0
+
+- Dựng trên DB thật: F1.3 283 ngày/29 190 dòng, F4.1 277/2 050, F1.1 276/35 238, F1.2 10/657 (khớp ước tính thiết kế); toàn bộ ~9 giây.
+- `verify`: 4/4 OK; `SUM(n_rows)` = `COUNT(*)` ở cả bốn bảng; số ngày bằng nhau.
+- Đối chiếu độc lập với truy vấn sản xuất hiện có (`getBcvhOverviewMonthly` của từng repository, neo cuối lịch sử, mọi tháng × đơn vị): khối lượng và số đạt **giống hệt** ở F1.3 (79 nhóm), F4.1 (87), F1.1 (86), F1.2 (37).
+- Test mới `test_aggMaintenance.js` 10/10 (đường ghi, nhập bổ sung, force reimport, rollback khi dựng agg lỗi, NULL/rỗng, verify bắt lệch, đường ghi cũ F4.1). Các suite import hiện có giữ nguyên.

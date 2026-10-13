@@ -30,6 +30,7 @@ const { applyAutoBackfillCoverageExceptionSchema } = require('./migrate_auto_bac
 const { applyAutoBackfillHolidayCalendarSchema } = require('./migrate_auto_backfill_holiday_calendar_schema');
 const { applyF13RoutePostmanIdentity01Phase1Schema } = require('./migrate_f13_route_postman_identity_phase1_schema');
 const { applyImportBulkReimportAll01Schema } = require('./migrate_import_bulk_reimport_all_01_schema');
+const { applyPerfLoad01AggSchema } = require('./migrate_perf_load_01_agg_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -141,6 +142,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyAutoBackfillHolidayCalendarSchema(dbPath);
     await applyF13RoutePostmanIdentity01Phase1Schema(dbPath);
     await applyImportBulkReimportAll01Schema(dbPath);
+    await applyPerfLoad01AggSchema(dbPath);
 }
 
 function startServer() {

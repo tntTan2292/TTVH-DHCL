@@ -38,3 +38,9 @@ Phase 2 aggregate tables (needs PO/CTO approval for new schema), Phase 3 page bu
 ## 6. Phase 2 design (2026-10-13)
 
 Design Proposal written, awaiting PO/CTO approval before any code: `docs/04_TECHNICAL_PLANNING/Feature/PERF-LOAD-01_PHASE2_DESIGN_PROPOSAL.md` (four `agg_*_day` tables, in-transaction per-date rebuild in importProcessor, per-indicator `off|shadow|on` read switch with a SUM(n_rows) fuse, build/verify tool). PO decision: after implementation an independent Opus review is mandatory (prompt to be written after step P2.5); the same model must not self-approve.
+
+## 7. Phase 2 step P2.0 delivered (2026-10-13)
+
+Foundation only; no read path uses the aggregate yet (numbers and screens unchanged). Delivered: `migrate_perf_load_01_agg_schema.js` (4 `agg_*_day` + `agg_state`, wired into startup migrations and `schema.sql`), `src/services/aggMaintenance.js` (per-day rebuild), hooks inside the import transactions of F1.3 / F4.1 / F1.1 / F1.2(Hue) and legacy `FactF41Repository.overwriteImport`, `scripts/agg_tool.js` (status / build / verify / rebuild), `test_aggMaintenance.js` 10/10. Real DB built and verified (4/4 OK; monthly overview identical to the production queries for all four indicators). Backup before the first build: `backend/src/db/backups/database.pre-perf-load-01-phase2.2026-10-13.sqlite` (VACUUM INTO, 2 266 730 496 bytes; git-ignored). Details: design Section 12. Next: P2.1 (F4.1 read path + fuse + V1 deep comparison).
+
+Operations: restart the backend so imports keep the aggregate current (an old process imports without refreshing it; `agg_tool.js build --missing-only` or `verify` repairs any gap).

@@ -918,3 +918,68 @@ CREATE INDEX IF NOT EXISTS idx_auto_backfill_holiday_calendar_event_holiday ON a
 
 CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_holiday_calendar_event_no_update BEFORE UPDATE ON auto_backfill_holiday_calendar_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_holiday_calendar_event is append-only'); END;
 CREATE TRIGGER IF NOT EXISTS trg_auto_backfill_holiday_calendar_event_no_delete BEFORE DELETE ON auto_backfill_holiday_calendar_event BEGIN SELECT RAISE(ABORT, 'auto_backfill_holiday_calendar_event is append-only'); END;
+
+-- PERF-LOAD-01 Phase 2: derived day-level tables (rebuildable from fact_*; see migrate_perf_load_01_agg_schema.js)
+CREATE TABLE IF NOT EXISTS agg_f13_day (
+    ngay_do_kiem TEXT NOT NULL,
+    ma_bcvh TEXT,
+    ma_tuyen TEXT,
+    ten_bcvh TEXT,
+    ten_tuyen TEXT,
+    loai_tuyen_phat TEXT,
+    n_rows INTEGER NOT NULL,
+    n_bg INTEGER NOT NULL,
+    n_dat INTEGER NOT NULL,
+    n_khong_dat INTEGER NOT NULL,
+    n_blank INTEGER NOT NULL,
+    n_nop_tien INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_agg_f13_day ON agg_f13_day(ngay_do_kiem, IFNULL(ma_bcvh, char(1)), IFNULL(ma_tuyen, char(1)));
+CREATE INDEX IF NOT EXISTS idx_agg_f13_day_bcvh ON agg_f13_day(ma_bcvh, ngay_do_kiem);
+
+CREATE TABLE IF NOT EXISTS agg_f41_day (
+    ngay_do_kiem TEXT NOT NULL,
+    ma_bc_phat TEXT,
+    ten_bc_phat TEXT,
+    n_rows INTEGER NOT NULL,
+    n_dat INTEGER NOT NULL,
+    n_khong_dat INTEGER NOT NULL,
+    n_blank INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_agg_f41_day ON agg_f41_day(ngay_do_kiem, IFNULL(ma_bc_phat, char(1)));
+CREATE INDEX IF NOT EXISTS idx_agg_f41_day_unit ON agg_f41_day(ma_bc_phat, ngay_do_kiem);
+
+CREATE TABLE IF NOT EXISTS agg_f11_day (
+    ngay_do_kiem TEXT NOT NULL,
+    ma_bc_chap_nhan TEXT,
+    ma_bc_phat TEXT,
+    ten_bc_chap_nhan TEXT,
+    ten_bc_phat TEXT,
+    n_rows INTEGER NOT NULL,
+    n_dat INTEGER NOT NULL,
+    n_khong_dat INTEGER NOT NULL,
+    n_blank INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_agg_f11_day ON agg_f11_day(ngay_do_kiem, IFNULL(ma_bc_chap_nhan, char(1)), IFNULL(ma_bc_phat, char(1)));
+CREATE INDEX IF NOT EXISTS idx_agg_f11_day_phat ON agg_f11_day(ma_bc_phat, ngay_do_kiem);
+
+CREATE TABLE IF NOT EXISTS agg_f12_day (
+    ngay_do_kiem TEXT NOT NULL,
+    ma_huyen TEXT,
+    ma_bc_chap_nhan TEXT,
+    ten_huyen TEXT,
+    ten_bc_chap_nhan TEXT,
+    n_rows INTEGER NOT NULL,
+    n_dat INTEGER NOT NULL,
+    n_khong_dat INTEGER NOT NULL,
+    n_blank INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_agg_f12_day ON agg_f12_day(ngay_do_kiem, IFNULL(ma_huyen, char(1)), IFNULL(ma_bc_chap_nhan, char(1)));
+CREATE INDEX IF NOT EXISTS idx_agg_f12_day_unit ON agg_f12_day(ma_huyen, ngay_do_kiem);
+
+CREATE TABLE IF NOT EXISTS agg_state (
+    indicator TEXT PRIMARY KEY,
+    last_full_build_at TEXT,
+    last_verified_at TEXT,
+    last_verify_ok INTEGER
+);

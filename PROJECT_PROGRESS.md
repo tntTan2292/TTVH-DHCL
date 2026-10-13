@@ -2309,3 +2309,7 @@ PO ran the supervised DRY probe for HUE and TCT (10/10): both reconcile exactly 
 ## 2026-10-13 - PERF-LOAD-01 PHASE 1 IMPLEMENTED
 
 Dashboard read cache (invalidated by import fingerprint + TTL), gzip, SQLite cache_size 256 MB + WAL, `_ts` cache-busters removed, date() removed from 16 WHERE predicates. Repeat loads served from memory; first load unchanged (needs Phase 2 aggregate tables). Backend restart needed. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md.
+
+## 2026-10-13 - PERF-LOAD-01 PHASE 2 STEP P2.0 DELIVERED
+
+agg_*_day tables created, maintained inside the import transactions, built and verified on the real DB (4/4 OK, monthly overview identical to production queries); no read path switched yet, numbers unchanged. Backup taken. Next P2.1 F4.1 read path + fuse. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 7; design Section 12.
