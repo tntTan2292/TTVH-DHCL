@@ -418,7 +418,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                                     isSubActive ? 'font-bold text-white' : 'text-blue-200/80 hover:text-white hover:bg-white/5'
                                   } ${isSubHovered && !isSubPinned ? 'bg-white/5' : ''}`}
                                 >
-                                  <div className="flex min-w-0 items-center gap-2">
+                                  <div className="flex min-w-0 flex-1 items-start gap-2">
                                     <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
                                     {getModuleIndicatorDot(sub.title || sub.name)}
                                     <span className="break-words text-left text-xs font-semibold leading-snug">{sub.name || sub.title}</span>
