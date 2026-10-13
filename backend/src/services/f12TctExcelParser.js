@@ -110,7 +110,7 @@ function parseF12TctExcel(buffer, filename) {
     // body = everything after the two header rows and the column-number legend row
     const bodyRows = rawData.slice(headerRowIdx + 3);
     const parsedData = [];
-    let totalRow = null;
+    const codeLessRows = []; // the grand total plus, on most days, a few parcels TCT could not assign to a province
     const seenProvinces = new Set();
 
     bodyRows.forEach((row, offset) => {
@@ -118,7 +118,7 @@ function parseF12TctExcel(buffer, filename) {
         const rowNumber = headerRowIdx + 4 + offset;
         const acceptCode = toCode(row[1]);
         if (!acceptCode) {
-            if (!totalRow && typeof row[7] === 'number') { totalRow = row; return; } // grand total (first data row)
+            if (typeof row[7] === 'number') { codeLessRows.push({ row, rowNumber }); return; }
             throw new Error(`Invalid F1.2 TCT Excel data. Row ${rowNumber} has no accepting province code.`);
         }
         if (toCode(row[3]) || toCode(row[5])) {
@@ -146,16 +146,25 @@ function parseF12TctExcel(buffer, filename) {
     }
 
     // The published grand total must equal the body, otherwise the file was edited or truncated.
-    if (totalRow) {
-        const mismatches = [];
-        for (const [index, column] of COUNT_COLUMNS) {
-            const expected = toCount(totalRow[index], column, 'grand-total row');
-            const actual = parsedData.reduce((sum, item) => sum + item[column], 0);
-            if (expected !== actual) mismatches.push(`${column} total ${expected} vs rows ${actual}`);
+    // Rows without an accepting province are not stored (they cannot be ranked); one of them is the grand total
+    // (its position varies between exports), the others are unassigned parcels that the total still counts.
+    let totalRow = null;
+    if (codeLessRows.length) {
+        const sumOf = (rows, index) => rows.reduce((sum, row) => sum + toCount(row[index], '', 'unassigned row'), 0);
+        const differences = (candidate) => {
+            const others = codeLessRows.filter((entry) => entry !== candidate).map((entry) => entry.row);
+            return COUNT_COLUMNS.flatMap(([index, column]) => {
+                const expected = toCount(candidate.row[index], column, 'grand-total row');
+                const actual = parsedData.reduce((sum, item) => sum + item[column], 0) + sumOf(others, index);
+                return expected === actual ? [] : [`${column} total ${expected} vs rows ${actual}`];
+            });
+        };
+        const matching = codeLessRows.find((candidate) => differences(candidate).length === 0);
+        if (!matching) {
+            const largest = codeLessRows.reduce((best, entry) => (entry.row[7] > best.row[7] ? entry : best));
+            throw new Error(`Invalid F1.2 TCT Excel data. Grand total does not equal the sum of the rows: ${differences(largest).join('; ')}.`);
         }
-        if (mismatches.length) {
-            throw new Error(`Invalid F1.2 TCT Excel data. Grand total does not equal the sum of the rows: ${mismatches.join('; ')}.`);
-        }
+        totalRow = matching.row;
     }
 
     const acceptingCodes = new Set(parsedData.map((item) => item.ma_tinh_chap_nhan));

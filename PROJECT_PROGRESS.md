@@ -2337,3 +2337,7 @@ Opus review (no blocker once C1/C2 fixed): rebuild no longer empties the aggrega
 ## 2026-10-13 - PERF-LOAD-01 HANDOFF
 
 Shadow mode written to root .env (restart needed); next: one supervised shadow day, verify 4/4, then on per indicator. Dependencies and SmartTileLayer.jsx that were untracked are now committed; other sessions WIP committed as WIP. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 14.
+
+## 2026-10-13 - F12-TCT-PARSER-UNASSIGNED-ROW FIX
+
+F1.2 TCT parser no longer fails on files with code-less rows (parcels TCT could not assign to a province, 1-4 per day, ~65% of days): the grand total is found among the code-less rows by reconciliation (its position varies), the other code-less rows count in the total check but are not stored. 98 TCT auto-backfill jobs had gone FAILED_TERMINAL on this; all 169 downloaded files now parse. Backend restart and a new auto-sync run needed.

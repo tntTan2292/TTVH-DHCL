@@ -38,10 +38,14 @@ function population(overrides = {}, extra = []) {
     return [...specs, ...extra];
 }
 
-function f12TctBuffer(specs = population(), { totalOverride = null } = {}) {
+// unassigned: parcels TCT could not assign to a province, shown as code-less rows that the grand total counts;
+// totalAfterUnassigned: the portal does not always list the grand total first.
+function f12TctBuffer(specs = population(), { totalOverride = null, unassigned = [], totalAfterUnassigned = false } = {}) {
     const body = specs.map((spec, i) => bodyRow(i + 2, spec));
-    const total = totalOverride ? totalOverride(totalRow(body)) : totalRow(body);
-    const sheet = xlsx.utils.aoa_to_sheet([HEADER, SUB_HEADER, LEGEND, total, ...body]);
+    const loose = unassigned.map((spec, i) => { const row = bodyRow(body.length + i + 2, { ...spec, code: null }); row[2] = null; return row; });
+    const total = totalOverride ? totalOverride(totalRow([...body, ...loose])) : totalRow([...body, ...loose]);
+    const head = totalAfterUnassigned ? [...loose, total] : [total, ...loose];
+    const sheet = xlsx.utils.aoa_to_sheet([HEADER, SUB_HEADER, LEGEND, ...head, ...body]);
     const book = xlsx.utils.book_new();
     xlsx.utils.book_append_sheet(book, sheet, 'Worksheet');
     return xlsx.write(book, { type: 'buffer', bookType: 'xlsx' });

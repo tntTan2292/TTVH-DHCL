@@ -26,6 +26,21 @@ test('a grand total that differs from the rows refuses the file', () => {
     assert.throws(() => parseF12TctExcel(buffer, NAME), /Grand total does not equal.*sl_dung_qd/);
 });
 
+test('parcels without an accepting province are not stored but the grand total still counts them, wherever the total sits', () => {
+    for (const totalAfterUnassigned of [false, true]) {
+        const buffer = f12TctBuffer(population(), { unassigned: [{ den: 2, ok: 1 }], totalAfterUnassigned });
+        const result = parseF12TctExcel(buffer, NAME);
+        assert.equal(result.totalParsed, 34);
+        assert.equal(result.grandTotalChecked, true);
+        assert.ok(result.parsedData.every((r) => r.ma_tinh_chap_nhan));
+    }
+});
+
+test('a grand total that does not match once the unassigned rows are counted still refuses the file', () => {
+    const buffer = f12TctBuffer(population(), { unassigned: [{ den: 2, ok: 1 }], totalOverride: (row) => { row[9] += 1; return row; } });
+    assert.throws(() => parseF12TctExcel(buffer, NAME), /Grand total does not equal/);
+});
+
 test('a missing ranked province, a duplicated province or an office-level export refuses the file', () => {
     const missing = population().filter((spec) => spec.code !== '53');
     assert.throws(() => parseF12TctExcel(f12TctBuffer(missing), NAME), /Missing accepting province code\(s\): 53/);
