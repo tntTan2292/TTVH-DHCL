@@ -27,7 +27,7 @@ import {
 import { formatNumber, formatRate, formatVariance } from '../../dashboard/components/comboTrendlineData.js';
 import { DASH } from '../../dashboard/components/bcvhOperationTableData.js';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
-import { indicatorTargetRate, indicatorTheme } from '../../indicator/indicatorConfig.js';
+import { indicatorEndpoint, indicatorTargetRate, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
 import { formatMonthShort } from './f12Cumulative12Sort.js';
 
@@ -133,7 +133,7 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
     }
   }, [anchorDate]);
 
-  const endpoint = indicator.endpoints?.cumulative12 || '/dashboard/cumulative-12';
+  const endpoint = indicatorEndpoint('cumulative12', indicator);
   const requestSeqRef = useRef(0);
 
   const fetchData = useCallback(() => {

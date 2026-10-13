@@ -14,7 +14,6 @@ const REPORT_BLOCKS = [
   '../ranking/BcvhRankingOverviewBlocks.jsx',
   '../ranking/BcvhWeeklyComparisonBlock.jsx',
   '../f11/components/F11PairTableBlock.jsx',
-  '../f12/components/F12OfficeTableBlock.jsx',
   '../f12/components/F12Cumulative12Block.jsx',
 ];
 const TABLES = [

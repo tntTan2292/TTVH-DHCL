@@ -1,93 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  filterOfficeTableRows,
-  sortOfficeUnits,
-  nextSortState,
-} from './components/f12OfficeTableSort.js';
-import {
   filterCumulativeUnits,
   formatMonthShort,
   sortCumulativeUnits,
 } from './components/f12Cumulative12Sort.js';
-
-test('f12OfficeTableSort: search filters by unit name, unit code, or child office name/code', () => {
-  const sampleRows = [
-    {
-      ma_huyen: '5375',
-      ten_huyen: 'BCVH Thuận Hóa',
-      volume: 100,
-      offices: [
-        { ma_chap_nhan: '530000', ten_chap_nhan: 'Bưu cục Thuận Hóa', volume: 60 },
-        { ma_chap_nhan: '530010', ten_chap_nhan: 'Bưu cục Đông Ba', volume: 40 },
-      ],
-    },
-    {
-      ma_huyen: '5340',
-      ten_huyen: 'Bưu điện Phú Xuân',
-      volume: 50,
-      offices: [
-        { ma_chap_nhan: '531000', ten_chap_nhan: 'Bưu cục Phú Xuân', volume: 50 },
-      ],
-    },
-  ];
-
-  const sampleUnranked = [
-    {
-      ma_huyen: '5375',
-      ten_huyen: 'BCVH Thuận Hóa (KHL)',
-      volume: 200,
-      offices: [
-        { ma_chap_nhan: '531120', ten_chap_nhan: 'Khách hàng lớn', volume: 200 },
-      ],
-    },
-  ];
-
-  // Empty query returns everything, no auto-expansion
-  const emptyRes = filterOfficeTableRows(sampleRows, sampleUnranked, '');
-  assert.equal(emptyRes.filteredRows.length, 2);
-  assert.equal(emptyRes.filteredUnranked.length, 1);
-  assert.equal(emptyRes.autoExpandedKeys.size, 0);
-
-  // Search by unit name
-  const unitMatch = filterOfficeTableRows(sampleRows, sampleUnranked, 'Phú Xuân');
-  assert.equal(unitMatch.filteredRows.length, 1);
-  assert.equal(unitMatch.filteredRows[0].ma_huyen, '5340');
-
-  // Search by office code auto-expands the parent unit
-  const officeMatch = filterOfficeTableRows(sampleRows, sampleUnranked, '530010');
-  assert.equal(officeMatch.filteredRows.length, 1);
-  assert.equal(officeMatch.filteredRows[0].ma_huyen, '5375');
-  assert.ok(officeMatch.autoExpandedKeys.has('5375'));
-
-  // Search for large customer
-  const khlMatch = filterOfficeTableRows(sampleRows, sampleUnranked, 'Khách hàng lớn');
-  assert.equal(khlMatch.filteredRows.length, 0);
-  assert.equal(khlMatch.filteredUnranked.length, 1);
-  assert.equal(khlMatch.filteredUnranked[0].ma_huyen, '5375');
-});
-
-test('f12OfficeTableSort: sorts unit rows numerically and alphabetically with nulls last', () => {
-  const units = [
-    { ma_huyen: 'B', ten_huyen: 'Đơn vị B', volume: 50, rate: 80, rank: 2 },
-    { ma_huyen: 'A', ten_huyen: 'Đơn vị A', volume: 100, rate: 95, rank: 1 },
-    { ma_huyen: 'C', ten_huyen: 'Đơn vị C', volume: 20, rate: null, rank: 3 },
-  ];
-
-  const byRateDesc = sortOfficeUnits(units, 'rate', 'desc');
-  assert.deepEqual(byRateDesc.map((u) => u.ma_huyen), ['A', 'B', 'C']);
-
-  const byVolumeAsc = sortOfficeUnits(units, 'volume', 'asc');
-  assert.deepEqual(byVolumeAsc.map((u) => u.ma_huyen), ['C', 'B', 'A']);
-
-  const byNameAsc = sortOfficeUnits(units, 'ten_huyen', 'asc');
-  assert.deepEqual(byNameAsc.map((u) => u.ma_huyen), ['A', 'B', 'C']);
-
-  // nextSortState toggles: numeric columns start desc, then flip to asc
-  assert.deepEqual(nextSortState(null, 'rate'), { field: 'rate', direction: 'desc' });
-  assert.deepEqual(nextSortState({ field: 'rate', direction: 'desc' }, 'rate'), { field: 'rate', direction: 'asc' });
-  assert.deepEqual(nextSortState({ field: 'rate', direction: 'asc' }, 'rate'), { field: 'rate', direction: 'desc' });
-});
 
 test('f12Cumulative12Sort: formatMonthShort formats month key correctly', () => {
   assert.equal(formatMonthShort('2026-10'), 'T10/26');

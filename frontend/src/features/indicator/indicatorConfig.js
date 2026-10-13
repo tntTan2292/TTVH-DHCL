@@ -202,7 +202,6 @@ export const F12_INDICATOR = Object.freeze({
   endpoints: Object.freeze({
     ...COMMON_ENDPOINTS,
     kpi: '/dashboard/summary',
-    officeTable: '/dashboard/office-table',
     cumulative12: '/dashboard/cumulative-12',
     // The Dashboard operations table lists every accepting office, not the accepting units.
     operationOverview: '/ranking/offices/overview',
@@ -233,7 +232,6 @@ export const F12_INDICATOR = Object.freeze({
     lateCash: false,
     operatingPattern: false,
     actionCenter: false,
-    officeTable: true,
     cumulative12: true,
   }),
 });

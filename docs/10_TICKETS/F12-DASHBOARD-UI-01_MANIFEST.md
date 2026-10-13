@@ -80,3 +80,9 @@ PO decisions (chat, with answers to three questions):
 - **Dashboard, block "Lũy kế 12 tháng"** is city level only: chart (volume columns + rate line, 95 % target, national rank per month) and the cumulative cards; the unit table and the unit-count card are removed.
 - **Analysis page ("Phân tích đơn vị chấp nhận")**: the ranking table lists the accepting offices with the columns **"Mã bưu cục nhận tin/chấp nhận"** and **"Tên bưu cục nhận tin/chấp nhận"** (`GET /f12/ranking/offices`, the large-customer office not ranked, each row carries its unit code so the unit filter selects the offices of a unit). The week / month **comparison tables, the heatmap and the trend blocks stay per accepting unit (Bưu điện phường, 4-digit code)**, headers "Mã đơn vị" / "Tên đơn vị". This is the unit table that had been placed on the Dashboard by mistake.
 - Backend `GET /api/f12/dashboard/office-table` and `/dashboard/cumulative-12` `units` stay available (not used by the screens now).
+
+## 10. PO delta of 2026-10-13 (after seeing the whole-BĐTP block)
+
+- The "SỐ LIỆU TOÀN BĐTP" block is **removed** from the Dashboard (component, feature flag and tests deleted; the operations table of the accepting offices already carries the TỔNG CỘNG row and the day comparisons). The Dashboard of F1.2 is: KPI cards, trend, operations table of the accepting offices, "Lũy kế 12 tháng".
+- "Lũy kế 12 tháng" showed "Request failed with status code 404": the block called the bare relative path `/dashboard/cumulative-12` instead of the indicator path `/f12/dashboard/cumulative-12` (the shared API wrapper only rewrites the F1.3 report URLs). Fixed with `indicatorEndpoint('cumulative12', indicator)` and a test that locks it. Data check on the live database: 12 months to 2026-10 return, only October has data until the F1.2 backfill from 2026-01-01 runs (16.177 parcels, 91,68 %, national rank 10/34).
+- Backend `GET /api/f12/dashboard/office-table` is no longer used by any screen.

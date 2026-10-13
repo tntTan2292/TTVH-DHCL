@@ -38,17 +38,16 @@ test('F12_INDICATOR has correct configuration, target 95%, teal theme, and colou
   assert.deepEqual(F12_INDICATOR.heatmapFloors, F13_INDICATOR.heatmapFloors);
   assert.notDeepEqual(F12_INDICATOR.heatmapFloors, F41_INDICATOR.heatmapFloors);
 
-  // Features: routes off, lateCash off, operatingPattern off, actionCenter off; officeTable & cumulative12 on
+  // Features: routes off, lateCash off, operatingPattern off, actionCenter off; cumulative12 on (no office / whole-BĐTP block: PO 2026-10-12)
   assert.equal(F12_INDICATOR.features.routes, false);
   assert.equal(F12_INDICATOR.features.lateCash, false);
   assert.equal(F12_INDICATOR.features.operatingPattern, false);
   assert.equal(F12_INDICATOR.features.actionCenter, false);
-  assert.equal(F12_INDICATOR.features.officeTable, true);
+  assert.equal(F12_INDICATOR.features.officeTable, undefined);
   assert.equal(F12_INDICATOR.features.cumulative12, true);
 
   // Endpoints
   assert.equal(indicatorEndpoint('kpi', F12_INDICATOR), '/f12/dashboard/summary');
-  assert.equal(indicatorEndpoint('officeTable', F12_INDICATOR), '/f12/dashboard/office-table');
   assert.equal(indicatorEndpoint('cumulative12', F12_INDICATOR), '/f12/dashboard/cumulative-12');
   assert.equal(indicatorEndpoint('nationalRanking', F12_INDICATOR), '/f12/dashboard/national-ranking');
 
@@ -106,31 +105,18 @@ test('App.jsx registers /f12 redirect and /f12/dashboard, /f12/ranking/bcvh for 
   assert.match(appSource, /<Route path="f12\/ranking\/bcvh" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><F12BcvhRankingPage \/><\/ProtectedRoute>\} \/>/);
 });
 
-test('DashboardPage mounts F12OfficeTableBlock and F12Cumulative12Block based on indicator features', () => {
+test('DashboardPage mounts only the F12Cumulative12Block (no whole-BĐTP / office block)', () => {
   const source = fs.readFileSync(new URL('../dashboard/DashboardPage.jsx', import.meta.url), 'utf8');
-  assert.match(source, /import F12OfficeTableBlock from '\.\.\/f12\/components\/F12OfficeTableBlock/);
   assert.match(source, /import F12Cumulative12Block from '\.\.\/f12\/components\/F12Cumulative12Block/);
-  assert.match(source, /indicator\.features\.officeTable \? \(\s*<F12OfficeTableBlock/);
   assert.match(source, /indicator\.features\.cumulative12 \? \(\s*<F12Cumulative12Block/);
-});
-
-test('Block A: F12OfficeTableBlock is the whole-BĐTP day table: camera, date filter, vs previous day and same weekday', () => {
-  const source = fs.readFileSync(new URL('./components/F12OfficeTableBlock.jsx', import.meta.url), 'utf8');
-  assert.match(source, /BlockCaptureButton/);
-  assert.match(source, /indicatorTheme\(indicator\)/);
-  assert.match(source, /classifyF13HeatmapRate/);
-  assert.match(source, /indicatorEndpoint\('kpi', indicator\)/);
-  assert.match(source, /from_date: anchorDate, to_date: anchorDate/);
-  assert.match(source, /TOÀN BĐTP/);
-  assert.match(source, /cùng kỳ \(tuần trước\)/);
-  // no period switch, no unit / office rows
-  assert.doesNotMatch(source, /office-table|officeTable|SortableTh|setPeriod/);
-  assert.doesNotMatch(source, /#003E7E/i);
+  assert.doesNotMatch(source, /F12OfficeTableBlock/);
 });
 
 test('Block B: F12Cumulative12Block is city level only: camera, 95% target line, monthly rank, no unit table', () => {
   const source = fs.readFileSync(new URL('./components/F12Cumulative12Block.jsx', import.meta.url), 'utf8');
   assert.match(source, /BlockCaptureButton/);
+  // the request goes to the indicator's full path (/f12/dashboard/cumulative-12), not a bare relative path
+  assert.match(source, /indicatorEndpoint\('cumulative12', indicator\)/);
   assert.doesNotMatch(source, /SortableTh|rawUnits|data\?\.units/);
   assert.match(source, /ComposedChart/);
   assert.match(source, /ReferenceLine/);
