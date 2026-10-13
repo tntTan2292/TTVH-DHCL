@@ -1,4 +1,17 @@
 const db = require('../config/db').db;
+const aggReadPolicy = require('../services/aggReadPolicy');
+const { makeSources } = require('./aggSqlSource');
+
+// PERF-LOAD-01 Phase 2: aggregate reads build each query once from a "source" (detail table or the
+// pre-aggregated day table); see aggSqlSource.js. F1.3: volume = COUNT(ma_bg), failed = 'Không đạt'.
+const SOURCES = makeSources({
+    factTable: 'fact_f13',
+    aggTable: 'agg_f13_day',
+    evaluationColumn: 'danh_gia_2026',
+    nameColumn: 'ten_bcvh',
+    countNotNullColumn: 'ma_bg',
+    failedMode: 'strict',
+});
 const {
     STATUS_PREDICATES,
     VIOLATION_REASON_FILTER_SLUGS,
@@ -8,6 +21,17 @@ const {
 } = require('../services/evidenceReasonSql');
 
 class FactBuuGuiRepository {
+
+    // Source selection for every aggregate read (off | shadow | on, with the row-count fuse).
+    async _withSource(method, build) {
+        const mode = aggReadPolicy.modeFor('F1.3');
+        if (mode === 'off') return build(SOURCES.fact);
+        const useAgg = await aggReadPolicy.aggUsable('F1.3', db);
+        if (mode === 'on') return build(useAgg ? SOURCES.agg : SOURCES.fact);
+        const factResult = await build(SOURCES.fact);
+        if (useAgg) aggReadPolicy.shadowCompare('F1.3', method, factResult, () => build(SOURCES.agg));
+        return factResult;
+    }
     
     /**
      * Luồng Overwrite Import với Transaction.
@@ -81,23 +105,23 @@ class FactBuuGuiRepository {
     }
 
     getKpiMetrics(startDate, endDate, filters = {}) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getKpiMetrics', (src) => new Promise((resolve, reject) => {
             const bcvhClause = filters.bcvhId ? ' AND ma_bcvh = ?' : '';
             const params = [startDate, endDate];
             if (filters.bcvhId) params.push(filters.bcvhId);
             const sql = `
                 SELECT 
-                    COUNT(ma_bg) as total_bg,
-                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
-                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed
-                FROM fact_f13
+                    ${src.count()} as total_bg,
+                    ${src.passed()} as total_passed,
+                    ${src.failed()} as total_failed
+                FROM ${src.table}
                 WHERE ngay_do_kiem >= ? AND ngay_do_kiem <= ?${bcvhClause}
             `;
             db.get(sql, params, (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });
-        });
+        }));
     }
 
     // fromDate/toDate: inclusive range, `ngay_do_kiem BETWEEN fromDate AND toDate`.
@@ -105,9 +129,9 @@ class FactBuuGuiRepository {
     // a genuine multi-day caller (Operation Dashboard) passes a real range.
     // Both are the same query — no branching on who the caller is.
     getBcvhRanking(fromDate, toDate, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc') {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getBcvhRanking', (src) => new Promise((resolve, reject) => {
             const offset = (page - 1) * pageSize;
-            const sqlCount = `SELECT COUNT(DISTINCT ma_bcvh) as total FROM fact_f13 WHERE ngay_do_kiem BETWEEN ? AND ? AND ma_bcvh IS NOT NULL`;
+            const sqlCount = `SELECT COUNT(DISTINCT ma_bcvh) as total FROM ${src.table} WHERE ngay_do_kiem BETWEEN ? AND ? AND ma_bcvh IS NOT NULL`;
 
             // Whitelist for sorting columns to prevent SQL Injection
             const allowedSorts = ['total_bg', 'total_passed', 'total_failed'];
@@ -118,16 +142,16 @@ class FactBuuGuiRepository {
                 SELECT
                     ma_bcvh,
                     MAX(ten_bcvh) as ten_bcvh,
-                    COUNT(ma_bg) as total_bg,
-                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as total_passed,
-                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as total_failed,
-                    SUM(CASE WHEN thoi_gian_nop_tien IS NOT NULL AND TRIM(thoi_gian_nop_tien) != '' THEN 1 ELSE 0 END) as sl_ptc_nop_tien,
-                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as dat_kpi_2026,
-                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as khong_dat_kpi_2026,
+                    ${src.count()} as total_bg,
+                    ${src.passed()} as total_passed,
+                    ${src.failed()} as total_failed,
+                    ${src.nopTien()} as sl_ptc_nop_tien,
+                    ${src.passed()} as dat_kpi_2026,
+                    ${src.failed()} as khong_dat_kpi_2026,
                     RANK() OVER (
-                        ORDER BY (SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) * 1.0 / COUNT(ma_bg)) DESC, COUNT(ma_bg) DESC
+                        ORDER BY (${src.passed()} * 1.0 / ${src.count()}) DESC, ${src.count()} DESC
                     ) as rank
-                FROM fact_f13
+                FROM ${src.table}
                 WHERE ngay_do_kiem BETWEEN ? AND ? AND ma_bcvh IS NOT NULL
                 GROUP BY ma_bcvh
                 ORDER BY rank ASC
@@ -141,20 +165,20 @@ class FactBuuGuiRepository {
                     else resolve({ data: rows, totalItems: countRow.total });
                 });
             });
-        });
+        }));
     }
 
     getBcvhOperationMetricsByDate(date) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getBcvhOperationMetricsByDate', (src) => new Promise((resolve, reject) => {
             const sql = `
                 SELECT
                     ma_bcvh,
                     MAX(ten_bcvh) as ten_bcvh,
-                    COUNT(ma_bg) as sl_bg_ptc,
-                    SUM(CASE WHEN thoi_gian_nop_tien IS NOT NULL AND TRIM(thoi_gian_nop_tien) != '' THEN 1 ELSE 0 END) as sl_ptc_nop_tien,
-                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as dat_kpi_2026,
-                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as khong_dat_kpi_2026
-                FROM fact_f13
+                    ${src.count()} as sl_bg_ptc,
+                    ${src.nopTien()} as sl_ptc_nop_tien,
+                    ${src.passed()} as dat_kpi_2026,
+                    ${src.failed()} as khong_dat_kpi_2026
+                FROM ${src.table}
                 WHERE ngay_do_kiem = ? AND ma_bcvh IS NOT NULL
                 GROUP BY ma_bcvh
             `;
@@ -163,14 +187,14 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(rows);
             });
-        });
+        }));
     }
 
     getLatestBcvhDataDateInRange(startDate, endDate) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getLatestBcvhDataDateInRange', (src) => new Promise((resolve, reject) => {
             const sql = `
                 SELECT MAX(ngay_do_kiem) as latest_date
-                FROM fact_f13
+                FROM ${src.table}
                 WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                   AND ma_bcvh IS NOT NULL
             `;
@@ -179,20 +203,20 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(row?.latest_date || null);
             });
-        });
+        }));
     }
 
     getBcvhOperationMetricsBetween(startDate, endDate) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getBcvhOperationMetricsBetween', (src) => new Promise((resolve, reject) => {
             const sql = `
                 SELECT
                     ma_bcvh,
                     MAX(ten_bcvh) as ten_bcvh,
-                    COUNT(ma_bg) as sl_bg_ptc,
-                    SUM(CASE WHEN thoi_gian_nop_tien IS NOT NULL AND TRIM(thoi_gian_nop_tien) != '' THEN 1 ELSE 0 END) as sl_ptc_nop_tien,
-                    SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as dat_kpi_2026,
-                    SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as khong_dat_kpi_2026
-                FROM fact_f13
+                    ${src.count()} as sl_bg_ptc,
+                    ${src.nopTien()} as sl_ptc_nop_tien,
+                    ${src.passed()} as dat_kpi_2026,
+                    ${src.failed()} as khong_dat_kpi_2026
+                FROM ${src.table}
                 WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                   AND ma_bcvh IS NOT NULL
                 GROUP BY ma_bcvh
@@ -202,7 +226,7 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(rows);
             });
-        });
+        }));
     }
 
     getBcvhOverviewMonthly(anchorCeiling, canonicalCodes = []) {
@@ -222,14 +246,14 @@ class FactBuuGuiRepository {
     }
 
     _getBcvhOverviewAggregate(kind, anchorCeiling, canonicalCodes = []) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('_getBcvhOverviewAggregate', (src) => new Promise((resolve, reject) => {
             if (!canonicalCodes.length) return resolve([]);
 
             const placeholders = canonicalCodes.map(() => '?').join(', ');
             const bounds = `
                 WITH bounds AS (
                     SELECT MAX(ngay_do_kiem) AS anchor_date
-                    FROM fact_f13
+                    FROM ${src.table}
                     WHERE ngay_do_kiem <= date(?)
                       AND ma_bcvh IN (${placeholders})
                 )
@@ -244,10 +268,10 @@ class FactBuuGuiRepository {
                         SELECT ngay_do_kiem,
                                ma_bcvh,
                                MAX(ten_bcvh) AS ten_bcvh,
-                               COUNT(ma_bg) AS volume,
-                               SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                               SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
-                        FROM fact_f13, bounds
+                               ${src.count()} AS volume,
+                               ${src.passed()} AS passed,
+                               ${src.failed()} AS failed
+                        FROM ${src.table}, bounds
                         WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 4) || '-01-01' AND bounds.anchor_date
                           AND ma_bcvh IN (${placeholders})
                         GROUP BY ngay_do_kiem, ma_bcvh
@@ -280,7 +304,7 @@ class FactBuuGuiRepository {
                 sql = `${bounds},
                     prev_bounds AS (
                         SELECT MAX(ngay_do_kiem) AS prev_anchor_date
-                        FROM fact_f13, bounds
+                        FROM ${src.table}, bounds
                         WHERE ngay_do_kiem < date(bounds.anchor_date)
                           AND ma_bcvh IN (${placeholders})
                     ),
@@ -291,13 +315,13 @@ class FactBuuGuiRepository {
                     SELECT ngay_do_kiem AS date,
                            ma_bcvh,
                            MAX(ten_bcvh) AS ten_bcvh,
-                           COUNT(ma_bg) AS volume,
-                           SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed,
+                           ${src.count()} AS volume,
+                           ${src.passed()} AS passed,
+                           ${src.failed()} AS failed,
                            bounds.anchor_date,
                            prev_bounds.prev_anchor_date,
                            week_bounds.week_ago_date
-                    FROM fact_f13, bounds, prev_bounds, week_bounds
+                    FROM ${src.table}, bounds, prev_bounds, week_bounds
                     WHERE (
                         ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
                         OR ngay_do_kiem = prev_bounds.prev_anchor_date
@@ -325,10 +349,10 @@ class FactBuuGuiRepository {
                         SELECT ngay_do_kiem,
                                ma_bcvh,
                                MAX(ten_bcvh) AS ten_bcvh,
-                               COUNT(ma_bg) AS volume,
-                               SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                               SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
-                        FROM fact_f13, periods
+                               ${src.count()} AS volume,
+                               ${src.passed()} AS passed,
+                               ${src.failed()} AS failed
+                        FROM ${src.table}, periods
                         WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
                           AND ma_bcvh IN (${placeholders})
                         GROUP BY ngay_do_kiem, ma_bcvh
@@ -371,10 +395,10 @@ class FactBuuGuiRepository {
             } else if (kind === 'routes') {
                 sql = `${bounds}
                     SELECT ma_bcvh, ma_tuyen,
-                           COUNT(ma_bg) AS total_bg,
-                           SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
+                           ${src.count()} AS total_bg,
+                           ${src.passed()} AS dat_kpi_2026,
                            bounds.anchor_date
-                    FROM fact_f13, bounds
+                    FROM ${src.table}, bounds
                     WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
                       AND ma_bcvh IN (${placeholders})
                       AND ma_tuyen IS NOT NULL
@@ -391,7 +415,7 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(rows || []);
             });
-        });
+        }));
     }
 
     // Custom week = Thursday..Wednesday (PO decision, F13-BCVH-WEEKLY-COMPARISON-01), NOT the
@@ -401,7 +425,7 @@ class FactBuuGuiRepository {
     // let the service compute the real (not assumed) end-of-week coverage per §4.4 of the
     // F13-BCVH-RANKING-OVERVIEW-01 Design of Record, reapplied here to week granularity.
     getBcvhWeeksList(canonicalCodes = []) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getBcvhWeeksList', (src) => new Promise((resolve, reject) => {
             if (!canonicalCodes.length) return resolve([]);
             const placeholders = canonicalCodes.map(() => '?').join(', ');
             const sql = `
@@ -410,7 +434,7 @@ class FactBuuGuiRepository {
                     MIN(ngay_do_kiem) AS first_date,
                     MAX(ngay_do_kiem) AS last_date,
                     COUNT(DISTINCT ngay_do_kiem) AS days_with_data
-                FROM fact_f13
+                FROM ${src.table}
                 WHERE ma_bcvh IN (${placeholders})
                 GROUP BY week_start
                 ORDER BY week_start ASC
@@ -419,12 +443,12 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(rows || []);
             });
-        });
+        }));
     }
 
     // Calendar month (dương lịch) list, same shape as getBcvhWeeksList but grouped by month_start.
     getBcvhMonthsList(canonicalCodes = []) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getBcvhMonthsList', (src) => new Promise((resolve, reject) => {
             if (!canonicalCodes.length) return resolve([]);
             const placeholders = canonicalCodes.map(() => '?').join(', ');
             const sql = `
@@ -433,7 +457,7 @@ class FactBuuGuiRepository {
                     MIN(ngay_do_kiem) AS first_date,
                     MAX(ngay_do_kiem) AS last_date,
                     COUNT(DISTINCT ngay_do_kiem) AS days_with_data
-                FROM fact_f13
+                FROM ${src.table}
                 WHERE ma_bcvh IN (${placeholders})
                 GROUP BY month_start
                 ORDER BY month_start ASC
@@ -442,22 +466,22 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(rows || []);
             });
-        });
+        }));
     }
 
     // Per custom week (Thu..Wed) x BCVH volume/passed over an inclusive date range, one GROUP BY pass.
     // Same COUNT(ma_bg) / danh_gia_2026 = 'Đạt' definition as the weekly comparison.
     getBcvhWeeklyTrendAggregate(fromDate, toDate, canonicalCodes = []) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getBcvhWeeklyTrendAggregate', (src) => new Promise((resolve, reject) => {
             if (!canonicalCodes.length) return resolve([]);
             const placeholders = canonicalCodes.map(() => '?').join(', ');
             const sql = `
                 SELECT
                     date(ngay_do_kiem, '-' || ((CAST(strftime('%w', ngay_do_kiem) AS INTEGER) - 4 + 7) % 7) || ' days') AS week_start,
                     ma_bcvh,
-                    SUM(CASE WHEN ma_bg IS NOT NULL THEN 1 ELSE 0 END) AS volume,
-                    SUM(CASE WHEN ma_bg IS NOT NULL AND danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed
-                FROM fact_f13
+                    ${src.count()} AS volume,
+                    ${src.passed()} AS passed
+                FROM ${src.table}
                 WHERE ma_bcvh IN (${placeholders})
                   AND ngay_do_kiem BETWEEN ? AND ?
                 GROUP BY week_start, ma_bcvh
@@ -467,7 +491,7 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(rows || []);
             });
-        });
+        }));
     }
 
     // Two arbitrary (not necessarily adjacent) custom weeks, aggregated per BCVH in one query.
@@ -477,18 +501,18 @@ class FactBuuGuiRepository {
     // weekABounds/weekBBounds: { from, to } inclusive ISO dates, already resolved by the service
     // (to = min(planned Wednesday, real last data date) -- never a date with no data behind it).
     getBcvhWeeklyComparisonAggregate(weekABounds, weekBBounds, canonicalCodes = []) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getBcvhWeeklyComparisonAggregate', (src) => new Promise((resolve, reject) => {
             if (!canonicalCodes.length) return resolve([]);
             const placeholders = canonicalCodes.map(() => '?').join(', ');
             const sql = `
                 SELECT
                     ma_bcvh,
                     MAX(ten_bcvh) AS ten_bcvh,
-                    SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ma_bg IS NOT NULL THEN 1 ELSE 0 END) AS volume_a,
-                    SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ma_bg IS NOT NULL AND danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed_a,
-                    SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ma_bg IS NOT NULL THEN 1 ELSE 0 END) AS volume_b,
-                    SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND ma_bg IS NOT NULL AND danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed_b
-                FROM fact_f13
+                    ${src.count('ngay_do_kiem BETWEEN ? AND ?')} AS volume_a,
+                    ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_a,
+                    ${src.count('ngay_do_kiem BETWEEN ? AND ?')} AS volume_b,
+                    ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_b
+                FROM ${src.table}
                 WHERE ma_bcvh IN (${placeholders})
                   AND (ngay_do_kiem BETWEEN ? AND ? OR ngay_do_kiem BETWEEN ? AND ?)
                 GROUP BY ma_bcvh
@@ -506,7 +530,7 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(rows || []);
             });
-        });
+        }));
     }
 
     getRouteRanking(date, bcvh, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc', options = {}) {
@@ -1124,7 +1148,7 @@ class FactBuuGuiRepository {
     }
 
     getDailyTrendData(fromDate, toDate, filters = {}) {
-        return new Promise((resolve, reject) => {
+        return this._withSource('getDailyTrendData', (src) => new Promise((resolve, reject) => {
             const params = [fromDate, toDate];
             const bcvhClause = filters.bcvhId ? ' AND ma_bcvh = ?' : '';
             if (filters.bcvhId) params.push(filters.bcvhId);
@@ -1140,10 +1164,10 @@ class FactBuuGuiRepository {
                 agg AS (
                     SELECT
                         ngay_do_kiem AS date_value,
-                        COUNT(*) AS total_volume,
-                        SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                        SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
-                    FROM fact_f13
+                        ${src.rows()} AS total_volume,
+                        ${src.passed()} AS passed,
+                        ${src.failed()} AS failed
+                    FROM ${src.table}
                     WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                     ${bcvhClause}
                     GROUP BY ngay_do_kiem
@@ -1170,7 +1194,7 @@ class FactBuuGuiRepository {
                 if (err) reject(err);
                 else resolve(rows);
             });
-        });
+        }));
     }
 }
 

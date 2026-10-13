@@ -48,3 +48,7 @@ Operations: restart the backend so imports keep the aggregate current (an old pr
 ## 8. Phase 2 step P2.1 delivered - F4.1 read path (2026-10-13)
 
 F4.1 aggregate reads go through `aggReadPolicy` (`off` default | `shadow` | `on`, env `QIS_AGG_READ_F41`) with a row-count fuse; one SQL per query built from `aggSqlSource` (detail or aggregate). Evidence: `scripts/agg_compare.js` on the real DB 274 calls / 0 differences (64.5 s -> 0.2 s); `test_aggReadF41.js` 6/6; service reconciliation identical in `on`; unchanged behaviour while the mode is `off`. Enable on the server: set `QIS_AGG_READ_F41=shadow` (answers from detail, logs `[agg-shadow]` lines on any difference), watch a working day, then `on`; roll back by unsetting the variable and restarting. Details: design Section 13. Next: P2.2 (F1.3).
+
+## 9. Phase 2 step P2.2 delivered - F1.3 read path (2026-10-13)
+
+Same switch as F4.1, env `QIS_AGG_READ_F13` (`off` default | `shadow` | `on`), row-count fuse; 11 aggregate methods of `FactBuuGuiRepository` converted (route/evidence/rule-engine facts stay on the detail table, Q3). Evidence: real-DB comparison 317 calls / 0 differences (59.3 s -> 1.1 s); `test_aggReadF13.js` 5/5; F4.1 suite still 6/6; no new failures in the existing F1.3 suites (pre-existing failures reproduce identically on HEAD). Enabling: `QIS_AGG_READ_F13=shadow` then `on`, restart to apply. Details: design Section 14. Next: P2.3 (F1.1).

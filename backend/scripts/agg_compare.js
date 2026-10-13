@@ -77,6 +77,21 @@ async function compareIndicator(repo, indicator, data, opts = {}) {
             add(`getBcvhWeeklyComparisonAggregate ${a.from} vs ${b.from} ${tag}`, () => repo.getBcvhWeeklyComparisonAggregate(a, b, codes));
         }
     }
+    // F1.3 only: routes block, BCVH ranking page, per-date metrics, latest data date.
+    if (typeof repo.getBcvhOverviewRoutes === 'function' && indicator === 'F1.3') {
+        for (const anchor of heavyAnchors) {
+            add(`getBcvhOverviewRoutes ${anchor}`, () => repo.getBcvhOverviewRoutes(anchor, data.codes));
+        }
+        for (const anchor of lightAnchors) {
+            const from = addDays(anchor, -10);
+            add(`getBcvhRanking ${from}..${anchor} p1`, () => repo.getBcvhRanking(from, anchor, 1, 20, 'total_bg', 'desc'));
+            add(`getBcvhRanking ${anchor}..${anchor} p1 passed`, () => repo.getBcvhRanking(anchor, anchor, 1, 3, 'total_passed', 'asc'));
+            add(`getBcvhOperationMetricsByDate ${anchor}`, () => repo.getBcvhOperationMetricsByDate(anchor));
+            add(`getLatestBcvhDataDateInRange ${from}..${anchor}`, () => repo.getLatestBcvhDataDateInRange(from, anchor));
+        }
+        add('getBcvhRanking empty window', () => repo.getBcvhRanking('1999-01-01', '1999-01-31', 1, 20, 'total_bg', 'desc'));
+        add('getLatestBcvhDataDateInRange empty window', () => repo.getLatestBcvhDataDateInRange('1999-01-01', '1999-01-31'));
+    }
     add('getBcvhOverviewMonthly beyond max', () => repo.getBcvhOverviewMonthly(addDays(max, 40), data.codes));
     add('getBcvhOverviewMonthly before min', () => repo.getBcvhOverviewMonthly(addDays(min, -40), data.codes));
     add('getBcvhOperationMetricsBetween empty window', () => repo.getBcvhOperationMetricsBetween('1999-01-01', '1999-01-31', data.codes));
@@ -91,9 +106,11 @@ async function compareIndicator(repo, indicator, data, opts = {}) {
     add('getKpiMetrics full range', () => repo.getKpiMetrics(min, max, {}));
     add('getKpiMetrics empty window', () => repo.getKpiMetrics('1999-01-01', '1999-01-31', {}));
     add('getDailyTrendData empty window', () => repo.getDailyTrendData('1999-01-01', '1999-01-05', {}));
-    add('getMeta', () => repo.getMeta());
-    add('hasNonCanonicalBcvhRows all', () => repo.hasNonCanonicalBcvhRows(data.codes));
-    add('hasNonCanonicalBcvhRows subset', () => repo.hasNonCanonicalBcvhRows(data.codes.slice(0, 2)));
+    if (typeof repo.getMeta === 'function') add('getMeta', () => repo.getMeta());
+    if (typeof repo.hasNonCanonicalBcvhRows === 'function') {
+        add('hasNonCanonicalBcvhRows all', () => repo.hasNonCanonicalBcvhRows(data.codes));
+        add('hasNonCanonicalBcvhRows subset', () => repo.hasNonCanonicalBcvhRows(data.codes.slice(0, 2)));
+    }
 
     const previous = process.env[envKey];
     const report = { compared: 0, mismatches: [], factMs: 0, aggMs: 0, byMethod: new Map() };
@@ -137,19 +154,30 @@ async function main() {
     const arg = (name, fallback) => { const i = argv.indexOf(`--${name}`); return i >= 0 ? argv[i + 1] : fallback; };
     const indicator = arg('indicator', 'F4.1');
     const heavy = Number(arg('heavy', 4));
-    if (indicator !== 'F4.1') {
-        console.error(`P2.1 only wires F4.1 so far (asked: ${indicator}).`);
+    const CONFIG = {
+        'F4.1': {
+            table: 'fact_f41', unit: 'ma_bc_phat',
+            load: () => require('../src/repositories/FactF41Repository').factF41Repository,
+        },
+        'F1.3': {
+            table: 'fact_f13', unit: 'ma_bcvh',
+            load: () => require('../src/repositories/FactBuuGuiRepository'),
+        },
+    };
+    const config = CONFIG[indicator];
+    if (!config) {
+        console.error(`Not wired yet: ${indicator} (available: ${Object.keys(CONFIG).join(', ')}).`);
         process.exit(2);
     }
     const { all } = require('../src/config/db');
-    const { factF41Repository } = require('../src/repositories/FactF41Repository');
-    const dates = (await all('SELECT DISTINCT ngay_do_kiem AS d FROM fact_f41 ORDER BY d')).map((r) => r.d);
+    const repository = config.load();
+    const dates = (await all(`SELECT DISTINCT ngay_do_kiem AS d FROM ${config.table} ORDER BY d`)).map((r) => r.d);
     const codes = (await all(
-        `SELECT ma_bc_phat AS c, COUNT(*) AS n FROM fact_f41 WHERE ma_bc_phat IS NOT NULL AND TRIM(ma_bc_phat) <> '' GROUP BY ma_bc_phat ORDER BY n DESC LIMIT 7`
+        `SELECT ${config.unit} AS c, COUNT(*) AS n FROM ${config.table} WHERE ${config.unit} IS NOT NULL AND TRIM(${config.unit}) <> '' GROUP BY ${config.unit} ORDER BY n DESC LIMIT 7`
     )).map((r) => r.c);
-    await policy.aggUsable('F4.1', require('../src/config/db').db, { force: true });
+    await policy.aggUsable(indicator, require('../src/config/db').db, { force: true });
     console.log(`Comparing ${indicator}: ${dates.length} days ${dates[0]}..${dates[dates.length - 1]}, ${codes.length} units, heavy anchors ${heavy}`);
-    const report = await compareIndicator(factF41Repository, indicator, { dates, codes, unitFor: codes[0] }, { heavy, light: 10 });
+    const report = await compareIndicator(repository, indicator, { dates, codes, unitFor: codes[0] }, { heavy, light: 10 });
     console.log(`\nCompared ${report.compared} calls: ${report.mismatches.length} mismatch(es)`);
     console.log(`Total time  detail ${(report.factMs / 1000).toFixed(1)} s   aggregate ${(report.aggMs / 1000).toFixed(1)} s\n`);
     console.log('method'.padEnd(36), 'calls', 'detail avg ms', 'agg avg ms');

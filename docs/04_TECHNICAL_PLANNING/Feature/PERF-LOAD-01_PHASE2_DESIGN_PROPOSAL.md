@@ -255,3 +255,17 @@ Khác biệt so với thiết kế ban đầu (đã chủ động, ghi để Opu
 - Hồi quy: `FactF41Repository.test.js` 4/4, `F41RankingController` 5/5, `F41DashboardController` 14/14, `F41RankingService` 11/11, `test_f41DashboardMinimum.js` qua; bộ test cache Phase 1 qua (vân tay cache thêm bốn bảng `agg_*`).
 
 **Mặc định vẫn là `off`**: giao mã này không đổi hành vi cho đến khi đặt `QIS_AGG_READ_F41=shadow` rồi `on`.
+
+## 14. Ghi nhận triển khai P2.2 - F1.3 (2026-10-13)
+
+**Nguồn F1.3** (`aggSqlSource`, `countNotNullColumn: 'ma_bg'`, `failedMode: 'strict'`): khối lượng = `COUNT(ma_bg)` ⇒ `n_bg`; "không đạt" = đúng `'Không đạt'` ⇒ `n_khong_dat` (khác F4.1 là "không phải đạt"); thêm `nopTien` ⇒ `n_nop_tien`; `rows()` ⇒ `n_rows` cho chuỗi xu hướng ngày đếm theo dòng. Các điều kiện `ma_bg IS NOT NULL` được giữ trong câu đếm theo kỳ; vì `ma_bg` và `ma_bcvh` là `NOT NULL` trong schema nên `n_dat` chính xác.
+
+**Đã chuyển (11 phương thức, FactBuuGuiRepository):** `getKpiMetrics`, `getBcvhRanking`, `getBcvhOperationMetricsByDate`, `getLatestBcvhDataDateInRange`, `getBcvhOperationMetricsBetween`, `getBcvhOverview{Monthly,Daily,Mtd,Routes}`, `getBcvhWeeksList`, `getBcvhMonthsList`, `getBcvhWeeklyTrendAggregate`, `getBcvhWeeklyComparisonAggregate`, `getDailyTrendData`. Việc chuyển được làm **bằng phép thay thế biểu thức theo bảng quy đổi trên chính văn bản SQL hiện có** (cấu trúc CTE, thứ tự cột, ORDER BY giữ nguyên), kèm xác nhận không còn `fact_f13` trần trong các phương thức đã chuyển.
+
+**Giữ trên bảng chi tiết (Q3):** `getRouteRanking`, `getRouteRankingFacts`, `getRoutePeriodDailyFacts`, `getRoutePeriodPreviousMonth`, `getRouteScopeReconciliation`, toàn bộ `evidence*`, `getParetoData`, `getFactByDate/Between`, `getLatestImportMeta`, đường ghi cũ.
+
+### 14.1 Bằng chứng
+- `scripts/agg_compare.js --indicator F1.3` trên DB thật: **317 lời gọi, 0 sai khác**; cộng dồn 59,3 s (bảng chi tiết) so với 1,1 s (bảng tổng hợp).
+- `test_aggReadF13.js` 5/5 trên dữ liệu tổng hợp khó: tuyến `53xxx`/`54xxx`/NULL/rỗng, đánh giá NULL và khoảng trắng, thời gian nộp tiền có/trống/NULL, ngày thiếu, đơn vị thiếu theo ngày, đổi tên, nhập bổ sung; ma trận > 600 lời gọi, dấu hiệu "đang đọc bảng tổng hợp", cầu chì lệch tổng, cầu chì thiếu bảng, shadow.
+- Hồi quy: bộ test repository/service/controller F1.3 cho kết quả **giống hệt** ở `off` và ở mã nguồn trước thay đổi (đối chiếu baseline `git show HEAD`): các test đang hỏng từ trước (`F13DashboardService.routeRanking/routeDelayedCash/recovery`, `DashboardController.r6/recovery/routePeriods/evidenceDrilldown`, `test_bcvhMonthToDateContract`, `test_dashboardNationalRankRange`) hỏng đúng như cũ, không có lỗi mới ở `off`.
+- Ở `QIS_AGG_READ=on` có hai test đổi kết quả (`FactBuuGuiRepository.r4`, một ca của `DashboardController.dateFilterRemediation`): chúng thay `db.get` bằng bản giả và đếm số lần gọi; cầu chì thêm một lần `db.get` nên số đếm lệch. Đây là giả định của test, không phải khác biệt dữ liệu; mặc định `off` không bị ảnh hưởng.
