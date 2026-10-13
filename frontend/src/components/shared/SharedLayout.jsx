@@ -49,7 +49,9 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
   });
   const [hoveredGroups, setHoveredGroups] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
-  const navGroups = getNavigationForRole(user?.role);
+  // Memoized: the effect below depends on navGroups; a fresh array on every render re-ran it forever
+  // (setPinnedGroups -> render -> new navGroups -> effect ...), which blanked every module page.
+  const navGroups = useMemo(() => getNavigationForRole(user?.role), [user?.role]);
 
   const togglePinGroup = (groupTitle) => {
     setPinnedGroups((prev) => ({
@@ -95,7 +97,9 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
               next[sub.title || sub.name] = true;
             }
           });
-          return next;
+          // Nothing new to pin: keep the same state object so React does not re-render.
+          const unchanged = Object.keys(next).every((key) => prev[key] === next[key]);
+          return unchanged ? prev : next;
         });
       }
     });
