@@ -21,7 +21,7 @@ import { formatGap } from '../homeTableSort.js';
  * 1. Current quality rate (large, bold, color-toned)
  * 2. National rank x/34 (prominent rank badge)
  * 3. Gap to indicator target (points)
- * 4. Day-over-Day change (rate change & rank movement)
+ * 4. Day-over-Day change (rate change & rank movement; null is "—", never fake 0 / Giữ hạng)
  * 5. Distinct data date badge
  * 6. Target line reference (95% for F1.1/F1.2, 90% for F1.3/F4.1)
  */
@@ -51,14 +51,14 @@ export default function ExecutiveIndicatorCard({
         <div
           ref={cardRef}
           onClick={onSelect}
-          className={`relative rounded-2xl border p-5 transition-all duration-200 cursor-pointer ${
+          className={`relative rounded-2xl border p-4 transition-all duration-200 cursor-pointer ${
             isSelected
               ? 'border-slate-400 bg-white shadow-md ring-2 ring-slate-400'
               : 'border-slate-200/80 bg-white/80 shadow-2xs hover:shadow-md hover:border-slate-300'
           }`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
             <div className="flex items-center gap-2">
               <span className={`h-3 w-1.5 rounded-full ${theme.accentBar}`} />
               <h3 className="text-base font-black text-slate-900 tracking-tight">
@@ -76,12 +76,12 @@ export default function ExecutiveIndicatorCard({
           </div>
 
           {/* Unavailable state */}
-          <div className="py-8 text-center space-y-2">
-            <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <AlertTriangle size={20} />
+          <div className="py-7 text-center space-y-1.5">
+            <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <AlertTriangle size={18} />
             </div>
-            <div className="text-sm font-bold text-slate-700">Chưa có dữ liệu</div>
-            <p className="text-xs text-slate-500 max-w-xs mx-auto">
+            <div className="text-xs font-bold text-slate-700">Chưa có dữ liệu</div>
+            <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
               {data?.message || 'Chưa có dữ liệu đo kiểm chi tiết cho ngày này.'}
             </p>
           </div>
@@ -105,25 +105,25 @@ export default function ExecutiveIndicatorCard({
       <div
         ref={cardRef}
         onClick={onSelect}
-        className={`group relative rounded-2xl border p-5 transition-all duration-200 cursor-pointer ${
+        className={`group relative rounded-2xl border p-4 transition-all duration-200 cursor-pointer ${
           isSelected
             ? `border-slate-900 bg-white shadow-lg ring-2 ${theme.ring}`
             : 'border-slate-200/90 bg-white shadow-xs hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5'
         }`}
       >
         {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div className="flex items-center gap-1.5">
             <span className={`h-3 w-1.5 rounded-full ${theme.accentBar}`} />
             <h3 className="text-base font-black text-slate-900 tracking-tight">
               {data.label}
             </h3>
             <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${theme.chip}`}>
-              Mục tiêu {targetRate}%
+              MT {targetRate}%
             </span>
           </div>
 
-          <div data-no-capture="true" className="flex items-center gap-1.5">
+          <div data-no-capture="true" className="flex items-center gap-1">
             <BlockCaptureButton
               targetRef={cardRef}
               blockTitle={`Chỉ tiêu ${data.label}`}
@@ -133,36 +133,36 @@ export default function ExecutiveIndicatorCard({
         </div>
 
         {/* Core KPI Area: Rate & National Rank */}
-        <div className="mt-4 grid grid-cols-2 gap-3 items-stretch">
+        <div className="mt-3 grid grid-cols-2 gap-2.5 items-stretch">
           {/* Quality Rate */}
-          <div className="rounded-xl bg-slate-50/80 p-3.5 border border-slate-100 flex flex-col justify-between">
+          <div className="rounded-xl bg-slate-50/90 p-2.5 border border-slate-100 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 Tỷ lệ đạt
               </span>
               {isTargetMet ? (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-sm border border-emerald-200">
-                  <Sparkles size={10} /> Đạt
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-1 py-0.2 rounded border border-emerald-200">
+                  <Sparkles size={9} /> Đạt
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-sm border border-rose-200">
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-rose-700 bg-rose-100/70 px-1 py-0.2 rounded border border-rose-200">
                   Chưa đạt
                 </span>
               )}
             </div>
 
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 tabular-nums">
+            <div className="my-1 flex items-baseline gap-1">
+              <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 tabular-nums">
                 {rate != null ? `${rate.toFixed(1)}` : '—'}
               </span>
-              <span className="text-base font-extrabold text-slate-500">%</span>
+              <span className="text-xs font-extrabold text-slate-500">%</span>
             </div>
 
             {/* Gap to target */}
-            <div className="mt-2 text-xs flex items-center justify-between pt-1.5 border-t border-slate-200/60">
-              <span className="text-[11px] text-slate-500 font-medium">Chênh mục tiêu:</span>
+            <div className="text-[11px] flex items-center justify-between pt-1 border-t border-slate-200/60 font-medium text-slate-500">
+              <span>Chênh MT:</span>
               <span
-                className={`text-[11px] font-black tabular-nums ${
+                className={`font-black tabular-nums ${
                   isTargetMet ? 'text-emerald-700' : 'text-rose-600'
                 }`}
               >
@@ -172,36 +172,38 @@ export default function ExecutiveIndicatorCard({
           </div>
 
           {/* National Rank */}
-          <div className="rounded-xl bg-rose-50/40 p-3.5 border border-rose-100/80 flex flex-col justify-between">
+          <div className="rounded-xl bg-rose-50/50 p-2.5 border border-rose-100/90 flex flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">
-                Vị thứ toàn quốc
+                Vị thứ TQ
               </span>
-              <Award size={14} className="text-rose-500 shrink-0" />
+              <Award size={13} className="text-rose-500 shrink-0" />
             </div>
 
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black tracking-tight text-rose-600 tabular-nums">
+            <div className="my-1 flex items-baseline gap-1">
+              <span className="text-2xl sm:text-3xl font-black tracking-tight text-rose-600 tabular-nums">
                 {rank != null ? rank : '—'}
               </span>
-              <span className="text-sm font-bold text-rose-400">/{total}</span>
+              <span className="text-xs font-bold text-rose-400">/{total}</span>
             </div>
 
-            {/* Rank Movement */}
-            <div className="mt-2 text-xs flex items-center justify-between pt-1.5 border-t border-rose-200/60">
-              <span className="text-[11px] text-slate-500 font-medium">Biến động bậc:</span>
-              <div className="flex items-center gap-1 font-bold text-[11px] tabular-nums">
-                {rankMovement != null && rankMovement > 0 ? (
+            {/* Rank Movement: null must show "—", only 0 means "Giữ hạng" */}
+            <div className="text-[11px] flex items-center justify-between pt-1 border-t border-rose-200/60 font-medium text-slate-500">
+              <span>Biến động:</span>
+              <div className="font-bold tabular-nums">
+                {rankMovement === null || rankMovement === undefined ? (
+                  <span className="text-slate-400 font-bold">—</span>
+                ) : rankMovement > 0 ? (
                   <span className="text-emerald-700 inline-flex items-center gap-0.5">
-                    <ArrowUp size={12} /> +{rankMovement} bậc
+                    <ArrowUp size={11} /> +{rankMovement} bậc
                   </span>
-                ) : rankMovement != null && rankMovement < 0 ? (
+                ) : rankMovement < 0 ? (
                   <span className="text-rose-600 inline-flex items-center gap-0.5">
-                    <ArrowDown size={12} /> {rankMovement} bậc
+                    <ArrowDown size={11} /> {rankMovement} bậc
                   </span>
                 ) : (
                   <span className="text-slate-500 inline-flex items-center gap-0.5">
-                    <Minus size={12} /> Giữ hạng
+                    <Minus size={11} /> Giữ hạng
                   </span>
                 )}
               </div>
@@ -210,38 +212,40 @@ export default function ExecutiveIndicatorCard({
         </div>
 
         {/* Bottom Context: DoD Rate Change & Data Date */}
-        <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-          {/* Rate DoD Change */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-500 font-medium">So hôm trước:</span>
-            {rateChange != null && rateChange > 0 ? (
-              <span className="inline-flex items-center gap-0.5 font-bold text-emerald-700 text-[11px]">
-                <TrendingUp size={13} /> +{rateChange.toFixed(1)}%
+        <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+          {/* Rate DoD Change: null must show "—", only 0 means "0.0%" */}
+          <div className="flex items-center gap-1 text-[11px]">
+            <span className="text-slate-500 font-medium">So hôm trước:</span>
+            {rateChange === null || rateChange === undefined ? (
+              <span className="text-slate-400 font-bold">—</span>
+            ) : rateChange > 0 ? (
+              <span className="inline-flex items-center gap-0.5 font-bold text-emerald-700">
+                <TrendingUp size={12} /> +{rateChange.toFixed(1)}%
               </span>
-            ) : rateChange != null && rateChange < 0 ? (
-              <span className="inline-flex items-center gap-0.5 font-bold text-rose-600 text-[11px]">
-                <TrendingDown size={13} /> {rateChange.toFixed(1)}%
+            ) : rateChange < 0 ? (
+              <span className="inline-flex items-center gap-0.5 font-bold text-rose-600">
+                <TrendingDown size={12} /> {rateChange.toFixed(1)}%
               </span>
             ) : (
-              <span className="inline-flex items-center gap-0.5 font-bold text-slate-500 text-[11px]">
-                <Minus size={13} /> 0.0%
+              <span className="inline-flex items-center gap-0.5 font-bold text-slate-500">
+                <Minus size={12} /> 0.0%
               </span>
             )}
           </div>
 
           {/* Individual Data Date */}
           <div
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md"
+            className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded"
             title={`Ngày số liệu của chỉ tiêu ${data.label}: ${dateLabel}`}
           >
-            <Calendar size={11} className="text-slate-400" />
+            <Calendar size={10} className="text-slate-400" />
             <span>{dateLabel}</span>
           </div>
         </div>
 
         {/* Selection indicator pill */}
         {isSelected && (
-          <div className="mt-3 flex items-center justify-center">
+          <div className="mt-2.5 flex items-center justify-center">
             <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
               ● Đang xem chi tiết bên dưới
             </span>

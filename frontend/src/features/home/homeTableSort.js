@@ -6,9 +6,19 @@ export { nextSortState };
 export const RANKING_TEXT_FIELDS = Object.freeze(['ma_tinh', 'ten_tinh']);
 export const LOWEST_UNITS_TEXT_FIELDS = Object.freeze(['ma_bcvh', 'ten_bcvh']);
 
+export const INDICATOR_FULL_NAMES = Object.freeze({
+  f11: 'Toàn trình nội tỉnh',
+  f12: 'Thu gom liên tỉnh',
+  f13: 'Phát liên tỉnh',
+  f41: 'Phát thành công bưu cục',
+});
+
 /**
  * Format rank movement for display.
- * Positive movement means rank improved (moved towards rank 1, e.g. from 15 to 12 is +3).
+ * - Positive movement (> 0): improved rank, e.g. "+3"
+ * - Negative movement (< 0): dropped rank, e.g. "-2"
+ * - Zero movement (=== 0): no change, "0"
+ * - Null / undefined: missing data, "—"
  */
 export function formatRankMovement(movement) {
   if (movement === null || movement === undefined || Number.isNaN(Number(movement))) {
@@ -17,7 +27,24 @@ export function formatRankMovement(movement) {
   const val = Number(movement);
   if (val > 0) return `+${val}`;
   if (val < 0) return `${val}`;
-  return '—';
+  return '0';
+}
+
+/**
+ * Format rate DoD change.
+ * - Positive (> 0): "+1.2%"
+ * - Negative (< 0): "-1.2%"
+ * - Zero (=== 0): "0.0%"
+ * - Null / undefined: "—" (never fake 0.0%)
+ */
+export function formatRateChange(rateChange) {
+  if (rateChange === null || rateChange === undefined || Number.isNaN(Number(rateChange))) {
+    return '—';
+  }
+  const val = Number(rateChange);
+  const formatted = val.toFixed(1);
+  if (val > 0) return `+${formatted}%`;
+  return `${formatted}%`;
 }
 
 /**
@@ -31,6 +58,29 @@ export function formatGap(gap) {
   const formatted = val.toFixed(1);
   if (val > 0) return `+${formatted}%`;
   return `${formatted}%`;
+}
+
+/**
+ * Compute sensible Y domain for trend chart.
+ * Follows the data points dynamically while always including targetRate and 100% ceiling.
+ * Never clips low points (e.g. 22.2%, 38.1%).
+ * Returns [floor, 100].
+ */
+export function computeTrendYDomain(points = [], targetRate = 90) {
+  const rates = (points || [])
+    .map((p) => p?.rate)
+    .filter((r) => r !== null && r !== undefined && Number.isFinite(Number(r)))
+    .map((r) => Number(r));
+
+  const validTarget = Number.isFinite(Number(targetRate)) ? Number(targetRate) : 90;
+  if (!rates.length) {
+    return [Math.max(0, validTarget - 30), 100];
+  }
+
+  const minRate = Math.min(...rates, validTarget);
+  // Sensible floor: round down minRate - 5 to nearest multiple of 10, clamped at 0
+  const floor = minRate <= 10 ? 0 : Math.max(0, Math.floor((minRate - 5) / 10) * 10);
+  return [floor, 100];
 }
 
 /**

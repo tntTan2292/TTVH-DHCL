@@ -45,7 +45,7 @@ export default function ExecutiveDateBar({
             </span>
           </div>
           <p className="text-xs font-medium text-slate-500">
-            Theo dõi tức thời 04 chỉ tiêu cốt lõi: F1.1 (Thu gom nội tỉnh), F1.2 (Thu gom liên tỉnh), F1.3 (Phát nội tỉnh), F4.1 (Phát liên tỉnh).
+            Theo dõi tức thời 04 chỉ tiêu cốt lõi: F1.1 (Toàn trình nội tỉnh), F1.2 (Thu gom liên tỉnh), F1.3 (Phát liên tỉnh), F4.1 (Phát thành công bưu cục).
           </p>
         </div>
 

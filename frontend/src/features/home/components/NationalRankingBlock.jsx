@@ -11,6 +11,10 @@ import {
 } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
+import {
+  classifyF13HeatmapRate,
+  F13_HEATMAP_TONE_CLASS,
+} from '../../../components/f13/f13HeatmapBandCatalog.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
@@ -191,7 +195,7 @@ export default function NationalRankingBlock({
               <div className="mt-1">
                 {hue?.above ? (
                   <>
-                    <div className="text-xs font-bold text-slate-800 truncate">
+                    <div className="text-xs font-bold text-slate-800">
                       {hue.above.ten_tinh} (Hạng {hue.above.rank}) · {Number(hue.above.rate).toFixed(1)}%
                     </div>
                     <div className="mt-0.5 text-xs font-black text-amber-700">
@@ -310,7 +314,6 @@ export default function NationalRankingBlock({
                   const isHue = Boolean(item.is_hue);
                   const isTop3 = item.rank <= 3;
                   const itemRate = Number(item.rate);
-                  const metTarget = itemRate >= targetRate;
 
                   return (
                     <tr
@@ -355,17 +358,17 @@ export default function NationalRankingBlock({
 
                       {/* Rate */}
                       <td className="px-4 py-3 text-right tabular-nums">
-                        <span
-                          className={`font-black text-xs px-2 py-0.5 rounded-md border ${
-                            metTarget
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : itemRate >= targetRate - 10
-                              ? 'bg-amber-50 text-amber-800 border-amber-200'
-                              : 'bg-rose-50 text-rose-800 border-rose-200'
-                          }`}
-                        >
-                          {itemRate.toFixed(1)}%
-                        </span>
+                        {(() => {
+                          const band = classifyF13HeatmapRate(item.rate, indConfig.heatmapBands);
+                          const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
+                          return (
+                            <span
+                              className={`font-black text-xs px-2 py-0.5 rounded-md border ${toneClass}`}
+                            >
+                              {itemRate != null && Number.isFinite(itemRate) ? `${itemRate.toFixed(1)}%` : '—'}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Gap to target */}
@@ -387,17 +390,21 @@ export default function NationalRankingBlock({
 
                       {/* Rank Movement */}
                       <td className="px-4 py-3 text-center tabular-nums font-bold">
-                        {item.movement > 0 ? (
+                        {item.movement != null && item.movement > 0 ? (
                           <span className="inline-flex items-center gap-0.5 text-emerald-700">
                             <ArrowUp size={12} /> +{item.movement}
                           </span>
-                        ) : item.movement < 0 ? (
+                        ) : item.movement != null && item.movement < 0 ? (
                           <span className="inline-flex items-center gap-0.5 text-rose-600">
                             <ArrowDown size={12} /> {item.movement}
                           </span>
+                        ) : item.movement === 0 ? (
+                          <span className="text-slate-500 inline-flex items-center gap-0.5">
+                            <Minus size={12} /> 0
+                          </span>
                         ) : (
-                          <span className="text-slate-400 inline-flex items-center gap-0.5">
-                            <Minus size={12} />
+                          <span className="text-slate-400">
+                            —
                           </span>
                         )}
                       </td>

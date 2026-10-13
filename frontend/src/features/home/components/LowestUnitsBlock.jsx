@@ -20,7 +20,6 @@ export default function LowestUnitsBlock({
   const blockRef = useRef(null);
   const indConfig = INDICATORS[selectedIndicator] || INDICATORS.f11;
   const theme = indicatorTheme(indConfig);
-  const targetRate = indicatorData?.target_rate ?? indConfig.targetRate;
 
   const [sort, setSort] = useState({ field: 'rate', direction: 'asc' });
 

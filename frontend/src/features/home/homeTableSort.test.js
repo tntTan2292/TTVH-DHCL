@@ -2,19 +2,91 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   formatRankMovement,
+  formatRateChange,
   formatGap,
+  computeTrendYDomain,
   sortNationalRanking,
   filterProvincesByMode,
   sortLowestUnits,
-  RANKING_TEXT_FIELDS,
+  INDICATOR_FULL_NAMES,
 } from './homeTableSort.js';
+import {
+  classifyF13HeatmapRate,
+  F13_HEATMAP_TONE_CLASS,
+} from '../../components/f13/f13HeatmapBandCatalog.js';
+import {
+  F11_INDICATOR,
+  F12_INDICATOR,
+  F13_INDICATOR,
+  F41_INDICATOR,
+} from '../indicator/indicatorConfig.js';
 
-test('formatRankMovement formats positive, negative, zero and null correctly', () => {
+test('Defect 1: INDICATOR_FULL_NAMES matches the exact official system names', () => {
+  assert.equal(INDICATOR_FULL_NAMES.f11, 'Toàn trình nội tỉnh');
+  assert.equal(INDICATOR_FULL_NAMES.f12, 'Thu gom liên tỉnh');
+  assert.equal(INDICATOR_FULL_NAMES.f13, 'Phát liên tỉnh');
+  assert.equal(INDICATOR_FULL_NAMES.f41, 'Phát thành công bưu cục');
+});
+
+test('Defect 4: formatRankMovement distinguishes null (missing data = "—") from real 0 ("0")', () => {
   assert.equal(formatRankMovement(3), '+3');
   assert.equal(formatRankMovement(-2), '-2');
-  assert.equal(formatRankMovement(0), '—');
+  assert.equal(formatRankMovement(0), '0'); // real 0 means no change, not missing
   assert.equal(formatRankMovement(null), '—');
   assert.equal(formatRankMovement(undefined), '—');
+});
+
+test('Defect 4: formatRateChange distinguishes null (missing data = "—") from real 0.0 ("0.0%")', () => {
+  assert.equal(formatRateChange(1.5), '+1.5%');
+  assert.equal(formatRateChange(-0.8), '-0.8%');
+  assert.equal(formatRateChange(0), '0.0%');
+  assert.equal(formatRateChange(null), '—');
+  assert.equal(formatRateChange(undefined), '—');
+});
+
+test('Defect 2: computeTrendYDomain never clips low data points (e.g. F4.1 22.2%, F1.1 38.1%, F1.3 39.3%)', () => {
+  // Low real data point from F4.1: 22.2%
+  const domainF41 = computeTrendYDomain([{ rate: 22.2 }, { rate: 65.0 }], 90);
+  assert.equal(domainF41[1], 100);
+  assert.ok(domainF41[0] <= 20, `Floor ${domainF41[0]} must be <= 20 to avoid clipping 22.2%`);
+
+  // Low real data point from F1.1: 38.1%
+  const domainF11 = computeTrendYDomain([{ rate: 38.1 }, { rate: 80.0 }], 95);
+  assert.equal(domainF11[1], 100);
+  assert.ok(domainF11[0] <= 30, `Floor ${domainF11[0]} must be <= 30 to avoid clipping 38.1%`);
+
+  // Extremely low data point (5%)
+  const domainExtreme = computeTrendYDomain([{ rate: 5.0 }], 90);
+  assert.equal(domainExtreme[0], 0);
+  assert.equal(domainExtreme[1], 100);
+
+  // Normal high data points: sensible non-zero floor
+  const domainNormal = computeTrendYDomain([{ rate: 85.0 }, { rate: 92.5 }], 90);
+  assert.equal(domainNormal[1], 100);
+  assert.ok(domainNormal[0] >= 70 && domainNormal[0] <= 80);
+});
+
+test('Defect 3: Rate colours use shared catalogue with indicator-specific bands (F1.x: 70/60/50, F4.1: 80/70/60)', () => {
+  // F1.1, F1.2, F1.3 bands: 70 / 60 / 50
+  for (const ind of [F11_INDICATOR, F12_INDICATOR, F13_INDICATOR]) {
+    assert.equal(classifyF13HeatmapRate(75.0, ind.heatmapBands).tone, 'band-green');
+    assert.equal(classifyF13HeatmapRate(65.0, ind.heatmapBands).tone, 'band-pink');
+    assert.equal(classifyF13HeatmapRate(55.0, ind.heatmapBands).tone, 'band-yellow');
+    assert.equal(classifyF13HeatmapRate(45.0, ind.heatmapBands).tone, 'band-red');
+    assert.equal(classifyF13HeatmapRate(null, ind.heatmapBands).tone, 'unavailable');
+  }
+
+  // F4.1 bands: 80 / 70 / 60 (75.0% is yellow/pink in F4.1 but green in F1.x!)
+  assert.equal(classifyF13HeatmapRate(85.0, F41_INDICATOR.heatmapBands).tone, 'band-green');
+  assert.equal(classifyF13HeatmapRate(75.0, F41_INDICATOR.heatmapBands).tone, 'band-pink');
+  assert.equal(classifyF13HeatmapRate(65.0, F41_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(55.0, F41_INDICATOR.heatmapBands).tone, 'band-red');
+
+  // Verify tone class mappings exist in F13_HEATMAP_TONE_CLASS
+  assert.ok(F13_HEATMAP_TONE_CLASS['band-green'].includes('emerald'));
+  assert.ok(F13_HEATMAP_TONE_CLASS['band-pink'].includes('pink'));
+  assert.ok(F13_HEATMAP_TONE_CLASS['band-yellow'].includes('amber'));
+  assert.ok(F13_HEATMAP_TONE_CLASS['band-red'].includes('red'));
 });
 
 test('formatGap formats positive, negative, zero and null correctly', () => {
@@ -73,7 +145,6 @@ test('filterProvincesByMode returns top 3, neighbours around Hue, and bottom 3 i
   }));
 
   const focused = filterProvincesByMode(items, 'hue_focus');
-  // Top 3 (ranks 1, 2, 3), Hue neighbours (ranks 14, 15, 16, 17, 18), Bottom 3 (ranks 32, 33, 34)
   assert.ok(focused.length <= 11);
   assert.ok(focused.some((p) => p.is_hue));
   assert.ok(focused.some((p) => p.rank === 1));

@@ -25,21 +25,21 @@ export default function MonthlyRankProgressionBlock({
             <div className="flex items-center gap-2">
               <span className={`h-3 w-1.5 rounded-full ${theme.accentBar}`} />
               <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                DIỄN BIẾN VỊ THỨ TOÀN QUỐC THEO THÁNG (TỪ T1 ĐẾN NAY)
+                DIỄN BIẾN HẠNG LŨY KẾ THÁNG (TỪ T1 ĐẾN NAY)
               </h3>
               <span className={`rounded-md border px-2 py-0.5 text-xs font-bold ${theme.chip}`}>
                 {indConfig.moduleLabel}
               </span>
             </div>
             <p className="text-xs text-slate-500 font-medium">
-              Vị trí xếp hạng của BĐTP Huế theo từng tháng trong năm 2026.
+              Vị thứ theo báo cáo toàn quốc tính lũy kế theo từng tháng (tháng hiện tại tính lũy kế đến ngày chốt).
             </p>
           </div>
 
           <div data-no-capture="true" className="flex items-center gap-2">
             <BlockCaptureButton
               targetRef={blockRef}
-              blockTitle={`Diễn biến vị thứ theo tháng - ${indConfig.moduleLabel}`}
+              blockTitle={`Diễn biến hạng lũy kế tháng - ${indConfig.moduleLabel}`}
               dateOrPeriod="Từ T1 đến nay"
             />
           </div>

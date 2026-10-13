@@ -13,6 +13,7 @@ import { Award } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
+import { computeTrendYDomain } from '../homeTableSort.js';
 
 function TrendTooltip({ active, payload, label, targetRate, indicatorLabel }) {
   if (!active || !payload || !payload.length) return null;
@@ -77,6 +78,8 @@ function SingleIndicatorTrendChart({ indicatorData, rangeDays = 30 }) {
 
   const latestRate = indicatorData?.rate;
 
+  const yDomain = computeTrendYDomain(displayItems, targetRate);
+
   return (
     <IndicatorProvider indicator={indConfig}>
       <div
@@ -134,12 +137,11 @@ function SingleIndicatorTrendChart({ indicatorData, rangeDays = 30 }) {
                   interval="preserveStartEnd"
                 />
                 <YAxis
-                  domain={[40, 100]}
+                  domain={yDomain}
                   tickLine={false}
                   axisLine={false}
                   tick={{ fontSize: 10, fill: '#94A3B8' }}
                   tickFormatter={(val) => `${val}%`}
-                  ticks={[50, 70, 90, 95, 100]}
                 />
                 <Tooltip
                   content={

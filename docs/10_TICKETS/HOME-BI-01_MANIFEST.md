@@ -117,3 +117,16 @@ Checked on the restarted server with real data from `/api/home/*`: page loads, n
 Also: do not truncate the province name / rate in the "Mục tiêu vượt tỉnh xếp trên" callout; label the monthly rank strip "hạng lũy kế tháng" (the T10 value is month-to-date, not the day rank); remove the unused `targetRate` in `LowestUnitsBlock.jsx` and the unused import in `homeTableSort.test.js`.
 
 Add or extend unit tests for 2, 3 and 4 (pure helpers). Stop at `READY FOR PO CHECK`.
+
+### 8.1 Summary of Fixes (Antigravity, 2026-10-13)
+
+- **Lỗi 1 (Tên chỉ tiêu trong phụ đề)**: Cập nhật phụ đề `ExecutiveDateBar.jsx` chuẩn xác theo hệ thống: F1.1 (Toàn trình nội tỉnh), F1.2 (Thu gom liên tỉnh), F1.3 (Phát liên tỉnh), F4.1 (Phát thành công bưu cục). Định nghĩa `INDICATOR_FULL_NAMES` trong `homeTableSort.js`.
+- **Lỗi 2 (Trục biểu đồ xu hướng cắt số liệu)**: Thay thế domain cứng `[40, 100]` bằng helper thuần `computeTrendYDomain(points, targetRate)` trong `homeTableSort.js`. Trục Y tự động co giãn theo điểm thấp nhất (ví dụ F4.1 22.2% xuống floor 10, F1.1 38.1% xuống floor 30), luôn bao gồm vạch mục tiêu và chặn trên 100%.
+- **Lỗi 3 (Màu tỷ lệ bảng 34 tỉnh)**: Bỏ điều kiện ad-hoc `target - 10`. Tích hợp bộ màu dùng chung chuẩn `classifyF13HeatmapRate` và `F13_HEATMAP_TONE_CLASS` từ `f13HeatmapBandCatalog.js` theo đúng ngưỡng `heatmapBands` của từng chỉ tiêu (F1.1/F1.2/F1.3: 70/60/50; F4.1: 80/70/60).
+- **Lỗi 4 (Thiếu dữ liệu hiện "—" thay vì 0 / "Giữ hạng")**: Sửa `ExecutiveIndicatorCard.jsx` và cột biến động bảng 34 tỉnh: `rate_change === null` hiển thị "—" (chỉ 0 mới hiện "0.0%"), `rank_movement === null` hiển thị "—" (chỉ 0 mới hiện "Giữ hạng" / "0"). Bổ sung `formatRateChange` và cập nhật `formatRankMovement`.
+- **Lỗi 5 (Thẻ chỉ tiêu bị chật)**: Tái cấu trúc layout `ExecutiveIndicatorCard.jsx`, rút ngắn nhãn ("Tỷ lệ đạt", "Vị thứ TQ", "Chênh MT", "Biến động"), bỏ bớt lồng padding kép, cho phép 2 số to hiển thị thoáng đãng và không bị ngắt dòng 2–3 hàng ở 1440px khi menu mở.
+- **Các điểm nhỏ**:
+  - Bỏ `truncate` ở tên tỉnh/tỷ lệ trong callout "Mục tiêu vượt tỉnh xếp trên" (`NationalRankingBlock.jsx`).
+  - Gắn nhãn chuẩn "hạng lũy kế tháng" cho dải diễn biến tháng (`MonthlyRankProgressionBlock.jsx`).
+  - Xóa biến `targetRate` không dùng trong `LowestUnitsBlock.jsx` và import `RANKING_TEXT_FIELDS` không dùng trong `homeTableSort.test.js`.
+  - Mở rộng bộ kiểm thử tự động `homeTableSort.test.js` và `dashboardHome.test.js` kiểm tra lỗi 1, 2, 3, 4. Toàn bộ 690 tests pass xanh.
