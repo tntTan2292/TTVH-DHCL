@@ -23,12 +23,14 @@ const db = new sqlite3.Database(dbPath);
 // Per-connection settings only: no schema, index, or database-data mutation.
 // These run before repository work is queued on SQLite's serialized connection.
 // busy_timeout matches AutoBackfillQueueStore's own connection (autoBackfillQueueStore.js
-// PRAGMA busy_timeout=5000) so this shared connection waits out a brief writer lock from the
+// PRAGMA busy_timeout=30000) so this shared connection waits out a writer lock from the
 // queue store's separate connection instead of throwing SQLITE_BUSY immediately -- root cause
 // of the F4.1 2026-09-06/HUE auto-backfill job going FAILED_TERMINAL when a burst of new
 // auto_backfill_run/job rows was being written on that other connection at the same moment this
 // connection tried to commit the executor's completion write.
-db.exec('PRAGMA mmap_size = 268435456; PRAGMA threads = 4; PRAGMA busy_timeout = 5000;', (err) => {
+// 5 s was not enough: F4.1 HUE 2026-10-11 (3601 rows) still hit SQLITE_BUSY while several runs and a F1.2 auto-sync
+// were writing at once, so the bulk insert failed and the day was left as a FAILED import_log. 30 s.
+db.exec('PRAGMA mmap_size = 268435456; PRAGMA threads = 4; PRAGMA busy_timeout = 30000;', (err) => {
     if (err) console.warn('SQLite read-performance PRAGMA unavailable:', err.message);
 });
 

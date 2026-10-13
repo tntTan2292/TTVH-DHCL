@@ -99,7 +99,7 @@ class AutoBackfillQueueStore {
     async withDb(callback) {
         const db = await openDb(this.dbPath);
         try {
-            await exec(db, 'PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
+            await exec(db, 'PRAGMA foreign_keys=ON; PRAGMA busy_timeout=30000;');
             return await callback(db);
         } finally {
             await closeDb(db);

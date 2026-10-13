@@ -2341,3 +2341,7 @@ Shadow mode written to root .env (restart needed); next: one supervised shadow d
 ## 2026-10-13 - F12-TCT-PARSER-UNASSIGNED-ROW FIX
 
 F1.2 TCT parser no longer fails on files with code-less rows (parcels TCT could not assign to a province, 1-4 per day, ~65% of days): the grand total is found among the code-less rows by reconciliation (its position varies), the other code-less rows count in the total check but are not stored. 98 TCT auto-backfill jobs had gone FAILED_TERMINAL on this; all 169 downloaded files now parse. Backend restart and a new auto-sync run needed.
+
+## 2026-10-13 - AUTO-BACKFILL FAILED-IMPORT-ONLY DAYS + BUSY_TIMEOUT
+
+A day whose only import_log rows are FAILED and that holds no data (e.g. F4.1 HUE 2026-10-11, bulk insert hit SQLITE_BUSY) is now MISSING/queue-eligible (ONLY_FAILED_IMPORT_ATTEMPTS) instead of DATA_ERROR that Auto Backfill could never retry; a SUCCESS log without data still needs review. busy_timeout 5000 -> 30000 on the shared connection and the queue store. Backend restart needed.

@@ -301,6 +301,29 @@ test('AB-ISO-02 does not reuse HUE facts, log, or artifact for TCT', async () =>
     }
 });
 
+test('a day with only FAILED import attempts and no data is missing again, but a SUCCESS log without data still needs review', async () => {
+    const scanDay = async (statuses) => {
+        const fixture = await createIsolationFixture();
+        try {
+            for (const status of statuses) {
+                await fixture.db.run("INSERT INTO import_log (indicator, source_lane, ngay_do_kiem, status) VALUES ('F1.3', 'HUE', '2026-01-02', ?)", [status]);
+            }
+            const coverage = await new AutoBackfillCoverageService({ db: fixture.db, registryProvider: () => [fixture.registry[0]] })
+                .scan({ asOf: '2026-01-03', lane: 'HUE', roles: ['admin'] });
+            return coverage.items[0];
+        } finally {
+            await fixture.db.close();
+            fs.rmSync(fixture.root, { recursive: true, force: true });
+        }
+    };
+    const failedOnly = await scanDay(['FAILED', 'FAILED']);
+    assert.equal(failedOnly.status, 'INCOMPLETE');
+    assert.equal(failedOnly.completion_reason, 'ONLY_FAILED_IMPORT_ATTEMPTS');
+    const successWithoutData = await scanDay(['FAILED', 'SUCCESS']);
+    assert.equal(successWithoutData.status, 'DATA_ERROR');
+    assert.equal(successWithoutData.completion_reason, 'IMPORT_EVIDENCE_WITHOUT_TARGET_DATA');
+});
+
 test('PO policy: committed data with a FILE_MOVE_FAILED log is still SUCCESS -- data presence, not import source, decides completion', async () => {
     const fixture = await createIsolationFixture();
     try {

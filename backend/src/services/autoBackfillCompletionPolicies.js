@@ -132,6 +132,12 @@ function createSqliteImportCompletionPolicy({
                 };
             }
 
+            // Only failed import attempts and no data at all (e.g. a bulk insert that hit SQLITE_BUSY): nothing was
+            // committed and nothing needs review, so the day is simply still missing and may be queued again.
+            if (logs.length > 0 && failedLogCount === logs.length && !artifactPresent) {
+                return { status: COMPLETION_STATUSES.MISSING, reason: 'ONLY_FAILED_IMPORT_ATTEMPTS', evidence };
+            }
+
             if (logs.length > 0 || artifactPresent) {
                 return {
                     status: COMPLETION_STATUSES.INCOMPLETE,
