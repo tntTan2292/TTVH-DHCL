@@ -12,7 +12,8 @@ function loadNavigationModule() {
     .replace(/import\s*\{[^}]*\}\s*from\s*['"][^'"]*['"];?/g, '')
     .replace(/export\s+function/g, 'function');
 
-  sanitized += '\nglobalThis.ROOT_ITEMS = ROOT_ITEMS;\nglobalThis.getNavigationForRole = getNavigationForRole;\nglobalThis.getDashboardQuickLinks = getDashboardQuickLinks;\n';
+  // ROOT_ITEMS / getNavigationForRole are exposed as the module groups only; the flat Home entry is exposed apart.
+  sanitized += '\nglobalThis.ROOT_ITEMS = ROOT_ITEMS.filter((item) => item.subItems);\nglobalThis.HOME_ITEM = HOME_ITEM;\nconst fullNavigation = getNavigationForRole;\nglobalThis.getFullNavigationForRole = fullNavigation;\nglobalThis.getNavigationForRole = (role) => fullNavigation(role).filter((item) => item.subItems);\nglobalThis.getDashboardQuickLinks = getDashboardQuickLinks;\n';
 
   const context = {
     ROLE_ADMIN: 'admin',
@@ -199,4 +200,15 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
   const subItemsText = JSON.stringify(qualityItems);
   assert.equal(subItemsText.includes('/f13/pareto'), false, 'Pareto / RCA must be hidden from Sidebar.jsx');
   assert.equal(subItemsText.includes('/f13/message'), false, 'Message Center must be hidden from Sidebar.jsx');
+});
+
+test('Home - Dashboard is the first flat menu entry, points to / and is visible to every role', () => {
+  const { HOME_ITEM, getFullNavigationForRole } = loadNavigationModule();
+  assert.equal(HOME_ITEM.path, '/');
+  assert.match(HOME_ITEM.name, /Trang chủ/);
+  assert.equal(HOME_ITEM.subItems, undefined, 'the Home entry is a flat link, not a group');
+  for (const role of ['admin', 'viewer']) {
+    const nav = getFullNavigationForRole(role);
+    assert.equal(nav[0].path, '/', role + ' must see the Home entry first');
+  }
 });

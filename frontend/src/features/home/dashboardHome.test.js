@@ -17,15 +17,26 @@ test('HOME-BI-01: DashboardHome mounts executive and national-ranking endpoints'
   assert.match(homeSrc, /NationalRankingBlock/);
   assert.match(homeSrc, /MonthlyRankProgressionBlock/);
   assert.match(homeSrc, /LowestUnitsBlock/);
-  assert.match(homeSrc, /IndicatorTrendsGrid/);
+  // TV layout: the 30-day line of each indicator lives inside its own card, no separate trend block
+  assert.doesNotMatch(homeSrc, /IndicatorTrendsGrid/);
+  assert.match(homeSrc, /xl:grid-cols-4/);
 });
 
-test('Review Fix 1: ExecutiveDateBar has correct indicator official names in subtitle', () => {
-  const barSrc = readSource('./components/ExecutiveDateBar.jsx');
-  assert.match(barSrc, /F1\.1 \(Toàn trình nội tỉnh\)/);
-  assert.match(barSrc, /F1\.2 \(Thu gom liên tỉnh\)/);
-  assert.match(barSrc, /F1\.3 \(Phát liên tỉnh\)/);
-  assert.match(barSrc, /F4\.1 \(Phát thành công bưu cục\)/);
+test('Review Fix 1: indicator official names come from INDICATOR_FULL_NAMES, shown on each card', () => {
+  const names = readSource('./homeTableSort.js');
+  assert.match(names, /Toàn trình nội tỉnh/);
+  assert.match(names, /Thu gom liên tỉnh/);
+  assert.match(names, /Phát liên tỉnh/);
+  assert.match(names, /Phát thành công bưu cục/);
+  assert.match(readSource('./components/ExecutiveIndicatorCard.jsx'), /INDICATOR_FULL_NAMES/);
+});
+
+test('TV layout: ranking table defaults to Huế and neighbours, each card keeps its own 30-day line and target', () => {
+  const ranking = readSource('./components/NationalRankingBlock.jsx');
+  assert.match(ranking, /useState\('hue_focus'\)/);
+  const card = readSource('./components/ExecutiveIndicatorCard.jsx');
+  assert.match(card, /ReferenceLine/);
+  assert.match(card, /computeTrendYDomain/);
 });
 
 test('Review Fix 2: IndicatorTrendsGrid uses dynamic computeTrendYDomain and does not clip data below 40%', () => {

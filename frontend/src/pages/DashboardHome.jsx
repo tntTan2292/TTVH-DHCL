@@ -3,20 +3,18 @@ import api from '../api/client';
 import ExecutiveDateBar from '../features/home/components/ExecutiveDateBar.jsx';
 import ExecutiveIndicatorCard from '../features/home/components/ExecutiveIndicatorCard.jsx';
 import NationalRankingBlock from '../features/home/components/NationalRankingBlock.jsx';
-import IndicatorTrendsGrid from '../features/home/components/IndicatorTrendsGrid.jsx';
 import LowestUnitsBlock from '../features/home/components/LowestUnitsBlock.jsx';
 import MonthlyRankProgressionBlock from '../features/home/components/MonthlyRankProgressionBlock.jsx';
 
 /**
  * DashboardHome — Trang chủ điều hành chất lượng (HOME-BI-01)
  *
- * Dành riêng cho lãnh đạo Bưu điện tỉnh:
- * - Điều nhìn thấy đầu tiên: Tỷ lệ chất lượng và Vị thứ toàn quốc của 04 chỉ tiêu F1.1, F1.2, F1.3, F4.1.
- * - Tiêu thụ trực tiếp dữ liệu từ các API:
- *     GET /api/home/executive?anchor_date=
- *     GET /api/home/national-ranking?indicator=&period=&anchor_date=
- * - Tuân thủ nghiêm ngặt chuẩn khối báo cáo (report_block_ui_standard.md).
- * - Mỗi chỉ tiêu có thước đo và ngưỡng độc lập, không so sánh hay cộng gộp chéo.
+ * Built to be shown on a TV, on one screen without scrolling:
+ *   1. one-line control bar (anchor date, each indicator's loaded day);
+ *   2. four indicator cards (rate, national rank, gap to target, change, own 30-day line);
+ *   3. left: 34-province ranking (default "Huế & lân cận"); right: monthly rank + units to act on.
+ * Data: GET /api/home/executive and GET /api/home/national-ranking.
+ * Each indicator is its own measure: nothing is compared or summed across indicators.
  */
 export default function DashboardHome() {
   const [anchorDate, setAnchorDate] = useState(null);
@@ -34,7 +32,6 @@ export default function DashboardHome() {
   const execRequestSeqRef = useRef(0);
   const rankRequestSeqRef = useRef(0);
 
-  // 1. Fetch Executive data (4 indicators KPI, trends, lowest units, monthly rank)
   const fetchExecutive = useCallback(() => {
     const seq = ++execRequestSeqRef.current;
     setLoadingExecutive(true);
@@ -61,7 +58,6 @@ export default function DashboardHome() {
       });
   }, [anchorDate]);
 
-  // 2. Fetch National Ranking data for the selected indicator & period
   const fetchNationalRanking = useCallback(() => {
     const seq = ++rankRequestSeqRef.current;
     setLoadingRanking(true);
@@ -91,7 +87,6 @@ export default function DashboardHome() {
       });
   }, [anchorDate, selectedIndicator, rankingPeriod]);
 
-  // Trigger fetches
   useEffect(() => {
     fetchExecutive();
   }, [fetchExecutive]);
@@ -104,8 +99,7 @@ export default function DashboardHome() {
   const activeIndicatorData = indicators.find((ind) => ind.id === selectedIndicator) || indicators[0] || null;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-[1560px] mx-auto space-y-6">
-      {/* Top Control Bar: Date & freshness */}
+    <div className="mx-auto max-w-[1920px] space-y-3 p-3 sm:p-4 xl:p-5">
       <ExecutiveDateBar
         anchorDate={anchorDate}
         onAnchorDateChange={setAnchorDate}
@@ -117,15 +111,16 @@ export default function DashboardHome() {
         indicators={indicators}
       />
 
-      {/* Global Error Banner if executive endpoint fails */}
       {errorExecutive && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-center">
-          <div className="text-sm font-bold text-red-800">Không thể tải dữ liệu điều hành chất lượng</div>
-          <p className="mt-1 text-xs text-red-600">{errorExecutive}</p>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2">
+          <div className="text-xs">
+            <span className="font-bold text-red-800">Không thể tải dữ liệu điều hành chất lượng: </span>
+            <span className="text-red-600">{errorExecutive}</span>
+          </div>
           <button
             type="button"
             onClick={fetchExecutive}
-            className="mt-3 rounded-lg bg-red-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-red-800 cursor-pointer"
+            className="shrink-0 cursor-pointer rounded-lg bg-red-700 px-3 py-1 text-xs font-semibold text-white hover:bg-red-800"
           >
             Thử lại
           </button>
@@ -133,45 +128,37 @@ export default function DashboardHome() {
       )}
 
       {errorRanking && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
-          <div className="text-sm font-bold text-amber-800">Không thể tải dữ liệu xếp hạng toàn quốc</div>
-          <p className="mt-1 text-xs text-amber-600">{errorRanking}</p>
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2">
+          <div className="text-xs">
+            <span className="font-bold text-amber-800">Không thể tải bảng xếp hạng toàn quốc: </span>
+            <span className="text-amber-700">{errorRanking}</span>
+          </div>
           <button
             type="button"
             onClick={fetchNationalRanking}
-            className="mt-3 rounded-lg bg-amber-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-amber-800 cursor-pointer"
+            className="shrink-0 cursor-pointer rounded-lg bg-amber-700 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-800"
           >
             Thử lại
           </button>
         </div>
       )}
 
-      {/* SECTION 1: 04 Executive Pillar Cards (F1.1, F1.2, F1.3, F4.1) */}
+      {/* Four indicator cards: rate, national rank, gap to target, change, own 30-day line */}
       <section aria-label="Thẻ chỉ tiêu điều hành">
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Chỉ số chất lượng & Vị thứ toàn quốc hiện tại (Bấm thẻ để xem chi tiết bên dưới)
-          </h2>
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-            * Thẻ hiển thị tỷ lệ theo báo cáo chi tiết; Vị thứ theo báo cáo toàn quốc TCT
-          </span>
-        </div>
-
         {loadingExecutive && !indicators.length ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-44 rounded-2xl bg-white border border-slate-200/80 p-5 animate-pulse flex flex-col justify-between">
-                <div className="h-4 w-24 bg-slate-200 rounded" />
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="h-16 bg-slate-100 rounded-xl" />
-                  <div className="h-16 bg-slate-100 rounded-xl" />
+              <div key={i} className="h-60 animate-pulse rounded-2xl border border-slate-200/80 bg-white p-4">
+                <div className="h-4 w-24 rounded bg-slate-200" />
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="h-24 rounded-xl bg-slate-100" />
+                  <div className="h-24 rounded-xl bg-slate-100" />
                 </div>
-                <div className="h-3 w-32 bg-slate-100 rounded" />
               </div>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {indicators.map((ind) => (
               <ExecutiveIndicatorCard
                 key={ind.id}
@@ -184,32 +171,29 @@ export default function DashboardHome() {
         )}
       </section>
 
-      {/* SECTION 2: Mandatory 34-Province National Ranking Table */}
-      <NationalRankingBlock
-        selectedIndicator={selectedIndicator}
-        onSelectIndicator={setSelectedIndicator}
-        period={rankingPeriod}
-        onPeriodChange={setRankingPeriod}
-        rankingData={rankingData}
-        loading={loadingRanking}
-      />
-
-      {/* SECTION 3: Monthly Rank Progression Strip (T1 -> current month) */}
-      <MonthlyRankProgressionBlock
-        indicatorData={activeIndicatorData}
-        selectedIndicator={selectedIndicator}
-      />
-
-      {/* SECTION 4: Units to act on (Top 5 Lowest Units for the selected indicator) */}
-      <LowestUnitsBlock
-        indicatorData={activeIndicatorData}
-        selectedIndicator={selectedIndicator}
-      />
-
-      {/* SECTION 5: Trend per Indicator (4 independent charts with own target lines) */}
-      <IndicatorTrendsGrid
-        indicators={indicators}
-      />
+      {/* 34-province ranking (default "Huế & lân cận") beside the monthly rank and the units to act on */}
+      <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-12">
+        <div className="xl:col-span-8">
+          <NationalRankingBlock
+            selectedIndicator={selectedIndicator}
+            onSelectIndicator={setSelectedIndicator}
+            period={rankingPeriod}
+            onPeriodChange={setRankingPeriod}
+            rankingData={rankingData}
+            loading={loadingRanking}
+          />
+        </div>
+        <div className="space-y-3 xl:col-span-4">
+          <MonthlyRankProgressionBlock
+            indicatorData={activeIndicatorData}
+            selectedIndicator={selectedIndicator}
+          />
+          <LowestUnitsBlock
+            indicatorData={activeIndicatorData}
+            selectedIndicator={selectedIndicator}
+          />
+        </div>
+      </div>
     </div>
   );
 }

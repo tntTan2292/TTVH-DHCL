@@ -236,6 +236,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                   <li key={item.path || idx}>
                     <NavLink
                       to={buildPreservedPath(item.path, location.search)}
+                      end={item.path === '/'}
                       className={({ isActive }) =>
                         `relative flex items-center py-2.5 mx-3 rounded-xl transition-all duration-200 group ${isCollapsed ? 'justify-center px-0' : 'px-4'} ${
                           isActive

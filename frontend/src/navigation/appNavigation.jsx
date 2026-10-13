@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Database, FileSpreadsheet, Info, MapPin, Settings, Target, Users } from 'lucide-react';
+import { Activity, BarChart2, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 const F11_GROUP = {
@@ -77,7 +77,10 @@ const ADMIN_ONLY_GROUP = {
   ],
 };
 
+const HOME_ITEM = { name: 'Trang chủ – Dashboard', path: '/', icon: <LayoutDashboard size={18} /> };
+
 const ROOT_ITEMS = [
+  HOME_ITEM,
   QUALITY_MANAGEMENT_GROUP,
   NETWORK_MANAGEMENT_GROUP,
   ADMIN_ONLY_GROUP,

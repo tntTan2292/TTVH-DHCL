@@ -38,7 +38,7 @@ export default function NationalRankingBlock({
   const theme = indicatorTheme(indConfig);
 
   const [sort, setSort] = useState({ field: 'rank', direction: 'asc' });
-  const [viewMode, setViewMode] = useState('all'); // 'all' | 'hue_focus'
+  const [viewMode, setViewMode] = useState('hue_focus'); // 'hue_focus' (default: top 3, Huế ±2, bottom 3) | 'all'
 
   const handleSort = (field) => {
     setSort((current) => nextSortState(current, field, { textFields: RANKING_TEXT_FIELDS }));
@@ -69,20 +69,17 @@ export default function NationalRankingBlock({
         className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150"
       >
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-200/80 px-5 py-4 bg-slate-50/70 rounded-t-2xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 border-b border-slate-200/80 px-4 py-2.5 bg-slate-50/70 rounded-t-2xl">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`h-3 w-1.5 rounded-full ${theme.accentBar}`} />
-              <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                BẢNG XẾP HẠNG 34 TỈNH/THÀNH TOÀN QUỐC
+              <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                XẾP HẠNG 34 TỈNH/THÀNH TOÀN QUỐC
               </h3>
               <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${theme.chip}`}>
                 {indConfig.moduleLabel} · Mục tiêu {targetRate}%
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Vị thứ và tỷ lệ chất lượng của BĐTP Huế theo báo cáo toàn quốc TCT so với 34 tỉnh/thành.
-            </p>
           </div>
 
           {/* Controls: Indicator tabs + Period switch + Camera */}
@@ -144,36 +141,36 @@ export default function NationalRankingBlock({
         </div>
 
         {/* Strategic Executive Callout Bar */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50/50 via-white to-slate-50/50">
+        <div className="px-4 py-2.5 border-b border-slate-100 bg-gradient-to-r from-slate-50/50 via-white to-slate-50/50">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Huế Rank */}
-            <div className="rounded-xl border border-rose-200/90 bg-rose-50/40 p-3 flex items-center justify-between">
+            <div className="rounded-xl border border-rose-200/90 bg-rose-50/40 px-3 py-1.5 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wide">
                   Vị thứ BĐTP Huế
                 </span>
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-rose-600 tabular-nums">
+                  <span className="text-xl font-black text-rose-600 tabular-nums">
                     {hue ? hue.rank : '—'}
                   </span>
                   <span className="text-xs font-bold text-rose-400">/34</span>
                 </div>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-rose-100/80 flex items-center justify-center text-rose-600">
+              <div className="hidden h-8 w-8 rounded-xl bg-rose-100/80 flex items-center justify-center text-rose-600">
                 <Award size={20} />
               </div>
             </div>
 
             {/* Huế Rate (Theo báo cáo toàn quốc) */}
-            <div className="rounded-xl border border-slate-200 bg-white p-3 flex items-center justify-between">
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-1">
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-                    Tỷ lệ Huế (theo BC toàn quốc)
+                    Tỷ lệ Huế (BC toàn quốc)
                   </span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-slate-900 tabular-nums">
+                  <span className="text-xl font-black text-slate-900 tabular-nums">
                     {hue ? `${Number(hue.rate).toFixed(1)}` : '—'}
                   </span>
                   <span className="text-xs font-bold text-slate-500">%</span>
@@ -182,15 +179,15 @@ export default function NationalRankingBlock({
                   Chênh mục tiêu: <span className="font-bold text-slate-700">{formatGap(hue?.gap_to_target)}</span>
                 </div>
               </div>
-              <div className={`h-10 w-10 rounded-xl ${theme.soft} flex items-center justify-center ${theme.text}`}>
+              <div className={`hidden h-8 w-8 rounded-xl ${theme.soft} flex items-center justify-center ${theme.text}`}>
                 <Globe size={20} />
               </div>
             </div>
 
             {/* Gap to province above (Crucial for leaders to overtake!) */}
-            <div className="rounded-xl border border-amber-200/90 bg-amber-50/30 p-3 flex flex-col justify-between">
+            <div className="rounded-xl border border-amber-200/90 bg-amber-50/30 px-3 py-1.5 flex flex-col justify-between">
               <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wide">
-                Mục tiêu vượt tỉnh xếp trên
+                Vượt tỉnh liền trên
               </span>
               <div className="mt-1">
                 {hue?.above ? (
@@ -213,13 +210,13 @@ export default function NationalRankingBlock({
             </div>
 
             {/* National Average */}
-            <div className="rounded-xl border border-slate-200 bg-white p-3 flex items-center justify-between">
+            <div className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
                   Bình quân 34 tỉnh
                 </span>
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-slate-700 tabular-nums">
+                  <span className="text-xl font-black text-slate-700 tabular-nums">
                     {nationalRate != null ? `${nationalRate.toFixed(1)}` : '—'}
                   </span>
                   <span className="text-xs font-bold text-slate-400">%</span>
@@ -233,7 +230,7 @@ export default function NationalRankingBlock({
         </div>
 
         {/* View mode filter bar & note */}
-        <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="px-4 py-1.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div data-no-capture="true" className="flex items-center gap-2">
             <SlidersHorizontal size={14} className="text-slate-400" />
             <span className="font-bold text-slate-600">Chế độ xem:</span>
@@ -286,25 +283,25 @@ export default function NationalRankingBlock({
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
                 <tr>
-                  <SortableTh field="rank" sort={sort} onSort={handleSort} className="px-4 py-3 text-center w-16">
+                  <SortableTh field="rank" sort={sort} onSort={handleSort} className="px-3 py-1 text-center w-16">
                     Hạng
                   </SortableTh>
-                  <SortableTh field="ten_tinh" sort={sort} onSort={handleSort} className="px-4 py-3 text-left">
+                  <SortableTh field="ten_tinh" sort={sort} onSort={handleSort} className="px-3 py-1 text-left">
                     Tỉnh / Thành phố
                   </SortableTh>
-                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-4 py-3 text-right w-28">
+                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-3 py-1 text-right w-28">
                     Tỷ lệ (%)
                   </SortableTh>
-                  <SortableTh field="gap_to_target" sort={sort} onSort={handleSort} className="px-4 py-3 text-right w-28">
+                  <SortableTh field="gap_to_target" sort={sort} onSort={handleSort} className="px-3 py-1 text-right w-28">
                     Chênh MT
                   </SortableTh>
-                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-4 py-3 text-right w-28">
+                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-3 py-1 text-right w-28">
                     Sản lượng
                   </SortableTh>
-                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-4 py-3 text-right w-24">
+                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-3 py-1 text-right w-24">
                     Không đạt
                   </SortableTh>
-                  <SortableTh field="movement" sort={sort} onSort={handleSort} className="px-4 py-3 text-center w-28">
+                  <SortableTh field="movement" sort={sort} onSort={handleSort} className="px-3 py-1 text-center w-28">
                     Biến động
                   </SortableTh>
                 </tr>
@@ -325,9 +322,9 @@ export default function NationalRankingBlock({
                       }`}
                     >
                       {/* Rank */}
-                      <td className="px-4 py-3 text-center tabular-nums">
+                      <td className="px-3 py-1 text-center tabular-nums">
                         <span
-                          className={`inline-flex items-center justify-center h-6 w-6 rounded-full font-black text-xs ${
+                          className={`inline-flex items-center justify-center h-5 w-5 rounded-full font-black text-xs ${
                             isHue
                               ? 'bg-[var(--color-vnpost-blue)] text-white shadow-2xs'
                               : isTop3
@@ -340,24 +337,21 @@ export default function NationalRankingBlock({
                       </td>
 
                       {/* Province Name */}
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-1">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-slate-900">
                             {item.ten_tinh}
                           </span>
                           {isHue && (
                             <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--color-vnpost-blue)] px-2 py-0.5 text-[10px] font-black text-white shadow-2xs">
-                              ★ BĐTP Huế
+                              ★ Huế
                             </span>
                           )}
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            ({item.ma_tinh})
-                          </span>
                         </div>
                       </td>
 
                       {/* Rate */}
-                      <td className="px-4 py-3 text-right tabular-nums">
+                      <td className="px-3 py-1 text-right tabular-nums">
                         {(() => {
                           const band = classifyF13HeatmapRate(item.rate, indConfig.heatmapBands);
                           const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
@@ -372,24 +366,24 @@ export default function NationalRankingBlock({
                       </td>
 
                       {/* Gap to target */}
-                      <td className="px-4 py-3 text-right tabular-nums font-bold">
+                      <td className="px-3 py-1 text-right tabular-nums font-bold">
                         <span className={item.gap_to_target >= 0 ? 'text-emerald-700' : 'text-rose-600'}>
                           {formatGap(item.gap_to_target)}
                         </span>
                       </td>
 
                       {/* Volume */}
-                      <td className="px-4 py-3 text-right tabular-nums text-slate-600 font-semibold">
+                      <td className="px-3 py-1 text-right tabular-nums text-slate-600 font-semibold">
                         {Number(item.volume || 0).toLocaleString('vi-VN')}
                       </td>
 
                       {/* Failed */}
-                      <td className="px-4 py-3 text-right tabular-nums text-rose-600 font-bold">
+                      <td className="px-3 py-1 text-right tabular-nums text-rose-600 font-bold">
                         {Number(item.failed || 0).toLocaleString('vi-VN')}
                       </td>
 
                       {/* Rank Movement */}
-                      <td className="px-4 py-3 text-center tabular-nums font-bold">
+                      <td className="px-3 py-1 text-center tabular-nums font-bold">
                         {item.movement != null && item.movement > 0 ? (
                           <span className="inline-flex items-center gap-0.5 text-emerald-700">
                             <ArrowUp size={12} /> +{item.movement}

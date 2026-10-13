@@ -3,10 +3,8 @@ import { Calendar, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 
 /**
- * Top executive control bar:
- * - Shows data anchor date and allows leadership to inspect historical days.
- * - Shows individual indicator data readiness badges (each indicator's loaded date).
- * - Exposes BlockCaptureButton for leadership exports.
+ * One-line executive control bar (TV friendly):
+ * title, each indicator's own loaded day, the anchor date picker, refresh and camera.
  */
 export default function ExecutiveDateBar({
   anchorDate,
@@ -19,42 +17,56 @@ export default function ExecutiveDateBar({
 
   const formatDateDisplay = (isoStr) => {
     if (!isoStr) return 'Mới nhất (N-1)';
-    try {
-      const [y, m, d] = isoStr.split('-');
-      return `${d}/${m}/${y}`;
-    } catch {
-      return isoStr;
-    }
+    const [y, m, d] = String(isoStr).split('-');
+    return d && m && y ? `${d}/${m}/${y}` : isoStr;
+  };
+
+  const shortDate = (isoStr) => {
+    const [, m, d] = String(isoStr || '').split('-');
+    return d && m ? `${d}/${m}` : '—';
   };
 
   return (
     <div
       ref={barRef}
-      className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-sm backdrop-blur-xs transition-[box-shadow,border-color] duration-150"
+      className="rounded-2xl border border-slate-200/80 bg-white/95 px-4 py-2.5 shadow-sm"
     >
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        {/* Title and subtitle */}
-        <div className="space-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="h-3 w-1.5 rounded-full bg-[var(--color-vnpost-blue)]" />
-            <h2 className="text-lg sm:text-xl font-black tracking-tight text-slate-900">
-              TRANG CHỦ ĐIỀU HÀNH CHẤT LƯỢNG
-            </h2>
-            <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-xs font-bold text-[var(--color-vnpost-blue)]">
-              Executive BI
-            </span>
+            <span className="h-4 w-1.5 rounded-full bg-[var(--color-vnpost-blue)]" />
+            <h2 className="text-lg font-black tracking-tight text-slate-900">TRANG CHỦ ĐIỀU HÀNH CHẤT LƯỢNG</h2>
           </div>
-          <p className="text-xs font-medium text-slate-500">
-            Theo dõi tức thời 04 chỉ tiêu cốt lõi: F1.1 (Toàn trình nội tỉnh), F1.2 (Thu gom liên tỉnh), F1.3 (Phát liên tỉnh), F4.1 (Phát thành công bưu cục).
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {indicators.map((ind) => {
+              const hasData = ind.available;
+              return (
+                <div
+                  key={ind.id}
+                  className={`inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-semibold ${
+                    hasData
+                      ? 'border-slate-200 bg-slate-50 text-slate-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-800'
+                  }`}
+                  title={hasData ? `Số liệu ${ind.label} ngày ${formatDateDisplay(ind.data_date)}` : (ind.message || 'Chưa có dữ liệu')}
+                >
+                  {hasData ? (
+                    <CheckCircle2 size={12} className="shrink-0 text-emerald-600" />
+                  ) : (
+                    <AlertCircle size={12} className="shrink-0 text-amber-600" />
+                  )}
+                  <span className="font-bold">{ind.label}</span>
+                  <span>{hasData ? shortDate(ind.data_date) : 'Chưa có'}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Controls */}
-        <div data-no-capture="true" className="flex flex-wrap items-center gap-2.5">
-          {/* Anchor date picker */}
-          <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-1.5 text-xs shadow-2xs hover:border-slate-400 transition-colors">
-            <Calendar size={15} className="text-slate-500 shrink-0" />
-            <label htmlFor="executiveAnchorDateInput" className="font-bold text-slate-700 whitespace-nowrap">
+        <div data-no-capture="true" className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-1 text-xs">
+            <Calendar size={14} className="shrink-0 text-slate-500" />
+            <label htmlFor="executiveAnchorDateInput" className="whitespace-nowrap font-bold text-slate-700">
               Ngày chốt:
             </label>
             <input
@@ -62,14 +74,14 @@ export default function ExecutiveDateBar({
               type="date"
               value={anchorDate || ''}
               onChange={(e) => onAnchorDateChange(e.target.value || null)}
-              className="font-bold text-slate-900 outline-none cursor-pointer bg-transparent"
-              title="Chọn ngày chốt dữ liệu (để trống = lấy ngày mới nhất có dữ liệu)"
+              className="cursor-pointer bg-transparent font-bold text-slate-900 outline-none"
+              title="Chọn ngày chốt dữ liệu (để trống = ngày mới nhất có dữ liệu)"
             />
             {anchorDate && (
               <button
                 type="button"
                 onClick={() => onAnchorDateChange(null)}
-                className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                className="cursor-pointer text-[11px] font-semibold text-blue-600 underline hover:text-blue-800"
                 title="Quay lại ngày mới nhất mặc định"
               >
                 Mặc định
@@ -77,59 +89,22 @@ export default function ExecutiveDateBar({
             )}
           </div>
 
-          {/* Refresh button */}
           <button
             type="button"
             onClick={onRefresh}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50 cursor-pointer transition-colors"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             title="Làm mới dữ liệu từ máy chủ"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin text-blue-600' : 'text-slate-500'} />
-            <span className="hidden sm:inline">Làm mới</span>
+            <span>Làm mới</span>
           </button>
 
-          {/* Camera button */}
           <BlockCaptureButton
             targetRef={barRef}
             blockTitle="Trang chủ điều hành chất lượng"
             dateOrPeriod={formatDateDisplay(anchorDate)}
           />
-        </div>
-      </div>
-
-      {/* Freshness / Indicator Status strip */}
-      <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-bold text-slate-500 text-[11px] uppercase tracking-wider">
-            Dữ liệu từng chỉ tiêu:
-          </span>
-          {indicators.map((ind) => {
-            const hasData = ind.available;
-            return (
-              <div
-                key={ind.id}
-                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border text-[11px] font-semibold ${
-                  hasData
-                    ? 'bg-slate-50 border-slate-200 text-slate-700'
-                    : 'bg-amber-50 border-amber-200 text-amber-800'
-                }`}
-                title={hasData ? `Số liệu ngày ${ind.data_date}` : (ind.message || 'Chưa có dữ liệu')}
-              >
-                {hasData ? (
-                  <CheckCircle2 size={12} className="text-emerald-600 shrink-0" />
-                ) : (
-                  <AlertCircle size={12} className="text-amber-600 shrink-0" />
-                )}
-                <span className="font-bold">{ind.label}:</span>
-                <span>{hasData ? formatDateDisplay(ind.data_date) : 'Chưa có'}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="text-[11px] text-slate-400 font-medium">
-          Dữ liệu đồng bộ tự động từ Báo cáo vận hành TCT & Hệ thống nghiệp vụ
         </div>
       </div>
     </div>

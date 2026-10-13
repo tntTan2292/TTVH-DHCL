@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
@@ -27,48 +27,37 @@ export default function LowestUnitsBlock({
     setSort((current) => nextSortState(current, field, { textFields: LOWEST_UNITS_TEXT_FIELDS }));
   };
 
-  const rawUnits = indicatorData?.lowest_units || [];
+  const rawUnits = indicatorData?.lowest_units;
+  const sortedUnits = useMemo(() => sortLowestUnits(rawUnits || [], sort), [rawUnits, sort]);
 
-  const sortedUnits = useMemo(() => {
-    return sortLowestUnits(rawUnits, sort);
-  }, [rawUnits, sort]);
-
-  const unitCategoryLabel = selectedIndicator === 'f12' ? 'Đơn vị / Bưu cục chấp nhận' : 'BCVH phát';
   const rankingUrl = indConfig.routes?.ranking || `/${selectedIndicator}/ranking/bcvh`;
 
   return (
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 p-5 space-y-4"
+        className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm"
       >
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <span className={`h-3 w-1.5 rounded-full ${theme.accentBar}`} />
-              <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                ĐƠN VỊ CẦN HÀNH ĐỘNG — {indConfig.moduleLabel}
-              </h3>
-              <span className="rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-xs font-bold text-rose-700">
-                Top 5 tỷ lệ thấp nhất
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 font-medium">
-              Các {unitCategoryLabel.toLowerCase()} cần ưu tiên tháo gỡ khó khăn, đôn đốc để cải thiện chất lượng ngay.
-            </p>
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className={`h-4 w-1.5 shrink-0 rounded-full ${theme.accentBar}`} />
+            <h3 className="text-sm font-black tracking-tight text-slate-900">
+              ĐƠN VỊ CẦN HÀNH ĐỘNG — {indConfig.moduleLabel}
+            </h3>
+            <span className="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+              5 đơn vị thấp nhất
+            </span>
           </div>
-
-          <div data-no-capture="true" className="flex items-center gap-2">
+          <div data-no-capture="true" className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => navigate(rankingUrl)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+              className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
+              title={`Xem đầy đủ bảng xếp hạng ${indConfig.moduleLabel}`}
             >
-              <span>Xem đầy đủ bảng xếp hạng {indConfig.moduleLabel}</span>
-              <ExternalLink size={13} />
+              <span>Xem đầy đủ</span>
+              <ExternalLink size={12} />
             </button>
-
             <BlockCaptureButton
               targetRef={blockRef}
               blockTitle={`Đơn vị cần hành động - ${indConfig.moduleLabel}`}
@@ -77,79 +66,55 @@ export default function LowestUnitsBlock({
           </div>
         </div>
 
-        {/* Table Area */}
-        <div className="overflow-x-auto">
+        <div className="mt-1 overflow-x-auto">
           {!sortedUnits.length ? (
-            <div className="py-8 text-center text-xs text-slate-400 font-medium">
+            <div className="py-5 text-center text-xs font-medium text-slate-400">
               Chưa có dữ liệu phân rã đơn vị cho ngày này.
             </div>
           ) : (
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                 <tr>
-                  <SortableTh field="ma_bcvh" sort={sort} onSort={handleSort} className="px-4 py-2.5 text-left w-28">
-                    Mã đơn vị
+                  <SortableTh field="ten_bcvh" sort={sort} onSort={handleSort} className="px-2 py-1.5 text-left">
+                    Đơn vị
                   </SortableTh>
-                  <SortableTh field="ten_bcvh" sort={sort} onSort={handleSort} className="px-4 py-2.5 text-left">
-                    Tên đơn vị
+                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="w-20 px-2 py-1.5 text-right">
+                    Tỷ lệ
                   </SortableTh>
-                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-4 py-2.5 text-right w-28">
-                    Tỷ lệ (%)
+                  <SortableTh field="gap_to_target" sort={sort} onSort={handleSort} className="w-20 px-2 py-1.5 text-right">
+                    Chênh MT
                   </SortableTh>
-                  <SortableTh field="gap_to_target" sort={sort} onSort={handleSort} className="px-4 py-2.5 text-right w-28">
-                    Chênh mục tiêu
+                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="w-20 px-2 py-1.5 text-right">
+                    Không đạt
                   </SortableTh>
-                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-4 py-2.5 text-right w-28">
-                    Không đạt (BG)
-                  </SortableTh>
-                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-4 py-2.5 text-right w-28">
+                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="w-20 px-2 py-1.5 text-right">
                     Sản lượng
                   </SortableTh>
-                  <th className="px-4 py-2.5 text-center w-24">
-                    Chi tiết
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {sortedUnits.map((u) => {
-                  const unitRate = Number(u.rate);
-
-                  return (
-                    <tr key={u.ma_bcvh} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-4 py-2.5 font-mono font-bold text-slate-700">
-                        {u.ma_bcvh}
-                      </td>
-                      <td className="px-4 py-2.5 font-bold text-slate-900">
-                        {u.ten_bcvh}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">
-                        <span className="px-2 py-0.5 rounded-md border font-black text-rose-700 bg-rose-50 border-rose-200">
-                          {unitRate.toFixed(1)}%
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-bold text-rose-600">
-                        {formatGap(u.gap_to_target)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-black text-rose-600">
-                        {Number(u.failed || 0).toLocaleString('vi-VN')}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-600">
-                        {Number(u.volume || 0).toLocaleString('vi-VN')}
-                      </td>
-                      <td className="px-4 py-2.5 text-center">
-                        <button
-                          type="button"
-                          onClick={() => navigate(rankingUrl)}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
-                          title="Đi tới bảng xếp hạng chi tiết"
-                        >
-                          <span>Xem</span>
-                          <ArrowRight size={11} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {sortedUnits.map((u) => (
+                  <tr
+                    key={u.ma_bcvh}
+                    onClick={() => navigate(rankingUrl)}
+                    className="cursor-pointer transition-colors hover:bg-slate-50/80"
+                    title="Đi tới bảng xếp hạng chi tiết"
+                  >
+                    <td className="px-2 py-1.5 font-bold text-slate-900">{u.ten_bcvh}</td>
+                    <td className="px-2 py-1.5 text-right tabular-nums">
+                      <span className="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 font-black text-rose-700">
+                        {Number(u.rate).toFixed(1)}%
+                      </span>
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-bold tabular-nums text-rose-600">{formatGap(u.gap_to_target)}</td>
+                    <td className="px-2 py-1.5 text-right font-black tabular-nums text-rose-600">
+                      {Number(u.failed || 0).toLocaleString('vi-VN')}
+                    </td>
+                    <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-slate-600">
+                      {Number(u.volume || 0).toLocaleString('vi-VN')}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}
