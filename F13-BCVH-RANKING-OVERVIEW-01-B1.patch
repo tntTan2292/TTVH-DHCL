@@ -1,0 +1,914 @@
+From 8e4ca06f43af952e0f69d45bd3a9d373f7287038 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Fri, 28 Aug 2026 01:16:13 -0300
+Subject: [PATCH] feat(f13): implement BCVH overview backend candidate
+
+---
+ PROJECT_PROGRESS.md                           |   7 +
+ .../src/controllers/DashboardController.js    |  16 ++
+ .../src/repositories/FactBuuGuiRepository.js  | 145 ++++++++++
+ .../FactBuuGuiRepository.overview.test.js     |  74 ++++++
+ backend/src/routes/f13Routes.js               |   1 +
+ backend/src/services/F13DashboardService.js   |  25 +-
+ backend/src/services/bcvhOverviewService.js   | 247 ++++++++++++++++++
+ .../src/services/bcvhOverviewService.test.js  | 173 ++++++++++++
+ docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md        |  16 +-
+ .../F13-STANDARDIZATION-001_MANIFEST.md       |  38 +++
+ 10 files changed, 725 insertions(+), 17 deletions(-)
+ create mode 100644 backend/src/repositories/FactBuuGuiRepository.overview.test.js
+ create mode 100644 backend/src/services/bcvhOverviewService.js
+ create mode 100644 backend/src/services/bcvhOverviewService.test.js
+
+diff --git a/PROJECT_PROGRESS.md b/PROJECT_PROGRESS.md
+index 6644ac3..9abf973 100644
+--- a/PROJECT_PROGRESS.md
++++ b/PROJECT_PROGRESS.md
+@@ -1247,3 +1247,10 @@ Full record: `docs/06_REVIEWS/Shared/F13-EVIDENCE-CONSOLIDATION-PLAN_CHECKPOINT_
+ - R1-B: test `T4` required "month with missing days → `rate` null", contradicting PO decision 1. Binding rule now depends on the denominator only: partial data with denominator > 0 still computes the rate and returns `days_with_data`/`days_in_period` with a coverage badge; no records or denominator = 0 returns `rate = null` and the UI shows an em dash; the day-coverage fields are always returned. `T4` is split into `T4a` and `T4b`.
+ - `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-RANKING-OVERVIEW-01_DESIGN.md` updated at §3, §3.1, §3.2, §4.4, §5.2, §6, §8.1, §8.3, §9.1, AC-12, AC-13, the header revision line, and a new §12 remediation log. `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md` Section 36 appended (Sections 1-35 untouched, per the append-only rule). `PROJECT_SNAPSHOT.md` and `DOCUMENT_INDEX.md` updated.
+ - Documentation-only: no code, database, schema or API change. State unchanged: `F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION (R1, 2026-08-28)`.
++
++## F13-BCVH-RANKING-OVERVIEW-01 — Phase B1 Backend Implementation Candidate
++
++- Product Owner explicitly authorized Codex to execute Phase B1 after Claude Code quota became constrained.
++- Implemented the read-only overview endpoint with four canonical aggregate queries and corrected the existing daily Ranking total row to exclude non-canonical unit codes; no frontend/schema/formula/data-write change.
++- Codex-environment validation: new service/SQL tests plus single-day regression 10/10 PASS, syntax/diff/NUL checks clean. Windows-only sqlite3 regressions and the real-database performance gate remain mandatory because this Linux runner cannot load the repository's Windows DLL.
++- State: `PHASE B1 IMPLEMENTED CANDIDATE / AWAITING INDEPENDENT WINDOWS DATABASE + REGRESSION VALIDATION`; Phase F1 is not yet authorized to execute.
+diff --git a/backend/src/controllers/DashboardController.js b/backend/src/controllers/DashboardController.js
+index f672c5d..bee529e 100644
+--- a/backend/src/controllers/DashboardController.js
++++ b/backend/src/controllers/DashboardController.js
+@@ -1,8 +1,11 @@
+ const f13DashboardService = require('../services/F13DashboardService');
++const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
++const { BcvhOverviewService } = require('../services/bcvhOverviewService');
+ const timelineService = require('../services/timelineService');
+ const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+ 
+ const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
++const bcvhOverviewService = new BcvhOverviewService({ repository: factBuuGuiRepo });
+ 
+ function normalizeDashboardBcvh(ma_bcvh) {
+     if (ma_bcvh === undefined || ma_bcvh === null || ma_bcvh === '') return null;
+@@ -94,6 +97,19 @@ class DashboardController {
+         }
+     }
+ 
++    async getBcvhOverview(req, res) {
++        try {
++            const result = await bcvhOverviewService.getOverview(req.query.anchor_date);
++            res.status(200).json({ success: true, data: result });
++        } catch (error) {
++            const status = error?.code === 'INVALID_DATE' ? 400 : 500;
++            res.status(status).json({
++                success: false,
++                error: { code: error?.code || 'SERVER_ERROR', message: error.message },
++            });
++        }
++    }
++
+     async getRoute(req, res) {
+         try {
+             const { date, bcvh, sort, order, route_type } = req.query;
+diff --git a/backend/src/repositories/FactBuuGuiRepository.js b/backend/src/repositories/FactBuuGuiRepository.js
+index a17c00d..5618e09 100644
+--- a/backend/src/repositories/FactBuuGuiRepository.js
++++ b/backend/src/repositories/FactBuuGuiRepository.js
+@@ -198,6 +198,151 @@ class FactBuuGuiRepository {
+         });
+     }
+ 
++    getBcvhOverviewMonthly(anchorCeiling, canonicalCodes = []) {
++        return this._getBcvhOverviewAggregate('monthly', anchorCeiling, canonicalCodes);
++    }
++
++    getBcvhOverviewDaily(anchorCeiling, canonicalCodes = []) {
++        return this._getBcvhOverviewAggregate('daily', anchorCeiling, canonicalCodes);
++    }
++
++    getBcvhOverviewMtd(anchorCeiling, canonicalCodes = []) {
++        return this._getBcvhOverviewAggregate('mtd', anchorCeiling, canonicalCodes);
++    }
++
++    getBcvhOverviewRoutes(anchorCeiling, canonicalCodes = []) {
++        return this._getBcvhOverviewAggregate('routes', anchorCeiling, canonicalCodes);
++    }
++
++    _getBcvhOverviewAggregate(kind, anchorCeiling, canonicalCodes = []) {
++        return new Promise((resolve, reject) => {
++            if (!canonicalCodes.length) return resolve([]);
++
++            const placeholders = canonicalCodes.map(() => '?').join(', ');
++            const bounds = `
++                WITH bounds AS (
++                    SELECT MAX(ngay_do_kiem) AS anchor_date
++                    FROM fact_f13
++                    WHERE date(ngay_do_kiem) <= date(?)
++                      AND ma_bcvh IN (${placeholders})
++                )
++            `;
++            const baseParams = [anchorCeiling, ...canonicalCodes];
++            let sql;
++            let params = baseParams;
++
++            if (kind === 'monthly') {
++                sql = `${bounds},
++                    global_days AS (
++                        SELECT substr(ngay_do_kiem, 1, 7) AS month,
++                               COUNT(DISTINCT ngay_do_kiem) AS days_in_period
++                        FROM fact_f13, bounds
++                        WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 4) || '-01-01' AND bounds.anchor_date
++                          AND ma_bcvh IN (${placeholders})
++                        GROUP BY substr(ngay_do_kiem, 1, 7)
++                    ),
++                    agg AS (
++                        SELECT substr(ngay_do_kiem, 1, 7) AS month,
++                               ma_bcvh,
++                               MAX(ten_bcvh) AS ten_bcvh,
++                               COUNT(ma_bg) AS volume,
++                               SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
++                               SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed,
++                               COUNT(DISTINCT ngay_do_kiem) AS days_with_data
++                        FROM fact_f13, bounds
++                        WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 4) || '-01-01' AND bounds.anchor_date
++                          AND ma_bcvh IN (${placeholders})
++                        GROUP BY substr(ngay_do_kiem, 1, 7), ma_bcvh
++                    )
++                    SELECT agg.*, global_days.days_in_period, bounds.anchor_date
++                    FROM agg
++                    JOIN global_days ON global_days.month = agg.month
++                    CROSS JOIN bounds
++                    ORDER BY agg.month ASC, agg.ma_bcvh ASC
++                `;
++                params = [...baseParams, ...canonicalCodes, ...canonicalCodes];
++            } else if (kind === 'daily') {
++                sql = `${bounds}
++                    SELECT ngay_do_kiem AS date,
++                           ma_bcvh,
++                           MAX(ten_bcvh) AS ten_bcvh,
++                           COUNT(ma_bg) AS volume,
++                           SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
++                           SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed,
++                           bounds.anchor_date
++                    FROM fact_f13, bounds
++                    WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
++                      AND ma_bcvh IN (${placeholders})
++                    GROUP BY ngay_do_kiem, ma_bcvh
++                    ORDER BY ngay_do_kiem ASC, ma_bcvh ASC
++                `;
++                params = [...baseParams, ...canonicalCodes];
++            } else if (kind === 'mtd') {
++                sql = `${bounds},
++                    periods AS (
++                        SELECT anchor_date,
++                               substr(anchor_date, 1, 7) || '-01' AS current_start,
++                               date(substr(anchor_date, 1, 7) || '-01', '-1 month') AS previous_start,
++                               MIN(
++                                   date(substr(anchor_date, 1, 7) || '-01', '-1 month',
++                                        '+' || (CAST(strftime('%d', anchor_date) AS INTEGER) - 1) || ' days'),
++                                   date(substr(anchor_date, 1, 7) || '-01', '-1 day')
++                               ) AS previous_end
++                        FROM bounds
++                    ),
++                    current_agg AS (
++                        SELECT ma_bcvh, MAX(ten_bcvh) AS ten_bcvh,
++                               COUNT(ma_bg) AS volume,
++                               SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS passed,
++                               SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) AS failed
++                        FROM fact_f13, periods
++                        WHERE ngay_do_kiem BETWEEN periods.current_start AND periods.anchor_date
++                          AND ma_bcvh IN (${placeholders})
++                        GROUP BY ma_bcvh
++                    ),
++                    previous_agg AS (
++                        SELECT ma_bcvh,
++                               COUNT(ma_bg) AS previous_volume,
++                               SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS previous_passed
++                        FROM fact_f13, periods
++                        WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.previous_end
++                          AND ma_bcvh IN (${placeholders})
++                        GROUP BY ma_bcvh
++                    )
++                    SELECT current_agg.*, previous_agg.previous_volume, previous_agg.previous_passed,
++                           periods.anchor_date
++                    FROM current_agg
++                    LEFT JOIN previous_agg USING (ma_bcvh)
++                    CROSS JOIN periods
++                    ORDER BY current_agg.ma_bcvh ASC
++                `;
++                params = [...baseParams, ...canonicalCodes, ...canonicalCodes];
++            } else if (kind === 'routes') {
++                sql = `${bounds}
++                    SELECT ma_bcvh, ma_tuyen,
++                           COUNT(ma_bg) AS total_bg,
++                           SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
++                           bounds.anchor_date
++                    FROM fact_f13, bounds
++                    WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
++                      AND ma_bcvh IN (${placeholders})
++                      AND ma_tuyen IS NOT NULL
++                      AND TRIM(ma_tuyen) != ''
++                    GROUP BY ma_bcvh, ma_tuyen
++                    ORDER BY ma_bcvh ASC, ma_tuyen ASC
++                `;
++                params = [...baseParams, ...canonicalCodes];
++            } else {
++                return reject(new Error(`Unsupported BCVH overview aggregate: ${kind}`));
++            }
++
++            db.all(sql, params, (err, rows) => {
++                if (err) reject(err);
++                else resolve(rows || []);
++            });
++        });
++    }
++
+     getRouteRanking(date, bcvh, page = 1, pageSize = 20, sort = 'total_bg', order = 'desc', options = {}) {
+         return new Promise((resolve, reject) => {
+             const offset = (page - 1) * pageSize;
+diff --git a/backend/src/repositories/FactBuuGuiRepository.overview.test.js b/backend/src/repositories/FactBuuGuiRepository.overview.test.js
+new file mode 100644
+index 0000000..c8b241e
+--- /dev/null
++++ b/backend/src/repositories/FactBuuGuiRepository.overview.test.js
+@@ -0,0 +1,74 @@
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const { DatabaseSync } = require('node:sqlite');
++
++function loadRepositoryWithInMemoryDb() {
++    const database = new DatabaseSync(':memory:');
++    const callbackDb = {
++        all(sql, params, callback) {
++            try {
++                callback(null, database.prepare(sql).all(...params));
++            } catch (error) {
++                callback(error);
++            }
++        },
++    };
++    const dbConfigPath = require.resolve('../config/db');
++    require.cache[dbConfigPath] = {
++        id: dbConfigPath,
++        filename: dbConfigPath,
++        loaded: true,
++        exports: { db: callbackDb },
++        children: [],
++        paths: [],
++    };
++    const repositoryPath = require.resolve('./FactBuuGuiRepository');
++    delete require.cache[repositoryPath];
++    return { database, repository: require('./FactBuuGuiRepository') };
++}
++
++test('four BCVH overview SQL aggregates execute on SQLite and preserve the approved contract', async () => {
++    const { database, repository } = loadRepositoryWithInMemoryDb();
++    database.exec(`
++        CREATE TABLE fact_f13 (
++            ngay_do_kiem TEXT,
++            ma_bg TEXT,
++            ma_bcvh TEXT,
++            ten_bcvh TEXT,
++            ma_tuyen TEXT,
++            danh_gia_2026 TEXT
++        );
++    `);
++    const insert = database.prepare(`
++        INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh, ten_bcvh, ma_tuyen, danh_gia_2026)
++        VALUES (?, ?, ?, ?, ?, ?)
++    `);
++    const codes = ['535790', '536250', '535470', '537220', '537015', '533140'];
++    codes.forEach((code, index) => {
++        insert.run('2026-02-01', `FEB-${code}`, code, `BCVH ${code}`, `${code}01`, index === 0 ? 'Không đạt' : 'Đạt');
++        insert.run('2026-08-01', `A-${code}`, code, `BCVH ${code}`, `${code}01`, 'Đạt');
++        insert.run('2026-08-02', `B-${code}`, code, `BCVH ${code}`, `${code}01`, 'Không đạt');
++    });
++    insert.run('2026-08-02', 'OUTSIDE', '531600', 'Ngoài canonical', '53160001', 'Đạt');
++    insert.run('2026-08-02', null, '535790', 'BCVH 535790', '53579002', 'Đạt');
++
++    const [monthly, daily, mtd, routes] = await Promise.all([
++        repository.getBcvhOverviewMonthly('2026-08-27', codes),
++        repository.getBcvhOverviewDaily('2026-08-27', codes),
++        repository.getBcvhOverviewMtd('2026-08-27', codes),
++        repository.getBcvhOverviewRoutes('2026-08-27', codes),
++    ]);
++
++    assert.deepEqual([...new Set(monthly.map((row) => row.ma_bcvh))].sort(), [...codes].sort());
++    assert.deepEqual([...new Set(daily.map((row) => row.ma_bcvh))].sort(), [...codes].sort());
++    assert.deepEqual([...new Set(mtd.map((row) => row.ma_bcvh))].sort(), [...codes].sort());
++    assert.deepEqual([...new Set(routes.map((row) => row.ma_bcvh))].sort(), [...codes].sort());
++    assert.equal(monthly.find((row) => row.month === '2026-02').days_in_period, 1);
++    assert.equal(monthly.find((row) => row.month === '2026-08' && row.ma_bcvh === '535790').volume, 2);
++    assert.equal(routes.filter((row) => row.ma_bcvh === '535790' && row.ma_tuyen === '53579001').length, 1);
++    assert.equal(routes.find((row) => row.ma_bcvh === '535790' && row.ma_tuyen === '53579001').total_bg, 2);
++    assert.ok(monthly.every((row) => row.anchor_date === '2026-08-02'));
++    assert.ok(daily.every((row) => row.anchor_date === '2026-08-02'));
++
++    database.close();
++});
+diff --git a/backend/src/routes/f13Routes.js b/backend/src/routes/f13Routes.js
+index bcf11c5..6da6e0a 100644
+--- a/backend/src/routes/f13Routes.js
++++ b/backend/src/routes/f13Routes.js
+@@ -18,6 +18,7 @@ router.get('/dashboard/daily-trend', ...allowViewerRead, dashboardController.get
+ router.get('/dashboard/quality-timeline', ...allowViewerRead, dashboardController.getQualityTimeline);
+ router.get('/dashboard/top', ...allowViewerRead, kpiController.getDashboardTop);
+ router.get('/dashboard/meta', ...allowViewerRead, kpiController.getDashboardMeta);
++router.get('/ranking/bcvh/overview', ...allowViewerRead, dashboardController.getBcvhOverview);
+ router.get('/ranking/bcvh', ...allowViewerRead, dashboardController.getBcvh);
+ router.get('/ranking/route', ...allowViewerRead, dashboardController.getRoute);
+ router.get('/recommendations', ...allowViewerRead, kpiController.getRecommendations);
+diff --git a/backend/src/services/F13DashboardService.js b/backend/src/services/F13DashboardService.js
+index 80c98ea..36ddb42 100644
+--- a/backend/src/services/F13DashboardService.js
++++ b/backend/src/services/F13DashboardService.js
+@@ -911,7 +911,8 @@ class F13DashboardService {
+                 rank: item.rank
+             }));
+ 
+-            const totalRow = mappedData.reduce((acc, item) => {
++            const canonicalMappedData = mappedData.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
++            const totalRow = canonicalMappedData.reduce((acc, item) => {
+                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                 acc.sl_ptc_nop_tien += item.sl_ptc_nop_tien || 0;
+                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+@@ -949,14 +950,20 @@ class F13DashboardService {
+                 previous_month_to_date_dat_kpi_2026: 0
+             });
+ 
+-            const totalMonthToDate = monthToDateMetrics.reduce((acc, item) => {
++            const canonicalMonthToDateMetrics = monthToDateMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
++            const canonicalCurrentMetrics = currentMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
++            const canonicalPreviousMonthToDateMetrics = previousMonthToDateMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
++            const canonicalYesterdayMetrics = yesterdayMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
++            const canonicalSwcMetrics = swcMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || '')));
++
++            const totalMonthToDate = canonicalMonthToDateMetrics.reduce((acc, item) => {
+                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                 acc.khong_dat_kpi_2026 += item.khong_dat_kpi_2026 || 0;
+                 return acc;
+             }, { sl_bg_ptc: 0, dat_kpi_2026: 0, khong_dat_kpi_2026: 0 });
+ 
+-            const totalCurrent = currentMetrics.reduce((acc, item) => {
++            const totalCurrent = canonicalCurrentMetrics.reduce((acc, item) => {
+                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                 acc.sl_ptc_nop_tien += item.sl_ptc_nop_tien || 0;
+                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+@@ -964,7 +971,7 @@ class F13DashboardService {
+                 return acc;
+             }, { sl_bg_ptc: 0, sl_ptc_nop_tien: 0, dat_kpi_2026: 0, khong_dat_kpi_2026: 0 });
+ 
+-            const totalPreviousMonthToDate = previousMonthToDateMetrics.reduce((acc, item) => {
++            const totalPreviousMonthToDate = canonicalPreviousMonthToDateMetrics.reduce((acc, item) => {
+                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                 return acc;
+@@ -990,22 +997,22 @@ class F13DashboardService {
+                 ? this._calculateRate(totalPreviousMonthToDate.dat_kpi_2026, totalPreviousMonthToDate.sl_bg_ptc)
+                 : null;
+ 
+-            const totalYesterday = yesterdayMetrics.reduce((acc, item) => {
++            const totalYesterday = canonicalYesterdayMetrics.reduce((acc, item) => {
+                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                 return acc;
+             }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
+ 
+-            const totalSwc = swcMetrics.reduce((acc, item) => {
++            const totalSwc = canonicalSwcMetrics.reduce((acc, item) => {
+                 acc.sl_bg_ptc += item.sl_bg_ptc || 0;
+                 acc.dat_kpi_2026 += item.dat_kpi_2026 || 0;
+                 return acc;
+             }, { sl_bg_ptc: 0, dat_kpi_2026: 0 });
+ 
+-            const canonicalCurrentCount = currentMetrics.filter((item) => canonicalBcvhCodes.has(String(item?.ma_bcvh || ''))).length;
++            const canonicalCurrentCount = canonicalCurrentMetrics.length;
+             totalRow.comparisons = {
+-                d1: this._buildTotalComparisonBlock(totalCurrent, yesterdayMetrics, canonicalCurrentCount),
+-                d7: this._buildTotalComparisonBlock(totalCurrent, swcMetrics, canonicalCurrentCount),
++                d1: this._buildTotalComparisonBlock(totalCurrent, canonicalYesterdayMetrics, canonicalCurrentCount),
++                d7: this._buildTotalComparisonBlock(totalCurrent, canonicalSwcMetrics, canonicalCurrentCount),
+             };
+ 
+             totalRow.kpi_2026_dod = this._calculateNullableRateDelta(
+diff --git a/backend/src/services/bcvhOverviewService.js b/backend/src/services/bcvhOverviewService.js
+new file mode 100644
+index 0000000..04b56f1
+--- /dev/null
++++ b/backend/src/services/bcvhOverviewService.js
+@@ -0,0 +1,247 @@
++const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
++const { classifyRoute } = require('../config/f13RouteClassificationCatalog');
++
++const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
++
++function shiftIsoDate(dateString, days) {
++    const date = new Date(`${dateString}T00:00:00Z`);
++    date.setUTCDate(date.getUTCDate() + days);
++    return date.toISOString().slice(0, 10);
++}
++
++function formatBusinessIsoDate(date) {
++    const parts = new Intl.DateTimeFormat('en-CA', {
++        timeZone: 'Asia/Ho_Chi_Minh',
++        year: 'numeric', month: '2-digit', day: '2-digit',
++    }).formatToParts(date);
++    const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
++    return `${byType.year}-${byType.month}-${byType.day}`;
++}
++
++function monthKeysThrough(anchorDate) {
++    if (!anchorDate) return [];
++    const year = anchorDate.slice(0, 4);
++    const lastMonth = Number(anchorDate.slice(5, 7));
++    return Array.from({ length: lastMonth }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}`);
++}
++
++function dateKeysThrough(anchorDate) {
++    if (!anchorDate) return [];
++    const start = `${anchorDate.slice(0, 7)}-01`;
++    const dates = [];
++    for (let current = start; current <= anchorDate; current = shiftIsoDate(current, 1)) dates.push(current);
++    return dates;
++}
++
++function nullableRate(passed, volume) {
++    const denominator = Number(volume || 0);
++    if (denominator <= 0) return null;
++    return Number(((Number(passed || 0) / denominator) * 100).toFixed(4));
++}
++
++function rankMtd(rows) {
++    const ranked = rows
++        .filter((row) => row.rate !== null)
++        .sort((a, b) => (b.rate - a.rate) || (b.volume - a.volume));
++    let previousKey = null;
++    let previousRank = null;
++    ranked.forEach((row, index) => {
++        const key = `${row.rate}|${row.volume}`;
++        if (key !== previousKey) previousRank = index + 1;
++        row.rank = previousRank;
++        previousKey = key;
++    });
++    return rows;
++}
++
++class BcvhOverviewService {
++    constructor({ repository, now = () => new Date() } = {}) {
++        if (!repository) throw new Error('BcvhOverviewService requires a repository');
++        this.repository = repository;
++        this.now = now;
++        this.units = CANONICAL_BCVH_UNITS.map((unit) => ({ ...unit }));
++        this.codes = this.units.map((unit) => unit.ma_bcvh);
++        this.unitByCode = new Map(this.units.map((unit) => [unit.ma_bcvh, unit]));
++    }
++
++    _yesterday() {
++        const today = formatBusinessIsoDate(this.now());
++        return shiftIsoDate(today, -1);
++    }
++
++    _resolveCeiling(requestedAnchor) {
++        if (requestedAnchor !== undefined && requestedAnchor !== null && !ISO_DATE_RE.test(requestedAnchor)) {
++            const error = new Error('anchor_date must be a valid ISO date in YYYY-MM-DD format');
++            error.code = 'INVALID_DATE';
++            throw error;
++        }
++        const yesterday = this._yesterday();
++        return requestedAnchor && requestedAnchor < yesterday ? requestedAnchor : yesterday;
++    }
++
++    _anchorFrom(rowsByKind) {
++        const anchors = rowsByKind.flatMap((rows) => rows.map((row) => row.anchor_date).filter(Boolean));
++        if (!anchors.length) return null;
++        const first = anchors[0];
++        if (anchors.some((anchor) => anchor !== first)) {
++            const error = new Error('BCVH overview aggregate queries resolved inconsistent anchor dates');
++            error.code = 'INCONSISTENT_ANCHOR_DATE';
++            throw error;
++        }
++        return first;
++    }
++
++    async getOverview(requestedAnchor) {
++        const anchorCeiling = this._resolveCeiling(requestedAnchor);
++        const [monthlyRows, dailyRows, mtdRows, routeRows] = await Promise.all([
++            this.repository.getBcvhOverviewMonthly(anchorCeiling, this.codes),
++            this.repository.getBcvhOverviewDaily(anchorCeiling, this.codes),
++            this.repository.getBcvhOverviewMtd(anchorCeiling, this.codes),
++            this.repository.getBcvhOverviewRoutes(anchorCeiling, this.codes),
++        ]);
++        const anchorDate = this._anchorFrom([monthlyRows, dailyRows, mtdRows, routeRows]);
++        if (!anchorDate) {
++            return this._emptyOverview(anchorCeiling);
++        }
++
++        const monthlyMap = new Map(monthlyRows.map((row) => [`${row.month}|${row.ma_bcvh}`, row]));
++        const monthlyDays = new Map(monthlyRows.map((row) => [row.month, Number(row.days_in_period || 0)]));
++        const monthly = monthKeysThrough(anchorDate).flatMap((month) => this.units.map((unit) => {
++            const row = monthlyMap.get(`${month}|${unit.ma_bcvh}`);
++            const volume = Number(row?.volume || 0);
++            const passed = Number(row?.passed || 0);
++            return {
++                month,
++                label: `T${Number(month.slice(5, 7))}`,
++                ma_bcvh: unit.ma_bcvh,
++                ten_bcvh: unit.ten_bcvh,
++                volume,
++                passed,
++                failed: Number(row?.failed || 0),
++                rate: nullableRate(passed, volume),
++                days_with_data: Number(row?.days_with_data || 0),
++                days_in_period: monthlyDays.get(month) || 0,
++            };
++        }));
++
++        const dailyMap = new Map(dailyRows.map((row) => [`${row.date}|${row.ma_bcvh}`, row]));
++        const daily = dateKeysThrough(anchorDate).flatMap((date) => this.units.map((unit) => {
++            const row = dailyMap.get(`${date}|${unit.ma_bcvh}`);
++            const volume = Number(row?.volume || 0);
++            const passed = Number(row?.passed || 0);
++            return {
++                date,
++                ma_bcvh: unit.ma_bcvh,
++                ten_bcvh: unit.ten_bcvh,
++                volume,
++                passed,
++                failed: Number(row?.failed || 0),
++                rate: nullableRate(passed, volume),
++            };
++        }));
++
++        const mtdMap = new Map(mtdRows.map((row) => [row.ma_bcvh, row]));
++        const mtd = rankMtd(this.units.map((unit) => {
++            const row = mtdMap.get(unit.ma_bcvh);
++            const volume = Number(row?.volume || 0);
++            const passed = Number(row?.passed || 0);
++            const previousVolume = Number(row?.previous_volume || 0);
++            const previousPassed = Number(row?.previous_passed || 0);
++            return {
++                ma_bcvh: unit.ma_bcvh,
++                ten_bcvh: unit.ten_bcvh,
++                volume,
++                passed,
++                failed: Number(row?.failed || 0),
++                rate: nullableRate(passed, volume),
++                rank: null,
++                previous_month_to_date: {
++                    volume: previousVolume,
++                    passed: previousPassed,
++                    rate: nullableRate(previousPassed, previousVolume),
++                },
++            };
++        }));
++
++        const routeMap = {};
++        routeRows.forEach((row) => {
++            const code = String(row.ma_bcvh || '');
++            const routeCode = String(row.ma_tuyen || '').trim();
++            const classification = classifyRoute(routeCode);
++            if (!this.unitByCode.has(code) || classification.route_scope !== 'hue' || !classification.is_postman_delivery_route) return;
++            if (!routeMap[code]) routeMap[code] = {};
++            routeMap[code][routeCode] = {
++                total_bg: Number(row.total_bg || 0),
++                dat_kpi_2026: Number(row.dat_kpi_2026 || 0),
++            };
++        });
++        const routes = this.units.map((unit) => {
++            const routeList = Object.values(routeMap[unit.ma_bcvh] || {});
++            const counts = { green: 0, pink: 0, yellow: 0, red: 0 };
++            routeList.forEach((route) => {
++                const rate = nullableRate(route.dat_kpi_2026, route.total_bg) || 0;
++                if (rate >= 70) counts.green += 1;
++                else if (rate >= 60) counts.pink += 1;
++                else if (rate >= 50) counts.yellow += 1;
++                else counts.red += 1;
++            });
++            return {
++                ma_bcvh: unit.ma_bcvh,
++                ten_bcvh: unit.ten_bcvh,
++                participating_route_count: routeList.length,
++                ...counts,
++            };
++        });
++
++        return {
++            monthly,
++            daily,
++            mtd,
++            routes,
++            meta: this._buildMeta(anchorDate, anchorCeiling),
++        };
++    }
++
++    _emptyOverview(anchorCeiling) {
++        return {
++            monthly: [], daily: [],
++            mtd: this.units.map((unit) => ({
++                ...unit, volume: 0, passed: 0, failed: 0, rate: null, rank: null,
++                previous_month_to_date: { volume: 0, passed: 0, rate: null },
++            })),
++            routes: this.units.map((unit) => ({
++                ...unit, participating_route_count: 0, green: 0, pink: 0, yellow: 0, red: 0,
++            })),
++            meta: {
++                anchor_date: null,
++                anchor_source: null,
++                max_date: null,
++                requested_ceiling: anchorCeiling,
++                month_period: { from_date: null, to_date: null },
++                year_period: { from_date: null, to_date: null },
++                route_period: { from_date: null, to_date: null, basis: 'MTD' },
++                canonical_bcvh_count: this.units.length,
++            },
++        };
++    }
++
++    _buildMeta(anchorDate, anchorCeiling) {
++        const yesterday = this._yesterday();
++        return {
++            anchor_date: anchorDate,
++            anchor_source: anchorDate === yesterday ? 'yesterday' : 'max_date',
++            max_date: anchorDate,
++            requested_ceiling: anchorCeiling,
++            month_period: { from_date: `${anchorDate.slice(0, 7)}-01`, to_date: anchorDate },
++            year_period: { from_date: `${anchorDate.slice(0, 4)}-01-01`, to_date: anchorDate },
++            route_period: { from_date: `${anchorDate.slice(0, 7)}-01`, to_date: anchorDate, basis: 'MTD' },
++            canonical_bcvh_count: this.units.length,
++        };
++    }
++}
++
++module.exports = {
++    BcvhOverviewService,
++    nullableRate,
++    rankMtd,
++};
+diff --git a/backend/src/services/bcvhOverviewService.test.js b/backend/src/services/bcvhOverviewService.test.js
+new file mode 100644
+index 0000000..91975eb
+--- /dev/null
++++ b/backend/src/services/bcvhOverviewService.test.js
+@@ -0,0 +1,173 @@
++const test = require('node:test');
++const assert = require('node:assert/strict');
++const fs = require('node:fs');
++const path = require('node:path');
++const { BcvhOverviewService } = require('./bcvhOverviewService');
++const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
++
++const CODES = CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh);
++
++function fixtureRows(anchorDate = '2026-08-27') {
++    const monthly = CANONICAL_BCVH_UNITS.flatMap((unit, index) => ([
++        {
++            month: '2026-02', ma_bcvh: unit.ma_bcvh, ten_bcvh: unit.ten_bcvh,
++            volume: index === 5 ? 0 : 100, passed: 60 + index, failed: 40 - index,
++            days_with_data: 21 + (index % 4), days_in_period: 26, anchor_date: anchorDate,
++        },
++        {
++            month: '2026-08', ma_bcvh: unit.ma_bcvh, ten_bcvh: unit.ten_bcvh,
++            volume: 200 + index, passed: 120 + index, failed: 80, days_with_data: 27,
++            days_in_period: 27, anchor_date: anchorDate,
++        },
++    ]));
++    const daily = CANONICAL_BCVH_UNITS.map((unit, index) => ({
++        date: '2026-08-27', ma_bcvh: unit.ma_bcvh, ten_bcvh: unit.ten_bcvh,
++        volume: 10 + index, passed: 5 + index, failed: 5, anchor_date: anchorDate,
++    }));
++    const mtd = CANONICAL_BCVH_UNITS.map((unit, index) => ({
++        ma_bcvh: unit.ma_bcvh, ten_bcvh: unit.ten_bcvh,
++        volume: 100 + index, passed: 50 + index, failed: 50,
++        previous_volume: 80, previous_passed: 40, anchor_date: anchorDate,
++    }));
++    const routes = [
++        { ma_bcvh: CODES[0], ma_tuyen: '53579001', total_bg: 100, dat_kpi_2026: 70, anchor_date: anchorDate },
++        { ma_bcvh: CODES[0], ma_tuyen: '53579002', total_bg: 100, dat_kpi_2026: 60, anchor_date: anchorDate },
++        { ma_bcvh: CODES[0], ma_tuyen: '53579003', total_bg: 100, dat_kpi_2026: 50, anchor_date: anchorDate },
++        { ma_bcvh: CODES[0], ma_tuyen: '53579004', total_bg: 100, dat_kpi_2026: 49, anchor_date: anchorDate },
++        { ma_bcvh: CODES[0], ma_tuyen: '53579027', total_bg: 100, dat_kpi_2026: 100, anchor_date: anchorDate },
++        { ma_bcvh: '531600', ma_tuyen: '53160001', total_bg: 100, dat_kpi_2026: 100, anchor_date: anchorDate },
++    ];
++    return { monthly, daily, mtd, routes };
++}
++
++function buildRepository(rows, calls = []) {
++    return {
++        getBcvhOverviewMonthly: async (anchor, codes) => { calls.push(['monthly', anchor, codes]); return rows.monthly; },
++        getBcvhOverviewDaily: async (anchor, codes) => { calls.push(['daily', anchor, codes]); return rows.daily; },
++        getBcvhOverviewMtd: async (anchor, codes) => { calls.push(['mtd', anchor, codes]); return rows.mtd; },
++        getBcvhOverviewRoutes: async (anchor, codes) => { calls.push(['routes', anchor, codes]); return rows.routes; },
++    };
++}
++
++function collectObjectKeys(value, keys = new Set()) {
++    if (!value || typeof value !== 'object') return keys;
++    if (Array.isArray(value)) {
++        value.forEach((item) => collectObjectKeys(item, keys));
++        return keys;
++    }
++    Object.entries(value).forEach(([key, child]) => {
++        keys.add(key);
++        collectObjectKeys(child, keys);
++    });
++    return keys;
++}
++
++test('T1/T4/T5/T10/T11: overview returns canonical grids, coverage-aware rates, route bands and safe schema', async () => {
++    const calls = [];
++    const rows = fixtureRows();
++    const service = new BcvhOverviewService({
++        repository: buildRepository(rows, calls),
++        now: () => new Date('2026-08-28T08:00:00+07:00'),
++    });
++    const result = await service.getOverview();
++
++    assert.equal(calls.length, 4, 'exactly four aggregate repository calls');
++    calls.forEach(([, anchor, codes]) => {
++        assert.equal(anchor, '2026-08-27');
++        assert.deepEqual(codes, CODES);
++    });
++    for (const name of ['monthly', 'daily', 'mtd', 'routes']) {
++        assert.deepEqual([...new Set(result[name].map((row) => row.ma_bcvh))].sort(), [...CODES].sort());
++    }
++    const partial = result.monthly.find((row) => row.month === '2026-02' && row.ma_bcvh === CODES[0]);
++    assert.equal(partial.rate, 60);
++    assert.equal(partial.days_with_data, 21);
++    assert.equal(partial.days_in_period, 26);
++    const zeroDenominator = result.monthly.find((row) => row.month === '2026-02' && row.ma_bcvh === CODES[5]);
++    assert.equal(zeroDenominator.rate, null);
++    assert.equal(result.meta.anchor_date, '2026-08-27');
++    assert.equal(result.meta.year_period.to_date, '2026-08-27');
++
++    const routeSummary = result.routes.find((row) => row.ma_bcvh === CODES[0]);
++    assert.deepEqual(
++        { participating: routeSummary.participating_route_count, green: routeSummary.green, pink: routeSummary.pink, yellow: routeSummary.yellow, red: routeSummary.red },
++        { participating: 4, green: 1, pink: 1, yellow: 1, red: 1 },
++    );
++    const forbidden = ['alert', 'warning', 'risk'];
++    const keys = collectObjectKeys(result);
++    forbidden.forEach((key) => assert.equal(keys.has(key), false));
++});
++
++test('T6/T7: anchor ceiling is yesterday and delayed data wins', async () => {
++    const delayedRows = fixtureRows('2026-08-25');
++    const calls = [];
++    const delayedService = new BcvhOverviewService({
++        repository: buildRepository(delayedRows, calls),
++        now: () => new Date('2026-08-28T08:00:00+07:00'),
++    });
++    const delayed = await delayedService.getOverview();
++    assert.equal(calls[0][1], '2026-08-27');
++    assert.equal(delayed.meta.anchor_date, '2026-08-25');
++    assert.equal(delayed.meta.anchor_source, 'max_date');
++
++    const yesterdayRows = fixtureRows('2026-08-27');
++    const yesterdayService = new BcvhOverviewService({
++        repository: buildRepository(yesterdayRows),
++        now: () => new Date('2026-08-28T08:00:00+07:00'),
++    });
++    assert.equal((await yesterdayService.getOverview()).meta.anchor_source, 'yesterday');
++});
++
++test('T8/T9: first-day period and rank tie behavior match RANK semantics', async () => {
++    const rows = fixtureRows('2026-08-01');
++    rows.daily = rows.daily.map((row) => ({ ...row, date: '2026-08-01', anchor_date: '2026-08-01' }));
++    rows.mtd = rows.mtd.map((row, index) => ({
++        ...row, anchor_date: '2026-08-01', volume: index < 2 ? 100 : 100 - index,
++        passed: index < 2 ? 80 : 70 - index,
++    }));
++    rows.monthly = rows.monthly.map((row) => ({ ...row, anchor_date: '2026-08-01' }));
++    rows.routes = rows.routes.map((row) => ({ ...row, anchor_date: '2026-08-01' }));
++    const service = new BcvhOverviewService({
++        repository: buildRepository(rows),
++        now: () => new Date('2026-08-20T08:00:00+07:00'),
++    });
++    const result = await service.getOverview('2026-08-01');
++    assert.equal(result.meta.month_period.from_date, '2026-08-01');
++    assert.equal(result.daily.length, 6);
++    assert.equal(result.mtd[0].rank, 1);
++    assert.equal(result.mtd[1].rank, 1);
++    assert.ok(result.mtd.slice(2).every((row) => row.rank >= 3));
++});
++
++test('T4b: no database rows returns stable empty response with null rates', async () => {
++    const repository = buildRepository({ monthly: [], daily: [], mtd: [], routes: [] });
++    const service = new BcvhOverviewService({
++        repository,
++        now: () => new Date('2026-08-28T08:00:00+07:00'),
++    });
++    const result = await service.getOverview();
++    assert.equal(result.meta.anchor_date, null);
++    assert.equal(result.mtd.length, 6);
++    assert.ok(result.mtd.every((row) => row.rate === null));
++});
++
++test('repository contract aggregates instead of returning fact rows and total-row fix filters canonical inputs', () => {
++    const repositorySource = fs.readFileSync(path.join(__dirname, '../repositories/FactBuuGuiRepository.js'), 'utf8');
++    const dashboardSource = fs.readFileSync(path.join(__dirname, 'F13DashboardService.js'), 'utf8');
++    const controllerSource = fs.readFileSync(path.join(__dirname, '../controllers/DashboardController.js'), 'utf8');
++    const routesSource = fs.readFileSync(path.join(__dirname, '../routes/f13Routes.js'), 'utf8');
++    assert.match(repositorySource, /GROUP BY substr\(ngay_do_kiem, 1, 7\), ma_bcvh/);
++    assert.match(repositorySource, /GROUP BY ngay_do_kiem, ma_bcvh/);
++    assert.match(repositorySource, /GROUP BY ma_bcvh, ma_tuyen/);
++    assert.match(repositorySource, /ma_bcvh IN \(\$\{placeholders\}\)/);
++    assert.match(dashboardSource, /const canonicalCurrentMetrics = currentMetrics\.filter/);
++    assert.match(dashboardSource, /const totalCurrent = canonicalCurrentMetrics\.reduce/);
++    assert.match(dashboardSource, /const totalRow = canonicalMappedData\.reduce/);
++    assert.match(controllerSource, /async getBcvhOverview\(req, res\)/);
++    assert.match(routesSource, /router\.get\('\/ranking\/bcvh\/overview', \.\.\.allowViewerRead, dashboardController\.getBcvhOverview\)/);
++});
++
++test('invalid anchor_date is rejected before repository access', async () => {
++    const service = new BcvhOverviewService({ repository: buildRepository(fixtureRows()) });
++    await assert.rejects(() => service.getOverview('28/08/2026'), { code: 'INVALID_DATE' });
++});
+diff --git a/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md b/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md
+index d4df8de..9a40711 100644
+--- a/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md
++++ b/docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md
+@@ -17,26 +17,26 @@ It is designed to be the shortest safe entry point for a new AI session while pr
+ 
+ | Field | Value |
+ | --- | --- |
+-| Current Phase | `F13-BCVH-RANKING-OVERVIEW-01 — BCVH RANKING OVERVIEW (T01 to now) — DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION, REVISION R1 (2026-08-28). Product Owner approved the full recommendation package (9 decisions) after a READ-ONLY architecture verification pass; the design of record was then remediated to R1 after Claude/CTO found two internal contradictions in it (one-request vs lazy-fetch, and a null-rate test contradicting PO decision 1). No code, database, schema or API changed yet — both the activation and the R1 remediation rounds are documentation-only. AB-CALENDAR-01 remains CLOSED / PO UI CHECK PASS (2026-08-28), unaffected. AUTO-BACKFILL-RUNTIME (Ticket 7) remains a separate, already-activated ticket (READY, still awaiting the PO one-day/one-source test) — unaffected.` |
+-| Current Ticket | `F13-BCVH-RANKING-OVERVIEW-01 — BCVH Ranking Overview (T01 to now). State: DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION at Revision R1 (2026-08-28). Phase B1 (Backend, Claude Code/Sonnet) is authorized and not yet executed.` |
++| Current Phase | `F13-BCVH-RANKING-OVERVIEW-01 — PHASE B1 BACKEND IMPLEMENTATION CANDIDATE / AWAITING INDEPENDENT WINDOWS VALIDATION (2026-08-28). Codex was explicitly authorized by Product Owner and implemented the read-only overview endpoint plus the canonical total-row correction. New isolated SQL/service checks pass, but Windows sqlite3 regressions and the real-database performance gate remain required before Phase F1.` |
++| Current Ticket | `F13-BCVH-RANKING-OVERVIEW-01 — BCVH Ranking Overview (T01 to now), Revision R1. Phase B1 code is implemented as a candidate; Phase F1 remains blocked until the canonical Windows workspace independently passes database, regression and performance validation.` |
+ | Next Ticket | `None self-activated beyond the phases of F13-BCVH-RANKING-OVERVIEW-01 itself (B1 Backend to F1 Frontend/Antigravity to I1 Integration). AUTO-BACKFILL-RUNTIME (Ticket 7, ACTIVATED / READY FOR PO CHECK) remains open and untouched.` |
+ | Last PO Status | `Product Owner APPROVED the entire recommendation package for the BCVH Ranking overview extension on 2026-08-28, locking 9 decisions: (1) months with missing data are still displayed with a day-coverage badge; (2) anchor date = min(N-1, max_date having data); (3) the route block is computed on MTD and labelled "Tuyen co phat sinh trong ky"; (4) route bands keep the 70/60/50 thresholds; (5) exactly the 6 canonical BCVH; (6) rate is the primary figure and volume secondary; (7) fix the TONG CONG row that can currently sum three non-canonical codes, before or with the backend phase; (8) D-1/D-7 are comparisons only, never alerts; (9) the existing daily ranking table is kept unchanged. Separately, AB-CALENDAR-01 PO UI CHECK PASS (2026-08-28) still stands.` |
+ | Current Branch | `codex/da-impl-006` |
+-| Current Manifest | `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md — Section 35 (appended 2026-08-28) activates F13-BCVH-RANKING-OVERVIEW-01 and records its design of record, verification evidence, contract, phasing and governance state; Section 36 (appended 2026-08-28) records the R1 remediation of two internal contradictions and its binding rules. Sections 1-35 unchanged by Section 36 (append-only). docs/10_TICKETS/AUTO-BACKFILL-RUNTIME_MANIFEST.md remains the manifest for the separate, still-open Runtime ticket.` |
++| Current Manifest | `docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md — Sections 35-36 own activation and design R1; Section 37 records the Codex-authorized Phase B1 implementation candidate and the mandatory independent Windows validation gate. Earlier sections remain append-only history.` |
+ | Current Checkpoint | `docs/04_TECHNICAL_PLANNING/Feature/F13-BCVH-RANKING-OVERVIEW-01_DESIGN.md` — design of record for the active ticket F13-BCVH-RANKING-OVERVIEW-01, now at Revision R1 (objective, five blocks, time rules, overview API contract, measured performance, file scope, B1/F1/I1 phasing, test plan, acceptance criteria AC-01..AC-17, real-data risks RISK-DATA-01..03 / RISK-PERF-01 / RISK-SCOPE-01, and the Section 12 R1 remediation log). Anyone working from a pre-R1 copy must read its Section 12 first. `docs/04_TECHNICAL_PLANNING/Feature/AB-CALENDAR-01_4_STATUS_MODEL_DESIGN.md` — design of record for the 4-status model and the operational-completion delta, implemented and now PO-accepted (Sections 2.1, 4.2, 8, 11). `docs/10_TICKETS/AUTO-BACKFILL-UI_PLAN.md` Section 4 carries the approved 4-status model with the original 6-state table preserved under SUPERSEDED. `AB-CALENDAR-01_HOLIDAY_CALENDAR_DESIGN.md` remains valid except PO decisions 2 and 4, superseded. `docs/06_REVIEWS/Import/AUTO-BACKFILL-RUNTIME_CHECKPOINT_001.md` unchanged for the still-open Runtime ticket. |
+-| Current State | `F13-BCVH-RANKING-OVERVIEW-01 at Revision R1: 4 new overview blocks (monthly trend / daily detail / MTD summary / route capacity) to be added ABOVE the existing daily ranking table in /f13/ranking/bcvh, served by ONE request to a new read-only endpoint /f13/ranking/bcvh/overview that returns all four arrays using exactly 4 fixed aggregate queries — the Daily block is collapsed by UI only, with no lazy-fetch. Missing-data rule fixed to depend on the denominator only: partial data with denominator > 0 still computes the rate and returns day-coverage fields; no records or denominator = 0 returns rate = null. Nothing implemented yet. AB-CALENDAR-01 shipped work (4-status model, LICH NGHI calendar, commits 21d37be3 + c0f18e9e) remains live and PO-accepted.` |
+-| Technical Status | `No code, test, schema, database or API change in either the activation or the R1 remediation round — both documentation-only. Baselines carried forward for the implementation phases: backend suite 256/260 with 4 pre-existing unrelated KPI/timeline failures; frontend suite with 7 pre-existing unrelated failures. Read-only verification measured on the real database (750,283 fact_f13 rows, 2026-01-01..2026-08-27): getFactBetween one month = 96,305 rows / 3,679 ms / 431 MB heap (rejected path); the 4 planned aggregates = 48/162/6/119 rows, ~2.96 s total, 5 MB heap, measured with all four queries running including Q2. Q1 costs 2,250 ms because idx_f13_date_bcvh_covering does not cover danh_gia_2026 or ma_bg (recorded as RISK-PERF-01, schema change out of scope).` |
++| Current State | `Phase B1 candidate now implements GET /f13/ranking/bcvh/overview with monthly/daily/mtd/routes in one response using four canonical aggregate calls, plus the existing Ranking total-row correction. No frontend exists yet; the existing single-day Ranking surface remains unchanged. Phase F1 is blocked pending Windows validation.` |
++| Technical Status | `Codex runner: new SQL/service checks and single-day contract 10/10 PASS; touched-source syntax, diff and NUL checks clean. Gate 5 and the date-filter controller regression cannot collect on Linux because the tracked sqlite3 native binary is Windows PE (invalid ELF). Real-database runtime/performance is not independently claimed; Windows validation against a verified backup must confirm Gate 5 11/11, module/full regressions and <=3.2s / <=50MB before Phase F1.` |
+ | Runtime Status | `Unchanged by this ticket. No Portal session, download, Import, queue write, or business-data write at any point across design, implementation, remediation, or this PO UI check closure. The AUTO-BACKFILL-RUNTIME position recorded on 2026-08-21 still stands: 0 runs RUNNING/PAUSING/PAUSED, 0 open circuits, 0 WAITING_AUTH.` |
+-| PO UI Check Required | `Yes — F13-BCVH-RANKING-OVERVIEW-01 requires a PO UI check at the end of Phase I1 (acceptance criteria AC-11..AC-17 in the design of record). Not yet reachable: implementation has not started. AB-CALENDAR-01 has nothing outstanding.` |
++| PO UI Check Required | `Yes, at the end of Phase I1. Not yet reachable: Phase B1 independent Windows validation is pending and frontend Phase F1 has not started.` |
+ | PO Product Status | `AUTO-BACKFILL-F41 closed / PO GATE 4 PASS. AUTO-BACKFILL-SAFETY closed / PO GATE 5 PASS. AUTO-BACKFILL-UI implemented / ready for PO Gate 6, superseded in scope by the approved 5-point remediation plan's Phase A/B split. AUTO-BACKFILL-COVERAGE-EXCEPTION (Phase A) closed / PO BACKEND GATE PASS. AUTO-BACKFILL-UI-REMEDIATION (Phase B) closed / PO UI CHECK PASS. AB-CALENDAR-01 closed / PO UI CHECK PASS (2026-08-28).` |
+ | Last Closed Ticket | `AB-CALENDAR-01 — 4-status PO coverage model — CLOSED / PO UI CHECK PASS (2026-08-28); implementation commit 21d37be3, frontend remediation commit c0f18e9e, closure recorded in manifest Section 48.` |
+ | Last Closed Manifest | `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/10_TICKETS/AUTO-BACKFILL-RUNTIME_MANIFEST.md` (AB-CALENDAR-01 closure, Section 48) |
+-| Last Reviewed Phase | `F13-BCVH-RANKING-OVERVIEW-01 Design Remediation R1 (2026-08-28): two internal contradictions resolved, DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION. AB-CALENDAR-01 PO Closure (2026-08-28): CLOSED / PO UI CHECK PASS.` |
++| Last Reviewed Phase | `F13-BCVH-RANKING-OVERVIEW-01 Phase B1 backend implementation candidate (2026-08-28): awaiting independent Windows database/regression/performance validation.` |
+ | Last Reviewed Implementation Commit | `c0f18e9e — frontend legacy-status compatibility remediation, the last commit in the PO-accepted chain; the 4-status model implementation itself is 21d37be3.` |
+ | Phase Review Status | `NETWORK-MANAGEMENT-001: CLOSED / PO FINAL PASS, unaffected. NETWORK-MANAGEMENT-002: CLOSED / PO PASS (2026-08-11), unaffected. F13-STANDARDIZATION-001: Phase 0 (of the original 5-phase program) partially implemented (unaffected); Phases 1-4 of that program still PLANNED / NOT ACTIVE; Evidence delta (Section 19) CLOSED / PO RUNTIME CHECK PASS; Evidence Consolidation Phase 1 (Section 27) CLOSED / PO PASS; Date-Filter Cross-Module Remediation (Section 26) CLOSED / PO PASS; frozen-document delta (Section 28) EXECUTED; Evidence Consolidation Phase 2 (Sections 29-31) CLOSED / PO FULL-SCREEN RUNTIME PASS; Phase 3 (Sections 32-33) CLOSED / PO RUNTIME PASS; Phase 4 (Section 34) CLOSED / PO RUNTIME PASS — the Evidence-consolidation delta is now fully closed; none of these closes the original 5-phase program.` |
+ | Next Phase Authorization | `None self-activated. AUTO-BACKFILL-RUNTIME is activated for readiness only; the real run and PO Gate 7 runtime acceptance each require explicit Product Owner action.` |
+ | Governance Version | `V2 Active` |
+-| Last Updated | `2026-08-28` (F13-BCVH-RANKING-OVERVIEW-01 design of record remediated to Revision R1, F13-STANDARDIZATION-001 manifest Section 36) |
++| Last Updated | `2026-08-28` (F13-BCVH-RANKING-OVERVIEW-01 Phase B1 candidate, F13-STANDARDIZATION-001 manifest Section 37) |
+ 
+ ## 3. Usage Rules
+ 
+diff --git a/docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md b/docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md
+index 831ddc4..92d728e 100644
+--- a/docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md
++++ b/docs/10_TICKETS/F13-STANDARDIZATION-001_MANIFEST.md
+@@ -871,3 +871,41 @@ record now carries `Revision: R1 (2026-08-28)` and a §12 remediation log holdin
+ records in full. Governance state is unchanged:
+ `F13-BCVH-RANKING-OVERVIEW-01 DESIGN OF RECORD APPROVED / READY FOR IMPLEMENTATION`, `Phase B1` not
+ executed, `PO UI Check Required = Yes`, and Claude Code does not self-award PO PASS.
++
++## 37. F13-BCVH-RANKING-OVERVIEW-01 — Phase B1 Backend Implementation Candidate (2026-08-28, Codex authorized by PO)
++
++Append-only delta. Sections 1-36 are unchanged. Product Owner explicitly authorized Codex to execute
++Phase B1 after Claude Code quota became constrained.
++
++### Implemented scope
++
++- Added read-only `GET /api/f13/ranking/bcvh/overview` behind the existing admin/viewer read gate.
++- Added exactly four aggregate repository calls for `monthly`, `daily`, `mtd`, and `routes`; every
++  SQL query filters the six canonical BCVH codes before aggregation and never returns raw fact rows.
++- Applied the R1 rules: `anchor_date = min(N-1, latest available data)`, monthly partial coverage
++  keeps a computed rate when `COUNT(ma_bg) > 0`, zero denominator returns `null`, Daily is returned in
++  the same response, MTD ranking uses rate then volume, and route bands retain `70/60/50`.
++- Corrected the existing Ranking `TỔNG CỘNG` calculations so current, MTD, previous MTD, D-1, D-7,
++  route distribution, and delayed-cash totals are derived only from canonical BCVH inputs. The
++  existing single-day request contract and returned detail rows are unchanged.
++- No frontend, schema, migration, formula, SSOT, import, Portal, queue, or business-data write.
++
++### Validation completed in Codex environment
++
++- New service and SQL tests: **7/7 PASS**; combined with the existing single-day contract:
++  **10/10 PASS**. The SQL itself ran against Node's isolated in-memory SQLite, covering canonical
++  filtering, four aggregates, partial coverage, zero denominator, route de-duplication, anchor rules,
++  rank ties, route thresholds, and forbidden response keys.
++- `node --check` clean on every touched backend source; `git diff --check` clean; zero NUL bytes in
++  touched files. The pre-existing dirty reference HTML remains untouched and excluded.
++- The repository carries a Windows `node_sqlite3.node` DLL. On this Linux Codex runner, Gate 5 and
++  `DashboardController.dateFilterRemediation.test.js` stop at `ERR_DLOPEN_FAILED / invalid ELF
++  header` before test collection; this is an environment incompatibility, not a test assertion.
++
++### Required Windows validation before Phase F1
++
++This commit is an **implementation candidate**, not final Phase B1 Technical PASS. On the canonical
++PO Windows workspace, run Gate 5 11/11 unchanged, the date-filter regression, the new overview tests,
++the full backend baseline comparison, and a read-only benchmark against a verified backup of the
++real database. Confirm the endpoint is `<= 3.2 s` and heap `<= 50 MB`. Phase F1 must not begin until
++that independent evidence passes. PO UI Check is not yet reachable and no PO PASS is claimed.
+-- 
+2.51.1
+
