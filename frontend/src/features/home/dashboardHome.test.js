@@ -52,8 +52,13 @@ test('Review Fix 4 & 5: ExecutiveIndicatorCard handles nulls cleanly and provide
   assert.match(cardSrc, /Chưa có dữ liệu/);
   assert.doesNotMatch(cardSrc, /24h\/48h/);
   // Null movement or change renders "—"
-  assert.match(cardSrc, /rankMovement === null \|\| rankMovement === undefined/);
-  assert.match(cardSrc, /rateChange === null \|\| rateChange === undefined/);
+  assert.match(cardSrc, /rankMovement === null/);
+  assert.match(cardSrc, /rateChange === null/);
+  // Stacked layout: rate block over rank block, 4xl numbers, labels not abbreviated
+  assert.match(cardSrc, /text-4xl/);
+  assert.match(cardSrc, /Vị thứ toàn quốc/);
+  assert.match(cardSrc, /Chênh mục tiêu/);
+  assert.doesNotMatch(cardSrc, /Vị thứ TQ|Chênh MT/);
 });
 
 test('Review Also items: province above not truncated, monthly progression labelled hạng lũy kế tháng', () => {

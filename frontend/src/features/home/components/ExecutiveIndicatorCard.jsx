@@ -13,7 +13,7 @@ import {
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
-import { formatGap } from '../homeTableSort.js';
+import { formatGap, INDICATOR_FULL_NAMES } from '../homeTableSort.js';
 
 /**
  * Executive Card for an individual indicator (F1.1, F1.2, F1.3, F4.1):
@@ -100,6 +100,22 @@ export default function ExecutiveIndicatorCard({
 
   const dateLabel = formatDateShort(data.data_date);
 
+  const fullName = INDICATOR_FULL_NAMES[data.id] || '';
+  const movementView = rankMovement === null
+    ? <span className="font-bold text-slate-400">—</span>
+    : rankMovement > 0
+      ? <span className="inline-flex items-center gap-0.5 font-black text-emerald-700"><ArrowUp size={13} /> +{rankMovement} bậc</span>
+      : rankMovement < 0
+        ? <span className="inline-flex items-center gap-0.5 font-black text-rose-600"><ArrowDown size={13} /> {rankMovement} bậc</span>
+        : <span className="inline-flex items-center gap-0.5 font-bold text-slate-500"><Minus size={13} /> Giữ hạng</span>;
+  const rateChangeView = rateChange === null
+    ? <span className="font-bold text-slate-400">—</span>
+    : rateChange > 0
+      ? <span className="inline-flex items-center gap-1 font-black text-emerald-700"><TrendingUp size={13} /> +{rateChange.toFixed(1)}%</span>
+      : rateChange < 0
+        ? <span className="inline-flex items-center gap-1 font-black text-rose-600"><TrendingDown size={13} /> {rateChange.toFixed(1)}%</span>
+        : <span className="inline-flex items-center gap-1 font-bold text-slate-500"><Minus size={13} /> 0.0%</span>;
+
   return (
     <IndicatorProvider indicator={indConfig}>
       <div
@@ -111,142 +127,92 @@ export default function ExecutiveIndicatorCard({
             : 'border-slate-200/90 bg-white shadow-xs hover:shadow-md hover:border-slate-300 hover:-translate-y-0.5'
         }`}
       >
-        {/* Top Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-          <div className="flex items-center gap-1.5">
-            <span className={`h-3 w-1.5 rounded-full ${theme.accentBar}`} />
-            <h3 className="text-base font-black text-slate-900 tracking-tight">
-              {data.label}
-            </h3>
-            <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${theme.chip}`}>
-              MT {targetRate}%
-            </span>
+        {/* Header: indicator + camera, then its name and target */}
+        <div className="border-b border-slate-100 pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className={`h-4 w-1.5 rounded-full ${theme.accentBar}`} />
+              <h3 className="text-lg font-black text-slate-900 tracking-tight">{data.label}</h3>
+            </div>
+            <div data-no-capture="true" className="flex items-center gap-1">
+              <BlockCaptureButton
+                targetRef={cardRef}
+                blockTitle={`Chỉ tiêu ${data.label}`}
+                dateOrPeriod={`Ngày ${dateLabel}`}
+              />
+            </div>
           </div>
-
-          <div data-no-capture="true" className="flex items-center gap-1">
-            <BlockCaptureButton
-              targetRef={cardRef}
-              blockTitle={`Chỉ tiêu ${data.label}`}
-              dateOrPeriod={`Ngày ${dateLabel}`}
-            />
-          </div>
+          <div className="mt-1.5 text-xs font-semibold text-slate-500">{fullName}</div>
         </div>
 
-        {/* Core KPI Area: Rate & National Rank */}
-        <div className="mt-3 grid grid-cols-2 gap-2.5 items-stretch">
-          {/* Quality Rate */}
-          <div className="rounded-xl bg-slate-50/90 p-2.5 border border-slate-100 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Tỷ lệ đạt
-              </span>
-              {isTargetMet ? (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-1 py-0.2 rounded border border-emerald-200">
-                  <Sparkles size={9} /> Đạt
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-rose-700 bg-rose-100/70 px-1 py-0.2 rounded border border-rose-200">
-                  Chưa đạt
-                </span>
-              )}
-            </div>
-
-            <div className="my-1 flex items-baseline gap-1">
-              <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 tabular-nums">
-                {rate != null ? `${rate.toFixed(1)}` : '—'}
-              </span>
-              <span className="text-xs font-extrabold text-slate-500">%</span>
-            </div>
-
-            {/* Gap to target */}
-            <div className="text-[11px] flex items-center justify-between pt-1 border-t border-slate-200/60 font-medium text-slate-500">
-              <span>Chênh MT:</span>
-              <span
-                className={`font-black tabular-nums ${
-                  isTargetMet ? 'text-emerald-700' : 'text-rose-600'
-                }`}
-              >
-                {formatGap(gapToTarget)}
-              </span>
-            </div>
-          </div>
-
-          {/* National Rank */}
-          <div className="rounded-xl bg-rose-50/50 p-2.5 border border-rose-100/90 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">
-                Vị thứ TQ
-              </span>
-              <Award size={13} className="text-rose-500 shrink-0" />
-            </div>
-
-            <div className="my-1 flex items-baseline gap-1">
-              <span className="text-2xl sm:text-3xl font-black tracking-tight text-rose-600 tabular-nums">
-                {rank != null ? rank : '—'}
-              </span>
-              <span className="text-xs font-bold text-rose-400">/{total}</span>
-            </div>
-
-            {/* Rank Movement: null must show "—", only 0 means "Giữ hạng" */}
-            <div className="text-[11px] flex items-center justify-between pt-1 border-t border-rose-200/60 font-medium text-slate-500">
-              <span>Biến động:</span>
-              <div className="font-bold tabular-nums">
-                {rankMovement === null || rankMovement === undefined ? (
-                  <span className="text-slate-400 font-bold">—</span>
-                ) : rankMovement > 0 ? (
-                  <span className="text-emerald-700 inline-flex items-center gap-0.5">
-                    <ArrowUp size={11} /> +{rankMovement} bậc
-                  </span>
-                ) : rankMovement < 0 ? (
-                  <span className="text-rose-600 inline-flex items-center gap-0.5">
-                    <ArrowDown size={11} /> {rankMovement} bậc
-                  </span>
-                ) : (
-                  <span className="text-slate-500 inline-flex items-center gap-0.5">
-                    <Minus size={11} /> Giữ hạng
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Context: DoD Rate Change & Data Date */}
-        <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-          {/* Rate DoD Change: null must show "—", only 0 means "0.0%" */}
-          <div className="flex items-center gap-1 text-[11px]">
-            <span className="text-slate-500 font-medium">So hôm trước:</span>
-            {rateChange === null || rateChange === undefined ? (
-              <span className="text-slate-400 font-bold">—</span>
-            ) : rateChange > 0 ? (
-              <span className="inline-flex items-center gap-0.5 font-bold text-emerald-700">
-                <TrendingUp size={12} /> +{rateChange.toFixed(1)}%
-              </span>
-            ) : rateChange < 0 ? (
-              <span className="inline-flex items-center gap-0.5 font-bold text-rose-600">
-                <TrendingDown size={12} /> {rateChange.toFixed(1)}%
+        {/* Rate block: the number leaders read first */}
+        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/90 px-3.5 py-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Tỷ lệ đạt</span>
+            {isTargetMet ? (
+              <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-100/70 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                <Sparkles size={10} /> Đạt
               </span>
             ) : (
-              <span className="inline-flex items-center gap-0.5 font-bold text-slate-500">
-                <Minus size={12} /> 0.0%
+              <span className="rounded border border-rose-200 bg-rose-100/70 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+                Chưa đạt
               </span>
             )}
           </div>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-4xl font-black tracking-tight text-slate-900 tabular-nums">
+              {rate != null ? rate.toFixed(1) : '—'}
+            </span>
+            <span className="text-lg font-extrabold text-slate-500">%</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between border-t border-slate-200/70 pt-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 font-medium text-slate-500">
+              Chênh mục tiêu
+              <span className={`rounded border px-1 py-0.5 text-[10px] font-bold ${theme.chip}`}>{targetRate}%</span>
+            </span>
+            <span className={`font-black tabular-nums ${isTargetMet ? 'text-emerald-700' : 'text-rose-600'}`}>
+              {formatGap(gapToTarget)}
+            </span>
+          </div>
+          <div className="mt-1.5 flex items-center justify-between text-xs">
+            <span className="font-medium text-slate-500">So hôm trước</span>
+            {rateChangeView}
+          </div>
+        </div>
 
-          {/* Individual Data Date */}
+        {/* National rank block */}
+        <div className="mt-2.5 rounded-xl border border-rose-100/90 bg-rose-50/50 px-3.5 py-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-800">Vị thứ toàn quốc</span>
+            <Award size={15} className="shrink-0 text-rose-500" />
+          </div>
+          <div className="mt-1 flex items-baseline gap-1">
+            <span className="text-4xl font-black tracking-tight text-rose-600 tabular-nums">
+              {rank != null ? rank : '—'}
+            </span>
+            <span className="text-base font-bold text-rose-400">/{total}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between border-t border-rose-200/60 pt-2 text-xs">
+            <span className="font-medium text-slate-500">So hôm trước</span>
+            {movementView}
+          </div>
+        </div>
+
+        {/* Day-over-day rate change and the day of the figures */}
+        <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+          <span className="font-medium text-slate-500">Số liệu ngày</span>
           <div
-            className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded"
+            className="inline-flex shrink-0 items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600"
             title={`Ngày số liệu của chỉ tiêu ${data.label}: ${dateLabel}`}
           >
-            <Calendar size={10} className="text-slate-400" />
+            <Calendar size={11} className="text-slate-400" />
             <span>{dateLabel}</span>
           </div>
         </div>
 
-        {/* Selection indicator pill */}
         {isSelected && (
-          <div className="mt-2.5 flex items-center justify-center">
-            <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full">
+          <div className="mt-3 flex items-center justify-center">
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-blue-700">
               ● Đang xem chi tiết bên dưới
             </span>
           </div>
