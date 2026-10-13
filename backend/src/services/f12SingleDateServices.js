@@ -218,11 +218,14 @@ class F12SingleDateService {
                 reconciliation: { exact: true, differences: {} },
             };
         }
+        // Parcels TCT could not assign to a province are not stored, but the portal's outer summary counts them.
+        const loose = parsed.unassigned || {};
+        const withLoose = (column) => sum(rows, column) + (loose[column] || 0);
         const workbook = {
-            total: sum(rows, 'sl_bd10_dong_di'),
-            evaluated: sum(rows, 'sl_bd10_quet_tms'),
-            passed: sum(rows, 'sl_dung_qd'),
-            failed: sum(rows, 'sl_qua_qd'),
+            total: withLoose('sl_bd10_dong_di'),
+            evaluated: withLoose('sl_bd10_quet_tms'),
+            passed: withLoose('sl_dung_qd'),
+            failed: withLoose('sl_qua_qd'),
         };
         const portal = {
             total: summary.totalVolume,

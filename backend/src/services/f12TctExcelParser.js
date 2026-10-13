@@ -149,6 +149,7 @@ function parseF12TctExcel(buffer, filename) {
     // Rows without an accepting province are not stored (they cannot be ranked); one of them is the grand total
     // (its position varies between exports), the others are unassigned parcels that the total still counts.
     let totalRow = null;
+    const unassigned = Object.fromEntries(COUNT_COLUMNS.map(([, column]) => [column, 0])); // counts of the unstored rows
     if (codeLessRows.length) {
         const sumOf = (rows, index) => rows.reduce((sum, row) => sum + toCount(row[index], '', 'unassigned row'), 0);
         const differences = (candidate) => {
@@ -165,6 +166,9 @@ function parseF12TctExcel(buffer, filename) {
             throw new Error(`Invalid F1.2 TCT Excel data. Grand total does not equal the sum of the rows: ${differences(largest).join('; ')}.`);
         }
         totalRow = matching.row;
+        for (const entry of codeLessRows.filter((candidate) => candidate !== matching)) {
+            for (const [index, column] of COUNT_COLUMNS) unassigned[column] += toCount(entry.row[index], column, 'unassigned row');
+        }
     }
 
     const acceptingCodes = new Set(parsedData.map((item) => item.ma_tinh_chap_nhan));
@@ -179,6 +183,7 @@ function parseF12TctExcel(buffer, filename) {
         ngayDoKiem,
         dbColumns: ['ngay_do_kiem', ...F12_TCT_DB_COLUMNS],
         grandTotalChecked: Boolean(totalRow),
+        unassigned, // not stored; the portal's outer summary counts them
     };
 }
 

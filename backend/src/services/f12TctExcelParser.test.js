@@ -33,7 +33,18 @@ test('parcels without an accepting province are not stored but the grand total s
         assert.equal(result.totalParsed, 34);
         assert.equal(result.grandTotalChecked, true);
         assert.ok(result.parsedData.every((r) => r.ma_tinh_chap_nhan));
+        assert.deepEqual([result.unassigned.sl_bd10_dong_di, result.unassigned.sl_dung_qd], [2, 1]);
     }
+});
+
+test('the outer-summary reconciliation counts the unassigned parcels, because the portal summary does', () => {
+    const { F12TctSingleDateService } = require('./f12SingleDateServices');
+    const service = new F12TctSingleDateService({ logger: { warn() {} } });
+    const parsed = parseF12TctExcel(f12TctBuffer(population(), { unassigned: [{ den: 2, ok: 1 }] }), NAME);
+    const stored = (column) => parsed.parsedData.reduce((sum, r) => sum + r[column], 0);
+    const summary = { totalVolume: stored('sl_bd10_dong_di') + 2, evaluatedVolume: stored('sl_bd10_quet_tms') + 2, passedVolume: stored('sl_dung_qd') + 1, failedVolume: stored('sl_qua_qd') + 1 };
+    assert.equal(service.reconcile(parsed, summary).reconciliation.exact, true);
+    assert.throws(() => service.reconcile(parsed, { ...summary, totalVolume: summary.totalVolume - 2 }), /does not reconcile/);
 });
 
 test('a grand total that does not match once the unassigned rows are counted still refuses the file', () => {
