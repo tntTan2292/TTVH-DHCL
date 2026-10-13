@@ -1,19 +1,44 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle, Pin } from 'lucide-react';
 import Topbar from '../Topbar';
 import { useAuth } from '../../auth/AuthContext';
 import { getNavigationForRole } from '../../navigation/appNavigation.jsx';
 import { buildPreservedPath } from '../../navigation/urlPreservation';
 import { createSearchCommitController } from './searchCommitController.js';
 
+function normalizeNavText(text = '') {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+}
+
+function getModuleIndicatorDot(title = '') {
+  if (title.includes('F1.1')) {
+    return <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] shrink-0 animate-pulse" title="Phân hệ F1.1 – Nội tỉnh (Xanh lá)" />;
+  }
+  if (title.includes('F1.2')) {
+    return <span className="inline-block h-2 w-2 rounded-full bg-teal-400 shadow-[0_0_8px_rgba(45,212,191,0.8)] shrink-0 animate-pulse" title="Phân hệ F1.2 – Thu gom (Xanh ngọc)" />;
+  }
+  if (title.includes('F1.3')) {
+    return <span className="inline-block h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)] shrink-0 animate-pulse" title="Phân hệ F1.3 – Phát liên tỉnh (Xanh dương)" />;
+  }
+  if (title.includes('F4.1')) {
+    return <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] shrink-0 animate-pulse" title="Phân hệ F4.1 – Bưu cục (Cam)" />;
+  }
+  return null;
+}
+
 export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
   const { user } = useAuth();
-  const [expandedGroups, setExpandedGroups] = useState({
+  const [pinnedGroups, setPinnedGroups] = useState({
     'Quản lý chất lượng': true,
     'QUẢN LÝ CHẤT LƯỢNG': true,
     'F1.1 – Chất lượng toàn trình nội tỉnh': true,
+    'F1.2 – Thu gom liên tỉnh': true,
     'F1.3 – Chất lượng phát liên tỉnh': true,
     'F4.1 – Chất lượng phát thành công bưu cục': true,
     'Quản lý mạng lưới': false,
@@ -21,11 +46,100 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
     'Quản trị hệ thống': false,
     'QUẢN TRỊ HỆ THỐNG': false,
   });
+  const [hoveredGroups, setHoveredGroups] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
   const navGroups = getNavigationForRole(user?.role);
 
-  const toggleGroup = (groupTitle) => {
-    setExpandedGroups((prev) => ({ ...prev, [groupTitle]: !prev[groupTitle] }));
+  const togglePinGroup = (groupTitle) => {
+    setPinnedGroups((prev) => ({
+      ...prev,
+      [groupTitle]: !prev[groupTitle],
+    }));
+    setHoveredGroups((prev) => ({
+      ...prev,
+      [groupTitle]: false,
+    }));
   };
+
+  const handleGroupMouseEnter = (groupTitle) => {
+    setHoveredGroups((prev) => ({
+      ...prev,
+      [groupTitle]: true,
+    }));
+  };
+
+  const handleGroupMouseLeave = (groupTitle) => {
+    setHoveredGroups((prev) => ({
+      ...prev,
+      [groupTitle]: false,
+    }));
+  };
+
+  useEffect(() => {
+    if (!navGroups) return;
+    navGroups.forEach((group) => {
+      if (!group.subItems) return;
+      const hasActiveChild = group.subItems.some((sub) => {
+        if (sub.subItems) {
+          return sub.subItems.some((nested) => location.pathname === nested.path);
+        }
+        return location.pathname === sub.path;
+      });
+
+      if (hasActiveChild) {
+        setPinnedGroups((prev) => {
+          const next = { ...prev, [group.title]: true };
+          group.subItems.forEach((sub) => {
+            if (sub.subItems && sub.subItems.some((nested) => location.pathname === nested.path)) {
+              next[sub.title || sub.name] = true;
+            }
+          });
+          return next;
+        });
+      }
+    });
+  }, [location.pathname, navGroups]);
+
+  const filteredNavGroups = useMemo(() => {
+    const q = normalizeNavText(searchQuery.trim());
+    if (!q) return navGroups;
+
+    return navGroups
+      .map((group) => {
+        if (!group.subItems) {
+          return normalizeNavText(group.name || group.title).includes(q) ? group : null;
+        }
+
+        const filteredSubs = group.subItems
+          .map((sub) => {
+            if (!sub.subItems) {
+              return normalizeNavText(sub.name || sub.title).includes(q) ? sub : null;
+            }
+            const filteredNested = sub.subItems.filter((nested) =>
+              normalizeNavText(nested.name || nested.title).includes(q)
+            );
+            if (filteredNested.length > 0 || normalizeNavText(sub.name || sub.title).includes(q)) {
+              return {
+                ...sub,
+                subItems: filteredNested.length > 0 ? filteredNested : sub.subItems,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+
+        if (filteredSubs.length > 0 || normalizeNavText(group.title).includes(q)) {
+          return {
+            ...group,
+            subItems: filteredSubs.length > 0 ? filteredSubs : group.subItems,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }, [navGroups, searchQuery]);
+
+  const isSearching = Boolean(searchQuery.trim());
 
   return (
     <>
@@ -68,10 +182,50 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
           </button>
         </div>
 
+        {/* Quick Search Bar (when expanded) */}
+        {!isCollapsed && (
+          <div className="px-3 pt-3 pb-1 border-b border-white/5">
+            <div className="relative flex items-center">
+              <Search size={13} className="absolute left-3 text-blue-200/50 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm nhanh menu..."
+                className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl bg-white/10 hover:bg-white/15 focus:bg-white/20 text-white placeholder-blue-200/50 border border-white/10 focus:border-[var(--color-vnpost-orange)]/60 focus:outline-none transition-all shadow-inner"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 text-blue-200/60 hover:text-white text-xs font-bold cursor-pointer"
+                  title="Xóa tìm kiếm"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Navigation Groups */}
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 sidebar-scrollbar">
+          {filteredNavGroups.length === 0 && (
+            <div className="px-4 py-8 text-center text-xs text-blue-200/60">
+              <p>Không tìm thấy menu phù hợp</p>
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="mt-2 text-[11px] text-[var(--color-vnpost-orange)] hover:underline font-semibold cursor-pointer"
+              >
+                Xóa bộ lọc
+              </button>
+            </div>
+          )}
+
           <ul className="space-y-1">
-            {navGroups.map((item, idx) => {
+            {filteredNavGroups.map((item, idx) => {
+              // Flat item
               if (!item.subItems) {
                 return (
                   <li key={item.path || idx}>
@@ -80,10 +234,11 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                       className={({ isActive }) =>
                         `relative flex items-center py-2.5 mx-3 rounded-xl transition-all duration-200 group ${isCollapsed ? 'justify-center px-0' : 'px-4'} ${
                           isActive
-                            ? 'bg-white/15 text-white font-bold backdrop-blur-md border border-white/20 shadow-xs before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-r before:bg-vnpost-orange'
-                            : 'text-blue-100/90 hover:bg-white/10 hover:text-white border border-transparent'
+                            ? 'bg-gradient-to-r from-white/20 via-white/15 to-white/5 text-white font-bold backdrop-blur-md border border-white/25 shadow-[0_0_15px_rgba(245,130,32,0.2)] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1.5 before:rounded-r-md before:bg-gradient-to-b before:from-amber-400 before:to-[var(--color-vnpost-orange)] before:shadow-[0_0_8px_rgba(245,130,32,0.7)]'
+                            : 'text-blue-100/90 hover:bg-gradient-to-r hover:from-white/12 hover:to-white/5 hover:text-white border border-transparent'
                         }`
                       }
+                      title={isCollapsed ? item.name : undefined}
                     >
                       <div className="flex-shrink-0 opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-transform">{item.icon}</div>
                       {!isCollapsed && <span className="ml-3 whitespace-nowrap text-sm font-semibold">{item.name}</span>}
@@ -92,7 +247,10 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                 );
               }
 
-              const isExpanded = expandedGroups[item.title];
+              // Group item
+              const isPinned = Boolean(pinnedGroups[item.title]);
+              const isHovered = Boolean(hoveredGroups[item.title]);
+              const isExpanded = isSearching ? true : (isPinned || isHovered);
               const isGroupActive = item.subItems.some((sub) => {
                 if (sub.subItems) {
                   return sub.subItems.some((nested) => location.pathname === nested.path);
@@ -101,92 +259,222 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
               });
 
               return (
-                <li key={item.title || idx} className="pt-2">
+                <li
+                  key={item.title || idx}
+                  className="pt-1.5"
+                  onMouseEnter={() => handleGroupMouseEnter(item.title)}
+                  onMouseLeave={() => handleGroupMouseLeave(item.title)}
+                >
                   {!isCollapsed ? (
-                    <button
-                      onClick={() => toggleGroup(item.title)}
-                      className={`relative flex w-full items-center justify-between px-5 py-2.5 transition-all duration-200 text-xs font-bold uppercase tracking-wider ${
-                        isGroupActive ? 'text-white' : 'text-blue-200/80 hover:text-white'
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 opacity-80 group-hover:opacity-100">{item.icon}</div>
-                        <span className="ml-3 whitespace-nowrap text-xs font-bold uppercase tracking-wide">{item.title}</span>
+                    <div className="relative mx-3">
+                      <div
+                        onClick={() => togglePinGroup(item.title)}
+                        className={`flex items-center justify-between px-3 py-2 transition-all duration-200 text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer select-none group ${
+                          isGroupActive ? 'text-white' : 'text-blue-200/80 hover:text-white'
+                        } ${isHovered && !isPinned ? 'bg-white/5' : ''}`}
+                      >
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 opacity-80 group-hover:opacity-100">{item.icon}</div>
+                          <span className="ml-2.5 whitespace-nowrap text-xs font-bold uppercase tracking-wide">{item.title}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePinGroup(item.title);
+                            }}
+                            className={`p-1 rounded-md transition-colors cursor-pointer ${
+                              isPinned ? 'text-amber-400 hover:text-amber-300' : 'text-white/30 hover:text-white/80'
+                            }`}
+                            title={isPinned ? 'Đang ghim mở (bấm để thu gọn)' : 'Rê chuột để xem nhanh (bấm để ghim mở)'}
+                          >
+                            <Pin size={12} className={`transition-transform duration-200 ${isPinned ? 'rotate-45 fill-amber-400' : ''}`} />
+                          </button>
+                          <ChevronDown
+                            size={14}
+                            className={`transition-transform duration-300 text-white/60 ${isExpanded ? 'rotate-180 text-white' : ''}`}
+                          />
+                        </div>
                       </div>
-                      <ChevronDown size={14} className={`transition-transform duration-200 text-white/60 ${isExpanded ? 'rotate-180 text-white' : ''}`} />
-                    </button>
+                    </div>
                   ) : (
-                    <div className="group relative flex items-center justify-center py-3 text-blue-200">
-                      <div className="flex-shrink-0 opacity-80 group-hover:opacity-100">{item.icon}</div>
+                    /* Collapsed Icon with Floating Flyout */
+                    <div className="relative group/collapsed">
+                      <div
+                        className={`flex items-center justify-center py-2.5 mx-2 rounded-xl text-blue-200/80 hover:text-white hover:bg-white/10 transition-all cursor-pointer ${
+                          isGroupActive ? 'bg-white/10 text-white' : ''
+                        }`}
+                      >
+                        <div className="flex-shrink-0 opacity-80 group-hover/collapsed:opacity-100 group-hover/collapsed:scale-110 transition-transform">
+                          {item.icon}
+                        </div>
+                      </div>
+
+                      {/* Floating Glass Flyout Popover */}
+                      <div className="absolute left-[calc(100%+8px)] top-0 z-50 hidden group-hover/collapsed:block min-w-[240px] max-w-[280px] rounded-2xl glass-sidebar border border-white/20 p-2 shadow-2xl backdrop-blur-2xl">
+                        <div className="px-3 py-1.5 border-b border-white/10 mb-1.5 flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">{item.title}</span>
+                        </div>
+                        <ul className="space-y-1 max-h-[360px] overflow-y-auto sidebar-scrollbar pr-1">
+                          {item.subItems.map((sub) => {
+                            if (!sub.subItems) {
+                              return (
+                                <li key={sub.path || sub.name}>
+                                  <NavLink
+                                    to={buildPreservedPath(sub.path, location.search)}
+                                    className={({ isActive }) =>
+                                      `flex items-center gap-2.5 py-1.5 px-2.5 rounded-lg text-xs transition-all ${
+                                        isActive
+                                          ? 'bg-gradient-to-r from-white/20 to-white/10 text-white font-bold border border-white/20'
+                                          : 'text-blue-200/80 hover:text-white hover:bg-white/10'
+                                      }`
+                                    }
+                                  >
+                                    <div className="shrink-0 opacity-70 scale-90">{sub.icon}</div>
+                                    <span className="truncate">{sub.name}</span>
+                                  </NavLink>
+                                </li>
+                              );
+                            }
+
+                            return (
+                              <li key={sub.title || sub.name} className="pt-1 border-t border-white/5 first:border-t-0 first:pt-0">
+                                <div className="flex items-center gap-2 px-2 py-1 text-[11px] font-semibold text-blue-100/90">
+                                  {getModuleIndicatorDot(sub.title || sub.name)}
+                                  <span className="truncate">{sub.name || sub.title}</span>
+                                </div>
+                                <ul className="pl-4 space-y-0.5 mt-0.5 border-l border-white/10 ml-2">
+                                  {sub.subItems.map((nested) => (
+                                    <li key={nested.path}>
+                                      <NavLink
+                                        to={buildPreservedPath(nested.path, location.search)}
+                                        className={({ isActive }) =>
+                                          `flex items-center gap-2 py-1 px-2 rounded-md text-[11px] transition-all ${
+                                            isActive
+                                              ? 'bg-white/20 text-white font-bold'
+                                              : 'text-blue-200/70 hover:text-white hover:bg-white/10'
+                                          }`
+                                        }
+                                      >
+                                        <div className="shrink-0 opacity-70 scale-75">{nested.icon}</div>
+                                        <span className="truncate">{nested.name}</span>
+                                      </NavLink>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
                     </div>
                   )}
 
-                  {!isCollapsed && isExpanded && (
-                    <ul className="mt-1 space-y-1 bg-black/15 py-2 rounded-xl mx-2 border border-white/5">
-                      {item.subItems.map((sub) => {
-                        if (!sub.subItems) {
-                          return (
-                            <li key={sub.path || sub.name}>
-                              <NavLink
-                                to={buildPreservedPath(sub.path, location.search)}
-                                className={({ isActive }) =>
-                                  `relative flex items-center py-2 pl-10 pr-4 mx-1.5 rounded-lg transition-all duration-200 text-xs font-medium ${
-                                    isActive
-                                      ? 'bg-white/15 text-white font-bold backdrop-blur-xs border border-white/15 shadow-2xs before:absolute before:left-5 before:top-2 before:bottom-2 before:w-1 before:rounded-r before:bg-vnpost-orange'
-                                      : 'text-blue-200/80 hover:bg-white/10 hover:text-white'
-                                  }`
-                                }
+                  {!isCollapsed && (
+                    <div
+                      className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${
+                        isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <ul className="mt-1 space-y-1 bg-black/15 py-2 rounded-xl mx-2 border border-white/5">
+                          {item.subItems.map((sub) => {
+                            if (!sub.subItems) {
+                              return (
+                                <li key={sub.path || sub.name}>
+                                  <NavLink
+                                    to={buildPreservedPath(sub.path, location.search)}
+                                    className={({ isActive }) =>
+                                      `relative flex items-center py-2 pl-10 pr-4 mx-1.5 rounded-lg transition-all duration-200 text-xs font-medium ${
+                                        isActive
+                                          ? 'bg-gradient-to-r from-white/20 via-white/12 to-white/5 text-white font-bold backdrop-blur-xs border border-white/20 shadow-[0_0_12px_rgba(245,130,32,0.18)] before:absolute before:left-4 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-gradient-to-b before:from-amber-400 before:to-[var(--color-vnpost-orange)] before:shadow-[0_0_6px_rgba(245,130,32,0.6)]'
+                                          : 'text-blue-200/80 hover:bg-white/10 hover:text-white'
+                                      }`
+                                    }
+                                  >
+                                    <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
+                                    <span className="ml-2.5 whitespace-nowrap text-xs">{sub.name}</span>
+                                  </NavLink>
+                                </li>
+                              );
+                            }
+
+                            const subKey = sub.title || sub.name;
+                            const isSubPinned = Boolean(pinnedGroups[subKey]);
+                            const isSubHovered = Boolean(hoveredGroups[subKey]);
+                            const isSubExpanded = isSearching ? true : (isSubPinned || isSubHovered);
+                            const isSubActive = sub.subItems.some((nested) => location.pathname === nested.path);
+
+                            return (
+                              <li
+                                key={subKey}
+                                className="pt-0.5"
+                                onMouseEnter={() => handleGroupMouseEnter(subKey)}
+                                onMouseLeave={() => handleGroupMouseLeave(subKey)}
                               >
-                                <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
-                                <span className="ml-2.5 whitespace-nowrap text-xs">{sub.name}</span>
-                              </NavLink>
-                            </li>
-                          );
-                        }
-
-                        const isSubExpanded = expandedGroups[sub.title || sub.name];
-                        const isSubActive = sub.subItems.some((nested) => location.pathname === nested.path);
-
-                        return (
-                          <li key={sub.title || sub.name} className="pt-0.5">
-                            <button
-                              onClick={() => toggleGroup(sub.title || sub.name)}
-                              className={`relative flex w-full items-center justify-between py-2 pl-8 pr-4 mx-1.5 rounded-lg transition-all duration-200 text-xs ${
-                                isSubActive ? 'font-bold text-white' : 'text-blue-200/80 hover:text-white hover:bg-white/5'
-                              }`}
-                            >
-                              <div className="flex min-w-0 items-center">
-                                <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
-                                <span className="ml-2.5 text-left text-xs font-semibold leading-snug">{sub.name || sub.title}</span>
-                              </div>
-                              <ChevronDown size={12} className={`transition-transform duration-200 text-white/50 ${isSubExpanded ? 'rotate-180 text-white' : ''}`} />
-                            </button>
-
-                            {isSubExpanded && (
-                              <ul className="mt-1 space-y-0.5 bg-black/20 py-1.5 rounded-lg mx-1.5 border-l-2 border-white/10 pl-2">
-                                {sub.subItems.map((nested) => (
-                                  <li key={nested.path}>
-                                    <NavLink
-                                      to={buildPreservedPath(nested.path, location.search)}
-                                      className={({ isActive }) =>
-                                        `relative flex items-center py-1.5 pl-6 pr-3 rounded-md transition-all duration-200 text-xs ${
-                                          isActive
-                                            ? 'bg-white/15 text-white font-bold backdrop-blur-xs border border-white/15 shadow-2xs before:absolute before:left-2 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-vnpost-orange'
-                                            : 'text-blue-200/70 hover:bg-white/10 hover:text-white'
-                                        }`
-                                      }
+                                <div
+                                  onClick={() => togglePinGroup(subKey)}
+                                  className={`relative flex w-full items-center justify-between py-2 pl-6 pr-3 mx-1 rounded-lg transition-all duration-200 text-xs cursor-pointer select-none ${
+                                    isSubActive ? 'font-bold text-white' : 'text-blue-200/80 hover:text-white hover:bg-white/5'
+                                  } ${isSubHovered && !isSubPinned ? 'bg-white/5' : ''}`}
+                                >
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
+                                    {getModuleIndicatorDot(sub.title || sub.name)}
+                                    <span className="truncate text-left text-xs font-semibold leading-snug">{sub.name || sub.title}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        togglePinGroup(subKey);
+                                      }}
+                                      className={`p-0.5 rounded transition-colors cursor-pointer ${
+                                        isSubPinned ? 'text-amber-400 hover:text-amber-300' : 'text-white/30 hover:text-white/80'
+                                      }`}
+                                      title={isSubPinned ? 'Đang ghim mở (bấm để thu gọn)' : 'Rê chuột để xem nhanh (bấm để ghim mở)'}
                                     >
-                                      <div className="flex-shrink-0 scale-75 opacity-70">{nested.icon}</div>
-                                      <span className="ml-2 whitespace-nowrap text-[12px]">{nested.name}</span>
-                                    </NavLink>
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ul>
+                                      <Pin size={11} className={`transition-transform duration-200 ${isSubPinned ? 'rotate-45 fill-amber-400' : ''}`} />
+                                    </button>
+                                    <ChevronDown size={12} className={`transition-transform duration-300 text-white/50 ${isSubExpanded ? 'rotate-180 text-white' : ''}`} />
+                                  </div>
+                                </div>
+
+                                <div
+                                  className={`grid transition-[grid-template-rows,opacity] duration-250 ease-in-out ${
+                                    isSubExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0 pointer-events-none'
+                                  }`}
+                                >
+                                  <div className="overflow-hidden">
+                                    <ul className="mt-1 space-y-0.5 bg-black/20 py-1.5 rounded-lg mx-1.5 border-l-2 border-white/10 pl-2">
+                                      {sub.subItems.map((nested) => (
+                                        <li key={nested.path}>
+                                          <NavLink
+                                            to={buildPreservedPath(nested.path, location.search)}
+                                            className={({ isActive }) =>
+                                              `relative flex items-center py-1.5 pl-6 pr-3 rounded-md transition-all duration-200 text-xs ${
+                                                isActive
+                                                  ? 'bg-gradient-to-r from-white/20 via-white/12 to-white/5 text-white font-bold backdrop-blur-xs border border-white/15 shadow-[0_0_10px_rgba(245,130,32,0.15)] before:absolute before:left-2 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-gradient-to-b before:from-amber-400 before:to-[var(--color-vnpost-orange)] before:shadow-[0_0_5px_rgba(245,130,32,0.5)]'
+                                                  : 'text-blue-200/70 hover:bg-white/10 hover:text-white'
+                                              }`
+                                            }
+                                          >
+                                            <div className="flex-shrink-0 scale-75 opacity-70">{nested.icon}</div>
+                                            <span className="ml-2 whitespace-nowrap text-[12px]">{nested.name}</span>
+                                          </NavLink>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    </div>
                   )}
                 </li>
               );
