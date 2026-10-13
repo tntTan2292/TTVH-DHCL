@@ -414,14 +414,14 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                               >
                                 <div
                                   onClick={() => togglePinGroup(subKey)}
-                                  className={`relative flex w-full items-center justify-between py-2 pl-6 pr-3 mx-1 rounded-lg transition-all duration-200 text-xs cursor-pointer select-none ${
+                                  className={`relative flex w-full items-start justify-between gap-1 py-2 pl-4 pr-2 mx-1 rounded-lg transition-all duration-200 text-xs cursor-pointer select-none ${
                                     isSubActive ? 'font-bold text-white' : 'text-blue-200/80 hover:text-white hover:bg-white/5'
                                   } ${isSubHovered && !isSubPinned ? 'bg-white/5' : ''}`}
                                 >
                                   <div className="flex min-w-0 items-center gap-2">
                                     <div className="flex-shrink-0 scale-90 opacity-70">{sub.icon}</div>
                                     {getModuleIndicatorDot(sub.title || sub.name)}
-                                    <span className="truncate text-left text-xs font-semibold leading-snug">{sub.name || sub.title}</span>
+                                    <span className="break-words text-left text-xs font-semibold leading-snug">{sub.name || sub.title}</span>
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <button
@@ -430,12 +430,12 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                                         e.stopPropagation();
                                         togglePinGroup(subKey);
                                       }}
-                                      className={`p-0.5 rounded transition-colors cursor-pointer ${
+                                      className={`shrink-0 p-1.5 -my-1 rounded-md transition-colors cursor-pointer hover:bg-white/10 ${
                                         isSubPinned ? 'text-amber-400 hover:text-amber-300' : 'text-white/30 hover:text-white/80'
                                       }`}
                                       title={isSubPinned ? 'Đang ghim mở (bấm để thu gọn)' : 'Rê chuột để xem nhanh (bấm để ghim mở)'}
                                     >
-                                      <Pin size={11} className={`transition-transform duration-200 ${isSubPinned ? 'rotate-45 fill-amber-400' : ''}`} />
+                                      <Pin size={13} className={`transition-transform duration-200 ${isSubPinned ? 'rotate-45 fill-amber-400' : ''}`} />
                                     </button>
                                     <ChevronDown size={12} className={`transition-transform duration-300 text-white/50 ${isSubExpanded ? 'rotate-180 text-white' : ''}`} />
                                   </div>
