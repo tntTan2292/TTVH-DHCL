@@ -68,3 +68,19 @@ Prompt written: docs/10_TICKETS/PERF-LOAD-01_OPUS_REVIEW_PROMPT.md (2026-10-13).
 ## 13. Opus review verdict and fixes (2026-10-13)
 
 Verdict: numbers identical `on` vs `off` when synchronised; do not enable `on` before C1/C2. Fixed C1, C2, S1-S4, G2, G3 (design Section 17): no pre-emptying on rebuild; shadow skips comparisons overlapping an import transaction, richer logs and an admin `GET /api/f13/dashboard/agg-status`; per-day detail signatures (`agg_day_sig`) in the fuse so a same-row-count reimport by an old process opens it; response cache cleared on fuse change; `agg_compare` aborts when the fuse is open; two stale source-regex tests updated; role check before the cache. Required once after deploy: `node scripts/agg_tool.js build`. Enablement conditions in Section 17.
+
+## 14. Handoff - state at 2026-10-13 (account switch)
+
+**Done and pushed (branch `codex/da-impl-006`):** Phase 1 (cache, gzip, SQLite tuning), Phase 2 P2.0-P2.4 (aggregates, write path, F4.1/F1.3/F1.1/F1.2 read switch), independent Opus review and all its fixes (Section 13). 37 agg tests green; real DB built and verified 4/4.
+
+**Shadow mode:** `QIS_AGG_READ=shadow` was written to the repo-root `.env` (git-ignored, read by `loadLocalEnv`). **It takes effect only after a backend restart** after that edit; the environment is read at process start. Check with an admin session: `GET /api/f13/dashboard/agg-status` (modes should read `shadow`).
+
+**Next steps (in order):**
+1. Let one working day run in shadow (needs at least one normal import and one force-reimport per indicator, done by the restarted backend).
+2. End of day: `node scripts/agg_tool.js verify` must print 4/4 OK; `agg-status` must show `compared > 0` per indicator, `shadowMismatches = 0`, `fuseTrips = 0` (a `[agg-shadow] MISMATCH` that coincides with an import is not counted, it is reported as `skipped`).
+3. Then set `QIS_AGG_READ_F41=on` (alone first), restart, check numbers on /f41/dashboard and /f41/ranking/bcvh against the previous day, then F1.3, F1.1, F1.2. Rollback = remove the variable and restart.
+4. After a clean week: close PERF-LOAD-01 Phase 2 in `PROJECT_SNAPSHOT.md`; Phase 3 (page bundle endpoint, lazy loading, static build) and Phase 4 are still not authorised.
+
+**Housekeeping already done in the same push:** `backend/node_modules/{compression,compressible,on-headers}` and `SmartTileLayer.jsx` were untracked although the code imports them (fresh checkouts would have failed); other sessions' work-in-progress files were committed as WIP (see commit messages; they carry known failing tests listed in the Opus review prompt, Section "Test đỏ sẵn có"). Large data folders `Data QLML/` and `exports/` are intentionally NOT in git (added to `.gitignore`).
+
+**Known residuals:** UPDATE-in-place of detail rows is invisible to the fuse (use `verify`); sort order of ties in `getBcvhRanking` is undefined at both sources; filter inputs on the Dashboard pages log a React `value=null` warning (UI, Antigravity).

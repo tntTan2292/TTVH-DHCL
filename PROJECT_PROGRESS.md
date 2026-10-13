@@ -2333,3 +2333,7 @@ F1.2 aggregate reads switchable (QIS_AGG_READ_F12 off|shadow|on, fuse); 531120 h
 ## 2026-10-13 - PERF-LOAD-01 REVIEW FIXES
 
 Opus review (no blocker once C1/C2 fixed): rebuild no longer empties the aggregate; shadow ignores comparisons overlapping import transactions and exposes stats (admin agg-status); fuse now compares per-day signatures (rows, MAX(id)); cache cleared on fuse change; stale regex tests updated. 37 agg tests green, real DB build/verify 4/4. Next: supervised shadow day, then on. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 13; design Section 17.
+
+## 2026-10-13 - PERF-LOAD-01 HANDOFF
+
+Shadow mode written to root .env (restart needed); next: one supervised shadow day, verify 4/4, then on per indicator. Dependencies and SmartTileLayer.jsx that were untracked are now committed; other sessions WIP committed as WIP. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 14.

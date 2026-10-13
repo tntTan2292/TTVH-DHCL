@@ -113,3 +113,7 @@ TTVH_ControlCenter_Temp.ps1
 frontend/certs/
 *.sqlite-wal
 *.sqlite-shm
+
+# Large source data and exports (kept on the workstation, not in git)
+Data QLML/
+exports/
