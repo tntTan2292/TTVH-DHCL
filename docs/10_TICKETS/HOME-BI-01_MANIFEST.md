@@ -103,3 +103,17 @@ Trang chủ điều hành (`/`, `frontend/src/pages/DashboardHome.jsx`) hoàn t�
 - [ ] Chuyển đổi các tab chỉ tiêu và kỳ Ngày/Tuần/Tháng phản hồi mượt mà.
 - [ ] 4 biểu đồ xu hướng độc lập hiển thị đúng vạch mục tiêu (95% cho F1.1, F1.2; 90% cho F1.3, F4.1).
 - [ ] Nút Camera trên các khối hoạt động sao chép / lưu ảnh PNG theo chuẩn.
+
+## 8. Review round 1 (Claude Code, 2026-10-13) — fixes for Antigravity
+
+Checked on the restarted server with real data from `/api/home/*`: page loads, no JS error, cards / 34-province table / trends match the API. Five defects (UI only; no backend change):
+
+1. **Wrong indicator names** in the subtitle of `ExecutiveDateBar.jsx`. Correct: F1.1 toàn trình nội tỉnh, F1.2 thu gom liên tỉnh, F1.3 phát liên tỉnh, F4.1 phát thành công bưu cục. Take the names from `indicatorConfig.js` / the menu, never retype them.
+2. **Trend charts clip real data:** `IndicatorTrendsGrid.jsx` fixes the Y domain at 40–100, but real points are lower (F4.1 22.2 %, F1.1 38.1 %, F1.3 39.3 %). The domain must follow the data (always including the target line) with a sensible floor.
+3. **Rate colours in the 34-province table** use an ad-hoc "target − 10" rule. Use the shared catalogue (`f13HeatmapBandCatalog`, `classifyF13HeatmapRate`) with the indicator's own bands from `indicatorConfig.js` (F1.1 / F1.2 / F1.3: 70/60/50; F4.1: 80/70/60), as the standard requires.
+4. **Missing data shown as a value:** in `ExecutiveIndicatorCard.jsx`, `rate_change = null` shows "0.0%" and `rank_movement = null` shows "Giữ hạng". Null must show "—" (only a real 0 means "no change"). Apply the same rule to the table's movement column.
+5. **Card too cramped:** at 1440 px with the menu open, "TỶ LỆ ĐẠT", "VỊ THỨ TOÀN QUỐC" and "Chênh mục tiêu" wrap to 2–3 lines. Give the rate and the rank room (the two big numbers are what leaders read first); layout is Antigravity's choice.
+
+Also: do not truncate the province name / rate in the "Mục tiêu vượt tỉnh xếp trên" callout; label the monthly rank strip "hạng lũy kế tháng" (the T10 value is month-to-date, not the day rank); remove the unused `targetRate` in `LowestUnitsBlock.jsx` and the unused import in `homeTableSort.test.js`.
+
+Add or extend unit tests for 2, 3 and 4 (pure helpers). Stop at `READY FOR PO CHECK`.
