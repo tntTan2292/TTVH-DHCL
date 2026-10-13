@@ -10,6 +10,11 @@
 //
 // Completeness rule (as F4.1): all 34 frozen national-ranking province codes must appear as a
 // DELIVERING province (ma_tinh_phat); the number of rows is not checked.
+//
+// A parcel the portal reports with NO accepting province (blank code and name, delivering province
+// present) is kept, filed under the accepting code KXD / "Không xác định" (PO decision 2026-10-11), so the
+// day's totals and the delivering-province ranking still equal the published figures. A row with an
+// accepting province but NO delivering province is still refused: the ranking key would be unknown.
 
 const path = require('path');
 const xlsx = require('xlsx');
@@ -17,6 +22,8 @@ const { extractF11DateFromFilename } = require('./f11HueExcelParser');
 const { NATIONAL_RANKED_PROVINCE_CODES } = require('./nationalExcelParser');
 
 const MAX_HEADER_SCAN_ROWS = 20;
+const UNKNOWN_ACCEPTING_PROVINCE_CODE = 'KXD';
+const UNKNOWN_ACCEPTING_PROVINCE_NAME = 'Không xác định';
 
 // column index -> [db column, kind]; kind 'code' | 'name' | 'count' | 'text' (published percentage, kept raw)
 const COLUMNS = Object.freeze([
@@ -122,17 +129,23 @@ function parseF11TctExcel(buffer, filename) {
     const parsedData = [];
     let totalRow = null;
     const seenPairs = new Set();
+    let unknownAcceptingRows = 0;
 
     bodyRows.forEach((row, offset) => {
         if (!Array.isArray(row) || row.every((cell) => cell === null || normalize(cell) === '')) return;
-        const acceptCode = toCode(row[1]);
+        let acceptCode = toCode(row[1]);
         const deliverCode = toCode(row[5]);
         if (!acceptCode && !deliverCode) {
             if (!totalRow && typeof row[12] === 'number') totalRow = row; // grand total (first data row)
             return;
         }
-        if (!acceptCode || !deliverCode) {
-            throw new Error(`Invalid F1.1 TCT Excel data. Row ${headerRowIdx + 4 + offset} has only one of the two province codes.`);
+        if (!deliverCode) {
+            throw new Error(`Invalid F1.1 TCT Excel data. Row ${headerRowIdx + 4 + offset} has an accepting province but no delivering province code.`);
+        }
+        const unknownAccepting = !acceptCode;
+        if (unknownAccepting) {
+            acceptCode = UNKNOWN_ACCEPTING_PROVINCE_CODE;
+            unknownAcceptingRows += 1;
         }
         const rowLabel = `row ${headerRowIdx + 4 + offset} (${acceptCode} -> ${deliverCode})`;
         const pairKey = `${acceptCode}>${deliverCode}`;
@@ -144,7 +157,9 @@ function parseF11TctExcel(buffer, filename) {
         const item = { ngay_do_kiem: ngayDoKiem };
         for (const [index, column, kind] of COLUMNS) {
             const value = row[index];
-            if (kind === 'code') item[column] = toCode(value);
+            if (column === 'ma_tinh_chap_nhan') item[column] = acceptCode;
+            else if (column === 'ten_tinh_chap_nhan' && unknownAccepting) item[column] = UNKNOWN_ACCEPTING_PROVINCE_NAME;
+            else if (kind === 'code') item[column] = toCode(value);
             else if (kind === 'name') item[column] = normalize(value) || null;
             else if (kind === 'text') item[column] = normalize(value) || null;
             else if (kind === 'int') item[column] = Number.isFinite(Number(value)) && value !== null ? Number(value) : null;
@@ -183,6 +198,7 @@ function parseF11TctExcel(buffer, filename) {
         ngayDoKiem,
         dbColumns: ['ngay_do_kiem', ...F11_TCT_DB_COLUMNS],
         grandTotalChecked: Boolean(totalRow),
+        unknownAcceptingRows,
     };
 }
 
@@ -190,4 +206,5 @@ module.exports = {
     parseF11TctExcel,
     F11_TCT_DB_COLUMNS,
     F11_TCT_COLUMNS: COLUMNS,
+    UNKNOWN_ACCEPTING_PROVINCE_CODE,
 };

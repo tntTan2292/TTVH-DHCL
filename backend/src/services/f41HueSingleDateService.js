@@ -52,7 +52,7 @@ class F41HueSingleDateService {
         this.config = {
             rawDownloadDir: options.rawDownloadDir || path.resolve(process.cwd(), '../portal-downloads/dkcl/hue/f41/raw'),
             generationTimeoutMs: options.generationTimeoutMs || Number(process.env.DKCL_HUE_GENERATION_TIMEOUT_MS || 900000),
-            generationPollingIntervalMs: options.generationPollingIntervalMs || Number(process.env.DKCL_HUE_GENERATION_POLL_INTERVAL_MS || 30000),
+            generationPollingIntervalMs: options.generationPollingIntervalMs || Number(process.env.DKCL_HUE_GENERATION_POLL_INTERVAL_MS || 3000),
             downloadStableTimeoutMs: options.downloadStableTimeoutMs || 120000,
         };
     }

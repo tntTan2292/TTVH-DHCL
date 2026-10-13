@@ -39,10 +39,11 @@ function serviceError(code, message, details = null) {
 
 // Reconciliation of a workbook against the portal's outer summary (PO decision 2026-10-10): the total and the
 // passed count must match exactly (they carry the dashboard rate); the evaluated / failed counts may differ by up
-// to 2 % of the day's total (at least 5 parcels) because the portal counts a few parcels without a 2026 target
+// to 3 % of the day's total (at least 5 parcels) because the portal counts a few parcels without a 2026 target
 // time as evaluated while the detail leaves their evaluation blank (1-2 parcels on ~1,800 observed). Any such
-// difference is reported, never silent.
-const RECONCILIATION_TOLERANCE_RATE = 0.02;
+// difference is reported, never silent. PO decision 2026-10-11: raised from 2 % to 3 % after 24/07 (HUE) differed
+// by 2,6 %; the same constant serves the HUE and TCT lanes.
+const RECONCILIATION_TOLERANCE_RATE = 0.03;
 const RECONCILIATION_TOLERANCE_MIN = 5;
 
 function evaluateReconciliation(workbook, portal, keys) {
@@ -91,7 +92,7 @@ class F11SingleDateService {
         this.config = {
             rawDownloadDir: options.rawDownloadDir || path.resolve(process.cwd(), `../portal-downloads/dkcl/${laneDir}/f11/raw`),
             generationTimeoutMs: options.generationTimeoutMs || Number(process.env.DKCL_HUE_GENERATION_TIMEOUT_MS || 900000),
-            generationPollingIntervalMs: options.generationPollingIntervalMs || Number(process.env.DKCL_HUE_GENERATION_POLL_INTERVAL_MS || 30000),
+            generationPollingIntervalMs: options.generationPollingIntervalMs || Number(process.env.DKCL_HUE_GENERATION_POLL_INTERVAL_MS || 3000),
             downloadStableTimeoutMs: options.downloadStableTimeoutMs || 120000,
         };
     }

@@ -441,7 +441,7 @@ test('HUE reconciliation: exact match is exact; total and passed must always mat
     const { service } = newService(F11HueSingleDateService);
     const parsed = parsedHue({ total: 1800, passed: 1600, failed: 150 }); // 50 blank
     const exact = service.reconcile(parsed, hueSummary({ total: 1800, evaluated: 1750, passed: 1600 }));
-    assert.deepEqual(exact.reconciliation, { exact: true, differences: {}, tolerance: 36 });
+    assert.deepEqual(exact.reconciliation, { exact: true, differences: {}, tolerance: 54 });
     assert.throws(() => service.reconcile(parsed, hueSummary({ total: 1801, evaluated: 1750, passed: 1600 })), (e) => e.code === 'F11_HUE_RECONCILIATION_FAILED' && e.details.differences.total === -1);
     assert.throws(() => service.reconcile(parsed, hueSummary({ total: 1800, evaluated: 1750, passed: 1601 })), (e) => e.code === 'F11_HUE_RECONCILIATION_FAILED' && e.details.differences.passed === -1);
 });
@@ -450,21 +450,21 @@ test('HUE reconciliation: a 1-2 parcel gap in evaluated/failed is accepted and r
     const { service } = newService(F11HueSingleDateService);
     const parsed = parsedHue({ total: 1797, passed: 1629, failed: 143 }); // 25 blank
     const result = service.reconcile(parsed, hueSummary({ total: 1797, evaluated: 1774, passed: 1629 }));
-    assert.deepEqual(result.reconciliation, { exact: false, differences: { evaluated: -2, failed: -2 }, tolerance: 36 });
+    assert.deepEqual(result.reconciliation, { exact: false, differences: { evaluated: -2, failed: -2 }, tolerance: 54 });
     assert.equal(result.passed, 1629);
 });
 
-test('HUE reconciliation: the tolerance is 2 % of the total (at least 5 parcels); beyond it the failure names the numbers', () => {
+test('HUE reconciliation: the tolerance is 3 % of the total (at least 5 parcels); beyond it the failure names the numbers', () => {
     const { service } = newService(F11HueSingleDateService);
     const parsed = parsedHue({ total: 1800, passed: 1600, failed: 150 });
-    assert.equal(service.reconcile(parsed, hueSummary({ total: 1800, evaluated: 1786, passed: 1600 })).reconciliation.exact, false); // 36 = 2 %
-    assert.throws(() => service.reconcile(parsed, hueSummary({ total: 1800, evaluated: 1787, passed: 1600 })), (e) => e.code === 'F11_HUE_RECONCILIATION_FAILED' && /workbook \{.*\} vs portal summary \{.*\}, differences \{"evaluated":-37,"failed":-37\}, tolerance 36/.test(e.message));
+    assert.equal(service.reconcile(parsed, hueSummary({ total: 1800, evaluated: 1804, passed: 1600 })).reconciliation.exact, false); // 54 = 3 %
+    assert.throws(() => service.reconcile(parsed, hueSummary({ total: 1800, evaluated: 1805, passed: 1600 })), (e) => e.code === 'F11_HUE_RECONCILIATION_FAILED' && /workbook \{.*\} vs portal summary \{.*\}, differences \{"evaluated":-55,"failed":-55\}, tolerance 54/.test(e.message));
     const small = parsedHue({ total: 100, passed: 80, failed: 15 });
     assert.equal(service.reconcile(small, hueSummary({ total: 100, evaluated: 100, passed: 80 })).reconciliation.tolerance, 5); // 5 blank rows
     assert.throws(() => service.reconcile(small, hueSummary({ total: 100, evaluated: 101, passed: 80 })), (e) => e.code === 'F11_HUE_RECONCILIATION_FAILED');
 });
 
-test('TCT reconciliation: same rule (total and passed exact, evaluated within 2 %)', () => {
+test('TCT reconciliation: same rule (total and passed exact, evaluated within 3 %)', () => {
     const { service } = newService(F11TctSingleDateService);
     const parsed = { totalParsed: 2, parsedData: [
         { sl_co_thong_tin_phat: 900, sl_theo_chi_tieu: 880, sl_dung_chi_tieu: 800 },
@@ -474,5 +474,5 @@ test('TCT reconciliation: same rule (total and passed exact, evaluated within 2 
     assert.equal(service.reconcile(parsed, summary({})).reconciliation.exact, true);
     assert.deepEqual(service.reconcile(parsed, summary({ evaluatedVolume: 982 })).reconciliation.differences, { evaluated: -2 });
     assert.throws(() => service.reconcile(parsed, summary({ passedVolume: 891 })), (e) => e.code === 'F11_TCT_RECONCILIATION_FAILED');
-    assert.throws(() => service.reconcile(parsed, summary({ evaluatedVolume: 1100 })), (e) => e.code === 'F11_TCT_RECONCILIATION_FAILED' && /tolerance 20/.test(e.message));
+    assert.throws(() => service.reconcile(parsed, summary({ evaluatedVolume: 1100 })), (e) => e.code === 'F11_TCT_RECONCILIATION_FAILED' && /tolerance 30/.test(e.message));
 });

@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const xlsx = require('xlsx');
 
 const { parseF11TctExcel, F11_TCT_DB_COLUMNS } = require('./f11TctExcelParser');
 const { NATIONAL_RANKED_PROVINCE_CODES } = require('./nationalExcelParser');
@@ -83,4 +84,28 @@ test('real single-day TCT file: 84 rows, 34 ranked provinces present, grand tota
         },
         { co_tt: 2621, ch: 2589, den: 2588, ok: 2348, qua: 240, le24: 2400, loaitru: 20 },
     );
+});
+
+test('a parcel with no accepting province is kept under KXD / Không xác định and the day totals still verify', () => {
+    const specs = [...defaultSpecs(), { acc: '', del: 22, den: 1, ok: 1 }];
+    const result = parseF11TctExcel(buildTctWorkbookBuffer(specs), NAME);
+    assert.equal(result.totalParsed, 35);
+    assert.equal(result.unknownAcceptingRows, 1);
+    assert.equal(result.grandTotalChecked, true);
+    const unknown = result.parsedData.find((row) => row.ma_tinh_chap_nhan === 'KXD');
+    assert.deepEqual(
+        { acc: unknown.ma_tinh_chap_nhan, accName: unknown.ten_tinh_chap_nhan, del: unknown.ma_tinh_phat, den: unknown.sl_theo_chi_tieu },
+        { acc: 'KXD', accName: 'Không xác định', del: '22', den: 1 },
+    );
+});
+
+test('a row with an accepting province but no delivering province is still refused', () => {
+    const specs = [...defaultSpecs(), { acc: '01', del: 70, den: 1, ok: 1 }];
+    const book = xlsx.read(buildTctWorkbookBuffer(specs), { type: 'buffer' });
+    const sheet = book.Sheets[book.SheetNames[0]];
+    const lastRow = 4 + specs.length; // header, sub-header, legend, total, then the body rows
+    delete sheet[`F${lastRow}`]; // the delivering-province code and name of the last body row
+    delete sheet[`G${lastRow}`];
+    const buffer = xlsx.write(book, { type: 'buffer', bookType: 'xlsx' });
+    assert.throws(() => parseF11TctExcel(buffer, NAME), /accepting province but no delivering province/);
 });

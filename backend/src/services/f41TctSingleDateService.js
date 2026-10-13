@@ -57,7 +57,7 @@ class F41TctSingleDateService {
         this.config = {
             rawDownloadDir: options.rawDownloadDir || path.resolve(process.cwd(), '../portal-downloads/dkcl/tct/f41/raw'),
             generationTimeoutMs: options.generationTimeoutMs || Number(process.env.DKCL_TCT_GENERATION_TIMEOUT_MS || 900000),
-            generationPollingIntervalMs: options.generationPollingIntervalMs || Number(process.env.DKCL_TCT_GENERATION_POLL_INTERVAL_MS || 30000),
+            generationPollingIntervalMs: options.generationPollingIntervalMs || Number(process.env.DKCL_TCT_GENERATION_POLL_INTERVAL_MS || 3000),
             downloadStableTimeoutMs: options.downloadStableTimeoutMs || 120000,
         };
     }
